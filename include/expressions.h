@@ -219,6 +219,7 @@ public:
 private:
 };
 
+#if 0
 class Division : public BinaryOp<Division> {
 public:
   using BinaryOp::BinaryOp;
@@ -232,6 +233,7 @@ public:
 
 private:
 };
+#endif
 
 template <typename T, typename... Args> auto MakeExpr(Args &&... args) {
   return Expr(MakeExprBase<T>(std::forward<Args>(args)...));
@@ -247,6 +249,7 @@ protected:
   ExpressionBaseConstPtr x_;
 };
 
+#if 0
 class NaturalLog : public UnaryOp<NaturalLog> {
 public:
   using UnaryOp::UnaryOp;
@@ -267,6 +270,7 @@ public:
 
   std::string ToString() const { return FormatString("^"); }
 };
+#endif 
 
 bool IsZero(const ExpressionBaseConstPtr &expr);
 bool IsOne(const ExpressionBaseConstPtr &expr);
