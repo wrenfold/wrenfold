@@ -1,9 +1,24 @@
 #include "expr.h"
 
 #include "assertions.hpp"
+#include "constant_expressions.h"
+#include "constants.h"
 #include "variable.h"
 
 namespace math {
+
+static ExpressionBaseConstPtr MakeNumber(double x) {
+  if (x == 0) {
+    return Constants::Zero;
+  } else if (x == 1) {
+    return Constants::One;
+  }
+  return MakeExprBase<Number>(x);
+}
+
+Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
+
+Expr::Expr(double x) : impl_(MakeNumber(x)) {}
 
 Expr Expr::Diff(const Expr& var, const int Reps) const {
   const Variable* const as_var = var.GetRaw<Variable>();
@@ -17,6 +32,8 @@ Expr Expr::Diff(const Expr& var, const int Reps) const {
   return Expr{std::move(Result)};
 }
 
-std::string Expr::ToString() const { return impl_->ToString(); }
+bool Expr::IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other); }
+
+std::string Expr::ToString() const { return impl_->Format(); }
 
 }  // namespace math

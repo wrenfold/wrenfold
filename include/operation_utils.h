@@ -11,6 +11,7 @@ using ExpressionBaseConstPtr = std::shared_ptr<const ExpressionBase>;
 ExpressionBaseConstPtr CreateAddition(const ExpressionBaseConstPtr& a,
                                       const ExpressionBaseConstPtr& b);
 
+// Create a subtraction expression.
 ExpressionBaseConstPtr CreateSubtraction(const ExpressionBaseConstPtr& a,
                                          const ExpressionBaseConstPtr& b);
 
@@ -21,5 +22,8 @@ ExpressionBaseConstPtr CreateMultiplication(const ExpressionBaseConstPtr& a,
 // Create a division expression.
 ExpressionBaseConstPtr CreateDivision(const ExpressionBaseConstPtr& a,
                                       const ExpressionBaseConstPtr& b);
+
+// Create a negation expression.
+ExpressionBaseConstPtr CreateNegation(const ExpressionBaseConstPtr& x);
 
 }  // namespace math

@@ -2,7 +2,7 @@
 #include <memory>
 #include <string>
 
-#include "binary_operation_utils.h"
+#include "operation_utils.h"
 
 namespace math {
 
@@ -19,6 +19,12 @@ class Expr {
   // Constructors.
   explicit Expr(ExpressionBaseConstPtr&& impl) : impl_(std::move(impl)) {}
   explicit Expr(const ExpressionBaseConstPtr& impl) : impl_(impl) {}
+
+  // Construct variable:
+  explicit Expr(const std::string& name);
+
+  // Construct constant:
+  Expr(double x);
 
   // Get the implementation pointer.
   const ExpressionBaseConstPtr& GetImpl() const { return impl_; }
@@ -37,8 +43,14 @@ class Expr {
     return impl_;
   }
 
+  // Test if the two expressions are identical.
+  bool IsIdenticalTo(const Expr& other) const;
+
   // Convert to string.
   std::string ToString() const;
+
+  // Negation operator.
+  Expr operator-() const { return Expr{CreateNegation(impl_)}; }
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
   Expr Diff(const Expr& var, int Reps = 1) const;
@@ -46,6 +58,14 @@ class Expr {
  private:
   ExpressionBaseConstPtr impl_;
 };
+
+template <typename T>
+struct IsConvertibleToExpr {
+  static constexpr bool value = std::is_same<T, Expr>::value || std::is_arithmetic<T>::value;
+};
+
+template <typename T>
+using EnableConvertibleToExpr = std::enable_if<IsConvertibleToExpr<T>::value, Expr>;
 
 // Operations defined on expressions:
 inline Expr operator*(const Expr& a, const Expr& b) { return Expr{CreateMultiplication(a, b)}; }

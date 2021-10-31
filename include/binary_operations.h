@@ -5,9 +5,22 @@
 
 namespace math {
 
+class OperationBase {
+ public:
+  virtual int Precedence() const = 0;
+  virtual ~OperationBase() = default;
+};
+
+template <typename Derived>
+class OperationImpl : public OperationBase {
+ public:
+  int Precedence() const override { return Derived::OperatorPrecedence; }
+  virtual ~OperationImpl() = default;
+};
+
 // Binary operation of two expressions.
 template <typename Derived>
-class BinaryOp : public ExpressionImpl<Derived> {
+class BinaryOp : public ExpressionImpl<Derived>, public OperationImpl<Derived> {
  public:
   BinaryOp(const ExpressionBaseConstPtr& a, const ExpressionBaseConstPtr& b) : a_(a), b_(b) {}
 
@@ -17,22 +30,16 @@ class BinaryOp : public ExpressionImpl<Derived> {
 
   // This will only be called for things with the same derived type, so we don't
   // need to check the specific operator here.
-  bool EqualsImplTyped(const BinaryOp<Derived>& other) const {
-    if (a_->Equals(other.a_) && b_->Equals(other.b_)) {
+  bool IsIdenticalToImplTyped(const BinaryOp<Derived>& other) const {
+    if (a_->IsIdenticalTo(other.a_) && b_->IsIdenticalTo(other.b_)) {
       return true;
     }
     if (Derived::IsCommutative) {
-      if (a_->Equals(other.b_) && b_->Equals(other.a_)) {
+      if (a_->IsIdenticalTo(other.b_) && b_->IsIdenticalTo(other.a_)) {
         return true;
       }
     }
     return false;
-  }
-
- protected:
-  std::string FormatString(const std::string& op) const {
-    // TODO: figure out when the braces are required, and when not:
-    return fmt::format("({} {} {})", a_->ToString(), op, b_->ToString());
   }
 
  protected:
@@ -45,10 +52,12 @@ class Addition : public BinaryOp<Addition> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = true;
+  static constexpr int OperatorPrecedence = 1;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 
-  std::string ToString() const override;
+ protected:
+  std::string Format() const override;
 };
 
 // Subtraction operation.
@@ -56,10 +65,12 @@ class Subtraction : public BinaryOp<Addition> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
+  static constexpr int OperatorPrecedence = 1;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 
-  std::string ToString() const override;
+ protected:
+  std::string Format() const override;
 };
 
 // Multiplication operation.
@@ -67,9 +78,12 @@ class Multiplication : public BinaryOp<Multiplication> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = true;
+  static constexpr int OperatorPrecedence = 2;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
-  std::string ToString() const override;
+
+ protected:
+  std::string Format() const override;
 };
 
 #if 0

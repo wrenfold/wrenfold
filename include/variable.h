@@ -16,16 +16,13 @@ class Variable : public ExpressionImpl<Variable> {
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 
   // Convert to string.
-  std::string ToString() const override { return name_; }
+  std::string Format() const override { return name_; }
 
   // Check if two variables are the same (names match).
-  bool EqualsImplTyped(const Variable& other) const;
+  bool IsIdenticalToImplTyped(const Variable& other) const;
 
  private:
   std::string name_;
 };
-
-// Make a variable from a string.
-inline Expr MakeVar(const std::string& name) { return Expr{std::make_shared<Variable>(name)}; }
 
 }  // namespace math
