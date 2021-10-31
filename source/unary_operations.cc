@@ -8,16 +8,8 @@ ExpressionBaseConstPtr Negate::Diff(const Variable& var) const {
   return CreateNegation(x_->Diff(var));
 }
 
-std::string Negate::Format() const {
-  return fmt::format("-{}", x_->Format());
-}
-
-ExpressionBaseConstPtr NaturalLog::Diff(const Variable&) const {
-  return {};
-}
-
-std::string NaturalLog::Format() const {
-  return fmt::format("ln({})", x_->Format());
+ExpressionBaseConstPtr NaturalLog::Diff(const Variable& var) const {
+  return CreateDivision(x_->Diff(var), x_);
 }
 
 } // namespace math

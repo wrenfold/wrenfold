@@ -6,6 +6,8 @@
 #include "constants.h"
 #include "unary_operations.h"
 
+// #define VERBOSE_OPS
+
 namespace math {
 
 ExpressionBaseConstPtr CreateMultiplication(const ExpressionBaseConstPtr& a,
@@ -34,6 +36,9 @@ ExpressionBaseConstPtr CreateAddition(const ExpressionBaseConstPtr& a,
   } else if (IsZero(b)) {
     return a;
   }
+#ifdef VERBOSE_OPS
+  fmt::print(TEXT("Creating Addition({}, {})\n"), ToPlainString(a), ToPlainString(b));
+#endif
   return MakeExprBase<Addition>(a, b);
 }
 
@@ -50,6 +55,9 @@ ExpressionBaseConstPtr CreateSubtraction(const ExpressionBaseConstPtr& a,
   if (a->IsIdenticalTo(b)) {
     return Constants::Zero;
   }
+#ifdef VERBOSE_OPS
+  fmt::print(TEXT("Creating Subtraction({}, {})\n"), ToPlainString(a), ToPlainString(b));
+#endif
   return MakeExprBase<Subtraction>(a, b);
 }
 
@@ -63,6 +71,11 @@ ExpressionBaseConstPtr CreateNegation(const ExpressionBaseConstPtr& x) {
     return as_negate->Inner();
   }
   return MakeExprBase<Negate>(x);
+}
+
+ExpressionBaseConstPtr CreateDivision(const ExpressionBaseConstPtr&,
+                                      const ExpressionBaseConstPtr&) {
+  return {};  //  todo: impl
 }
 
 }  // namespace math

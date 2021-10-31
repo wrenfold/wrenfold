@@ -4,13 +4,15 @@
 namespace math {
 
 template <typename Derived>
-class UnaryOp : public ExpressionImpl<UnaryOp<Derived>> {
+class UnaryOp : public ExpressionImpl<Derived> {
  public:
   explicit UnaryOp(const ExpressionBaseConstPtr& x) : x_(x) {}
   explicit UnaryOp(ExpressionBaseConstPtr&& x) : x_(std::move(x)) {}
 
   // Test unary ops for equality.
-  bool IsIdenticalToImplTyped(const UnaryOp<Derived>& neg) const { return x_->IsIdenticalTo(neg.x_); }
+  bool IsIdenticalToImplTyped(const UnaryOp<Derived>& neg) const {
+    return x_->IsIdenticalTo(neg.x_);
+  }
 
   // Get inner expression.
   const ExpressionBaseConstPtr& Inner() const { return x_; }
@@ -26,8 +28,6 @@ class Negate : public UnaryOp<Negate> {
 
   // Returns the derivative of the inner object, negated.
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
-
-  std::string Format() const override;
 };
 
 class NaturalLog : public UnaryOp<NaturalLog> {
@@ -35,20 +35,6 @@ class NaturalLog : public UnaryOp<NaturalLog> {
   using UnaryOp::UnaryOp;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
-
-  std::string Format() const override;
 };
-
-#if 0
-class Power : public BinaryOp<Power> {
-public:
-  using BinaryOp::BinaryOp;
-  static constexpr bool IsCommutative = false;
-
-  ExpressionBaseConstPtr Diff(const Variable &var) const override { return {}; }
-
-  std::string ToString() const { return FormatString("^"); }
-};
-#endif
 
 }  // namespace math

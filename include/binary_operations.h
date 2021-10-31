@@ -42,6 +42,12 @@ class BinaryOp : public ExpressionImpl<Derived>, public OperationImpl<Derived> {
     return false;
   }
 
+  // Access left argument.
+  const ExpressionBaseConstPtr& First() const { return a_; }
+
+  // Access right argument.
+  const ExpressionBaseConstPtr& Second() const { return b_; }
+
  protected:
   ExpressionBaseConstPtr a_;
   ExpressionBaseConstPtr b_;
@@ -55,22 +61,16 @@ class Addition : public BinaryOp<Addition> {
   static constexpr int OperatorPrecedence = 1;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
-
- protected:
-  std::string Format() const override;
 };
 
 // Subtraction operation.
-class Subtraction : public BinaryOp<Addition> {
+class Subtraction : public BinaryOp<Subtraction> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 1;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
-
- protected:
-  std::string Format() const override;
 };
 
 // Multiplication operation.
@@ -81,25 +81,26 @@ class Multiplication : public BinaryOp<Multiplication> {
   static constexpr int OperatorPrecedence = 2;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
-
- protected:
-  std::string Format() const override;
 };
 
-#if 0
+// Division operation.
 class Division : public BinaryOp<Division> {
-public:
+ public:
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
+  static constexpr int OperatorPrecedence = 2;
 
-  ExpressionBaseConstPtr Diff(const Variable& var) const override {
-    return CreateMultiplication(  );
-  }
-
-  std::string ToString() const { return FormatString("÷"); }
-
-private:
+  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
-#endif
+
+// Power operation.
+class Power : public BinaryOp<Power> {
+ public:
+  using BinaryOp::BinaryOp;
+  static constexpr bool IsCommutative = false;
+  static constexpr int OperatorPrecedence = 3;
+
+  ExpressionBaseConstPtr Diff(const Variable& var) const override;
+};
 
 }  // namespace math

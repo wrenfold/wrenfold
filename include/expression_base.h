@@ -1,5 +1,6 @@
 #pragma once
 #include "expr.h"
+#include "formatting.h"
 
 namespace math {
 class Variable;
@@ -18,7 +19,7 @@ class ExpressionBase {
     return dynamic_cast<const T*>(this);
   }
 
-  // Test for equality.
+  // Test if two expressions are identical.
   bool IsIdenticalTo(const ExpressionBase& other) const {
     if (this == &other) {
       // Do simple pointer equality check first.
@@ -32,8 +33,8 @@ class ExpressionBase {
     return IsIdenticalTo(*other_ptr);
   }
 
-  // Convert to string.
-  virtual std::string Format() const = 0;
+  // Use the provided formatter to format an expression, appending to `output`.
+  virtual void Format(const Formatter& formatter, StringType& output) const = 0;
 
  protected:
   // Implemented by derived class. Called after we check ptr address.
@@ -45,6 +46,12 @@ template <typename Derived>
 class ExpressionImpl : public ExpressionBase {
  public:
   ~ExpressionImpl() override = default;
+
+  // Format the expression. Calls the formatter on our derived type.
+  void Format(const Formatter& formatter, StringType& output) const override {
+    const Derived& derived = static_cast<const Derived&>(*this);
+    formatter.Format(derived, output);
+  }
 
  protected:
   bool IsIdenticalToImpl(const ExpressionBase& other) const override {

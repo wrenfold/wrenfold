@@ -18,11 +18,13 @@ class Number : public ExpressionImpl<Number> {
   // Differentiating a constant produces zero.
   ExpressionBaseConstPtr Diff(const Variable&) const override;
 
-  // Print to string
-  std::string Format() const override;
-
   // Check if numerical constants are completely identical.
   bool IsIdenticalToImplTyped(const Number& other) const { return val_ == other.val_; }
+
+  // Access numeric value.
+  NumberType GetValue() const {
+    return val_;
+  }
 
  private:
   NumberType val_;
@@ -39,11 +41,13 @@ class Constant : public ExpressionImpl<Constant> {
   // Differentiating a constant produces zero.
   ExpressionBaseConstPtr Diff(const Variable&) const override;
 
-  // Print to string
-  std::string Format() const override;
-
   // Check if symbolic constants are the same.
   bool IsIdenticalToImplTyped(const Constant& other) const { return name_ == other.name_; }
+
+  // Access name.
+  SymbolicConstants GetName() const {
+    return name_;
+  }
 
  protected:
   SymbolicConstants name_;

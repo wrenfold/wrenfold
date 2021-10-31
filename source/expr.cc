@@ -3,6 +3,7 @@
 #include "assertions.hpp"
 #include "constant_expressions.h"
 #include "constants.h"
+#include "formatting.h"
 #include "variable.h"
 
 namespace math {
@@ -16,7 +17,11 @@ static ExpressionBaseConstPtr MakeNumber(double x) {
   return MakeExprBase<Number>(x);
 }
 
-Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
+Expr::Expr(const StringType& name) : impl_(new Variable(name)) {}
+
+#ifdef USE_WIDE_STR
+Expr::Expr(const std::string& name) : Expr(WideFromNarrow(name)) {}
+#endif
 
 Expr::Expr(double x) : impl_(MakeNumber(x)) {}
 
@@ -33,7 +38,5 @@ Expr Expr::Diff(const Expr& var, const int Reps) const {
 }
 
 bool Expr::IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other); }
-
-std::string Expr::ToString() const { return impl_->Format(); }
 
 }  // namespace math

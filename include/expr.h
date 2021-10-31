@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 
+#include "formatting_fwd.h"
 #include "operation_utils.h"
 
 namespace math {
@@ -21,9 +22,14 @@ class Expr {
   explicit Expr(const ExpressionBaseConstPtr& impl) : impl_(impl) {}
 
   // Construct variable:
-  explicit Expr(const std::string& name);
+  explicit Expr(const StringType& name);
 
-  // Construct constant:
+#ifdef USE_WIDE_STR
+  // For convenience, support construction from plain string as well.
+  explicit Expr(const std::string& name);
+#endif
+
+  // Construct constant. Implicit so we can use numbers in math operations.
   Expr(double x);
 
   // Get the implementation pointer.
@@ -47,7 +53,14 @@ class Expr {
   bool IsIdenticalTo(const Expr& other) const;
 
   // Convert to string.
-  std::string ToString() const;
+  StringType ToString() const {
+    return ToPlainString(impl_);
+  }
+
+  // Convert to a string, always returning a plain std::string.
+  std::string ToNarrowString() const {
+    return ToPlainNarrowString(impl_);
+  }
 
   // Negation operator.
   Expr operator-() const { return Expr{CreateNegation(impl_)}; }
@@ -73,10 +86,22 @@ inline Expr operator+(const Expr& a, const Expr& b) { return Expr{CreateAddition
 inline Expr operator-(const Expr& a, const Expr& b) { return Expr{CreateSubtraction(a, b)}; }
 inline Expr operator/(const Expr& a, const Expr& b) { return Expr{CreateDivision(a, b)}; }
 
-// ostream support for libfmt
+// ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
+  stream << x.ToNarrowString();
+  return stream;
+}
+
+#ifdef USE_WIDE_STR
+inline std::wostream& operator <<(std::wostream& stream, const Expr& x) {
   stream << x.ToString();
   return stream;
 }
+#else
+inline std::wostream& operator <<(std::wostream& stream, const Expr& x) {
+  stream << WideFromNarrow(x.ToString());
+  return stream;
+}
+#endif
 
 }  // namespace math

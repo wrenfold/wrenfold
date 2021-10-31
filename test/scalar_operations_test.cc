@@ -6,7 +6,9 @@
 namespace math {
 
 // Define so we can test for equality more easily.
-bool operator==(const std::string& lhs, const Expr& rhs) { return lhs == rhs.ToString(); }
+bool operator==(const std::string& lhs, const Expr& rhs) {
+  return lhs == rhs.ToNarrowString();
+}
 
 TEST(ScalarOperationsTest, TestAdditionAndSubtraction) {
   const Expr w{"w"};
@@ -19,6 +21,7 @@ TEST(ScalarOperationsTest, TestAdditionAndSubtraction) {
   ASSERT_EQ("x", x + 0);
   ASSERT_EQ("x", 0 + x);
   ASSERT_EQ("x + w", x + 0 + w);
+  // should return this exact pointer:
   ASSERT_EQ(Constants::Zero.GetImpl(), (x - x).GetImpl());
   ASSERT_EQ("x + y - x", x + y - x);
   ASSERT_EQ("x - y", x - y);
@@ -48,7 +51,7 @@ TEST(ScalarOperationsTest, TestNegation) {
   const Expr x{"x"};
   ASSERT_EQ("-x", -x);
   ASSERT_EQ("x", -(-x));
-  ASSERT_EQ("0", -Expr{0});
+  ASSERT_EQ("0", -Constants::Zero);
   ASSERT_EQ(x.GetImpl(), (-(-x)).GetImpl());  //  No copy
 }
 
