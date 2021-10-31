@@ -1,9 +1,5 @@
 #pragma once
-#include <fmt/ostream.h>
-
 #include "expression_base.h"
-#include "numeric_constants.h"
-#include "variable.h"
 
 namespace math {
 
