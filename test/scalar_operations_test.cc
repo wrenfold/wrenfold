@@ -2,11 +2,9 @@
 #include "functions.h"
 #include "test_helpers.h"
 
+// Test basic composition of scalars and functions of scalars.
+// TODO(gareth): Put tests that test formatting in their own file.
 namespace math {
-
-// Define so we can test for equality more easily.
-bool operator==(const std::string& lhs, const Expr& rhs) { return lhs == rhs.ToNarrowString(); }
-bool operator!=(const std::string& lhs, const Expr& rhs) { return lhs != rhs.ToNarrowString(); }
 
 TEST(ScalarOperationsTest, TestAdditionAndSubtraction) {
   const Expr w{"w"};
@@ -51,6 +49,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * y, 1 * x * y * 1);
   ASSERT_EQ("(x + y) * z", (x + y) * z);
   ASSERT_EQ("(x + y) * (z + x)", (x + y) * (z + x));
+  ASSERT_EQ("x + y * z + x", x + y * z + x);
 }
 
 TEST(ScalarOperationsTest, TestNegation) {
@@ -71,6 +70,9 @@ TEST(ScalarOperationsTest, TestDivision) {
   ASSERT_IDENTICAL(x / y / z, (x / y) / z);
   ASSERT_EQ("x / y", x / y);
   ASSERT_EQ("x / y / z", (x / y) / z);
+  ASSERT_EQ("(x * y) / z" , x * y / z);
+  ASSERT_EQ("(x + 1) / (y * z)", (x + 1) / (y * z));
+  ASSERT_EQ("(x + 1) / y * z", (x + 1) / y * z);
   // should be simplified immediately
   ASSERT_EQ(Constants::One.GetImpl(), (x / x).GetImpl());
   ASSERT_EQ(Constants::Zero.GetImpl(), (0 / x).GetImpl());

@@ -8,6 +8,14 @@ namespace math {
 #define ASSERT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(IdenticalTestHelper, val1, val2)
 #define ASSERT_NOT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(NotIdenticalTestHelper, val1, val2)
 
+// Define so we can test for equality w/ strings more easily.
+inline bool operator==(const std::string& lhs, const Expr& rhs) {
+  return lhs == rhs.ToNarrowString();
+}
+inline bool operator!=(const std::string& lhs, const Expr& rhs) {
+  return lhs != rhs.ToNarrowString();
+}
+
 // Test IsIdenticalTo
 testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const std::string& name_b,
                                              const Expr& a, const Expr& b);

@@ -50,7 +50,8 @@ static int GetPrecedence(const ExpressionBase& expr) {
 // Helper for appropriately applying brackets, considering operator precedence.
 static void FormatBinaryOp(const Formatter& formatter, const int parent_precedence,
                            const CharType* const op_str, const ExpressionBase& a,
-                           const ExpressionBase& b, StringType& output_str) {
+                           const ExpressionBase& b,
+                           StringType& output_str) {
   if (parent_precedence > GetPrecedence(a)) {
     output_str += TEXT("(");
     a.Format(formatter, output_str);

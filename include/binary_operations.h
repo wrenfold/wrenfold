@@ -89,7 +89,7 @@ class Division : public BinaryOp<Division> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
-  static constexpr int OperatorPrecedence = 2;
+  static constexpr int OperatorPrecedence = 3;
 
   // Implements quotient rule
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
@@ -100,7 +100,7 @@ class Power : public BinaryOp<Power> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
-  static constexpr int OperatorPrecedence = 3;
+  static constexpr int OperatorPrecedence = 4;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
