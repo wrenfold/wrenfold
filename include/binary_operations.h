@@ -80,6 +80,7 @@ class Multiplication : public BinaryOp<Multiplication> {
   static constexpr bool IsCommutative = true;
   static constexpr int OperatorPrecedence = 2;
 
+  // Implements product rule
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
@@ -90,6 +91,7 @@ class Division : public BinaryOp<Division> {
   static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 2;
 
+  // Implements quotient rule
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 

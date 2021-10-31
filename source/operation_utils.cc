@@ -73,9 +73,38 @@ ExpressionBaseConstPtr CreateNegation(const ExpressionBaseConstPtr& x) {
   return MakeExprBase<Negate>(x);
 }
 
-ExpressionBaseConstPtr CreateDivision(const ExpressionBaseConstPtr&,
-                                      const ExpressionBaseConstPtr&) {
-  return {};  //  todo: impl
+ExpressionBaseConstPtr CreateDivision(const ExpressionBaseConstPtr& a,
+                                      const ExpressionBaseConstPtr& b) {
+  ASSERT(a);
+  ASSERT(b);
+  if (IsZero(a)) {
+    // TODO(gareth): Throw when b is zero.
+    return Constants::Zero;
+  }
+  if (IsOne(b)) {
+    return a;
+  }
+  if (a->IsIdenticalTo(b)) {
+    return Constants::One;
+  }
+  return MakeExprBase<Division>(a, b);
+}
+
+ExpressionBaseConstPtr CreatePower(const ExpressionBaseConstPtr& a,
+                                   const ExpressionBaseConstPtr& b) {
+  ASSERT(a);
+  ASSERT(b);
+  ASSERT(!IsZero(a) || !IsZero(b), "TODO: Implement proper handling of 0^0");
+  if (IsZero(a)) {
+    return Constants::Zero;
+  }
+  if (IsZero(b)) {
+    return Constants::One;
+  }
+  if (IsOne(b)) {
+    return a;
+  }
+  return MakeExprBase<Power>(a, b);
 }
 
 }  // namespace math

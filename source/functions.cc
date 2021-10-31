@@ -1,5 +1,6 @@
 #include "functions.h"
 
+#include "binary_operations.h"
 #include "constant_expressions.h"
 #include "unary_operations.h"
 
@@ -11,6 +12,10 @@ Expr log(const Expr& x) {
     return Constants::One;
   }
   return MakeExpr<NaturalLog>(x);
+}
+
+Expr pow(const Expr& x, const Expr& y) {
+  return MakeExpr<Power>(x, y);
 }
 
 }  // namespace math

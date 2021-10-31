@@ -23,6 +23,10 @@ ExpressionBaseConstPtr CreateMultiplication(const ExpressionBaseConstPtr& a,
 ExpressionBaseConstPtr CreateDivision(const ExpressionBaseConstPtr& a,
                                       const ExpressionBaseConstPtr& b);
 
+// Create a power expression.
+ExpressionBaseConstPtr CreatePower(const ExpressionBaseConstPtr& a,
+                                   const ExpressionBaseConstPtr& b);
+
 // Create a negation expression.
 ExpressionBaseConstPtr CreateNegation(const ExpressionBaseConstPtr& x);
 

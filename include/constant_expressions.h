@@ -6,6 +6,8 @@ namespace math {
 
 /**
  * A scalar numerical constant like 0.23241, or 42.
+ *
+ * TODO(gareth): Add support for complex numbers.
  */
 class Number : public ExpressionImpl<Number> {
  public:

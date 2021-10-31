@@ -21,7 +21,7 @@ class UnaryOp : public ExpressionImpl<Derived> {
   ExpressionBaseConstPtr x_;
 };
 
-// Negate an expression.
+// Negate an expression: -x
 class Negate : public UnaryOp<Negate> {
  public:
   using UnaryOp::UnaryOp;
@@ -30,9 +30,17 @@ class Negate : public UnaryOp<Negate> {
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
-class NaturalLog : public UnaryOp<NaturalLog> {
+// Base class for unary functions.
+template <typename Derived>
+class UnaryFunction : public UnaryOp<Derived> {
  public:
-  using UnaryOp::UnaryOp;
+  using UnaryOp<Derived>::UnaryOp;
+};
+
+// Take natural log: ln(x)
+class NaturalLog : public UnaryFunction<NaturalLog> {
+ public:
+  using UnaryFunction::UnaryFunction;
 
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };

@@ -53,14 +53,10 @@ class Expr {
   bool IsIdenticalTo(const Expr& other) const;
 
   // Convert to string.
-  StringType ToString() const {
-    return ToPlainString(impl_);
-  }
+  StringType ToString() const { return ToPlainString(impl_); }
 
   // Convert to a string, always returning a plain std::string.
-  std::string ToNarrowString() const {
-    return ToPlainNarrowString(impl_);
-  }
+  std::string ToNarrowString() const { return ToPlainNarrowString(impl_); }
 
   // Negation operator.
   Expr operator-() const { return Expr{CreateNegation(impl_)}; }
@@ -85,6 +81,7 @@ inline Expr operator*(const Expr& a, const Expr& b) { return Expr{CreateMultipli
 inline Expr operator+(const Expr& a, const Expr& b) { return Expr{CreateAddition(a, b)}; }
 inline Expr operator-(const Expr& a, const Expr& b) { return Expr{CreateSubtraction(a, b)}; }
 inline Expr operator/(const Expr& a, const Expr& b) { return Expr{CreateDivision(a, b)}; }
+inline Expr operator^(const Expr& a, const Expr& b) { return Expr{CreatePower(a, b)}; }
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
@@ -93,12 +90,12 @@ inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
 }
 
 #ifdef USE_WIDE_STR
-inline std::wostream& operator <<(std::wostream& stream, const Expr& x) {
+inline std::wostream& operator<<(std::wostream& stream, const Expr& x) {
   stream << x.ToString();
   return stream;
 }
 #else
-inline std::wostream& operator <<(std::wostream& stream, const Expr& x) {
+inline std::wostream& operator<<(std::wostream& stream, const Expr& x) {
   stream << WideFromNarrow(x.ToString());
   return stream;
 }
