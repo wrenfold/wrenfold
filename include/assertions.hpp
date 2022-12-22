@@ -1,6 +1,5 @@
 // Copyright 2021 Gareth Cross
 #pragma once
-#define ASSERTS_ENABLED
 
 #ifdef _MSC_VER
 // Silence some warnings that libfmt can trigger w/ Microsoft compiler.
@@ -8,7 +7,7 @@
 #pragma warning(disable : 4583)
 #pragma warning(disable : 4582)
 #endif  // _MSC_VER
-#include <fmt/ostream.h>
+#include <fmt/format.h>
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif  // _MSC_VER
@@ -39,21 +38,19 @@ void RaiseAssertBinaryOp(const char* const condition, const char* const file, co
   throw std::runtime_error(err);
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif  // __clang__
+
 // Assertion macros.
 // Based on: http://cnicholson.net/2009/02/stupid-c-tricks-adventures-in-assert
-#ifdef ASSERTS_ENABLED
 #define ASSERT_IMPL(cond, file, line, handler, ...) \
   do {                                              \
     if (!static_cast<bool>(cond)) {                 \
       handler(#cond, file, line, ##__VA_ARGS__);    \
     }                                               \
   } while (false)
-#else
-#define ASSERT_IMPL(cond, file, line, handler, ...) \
-  do {                                              \
-    (void)sizeof((condition));                      \
-  } while (0)
-#endif
 
 // Macro to use when defining an assertion.
 #define ASSERT(cond, ...) ASSERT_IMPL(cond, __FILE__, __LINE__, RaiseAssert, ##__VA_ARGS__)
@@ -69,3 +66,7 @@ void RaiseAssertBinaryOp(const char* const condition, const char* const file, co
   ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, RaiseAssertBinaryOp, #a, a, #b, b, ##__VA_ARGS__)
 #define ASSERT_GREATER_OR_EQ(a, b, ...) \
   ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, RaiseAssertBinaryOp, #a, a, #b, b, ##__VA_ARGS__)
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif  // __clang__
