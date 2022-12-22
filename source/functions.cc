@@ -14,8 +14,6 @@ Expr log(const Expr& x) {
   return MakeExpr<NaturalLog>(x);
 }
 
-Expr pow(const Expr& x, const Expr& y) {
-  return MakeExpr<Power>(x, y);
-}
+Expr pow(const Expr& x, const Expr& y) { return MakeExpr<Power>(x, y); }
 
 }  // namespace math

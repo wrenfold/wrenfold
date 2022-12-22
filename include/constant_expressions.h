@@ -24,9 +24,7 @@ class Number : public ExpressionImpl<Number> {
   bool IsIdenticalToImplTyped(const Number& other) const { return val_ == other.val_; }
 
   // Access numeric value.
-  NumberType GetValue() const {
-    return val_;
-  }
+  NumberType GetValue() const { return val_; }
 
  private:
   NumberType val_;
@@ -47,9 +45,7 @@ class Constant : public ExpressionImpl<Constant> {
   bool IsIdenticalToImplTyped(const Constant& other) const { return name_ == other.name_; }
 
   // Access name.
-  SymbolicConstants GetName() const {
-    return name_;
-  }
+  SymbolicConstants GetName() const { return name_; }
 
  protected:
   SymbolicConstants name_;

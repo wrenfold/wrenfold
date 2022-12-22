@@ -12,4 +12,4 @@ ExpressionBaseConstPtr NaturalLog::Diff(const Variable& var) const {
   return CreateDivision(x_->Diff(var), x_);
 }
 
-} // namespace math
+}  // namespace math
