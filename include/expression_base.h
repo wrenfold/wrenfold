@@ -34,7 +34,7 @@ class ExpressionBase {
   }
 
   // Use the provided formatter to format an expression, appending to `output`.
-  virtual void Format(const Formatter& formatter, StringType& output) const = 0;
+  virtual void Format(const Formatter& formatter, std::string& output) const = 0;
 
  protected:
   // Implemented by derived class. Called after we check ptr address.
@@ -48,7 +48,7 @@ class ExpressionImpl : public ExpressionBase {
   ~ExpressionImpl() override = default;
 
   // Format the expression. Calls the formatter on our derived type.
-  void Format(const Formatter& formatter, StringType& output) const override {
+  void Format(const Formatter& formatter, std::string& output) const override {
     const Derived& derived = static_cast<const Derived&>(*this);
     formatter.Format(derived, output);
   }

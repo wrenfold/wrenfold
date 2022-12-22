@@ -11,7 +11,7 @@ testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const st
   }
   return testing::AssertionFailure()
          << fmt::format("{} is not identical to {}, where:\n{} = {}\nand {} = {}\n", name_a, name_b,
-                        name_a, a.ToNarrowString(), name_b, b.ToNarrowString());
+                        name_a, a.ToString(), name_b, b.ToString());
 }
 
 testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
@@ -22,7 +22,7 @@ testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
   }
   return testing::AssertionFailure()
          << fmt::format("{} is identical to {}, where:\n{} = {}\nand {} = {}\n", name_a, name_b,
-                        name_a, a.ToNarrowString(), name_b, b.ToNarrowString());
+                        name_a, a.ToString(), name_b, b.ToString());
 }
 
 }  // namespace math

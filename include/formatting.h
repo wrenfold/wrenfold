@@ -30,7 +30,7 @@ class FormatterNotImplemented : public std::runtime_error {
   { throw FormatterNotImplemented("Formatter for #x not implemented"); }
 
 #define DECLARE_VIRTUAL_FORMAT_METHOD(Type) \
-  virtual void Format(const Type&, StringType&) const DEFAULT_FORMAT_IMPL(Type)
+  virtual void Format(const Type&, std::string&) const DEFAULT_FORMAT_IMPL(Type)
 
 /*
  * Base class for all formatters.
@@ -54,18 +54,18 @@ class Formatter {
 // Simple plain-text formatter.
 class PlainFormatter : public Formatter {
  public:
-  void Format(const Addition& expr, StringType& output) const override;
-  void Format(const Division& expr, StringType& output) const override;
-  void Format(const Multiplication& expr, StringType& output) const override;
-  void Format(const Power& expr, StringType& output) const override;
-  void Format(const Subtraction& expr, StringType& output) const override;
+  void Format(const Addition& expr, std::string& output) const override;
+  void Format(const Division& expr, std::string& output) const override;
+  void Format(const Multiplication& expr, std::string& output) const override;
+  void Format(const Power& expr, std::string& output) const override;
+  void Format(const Subtraction& expr, std::string& output) const override;
 
-  void Format(const Constant& expr, StringType& output) const override;
-  void Format(const Number& expr, StringType& output) const override;
-  void Format(const Variable& expr, StringType& output) const override;
+  void Format(const Constant& expr, std::string& output) const override;
+  void Format(const Number& expr, std::string& output) const override;
+  void Format(const Variable& expr, std::string& output) const override;
 
-  void Format(const NaturalLog& expr, StringType& output) const override;
-  void Format(const Negate& expr, StringType& output) const override;
+  void Format(const NaturalLog& expr, std::string& output) const override;
+  void Format(const Negate& expr, std::string& output) const override;
 };
 
 }  // namespace math

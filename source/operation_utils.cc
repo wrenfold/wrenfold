@@ -37,7 +37,7 @@ ExpressionBaseConstPtr CreateAddition(const ExpressionBaseConstPtr& a,
     return a;
   }
 #ifdef VERBOSE_OPS
-  fmt::print(TEXT("Creating Addition({}, {})\n"), ToPlainString(a), ToPlainString(b));
+  fmt::print("Creating Addition({}, {})\n", ToPlainString(a), ToPlainString(b));
 #endif
   return MakeExprBase<Addition>(a, b);
 }
@@ -56,7 +56,7 @@ ExpressionBaseConstPtr CreateSubtraction(const ExpressionBaseConstPtr& a,
     return Constants::Zero;
   }
 #ifdef VERBOSE_OPS
-  fmt::print(TEXT("Creating Subtraction({}, {})\n"), ToPlainString(a), ToPlainString(b));
+  fmt::print("Creating Subtraction({}, {})\n", ToPlainString(a), ToPlainString(b));
 #endif
   return MakeExprBase<Subtraction>(a, b);
 }

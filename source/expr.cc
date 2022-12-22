@@ -17,11 +17,7 @@ static ExpressionBaseConstPtr MakeNumber(double x) {
   return MakeExprBase<Number>(x);
 }
 
-Expr::Expr(const StringType& name) : impl_(new Variable(name)) {}
-
-#ifdef USE_WIDE_STR
-Expr::Expr(const std::string& name) : Expr(WideFromNarrow(name)) {}
-#endif
+Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
 
 Expr::Expr(double x) : impl_(MakeNumber(x)) {}
 

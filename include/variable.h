@@ -9,7 +9,7 @@ namespace math {
  */
 class Variable : public ExpressionImpl<Variable> {
  public:
-  explicit Variable(const StringType& name) : name_(name) {}
+  explicit Variable(std::string name) : name_(std::move(name)) {}
 
   // Differentiate a variable wrt another, producing either one or zero.
   ExpressionBaseConstPtr Diff(const Variable& var) const override;
@@ -18,10 +18,10 @@ class Variable : public ExpressionImpl<Variable> {
   bool IsIdenticalToImplTyped(const Variable& other) const;
 
   // Get variable name
-  const StringType& GetName() const { return name_; }
+  const std::string& GetName() const { return name_; }
 
  private:
-  StringType name_;
+  std::string name_;
 };
 
 }  // namespace math
