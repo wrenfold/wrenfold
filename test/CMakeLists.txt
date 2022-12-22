@@ -2,15 +2,7 @@ set(TEST_LIBRARY_NAME ${PROJECT_NAME}_TEST_UTIL)
 set(${TEST_LIBRARY_NAME}_SOURCES "test_helpers.cc")
 add_library(${TEST_LIBRARY_NAME} STATIC ${${TEST_LIBRARY_NAME}_SOURCES})
 target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main fmt)
-
-if(MSVC)
-  # USE_MATH_DEFINES is required for M_PI
-  target_compile_options(${TEST_LIBRARY_NAME}
-                         PUBLIC /W4 /WX /D_USE_MATH_DEFINES /bigobj /wd4244)
-else()
-  target_compile_options(${TEST_LIBRARY_NAME} PUBLIC -Wall -Wextra -pedantic
-                                                     -Werror -Wno-sign-compare)
-endif()
+target_compile_options(${TEST_LIBRARY_NAME} PUBLIC ${MATH_COMPILATION_FLAGS})
 
 # Find all the test files.
 file(GLOB ${PROJECT_NAME}_TEST_SOURCES "*_test.cc")

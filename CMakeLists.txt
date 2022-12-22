@@ -14,6 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 add_subdirectory(dependencies)
 
 # Find all the source files.
+# TODO: Do not use glob for this, just list the files.
 set(LIBRARY_NAME "lib${PROJECT_NAME}")
 file(GLOB ${LIBRARY_NAME}_SOURCES "source/*.cc")
 
@@ -25,15 +26,12 @@ target_compile_features(${LIBRARY_NAME} PRIVATE cxx_std_14)
 
 # turn on various warnings
 if(MSVC)
-  # USE_MATH_DEFINES is required for M_PI
-  target_compile_options(${LIBRARY_NAME} PRIVATE /W4 /WX /D_USE_MATH_DEFINES
-                                                 /bigobj /wd4244)
+  set(MATH_COMPILATION_FLAGS /W4 /WX /D_USE_MATH_DEFINES /bigobj /wd4244)
 else()
-  target_compile_options(${LIBRARY_NAME} PRIVATE -Wall -Wextra -pedantic
-                                                 -Werror -Wno-sign-compare)
+  set(MATH_COMPILATION_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
 endif()
 
-# Link
+target_compile_options(${LIBRARY_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
 target_link_libraries(${LIBRARY_NAME} fmt)
 
 # Includes
