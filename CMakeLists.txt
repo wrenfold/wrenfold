@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(
-  math_cpp
+  mathcpp
   VERSION 0.1
   DESCRIPTION "Messing around with math in c++."
   LANGUAGES CXX)
@@ -13,16 +13,24 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 # Add third party code
 add_subdirectory(dependencies)
 
-# Find all the source files.
-# TODO: Do not use glob for this, just list the files.
-set(LIBRARY_NAME "lib${PROJECT_NAME}")
-file(GLOB ${LIBRARY_NAME}_SOURCES "source/*.cc")
+set(LIBRARY_NAME ${PROJECT_NAME})
+set(${LIBRARY_NAME}_SOURCES
+    source/binary_operations.cc
+    source/constant_expressions.cc
+    source/constants.cc
+    source/expr.cc
+    source/expression_base.cc
+    source/formatting.cc
+    source/functions.cc
+    source/operation_utils.cc
+    source/unary_operations.cc
+    source/variable.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})
 
 # Turn on C++14
-target_compile_features(${LIBRARY_NAME} PRIVATE cxx_std_14)
+target_compile_features(${LIBRARY_NAME} PRIVATE cxx_std_17)
 
 # turn on various warnings
 if(MSVC)

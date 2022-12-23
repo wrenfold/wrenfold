@@ -1,11 +1,11 @@
 set(TEST_LIBRARY_NAME ${PROJECT_NAME}_TEST_UTIL)
-set(${TEST_LIBRARY_NAME}_SOURCES "test_helpers.cc")
-add_library(${TEST_LIBRARY_NAME} STATIC ${${TEST_LIBRARY_NAME}_SOURCES})
+add_library(${TEST_LIBRARY_NAME} STATIC test_helpers.cc)
 target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main fmt)
 target_compile_options(${TEST_LIBRARY_NAME} PUBLIC ${MATH_COMPILATION_FLAGS})
 
-# Find all the test files.
-file(GLOB ${PROJECT_NAME}_TEST_SOURCES "*_test.cc")
+# Specify individual tests here:
+set(${PROJECT_NAME}_TEST_SOURCES scalar_operations_test.cc)
+
 foreach(test_file ${${PROJECT_NAME}_TEST_SOURCES})
   # get just the filename w/o extension
   get_filename_component(test_name ${test_file} NAME_WE)
