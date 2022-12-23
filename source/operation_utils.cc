@@ -1,6 +1,6 @@
 #include "operation_utils.h"
 
-#include "assertions.hpp"
+#include "assertions.h"
 #include "binary_operations.h"
 #include "constant_expressions.h"
 #include "constants.h"

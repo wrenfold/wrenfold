@@ -1,6 +1,6 @@
 #include "expr.h"
 
-#include "assertions.hpp"
+#include "assertions.h"
 #include "constant_expressions.h"
 #include "constants.h"
 #include "formatting.h"
