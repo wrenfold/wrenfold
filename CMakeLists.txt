@@ -15,8 +15,6 @@ add_subdirectory(dependencies)
 
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
-    source/binary_operations.cc
-    source/constant_expressions.cc
     source/constants.cc
     source/derivative.cc
     source/expr.cc
@@ -24,7 +22,6 @@ set(${LIBRARY_NAME}_SOURCES
     source/formatting.cc
     source/functions.cc
     source/operation_utils.cc
-    source/unary_operations.cc
     source/variable.cc)
 
 # define binary from the sources
