@@ -1,6 +1,4 @@
 #pragma once
-#include <fmt/format.h>
-
 #include "expression_base.h"
 
 namespace math {
@@ -31,15 +29,7 @@ class BinaryOp : public ExpressionImpl<Derived>, public OperationImpl<Derived> {
   // This will only be called for things with the same derived type, so we don't
   // need to check the specific operator here.
   bool IsIdenticalToImplTyped(const BinaryOp<Derived>& other) const {
-    if (a_->IsIdenticalTo(other.a_) && b_->IsIdenticalTo(other.b_)) {
-      return true;
-    }
-    if (Derived::IsCommutative) {
-      if (a_->IsIdenticalTo(other.b_) && b_->IsIdenticalTo(other.a_)) {
-        return true;
-      }
-    }
-    return false;
+    return a_->IsIdenticalTo(other.a_) && b_->IsIdenticalTo(other.b_);
   }
 
   // Access left argument.
@@ -59,8 +49,6 @@ class Addition : public BinaryOp<Addition> {
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = true;
   static constexpr int OperatorPrecedence = 1;
-
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
 // Subtraction operation.
@@ -69,8 +57,6 @@ class Subtraction : public BinaryOp<Subtraction> {
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 1;
-
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
 // Multiplication operation.
@@ -79,9 +65,6 @@ class Multiplication : public BinaryOp<Multiplication> {
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = true;
   static constexpr int OperatorPrecedence = 2;
-
-  // Implements product rule
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
 // Division operation.
@@ -90,9 +73,6 @@ class Division : public BinaryOp<Division> {
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 3;
-
-  // Implements quotient rule
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
 // Power operation.
@@ -101,8 +81,6 @@ class Power : public BinaryOp<Power> {
   using BinaryOp::BinaryOp;
   static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 4;
-
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
 }  // namespace math

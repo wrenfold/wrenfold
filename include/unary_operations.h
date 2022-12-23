@@ -21,13 +21,10 @@ class UnaryOp : public ExpressionImpl<Derived> {
   ExpressionBaseConstPtr x_;
 };
 
-// Negate an expression: -x
-class Negate : public UnaryOp<Negate> {
+// Negation an expression: -x
+class Negation : public UnaryOp<Negation> {
  public:
   using UnaryOp::UnaryOp;
-
-  // Returns the derivative of the inner object, negated.
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
 // Base class for unary functions.
@@ -41,8 +38,6 @@ class UnaryFunction : public UnaryOp<Derived> {
 class NaturalLog : public UnaryFunction<NaturalLog> {
  public:
   using UnaryFunction::UnaryFunction;
-
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
 };
 
 }  // namespace math

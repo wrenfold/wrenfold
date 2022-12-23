@@ -2,14 +2,10 @@
 #include <memory>
 #include <string>
 
-#include "formatting_fwd.h"
+#include "expression_base.h"
 #include "operation_utils.h"
 
 namespace math {
-
-// Forward declare.
-class ExpressionBase;
-using ExpressionBaseConstPtr = std::shared_ptr<const ExpressionBase>;
 
 /**
  * Wrapper around a pointer to an abstract expression. Defined so you can easily write chains of
@@ -30,28 +26,20 @@ class Expr {
   // Get the implementation pointer.
   const ExpressionBaseConstPtr& GetImpl() const { return impl_; }
 
-  // Get a raw pointer.
-  const ExpressionBase* GetRaw() const { return impl_.get(); }
-
   // Get a raw pointer, cast dynamically to a particular type.
   template <typename T>
   const T* GetRaw() const {
     return dynamic_cast<const T*>(impl_.get());
   }
 
-  // Implicit cast to ExpressionBaseConstPtr
-  operator const ExpressionBaseConstPtr&() const {  // NOLINT(google-explicit-constructor)
-    return impl_;
-  }
-
   // Test if the two expressions are identical.
-  bool IsIdenticalTo(const Expr& other) const;
+  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other.GetImpl()); }
 
   // Convert to string.
-  std::string ToString() const { return ToPlainString(impl_); }
+  std::string ToString() const;
 
   // Negation operator.
-  Expr operator-() const { return Expr{CreateNegation(impl_)}; }
+  Expr operator-() const { return Expr{Negate(impl_)}; }
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
   Expr Diff(const Expr& var, int Reps = 1) const;
@@ -60,20 +48,18 @@ class Expr {
   ExpressionBaseConstPtr impl_;
 };
 
-template <typename T>
-struct IsConvertibleToExpr {
-  static constexpr bool value = std::is_same<T, Expr>::value || std::is_arithmetic<T>::value;
-};
-
-template <typename T>
-using EnableConvertibleToExpr = std::enable_if<IsConvertibleToExpr<T>::value, Expr>;
-
 // Operations defined on expressions:
-inline Expr operator*(const Expr& a, const Expr& b) { return Expr{CreateMultiplication(a, b)}; }
-inline Expr operator+(const Expr& a, const Expr& b) { return Expr{CreateAddition(a, b)}; }
-inline Expr operator-(const Expr& a, const Expr& b) { return Expr{CreateSubtraction(a, b)}; }
-inline Expr operator/(const Expr& a, const Expr& b) { return Expr{CreateDivision(a, b)}; }
-inline Expr operator^(const Expr& a, const Expr& b) { return Expr{CreatePower(a, b)}; }
+inline Expr operator*(const Expr& a, const Expr& b) { return Expr{Mul(a.GetImpl(), b.GetImpl())}; }
+inline Expr operator+(const Expr& a, const Expr& b) { return Expr{Add(a.GetImpl(), b.GetImpl())}; }
+inline Expr operator-(const Expr& a, const Expr& b) { return Expr{Sub(a.GetImpl(), b.GetImpl())}; }
+inline Expr operator/(const Expr& a, const Expr& b) { return Expr{Div(a.GetImpl(), b.GetImpl())}; }
+inline Expr operator^(const Expr& a, const Expr& b) { return Expr{Pow(a.GetImpl(), b.GetImpl())}; }
+
+// Create an `Expr` with underlying type `T` and constructor args `Args`.
+template <typename T, typename... Args>
+Expr MakeExpr(Args&&... args) {
+  return Expr{MakeExprBase<T>(std::forward<Args>(args)...)};
+}
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {

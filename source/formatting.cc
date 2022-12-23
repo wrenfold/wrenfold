@@ -9,13 +9,6 @@
 
 namespace math {
 
-std::string ToPlainString(const ExpressionBaseConstPtr& expr) {
-  PlainFormatter formatter{};
-  std::string result;
-  expr->Format(formatter, result);
-  return result;
-}
-
 static int GetPrecedence(const ExpressionBase& expr) {
   const OperationBase* const op = expr.As<OperationBase>();
   if (op) {
@@ -95,7 +88,7 @@ void PlainFormatter::Format(const NaturalLog& expr, std::string& output) const {
   output += ")";
 }
 
-void PlainFormatter::Format(const Negate& expr, std::string& output) const {
+void PlainFormatter::Format(const Negation& expr, std::string& output) const {
   output += "-";
   expr.Inner()->Format(*this, output);
 }

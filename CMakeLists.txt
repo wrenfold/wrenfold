@@ -18,6 +18,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/binary_operations.cc
     source/constant_expressions.cc
     source/constants.cc
+    source/derivative.cc
     source/expr.cc
     source/expression_base.cc
     source/formatting.cc

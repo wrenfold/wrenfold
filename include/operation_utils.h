@@ -1,33 +1,24 @@
 #pragma once
-#include <memory>
+#include "expression_fwd.h"
 
 namespace math {
 
-// Fwd declare.
-class ExpressionBase;
-using ExpressionBaseConstPtr = std::shared_ptr<const ExpressionBase>;
-
 // Create an addition expression.
-ExpressionBaseConstPtr CreateAddition(const ExpressionBaseConstPtr& a,
-                                      const ExpressionBaseConstPtr& b);
+ExpressionBaseConstPtr Add(const ExpressionBaseConstPtr& a, const ExpressionBaseConstPtr& b);
 
 // Create a subtraction expression.
-ExpressionBaseConstPtr CreateSubtraction(const ExpressionBaseConstPtr& a,
-                                         const ExpressionBaseConstPtr& b);
+ExpressionBaseConstPtr Sub(const ExpressionBaseConstPtr& a, const ExpressionBaseConstPtr& b);
 
 // Create a multiplication expression.
-ExpressionBaseConstPtr CreateMultiplication(const ExpressionBaseConstPtr& a,
-                                            const ExpressionBaseConstPtr& b);
+ExpressionBaseConstPtr Mul(const ExpressionBaseConstPtr& a, const ExpressionBaseConstPtr& b);
 
 // Create a division expression.
-ExpressionBaseConstPtr CreateDivision(const ExpressionBaseConstPtr& a,
-                                      const ExpressionBaseConstPtr& b);
+ExpressionBaseConstPtr Div(const ExpressionBaseConstPtr& a, const ExpressionBaseConstPtr& b);
 
 // Create a power expression.
-ExpressionBaseConstPtr CreatePower(const ExpressionBaseConstPtr& a,
-                                   const ExpressionBaseConstPtr& b);
+ExpressionBaseConstPtr Pow(const ExpressionBaseConstPtr& a, const ExpressionBaseConstPtr& b);
 
 // Create a negation expression.
-ExpressionBaseConstPtr CreateNegation(const ExpressionBaseConstPtr& x);
+ExpressionBaseConstPtr Negate(const ExpressionBaseConstPtr& x);
 
 }  // namespace math

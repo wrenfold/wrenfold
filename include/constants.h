@@ -10,8 +10,13 @@ class Constants {
   static const Expr Euler;
 };
 
-bool IsZero(const ExpressionBaseConstPtr& expr);
-bool IsOne(const ExpressionBaseConstPtr& expr);
+inline bool IsZero(const ExpressionBaseConstPtr& expr) {
+  return expr->IsIdenticalTo(Constants::Zero.GetImpl());
+}
+
+inline bool IsOne(const ExpressionBaseConstPtr& expr) {
+  return expr->IsIdenticalTo(Constants::One.GetImpl());
+}
 
 // List of symbolic constants.
 enum class SymbolicConstants : int {

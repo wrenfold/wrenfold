@@ -11,11 +11,8 @@ class Variable : public ExpressionImpl<Variable> {
  public:
   explicit Variable(std::string name) : name_(std::move(name)) {}
 
-  // Differentiate a variable wrt another, producing either one or zero.
-  ExpressionBaseConstPtr Diff(const Variable& var) const override;
-
   // Check if two variables are the same (names match).
-  bool IsIdenticalToImplTyped(const Variable& other) const;
+  bool IsIdenticalToImplTyped(const Variable& other) const { return name_ == other.name_; }
 
   // Get variable name
   const std::string& GetName() const { return name_; }

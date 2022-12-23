@@ -17,9 +17,6 @@ class Number : public ExpressionImpl<Number> {
   // Construct from number.
   explicit Number(NumberType val) : val_(val) {}
 
-  // Differentiating a constant produces zero.
-  ExpressionBaseConstPtr Diff(const Variable&) const override;
-
   // Check if numerical constants are completely identical.
   bool IsIdenticalToImplTyped(const Number& other) const { return val_ == other.val_; }
 
@@ -37,9 +34,6 @@ class Constant : public ExpressionImpl<Constant> {
  public:
   // Construct with name.
   explicit Constant(SymbolicConstants Name) : name_(Name) {}
-
-  // Differentiating a constant produces zero.
-  ExpressionBaseConstPtr Diff(const Variable&) const override;
 
   // Check if symbolic constants are the same.
   bool IsIdenticalToImplTyped(const Constant& other) const { return name_ == other.name_; }

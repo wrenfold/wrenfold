@@ -1,17 +1,16 @@
 #pragma once
-#include "expr.h"
+#include "derivative.h"
+#include "expression_fwd.h"
 #include "formatting.h"
 
 namespace math {
-class Variable;
+
+class DiffVisitor;
 
 // Base class for all expressions.
 class ExpressionBase {
  public:
   virtual ~ExpressionBase() = default;
-
-  // Differentiate.
-  virtual ExpressionBaseConstPtr Diff(const Variable& var) const = 0;
 
   // Cast to particular type.
   template <typename T>
@@ -20,13 +19,7 @@ class ExpressionBase {
   }
 
   // Test if two expressions are identical.
-  bool IsIdenticalTo(const ExpressionBase& other) const {
-    if (this == &other) {
-      // Do simple pointer equality check first.
-      return true;
-    }
-    return IsIdenticalToImpl(other);
-  }
+  bool IsIdenticalTo(const ExpressionBase& other) const { return IsIdenticalToImpl(other); }
 
   // Variant of `IsIdenticalTo` that accepts shared pointer.
   bool IsIdenticalTo(const ExpressionBaseConstPtr& other_ptr) const {
@@ -35,6 +28,9 @@ class ExpressionBase {
 
   // Use the provided formatter to format an expression, appending to `output`.
   virtual void Format(const Formatter& formatter, std::string& output) const = 0;
+
+  // Differentiate w/ the provided visitor.
+  virtual ExpressionBaseConstPtr Diff(const DiffVisitor& diff) const = 0;
 
  protected:
   // Implemented by derived class. Called after we check ptr address.
@@ -47,10 +43,17 @@ class ExpressionImpl : public ExpressionBase {
  public:
   ~ExpressionImpl() override = default;
 
+  // Cast to the derived type.
+  const Derived& AsDerived() const { return static_cast<const Derived&>(*this); }
+
   // Format the expression. Calls the formatter on our derived type.
   void Format(const Formatter& formatter, std::string& output) const override {
-    const Derived& derived = static_cast<const Derived&>(*this);
-    formatter.Format(derived, output);
+    formatter.Format(AsDerived(), output);
+  }
+
+  // Call the derivative visitor on our derived type.
+  ExpressionBaseConstPtr Diff(const DiffVisitor& diff) const override {
+    return diff.Diff(AsDerived());
   }
 
  protected:
@@ -64,12 +67,6 @@ class ExpressionImpl : public ExpressionBase {
 template <typename T, typename... Args>
 ExpressionBaseConstPtr MakeExprBase(Args&&... args) {
   return std::make_shared<const T>(std::forward<Args>(args)...);
-}
-
-// Version that returns Expr.
-template <typename T, typename... Args>
-Expr MakeExpr(Args&&... args) {
-  return Expr{MakeExprBase<T>(std::forward<Args>(args)...)};
 }
 
 }  // namespace math

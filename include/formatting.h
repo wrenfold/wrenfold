@@ -1,22 +1,10 @@
 #pragma once
-#include <memory>
 #include <stdexcept>
 #include <string>
 
-#include "formatting_fwd.h"
+#include "operations_fwd.h"
 
 namespace math {
-
-class Addition;
-class Constant;
-class Division;
-class Multiplication;
-class Number;
-class Power;
-class Subtraction;
-class Negate;
-class NaturalLog;
-class Variable;
 
 // Thrown for un-implemented formatters.
 class FormatterNotImplemented : public std::runtime_error {
@@ -48,7 +36,7 @@ class Formatter {
   DECLARE_VIRTUAL_FORMAT_METHOD(Variable);
 
   DECLARE_VIRTUAL_FORMAT_METHOD(NaturalLog);
-  DECLARE_VIRTUAL_FORMAT_METHOD(Negate);
+  DECLARE_VIRTUAL_FORMAT_METHOD(Negation);
 };
 
 // Simple plain-text formatter.
@@ -65,7 +53,7 @@ class PlainFormatter : public Formatter {
   void Format(const Variable& expr, std::string& output) const override;
 
   void Format(const NaturalLog& expr, std::string& output) const override;
-  void Format(const Negate& expr, std::string& output) const override;
+  void Format(const Negation& expr, std::string& output) const override;
 };
 
 }  // namespace math
