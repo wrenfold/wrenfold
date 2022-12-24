@@ -3,7 +3,6 @@
 #include <string>
 
 #include "expression_base.h"
-#include "operation_utils.h"
 
 namespace math {
 
@@ -39,21 +38,21 @@ class Expr {
   std::string ToString() const;
 
   // Negation operator.
-  Expr operator-() const { return Expr{Negate(impl_)}; }
+  Expr operator-() const;
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
-  Expr Diff(const Expr& var, int Reps = 1) const;
+  Expr Diff(const Expr& var, int reps = 1) const;
 
  private:
   ExpressionBaseConstPtr impl_;
 };
 
 // Operations defined on expressions:
-inline Expr operator*(const Expr& a, const Expr& b) { return Expr{Mul(a.GetImpl(), b.GetImpl())}; }
-inline Expr operator+(const Expr& a, const Expr& b) { return Expr{Add(a.GetImpl(), b.GetImpl())}; }
-inline Expr operator-(const Expr& a, const Expr& b) { return Expr{Sub(a.GetImpl(), b.GetImpl())}; }
-inline Expr operator/(const Expr& a, const Expr& b) { return Expr{Div(a.GetImpl(), b.GetImpl())}; }
-inline Expr operator^(const Expr& a, const Expr& b) { return Expr{Pow(a.GetImpl(), b.GetImpl())}; }
+Expr operator*(const Expr& a, const Expr& b);
+Expr operator+(const Expr& a, const Expr& b);
+Expr operator-(const Expr& a, const Expr& b);
+Expr operator/(const Expr& a, const Expr& b);
+Expr operator^(const Expr& a, const Expr& b);
 
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>

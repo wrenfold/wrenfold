@@ -3,7 +3,9 @@
 #include "assertions.h"
 #include "constant_expressions.h"
 #include "constants.h"
+#include "derivative.h"
 #include "formatting.h"
+#include "operation_utils.h"
 #include "variable.h"
 
 namespace math {
@@ -30,17 +32,25 @@ std::string Expr::ToString() const {
   return result;
 }
 
-Expr Expr::Diff(const Expr& var, const int Reps) const {
+Expr Expr::operator-() const { return Expr{Negate(impl_)}; }
+
+Expr Expr::Diff(const Expr& var, const int reps) const {
   const Variable* const as_var = var.GetRaw<Variable>();
   ASSERT(as_var, "Arguments to diff() must be variables.");
-  ASSERT_GREATER_OR_EQ(Reps, 0);
+  ASSERT_GREATER_OR_EQ(reps, 0);
 
   DiffVisitor visitor{*as_var};
   ExpressionBaseConstPtr Result = impl_;
-  for (int i = 0; i < Reps; ++i) {
-    Result = Result->Diff(visitor);
+  for (int i = 0; i < reps; ++i) {
+    Result = Result->Receive(visitor);
   }
   return Expr{std::move(Result)};
 }
+
+Expr operator*(const Expr& a, const Expr& b) { return Expr{Mul(a.GetImpl(), b.GetImpl())}; }
+Expr operator+(const Expr& a, const Expr& b) { return Expr{Add(a.GetImpl(), b.GetImpl())}; }
+Expr operator-(const Expr& a, const Expr& b) { return Expr{Sub(a.GetImpl(), b.GetImpl())}; }
+Expr operator/(const Expr& a, const Expr& b) { return Expr{Div(a.GetImpl(), b.GetImpl())}; }
+Expr operator^(const Expr& a, const Expr& b) { return Expr{Pow(a.GetImpl(), b.GetImpl())}; }
 
 }  // namespace math

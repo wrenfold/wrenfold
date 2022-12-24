@@ -1,11 +1,9 @@
 #pragma once
-#include "derivative.h"
 #include "expression_fwd.h"
 #include "formatting.h"
+#include "visitor.h"
 
 namespace math {
-
-class DiffVisitor;
 
 // Base class for all expressions.
 class ExpressionBase {
@@ -29,8 +27,8 @@ class ExpressionBase {
   // Use the provided formatter to format an expression, appending to `output`.
   virtual void Format(const Formatter& formatter, std::string& output) const = 0;
 
-  // Differentiate w/ the provided visitor.
-  virtual ExpressionBaseConstPtr Diff(const DiffVisitor& diff) const = 0;
+  // Apply a visitor that returns an expression pointer.
+  virtual ExpressionBaseConstPtr Receive(VisitorWithResultBase& visitor) const = 0;
 
  protected:
   // Implemented by derived class. Called after we check ptr address.
@@ -51,9 +49,9 @@ class ExpressionImpl : public ExpressionBase {
     formatter.Format(AsDerived(), output);
   }
 
-  // Call the derivative visitor on our derived type.
-  ExpressionBaseConstPtr Diff(const DiffVisitor& diff) const override {
-    return diff.Diff(AsDerived());
+  // Cast to derived type and apply the visitor.
+  ExpressionBaseConstPtr Receive(VisitorWithResultBase& visitor) const override {
+    return visitor.ApplyVirtual(AsDerived());
   }
 
  protected:
