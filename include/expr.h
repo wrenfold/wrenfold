@@ -31,11 +31,17 @@ class Expr {
     return dynamic_cast<const T*>(impl_.get());
   }
 
+  // Check that underlying type matches `T`.
+  template <typename T>
+  bool Is() const {
+    return GetRaw<T>() != nullptr;
+  }
+
   // Test if the two expressions are identical.
   bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other.GetImpl()); }
 
   // Convert to string.
-  std::string ToString() const;
+  std::string ToString(bool use_precedence = true) const;
 
   // Negation operator.
   Expr operator-() const;
@@ -52,7 +58,6 @@ Expr operator*(const Expr& a, const Expr& b);
 Expr operator+(const Expr& a, const Expr& b);
 Expr operator-(const Expr& a, const Expr& b);
 Expr operator/(const Expr& a, const Expr& b);
-Expr operator^(const Expr& a, const Expr& b);
 
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>

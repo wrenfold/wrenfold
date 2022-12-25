@@ -18,79 +18,84 @@ static int GetPrecedence(const ExpressionBase& expr) {
 }
 
 // Helper for appropriately applying brackets, considering operator precedence.
-static void FormatBinaryOp(const Formatter& formatter, const int parent_precedence,
-                           const char* const op_str, const ExpressionBase& a,
-                           const ExpressionBase& b, std::string& output_str) {
-  if (parent_precedence > GetPrecedence(a)) {
-    output_str += "(";
-    a.Format(formatter, output_str);
-    output_str += ")";
+void PlainFormatter::FormatBinaryOp(const int parent_precedence, const char* const op_str,
+                                    const ExpressionBase& a, const ExpressionBase& b) {
+  if (parent_precedence > GetPrecedence(a) || !use_precedence_) {
+    output_ += "(";
+    a.Receive(*this);
+    output_ += ")";
   } else {
-    a.Format(formatter, output_str);
+    a.Receive(*this);
   }
-  fmt::format_to(std::back_inserter(output_str), " {} ", op_str);
-  if (parent_precedence > GetPrecedence(b)) {
-    output_str += "(";
-    b.Format(formatter, output_str);
-    output_str += ")";
+  fmt::format_to(std::back_inserter(output_), " {} ", op_str);
+  if (parent_precedence > GetPrecedence(b) || !use_precedence_) {
+    output_ += "(";
+    b.Receive(*this);
+    output_ += ")";
   } else {
-    b.Format(formatter, output_str);
+    b.Receive(*this);
   }
 }
 
-void PlainFormatter::Format(const Addition& expr, std::string& output) const {
-  FormatBinaryOp(*this, Addition::OperatorPrecedence, "+", *expr.First(), *expr.Second(), output);
+void PlainFormatter::Apply(const Addition& expr) {
+  FormatBinaryOp(Addition::OperatorPrecedence, "+", *expr.First(), *expr.Second());
 }
 
-void PlainFormatter::Format(const Division& expr, std::string& output) const {
-  FormatBinaryOp(*this, Division::OperatorPrecedence, "/", *expr.First(), *expr.Second(), output);
-}
-
-void PlainFormatter::Format(const Multiplication& expr, std::string& output) const {
-  FormatBinaryOp(*this, Multiplication::OperatorPrecedence, "*", *expr.First(), *expr.Second(),
-                 output);
-}
-
-void PlainFormatter::Format(const Power& expr, std::string& output) const {
-  FormatBinaryOp(*this, Power::OperatorPrecedence, "^", *expr.First(), *expr.Second(), output);
-}
-
-void PlainFormatter::Format(const Subtraction& expr, std::string& output) const {
-  FormatBinaryOp(*this, Subtraction::OperatorPrecedence, "-", *expr.First(), *expr.Second(),
-                 output);
-}
-
-void PlainFormatter::Format(const Constant& expr, std::string& output) const {
+void PlainFormatter::Apply(const Constant& expr) {
   switch (expr.GetName()) {
     case SymbolicConstants::Pi:
-      output += "pi";
+      output_ += "pi";
       break;
     case SymbolicConstants::Euler:
-      output += "e";
+      output_ += "e";
       break;
     default:
-      output += "<UNKNOWN>";
+      output_ += "<UNKNOWN CONSTANT>";
       break;
   }
 }
 
-void PlainFormatter::Format(const Number& expr, std::string& output) const {
-  fmt::format_to(std::back_inserter(output), "{}", expr.GetValue());
+void PlainFormatter::Apply(const Division& expr) {
+  FormatBinaryOp(Division::OperatorPrecedence, "/", *expr.First(), *expr.Second());
 }
 
-void PlainFormatter::Format(const Variable& expr, std::string& output) const {
-  output += expr.GetName();
+void PlainFormatter::Apply(const Multiplication& expr) {
+  FormatBinaryOp(Multiplication::OperatorPrecedence, "*", *expr.First(), *expr.Second());
 }
 
-void PlainFormatter::Format(const NaturalLog& expr, std::string& output) const {
-  output += "ln(";
-  expr.Inner()->Format(*this, output);
-  output += ")";
+void PlainFormatter::Apply(const NaturalLog& expr) {
+  output_ += "ln(";
+  expr.Inner()->Receive(*this);
+  output_ += ")";
 }
 
-void PlainFormatter::Format(const Negation& expr, std::string& output) const {
-  output += "-";
-  expr.Inner()->Format(*this, output);
+void PlainFormatter::Apply(const Negation& expr) {
+  output_ += "-";
+  if (expr.Inner()->As<OperationBase>()) {
+    output_ += "(";
+    expr.Inner()->Receive(*this);
+    output_ += ")";
+  } else {
+    expr.Inner()->Receive(*this);
+  }
 }
+
+void PlainFormatter::Apply(const Number& expr) {
+  fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
+}
+
+void PlainFormatter::Apply(const Power& expr) {
+  output_ += "pow(";
+  expr.First()->Receive(*this);
+  output_ += ", ";
+  expr.Second()->Receive(*this);
+  output_ += ")";
+}
+
+void PlainFormatter::Apply(const Subtraction& expr) {
+  FormatBinaryOp(Subtraction::OperatorPrecedence, "-", *expr.First(), *expr.Second());
+}
+
+void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 
 }  // namespace math

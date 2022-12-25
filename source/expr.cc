@@ -24,12 +24,11 @@ Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
 
 Expr::Expr(double x) : impl_(MakeNumber(x)) {}
 
-std::string Expr::ToString() const {
+std::string Expr::ToString(const bool use_precedence) const {
   ASSERT(impl_);
-  PlainFormatter formatter{};
-  std::string result;
-  impl_->Format(formatter, result);
-  return result;
+  PlainFormatter formatter{use_precedence};
+  impl_->Receive(formatter);
+  return formatter.GetOutput();
 }
 
 Expr Expr::operator-() const { return Expr{Negate(impl_)}; }
@@ -51,6 +50,5 @@ Expr operator*(const Expr& a, const Expr& b) { return Expr{Mul(a.GetImpl(), b.Ge
 Expr operator+(const Expr& a, const Expr& b) { return Expr{Add(a.GetImpl(), b.GetImpl())}; }
 Expr operator-(const Expr& a, const Expr& b) { return Expr{Sub(a.GetImpl(), b.GetImpl())}; }
 Expr operator/(const Expr& a, const Expr& b) { return Expr{Div(a.GetImpl(), b.GetImpl())}; }
-Expr operator^(const Expr& a, const Expr& b) { return Expr{Pow(a.GetImpl(), b.GetImpl())}; }
 
 }  // namespace math

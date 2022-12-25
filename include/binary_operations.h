@@ -1,20 +1,9 @@
 #pragma once
 #include "expression_base.h"
+#include "operation_base.h"
 
+// TODO: These are all n-ary ops (except for power), and should changed.
 namespace math {
-
-class OperationBase {
- public:
-  virtual int Precedence() const = 0;
-  virtual ~OperationBase() = default;
-};
-
-template <typename Derived>
-class OperationImpl : public OperationBase {
- public:
-  int Precedence() const override { return Derived::OperatorPrecedence; }
-  virtual ~OperationImpl() = default;
-};
 
 // Binary operation of two expressions.
 template <typename Derived>
@@ -47,7 +36,6 @@ class BinaryOp : public ExpressionImpl<Derived>, public OperationImpl<Derived> {
 class Addition : public BinaryOp<Addition> {
  public:
   using BinaryOp::BinaryOp;
-  static constexpr bool IsCommutative = true;
   static constexpr int OperatorPrecedence = 1;
 };
 
@@ -55,7 +43,6 @@ class Addition : public BinaryOp<Addition> {
 class Subtraction : public BinaryOp<Subtraction> {
  public:
   using BinaryOp::BinaryOp;
-  static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 1;
 };
 
@@ -63,7 +50,6 @@ class Subtraction : public BinaryOp<Subtraction> {
 class Multiplication : public BinaryOp<Multiplication> {
  public:
   using BinaryOp::BinaryOp;
-  static constexpr bool IsCommutative = true;
   static constexpr int OperatorPrecedence = 2;
 };
 
@@ -71,7 +57,6 @@ class Multiplication : public BinaryOp<Multiplication> {
 class Division : public BinaryOp<Division> {
  public:
   using BinaryOp::BinaryOp;
-  static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 3;
 };
 
@@ -79,7 +64,6 @@ class Division : public BinaryOp<Division> {
 class Power : public BinaryOp<Power> {
  public:
   using BinaryOp::BinaryOp;
-  static constexpr bool IsCommutative = false;
   static constexpr int OperatorPrecedence = 4;
 };
 

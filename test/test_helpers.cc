@@ -14,6 +14,12 @@ testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const st
                         name_a, a.ToString(), name_b, b.ToString());
 }
 
+testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const std::string& name_b,
+                                             const ExpressionBaseConstPtr& a,
+                                             const ExpressionBaseConstPtr& b) {
+  return IdenticalTestHelper(name_a, name_b, Expr{a}, Expr{b});
+}
+
 testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
                                                 const std::string& name_b, const Expr& a,
                                                 const Expr& b) {
@@ -23,6 +29,13 @@ testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
   return testing::AssertionFailure()
          << fmt::format("{} is identical to {}, where:\n{} = {}\nand {} = {}\n", name_a, name_b,
                         name_a, a.ToString(), name_b, b.ToString());
+}
+
+testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
+                                                const std::string& name_b,
+                                                const ExpressionBaseConstPtr& a,
+                                                const ExpressionBaseConstPtr& b) {
+  return NotIdenticalTestHelper(name_a, name_b, Expr{a}, Expr{b});
 }
 
 }  // namespace math

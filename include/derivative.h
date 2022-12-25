@@ -39,6 +39,8 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
     return a * b->Receive(*this) + a->Receive(*this) * b;
   }
 
+  ExpressionBaseConstPtr Apply(const Negation& neg) { return Negate(neg.Inner()->Receive(*this)); }
+
   ExpressionBaseConstPtr Apply(const Number&) { return Constants::Zero.GetImpl(); }
 
   ExpressionBaseConstPtr Apply(const Power& pow) {
@@ -46,7 +48,7 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
     const auto& b = pow.Second();
     const auto a_diff = pow.First()->Receive(*this);
     const auto b_diff = pow.Second()->Receive(*this);
-    return b * (a ^ (b - Constants::One.GetImpl())) * a_diff + (a ^ b) * Log(a) * b_diff;
+    return b * Pow(a, b - Constants::One.GetImpl()) * a_diff + Pow(a, b) * Log(a) * b_diff;
   }
 
   ExpressionBaseConstPtr Apply(const Subtraction& sub) {

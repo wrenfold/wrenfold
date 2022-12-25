@@ -1,5 +1,6 @@
 #pragma once
 #include "expression_base.h"
+#include "operation_base.h"
 
 namespace math {
 
