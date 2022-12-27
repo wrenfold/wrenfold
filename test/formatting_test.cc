@@ -49,6 +49,7 @@ TEST(PlainFormatterTest, TestNegation) {
   ASSERT_STR_EQ("-x", -x);
   ASSERT_STR_EQ("-(x + y)", -(x + y));
   ASSERT_STR_EQ("-(x * y)", -(x * y));
+  ASSERT_STR_EQ("-x / -y", -x / -y);
 }
 
 TEST(PlainFormatterTest, TestDivision) {
@@ -62,6 +63,10 @@ TEST(PlainFormatterTest, TestDivision) {
   ASSERT_STR_EQ("(x + 1) / y * z", (x + 1) / y * z);
   ASSERT_STR_EQ("(-(x + x) * y) / x * x * x * x", -(x + x) * y / x * x * x * x);
   ASSERT_STR_EQ("(-x * y) / x * z * (z + x)", -x * y / x * z * (z + x));
+  ASSERT_STR_EQ("z / (x + y)", z / (x + y));
+  ASSERT_STR_EQ("-z / x + y", -z / x + y);
+  ASSERT_STR_EQ("y / ln(x)", y / math::log(x));
+  ASSERT_STR_EQ("-pow(x, y) / ln(x - y)", -math::pow(x, y) / math::log(x - y));
 }
 
 TEST(PlainFormatterTest, TestPower) {

@@ -2,6 +2,9 @@
 
 #include <fmt/format.h>
 
+#include <optional>
+#include <type_traits>
+
 #include "binary_operations.h"
 #include "constant_expressions.h"
 #include "unary_operations.h"
@@ -69,9 +72,55 @@ void PlainFormatter::Apply(const NaturalLog& expr) {
   output_ += ")";
 }
 
+// Template to check if the `Apply` method is implemented.
+template <typename Handler, typename, typename = void>
+constexpr bool HandlerCompiles = false;
+
+// Specialization that is activated when the Apply method exists:
+template <typename Handler, typename Argument>
+constexpr bool HandlerCompiles<
+    Handler, Argument, decltype(std::declval<Handler>()(std::declval<const Argument>()), void())> =
+    true;
+
+template <typename ReturnType, typename HandlerType>
+struct TemporaryVisitor
+    : public VisitorWithoutResultImpl<TemporaryVisitor<ReturnType, HandlerType>> {
+ public:
+  TemporaryVisitor(HandlerType&& handler) : handler(std::move(handler)) {}
+
+  template <typename Argument>
+  std::enable_if_t<HandlerCompiles<HandlerType, Argument>, void> Apply(const Argument& arg) {
+    result = handler(arg);
+  }
+
+  HandlerType handler{};
+  std::optional<ReturnType> result{};
+};
+
+template <typename HandlerType>
+auto Visit(const ExpressionBaseConstPtr& expr, HandlerType handler) {
+  using ReturnType = typename HandlerType::ReturnType;
+  TemporaryVisitor<ReturnType, HandlerType> visitor{std::move(handler)};
+  expr->Receive(visitor);
+  return visitor.result;
+}
+
+struct NeedsBracketsVisitor {
+  using ReturnType = bool;
+  // If the operation is a binary op, we need brackets.
+  template <typename Anything>
+  constexpr bool operator()(const Anything&) {
+    return false;
+  }
+
+  //  constexpr bool operator()(const )
+};
+
 void PlainFormatter::Apply(const Negation& expr) {
   output_ += "-";
-  if (expr.Inner()->As<OperationBase>()) {
+
+  const std::optional<bool> needs_brackets = Visit(expr.Inner(), NeedsBracketsVisitor{});
+  if (needs_brackets.has_value() && *needs_brackets) {
     output_ += "(";
     expr.Inner()->Receive(*this);
     output_ += ")";

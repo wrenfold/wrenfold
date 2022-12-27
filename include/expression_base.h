@@ -30,12 +30,6 @@ class ExpressionBase {
   // Apply a visitor that does not return anything.
   virtual void Receive(VisitorWithoutResultBase& visitor) const = 0;
 
-  // The # of arguments to this expression.
-  //  virtual std::size_t Arity() const = 0;
-  //
-  //  // True if the expression is a function invocation.
-  //  virtual bool IsFunction() const = 0;
-
  protected:
   // Implemented by derived class. Called after we check ptr address.
   virtual bool IsIdenticalToImpl(const ExpressionBase& other) const = 0;
