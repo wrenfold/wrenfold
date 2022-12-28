@@ -41,7 +41,7 @@ class Expr {
   bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other.impl_); }
 
   // Convert to string.
-  std::string ToString(bool use_precedence = true) const;
+  std::string ToString() const;
 
   // Negation operator.
   Expr operator-() const;

@@ -23,9 +23,9 @@ Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
 
 Expr::Expr(double x) : Expr(MakeNumber(x)) {}
 
-std::string Expr::ToString(const bool use_precedence) const {
+std::string Expr::ToString() const {
   ASSERT(impl_);
-  PlainFormatter formatter{use_precedence};
+  PlainFormatter formatter{};
   impl_->Receive(formatter);
   return formatter.GetOutput();
 }

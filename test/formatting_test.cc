@@ -67,7 +67,8 @@ TEST(PlainFormatterTest, TestDivision) {
   ASSERT_STR_EQ("z / (x + y)", z / (x + y));
   ASSERT_STR_EQ("-z / x + y", -z / x + y);
   ASSERT_STR_EQ("y / ln(x)", y / math::log(x));
-  ASSERT_STR_EQ("-pow(x, y) / ln(x - y)", -math::pow(x, y) / math::log(x - y));
+  // TODO: pow() should not be a BinaryOp (and BinaryOp should be N-ary op).
+  ASSERT_STR_EQ("-(pow(x, y)) / ln(x - y)", -math::pow(x, y) / math::log(x - y));
 }
 
 TEST(PlainFormatterTest, TestPower) {

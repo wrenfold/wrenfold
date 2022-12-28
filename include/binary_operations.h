@@ -26,6 +26,9 @@ class BinaryOp : public ExpressionImpl<Derived>, public OperationImpl<Derived> {
   // Access right argument.
   const Expr& Second() const { return b_; }
 
+  // Access name of the operation.
+  constexpr const char* Name() const { return Derived::NameStr; }
+
  protected:
   Expr a_;
   Expr b_;
@@ -36,6 +39,7 @@ class Addition : public BinaryOp<Addition> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr int OperatorPrecedence = 1;
+  static constexpr const char* NameStr = "Addition";
 };
 
 // Subtraction operation.
@@ -43,6 +47,7 @@ class Subtraction : public BinaryOp<Subtraction> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr int OperatorPrecedence = 1;
+  static constexpr const char* NameStr = "Subtraction";
 };
 
 // Multiplication operation.
@@ -50,6 +55,7 @@ class Multiplication : public BinaryOp<Multiplication> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr int OperatorPrecedence = 2;
+  static constexpr const char* NameStr = "Multiplication";
 };
 
 // Division operation.
@@ -57,6 +63,7 @@ class Division : public BinaryOp<Division> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr int OperatorPrecedence = 3;
+  static constexpr const char* NameStr = "Division";
 };
 
 // Power operation.
@@ -64,6 +71,7 @@ class Power : public BinaryOp<Power> {
  public:
   using BinaryOp::BinaryOp;
   static constexpr int OperatorPrecedence = 4;
+  static constexpr const char* NameStr = "Power";
 };
 
 }  // namespace math

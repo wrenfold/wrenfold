@@ -43,7 +43,7 @@ class VisitorWithoutResultImpl : public VisitorWithoutResultBase {
 // as the result of a call to Apply(...). If no visitor method can be called,
 // the result is left empty.
 template <typename ReturnType, typename VisitorType>
-struct TypeErasedVisitor
+struct TypeErasedVisitor final
     : public VisitorWithoutResultImpl<TypeErasedVisitor<ReturnType, VisitorType>, false> {
  public:
   // Move construct from visitor type.
@@ -52,8 +52,17 @@ struct TypeErasedVisitor
   // Call the implementation. This method is enabled only if the visitor
   // has an `Apply` method that accepts type `Argument`.
   template <typename Argument>
-  std::enable_if_t<HasApplyMethod<VisitorType, Argument>> Apply(const Argument& arg) {
+  std::enable_if_t<!std::is_pointer_v<VisitorType> && HasApplyMethod<VisitorType, Argument>> Apply(
+      const Argument& arg) {
     result = impl_.Apply(arg);
+  }
+
+  // Call the implementation. This method is enabled if the VisitorType is a pointer.
+  template <typename Argument>
+  std::enable_if_t<std::is_pointer_v<VisitorType> &&
+                   HasApplyMethod<std::decay_t<VisitorType>, Argument>>
+  Apply(const Argument& arg) {
+    result = impl_->Apply(arg);
   }
 
  private:
@@ -61,6 +70,34 @@ struct TypeErasedVisitor
 
  public:
   std::optional<ReturnType> result{};
+};
+
+// Specialization for void ReturnType.
+template <typename VisitorType>
+struct TypeErasedVisitor<void, VisitorType> final
+    : public VisitorWithoutResultImpl<TypeErasedVisitor<void, VisitorType>, false> {
+ public:
+  // Move construct from visitor type.
+  TypeErasedVisitor(VisitorType&& impl) : impl_(std::move(impl)) {}
+
+  // Call the implementation. This method is enabled only if the visitor
+  // has an `Apply` method that accepts type `Argument`.
+  template <typename Argument>
+  std::enable_if_t<!std::is_pointer_v<VisitorType> && HasApplyMethod<VisitorType, Argument>> Apply(
+      const Argument& arg) {
+    impl_.Apply(arg);
+  }
+
+  // Call the implementation. This method is enabled if the VisitorType is a pointer.
+  template <typename Argument>
+  std::enable_if_t<std::is_pointer_v<VisitorType> &&
+                   HasApplyMethod<std::remove_pointer_t<VisitorType>, Argument>>
+  Apply(const Argument& arg) {
+    impl_->Apply(arg);
+  }
+
+ private:
+  VisitorType impl_;
 };
 
 // Accepts a visitor struct and applies it to the provided expression.
@@ -72,10 +109,22 @@ auto Visit(const Expr& expr, VisitorType&& visitor) {
   // We need this `ReturnType` property because it is not possible to reduce
   // the lambda return type w/o knowing the argument type. We require the user
   // to specify explicitly for clarity.
-  using ReturnType = typename VisitorType::ReturnType;
-  TypeErasedVisitor<ReturnType, VisitorType> erased_visitor{std::forward<VisitorType>(visitor)};
-  expr.Receive(erased_visitor);
-  return erased_visitor.result;
+  using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
+  if constexpr (std::is_lvalue_reference_v<VisitorType>) {
+    // If visitor is an l-value reference, use a pointer as the type for the type-erased visitor.
+    // This pointer remains valid for the duration of this method.
+    TypeErasedVisitor<ReturnType, std::decay_t<VisitorType>*> erased_visitor{&visitor};
+    expr.Receive(erased_visitor);
+    if constexpr (!std::is_same_v<ReturnType, void>) {
+      return erased_visitor.result;
+    }
+  } else {
+    TypeErasedVisitor<ReturnType, VisitorType> erased_visitor{std::forward<VisitorType>(visitor)};
+    expr.Receive(erased_visitor);
+    if constexpr (!std::is_same_v<ReturnType, void>) {
+      return erased_visitor.result;
+    }
+  }
 }
 
 // Thrown for un-implemented visitors.

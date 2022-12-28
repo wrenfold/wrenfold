@@ -7,8 +7,6 @@ namespace math {
 // Simple plain-text formatter.
 class PlainFormatter : public VisitorWithoutResultImpl<PlainFormatter> {
  public:
-  PlainFormatter(bool use_precedence = true) : use_precedence_(use_precedence) {}
-
   void Apply(const Addition& add);
   void Apply(const Constant& constant);
   void Apply(const Division& div);
@@ -28,7 +26,8 @@ class PlainFormatter : public VisitorWithoutResultImpl<PlainFormatter> {
   void FormatBinaryOp(int parent_precedence, const char* op_str, const Expr& a, const Expr& b);
 
   std::string output_{};
-  bool use_precedence_;
 };
+
+std::string FormatDebugTree(const Expr& expr);
 
 }  // namespace math
