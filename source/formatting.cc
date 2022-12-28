@@ -47,17 +47,7 @@ void PlainFormatter::Apply(const Addition& expr) {
 }
 
 void PlainFormatter::Apply(const Constant& expr) {
-  switch (expr.GetName()) {
-    case SymbolicConstants::Pi:
-      output_ += "pi";
-      break;
-    case SymbolicConstants::Euler:
-      output_ += "e";
-      break;
-    default:
-      output_ += "<UNKNOWN CONSTANT>";
-      break;
-  }
+  output_ += StringFromSymbolicConstant(expr.GetName());
 }
 
 void PlainFormatter::Apply(const Division& expr) {
@@ -74,8 +64,10 @@ void PlainFormatter::Apply(const NaturalLog& expr) {
   output_ += ")";
 }
 
+// Simple visitor that evaluates to true for n-ary operations.
 struct NegateNeedsBracketsVisitor {
   using ReturnType = bool;
+  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
 
   template <typename Derived>
   constexpr bool Apply(const BinaryOp<Derived>&) const {
@@ -116,6 +108,9 @@ void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 
 struct TreeFormatter {
   using ReturnType = void;
+
+  // Generate a compile-time error if we forget a visitor here.
+  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
 
   // Add indentation to the output string.
   void ApplyIndentation() {
@@ -178,6 +173,10 @@ struct TreeFormatter {
   void Apply(const Number& neg) { AppendName("Number ({})", neg.GetValue()); }
 
   void Apply(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
+
+  void Apply(const Constant& constant) {
+    AppendName("Constant ({})", StringFromSymbolicConstant(constant.GetName()));
+  }
 
   // Get the output string via move.
   void TakeOutput(std::string& output) { output = std::move(output_); }

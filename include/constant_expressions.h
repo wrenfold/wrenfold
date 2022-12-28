@@ -45,4 +45,15 @@ class Constant : public ExpressionImpl<Constant> {
   SymbolicConstants name_;
 };
 
+// Convert symbolic constant enum to string constant.
+// For debugging purposes.
+inline const char* StringFromSymbolicConstant(SymbolicConstants value) {
+  switch (value) {
+    case SymbolicConstants::Pi:
+      return "pi";
+    case SymbolicConstants::Euler:
+      return "e";
+  }
+}
+
 }  // namespace math

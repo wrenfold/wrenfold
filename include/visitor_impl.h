@@ -27,10 +27,21 @@ class VisitorWithResultImpl : public VisitorWithResultBase {
   IMPLEMENT_ALL_VIRTUAL_APPLY_METHODS()
 };
 
+// The type of error that is generated when a visitor fails to implement
+// an `Apply` method for a type.
+enum class VisitorPolicy {
+  // Throw an exception.
+  Throw,
+  // Fail at compile time.
+  CompileError,
+  // Silently do nothing. (Allow non-implemented Apply for some types).
+  NoError,
+};
+
 // Implementation of a visitor that does not return an expression.
 // Visitors with void return type may optionally choose to avoid throwing
 // when the return value is unspecified.
-template <typename Derived, bool Throwing = true>
+template <typename Derived, VisitorPolicy Policy = VisitorPolicy::Throw>
 class VisitorWithoutResultImpl : public VisitorWithoutResultBase {
  public:
   // Cast to non-const derived type.
@@ -42,9 +53,9 @@ class VisitorWithoutResultImpl : public VisitorWithoutResultBase {
 // Wraps a type-erased visitor. The wrapped visitor must produce `ReturnType`
 // as the result of a call to Apply(...). If no visitor method can be called,
 // the result is left empty.
-template <typename ReturnType, typename VisitorType>
+template <typename ReturnType, typename VisitorType, VisitorPolicy Policy>
 struct TypeErasedVisitor final
-    : public VisitorWithoutResultImpl<TypeErasedVisitor<ReturnType, VisitorType>, false> {
+    : public VisitorWithoutResultImpl<TypeErasedVisitor<ReturnType, VisitorType, Policy>, Policy> {
  public:
   // Move construct from visitor type.
   TypeErasedVisitor(VisitorType&& impl) : impl_(std::move(impl)) {}
@@ -73,9 +84,9 @@ struct TypeErasedVisitor final
 };
 
 // Specialization for void ReturnType.
-template <typename VisitorType>
-struct TypeErasedVisitor<void, VisitorType> final
-    : public VisitorWithoutResultImpl<TypeErasedVisitor<void, VisitorType>, false> {
+template <typename VisitorType, VisitorPolicy Policy>
+struct TypeErasedVisitor<void, VisitorType, Policy> final
+    : public VisitorWithoutResultImpl<TypeErasedVisitor<void, VisitorType, Policy>, Policy> {
  public:
   // Move construct from visitor type.
   TypeErasedVisitor(VisitorType&& impl) : impl_(std::move(impl)) {}
@@ -101,25 +112,28 @@ struct TypeErasedVisitor<void, VisitorType> final
 };
 
 // Accepts a visitor struct and applies it to the provided expression.
-// Returns `std::optional<VisitorType::ReturnType>`. If the visitor does not
-// implement a method that applies to the underlying type of `Expr`, the optional
-// will be left empty.
+// Returns `std::optional<VisitorType::ReturnType>`. If the visitor does not implement the required
+// method for a given expression type, the outcome is determined by VisitorType::Policy.
 template <typename VisitorType>
 auto Visit(const Expr& expr, VisitorType&& visitor) {
   // We need this `ReturnType` property because it is not possible to reduce
   // the lambda return type w/o knowing the argument type. We require the user
   // to specify explicitly for clarity.
   using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
+  constexpr VisitorPolicy Policy = std::decay_t<VisitorType>::Policy;
   if constexpr (std::is_lvalue_reference_v<VisitorType>) {
     // If visitor is an l-value reference, use a pointer as the type for the type-erased visitor.
     // This pointer remains valid for the duration of this method.
-    TypeErasedVisitor<ReturnType, std::decay_t<VisitorType>*> erased_visitor{&visitor};
+    TypeErasedVisitor<ReturnType, std::decay_t<VisitorType>*, Policy> erased_visitor{&visitor};
     expr.Receive(erased_visitor);
     if constexpr (!std::is_same_v<ReturnType, void>) {
       return erased_visitor.result;
     }
   } else {
-    TypeErasedVisitor<ReturnType, VisitorType> erased_visitor{std::forward<VisitorType>(visitor)};
+    // Otherwise the visitor is a value or a forwarded reference.
+    // In that case, forward it and `TypeErasedVisitor` will own the resulting value.
+    TypeErasedVisitor<ReturnType, VisitorType, Policy> erased_visitor{
+        std::forward<VisitorType>(visitor)};
     expr.Receive(erased_visitor);
     if constexpr (!std::is_same_v<ReturnType, void>) {
       return erased_visitor.result;
@@ -154,13 +168,15 @@ ExpressionConceptConstPtr ApplyOrThrow(VisitorWithResultImpl<Derived>& visitor,
 }
 
 // Variant of ApplyOrThrow that takes no argument.
-template <typename Derived, bool Throwing, typename Argument>
-void ApplyOrThrow(VisitorWithoutResultImpl<Derived, Throwing>& visitor, const Argument& arg) {
+template <typename Derived, VisitorPolicy Policy, typename Argument>
+void ApplyOrThrow(VisitorWithoutResultImpl<Derived, Policy>& visitor, const Argument& arg) {
   if constexpr (HasApplyMethod<Derived, Argument>) {
     visitor.AsDerived().Apply(arg);
-  } else if (Throwing) {
+  } else if constexpr (Policy == VisitorPolicy::Throw) {
     throw VisitorNotImplemented(typeid(Derived).name(), typeid(Argument).name());
   }
+  static_assert(HasApplyMethod<Derived, Argument> || Policy != VisitorPolicy::CompileError,
+                "The visitor fails to implement a required method");
 }
 
 }  // namespace math
