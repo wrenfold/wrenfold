@@ -15,22 +15,14 @@ add_subdirectory(dependencies)
 
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
-    source/binary_operations.cc
-    source/constant_expressions.cc
-    source/constants.cc
-    source/expr.cc
-    source/expression_base.cc
-    source/formatting.cc
-    source/functions.cc
-    source/operation_utils.cc
-    source/unary_operations.cc
-    source/variable.cc)
+    source/constants.cc source/expression.cc source/formatting.cc
+    source/functions.cc source/visitor.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})
 
 # Turn on C++14
-target_compile_features(${LIBRARY_NAME} PRIVATE cxx_std_17)
+target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
 
 # turn on various warnings
 if(MSVC)

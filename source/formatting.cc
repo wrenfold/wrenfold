@@ -1,5 +1,10 @@
 #include "formatting.h"
 
+#include <iostream>
+#include <optional>
+#include <type_traits>
+#include <vector>
+
 #include <fmt/format.h>
 
 #include "binary_operations.h"
@@ -9,95 +14,203 @@
 
 namespace math {
 
-std::string ToPlainString(const ExpressionBaseConstPtr& expr) {
-  PlainFormatter formatter{};
-  std::string result;
-  expr->Format(formatter, result);
-  return result;
-}
+// Visitor that gets the operator precedence of a binary operation.
+struct PrecedenceVisitor {
+  using ReturnType = int;
+  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
 
-static int GetPrecedence(const ExpressionBase& expr) {
-  const OperationBase* const op = expr.As<OperationBase>();
-  if (op) {
-    return op->Precedence();
+  template <typename Derived>
+  constexpr ReturnType Apply(const BinaryOp<Derived>&) {
+    return Derived::OperatorPrecedence;
   }
-  return std::numeric_limits<int>::max();
+};
+
+static int GetPrecedence(const Expr& expr) {
+  return Visit(expr, PrecedenceVisitor{}).value_or(std::numeric_limits<int>::max());
 }
 
 // Helper for appropriately applying brackets, considering operator precedence.
-static void FormatBinaryOp(const Formatter& formatter, const int parent_precedence,
-                           const char* const op_str, const ExpressionBase& a,
-                           const ExpressionBase& b, std::string& output_str) {
+void PlainFormatter::FormatBinaryOp(const int parent_precedence, const char* const op_str,
+                                    const Expr& a, const Expr& b) {
   if (parent_precedence > GetPrecedence(a)) {
-    output_str += "(";
-    a.Format(formatter, output_str);
-    output_str += ")";
+    output_ += "(";
+    a.Receive(*this);
+    output_ += ")";
   } else {
-    a.Format(formatter, output_str);
+    a.Receive(*this);
   }
-  fmt::format_to(std::back_inserter(output_str), " {} ", op_str);
+  fmt::format_to(std::back_inserter(output_), " {} ", op_str);
   if (parent_precedence > GetPrecedence(b)) {
-    output_str += "(";
-    b.Format(formatter, output_str);
-    output_str += ")";
+    output_ += "(";
+    b.Receive(*this);
+    output_ += ")";
   } else {
-    b.Format(formatter, output_str);
+    b.Receive(*this);
   }
 }
 
-void PlainFormatter::Format(const Addition& expr, std::string& output) const {
-  FormatBinaryOp(*this, Addition::OperatorPrecedence, "+", *expr.First(), *expr.Second(), output);
+void PlainFormatter::Apply(const Addition& expr) {
+  FormatBinaryOp(Addition::OperatorPrecedence, "+", expr.First(), expr.Second());
 }
 
-void PlainFormatter::Format(const Division& expr, std::string& output) const {
-  FormatBinaryOp(*this, Division::OperatorPrecedence, "/", *expr.First(), *expr.Second(), output);
+void PlainFormatter::Apply(const Constant& expr) {
+  output_ += StringFromSymbolicConstant(expr.GetName());
 }
 
-void PlainFormatter::Format(const Multiplication& expr, std::string& output) const {
-  FormatBinaryOp(*this, Multiplication::OperatorPrecedence, "*", *expr.First(), *expr.Second(),
-                 output);
+void PlainFormatter::Apply(const Division& expr) {
+  FormatBinaryOp(Division::OperatorPrecedence, "/", expr.First(), expr.Second());
 }
 
-void PlainFormatter::Format(const Power& expr, std::string& output) const {
-  FormatBinaryOp(*this, Power::OperatorPrecedence, "^", *expr.First(), *expr.Second(), output);
+void PlainFormatter::Apply(const Multiplication& expr) {
+  FormatBinaryOp(Multiplication::OperatorPrecedence, "*", expr.First(), expr.Second());
 }
 
-void PlainFormatter::Format(const Subtraction& expr, std::string& output) const {
-  FormatBinaryOp(*this, Subtraction::OperatorPrecedence, "-", *expr.First(), *expr.Second(),
-                 output);
+void PlainFormatter::Apply(const NaturalLog& expr) {
+  output_ += "ln(";
+  expr.Inner().Receive(*this);
+  output_ += ")";
 }
 
-void PlainFormatter::Format(const Constant& expr, std::string& output) const {
-  switch (expr.GetName()) {
-    case SymbolicConstants::Pi:
-      output += "pi";
-      break;
-    case SymbolicConstants::Euler:
-      output += "e";
-      break;
-    default:
-      output += "<UNKNOWN>";
-      break;
+// Simple visitor that evaluates to true for n-ary operations.
+struct NegateNeedsBracketsVisitor {
+  using ReturnType = bool;
+  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
+
+  template <typename Derived>
+  constexpr bool Apply(const BinaryOp<Derived>&) const {
+    return true;
+  }
+};
+
+void PlainFormatter::Apply(const Negation& expr) {
+  output_ += "-";
+
+  const std::optional<bool> needs_brackets = Visit(expr.Inner(), NegateNeedsBracketsVisitor{});
+  if (needs_brackets.value_or(false)) {
+    output_ += "(";
+    expr.Inner().Receive(*this);
+    output_ += ")";
+  } else {
+    expr.Inner().Receive(*this);
   }
 }
 
-void PlainFormatter::Format(const Number& expr, std::string& output) const {
-  fmt::format_to(std::back_inserter(output), "{}", expr.GetValue());
+void PlainFormatter::Apply(const Number& expr) {
+  fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
 }
 
-void PlainFormatter::Format(const Variable& expr, std::string& output) const {
-  output += expr.GetName();
+void PlainFormatter::Apply(const Power& expr) {
+  output_ += "pow(";
+  expr.First().Receive(*this);
+  output_ += ", ";
+  expr.Second().Receive(*this);
+  output_ += ")";
 }
 
-void PlainFormatter::Format(const NaturalLog& expr, std::string& output) const {
-  output += "ln(";
-  expr.Inner()->Format(*this, output);
-  output += ")";
+void PlainFormatter::Apply(const Subtraction& expr) {
+  FormatBinaryOp(Subtraction::OperatorPrecedence, "-", expr.First(), expr.Second());
 }
 
-void PlainFormatter::Format(const Negate& expr, std::string& output) const {
-  output += "-";
-  expr.Inner()->Format(*this, output);
+void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
+
+struct TreeFormatter {
+  using ReturnType = void;
+
+  // Generate a compile-time error if we forget a visitor here.
+  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+
+  // Add indentation to the output string.
+  void ApplyIndentation() {
+    if (indentations_.empty()) {
+      return;
+    }
+    // For each left branch depth, we need to add a line.
+    // Right branches only need space.
+    for (std::size_t i = 0; i + 1 < indentations_.size(); ++i) {
+      if (indentations_[i]) {
+        output_ += "│  ";
+      } else {
+        output_ += "   ";
+      }
+    }
+    if (indentations_.back()) {
+      output_ += "├─ ";
+    } else {
+      // Final right branch is the end of this tree.
+      output_ += "└─ ";
+    }
+  }
+
+  template <typename... Args>
+  void AppendName(const char* fmt_str, Args&&... args) {
+    ApplyIndentation();
+    fmt::format_to(std::back_inserter(output_), fmt_str, std::forward<Args>(args)...);
+    output_ += "\n";
+  }
+
+  void VisitLeft(const Expr& expr) {
+    indentations_.push_back(true);
+    Visit(expr, *this);
+    indentations_.pop_back();
+  }
+
+  void VisitRight(const Expr& expr) {
+    indentations_.push_back(false);
+    Visit(expr, *this);
+    indentations_.pop_back();
+  }
+
+  template <typename Derived>
+  void Apply(const BinaryOp<Derived>& op) {
+    AppendName("{}:", op.Name());
+    VisitLeft(op.First());
+    VisitRight(op.Second());
+  }
+
+  void Apply(const NaturalLog& log) {
+    AppendName("NaturalLog:");
+    VisitRight(log.Inner());
+  }
+
+  void Apply(const Negation& neg) {
+    AppendName("Negation:");
+    VisitRight(neg.Inner());
+  }
+
+  void Apply(const Number& neg) { AppendName("Number ({})", neg.GetValue()); }
+
+  void Apply(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
+
+  void Apply(const Constant& constant) {
+    AppendName("Constant ({})", StringFromSymbolicConstant(constant.GetName()));
+  }
+
+  // Get the output string via move.
+  void TakeOutput(std::string& output) { output = std::move(output_); }
+
+ private:
+  // The indentation pattern at our current tree depth.
+  // True indicates a left branch, false indicates a right branch.
+  std::vector<unsigned char> indentations_;
+  // The final output
+  std::string output_;
+};
+
+static void RightTrimInPlace(std::string& str) {
+  while (!str.empty() && std::isspace(str.back())) {
+    str.pop_back();
+  }
+}
+
+std::string FormatDebugTree(const Expr& expr) {
+  TreeFormatter formatter{};
+  Visit(expr, formatter);
+  std::string output;
+  formatter.TakeOutput(output);
+  // Somewhat hacky. The formatter appends a superfluous newline on the last element. I think this
+  // is tricky to avoid w/o knowing the tree depth apriori. Instead, just trim it from the end.
+  RightTrimInPlace(output);
+  return output;
 }
 
 }  // namespace math

@@ -1,6 +1,6 @@
 #pragma once
 #include "constants.h"
-#include "expression_base.h"
+#include "expression_concept.h"
 
 namespace math {
 
@@ -16,9 +16,6 @@ class Number : public ExpressionImpl<Number> {
 
   // Construct from number.
   explicit Number(NumberType val) : val_(val) {}
-
-  // Differentiating a constant produces zero.
-  ExpressionBaseConstPtr Diff(const Variable&) const override;
 
   // Check if numerical constants are completely identical.
   bool IsIdenticalToImplTyped(const Number& other) const { return val_ == other.val_; }
@@ -38,9 +35,6 @@ class Constant : public ExpressionImpl<Constant> {
   // Construct with name.
   explicit Constant(SymbolicConstants Name) : name_(Name) {}
 
-  // Differentiating a constant produces zero.
-  ExpressionBaseConstPtr Diff(const Variable&) const override;
-
   // Check if symbolic constants are the same.
   bool IsIdenticalToImplTyped(const Constant& other) const { return name_ == other.name_; }
 
@@ -50,5 +44,16 @@ class Constant : public ExpressionImpl<Constant> {
  protected:
   SymbolicConstants name_;
 };
+
+// Convert symbolic constant enum to string constant.
+// For debugging purposes.
+inline const char* StringFromSymbolicConstant(SymbolicConstants value) {
+  switch (value) {
+    case SymbolicConstants::Pi:
+      return "pi";
+    case SymbolicConstants::Euler:
+      return "e";
+  }
+}
 
 }  // namespace math

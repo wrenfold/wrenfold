@@ -1,19 +1,11 @@
 #include "functions.h"
 
-#include "binary_operations.h"
-#include "constant_expressions.h"
-#include "unary_operations.h"
+#include "operations_inline.h"
 
 namespace math {
 
-// TODO(gareth): Throw on invalid values...
-Expr log(const Expr& x) {
-  if (x.IsIdenticalTo(Constants::Euler)) {
-    return Constants::One;
-  }
-  return MakeExpr<NaturalLog>(x);
-}
+Expr log(const Expr& x) { return Log(x); }
 
-Expr pow(const Expr& x, const Expr& y) { return MakeExpr<Power>(x, y); }
+Expr pow(const Expr& x, const Expr& y) { return Pow(x, y); }
 
 }  // namespace math

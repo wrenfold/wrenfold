@@ -1,5 +1,6 @@
 #include "constants.h"
 #include "functions.h"
+#include "operations_inline.h"
 #include "test_helpers.h"
 
 // Test derivatives of scalar functions.
@@ -9,6 +10,7 @@ TEST(ScalarDerivativesTest, TestConstants) {
   const Expr x{"x"};
   ASSERT_IDENTICAL(0, Expr{5}.Diff(x));
   ASSERT_IDENTICAL(0, Expr{22.6}.Diff(x, 4));
+  ASSERT_IDENTICAL(0, Constants::Pi.Diff(x));
   ASSERT_THROW(x.Diff(5), std::runtime_error);
 }
 
@@ -45,22 +47,21 @@ TEST(ScalarDerivativesTest, TestDivision) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_IDENTICAL(1, (x / 1).Diff(x));
-  ASSERT_IDENTICAL( -Constants::One / (x * x), (1 / x).Diff(x));
+  ASSERT_IDENTICAL(y / (y * y), (x / y).Diff(x));
+  ASSERT_IDENTICAL(-y / (x * x), (y / x).Diff(x));
+  ASSERT_IDENTICAL(-((x + x) * -y) / ((x * x) * (x * x)), (y / x).Diff(x, 2));
 }
 
 TEST(ScalarDerivativesTest, TestPower) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-
 }
 
 TEST(ScalarDerivativesTest, TestFunctions) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-
 }
 
 }  // namespace math
