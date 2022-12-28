@@ -14,12 +14,19 @@
 
 namespace math {
 
-static int GetPrecedence(const Expr& expr) {
-  const OperationBase* const op = expr.GetRaw<OperationBase>();
-  if (op) {
-    return op->Precedence();
+// Visitor that gets the operator precedence of a binary operation.
+struct PrecedenceVisitor {
+  using ReturnType = int;
+  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
+
+  template <typename Derived>
+  constexpr ReturnType Apply(const BinaryOp<Derived>&) {
+    return Derived::OperatorPrecedence;
   }
-  return std::numeric_limits<int>::max();
+};
+
+static int GetPrecedence(const Expr& expr) {
+  return Visit(expr, PrecedenceVisitor{}).value_or(std::numeric_limits<int>::max());
 }
 
 // Helper for appropriately applying brackets, considering operator precedence.

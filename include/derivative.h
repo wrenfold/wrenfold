@@ -11,6 +11,7 @@
 
 namespace math {
 
+// Visitor that takes the derivative of an input expression.
 class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
  public:
   // Construct w/ const reference to the variable to differentiate wrt to.

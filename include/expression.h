@@ -28,7 +28,7 @@ class Expr {
   // Get a raw pointer, cast dynamically to a particular type.
   template <typename T>
   const T* GetRaw() const {
-    return dynamic_cast<const T*>(impl_.get());
+    return impl_->As<T>();
   }
 
   // Check that underlying type matches `T`.

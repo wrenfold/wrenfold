@@ -1,13 +1,12 @@
 #pragma once
 #include "expression.h"
-#include "operation_base.h"  //  TODO: Delete
 
 // TODO: These are all n-ary ops (except for power), and should changed.
 namespace math {
 
 // Binary operation of two expressions.
 template <typename Derived>
-class BinaryOp : public ExpressionImpl<Derived>, public OperationImpl<Derived> {
+class BinaryOp : public ExpressionImpl<Derived> {
  public:
   BinaryOp(const Expr& a, const Expr& b) : a_(a), b_(b) {}
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "expression_concept.h"
-#include "operation_base.h"
 
 namespace math {
 
@@ -12,7 +11,7 @@ class UnaryOp : public ExpressionImpl<Derived> {
 
   // Test unary ops for equality.
   bool IsIdenticalToImplTyped(const UnaryOp<Derived>& neg) const {
-    return x_.GetImpl()->IsIdenticalTo(neg.x_.GetImpl());
+    return x_.IsIdenticalTo(neg.x_);
   }
 
   // Get inner expression.
