@@ -1,5 +1,5 @@
 #pragma once
-#include "expression_base.h"
+#include "expression_concept.h"
 #include "operation_base.h"
 
 namespace math {
@@ -7,19 +7,19 @@ namespace math {
 template <typename Derived>
 class UnaryOp : public ExpressionImpl<Derived> {
  public:
-  explicit UnaryOp(const ExpressionBaseConstPtr& x) : x_(x) {}
-  explicit UnaryOp(ExpressionBaseConstPtr&& x) : x_(std::move(x)) {}
+  explicit UnaryOp(const Expr& x) : x_(x) {}
+  explicit UnaryOp(Expr&& x) : x_(std::move(x)) {}
 
   // Test unary ops for equality.
   bool IsIdenticalToImplTyped(const UnaryOp<Derived>& neg) const {
-    return x_->IsIdenticalTo(neg.x_);
+    return x_.GetImpl()->IsIdenticalTo(neg.x_.GetImpl());
   }
 
   // Get inner expression.
-  const ExpressionBaseConstPtr& Inner() const { return x_; }
+  const Expr& Inner() const { return x_; }
 
  protected:
-  ExpressionBaseConstPtr x_;
+  Expr x_;
 };
 
 // Negation an expression: -x

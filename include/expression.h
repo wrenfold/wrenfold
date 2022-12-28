@@ -2,7 +2,7 @@
 #include <memory>
 #include <string>
 
-#include "expression_base.h"
+#include "expression_concept.h"
 
 namespace math {
 
@@ -13,8 +13,8 @@ namespace math {
 class Expr {
  public:
   // Constructors.
-  explicit Expr(ExpressionBaseConstPtr&& impl) : impl_(std::move(impl)) {}
-  explicit Expr(const ExpressionBaseConstPtr& impl) : impl_(impl) {}
+  explicit Expr(ExpressionConceptConstPtr&& impl) : impl_(std::move(impl)) {}
+  explicit Expr(const ExpressionConceptConstPtr& impl) : impl_(impl) {}
 
   // Construct variable:
   explicit Expr(const std::string& name);
@@ -23,7 +23,7 @@ class Expr {
   Expr(double x);
 
   // Get the implementation pointer.
-  const ExpressionBaseConstPtr& GetImpl() const { return impl_; }
+  const ExpressionConceptConstPtr& GetImpl() const { return impl_; }
 
   // Get a raw pointer, cast dynamically to a particular type.
   template <typename T>
@@ -38,7 +38,7 @@ class Expr {
   }
 
   // Test if the two expressions are identical.
-  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other.GetImpl()); }
+  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other.impl_); }
 
   // Convert to string.
   std::string ToString(bool use_precedence = true) const;
@@ -49,26 +49,29 @@ class Expr {
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
   Expr Diff(const Expr& var, int reps = 1) const;
 
+  // Receive a visitor.
+  void Receive(VisitorWithoutResultBase& visitor) const { impl_->Receive(visitor); }
+
+  // Receive a visitor that returns an expression.
+  Expr Receive(VisitorWithResultBase& visitor) const { return Expr{impl_->Receive(visitor)}; }
+
  private:
-  ExpressionBaseConstPtr impl_;
+  ExpressionConceptConstPtr impl_;
 };
 
-// Operations defined on expressions:
-Expr operator*(const Expr& a, const Expr& b);
-Expr operator+(const Expr& a, const Expr& b);
-Expr operator-(const Expr& a, const Expr& b);
-Expr operator/(const Expr& a, const Expr& b);
-
-// Create an `Expr` with underlying type `T` and constructor args `Args`.
-template <typename T, typename... Args>
-Expr MakeExpr(Args&&... args) {
-  return Expr{MakeExprBase<T>(std::forward<Args>(args)...)};
-}
+static_assert(std::is_move_assignable_v<Expr> && std::is_move_constructible_v<Expr>,
+              "Should be movable");
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   stream << x.ToString();
   return stream;
+}
+
+// Create an `Expr` with underlying type `T` and constructor args `Args`.
+template <typename T, typename... Args>
+Expr MakeExpr(Args&&... args) {
+  return Expr{std::make_shared<const T>(std::forward<Args>(args)...)};
 }
 
 }  // namespace math

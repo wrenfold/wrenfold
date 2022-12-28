@@ -1,6 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
-#include "visitor.h"
+#include "visitor_impl.h"
 
 namespace math {
 
@@ -25,8 +25,7 @@ class PlainFormatter : public VisitorWithoutResultImpl<PlainFormatter> {
 
  private:
   // Format a binary operation.
-  void FormatBinaryOp(int parent_precedence, const char* op_str, const ExpressionBase& a,
-                      const ExpressionBase& b);
+  void FormatBinaryOp(int parent_precedence, const char* op_str, const Expr& a, const Expr& b);
 
   std::string output_{};
   bool use_precedence_;

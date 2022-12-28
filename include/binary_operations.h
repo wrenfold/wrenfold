@@ -1,6 +1,6 @@
 #pragma once
-#include "expression_base.h"
-#include "operation_base.h"
+#include "expression.h"
+#include "operation_base.h"  //  TODO: Delete
 
 // TODO: These are all n-ary ops (except for power), and should changed.
 namespace math {
@@ -9,27 +9,26 @@ namespace math {
 template <typename Derived>
 class BinaryOp : public ExpressionImpl<Derived>, public OperationImpl<Derived> {
  public:
-  BinaryOp(const ExpressionBaseConstPtr& a, const ExpressionBaseConstPtr& b) : a_(a), b_(b) {}
+  BinaryOp(const Expr& a, const Expr& b) : a_(a), b_(b) {}
 
   // Move-constructor.
-  BinaryOp(ExpressionBaseConstPtr&& a, ExpressionBaseConstPtr&& b)
-      : a_(std::move(a)), b_(std::move(b)) {}
+  BinaryOp(Expr&& a, Expr&& b) : a_(std::move(a)), b_(std::move(b)) {}
 
   // This will only be called for things with the same derived type, so we don't
   // need to check the specific operator here.
   bool IsIdenticalToImplTyped(const BinaryOp<Derived>& other) const {
-    return a_->IsIdenticalTo(other.a_) && b_->IsIdenticalTo(other.b_);
+    return a_.IsIdenticalTo(other.a_) && b_.IsIdenticalTo(other.b_);
   }
 
   // Access left argument.
-  const ExpressionBaseConstPtr& First() const { return a_; }
+  const Expr& First() const { return a_; }
 
   // Access right argument.
-  const ExpressionBaseConstPtr& Second() const { return b_; }
+  const Expr& Second() const { return b_; }
 
  protected:
-  ExpressionBaseConstPtr a_;
-  ExpressionBaseConstPtr b_;
+  Expr a_;
+  Expr b_;
 };
 
 // Addition operation.

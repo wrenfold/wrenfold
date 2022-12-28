@@ -2,12 +2,12 @@
 #pragma once
 
 #include "binary_operations.h"
-#include "expression_fwd.h"
+#include "expression.h"
 #include "functions.h"
-#include "operation_utils.h"
 #include "operations_fwd.h"
+#include "operations_inline.h"
 #include "variable.h"
-#include "visitor.h"
+#include "visitor_base.h"
 
 namespace math {
 
@@ -17,49 +17,49 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
   // Must remain in scope for the duration of evaluation.
   explicit DiffVisitor(const Variable& argument) : argument_(argument) {}
 
-  ExpressionBaseConstPtr Apply(const Addition& add) {
-    return add.First()->Receive(*this) + add.Second()->Receive(*this);
+  Expr Apply(const Addition& add) {
+    return add.First().Receive(*this) + add.Second().Receive(*this);
   }
 
-  ExpressionBaseConstPtr Apply(const Constant&) { return Constants::Zero.GetImpl(); }
+  Expr Apply(const Constant&) { return Constants::Zero; }
 
-  ExpressionBaseConstPtr Apply(const Division& div) {
+  Expr Apply(const Division& div) {
     // Apply quotient rule:
     const auto& a = div.First();
     const auto& b = div.Second();
-    const auto a_diff = div.First()->Receive(*this);
-    const auto b_diff = div.Second()->Receive(*this);
+    const auto a_diff = a.Receive(*this);
+    const auto b_diff = b.Receive(*this);
     return (a_diff * b - b_diff * a) / (b * b);
   }
 
-  ExpressionBaseConstPtr Apply(const Multiplication& div) {
+  Expr Apply(const Multiplication& div) {
     // Apply product rule:
     const auto& a = div.First();
     const auto& b = div.Second();
-    return a * b->Receive(*this) + a->Receive(*this) * b;
+    return a * b.Receive(*this) + a.Receive(*this) * b;
   }
 
-  ExpressionBaseConstPtr Apply(const Negation& neg) { return Negate(neg.Inner()->Receive(*this)); }
+  Expr Apply(const Negation& neg) { return Negate(neg.Inner().Receive(*this)); }
 
-  ExpressionBaseConstPtr Apply(const Number&) { return Constants::Zero.GetImpl(); }
+  Expr Apply(const Number&) { return Constants::Zero; }
 
-  ExpressionBaseConstPtr Apply(const Power& pow) {
+  Expr Apply(const Power& pow) {
     const auto& a = pow.First();
     const auto& b = pow.Second();
-    const auto a_diff = pow.First()->Receive(*this);
-    const auto b_diff = pow.Second()->Receive(*this);
-    return b * Pow(a, b - Constants::One.GetImpl()) * a_diff + Pow(a, b) * Log(a) * b_diff;
+    const auto a_diff = a.Receive(*this);
+    const auto b_diff = b.Receive(*this);
+    return b * Pow(a, b - Constants::One) * a_diff + Pow(a, b) * Log(a) * b_diff;
   }
 
-  ExpressionBaseConstPtr Apply(const Subtraction& sub) {
-    return sub.First()->Receive(*this) - sub.Second()->Receive(*this);
+  Expr Apply(const Subtraction& sub) {
+    return sub.First().Receive(*this) - sub.Second().Receive(*this);
   }
 
-  ExpressionBaseConstPtr Apply(const Variable& var) {
+  Expr Apply(const Variable& var) {
     if (var.IsIdenticalToImplTyped(argument_)) {
-      return Constants::One.GetImpl();
+      return Constants::One;
     }
-    return Constants::Zero.GetImpl();
+    return Constants::Zero;
   }
 
  private:

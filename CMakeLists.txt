@@ -15,14 +15,8 @@ add_subdirectory(dependencies)
 
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
-    source/constants.cc
-    source/derivative.cc
-    source/expr.cc
-    source/expression_base.cc
-    source/formatting.cc
-    source/functions.cc
-        source/variable.cc
-        source/visitor.cc)
+    source/constants.cc source/expression.cc source/formatting.cc
+    source/functions.cc source/visitor.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})

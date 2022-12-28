@@ -1,7 +1,7 @@
 #include "binary_operations.h"
 #include "constants.h"
 #include "functions.h"
-#include "operation_utils.h"
+#include "operations_inline.h"
 #include "test_helpers.h"
 
 // Test basic composition of scalars and functions of scalars.
@@ -12,8 +12,8 @@ TEST(ScalarOperationsTest, TestAddition) {
   const Expr x{"x"};
   const Expr y{"y"};
   ASSERT_TRUE((x + y).Is<Addition>());
-  ASSERT_IDENTICAL((x + y).GetRaw<Addition>()->First(), x.GetImpl());
-  ASSERT_IDENTICAL((x + y).GetRaw<Addition>()->Second(), y.GetImpl());
+  ASSERT_IDENTICAL((x + y).GetRaw<Addition>()->First(), x);
+  ASSERT_IDENTICAL((x + y).GetRaw<Addition>()->Second(), y);
   ASSERT_IDENTICAL(x + y, x + y);
   ASSERT_NOT_IDENTICAL(x + y, y + x);
   ASSERT_NOT_IDENTICAL(x + w, x + y);
@@ -25,8 +25,8 @@ TEST(ScalarOperationsTest, TestSubtraction) {
   const Expr x{"x"};
   const Expr y{"y"};
   ASSERT_TRUE((x - y).Is<Subtraction>());
-  ASSERT_IDENTICAL((x - y).GetRaw<Subtraction>()->First(), x.GetImpl());
-  ASSERT_IDENTICAL((x - y).GetRaw<Subtraction>()->Second(), y.GetImpl());
+  ASSERT_IDENTICAL((x - y).GetRaw<Subtraction>()->First(), x);
+  ASSERT_IDENTICAL((x - y).GetRaw<Subtraction>()->Second(), y);
   ASSERT_IDENTICAL(y - x, y - x);
   ASSERT_IDENTICAL(-y, 0 - y);
   ASSERT_IDENTICAL(y, y - 0);
@@ -40,8 +40,8 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * y, x * y);
   ASSERT_NOT_IDENTICAL(y * x, x * y);
   ASSERT_TRUE((x * y).Is<Multiplication>());
-  ASSERT_IDENTICAL((x * y).GetRaw<Multiplication>()->First(), x.GetImpl());
-  ASSERT_IDENTICAL((x * y).GetRaw<Multiplication>()->Second(), y.GetImpl());
+  ASSERT_IDENTICAL((x * y).GetRaw<Multiplication>()->First(), x);
+  ASSERT_IDENTICAL((x * y).GetRaw<Multiplication>()->Second(), y);
   ASSERT_IDENTICAL(Constants::Zero, x * 0);
   ASSERT_IDENTICAL(Constants::Zero, 0 * z);
   ASSERT_IDENTICAL(Constants::Zero, 0 * x * y);
@@ -64,8 +64,8 @@ TEST(ScalarOperationsTest, TestDivision) {
   const Expr z{"z"};
   ASSERT_IDENTICAL(x / y, x / y);
   ASSERT_TRUE((x / y).Is<Division>());
-  ASSERT_IDENTICAL((x / y).GetRaw<Division>()->First(), x.GetImpl());
-  ASSERT_IDENTICAL((x / y).GetRaw<Division>()->Second(), y.GetImpl());
+  ASSERT_IDENTICAL((x / y).GetRaw<Division>()->First(), x);
+  ASSERT_IDENTICAL((x / y).GetRaw<Division>()->Second(), y);
   ASSERT_NOT_IDENTICAL(y / x, x / y);
   ASSERT_IDENTICAL(x / y / z, (x / y) / z);
   ASSERT_IDENTICAL(Constants::Zero, 0 / x);
@@ -77,8 +77,8 @@ TEST(ScalarOperationsTest, TestPower) {
   const Expr y{"y"};
   ASSERT_IDENTICAL(math::pow(x, y), math::pow(x, y));
   ASSERT_TRUE(math::pow(x, y).Is<Power>());
-  ASSERT_IDENTICAL(math::pow(x, y).GetRaw<Power>()->First(), x.GetImpl());
-  ASSERT_IDENTICAL(math::pow(x, y).GetRaw<Power>()->Second(), y.GetImpl());
+  ASSERT_IDENTICAL(math::pow(x, y).GetRaw<Power>()->First(), x);
+  ASSERT_IDENTICAL(math::pow(x, y).GetRaw<Power>()->Second(), y);
   ASSERT_IDENTICAL(math::pow(math::pow(x, y), 3), math::pow(math::pow(x, y), 3));
   ASSERT_NOT_IDENTICAL(math::pow(x, y), math::pow(y, x));
   ASSERT_IDENTICAL(Constants::One, math::pow(x, 0));

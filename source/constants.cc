@@ -1,6 +1,7 @@
 #include "constants.h"
 
-#include "constant_expressions.h"  //  for MakeNum
+#include "constant_expressions.h"
+#include "expression.h"
 
 namespace math {
 

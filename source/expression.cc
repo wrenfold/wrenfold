@@ -1,28 +1,27 @@
-#include "expr.h"
+#include "expression.h"
 
 #include "assertions.h"
 #include "constant_expressions.h"
 #include "constants.h"
 #include "derivative.h"
 #include "formatting.h"
-#include "operation_utils.h"
 #include "variable.h"
 
 namespace math {
 
-static ExpressionBaseConstPtr MakeNumber(double x) {
+static Expr MakeNumber(double x) {
   ASSERT(std::isfinite(x), "Number must be finite: x = {}", x);
   if (x == 0) {
-    return Constants::Zero.GetImpl();
+    return Constants::Zero;
   } else if (x == 1) {
-    return Constants::One.GetImpl();
+    return Constants::One;
   }
-  return MakeExprBase<Number>(x);
+  return MakeExpr<Number>(x);
 }
 
 Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
 
-Expr::Expr(double x) : impl_(MakeNumber(x)) {}
+Expr::Expr(double x) : Expr(MakeNumber(x)) {}
 
 std::string Expr::ToString(const bool use_precedence) const {
   ASSERT(impl_);
@@ -31,7 +30,7 @@ std::string Expr::ToString(const bool use_precedence) const {
   return formatter.GetOutput();
 }
 
-Expr Expr::operator-() const { return Expr{Negate(impl_)}; }
+Expr Expr::operator-() const { return Negate(*this); }
 
 Expr Expr::Diff(const Expr& var, const int reps) const {
   const Variable* const as_var = var.GetRaw<Variable>();
@@ -39,16 +38,11 @@ Expr Expr::Diff(const Expr& var, const int reps) const {
   ASSERT_GREATER_OR_EQ(reps, 0);
 
   DiffVisitor visitor{*as_var};
-  ExpressionBaseConstPtr Result = impl_;
+  Expr Result = *this;
   for (int i = 0; i < reps; ++i) {
-    Result = Result->Receive(visitor);
+    Result = Result.Receive(visitor);
   }
-  return Expr{std::move(Result)};
+  return Result;
 }
-
-Expr operator*(const Expr& a, const Expr& b) { return Expr{Mul(a.GetImpl(), b.GetImpl())}; }
-Expr operator+(const Expr& a, const Expr& b) { return Expr{Add(a.GetImpl(), b.GetImpl())}; }
-Expr operator-(const Expr& a, const Expr& b) { return Expr{Sub(a.GetImpl(), b.GetImpl())}; }
-Expr operator/(const Expr& a, const Expr& b) { return Expr{Div(a.GetImpl(), b.GetImpl())}; }
 
 }  // namespace math

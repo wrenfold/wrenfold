@@ -1,5 +1,5 @@
 #pragma once
-#include "expr.h"
+#include "expression.h"
 
 namespace math {
 class Constants {
@@ -10,13 +10,9 @@ class Constants {
   static const Expr Euler;
 };
 
-inline bool IsZero(const ExpressionBaseConstPtr& expr) {
-  return expr->IsIdenticalTo(Constants::Zero.GetImpl());
-}
+inline bool IsZero(const Expr& expr) { return expr.IsIdenticalTo(Constants::Zero); }
 
-inline bool IsOne(const ExpressionBaseConstPtr& expr) {
-  return expr->IsIdenticalTo(Constants::One.GetImpl());
-}
+inline bool IsOne(const Expr& expr) { return expr.IsIdenticalTo(Constants::One); }
 
 // List of symbolic constants.
 enum class SymbolicConstants : int {

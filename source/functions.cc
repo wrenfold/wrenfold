@@ -1,12 +1,11 @@
 #include "functions.h"
 
-#include "expr.h"
-#include "operation_utils.h"
+#include "operations_inline.h"
 
 namespace math {
 
-Expr log(const Expr& x) { return Expr{Log(x.GetImpl())}; }
+Expr log(const Expr& x) { return Log(x); }
 
-Expr pow(const Expr& x, const Expr& y) { return Expr{Pow(x.GetImpl(), y.GetImpl())}; }
+Expr pow(const Expr& x, const Expr& y) { return Pow(x, y); }
 
 }  // namespace math

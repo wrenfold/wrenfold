@@ -1,7 +1,7 @@
 #pragma once
 #include <gtest/gtest.h>
 
-#include "expr.h"
+#include "expression.h"
 
 namespace math {
 
@@ -11,17 +11,10 @@ namespace math {
 // Test IsIdenticalTo
 testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const std::string& name_b,
                                              const Expr& a, const Expr& b);
-testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const std::string& name_b,
-                                             const ExpressionBaseConstPtr& a,
-                                             const ExpressionBaseConstPtr& b);
 
 // Test !IsIdenticalTo
 testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
                                                 const std::string& name_b, const Expr& a,
                                                 const Expr& b);
-testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
-                                                const std::string& name_b,
-                                                const ExpressionBaseConstPtr& a,
-                                                const ExpressionBaseConstPtr& b);
 
 }  // namespace math

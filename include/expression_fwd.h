@@ -5,9 +5,12 @@
 namespace math {
 
 class Expr;
-class ExpressionBase;
+class ExpressionConcept;
+
+class VisitorWithResultBase;
+class VisitorWithoutResultBase;
 
 // TODO: Allow switching this out for something w/o atomic operations?
-using ExpressionBaseConstPtr = std::shared_ptr<const ExpressionBase>;
+using ExpressionConceptConstPtr = std::shared_ptr<const ExpressionConcept>;
 
 }  // namespace math
