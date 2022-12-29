@@ -143,6 +143,20 @@ class Power : public ExpressionImpl<Power> {
   // TODO: Add move constructor.
   Power(const Expr& base, const Expr& exponent) : base_(base), exponent_(exponent) {}
 
+  static Expr Create(const Expr& a, const Expr& b) {
+    //    ASSERT(!IsZero(a) || !IsZero(b), "TODO: Implement proper handling of 0^0");
+    if (IsZero(a)) {
+      return Constants::Zero;
+    }
+    if (IsZero(b)) {
+      return Constants::One;
+    }
+    if (IsOne(b)) {
+      return a;
+    }
+    return MakeExpr<Power>(a, b);
+  }
+
   bool IsIdenticalToImplTyped(const Power& other) const {
     return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
   }

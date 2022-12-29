@@ -30,7 +30,7 @@ std::string Expr::ToString() const {
   return formatter.GetOutput();
 }
 
-Expr Expr::operator-() const { return Negate(*this); }
+Expr Expr::operator-() const { return Negation::Create(*this); }
 
 Expr Expr::Diff(const Expr& var, const int reps) const {
   const Variable* const as_var = var.GetRaw<Variable>();

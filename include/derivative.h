@@ -54,7 +54,7 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
     return sum;
   }
 
-  Expr Apply(const Negation& neg) { return Negate(neg.Inner().Receive(*this)); }
+  Expr Apply(const Negation& neg) { return Negation::Create(neg.Inner().Receive(*this)); }
 
   Expr Apply(const Number&) { return Constants::Zero; }
 
@@ -63,7 +63,8 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
     const auto& b = pow.Exponent();
     const auto a_diff = a.Receive(*this);
     const auto b_diff = b.Receive(*this);
-    return b * Pow(a, b - Constants::One) * a_diff + Pow(a, b) * Log(a) * b_diff;
+    return b * Power::Create(a, b - Constants::One) * a_diff +
+           Power::Create(a, b) * NaturalLog::Create(a) * b_diff;
   }
 
   Expr Apply(const Variable& var) {

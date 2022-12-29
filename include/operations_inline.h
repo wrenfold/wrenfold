@@ -11,19 +11,7 @@
 
 namespace math {
 
-inline Expr Negate(const Expr& x) {
-  if (IsZero(x)) {
-    return Constants::Zero;
-  }
-  // If this is already negated, flip it back:
-  if (const std::optional<Expr> inner =
-          TryVisit(x, [](const Negation& neg) { return neg.Inner(); });
-      inner) {
-    return inner.value();
-  }
-  return MakeExpr<Negation>(x);
-}
-
+// TODO: Delete division.
 inline Expr Div(const Expr& a, const Expr& b) {
   if (IsZero(a)) {
     // TODO(gareth): Throw when b is zero.
@@ -35,34 +23,13 @@ inline Expr Div(const Expr& a, const Expr& b) {
   return MakeExpr<Division>(a, b);
 }
 
-inline Expr Pow(const Expr& a, const Expr& b) {
-  ASSERT(!IsZero(a) || !IsZero(b), "TODO: Implement proper handling of 0^0");
-  if (IsZero(a)) {
-    return Constants::Zero;
-  }
-  if (IsZero(b)) {
-    return Constants::One;
-  }
-  if (IsOne(b)) {
-    return a;
-  }
-  return MakeExpr<Power>(a, b);
-}
-
-inline Expr Log(const Expr& x) {
-  if (x.IsIdenticalTo(Constants::Euler)) {
-    return Constants::One;
-  }
-  return MakeExpr<NaturalLog>(x);
-}
-
 inline Expr operator*(const Expr& a, const Expr& b) {
   return Multiplication::FromTwoOperands(a, b);
 }
 
 inline Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
 
-inline Expr operator-(const Expr& a, const Expr& b) { return a + Negate(b); }
+inline Expr operator-(const Expr& a, const Expr& b) { return a + Negation::Create(b); }
 
 inline Expr operator/(const Expr& a, const Expr& b) { return Div(a, b); }
 

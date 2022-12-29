@@ -25,6 +25,19 @@ class UnaryOp : public ExpressionImpl<Derived> {
 class Negation : public UnaryOp<Negation> {
  public:
   using UnaryOp::UnaryOp;
+
+  static Expr Create(const Expr& x) {
+    if (IsZero(x)) {
+      return Constants::Zero;
+    }
+    // If this is already negated, flip it back:
+    if (const std::optional<Expr> inner =
+            TryVisit(x, [](const Negation& neg) { return neg.Inner(); });
+        inner) {
+      return inner.value();
+    }
+    return MakeExpr<Negation>(x);
+  }
 };
 
 // Base class for unary functions.
@@ -38,6 +51,13 @@ class UnaryFunction : public UnaryOp<Derived> {
 class NaturalLog : public UnaryFunction<NaturalLog> {
  public:
   using UnaryFunction::UnaryFunction;
+
+  static Expr Create(const Expr& x) {
+    if (x.IsIdenticalTo(Constants::Euler)) {
+      return Constants::One;
+    }
+    return MakeExpr<NaturalLog>(x);
+  }
 };
 
 }  // namespace math
