@@ -38,8 +38,8 @@ TEST(ScalarDerivativesTest, TestMultiplication) {
   ASSERT_IDENTICAL(x + x, (x * x).Diff(x));
   ASSERT_IDENTICAL(Constants::One + Constants::One, (x * x).Diff(x, 2));
   // Diff() does not simplify these yet:
-  ASSERT_IDENTICAL(x * x + (x + x) * x, (x * x * x).Diff(x));
-  ASSERT_IDENTICAL(x * y + y * x, (x * y * x).Diff(x));
+  ASSERT_IDENTICAL((x * x) + (x * x) + (x * x), (x * x * x).Diff(x));
+  ASSERT_IDENTICAL(y * x + x * y, (x * y * x).Diff(x));
   ASSERT_IDENTICAL(y + y, (x * y * x).Diff(x, 2));
 }
 

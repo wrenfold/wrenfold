@@ -1,76 +1,158 @@
 #pragma once
+#include <algorithm>
+#include <vector>
+
+#include "constants.h"
 #include "expression.h"
+#include "visitor_impl.h"
 
 // TODO: These are all n-ary ops (except for power), and should changed.
 namespace math {
 
-// Binary operation of two expressions.
-template <typename Derived>
-class BinaryOp : public ExpressionImpl<Derived> {
- public:
-  BinaryOp(const Expr& a, const Expr& b) : a_(a), b_(b) {}
+template <typename T>
+constexpr bool IsExpr = std::is_same_v<std::decay_t<T>, Expr>;
 
-  // Move-constructor.
-  BinaryOp(Expr&& a, Expr&& b) : a_(std::move(a)), b_(std::move(b)) {}
+// Operation that has
+template <typename Derived>
+class NAryOp : public ExpressionImpl<Derived> {
+ public:
+  // Construct via move.
+  explicit NAryOp(std::vector<Expr>&& args) : args_(std::move(args)) {}
+
+  // Access specific argument.
+  const Expr& operator[](const std::size_t i) const { return args_[i]; }
+
+  // Number of arguments.
+  std::size_t Arity() const { return args_.size(); }
+
+  // Name of the operation.
+  constexpr const char* Name() const { return Derived::NameStr; }
 
   // This will only be called for things with the same derived type, so we don't
   // need to check the specific operator here.
-  bool IsIdenticalToImplTyped(const BinaryOp<Derived>& other) const {
-    return a_.IsIdenticalTo(other.a_) && b_.IsIdenticalTo(other.b_);
+  bool IsIdenticalToImplTyped(const NAryOp<Derived>& other) const {
+    if (Arity() != other.Arity()) {
+      return false;
+    }
+    return std::equal(args_.begin(), args_.end(), other.args_.begin(),
+                      [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });
   }
 
-  // Access left argument.
-  const Expr& First() const { return a_; }
-
-  // Access right argument.
-  const Expr& Second() const { return b_; }
-
-  // Access name of the operation.
-  constexpr const char* Name() const { return Derived::NameStr; }
-
  protected:
-  Expr a_;
-  Expr b_;
+  // TODO: Could specialize for small (like binary) cases?
+  // Try absl::InlineVector.
+  std::vector<Expr> args_;
 };
 
-// Addition operation.
-class Addition : public BinaryOp<Addition> {
+class Addition : public NAryOp<Addition> {
  public:
-  using BinaryOp::BinaryOp;
-  static constexpr int OperatorPrecedence = 1;
+  using NAryOp::NAryOp;
   static constexpr const char* NameStr = "Addition";
+
+  // Construct from two operands.
+  // Templated so we can forward r-value references.
+  template <typename A, typename B>
+  static std::enable_if_t<IsExpr<A> && IsExpr<B>, Expr> FromTwoOperands(A&& a, B&& b) {
+    // Check if either argument is zero:
+    if (IsZero(a)) {
+      return b;
+    } else if (IsZero(b)) {
+      return a;
+    }
+
+    // TODO: Clean this up...
+    const Addition* a_add = TryVisit(a, [](const Addition& x) { return &x; }).value_or(nullptr);
+    const Addition* b_add = TryVisit(b, [](const Addition& x) { return &x; }).value_or(nullptr);
+
+    std::vector<Expr> args;
+    args.reserve(2);
+    if (a_add) {
+      args.insert(args.end(), a_add->args_.begin(), a_add->args_.end());
+    } else {
+      args.push_back(std::forward<A>(a));
+    }
+    if (b_add) {
+      args.insert(args.end(), b_add->args_.begin(), b_add->args_.end());
+    } else {
+      args.push_back(std::forward<B>(b));
+    }
+    return MakeExpr<Addition>(std::move(args));
+  }
 };
 
-// Subtraction operation.
-class Subtraction : public BinaryOp<Subtraction> {
+class Multiplication : public NAryOp<Multiplication> {
  public:
-  using BinaryOp::BinaryOp;
-  static constexpr int OperatorPrecedence = 1;
-  static constexpr const char* NameStr = "Subtraction";
-};
-
-// Multiplication operation.
-class Multiplication : public BinaryOp<Multiplication> {
- public:
-  using BinaryOp::BinaryOp;
-  static constexpr int OperatorPrecedence = 2;
+  using NAryOp::NAryOp;
   static constexpr const char* NameStr = "Multiplication";
+
+  template <typename A, typename B>
+  static std::enable_if_t<IsExpr<A> && IsExpr<B>, Expr> FromTwoOperands(A&& a, B&& b) {
+    // Check if either argument is zero:
+    if (IsZero(a) || IsZero(b)) {
+      return Constants::Zero;
+    }
+    if (IsOne(a)) {
+      return b;
+    }
+    if (IsOne(b)) {
+      return a;
+    }
+
+    const Multiplication* a_mul =
+        TryVisit(a, [](const Multiplication& x) { return &x; }).value_or(nullptr);
+    const Multiplication* b_mul =
+        TryVisit(b, [](const Multiplication& x) { return &x; }).value_or(nullptr);
+
+    std::vector<Expr> args;
+    args.reserve(2);
+    if (a_mul) {
+      args.insert(args.end(), a_mul->args_.begin(), a_mul->args_.end());
+    } else {
+      args.push_back(std::forward<A>(a));
+    }
+    if (b_mul) {
+      args.insert(args.end(), b_mul->args_.begin(), b_mul->args_.end());
+    } else {
+      args.push_back(std::forward<B>(b));
+    }
+    return MakeExpr<Multiplication>(std::move(args));
+  }
 };
 
 // Division operation.
-class Division : public BinaryOp<Division> {
+// TODO: Delete me and just use multiplication.
+class Division : public ExpressionImpl<Division> {
  public:
-  using BinaryOp::BinaryOp;
-  static constexpr int OperatorPrecedence = 3;
-  static constexpr const char* NameStr = "Division";
+  Division(const Expr& numerator, const Expr& denominator) : num_(numerator), den_(denominator) {}
+
+  bool IsIdenticalToImplTyped(const Division& other) const {
+    return num_.IsIdenticalTo(other.num_) && den_.IsIdenticalTo(other.den_);
+  }
+
+  const Expr& Numerator() const { return num_; }
+  const Expr& Denominator() const { return den_; }
+
+ protected:
+  Expr num_;
+  Expr den_;
 };
 
-// Power operation.
-class Power : public BinaryOp<Power> {
+// Power operation: base^exponent
+class Power : public ExpressionImpl<Power> {
  public:
-  using BinaryOp::BinaryOp;
-  static constexpr int OperatorPrecedence = 4;
-  static constexpr const char* NameStr = "Power";
+  // TODO: Add move constructor.
+  Power(const Expr& base, const Expr& exponent) : base_(base), exponent_(exponent) {}
+
+  bool IsIdenticalToImplTyped(const Power& other) const {
+    return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
+  }
+
+  const Expr& Base() const { return base_; }
+  const Expr& Exponent() const { return exponent_; }
+
+ protected:
+  Expr base_;
+  Expr exponent_;
 };
 
 }  // namespace math

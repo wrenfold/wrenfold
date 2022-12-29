@@ -23,7 +23,6 @@ namespace math {
   DECLARE_VIRTUAL_APPLY_METHOD(Negation);       \
   DECLARE_VIRTUAL_APPLY_METHOD(Number);         \
   DECLARE_VIRTUAL_APPLY_METHOD(Power);          \
-  DECLARE_VIRTUAL_APPLY_METHOD(Subtraction);    \
   DECLARE_VIRTUAL_APPLY_METHOD(Variable);
 
 #define IMPLEMENT_ALL_VIRTUAL_APPLY_METHODS()     \
@@ -35,7 +34,6 @@ namespace math {
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Negation);       \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Number);         \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Power);          \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Subtraction);    \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Variable);
 
 // Base type for visitors that produce expressions.

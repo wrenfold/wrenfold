@@ -15,15 +15,13 @@ class PlainFormatter : public VisitorWithoutResultImpl<PlainFormatter> {
   void Apply(const Negation& neg);
   void Apply(const Number& num);
   void Apply(const Power& pow);
-  void Apply(const Subtraction& sub);
   void Apply(const Variable& var);
 
   // Get the output string.
   const std::string& GetOutput() const { return output_; }
 
  private:
-  // Format a binary operation.
-  void FormatBinaryOp(int parent_precedence, const char* op_str, const Expr& a, const Expr& b);
+  void VisitWithBrackets(const Expr& expr);
 
   std::string output_{};
 };

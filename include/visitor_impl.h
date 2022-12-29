@@ -4,6 +4,7 @@
 #include <string>
 
 #include "expression.h"
+#include "function_traits.h"
 #include "visitor_base.h"
 
 namespace math {
@@ -16,6 +17,15 @@ constexpr bool HasApplyMethod = false;
 template <typename T, typename Argument>
 constexpr bool HasApplyMethod<
     T, Argument, decltype(std::declval<T>().Apply(std::declval<const Argument>()), void())> = true;
+
+// Template to check if `operator()` exists and accepts `Argument`.
+template <typename T, typename, typename = void>
+constexpr bool HasCallOperator = false;
+
+// Template to check if `operator()` exists and accepts `Argument`.
+template <typename T, typename Argument>
+constexpr bool HasCallOperator<
+    T, Argument, decltype(std::declval<T>()(std::declval<const Argument>()), void())> = true;
 
 // Implementation of a visitor that returns an expression.
 template <typename Derived>
@@ -99,6 +109,14 @@ struct TypeErasedVisitor<void, VisitorType, Policy> final
     impl_.Apply(arg);
   }
 
+  // Call the implementation. This method is enabled only if the visitor
+  // has an `operator()` method that accepts type `Argument`.
+  template <typename Argument>
+  std::enable_if_t<!std::is_pointer_v<VisitorType> && HasCallOperator<VisitorType, Argument>> Apply(
+      const Argument& arg) {
+    impl_(arg);
+  }
+
   // Call the implementation. This method is enabled if the VisitorType is a pointer.
   template <typename Argument>
   std::enable_if_t<std::is_pointer_v<VisitorType> &&
@@ -139,6 +157,48 @@ auto Visit(const Expr& expr, VisitorType&& visitor) {
       return erased_visitor.result;
     }
   }
+}
+
+// Make a type-erased visitor from a lambda or function pointer.
+template <typename F>
+auto MakeTypeErasedVisitor(F&& func) {
+  return TypeErasedVisitor<void, std::decay_t<F>, VisitorPolicy::NoError>{std::forward<F>(func)};
+}
+
+// Try to visit an expression with a lambda or function pointer.
+// If the type matches, the lambda will be called and the optional will be filled w/ the result.
+template <typename F>
+auto TryVisit(const Expr& u, F&& func) {
+  using traits = function_traits<std::decay_t<F>>;
+  static_assert(traits::Arity == 1, "Must be a unary function");
+  using TypeU = typename traits::template DecayedArgType<0>;
+
+  // Based on some inspection on quick-bench, this is about ~6-9x faster than doing a dynamic_cast
+  // to operate on a specific subtype.
+  std::optional<typename traits::ReturnType> result;
+  auto visitor_u = MakeTypeErasedVisitor(
+      [func = std::move(func), &result](const TypeU& typed_u) { result = func(typed_u); });
+  u.Receive(visitor_u);
+  return result;
+}
+
+template <typename F>
+auto TryVisit(const Expr& u, const Expr& v, F&& func) {
+  using traits = function_traits<std::decay_t<F>>;
+  static_assert(traits::Arity == 2, "Must be a function of two arguments");
+  using TypeU = typename traits::template DecayedArgType<0>;
+  using TypeV = typename traits::template DecayedArgType<1>;
+
+  std::optional<typename traits::ReturnType> result;
+  auto visitor_u =
+      MakeTypeErasedVisitor([func = std::move(func), &v, &result](const TypeU& typed_u) {
+        auto visitor_v =
+            MakeTypeErasedVisitor([func = std::move(func), &typed_u, &result](
+                                      const TypeV& typed_v) { result = func(typed_u, typed_v); });
+        v.Receive(visitor_v);
+      });
+  u.Receive(visitor_u);
+  return result;
 }
 
 // Thrown for un-implemented visitors.

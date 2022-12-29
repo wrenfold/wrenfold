@@ -9,7 +9,6 @@ class Division;
 class Multiplication;
 class Number;
 class Power;
-class Subtraction;
 class Negation;
 class NaturalLog;
 class Variable;
