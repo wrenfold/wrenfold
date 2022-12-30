@@ -4,7 +4,7 @@
 #include "constant_expressions.h"
 #include "constants.h"
 #include "derivative.h"
-#include "formatting.h"
+#include "plain_formatter.h"
 #include "variable.h"
 
 namespace math {

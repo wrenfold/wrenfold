@@ -7,7 +7,7 @@ namespace math {
 // Simple plain-text formatter.
 class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
  public:
-  using ReturnType = Void;
+  using ReturnType = void;
   static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
 
   void Apply(const Addition& add);
@@ -30,7 +30,5 @@ class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
 
   std::string output_{};
 };
-
-std::string FormatDebugTree(const Expr& expr);
 
 }  // namespace math

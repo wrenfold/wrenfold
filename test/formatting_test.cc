@@ -1,10 +1,10 @@
 #include <fmt/format.h>
 
 #include "constants.h"
-#include "formatting.h"
 #include "functions.h"
 #include "operations_inline.h"
 #include "test_helpers.h"
+#include "tree_formatter.h"
 
 namespace math {
 
@@ -70,18 +70,22 @@ TEST(PlainFormatterTest, TestDivision) {
   ASSERT_STR_EQ("z / (x + y)", z / (x + y));
   ASSERT_STR_EQ("-z / x + y", -z / x + y);
   ASSERT_STR_EQ("y / ln(x)", y / math::log(x));
-  ASSERT_STR_EQ("-pow(x, y) / ln(x - y)", -math::pow(x, y) / math::log(x - y));
+  ASSERT_STR_EQ("y ^ x / (x ^ z * 5)", math::pow(y, x) / (math::pow(x, z) * 5));
 }
 
 TEST(PlainFormatterTest, TestPower) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_STR_EQ("pow(x, y)", math::pow(x, y));
-  ASSERT_STR_EQ("pow(2, 3)", math::pow(2, 3));
-  ASSERT_STR_EQ("pow(y, x + 1)", math::pow(y, x + 1));
-  ASSERT_STR_EQ("pow(z - 1, y + x)", math::pow(z - 1, y + x));
-  ASSERT_STR_EQ("pow(z - 1, y) * x", math::pow(z - 1, y) * x);
+  ASSERT_STR_EQ("x ^ y", math::pow(x, y));
+  ASSERT_STR_EQ("2 ^ 3", math::pow(2, 3));
+  ASSERT_STR_EQ("(x + y) ^ z", math::pow(x + y, z));
+  ASSERT_STR_EQ("x ^ (z - y)", math::pow(x, z - y));
+  ASSERT_STR_EQ("(y * x) ^ z", math::pow(y * x, z));
+  ASSERT_STR_EQ("(y * x) ^ (z / y)", math::pow(y * x, z / y));
+  ASSERT_STR_EQ("(y * x - y) ^ (z + y + x)", math::pow(y * x - y, z + y + x));
+  ASSERT_STR_EQ("y ^ (x ^ z)", math::pow(y, math::pow(x, z)));
+  ASSERT_STR_EQ("(x ^ (y - x)) ^ (x ^ z)", math::pow(math::pow(x, y - x), math::pow(x, z)));
 }
 
 TEST(PlainFormatterTest, TestLog) {

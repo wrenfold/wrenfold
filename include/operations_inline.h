@@ -4,6 +4,7 @@
 #include "assertions.h"
 #include "expression.h"
 #include "operation_types.h"
+#include "power.h"
 #include "unary_operations.h"
 #include "visitor_impl.h"
 
