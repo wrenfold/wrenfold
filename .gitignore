@@ -37,6 +37,7 @@ cmake-build-debug/
 
 # VSCODE
 .vscode/
+.cache/
 
 # PYTHON
 virtualenv/
