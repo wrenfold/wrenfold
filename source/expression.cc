@@ -9,19 +9,20 @@
 
 namespace math {
 
-static Expr MakeNumber(double x) {
-  ASSERT(std::isfinite(x), "Number must be finite: x = {}", x);
+static Expr ExprFromDouble(const double x) {
   if (x == 0) {
     return Constants::Zero;
   } else if (x == 1) {
     return Constants::One;
+  } else if (std::floor(x) == x) {
+    return MakeExpr<Integer>(x);
   }
-  return MakeExpr<Number>(x);
+  return MakeExpr<Float>(x);
 }
 
 Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
 
-Expr::Expr(double x) : Expr(MakeNumber(x)) {}
+Expr::Expr(const double x) : Expr(ExprFromDouble(x)) {}
 
 std::string Expr::ToString() const {
   ASSERT(impl_);

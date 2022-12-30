@@ -19,7 +19,7 @@ class Expr {
   // Construct variable:
   explicit Expr(const std::string& name);
 
-  // Construct constant. Implicit so we can use numbers in math operations.
+  // Construct constant from integer.
   Expr(double x);
 
   // Get the implementation pointer.

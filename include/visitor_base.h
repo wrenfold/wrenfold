@@ -22,22 +22,22 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
 #define DECLARE_ALL_VIRTUAL_APPLY_METHODS()     \
   DECLARE_VIRTUAL_APPLY_METHOD(Addition);       \
   DECLARE_VIRTUAL_APPLY_METHOD(Constant);       \
-  DECLARE_VIRTUAL_APPLY_METHOD(Division);       \
+  DECLARE_VIRTUAL_APPLY_METHOD(Float);          \
+  DECLARE_VIRTUAL_APPLY_METHOD(Integer);        \
   DECLARE_VIRTUAL_APPLY_METHOD(Multiplication); \
   DECLARE_VIRTUAL_APPLY_METHOD(NaturalLog);     \
   DECLARE_VIRTUAL_APPLY_METHOD(Negation);       \
-  DECLARE_VIRTUAL_APPLY_METHOD(Number);         \
   DECLARE_VIRTUAL_APPLY_METHOD(Power);          \
   DECLARE_VIRTUAL_APPLY_METHOD(Variable);
 
 #define IMPLEMENT_ALL_VIRTUAL_APPLY_METHODS()     \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Addition);       \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Constant);       \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Division);       \
+  IMPLEMENT_VIRTUAL_APPLY_METHOD(Float);          \
+  IMPLEMENT_VIRTUAL_APPLY_METHOD(Integer);        \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Multiplication); \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(NaturalLog);     \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Negation);       \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Number);         \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Power);          \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Variable);
 
@@ -46,6 +46,19 @@ template <typename ResultType>
 class VisitorBase {
  public:
   DECLARE_ALL_VIRTUAL_APPLY_METHODS()
+};
+
+// The type of error that is generated when a visitor fails to implement an `Apply` method.
+enum class VisitorPolicy {
+  // Throw an exception.
+  // This is useful you have a visitor that should only ever be evaluated on specific types, but
+  // needs to be able to compile w/o defining an operation on every type.
+  Throw,
+  // Fail at compile time.
+  CompileError,
+  // Silently do nothing. (Allow non-implemented Apply for some types).
+  // This is useful for visitors implemented via Lambda, which operate on one specific type only.
+  NoError,
 };
 
 }  // namespace math

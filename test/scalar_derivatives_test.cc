@@ -47,7 +47,7 @@ TEST(ScalarDerivativesTest, TestDivision) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_IDENTICAL(y / (y * y), (x / y).Diff(x));
+  ASSERT_IDENTICAL(1 / y, (x / y).Diff(x));
   ASSERT_IDENTICAL(-y / (x * x), (y / x).Diff(x));
   ASSERT_IDENTICAL(-((x + x) * -y) / ((x * x) * (x * x)), (y / x).Diff(x, 2));
 }

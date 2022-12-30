@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "common_visitors.h"
 #include "constants.h"
 #include "expression.h"
 #include "expression_impl.h"
@@ -10,7 +11,45 @@
 // TODO: These are all n-ary ops (except for power), and should changed.
 namespace math {
 
-// Operation that has
+// Operation that has one argument.
+template <typename Derived>
+class UnaryOp : public ExpressionImpl<Derived> {
+ public:
+  explicit UnaryOp(const Expr& x) : x_(x) {}
+  explicit UnaryOp(Expr&& x) : x_(std::move(x)) {}
+
+  // Test unary ops for equality.
+  bool IsIdenticalToImplTyped(const UnaryOp<Derived>& neg) const {
+    return x_.IsIdenticalTo(neg.x_);
+  }
+
+  // Get inner expression.
+  const Expr& Inner() const { return x_; }
+
+ protected:
+  Expr x_;
+};
+
+// Operation that has two arguments.
+template <typename Derived>
+class BinaryOp : public ExpressionImpl<Derived> {
+ public:
+  BinaryOp(Expr first, Expr second) : first_(std::move(first)), second_(std::move(second)) {}
+
+  // Test binary ops for equality.
+  bool IsIdenticalToImplTyped(const BinaryOp<Derived>& other) const {
+    return first_.IsIdenticalTo(other.first_) && second_.IsIdenticalTo(other.second_);
+  }
+
+  const Expr& First() const { return first_; }
+  const Expr& Second() const { return second_; }
+
+ protected:
+  Expr first_;
+  Expr second_;
+};
+
+// Operation that has `N` arguments.
 template <typename Derived>
 class NAryOp : public ExpressionImpl<Derived> {
  public:
@@ -19,6 +58,9 @@ class NAryOp : public ExpressionImpl<Derived> {
 
   // Access specific argument.
   const Expr& operator[](const std::size_t i) const { return args_[i]; }
+
+  // Get all the args.
+  const std::vector<Expr>& Args() const { return args_; }
 
   // Number of arguments.
   std::size_t Arity() const { return args_.size(); }
@@ -119,54 +161,36 @@ class Multiplication : public NAryOp<Multiplication> {
   }
 };
 
-// Division operation.
-// TODO: Delete me and just use multiplication.
-class Division : public ExpressionImpl<Division> {
- public:
-  Division(const Expr& numerator, const Expr& denominator) : num_(numerator), den_(denominator) {}
-
-  bool IsIdenticalToImplTyped(const Division& other) const {
-    return num_.IsIdenticalTo(other.num_) && den_.IsIdenticalTo(other.den_);
-  }
-
-  const Expr& Numerator() const { return num_; }
-  const Expr& Denominator() const { return den_; }
-
- protected:
-  Expr num_;
-  Expr den_;
-};
-
 // Power operation: base^exponent
-class Power : public ExpressionImpl<Power> {
+class Power : public BinaryOp<Power> {
  public:
-  // TODO: Add move constructor.
-  Power(const Expr& base, const Expr& exponent) : base_(base), exponent_(exponent) {}
+  using BinaryOp::BinaryOp;
 
   static Expr Create(const Expr& a, const Expr& b) {
-    //    ASSERT(!IsZero(a) || !IsZero(b), "TODO: Implement proper handling of 0^0");
-    if (IsZero(a)) {
+    // Check for zeroes:
+    if (IsZero(a) && IsZero(b)) {
+      // 0^0 -> 1
+      return Constants::One;
+    } else if (IsZero(a)) {
+      // 0^x -> 0  (TODO: Only true for real x)
       return Constants::Zero;
-    }
-    if (IsZero(b)) {
+    } else if (IsZero(b)) {
+      // x^0 -> 1
       return Constants::One;
     }
+    // Check for an exponent that is identically one:
     if (IsOne(b)) {
+      // x^1 -> x
       return a;
+    } else if (IsOne(a) && IsIntegralValue(b)) {
+      // 1^n -> 1 (where n is integral constant)
+      return Constants::One;
     }
     return MakeExpr<Power>(a, b);
   }
 
-  bool IsIdenticalToImplTyped(const Power& other) const {
-    return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
-  }
-
-  const Expr& Base() const { return base_; }
-  const Expr& Exponent() const { return exponent_; }
-
- protected:
-  Expr base_;
-  Expr exponent_;
+  const Expr& Base() const { return first_; }
+  const Expr& Exponent() const { return second_; }
 };
 
 }  // namespace math

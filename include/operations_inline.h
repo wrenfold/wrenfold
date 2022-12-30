@@ -2,8 +2,8 @@
 #include <type_traits>
 
 #include "assertions.h"
-#include "binary_operations.h"
 #include "expression.h"
+#include "operation_types.h"
 #include "unary_operations.h"
 #include "visitor_impl.h"
 

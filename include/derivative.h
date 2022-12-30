@@ -1,9 +1,9 @@
 // Copyright 2022 Gareth Cross
 #pragma once
 
-#include "binary_operations.h"
 #include "expression.h"
 #include "functions.h"
+#include "operation_types.h"
 #include "operations_fwd.h"
 #include "operations_inline.h"
 #include "variable.h"
@@ -31,13 +31,6 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
 
   Expr Apply(const Constant&) { return Constants::Zero; }
 
-  Expr Apply(const Division& div) {
-    // Apply quotient rule:
-    const auto& a = div.Numerator();
-    const auto& b = div.Denominator();
-    return (a.Receive(*this) * b - b.Receive(*this) * a) / (b * b);
-  }
-
   // a * b
   // a' * b + a * b'
   // a * b * c
@@ -64,7 +57,9 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
 
   Expr Apply(const Negation& neg) { return Negation::Create(neg.Inner().Receive(*this)); }
 
-  Expr Apply(const Number&) { return Constants::Zero; }
+  Expr Apply(const Integer&) { return Constants::Zero; }
+
+  Expr Apply(const Float&) { return Constants::Zero; }
 
   Expr Apply(const Power& pow) {
     const auto& a = pow.Base();

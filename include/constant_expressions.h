@@ -6,26 +6,40 @@
 namespace math {
 
 /**
- * A scalar numerical constant like 0.23241, or 42.
- *
- * TODO(gareth): Add support for complex numbers.
+ * An integral constant.
  */
-class Number : public ExpressionImpl<Number> {
+class Integer : public ExpressionImpl<Integer> {
  public:
-  // TODO(gareth): Support integer types? For now double works fine.
-  using NumberType = double;
+  using IntegralType = int64_t;
 
   // Construct from number.
-  explicit Number(NumberType val) : val_(val) {}
+  explicit Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  bool IsIdenticalToImplTyped(const Number& other) const { return val_ == other.val_; }
+  bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
 
   // Access numeric value.
-  NumberType GetValue() const { return val_; }
+  IntegralType GetValue() const { return val_; }
 
  private:
-  NumberType val_;
+  IntegralType val_;
+};
+
+class Float : public ExpressionImpl<Float> {
+ public:
+  using FloatType = double;
+
+  // Construct from float value.
+  explicit Float(FloatType val) : val_(val) {}
+
+  // Check if numerical constants are completely identical.
+  bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
+
+  // Access numeric value.
+  FloatType GetValue() const { return val_; }
+
+ private:
+  FloatType val_;
 };
 
 /*

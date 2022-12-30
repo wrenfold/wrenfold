@@ -2,26 +2,9 @@
 #include "constant_expressions.h"
 #include "expression_concept.h"
 #include "expression_impl.h"
+#include "operation_types.h"
 
 namespace math {
-
-template <typename Derived>
-class UnaryOp : public ExpressionImpl<Derived> {
- public:
-  explicit UnaryOp(const Expr& x) : x_(x) {}
-  explicit UnaryOp(Expr&& x) : x_(std::move(x)) {}
-
-  // Test unary ops for equality.
-  bool IsIdenticalToImplTyped(const UnaryOp<Derived>& neg) const {
-    return x_.IsIdenticalTo(neg.x_);
-  }
-
-  // Get inner expression.
-  const Expr& Inner() const { return x_; }
-
- protected:
-  Expr x_;
-};
 
 // Negation an expression: -x
 class Negation : public UnaryOp<Negation> {
@@ -40,26 +23,24 @@ class Negation : public UnaryOp<Negation> {
       return inner.value();
     }
     // If this is a number, just flip the sign.
-    if (const std::optional<Expr> negated_constant =
-            VisitLambda(x, [](const Number& num) { return MakeExpr<Number>(-num.GetValue()); });
-        negated_constant) {
-      return *negated_constant;
+    if (const std::optional<Expr> negated_int =
+            VisitLambda(x, [](const Integer& num) { return MakeExpr<Integer>(-num.GetValue()); });
+        negated_int) {
+      return *negated_int;
+    }
+    if (const std::optional<Expr> negated_float =
+            VisitLambda(x, [](const Float& num) { return MakeExpr<Float>(-num.GetValue()); });
+        negated_float) {
+      return *negated_float;
     }
     return MakeExpr<Negation>(x);
   }
 };
 
-// Base class for unary functions.
-template <typename Derived>
-class UnaryFunction : public UnaryOp<Derived> {
- public:
-  using UnaryOp<Derived>::UnaryOp;
-};
-
 // Take natural log: ln(x)
-class NaturalLog : public UnaryFunction<NaturalLog> {
+class NaturalLog : public UnaryOp<NaturalLog> {
  public:
-  using UnaryFunction::UnaryFunction;
+  using UnaryOp::UnaryOp;
 
   static Expr Create(const Expr& x) {
     if (x.IsIdenticalTo(Constants::Euler)) {

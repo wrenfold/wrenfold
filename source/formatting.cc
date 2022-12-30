@@ -1,7 +1,5 @@
 #include "formatting.h"
 
-#include <array>
-#include <iostream>
 #include <optional>
 #include <type_traits>
 #include <vector>
@@ -9,31 +7,22 @@
 #include <fmt/format.h>
 
 #include "assertions.h"
-#include "binary_operations.h"
+#include "common_visitors.h"
 #include "constant_expressions.h"
+#include "operation_types.h"
+#include "template_helpers.h"
 #include "unary_operations.h"
 #include "variable.h"
 
 namespace math {
-
-// Simple visitor that evaluates to true for n-ary operations.
-struct IsNaryOpVisitor {
-  using ReturnType = bool;
-  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
-
-  template <typename Derived>
-  constexpr ReturnType Apply(const NAryOp<Derived>&) const {
-    return true;
-  }
-};
 
 struct HasNegativeSign {
   using ReturnType = bool;
   constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
 
   constexpr bool Apply(const Negation&) const { return true; }
-
-  bool Apply(const Number& num) const { return num.GetValue() < 0; }
+  bool Apply(const Integer& num) const { return num.GetValue() < 0; }
+  bool Apply(const Float& f) const { return f.GetValue() < 0; }
 };
 
 void PlainFormatter::Apply(const Addition& expr) {
@@ -58,19 +47,13 @@ void PlainFormatter::Apply(const Constant& expr) {
   output_ += StringFromSymbolicConstant(expr.GetName());
 }
 
-void PlainFormatter::Apply(const Division&) {}
+void PlainFormatter::Apply(const Integer& expr) {
+  fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
+}
 
-template <typename T, typename... Ts>
-constexpr bool ContainsTypeHelper = std::disjunction_v<std::is_same<T, Ts>...>;
-
-template <typename... Ts>
-struct TypeList {};
-
-template <typename T, typename U>
-constexpr bool ContainsType = false;
-
-template <typename T, typename... Ts>
-constexpr bool ContainsType<T, TypeList<Ts...>> = ContainsTypeHelper<T, Ts...>;
+void PlainFormatter::Apply(const Float& expr) {
+  fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
+}
 
 struct AsBaseExponent {
   using ReturnType = std::pair<Expr, Expr>;
@@ -86,7 +69,7 @@ struct AsBaseExponent {
     return std::make_pair(input_, Constants::One);
   }
 
-  using IgnoredTypes = TypeList<Division, NaturalLog, Negation, Number, Variable, Constant>;
+  using IgnoredTypes = TypeList<NaturalLog, Negation, Integer, Float, Variable, Constant>;
 
   // All the ignored types are dispatched through this method.
   template <typename T>
@@ -156,10 +139,6 @@ void PlainFormatter::Apply(const Negation& expr) {
   VisitWithBrackets(expr.Inner());
 }
 
-void PlainFormatter::Apply(const Number& expr) {
-  fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
-}
-
 void PlainFormatter::Apply(const Power& expr) {
   output_ += "pow(";
   expr.Base().Receive(*this);
@@ -171,7 +150,7 @@ void PlainFormatter::Apply(const Power& expr) {
 void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 
 void PlainFormatter::VisitWithBrackets(const Expr& expr) {
-  if (VisitStruct(expr, IsNaryOpVisitor{}).value_or(false)) {
+  if (IsNAryOp(expr)) {
     output_ += "(";
     expr.Receive(*this);
     output_ += ")";
@@ -183,9 +162,7 @@ void PlainFormatter::VisitWithBrackets(const Expr& expr) {
 // TODO: Clean this up a bit:
 void PlainFormatter::FormatBaseExponentPair(const std::pair<Expr, Expr>& pair, bool denominator) {
   if (IsOne(pair.second)) {
-    const bool apply_brackets = denominator
-                                    ? VisitStruct(pair.first, IsNaryOpVisitor{}).value_or(false)
-                                    : IsType<Addition>(pair.first);
+    const bool apply_brackets = denominator ? IsNAryOp(pair.first) : IsType<Addition>(pair.first);
 
     if (apply_brackets) {
       output_ += "(";
@@ -196,7 +173,7 @@ void PlainFormatter::FormatBaseExponentPair(const std::pair<Expr, Expr>& pair, b
     }
     return;
   }
-  if (VisitStruct(pair.first, IsNaryOpVisitor{}).value_or(false)) {
+  if (IsNAryOp(pair.first)) {
     output_ += "(";
     pair.first.Receive(*this);
     output_ += ")";
@@ -204,7 +181,7 @@ void PlainFormatter::FormatBaseExponentPair(const std::pair<Expr, Expr>& pair, b
     pair.first.Receive(*this);
   }
   output_ += " ^ ";
-  if (VisitStruct(pair.second, IsNaryOpVisitor{}).value_or(false)) {
+  if (IsNAryOp(pair.first)) {
     output_ += "(";
     pair.second.Receive(*this);
     output_ += ")";
@@ -269,12 +246,6 @@ struct TreeFormatter {
     VisitRight(op[op.Arity() - 1]);
   }
 
-  void Apply(const Division& op) {
-    AppendName("Division:");
-    VisitLeft(op.Numerator());
-    VisitRight(op.Denominator());
-  }
-
   void Apply(const Power& op) {
     AppendName("Power:");
     VisitLeft(op.Base());
@@ -291,7 +262,9 @@ struct TreeFormatter {
     VisitRight(neg.Inner());
   }
 
-  void Apply(const Number& neg) { AppendName("Number ({})", neg.GetValue()); }
+  void Apply(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
+
+  void Apply(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
 
   void Apply(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
 

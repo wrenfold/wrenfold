@@ -18,17 +18,6 @@ template <typename T, typename Argument>
 constexpr bool HasApplyMethod<
     T, Argument, decltype(std::declval<T>().Apply(std::declval<const Argument>()), void())> = true;
 
-// The type of error that is generated when a visitor fails to implement
-// an `Apply` method for a type.
-enum class VisitorPolicy {
-  // Throw an exception.
-  Throw,
-  // Fail at compile time.
-  CompileError,
-  // Silently do nothing. (Allow non-implemented Apply for some types).
-  NoError,
-};
-
 // Implementation of a visitor.
 template <typename Derived, typename ResultType>
 class VisitorImpl : public VisitorBase<ResultType> {

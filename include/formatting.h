@@ -12,11 +12,11 @@ class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
 
   void Apply(const Addition& add);
   void Apply(const Constant& constant);
-  void Apply(const Division& div);
+  void Apply(const Float& num);
+  void Apply(const Integer& num);
   void Apply(const Multiplication& mul);
   void Apply(const NaturalLog& log);
   void Apply(const Negation& neg);
-  void Apply(const Number& num);
   void Apply(const Power& pow);
   void Apply(const Variable& var);
 
