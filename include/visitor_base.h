@@ -1,9 +1,14 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include <memory>
+
 #include "expression_fwd.h"
 #include "operations_fwd.h"
 
 namespace math {
+
+// TODO: Allow switching this out for something w/o atomic operations?
+using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>;
 
 // Declare pure virtual Apply method.
 // These are non-const, since visitors may need to cache or update internal values.
@@ -37,16 +42,9 @@ namespace math {
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Variable);
 
 // Base type for visitors that produce expressions.
-class VisitorWithResultBase {
+template <typename ResultType>
+class VisitorBase {
  public:
-  using ResultType = ExpressionConceptConstPtr;
-  DECLARE_ALL_VIRTUAL_APPLY_METHODS()
-};
-
-// Base type for visitors that do not produce expressions.
-class VisitorWithoutResultBase {
- public:
-  using ResultType = void;
   DECLARE_ALL_VIRTUAL_APPLY_METHODS()
 };
 

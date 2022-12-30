@@ -19,6 +19,7 @@ TEST(ScalarOperationsTest, TestAddition) {
   ASSERT_NOT_IDENTICAL(x + w, x + y);
   ASSERT_IDENTICAL(x, x + 0);
   ASSERT_IDENTICAL(x, 0 + x);
+
 }
 
 TEST(ScalarOperationsTest, TestSubtraction) {

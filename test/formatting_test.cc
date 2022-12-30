@@ -1,6 +1,7 @@
 #include <fmt/format.h>
 
 #include "constants.h"
+#include "formatting.h"
 #include "functions.h"
 #include "operations_inline.h"
 #include "test_helpers.h"
@@ -16,8 +17,9 @@ testing::AssertionResult StringEqualTestHelper(const std::string&, const std::st
     return testing::AssertionSuccess();
   }
   return testing::AssertionFailure() << fmt::format(
-             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n", a,
-             name_b, name_b, b_str);
+             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
+             "The expression tree for `{}` is:\n{}",
+             a, name_b, name_b, b_str, name_b, FormatDebugTree(b));
 }
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
@@ -58,12 +60,13 @@ TEST(PlainFormatterTest, TestDivision) {
   const Expr y{"y"};
   const Expr z{"z"};
   ASSERT_STR_EQ("z / x", z / x);
-  ASSERT_STR_EQ("x / y / z", (x / y) / z);
-  ASSERT_STR_EQ("(x * y) / z", x * y / z);
+  ASSERT_STR_EQ("x / (y * z)", (x / y) / z);
+  ASSERT_STR_EQ("x * y / z", x * y / z);
   ASSERT_STR_EQ("(x + 1) / (y * z)", (x + 1) / (y * z));
-  ASSERT_STR_EQ("(x + 1) / y * z", (x + 1) / y * z);
-  ASSERT_STR_EQ("(-(x + x) * y) / x * x * x * x", -(x + x) * y / x * x * x * x);
-  ASSERT_STR_EQ("(-x * y) / x * z * (z + x)", -x * y / x * z * (z + x));
+  ASSERT_STR_EQ("(x + 1) * z / y", (x + 1) / y * z);
+  ASSERT_STR_EQ("-(x + x) * y * x * x * x / x", -(x + x) * y / x * x * x * x);
+  ASSERT_STR_EQ("-(x + x) * y / (x * x * x * x)", -(x + x) * y / (x * x * x * x));
+  ASSERT_STR_EQ("-x * y * z * (z + x) / x", -x * y / x * z * (z + x));
   ASSERT_STR_EQ("z / (x + y)", z / (x + y));
   ASSERT_STR_EQ("-z / x + y", -z / x + y);
   ASSERT_STR_EQ("y / ln(x)", y / math::log(x));

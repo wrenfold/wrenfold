@@ -50,10 +50,10 @@ class Expr {
   Expr Diff(const Expr& var, int reps = 1) const;
 
   // Receive a visitor.
-  void Receive(VisitorWithoutResultBase& visitor) const { impl_->Receive(visitor); }
+  void Receive(VisitorBase<void>& visitor) const { impl_->Receive(visitor); }
 
   // Receive a visitor that returns an expression.
-  Expr Receive(VisitorWithResultBase& visitor) const { return Expr{impl_->Receive(visitor)}; }
+  Expr Receive(VisitorBase<Expr>& visitor) const { return impl_->Receive(visitor); }
 
  private:
   ExpressionConceptConstPtr impl_;

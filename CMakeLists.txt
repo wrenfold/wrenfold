@@ -8,7 +8,6 @@ enable_testing()
 include(GNUInstallDirs)
 
 set(CMAKE_COLOR_MAKEFILE ON)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 # Add third party code
 add_subdirectory(dependencies)
@@ -21,7 +20,7 @@ set(${LIBRARY_NAME}_SOURCES
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})
 
-# Turn on C++14
+# Turn on C++17
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
 
 # turn on various warnings

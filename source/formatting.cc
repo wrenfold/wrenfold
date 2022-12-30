@@ -1,5 +1,6 @@
 #include "formatting.h"
 
+#include <array>
 #include <iostream>
 #include <optional>
 #include <type_traits>
@@ -26,13 +27,22 @@ struct IsNaryOpVisitor {
   }
 };
 
+struct HasNegativeSign {
+  using ReturnType = bool;
+  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
+
+  constexpr bool Apply(const Negation&) const { return true; }
+
+  bool Apply(const Number& num) const { return num.GetValue() < 0; }
+};
+
 void PlainFormatter::Apply(const Addition& expr) {
   ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
   // Format the first arg:
   expr[0].Receive(*this);
   for (std::size_t i = 1; i < expr.Arity(); ++i) {
     const std::optional<const Expr*> negation_inner =
-        TryVisit(expr[i], [](const Negation& n) { return &n.Inner(); });
+        VisitLambda(expr[i], [](const Negation& n) { return &n.Inner(); });
     if (negation_inner) {
       // Format subtractions in a pretty way.
       output_ += " - ";
@@ -48,39 +58,91 @@ void PlainFormatter::Apply(const Constant& expr) {
   output_ += StringFromSymbolicConstant(expr.GetName());
 }
 
-void PlainFormatter::Apply(const Division& expr) {
-  if (Visit(expr.Numerator(), IsNaryOpVisitor{}).value_or(false)) {
-    VisitWithBrackets(expr.Numerator());
-  } else {
-    expr.Numerator().Receive(*this);
+void PlainFormatter::Apply(const Division&) {}
+
+template <typename T, typename... Ts>
+constexpr bool ContainsTypeHelper = std::disjunction_v<std::is_same<T, Ts>...>;
+
+template <typename... Ts>
+struct TypeList {};
+
+template <typename T, typename U>
+constexpr bool ContainsType = false;
+
+template <typename T, typename... Ts>
+constexpr bool ContainsType<T, TypeList<Ts...>> = ContainsTypeHelper<T, Ts...>;
+
+struct AsBaseExponent {
+  using ReturnType = std::pair<Expr, Expr>;
+  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+
+  AsBaseExponent(const Expr& input) : input_(input) {}
+
+  // Power is broken into base and exponent:
+  ReturnType Apply(const Power& op) const { return std::make_pair(op.Base(), op.Exponent()); }
+
+  template <typename Derived>
+  ReturnType Apply(const NAryOp<Derived>&) {
+    return std::make_pair(input_, Constants::One);
   }
-  output_ += " / ";
-  if (Visit(expr.Denominator(), IsNaryOpVisitor{}).value_or(false)) {
-    VisitWithBrackets(expr.Denominator());
-  } else {
-    expr.Denominator().Receive(*this);
+
+  using IgnoredTypes = TypeList<Division, NaturalLog, Negation, Number, Variable, Constant>;
+
+  // All the ignored types are dispatched through this method.
+  template <typename T>
+  std::enable_if_t<ContainsType<T, IgnoredTypes>, ReturnType> Apply(const T&) {
+    return std::make_pair(input_, Constants::One);
   }
-}
+
+ private:
+  Expr input_;
+};
 
 void PlainFormatter::Apply(const Multiplication& expr) {
   ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
 
-  const auto FormatChild = [this](const Expr& child) {
-    // Additions are lower precedent that multiplication, so insert brackets:
-    const bool lower_precedence =
-        TryVisit(child, [](const Addition&) constexpr { return true; }).value_or(false);
-    if (lower_precedence) {
-      VisitWithBrackets(child);
+  // Break terms into positive and negative exponents:
+  std::vector<std::pair<Expr, Expr>> positive_exp;
+  std::vector<std::pair<Expr, Expr>> negative_exp;
+  positive_exp.reserve(expr.Arity());
+  negative_exp.reserve(expr.Arity());
+
+  for (std::size_t i = 0; i < expr.Arity(); ++i) {
+    // Pull the base and exponent:
+    AsBaseExponent visitor{expr[i]};
+    auto pair = VisitStruct(expr[i], visitor).value();
+
+    // Check if exponent is positive or negative:
+    if (VisitStruct(pair.second, HasNegativeSign{}).value_or(false)) {
+      // Flip the sign:
+      pair.second = Negation::Create(std::move(pair.second));
+      negative_exp.push_back(std::move(pair));
     } else {
-      child.Receive(*this);
+      positive_exp.push_back(std::move(pair));
     }
+  }
+
+  const auto FormatChildren = [this](const std::vector<std::pair<Expr, Expr>>& children,
+                                     bool denominator) {
+    for (std::size_t i = 0; i + 1 < children.size(); ++i) {
+      FormatBaseExponentPair(children[i], denominator);
+      output_ += " * ";
+    }
+    FormatBaseExponentPair(children.back(), denominator);
   };
 
-  for (std::size_t i = 0; i + 1 < expr.Arity(); ++i) {
-    FormatChild(expr[i]);
-    output_ += " * ";
+  // Do numerator, then denominator:
+  FormatChildren(positive_exp, false);
+  if (!negative_exp.empty()) {
+    output_ += " / ";
+    if (negative_exp.size() > 1) {
+      output_ += "(";
+    }
+    FormatChildren(negative_exp, true);
+    if (negative_exp.size() > 1) {
+      output_ += ")";
+    }
   }
-  FormatChild(expr[expr.Arity() - 1]);
 }
 
 void PlainFormatter::Apply(const NaturalLog& expr) {
@@ -91,11 +153,7 @@ void PlainFormatter::Apply(const NaturalLog& expr) {
 
 void PlainFormatter::Apply(const Negation& expr) {
   output_ += "-";
-  if (Visit(expr.Inner(), IsNaryOpVisitor{}).value_or(false)) {
-    VisitWithBrackets(expr.Inner());
-  } else {
-    expr.Inner().Receive(*this);
-  }
+  VisitWithBrackets(expr.Inner());
 }
 
 void PlainFormatter::Apply(const Number& expr) {
@@ -113,9 +171,46 @@ void PlainFormatter::Apply(const Power& expr) {
 void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 
 void PlainFormatter::VisitWithBrackets(const Expr& expr) {
-  output_ += "(";
-  expr.Receive(*this);
-  output_ += ")";
+  if (VisitStruct(expr, IsNaryOpVisitor{}).value_or(false)) {
+    output_ += "(";
+    expr.Receive(*this);
+    output_ += ")";
+  } else {
+    expr.Receive(*this);
+  }
+}
+
+// TODO: Clean this up a bit:
+void PlainFormatter::FormatBaseExponentPair(const std::pair<Expr, Expr>& pair, bool denominator) {
+  if (IsOne(pair.second)) {
+    const bool apply_brackets = denominator
+                                    ? VisitStruct(pair.first, IsNaryOpVisitor{}).value_or(false)
+                                    : IsType<Addition>(pair.first);
+
+    if (apply_brackets) {
+      output_ += "(";
+      pair.first.Receive(*this);
+      output_ += ")";
+    } else {
+      pair.first.Receive(*this);
+    }
+    return;
+  }
+  if (VisitStruct(pair.first, IsNaryOpVisitor{}).value_or(false)) {
+    output_ += "(";
+    pair.first.Receive(*this);
+    output_ += ")";
+  } else {
+    pair.first.Receive(*this);
+  }
+  output_ += " ^ ";
+  if (VisitStruct(pair.second, IsNaryOpVisitor{}).value_or(false)) {
+    output_ += "(";
+    pair.second.Receive(*this);
+    output_ += ")";
+  } else {
+    pair.second.Receive(*this);
+  }
 }
 
 struct TreeFormatter {
@@ -155,13 +250,13 @@ struct TreeFormatter {
 
   void VisitLeft(const Expr& expr) {
     indentations_.push_back(true);
-    Visit(expr, *this);
+    VisitStruct(expr, *this);
     indentations_.pop_back();
   }
 
   void VisitRight(const Expr& expr) {
     indentations_.push_back(false);
-    Visit(expr, *this);
+    VisitStruct(expr, *this);
     indentations_.pop_back();
   }
 
@@ -175,13 +270,13 @@ struct TreeFormatter {
   }
 
   void Apply(const Division& op) {
-    AppendName("{}:", "Division:");
+    AppendName("Division:");
     VisitLeft(op.Numerator());
     VisitRight(op.Denominator());
   }
 
   void Apply(const Power& op) {
-    AppendName("{}:", "Power:");
+    AppendName("Power:");
     VisitLeft(op.Base());
     VisitRight(op.Exponent());
   }
@@ -223,7 +318,7 @@ static void RightTrimInPlace(std::string& str) {
 
 std::string FormatDebugTree(const Expr& expr) {
   TreeFormatter formatter{};
-  Visit(expr, formatter);
+  VisitStruct(expr, formatter);
   std::string output;
   formatter.TakeOutput(output);
   // Somewhat hacky. The formatter appends a superfluous newline on the last element. I think

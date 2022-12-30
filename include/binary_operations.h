@@ -4,13 +4,11 @@
 
 #include "constants.h"
 #include "expression.h"
+#include "expression_impl.h"
 #include "visitor_impl.h"
 
 // TODO: These are all n-ary ops (except for power), and should changed.
 namespace math {
-
-template <typename T>
-constexpr bool IsExpr = std::is_same_v<std::decay_t<T>, Expr>;
 
 // Operation that has
 template <typename Derived>
@@ -51,8 +49,7 @@ class Addition : public NAryOp<Addition> {
 
   // Construct from two operands.
   // Templated so we can forward r-value references.
-  template <typename A, typename B>
-  static std::enable_if_t<IsExpr<A> && IsExpr<B>, Expr> FromTwoOperands(A&& a, B&& b) {
+  static Expr FromTwoOperands(const Expr& a, const Expr& b) {
     // Check if either argument is zero:
     if (IsZero(a)) {
       return b;
@@ -61,20 +58,20 @@ class Addition : public NAryOp<Addition> {
     }
 
     // TODO: Clean this up...
-    const Addition* a_add = TryVisit(a, [](const Addition& x) { return &x; }).value_or(nullptr);
-    const Addition* b_add = TryVisit(b, [](const Addition& x) { return &x; }).value_or(nullptr);
+    const Addition* a_add = TryCast<Addition>(a);
+    const Addition* b_add = TryCast<Addition>(b);
 
     std::vector<Expr> args;
     args.reserve(2);
     if (a_add) {
       args.insert(args.end(), a_add->args_.begin(), a_add->args_.end());
     } else {
-      args.push_back(std::forward<A>(a));
+      args.push_back(a);
     }
     if (b_add) {
       args.insert(args.end(), b_add->args_.begin(), b_add->args_.end());
     } else {
-      args.push_back(std::forward<B>(b));
+      args.push_back(b);
     }
     return MakeExpr<Addition>(std::move(args));
   }
@@ -82,11 +79,12 @@ class Addition : public NAryOp<Addition> {
 
 class Multiplication : public NAryOp<Multiplication> {
  public:
-  using NAryOp::NAryOp;
   static constexpr const char* NameStr = "Multiplication";
 
-  template <typename A, typename B>
-  static std::enable_if_t<IsExpr<A> && IsExpr<B>, Expr> FromTwoOperands(A&& a, B&& b) {
+  // TODO: Re-write args in order?
+  explicit Multiplication(std::vector<Expr> args) : NAryOp(std::move(args)) {}
+
+  static Expr FromTwoOperands(const Expr& a, const Expr& b) {
     // Check if either argument is zero:
     if (IsZero(a) || IsZero(b)) {
       return Constants::Zero;
@@ -98,22 +96,24 @@ class Multiplication : public NAryOp<Multiplication> {
       return a;
     }
 
-    const Multiplication* a_mul =
-        TryVisit(a, [](const Multiplication& x) { return &x; }).value_or(nullptr);
-    const Multiplication* b_mul =
-        TryVisit(b, [](const Multiplication& x) { return &x; }).value_or(nullptr);
+    const Multiplication* a_mul = TryCast<Multiplication>(a);
+    const Multiplication* b_mul = TryCast<Multiplication>(b);
+
+    // a * b * c * d -> Multiplication(a, b, c, d)
+    // a * b * (c + d) -> Multiplication(a, b, c + d)
+    // (a + b) * (c + d) -> Multiplication(a + b, c + d)
 
     std::vector<Expr> args;
     args.reserve(2);
     if (a_mul) {
       args.insert(args.end(), a_mul->args_.begin(), a_mul->args_.end());
     } else {
-      args.push_back(std::forward<A>(a));
+      args.push_back(a);
     }
     if (b_mul) {
       args.insert(args.end(), b_mul->args_.begin(), b_mul->args_.end());
     } else {
-      args.push_back(std::forward<B>(b));
+      args.push_back(b);
     }
     return MakeExpr<Multiplication>(std::move(args));
   }

@@ -26,7 +26,7 @@ Expr::Expr(double x) : Expr(MakeNumber(x)) {}
 std::string Expr::ToString() const {
   ASSERT(impl_);
   PlainFormatter formatter{};
-  impl_->Receive(formatter);
+  VisitStruct(*this, formatter);
   return formatter.GetOutput();
 }
 

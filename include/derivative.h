@@ -12,8 +12,10 @@
 namespace math {
 
 // Visitor that takes the derivative of an input expression.
-class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
+class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
  public:
+  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
   explicit DiffVisitor(const Variable& argument) : argument_(argument) {}
@@ -36,6 +38,10 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
     return (a.Receive(*this) * b - b.Receive(*this) * a) / (b * b);
   }
 
+  // a * b
+  // a' * b + a * b'
+  // a * b * c
+  // a' * b * c + a * b' * c + a * b * c'
   Expr Apply(const Multiplication& mul) {
     // Differentiate wrt every argument:
     // TODO: Try to make sure all this stuff gets moved instead of copied.
@@ -53,6 +59,8 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
     }
     return sum;
   }
+
+  Expr Apply(const NaturalLog& log) { return Power::Create(log.Inner(), -1); }
 
   Expr Apply(const Negation& neg) { return Negation::Create(neg.Inner().Receive(*this)); }
 
@@ -75,7 +83,7 @@ class DiffVisitor final : public VisitorWithResultImpl<DiffVisitor> {
   }
 
  private:
-  const Variable& argument_;
+  Variable argument_;
 };
 
 }  // namespace math

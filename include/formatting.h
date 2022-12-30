@@ -5,8 +5,11 @@
 namespace math {
 
 // Simple plain-text formatter.
-class PlainFormatter : public VisitorWithoutResultImpl<PlainFormatter> {
+class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
  public:
+  using ReturnType = Void;
+  static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
+
   void Apply(const Addition& add);
   void Apply(const Constant& constant);
   void Apply(const Division& div);
@@ -22,6 +25,8 @@ class PlainFormatter : public VisitorWithoutResultImpl<PlainFormatter> {
 
  private:
   void VisitWithBrackets(const Expr& expr);
+
+  void FormatBaseExponentPair(const std::pair<Expr, Expr>& pair, bool denominator);
 
   std::string output_{};
 };
