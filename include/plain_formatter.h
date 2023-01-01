@@ -16,7 +16,6 @@ class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
   void Apply(const Integer& num);
   void Apply(const Multiplication& mul);
   void Apply(const NaturalLog& log);
-  void Apply(const Negation& neg);
   void Apply(const Power& pow);
   void Apply(const Variable& var);
 
@@ -26,7 +25,13 @@ class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
  private:
   void VisitWithBrackets(const Expr& expr);
 
-  void FormatBaseExponentPair(const std::pair<Expr, Expr>& pair, bool denominator);
+  void FormatPrecedence(Precedence parent, const Expr& expr);
+
+  void FormatPower(const Expr& Base, const Expr& Exponent);
+
+  void FormatMultiplication(const Multiplication& mul);
+
+  bool FormatMultiplicationConstant(const Expr& c);
 
   std::string output_{};
 };

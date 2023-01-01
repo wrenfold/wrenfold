@@ -51,7 +51,7 @@ TEST(PlainFormatterTest, TestNegation) {
   const Expr y{"y"};
   ASSERT_STR_EQ("-x", -x);
   ASSERT_STR_EQ("-(x + y)", -(x + y));
-  ASSERT_STR_EQ("-(x * y)", -(x * y));
+  ASSERT_STR_EQ("-x * y", -(x * y));
   ASSERT_STR_EQ("-x / -y", -x / -y);
 }
 

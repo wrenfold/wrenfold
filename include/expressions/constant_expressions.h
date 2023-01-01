@@ -1,13 +1,14 @@
 #pragma once
+#include <cmath>
+
+#include "assertions.h"
 #include "constants.h"
 #include "expression_concept.h"
 #include "expression_impl.h"
 
 namespace math {
 
-/**
- * An integral constant.
- */
+// An integral constant.
 class Integer : public ExpressionImpl<Integer> {
  public:
   using IntegralType = int64_t;
@@ -21,16 +22,22 @@ class Integer : public ExpressionImpl<Integer> {
   // Access numeric value.
   IntegralType GetValue() const { return val_; }
 
+  // Cast to integer:
+  explicit operator Float() const;
+
  private:
   IntegralType val_;
 };
 
+// A floating point constant.
 class Float : public ExpressionImpl<Float> {
  public:
   using FloatType = double;
 
   // Construct from float value.
-  explicit Float(FloatType val) : val_(val) {}
+  explicit Float(FloatType val) : val_(val) {
+    ASSERT(std::isfinite(val_), "Float values must be finite: val = {}", val_);
+  }
 
   // Check if numerical constants are completely identical.
   bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
@@ -38,13 +45,31 @@ class Float : public ExpressionImpl<Float> {
   // Access numeric value.
   FloatType GetValue() const { return val_; }
 
+  // True if the stored value is actually an integer.
+  bool IsActuallyInt() const { return std::ceil(val_) == val_; }
+
+  // Cast to integer:
+  explicit operator Integer() const;
+
  private:
   FloatType val_;
 };
 
-/*
- * A symbolic constant, like pi or euler's number.
- */
+// Operations on integers:
+inline auto operator*(const Integer& a, const Integer& b) {
+  return Integer{a.GetValue() * b.GetValue()};
+}
+inline auto operator+(const Integer& a, const Integer& b) {
+  return Integer{a.GetValue() + b.GetValue()};
+}
+inline Float::operator Integer() const { return Integer{static_cast<Integer::IntegralType>(val_)}; }
+
+// Operations on floats:
+inline auto operator*(const Float& a, const Float& b) { return Float{a.GetValue() * b.GetValue()}; }
+inline auto operator+(const Float& a, const Float& b) { return Float{a.GetValue() + b.GetValue()}; }
+inline Integer::operator Float() const { return Float{static_cast<Float::FloatType>(val_)}; }
+
+// A symbolic constant, like pi or euler's number.
 class Constant : public ExpressionImpl<Constant> {
  public:
   // Construct with name.

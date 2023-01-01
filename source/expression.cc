@@ -1,11 +1,11 @@
 #include "expression.h"
 
 #include "assertions.h"
-#include "constant_expressions.h"
 #include "constants.h"
 #include "derivative.h"
+#include "expressions/constant_expressions.h"
+#include "expressions/variable.h"
 #include "plain_formatter.h"
-#include "variable.h"
 
 namespace math {
 
@@ -20,7 +20,7 @@ static Expr ExprFromDouble(const double x) {
   return MakeExpr<Float>(x);
 }
 
-Expr::Expr(const std::string& name) : impl_(new Variable(name)) {}
+Expr::Expr(const std::string& name) : Expr(MakeExpr<Variable>(name)) {}
 
 Expr::Expr(const double x) : Expr(ExprFromDouble(x)) {}
 
@@ -31,10 +31,12 @@ std::string Expr::ToString() const {
   return formatter.GetOutput();
 }
 
-Expr Expr::operator-() const { return Negation::Create(*this); }
+Expr Expr::operator-() const {
+  return Multiplication::FromTwoOperands(Constants::NegativeOne, *this);
+}
 
 Expr Expr::Diff(const Expr& var, const int reps) const {
-  const Variable* const as_var = var.GetRaw<Variable>();
+  const Variable* const as_var = TryCast<Variable>(var);
   ASSERT(as_var, "Arguments to diff() must be variables.");
   ASSERT_GREATER_OR_EQ(reps, 0);
 

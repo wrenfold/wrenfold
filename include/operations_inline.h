@@ -3,9 +3,10 @@
 
 #include "assertions.h"
 #include "expression.h"
-#include "operation_types.h"
-#include "power.h"
-#include "unary_operations.h"
+#include "expressions/addition.h"
+#include "expressions/function_expressions.h"
+#include "expressions/multiplication.h"
+#include "expressions/power.h"
 #include "visitor_impl.h"
 
 namespace math {
@@ -16,10 +17,12 @@ inline Expr operator*(const Expr& a, const Expr& b) {
 
 inline Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
 
-inline Expr operator-(const Expr& a, const Expr& b) { return a + Negation::Create(b); }
+inline Expr operator-(const Expr& a, const Expr& b) {
+  return a + Multiplication::FromTwoOperands(Constants::NegativeOne, b);
+}
 
 inline Expr operator/(const Expr& a, const Expr& b) {
-  return Multiplication::FromTwoOperands(a, Power::Create(b, -1));
+  return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));
 }
 
 }  // namespace math

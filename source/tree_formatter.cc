@@ -4,12 +4,13 @@
 #include <fmt/format.h>
 #include <vector>
 
-#include "constant_expressions.h"
 #include "expression.h"
-#include "operation_types.h"
-#include "power.h"
-#include "unary_operations.h"
-#include "variable.h"
+#include "expressions/addition.h"
+#include "expressions/constant_expressions.h"
+#include "expressions/function_expressions.h"
+#include "expressions/multiplication.h"
+#include "expressions/power.h"
+#include "expressions/variable.h"
 #include "visitor_impl.h"
 
 namespace math {
@@ -85,11 +86,6 @@ struct TreeFormatter {
   void Apply(const NaturalLog& log) {
     AppendName("NaturalLog:");
     VisitRight(log.Inner());
-  }
-
-  void Apply(const Negation& neg) {
-    AppendName("Negation:");
-    VisitRight(neg.Inner());
   }
 
   void Apply(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }

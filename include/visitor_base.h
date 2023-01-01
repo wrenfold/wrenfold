@@ -26,7 +26,6 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
   DECLARE_VIRTUAL_APPLY_METHOD(Integer);        \
   DECLARE_VIRTUAL_APPLY_METHOD(Multiplication); \
   DECLARE_VIRTUAL_APPLY_METHOD(NaturalLog);     \
-  DECLARE_VIRTUAL_APPLY_METHOD(Negation);       \
   DECLARE_VIRTUAL_APPLY_METHOD(Power);          \
   DECLARE_VIRTUAL_APPLY_METHOD(Variable);
 
@@ -37,7 +36,6 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Integer);        \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Multiplication); \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(NaturalLog);     \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Negation);       \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Power);          \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Variable);
 

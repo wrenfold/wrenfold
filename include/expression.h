@@ -27,14 +27,20 @@ class Expr {
 
   // Get a raw pointer, cast dynamically to a particular type.
   template <typename T>
-  const T* GetRaw() const {
+  const T* DynamicCast() const {
     return impl_->As<T>();
   }
 
   // Check that underlying type matches `T`.
   template <typename T>
   bool Is() const {
-    return GetRaw<T>() != nullptr;
+    return DynamicCast<T>() != nullptr;
+  }
+
+  // Static cast to the specified type.
+  template <typename T>
+  const T* StaticCast() const {
+    return static_cast<const T*>(impl_.get());
   }
 
   // Test if the two expressions are identical.

@@ -9,7 +9,6 @@ class Float;
 class Integer;
 class Multiplication;
 class NaturalLog;
-class Negation;
 class Power;
 class Variable;
 

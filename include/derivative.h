@@ -2,11 +2,12 @@
 #pragma once
 
 #include "expression.h"
+#include "expressions/addition.h"
+#include "expressions/multiplication.h"
+#include "expressions/variable.h"
 #include "functions.h"
-#include "operation_types.h"
 #include "operations_fwd.h"
 #include "operations_inline.h"
-#include "variable.h"
 #include "visitor_base.h"
 
 namespace math {
@@ -53,9 +54,7 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
     return sum;
   }
 
-  Expr Apply(const NaturalLog& log) { return Power::Create(log.Inner(), -1); }
-
-  Expr Apply(const Negation& neg) { return Negation::Create(neg.Inner().Receive(*this)); }
+  Expr Apply(const NaturalLog& log) { return Power::Create(log.Inner(), Constants::NegativeOne); }
 
   Expr Apply(const Integer&) { return Constants::Zero; }
 

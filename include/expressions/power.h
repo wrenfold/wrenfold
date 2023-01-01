@@ -2,8 +2,9 @@
 #pragma once
 #include <algorithm>
 
+#include "common_visitors.h"
 #include "expression.h"
-#include "operation_types.h"
+#include "operation_bases.h"
 #include "visitor_impl.h"
 
 namespace math {
