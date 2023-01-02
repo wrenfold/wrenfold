@@ -11,7 +11,7 @@ namespace math {
 template <typename F>
 auto AccumulateAndRemove(std::vector<Expr>& input, F&& func) {
   // Deduce the type the user wants:
-  using FuncTraits = function_traits<std::decay_t<F>>;
+  using FuncTraits = FunctionTraits<std::decay_t<F>>;
   using ReturnType = typename FuncTraits::ReturnType;
   using Argument = typename FuncTraits::template DecayedArgType<1>;
   static_assert(FuncTraits::Arity == 2, "Must be a function of two arguments");
@@ -83,44 +83,7 @@ static Expr MultiplyScalars(const std::optional<Float>& float_value,
   return Constants::One;
 }
 
-Multiplication::Multiplication(std::vector<Expr> args) {
-  // Pull out all the integer constants:
-  const std::optional<Integer> integer_constant =
-      AccumulateAndRemove(args, std::multiplies<Integer>());
-  // Pull out all the floats:
-  const std::optional<Float> float_constant = AccumulateAndRemove(args, std::multiplies<Float>());
-
-  // Pull out special constants and sort them into canonical order:
-  std::vector<Constant> special_constants = RemoveAndReturnTyped<Constant>(args);
-  std::sort(special_constants.begin(), special_constants.end(),
-            [&](const Constant& a, const Constant& b) { return a.GetName() < b.GetName(); });
-
-  // Place numeric constants back at the front:
-  args.insert(args.begin(), MultiplyScalars(float_constant, integer_constant));
-
-  // TODO: Combine products with the same base!
-  args_ = std::move(args);
-}
-
-// bool Multiplication::HasNegativeExponents() const {
-//   return std::any_of(args_.begin(), args_.end(), [](const Expr& expr) {
-//     return VisitLambda(expr,
-//                        [](const Power& pow) {
-//                          const Expr coeff = CoefficientVisitor::GetCoefficient(pow.Exponent());
-//                          return IsNegativeNumber(coeff);
-//                        })
-//         .value_or(false);
-//   });
-// }
-
-static Expr MaybeMakeMultiplication(std::vector<Expr> args) {
-  if (args.empty()) {
-    return Constants::One;
-  } else if (args.size() < 2) {
-    return args.front();
-  }
-  return MakeExpr<Multiplication>(std::move(args));
-}
+Multiplication::Multiplication(std::vector<Expr> args) : NAryOp(std::move(args)) {}
 
 std::pair<Expr, Expr> Multiplication::SplitByExponent() const {
   std::vector<Expr> numerator{};
@@ -140,42 +103,64 @@ std::pair<Expr, Expr> Multiplication::SplitByExponent() const {
       numerator.push_back(expr);
     }
   }
-  return std::make_pair(MaybeMakeMultiplication(std::move(numerator)),
-                        MaybeMakeMultiplication(std::move(denominator)));
+  auto num =
+      numerator.empty() ? Constants::One : Multiplication::FromOperands(std::move(numerator));
+  auto den =
+      denominator.empty() ? Constants::One : Multiplication::FromOperands(std::move(denominator));
+  return std::make_pair(std::move(num), std::move(den));
 }
 
-Expr Multiplication::FromTwoOperands(const Expr& a, const Expr& b) {
-  // Check if either argument is zero:
-  if (IsZero(a) || IsZero(b)) {
+Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
+  ASSERT(!args.empty());
+  if (args.size() < 2) {
+    return args.front();
+  }
+
+  // Check for zeros:
+  const bool contains_zeros = std::any_of(args.begin(), args.end(), &IsZero);
+  if (contains_zeros) {
     return Constants::Zero;
   }
-  if (IsOne(a)) {
-    return b;
-  }
-  if (IsOne(b)) {
-    return a;
+
+  std::vector<Expr> unpacked_args;
+  unpacked_args.reserve(args.size());
+  for (const Expr& arg : args) {
+    if (const Multiplication* const mul = TryCast<Multiplication>(arg)) {
+      // Multiplications must be flattened:
+      const auto& mul_args = mul->Args();
+      unpacked_args.insert(unpacked_args.end(), mul_args.begin(), mul_args.end());
+    } else {
+      unpacked_args.push_back(arg);
+    }
   }
 
-  const Multiplication* a_mul = TryCast<Multiplication>(a);
-  const Multiplication* b_mul = TryCast<Multiplication>(b);
+  // Now canonicalize the arguments:
+  CanonicalizeArguments(unpacked_args);
+  ASSERT(!unpacked_args.empty());
 
-  // a * b * c * d -> Multiplication(a, b, c, d)
-  // a * b * (c + d) -> Multiplication(a, b, c + d)
-  // (a + b) * (c + d) -> Multiplication(a + b, c + d)
+  if (unpacked_args.size() == 1) {
+    // After canonicalization, only one term remained.
+    // This could occur if the whole chain of multiplications evaluated to a constant.
+    return unpacked_args.front();
+  }
+  return MakeExpr<Multiplication>(std::move(unpacked_args));
+}
 
-  std::vector<Expr> args;
-  args.reserve(2);
-  if (a_mul) {
-    args.insert(args.end(), a_mul->args_.begin(), a_mul->args_.end());
-  } else {
-    args.push_back(a);
-  }
-  if (b_mul) {
-    args.insert(args.end(), b_mul->args_.begin(), b_mul->args_.end());
-  } else {
-    args.push_back(b);
-  }
-  return MakeExpr<Multiplication>(std::move(args));
+void Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
+  // Pull out all the integer constants:
+  const std::optional<Integer> integer_constant =
+      AccumulateAndRemove(args, std::multiplies<Integer>());
+
+  // Pull out all the floats:
+  const std::optional<Float> float_constant = AccumulateAndRemove(args, std::multiplies<Float>());
+
+  // Pull out special constants and sort them into canonical order:
+  //  std::vector<Constant> special_constants = RemoveAndReturnTyped<Constant>(args);
+  //  std::sort(special_constants.begin(), special_constants.end(),
+  //            [&](const Constant& a, const Constant& b) { return a.GetName() < b.GetName(); });
+
+  // Place numeric constants back at the front:
+  args.insert(args.begin(), MultiplyScalars(float_constant, integer_constant));
 }
 
 }  // namespace math

@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "expressions/constant_expressions.h"
-#include "template_helpers.h"
 #include "visitor_impl.h"
 
 // This file is intended to contain common utility visitors.

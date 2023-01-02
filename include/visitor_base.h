@@ -4,6 +4,7 @@
 
 #include "expression_fwd.h"
 #include "operations_fwd.h"
+#include "template_utils.h"
 
 namespace math {
 
@@ -38,6 +39,19 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
   IMPLEMENT_VIRTUAL_APPLY_METHOD(NaturalLog);     \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Power);          \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Variable);
+
+// clang-format off
+using ApprovedTypeList = TypeList<
+    Addition,
+    Constant,
+    Float,
+    Integer,
+    Multiplication,
+    NaturalLog,
+    Power,
+    Variable
+    >;
+// clang-format on
 
 // Base type for visitors that produce expressions.
 template <typename ResultType>

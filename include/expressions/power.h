@@ -1,6 +1,5 @@
 // Copyright 2022 Gareth Cross
 #pragma once
-#include <algorithm>
 
 #include "common_visitors.h"
 #include "expression.h"
@@ -14,28 +13,9 @@ class Power : public BinaryOp<Power> {
  public:
   using BinaryOp::BinaryOp;
 
-  static Expr Create(const Expr& a, const Expr& b) {
-    // Check for zeroes:
-    if (IsZero(a) && IsZero(b)) {
-      // 0^0 -> 1
-      return Constants::One;
-    } else if (IsZero(a)) {
-      // 0^x -> 0  (TODO: Only true for real x)
-      return Constants::Zero;
-    } else if (IsZero(b)) {
-      // x^0 -> 1
-      return Constants::One;
-    }
-    // Check for an exponent that is identically one:
-    if (IsOne(b)) {
-      // x^1 -> x
-      return a;
-    } else if (IsOne(a) && IsIntegralValue(b)) {
-      // 1^n -> 1 (where n is integral constant)
-      return Constants::One;
-    }
-    return MakeExpr<Power>(a, b);
-  }
+  // Create a new power.
+  // Will apply rules to simplify automatically.
+  static Expr Create(const Expr& a, const Expr& b);
 
   const Expr& Base() const { return first_; }
   const Expr& Exponent() const { return second_; }

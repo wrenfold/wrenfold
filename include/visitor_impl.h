@@ -4,19 +4,10 @@
 #include <string>
 
 #include "expression.h"
-#include "function_traits.h"
+#include "template_utils.h"
 #include "visitor_base.h"
 
 namespace math {
-
-// Template to check if the `Apply` method is implemented.
-template <typename T, typename, typename = void>
-constexpr bool HasApplyMethod = false;
-
-// Specialization that is activated when the Apply method exists:
-template <typename T, typename Argument>
-constexpr bool HasApplyMethod<
-    T, Argument, decltype(std::declval<T>().Apply(std::declval<const Argument>()), void())> = true;
 
 // Implementation of a visitor.
 template <typename Derived, typename ResultType>
@@ -85,27 +76,37 @@ auto VisitStruct(const Expr& expr, VisitorType&& visitor) {
   // invoked on a concrete type.
   using ReturnType = typename MaybeVoid<typename std::decay_t<VisitorType>::ReturnType>::Type;
   constexpr VisitorPolicy Policy = std::decay_t<VisitorType>::Policy;
-  VisitorWithCapturedResult<ReturnType, VisitorType, Policy> erased_visitor{visitor};
-  expr.Receive(erased_visitor);
-  return erased_visitor.result;  //  std::optional<ReturnType>
+  VisitorWithCapturedResult<ReturnType, VisitorType, Policy> capture_visitor{visitor};
+  expr.Receive(capture_visitor);
+  return capture_visitor.result;  //  std::optional<ReturnType>
 }
 
-// Struct that wraps user specified lambda.
-// This exists so that we can use VisitStruct, but with a lambda. The lambda must be converted to
-// a struct, so that
+// This type exists so that we can deduce a Lambda return type.
+// Since the lambda may take auto, we evaluate it with all the approved types. `Apply` is
+// implemented only for those types that we can invoke the lambda with successfully.
 template <typename Lambda>
-struct TemporaryStruct {
-  using ReturnType = typename function_traits<std::decay_t<Lambda>>::ReturnType;
-  using Argument = typename function_traits<std::decay_t<Lambda>>::template DecayedArgType<0>;
+struct LambdaWrapper {
+  // Deduce the return type of the lambda by invoking it w/ the approved type list.
+  using ReturnType = typename CallableReturnType<Lambda, ApprovedTypeList>::Type;
+
+  // Lambdas will typically either:
+  // - Accept one type only, in which case any other error policy makes no sense.
+  // - Accept `auto` and switch on the type internally. Because this means the lambda body
+  // can be instantiated with any type (or an error occurs), we can't detect if a given type
+  // is supported with HasApplyMethod<>.
   static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
 
-  // Construct from lambda.
-  explicit TemporaryStruct(Lambda func) : func_(std::move(func)) {}
+  // Construct by moving lambda inside.
+  explicit LambdaWrapper(Lambda&& func) : func_(std::move(func)) {}
 
-  // Call the underlying lambda.
-  ReturnType Apply(const Argument& typed_u) { return func_(typed_u); }
+  // If the lambda implements an operator() that accepts `Argument`, we declare an `Apply()`
+  // method that calls it.
+  template <typename Argument>
+  std::enable_if_t<HasCallOperator<Lambda, Argument>, ReturnType> Apply(const Argument& arg) {
+    return func_(arg);
+  }
 
- private:
+ protected:
   Lambda func_;
 };
 
@@ -113,22 +114,36 @@ struct TemporaryStruct {
 // If the type matches, the lambda will be called and the optional will be filled w/ the result.
 template <typename F>
 auto VisitLambda(const Expr& u, F&& func) {
-  TemporaryStruct<F> visitor{std::move(func)};
-  return VisitStruct(u, visitor);
+  // This wrapper allows a lambda that accepts `auto` to be passed to `VisitStruct`.
+  LambdaWrapper wrapper{std::move(func)};
+  return VisitStruct(u, wrapper);
 }
 
-// Version of `VisitLambda` that visits two expressions simultaneously.
-template <typename F>
-auto VisitLambda(const Expr& u, const Expr& v, F&& func) {
-  using traits = function_traits<std::decay_t<F>>;
-  static_assert(traits::Arity == 2, "Must be a function of two arguments");
-  using TypeU = typename traits::template DecayedArgType<0>;
-  using TypeV = typename traits::template DecayedArgType<1>;
-  return VisitLambda(u, [func = std::move(func), &v](const TypeU& typed_u) {
-    return VisitLambda(v, [func = std::move(func), &typed_u](const TypeV& typed_v) {
-      return func(typed_u, typed_v);
+// Visit two expressions with a struct that accepts two concrete types in its Apply(...) signature.
+// The struct must declare a ReturnType associated type.
+template <typename VisitorType>
+auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
+  using ReturnType = typename MaybeVoid<typename VisitorType::ReturnType>::Type;
+  // Passing the return type out of the nested `Visit` calls proves to be a big pain. Instead,
+  // we declare a new result here and ignore the two that are instantiated by each `Visit`.
+  // TODO: Are they actually optimized out?
+  std::optional<ReturnType> result{};
+  VisitLambda(u, [handler = std::move(handler), &v, &result](const auto& typed_u) -> void {
+    VisitLambda(v, [handler = std::move(handler), &typed_u, &result](const auto& typed_v) -> void {
+      // Check if we can visit
+      using TypeU = std::decay_t<decltype(typed_u)>;
+      using TypeV = std::decay_t<decltype(typed_v)>;
+      if constexpr (HasBinaryApplyMethod<std::decay_t<VisitorType>, TypeU, TypeV>) {
+        if constexpr (!std::is_same_v<ReturnType, Void>) {
+          result = handler(typed_u, typed_v);
+        } else {
+          handler(typed_u, typed_v);
+          result = Void{};
+        }
+      }
     });
   });
+  return result;
 }
 
 // Cast to type `T` using a visitor. Returns nullptr if the cast is invalid.

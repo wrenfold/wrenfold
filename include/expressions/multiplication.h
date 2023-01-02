@@ -23,7 +23,17 @@ class Multiplication : public NAryOp<Multiplication> {
   std::pair<Expr, Expr> SplitByExponent() const;
 
   // Construct from two operands. Creates an expression corresponding to: a * b
-  static Expr FromTwoOperands(const Expr& a, const Expr& b);
+  static Expr FromTwoOperands(const Expr& a, const Expr& b) {
+    // TODO: Dumb that we allocate for this, but in future it will be an inline vector:
+    return Multiplication::FromOperands({a, b});
+  }
+
+  // Construct form a vector of operands. The result is automatically simplified, and may not
+  // be a multiplication.
+  static Expr FromOperands(const std::vector<Expr>& args);
+
+  // Convert the vector of arguments to canonical form (modified in place).
+  static void CanonicalizeArguments(std::vector<Expr>& args);
 };
 
 struct CoefficientVisitor {
@@ -73,25 +83,5 @@ struct CoefficientVisitor {
     return Constants::One;
   }
 };
-
-//// Return this multiplication formatted as (<numeric coefficient>, <something else>).
-// inline std::array<Expr, 2> AsCoeffAndMultiplicand(const Expr& expr) {
-//   const CoefficientVisitor::Result type = CoefficientVisitor::Visit(expr);
-//   switch (type) {
-//     case CoefficientVisitor::Result::Coefficient:
-//       // The expression is a coefficient, so return (c, 1)
-//       return {expr, Constants::One};
-//     case CoefficientVisitor::Result::MulWithCoefficient: {
-//       // The annoying case - the expression is a multiplication where the first term is
-//       // a coefficient:
-//       const Multiplication& mul = *expr.StaticCast<Multiplication>();
-//       return {mul[0], mul.CopyAndRemoveFirstOperand()};
-//     }
-//     case CoefficientVisitor::Result::Neither:
-//       // All other cases, just fall through and return (1, expr)
-//       break;
-//   }
-//   return {Constants::One, expr};
-// }
 
 }  // namespace math
