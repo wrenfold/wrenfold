@@ -1,7 +1,7 @@
 #pragma once
 #include "expression_concept.h"
 #include "expression_impl.h"
-#include "expressions/constant_expressions.h"
+#include "expressions/numeric_expressions.h"
 #include "operation_bases.h"
 
 // Expressions for common mathematical functions.

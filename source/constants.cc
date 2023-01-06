@@ -1,7 +1,8 @@
 #include "constants.h"
 
 #include "expression.h"
-#include "expressions/constant_expressions.h"
+#include "expressions/numeric_expressions.h"
+#include "expressions/special_constants.h"
 
 namespace math {
 

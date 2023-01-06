@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-#include "expressions/constant_expressions.h"
+#include "expressions/numeric_expressions.h"
 #include "expressions/power.h"
 
 namespace math {

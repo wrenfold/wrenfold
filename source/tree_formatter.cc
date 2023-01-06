@@ -5,12 +5,7 @@
 #include <vector>
 
 #include "expression.h"
-#include "expressions/addition.h"
-#include "expressions/constant_expressions.h"
-#include "expressions/function_expressions.h"
-#include "expressions/multiplication.h"
-#include "expressions/power.h"
-#include "expressions/variable.h"
+#include "expressions/all_expressions.h"
 #include "visitor_impl.h"
 
 namespace math {

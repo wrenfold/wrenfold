@@ -29,14 +29,45 @@ inline constexpr int64_t WheelFactorization(const int64_t n_in) {
   return n_in;
 }
 
-// Compute the prime factors of `n_in`. Factors are repeated in `result` according to their power.
-inline void ComputePrimeFactors(const int64_t n_in, std::vector<int64_t>& result) {
+// Result of `ComputePrimeFactors`.
+struct PrimeFactor {
+  int64_t base;
+  int64_t exponent;
+};
+
+// Compute the prime factors of `n_in`. TODO: Use small vector here.
+inline std::vector<PrimeFactor> ComputePrimeFactors(const int64_t n_in) {
+  std::vector<PrimeFactor> result;
+  result.reserve(10);
   int64_t x = n_in;
   while (x != 1) {
     const int64_t factor = WheelFactorization(x);
-    result.push_back(factor);
+    if (!result.empty() && result.back().base == factor) {
+      // This is a repeated factor.
+      result.back().exponent += 1;
+    } else {
+      result.push_back(PrimeFactor{factor, 1});
+    }
     x /= factor;
   }
+  return result;
+}
+
+// Integer power function.
+// TODO: Check for overflow.
+constexpr int64_t Pow(int64_t base, int64_t exp) {
+  int64_t result = 1;
+  for (;;) {
+    if (exp & 1) {
+      result *= base;
+    }
+    exp /= 2;
+    if (exp == 0) {
+      break;
+    }
+    base *= base;
+  }
+  return result;
 }
 
 }  // namespace math

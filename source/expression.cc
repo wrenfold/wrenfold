@@ -3,7 +3,7 @@
 #include "assertions.h"
 #include "constants.h"
 #include "derivative.h"
-#include "expressions/constant_expressions.h"
+#include "expressions/numeric_expressions.h"
 #include "expressions/variable.h"
 #include "plain_formatter.h"
 

@@ -21,7 +21,8 @@ set(${LIBRARY_NAME}_SOURCES
     source/visitor.cc
     source/tree_formatter.cc
     source/expressions/multiplication.cc
-    source/expressions/power.cc)
+    source/expressions/power.cc
+        source/expressions/constant_expressions.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})

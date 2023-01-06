@@ -2,7 +2,7 @@
 #pragma once
 #include <algorithm>
 
-#include "expressions/constant_expressions.h"
+#include "expressions/numeric_expressions.h"
 #include "visitor_impl.h"
 
 // This file is intended to contain common utility visitors.

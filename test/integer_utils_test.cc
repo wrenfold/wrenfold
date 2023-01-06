@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-#include "integer_factorization.h"
+#include "integer_utils.h"
 #include "test_helpers.h"
 
 namespace math {
@@ -22,38 +22,49 @@ bool TrialDivisionIsPrime(const int64_t n_in) {
   return true;
 }
 
-template <typename T>
-std::string Join(const std::vector<T>& data) {
+template <typename T, typename Converter>
+std::string Join(const std::vector<T>& data, Converter converter) {
   auto it = data.begin();
   if (it == data.end()) {
     return {};
   }
   std::string out;
-  fmt::format_to(std::back_inserter(out), "{}", *it);
+  fmt::format_to(std::back_inserter(out), "{}", converter(*it));
   for (++it; it != data.end(); ++it) {
-    fmt::format_to(std::back_inserter(out), ", {}", *it);
+    fmt::format_to(std::back_inserter(out), ", {}", converter(*it));
   }
   return out;
 }
 
-TEST(TestIntegerFactorization, TextComputePrimeFactors) {
+struct PrimeFactorsOrder {
+  bool operator()(const PrimeFactor& a, const PrimeFactor& b) const { return a.base < b.base; }
+};
+
+struct FormatFactor {
+  std::string operator()(const PrimeFactor& x) const {
+    return fmt::format("{}^{}", x.base, x.exponent);
+  }
+};
+
+TEST(IntegerUtils, TestComputePrimeFactors) {
   // Factor numbers 1 -> 100000. Takes about ~1.5 seconds in debug mode on M2.
-  std::vector<int64_t> result{};
   for (int64_t i = 1; i < 100000; ++i) {
-    result.clear();
-    ComputePrimeFactors(i, result);
+    const std::vector<PrimeFactor> result = ComputePrimeFactors(i);
+    ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
     // Check that the factors multiply out to the input number.
-    const int64_t product = std::accumulate(result.begin(), result.end(), 1l, std::multiplies<>());
+    const int64_t product = std::accumulate(
+        result.begin(), result.end(), 1l,
+        [](int64_t product, const PrimeFactor& f) { return product * Pow(f.base, f.exponent); });
     ASSERT_EQ(product, i);
     // Check that all the factors are prime:
-    for (const int64_t factor : result) {
-      ASSERT_TRUE(TrialDivisionIsPrime(factor))
-          << fmt::format("i = {}, factors = [{}]\n", i, Join(result));
+    for (const PrimeFactor factor : result) {
+      ASSERT_TRUE(TrialDivisionIsPrime(factor.base))
+          << fmt::format("i = {}, factors = [{}]\n", i, Join(result, FormatFactor{}));
     }
   }
 }
 
-TEST(TestIntegerFactorization, TextComputePrimeFactors2) {
+TEST(IntegerUtils, TestComputePrimeFactors2) {
   // clang-format off
   const std::vector<std::vector<int64_t>> primes = {
     {373, 937, 1583, 2029},
@@ -80,19 +91,32 @@ TEST(TestIntegerFactorization, TextComputePrimeFactors2) {
   // clang-format on
 
   // Factor numbers 1 -> 100000
-  std::vector<int64_t> result{};
   for (const auto& expected_factors : primes) {
     const int64_t product =
         std::accumulate(expected_factors.begin(), expected_factors.end(), 1l, std::multiplies<>());
-    result.clear();
-    ComputePrimeFactors(product, result);
-    std::sort(result.begin(), result.end());
+    const std::vector<PrimeFactor> result = ComputePrimeFactors(product);
+    ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
     // Check we got the same factors out:
     ASSERT_EQ(result.size(), expected_factors.size());
     for (std::size_t i = 0; i < expected_factors.size(); ++i) {
-      ASSERT_EQ(expected_factors[i], result[i]);
+      ASSERT_EQ(expected_factors[i], result[i].base);
+      ASSERT_EQ(1, result[i].exponent);
     }
   }
+}
+
+TEST(IntegerUtils, TestPow) {
+  ASSERT_EQ(Pow(1, 1), 1);
+  ASSERT_EQ(Pow(2, 0), 1);
+  ASSERT_EQ(Pow(-1, 1), -1);
+  ASSERT_EQ(Pow(-1, 2), 1);
+  ASSERT_EQ(Pow(-3, 0), 1);
+  ASSERT_EQ(Pow(5, 3), 125);
+  ASSERT_EQ(Pow(3, 4), 81);
+  ASSERT_EQ(Pow(7, 2), 49);
+  ASSERT_EQ(Pow(-7, 2), 49);
+  ASSERT_EQ(Pow(-6, 3), -216);
+  ASSERT_EQ(Pow(3, 8), 6561);
 }
 
 }  // namespace math
