@@ -10,6 +10,7 @@ class Integer;
 class Multiplication;
 class NaturalLog;
 class Power;
+class Rational;
 class Variable;
 
 }  // namespace math

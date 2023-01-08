@@ -19,8 +19,11 @@ class Expr {
   // Construct variable:
   explicit Expr(const std::string& name);
 
-  // Construct constant from integer.
-  Expr(double x);
+  // Construct constant from float.
+  explicit Expr(double x);
+
+  // Construct from integer.
+  explicit Expr(int64_t x);
 
   // Get the implementation pointer.
   const ExpressionConceptConstPtr& GetImpl() const { return impl_; }
@@ -73,6 +76,10 @@ inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   stream << x.ToString();
   return stream;
 }
+
+// Custom literal suffix support.
+inline Expr operator"" _s(unsigned long long int arg) { return Expr{static_cast<int64_t>(arg)}; }
+inline Expr operator"" _s(long double arg) { return Expr{static_cast<double>(arg)}; }
 
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>

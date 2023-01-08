@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include "integer_utils.h"
+#include "string_utils.h"
 #include "test_helpers.h"
 
 namespace math {
@@ -20,20 +21,6 @@ bool TrialDivisionIsPrime(const int64_t n_in) {
     }
   }
   return true;
-}
-
-template <typename T, typename Converter>
-std::string Join(const std::vector<T>& data, Converter converter) {
-  auto it = data.begin();
-  if (it == data.end()) {
-    return {};
-  }
-  std::string out;
-  fmt::format_to(std::back_inserter(out), "{}", converter(*it));
-  for (++it; it != data.end(); ++it) {
-    fmt::format_to(std::back_inserter(out), ", {}", converter(*it));
-  }
-  return out;
 }
 
 struct PrimeFactorsOrder {
@@ -59,7 +46,7 @@ TEST(IntegerUtils, TestComputePrimeFactors) {
     // Check that all the factors are prime:
     for (const PrimeFactor factor : result) {
       ASSERT_TRUE(TrialDivisionIsPrime(factor.base))
-          << fmt::format("i = {}, factors = [{}]\n", i, Join(result, FormatFactor{}));
+          << fmt::format("i = {}, factors = [{}]\n", i, Join(", ", result, FormatFactor{}));
     }
   }
 }

@@ -32,4 +32,7 @@ inline const char* StringFromSymbolicConstant(SymbolicConstants value) {
   }
 }
 
+// Order constants by their enum values.
+inline bool operator<(const Constant& a, const Constant& b) { return a.GetName() < b.GetName(); }
+
 }  // namespace math

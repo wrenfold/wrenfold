@@ -28,6 +28,7 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
   DECLARE_VIRTUAL_APPLY_METHOD(Multiplication); \
   DECLARE_VIRTUAL_APPLY_METHOD(NaturalLog);     \
   DECLARE_VIRTUAL_APPLY_METHOD(Power);          \
+  DECLARE_VIRTUAL_APPLY_METHOD(Rational);       \
   DECLARE_VIRTUAL_APPLY_METHOD(Variable);
 
 #define IMPLEMENT_ALL_VIRTUAL_APPLY_METHODS()     \
@@ -38,6 +39,7 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Multiplication); \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(NaturalLog);     \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Power);          \
+  IMPLEMENT_VIRTUAL_APPLY_METHOD(Rational);       \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Variable);
 
 // clang-format off
@@ -49,6 +51,7 @@ using ApprovedTypeList = TypeList<
     Multiplication,
     NaturalLog,
     Power,
+    Rational,
     Variable
     >;
 // clang-format on

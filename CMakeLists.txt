@@ -14,15 +14,16 @@ add_subdirectory(dependencies)
 
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
+    source/expressions/constant_expressions.cc
+    source/hashing.cc
     source/constants.cc
     source/expression.cc
-    source/plain_formatter.cc
-    source/functions.cc
-    source/visitor.cc
-    source/tree_formatter.cc
     source/expressions/multiplication.cc
     source/expressions/power.cc
-        source/expressions/constant_expressions.cc)
+    source/functions.cc
+    source/plain_formatter.cc
+    source/tree_formatter.cc
+    source/visitor.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})

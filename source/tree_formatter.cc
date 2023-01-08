@@ -87,6 +87,10 @@ struct TreeFormatter {
 
   void Apply(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
 
+  void Apply(const Rational& rational) {
+    AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());
+  }
+
   void Apply(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
 
   void Apply(const Constant& constant) {

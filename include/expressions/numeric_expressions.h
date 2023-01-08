@@ -41,6 +41,7 @@ class Integer : public ExpressionImpl<Integer> {
 
   // Create an integer expression.
   static Expr Create(IntegralType x);
+  static Expr Create(const Integer& x) { return Create(x.GetValue()); }
 
  private:
   IntegralType val_;
@@ -77,8 +78,8 @@ class Rational : public ExpressionImpl<Rational> {
   // Cast to float.
   explicit operator Float() const;
 
-  // True if the numerator is zero.
-  bool IsZero() const { return n_ == 0; }
+  // True if numerator equals denominator.
+  bool IsOne() const { return n_ == d_; }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
@@ -99,53 +100,6 @@ class Rational : public ExpressionImpl<Rational> {
   IntegralType n_;
   IntegralType d_;
 };
-
-//// A number factorized into "Proper Exponent Primal" form.
-//// See https://arxiv.org/pdf/1302.2169.pdf
-// class FactorizedNumber : public ExpressionImpl<FactorizedNumber> {
-//  public:
-//   // A factor in the number.
-//   struct Factor {
-//     int64_t base;  // TODO: Use Integer?
-//     Rational exponent;
-//   };
-//
-//   // Order factors by their base.
-//   struct FactorBaseOrder {
-//     bool operator()(const Factor& a, const Factor& b) const { return a.base < b.base; }
-//   };
-//
-//   // Construct from an integer (factors are left empty).
-//   explicit FactorizedNumber(int64_t integer) : coeff_{integer, 1} {}
-//
-//   // Raise to a rational power:
-//   FactorizedNumber Pow(const Rational& exp) const;
-//
-//   // Check for exact equality.
-//   bool IsIdenticalToImplTyped(const FactorizedNumber& other) const {
-//     if (!coeff_.IsIdenticalToImplTyped(other.coeff_) || factors_.size() != other.factors_.size())
-//     {
-//       return false;
-//     }
-//     return std::equal(factors_.begin(), factors_.end(), other.factors_.begin(),
-//                       [](const Factor& a, const Factor& b) {
-//                         return a.base == b.base && a.exponent.IsIdenticalToImplTyped(b.exponent);
-//                       });
-//   }
-//
-//  protected:
-//   // Construct w/ coefficient and factors:
-//   FactorizedNumber(const Rational& coeff, std::vector<Factor> factors)
-//       : coeff_(coeff), factors_(std::move(factors)) {}
-//
-//   friend FactorizedNumber operator*(const FactorizedNumber&, const FactorizedNumber&);
-//
-//   // Rational coefficient in front of the prime factors.
-//   Rational coeff_;
-//
-//   // TODO: Use small vector.
-//   std::vector<Factor> factors_;
-// };
 
 // A floating point constant.
 class Float : public ExpressionImpl<Float> {
@@ -174,6 +128,8 @@ inline auto operator*(const Integer& a, const Integer& b) {
 inline auto operator+(const Integer& a, const Integer& b) {
   return Integer{a.GetValue() + b.GetValue()};
 }
+inline bool operator<(const Integer& a, const Integer& b) { return a.GetValue() < b.GetValue(); }
+
 inline Integer::operator Float() const { return Float{static_cast<Float::FloatType>(val_)}; }
 inline Integer::operator Rational() const { return Rational{GetValue(), 1}; }
 
@@ -186,6 +142,10 @@ inline auto operator+(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Denominator() + b.Numerator() * a.Denominator(),
                   a.Denominator() * b.Denominator()};
 }
+inline bool operator<(const Rational& a, const Rational& b) {
+  // TODO: Watch for overflow.
+  return a.Numerator() * b.Denominator() < b.Numerator() * a.Denominator();
+}
 
 inline Rational::operator Float() const {
   // TODO: Look up if there is a more accurate way of doing this.
@@ -195,5 +155,20 @@ inline Rational::operator Float() const {
 // Operations on floats:
 inline auto operator*(const Float& a, const Float& b) { return Float{a.GetValue() * b.GetValue()}; }
 inline auto operator+(const Float& a, const Float& b) { return Float{a.GetValue() + b.GetValue()}; }
+inline bool operator<(const Float& a, const Float& b) { return a.GetValue() < b.GetValue(); }
+
+// Will evaluate to true if A or B (or both) is a float, w/ the other being Integer or Rational.
+// This is so we can promote integers/rationals -> float when they are combined with floats.
+template <typename A, typename B>
+constexpr bool IsFloatAndNumeric =
+    (std::is_same_v<A, Float> && ContainsTypeHelper<B, Integer, Rational>) ||
+    (std::is_same_v<B, Float> && ContainsTypeHelper<A, Integer, Rational>) ||
+    (std::is_same_v<A, Float> && std::is_same_v<B, Float>);
+
+static_assert(IsFloatAndNumeric<Float, Float>);
+static_assert(IsFloatAndNumeric<Float, Integer>);
+static_assert(IsFloatAndNumeric<Rational, Float>);
+static_assert(!IsFloatAndNumeric<Integer, Integer>);
+static_assert(!IsFloatAndNumeric<Integer, Rational>);
 
 }  // namespace math

@@ -33,7 +33,7 @@ class Multiplication : public NAryOp<Multiplication> {
   static Expr FromOperands(const std::vector<Expr>& args);
 
   // Convert the vector of arguments to canonical form (modified in place).
-  static void CanonicalizeArguments(std::vector<Expr>& args);
+  static Expr CanonicalizeArguments(std::vector<Expr>& args);
 };
 
 struct CoefficientVisitor {

@@ -12,10 +12,6 @@ namespace math {
 static Expr ExprFromDouble(const double x) {
   if (x == 0) {
     return Constants::Zero;
-  } else if (x == 1) {
-    return Constants::One;
-  } else if (std::floor(x) == x) {
-    return MakeExpr<Integer>(x);
   }
   return MakeExpr<Float>(x);
 }
@@ -23,6 +19,8 @@ static Expr ExprFromDouble(const double x) {
 Expr::Expr(const std::string& name) : Expr(MakeExpr<Variable>(name)) {}
 
 Expr::Expr(const double x) : Expr(ExprFromDouble(x)) {}
+
+Expr::Expr(const int64_t x) : Expr(Integer::Create(x)) {}
 
 std::string Expr::ToString() const {
   ASSERT(impl_);

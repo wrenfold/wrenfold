@@ -70,6 +70,14 @@ struct ApplyInvocationType<Callable, Argument,
 template <typename... Ts>
 struct TypeList {};
 
+// Size of type list.
+template <typename T>
+struct TypeListSize;
+template <typename... Ts>
+struct TypeListSize<TypeList<Ts...>> {
+  static constexpr std::size_t Value = sizeof...(Ts);
+};
+
 // Check if a type is in a TypeList.
 template <typename T, typename... Ts>
 constexpr bool ContainsTypeHelper = std::disjunction_v<std::is_same<T, Ts>...>;
@@ -92,6 +100,18 @@ struct HeadOfTypeList {};
 template <typename Head, typename... Ts>
 struct HeadOfTypeList<TypeList<Head, Ts...>> {
   using Type = Head;
+};
+
+// Get the index of a type in a type list.
+template <typename T, typename U = void, typename... Types>
+constexpr std::size_t IndexOfTypeHelper() {
+  return std::is_same<T, U>::value ? 0 : 1 + IndexOfTypeHelper<T, Types...>();
+}
+template <typename T, typename List>
+struct IndexOfType;
+template <typename T, typename... Ts>
+struct IndexOfType<T, TypeList<Ts...>> {
+  constexpr static std::size_t Value = IndexOfTypeHelper<T, Ts...>();
 };
 
 // This template iterates over a TypeList and creates a new TypeList of return types that occur

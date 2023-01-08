@@ -86,6 +86,8 @@ void PlainFormatter::Apply(const NaturalLog& expr) {
 
 void PlainFormatter::Apply(const Power& expr) { FormatPower(expr.Base(), expr.Exponent()); }
 
+void PlainFormatter::Apply(const Rational&) {}
+
 void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 
 void PlainFormatter::VisitWithBrackets(const Expr& expr) {

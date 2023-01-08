@@ -123,21 +123,22 @@ auto VisitLambda(const Expr& u, F&& func) {
 // The struct must declare a ReturnType associated type.
 template <typename VisitorType>
 auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
-  using ReturnType = typename MaybeVoid<typename VisitorType::ReturnType>::Type;
+  using ReturnType = typename MaybeVoid<typename std::decay_t<VisitorType>::ReturnType>::Type;
   // Passing the return type out of the nested `Visit` calls proves to be a big pain. Instead,
   // we declare a new result here and ignore the two that are instantiated by each `Visit`.
   // TODO: Are they actually optimized out?
   std::optional<ReturnType> result{};
-  VisitLambda(u, [handler = std::move(handler), &v, &result](const auto& typed_u) -> void {
-    VisitLambda(v, [handler = std::move(handler), &typed_u, &result](const auto& typed_v) -> void {
+  VisitLambda(u, [&handler, &v, &result](const auto& typed_u) -> void {
+    VisitLambda(v, [&handler, &typed_u, &result](const auto& typed_v) -> void {
       // Check if we can visit
       using TypeU = std::decay_t<decltype(typed_u)>;
       using TypeV = std::decay_t<decltype(typed_v)>;
+      static_assert(!std::is_const_v<decltype(handler)>);
       if constexpr (HasBinaryApplyMethod<std::decay_t<VisitorType>, TypeU, TypeV>) {
         if constexpr (!std::is_same_v<ReturnType, Void>) {
-          result = handler(typed_u, typed_v);
+          result = handler.Apply(typed_u, typed_v);
         } else {
-          handler(typed_u, typed_v);
+          handler.Apply(typed_u, typed_v);
           result = Void{};
         }
       }

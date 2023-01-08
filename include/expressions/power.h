@@ -33,4 +33,17 @@ inline std::pair<Expr, Expr> AsBaseAndExponent(const Expr& expr) {
   return std::make_pair(expr, Constants::One);
 }
 
+// Convert an
+inline std::pair<Integer, Rational> FactorizeRationalExponent(const Rational& r) {
+  const Integer integer_part{r.Numerator() / r.Denominator()};
+  const Rational fractional_part_signed{r.Numerator() % r.Denominator(), r.Denominator()};
+  if (r.Numerator() >= 0) {
+    return std::make_pair(integer_part, fractional_part_signed);
+  } else {
+    // If negative, we subtract one from the integer part and make the rational part positive:
+    return std::make_pair(Integer{integer_part.GetValue() - 1},
+                          fractional_part_signed + Rational{1, 1});
+  }
+}
+
 }  // namespace math

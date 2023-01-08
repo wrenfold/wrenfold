@@ -2,9 +2,7 @@
 #pragma once
 
 #include "expression.h"
-#include "expressions/addition.h"
-#include "expressions/multiplication.h"
-#include "expressions/variable.h"
+#include "expressions/all_expressions.h"
 #include "functions.h"
 #include "operations_fwd.h"
 #include "operations_inline.h"
@@ -68,6 +66,8 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
     return b * Power::Create(a, b - Constants::One) * a_diff +
            Power::Create(a, b) * NaturalLog::Create(a) * b_diff;
   }
+
+  Expr Apply(const Rational&) const { return Constants::Zero; }
 
   Expr Apply(const Variable& var) {
     if (var.IsIdenticalToImplTyped(argument_)) {
