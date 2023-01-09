@@ -4,16 +4,30 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "common_visitors.h"
 #include "expressions/all_expressions.h"
 #include "hashing.h"
 #include "integer_utils.h"
+#include "ordering.h"
 #include "string_utils.h"
 #include "tree_formatter.h"
+#include "visitor_impl.h"
 
 namespace math {
 
+inline Expr MaybeNewMul(std::vector<Expr>&& terms) {
+  if (terms.empty()) {
+    return Constants::One;
+  } else if (terms.size() == 1) {
+    return terms.front();
+  } else {
+    return MakeExpr<Multiplication>(std::move(terms));
+  }
+}
+
 // Visitor that multiplies integers/rationals by the stored value.
-struct RationalAccumulator {
+// Integers are promoted to rationals.
+struct RationalMultiplier {
   using ReturnType = void;
   static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
 
@@ -26,7 +40,9 @@ struct RationalAccumulator {
 // Multiply integer + rational constants.
 // Removes them from the vector during processing.
 static Rational MultiplyIntegersAndRationals(std::vector<Expr>& input) {
-  RationalAccumulator accumulator{};
+  // Traverse the input w/ the accumulator. At the end it will contain the
+  // product of all the integers and rationals.
+  RationalMultiplier accumulator{};
   const auto new_end = std::remove_if(input.begin(), input.end(), [&accumulator](const Expr& expr) {
     return VisitStruct(expr, accumulator).has_value();
   });
@@ -50,28 +66,30 @@ static std::optional<Float> MultiplyFloats(std::vector<Expr>& input) {
   input.erase(new_end, input.end());
   return product;
 }
-//
-//// Rule:
-////  float -> promote everything to float
-////  rational -> promote integers to rationals
-////  integer -> leave everything as integers
-// static Expr MultiplyScalars(const std::optional<Float>& float_value,
-//                             const std::optional<Integer>& int_value) {
-//   if (float_value) {
-//     Float result = *float_value;
-//     if (int_value) {
-//       // Promote integers to float.
-//       result = result * static_cast<Float>(*int_value);
-//     }
-//     // TODO: Should we check if the result of multiplication is actually just an integer?
-//     return MakeExpr<Float>(result);
-//   } else if (int_value) {
-//     return Integer::Create(*int_value);
-//   }
-//   return Constants::One;
-// }
 
 Multiplication::Multiplication(std::vector<Expr> args) : NAryOp(std::move(args)) {}
+
+struct IsNegativeLikeVisitor {
+  using ReturnType = bool;
+  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
+
+  // Numerics < 0 are all negative.
+  bool Apply(const Integer& num) const { return num.GetValue() < 0; }
+  bool Apply(const Float& f) const { return f.GetValue() < 0; }
+  bool Apply(const Rational& r) const { return r.Numerator() < 0; }
+
+  // Multiplications can be negative-like, if the product of all the constant terms is negative.
+  bool Apply(const Multiplication& m) const {
+    std::size_t count = 0;
+    for (const Expr& expr : m.Args()) {
+      if (VisitStruct(expr, IsNegativeLikeVisitor{}).value_or(false)) {
+        ++count;
+      }
+    }
+    // odd = negative, even = positive
+    return static_cast<bool>(count & 1);
+  }
+};
 
 std::pair<Expr, Expr> Multiplication::SplitByExponent() const {
   std::vector<Expr> numerator{};
@@ -80,21 +98,23 @@ std::pair<Expr, Expr> Multiplication::SplitByExponent() const {
     // Pull the base and exponent:
     auto [base, exponent] = AsBaseAndExponent(expr);
     // Sort into numerator and denominator, depending on sign of the exponent:
-    const Expr exponent_coeff = CoefficientVisitor::GetCoefficient(exponent);
-    if (IsNegativeNumber(exponent_coeff)) {
-      if (exponent_coeff.IsIdenticalTo(Constants::NegativeOne)) {
+    const auto [coeff, _] = AsCoefficientAndMultiplicand(exponent);
+    // See if the exponent seems negative:
+    const bool is_negative_exp = VisitStruct(coeff, IsNegativeLikeVisitor{}).value_or(false);
+    if (is_negative_exp) {
+      if (coeff.IsIdenticalTo(Constants::NegativeOne)) {
         denominator.push_back(std::move(base));
       } else {
+        // Flip the sign and create a new power.
         denominator.push_back(Power::Create(std::move(base), -exponent));
       }
     } else {
       numerator.push_back(expr);
     }
   }
-  auto num =
-      numerator.empty() ? Constants::One : Multiplication::FromOperands(std::move(numerator));
-  auto den =
-      denominator.empty() ? Constants::One : Multiplication::FromOperands(std::move(denominator));
+
+  Expr num = MaybeNewMul(std::move(numerator));
+  Expr den = MaybeNewMul(std::move(denominator));
   return std::make_pair(std::move(num), std::move(den));
 }
 
@@ -127,118 +147,7 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
 
   // Now canonicalize the arguments:
   return CanonicalizeArguments(unpacked_args);
-  //  ASSERT(!unpacked_args.empty(), "Zero arguments left after canonicalization. Arguments
-  //  were:\n{}",
-  //         Join("\n", args, &FormatDebugTree));
-  //
-  //  if (unpacked_args.size() == 1) {
-  //    // After canonicalization, only one term remained.
-  //    // This could occur if the whole chain of multiplications evaluated to a constant.
-  //    return unpacked_args.front();
-  //  }
 }
-
-struct OrderVisitor {
-  enum class RelativeOrder {
-    LessThan,
-    Equal,
-    GreaterThan,
-  };
-
-  using ReturnType = RelativeOrder;
-
-  using OrderOfConstants = TypeList<Float, Integer, Rational, Constant, Variable, Multiplication,
-                                    Addition, Power, NaturalLog>;
-
-  // Every type in the approved type list must appear here, or we get a compile error:
-  static_assert(TypeListSize<OrderOfConstants>::Value == TypeListSize<ApprovedTypeList>::Value);
-
-  template <typename A, typename B>
-  RelativeOrder Apply(const A& a, const B& b) {
-    if constexpr (!std::is_same_v<A, B>) {
-      return IndexOfType<A, OrderOfConstants>::Value < IndexOfType<B, OrderOfConstants>::Value
-                 ? RelativeOrder::LessThan
-                 : RelativeOrder::GreaterThan;
-    } else {
-      // Otherwise call a method that compares equivalent types:
-      // This will generate a compiler error if we forget types here.
-      return Compare(a, b);
-    }
-  }
-
-  // This visitor applies to any two members of `OrderOfConstants` that are _not_ the same type.
-  template <typename Numeric>
-  std::enable_if_t<ContainsTypeHelper<Numeric, Float, Integer, Rational, Constant>, RelativeOrder>
-  Compare(const Numeric& a, const Numeric& b) const {
-    if (a < b) {
-      return RelativeOrder::LessThan;
-    } else if (b < a) {
-      return RelativeOrder::GreaterThan;
-    }
-    return RelativeOrder::Equal;
-  }
-
-  template <typename Derived>
-  RelativeOrder Compare(const NAryOp<Derived>& a, const NAryOp<Derived>& b) const {
-    // For multiplication and addition, sort lexicographically by recursively invoking OrderVisitor.
-    const std::vector<Expr>& args_a = a.Args();
-    const std::vector<Expr>& args_b = b.Args();
-
-    auto it_a = args_a.begin();
-    auto it_b = args_b.end();
-    for (; it_a != args_a.end() && it_b != args_b.end(); ++it_a, ++it_b) {
-      const std::optional<RelativeOrder> result = VisitBinaryStruct(*it_a, *it_b, OrderVisitor{});
-      ASSERT(result.has_value(), "Order visitor failed to implement a comparison");
-      if (*result == RelativeOrder::LessThan) {
-        return RelativeOrder::LessThan;
-      } else if (*result == RelativeOrder::GreaterThan) {
-        return RelativeOrder::GreaterThan;
-      }
-    }
-    if (it_a == args_a.end() && it_b != args_b.end()) {
-      return RelativeOrder::LessThan;  // `a` is shorter:
-    } else if (it_a != args_a.end() && it_b == args_b.end()) {
-      return RelativeOrder::GreaterThan;  //  `b` is shorter
-    }
-    return RelativeOrder::Equal;  //  they are equal
-  }
-
-  RelativeOrder Compare(const Power& a, const Power& b) const {
-    const std::optional<RelativeOrder> base_order =
-        VisitBinaryStruct(a.Base(), b.Base(), OrderVisitor{});
-    ASSERT(base_order.has_value());
-    if (*base_order == RelativeOrder::LessThan) {
-      return RelativeOrder::LessThan;
-    } else if (*base_order == RelativeOrder::GreaterThan) {
-      return RelativeOrder::GreaterThan;
-    }
-    // Otherwise order is determined by the exponent:
-    const std::optional<RelativeOrder> exponent_order =
-        VisitBinaryStruct(a.Exponent(), b.Exponent(), OrderVisitor{});
-    ASSERT(exponent_order.has_value());
-    return *exponent_order;
-  }
-
-  RelativeOrder Compare(const NaturalLog& a, const NaturalLog& b) const {
-    const std::optional<RelativeOrder> arg_order =
-        VisitBinaryStruct(a.Inner(), b.Inner(), OrderVisitor{});
-    ASSERT(arg_order.has_value());
-    return *arg_order;
-  }
-
-  RelativeOrder Compare(const Variable& a, const Variable& b) const {
-    if (a.GetName() < b.GetName()) {
-      return RelativeOrder::LessThan;
-    } else if (a.GetName() > b.GetName()) {
-      return RelativeOrder::GreaterThan;
-    }
-    return RelativeOrder::Equal;
-  }
-};
-
-struct ExprEquality {
-  bool operator()(const Expr& a, const Expr& b) const { return a.IsIdenticalTo(b); }
-};
 
 struct NormalizeExponentVisitor {
   using ReturnType = Expr;
@@ -305,8 +214,6 @@ Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
     args.push_back(MakeExpr<Float>(float_term.value() * static_cast<Float>(rational_term)));
   } else if (rational_term.IsOne()) {
     // Don't insert a useless one in the multiplication.
-  } else if (std::optional<Integer> as_int = rational_term.TryConvertToInteger(); as_int) {
-    args.push_back(Integer::Create(*as_int));
   } else {
     args.push_back(Rational::Create(rational_term));
   }
@@ -329,12 +236,51 @@ Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
     args.push_back(Power::Create(base, exponent));
   }
 
-  if (args.empty()) {
-    return Constants::One;
-  } else if (args.size() == 1) {
-    return args.front();
+  return MaybeNewMul(std::move(args));
+}
+
+struct AsCoeffAndMultiplicandVisitor {
+  using ReturnType = std::pair<Expr, Expr>;
+  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
+
+  // For multiplications, we need to break the expression up.
+  ReturnType Apply(const Multiplication& mul) const {
+    // TODO: Small vector.
+    std::vector<Expr> numerics{};
+    std::vector<Expr> remainder{};
+    for (const Expr& expr : mul.Args()) {
+      if (IsNumeric(expr)) {
+        numerics.push_back(expr);
+      } else {
+        remainder.push_back(expr);
+      }
+    }
+    auto coeff = MaybeNewMul(std::move(numerics));
+    auto multiplicand = MaybeNewMul(std::move(remainder));
+    return std::make_pair(std::move(coeff), std::move(multiplicand));
   }
-  return MakeExpr<Multiplication>(std::move(args));
+
+  // If the input type is a numeric, return the numeric as a coefficient for multiplicand of one.
+  template <typename T>
+  std::enable_if_t<ContainsTypeHelper<T, Integer, Rational, Float>, ReturnType> Apply(
+      const T&) const {
+    return std::make_pair(arg_, Constants::One);
+  };
+
+  // Construct with a reference to the input argument so that we can
+  // return it directly when applicable.
+  explicit AsCoeffAndMultiplicandVisitor(const Expr& arg) : arg_(arg) {}
+
+  const Expr& arg_;
+};
+
+std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr) {
+  std::optional<std::pair<Expr, Expr>> result =
+      VisitStruct(expr, AsCoeffAndMultiplicandVisitor{expr});
+  if (result.has_value()) {
+    return *result;
+  }
+  return std::make_pair(Constants::One, expr);
 }
 
 }  // namespace math

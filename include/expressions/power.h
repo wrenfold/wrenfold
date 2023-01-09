@@ -1,10 +1,9 @@
 // Copyright 2022 Gareth Cross
 #pragma once
 
-#include "common_visitors.h"
 #include "expression.h"
+#include "expressions/numeric_expressions.h"
 #include "operation_bases.h"
-#include "visitor_impl.h"
 
 namespace math {
 
@@ -22,18 +21,11 @@ class Power : public BinaryOp<Power> {
 };
 
 // Convert an expression to a base/exponent pair.
-inline std::pair<Expr, Expr> AsBaseAndExponent(const Expr& expr) {
-  const auto result = VisitLambda(expr, [](const Power& power) {
-    // Return as base/exponent pair.
-    return std::make_pair(power.Base(), power.Exponent());
-  });
-  if (result.has_value()) {
-    return *result;
-  }
-  return std::make_pair(expr, Constants::One);
-}
+std::pair<Expr, Expr> AsBaseAndExponent(const Expr& expr);
 
-// Convert an
+// Convert a rational exponent to the whole integer part and the remainder.
+// If the exponent is negative, we add to the whole integer part so that the rational part
+// can be positive (i.e. we eliminate "absurd" rationals).
 inline std::pair<Integer, Rational> FactorizeRationalExponent(const Rational& r) {
   const Integer integer_part{r.Numerator() / r.Denominator()};
   const Rational fractional_part_signed{r.Numerator() % r.Denominator(), r.Denominator()};

@@ -3,7 +3,6 @@
 #include <cmath>
 #include <numeric>
 #include <optional>
-#include <vector>
 
 #include "assertions.h"
 #include "constants.h"
@@ -80,6 +79,9 @@ class Rational : public ExpressionImpl<Rational> {
 
   // True if numerator equals denominator.
   bool IsOne() const { return n_ == d_; }
+
+  // True if numerator is zero.
+  bool IsZero() const { return n_ == 0; }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.

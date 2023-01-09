@@ -23,7 +23,8 @@ set(${LIBRARY_NAME}_SOURCES
     source/functions.cc
     source/plain_formatter.cc
     source/tree_formatter.cc
-    source/visitor.cc)
+    source/visitor.cc
+    source/expressions/addition.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})

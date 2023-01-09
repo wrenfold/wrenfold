@@ -8,37 +8,17 @@ namespace math {
 
 class Addition : public NAryOp<Addition> {
  public:
-  using NAryOp::NAryOp;
   static constexpr const char* NameStr = "Addition";
 
+  // Do not call this - use `FromTwoOperands`.
+  explicit Addition(std::vector<Expr> args);
+
   // Construct from two operands.
-  // Templated so we can forward r-value references.
-  static Expr FromTwoOperands(const Expr& a, const Expr& b) {
-    // Check if either argument is zero:
-    if (IsZero(a)) {
-      return b;
-    } else if (IsZero(b)) {
-      return a;
-    }
+  static Expr FromTwoOperands(const Expr& a, const Expr& b) { return FromOperands({a, b}); }
 
-    // TODO: Clean this up...
-    const Addition* a_add = TryCast<Addition>(a);
-    const Addition* b_add = TryCast<Addition>(b);
-
-    std::vector<Expr> args;
-    args.reserve(2);
-    if (a_add) {
-      args.insert(args.end(), a_add->args_.begin(), a_add->args_.end());
-    } else {
-      args.push_back(a);
-    }
-    if (b_add) {
-      args.insert(args.end(), b_add->args_.begin(), b_add->args_.end());
-    } else {
-      args.push_back(b);
-    }
-    return MakeExpr<Addition>(std::move(args));
-  }
+  // Construct form a vector of operands.
+  // The result is automatically simplified, and may not be an addition.
+  static Expr FromOperands(const std::vector<Expr>& args);
 };
 
 }  // namespace math

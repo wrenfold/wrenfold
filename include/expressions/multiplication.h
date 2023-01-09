@@ -3,10 +3,8 @@
 #include <algorithm>
 #include <array>
 
-#include "common_visitors.h"
 #include "constants.h"
 #include "operation_bases.h"
-#include "visitor_impl.h"
 
 namespace math {
 
@@ -36,52 +34,10 @@ class Multiplication : public NAryOp<Multiplication> {
   static Expr CanonicalizeArguments(std::vector<Expr>& args);
 };
 
-struct CoefficientVisitor {
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
-
-  enum class Result {
-    Coefficient,
-    MulWithCoefficient,
-    Neither,
-  };
-  using ReturnType = Result;
-
-  ReturnType Apply(const Multiplication& mul) const {
-    if (IsNumeric(mul[0])) {
-      return Result::MulWithCoefficient;
-    }
-    return Result::Neither;
-  }
-
-  constexpr ReturnType Apply(const Integer&) const { return Result::Coefficient; }
-  constexpr ReturnType Apply(const Float&) const { return Result::Coefficient; }
-
-  // Visit an expression and determine what form it is in.
-  static Result Visit(const Expr& expr) {
-    return VisitStruct(expr, CoefficientVisitor{}).value_or(Result::Neither);
-  }
-
-  // Visit the expression and extract the coefficient.
-  static Expr GetCoefficient(const Expr& expr) {
-    // Determine the format of this expression:
-    const Result type = Visit(expr);
-    // Pull out the coefficient:
-    switch (type) {
-      case CoefficientVisitor::Result::Coefficient:
-        // The expression is a coefficient, so return (c, 1)
-        return expr;
-      case CoefficientVisitor::Result::MulWithCoefficient: {
-        // The annoying case - the expression is a multiplication where the first term is
-        // a coefficient:
-        const Multiplication& mul = *expr.StaticCast<Multiplication>();
-        return mul[0];
-      }
-      case CoefficientVisitor::Result::Neither:
-        // All other cases, just fall through and return (1, expr)
-        break;
-    }
-    return Constants::One;
-  }
-};
+// Convert an expression into a coefficient and a multiplicand. This operation checks if
+// expr is a multiplication. If it is, we extract all numeric constants and return them
+// as the first value. The remaining terms form a new multiplication, which is returned as
+// the second value.
+std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr);
 
 }  // namespace math

@@ -12,23 +12,38 @@ TEST(ScalarOperationsTest, TestAddition) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_TRUE((x + y).Is<Addition>());
+  const Expr z{"z"};
+  ASSERT_TRUE(TryCast<Addition>(x + y) != nullptr);
   ASSERT_IDENTICAL(x + y, x + y);
-  ASSERT_NOT_IDENTICAL(x + y, y + x);
+  ASSERT_IDENTICAL(x + y, y + x);
   ASSERT_NOT_IDENTICAL(x + w, x + y);
+  ASSERT_NOT_IDENTICAL(x - w, z + y);
+
+  // Canonicalization of order:
+  ASSERT_IDENTICAL(w + x + y, y + x + w);
+  ASSERT_IDENTICAL(w + x + y, x + w + y);
+  ASSERT_IDENTICAL(1_s + w, w + 1_s);
+  ASSERT_IDENTICAL(5_s / 7_s + x, x + 5_s / 7_s);
+  ASSERT_IDENTICAL(x * w + x * z, x * z + x * w);
+  ASSERT_IDENTICAL(w * x + x * z, x * z + x * w);
+
+  // Collapsing of numerics:
   ASSERT_IDENTICAL(x, x + 0_s);
   ASSERT_IDENTICAL(x, 0_s + x);
-}
+  ASSERT_IDENTICAL(w + 19_s / 7_s, w + 5_s / 7_s + 2_s);
+  ASSERT_IDENTICAL(w + y + 1_s, y + 1_s / 2_s + w + 1_s / 2_s);
+  ASSERT_IDENTICAL(2_s * z, 3_s + z - 2_s + z - 1_s);
+  ASSERT_IDENTICAL(0_s, 3_s + -4_s + 1_s);
+  ASSERT_IDENTICAL(0.5_s + x, x + 0.25_s + 1_s / 4_s);
+  ASSERT_IDENTICAL(1.0_s, 3_s / 2_s + y - 0.5_s - y);
 
-TEST(ScalarOperationsTest, TestSubtraction) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  ASSERT_TRUE((x - y).Is<Addition>());
-  ASSERT_IDENTICAL((x - y).DynamicCast<Addition>()->operator[](0), x);
-  ASSERT_IDENTICAL((x - y).DynamicCast<Addition>()->operator[](1), -y);
-  ASSERT_IDENTICAL(y - x, y - x);
-  ASSERT_IDENTICAL(-y, 0_s - y);
-  ASSERT_IDENTICAL(y, y - 0_s);
+  // Collection of identical terms:
+  ASSERT_IDENTICAL(2_s * x, x + x);
+  ASSERT_IDENTICAL(-3_s * x, x - 4_s * x);
+  ASSERT_IDENTICAL(3_s * pow(x, 2_s) - 4_s * y,
+                   pow(x, 2_s) - 2_s * y + 2_s * pow(x, 2_s) - 2_s * y);
+  ASSERT_IDENTICAL(-2_s * log(x) + 2_s * pow(y, 2_s), -log(x) + -log(x) + y * y + y * y);
+  ASSERT_IDENTICAL(z * x, z * x / 3_s + 2_s * z * x / 3_s);
 }
 
 TEST(ScalarOperationsTest, TestMultiplication) {
@@ -62,7 +77,13 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * 0.0625_s, (x * 2.0_s) * (1_s / 32_s));
 
   // Collections of powers:
-  ASSERT_IDENTICAL(pow(x, 1_s + 1_s), x * x);
+  ASSERT_IDENTICAL(pow(x, 2_s), x * x);
+  ASSERT_IDENTICAL(pow(x, 3_s), x * x * x);
+  ASSERT_IDENTICAL(pow(x, 2_s) * pow(y, 2_s), x * y * x * y);
+  ASSERT_IDENTICAL(Constants::One, pow(x, 2_s) * pow(x, -2_s));
+  ASSERT_IDENTICAL(x * pow(y, 2_s) * pow(log(z), 3_s), log(z) * y * x * log(z) * y * log(z));
+  ASSERT_IDENTICAL(1_s / 33_s * x * pow(3_s, 2_s / 3_s) * pow(11_s, 2_s / 3_s),
+                   pow(33_s, -2_s / 3_s) * pow(33_s, 1_s / 3_s) * x);
 }
 
 TEST(ScalarOperationsTest, TestNegation) {
@@ -79,13 +100,15 @@ TEST(ScalarOperationsTest, TestDivision) {
   const Expr y{"y"};
   const Expr z{"z"};
   ASSERT_IDENTICAL(x / y, x / y);
-  ASSERT_TRUE((x / y).Is<Multiplication>());
-  //  ASSERT_IDENTICAL((x / y).DynamicCast<Multiplication>()->operator[](0), x);
-  //  ASSERT_IDENTICAL((x / y).DynamicCast<Multiplication>()->operator[](1), pow(y, -1));
+  ASSERT_TRUE(TryCast<Multiplication>(x / y) != nullptr);
   ASSERT_NOT_IDENTICAL(y / x, x / y);
   ASSERT_IDENTICAL(x / y / z, (x / y) / z);
   ASSERT_IDENTICAL(Constants::Zero, 0_s / x);
   ASSERT_IDENTICAL(x, x / 1_s);
+  ASSERT_IDENTICAL(1_s, x / x);
+  ASSERT_IDENTICAL(x / y / z, x * pow(y, -1_s) * pow(z, -1_s));
+  ASSERT_IDENTICAL(z / (y * x), z * pow(y, -1_s) * pow(x, -1_s));
+  ASSERT_IDENTICAL(z / (y * z), 1_s / y);
 }
 
 TEST(ScalarOperationsTest, TestPower) {
@@ -151,9 +174,12 @@ TEST(ScalarOperationsTest, TestPower) {
 
 TEST(ScalarOperationsTest, TestLog) {
   const Expr x{"x"};
-  ASSERT_TRUE(log(x).Is<NaturalLog>());
+  const Expr y{"y"};
+  ASSERT_TRUE(TryCast<NaturalLog>(log(x)) != nullptr);
   ASSERT_IDENTICAL(log(x), log(x));
+  ASSERT_NOT_IDENTICAL(log(x), log(y));
   ASSERT_IDENTICAL(Constants::One, log(Constants::Euler));
+  ASSERT_IDENTICAL(Constants::Zero, log(1_s));
 }
 
 }  // namespace math

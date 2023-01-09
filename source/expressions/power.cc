@@ -4,6 +4,7 @@
 #include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "integer_utils.h"
+#include "visitor_impl.h"
 
 namespace math {
 
@@ -146,6 +147,17 @@ Expr Power::Create(const Expr& a, const Expr& b) {
     return Multiplication::FromOperands(args);
   }
   return MakeExpr<Power>(a, b);
+}
+
+std::pair<Expr, Expr> AsBaseAndExponent(const Expr& expr) {
+  const auto result = VisitLambda(expr, [](const Power& power) {
+    // Return as base/exponent pair.
+    return std::make_pair(power.Base(), power.Exponent());
+  });
+  if (result.has_value()) {
+    return *result;
+  }
+  return std::make_pair(expr, Constants::One);
 }
 
 }  // namespace math

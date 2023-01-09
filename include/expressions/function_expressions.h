@@ -16,6 +16,9 @@ class NaturalLog : public UnaryOp<NaturalLog> {
     if (x.IsIdenticalTo(Constants::Euler)) {
       return Constants::One;
     }
+    if (x.IsIdenticalTo(Constants::One)) {
+      return Constants::Zero;
+    }
     return MakeExpr<NaturalLog>(x);
   }
 };

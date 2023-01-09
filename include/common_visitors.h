@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "expressions/numeric_expressions.h"
+#include "expressions/power.h"
 #include "visitor_impl.h"
 
 // This file is intended to contain common utility visitors.
@@ -11,22 +12,17 @@ namespace math {
 template <typename Derived>
 class NAryOp;
 
-// Visitor that checks for integral values.
-struct IsIntegralValueVisitor {
-  using ReturnType = bool;
-  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
-  constexpr bool Apply(const Integer&) const { return true; }
-};
-
-inline bool IsIntegralValue(const Expr& expr) {
-  return VisitStruct(expr, IsIntegralValueVisitor{}).value_or(false);
-}
-
+// Visitor that returns true for numerical values, or powers of numerical values.
 struct IsNumericVisitor {
   using ReturnType = bool;
   constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
-  constexpr bool Apply(const Integer&) const { return true; }
   constexpr bool Apply(const Float&) const { return true; }
+  constexpr bool Apply(const Integer&) const { return true; }
+  constexpr bool Apply(const Rational&) const { return true; }
+  bool Apply(const Power& pow) const {
+    return VisitStruct(pow.Base(), IsNumericVisitor{}).value_or(false) &&
+           VisitStruct(pow.Exponent(), IsNumericVisitor{}).value_or(false);
+  }
 };
 
 inline bool IsNumeric(const Expr& expr) {
@@ -55,21 +51,6 @@ struct PrecedenceVisitor {
 
 inline Precedence GetPrecedence(const Expr& expr) {
   return VisitStruct(expr, PrecedenceVisitor{}).value_or(Precedence::None);
-}
-
-// Simple visitor that evaluates to true for n-ary operations.
-struct IsNAryOpVisitor {
-  using ReturnType = bool;
-  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
-
-  template <typename Derived>
-  constexpr ReturnType Apply(const NAryOp<Derived>&) const {
-    return true;
-  }
-};
-
-inline bool IsNAryOp(const Expr& expr) {
-  return VisitStruct(expr, IsNAryOpVisitor{}).value_or(false);
 }
 
 }  // namespace math
