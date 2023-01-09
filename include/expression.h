@@ -19,22 +19,31 @@ class Expr {
   // Construct variable:
   explicit Expr(const std::string& name);
 
-  // Construct constant. Implicit so we can use numbers in math operations.
-  Expr(double x);
+  // Construct constant from float.
+  explicit Expr(double x);
+
+  // Construct from integer.
+  explicit Expr(int64_t x);
 
   // Get the implementation pointer.
   const ExpressionConceptConstPtr& GetImpl() const { return impl_; }
 
   // Get a raw pointer, cast dynamically to a particular type.
   template <typename T>
-  const T* GetRaw() const {
+  const T* DynamicCast() const {
     return impl_->As<T>();
   }
 
   // Check that underlying type matches `T`.
   template <typename T>
   bool Is() const {
-    return GetRaw<T>() != nullptr;
+    return DynamicCast<T>() != nullptr;
+  }
+
+  // Static cast to the specified type.
+  template <typename T>
+  const T* StaticCast() const {
+    return static_cast<const T*>(impl_.get());
   }
 
   // Test if the two expressions are identical.
@@ -50,10 +59,10 @@ class Expr {
   Expr Diff(const Expr& var, int reps = 1) const;
 
   // Receive a visitor.
-  void Receive(VisitorWithoutResultBase& visitor) const { impl_->Receive(visitor); }
+  void Receive(VisitorBase<void>& visitor) const { impl_->Receive(visitor); }
 
   // Receive a visitor that returns an expression.
-  Expr Receive(VisitorWithResultBase& visitor) const { return Expr{impl_->Receive(visitor)}; }
+  Expr Receive(VisitorBase<Expr>& visitor) const { return impl_->Receive(visitor); }
 
  private:
   ExpressionConceptConstPtr impl_;
@@ -67,6 +76,10 @@ inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   stream << x.ToString();
   return stream;
 }
+
+// Custom literal suffix support.
+inline Expr operator"" _s(unsigned long long int arg) { return Expr{static_cast<int64_t>(arg)}; }
+inline Expr operator"" _s(long double arg) { return Expr{static_cast<double>(arg)}; }
 
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>

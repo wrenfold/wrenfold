@@ -8,6 +8,7 @@ class Constants {
   static const Expr One;
   static const Expr Pi;
   static const Expr Euler;
+  static const Expr NegativeOne;
 };
 
 inline bool IsZero(const Expr& expr) { return expr.IsIdenticalTo(Constants::Zero); }
@@ -16,8 +17,8 @@ inline bool IsOne(const Expr& expr) { return expr.IsIdenticalTo(Constants::One);
 
 // List of symbolic constants.
 enum class SymbolicConstants : int {
-  Pi = 0,
   Euler,
+  Pi,
 };
 
 }  // namespace math

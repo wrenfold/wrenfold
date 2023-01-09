@@ -1,35 +1,11 @@
+// Copyright 2022 Gareth Cross
 #pragma once
 #include "constants.h"
-#include "expression_concept.h"
+#include "expression_impl.h"
 
 namespace math {
 
-/**
- * A scalar numerical constant like 0.23241, or 42.
- *
- * TODO(gareth): Add support for complex numbers.
- */
-class Number : public ExpressionImpl<Number> {
- public:
-  // TODO(gareth): Support integer types? For now double works fine.
-  using NumberType = double;
-
-  // Construct from number.
-  explicit Number(NumberType val) : val_(val) {}
-
-  // Check if numerical constants are completely identical.
-  bool IsIdenticalToImplTyped(const Number& other) const { return val_ == other.val_; }
-
-  // Access numeric value.
-  NumberType GetValue() const { return val_; }
-
- private:
-  NumberType val_;
-};
-
-/*
- * A symbolic constant, like pi or euler's number.
- */
+// A symbolic constant, like pi or euler's number.
 class Constant : public ExpressionImpl<Constant> {
  public:
   // Construct with name.
@@ -55,5 +31,8 @@ inline const char* StringFromSymbolicConstant(SymbolicConstants value) {
       return "e";
   }
 }
+
+// Order constants by their enum values.
+inline bool operator<(const Constant& a, const Constant& b) { return a.GetName() < b.GetName(); }
 
 }  // namespace math

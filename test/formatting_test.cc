@@ -4,6 +4,7 @@
 #include "functions.h"
 #include "operations_inline.h"
 #include "test_helpers.h"
+#include "tree_formatter.h"
 
 namespace math {
 
@@ -16,8 +17,9 @@ testing::AssertionResult StringEqualTestHelper(const std::string&, const std::st
     return testing::AssertionSuccess();
   }
   return testing::AssertionFailure() << fmt::format(
-             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n", a,
-             name_b, name_b, b_str);
+             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
+             "The expression tree for `{}` is:\n{}",
+             a, name_b, name_b, b_str, name_b, FormatDebugTree(b));
 }
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
@@ -25,9 +27,9 @@ TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
   const Expr x{"x"};
   const Expr y{"y"};
   ASSERT_STR_EQ("x + y + w", x + y + w);
-  ASSERT_STR_EQ("x + 2", x + 2);
-  ASSERT_STR_EQ("w + 1.5 + y", w + 1.5 + y);
-  ASSERT_STR_EQ("x + w", x + 0 + w);
+  ASSERT_STR_EQ("x + 2", x + 2_s);
+  ASSERT_STR_EQ("w + 1.5 + y", w + 1.5_s + y);
+  ASSERT_STR_EQ("x + w", x + 0_s + w);
   ASSERT_STR_EQ("x + y - x", x + y - x);
   ASSERT_STR_EQ("x - y", x - y);
 }
@@ -39,7 +41,7 @@ TEST(PlainFormatterTest, TestMultiplication) {
   ASSERT_STR_EQ("x * y", x * y);
   ASSERT_STR_EQ("x * z * y", x * z * y);
   ASSERT_STR_EQ("(x + y) * z", (x + y) * z);
-  ASSERT_STR_EQ("(x + 3.14) * (z + x)", (x + 3.14) * (z + x));
+  ASSERT_STR_EQ("(x + 3.14) * (z + x)", (x + 3.14_s) * (z + x));
   ASSERT_STR_EQ("x + y * z + x", x + y * z + x);
   ASSERT_STR_EQ("z + z * x * y", z + z * (x * y));
 }
@@ -49,8 +51,8 @@ TEST(PlainFormatterTest, TestNegation) {
   const Expr y{"y"};
   ASSERT_STR_EQ("-x", -x);
   ASSERT_STR_EQ("-(x + y)", -(x + y));
-  ASSERT_STR_EQ("-(x * y)", -(x * y));
-  ASSERT_STR_EQ("-x / -y", -x / -y);
+  ASSERT_STR_EQ("-x * y", -(x * y));
+  ASSERT_STR_EQ("x / y", -x / -y);
 }
 
 TEST(PlainFormatterTest, TestDivision) {
@@ -58,28 +60,32 @@ TEST(PlainFormatterTest, TestDivision) {
   const Expr y{"y"};
   const Expr z{"z"};
   ASSERT_STR_EQ("z / x", z / x);
-  ASSERT_STR_EQ("x / y / z", (x / y) / z);
-  ASSERT_STR_EQ("(x * y) / z", x * y / z);
-  ASSERT_STR_EQ("(x + 1) / (y * z)", (x + 1) / (y * z));
-  ASSERT_STR_EQ("(x + 1) / y * z", (x + 1) / y * z);
-  ASSERT_STR_EQ("(-(x + x) * y) / x * x * x * x", -(x + x) * y / x * x * x * x);
-  ASSERT_STR_EQ("(-x * y) / x * z * (z + x)", -x * y / x * z * (z + x));
+  ASSERT_STR_EQ("x / (y * z)", (x / y) / z);
+  ASSERT_STR_EQ("x * y / z", x * y / z);
+  ASSERT_STR_EQ("(x + 1) / (y * z)", (x + 1_s) / (y * z));
+  ASSERT_STR_EQ("(x + 1) * z / y", (x + 1_s) / y * z);
+  ASSERT_STR_EQ("-(x + x) * y * x * x * x / x", -(x + x) * y / x * x * x * x);
+  ASSERT_STR_EQ("-(x + x) * y / (x * x * x * x)", -(x + x) * y / (x * x * x * x));
+  ASSERT_STR_EQ("-x * y * z * (z + x) / x", -x * y / x * z * (z + x));
   ASSERT_STR_EQ("z / (x + y)", z / (x + y));
   ASSERT_STR_EQ("-z / x + y", -z / x + y);
   ASSERT_STR_EQ("y / ln(x)", y / math::log(x));
-  // TODO: pow() should not be a BinaryOp (and BinaryOp should be N-ary op).
-  ASSERT_STR_EQ("-(pow(x, y)) / ln(x - y)", -math::pow(x, y) / math::log(x - y));
+  ASSERT_STR_EQ("y ^ x / (x ^ z * 5)", math::pow(y, x) / (math::pow(x, z) * 5_s));
 }
 
 TEST(PlainFormatterTest, TestPower) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_STR_EQ("pow(x, y)", math::pow(x, y));
-  ASSERT_STR_EQ("pow(2, 3)", math::pow(2, 3));
-  ASSERT_STR_EQ("pow(y, x + 1)", math::pow(y, x + 1));
-  ASSERT_STR_EQ("pow(z - 1, y + x)", math::pow(z - 1, y + x));
-  ASSERT_STR_EQ("pow(z - 1, y) * x", math::pow(z - 1, y) * x);
+  ASSERT_STR_EQ("x ^ y", math::pow(x, y));
+  ASSERT_STR_EQ("8", math::pow(2_s, 3_s));
+  ASSERT_STR_EQ("(x + y) ^ z", math::pow(x + y, z));
+  ASSERT_STR_EQ("x ^ (z - y)", math::pow(x, z - y));
+  ASSERT_STR_EQ("(y * x) ^ z", math::pow(y * x, z));
+  ASSERT_STR_EQ("(y * x) ^ (z / y)", math::pow(y * x, z / y));
+  ASSERT_STR_EQ("(y * x - y) ^ (z + y + x)", math::pow(y * x - y, z + y + x));
+  ASSERT_STR_EQ("y ^ (x ^ z)", math::pow(y, math::pow(x, z)));
+  ASSERT_STR_EQ("(x ^ (y - x)) ^ (x ^ z)", math::pow(math::pow(x, y - x), math::pow(x, z)));
 }
 
 TEST(PlainFormatterTest, TestLog) {

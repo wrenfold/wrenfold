@@ -5,13 +5,12 @@ namespace math {
 
 class Addition;
 class Constant;
-class Division;
+class Float;
+class Integer;
 class Multiplication;
-class Number;
-class Power;
-class Subtraction;
-class Negation;
 class NaturalLog;
+class Power;
+class Rational;
 class Variable;
 
 }  // namespace math
