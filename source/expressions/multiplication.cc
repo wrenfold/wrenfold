@@ -80,43 +80,13 @@ struct IsNegativeLikeVisitor {
 
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
   bool Apply(const Multiplication& m) const {
-    std::size_t count = 0;
-    for (const Expr& expr : m.Args()) {
-      if (VisitStruct(expr, IsNegativeLikeVisitor{}).value_or(false)) {
-        ++count;
-      }
-    }
+    const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
+      return VisitStruct(expr, IsNegativeLikeVisitor{}).value_or(false);
+    });
     // odd = negative, even = positive
     return static_cast<bool>(count & 1);
   }
 };
-
-std::pair<Expr, Expr> Multiplication::SplitByExponent() const {
-  std::vector<Expr> numerator{};
-  std::vector<Expr> denominator{};
-  for (const Expr& expr : args_) {
-    // Pull the base and exponent:
-    auto [base, exponent] = AsBaseAndExponent(expr);
-    // Sort into numerator and denominator, depending on sign of the exponent:
-    const auto [coeff, _] = AsCoefficientAndMultiplicand(exponent);
-    // See if the exponent seems negative:
-    const bool is_negative_exp = VisitStruct(coeff, IsNegativeLikeVisitor{}).value_or(false);
-    if (is_negative_exp) {
-      if (coeff.IsIdenticalTo(Constants::NegativeOne)) {
-        denominator.push_back(std::move(base));
-      } else {
-        // Flip the sign and create a new power.
-        denominator.push_back(Power::Create(std::move(base), -exponent));
-      }
-    } else {
-      numerator.push_back(expr);
-    }
-  }
-
-  Expr num = MaybeNewMul(std::move(numerator));
-  Expr den = MaybeNewMul(std::move(denominator));
-  return std::make_pair(std::move(num), std::move(den));
-}
 
 Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
   ASSERT(!args.empty());
@@ -281,6 +251,65 @@ std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr) {
     return *result;
   }
   return std::make_pair(Constants::One, expr);
+}
+
+MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul) {
+  using BaseExp = MultiplicationFormattingInfo::BaseExp;
+  MultiplicationFormattingInfo result{};
+
+  std::size_t sign_count = 0;
+  for (const Expr& expr : mul) {
+    // Extract rationals:
+    if (const Rational* const rational = TryCast<Rational>(expr); rational != nullptr) {
+      const auto abs_num = std::abs(rational->Numerator());
+      if (abs_num != 1) {
+        // Don't put redundant ones into the numerator for rationals of the form 1/n.
+        result.numerator.emplace_back(Integer{abs_num});
+      }
+      result.denominator.emplace_back(Integer{rational->Denominator()});
+
+      if (rational->Numerator() < 0) {
+        // If negative, increase the sign count.
+        ++sign_count;
+      }
+    } else if (const Integer* const integer = TryCast<Integer>(expr); integer != nullptr) {
+      if (integer->GetValue() != 1 && integer->GetValue() != -1) {
+        result.numerator.emplace_back(integer->Abs());
+      }
+      if (integer->GetValue() < 0) {
+        ++sign_count;
+      }
+    } else if (const Float* const f = TryCast<Float>(expr); f != nullptr) {
+      result.numerator.emplace_back(f->Abs());
+      if (f->GetValue() < 0) {
+        ++sign_count;
+      }
+    } else {
+      // This isn't a numeric value, so break it into base and exponent:
+      auto [base, exponent] = AsBaseAndExponent(expr);
+      // Sort into numerator and denominator, depending on sign of the exponent:
+      const auto [coeff, _] = AsCoefficientAndMultiplicand(exponent);
+      // See if the exponent seems negative:
+      const bool is_negative_exp = VisitStruct(coeff, IsNegativeLikeVisitor{}).value_or(false);
+      if (is_negative_exp) {
+        if (IsNegativeOne(exponent)) {
+          result.denominator.emplace_back(BaseExp{std::move(base), Constants::One});
+        } else {
+          // Flip the sign and create a new power.
+          result.denominator.emplace_back(BaseExp{std::move(base), -exponent});
+        }
+      } else {
+        result.numerator.emplace_back(BaseExp{std::move(base), std::move(exponent)});
+      }
+    }
+  }
+
+  result.is_negative = static_cast<bool>(sign_count & 1);  //  Even = positive, Odd = negative
+  if (result.numerator.empty()) {
+    // If all powers were negative, and we had only a rational, the numerator may be empty:
+    result.numerator.emplace_back(Integer{1});
+  }
+  return result;
 }
 
 }  // namespace math

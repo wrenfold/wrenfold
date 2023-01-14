@@ -38,6 +38,9 @@ class Integer : public ExpressionImpl<Integer> {
   // Negate:
   Integer operator-() const { return Integer{-val_}; }
 
+  // Get absolute value.
+  Integer Abs() const { return Integer{std::abs(val_)}; }
+
   // Create an integer expression.
   static Expr Create(IntegralType x);
   static Expr Create(const Integer& x) { return Create(x.GetValue()); }
@@ -118,6 +121,9 @@ class Float : public ExpressionImpl<Float> {
 
   // Access numeric value.
   FloatType GetValue() const { return val_; }
+
+  // Get absolute value.
+  Float Abs() const { return Float{std::abs(val_)}; }
 
  private:
   FloatType val_;

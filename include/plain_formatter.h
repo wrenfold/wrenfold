@@ -24,15 +24,9 @@ class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
   const std::string& GetOutput() const { return output_; }
 
  private:
-  void VisitWithBrackets(const Expr& expr);
-
   void FormatPrecedence(Precedence parent, const Expr& expr);
 
   void FormatPower(const Expr& Base, const Expr& Exponent);
-
-  void FormatMultiplication(const Multiplication& mul);
-
-  bool FormatMultiplicationConstant(const Expr& c);
 
   std::string output_{};
 };

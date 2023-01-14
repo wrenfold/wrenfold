@@ -4,7 +4,7 @@ target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main fmt)
 target_compile_options(${TEST_LIBRARY_NAME} PUBLIC ${MATH_COMPILATION_FLAGS})
 
 # Specify individual tests here:
-set(${PROJECT_NAME}_TEST_SOURCES formatting_test.cc scalar_operations_test.cc
+set(${PROJECT_NAME}_TEST_SOURCES plain_formatter_test.cc scalar_operations_test.cc
                                  scalar_derivatives_test.cc
         integer_utils_test.cc)
 

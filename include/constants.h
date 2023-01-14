@@ -15,6 +15,8 @@ inline bool IsZero(const Expr& expr) { return expr.IsIdenticalTo(Constants::Zero
 
 inline bool IsOne(const Expr& expr) { return expr.IsIdenticalTo(Constants::One); }
 
+inline bool IsNegativeOne(const Expr& expr) { return expr.IsIdenticalTo(Constants::NegativeOne); }
+
 // List of symbolic constants.
 enum class SymbolicConstants : int {
   Euler,

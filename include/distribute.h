@@ -88,6 +88,7 @@ struct DistributeVisitor {
   Expr Apply(const Float&) { return arg_; }
 
   Expr Apply(const Power& pow) {
+    // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
     return Power::Create(VisitStruct(a, DistributeVisitor{a}).value(),

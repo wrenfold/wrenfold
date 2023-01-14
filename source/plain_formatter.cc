@@ -1,8 +1,6 @@
 #include "plain_formatter.h"
 
 #include <optional>
-#include <type_traits>
-#include <vector>
 
 #include <fmt/format.h>
 
@@ -14,21 +12,40 @@ namespace math {
 
 void PlainFormatter::Apply(const Addition& expr) {
   ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
-  // Format the first arg:
-  expr[0].Receive(*this);
-  for (std::size_t i = 1; i < expr.Arity(); ++i) {
-    //
-
-    //    const std::optional<const Expr*> negation_inner =
-    //        VisitLambda(expr[i], [](const Negation& n) { return &n.Inner(); });
-    //    if (false) {  // todo: fix
-    //      // Format subtractions in a pretty way.
-    //      output_ += " - ";
-    //      (*negation_inner)->Receive(*this);
-    //    } else {
-    output_ += " + ";
-    expr[i].Receive(*this);
-    //    }
+  for (std::size_t i = 0; i < expr.Arity(); ++i) {
+    const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(expr[i]);
+    if (IsNegativeNumber(coeff)) {
+      if (i == 0) {
+        // For the first term, just negate it:
+        output_ += "-";
+      } else {
+        // Subsequent terms are written as subtractions:
+        output_ += " - ";
+      }
+      // Don't multiply by negative one:
+      if (IsNegativeOne(coeff)) {
+        multiplicand.Receive(*this);
+      } else {
+        coeff.Receive(*this);
+        if (!IsOne(multiplicand)) {
+          output_ += " * ";
+          multiplicand.Receive(*this);
+        }
+      }
+    } else {
+      if (i > 0) {
+        output_ += " + ";
+      }
+      if (IsOne(coeff)) {
+        multiplicand.Receive(*this);
+      } else {
+        coeff.Receive(*this);
+        if (!IsOne(multiplicand)) {
+          output_ += " * ";
+          multiplicand.Receive(*this);
+        }
+      }
+    }
   }
 }
 
@@ -44,37 +61,53 @@ void PlainFormatter::Apply(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
 }
 
-struct FormatNumberVisitor {
-  using ReturnType = std::string;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
-  ReturnType Apply(const Integer& i) const { return std::to_string(i.GetValue()); }
-  ReturnType Apply(const Float& f) const { return std::to_string(f.GetValue()); }
-};
-
 void PlainFormatter::Apply(const Multiplication& expr) {
   ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
+  using BaseExp = MultiplicationFormattingInfo::BaseExp;
 
-  const auto [numerator, denominator] = expr.SplitByExponent();
+  // Break multiplication up into numerator and denominator:
+  const MultiplicationFormattingInfo info = GetFormattingInfo(expr);
 
-  // Be careful about recursion here:
-  if (const Multiplication* const mul = TryCast<Multiplication>(numerator); mul != nullptr) {
-    FormatMultiplication(*mul);
-  } else {
-    FormatPrecedence(Precedence::Multiplication, numerator);
+  if (info.is_negative) {
+    output_ += "-";
   }
 
-  if (IsOne(denominator)) {
+  const auto format_element = [this](const std::variant<Integer, Float, BaseExp>& element) {
+    if (std::holds_alternative<Integer>(element)) {
+      this->Apply(std::get<Integer>(element));
+    } else if (std::holds_alternative<Float>(element)) {
+      this->Apply(std::get<Float>(element));
+    } else {
+      const BaseExp& pow = std::get<BaseExp>(element);
+      if (IsOne(pow.exponent)) {
+        this->FormatPrecedence(Precedence::Multiplication, pow.base);
+      } else {
+        this->FormatPower(pow.base, pow.exponent);
+      }
+    }
+  };
+
+  format_element(info.numerator.front());
+  for (std::size_t i = 1; i < info.numerator.size(); ++i) {
+    output_ += " * ";
+    format_element(info.numerator[i]);
+  }
+
+  if (info.denominator.empty()) {
     return;
   }
-
   output_ += " / ";
 
-  if (const Multiplication* const mul = TryCast<Multiplication>(denominator); mul != nullptr) {
+  if (info.denominator.size() > 1) {
     output_ += "(";
-    FormatMultiplication(*mul);
+    format_element(info.denominator.front());
+    for (std::size_t i = 1; i < info.denominator.size(); ++i) {
+      output_ += " * ";
+      format_element(info.denominator[i]);
+    }
     output_ += ")";
   } else {
-    FormatPrecedence(Precedence::Multiplication, denominator);
+    format_element(info.denominator.front());
   }
 }
 
@@ -86,51 +119,26 @@ void PlainFormatter::Apply(const NaturalLog& expr) {
 
 void PlainFormatter::Apply(const Power& expr) { FormatPower(expr.Base(), expr.Exponent()); }
 
-void PlainFormatter::Apply(const Rational&) {}
+void PlainFormatter::Apply(const Rational& expr) {
+  fmt::format_to(std::back_inserter(output_), "{} / {}", expr.Numerator(), expr.Denominator());
+}
 
 void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 
-void PlainFormatter::VisitWithBrackets(const Expr& expr) {
-  output_ += "(";
-  expr.Receive(*this);
-  output_ += ")";
-}
-
 void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr) {
   if (GetPrecedence(expr) <= parent) {
-    VisitWithBrackets(expr);
+    output_ += "(";
+    expr.Receive(*this);
+    output_ += ")";
   } else {
     expr.Receive(*this);
   }
 }
 
-void PlainFormatter::FormatPower(const Expr& Base, const Expr& Exponent) {
-  FormatPrecedence(Precedence::Power, Base);
+void PlainFormatter::FormatPower(const Expr& base, const Expr& exponent) {
+  FormatPrecedence(Precedence::Power, base);
   output_ += " ^ ";
-  FormatPrecedence(Precedence::Power, Exponent);
-}
-
-void PlainFormatter::FormatMultiplication(const Multiplication& mul) {
-  const Expr& constant_term = mul[0];
-  if (FormatMultiplicationConstant(constant_term)) {
-    output_ += " * ";
-  }
-  FormatPrecedence(Precedence::Multiplication, mul[1]);
-  for (std::size_t i = 2; i < mul.Arity(); ++i) {
-    output_ += " * ";
-    FormatPrecedence(Precedence::Multiplication, mul[i]);
-  }
-}
-
-bool PlainFormatter::FormatMultiplicationConstant(const Expr& c) {
-  if (IsOne(c)) {
-    return false;
-  } else if (c.IsIdenticalTo(Constants::NegativeOne)) {
-    output_ += "-";
-    return false;
-  }
-  c.Receive(*this);
-  return true;
+  FormatPrecedence(Precedence::Power, exponent);
 }
 
 }  // namespace math

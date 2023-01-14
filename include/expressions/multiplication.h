@@ -16,10 +16,6 @@ class Multiplication : public NAryOp<Multiplication> {
   // Do not call this - use `FromTwoOperands`.
   explicit Multiplication(std::vector<Expr> args);
 
-  // Split a multiplication into numerator and denominator terms, based on the sign of the
-  // exponents. Terms on the denominator are re-written to have positive exponents.
-  std::pair<Expr, Expr> SplitByExponent() const;
-
   // Construct from two operands. Creates an expression corresponding to: a * b
   static Expr FromTwoOperands(const Expr& a, const Expr& b) {
     // TODO: Dumb that we allocate for this, but in future it will be an inline vector:
@@ -39,5 +35,21 @@ class Multiplication : public NAryOp<Multiplication> {
 // as the first value. The remaining terms form a new multiplication, which is returned as
 // the second value.
 std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr);
+
+// A decomposition of `Multiplication` that is more convenient for printing.
+// This is stored in and not in one particular formatter, since it is likely useful more than once.
+struct MultiplicationFormattingInfo {
+  struct BaseExp {
+    Expr base;
+    Expr exponent;
+  };
+
+  bool is_negative{false};
+  std::vector<std::variant<Integer, Float, BaseExp>> numerator;
+  std::vector<std::variant<Integer, Float, BaseExp>> denominator;
+};
+
+// Create `MultiplicationFormattingInfo` from a multiplication.
+MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul);
 
 }  // namespace math
