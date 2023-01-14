@@ -2,7 +2,6 @@
 
 #include "constants.h"
 #include "functions.h"
-#include "operations_inline.h"
 #include "test_helpers.h"
 #include "tree_formatter.h"
 

@@ -58,6 +58,9 @@ class Expr {
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
   Expr Diff(const Expr& var, int reps = 1) const;
 
+  // Distribute terms in this expression.
+  Expr Distribute() const;
+
   // Receive a visitor.
   void Receive(VisitorBase<void>& visitor) const { impl_->Receive(visitor); }
 
@@ -76,6 +79,12 @@ inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   stream << x.ToString();
   return stream;
 }
+
+// Math operators.
+Expr operator*(const Expr& a, const Expr& b);
+Expr operator+(const Expr& a, const Expr& b);
+Expr operator-(const Expr& a, const Expr& b);
+Expr operator/(const Expr& a, const Expr& b);
 
 // Custom literal suffix support.
 inline Expr operator"" _s(unsigned long long int arg) { return Expr{static_cast<int64_t>(arg)}; }

@@ -5,7 +5,6 @@
 #include "expressions/all_expressions.h"
 #include "functions.h"
 #include "operations_fwd.h"
-#include "operations_inline.h"
 #include "visitor_base.h"
 
 namespace math {
@@ -52,17 +51,19 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
     return sum;
   }
 
-  Expr Apply(const NaturalLog& log) { return Power::Create(log.Inner(), Constants::NegativeOne); }
+  Expr Apply(const NaturalLog& log) {
+    return Power::Create(log.Inner(), Constants::NegativeOne) * log.Inner().Receive(*this);
+  }
 
   Expr Apply(const Integer&) { return Constants::Zero; }
 
   Expr Apply(const Float&) { return Constants::Zero; }
 
   Expr Apply(const Power& pow) {
-    const auto& a = pow.Base();
-    const auto& b = pow.Exponent();
-    const auto a_diff = a.Receive(*this);
-    const auto b_diff = b.Receive(*this);
+    const Expr& a = pow.Base();
+    const Expr& b = pow.Exponent();
+    const Expr a_diff = a.Receive(*this);
+    const Expr b_diff = b.Receive(*this);
     return b * Power::Create(a, b - Constants::One) * a_diff +
            Power::Create(a, b) * NaturalLog::Create(a) * b_diff;
   }

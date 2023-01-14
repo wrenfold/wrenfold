@@ -1,6 +1,6 @@
 #include "functions.h"
 
-#include "operations_inline.h"
+#include "expressions/all_expressions.h"
 
 namespace math {
 

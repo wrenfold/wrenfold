@@ -48,8 +48,10 @@ class BinaryOp : public ExpressionImpl<Derived> {
 template <typename Derived>
 class NAryOp : public ExpressionImpl<Derived> {
  public:
+  using ContainerType = std::vector<Expr>;
+
   // Construct via move.
-  explicit NAryOp(std::vector<Expr>&& args) : args_(std::move(args)) {}
+  explicit NAryOp(ContainerType&& args) : args_(std::move(args)) {}
 
   NAryOp() = default;
 
@@ -57,10 +59,14 @@ class NAryOp : public ExpressionImpl<Derived> {
   const Expr& operator[](const std::size_t i) const { return args_[i]; }
 
   // Get all the args.
-  const std::vector<Expr>& Args() const { return args_; }
+  const ContainerType& Args() const { return args_; }
 
   // Number of arguments.
   std::size_t Arity() const { return args_.size(); }
+
+  // Iterators.
+  ContainerType::const_iterator begin() const { return args_.begin(); }
+  ContainerType::const_iterator end() const { return args_.end(); }
 
   // Name of the operation.
   constexpr const char* Name() const { return Derived::NameStr; }
@@ -77,7 +83,7 @@ class NAryOp : public ExpressionImpl<Derived> {
 
  protected:
   // TODO: Should try absl::InlineVector for this.
-  std::vector<Expr> args_;
+  ContainerType args_;
 };
 
 }  // namespace math

@@ -1,7 +1,7 @@
 #include "constants.h"
 #include "functions.h"
-#include "operations_inline.h"
 #include "test_helpers.h"
+#include "tree_formatter.h"
 
 // Test derivatives of scalar functions.
 namespace math {
@@ -22,8 +22,9 @@ TEST(ScalarDerivativesTest, TestAdditionAndSubtraction) {
   ASSERT_IDENTICAL(Constants::Zero, (x - y).Diff(w, 2));
   ASSERT_IDENTICAL(Constants::One, (x + y).Diff(y));
   ASSERT_IDENTICAL(-1_s, (x - y).Diff(y));
+  ASSERT_IDENTICAL(-5_s / 7_s, ((x - y * 5_s) / 7_s).Diff(y));
   ASSERT_IDENTICAL(Constants::Zero, (x - y).Diff(y, 2));
-  ASSERT_IDENTICAL(Constants::One + Constants::One, (x + y + x).Diff(x));
+  ASSERT_IDENTICAL(2_s, (x + y + x).Diff(x));
 }
 
 TEST(ScalarDerivativesTest, TestMultiplication) {
@@ -35,27 +36,36 @@ TEST(ScalarDerivativesTest, TestMultiplication) {
   ASSERT_IDENTICAL(x, (x * y).Diff(y));
   ASSERT_IDENTICAL(3_s, (x * 3_s).Diff(x));
   ASSERT_IDENTICAL(Constants::Zero, (x * y).Diff(x, 2));
-  ASSERT_IDENTICAL(x + x, (x * x).Diff(x));
-  ASSERT_IDENTICAL(Constants::One + Constants::One, (x * x).Diff(x, 2));
-  // Diff() does not simplify these yet:
-  ASSERT_IDENTICAL((x * x) + (x * x) + (x * x), (x * x * x).Diff(x));
-  ASSERT_IDENTICAL(y * x + x * y, (x * y * x).Diff(x));
-  ASSERT_IDENTICAL(y + y, (x * y * x).Diff(x, 2));
-}
-
-TEST(ScalarDerivativesTest, TestDivision) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
+  ASSERT_IDENTICAL(2_s * x, (x * x).Diff(x));
+  ASSERT_IDENTICAL(2_s, (x * x).Diff(x, 2));
+  ASSERT_IDENTICAL(3_s * pow(x, 2_s), (x * x * x).Diff(x));
+  ASSERT_IDENTICAL(2_s * x * y, (x * y * x).Diff(x));
+  ASSERT_IDENTICAL(2_s * y, (x * y * x).Diff(x, 2));
+  ASSERT_IDENTICAL(5_s * pow(y, 4_s), pow(y, 5_s).Diff(y));
+  ASSERT_IDENTICAL(20_s * pow(y, 3_s), pow(y, 5_s).Diff(y, 2));
   ASSERT_IDENTICAL(1_s / y, (x / y).Diff(x));
   ASSERT_IDENTICAL(-y / (x * x), (y / x).Diff(x));
-  ASSERT_IDENTICAL(-((x + x) * -y) / ((x * x) * (x * x)), (y / x).Diff(x, 2));
+  ASSERT_IDENTICAL(2_s * y / pow(x, 3_s), (y / x).Diff(x, 2));
 }
 
 TEST(ScalarDerivativesTest, TestPower) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
+  ASSERT_IDENTICAL(Constants::Zero, pow(x, y).Diff(w));
+
+  ASSERT_IDENTICAL(y * pow(x, y - 1_s), pow(x, y).Diff(x));
+  ASSERT_IDENTICAL(y * (y - 1_s) * pow(x, y - 2_s), pow(x, y).Diff(x, 2));
+  ASSERT_IDENTICAL(y * (y - 1_s) * (y - 2_s) * pow(x, y - 3_s), pow(x, y).Diff(x, 3));
+
+  ASSERT_IDENTICAL(pow(y, w) * log(y), pow(y, w).Diff(w));
+  ASSERT_IDENTICAL(pow(y, w) * pow(log(y), 2_s), pow(y, w).Diff(w, 2));
+  ASSERT_IDENTICAL(pow(y, w) * pow(log(y), 3_s), pow(y, w).Diff(w, 3));
+  ASSERT_IDENTICAL(pow(x, x) * log(x) + pow(x, x), pow(x, x).Diff(x));
+
+  const Expr coeff = (5_s / 7_s) * pow(2_s, (5_s / 7_s) * x) * pow(x, (5_s / 7_s) * x);
+  ASSERT_IDENTICAL((coeff * (1_s + log(2_s) + log(x))).Distribute(),
+                   pow(x * 2_s, x * 5_s / 7_s).Diff(x).Distribute());
 }
 
 TEST(ScalarDerivativesTest, TestFunctions) {

@@ -1,8 +1,8 @@
 #include "constants.h"
 #include "expressions/addition.h"
 #include "expressions/multiplication.h"
+#include "expressions/power.h"
 #include "functions.h"
-#include "operations_inline.h"
 #include "test_helpers.h"
 
 // Test basic composition of scalars and functions of scalars.
@@ -170,6 +170,35 @@ TEST(ScalarOperationsTest, TestPower) {
   // TODO: This is wrong, fix it!
   ASSERT_IDENTICAL(x, pow(pow(x, 2_s), 1_s / 2_s));
   ASSERT_IDENTICAL(pow(x, -2_s), pow(pow(x, 14_s), -1_s / 7_s));
+}
+
+TEST(ScalarOperationsTest, TestDistribute) {
+  const Expr w{"w"};
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+  const Expr p{"p"};
+  const Expr q{"q"};
+  const Expr v{"v"};
+  ASSERT_IDENTICAL(x, x.Distribute());
+  ASSERT_IDENTICAL(x + y, (x + y).Distribute());
+  ASSERT_IDENTICAL(6_s + 3_s * x, (3_s * (x + 2_s)).Distribute());
+  ASSERT_IDENTICAL(w * x + w * y, (w * (x + y)).Distribute());
+  ASSERT_IDENTICAL(x * x * y + x * x * 5_s / 3_s, (x * x * (y + 5_s / 3_s)).Distribute());
+  ASSERT_IDENTICAL(x * log(y) - x * w, ((log(y) - w) * x).Distribute());
+
+  // Multiple distributions:
+  ASSERT_IDENTICAL(w * y + w * z + x * y + x * z, ((w + x) * (y + z)).Distribute());
+  ASSERT_IDENTICAL(w * w - 16_s, ((w - 4_s) * (w + 4_s)).Distribute());
+  ASSERT_IDENTICAL((p * w * y + p * w * z - p * x * y - p * x * z) +
+                       (q * w * y + q * w * z - q * x * y - q * x * z) +
+                       (v * w * y + v * w * z - v * x * y - v * x * z),
+                   ((w - x) * (p + q + v) * (y + z)).Distribute());
+
+  // Recursive distributions:
+  ASSERT_IDENTICAL(
+      (2_s * p * q * w * x) - (2_s * p * q * w * y) + (p * v * w * x) - (p * v * w * y),
+      (w * (x - y) * (p * (v + q * 2_s))).Distribute());
 }
 
 TEST(ScalarOperationsTest, TestLog) {

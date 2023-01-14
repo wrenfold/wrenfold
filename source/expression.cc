@@ -3,6 +3,7 @@
 #include "assertions.h"
 #include "constants.h"
 #include "derivative.h"
+#include "distribute.h"
 #include "expressions/numeric_expressions.h"
 #include "expressions/variable.h"
 #include "plain_formatter.h"
@@ -44,6 +45,23 @@ Expr Expr::Diff(const Expr& var, const int reps) const {
     Result = Result.Receive(visitor);
   }
   return Result;
+}
+
+Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}).value(); }
+
+// TODO: It would good if these could be inlined for internal library code.
+// In some cases, Expr can be a universal reference to avoid a shared_ptr copy.
+
+Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromTwoOperands(a, b); }
+
+Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
+
+Expr operator-(const Expr& a, const Expr& b) {
+  return a + Multiplication::FromTwoOperands(Constants::NegativeOne, b);
+}
+
+Expr operator/(const Expr& a, const Expr& b) {
+  return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));
 }
 
 }  // namespace math
