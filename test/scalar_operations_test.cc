@@ -84,6 +84,17 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * pow(y, 2_s) * pow(log(z), 3_s), log(z) * y * x * log(z) * y * log(z));
   ASSERT_IDENTICAL(1_s / 33_s * x * pow(3_s, 2_s / 3_s) * pow(11_s, 2_s / 3_s),
                    pow(33_s, -2_s / 3_s) * pow(33_s, 1_s / 3_s) * x);
+
+  // Including symbolics constants:
+  ASSERT_IDENTICAL(pow(Constants::Pi, 3_s), Constants::Pi * Constants::Pi * Constants::Pi);
+  ASSERT_IDENTICAL(pow(Constants::Euler, 2_s) * x, Constants::Euler * x * Constants::Euler);
+
+  // Collections of powers of functions:
+  ASSERT_IDENTICAL(pow(cos(x), 2_s), cos(x) * cos(x));
+  ASSERT_IDENTICAL(pow(cos(x), 2_s) * pow(tan(y), 3_s / 5_s),
+                   cos(x) * cos(x) * pow(tan(y), 1_s / 5_s) * pow(tan(y), 2_s / 5_s));
+  ASSERT_IDENTICAL(pow(sin(x), 2_s) * pow(log(z * y), Constants::NegativeOne),
+                   sin(x) * sin(x) / log(z * y));
 }
 
 TEST(ScalarOperationsTest, TestNegation) {
@@ -109,6 +120,38 @@ TEST(ScalarOperationsTest, TestDivision) {
   ASSERT_IDENTICAL(x / y / z, x * pow(y, -1_s) * pow(z, -1_s));
   ASSERT_IDENTICAL(z / (y * x), z * pow(y, -1_s) * pow(x, -1_s));
   ASSERT_IDENTICAL(z / (y * z), 1_s / y);
+
+  // Cancellation of powers:
+  ASSERT_IDENTICAL(x, pow(x, 3_s) / pow(x, 2_s));
+  ASSERT_IDENTICAL(Constants::One, pow(x, 3_s) / (x * x * x));
+  ASSERT_IDENTICAL(x * y * pow(z, 1_s / 2_s),
+                   pow(x, 5_s) * pow(y, 3_s) * pow(z, 3_s / 2_s) / (x * x * x * x * y * y * z));
+}
+
+TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+
+  ASSERT_IDENTICAL(2_s, AsCoefficientAndMultiplicand(2_s).first);
+  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(2_s).second);
+
+  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(x).first);
+  ASSERT_IDENTICAL(x, AsCoefficientAndMultiplicand(x).second);
+
+  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(x / y).first);
+  ASSERT_IDENTICAL(x / y, AsCoefficientAndMultiplicand(x / y).second);
+
+  // Special constants are symbols, and do not go in the multiplicand:
+  ASSERT_IDENTICAL(3_s, AsCoefficientAndMultiplicand(3_s * Constants::Pi).first);
+  ASSERT_IDENTICAL(Constants::Pi, AsCoefficientAndMultiplicand(3_s * Constants::Pi).second);
+
+  ASSERT_IDENTICAL(5_s / 7_s, AsCoefficientAndMultiplicand(Constants::Pi * z * 5_s / 7_s).first);
+  ASSERT_IDENTICAL(Constants::Pi * z, AsCoefficientAndMultiplicand(Constants::Pi * z).second);
+
+  // Include some functions:
+  ASSERT_IDENTICAL(1.22_s, AsCoefficientAndMultiplicand(1.22_s * sin(x) * cos(y)).first);
+  ASSERT_IDENTICAL(cos(y) * sin(x), AsCoefficientAndMultiplicand(1.22_s * sin(x) * cos(y)).second);
 }
 
 TEST(ScalarOperationsTest, TestPower) {
@@ -167,6 +210,10 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(pow(x, y * 0.25_s), pow(pow(x, y * 1_s / 2_s), 0.5_s));
   ASSERT_IDENTICAL(pow(x, y), pow(pow(x, y * 1_s / 4_s), 4_s));
 
+  // Powers of multiplications:
+  ASSERT_IDENTICAL(pow(x, 2_s) * pow(y, 2_s), pow(x * y, 2_s));
+  ASSERT_IDENTICAL(pow(x, z) * pow(y, z), pow(x * y, z));
+
   // TODO: This is wrong, fix it!
   ASSERT_IDENTICAL(x, pow(pow(x, 2_s), 1_s / 2_s));
   ASSERT_IDENTICAL(pow(x, -2_s), pow(pow(x, 14_s), -1_s / 7_s));
@@ -204,7 +251,7 @@ TEST(ScalarOperationsTest, TestDistribute) {
 TEST(ScalarOperationsTest, TestLog) {
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_TRUE(TryCast<NaturalLog>(log(x)) != nullptr);
+  ASSERT_TRUE(TryCast<UnaryFunction>(log(x)) != nullptr);
   ASSERT_IDENTICAL(log(x), log(x));
   ASSERT_NOT_IDENTICAL(log(x), log(y));
   ASSERT_IDENTICAL(Constants::One, log(Constants::Euler));

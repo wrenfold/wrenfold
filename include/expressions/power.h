@@ -8,16 +8,25 @@
 namespace math {
 
 // Power operation: base^exponent
-class Power : public BinaryOp<Power> {
+class Power : public ExpressionImpl<Power> {
  public:
-  using BinaryOp::BinaryOp;
+  Power(Expr base, Expr exponent) : base_(std::move(base)), exponent_(std::move(exponent)) {}
+
+  // Base and exponent must match.
+  bool IsIdenticalToImplTyped(const Power& other) const {
+    return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
+  }
 
   // Create a new power.
   // Will apply rules to simplify automatically.
   static Expr Create(const Expr& a, const Expr& b);
 
-  const Expr& Base() const { return first_; }
-  const Expr& Exponent() const { return second_; }
+  const Expr& Base() const { return base_; }
+  const Expr& Exponent() const { return exponent_; }
+
+ protected:
+  Expr base_;
+  Expr exponent_;
 };
 
 // Convert an expression to a base/exponent pair.

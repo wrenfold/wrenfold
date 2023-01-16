@@ -79,9 +79,10 @@ struct DistributeVisitor {
     return Addition::FromOperands(output_terms);
   }
 
-  Expr Apply(const NaturalLog& log) {
-    std::optional<Expr> inner = VisitStruct(log.Inner(), DistributeVisitor{log.Inner()});
-    return NaturalLog::Create(inner.value());
+  Expr Apply(const UnaryFunction& f) {
+    std::optional<Expr> inner = VisitStruct(f.Arg(), DistributeVisitor{f.Arg()});
+    ASSERT(inner);
+    return CreateUnaryFunction(f.Func(), *inner);
   }
 
   Expr Apply(const Integer&) { return arg_; }

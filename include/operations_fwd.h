@@ -8,9 +8,9 @@ class Constant;
 class Float;
 class Integer;
 class Multiplication;
-class NaturalLog;
 class Power;
 class Rational;
+class UnaryFunction;
 class Variable;
 
 }  // namespace math

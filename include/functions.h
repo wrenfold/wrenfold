@@ -5,9 +5,27 @@
 namespace math {
 
 // Natural log.
-Expr log(const Expr& x);
+Expr log(const Expr& arg);
 
 // Power.
-Expr pow(const Expr& x, const Expr& y);
+Expr pow(const Expr& b, const Expr& e);
+
+// Cosine.
+Expr cos(const Expr& arg);
+
+// Sine.
+Expr sin(const Expr& arg);
+
+// Tangent.
+Expr tan(const Expr& arg);
+
+// Inverse cosine.
+Expr acos(const Expr& arg);
+
+// Inverse sine.
+Expr asin(const Expr& arg);
+
+// Inverse tangent.
+Expr atan(const Expr& arg);
 
 }  // namespace math

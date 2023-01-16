@@ -111,9 +111,9 @@ void PlainFormatter::Apply(const Multiplication& expr) {
   }
 }
 
-void PlainFormatter::Apply(const NaturalLog& expr) {
-  output_ += "ln(";
-  expr.Inner().Receive(*this);
+void PlainFormatter::Apply(const UnaryFunction& func) {
+  fmt::format_to(std::back_inserter(output_), "{}(", func.Name());
+  func.Arg().Receive(*this);
   output_ += ")";
 }
 

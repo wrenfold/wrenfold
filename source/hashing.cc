@@ -19,15 +19,17 @@ inline constexpr std::size_t HashCombine(std::size_t seed, const std::size_t new
   return seed;
 }
 
-// constexpr FNV hash of string_view
-inline constexpr std::size_t HashString(const std::string_view& str) {
-  constexpr std::size_t fnv_offset = 0xcbf29ce484222325;
-  constexpr std::size_t fnv_prime = 0x100000001b3;
-  std::size_t result = fnv_offset;
-  for (const char c : str) {
-    result = (result * fnv_prime) ^ static_cast<std::size_t>(c);
-  }
-  return result;
+template <typename Enum, typename Callable, typename T, T... ints>
+constexpr auto EvaluateFuncOnEnum(Callable callable, std::integer_sequence<T, ints...>) {
+  return std::array{callable(static_cast<Enum>(ints))...};
+}
+
+// Create hashes for unary function names at compile time.
+constexpr auto MakeUnaryFunctionHashes() {
+  constexpr std::size_t enum_length = static_cast<std::size_t>(UnaryFunctionName::ENUM_SIZE);
+  return EvaluateFuncOnEnum<UnaryFunctionName>(
+      [](UnaryFunctionName name) constexpr { return HashString(ToString(name)); },
+      std::make_integer_sequence<std::size_t, enum_length>{});
 }
 
 // TODO: Hashes should be cached in containers like Addition/Multiplication.
@@ -76,11 +78,6 @@ struct HashVisitor {
     return HashAll(type_hash, m.Args());
   }
 
-  std::size_t Apply(const NaturalLog& l) const {
-    constexpr std::size_t type_hash = HashString("NaturalLog");
-    return HashUnary(type_hash, l.Inner());
-  }
-
   std::size_t Apply(const Power& p) const {
     constexpr std::size_t type_hash = HashString("Power");
     return HashBinary(type_hash, p.Base(), p.Exponent());
@@ -92,6 +89,14 @@ struct HashVisitor {
     result = HashCombine(result, std::hash<Rational::IntegralType>{}(r.Numerator()));
     result = HashCombine(result, std::hash<Rational::IntegralType>{}(r.Denominator()));
     return result;
+  }
+
+  std::size_t Apply(const UnaryFunction& f) const {
+    constexpr std::size_t type_hash = HashString("UnaryFunction");
+    // Create a lookup table of hashes for each function name:
+    constexpr static std::array lookup_table = MakeUnaryFunctionHashes();
+    const std::size_t func_hash = lookup_table[static_cast<std::size_t>(f.Func())];
+    return HashUnary(HashCombine(type_hash, func_hash), f.Arg());
   }
 
   std::size_t Apply(const Variable& v) const {

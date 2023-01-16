@@ -15,9 +15,9 @@ class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
   void Apply(const Float& num);
   void Apply(const Integer& num);
   void Apply(const Multiplication& mul);
-  void Apply(const NaturalLog& log);
   void Apply(const Power& pow);
   void Apply(const Rational& rational);
+  void Apply(const UnaryFunction& func);
   void Apply(const Variable& var);
 
   // Get the output string.
