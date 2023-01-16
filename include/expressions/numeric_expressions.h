@@ -95,6 +95,12 @@ class Rational : public ExpressionImpl<Rational> {
     return {};
   }
 
+  // Normalize a rational into a whole integer part, and a rational whose absolute value is less
+  // than one.
+  std::pair<Integer, Rational> Normalize() const {
+    return std::make_pair(Integer{n_ / d_}, Rational{n_ % d_, d_});
+  }
+
   // Create a rational expression and simplify if possible.
   static Expr Create(Rational r);
 
@@ -125,6 +131,9 @@ class Float : public ExpressionImpl<Float> {
   // Get absolute value.
   Float Abs() const { return Float{std::abs(val_)}; }
 
+  // Create floating point expression.
+  static Expr Create(FloatType f) { return MakeExpr<Float>(f); }
+
  private:
   FloatType val_;
 };
@@ -137,6 +146,7 @@ inline auto operator+(const Integer& a, const Integer& b) {
   return Integer{a.GetValue() + b.GetValue()};
 }
 inline bool operator<(const Integer& a, const Integer& b) { return a.GetValue() < b.GetValue(); }
+inline bool operator==(const Integer& a, const Integer& b) { return a.GetValue() == b.GetValue(); }
 
 inline Integer::operator Float() const { return Float{static_cast<Float::FloatType>(val_)}; }
 inline Integer::operator Rational() const { return Rational{GetValue(), 1}; }
@@ -153,6 +163,10 @@ inline auto operator+(const Rational& a, const Rational& b) {
 inline bool operator<(const Rational& a, const Rational& b) {
   // TODO: Watch for overflow.
   return a.Numerator() * b.Denominator() < b.Numerator() * a.Denominator();
+}
+inline bool operator==(const Rational& a, const Rational& b) {
+  // Constructor ensures we reduce to common denominator, so we can compare directly.
+  return a.Numerator() == b.Numerator() && a.Denominator() == b.Denominator();
 }
 
 inline Rational::operator Float() const {
