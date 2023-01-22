@@ -101,6 +101,9 @@ class Rational : public ExpressionImpl<Rational> {
     return std::make_pair(Integer{n_ / d_}, Rational{n_ % d_, d_});
   }
 
+  // True if the absolute value of the fraction is less than one.
+  bool IsNormalized() const { return std::abs(n_) < d_; }
+
   // Create a rational expression and simplify if possible.
   static Expr Create(Rational r);
 
@@ -160,6 +163,10 @@ inline auto operator+(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Denominator() + b.Numerator() * a.Denominator(),
                   a.Denominator() * b.Denominator()};
 }
+inline auto operator-(const Rational& a, const Rational& b) {
+  return Rational{a.Numerator() * b.Denominator() - b.Numerator() * a.Denominator(),
+                  a.Denominator() * b.Denominator()};
+}
 inline bool operator<(const Rational& a, const Rational& b) {
   // TODO: Watch for overflow.
   return a.Numerator() * b.Denominator() < b.Numerator() * a.Denominator();
@@ -172,6 +179,22 @@ inline bool operator==(const Rational& a, const Rational& b) {
 inline Rational::operator Float() const {
   // TODO: Look up if there is a more accurate way of doing this.
   return Float{static_cast<Float::FloatType>(n_) / static_cast<Float::FloatType>(d_)};
+}
+
+// Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
+// coefficient between (-1, 1] is returned.
+inline Rational ModPiRational(const Rational& r) {
+  // Split into integer and rational parts:
+  const auto [integer_part_unwrapped, fractional_part] = r.Normalize();
+  // Wrap the integer part into [-2, 2].
+  const int64_t integer_part = integer_part_unwrapped.GetValue() % 2;
+  // Now we want to convert into range [-1, 1]:
+  if (integer_part == 1) {
+    return fractional_part.IsZero() ? Rational{1, 1} : fractional_part - Rational{1, 1};
+  } else if (integer_part == -1) {
+    return Rational{1, 1} + fractional_part;
+  }
+  return fractional_part;
 }
 
 // Operations on floats:

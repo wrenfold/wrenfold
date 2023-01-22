@@ -44,6 +44,8 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_EQ(6, (a * c).Denominator());
   ASSERT_EQ(-5, (a + c).Numerator());
   ASSERT_EQ(12, (a + c).Denominator());
+  ASSERT_EQ(11, (a - c).Numerator());
+  ASSERT_EQ(12, (a - c).Denominator());
 
   // Rationals that are already normalized:
   ASSERT_EQ(Integer(0), a.Normalize().first);
@@ -64,6 +66,45 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_EQ(Rational(-2, 7), Rational(16, -7).Normalize().second);
   ASSERT_EQ(Integer(-11), Rational(-171, 15).Normalize().first);
   ASSERT_EQ(Rational(-6, 15), Rational(-171, 15).Normalize().second);
+
+  ASSERT_TRUE(Rational(1, 2).IsNormalized());
+  ASSERT_TRUE(Rational(-5, 7).IsNormalized());
+  ASSERT_FALSE(Rational(4, 4).IsNormalized());
+  ASSERT_FALSE(Rational(-7, 5).IsNormalized());
+}
+
+TEST(NumericExpressionsTest, TestModPiRational) {
+  ASSERT_EQ(Rational(1, 3), ModPiRational({1, 3}));
+  ASSERT_EQ(Rational(-4, 5), ModPiRational({-4, 5}));
+
+  // Multiples of pi/2:
+  for (int i = 0; i < 20; ++i) {
+    // Even -> 1/2
+    // Odd -> -1/2
+    ASSERT_EQ(Rational(i & 1 ? -1 : 1, 2), ModPiRational({(2 * i + 1), 2}));
+  }
+
+  // Even multiples of pi or -pi:
+  for (int i = 0; i < 10; ++i) {
+    ASSERT_EQ(Rational(0, 1), ModPiRational({2 * i, 1}));
+    ASSERT_EQ(Rational(0, 1), ModPiRational({-2 * i, 1}));
+  }
+
+  // Odd multiples of pi or negative pi:
+  for (int i = 0; i < 10; ++i) {
+    ASSERT_EQ(Rational(1, 1), ModPiRational({2 * i + 1, 1}));
+    ASSERT_EQ(Rational(1, 1), ModPiRational({-2 * i - 1, 1}));
+  }
+
+  // Odds and ends:
+  for (const int m : {2, 4, 6}) {
+    ASSERT_EQ(Rational(-3, 4), ModPiRational({5 + 4 * m, 4}));
+    ASSERT_EQ(Rational(3, 4), ModPiRational({-5 - 4 * m, 4}));
+  }
+  for (const int m : {2, 4, 6}) {
+    ASSERT_EQ(Rational(-5, 6), ModPiRational({7 + 6 * m, 6}));
+    ASSERT_EQ(Rational(5, 6), ModPiRational({-7 - 6 * m, 6}));
+  }
 }
 
 }  // namespace math
