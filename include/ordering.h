@@ -3,6 +3,7 @@
 
 #include "assertions.h"
 #include "expressions/all_expressions.h"
+#include "visitor_base.h"
 
 namespace math {
 
@@ -20,16 +21,16 @@ struct OrderVisitor {
   };
   using ReturnType = RelativeOrder;
 
-  using OrderOfConstants = TypeList<Float, Integer, Rational, Constant, Variable, Multiplication,
-                                    Addition, Power, NaturalLog>;
+  using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Variable, Multiplication,
+                                Addition, Power, UnaryFunction>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
-  static_assert(TypeListSize<OrderOfConstants>::Value == TypeListSize<ApprovedTypeList>::Value);
+  static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ApprovedTypeList>::Value);
 
   template <typename A, typename B>
   RelativeOrder Apply(const A& a, const B& b) {
     if constexpr (!std::is_same_v<A, B>) {
-      return IndexOfType<A, OrderOfConstants>::Value < IndexOfType<B, OrderOfConstants>::Value
+      return IndexOfType<A, OrderOfTypes>::Value < IndexOfType<B, OrderOfTypes>::Value
                  ? RelativeOrder::LessThan
                  : RelativeOrder::GreaterThan;
     } else {
@@ -39,7 +40,7 @@ struct OrderVisitor {
     }
   }
 
-  // This visitor applies to any two members of `OrderOfConstants` that are _not_ the same type.
+  // This visitor applies to any two members of `OrderOfTypes` that are _not_ the same type.
   template <typename Numeric>
   std::enable_if_t<ContainsTypeHelper<Numeric, Float, Integer, Rational, Constant>, RelativeOrder>
   Compare(const Numeric& a, const Numeric& b) const {
@@ -92,9 +93,17 @@ struct OrderVisitor {
     return *exponent_order;
   }
 
-  RelativeOrder Compare(const NaturalLog& a, const NaturalLog& b) const {
+  RelativeOrder Compare(const UnaryFunction& a, const UnaryFunction& b) const {
+    // First compare by name:
+    const int name_comp = a.Name().compare(b.Name());
+    if (name_comp > 0) {
+      return RelativeOrder::GreaterThan;
+    } else if (name_comp < 0) {
+      return RelativeOrder::LessThan;
+    }
+    // Then compare by value of the argument:
     const std::optional<RelativeOrder> arg_order =
-        VisitBinaryStruct(a.Inner(), b.Inner(), OrderVisitor{});
+        VisitBinaryStruct(a.Arg(), b.Arg(), OrderVisitor{});
     ASSERT(arg_order.has_value());
     return *arg_order;
   }

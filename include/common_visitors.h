@@ -32,8 +32,9 @@ inline bool IsNumeric(const Expr& expr) {
 struct IsNegativeNumberVisitor {
   using ReturnType = bool;
   constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
-  bool Apply(const Integer& num) const { return num.GetValue() < 0; }
   bool Apply(const Float& f) const { return f.GetValue() < 0; }
+  bool Apply(const Integer& num) const { return num.GetValue() < 0; }
+  bool Apply(const Rational& r) const { return r.Numerator() < 0; }
 };
 
 inline bool IsNegativeNumber(const Expr& expr) {
@@ -47,6 +48,7 @@ struct PrecedenceVisitor {
   constexpr Precedence Apply(const Multiplication&) const { return Precedence::Multiplication; }
   constexpr Precedence Apply(const Addition&) const { return Precedence::Addition; }
   constexpr Precedence Apply(const Power&) const { return Precedence::Power; }
+  constexpr Precedence Apply(const Rational&) const { return Precedence::Multiplication; }
 };
 
 inline Precedence GetPrecedence(const Expr& expr) {

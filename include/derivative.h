@@ -5,7 +5,6 @@
 #include "expressions/all_expressions.h"
 #include "functions.h"
 #include "operations_fwd.h"
-#include "operations_inline.h"
 #include "visitor_base.h"
 
 namespace math {
@@ -21,50 +20,89 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
 
   // Differentiate every argument to make a new sum.
   Expr Apply(const Addition& add) {
-    Expr result = add[0].Receive(*this);
-    for (std::size_t i = 1; i < add.Arity(); ++i) {
-      result = result + add[i].Receive(*this);
-    }
-    return result;
+    std::vector<Expr> terms;
+    terms.reserve(add.Arity());
+    std::transform(add.begin(), add.end(), std::back_inserter(terms),
+                   [this](const Expr& x) { return x.Receive(*this); });
+    return Addition::FromOperands(terms);
   }
 
   Expr Apply(const Constant&) { return Constants::Zero; }
 
+  // Do product expansion over all terms in the multiplication:
   // a * b
   // a' * b + a * b'
   // a * b * c
   // a' * b * c + a * b' * c + a * b * c'
   Expr Apply(const Multiplication& mul) {
+    std::vector<Expr> add_terms;  //  TODO: Small vector.
+    add_terms.reserve(mul.Arity());
     // Differentiate wrt every argument:
-    // TODO: Try to make sure all this stuff gets moved instead of copied.
-    Expr sum = Constants::Zero;
     for (std::size_t i = 0; i < mul.Arity(); ++i) {
-      Expr term_i = Constants::One;
+      std::vector<Expr> mul_terms;
+      mul_terms.reserve(mul.Arity());
       for (std::size_t j = 0; j < mul.Arity(); ++j) {
         if (j == i) {
-          term_i = term_i * mul[j].Receive(*this);
+          mul_terms.push_back(mul[j].Receive(*this));
         } else {
-          term_i = term_i * mul[j];
+          mul_terms.push_back(mul[j]);
         }
       }
-      sum = sum + term_i;
+      add_terms.push_back(Multiplication::FromOperands(mul_terms));
     }
-    return sum;
+    // TODO: Move, don't copy.
+    return Addition::FromOperands(add_terms);
   }
-
-  Expr Apply(const NaturalLog& log) { return Power::Create(log.Inner(), Constants::NegativeOne); }
+  // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
+  Expr Apply(const UnaryFunction& func) {
+    // Differentiate the argument:
+    const Expr d_arg = func.Arg().Receive(*this);
+    if (IsZero(d_arg)) {
+      // If zero, we don't need to do any further operations.
+      return Constants::Zero;
+    }
+    // TODO: Make global constants for 2, one half, etc...
+    switch (func.Func()) {
+      case UnaryFunctionName::Cos:
+        // cos(f(x)) --> -sin(f(x)) * f'(x)
+        return -sin(func.Arg()) * d_arg;
+      case UnaryFunctionName::Sin:
+        // sin(f(x)) --> cos(f(x)) * f'(x)
+        return cos(func.Arg()) * d_arg;
+      case UnaryFunctionName::Tan:
+        // tan(f(x)) --> sec^2(f(x)) * f'(x) --> 1/cos^2(f(x)) * f'(x)
+        return pow(cos(func.Arg()), -2_s) * d_arg;
+      case UnaryFunctionName::ArcCos:
+        // acos(f(x)) --> -f'(x) / sqrt(1 - f(x)^2)
+        return -pow(Constants::One - pow(func.Arg(), 2_s), -1_s / 2_s) * d_arg;
+      case UnaryFunctionName::ArcSin:
+        // asin(f(x)) --> f'(x) / sqrt(1 - f(x)^2)
+        return pow(Constants::One - pow(func.Arg(), 2_s), -1_s / 2_s) * d_arg;
+      case UnaryFunctionName::ArcTan:
+        // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
+        return d_arg / (pow(func.Arg(), 2_s) + Constants::One);
+      case UnaryFunctionName::Log:
+        // log(f(x)) --> 1/f(x) * f'(x)
+        return Power::Create(func.Arg(), Constants::NegativeOne) * d_arg;
+      case UnaryFunctionName::ENUM_SIZE:
+        break;
+    }
+    ASSERT(false, "Invalid unary function: {}", func.Name());
+    return Constants::Zero;
+  }
 
   Expr Apply(const Integer&) { return Constants::Zero; }
 
   Expr Apply(const Float&) { return Constants::Zero; }
 
   Expr Apply(const Power& pow) {
-    const auto& a = pow.Base();
-    const auto& b = pow.Exponent();
-    const auto a_diff = a.Receive(*this);
-    const auto b_diff = b.Receive(*this);
+    const Expr& a = pow.Base();
+    const Expr& b = pow.Exponent();
+    const Expr a_diff = a.Receive(*this);
+    const Expr b_diff = b.Receive(*this);
+    // TODO: Check if a_diff and b_diff are zero.
     return b * Power::Create(a, b - Constants::One) * a_diff +
-           Power::Create(a, b) * NaturalLog::Create(a) * b_diff;
+           Power::Create(a, b) * log(a) * b_diff;
   }
 
   Expr Apply(const Rational&) const { return Constants::Zero; }

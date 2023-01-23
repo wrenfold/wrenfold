@@ -5,9 +5,9 @@
 #include <optional>
 
 #include "assertions.h"
-#include "constants.h"
 #include "expression_concept.h"
 #include "expression_impl.h"
+#include "hashing.h"
 
 namespace math {
 
@@ -37,6 +37,9 @@ class Integer : public ExpressionImpl<Integer> {
 
   // Negate:
   Integer operator-() const { return Integer{-val_}; }
+
+  // Get absolute value.
+  Integer Abs() const { return Integer{std::abs(val_)}; }
 
   // Create an integer expression.
   static Expr Create(IntegralType x);
@@ -92,6 +95,15 @@ class Rational : public ExpressionImpl<Rational> {
     return {};
   }
 
+  // Normalize a rational into a whole integer part, and a rational whose absolute value is less
+  // than one.
+  std::pair<Integer, Rational> Normalize() const {
+    return std::make_pair(Integer{n_ / d_}, Rational{n_ % d_, d_});
+  }
+
+  // True if the absolute value of the fraction is less than one.
+  bool IsNormalized() const { return std::abs(n_) < d_; }
+
   // Create a rational expression and simplify if possible.
   static Expr Create(Rational r);
 
@@ -119,6 +131,12 @@ class Float : public ExpressionImpl<Float> {
   // Access numeric value.
   FloatType GetValue() const { return val_; }
 
+  // Get absolute value.
+  Float Abs() const { return Float{std::abs(val_)}; }
+
+  // Create floating point expression.
+  static Expr Create(FloatType f) { return MakeExpr<Float>(f); }
+
  private:
   FloatType val_;
 };
@@ -131,22 +149,48 @@ inline auto operator+(const Integer& a, const Integer& b) {
   return Integer{a.GetValue() + b.GetValue()};
 }
 inline bool operator<(const Integer& a, const Integer& b) { return a.GetValue() < b.GetValue(); }
+inline bool operator==(const Integer& a, const Integer& b) { return a.GetValue() == b.GetValue(); }
 
 inline Integer::operator Float() const { return Float{static_cast<Float::FloatType>(val_)}; }
 inline Integer::operator Rational() const { return Rational{GetValue(), 1}; }
 
+// Hashing of integers. Like std::hash, just pass the value through.
+template <>
+struct Hash<Integer::IntegralType> {
+  constexpr std::size_t operator()(Integer::IntegralType value) const {
+    return static_cast<std::size_t>(value);
+  }
+};
+template <>
+struct Hash<Integer> {
+  constexpr std::size_t operator()(const Integer& value) const {
+    return Hash<Integer::IntegralType>{}(value.GetValue());
+  }
+};
+
 // Operations on rationals:
 inline auto operator*(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Numerator(), a.Denominator() * b.Denominator()};
+}
+inline auto operator/(const Rational& a, const Rational& b) {
+  return Rational{a.Numerator() * b.Denominator(), a.Denominator() * b.Numerator()};
 }
 inline auto operator+(const Rational& a, const Rational& b) {
   // Create common denominator and create a new rational:
   return Rational{a.Numerator() * b.Denominator() + b.Numerator() * a.Denominator(),
                   a.Denominator() * b.Denominator()};
 }
+inline auto operator-(const Rational& a, const Rational& b) {
+  return Rational{a.Numerator() * b.Denominator() - b.Numerator() * a.Denominator(),
+                  a.Denominator() * b.Denominator()};
+}
 inline bool operator<(const Rational& a, const Rational& b) {
   // TODO: Watch for overflow.
   return a.Numerator() * b.Denominator() < b.Numerator() * a.Denominator();
+}
+inline bool operator==(const Rational& a, const Rational& b) {
+  // Constructor ensures we reduce to common denominator, so we can compare directly.
+  return a.Numerator() == b.Numerator() && a.Denominator() == b.Denominator();
 }
 
 inline Rational::operator Float() const {
@@ -154,10 +198,44 @@ inline Rational::operator Float() const {
   return Float{static_cast<Float::FloatType>(n_) / static_cast<Float::FloatType>(d_)};
 }
 
+// Hashing of rationals.
+template <>
+struct Hash<Rational> {
+  constexpr std::size_t operator()(const Rational& r) const {
+    using Hasher = Hash<Rational::IntegralType>;
+    return HashCombine(Hasher{}(r.Numerator()), Hasher{}(r.Denominator()));
+  }
+};
+
+// Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
+// coefficient between (-1, 1] is returned.
+inline Rational ModPiRational(const Rational& r) {
+  // Split into integer and rational parts:
+  const auto [integer_part_unwrapped, fractional_part] = r.Normalize();
+  // Wrap the integer part into [-2, 2].
+  const int64_t integer_part = integer_part_unwrapped.GetValue() % 2;
+  // Now we want to convert into range [-1, 1]:
+  if (integer_part == 1) {
+    return fractional_part.IsZero() ? Rational{1, 1} : fractional_part - Rational{1, 1};
+  } else if (integer_part == -1) {
+    return Rational{1, 1} + fractional_part;
+  }
+  return fractional_part;
+}
+
 // Operations on floats:
 inline auto operator*(const Float& a, const Float& b) { return Float{a.GetValue() * b.GetValue()}; }
 inline auto operator+(const Float& a, const Float& b) { return Float{a.GetValue() + b.GetValue()}; }
 inline bool operator<(const Float& a, const Float& b) { return a.GetValue() < b.GetValue(); }
+
+// Hashing of floats.
+template <>
+struct Hash<Float> {
+  // Can't be constexpr, because std::hash is not constexpr.
+  std::size_t operator()(const Float& f) const {
+    return std::hash<Float::FloatType>{}(f.GetValue());
+  }
+};
 
 // Will evaluate to true if A or B (or both) is a float, w/ the other being Integer or Rational.
 // This is so we can promote integers/rationals -> float when they are combined with floats.

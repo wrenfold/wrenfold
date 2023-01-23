@@ -78,17 +78,17 @@ struct TreeFormatter {
     VisitRight(op.Exponent());
   }
 
-  void Apply(const NaturalLog& log) {
-    AppendName("NaturalLog:");
-    VisitRight(log.Inner());
-  }
-
   void Apply(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
 
   void Apply(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
 
   void Apply(const Rational& rational) {
     AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());
+  }
+
+  void Apply(const UnaryFunction& func) {
+    AppendName("UnaryFunction ({}):", func.Name());
+    VisitRight(func.Arg());
   }
 
   void Apply(const Variable& var) { AppendName("Variable ({})", var.GetName()); }

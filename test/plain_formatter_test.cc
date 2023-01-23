@@ -1,0 +1,104 @@
+#include <fmt/format.h>
+
+#include "constants.h"
+#include "functions.h"
+#include "test_helpers.h"
+#include "tree_formatter.h"
+
+namespace math {
+
+#define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(StringEqualTestHelper, val1, val2)
+
+testing::AssertionResult StringEqualTestHelper(const std::string&, const std::string& name_b,
+                                               const std::string& a, const Expr& b) {
+  const std::string b_str = b.ToString();
+  if (a == b_str) {
+    return testing::AssertionSuccess();
+  }
+  return testing::AssertionFailure() << fmt::format(
+             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
+             "The expression tree for `{}` is:\n{}",
+             a, name_b, name_b, b_str, name_b, FormatDebugTree(b));
+}
+
+TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
+  const Expr w{"w"};
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_STR_EQ("w + x + y", x + y + w);
+  ASSERT_STR_EQ("2 + x", x + 2_s);
+  ASSERT_STR_EQ("1.5 + w + y", w + 1.5_s + y);
+  ASSERT_STR_EQ("w + x", x + 0_s + w);
+  ASSERT_STR_EQ("y", x + y - x);
+  ASSERT_STR_EQ("x - y", x - y);
+  ASSERT_STR_EQ("5 / 6 - x + y", -x + y + 5_s / 6_s);
+  ASSERT_STR_EQ("-w - x + y", -w + -x + y);
+}
+
+TEST(PlainFormatterTest, TestMultiplication) {
+  const Expr w{"w"};
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+  ASSERT_STR_EQ("x * y", x * y);
+  ASSERT_STR_EQ("x * y * z", x * z * y);
+  ASSERT_STR_EQ("z * (x + y)", (x + y) * z);
+  ASSERT_STR_EQ("(3.14 + x) * (x + z)", (x + 3.14_s) * (z + x));
+  ASSERT_STR_EQ("2 * x + y * z", x + y * z + x);
+  ASSERT_STR_EQ("z + x * y * z", z + z * (x * y));
+
+  // Negations:
+  ASSERT_STR_EQ("-x", -x);
+  ASSERT_STR_EQ("-(x + y)", -(x + y));
+  ASSERT_STR_EQ("-x * y", -(x * y));
+
+  // Test division:
+  ASSERT_STR_EQ("z / x", z / x);
+  ASSERT_STR_EQ("x / (y * z)", (x / y) / z);
+  ASSERT_STR_EQ("x * y / z", x * y / z);
+  ASSERT_STR_EQ("(1 + x) / (y * z)", (x + 1_s) / (y * z));
+  ASSERT_STR_EQ("z * (1 + x) / y", (x + 1_s) / y * z);
+  ASSERT_STR_EQ("-2 * x ^ 3 * y", -2_s * y * x * x * x);
+  ASSERT_STR_EQ("-2 * y / x ^ 3", -(x + x) * y / (x * x * x * x));
+  ASSERT_STR_EQ("-y * z * (x + z) / x", -y / x * z * (z + x));
+  ASSERT_STR_EQ("z / (x + y)", z / (x + y));
+  ASSERT_STR_EQ("y - z / x", -z / x + y);
+  ASSERT_STR_EQ("-z / (x * y)", -z / (x * y));
+
+  // Divisions including rationals:
+  ASSERT_STR_EQ("5 * x / 7", (5_s / 7_s) * x);
+  ASSERT_STR_EQ("-6 * x / (11 * z)", (6_s / 11_s) * x / -z);
+  ASSERT_STR_EQ("10 * 2 ^ (1 / 3) * x / 7", (5_s / 7_s) * math::pow(2_s, 4_s / 3_s) * x);
+  ASSERT_STR_EQ("2 * x / (3 * y)", (-2_s / 3_s) * x / -y);
+
+  // Multiplications involving powers:
+  ASSERT_STR_EQ("y ^ x / (5 * x ^ z)", math::pow(y, x) / (math::pow(x, z) * 5_s));
+  ASSERT_STR_EQ("y ^ (3 * x / 5) / (x ^ 5.22 * z ^ (2 * w))",
+                math::pow(y, 3_s / 5_s * x) * math::pow(z, -2_s * w) * math::pow(x, -5.22_s));
+}
+
+TEST(PlainFormatterTest, TestPower) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+  ASSERT_STR_EQ("x ^ y", math::pow(x, y));
+  ASSERT_STR_EQ("8", math::pow(2_s, 3_s));
+  ASSERT_STR_EQ("(x + y) ^ z", math::pow(x + y, z));
+  ASSERT_STR_EQ("x ^ (-y + z)", math::pow(x, z - y));
+  ASSERT_STR_EQ("x ^ z * y ^ z", math::pow(y * x, z));
+  ASSERT_STR_EQ("x ^ (z / y) * y ^ (z / y)", math::pow(y * x, z / y));
+  ASSERT_STR_EQ("(-y + x * y) ^ (x + y + z)", math::pow(y * x - y, z + y + x));
+  ASSERT_STR_EQ("y ^ (x ^ z)", math::pow(y, math::pow(x, z)));
+  ASSERT_STR_EQ("(x ^ (-x + y)) ^ (x ^ (-3 * z / 7))",
+                math::pow(math::pow(x, y - x), math::pow(x, 3_s * z / -7_s)));
+}
+
+TEST(PlainFormatterTest, TestBuiltInFunctions) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_STR_EQ("ln(x)", math::log(x));
+  ASSERT_STR_EQ("ln(x * y)", math::log(x * y));
+  ASSERT_STR_EQ("-x * ln(x / y)", -x * math::log(x / y));
+}
+
+}  // namespace math
