@@ -225,6 +225,10 @@ struct AsCoeffAndMultiplicandVisitor {
         remainder.push_back(expr);
       }
     }
+    if (numerics.empty()) {
+      // No point making a new multiplication:
+      return std::make_pair(Constants::One, arg_);
+    }
     auto coeff = MaybeNewMul(std::move(numerics));
     auto multiplicand = MaybeNewMul(std::move(remainder));
     return std::make_pair(std::move(coeff), std::move(multiplicand));

@@ -40,12 +40,16 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_EQ(c.Denominator(), 3);
 
   // Common denominator under composition:
-  ASSERT_EQ(-1, (a * c).Numerator());
-  ASSERT_EQ(6, (a * c).Denominator());
-  ASSERT_EQ(-5, (a + c).Numerator());
-  ASSERT_EQ(12, (a + c).Denominator());
-  ASSERT_EQ(11, (a - c).Numerator());
-  ASSERT_EQ(12, (a - c).Denominator());
+  ASSERT_EQ(Rational(-1, 6), a * c);
+  ASSERT_EQ(Rational(-3, 8), a / c);
+  ASSERT_EQ(Rational(-5, 12), a + c);
+  ASSERT_EQ(Rational(11, 12), a - c);
+
+  const Rational d{3, 7};
+  ASSERT_EQ(Rational(3, 28), a * d);
+  ASSERT_EQ(Rational(7, 12), a / d);
+  ASSERT_EQ(Rational(19, 28), a + d);
+  ASSERT_EQ(Rational(-5, 28), a - d);
 
   // Rationals that are already normalized:
   ASSERT_EQ(Integer(0), a.Normalize().first);

@@ -133,6 +133,9 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
   const Expr y{"y"};
   const Expr z{"z"};
 
+  ASSERT_IDENTICAL(Constants::Zero, AsCoefficientAndMultiplicand(0_s).first);
+  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(0_s).second);
+
   ASSERT_IDENTICAL(2_s, AsCoefficientAndMultiplicand(2_s).first);
   ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(2_s).second);
 

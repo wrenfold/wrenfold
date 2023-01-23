@@ -9,16 +9,6 @@
 
 namespace math {
 
-// Based on https://stackoverflow.com/questions/2590677/
-// TODO: Investigate if there is something better than this, see:
-// https://stackoverflow.com/questions/664014/
-// https://stackoverflow.com/questions/35985960/
-// It is possible this is, in fact, not a very good hash combination.
-inline constexpr std::size_t HashCombine(std::size_t seed, const std::size_t new_hash) {
-  seed ^= new_hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-  return seed;
-}
-
 template <typename Enum, typename Callable, typename T, T... ints>
 constexpr auto EvaluateFuncOnEnum(Callable callable, std::integer_sequence<T, ints...>) {
   return std::array{callable(static_cast<Enum>(ints))...};
@@ -39,17 +29,17 @@ struct HashVisitor {
 
   std::size_t HashAll(std::size_t seed, const std::vector<Expr>& expressions) const {
     for (const Expr& expr : expressions) {
-      seed = HashCombine(seed, Hash(expr));
+      seed = HashCombine(seed, HashExpression(expr));
     }
     return seed;
   }
 
   std::size_t HashUnary(const std::size_t seed, const Expr& expr) const {
-    return HashCombine(seed, Hash(expr));
+    return HashCombine(seed, HashExpression(expr));
   }
 
   std::size_t HashBinary(const std::size_t seed, const Expr& a, const Expr& b) const {
-    return HashCombine(seed, HashCombine(Hash(a), Hash(b)));
+    return HashCombine(seed, HashCombine(HashExpression(a), HashExpression(b)));
   }
 
   std::size_t Apply(const Addition& a) const {
@@ -65,12 +55,12 @@ struct HashVisitor {
 
   std::size_t Apply(const Float& f) const {
     constexpr std::size_t type_hash = HashString("Float");
-    return HashCombine(type_hash, std::hash<Float::FloatType>{}(f.GetValue()));
+    return HashCombine(type_hash, Hash<Float>{}(f));
   }
 
   std::size_t Apply(const Integer& i) const {
     constexpr std::size_t type_hash = HashString("Integer");
-    return HashCombine(type_hash, std::hash<Integer::IntegralType>{}(i.GetValue()));
+    return HashCombine(type_hash, Hash<Integer>{}(i));
   }
 
   std::size_t Apply(const Multiplication& m) const {
@@ -85,10 +75,7 @@ struct HashVisitor {
 
   std::size_t Apply(const Rational& r) const {
     constexpr std::size_t type_hash = HashString("Rational");
-    std::size_t result = type_hash;
-    result = HashCombine(result, std::hash<Rational::IntegralType>{}(r.Numerator()));
-    result = HashCombine(result, std::hash<Rational::IntegralType>{}(r.Denominator()));
-    return result;
+    return HashCombine(type_hash, Hash<Rational>{}(r));
   }
 
   std::size_t Apply(const UnaryFunction& f) const {
@@ -105,7 +92,7 @@ struct HashVisitor {
   }
 };
 
-std::size_t Hash(const Expr& x) {
+std::size_t HashExpression(const Expr& x) {
   const std::optional<std::size_t> hash = VisitStruct(x, HashVisitor{});
   ASSERT(hash, "Failed to hash expression: {}", x.ToString());
   return *hash;

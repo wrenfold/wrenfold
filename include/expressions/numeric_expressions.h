@@ -5,9 +5,9 @@
 #include <optional>
 
 #include "assertions.h"
-#include "constants.h"
 #include "expression_concept.h"
 #include "expression_impl.h"
+#include "hashing.h"
 
 namespace math {
 
@@ -154,9 +154,26 @@ inline bool operator==(const Integer& a, const Integer& b) { return a.GetValue()
 inline Integer::operator Float() const { return Float{static_cast<Float::FloatType>(val_)}; }
 inline Integer::operator Rational() const { return Rational{GetValue(), 1}; }
 
+// Hashing of integers. Like std::hash, just pass the value through.
+template <>
+struct Hash<Integer::IntegralType> {
+  constexpr std::size_t operator()(Integer::IntegralType value) const {
+    return static_cast<std::size_t>(value);
+  }
+};
+template <>
+struct Hash<Integer> {
+  constexpr std::size_t operator()(const Integer& value) const {
+    return Hash<Integer::IntegralType>{}(value.GetValue());
+  }
+};
+
 // Operations on rationals:
 inline auto operator*(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Numerator(), a.Denominator() * b.Denominator()};
+}
+inline auto operator/(const Rational& a, const Rational& b) {
+  return Rational{a.Numerator() * b.Denominator(), a.Denominator() * b.Numerator()};
 }
 inline auto operator+(const Rational& a, const Rational& b) {
   // Create common denominator and create a new rational:
@@ -181,6 +198,15 @@ inline Rational::operator Float() const {
   return Float{static_cast<Float::FloatType>(n_) / static_cast<Float::FloatType>(d_)};
 }
 
+// Hashing of rationals.
+template <>
+struct Hash<Rational> {
+  constexpr std::size_t operator()(const Rational& r) const {
+    using Hasher = Hash<Rational::IntegralType>;
+    return HashCombine(Hasher{}(r.Numerator()), Hasher{}(r.Denominator()));
+  }
+};
+
 // Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
 // coefficient between (-1, 1] is returned.
 inline Rational ModPiRational(const Rational& r) {
@@ -201,6 +227,15 @@ inline Rational ModPiRational(const Rational& r) {
 inline auto operator*(const Float& a, const Float& b) { return Float{a.GetValue() * b.GetValue()}; }
 inline auto operator+(const Float& a, const Float& b) { return Float{a.GetValue() + b.GetValue()}; }
 inline bool operator<(const Float& a, const Float& b) { return a.GetValue() < b.GetValue(); }
+
+// Hashing of floats.
+template <>
+struct Hash<Float> {
+  // Can't be constexpr, because std::hash is not constexpr.
+  std::size_t operator()(const Float& f) const {
+    return std::hash<Float::FloatType>{}(f.GetValue());
+  }
+};
 
 // Will evaluate to true if A or B (or both) is a float, w/ the other being Integer or Rational.
 // This is so we can promote integers/rationals -> float when they are combined with floats.

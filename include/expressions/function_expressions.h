@@ -20,7 +20,7 @@ enum class UnaryFunctionName {
 };
 // clang-format on
 
-//
+// Convert unary function enum to string.
 constexpr std::string_view ToString(const UnaryFunctionName name) {
   switch (name) {
     case UnaryFunctionName::Cos:
@@ -47,6 +47,7 @@ class BuiltInFunctionBase : public ExpressionImpl<Derived> {
  public:
 };
 
+// Store a unary function. Built-in unary functions `f(x)` are described by an enum indicating
 class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
  public:
   UnaryFunction(UnaryFunctionName func, Expr arg) : func_(func), arg_(std::move(arg)) {}
@@ -69,6 +70,51 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
   UnaryFunctionName func_;
   Expr arg_;
 };
+
+// clang-format off
+enum class BinaryFunctionName {
+  Mod,
+  // Just to get the length of the enum:
+  ENUM_SIZE,
+};
+// clang-format on
+
+#if 0
+// Convert binary function enum to string.
+constexpr std::string_view ToString(const BinaryFunctionName name) {
+  switch (name) {
+    case BinaryFunctionName::Mod:
+      return "mod";
+    case BinaryFunctionName::ENUM_SIZE:
+      return "<NOT A VALID ENUM VALUE>";
+  }
+}
+
+class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
+ public:
+  BinaryFunction(BinaryFunctionName func, Expr first, Expr second)
+      : func_(func), args_{std::move(first), std::move(second)} {}
+
+  // Get the function name.
+  const BinaryFunctionName& Func() const { return func_; }
+
+  // Get the first function argument.
+  const Expr& Arg0() const { return args_[0]; }
+
+  // Get the second function argument.
+  const Expr& Arg1() const { return args_[1]; }
+
+  // Function type and argument must match.
+  bool IsIdenticalToImplTyped(const BinaryFunction& other) const {
+    return func_ == other.func_ && args_[0].IsIdenticalTo(other.args_[0]) &&
+           args_[1].IsIdenticalTo(other.args_[1]);
+  }
+
+ protected:
+  BinaryFunctionName func_;
+  std::array<Expr, 2> args_;
+};
+#endif
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic because each type of unary has simplifications it applies.
