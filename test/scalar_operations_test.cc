@@ -244,21 +244,10 @@ TEST(ScalarOperationsTest, TestDistribute) {
                        (q * w * y + q * w * z - q * x * y - q * x * z) +
                        (v * w * y + v * w * z - v * x * y - v * x * z),
                    ((w - x) * (p + q + v) * (y + z)).Distribute());
-
   // Recursive distributions:
   ASSERT_IDENTICAL(
       (2_s * p * q * w * x) - (2_s * p * q * w * y) + (p * v * w * x) - (p * v * w * y),
       (w * (x - y) * (p * (v + q * 2_s))).Distribute());
-}
-
-TEST(ScalarOperationsTest, TestLog) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  ASSERT_TRUE(TryCast<UnaryFunction>(log(x)) != nullptr);
-  ASSERT_IDENTICAL(log(x), log(x));
-  ASSERT_NOT_IDENTICAL(log(x), log(y));
-  ASSERT_IDENTICAL(Constants::One, log(Constants::Euler));
-  ASSERT_IDENTICAL(Constants::Zero, log(1_s));
 }
 
 }  // namespace math

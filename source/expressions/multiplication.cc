@@ -69,25 +69,6 @@ static std::optional<Float> MultiplyFloats(std::vector<Expr>& input) {
 
 Multiplication::Multiplication(std::vector<Expr> args) : NAryOp(std::move(args)) {}
 
-struct IsNegativeLikeVisitor {
-  using ReturnType = bool;
-  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
-
-  // Numerics < 0 are all negative.
-  bool Apply(const Integer& num) const { return num.GetValue() < 0; }
-  bool Apply(const Float& f) const { return f.GetValue() < 0; }
-  bool Apply(const Rational& r) const { return r.Numerator() < 0; }
-
-  // Multiplications can be negative-like, if the product of all the constant terms is negative.
-  bool Apply(const Multiplication& m) const {
-    const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
-      return VisitStruct(expr, IsNegativeLikeVisitor{}).value_or(false);
-    });
-    // odd = negative, even = positive
-    return static_cast<bool>(count & 1);
-  }
-};
-
 Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
   ASSERT(!args.empty());
   if (args.size() < 2) {
@@ -294,7 +275,7 @@ MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul) {
       // Sort into numerator and denominator, depending on sign of the exponent:
       const auto [coeff, _] = AsCoefficientAndMultiplicand(exponent);
       // See if the exponent seems negative:
-      const bool is_negative_exp = VisitStruct(coeff, IsNegativeLikeVisitor{}).value_or(false);
+      const bool is_negative_exp = IsNegativeNumber(coeff);
       if (is_negative_exp) {
         if (IsNegativeOne(exponent)) {
           result.denominator.emplace_back(BaseExp{std::move(base), Constants::One});

@@ -51,25 +51,44 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_EQ(Rational(19, 28), a + d);
   ASSERT_EQ(Rational(-5, 28), a - d);
 
+  // Check comparisons:
+  ASSERT_LT(Rational(1, 3), Rational(1, 2));
+  ASSERT_LT(Rational(7, 10), Rational(4, 5));
+  ASSERT_LT(Rational(-1, 3), Rational(1, 5));
+  ASSERT_LT(Rational(-5, 2), Rational(-3, 2));
+  ASSERT_GT(Rational(9, 11), Rational(1, 3));
+  ASSERT_GT(Rational(10, 24), Rational(2, 5));
+  ASSERT_GT(Rational(-6, 7), Rational(12, -6));
+}
+
+TEST(NumericExpressionsTest, TestRationalModulo) {
+  // Positives:
+  ASSERT_EQ(Rational(1, 3), Rational(2, 3) % Rational(1, 2));
+  ASSERT_EQ(Rational(25, 28), Rational(5, 7) % Rational(4, 5));
+  ASSERT_EQ(Rational(2, 3), Rational(11, 6) % Rational(1, 2));
+  ASSERT_EQ(Rational(9, 40), Rational(3, 8) % Rational(5, 3));
+  ASSERT_EQ(Rational(1, 2), Rational(3, 4) % Rational(1, 2));
+
+  // Negatives:
+  ASSERT_EQ(Rational(-3, 5), Rational(-4, 5) % Rational(1, 2));
+  ASSERT_EQ(Rational(-1, 22), Rational(9, -11) % Rational(2, 5));
+  ASSERT_EQ(Rational(-1, 4), Rational(-3, 4) % Rational(1, 3));
+  ASSERT_EQ(Rational(0, 1), Rational(2, 3) % Rational(4, -6));
+}
+
+TEST(NumericExpressionsTest, TestRationalNormalize) {
   // Rationals that are already normalized:
-  ASSERT_EQ(Integer(0), a.Normalize().first);
-  ASSERT_EQ(a, a.Normalize().second);
-  ASSERT_EQ(Integer(0), c.Normalize().first);
-  ASSERT_EQ(c, c.Normalize().second);
+  ASSERT_EQ(std::make_pair(Integer(0), Rational(1, 4)), Rational(1, 4).Normalize());
+  ASSERT_EQ(std::make_pair(Integer(0), Rational(2, -3)), Rational(2, -3).Normalize());
 
   // Non-normalized whole integers:
-  ASSERT_EQ(Integer(1), Rational(382, 382).Normalize().first);
-  ASSERT_EQ(Rational(0, 1), Rational(382, 382).Normalize().second);
-  ASSERT_EQ(Integer(-1), Rational(3, -3).Normalize().first);
-  ASSERT_EQ(Rational(0, 1), Rational(3, -3).Normalize().second);
+  ASSERT_EQ(std::make_pair(Integer(1), Rational(0, 1)), Rational(382, 382).Normalize());
+  ASSERT_EQ(std::make_pair(Integer(-1), Rational(0, 1)), Rational(3, -3).Normalize());
 
   // Some with fractional parts:
-  ASSERT_EQ(Integer(2), Rational(5, 2).Normalize().first);
-  ASSERT_EQ(Rational(1, 2), Rational(5, 2).Normalize().second);
-  ASSERT_EQ(Integer(-2), Rational(16, -7).Normalize().first);
-  ASSERT_EQ(Rational(-2, 7), Rational(16, -7).Normalize().second);
-  ASSERT_EQ(Integer(-11), Rational(-171, 15).Normalize().first);
-  ASSERT_EQ(Rational(-6, 15), Rational(-171, 15).Normalize().second);
+  ASSERT_EQ(std::make_pair(Integer(2), Rational(1, 2)), Rational(5, 2).Normalize());
+  ASSERT_EQ(std::make_pair(Integer(-2), Rational(-2, 7)), Rational(-16, 7).Normalize());
+  ASSERT_EQ(std::make_pair(Integer(-11), Rational(-6, 15)), Rational(-171, 15).Normalize());
 
   ASSERT_TRUE(Rational(1, 2).IsNormalized());
   ASSERT_TRUE(Rational(-5, 7).IsNormalized());

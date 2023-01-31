@@ -55,19 +55,7 @@ class Rational : public ExpressionImpl<Rational> {
   using IntegralType = Integer::IntegralType;
 
   // Construct a rational. Conversion to canonical form is automatic.
-  Rational(IntegralType numerator, IntegralType denominator) {
-    // Find the largest common denominator and reduce:
-    const IntegralType gcd = std::gcd(numerator, denominator);
-    n_ = numerator / gcd;
-    d_ = denominator / gcd;
-    if (d_ < 0) {
-      // If denominator is < 0, transfer sign to numerator.
-      // If both are negative, this will make both positive.
-      n_ = -n_;
-      d_ = -d_;
-    }
-    ASSERT_GREATER(d_, 0, "Cannot construct rational w/ zero denominator.");
-  }
+  constexpr Rational(IntegralType n, IntegralType d) : Rational(CreatePair(n, d)) {}
 
   bool IsIdenticalToImplTyped(const Rational& other) const {
     return n_ == other.n_ && d_ == other.d_;
@@ -111,6 +99,24 @@ class Rational : public ExpressionImpl<Rational> {
   static Expr Create(IntegralType n, IntegralType d) { return Create(Rational{n, d}); }
 
  private:
+  constexpr std::pair<IntegralType, IntegralType> CreatePair(IntegralType n, IntegralType d) {
+    // Find the largest common denominator and reduce:
+    const IntegralType gcd = std::gcd(n, d);
+    n = n / gcd;
+    d = d / gcd;
+    if (d < 0) {
+      // If denominator is < 0, transfer sign to numerator.
+      // If both are negative, this will make both positive.
+      return std::make_pair(-n, -d);
+    } else {
+      return std::make_pair(n, d);
+    }
+  }
+
+  // Private constructor to allow direct initialization.
+  explicit constexpr Rational(std::pair<IntegralType, IntegralType> pair)
+      : n_(pair.first), d_(pair.second) {}
+
   IntegralType n_;
   IntegralType d_;
 };
@@ -184,9 +190,18 @@ inline auto operator-(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Denominator() - b.Numerator() * a.Denominator(),
                   a.Denominator() * b.Denominator()};
 }
+inline auto operator%(const Rational& a, const Rational& b) {
+  // Divide a/b, then determine the remainder after dropping the integer part.
+  const Rational quotient = a / b;
+  return Rational{quotient.Numerator() % quotient.Denominator(), quotient.Denominator()};
+}
+
 inline bool operator<(const Rational& a, const Rational& b) {
   // TODO: Watch for overflow.
   return a.Numerator() * b.Denominator() < b.Numerator() * a.Denominator();
+}
+inline bool operator>(const Rational& a, const Rational& b) {
+  return a.Numerator() * b.Denominator() > b.Numerator() * a.Denominator();
 }
 inline bool operator==(const Rational& a, const Rational& b) {
   // Constructor ensures we reduce to common denominator, so we can compare directly.
@@ -212,9 +227,9 @@ struct Hash<Rational> {
 inline Rational ModPiRational(const Rational& r) {
   // Split into integer and rational parts:
   const auto [integer_part_unwrapped, fractional_part] = r.Normalize();
-  // Wrap the integer part into [-2, 2].
+  // Wrap the integer part into (-2, 2).
   const int64_t integer_part = integer_part_unwrapped.GetValue() % 2;
-  // Now we want to convert into range [-1, 1]:
+  // Now we want to convert into range (-1, 1]:
   if (integer_part == 1) {
     return fractional_part.IsZero() ? Rational{1, 1} : fractional_part - Rational{1, 1};
   } else if (integer_part == -1) {

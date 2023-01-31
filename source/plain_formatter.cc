@@ -26,7 +26,7 @@ void PlainFormatter::Apply(const Addition& expr) {
       if (IsNegativeOne(coeff)) {
         multiplicand.Receive(*this);
       } else {
-        coeff.Receive(*this);
+        (-coeff).Receive(*this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
           multiplicand.Receive(*this);
