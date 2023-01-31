@@ -72,39 +72,43 @@ TEST(PlainFormatterTest, TestMultiplication) {
   // Divisions including rationals:
   ASSERT_STR_EQ("5 * x / 7", (5_s / 7_s) * x);
   ASSERT_STR_EQ("-6 * x / (11 * z)", (6_s / 11_s) * x / -z);
-  ASSERT_STR_EQ("10 * 2 ^ (1 / 3) * x / 7", (5_s / 7_s) * math::pow(2_s, 4_s / 3_s) * x);
+  ASSERT_STR_EQ("10 * 2 ^ (1 / 3) * x / 7", (5_s / 7_s) * pow(2_s, 4_s / 3_s) * x);
   ASSERT_STR_EQ("2 * x / (3 * y)", (-2_s / 3_s) * x / -y);
 
   // Multiplications involving powers:
-  ASSERT_STR_EQ("y ^ x / (5 * x ^ z)", math::pow(y, x) / (math::pow(x, z) * 5_s));
+  ASSERT_STR_EQ("y ^ x / (5 * x ^ z)", pow(y, x) / (pow(x, z) * 5_s));
   ASSERT_STR_EQ("y ^ (3 * x / 5) / (x ^ 5.22 * z ^ (2 * w))",
-                math::pow(y, 3_s / 5_s * x) * math::pow(z, -2_s * w) * math::pow(x, -5.22_s));
+                pow(y, 3_s / 5_s * x) * pow(z, -2_s * w) * pow(x, -5.22_s));
 }
 
 TEST(PlainFormatterTest, TestPower) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_STR_EQ("x ^ y", math::pow(x, y));
-  ASSERT_STR_EQ("8", math::pow(2_s, 3_s));
-  ASSERT_STR_EQ("(x + y) ^ z", math::pow(x + y, z));
-  ASSERT_STR_EQ("x ^ (-y + z)", math::pow(x, z - y));
-  ASSERT_STR_EQ("x ^ z * y ^ z", math::pow(y * x, z));
-  ASSERT_STR_EQ("x ^ (z / y) * y ^ (z / y)", math::pow(y * x, z / y));
-  ASSERT_STR_EQ("(-y + x * y) ^ (x + y + z)", math::pow(y * x - y, z + y + x));
-  ASSERT_STR_EQ("y ^ (x ^ z)", math::pow(y, math::pow(x, z)));
-  ASSERT_STR_EQ("(x ^ (-x + y)) ^ (x ^ (-3 * z / 7))",
-                math::pow(math::pow(x, y - x), math::pow(x, 3_s * z / -7_s)));
+  ASSERT_STR_EQ("x ^ y", pow(x, y));
+  ASSERT_STR_EQ("8", pow(2_s, 3_s));
+  ASSERT_STR_EQ("(x + y) ^ z", pow(x + y, z));
+  ASSERT_STR_EQ("x ^ (-y + z)", pow(x, z - y));
+  ASSERT_STR_EQ("x ^ z * y ^ z", pow(y * x, z));
+  ASSERT_STR_EQ("x ^ (z / y) * y ^ (z / y)", pow(y * x, z / y));
+  ASSERT_STR_EQ("(-y + x * y) ^ (x + y + z)", pow(y * x - y, z + y + x));
+  ASSERT_STR_EQ("y ^ (x ^ z)", pow(y, pow(x, z)));
+  ASSERT_STR_EQ("(x ^ (-x + y)) ^ (x ^ (-3 * z / 7))", pow(pow(x, y - x), pow(x, 3_s * z / -7_s)));
   ASSERT_STR_EQ("-5 ^ (2 / 3) * 7 ^ (2 / 3) + x - y * z",
-                math::pow(5_s * 7_s, 2_s / 3_s) * Constants::NegativeOne + x - y * z);
+                pow(5_s * 7_s, 2_s / 3_s) * Constants::NegativeOne + x - y * z);
 }
 
 TEST(PlainFormatterTest, TestBuiltInFunctions) {
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_STR_EQ("ln(x)", math::log(x));
-  ASSERT_STR_EQ("ln(x * y)", math::log(x * y));
-  ASSERT_STR_EQ("-x * ln(x / y)", -x * math::log(x / y));
+  ASSERT_STR_EQ("ln(x)", log(x));
+  ASSERT_STR_EQ("ln(x * y)", log(x * y));
+  ASSERT_STR_EQ("-x * ln(x / y)", -x * log(x / y));
+  ASSERT_STR_EQ("cos(x)", cos(x));
+  ASSERT_STR_EQ("sin(cos(y))", sin(cos(y)));
+  ASSERT_STR_EQ("atan(x * y)", atan(x * y));
+  ASSERT_STR_EQ("acos(-5 * y)", acos(y * -5_s));
+  ASSERT_STR_EQ("acos(x) * asin(y)", acos(x) * asin(y));
 }
 
 }  // namespace math
