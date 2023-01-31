@@ -38,7 +38,7 @@ std::optional<Rational> TryCastToRational(const Expr& expr) {
   return {};
 }
 
-// TODO: Support multiples of pi/3, pi/4, pi/6, etc...
+// TODO: Support common multiples of pi/3, pi/4, pi/6, etc.
 Expr cos(const Expr& arg) {
   const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(arg);
   if (IsPi(multiplicand)) {
@@ -112,6 +112,11 @@ inline Rational ConvertToTanRange(const Rational& r) {
   return r;
 }
 
+inline Expr PiOverTwo() {
+  static const Expr Value = Constants::Pi / 2_s;
+  return Value;
+}
+
 Expr tan(const Expr& arg) {
   const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(arg);
   if (IsPi(multiplicand)) {
@@ -125,9 +130,8 @@ Expr tan(const Expr& arg) {
         // Infinity, as in the projectively scaled real numbers.
         return Constants::Infinity;
       }
-      static const Expr pi_over_two = Constants::Pi / 2_s;
       return MakeExpr<UnaryFunction>(UnaryFunctionName::Tan,
-                                     Rational::Create(r_mod_half_pi) * pi_over_two);
+                                     Rational::Create(r_mod_half_pi) * PiOverTwo());
     }
   } else if (IsZero(arg)) {
     return Constants::Zero;
@@ -142,11 +146,49 @@ Expr tan(const Expr& arg) {
   return MakeExpr<UnaryFunction>(UnaryFunctionName::Tan, arg);
 }
 
-Expr acos(const Expr& arg) { return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcCos, arg); }
+// TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
+// TODO: Support some common numerical values, ie. acos(1 / sqrt(2)) -> pi/4
+Expr acos(const Expr& arg) {
+  if (IsZero(arg)) {
+    return PiOverTwo();
+  } else if (IsOne(arg)) {
+    return Constants::Zero;
+  } else if (IsNegativeOne(arg)) {
+    return Constants::Pi;
+  }
+  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcCos, arg);
+}
 
-Expr asin(const Expr& arg) { return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcSin, arg); }
+Expr asin(const Expr& arg) {
+  if (IsZero(arg)) {
+    return Constants::Zero;
+  } else if (IsOne(arg)) {
+    return PiOverTwo();
+  } else if (IsNegativeOne(arg)) {
+    return -PiOverTwo();
+  } else if (IsNegativeNumber(arg)) {
+    return -asin(-arg);
+  }
+  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcSin, arg);
+}
 
-Expr atan(const Expr& arg) { return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcTan, arg); }
+inline Expr PiOverFour() {
+  static const Expr Value = Constants::Pi / 4_s;
+  return Value;
+}
+
+Expr atan(const Expr& arg) {
+  if (IsZero(arg)) {
+    return Constants::Zero;
+  } else if (IsOne(arg)) {
+    return PiOverFour();
+  } else if (IsNegativeOne(arg)) {
+    return -PiOverFour();
+  } else if (IsNegativeNumber(arg)) {
+    return -atan(-arg);
+  }
+  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcTan, arg);
+}
 
 Expr sqrt(const Expr& arg) {
   static const Expr one_half = Constants::One / 2_s;

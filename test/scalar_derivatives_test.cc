@@ -68,10 +68,40 @@ TEST(ScalarDerivativesTest, TestPower) {
                    pow(x * 2_s, x * 5_s / 7_s).Diff(x).Distribute());
 }
 
-TEST(ScalarDerivativesTest, TestFunctions) {
-  const Expr w{"w"};
+TEST(ScalarDerivativesTest, TestLog) {
   const Expr x{"x"};
   const Expr y{"y"};
+  ASSERT_IDENTICAL(1_s / x, log(x).Diff(x));
+  ASSERT_IDENTICAL(Constants::Zero, log(x).Diff(y));
+  ASSERT_IDENTICAL(1_s / (2_s * x), log(sqrt(x)).Diff(x));
+}
+
+TEST(ScalarDerivativesTest, TestTrig) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_IDENTICAL(cos(x), sin(x).Diff(x));
+  ASSERT_IDENTICAL(-sin(x), cos(x).Diff(x));
+  ASSERT_IDENTICAL(y * cos(x * y), sin(x * y).Diff(x));
+  ASSERT_IDENTICAL(-2_s * sin(2_s * x + y), cos(2_s * x + y).Diff(x));
+  ASSERT_IDENTICAL(1_s / pow(cos(x), 2_s), tan(x).Diff(x));
+  ASSERT_IDENTICAL(-y / (x * x) / (cos(y / x) * cos(y / x)), tan(y / x).Diff(x));
+}
+
+TEST(ScalarDerivativesTest, TestInverseTrig) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+
+  ASSERT_IDENTICAL(Constants::Zero, acos(5_s).Diff(x));
+  ASSERT_IDENTICAL(-1_s / sqrt(1_s - x * x), acos(x).Diff(x));
+  ASSERT_IDENTICAL(-y / sqrt(1_s - x * x * y * y), acos(x * y).Diff(x));
+
+  ASSERT_IDENTICAL(Constants::Zero, asin(y).Diff(x));
+  ASSERT_IDENTICAL(1_s / sqrt(1_s - x * x), asin(x).Diff(x));
+  ASSERT_IDENTICAL(sqrt(x) / sqrt(1_s - y * y * x), asin(y * sqrt(x)).Diff(y));
+
+  ASSERT_IDENTICAL(Constants::Zero, atan(Constants::Euler).Diff(y));
+  ASSERT_IDENTICAL(1_s / (x * x + 1_s), atan(x).Diff(x));
+  ASSERT_IDENTICAL(3_s * (x * x) / (pow(x, 6_s) + 1_s), atan(pow(x, 3_s)).Diff(x));
 }
 
 }  // namespace math
