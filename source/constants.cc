@@ -11,5 +11,6 @@ const Expr Constants::One = MakeExpr<Integer>(1);
 const Expr Constants::Pi = MakeExpr<Constant>(SymbolicConstants::Pi);
 const Expr Constants::Euler = MakeExpr<Constant>(SymbolicConstants::Euler);
 const Expr Constants::NegativeOne = MakeExpr<Integer>(-1);
+const Expr Constants::Infinity = MakeExpr<Constant>(SymbolicConstants::Infinity);
 
 }  // namespace math

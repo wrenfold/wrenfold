@@ -7,7 +7,7 @@ target_compile_options(${TEST_LIBRARY_NAME} PUBLIC ${MATH_COMPILATION_FLAGS})
 set(${PROJECT_NAME}_TEST_SOURCES
     plain_formatter_test.cc scalar_operations_test.cc
     scalar_derivatives_test.cc integer_utils_test.cc
-    numeric_expressions_test.cc)
+    numeric_expressions_test.cc functions_test.cc)
 
 foreach(test_file ${${PROJECT_NAME}_TEST_SOURCES})
   # get just the filename w/o extension

@@ -2,6 +2,7 @@
 #pragma once
 #include <algorithm>
 
+#include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "expressions/power.h"
 #include "visitor_impl.h"
@@ -29,18 +30,32 @@ inline bool IsNumeric(const Expr& expr) {
   return VisitStruct(expr, IsNumericVisitor{}).value_or(false);
 }
 
+// Visitor that identifies negative numeric constants, or products of numeric constants that will be
+// negative.
 struct IsNegativeNumberVisitor {
   using ReturnType = bool;
   constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
-  bool Apply(const Float& f) const { return f.GetValue() < 0; }
+
+  // Numerics < 0 are all negative.
   bool Apply(const Integer& num) const { return num.GetValue() < 0; }
+  bool Apply(const Float& f) const { return f.GetValue() < 0; }
   bool Apply(const Rational& r) const { return r.Numerator() < 0; }
+
+  // Multiplications can be negative-like, if the product of all the constant terms is negative.
+  bool Apply(const Multiplication& m) const {
+    const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
+      return VisitStruct(expr, IsNegativeNumberVisitor{}).value_or(false);
+    });
+    // odd = negative, even = positive
+    return static_cast<bool>(count & 1);
+  }
 };
 
 inline bool IsNegativeNumber(const Expr& expr) {
   return VisitStruct(expr, IsNegativeNumberVisitor{}).value_or(false);
 }
 
+// Visitor to determine mathematical precedence.
 struct PrecedenceVisitor {
   static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
   using ReturnType = Precedence;

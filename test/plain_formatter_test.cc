@@ -27,6 +27,10 @@ TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
   const Expr y{"y"};
   ASSERT_STR_EQ("w + x + y", x + y + w);
   ASSERT_STR_EQ("2 + x", x + 2_s);
+  ASSERT_STR_EQ("-10 + y", y - 10_s);
+  ASSERT_STR_EQ("5 - 10 / 3 * w", 5_s - 10_s / 3_s * w);
+  ASSERT_STR_EQ("-5 - x", -5_s - x);
+  ASSERT_STR_EQ("14 - 3 * x", 14_s - 3_s * x);
   ASSERT_STR_EQ("1.5 + w + y", w + 1.5_s + y);
   ASSERT_STR_EQ("w + x", x + 0_s + w);
   ASSERT_STR_EQ("y", x + y - x);
@@ -91,6 +95,8 @@ TEST(PlainFormatterTest, TestPower) {
   ASSERT_STR_EQ("y ^ (x ^ z)", math::pow(y, math::pow(x, z)));
   ASSERT_STR_EQ("(x ^ (-x + y)) ^ (x ^ (-3 * z / 7))",
                 math::pow(math::pow(x, y - x), math::pow(x, 3_s * z / -7_s)));
+  ASSERT_STR_EQ("-5 ^ (2 / 3) * 7 ^ (2 / 3) + x - y * z",
+                math::pow(5_s * 7_s, 2_s / 3_s) * Constants::NegativeOne + x - y * z);
 }
 
 TEST(PlainFormatterTest, TestBuiltInFunctions) {
