@@ -124,4 +124,39 @@ TEST(FunctionsTest, TestTan) {
   }
 }
 
+TEST(FunctionsTest, TestArccos) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_IDENTICAL(acos(x), acos(x));
+  ASSERT_NOT_IDENTICAL(acos(x), acos(y));
+  ASSERT_IDENTICAL(Constants::Zero, acos(1_s));
+  ASSERT_IDENTICAL(Constants::Pi, acos(-1_s));
+  ASSERT_IDENTICAL(Constants::Pi / 2_s, acos(Constants::Zero));
+}
+
+TEST(FunctionsTest, TestArcsin) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_IDENTICAL(asin(x), asin(x));
+  ASSERT_NOT_IDENTICAL(asin(x), asin(y));
+  ASSERT_IDENTICAL(-asin(x), asin(-x));
+  ASSERT_IDENTICAL(-asin(x * y * 3_s), asin(-x * 3_s * y));
+
+  ASSERT_IDENTICAL(Constants::Zero, asin(0_s));
+  ASSERT_IDENTICAL(Constants::Pi / 2_s, asin(1_s));
+  ASSERT_IDENTICAL(-Constants::Pi / 2_s, asin(-1_s));
+}
+
+TEST(FunctionsTest, TestArctan) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_IDENTICAL(atan(x), atan(x));
+  ASSERT_NOT_IDENTICAL(atan(x), atan(y));
+  ASSERT_IDENTICAL(-atan(x), atan(-x));
+
+  ASSERT_IDENTICAL(Constants::Zero, atan(0_s));
+  ASSERT_IDENTICAL(Constants::Pi / 4_s, atan(1_s));
+  ASSERT_IDENTICAL(-Constants::Pi / 4_s, atan(-1_s));
+}
+
 }  // namespace math

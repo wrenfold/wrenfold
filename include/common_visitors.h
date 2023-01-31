@@ -51,6 +51,7 @@ struct IsNegativeNumberVisitor {
   }
 };
 
+// TODO: This probably deserves a better name, since it doesn't just check for numbers.
 inline bool IsNegativeNumber(const Expr& expr) {
   return VisitStruct(expr, IsNegativeNumberVisitor{}).value_or(false);
 }

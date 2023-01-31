@@ -31,7 +31,4 @@ Expr atan(const Expr& arg);
 // Sqrt
 Expr sqrt(const Expr& arg);
 
-// Modulo.
-Expr mod(const Expr& a, const Expr& b);
-
 }  // namespace math
