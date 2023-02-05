@@ -16,8 +16,7 @@ using namespace nb::literals;
 using namespace math;
 
 std::string ExprRepr(const Expr& expression) {
-  // TODO: Arg for python style formatting.
-  PlainFormatter formatter{};
+  PlainFormatter formatter{PowerStyle::Python};
   expression.Receive(formatter);
   return formatter.GetOutput();
 }
@@ -35,7 +34,11 @@ NB_MODULE(mc, m) {
       .def(
           "print_expression_tree", [](const Expr& x) { fmt::print("{}\n", FormatDebugTree(x)); },
           "Print the expression tree to standard out.")
-      // Operations we can do on expressions:
+      .def(
+          "is_identical_to",
+          [](const Expr& self, const Expr& other) { return self.IsIdenticalTo(other); }, "other"_a,
+          "Test if two expressions have identical expression trees.")
+      // Derivatives:
       .def("diff", &Expr::Diff, "var"_a, nb::arg("order") = 1,
            "Differentiate the expression with respect to the specified variable.")
       // Operators:
@@ -44,12 +47,13 @@ NB_MODULE(mc, m) {
       .def(nb::self * nb::self)
       .def(nb::self / nb::self)
       .def(-nb::self)
-      // Operators involving integers:
+      .def("__pow__", &math::pow)
+      // Operators involving integers (int on left side):
       .def(std::int64_t() + nb::self)
       .def(std::int64_t() - nb::self)
       .def(std::int64_t() * nb::self)
       .def(std::int64_t() / nb::self)
-      // Operators involving doubles:
+      // Operators involving doubles (double on left side):
       .def(double() + nb::self)
       .def(double() - nb::self)
       .def(double() * nb::self)
@@ -64,24 +68,14 @@ NB_MODULE(mc, m) {
       "Create an integer expression.");
 
   // Built-in functions:
-  m.def(
-      "pow", [](const Expr& base, const Expr& exponent) { return pow(base, exponent); }, "base"_a,
-      "exponent"_a, "Evaluates to: base ** exponent.");
-  m.def(
-      "cos", [](const Expr& arg) { return cos(arg); }, "arg"_a, "Cosine function.");
-  m.def(
-      "sin", [](const Expr& arg) { return sin(arg); }, "arg"_a, "Sine function.");
-  m.def(
-      "tan", [](const Expr& arg) { return tan(arg); }, "arg"_a, "Tan function.");
-
-  m.def(
-      "acos", [](const Expr& arg) { return acos(arg); }, "arg"_a, "Arc-cosine function.");
-  m.def(
-      "asin", [](const Expr& arg) { return asin(arg); }, "arg"_a, "Arc-sine function.");
-  m.def(
-      "atan", [](const Expr& arg) { return atan(arg); }, "arg"_a, "Arc-tangent function.");
-  m.def(
-      "sqrt", [](const Expr& arg) { return sqrt(arg); }, "arg"_a, "Square-root function.");
+  m.def("pow", &math::pow, "base"_a, "exponent"_a, "Evaluates to: base ** exponent.");
+  m.def("cos", &math::cos, "arg"_a, "Cosine function.");
+  m.def("sin", &math::sin, "arg"_a, "Sine function.");
+  m.def("tan", &math::tan, "arg"_a, "Tan function.");
+  m.def("acos", &math::acos, "arg"_a, "Arc-cosine function.");
+  m.def("asin", &math::asin, "arg"_a, "Arc-sine function.");
+  m.def("atan", &math::atan, "arg"_a, "Arc-tangent function.");
+  m.def("sqrt", &math::sqrt, "arg"_a, "Square-root function.");
 
   // Special constants:
   m.attr("euler") = Constants::Euler;

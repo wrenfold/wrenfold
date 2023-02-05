@@ -137,7 +137,11 @@ void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr)
 
 void PlainFormatter::FormatPower(const Expr& base, const Expr& exponent) {
   FormatPrecedence(Precedence::Power, base);
-  output_ += " ^ ";
+  if (power_style_ == PowerStyle::Hat) {
+    output_ += " ^ ";
+  } else if (power_style_ == PowerStyle::Python) {
+    output_ += " ** ";
+  }
   FormatPrecedence(Precedence::Power, exponent);
 }
 
