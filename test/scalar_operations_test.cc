@@ -7,6 +7,7 @@
 
 // Test basic composition of scalars and functions of scalars.
 namespace math {
+using namespace math::custom_literals;
 
 TEST(ScalarOperationsTest, TestAddition) {
   const Expr w{"w"};

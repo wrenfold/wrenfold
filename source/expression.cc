@@ -10,18 +10,16 @@
 
 namespace math {
 
-static Expr ExprFromDouble(const double x) {
+Expr::Expr(const std::string_view name) : Expr(MakeExpr<Variable>(std::string{name})) {}
+
+Expr Expr::FromFloat(const double x) {
   if (x == 0) {
     return Constants::Zero;
   }
-  return MakeExpr<Float>(x);
+  return Float::Create(x);
 }
 
-Expr::Expr(const std::string& name) : Expr(MakeExpr<Variable>(name)) {}
-
-Expr::Expr(const double x) : Expr(ExprFromDouble(x)) {}
-
-Expr::Expr(const int64_t x) : Expr(Integer::Create(x)) {}
+Expr Expr::FromInt(const std::int64_t x) { return Integer::Create(x); }
 
 std::string Expr::ToString() const {
   ASSERT(impl_);
@@ -52,13 +50,13 @@ Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*thi
 // TODO: It would good if these could be inlined for internal library code.
 // In some cases, Expr can be a universal reference to avoid a shared_ptr copy.
 
-Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromTwoOperands(a, b); }
-
 Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
 
 Expr operator-(const Expr& a, const Expr& b) {
   return a + Multiplication::FromTwoOperands(Constants::NegativeOne, b);
 }
+
+Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromTwoOperands(a, b); }
 
 Expr operator/(const Expr& a, const Expr& b) {
   return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));

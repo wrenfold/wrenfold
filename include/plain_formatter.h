@@ -4,11 +4,22 @@
 
 namespace math {
 
+// How to print the pow() operation:
+enum class PowerStyle {
+  // Use the ^ operator.
+  Hat,
+  // Use the python ** operator.
+  Python,
+};
+
 // Simple plain-text formatter.
 class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
  public:
   using ReturnType = void;
   static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
+
+  PlainFormatter() = default;
+  PlainFormatter(PowerStyle style) : power_style_(style) {}
 
   void Apply(const Addition& add);
   void Apply(const Constant& constant);
@@ -24,11 +35,14 @@ class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
   const std::string& GetOutput() const { return output_; }
 
  private:
+  // Wrap `expr` in braces if the precedence is <= the parent.
   void FormatPrecedence(Precedence parent, const Expr& expr);
 
+  // Format power operation with the appropriate operator.
   void FormatPower(const Expr& Base, const Expr& Exponent);
 
   std::string output_{};
+  PowerStyle power_style_{PowerStyle::Hat};
 };
 
 }  // namespace math

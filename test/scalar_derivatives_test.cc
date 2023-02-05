@@ -5,6 +5,7 @@
 
 // Test derivatives of scalar functions.
 namespace math {
+using namespace math::custom_literals;
 
 TEST(ScalarDerivativesTest, TestConstants) {
   const Expr x{"x"};

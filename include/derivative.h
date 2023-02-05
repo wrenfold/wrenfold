@@ -1,6 +1,5 @@
 // Copyright 2022 Gareth Cross
 #pragma once
-
 #include "expression.h"
 #include "expressions/all_expressions.h"
 #include "functions.h"
@@ -8,6 +7,8 @@
 #include "visitor_base.h"
 
 namespace math {
+
+using namespace math::custom_literals;
 
 // Visitor that takes the derivative of an input expression.
 class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
@@ -71,16 +72,16 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
         return cos(func.Arg()) * d_arg;
       case UnaryFunctionName::Tan:
         // tan(f(x)) --> sec^2(f(x)) * f'(x) --> 1/cos^2(f(x)) * f'(x)
-        return pow(cos(func.Arg()), -2_s) * d_arg;
+        return pow(cos(func.Arg()), -2) * d_arg;
       case UnaryFunctionName::ArcCos:
         // acos(f(x)) --> -f'(x) / sqrt(1 - f(x)^2)
-        return -pow(Constants::One - pow(func.Arg(), 2_s), -1_s / 2_s) * d_arg;
+        return -pow(Constants::One - pow(func.Arg(), 2), -1_s / 2) * d_arg;
       case UnaryFunctionName::ArcSin:
         // asin(f(x)) --> f'(x) / sqrt(1 - f(x)^2)
-        return pow(Constants::One - pow(func.Arg(), 2_s), -1_s / 2_s) * d_arg;
+        return pow(Constants::One - pow(func.Arg(), 2), -1_s / 2) * d_arg;
       case UnaryFunctionName::ArcTan:
         // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
-        return d_arg / (pow(func.Arg(), 2_s) + Constants::One);
+        return d_arg / (pow(func.Arg(), 2) + Constants::One);
       case UnaryFunctionName::Log:
         // log(f(x)) --> 1/f(x) * f'(x)
         return Power::Create(func.Arg(), Constants::NegativeOne) * d_arg;
