@@ -6,6 +6,7 @@
 #include "tree_formatter.h"
 
 namespace math {
+using namespace math::custom_literals;
 
 #define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(StringEqualTestHelper, val1, val2)
 

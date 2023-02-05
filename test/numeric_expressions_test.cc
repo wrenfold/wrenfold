@@ -6,6 +6,7 @@
 #include "test_helpers.h"
 
 namespace math {
+using namespace math::custom_literals;
 
 std::ostream& operator<<(std::ostream& stream, const math::Integer& i) {
   stream << fmt::format("Integer({})", i.GetValue());

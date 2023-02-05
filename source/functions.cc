@@ -6,6 +6,7 @@
 #include "expressions/all_expressions.h"
 
 namespace math {
+using namespace math::custom_literals;
 
 Expr log(const Expr& x) {
   if (x.IsIdenticalTo(Constants::Euler)) {

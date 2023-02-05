@@ -7,6 +7,7 @@
 #include "test_helpers.h"
 
 namespace math {
+using namespace math::custom_literals;
 
 // Simple brute force check for prime-ness.
 bool TrialDivisionIsPrime(const int64_t n_in) {
