@@ -11,7 +11,10 @@ include(GNUInstallDirs)
 set(CMAKE_COLOR_MAKEFILE ON)
 
 # Find python (for nanobind)
-find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(
+  Python 3.8
+  COMPONENTS Interpreter Development.Module
+  REQUIRED)
 
 # Add third party code
 add_subdirectory(dependencies)
