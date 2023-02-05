@@ -10,3 +10,6 @@ set(INSTALL_GTEST
     OFF
     CACHE BOOL "" FORCE)
 add_subdirectory(gtest)
+
+# Add nanobind:
+add_subdirectory(nanobind)

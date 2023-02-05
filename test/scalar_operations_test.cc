@@ -187,9 +187,9 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_THROW(pow(0_s, -1_s), std::runtime_error);
 
   // Floats...
-  ASSERT_IDENTICAL(Expr{std::pow(2.0, 4.5)}, pow(2_s, 4.5_s));
-  ASSERT_IDENTICAL(Expr{std::pow(1.122, 6.0)}, pow(1.122_s, 6_s));
-  ASSERT_IDENTICAL(Expr{std::pow(6.7, -0.5)}, pow(6.7_s, -0.5_s));
+  ASSERT_IDENTICAL(Expr::FromFloat(std::pow(2.0, 4.5)), pow(2_s, 4.5_s));
+  ASSERT_IDENTICAL(Expr::FromFloat(std::pow(1.122, 6.0)), pow(1.122_s, 6_s));
+  ASSERT_IDENTICAL(Expr::FromFloat(std::pow(6.7, -0.5)), pow(6.7_s, -0.5_s));
 
   // Rational powers of integers:
   ASSERT_IDENTICAL(pow(3_s, 3_s / 4_s), pow(3_s, 3_s / 4_s));

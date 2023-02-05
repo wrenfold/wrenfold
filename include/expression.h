@@ -17,13 +17,13 @@ class Expr {
   explicit Expr(const ExpressionConceptConstPtr& impl) : impl_(impl) {}
 
   // Construct variable:
-  explicit Expr(const std::string& name);
+  explicit Expr(std::string_view name);
 
   // Construct constant from float.
-  explicit Expr(double x);
+  static Expr FromFloat(double x);
 
   // Construct from integer.
-  explicit Expr(int64_t x);
+  static Expr FromInt(std::int64_t x);
 
   // Get the implementation pointer.
   const ExpressionConceptConstPtr& GetImpl() const { return impl_; }
@@ -80,15 +80,77 @@ inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   return stream;
 }
 
+// Trait that we can implement to allow implicit conversions to `Expr`.
+template <typename T>
+struct CastToExpr;
+
+template <>
+struct CastToExpr<std::int64_t> {
+  Expr operator()(std::int64_t v) const { return Expr::FromInt(v); }
+};
+template <>
+struct CastToExpr<std::int32_t> {
+  Expr operator()(std::int32_t v) const { return Expr::FromInt(v); }
+};
+
+// Evaluates to true for types which can be cast to `Expr`.
+template <typename T, typename = void>
+constexpr bool IsCastableToExpr = false;
+template <typename T>
+constexpr bool IsCastableToExpr<
+    T, decltype(CastToExpr<std::decay_t<T>>{}(std::declval<std::decay_t<T>>()), void())> = true;
+
+// Shorthand for CastToExpr.
+template <typename T>
+Expr to_expr_cast(T&& arg) {
+  return CastToExpr<std::decay_t<T>>{}(std::forward<T>(arg));
+}
+
 // Math operators.
-Expr operator*(const Expr& a, const Expr& b);
 Expr operator+(const Expr& a, const Expr& b);
 Expr operator-(const Expr& a, const Expr& b);
+Expr operator*(const Expr& a, const Expr& b);
 Expr operator/(const Expr& a, const Expr& b);
 
+// Operator overloads involving primitives.
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator+(const Expr& a, T&& b) {
+  return a + to_expr_cast(std::forward<T>(b));
+}
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator-(const Expr& a, T&& b) {
+  return a - to_expr_cast(std::forward<T>(b));
+}
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator*(const Expr& a, T&& b) {
+  return a * to_expr_cast(std::forward<T>(b));
+}
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator/(const Expr& a, T&& b) {
+  return a / to_expr_cast(std::forward<T>(b));
+}
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator+(T&& a, const Expr& b) {
+  return to_expr_cast(std::forward<T>(a)) + b;
+}
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator-(T&& a, const Expr& b) {
+  return to_expr_cast(std::forward<T>(a)) - b;
+}
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator*(T&& a, const Expr& b) {
+  return to_expr_cast(std::forward<T>(a)) * b;
+}
+template <typename T>
+std::enable_if_t<IsCastableToExpr<T>, Expr> operator/(T&& a, const Expr& b) {
+  return to_expr_cast(std::forward<T>(a)) / b;
+}
+
 // Custom literal suffix support.
-inline Expr operator"" _s(unsigned long long int arg) { return Expr{static_cast<int64_t>(arg)}; }
-inline Expr operator"" _s(long double arg) { return Expr{static_cast<double>(arg)}; }
+inline Expr operator"" _s(unsigned long long int arg) {
+  return Expr::FromInt(static_cast<int64_t>(arg));
+}
+inline Expr operator"" _s(long double arg) { return Expr::FromFloat(static_cast<double>(arg)); }
 
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>

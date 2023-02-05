@@ -4,10 +4,14 @@ project(
   VERSION 0.1
   DESCRIPTION "Messing around with math in c++."
   LANGUAGES CXX)
+
 enable_testing()
 include(GNUInstallDirs)
 
 set(CMAKE_COLOR_MAKEFILE ON)
+
+# Find python (for nanobind)
+find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
 # Add third party code
 add_subdirectory(dependencies)
@@ -32,7 +36,10 @@ add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})
 # Turn on C++17
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
 
-# turn on various warnings
+# Set -fPIC
+set_target_properties(${LIBRARY_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Adjust warnings
 if(MSVC)
   set(MATH_COMPILATION_FLAGS /W4 /WX /D_USE_MATH_DEFINES /bigobj /wd4244)
 else()
@@ -65,3 +72,6 @@ install(
 
 # Add tests
 add_subdirectory(test)
+
+# Add nanobind wrapper.
+add_subdirectory(wrapper)

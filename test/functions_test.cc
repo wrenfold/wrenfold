@@ -50,7 +50,7 @@ TEST(FunctionsTest, TestCosine) {
 
   // Evaluation on floats:
   for (double v : {-0.51, 0.78, 1.8, -2.1}) {
-    ASSERT_IDENTICAL(Float::Create(std::cos(v)), cos(Expr{v}));
+    ASSERT_IDENTICAL(Float::Create(std::cos(v)), cos(Expr::FromFloat(v)));
   }
 }
 
@@ -88,7 +88,7 @@ TEST(FunctionsTest, TestSine) {
   ASSERT_IDENTICAL(-sin(3_s / 5_s), sin(-3_s / 5_s));
 
   for (double v : {6.0, 0.112, -0.65, 0.22}) {
-    ASSERT_IDENTICAL(Float::Create(std::sin(v)), sin(Expr{v}));
+    ASSERT_IDENTICAL(Float::Create(std::sin(v)), sin(Expr::FromFloat(v)));
   }
 }
 
@@ -120,7 +120,7 @@ TEST(FunctionsTest, TestTan) {
   ASSERT_IDENTICAL(-tan(x * y), tan(-x * y));
 
   for (double v : {-4.0, -0.132, 1.6, 6.8}) {
-    ASSERT_IDENTICAL(Float::Create(std::tan(v)), tan(Expr{v}));
+    ASSERT_IDENTICAL(Float::Create(std::tan(v)), tan(Expr::FromFloat(v)));
   }
 }
 
