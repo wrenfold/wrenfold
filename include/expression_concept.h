@@ -3,9 +3,6 @@
 
 namespace math {
 
-template <typename T>
-class VisitorBase;
-
 // Base class for all expressions.
 class ExpressionConcept {
  public:
@@ -25,11 +22,8 @@ class ExpressionConcept {
     return IsIdenticalTo(*other_ptr);
   }
 
-  // Apply a visitor that returns an expression pointer.
-  virtual Expr Receive(VisitorBase<Expr>& visitor) const = 0;
-
-  // Apply a visitor that does not return anything.
-  virtual void Receive(VisitorBase<void>& visitor) const = 0;
+  // Apply a visitor to this expression.
+  virtual void Receive(class VisitorBase& visitor) const = 0;
 
  protected:
   // Implemented by derived class. Called after we check ptr address.

@@ -10,8 +10,8 @@
 namespace math {
 
 // Implementation of a visitor.
-template <typename Derived, typename ResultType>
-class VisitorImpl : public VisitorBase<ResultType> {
+template <typename Derived>
+class VisitorImpl : public VisitorBase {
  public:
   static constexpr VisitorPolicy Policy = Derived::Policy;
 
@@ -39,7 +39,7 @@ struct MaybeVoid<void> {
 // the result is left empty.
 template <typename ReturnType, typename VisitorType, VisitorPolicy P>
 struct VisitorWithCapturedResult final
-    : public VisitorImpl<VisitorWithCapturedResult<ReturnType, VisitorType, P>, void> {
+    : public VisitorImpl<VisitorWithCapturedResult<ReturnType, VisitorType, P>> {
  public:
   static constexpr VisitorPolicy Policy = P;
 
@@ -197,15 +197,15 @@ class VisitorNotImplemented final : public std::exception {
 };
 
 // Variant of ApplyOrThrow that takes no argument.
-template <typename Derived, typename ReturnType, typename Argument>
-ReturnType ApplyOrThrow(VisitorImpl<Derived, ReturnType>& visitor, const Argument& arg) {
+template <typename Derived, typename Argument>
+void ApplyOrThrow(VisitorImpl<Derived>& visitor, const Argument& arg) {
   if constexpr (HasApplyMethod<Derived, Argument>) {
-    return visitor.AsDerived().Apply(arg);
-  } else if constexpr (VisitorImpl<Derived, ReturnType>::Policy == VisitorPolicy::Throw) {
+    visitor.AsDerived().Apply(arg);
+  } else if constexpr (VisitorImpl<Derived>::Policy == VisitorPolicy::Throw) {
     throw VisitorNotImplemented(typeid(Derived).name(), typeid(Argument).name());
   }
   static_assert(HasApplyMethod<Derived, Argument> ||
-                    VisitorImpl<Derived, ReturnType>::Policy != VisitorPolicy::CompileError,
+                    VisitorImpl<Derived>::Policy != VisitorPolicy::CompileError,
                 "The visitor fails to implement a required method");
 }
 

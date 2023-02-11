@@ -13,18 +13,18 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
 
 // Declare pure virtual Apply method.
 // These are non-const, since visitors may need to cache or update internal values.
-#define DECLARE_VIRTUAL_APPLY_METHOD(ArgType) \
-  virtual ResultType ApplyVirtual(const ArgType& arg) = 0
+#define DECLARE_VIRTUAL_APPLY_METHOD(ArgType) virtual void ApplyVirtual(const ArgType& arg) = 0
 
 // Implement override of the base method by calling the correct version for `ArgType`:
 #define IMPLEMENT_VIRTUAL_APPLY_METHOD(ArgType) \
-  ResultType ApplyVirtual(const ArgType& arg) override { return ApplyOrThrow(*this, arg); }
+  void ApplyVirtual(const ArgType& arg) override { return ApplyOrThrow(*this, arg); }
 
 #define DECLARE_ALL_VIRTUAL_APPLY_METHODS()     \
   DECLARE_VIRTUAL_APPLY_METHOD(Addition);       \
   DECLARE_VIRTUAL_APPLY_METHOD(Constant);       \
   DECLARE_VIRTUAL_APPLY_METHOD(Float);          \
   DECLARE_VIRTUAL_APPLY_METHOD(Integer);        \
+  DECLARE_VIRTUAL_APPLY_METHOD(Matrix);         \
   DECLARE_VIRTUAL_APPLY_METHOD(Multiplication); \
   DECLARE_VIRTUAL_APPLY_METHOD(Power);          \
   DECLARE_VIRTUAL_APPLY_METHOD(Rational);       \
@@ -57,7 +57,6 @@ using ApprovedTypeList = TypeList<
 // clang-format on
 
 // Base type for visitors that produce expressions.
-template <typename ResultType>
 class VisitorBase {
  public:
   DECLARE_ALL_VIRTUAL_APPLY_METHODS()

@@ -1,4 +1,5 @@
 #include "constants.h"
+#include "error_types.h"
 #include "functions.h"
 #include "test_helpers.h"
 #include "tree_formatter.h"
@@ -12,7 +13,7 @@ TEST(ScalarDerivativesTest, TestConstants) {
   ASSERT_IDENTICAL(Constants::Zero, (5_s).Diff(x));
   ASSERT_IDENTICAL(Constants::Zero, (22.5_s).Diff(x, 4));
   ASSERT_IDENTICAL(Constants::Zero, Constants::Pi.Diff(x));
-  ASSERT_THROW(x.Diff(5_s), std::runtime_error);
+  ASSERT_THROW(x.Diff(5_s), AssertionError);
 }
 
 TEST(ScalarDerivativesTest, TestAdditionAndSubtraction) {

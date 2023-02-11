@@ -185,7 +185,7 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(25_s / 64_s, pow(5_s / 8_s, 2_s));
   ASSERT_IDENTICAL(343_s / 729_s, pow(9_s / 7_s, -3_s));
   ASSERT_IDENTICAL(1_s / 5_s, pow(5_s, -1_s));
-  ASSERT_THROW(pow(0_s, -1_s), std::runtime_error);
+  ASSERT_THROW(pow(0_s, -1_s), AssertionError);
 
   // Floats...
   ASSERT_IDENTICAL(Expr{std::pow(2.0, 4.5)}, pow(2_s, 4.5_s));

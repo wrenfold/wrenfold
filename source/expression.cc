@@ -38,11 +38,11 @@ Expr Expr::Diff(const Expr& var, const int reps) const {
   ASSERT_GREATER_OR_EQ(reps, 0);
 
   DiffVisitor visitor{*as_var};
-  Expr Result = *this;
+  Expr result = *this;
   for (int i = 0; i < reps; ++i) {
-    Result = Result.Receive(visitor);
+    result = VisitStruct(result, visitor);
   }
-  return Result;
+  return result;
 }
 
 Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}); }

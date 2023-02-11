@@ -13,7 +13,7 @@ enum class PowerStyle {
 };
 
 // Simple plain-text formatter.
-class PlainFormatter : public VisitorImpl<PlainFormatter, void> {
+class PlainFormatter : public VisitorImpl<PlainFormatter> {
  public:
   using ReturnType = void;
   static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
