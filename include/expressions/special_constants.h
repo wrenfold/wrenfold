@@ -8,6 +8,8 @@ namespace math {
 // A symbolic constant, like pi or euler's number.
 class Constant : public ExpressionImpl<Constant> {
  public:
+  static constexpr std::string_view NameStr = "Constant";
+
   // Construct with name.
   explicit Constant(SymbolicConstants Name) : name_(Name) {}
 

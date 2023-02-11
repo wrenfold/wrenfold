@@ -1,5 +1,6 @@
 #include "plain_formatter.h"
 
+#include <algorithm>
 #include <optional>
 
 #include <fmt/format.h>
@@ -7,6 +8,7 @@
 #include "assertions.h"
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
+#include "string_utils.h"
 
 namespace math {
 
@@ -59,6 +61,59 @@ void PlainFormatter::Apply(const Integer& expr) {
 
 void PlainFormatter::Apply(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
+}
+
+void PlainFormatter::Apply(const Matrix& mat) {
+  ASSERT_GREATER(mat.NumRows(), 0);
+  ASSERT_GREATER(mat.NumCols(), 0);
+
+  // Buffer of all the formatted elements:
+  std::vector<std::string> elements;
+  elements.resize(mat.Size());
+
+  // Format all the child elements up front. That way we can do alignment:
+  std::transform(mat.begin(), mat.end(), elements.begin(), [this](const Expr& expr) {
+    PlainFormatter child_formatter{power_style_};
+    expr.Receive(child_formatter);
+    return child_formatter.output_;
+  });
+
+  // Determine widest element in each column
+  std::vector<std::size_t> column_widths{mat.NumCols(), 0};
+  for (std::size_t j = 0; j < mat.NumCols(); ++j) {
+    for (std::size_t i = 0; i < mat.NumRows(); ++i) {
+      column_widths[j] = std::max(column_widths[j], elements[i * mat.NumCols() + j].size());
+    }
+  }
+
+  const bool is_col_vec = mat.NumCols() == 1;
+  if (is_col_vec) {
+    // Don't print brackets for every row:
+    output_ += "[";
+    for (std::size_t i = 0; i + 1 < mat.NumRows(); ++i) {
+      fmt::format_to(std::back_inserter(output_), "{:>{}},\n ", elements[i], column_widths.front());
+    }
+    fmt::format_to(std::back_inserter(output_), "{:>{}}]", elements[mat.NumRows() - 1],
+                   column_widths.front());
+  } else {
+    output_ += "[";
+    for (std::size_t i = 0; i < mat.NumRows(); ++i) {
+      output_ += "[";
+      const std::size_t last_col = mat.NumCols() - 1;
+      for (std::size_t j = 0; j < last_col; ++j) {
+        fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[i * mat.NumCols() + j],
+                       column_widths[j]);
+      }
+      fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[i * mat.NumCols() + last_col],
+                     column_widths[last_col]);
+      // Insert a comma and new-line if another row is coming.
+      if (i + 1 < mat.NumRows()) {
+        output_ += "],\n ";
+      } else {
+        output_ += "]";
+      }
+    }
+  }
 }
 
 void PlainFormatter::Apply(const Multiplication& expr) {

@@ -38,6 +38,7 @@ NB_MODULE(mc, m) {
           "is_identical_to",
           [](const Expr& self, const Expr& other) { return self.IsIdenticalTo(other); }, "other"_a,
           "Test if two expressions have identical expression trees.")
+      .def_property_readonly("type_name", &Expr::TypeName)
       // Derivatives:
       .def("diff", &Expr::Diff, "var"_a, nb::arg("order") = 1,
            "Differentiate the expression with respect to the specified variable.")

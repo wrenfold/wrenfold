@@ -32,6 +32,7 @@ def test_create_symbols():
     y = mc.symbol('y')
     assert_identical(x, x)
     assert_not_identical(x, y)
+    assert x.type_name == 'Variable'
 
 
 def test_repr():
@@ -61,3 +62,7 @@ def test_basic_scalar_operations():
     assert_identical(2.0 * p, p * 6.0 / 3.0)
     assert_identical(q, -(-q))
     assert_identical(-q, -(-(-q)))
+
+    assert (p + q).type_name == 'Addition'
+    assert (p + p).type_name == 'Multiplication'
+    assert (p * q).type_name == 'Multiplication'

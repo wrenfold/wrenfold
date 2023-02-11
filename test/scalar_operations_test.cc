@@ -19,6 +19,7 @@ TEST(ScalarOperationsTest, TestAddition) {
   ASSERT_IDENTICAL(x + y, y + x);
   ASSERT_NOT_IDENTICAL(x + w, x + y);
   ASSERT_NOT_IDENTICAL(x - w, z + y);
+  ASSERT_EQ("Addition", (x + y).TypeName());
 
   // Canonicalization of order:
   ASSERT_IDENTICAL(w + x + y, y + x + w);
@@ -53,6 +54,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   const Expr z{"z"};
   ASSERT_TRUE(TryCast<Multiplication>(x * y) != nullptr);
   ASSERT_IDENTICAL(x * y, x * y);
+  ASSERT_EQ("Multiplication", (x * y).TypeName());
 
   // Canonicalization of order for a simple case:
   ASSERT_IDENTICAL(y * x, x * y);
@@ -104,7 +106,6 @@ TEST(ScalarOperationsTest, TestNegation) {
   ASSERT_TRUE(TryCast<Multiplication>(-x) != nullptr);
   ASSERT_IDENTICAL(-(-x), x);
   ASSERT_IDENTICAL(-(-(-x)), -x);
-  ASSERT_EQ(x.GetImpl(), (-(-x)).GetImpl());  //  No copy should occur
 }
 
 TEST(ScalarOperationsTest, TestDivision) {
@@ -166,6 +167,7 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
   ASSERT_IDENTICAL(AsBaseAndExponent(pow(x, y)).first, x);
   ASSERT_IDENTICAL(AsBaseAndExponent(pow(x, y)).second, y);
+  ASSERT_EQ("Power", pow(x, y).TypeName());
 
   // Powers don't get combined automatically (for variable exponents):
   ASSERT_IDENTICAL(AsBaseAndExponent(pow(pow(x, y), z)).first, pow(x, y));

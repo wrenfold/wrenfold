@@ -6,6 +6,8 @@
 
 namespace math {
 
+class MatrixExpr;
+
 /**
  * Wrapper around a pointer to an abstract expression. Defined so you can easily write chains of
  * operations without dealing with pointers at all.
@@ -25,11 +27,11 @@ class Expr {
   Expr(T v, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>, void*> = nullptr)
       : Expr(ConstructImplicit(v)) {}
 
-  // Get the implementation pointer.
-  const ExpressionConceptConstPtr& GetImpl() const { return impl_; }
-
   // Test if the two expressions are identical.
-  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other.impl_); }
+  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(*other.impl_); }
+
+  // Get the underlying type name as a string.
+  std::string_view TypeName() const { return impl_->TypeName(); }
 
   // Convert to string.
   std::string ToString() const;
@@ -45,6 +47,9 @@ class Expr {
 
   // Receive a visitor.
   void Receive(VisitorBase& visitor) const { impl_->Receive(visitor); }
+
+ protected:
+  [[nodiscard]] const ExpressionConceptConstPtr& Impl() const { return impl_; }
 
  private:
   // Construct constant from float.
@@ -69,6 +74,55 @@ class Expr {
 
 static_assert(std::is_move_assignable_v<Expr> && std::is_move_constructible_v<Expr>,
               "Should be movable");
+
+// Child of `Expr` that exposes certain operations only valid on matrices.
+class MatrixExpr : public Expr {
+ public:
+  // Construct from expression. The underlying type is checked and an exception will be thrown
+  // if the argument is not a matrix.
+  explicit MatrixExpr(Expr&& arg);
+  explicit MatrixExpr(const Expr& arg);
+
+  // Static constructor: Create a dense matrix of expressions.
+  static MatrixExpr CreateMatrix(std::size_t rows, std::size_t cols, std::vector<Expr> args);
+
+  // Get # of rows.
+  std::size_t NumRows() const;
+
+  // Get # of columns.
+  std::size_t NumCols() const;
+
+  // For vectors or row-vectors only. Access element `i`.
+  const Expr& operator[](std::size_t i) const;
+
+  // Access row `i` and column `j`.
+  const Expr& operator()(std::size_t i, std::size_t j) const;
+
+  // Transpose the matrix.
+  [[nodiscard]] MatrixExpr Transpose() const;
+
+ protected:
+  // Static cast to underlying matrix type.
+  const Matrix& AsMatrix() const;
+};
+
+// Create a column vector from the arguments.
+template <typename... Ts>
+static MatrixExpr Vector(Ts&&... args) {
+  return MatrixExpr::CreateMatrix(sizeof...(Ts), 1, {Expr{std::forward<Ts>(args)}...});
+}
+
+// Create a row vector from the arguments.
+template <typename... Ts>
+static MatrixExpr RowVector(Ts&&... args) {
+  return MatrixExpr::CreateMatrix(1, sizeof...(Ts), {Expr{std::forward<Ts>(args)}...});
+}
+
+// Create a matrix from the arguments (args specified in row-major order).
+template <typename... Ts>
+static MatrixExpr CreateMatrix(std::size_t rows, std::size_t cols, Ts&&... args) {
+  return MatrixExpr::CreateMatrix(rows, cols, {Expr{std::forward<Ts>(args)}...});
+}
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {

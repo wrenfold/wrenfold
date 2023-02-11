@@ -23,7 +23,7 @@ struct OrderVisitor {
   static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
 
   using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Variable, Multiplication,
-                                Addition, Power, UnaryFunction>;
+                                Addition, Power, UnaryFunction, Matrix>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ApprovedTypeList>::Value);
@@ -75,6 +75,17 @@ struct OrderVisitor {
       return RelativeOrder::GreaterThan;  //  `b` is shorter
     }
     return RelativeOrder::Equal;  //  they are equal
+  }
+
+  RelativeOrder Compare(const Matrix& a, const Matrix& b) const {
+    const auto dims_a = std::make_pair(a.NumRows(), a.NumCols());
+    const auto dims_b = std::make_pair(b.NumRows(), b.NumCols());
+    if (dims_a < dims_b) {
+      return RelativeOrder::LessThan;
+    } else if (dims_a > dims_b) {
+      return RelativeOrder::GreaterThan;
+    }
+    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
   }
 
   RelativeOrder Compare(const Power& a, const Power& b) const {

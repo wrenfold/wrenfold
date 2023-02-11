@@ -31,6 +31,15 @@ class DiffVisitor {
 
   Expr Apply(const Constant&) { return Constants::Zero; }
 
+  // Element-wise derivative of matrix.
+  Expr Apply(const Matrix& mat) {
+    std::vector<Expr> output;
+    output.reserve(mat.Size());
+    std::transform(mat.begin(), mat.end(), std::back_inserter(output),
+                   [this](const Expr& x) { return VisitStruct(x, *this); });
+    return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
+  }
+
   // Do product expansion over all terms in the multiplication:
   // a * b
   // a' * b + a * b'

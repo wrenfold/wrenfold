@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "derivative.h"
 #include "distribute.h"
+#include "expressions/matrix.h"
 #include "expressions/numeric_expressions.h"
 #include "expressions/variable.h"
 #include "plain_formatter.h"
@@ -60,6 +61,39 @@ Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromTwoOpe
 
 Expr operator/(const Expr& a, const Expr& b) {
   return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));
+}
+
+MatrixExpr::MatrixExpr(Expr&& arg) : Expr(std::move(arg)) {
+  // TODO: Need to handle other matrix types here eventually.
+  if (!TryCast<Matrix>(*this)) {
+    throw TypeError("Attempted to construct MatrixExpr from expression of type: {}",
+                    arg.TypeName());
+  }
+}
+
+MatrixExpr::MatrixExpr(const Expr& arg) : MatrixExpr(Expr{arg}) {}
+
+MatrixExpr MatrixExpr::CreateMatrix(std::size_t rows, std::size_t cols, std::vector<Expr> args) {
+  return MatrixExpr{MakeExpr<Matrix>(rows, cols, std::move(args))};
+}
+
+std::size_t MatrixExpr::NumRows() const { return AsMatrix().NumRows(); }
+
+std::size_t MatrixExpr::NumCols() const { return AsMatrix().NumCols(); }
+
+const Expr& MatrixExpr::operator[](std::size_t i) const { return AsMatrix().operator[](i); }
+
+const Expr& MatrixExpr::operator()(std::size_t i, std::size_t j) const {
+  return AsMatrix().operator()(i, j);
+}
+
+MatrixExpr MatrixExpr::Transpose() const {
+  return MatrixExpr{MakeExpr<Matrix>(AsMatrix().Transpose())};
+}
+
+const Matrix& MatrixExpr::AsMatrix() const {
+  // Cast is safe since the constructor checked this condition.
+  return static_cast<const Matrix&>(*Impl());
 }
 
 }  // namespace math

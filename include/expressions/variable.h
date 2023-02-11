@@ -10,6 +10,8 @@ namespace math {
  */
 class Variable : public ExpressionImpl<Variable> {
  public:
+  static constexpr std::string_view NameStr = "Variable";
+
   explicit Variable(std::string name) : name_(std::move(name)) {}
 
   // Check if two variables are the same (names match).

@@ -22,6 +22,14 @@ struct DistributeVisitor {
 
   Expr Apply(const Constant&) const { return arg_; }
 
+  Expr Apply(const Matrix& mat) const {
+    std::vector<Expr> output;
+    output.reserve(mat.Size());
+    std::transform(mat.begin(), mat.end(), std::back_inserter(output),
+                   [](const Expr& x) { return VisitStruct(x, DistributeVisitor{x}); });
+    return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
+  }
+
   Expr Apply(const Multiplication& mul) const {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};

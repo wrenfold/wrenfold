@@ -72,6 +72,16 @@ struct TreeFormatter {
     VisitRight(op[op.Arity() - 1]);
   }
 
+  void Apply(const Matrix& mat) {
+    // TODO: Print the (row, col) index for each element.
+    AppendName("Matrix ({}, {}):", mat.NumRows(), mat.NumCols());
+    const auto& elements = mat.Data();
+    for (std::size_t i = 0; i + 1 < elements.size(); ++i) {
+      VisitLeft(elements[i]);
+    }
+    VisitRight(elements.back());
+  }
+
   void Apply(const Power& op) {
     AppendName("Power:");
     VisitLeft(op.Base());

@@ -36,6 +36,7 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Constant);       \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Float);          \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Integer);        \
+  IMPLEMENT_VIRTUAL_APPLY_METHOD(Matrix);         \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Multiplication); \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Power);          \
   IMPLEMENT_VIRTUAL_APPLY_METHOD(Rational);       \
@@ -48,6 +49,7 @@ using ApprovedTypeList = TypeList<
     Constant,
     Float,
     Integer,
+    Matrix,
     Multiplication,
     Power,
     Rational,

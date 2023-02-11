@@ -17,6 +17,9 @@ class ExpressionImpl : public ExpressionConcept {
   // Cast to derived type and apply the visitor.
   void Receive(VisitorBase& visitor) const override { visitor.ApplyVirtual(AsDerived()); }
 
+  // Get the derived type string name (a static constexpr member).
+  std::string_view TypeName() const override { return Derived::NameStr; }
+
  protected:
   // TODO: Maybe check the addresses here before trying dynamic_cast? Needs profiling.
   bool IsIdenticalToImpl(const ExpressionConcept& other) const override {

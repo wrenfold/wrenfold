@@ -2,6 +2,7 @@
 #pragma once
 #include "expressions/addition.h"
 #include "expressions/function_expressions.h"
+#include "expressions/matrix.h"
 #include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "expressions/power.h"

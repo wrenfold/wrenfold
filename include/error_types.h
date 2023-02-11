@@ -43,6 +43,11 @@ struct AssertionError : public Exception {
   using Exception::Exception;
 };
 
+// Throw when an invalid type conversion occurs.
+struct TypeError : public Exception {
+  using Exception::Exception;
+};
+
 // Thrown when accessing invalid matrix dimensions.
 struct DimensionError : public Exception {
   using Exception::Exception;

@@ -27,9 +27,10 @@ struct HashVisitor {
   constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
   using ReturnType = std::size_t;
 
-  std::size_t HashAll(std::size_t seed, const std::vector<Expr>& expressions) const {
-    for (const Expr& expr : expressions) {
-      seed = HashCombine(seed, HashExpression(expr));
+  template <typename Iterator>
+  std::size_t HashAll(std::size_t seed, Iterator begin, Iterator end) const {
+    for (; begin != end; ++begin) {
+      seed = HashCombine(seed, HashExpression(*begin));
     }
     return seed;
   }
@@ -44,7 +45,7 @@ struct HashVisitor {
 
   std::size_t Apply(const Addition& a) const {
     constexpr std::size_t type_hash = HashString("Addition");
-    return HashAll(type_hash, a.Args());
+    return HashAll(type_hash, a.begin(), a.end());
   }
 
   std::size_t Apply(const Constant& c) const {
@@ -63,9 +64,17 @@ struct HashVisitor {
     return HashCombine(type_hash, Hash<Integer>{}(i));
   }
 
+  std::size_t Apply(const Matrix& m) const {
+    constexpr std::size_t type_hash = HashString("Matrix");
+    std::size_t seed = type_hash;
+    seed = HashCombine(seed, std::hash<std::size_t>{}(m.NumRows()));
+    seed = HashCombine(seed, std::hash<std::size_t>{}(m.NumCols()));
+    return HashAll(seed, m.begin(), m.end());
+  }
+
   std::size_t Apply(const Multiplication& m) const {
     constexpr std::size_t type_hash = HashString("Multiplication");
-    return HashAll(type_hash, m.Args());
+    return HashAll(type_hash, m.begin(), m.end());
   }
 
   std::size_t Apply(const Power& p) const {
