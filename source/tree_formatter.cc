@@ -45,7 +45,7 @@ struct TreeFormatter {
   }
 
   template <typename... Args>
-  void AppendName(const char* fmt_str, Args&&... args) {
+  void AppendName(const std::string_view fmt_str, Args&&... args) {
     ApplyIndentation();
     fmt::format_to(std::back_inserter(output_), fmt_str, std::forward<Args>(args)...);
     output_ += "\n";

@@ -92,10 +92,6 @@ struct HashVisitor {
   }
 };
 
-std::size_t HashExpression(const Expr& x) {
-  const std::optional<std::size_t> hash = VisitStruct(x, HashVisitor{});
-  ASSERT(hash, "Failed to hash expression: {}", x.ToString());
-  return *hash;
-}
+std::size_t HashExpression(const Expr& x) { return VisitStruct(x, HashVisitor{}); }
 
 }  // namespace math

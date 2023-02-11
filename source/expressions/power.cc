@@ -10,6 +10,7 @@ namespace math {
 
 struct PowerNumerics {
   using ReturnType = Expr;
+  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
 
   // If either operand is a float, coerce the other to float:
   template <typename A, typename B>

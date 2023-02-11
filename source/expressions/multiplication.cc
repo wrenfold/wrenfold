@@ -89,8 +89,7 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
   for (const Expr& arg : args) {
     if (const Multiplication* const mul = TryCast<Multiplication>(arg)) {
       // Multiplications must be flattened:
-      const std::vector<Expr>& mul_args = mul->Args();
-      unpacked_args.insert(unpacked_args.end(), mul_args.begin(), mul_args.end());
+      unpacked_args.insert(unpacked_args.end(), mul->begin(), mul->end());
     } else {
       unpacked_args.push_back(arg);
     }
@@ -102,6 +101,7 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
 
 struct NormalizeExponentVisitor {
   using ReturnType = Expr;
+  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
 
   explicit NormalizeExponentVisitor(const Rational& coeff) : rational_coeff(coeff) {}
 
@@ -176,10 +176,8 @@ Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
   std::copy(map.begin(), map.end(), std::back_inserter(powers));
 
   std::sort(powers.begin(), powers.end(), [](const auto& a, const auto& b) {
-    const std::optional<OrderVisitor::RelativeOrder> order =
-        VisitBinaryStruct(a.first, b.first, OrderVisitor{});
-    ASSERT(order);
-    return order.value() == OrderVisitor::RelativeOrder::LessThan;
+    return VisitBinaryStruct(a.first, b.first, OrderVisitor{}) ==
+           OrderVisitor::RelativeOrder::LessThan;
   });
 
   // Insert the rest

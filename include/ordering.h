@@ -20,6 +20,7 @@ struct OrderVisitor {
     GreaterThan = 1,
   };
   using ReturnType = RelativeOrder;
+  static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
 
   using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Variable, Multiplication,
                                 Addition, Power, UnaryFunction>;
@@ -61,11 +62,10 @@ struct OrderVisitor {
     auto it_a = args_a.begin();
     auto it_b = args_b.begin();
     for (; it_a != args_a.end() && it_b != args_b.end(); ++it_a, ++it_b) {
-      const std::optional<RelativeOrder> result = VisitBinaryStruct(*it_a, *it_b, OrderVisitor{});
-      ASSERT(result.has_value(), "Order visitor failed to implement a comparison");
-      if (*result == RelativeOrder::LessThan) {
+      const RelativeOrder result = VisitBinaryStruct(*it_a, *it_b, OrderVisitor{});
+      if (result == RelativeOrder::LessThan) {
         return RelativeOrder::LessThan;
-      } else if (*result == RelativeOrder::GreaterThan) {
+      } else if (result == RelativeOrder::GreaterThan) {
         return RelativeOrder::GreaterThan;
       }
     }
@@ -78,19 +78,14 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Power& a, const Power& b) const {
-    const std::optional<RelativeOrder> base_order =
-        VisitBinaryStruct(a.Base(), b.Base(), OrderVisitor{});
-    ASSERT(base_order.has_value());
-    if (*base_order == RelativeOrder::LessThan) {
+    const RelativeOrder base_order = VisitBinaryStruct(a.Base(), b.Base(), OrderVisitor{});
+    if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
-    } else if (*base_order == RelativeOrder::GreaterThan) {
+    } else if (base_order == RelativeOrder::GreaterThan) {
       return RelativeOrder::GreaterThan;
     }
     // Otherwise order is determined by the exponent:
-    const std::optional<RelativeOrder> exponent_order =
-        VisitBinaryStruct(a.Exponent(), b.Exponent(), OrderVisitor{});
-    ASSERT(exponent_order.has_value());
-    return *exponent_order;
+    return VisitBinaryStruct(a.Exponent(), b.Exponent(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const UnaryFunction& a, const UnaryFunction& b) const {
@@ -102,10 +97,7 @@ struct OrderVisitor {
       return RelativeOrder::LessThan;
     }
     // Then compare by value of the argument:
-    const std::optional<RelativeOrder> arg_order =
-        VisitBinaryStruct(a.Arg(), b.Arg(), OrderVisitor{});
-    ASSERT(arg_order.has_value());
-    return *arg_order;
+    return VisitBinaryStruct(a.Arg(), b.Arg(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const Variable& a, const Variable& b) const {
@@ -115,6 +107,26 @@ struct OrderVisitor {
       return RelativeOrder::GreaterThan;
     }
     return RelativeOrder::Equal;
+  }
+
+  // Order two sequences lexicographically.
+  template <typename Iterator>
+  static RelativeOrder LexicographicalCompare(Iterator begin_a, Iterator end_a, Iterator begin_b,
+                                              Iterator end_b) {
+    for (; begin_a != end_a && begin_b != end_b; ++begin_a, ++begin_b) {
+      const RelativeOrder result = VisitBinaryStruct(*begin_a, *begin_b, OrderVisitor{});
+      if (result == RelativeOrder::LessThan) {
+        return RelativeOrder::LessThan;
+      } else if (result == RelativeOrder::GreaterThan) {
+        return RelativeOrder::GreaterThan;
+      }
+    }
+    if (begin_a == end_a && begin_b != end_b) {
+      return RelativeOrder::LessThan;  // `a` is shorter:
+    } else if (begin_a != end_a && begin_b == end_b) {
+      return RelativeOrder::GreaterThan;  // `b` is shorter
+    }
+    return RelativeOrder::Equal;  //  they are equal
   }
 };
 

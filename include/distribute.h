@@ -14,9 +14,8 @@ struct DistributeVisitor {
     std::vector<Expr> args{};
     args.reserve(add.Arity());
     for (std::size_t i = 0; i < add.Arity(); ++i) {
-      std::optional<Expr> distributed = VisitStruct(add[i], DistributeVisitor{add[i]});
-      ASSERT(distributed.has_value());
-      args.push_back(std::move(*distributed));
+      Expr distributed = VisitStruct(add[i], DistributeVisitor{add[i]});
+      args.push_back(std::move(distributed));
     }
     return Addition::FromOperands(args);
   }
@@ -27,9 +26,8 @@ struct DistributeVisitor {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};
     children.reserve(mul.Arity());
-    std::transform(mul.begin(), mul.end(), std::back_inserter(children), [](const Expr& expr) {
-      return VisitStruct(expr, DistributeVisitor{expr}).value();
-    });
+    std::transform(mul.begin(), mul.end(), std::back_inserter(children),
+                   [](const Expr& expr) { return VisitStruct(expr, DistributeVisitor{expr}); });
 
     // Are any of the child expressions additions?
     const std::size_t total_terms = std::accumulate(
@@ -92,8 +90,8 @@ struct DistributeVisitor {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
-    return Power::Create(VisitStruct(a, DistributeVisitor{a}).value(),
-                         VisitStruct(b, DistributeVisitor{b}).value());
+    return Power::Create(VisitStruct(a, DistributeVisitor{a}),
+                         VisitStruct(b, DistributeVisitor{b}));
   }
 
   Expr Apply(const Rational&) const { return arg_; }

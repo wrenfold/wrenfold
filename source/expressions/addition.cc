@@ -114,19 +114,16 @@ Expr Addition::FromOperands(const std::vector<Expr>& args) {
   std::copy(map.begin(), map.end(), std::back_inserter(coeff_mul));
 
   std::sort(coeff_mul.begin(), coeff_mul.end(), [](const auto& a, const auto& b) {
-    const std::optional<OrderVisitor::RelativeOrder> order_mul =
+    const OrderVisitor::RelativeOrder order_mul =
         VisitBinaryStruct(a.first, b.first, OrderVisitor{});
-    ASSERT(order_mul);
-    if (*order_mul == OrderVisitor::RelativeOrder::LessThan) {
+    if (order_mul == OrderVisitor::RelativeOrder::LessThan) {
       return true;
-    } else if (*order_mul == OrderVisitor::RelativeOrder::GreaterThan) {
+    } else if (order_mul == OrderVisitor::RelativeOrder::GreaterThan) {
       return false;
     }
     // Otherwise compare the coefficient as well:
-    const std::optional<OrderVisitor::RelativeOrder> order_coeff =
-        VisitBinaryStruct(a.second, b.second, OrderVisitor{});
-    ASSERT(order_coeff);
-    return *order_coeff == OrderVisitor::RelativeOrder::LessThan;
+    return VisitBinaryStruct(a.second, b.second, OrderVisitor{}) ==
+           OrderVisitor::RelativeOrder::LessThan;
   });
 
   // Insert back into expected form (TODO: this is pretty inefficient...)

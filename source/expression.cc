@@ -45,9 +45,9 @@ Expr Expr::Diff(const Expr& var, const int reps) const {
   return Result;
 }
 
-Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}).value(); }
+Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}); }
 
-// TODO: It would good if these could be inlined for internal library code.
+// TODO: It would be good if these could be inlined for internal library code.
 // In some cases, Expr can be a universal reference to avoid a shared_ptr copy.
 
 Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
