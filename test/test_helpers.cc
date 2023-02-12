@@ -7,17 +7,38 @@
 
 namespace math {
 
+inline std::size_t CountNewlines(const std::string& str) {
+  return std::count(str.begin(), str.end(), '\n');
+}
+
+inline testing::AssertionResult FormatFailedResult(const std::string_view description,
+                                                   const std::string& name_a,
+                                                   const std::string& name_b, const Expr& a,
+                                                   const Expr& b) {
+  // If the formatted string has multiple lines, preface it w/ a line break:
+  const std::string a_str = a.ToString();
+  const std::string b_str = b.ToString();
+  const std::string_view a_prefix = CountNewlines(a_str) > 0 ? "\n" : " ";
+  const std::string_view b_prefix = CountNewlines(b_str) > 0 ? "\n" : " ";
+
+  // clang-format off
+  return testing::AssertionFailure() << fmt::format(
+             "{} {} {}, where:\n{} ={}{}\nand {} ={}{}\n"
+             "expression tree for `{}`:\n{}\n"
+             "expression tree for `{}`:\n{}",
+             name_a, description, name_b,
+             name_a, a_prefix, a_str, name_b, b_prefix, b_str,
+             name_a, FormatDebugTree(a),
+             name_b, FormatDebugTree(b));
+  // clang-format on
+}
+
 testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const std::string& name_b,
                                              const Expr& a, const Expr& b) {
   if (a.IsIdenticalTo(b)) {
     return testing::AssertionSuccess();
   }
-  return testing::AssertionFailure() << fmt::format(
-             "{} is not identical to {}, where:\n{} = {}\nand {} = {}\n"
-             "expression tree for `{}`:\n{}\n"
-             "expression tree for `{}`:\n{}",
-             name_a, name_b, name_a, a.ToString(), name_b, b.ToString(), name_a, FormatDebugTree(a),
-             name_b, FormatDebugTree(b));
+  return FormatFailedResult("is not identical to", name_a, name_b, a, b);
 }
 
 testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
@@ -26,12 +47,7 @@ testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
   if (!a.IsIdenticalTo(b)) {
     return testing::AssertionSuccess();
   }
-  return testing::AssertionFailure() << fmt::format(
-             "{} is identical to {}, where:\n{} = {}\nand {} = {}\n"
-             "expression tree for `{}`:\n{}\n"
-             "expression tree for `{}`:\n{}",
-             name_a, name_b, name_a, a.ToString(), name_b, b.ToString(), name_a, FormatDebugTree(a),
-             name_b, FormatDebugTree(b));
+  return FormatFailedResult("is identical (and should not be) to", name_a, name_b, a, b);
 }
 
 }  // namespace math

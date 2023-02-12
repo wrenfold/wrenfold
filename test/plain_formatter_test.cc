@@ -2,6 +2,7 @@
 
 #include "constants.h"
 #include "functions.h"
+#include "matrix_functions.h"
 #include "test_helpers.h"
 #include "tree_formatter.h"
 
@@ -9,6 +10,19 @@ namespace math {
 using namespace math::custom_literals;
 
 #define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(StringEqualTestHelper, val1, val2)
+
+inline std::string EscapeNewlines(const std::string input) {
+  std::string output;
+  output.reserve(input.size());
+  for (char c : input) {
+    if (c == '\n') {
+      output += "\\n";
+    } else {
+      output += c;
+    }
+  }
+  return output;
+}
 
 testing::AssertionResult StringEqualTestHelper(const std::string&, const std::string& name_b,
                                                const std::string& a, const Expr& b) {
@@ -19,7 +33,7 @@ testing::AssertionResult StringEqualTestHelper(const std::string&, const std::st
   return testing::AssertionFailure() << fmt::format(
              "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
              "The expression tree for `{}` is:\n{}",
-             a, name_b, name_b, b_str, name_b, FormatDebugTree(b));
+             EscapeNewlines(a), name_b, name_b, EscapeNewlines(b_str), name_b, FormatDebugTree(b));
 }
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
@@ -112,8 +126,20 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
   ASSERT_STR_EQ("cos(x)", cos(x));
   ASSERT_STR_EQ("sin(cos(y))", sin(cos(y)));
   ASSERT_STR_EQ("atan(x * y)", atan(x * y));
-  ASSERT_STR_EQ("acos(-5 * y)", acos(y * -5_s));
+  ASSERT_STR_EQ("acos(-5 * y)", acos(y * -5));
   ASSERT_STR_EQ("acos(x) * asin(y)", acos(x) * asin(y));
+}
+
+TEST(PlainFormatterTest, TestMatrix) {
+  const Expr a{"a"};
+  const Expr b{"b"};
+  const Expr c{"c"};
+  const Expr d{"d"};
+  ASSERT_STR_EQ("[[a, b],\n [c, d]]", CreateMatrix(2, 2, a, b, c, d));
+  ASSERT_STR_EQ("[[2 * a, b - c],\n [    c, 3 * d]]", CreateMatrix(2, 2, a * 2, b - c, c, d * 3));
+  ASSERT_STR_EQ("[a,\n b,\n c]", Vector(a, b, c));
+  ASSERT_STR_EQ("[-3 + a,\n      b,\n cos(c)]", Vector(a - 3, b, cos(c)));
+  ASSERT_STR_EQ("[[2, a * b * c, sin(d)]]", RowVector(2, a * b * c, sin(d)));
 }
 
 }  // namespace math

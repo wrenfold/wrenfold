@@ -113,6 +113,7 @@ void PlainFormatter::Apply(const Matrix& mat) {
         output_ += "]";
       }
     }
+    output_ += "]";
   }
 }
 
