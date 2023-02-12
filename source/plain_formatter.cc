@@ -26,12 +26,12 @@ void PlainFormatter::Apply(const Addition& expr) {
       }
       // Don't multiply by negative one:
       if (IsNegativeOne(coeff)) {
-        multiplicand.Receive(*this);
+        FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
         (-coeff).Receive(*this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
-          multiplicand.Receive(*this);
+          FormatPrecedence(Precedence::Multiplication, multiplicand);
         }
       }
     } else {
@@ -39,12 +39,12 @@ void PlainFormatter::Apply(const Addition& expr) {
         output_ += " + ";
       }
       if (IsOne(coeff)) {
-        multiplicand.Receive(*this);
+        FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
         coeff.Receive(*this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
-          multiplicand.Receive(*this);
+          FormatPrecedence(Precedence::Multiplication, multiplicand);
         }
       }
     }

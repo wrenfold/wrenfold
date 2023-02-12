@@ -27,16 +27,16 @@ TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
   const Expr x{"x"};
   const Expr y{"y"};
   ASSERT_STR_EQ("w + x + y", x + y + w);
-  ASSERT_STR_EQ("2 + x", x + 2_s);
-  ASSERT_STR_EQ("-10 + y", y - 10_s);
-  ASSERT_STR_EQ("5 - 10 / 3 * w", 5_s - 10_s / 3_s * w);
-  ASSERT_STR_EQ("-5 - x", -5_s - x);
-  ASSERT_STR_EQ("14 - 3 * x", 14_s - 3_s * x);
-  ASSERT_STR_EQ("1.5 + w + y", w + 1.5_s + y);
+  ASSERT_STR_EQ("2 + x", x + 2);
+  ASSERT_STR_EQ("-10 + y", y - 10);
+  ASSERT_STR_EQ("5 - 10 / 3 * w", 5 - 10 / 3_s * w);
+  ASSERT_STR_EQ("-5 - x", -5 - x);
+  ASSERT_STR_EQ("14 - 3 * x", 14 - 3 * x);
+  ASSERT_STR_EQ("1.5 + w + y", w + 1.5 + y);
   ASSERT_STR_EQ("w + x", x + 0_s + w);
   ASSERT_STR_EQ("y", x + y - x);
   ASSERT_STR_EQ("x - y", x - y);
-  ASSERT_STR_EQ("5 / 6 - x + y", -x + y + 5_s / 6_s);
+  ASSERT_STR_EQ("5 / 6 - x + y", -x + y + 5_s / 6);
   ASSERT_STR_EQ("-w - x + y", -w + -x + y);
 }
 
@@ -51,6 +51,10 @@ TEST(PlainFormatterTest, TestMultiplication) {
   ASSERT_STR_EQ("(3.14 + x) * (x + z)", (x + 3.14_s) * (z + x));
   ASSERT_STR_EQ("2 * x + y * z", x + y * z + x);
   ASSERT_STR_EQ("z + x * y * z", z + z * (x * y));
+  ASSERT_STR_EQ("x + 2 * (-3 + w)", x + 2 * (w - 3));
+  ASSERT_STR_EQ("x * z - 5 / 3 * (x + y)", x * z - 5_s / 3 * (x + y));
+  ASSERT_STR_EQ("5 - 2 * y", -2 * y + 5);
+  ASSERT_STR_EQ("-x + 2 * y", 2 * y - x);
 
   // Negations:
   ASSERT_STR_EQ("-x", -x);
