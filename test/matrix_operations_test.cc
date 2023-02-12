@@ -1,11 +1,10 @@
-// Copyright 2022 Gareth Cross
-#include "expressions/addition.h"
-#include "expressions/multiplication.h"
-#include "expressions/power.h"
-#include "functions.h"
+// Copyright 2023 Gareth Cross
+#include "error_types.h"
+#include "matrix_functions.h"
 #include "test_helpers.h"
 
 namespace math {
+using namespace custom_literals;
 
 TEST(MatrixOperationsTest, TestConstruct) {
   const Expr x{"x"};
@@ -46,6 +45,41 @@ TEST(MatrixOperationsTest, TestConstruct) {
   // Invalid access:
   ASSERT_THROW(m(5, 0), DimensionError);
   ASSERT_THROW(m(1, 10), DimensionError);
+
+  // Cannot make a matrix from sub-matrices:
+  ASSERT_THROW(RowVector(2.0, m), TypeError);
+}
+
+TEST(MatrixOperationsTest, TestAddition) {
+  const Expr a{"a"};
+  const Expr b{"b"};
+  const Expr c{"c"};
+  const Expr d{"d"};
+  ASSERT_IDENTICAL(Vector(a + c, b - d, b * 2 + 5), Vector(a, -d, b) + Vector(c, b, b + 5));
+  ASSERT_IDENTICAL(Vector(0, 0, 0), Vector(a, b, c) + Vector(-a, -b, -c));
+  ASSERT_IDENTICAL(Vector(a, b) + RowVector(c, d).Transpose(), Vector(a + c, b + d));
+  ASSERT_THROW(Vector(a, b) + RowVector(c, d), DimensionError);
+  ASSERT_THROW(Vector(a, b) + CreateMatrix(2, 2, c, d, 2, -3_s / 5), DimensionError);
+
+  const MatrixExpr m = CreateMatrix(2, 2, a, b, c, d);
+  ASSERT_IDENTICAL(m, m + Zeros(2, 2));
+  ASSERT_IDENTICAL(CreateMatrix(2, 2, a + 1, b, c, d + 1), m + Identity(2));
+  ASSERT_IDENTICAL(CreateMatrix(2, 2, 2 * a, b + c, c + b, d + d), m + m.Transpose());
+}
+
+TEST(MatrixOperationsTest, TestMultiplication) {
+  const Expr a{"a"};
+  const Expr b{"b"};
+  const Expr c{"c"};
+  const Expr d{"d"};
+
+  ASSERT_IDENTICAL(Identity(4), Identity(4) * Identity(4));
+  ASSERT_IDENTICAL(Vector(a, b, c, d), Identity(4) * Vector(a, b, c, d));
+
+  // Reduction to scalar:
+  ASSERT_IDENTICAL(a * c + b * d, RowVector(a, b) * Vector(c, d));
+
+  //
 }
 
 }  // namespace math

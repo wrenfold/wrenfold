@@ -79,10 +79,10 @@ void PlainFormatter::Apply(const Matrix& mat) {
   });
 
   // Determine widest element in each column
-  std::vector<std::size_t> column_widths{mat.NumCols(), 0};
+  std::vector<std::size_t> column_widths(mat.NumCols(), 0);
   for (std::size_t j = 0; j < mat.NumCols(); ++j) {
     for (std::size_t i = 0; i < mat.NumRows(); ++i) {
-      column_widths[j] = std::max(column_widths[j], elements[i * mat.NumCols() + j].size());
+      column_widths[j] = std::max(column_widths[j], elements[mat.Index(i, j)].size());
     }
   }
 
@@ -101,10 +101,10 @@ void PlainFormatter::Apply(const Matrix& mat) {
       output_ += "[";
       const std::size_t last_col = mat.NumCols() - 1;
       for (std::size_t j = 0; j < last_col; ++j) {
-        fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[i * mat.NumCols() + j],
+        fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.Index(i, j)],
                        column_widths[j]);
       }
-      fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[i * mat.NumCols() + last_col],
+      fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.Index(i, last_col)],
                      column_widths[last_col]);
       // Insert a comma and new-line if another row is coming.
       if (i + 1 < mat.NumRows()) {

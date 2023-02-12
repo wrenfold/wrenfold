@@ -75,6 +75,40 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
     return args.front();
   }
 
+  if (std::any_of(args.begin(), args.end(), &TryCast<Matrix>)) {
+    // TODO: Don't copy here - operate on args directly.
+    std::vector<Expr> scalars = args;
+    std::optional<Matrix> matrix_product{};  //  Optional because we can't default initialize.
+    const auto new_end =
+        std::remove_if(scalars.begin(), scalars.end(), [&matrix_product](const Expr& expr) -> bool {
+          // This is a matrix, pull it out and chain them together. If dimensions don't work out,
+          // we'll throw in the multiplication operator.
+          if (const Matrix* m = TryCast<Matrix>(expr); m != nullptr) {
+            if (!matrix_product) {
+              matrix_product = std::move(*m);
+            } else {
+              matrix_product = matrix_product.value() * *m;
+            }
+            return true;
+          }
+          return false;
+        });
+
+    ASSERT(matrix_product.has_value(), "Must have been at least one matrix");
+    scalars.erase(new_end, scalars.end());
+
+    Matrix result = std::move(*matrix_product);
+    if (!scalars.empty()) {
+      // If there were any scalar terms, multiply them into the matrix now:
+      result.MultiplyByScalarInPlace(FromOperands(scalars));
+    }
+    if (result.NumRows() == 1 && result.NumCols() == 1) {
+      // Discard the matrix dimension, and return a scalar.
+      return result[0];
+    }
+    return MakeExpr<Matrix>(std::move(result));
+  }
+
   // Check for zeros:
   // TODO: This is not valid if there are divisions by zero...
   // We need an 'undefined' type.

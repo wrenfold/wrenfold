@@ -1,7 +1,5 @@
 #include "functions.h"
 
-#include <unordered_map>
-
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
 

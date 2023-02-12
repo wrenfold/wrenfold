@@ -32,6 +32,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/functions.cc
     source/hashing.cc
     source/plain_formatter.cc
+    source/matrix_functions.cc
     source/tree_formatter.cc
     source/visitor.cc)
 

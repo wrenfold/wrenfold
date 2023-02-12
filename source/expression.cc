@@ -81,11 +81,9 @@ std::size_t MatrixExpr::NumRows() const { return AsMatrix().NumRows(); }
 
 std::size_t MatrixExpr::NumCols() const { return AsMatrix().NumCols(); }
 
-const Expr& MatrixExpr::operator[](std::size_t i) const { return AsMatrix().operator[](i); }
+const Expr& MatrixExpr::operator[](std::size_t i) const { return AsMatrix()[i]; }
 
-const Expr& MatrixExpr::operator()(std::size_t i, std::size_t j) const {
-  return AsMatrix().operator()(i, j);
-}
+const Expr& MatrixExpr::operator()(std::size_t i, std::size_t j) const { return AsMatrix()(i, j); }
 
 MatrixExpr MatrixExpr::Transpose() const {
   return MatrixExpr{MakeExpr<Matrix>(AsMatrix().Transpose())};

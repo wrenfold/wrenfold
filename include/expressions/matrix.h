@@ -6,6 +6,7 @@
 #include "error_types.h"
 #include "expression_concept.h"
 #include "expression_impl.h"
+#include "visitor_impl.h"
 
 namespace math {
 
@@ -21,6 +22,12 @@ class Matrix : public ExpressionImpl<Matrix> {
     if (data_.size() != rows_ * cols_) {
       throw DimensionError("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
                            data_.size(), rows_, cols_);
+    }
+    for (const Expr& expr : data_) {
+      if (TryCast<Matrix>(expr)) {
+        throw TypeError("Cannot nest expression of type {} in a matrix. Inner expression:\n{}",
+                        expr.TypeName(), expr.ToString());
+      }
     }
     ASSERT_GREATER(rows_, 0);
     ASSERT_GREATER(cols_, 0);
@@ -41,6 +48,9 @@ class Matrix : public ExpressionImpl<Matrix> {
 
   // Transpose the matrix.
   Matrix Transpose() const;
+
+  // Multiply by a scalar, modifying in place.
+  void MultiplyByScalarInPlace(const Expr& arg);
 
   // Dimensions of the matrix.
   std::size_t NumRows() const { return rows_; }
@@ -65,6 +75,8 @@ class Matrix : public ExpressionImpl<Matrix> {
   std::vector<Expr> data_;  //  TODO: Small vector up to size 4x4.
 };
 
+static_assert(std::is_move_constructible_v<Matrix> && std::is_move_assignable_v<Matrix>);
+
 inline const Expr& Matrix::operator[](std::size_t i) const {
   if (rows_ != 1 && cols_ != 1) {
     throw DimensionError(
@@ -87,5 +99,19 @@ inline const Expr& Matrix::operator()(std::size_t i, std::size_t j) const {
 
 // Multiply matrices w/ dimension checking.
 Matrix operator*(const Matrix& a, const Matrix& b);
+
+// Add matrices w/ dimension checking.
+Matrix operator+(const Matrix& a, const Matrix& b);
+
+// Iterate over a matrix and run `callable` on each element. The purpose of this method is
+// to have one place (or fewer places) where the traversal order (row-major) is specified.
+template <typename Callable>
+inline void IterMatrix(std::size_t rows, std::size_t cols, Callable&& callable) {
+  for (std::size_t i = 0; i < rows; ++i) {
+    for (std::size_t j = 0; j < cols; ++j) {
+      callable(i, j);
+    }
+  }
+}
 
 }  // namespace math
