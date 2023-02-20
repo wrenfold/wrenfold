@@ -12,4 +12,4 @@ set(INSTALL_GTEST
 add_subdirectory(gtest)
 
 # Add nanobind:
-add_subdirectory(nanobind)
+add_subdirectory(pybind11)
