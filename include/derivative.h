@@ -11,9 +11,10 @@ namespace math {
 using namespace math::custom_literals;
 
 // Visitor that takes the derivative of an input expression.
-class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
+class DiffVisitor {
  public:
   constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using ReturnType = Expr;
 
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
@@ -24,11 +25,20 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
     std::vector<Expr> terms;
     terms.reserve(add.Arity());
     std::transform(add.begin(), add.end(), std::back_inserter(terms),
-                   [this](const Expr& x) { return x.Receive(*this); });
+                   [this](const Expr& x) { return VisitStruct(x, *this); });
     return Addition::FromOperands(terms);
   }
 
   Expr Apply(const Constant&) { return Constants::Zero; }
+
+  // Element-wise derivative of matrix.
+  Expr Apply(const Matrix& mat) {
+    std::vector<Expr> output;
+    output.reserve(mat.Size());
+    std::transform(mat.begin(), mat.end(), std::back_inserter(output),
+                   [this](const Expr& x) { return VisitStruct(x, *this); });
+    return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
+  }
 
   // Do product expansion over all terms in the multiplication:
   // a * b
@@ -44,7 +54,7 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
       mul_terms.reserve(mul.Arity());
       for (std::size_t j = 0; j < mul.Arity(); ++j) {
         if (j == i) {
-          mul_terms.push_back(mul[j].Receive(*this));
+          mul_terms.push_back(VisitStruct(mul[j], *this));
         } else {
           mul_terms.push_back(mul[j]);
         }
@@ -57,7 +67,7 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
   // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
   Expr Apply(const UnaryFunction& func) {
     // Differentiate the argument:
-    const Expr d_arg = func.Arg().Receive(*this);
+    Expr d_arg = VisitStruct(func.Arg(), *this);
     if (IsZero(d_arg)) {
       // If zero, we don't need to do any further operations.
       return Constants::Zero;
@@ -99,8 +109,8 @@ class DiffVisitor final : public VisitorImpl<DiffVisitor, Expr> {
   Expr Apply(const Power& pow) {
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
-    const Expr a_diff = a.Receive(*this);
-    const Expr b_diff = b.Receive(*this);
+    const Expr a_diff = VisitStruct(a, *this);
+    const Expr b_diff = VisitStruct(b, *this);
     // TODO: Check if a_diff and b_diff are zero.
     return b * Power::Create(a, b - Constants::One) * a_diff +
            Power::Create(a, b) * log(a) * b_diff;

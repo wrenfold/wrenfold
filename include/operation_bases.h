@@ -33,7 +33,7 @@ class NAryOp : public ExpressionImpl<Derived> {
   ContainerType::const_iterator end() const { return args_.end(); }
 
   // Name of the operation.
-  constexpr const char* Name() const { return Derived::NameStr; }
+  constexpr std::string_view Name() const { return Derived::NameStr; }
 
   // This will only be called for things with the same derived type, so we don't
   // need to check the specific operator here.

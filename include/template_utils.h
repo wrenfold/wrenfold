@@ -1,5 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include <optional>
 #include <tuple>
 
 namespace math {
@@ -163,5 +164,15 @@ struct ConvertCallToApply {
 // Version of `ApplyReturnType` that operates on operator() instead.
 template <typename Callable, typename List>
 using CallableReturnType = ApplyReturnType<ConvertCallToApply<Callable>, List>;
+
+template <typename T, typename = void>
+struct DecayOptional {
+  using Type = T;
+};
+
+template <typename T>
+struct DecayOptional<std::optional<T>> {
+  using Type = T;
+};
 
 }  // namespace math

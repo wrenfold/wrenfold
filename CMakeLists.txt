@@ -15,23 +15,26 @@ find_package(
   Python 3.8
   COMPONENTS Interpreter Development.Module
   REQUIRED)
+message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
 
 # Add third party code
 add_subdirectory(dependencies)
 
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
-    source/expressions/constant_expressions.cc
-    source/hashing.cc
     source/constants.cc
     source/expression.cc
+    source/expressions/addition.cc
+    source/expressions/constant_expressions.cc
+    source/expressions/matrix.cc
     source/expressions/multiplication.cc
     source/expressions/power.cc
     source/functions.cc
+    source/hashing.cc
     source/plain_formatter.cc
+    source/matrix_functions.cc
     source/tree_formatter.cc
-    source/visitor.cc
-    source/expressions/addition.cc)
+    source/visitor.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})

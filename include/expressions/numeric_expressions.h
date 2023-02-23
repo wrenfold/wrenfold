@@ -18,6 +18,8 @@ class Rational;
 // An integral constant.
 class Integer : public ExpressionImpl<Integer> {
  public:
+  static constexpr std::string_view NameStr = "Integer";
+
   using IntegralType = int64_t;
 
   // Construct from number.
@@ -52,6 +54,8 @@ class Integer : public ExpressionImpl<Integer> {
 // A rational value (in form numerator / denominator).
 class Rational : public ExpressionImpl<Rational> {
  public:
+  static constexpr std::string_view NameStr = "Rational";
+
   using IntegralType = Integer::IntegralType;
 
   // Construct a rational. Conversion to canonical form is automatic.
@@ -124,6 +128,8 @@ class Rational : public ExpressionImpl<Rational> {
 // A floating point constant.
 class Float : public ExpressionImpl<Float> {
  public:
+  static constexpr std::string_view NameStr = "Float";
+
   using FloatType = double;
 
   // Construct from float value.

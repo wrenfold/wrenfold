@@ -1,5 +1,6 @@
 #include "plain_formatter.h"
 
+#include <algorithm>
 #include <optional>
 
 #include <fmt/format.h>
@@ -7,6 +8,7 @@
 #include "assertions.h"
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
+#include "string_utils.h"
 
 namespace math {
 
@@ -24,12 +26,12 @@ void PlainFormatter::Apply(const Addition& expr) {
       }
       // Don't multiply by negative one:
       if (IsNegativeOne(coeff)) {
-        multiplicand.Receive(*this);
+        FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
         (-coeff).Receive(*this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
-          multiplicand.Receive(*this);
+          FormatPrecedence(Precedence::Multiplication, multiplicand);
         }
       }
     } else {
@@ -37,12 +39,12 @@ void PlainFormatter::Apply(const Addition& expr) {
         output_ += " + ";
       }
       if (IsOne(coeff)) {
-        multiplicand.Receive(*this);
+        FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
         coeff.Receive(*this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
-          multiplicand.Receive(*this);
+          FormatPrecedence(Precedence::Multiplication, multiplicand);
         }
       }
     }
@@ -59,6 +61,55 @@ void PlainFormatter::Apply(const Integer& expr) {
 
 void PlainFormatter::Apply(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
+}
+
+void PlainFormatter::Apply(const Matrix& mat) {
+  ASSERT_GREATER_OR_EQ(mat.NumRows(), 0);
+  ASSERT_GREATER_OR_EQ(mat.NumCols(), 0);
+
+  if (mat.Size() == 0) {
+    // Empty matrix:
+    output_ += "[]";
+    return;
+  }
+
+  // Buffer of all the formatted elements:
+  std::vector<std::string> elements;
+  elements.resize(mat.Size());
+
+  // Format all the child elements up front. That way we can do alignment:
+  std::transform(mat.begin(), mat.end(), elements.begin(), [this](const Expr& expr) {
+    PlainFormatter child_formatter{power_style_};
+    expr.Receive(child_formatter);
+    return child_formatter.output_;
+  });
+
+  // Determine widest element in each column
+  std::vector<std::size_t> column_widths(mat.NumCols(), 0);
+  for (std::size_t j = 0; j < mat.NumCols(); ++j) {
+    for (std::size_t i = 0; i < mat.NumRows(); ++i) {
+      column_widths[j] = std::max(column_widths[j], elements[mat.Index(i, j)].size());
+    }
+  }
+
+  output_ += "[";
+  for (std::size_t i = 0; i < mat.NumRows(); ++i) {
+    output_ += "[";
+    const std::size_t last_col = mat.NumCols() - 1;
+    for (std::size_t j = 0; j < last_col; ++j) {
+      fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.Index(i, j)],
+                     column_widths[j]);
+    }
+    fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.Index(i, last_col)],
+                   column_widths[last_col]);
+    // Insert a comma and new-line if another row is coming.
+    if (i + 1 < mat.NumRows()) {
+      output_ += "],\n ";
+    } else {
+      output_ += "]";
+    }
+  }
+  output_ += "]";
 }
 
 void PlainFormatter::Apply(const Multiplication& expr) {

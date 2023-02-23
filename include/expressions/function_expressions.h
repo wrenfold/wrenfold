@@ -50,6 +50,8 @@ class BuiltInFunctionBase : public ExpressionImpl<Derived> {
 // Store a unary function. Built-in unary functions `f(x)` are described by an enum indicating
 class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
  public:
+  static constexpr std::string_view NameStr = "UnaryFunction";
+
   UnaryFunction(UnaryFunctionName func, Expr arg) : func_(func), arg_(std::move(arg)) {}
 
   // Get the function name.

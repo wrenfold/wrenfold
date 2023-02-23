@@ -15,11 +15,10 @@ class ExpressionImpl : public ExpressionConcept {
   const Derived& AsDerived() const { return static_cast<const Derived&>(*this); }
 
   // Cast to derived type and apply the visitor.
-  Expr Receive(VisitorBase<Expr>& visitor) const override {
-    return visitor.ApplyVirtual(AsDerived());
-  }
+  void Receive(VisitorBase& visitor) const override { visitor.ApplyVirtual(AsDerived()); }
 
-  void Receive(VisitorBase<void>& visitor) const override { visitor.ApplyVirtual(AsDerived()); }
+  // Get the derived type string name (a static constexpr member).
+  std::string_view TypeName() const override { return Derived::NameStr; }
 
  protected:
   // TODO: Maybe check the addresses here before trying dynamic_cast? Needs profiling.

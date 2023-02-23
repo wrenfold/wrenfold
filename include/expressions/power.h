@@ -10,6 +10,8 @@ namespace math {
 // Power operation: base^exponent
 class Power : public ExpressionImpl<Power> {
  public:
+  static constexpr std::string_view NameStr = "Power";
+
   Power(Expr base, Expr exponent) : base_(std::move(base)), exponent_(std::move(exponent)) {}
 
   // Base and exponent must match.

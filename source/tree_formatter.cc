@@ -45,7 +45,7 @@ struct TreeFormatter {
   }
 
   template <typename... Args>
-  void AppendName(const char* fmt_str, Args&&... args) {
+  void AppendName(const std::string_view fmt_str, Args&&... args) {
     ApplyIndentation();
     fmt::format_to(std::back_inserter(output_), fmt_str, std::forward<Args>(args)...);
     output_ += "\n";
@@ -70,6 +70,16 @@ struct TreeFormatter {
       VisitLeft(op[i]);
     }
     VisitRight(op[op.Arity() - 1]);
+  }
+
+  void Apply(const Matrix& mat) {
+    // TODO: Print the (row, col) index for each element.
+    AppendName("Matrix ({}, {}):", mat.NumRows(), mat.NumCols());
+    const auto& elements = mat.Data();
+    for (std::size_t i = 0; i + 1 < elements.size(); ++i) {
+      VisitLeft(elements[i]);
+    }
+    VisitRight(elements.back());
   }
 
   void Apply(const Power& op) {

@@ -7,6 +7,7 @@ class Addition;
 class Constant;
 class Float;
 class Integer;
+class Matrix;
 class Multiplication;
 class Power;
 class Rational;

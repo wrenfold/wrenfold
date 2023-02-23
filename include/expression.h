@@ -6,6 +6,8 @@
 
 namespace math {
 
+class MatrixExpr;
+
 /**
  * Wrapper around a pointer to an abstract expression. Defined so you can easily write chains of
  * operations without dealing with pointers at all.
@@ -25,29 +27,19 @@ class Expr {
   Expr(T v, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>, void*> = nullptr)
       : Expr(ConstructImplicit(v)) {}
 
-  // Get the implementation pointer.
-  const ExpressionConceptConstPtr& GetImpl() const { return impl_; }
-
-  // Get a raw pointer, cast dynamically to a particular type.
-  template <typename T>
-  const T* DynamicCast() const {
-    return impl_->As<T>();
-  }
-
-  // Check that underlying type matches `T`.
-  template <typename T>
-  bool Is() const {
-    return DynamicCast<T>() != nullptr;
-  }
-
-  // Static cast to the specified type.
-  template <typename T>
-  const T* StaticCast() const {
-    return static_cast<const T*>(impl_.get());
-  }
+  virtual ~Expr() = default;
 
   // Test if the two expressions are identical.
-  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(other.impl_); }
+  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(*other.impl_); }
+
+  // Test if the two expressions have the same underlying address.
+  bool HasSameAddress(const Expr& other) const { return impl_.get() == other.impl_.get(); }
+
+  // Useful for debugging sometimes: get the underlying address as void*.
+  [[maybe_unused]] const void* GetAddress() const { return static_cast<const void*>(impl_.get()); }
+
+  // Get the underlying type name as a string.
+  std::string_view TypeName() const { return impl_->TypeName(); }
 
   // Convert to string.
   std::string ToString() const;
@@ -62,10 +54,10 @@ class Expr {
   Expr Distribute() const;
 
   // Receive a visitor.
-  void Receive(VisitorBase<void>& visitor) const { impl_->Receive(visitor); }
+  void Receive(VisitorBase& visitor) const { impl_->Receive(visitor); }
 
-  // Receive a visitor that returns an expression.
-  Expr Receive(VisitorBase<Expr>& visitor) const { return impl_->Receive(visitor); }
+ protected:
+  [[nodiscard]] const ExpressionConceptConstPtr& Impl() const { return impl_; }
 
  private:
   // Construct constant from float.
@@ -90,6 +82,42 @@ class Expr {
 
 static_assert(std::is_move_assignable_v<Expr> && std::is_move_constructible_v<Expr>,
               "Should be movable");
+
+// Child of `Expr` that exposes certain operations only valid on matrices.
+class MatrixExpr : public Expr {
+ public:
+  // Construct from expression. The underlying type is checked and an exception will be thrown
+  // if the argument is not a matrix.
+  explicit MatrixExpr(Expr&& arg);
+  explicit MatrixExpr(const Expr& arg);
+
+  // Static constructor: Create a dense matrix of expressions.
+  static MatrixExpr Create(index_t rows, index_t cols, std::vector<Expr> args);
+
+  // Get # of rows.
+  index_t NumRows() const;
+
+  // Get # of columns.
+  index_t NumCols() const;
+
+  // Size as size_t.
+  std::size_t Size() const { return static_cast<std::size_t>(NumRows() * NumCols()); }
+
+  // For vectors or row-vectors only. Access element `i`.
+  const Expr& operator[](index_t i) const;
+
+  // Access row `i` and column `j`.
+  const Expr& operator()(index_t i, index_t j) const;
+
+  // Get a block of rows [start, start + length).
+  MatrixExpr GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const;
+
+  // Transpose the matrix.
+  [[nodiscard]] MatrixExpr Transpose() const;
+
+  // Static cast to underlying matrix type.
+  const Matrix& AsMatrix() const;
+};
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {

@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "derivative.h"
 #include "distribute.h"
+#include "expressions/matrix.h"
 #include "expressions/numeric_expressions.h"
 #include "expressions/variable.h"
 #include "plain_formatter.h"
@@ -38,16 +39,16 @@ Expr Expr::Diff(const Expr& var, const int reps) const {
   ASSERT_GREATER_OR_EQ(reps, 0);
 
   DiffVisitor visitor{*as_var};
-  Expr Result = *this;
+  Expr result = *this;
   for (int i = 0; i < reps; ++i) {
-    Result = Result.Receive(visitor);
+    result = VisitStruct(result, visitor);
   }
-  return Result;
+  return result;
 }
 
-Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}).value(); }
+Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}); }
 
-// TODO: It would good if these could be inlined for internal library code.
+// TODO: It would be good if these could be inlined for internal library code.
 // In some cases, Expr can be a universal reference to avoid a shared_ptr copy.
 
 Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
@@ -59,7 +60,49 @@ Expr operator-(const Expr& a, const Expr& b) {
 Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromTwoOperands(a, b); }
 
 Expr operator/(const Expr& a, const Expr& b) {
+  if (TryCast<Matrix>(b)) {
+    throw TypeError("Cannot divide by a matrix expression of type: {}", b.TypeName());
+  }
   return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));
+}
+
+MatrixExpr::MatrixExpr(Expr&& arg) : Expr(std::move(arg)) {
+  // TODO: Need to handle other matrix types here eventually.
+  if (!TryCast<Matrix>(*this)) {
+    throw TypeError("Attempted to construct MatrixExpr from expression of type: {}",
+                    arg.TypeName());
+  }
+}
+
+MatrixExpr::MatrixExpr(const Expr& arg) : MatrixExpr(Expr{arg}) {}
+
+MatrixExpr MatrixExpr::Create(index_t rows, index_t cols, std::vector<Expr> args) {
+  return MatrixExpr{MakeExpr<Matrix>(rows, cols, std::move(args))};
+}
+
+// For now, a lot of these methods just forward to the `Matrix` type. In the future,
+// we may have different matrix types.
+
+index_t MatrixExpr::NumRows() const { return AsMatrix().NumRows(); }
+
+index_t MatrixExpr::NumCols() const { return AsMatrix().NumCols(); }
+
+const Expr& MatrixExpr::operator[](index_t i) const { return AsMatrix()[i]; }
+
+const Expr& MatrixExpr::operator()(index_t i, index_t j) const { return AsMatrix()(i, j); }
+
+MatrixExpr MatrixExpr::GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const {
+  Matrix result = AsMatrix().GetBlock(row, col, nrows, ncols);
+  return MatrixExpr{MakeExpr<Matrix>(std::move(result))};
+}
+
+MatrixExpr MatrixExpr::Transpose() const {
+  return MatrixExpr{MakeExpr<Matrix>(AsMatrix().Transpose())};
+}
+
+const Matrix& MatrixExpr::AsMatrix() const {
+  // Cast is safe since the constructor checked this condition.
+  return static_cast<const Matrix&>(*Impl());
 }
 
 }  // namespace math

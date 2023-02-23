@@ -8,7 +8,7 @@ namespace math {
 
 class Addition : public NAryOp<Addition> {
  public:
-  static constexpr const char* NameStr = "Addition";
+  static constexpr std::string_view NameStr = "Addition";
 
   // Do not call this - use `FromTwoOperands`.
   explicit Addition(std::vector<Expr> args);

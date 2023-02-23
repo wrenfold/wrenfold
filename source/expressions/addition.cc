@@ -51,7 +51,34 @@ static std::optional<Float> AddFloats(std::vector<Expr>& input) {
 
 Addition::Addition(std::vector<Expr> args) : NAryOp(std::move(args)) {}
 
+// TODO: This logic will need to generalize once we have symbolic matrix expressions.
+// We might need a `MatrixAddition` expression.
+inline Expr FromMatrixOperands(const std::vector<Expr>& args) {
+  std::vector<const Matrix*> matrices;
+  matrices.reserve(args.size());
+  std::transform(args.begin(), args.end(), std::back_inserter(matrices), [](const Expr& expr) {
+    if (const Matrix* const m = TryCast<Matrix>(expr); m != nullptr) {
+      return m;
+    } else {
+      throw TypeError("Cannot add scalar expression of type {} to matrix. Expression contents: {}",
+                      expr.TypeName(), expr.ToString());
+    }
+  });
+  ASSERT(!matrices.empty(), "Need at least one matrix");
+  // Recursively add up all the arguments.
+  Matrix output = *matrices.front();
+  for (std::size_t i = 1; i < matrices.size(); ++i) {
+    output = output + *matrices[i];
+  }
+  return MakeExpr<Matrix>(std::move(output));
+}
+
 Expr Addition::FromOperands(const std::vector<Expr>& args) {
+  const bool input_contains_matrix = std::any_of(args.begin(), args.end(), &TryCast<Matrix>);
+  if (input_contains_matrix) {
+    return FromMatrixOperands(args);
+  }
+
   std::vector<Expr> unpacked_args{};
   unpacked_args.reserve(args.size());
 
@@ -114,19 +141,16 @@ Expr Addition::FromOperands(const std::vector<Expr>& args) {
   std::copy(map.begin(), map.end(), std::back_inserter(coeff_mul));
 
   std::sort(coeff_mul.begin(), coeff_mul.end(), [](const auto& a, const auto& b) {
-    const std::optional<OrderVisitor::RelativeOrder> order_mul =
+    const OrderVisitor::RelativeOrder order_mul =
         VisitBinaryStruct(a.first, b.first, OrderVisitor{});
-    ASSERT(order_mul);
-    if (*order_mul == OrderVisitor::RelativeOrder::LessThan) {
+    if (order_mul == OrderVisitor::RelativeOrder::LessThan) {
       return true;
-    } else if (*order_mul == OrderVisitor::RelativeOrder::GreaterThan) {
+    } else if (order_mul == OrderVisitor::RelativeOrder::GreaterThan) {
       return false;
     }
     // Otherwise compare the coefficient as well:
-    const std::optional<OrderVisitor::RelativeOrder> order_coeff =
-        VisitBinaryStruct(a.second, b.second, OrderVisitor{});
-    ASSERT(order_coeff);
-    return *order_coeff == OrderVisitor::RelativeOrder::LessThan;
+    return VisitBinaryStruct(a.second, b.second, OrderVisitor{}) ==
+           OrderVisitor::RelativeOrder::LessThan;
   });
 
   // Insert back into expected form (TODO: this is pretty inefficient...)

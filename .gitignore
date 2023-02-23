@@ -41,3 +41,4 @@ cmake-build-debug/
 
 # PYTHON
 virtualenv/
+__pycache__/

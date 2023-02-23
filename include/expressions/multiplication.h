@@ -11,7 +11,7 @@ namespace math {
 // A multiplication of `N` terms.
 class Multiplication : public NAryOp<Multiplication> {
  public:
-  static constexpr const char* NameStr = "Multiplication";
+  static constexpr std::string_view NameStr = "Multiplication";
 
   // Do not call this - use `FromTwoOperands`.
   explicit Multiplication(std::vector<Expr> args);
