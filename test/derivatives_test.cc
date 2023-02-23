@@ -1,6 +1,7 @@
 #include "constants.h"
 #include "error_types.h"
 #include "functions.h"
+#include "matrix_functions.h"
 #include "test_helpers.h"
 #include "tree_formatter.h"
 
@@ -8,7 +9,7 @@
 namespace math {
 using namespace math::custom_literals;
 
-TEST(ScalarDerivativesTest, TestConstants) {
+TEST(DerivativesTest, TestConstants) {
   const Expr x{"x"};
   ASSERT_IDENTICAL(Constants::Zero, (5_s).Diff(x));
   ASSERT_IDENTICAL(Constants::Zero, (22.5_s).Diff(x, 4));
@@ -16,7 +17,7 @@ TEST(ScalarDerivativesTest, TestConstants) {
   ASSERT_THROW(x.Diff(5_s), AssertionError);
 }
 
-TEST(ScalarDerivativesTest, TestAdditionAndSubtraction) {
+TEST(DerivativesTest, TestAdditionAndSubtraction) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
@@ -29,7 +30,7 @@ TEST(ScalarDerivativesTest, TestAdditionAndSubtraction) {
   ASSERT_IDENTICAL(2_s, (x + y + x).Diff(x));
 }
 
-TEST(ScalarDerivativesTest, TestMultiplication) {
+TEST(DerivativesTest, TestMultiplication) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
@@ -50,7 +51,7 @@ TEST(ScalarDerivativesTest, TestMultiplication) {
   ASSERT_IDENTICAL(2_s * y / pow(x, 3_s), (y / x).Diff(x, 2));
 }
 
-TEST(ScalarDerivativesTest, TestPower) {
+TEST(DerivativesTest, TestPower) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
@@ -70,15 +71,16 @@ TEST(ScalarDerivativesTest, TestPower) {
                    pow(x * 2_s, x * 5_s / 7_s).Diff(x).Distribute());
 }
 
-TEST(ScalarDerivativesTest, TestLog) {
+TEST(DerivativesTest, TestLog) {
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_IDENTICAL(1_s / x, log(x).Diff(x));
+  ASSERT_IDENTICAL(1 / x, log(x).Diff(x));
   ASSERT_IDENTICAL(Constants::Zero, log(x).Diff(y));
-  ASSERT_IDENTICAL(1_s / (2_s * x), log(sqrt(x)).Diff(x));
+  ASSERT_IDENTICAL(1 / y, log(x * y).Diff(y));
+  ASSERT_IDENTICAL(1 / (2 * x), log(sqrt(x)).Diff(x));
 }
 
-TEST(ScalarDerivativesTest, TestTrig) {
+TEST(DerivativesTest, TestTrig) {
   const Expr x{"x"};
   const Expr y{"y"};
   ASSERT_IDENTICAL(cos(x), sin(x).Diff(x));
@@ -89,7 +91,7 @@ TEST(ScalarDerivativesTest, TestTrig) {
   ASSERT_IDENTICAL(-y / (x * x) / (cos(y / x) * cos(y / x)), tan(y / x).Diff(x));
 }
 
-TEST(ScalarDerivativesTest, TestInverseTrig) {
+TEST(DerivativesTest, TestInverseTrig) {
   const Expr x{"x"};
   const Expr y{"y"};
 
@@ -102,8 +104,19 @@ TEST(ScalarDerivativesTest, TestInverseTrig) {
   ASSERT_IDENTICAL(sqrt(x) / sqrt(1_s - y * y * x), asin(y * sqrt(x)).Diff(y));
 
   ASSERT_IDENTICAL(Constants::Zero, atan(Constants::Euler).Diff(y));
-  ASSERT_IDENTICAL(1_s / (x * x + 1_s), atan(x).Diff(x));
+  ASSERT_IDENTICAL(1_s / (x * x + 1), atan(x).Diff(x));
   ASSERT_IDENTICAL(3_s * (x * x) / (pow(x, 6_s) + 1_s), atan(pow(x, 3_s)).Diff(x));
+}
+
+TEST(DerivativesTest, TestMatrix) {
+  // Matrix derivative should do element-wise differentiation.
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+  ASSERT_IDENTICAL(Vector(0, 0, 0), Vector(x, y, 1).Diff(z));
+  ASSERT_IDENTICAL(Vector(0, 1, 0), Vector(x, y, z).Diff(y));
+  ASSERT_IDENTICAL(Vector(cos(y), 2 * x, -z / pow(x, 2)),
+                   Vector(x * cos(y), y + x * x, z / x).Diff(x));
 }
 
 }  // namespace math

@@ -27,8 +27,16 @@ class Expr {
   Expr(T v, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>, void*> = nullptr)
       : Expr(ConstructImplicit(v)) {}
 
+  virtual ~Expr() = default;
+
   // Test if the two expressions are identical.
   bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(*other.impl_); }
+
+  // Test if the two expressions have the same underlying address.
+  bool HasSameAddress(const Expr& other) const { return impl_.get() == other.impl_.get(); }
+
+  // Useful for debugging sometimes: get the underlying address as void*.
+  [[maybe_unused]] const void* GetAddress() const { return static_cast<const void*>(impl_.get()); }
 
   // Get the underlying type name as a string.
   std::string_view TypeName() const { return impl_->TypeName(); }
@@ -84,24 +92,29 @@ class MatrixExpr : public Expr {
   explicit MatrixExpr(const Expr& arg);
 
   // Static constructor: Create a dense matrix of expressions.
-  static MatrixExpr CreateMatrix(std::size_t rows, std::size_t cols, std::vector<Expr> args);
+  static MatrixExpr Create(index_t rows, index_t cols, std::vector<Expr> args);
 
   // Get # of rows.
-  std::size_t NumRows() const;
+  index_t NumRows() const;
 
   // Get # of columns.
-  std::size_t NumCols() const;
+  index_t NumCols() const;
+
+  // Size as size_t.
+  std::size_t Size() const { return static_cast<std::size_t>(NumRows() * NumCols()); }
 
   // For vectors or row-vectors only. Access element `i`.
-  const Expr& operator[](std::size_t i) const;
+  const Expr& operator[](index_t i) const;
 
   // Access row `i` and column `j`.
-  const Expr& operator()(std::size_t i, std::size_t j) const;
+  const Expr& operator()(index_t i, index_t j) const;
+
+  // Get a block of rows [start, start + length).
+  MatrixExpr GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const;
 
   // Transpose the matrix.
   [[nodiscard]] MatrixExpr Transpose() const;
 
- protected:
   // Static cast to underlying matrix type.
   const Matrix& AsMatrix() const;
 };

@@ -137,8 +137,8 @@ TEST(PlainFormatterTest, TestMatrix) {
   const Expr d{"d"};
   ASSERT_STR_EQ("[[a, b],\n [c, d]]", CreateMatrix(2, 2, a, b, c, d));
   ASSERT_STR_EQ("[[2 * a, b - c],\n [    c, 3 * d]]", CreateMatrix(2, 2, a * 2, b - c, c, d * 3));
-  ASSERT_STR_EQ("[a,\n b,\n c]", Vector(a, b, c));
-  ASSERT_STR_EQ("[-3 + a,\n      b,\n cos(c)]", Vector(a - 3, b, cos(c)));
+  ASSERT_STR_EQ("[[a],\n [b],\n [c]]", Vector(a, b, c));
+  ASSERT_STR_EQ("[[-3 + a],\n [     b],\n [cos(c)]]", Vector(a - 3, b, cos(c)));
   ASSERT_STR_EQ("[[2, a * b * c, sin(d)]]", RowVector(2, a * b * c, sin(d)));
 }
 

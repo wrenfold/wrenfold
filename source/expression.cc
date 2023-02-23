@@ -76,17 +76,25 @@ MatrixExpr::MatrixExpr(Expr&& arg) : Expr(std::move(arg)) {
 
 MatrixExpr::MatrixExpr(const Expr& arg) : MatrixExpr(Expr{arg}) {}
 
-MatrixExpr MatrixExpr::CreateMatrix(std::size_t rows, std::size_t cols, std::vector<Expr> args) {
+MatrixExpr MatrixExpr::Create(index_t rows, index_t cols, std::vector<Expr> args) {
   return MatrixExpr{MakeExpr<Matrix>(rows, cols, std::move(args))};
 }
 
-std::size_t MatrixExpr::NumRows() const { return AsMatrix().NumRows(); }
+// For now, a lot of these methods just forward to the `Matrix` type. In the future,
+// we may have different matrix types.
 
-std::size_t MatrixExpr::NumCols() const { return AsMatrix().NumCols(); }
+index_t MatrixExpr::NumRows() const { return AsMatrix().NumRows(); }
 
-const Expr& MatrixExpr::operator[](std::size_t i) const { return AsMatrix()[i]; }
+index_t MatrixExpr::NumCols() const { return AsMatrix().NumCols(); }
 
-const Expr& MatrixExpr::operator()(std::size_t i, std::size_t j) const { return AsMatrix()(i, j); }
+const Expr& MatrixExpr::operator[](index_t i) const { return AsMatrix()[i]; }
+
+const Expr& MatrixExpr::operator()(index_t i, index_t j) const { return AsMatrix()(i, j); }
+
+MatrixExpr MatrixExpr::GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const {
+  Matrix result = AsMatrix().GetBlock(row, col, nrows, ncols);
+  return MatrixExpr{MakeExpr<Matrix>(std::move(result))};
+}
 
 MatrixExpr MatrixExpr::Transpose() const {
   return MatrixExpr{MakeExpr<Matrix>(AsMatrix().Transpose())};

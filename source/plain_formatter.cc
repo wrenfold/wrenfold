@@ -64,8 +64,14 @@ void PlainFormatter::Apply(const Float& expr) {
 }
 
 void PlainFormatter::Apply(const Matrix& mat) {
-  ASSERT_GREATER(mat.NumRows(), 0);
-  ASSERT_GREATER(mat.NumCols(), 0);
+  ASSERT_GREATER_OR_EQ(mat.NumRows(), 0);
+  ASSERT_GREATER_OR_EQ(mat.NumCols(), 0);
+
+  if (mat.Size() == 0) {
+    // Empty matrix:
+    output_ += "[]";
+    return;
+  }
 
   // Buffer of all the formatted elements:
   std::vector<std::string> elements;
@@ -86,35 +92,24 @@ void PlainFormatter::Apply(const Matrix& mat) {
     }
   }
 
-  const bool is_col_vec = mat.NumCols() == 1;
-  if (is_col_vec) {
-    // Don't print brackets for every row:
+  output_ += "[";
+  for (std::size_t i = 0; i < mat.NumRows(); ++i) {
     output_ += "[";
-    for (std::size_t i = 0; i + 1 < mat.NumRows(); ++i) {
-      fmt::format_to(std::back_inserter(output_), "{:>{}},\n ", elements[i], column_widths.front());
+    const std::size_t last_col = mat.NumCols() - 1;
+    for (std::size_t j = 0; j < last_col; ++j) {
+      fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.Index(i, j)],
+                     column_widths[j]);
     }
-    fmt::format_to(std::back_inserter(output_), "{:>{}}]", elements[mat.NumRows() - 1],
-                   column_widths.front());
-  } else {
-    output_ += "[";
-    for (std::size_t i = 0; i < mat.NumRows(); ++i) {
-      output_ += "[";
-      const std::size_t last_col = mat.NumCols() - 1;
-      for (std::size_t j = 0; j < last_col; ++j) {
-        fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.Index(i, j)],
-                       column_widths[j]);
-      }
-      fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.Index(i, last_col)],
-                     column_widths[last_col]);
-      // Insert a comma and new-line if another row is coming.
-      if (i + 1 < mat.NumRows()) {
-        output_ += "],\n ";
-      } else {
-        output_ += "]";
-      }
+    fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.Index(i, last_col)],
+                   column_widths[last_col]);
+    // Insert a comma and new-line if another row is coming.
+    if (i + 1 < mat.NumRows()) {
+      output_ += "],\n ";
+    } else {
+      output_ += "]";
     }
-    output_ += "]";
   }
+  output_ += "]";
 }
 
 void PlainFormatter::Apply(const Multiplication& expr) {
