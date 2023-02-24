@@ -5,7 +5,7 @@
 #include "test_helpers.h"
 #include "tree_formatter.h"
 
-// Test derivatives of scalar functions.
+// Test `diff` operation.
 namespace math {
 using namespace math::custom_literals;
 

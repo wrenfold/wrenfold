@@ -147,7 +147,8 @@ class Float : public ExpressionImpl<Float> {
   Float Abs() const { return Float{std::abs(val_)}; }
 
   // Create floating point expression.
-  static Expr Create(FloatType f) { return MakeExpr<Float>(f); }
+  static Expr Create(Float f) { return MakeExpr<Float>(f); }
+  static Expr Create(FloatType f) { return Create(Float{f}); }
 
  private:
   FloatType val_;

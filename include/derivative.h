@@ -64,6 +64,7 @@ class DiffVisitor {
     // TODO: Move, don't copy.
     return Addition::FromOperands(add_terms);
   }
+
   // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
   Expr Apply(const UnaryFunction& func) {
     // Differentiate the argument:

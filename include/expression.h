@@ -143,4 +143,12 @@ Expr MakeExpr(Args&&... args) {
   return Expr{std::make_shared<const T>(std::forward<Args>(args)...)};
 }
 
+// Create a tuple of `Expr` from string arguments.
+template <typename... Args>
+auto Symbols(Args&&... args) {
+  static_assert(std::disjunction_v<std::is_constructible<std::string_view, std::decay_t<Args>>...>,
+                "Argument types must be coercible to string_view");
+  return std::make_tuple(Expr{std::forward<Args>(args)}...);
+}
+
 }  // namespace math
