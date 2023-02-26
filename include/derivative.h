@@ -29,7 +29,7 @@ class DiffVisitor {
     return Addition::FromOperands(terms);
   }
 
-  Expr Apply(const Constant&) { return Constants::Zero; }
+  Expr Apply(const Constant&) const { return Constants::Zero; }
 
   // Element-wise derivative of matrix.
   Expr Apply(const Matrix& mat) {
@@ -103,9 +103,9 @@ class DiffVisitor {
     return Constants::Zero;
   }
 
-  Expr Apply(const Integer&) { return Constants::Zero; }
+  Expr Apply(const Integer&) const { return Constants::Zero; }
 
-  Expr Apply(const Float&) { return Constants::Zero; }
+  Expr Apply(const Float&) const { return Constants::Zero; }
 
   Expr Apply(const Power& pow) {
     const Expr& a = pow.Base();
@@ -119,7 +119,7 @@ class DiffVisitor {
 
   Expr Apply(const Rational&) const { return Constants::Zero; }
 
-  Expr Apply(const Variable& var) {
+  Expr Apply(const Variable& var) const {
     if (var.IsIdenticalToImplTyped(argument_)) {
       return Constants::One;
     }
