@@ -80,23 +80,27 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * 0.0625_s, (x * 2.0_s) * (1_s / 32_s));
 
   // Collections of powers:
-  ASSERT_IDENTICAL(pow(x, 2_s), x * x);
-  ASSERT_IDENTICAL(pow(x, 3_s), x * x * x);
-  ASSERT_IDENTICAL(pow(x, 2_s) * pow(y, 2_s), x * y * x * y);
-  ASSERT_IDENTICAL(Constants::One, pow(x, 2_s) * pow(x, -2_s));
-  ASSERT_IDENTICAL(x * pow(y, 2_s) * pow(log(z), 3_s), log(z) * y * x * log(z) * y * log(z));
-  ASSERT_IDENTICAL(1_s / 33_s * x * pow(3_s, 2_s / 3_s) * pow(11_s, 2_s / 3_s),
-                   pow(33_s, -2_s / 3_s) * pow(33_s, 1_s / 3_s) * x);
+  ASSERT_IDENTICAL(pow(x, 2), x * x);
+  ASSERT_IDENTICAL(pow(x, 3), x * x * x);
+  ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), x * y * x * y);
+  ASSERT_IDENTICAL(Constants::One, pow(x, 2) * pow(x, -2));
+  ASSERT_IDENTICAL(x * pow(y, 2_s) * pow(log(z), 3), log(z) * y * x * log(z) * y * log(z));
+  ASSERT_IDENTICAL(1_s / 33 * x * pow(3, 2_s / 3) * pow(11, 2_s / 3),
+                   pow(33, -2_s / 3) * pow(33, 1_s / 3) * x);
+
+  // Normalization of powers of integers:
+  ASSERT_IDENTICAL(2 * pow(2, 1_s / 7), pow(2, 3_s / 7) * pow(2, 5_s / 7));
+  ASSERT_IDENTICAL(pow(5, 10_s / 11) / 25, pow(5, -5_s / 11) * pow(5, -7_s / 11));
 
   // Including symbolics constants:
-  ASSERT_IDENTICAL(pow(Constants::Pi, 3_s), Constants::Pi * Constants::Pi * Constants::Pi);
-  ASSERT_IDENTICAL(pow(Constants::Euler, 2_s) * x, Constants::Euler * x * Constants::Euler);
+  ASSERT_IDENTICAL(pow(Constants::Pi, 3), Constants::Pi * Constants::Pi * Constants::Pi);
+  ASSERT_IDENTICAL(pow(Constants::Euler, 2) * x, Constants::Euler * x * Constants::Euler);
 
   // Collections of powers of functions:
-  ASSERT_IDENTICAL(pow(cos(x), 2_s), cos(x) * cos(x));
-  ASSERT_IDENTICAL(pow(cos(x), 2_s) * pow(tan(y), 3_s / 5_s),
-                   cos(x) * cos(x) * pow(tan(y), 1_s / 5_s) * pow(tan(y), 2_s / 5_s));
-  ASSERT_IDENTICAL(pow(sin(x), 2_s) * pow(log(z * y), Constants::NegativeOne),
+  ASSERT_IDENTICAL(pow(cos(x), 2), cos(x) * cos(x));
+  ASSERT_IDENTICAL(pow(cos(x), 2) * pow(tan(y), 3_s / 5),
+                   cos(x) * cos(x) * pow(tan(y), 1_s / 5) * pow(tan(y), 2_s / 5));
+  ASSERT_IDENTICAL(pow(sin(x), 2) * pow(log(z * y), Constants::NegativeOne),
                    sin(x) * sin(x) / log(z * y));
 }
 

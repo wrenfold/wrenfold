@@ -2,11 +2,9 @@
 #include "expressions/multiplication.h"
 
 #include <algorithm>
-#include <unordered_map>
 
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
-#include "hashing.h"
 #include "integer_utils.h"
 #include "ordering.h"
 #include "string_utils.h"
@@ -23,48 +21,6 @@ inline Expr MaybeNewMul(std::vector<Expr>&& terms) {
   } else {
     return MakeExpr<Multiplication>(std::move(terms));
   }
-}
-
-// Visitor that multiplies integers/rationals by the stored value.
-// Integers are promoted to rationals.
-struct RationalMultiplier {
-  using ReturnType = void;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
-
-  void Apply(const Rational& r) { result = result * r; }
-  void Apply(const Integer& i) { result = result * static_cast<Rational>(i); }
-
-  Rational result{1, 1};
-};
-
-// Multiply integer + rational constants.
-// Removes them from the vector during processing.
-static Rational MultiplyIntegersAndRationals(std::vector<Expr>& input) {
-  // Traverse the input w/ the accumulator. At the end it will contain the
-  // product of all the integers and rationals.
-  RationalMultiplier accumulator{};
-  const auto new_end = std::remove_if(input.begin(), input.end(), [&accumulator](const Expr& expr) {
-    return VisitStruct(expr, accumulator).has_value();
-  });
-  input.erase(new_end, input.end());
-  return accumulator.result;
-}
-
-static std::optional<Float> MultiplyFloats(std::vector<Expr>& input) {
-  std::optional<Float> product{};
-  const auto new_end = std::remove_if(input.begin(), input.end(), [&product](const Expr& expr) {
-    return VisitLambda(expr,
-                       [&](const Float& f) {
-                         if (!product) {
-                           product = f;
-                         } else {
-                           product = *product * f;
-                         }
-                       })
-        .has_value();
-  });
-  input.erase(new_end, input.end());
-  return product;
 }
 
 Multiplication::Multiplication(std::vector<Expr> args) : NAryOp(std::move(args)) {}
@@ -117,27 +73,72 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
     return Constants::Zero;
   }
 
-  // Check if any of the operands are multiplications:
-  std::vector<Expr> unpacked_args;
-  unpacked_args.reserve(args.size());
-  for (const Expr& arg : args) {
-    if (const Multiplication* const mul = TryCast<Multiplication>(arg)) {
-      // Multiplications must be flattened:
-      unpacked_args.insert(unpacked_args.end(), mul->begin(), mul->end());
+  // Now canonicalize the arguments:
+  // TODO: Get rid of this copy.
+  std::vector<Expr> mutable_args = args;
+  return CanonicalizeArguments(mutable_args);
+}
+
+Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
+  MultiplicationBuilder builder{args.size()};
+  for (const Expr& expr : args) {
+    builder.Multiply(expr);
+  }
+  builder.Normalize();
+  return builder.CreateMultiplication(std::move(args));
+}
+
+struct MultiplyVisitor {
+  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using ReturnType = void;
+
+  MultiplyVisitor(const Expr& input_expression, MultiplicationBuilder& builder)
+      : input_expression(input_expression), builder(builder) {}
+
+  template <typename T>
+  void Apply(const T& arg) {
+    if constexpr (std::is_same_v<T, Multiplication>) {
+      for (const Expr& expr : arg) {
+        // Recursively add multiplications:
+        VisitStruct(expr, MultiplyVisitor{expr, builder});
+      }
+    } else if constexpr (std::is_same_v<T, Power>) {
+      // Try to insert. If it already exists, replace the exponent with the sum of exponents:
+      const auto [it, was_inserted] = builder.terms.emplace(arg.Base(), arg.Exponent());
+      if (!was_inserted) {
+        it->second = Addition::FromTwoOperands(it->second, arg.Exponent());
+      }
+    } else if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Rational>) {
+      // Promote integers to rationals and multiply them onto `rational_coeff`.
+      builder.rational_coeff = builder.rational_coeff * static_cast<Rational>(arg);
+    } else if constexpr (std::is_same_v<T, Float>) {
+      if (!builder.float_coeff.has_value()) {
+        builder.float_coeff = arg;
+      } else {
+        builder.float_coeff = (*builder.float_coeff) * arg;
+      }
+    } else if constexpr (std::is_same_v<T, Matrix>) {
+      throw TypeError(
+          "Cannot multiply a matrix into a scalar multiplication expression. Arg type = {}",
+          arg.TypeName());
     } else {
-      unpacked_args.push_back(arg);
+      // Everything else: Just raise the power by +1.
+      const auto [it, was_inserted] = builder.terms.emplace(input_expression, Constants::One);
+      if (!was_inserted) {
+        it->second = Addition::FromTwoOperands(it->second, Constants::One);
+      }
     }
   }
 
-  // Now canonicalize the arguments:
-  return CanonicalizeArguments(unpacked_args);
-}
+  const Expr& input_expression;
+  MultiplicationBuilder& builder;
+};
 
 struct NormalizeExponentVisitor {
   using ReturnType = Expr;
   static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
 
-  explicit NormalizeExponentVisitor(const Rational& coeff) : rational_coeff(coeff) {}
+  explicit NormalizeExponentVisitor(Rational& coeff) : rational_coeff(coeff) {}
 
   // Check if the exponent is now greater than 1, in which case we factorize it into an integer part
   // and a fractional part. The integer part is multiplied onto the rational coefficient.
@@ -152,73 +153,54 @@ struct NormalizeExponentVisitor {
     return Rational::Create(fractional_part);
   }
 
-  Rational rational_coeff;
+  Rational& rational_coeff;
 };
 
-Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
-  // Extract and multiply constants together:
-  const Rational rational_term = MultiplyIntegersAndRationals(args);
-  const std::optional<Float> float_term = MultiplyFloats(args);
+void MultiplicationBuilder::Multiply(const Expr& arg) {
+  VisitStruct(arg, MultiplyVisitor{arg, *this});
+}
 
-  // Create a map from base -> power
-  // TODO: Try the abseil map container.
-  std::unordered_map<Expr, Expr, HashObject, ExprEquality> map{};
-  map.reserve(args.size());
-  for (const Expr& expr : args) {
-    auto [base, exponent] = AsBaseAndExponent(expr);
-    // Try to insert. If it already exists, replace the exponent with the sum of exponents:
-    const auto [it, was_inserted] = map.emplace(std::move(base), exponent);
-    if (!was_inserted) {
-      it->second = Addition::FromTwoOperands(it->second, exponent);
-    }
-  }
-
-  // Now normalize any powers of integers:
-  NormalizeExponentVisitor normalize_visitor{rational_term};
-  for (auto it = map.begin(); it != map.end(); ++it) {
+void MultiplicationBuilder::Normalize() {
+  NormalizeExponentVisitor normalize_visitor{rational_coeff};
+  for (auto it = terms.begin(); it != terms.end(); ++it) {
     std::optional<Expr> updated_exponent =
         VisitBinaryStruct(it->first, it->second, normalize_visitor);
-    if (updated_exponent) {
+    if (updated_exponent.has_value()) {
       // We changed the exponent on this term, so update it.
       it->second = std::move(*updated_exponent);
     }
   }
 
   // Nuke anything w/ a zero exponent.
-  for (auto it = map.begin(); it != map.end();) {
+  for (auto it = terms.begin(); it != terms.end();) {
     if (IsZero(it->second)) {
-      it = map.erase(it);
+      it = terms.erase(it);
     } else {
       ++it;
     }
   }
+}
 
+Expr MultiplicationBuilder::CreateMultiplication(std::vector<Expr>&& args) const {
   // Create the result:
   args.clear();
-  if (float_term) {
-    args.push_back(MakeExpr<Float>(float_term.value() * static_cast<Float>(rational_term)));
-  } else if (rational_term.IsOne()) {
+  args.reserve(terms.size() + 2);
+  if (float_coeff.has_value()) {
+    const Float promoted_rational = static_cast<Float>(rational_coeff);
+    args.push_back(MakeExpr<Float>(float_coeff.value() * promoted_rational));
+  } else if (rational_coeff.IsOne()) {
     // Don't insert a useless one in the multiplication.
   } else {
-    args.push_back(Rational::Create(rational_term));
+    args.push_back(Rational::Create(rational_coeff));
   }
 
-  // Sort into canonical order:
-  // TODO: A cheaper way of doing this...
-  std::vector<std::pair<Expr, Expr>> powers;
-  powers.reserve(args.size());
-  std::copy(map.begin(), map.end(), std::back_inserter(powers));
+  // Convert into a vector of powers, and sort into canonical order:
+  std::transform(terms.begin(), terms.end(), std::back_inserter(args),
+                 [](const auto& pair) { return Power::Create(pair.first, pair.second); });
 
-  std::sort(powers.begin(), powers.end(), [](const auto& a, const auto& b) {
-    return VisitBinaryStruct(a.first, b.first, OrderVisitor{}) ==
-           OrderVisitor::RelativeOrder::LessThan;
+  std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
+    return VisitBinaryStruct(a, b, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
   });
-
-  // Insert the rest
-  for (auto [base, exponent] : powers) {
-    args.push_back(Power::Create(base, exponent));
-  }
-
   return MaybeNewMul(std::move(args));
 }
 

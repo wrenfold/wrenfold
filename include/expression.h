@@ -53,6 +53,9 @@ class Expr {
   // Distribute terms in this expression.
   Expr Distribute() const;
 
+  // Create a new expression by recursively substituting `replacement` for `target`.
+  Expr Subs(const Expr& target, const Expr& replacement) const;
+
   // Receive a visitor.
   void Receive(VisitorBase& visitor) const { impl_->Receive(visitor); }
 

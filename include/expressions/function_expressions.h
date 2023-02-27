@@ -49,11 +49,15 @@ class BuiltInFunctionBase : public ExpressionImpl<Derived> {
  public:
 };
 
+// Fwd declare.
+Expr CreateUnaryFunction(const UnaryFunctionName name, const Expr& arg);
+
 // Store a unary function. Built-in unary functions `f(x)` are described by an enum
 // indicating what `f` is.
 class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
  public:
   static constexpr std::string_view NameStr = "UnaryFunction";
+  static constexpr bool IsLeafNode = false;
 
   UnaryFunction(UnaryFunctionName func, Expr arg) : func_(func), arg_(std::move(arg)) {}
 
@@ -69,6 +73,12 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
   // Function type and argument must match.
   bool IsIdenticalToImplTyped(const UnaryFunction& other) const {
     return func_ == other.func_ && arg_.IsIdenticalTo(other.arg_);
+  }
+
+  // Implement ExpressionImpl::Map
+  template <typename Operation>
+  Expr Map(Operation&& operation) const {
+    return CreateUnaryFunction(func_, operation(arg_));
   }
 
  protected:

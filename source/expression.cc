@@ -8,6 +8,7 @@
 #include "expressions/numeric_expressions.h"
 #include "expressions/variable.h"
 #include "plain_formatter.h"
+#include "substitute.h"
 
 namespace math {
 
@@ -47,6 +48,10 @@ Expr Expr::Diff(const Expr& var, const int reps) const {
 }
 
 Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}); }
+
+Expr Expr::Subs(const Expr& target, const Expr& replacement) const {
+  return Substitute(*this, target, replacement);
+}
 
 // TODO: It would be good if these could be inlined for internal library code.
 // In some cases, Expr can be a universal reference to avoid a shared_ptr copy.

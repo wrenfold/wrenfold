@@ -19,6 +19,7 @@ class Rational;
 class Integer : public ExpressionImpl<Integer> {
  public:
   static constexpr std::string_view NameStr = "Integer";
+  static constexpr bool IsLeafNode = true;
 
   using IntegralType = int64_t;
 
@@ -55,6 +56,7 @@ class Integer : public ExpressionImpl<Integer> {
 class Rational : public ExpressionImpl<Rational> {
  public:
   static constexpr std::string_view NameStr = "Rational";
+  static constexpr bool IsLeafNode = true;
 
   using IntegralType = Integer::IntegralType;
 
@@ -129,6 +131,7 @@ class Rational : public ExpressionImpl<Rational> {
 class Float : public ExpressionImpl<Float> {
  public:
   static constexpr std::string_view NameStr = "Float";
+  static constexpr bool IsLeafNode = true;
 
   using FloatType = double;
 

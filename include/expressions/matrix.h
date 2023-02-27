@@ -15,6 +15,7 @@ namespace math {
 class Matrix : public ExpressionImpl<Matrix> {
  public:
   static constexpr std::string_view NameStr = "Matrix";
+  static constexpr bool IsLeafNode = false;
 
   // Construct from data vector.
   Matrix(index_t rows, index_t cols, std::vector<Expr> data)
@@ -38,6 +39,16 @@ class Matrix : public ExpressionImpl<Matrix> {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
            std::equal(data_.begin(), data_.end(), other.data_.begin(),
                       [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });
+  }
+
+  // Implement ExpressionImpl::Map
+  template <typename Operation>
+  Expr Map(Operation&& operation) const {
+    std::vector<Expr> transformed;
+    transformed.reserve(Size());
+    std::transform(data_.begin(), data_.end(), std::back_inserter(transformed),
+                   std::forward<Operation>(operation));
+    return MakeExpr<Matrix>(NumRows(), NumCols(), std::move(transformed));
   }
 
   // Access element in a vector. Only valid if `cols` or `rows` is 1.
