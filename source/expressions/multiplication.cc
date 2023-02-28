@@ -92,21 +92,21 @@ struct MultiplyVisitor {
   constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
-  MultiplyVisitor(const Expr& input_expression, MultiplicationBuilder& builder)
-      : input_expression(input_expression), builder(builder) {}
+  explicit MultiplyVisitor(MultiplicationBuilder& builder) : builder(builder) {}
 
   template <typename T>
-  void Apply(const T& arg) {
+  void Apply(const Expr& input_expression, const T& arg) {
     if constexpr (std::is_same_v<T, Multiplication>) {
       for (const Expr& expr : arg) {
         // Recursively add multiplications:
-        VisitStruct(expr, MultiplyVisitor{expr, builder});
+        VisitStruct(expr, *this);
       }
     } else if constexpr (std::is_same_v<T, Power>) {
+      const Power& arg_pow = arg;
       // Try to insert. If it already exists, replace the exponent with the sum of exponents:
-      const auto [it, was_inserted] = builder.terms.emplace(arg.Base(), arg.Exponent());
+      const auto [it, was_inserted] = builder.terms.emplace(arg_pow.Base(), arg_pow.Exponent());
       if (!was_inserted) {
-        it->second = Addition::FromTwoOperands(it->second, arg.Exponent());
+        it->second = it->second + arg_pow.Exponent();
       }
     } else if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Rational>) {
       // Promote integers to rationals and multiply them onto `rational_coeff`.
@@ -125,12 +125,11 @@ struct MultiplyVisitor {
       // Everything else: Just raise the power by +1.
       const auto [it, was_inserted] = builder.terms.emplace(input_expression, Constants::One);
       if (!was_inserted) {
-        it->second = Addition::FromTwoOperands(it->second, Constants::One);
+        it->second = it->second + Constants::One;
       }
     }
   }
 
-  const Expr& input_expression;
   MultiplicationBuilder& builder;
 };
 
@@ -156,9 +155,15 @@ struct NormalizeExponentVisitor {
   Rational& rational_coeff;
 };
 
-void MultiplicationBuilder::Multiply(const Expr& arg) {
-  VisitStruct(arg, MultiplyVisitor{arg, *this});
+MultiplicationBuilder::MultiplicationBuilder(const Multiplication& mul)
+    : MultiplicationBuilder(mul.Arity()) {
+  for (const Expr& expr : mul) {
+    Multiply(expr);
+  }
+  Normalize();
 }
+
+void MultiplicationBuilder::Multiply(const Expr& arg) { VisitStruct(arg, MultiplyVisitor{*this}); }
 
 void MultiplicationBuilder::Normalize() {
   NormalizeExponentVisitor normalize_visitor{rational_coeff};
@@ -209,7 +214,7 @@ struct AsCoeffAndMultiplicandVisitor {
   static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
 
   // For multiplications, we need to break the expression up.
-  ReturnType Apply(const Multiplication& mul) const {
+  ReturnType Apply(const Expr& input, const Multiplication& mul) const {
     // TODO: Small vector.
     std::vector<Expr> numerics{};
     std::vector<Expr> remainder{};
@@ -222,7 +227,7 @@ struct AsCoeffAndMultiplicandVisitor {
     }
     if (numerics.empty()) {
       // No point making a new multiplication:
-      return std::make_pair(Constants::One, arg_);
+      return std::make_pair(Constants::One, input);
     }
     auto coeff = MaybeNewMul(std::move(numerics));
     auto multiplicand = MaybeNewMul(std::move(remainder));
@@ -232,20 +237,13 @@ struct AsCoeffAndMultiplicandVisitor {
   // If the input type is a numeric, return the numeric as a coefficient for multiplicand of one.
   template <typename T>
   std::enable_if_t<ContainsTypeHelper<T, Integer, Rational, Float>, ReturnType> Apply(
-      const T&) const {
-    return std::make_pair(arg_, Constants::One);
+      const Expr& input, const T&) const {
+    return std::make_pair(input, Constants::One);
   };
-
-  // Construct with a reference to the input argument so that we can
-  // return it directly when applicable.
-  explicit AsCoeffAndMultiplicandVisitor(const Expr& arg) : arg_(arg) {}
-
-  const Expr& arg_;
 };
 
 std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr) {
-  std::optional<std::pair<Expr, Expr>> result =
-      VisitStruct(expr, AsCoeffAndMultiplicandVisitor{expr});
+  std::optional<std::pair<Expr, Expr>> result = VisitStruct(expr, AsCoeffAndMultiplicandVisitor{});
   if (result.has_value()) {
     return *result;
   }

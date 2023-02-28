@@ -44,7 +44,8 @@ struct VisitorWithCapturedResult final
   static constexpr VisitorPolicy Policy = P;
 
   // Construct with non-const ref to visitor type.
-  VisitorWithCapturedResult(VisitorType& impl) : impl_(impl) {}
+  VisitorWithCapturedResult(VisitorType& impl, const Expr& input)
+      : impl_(impl), input_expression_(input) {}
 
   // Call the implementation. This method is enabled only if the visitor
   // has an `Apply` method that accepts type `Argument`. This is required so that the visitor policy
@@ -59,8 +60,23 @@ struct VisitorWithCapturedResult final
     }
   }
 
+  // Variant that is enabled for visitors that have `Apply` methods that accept (Expr, Argument).
+  // This is useful for visitors that can pass-through the input expression unmodified in certain
+  // cases.
+  template <typename Argument>
+  std::enable_if_t<HasBinaryApplyMethod<VisitorType, Expr, Argument>, void> Apply(
+      const Argument& arg) {
+    if constexpr (!std::is_same_v<ReturnType, Void>) {
+      result = impl_.Apply(input_expression_, arg);
+    } else {
+      impl_.Apply(input_expression_, arg);
+      result = Void{};
+    }
+  }
+
  private:
   VisitorType& impl_;
+  const Expr& input_expression_;
 
  public:
   std::optional<ReturnType> result{};
@@ -75,9 +91,11 @@ auto VisitStruct(const Expr& expr, VisitorType&& visitor) {
   // We need this `ReturnType` property because we cannot deduce the result type of operator()
   // w/o first knowing the argument type. The argument type is unknown until the visitor is
   // invoked on a concrete type.
-  using ReturnType = typename MaybeVoid<typename std::decay_t<VisitorType>::ReturnType>::Type;
+  using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
+  using ReturnTypeOrVoid = typename MaybeVoid<ReturnType>::Type;
   constexpr VisitorPolicy Policy = std::decay_t<VisitorType>::Policy;
-  VisitorWithCapturedResult<ReturnType, VisitorType, Policy> capture_visitor{visitor};
+
+  VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, Policy> capture_visitor{visitor, expr};
   expr.Receive(capture_visitor);
   if constexpr (Policy == VisitorPolicy::CompileError || Policy == VisitorPolicy::Throw) {
     ASSERT(capture_visitor.result.has_value());

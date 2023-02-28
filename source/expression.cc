@@ -47,7 +47,7 @@ Expr Expr::Diff(const Expr& var, const int reps) const {
   return result;
 }
 
-Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{*this}); }
+Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{}); }
 
 Expr Expr::Subs(const Expr& target, const Expr& replacement) const {
   return Substitute(*this, target, replacement);

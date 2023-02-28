@@ -10,32 +10,30 @@ struct DistributeVisitor {
   using ReturnType = Expr;
   static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
 
-  Expr Apply(const Addition& add) const {
+  Expr Apply(const Expr&, const Addition& add) const {
     std::vector<Expr> args{};
     args.reserve(add.Arity());
     for (std::size_t i = 0; i < add.Arity(); ++i) {
-      Expr distributed = VisitStruct(add[i], DistributeVisitor{add[i]});
+      Expr distributed = VisitStruct(add[i], DistributeVisitor{});
       args.push_back(std::move(distributed));
     }
     return Addition::FromOperands(args);
   }
 
-  Expr Apply(const Constant&) const { return arg_; }
-
-  Expr Apply(const Matrix& mat) const {
+  Expr Apply(const Expr&, const Matrix& mat) const {
     std::vector<Expr> output;
     output.reserve(mat.Size());
     std::transform(mat.begin(), mat.end(), std::back_inserter(output),
-                   [](const Expr& x) { return VisitStruct(x, DistributeVisitor{x}); });
+                   [](const Expr& x) { return VisitStruct(x, DistributeVisitor{}); });
     return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
   }
 
-  Expr Apply(const Multiplication& mul) const {
+  Expr Apply(const Expr&, const Multiplication& mul) const {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};
     children.reserve(mul.Arity());
     std::transform(mul.begin(), mul.end(), std::back_inserter(children),
-                   [](const Expr& expr) { return VisitStruct(expr, DistributeVisitor{expr}); });
+                   [](const Expr& expr) { return VisitStruct(expr, DistributeVisitor{}); });
 
     // Are any of the child expressions additions?
     const std::size_t total_terms = std::accumulate(
@@ -85,29 +83,24 @@ struct DistributeVisitor {
     return Addition::FromOperands(output_terms);
   }
 
-  Expr Apply(const UnaryFunction& f) {
-    std::optional<Expr> inner = VisitStruct(f.Arg(), DistributeVisitor{f.Arg()});
+  Expr Apply(const Expr&, const UnaryFunction& f) {
+    std::optional<Expr> inner = VisitStruct(f.Arg(), DistributeVisitor{});
     ASSERT(inner);
     return CreateUnaryFunction(f.Func(), *inner);
   }
 
-  Expr Apply(const Integer&) { return arg_; }
-  Expr Apply(const Float&) { return arg_; }
-
-  Expr Apply(const Power& pow) {
+  Expr Apply(const Expr&, const Power& pow) {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
-    return Power::Create(VisitStruct(a, DistributeVisitor{a}),
-                         VisitStruct(b, DistributeVisitor{b}));
+    return Power::Create(VisitStruct(a, DistributeVisitor{}), VisitStruct(b, DistributeVisitor{}));
   }
 
-  Expr Apply(const Rational&) const { return arg_; }
-  Expr Apply(const Variable&) { return arg_; }
-
-  explicit DistributeVisitor(const Expr& arg) : arg_(arg) {}
-
-  const Expr& arg_;
+  Expr Apply(const Expr& arg, const Constant&) const { return arg; }
+  Expr Apply(const Expr& arg, const Integer&) { return arg; }
+  Expr Apply(const Expr& arg, const Float&) { return arg; }
+  Expr Apply(const Expr& arg, const Rational&) const { return arg; }
+  Expr Apply(const Expr& arg, const Variable&) { return arg; }
 };
 
 }  // namespace math
