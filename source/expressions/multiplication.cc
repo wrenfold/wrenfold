@@ -80,7 +80,7 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
 }
 
 Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
-  MultiplicationBuilder builder{args.size()};
+  MultiplicationParts builder{args.size()};
   for (const Expr& expr : args) {
     builder.Multiply(expr);
   }
@@ -88,11 +88,27 @@ Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
   return builder.CreateMultiplication(std::move(args));
 }
 
+template <bool FactorizeIntegers>
 struct MultiplyVisitor {
   constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
-  explicit MultiplyVisitor(MultiplicationBuilder& builder) : builder(builder) {}
+  explicit MultiplyVisitor(MultiplicationParts& builder) : builder(builder) {}
+
+  void InsertIntegerFactors(const std::vector<PrimeFactor>& factors, bool positive) {
+    for (const PrimeFactor& factor : factors) {
+      Expr base = Integer::Create(factor.base);
+      Expr exponent = Integer::Create(factor.exponent);
+      const auto [it, was_inserted] = builder.terms.emplace(std::move(base), exponent);
+      if (!was_inserted) {
+        if (positive) {
+          it->second = it->second + exponent;
+        } else {
+          it->second = it->second - exponent;
+        }
+      }
+    }
+  }
 
   template <typename T>
   void Apply(const Expr& input_expression, const T& arg) {
@@ -108,9 +124,24 @@ struct MultiplyVisitor {
       if (!was_inserted) {
         it->second = it->second + arg_pow.Exponent();
       }
-    } else if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Rational>) {
-      // Promote integers to rationals and multiply them onto `rational_coeff`.
-      builder.rational_coeff = builder.rational_coeff * static_cast<Rational>(arg);
+    } else if constexpr (std::is_same_v<T, Integer>) {
+      if constexpr (FactorizeIntegers) {
+        // Factorize integers into primes:
+        const auto factors = ComputePrimeFactors(arg.GetValue());
+        InsertIntegerFactors(factors, true);
+      } else {
+        // Promote integers to rationals and multiply them onto `rational_coeff`.
+        builder.rational_coeff = builder.rational_coeff * static_cast<Rational>(arg);
+      }
+    } else if constexpr (std::is_same_v<T, Rational>) {
+      if constexpr (FactorizeIntegers) {
+        const auto num_factors = ComputePrimeFactors(arg.Numerator());
+        const auto den_factors = ComputePrimeFactors(arg.Denominator());
+        InsertIntegerFactors(num_factors, true);
+        InsertIntegerFactors(den_factors, false);
+      } else {
+        builder.rational_coeff = builder.rational_coeff * arg;
+      }
     } else if constexpr (std::is_same_v<T, Float>) {
       if (!builder.float_coeff.has_value()) {
         builder.float_coeff = arg;
@@ -130,7 +161,7 @@ struct MultiplyVisitor {
     }
   }
 
-  MultiplicationBuilder& builder;
+  MultiplicationParts& builder;
 };
 
 struct NormalizeExponentVisitor {
@@ -155,17 +186,23 @@ struct NormalizeExponentVisitor {
   Rational& rational_coeff;
 };
 
-MultiplicationBuilder::MultiplicationBuilder(const Multiplication& mul)
-    : MultiplicationBuilder(mul.Arity()) {
+MultiplicationParts::MultiplicationParts(const Multiplication& mul, bool factorize_integers)
+    : MultiplicationParts(mul.Arity()) {
   for (const Expr& expr : mul) {
-    Multiply(expr);
+    Multiply(expr, factorize_integers);
   }
   Normalize();
 }
 
-void MultiplicationBuilder::Multiply(const Expr& arg) { VisitStruct(arg, MultiplyVisitor{*this}); }
+void MultiplicationParts::Multiply(const Expr& arg, bool factorize_integers) {
+  if (factorize_integers) {
+    VisitStruct(arg, MultiplyVisitor<true>{*this});
+  } else {
+    VisitStruct(arg, MultiplyVisitor<false>{*this});
+  }
+}
 
-void MultiplicationBuilder::Normalize() {
+void MultiplicationParts::Normalize() {
   NormalizeExponentVisitor normalize_visitor{rational_coeff};
   for (auto it = terms.begin(); it != terms.end(); ++it) {
     std::optional<Expr> updated_exponent =
@@ -186,10 +223,10 @@ void MultiplicationBuilder::Normalize() {
   }
 }
 
-Expr MultiplicationBuilder::CreateMultiplication(std::vector<Expr>&& args) const {
+Expr MultiplicationParts::CreateMultiplication(std::vector<Expr>&& args) const {
   // Create the result:
   args.clear();
-  args.reserve(terms.size() + 2);
+  args.reserve(terms.size() + 1);
   if (float_coeff.has_value()) {
     const Float promoted_rational = static_cast<Float>(rational_coeff);
     args.push_back(MakeExpr<Float>(float_coeff.value() * promoted_rational));

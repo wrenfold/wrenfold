@@ -146,6 +146,25 @@ auto VisitLambda(const Expr& u, F&& func) {
   return detail::VisitLambdaWithPolicy<VisitorPolicy::NoError, F>(u, std::forward<F>(func));
 }
 
+// Visit all the children of `expr`, and create a new expression w/ the arguments modified
+// by the provided visitor. The provided visitor must return `Expr` and support all argument
+// types.
+template <typename VisitorType>
+Expr VisitChildren(const Expr& expr, VisitorType&& visitor) {
+  return detail::VisitLambdaWithPolicy<VisitorPolicy::CompileError>(
+      expr, [&expr, &visitor](const auto& arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (T::IsLeafStatic()) {
+          // This type has no children, so return the input expression unmodified:
+          return expr;
+        } else {
+          // This type does have children, so apply to all of them:
+          return MapChildren(
+              arg, [&visitor](const Expr& child) -> Expr { return VisitStruct(child, visitor); });
+        }
+      });
+}
+
 // Visit two expressions with a struct that accepts two concrete types in its Apply(...) signature.
 // The struct must declare a ReturnType associated type.
 template <typename VisitorType>

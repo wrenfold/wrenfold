@@ -285,6 +285,18 @@ class MatrixWrapperTest(MathTestBase):
             m_diff = m.diff(var=var, order=1)
             self.assertIdentical(m_diff, m.unary_map(lambda el: el.diff(var)))
 
+    def test_subs(self):
+        """Test calling subs on a matrix."""
+        a, b, c, d, x, y, z = mc.symbols('a, b, c, d, x, y, z')
+        m = mc.matrix([(a + x * 2, b - c), (c - mc.sin(y), d + mc.log(d))])
+        self.assertIdentical(
+            mc.matrix([(0, b - c), (c - mc.sin(y), z)]),
+            m.subs(a, -x * 2).subs(d + mc.log(d), z))
+
+        # replace the whole matrix:
+        m = mc.matrix([a, b, c, d])
+        self.assertIdentical(mc.eye(2), m.subs(m, mc.eye(2)))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

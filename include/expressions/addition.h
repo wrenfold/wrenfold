@@ -1,6 +1,10 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include <unordered_map>
+
 #include "constants.h"
+#include "expressions/numeric_expressions.h"
+#include "hashing.h"
 #include "operation_bases.h"
 #include "visitor_impl.h"
 
@@ -19,6 +23,31 @@ class Addition : public NAryOp<Addition> {
   // Construct form a vector of operands.
   // The result is automatically simplified, and may not be an addition.
   static Expr FromOperands(const std::vector<Expr>& args);
+};
+
+// Helper object used to execute multiplications.
+struct AdditionParts {
+  AdditionParts() = default;
+  explicit AdditionParts(std::size_t capacity) { terms.reserve(capacity); }
+
+  // Construct from existing multiplication.
+  explicit AdditionParts(const Addition& add);
+
+  // Rational coefficient.
+  Rational rational_term{0, 1};
+  // Floating point coefficient:
+  std::optional<Float> float_term{};
+  // Map from multiplicand to coefficient.
+  std::unordered_map<Expr, Expr, HashObject, ExprEquality> terms{};
+
+  // Update the internal representation by adding `arg`.
+  void Add(const Expr& arg);
+
+  // Nuke any terms w/ a zero exponent and normalize powers of integers.
+  void Normalize();
+
+  // Create the resulting multiplication. The provided storage is re-used.
+  Expr CreateAddition(std::vector<Expr>&& args) const;
 };
 
 }  // namespace math

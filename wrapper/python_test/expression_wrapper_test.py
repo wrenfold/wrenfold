@@ -115,6 +115,15 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertIdentical(1 / x, mc.log(y * x).diff(x))
 
+    def test_subs(self):
+        """Test calling subs() on expressions."""
+        x, y, z = mc.symbols('x, y, z')
+        self.assertIdentical(y, x.subs(x, y))
+        self.assertIdentical(0, (x - y).subs(y, x))
+        self.assertIdentical(1, (x / z).subs(z, x))
+        self.assertIdentical(z ** 2 * x, (x ** 3 * y ** 2).subs(x * y, z))
+        self.assertIdentical(2 * z, (x + 2 * z - (y * 3) / 2).subs(x - (y * 3) / 2, 0))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

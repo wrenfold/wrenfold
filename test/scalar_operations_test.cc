@@ -24,24 +24,24 @@ TEST(ScalarOperationsTest, TestAddition) {
   // Canonicalization of order:
   ASSERT_IDENTICAL(w + x + y, y + x + w);
   ASSERT_IDENTICAL(w + x + y, x + w + y);
-  ASSERT_IDENTICAL(1_s + w, w + 1_s);
-  ASSERT_IDENTICAL(5_s / 7_s + x, x + 5_s / 7_s);
+  ASSERT_IDENTICAL(1 + w, w + 1);
+  ASSERT_IDENTICAL(5_s / 7 + x, x + 5 / 7_s);
   ASSERT_IDENTICAL(x * w + x * z, x * z + x * w);
   ASSERT_IDENTICAL(w * x + x * z, x * z + x * w);
 
   // Collapsing of numerics:
-  ASSERT_IDENTICAL(x, x + 0_s);
-  ASSERT_IDENTICAL(x, 0_s + x);
+  ASSERT_IDENTICAL(x, x + 0);
+  ASSERT_IDENTICAL(x, 0 + x);
   ASSERT_IDENTICAL(w + 19_s / 7_s, w + 5_s / 7_s + 2_s);
-  ASSERT_IDENTICAL(w + y + 1_s, y + 1_s / 2_s + w + 1_s / 2_s);
-  ASSERT_IDENTICAL(2_s * z, 3_s + z - 2_s + z - 1_s);
+  ASSERT_IDENTICAL(w + y + 1, y + 1 / 2_s + w + 1 / 2_s);
+  ASSERT_IDENTICAL(2 * z, 3 + z - 2 + z - 1);
   ASSERT_IDENTICAL(0_s, 3_s + -4_s + 1_s);
   ASSERT_IDENTICAL(0.5_s + x, x + 0.25_s + 1_s / 4_s);
-  ASSERT_IDENTICAL(1.0_s, 3_s / 2_s + y - 0.5_s - y);
+  ASSERT_IDENTICAL(1.0_s, 3_s / 2 + y - 0.5_s - y);
 
   // Collection of identical terms:
-  ASSERT_IDENTICAL(2_s * x, x + x);
-  ASSERT_IDENTICAL(-3_s * x, x - 4_s * x);
+  ASSERT_IDENTICAL(2 * x, x + x);
+  ASSERT_IDENTICAL(-3 * x, x - 4_s * x);
   ASSERT_IDENTICAL(3_s * pow(x, 2_s) - 4_s * y,
                    pow(x, 2_s) - 2_s * y + 2_s * pow(x, 2_s) - 2_s * y);
   ASSERT_IDENTICAL(-2_s * log(x) + 2_s * pow(y, 2_s), -log(x) + -log(x) + y * y + y * y);

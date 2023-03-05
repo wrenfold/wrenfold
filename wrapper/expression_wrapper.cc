@@ -94,6 +94,8 @@ PYBIND11_MODULE(mc, m) {
       .def("diff", &Expr::Diff, "var"_a, py::arg("order") = 1,
            "Differentiate the expression with respect to the specified variable.")
       .def("distribute", &Expr::Distribute, "Expand products of additions and subtractions.")
+      .def("subs", &Expr::Subs, py::arg("target"), py::arg("substitute"),
+           "Replace the `target` expression with `substitute` in the expression tree.")
       // Operators:
       .def(py::self + py::self)
       .def(py::self - py::self)

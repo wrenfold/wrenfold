@@ -40,22 +40,22 @@ class Multiplication : public NAryOp<Multiplication> {
 std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr);
 
 // Helper object used to execute multiplications.
-struct MultiplicationBuilder {
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
-  using ReturnType = Expr;
+struct MultiplicationParts {
+  MultiplicationParts() = default;
+  explicit MultiplicationParts(std::size_t capacity) { terms.reserve(capacity); }
 
-  MultiplicationBuilder() = default;
-  explicit MultiplicationBuilder(std::size_t capacity) { terms.reserve(capacity); }
+  // Construct from existing multiplication.
+  explicit MultiplicationParts(const Multiplication& mul, bool factorize_integers);
 
   // Rational coefficient.
   Rational rational_coeff{1, 1};
   // Floating point coefficient:
   std::optional<Float> float_coeff{};
   // Map from base to exponent.
-  std::unordered_map<Expr, Expr, HashObject, ExprEquality> terms;
+  std::unordered_map<Expr, Expr, HashObject, ExprEquality> terms{};
 
   // Update the internal product by multiplying on `arg`.
-  void Multiply(const Expr& arg);
+  void Multiply(const Expr& arg, bool factorize_integers = false);
 
   // Nuke any terms w/ a zero exponent and normalize powers of integers.
   void Normalize();
