@@ -21,7 +21,10 @@ class ExpressionImpl : public ExpressionConcept {
   std::string_view TypeName() const override { return Derived::NameStr; }
 
   // Whether the derived type is a leaf (it contains no references to child expressions).
-  static constexpr bool IsLeaf() { return Derived::IsLeafNode; }
+  static constexpr bool IsLeafStatic() { return Derived::IsLeafNode; }
+
+  // Virtual version of `IsLeafStatic`.
+  bool IsLeaf() const override final { return IsLeafStatic(); }
 
  protected:
   // TODO: Maybe check the addresses here before trying dynamic_cast? Needs profiling.

@@ -41,6 +41,9 @@ class Expr {
   // Get the underlying type name as a string.
   std::string_view TypeName() const { return impl_->TypeName(); }
 
+  // Whether this expression is a leaf node in the expression tree.
+  bool IsLeaf() const { return impl_->IsLeaf(); }
+
   // Convert to string.
   std::string ToString() const;
 

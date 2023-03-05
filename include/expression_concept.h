@@ -23,6 +23,9 @@ class ExpressionConcept {
   // Get the string name of the underlying expression.
   virtual std::string_view TypeName() const = 0;
 
+  // Is this expression a leaf-node type.
+  virtual bool IsLeaf() const = 0;
+
  protected:
   // Implemented by derived class. Called after we check ptr address.
   virtual bool IsIdenticalToImpl(const ExpressionConcept& other) const = 0;
