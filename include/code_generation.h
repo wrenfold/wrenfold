@@ -92,9 +92,6 @@ std::size_t CreateSSA(const Expr& expression,
                       std::unordered_map<std::size_t, ssa::OperationVariant>& output);
 
 // Print a list of assignments.
-// std::string FormatSSA(const std::vector<ssa::OperationVariant>& operations);
-
-// Print a list of assignments.
 std::string FormatSSA(const std::unordered_map<std::size_t, ssa::OperationVariant>& operations);
 
 // Re-create expression tree from assignments.
@@ -105,6 +102,9 @@ Expr ExpressionFromSSA(const std::unordered_map<std::size_t, ssa::OperationVaria
                        std::unordered_map<std::size_t, Expr>& output_map);
 
 //
-void EliminateDuplicates(std::unordered_map<std::size_t, ssa::OperationVariant>& operations);
+void EliminateDuplicates(std::unordered_map<std::size_t, ssa::OperationVariant>& operations,
+                         const std::vector<std::size_t>& output_expressions);
+
+std::vector<Expr> IdentifySequenceCounts(const Expr& root);
 
 }  // namespace math
