@@ -9,102 +9,212 @@
 #include "ordering.h"
 
 namespace math {
-namespace ssa {
+namespace ir {
 
-// Operands are either the result of an assignment (size_t), or an input value
+// Just a wrapper around an integer, to add some clarity via types.
+struct Value {
+  // Construct from integer.
+  explicit Value(uint32_t index) : v_(index) {}
+
+  // Equal if underlying int is the same.
+  constexpr bool operator==(const Value& other) const { return v_ == other.v_; }
+
+  // Order by index.
+  constexpr bool operator<(const Value& other) const { return v_ < other.v_; }
+
+  // Hash is just std::hash
+  std::size_t Hash() const { return std::hash<std::size_t>{}(v_); }
+
+  // Access underlying integer.
+  constexpr uint32_t Id() const { return v_; }
+
+  // Increment ID.
+  void Increment() { v_++; }
+
+ private:
+  uint32_t v_;
+};
+
+// Hash operator for `Value`.
+struct ValueHash {
+  std::size_t operator()(const Value& v) const { return v.Hash(); }
+};
+
+struct IRFormVisitor;  //  Fwd declare.
+
+// Operands are either the result of an assignment (Value), or an input value
 // (in which case we just use Expr).
-using Operand = std::variant<std::size_t, Expr>;
+using Operand = std::variant<Value, Expr>;
 
-inline void OrderOperands(Operand& left, Operand& right) {
-  struct Visitor {
-    // Order assignments by index.
-    bool operator()(std::size_t l, std::size_t r) const { return l < r; }
-
-    // Order assignment operands before input value operands.
-    constexpr bool operator()(std::size_t, const Expr&) const { return true; }
-    constexpr bool operator()(const Expr&, std::size_t) const { return false; }
-
-    // Order input value operands as we typically would.
-    bool operator()(const Expr& l, const Expr& r) const {
-      return VisitBinaryStruct(l, r, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
+// Struct that orders the `Operand` type.
+struct OperandOrder {
+  // Order assignments by index.
+  OrderVisitor::RelativeOrder operator()(Value l, Value r) const {
+    if (l < r) {
+      return OrderVisitor::RelativeOrder::LessThan;
+    } else if (l == r) {
+      return OrderVisitor::RelativeOrder::Equal;
+    } else {
+      return OrderVisitor::RelativeOrder::GreaterThan;
     }
-  };
-  const bool is_ordered = std::visit(Visitor{}, left, right);
-  if (!is_ordered) {
-    std::swap(left, right);
   }
-}
 
-struct Add {
+  // Order assignment operands before input value operands.
+  constexpr OrderVisitor::RelativeOrder operator()(const Value&, const Expr&) const {
+    return OrderVisitor::RelativeOrder::LessThan;
+  }
+  constexpr OrderVisitor::RelativeOrder operator()(const Expr&, const Value&) const {
+    return OrderVisitor::RelativeOrder::GreaterThan;
+  }
+
+  // Order input value operands as we typically would.
+  OrderVisitor::RelativeOrder operator()(const Expr& l, const Expr& r) const {
+    return VisitBinaryStruct(l, r, OrderVisitor{});
+  }
+
+  OrderVisitor::RelativeOrder operator()(const Operand& l, const Operand& r) const {
+    return std::visit(*this, l, r);
+  }
+};
+
+struct OperandOrderBool {
+  bool operator()(const Operand& l, const Operand& r) const {
+    return OperandOrder{}(l, r) == OrderVisitor::RelativeOrder::LessThan;
+  }
+};
+
+template <typename Derived, std::size_t N>
+struct OperationBase {
+  // Forward everything into the `args` array.
+  template <typename... Ts>
+  explicit OperationBase(Ts&&... inputs) : args{Operand(std::forward<Ts>(inputs))...} {
+    if constexpr (IsCommutative()) {
+      std::sort(args.begin(), args.end(), OperandOrderBool{});
+    }
+  }
+
+  constexpr static bool IsCommutative() { return Derived::IsCommutative(); }
+
+  // Check if two operations have identical arguments.
+  bool operator==(const OperationBase& other) const {
+    return std::equal(args.begin(), args.end(), other.args.begin(), other.args.end(),
+                      [](const Operand& a, const Operand& b) {
+                        return OperandOrder{}(a, b) == OrderVisitor::RelativeOrder::Equal;
+                      });
+  }
+
+  std::array<Operand, N> args{};
+};
+
+struct Add : public OperationBase<Add, 2> {
+  constexpr static bool IsCommutative() { return true; }
   constexpr std::string_view ToString() const { return "add"; }
-
-  Add(Operand left, Operand right) : args{std::move(left), std::move(right)} {
-    OrderOperands(args[0], args[1]);
-  }
-
-  std::array<Operand, 2> args;
+  Add(Operand left, Operand right) : OperationBase(std::move(left), std::move(right)) {}
 };
 
-struct Mul {
+struct Mul : public OperationBase<Mul, 2> {
+  constexpr static bool IsCommutative() { return true; }
   constexpr std::string_view ToString() const { return "mul"; }
-
-  Mul(Operand left, Operand right) : args{std::move(left), std::move(right)} {
-    OrderOperands(args[0], args[1]);
-  }
-
-  std::array<Operand, 2> args;
+  Mul(Operand left, Operand right) : OperationBase(std::move(left), std::move(right)) {}
 };
 
-struct Pow {
+struct Pow : public OperationBase<Pow, 2> {
+  constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "pow"; }
-
-  Pow(Operand base, Operand exponent) : args{std::move(base), std::move(exponent)} {}
-
-  std::array<Operand, 2> args;
+  Pow(Operand base, Operand exponent) : OperationBase(std::move(base), std::move(exponent)) {}
 };
 
-struct Load {
+struct Load : public OperationBase<Load, 1> {
+  constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "load"; }
-
-  explicit Load(Expr input) : args{std::move(input)} {}
-  explicit Load(std::size_t input) : args{Operand(input)} {}
-
-  std::array<Operand, 1> args;
+  explicit Load(Expr input) : OperationBase(std::move(input)) {}
+  explicit Load(Value input) : OperationBase(input) {}
 };
 
 // TODO: Should probably just support n-ary functions w/ one object.
-struct CallUnaryFunc {
+struct CallUnaryFunc : public OperationBase<CallUnaryFunc, 1> {
+  constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return math::ToString(name); }
-
-  CallUnaryFunc(UnaryFunctionName name, Operand arg) : name(name), args{std::move(arg)} {}
-
+  CallUnaryFunc(UnaryFunctionName name, Operand arg) : OperationBase(std::move(arg)), name(name) {}
   UnaryFunctionName name;
-  std::array<Operand, 1> args;
+
+  bool operator==(const CallUnaryFunc& other) const {
+    return name == other.name && OperationBase::operator==(other);
+  }
 };
 
-using OperationVariant = std::variant<Add, Mul, Pow, Load, CallUnaryFunc>;
+// Different operations are represented by a variant.
+using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc>;
 
-}  // namespace ssa
+}  // namespace ir
 
-// Create "static single assignment" form from an expression tree.
-// Expression tree must be a scalar (not matrix).
-std::size_t CreateSSA(const Expr& expression,
-                      std::unordered_map<std::size_t, ssa::OperationVariant>& output);
+// Object for creating the intermediate representation. The IR is then given to the code-generator
+// to be simplified.
+struct IrBuilder {
+ public:
+  // Construct from a set of output expressions.
+  explicit IrBuilder(const std::vector<Expr>& expressions);
 
-// Print a list of assignments.
-std::string FormatSSA(const std::unordered_map<std::size_t, ssa::OperationVariant>& operations);
+  // Get the values indices for the outputs.
+  const std::vector<ir::Value>& OutputValues() const { return output_values_; }
 
-// Re-create expression tree from assignments.
-Expr ExpressionFromSSA(const std::unordered_map<std::size_t, ssa::OperationVariant>& operations,
-                       std::size_t value_index);
-Expr ExpressionFromSSA(const std::unordered_map<std::size_t, ssa::OperationVariant>& operations,
-                       const std::size_t value_index,
-                       std::unordered_map<std::size_t, Expr>& output_map);
+  // For the specified value, format the list of IR operations required to make it.
+  std::string FormatIR(const ir::Value& value) const;
 
-//
-void EliminateDuplicates(std::unordered_map<std::size_t, ssa::OperationVariant>& operations,
-                         const std::vector<std::size_t>& output_expressions);
+  // Format the IR for the given output index.
+  std::string FormatIRForOutput(std::size_t index) const {
+    ASSERT_LESS(index, output_values_.size());
+    return FormatIR(output_values_[index]);
+  }
 
-std::vector<Expr> IdentifySequenceCounts(const Expr& root);
+  // Recreate the expression tree for the specified IR value.
+  Expr CreateExpression(const ir::Value& value) const;
+
+  // Recreate the expression tree for the specified output (by index).
+  Expr CreateExpressionForOutput(std::size_t index) const {
+    ASSERT_LESS(index, output_values_.size());
+    return CreateExpression(output_values_[index]);
+  }
+
+  // Eliminate duplicated operations.
+  void EliminateDuplicates();
+
+  // Number of operations:
+  std::size_t NumOperations() const { return operations_.size(); }
+
+ protected:
+  // Insert a new operand of type `T` w/ the provided args.
+  template <typename T, typename... Args>
+  ir::Operand PushOperation(Args&&... args);
+
+  // Get depth-first traversal order of operation tree.
+  std::vector<ir::Value> GetTraversalOrder(const ir::Value& value) const;
+
+  // Propagate copied operands for the provided operation, which is modified in place.
+  void PropagateCopiedOperands(ir::Operation& operation) const;
+
+  // Eliminate any unused values from `operations_`.
+  void StripUnusedValues();
+
+  // Map of value id to an operation.
+  std::unordered_map<ir::Value, ir::Operation, ir::ValueHash> operations_;
+
+  // The output values, one per input expression.
+  std::vector<ir::Value> output_values_;
+
+  // Next available value, starting at zero.
+  ir::Value insertion_point_{0};
+
+  friend struct ir::IRFormVisitor;
+};
+
+// need:
+// - input dict mapping from argument name -> "type"
+// - output dict mapping from output name -> expression
+// -
+struct FunctionGenerator {
+ public:
+ protected:
+};
 
 }  // namespace math

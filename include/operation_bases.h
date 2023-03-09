@@ -46,13 +46,19 @@ class NAryOp : public ExpressionImpl<Derived> {
                       [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });
   }
 
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation operation) const {
+    std::for_each(args_.begin(), args_.end(), std::move(operation));
+  }
+
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr Map(Operation&& operation) const {
+  Expr Map(Operation operation) const {
     std::vector<Expr> transformed;
     transformed.reserve(Arity());
     std::transform(args_.begin(), args_.end(), std::back_inserter(transformed),
-                   std::forward<Operation>(operation));
+                   std::move(operation));
     return Derived::FromOperands(transformed);  //  TODO: should be a move
   }
 

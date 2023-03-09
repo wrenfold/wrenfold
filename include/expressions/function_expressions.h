@@ -75,6 +75,12 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
     return func_ == other.func_ && arg_.IsIdenticalTo(other.arg_);
   }
 
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation operation) const {
+    operation(arg_);
+  }
+
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr Map(Operation&& operation) const {

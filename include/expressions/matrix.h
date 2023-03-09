@@ -41,6 +41,12 @@ class Matrix : public ExpressionImpl<Matrix> {
                       [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });
   }
 
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation operation) const {
+    std::for_each(data_.begin(), data_.end(), std::move(operation));
+  }
+
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr Map(Operation&& operation) const {

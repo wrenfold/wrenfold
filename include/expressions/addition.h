@@ -38,7 +38,7 @@ struct AdditionParts {
   // Floating point coefficient:
   std::optional<Float> float_term{};
   // Map from multiplicand to coefficient.
-  std::unordered_map<Expr, Expr, HashObject, ExprEquality> terms{};
+  std::unordered_map<Expr, Expr, ExprHash, ExprEquality> terms{};
 
   // Update the internal representation by adding `arg`.
   void Add(const Expr& arg);

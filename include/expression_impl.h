@@ -34,6 +34,14 @@ class ExpressionImpl : public ExpressionConcept {
   }
 };
 
+// Traverse all sub-expressions of the input expression. The provided `operation` will be called
+// once on each child.
+template <typename Derived, typename Operation>
+std::enable_if_t<!Derived::IsLeafNode> IterateChildren(const ExpressionImpl<Derived>& expr,
+                                                       Operation&& operation) {
+  expr.AsDerived().Iterate(std::forward<Operation>(operation));
+}
+
 // Create a copy of an expression by running a unary map on its child expressions.
 // The derived type should copy itself w/ new children, leaving any other properties identical.
 template <typename Derived, typename Operation>

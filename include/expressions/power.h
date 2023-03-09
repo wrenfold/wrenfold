@@ -20,6 +20,13 @@ class Power : public ExpressionImpl<Power> {
     return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
   }
 
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation operation) const {
+    operation(base_);
+    operation(exponent_);
+  }
+
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr Map(Operation&& operation) const {

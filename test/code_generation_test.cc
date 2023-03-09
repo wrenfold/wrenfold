@@ -6,29 +6,83 @@
 
 namespace math {
 
-TEST(CodeGenerationTest, TestSSA1) {
+TEST(CodeGenerationTest, TestCreateIRConstant) {
+  const auto [w, x] = Symbols("w", "x");
+  {
+    // A constant
+    Expr f = 5;
+    IrBuilder ir{{f}};
+    ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  }
+  {
+    // A constant
+    IrBuilder ir{{Constants::Pi}};
+    ASSERT_IDENTICAL(Constants::Pi, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  }
+  {
+    // Single variable
+    IrBuilder ir{{x}};
+    ASSERT_IDENTICAL(x, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+
+    // Simplifying should have no effect
+    ir.EliminateDuplicates();
+    ASSERT_IDENTICAL(x, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  }
+  {
+    // Two outputs:
+    IrBuilder ir{{x, w}};
+    ASSERT_IDENTICAL(x, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+    ASSERT_IDENTICAL(w, ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
+  }
+}
+
+TEST(CodeGenerationTest, TestCreateIR) {
   const auto [w, x, y, z] = Symbols("w", "x", "y", "z");
-  Expr f = ((w + x) + y * (z - 2)) * ((w + x) + y * (z - 2) + 1) * 5;
 
-  fmt::print("input: {}\n", f.ToString());
+  {
+    IrBuilder ir{{w + x, y * z + 3}};
+    ASSERT_EQ(3, ir.NumOperations());
+    ASSERT_IDENTICAL(w + x, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+    ASSERT_IDENTICAL(y * z + 3, ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
+  }
 
-//  std::vector<Expr> subs = IdentifySequenceCounts(f);
-//  for (int i = 0; i < subs.size(); ++i) {
-//    fmt::print("$temp{:03} <-- {}\n", i, subs[i].ToString());
-//  }
+  {
+    const std::vector<Expr> expressions = {w * x + cos(y) / 2, pow(z, 5) - w * tan(x)};
+    IrBuilder ir{expressions};
+    ASSERT_EQ(9, ir.NumOperations());
+    ASSERT_IDENTICAL(expressions[0], ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+    ASSERT_IDENTICAL(expressions[1], ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
+  }
 
-  std::unordered_map<std::size_t, ssa::OperationVariant> output{};
-  const std::size_t expr_value = CreateSSA(f, output);
-  fmt::print("-- IR ({} operations):\n{}\n", output.size(), FormatSSA(output));
+  // Some expressions with duplication:
+  {
+    const std::vector<Expr> expressions = {w * x * y, y * x * 5, (cos(x * y) + 3)};
+    IrBuilder ir{expressions};
+    ASSERT_EQ(7, ir.NumOperations());
+    for (std::size_t i = 0; i < expressions.size(); ++i) {
+      ASSERT_IDENTICAL(expressions[i], ir.CreateExpressionForOutput(i)) << ir.FormatIRForOutput(i);
+    }
 
-  const Expr f_rebuilt = ExpressionFromSSA(output, expr_value);
-  ASSERT_IDENTICAL(f, f_rebuilt);
+    // Eliminate duplicated `x * y`
+    ir.EliminateDuplicates();
 
-  EliminateDuplicates(output, {expr_value});
-  fmt::print("-- Simplified ({} operations):\n{}\n", output.size(), FormatSSA(output));
+    ASSERT_EQ(5, ir.NumOperations());
+    for (std::size_t i = 0; i < expressions.size(); ++i) {
+      ASSERT_IDENTICAL(expressions[i], ir.CreateExpressionForOutput(i)) << ir.FormatIRForOutput(i);
+    }
+  }
 
-  const Expr f_rebuilt_2 = ExpressionFromSSA(output, expr_value);
-  //  fmt::print("\n{}\n", f_rebuilt_2.ToString());
+  // The two multiplied operands have several repeated elements:
+  {
+    const Expr f = ((w + x) + y * (z - 2) / (x * w)) * ((w + x) + y * (z - 2) + 1) * 5;
+    IrBuilder ir{{f}};
+    ASSERT_EQ(15, ir.NumOperations());
+    ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+
+    ir.EliminateDuplicates();
+    ASSERT_EQ(12, ir.NumOperations());
+    ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  }
 }
 
 }  // namespace math
