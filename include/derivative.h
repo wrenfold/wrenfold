@@ -74,6 +74,8 @@ class DiffVisitor {
       return Constants::Zero;
     }
     // TODO: Make global constants for 2, one half, etc...
+    static const Expr one_half = 1_s / 2;
+    static const Expr negative_one_half = -1_s / 2;
     switch (func.Func()) {
       case UnaryFunctionName::Cos:
         // cos(f(x)) --> -sin(f(x)) * f'(x)
@@ -86,16 +88,19 @@ class DiffVisitor {
         return pow(cos(func.Arg()), -2) * d_arg;
       case UnaryFunctionName::ArcCos:
         // acos(f(x)) --> -f'(x) / sqrt(1 - f(x)^2)
-        return -pow(Constants::One - pow(func.Arg(), 2), -1_s / 2) * d_arg;
+        return -pow(Constants::One - pow(func.Arg(), 2), negative_one_half) * d_arg;
       case UnaryFunctionName::ArcSin:
         // asin(f(x)) --> f'(x) / sqrt(1 - f(x)^2)
-        return pow(Constants::One - pow(func.Arg(), 2), -1_s / 2) * d_arg;
+        return pow(Constants::One - pow(func.Arg(), 2), negative_one_half) * d_arg;
       case UnaryFunctionName::ArcTan:
         // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
         return d_arg / (pow(func.Arg(), 2) + Constants::One);
       case UnaryFunctionName::Log:
         // log(f(x)) --> 1/f(x) * f'(x)
         return Power::Create(func.Arg(), Constants::NegativeOne) * d_arg;
+      case UnaryFunctionName::Sqrt: {
+        return pow(func.Arg(), negative_one_half) * one_half * d_arg;
+      }
       case UnaryFunctionName::ENUM_SIZE:
         break;
     }
@@ -106,6 +111,9 @@ class DiffVisitor {
   Expr Apply(const Integer&) const { return Constants::Zero; }
 
   Expr Apply(const Float&) const { return Constants::Zero; }
+
+  // TODO: Allowing taking the derivative wrt func args.
+  Expr Apply(const FunctionArgument&) const { return Constants::Zero; }
 
   Expr Apply(const Power& pow) {
     const Expr& a = pow.Base();

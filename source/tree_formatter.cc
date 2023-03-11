@@ -92,6 +92,10 @@ struct TreeFormatter {
 
   void Apply(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
 
+  void Apply(const FunctionArgument& arg) {
+    AppendName("FunctionArgument ({}, {})", arg.ArgIndex(), arg.ElementIndex());
+  }
+
   void Apply(const Rational& rational) {
     AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());
   }

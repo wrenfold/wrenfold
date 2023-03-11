@@ -2,8 +2,6 @@
 #include "code_generation.h"
 #include "test_helpers.h"
 
-#include <fmt/format.h>
-
 namespace math {
 
 TEST(CodeGenerationTest, TestCreateIRConstant) {

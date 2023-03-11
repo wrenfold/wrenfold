@@ -10,6 +10,8 @@
 #include "hashing.h"
 #include "visitor_impl.h"
 
+#include "code_formatter.h"
+
 namespace math {
 namespace ir {
 
@@ -159,6 +161,9 @@ struct IRFormVisitor {
 
   Operand Apply(const Expr& input_expression, const Integer&) const { return input_expression; }
   Operand Apply(const Expr& input_expression, const Float&) const { return input_expression; }
+  Operand Apply(const Expr& input_expression, const FunctionArgument&) const {
+    return input_expression;
+  }
 
   Operand Apply(const Power& pow) {
     Operand base = VisitStruct(pow.Base(), *this);
@@ -251,6 +256,9 @@ IrBuilder::IrBuilder(const std::vector<Expr>& expressions) {
   for (const Expr& expr : expressions) {
     VisitStruct(expr, pair_visitor);
   }
+
+  // need to convert
+
   // Now convert every expression to IR and record the output value:
   for (const Expr& expr : expressions) {
     ir::IRFormVisitor visitor{*this, pair_visitor};
@@ -304,7 +312,7 @@ inline void FormatOpWithArgs(std::string& output, const Op& op, const std::size_
 
 std::string IrBuilder::FormatIR(const ir::Value& value) const {
   const std::vector<ir::Value> traversal_order = GetTraversalOrder(value);
-  const std::size_t width = GetPrintWidth(insertion_point_.Id());
+  const std::size_t width = ValuePrintWidth();
 
   std::string output{};
   for (const ir::Value& val : traversal_order) {
@@ -319,6 +327,25 @@ std::string IrBuilder::FormatIR(const ir::Value& value) const {
   output.pop_back();  //  remove final newline
   return output;
 }
+
+std::string IrBuilder::FormatIRAllOutputs() const {
+  const auto order = GetTraversalOrder();
+  const std::size_t width = ValuePrintWidth();
+  std::string output{};
+  for (auto val : order) {
+    auto it = operations_.find(val);
+    ASSERT(it != operations_.end());
+
+    // Print the operation:
+    fmt::format_to(std::back_inserter(output), "v{:0>{}} <- ", val.Id(), width);
+    std::visit([&](const auto& op) { FormatOpWithArgs(output, op, width); }, it->second);
+    output += "\n";
+  }
+  output.pop_back();
+  return output;
+}
+
+std::size_t IrBuilder::ValuePrintWidth() const { return GetPrintWidth(insertion_point_.Id()); }
 
 inline Expr CreateExpressionForOp(const ir::Add&, std::vector<Expr>&& args) {
   return Addition::FromOperands(args);
@@ -388,11 +415,7 @@ void IrBuilder::EliminateDuplicates() {
   value_for_variant.reserve(operations_.size());
 
   // determine traversal order:
-  std::vector<ir::Value> ordered_keys;
-  ordered_keys.reserve(operations_.size());
-  std::transform(operations_.begin(), operations_.end(), std::back_inserter(ordered_keys),
-                 [](const auto& pair) { return pair.first; });
-  std::sort(ordered_keys.begin(), ordered_keys.end());
+  const std::vector<ir::Value> ordered_keys = GetTraversalOrder();
 
   for (const ir::Value value : ordered_keys) {
     auto it = operations_.find(value);
@@ -434,20 +457,22 @@ void VisitValueArgs(const ir::Operation& op, Handler handler) {
       op);
 }
 
+template <typename Handler>
 inline void RecursiveTraverse(
     const ir::Value& value,
     const std::unordered_map<ir::Value, ir::Operation, ir::ValueHash>& operations,
-    std::unordered_set<ir::Value, ir::ValueHash>& visited, std::vector<ir::Value>& order) {
+    std::unordered_set<ir::Value, ir::ValueHash>& visited, const Handler& handler) {
   auto it = operations.find(value);
   ASSERT(it != operations.end(), "Missing operation for value: {}", value.Id());
+  if (visited.count(value)) {
+    return;
+  }
   visited.insert(value);
   VisitValueArgs(it->second, [&](const ir::Value& val) {
-    if (!visited.count(val)) {
-      RecursiveTraverse(val, operations, visited, order);
-    }
+    RecursiveTraverse(val, operations, visited, handler);
   });
   // This is depth first, so record this value after all of its arguments.
-  order.push_back(value);
+  handler(value);
 }
 
 std::vector<ir::Value> IrBuilder::GetTraversalOrder(const ir::Value& value) const {
@@ -458,8 +483,144 @@ std::vector<ir::Value> IrBuilder::GetTraversalOrder(const ir::Value& value) cons
 
   std::vector<ir::Value> order;
   order.reserve(20);
-  RecursiveTraverse(value, operations_, visited, order);
+  RecursiveTraverse(value, operations_, visited,
+                    [&](const ir::Value& val) { order.push_back(val); });
   return order;
+}
+
+std::vector<ir::Value> IrBuilder::GetTraversalOrder() const {
+  std::vector<ir::Value> ordered{};
+  ordered.reserve(operations_.size());
+
+  std::unordered_set<ir::Value, ir::ValueHash> visited{};
+  visited.reserve(operations_.size());
+
+  for (const ir::Value& value : output_values_) {
+    RecursiveTraverse(value, operations_, visited,
+                      [&ordered](const ir::Value& val) { ordered.push_back(val); });
+  }
+  return ordered;
+}
+
+struct AstBuilder {
+  explicit AstBuilder(std::size_t value_width,
+                      std::vector<std::shared_ptr<const ast::Argument>> arguments)
+      : value_width_(value_width), input_args_(std::move(arguments)) {}
+
+  template <typename T>
+  ast::VariantPtr VisitMakePtr(const T& arg) const {
+    return std::make_unique<const ast::Variant>(std::visit(*this, arg));
+  }
+
+  ast::Variant operator()(const ir::Value& val) const {
+    return ast::VariableRef{fmt::format("v{:0>{}}", val.Id(), value_width_)};
+  }
+
+  // temporary, get rid of this:
+  ast::Variant operator()(const Expr& expr) const {
+    return detail::VisitLambdaWithPolicy<VisitorPolicy::CompileError>(
+        expr, [this](const auto& inner) -> ast::Variant {
+          using T = std::decay_t<decltype(inner)>;
+          if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
+                        std::is_same_v<T, Rational>) {
+            return ast::FloatConstant(static_cast<Float>(inner).GetValue());
+          } else if constexpr (std::is_same_v<T, Variable>) {
+            return ast::VariableRef{inner.GetName()};
+          } else if constexpr (std::is_same_v<T, FunctionArgument>) {
+            return ast::InputValue{input_args_[inner.ArgIndex()],
+                                   static_cast<index_t>(inner.ElementIndex())};
+          } else {
+            throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
+          }
+        });
+  }
+
+  ast::Variant operator()(const ir::Operand& operand) const { return std::visit(*this, operand); }
+
+  ast::Variant operator()(const ir::Add& mul) const {
+    return ast::Add(VisitMakePtr(mul.args[0]), VisitMakePtr(mul.args[1]));
+  }
+
+  ast::Variant operator()(const ir::Mul& mul) const {
+    return ast::Multiply(VisitMakePtr(mul.args[0]), VisitMakePtr(mul.args[1]));
+  }
+
+  ast::Variant operator()(const ir::Pow& pow) const {
+    return ast::Call(BinaryFunctionName::Pow, std::visit(*this, pow.args[0]),
+                     std::visit(*this, pow.args[1]));
+  }
+
+  ast::Variant operator()(const ir::Load& load) const { return std::visit(*this, load.args[0]); }
+
+  ast::Variant operator()(const ir::CallUnaryFunc& func) const {
+    return ast::Call(func.name, std::visit(*this, func.args[0]));
+  }
+
+ private:
+  std::size_t value_width_;
+  std::vector<std::shared_ptr<const ast::Argument>> input_args_;
+};
+
+std::vector<ast::Variant> IrBuilder::CreateAST(const FunctionDescription& func) {
+  std::vector<ast::Variant> ast{};
+  ast.reserve(100);
+
+  const auto order = GetTraversalOrder();
+  const std::size_t value_width = GetPrintWidth(order.size());
+
+  AstBuilder builder{value_width, func.input_args};
+
+  // first put a block w/ all the temporary values:
+  for (const auto& value : order) {
+    auto it = operations_.find(value);
+    ASSERT(it != operations_.end());
+    ast::VariantPtr rhs = builder.VisitMakePtr(it->second);
+    std::string name = fmt::format("v{:0>{}}", value.Id(), value_width);
+    ast.push_back(ast::Declaration{std::move(name), ast::ScalarType(), std::move(rhs)});
+  }
+
+  // then create blocks for the outputs:
+  std::size_t output_flat_index = 0;
+  for (const std::shared_ptr<const ast::Argument>& output_arg : func.output_args) {
+    std::vector<ast::Variant> statements;
+
+    std::vector<ast::VariableRef> variables;
+    variables.reserve(output_arg->TypeDimension());
+
+    for (std::size_t i = 0; i < output_arg->TypeDimension(); ++i) {
+      variables.push_back(ast::VariableRef{
+          fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
+    }
+
+    ast.push_back(ast::OutputBlock{
+        output_arg,
+        output_arg->IsOptional() ? OutputType::OptionalOutputArgument : OutputType::OutputArgument,
+        std::move(statements), std::move(variables)});
+
+    output_flat_index += output_arg->TypeDimension();
+  }
+
+  // create a block for the return values:
+  std::vector<ast::ReturnValueBlock::ReturnValue> return_values;
+  return_values.reserve(func.return_values.size());
+  for (const auto& ret_val_type : func.return_values) {
+    const std::size_t dim = std::visit([](const auto& x) { return x.Dimension(); }, ret_val_type);
+    std::vector<ast::VariableRef> variables;
+    variables.reserve(dim);
+    for (std::size_t i = 0; i < dim; ++i) {
+      variables.push_back(ast::VariableRef{
+          fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
+    }
+
+    return_values.push_back(ast::ReturnValueBlock::ReturnValue{
+        ret_val_type,
+        std::move(variables),
+    });
+
+    output_flat_index += dim;
+  }
+  ast.push_back(ast::ReturnValueBlock(std::move(return_values)));
+  return ast;
 }
 
 void IrBuilder::PropagateCopiedOperands(ir::Operation& operation) const {
@@ -492,9 +653,18 @@ void IrBuilder::StripUnusedValues() {
   std::unordered_set<ir::Value, ir::ValueHash> used_values;
   used_values.reserve(operations_.size());
 
-  // Output values are always used, so put them in the used set:
-  std::copy(output_values_.begin(), output_values_.end(),
-            std::inserter(used_values, used_values.end()));
+  // Output values are always used, so put them in the used set.
+  // First, we should eliminate any output operations that are just copies:
+  for (ir::Value& output_val : output_values_) {
+    auto it = operations_.find(output_val);
+    if (std::holds_alternative<ir::Load>(it->second)) {
+      const ir::Load& load = std::get<ir::Load>(it->second);
+      if (std::holds_alternative<ir::Value>(load.args[0])) {
+        output_val = std::get<ir::Value>(load.args[0]);
+      }
+    }
+    used_values.insert(output_val);
+  }
 
   for (const auto& pair : operations_) {
     VisitValueArgs(pair.second, [&](const ir::Value& val) { used_values.insert(val); });
@@ -508,6 +678,13 @@ void IrBuilder::StripUnusedValues() {
       it = operations_.erase(it);
     }
   }
+}
+
+std::string CodeGeneratorBase::Generate(const FunctionDescription& func,
+                                        const std::vector<ast::Variant>& ast) {
+  CodeFormatter formatter{*this};
+  GenerateImpl(formatter, func, ast);
+  return formatter.GetOutput();
 }
 
 }  // namespace math

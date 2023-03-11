@@ -13,4 +13,9 @@ const Expr Constants::Euler = MakeExpr<Constant>(SymbolicConstants::Euler);
 const Expr Constants::NegativeOne = MakeExpr<Integer>(-1);
 const Expr Constants::Infinity = MakeExpr<Constant>(SymbolicConstants::Infinity);
 
+Expr GetUnfilledExprPlaceholder() {
+  static const Expr expr{"<PLACEHOLDER>"};
+  return expr;
+}
+
 }  // namespace math

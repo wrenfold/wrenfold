@@ -17,6 +17,7 @@ enum class UnaryFunctionName {
   ArcSin,
   ArcTan,
   Log,
+  Sqrt,
   // Just to get the length of the enum:
   ENUM_SIZE,
 };
@@ -39,6 +40,8 @@ constexpr std::string_view ToString(const UnaryFunctionName name) {
       return "atan";
     case UnaryFunctionName::Log:
       return "ln";
+    case UnaryFunctionName::Sqrt:
+      return "sqrt";
     case UnaryFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
   }
@@ -95,6 +98,7 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
 // clang-format off
 enum class BinaryFunctionName {
   Mod,
+  Pow,
   // Just to get the length of the enum:
   ENUM_SIZE,
 };
@@ -155,6 +159,8 @@ inline Expr CreateUnaryFunction(const UnaryFunctionName name, const Expr& arg) {
       return atan(arg);
     case UnaryFunctionName::Log:
       return log(arg);
+    case UnaryFunctionName::Sqrt:
+      return sqrt(arg);
     default:
       break;
   }

@@ -22,8 +22,8 @@ struct OrderVisitor {
   using ReturnType = RelativeOrder;
   static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
 
-  using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Variable, Multiplication,
-                                Addition, Power, UnaryFunction, Matrix>;
+  using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Variable, FunctionArgument,
+                                Multiplication, Addition, Power, UnaryFunction, Matrix>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ApprovedTypeList>::Value);
@@ -109,6 +109,17 @@ struct OrderVisitor {
     }
     // Then compare by value of the argument:
     return VisitBinaryStruct(a.Arg(), b.Arg(), OrderVisitor{});
+  }
+
+  RelativeOrder Compare(const FunctionArgument& a, const FunctionArgument& b) const {
+    const auto p_a = std::make_pair(a.ArgIndex(), a.ElementIndex());
+    const auto p_b = std::make_pair(b.ArgIndex(), b.ElementIndex());
+    if (p_a < p_b) {
+      return RelativeOrder::LessThan;
+    } else if (p_a > p_b) {
+      return RelativeOrder::GreaterThan;
+    }
+    return RelativeOrder::Equal;
   }
 
   RelativeOrder Compare(const Variable& a, const Variable& b) const {

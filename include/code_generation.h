@@ -1,11 +1,15 @@
 // Copyright 2023 Gareth Cross
+#pragma once
 #include "expression.h"
 
+#include <typeindex>
 #include <unordered_map>
 #include <variant>
 #include <vector>
 
+#include "ast.h"
 #include "expressions/function_expressions.h"  //  temporary
+#include "function_evaluator.h"
 #include "ordering.h"
 
 namespace math {
@@ -148,6 +152,8 @@ using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc>;
 
 }  // namespace ir
 
+struct FunctionDescription;
+
 // Object for creating the intermediate representation. The IR is then given to the code-generator
 // to be simplified.
 struct IrBuilder {
@@ -167,6 +173,12 @@ struct IrBuilder {
     return FormatIR(output_values_[index]);
   }
 
+  // Format IR for every value.
+  std::string FormatIRAllOutputs() const;
+
+  // Size of value numbers when printed (# digits).
+  std::size_t ValuePrintWidth() const;
+
   // Recreate the expression tree for the specified IR value.
   Expr CreateExpression(const ir::Value& value) const;
 
@@ -176,11 +188,20 @@ struct IrBuilder {
     return CreateExpression(output_values_[index]);
   }
 
+  // Get the traversal order for all outputs:
+  std::vector<ir::Value> GetTraversalOrder() const;
+
+  // Create AST to be emitted.
+  std::vector<ast::Variant> CreateAST(const FunctionDescription& description);
+
   // Eliminate duplicated operations.
   void EliminateDuplicates();
 
   // Number of operations:
   std::size_t NumOperations() const { return operations_.size(); }
+
+  // Find an operation from its value:
+  const ir::Operation& Find(const ir::Value& val) const { return operations_.at(val); }
 
  protected:
   // Insert a new operand of type `T` w/ the provided args.
@@ -208,13 +229,35 @@ struct IrBuilder {
   friend struct ir::IRFormVisitor;
 };
 
-// need:
-// - input dict mapping from argument name -> "type"
-// - output dict mapping from output name -> expression
-// -
-struct FunctionGenerator {
+// Fwd declare.
+class CodeFormatter;
+
+class CodeGeneratorBase {
  public:
+  virtual ~CodeGeneratorBase() = default;
+
+  //
+  std::string Generate(const FunctionDescription& func, const std::vector<ast::Variant>& ast);
+
  protected:
+  virtual void GenerateImpl(CodeFormatter& formatter, const FunctionDescription& func,
+                            const std::vector<ast::Variant>& ast) = 0;
+};
+
+template <typename Generator>
+struct CodeGeneratorImpl : public CodeGeneratorBase {
+ public:
+  // Construct w/ user provided implementation.
+  explicit CodeGeneratorImpl(Generator&& impl) : impl_(std::move(impl)) {}
+
+ protected:
+  void GenerateImpl(CodeFormatter& formatter, const FunctionDescription& func,
+                    const std::vector<ast::Variant>& ast) override final {
+    impl_.Generate(formatter, func, ast);
+  }
+
+ private:
+  Generator impl_;
 };
 
 }  // namespace math

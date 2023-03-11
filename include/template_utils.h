@@ -115,6 +115,19 @@ struct IndexOfType<T, TypeList<Ts...>> {
   constexpr static std::size_t Value = IndexOfTypeHelper<T, Ts...>();
 };
 
+// Get the N'th element of a type list.
+template <std::size_t N, typename... Ts>
+struct TypeListElement;
+
+template <std::size_t N, typename T, typename... Ts>
+struct TypeListElement<N, TypeList<T, Ts...>> {
+  using Type = typename TypeListElement<N - 1, TypeList<Ts...>>::Type;
+};
+template <typename T, typename... Ts>
+struct TypeListElement<0, TypeList<T, Ts...>> {
+  using Type = T;
+};
+
 // This template iterates over a TypeList and creates a new TypeList of return types that occur
 // when `Callable` is invoked with each type in the input type list. Duplicates may occur.
 template <typename Callable, typename...>
@@ -164,15 +177,5 @@ struct ConvertCallToApply {
 // Version of `ApplyReturnType` that operates on operator() instead.
 template <typename Callable, typename List>
 using CallableReturnType = ApplyReturnType<ConvertCallToApply<Callable>, List>;
-
-template <typename T, typename = void>
-struct DecayOptional {
-  using Type = T;
-};
-
-template <typename T>
-struct DecayOptional<std::optional<T>> {
-  using Type = T;
-};
 
 }  // namespace math

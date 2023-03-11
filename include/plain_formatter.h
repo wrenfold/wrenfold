@@ -24,6 +24,7 @@ class PlainFormatter : public VisitorImpl<PlainFormatter> {
   void Apply(const Addition& add);
   void Apply(const Constant& constant);
   void Apply(const Float& num);
+  void Apply(const FunctionArgument& func_arg);
   void Apply(const Integer& num);
   void Apply(const Matrix& mat);
   void Apply(const Multiplication& mul);

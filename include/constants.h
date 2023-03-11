@@ -29,4 +29,7 @@ enum class SymbolicConstants : int {
   Pi,
 };
 
+// A placeholder used to default initialize certain expressions during code-generation.
+Expr GetUnfilledExprPlaceholder();
+
 }  // namespace math

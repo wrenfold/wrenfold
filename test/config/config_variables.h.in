@@ -1,0 +1,2 @@
+// Copyright 2023 Gareth Cross
+#define TEST_OUTPUT_DIR "${TEST_OUTPUT_DIR}"

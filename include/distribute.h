@@ -99,6 +99,7 @@ struct DistributeVisitor {
   Expr Apply(const Expr& arg, const Constant&) const { return arg; }
   Expr Apply(const Expr& arg, const Integer&) { return arg; }
   Expr Apply(const Expr& arg, const Float&) { return arg; }
+  Expr Apply(const Expr& arg, const FunctionArgument&) const { return arg; }
   Expr Apply(const Expr& arg, const Rational&) const { return arg; }
   Expr Apply(const Expr& arg, const Variable&) { return arg; }
 };

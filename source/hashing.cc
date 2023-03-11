@@ -59,6 +59,13 @@ struct HashVisitor {
     return HashCombine(type_hash, Hash<Float>{}(f));
   }
 
+  std::size_t Apply(const FunctionArgument& f) const {
+    constexpr std::size_t type_hash = HashString("FunctionArgument");
+    const std::size_t arg_hash = HashCombine(std::hash<std::size_t>{}(f.ArgIndex()),
+                                             std::hash<std::size_t>{}(f.ElementIndex()));
+    return HashCombine(type_hash, arg_hash);
+  }
+
   std::size_t Apply(const Integer& i) const {
     constexpr std::size_t type_hash = HashString("Integer");
     return HashCombine(type_hash, Hash<Integer>{}(i));

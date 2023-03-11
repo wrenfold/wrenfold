@@ -63,6 +63,11 @@ void PlainFormatter::Apply(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
 }
 
+void PlainFormatter::Apply(const FunctionArgument& func_arg) {
+  fmt::format_to(std::back_inserter(output_), "$arg({}, {})", func_arg.ArgIndex(),
+                 func_arg.ElementIndex());
+}
+
 void PlainFormatter::Apply(const Matrix& mat) {
   ASSERT_GREATER_OR_EQ(mat.NumRows(), 0);
   ASSERT_GREATER_OR_EQ(mat.NumCols(), 0);
