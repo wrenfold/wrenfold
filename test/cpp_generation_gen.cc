@@ -10,7 +10,6 @@
 #include "matrix_functions.h"
 #include "type_annotations.h"
 
-#include "config_variables.h"  //  generated from cmake
 #include "test_expressions.h"
 
 namespace math {
@@ -26,7 +25,7 @@ std::tuple<Expr, ta::StaticMatrix<2, 2>> do_stuff(Expr w, Expr x, Expr y, Expr z
 }
 
 template <typename Func, typename... Args>
-void GenerateFunc(Func func, const std::string_view name, Args&&... args) {
+void GenerateFunc(std::string& output, Func func, const std::string_view name, Args&&... args) {
   const auto [desc, expressions] =
       BuildFunctionDescription(func, name, std::forward<Args>(args)...);
 
@@ -36,26 +35,21 @@ void GenerateFunc(Func func, const std::string_view name, Args&&... args) {
 
   CodeGeneratorImpl<CppCodeGenerator> generator(CppCodeGenerator{});
   const std::string code = generator.Generate(desc, ast);
-
-  const std::string code_with_preamble =
-      "// Machine generated code.\n#include <cmath>\n#include <optional>\n#include "
-      "<tuple>\n\n#include "
-      "<Eigen/Core>\n\n" +
-      code;
-
-  const std::string path =
-      (std::filesystem::path(TEST_OUTPUT_DIR) / fmt::format("{}.h", name)).string();
-  fmt::output_file(path).print("{}\n", code_with_preamble);
-  fmt::print("Writing to: {}\n", path);
+  fmt::format_to(std::back_inserter(output), "{}\n\n", code);
 }
-
-Expr simple_multiply(Expr x, Expr y) { return x * y; }
 
 }  // namespace math
 
 int main() {
   using namespace math;
-  GenerateFunc(&SimpleMultiplyAdd, "simple_multiply_add", "x", "y", "z");
-  //  GenerateFunc(&do_stuff, "do_stuff_gen", "w", "x", "y", "z", Arg("f"), Arg("m_out", true));
+  std::string code =
+      "// Machine generated code.\n#include <cmath>\n#include <optional>\n#include "
+      "<tuple>\n\n#include "
+      "<Eigen/Core>\n\n";
+
+  GenerateFunc(code, &SimpleMultiplyAdd, "simple_multiply_add", "x", "y", "z");
+  GenerateFunc(code, &VectorRotation2D, "vector_rotation_2d", "theta", "v", Arg("D_theta", true));
+
+  fmt::output_file("generated.h").print("{}\n", code);
   return 0;
 }

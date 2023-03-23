@@ -178,7 +178,7 @@ struct BuildFunctionArgument<type_annotations::StaticMatrix<Rows, Cols>> {
     for (std::size_t i = 0; i < Rows * Cols; ++i) {
       expressions.push_back(FunctionArgument::Create(arg_index, i));
     }
-    MatrixExpr expr = CreateMatrix(Rows, Cols, std::move(expressions));
+    MatrixExpr expr = MatrixExpr::Create(Rows, Cols, std::move(expressions));
     return type_annotations::StaticMatrix<Rows, Cols>(std::move(expr));
   }
 };

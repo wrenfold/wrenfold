@@ -44,9 +44,16 @@ struct StaticMatrix {
     return StaticMatrix<Rows, OtherCols>{expr_ * other.expr_};
   }
 
+  // Assign from MatrixExpr
+  StaticMatrix& operator=(const MatrixExpr& other) {
+    expr_ = other;
+    return *this;
+  }
+
   // Implicit cast to MatrixExpr.
   operator const MatrixExpr&() const { return expr_; }
 
+ private:
   MatrixExpr expr_;
 };
 
