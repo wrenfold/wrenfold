@@ -1,5 +1,5 @@
 // Copyright 2023 Gareth Cross
-#include "substitute.h"
+#include "operations.h"
 
 #include <unordered_map>
 #include <unordered_set>

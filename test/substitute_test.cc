@@ -1,9 +1,9 @@
 // Copyright 2023 Gareth Cross
-#include "substitute.h"
 #include "constants.h"
 #include "error_types.h"
 #include "functions.h"
 #include "matrix_functions.h"
+#include "operations.h"
 #include "test_helpers.h"
 
 namespace math {

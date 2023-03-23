@@ -2,12 +2,12 @@
 
 #include "assertions.h"
 #include "constants.h"
-#include "derivative.h"
-#include "distribute.h"
+#include "expressions/addition.h"
+#include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
+#include "expressions/power.h"
 #include "expressions/variable.h"
 #include "plain_formatter.h"
-#include "substitute.h"
 
 namespace math {
 
@@ -31,25 +31,6 @@ std::string Expr::ToString() const {
 
 Expr Expr::operator-() const {
   return Multiplication::FromTwoOperands(Constants::NegativeOne, *this);
-}
-
-Expr Expr::Diff(const Expr& var, const int reps) const {
-  const Variable* const as_var = TryCast<Variable>(var);
-  ASSERT(as_var, "Arguments to diff() must be variables.");
-  ASSERT_GREATER_OR_EQ(reps, 0);
-
-  DiffVisitor visitor{*as_var};
-  Expr result = *this;
-  for (int i = 0; i < reps; ++i) {
-    result = VisitStruct(result, visitor);
-  }
-  return result;
-}
-
-Expr Expr::Distribute() const { return VisitStruct(*this, DistributeVisitor{}); }
-
-Expr Expr::Subs(const Expr& target, const Expr& replacement) const {
-  return Substitute(*this, target, replacement);
 }
 
 // TODO: It would be good if these could be inlined for internal library code.

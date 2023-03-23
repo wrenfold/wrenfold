@@ -1,24 +1,22 @@
-// Copyright 2022 Gareth Cross
-#pragma once
-#include "expression.h"
+// Copyright 2023 Gareth Cross
 #include "expressions/all_expressions.h"
-#include "functions.h"
-#include "operations_fwd.h"
-#include "visitor_base.h"
 
 namespace math {
 
 using namespace math::custom_literals;
 
 // Visitor that takes the derivative of an input expression.
+template <typename T>
 class DiffVisitor {
  public:
+  static_assert(std::is_same_v<T, Variable> || std::is_same_v<T, FunctionArgument>);
+
   constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit DiffVisitor(const Variable& argument) : argument_(argument) {}
+  explicit DiffVisitor(const T& argument) : argument_(argument) {}
 
   // Differentiate every argument to make a new sum.
   Expr Apply(const Addition& add) {
@@ -112,8 +110,14 @@ class DiffVisitor {
 
   Expr Apply(const Float&) const { return Constants::Zero; }
 
-  // TODO: Allowing taking the derivative wrt func args.
-  Expr Apply(const FunctionArgument&) const { return Constants::Zero; }
+  Expr Apply(const FunctionArgument& arg) const {
+    if constexpr (std::is_same_v<T, FunctionArgument>) {
+      if (argument_.IsIdenticalToImplTyped(arg)) {
+        return Constants::One;
+      }
+    }
+    return Constants::Zero;
+  }
 
   Expr Apply(const Power& pow) {
     const Expr& a = pow.Base();
@@ -128,14 +132,40 @@ class DiffVisitor {
   Expr Apply(const Rational&) const { return Constants::Zero; }
 
   Expr Apply(const Variable& var) const {
-    if (var.IsIdenticalToImplTyped(argument_)) {
-      return Constants::One;
+    if constexpr (std::is_same_v<Variable, T>) {
+      if (var.IsIdenticalToImplTyped(argument_)) {
+        return Constants::One;
+      }
     }
     return Constants::Zero;
   }
 
  private:
-  Variable argument_;
+  T argument_;
 };
+
+template <typename T>
+inline Expr DiffTyped(const Expr& expr, const T& arg, const int reps) {
+  DiffVisitor<T> visitor{arg};
+  Expr result = expr;
+  for (int i = 0; i < reps; ++i) {
+    result = VisitStruct(result, visitor);
+  }
+  return result;
+}
+
+Expr Diff(const Expr& differentiand, const Expr& arg, const int reps) {
+  ASSERT_GREATER_OR_EQ(reps, 0);
+  if (const Variable* var = TryCast<Variable>(arg); var != nullptr) {
+    return DiffTyped<Variable>(differentiand, *var, reps);
+  } else if (const FunctionArgument* func = TryCast<FunctionArgument>(arg); func != nullptr) {
+    return DiffTyped<FunctionArgument>(differentiand, *func, reps);
+  } else {
+    throw TypeError(
+        "Argument to diff must be of type Variable or FunctionArgument. Received expression "
+        "of type: {}",
+        arg.TypeName());
+  }
+}
 
 }  // namespace math

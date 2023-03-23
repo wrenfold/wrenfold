@@ -4,6 +4,7 @@
 #include <string>
 
 #include "expression_concept.h"
+#include "operations.h"
 
 namespace math {
 
@@ -48,13 +49,15 @@ class Expr {
   Expr operator-() const;
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
-  Expr Diff(const Expr& var, int reps = 1) const;
+  Expr Diff(const Expr& var, int reps = 1) const { return math::Diff(*this, var, reps); }
 
   // Distribute terms in this expression.
-  Expr Distribute() const;
+  Expr Distribute() const { return math::Distribute(*this); }
 
   // Create a new expression by recursively substituting `replacement` for `target`.
-  Expr Subs(const Expr& target, const Expr& replacement) const;
+  Expr Subs(const Expr& target, const Expr& replacement) const {
+    return math::Substitute(*this, target, replacement);
+  }
 
   // Receive a visitor.
   void Receive(VisitorBase& visitor) const { impl_->Receive(visitor); }

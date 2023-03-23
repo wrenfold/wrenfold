@@ -14,7 +14,8 @@ TEST(DerivativesTest, TestConstants) {
   ASSERT_IDENTICAL(Constants::Zero, (5_s).Diff(x));
   ASSERT_IDENTICAL(Constants::Zero, (22.5_s).Diff(x, 4));
   ASSERT_IDENTICAL(Constants::Zero, Constants::Pi.Diff(x));
-  ASSERT_THROW(x.Diff(5_s), AssertionError);
+  ASSERT_THROW(x.Diff(5_s), TypeError);
+  ASSERT_THROW(x.Diff(Constants::Pi), TypeError);
 }
 
 TEST(DerivativesTest, TestAdditionAndSubtraction) {
@@ -49,6 +50,8 @@ TEST(DerivativesTest, TestMultiplication) {
   ASSERT_IDENTICAL(1_s / y, (x / y).Diff(x));
   ASSERT_IDENTICAL(-y / (x * x), (y / x).Diff(x));
   ASSERT_IDENTICAL(2_s * y / pow(x, 3_s), (y / x).Diff(x, 2));
+  ASSERT_IDENTICAL(x * y + sin(w) * y - 3 * log(x) * pow(w, 2),
+                   (w * x * y - cos(w) * y - log(x) * pow(w, 3)).Diff(w));
 }
 
 TEST(DerivativesTest, TestPower) {

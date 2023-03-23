@@ -1,11 +1,12 @@
 // Copyright 2023 Gareth Cross
-#pragma once
 #include "assertions.h"
 #include "expression_impl.h"
 #include "expressions/all_expressions.h"
 
 namespace math {
 
+// Visitor for distributing terms in multiplications:
+// (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
   using ReturnType = Expr;
   static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
@@ -83,13 +84,13 @@ struct DistributeVisitor {
     return Addition::FromOperands(output_terms);
   }
 
-  Expr Apply(const Expr&, const UnaryFunction& f) {
+  Expr Apply(const Expr&, const UnaryFunction& f) const {
     std::optional<Expr> inner = VisitStruct(f.Arg(), DistributeVisitor{});
     ASSERT(inner);
     return CreateUnaryFunction(f.Func(), *inner);
   }
 
-  Expr Apply(const Expr&, const Power& pow) {
+  Expr Apply(const Expr&, const Power& pow) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
@@ -97,11 +98,13 @@ struct DistributeVisitor {
   }
 
   Expr Apply(const Expr& arg, const Constant&) const { return arg; }
-  Expr Apply(const Expr& arg, const Integer&) { return arg; }
-  Expr Apply(const Expr& arg, const Float&) { return arg; }
+  Expr Apply(const Expr& arg, const Integer&) const { return arg; }
+  Expr Apply(const Expr& arg, const Float&) const { return arg; }
   Expr Apply(const Expr& arg, const FunctionArgument&) const { return arg; }
   Expr Apply(const Expr& arg, const Rational&) const { return arg; }
-  Expr Apply(const Expr& arg, const Variable&) { return arg; }
+  Expr Apply(const Expr& arg, const Variable&) const { return arg; }
 };
+
+Expr Distribute(const Expr& arg) { return VisitStruct(arg, DistributeVisitor{}); }
 
 }  // namespace math

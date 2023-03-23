@@ -23,6 +23,8 @@ add_subdirectory(dependencies)
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
     source/constants.cc
+    source/derivative.cc
+    source/distribute.cc
     source/expression.cc
     source/expressions/addition.cc
     source/expressions/constant_expressions.cc
