@@ -11,10 +11,9 @@ inline std::size_t CountNewlines(const std::string& str) {
   return std::count(str.begin(), str.end(), '\n');
 }
 
-inline testing::AssertionResult FormatFailedResult(const std::string_view description,
-                                                   const std::string& name_a,
-                                                   const std::string& name_b, const Expr& a,
-                                                   const Expr& b) {
+testing::AssertionResult FormatFailedResult(const std::string_view description,
+                                            const std::string& name_a, const std::string& name_b,
+                                            const Expr& a, const Expr& b) {
   // If the formatted string has multiple lines, preface it w/ a line break:
   const std::string a_str = a.ToString();
   const std::string b_str = b.ToString();
@@ -31,23 +30,6 @@ inline testing::AssertionResult FormatFailedResult(const std::string_view descri
              name_a, FormatDebugTree(a),
              name_b, FormatDebugTree(b));
   // clang-format on
-}
-
-testing::AssertionResult IdenticalTestHelper(const std::string& name_a, const std::string& name_b,
-                                             const Expr& a, const Expr& b) {
-  if (a.IsIdenticalTo(b)) {
-    return testing::AssertionSuccess();
-  }
-  return FormatFailedResult("is not identical to", name_a, name_b, a, b);
-}
-
-testing::AssertionResult NotIdenticalTestHelper(const std::string& name_a,
-                                                const std::string& name_b, const Expr& a,
-                                                const Expr& b) {
-  if (!a.IsIdenticalTo(b)) {
-    return testing::AssertionSuccess();
-  }
-  return FormatFailedResult("is identical (and should not be) to", name_a, name_b, a, b);
 }
 
 }  // namespace math

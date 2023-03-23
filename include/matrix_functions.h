@@ -1,6 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "expression.h"
+#include "matrix_expression.h"
 
 namespace math {
 

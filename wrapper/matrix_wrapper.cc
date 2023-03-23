@@ -9,6 +9,8 @@
 #include "expression.h"
 #include "expressions/matrix.h"
 #include "matrix_functions.h"
+#include "plain_formatter.h"
+#include "tree_formatter.h"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -58,7 +60,7 @@ struct RowIterator {
     if (parent_.NumCols() == 1) {
       return parent_[row_];
     } else {
-      return parent_.GetBlock(row_, 0, 1, parent_.NumCols());
+      return parent_.GetBlock(row_, 0, 1, parent_.NumCols()).AsExpr();
     }
   }
 
@@ -282,33 +284,65 @@ py::array NumpyFromMatrix(const MatrixExpr& self) {
 }
 
 // For the benefit of python types, we need to re-define these with MatrixExpr as the type.
-// TODO: Gross that this adds a bunch more casting/calling overhead.
 MatrixExpr operator+(const MatrixExpr& a, const MatrixExpr& b) {
-  return MatrixExpr{static_cast<const Expr&>(a) + static_cast<const Expr&>(b)};
+  return matrix_operator_overloads::operator+(a, b);
 }
 
 MatrixExpr operator-(const MatrixExpr& a, const MatrixExpr& b) {
-  return MatrixExpr{static_cast<const Expr&>(a) - static_cast<const Expr&>(b)};
+  return matrix_operator_overloads::operator-(a, b);
 }
 
 // Handle matrix * matrix, which may produce a scalar.
 std::variant<Expr, MatrixExpr> operator*(const MatrixExpr& a, const MatrixExpr& b) {
-  Expr result = static_cast<const Expr&>(a) * static_cast<const Expr&>(b);
+  Expr result = matrix_operator_overloads::operator*(a, b);
   if (TryCast<Matrix>(result) != nullptr) {
-    return static_cast<const MatrixExpr&>(result);
+    return static_cast<MatrixExpr>(result);
   }
   return result;
 }
 MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
-  return MatrixExpr{static_cast<const Expr&>(a) * static_cast<const Expr&>(b)};
+  return MatrixExpr{matrix_operator_overloads::operator*(a, b)};
 }
 MatrixExpr operator*(const Expr& a, const MatrixExpr& b) {
-  return MatrixExpr{static_cast<const Expr&>(a) * static_cast<const Expr&>(b)};
+  return MatrixExpr{matrix_operator_overloads::operator*(a, b)};
 }
 
 void WrapMatrixOperations(py::module_& m) {
   // Matrix expression type.
-  py::class_<MatrixExpr, Expr>(m, "MatrixExpr")
+  py::class_<MatrixExpr>(m, "MatrixExpr")
+      // Expr inherited properties:
+      .def("__repr__",
+           [](const MatrixExpr& self) {
+             PlainFormatter formatter{PowerStyle::Python};
+             self.Receive(formatter);
+             return formatter.GetOutput();
+           })
+      .def(
+          "expression_tree_str",
+          [](const MatrixExpr& self) { return FormatDebugTree(static_cast<Expr>(self)); },
+          "Retrieve the expression tree as a pretty-printed string.")
+      .def(
+          "print_expression_tree",
+          [](const Expr& self) { fmt::print("{}\n", FormatDebugTree(static_cast<Expr>(self))); },
+          "Print the expression tree to standard out.")
+      .def(
+          "is_identical_to",
+          [](const MatrixExpr& self, const MatrixExpr& other) { return self.IsIdenticalTo(other); },
+          "other"_a, "Test if two matrix expressions have identical expression trees.")
+      .def(
+          "is_identical_to",
+          [](const MatrixExpr& self, const Expr& other) {
+            return self.AsExpr().IsIdenticalTo(other);
+          },
+          "other"_a, "Test if two expressions have identical expression trees.")
+      .def_property_readonly("type_name", &MatrixExpr::TypeName)
+      // Operations:
+      .def("diff", &MatrixExpr::Diff, "var"_a, py::arg("order") = 1,
+           "Differentiate the expression with respect to the specified variable.")
+      .def("distribute", &MatrixExpr::Distribute, "Expand products of additions and subtractions.")
+      .def("subs", &MatrixExpr::Subs, py::arg("target"), py::arg("substitute"),
+           "Replace the `target` expression with `substitute` in the expression tree.")
+      // Matrix specific properties:
       .def_property_readonly(
           "shape", [](const MatrixExpr& m) { return py::make_tuple(m.NumRows(), m.NumCols()); },
           "Shape of the matrix in (row, col) format.")
@@ -343,13 +377,15 @@ void WrapMatrixOperations(py::module_& m) {
       // We need to override these again so that we get `MatrixExpr` return type.
       .def(py::self + py::self)
       .def(py::self - py::self)
-      .def(py::self * py::self)
+      .def(
+          "__mul__", [](const MatrixExpr& a, const MatrixExpr& b) { return a * b; },
+          py::is_operator())
       .def(
           "__mul__", [](const MatrixExpr& a, const Expr& b) { return a * b; }, py::is_operator())
       .def(
           "__rmul__", [](const Expr& a, const MatrixExpr& b) { return a * b; }, py::is_operator())
       .def(
-          "__neg__", [](const MatrixExpr& x) -> MatrixExpr { return x * -1; },
+          "__neg__", [](const MatrixExpr& x) -> MatrixExpr { return -x; },
           "Element-wise negation of the matrix.");
 
   // Matrix constructors:

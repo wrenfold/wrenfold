@@ -19,12 +19,6 @@ namespace py = pybind11;
 using namespace py::literals;
 using namespace math;
 
-std::string ExprRepr(const Expr& self) {
-  PlainFormatter formatter{PowerStyle::Python};
-  self.Receive(formatter);
-  return formatter.GetOutput();
-}
-
 // Create symbols from CSV list of names.
 inline std::variant<Expr, py::list> CreateSymbolsFrom(const std::string_view csv) {
   py::list variables{};
@@ -80,7 +74,12 @@ PYBIND11_MODULE(mc, m) {
       .def(py::init<std::int64_t>())
       .def(py::init<double>())
       // String conversion:
-      .def("__repr__", &ExprRepr)
+      .def("__repr__",
+           [](const Expr& self) {
+             PlainFormatter formatter{PowerStyle::Python};
+             self.Receive(formatter);
+             return formatter.GetOutput();
+           })
       .def("expression_tree_str", &FormatDebugTree,
            "Retrieve the expression tree as a pretty-printed string.")
       .def(

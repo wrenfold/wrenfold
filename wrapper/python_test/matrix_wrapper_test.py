@@ -77,9 +77,9 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(mc.DimensionError, lambda: mc.row_vector())
 
         # cannot nest matrices:
-        self.assertRaises(mc.TypeError, lambda: mc.vector(m, 1.5, 2))
-        self.assertRaises(mc.TypeError, lambda: mc.row_vector(x, y, mc.vector(z, 9.0)))
-        self.assertRaises(mc.TypeError, lambda: mc.matrix([[mc.row_vector(1, x), 1], [0.0, mc.pi]]))
+        self.assertRaises(RuntimeError, lambda: mc.vector(m, 1.5, 2))
+        self.assertRaises(RuntimeError, lambda: mc.row_vector(x, y, mc.vector(z, 9.0)))
+        self.assertRaises(RuntimeError, lambda: mc.matrix([[mc.row_vector(1, x), 1], [0.0, mc.pi]]))
 
         # mixing iterable/non-iterable:
         self.assertRaises(TypeError, lambda: mc.matrix([mc.row_vector(x, y), 5]))
@@ -89,6 +89,12 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(mc.DimensionError, lambda: mc.matrix([(y, 2), (x,)]))
         self.assertRaises(mc.DimensionError, lambda: mc.matrix([(a, mc.pi, mc.euler),
                                                                 (x, 5, z, b)]))
+
+    def test_matrix_repr(self):
+        """Test matrix __repr__."""
+        x, y, z = mc.symbols('x, y, z')
+        m = mc.matrix([[x * x, -y + 3, x * z], [-2, mc.pi, 5]])
+        self.assertEqual('[[x ** 2, 3 - y, x * z],\n [    -2,    pi,     5]]', repr(m))
 
     def test_special_matrices(self):
         """Test convenience constructors for specific matrices."""
@@ -266,8 +272,8 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(mc.DimensionError, lambda: m0 - mc.zeros(6, 7))
 
         # division by matrix is prohibited:
-        self.assertRaises(mc.TypeError, lambda: 31 / m0)
-        self.assertRaises(mc.TypeError, lambda: u / m1)
+        self.assertRaises(TypeError, lambda: 31 / m0)
+        self.assertRaises(TypeError, lambda: u / m1)
 
     def test_distribute(self):
         """Test calling distribute on a matrix."""
@@ -292,10 +298,6 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(
             mc.matrix([(0, b - c), (c - mc.sin(y), z)]),
             m.subs(a, -x * 2).subs(d + mc.log(d), z))
-
-        # replace the whole matrix:
-        m = mc.matrix([a, b, c, d])
-        self.assertIdentical(mc.eye(2), m.subs(m, mc.eye(2)))
 
 
 if __name__ == '__main__':

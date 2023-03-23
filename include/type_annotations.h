@@ -24,7 +24,7 @@ namespace type_annotations {
 
 template <index_t Rows, index_t Cols>
 struct StaticMatrix {
-  explicit StaticMatrix(Expr expr) : expr_(std::move(expr)) {
+  explicit StaticMatrix(MatrixExpr expr) : expr_(std::move(expr)) {
     ASSERT_EQUAL(Rows, expr_.NumRows());
     ASSERT_EQUAL(Cols, expr_.NumCols());
   }

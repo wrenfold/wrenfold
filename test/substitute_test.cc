@@ -157,7 +157,8 @@ TEST(SubstituteTest, TestMatrix) {
   // Replace a whole matrix at once:
   // TODO: Does it make sense to allow this?
   const MatrixExpr m1 = CreateMatrix(2, 2, a * b, c - Constants::Pi, cos(b), atan(b));
-  ASSERT_IDENTICAL(Identity(2), m1.Subs(m1, Identity(2)));
+  const auto I2 = static_cast<Expr>(Identity(2));
+  ASSERT_IDENTICAL(Identity(2), m1.Subs(static_cast<Expr>(m1), I2));
 }
 
 }  // namespace math

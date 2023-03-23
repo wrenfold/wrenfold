@@ -24,8 +24,9 @@ inline std::string EscapeNewlines(const std::string input) {
   return output;
 }
 
+template <typename ExprType>
 testing::AssertionResult StringEqualTestHelper(const std::string&, const std::string& name_b,
-                                               const std::string& a, const Expr& b) {
+                                               const std::string& a, const ExprType& b) {
   const std::string b_str = b.ToString();
   if (a == b_str) {
     return testing::AssertionSuccess();
@@ -33,7 +34,8 @@ testing::AssertionResult StringEqualTestHelper(const std::string&, const std::st
   return testing::AssertionFailure() << fmt::format(
              "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
              "The expression tree for `{}` is:\n{}",
-             EscapeNewlines(a), name_b, name_b, EscapeNewlines(b_str), name_b, FormatDebugTree(b));
+             EscapeNewlines(a), name_b, name_b, EscapeNewlines(b_str), name_b,
+             FormatDebugTree(static_cast<Expr>(b)));
 }
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {

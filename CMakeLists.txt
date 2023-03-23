@@ -37,7 +37,8 @@ set(${LIBRARY_NAME}_SOURCES
     source/visitor.cc
     source/code_generation.cc
     source/substitute.cc
-    source/cpp_code_generator.cc)
+    source/cpp_code_generator.cc
+    source/matrix_expression.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})
