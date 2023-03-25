@@ -26,15 +26,12 @@ std::tuple<FunctionDescription, std::vector<Expr>> BuildFunctionDescription(
   }
 
   // Build inputs and invoke the function
-  std::vector<std::unique_ptr<const detail::CapturedOutputBase>> captured_outputs{};
-  const auto result = detail::InvokeWithOutputCapture<ArgList>(
-      func, captured_outputs, std::make_index_sequence<sizeof...(Args)>());
+  const auto [result, output_args] =
+      detail::InvokeWithOutputCapture<ArgList>(func, std::make_index_sequence<sizeof...(Args)>());
 
   std::vector<Expr> outputs;
-  for (const auto& ptr : captured_outputs) {
-    ptr->GetOutputExpressions(outputs);
-  }
-  detail::CopyOutputExpressions<std::remove_cv_t<decltype(result)>>{}(result, outputs);
+  detail::CopyOutputExpressions(output_args, outputs);
+  detail::CopyOutputExpressions(result, outputs);
   return std::make_tuple(std::move(desc), std::move(outputs));
 }
 

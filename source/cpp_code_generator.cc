@@ -37,7 +37,10 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::ScalarType&,
 void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::MatrixType& mat,
                               TypeContext context) const {
   switch (context) {
-    case TypeContext::InputArgument:
+    case TypeContext::InputArgument: {
+      formatter.Format("Eigen::Matrix<double, {}, {}>&", mat.NumRows(), mat.NumCols());
+      break;
+    }
     case TypeContext::FunctionBody:
     case TypeContext::ReturnValue: {
       formatter.Format("Eigen::Matrix<double, {}, {}>", mat.NumRows(), mat.NumCols());

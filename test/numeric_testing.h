@@ -15,43 +15,170 @@ namespace math {
 namespace ta = type_annotations;
 
 namespace detail {
-
 template <typename T>
 struct ConvertArgType;
-
-template <typename T>
-struct InputExpressionFromNumeric;
-
-template <typename T>
-struct OutputExpressionFromNumeric;
-
-// Convert a numeric argument type to the equivalent expression type.
-// If the input type is a non-const reference, we interpret this as an output argument from
-// a function and resolve to `OutputExpressionFromNumeric`. Otherwise, it is an input, and we
-// use InputExpressionFromNumeric.
-template <typename T>
-struct ExpressionFromNumeric
-    : public std::conditional_t<IsOutputArgument<T>,
-                                OutputExpressionFromNumeric<std::remove_reference_t<T>>,
-                                InputExpressionFromNumeric<std::decay_t<T>>> {};
-
-// Convert expression argument type to numeric argument.
-template <typename>
-struct NumericFromExpression;
-
 }  // namespace detail
 
-// Given a function pointer to a symbolic function, create a lambda that accepts numeric types like
-// double and Eigen::Matrix<double, ...>. The lambda converts the numeric arguments to the
+struct NumericFunctionEvaluator {
+  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using ReturnType = Expr;
+
+  Expr Apply(const FunctionArgument& arg) const {
+    auto it = values.find(arg);
+    ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.ArgIndex(),
+           arg.ElementIndex());
+    return it->second;
+  }
+
+  template <typename T>
+  std::enable_if_t<!std::is_same_v<T, FunctionArgument>, Expr> Apply(const Expr& input,
+                                                                     const T& input_typed) {
+    if constexpr (T::IsLeafStatic()) {
+      return input;
+    } else {
+      return MapChildren(input_typed,
+                         [this](const Expr& expr) { return VisitStruct(expr, *this); });
+    }
+  }
+
+  struct FunctionArgHasher {
+    std::size_t operator()(const FunctionArgument& arg) const {
+      return HashCombine(arg.ArgIndex(), arg.ElementIndex());
+    }
+  };
+
+  std::unordered_map<FunctionArgument, Expr, FunctionArgHasher> values;
+};
+
+template <typename T>
+struct ApplyNumericEvaluatorImpl;
+
+template <typename T>
+auto ApplyNumericEvaluator(NumericFunctionEvaluator& evaluator, const T& input) {
+  return ApplyNumericEvaluatorImpl<T>{}(evaluator, input);
+}
+
+template <>
+struct ApplyNumericEvaluatorImpl<Expr> {
+  // TODO: Numeric evaluator should be const here, but must be non-const to satisfy Visit.
+  double operator()(NumericFunctionEvaluator& evaluator, const Expr& input) const {
+    const Expr subs = VisitStruct(input, evaluator);
+    const Float* f = TryCast<Float>(subs);
+    ASSERT(f != nullptr, "Expression should be a floating point value. Got type {}: {}",
+           input.TypeName(), input.ToString());
+    return f->GetValue();
+  }
+};
+
+template <index_t Rows, index_t Cols>
+struct ApplyNumericEvaluatorImpl<ta::StaticMatrix<Rows, Cols>> {
+  Eigen::Matrix<double, Rows, Cols> operator()(NumericFunctionEvaluator& evaluator,
+                                               const MatrixExpr& input) const {
+    ASSERT_EQUAL(input.NumRows(), Rows);
+    ASSERT_EQUAL(input.NumCols(), Cols);
+    Eigen::Matrix<double, Rows, Cols> output;
+    for (index_t i = 0; i < Rows; ++i) {
+      for (index_t j = 0; j < Cols; ++j) {
+        // Apply the evaluator for `Expr`
+        output(i, j) = ApplyNumericEvaluator(evaluator, input(i, j));
+      }
+    }
+    return output;
+  }
+};
+
+template <typename... Ts>
+struct ApplyNumericEvaluatorImpl<std::tuple<Ts...>> {
+  auto operator()(NumericFunctionEvaluator& evaluator, const std::tuple<Ts...>& tup) const {
+    // std::apply is invalid for empty tuples:
+    if constexpr (sizeof...(Ts) > 1) {
+      return std::apply(
+          [&evaluator](const auto& element) { return ApplyNumericEvaluator(evaluator, element); },
+          tup);
+    } else if constexpr (sizeof...(Ts) == 1) {
+      // std::apply strips the tuple if it has one element for some wacko reason.
+      // Handle this case manually.
+      return std::make_tuple(ApplyNumericEvaluator(evaluator, std::get<0>(tup)));
+    } else {
+      return std::tuple<>{};
+    }
+  }
+};
+
+template <std::size_t Index, typename NumericArgType>
+struct CollectFunctionInputImpl;
+
+template <std::size_t Index>
+struct CollectFunctionInputImpl<Index, double> {
+  void operator()(NumericFunctionEvaluator& output, const double arg) const {
+    output.values.emplace(FunctionArgument(Index, 0), Float::Create(arg));
+  }
+};
+
+template <std::size_t Index, int Rows, int Cols>
+struct CollectFunctionInputImpl<Index, Eigen::Matrix<double, Rows, Cols>> {
+  void operator()(NumericFunctionEvaluator& output,
+                  const Eigen::Matrix<double, Rows, Cols>& arg) const {
+    static_assert(Rows > 0);
+    static_assert(Cols > 0);
+    for (int i = 0; i < Rows; ++i) {
+      for (int j = 0; j < Cols; ++j) {
+        const std::size_t element = static_cast<std::size_t>(i * Cols + j);
+        output.values.emplace(FunctionArgument(Index, element), Float::Create(arg(i, j)));
+      }
+    }
+  }
+};
+
+template <std::size_t Index, typename NumericArgType>
+void CollectFunctionInput(NumericFunctionEvaluator& evaluator, const NumericArgType& numeric_arg) {
+  CollectFunctionInputImpl<Index, NumericArgType>{}(evaluator, numeric_arg);
+}
+
+template <std::size_t... Indices, typename... NumericArgs>
+void CollectFunctionInputs(NumericFunctionEvaluator& evaluator, std::index_sequence<Indices...>,
+                           NumericArgs&&... args) {
+  static_assert(sizeof...(Indices) <= sizeof...(NumericArgs));
+  ([]() constexpr { static_assert(Indices <= sizeof...(NumericArgs)); }(), ...);
+  // Access args specified by `Indices` and call `CollectFunctionInput` on all of them.
+  (CollectFunctionInput<Indices>(evaluator, std::get<Indices>(std::forward_as_tuple(args...))),
+   ...);
+}
+
+// Given a function pointer to a symbolic function, create a lambda that accepts numeric types
+// like double and Eigen::Matrix<double, ...>. The lambda converts the numeric arguments to the
 // equivalent `Expr` type, and invokes the symbolic function. The results are converted back to
 // numeric types.
 template <typename ReturnType, typename... Args>
 auto CreateEvaluator(ReturnType (*func)(Args... args)) {
-  return [func](typename detail::ConvertArgType<Args>::Type&... args) {
-    auto result = std::invoke(
-        func,
-        detail::ExpressionFromNumeric<typename detail::ConvertArgType<Args>::Type>{}(args)...);
-    return detail::NumericFromExpression<decltype(result)>{}(result);
+  using ArgList = TypeList<Args...>;
+
+  // Evaluate the function symbolically.
+  // We don't substitute numerical values directly, because the function may wish to do symbolic
+  // operations internally (like diff, subs, etc). Instead, build symbolic expressions for every
+  // output, and then substitute into those.
+  auto [result_expression, output_arg_expressions] =
+      detail::InvokeWithOutputCapture<ArgList>(func, std::make_index_sequence<sizeof...(Args)>());
+
+  return [return_values = std::move(result_expression),
+          output_args = std::move(output_arg_expressions)](
+             typename detail::ConvertArgType<Args>::Type&... args) {
+    // Get indices of input and output arguments:
+    constexpr auto input_indices = detail::FilterArguments<true, Args...>();
+    constexpr auto output_indices = detail::FilterArguments<false, Args...>();
+
+    // Copy all the input arguments into the evaluator:
+    NumericFunctionEvaluator evaluator{};
+    CollectFunctionInputs(evaluator, input_indices, args...);
+
+    // Create a tuple of non-const references to output arguments of this lambda, and write to it
+    // by doing substitution with the NumericFunctionEvaluator:
+    detail::SelectFromTuple(std::forward_as_tuple(args...), output_indices) =
+        ApplyNumericEvaluator(evaluator, output_args);
+
+    if constexpr (!std::is_same_v<ReturnType, void>) {
+      return ApplyNumericEvaluator(evaluator, return_values);
+    }
   };
 }
 
@@ -74,114 +201,6 @@ struct ConvertArgType<ta::StaticMatrix<Rows, Cols>> {
 template <index_t Rows, index_t Cols>
 struct ConvertArgType<ta::StaticMatrix<Rows, Cols>&> {
   using Type = Eigen::Matrix<double, Rows, Cols>&;
-};
-
-template <>
-struct InputExpressionFromNumeric<double> {
-  auto operator()(double x) const { return Expr{x}; }
-};
-
-template <index_t Rows, index_t Cols>
-struct InputExpressionFromNumeric<Eigen::Matrix<double, Rows, Cols>> {
-  // Convert eigen matrix to symbolic matrix of doubles.
-  auto operator()(const Eigen::Matrix<double, Rows, Cols>& m) const {
-    std::vector<Expr> args{};
-    args.reserve(static_cast<std::size_t>(m.size()));
-    for (std::size_t rows = 0; rows < Rows; ++rows) {
-      for (std::size_t cols = 0; cols < Cols; ++cols) {
-        args.emplace_back(m(rows, cols));
-      }
-    }
-    return MatrixExpr::Create(Rows, Cols, std::move(args));
-  }
-};
-
-template <index_t Rows, index_t Cols>
-void CopyToNumericOutput(const ta::StaticMatrix<Rows, Cols>& function_output,
-                         Eigen::Matrix<double, Rows, Cols>& destination) {
-  for (std::size_t rows = 0; rows < Rows; ++rows) {
-    for (std::size_t cols = 0; cols < Cols; ++cols) {
-      const Float* const v = TryCast<Float>(function_output(rows, cols));
-      ASSERT(v != nullptr, "Cannot convert output ({}, {}) to double. Expression has value: {}",
-             rows, cols, function_output(rows, cols).ToString());
-      destination(rows, cols) = v->GetValue();
-    }
-  }
-}
-
-inline void CopyToNumericOutput(const Expr& function_output, double& destination) {
-  const Float* const v = TryCast<Float>(function_output);
-  ASSERT(v != nullptr, "Cannot convert expression to double. Expression has value: {}",
-         function_output.ToString());
-  destination = v->GetValue();
-}
-
-template <>
-struct NumericFromExpression<Expr> {
-  double operator()(const Expr& x) const {
-    double val;
-    CopyToNumericOutput(x, val);
-    return val;
-  }
-};
-
-template <index_t Rows, index_t Cols>
-struct NumericFromExpression<ta::StaticMatrix<Rows, Cols>> {
-  Eigen::Matrix<double, Rows, Cols> operator()(const ta::StaticMatrix<Rows, Cols>& mat) const {
-    Eigen::Matrix<double, Rows, Cols> val;
-    CopyToNumericOutput(mat, val);
-    return val;
-  }
-};
-
-template <typename... Args>
-struct NumericFromExpression<std::tuple<Args...>> {
-  template <std::size_t... Indices>
-  auto operator()(const std::tuple<Args...>& tuple, std::index_sequence<Indices...>) const {
-    return std::make_tuple(NumericFromExpression<Args>{}(std::get<Indices>(tuple))...);
-  }
-
-  auto operator()(const std::tuple<Args...>& tuple) const {
-    return this->operator()(tuple, std::make_index_sequence<sizeof...(Args)>());
-  }
-};
-
-// Object that can be implicitly cast to `SourceType`. This is passed as an input argument
-// to a function which writes to an `Expr` output argument. On destruction, it copies the
-// values into a numeric matrix (Eigen).
-template <typename SourceType, typename DestType>
-struct OutputCapture {
-  explicit OutputCapture(DestType& dest)
-      : function_output_(InitializeStorage<SourceType>{}()), destination_(dest) {}
-
-  ~OutputCapture() {
-    // An exception might have been thrown during evaluation, in which case we shouldn't
-    // try copying to the output. If we throw again, terminate will get triggered.
-    if (!std::uncaught_exception()) {
-      destination_ = NumericFromExpression<SourceType>{}(function_output_);
-      //      CopyToNumericOutput(function_output_, destination_);
-    }
-  }
-
-  // Cast to non-const reference to `T`.
-  operator SourceType&() { return function_output_; }
-
- private:
-  SourceType function_output_;
-  DestType& destination_;
-};
-
-template <>
-struct OutputExpressionFromNumeric<double> {
-  auto operator()(double& x) const { return OutputCapture<Expr, double>(x); }
-};
-
-template <index_t Rows, index_t Cols>
-struct OutputExpressionFromNumeric<Eigen::Matrix<double, Rows, Cols>> {
-  auto operator()(Eigen::Matrix<double, Rows, Cols>& dest) {
-    // Return object which will be cast automatically to `ta::StaticMatrix<Rows, Cols>`.
-    return OutputCapture<ta::StaticMatrix<Rows, Cols>, Eigen::Matrix<double, Rows, Cols>>(dest);
-  }
 };
 
 }  // namespace detail

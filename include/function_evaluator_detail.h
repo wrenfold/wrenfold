@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+
 #include "expressions/function_argument.h"
 #include "function_description.h"
 #include "template_utils.h"
@@ -9,14 +10,14 @@ namespace math {
 namespace detail {
 
 template <typename T>
-struct CopyOutputExpressions {
+struct CopyOutputExpressionsImpl {
   void operator()(const T&, std::vector<Expr>&) const {
     throw TypeError("Unhandled output expression type");
   }
 };
 
 template <>
-struct CopyOutputExpressions<Expr> {
+struct CopyOutputExpressionsImpl<Expr> {
   void operator()(const Expr& val, std::vector<Expr>& outputs) const {
     ASSERT(!GetUnfilledExprPlaceholder().IsIdenticalTo(val),
            "One of the output expressions was not filled during function evaluation.");
@@ -25,7 +26,7 @@ struct CopyOutputExpressions<Expr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct CopyOutputExpressions<type_annotations::StaticMatrix<Rows, Cols>> {
+struct CopyOutputExpressionsImpl<type_annotations::StaticMatrix<Rows, Cols>> {
   void operator()(const type_annotations::StaticMatrix<Rows, Cols>& val,
                   std::vector<Expr>& outputs) const {
     for (index_t row = 0; row < Rows; ++row) {
@@ -41,12 +42,13 @@ struct CopyOutputExpressions<type_annotations::StaticMatrix<Rows, Cols>> {
 };
 
 template <typename... Ts>
-struct CopyOutputExpressions<std::tuple<Ts...>> {
+struct CopyOutputExpressionsImpl<std::tuple<Ts...>> {
   template <std::size_t... Indices>
   void operator()(const std::tuple<Ts...>& tup, std::vector<Expr>& outputs,
                   std::index_sequence<Indices...>) const {
     using Tuple = std::tuple<Ts...>;
-    (CopyOutputExpressions<std::tuple_element_t<Indices, Tuple>>{}(std::get<Indices>(tup), outputs),
+    (CopyOutputExpressionsImpl<std::tuple_element_t<Indices, Tuple>>{}(std::get<Indices>(tup),
+                                                                       outputs),
      ...);
   }
 
@@ -54,6 +56,11 @@ struct CopyOutputExpressions<std::tuple<Ts...>> {
     this->operator()(tup, outputs, std::make_index_sequence<sizeof...(Ts)>());
   }
 };
+
+template <typename T>
+void CopyOutputExpressions(const T& arg, std::vector<Expr>& outputs) {
+  CopyOutputExpressionsImpl<T>{}(arg, outputs);
+}
 
 template <typename T, bool OutputArg>
 struct RecordFunctionArgument;
@@ -118,93 +125,110 @@ struct RecordReturnTypes<std::tuple<Args...>> {
   void operator()(FunctionDescription& desc) const { (RecordReturnTypes<Args>()(desc), ...); }
 };
 
-// We can't default initialize `Expr`, since it cannot be null.
-// This object is just to assign a placeholder value to outputs that will be written when
-// a user symbolic functions is called.
-template <typename T>
-struct InitializeStorage;
-template <>
-struct InitializeStorage<Expr> {
-  Expr operator()() const { return GetUnfilledExprPlaceholder(); }
-};
-template <index_t Rows, index_t Cols>
-struct InitializeStorage<type_annotations::StaticMatrix<Rows, Cols>> {
-  type_annotations::StaticMatrix<Rows, Cols> operator()() const {
-    std::vector<Expr> expressions(static_cast<std::size_t>(Rows * Cols),
-                                  GetUnfilledExprPlaceholder());
-    MatrixExpr expr = MatrixExpr::Create(Rows, Cols, std::move(expressions));
-    return type_annotations::StaticMatrix<Rows, Cols>(std::move(expr));
+template <typename T, bool IsOutputArg>
+struct BuildFunctionArgumentImpl;
+
+template <bool IsOutputArg>
+struct BuildFunctionArgumentImpl<Expr, IsOutputArg> {
+  auto operator()(std::size_t arg_index) const {
+    if constexpr (IsOutputArg) {
+      return GetUnfilledExprPlaceholder();
+    } else {
+      return FunctionArgument::Create(arg_index, 0);
+    }
   }
 };
 
-// Captured output is used to store output arguments that are filled by a user
-// provided function. We instantiate one of these for every output argument,
-// and then copy the output values by calling `GetOutputExpressions`.
-class CapturedOutputBase {
- public:
-  virtual ~CapturedOutputBase() = default;
-  virtual void GetOutputExpressions(std::vector<Expr>& outputs) const = 0;
-};
-
-template <typename T>
-class CapturedOutput final : public CapturedOutputBase {
- public:
-  CapturedOutput() : storage_(InitializeStorage<T>{}()) {}
-
-  T& GetMutableRef() { return storage_; }
-
-  // Copy from our stored type `T` to the output.
-  void GetOutputExpressions(std::vector<Expr>& outputs) const override {
-    CopyOutputExpressions<T>{}(storage_, outputs);
-  }
-
- private:
-  T storage_{};
-};
-
-template <typename T>
-struct BuildFunctionArgument;
-
-template <>
-struct BuildFunctionArgument<Expr> {
-  auto operator()(std::size_t arg_index) const { return FunctionArgument::Create(arg_index, 0); }
-};
-
-template <index_t Rows, index_t Cols>
-struct BuildFunctionArgument<type_annotations::StaticMatrix<Rows, Cols>> {
+template <index_t Rows, index_t Cols, bool IsOutputArg>
+struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>, IsOutputArg> {
   auto operator()(std::size_t arg_index) const {
     std::vector<Expr> expressions{};
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
     for (std::size_t i = 0; i < Rows * Cols; ++i) {
-      expressions.push_back(FunctionArgument::Create(arg_index, i));
+      if constexpr (IsOutputArg) {
+        expressions.push_back(GetUnfilledExprPlaceholder());
+      } else {
+        expressions.push_back(FunctionArgument::Create(arg_index, i));
+      }
     }
     MatrixExpr expr = MatrixExpr::Create(Rows, Cols, std::move(expressions));
     return type_annotations::StaticMatrix<Rows, Cols>(std::move(expr));
   }
 };
 
-template <typename T, std::size_t Index>
-std::conditional_t<IsOutputArgument<T>, std::decay_t<T>&, std::decay_t<T>> BuildFunctionArguments(
-    std::size_t& input_index, std::vector<std::unique_ptr<const CapturedOutputBase>>& outputs) {
+template <typename T>
+auto BuildFunctionArguments(std::size_t& input_index) {
   using TDecay = std::decay_t<T>;
-  if constexpr (IsOutputArgument<T>) {
-    auto ptr = std::make_unique<CapturedOutput<TDecay>>();
-    TDecay& result = ptr->GetMutableRef();
-    outputs.push_back(std::move(ptr));
-    return result;
-  } else {
-    return BuildFunctionArgument<TDecay>{}(input_index++);
-  }
+  // Increase input_index every time we hit an input argument.
+  return BuildFunctionArgumentImpl<TDecay, IsOutputArgument<T>>{}(
+      IsOutputArgument<T> ? input_index : input_index++);
+}
+
+template <std::size_t... A, std::size_t... B>
+constexpr std::index_sequence<A..., B...> operator+(std::index_sequence<A...>,
+                                                    std::index_sequence<B...>) {
+  return {};
+}
+
+template <std::size_t Index, typename... Args>
+constexpr bool IndexIsOutputArg =
+    detail::IsOutputArgument<typename TypeListElement<Index, TypeList<Args...>>::Type>;
+
+// Create two index_sequence objects. The first contains the indices of input arguments, while
+// the second contains indices of output arguments.
+template <bool TakeInputs, typename... Args, std::size_t... Indices>
+constexpr auto FilterArguments(std::index_sequence<Indices...>) {
+  return (std::conditional_t<!IndexIsOutputArg<Indices, Args...> == TakeInputs,
+                             std::index_sequence<Indices>, std::index_sequence<>>() +
+          ...);
+}
+
+template <bool TakeInputs, typename... Args>
+constexpr auto FilterArguments() {
+  return FilterArguments<TakeInputs, Args...>(std::make_index_sequence<sizeof...(Args)>());
+}
+
+template <bool TakeInputs, typename... Args>
+constexpr auto FilterArguments(TypeList<Args...>) {
+  return FilterArguments<TakeInputs, Args...>();
+}
+
+// tests:
+static_assert(!IsOutputArgument<int>);
+static_assert(!IsOutputArgument<const int&>);
+static_assert(IsOutputArgument<int&>);
+static_assert(!IndexIsOutputArg<0, int, const double&, double&>);
+static_assert(!IndexIsOutputArg<1, int, const double&, double&>);
+static_assert(IndexIsOutputArg<2, int, const double&, double&>);
+static_assert(std::is_same_v<std::index_sequence<1, 2>,
+                             decltype(FilterArguments<false>(TypeList<int, int&, double&>{}))>);
+
+template <typename Tuple, std::size_t... Indices>
+auto SelectFromTuple(Tuple&& tuple, std::index_sequence<Indices...>) {
+  return std::tuple<std::tuple_element_t<Indices, std::remove_reference_t<Tuple>>...>(
+      std::get<Indices>(std::forward<Tuple>(tuple))...);
 }
 
 template <typename ArgList, typename Callable, std::size_t... Indices>
-auto InvokeWithOutputCapture(Callable callable,
-                             std::vector<std::unique_ptr<const CapturedOutputBase>>& outputs,
-                             std::index_sequence<Indices...>) {
+auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>) {
+  static_assert(sizeof...(Indices) <= TypeListSize<ArgList>::Value);
+  ([]() constexpr { static_assert(Indices <= TypeListSize<ArgList>::Value); }(), ...);
+
+  // Create a tuple of arguments. Inputs are created as `FunctionArgument` objects, while outputs
+  // are unfilled place-holders (since we cannot default-initialize Expr) that `callable` will
+  // replace.
   std::size_t input_index = 0;
-  return std::invoke(
-      callable, BuildFunctionArguments<typename TypeListElement<Indices, ArgList>::Type, Indices>(
-                    input_index, outputs)...);
+  auto args = std::make_tuple(
+      BuildFunctionArguments<typename TypeListElement<Indices, ArgList>::Type>(input_index)...);
+
+  // Call the user provided function with the args we just created:
+  auto return_values = std::invoke(std::move(callable), std::get<Indices>(args)...);
+
+  // Now extract the output arguments:
+  constexpr auto output_arg_indices = FilterArguments<false>(ArgList{});
+  auto output_arguments = SelectFromTuple(args, output_arg_indices);
+
+  return std::make_pair(std::move(return_values), std::move(output_arguments));
 }
 
 }  // namespace detail

@@ -47,9 +47,13 @@ int main() {
       "<tuple>\n\n#include "
       "<Eigen/Core>\n\n";
 
+  code += "namespace gen {\n\n";
+
   GenerateFunc(code, &SimpleMultiplyAdd, "simple_multiply_add", "x", "y", "z");
   GenerateFunc(code, &VectorRotation2D, "vector_rotation_2d", "theta", "v", Arg("D_theta", true));
+  GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v", Arg("D_v", false));
 
-  fmt::output_file("generated.h").print("{}\n", code);
+  code += "\n\n} // namespace gen";
+  fmt::output_file("generated.h").print("{}", code);
   return 0;
 }

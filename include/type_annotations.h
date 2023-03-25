@@ -24,7 +24,8 @@ namespace type_annotations {
 
 template <index_t Rows, index_t Cols>
 struct StaticMatrix {
-  explicit StaticMatrix(MatrixExpr expr) : expr_(std::move(expr)) {
+  // Allow implicit construction from MatrixExpr.
+  StaticMatrix(MatrixExpr expr) : expr_(std::move(expr)) {
     ASSERT_EQUAL(Rows, expr_.NumRows());
     ASSERT_EQUAL(Cols, expr_.NumCols());
   }
@@ -46,6 +47,8 @@ struct StaticMatrix {
 
   // Assign from MatrixExpr
   StaticMatrix& operator=(const MatrixExpr& other) {
+    ASSERT_EQUAL(Rows, other.NumRows());
+    ASSERT_EQUAL(Cols, other.NumCols());
     expr_ = other;
     return *this;
   }

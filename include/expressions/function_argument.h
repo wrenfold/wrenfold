@@ -27,6 +27,11 @@ class FunctionArgument : public ExpressionImpl<FunctionArgument> {
     return MakeExpr<FunctionArgument>(arg_index, element_index);
   }
 
+  // Equal if both indices are the same.
+  constexpr bool operator==(const FunctionArgument& other) const {
+    return IsIdenticalToImplTyped(other);
+  }
+
  private:
   std::size_t arg_index_;
   std::size_t element_index_;

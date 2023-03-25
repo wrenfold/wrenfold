@@ -2,6 +2,8 @@
 #include "code_generation.h"
 #include "test_helpers.h"
 
+#include "test_expressions.h"
+
 namespace math {
 
 TEST(CodeGenerationTest, TestCreateIRConstant) {
@@ -34,53 +36,75 @@ TEST(CodeGenerationTest, TestCreateIRConstant) {
   }
 }
 
-TEST(CodeGenerationTest, TestCreateIR) {
+TEST(CodeGenerationTest, TestCreateIR1) {
+  const auto [w, x, y, z] = Symbols("w", "x", "y", "z");
+  IrBuilder ir{{w + x, y * z + 3}};
+  ASSERT_EQ(3, ir.NumOperations());
+  ASSERT_IDENTICAL(w + x, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  ASSERT_IDENTICAL(y * z + 3, ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
+}
+
+TEST(CodeGenerationTest, TestCreateIR2) {
+  const auto [w, x, y, z] = Symbols("w", "x", "y", "z");
+  const std::vector<Expr> expressions = {w * x + cos(y) / 2, pow(z, 5) - w * tan(x)};
+  IrBuilder ir{expressions};
+  ASSERT_EQ(9, ir.NumOperations());
+  ASSERT_IDENTICAL(expressions[0], ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  ASSERT_IDENTICAL(expressions[1], ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
+}
+
+// Some expressions with duplication:
+TEST(CodeGenerationTest, TestCreateIR3) {
+  const auto [w, x, y, z] = Symbols("w", "x", "y", "z");
+  const std::vector<Expr> expressions = {w * x * y, y * x * 5, (cos(x * y) + 3)};
+  IrBuilder ir{expressions};
+  ASSERT_EQ(7, ir.NumOperations());
+  for (std::size_t i = 0; i < expressions.size(); ++i) {
+    ASSERT_IDENTICAL(expressions[i], ir.CreateExpressionForOutput(i)) << ir.FormatIRForOutput(i);
+  }
+
+  // Eliminate duplicated `x * y`
+  ir.EliminateDuplicates();
+
+  ASSERT_EQ(5, ir.NumOperations());
+  for (std::size_t i = 0; i < expressions.size(); ++i) {
+    ASSERT_IDENTICAL(expressions[i], ir.CreateExpressionForOutput(i)) << ir.FormatIRForOutput(i);
+  }
+}
+
+TEST(CodeGenerationTest, TestCreateIR4) {
   const auto [w, x, y, z] = Symbols("w", "x", "y", "z");
 
-  {
-    IrBuilder ir{{w + x, y * z + 3}};
-    ASSERT_EQ(3, ir.NumOperations());
-    ASSERT_IDENTICAL(w + x, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
-    ASSERT_IDENTICAL(y * z + 3, ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
-  }
+  // The two multiplied operands have several repeated elements:
+  const Expr f = ((w + x) + y * (z - 2) / (x * w)) * ((w + x) + y * (z - 2) + 1) * 5;
+  IrBuilder ir{{f}};
+  ASSERT_EQ(15, ir.NumOperations());
+  ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
 
-  {
-    const std::vector<Expr> expressions = {w * x + cos(y) / 2, pow(z, 5) - w * tan(x)};
-    IrBuilder ir{expressions};
-    ASSERT_EQ(9, ir.NumOperations());
-    ASSERT_IDENTICAL(expressions[0], ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
-    ASSERT_IDENTICAL(expressions[1], ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
-  }
+  ir.EliminateDuplicates();
+  ASSERT_EQ(12, ir.NumOperations());
+  ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+}
 
-  // Some expressions with duplication:
-  {
-    const std::vector<Expr> expressions = {w * x * y, y * x * 5, (cos(x * y) + 3)};
-    IrBuilder ir{expressions};
-    ASSERT_EQ(7, ir.NumOperations());
-    for (std::size_t i = 0; i < expressions.size(); ++i) {
-      ASSERT_IDENTICAL(expressions[i], ir.CreateExpressionForOutput(i)) << ir.FormatIRForOutput(i);
-    }
+TEST(CodeGenerationTest, TestCreateIR5) {
+  const auto [x, y, theta] = Symbols("x", "y", "theta");
 
-    // Eliminate duplicated `x * y`
-    ir.EliminateDuplicates();
-
-    ASSERT_EQ(5, ir.NumOperations());
-    for (std::size_t i = 0; i < expressions.size(); ++i) {
-      ASSERT_IDENTICAL(expressions[i], ir.CreateExpressionForOutput(i)) << ir.FormatIRForOutput(i);
-    }
-  }
+  ta::StaticMatrix<2, 1> D_theta = ta::StaticMatrix<2, 1>::Create(0, 0);
+  MatrixExpr v = VectorRotation2D(theta, ta::StaticMatrix<2, 1>::Create(x, y), D_theta);
 
   // The two multiplied operands have several repeated elements:
-  {
-    const Expr f = ((w + x) + y * (z - 2) / (x * w)) * ((w + x) + y * (z - 2) + 1) * 5;
-    IrBuilder ir{{f}};
-    ASSERT_EQ(15, ir.NumOperations());
-    ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  IrBuilder ir{{v[0], v[1], D_theta[0], D_theta[1]}};
 
-    ir.EliminateDuplicates();
-    ASSERT_EQ(12, ir.NumOperations());
-    ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
-  }
+  ASSERT_IDENTICAL(v[0], ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  ASSERT_IDENTICAL(v[1], ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
+  ASSERT_IDENTICAL(D_theta[0], ir.CreateExpressionForOutput(2)) << ir.FormatIRForOutput(0);
+  ASSERT_IDENTICAL(D_theta[1], ir.CreateExpressionForOutput(3)) << ir.FormatIRForOutput(1);
+
+  ir.EliminateDuplicates();
+  ASSERT_IDENTICAL(v[0], ir.CreateExpressionForOutput(0)) << ir.FormatIRForOutput(0);
+  ASSERT_IDENTICAL(v[1], ir.CreateExpressionForOutput(1)) << ir.FormatIRForOutput(1);
+  ASSERT_IDENTICAL(D_theta[0], ir.CreateExpressionForOutput(2)) << ir.FormatIRForOutput(0);
+  ASSERT_IDENTICAL(D_theta[1], ir.CreateExpressionForOutput(3)) << ir.FormatIRForOutput(1);
 }
 
 }  // namespace math

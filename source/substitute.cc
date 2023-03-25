@@ -2,57 +2,12 @@
 #include "operations.h"
 
 #include <unordered_map>
-#include <unordered_set>
 
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
 #include "hashing.h"
 
 namespace math {
-
-inline std::optional<Expr> SubstituteInMultiplication(const Multiplication& mul,
-                                                      const Multiplication& target,
-                                                      const Expr& replacement) {
-  //  MultiplicationBuilder foo{builder};
-
-  // Take this multiplication and divide by the target multiplication:
-  MultiplicationParts builder{mul.Arity() + target.Arity()};
-  for (const Expr& expr : mul) {
-    builder.Multiply(expr);
-  }
-
-  // Determine the maximum number of times we can divide the exponent of the target
-  // into the input multiplication.
-  std::optional<Integer> max_valid_integer_exponent{};
-  for (const Expr& expr : target) {
-    const auto [base, exponent] = AsBaseAndExponent(expr);
-    auto it = builder.terms.find(base);
-    if (it == builder.terms.end()) {
-      return {};
-    }
-
-    // See how many times we can divide term into the target expression
-    const Expr multiple = it->second / exponent;
-    if (const Integer* const as_int = TryCast<Integer>(multiple); as_int != nullptr) {
-      if (!max_valid_integer_exponent.has_value() || *as_int < max_valid_integer_exponent.value()) {
-        max_valid_integer_exponent = *as_int;
-      }
-    } else {
-      // If we can't get an integer multiple, this division won't work.
-      return {};
-    }
-  }
-
-  const Expr integer_exponent = Integer::Create(-max_valid_integer_exponent.value());
-  for (const Expr& expr : target) {
-    // TODO: Do this w/o introducing the intermediate powers?
-    builder.Multiply(Power::Create(expr, integer_exponent));
-  }
-
-  builder.Multiply(replacement);
-  builder.Normalize();
-  return builder.CreateMultiplication(std::vector<Expr>{});
-}
 
 // Visitor that performs a substitution.
 // TargetExpressionType is the concrete type of the expression we are replacing.
@@ -64,47 +19,6 @@ struct SubstituteVisitorBase {
 
   constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
-
-  //  Expr Apply(const Addition& add) {
-  //    if constexpr (std::is_same_v<TargetExpressionType, Addition>) {
-  //      const Addition& target_addition = target;
-  //      if (target_addition.IsIdenticalToImplTyped(add)) {
-  //        // exact match
-  //        return replacement;
-  //      }
-  //
-  //      // We should check if this addition is a superset of the target expression:
-  //      std::unordered_set<Expr, HashObject, ExprEquality> remainder{add.begin(), add.end()};
-  //      const bool contains_target = std::all_of(target_addition.begin(), target_addition.end(),
-  //                                               [&remainder](const Expr& expr) {
-  //                                                 const auto it = remainder.find(expr);
-  //                                                 if (it != remainder.end()) {
-  //                                                   remainder.erase(it);
-  //                                                   return true;
-  //                                                 } else {
-  //                                                   return false;
-  //                                                 }
-  //                                               });
-  //
-  //      // Traverse the target and check if all of its terms appear in `add`.
-  //      if (contains_target) {
-  //        std::vector<Expr> add_arguments;
-  //        add_arguments.reserve(remainder.size() + 1);
-  //        add_arguments.insert(add_arguments.end(), remainder.begin(), remainder.end());
-  //        for (Expr& expr : add_arguments) {
-  //          expr = VisitStruct(expr, SubstituteVisitor{expr, target, replacement});
-  //        }
-  //        add_arguments.push_back(replacement);
-  //        return Addition::FromOperands(add_arguments);
-  //      }
-  //    }
-  //
-  //    // If the target is not an addition, we can just map here.
-  //    // The result will be a new addition w/ whatever changes were made.
-  //    return MapChildren(add, [&](const Expr& child) {
-  //      return VisitStruct(child, SubstituteVisitor{child, target, replacement});
-  //    });
-  //  }
 
   // The argument is neither an addition nor a multiplication:
   template <typename Arg>

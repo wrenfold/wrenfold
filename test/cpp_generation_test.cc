@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #include "code_generation.h"
+#include "eigen_test_helpers.h"
 #include "numeric_testing.h"
 #include "test_helpers.h"
 #include "type_annotations.h"
@@ -25,28 +26,42 @@ namespace math {
 
 TEST(CppGenerationTest, TestSimpleMultiplyAdd) {
   auto evaluator = CreateEvaluator(&SimpleMultiplyAdd);
-  ASSERT_NEAR(evaluator(1.5, -2.2, 0.11), simple_multiply_add(1.5, -2.2, 0.11), 1.0e-15);
-  ASSERT_NEAR(evaluator(5.112, -0.01, -4.2), simple_multiply_add(5.112, -0.01, -4.2), 1.0e-15);
+  ASSERT_NEAR(evaluator(1.5, -2.2, 0.11), gen::simple_multiply_add(1.5, -2.2, 0.11), 1.0e-15);
+  ASSERT_NEAR(evaluator(5.112, -0.01, -4.2), gen::simple_multiply_add(5.112, -0.01, -4.2), 1.0e-15);
 }
 
-TEST(CodeGenerationTest, TestCodeGen) {
-  //  auto evaluator = CreateEvaluator(&do_stuff);
-  //
-  //  double out_1;
-  //  Eigen::Matrix<double, 2, 2> out_2;
-  //  auto result = evaluator(5.0, 2.0, -3.0, 1.2, out_1, out_2);
-  //  fmt::print("out_1 = {}\n", out_1);
-  //  fmt::print("out_2:\n{}\n", out_2);
-  //
-  //  fmt::print("return_1 = {}\n", std::get<0>(result));
-  //  fmt::print("return_2 = {}\n", std::get<1>(result));
-  //
-  //  result = do_stuff_gen(5.0, 2.0, -3.0, 1.2, out_1, out_2);
-  //  fmt::print("out_1 = {}\n", out_1);
-  //  fmt::print("out_2:\n{}\n", out_2);
-  //
-  //  fmt::print("return_1 = {}\n", std::get<0>(result));
-  //  fmt::print("return_2 = {}\n", std::get<1>(result));
+TEST(CppGenerationTest, TestVectorRotation2D) {
+  auto evaluator = CreateEvaluator(&VectorRotation2D);
+
+  Eigen::Vector2d D_angle_eval, D_angle_gen;
+  EXPECT_EIGEN_NEAR(evaluator(1.12, {-6.5, 7.2}, D_angle_eval),
+                    gen::vector_rotation_2d(1.12, {-6.5, 7.2}, D_angle_gen), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+
+  // should still work if the optional arg is omitted
+  EXPECT_EIGEN_NEAR(evaluator(-0.7, {-5.5, 12.0}, D_angle_eval),
+                    gen::vector_rotation_2d(-0.7, {-5.5, 12.0}, std::nullopt), 1.0e-15);
+
+  EXPECT_EIGEN_NEAR(evaluator(22.0, {7.123, -4.001}, D_angle_eval),
+                    gen::vector_rotation_2d(22.0, {7.123, -4.001}, D_angle_gen), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+
+  EXPECT_EIGEN_NEAR(evaluator(0.0, {2.0, 3.0}, D_angle_eval),
+                    gen::vector_rotation_2d(0.0, {2.0, 3.0}, D_angle_gen), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestVectorNorm3D) {
+  auto evaluator = CreateEvaluator(&VectorNorm3D);
+
+  Eigen::RowVector3d D_vec_eval, D_vec_gen;
+  EXPECT_NEAR(evaluator({0.5, -0.23, 0.9}, D_vec_eval),
+              gen::vector_norm_3d({0.5, -0.23, 0.9}, D_vec_gen), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_vec_eval, D_vec_gen, 1.0e-15);
+
+  EXPECT_NEAR(evaluator({0.0, 5.2, -0.0001}, D_vec_eval),
+              gen::vector_norm_3d({0.0, 5.2, -0.0001}, D_vec_gen), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_vec_eval, D_vec_gen, 1.0e-15);
 }
 
 }  // namespace math

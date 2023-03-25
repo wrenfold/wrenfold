@@ -588,6 +588,7 @@ std::vector<ast::Variant> IrBuilder::CreateAST(const FunctionDescription& func) 
     variables.reserve(output_arg->TypeDimension());
 
     for (std::size_t i = 0; i < output_arg->TypeDimension(); ++i) {
+      ASSERT_LESS(i + output_flat_index, output_values_.size());
       variables.push_back(ast::VariableRef{
           fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
     }
@@ -608,6 +609,7 @@ std::vector<ast::Variant> IrBuilder::CreateAST(const FunctionDescription& func) 
     std::vector<ast::VariableRef> variables;
     variables.reserve(dim);
     for (std::size_t i = 0; i < dim; ++i) {
+      ASSERT_LESS(i + output_flat_index, output_values_.size());
       variables.push_back(ast::VariableRef{
           fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
     }
