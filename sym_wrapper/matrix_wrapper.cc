@@ -310,6 +310,7 @@ MatrixExpr operator*(const Expr& a, const MatrixExpr& b) {
 void WrapMatrixOperations(py::module_& m) {
   // Matrix expression type.
   py::class_<MatrixExpr>(m, "MatrixExpr")
+      .def(py::init<Expr>(), py::doc("Construct from Expr."))
       // Expr inherited properties:
       .def("__repr__",
            [](const MatrixExpr& self) {
@@ -323,7 +324,9 @@ void WrapMatrixOperations(py::module_& m) {
           "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "print_expression_tree",
-          [](const Expr& self) { fmt::print("{}\n", FormatDebugTree(static_cast<Expr>(self))); },
+          [](const MatrixExpr& self) {
+            fmt::print("{}\n", FormatDebugTree(static_cast<Expr>(self)));
+          },
           "Print the expression tree to standard out.")
       .def(
           "is_identical_to",

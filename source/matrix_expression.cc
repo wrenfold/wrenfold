@@ -6,10 +6,12 @@
 namespace math {
 
 MatrixExpr::MatrixExpr(Expr&& arg) : expr_(std::move(arg)) {
+  ASSERT(expr_.Impl(), "Expr is non-nullable");
   // TODO: Need to handle other matrix types here eventually.
   if (!TryCast<Matrix>(expr_)) {
-    throw TypeError("Attempted to construct MatrixExpr from expression of type: {}",
-                    arg.TypeName());
+    throw TypeError(
+        "Attempted to construct MatrixExpr from expression of type: {}. Expression = {}",
+        expr_.TypeName(), expr_.ToString());
   }
 }
 

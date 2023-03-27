@@ -152,8 +152,6 @@ using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc>;
 
 }  // namespace ir
 
-struct FunctionDescription;
-
 // Object for creating the intermediate representation. The IR is then given to the code-generator
 // to be simplified.
 struct IrBuilder {
@@ -192,7 +190,7 @@ struct IrBuilder {
   std::vector<ir::Value> GetTraversalOrder() const;
 
   // Create AST to be emitted.
-  std::vector<ast::Variant> CreateAST(const FunctionDescription& description);
+  std::vector<ast::Variant> CreateAST(const ast::FunctionSignature& description);
 
   // Eliminate duplicated operations.
   void EliminateDuplicates();
@@ -237,10 +235,10 @@ class CodeGeneratorBase {
   virtual ~CodeGeneratorBase() = default;
 
   //
-  std::string Generate(const FunctionDescription& func, const std::vector<ast::Variant>& ast);
+  std::string Generate(const ast::FunctionSignature& func, const std::vector<ast::Variant>& ast);
 
  protected:
-  virtual void GenerateImpl(CodeFormatter& formatter, const FunctionDescription& func,
+  virtual void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
                             const std::vector<ast::Variant>& ast) = 0;
 };
 
@@ -251,7 +249,7 @@ struct CodeGeneratorImpl : public CodeGeneratorBase {
   explicit CodeGeneratorImpl(Generator&& impl) : impl_(std::move(impl)) {}
 
  protected:
-  void GenerateImpl(CodeFormatter& formatter, const FunctionDescription& func,
+  void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
                     const std::vector<ast::Variant>& ast) override final {
     impl_.Generate(formatter, func, ast);
   }

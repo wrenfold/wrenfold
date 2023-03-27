@@ -5,12 +5,10 @@ namespace math {
 
 class CodeFormatter {
  public:
-  // Construct w/ a non-const reference to the generator.
-  explicit CodeFormatter(CodeGeneratorBase& generator) : generator_(generator) {}
+  CodeFormatter() = default;
 
   // Instantiate new formatter by copying properties from parent.
-  explicit CodeFormatter(const CodeFormatter& parent)
-      : generator_(parent.generator_), indentation_(parent.indentation_) {}
+  explicit CodeFormatter(const CodeFormatter& parent) : indentation_(parent.indentation_) {}
 
   // Format into the output buffer.
   template <typename... Args>
@@ -27,6 +25,9 @@ class CodeFormatter {
   // Append string w/o format args.
   void Append(const std::string_view str) { output_ += str; }
 
+  // Create a block of indented text. The user-provided callable is called w/ a new
+  // formatter, the output of which will be appended to this one (with indentation).
+  // `open` and `close` may be used to specify opening and closing braces.
   template <typename Callable>
   void WithIndentation(int indent, const std::string_view open, const std::string_view close,
                        Callable callable) {
@@ -89,7 +90,6 @@ class CodeFormatter {
     }
   }
 
-  CodeGeneratorBase& generator_;
   std::string output_;
   int indentation_{0};
 };

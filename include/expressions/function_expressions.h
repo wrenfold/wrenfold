@@ -104,17 +104,19 @@ enum class BinaryFunctionName {
 };
 // clang-format on
 
-#if 0
 // Convert binary function enum to string.
 constexpr std::string_view ToString(const BinaryFunctionName name) {
   switch (name) {
     case BinaryFunctionName::Mod:
       return "mod";
+    case BinaryFunctionName::Pow:
+      return "pow";
     case BinaryFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
   }
 }
 
+#if 0
 class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
  public:
   BinaryFunction(BinaryFunctionName func, Expr first, Expr second)

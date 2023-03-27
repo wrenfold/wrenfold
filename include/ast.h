@@ -21,6 +21,8 @@ namespace ast {
 class ScalarType {
  public:
   std::size_t Dimension() const { return 1; }
+
+  std::string ToString() const;
 };
 
 class MatrixType {
@@ -38,6 +40,8 @@ class MatrixType {
     return std::make_pair(static_cast<index_t>(element) / cols_,
                           static_cast<index_t>(element) % cols_);
   }
+
+  std::string ToString() const;
 
  private:
   index_t rows_;
@@ -73,14 +77,38 @@ class Argument {
   bool is_optional_;
 };
 
+// Describe a function signature.
+// Stores a name, and type+name information for all the arguments.
+struct FunctionSignature {
+ public:
+  explicit FunctionSignature(std::string name) : function_name(std::move(name)) {}
+
+  template <typename... Args>
+  void AddInput(Args&&... args) {
+    input_args.push_back(std::make_shared<const ast::Argument>(std::forward<Args>(args)...));
+  }
+
+  template <typename... Args>
+  void AddOutput(Args&&... args) {
+    output_args.push_back(std::make_shared<const ast::Argument>(std::forward<Args>(args)...));
+  }
+
+  void AddReturnValue(ast::Type type) { return_values.push_back(std::move(type)); }
+
+  std::string function_name;
+  std::vector<std::shared_ptr<const ast::Argument>> input_args{};
+  std::vector<std::shared_ptr<const ast::Argument>> output_args{};
+  std::vector<ast::Type> return_values{};
+};
+
 // clang-format off
 using Variant = std::variant<
     struct Add,
-    struct ArrayAccess,
+//    struct ArrayAccess,
     struct Assignment,
     struct Call,
-    struct Cast,
-    struct Conditional,
+//    struct Cast,
+//    struct Conditional,
     struct Declaration,
     struct FloatConstant,
     struct InputValue,
@@ -92,17 +120,22 @@ using Variant = std::variant<
     >;
 // clang-format on
 
-using VariantPtr = std::unique_ptr<const Variant>;
+// This is a shared_ptr so that we can copy AST members.
+// Copying is desirable to satisfy the pybind11 wrapper.
+using VariantPtr = std::shared_ptr<const Variant>;
 
+// Create shared-ptr to variant and fill it with type `T`.
 template <typename T, typename... Args>
 VariantPtr MakeVariantPtr(Args&&... args) {
-  return std::make_unique<const Variant>(T{std::forward<Args>(args)...});
+  return std::make_shared<const Variant>(T{std::forward<Args>(args)...});
 }
 
 // Usage of a variable.
 struct VariableRef {
   // Name of the variable. TODO: Small string.
   std::string name;
+
+  std::string ToString() const;
 };
 
 struct Add {
@@ -110,6 +143,8 @@ struct Add {
   VariantPtr right;
 
   Add(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
+
+  std::string ToString() const;
 };
 
 struct ArrayAccess {
@@ -120,6 +155,8 @@ struct ArrayAccess {
 struct Assignment {
   VariantPtr left;
   VariantPtr right;
+
+  std::string ToString() const;
 };
 
 struct Call {
@@ -134,6 +171,8 @@ struct Call {
     args.reserve(sizeof...(inputs));
     (args.emplace_back(std::forward<Args>(inputs)), ...);
   }
+
+  std::string ToString() const;
 };
 
 struct Cast {
@@ -167,22 +206,30 @@ struct Declaration {
   VariantPtr value;
 
   Declaration(std::string name, Type type, VariantPtr value);
+
+  std::string ToString() const;
 };
 
 struct FloatConstant {
   double value;
 
   explicit FloatConstant(double v) : value(v) {}
+
+  std::string ToString() const;
 };
 
 // Access an input argument at a specific index.
 struct InputValue {
   std::shared_ptr<const Argument> argument;
   index_t element;
+
+  std::string ToString() const;
 };
 
 struct IntegerConstant {
   std::int64_t value;
+
+  std::string ToString() const;
 };
 
 struct Multiply {
@@ -190,20 +237,22 @@ struct Multiply {
   VariantPtr right;
 
   Multiply(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
+
+  std::string ToString() const;
 };
 
 struct OutputBlock {
   // The argument this output corresponds to.
   std::shared_ptr<const Argument> argument;
-  // Whether this is an output arg, optional output arg, or return value.
-  OutputType output_type;
   // Statements in the output block that precede the output value computation.
   std::vector<ast::Variant> statements{};
   // The output variables.
   std::vector<VariableRef> outputs{};
 
-  OutputBlock(std::shared_ptr<const Argument> arg, OutputType output_type,
-              std::vector<ast::Variant> statements, std::vector<VariableRef> outputs);
+  OutputBlock(std::shared_ptr<const Argument> arg, std::vector<ast::Variant> statements,
+              std::vector<VariableRef> outputs);
+
+  std::string ToString() const;
 };
 
 struct ReturnValueBlock {
@@ -216,6 +265,8 @@ struct ReturnValueBlock {
   std::vector<ReturnValue> values{};
 
   explicit ReturnValueBlock(std::vector<ReturnValue> values);
+
+  std::string ToString() const;
 };
 
 // method definitions:
@@ -227,13 +278,10 @@ inline Call::Call(std::variant<UnaryFunctionName, BinaryFunctionName> function,
                   std::vector<Variant>&& args)
     : function(function), args(std::move(args)) {}
 
-inline OutputBlock::OutputBlock(std::shared_ptr<const Argument> arg, OutputType output_type,
+inline OutputBlock::OutputBlock(std::shared_ptr<const Argument> arg,
                                 std::vector<ast::Variant> statements,
                                 std::vector<VariableRef> outputs)
-    : argument(std::move(arg)),
-      output_type(output_type),
-      statements(std::move(statements)),
-      outputs(std::move(outputs)) {}
+    : argument(std::move(arg)), statements(std::move(statements)), outputs(std::move(outputs)) {}
 
 inline ReturnValueBlock::ReturnValueBlock(std::vector<ReturnValue> values)
     : values(std::move(values)) {}

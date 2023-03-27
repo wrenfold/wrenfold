@@ -14,7 +14,7 @@ class CppCodeGenerator {
     OptionalOutputArgument,
   };
 
-  void Generate(CodeFormatter& formatter, const FunctionDescription& func,
+  void Generate(CodeFormatter& formatter, const ast::FunctionSignature& func,
                 const std::vector<ast::Variant>& ast);
 
   void Format(CodeFormatter& formatter, const ast::Type& type,
@@ -26,9 +26,9 @@ class CppCodeGenerator {
   void Format(CodeFormatter& formatter, const ast::ScalarType&, TypeContext context) const;
   void Format(CodeFormatter& formatter, const ast::MatrixType& mat, TypeContext context) const;
 
-  void FormatReturnType(CodeFormatter& formatter, const FunctionDescription& description) const;
+  void FormatReturnType(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
 
-  void PutFunctionSignature(CodeFormatter& formatter, const FunctionDescription& description);
+  void PutFunctionSignature(CodeFormatter& formatter, const ast::FunctionSignature& signature);
 
   void Format(CodeFormatter& formatter, const ast::Add& x) const;
   void Format(CodeFormatter& formatter, const ast::ArrayAccess& x) const;

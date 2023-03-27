@@ -20,6 +20,7 @@
 # BUILD FOLDERS
 build/
 build/*
+tmp/
 
 # QTCREATOR PROJECT
 *.includes

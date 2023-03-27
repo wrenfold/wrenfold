@@ -2,16 +2,16 @@
 import unittest
 import typing as T
 
-import mc
+from sym import sym
 
 
 class MathTestBase(unittest.TestCase):
     """Base class for unit tests."""
 
-    def assertIdentical(self, a: T.Union[mc.Expr, int, float], b: mc.Expr):
+    def assertIdentical(self, a: T.Union[sym.Expr, int, float], b: sym.Expr):
         """Assert that two expressions are identical."""
         if isinstance(a, (int, float)):
-            a = mc.Expr(a)
+            a = sym.Expr(a)
 
         if a.is_identical_to(b):
             return
@@ -20,10 +20,10 @@ class MathTestBase(unittest.TestCase):
                    f'The expression tree for `b` is:\n{b.expression_tree_str()}')
         raise self.failureException(message)
 
-    def assertNotIdentical(self, a: T.Union[mc.Expr, int, float], b: mc.Expr):
+    def assertNotIdentical(self, a: T.Union[sym.Expr, int, float], b: sym.Expr):
         """Assert that two expressions are not identical."""
         if isinstance(a, (int, float)):
-            a = mc.Expr(a)
+            a = sym.Expr(a)
 
         if not a.is_identical_to(b):
             return

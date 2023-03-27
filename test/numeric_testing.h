@@ -173,7 +173,7 @@ auto CreateEvaluator(ReturnType (*func)(Args... args)) {
 
     // Create a tuple of non-const references to output arguments of this lambda, and write to it
     // by doing substitution with the NumericFunctionEvaluator:
-    detail::SelectFromTuple(std::forward_as_tuple(args...), output_indices) =
+    SelectFromTuple(std::forward_as_tuple(args...), output_indices) =
         ApplyNumericEvaluator(evaluator, output_args);
 
     if constexpr (!std::is_same_v<ReturnType, void>) {

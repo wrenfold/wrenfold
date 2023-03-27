@@ -33,6 +33,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/expressions/power.cc
     source/functions.cc
     source/hashing.cc
+    source/ast.cc
     source/plain_formatter.cc
     source/matrix_functions.cc
     source/tree_formatter.cc
@@ -82,8 +83,10 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBRARY_NAME}")
 
-# Add tests
-add_subdirectory(test)
+# Add tests, if not building from scikit-build-core
+if(NOT DEFINED SKBUILD_PROJECT_NAME)
+  add_subdirectory(test)
+endif()
 
-# Add nanobind wrapper.
-add_subdirectory(wrapper)
+# Add pybind11 wrapper.
+add_subdirectory(sym_wrapper)

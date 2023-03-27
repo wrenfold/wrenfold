@@ -561,7 +561,7 @@ struct AstBuilder {
   std::vector<std::shared_ptr<const ast::Argument>> input_args_;
 };
 
-std::vector<ast::Variant> IrBuilder::CreateAST(const FunctionDescription& func) {
+std::vector<ast::Variant> IrBuilder::CreateAST(const ast::FunctionSignature& func) {
   std::vector<ast::Variant> ast{};
   ast.reserve(100);
 
@@ -593,10 +593,7 @@ std::vector<ast::Variant> IrBuilder::CreateAST(const FunctionDescription& func) 
           fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
     }
 
-    ast.push_back(ast::OutputBlock{
-        output_arg,
-        output_arg->IsOptional() ? OutputType::OptionalOutputArgument : OutputType::OutputArgument,
-        std::move(statements), std::move(variables)});
+    ast.push_back(ast::OutputBlock{output_arg, std::move(statements), std::move(variables)});
 
     output_flat_index += output_arg->TypeDimension();
   }
@@ -682,9 +679,9 @@ void IrBuilder::StripUnusedValues() {
   }
 }
 
-std::string CodeGeneratorBase::Generate(const FunctionDescription& func,
+std::string CodeGeneratorBase::Generate(const ast::FunctionSignature& func,
                                         const std::vector<ast::Variant>& ast) {
-  CodeFormatter formatter{*this};
+  CodeFormatter formatter{};
   GenerateImpl(formatter, func, ast);
   return formatter.GetOutput();
 }

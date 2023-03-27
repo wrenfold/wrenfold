@@ -14,6 +14,8 @@ foreach(test_file ${${PROJECT_NAME}_PY_TEST_SOURCES})
                                      ${CMAKE_CURRENT_SOURCE_DIR}/${test_file})
   set_property(
     TEST ${test_name}
-    PROPERTY ENVIRONMENT
-             "PYTHONPATH=${CMAKE_BINARY_DIR}/wrapper:$ENV{PYTHONPATH}")
+    PROPERTY
+      ENVIRONMENT
+      "PYTHONPATH=${CMAKE_BINARY_DIR}/wrapper:${CMAKE_SOURCE_DIR}:$ENV{PYTHONPATH}"
+  )
 endforeach(test_file)

@@ -1,8 +1,8 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 
+#include "ast.h"
 #include "expressions/function_argument.h"
-#include "function_description.h"
 #include "template_utils.h"
 #include "type_annotations.h"
 
@@ -10,11 +10,7 @@ namespace math {
 namespace detail {
 
 template <typename T>
-struct CopyOutputExpressionsImpl {
-  void operator()(const T&, std::vector<Expr>&) const {
-    throw TypeError("Unhandled output expression type");
-  }
-};
+struct CopyOutputExpressionsImpl {};
 
 template <>
 struct CopyOutputExpressionsImpl<Expr> {
@@ -67,7 +63,7 @@ struct RecordFunctionArgument;
 
 template <bool OutputArg>
 struct RecordFunctionArgument<Expr, OutputArg> {
-  void operator()(FunctionDescription& desc, const Arg& arg) const {
+  void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     if (OutputArg) {
       desc.AddOutput(arg.GetName(), ast::ScalarType(), arg.IsOptional());
     } else {
@@ -78,7 +74,7 @@ struct RecordFunctionArgument<Expr, OutputArg> {
 
 template <index_t Rows, index_t Cols, bool OutputArg>
 struct RecordFunctionArgument<type_annotations::StaticMatrix<Rows, Cols>, OutputArg> {
-  void operator()(FunctionDescription& desc, const Arg& arg) const {
+  void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     if (OutputArg) {
       desc.AddOutput(arg.GetName(), ast::MatrixType(Rows, Cols), arg.IsOptional());
     } else {
@@ -93,14 +89,14 @@ constexpr bool IsOutputArgument =
     std::is_reference_v<T> && !std::is_const_v<std::remove_reference_t<T>>;
 
 template <typename ArgList, std::size_t Index, std::size_t N>
-void RecordArgsImpl(FunctionDescription& desc, const std::array<Arg, N>& args) {
+void RecordArgsImpl(ast::FunctionSignature& desc, const std::array<Arg, N>& args) {
   static_assert(Index < N);
   using ArgType = typename TypeListElement<Index, ArgList>::Type;
   RecordFunctionArgument<std::decay_t<ArgType>, IsOutputArgument<ArgType>>{}(desc, args[Index]);
 }
 
 template <typename ArgList, std::size_t... Indices, std::size_t N>
-void RecordArgs(FunctionDescription& desc, const std::array<Arg, N>& args,
+void RecordArgs(ast::FunctionSignature& desc, const std::array<Arg, N>& args,
                 std::index_sequence<Indices...>) {
   (RecordArgsImpl<ArgList, Indices>(desc, args), ...);
 }
@@ -110,19 +106,19 @@ struct RecordReturnTypes;
 
 template <>
 struct RecordReturnTypes<Expr> {
-  void operator()(FunctionDescription& desc) const { desc.AddReturnValue(ast::ScalarType()); }
+  void operator()(ast::FunctionSignature& desc) const { desc.AddReturnValue(ast::ScalarType()); }
 };
 
 template <index_t Rows, index_t Cols>
 struct RecordReturnTypes<type_annotations::StaticMatrix<Rows, Cols>> {
-  void operator()(FunctionDescription& desc) const {
+  void operator()(ast::FunctionSignature& desc) const {
     desc.AddReturnValue(ast::MatrixType(Rows, Cols));
   }
 };
 
 template <typename... Args>
 struct RecordReturnTypes<std::tuple<Args...>> {
-  void operator()(FunctionDescription& desc) const { (RecordReturnTypes<Args>()(desc), ...); }
+  void operator()(ast::FunctionSignature& desc) const { (RecordReturnTypes<Args>()(desc), ...); }
 };
 
 template <typename T, bool IsOutputArg>
@@ -202,12 +198,6 @@ static_assert(!IndexIsOutputArg<1, int, const double&, double&>);
 static_assert(IndexIsOutputArg<2, int, const double&, double&>);
 static_assert(std::is_same_v<std::index_sequence<1, 2>,
                              decltype(FilterArguments<false>(TypeList<int, int&, double&>{}))>);
-
-template <typename Tuple, std::size_t... Indices>
-auto SelectFromTuple(Tuple&& tuple, std::index_sequence<Indices...>) {
-  return std::tuple<std::tuple_element_t<Indices, std::remove_reference_t<Tuple>>...>(
-      std::get<Indices>(std::forward<Tuple>(tuple))...);
-}
 
 template <typename ArgList, typename Callable, std::size_t... Indices>
 auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>) {

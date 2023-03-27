@@ -3,7 +3,7 @@
 
 namespace math {
 
-void CppCodeGenerator::Generate(CodeFormatter& formatter, const FunctionDescription& func,
+void CppCodeGenerator::Generate(CodeFormatter& formatter, const ast::FunctionSignature& func,
                                 const std::vector<ast::Variant>& ast) {
   PutFunctionSignature(formatter, func);
   formatter.WithIndentation(2, "{\n", "}", [this, &ast](CodeFormatter& formatter) {
@@ -59,17 +59,17 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::MatrixType& m
 }
 
 void CppCodeGenerator::FormatReturnType(CodeFormatter& formatter,
-                                        const FunctionDescription& description) const {
+                                        const ast::FunctionSignature& signature) const {
   //  formatter.Append("inline ");
-  if (description.return_values.empty()) {
+  if (signature.return_values.empty()) {
     formatter.Append("void");
-  } else if (description.return_values.size() == 1) {
+  } else if (signature.return_values.size() == 1) {
     // there is a single type
-    Format(formatter, description.return_values.front(), TypeContext::ReturnValue);
+    Format(formatter, signature.return_values.front(), TypeContext::ReturnValue);
   } else {
     // make a tuple
     formatter.Append("std::tuple<");
-    for (const auto& type : description.return_values) {
+    for (const auto& type : signature.return_values) {
       Format(formatter, type, TypeContext::ReturnValue);
       formatter.Append(", ");
     }
@@ -79,15 +79,15 @@ void CppCodeGenerator::FormatReturnType(CodeFormatter& formatter,
 }
 
 void CppCodeGenerator::PutFunctionSignature(CodeFormatter& formatter,
-                                            const FunctionDescription& description) {
-  FormatReturnType(formatter, description);
-  formatter.Format(" {}(", description.function_name);
-  for (const std::shared_ptr<const ast::Argument>& input_arg : description.input_args) {
+                                            const ast::FunctionSignature& signature) {
+  FormatReturnType(formatter, signature);
+  formatter.Format(" {}(", signature.function_name);
+  for (const std::shared_ptr<const ast::Argument>& input_arg : signature.input_args) {
     formatter.Append("const ");
     Format(formatter, input_arg->Type(), TypeContext::InputArgument);
     formatter.Format(" {}, ", input_arg->Name());
   }
-  for (const std::shared_ptr<const ast::Argument>& output_arg : description.output_args) {
+  for (const std::shared_ptr<const ast::Argument>& output_arg : signature.output_args) {
     Format(formatter, output_arg->Type(),
            output_arg->IsOptional() ? TypeContext::OptionalOutputArgument
                                     : TypeContext::OutputArgument);
@@ -188,7 +188,7 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::OutputBlock& 
   const ast::Argument& arg = *x.argument;
   const ast::Type& arg_type = arg.Type();
 
-  if (x.output_type == OutputType::OutputArgument) {
+  if (!arg.IsOptional()) {
     formatter.Format("// Generate output argument: {}\n", arg.Name());
     formatter.WithIndentation(2, "{\n", "}", [this, &x, arg, arg_type](CodeFormatter& formatter) {
       for (const ast::Variant& statement : x.statements) {
@@ -207,7 +207,7 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::OutputBlock& 
         }
       }
     });
-  } else if (x.output_type == OutputType::OptionalOutputArgument) {
+  } else {
     formatter.Format("// Generate optional output argument: {}\n", arg.Name());
     formatter.Format("if (static_cast<bool>({})) ", arg.Name());
     formatter.WithIndentation(2, "{\n", "}", [this, &x, arg, arg_type](CodeFormatter& formatter) {
@@ -254,9 +254,8 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::ReturnValueBl
   if (retval.values.size() > 1) {
     formatter.Append("return std::make_tuple(");
     for (std::size_t i = 0; i < retval.values.size(); ++i) {
-      formatter.Format("_return_value_{:02}, ", i);
+      formatter.Format("_return_value_{:02}{}", (i + 1) == retval.values.size() ? "" : ", ");
     }
-    formatter.RightTrimTrailingWhitespaceAndComma();
     formatter.Append(");");
   } else if (retval.values.size() == 1) {
     formatter.Format("return _return_value_{:02};", 0);

@@ -8,7 +8,7 @@
 namespace math {
 
 template <typename ReturnType, typename... Args, typename... ArgumentInfo>
-std::tuple<FunctionDescription, std::vector<Expr>> BuildFunctionDescription(
+std::tuple<ast::FunctionSignature, std::vector<Expr>> BuildFunctionDescription(
     ReturnType (*func)(Args...), const std::string_view function_name,
     const ArgumentInfo&... args_in) {
   static_assert(sizeof...(Args) == sizeof...(ArgumentInfo), "Mismatch in # args and # arg names");
@@ -18,11 +18,10 @@ std::tuple<FunctionDescription, std::vector<Expr>> BuildFunctionDescription(
 
   const std::array<Arg, sizeof...(ArgumentInfo)> args = {Arg(args_in)...};
 
-  FunctionDescription desc{};
-  desc.function_name = function_name;
-  detail::RecordArgs<ArgList>(desc, args, std::make_index_sequence<sizeof...(Args)>());
+  ast::FunctionSignature signature{std::string(function_name)};
+  detail::RecordArgs<ArgList>(signature, args, std::make_index_sequence<sizeof...(Args)>());
   if constexpr (!std::is_same_v<void, ReturnType>) {
-    detail::RecordReturnTypes<ReturnType>{}(desc);
+    detail::RecordReturnTypes<ReturnType>{}(signature);
   }
 
   // Build inputs and invoke the function
@@ -32,7 +31,7 @@ std::tuple<FunctionDescription, std::vector<Expr>> BuildFunctionDescription(
   std::vector<Expr> outputs;
   detail::CopyOutputExpressions(output_args, outputs);
   detail::CopyOutputExpressions(result, outputs);
-  return std::make_tuple(std::move(desc), std::move(outputs));
+  return std::make_tuple(std::move(signature), std::move(outputs));
 }
 
 }  // namespace math

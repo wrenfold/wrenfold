@@ -178,4 +178,11 @@ struct ConvertCallToApply {
 template <typename Callable, typename List>
 using CallableReturnType = ApplyReturnType<ConvertCallToApply<Callable>, List>;
 
+// Select `Indices` elements from a tuple. Returns a new tuple with just those elements.
+template <typename Tuple, std::size_t... Indices>
+auto SelectFromTuple(Tuple&& tuple, std::index_sequence<Indices...>) {
+  return std::tuple<std::tuple_element_t<Indices, std::remove_reference_t<Tuple>>...>(
+      std::get<Indices>(std::forward<Tuple>(tuple))...);
+}
+
 }  // namespace math

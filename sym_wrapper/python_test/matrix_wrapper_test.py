@@ -5,8 +5,7 @@ import numpy as np
 import typing as T
 import unittest
 
-import mc
-
+from sym import sym
 from test_base import MathTestBase
 
 
@@ -14,10 +13,10 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_matrix_constructors(self):
         """Test different methods of constructing matrices."""
-        x, y, z, a, b, c = mc.symbols('x, y, z, a, b, c')
+        x, y, z, a, b, c = sym.symbols('x, y, z, a, b, c')
 
         data = [(x, a), (y, b), (z, c)]
-        m = mc.matrix(data)
+        m = sym.matrix(data)
         self.assertEqual('Matrix', m.type_name)
         self.assertEqual((3, 2), m.shape)
         self.assertEqual(6, m.size)
@@ -28,24 +27,24 @@ class MatrixWrapperTest(MathTestBase):
                 self.assertIdentical(value, m[i, j])
 
         data_as_list = m.to_list()
-        self.assertIdentical(mc.matrix(data_as_list), m)
+        self.assertIdentical(sym.matrix(data_as_list), m)
 
         # Different ways of constructing vectors:
-        v = mc.vector(x, y, z)
+        v = sym.vector(x, y, z)
         self.assertEqual((3, 1), v.shape)
         self.assertEqual('Matrix', v.type_name)
-        self.assertIdentical(v, mc.matrix([x, y, z]))
-        self.assertIdentical(v, mc.matrix([[x], [y], [z]]))
-        self.assertIdentical(mc.row_vector(x, y, z), mc.matrix([[x, y, z]]))
+        self.assertIdentical(v, sym.matrix([x, y, z]))
+        self.assertIdentical(v, sym.matrix([[x], [y], [z]]))
+        self.assertIdentical(sym.row_vector(x, y, z), sym.matrix([[x, y, z]]))
 
         # Stacking matrices:
         self.assertIdentical(
-            mc.matrix([[a, x], [b, y]]), mc.matrix([mc.row_vector(a, x),
-                                                    mc.row_vector(b, y)]))
-        self.assertIdentical(m, mc.matrix([m[0:2, :], data[2]]))
+            sym.matrix([[a, x], [b, y]]), sym.matrix([sym.row_vector(a, x),
+                                                      sym.row_vector(b, y)]))
+        self.assertIdentical(m, sym.matrix([m[0:2, :], data[2]]))
         self.assertIdentical(
-            mc.vector(a, b, c, x, y, z), mc.matrix([mc.vector(a, b, c),
-                                                    mc.vector(x, y, z)]))
+            sym.vector(a, b, c, x, y, z), sym.matrix([sym.vector(a, b, c),
+                                                      sym.vector(x, y, z)]))
 
         def generator_func(*args):
             for element in args:
@@ -53,68 +52,69 @@ class MatrixWrapperTest(MathTestBase):
 
         # construct from generators
         gen = generator_func(z, x, c)
-        self.assertIdentical(mc.vector(z, x, c), mc.matrix(gen))
+        self.assertIdentical(sym.vector(z, x, c), sym.matrix(gen))
         gen = generator_func([a, x], [b, y])
-        self.assertIdentical(mc.matrix([[a, x], [b, y]]), mc.matrix(gen))
+        self.assertIdentical(sym.matrix([[a, x], [b, y]]), sym.matrix(gen))
         gen = generator_func(
             generator_func(x, y, z), generator_func(a, b, c), generator_func(1, 2, 3))
-        self.assertIdentical(mc.matrix([[x, y, z], [a, b, c], [1, 2, 3]]), mc.matrix(gen))
+        self.assertIdentical(sym.matrix([[x, y, z], [a, b, c], [1, 2, 3]]), sym.matrix(gen))
 
         # combine generator with other inputs
         self.assertIdentical(
-            mc.matrix([(a, c), (1.0, z)]), mc.matrix([(a, c), generator_func(1.0, z)]))
+            sym.matrix([(a, c), (1.0, z)]), sym.matrix([(a, c), generator_func(1.0, z)]))
         self.assertIdentical(
-            mc.matrix([(b, x, x), (z, 5, z)]),
-            mc.matrix([mc.row_vector(b, x, x), generator_func(z, 5, z)]))
+            sym.matrix([(b, x, x), (z, 5, z)]),
+            sym.matrix([sym.row_vector(b, x, x), generator_func(z, 5, z)]))
         self.assertIdentical(
-            mc.matrix([(mc.pi, x, 2), (y, z, c)]),
-            mc.matrix([generator_func(mc.pi, x, 2),
-                       generator_func(y, z, c)]))
+            sym.matrix([(sym.pi, x, 2), (y, z, c)]),
+            sym.matrix([generator_func(sym.pi, x, 2),
+                        generator_func(y, z, c)]))
 
         # throw if empty
-        self.assertRaises(mc.DimensionError, lambda: mc.matrix([]))
-        self.assertRaises(mc.DimensionError, lambda: mc.vector())
-        self.assertRaises(mc.DimensionError, lambda: mc.row_vector())
+        self.assertRaises(sym.DimensionError, lambda: sym.matrix([]))
+        self.assertRaises(sym.DimensionError, lambda: sym.vector())
+        self.assertRaises(sym.DimensionError, lambda: sym.row_vector())
 
         # cannot nest matrices:
-        self.assertRaises(RuntimeError, lambda: mc.vector(m, 1.5, 2))
-        self.assertRaises(RuntimeError, lambda: mc.row_vector(x, y, mc.vector(z, 9.0)))
-        self.assertRaises(RuntimeError, lambda: mc.matrix([[mc.row_vector(1, x), 1], [0.0, mc.pi]]))
+        self.assertRaises(RuntimeError, lambda: sym.vector(m, 1.5, 2))
+        self.assertRaises(RuntimeError, lambda: sym.row_vector(x, y, sym.vector(z, 9.0)))
+        self.assertRaises(RuntimeError,
+                          lambda: sym.matrix([[sym.row_vector(1, x), 1], [0.0, sym.pi]]))
 
         # mixing iterable/non-iterable:
-        self.assertRaises(TypeError, lambda: mc.matrix([mc.row_vector(x, y), 5]))
-        self.assertRaises(TypeError, lambda: mc.matrix([mc.vector(x, y), z]))
+        self.assertRaises(TypeError, lambda: sym.matrix([sym.row_vector(x, y), 5]))
+        self.assertRaises(TypeError, lambda: sym.matrix([sym.vector(x, y), z]))
 
         # dimensions do not agree:
-        self.assertRaises(mc.DimensionError, lambda: mc.matrix([(y, 2), (x,)]))
-        self.assertRaises(mc.DimensionError, lambda: mc.matrix([(a, mc.pi, mc.euler),
-                                                                (x, 5, z, b)]))
+        self.assertRaises(sym.DimensionError, lambda: sym.matrix([(y, 2), (x,)]))
+        self.assertRaises(sym.DimensionError, lambda: sym.matrix([(a, sym.pi, sym.euler),
+                                                                  (x, 5, z, b)]))
 
     def test_matrix_repr(self):
         """Test matrix __repr__."""
-        x, y, z = mc.symbols('x, y, z')
-        m = mc.matrix([[x * x, -y + 3, x * z], [-2, mc.pi, 5]])
+        x, y, z = sym.symbols('x, y, z')
+        m = sym.matrix([[x * x, -y + 3, x * z], [-2, sym.pi, 5]])
         self.assertEqual('[[x ** 2, 3 - y, x * z],\n [    -2,    pi,     5]]', repr(m))
 
     def test_special_matrices(self):
         """Test convenience constructors for specific matrices."""
-        eye = mc.eye(3)
+        eye = sym.eye(3)
         self.assertEqual((3, 3), eye.shape)
         for i in range(eye.shape[0]):
             for j in range(eye.shape[1]):
-                self.assertIdentical(mc.one if i == j else mc.zero, eye[i, j])
+                self.assertIdentical(sym.one if i == j else sym.zero, eye[i, j])
 
-        self.assertRaises(mc.DimensionError, lambda: mc.eye(0))
-        self.assertRaises(mc.DimensionError, lambda: mc.eye(-2))
+        self.assertRaises(sym.DimensionError, lambda: sym.eye(0))
+        self.assertRaises(sym.DimensionError, lambda: sym.eye(-2))
 
-        zeros = mc.zeros(5, 4)
+        zeros = sym.zeros(5, 4)
         self.assertEqual((5, 4), zeros.shape)
         for i in range(zeros.shape[0]):
             for j in range(zeros.shape[1]):
-                self.assertIdentical(mc.zero, zeros[i, j])
+                self.assertIdentical(sym.zero, zeros[i, j])
 
-        self.assertRaises(mc.DimensionError, lambda: mc.zeros(-4, 3))
-        self.assertRaises(mc.DimensionError, lambda: mc.zeros(0, 6))
+        self.assertRaises(sym.DimensionError, lambda: sym.zeros(-4, 3))
+        self.assertRaises(sym.DimensionError, lambda: sym.zeros(0, 6))
 
     @staticmethod
     def generate_slices(dim: int, step_sizes: T.Iterable[int] = (1, 2, 3)):
@@ -148,11 +148,11 @@ class MatrixWrapperTest(MathTestBase):
         # Create 4x5 symbol grid:
         symbols = []
         for i in range(4):
-            symbols.append(mc.symbols(f'x_{i}{j}' for j in range(5)))
+            symbols.append(sym.symbols(f'x_{i}{j}' for j in range(5)))
 
         symbol_array = np.array(symbols, dtype=object)
 
-        m = mc.matrix(symbols)
+        m = sym.matrix(symbols)
         self.assertEqual((4, 5), m.shape)
 
         # access individual elements
@@ -163,24 +163,24 @@ class MatrixWrapperTest(MathTestBase):
         # slice rows
         for i in range(m.shape[0]):
             self.assertEqual((1, 5), m[i].shape)
-            self.assertIdentical(mc.row_vector(*symbols[i]), m[i])
+            self.assertIdentical(sym.row_vector(*symbols[i]), m[i])
 
         # slice cols
         for j in range(m.shape[1]):
             self.assertEqual((4, 1), m[:, j].shape)
-            self.assertIdentical(mc.vector(*[symbols[i][j] for i in range(m.shape[0])]), m[:, j])
+            self.assertIdentical(sym.vector(*[symbols[i][j] for i in range(m.shape[0])]), m[:, j])
 
         # reverse using slice:
-        self.assertIdentical(mc.matrix(np.fliplr(symbol_array)), m[:, ::-1])
-        self.assertIdentical(mc.matrix(np.flipud(symbol_array)), m[::-1, :])
-        self.assertIdentical(mc.matrix(np.flip(symbol_array, axis=(0, 1))), m[::-1, ::-1])
+        self.assertIdentical(sym.matrix(np.fliplr(symbol_array)), m[:, ::-1])
+        self.assertIdentical(sym.matrix(np.flipud(symbol_array)), m[::-1, :])
+        self.assertIdentical(sym.matrix(np.flip(symbol_array, axis=(0, 1))), m[::-1, ::-1])
 
         # slice on cols:
         for i in range(m.shape[0]):
             for col_slice in self.generate_slices(m.shape[1]):
                 sliced_symbols = symbol_array[i, col_slice].reshape((1, -1))
                 if sliced_symbols.size != 0:
-                    self.assertIdentical(mc.matrix(sliced_symbols), m[i, col_slice])
+                    self.assertIdentical(sym.matrix(sliced_symbols), m[i, col_slice])
                 else:
                     self.assertTrue(m[i, col_slice].is_empty)
 
@@ -189,7 +189,7 @@ class MatrixWrapperTest(MathTestBase):
             for row_slice in self.generate_slices(m.shape[0]):
                 sliced_symbols = symbol_array[row_slice, j].reshape((-1, 1))
                 if sliced_symbols.size != 0:
-                    self.assertIdentical(mc.matrix(sliced_symbols), m[row_slice, j])
+                    self.assertIdentical(sym.matrix(sliced_symbols), m[row_slice, j])
                 else:
                     self.assertTrue(m[row_slice, j].is_empty)
 
@@ -197,15 +197,15 @@ class MatrixWrapperTest(MathTestBase):
         for row_slice, col_slice in self.generate_row_and_col_slices(m.shape):
             sliced_symbols = symbol_array[row_slice, col_slice]
             if sliced_symbols.size != 0:
-                self.assertIdentical(mc.matrix(sliced_symbols), m[row_slice, col_slice])
+                self.assertIdentical(sym.matrix(sliced_symbols), m[row_slice, col_slice])
             else:
                 self.assertTrue(m[row_slice, col_slice].is_empty)
 
         # Invalid indices:
-        self.assertRaises(mc.DimensionError, lambda: m[-5, 0])
-        self.assertRaises(mc.DimensionError, lambda: m[0, -6])
-        self.assertRaises(mc.DimensionError, lambda: m[0, 10])
-        self.assertRaises(mc.DimensionError, lambda: m[11, 2])
+        self.assertRaises(sym.DimensionError, lambda: m[-5, 0])
+        self.assertRaises(sym.DimensionError, lambda: m[0, -6])
+        self.assertRaises(sym.DimensionError, lambda: m[0, 10])
+        self.assertRaises(sym.DimensionError, lambda: m[11, 2])
 
         # Test iteration:
         self.assertEqual(4, len(m))
@@ -214,62 +214,63 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_unary_map(self):
         """Test unary map w/ a lambda."""
-        q = mc.symbols('q')
-        v = mc.vector(mc.pi, 7, q)
-        v_mapped = v.unary_map(lambda x: mc.pow(x, 2) * 3)
-        self.assertIdentical(mc.vector(3 * mc.pi ** 2, 147, 3 * q ** 2), v_mapped)
+        q = sym.symbols('q')
+        v = sym.vector(sym.pi, 7, q)
+        v_mapped = v.unary_map(lambda x: sym.pow(x, 2) * 3)
+        self.assertIdentical(sym.vector(3 * sym.pi ** 2, 147, 3 * q ** 2), v_mapped)
 
     def test_vec(self):
         """Test column-order vectorization."""
-        symbols = mc.symbols(['x, y', 'a, b', 'p, q'])
-        m = mc.matrix(symbols)
+        symbols = sym.symbols(['x, y', 'a, b', 'p, q'])
+        m = sym.matrix(symbols)
         m_t = m.transpose()
         self.assertEqual((3, 2), m.shape)
-        self.assertIdentical(mc.matrix([m[:, 0], m[:, 1]]), mc.vec(m))
+        self.assertIdentical(sym.matrix([m[:, 0], m[:, 1]]), sym.vec(m))
         self.assertIdentical(
-            mc.matrix([m[0, :].transpose(), m[1, :].transpose(), m[2, :].transpose()]), mc.vec(m_t))
+            sym.matrix([m[0, :].transpose(), m[1, :].transpose(), m[2, :].transpose()]),
+            sym.vec(m_t))
 
     def test_matrix_operations(self):
         """Check that add/mul/sub operations are wrapped."""
-        m0 = mc.matrix_of_symbols('x', 4, 3)
-        m1 = mc.matrix_of_symbols('y', 3, 6)
+        m0 = sym.matrix_of_symbols('x', 4, 3)
+        m1 = sym.matrix_of_symbols('y', 3, 6)
 
         # matrix mul should produce matrix:
-        self.assertIsInstance(m0 * m1, mc.MatrixExpr)
+        self.assertIsInstance(m0 * m1, sym.MatrixExpr)
         self.assertEqual((4, 6), (m0 * m1).shape)
-        self.assertIdentical(mc.matrix(np.array(m0) @ np.array(m1)), m0 * m1)
-        self.assertIdentical(mc.matrix(np.array(m1).T @ np.array(m0).T), m1.T * m0.T)
+        self.assertIdentical(sym.matrix(np.array(m0) @ np.array(m1)), m0 * m1)
+        self.assertIdentical(sym.matrix(np.array(m1).T @ np.array(m0).T), m1.T * m0.T)
 
-        v = mc.vector(2, mc.pi, mc.integer(5) / 2)
-        self.assertIdentical(mc.matrix(np.array(m0) @ np.array(v)), m0 * v)
-        self.assertIdentical(mc.matrix(np.array(v).T @ np.array(m0).T), v.T * m0.T)
+        v = sym.vector(2, sym.pi, sym.integer(5) / 2)
+        self.assertIdentical(sym.matrix(np.array(m0) @ np.array(v)), m0 * v)
+        self.assertIdentical(sym.matrix(np.array(v).T @ np.array(m0).T), v.T * m0.T)
 
         # inner product should produce scalar, not matrix:
-        x, z = mc.symbols('x, z')
-        u = mc.row_vector(x, 0, z)
-        self.assertIsInstance(u * v, mc.Expr)
-        self.assertIdentical(2 * x + mc.integer(5) / 2 * z, u * v)
+        x, z = sym.symbols('x, z')
+        u = sym.row_vector(x, 0, z)
+        self.assertIsInstance(u * v, sym.Expr)
+        self.assertIdentical(2 * x + sym.integer(5) / 2 * z, u * v)
 
         # negation:
-        self.assertIsInstance(-m0, mc.MatrixExpr)
+        self.assertIsInstance(-m0, sym.MatrixExpr)
         self.assertIdentical(m0 * -1, -m0)
 
         # addition/subtraction:
-        m0 = mc.matrix_of_symbols('p', 2, 3)
-        m1 = mc.matrix_of_symbols('q', 2, 3)
-        self.assertIsInstance(m0 + m1, mc.MatrixExpr)
-        self.assertIsInstance(m0 - m1, mc.MatrixExpr)
+        m0 = sym.matrix_of_symbols('p', 2, 3)
+        m1 = sym.matrix_of_symbols('q', 2, 3)
+        self.assertIsInstance(m0 + m1, sym.MatrixExpr)
+        self.assertIsInstance(m0 - m1, sym.MatrixExpr)
         self.assertEqual((2, 3), (m0 + m1).shape)
-        self.assertIdentical(mc.matrix(np.array(m0) + np.array(m1)), m0 + m1)
-        self.assertIdentical(mc.matrix(np.array(m0) - np.array(m1)), m0 - m1)
-        self.assertIdentical(mc.zeros(2, 3), m0 - m0)
-        self.assertIdentical(mc.zeros(2, 3), m1 - m1)
+        self.assertIdentical(sym.matrix(np.array(m0) + np.array(m1)), m0 + m1)
+        self.assertIdentical(sym.matrix(np.array(m0) - np.array(m1)), m0 - m1)
+        self.assertIdentical(sym.zeros(2, 3), m0 - m0)
+        self.assertIdentical(sym.zeros(2, 3), m1 - m1)
         self.assertIdentical(m0 * 2, m0 + m0)
         self.assertIdentical(m1 * 3, m1 + m1 + m1)
 
         # cannot add incompatible dimensions
-        self.assertRaises(mc.DimensionError, lambda: m0 + mc.identity(4))
-        self.assertRaises(mc.DimensionError, lambda: m0 - mc.zeros(6, 7))
+        self.assertRaises(sym.DimensionError, lambda: m0 + sym.identity(4))
+        self.assertRaises(sym.DimensionError, lambda: m0 - sym.zeros(6, 7))
 
         # division by matrix is prohibited:
         self.assertRaises(TypeError, lambda: 31 / m0)
@@ -277,27 +278,27 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_distribute(self):
         """Test calling distribute on a matrix."""
-        x, y, z = mc.symbols('x, y, z')
-        m = mc.vector((x + y) * (2 + z), mc.sin(x) * (y + 2))
+        x, y, z = sym.symbols('x, y, z')
+        m = sym.vector((x + y) * (2 + z), sym.sin(x) * (y + 2))
         self.assertIdentical(
-            mc.vector(2 * x + z * x + y * 2 + y * z,
-                      mc.sin(x) * y + mc.sin(x) * 2), m.distribute())
+            sym.vector(2 * x + z * x + y * 2 + y * z,
+                       sym.sin(x) * y + sym.sin(x) * 2), m.distribute())
 
     def test_diff(self):
         """Test calling diff on a matrix (element-wise differentiation)."""
-        x, y, z, w = mc.symbols('x, y, z, w')
-        m = mc.matrix([(x * mc.cos(y * z), y + mc.tan(z)), (z * x * y / w, w * mc.pow(x, y))])
+        x, y, z, w = sym.symbols('x, y, z, w')
+        m = sym.matrix([(x * sym.cos(y * z), y + sym.tan(z)), (z * x * y / w, w * sym.pow(x, y))])
         for var in (x, y, z, w):
             m_diff = m.diff(var=var, order=1)
             self.assertIdentical(m_diff, m.unary_map(lambda el: el.diff(var)))
 
     def test_subs(self):
         """Test calling subs on a matrix."""
-        a, b, c, d, x, y, z = mc.symbols('a, b, c, d, x, y, z')
-        m = mc.matrix([(a + x * 2, b - c), (c - mc.sin(y), d + mc.log(d))])
+        a, b, c, d, x, y, z = sym.symbols('a, b, c, d, x, y, z')
+        m = sym.matrix([(a + x * 2, b - c), (c - sym.sin(y), d + sym.log(d))])
         self.assertIdentical(
-            mc.matrix([(0, b - c), (c - mc.sin(y), z)]),
-            m.subs(a, -x * 2).subs(d + mc.log(d), z))
+            sym.matrix([(0, b - c), (c - sym.sin(y), z)]),
+            m.subs(a, -x * 2).subs(d + sym.log(d), z))
 
 
 if __name__ == '__main__':

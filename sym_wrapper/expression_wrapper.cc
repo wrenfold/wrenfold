@@ -63,11 +63,9 @@ std::variant<Expr, py::list> CreateSymbols(std::variant<std::string_view, py::it
 namespace math {
 // Defined in matrix_wrapper_methods.cc
 void WrapMatrixOperations(py::module_& m);
-// Defined in codegen_wrapper.cc
-void WrapCodeGenerationOperations(py::module_& m);
 }  // namespace math
 
-PYBIND11_MODULE(mc, m) {
+PYBIND11_MODULE(pysym, m) {
   // Primary expression type:
   py::class_<Expr>(m, "Expr")
       // Implicit construction from numerics:
@@ -149,5 +147,4 @@ PYBIND11_MODULE(mc, m) {
 
   // Include other wrappers in this module:
   WrapMatrixOperations(m);
-  WrapCodeGenerationOperations(m);
-}
+}  // PYBIND11_MODULE
