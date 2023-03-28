@@ -58,11 +58,6 @@ class PythonCodeGenerator(CodeGenerator):
         pass
 
 
-import ipdb
-
-ipdb.set_trace()
-
-
 def codegen_function(func: T.Callable, name: T.Optional[str] = None):
     """Code-generate the provided function."""
     spec = inspect.getfullargspec(func=func)

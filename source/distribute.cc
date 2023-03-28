@@ -1,4 +1,6 @@
 // Copyright 2023 Gareth Cross
+#include <algorithm>
+
 #include "assertions.h"
 #include "expression_impl.h"
 #include "expressions/all_expressions.h"
@@ -9,7 +11,7 @@ namespace math {
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
   using ReturnType = Expr;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
 
   Expr Apply(const Expr&, const Addition& add) const {
     std::vector<Expr> args{};
@@ -37,13 +39,14 @@ struct DistributeVisitor {
                    [](const Expr& expr) { return VisitStruct(expr, DistributeVisitor{}); });
 
     // Are any of the child expressions additions?
-    const std::size_t total_terms = std::accumulate(
-        children.begin(), children.end(), 1lu, [](std::size_t total, const Expr& expr) {
-          if (const Addition* const add = TryCast<Addition>(expr); add != nullptr) {
-            total *= add->Arity();
-          }
-          return total;
-        });
+    const std::size_t total_terms =
+        std::accumulate(children.begin(), children.end(), static_cast<std::size_t>(1lu),
+                        [](std::size_t total, const Expr& expr) {
+                          if (const Addition* const add = TryCast<Addition>(expr); add != nullptr) {
+                            total *= add->Arity();
+                          }
+                          return total;
+                        });
 
     // If the total terms is > 1, we have an addition to distribute over.
     const bool contains_additions = total_terms > 1;

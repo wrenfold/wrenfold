@@ -27,10 +27,10 @@ class Integer : public ExpressionImpl<Integer> {
   explicit Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
 
   // Access numeric value.
-  IntegralType GetValue() const { return val_; }
+  constexpr IntegralType GetValue() const { return val_; }
 
   // Cast to integer:
   explicit operator Float() const;
@@ -63,13 +63,13 @@ class Rational : public ExpressionImpl<Rational> {
   // Construct a rational. Conversion to canonical form is automatic.
   constexpr Rational(IntegralType n, IntegralType d) : Rational(CreatePair(n, d)) {}
 
-  bool IsIdenticalToImplTyped(const Rational& other) const {
+  constexpr bool IsIdenticalToImplTyped(const Rational& other) const {
     return n_ == other.n_ && d_ == other.d_;
   }
 
   // Access numerator and denominator.
-  IntegralType Numerator() const { return n_; }
-  IntegralType Denominator() const { return d_; }
+  constexpr IntegralType Numerator() const { return n_; }
+  constexpr IntegralType Denominator() const { return d_; }
 
   // Cast to float.
   explicit operator Float() const;
@@ -141,10 +141,10 @@ class Float : public ExpressionImpl<Float> {
   }
 
   // Check if numerical constants are completely identical.
-  bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
 
   // Access numeric value.
-  FloatType GetValue() const { return val_; }
+  constexpr FloatType GetValue() const { return val_; }
 
   // Get absolute value.
   Float Abs() const { return Float{std::abs(val_)}; }

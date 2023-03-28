@@ -2,6 +2,7 @@
 #pragma once
 #include "expression.h"
 
+#include <algorithm>
 #include <typeindex>
 #include <unordered_map>
 #include <variant>

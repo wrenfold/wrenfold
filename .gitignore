@@ -34,7 +34,7 @@ tmp/
 
 # JETBRAINS
 *.idea
-cmake-build-debug/
+cmake-build-*/
 
 # VSCODE
 .vscode/

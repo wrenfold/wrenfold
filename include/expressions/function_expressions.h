@@ -45,6 +45,7 @@ constexpr std::string_view ToString(const UnaryFunctionName name) {
     case UnaryFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
   }
+  return "<NOT A VALID ENUM VALUE>";
 }
 
 template <typename Derived>
@@ -114,6 +115,7 @@ constexpr std::string_view ToString(const BinaryFunctionName name) {
     case BinaryFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
   }
+  return "<NOT A VALID ENUM VALUE>";
 }
 
 #if 0

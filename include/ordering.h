@@ -20,7 +20,7 @@ struct OrderVisitor {
     GreaterThan = 1,
   };
   using ReturnType = RelativeOrder;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
 
   using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Variable, FunctionArgument,
                                 Multiplication, Addition, Power, UnaryFunction, Matrix>;

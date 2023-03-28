@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <typeindex>
+#include <variant>
 #include <vector>
 
 #include "expressions/function_expressions.h"  //temporary

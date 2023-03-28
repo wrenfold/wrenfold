@@ -9,7 +9,8 @@ namespace math {
 // User specifies this as an argument to `BuildFunctionDescription`.
 struct Arg {
   Arg() = default;
-  Arg(const std::string_view name, bool optional = false) : name_(name), optional_(optional) {}
+  explicit Arg(const std::string_view name, bool optional = false)
+      : name_(name), optional_(optional) {}
 
   const std::string& GetName() const { return name_; }
 
@@ -25,7 +26,7 @@ namespace type_annotations {
 template <index_t Rows, index_t Cols>
 struct StaticMatrix {
   // Allow implicit construction from MatrixExpr.
-  StaticMatrix(MatrixExpr expr) : expr_(std::move(expr)) {
+  StaticMatrix(MatrixExpr expr) : expr_(std::move(expr)) {  // NOLINT(google-explicit-constructor)
     ASSERT_EQUAL(Rows, expr_.NumRows());
     ASSERT_EQUAL(Cols, expr_.NumCols());
   }
@@ -33,7 +34,7 @@ struct StaticMatrix {
   template <typename... Args>
   static std::enable_if_t<std::conjunction_v<std::is_constructible<Expr, Args>...>, StaticMatrix>
   Create(Args&&... args) {
-    ASSERT_EQUAL(sizeof...(args), Rows * Cols);
+    static_assert(sizeof...(args) == Rows * Cols);
     return StaticMatrix(CreateMatrix(Rows, Cols, std::move(args)...));
   }
 
@@ -54,7 +55,7 @@ struct StaticMatrix {
   }
 
   // Implicit cast to MatrixExpr.
-  operator const MatrixExpr&() const { return expr_; }
+  operator const MatrixExpr&() const { return expr_; }  // NOLINT
 
  private:
   MatrixExpr expr_;

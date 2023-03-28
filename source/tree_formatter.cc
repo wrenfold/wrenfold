@@ -20,7 +20,7 @@ struct TreeFormatter {
   using ReturnType = void;
 
   // Generate a compile-time error if we forget a visitor here.
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
 
   // Add indentation to the output string.
   void ApplyIndentation() {

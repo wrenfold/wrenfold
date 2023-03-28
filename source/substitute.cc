@@ -7,6 +7,11 @@
 #include "expressions/all_expressions.h"
 #include "hashing.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4702)  //  incorrectly labeled unreachable code
+#endif
+
 namespace math {
 
 // Visitor that performs a substitution.
@@ -17,7 +22,7 @@ struct SubstituteVisitorBase {
   explicit SubstituteVisitorBase(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
 
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   // The argument is neither an addition nor a multiplication:
@@ -290,3 +295,7 @@ Expr Substitute(const Expr& input, const Expr& target, const Expr& replacement) 
 }
 
 }  // namespace math
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

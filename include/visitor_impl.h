@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 
+#include "assertions.h"
 #include "expression.h"
 #include "template_utils.h"
 #include "visitor_base.h"
@@ -10,11 +11,9 @@
 namespace math {
 
 // Implementation of a visitor.
-template <typename Derived>
+template <typename Derived, typename Policy>
 class VisitorImpl : public VisitorBase {
  public:
-  static constexpr VisitorPolicy Policy = Derived::Policy;
-
   // Cast to non-const derived type.
   Derived& AsDerived() { return static_cast<Derived&>(*this); }
 
@@ -37,12 +36,10 @@ struct MaybeVoid<void> {
 // Wraps a type-erased visitor. The wrapped visitor must produce `ReturnType`
 // as the result of a call to Apply(...). If no visitor method can be called,
 // the result is left empty.
-template <typename ReturnType, typename VisitorType, VisitorPolicy P>
+template <typename ReturnType, typename VisitorType, typename Policy>
 struct VisitorWithCapturedResult final
-    : public VisitorImpl<VisitorWithCapturedResult<ReturnType, VisitorType, P>> {
+    : public VisitorImpl<VisitorWithCapturedResult<ReturnType, VisitorType, Policy>, Policy> {
  public:
-  static constexpr VisitorPolicy Policy = P;
-
   // Construct with non-const ref to visitor type.
   VisitorWithCapturedResult(VisitorType& impl, const Expr& input)
       : impl_(impl), input_expression_(input) {}
@@ -93,11 +90,11 @@ auto VisitStruct(const Expr& expr, VisitorType&& visitor) {
   // invoked on a concrete type.
   using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
   using ReturnTypeOrVoid = typename MaybeVoid<ReturnType>::Type;
-  constexpr VisitorPolicy Policy = std::decay_t<VisitorType>::Policy;
+  using Policy = typename std::decay_t<VisitorType>::Policy;
 
   VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, Policy> capture_visitor{visitor, expr};
   expr.Receive(capture_visitor);
-  if constexpr (Policy == VisitorPolicy::CompileError || Policy == VisitorPolicy::Throw) {
+  if constexpr (std::is_same_v<Policy, VisitorPolicy::CompileError>) {
     ASSERT(capture_visitor.result.has_value());
     return std::move(*capture_visitor.result);  // ReturnType
   } else {
@@ -108,13 +105,15 @@ auto VisitStruct(const Expr& expr, VisitorType&& visitor) {
 // This type exists so that we can deduce a Lambda return type.
 // Since the lambda may take auto, we evaluate it with all the approved types. `Apply` is
 // implemented only for those types that we can invoke the lambda with successfully.
-template <typename Lambda, VisitorPolicy PolicyIn>
+template <typename Lambda, typename PolicyIn>
 struct LambdaWrapper {
   // Deduce the return type of the lambda by invoking it w/ the approved type list.
   using ReturnType = typename CallableReturnType<Lambda, ApprovedTypeList>::Type;
 
   // Policy is user-specified.
-  static constexpr VisitorPolicy Policy = PolicyIn;
+  static_assert(std::is_same_v<PolicyIn, VisitorPolicy::CompileError> ||
+                std::is_same_v<PolicyIn, VisitorPolicy::NoError>);
+  using Policy = PolicyIn;
 
   // Construct by moving lambda inside.
   explicit LambdaWrapper(Lambda&& func) : func_(std::move(func)) {}
@@ -132,9 +131,9 @@ struct LambdaWrapper {
 
 namespace detail {
 // Visit using a lambda. We construct a struct
-template <VisitorPolicy Policy, typename F>
+template <typename Policy, typename F>
 auto VisitLambdaWithPolicy(const Expr& u, F&& func) {
-  LambdaWrapper<F, Policy> wrapper{std::move(func)};
+  LambdaWrapper<F, Policy> wrapper{std::forward<F>(func)};
   return VisitStruct(u, std::move(wrapper));
 }
 }  // namespace detail
@@ -171,11 +170,11 @@ template <typename VisitorType>
 auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
   //  using ReturnType = typename MaybeVoid<typename std::decay_t<VisitorType>::ReturnType>::Type;
   using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
-  constexpr VisitorPolicy Policy = std::decay_t<VisitorType>::Policy;
+  using Policy = typename std::decay_t<VisitorType>::Policy;
 
   // If the policy specifies that the visitor is mandatory, we can return the type
   // directly. Otherwise, it will be an optional.
-  if constexpr (Policy == VisitorPolicy::CompileError || Policy == VisitorPolicy::Throw) {
+  if constexpr (std::is_same_v<Policy, VisitorPolicy::CompileError>) {
     return detail::VisitLambdaWithPolicy<Policy>(u, [&handler, &v](const auto& typed_u) {
       return detail::VisitLambdaWithPolicy<Policy>(v, [&handler, &typed_u](const auto& typed_v) {
         // Check if we can visit
@@ -234,16 +233,14 @@ class VisitorNotImplemented final : public std::exception {
 };
 
 // Variant of ApplyOrThrow that takes no argument.
-template <typename Derived, typename Argument>
-void ApplyOrThrow(VisitorImpl<Derived>& visitor, const Argument& arg) {
+template <typename Derived, typename Policy, typename Argument>
+void ApplyOrThrow(VisitorImpl<Derived, Policy>& visitor, const Argument& arg) {
   if constexpr (HasApplyMethod<Derived, Argument>) {
     visitor.AsDerived().Apply(arg);
-  } else if constexpr (VisitorImpl<Derived>::Policy == VisitorPolicy::Throw) {
-    throw VisitorNotImplemented(typeid(Derived).name(), typeid(Argument).name());
   }
-  static_assert(HasApplyMethod<Derived, Argument> ||
-                    VisitorImpl<Derived>::Policy != VisitorPolicy::CompileError,
-                "The visitor fails to implement a required method");
+  static_assert(
+      HasApplyMethod<Derived, Argument> || !std::is_same_v<Policy, VisitorPolicy::CompileError>,
+      "The visitor fails to implement a required method");
 }
 
 }  // namespace math

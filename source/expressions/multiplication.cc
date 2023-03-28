@@ -90,7 +90,7 @@ Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
 
 template <bool FactorizeIntegers>
 struct MultiplyVisitor {
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
   explicit MultiplyVisitor(MultiplicationParts& builder) : builder(builder) {}
@@ -166,7 +166,7 @@ struct MultiplyVisitor {
 
 struct NormalizeExponentVisitor {
   using ReturnType = Expr;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::NoError;
 
   explicit NormalizeExponentVisitor(Rational& coeff) : rational_coeff(coeff) {}
 
@@ -248,7 +248,7 @@ Expr MultiplicationParts::CreateMultiplication(std::vector<Expr>&& args) const {
 
 struct AsCoeffAndMultiplicandVisitor {
   using ReturnType = std::pair<Expr, Expr>;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::NoError;
 
   // For multiplications, we need to break the expression up.
   ReturnType Apply(const Expr& input, const Multiplication& mul) const {
@@ -276,7 +276,7 @@ struct AsCoeffAndMultiplicandVisitor {
   std::enable_if_t<ContainsTypeHelper<T, Integer, Rational, Float>, ReturnType> Apply(
       const Expr& input, const T&) const {
     return std::make_pair(input, Constants::One);
-  };
+  }
 };
 
 std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr) {

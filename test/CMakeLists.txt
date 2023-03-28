@@ -52,7 +52,8 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   # Add a target that runs the generation:
   add_custom_command(
     OUTPUT "${TEST_OUTPUT_DIR}/generated.h"
-    COMMAND "${CMAKE_CURRENT_BINARY_DIR}/${generate_target}"
+    COMMAND
+      "$<TARGET_FILE_DIR:${generate_target}>/$<TARGET_FILE_NAME:${generate_target}>"
     WORKING_DIRECTORY "${TEST_OUTPUT_DIR}"
     COMMENT "Run code-generation for test ${NAME}"
     DEPENDS ${generate_target})

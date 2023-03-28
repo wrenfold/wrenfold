@@ -37,7 +37,6 @@ set(${LIBRARY_NAME}_SOURCES
     source/plain_formatter.cc
     source/matrix_functions.cc
     source/tree_formatter.cc
-    source/visitor.cc
     source/code_generation.cc
     source/substitute.cc
     source/cpp_code_generator.cc

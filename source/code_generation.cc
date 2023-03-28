@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include "code_generation.h"
 
-#include <deque>
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -16,7 +16,7 @@ namespace math {
 namespace ir {
 
 struct PairCountVisitor {
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
   // Keys are either single expressions, or pairs of expressions.
@@ -95,7 +95,7 @@ struct PairCountVisitor {
 
 // Visitor for converting an expression tree into static-single-assignment form.
 struct IRFormVisitor {
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Operand;
 
   // Construct with an output IrBuilder that we write into.

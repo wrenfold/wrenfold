@@ -2,6 +2,7 @@
 #pragma once
 #include <array>
 #include <unordered_map>
+#include <variant>
 
 #include "constants.h"
 #include "expressions/numeric_expressions.h"

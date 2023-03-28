@@ -33,10 +33,10 @@ struct Slice {
   index_t Map(index_t i) const { return static_cast<index_t>(start_ + i * step_); }
 
  private:
-  py::ssize_t start_;
-  py::ssize_t stop_;
-  py::ssize_t step_;
-  py::ssize_t length_;
+  py::ssize_t start_{0};
+  py::ssize_t stop_{0};
+  py::ssize_t step_{0};
+  py::ssize_t length_{0};
 };
 
 // Iterator over rows of a matrix expression.
@@ -69,10 +69,10 @@ struct RowIterator {
   math::MatrixExpr parent_;
   math::index_t row_;
 
-  RowIterator(const MatrixExpr& parent, index_t row) : parent_(parent), row_(row) {}
+  RowIterator(MatrixExpr parent, index_t row) : parent_(std::move(parent)), row_(row) {}
 };
 
-Expr MatrixGetRowCol(const MatrixExpr& self, const std::tuple<index_t, index_t> row_col) {
+Expr MatrixGetRowCol(const MatrixExpr& self, const std::tuple<index_t, index_t>& row_col) {
   auto [row, col] = row_col;
   return self(row < 0 ? (self.NumRows() + row) : row, col < 0 ? (self.NumCols() + col) : col);
 }
@@ -107,9 +107,11 @@ MatrixExpr MatrixGetRowColSlice(const MatrixExpr& self,
   const auto [row_slice, col_slice] = slices;
   const Slice row_index{self.NumRows(), row_slice};
   const Slice col_index{self.NumCols(), col_slice};
+  const std::size_t num_elements =
+      static_cast<std::size_t>(row_index.Length()) * static_cast<std::size_t>(col_index.Length());
 
   std::vector<Expr> elements;
-  elements.reserve(static_cast<std::size_t>(row_index.Length() * col_index.Length()));
+  elements.reserve(num_elements);
 
   // Step over sliced rows and pull out all columns:
   for (index_t i = 0; i < row_index.Length(); ++i) {
@@ -174,7 +176,8 @@ MatrixExpr ColumnVectorFromContainer(const Container& inputs) {
   if (converted.empty()) {
     throw DimensionError("Cannot construct empty vector.");
   }
-  return MatrixExpr::Create(converted.size(), 1, std::move(converted));
+  const index_t rows = static_cast<index_t>(converted.size());
+  return MatrixExpr::Create(rows, 1, std::move(converted));
 }
 
 template <typename Container>
@@ -184,7 +187,8 @@ MatrixExpr RowVectorFromContainer(const Container& inputs) {
   if (converted.empty()) {
     throw DimensionError("Cannot construct empty row vector.");
   }
-  return MatrixExpr::Create(1, converted.size(), std::move(converted));
+  const index_t cols = static_cast<index_t>(converted.size());
+  return MatrixExpr::Create(1, cols, std::move(converted));
 }
 
 inline std::size_t ExtractIterableRows(const py::handle& row, std::vector<Expr>& output) {
@@ -222,7 +226,8 @@ inline MatrixExpr StackIterables(const std::vector<py::object>& rows) {
   // Figure out how many rows we extracted:
   ASSERT_EQUAL(0, converted.size() % expected_num_cols);
   const auto total_rows = static_cast<index_t>(converted.size() / expected_num_cols);
-  return MatrixExpr{MakeExpr<Matrix>(total_rows, expected_num_cols, std::move(converted))};
+  return MatrixExpr::Create(total_rows, static_cast<index_t>(expected_num_cols),
+                            std::move(converted));
 }
 
 // Create matrix from iterable.
@@ -315,7 +320,7 @@ void WrapMatrixOperations(py::module_& m) {
       .def("__repr__",
            [](const MatrixExpr& self) {
              PlainFormatter formatter{PowerStyle::Python};
-             self.Receive(formatter);
+             VisitStruct(static_cast<const Expr&>(self), formatter);
              return formatter.GetOutput();
            })
       .def(
@@ -395,12 +400,10 @@ void WrapMatrixOperations(py::module_& m) {
   m.def("identity", &Identity, "rows"_a, "Create identity matrix.");
   m.def("eye", &Identity, "rows"_a, "Create identity matrix (alias for identity).");
   m.def("zeros", &Zeros, "rows"_a, "cols"_a, "Create a matrix of zeros");
-  m.def(
-      "vector", [](py::args args) { return ColumnVectorFromContainer(args); },
-      "Construct a column vector from the arguments.");
-  m.def(
-      "row_vector", [](py::args args) { return RowVectorFromContainer(args); },
-      "Construct a row vector from the arguments.");
+  m.def("vector", &ColumnVectorFromContainer<py::args>,
+        "Construct a column vector from the arguments.");
+  m.def("row_vector", &RowVectorFromContainer<py::args>,
+        "Construct a row vector from the arguments.");
   m.def("matrix", &MatrixFromIterable, py::arg("rows"),
         "Construct a matrix from an iterator over rows.");
   m.def("matrix_of_symbols", &MatrixOfSymbols, py::arg("prefix"), py::arg("rows"), py::arg("cols"),

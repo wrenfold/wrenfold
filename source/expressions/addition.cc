@@ -1,6 +1,7 @@
 // Copyright 2022 Gareth Cross
 #include "expressions/addition.h"
 
+#include <algorithm>
 #include <unordered_map>
 
 #include "expressions/multiplication.h"
@@ -48,7 +49,7 @@ Expr Addition::FromOperands(const std::vector<Expr>& args) {
 }
 
 struct AdditionVisitor {
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
   explicit AdditionVisitor(AdditionParts& parts) : parts(parts) {}

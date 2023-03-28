@@ -1,5 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include <functional>
 #include <optional>
 #include <tuple>
 

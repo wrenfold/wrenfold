@@ -1,6 +1,8 @@
 // Copyright 2022 Gareth Cross
 #include "expressions/power.h"
 
+#include <algorithm>
+
 #include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "integer_utils.h"
@@ -10,7 +12,7 @@ namespace math {
 
 struct PowerNumerics {
   using ReturnType = Expr;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::NoError;
 
   // If either operand is a float, coerce the other to float:
   template <typename A, typename B>
@@ -110,9 +112,8 @@ struct PowerNumerics {
 
   // We construct this object w/ two references to the input expressions so that we can pass them
   // w/o reallocating when required.
-  PowerNumerics(const Expr& a, const Expr& b) : expr_a_(a), expr_b_(b) {}
+  PowerNumerics(const Expr&, const Expr& b) : expr_b_(b) {}
 
-  [[maybe_unused]] const Expr& expr_a_;
   const Expr& expr_b_;
 };
 

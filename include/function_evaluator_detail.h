@@ -152,12 +152,12 @@ struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>, IsO
   }
 };
 
-template <typename T>
-auto BuildFunctionArguments(std::size_t& input_index) {
+template <std::size_t Index, typename ArgList>
+auto BuildFunctionArguments() {
+  using T = typename TypeListElement<Index, ArgList>::Type;
   using TDecay = std::decay_t<T>;
   // Increase input_index every time we hit an input argument.
-  return BuildFunctionArgumentImpl<TDecay, IsOutputArgument<T>>{}(
-      IsOutputArgument<T> ? input_index : input_index++);
+  return BuildFunctionArgumentImpl<TDecay, IsOutputArgument<T>>{}(Index);
 }
 
 template <std::size_t... A, std::size_t... B>
@@ -189,27 +189,14 @@ constexpr auto FilterArguments(TypeList<Args...>) {
   return FilterArguments<TakeInputs, Args...>();
 }
 
-// tests:
-static_assert(!IsOutputArgument<int>);
-static_assert(!IsOutputArgument<const int&>);
-static_assert(IsOutputArgument<int&>);
-static_assert(!IndexIsOutputArg<0, int, const double&, double&>);
-static_assert(!IndexIsOutputArg<1, int, const double&, double&>);
-static_assert(IndexIsOutputArg<2, int, const double&, double&>);
-static_assert(std::is_same_v<std::index_sequence<1, 2>,
-                             decltype(FilterArguments<false>(TypeList<int, int&, double&>{}))>);
-
 template <typename ArgList, typename Callable, std::size_t... Indices>
 auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= TypeListSize<ArgList>::Value);
-  ([]() constexpr { static_assert(Indices <= TypeListSize<ArgList>::Value); }(), ...);
 
   // Create a tuple of arguments. Inputs are created as `FunctionArgument` objects, while outputs
   // are unfilled place-holders (since we cannot default-initialize Expr) that `callable` will
   // replace.
-  std::size_t input_index = 0;
-  auto args = std::make_tuple(
-      BuildFunctionArguments<typename TypeListElement<Indices, ArgList>::Type>(input_index)...);
+  auto args = std::make_tuple(BuildFunctionArguments<Indices, ArgList>()...);
 
   // Call the user provided function with the args we just created:
   auto return_values = std::invoke(std::move(callable), std::get<Indices>(args)...);
@@ -220,6 +207,16 @@ auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>)
 
   return std::make_pair(std::move(return_values), std::move(output_arguments));
 }
+
+// tests:
+static_assert(!IsOutputArgument<int>);
+static_assert(!IsOutputArgument<const int&>);
+static_assert(IsOutputArgument<int&>);
+static_assert(!IndexIsOutputArg<0, int, const double&, double&>);
+static_assert(!IndexIsOutputArg<1, int, const double&, double&>);
+static_assert(IndexIsOutputArg<2, int, const double&, double&>);
+static_assert(std::is_same_v<std::index_sequence<1, 2>,
+                             decltype(FilterArguments<false>(TypeList<int, int&, double&>{}))>);
 
 }  // namespace detail
 }  // namespace math

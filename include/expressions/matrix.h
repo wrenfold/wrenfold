@@ -20,7 +20,7 @@ class Matrix : public ExpressionImpl<Matrix> {
   // Construct from data vector.
   Matrix(index_t rows, index_t cols, std::vector<Expr> data)
       : rows_(rows), cols_(cols), data_(std::move(data)) {
-    if (data_.size() != static_cast<std::size_t>(rows_ * cols_)) {
+    if (data_.size() != static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_)) {
       throw DimensionError("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
                            data_.size(), rows_, cols_);
     }

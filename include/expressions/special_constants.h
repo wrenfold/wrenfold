@@ -35,6 +35,7 @@ inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants v
     case SymbolicConstants::Pi:
       return "pi";
   }
+  return "<INVALID ENUM VALUE>";
 }
 
 // Order constants by their enum values.

@@ -68,16 +68,12 @@ class VisitorBase {
 };
 
 // The type of error that is generated when a visitor fails to implement an `Apply` method.
-enum class VisitorPolicy {
-  // Throw an exception.
-  // This is useful you have a visitor that should only ever be evaluated on specific types, but
-  // needs to be able to compile w/o defining an operation on every type.
-  Throw,
-  // Fail at compile time.
-  CompileError,
-  // Silently do nothing. (Allow non-implemented Apply for some types).
-  // This is useful for visitors implemented via Lambda, which operate on one specific type only.
-  NoError,
-};
+namespace VisitorPolicy {
+// Fail at compile time.
+struct CompileError {};
+// Silently do nothing. (Allow non-implemented Apply for some types).
+// This is useful for visitors implemented via Lambda, which operate on one specific type only.
+struct NoError {};
+}  // namespace VisitorPolicy
 
 }  // namespace math

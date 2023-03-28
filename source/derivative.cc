@@ -1,6 +1,8 @@
 // Copyright 2023 Gareth Cross
 #include "expressions/all_expressions.h"
 
+#include <algorithm>
+
 namespace math {
 
 using namespace math::custom_literals;
@@ -11,12 +13,12 @@ class DiffVisitor {
  public:
   static_assert(std::is_same_v<T, Variable> || std::is_same_v<T, FunctionArgument>);
 
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit DiffVisitor(const T& argument) : argument_(argument) {}
+  explicit DiffVisitor(T argument) : argument_(std::move(argument)) {}
 
   // Differentiate every argument to make a new sum.
   Expr Apply(const Addition& add) {

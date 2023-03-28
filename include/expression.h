@@ -1,6 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include <memory>
+#include <ostream>
 #include <string>
 
 #include "expression_concept.h"

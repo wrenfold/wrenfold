@@ -1,5 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include <vector>
+
 #include "expression.h"
 
 namespace math {

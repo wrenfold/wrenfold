@@ -28,7 +28,7 @@ void PlainFormatter::Apply(const Addition& expr) {
       if (IsNegativeOne(coeff)) {
         FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
-        (-coeff).Receive(*this);
+        VisitStruct(-coeff, *this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
           FormatPrecedence(Precedence::Multiplication, multiplicand);
@@ -41,7 +41,7 @@ void PlainFormatter::Apply(const Addition& expr) {
       if (IsOne(coeff)) {
         FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
-        coeff.Receive(*this);
+        VisitStruct(coeff, *this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
           FormatPrecedence(Precedence::Multiplication, multiplicand);
@@ -85,28 +85,29 @@ void PlainFormatter::Apply(const Matrix& mat) {
   // Format all the child elements up front. That way we can do alignment:
   std::transform(mat.begin(), mat.end(), elements.begin(), [this](const Expr& expr) {
     PlainFormatter child_formatter{power_style_};
-    expr.Receive(child_formatter);
+    VisitStruct(expr, child_formatter);
     return child_formatter.output_;
   });
 
   // Determine widest element in each column
   std::vector<std::size_t> column_widths(mat.NumCols(), 0);
-  for (std::size_t j = 0; j < mat.NumCols(); ++j) {
-    for (std::size_t i = 0; i < mat.NumRows(); ++i) {
-      column_widths[j] = std::max(column_widths[j], elements[mat.Index(i, j)].size());
+  for (index_t j = 0; j < mat.NumCols(); ++j) {
+    for (index_t i = 0; i < mat.NumRows(); ++i) {
+      column_widths[static_cast<std::size_t>(j)] =
+          std::max(column_widths[static_cast<std::size_t>(j)], elements[mat.Index(i, j)].size());
     }
   }
 
   output_ += "[";
-  for (std::size_t i = 0; i < mat.NumRows(); ++i) {
+  for (index_t i = 0; i < mat.NumRows(); ++i) {
     output_ += "[";
-    const std::size_t last_col = mat.NumCols() - 1;
-    for (std::size_t j = 0; j < last_col; ++j) {
+    const index_t last_col = mat.NumCols() - 1;
+    for (index_t j = 0; j < last_col; ++j) {
       fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.Index(i, j)],
-                     column_widths[j]);
+                     column_widths[static_cast<std::size_t>(j)]);
     }
     fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.Index(i, last_col)],
-                   column_widths[last_col]);
+                   column_widths[static_cast<std::size_t>(last_col)]);
     // Insert a comma and new-line if another row is coming.
     if (i + 1 < mat.NumRows()) {
       output_ += "],\n ";
@@ -169,7 +170,7 @@ void PlainFormatter::Apply(const Multiplication& expr) {
 
 void PlainFormatter::Apply(const UnaryFunction& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.Name());
-  func.Arg().Receive(*this);
+  VisitStruct(func.Arg(), *this);
   output_ += ")";
 }
 
@@ -184,10 +185,10 @@ void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr) {
   if (GetPrecedence(expr) <= parent) {
     output_ += "(";
-    expr.Receive(*this);
+    VisitStruct(expr, *this);
     output_ += ")";
   } else {
-    expr.Receive(*this);
+    VisitStruct(expr, *this);
   }
 }
 

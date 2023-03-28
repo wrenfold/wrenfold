@@ -20,7 +20,7 @@ struct ConvertArgType;
 }  // namespace detail
 
 struct NumericFunctionEvaluator {
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   Expr Apply(const FunctionArgument& arg) const {
@@ -100,6 +100,11 @@ struct ApplyNumericEvaluatorImpl<std::tuple<Ts...>> {
       // Handle this case manually.
       return std::make_tuple(ApplyNumericEvaluator(evaluator, std::get<0>(tup)));
     } else {
+#ifdef _MSC_VER
+      // We need this to silence MSVC
+      (void)sizeof(evaluator);
+      (void)sizeof(tup);
+#endif
       return std::tuple<>{};
     }
   }
