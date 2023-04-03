@@ -5,7 +5,7 @@ import unittest
 
 from sym import sym
 from sym.type_annotations import RealScalar, Vector2
-from sym.code_generation import codegen_function
+from sym.code_generation import codegen_function, PythonCodeGenerator
 from sym_wrapper import pycodegen as codegen
 
 from test_base import MathTestBase
@@ -30,7 +30,8 @@ class CodeGenerationWrapperTest(MathTestBase):
         builder.eliminate_duplicates()
         self.assertIdentical(f, builder.create_expression(output_value))
 
-        codegen_function(func1)
+        ast = codegen_function(func1)
+        PythonCodeGenerator().generate(ast)
 
 
 if __name__ == '__main__':

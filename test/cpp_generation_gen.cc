@@ -7,7 +7,6 @@
 #include "code_generation.h"
 #include "cpp_code_generator.h"
 #include "function_evaluator.h"
-#include "matrix_functions.h"
 #include "type_annotations.h"
 
 #include "test_expressions.h"
@@ -16,25 +15,19 @@ namespace math {
 
 namespace ta = type_annotations;
 
-std::tuple<Expr, ta::StaticMatrix<2, 2>> do_stuff(Expr w, Expr x, Expr y, Expr z, Expr& f,
-                                                  ta::StaticMatrix<2, 2>& m_out) {
-  const Expr ret_val = ((w + x) + y * (z - 2) / (x * w)) * ((w + x) + y * (z - 2) + 1) * 5;
-  f = y * w * 2;
-  m_out = ta::StaticMatrix<2, 2>::Create(w * x, z - 2, w + x, 10.0);
-  return std::make_tuple(ret_val, ta::StaticMatrix<2, 2>::Create(w * x + x, z - 2, f, -2.0));
-}
-
 template <typename Func, typename... Args>
 void GenerateFunc(std::string& output, Func func, const std::string_view name, Args&&... args) {
-  const auto [desc, expressions] =
-      BuildFunctionDescription(func, name, std::forward<Args>(args)...);
+  auto [desc, expressions] = BuildFunctionDescription(func, name, std::forward<Args>(args)...);
 
   IrBuilder ir{expressions};
   ir.EliminateDuplicates();
   auto ast = ir.CreateAST(desc);
 
-  CodeGeneratorImpl<CppCodeGenerator> generator(CppCodeGenerator{});
-  const std::string code = generator.Generate(desc, ast);
+  // Create function definition:
+  ast::FunctionDefinition definition{std::move(desc), std::move(ast)};
+
+  CppCodeGenerator generator{};
+  const std::string code = generator.Generate(definition);
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);
 }
 

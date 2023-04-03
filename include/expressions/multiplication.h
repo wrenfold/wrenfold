@@ -20,13 +20,13 @@ class Multiplication : public NAryOp<Multiplication> {
   // Do not call this - use `FromTwoOperands`.
   explicit Multiplication(std::vector<Expr> args);
 
-  // Construct from two operands. Creates an expression corresponding to: a * b
+  // ConstructMatrix from two operands. Creates an expression corresponding to: a * b
   static Expr FromTwoOperands(const Expr& a, const Expr& b) {
     // TODO: Dumb that we allocate for this, but in future it will be an inline vector:
     return Multiplication::FromOperands({a, b});
   }
 
-  // Construct form a vector of operands. The result is automatically simplified, and may not
+  // ConstructMatrix form a vector of operands. The result is automatically simplified, and may not
   // be a multiplication.
   static Expr FromOperands(const std::vector<Expr>& args);
 
@@ -45,7 +45,7 @@ struct MultiplicationParts {
   MultiplicationParts() = default;
   explicit MultiplicationParts(std::size_t capacity) { terms.reserve(capacity); }
 
-  // Construct from existing multiplication.
+  // ConstructMatrix from existing multiplication.
   explicit MultiplicationParts(const Multiplication& mul, bool factorize_integers);
 
   // Rational coefficient.

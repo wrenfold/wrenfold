@@ -23,7 +23,7 @@ class Integer : public ExpressionImpl<Integer> {
 
   using IntegralType = int64_t;
 
-  // Construct from number.
+  // ConstructMatrix from number.
   explicit Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
@@ -60,7 +60,7 @@ class Rational : public ExpressionImpl<Rational> {
 
   using IntegralType = Integer::IntegralType;
 
-  // Construct a rational. Conversion to canonical form is automatic.
+  // ConstructMatrix a rational. Conversion to canonical form is automatic.
   constexpr Rational(IntegralType n, IntegralType d) : Rational(CreatePair(n, d)) {}
 
   constexpr bool IsIdenticalToImplTyped(const Rational& other) const {
@@ -135,7 +135,7 @@ class Float : public ExpressionImpl<Float> {
 
   using FloatType = double;
 
-  // Construct from float value.
+  // ConstructMatrix from float value.
   explicit Float(FloatType val) : val_(val) {
     ASSERT(std::isfinite(val_), "Float values must be finite: val = {}", val_);
   }

@@ -576,49 +576,76 @@ std::vector<ast::Variant> IrBuilder::CreateAST(const ast::FunctionSignature& fun
     ASSERT(it != operations_.end());
     ast::VariantPtr rhs = builder.VisitMakePtr(it->second);
     std::string name = fmt::format("v{:0>{}}", value.Id(), value_width);
-    ast.push_back(ast::Declaration{std::move(name), ast::ScalarType(), std::move(rhs)});
+    ast.emplace_back(ast::Declaration{std::move(name), ast::ScalarType(), std::move(rhs)});
   }
 
   // then create blocks for the outputs:
   std::size_t output_flat_index = 0;
   for (const std::shared_ptr<const ast::Argument>& output_arg : func.output_args) {
-    std::vector<ast::Variant> statements;
+    ast::VariantPtr right;
+    if (std::holds_alternative<ast::ScalarType>(output_arg->Type())) {
+      right = ast::MakeVariantPtr<ast::VariableRef>(
+          fmt::format("v{:0>{}}", output_values_[output_flat_index].Id(), value_width));
+    } else {
+      std::vector<ast::Variant> inputs{};
+      inputs.reserve(output_arg->TypeDimension());
 
-    std::vector<ast::VariableRef> variables;
-    variables.reserve(output_arg->TypeDimension());
-
-    for (std::size_t i = 0; i < output_arg->TypeDimension(); ++i) {
-      ASSERT_LESS(i + output_flat_index, output_values_.size());
-      variables.push_back(ast::VariableRef{
-          fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
+      for (std::size_t i = 0; i < output_arg->TypeDimension(); ++i) {
+        ASSERT_LESS(i + output_flat_index, output_values_.size());
+        inputs.emplace_back(ast::VariableRef{
+            fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
+      }
+      right = ast::MakeVariantPtr<ast::ConstructMatrix>(
+          std::get<ast::MatrixType>(output_arg->Type()), std::move(inputs));
     }
 
-    ast.push_back(ast::OutputBlock{output_arg, std::move(statements), std::move(variables)});
+    std::vector<ast::Variant> statements{};
+    statements.emplace_back(ast::Assignment(output_arg, std::move(right)));
 
+    if (output_arg->IsOptional()) {
+      ast.emplace_back(ast::Conditional(ast::MakeVariantPtr<ast::OutputExists>(output_arg),
+                                        std::move(statements), {}));
+    } else {
+      ast.emplace_back(statements.back());  //  TODO: Don't copy.
+    }
     output_flat_index += output_arg->TypeDimension();
   }
 
   // create a block for the return values:
-  std::vector<ast::ReturnValueBlock::ReturnValue> return_values;
+  std::vector<ast::Variant> return_values;
   return_values.reserve(func.return_values.size());
+
   for (const auto& ret_val_type : func.return_values) {
     const std::size_t dim = std::visit([](const auto& x) { return x.Dimension(); }, ret_val_type);
-    std::vector<ast::VariableRef> variables;
-    variables.reserve(dim);
-    for (std::size_t i = 0; i < dim; ++i) {
-      ASSERT_LESS(i + output_flat_index, output_values_.size());
-      variables.push_back(ast::VariableRef{
-          fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
+
+    if (std::holds_alternative<ast::ScalarType>(ret_val_type)) {
+      return_values.emplace_back(ast::VariableRef(
+          fmt::format("v{:0>{}}", output_values_[output_flat_index].Id(), value_width)));
+    } else {
+      std::vector<ast::Variant> inputs{};
+      inputs.reserve(dim);
+
+      for (std::size_t i = 0; i < dim; ++i) {
+        ASSERT_LESS(i + output_flat_index, output_values_.size());
+        inputs.emplace_back(ast::VariableRef{
+            fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
+      }
+      return_values.emplace_back(
+          ast::ConstructMatrix(std::get<ast::MatrixType>(ret_val_type), std::move(inputs)));
     }
 
-    return_values.push_back(ast::ReturnValueBlock::ReturnValue{
-        ret_val_type,
-        std::move(variables),
-    });
+    //    std::vector<ast::VariableRef> variables;
+    //    variables.reserve(dim);
+    //    for (std::size_t i = 0; i < dim; ++i) {
+    //      ASSERT_LESS(i + output_flat_index, output_values_.size());
+    //      variables.push_back(ast::VariableRef{
+    //          fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(),
+    //          value_width)});
+    //    }
 
     output_flat_index += dim;
   }
-  ast.push_back(ast::ReturnValueBlock(std::move(return_values)));
+  ast.emplace_back(ast::ReturnValue(std::move(return_values)));
   return ast;
 }
 
@@ -679,11 +706,11 @@ void IrBuilder::StripUnusedValues() {
   }
 }
 
-std::string CodeGeneratorBase::Generate(const ast::FunctionSignature& func,
-                                        const std::vector<ast::Variant>& ast) {
-  CodeFormatter formatter{};
-  GenerateImpl(formatter, func, ast);
-  return formatter.GetOutput();
-}
+// std::string CodeGeneratorBase::Generate(const ast::FunctionSignature& func,
+//                                         const std::vector<ast::Variant>& ast) {
+//   CodeFormatter formatter{};
+//   GenerateImpl(formatter, func, ast);
+//   return formatter.GetOutput();
+// }
 
 }  // namespace math

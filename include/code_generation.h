@@ -18,7 +18,7 @@ namespace ir {
 
 // Just a wrapper around an integer, to add some clarity via types.
 struct Value {
-  // Construct from integer.
+  // ConstructMatrix from integer.
   explicit Value(uint32_t index) : v_(index) {}
 
   // Equal if underlying int is the same.
@@ -157,7 +157,7 @@ using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc>;
 // to be simplified.
 struct IrBuilder {
  public:
-  // Construct from a set of output expressions.
+  // ConstructMatrix from a set of output expressions.
   explicit IrBuilder(const std::vector<Expr>& expressions);
 
   // Get the values indices for the outputs.
@@ -228,35 +228,32 @@ struct IrBuilder {
   friend struct ir::IRFormVisitor;
 };
 
-// Fwd declare.
-class CodeFormatter;
-
-class CodeGeneratorBase {
- public:
-  virtual ~CodeGeneratorBase() = default;
-
-  //
-  std::string Generate(const ast::FunctionSignature& func, const std::vector<ast::Variant>& ast);
-
- protected:
-  virtual void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
-                            const std::vector<ast::Variant>& ast) = 0;
-};
-
-template <typename Generator>
-struct CodeGeneratorImpl : public CodeGeneratorBase {
- public:
-  // Construct w/ user provided implementation.
-  explicit CodeGeneratorImpl(Generator&& impl) : impl_(std::move(impl)) {}
-
- protected:
-  void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
-                    const std::vector<ast::Variant>& ast) override final {
-    impl_.Generate(formatter, func, ast);
-  }
-
- private:
-  Generator impl_;
-};
+// class CodeGeneratorBase {
+//  public:
+//   virtual ~CodeGeneratorBase() = default;
+//
+//   //
+//   std::string Generate(const ast::FunctionSignature& func, const std::vector<ast::Variant>& ast);
+//
+//  protected:
+//   virtual void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
+//                             const std::vector<ast::Variant>& ast) = 0;
+// };
+//
+// template <typename Generator>
+// struct CodeGeneratorImpl : public CodeGeneratorBase {
+//  public:
+//   // ConstructMatrix w/ user provided implementation.
+//   explicit CodeGeneratorImpl(Generator&& impl) : impl_(std::move(impl)) {}
+//
+//  protected:
+//   void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
+//                     const std::vector<ast::Variant>& ast) override final {
+//     impl_.Generate(formatter, func, ast);
+//   }
+//
+//  private:
+//   Generator impl_;
+// };
 
 }  // namespace math

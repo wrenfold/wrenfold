@@ -15,7 +15,7 @@ class NAryOp : public ExpressionImpl<Derived> {
   using ContainerType = std::vector<Expr>;
   static constexpr bool IsLeafNode = false;
 
-  // Construct via move.
+  // ConstructMatrix via move.
   explicit NAryOp(ContainerType&& args) : args_(std::move(args)) {}
 
   NAryOp() = default;

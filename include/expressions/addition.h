@@ -17,10 +17,10 @@ class Addition : public NAryOp<Addition> {
   // Do not call this - use `FromTwoOperands`.
   explicit Addition(std::vector<Expr> args);
 
-  // Construct from two operands.
+  // ConstructMatrix from two operands.
   static Expr FromTwoOperands(const Expr& a, const Expr& b) { return FromOperands({a, b}); }
 
-  // Construct form a vector of operands.
+  // ConstructMatrix form a vector of operands.
   // The result is automatically simplified, and may not be an addition.
   static Expr FromOperands(const std::vector<Expr>& args);
 };
@@ -30,7 +30,7 @@ struct AdditionParts {
   AdditionParts() = default;
   explicit AdditionParts(std::size_t capacity) { terms.reserve(capacity); }
 
-  // Construct from existing multiplication.
+  // ConstructMatrix from existing multiplication.
   explicit AdditionParts(const Addition& add);
 
   // Rational coefficient.

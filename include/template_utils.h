@@ -186,4 +186,12 @@ auto SelectFromTuple(Tuple&& tuple, std::index_sequence<Indices...>) {
       std::get<Indices>(std::forward<Tuple>(tuple))...);
 }
 
+// If `T` is an r-value reference, get the decayed type.
+// Otherwise, get a const T&.
+template <typename T>
+struct DecayRValueToValue {
+  using Type =
+      std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>, const std::decay_t<T>&>;
+};
+
 }  // namespace math

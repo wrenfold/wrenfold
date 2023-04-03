@@ -17,7 +17,7 @@ class Matrix : public ExpressionImpl<Matrix> {
   static constexpr std::string_view NameStr = "Matrix";
   static constexpr bool IsLeafNode = false;
 
-  // Construct from data vector.
+  // ConstructMatrix from data vector.
   Matrix(index_t rows, index_t cols, std::vector<Expr> data)
       : rows_(rows), cols_(cols), data_(std::move(data)) {
     if (data_.size() != static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_)) {

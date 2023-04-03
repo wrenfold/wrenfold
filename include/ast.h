@@ -8,16 +8,7 @@
 
 #include "expressions/function_expressions.h"  //temporary
 
-namespace math {
-
-enum class OutputType {
-  // Non-optional output argument.
-  OutputArgument,
-  // An optional output argument.
-  OptionalOutputArgument,
-};
-
-namespace ast {
+namespace math::ast {
 
 class ScalarType {
  public:
@@ -30,10 +21,14 @@ class MatrixType {
  public:
   MatrixType(index_t rows, index_t cols) : rows_(rows), cols_(cols) {}
 
-  std::size_t Dimension() const { return static_cast<std::size_t>(rows_ * cols_); }
+  std::size_t Dimension() const {
+    return static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_);
+  }
 
   index_t NumRows() const { return rows_; }
   index_t NumCols() const { return cols_; }
+
+  bool HasUnitDimension() const { return rows_ == 1 || cols_ == 1; }
 
   // Convert to [row, col] indices (assuming row major order).
   std::pair<index_t, index_t> ComputeIndices(std::size_t element) const {
@@ -59,6 +54,8 @@ inline std::size_t Dimension(const Type& type) {
 // Store an argument to a function.
 class Argument {
  public:
+  using shared_ptr = std::shared_ptr<const Argument>;
+
   Argument(const std::string_view& name, ast::Type type, bool is_optional)
       : name_(name), type_(std::move(type)), is_optional_(is_optional) {}
 
@@ -109,14 +106,15 @@ using Variant = std::variant<
     struct Assignment,
     struct Call,
 //    struct Cast,
-//    struct Conditional,
+    struct Conditional,
+    struct ConstructMatrix,
     struct Declaration,
     struct FloatConstant,
     struct InputValue,
     struct IntegerConstant,
     struct Multiply,
-    struct OutputBlock,
-    struct ReturnValueBlock,
+    struct OutputExists,
+    struct ReturnValue,
     struct VariableRef
     >;
 // clang-format on
@@ -136,6 +134,8 @@ struct VariableRef {
   // Name of the variable. TODO: Small string.
   std::string name;
 
+  explicit VariableRef(std::string name) : name(std::move(name)) {}
+
   std::string ToString() const;
 };
 
@@ -154,8 +154,11 @@ struct ArrayAccess {
 };
 
 struct Assignment {
-  VariantPtr left;
+  std::variant<VariableRef, std::shared_ptr<const Argument>> left;
   VariantPtr right;
+
+  Assignment(std::variant<VariableRef, std::shared_ptr<const Argument>> left, VariantPtr right)
+      : left(std::move(left)), right(std::move(right)) {}
 
   std::string ToString() const;
 };
@@ -167,7 +170,7 @@ struct Call {
   Call(std::variant<UnaryFunctionName, BinaryFunctionName> function, std::vector<Variant>&& args);
 
   template <typename... Args>
-  Call(std::variant<UnaryFunctionName, BinaryFunctionName> function, Args&&... inputs)
+  explicit Call(std::variant<UnaryFunctionName, BinaryFunctionName> function, Args&&... inputs)
       : function(function) {
     args.reserve(sizeof...(inputs));
     (args.emplace_back(std::forward<Args>(inputs)), ...);
@@ -192,9 +195,29 @@ struct Compare {
   VariantPtr right;
 };
 
+// An if/else statement.
 struct Conditional {
-  // The boolean variable that governs this conditional.
-  VariableRef condition;
+  // Condition of the if statement.
+  VariantPtr condition;
+  // Statements if the condition is true:
+  std::vector<Variant> if_branch;
+  // Statements if the condition is false:
+  std::vector<Variant> else_branch;
+
+  Conditional(VariantPtr condition, std::vector<Variant> if_branch,
+              std::vector<Variant> else_branch);
+
+  std::string ToString() const;
+};
+
+// ConstructMatrix a type from the provided arguments.
+struct ConstructMatrix {
+  ast::MatrixType type;
+  std::vector<Variant> args;
+
+  ConstructMatrix(ast::MatrixType, std::vector<Variant> args);
+
+  std::string ToString() const;
 };
 
 struct Declaration {
@@ -217,6 +240,15 @@ struct FloatConstant {
   explicit FloatConstant(double v) : value(v) {}
 
   std::string ToString() const;
+};
+
+// Signature and body of a function.
+struct FunctionDefinition {
+  FunctionSignature signature;
+  std::vector<ast::Variant> body;
+
+  FunctionDefinition(FunctionSignature signature, std::vector<ast::Variant> body)
+      : signature(std::move(signature)), body(std::move(body)) {}
 };
 
 // Access an input argument at a specific index.
@@ -242,35 +274,29 @@ struct Multiply {
   std::string ToString() const;
 };
 
-struct OutputBlock {
+// Check if an output exists.
+struct OutputExists {
   // The argument this output corresponds to.
   std::shared_ptr<const Argument> argument;
-  // Statements in the output block that precede the output value computation.
-  std::vector<ast::Variant> statements{};
-  // The output variables.
-  std::vector<VariableRef> outputs{};
 
-  OutputBlock(std::shared_ptr<const Argument> arg, std::vector<ast::Variant> statements,
-              std::vector<VariableRef> outputs);
+  explicit OutputExists(std::shared_ptr<const Argument> arg) : argument(std::move(arg)) {}
 
   std::string ToString() const;
 };
 
-struct ReturnValueBlock {
-  struct ReturnValue {
-    ast::Type type;
-    std::vector<VariableRef> outputs{};
-  };
-
+struct ReturnValue {
   // All the return values.
-  std::vector<ReturnValue> values{};
+  std::vector<Variant> values{};
 
-  explicit ReturnValueBlock(std::vector<ReturnValue> values);
+  explicit ReturnValue(std::vector<Variant> values);
 
   std::string ToString() const;
 };
 
 // method definitions:
+
+inline ConstructMatrix::ConstructMatrix(ast::MatrixType type, std::vector<Variant> args)
+    : type(type), args(std::move(args)) {}
 
 inline Declaration::Declaration(std::string name, Type type, VariantPtr value)
     : name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
@@ -279,13 +305,17 @@ inline Call::Call(std::variant<UnaryFunctionName, BinaryFunctionName> function,
                   std::vector<Variant>&& args)
     : function(function), args(std::move(args)) {}
 
-inline OutputBlock::OutputBlock(std::shared_ptr<const Argument> arg,
-                                std::vector<ast::Variant> statements,
-                                std::vector<VariableRef> outputs)
-    : argument(std::move(arg)), statements(std::move(statements)), outputs(std::move(outputs)) {}
+inline Conditional::Conditional(VariantPtr condition, std::vector<Variant> if_branch,
+                                std::vector<Variant> else_branch)
+    : condition(std::move(condition)),
+      if_branch(std::move(if_branch)),
+      else_branch(std::move(else_branch)) {}
 
-inline ReturnValueBlock::ReturnValueBlock(std::vector<ReturnValue> values)
-    : values(std::move(values)) {}
+// inline OutputBlock::OutputBlock(std::shared_ptr<const Argument> arg,
+//                                 std::vector<ast::Variant> statements,
+//                                 std::vector<VariableRef> outputs)
+//     : argument(std::move(arg)), statements(std::move(statements)), outputs(std::move(outputs)) {}
 
-}  // namespace ast
-}  // namespace math
+inline ReturnValue::ReturnValue(std::vector<Variant> values) : values(std::move(values)) {}
+
+}  // namespace math::ast

@@ -28,7 +28,16 @@ auto Format(Iterator it, const math::ast::Add& v) {
 
 template <typename Iterator>
 auto Format(Iterator it, const math::ast::Assignment& v) {
-  return fmt::format_to(it, "Assignment({} = {})", *v.left, *v.right);
+  return std::visit(
+      [&it, &v](const auto& left) {
+        using T = std::decay_t<decltype(left)>;
+        if constexpr (std::is_same_v<math::ast::VariableRef, T>) {
+          return fmt::format_to(it, "Assignment({} = {})", left, *v.right);
+        } else {
+          return fmt::format_to(it, "Assignment({} = {})", left->Name(), *v.right);
+        }
+      },
+      v.left);
 }
 
 template <typename Iterator>
@@ -39,13 +48,24 @@ auto Format(Iterator it, const math::ast::Call& c) {
 }
 
 template <typename Iterator>
+auto Format(Iterator it, const math::ast::Conditional& d) {
+  return fmt::format_to(it, "Conditional(if {} {{ {} statements }} else {{ {} statements }})",
+                        *d.condition, d.if_branch.size(), d.else_branch.size());
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::ConstructMatrix& c) {
+  return fmt::format_to(it, "ConstructMatrix({})", c.type, fmt::join(c.args, ", "));
+}
+
+template <typename Iterator>
 auto Format(Iterator it, const math::ast::Declaration& d) {
   return fmt::format_to(it, "Declaration({}: {} = {})", d.name, d.type, *d.value);
 }
 
 template <typename Iterator>
 auto Format(Iterator it, const math::ast::FloatConstant& c) {
-  return fmt::format_to(it, "Float({})", c.value);
+  return fmt::format_to(it, "{}f", c.value);
 }
 
 template <typename Iterator>
@@ -55,7 +75,7 @@ auto Format(Iterator it, const math::ast::InputValue& v) {
 
 template <typename Iterator>
 auto Format(Iterator it, const math::ast::IntegerConstant& c) {
-  return fmt::format_to(it, "Int({})", c.value);
+  return fmt::format_to(it, "{}", c.value);
 }
 
 template <typename Iterator>
@@ -64,14 +84,13 @@ auto Format(Iterator it, const math::ast::Multiply& m) {
 }
 
 template <typename Iterator>
-auto Format(Iterator it, const math::ast::OutputBlock& m) {
-  return fmt::format_to(it, "OutputBlock({}, {} statements)", m.argument->Name(),
-                        m.statements.size());
+auto Format(Iterator it, const math::ast::OutputExists& m) {
+  return fmt::format_to(it, "OutputExists({})", m.argument->Name());
 }
 
 template <typename Iterator>
-auto Format(Iterator it, const math::ast::ReturnValueBlock& m) {
-  return fmt::format_to(it, "ReturnValueBlock({} values)", m.values.size());
+auto Format(Iterator it, const math::ast::ReturnValue& m) {
+  return fmt::format_to(it, "ReturnValue({})", fmt::join(m.values, ", "));
 }
 
 template <typename T>
@@ -102,12 +121,12 @@ struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<math::ast::Typ
   }
 };
 
-namespace math {
-namespace ast {
+namespace math::ast {
 
 template <typename T>
 std::string FormatThis(const T& x) {
   std::string out;
+  out.reserve(32);
   Format(std::back_inserter(out), x);
   return out;
 }
@@ -124,6 +143,10 @@ std::string Assignment::ToString() const { return FormatThis(*this); }
 
 std::string Call::ToString() const { return FormatThis(*this); }
 
+std::string Conditional::ToString() const { return FormatThis(*this); }
+
+std::string ConstructMatrix::ToString() const { return FormatThis(*this); }
+
 std::string Declaration::ToString() const { return FormatThis(*this); }
 
 std::string FloatConstant::ToString() const { return FormatThis(*this); }
@@ -134,9 +157,8 @@ std::string IntegerConstant::ToString() const { return FormatThis(*this); }
 
 std::string Multiply::ToString() const { return FormatThis(*this); }
 
-std::string OutputBlock::ToString() const { return FormatThis(*this); }
+std::string OutputExists::ToString() const { return FormatThis(*this); }
 
-std::string ReturnValueBlock::ToString() const { return FormatThis(*this); }
+std::string ReturnValue::ToString() const { return FormatThis(*this); }
 
-}  // namespace ast
-}  // namespace math
+}  // namespace math::ast

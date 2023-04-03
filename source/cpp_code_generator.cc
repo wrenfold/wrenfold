@@ -3,19 +3,56 @@
 
 namespace math {
 
-void CppCodeGenerator::Generate(CodeFormatter& formatter, const ast::FunctionSignature& func,
-                                const std::vector<ast::Variant>& ast) {
-  PutFunctionSignature(formatter, func);
-  formatter.WithIndentation(2, "{\n", "}", [this, &ast](CodeFormatter& formatter) {
-    for (const ast::Variant& var : ast) {
-      Format(formatter, var);
-      formatter.Append("\n");
-    }
-  });
+std::string CppCodeGenerator::Generate(const ast::FunctionDefinition& definition) const {
+  CodeFormatter result;
+  FormatSignature(result, definition.signature);
+  result.WithIndentation(2, "{\n", "\n}", [&] { result.Join(*this, "\n", definition.body); });
+  return result.GetOutput();
 }
 
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::ScalarType&,
-                              TypeContext context) const {
+void CppCodeGenerator::FormatReturnType(CodeFormatter& formatter,
+                                        const ast::FunctionSignature& signature) const {
+  if (signature.return_values.empty()) {
+    formatter.Append("void");
+  } else if (signature.return_values.size() == 1) {
+    // there is a single type
+    operator()(formatter, signature.return_values[0], TypeContext::ReturnValue);
+  } else {
+    // make a tuple
+    formatter.Append("std::tuple<");
+    formatter.Join(
+        [&](CodeFormatter& formatter, const ast::Type& type) {
+          operator()(formatter, type, TypeContext::ReturnValue);
+        },
+        ", ", signature.return_values);
+    formatter.Append(">");
+  }
+}
+
+void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
+                                       const ast::FunctionSignature& signature) const {
+  FormatReturnType(formatter, signature);
+  formatter.Format(" {}(", signature.function_name);
+
+  auto input_arg_printer = [this](CodeFormatter& formatter, const ast::Argument::shared_ptr& arg) {
+    formatter.Format("const {} {}", View(arg->Type(), TypeContext::InputArgument), arg->Name());
+  };
+  formatter.Join(std::move(input_arg_printer), ", ", signature.input_args);
+  if (!signature.output_args.empty()) {
+    formatter.Append(", ");
+  }
+
+  auto output_arg_printer = [this](CodeFormatter& formatter, const ast::Argument::shared_ptr& arg) {
+    const auto arg_context =
+        arg->IsOptional() ? TypeContext::OptionalOutputArgument : TypeContext::OutputArgument;
+    formatter.Format("{} {}", View(arg->Type(), arg_context), arg->Name());
+  };
+  formatter.Join(std::move(output_arg_printer), ", ", signature.output_args);
+  formatter.Append(")\n");
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType&,
+                                  const TypeContext context) const {
   switch (context) {
     case TypeContext::InputArgument:
     case TypeContext::FunctionBody:
@@ -34,8 +71,8 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::ScalarType&,
   }
 }
 
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::MatrixType& mat,
-                              TypeContext context) const {
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::MatrixType& mat,
+                                  const TypeContext context) const {
   switch (context) {
     case TypeContext::InputArgument: {
       formatter.Format("Eigen::Matrix<double, {}, {}>&", mat.NumRows(), mat.NumCols());
@@ -58,46 +95,59 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::MatrixType& m
   }
 }
 
-void CppCodeGenerator::FormatReturnType(CodeFormatter& formatter,
-                                        const ast::FunctionSignature& signature) const {
-  //  formatter.Append("inline ");
-  if (signature.return_values.empty()) {
-    formatter.Append("void");
-  } else if (signature.return_values.size() == 1) {
-    // there is a single type
-    Format(formatter, signature.return_values.front(), TypeContext::ReturnValue);
-  } else {
-    // make a tuple
-    formatter.Append("std::tuple<");
-    for (const auto& type : signature.return_values) {
-      Format(formatter, type, TypeContext::ReturnValue);
-      formatter.Append(", ");
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) const {
+  formatter.Format("{} + {}", View(x.left), View(x.right));
+}
+
+void CppCodeGenerator::FormatOutputArg(CodeFormatter& formatter, const ast::Argument& arg,
+                                       const ast::Variant& right) const {
+  if (std::holds_alternative<ast::ConstructMatrix>(right)) {
+    // For optional args, we need to de-reference to get the underlying Eigen::Ref
+    std::string dest_name = arg.Name();
+    if (arg.IsOptional()) {
+      dest_name = fmt::format("_{}", arg.Name());
+      formatter.Format("{}& {} = *{};\n", View(arg.Type(), TypeContext::OutputArgument), dest_name,
+                       arg.Name());
     }
-    formatter.RightTrimTrailingWhitespaceAndComma();
-    formatter.Append(">");
+
+    // Now write to the output variable:
+    const ast::ConstructMatrix& mat_values = std::get<ast::ConstructMatrix>(right);
+
+    auto range = MakeRange<std::size_t>(0, mat_values.args.size());
+    if (mat_values.type.HasUnitDimension()) {
+      formatter.Join(
+          [&](CodeFormatter& fmt, std::size_t i) {
+            fmt.Format("{}[{}] = {};", dest_name, i, View(mat_values.args[i]));
+          },
+          "\n", range);
+    } else {
+      formatter.Join(
+          [&](CodeFormatter& fmt, std::size_t i) {
+            const auto [row, col] = mat_values.type.ComputeIndices(i);
+            fmt.Format("[]({}, {}) = {};", dest_name, row, col, View(mat_values.args[i]));
+          },
+          "\n", range);
+    }
+  } else {
+    ASSERT_EQUAL(1, arg.TypeDimension());  // TODO: Needs relaxing for custom types.
+    formatter.Format("{}{} = {};", arg.IsOptional() ? "*" : "", arg.Name(), View(right));
   }
 }
 
-void CppCodeGenerator::PutFunctionSignature(CodeFormatter& formatter,
-                                            const ast::FunctionSignature& signature) {
-  FormatReturnType(formatter, signature);
-  formatter.Format(" {}(", signature.function_name);
-  for (const std::shared_ptr<const ast::Argument>& input_arg : signature.input_args) {
-    formatter.Append("const ");
-    Format(formatter, input_arg->Type(), TypeContext::InputArgument);
-    formatter.Format(" {}, ", input_arg->Name());
-  }
-  for (const std::shared_ptr<const ast::Argument>& output_arg : signature.output_args) {
-    Format(formatter, output_arg->Type(),
-           output_arg->IsOptional() ? TypeContext::OptionalOutputArgument
-                                    : TypeContext::OutputArgument);
-    formatter.Format(" {}, ", output_arg->Name());
-  }
-  formatter.RightTrimTrailingWhitespaceAndComma();
-  formatter.Append(")\n");
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Assignment& x) const {
+  std::visit(
+      [&](const auto& left) {
+        using T = std::decay_t<decltype(left)>;
+        if constexpr (std::is_same_v<T, std::shared_ptr<const ast::Argument>>) {
+          FormatOutputArg(formatter, *left, *x.right);
+        } else {
+          formatter.Format("{} = {};", View(left), View(x.right));
+        }
+      },
+      x.left);
 }
 
-inline std::string_view GetUnaryFunctionCall(const UnaryFunctionName name) {
+static inline std::string_view GetUnaryFunctionCall(const UnaryFunctionName name) {
   switch (name) {
     case UnaryFunctionName::Cos:
       return "std::cos";
@@ -121,7 +171,7 @@ inline std::string_view GetUnaryFunctionCall(const UnaryFunctionName name) {
   return "<INVALID ENUM VALUE>";
 }
 
-inline std::string_view GetBinaryFunctionCall(const BinaryFunctionName name) {
+static inline std::string_view GetBinaryFunctionCall(const BinaryFunctionName name) {
   switch (name) {
     case BinaryFunctionName::Mod:
       return "std::fmod";
@@ -133,37 +183,59 @@ inline std::string_view GetBinaryFunctionCall(const BinaryFunctionName name) {
   return "<INVALID ENUM VALUE>";
 }
 
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::Add& x) const {
-  formatter.FormatWith(*this, "{} + {}", x.left, x.right);
-}
-void CppCodeGenerator::Format(CodeFormatter&, const ast::ArrayAccess&) const { ASSERT(false); }
-void CppCodeGenerator::Format(CodeFormatter&, const ast::Assignment&) const { ASSERT(false); }
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::Call& x) const {
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
   if (std::holds_alternative<UnaryFunctionName>(x.function)) {
-    formatter.FormatWith(*this, "{}({})",
-                         GetUnaryFunctionCall(std::get<UnaryFunctionName>(x.function)),
-                         x.args.front());
+    return formatter.Format("{}({})", GetUnaryFunctionCall(std::get<UnaryFunctionName>(x.function)),
+                            View(x.args.front()));
   } else if (std::holds_alternative<BinaryFunctionName>(x.function)) {
-    formatter.FormatWith(*this, "{}({}, {})",
-                         GetBinaryFunctionCall(std::get<BinaryFunctionName>(x.function)),
-                         x.args.front(), x.args.back());
-  } else {
-    ASSERT(false);
+    return formatter.Format("{}({}, {})",
+                            GetBinaryFunctionCall(std::get<BinaryFunctionName>(x.function)),
+                            View(x.args.front()), View(x.args.back()));
+  }
+  ASSERT(false, "Invalid function type. TODO: Implement me");
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Conditional& x) const {
+  formatter.Format("if ({}) ", View(x.condition));
+  formatter.WithIndentation(2, "{\n", "\n}", [&] { formatter.Join(*this, "\n", x.if_branch); });
+  if (!x.else_branch.empty()) {
+    formatter.WithIndentation(2, "{\n", "\n}", [&] { formatter.Join(*this, "\n", x.else_branch); });
   }
 }
-void CppCodeGenerator::Format(CodeFormatter&, const ast::Cast&) const { ASSERT(false); }
-void CppCodeGenerator::Format(CodeFormatter&, const ast::Conditional&) const { ASSERT(false); }
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::Declaration& x) const {
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ConstructMatrix& x) const {
+  formatter.Format("{}", View(x.type, TypeContext::ReturnValue));
+  if (x.type.HasUnitDimension()) {
+    formatter.Append("{");
+    formatter.Join(*this, ", ", x.args);
+    formatter.Append("}");
+  } else {
+    formatter.WithIndentation(2, "{\n", "}", [&] {
+      formatter.Join(
+          [&](CodeFormatter& formatter, index_t row) {
+            formatter.Append("{");
+            formatter.Join(
+                [&](CodeFormatter& formatter, index_t col) {
+                  this->operator()(formatter, x.args[row * x.type.NumCols() + col]);
+                },
+                ", ", MakeRange(0, x.type.NumCols()));
+            formatter.Append("}");
+          },
+          ",\n", MakeRange(0, x.type.NumRows()));
+    });
+  }
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
   if (!x.value) {
-    formatter.FormatWith(*this, "{} {};", x.type, x.name);
+    formatter.Format("{} {};", View(x.type, TypeContext::FunctionBody), x.name);
   } else {
-    formatter.FormatWith(*this, "const {} {} = {};", x.type, x.name, x.value);
+    formatter.Format("const {} {} = {};", View(x.type, TypeContext::FunctionBody), x.name,
+                     View(x.value));
   }
 }
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::FloatConstant& x) const {
-  formatter.Format("{:.16}", x.value);
-}
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::InputValue& x) const {
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
   ASSERT(x.argument);
   if (std::holds_alternative<ast::ScalarType>(x.argument->Type())) {
     formatter.Append(x.argument->Name());
@@ -177,93 +249,25 @@ void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::InputValue& x
     }
   }
 }
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::IntegerConstant& x) const {
-  formatter.Format("{}", x.value);
-}
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::Multiply& x) const {
-  formatter.FormatWith(*this, "{} * {}", x.left, x.right);
-}
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::OutputBlock& x) const {
-  ASSERT(x.argument);
-  const ast::Argument& arg = *x.argument;
-  const ast::Type& arg_type = arg.Type();
 
-  if (!arg.IsOptional()) {
-    formatter.Format("// Generate output argument: {}\n", arg.Name());
-    formatter.WithIndentation(2, "{\n", "}", [this, &x, arg, arg_type](CodeFormatter& formatter) {
-      for (const ast::Variant& statement : x.statements) {
-        Format(formatter, statement);
-        formatter.Append("\n");
-      }
-      if (std::holds_alternative<ast::ScalarType>(arg_type)) {
-        ASSERT_EQUAL(x.outputs.size(), 1);
-        formatter.Format("{} = {};\n", arg.Name(), x.outputs.front().name);
-      } else {
-        const ast::MatrixType& mat = std::get<ast::MatrixType>(arg_type);
-        // insert output statements
-        for (std::size_t i = 0; i < Dimension(arg_type); ++i) {
-          const auto [row, col] = mat.ComputeIndices(i);
-          formatter.Format("{}({}, {}) = {};\n", arg.Name(), row, col, x.outputs[i].name);
-        }
-      }
-    });
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply& x) const {
+  formatter.Format("{} * {}", View(x.left), View(x.right));
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::OutputExists& x) const {
+  formatter.Format("static_cast<bool>({})", x.argument->Name());
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ReturnValue& v) const {
+  if (v.values.empty()) {
+    // No return statement.
+  } else if (v.values.size() == 1) {
+    formatter.Format("return {};", View(v.values[0]));
   } else {
-    formatter.Format("// Generate optional output argument: {}\n", arg.Name());
-    formatter.Format("if (static_cast<bool>({})) ", arg.Name());
-    formatter.WithIndentation(2, "{\n", "}", [this, &x, arg, arg_type](CodeFormatter& formatter) {
-      Format(formatter, arg.Type(), TypeContext::OutputArgument);
-      formatter.Format("& _{} = *{};\n", arg.Name(), arg.Name());
-
-      if (std::holds_alternative<ast::ScalarType>(arg_type)) {
-        ASSERT_EQUAL(x.outputs.size(), 1);
-        formatter.Format("_{} = {};\n", arg.Name(), x.outputs.front().name);
-      } else {
-        const ast::MatrixType& mat = std::get<ast::MatrixType>(arg_type);
-        // insert output statements
-        for (std::size_t i = 0; i < Dimension(arg_type); ++i) {
-          const auto [row, col] = mat.ComputeIndices(i);
-          formatter.Format("_{}({}, {}) = {};\n", arg.Name(), row, col, x.outputs[i].name);
-        }
-      }
-    });
-  }
-}
-
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::ReturnValueBlock& retval) const {
-  for (std::size_t i = 0; i < retval.values.size(); ++i) {
-    const ast::ReturnValueBlock::ReturnValue& val = retval.values[i];
-    Format(formatter, val.type, TypeContext::ReturnValue);
-
-    if (std::holds_alternative<ast::ScalarType>(val.type)) {
-      ASSERT_EQUAL(val.outputs.size(), 1);
-      formatter.Format(" _return_value_{:02} = {};\n", i, val.outputs.front().name);
-    } else {
-      ASSERT_EQUAL(val.outputs.size(), Dimension(val.type));
-      formatter.Format(" _return_value_{:02};\n", i);
-      const ast::MatrixType& mat = std::get<ast::MatrixType>(val.type);
-      // insert output statements
-      for (std::size_t element = 0; element < mat.Dimension(); ++element) {
-        const auto [row, col] = mat.ComputeIndices(element);
-        formatter.Format("_return_value_{:02}({}, {}) = {};\n", i, row, col,
-                         val.outputs[element].name);
-      }
-    }
-  }
-
-  // create the return statement itself
-  if (retval.values.size() > 1) {
-    formatter.Append("return std::make_tuple(");
-    for (std::size_t i = 0; i < retval.values.size(); ++i) {
-      formatter.Format("_return_value_{:02}{}", (i + 1) == retval.values.size() ? "" : ", ");
-    }
+    formatter.Append("std::make_tuple(");
+    formatter.Join(*this, ", ", v.values);
     formatter.Append(");");
-  } else if (retval.values.size() == 1) {
-    formatter.Format("return _return_value_{:02};", 0);
   }
-}
-
-void CppCodeGenerator::Format(CodeFormatter& formatter, const ast::VariableRef& x) const {
-  formatter.Append(x.name);
 }
 
 }  // namespace math

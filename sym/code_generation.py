@@ -6,59 +6,117 @@ import typing as T
 from . import sym
 from sym_wrapper import pycodegen as codegen
 
-AstType = T.Union[codegen.Add, codegen.Assignment, codegen.Call, codegen.Declaration,
-                  codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
-                  codegen.Multiply, codegen.OutputBlock, codegen.ReturnValueBlock,
-                  codegen.VariableRef]
+AstVariantTuple = (codegen.Add, codegen.Assignment, codegen.Call, codegen.Declaration,
+                   codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
+                   codegen.Multiply, codegen.OutputBlock, codegen.ReturnValueBlock,
+                   codegen.VariableRef)
 
+AstTypeTuple = (codegen.ScalarType, codegen.MatrixType)
 
-class format_override:
-
-    def __init__(self, fn: T.Callable):
-        self._fn = fn
-
-    def __set_name__(self, owner: T.Type, name: str):
-        # do something with owner, i.e.
-        assert isinstance(owner, type)
-        assert issubclass(owner,
-                          CodeGenerator), f'Class does not inherit from CodeGenerator: {owner}'
-
-        # Determine the argument type:
-        spec = inspect.getfullargspec(func=self._fn)
-        assert len(
-            spec.args
-        ) == 2, f'Methods decorated with @format_override should have two args. Method `{self._fn}` has args: {spec.args}'
-        _, arg_name = spec.args
-
-        assert arg_name in spec.annotations, f'Argument `{arg_name}` of method `{self._fn}` is missing a type annotation.'
-        arg_type = spec.annotations[arg_name]
-
-        # And then create a new method with the correct name
-        full_name = f'_format_{arg_type.__name__}'
-        print(f'setting {full_name}')
-        setattr(owner, full_name, self._fn)
+AstVariantAnnotation = T.Union[codegen.Add, codegen.Assignment, codegen.Call, codegen.Declaration,
+                               codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
+                               codegen.Multiply, codegen.OutputBlock, codegen.ReturnValueBlock,
+                               codegen.VariableRef]
 
 
 class CodeGenerator:
 
     def __init__(self) -> None:
-        self._format_methods: T.Dict[T.Type, T.Callable] = dict()
+        self._type_to_formatter: T.Dict[type, T.Callable] = dict()
+
+    def _get_formatter(self, arg_type: T.Type) -> T.Callable:
+        if arg_type not in self._type_to_formatter:
+            format_method_name = f'format_{arg_type.__name__}'
+            if not hasattr(self, format_method_name):
+                raise KeyError(f"Code generator is missing formatting method: {format_method_name}")
+            self._type_to_formatter[arg_type] = getattr(self, format_method_name)
+        return self._type_to_formatter[arg_type]
+
+    def _format_ast_element(
+            self, arg: T.Union[AstVariantAnnotation, codegen.ScalarType,
+                               codegen.MatrixType]) -> str:
+        formatter = self._get_formatter(type(arg))
+        return formatter(arg)
+
+    def _maybe_format_ast_type(self, arg: T.Any) -> T.Any:
+        if not isinstance(arg, AstVariantTuple) and not isinstance(arg, AstTypeTuple):
+            return arg
+        return self._format_ast_element(arg)
+
+    def format(self, fmt: str, *args, **kwargs) -> str:
+        return fmt.format(*[self._maybe_format_ast_type(x) for x in args],
+                          **{k: self._maybe_format_ast_type(v) for (k, v) in kwargs.items()})
+
+    def generate(self, ast: T.List[AstVariantAnnotation]) -> str:
+        result = str()
+        for element in ast:
+            result += self._format_ast_element(arg=element)
+        return result
 
 
 class PythonCodeGenerator(CodeGenerator):
 
     def __init__(self) -> None:
-        pass
+        super(PythonCodeGenerator, self).__init__()
 
-    def format_add(self, x: codegen.Add) -> str:
+    def format_ScalarType(self, x: codegen.ScalarType) -> str:
+        return 'float'
+
+    def format_MatrixType(self, x: codegen.MatrixType) -> str:
+        return 'np.ndarray'
+
+    def format_Add(self, x: codegen.Add) -> str:
         """Format one of the AST types to python."""
-        pass
+        return self.format('{} + {}', x.left, x.right)
 
-    def format_assignment(self, x: codegen.Assignment) -> str:
-        pass
+    def format_Assignment(self, x: codegen.Assignment) -> str:
+        return self.format('{} = {}', x.left, x.right)
+
+    def format_Call(self, x: codegen.Call) -> str:
+        if isinstance(x.function, codegen.BinaryFunctionName):
+            if x.function == codegen.BinaryFunctionName.Pow:
+                return self.format('np.pow({}, {})', x.args[0], x.args[1])
+        elif isinstance(x.function, codegen.UnaryFunctionName):
+            pass
+
+        raise KeyError(f'Unsupported function name: {x.function}')
+
+    def format_Declaration(self, x: codegen.Declaration) -> str:
+        """Format declaration."""
+        return self.format('{name}: {type} = {value}', name=x.name, type=x.type, value=x.value)
+
+    def format_FloatConstant(self, x: codegen.FloatConstant) -> str:
+        return '{:.16}'.format(x.value)
+
+    def format_InputValue(self, x: codegen.InputValue) -> str:
+        argument = x.argument
+        if isinstance(argument.type, codegen.ScalarType):
+            return argument.name
+        elif isinstance(argument.type, codegen.MatrixType):
+            return '{}[{}, {}]'.format(argument.name, *argument.type.compute_indices(x.element))
+        else:
+            raise TypeError(f'Unsupported type: {argument.type}')
+
+    def format_IntegerConstant(self, x: codegen.IntegerConstant) -> str:
+        return str(x.value)
+
+    def format_Multiply(self, x: codegen.Multiply) -> str:
+        return self.format('{} * {}', x.left, x.right)
+
+    def format_OutputBlock(self, x: codegen.OutputBlock) -> str:
+        import ipdb
+        ipdb.set_trace()
+
+    def format_ReturnValueBlock(self, x: codegen.ReturnValueBlock) -> str:
+        import ipdb
+        ipdb.set_trace()
+
+    def format_VariableRef(self, x: codegen.VariableRef) -> str:
+        return x.name
 
 
-def codegen_function(func: T.Callable, name: T.Optional[str] = None):
+def codegen_function(func: T.Callable,
+                     name: T.Optional[str] = None) -> T.List[AstVariantAnnotation]:
     """Code-generate the provided function."""
     spec = inspect.getfullargspec(func=func)
     kwargs = dict()
@@ -107,7 +165,8 @@ def codegen_function(func: T.Callable, name: T.Optional[str] = None):
         elif issubclass(type_annotation, sym.MatrixExpr):
             signature.add_input_arg(name=arg_name, type=codegen.MatrixType(*type_annotation.SHAPE))
 
-    #
+    # Convert to ast that we can emit:
     builder = codegen.IrBuilder(output_expressions)
     builder.eliminate_duplicates()
     ast = builder.create_ast(signature)
+    return ast

@@ -19,7 +19,7 @@ class Expr {
   explicit Expr(ExpressionConceptConstPtr&& impl) : impl_(std::move(impl)) {}
   explicit Expr(const ExpressionConceptConstPtr& impl) : impl_(impl) {}
 
-  // Construct variable:
+  // ConstructMatrix variable:
   explicit Expr(std::string_view name);
 
   // Implicit construction from integers and floats.
@@ -69,10 +69,10 @@ class Expr {
   friend class MatrixExpr;
 
  private:
-  // Construct constant from float.
+  // ConstructMatrix constant from float.
   static Expr FromFloat(double x);
 
-  // Construct from integer.
+  // ConstructMatrix from integer.
   static Expr FromInt(std::int64_t x);
 
   // TODO: Use checked casts here + safe numeric type.

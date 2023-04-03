@@ -1,5 +1,4 @@
 // Copyright 2023 Gareth Cross
-#include <sstream>
 #include <vector>
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES
@@ -23,16 +22,16 @@ using namespace math;
 inline std::variant<Expr, py::list> CreateSymbolsFrom(const std::string_view csv) {
   py::list variables{};
   std::string name{};
-  for (auto it = csv.begin(); it != csv.end(); ++it) {
-    if (std::isspace(*it) || *it == ',') {
+  for (const char c : csv) {
+    if (std::isspace(c) || c == ',') {
       if (!name.empty()) {
         auto var = MakeExpr<Variable>(std::move(name));
         variables.append(std::move(var));
-        ASSERT(name.empty());
+        name = std::string();
       }
       continue;
     }
-    name += *it;
+    name += c;
   }
   if (!name.empty()) {
     auto var = MakeExpr<Variable>(std::move(name));

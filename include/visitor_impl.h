@@ -40,7 +40,7 @@ template <typename ReturnType, typename VisitorType, typename Policy>
 struct VisitorWithCapturedResult final
     : public VisitorImpl<VisitorWithCapturedResult<ReturnType, VisitorType, Policy>, Policy> {
  public:
-  // Construct with non-const ref to visitor type.
+  // ConstructMatrix with non-const ref to visitor type.
   VisitorWithCapturedResult(VisitorType& impl, const Expr& input)
       : impl_(impl), input_expression_(input) {}
 
@@ -115,7 +115,7 @@ struct LambdaWrapper {
                 std::is_same_v<PolicyIn, VisitorPolicy::NoError>);
   using Policy = PolicyIn;
 
-  // Construct by moving lambda inside.
+  // ConstructMatrix by moving lambda inside.
   explicit LambdaWrapper(Lambda&& func) : func_(std::move(func)) {}
 
   // If the lambda implements an operator() that accepts `Argument`, we declare an `Apply()`
@@ -222,7 +222,7 @@ const T* TryCast(const Expr& x) {
 // Thrown for un-implemented visitors.
 class VisitorNotImplemented final : public std::exception {
  public:
-  // Construct w/ the visitor name and the argument name.
+  // ConstructMatrix w/ the visitor name and the argument name.
   VisitorNotImplemented(const char* VisitorName, const char* ArgumentName);
 
   // Return string for the exception.
