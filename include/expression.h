@@ -31,6 +31,12 @@ class Expr {
   // Test if the two expressions are identical.
   bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(*other.impl_); }
 
+  // Check if the underlying expression is one of the specified types.
+  template <typename... Ts>
+  bool Is() const {
+    return impl_->IsType<Ts...>();
+  }
+
   // Test if the two expressions have the same underlying address.
   bool HasSameAddress(const Expr& other) const { return impl_.get() == other.impl_.get(); }
 
@@ -71,6 +77,9 @@ class Expr {
 
   friend class MatrixExpr;
 
+  template <typename T>
+  friend const T* CastPtr(const Expr&);
+
  private:
   // ConstructMatrix constant from float.
   static Expr FromFloat(double x);
@@ -92,8 +101,14 @@ class Expr {
   ExpressionConceptConstPtr impl_;
 };
 
-static_assert(std::is_move_assignable_v<Expr> && std::is_move_constructible_v<Expr>,
+static_assert(std::is_nothrow_move_constructible_v<Expr> && std::is_nothrow_move_assignable_v<Expr>,
               "Should be movable");
+
+// Cast expression to const pointer of the specified type.
+template <typename T>
+const T* CastPtr(const Expr& x) {
+  return x.impl_->IsType<T>() ? static_cast<const T*>(x.impl_.get()) : nullptr;
+}
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {

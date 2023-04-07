@@ -31,7 +31,7 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
     return args.front();
   }
 
-  if (std::any_of(args.begin(), args.end(), &TryCast<Matrix>)) {
+  if (std::any_of(args.begin(), args.end(), [](const Expr& x) { return x.Is<Matrix>(); })) {
     // TODO: Don't copy here - operate on args directly.
     std::vector<Expr> scalars = args;
     std::optional<Matrix> matrix_product{};  //  Optional because we can't default initialize.
@@ -39,7 +39,7 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
         std::remove_if(scalars.begin(), scalars.end(), [&matrix_product](const Expr& expr) -> bool {
           // This is a matrix, pull it out and chain them together. If dimensions don't work out,
           // we'll throw in the multiplication operator.
-          if (const Matrix* m = TryCast<Matrix>(expr); m != nullptr) {
+          if (const Matrix* m = CastPtr<Matrix>(expr); m != nullptr) {
             if (!matrix_product) {
               matrix_product = std::move(*m);
             } else {
@@ -294,7 +294,7 @@ MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul) {
   std::size_t sign_count = 0;
   for (const Expr& expr : mul) {
     // Extract rationals:
-    if (const Rational* const rational = TryCast<Rational>(expr); rational != nullptr) {
+    if (const Rational* const rational = CastPtr<Rational>(expr); rational != nullptr) {
       const auto abs_num = std::abs(rational->Numerator());
       if (abs_num != 1) {
         // Don't put redundant ones into the numerator for rationals of the form 1/n.
@@ -306,14 +306,14 @@ MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul) {
         // If negative, increase the sign count.
         ++sign_count;
       }
-    } else if (const Integer* const integer = TryCast<Integer>(expr); integer != nullptr) {
+    } else if (const Integer* const integer = CastPtr<Integer>(expr); integer != nullptr) {
       if (integer->GetValue() != 1 && integer->GetValue() != -1) {
         result.numerator.emplace_back(integer->Abs());
       }
       if (integer->GetValue() < 0) {
         ++sign_count;
       }
-    } else if (const Float* const f = TryCast<Float>(expr); f != nullptr) {
+    } else if (const Float* const f = CastPtr<Float>(expr); f != nullptr) {
       result.numerator.emplace_back(f->Abs());
       if (f->GetValue() < 0) {
         ++sign_count;

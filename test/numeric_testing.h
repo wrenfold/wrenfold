@@ -63,9 +63,11 @@ struct ApplyNumericEvaluatorImpl<Expr> {
   // TODO: Numeric evaluator should be const here, but must be non-const to satisfy Visit.
   double operator()(NumericFunctionEvaluator& evaluator, const Expr& input) const {
     const Expr subs = VisitStruct(input, evaluator);
-    const Float* f = TryCast<Float>(subs);
-    ASSERT(f != nullptr, "Expression should be a floating point value. Got type {}: {}",
-           input.TypeName(), input.ToString());
+    const Float* f = CastPtr<Float>(subs);
+    if (!f) {
+      throw TypeError("Expression should be a floating point value. Got type {}: {}",
+                      input.TypeName(), input.ToString());
+    }
     return f->GetValue();
   }
 };

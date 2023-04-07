@@ -45,7 +45,7 @@ Expr operator-(const Expr& a, const Expr& b) {
 Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromTwoOperands(a, b); }
 
 Expr operator/(const Expr& a, const Expr& b) {
-  if (TryCast<Matrix>(b)) {
+  if (b.Is<Matrix>()) {
     throw TypeError("Cannot divide by a matrix expression of type: {}", b.TypeName());
   }
   return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));

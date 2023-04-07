@@ -25,7 +25,7 @@ class Matrix : public ExpressionImpl<Matrix> {
                            data_.size(), rows_, cols_);
     }
     for (const Expr& expr : data_) {
-      if (TryCast<Matrix>(expr)) {
+      if (expr.Is<Matrix>()) {
         throw TypeError("Cannot nest expression of type {} in a matrix. Inner expression:\n{}",
                         expr.TypeName(), expr.ToString());
       }

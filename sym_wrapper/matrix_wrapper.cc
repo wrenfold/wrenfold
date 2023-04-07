@@ -281,9 +281,9 @@ py::array NumpyFromMatrix(const MatrixExpr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
   for (const Expr& expr : self.AsMatrix()) {
     // Convert numeric types:
-    if (const Float* f = TryCast<Float>(expr); f != nullptr) {
+    if (const Float* f = CastPtr<Float>(expr); f != nullptr) {
       list.append(f->GetValue());
-    } else if (const Integer* i = TryCast<Integer>(expr); i != nullptr) {
+    } else if (const Integer* i = CastPtr<Integer>(expr); i != nullptr) {
       list.append(i->GetValue());
     } else {
       list.append(expr);
@@ -313,7 +313,7 @@ MatrixExpr operator-(const MatrixExpr& a, const MatrixExpr& b) {
 // Handle matrix * matrix, which may produce a scalar.
 std::variant<Expr, MatrixExpr> operator*(const MatrixExpr& a, const MatrixExpr& b) {
   Expr result = matrix_operator_overloads::operator*(a, b);
-  if (TryCast<Matrix>(result) != nullptr) {
+  if (result.Is<Matrix>()) {
     return static_cast<MatrixExpr>(result);
   }
   return result;

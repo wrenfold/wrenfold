@@ -62,7 +62,7 @@ std::variant<Expr, py::list> CreateSymbols(std::variant<std::string_view, py::it
 
 std::variant<double, Expr> EvalToNumeric(const Expr& self) {
   Expr eval = self.Eval();
-  if (const Float* f = TryCast<Float>(eval); f != nullptr) {
+  if (const Float* f = CastPtr<Float>(eval); f != nullptr) {
     return f->GetValue();
   }
   return eval;

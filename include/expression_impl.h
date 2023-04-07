@@ -14,6 +14,12 @@ class ExpressionImpl : public ExpressionConcept {
   // Cast to the derived type.
   const Derived& AsDerived() const { return static_cast<const Derived&>(*this); }
 
+  // Check if we can cast to this type.
+  bool IsIdenticalTo(const ExpressionConcept& other) const override final {
+    return other.IsType<Derived>() && static_cast<const Derived*>(this)->IsIdenticalToImplTyped(
+                                          static_cast<const Derived&>(other));
+  }
+
   // Cast to derived type and apply the visitor.
   void Receive(VisitorBase& visitor) const override { visitor.ApplyVirtual(AsDerived()); }
 
@@ -27,10 +33,10 @@ class ExpressionImpl : public ExpressionConcept {
   bool IsLeaf() const override final { return IsLeafStatic(); }
 
  protected:
-  // TODO: Maybe check the addresses here before trying dynamic_cast? Needs profiling.
-  bool IsIdenticalToImpl(const ExpressionConcept& other) const override {
-    const Derived* const typed_other = other.As<Derived>();
-    return typed_other && static_cast<const Derived*>(this)->IsIdenticalToImplTyped(*typed_other);
+  bool TypeMatchesIndex(const std::size_t index) const override final {
+    static_assert(ContainsType<Derived, ApprovedTypeList>,
+                  "Derived is not a valid expression type");
+    return IndexOfType<Derived, ApprovedTypeList>::Value == index;
   }
 };
 
