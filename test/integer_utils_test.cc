@@ -46,7 +46,7 @@ TEST(IntegerUtils, TestComputePrimeFactors) {
     ASSERT_EQ(product, i);
     // Check that all the factors are prime:
     for (const PrimeFactor factor : result) {
-      ASSERT_TRUE(TrialDivisionIsPrime(factor.base))
+      ASSERT_TRUE((factor.base == -1 && factor.exponent == 1) || TrialDivisionIsPrime(factor.base))
           << fmt::format("i = {}, factors = [{}]\n", i, Join(", ", result, FormatFactor{}));
     }
   }
@@ -59,21 +59,21 @@ TEST(IntegerUtils, TestComputePrimeFactors2) {
     {197, 1753, 2609, 3001},
     {983, 1291, 2939, 3083},
     {7, 191, 3491, 3529},
-    {617, 1451, 2203, 2293},
+    {-1, 617, 1451, 2203, 2293},
     {929, 1013, 1291, 2003},
     {283, 541, 1801, 3023},
     {521, 2099, 2179, 2267},
     {41, 757, 1721, 2063},
-    {409, 863, 2137, 3413},
+    {-1, 409, 863, 2137, 3413},
     {1031, 2269, 2707, 3323},
     {479, 1447, 1559, 3467},
     {3, 887, 1187, 2411},
     {1009, 1289, 3121, 3517},
-    {127, 691, 1201, 2777},
+    {-1, 127, 691, 1201, 2777},
     {97, 229, 991, 1409},
     {1997, 2383, 2803, 3391},
     {1447, 1979, 3023, 3449},
-    {43, 769, 2087, 2473},
+    {-1, 43, 769, 2087, 2473},
     {157, 311, 1013, 2957},
   };
   // clang-format on
