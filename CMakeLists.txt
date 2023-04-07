@@ -23,6 +23,9 @@ add_subdirectory(dependencies)
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
     source/constants.cc
+    source/evaluate.cc
+    source/derivative.cc
+    source/distribute.cc
     source/expression.cc
     source/expressions/addition.cc
     source/expressions/constant_expressions.cc
@@ -31,10 +34,14 @@ set(${LIBRARY_NAME}_SOURCES
     source/expressions/power.cc
     source/functions.cc
     source/hashing.cc
+    source/ast.cc
     source/plain_formatter.cc
     source/matrix_functions.cc
     source/tree_formatter.cc
-    source/visitor.cc)
+    source/code_generation.cc
+    source/substitute.cc
+    source/cpp_code_generator.cc
+    source/matrix_expression.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})
@@ -76,8 +83,10 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBRARY_NAME}")
 
-# Add tests
-add_subdirectory(test)
+# Add tests, if not building from scikit-build-core
+if(NOT DEFINED SKBUILD_PROJECT_NAME)
+  add_subdirectory(test)
+endif()
 
-# Add nanobind wrapper.
-add_subdirectory(wrapper)
+# Add pybind11 wrapper.
+add_subdirectory(sym_wrapper)

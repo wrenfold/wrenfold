@@ -20,7 +20,7 @@ struct TreeFormatter {
   using ReturnType = void;
 
   // Generate a compile-time error if we forget a visitor here.
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
 
   // Add indentation to the output string.
   void ApplyIndentation() {
@@ -91,6 +91,10 @@ struct TreeFormatter {
   void Apply(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
 
   void Apply(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
+
+  void Apply(const FunctionArgument& arg) {
+    AppendName("FunctionArgument ({}, {})", arg.ArgIndex(), arg.ElementIndex());
+  }
 
   void Apply(const Rational& rational) {
     AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());

@@ -80,8 +80,8 @@ TEST(IntegerUtils, TestComputePrimeFactors2) {
 
   // Factor numbers 1 -> 100000
   for (const auto& expected_factors : primes) {
-    const int64_t product =
-        std::accumulate(expected_factors.begin(), expected_factors.end(), 1l, std::multiplies<>());
+    const int64_t product = std::accumulate(expected_factors.begin(), expected_factors.end(),
+                                            static_cast<int64_t>(1), std::multiplies<>());
     const std::vector<PrimeFactor> result = ComputePrimeFactors(product);
     ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
     // Check we got the same factors out:

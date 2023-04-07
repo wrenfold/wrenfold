@@ -13,10 +13,10 @@ enum class PowerStyle {
 };
 
 // Simple plain-text formatter.
-class PlainFormatter : public VisitorImpl<PlainFormatter> {
+class PlainFormatter {
  public:
   using ReturnType = void;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
 
   PlainFormatter() = default;
   PlainFormatter(PowerStyle style) : power_style_(style) {}
@@ -24,6 +24,7 @@ class PlainFormatter : public VisitorImpl<PlainFormatter> {
   void Apply(const Addition& add);
   void Apply(const Constant& constant);
   void Apply(const Float& num);
+  void Apply(const FunctionArgument& func_arg);
   void Apply(const Integer& num);
   void Apply(const Matrix& mat);
   void Apply(const Multiplication& mul);

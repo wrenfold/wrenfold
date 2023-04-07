@@ -20,6 +20,7 @@
 # BUILD FOLDERS
 build/
 build/*
+tmp/
 
 # QTCREATOR PROJECT
 *.includes
@@ -33,7 +34,7 @@ build/*
 
 # JETBRAINS
 *.idea
-cmake-build-debug/
+cmake-build-*/
 
 # VSCODE
 .vscode/

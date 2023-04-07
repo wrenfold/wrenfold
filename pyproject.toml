@@ -1,0 +1,28 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.2.2",
+    "pybind11",
+    "cmake>=3.18",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "sym"
+version = "0.0.1"
+requires-python = ">=3.8"
+authors = [
+    { name = "Gareth Cross", email = "gcross.code@icloud.com" },
+]
+description = "Symbolic tools for code-generation."
+license = { text = "MIT" }
+readme = "README.md"
+
+[tool.scikit-build]
+cmake.minimum-version = "3.18"
+ninja.minimum-version = "1.5"
+ninja.make-fallback = true
+cmake.verbose = true
+cmake.build-type = "Debug"
+logging.level = "WARNING"
+
+wheel.packages = ["sym", "sym_wrapper"]

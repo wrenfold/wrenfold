@@ -24,7 +24,7 @@ constexpr auto MakeUnaryFunctionHashes() {
 
 // TODO: Hashes should be cached in containers like Addition/Multiplication.
 struct HashVisitor {
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = std::size_t;
 
   template <typename Iterator>
@@ -57,6 +57,13 @@ struct HashVisitor {
   std::size_t Apply(const Float& f) const {
     constexpr std::size_t type_hash = HashString("Float");
     return HashCombine(type_hash, Hash<Float>{}(f));
+  }
+
+  std::size_t Apply(const FunctionArgument& f) const {
+    constexpr std::size_t type_hash = HashString("FunctionArgument");
+    const std::size_t arg_hash = HashCombine(std::hash<std::size_t>{}(f.ArgIndex()),
+                                             std::hash<std::size_t>{}(f.ElementIndex()));
+    return HashCombine(type_hash, arg_hash);
   }
 
   std::size_t Apply(const Integer& i) const {

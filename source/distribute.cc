@@ -1,50 +1,52 @@
 // Copyright 2023 Gareth Cross
-#pragma once
+#include <algorithm>
+
 #include "assertions.h"
 #include "expression_impl.h"
 #include "expressions/all_expressions.h"
 
 namespace math {
 
+// Visitor for distributing terms in multiplications:
+// (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
   using ReturnType = Expr;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::CompileError;
+  using Policy = VisitorPolicy::CompileError;
 
-  Expr Apply(const Addition& add) const {
+  Expr Apply(const Expr&, const Addition& add) const {
     std::vector<Expr> args{};
     args.reserve(add.Arity());
     for (std::size_t i = 0; i < add.Arity(); ++i) {
-      Expr distributed = VisitStruct(add[i], DistributeVisitor{add[i]});
+      Expr distributed = Distribute(add[i]);
       args.push_back(std::move(distributed));
     }
     return Addition::FromOperands(args);
   }
 
-  Expr Apply(const Constant&) const { return arg_; }
-
-  Expr Apply(const Matrix& mat) const {
+  Expr Apply(const Expr&, const Matrix& mat) const {
     std::vector<Expr> output;
     output.reserve(mat.Size());
     std::transform(mat.begin(), mat.end(), std::back_inserter(output),
-                   [](const Expr& x) { return VisitStruct(x, DistributeVisitor{x}); });
+                   [](const Expr& x) { return Distribute(x); });
     return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
   }
 
-  Expr Apply(const Multiplication& mul) const {
+  Expr Apply(const Expr&, const Multiplication& mul) const {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};
     children.reserve(mul.Arity());
     std::transform(mul.begin(), mul.end(), std::back_inserter(children),
-                   [](const Expr& expr) { return VisitStruct(expr, DistributeVisitor{expr}); });
+                   [](const Expr& expr) { return Distribute(expr); });
 
     // Are any of the child expressions additions?
-    const std::size_t total_terms = std::accumulate(
-        children.begin(), children.end(), 1lu, [](std::size_t total, const Expr& expr) {
-          if (const Addition* const add = TryCast<Addition>(expr); add != nullptr) {
-            total *= add->Arity();
-          }
-          return total;
-        });
+    const std::size_t total_terms =
+        std::accumulate(children.begin(), children.end(), static_cast<std::size_t>(1lu),
+                        [](std::size_t total, const Expr& expr) {
+                          if (const Addition* const add = TryCast<Addition>(expr); add != nullptr) {
+                            total *= add->Arity();
+                          }
+                          return total;
+                        });
 
     // If the total terms is > 1, we have an addition to distribute over.
     const bool contains_additions = total_terms > 1;
@@ -85,29 +87,26 @@ struct DistributeVisitor {
     return Addition::FromOperands(output_terms);
   }
 
-  Expr Apply(const UnaryFunction& f) {
-    std::optional<Expr> inner = VisitStruct(f.Arg(), DistributeVisitor{f.Arg()});
-    ASSERT(inner);
-    return CreateUnaryFunction(f.Func(), *inner);
+  Expr Apply(const Expr&, const UnaryFunction& f) const {
+    const Expr& arg = f.Arg();
+    return CreateUnaryFunction(f.Func(), Distribute(arg));
   }
 
-  Expr Apply(const Integer&) { return arg_; }
-  Expr Apply(const Float&) { return arg_; }
-
-  Expr Apply(const Power& pow) {
+  Expr Apply(const Expr&, const Power& pow) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
-    return Power::Create(VisitStruct(a, DistributeVisitor{a}),
-                         VisitStruct(b, DistributeVisitor{b}));
+    return Power::Create(Distribute(a), Distribute(b));
   }
 
-  Expr Apply(const Rational&) const { return arg_; }
-  Expr Apply(const Variable&) { return arg_; }
-
-  explicit DistributeVisitor(const Expr& arg) : arg_(arg) {}
-
-  const Expr& arg_;
+  Expr Apply(const Expr& arg, const Constant&) const { return arg; }
+  Expr Apply(const Expr& arg, const Integer&) const { return arg; }
+  Expr Apply(const Expr& arg, const Float&) const { return arg; }
+  Expr Apply(const Expr& arg, const FunctionArgument&) const { return arg; }
+  Expr Apply(const Expr& arg, const Rational&) const { return arg; }
+  Expr Apply(const Expr& arg, const Variable&) const { return arg; }
 };
+
+Expr Distribute(const Expr& arg) { return VisitStruct(arg, DistributeVisitor{}); }
 
 }  // namespace math

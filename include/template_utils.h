@@ -1,5 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include <functional>
 #include <optional>
 #include <tuple>
 
@@ -115,6 +116,19 @@ struct IndexOfType<T, TypeList<Ts...>> {
   constexpr static std::size_t Value = IndexOfTypeHelper<T, Ts...>();
 };
 
+// Get the N'th element of a type list.
+template <std::size_t N, typename... Ts>
+struct TypeListElement;
+
+template <std::size_t N, typename T, typename... Ts>
+struct TypeListElement<N, TypeList<T, Ts...>> {
+  using Type = typename TypeListElement<N - 1, TypeList<Ts...>>::Type;
+};
+template <typename T, typename... Ts>
+struct TypeListElement<0, TypeList<T, Ts...>> {
+  using Type = T;
+};
+
 // This template iterates over a TypeList and creates a new TypeList of return types that occur
 // when `Callable` is invoked with each type in the input type list. Duplicates may occur.
 template <typename Callable, typename...>
@@ -165,14 +179,19 @@ struct ConvertCallToApply {
 template <typename Callable, typename List>
 using CallableReturnType = ApplyReturnType<ConvertCallToApply<Callable>, List>;
 
-template <typename T, typename = void>
-struct DecayOptional {
-  using Type = T;
-};
+// Select `Indices` elements from a tuple. Returns a new tuple with just those elements.
+template <typename Tuple, std::size_t... Indices>
+auto SelectFromTuple(Tuple&& tuple, std::index_sequence<Indices...>) {
+  return std::tuple<std::tuple_element_t<Indices, std::remove_reference_t<Tuple>>...>(
+      std::get<Indices>(std::forward<Tuple>(tuple))...);
+}
 
+// If `T` is an r-value reference, get the decayed type.
+// Otherwise, get a const T&.
 template <typename T>
-struct DecayOptional<std::optional<T>> {
-  using Type = T;
+struct DecayRValueToValue {
+  using Type =
+      std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>, const std::decay_t<T>&>;
 };
 
 }  // namespace math

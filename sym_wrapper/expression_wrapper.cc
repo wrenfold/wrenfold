@@ -1,5 +1,5 @@
 // Copyright 2023 Gareth Cross
-#include <sstream>
+#include <optional>
 #include <vector>
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES
@@ -19,26 +19,20 @@ namespace py = pybind11;
 using namespace py::literals;
 using namespace math;
 
-std::string ExprRepr(const Expr& self) {
-  PlainFormatter formatter{PowerStyle::Python};
-  self.Receive(formatter);
-  return formatter.GetOutput();
-}
-
 // Create symbols from CSV list of names.
 inline std::variant<Expr, py::list> CreateSymbolsFrom(const std::string_view csv) {
   py::list variables{};
   std::string name{};
-  for (auto it = csv.begin(); it != csv.end(); ++it) {
-    if (std::isspace(*it) || *it == ',') {
+  for (const char c : csv) {
+    if (std::isspace(c) || c == ',') {
       if (!name.empty()) {
         auto var = MakeExpr<Variable>(std::move(name));
         variables.append(std::move(var));
-        ASSERT(name.empty());
+        name = std::string();
       }
       continue;
     }
-    name += *it;
+    name += c;
   }
   if (!name.empty()) {
     auto var = MakeExpr<Variable>(std::move(name));
@@ -66,19 +60,32 @@ std::variant<Expr, py::list> CreateSymbols(std::variant<std::string_view, py::it
   return std::visit([](const auto& input) { return CreateSymbolsFrom(input); }, std::move(arg));
 }
 
+std::variant<double, Expr> EvalToNumeric(const Expr& self) {
+  Expr eval = self.Eval();
+  if (const Float* f = TryCast<Float>(eval); f != nullptr) {
+    return f->GetValue();
+  }
+  return eval;
+}
+
 namespace math {
 // Defined in matrix_wrapper_methods.cc
 void WrapMatrixOperations(py::module_& m);
 }  // namespace math
 
-PYBIND11_MODULE(mc, m) {
+PYBIND11_MODULE(pysym, m) {
   // Primary expression type:
   py::class_<Expr>(m, "Expr")
       // Implicit construction from numerics:
       .def(py::init<std::int64_t>())
       .def(py::init<double>())
       // String conversion:
-      .def("__repr__", &ExprRepr)
+      .def("__repr__",
+           [](const Expr& self) {
+             PlainFormatter formatter{PowerStyle::Python};
+             VisitStruct(self, formatter);
+             return formatter.GetOutput();
+           })
       .def("expression_tree_str", &FormatDebugTree,
            "Retrieve the expression tree as a pretty-printed string.")
       .def(
@@ -94,6 +101,9 @@ PYBIND11_MODULE(mc, m) {
       .def("diff", &Expr::Diff, "var"_a, py::arg("order") = 1,
            "Differentiate the expression with respect to the specified variable.")
       .def("distribute", &Expr::Distribute, "Expand products of additions and subtractions.")
+      .def("subs", &Expr::Subs, py::arg("target"), py::arg("substitute"),
+           "Replace the `target` expression with `substitute` in the expression tree.")
+      .def("eval", &EvalToNumeric, "Evaluate into float expression.")
       // Operators:
       .def(py::self + py::self)
       .def(py::self - py::self)
@@ -144,6 +154,6 @@ PYBIND11_MODULE(mc, m) {
   py::register_exception<DimensionError>(m, "DimensionError");
   py::register_exception<TypeError>(m, "TypeError");
 
-  // Matrix operations:
+  // Include other wrappers in this module:
   WrapMatrixOperations(m);
-}
+}  // PYBIND11_MODULE

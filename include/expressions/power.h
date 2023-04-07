@@ -11,12 +11,26 @@ namespace math {
 class Power : public ExpressionImpl<Power> {
  public:
   static constexpr std::string_view NameStr = "Power";
+  static constexpr bool IsLeafNode = false;
 
   Power(Expr base, Expr exponent) : base_(std::move(base)), exponent_(std::move(exponent)) {}
 
   // Base and exponent must match.
   bool IsIdenticalToImplTyped(const Power& other) const {
     return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
+  }
+
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation operation) const {
+    operation(base_);
+    operation(exponent_);
+  }
+
+  // Implement ExpressionImpl::Map
+  template <typename Operation>
+  Expr Map(Operation&& operation) const {
+    return Power::Create(operation(base_), operation(exponent_));
   }
 
   // Create a new power.

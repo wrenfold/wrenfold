@@ -1,24 +1,24 @@
-// Copyright 2022 Gareth Cross
-#pragma once
-#include "expression.h"
+// Copyright 2023 Gareth Cross
 #include "expressions/all_expressions.h"
-#include "functions.h"
-#include "operations_fwd.h"
-#include "visitor_base.h"
+
+#include <algorithm>
 
 namespace math {
 
 using namespace math::custom_literals;
 
 // Visitor that takes the derivative of an input expression.
+template <typename T>
 class DiffVisitor {
  public:
-  constexpr static VisitorPolicy Policy = VisitorPolicy::CompileError;
+  static_assert(std::is_same_v<T, Variable> || std::is_same_v<T, FunctionArgument>);
+
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit DiffVisitor(const Variable& argument) : argument_(argument) {}
+  explicit DiffVisitor(T argument) : argument_(std::move(argument)) {}
 
   // Differentiate every argument to make a new sum.
   Expr Apply(const Addition& add) {
@@ -29,7 +29,7 @@ class DiffVisitor {
     return Addition::FromOperands(terms);
   }
 
-  Expr Apply(const Constant&) { return Constants::Zero; }
+  Expr Apply(const Constant&) const { return Constants::Zero; }
 
   // Element-wise derivative of matrix.
   Expr Apply(const Matrix& mat) {
@@ -64,6 +64,7 @@ class DiffVisitor {
     // TODO: Move, don't copy.
     return Addition::FromOperands(add_terms);
   }
+
   // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
   Expr Apply(const UnaryFunction& func) {
     // Differentiate the argument:
@@ -73,6 +74,8 @@ class DiffVisitor {
       return Constants::Zero;
     }
     // TODO: Make global constants for 2, one half, etc...
+    static const Expr one_half = 1_s / 2;
+    static const Expr negative_one_half = -1_s / 2;
     switch (func.Func()) {
       case UnaryFunctionName::Cos:
         // cos(f(x)) --> -sin(f(x)) * f'(x)
@@ -85,16 +88,19 @@ class DiffVisitor {
         return pow(cos(func.Arg()), -2) * d_arg;
       case UnaryFunctionName::ArcCos:
         // acos(f(x)) --> -f'(x) / sqrt(1 - f(x)^2)
-        return -pow(Constants::One - pow(func.Arg(), 2), -1_s / 2) * d_arg;
+        return -pow(Constants::One - pow(func.Arg(), 2), negative_one_half) * d_arg;
       case UnaryFunctionName::ArcSin:
         // asin(f(x)) --> f'(x) / sqrt(1 - f(x)^2)
-        return pow(Constants::One - pow(func.Arg(), 2), -1_s / 2) * d_arg;
+        return pow(Constants::One - pow(func.Arg(), 2), negative_one_half) * d_arg;
       case UnaryFunctionName::ArcTan:
         // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
         return d_arg / (pow(func.Arg(), 2) + Constants::One);
       case UnaryFunctionName::Log:
         // log(f(x)) --> 1/f(x) * f'(x)
         return Power::Create(func.Arg(), Constants::NegativeOne) * d_arg;
+      case UnaryFunctionName::Sqrt: {
+        return pow(func.Arg(), negative_one_half) * one_half * d_arg;
+      }
       case UnaryFunctionName::ENUM_SIZE:
         break;
     }
@@ -102,9 +108,18 @@ class DiffVisitor {
     return Constants::Zero;
   }
 
-  Expr Apply(const Integer&) { return Constants::Zero; }
+  Expr Apply(const Integer&) const { return Constants::Zero; }
 
-  Expr Apply(const Float&) { return Constants::Zero; }
+  Expr Apply(const Float&) const { return Constants::Zero; }
+
+  Expr Apply(const FunctionArgument& arg) const {
+    if constexpr (std::is_same_v<T, FunctionArgument>) {
+      if (argument_.IsIdenticalToImplTyped(arg)) {
+        return Constants::One;
+      }
+    }
+    return Constants::Zero;
+  }
 
   Expr Apply(const Power& pow) {
     const Expr& a = pow.Base();
@@ -118,15 +133,41 @@ class DiffVisitor {
 
   Expr Apply(const Rational&) const { return Constants::Zero; }
 
-  Expr Apply(const Variable& var) {
-    if (var.IsIdenticalToImplTyped(argument_)) {
-      return Constants::One;
+  Expr Apply(const Variable& var) const {
+    if constexpr (std::is_same_v<Variable, T>) {
+      if (var.IsIdenticalToImplTyped(argument_)) {
+        return Constants::One;
+      }
     }
     return Constants::Zero;
   }
 
  private:
-  Variable argument_;
+  T argument_;
 };
+
+template <typename T>
+inline Expr DiffTyped(const Expr& expr, const T& arg, const int reps) {
+  DiffVisitor<T> visitor{arg};
+  Expr result = expr;
+  for (int i = 0; i < reps; ++i) {
+    result = VisitStruct(result, visitor);
+  }
+  return result;
+}
+
+Expr Diff(const Expr& differentiand, const Expr& arg, const int reps) {
+  ASSERT_GREATER_OR_EQ(reps, 0);
+  if (const Variable* var = TryCast<Variable>(arg); var != nullptr) {
+    return DiffTyped<Variable>(differentiand, *var, reps);
+  } else if (const FunctionArgument* func = TryCast<FunctionArgument>(arg); func != nullptr) {
+    return DiffTyped<FunctionArgument>(differentiand, *func, reps);
+  } else {
+    throw TypeError(
+        "Argument to diff must be of type Variable or FunctionArgument. Received expression "
+        "of type: {}",
+        arg.TypeName());
+  }
+}
 
 }  // namespace math

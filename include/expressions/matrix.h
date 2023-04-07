@@ -15,11 +15,12 @@ namespace math {
 class Matrix : public ExpressionImpl<Matrix> {
  public:
   static constexpr std::string_view NameStr = "Matrix";
+  static constexpr bool IsLeafNode = false;
 
-  // Construct from data vector.
+  // ConstructMatrix from data vector.
   Matrix(index_t rows, index_t cols, std::vector<Expr> data)
       : rows_(rows), cols_(cols), data_(std::move(data)) {
-    if (data_.size() != static_cast<std::size_t>(rows_ * cols_)) {
+    if (data_.size() != static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_)) {
       throw DimensionError("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
                            data_.size(), rows_, cols_);
     }
@@ -38,6 +39,22 @@ class Matrix : public ExpressionImpl<Matrix> {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
            std::equal(data_.begin(), data_.end(), other.data_.begin(),
                       [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });
+  }
+
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation operation) const {
+    std::for_each(data_.begin(), data_.end(), std::move(operation));
+  }
+
+  // Implement ExpressionImpl::Map
+  template <typename Operation>
+  Expr Map(Operation&& operation) const {
+    std::vector<Expr> transformed;
+    transformed.reserve(Size());
+    std::transform(data_.begin(), data_.end(), std::back_inserter(transformed),
+                   std::forward<Operation>(operation));
+    return MakeExpr<Matrix>(NumRows(), NumCols(), std::move(transformed));
   }
 
   // Access element in a vector. Only valid if `cols` or `rows` is 1.

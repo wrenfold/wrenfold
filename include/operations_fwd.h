@@ -6,6 +6,7 @@ namespace math {
 class Addition;
 class Constant;
 class Float;
+class FunctionArgument;
 class Integer;
 class Matrix;
 class Multiplication;

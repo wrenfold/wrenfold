@@ -7,6 +7,7 @@
 
 namespace math {
 using namespace custom_literals;
+using namespace matrix_operator_overloads;
 
 TEST(MatrixOperationsTest, TestConstruct) {
   const Expr x{"x"};
@@ -137,8 +138,8 @@ TEST(MatrixOperationsTest, TestAddition) {
   // Dimension mismatch:
   ASSERT_THROW(Vector(a, b) + RowVector(c, d), DimensionError);
   ASSERT_THROW(Vector(a, b) + CreateMatrix(2, 2, c, d, 2, -3_s / 5), DimensionError);
-  ASSERT_THROW(RowVector(c, d) + a, TypeError);
-  ASSERT_THROW(RowVector(c, d) - d, TypeError);
+  ASSERT_THROW(static_cast<Expr>(RowVector(c, d)) + a, TypeError);
+  ASSERT_THROW(static_cast<Expr>(RowVector(c, d)) - d, TypeError);
 
   const MatrixExpr m = CreateMatrix(2, 2, a, b, c, d);
   ASSERT_IDENTICAL(m, m + Zeros(2, 2));
@@ -191,7 +192,7 @@ TEST(MatrixOperationsTest, TestMultiplication) {
   ASSERT_THROW(RowVector(1, -3, z) * Vector(z, sin(y)), DimensionError);
 
   // Cannot divide by matrix.
-  ASSERT_THROW(1 / Vector(1, 2, w), TypeError);
+  ASSERT_THROW(1 / static_cast<Expr>(Vector(1, 2, w)), TypeError);
 }
 
 }  // namespace math

@@ -1,5 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include "assertions.h"
+#include "constants.h"
 #include "expression_impl.h"
 #include "functions.h"
 #include "hashing.h"
@@ -15,6 +17,7 @@ enum class UnaryFunctionName {
   ArcSin,
   ArcTan,
   Log,
+  Sqrt,
   // Just to get the length of the enum:
   ENUM_SIZE,
 };
@@ -37,9 +40,12 @@ constexpr std::string_view ToString(const UnaryFunctionName name) {
       return "atan";
     case UnaryFunctionName::Log:
       return "ln";
+    case UnaryFunctionName::Sqrt:
+      return "sqrt";
     case UnaryFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
   }
+  return "<NOT A VALID ENUM VALUE>";
 }
 
 template <typename Derived>
@@ -47,10 +53,15 @@ class BuiltInFunctionBase : public ExpressionImpl<Derived> {
  public:
 };
 
-// Store a unary function. Built-in unary functions `f(x)` are described by an enum indicating
+// Fwd declare.
+Expr CreateUnaryFunction(const UnaryFunctionName name, const Expr& arg);
+
+// Store a unary function. Built-in unary functions `f(x)` are described by an enum
+// indicating what `f` is.
 class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
  public:
   static constexpr std::string_view NameStr = "UnaryFunction";
+  static constexpr bool IsLeafNode = false;
 
   UnaryFunction(UnaryFunctionName func, Expr arg) : func_(func), arg_(std::move(arg)) {}
 
@@ -68,6 +79,18 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
     return func_ == other.func_ && arg_.IsIdenticalTo(other.arg_);
   }
 
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation operation) const {
+    operation(arg_);
+  }
+
+  // Implement ExpressionImpl::Map
+  template <typename Operation>
+  Expr Map(Operation&& operation) const {
+    return CreateUnaryFunction(func_, operation(arg_));
+  }
+
  protected:
   UnaryFunctionName func_;
   Expr arg_;
@@ -76,22 +99,26 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
 // clang-format off
 enum class BinaryFunctionName {
   Mod,
+  Pow,
   // Just to get the length of the enum:
   ENUM_SIZE,
 };
 // clang-format on
 
-#if 0
 // Convert binary function enum to string.
 constexpr std::string_view ToString(const BinaryFunctionName name) {
   switch (name) {
     case BinaryFunctionName::Mod:
       return "mod";
+    case BinaryFunctionName::Pow:
+      return "pow";
     case BinaryFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
   }
+  return "<NOT A VALID ENUM VALUE>";
 }
 
+#if 0
 class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
  public:
   BinaryFunction(BinaryFunctionName func, Expr first, Expr second)
@@ -136,6 +163,8 @@ inline Expr CreateUnaryFunction(const UnaryFunctionName name, const Expr& arg) {
       return atan(arg);
     case UnaryFunctionName::Log:
       return log(arg);
+    case UnaryFunctionName::Sqrt:
+      return sqrt(arg);
     default:
       break;
   }

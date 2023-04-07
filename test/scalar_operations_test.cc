@@ -24,24 +24,24 @@ TEST(ScalarOperationsTest, TestAddition) {
   // Canonicalization of order:
   ASSERT_IDENTICAL(w + x + y, y + x + w);
   ASSERT_IDENTICAL(w + x + y, x + w + y);
-  ASSERT_IDENTICAL(1_s + w, w + 1_s);
-  ASSERT_IDENTICAL(5_s / 7_s + x, x + 5_s / 7_s);
+  ASSERT_IDENTICAL(1 + w, w + 1);
+  ASSERT_IDENTICAL(5_s / 7 + x, x + 5 / 7_s);
   ASSERT_IDENTICAL(x * w + x * z, x * z + x * w);
   ASSERT_IDENTICAL(w * x + x * z, x * z + x * w);
 
   // Collapsing of numerics:
-  ASSERT_IDENTICAL(x, x + 0_s);
-  ASSERT_IDENTICAL(x, 0_s + x);
+  ASSERT_IDENTICAL(x, x + 0);
+  ASSERT_IDENTICAL(x, 0 + x);
   ASSERT_IDENTICAL(w + 19_s / 7_s, w + 5_s / 7_s + 2_s);
-  ASSERT_IDENTICAL(w + y + 1_s, y + 1_s / 2_s + w + 1_s / 2_s);
-  ASSERT_IDENTICAL(2_s * z, 3_s + z - 2_s + z - 1_s);
+  ASSERT_IDENTICAL(w + y + 1, y + 1 / 2_s + w + 1 / 2_s);
+  ASSERT_IDENTICAL(2 * z, 3 + z - 2 + z - 1);
   ASSERT_IDENTICAL(0_s, 3_s + -4_s + 1_s);
   ASSERT_IDENTICAL(0.5_s + x, x + 0.25_s + 1_s / 4_s);
-  ASSERT_IDENTICAL(1.0_s, 3_s / 2_s + y - 0.5_s - y);
+  ASSERT_IDENTICAL(1.0_s, 3_s / 2 + y - 0.5_s - y);
 
   // Collection of identical terms:
-  ASSERT_IDENTICAL(2_s * x, x + x);
-  ASSERT_IDENTICAL(-3_s * x, x - 4_s * x);
+  ASSERT_IDENTICAL(2 * x, x + x);
+  ASSERT_IDENTICAL(-3 * x, x - 4_s * x);
   ASSERT_IDENTICAL(3_s * pow(x, 2_s) - 4_s * y,
                    pow(x, 2_s) - 2_s * y + 2_s * pow(x, 2_s) - 2_s * y);
   ASSERT_IDENTICAL(-2_s * log(x) + 2_s * pow(y, 2_s), -log(x) + -log(x) + y * y + y * y);
@@ -80,23 +80,27 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * 0.0625_s, (x * 2.0_s) * (1_s / 32_s));
 
   // Collections of powers:
-  ASSERT_IDENTICAL(pow(x, 2_s), x * x);
-  ASSERT_IDENTICAL(pow(x, 3_s), x * x * x);
-  ASSERT_IDENTICAL(pow(x, 2_s) * pow(y, 2_s), x * y * x * y);
-  ASSERT_IDENTICAL(Constants::One, pow(x, 2_s) * pow(x, -2_s));
-  ASSERT_IDENTICAL(x * pow(y, 2_s) * pow(log(z), 3_s), log(z) * y * x * log(z) * y * log(z));
-  ASSERT_IDENTICAL(1_s / 33_s * x * pow(3_s, 2_s / 3_s) * pow(11_s, 2_s / 3_s),
-                   pow(33_s, -2_s / 3_s) * pow(33_s, 1_s / 3_s) * x);
+  ASSERT_IDENTICAL(pow(x, 2), x * x);
+  ASSERT_IDENTICAL(pow(x, 3), x * x * x);
+  ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), x * y * x * y);
+  ASSERT_IDENTICAL(Constants::One, pow(x, 2) * pow(x, -2));
+  ASSERT_IDENTICAL(x * pow(y, 2_s) * pow(log(z), 3), log(z) * y * x * log(z) * y * log(z));
+  ASSERT_IDENTICAL(1_s / 33 * x * pow(3, 2_s / 3) * pow(11, 2_s / 3),
+                   pow(33, -2_s / 3) * pow(33, 1_s / 3) * x);
+
+  // Normalization of powers of integers:
+  ASSERT_IDENTICAL(2 * pow(2, 1_s / 7), pow(2, 3_s / 7) * pow(2, 5_s / 7));
+  ASSERT_IDENTICAL(pow(5, 10_s / 11) / 25, pow(5, -5_s / 11) * pow(5, -7_s / 11));
 
   // Including symbolics constants:
-  ASSERT_IDENTICAL(pow(Constants::Pi, 3_s), Constants::Pi * Constants::Pi * Constants::Pi);
-  ASSERT_IDENTICAL(pow(Constants::Euler, 2_s) * x, Constants::Euler * x * Constants::Euler);
+  ASSERT_IDENTICAL(pow(Constants::Pi, 3), Constants::Pi * Constants::Pi * Constants::Pi);
+  ASSERT_IDENTICAL(pow(Constants::Euler, 2) * x, Constants::Euler * x * Constants::Euler);
 
   // Collections of powers of functions:
-  ASSERT_IDENTICAL(pow(cos(x), 2_s), cos(x) * cos(x));
-  ASSERT_IDENTICAL(pow(cos(x), 2_s) * pow(tan(y), 3_s / 5_s),
-                   cos(x) * cos(x) * pow(tan(y), 1_s / 5_s) * pow(tan(y), 2_s / 5_s));
-  ASSERT_IDENTICAL(pow(sin(x), 2_s) * pow(log(z * y), Constants::NegativeOne),
+  ASSERT_IDENTICAL(pow(cos(x), 2), cos(x) * cos(x));
+  ASSERT_IDENTICAL(pow(cos(x), 2) * pow(tan(y), 3_s / 5),
+                   cos(x) * cos(x) * pow(tan(y), 1_s / 5) * pow(tan(y), 2_s / 5));
+  ASSERT_IDENTICAL(pow(sin(x), 2) * pow(log(z * y), Constants::NegativeOne),
                    sin(x) * sin(x) / log(z * y));
 }
 

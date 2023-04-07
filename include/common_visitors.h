@@ -16,7 +16,8 @@ class NAryOp;
 // Visitor that returns true for numerical values, or powers of numerical values.
 struct IsNumericVisitor {
   using ReturnType = bool;
-  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::NoError;
+
   constexpr bool Apply(const Float&) const { return true; }
   constexpr bool Apply(const Integer&) const { return true; }
   constexpr bool Apply(const Rational&) const { return true; }
@@ -34,7 +35,7 @@ inline bool IsNumeric(const Expr& expr) {
 // negative.
 struct IsNegativeNumberVisitor {
   using ReturnType = bool;
-  constexpr static VisitorPolicy Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::NoError;
 
   // Numerics < 0 are all negative.
   bool Apply(const Integer& num) const { return num.GetValue() < 0; }
@@ -58,7 +59,7 @@ inline bool IsNegativeNumber(const Expr& expr) {
 
 // Visitor to determine mathematical precedence.
 struct PrecedenceVisitor {
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::NoError;
   using ReturnType = Precedence;
 
   constexpr Precedence Apply(const Multiplication&) const { return Precedence::Multiplication; }

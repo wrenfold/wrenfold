@@ -7,8 +7,8 @@ namespace math {
 // HashExpression expression.
 std::size_t HashExpression(const Expr& x);
 
-// Object for use in maps.
-struct HashObject {
+// Object to use as the map hasher type.
+struct ExprHash {
   std::size_t operator()(const Expr& x) const { return HashExpression(x); }
 };
 

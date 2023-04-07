@@ -9,8 +9,9 @@ namespace math {
 class Constant : public ExpressionImpl<Constant> {
  public:
   static constexpr std::string_view NameStr = "Constant";
+  static constexpr bool IsLeafNode = true;
 
-  // Construct with name.
+  // ConstructMatrix with name.
   explicit Constant(SymbolicConstants Name) : name_(Name) {}
 
   // Check if symbolic constants are the same.
@@ -34,6 +35,7 @@ inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants v
     case SymbolicConstants::Pi:
       return "pi";
   }
+  return "<INVALID ENUM VALUE>";
 }
 
 // Order constants by their enum values.

@@ -1,6 +1,7 @@
 // Copyright 2022 Gareth Cross
 #include "expressions/addition.h"
 
+#include <algorithm>
 #include <unordered_map>
 
 #include "expressions/multiplication.h"
@@ -9,45 +10,6 @@
 #include "ordering.h"
 
 namespace math {
-
-// Visitor that accumulates integers/rationals.
-struct RationalAccumulator {
-  using ReturnType = void;
-  static constexpr VisitorPolicy Policy = VisitorPolicy::NoError;
-
-  void Apply(const Rational& r) { result = result + r; }
-  void Apply(const Integer& i) { result = result + static_cast<Rational>(i); }
-
-  Rational result{0, 1};
-};
-
-// Add integer + rational constants.
-// Removes them from the vector during processing.
-static Rational AddIntegersAndRationals(std::vector<Expr>& input) {
-  RationalAccumulator accumulator{};
-  const auto new_end = std::remove_if(input.begin(), input.end(), [&accumulator](const Expr& expr) {
-    return VisitStruct(expr, accumulator).has_value();
-  });
-  input.erase(new_end, input.end());
-  return accumulator.result;
-}
-
-static std::optional<Float> AddFloats(std::vector<Expr>& input) {
-  std::optional<Float> sum{};
-  const auto new_end = std::remove_if(input.begin(), input.end(), [&sum](const Expr& expr) {
-    return VisitLambda(expr,
-                       [&](const Float& f) {
-                         if (!sum) {
-                           sum = f;
-                         } else {
-                           sum = *sum + f;
-                         }
-                       })
-        .has_value();
-  });
-  input.erase(new_end, input.end());
-  return sum;
-}
 
 Addition::Addition(std::vector<Expr> args) : NAryOp(std::move(args)) {}
 
@@ -78,92 +40,101 @@ Expr Addition::FromOperands(const std::vector<Expr>& args) {
   if (input_contains_matrix) {
     return FromMatrixOperands(args);
   }
-
-  std::vector<Expr> unpacked_args{};
-  unpacked_args.reserve(args.size());
-
-  // Flatten arguments:
+  AdditionParts parts{args.size()};
   for (const Expr& arg : args) {
-    if (IsZero(arg)) {
-      // Skip zeros.
-      continue;
-    }
-    if (const Addition* const add = TryCast<Addition>(arg)) {
-      const std::vector<Expr>& add_args = add->Args();
-      unpacked_args.insert(unpacked_args.end(), add_args.begin(), add_args.end());
+    parts.Add(arg);
+  }
+  parts.Normalize();
+  return parts.CreateAddition(std::vector<Expr>{});
+}
+
+struct AdditionVisitor {
+  using Policy = VisitorPolicy::CompileError;
+  using ReturnType = void;
+
+  explicit AdditionVisitor(AdditionParts& parts) : parts(parts) {}
+
+  template <typename T>
+  void Apply(const Expr& input_expression, const T& arg) {
+    if constexpr (std::is_same_v<T, Addition>) {
+      for (const Expr& expr : arg) {
+        // Recursively add additions:
+        VisitStruct(expr, *this);
+      }
+    } else if constexpr (std::is_same_v<T, Integer>) {
+      parts.rational_term = parts.rational_term + static_cast<Rational>(arg);
+    } else if constexpr (std::is_same_v<T, Rational>) {
+      parts.rational_term = parts.rational_term + arg;
+    } else if constexpr (std::is_same_v<T, Float>) {
+      if (!parts.float_term.has_value()) {
+        parts.float_term = arg;
+      } else {
+        parts.float_term = (*parts.float_term) + arg;
+      }
+    } else if constexpr (std::is_same_v<T, Matrix>) {
+      throw TypeError("Cannot add a matrix into a scalar addition expression. Arg type = {}",
+                      arg.TypeName());
     } else {
-      unpacked_args.push_back(arg);
+      // Everything else: Just add to the coeff
+      auto [coeff, mul] = AsCoefficientAndMultiplicand(input_expression);
+      const auto [it, was_inserted] = parts.terms.emplace(std::move(mul), coeff);
+      if (!was_inserted) {
+        it->second = it->second + coeff;
+      }
     }
   }
 
-  // Extract all constants:
-  const Rational rational_term = AddIntegersAndRationals(unpacked_args);
-  const std::optional<Float> float_term = AddFloats(unpacked_args);
+  AdditionParts& parts;
+};
 
-  // Create a map from multiplicand -> coefficient.
-  // TODO: Try the abseil map container.
-  std::unordered_map<Expr, Expr, HashObject, ExprEquality> map{};
-  map.reserve(args.size());
-
-  // This will group terms w/ the same multiplicand by adding their coefficients:
-  for (const Expr& expr : unpacked_args) {
-    auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(expr);
-    const auto [it, was_inserted] = map.emplace(std::move(multiplicand), coeff);
-    if (!was_inserted) {
-      it->second = Addition::FromTwoOperands(it->second, coeff);
-    }
+AdditionParts::AdditionParts(const Addition& add) : AdditionParts(add.Arity()) {
+  for (const Expr& expr : add) {
+    Add(expr);
   }
+  Normalize();
+}
 
+void AdditionParts::Add(const Expr& arg) {
+  if (IsZero(arg)) {
+    return;
+  }
+  VisitStruct(arg, AdditionVisitor{*this});
+}
+
+void AdditionParts::Normalize() {
   // Remove anything where the coefficient worked out to zero:
-  for (auto it = map.begin(); it != map.end();) {
+  for (auto it = terms.begin(); it != terms.end();) {
     if (IsZero(it->second)) {
-      it = map.erase(it);
+      it = terms.erase(it);
     } else {
       ++it;
     }
   }
+}
 
-  // Create the result:
-  unpacked_args.clear();
-  if (float_term && float_term->GetValue() != 0.0) {
-    unpacked_args.push_back(
-        MakeExpr<Float>(float_term.value() + static_cast<Float>(rational_term)));
+Expr AdditionParts::CreateAddition(std::vector<Expr>&& args) const {
+  args.clear();
+  args.reserve(terms.size() + 1);
+  if (float_term.has_value()) {
+    const Float promoted_rational = static_cast<Float>(rational_term);
+    args.push_back(MakeExpr<Float>(float_term.value() + promoted_rational));
   } else if (rational_term.IsZero()) {
-    // Skip it...
+    // Don't insert a useless zero in the add.
   } else {
-    unpacked_args.push_back(Rational::Create(rational_term));
+    args.push_back(Rational::Create(rational_term));
   }
-
-  // Sort back into order:
-  // TODO: Just store this representation:
-  std::vector<std::pair<Expr, Expr>> coeff_mul;
-  coeff_mul.reserve(args.size());
-  std::copy(map.begin(), map.end(), std::back_inserter(coeff_mul));
-
-  std::sort(coeff_mul.begin(), coeff_mul.end(), [](const auto& a, const auto& b) {
-    const OrderVisitor::RelativeOrder order_mul =
-        VisitBinaryStruct(a.first, b.first, OrderVisitor{});
-    if (order_mul == OrderVisitor::RelativeOrder::LessThan) {
-      return true;
-    } else if (order_mul == OrderVisitor::RelativeOrder::GreaterThan) {
-      return false;
-    }
-    // Otherwise compare the coefficient as well:
-    return VisitBinaryStruct(a.second, b.second, OrderVisitor{}) ==
-           OrderVisitor::RelativeOrder::LessThan;
+  std::transform(terms.begin(), terms.end(), std::back_inserter(args), [](const auto& pair) {
+    return Multiplication::FromTwoOperands(pair.first, pair.second);
   });
-
-  // Insert back into expected form (TODO: this is pretty inefficient...)
-  for (auto [multiplicand, coeff] : coeff_mul) {
-    unpacked_args.push_back(Multiplication::FromTwoOperands(coeff, multiplicand));
-  }
-
-  if (unpacked_args.empty()) {
+  std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
+    return VisitBinaryStruct(a, b, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
+  });
+  if (args.empty()) {
     return Constants::Zero;
-  } else if (unpacked_args.size() == 1) {
-    return unpacked_args.front();
+  } else if (args.size() == 1) {
+    return args.front();
   }
-  return MakeExpr<Addition>(std::move(unpacked_args));
+  return MakeExpr<Addition>(std::move(args));
 }
 
 }  // namespace math

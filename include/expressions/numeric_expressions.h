@@ -19,17 +19,18 @@ class Rational;
 class Integer : public ExpressionImpl<Integer> {
  public:
   static constexpr std::string_view NameStr = "Integer";
+  static constexpr bool IsLeafNode = true;
 
   using IntegralType = int64_t;
 
-  // Construct from number.
+  // ConstructMatrix from number.
   explicit Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
 
   // Access numeric value.
-  IntegralType GetValue() const { return val_; }
+  constexpr IntegralType GetValue() const { return val_; }
 
   // Cast to integer:
   explicit operator Float() const;
@@ -55,19 +56,20 @@ class Integer : public ExpressionImpl<Integer> {
 class Rational : public ExpressionImpl<Rational> {
  public:
   static constexpr std::string_view NameStr = "Rational";
+  static constexpr bool IsLeafNode = true;
 
   using IntegralType = Integer::IntegralType;
 
-  // Construct a rational. Conversion to canonical form is automatic.
+  // ConstructMatrix a rational. Conversion to canonical form is automatic.
   constexpr Rational(IntegralType n, IntegralType d) : Rational(CreatePair(n, d)) {}
 
-  bool IsIdenticalToImplTyped(const Rational& other) const {
+  constexpr bool IsIdenticalToImplTyped(const Rational& other) const {
     return n_ == other.n_ && d_ == other.d_;
   }
 
   // Access numerator and denominator.
-  IntegralType Numerator() const { return n_; }
-  IntegralType Denominator() const { return d_; }
+  constexpr IntegralType Numerator() const { return n_; }
+  constexpr IntegralType Denominator() const { return d_; }
 
   // Cast to float.
   explicit operator Float() const;
@@ -129,25 +131,27 @@ class Rational : public ExpressionImpl<Rational> {
 class Float : public ExpressionImpl<Float> {
  public:
   static constexpr std::string_view NameStr = "Float";
+  static constexpr bool IsLeafNode = true;
 
   using FloatType = double;
 
-  // Construct from float value.
+  // ConstructMatrix from float value.
   explicit Float(FloatType val) : val_(val) {
     ASSERT(std::isfinite(val_), "Float values must be finite: val = {}", val_);
   }
 
   // Check if numerical constants are completely identical.
-  bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
 
   // Access numeric value.
-  FloatType GetValue() const { return val_; }
+  constexpr FloatType GetValue() const { return val_; }
 
   // Get absolute value.
   Float Abs() const { return Float{std::abs(val_)}; }
 
   // Create floating point expression.
-  static Expr Create(FloatType f) { return MakeExpr<Float>(f); }
+  static Expr Create(Float f) { return MakeExpr<Float>(f); }
+  static Expr Create(FloatType f) { return Create(Float{f}); }
 
  private:
   FloatType val_;

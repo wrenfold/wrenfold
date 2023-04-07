@@ -1,2 +1,2 @@
 ---
-Checks: '-readability-convert-member-functions-to-static*,-modernize-avoid-bind'
+Checks: '-readability-convert-member-functions-to-static*,-modernize-avoid-bind,-modernize-use-nodiscard'
