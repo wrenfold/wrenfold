@@ -44,6 +44,9 @@ class MatrixExpr {
     return MatrixExpr{expr_.Subs(target, replacement)};
   }
 
+  // Evaluate to matrix of floats.
+  MatrixExpr Eval() const { return MatrixExpr{math::Eval(expr_)}; }
+
   // Receive a visitor.
   void Receive(VisitorBase& visitor) const { expr_.Receive(visitor); }
 

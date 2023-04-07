@@ -60,6 +60,9 @@ class Expr {
     return math::Substitute(*this, target, replacement);
   }
 
+  // Evaluate into float.
+  Expr Eval() const { return math::Eval(*this); }
+
   // Receive a visitor.
   void Receive(VisitorBase& visitor) const { impl_->Receive(visitor); }
 

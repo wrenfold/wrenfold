@@ -16,4 +16,8 @@ Expr Diff(const Expr& differentiand, const Expr& arg, const int reps);
 // Implemented in distribute.cc
 Expr Distribute(const Expr& arg);
 
+// Evaluate to a number. If the result is a matrix, returns a matrix expression of numbers.
+// Implemented in evaluate.cc
+Expr Eval(const Expr& arg);
+
 }  // namespace math

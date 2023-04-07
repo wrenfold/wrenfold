@@ -8,6 +8,7 @@
 
 #include "expression.h"
 #include "expressions/matrix.h"
+#include "expressions/numeric_expressions.h"
 #include "matrix_functions.h"
 #include "plain_formatter.h"
 #include "tree_formatter.h"
@@ -279,13 +280,25 @@ py::list ListFromMatrix(const MatrixExpr& self) {
 py::array NumpyFromMatrix(const MatrixExpr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
   for (const Expr& expr : self.AsMatrix()) {
-    list.append(expr);
+    // Convert numeric types:
+    if (const Float* f = TryCast<Float>(expr); f != nullptr) {
+      list.append(f->GetValue());
+    } else if (const Integer* i = TryCast<Integer>(expr); i != nullptr) {
+      list.append(i->GetValue());
+    } else {
+      list.append(expr);
+    }
   }
   auto array = py::array(list);
   const std::array<std::size_t, 2> new_shape{static_cast<std::size_t>(self.NumRows()),
                                              static_cast<std::size_t>(self.NumCols())};
   array.resize(new_shape);
   return array;
+}
+
+py::array EvalToNumeric(const MatrixExpr& self) {
+  MatrixExpr eval = self.Eval();
+  return NumpyFromMatrix(eval);
 }
 
 // For the benefit of python types, we need to re-define these with MatrixExpr as the type.
@@ -350,6 +363,7 @@ void WrapMatrixOperations(py::module_& m) {
       .def("distribute", &MatrixExpr::Distribute, "Expand products of additions and subtractions.")
       .def("subs", &MatrixExpr::Subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
+      .def("eval", &EvalToNumeric, "Evaluate into float expression.")
       // Matrix specific properties:
       .def_property_readonly(
           "shape", [](const MatrixExpr& m) { return py::make_tuple(m.NumRows(), m.NumCols()); },

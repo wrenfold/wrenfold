@@ -46,6 +46,7 @@ class CodeFormatter {
   template <typename Callable>
   void WithIndentation(const int indent, const std::string_view open, const std::string_view close,
                        Callable callable) {
+    ASSERT_GREATER_OR_EQ(indent, 0);
     // Move output_ -> appended
     std::string appended{};
     std::swap(output_, appended);

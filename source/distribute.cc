@@ -17,7 +17,7 @@ struct DistributeVisitor {
     std::vector<Expr> args{};
     args.reserve(add.Arity());
     for (std::size_t i = 0; i < add.Arity(); ++i) {
-      Expr distributed = VisitStruct(add[i], DistributeVisitor{});
+      Expr distributed = Distribute(add[i]);
       args.push_back(std::move(distributed));
     }
     return Addition::FromOperands(args);
@@ -27,7 +27,7 @@ struct DistributeVisitor {
     std::vector<Expr> output;
     output.reserve(mat.Size());
     std::transform(mat.begin(), mat.end(), std::back_inserter(output),
-                   [](const Expr& x) { return VisitStruct(x, DistributeVisitor{}); });
+                   [](const Expr& x) { return Distribute(x); });
     return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
   }
 
@@ -36,7 +36,7 @@ struct DistributeVisitor {
     std::vector<Expr> children{};
     children.reserve(mul.Arity());
     std::transform(mul.begin(), mul.end(), std::back_inserter(children),
-                   [](const Expr& expr) { return VisitStruct(expr, DistributeVisitor{}); });
+                   [](const Expr& expr) { return Distribute(expr); });
 
     // Are any of the child expressions additions?
     const std::size_t total_terms =
@@ -88,16 +88,15 @@ struct DistributeVisitor {
   }
 
   Expr Apply(const Expr&, const UnaryFunction& f) const {
-    std::optional<Expr> inner = VisitStruct(f.Arg(), DistributeVisitor{});
-    ASSERT(inner);
-    return CreateUnaryFunction(f.Func(), *inner);
+    const Expr& arg = f.Arg();
+    return CreateUnaryFunction(f.Func(), Distribute(arg));
   }
 
   Expr Apply(const Expr&, const Power& pow) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
-    return Power::Create(VisitStruct(a, DistributeVisitor{}), VisitStruct(b, DistributeVisitor{}));
+    return Power::Create(Distribute(a), Distribute(b));
   }
 
   Expr Apply(const Expr& arg, const Constant&) const { return arg; }

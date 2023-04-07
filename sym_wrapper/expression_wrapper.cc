@@ -1,4 +1,5 @@
 // Copyright 2023 Gareth Cross
+#include <optional>
 #include <vector>
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES
@@ -59,6 +60,14 @@ std::variant<Expr, py::list> CreateSymbols(std::variant<std::string_view, py::it
   return std::visit([](const auto& input) { return CreateSymbolsFrom(input); }, std::move(arg));
 }
 
+std::variant<double, Expr> EvalToNumeric(const Expr& self) {
+  Expr eval = self.Eval();
+  if (const Float* f = TryCast<Float>(eval); f != nullptr) {
+    return f->GetValue();
+  }
+  return eval;
+}
+
 namespace math {
 // Defined in matrix_wrapper_methods.cc
 void WrapMatrixOperations(py::module_& m);
@@ -94,6 +103,7 @@ PYBIND11_MODULE(pysym, m) {
       .def("distribute", &Expr::Distribute, "Expand products of additions and subtractions.")
       .def("subs", &Expr::Subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
+      .def("eval", &EvalToNumeric, "Evaluate into float expression.")
       // Operators:
       .def(py::self + py::self)
       .def(py::self - py::self)
