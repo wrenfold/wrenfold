@@ -241,7 +241,10 @@ Expr MultiplicationParts::CreateMultiplication(std::vector<Expr>&& args) const {
                  [](const auto& pair) { return Power::Create(pair.first, pair.second); });
 
   std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
-    return VisitBinaryStruct(a, b, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
+    const auto& a_base = AsBaseAndExponent(a).first;
+    const auto& b_base = AsBaseAndExponent(b).first;
+    return VisitBinaryStruct(a_base, b_base, OrderVisitor{}) ==
+           OrderVisitor::RelativeOrder::LessThan;
   });
   return MaybeNewMul(std::move(args));
 }

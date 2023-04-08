@@ -128,7 +128,9 @@ Expr AdditionParts::CreateAddition(std::vector<Expr>&& args) const {
     return Multiplication::FromTwoOperands(pair.first, pair.second);
   });
   std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
-    return VisitBinaryStruct(a, b, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
+    const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
+    const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
+    return VisitBinaryStruct(a_mul, b_mul, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
   });
   if (args.empty()) {
     return Constants::Zero;
