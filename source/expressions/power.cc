@@ -140,6 +140,7 @@ Expr Power::Create(const Expr& a, const Expr& b) {
 
   // Check if the base is a multiplication.
   // In this case, we convert to a multiplication of powers:
+  // TODO: Should we only do this distribution for integer powers?
   if (const Multiplication* const mul = CastPtr<Multiplication>(a); mul != nullptr) {
     std::vector<Expr> args;
     args.reserve(mul->Arity());
@@ -152,12 +153,9 @@ Expr Power::Create(const Expr& a, const Expr& b) {
 }
 
 std::pair<Expr, Expr> AsBaseAndExponent(const Expr& expr) {
-  const auto result = VisitLambda(expr, [](const Power& power) {
+  if (const Power* pow = CastPtr<Power>(expr); pow != nullptr) {
     // Return as base/exponent pair.
-    return std::make_pair(power.Base(), power.Exponent());
-  });
-  if (result.has_value()) {
-    return *result;
+    return std::make_pair(pow->Base(), pow->Exponent());
   }
   return std::make_pair(expr, Constants::One);
 }

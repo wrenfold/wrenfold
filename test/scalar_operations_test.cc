@@ -69,7 +69,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   // Collapsing of numeric terms:
   ASSERT_IDENTICAL(1_s, 1_s * 1 * 1);
   ASSERT_IDENTICAL(x, 1 * x);
-  ASSERT_IDENTICAL(y, y * 2 * (1_s / 2));
+  ASSERT_IDENTICAL(y, y * 2 * (1 / 2_s));
   ASSERT_IDENTICAL(y * z, (y * 3) * 2 * (1 / 6_s) * z);
   ASSERT_IDENTICAL(z * (10_s / 21), (5 / 3_s) * z * (2 / 7_s));
 
@@ -82,14 +82,16 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(pow(x, 2), x * x);
   ASSERT_IDENTICAL(pow(x, 3), x * x * x);
   ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), x * y * x * y);
-  ASSERT_IDENTICAL(Constants::One, pow(x, 2) * pow(x, -2));
+  ASSERT_IDENTICAL(1, pow(x, 2) * pow(x, -2));
   ASSERT_IDENTICAL(x * pow(y, 2) * pow(log(z), 3), log(z) * y * x * log(z) * y * log(z));
-  ASSERT_IDENTICAL(1_s / 33 * x * pow(3, 2_s / 3) * pow(11, 2_s / 3),
-                   pow(33, -2_s / 3) * pow(33, 1_s / 3) * x);
+  ASSERT_IDENTICAL(1 / 33_s * x * pow(3, 2 / 3_s) * pow(11, 2 / 3_s),
+                   pow(33, -2 / 3_s) * pow(33, 1 / 3_s) * x);
+  ASSERT_IDENTICAL(x, sqrt(x) * sqrt(x));
+  ASSERT_IDENTICAL(pow(x, 3 / 2_s), sqrt(x) * sqrt(x) * sqrt(x));
 
   // Normalization of powers of integers:
-  ASSERT_IDENTICAL(2 * pow(2, 1_s / 7), pow(2, 3_s / 7) * pow(2, 5_s / 7));
-  ASSERT_IDENTICAL(pow(5, 10_s / 11) / 25, pow(5, -5_s / 11) * pow(5, -7_s / 11));
+  ASSERT_IDENTICAL(2 * pow(2, 1 / 7_s), pow(2, 3 / 7_s) * pow(2, 5 / 7_s));
+  ASSERT_IDENTICAL(pow(5, 10 / 11_s) / 25, pow(5, -5 / 11_s) * pow(5, -7 / 11_s));
 
   // Including symbolics constants:
   ASSERT_IDENTICAL(pow(Constants::Pi, 3), Constants::Pi * Constants::Pi * Constants::Pi);
@@ -97,8 +99,8 @@ TEST(ScalarOperationsTest, TestMultiplication) {
 
   // Collections of powers of functions:
   ASSERT_IDENTICAL(pow(cos(x), 2), cos(x) * cos(x));
-  ASSERT_IDENTICAL(pow(cos(x), 2) * pow(tan(y), 3_s / 5),
-                   cos(x) * cos(x) * pow(tan(y), 1_s / 5) * pow(tan(y), 2_s / 5));
+  ASSERT_IDENTICAL(pow(cos(x), 2) * pow(tan(y), 3 / 5_s),
+                   cos(x) * cos(x) * pow(tan(y), 1 / 5_s) * pow(tan(y), 2 / 5_s));
   ASSERT_IDENTICAL(pow(sin(x), 2) * pow(log(z * y), Constants::NegativeOne),
                    sin(x) * sin(x) / log(z * y));
 }
@@ -191,9 +193,9 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(-243_s, pow(-3, 5));
   ASSERT_IDENTICAL(Constants::Zero, pow(0, 10));
   ASSERT_IDENTICAL(Rational::Create(1, 8), pow(2, -3));
-  ASSERT_IDENTICAL(25_s / 64, pow(5 / 8_s, 2));
-  ASSERT_IDENTICAL(343_s / 729, pow(9_s / 7, -3));
-  ASSERT_IDENTICAL(1_s / 5, pow(5, -1));
+  ASSERT_IDENTICAL(25 / 64_s, pow(5 / 8_s, 2));
+  ASSERT_IDENTICAL(343 / 729_s, pow(9 / 7_s, -3));
+  ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));
   ASSERT_THROW(pow(0, -1), AssertionError);
 
   // Floats...
@@ -218,11 +220,12 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(pow(x, y * 2), pow(pow(x, y), 2));
   ASSERT_IDENTICAL(pow(x, y * 27), pow(pow(x, y * 3), 9));
   ASSERT_IDENTICAL(pow(x, 3.0), pow(pow(x, 1.5), 2.0));
-  ASSERT_IDENTICAL(pow(x, 2_s / 5), pow(pow(x, 1_s / 5), 2));
-  ASSERT_IDENTICAL(pow(x, 6_s / 55), pow(pow(x, 2_s / 11), 3_s / 5));
-  ASSERT_IDENTICAL(pow(x, 3_s / 4 * z), pow(pow(x, 3_s / 4), z));
-  ASSERT_IDENTICAL(pow(x, 0.25), pow(pow(x, 1_s / 2), 0.5));
+  ASSERT_IDENTICAL(pow(x, 2 / 5_s), pow(pow(x, 1 / 5_s), 2));
+  ASSERT_IDENTICAL(pow(x, 6 / 55_s), pow(pow(x, 2 / 11_s), 3_s / 5));
+  ASSERT_IDENTICAL(pow(x, 3 / 4_s * z), pow(pow(x, 3 / 4_s), z));
+  ASSERT_IDENTICAL(pow(x, 0.25), pow(pow(x, 1 / 2_s), 0.5));
   ASSERT_IDENTICAL(pow(x, 3.0), pow(pow(x, 1.0), 3));
+  ASSERT_IDENTICAL(pow(x, -1 / 2_s), 1 / sqrt(x));
 
   // Should not simplify:
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 2), 1 / 2_s));
@@ -232,10 +235,16 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_NOT_IDENTICAL(pow(x, -2), pow(pow(x, 14), -1 / 7_s));
   ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y), 1 / 4_s));
   ASSERT_NOT_IDENTICAL(pow(x, 2 * z), pow(pow(x, 2), z));
+  ASSERT_NOT_IDENTICAL(pow(x, -1 / 2_s), sqrt(1 / x));
+  ASSERT_NOT_IDENTICAL(pow(x, 1 / 2_s) * pow(z, -1 / 2_s), sqrt(x / z));
 
   // Powers of multiplications:
   ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), pow(x * y, 2));
   ASSERT_IDENTICAL(pow(x, z) * pow(y, z), pow(x * y, z));
+
+  // TODO: This should produce `i` = sqrt(-1)
+  ASSERT_IDENTICAL(sqrt(-1) * sqrt(2) * sqrt(x), pow(-2 * x, 1_s / 2));
+  ASSERT_IDENTICAL(sqrt(-1) * 3 * sqrt(x), pow(-9 * x, 1_s / 2));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {
