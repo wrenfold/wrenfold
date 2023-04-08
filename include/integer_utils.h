@@ -40,6 +40,12 @@ inline std::vector<PrimeFactor> ComputePrimeFactors(const int64_t n_in) {
   std::vector<PrimeFactor> result;
   result.reserve(10);
   int64_t x = n_in;
+  if (x == 0) {
+    return result;
+  } else if (x < 0) {
+    result.push_back(PrimeFactor{-1, 1});
+    x = -x;
+  }
   while (x != 1) {
     const int64_t factor = WheelFactorization(x);
     if (!result.empty() && result.back().base == factor) {

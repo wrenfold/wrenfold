@@ -158,9 +158,9 @@ inline Expr DiffTyped(const Expr& expr, const T& arg, const int reps) {
 
 Expr Diff(const Expr& differentiand, const Expr& arg, const int reps) {
   ASSERT_GREATER_OR_EQ(reps, 0);
-  if (const Variable* var = TryCast<Variable>(arg); var != nullptr) {
+  if (const Variable* var = CastPtr<Variable>(arg); var != nullptr) {
     return DiffTyped<Variable>(differentiand, *var, reps);
-  } else if (const FunctionArgument* func = TryCast<FunctionArgument>(arg); func != nullptr) {
+  } else if (const FunctionArgument* func = CastPtr<FunctionArgument>(arg); func != nullptr) {
     return DiffTyped<FunctionArgument>(differentiand, *func, reps);
   } else {
     throw TypeError(

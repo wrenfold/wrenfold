@@ -21,7 +21,7 @@ Expr pow(const Expr& x, const Expr& y) { return Power::Create(x, y); }
 
 template <typename Callable>
 std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
-  if (const Float* const f = TryCast<Float>(arg); f != nullptr) {
+  if (const Float* const f = CastPtr<Float>(arg); f != nullptr) {
     const auto value = f->GetValue();
     return Float::Create(method(value));
   }
@@ -29,9 +29,9 @@ std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
 }
 
 std::optional<Rational> TryCastToRational(const Expr& expr) {
-  if (const Rational* const r = TryCast<Rational>(expr); r != nullptr) {
+  if (const Rational* const r = CastPtr<Rational>(expr); r != nullptr) {
     return *r;
-  } else if (const Integer* const i = TryCast<Integer>(expr); i != nullptr) {
+  } else if (const Integer* const i = CastPtr<Integer>(expr); i != nullptr) {
     return static_cast<Rational>(*i);
   }
   return {};

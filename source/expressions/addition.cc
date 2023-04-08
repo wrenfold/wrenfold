@@ -19,7 +19,7 @@ inline Expr FromMatrixOperands(const std::vector<Expr>& args) {
   std::vector<const Matrix*> matrices;
   matrices.reserve(args.size());
   std::transform(args.begin(), args.end(), std::back_inserter(matrices), [](const Expr& expr) {
-    if (const Matrix* const m = TryCast<Matrix>(expr); m != nullptr) {
+    if (const Matrix* const m = CastPtr<Matrix>(expr); m != nullptr) {
       return m;
     } else {
       throw TypeError("Cannot add scalar expression of type {} to matrix. Expression contents: {}",
@@ -36,7 +36,8 @@ inline Expr FromMatrixOperands(const std::vector<Expr>& args) {
 }
 
 Expr Addition::FromOperands(const std::vector<Expr>& args) {
-  const bool input_contains_matrix = std::any_of(args.begin(), args.end(), &TryCast<Matrix>);
+  const bool input_contains_matrix =
+      std::any_of(args.begin(), args.end(), [](const Expr& arg) { return arg.Is<Matrix>(); });
   if (input_contains_matrix) {
     return FromMatrixOperands(args);
   }
@@ -127,7 +128,9 @@ Expr AdditionParts::CreateAddition(std::vector<Expr>&& args) const {
     return Multiplication::FromTwoOperands(pair.first, pair.second);
   });
   std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
-    return VisitBinaryStruct(a, b, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
+    const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
+    const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
+    return VisitBinaryStruct(a_mul, b_mul, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
   });
   if (args.empty()) {
     return Constants::Zero;

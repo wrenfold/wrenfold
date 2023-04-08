@@ -101,29 +101,29 @@ struct PowerNumerics {
     }
     return Multiplication::FromOperands(operands);
   }
-
-  // Handle a power raised to another integer power.
-  template <typename T>
-  std::enable_if_t<ContainsTypeHelper<T, Integer, Rational, Float>, Expr> Apply(const Power& a,
-                                                                                const T&) {
-    // Multiply the powers. We can use expr_a_/b_ here directly instead of reallocating.
-    return Power::Create(a.Base(), Multiplication::FromTwoOperands(a.Exponent(), expr_b_));
-  }
-
-  // We construct this object w/ two references to the input expressions so that we can pass them
-  // w/o reallocating when required.
-  PowerNumerics(const Expr&, const Expr& b) : expr_b_(b) {}
-
-  const Expr& expr_b_;
 };
 
 Expr Power::Create(const Expr& a, const Expr& b) {
   // Check for numeric quantities.
-  // This handles powers of numbers, and common cases like 0^0, int^1, etc...
-  // This also handles pow(pow(x, y), n) -> pow(x, y*n) where n is a numeric.
-  std::optional<Expr> numeric_pow = VisitBinaryStruct(a, b, PowerNumerics{a, b});
+  std::optional<Expr> numeric_pow = VisitBinaryStruct(a, b, PowerNumerics{});
   if (numeric_pow) {
     return *numeric_pow;
+  }
+
+  // Check if the base is itself a power:
+  if (const Power* a_pow = CastPtr<Power>(a); a_pow != nullptr) {
+    // We want to avoid doing incorrect simplifications like:
+    //    (x^2)^(1/2) --> x (incorrect, loses the sign of x)
+    //    (x^2)^0.5 --> x
+    //    (x^2)^z --> x^(2*z) (incorrect, z could be 1/2 or 0.5)
+    //    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
+    // If the inner is already a rational, or the outer is an integer - we can multiply
+    // safely. If the outer is a float, it can be multiplied onto rationals or floats.
+    const bool can_multiply_exponents = a_pow->Exponent().Is<Rational>() || b.Is<Integer>() ||
+                                        (a_pow->Exponent().Is<Float>() && b.Is<Float>());
+    if (can_multiply_exponents) {
+      return Power::Create(a_pow->Base(), a_pow->Exponent() * b);
+    }
   }
 
   // Check for zeroes:
@@ -140,7 +140,8 @@ Expr Power::Create(const Expr& a, const Expr& b) {
 
   // Check if the base is a multiplication.
   // In this case, we convert to a multiplication of powers:
-  if (const Multiplication* const mul = TryCast<Multiplication>(a); mul != nullptr) {
+  // TODO: Should we only do this distribution for integer powers?
+  if (const Multiplication* const mul = CastPtr<Multiplication>(a); mul != nullptr) {
     std::vector<Expr> args;
     args.reserve(mul->Arity());
     for (const Expr& arg : mul->Args()) {
@@ -152,12 +153,9 @@ Expr Power::Create(const Expr& a, const Expr& b) {
 }
 
 std::pair<Expr, Expr> AsBaseAndExponent(const Expr& expr) {
-  const auto result = VisitLambda(expr, [](const Power& power) {
+  if (const Power* pow = CastPtr<Power>(expr); pow != nullptr) {
     // Return as base/exponent pair.
-    return std::make_pair(power.Base(), power.Exponent());
-  });
-  if (result.has_value()) {
-    return *result;
+    return std::make_pair(pow->Base(), pow->Exponent());
   }
   return std::make_pair(expr, Constants::One);
 }

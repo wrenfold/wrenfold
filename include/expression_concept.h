@@ -8,14 +8,8 @@ class ExpressionConcept {
  public:
   virtual ~ExpressionConcept() = default;
 
-  // Cast to particular type.
-  template <typename T>
-  const T* As() const {
-    return dynamic_cast<const T*>(this);
-  }
-
   // Test if two expressions are identical.
-  bool IsIdenticalTo(const ExpressionConcept& other) const { return IsIdenticalToImpl(other); }
+  virtual bool IsIdenticalTo(const ExpressionConcept& other) const = 0;
 
   // Apply a visitor to this expression.
   virtual void Receive(class VisitorBase& visitor) const = 0;
@@ -26,9 +20,16 @@ class ExpressionConcept {
   // Is this expression a leaf-node type.
   virtual bool IsLeaf() const = 0;
 
+  // Check if the underlying derived type is one of `... Ts`.
+  template <typename... Ts>
+  bool IsType() const {
+    static_assert((ContainsType<Ts, ApprovedTypeList> && ...), "Ts is not a valid expression type");
+    return (TypeMatchesIndex(IndexOfType<Ts, ApprovedTypeList>::Value) || ...);
+  }
+
  protected:
-  // Implemented by derived class. Called after we check ptr address.
-  virtual bool IsIdenticalToImpl(const ExpressionConcept& other) const = 0;
+  // True if the underlying type matches the provided index.
+  virtual bool TypeMatchesIndex(std::size_t index) const = 0;
 };
 
 }  // namespace math

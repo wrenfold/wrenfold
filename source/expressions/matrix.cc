@@ -30,7 +30,7 @@ Matrix Matrix::Transpose() const {
 }
 
 void Matrix::MultiplyByScalarInPlace(const Expr& arg) {
-  if (TryCast<Matrix>(arg)) {
+  if (arg.Is<Matrix>()) {
     throw TypeError("Expected a scalar expression, but got a matrix of type: {}", arg.TypeName());
   }
   for (Expr& expr : data_) {

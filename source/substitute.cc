@@ -150,7 +150,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
 
       // See how many times we can divide term into the target expression
       const Expr multiple = it->second / exponent;
-      if (const Integer* const as_int = TryCast<Integer>(multiple); as_int != nullptr) {
+      if (const Integer* const as_int = CastPtr<Integer>(multiple); as_int != nullptr) {
         // We do `abs` here so that doing a substitution like:
         // 1 / (x*x*y*y*y) replacing [x*y -> w] produces 1 / (w*w*y)
         // Instead of producing (if we used the sign): x / w^3
@@ -160,7 +160,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
             as_int->Abs() < max_valid_integer_exponent.value().Abs()) {
           max_valid_integer_exponent = *as_int;
         }
-      } else if (const Rational* const as_rational = TryCast<Rational>(multiple);
+      } else if (const Rational* const as_rational = CastPtr<Rational>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, _] = as_rational->Normalize();
         // Same rationale for `abs` as above for integers:
@@ -218,7 +218,7 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
     }
 
     // If the exponent is an addition, it might contain a multiple of our target exponent.
-    if (const Addition* const add_exp = TryCast<Addition>(candidate.Exponent());
+    if (const Addition* const add_exp = CastPtr<Addition>(candidate.Exponent());
         add_exp != nullptr) {
       const auto [target_exp_coeff, target_exp_mul] = AsCoefficientAndMultiplicand(target_exponent);
 
@@ -228,14 +228,14 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
       if (it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
         const Expr ratio = it->second / target_exp_coeff;
-        if (const Integer* const as_int = TryCast<Integer>(ratio); as_int != nullptr) {
+        if (const Integer* const as_int = CastPtr<Integer>(ratio); as_int != nullptr) {
           // It divides evenly. This case handles things like:
           // x**(3*y + 5) replacing [x**y -> w] producing w**3 * x**5
           parts.terms.erase(it);
           // Put the exponent back together and swap in the replacement:
           Expr new_exponent = parts.CreateAddition({});
           return Power::Create(replacement, ratio) * Power::Create(candidate_base, new_exponent);
-        } else if (const Rational* const as_rational = TryCast<Rational>(ratio);
+        } else if (const Rational* const as_rational = CastPtr<Rational>(ratio);
                    as_rational != nullptr) {
           const auto [int_part, _] = as_rational->Normalize();
           if (!int_part.GetValue()) {
@@ -255,9 +255,9 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
       // See if the exponent is an integer multiple of the target exponent.
       // TODO: De-duplicate this block with the equivalent section in the addition above.
       const Expr multiple = candidate.Exponent() / target_exponent;
-      if (const Integer* const as_int = TryCast<Integer>(multiple); as_int != nullptr) {
+      if (const Integer* const as_int = CastPtr<Integer>(multiple); as_int != nullptr) {
         return Power::Create(replacement, multiple);
-      } else if (const Rational* const as_rational = TryCast<Rational>(multiple);
+      } else if (const Rational* const as_rational = CastPtr<Rational>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, frac_remainder] = as_rational->Normalize();
         if (!int_part.GetValue()) {

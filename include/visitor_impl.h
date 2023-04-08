@@ -168,7 +168,6 @@ Expr VisitChildren(const Expr& expr, VisitorType&& visitor) {
 // The struct must declare a ReturnType associated type.
 template <typename VisitorType>
 auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
-  //  using ReturnType = typename MaybeVoid<typename std::decay_t<VisitorType>::ReturnType>::Type;
   using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
   using Policy = typename std::decay_t<VisitorType>::Policy;
 
@@ -209,28 +208,6 @@ auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
     return result;
   }
 }
-
-// Cast to type `T` using a visitor. Returns nullptr if the cast is invalid.
-// Based on some experiments w/ quick-bench, this is 6x-9x faster than dynamic_cast.
-// TODO: Profile on a more complicated expression tree to see how much difference it makes.
-// TODO: This should probably use a custom type-id system.
-template <typename T>
-const T* TryCast(const Expr& x) {
-  return VisitLambda(x, [](const T& y) { return &y; }).value_or(nullptr);
-}
-
-// Thrown for un-implemented visitors.
-class VisitorNotImplemented final : public std::exception {
- public:
-  // ConstructMatrix w/ the visitor name and the argument name.
-  VisitorNotImplemented(const char* VisitorName, const char* ArgumentName);
-
-  // Return string for the exception.
-  const char* what() const noexcept override;
-
- private:
-  std::string what_;
-};
 
 // Variant of ApplyOrThrow that takes no argument.
 template <typename Derived, typename Policy, typename Argument>
