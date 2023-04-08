@@ -6,7 +6,8 @@
 #include <variant>
 #include <vector>
 
-#include "expressions/function_expressions.h"  //temporary
+#include "assertions.h"
+#include "enumerations.h"
 
 namespace math::ast {
 

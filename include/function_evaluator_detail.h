@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ast.h"
+#include "constants.h"
 #include "expressions/function_argument.h"
 #include "template_utils.h"
 #include "type_annotations.h"

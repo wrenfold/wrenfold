@@ -1,6 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include "expression.h"
+#include "functions.h"
 #include "matrix_functions.h"
 #include "type_annotations.h"
 

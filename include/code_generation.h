@@ -9,7 +9,6 @@
 
 #include "ast.h"
 #include "expression.h"
-#include "expressions/function_expressions.h"  //  temporary
 #include "function_evaluator.h"
 
 namespace math {

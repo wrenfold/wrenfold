@@ -4,6 +4,9 @@
 
 namespace math {
 
+// Index type for matrices/vectors.
+using index_t = int;
+
 // Mathematical precedence of operators.
 enum class Precedence : int {
   Addition = 0,
@@ -23,7 +26,67 @@ enum class RelativeOrder : int {
   GreaterThan = 1,
 };
 
-// Index type for matrices/vectors.
-using index_t = int;
+// Types of built-in unary functions.
+// clang-format off
+enum class UnaryFunctionName {
+  Cos = 0,
+  Sin,
+  Tan,
+  ArcCos,
+  ArcSin,
+  ArcTan,
+  Log,
+  Sqrt,
+  // Just to get the length of the enum:
+  ENUM_SIZE,
+};
+// clang-format on
+
+// clang-format off
+enum class BinaryFunctionName {
+  Mod,
+  Pow,
+  // Just to get the length of the enum:
+  ENUM_SIZE,
+};
+// clang-format on
+
+// Convert unary function enum to string.
+constexpr std::string_view ToString(const UnaryFunctionName name) {
+  switch (name) {
+    case UnaryFunctionName::Cos:
+      return "cos";
+    case UnaryFunctionName::Sin:
+      return "sin";
+    case UnaryFunctionName::Tan:
+      return "tan";
+    case UnaryFunctionName::ArcCos:
+      return "acos";
+    case UnaryFunctionName::ArcSin:
+      return "asin";
+    case UnaryFunctionName::ArcTan:
+      return "atan";
+    case UnaryFunctionName::Log:
+      return "ln";
+    case UnaryFunctionName::Sqrt:
+      return "sqrt";
+    case UnaryFunctionName::ENUM_SIZE:
+      return "<NOT A VALID ENUM VALUE>";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
+
+// Convert binary function enum to string.
+constexpr std::string_view ToString(const BinaryFunctionName name) {
+  switch (name) {
+    case BinaryFunctionName::Mod:
+      return "mod";
+    case BinaryFunctionName::Pow:
+      return "pow";
+    case BinaryFunctionName::ENUM_SIZE:
+      return "<NOT A VALID ENUM VALUE>";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
 
 }  // namespace math
