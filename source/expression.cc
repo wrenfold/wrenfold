@@ -51,4 +51,18 @@ Expr operator/(const Expr& a, const Expr& b) {
   return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));
 }
 
+// Visitor to determine mathematical precedence.
+struct PrecedenceVisitor {
+  using Policy = VisitorPolicy::NoError;
+  using ReturnType = Precedence;
+  constexpr Precedence Apply(const Multiplication&) const { return Precedence::Multiplication; }
+  constexpr Precedence Apply(const Addition&) const { return Precedence::Addition; }
+  constexpr Precedence Apply(const Power&) const { return Precedence::Power; }
+  constexpr Precedence Apply(const Rational&) const { return Precedence::Multiplication; }
+};
+
+Precedence GetPrecedence(const Expr& expr) {
+  return VisitStruct(expr, PrecedenceVisitor{}).value_or(Precedence::None);
+}
+
 }  // namespace math

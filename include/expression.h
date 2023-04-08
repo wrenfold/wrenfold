@@ -138,6 +138,10 @@ struct ExpressionOrderPredicate {
   }
 };
 
+// Get operation precedence (order of operations).
+// Implemented in expression.cc
+Precedence GetPrecedence(const Expr& expr);
+
 // Custom literal suffix support.
 namespace custom_literals {
 inline Expr operator"" _s(unsigned long long int arg) { return Expr{arg}; }
