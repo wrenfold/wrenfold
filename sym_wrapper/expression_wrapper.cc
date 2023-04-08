@@ -13,7 +13,6 @@
 #include "expressions/variable.h"
 #include "functions.h"
 #include "plain_formatter.h"
-#include "tree_formatter.h"
 
 namespace py = pybind11;
 using namespace py::literals;

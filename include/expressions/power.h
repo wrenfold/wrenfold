@@ -1,9 +1,7 @@
 // Copyright 2022 Gareth Cross
 #pragma once
-
 #include "expression.h"
 #include "expressions/numeric_expressions.h"
-#include "operation_bases.h"
 
 namespace math {
 

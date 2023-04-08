@@ -1,6 +1,4 @@
 // Copyright 2022 Gareth Cross
-#include "tree_formatter.h"
-
 #include <fmt/format.h>
 #include <vector>
 

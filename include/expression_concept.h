@@ -1,5 +1,5 @@
 #pragma once
-#include "expression_fwd.h"
+#include "visitor_base.h"
 
 namespace math {
 

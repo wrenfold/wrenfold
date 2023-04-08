@@ -4,7 +4,6 @@
 #include "functions.h"
 #include "matrix_functions.h"
 #include "test_helpers.h"
-#include "tree_formatter.h"
 
 namespace math {
 using namespace math::custom_literals;

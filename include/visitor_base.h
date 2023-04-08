@@ -2,11 +2,14 @@
 #pragma once
 #include <memory>
 
-#include "expression_fwd.h"
-#include "operations_fwd.h"
+#include "enumerations.h"
+#include "expressions/expressions_fwd.h"
 #include "template_utils.h"
 
 namespace math {
+
+class Expr;
+class ExpressionConcept;
 
 // TODO: Allow switching this out for something w/o atomic operations?
 using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>;

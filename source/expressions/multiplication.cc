@@ -8,7 +8,6 @@
 #include "integer_utils.h"
 #include "ordering.h"
 #include "string_utils.h"
-#include "tree_formatter.h"
 #include "visitor_impl.h"
 
 namespace math {

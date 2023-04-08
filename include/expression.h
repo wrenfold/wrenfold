@@ -116,6 +116,10 @@ inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   return stream;
 }
 
+// Print debug tree of expressions to a string.
+// Implemented in tree_formatter.cc
+std::string FormatDebugTree(const Expr& expr);
+
 // Math operators.
 Expr operator+(const Expr& a, const Expr& b);
 Expr operator-(const Expr& a, const Expr& b);

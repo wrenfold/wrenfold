@@ -1,11 +1,8 @@
-// Copyright 2022 Gareth Cross
+// Copyright 2023 Gareth Cross
 #pragma once
-#include "visitor_base.h"
+#include <limits>
 
 namespace math {
-
-class Expr;
-class ExpressionConcept;
 
 // Mathematical precedence of operators.
 enum class Precedence : int {

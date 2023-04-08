@@ -1,3 +1,4 @@
+// Copyright 2023 Gareth Cross
 #pragma once
 #include "expression.h"
 
