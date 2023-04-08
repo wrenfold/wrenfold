@@ -1,17 +1,16 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "expression.h"
-
 #include <algorithm>
+#include <array>
 #include <typeindex>
 #include <unordered_map>
 #include <variant>
 #include <vector>
 
 #include "ast.h"
+#include "expression.h"
 #include "expressions/function_expressions.h"  //  temporary
 #include "function_evaluator.h"
-#include "ordering.h"
 
 namespace math {
 namespace ir {
@@ -54,37 +53,35 @@ using Operand = std::variant<Value, Expr>;
 // Struct that orders the `Operand` type.
 struct OperandOrder {
   // Order assignments by index.
-  OrderVisitor::RelativeOrder operator()(Value l, Value r) const {
+  RelativeOrder operator()(Value l, Value r) const {
     if (l < r) {
-      return OrderVisitor::RelativeOrder::LessThan;
+      return RelativeOrder::LessThan;
     } else if (l == r) {
-      return OrderVisitor::RelativeOrder::Equal;
+      return RelativeOrder::Equal;
     } else {
-      return OrderVisitor::RelativeOrder::GreaterThan;
+      return RelativeOrder::GreaterThan;
     }
   }
 
   // Order assignment operands before input value operands.
-  constexpr OrderVisitor::RelativeOrder operator()(const Value&, const Expr&) const {
-    return OrderVisitor::RelativeOrder::LessThan;
+  constexpr RelativeOrder operator()(const Value&, const Expr&) const {
+    return RelativeOrder::LessThan;
   }
-  constexpr OrderVisitor::RelativeOrder operator()(const Expr&, const Value&) const {
-    return OrderVisitor::RelativeOrder::GreaterThan;
+  constexpr RelativeOrder operator()(const Expr&, const Value&) const {
+    return RelativeOrder::GreaterThan;
   }
 
   // Order input value operands as we typically would.
-  OrderVisitor::RelativeOrder operator()(const Expr& l, const Expr& r) const {
-    return VisitBinaryStruct(l, r, OrderVisitor{});
-  }
+  RelativeOrder operator()(const Expr& l, const Expr& r) const { return ExpressionOrder(l, r); }
 
-  OrderVisitor::RelativeOrder operator()(const Operand& l, const Operand& r) const {
+  RelativeOrder operator()(const Operand& l, const Operand& r) const {
     return std::visit(*this, l, r);
   }
 };
 
 struct OperandOrderBool {
   bool operator()(const Operand& l, const Operand& r) const {
-    return OperandOrder{}(l, r) == OrderVisitor::RelativeOrder::LessThan;
+    return OperandOrder{}(l, r) == RelativeOrder::LessThan;
   }
 };
 
@@ -104,7 +101,7 @@ struct OperationBase {
   bool operator==(const OperationBase& other) const {
     return std::equal(args.begin(), args.end(), other.args.begin(), other.args.end(),
                       [](const Operand& a, const Operand& b) {
-                        return OperandOrder{}(a, b) == OrderVisitor::RelativeOrder::Equal;
+                        return OperandOrder{}(a, b) == RelativeOrder::Equal;
                       });
   }
 

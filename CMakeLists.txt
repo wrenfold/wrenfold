@@ -27,6 +27,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/derivative.cc
     source/distribute.cc
     source/expression.cc
+    source/ordering.cc
     source/expressions/addition.cc
     source/expressions/constant_expressions.cc
     source/expressions/matrix.cc

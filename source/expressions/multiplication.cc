@@ -6,7 +6,6 @@
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
 #include "integer_utils.h"
-#include "ordering.h"
 #include "string_utils.h"
 #include "visitor_impl.h"
 
@@ -242,8 +241,7 @@ Expr MultiplicationParts::CreateMultiplication(std::vector<Expr>&& args) const {
   std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
     const auto& a_base = AsBaseAndExponent(a).first;
     const auto& b_base = AsBaseAndExponent(b).first;
-    return VisitBinaryStruct(a_base, b_base, OrderVisitor{}) ==
-           OrderVisitor::RelativeOrder::LessThan;
+    return ExpressionOrderPredicate{}(a_base, b_base);
   });
   return MaybeNewMul(std::move(args));
 }

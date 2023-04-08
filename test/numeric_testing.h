@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 
 #include "expression.h"
-#include "expressions/numeric_expressions.h"
+#include "expressions/all_expressions.h"  //  Needed for NumericFunctionEvaluator
 #include "function_evaluator_detail.h"
 #include "type_annotations.h"
 #include "visitor_impl.h"

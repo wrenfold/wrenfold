@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "expressions/matrix.h"
 #include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "hashing.h"
-#include "ordering.h"
 
 namespace math {
 
@@ -130,7 +130,7 @@ Expr AdditionParts::CreateAddition(std::vector<Expr>&& args) const {
   std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
     const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
     const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
-    return VisitBinaryStruct(a_mul, b_mul, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
+    return ExpressionOrderPredicate{}(a_mul, b_mul);
   });
   if (args.empty()) {
     return Constants::Zero;

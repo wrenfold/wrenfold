@@ -1,24 +1,12 @@
-// Copyright 2022 Gareth Cross
-#pragma once
-
+// Copyright 2023 Gareth Cross
 #include "assertions.h"
+#include "expression.h"
 #include "expressions/all_expressions.h"
-#include "visitor_base.h"
 
 namespace math {
 
 // Visitor that can be used to sort expressions by determining their relative order.
-// TODO: Move into cc file.
 struct OrderVisitor {
-  // Describe the relative order of two expressions (a, b)
-  enum class RelativeOrder {
-    // a < b
-    LessThan = -1,
-    // a == b
-    Equal = 0,
-    // a > b
-    GreaterThan = 1,
-  };
   using ReturnType = RelativeOrder;
   using Policy = VisitorPolicy::CompileError;
 
@@ -151,5 +139,9 @@ struct OrderVisitor {
     return RelativeOrder::Equal;  //  they are equal
   }
 };
+
+RelativeOrder ExpressionOrder(const Expr& a, const Expr& b) {
+  return VisitBinaryStruct(a, b, OrderVisitor{});
+}
 
 }  // namespace math

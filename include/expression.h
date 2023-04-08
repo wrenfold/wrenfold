@@ -126,6 +126,18 @@ Expr operator-(const Expr& a, const Expr& b);
 Expr operator*(const Expr& a, const Expr& b);
 Expr operator/(const Expr& a, const Expr& b);
 
+// Determine relative order of two expressions (for sorting).
+// Can be used to sort expressions into a canonical order, for instance to sort them.
+// Implemented in ordering.cc
+RelativeOrder ExpressionOrder(const Expr& a, const Expr& b);
+
+// Predicate for sorting expressions.
+struct ExpressionOrderPredicate {
+  bool operator()(const Expr& a, const Expr& b) const {
+    return ExpressionOrder(a, b) == RelativeOrder::LessThan;
+  }
+};
+
 // Custom literal suffix support.
 namespace custom_literals {
 inline Expr operator"" _s(unsigned long long int arg) { return Expr{arg}; }
