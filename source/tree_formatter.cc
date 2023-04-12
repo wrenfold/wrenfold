@@ -86,6 +86,8 @@ struct TreeFormatter {
     VisitRight(op.Exponent());
   }
 
+  void Apply(const Infinity&) { AppendName("Infinity"); }
+
   void Apply(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
 
   void Apply(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }

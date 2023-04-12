@@ -21,13 +21,16 @@ struct EvaluateVisitor {
     switch (c.GetName()) {
       case SymbolicConstants::Euler:
         return Float::Create(std::exp(1.0));
-      case SymbolicConstants::Infinity:
-        return Float::Create(std::numeric_limits<double>::infinity());
       case SymbolicConstants::Pi:
         return Float::Create(M_PI);
+      default:
+        break;
     }
     ASSERT(false, "Invalid symbolic constant: {}", StringFromSymbolicConstant(c.GetName()));
     return Float::Create(std::numeric_limits<double>::quiet_NaN());
+  }
+  Expr Apply(const Infinity&) const {
+    throw TypeError("Cannot evaluate complex infinity to float.");
   }
   Expr Apply(const Expr&, const Integer& i) const { return MakeExpr<Float>(static_cast<Float>(i)); }
   Expr Apply(const Expr& arg, const Float&) const { return arg; }

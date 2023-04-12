@@ -108,8 +108,8 @@ class DiffVisitor {
     return Constants::Zero;
   }
 
+  Expr Apply(const Infinity&) const { return Constants::Zero; }
   Expr Apply(const Integer&) const { return Constants::Zero; }
-
   Expr Apply(const Float&) const { return Constants::Zero; }
 
   Expr Apply(const FunctionArgument& arg) const {

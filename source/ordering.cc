@@ -10,8 +10,9 @@ struct OrderVisitor {
   using ReturnType = RelativeOrder;
   using Policy = VisitorPolicy::CompileError;
 
-  using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Variable, FunctionArgument,
-                                Multiplication, Addition, Power, UnaryFunction, Matrix>;
+  using OrderOfTypes =
+      TypeList<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
+               Multiplication, Addition, Power, UnaryFunction, Matrix>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ApprovedTypeList>::Value);
@@ -38,6 +39,10 @@ struct OrderVisitor {
     } else if (b < a) {
       return RelativeOrder::GreaterThan;
     }
+    return RelativeOrder::Equal;
+  }
+
+  constexpr RelativeOrder Compare(const Infinity&, const Infinity&) const {
     return RelativeOrder::Equal;
   }
 

@@ -10,6 +10,8 @@ class Constants {
   static const Expr Euler;
   static const Expr NegativeOne;
   static const Expr Infinity;
+  static const Expr True;
+  static const Expr False;
 };
 
 inline bool IsZero(const Expr& expr) { return expr.IsIdenticalTo(Constants::Zero); }
@@ -25,8 +27,9 @@ inline bool IsInfinity(const Expr& expr) { return expr.IsIdenticalTo(Constants::
 // List of symbolic constants.
 enum class SymbolicConstants : int {
   Euler,
-  Infinity,
   Pi,
+  True,
+  False,
 };
 
 // A placeholder used to default initialize certain expressions during code-generation.

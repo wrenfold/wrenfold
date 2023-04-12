@@ -66,6 +66,11 @@ struct HashVisitor {
     return HashCombine(type_hash, arg_hash);
   }
 
+  constexpr std::size_t Apply(const Infinity&) const {
+    constexpr std::size_t type_hash = HashString("Infinity");
+    return type_hash;
+  }
+
   std::size_t Apply(const Integer& i) const {
     constexpr std::size_t type_hash = HashString("Integer");
     return HashCombine(type_hash, Hash<Integer>{}(i));

@@ -19,6 +19,7 @@ using ApprovedTypeList = TypeList<
     class Constant,
     class Float,
     class FunctionArgument,
+    class Infinity,
     class Integer,
     class Matrix,
     class Multiplication,

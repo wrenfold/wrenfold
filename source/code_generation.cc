@@ -159,6 +159,9 @@ struct IRFormVisitor {
     return operations_.PushOperation<CallUnaryFunc>(func.Func(), std::move(arg));
   }
 
+  Operand Apply(const Expr&, const Infinity&) const {
+    throw TypeError("Cannot generate code for complex infinity.");
+  }
   Operand Apply(const Expr& input_expression, const Integer&) const { return input_expression; }
   Operand Apply(const Expr& input_expression, const Float&) const { return input_expression; }
   Operand Apply(const Expr& input_expression, const FunctionArgument&) const {

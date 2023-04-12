@@ -11,7 +11,9 @@ const Expr Constants::One = MakeExpr<Integer>(1);
 const Expr Constants::Pi = MakeExpr<Constant>(SymbolicConstants::Pi);
 const Expr Constants::Euler = MakeExpr<Constant>(SymbolicConstants::Euler);
 const Expr Constants::NegativeOne = MakeExpr<Integer>(-1);
-const Expr Constants::Infinity = MakeExpr<Constant>(SymbolicConstants::Infinity);
+const Expr Constants::Infinity = MakeExpr<math::Infinity>();
+const Expr Constants::True = MakeExpr<Constant>(SymbolicConstants::True);
+const Expr Constants::False = MakeExpr<Constant>(SymbolicConstants::False);
 
 Expr GetUnfilledExprPlaceholder() {
   static const Expr expr{"<PLACEHOLDER>"};

@@ -55,6 +55,10 @@ void PlainFormatter::Apply(const Constant& expr) {
   output_ += StringFromSymbolicConstant(expr.GetName());
 }
 
+void PlainFormatter::Apply(const Infinity&) {
+  fmt::format_to(std::back_inserter(output_), "z-inf");
+}
+
 void PlainFormatter::Apply(const Integer& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
 }
