@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "enumerations.h"
-#include "expressions/expressions_fwd.h"
 #include "template_utils.h"
 
 namespace math {
@@ -16,17 +15,17 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
 
 // clang-format off
 using ApprovedTypeList = TypeList<
-    Addition,
-    Constant,
-    Float,
-    FunctionArgument,
-    Integer,
-    Matrix,
-    Multiplication,
-    Power,
-    Rational,
-    UnaryFunction,
-    Variable
+    class Addition,
+    class Constant,
+    class Float,
+    class FunctionArgument,
+    class Integer,
+    class Matrix,
+    class Multiplication,
+    class Power,
+    class Rational,
+    class UnaryFunction,
+    class Variable
     >;
 // clang-format on
 
