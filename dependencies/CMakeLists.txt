@@ -3,7 +3,6 @@ function(add_libfmt)
       OFF
       CACHE BOOL "" FORCE) # Turn off libfmt tests
   add_subdirectory(fmt EXCLUDE_FROM_ALL) # Don't need to install.
-  set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 add_libfmt()
 

@@ -61,7 +61,7 @@ else()
 endif()
 
 target_compile_options(${LIBRARY_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
-target_link_libraries(${LIBRARY_NAME} fmt)
+target_link_libraries(${LIBRARY_NAME} fmt-header-only)
 
 # Includes
 target_include_directories(

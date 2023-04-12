@@ -1,8 +1,8 @@
 // Copyright 2023 Gareth Cross
 #include <filesystem>
+#include <fstream>
 
 #include <fmt/format.h>
-#include <fmt/os.h>
 
 #include "code_generation.h"
 #include "cpp_code_generator.h"
@@ -47,6 +47,9 @@ int main() {
   GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v", Arg("D_v", false));
 
   code += "\n\n} // namespace gen";
-  fmt::output_file("generated.h").print("{}", code);
+
+  std::ofstream output{"generated.h"};
+  output << code;
+  output.flush();
   return 0;
 }

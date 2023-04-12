@@ -1,7 +1,7 @@
 # Create a library with reusable test utilities.
 set(TEST_LIBRARY_NAME ${PROJECT_NAME}_test_utils)
 add_library(${TEST_LIBRARY_NAME} STATIC test_helpers.cc)
-target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main fmt eigen)
+target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main eigen)
 target_compile_options(${TEST_LIBRARY_NAME} PUBLIC ${MATH_COMPILATION_FLAGS})
 
 get_target_property(EIGEN_INCLUDE_DIRS eigen INTERFACE_INCLUDE_DIRECTORIES)
@@ -28,7 +28,7 @@ foreach(test_file ${${PROJECT_NAME}_TEST_SOURCES})
   # add test executable for every file
   message(STATUS "Discovered test: ${test_name}")
   add_executable(${test_name} ${test_file} custom_main.cc)
-  target_link_libraries(${test_name} ${TEST_LIBRARY_NAME} gtest fmt)
+  target_link_libraries(${test_name} ${TEST_LIBRARY_NAME} gtest)
   target_include_directories(${test_name} PRIVATE ${TEST_CONFIG_OUTPUT_DIR})
 
   add_test(${test_name} ${test_name})
@@ -45,7 +45,7 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
                  ${TEST_OUTPUT_DIR}/config_variables.h)
 
   add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
-  target_link_libraries(${generate_target} ${TEST_LIBRARY_NAME} fmt)
+  target_link_libraries(${generate_target} ${TEST_LIBRARY_NAME})
   target_include_directories(${generate_target} PRIVATE ${TEST_OUTPUT_DIR})
   target_compile_definitions(${generate_target} PRIVATE GENERATION_TIME)
 
@@ -63,7 +63,7 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   # Then create a target that evaluates the result:
   set(evaluate_target ${NAME}_evaluate)
   add_executable(${evaluate_target} ${TEST_SOURCE_FILE} custom_main.cc)
-  target_link_libraries(${evaluate_target} ${TEST_LIBRARY_NAME} gtest fmt eigen)
+  target_link_libraries(${evaluate_target} ${TEST_LIBRARY_NAME} gtest eigen)
   target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})
   target_compile_definitions(${evaluate_target} PRIVATE EVALUATION_TIME)
 
