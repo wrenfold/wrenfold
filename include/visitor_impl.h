@@ -8,17 +8,34 @@
 #include "template_utils.h"
 #include "visitor_base.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4250)  // inherit via dominance
+#endif
+
 namespace math {
 
-// Implementation of a visitor.
-template <typename Derived, typename Policy>
-class VisitorImpl : public VisitorBase {
+// Implement abstract method from `VisitorDeclare`.
+template <typename Derived, typename Policy, typename T>
+class VisitorImpl : public virtual VisitorDeclare<T> {
  public:
-  // Cast to non-const derived type.
-  Derived& AsDerived() { return static_cast<Derived&>(*this); }
-
-  IMPLEMENT_ALL_VIRTUAL_APPLY_METHODS()
+  void ApplyVirtual(const T& arg) override {
+    // Check if derived type implements an apply method for T.
+    if constexpr (HasApplyMethod<Derived, T>) {
+      static_cast<Derived*>(this)->Apply(arg);
+    }
+    static_assert(
+        HasApplyMethod<Derived, T> || !std::is_same_v<Policy, VisitorPolicy::CompileError>,
+        "The visitor fails to implement a required method");
+  }
 };
+
+// Inherit from `VisitorImpl` for all types in a type list.
+template <typename Derived, typename Policy, typename T>
+class VisitorImplAll;
+template <typename Derived, typename Policy, typename... Ts>
+class VisitorImplAll<Derived, Policy, TypeList<Ts...>>
+    : public VisitorBase, public VisitorImpl<Derived, Policy, Ts>... {};
 
 // Some amazing magic. TODO: Make language feature.
 struct Void {};
@@ -38,7 +55,8 @@ struct MaybeVoid<void> {
 // the result is left empty.
 template <typename ReturnType, typename VisitorType, typename Policy>
 struct VisitorWithCapturedResult final
-    : public VisitorImpl<VisitorWithCapturedResult<ReturnType, VisitorType, Policy>, Policy> {
+    : public VisitorImplAll<VisitorWithCapturedResult<ReturnType, VisitorType, Policy>, Policy,
+                            ApprovedTypeList> {
  public:
   // ConstructMatrix with non-const ref to visitor type.
   VisitorWithCapturedResult(VisitorType& impl, const Expr& input)
@@ -209,15 +227,8 @@ auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
   }
 }
 
-// Variant of ApplyOrThrow that takes no argument.
-template <typename Derived, typename Policy, typename Argument>
-void ApplyOrThrow(VisitorImpl<Derived, Policy>& visitor, const Argument& arg) {
-  if constexpr (HasApplyMethod<Derived, Argument>) {
-    visitor.AsDerived().Apply(arg);
-  }
-  static_assert(
-      HasApplyMethod<Derived, Argument> || !std::is_same_v<Policy, VisitorPolicy::CompileError>,
-      "The visitor fails to implement a required method");
-}
-
 }  // namespace math
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
