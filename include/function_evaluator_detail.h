@@ -143,6 +143,7 @@ struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>, IsO
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
     for (std::size_t i = 0; i < Rows * Cols; ++i) {
       if constexpr (IsOutputArg) {
+        (void)arg_index;  //  Suppress unused variable warning on GCC.
         expressions.push_back(GetUnfilledExprPlaceholder());
       } else {
         expressions.push_back(FunctionArgument::Create(arg_index, i));

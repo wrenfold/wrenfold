@@ -21,6 +21,7 @@
 build/
 build/*
 tmp/
+build_linux/*
 
 # QTCREATOR PROJECT
 *.includes

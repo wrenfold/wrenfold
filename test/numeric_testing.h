@@ -146,7 +146,9 @@ template <std::size_t... Indices, typename... NumericArgs>
 void CollectFunctionInputs(NumericFunctionEvaluator& evaluator, std::index_sequence<Indices...>,
                            NumericArgs&&... args) {
   static_assert(sizeof...(Indices) <= sizeof...(NumericArgs));
+#ifndef __GNUG__
   ([]() constexpr { static_assert(Indices <= sizeof...(NumericArgs)); }(), ...);
+#endif
   // Access args specified by `Indices` and call `CollectFunctionInput` on all of them.
   (CollectFunctionInput<Indices>(evaluator, std::get<Indices>(std::forward_as_tuple(args...))),
    ...);
