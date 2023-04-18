@@ -9,7 +9,8 @@ using index_t = int;
 
 // Mathematical precedence of operators.
 enum class Precedence : int {
-  Addition = 0,
+  Relational = 0,
+  Addition,
   Multiplication,
   Power,
   None = std::numeric_limits<int>::max(),
@@ -50,6 +51,19 @@ enum class BinaryFunctionName {
   ENUM_SIZE,
 };
 // clang-format on
+
+// Convert `RelativeOrder` to string view.
+constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
+  switch (order) {
+    case RelativeOrder::LessThan:
+      return "LessThan";
+    case RelativeOrder::Equal:
+      return "Equal";
+    case RelativeOrder::GreaterThan:
+      return "GreaterThan";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
 
 // Convert unary function enum to string.
 constexpr std::string_view ToString(const UnaryFunctionName name) {
