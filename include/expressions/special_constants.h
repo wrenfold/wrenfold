@@ -56,3 +56,14 @@ inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants v
 inline bool operator<(const Constant& a, const Constant& b) { return a.GetName() < b.GetName(); }
 
 }  // namespace math
+
+// Formatter for printing in assertions.
+template <>
+struct fmt::formatter<math::Constant, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::Constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "{}", math::StringFromSymbolicConstant(x.GetName()));
+  }
+};

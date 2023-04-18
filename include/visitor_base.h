@@ -25,6 +25,7 @@ using ApprovedTypeList = TypeList<
     class Multiplication,
     class Power,
     class Rational,
+    class Relational,
     class UnaryFunction,
     class Variable
     >;

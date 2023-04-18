@@ -31,6 +31,7 @@ class PlainFormatter {
   void Apply(const Multiplication& mul);
   void Apply(const Power& pow);
   void Apply(const Rational& rational);
+  void Apply(const Relational& relational);
   void Apply(const UnaryFunction& func);
   void Apply(const Variable& var);
 

@@ -6,6 +6,8 @@
 #include "integer_utils.h"
 #include "test_helpers.h"
 
+#include "expressions/numeric_expressions.h"
+
 // Format PrimeFactor
 template <>
 struct fmt::formatter<math::PrimeFactor, char> {

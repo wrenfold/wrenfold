@@ -23,6 +23,10 @@ struct EvaluateVisitor {
         return Float::Create(std::exp(1.0));
       case SymbolicConstants::Pi:
         return Float::Create(M_PI);
+      case SymbolicConstants::True:
+        return Constants::One;
+      case SymbolicConstants::False:
+        return Constants::Zero;
       default:
         break;
     }
@@ -36,6 +40,7 @@ struct EvaluateVisitor {
   Expr Apply(const Expr& arg, const Float&) const { return arg; }
   Expr Apply(const Expr& arg, const FunctionArgument&) const { return arg; }
   Expr Apply(const Rational& r) const { return Float::Create(static_cast<Float>(r)); }
+  Expr Apply(const Relational& r) const { return MapChildren(r, &Eval); }
   Expr Apply(const Expr& arg, const Variable&) const { return arg; }
 };
 

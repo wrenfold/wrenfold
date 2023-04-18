@@ -100,6 +100,12 @@ struct TreeFormatter {
     AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());
   }
 
+  void Apply(const Relational& relational) {
+    AppendName("Relational ({})", relational.OperationString());
+    VisitLeft(relational.Left());
+    VisitRight(relational.Right());
+  }
+
   void Apply(const UnaryFunction& func) {
     AppendName("UnaryFunction ({}):", func.Name());
     VisitRight(func.Arg());

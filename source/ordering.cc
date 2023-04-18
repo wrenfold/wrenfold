@@ -12,7 +12,7 @@ struct OrderVisitor {
 
   using OrderOfTypes =
       TypeList<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
-               Multiplication, Addition, Power, UnaryFunction, Matrix>;
+               Multiplication, Addition, Power, UnaryFunction, Matrix, Relational>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ApprovedTypeList>::Value);
@@ -113,6 +113,21 @@ struct OrderVisitor {
       return RelativeOrder::GreaterThan;
     }
     return RelativeOrder::Equal;
+  }
+
+  RelativeOrder Compare(const Relational& a, const Relational& b) const {
+    if (a.Operation() < b.Operation()) {
+      return RelativeOrder::LessThan;
+    } else if (a.Operation() > b.Operation()) {
+      return RelativeOrder::GreaterThan;
+    }
+    const RelativeOrder base_order = VisitBinaryStruct(a.Left(), b.Left(), OrderVisitor{});
+    if (base_order == RelativeOrder::LessThan) {
+      return RelativeOrder::LessThan;
+    } else if (base_order == RelativeOrder::GreaterThan) {
+      return RelativeOrder::GreaterThan;
+    }
+    return VisitBinaryStruct(a.Right(), b.Right(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const Variable& a, const Variable& b) const {

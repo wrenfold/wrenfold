@@ -7,5 +7,6 @@
 #include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "expressions/power.h"
+#include "expressions/relational.h"
 #include "expressions/special_constants.h"
 #include "expressions/variable.h"

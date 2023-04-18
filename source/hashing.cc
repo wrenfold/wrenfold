@@ -99,6 +99,11 @@ struct HashVisitor {
     return HashCombine(type_hash, Hash<Rational>{}(r));
   }
 
+  std::size_t Apply(const Relational& r) const {
+    constexpr std::size_t type_hash = HashString("Relational");
+    return HashBinary(type_hash, r.Left(), r.Right());
+  }
+
   std::size_t Apply(const UnaryFunction& f) const {
     constexpr std::size_t type_hash = HashString("UnaryFunction");
     // Create a lookup table of hashes for each function name:

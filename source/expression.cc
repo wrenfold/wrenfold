@@ -6,6 +6,7 @@
 #include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "expressions/power.h"
+#include "expressions/relational.h"
 #include "expressions/variable.h"
 #include "plain_formatter.h"
 
@@ -51,6 +52,26 @@ Expr operator/(const Expr& a, const Expr& b) {
   return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));
 }
 
+Expr operator<(const Expr& a, const Expr& b) {
+  return Relational::Create(RelationalOperation::LessThan, a, b);
+}
+
+Expr operator>(const Expr& a, const Expr& b) {
+  return Relational::Create(RelationalOperation::LessThan, b, a);
+}
+
+Expr operator<=(const Expr& a, const Expr& b) {
+  return Relational::Create(RelationalOperation::LessThanOrEqual, a, b);
+}
+
+Expr operator>=(const Expr& a, const Expr& b) {
+  return Relational::Create(RelationalOperation::LessThanOrEqual, b, a);
+}
+
+Expr operator==(const Expr& a, const Expr& b) {
+  return Relational::Create(RelationalOperation::Equal, a, b);
+}
+
 // Visitor to determine mathematical precedence.
 struct PrecedenceVisitor {
   using Policy = VisitorPolicy::NoError;
@@ -59,6 +80,7 @@ struct PrecedenceVisitor {
   constexpr Precedence Apply(const Addition&) const { return Precedence::Addition; }
   constexpr Precedence Apply(const Power&) const { return Precedence::Power; }
   constexpr Precedence Apply(const Rational&) const { return Precedence::Multiplication; }
+  constexpr Precedence Apply(const Relational&) const { return Precedence::Relational; }
 };
 
 Precedence GetPrecedence(const Expr& expr) {

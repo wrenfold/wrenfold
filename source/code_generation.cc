@@ -175,6 +175,9 @@ struct IRFormVisitor {
   }
 
   Operand Apply(const Expr& input_expression, const Rational&) const { return input_expression; }
+
+  Operand Apply(const Relational&) const { throw TypeError("TODO: Implement me!"); }
+
   Operand Apply(const Expr& input_expression, const Variable&) const { return input_expression; }
 
  private:

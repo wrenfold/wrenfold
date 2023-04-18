@@ -105,6 +105,7 @@ struct DistributeVisitor {
   Expr Apply(const Expr& arg, const Float&) const { return arg; }
   Expr Apply(const Expr& arg, const FunctionArgument&) const { return arg; }
   Expr Apply(const Expr& arg, const Rational&) const { return arg; }
+  Expr Apply(const Relational& relation) const { return MapChildren(relation, &Distribute); }
   Expr Apply(const Expr& arg, const Variable&) const { return arg; }
 };
 

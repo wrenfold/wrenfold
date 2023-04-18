@@ -184,6 +184,12 @@ void PlainFormatter::Apply(const Rational& expr) {
   fmt::format_to(std::back_inserter(output_), "{} / {}", expr.Numerator(), expr.Denominator());
 }
 
+void PlainFormatter::Apply(const Relational& expr) {
+  FormatPrecedence(Precedence::Relational, expr.Left());
+  fmt::format_to(std::back_inserter(output_), " {} ", expr.OperationString());
+  FormatPrecedence(Precedence::Relational, expr.Right());
+}
+
 void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
 
 void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr) {

@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+#include "error_types.h"
+
 namespace math {
 
 using namespace math::custom_literals;
@@ -132,6 +134,12 @@ class DiffVisitor {
   }
 
   Expr Apply(const Rational&) const { return Constants::Zero; }
+
+  Expr Apply(const Relational& relational) const {
+    throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", relational.TypeName(),
+                    relational.Left().ToString(), relational.OperationString(),
+                    relational.Right().ToString());
+  }
 
   Expr Apply(const Variable& var) const {
     if constexpr (std::is_same_v<Variable, T>) {
