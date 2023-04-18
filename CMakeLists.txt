@@ -29,7 +29,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/expression.cc
     source/ordering.cc
     source/expressions/addition.cc
-    source/expressions/constant_expressions.cc
+    source/expressions/numeric_expressions.cc
     source/expressions/matrix.cc
     source/expressions/multiplication.cc
     source/expressions/power.cc
@@ -42,7 +42,8 @@ set(${LIBRARY_NAME}_SOURCES
     source/code_generation.cc
     source/substitute.cc
     source/cpp_code_generator.cc
-    source/matrix_expression.cc)
+    source/matrix_expression.cc
+    source/expressions/relational.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})
