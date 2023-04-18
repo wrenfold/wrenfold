@@ -20,26 +20,20 @@ class DiffVisitor {
 
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit DiffVisitor(T argument) : argument_(std::move(argument)) {}
+  explicit DiffVisitor(const T& argument) : argument_(argument) {}
 
   // Differentiate every argument to make a new sum.
   Expr Apply(const Addition& add) {
-    std::vector<Expr> terms;
-    terms.reserve(add.Arity());
-    std::transform(add.begin(), add.end(), std::back_inserter(terms),
-                   [this](const Expr& x) { return VisitStruct(x, *this); });
-    return Addition::FromOperands(terms);
+    return MapChildren(add, [&](const Expr& x) { return VisitStruct(x, *this); });
   }
+
+  Expr Apply(const Conditional&) const { throw TypeError("IMPLEMENT ME!"); }
 
   Expr Apply(const Constant&) const { return Constants::Zero; }
 
   // Element-wise derivative of matrix.
   Expr Apply(const Matrix& mat) {
-    std::vector<Expr> output;
-    output.reserve(mat.Size());
-    std::transform(mat.begin(), mat.end(), std::back_inserter(output),
-                   [this](const Expr& x) { return VisitStruct(x, *this); });
-    return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
+    return MapChildren(mat, [this](const Expr& x) { return VisitStruct(x, *this); });
   }
 
   // Do product expansion over all terms in the multiplication:
@@ -151,7 +145,7 @@ class DiffVisitor {
   }
 
  private:
-  T argument_;
+  const T& argument_;
 };
 
 template <typename T>

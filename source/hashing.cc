@@ -35,17 +35,23 @@ struct HashVisitor {
     return seed;
   }
 
-  std::size_t HashUnary(const std::size_t seed, const Expr& expr) const {
-    return HashCombine(seed, HashExpression(expr));
-  }
-
-  std::size_t HashBinary(const std::size_t seed, const Expr& a, const Expr& b) const {
-    return HashCombine(seed, HashCombine(HashExpression(a), HashExpression(b)));
+  template <typename... Ts>
+  std::size_t HashExpressions(std::size_t seed, const Ts&... expressions) const {
+    const std::array<std::size_t, sizeof...(Ts)> hashes = {HashExpression(expressions)...};
+    for (std::size_t i = 0; i < hashes.size(); ++i) {
+      seed = HashCombine(seed, hashes[i]);
+    }
+    return seed;
   }
 
   std::size_t Apply(const Addition& a) const {
     constexpr std::size_t type_hash = HashString("Addition");
     return HashAll(type_hash, a.begin(), a.end());
+  }
+
+  std::size_t Apply(const Conditional& c) const {
+    constexpr std::size_t type_hash = HashString("Conditional");
+    return HashExpressions(type_hash, c.Condition(), c.IfBranch(), c.ElseBranch());
   }
 
   std::size_t Apply(const Constant& c) const {
@@ -91,7 +97,7 @@ struct HashVisitor {
 
   std::size_t Apply(const Power& p) const {
     constexpr std::size_t type_hash = HashString("Power");
-    return HashBinary(type_hash, p.Base(), p.Exponent());
+    return HashExpressions(type_hash, p.Base(), p.Exponent());
   }
 
   std::size_t Apply(const Rational& r) const {
@@ -101,7 +107,7 @@ struct HashVisitor {
 
   std::size_t Apply(const Relational& r) const {
     constexpr std::size_t type_hash = HashString("Relational");
-    return HashBinary(type_hash, r.Left(), r.Right());
+    return HashExpressions(type_hash, r.Left(), r.Right());
   }
 
   std::size_t Apply(const UnaryFunction& f) const {
@@ -109,7 +115,7 @@ struct HashVisitor {
     // Create a lookup table of hashes for each function name:
     constexpr static std::array lookup_table = MakeUnaryFunctionHashes();
     const std::size_t func_hash = lookup_table[static_cast<std::size_t>(f.Func())];
-    return HashUnary(HashCombine(type_hash, func_hash), f.Arg());
+    return HashExpressions(HashCombine(type_hash, func_hash), f.Arg());
   }
 
   std::size_t Apply(const Variable& v) const {

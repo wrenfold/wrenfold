@@ -29,6 +29,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/expression.cc
     source/ordering.cc
     source/expressions/addition.cc
+    source/expressions/conditional.cc
     source/expressions/numeric_expressions.cc
     source/expressions/matrix.cc
     source/expressions/multiplication.cc

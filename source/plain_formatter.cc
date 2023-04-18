@@ -51,6 +51,16 @@ void PlainFormatter::Apply(const Addition& expr) {
   }
 }
 
+void PlainFormatter::Apply(const Conditional& conditional) {
+  output_ += "piecewise(";
+  VisitStruct(conditional.Condition(), *this);
+  output_ += ", ";
+  VisitStruct(conditional.IfBranch(), *this);
+  output_ += ", ";
+  VisitStruct(conditional.ElseBranch(), *this);
+  output_ += ")";
+}
+
 void PlainFormatter::Apply(const Constant& expr) {
   output_ += StringFromSymbolicConstant(expr.GetName());
 }

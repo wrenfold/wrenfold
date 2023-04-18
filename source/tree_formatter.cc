@@ -113,6 +113,13 @@ struct TreeFormatter {
 
   void Apply(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
 
+  void Apply(const Conditional& conditional) {
+    AppendName("Conditional:");
+    VisitLeft(conditional.Condition());
+    VisitLeft(conditional.IfBranch());
+    VisitRight(conditional.ElseBranch());
+  }
+
   void Apply(const Constant& constant) {
     AppendName("Constant ({})", StringFromSymbolicConstant(constant.GetName()));
   }

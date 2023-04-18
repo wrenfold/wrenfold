@@ -14,8 +14,9 @@ struct EvaluateVisitor {
   Expr Apply(const Addition& add) const { return MapChildren(add, &Eval); }
   Expr Apply(const Matrix& mat) const { return MapChildren(mat, &Eval); }
   Expr Apply(const Multiplication& mul) const { return MapChildren(mul, &Eval); }
-  Expr Apply(const Expr&, const UnaryFunction& f) const { return MapChildren(f, &Eval); }
-  Expr Apply(const Expr&, const Power& pow) const { return MapChildren(pow, &Eval); }
+  Expr Apply(const UnaryFunction& f) const { return MapChildren(f, &Eval); }
+  Expr Apply(const Power& pow) const { return MapChildren(pow, &Eval); }
+  Expr Apply(const Conditional& cond) const { return MapChildren(cond, &Eval); }
 
   Expr Apply(const Constant& c) const {
     switch (c.GetName()) {
@@ -36,7 +37,7 @@ struct EvaluateVisitor {
   Expr Apply(const Infinity&) const {
     throw TypeError("Cannot evaluate complex infinity to float.");
   }
-  Expr Apply(const Expr&, const Integer& i) const { return MakeExpr<Float>(static_cast<Float>(i)); }
+  Expr Apply(const Integer& i) const { return MakeExpr<Float>(static_cast<Float>(i)); }
   Expr Apply(const Expr& arg, const Float&) const { return arg; }
   Expr Apply(const Expr& arg, const FunctionArgument&) const { return arg; }
   Expr Apply(const Rational& r) const { return Float::Create(static_cast<Float>(r)); }

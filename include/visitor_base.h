@@ -16,6 +16,7 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
 // clang-format off
 using ApprovedTypeList = TypeList<
     class Addition,
+    class Conditional,
     class Constant,
     class Float,
     class FunctionArgument,

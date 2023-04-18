@@ -22,6 +22,7 @@ class PlainFormatter {
   PlainFormatter(PowerStyle style) : power_style_(style) {}
 
   void Apply(const Addition& add);
+  void Apply(const Conditional& conditional);
   void Apply(const Constant& constant);
   void Apply(const Float& num);
   void Apply(const FunctionArgument& func_arg);

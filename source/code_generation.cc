@@ -150,6 +150,8 @@ struct IRFormVisitor {
     return prev_result;
   }
 
+  Operand Apply(const Conditional&) const { throw TypeError("TODO: Implement me"); }
+
   Operand Apply(const Expr& input_expression, const Constant&) const { return input_expression; }
 
   Operand Apply(const Matrix&) const { throw TypeError("Cannot evaluate this on a matrix."); }

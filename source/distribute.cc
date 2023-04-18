@@ -13,25 +13,10 @@ struct DistributeVisitor {
   using ReturnType = Expr;
   using Policy = VisitorPolicy::CompileError;
 
-  Expr Apply(const Expr&, const Addition& add) const {
-    std::vector<Expr> args{};
-    args.reserve(add.Arity());
-    for (std::size_t i = 0; i < add.Arity(); ++i) {
-      Expr distributed = Distribute(add[i]);
-      args.push_back(std::move(distributed));
-    }
-    return Addition::FromOperands(args);
-  }
+  Expr Apply(const Addition& add) const { return MapChildren(add, &Distribute); }
+  Expr Apply(const Matrix& mat) const { return MapChildren(mat, &Distribute); }
 
-  Expr Apply(const Expr&, const Matrix& mat) const {
-    std::vector<Expr> output;
-    output.reserve(mat.Size());
-    std::transform(mat.begin(), mat.end(), std::back_inserter(output),
-                   [](const Expr& x) { return Distribute(x); });
-    return MakeExpr<Matrix>(mat.NumRows(), mat.NumCols(), std::move(output));
-  }
-
-  Expr Apply(const Expr&, const Multiplication& mul) const {
+  Expr Apply(const Multiplication& mul) const {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};
     children.reserve(mul.Arity());
@@ -87,17 +72,19 @@ struct DistributeVisitor {
     return Addition::FromOperands(output_terms);
   }
 
-  Expr Apply(const Expr&, const UnaryFunction& f) const {
+  Expr Apply(const UnaryFunction& f) const {
     const Expr& arg = f.Arg();
     return CreateUnaryFunction(f.Func(), Distribute(arg));
   }
 
-  Expr Apply(const Expr&, const Power& pow) const {
+  Expr Apply(const Power& pow) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
     return Power::Create(Distribute(a), Distribute(b));
   }
+
+  Expr Apply(const Conditional& conditional) const { return MapChildren(conditional, &Distribute); }
 
   Expr Apply(const Expr& arg, const Constant&) const { return arg; }
   Expr Apply(const Expr& arg, const Infinity&) const { return arg; }
