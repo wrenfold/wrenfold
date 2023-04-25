@@ -5,16 +5,6 @@
 
 namespace math {
 
-// Types of relations we can express:
-enum class RelationalOperation {
-  // a < b
-  LessThan,
-  // a <= b
-  LessThanOrEqual,
-  // a == b
-  Equal,
-};
-
 // Convert `RelationalOperation` to string.
 constexpr std::string_view StringFromRelationalOperation(const RelationalOperation op) {
   switch (op) {

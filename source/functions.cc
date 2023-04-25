@@ -194,4 +194,19 @@ Expr sqrt(const Expr& arg) {
   return Power::Create(arg, one_half);
 }
 
+Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
+  const Matrix* mat_true = CastPtr<Matrix>(if_true);
+  const Matrix* mat_false = CastPtr<Matrix>(if_false);
+  if (mat_true || mat_false) {
+    if (!mat_true || !mat_false) {
+      throw TypeError(
+          "Cannot mix matrix and scalar expressions in the if/else clauses. if = {}, else = {}",
+          if_true.TypeName(), if_false.TypeName());
+    }
+    // todo: implement
+    ASSERT(false);
+  }
+  return Conditional::Create(condition, if_true, if_false);
+}
+
 }  // namespace math

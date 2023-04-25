@@ -52,6 +52,16 @@ enum class BinaryFunctionName {
 };
 // clang-format on
 
+// Types of relations we can express:
+enum class RelationalOperation {
+  // a < b
+  LessThan,
+  // a <= b
+  LessThanOrEqual,
+  // a == b
+  Equal,
+};
+
 // Convert `RelativeOrder` to string view.
 constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
   switch (order) {

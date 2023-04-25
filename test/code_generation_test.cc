@@ -107,4 +107,29 @@ TEST(CodeGenerationTest, TestCreateIR5) {
   ASSERT_IDENTICAL(D_theta[1], ir.CreateExpressionForOutput(3)) << ir.ToString();
 }
 
+TEST(CodeGenerationTest, TestCreateIR6) {
+  // Test a single conditional expression.
+  const auto [x, eps] = Symbols("x", "eps");
+  const auto f = where(pow(x, 2) > eps, sin(x) / x, 1 - pow(x, 2) / 6 + pow(x, 4) / 120);
+  IrBuilder ir{{f}};
+  ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.ToString();
+  ir.EliminateDuplicates();
+  ASSERT_IDENTICAL(f, ir.CreateExpressionForOutput(0)) << ir.ToString();
+}
+
+TEST(CodeGenerationTest, TestCreateIR7) {
+  // Test nested conditional expressions
+  const auto [x, a, b, c, d] = Symbols("x", "a", "b", "c", "d");
+  const auto l1 = a * x + b;
+  const auto a1 = where(l1 > 0, l1, 0);
+  const auto l2 = c * l1 + d;
+  const auto a2 = where(l2 > 0, l2, l2 / 10);
+  IrBuilder ir{{a1, a2}};
+  ASSERT_IDENTICAL(a1, ir.CreateExpressionForOutput(0)) << ir.ToString();
+  ASSERT_IDENTICAL(a2, ir.CreateExpressionForOutput(1)) << ir.ToString();
+  ir.EliminateDuplicates();
+  ASSERT_IDENTICAL(a1, ir.CreateExpressionForOutput(0)) << ir.ToString();
+  ASSERT_IDENTICAL(a2, ir.CreateExpressionForOutput(1)) << ir.ToString();
+}
+
 }  // namespace math

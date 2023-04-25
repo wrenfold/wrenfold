@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "ast.h"
+#include "enumerations.h"
 #include "expression.h"
 #include "function_evaluator.h"
 
@@ -144,8 +145,40 @@ struct CallUnaryFunc : public OperationBase<CallUnaryFunc, 1> {
   }
 };
 
+struct Cond : public OperationBase<Cond, 3> {
+  constexpr static bool IsCommutative() { return false; }
+  constexpr std::string_view ToString() const { return "cond"; }
+  explicit Cond(Operand cond, Operand if_branch, Operand else_branch)
+      : OperationBase(std::move(cond), std::move(if_branch), std::move(else_branch)) {}
+};
+
+struct Compare : public OperationBase<Compare, 2> {
+  constexpr static bool IsCommutative() { return false; }
+
+  constexpr std::string_view ToString() const {
+    switch (operation) {
+      case RelationalOperation::LessThan:
+        return "lt";
+      case RelationalOperation::LessThanOrEqual:
+        return "lte";
+      case RelationalOperation::Equal:
+        return "eq";
+    }
+    return "<NOT A VALID ENUM VALUE>";
+  }
+
+  explicit Compare(const RelationalOperation operation, Operand left, Operand right)
+      : OperationBase(std::move(left), std::move(right)), operation(operation) {}
+
+  bool operator==(const Compare& other) const {
+    return operation == other.operation && OperationBase::operator==(other);
+  }
+
+  RelationalOperation operation;
+};
+
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc>;
+using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc, Compare, Cond>;
 
 // Pair together a target value and an operation.
 struct OpWithTarget {

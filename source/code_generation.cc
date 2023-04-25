@@ -160,7 +160,12 @@ struct IRFormVisitor {
     return prev_result;
   }
 
-  Operand Apply(const Conditional&) const { throw TypeError("TODO: Implement me"); }
+  Operand Apply(const Conditional& cond) {
+    Operand condition = VisitStruct(cond.Condition(), *this);
+    Operand if_branch = VisitStruct(cond.IfBranch(), *this);
+    Operand else_branch = VisitStruct(cond.ElseBranch(), *this);
+    return operations_.PushOperation<Cond>(condition, if_branch, else_branch);
+  }
 
   Operand Apply(const Expr& input_expression, const Constant&) const { return input_expression; }
 
@@ -188,7 +193,12 @@ struct IRFormVisitor {
 
   Operand Apply(const Expr& input_expression, const Rational&) const { return input_expression; }
 
-  Operand Apply(const Relational&) const { throw TypeError("TODO: Implement me!"); }
+  Operand Apply(const Relational& relational) {
+    Operand left = VisitStruct(relational.Left(), *this);
+    Operand right = VisitStruct(relational.Right(), *this);
+    return operations_.PushOperation<Compare>(relational.Operation(), std::move(left),
+                                              std::move(right));
+  }
 
   Operand Apply(const Expr& input_expression, const Variable&) const { return input_expression; }
 
@@ -240,6 +250,12 @@ std::size_t HashOp(const Load& load) { return HashOpWithArgs(load); }
 
 std::size_t HashOp(const CallUnaryFunc& call) {
   return HashCombine(HashOpWithArgs(call), static_cast<std::size_t>(call.name));
+}
+
+std::size_t HashOp(const Cond& cond) { return HashOpWithArgs(cond); }
+
+std::size_t HashOp(const Compare& cmp) {
+  return HashCombine(HashOpWithArgs(cmp), static_cast<std::size_t>(cmp.operation));
 }
 
 struct OperationHasher {
@@ -357,6 +373,14 @@ inline Expr CreateExpressionForOp(const ir::Pow&, std::vector<Expr>&& args) {
 inline Expr CreateExpressionForOp(const ir::CallUnaryFunc& func, std::vector<Expr>&& args) {
   ASSERT_EQUAL(1, args.size());
   return CreateUnaryFunction(func.name, args.front());
+}
+
+inline Expr CreateExpressionForOp(const ir::Cond&, std::vector<Expr>&& args) {
+  return where(args[0], args[1], args[2]);
+}
+
+inline Expr CreateExpressionForOp(const ir::Compare& cmp, std::vector<Expr>&& args) {
+  return Relational::Create(cmp.operation, args.front(), args.back());
 }
 
 inline Expr CreateExpressionForOp(const ir::Load&, std::vector<Expr>&& args) {
@@ -524,6 +548,11 @@ struct AstBuilder {
   ast::Variant operator()(const ir::CallUnaryFunc& func) const {
     return ast::Call(func.name, std::visit(*this, func.args[0]));
   }
+
+  ast::Variant operator()(const ir::Compare&) const {
+    throw TypeError("Cannot make ast from compare");
+  }
+  ast::Variant operator()(const ir::Cond&) const { throw TypeError("Cannot make ast from cond"); }
 
  private:
   std::size_t value_width_;
