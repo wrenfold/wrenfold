@@ -147,6 +147,14 @@ struct CallUnaryFunc : public OperationBase<CallUnaryFunc, 1> {
 // Different operations are represented by a variant.
 using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc>;
 
+// Pair together a target value and an operation.
+struct OpWithTarget {
+  Value target;
+  Operation op;
+
+  OpWithTarget(const ir::Value target, ir::Operation&& op) : target(target), op(std::move(op)) {}
+};
+
 }  // namespace ir
 
 // Object for creating the intermediate representation. The IR is then given to the code-generator
@@ -159,17 +167,8 @@ struct IrBuilder {
   // Get the values indices for the outputs.
   const std::vector<ir::Value>& OutputValues() const { return output_values_; }
 
-  // For the specified value, format the list of IR operations required to make it.
-  std::string FormatIR(const ir::Value& value) const;
-
-  // Format the IR for the given output index.
-  std::string FormatIRForOutput(std::size_t index) const {
-    ASSERT_LESS(index, output_values_.size());
-    return FormatIR(output_values_[index]);
-  }
-
   // Format IR for every value.
-  std::string FormatIRAllOutputs() const;
+  std::string ToString() const;
 
   // Size of value numbers when printed (# digits).
   std::size_t ValuePrintWidth() const;
@@ -183,9 +182,6 @@ struct IrBuilder {
     return CreateExpression(output_values_[index]);
   }
 
-  // Get the traversal order for all outputs:
-  std::vector<ir::Value> GetTraversalOrder() const;
-
   // Create AST to be emitted.
   std::vector<ast::Variant> CreateAST(const ast::FunctionSignature& description);
 
@@ -195,25 +191,22 @@ struct IrBuilder {
   // Number of operations:
   std::size_t NumOperations() const { return operations_.size(); }
 
-  // Find an operation from its value:
-  const ir::Operation& Find(const ir::Value& val) const { return operations_.at(val); }
-
  protected:
   // Insert a new operand of type `T` w/ the provided args.
   template <typename T, typename... Args>
   ir::Operand PushOperation(Args&&... args);
 
-  // Get depth-first traversal order of operation tree.
-  std::vector<ir::Value> GetTraversalOrder(const ir::Value& value) const;
-
   // Propagate copied operands for the provided operation, which is modified in place.
-  void PropagateCopiedOperands(ir::Operation& operation) const;
+  void PropagateCopiedOperands(
+      ir::Operation& operation,
+      const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) const;
 
   // Eliminate any unused values from `operations_`.
-  void StripUnusedValues();
+  void StripUnusedValues(
+      const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value);
 
-  // Map of value id to an operation.
-  std::unordered_map<ir::Value, ir::Operation, ir::ValueHash> operations_;
+  // An array of operations and the value IDs they compute.
+  std::vector<ir::OpWithTarget> operations_;
 
   // The output values, one per input expression.
   std::vector<ir::Value> output_values_;
@@ -223,33 +216,5 @@ struct IrBuilder {
 
   friend struct ir::IRFormVisitor;
 };
-
-// class CodeGeneratorBase {
-//  public:
-//   virtual ~CodeGeneratorBase() = default;
-//
-//   //
-//   std::string Generate(const ast::FunctionSignature& func, const std::vector<ast::Variant>& ast);
-//
-//  protected:
-//   virtual void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
-//                             const std::vector<ast::Variant>& ast) = 0;
-// };
-//
-// template <typename Generator>
-// struct CodeGeneratorImpl : public CodeGeneratorBase {
-//  public:
-//   // ConstructMatrix w/ user provided implementation.
-//   explicit CodeGeneratorImpl(Generator&& impl) : impl_(std::move(impl)) {}
-//
-//  protected:
-//   void GenerateImpl(CodeFormatter& formatter, const ast::FunctionSignature& func,
-//                     const std::vector<ast::Variant>& ast) override final {
-//     impl_.Generate(formatter, func, ast);
-//   }
-//
-//  private:
-//   Generator impl_;
-// };
 
 }  // namespace math

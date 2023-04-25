@@ -39,8 +39,7 @@ PYBIND11_MODULE(pycodegen, m) {
       // Construct from a vector of expressions:
       .def(py::init<const std::vector<Expr>&>())
       .def("output_values", &IrBuilder::OutputValues, py::doc("Retrieve list of output values."))
-      .def("format_ir", &IrBuilder::FormatIR,
-           py::doc("Format the IR for a specific output value into a string."))
+      .def("to_string", &IrBuilder::ToString, py::doc("Format the IR to a string for debugging."))
       .def("create_expression", &IrBuilder::CreateExpression,
            py::doc("Rebuild the expression tree for a given IR value."))
       .def("eliminate_duplicates", &IrBuilder::EliminateDuplicates,

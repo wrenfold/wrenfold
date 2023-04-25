@@ -12,6 +12,16 @@
 
 #include "code_formatter.h"
 
+template <>
+struct fmt::formatter<math::ir::Value, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::ir::Value& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "{}", x.Id());
+  }
+};
+
 namespace math {
 namespace ir {
 
@@ -233,13 +243,13 @@ std::size_t HashOp(const CallUnaryFunc& call) {
 }
 
 struct OperationHasher {
-  std::size_t operator()(const Operation& operation) const {
-    return std::visit([](const auto& op) -> std::size_t { return HashOp(op); }, operation);
+  std::size_t operator()(const Operation* const operation) const {
+    return std::visit([](const auto& op) -> std::size_t { return HashOp(op); }, *operation);
   }
 };
 
 struct OperationEquality {
-  bool operator()(const Operation& a, const Operation& b) const {
+  bool operator()(const Operation* const a, const Operation* const b) const {
     return std::visit(
         [&](const auto& a, const auto& b) -> bool {
           using A = std::decay_t<decltype(a)>;
@@ -250,7 +260,7 @@ struct OperationEquality {
             return false;
           }
         },
-        a, b);
+        *a, *b);
   }
 };
 
@@ -264,8 +274,6 @@ IrBuilder::IrBuilder(const std::vector<Expr>& expressions) {
   for (const Expr& expr : expressions) {
     VisitStruct(expr, pair_visitor);
   }
-
-  // need to convert
 
   // Now convert every expression to IR and record the output value:
   for (const Expr& expr : expressions) {
@@ -318,35 +326,13 @@ inline void FormatOpWithArgs(std::string& output, const Op& op, const std::size_
   }
 }
 
-std::string IrBuilder::FormatIR(const ir::Value& value) const {
-  const std::vector<ir::Value> traversal_order = GetTraversalOrder(value);
-  const std::size_t width = ValuePrintWidth();
-
-  std::string output{};
-  for (const ir::Value& val : traversal_order) {
-    auto it = operations_.find(val);
-    ASSERT(it != operations_.end());
-
-    // Print the operation:
-    fmt::format_to(std::back_inserter(output), "v{:0>{}} <- ", val.Id(), width);
-    std::visit([&](const auto& op) { FormatOpWithArgs(output, op, width); }, it->second);
-    output += "\n";
-  }
-  output.pop_back();  //  remove final newline
-  return output;
-}
-
-std::string IrBuilder::FormatIRAllOutputs() const {
-  const auto order = GetTraversalOrder();
+std::string IrBuilder::ToString() const {
   const std::size_t width = ValuePrintWidth();
   std::string output{};
-  for (auto val : order) {
-    auto it = operations_.find(val);
-    ASSERT(it != operations_.end());
-
+  for (const auto& code : operations_) {
     // Print the operation:
-    fmt::format_to(std::back_inserter(output), "v{:0>{}} <- ", val.Id(), width);
-    std::visit([&](const auto& op) { FormatOpWithArgs(output, op, width); }, it->second);
+    fmt::format_to(std::back_inserter(output), "v{:0>{}} <- ", code.target.Id(), width);
+    std::visit([&](const auto& op) { FormatOpWithArgs(output, op, width); }, code.op);
     output += "\n";
   }
   output.pop_back();
@@ -378,18 +364,15 @@ inline Expr CreateExpressionForOp(const ir::Load&, std::vector<Expr>&& args) {
 }
 
 Expr IrBuilder::CreateExpression(const ir::Value& value) const {
-  const std::vector<ir::Value> traversal_order = GetTraversalOrder(value);
+  //  const std::vector<ir::Value> traversal_order = GetTraversalOrder(value);
 
   std::unordered_map<ir::Value, Expr, ir::ValueHash> value_to_expression{};
-  value_to_expression.reserve(traversal_order.size());
+  value_to_expression.reserve(operations_.size());
 
-  for (const ir::Value& val : traversal_order) {
-    const auto it = operations_.find(val);
-    ASSERT(it != operations_.end());
-
+  for (const ir::OpWithTarget& code : operations_) {
     // Visit the operation, and convert it to an expression:
     Expr expr_result = std::visit(
-        [&value_to_expression, val](const auto& op) -> Expr {
+        [&value_to_expression, &code](const auto& op) -> Expr {
           // Unpack all the arguments into `Expr` types:
           std::vector<Expr> arguments;
           arguments.reserve(2);
@@ -398,7 +381,7 @@ Expr IrBuilder::CreateExpression(const ir::Value& value) const {
               const ir::Value arg_val = std::get<ir::Value>(arg);
               const auto arg_it = value_to_expression.find(arg_val);
               ASSERT(arg_it != value_to_expression.end(),
-                     "Missing value: {} (while computing value: {})", arg_val.Id(), val.Id());
+                     "Missing value: {} (while computing value: {})", arg_val, code.target);
               arguments.push_back(arg_it->second);
             } else {
               arguments.push_back(std::get<Expr>(arg));
@@ -406,9 +389,12 @@ Expr IrBuilder::CreateExpression(const ir::Value& value) const {
           }
           return CreateExpressionForOp(op, std::move(arguments));
         },
-        it->second);
+        code.op);
+    value_to_expression.emplace(code.target, std::move(expr_result));
 
-    value_to_expression.emplace(val, std::move(expr_result));
+    if (code.target == value) {
+      break;
+    }
   }
 
   auto final_it = value_to_expression.find(value);
@@ -417,38 +403,40 @@ Expr IrBuilder::CreateExpression(const ir::Value& value) const {
 }
 
 void IrBuilder::EliminateDuplicates() {
-  // Hash map from operation to value
-  std::unordered_map<ir::Operation, ir::Value, ir::OperationHasher, ir::OperationEquality>
-      value_for_variant;
-  value_for_variant.reserve(operations_.size());
+  // Hash map from operation to value:
+  std::unordered_map<const ir::Operation*, ir::Value, ir::OperationHasher, ir::OperationEquality>
+      value_for_op;
+  value_for_op.reserve(operations_.size());
 
-  // determine traversal order:
-  const std::vector<ir::Value> ordered_keys = GetTraversalOrder();
+  // Hash map from value to operation:
+  std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash> op_for_value;
+  op_for_value.reserve(operations_.size());
 
-  for (const ir::Value value : ordered_keys) {
-    auto it = operations_.find(value);
-    ASSERT(it != operations_.end());
-
+  for (ir::OpWithTarget& code : operations_) {
     // First inline operands that directly reference a copy:
-    PropagateCopiedOperands(it->second);
+    PropagateCopiedOperands(code.op, op_for_value);
+
+    // Record which operations yield which values. There should be no duplicates.
+    const bool no_duplicates = op_for_value.emplace(code.target, &code.op).second;
+    ASSERT(no_duplicates, "Duplicate value in map: {}", code.target);
 
     // Then see if this operation already exists in the map:
-    const auto [existing_it, was_inserted] = value_for_variant.emplace(it->second, it->first);
+    const auto [it, was_inserted] = value_for_op.emplace(&code.op, code.target);
     if (!was_inserted) {
       // Insert another copy of a previously computed value:
-      it->second = ir::Load(existing_it->second);
+      code.op = ir::Load(it->second);
     }
   }
 
-  StripUnusedValues();
+  StripUnusedValues(op_for_value);
 }
 
 template <typename T, typename... Args>
 ir::Operand IrBuilder::PushOperation(Args&&... args) {
-  T operation{std::forward<Args>(args)...};
   const ir::Value value = insertion_point_;
+  T operation{std::forward<Args>(args)...};
+  operations_.emplace_back(value, std::move(operation));
   insertion_point_.Increment();
-  operations_.emplace(value, std::move(operation));
   return value;
 }
 
@@ -481,33 +469,6 @@ inline void RecursiveTraverse(
   });
   // This is depth first, so record this value after all of its arguments.
   handler(value);
-}
-
-std::vector<ir::Value> IrBuilder::GetTraversalOrder(const ir::Value& value) const {
-  // We need a set to track what we have already visited. This is because some expressions will
-  // be used more than once (after EliminateDuplicates is called).
-  std::unordered_set<ir::Value, ir::ValueHash> visited{};
-  visited.reserve(operations_.size());
-
-  std::vector<ir::Value> order;
-  order.reserve(20);
-  RecursiveTraverse(value, operations_, visited,
-                    [&](const ir::Value& val) { order.push_back(val); });
-  return order;
-}
-
-std::vector<ir::Value> IrBuilder::GetTraversalOrder() const {
-  std::vector<ir::Value> ordered{};
-  ordered.reserve(operations_.size());
-
-  std::unordered_set<ir::Value, ir::ValueHash> visited{};
-  visited.reserve(operations_.size());
-
-  for (const ir::Value& value : output_values_) {
-    RecursiveTraverse(value, operations_, visited,
-                      [&ordered](const ir::Value& val) { ordered.push_back(val); });
-  }
-  return ordered;
 }
 
 struct AstBuilder {
@@ -573,17 +534,14 @@ std::vector<ast::Variant> IrBuilder::CreateAST(const ast::FunctionSignature& fun
   std::vector<ast::Variant> ast{};
   ast.reserve(100);
 
-  const auto order = GetTraversalOrder();
-  const std::size_t value_width = GetPrintWidth(order.size());
+  const std::size_t value_width = ValuePrintWidth();
 
   AstBuilder builder{value_width, func.input_args};
 
   // first put a block w/ all the temporary values:
-  for (const auto& value : order) {
-    auto it = operations_.find(value);
-    ASSERT(it != operations_.end());
-    ast::VariantPtr rhs = builder.VisitMakePtr(it->second);
-    std::string name = fmt::format("v{:0>{}}", value.Id(), value_width);
+  for (const ir::OpWithTarget& code : operations_) {
+    ast::VariantPtr rhs = builder.VisitMakePtr(code.op);
+    std::string name = fmt::format("v{:0>{}}", code.target.Id(), value_width);
     ast.emplace_back(ast::Declaration{std::move(name), ast::ScalarType(), std::move(rhs)});
   }
 
@@ -642,36 +600,29 @@ std::vector<ast::Variant> IrBuilder::CreateAST(const ast::FunctionSignature& fun
           ast::ConstructMatrix(std::get<ast::MatrixType>(ret_val_type), std::move(inputs)));
     }
 
-    //    std::vector<ast::VariableRef> variables;
-    //    variables.reserve(dim);
-    //    for (std::size_t i = 0; i < dim; ++i) {
-    //      ASSERT_LESS(i + output_flat_index, output_values_.size());
-    //      variables.push_back(ast::VariableRef{
-    //          fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(),
-    //          value_width)});
-    //    }
-
     output_flat_index += dim;
   }
   ast.emplace_back(ast::ReturnValue(std::move(return_values)));
   return ast;
 }
 
-void IrBuilder::PropagateCopiedOperands(ir::Operation& operation) const {
+void IrBuilder::PropagateCopiedOperands(
+    ir::Operation& operation,
+    const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) const {
   std::visit(
-      [this](auto& op) {
+      [&op_for_value](auto& op) {
         // Iterate over all operands, and extract arguments that are loads.
         for (ir::Operand& operand : op.args) {
           if (!std::holds_alternative<ir::Value>(operand)) {
             continue;
           }
           const ir::Value arg_value = std::get<ir::Value>(operand);
-          auto it = operations_.find(arg_value);
-          ASSERT(it != operations_.end(), "Missing operation for value: {}", arg_value.Id());
+          auto it = op_for_value.find(arg_value);
+          ASSERT(it != op_for_value.end(), "Missing operation for value: {}", arg_value.Id());
 
           // This argument is a load, so reference its argument directly.
-          if (std::holds_alternative<ir::Load>(it->second)) {
-            operand = std::get<ir::Load>(it->second).args[0];
+          if (std::holds_alternative<ir::Load>(*it->second)) {
+            operand = std::get<ir::Load>(*it->second).args[0];
           }
         }
         // Make sure arguments remain in canonical order
@@ -683,16 +634,18 @@ void IrBuilder::PropagateCopiedOperands(ir::Operation& operation) const {
       operation);
 }
 
-void IrBuilder::StripUnusedValues() {
+void IrBuilder::StripUnusedValues(
+    const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) {
   std::unordered_set<ir::Value, ir::ValueHash> used_values;
   used_values.reserve(operations_.size());
 
   // Output values are always used, so put them in the used set.
   // First, we should eliminate any output operations that are just copies:
   for (ir::Value& output_val : output_values_) {
-    auto it = operations_.find(output_val);
-    if (std::holds_alternative<ir::Load>(it->second)) {
-      const ir::Load& load = std::get<ir::Load>(it->second);
+    auto it = op_for_value.find(output_val);
+    ASSERT(it != op_for_value.end(), "Missing output value: {}", output_val);
+    if (std::holds_alternative<ir::Load>(*it->second)) {
+      const ir::Load& load = std::get<ir::Load>(*it->second);
       if (std::holds_alternative<ir::Value>(load.args[0])) {
         output_val = std::get<ir::Value>(load.args[0]);
       }
@@ -700,25 +653,15 @@ void IrBuilder::StripUnusedValues() {
     used_values.insert(output_val);
   }
 
-  for (const auto& pair : operations_) {
-    VisitValueArgs(pair.second, [&](const ir::Value& val) { used_values.insert(val); });
+  for (const auto& code : operations_) {
+    VisitValueArgs(code.op, [&](const ir::Value& val) { used_values.insert(val); });
   }
 
   // Nuke anything not in the used values
-  for (auto it = operations_.begin(); it != operations_.end();) {
-    if (used_values.count(it->first)) {
-      ++it;
-    } else {
-      it = operations_.erase(it);
-    }
-  }
+  const auto new_end = std::remove_if(
+      operations_.begin(), operations_.end(),
+      [&](const ir::OpWithTarget& code) { return used_values.count(code.target) == 0; });
+  operations_.erase(new_end, operations_.end());
 }
-
-// std::string CodeGeneratorBase::Generate(const ast::FunctionSignature& func,
-//                                         const std::vector<ast::Variant>& ast) {
-//   CodeFormatter formatter{};
-//   GenerateImpl(formatter, func, ast);
-//   return formatter.GetOutput();
-// }
 
 }  // namespace math
