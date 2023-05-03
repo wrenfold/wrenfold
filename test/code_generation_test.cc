@@ -124,12 +124,40 @@ TEST(CodeGenerationTest, TestCreateIR7) {
   const auto a1 = where(l1 > 0, l1, 0);
   const auto l2 = c * l1 + d;
   const auto a2 = where(l2 > 0, l2, l2 / 10);
+
   IrBuilder ir{{a1, a2}};
   ASSERT_IDENTICAL(a1, ir.CreateExpressionForOutput(0)) << ir.ToString();
   ASSERT_IDENTICAL(a2, ir.CreateExpressionForOutput(1)) << ir.ToString();
+  ASSERT_EQ(21, ir.NumOperations());
+
+  fmt::print("{}\n\n", ir.ToString());
+
   ir.EliminateDuplicates();
   ASSERT_IDENTICAL(a1, ir.CreateExpressionForOutput(0)) << ir.ToString();
   ASSERT_IDENTICAL(a2, ir.CreateExpressionForOutput(1)) << ir.ToString();
+  ASSERT_EQ(9, ir.NumOperations());
+
+  fmt::print("{}\n\n", ir.ToString());
+}
+
+TEST(CodeGenerationTest, TestCreateIR8) {
+  const auto [x, y, a, b, c, d] = Symbols("x", "y", "a", "b", "c", "d");
+
+  const auto f1 = where(x > 0, a + 2, b - 3);
+  const auto f2 = where(y <= 2, x * x, a + 2);
+  const auto f3 = where(x > 0, c * d, a + 2);
+  const auto f4 = where(y <= 2, f2, f1 * (a + 2));
+
+  IrBuilder ir{{f1, f2, f3, f4}};
+  fmt::print("{}\n\n", ir.ToString());
+  ir.EliminateDuplicates();
+  fmt::print("{}\n\n", ir.ToString());
+
+//    ir.TopologicallySort();
+//    ::print("{}\n\n", ir.ToString());
+
+  ir.GroupConditionals();
+  fmt::print("{}\n\n", ir.ToString());
 }
 
 }  // namespace math

@@ -129,8 +129,7 @@ struct Pow : public OperationBase<Pow, 2> {
 struct Load : public OperationBase<Load, 1> {
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "load"; }
-  explicit Load(Expr input) : OperationBase(std::move(input)) {}
-  explicit Load(Value input) : OperationBase(input) {}
+  explicit Load(Operand operand) : OperationBase(std::move(operand)) {}
 };
 
 // TODO: Should probably just support n-ary functions w/ one object.
@@ -220,6 +219,10 @@ struct IrBuilder {
 
   // Eliminate duplicated operations.
   void EliminateDuplicates();
+
+  void TopologicallySort();
+
+  void GroupConditionals();
 
   // Number of operations:
   std::size_t NumOperations() const { return operations_.size(); }

@@ -12,6 +12,8 @@
 
 #include "code_formatter.h"
 
+#include <queue>
+
 template <>
 struct fmt::formatter<math::ir::Value, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
@@ -388,8 +390,6 @@ inline Expr CreateExpressionForOp(const ir::Load&, std::vector<Expr>&& args) {
 }
 
 Expr IrBuilder::CreateExpression(const ir::Value& value) const {
-  //  const std::vector<ir::Value> traversal_order = GetTraversalOrder(value);
-
   std::unordered_map<ir::Value, Expr, ir::ValueHash> value_to_expression{};
   value_to_expression.reserve(operations_.size());
 
@@ -455,13 +455,14 @@ void IrBuilder::EliminateDuplicates() {
   StripUnusedValues(op_for_value);
 }
 
-template <typename T, typename... Args>
-ir::Operand IrBuilder::PushOperation(Args&&... args) {
-  const ir::Value value = insertion_point_;
-  T operation{std::forward<Args>(args)...};
-  operations_.emplace_back(value, std::move(operation));
-  insertion_point_.Increment();
-  return value;
+bool IsOnlyConstantInputs(const ir::Operation& op) {
+  return std::visit(
+      [](const auto& op) {
+        return std::all_of(op.args.begin(), op.args.end(), [](const ir::Operand& operand) {
+          return std::holds_alternative<Expr>(operand);
+        });
+      },
+      op);
 }
 
 template <typename Handler>
@@ -477,22 +478,126 @@ void VisitValueArgs(const ir::Operation& op, Handler handler) {
       op);
 }
 
-template <typename Handler>
-inline void RecursiveTraverse(
-    const ir::Value& value,
-    const std::unordered_map<ir::Value, ir::Operation, ir::ValueHash>& operations,
-    std::unordered_set<ir::Value, ir::ValueHash>& visited, const Handler& handler) {
-  auto it = operations.find(value);
-  ASSERT(it != operations.end(), "Missing operation for value: {}", value.Id());
-  if (visited.count(value)) {
-    return;
+void IrBuilder::TopologicallySort() {
+  std::vector<std::size_t> sorted_indices{};
+  std::queue<std::size_t> s{};
+  std::unordered_set<ir::Value, ir::ValueHash> filled_values;
+
+  std::vector<std::size_t> remaining_indices{};
+  for (std::size_t i = 0; i < operations_.size(); ++i) {
+    if (IsOnlyConstantInputs(operations_[i].op)) {
+      s.push(i);
+      filled_values.insert(operations_[i].target);
+    } else {
+      remaining_indices.push_back(i);
+    }
   }
-  visited.insert(value);
-  VisitValueArgs(it->second, [&](const ir::Value& val) {
-    RecursiveTraverse(val, operations, visited, handler);
-  });
-  // This is depth first, so record this value after all of its arguments.
-  handler(value);
+
+  while (!s.empty()) {
+    const std::size_t n_index = s.front();
+    s.pop();
+
+    sorted_indices.push_back(n_index);
+    filled_values.insert(operations_[n_index].target);
+
+    const auto new_end = std::remove_if(
+        remaining_indices.begin(), remaining_indices.end(), [&](const std::size_t i) {
+          const bool is_computed = std::visit(
+              [&](const auto& op) {
+                return std::all_of(op.args.begin(), op.args.end(), [&](const ir::Operand& operand) {
+                  return std::holds_alternative<Expr>(operand) ||
+                         filled_values.count(std::get<ir::Value>(operand));
+                });
+              },
+              operations_[i].op);
+          if (is_computed) {
+            s.push(i);
+          }
+          return is_computed;
+        });
+    remaining_indices.erase(new_end, remaining_indices.end());
+  }
+
+  ASSERT_EQUAL(sorted_indices.size(), operations_.size());
+
+  // rebuild operations
+  std::vector<ir::OpWithTarget> new_ops;
+  for (std::size_t i = 0; i < sorted_indices.size(); ++i) {
+    new_ops.push_back(operations_[sorted_indices[i]]);
+  }
+  operations_ = new_ops;
+}
+
+struct LinearBlock {
+  std::vector<ir::OpWithTarget> operations;
+};
+
+struct ConditionalBlock {
+  ir::Value condition;
+  std::vector<ir::OpWithTarget> true_block;
+  std::vector<ir::OpWithTarget> false_block;
+};
+
+void IrBuilder::GroupConditionals() {
+  std::unordered_map<ir::Value, std::size_t, ir::ValueHash> live;
+  live.reserve(operations_.size());
+
+  std::vector<std::variant<LinearBlock, ConditionalBlock>> blocks{};
+  blocks.push_back(LinearBlock{});  //  put at least one linear block
+
+  // iterate through operations
+  for (const ir::OpWithTarget& code : operations_) {
+    // find which blocks contain the dependencies:
+    std::size_t oldest_ancestor = 0;
+    VisitValueArgs(code.op, [&](const ir::Value& arg) {
+      auto it = live.find(arg);
+      ASSERT(it != live.end());
+      oldest_ancestor = std::max(oldest_ancestor, it->second);
+    });
+    ASSERT_LESS(oldest_ancestor, blocks.size());
+
+    if (std::holds_alternative<ir::Cond>(code.op)) {
+      const ir::Cond& cond = std::get<ir::Cond>(code.op);
+
+      auto it = std::find_if(blocks.begin() + oldest_ancestor, blocks.end(), [&](const auto& b) {
+        return std::holds_alternative<ConditionalBlock>(b) &&
+               std::get<ConditionalBlock>(b).condition == std::get<ir::Value>(cond.args[0]);
+      });
+      if (it != blocks.end()) {
+        std::get<ConditionalBlock>(*it).true_block.emplace_back(code.target,
+                                                                ir::Load(cond.args[1]));
+        std::get<ConditionalBlock>(*it).false_block.emplace_back(code.target,
+                                                                 ir::Load(cond.args[2]));
+        live.emplace(code.target, std::distance(blocks.begin(), it));
+      } else {
+        ConditionalBlock cblock{std::get<ir::Value>(cond.args[0])};
+        cblock.true_block.emplace_back(code.target, ir::Load(cond.args[1]));
+        cblock.false_block.emplace_back(code.target, ir::Load(cond.args[2]));
+        blocks.push_back(std::move(cblock));
+        live.emplace(code.target, blocks.size() - 1);
+      }
+    } else {
+      // not a conditional, check where we can insert it
+      auto it = std::find_if(blocks.begin() + oldest_ancestor, blocks.end(),
+                             [](const auto& b) { return std::holds_alternative<LinearBlock>(b); });
+      if (it != blocks.end()) {
+        std::get<LinearBlock>(*it).operations.push_back(code);
+        live.emplace(code.target, std::distance(blocks.begin(), it));
+      } else {
+        blocks.push_back(LinearBlock{{code}});
+        live.emplace(code.target, blocks.size() - 1);
+      }
+    }
+  }
+}
+
+template <typename T, typename... Args>
+ir::Operand IrBuilder::PushOperation(Args&&... args) {
+  const ir::Value value = insertion_point_;
+  T operation{std::forward<Args>(args)...};
+  operations_.emplace_back(value, std::move(operation));
+  insertion_point_.Increment();
+  return value;
 }
 
 struct AstBuilder {
@@ -559,7 +664,39 @@ struct AstBuilder {
   std::vector<std::shared_ptr<const ast::Argument>> input_args_;
 };
 
+struct ConditionBlock {
+  std::vector<ir::OpWithTarget> if_branch;
+  std::vector<ir::OpWithTarget> else_branch;
+};
+
+struct HashOperandStruct {
+  std::size_t operator()(const ir::Operand& operand) const { return HashOperand(operand); }
+};
+
+struct OperandEquality {
+  bool operator()(const ir::Value& a, const ir::Value& b) const { return a == b; }
+
+  bool operator()(const Expr& a, const Expr& b) const { return a.IsIdenticalTo(b); }
+
+  bool operator()(const ir::Operand& a, const ir::Operand& b) const {
+    return std::visit(
+        [this](const auto& a, const auto& b) {
+          if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
+            return this->operator()(a, b);
+          } else {
+            return false;
+          }
+        },
+        a, b);
+  }
+};
+
 std::vector<ast::Variant> IrBuilder::CreateAST(const ast::FunctionSignature& func) {
+  // traverse
+  std::unordered_map<ir::Operand, ConditionBlock, HashOperandStruct, OperandEquality>
+      condition_blocks;
+  condition_blocks.reserve(20);
+
   std::vector<ast::Variant> ast{};
   ast.reserve(100);
 
