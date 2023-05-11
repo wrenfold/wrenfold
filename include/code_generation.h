@@ -151,6 +151,13 @@ struct Cond : public OperationBase<Cond, 3> {
       : OperationBase(std::move(cond), std::move(if_branch), std::move(else_branch)) {}
 };
 
+struct Phi : public OperationBase<Phi, 3> {
+  constexpr static bool IsCommutative() { return false; }
+  constexpr std::string_view ToString() const { return "phi"; }
+  Phi(Operand cond, Operand v1, Operand v2)
+      : OperationBase(std::move(cond), std::move(v1), std::move(v2)) {}
+};
+
 struct Compare : public OperationBase<Compare, 2> {
   constexpr static bool IsCommutative() { return false; }
 
@@ -177,7 +184,7 @@ struct Compare : public OperationBase<Compare, 2> {
 };
 
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc, Compare, Cond>;
+using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc, Compare, Cond, Phi>;
 
 // Pair together a target value and an operation.
 struct OpWithTarget {
@@ -185,6 +192,51 @@ struct OpWithTarget {
   Operation op;
 
   OpWithTarget(const ir::Value target, ir::Operation&& op) : target(target), op(std::move(op)) {}
+};
+
+struct Block;
+
+struct Jump {
+  Block* next;
+};
+
+struct ConditionalJump {
+  ir::Value condition;
+  Block* next_true;
+  Block* next_false;
+};
+
+// A block of operations:
+struct Block {
+  // Unique number to refer to the block (a counter).
+  std::size_t name;
+
+  // All the operations in the block, in order.
+  std::vector<ir::OpWithTarget> operations;
+
+  // How the block exits.
+  std::variant<std::monostate, Jump, ConditionalJump> jump{std::monostate()};
+
+  // Ancestor blocks (blocks that preceded this one).
+  std::vector<ir::Block*> ancestors;
+
+  //
+  void SetJump(ir::Block* const next) {
+    ASSERT(next);
+    ASSERT(std::holds_alternative<std::monostate>(jump));
+    jump = Jump{next};
+    next->ancestors.push_back(this);
+  }
+
+  void SetConditionalJump(ir::Value cond, ir::Block* const next_true, ir::Block* const next_false) {
+    ASSERT(next_true);
+    ASSERT(next_false);
+    jump = ConditionalJump{cond, next_true, next_false};
+    next_true->ancestors.push_back(this);
+    next_false->ancestors.push_back(this);
+  }
+
+  bool IsEmpty() const { return operations.empty(); }
 };
 
 }  // namespace ir
@@ -220,10 +272,6 @@ struct IrBuilder {
   // Eliminate duplicated operations.
   void EliminateDuplicates();
 
-  void TopologicallySort();
-
-  void GroupConditionals();
-
   // Number of operations:
   std::size_t NumOperations() const { return operations_.size(); }
 
@@ -242,6 +290,9 @@ struct IrBuilder {
       const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value);
 
   // An array of operations and the value IDs they compute.
+  std::vector<std::unique_ptr<ir::Block>> blocks_;
+
+  // todo: Delete me
   std::vector<ir::OpWithTarget> operations_;
 
   // The output values, one per input expression.

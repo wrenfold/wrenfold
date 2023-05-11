@@ -2,6 +2,7 @@
 #include "code_generation.h"
 
 #include <algorithm>
+#include <deque>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -11,8 +12,6 @@
 #include "visitor_impl.h"
 
 #include "code_formatter.h"
-
-#include <queue>
 
 template <>
 struct fmt::formatter<math::ir::Value, char> {
@@ -105,14 +104,27 @@ struct PairCountVisitor {
   MapType add_counts;
 };
 
+template <typename Op>
+inline void FormatOpWithArgs(std::string& output, const Op& op, const std::size_t width) {
+  constexpr int OperationWidth = 4;
+  fmt::format_to(std::back_inserter(output), "{:>{}} ", op.ToString(), OperationWidth);
+  for (auto it = op.args.begin(); it != op.args.end(); ++it) {
+    FormatOperand(output, *it, width);
+    if (std::next(it) != op.args.end()) {
+      output += ", ";
+    }
+  }
+}
+
 // Visitor for converting an expression tree into static-single-assignment form.
 struct IRFormVisitor {
   using Policy = VisitorPolicy::CompileError;
   using ReturnType = Operand;
 
-  // Construct with an output IrBuilder that we write into.
-  explicit IRFormVisitor(IrBuilder& output, const PairCountVisitor& pair_count)
-      : operations_(output), pair_counts(pair_count) {}
+  explicit IRFormVisitor(const PairCountVisitor& pair_count) : pair_counts(pair_count) {}
+
+  // Get non-const reference to blocks.
+  std::vector<std::unique_ptr<ir::Block>>& TakeBlocks() { return blocks_; }
 
   // Handler for additions and multiplications:
   template <typename T>
@@ -154,19 +166,41 @@ struct IRFormVisitor {
     Operand prev_result = args[0];
     for (std::size_t i = 1; i < args.size(); ++i) {
       if constexpr (std::is_same_v<T, Multiplication>) {
-        prev_result = operations_.PushOperation<Mul>(prev_result, args[i]);
+        prev_result = PushOperation<Mul>(prev_result, args[i]);
       } else {
-        prev_result = operations_.PushOperation<Add>(prev_result, args[i]);
+        prev_result = PushOperation<Add>(prev_result, args[i]);
       }
     }
     return prev_result;
   }
 
-  Operand Apply(const Conditional& cond) {
+  Operand Apply(const Expr& input, const Conditional& cond) {
+    fmt::print("processing conditional: {}\n", input.ToString());
+    // First compute expressions for the condition itself
     Operand condition = VisitStruct(cond.Condition(), *this);
+
+    // The block that will jump into the conditional at the end:
+    Block* const current_block = PopStack();
+
+    // Now insert a block for the if-branch:
+    Block* const b_true_start = PushStack();
     Operand if_branch = VisitStruct(cond.IfBranch(), *this);
+    Block* const b_true_end = PopStack();
+
+    // Then the else branch:
+    Block* const b_false_start = PushStack();
     Operand else_branch = VisitStruct(cond.ElseBranch(), *this);
-    return operations_.PushOperation<Cond>(condition, if_branch, else_branch);
+    Block* const b_false_end = PopStack();
+
+    // Wire up the jump at the end of `current_block`
+    current_block->SetConditionalJump(std::get<ir::Value>(condition), b_true_start, b_false_start);
+
+    Block* const next = PushStack();
+    b_true_end->SetJump(next);
+    b_false_end->SetJump(next);
+
+    // now we need a phi function - this gets inserted into `next_block`
+    return PushOperation<Phi>(std::get<ir::Value>(condition), if_branch, else_branch);
   }
 
   Operand Apply(const Expr& input_expression, const Constant&) const { return input_expression; }
@@ -175,7 +209,7 @@ struct IRFormVisitor {
 
   Operand Apply(const UnaryFunction& func) {
     Operand arg = VisitStruct(func.Arg(), *this);
-    return operations_.PushOperation<CallUnaryFunc>(func.Func(), std::move(arg));
+    return PushOperation<CallUnaryFunc>(func.Func(), std::move(arg));
   }
 
   Operand Apply(const Expr&, const Infinity&) const {
@@ -190,7 +224,7 @@ struct IRFormVisitor {
   Operand Apply(const Power& pow) {
     Operand base = VisitStruct(pow.Base(), *this);
     Operand exponent = VisitStruct(pow.Exponent(), *this);
-    return operations_.PushOperation<Pow>(std::move(base), std::move(exponent));
+    return PushOperation<Pow>(std::move(base), std::move(exponent));
   }
 
   Operand Apply(const Expr& input_expression, const Rational&) const { return input_expression; }
@@ -198,14 +232,47 @@ struct IRFormVisitor {
   Operand Apply(const Relational& relational) {
     Operand left = VisitStruct(relational.Left(), *this);
     Operand right = VisitStruct(relational.Right(), *this);
-    return operations_.PushOperation<Compare>(relational.Operation(), std::move(left),
-                                              std::move(right));
+    return PushOperation<Compare>(relational.Operation(), std::move(left), std::move(right));
   }
 
   Operand Apply(const Expr& input_expression, const Variable&) const { return input_expression; }
 
+  // Push a new block onto the stack.
+  Block* PushStack() {
+    std::unique_ptr<ir::Block> block = std::make_unique<ir::Block>();
+    block->name = blocks_.size();
+    stack_.push_back(block.get());
+    blocks_.push_back(std::move(block));
+    return stack_.back();
+  }
+
+  Block* PopStack() {
+    ASSERT(!stack_.empty());
+    Block* const top = stack_.back();
+    stack_.pop_back();
+    return top;
+  }
+
+  template <typename T, typename... Args>
+  ir::Operand PushOperation(Args&&... args) {
+    ASSERT(!stack_.empty(), "Need at least one block on the stack");
+    Block* const current_block = stack_.back();
+    // Assign this block the next value:
+    const ir::Value value = next_value_;
+    T operation{std::forward<Args>(args)...};
+    current_block->operations.emplace_back(value, std::move(operation));
+    next_value_.Increment();
+    return value;
+  }
+
+  const ir::Value& NextValue() const { return next_value_; }
+
  private:
-  IrBuilder& operations_;
+  std::vector<std::unique_ptr<ir::Block>> blocks_;
+  std::vector<Block*> stack_;
+  ir::Value next_value_{0};
+
+  //  IrBuilder& operations_;
   const PairCountVisitor& pair_counts;
 };
 
@@ -256,6 +323,8 @@ std::size_t HashOp(const CallUnaryFunc& call) {
 
 std::size_t HashOp(const Cond& cond) { return HashOpWithArgs(cond); }
 
+std::size_t HashOp(const Phi& phi) { return HashOpWithArgs(phi); }
+
 std::size_t HashOp(const Compare& cmp) {
   return HashCombine(HashOpWithArgs(cmp), static_cast<std::size_t>(cmp.operation));
 }
@@ -285,28 +354,35 @@ struct OperationEquality {
 }  // namespace ir
 
 IrBuilder::IrBuilder(const std::vector<Expr>& expressions) {
-  operations_.reserve(100);
+  //  operations_.reserve(100);
   output_values_.reserve(expressions.size());
+
   // Count occurrence of some sub-expressions:
   ir::PairCountVisitor pair_visitor{};
   for (const Expr& expr : expressions) {
     VisitStruct(expr, pair_visitor);
   }
 
+  ir::IRFormVisitor visitor{pair_visitor};
+
   // Now convert every expression to IR and record the output value:
+  ir::Block* previous_block{nullptr};
   for (const Expr& expr : expressions) {
-    ir::IRFormVisitor visitor{*this, pair_visitor};
+    ir::Block* const start_block = visitor.PushStack();
     ir::Operand operand = VisitStruct(expr, visitor);
-    if (std::holds_alternative<Expr>(operand)) {
-      // If the top-level expression was a constant, we need to insert a copy operation for it:
-      operand = PushOperation<ir::Load>(std::get<Expr>(operand));
+    output_values_.push_back(std::get<ir::Value>(operand));
+
+    // `end_block` is where execution ends for this expression.
+    // It may or may not be the same as `start_block`.
+    ir::Block* const end_block = visitor.PopStack();
+    if (previous_block) {
+      previous_block->SetJump(start_block);
     }
-    // Now the operand is definitely a value:
-    ASSERT(std::holds_alternative<ir::Value>(operand));
-    insertion_point_ = std::get<ir::Value>(operand);
-    output_values_.push_back(insertion_point_);
-    insertion_point_.Increment();
+    previous_block = end_block;
   }
+
+  blocks_ = std::move(visitor.TakeBlocks());
+  insertion_point_ = visitor.NextValue();
 }
 
 inline constexpr std::size_t GetPrintWidth(std::size_t num_assignments) {
@@ -332,28 +408,45 @@ inline void FormatOperand(std::string& output, const ir::Operand& operand,
       operand);
 }
 
-template <typename Op>
-inline void FormatOpWithArgs(std::string& output, const Op& op, const std::size_t width) {
-  constexpr int OperationWidth = 4;
-  fmt::format_to(std::back_inserter(output), "{:>{}} ", op.ToString(), OperationWidth);
-  for (auto it = op.args.begin(); it != op.args.end(); ++it) {
-    FormatOperand(output, *it, width);
-    if (std::next(it) != op.args.end()) {
-      output += ", ";
-    }
+std::string BlockName(ir::Block* const b) {
+  if (b) {
+    return fmt::format("block_{}", b->name);
+  } else {
+    return "nowhere";
   }
 }
 
 std::string IrBuilder::ToString() const {
   const std::size_t width = ValuePrintWidth();
   std::string output{};
-  for (const auto& code : operations_) {
-    // Print the operation:
-    fmt::format_to(std::back_inserter(output), "v{:0>{}} <- ", code.target.Id(), width);
-    std::visit([&](const auto& op) { FormatOpWithArgs(output, op, width); }, code.op);
-    output += "\n";
+
+  for (const std::unique_ptr<ir::Block>& block : blocks_) {
+    fmt::format_to(std::back_inserter(output), "{}:\n", BlockName(block.get()));
+    for (const ir::OpWithTarget& code : block->operations) {
+      // Print the operation:
+      fmt::format_to(std::back_inserter(output), "  v{:0>{}} <- ", code.target.Id(), width);
+      std::visit([&](const auto& op) { FormatOpWithArgs(output, op, width); }, code.op);
+      output += "\n";
+    }
+    std::visit(
+        [&](const auto& jump) {
+          using T = std::decay_t<decltype(jump)>;
+          if constexpr (std::is_same_v<T, ir::Jump>) {
+            fmt::format_to(std::back_inserter(output), "  {: >{}} {}\n", "jump", width + 9,
+                           BlockName(jump.next));
+          } else if constexpr (std::is_same_v<T, ir::ConditionalJump>) {
+            fmt::format_to(std::back_inserter(output), "  {: >{}} v{:0>{}}, {}, {}\n", "jump",
+                           width + 9, jump.condition.Id(), width, BlockName(jump.next_true),
+                           BlockName(jump.next_false));
+          } else if constexpr (std::is_same_v<T, std::monostate>) {
+            fmt::format_to(std::back_inserter(output), "  {: >{}}\n", "exit", width + 9);
+          }
+        },
+        block->jump);
   }
-  output.pop_back();
+  if (!output.empty()) {
+    output.pop_back();
+  }
   return output;
 }
 
@@ -381,6 +474,10 @@ inline Expr CreateExpressionForOp(const ir::Cond&, std::vector<Expr>&& args) {
   return where(args[0], args[1], args[2]);
 }
 
+inline Expr CreateExpressionForOp(const ir::Phi&, std::vector<Expr>&& args) {
+  return where(args[0], args[1], args[2]);
+}
+
 inline Expr CreateExpressionForOp(const ir::Compare& cmp, std::vector<Expr>&& args) {
   return Relational::Create(cmp.operation, args.front(), args.back());
 }
@@ -390,34 +487,68 @@ inline Expr CreateExpressionForOp(const ir::Load&, std::vector<Expr>&& args) {
 }
 
 Expr IrBuilder::CreateExpression(const ir::Value& value) const {
+  ASSERT(!blocks_.empty(), "No blocks in IrBuilder");
+
   std::unordered_map<ir::Value, Expr, ir::ValueHash> value_to_expression{};
-  value_to_expression.reserve(operations_.size());
+  value_to_expression.reserve(200);
 
-  for (const ir::OpWithTarget& code : operations_) {
-    // Visit the operation, and convert it to an expression:
-    Expr expr_result = std::visit(
-        [&value_to_expression, &code](const auto& op) -> Expr {
-          // Unpack all the arguments into `Expr` types:
-          std::vector<Expr> arguments;
-          arguments.reserve(2);
-          for (const ir::Operand& arg : op.args) {
-            if (std::holds_alternative<ir::Value>(arg)) {
-              const ir::Value arg_val = std::get<ir::Value>(arg);
-              const auto arg_it = value_to_expression.find(arg_val);
-              ASSERT(arg_it != value_to_expression.end(),
-                     "Missing value: {} (while computing value: {})", arg_val, code.target);
-              arguments.push_back(arg_it->second);
-            } else {
-              arguments.push_back(std::get<Expr>(arg));
+  std::unordered_set<ir::Block*> completed;
+  completed.reserve(blocks_.size());
+
+  std::deque<ir::Block*> queue;
+  queue.push_back(blocks_.front().get());
+
+  const auto queue_if_ancestors_completed = [&](ir::Block* const b) {
+    ASSERT(b);
+    const bool valid = std::all_of(b->ancestors.begin(), b->ancestors.end(),
+                                   [&](auto blk) { return completed.count(blk) > 0; });
+    if (valid) {
+      queue.push_back(b);
+    }
+  };
+
+  while (!queue.empty()) {
+    // dequeue the next block
+    ir::Block* const block = queue.front();
+    queue.pop_front();
+    ASSERT(block);
+
+    if (completed.count(block)) {
+      continue;
+    }
+    completed.insert(block);
+
+    for (const ir::OpWithTarget& code : block->operations) {
+      // Visit the operation, and convert it to an expression:
+      Expr expr_result = std::visit(
+          [&value_to_expression, &code](const auto& op) -> Expr {
+            // Unpack all the arguments into `Expr` types:
+            std::vector<Expr> arguments;
+            arguments.reserve(2);
+            for (const ir::Operand& arg : op.args) {
+              if (std::holds_alternative<ir::Value>(arg)) {
+                const ir::Value arg_val = std::get<ir::Value>(arg);
+                const auto arg_it = value_to_expression.find(arg_val);
+                ASSERT(arg_it != value_to_expression.end(),
+                       "Missing value: {} (while computing value: {})", arg_val, code.target);
+                arguments.push_back(arg_it->second);
+              } else {
+                arguments.push_back(std::get<Expr>(arg));
+              }
             }
-          }
-          return CreateExpressionForOp(op, std::move(arguments));
-        },
-        code.op);
-    value_to_expression.emplace(code.target, std::move(expr_result));
+            return CreateExpressionForOp(op, std::move(arguments));
+          },
+          code.op);
+      value_to_expression.emplace(code.target, std::move(expr_result));
+    }
 
-    if (code.target == value) {
-      break;
+    // Queue the next block
+    if (const ir::Jump* jump = std::get_if<ir::Jump>(&block->jump); jump != nullptr) {
+      queue_if_ancestors_completed(jump->next);
+    } else if (const ir::ConditionalJump* cjump = std::get_if<ir::ConditionalJump>(&block->jump);
+               cjump != nullptr) {
+      queue_if_ancestors_completed(cjump->next_true);
+      queue_if_ancestors_completed(cjump->next_false);
     }
   }
 
@@ -425,6 +556,83 @@ Expr IrBuilder::CreateExpression(const ir::Value& value) const {
   ASSERT(final_it != value_to_expression.end());
   return final_it->second;
 }
+
+void PropagateCopiedOperands2(
+    ir::Operation& operation,
+    const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) {
+  std::visit(
+      [&op_for_value](auto& op) {
+        // Iterate over all operands, and extract arguments that are loads.
+        for (ir::Operand& operand : op.args) {
+          if (!std::holds_alternative<ir::Value>(operand)) {
+            continue;
+          }
+          const ir::Value arg_value = std::get<ir::Value>(operand);
+          auto it = op_for_value.find(arg_value);
+          ASSERT(it != op_for_value.end(), "Missing operation for value: {}", arg_value.Id());
+
+          // This argument is a load, so reference its argument directly.
+          if (std::holds_alternative<ir::Load>(*it->second)) {
+            operand = std::get<ir::Load>(*it->second).args[0];
+          }
+        }
+        // Make sure arguments remain in canonical order
+        using OperationType = std::decay_t<decltype(op)>;
+        if constexpr (OperationType::IsCommutative()) {
+          std::sort(op.args.begin(), op.args.end(), ir::OperandOrderBool{});
+        }
+      },
+      operation);
+}
+
+// void TraverseBlocks(
+//     ir::Block* const current_block,
+//     const bool cleanup_scope,
+//     std::unordered_map<const ir::Operation*, ir::Value, ir::OperationHasher,
+//     ir::OperationEquality>&
+//         value_for_op,
+//     std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) {
+//   ASSERT(current_block);
+//
+//   // For recording values that are defined in this scope:
+//   std::vector<const ir::Operation*> added_to_scope;
+//   added_to_scope.reserve(current_block->operations.size());
+//
+//   for (ir::OpWithTarget& code : current_block->operations) {
+//     // Simplify loads that just copy another load:
+//     PropagateCopiedOperands2(code.op, op_for_value);
+//
+//     // Record which operations yield which values. There should be no duplicates.
+//     const bool no_duplicates = op_for_value.emplace(code.target, &code.op).second;
+//     ASSERT(no_duplicates, "Duplicate value in map: {}", code.target);
+//
+//     // Then see if this operation already exists in the map:
+//     const auto [it, was_inserted] = value_for_op.emplace(&code.op, code.target);
+//     if (!was_inserted) {
+//       // Insert another copy of a previously computed value:
+//       code.op = ir::Load(it->second);
+//     } else {
+//       added_to_scope.push_back(&code.op);
+//     }
+//   }
+//
+//   // Now check the exit condition:
+//   if (cleanup_scope) {
+//     // Not a conditional, so erase everything we added to this scope:
+//     for (const auto op_ptr : added_to_scope) {
+//       value_for_op.erase(op_ptr);
+//     }
+//   }
+//
+//   std::visit([](const auto& jump) {
+//     using T = std::decay_t<decltype(jump)>;
+//     if constexpr (std::is_same_v<T, ir::Jump>) {
+//
+//     } else if constexpr (std::is_same_v<T, ir::ConditionalJump>) {
+//
+//     }
+//   }, current_block->jump);
+// }
 
 void IrBuilder::EliminateDuplicates() {
   // Hash map from operation to value:
@@ -436,6 +644,7 @@ void IrBuilder::EliminateDuplicates() {
   std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash> op_for_value;
   op_for_value.reserve(operations_.size());
 
+  // Now traverse blocks recursively
   for (ir::OpWithTarget& code : operations_) {
     // First inline operands that directly reference a copy:
     PropagateCopiedOperands(code.op, op_for_value);
@@ -455,16 +664,6 @@ void IrBuilder::EliminateDuplicates() {
   StripUnusedValues(op_for_value);
 }
 
-bool IsOnlyConstantInputs(const ir::Operation& op) {
-  return std::visit(
-      [](const auto& op) {
-        return std::all_of(op.args.begin(), op.args.end(), [](const ir::Operand& operand) {
-          return std::holds_alternative<Expr>(operand);
-        });
-      },
-      op);
-}
-
 template <typename Handler>
 void VisitValueArgs(const ir::Operation& op, Handler handler) {
   std::visit(
@@ -476,119 +675,6 @@ void VisitValueArgs(const ir::Operation& op, Handler handler) {
         }
       },
       op);
-}
-
-void IrBuilder::TopologicallySort() {
-  std::vector<std::size_t> sorted_indices{};
-  std::queue<std::size_t> s{};
-  std::unordered_set<ir::Value, ir::ValueHash> filled_values;
-
-  std::vector<std::size_t> remaining_indices{};
-  for (std::size_t i = 0; i < operations_.size(); ++i) {
-    if (IsOnlyConstantInputs(operations_[i].op)) {
-      s.push(i);
-      filled_values.insert(operations_[i].target);
-    } else {
-      remaining_indices.push_back(i);
-    }
-  }
-
-  while (!s.empty()) {
-    const std::size_t n_index = s.front();
-    s.pop();
-
-    sorted_indices.push_back(n_index);
-    filled_values.insert(operations_[n_index].target);
-
-    const auto new_end = std::remove_if(
-        remaining_indices.begin(), remaining_indices.end(), [&](const std::size_t i) {
-          const bool is_computed = std::visit(
-              [&](const auto& op) {
-                return std::all_of(op.args.begin(), op.args.end(), [&](const ir::Operand& operand) {
-                  return std::holds_alternative<Expr>(operand) ||
-                         filled_values.count(std::get<ir::Value>(operand));
-                });
-              },
-              operations_[i].op);
-          if (is_computed) {
-            s.push(i);
-          }
-          return is_computed;
-        });
-    remaining_indices.erase(new_end, remaining_indices.end());
-  }
-
-  ASSERT_EQUAL(sorted_indices.size(), operations_.size());
-
-  // rebuild operations
-  std::vector<ir::OpWithTarget> new_ops;
-  for (std::size_t i = 0; i < sorted_indices.size(); ++i) {
-    new_ops.push_back(operations_[sorted_indices[i]]);
-  }
-  operations_ = new_ops;
-}
-
-struct LinearBlock {
-  std::vector<ir::OpWithTarget> operations;
-};
-
-struct ConditionalBlock {
-  ir::Value condition;
-  std::vector<ir::OpWithTarget> true_block;
-  std::vector<ir::OpWithTarget> false_block;
-};
-
-void IrBuilder::GroupConditionals() {
-  std::unordered_map<ir::Value, std::size_t, ir::ValueHash> live;
-  live.reserve(operations_.size());
-
-  std::vector<std::variant<LinearBlock, ConditionalBlock>> blocks{};
-  blocks.push_back(LinearBlock{});  //  put at least one linear block
-
-  // iterate through operations
-  for (const ir::OpWithTarget& code : operations_) {
-    // find which blocks contain the dependencies:
-    std::size_t oldest_ancestor = 0;
-    VisitValueArgs(code.op, [&](const ir::Value& arg) {
-      auto it = live.find(arg);
-      ASSERT(it != live.end());
-      oldest_ancestor = std::max(oldest_ancestor, it->second);
-    });
-    ASSERT_LESS(oldest_ancestor, blocks.size());
-
-    if (std::holds_alternative<ir::Cond>(code.op)) {
-      const ir::Cond& cond = std::get<ir::Cond>(code.op);
-
-      auto it = std::find_if(blocks.begin() + oldest_ancestor, blocks.end(), [&](const auto& b) {
-        return std::holds_alternative<ConditionalBlock>(b) &&
-               std::get<ConditionalBlock>(b).condition == std::get<ir::Value>(cond.args[0]);
-      });
-      if (it != blocks.end()) {
-        std::get<ConditionalBlock>(*it).true_block.emplace_back(code.target,
-                                                                ir::Load(cond.args[1]));
-        std::get<ConditionalBlock>(*it).false_block.emplace_back(code.target,
-                                                                 ir::Load(cond.args[2]));
-        live.emplace(code.target, std::distance(blocks.begin(), it));
-      } else {
-        ConditionalBlock cblock{std::get<ir::Value>(cond.args[0])};
-        cblock.true_block.emplace_back(code.target, ir::Load(cond.args[1]));
-        cblock.false_block.emplace_back(code.target, ir::Load(cond.args[2]));
-        blocks.push_back(std::move(cblock));
-        live.emplace(code.target, blocks.size() - 1);
-      }
-    } else {
-      // not a conditional, check where we can insert it
-      auto it = std::find_if(blocks.begin() + oldest_ancestor, blocks.end(),
-                             [](const auto& b) { return std::holds_alternative<LinearBlock>(b); });
-      if (it != blocks.end()) {
-        std::get<LinearBlock>(*it).operations.push_back(code);
-        live.emplace(code.target, std::distance(blocks.begin(), it));
-      } else {
-        blocks.push_back(LinearBlock{{code}});
-        live.emplace(code.target, blocks.size() - 1);
-      }
-    }
-  }
 }
 
 template <typename T, typename... Args>
@@ -658,6 +744,7 @@ struct AstBuilder {
     throw TypeError("Cannot make ast from compare");
   }
   ast::Variant operator()(const ir::Cond&) const { throw TypeError("Cannot make ast from cond"); }
+  ast::Variant operator()(const ir::Phi&) const { throw TypeError("Cannot make ast from cond"); }
 
  private:
   std::size_t value_width_;
