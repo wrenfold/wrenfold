@@ -45,53 +45,17 @@ struct ValueHash {
 };
 
 struct IRFormVisitor;  //  Fwd declare.
+struct Block;
 
-// Operands are either the result of an assignment (Value), or an input value
-// (in which case we just use Expr).
-using Operand = std::variant<Value, Expr>;
-
-// Struct that orders the `Operand` type.
-struct OperandOrder {
-  // Order assignments by index.
-  RelativeOrder operator()(Value l, Value r) const {
-    if (l < r) {
-      return RelativeOrder::LessThan;
-    } else if (l == r) {
-      return RelativeOrder::Equal;
-    } else {
-      return RelativeOrder::GreaterThan;
-    }
-  }
-
-  // Order assignment operands before input value operands.
-  constexpr RelativeOrder operator()(const Value&, const Expr&) const {
-    return RelativeOrder::LessThan;
-  }
-  constexpr RelativeOrder operator()(const Expr&, const Value&) const {
-    return RelativeOrder::GreaterThan;
-  }
-
-  // Order input value operands as we typically would.
-  RelativeOrder operator()(const Expr& l, const Expr& r) const { return ExpressionOrder(l, r); }
-
-  RelativeOrder operator()(const Operand& l, const Operand& r) const {
-    return std::visit(*this, l, r);
-  }
-};
-
-struct OperandOrderBool {
-  bool operator()(const Operand& l, const Operand& r) const {
-    return OperandOrder{}(l, r) == RelativeOrder::LessThan;
-  }
-};
-
+// Base type for operations that accept `ir::Value` arguments (ie. not loads)
 template <typename Derived, std::size_t N>
 struct OperationBase {
   // Forward everything into the `args` array.
   template <typename... Ts>
-  explicit OperationBase(Ts&&... inputs) : args{Operand(std::forward<Ts>(inputs))...} {
+  explicit OperationBase(Ts&&... inputs) : args{std::forward<Ts>(inputs)...} {
+    static_assert(sizeof...(Ts) == N);
     if constexpr (IsCommutative()) {
-      std::sort(args.begin(), args.end(), OperandOrderBool{});
+      std::sort(args.begin(), args.end());
     }
   }
 
@@ -99,44 +63,41 @@ struct OperationBase {
 
   // Check if two operations have identical arguments.
   bool operator==(const OperationBase& other) const {
-    return std::equal(args.begin(), args.end(), other.args.begin(), other.args.end(),
-                      [](const Operand& a, const Operand& b) {
-                        return OperandOrder{}(a, b) == RelativeOrder::Equal;
-                      });
+    return std::equal(args.begin(), args.end(), other.args.begin(), other.args.end());
   }
 
-  std::array<Operand, N> args{};
+  std::array<Value, N> args{};
 };
 
 struct Add : public OperationBase<Add, 2> {
+  using OperationBase::OperationBase;
   constexpr static bool IsCommutative() { return true; }
   constexpr std::string_view ToString() const { return "add"; }
-  Add(Operand left, Operand right) : OperationBase(std::move(left), std::move(right)) {}
 };
 
 struct Mul : public OperationBase<Mul, 2> {
+  using OperationBase::OperationBase;
   constexpr static bool IsCommutative() { return true; }
   constexpr std::string_view ToString() const { return "mul"; }
-  Mul(Operand left, Operand right) : OperationBase(std::move(left), std::move(right)) {}
 };
 
 struct Pow : public OperationBase<Pow, 2> {
+  using OperationBase::OperationBase;
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "pow"; }
-  Pow(Operand base, Operand exponent) : OperationBase(std::move(base), std::move(exponent)) {}
 };
 
-struct Load : public OperationBase<Load, 1> {
+struct Copy : public OperationBase<Copy, 1> {
+  using OperationBase::OperationBase;
   constexpr static bool IsCommutative() { return false; }
-  constexpr std::string_view ToString() const { return "load"; }
-  explicit Load(Operand operand) : OperationBase(std::move(operand)) {}
+  constexpr std::string_view ToString() const { return "copy"; }
 };
 
 // TODO: Should probably just support n-ary functions w/ one object.
 struct CallUnaryFunc : public OperationBase<CallUnaryFunc, 1> {
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return math::ToString(name); }
-  CallUnaryFunc(UnaryFunctionName name, Operand arg) : OperationBase(std::move(arg)), name(name) {}
+  CallUnaryFunc(UnaryFunctionName name, ir::Value arg) : OperationBase(arg), name(name) {}
   UnaryFunctionName name;
 
   bool operator==(const CallUnaryFunc& other) const {
@@ -145,17 +106,22 @@ struct CallUnaryFunc : public OperationBase<CallUnaryFunc, 1> {
 };
 
 struct Cond : public OperationBase<Cond, 3> {
+  using OperationBase::OperationBase;
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "cond"; }
-  explicit Cond(Operand cond, Operand if_branch, Operand else_branch)
-      : OperationBase(std::move(cond), std::move(if_branch), std::move(else_branch)) {}
 };
 
-struct Phi : public OperationBase<Phi, 3> {
+struct Phi : public OperationBase<Phi, 2> {
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "phi"; }
-  Phi(Operand cond, Operand v1, Operand v2)
-      : OperationBase(std::move(cond), std::move(v1), std::move(v2)) {}
+
+  Phi(ir::Value v1, ir::Value v2, ir::Block* jump_block)
+      : OperationBase(v1, v2), jump_block(jump_block) {
+    ASSERT(jump_block);
+  }
+
+  // The blocks that define the input
+  ir::Block* jump_block;
 };
 
 struct Compare : public OperationBase<Compare, 2> {
@@ -173,8 +139,8 @@ struct Compare : public OperationBase<Compare, 2> {
     return "<NOT A VALID ENUM VALUE>";
   }
 
-  explicit Compare(const RelationalOperation operation, Operand left, Operand right)
-      : OperationBase(std::move(left), std::move(right)), operation(operation) {}
+  explicit Compare(const RelationalOperation operation, ir::Value left, ir::Value right)
+      : OperationBase(left, right), operation(operation) {}
 
   bool operator==(const Compare& other) const {
     return operation == other.operation && OperationBase::operator==(other);
@@ -183,8 +149,15 @@ struct Compare : public OperationBase<Compare, 2> {
   RelationalOperation operation;
 };
 
+struct Load {
+  Expr expr;
+  explicit Load(Expr expr) : expr(std::move(expr)) {}
+
+  bool operator==(const Load& other) const { return expr.IsIdenticalTo(other.expr); }
+};
+
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, Mul, Pow, Load, CallUnaryFunc, Compare, Cond, Phi>;
+using Operation = std::variant<Add, Mul, Pow, Copy, CallUnaryFunc, Compare, Cond, Phi, Load>;
 
 // Pair together a target value and an operation.
 struct OpWithTarget {
@@ -278,6 +251,8 @@ struct IrBuilder {
 
   // Eliminate duplicated operations.
   void EliminateDuplicates();
+  void StripUnusedValues();
+  void ThreadJumps();
 
   // Number of operations:
   std::size_t NumOperations() const;
@@ -290,15 +265,6 @@ struct IrBuilder {
     ASSERT(!blocks_.empty());
     return blocks_.front().get();
   }
-
-  // Propagate copied operands for the provided operation, which is modified in place.
-  void PropagateCopiedOperands(
-      ir::Operation& operation,
-      const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) const;
-
-  // Eliminate any unused values from `operations_`.
-  void StripUnusedValues(
-      const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value);
 
   // An array of operations and the value IDs they compute.
   std::vector<std::unique_ptr<ir::Block>> blocks_;

@@ -143,11 +143,11 @@ TEST(CodeGenerationTest, TestCreateIR7) {
 TEST(CodeGenerationTest, TestCreateIR8) {
   const auto [x, y, a, b, c, d] = Symbols("x", "y", "a", "b", "c", "d");
 
-//  const auto foo = where(x > 0, a + 2, b - 3);
-//  const auto bar = sin(foo) * cos(foo);
-//  const auto baz = (bar + y) * foo;
-//  const auto buzz = bar * d;
-//  const auto fizz = where(y < 0, baz, buzz);
+  //  const auto foo = where(x > 0, a + 2, b - 3);
+  //  const auto bar = sin(foo) * cos(foo);
+  //  const auto baz = (bar + y) * foo;
+  //  const auto buzz = bar * d;
+  //  const auto fizz = where(y < 0, baz, buzz);
 
   //  const auto f1 = where(x > 0, a * b, b - c);
   //  const auto f2 = where(y > 0, f1, 2 / d);
@@ -169,19 +169,19 @@ TEST(CodeGenerationTest, TestCreateIR8) {
   ASSERT_IDENTICAL(f3, ir.CreateExpressionForOutput(0));
 
   ir.EliminateDuplicates();
+  ir.StripUnusedValues();
 
+  fmt::print("-- after eliminating duplicates:\n");
   fmt::print("Num operations (after): {}\n", ir.NumOperations());
   fmt::print("Num conditional jumps (after): {}\n", ir.NumJumps());
   fmt::print("{}\n\n", ir.ToString());
 
-  //  ir.EliminateDuplicates();
-  //  fmt::print("{}\n\n", ir.ToString());
+  ir.ThreadJumps();
 
-  //    ir.TopologicallySort();
-  //    ::print("{}\n\n", ir.ToString());
-
-  //  ir.GroupConditionals();
-  //  fmt::print("{}\n\n", ir.ToString());
+  fmt::print("-- after jump threading:\n");
+  fmt::print("Num operations (after): {}\n", ir.NumOperations());
+  fmt::print("Num conditional jumps (after): {}\n", ir.NumJumps());
+  fmt::print("{}\n\n", ir.ToString());
 }
 
 }  // namespace math
