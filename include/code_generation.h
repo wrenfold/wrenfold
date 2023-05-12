@@ -220,14 +220,17 @@ struct Block {
   // Ancestor blocks (blocks that preceded this one).
   std::vector<ir::Block*> ancestors;
 
-  //
+  // True if there is no jump statement.
+  bool IsEnd() const { return std::holds_alternative<std::monostate>(jump); }
+
+  // Terminate the block with a jump to another block.
   void SetJump(ir::Block* const next) {
     ASSERT(next);
-    ASSERT(std::holds_alternative<std::monostate>(jump));
     jump = Jump{next};
     next->ancestors.push_back(this);
   }
 
+  // Terminate the block with a conditional jump to two blocks.
   void SetConditionalJump(ir::Value cond, ir::Block* const next_true, ir::Block* const next_false) {
     ASSERT(next_true);
     ASSERT(next_false);
@@ -236,6 +239,7 @@ struct Block {
     next_false->ancestors.push_back(this);
   }
 
+  // True if the block has no operations.
   bool IsEmpty() const { return operations.empty(); }
 };
 
@@ -257,6 +261,9 @@ struct IrBuilder {
   // Size of value numbers when printed (# digits).
   std::size_t ValuePrintWidth() const;
 
+  //
+  void MergeBlocks();
+
   // Recreate the expression tree for the specified IR value.
   Expr CreateExpression(const ir::Value& value) const;
 
@@ -273,12 +280,16 @@ struct IrBuilder {
   void EliminateDuplicates();
 
   // Number of operations:
-  std::size_t NumOperations() const { return operations_.size(); }
+  std::size_t NumOperations() const;
+
+  // Number of conditional jumps.
+  std::size_t NumJumps() const;
 
  protected:
-  // Insert a new operand of type `T` w/ the provided args.
-  template <typename T, typename... Args>
-  ir::Operand PushOperation(Args&&... args);
+  ir::Block* FirstBlock() const {
+    ASSERT(!blocks_.empty());
+    return blocks_.front().get();
+  }
 
   // Propagate copied operands for the provided operation, which is modified in place.
   void PropagateCopiedOperands(

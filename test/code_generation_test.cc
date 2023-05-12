@@ -143,24 +143,36 @@ TEST(CodeGenerationTest, TestCreateIR7) {
 TEST(CodeGenerationTest, TestCreateIR8) {
   const auto [x, y, a, b, c, d] = Symbols("x", "y", "a", "b", "c", "d");
 
-  const auto foo = where(x > 0, a + 2, b - 3);
-  const auto bar = sin(foo) * cos(foo);
-  const auto baz = (bar + y) * foo;
-  const auto buzz = bar * d;
-  const auto fizz = where(y < 0, baz, buzz);
+//  const auto foo = where(x > 0, a + 2, b - 3);
+//  const auto bar = sin(foo) * cos(foo);
+//  const auto baz = (bar + y) * foo;
+//  const auto buzz = bar * d;
+//  const auto fizz = where(y < 0, baz, buzz);
 
   //  const auto f1 = where(x > 0, a * b, b - c);
   //  const auto f2 = where(y > 0, f1, 2 / d);
 
-  const auto f1 = where(x > 0, a + 2, b - 3);
-  const auto f2 = where(y <= 2, x * x, a + 2);
-  const auto f3 = where(x > 0, c * d, a + 2);
-  const auto f4 = where(y <= 2, f2, f1 * (a + 2));
+  //  const auto f1 = where(x > 0, a + 2, b - 3);
+  //  const auto f2 = where(y <= 2, x * x, a + 2);
+  //  const auto f3 = where(x > 0, c * d, a + 2);
+  //  const auto f4 = where(y <= 2, f2, f1 * (a + 2));
 
-  IrBuilder ir{{f1, f2, f3, f4}};
+  const auto f1 = where(x > 0, cos(x), sin(x));
+  const auto f2 = 5 * f1;
+  const auto f3 = where(x > 0, f2 - 5, f2 + 3);
+
+  IrBuilder ir{{f3}};
+  fmt::print("Num operations: {}\n", ir.NumOperations());
+  fmt::print("Num conditional jumps: {}\n", ir.NumJumps());
   fmt::print("{}\n\n", ir.ToString());
 
-  ASSERT_IDENTICAL(f1, ir.CreateExpressionForOutput(0));
+  ASSERT_IDENTICAL(f3, ir.CreateExpressionForOutput(0));
+
+  ir.EliminateDuplicates();
+
+  fmt::print("Num operations (after): {}\n", ir.NumOperations());
+  fmt::print("Num conditional jumps (after): {}\n", ir.NumJumps());
+  fmt::print("{}\n\n", ir.ToString());
 
   //  ir.EliminateDuplicates();
   //  fmt::print("{}\n\n", ir.ToString());

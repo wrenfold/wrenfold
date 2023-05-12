@@ -452,6 +452,36 @@ std::string IrBuilder::ToString() const {
 
 std::size_t IrBuilder::ValuePrintWidth() const { return GetPrintWidth(insertion_point_.Id()); }
 
+// Determine where a conditional jump merges back together.
+// inline ir::Block* FindMerge(const ir::ConditionalJump& jump) {
+//
+//}
+
+void MergeBlocksRecursive(ir::Block* b) {
+  ASSERT(b);
+
+  // Find the first conditional:
+  while (std::holds_alternative<ir::Jump>(b->jump)) {
+    b = std::get<ir::Jump>(b->jump).next;
+    ASSERT(b);
+  }
+
+  // Found a conditional:
+  if (!std::holds_alternative<ir::ConditionalJump>(b->jump)) {
+    return;
+  }
+
+  //  const ir::ConditionalJump& jump = std::get<ir::ConditionalJump>(b->jump);
+
+  // Find first common child
+}
+
+void IrBuilder::MergeBlocks() {
+  //  ir::Block* b = FirstBlock();
+
+  //  MergeBlocksRecursive(b);
+}
+
 inline Expr CreateExpressionForOp(const ir::Add&, std::vector<Expr>&& args) {
   return Addition::FromOperands(args);
 }
@@ -557,6 +587,15 @@ Expr IrBuilder::CreateExpression(const ir::Value& value) const {
   return final_it->second;
 }
 
+struct ValueTable {
+  // Hash map from operation to value:
+  std::unordered_map<const ir::Operation*, ir::Value, ir::OperationHasher, ir::OperationEquality>
+      value_for_op;
+
+  // Hash map from value to operation:
+  std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash> op_for_value;
+};
+
 void PropagateCopiedOperands2(
     ir::Operation& operation,
     const std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) {
@@ -569,7 +608,11 @@ void PropagateCopiedOperands2(
           }
           const ir::Value arg_value = std::get<ir::Value>(operand);
           auto it = op_for_value.find(arg_value);
-          ASSERT(it != op_for_value.end(), "Missing operation for value: {}", arg_value.Id());
+          if (it == op_for_value.end()) {
+            continue;
+          }
+          //          ASSERT(it != op_for_value.end(), "Missing operation for value: {}",
+          //          arg_value.Id());
 
           // This argument is a load, so reference its argument directly.
           if (std::holds_alternative<ir::Load>(*it->second)) {
@@ -585,83 +628,91 @@ void PropagateCopiedOperands2(
       operation);
 }
 
-// void TraverseBlocks(
-//     ir::Block* const current_block,
-//     const bool cleanup_scope,
-//     std::unordered_map<const ir::Operation*, ir::Value, ir::OperationHasher,
-//     ir::OperationEquality>&
-//         value_for_op,
-//     std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash>& op_for_value) {
-//   ASSERT(current_block);
-//
-//   // For recording values that are defined in this scope:
-//   std::vector<const ir::Operation*> added_to_scope;
-//   added_to_scope.reserve(current_block->operations.size());
-//
-//   for (ir::OpWithTarget& code : current_block->operations) {
-//     // Simplify loads that just copy another load:
-//     PropagateCopiedOperands2(code.op, op_for_value);
-//
-//     // Record which operations yield which values. There should be no duplicates.
-//     const bool no_duplicates = op_for_value.emplace(code.target, &code.op).second;
-//     ASSERT(no_duplicates, "Duplicate value in map: {}", code.target);
-//
-//     // Then see if this operation already exists in the map:
-//     const auto [it, was_inserted] = value_for_op.emplace(&code.op, code.target);
-//     if (!was_inserted) {
-//       // Insert another copy of a previously computed value:
-//       code.op = ir::Load(it->second);
-//     } else {
-//       added_to_scope.push_back(&code.op);
-//     }
-//   }
-//
-//   // Now check the exit condition:
-//   if (cleanup_scope) {
-//     // Not a conditional, so erase everything we added to this scope:
-//     for (const auto op_ptr : added_to_scope) {
-//       value_for_op.erase(op_ptr);
-//     }
-//   }
-//
-//   std::visit([](const auto& jump) {
-//     using T = std::decay_t<decltype(jump)>;
-//     if constexpr (std::is_same_v<T, ir::Jump>) {
-//
-//     } else if constexpr (std::is_same_v<T, ir::ConditionalJump>) {
-//
-//     }
-//   }, current_block->jump);
-// }
-
-void IrBuilder::EliminateDuplicates() {
-  // Hash map from operation to value:
-  std::unordered_map<const ir::Operation*, ir::Value, ir::OperationHasher, ir::OperationEquality>
-      value_for_op;
-  value_for_op.reserve(operations_.size());
-
-  // Hash map from value to operation:
-  std::unordered_map<ir::Value, const ir::Operation*, ir::ValueHash> op_for_value;
-  op_for_value.reserve(operations_.size());
-
-  // Now traverse blocks recursively
-  for (ir::OpWithTarget& code : operations_) {
+void LocalValueNumbering(ir::Block* const block, ValueTable& table) {
+  ASSERT(block);
+  for (ir::OpWithTarget& code : block->operations) {
     // First inline operands that directly reference a copy:
-    PropagateCopiedOperands(code.op, op_for_value);
+    PropagateCopiedOperands2(code.op, table.op_for_value);
 
     // Record which operations yield which values. There should be no duplicates.
-    const bool no_duplicates = op_for_value.emplace(code.target, &code.op).second;
+    const bool no_duplicates = table.op_for_value.emplace(code.target, &code.op).second;
     ASSERT(no_duplicates, "Duplicate value in map: {}", code.target);
 
     // Then see if this operation already exists in the map:
-    const auto [it, was_inserted] = value_for_op.emplace(&code.op, code.target);
+    const auto [it, was_inserted] = table.value_for_op.emplace(&code.op, code.target);
     if (!was_inserted) {
       // Insert another copy of a previously computed value:
       code.op = ir::Load(it->second);
     }
   }
+}
 
-  StripUnusedValues(op_for_value);
+template <class... Ts>
+struct Overloaded : Ts... {
+  using Ts::operator()...;
+};
+
+template <class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
+
+template <typename... Funcs, typename Variant>
+void OverloadedVisit(Variant&& var, Funcs&&... funcs) {
+  std::visit(Overloaded{std::forward<Funcs>(funcs)...}, std::forward<Variant>(var));
+}
+
+template <typename Handler>
+void VisitSuccessors(const std::variant<std::monostate, ir::Jump, ir::ConditionalJump>& jump,
+                     Handler&& handler) {
+  OverloadedVisit(
+      jump, [&](const ir::Jump& jump) { handler(jump.next); },
+      [&](const ir::ConditionalJump& jump) {
+        handler(jump.next_true);
+        handler(jump.next_false);
+      },
+      [](const std::monostate&) {});
+}
+
+void SuperLocalValueNumbering(ir::Block* const block, const ValueTable& table,
+                              std::deque<ir::Block*>& queue,
+                              std::unordered_set<ir::Block*>& processed) {
+  ValueTable local_table = table;  // TODO: Get rid of copy!
+  LocalValueNumbering(block, local_table);
+
+  VisitSuccessors(block->jump, [&](ir::Block* const b) {
+    ASSERT(b);
+    if (b->ancestors.size() == 1) {
+      SuperLocalValueNumbering(b, local_table, queue, processed);
+    } else if (!processed.count(b)) {
+      queue.push_back(b);
+    }
+  });
+}
+
+void IrBuilder::EliminateDuplicates() {
+  std::deque<ir::Block*> block_queue;
+  block_queue.push_back(FirstBlock());
+
+  std::unordered_set<ir::Block*> processed;
+  processed.reserve(blocks_.size());
+
+  while (!block_queue.empty()) {
+    ir::Block* const b = block_queue.front();
+    block_queue.pop_front();
+    SuperLocalValueNumbering(b, ValueTable{}, block_queue, processed);
+  }
+}
+
+std::size_t IrBuilder::NumOperations() const {
+  return std::accumulate(
+      blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
+      [](std::size_t total, const auto& b) { return total + b->operations.size(); });
+}
+
+std::size_t IrBuilder::NumJumps() const {
+  return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
+                         [](std::size_t total, const auto& b) {
+                           return total + std::holds_alternative<ir::ConditionalJump>(b->jump);
+                         });
 }
 
 template <typename Handler>
@@ -675,15 +726,6 @@ void VisitValueArgs(const ir::Operation& op, Handler handler) {
         }
       },
       op);
-}
-
-template <typename T, typename... Args>
-ir::Operand IrBuilder::PushOperation(Args&&... args) {
-  const ir::Value value = insertion_point_;
-  T operation{std::forward<Args>(args)...};
-  operations_.emplace_back(value, std::move(operation));
-  insertion_point_.Increment();
-  return value;
 }
 
 struct AstBuilder {
