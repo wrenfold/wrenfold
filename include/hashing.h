@@ -30,7 +30,7 @@ inline constexpr std::size_t HashString(const std::string_view& str) {
 
 // Based on https://stackoverflow.com/questions/2590677/
 // TODO: Investigate if there is something better than this.
-// The special numeric value here is 2^64 divided by the golden ratio, as a uint64_t.
+// The special numeric value here is 2^64 divided by the golden ratio, as uint64_t.
 inline constexpr std::size_t HashCombine(const std::size_t seed, const std::size_t new_hash) {
   static_assert(sizeof(std::size_t) == 8);
   return seed ^ (new_hash + 0x9e3779b97f4a7c15 + (seed << 6) + (seed >> 2));

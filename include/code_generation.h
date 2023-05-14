@@ -11,120 +11,105 @@
 #include "enumerations.h"
 #include "expression.h"
 #include "function_evaluator.h"
+#include "hashing.h"
 
 namespace math {
 namespace ir {
 
-// Just a wrapper around an integer, to add some clarity via types.
-struct Value {
-  // ConstructMatrix from integer.
-  explicit Value(uint32_t index) : v_(index) {}
+class Value;
+struct IRFormVisitor;
 
-  // Equal if underlying int is the same.
-  constexpr bool operator==(const Value& other) const { return v_ == other.v_; }
+// A block of operations:
+class Block {
+ public:
+  // Unique number to refer to the block (a counter).
+  std::size_t name;
 
-  // Order by index.
-  constexpr bool operator<(const Value& other) const { return v_ < other.v_; }
+  // All the operations in the block, in order.
+  std::vector<ir::Value*> operations;
 
-  // Hash is just std::hash
-  std::size_t Hash() const { return std::hash<std::size_t>{}(v_); }
+  // Ancestor blocks (blocks that preceded this one).
+  std::vector<ir::Block*> ancestors;
 
-  // Access underlying integer.
-  constexpr uint32_t Id() const { return v_; }
+  // True if the block has no operations.
+  bool IsEmpty() const { return operations.empty(); }
 
-  // Increment ID.
-  void Increment() { v_++; }
+  // True if the block has no ancestors.
+  bool IsUnreachable() const { return ancestors.empty(); }
 
- private:
-  uint32_t v_;
+  template <typename Callable>
+  void VisitSuccessors(Callable&& callable) const;
+
+  void AddAncestor(ir::Block* const b);
+
+  void RemoveAncestor(ir::Block* const b);
+
+  void PushValue(ir::Value* const v);
 };
 
-// Hash operator for `Value`.
-struct ValueHash {
-  std::size_t operator()(const Value& v) const { return v.Hash(); }
-};
-
-struct IRFormVisitor;  //  Fwd declare.
-struct Block;
-
-// Base type for operations that accept `ir::Value` arguments (ie. not loads)
-template <typename Derived, std::size_t N>
-struct OperationBase {
-  // Forward everything into the `args` array.
-  template <typename... Ts>
-  explicit OperationBase(Ts&&... inputs) : args{std::forward<Ts>(inputs)...} {
-    static_assert(sizeof...(Ts) == N);
-    if constexpr (IsCommutative()) {
-      std::sort(args.begin(), args.end());
-    }
-  }
-
-  constexpr static bool IsCommutative() { return Derived::IsCommutative(); }
-
-  // Check if two operations have identical arguments.
-  bool operator==(const OperationBase& other) const {
-    return std::equal(args.begin(), args.end(), other.args.begin(), other.args.end());
-  }
-
-  std::array<Value, N> args{};
-};
-
-struct Add : public OperationBase<Add, 2> {
-  using OperationBase::OperationBase;
+struct Add {
   constexpr static bool IsCommutative() { return true; }
+  constexpr static int NumValueOperands() { return 2; }
   constexpr std::string_view ToString() const { return "add"; }
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const Add&) const { return true; }
 };
 
-struct Mul : public OperationBase<Mul, 2> {
-  using OperationBase::OperationBase;
+struct Mul {
   constexpr static bool IsCommutative() { return true; }
+  constexpr static int NumValueOperands() { return 2; }
   constexpr std::string_view ToString() const { return "mul"; }
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const Mul&) const { return true; }
 };
 
-struct Pow : public OperationBase<Pow, 2> {
-  using OperationBase::OperationBase;
+struct Pow {
   constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 2; }
   constexpr std::string_view ToString() const { return "pow"; }
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const Pow&) const { return true; }
 };
 
-struct Copy : public OperationBase<Copy, 1> {
-  using OperationBase::OperationBase;
+struct Copy {
   constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 1; }
   constexpr std::string_view ToString() const { return "copy"; }
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const Copy&) const { return true; }
 };
 
 // TODO: Should probably just support n-ary functions w/ one object.
-struct CallUnaryFunc : public OperationBase<CallUnaryFunc, 1> {
+struct CallUnaryFunc {
   constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 1; }
   constexpr std::string_view ToString() const { return math::ToString(name); }
-  CallUnaryFunc(UnaryFunctionName name, ir::Value arg) : OperationBase(arg), name(name) {}
-  UnaryFunctionName name;
+  constexpr std::size_t Hash() const { return static_cast<std::size_t>(name); }
+  constexpr bool IsSame(const CallUnaryFunc& other) const { return name == other.name; }
 
-  bool operator==(const CallUnaryFunc& other) const {
-    return name == other.name && OperationBase::operator==(other);
-  }
+  CallUnaryFunc(UnaryFunctionName name) : name(name) {}
+
+  UnaryFunctionName name;
 };
 
-struct Cond : public OperationBase<Cond, 3> {
-  using OperationBase::OperationBase;
+struct Cond {
+  constexpr static int NumValueOperands() { return 3; }
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "cond"; }
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const Cond&) const { return true; }
 };
 
-struct Phi : public OperationBase<Phi, 2> {
+struct Phi {
+  constexpr static int NumValueOperands() { return 3; }
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "phi"; }
-
-  Phi(ir::Value v1, ir::Value v2, ir::Block* jump_block)
-      : OperationBase(v1, v2), jump_block(jump_block) {
-    ASSERT(jump_block);
-  }
-
-  // The blocks that define the input
-  ir::Block* jump_block;
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const Phi&) const { return true; }
 };
 
-struct Compare : public OperationBase<Compare, 2> {
+struct Compare {
+  constexpr static int NumValueOperands() { return 2; }
   constexpr static bool IsCommutative() { return false; }
 
   constexpr std::string_view ToString() const {
@@ -139,81 +124,279 @@ struct Compare : public OperationBase<Compare, 2> {
     return "<NOT A VALID ENUM VALUE>";
   }
 
-  explicit Compare(const RelationalOperation operation, ir::Value left, ir::Value right)
-      : OperationBase(left, right), operation(operation) {}
+  constexpr std::size_t Hash() const { return static_cast<std::size_t>(operation); }
+  constexpr bool IsSame(const Compare& comp) const { return operation == comp.operation; }
 
-  bool operator==(const Compare& other) const {
-    return operation == other.operation && OperationBase::operator==(other);
-  }
+  explicit Compare(const RelationalOperation operation) : operation(operation) {}
 
   RelationalOperation operation;
 };
 
 struct Load {
-  Expr expr;
+  constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 0; }
+  constexpr std::string_view ToString() const { return "load"; }
+  std::size_t Hash() const { return HashExpression(expr); }
+  bool IsSame(const Load& other) const { return expr.IsIdenticalTo(other.expr); }
+
   explicit Load(Expr expr) : expr(std::move(expr)) {}
 
-  bool operator==(const Load& other) const { return expr.IsIdenticalTo(other.expr); }
+  Expr expr;
 };
-
-// Different operations are represented by a variant.
-using Operation = std::variant<Add, Mul, Pow, Copy, CallUnaryFunc, Compare, Cond, Phi, Load>;
-
-// Pair together a target value and an operation.
-struct OpWithTarget {
-  Value target;
-  Operation op;
-
-  OpWithTarget(const ir::Value target, ir::Operation&& op) : target(target), op(std::move(op)) {}
-};
-
-struct Block;
 
 struct Jump {
-  Block* next;
+  constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 0; }
+  constexpr std::string_view ToString() const { return "jump"; }
+  std::size_t Hash() const { return next_->name; }
+  bool IsSame(const Jump& other) const { return next_ == other.next_; }
+
+  explicit Jump(Block* block) : next_{block} { ASSERT(block); }
+
+  ir::Block* Next() const { return next_; }
+
+ private:
+  ir::Block* next_;
 };
 
 struct ConditionalJump {
-  ir::Value condition;
-  Block* next_true;
-  Block* next_false;
-};
-
-// A block of operations:
-struct Block {
-  // Unique number to refer to the block (a counter).
-  std::size_t name;
-
-  // All the operations in the block, in order.
-  std::vector<ir::OpWithTarget> operations;
-
-  // How the block exits.
-  std::variant<std::monostate, Jump, ConditionalJump> jump{std::monostate()};
-
-  // Ancestor blocks (blocks that preceded this one).
-  std::vector<ir::Block*> ancestors;
-
-  // True if there is no jump statement.
-  bool IsEnd() const { return std::holds_alternative<std::monostate>(jump); }
-
-  // Terminate the block with a jump to another block.
-  void SetJump(ir::Block* const next) {
-    ASSERT(next);
-    jump = Jump{next};
-    next->ancestors.push_back(this);
+  constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 1; }
+  constexpr std::string_view ToString() const { return "jump"; }
+  std::size_t Hash() const { return HashCombine(next_true_->name, next_false_->name); }
+  bool IsSame(const ConditionalJump& other) const {
+    return next_true_ == other.next_true_ && next_false_ == other.next_false_;
   }
 
-  // Terminate the block with a conditional jump to two blocks.
-  void SetConditionalJump(ir::Value cond, ir::Block* const next_true, ir::Block* const next_false) {
+  ConditionalJump(Block* next_true, Block* next_false)
+      : next_true_(next_true), next_false_(next_false) {
     ASSERT(next_true);
     ASSERT(next_false);
-    jump = ConditionalJump{cond, next_true, next_false};
-    next_true->ancestors.push_back(this);
-    next_false->ancestors.push_back(this);
   }
 
-  // True if the block has no operations.
-  bool IsEmpty() const { return operations.empty(); }
+  ir::Block* NextTrue() const { return next_true_; }
+  ir::Block* NextFalse() const { return next_false_; }
+
+ private:
+  ir::Block* next_true_;
+  ir::Block* next_false_;
+};
+
+// Different operations are represented by a variant.
+using Operation = std::variant<Add, Mul, Pow, Copy, CallUnaryFunc, Compare, Cond, Phi, Load, Jump,
+                               ConditionalJump>;
+
+// Values are the result of any instruction we store in the IR.
+// All values have a name (an integer), and an operation that computed them.
+// Values may be used as operands to other operations.
+class Value {
+ public:
+  // Construct:
+  template <typename OpType>
+  explicit Value(uint32_t name, ir::Block* parent, OpType&& operation,
+                 std::vector<ir::Value*>&& operands)
+      : name_(name), parent_(parent), op_(std::move(operation)), operands_(std::move(operands)) {
+    ASSERT(parent);
+    NotifyOperands();
+    if constexpr (OpType::IsCommutative()) {
+      SortOperands();
+    }
+    CheckNumOperands<OpType>();
+  }
+
+  // Construct with input values specified as variadic arg list.
+  template <
+      typename OpType, typename... Args,
+      typename = std::enable_if_t<std::conjunction_v<std::is_convertible<Args, ir::Value*>...>>>
+  explicit Value(uint32_t name, ir::Block* parent, OpType&& operation, Args... args)
+      : Value(name, parent, std::move(operation), MakeValueVector(args...)) {}
+
+  // Access underlying integer.
+  constexpr uint32_t Name() const { return name_; }
+
+  // Get the parent block.
+  ir::Block* Parent() const { return parent_; }
+
+  // Set the parent pointer.
+  void SetParent(ir::Block* b) {
+    ASSERT(b);
+    parent_ = b;
+  }
+
+  // Access underlying operation
+  const Operation& Op() const { return op_; }
+
+  // True if the underlying operation is `T`.
+  template <typename T>
+  bool Is() const {
+    return std::holds_alternative<T>(op_);
+  }
+
+  // Cast the operation to the specified type.
+  template <typename T>
+  const T& As() const {
+    return std::get<T>(op_);
+  }
+
+  // True if this is a jump.
+  bool IsJump() const { return Is<ir::ConditionalJump>() || Is<ir::Jump>(); }
+
+  // True if this is a phi function.
+  bool IsPhi() const { return Is<ir::Phi>(); }
+
+  // True if any values that consume this one are phi functions.
+  bool IsConsumedByPhi() const {
+    return std::any_of(consumers_.begin(), consumers_.end(), [this](ir::Value* v) {
+      return v->IsPhi() && v->Operands().front() != this;
+    });
+  }
+
+  // Replace an operand to this instruction with another.
+  void ReplaceOperand(ir::Value* const old, ir::Value* const replacement) {
+    auto it = std::find(operands_.begin(), operands_.end(), old);
+    ASSERT(it != operands_.end(), "Tried to replace missing operand: {}", old->Name());
+    *it = replacement;
+    replacement->AddConsumer(this);
+    MaybeSortOperands();
+  }
+
+  // Change the underlying operation that computes this value.
+  template <typename OpType, typename... Args>
+  void SetOp(OpType&& op, Args... args) {
+    // Notify existing operands we no longer reference them
+    for (ir::Value* const operand : operands_) {
+      operand->RemoveConsumer(this);
+    }
+    // Record new operands:
+    operands_.clear();
+    (operands_.push_back(args), ...);
+    op_ = std::move(op);
+    NotifyOperands();
+    if constexpr (OpType::IsCommutative()) {
+      SortOperands();
+    }
+    CheckNumOperands<OpType>();
+  }
+
+  void AddConsumer(ir::Value* const v) {
+    auto it = std::find(consumers_.begin(), consumers_.end(), v);
+    ASSERT(v);
+    ASSERT(it == consumers_.end(), "Duplicate insertion of value: {}", v->Name());
+    consumers_.push_back(v);
+  }
+
+  void RemoveConsumer(ir::Value* const v) {
+    auto it = std::find(consumers_.begin(), consumers_.end(), v);
+    ASSERT(v);
+    ASSERT(it != consumers_.end(), "Tried to remove non-existent consumer: {}", v->Name());
+    consumers_.erase(it);
+  }
+
+  // Access instruction operands.
+  const std::vector<ir::Value*>& Operands() const { return operands_; }
+
+  // Get the first operand.
+  ir::Value* Front() const { return operands_.front(); }
+
+  // Access all consumers of this value.
+  const std::vector<ir::Value*>& Consumers() const { return consumers_; }
+
+  // True if `this` accepts `v` as an operand.
+  bool Consumes(ir::Value* const v) const {
+    return std::any_of(operands_.begin(), operands_.end(),
+                       [&](ir::Value* operand) { return operand == v; });
+  }
+
+  // True if operands to values match.
+  bool OperandsMatch(const ir::Value* other) const {
+    ASSERT(other);
+    if (operands_.size() != other->operands_.size()) {
+      return false;
+    }
+    return std::equal(operands_.begin(), operands_.end(), other->operands_.begin());
+  }
+
+  // Replace this value w/ the argument.
+  void ReplaceWith(ir::Value* const other) {
+    ASSERT(other);
+    ASSERT(this != other);
+    for (ir::Value* const consumer : consumers_) {
+      consumer->ReplaceOperand(this, other);
+    }
+    consumers_.clear();
+  }
+
+  // Nuke this value. Only valid if the only consumers are phi functions.
+  void Remove() {
+    // Notify our operands we no longer consume them.
+    for (ir::Value* const operand : operands_) {
+      operand->RemoveConsumer(this);
+    }
+    // Check downstream consumers:
+    for (ir::Value* const consumer : consumers_) {
+      ASSERT(consumer->IsPhi(), "Consumers must be phi functions to remove this instruction");
+      // Keep the operand to the phi function that is not `this`:
+      const std::vector<ir::Value*>& phi_args = consumer->Operands();
+      ASSERT_EQUAL(3, phi_args.size());
+      consumer->ReplaceWith(phi_args[1] == this ? phi_args[2] : phi_args[1]);
+    }
+    parent_ = nullptr;
+  }
+
+  // True if there are no consumers of this value.
+  bool IsUnused() const { return !IsJump() && consumers_.empty(); }
+
+ protected:
+  void MaybeSortOperands() {
+    const bool commutative = std::visit([](const auto& op) { return op.IsCommutative(); }, op_);
+    if (commutative) {
+      SortOperands();
+    }
+  }
+
+  void SortOperands() {
+    std::sort(operands_.begin(), operands_.end(),
+              [](ir::Value* a, ir::Value* b) { return a->Name() < b->Name(); });
+  }
+
+  template <typename OpType>
+  void CheckNumOperands() {
+    constexpr int expected_num_args = OpType::NumValueOperands();
+    if constexpr (expected_num_args >= 0) {
+      ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
+    }
+  }
+
+  void NotifyOperands() {
+    for (ir::Value* const operand : operands_) {
+      ASSERT(operand);
+      operand->AddConsumer(this);
+    }
+  }
+
+  template <typename... Args>
+  std::vector<ir::Value*> MakeValueVector(Args... args) {
+    std::vector<ir::Value*> vec{};
+    vec.reserve(sizeof...(Args));
+    (vec.push_back(std::forward<Args>(args)), ...);
+    return vec;
+  }
+
+  // Unique name for this value (used for formatting variable names).
+  uint32_t name_;
+
+  // Parent block
+  ir::Block* parent_;
+
+  // The operation that computes this value.
+  Operation op_;
+
+  // Operands to the operation. Maybe be empty for some operations.
+  // TODO: Small vector of size ~4:
+  std::vector<ir::Value*> operands_;
+
+  // Downstream values that consume this one:
+  std::vector<ir::Value*> consumers_;
 };
 
 }  // namespace ir
@@ -226,25 +409,16 @@ struct IrBuilder {
   explicit IrBuilder(const std::vector<Expr>& expressions);
 
   // Get the values indices for the outputs.
-  const std::vector<ir::Value>& OutputValues() const { return output_values_; }
+  const std::vector<ir::Value*>& OutputValues() const { return output_values_; }
 
   // Format IR for every value.
-  std::string ToString() const;
+  std::string ToString(bool print_jump_origins = false) const;
 
   // Size of value numbers when printed (# digits).
   std::size_t ValuePrintWidth() const;
 
-  //
-  void MergeBlocks();
-
-  // Recreate the expression tree for the specified IR value.
-  Expr CreateExpression(const ir::Value& value) const;
-
-  // Recreate the expression tree for the specified output (by index).
-  Expr CreateExpressionForOutput(std::size_t index) const {
-    ASSERT_LESS(index, output_values_.size());
-    return CreateExpression(output_values_[index]);
-  }
+  // Recreate the expression tree for all the output expressions.
+  std::vector<Expr> CreateOutputExpressions() const;
 
   // Create AST to be emitted.
   std::vector<ast::Variant> CreateAST(const ast::FunctionSignature& description);
@@ -252,7 +426,12 @@ struct IrBuilder {
   // Eliminate duplicated operations.
   void EliminateDuplicates();
   void StripUnusedValues();
-  void ThreadJumps();
+  void FoldConditionalJumps();
+  void EliminateUnreachableBlocks();
+  void CombineSequentialBlocks();
+  void LiftValues();
+  void DropValues();
+  void EliminateChainedJumps();
 
   // Number of operations:
   std::size_t NumOperations() const;
@@ -266,17 +445,17 @@ struct IrBuilder {
     return blocks_.front().get();
   }
 
-  // An array of operations and the value IDs they compute.
+  // Owns all the blocks.
   std::vector<std::unique_ptr<ir::Block>> blocks_;
 
-  // todo: Delete me
-  std::vector<ir::OpWithTarget> operations_;
+  // Owns all the instructions.
+  std::vector<std::unique_ptr<ir::Value>> values_;
 
   // The output values, one per input expression.
-  std::vector<ir::Value> output_values_;
+  std::vector<ir::Value*> output_values_;
 
-  // Next available value, starting at zero.
-  ir::Value insertion_point_{0};
+  // Next available value name, starting at zero.
+  uint32_t insertion_point_{0};
 
   friend struct ir::IRFormVisitor;
 };
