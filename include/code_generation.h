@@ -12,24 +12,37 @@
 #include "expression.h"
 #include "function_evaluator.h"
 #include "hashing.h"
+#include "non_null_ptr.h"
 
 namespace math {
 namespace ir {
 
 class Value;
+class Block;
 struct IRFormVisitor;
+
+using ValuePtr = NonNullPtr<ir::Value>;
+using BlockPtr = NonNullPtr<ir::Block>;
 
 // A block of operations:
 class Block {
  public:
+  using unique_ptr = std::unique_ptr<Block>;
+
+  // Construct w/ counter.
+  explicit Block(std::size_t name) : name(name) {}
+
   // Unique number to refer to the block (a counter).
   std::size_t name;
 
   // All the operations in the block, in order.
-  std::vector<ir::Value*> operations;
+  // TODO: There is an argument to be made that this should be an intrusive double-linked-list.
+  // For now I'm going with pointers, since this is simpler to get started, even though it means
+  // we'll have some O(N) operations (for moderately small N).
+  std::vector<ValuePtr> operations;
 
   // Ancestor blocks (blocks that preceded this one).
-  std::vector<ir::Block*> ancestors;
+  std::vector<BlockPtr> ancestors;
 
   // True if the block has no operations.
   bool IsEmpty() const { return operations.empty(); }
@@ -40,11 +53,11 @@ class Block {
   template <typename Callable>
   void VisitSuccessors(Callable&& callable) const;
 
-  void AddAncestor(ir::Block* const b);
+  void AddAncestor(BlockPtr b);
 
-  void RemoveAncestor(ir::Block* const b);
+  void RemoveAncestor(BlockPtr b);
 
-  void PushValue(ir::Value* const v);
+  void PushValue(const ValuePtr& v);
 };
 
 struct Add {
@@ -151,35 +164,36 @@ struct Jump {
   std::size_t Hash() const { return next_->name; }
   bool IsSame(const Jump& other) const { return next_ == other.next_; }
 
-  explicit Jump(Block* block) : next_{block} { ASSERT(block); }
+  explicit Jump(BlockPtr block) : next_{block} {}
 
-  ir::Block* Next() const { return next_; }
+  BlockPtr Next() const { return next_; }
 
  private:
-  ir::Block* next_;
+  BlockPtr next_;
 };
 
 struct ConditionalJump {
   constexpr static bool IsCommutative() { return false; }
   constexpr static int NumValueOperands() { return 1; }
   constexpr std::string_view ToString() const { return "jump"; }
+
+  // Hash takes account of which block we are jumping to.
   std::size_t Hash() const { return HashCombine(next_true_->name, next_false_->name); }
+
+  // Blocks must match.
   bool IsSame(const ConditionalJump& other) const {
     return next_true_ == other.next_true_ && next_false_ == other.next_false_;
   }
 
-  ConditionalJump(Block* next_true, Block* next_false)
-      : next_true_(next_true), next_false_(next_false) {
-    ASSERT(next_true);
-    ASSERT(next_false);
-  }
+  ConditionalJump(BlockPtr next_true, BlockPtr next_false)
+      : next_true_(next_true), next_false_(next_false) {}
 
-  ir::Block* NextTrue() const { return next_true_; }
-  ir::Block* NextFalse() const { return next_false_; }
+  BlockPtr NextTrue() const { return next_true_; }
+  BlockPtr NextFalse() const { return next_false_; }
 
  private:
-  ir::Block* next_true_;
-  ir::Block* next_false_;
+  BlockPtr next_true_;
+  BlockPtr next_false_;
 };
 
 // Different operations are represented by a variant.
@@ -191,12 +205,13 @@ using Operation = std::variant<Add, Mul, Pow, Copy, CallUnaryFunc, Compare, Cond
 // Values may be used as operands to other operations.
 class Value {
  public:
+  using unique_ptr = std::unique_ptr<Value>;
+
   // Construct:
   template <typename OpType>
-  explicit Value(uint32_t name, ir::Block* parent, OpType&& operation,
-                 std::vector<ir::Value*>&& operands)
+  explicit Value(uint32_t name, ir::BlockPtr parent, OpType&& operation,
+                 std::vector<ValuePtr>&& operands)
       : name_(name), parent_(parent), op_(std::move(operation)), operands_(std::move(operands)) {
-    ASSERT(parent);
     NotifyOperands();
     if constexpr (OpType::IsCommutative()) {
       SortOperands();
@@ -205,23 +220,19 @@ class Value {
   }
 
   // Construct with input values specified as variadic arg list.
-  template <
-      typename OpType, typename... Args,
-      typename = std::enable_if_t<std::conjunction_v<std::is_convertible<Args, ir::Value*>...>>>
-  explicit Value(uint32_t name, ir::Block* parent, OpType&& operation, Args... args)
+  template <typename OpType, typename... Args,
+            typename = std::enable_if_t<std::conjunction_v<std::is_convertible<Args, ValuePtr>...>>>
+  explicit Value(uint32_t name, ir::BlockPtr parent, OpType&& operation, Args... args)
       : Value(name, parent, std::move(operation), MakeValueVector(args...)) {}
 
   // Access underlying integer.
   constexpr uint32_t Name() const { return name_; }
 
   // Get the parent block.
-  ir::Block* Parent() const { return parent_; }
+  ir::BlockPtr Parent() const { return parent_; }
 
   // Set the parent pointer.
-  void SetParent(ir::Block* b) {
-    ASSERT(b);
-    parent_ = b;
-  }
+  void SetParent(ir::BlockPtr b) { parent_ = b; }
 
   // Access underlying operation
   const Operation& Op() const { return op_; }
@@ -246,13 +257,13 @@ class Value {
 
   // True if any values that consume this one are phi functions.
   bool IsConsumedByPhi() const {
-    return std::any_of(consumers_.begin(), consumers_.end(), [this](ir::Value* v) {
+    return std::any_of(consumers_.begin(), consumers_.end(), [this](const ValuePtr& v) {
       return v->IsPhi() && v->Operands().front() != this;
     });
   }
 
   // Replace an operand to this instruction with another.
-  void ReplaceOperand(ir::Value* const old, ir::Value* const replacement) {
+  void ReplaceOperand(const ValuePtr old, const ValuePtr replacement) {
     auto it = std::find(operands_.begin(), operands_.end(), old);
     ASSERT(it != operands_.end(), "Tried to replace missing operand: {}", old->Name());
     *it = replacement;
@@ -264,7 +275,7 @@ class Value {
   template <typename OpType, typename... Args>
   void SetOp(OpType&& op, Args... args) {
     // Notify existing operands we no longer reference them
-    for (ir::Value* const operand : operands_) {
+    for (const ValuePtr& operand : operands_) {
       operand->RemoveConsumer(this);
     }
     // Record new operands:
@@ -280,36 +291,36 @@ class Value {
 
   void AddConsumer(ir::Value* const v) {
     auto it = std::find(consumers_.begin(), consumers_.end(), v);
-    ASSERT(v);
-    ASSERT(it == consumers_.end(), "Duplicate insertion of value: {}", v->Name());
-    consumers_.push_back(v);
+    ValuePtr val{v};
+    ASSERT(it == consumers_.end(), "Duplicate insertion of value: {}", val->Name());
+    consumers_.push_back(val);
   }
 
-  void RemoveConsumer(ir::Value* const v) {
+  void RemoveConsumer(ir::Value* v) {
     auto it = std::find(consumers_.begin(), consumers_.end(), v);
     ASSERT(v);
     ASSERT(it != consumers_.end(), "Tried to remove non-existent consumer: {}", v->Name());
+    fmt::print("Removing consumer {} from {}\n", ir::ValuePtr{v}, ir::ValuePtr{this});
     consumers_.erase(it);
   }
 
   // Access instruction operands.
-  const std::vector<ir::Value*>& Operands() const { return operands_; }
+  const std::vector<ValuePtr>& Operands() const { return operands_; }
 
   // Get the first operand.
-  ir::Value* Front() const { return operands_.front(); }
+  const ValuePtr& Front() const { return operands_.front(); }
 
   // Access all consumers of this value.
-  const std::vector<ir::Value*>& Consumers() const { return consumers_; }
+  const std::vector<ValuePtr>& Consumers() const { return consumers_; }
 
   // True if `this` accepts `v` as an operand.
-  bool Consumes(ir::Value* const v) const {
+  bool Consumes(const ValuePtr& v) const {
     return std::any_of(operands_.begin(), operands_.end(),
-                       [&](ir::Value* operand) { return operand == v; });
+                       [&](const ValuePtr& operand) { return operand == v; });
   }
 
   // True if operands to values match.
-  bool OperandsMatch(const ir::Value* other) const {
-    ASSERT(other);
+  bool OperandsMatch(const ValuePtr& other) const {
     if (operands_.size() != other->operands_.size()) {
       return false;
     }
@@ -317,36 +328,23 @@ class Value {
   }
 
   // Replace this value w/ the argument.
-  void ReplaceWith(ir::Value* const other) {
-    ASSERT(other);
-    ASSERT(this != other);
-    for (ir::Value* const consumer : consumers_) {
-      consumer->ReplaceOperand(this, other);
-    }
-    consumers_.clear();
-  }
+  // All downstream consumers have their arguments swapped, and the consumer list is cleared.
+  void ReplaceWith(const ValuePtr other);
 
-  // Nuke this value. Only valid if the only consumers are phi functions.
-  void Remove() {
-    // Notify our operands we no longer consume them.
-    for (ir::Value* const operand : operands_) {
-      operand->RemoveConsumer(this);
-    }
-    // Check downstream consumers:
-    for (ir::Value* const consumer : consumers_) {
-      ASSERT(consumer->IsPhi(), "Consumers must be phi functions to remove this instruction");
-      // Keep the operand to the phi function that is not `this`:
-      const std::vector<ir::Value*>& phi_args = consumer->Operands();
-      ASSERT_EQUAL(3, phi_args.size());
-      consumer->ReplaceWith(phi_args[1] == this ? phi_args[2] : phi_args[1]);
-    }
-    parent_ = nullptr;
-  }
+  // Nuke this value. Only valid if it is not consumed.
+  void Remove();
+
+  // Update any phi functions that consume this value (as though this value were no longer
+  // computed).
+  void RemoveFromDownstreamPhiFunctions();
 
   // True if there are no consumers of this value.
   bool IsUnused() const { return !IsJump() && consumers_.empty(); }
 
  protected:
+  // Remove an operand from the operands vector.
+  void RemoveOperand(ir::Value* v);
+
   void MaybeSortOperands() {
     const bool commutative = std::visit([](const auto& op) { return op.IsCommutative(); }, op_);
     if (commutative) {
@@ -356,7 +354,7 @@ class Value {
 
   void SortOperands() {
     std::sort(operands_.begin(), operands_.end(),
-              [](ir::Value* a, ir::Value* b) { return a->Name() < b->Name(); });
+              [](const ValuePtr& a, const ValuePtr& b) { return a->Name() < b->Name(); });
   }
 
   template <typename OpType>
@@ -368,17 +366,16 @@ class Value {
   }
 
   void NotifyOperands() {
-    for (ir::Value* const operand : operands_) {
-      ASSERT(operand);
+    for (const ValuePtr& operand : operands_) {
       operand->AddConsumer(this);
     }
   }
 
   template <typename... Args>
-  std::vector<ir::Value*> MakeValueVector(Args... args) {
-    std::vector<ir::Value*> vec{};
+  std::vector<ValuePtr> MakeValueVector(Args&&... args) {
+    std::vector<ValuePtr> vec{};
     vec.reserve(sizeof...(Args));
-    (vec.push_back(std::forward<Args>(args)), ...);
+    (vec.emplace_back(std::forward<Args>(args)), ...);
     return vec;
   }
 
@@ -386,17 +383,17 @@ class Value {
   uint32_t name_;
 
   // Parent block
-  ir::Block* parent_;
+  ir::BlockPtr parent_;
 
   // The operation that computes this value.
   Operation op_;
 
   // Operands to the operation. Maybe be empty for some operations.
   // TODO: Small vector of size ~4:
-  std::vector<ir::Value*> operands_;
+  std::vector<ValuePtr> operands_;
 
   // Downstream values that consume this one:
-  std::vector<ir::Value*> consumers_;
+  std::vector<ValuePtr> consumers_;
 };
 
 }  // namespace ir
@@ -409,7 +406,7 @@ struct IrBuilder {
   explicit IrBuilder(const std::vector<Expr>& expressions);
 
   // Get the values indices for the outputs.
-  const std::vector<ir::Value*>& OutputValues() const { return output_values_; }
+  const std::vector<ir::ValuePtr>& OutputValues() const { return output_values_; }
 
   // Format IR for every value.
   std::string ToString(bool print_jump_origins = false) const;
@@ -440,22 +437,32 @@ struct IrBuilder {
   std::size_t NumJumps() const;
 
  protected:
-  ir::Block* FirstBlock() const {
+  ir::BlockPtr FirstBlock() const {
     ASSERT(!blocks_.empty());
-    return blocks_.front().get();
+    return ir::BlockPtr{blocks_.front()};
   }
 
+  // Allocate new value and insert it into block.
+  template <typename OpType, typename... Args>
+  ir::ValuePtr CreateOperation(ir::BlockPtr block, OpType&& op, Args... args);
+
+  // Allocate a new block
+  ir::BlockPtr CreateBlock();
+
   // Owns all the blocks.
-  std::vector<std::unique_ptr<ir::Block>> blocks_;
+  std::vector<ir::Block::unique_ptr> blocks_;
 
   // Owns all the instructions.
-  std::vector<std::unique_ptr<ir::Value>> values_;
+  std::vector<ir::Value::unique_ptr> values_;
 
   // The output values, one per input expression.
-  std::vector<ir::Value*> output_values_;
+  std::vector<ir::ValuePtr> output_values_;
 
   // Next available value name, starting at zero.
   uint32_t insertion_point_{0};
+
+  // Dead blocks:
+  std::vector<ir::Block::unique_ptr> dead_blocks_;
 
   friend struct ir::IRFormVisitor;
 };
