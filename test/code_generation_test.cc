@@ -211,8 +211,8 @@ TEST(CodeGenerationTest, TestCreateIR8) {
   fmt::print("{}\n\n", ir.ToString());
 
   ir.LiftValues();
-//  ir.EliminateDuplicates();
-//  ir.StripUnusedValues();
+  //  ir.EliminateDuplicates();
+  //  ir.StripUnusedValues();
 
   fmt::print("-- after lifting values:\n");
   fmt::print("Num operations (after): {}\n", ir.NumOperations());
@@ -251,6 +251,10 @@ TEST(CodeGenerationTest, TestCreateIR8) {
   fmt::print("Num operations (after): {}\n", ir.NumOperations());
   fmt::print("Num jumps (after): {}\n", ir.NumJumps());
   fmt::print("{}\n\n", ir.ToString());
+
+  output_expr = ir.CreateOutputExpressions();
+  //  ASSERT_IDENTICAL(f1, output_expr.front());
+  ASSERT_IDENTICAL(f4, output_expr.back());
 }
 
 }  // namespace math

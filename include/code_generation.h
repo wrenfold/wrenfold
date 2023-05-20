@@ -114,7 +114,7 @@ struct Cond {
 };
 
 struct Phi {
-  constexpr static int NumValueOperands() { return 3; }
+  constexpr static int NumValueOperands() { return 2; }
   constexpr static bool IsCommutative() { return false; }
   constexpr std::string_view ToString() const { return "phi"; }
   constexpr std::size_t Hash() const { return 0; }
@@ -257,9 +257,8 @@ class Value {
 
   // True if any values that consume this one are phi functions.
   bool IsConsumedByPhi() const {
-    return std::any_of(consumers_.begin(), consumers_.end(), [this](const ValuePtr& v) {
-      return v->IsPhi() && v->Operands().front() != this;
-    });
+    return std::any_of(consumers_.begin(), consumers_.end(),
+                       [](const ValuePtr& v) { return v->IsPhi(); });
   }
 
   // Replace an operand to this instruction with another.

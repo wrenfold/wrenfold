@@ -118,7 +118,7 @@ void Value::Remove() {
     operand->RemoveConsumer(this);
   }
   // This value is dead, so clear the operand vector
-  //  operands_.clear();
+  operands_.clear();
 }
 
 void Value::RemoveFromDownstreamPhiFunctions() {
@@ -130,8 +130,8 @@ void Value::RemoveFromDownstreamPhiFunctions() {
     if (maybe_phi->IsPhi()) {
       // Keep the operand to the phi function that is not `this`:
       const std::vector<ValuePtr>& phi_args = maybe_phi->Operands();
-      ASSERT_EQUAL(3, phi_args.size());
-      ir::ValuePtr replacement = phi_args[1] == this ? phi_args[2] : phi_args[1];
+      ASSERT_EQUAL(2, phi_args.size());
+      ir::ValuePtr replacement = phi_args.front() == this ? phi_args.back() : phi_args.front();
 
       fmt::print("Replacing phi {} with {}\n", maybe_phi, replacement);
       maybe_phi->ReplaceWith(replacement);
@@ -355,7 +355,7 @@ struct IRFormVisitor {
     builder_.CreateOperation(b_false_end, Jump{next});
 
     // now we need a phi function - this gets inserted into `next_block`
-    return PushOperation(Phi{}, condition, if_branch, else_branch);
+    return PushOperation(Phi{}, if_branch, else_branch);
   }
 
   ValuePtr Apply(const Expr& input_expression, const Constant&) {
@@ -464,6 +464,39 @@ struct ValueEquality {
 
 }  // namespace ir
 
+enum class SearchDirection { Downwards, Upwards };
+
+ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right,
+                            const SearchDirection direction) {
+  // queue with [node, color]
+  std::deque<std::pair<ir::BlockPtr, bool>> queue;
+  queue.emplace_back(left, true);
+  queue.emplace_back(right, false);
+
+  std::unordered_map<ir::BlockPtr, bool> visited;
+  visited.reserve(20);
+
+  while (!queue.empty()) {
+    const auto [b, color] = queue.front();
+    queue.pop_front();
+
+    const auto [it, was_inserted] = visited.emplace(b, color);
+    if (!was_inserted && it->second != color) {
+      // Already visited by a different color, we found the intersection point:
+      return b;
+    }
+    if (direction == SearchDirection::Downwards) {
+      b->VisitSuccessors([&](ir::BlockPtr child) { queue.emplace_back(child, color); });
+    } else {
+      for (ir::BlockPtr ancestor : b->ancestors) {
+        queue.emplace_back(ancestor, color);
+      }
+    }
+  }
+
+  throw AssertionError("All branches should have a merge point");
+}
+
 IrBuilder::IrBuilder(const std::vector<Expr>& expressions) {
   output_values_.reserve(expressions.size());
 
@@ -542,40 +575,56 @@ struct ExprFromIrVisitor {
   explicit ExprFromIrVisitor(const std::unordered_map<uint32_t, Expr>& value_to_expression)
       : value_to_expression_(value_to_expression) {}
 
-  Expr operator()(const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::ValuePtr, const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
     return Addition::FromOperands({MapValue(args[0]), MapValue(args[1])});
   }
 
-  Expr operator()(const ir::Mul&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::ValuePtr, const ir::Mul&, const std::vector<ir::ValuePtr>& args) const {
     return Multiplication::FromOperands({MapValue(args[0]), MapValue(args[1])});
   }
 
-  Expr operator()(const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::ValuePtr, const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
     return Power::Create(MapValue(args[0]), MapValue(args[1]));
   }
 
-  Expr operator()(const ir::CallUnaryFunc& func, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::ValuePtr, const ir::CallUnaryFunc& func,
+                  const std::vector<ir::ValuePtr>& args) const {
     return CreateUnaryFunction(func.name, MapValue(args[0]));
   }
 
-  Expr operator()(const ir::Cond&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::ValuePtr, const ir::Cond&,
+                  const std::vector<ir::ValuePtr>& args) const {
     return where(MapValue(args[0]), MapValue(args[1]), MapValue(args[2]));
   }
 
-  Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
-    ASSERT_EQUAL(3, args.size());
-    return where(MapValue(args[0]), MapValue(args[1]), MapValue(args[2]));
+  Expr operator()(const ir::ValuePtr, const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
+    ASSERT_EQUAL(2, args.size());
+
+    // We find to find the condition for this jump:
+    const ir::BlockPtr jump_block =
+        FindMergePoint(args.front()->Parent(), args.back()->Parent(), SearchDirection::Upwards);
+
+    // Determine the condition:
+    ASSERT(!jump_block->IsEmpty());
+
+    ir::ValuePtr jump_val = jump_block->operations.back();
+    ASSERT(jump_val->Is<ir::ConditionalJump>());
+
+    return where(MapValue(jump_val->Front()), MapValue(args[0]), MapValue(args[1]));
   }
 
-  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::ValuePtr, const ir::Compare& cmp,
+                  const std::vector<ir::ValuePtr>& args) const {
     return Relational::Create(cmp.operation, MapValue(args[0]), MapValue(args[1]));
   }
 
-  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::ValuePtr, const ir::Copy&,
+                  const std::vector<ir::ValuePtr>& args) const {
     return MapValue(args[0]);
   }
 
-  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
+  Expr operator()(const ir::ValuePtr, const ir::Load& load,
+                  const std::vector<ir::ValuePtr>&) const {
     return load.expr;
   }
 
@@ -615,7 +664,7 @@ std::vector<Expr> IrBuilder::CreateOutputExpressions() const {
       OverloadedVisit(
           code->Op(), [](const ir::Jump&) {}, [](const ir::ConditionalJump&) {},
           [&](const auto& op) {
-            Expr expr = visitor(op, code->Operands());
+            Expr expr = visitor(code, op, code->Operands());
             value_to_expression.emplace(code->Name(), std::move(expr));
           });
     }
@@ -939,36 +988,13 @@ void IrBuilder::LiftValues() {
   }
 }
 
-ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right) {
-  std::deque<ir::BlockPtr> queue;
-  queue.push_back(left);
-  queue.push_back(right);
-
-  std::unordered_set<ir::BlockPtr> visited;
-  visited.reserve(20);
-
-  while (!queue.empty()) {
-    const ir::BlockPtr b = queue.front();
-    queue.pop_front();
-
-    const auto [_, was_inserted] = visited.insert(b);
-    if (!was_inserted) {
-      // Already visited - we found the intersection point:
-      return b;
-    }
-    b->VisitSuccessors([&](ir::BlockPtr b) { queue.push_back(b); });
-  }
-
-  throw AssertionError("All branches should hav ea merge point");
-}
-
 std::optional<ir::BlockPtr> GetNextCommon(const ir::BlockPtr block) {
   const ir::ValuePtr& jump_op = block->operations.back();
   if (jump_op->Is<ir::Jump>()) {
     return jump_op->As<ir::Jump>().Next();
   } else if (jump_op->Is<ir::ConditionalJump>()) {
     const ir::ConditionalJump& cond = jump_op->As<ir::ConditionalJump>();
-    return FindMergePoint(cond.NextTrue(), cond.NextFalse());
+    return FindMergePoint(cond.NextTrue(), cond.NextFalse(), SearchDirection::Downwards);
   }
   // this is the last block:
   return std::nullopt;
