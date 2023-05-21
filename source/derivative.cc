@@ -27,7 +27,12 @@ class DiffVisitor {
     return MapChildren(add, [&](const Expr& x) { return VisitStruct(x, *this); });
   }
 
-  Expr Apply(const Conditional&) const { throw TypeError("IMPLEMENT ME!"); }
+  // TODO: This should insert a dirac delta function at the transition point (if the condition
+  // is a function of the variable we are differentiating).
+  Expr Apply(const Conditional& cond) {
+    return where(cond.Condition(), VisitStruct(cond.IfBranch(), *this),
+                 VisitStruct(cond.ElseBranch(), *this));
+  }
 
   Expr Apply(const Constant&) const { return Constants::Zero; }
 

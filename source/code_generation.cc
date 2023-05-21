@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <deque>
+#include <queue>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -65,6 +66,48 @@ void Block::VisitSuccessors(Callable&& callable) const {
       [](const auto&) {});
 }
 
+std::optional<ir::ValuePtr> Block::PopJump() {
+  if (operations.empty()) {
+    return std::nullopt;
+  }
+  const ir::BlockPtr self{this};
+  const bool is_jump = OverloadedVisit(
+      operations.back()->Op(),
+      [&](const ir::Jump& j) {
+        j.Next()->RemoveAncestor(self);
+        return true;
+      },
+      [&](const ir::ConditionalJump& j) {
+        j.NextTrue()->RemoveAncestor(self);
+        j.NextFalse()->RemoveAncestor(self);
+        return true;
+      },
+      [&](const auto&) constexpr { return false; });
+  if (!is_jump) {
+    return std::nullopt;
+  }
+  // Pop and return it:
+  ir::ValuePtr jump_val = operations.back();
+  operations.pop_back();
+
+  return jump_val;
+}
+
+void Block::SetJump(ValuePtr v) {
+  ASSERT(v->IsJump());
+  ASSERT(operations.empty() || !operations.back()->IsJump(), "Cannot have two jumps");
+  BlockPtr self{this};
+  OverloadedVisit(
+      v->Op(), [&](ir::Jump j) { j.Next()->AddAncestor(self); },
+      [&](ir::ConditionalJump j) {
+        j.NextTrue()->AddAncestor(self);
+        j.NextFalse()->AddAncestor(self);
+      },
+      [](const auto&) constexpr {});
+  operations.push_back(v);
+  v->SetParent(self);
+}
+
 void Block::AddAncestor(BlockPtr b) {
   auto it = std::find(ancestors.begin(), ancestors.end(), b);
   ASSERT(it == ancestors.end(), "Attempted to insert duplicate into ancestor list: {}", b->name);
@@ -113,7 +156,6 @@ void Value::Remove() {
   ASSERT(consumers_.empty(), "Attempting to remove a value `{}` that is consumed by: [{}]", name_,
          fmt::join(consumers_, ","));
   // Notify our operands we no longer consume them.
-  fmt::print("Calling remove on {}\n", name_);
   for (const ValuePtr& operand : operands_) {
     operand->RemoveConsumer(this);
   }
@@ -122,7 +164,7 @@ void Value::Remove() {
 }
 
 void Value::RemoveFromDownstreamPhiFunctions() {
-  fmt::print("Removing {} from downstream phi functions\n", ValuePtr(this));
+  //  fmt::print("Removing {} from downstream phi functions\n", ValuePtr(this));
   // Borrow the consumer vector. We do this so if anything tries to touch consumers_, we
   // can catch it:
   std::vector<ir::ValuePtr> consumers = std::move(consumers_);
@@ -133,7 +175,7 @@ void Value::RemoveFromDownstreamPhiFunctions() {
       ASSERT_EQUAL(2, phi_args.size());
       ir::ValuePtr replacement = phi_args.front() == this ? phi_args.back() : phi_args.front();
 
-      fmt::print("Replacing phi {} with {}\n", maybe_phi, replacement);
+      //      fmt::print("Replacing phi {} with {}\n", maybe_phi, replacement);
       maybe_phi->ReplaceWith(replacement);
       maybe_phi->RemoveOperand(this);
       return true;
@@ -262,6 +304,14 @@ struct FormatOpArgsHelper<ir::ConditionalJump> {
   }
 };
 
+template <>
+struct FormatOpArgsHelper<ir::OutputRequired> {
+  void operator()(std::string& output, const ir::OutputRequired& oreq,
+                  const std::vector<ir::ValuePtr>&, const std::size_t) {
+    fmt::format_to(std::back_inserter(output), "{}", oreq.output_index);
+  }
+};
+
 void FormatOpArgs(std::string& output, const ir::Operation& op,
                   const std::vector<ir::ValuePtr>& operands, const std::size_t width) {
   std::visit(
@@ -277,8 +327,8 @@ struct IRFormVisitor {
   using Policy = VisitorPolicy::CompileError;
   using ReturnType = ValuePtr;
 
-  explicit IRFormVisitor(IrBuilder& builder, const PairCountVisitor& pair_count)
-      : builder_(builder), pair_counts(pair_count) {}
+  explicit IRFormVisitor(IrBuilder& builder, const PairCountVisitor& pair_count, ir::BlockPtr block)
+      : builder_(builder), pair_counts(pair_count), current_block_(block) {}
 
   // Handler for additions and multiplications:
   template <typename T>
@@ -313,7 +363,7 @@ struct IRFormVisitor {
     std::vector<ValuePtr> args;
     args.reserve(op.Arity());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return VisitStruct(expr, *this); });
+                   [this](const Expr& expr) { return Visit(expr); });
     ASSERT(!args.empty());
 
     // then create multiplications or adds for this expression:
@@ -328,34 +378,31 @@ struct IRFormVisitor {
     return prev_result;
   }
 
-  ValuePtr Apply(const Expr& input, const Conditional& cond) {
-    fmt::print("processing conditional: {}\n", input.ToString());
-    // First compute expressions for the condition itself
-    ValuePtr condition = VisitStruct(cond.Condition(), *this);
+  ValuePtr Apply(const Conditional& cond) {
+    // First compute expressions for the condition itself:
+    ValuePtr condition = Visit(cond.Condition());
 
-    // The block that will jump into the conditional at the end:
-    BlockPtr current_block = PopStack();
+    // Check if the condition is already assumed true in the current scope:
+    auto condition_it = condition_set_.find(condition);
+    if (condition_it != condition_set_.end()) {
+      if (condition_it->second) {
+        // Condition is true in this scope:
+        return Visit(cond.IfBranch());
+      } else {
+        // Condition is false in this scope:
+        return Visit(cond.ElseBranch());
+      }
+    }
 
-    // Now insert a block for the if-branch:
-    const BlockPtr b_true_start = PushStack();
-    const ValuePtr if_branch = VisitStruct(cond.IfBranch(), *this);
-    const BlockPtr b_true_end = PopStack();
+    // Condition is not yet known in this scope.
+    // First set it true and process if-branch, then set it false and process else-branch.
+    auto [it, _] = condition_set_.emplace(condition, true);
+    const ValuePtr if_branch = Visit(cond.IfBranch());
+    it->second = false;
+    const ValuePtr else_branch = Visit(cond.ElseBranch());
+    condition_set_.erase(it);  //  Pop it from the set of known conditions.
 
-    // Then the else branch:
-    const BlockPtr b_false_start = PushStack();
-    const ValuePtr else_branch = VisitStruct(cond.ElseBranch(), *this);
-    const BlockPtr b_false_end = PopStack();
-
-    // Wire up the jump at the end of `current_block`
-    builder_.CreateOperation(current_block, ir::ConditionalJump{b_true_start, b_false_start},
-                             condition);
-
-    const BlockPtr next = PushStack();
-    builder_.CreateOperation(b_true_end, Jump{next});
-    builder_.CreateOperation(b_false_end, Jump{next});
-
-    // now we need a phi function - this gets inserted into `next_block`
-    return PushOperation(Phi{}, if_branch, else_branch);
+    return PushOperation(ir::Cond{}, condition, if_branch, else_branch);
   }
 
   ValuePtr Apply(const Expr& input_expression, const Constant&) {
@@ -365,7 +412,7 @@ struct IRFormVisitor {
   ValuePtr Apply(const Matrix&) const { throw TypeError("Cannot evaluate this on a matrix."); }
 
   ValuePtr Apply(const UnaryFunction& func) {
-    return PushOperation(CallUnaryFunc{func.Func()}, VisitStruct(func.Arg(), *this));
+    return PushOperation(CallUnaryFunc{func.Func()}, Visit(func.Arg()));
   }
 
   ValuePtr Apply(const Expr&, const Infinity&) const {
@@ -382,7 +429,7 @@ struct IRFormVisitor {
   }
 
   ValuePtr Apply(const Power& pow) {
-    return PushOperation(Pow{}, VisitStruct(pow.Base(), *this), VisitStruct(pow.Exponent(), *this));
+    return PushOperation(Pow{}, Visit(pow.Base()), Visit(pow.Exponent()));
   }
 
   ValuePtr Apply(const Expr& input_expression, const Rational&) {
@@ -390,38 +437,38 @@ struct IRFormVisitor {
   }
 
   ValuePtr Apply(const Relational& relational) {
-    return PushOperation(Compare{relational.Operation()}, VisitStruct(relational.Left(), *this),
-                         VisitStruct(relational.Right(), *this));
+    return PushOperation(Compare{relational.Operation()}, Visit(relational.Left()),
+                         Visit(relational.Right()));
   }
 
   ValuePtr Apply(const Expr& input_expression, const Variable&) {
     return PushOperation(Load{input_expression});
   }
 
-  // Push a new block onto the stack.
-  ir::BlockPtr PushStack() {
-    NonNullPtr<Block> block = builder_.CreateBlock();
-    stack_.push_back(block);
-    return block;
-  }
-
-  ir::BlockPtr PopStack() {
-    ASSERT(!stack_.empty());
-    ir::BlockPtr top = stack_.back();
-    stack_.pop_back();
-    return top;
-  }
-
   template <typename OpType, typename... Args>
   ValuePtr PushOperation(OpType&& op, Args... args) {
-    ASSERT(!stack_.empty(), "Need at least one block on the stack");
-    // Create a new value:
-    return builder_.CreateOperation(stack_.back(), std::move(op), args...);
+    return builder_.CreateOperation(ir::BlockPtr{current_block_}, std::move(op), args...);
   }
+
+  // Check if a value has been computed. If not, convert it and return the result.
+  ValuePtr Visit(const Expr& expr) {
+    auto it = computed_values_.find(expr);
+    if (it != computed_values_.end()) {
+      return it->second;
+    }
+    ValuePtr val = VisitStruct(expr, *this);
+    computed_values_.emplace(expr, val);
+    return val;
+  }
+
+  void SetCurrentBlock(ir::BlockPtr block) { current_block_ = block; }
 
  private:
   IrBuilder& builder_;
-  std::vector<ir::BlockPtr> stack_;
+  ir::BlockPtr current_block_;
+
+  std::unordered_map<Expr, ValuePtr, ExprHash, ExprEquality> computed_values_;
+  std::unordered_map<ValuePtr, bool> condition_set_;
 
   const PairCountVisitor& pair_counts;
 };
@@ -497,30 +544,65 @@ ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right,
   throw AssertionError("All branches should have a merge point");
 }
 
-IrBuilder::IrBuilder(const std::vector<Expr>& expressions) {
-  output_values_.reserve(expressions.size());
-
-  // Count occurrence of some sub-expressions:
+IrBuilder::IrBuilder(const std::vector<ExpressionGroup>& groups) {
+  // First pass where we count occurrence of some sub-expressions:
   ir::PairCountVisitor pair_visitor{};
-  for (const Expr& expr : expressions) {
-    VisitStruct(expr, pair_visitor);
+  std::size_t total_output_size = 0;
+  for (const ExpressionGroup& group : groups) {
+    for (const Expr& expr : group.expressions) {
+      VisitStruct(expr, pair_visitor);
+    }
+    total_output_size += group.expressions.size();
+  }
+  output_values_.reserve(total_output_size);
+  scatter_.reserve(groups.size());
+
+  // First insert a block for all the computations:
+  const ir::BlockPtr start_block = CreateBlock();
+  ir::IRFormVisitor visitor{*this, pair_visitor, start_block};
+
+  // Convert everything to ir::Value
+  std::size_t group_start = 0;
+  for (const ExpressionGroup& group : groups) {
+    for (const Expr& expr : group.expressions) {
+      ir::ValuePtr output_val = visitor.Visit(expr);
+      if (group.is_optional) {
+        // We generate the `save` instructions below for optional outputs:
+        output_values_.push_back(output_val);
+      } else {
+        output_values_.push_back(CreateOperation(start_block, ir::Save{}, output_val));
+      }
+    }
+    scatter_.push_back(group_start);
+    group_start += group.expressions.size();
   }
 
-  ir::IRFormVisitor visitor{*this, pair_visitor};
-
-  // Now convert every expression to IR and record the output value:
-  std::optional<ir::BlockPtr> previous_block{};
-  for (const Expr& expr : expressions) {
-    ir::BlockPtr start_block = visitor.PushStack();
-    output_values_.emplace_back(VisitStruct(expr, visitor));
-
-    // `end_block` is where execution ends for this expression.
-    // It may or may not be the same as `start_block`.
-    ir::BlockPtr end_block = visitor.PopStack();
-    if (previous_block) {
-      CreateOperation(previous_block.value(), ir::Jump{start_block});
+  // Then insert blocks to write to the optional outputs:
+  ir::BlockPtr last_block = start_block;
+  for (std::size_t index = 0; index < groups.size(); ++index) {
+    if (!groups[index].is_optional) {
+      continue;
     }
-    previous_block = end_block;
+
+    // Create a bool to check
+    const ir::ValuePtr exists = CreateOperation(last_block, ir::OutputRequired{index});
+
+    // Then insert a branch
+    const ir::BlockPtr left = CreateBlock();
+    const ir::BlockPtr right = CreateBlock();  //  Else branch will be empty.
+    CreateOperation(last_block, ir::ConditionalJump{left, right}, exists);
+
+    // Insert save operations into the left branch:
+    for (std::size_t i = 0; i < groups[index].expressions.size(); ++i) {
+      const std::size_t output_index = scatter_[index] + i;
+      output_values_[output_index] =
+          CreateOperation(left, ir::Save{}, output_values_[output_index]);
+    }
+
+    // Insert merge point:
+    last_block = CreateBlock();
+    CreateOperation(left, ir::Jump{last_block});
+    CreateOperation(right, ir::Jump{last_block});
   }
 }
 
@@ -583,6 +665,11 @@ struct ExprFromIrVisitor {
     return Multiplication::FromOperands({MapValue(args[0]), MapValue(args[1])});
   }
 
+  Expr operator()(const ir::ValuePtr, const ir::OutputRequired&,
+                  const std::vector<ir::ValuePtr>&) const {
+    return Constants::True;
+  }
+
   Expr operator()(const ir::ValuePtr, const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
     return Power::Create(MapValue(args[0]), MapValue(args[1]));
   }
@@ -626,6 +713,11 @@ struct ExprFromIrVisitor {
   Expr operator()(const ir::ValuePtr, const ir::Load& load,
                   const std::vector<ir::ValuePtr>&) const {
     return load.expr;
+  }
+
+  Expr operator()(const ir::ValuePtr, const ir::Save&,
+                  const std::vector<ir::ValuePtr>& args) const {
+    return MapValue(args[0]);
   }
 
   Expr MapValue(const ir::ValuePtr& val) const {
@@ -757,81 +849,136 @@ void IrBuilder::StripUnusedValues() {
   }
 }
 
-using ConditionSet = std::unordered_map<ir::ValuePtr, bool>;
+inline void ReorderConditionalsInBlock(const ir::BlockPtr block) {
+  if (block->IsEmpty()) {
+    return;
+  }
 
-void IrBuilder::FoldConditionalJumps() {
-  std::deque<ir::BlockPtr> block_queue;
-  block_queue.emplace_back(FirstBlock());
+  std::vector<ir::ValuePtr> ordered{};
+  std::unordered_set<ir::ValuePtr> visited{};
 
-  std::unordered_set<ir::BlockPtr> visited{};
-  visited.reserve(blocks_.size());
+  ordered.reserve(block->operations.size());
+  visited.reserve(block->operations.size());
 
-  std::unordered_map<ir::BlockPtr, ConditionSet> condition_sets{};
-  condition_sets.reserve(blocks_.size());
-  condition_sets.emplace(FirstBlock(), ConditionSet{});
+  // Check if something is in the visited set:
+  const auto is_visited = [&visited](ir::ValuePtr v) { return visited.count(v) > 0; };
 
-  while (!block_queue.empty()) {
-    const ir::BlockPtr head = block_queue.front();
-    block_queue.pop_front();
-    ConditionSet set = condition_sets.at(head);
+  std::deque<ir::ValuePtr> queue{};
+  std::vector<ir::ValuePtr> queue_conditionals{};
 
-    // Record that we visited this node:
-    visited.insert(head);
+  // Fill the queue w/ anything that has no dependency:
+  for (ir::ValuePtr v : block->operations) {
+    if (v->NumOperands() == 0) {
+      queue.push_back(v);
+    }
+  }
 
-    // See if this block is terminated by a conditional jump:
-    ASSERT(!head->IsEmpty());
-    const ir::ValuePtr& jump = head->operations.back();
-    const bool is_cond_jump = std::holds_alternative<ir::ConditionalJump>(jump->Op());
-
-    if (is_cond_jump) {
-      ir::ConditionalJump cond_jump = std::get<ir::ConditionalJump>(jump->Op());
-
-      // Check if the condition is in the set:
-      const auto set_it = set.find(jump->Front());
-      if (set_it != set.end()) {
-        if (set_it->second) {
-          // We need to update blocks:
-          cond_jump.NextFalse()->RemoveAncestor(head);
-          jump->SetOp(ir::Jump{cond_jump.NextTrue()});
+  // Helper to queue any non-visited children:
+  const auto queue_children = [&](ir::ValuePtr v) {
+    for (ir::ValuePtr child : v->Consumers()) {
+      if (child->Parent() == block && !visited.count(child) && !child->IsJump() &&
+          child->AllOperandsSatisfy(is_visited)) {
+        if (child->Is<ir::Cond>()) {
+          queue_conditionals.push_back(child);
         } else {
-          cond_jump.NextTrue()->RemoveAncestor(head);
-          jump->SetOp(ir::Jump{cond_jump.NextFalse()});
+          queue.push_back(child);
         }
       }
     }
+  };
 
-    OverloadedVisit(
-        jump->Op(),
-        [&](const ir::Jump& j) {
-          auto [it, was_inserted] = condition_sets.emplace(j.Next(), set);
-          if (!was_inserted) {
-            for (const auto& pair : set) {
-              auto set_it = it->second.find(pair.first);
-              if (set_it != it->second.end() && set_it->second != pair.second) {
-                it->second.erase(set_it);
-              } else {
-                it->second.emplace(pair.first, pair.second);
-              }
-            }
-          }
+  for (;;) {
+    // First put any non-conditionals we can:
+    while (!queue.empty()) {
+      ir::ValuePtr top = queue.front();
+      queue.pop_front();
+      ordered.push_back(top);
+      visited.insert(top);
+      queue_children(top);
+    }
 
-          const bool valid = std::all_of(j.Next()->ancestors.begin(), j.Next()->ancestors.end(),
-                                         [&](ir::BlockPtr b) { return visited.count(b) > 0; });
-          if (valid) {
-            block_queue.push_back(j.Next());
-          }
-        },
-        [&](const ir::ConditionalJump& j) {
-          ConditionSet set_true = std::move(set);
-          ConditionSet set_false = set_true;
-          set_true.emplace(jump->Front(), true);
-          set_false.emplace(jump->Front(), false);
-          condition_sets.emplace(j.NextTrue(), std::move(set_true));
-          condition_sets.emplace(j.NextFalse(), std::move(set_false));
-          block_queue.push_back(j.NextTrue());
-          block_queue.push_back(j.NextFalse());
-        },
-        [](const auto&) {});
+    if (queue_conditionals.empty()) {
+      // no more work to do:
+      break;
+    }
+
+    // We have run out of non-conditionals to queue, so now we insert conditionals.
+    // We know these cannot depend on each other, since otherwise they would not have been
+    // queued. So we sort them into order by their condition argument. We move out of
+    // `queue_conditionals` because queue_children will touch it.
+    std::vector<ir::ValuePtr> conditionals = std::move(queue_conditionals);
+    queue_conditionals.clear();
+    std::sort(conditionals.begin(), conditionals.end(),
+              [](ir::ValuePtr a, ir::ValuePtr b) { return a->Front().get() < b->Front().get(); });
+
+    // Now we can visit them:
+    ordered.insert(ordered.end(), conditionals.begin(), conditionals.end());
+    visited.insert(conditionals.begin(), conditionals.end());
+    std::for_each(conditionals.begin(), conditionals.end(), queue_children);
+  }
+
+  if (block->operations.back()->IsJump()) {
+    ordered.push_back(block->operations.back());
+  }
+  ASSERT_EQUAL(ordered.size(), block->operations.size());
+  block->operations = std::move(ordered);
+}
+
+void IrBuilder::ConvertTernaryConditionalsToJumps(bool b) {
+  ir::BlockPtr block = FirstBlock();
+  if (b) {
+    ReorderConditionalsInBlock(block);
+    return;
+  }
+
+  // Now we convert conditionals into actual blocks:
+  // Iterate until we hit a conditional, which creates a fork.
+  // Insert copies in each fork, and a phi function where the branches meet.
+  for (;;) {
+    const auto start_it = std::find_if(block->operations.begin(), block->operations.end(),
+                                       [](ir::ValuePtr v) { return v->Is<ir::Cond>(); });
+    if (start_it == block->operations.end()) {
+      break;  //  No more conditionals.
+    }
+    const auto end_it = std::find_if(start_it, block->operations.end(), [&](ir::ValuePtr v) {
+      return !v->Is<ir::Cond>() || v->Front() != (*start_it)->Front();
+    });
+
+    // Create an if and else branch:
+    const ir::BlockPtr left_block = CreateBlock();
+    const ir::BlockPtr right_block = CreateBlock();
+
+    // Create the merge point - the left/right blocks will jump here:
+    const ir::BlockPtr merge_point = CreateBlock();
+
+    const ir::ValuePtr condition_val = (*start_it)->Operands().front();
+    for (auto it = start_it; it != end_it; ++it) {
+      const ir::ValuePtr left_val = CreateOperation(left_block, ir::Copy{}, (*it)->Operands()[1]);
+      const ir::ValuePtr right_val = CreateOperation(right_block, ir::Copy{}, (*it)->Operands()[2]);
+      // Make phi function in the merge block:
+      const ir::ValuePtr phi = CreateOperation(merge_point, ir::Phi{}, left_val, right_val);
+      // Replace usages of the conditional output w/ uses of the phi function
+      (*it)->ReplaceWith(phi);
+    }
+
+    CreateOperation(left_block, ir::Jump{merge_point});
+    CreateOperation(right_block, ir::Jump{merge_point});
+
+    // Remove all the values we just replaced:
+    std::for_each(start_it, end_it, [](ir::ValuePtr val) { val->Remove(); });
+
+    // Take remaining values computed in this block, and move them to the new merge point block:
+    std::for_each(end_it, block->operations.end(),
+                  [&](ir::ValuePtr val) { val->SetParent(merge_point); });
+
+    merge_point->operations.insert(merge_point->operations.end(), end_it, block->operations.end());
+
+    // Cleanup the previous block
+    block->operations.erase(start_it, block->operations.end());
+
+    // And add a conditional jump
+    CreateOperation(block, ir::ConditionalJump{left_block, right_block}, condition_val);
+    block = merge_point;
   }
 }
 
@@ -860,8 +1007,8 @@ void IrBuilder::EliminateUnreachableBlocks() {
   blocks_.erase(new_end, blocks_.end());
 }
 
-bool CombineSequentialLinearBlocks(const ir::BlockPtr block) {
-  if (block->IsEmpty() || block->IsUnreachable()) {
+bool CombineSequentialLinearBlocks(const ir::BlockPtr block, const bool is_start_block) {
+  if (block->IsEmpty() || (block->IsUnreachable() && !is_start_block)) {
     return false;
   }
   // Look for blocks w/ a single jump at the end:
@@ -931,7 +1078,8 @@ inline std::optional<ir::BlockPtr> FindDeepestBlock(const std::vector<ir::BlockP
 
 void IrBuilder::CombineSequentialBlocks() {
   for (const std::unique_ptr<ir::Block>& block : blocks_) {
-    while (CombineSequentialLinearBlocks(ir::BlockPtr{block})) {
+    const bool is_start_block = block == blocks_.front();
+    while (CombineSequentialLinearBlocks(ir::BlockPtr{block}, is_start_block)) {
       // There may be multiple combinations we can do
     }
   }
@@ -1050,7 +1198,7 @@ void IrBuilder::DropValues() {
   }
 }
 
-bool EliminateChainedJump(const ir::ValuePtr& jump_op) {
+bool EliminateChainedJump(ir::ValuePtr jump_op) {
   if (jump_op->Is<ir::Jump>()) {
     const ir::Jump jump = jump_op->As<ir::Jump>();
 
@@ -1088,13 +1236,25 @@ bool EliminateChainedJump(const ir::ValuePtr& jump_op) {
 }
 
 void IrBuilder::EliminateChainedJumps() {
-  for (const std::unique_ptr<ir::Block>& block : blocks_) {
+  for (const ir::Block::unique_ptr& block : blocks_) {
     if (block->IsUnreachable() || block->IsEmpty()) {
       continue;
     }
     while (EliminateChainedJump(block->operations.back())) {
     }
   }
+}
+
+inline std::optional<std::pair<ir::ConditionalJump, ir::ValuePtr>> GetConditionalJump(
+    ir::BlockPtr block) {
+  if (!block->operations.empty()) {
+    ir::ValuePtr maybe_jump = block->operations.back();
+    if (maybe_jump->Is<ir::ConditionalJump>()) {
+      ASSERT_EQUAL(1, maybe_jump->NumOperands());
+      return std::make_pair(maybe_jump->As<ir::ConditionalJump>(), maybe_jump->Front());
+    }
+  }
+  return std::nullopt;
 }
 
 std::size_t IrBuilder::NumOperations() const {
@@ -1127,7 +1287,6 @@ ir::ValuePtr IrBuilder::CreateOperation(ir::BlockPtr block, OpType&& op, Args...
     op.NextTrue()->ancestors.push_back(block);
     op.NextFalse()->ancestors.push_back(block);
   }
-
   // Create a new value:
   std::unique_ptr<ir::Value> value =
       std::make_unique<ir::Value>(insertion_point_, block, std::move(op), args...);
@@ -1141,9 +1300,8 @@ ir::ValuePtr IrBuilder::CreateOperation(ir::BlockPtr block, OpType&& op, Args...
 
 ir::BlockPtr IrBuilder::CreateBlock() {
   ir::Block::unique_ptr block = std::make_unique<ir::Block>(blocks_.size());
-  ir::Block* block_ptr = block.get();
   blocks_.push_back(std::move(block));
-  return ir::BlockPtr(block_ptr);
+  return ir::BlockPtr(blocks_.back());
 }
 
 struct AstBuilder {

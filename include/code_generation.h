@@ -50,8 +50,16 @@ class Block {
   // True if the block has no ancestors.
   bool IsUnreachable() const { return ancestors.empty(); }
 
+  // Run the provided callable object on any successor blocks that this block jumps to.
   template <typename Callable>
   void VisitSuccessors(Callable&& callable) const;
+
+  // Pop the jump operation on this block (if there is one).
+  // Caller is responsible for calling Remove() on the value, if appropriate.
+  [[nodiscard]] std::optional<ValuePtr> PopJump();
+
+  // Set the jump operation.
+  void SetJump(ValuePtr v);
 
   void AddAncestor(BlockPtr b);
 
@@ -66,6 +74,21 @@ struct Add {
   constexpr std::string_view ToString() const { return "add"; }
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Add&) const { return true; }
+};
+
+// Evaluates to true if the specified output index is required.
+struct OutputRequired {
+  constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 0; }
+  constexpr std::string_view ToString() const { return "oreq"; }
+  constexpr std::size_t Hash() const { return output_index; }
+  constexpr bool IsSame(const OutputRequired& other) const {
+    return output_index == other.output_index;
+  }
+
+  explicit OutputRequired(std::size_t index) : output_index(index) {}
+
+  std::size_t output_index;
 };
 
 struct Mul {
@@ -157,6 +180,14 @@ struct Load {
   Expr expr;
 };
 
+struct Save {
+  constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 1; }
+  constexpr std::string_view ToString() const { return "save"; }
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const Save&) const { return true; }
+};
+
 struct Jump {
   constexpr static bool IsCommutative() { return false; }
   constexpr static int NumValueOperands() { return 0; }
@@ -197,8 +228,8 @@ struct ConditionalJump {
 };
 
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, Mul, Pow, Copy, CallUnaryFunc, Compare, Cond, Phi, Load, Jump,
-                               ConditionalJump>;
+using Operation = std::variant<Add, Mul, Pow, Copy, CallUnaryFunc, Compare, Cond, Phi, Load, Save,
+                               OutputRequired, Jump, ConditionalJump>;
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
@@ -232,7 +263,23 @@ class Value {
   ir::BlockPtr Parent() const { return parent_; }
 
   // Set the parent pointer.
-  void SetParent(ir::BlockPtr b) { parent_ = b; }
+  void SetParent(ir::BlockPtr b) {
+    std::visit(
+        [&](const auto& op) {
+          using T = std::decay_t<decltype(op)>;
+          if constexpr (std::is_same_v<T, ir::Jump>) {
+            op.Next()->RemoveAncestor(parent_);
+            op.Next()->AddAncestor(b);
+          } else if constexpr (std::is_same_v<T, ir::ConditionalJump>) {
+            op.NextTrue()->RemoveAncestor(parent_);
+            op.NextTrue()->AddAncestor(b);
+            op.NextFalse()->RemoveAncestor(parent_);
+            op.NextFalse()->AddAncestor(b);
+          }
+        },
+        op_);
+    parent_ = b;
+  }
 
   // Access underlying operation
   const Operation& Op() const { return op_; }
@@ -263,10 +310,13 @@ class Value {
 
   // Replace an operand to this instruction with another.
   void ReplaceOperand(const ValuePtr old, const ValuePtr replacement) {
-    auto it = std::find(operands_.begin(), operands_.end(), old);
-    ASSERT(it != operands_.end(), "Tried to replace missing operand: {}", old->Name());
-    *it = replacement;
-    replacement->AddConsumer(this);
+    const ValuePtr self{this};
+    for (ir::ValuePtr& operand : operands_) {
+      if (operand == old) {
+        operand = replacement;
+        replacement->AddConsumer(self);
+      }
+    }
     MaybeSortOperands();
   }
 
@@ -288,23 +338,27 @@ class Value {
     CheckNumOperands<OpType>();
   }
 
-  void AddConsumer(ir::Value* const v) {
+  void AddConsumer(const ir::ValuePtr v) {
+    // The value might be consumed twice by the same expression, for instance: pow(x, x)
     auto it = std::find(consumers_.begin(), consumers_.end(), v);
-    ValuePtr val{v};
-    ASSERT(it == consumers_.end(), "Duplicate insertion of value: {}", val->Name());
-    consumers_.push_back(val);
+    if (it == consumers_.end()) {
+      consumers_.push_back(v);
+    }
   }
 
   void RemoveConsumer(ir::Value* v) {
     auto it = std::find(consumers_.begin(), consumers_.end(), v);
-    ASSERT(v);
-    ASSERT(it != consumers_.end(), "Tried to remove non-existent consumer: {}", v->Name());
-    fmt::print("Removing consumer {} from {}\n", ir::ValuePtr{v}, ir::ValuePtr{this});
-    consumers_.erase(it);
+    if (it != consumers_.end()) {
+      // Might have already been removed, if we were an operand twice.
+      consumers_.erase(it);
+    }
   }
 
   // Access instruction operands.
   const std::vector<ValuePtr>& Operands() const { return operands_; }
+
+  // Number of operands.
+  std::size_t NumOperands() const { return operands_.size(); }
 
   // Get the first operand.
   const ValuePtr& Front() const { return operands_.front(); }
@@ -324,6 +378,11 @@ class Value {
       return false;
     }
     return std::equal(operands_.begin(), operands_.end(), other->operands_.begin());
+  }
+
+  template <typename Predicate>
+  bool AllOperandsSatisfy(Predicate&& pred) const {
+    return std::all_of(operands_.begin(), operands_.end(), std::forward<Predicate>(pred));
   }
 
   // Replace this value w/ the argument.
@@ -365,8 +424,9 @@ class Value {
   }
 
   void NotifyOperands() {
+    const ValuePtr self{this};
     for (const ValuePtr& operand : operands_) {
-      operand->AddConsumer(this);
+      operand->AddConsumer(self);
     }
   }
 
@@ -397,12 +457,40 @@ class Value {
 
 }  // namespace ir
 
+enum class ExpressionGroupUsage {
+  ReturnValue,
+  OutputArg,
+  OptionalOutputArg,
+};
+
+struct ExpressionGroup {
+  // All the expressions in this group.
+  std::vector<Expr> expressions;
+
+  // How this block of expressions is used in the generated code.
+  // Optional output arguments have this set to true, while return values and required output
+  // arguments will set it to false.
+  bool is_optional;
+
+  ExpressionGroup(std::vector<Expr>&& expressions, bool optional)
+      : expressions(std::move(expressions)), is_optional(optional) {}
+};
+
+struct ScatterElement {
+  std::size_t position{0};
+  std::size_t dimension{0};
+
+  ScatterElement() = default;
+  ScatterElement(std::size_t position, std::size_t dimension)
+      : position(position), dimension(dimension) {}
+};
+
 // Object for creating the intermediate representation. The IR is then given to the code-generator
 // to be simplified.
 struct IrBuilder {
  public:
-  // ConstructMatrix from a set of output expressions.
-  explicit IrBuilder(const std::vector<Expr>& expressions);
+  // Construct from a set of output expressions.
+  explicit IrBuilder(const std::vector<ExpressionGroup>& expressions);
 
   // Get the values indices for the outputs.
   const std::vector<ir::ValuePtr>& OutputValues() const { return output_values_; }
@@ -422,7 +510,8 @@ struct IrBuilder {
   // Eliminate duplicated operations.
   void EliminateDuplicates();
   void StripUnusedValues();
-  void FoldConditionalJumps();
+  void ConvertTernaryConditionalsToJumps(bool b);
+
   void EliminateUnreachableBlocks();
   void CombineSequentialBlocks();
   void LiftValues();
@@ -456,6 +545,11 @@ struct IrBuilder {
 
   // The output values, one per input expression.
   std::vector<ir::ValuePtr> output_values_;
+
+  // Mapping of expression groups to start index in `output_values_`
+  std::vector<std::size_t> scatter_;
+
+  //
 
   // Next available value name, starting at zero.
   uint32_t insertion_point_{0};
