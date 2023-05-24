@@ -8,6 +8,62 @@
 
 #include "assertions.h"
 #include "enumerations.h"
+#include "hashing.h"
+
+namespace math {
+enum class ExpressionUsage {
+  ReturnValue,
+  OutputArgument,
+  OptionalOutputArgument,
+};
+
+struct OutputKey {
+  // How this block of expressions is used in the generated code.
+  ExpressionUsage usage;
+
+  // Position in the output. If this is a return value, this indicates whether it
+  // is the first, second, ... return value in a tuple. If this is an output argument, then this
+  // indicates the position in the argument list.
+  std::size_t arg_position;
+
+  constexpr OutputKey(ExpressionUsage usage, std::size_t arg_position)
+      : usage(usage), arg_position(arg_position) {}
+
+  // Equality test.
+  constexpr bool operator==(const OutputKey& other) const {
+    return usage == other.usage && arg_position == other.arg_position;
+  }
+
+  // Non-equality test.
+  constexpr bool operator!=(const OutputKey& other) const {
+    return usage != other.usage || arg_position != other.arg_position;
+  }
+
+  // Relative order (lexicographical order).
+  constexpr bool operator<(const OutputKey& other) const {
+    return std::make_pair(usage, arg_position) < std::make_pair(other.usage, other.arg_position);
+  }
+};
+
+// Hash `OutputKey` type.
+struct OutputKeyHasher {
+  constexpr std::size_t operator()(const OutputKey& k) const {
+    return HashCombine(static_cast<std::size_t>(k.usage), k.arg_position);
+  }
+};
+
+struct ExpressionGroup {
+  // All the expressions in this group.
+  std::vector<Expr> expressions;
+
+  // Key describing how these expressions are used in a function we intend to code generate.
+  OutputKey key;
+
+  ExpressionGroup(std::vector<Expr>&& expressions, OutputKey key)
+      : expressions(std::move(expressions)), key(key) {}
+};
+
+}  // namespace math
 
 namespace math::ast {
 
@@ -52,13 +108,19 @@ inline std::size_t Dimension(const Type& type) {
   return std::visit([](const auto& type) { return type.Dimension(); }, type);
 }
 
+enum class ArgumentDirection {
+  Input,
+  Output,
+  OptionalOutput,
+};
+
 // Store an argument to a function.
 class Argument {
  public:
   using shared_ptr = std::shared_ptr<const Argument>;
 
-  Argument(const std::string_view& name, ast::Type type, bool is_optional)
-      : name_(name), type_(std::move(type)), is_optional_(is_optional) {}
+  Argument(const std::string_view& name, ast::Type type, ArgumentDirection direction)
+      : name_(name), type_(std::move(type)), direction_(direction) {}
 
   const std::string& Name() const { return name_; }
 
@@ -68,12 +130,15 @@ class Argument {
   const ast::Type& Type() const { return type_; }
 
   // Is this argument optional? Presently only output arguments may be optional.
-  bool IsOptional() const { return is_optional_; }
+  bool IsOptional() const { return direction_ == ArgumentDirection::OptionalOutput; }
+
+  // Argument direction.
+  ArgumentDirection Direction() const { return direction_; }
 
  private:
   std::string name_;
   ast::Type type_;
-  bool is_optional_;
+  ArgumentDirection direction_;
 };
 
 // Describe a function signature.
@@ -83,20 +148,14 @@ struct FunctionSignature {
   explicit FunctionSignature(std::string name) : function_name(std::move(name)) {}
 
   template <typename... Args>
-  void AddInput(Args&&... args) {
-    input_args.push_back(std::make_shared<const ast::Argument>(std::forward<Args>(args)...));
-  }
-
-  template <typename... Args>
-  void AddOutput(Args&&... args) {
-    output_args.push_back(std::make_shared<const ast::Argument>(std::forward<Args>(args)...));
+  void AddArgument(Args&&... args) {
+    arguments.push_back(std::make_shared<const ast::Argument>(std::forward<Args>(args)...));
   }
 
   void AddReturnValue(ast::Type type) { return_values.push_back(std::move(type)); }
 
   std::string function_name;
-  std::vector<std::shared_ptr<const ast::Argument>> input_args{};
-  std::vector<std::shared_ptr<const ast::Argument>> output_args{};
+  std::vector<std::shared_ptr<const ast::Argument>> arguments{};
   std::vector<ast::Type> return_values{};
 };
 
@@ -104,11 +163,13 @@ struct FunctionSignature {
 using Variant = std::variant<
     struct Add,
 //    struct ArrayAccess,
-    struct Assignment,
+    struct AssignTemporary,
+    struct AssignOutputArgument,
+    struct Branch,
     struct Call,
+    struct Compare,
 //    struct Cast,
-    struct Conditional,
-    struct ConstructMatrix,
+    struct ConstructReturnValue,
     struct Declaration,
     struct FloatConstant,
     struct InputValue,
@@ -124,15 +185,9 @@ using Variant = std::variant<
 // Copying is desirable to satisfy the pybind11 wrapper.
 using VariantPtr = std::shared_ptr<const Variant>;
 
-// Create shared-ptr to variant and fill it with type `T`.
-template <typename T, typename... Args>
-VariantPtr MakeVariantPtr(Args&&... args) {
-  return std::make_shared<const Variant>(T{std::forward<Args>(args)...});
-}
-
 // Usage of a variable.
 struct VariableRef {
-  // Name of the variable. TODO: Small string.
+  // Name of the variable.
   std::string name;
 
   explicit VariableRef(std::string name) : name(std::move(name)) {}
@@ -154,12 +209,43 @@ struct ArrayAccess {
   std::size_t element;
 };
 
-struct Assignment {
-  std::variant<VariableRef, std::shared_ptr<const Argument>> left;
+struct AssignTemporary {
+  std::string left;
   VariantPtr right;
 
-  Assignment(std::variant<VariableRef, std::shared_ptr<const Argument>> left, VariantPtr right)
+  AssignTemporary(std::string left, VariantPtr right)
       : left(std::move(left)), right(std::move(right)) {}
+
+  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::Variant, T>>>
+  AssignTemporary(std::string left, T&& arg)
+      : left(left), right(std::make_shared<const ast::Variant>(std::forward<T>(arg))) {}
+
+  std::string ToString() const;
+};
+
+// Assign values to an output argument. All output values are written in one operation.
+struct AssignOutputArgument {
+  std::shared_ptr<const Argument> argument;
+  std::vector<Variant> values;
+};
+
+// An if/else statement.
+struct Branch {
+  // Condition of the if statement.
+  VariantPtr condition;
+  // Statements if the condition is true:
+  std::vector<Variant> if_branch;
+  // Statements if the condition is false:
+  std::vector<Variant> else_branch;
+
+  Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
+         std::vector<Variant>&& else_branch);
+
+  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::Variant, T>>>
+  Branch(T&& arg, std::vector<Variant>&& if_branch, std::vector<Variant>&& else_branch)
+      : condition{std::make_shared<const ast::Variant>(std::forward<T>(arg))},
+        if_branch(std::move(if_branch)),
+        else_branch(std::move(else_branch)) {}
 
   std::string ToString() const;
 };
@@ -185,38 +271,18 @@ struct Cast {
 };
 
 struct Compare {
-  enum class ComparisonType {
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-  };
-  ComparisonType operation{};
+  RelationalOperation operation{};
   VariantPtr left;
   VariantPtr right;
 };
 
-// An if/else statement.
-struct Conditional {
-  // Condition of the if statement.
-  VariantPtr condition;
-  // Statements if the condition is true:
-  std::vector<Variant> if_branch;
-  // Statements if the condition is false:
-  std::vector<Variant> else_branch;
-
-  Conditional(VariantPtr condition, std::vector<Variant> if_branch,
-              std::vector<Variant> else_branch);
-
-  std::string ToString() const;
-};
-
 // ConstructMatrix a type from the provided arguments.
-struct ConstructMatrix {
-  ast::MatrixType type;
+struct ConstructReturnValue {
+  std::size_t position;
+  ast::Type type;
   std::vector<Variant> args;
 
-  ConstructMatrix(ast::MatrixType, std::vector<Variant> args);
+  ConstructReturnValue(std::size_t position, ast::Type, std::vector<Variant>&& args);
 
   std::string ToString() const;
 };
@@ -228,9 +294,12 @@ struct Declaration {
   Type type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
-  VariantPtr value;
+  VariantPtr value{};
 
   Declaration(std::string name, Type type, VariantPtr value);
+
+  // Construct w/ no rhs.
+  Declaration(std::string name, Type type) : name(std::move(name)), type(type) {}
 
   std::string ToString() const;
 };
@@ -248,8 +317,7 @@ struct FunctionDefinition {
   FunctionSignature signature;
   std::vector<ast::Variant> body;
 
-  FunctionDefinition(FunctionSignature signature, std::vector<ast::Variant> body)
-      : signature(std::move(signature)), body(std::move(body)) {}
+  FunctionDefinition(FunctionSignature signature, std::vector<ast::Variant> body);
 };
 
 // Access an input argument at a specific index.
@@ -296,8 +364,13 @@ struct ReturnValue {
 
 // method definitions:
 
-inline ConstructMatrix::ConstructMatrix(ast::MatrixType type, std::vector<Variant> args)
-    : type(type), args(std::move(args)) {}
+inline FunctionDefinition::FunctionDefinition(FunctionSignature signature,
+                                              std::vector<ast::Variant> body)
+    : signature(std::move(signature)), body(std::move(body)) {}
+
+inline ConstructReturnValue::ConstructReturnValue(std::size_t position, ast::Type type,
+                                                  std::vector<Variant>&& args)
+    : position(position), type(type), args(std::move(args)) {}
 
 inline Declaration::Declaration(std::string name, Type type, VariantPtr value)
     : name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
@@ -306,8 +379,8 @@ inline Call::Call(std::variant<UnaryFunctionName, BinaryFunctionName> function,
                   std::vector<Variant>&& args)
     : function(function), args(std::move(args)) {}
 
-inline Conditional::Conditional(VariantPtr condition, std::vector<Variant> if_branch,
-                                std::vector<Variant> else_branch)
+inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
+                      std::vector<Variant>&& else_branch)
     : condition(std::move(condition)),
       if_branch(std::move(if_branch)),
       else_branch(std::move(else_branch)) {}
@@ -319,4 +392,138 @@ inline Conditional::Conditional(VariantPtr condition, std::vector<Variant> if_br
 
 inline ReturnValue::ReturnValue(std::vector<Variant> values) : values(std::move(values)) {}
 
+//
+// Formatters
+//
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::ScalarType&) {
+  return fmt::format_to(it, "ScalarType");
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::MatrixType& m) {
+  return fmt::format_to(it, "MatrixType<{}, {}>", m.NumRows(), m.NumCols());
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Type& t) {
+  return std::visit([it = std::move(it)](const auto& x) { return Format(it, x); }, t);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::VariableRef& v) {
+  return fmt::format_to(it, "{}", v.name);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Add& v) {
+  return fmt::format_to(it, "Add({}, {})", *v.left, *v.right);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::AssignOutputArgument& v) {
+  return fmt::format_to(it, "AssignOutputArgument({} = {})", v.argument->Name(),
+                        fmt::join(v.values, ", "));
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::AssignTemporary& v) {
+  return fmt::format_to(it, "AssignTemporary({} = {})", v.left, *v.right);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Branch& d) {
+  return fmt::format_to(it, "Branch(if {} {{ {} statements }} else {{ {} statements }})",
+                        *d.condition, d.if_branch.size(), d.else_branch.size());
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Call& c) {
+  return fmt::format_to(it, "Call({}, {})",
+                        std::visit([](const auto& f) { return math::ToString(f); }, c.function),
+                        fmt::join(c.args, ", "));
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Compare& c) {
+  return fmt::format_to(it, "Compare({} {} {})", *c.left,
+                        StringFromRelationalOperation(c.operation), *c.right);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::ConstructReturnValue& c) {
+  return fmt::format_to(it, "ConstructReturnValue({}, {}, {})", c.position, c.type,
+                        fmt::join(c.args, ", "));
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Declaration& d) {
+  if (d.value) {
+    return fmt::format_to(it, "Declaration({}: {} = {})", d.name, d.type, *d.value);
+  } else {
+    return fmt::format_to(it, "Declaration({}: {})", d.name, d.type);
+  }
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::FloatConstant& c) {
+  return fmt::format_to(it, "{}f", c.value);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::InputValue& v) {
+  return fmt::format_to(it, "{}[{}]", v.argument->Name(), v.element);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::IntegerConstant& c) {
+  return fmt::format_to(it, "{}", c.value);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Multiply& m) {
+  return fmt::format_to(it, "Multiply({}, {})", *m.left, *m.right);
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::OutputExists& m) {
+  return fmt::format_to(it, "OutputExists({})", m.argument->Name());
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::ReturnValue& m) {
+  return fmt::format_to(it, "ReturnValue({})", fmt::join(m.values, ", "));
+}
+
 }  // namespace math::ast
+
+// Support fmt printing of types convertible to `ast::Variant`
+template <typename T>
+struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<math::ast::Variant, T>, char>> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename Arg, typename FormatContext>
+  auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
+    if constexpr (std::is_same_v<math::ast::Variant, Arg>) {
+      return std::visit([&](const auto& x) { return math::ast::Format(ctx.out(), x); }, m);
+    } else {
+      return Format(ctx.out(), m);
+    }
+  }
+};
+
+// Support fmt printing of types convertible to `ast::Type`
+template <typename T>
+struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<math::ast::Type, T>, char>> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename Arg, typename FormatContext>
+  auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
+    if constexpr (std::is_same_v<math::ast::Type, Arg>) {
+      return std::visit([&](const auto& x) { return math::ast::Format(ctx.out(), x); }, m);
+    } else {
+      return Format(ctx.out(), m);
+    }
+  }
+};

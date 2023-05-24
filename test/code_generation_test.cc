@@ -237,9 +237,9 @@ TEST(CodeGenerationTest, TestCreateIR8) {
   const auto f4 = where(y < 0, f2, f3);
 
   std::vector<ExpressionGroup> groups;
-  groups.emplace_back(std::vector<Expr>{f3}, false);
-  groups.emplace_back(std::vector<Expr>{f4}, true);
-  groups.emplace_back(std::vector<Expr>{f0}, true);
+  groups.emplace_back(std::vector<Expr>{f3}, OutputKey{ExpressionUsage::ReturnValue, 0});
+  groups.emplace_back(std::vector<Expr>{f4}, OutputKey{ExpressionUsage::OptionalOutputArgument, 1});
+  groups.emplace_back(std::vector<Expr>{f0}, OutputKey{ExpressionUsage::OptionalOutputArgument, 2});
 
   //  groups.emplace_back(FlattenMatrix(R_combo), false);
   //  groups.emplace_back(std::move(diffs), true);
@@ -254,7 +254,7 @@ TEST(CodeGenerationTest, TestCreateIR8) {
   //  ASSERT_IDENTICAL(f1, output_expr.front());
   //  ASSERT_IDENTICAL(exprs.back(), output_expr.back());
 
-//  ir.CombineSequentialBlocks();
+  //  ir.CombineSequentialBlocks();
   ir.EliminateUnreachableBlocks();
   ir.EliminateDuplicates();
   ir.StripUnusedValues();
@@ -275,10 +275,14 @@ TEST(CodeGenerationTest, TestCreateIR8) {
 
   ir.ConvertTernaryConditionalsToJumps(false);
 
+  //  ir.DropValues();
+
   fmt::print("-- after making block:\n");
   fmt::print("Num operations (after): {}\n", ir.NumOperations());
   fmt::print("Num jumps (after): {}\n", ir.NumJumps());
   fmt::print("{}\n\n", ir.ToString());
+
+//  auto tokens = ir.CreateAST2();
 }
 
 }  // namespace math

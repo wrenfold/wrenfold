@@ -19,32 +19,22 @@ template <typename Func, typename... Args>
 void GenerateFunc(std::string& output, Func func, const std::string_view name, Args&&... args) {
   auto tuple = BuildFunctionDescription(func, name, std::forward<Args>(args)...);
   ast::FunctionSignature& signature = std::get<0>(tuple);
-  const std::vector<Expr>& expressions = std::get<1>(tuple);
+  const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
-  std::vector<ExpressionGroup> groups{};
-  groups.reserve(signature.return_values.size() + signature.output_args.size());
-
-  std::size_t index = 0;
-  for (const std::shared_ptr<const ast::Argument>& arg : signature.output_args) {
-    ASSERT_LESS(index + arg->TypeDimension(), expressions.size());
-    // Create an expression group for every argument:
-    std::vector<Expr> group_expressions{expressions.begin() + index,
-                                        expressions.begin() + index + arg->TypeDimension()};
-    groups.emplace_back(std::move(group_expressions), arg->IsOptional()
-                                                          ? ExpressionGroupUsage::OptionalOutputArg
-                                                          : ExpressionGroupUsage::OutputArg);
-    index += arg->TypeDimension();
-  }
-
-  IrBuilder ir{groups};
+  IrBuilder ir{expressions};
   ir.EliminateDuplicates();
-  auto ast = ir.CreateAST(signature);
+  ir.StripUnusedValues();
+  ir.ConvertTernaryConditionalsToJumps(true);
+  ir.ConvertTernaryConditionalsToJumps(false);
 
-  // Create function definition:
-  ast::FunctionDefinition definition{std::move(signature), std::move(ast)};
+  const std::string ir_string = ir.ToString();
+  fmt::print("IR:\n{}\n\n\n", ir_string);
+
+  // Generate syntax tree:
+  ast::FunctionDefinition ast = ir.CreateAST(signature);
 
   CppCodeGenerator generator{};
-  const std::string code = generator.Generate(definition);
+  const std::string code = generator.Generate(ast);
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);
 }
 
@@ -62,6 +52,7 @@ int main() {
   GenerateFunc(code, &SimpleMultiplyAdd, "simple_multiply_add", "x", "y", "z");
   GenerateFunc(code, &VectorRotation2D, "vector_rotation_2d", "theta", "v", Arg("D_theta", true));
   GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v", Arg("D_v", false));
+  GenerateFunc(code, &Heaviside, "heaviside", Arg("x"));
 
   code += "\n\n} // namespace gen";
 

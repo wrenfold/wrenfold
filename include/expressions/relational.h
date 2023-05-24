@@ -5,19 +5,6 @@
 
 namespace math {
 
-// Convert `RelationalOperation` to string.
-constexpr std::string_view StringFromRelationalOperation(const RelationalOperation op) {
-  switch (op) {
-    case RelationalOperation::LessThan:
-      return "<";
-    case RelationalOperation::LessThanOrEqual:
-      return "<=";
-    case RelationalOperation::Equal:
-      return "==";
-  }
-  return "<NOT A VALID ENUM VALUE>";
-}
-
 // A relational expression for equalities and inequalities.
 class Relational : public ExpressionImpl<Relational> {
  public:

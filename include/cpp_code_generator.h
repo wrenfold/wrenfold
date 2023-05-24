@@ -35,13 +35,17 @@ class CppCodeGenerator {
 
   void operator()(CodeFormatter& formatter, const ast::Add& x) const;
 
-  void operator()(CodeFormatter& formatter, const ast::Assignment& x) const;
+  void operator()(CodeFormatter& formatter, const ast::AssignOutputArgument& x) const;
+
+  void operator()(CodeFormatter& formatter, const ast::AssignTemporary& x) const;
+
+  void operator()(CodeFormatter& formatter, const ast::Branch& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::Call& x) const;
 
-  void operator()(CodeFormatter& formatter, const ast::Conditional& x) const;
+  void operator()(CodeFormatter& formatter, const ast::Compare& x) const;
 
-  void operator()(CodeFormatter& formatter, const ast::ConstructMatrix& x) const;
+  void operator()(CodeFormatter& formatter, const ast::ConstructReturnValue& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::Declaration& x) const;
 
@@ -87,8 +91,6 @@ class CppCodeGenerator {
  protected:
   void FormatReturnType(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
   void FormatSignature(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
-  void FormatOutputArg(CodeFormatter& formatter, const ast::Argument& arg,
-                       const ast::Variant& right) const;
 };
 
 }  // namespace math

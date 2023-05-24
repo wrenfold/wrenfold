@@ -15,6 +15,7 @@
 #include "non_null_ptr.h"
 
 namespace math {
+
 namespace ir {
 
 class Value;
@@ -81,14 +82,14 @@ struct OutputRequired {
   constexpr static bool IsCommutative() { return false; }
   constexpr static int NumValueOperands() { return 0; }
   constexpr std::string_view ToString() const { return "oreq"; }
-  constexpr std::size_t Hash() const { return output_index; }
+  constexpr std::size_t Hash() const { return arg_position; }
   constexpr bool IsSame(const OutputRequired& other) const {
-    return output_index == other.output_index;
+    return arg_position == other.arg_position;
   }
 
-  explicit OutputRequired(std::size_t index) : output_index(index) {}
+  explicit OutputRequired(std::size_t arg_position) : arg_position(arg_position) {}
 
-  std::size_t output_index;
+  std::size_t arg_position;
 };
 
 struct Mul {
@@ -184,8 +185,20 @@ struct Save {
   constexpr static bool IsCommutative() { return false; }
   constexpr static int NumValueOperands() { return 1; }
   constexpr std::string_view ToString() const { return "save"; }
-  constexpr std::size_t Hash() const { return 0; }
-  constexpr bool IsSame(const Save&) const { return true; }
+
+  constexpr std::size_t Hash() const { return HashCombine(OutputKeyHasher{}(key), output_index); }
+
+  constexpr bool IsSame(const Save& other) const {
+    return key == other.key && output_index == other.output_index;
+  }
+
+  // Allow `Save` to be ordered by key, then output index.
+  bool operator<(const Save& other) const {
+    return std::make_pair(key, output_index) < std::make_pair(other.key, other.output_index);
+  }
+
+  OutputKey key;
+  std::size_t output_index;
 };
 
 struct Jump {
@@ -242,7 +255,10 @@ class Value {
   template <typename OpType>
   explicit Value(uint32_t name, ir::BlockPtr parent, OpType&& operation,
                  std::vector<ValuePtr>&& operands)
-      : name_(name), parent_(parent), op_(std::move(operation)), operands_(std::move(operands)) {
+      : name_(name),
+        parent_(parent),
+        op_(std::forward<OpType>(operation)),
+        operands_(std::move(operands)) {
     NotifyOperands();
     if constexpr (OpType::IsCommutative()) {
       SortOperands();
@@ -254,7 +270,7 @@ class Value {
   template <typename OpType, typename... Args,
             typename = std::enable_if_t<std::conjunction_v<std::is_convertible<Args, ValuePtr>...>>>
   explicit Value(uint32_t name, ir::BlockPtr parent, OpType&& operation, Args... args)
-      : Value(name, parent, std::move(operation), MakeValueVector(args...)) {}
+      : Value(name, parent, std::forward<OpType>(operation), MakeValueVector(args...)) {}
 
   // Access underlying integer.
   constexpr uint32_t Name() const { return name_; }
@@ -313,6 +329,7 @@ class Value {
     const ValuePtr self{this};
     for (ir::ValuePtr& operand : operands_) {
       if (operand == old) {
+        // Note we don't remove the consumer from `operand`, that happens in ReplaceWith(...)
         operand = replacement;
         replacement->AddConsumer(self);
       }
@@ -330,7 +347,7 @@ class Value {
     // Record new operands:
     operands_.clear();
     (operands_.push_back(args), ...);
-    op_ = std::move(op);
+    op_ = std::forward<OpType>(op);
     NotifyOperands();
     if constexpr (OpType::IsCommutative()) {
       SortOperands();
@@ -363,6 +380,9 @@ class Value {
   // Get the first operand.
   const ValuePtr& Front() const { return operands_.front(); }
 
+  // Access i'th operand:
+  ValuePtr operator[](std::size_t i) const { return operands_[i]; }
+
   // Access all consumers of this value.
   const std::vector<ValuePtr>& Consumers() const { return consumers_; }
 
@@ -381,13 +401,13 @@ class Value {
   }
 
   template <typename Predicate>
-  bool AllOperandsSatisfy(Predicate&& pred) const {
-    return std::all_of(operands_.begin(), operands_.end(), std::forward<Predicate>(pred));
+  bool AllOperandsSatisfy(Predicate&& predicate) const {
+    return std::all_of(operands_.begin(), operands_.end(), std::forward<Predicate>(predicate));
   }
 
   // Replace this value w/ the argument.
   // All downstream consumers have their arguments swapped, and the consumer list is cleared.
-  void ReplaceWith(const ValuePtr other);
+  void ReplaceWith(ValuePtr other);
 
   // Nuke this value. Only valid if it is not consumed.
   void Remove();
@@ -457,43 +477,12 @@ class Value {
 
 }  // namespace ir
 
-enum class ExpressionGroupUsage {
-  ReturnValue,
-  OutputArg,
-  OptionalOutputArg,
-};
-
-struct ExpressionGroup {
-  // All the expressions in this group.
-  std::vector<Expr> expressions;
-
-  // How this block of expressions is used in the generated code.
-  // Optional output arguments have this set to true, while return values and required output
-  // arguments will set it to false.
-  bool is_optional;
-
-  ExpressionGroup(std::vector<Expr>&& expressions, bool optional)
-      : expressions(std::move(expressions)), is_optional(optional) {}
-};
-
-struct ScatterElement {
-  std::size_t position{0};
-  std::size_t dimension{0};
-
-  ScatterElement() = default;
-  ScatterElement(std::size_t position, std::size_t dimension)
-      : position(position), dimension(dimension) {}
-};
-
 // Object for creating the intermediate representation. The IR is then given to the code-generator
 // to be simplified.
 struct IrBuilder {
  public:
   // Construct from a set of output expressions.
   explicit IrBuilder(const std::vector<ExpressionGroup>& expressions);
-
-  // Get the values indices for the outputs.
-  const std::vector<ir::ValuePtr>& OutputValues() const { return output_values_; }
 
   // Format IR for every value.
   std::string ToString(bool print_jump_origins = false) const;
@@ -502,10 +491,9 @@ struct IrBuilder {
   std::size_t ValuePrintWidth() const;
 
   // Recreate the expression tree for all the output expressions.
-  std::vector<Expr> CreateOutputExpressions() const;
+  std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> CreateOutputExpressions() const;
 
-  // Create AST to be emitted.
-  std::vector<ast::Variant> CreateAST(const ast::FunctionSignature& description);
+  ast::FunctionDefinition CreateAST(const ast::FunctionSignature& signature) const;
 
   // Eliminate duplicated operations.
   void EliminateDuplicates();
@@ -542,14 +530,6 @@ struct IrBuilder {
 
   // Owns all the instructions.
   std::vector<ir::Value::unique_ptr> values_;
-
-  // The output values, one per input expression.
-  std::vector<ir::ValuePtr> output_values_;
-
-  // Mapping of expression groups to start index in `output_values_`
-  std::vector<std::size_t> scatter_;
-
-  //
 
   // Next available value name, starting at zero.
   uint32_t insertion_point_{0};

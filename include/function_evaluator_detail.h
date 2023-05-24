@@ -26,6 +26,7 @@ template <index_t Rows, index_t Cols>
 struct CopyOutputExpressionsImpl<type_annotations::StaticMatrix<Rows, Cols>> {
   void operator()(const type_annotations::StaticMatrix<Rows, Cols>& val,
                   std::vector<Expr>& outputs) const {
+    outputs.reserve(Rows * Cols);
     for (index_t row = 0; row < Rows; ++row) {
       for (index_t col = 0; col < Cols; ++col) {
         ASSERT(!GetUnfilledExprPlaceholder().IsIdenticalTo(val(row, col)),
@@ -40,23 +41,33 @@ struct CopyOutputExpressionsImpl<type_annotations::StaticMatrix<Rows, Cols>> {
 
 template <typename... Ts>
 struct CopyOutputExpressionsImpl<std::tuple<Ts...>> {
-  template <std::size_t... Indices>
-  void operator()(const std::tuple<Ts...>& tup, std::vector<Expr>& outputs,
-                  std::index_sequence<Indices...>) const {
-    using Tuple = std::tuple<Ts...>;
-    (CopyOutputExpressionsImpl<std::tuple_element_t<Indices, Tuple>>{}(std::get<Indices>(tup),
-                                                                       outputs),
-     ...);
+  // Create expression group for a single element of the tuple:
+  template <typename T>
+  ExpressionGroup CreateExpressionGroup(const T& tuple_element, const OutputKey& key) const {
+    std::vector<Expr> expressions;
+    CopyOutputExpressionsImpl<T>{}(tuple_element, expressions);
+    return ExpressionGroup(std::move(expressions), key);
   }
 
-  void operator()(const std::tuple<Ts...>& tup, std::vector<Expr>& outputs) const {
-    this->operator()(tup, outputs, std::make_index_sequence<sizeof...(Ts)>());
+  // We use this to get an index pack that we can expand over:
+  template <std::size_t... Indices>
+  void operator()(const std::tuple<Ts...>& tup, const std::vector<OutputKey>& arg_keys,
+                  std::vector<ExpressionGroup>& outputs, std::index_sequence<Indices...>) const {
+    (outputs.push_back(CreateExpressionGroup(std::get<Indices>(tup), arg_keys[Indices])), ...);
+  }
+
+  // Create an index pack that can be used to expand over `tup` and `arg_keys`.
+  void operator()(const std::tuple<Ts...>& tup, const std::vector<OutputKey>& arg_keys,
+                  std::vector<ExpressionGroup>& outputs) const {
+    ASSERT_EQUAL(sizeof...(Ts), arg_keys.size());
+    operator()(tup, arg_keys, outputs, std::make_index_sequence<sizeof...(Ts)>());
   }
 };
 
-template <typename T>
-void CopyOutputExpressions(const T& arg, std::vector<Expr>& outputs) {
-  CopyOutputExpressionsImpl<T>{}(arg, outputs);
+template <typename... Ts>
+void CopyOutputExpressions(const std::tuple<Ts...>& arg, const std::vector<OutputKey>& arg_keys,
+                           std::vector<ExpressionGroup>& outputs) {
+  CopyOutputExpressionsImpl<std::tuple<Ts...>>{}(arg, arg_keys, outputs);
 }
 
 template <typename T, bool OutputArg>
@@ -66,9 +77,11 @@ template <bool OutputArg>
 struct RecordFunctionArgument<Expr, OutputArg> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     if (OutputArg) {
-      desc.AddOutput(arg.GetName(), ast::ScalarType(), arg.IsOptional());
+      desc.AddArgument(arg.GetName(), ast::ScalarType(),
+                       arg.IsOptional() ? ast::ArgumentDirection::OptionalOutput
+                                        : ast::ArgumentDirection::Output);
     } else {
-      desc.AddInput(arg.GetName(), ast::ScalarType(), false);
+      desc.AddArgument(arg.GetName(), ast::ScalarType(), ast::ArgumentDirection::Input);
     }
   }
 };
@@ -77,9 +90,11 @@ template <index_t Rows, index_t Cols, bool OutputArg>
 struct RecordFunctionArgument<type_annotations::StaticMatrix<Rows, Cols>, OutputArg> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     if (OutputArg) {
-      desc.AddOutput(arg.GetName(), ast::MatrixType(Rows, Cols), arg.IsOptional());
+      desc.AddArgument(arg.GetName(), ast::MatrixType(Rows, Cols),
+                       arg.IsOptional() ? ast::ArgumentDirection::OptionalOutput
+                                        : ast::ArgumentDirection::Output);
     } else {
-      desc.AddInput(arg.GetName(), ast::MatrixType(Rows, Cols), false);
+      desc.AddArgument(arg.GetName(), ast::MatrixType(Rows, Cols), ast::ArgumentDirection::Input);
     }
   }
 };
@@ -172,8 +187,8 @@ template <std::size_t Index, typename... Args>
 constexpr bool IndexIsOutputArg =
     detail::IsOutputArgument<typename TypeListElement<Index, TypeList<Args...>>::Type>;
 
-// Create two index_sequence objects. The first contains the indices of input arguments, while
-// the second contains indices of output arguments.
+// Return an index_sequence<> that contains the indices of either input or output arguments.
+// If `TakeInputs` is true, we return the inputs.
 template <bool TakeInputs, typename... Args, std::size_t... Indices>
 constexpr auto FilterArguments(std::index_sequence<Indices...>) {
   return (std::conditional_t<!IndexIsOutputArg<Indices, Args...> == TakeInputs,

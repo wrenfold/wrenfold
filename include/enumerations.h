@@ -62,6 +62,14 @@ enum class RelationalOperation {
   Equal,
 };
 
+// List of mathematical symbolic constants.
+enum class SymbolicConstants : int {
+  Euler,
+  Pi,
+  True,
+  False,
+};
+
 // Convert `RelativeOrder` to string view.
 constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
   switch (order) {
@@ -109,6 +117,19 @@ constexpr std::string_view ToString(const BinaryFunctionName name) {
       return "pow";
     case BinaryFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
+
+// Convert `RelationalOperation` to short string.
+constexpr std::string_view StringFromRelationalOperation(const RelationalOperation op) {
+  switch (op) {
+    case RelationalOperation::LessThan:
+      return "<";
+    case RelationalOperation::LessThanOrEqual:
+      return "<=";
+    case RelationalOperation::Equal:
+      return "==";
   }
   return "<NOT A VALID ENUM VALUE>";
 }

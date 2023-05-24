@@ -164,7 +164,6 @@ void Value::Remove() {
 }
 
 void Value::RemoveFromDownstreamPhiFunctions() {
-  //  fmt::print("Removing {} from downstream phi functions\n", ValuePtr(this));
   // Borrow the consumer vector. We do this so if anything tries to touch consumers_, we
   // can catch it:
   std::vector<ir::ValuePtr> consumers = std::move(consumers_);
@@ -308,7 +307,7 @@ template <>
 struct FormatOpArgsHelper<ir::OutputRequired> {
   void operator()(std::string& output, const ir::OutputRequired& oreq,
                   const std::vector<ir::ValuePtr>&, const std::size_t) {
-    fmt::format_to(std::back_inserter(output), "{}", oreq.output_index);
+    fmt::format_to(std::back_inserter(output), "{}", oreq.arg_position);
   }
 };
 
@@ -379,11 +378,8 @@ struct IRFormVisitor {
   }
 
   ValuePtr Apply(const Conditional& cond) {
-    // First compute expressions for the condition itself:
-    ValuePtr condition = Visit(cond.Condition());
-
     // Check if the condition is already assumed true in the current scope:
-    auto condition_it = condition_set_.find(condition);
+    auto condition_it = condition_set_.find(cond.Condition());
     if (condition_it != condition_set_.end()) {
       if (condition_it->second) {
         // Condition is true in this scope:
@@ -394,9 +390,12 @@ struct IRFormVisitor {
       }
     }
 
+    // Compute expression for the condition itself:
+    ValuePtr condition = Visit(cond.Condition());
+
     // Condition is not yet known in this scope.
     // First set it true and process if-branch, then set it false and process else-branch.
-    auto [it, _] = condition_set_.emplace(condition, true);
+    auto [it, _] = condition_set_.emplace(cond.Condition(), true);
     const ValuePtr if_branch = Visit(cond.IfBranch());
     it->second = false;
     const ValuePtr else_branch = Visit(cond.ElseBranch());
@@ -432,8 +431,10 @@ struct IRFormVisitor {
     return PushOperation(Pow{}, Visit(pow.Base()), Visit(pow.Exponent()));
   }
 
-  ValuePtr Apply(const Expr& input_expression, const Rational&) {
-    return PushOperation(Load{input_expression});
+  ValuePtr Apply(const Expr&, const Rational& rational) {
+    const auto temp =
+        static_cast<double>(rational.Numerator()) / static_cast<double>(rational.Denominator());
+    return PushOperation(Load{MakeExpr<Float>(temp)});
   }
 
   ValuePtr Apply(const Relational& relational) {
@@ -461,14 +462,12 @@ struct IRFormVisitor {
     return val;
   }
 
-  void SetCurrentBlock(ir::BlockPtr block) { current_block_ = block; }
-
  private:
   IrBuilder& builder_;
   ir::BlockPtr current_block_;
 
   std::unordered_map<Expr, ValuePtr, ExprHash, ExprEquality> computed_values_;
-  std::unordered_map<ValuePtr, bool> condition_set_;
+  std::unordered_map<Expr, bool, ExprHash, ExprEquality> condition_set_;
 
   const PairCountVisitor& pair_counts;
 };
@@ -554,55 +553,65 @@ IrBuilder::IrBuilder(const std::vector<ExpressionGroup>& groups) {
     }
     total_output_size += group.expressions.size();
   }
-  output_values_.reserve(total_output_size);
-  scatter_.reserve(groups.size());
 
   // First insert a block for all the computations:
   const ir::BlockPtr start_block = CreateBlock();
   ir::IRFormVisitor visitor{*this, pair_visitor, start_block};
 
+  std::vector<ir::ValuePtr> output_values;
+  output_values.reserve(total_output_size);
+
+  std::vector<std::size_t> scatter;
+  scatter.reserve(groups.size());
+
   // Convert everything to ir::Value
   std::size_t group_start = 0;
   for (const ExpressionGroup& group : groups) {
     for (const Expr& expr : group.expressions) {
-      ir::ValuePtr output_val = visitor.Visit(expr);
-      if (group.is_optional) {
-        // We generate the `save` instructions below for optional outputs:
-        output_values_.push_back(output_val);
-      } else {
-        output_values_.push_back(CreateOperation(start_block, ir::Save{}, output_val));
-      }
+      output_values.push_back(visitor.Visit(expr));
     }
-    scatter_.push_back(group_start);
+    scatter.push_back(group_start);
     group_start += group.expressions.size();
   }
 
   // Then insert blocks to write to the optional outputs:
   ir::BlockPtr last_block = start_block;
   for (std::size_t index = 0; index < groups.size(); ++index) {
-    if (!groups[index].is_optional) {
+    const ExpressionGroup& group = groups[index];
+    if (group.key.usage != ExpressionUsage::OptionalOutputArgument) {
       continue;
     }
+    const ir::BlockPtr next_block = CreateBlock();
 
-    // Create a bool to check
-    const ir::ValuePtr exists = CreateOperation(last_block, ir::OutputRequired{index});
+    // Create a bool to check if this output is required?
+    const ir::ValuePtr exists =
+        CreateOperation(last_block, ir::OutputRequired{group.key.arg_position});
 
     // Then insert a branch
     const ir::BlockPtr left = CreateBlock();
-    const ir::BlockPtr right = CreateBlock();  //  Else branch will be empty.
-    CreateOperation(last_block, ir::ConditionalJump{left, right}, exists);
+    CreateOperation(last_block, ir::ConditionalJump{left, next_block}, exists);
 
     // Insert save operations into the left branch:
-    for (std::size_t i = 0; i < groups[index].expressions.size(); ++i) {
-      const std::size_t output_index = scatter_[index] + i;
-      output_values_[output_index] =
-          CreateOperation(left, ir::Save{}, output_values_[output_index]);
+    for (std::size_t i = 0; i < group.expressions.size(); ++i) {
+      const std::size_t output_index = scatter[index] + i;
+      CreateOperation(left, ir::Save{group.key, i}, output_values[output_index]);
     }
 
-    // Insert merge point:
-    last_block = CreateBlock();
-    CreateOperation(left, ir::Jump{last_block});
-    CreateOperation(right, ir::Jump{last_block});
+    // Jump to the next block after save operations:
+    CreateOperation(left, ir::Jump{next_block});
+    last_block = next_block;
+  }
+
+  // Now insert operations for the return value:
+  for (std::size_t index = 0; index < groups.size(); ++index) {
+    const ExpressionGroup& group = groups[index];
+    if (group.key.usage == ExpressionUsage::OptionalOutputArgument) {
+      continue;
+    }
+    for (std::size_t i = 0; i < group.expressions.size(); ++i) {
+      const std::size_t output_index = scatter[index] + i;
+      CreateOperation(last_block, ir::Save{group.key, i}, output_values[output_index]);
+    }
   }
 }
 
@@ -654,7 +663,7 @@ std::string IrBuilder::ToString(bool print_jump_origins) const {
 std::size_t IrBuilder::ValuePrintWidth() const { return GetPrintWidth(insertion_point_); }
 
 struct ExprFromIrVisitor {
-  explicit ExprFromIrVisitor(const std::unordered_map<uint32_t, Expr>& value_to_expression)
+  explicit ExprFromIrVisitor(const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression)
       : value_to_expression_(value_to_expression) {}
 
   Expr operator()(const ir::ValuePtr, const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
@@ -721,16 +730,19 @@ struct ExprFromIrVisitor {
   }
 
   Expr MapValue(const ir::ValuePtr& val) const {
-    const auto arg_it = value_to_expression_.find(val->Name());
+    const auto arg_it = value_to_expression_.find(val);
     ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", val->Name());
     return arg_it->second;
   }
 
-  const std::unordered_map<uint32_t, Expr>& value_to_expression_;
+  const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression_;
 };
 
-std::vector<Expr> IrBuilder::CreateOutputExpressions() const {
-  std::unordered_map<uint32_t, Expr> value_to_expression{};
+// Note: This method is probably somewhat slow/inefficient. It really exists only for unit tests,
+// so perhaps not worth improving.
+std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher>
+IrBuilder::CreateOutputExpressions() const {
+  std::unordered_map<ir::ValuePtr, Expr> value_to_expression{};
   value_to_expression.reserve(200);
 
   std::unordered_set<ir::BlockPtr> completed;
@@ -738,6 +750,10 @@ std::vector<Expr> IrBuilder::CreateOutputExpressions() const {
 
   std::deque<ir::BlockPtr> queue;
   queue.emplace_back(FirstBlock());
+
+  using OutputTuple = std::tuple<OutputKey, std::size_t, Expr>;
+  std::vector<OutputTuple> output_values{};
+  output_values.reserve(100);
 
   while (!queue.empty()) {
     // dequeue the next block
@@ -757,8 +773,13 @@ std::vector<Expr> IrBuilder::CreateOutputExpressions() const {
           code->Op(), [](const ir::Jump&) {}, [](const ir::ConditionalJump&) {},
           [&](const auto& op) {
             Expr expr = visitor(code, op, code->Operands());
-            value_to_expression.emplace(code->Name(), std::move(expr));
+            value_to_expression.emplace(code, std::move(expr));
           });
+
+      if (code->Is<ir::Save>()) {
+        const ir::Save& save = code->As<ir::Save>();
+        output_values.emplace_back(save.key, save.output_index, value_to_expression.at(code));
+      }
     }
 
     // If all the ancestors of a block are done, we wire it jump.
@@ -771,20 +792,35 @@ std::vector<Expr> IrBuilder::CreateOutputExpressions() const {
     });
   }
 
-  std::vector<Expr> result;
-  result.reserve(output_values_.size());
-  std::transform(output_values_.begin(), output_values_.end(), std::back_inserter(result),
-                 [&value_to_expression](const ir::ValuePtr& val) {
-                   auto final_it = value_to_expression.find(val->Name());
-                   ASSERT(final_it != value_to_expression.end());
-                   return final_it->second;
-                 });
-  return result;
+  // Convert all the save operations to expression groups.
+  // First put the output values into order:
+  const auto key_part_of_tuple = [](const OutputTuple& x) {
+    return std::make_pair(std::get<0>(x),
+                          std::get<1>(x));  //  Return just the output position and index.
+  };
+  std::sort(output_values.begin(), output_values.end(),
+            [&](const OutputTuple& a, const OutputTuple& b) {
+              return key_part_of_tuple(a) < key_part_of_tuple(b);
+            });
+
+  // then build the result map:
+  std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> output_map{};
+  for (auto it = output_values.begin(); it != output_values.end();) {
+    const auto end_it = std::find_if(it, output_values.end(), [&](const OutputTuple& tup) {
+      return key_part_of_tuple(*it) != key_part_of_tuple(tup);
+    });
+    // Insert into output map
+    std::vector<Expr> expressions{};
+    std::transform(it, end_it, std::back_inserter(expressions),
+                   [](const auto& tup) { return std::get<2>(tup); });
+    output_map.emplace(std::get<0>(*it), std::move(expressions));
+  }
+  return output_map;
 }
 
 using ValueTable = std::unordered_set<ir::ValuePtr, ir::ValueHasher, ir::ValueEquality>;
 
-void LocalValueNumbering(ir::BlockPtr block, ValueTable& table) {
+inline void LocalValueNumbering(ir::BlockPtr block, ValueTable& table) {
   for (const ir::ValuePtr& code : block->operations) {
     // Then see if this operation already exists in the map:
     auto [it, was_inserted] = table.insert(code);
@@ -800,9 +836,9 @@ void LocalValueNumbering(ir::BlockPtr block, ValueTable& table) {
   }
 }
 
-void SuperLocalValueNumbering(ir::BlockPtr block, const ValueTable& table,
-                              std::deque<ir::BlockPtr>& queue,
-                              std::unordered_set<ir::BlockPtr>& processed) {
+inline void SuperLocalValueNumbering(ir::BlockPtr block, const ValueTable& table,
+                                     std::deque<ir::BlockPtr>& queue,
+                                     std::unordered_set<ir::BlockPtr>& processed) {
   ValueTable local_table = table;  // TODO: Get rid of copy.
   LocalValueNumbering(block, local_table);
 
@@ -830,15 +866,11 @@ void IrBuilder::EliminateDuplicates() {
 }
 
 void IrBuilder::StripUnusedValues() {
-  // Build a set, so that we can query which values are output values:
-  const std::unordered_set<ir::ValuePtr> output_values{output_values_.begin(),
-                                                       output_values_.end()};
-
   for (const std::unique_ptr<ir::Block>& block : blocks_) {
     std::reverse(block->operations.begin(), block->operations.end());
     const auto new_end = std::remove_if(block->operations.begin(), block->operations.end(),
                                         [&](const ir::ValuePtr& v) {
-                                          if (v->IsUnused() && !output_values.count(v)) {
+                                          if (v->IsUnused() && !v->Is<ir::Save>()) {
                                             v->Remove();
                                             return true;
                                           }
@@ -1289,7 +1321,7 @@ ir::ValuePtr IrBuilder::CreateOperation(ir::BlockPtr block, OpType&& op, Args...
   }
   // Create a new value:
   std::unique_ptr<ir::Value> value =
-      std::make_unique<ir::Value>(insertion_point_, block, std::move(op), args...);
+      std::make_unique<ir::Value>(insertion_point_, block, std::forward<OpType>(op), args...);
   ++insertion_point_;
   // Insert int the provided block:
   block->operations.emplace_back(value.get());
@@ -1305,151 +1337,230 @@ ir::BlockPtr IrBuilder::CreateBlock() {
 }
 
 struct AstBuilder {
-  explicit AstBuilder(std::size_t value_width,
-                      std::vector<std::shared_ptr<const ast::Argument>> arguments)
-      : value_width_(value_width), input_args_(std::move(arguments)) {}
+  AstBuilder(std::size_t value_width, const ast::FunctionSignature& signature)
+      : value_width_(value_width), signature_(signature) {}
 
-  ast::VariantPtr VariantPtrFromValue(const ir::Value* arg) const {
-    return std::make_unique<const ast::Variant>(operator()(arg));
+  ast::FunctionDefinition CreateFunction(ir::BlockPtr block) {
+    ProcessBlock(block);
+    return ast::FunctionDefinition{signature_, std::move(operations_)};
   }
 
-  ast::Variant operator()(const ir::Value* val) const {
-    return ast::VariableRef{fmt::format("v{:0>{}}", val->Name(), value_width_)};
+  void ProcessBlock(ir::BlockPtr block) {
+    ASSERT(!block->IsEmpty());
+    if (stop_set_.count(block)) {
+      return;
+    }
+    operations_.reserve(operations_.capacity() + block->operations.size());
+
+    // Number of operations in the block, ignoring jump at the end:
+    const std::size_t len = block->operations.back()->IsJump() ? block->operations.size() - 1
+                                                               : block->operations.size();
+
+    // We want to place any `ir::Save` operations at the end before conditional logic, so separate
+    // those:
+    std::vector<ir::ValuePtr> save_values{};
+    save_values.reserve(block->operations.size());
+
+    for (std::size_t i = 0; i < len; ++i) {
+      const ir::ValuePtr value = block->operations[i];
+      if (value->Is<ir::Save>()) {
+        save_values.push_back(value);
+      } else if (value->IsPhi()) {
+        // Do nothing.
+      } else {
+        // Declare a temporary:
+        Emplace<ast::Declaration>(FormatTemporary(value), ast::ScalarType(), VisitMakePtr(value));
+
+        for (ir::ValuePtr consumer : value->Consumers()) {
+          if (consumer->IsPhi()) {
+            // Values consumed by phi functions should be assigned to their output variable.
+            Emplace<ast::AssignTemporary>(FormatTemporary(consumer),
+                                          FormatVariableRefMakePtr(value));
+          }
+        }
+      }
+    }
+
+    // order save values by their position in the output:
+    std::sort(save_values.begin(), save_values.end(),
+              [](ir::ValuePtr a, ir::ValuePtr b) { return a->As<ir::Save>() < b->As<ir::Save>(); });
+
+    // insert outputs
+    for (auto it = save_values.begin(); it != save_values.end();) {
+      // Find the sub-range of output values that all have the same output argument:
+      const OutputKey key = (*it)->As<ir::Save>().key;
+      const auto end_it = std::find_if(std::next(it), save_values.end(), [&](ir::ValuePtr v) {
+        return key != v->As<ir::Save>().key;
+      });
+
+      std::vector<ast::Variant> args{};
+      args.reserve(std::distance(it, end_it));
+      for (; it != end_it; ++it) {
+        const ir::ValuePtr& val = *it;
+        args.emplace_back(FormatVariableRef(val->Front()));
+      }
+
+      if (key.usage == ExpressionUsage::ReturnValue) {
+        Emplace<ast::ConstructReturnValue>(
+            key.arg_position, signature_.return_values.at(key.arg_position), std::move(args));
+      } else {
+        Emplace<ast::AssignOutputArgument>(signature_.arguments.at(key.arg_position),
+                                           std::move(args));
+      }
+    }
+
+    ir::ValuePtr last_op = block->operations.back();
+    if (last_op->Is<ir::Jump>()) {
+      // just keep appending:
+      ir::BlockPtr next = last_op->As<ir::Jump>().Next();
+      ProcessBlock(next);
+    } else if (last_op->Is<ir::ConditionalJump>()) {
+      // For conditionals, we need to determine the
+      const ir::ConditionalJump& jump = last_op->As<ir::ConditionalJump>();
+
+      // Find phi functions:
+      const ir::BlockPtr merge_point =
+          FindMergePoint(jump.NextTrue(), jump.NextFalse(), SearchDirection::Downwards);
+      stop_set_.insert(merge_point);
+
+      for (ir::ValuePtr maybe_phi : merge_point->operations) {
+        if (maybe_phi->Is<ir::Phi>()) {
+          // Also we should declare this variable prior to entering the branch. Not required for
+          // languages like Python, but needed for C++, Rust, etc...
+          Emplace<ast::Declaration>(FormatTemporary(maybe_phi), ast::ScalarType());
+        }
+      }
+
+      // move aside the contents of this block, as we are about to descend the branches:
+      std::vector<ast::Variant> operations_stashed = std::move(operations_);
+      operations_.clear();
+
+      // Process the true branch and save the output:
+      ProcessBlock(jump.NextTrue());  //  append to operations_
+      std::vector<ast::Variant> operations_true = std::move(operations_);
+      operations_.clear();
+
+      // Process the right branch
+      ProcessBlock(jump.NextFalse());
+      std::vector<ast::Variant> operations_false = std::move(operations_);
+      operations_ = std::move(operations_stashed);  //  Put back operations for the current block.
+
+      // Create a conditional
+      Emplace<ast::Branch>(ast::VariableRef{FormatTemporary(last_op->Front())},
+                           std::move(operations_true), std::move(operations_false));
+
+      stop_set_.erase(merge_point);
+      ProcessBlock(merge_point);
+    }
   }
 
-  // temporary, get rid of this:
-  ast::Variant operator()(const Expr& expr) const {
+  std::string FormatTemporary(const ir::Value& val) const {
+    return fmt::format("v{:0>{}}", val.Name(), value_width_);
+  }
+
+  std::string FormatTemporary(const ir::ValuePtr val) const { return FormatTemporary(*val); }
+
+  ast::Variant FormatVariableRef(const ir::ValuePtr val) const {
+    return ast::VariableRef{FormatTemporary(val)};
+  }
+
+  ast::VariantPtr FormatVariableRefMakePtr(const ir::ValuePtr val) const {
+    return std::make_shared<const ast::Variant>(ast::VariableRef{FormatTemporary(val)});
+  }
+
+  ast::Variant Visit(ir::ValuePtr val) {
+    return std::visit(
+        [this, &val](const auto& op) -> ast::Variant { return this->operator()(*val, op); },
+        val->Op());
+  }
+
+  ast::VariantPtr VisitMakePtr(ir::ValuePtr val) {
+    auto variant = Visit(val);
+    return std::make_shared<const ast::Variant>(std::move(variant));
+  }
+
+  template <typename T, typename... Args>
+  void Emplace(Args&&... args) {
+    operations_.emplace_back(T{std::forward<Args>(args)...});
+  }
+
+  ast::Variant operator()(const ir::Value& val, const ir::Add&) {
+    return ast::Add{FormatVariableRefMakePtr(val[0]), FormatVariableRefMakePtr(val[1])};
+  }
+
+  ast::Variant operator()(const ir::Value& val, const ir::CallUnaryFunc& func) {
+    return ast::Call{func.name, Visit(val[0])};
+  }
+
+  ast::Variant operator()(const ir::Value& val, const ir::Compare& compare) {
+    return ast::Compare{compare.operation, FormatVariableRefMakePtr(val[0]),
+                        FormatVariableRefMakePtr(val[1])};
+  }
+
+  ast::Variant operator()(const ir::Value& val, const ir::Copy&) {
+    return FormatVariableRef(val.Front());
+  }
+
+  ast::Variant operator()(const ir::Value& val, const ir::Mul&) {
+    return ast::Multiply{FormatVariableRefMakePtr(val[0]), FormatVariableRefMakePtr(val[1])};
+  }
+
+  ast::Variant operator()(const ir::Value&, const ir::Load& load) {
     return detail::VisitLambdaWithPolicy<VisitorPolicy::CompileError>(
-        expr, [this](const auto& inner) -> ast::Variant {
+        load.expr, [this](const auto& inner) -> ast::Variant {
           using T = std::decay_t<decltype(inner)>;
-          if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
-                        std::is_same_v<T, Rational>) {
-            return ast::FloatConstant(static_cast<Float>(inner).GetValue());
+          if constexpr (std::is_same_v<T, Integer>) {
+            return ast::IntegerConstant{inner.GetValue()};
+          } else if constexpr (std::is_same_v<T, Float>) {
+            return ast::FloatConstant{inner.GetValue()};
           } else if constexpr (std::is_same_v<T, Variable>) {
             return ast::VariableRef{inner.GetName()};
           } else if constexpr (std::is_same_v<T, FunctionArgument>) {
-            return ast::InputValue{input_args_[inner.ArgIndex()],
-                                   static_cast<index_t>(inner.ElementIndex())};
+            const auto element_index = static_cast<index_t>(inner.ElementIndex());
+            return ast::InputValue{signature_.arguments[inner.ArgIndex()], element_index};
           } else {
             throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
           }
         });
   }
 
-  ast::Variant operator()(const ir::Add&, const std::vector<ir::Value*>& args) const {
-    return ast::Add(VariantPtrFromValue(args[0]), VariantPtrFromValue(args[1]));
+  ast::Variant operator()(const ir::Value&, const ir::OutputRequired& oreq) {
+    return ast::OutputExists{signature_.arguments[oreq.arg_position]};
   }
 
-  ast::Variant operator()(const ir::Mul&, const std::vector<ir::Value*>& args) const {
-    return ast::Multiply(VariantPtrFromValue(args[0]), VariantPtrFromValue(args[1]));
+  ast::Variant operator()(const ir::Value& val, const ir::Pow&) {
+    return ast::Call{BinaryFunctionName::Pow, FormatVariableRef(val[0]), FormatVariableRef(val[1])};
   }
 
-  ast::Variant operator()(const ir::Pow&, const std::vector<ir::Value*>& args) const {
-    return ast::Call(BinaryFunctionName::Pow, operator()(args[0]), operator()(args[1]));
+  // Gross, but we need to have these defined.
+  // TODO: Things like Jump and Save that do not produce values should maybe be in a separate type?
+  ast::Variant operator()(const ir::Value&, const ir::Jump&) const {
+    throw AssertionError("Should never be called.");
   }
-
-  ast::Variant operator()(const ir::Copy&, const std::vector<ir::Value*>& args) const {
-    return operator()(args[0]);
+  ast::Variant operator()(const ir::Value&, const ir::ConditionalJump&) const {
+    throw AssertionError("Should never be called.");
   }
-
-  ast::Variant operator()(const ir::CallUnaryFunc& func,
-                          const std::vector<ir::Value*>& args) const {
-    return ast::Call(func.name, operator()(args[0]));
+  ast::Variant operator()(const ir::Value&, const ir::Save&) const {
+    throw AssertionError("Should never be called.");
   }
-
-  ast::Variant operator()(const ir::Compare&) const {
-    throw TypeError("Cannot make ast from compare");
+  ast::Variant operator()(const ir::Value&, const ir::Cond&) const {
+    throw AssertionError("Should never be called.");
   }
-  ast::Variant operator()(const ir::Cond&) const { throw TypeError("Cannot make ast from cond"); }
-  ast::Variant operator()(const ir::Phi&) const { throw TypeError("Cannot make ast from cond"); }
+  ast::Variant operator()(const ir::Value&, const ir::Phi&) const {
+    throw AssertionError("Should never be called.");
+  }
 
  private:
   std::size_t value_width_;
-  std::vector<std::shared_ptr<const ast::Argument>> input_args_;
+  const ast::FunctionSignature& signature_;
+
+  std::vector<ast::Variant> operations_;
+  std::unordered_set<ir::BlockPtr> stop_set_;
 };
 
-std::vector<ast::Variant> IrBuilder::CreateAST(const ast::FunctionSignature&) {
-  std::vector<ast::Variant> ast{};
-  ast.reserve(100);
-
-  //  const std::size_t value_width = ValuePrintWidth();
-
-  // traverse the blocks:
-  // when we hit a conditional jump, we know this is an `if (...) { ... } else { ... }` statement
-  // before jumping, we need to:
-  //  - declare any variables that will be assigned
-  //       - to do this, find the merger point and inspect phi functions
-  //       -
-
-  //  AstBuilder builder{value_width, func.input_args};
-  //
-  //  // first put a block w/ all the temporary values:
-  //  //  for (const ir::OpWithTarget& code : operations_) {
-  //  //    ast::VariantPtr rhs = builder.VisitMakePtr(code.op);
-  //  //    std::string name = fmt::format("v{:0>{}}", code.target.Id(), value_width);
-  //  //    ast.emplace_back(ast::Declaration{std::move(name), ast::ScalarType(), std::move(rhs)});
-  //  //  }
-  //
-  //  // then create blocks for the outputs:
-  //  std::size_t output_flat_index = 0;
-  //  for (const std::shared_ptr<const ast::Argument>& output_arg : func.output_args) {
-  //    ast::VariantPtr right;
-  //    if (std::holds_alternative<ast::ScalarType>(output_arg->Type())) {
-  //      right = ast::MakeVariantPtr<ast::VariableRef>(
-  //          fmt::format("v{:0>{}}", output_values_[output_flat_index].Id(), value_width));
-  //    } else {
-  //      std::vector<ast::Variant> inputs{};
-  //      inputs.reserve(output_arg->TypeDimension());
-  //
-  //      for (std::size_t i = 0; i < output_arg->TypeDimension(); ++i) {
-  //        ASSERT_LESS(i + output_flat_index, output_values_.size());
-  //        inputs.emplace_back(ast::VariableRef{
-  //            fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
-  //      }
-  //      right = ast::MakeVariantPtr<ast::ConstructMatrix>(
-  //          std::get<ast::MatrixType>(output_arg->Type()), std::move(inputs));
-  //    }
-  //
-  //    std::vector<ast::Variant> statements{};
-  //    statements.emplace_back(ast::Assignment(output_arg, std::move(right)));
-  //
-  //    if (output_arg->IsOptional()) {
-  //      ast.emplace_back(ast::Conditional(ast::MakeVariantPtr<ast::OutputExists>(output_arg),
-  //                                        std::move(statements), {}));
-  //    } else {
-  //      ast.emplace_back(statements.back());  //  TODO: Don't copy.
-  //    }
-  //    output_flat_index += output_arg->TypeDimension();
-  //  }
-  //
-  //  // create a block for the return values:
-  //  std::vector<ast::Variant> return_values;
-  //  return_values.reserve(func.return_values.size());
-  //
-  //  for (const auto& ret_val_type : func.return_values) {
-  //    const std::size_t dim = std::visit([](const auto& x) { return x.Dimension(); },
-  //    ret_val_type);
-  //
-  //    if (std::holds_alternative<ast::ScalarType>(ret_val_type)) {
-  //      return_values.emplace_back(ast::VariableRef(
-  //          fmt::format("v{:0>{}}", output_values_[output_flat_index].Id(), value_width)));
-  //    } else {
-  //      std::vector<ast::Variant> inputs{};
-  //      inputs.reserve(dim);
-  //
-  //      for (std::size_t i = 0; i < dim; ++i) {
-  //        ASSERT_LESS(i + output_flat_index, output_values_.size());
-  //        inputs.emplace_back(ast::VariableRef{
-  //            fmt::format("v{:0>{}}", output_values_[i + output_flat_index].Id(), value_width)});
-  //      }
-  //      return_values.emplace_back(
-  //          ast::ConstructMatrix(std::get<ast::MatrixType>(ret_val_type), std::move(inputs)));
-  //    }
-  //
-  //    output_flat_index += dim;
-  //  }
-  //  ast.emplace_back(ast::ReturnValue(std::move(return_values)));
-  return ast;
+ast::FunctionDefinition IrBuilder::CreateAST(const ast::FunctionSignature& signature) const {
+  AstBuilder builder(ValuePrintWidth(), signature);
+  return builder.CreateFunction(FirstBlock());
 }
 
 }  // namespace math

@@ -27,4 +27,9 @@ inline Expr VectorNorm3D(ta::StaticMatrix<3, 1> v, ta::StaticMatrix<1, 3>& D_v) 
   return len;
 }
 
+// Heaviside step function - a very simple conditional.
+inline Expr Heaviside(Expr x) {
+  return where(x > 0, 1, 0);
+}
+
 }  // namespace math

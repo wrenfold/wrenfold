@@ -51,13 +51,13 @@ class CodeFormatter {
     std::string appended{};
     std::swap(output_, appended);
     Append(open);
-    indentation_ += indent;
+    //    indentation_ += indent;
     callable();
     // Restore appended -> output_
     std::swap(appended, output_);
     // Copy appended into output_, adding indentation as required
-    AppendWithIndentation(appended);
-    indentation_ -= indent;
+    AppendWithIndentation(appended, indent);
+    //    indentation_ -= indent;
     Append(close);
   }
 
@@ -82,11 +82,11 @@ class CodeFormatter {
     view.code_formatter = this;
   }
 
-  void AppendWithIndentation(const std::string& appended) {
+  void AppendWithIndentation(const std::string& appended, const int indentation) {
     for (auto it = appended.begin(); it != appended.end(); ++it) {
       output_.push_back(*it);
       if (*it == '\n' && std::next(it) != appended.end()) {
-        for (int i = 0; i < indentation_; ++i) {
+        for (int i = 0; i < indentation; ++i) {
           output_.push_back(' ');
         }
       }
