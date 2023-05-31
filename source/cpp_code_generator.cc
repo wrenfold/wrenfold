@@ -213,6 +213,24 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
   ASSERT(false, "Invalid function type. TODO: Implement me");
 }
 
+constexpr std::string_view GetCastType(const NumericType destination_type) {
+  switch (destination_type) {
+    case NumericType::Bool:
+      return "bool";
+    case NumericType::Integer:
+      return "std::int64_t";
+    case NumericType::Real:
+      return "double";
+    case NumericType::Complex:
+      return "std::complex<double>";
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
+  formatter.Format("static_cast<{}>({})", GetCastType(x.destination_type), View(x.arg));
+}
+
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare& x) const {
   formatter.Format("{} {} {}", View(x.left), StringFromRelationalOperation(x.operation),
                    View(x.right));

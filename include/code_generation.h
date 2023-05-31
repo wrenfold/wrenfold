@@ -69,12 +69,19 @@ class Block {
   void PushValue(const ValuePtr& v);
 };
 
+// Determine the underlying numeric type of the provided value.
+NumericType DetermineValueType(ValuePtr v);
+
 struct Add {
   constexpr static bool IsCommutative() { return true; }
   constexpr static int NumValueOperands() { return 2; }
   constexpr std::string_view ToString() const { return "add"; }
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Add&) const { return true; }
+
+  const NumericType DetermineType(ValuePtr a, ValuePtr b) const {
+    return std::max(std::max(DetermineValueType(a), DetermineValueType(b)), NumericType::Integer);
+  }
 };
 
 // Evaluates to true if the specified output index is required.
@@ -87,6 +94,8 @@ struct OutputRequired {
     return arg_position == other.arg_position;
   }
 
+  constexpr NumericType DetermineType() const { return NumericType::Bool; }
+
   explicit OutputRequired(std::size_t arg_position) : arg_position(arg_position) {}
 
   std::size_t arg_position;
@@ -98,6 +107,10 @@ struct Mul {
   constexpr std::string_view ToString() const { return "mul"; }
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Mul&) const { return true; }
+
+  const NumericType DetermineType(ValuePtr a, ValuePtr b) const {
+    return std::max(std::max(DetermineValueType(a), DetermineValueType(b)), NumericType::Integer);
+  }
 };
 
 struct Pow {
@@ -106,6 +119,10 @@ struct Pow {
   constexpr std::string_view ToString() const { return "pow"; }
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Pow&) const { return true; }
+
+  const NumericType DetermineType(ValuePtr a, ValuePtr b) const {
+    return std::max(std::max(DetermineValueType(a), DetermineValueType(b)), NumericType::Integer);
+  }
 };
 
 struct Copy {
@@ -114,6 +131,26 @@ struct Copy {
   constexpr std::string_view ToString() const { return "copy"; }
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Copy&) const { return true; }
+
+  const NumericType DetermineType(ValuePtr arg) const { return DetermineValueType(arg); }
+};
+
+struct Cast {
+  constexpr static bool IsCommutative() { return false; }
+  constexpr static int NumValueOperands() { return 1; }
+  constexpr std::string_view ToString() const { return "cast"; }
+
+  constexpr std::size_t Hash() const { return static_cast<std::size_t>(destination_type); }
+
+  constexpr bool IsSame(const Cast& other) const {
+    return destination_type == other.destination_type;
+  }
+
+  constexpr NumericType DetermineType(const ValuePtr&) const { return destination_type; }
+
+  constexpr explicit Cast(NumericType destination) : destination_type(destination) {}
+
+  NumericType destination_type;
 };
 
 // TODO: Should probably just support n-ary functions w/ one object.
@@ -123,6 +160,7 @@ struct CallUnaryFunc {
   constexpr std::string_view ToString() const { return math::ToString(name); }
   constexpr std::size_t Hash() const { return static_cast<std::size_t>(name); }
   constexpr bool IsSame(const CallUnaryFunc& other) const { return name == other.name; }
+  constexpr NumericType DetermineType(const ValuePtr&) const { return NumericType::Real; }
 
   CallUnaryFunc(UnaryFunctionName name) : name(name) {}
 
@@ -135,6 +173,11 @@ struct Cond {
   constexpr std::string_view ToString() const { return "cond"; }
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Cond&) const { return true; }
+
+  NumericType DetermineType(const ValuePtr&, const ValuePtr& true_val,
+                            const ValuePtr& false_val) const {
+    return std::max(DetermineValueType(true_val), DetermineValueType(false_val));
+  }
 };
 
 struct Phi {
@@ -143,6 +186,11 @@ struct Phi {
   constexpr std::string_view ToString() const { return "phi"; }
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Phi&) const { return true; }
+
+  NumericType DetermineType(const ValuePtr& a, const ValuePtr&) const {
+    // Both values should be the same:
+    return DetermineValueType(a);
+  }
 };
 
 struct Compare {
@@ -163,6 +211,9 @@ struct Compare {
 
   constexpr std::size_t Hash() const { return static_cast<std::size_t>(operation); }
   constexpr bool IsSame(const Compare& comp) const { return operation == comp.operation; }
+  constexpr NumericType DetermineType(const ValuePtr&, const ValuePtr&) const {
+    return NumericType::Bool;
+  }
 
   explicit Compare(const RelationalOperation operation) : operation(operation) {}
 
@@ -175,6 +226,9 @@ struct Load {
   constexpr std::string_view ToString() const { return "load"; }
   std::size_t Hash() const { return HashExpression(expr); }
   bool IsSame(const Load& other) const { return expr.IsIdenticalTo(other.expr); }
+
+  // Defined in cc file.
+  NumericType DetermineType() const;
 
   explicit Load(Expr expr) : expr(std::move(expr)) {}
 
@@ -241,8 +295,8 @@ struct ConditionalJump {
 };
 
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, Mul, Pow, Copy, CallUnaryFunc, Compare, Cond, Phi, Load, Save,
-                               OutputRequired, Jump, ConditionalJump>;
+using Operation = std::variant<Add, Mul, Pow, CallUnaryFunc, Cast, Compare, Cond, Copy, Phi, Load,
+                               Save, OutputRequired, Jump, ConditionalJump>;
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
@@ -419,6 +473,29 @@ class Value {
   // True if there are no consumers of this value.
   bool IsUnused() const { return !IsJump() && consumers_.empty(); }
 
+  // Determine the numeric type of the resulting expression.
+  NumericType DetermineType() const {
+    return std::visit(
+        [&](const auto& op) -> NumericType {
+          using T = std::decay_t<decltype(op)>;
+          using OmittedTypes = TypeList<Save, Jump, ConditionalJump>;
+          if constexpr (ContainsType<T, OmittedTypes>) {
+            throw TypeError("Operation does not have a numeric type");
+          } else if constexpr (T::NumValueOperands() == 0) {
+            return op.DetermineType();
+          } else if constexpr (T::NumValueOperands() == 1) {
+            return op.DetermineType(operands_[0]);
+          } else if constexpr (T::NumValueOperands() == 2) {
+            return op.DetermineType(operands_[0], operands_[1]);
+          } else if constexpr (T::NumValueOperands() == 3) {
+            return op.DetermineType(operands_[0], operands_[1], operands_[3]);
+          } else {
+            return op.DetermineType(operands_);
+          }
+        },
+        op_);
+  }
+
  protected:
   // Remove an operand from the operands vector.
   void RemoveOperand(ir::Value* v);
@@ -474,6 +551,9 @@ class Value {
   // Downstream values that consume this one:
   std::vector<ValuePtr> consumers_;
 };
+
+// Inline method definition:
+inline NumericType DetermineValueType(ValuePtr v) { return v->DetermineType(); }
 
 }  // namespace ir
 

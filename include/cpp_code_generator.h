@@ -43,6 +43,8 @@ class CppCodeGenerator {
 
   void operator()(CodeFormatter& formatter, const ast::Call& x) const;
 
+  void operator()(CodeFormatter& formatter, const ast::Cast& x) const;
+
   void operator()(CodeFormatter& formatter, const ast::Compare& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::ConstructReturnValue& x) const;

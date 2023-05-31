@@ -70,6 +70,14 @@ enum class SymbolicConstants : int {
   False,
 };
 
+// Types of numeric values.
+enum class NumericType : int {
+  Bool = 0,
+  Integer,
+  Real,
+  Complex,
+};
+
 // Convert `RelativeOrder` to string view.
 constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
   switch (order) {
@@ -130,6 +138,20 @@ constexpr std::string_view StringFromRelationalOperation(const RelationalOperati
       return "<=";
     case RelationalOperation::Equal:
       return "==";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
+
+constexpr std::string_view StringFromNumericType(const NumericType type) {
+  switch (type) {
+    case NumericType::Bool:
+      return "Bool";
+    case NumericType::Integer:
+      return "Integer";
+    case NumericType::Real:
+      return "Real";
+    case NumericType::Complex:
+      return "Complex";
   }
   return "<NOT A VALID ENUM VALUE>";
 }

@@ -50,7 +50,79 @@ auto OverloadedVisit(Variant&& var, Funcs&&... funcs) {
   return std::visit(Overloaded{std::forward<Funcs>(funcs)...}, std::forward<Variant>(var));
 }
 
+struct DetermineNumericTypeVisitor {
+  using Policy = VisitorPolicy::CompileError;
+  using ReturnType = NumericType;
+
+  NumericType Apply(const Addition& add) const {
+    // Adding bool to bool yields integer, add any floats - and it becomes real, etc...
+    NumericType type = NumericType::Integer;
+    for (const auto& expr : add) {
+      type = std::max(VisitStruct(expr, DetermineNumericTypeVisitor{}), type);
+    }
+    return type;
+  }
+
+  NumericType Apply(const Conditional& cond) const {
+    const NumericType left = VisitStruct(cond.IfBranch(), DetermineNumericTypeVisitor{});
+    const NumericType right = VisitStruct(cond.ElseBranch(), DetermineNumericTypeVisitor{});
+    return std::max(left, right);
+  }
+
+  NumericType Apply(const Constant& c) const {
+    switch (c.GetName()) {
+      case SymbolicConstants::Euler:
+      case SymbolicConstants::Pi:
+        return NumericType::Real;
+      case SymbolicConstants::True:
+      case SymbolicConstants::False:
+        return NumericType::Bool;
+    }
+    throw TypeError("Unhandled symbolic constant");
+  }
+
+  constexpr NumericType Apply(const Float&) const { return NumericType::Real; }
+
+  constexpr NumericType Apply(const FunctionArgument&) const { return NumericType::Real; }
+
+  constexpr NumericType Apply(const Infinity&) const { return NumericType::Complex; }
+
+  constexpr NumericType Apply(const Integer&) const { return NumericType::Integer; }
+
+  // TODO: For now all matrices are interpreted as real.
+  constexpr NumericType Apply(const Matrix&) const { return NumericType::Real; }
+
+  NumericType Apply(const Multiplication& mul) const {
+    // Multiplying booleans produces an integer, same as C++.
+    NumericType type = NumericType::Integer;
+    for (const auto& expr : mul) {
+      type = std::max(VisitStruct(expr, DetermineNumericTypeVisitor{}), type);
+    }
+    return type;
+  }
+
+  NumericType Apply(const Power& pow) const {
+    const NumericType b = VisitStruct(pow.Base(), DetermineNumericTypeVisitor{});
+    const NumericType e = VisitStruct(pow.Exponent(), DetermineNumericTypeVisitor{});
+    return std::max(b, e);
+  }
+
+  constexpr NumericType Apply(const Rational&) const { return NumericType::Real; }
+
+  constexpr NumericType Apply(const Relational&) const { return NumericType::Bool; }
+
+  constexpr NumericType Apply(const UnaryFunction&) const { return NumericType::Real; }
+
+  constexpr NumericType Apply(const Variable&) const { return NumericType::Real; }
+};
+
+NumericType DetermineNumericType(const Expr& x) {
+  return VisitStruct(x, DetermineNumericTypeVisitor{});
+}
+
 namespace ir {
+
+NumericType Load::DetermineType() const { return DetermineNumericType(expr); }
 
 template <typename Callable>
 void Block::VisitSuccessors(Callable&& callable) const {
@@ -329,6 +401,14 @@ struct IRFormVisitor {
   explicit IRFormVisitor(IrBuilder& builder, const PairCountVisitor& pair_count, ir::BlockPtr block)
       : builder_(builder), pair_counts(pair_count), current_block_(block) {}
 
+  ValuePtr MaybeCast(ValuePtr input, NumericType output_type) {
+    if (input->DetermineType() != output_type) {
+      return PushOperation(ir::Cast{output_type}, input);
+    } else {
+      return input;
+    }
+  }
+
   // Handler for additions and multiplications:
   template <typename T>
   std::enable_if_t<std::is_same_v<T, Multiplication> || std::is_same_v<T, Addition>, ValuePtr>
@@ -365,13 +445,18 @@ struct IRFormVisitor {
                    [this](const Expr& expr) { return Visit(expr); });
     ASSERT(!args.empty());
 
+    NumericType promoted_type = NumericType::Integer;
+    for (ValuePtr v : args) {
+      promoted_type = std::max(promoted_type, v->DetermineType());
+    }
+
     // then create multiplications or adds for this expression:
-    ValuePtr prev_result = args[0];
+    ValuePtr prev_result = MaybeCast(args[0], promoted_type);
     for (std::size_t i = 1; i < args.size(); ++i) {
       if constexpr (std::is_same_v<T, Multiplication>) {
-        prev_result = PushOperation(Mul{}, prev_result, args[i]);
+        prev_result = PushOperation(Mul{}, prev_result, MaybeCast(args[i], promoted_type));
       } else {
-        prev_result = PushOperation(Add{}, prev_result, args[i]);
+        prev_result = PushOperation(Add{}, prev_result, MaybeCast(args[i], promoted_type));
       }
     }
     return prev_result;
@@ -401,7 +486,11 @@ struct IRFormVisitor {
     const ValuePtr else_branch = Visit(cond.ElseBranch());
     condition_set_.erase(it);  //  Pop it from the set of known conditions.
 
-    return PushOperation(ir::Cond{}, condition, if_branch, else_branch);
+    const NumericType promoted_type =
+        std::max(if_branch->DetermineType(), else_branch->DetermineType());
+
+    return PushOperation(ir::Cond{}, condition, MaybeCast(if_branch, promoted_type),
+                         MaybeCast(else_branch, promoted_type));
   }
 
   ValuePtr Apply(const Expr& input_expression, const Constant&) {
@@ -428,7 +517,12 @@ struct IRFormVisitor {
   }
 
   ValuePtr Apply(const Power& pow) {
-    return PushOperation(Pow{}, Visit(pow.Base()), Visit(pow.Exponent()));
+    const ValuePtr b = Visit(pow.Base());
+    const ValuePtr e = Visit(pow.Exponent());
+    const NumericType promoted_type =
+        std::max(NumericType::Integer, std::max(b->DetermineType(), e->DetermineType()));
+
+    return PushOperation(Pow{}, MaybeCast(b, promoted_type), MaybeCast(e, promoted_type));
   }
 
   ValuePtr Apply(const Expr&, const Rational& rational) {
@@ -666,34 +760,35 @@ struct ExprFromIrVisitor {
   explicit ExprFromIrVisitor(const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression)
       : value_to_expression_(value_to_expression) {}
 
-  Expr operator()(const ir::ValuePtr, const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
-    return Addition::FromOperands({MapValue(args[0]), MapValue(args[1])});
+  Expr operator()(const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
+    return MapValue(args[0]) + MapValue(args[1]);
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Mul&, const std::vector<ir::ValuePtr>& args) const {
-    return Multiplication::FromOperands({MapValue(args[0]), MapValue(args[1])});
+  Expr operator()(const ir::Mul&, const std::vector<ir::ValuePtr>& args) const {
+    return MapValue(args[0]) * MapValue(args[1]);
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::OutputRequired&,
-                  const std::vector<ir::ValuePtr>&) const {
+  Expr operator()(const ir::OutputRequired&, const std::vector<ir::ValuePtr>&) const {
     return Constants::True;
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
     return Power::Create(MapValue(args[0]), MapValue(args[1]));
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::CallUnaryFunc& func,
-                  const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::CallUnaryFunc& func, const std::vector<ir::ValuePtr>& args) const {
     return CreateUnaryFunction(func.name, MapValue(args[0]));
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Cond&,
-                  const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {
+    return MapValue(args[0]);
+  }
+
+  Expr operator()(const ir::Cond&, const std::vector<ir::ValuePtr>& args) const {
     return where(MapValue(args[0]), MapValue(args[1]), MapValue(args[2]));
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
     ASSERT_EQUAL(2, args.size());
 
     // We find to find the condition for this jump:
@@ -709,23 +804,19 @@ struct ExprFromIrVisitor {
     return where(MapValue(jump_val->Front()), MapValue(args[0]), MapValue(args[1]));
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Compare& cmp,
-                  const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
     return Relational::Create(cmp.operation, MapValue(args[0]), MapValue(args[1]));
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Copy&,
-                  const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
     return MapValue(args[0]);
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Load& load,
-                  const std::vector<ir::ValuePtr>&) const {
+  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
     return load.expr;
   }
 
-  Expr operator()(const ir::ValuePtr, const ir::Save&,
-                  const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Save&, const std::vector<ir::ValuePtr>& args) const {
     return MapValue(args[0]);
   }
 
@@ -772,7 +863,7 @@ IrBuilder::CreateOutputExpressions() const {
       OverloadedVisit(
           code->Op(), [](const ir::Jump&) {}, [](const ir::ConditionalJump&) {},
           [&](const auto& op) {
-            Expr expr = visitor(code, op, code->Operands());
+            Expr expr = visitor(op, code->Operands());
             value_to_expression.emplace(code, std::move(expr));
           });
 
@@ -1489,7 +1580,11 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::CallUnaryFunc& func) {
-    return ast::Call{func.name, Visit(val[0])};
+    return ast::Call{func.name, FormatVariableRef(val[0])};
+  }
+
+  ast::Variant operator()(const ir::Value& val, const ir::Cast& cast) {
+    return ast::Cast{cast.destination_type, FormatVariableRefMakePtr(val[0])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Compare& compare) {

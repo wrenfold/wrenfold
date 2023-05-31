@@ -162,13 +162,12 @@ struct FunctionSignature {
 // clang-format off
 using Variant = std::variant<
     struct Add,
-//    struct ArrayAccess,
     struct AssignTemporary,
     struct AssignOutputArgument,
     struct Branch,
     struct Call,
+    struct Cast,
     struct Compare,
-//    struct Cast,
     struct ConstructReturnValue,
     struct Declaration,
     struct FloatConstant,
@@ -267,7 +266,11 @@ struct Call {
 };
 
 struct Cast {
+  NumericType destination_type;
   VariantPtr arg;
+
+  Cast(NumericType destination_type, const VariantPtr& arg)
+      : destination_type(destination_type), arg(arg) {}
 };
 
 struct Compare {
@@ -443,6 +446,11 @@ auto Format(Iterator it, const math::ast::Call& c) {
   return fmt::format_to(it, "Call({}, {})",
                         std::visit([](const auto& f) { return math::ToString(f); }, c.function),
                         fmt::join(c.args, ", "));
+}
+
+template <typename Iterator>
+auto Format(Iterator it, const math::ast::Cast& c) {
+  return fmt::format_to(it, "Cast({}, {})", StringFromNumericType(c.destination_type), *c.arg);
 }
 
 template <typename Iterator>
