@@ -208,6 +208,17 @@ void Block::PushValue(const ValuePtr& v) {
   v->SetParent(BlockPtr{this});
 }
 
+// TODO: This is not efficient, order O(N) in the # of operations.
+void Block::InsertBefore(const ValuePtr& insertion, const ValuePtr& before) {
+  auto it = std::find(operations.begin(), operations.end(), before);
+  if (it == operations.end()) {
+    PushValue(insertion);
+  } else {
+    operations.insert(it, insertion);
+  }
+  insertion->SetParent(ir::BlockPtr{this});
+}
+
 void Value::RemoveOperand(ir::Value* const v) {
   auto it = std::find(operands_.begin(), operands_.end(), v);
   ASSERT(it != operands_.end(), "Could not find operand {} in {}, which has operands: [{}]",
@@ -481,9 +492,13 @@ struct IRFormVisitor {
     // Condition is not yet known in this scope.
     // First set it true and process if-branch, then set it false and process else-branch.
     auto [it, _] = condition_set_.emplace(cond.Condition(), true);
+
+    std::unordered_map<Expr, ValuePtr, ExprHash, ExprEquality> copied_values = computed_values_;
     const ValuePtr if_branch = Visit(cond.IfBranch());
+    computed_values_ = copied_values;
     it->second = false;
     const ValuePtr else_branch = Visit(cond.ElseBranch());
+    computed_values_ = copied_values;
     condition_set_.erase(it);  //  Pop it from the set of known conditions.
 
     const NumericType promoted_type =
@@ -655,6 +670,7 @@ IrBuilder::IrBuilder(const std::vector<ExpressionGroup>& groups) {
   std::vector<ir::ValuePtr> output_values;
   output_values.reserve(total_output_size);
 
+  // Scatter mapping from `group` -> initial index in `output_values`
   std::vector<std::size_t> scatter;
   scatter.reserve(groups.size());
 
@@ -959,23 +975,39 @@ void IrBuilder::EliminateDuplicates() {
 void IrBuilder::StripUnusedValues() {
   for (const std::unique_ptr<ir::Block>& block : blocks_) {
     std::reverse(block->operations.begin(), block->operations.end());
-    const auto new_end = std::remove_if(block->operations.begin(), block->operations.end(),
-                                        [&](const ir::ValuePtr& v) {
-                                          if (v->IsUnused() && !v->Is<ir::Save>()) {
-                                            v->Remove();
-                                            return true;
-                                          }
-                                          return false;
-                                        });
+    const auto new_end = std::remove_if(
+        block->operations.begin(), block->operations.end(), [&](const ir::ValuePtr& v) {
+          if (v->IsUnused() && !v->Is<ir::Save>() && !v->Is<ir::Jump>()) {
+            v->Remove();
+            return true;
+          }
+          return false;
+        });
     block->operations.erase(new_end, block->operations.end());
     std::reverse(block->operations.begin(), block->operations.end());
   }
 }
 
-inline void ReorderConditionalsInBlock(const ir::BlockPtr block) {
+void IrBuilder::ReorderConditionalsInBlock(const ir::BlockPtr block) {
   if (block->IsEmpty()) {
     return;
   }
+
+  // need to traverse and:
+  // keep relative order of other things
+  // group conditionals together
+  // keep "save" objects at the end
+  ir::BlockPtr new_end_block = CreateBlock();
+  const auto new_end =
+      std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::ValuePtr v) {
+        if (v->Is<ir::Save>() || v->IsJump()) {
+          new_end_block->operations.push_back(v);
+          v->SetParent(new_end_block);
+          return true;
+        }
+        return false;
+      });
+  block->operations.erase(new_end, block->operations.end());
 
   std::vector<ir::ValuePtr> ordered{};
   std::unordered_set<ir::ValuePtr> visited{};
@@ -984,14 +1016,18 @@ inline void ReorderConditionalsInBlock(const ir::BlockPtr block) {
   visited.reserve(block->operations.size());
 
   // Check if something is in the visited set:
-  const auto is_visited = [&visited](ir::ValuePtr v) { return visited.count(v) > 0; };
+  const auto is_visited = [&visited, block](ir::ValuePtr v) {
+    return v->Parent() != block || visited.count(v) > 0;
+  };
 
   std::deque<ir::ValuePtr> queue{};
   std::vector<ir::ValuePtr> queue_conditionals{};
 
   // Fill the queue w/ anything that has no dependency:
   for (ir::ValuePtr v : block->operations) {
-    if (v->NumOperands() == 0) {
+    const bool inputs_external =
+        v->AllOperandsSatisfy([&](ir::ValuePtr operand) { return operand->Parent() != block; });
+    if (v->NumOperands() == 0 || inputs_external) {
       queue.push_back(v);
     }
   }
@@ -999,7 +1035,7 @@ inline void ReorderConditionalsInBlock(const ir::BlockPtr block) {
   // Helper to queue any non-visited children:
   const auto queue_children = [&](ir::ValuePtr v) {
     for (ir::ValuePtr child : v->Consumers()) {
-      if (child->Parent() == block && !visited.count(child) && !child->IsJump() &&
+      if (child->Parent() == block && !visited.count(child) &&
           child->AllOperandsSatisfy(is_visited)) {
         if (child->Is<ir::Cond>()) {
           queue_conditionals.push_back(child);
@@ -1040,68 +1076,72 @@ inline void ReorderConditionalsInBlock(const ir::BlockPtr block) {
     std::for_each(conditionals.begin(), conditionals.end(), queue_children);
   }
 
-  if (block->operations.back()->IsJump()) {
-    ordered.push_back(block->operations.back());
-  }
   ASSERT_EQUAL(ordered.size(), block->operations.size());
   block->operations = std::move(ordered);
+
+  CreateOperation(block, ir::Jump{new_end_block});
 }
 
-void IrBuilder::ConvertTernaryConditionalsToJumps(bool b) {
-  ir::BlockPtr block = FirstBlock();
-  if (b) {
+void IrBuilder::ConvertTernaryConditionalsToJumps() {
+  // We will modify blocks_, so create a shallow copy
+  std::vector<ir::BlockPtr> blocks;
+  std::transform(blocks_.begin(), blocks_.end(), std::back_inserter(blocks),
+                 [](const auto& ptr) { return ir::BlockPtr{ptr}; });
+
+  for (ir::BlockPtr block : blocks) {
     ReorderConditionalsInBlock(block);
-    return;
-  }
 
-  // Now we convert conditionals into actual blocks:
-  // Iterate until we hit a conditional, which creates a fork.
-  // Insert copies in each fork, and a phi function where the branches meet.
-  for (;;) {
-    const auto start_it = std::find_if(block->operations.begin(), block->operations.end(),
-                                       [](ir::ValuePtr v) { return v->Is<ir::Cond>(); });
-    if (start_it == block->operations.end()) {
-      break;  //  No more conditionals.
+    // Now we convert conditionals into actual blocks:
+    // Iterate until we hit a conditional, which creates a fork.
+    // Insert copies in each fork, and a phi function where the branches meet.
+    for (;;) {
+      const auto start_it = std::find_if(block->operations.begin(), block->operations.end(),
+                                         [](ir::ValuePtr v) { return v->Is<ir::Cond>(); });
+      if (start_it == block->operations.end()) {
+        break;  //  No more conditionals.
+      }
+      const auto end_it = std::find_if(start_it, block->operations.end(), [&](ir::ValuePtr v) {
+        return !v->Is<ir::Cond>() || v->Front() != (*start_it)->Front();
+      });
+
+      // Create an if and else branch:
+      const ir::BlockPtr left_block = CreateBlock();
+      const ir::BlockPtr right_block = CreateBlock();
+
+      // Create the merge point - the left/right blocks will jump here:
+      const ir::BlockPtr merge_point = CreateBlock();
+
+      const ir::ValuePtr condition_val = (*start_it)->Operands().front();
+      for (auto it = start_it; it != end_it; ++it) {
+        const ir::ValuePtr left_val = CreateOperation(left_block, ir::Copy{}, (*it)->Operands()[1]);
+        const ir::ValuePtr right_val =
+            CreateOperation(right_block, ir::Copy{}, (*it)->Operands()[2]);
+        // Make phi function in the merge block:
+        const ir::ValuePtr phi = CreateOperation(merge_point, ir::Phi{}, left_val, right_val);
+        // Replace usages of the conditional output w/ uses of the phi function
+        (*it)->ReplaceWith(phi);
+      }
+
+      CreateOperation(left_block, ir::Jump{merge_point});
+      CreateOperation(right_block, ir::Jump{merge_point});
+
+      // Remove all the values we just replaced:
+      std::for_each(start_it, end_it, [](ir::ValuePtr val) { val->Remove(); });
+
+      // Take remaining values computed in this block, and move them to the new merge point block:
+      std::for_each(end_it, block->operations.end(),
+                    [&](ir::ValuePtr val) { val->SetParent(merge_point); });
+
+      merge_point->operations.insert(merge_point->operations.end(), end_it,
+                                     block->operations.end());
+
+      // Cleanup the previous block
+      block->operations.erase(start_it, block->operations.end());
+
+      // And add a conditional jump
+      CreateOperation(block, ir::ConditionalJump{left_block, right_block}, condition_val);
+      block = merge_point;
     }
-    const auto end_it = std::find_if(start_it, block->operations.end(), [&](ir::ValuePtr v) {
-      return !v->Is<ir::Cond>() || v->Front() != (*start_it)->Front();
-    });
-
-    // Create an if and else branch:
-    const ir::BlockPtr left_block = CreateBlock();
-    const ir::BlockPtr right_block = CreateBlock();
-
-    // Create the merge point - the left/right blocks will jump here:
-    const ir::BlockPtr merge_point = CreateBlock();
-
-    const ir::ValuePtr condition_val = (*start_it)->Operands().front();
-    for (auto it = start_it; it != end_it; ++it) {
-      const ir::ValuePtr left_val = CreateOperation(left_block, ir::Copy{}, (*it)->Operands()[1]);
-      const ir::ValuePtr right_val = CreateOperation(right_block, ir::Copy{}, (*it)->Operands()[2]);
-      // Make phi function in the merge block:
-      const ir::ValuePtr phi = CreateOperation(merge_point, ir::Phi{}, left_val, right_val);
-      // Replace usages of the conditional output w/ uses of the phi function
-      (*it)->ReplaceWith(phi);
-    }
-
-    CreateOperation(left_block, ir::Jump{merge_point});
-    CreateOperation(right_block, ir::Jump{merge_point});
-
-    // Remove all the values we just replaced:
-    std::for_each(start_it, end_it, [](ir::ValuePtr val) { val->Remove(); });
-
-    // Take remaining values computed in this block, and move them to the new merge point block:
-    std::for_each(end_it, block->operations.end(),
-                  [&](ir::ValuePtr val) { val->SetParent(merge_point); });
-
-    merge_point->operations.insert(merge_point->operations.end(), end_it, block->operations.end());
-
-    // Cleanup the previous block
-    block->operations.erase(start_it, block->operations.end());
-
-    // And add a conditional jump
-    CreateOperation(block, ir::ConditionalJump{left_block, right_block}, condition_val);
-    block = merge_point;
   }
 }
 
@@ -1272,52 +1312,44 @@ std::optional<ir::BlockPtr> GetNextCommon(const ir::BlockPtr block) {
 }
 
 void IrBuilder::DropValues() {
-  std::vector<ir::BlockPtr> common_descendants;
   std::vector<ir::ValuePtr> block_scratch;
-
   for (const std::unique_ptr<ir::Block>& block : blocks_) {
-    if (block->IsUnreachable()) {
+    if (block->IsUnreachable() && block != blocks_.front()) {
       continue;
     }
-
-    // Find all the common descendants of this block.
-    common_descendants.clear();
-    std::optional<ir::BlockPtr> target_block = GetNextCommon(ir::BlockPtr{block});
-    while (target_block) {
-      common_descendants.push_back(target_block.value());
-      target_block = GetNextCommon(target_block.value());
-    }
-
-    // Order from deepest to shallowest
-    std::reverse(common_descendants.begin(), common_descendants.end());
 
     // Iterate backwards over the block:
     block_scratch = block->operations;
     std::reverse(block_scratch.begin(), block_scratch.end());
 
-    const auto new_end_rev =
+    const auto new_end_reversed =
         std::remove_if(block_scratch.begin(), block_scratch.end(), [&](const ir::ValuePtr& val) {
           if (val->IsJump() || val->IsUnused() || val->IsConsumedByPhi()) {
             return false;
           }
-          auto block_it = std::find_if(
-              common_descendants.begin(), common_descendants.end(),
-              [val](ir::BlockPtr descendant_block) {
-                return std::all_of(val->Consumers().begin(), val->Consumers().end(),
-                                   [&](const ir::ValuePtr& val) {
-                                     return SearchForAncestor(val->Parent(), descendant_block);
-                                   });
-              });
-          if (block_it == common_descendants.end()) {
+
+          // TODO: Use a small vector for parents.
+          std::vector<ir::BlockPtr> parents{};
+          std::transform(val->Consumers().begin(), val->Consumers().end(),
+                         std::back_inserter(parents), [](ir::ValuePtr v) { return v->Parent(); });
+          std::sort(parents.begin(), parents.end());
+          parents.erase(std::unique(parents.begin(), parents.end()), parents.end());
+
+          if (parents.size() != 1 || parents.front() == val->Parent()) {
+            // Either used more than once, or the consumer is in the current block, and we can't
+            // move it.
             return false;
           }
-          //  we found a block downstream that we can insert into
-          (*block_it)->PushValue(val);
+
+          // Otherwise, let's move it (TODO: This is a dumb N^2 algorithm present).
+          ir::BlockPtr new_parent = parents.front();
+          new_parent->operations.insert(new_parent->operations.begin(), val);
+          val->SetParent(new_parent);
           return true;
         });
 
     // put them back in the block in the correct order:
-    block->operations.assign(std::reverse_iterator(new_end_rev), block_scratch.rend());
+    block->operations.assign(std::reverse_iterator(new_end_reversed), block_scratch.rend());
   }
 }
 

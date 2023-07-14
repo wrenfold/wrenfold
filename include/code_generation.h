@@ -67,6 +67,8 @@ class Block {
   void RemoveAncestor(BlockPtr b);
 
   void PushValue(const ValuePtr& v);
+
+  void InsertBefore(const ValuePtr& insertion, const ValuePtr& before);
 };
 
 // Determine the underlying numeric type of the provided value.
@@ -488,7 +490,7 @@ class Value {
           } else if constexpr (T::NumValueOperands() == 2) {
             return op.DetermineType(operands_[0], operands_[1]);
           } else if constexpr (T::NumValueOperands() == 3) {
-            return op.DetermineType(operands_[0], operands_[1], operands_[3]);
+            return op.DetermineType(operands_[0], operands_[1], operands_[2]);
           } else {
             return op.DetermineType(operands_);
           }
@@ -578,7 +580,8 @@ struct IrBuilder {
   // Eliminate duplicated operations.
   void EliminateDuplicates();
   void StripUnusedValues();
-  void ConvertTernaryConditionalsToJumps(bool b);
+  void ConvertTernaryConditionalsToJumps();
+  void ReorderConditionalsInBlock(const ir::BlockPtr block);
 
   void EliminateUnreachableBlocks();
   void CombineSequentialBlocks();

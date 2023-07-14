@@ -6,8 +6,38 @@
 
 #include <random>
 
+#include "cpp_code_generator.h"
+
 namespace math {
 using namespace math::custom_literals;
+
+template <typename Func, typename... Args>
+void GenerateFunc(std::string& output, Func func, const std::string_view name, Args&&... args) {
+  auto tuple = BuildFunctionDescription(func, name, std::forward<Args>(args)...);
+  ast::FunctionSignature& signature = std::get<0>(tuple);
+  const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
+
+  IrBuilder ir{expressions};
+
+  fmt::print("IR:\n{}\n\n\n", ir.ToString());
+
+  ir.EliminateDuplicates();
+  ir.StripUnusedValues();
+  ir.DropValues();
+  fmt::print("After de-dup:\n{}\n\n\n", ir.ToString());
+  ir.ConvertTernaryConditionalsToJumps();
+  ir.EliminateUnreachableBlocks();
+
+  const std::string ir_string = ir.ToString();
+  fmt::print("IR:\n{}\n\n\n", ir_string);
+
+  // Generate syntax tree:
+  ast::FunctionDefinition ast = ir.CreateAST(signature);
+
+  CppCodeGenerator generator{};
+  const std::string code = generator.Generate(ast);
+  fmt::format_to(std::back_inserter(output), "{}\n\n", code);
+}
 
 // TEST(CodeGenerationTest, TestCreateIRConstant) {
 //   const auto [w, x] = Symbols("w", "x");
@@ -152,7 +182,7 @@ MatrixExpr Skew3(const ta::StaticMatrix<3, 1>& v) {
   // clang-format on
 }
 
-MatrixExpr CreateRotationMatrix(const ta::StaticMatrix<3, 1>& w) {
+ta::StaticMatrix<3, 3> CreateRotationMatrix(const ta::StaticMatrix<3, 1>& w) {
   const MatrixExpr w_skew = Skew3(w);
   const Expr omega = sqrt(w[0] * w[0] + w[1] * w[1] + w[2] * w[2]);
 
@@ -175,6 +205,18 @@ inline std::vector<Expr> FlattenMatrix(const MatrixExpr& m) {
     }
   }
   return result;
+}
+
+ta::StaticMatrix<2, 1> FooFunc(Expr x, Expr y, Expr z, Expr a, Expr b, Expr c, Expr d,
+                               ta::StaticMatrix<2, 1>& f_out_1, Expr& f_out_2) {
+  const auto f0 = where(y < 0, log(a), a * b * c);
+  const auto f1 = where(x > 0, cos(x), sin(x) + f0);
+  const auto f2 = 5 * f1;
+  const auto f3 = where(x > 0, f2 - 5, f2 + 3);
+  const auto f4 = where(y < 0, f2, f3);
+  f_out_1 = CreateMatrix(2, 1, f4, f0 - 2 * d);
+  f_out_2 = f0;
+  return CreateMatrix(2, 1, f3, f3 * z);
 }
 
 TEST(CodeGenerationTest, TestCreateIR8) {
@@ -236,53 +278,62 @@ TEST(CodeGenerationTest, TestCreateIR8) {
 
   const auto f4 = where(y < 0, f2, f3);
 
-  std::vector<ExpressionGroup> groups;
-  groups.emplace_back(std::vector<Expr>{f3}, OutputKey{ExpressionUsage::ReturnValue, 0});
-  groups.emplace_back(std::vector<Expr>{f4}, OutputKey{ExpressionUsage::OptionalOutputArgument, 1});
-  groups.emplace_back(std::vector<Expr>{f0}, OutputKey{ExpressionUsage::OptionalOutputArgument, 2});
+  //  std::vector<ExpressionGroup> groups;
+  //  groups.emplace_back(std::vector<Expr>{f3}, OutputKey{ExpressionUsage::ReturnValue, 0});
+  //  groups.emplace_back(std::vector<Expr>{f4}, OutputKey{ExpressionUsage::OptionalOutputArgument,
+  //  1}); groups.emplace_back(std::vector<Expr>{f0},
+  //  OutputKey{ExpressionUsage::OptionalOutputArgument, 2});
 
   //  groups.emplace_back(FlattenMatrix(R_combo), false);
   //  groups.emplace_back(std::move(diffs), true);
   //  groups.emplace_back(std::move(diffs_2), true);
 
-  IrBuilder ir{groups};
-  fmt::print("Num operations: {}\n", ir.NumOperations());
-  fmt::print("Num jumps: {}\n", ir.NumJumps());
-  fmt::print("{}\n\n", ir.ToString());
-
-  //  std::vector<Expr> output_expr = ir.CreateOutputExpressions();
-  //  ASSERT_IDENTICAL(f1, output_expr.front());
-  //  ASSERT_IDENTICAL(exprs.back(), output_expr.back());
-
-  //  ir.CombineSequentialBlocks();
-  ir.EliminateUnreachableBlocks();
-  ir.EliminateDuplicates();
-  ir.StripUnusedValues();
+  //  IrBuilder ir{groups};
+  //  fmt::print("Num operations: {}\n", ir.NumOperations());
+  //  fmt::print("Num jumps: {}\n", ir.NumJumps());
+  //  fmt::print("{}\n\n", ir.ToString());
+  //
+  //  //  std::vector<Expr> output_expr = ir.CreateOutputExpressions();
+  //  //  ASSERT_IDENTICAL(f1, output_expr.front());
+  //  //  ASSERT_IDENTICAL(exprs.back(), output_expr.back());
+  //
+  //  //  ir.CombineSequentialBlocks();
+  //  ir.EliminateUnreachableBlocks();
   //  ir.EliminateDuplicates();
   //  ir.StripUnusedValues();
-
-  fmt::print("-- after eliminating duplicates:\n");
-  fmt::print("Num operations (after): {}\n", ir.NumOperations());
-  fmt::print("Num jumps (after): {}\n", ir.NumJumps());
-  fmt::print("{}\n\n", ir.ToString());
-
-  ir.ConvertTernaryConditionalsToJumps(true);
-
-  fmt::print("-- after re-ordering conditionals:\n");
-  fmt::print("Num operations (after): {}\n", ir.NumOperations());
-  fmt::print("Num jumps (after): {}\n", ir.NumJumps());
-  fmt::print("{}\n\n", ir.ToString());
-
-  ir.ConvertTernaryConditionalsToJumps(false);
+  //  //  ir.EliminateDuplicates();
+  //  //  ir.StripUnusedValues();
+  //
+  //  fmt::print("-- after eliminating duplicates:\n");
+  //  fmt::print("Num operations (after): {}\n", ir.NumOperations());
+  //  fmt::print("Num jumps (after): {}\n", ir.NumJumps());
+  //  fmt::print("{}\n\n", ir.ToString());
+  //
+  //  ir.ConvertTernaryConditionalsToJumps(true);
+  //
+  //  fmt::print("-- after re-ordering conditionals:\n");
+  //  fmt::print("Num operations (after): {}\n", ir.NumOperations());
+  //  fmt::print("Num jumps (after): {}\n", ir.NumJumps());
+  //  fmt::print("{}\n\n", ir.ToString());
+  //
+  //  ir.ConvertTernaryConditionalsToJumps(false);
 
   //  ir.DropValues();
+  //
+  //  fmt::print("-- after making block:\n");
+  //  fmt::print("Num operations (after): {}\n", ir.NumOperations());
+  //  fmt::print("Num jumps (after): {}\n", ir.NumJumps());
+  //  fmt::print("{}\n\n", ir.ToString());
 
-  fmt::print("-- after making block:\n");
-  fmt::print("Num operations (after): {}\n", ir.NumOperations());
-  fmt::print("Num jumps (after): {}\n", ir.NumJumps());
-  fmt::print("{}\n\n", ir.ToString());
+  std::string output;
+  GenerateFunc(output, &FooFunc, "foo_func", Arg("x"), Arg("y"), Arg("z"), Arg("a"), Arg("b"),
+               Arg("c"), Arg("d"), Arg("f_out_1", true), Arg("f_out_2", true));
 
-//  auto tokens = ir.CreateAST2();
+  GenerateFunc(output, &CreateRotationMatrix, "create_rotation_matrix", Arg("w"));
+
+  fmt::print("output:\n{}\n", output);
+
+  //  auto tokens = ir.CreateAST2();
 }
 
 }  // namespace math

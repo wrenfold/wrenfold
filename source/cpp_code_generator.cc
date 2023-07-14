@@ -132,7 +132,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
   const ast::Type& type = assignment.argument->Type();
   if (assignment.argument->IsOptional()) {
     dest_name = fmt::format("_{}", dest_name);
-    formatter.Format("{}& {} = *{};\n", View(type, TypeContext::OutputArgument), dest_name,
+    formatter.Format("{}& {} = *{};\n", View(type, TypeContext::FunctionBody), dest_name,
                      assignment.argument->Name());
   }
 
@@ -157,7 +157,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
   } else {
     // Otherwise it is a scalar, so just assign it:
     ASSERT_EQUAL(1, assignment.values.size());
-    formatter.Format("{} = {};", assignment.values.front());
+    formatter.Format("{} = {};", dest_name, assignment.values.front());
   }
 }
 
