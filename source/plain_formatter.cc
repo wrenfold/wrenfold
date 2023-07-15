@@ -52,7 +52,7 @@ void PlainFormatter::Apply(const Addition& expr) {
 }
 
 void PlainFormatter::Apply(const Conditional& conditional) {
-  output_ += "piecewise(";
+  output_ += "where(";
   VisitStruct(conditional.Condition(), *this);
   output_ += ", ";
   VisitStruct(conditional.IfBranch(), *this);

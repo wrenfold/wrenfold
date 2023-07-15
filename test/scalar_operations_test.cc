@@ -315,6 +315,19 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_IDENTICAL(Constants::True, Constants::Euler < 3);
 }
 
+TEST(ScalarOperationsTest, TestConditional) {
+  const Expr w{"w"};
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+
+  ASSERT_TRUE(where(x > 0, y, z).Is<Conditional>());
+  ASSERT_IDENTICAL(x, where(Constants::True, x, z));
+  ASSERT_IDENTICAL(z, where(Constants::False, x, z));
+  ASSERT_IDENTICAL(where(x < 0, cos(x), log(z)),
+                   where(x < 0, where(x < 0, cos(x), sin(x)), log(z)));
+}
+
 TEST(ScalarOperationsTest, TestDistribute) {
   const Expr w{"w"};
   const Expr x{"x"};

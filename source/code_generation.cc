@@ -138,48 +138,6 @@ void Block::VisitSuccessors(Callable&& callable) const {
       [](const auto&) {});
 }
 
-std::optional<ir::ValuePtr> Block::PopJump() {
-  if (operations.empty()) {
-    return std::nullopt;
-  }
-  const ir::BlockPtr self{this};
-  const bool is_jump = OverloadedVisit(
-      operations.back()->Op(),
-      [&](const ir::Jump& j) {
-        j.Next()->RemoveAncestor(self);
-        return true;
-      },
-      [&](const ir::ConditionalJump& j) {
-        j.NextTrue()->RemoveAncestor(self);
-        j.NextFalse()->RemoveAncestor(self);
-        return true;
-      },
-      [&](const auto&) constexpr { return false; });
-  if (!is_jump) {
-    return std::nullopt;
-  }
-  // Pop and return it:
-  ir::ValuePtr jump_val = operations.back();
-  operations.pop_back();
-
-  return jump_val;
-}
-
-void Block::SetJump(ValuePtr v) {
-  ASSERT(v->IsJump());
-  ASSERT(operations.empty() || !operations.back()->IsJump(), "Cannot have two jumps");
-  BlockPtr self{this};
-  OverloadedVisit(
-      v->Op(), [&](ir::Jump j) { j.Next()->AddAncestor(self); },
-      [&](ir::ConditionalJump j) {
-        j.NextTrue()->AddAncestor(self);
-        j.NextFalse()->AddAncestor(self);
-      },
-      [](const auto&) constexpr {});
-  operations.push_back(v);
-  v->SetParent(self);
-}
-
 void Block::AddAncestor(BlockPtr b) {
   auto it = std::find(ancestors.begin(), ancestors.end(), b);
   ASSERT(it == ancestors.end(), "Attempted to insert duplicate into ancestor list: {}", b->name);
@@ -190,40 +148,6 @@ void Block::RemoveAncestor(BlockPtr b) {
   auto it = std::find(ancestors.begin(), ancestors.end(), b);
   ASSERT(it != ancestors.end());
   ancestors.erase(it);
-}
-
-void Block::PushValue(const ValuePtr& v) {
-  ASSERT(!v->IsJump());
-  ASSERT(v->Parent() != this);
-  // If this block has a jump at the end, terminate the search window before it:
-  const auto len = (!operations.empty() && operations.back()->IsJump()) ? (operations.size() - 1)
-                                                                        : operations.size();
-  // Find the insertion point.
-  // We need to place this value before any possible consumers of it:
-  auto it = std::find_if(
-      operations.begin(), operations.begin() + len,
-      [&](const ValuePtr& possible_consumer) { return possible_consumer->Consumes(v); });
-
-  operations.insert(it, v);
-  v->SetParent(BlockPtr{this});
-}
-
-// TODO: This is not efficient, order O(N) in the # of operations.
-void Block::InsertBefore(const ValuePtr& insertion, const ValuePtr& before) {
-  auto it = std::find(operations.begin(), operations.end(), before);
-  if (it == operations.end()) {
-    PushValue(insertion);
-  } else {
-    operations.insert(it, insertion);
-  }
-  insertion->SetParent(ir::BlockPtr{this});
-}
-
-void Value::RemoveOperand(ir::Value* const v) {
-  auto it = std::find(operands_.begin(), operands_.end(), v);
-  ASSERT(it != operands_.end(), "Could not find operand {} in {}, which has operands: [{}]",
-         ir::ValuePtr(v), ir::ValuePtr(this), fmt::join(operands_, ", "));
-  operands_.erase(it);
 }
 
 // Replace this value w/ the argument.
@@ -244,28 +168,6 @@ void Value::Remove() {
   }
   // This value is dead, so clear the operand vector
   operands_.clear();
-}
-
-void Value::RemoveFromDownstreamPhiFunctions() {
-  // Borrow the consumer vector. We do this so if anything tries to touch consumers_, we
-  // can catch it:
-  std::vector<ir::ValuePtr> consumers = std::move(consumers_);
-  auto new_end = std::remove_if(consumers.begin(), consumers.end(), [this](ValuePtr maybe_phi) {
-    if (maybe_phi->IsPhi()) {
-      // Keep the operand to the phi function that is not `this`:
-      const std::vector<ValuePtr>& phi_args = maybe_phi->Operands();
-      ASSERT_EQUAL(2, phi_args.size());
-      ir::ValuePtr replacement = phi_args.front() == this ? phi_args.back() : phi_args.front();
-
-      //      fmt::print("Replacing phi {} with {}\n", maybe_phi, replacement);
-      maybe_phi->ReplaceWith(replacement);
-      maybe_phi->RemoveOperand(this);
-      return true;
-    }
-    return false;
-  });
-  consumers.erase(new_end, consumers.end());
-  consumers_ = std::move(consumers);  //  Return ownership.
 }
 
 struct PairCountVisitor {
@@ -474,32 +376,9 @@ struct IRFormVisitor {
   }
 
   ValuePtr Apply(const Conditional& cond) {
-    // Check if the condition is already assumed true in the current scope:
-    auto condition_it = condition_set_.find(cond.Condition());
-    if (condition_it != condition_set_.end()) {
-      if (condition_it->second) {
-        // Condition is true in this scope:
-        return Visit(cond.IfBranch());
-      } else {
-        // Condition is false in this scope:
-        return Visit(cond.ElseBranch());
-      }
-    }
-
-    // Compute expression for the condition itself:
-    ValuePtr condition = Visit(cond.Condition());
-
-    // Condition is not yet known in this scope.
-    // First set it true and process if-branch, then set it false and process else-branch.
-    auto [it, _] = condition_set_.emplace(cond.Condition(), true);
-
-    std::unordered_map<Expr, ValuePtr, ExprHash, ExprEquality> copied_values = computed_values_;
+    const ValuePtr condition = Visit(cond.Condition());
     const ValuePtr if_branch = Visit(cond.IfBranch());
-    computed_values_ = copied_values;
-    it->second = false;
     const ValuePtr else_branch = Visit(cond.ElseBranch());
-    computed_values_ = copied_values;
-    condition_set_.erase(it);  //  Pop it from the set of known conditions.
 
     const NumericType promoted_type =
         std::max(if_branch->DetermineType(), else_branch->DetermineType());
@@ -576,7 +455,6 @@ struct IRFormVisitor {
   ir::BlockPtr current_block_;
 
   std::unordered_map<Expr, ValuePtr, ExprHash, ExprEquality> computed_values_;
-  std::unordered_map<Expr, bool, ExprHash, ExprEquality> condition_set_;
 
   const PairCountVisitor& pair_counts;
 };
@@ -1145,172 +1023,6 @@ void IrBuilder::ConvertTernaryConditionalsToJumps() {
   }
 }
 
-void IrBuilder::EliminateUnreachableBlocks() {
-  // Skip the first block, which has no ancestors but must run.
-  auto new_end =
-      std::remove_if(std::next(blocks_.begin()), blocks_.end(), [&](ir::Block::unique_ptr& block) {
-        if (!block->IsUnreachable()) {
-          return false;
-        }
-
-        // Eliminate in reverse order to respect dependencies.
-        std::for_each(block->operations.rbegin(), block->operations.rend(), [](ir::ValuePtr val) {
-          val->RemoveFromDownstreamPhiFunctions();
-          val->Remove();
-        });
-
-        // Now disconnect the block from its successors:
-        block->VisitSuccessors(
-            [&](ir::BlockPtr next) { next->RemoveAncestor(ir::BlockPtr{block}); });
-
-        // move it to dead blocks:
-        dead_blocks_.push_back(std::move(block));
-        return true;
-      });
-  blocks_.erase(new_end, blocks_.end());
-}
-
-bool CombineSequentialLinearBlocks(const ir::BlockPtr block, const bool is_start_block) {
-  if (block->IsEmpty() || (block->IsUnreachable() && !is_start_block)) {
-    return false;
-  }
-  // Look for blocks w/ a single jump at the end:
-  const ir::ValuePtr& last_value = block->operations.back();
-  if (!last_value->Is<ir::Jump>()) {
-    return false;
-  }
-
-  // Check if this is a jump to a block w/ one ancestor:
-  ir::Jump jump = std::get<ir::Jump>(last_value->Op());
-  ir::BlockPtr next_block = jump.Next();
-  if (next_block->ancestors.size() == 1) {
-    // This block has one ancestor, which is `block`. Combine them:
-    // Get rid of our terminating jump:
-    block->operations.pop_back();
-
-    // This block is no longer reachable, so notify its successors:
-    next_block->VisitSuccessors([&](ir::BlockPtr b) { b->RemoveAncestor(next_block); });
-
-    // Change parent pointer:
-    for (const ir::ValuePtr& v : next_block->operations) {
-      v->SetParent(block);
-    }
-
-    // Copy all the operations:
-    block->operations.insert(block->operations.end(), next_block->operations.begin(),
-                             next_block->operations.end());
-    next_block->operations.clear();
-
-    // We are no longer an ancestor of this block:
-    next_block->RemoveAncestor(block);
-
-    // `block` needs to be hooked up as an ancestor
-    block->VisitSuccessors([&](ir::BlockPtr b) { b->AddAncestor(block); });
-    return true;
-  }
-  return false;
-}
-
-// DFS to check if `target` is an ancestor of `start`.
-bool SearchForAncestor(const ir::BlockPtr start, const ir::BlockPtr target) {
-  if (start == target) {
-    return true;
-  }
-  for (ir::BlockPtr ancestor : start->ancestors) {
-    if (SearchForAncestor(ancestor, target)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-inline std::optional<ir::BlockPtr> FindDeepestBlock(const std::vector<ir::BlockPtr>& candidates) {
-  if (candidates.empty()) {
-    return std::nullopt;
-  }
-  ir::BlockPtr deepest_block = candidates.front();
-  for (ir::BlockPtr candidate : candidates) {
-    if (SearchForAncestor(candidate, deepest_block)) {
-      // If `candidate` is a descendant of deepest_block, it is the new
-      // deepest_block.
-      deepest_block = candidate;
-    }
-  }
-  return deepest_block;
-}
-
-void IrBuilder::CombineSequentialBlocks() {
-  for (const std::unique_ptr<ir::Block>& block : blocks_) {
-    const bool is_start_block = block == blocks_.front();
-    while (CombineSequentialLinearBlocks(ir::BlockPtr{block}, is_start_block)) {
-      // There may be multiple combinations we can do
-    }
-  }
-}
-
-void IrBuilder::LiftValues() {
-  std::deque<ir::BlockPtr> block_queue;
-  block_queue.push_back(FirstBlock());
-
-  std::unordered_set<ir::BlockPtr> processed;
-  processed.reserve(blocks_.size());
-
-  std::vector<ir::BlockPtr> ancestors;
-  ancestors.reserve(3);
-
-  while (!block_queue.empty()) {
-    const ir::BlockPtr block = block_queue.front();
-    block_queue.pop_front();
-
-    processed.insert(block);
-
-    const auto new_end = std::remove_if(
-        block->operations.begin(), block->operations.end(), [&](const ir::ValuePtr& v) {
-          if (v->IsJump() || v->IsPhi() || v->IsConsumedByPhi()) {
-            return false;
-          }
-          // Determine the blocks the operands to this value are defined in:
-          ancestors.clear();
-          for (const ir::ValuePtr& operand : v->Operands()) {
-            ancestors.push_back(operand->Parent());
-          }
-
-          // If the deepest block is this block, we can't move anything.
-          ir::BlockPtr deepest_block = FindDeepestBlock(ancestors).value_or(FirstBlock());
-          if (deepest_block == block) {
-            return false;
-          }
-
-          // Otherwise can move this instruction up to `deepest_block` (and remove it from here):
-          deepest_block->PushValue(v);
-          return true;
-        });
-    block->operations.erase(new_end, block->operations.end());
-
-    // Queue successors of this block, if all their ancestors have been executed.
-    block->VisitSuccessors([&](ir::BlockPtr b) {
-      const bool ready = std::all_of(
-          b->ancestors.begin(), b->ancestors.end(),
-          [&processed](ir::BlockPtr ancestor) { return processed.count(ancestor) > 0; });
-      if (ready) {
-        block_queue.push_back(b);
-      }
-    });
-  }
-}
-
-std::optional<ir::BlockPtr> GetNextCommon(const ir::BlockPtr block) {
-  const ir::ValuePtr& jump_op = block->operations.back();
-  if (jump_op->Is<ir::Jump>()) {
-    return jump_op->As<ir::Jump>().Next();
-  } else if (jump_op->Is<ir::ConditionalJump>()) {
-    const ir::ConditionalJump& cond = jump_op->As<ir::ConditionalJump>();
-    return FindMergePoint(cond.NextTrue(), cond.NextFalse(), SearchDirection::Downwards);
-  }
-  // this is the last block:
-  return std::nullopt;
-}
-
 void IrBuilder::DropValues() {
   std::vector<ir::ValuePtr> block_scratch;
   for (const std::unique_ptr<ir::Block>& block : blocks_) {
@@ -1330,8 +1042,10 @@ void IrBuilder::DropValues() {
 
           // TODO: Use a small vector for parents.
           std::vector<ir::BlockPtr> parents{};
-          std::transform(val->Consumers().begin(), val->Consumers().end(),
-                         std::back_inserter(parents), [](ir::ValuePtr v) { return v->Parent(); });
+          parents.reserve(val->NumConsumers());
+          for (ir::ValuePtr consumer : val->Consumers()) {
+            parents.push_back(consumer->Parent());
+          }
           std::sort(parents.begin(), parents.end());
           parents.erase(std::unique(parents.begin(), parents.end()), parents.end());
 
@@ -1351,65 +1065,6 @@ void IrBuilder::DropValues() {
     // put them back in the block in the correct order:
     block->operations.assign(std::reverse_iterator(new_end_reversed), block_scratch.rend());
   }
-}
-
-bool EliminateChainedJump(ir::ValuePtr jump_op) {
-  if (jump_op->Is<ir::Jump>()) {
-    const ir::Jump jump = jump_op->As<ir::Jump>();
-
-    // Where this jump goes to:
-    // `jump_op` is in b1, so b1 --> b2
-    const ir::BlockPtr b2 = jump.Next();
-    if (b2->operations.size() != 1 || !b2->operations.back()->Is<ir::Jump>()) {
-      return false;
-    }
-
-    // Is this block empty, other than another jump?
-    const ir::ValuePtr b2_jump_operation = b2->operations.back();
-    OverloadedVisit(
-        b2_jump_operation->Op(),
-        [jump_op, b2](const ir::Jump& next_jump) {
-          const ir::BlockPtr b3 = next_jump.Next();
-          // Skip this jump:
-          b2->RemoveAncestor(jump_op->Parent());
-          jump_op->SetOp(ir::Jump{b3});
-          b3->AddAncestor(jump_op->Parent());  //  b1 --> b3
-        },
-        [jump_op, b2_jump_operation, b2](const ir::ConditionalJump& next_jump) {
-          const ir::BlockPtr b3 = next_jump.NextTrue();
-          const ir::BlockPtr b4 = next_jump.NextFalse();
-          // go b1 --> [b3, b4]
-          b2->RemoveAncestor(jump_op->Parent());
-          jump_op->SetOp(ir::ConditionalJump{b3, b4}, b2_jump_operation->Front());
-          b3->AddAncestor(jump_op->Parent());  //  b1 --> b3
-          b4->AddAncestor(jump_op->Parent());  //  b1 --> b4
-        },
-        [](const auto&) {});
-    return true;
-  }
-  return false;
-}
-
-void IrBuilder::EliminateChainedJumps() {
-  for (const ir::Block::unique_ptr& block : blocks_) {
-    if (block->IsUnreachable() || block->IsEmpty()) {
-      continue;
-    }
-    while (EliminateChainedJump(block->operations.back())) {
-    }
-  }
-}
-
-inline std::optional<std::pair<ir::ConditionalJump, ir::ValuePtr>> GetConditionalJump(
-    ir::BlockPtr block) {
-  if (!block->operations.empty()) {
-    ir::ValuePtr maybe_jump = block->operations.back();
-    if (maybe_jump->Is<ir::ConditionalJump>()) {
-      ASSERT_EQUAL(1, maybe_jump->NumOperands());
-      return std::make_pair(maybe_jump->As<ir::ConditionalJump>(), maybe_jump->Front());
-    }
-  }
-  return std::nullopt;
 }
 
 std::size_t IrBuilder::NumOperations() const {

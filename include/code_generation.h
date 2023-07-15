@@ -55,20 +55,9 @@ class Block {
   template <typename Callable>
   void VisitSuccessors(Callable&& callable) const;
 
-  // Pop the jump operation on this block (if there is one).
-  // Caller is responsible for calling Remove() on the value, if appropriate.
-  [[nodiscard]] std::optional<ValuePtr> PopJump();
-
-  // Set the jump operation.
-  void SetJump(ValuePtr v);
-
   void AddAncestor(BlockPtr b);
 
   void RemoveAncestor(BlockPtr b);
-
-  void PushValue(const ValuePtr& v);
-
-  void InsertBefore(const ValuePtr& insertion, const ValuePtr& before);
 };
 
 // Determine the underlying numeric type of the provided value.
@@ -442,6 +431,9 @@ class Value {
   // Access all consumers of this value.
   const std::vector<ValuePtr>& Consumers() const { return consumers_; }
 
+  // Number of values that directly consume this one.
+  std::size_t NumConsumers() const { return consumers_.size(); }
+
   // True if `this` accepts `v` as an operand.
   bool Consumes(const ValuePtr& v) const {
     return std::any_of(operands_.begin(), operands_.end(),
@@ -467,10 +459,6 @@ class Value {
 
   // Nuke this value. Only valid if it is not consumed.
   void Remove();
-
-  // Update any phi functions that consume this value (as though this value were no longer
-  // computed).
-  void RemoveFromDownstreamPhiFunctions();
 
   // True if there are no consumers of this value.
   bool IsUnused() const { return !IsJump() && consumers_.empty(); }
@@ -499,9 +487,6 @@ class Value {
   }
 
  protected:
-  // Remove an operand from the operands vector.
-  void RemoveOperand(ir::Value* v);
-
   void MaybeSortOperands() {
     const bool commutative = std::visit([](const auto& op) { return op.IsCommutative(); }, op_);
     if (commutative) {
@@ -583,11 +568,7 @@ struct IrBuilder {
   void ConvertTernaryConditionalsToJumps();
   void ReorderConditionalsInBlock(const ir::BlockPtr block);
 
-  void EliminateUnreachableBlocks();
-  void CombineSequentialBlocks();
-  void LiftValues();
   void DropValues();
-  void EliminateChainedJumps();
 
   // Number of operations:
   std::size_t NumOperations() const;

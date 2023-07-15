@@ -21,12 +21,15 @@ void GenerateFunc(std::string& output, Func func, const std::string_view name, A
 
   fmt::print("IR:\n{}\n\n\n", ir.ToString());
 
-  ir.EliminateDuplicates();
-  ir.StripUnusedValues();
+  fmt::print("Count: {}\n", ir.NumOperations());
+
+//  ir.EliminateDuplicates();
+//  ir.StripUnusedValues();
   ir.DropValues();
   fmt::print("After de-dup:\n{}\n\n\n", ir.ToString());
+  fmt::print("Count: {}\n", ir.NumOperations());
+
   ir.ConvertTernaryConditionalsToJumps();
-  ir.EliminateUnreachableBlocks();
 
   const std::string ir_string = ir.ToString();
   fmt::print("IR:\n{}\n\n\n", ir_string);
