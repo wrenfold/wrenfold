@@ -1,5 +1,5 @@
 // Copyright 2023 Gareth Cross
-#include "code_generation.h"
+#include "code_generation/ir_builder.h"
 #include "index_range.h"
 
 namespace math {

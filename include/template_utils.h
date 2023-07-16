@@ -194,4 +194,22 @@ struct DecayRValueToValue {
       std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>, const std::decay_t<T>&>;
 };
 
+namespace detail {
+template <class... Ts>
+struct Overloaded : Ts... {
+  using Ts::operator()...;
+};
+
+// A user-defined deduction guide for `Overloaded`.
+template <class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
+}  // namespace detail
+
+// Visit a variant w/ the lambdas `funcs`. Whichever lambda matches the variant type is invoked.
+// If the last lambda is `auto`, it will match any remaining types.
+template <typename... Funcs, typename Variant>
+auto OverloadedVisit(Variant&& var, Funcs&&... funcs) {
+  return std::visit(detail::Overloaded{std::forward<Funcs>(funcs)...}, std::forward<Variant>(var));
+}
+
 }  // namespace math

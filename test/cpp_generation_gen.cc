@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 
-#include "code_generation.h"
+#include "code_generation/ir_builder.h"
 #include "cpp_code_generator.h"
 #include "function_evaluator.h"
 #include "type_annotations.h"
@@ -24,8 +24,8 @@ void GenerateFunc(std::string& output, Func func, const std::string_view name, A
   IrBuilder ir{expressions};
   ir.EliminateDuplicates();
   ir.StripUnusedValues();
-  ir.ConvertTernaryConditionalsToJumps(true);
-  ir.ConvertTernaryConditionalsToJumps(false);
+  ir.ConvertTernaryConditionalsToJumps();
+  ir.DropValues();
 
   const std::string ir_string = ir.ToString();
   fmt::print("IR:\n{}\n\n\n", ir_string);

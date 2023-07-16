@@ -21,15 +21,18 @@ void GenerateFunc(std::string& output, Func func, const std::string_view name, A
 
   fmt::print("IR:\n{}\n\n\n", ir.ToString());
 
-  fmt::print("Count: {}\n", ir.NumOperations());
+//  fmt::print("Count: {}\n", ir.NumOperations());
 
-//  ir.EliminateDuplicates();
-//  ir.StripUnusedValues();
-  ir.DropValues();
-  fmt::print("After de-dup:\n{}\n\n\n", ir.ToString());
-  fmt::print("Count: {}\n", ir.NumOperations());
+  ir.EliminateDuplicates();
+  ir.StripUnusedValues();
+
+  fmt::print("IR2:\n{}\n\n\n", ir.ToString());
 
   ir.ConvertTernaryConditionalsToJumps();
+  fmt::print("IR3:\n{}\n\n\n", ir.ToString());
+  ir.DropValues();
+  fmt::print("IR4:\n{}\n\n\n", ir.ToString());
+//  fmt::print("Count: {}\n", ir.NumOperations());
 
   const std::string ir_string = ir.ToString();
   fmt::print("IR:\n{}\n\n\n", ir_string);
@@ -329,8 +332,8 @@ TEST(CodeGenerationTest, TestCreateIR8) {
   //  fmt::print("{}\n\n", ir.ToString());
 
   std::string output;
-  GenerateFunc(output, &FooFunc, "foo_func", Arg("x"), Arg("y"), Arg("z"), Arg("a"), Arg("b"),
-               Arg("c"), Arg("d"), Arg("f_out_1", true), Arg("f_out_2", true));
+//  GenerateFunc(output, &FooFunc, "foo_func", Arg("x"), Arg("y"), Arg("z"), Arg("a"), Arg("b"),
+//               Arg("c"), Arg("d"), Arg("f_out_1", true), Arg("f_out_2", true));
 
   GenerateFunc(output, &CreateRotationMatrix, "create_rotation_matrix", Arg("w"));
 

@@ -77,11 +77,13 @@ template <bool OutputArg>
 struct RecordFunctionArgument<Expr, OutputArg> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     if (OutputArg) {
-      desc.AddArgument(arg.GetName(), ast::ScalarType(),
+      // TODO: Need to support type annotations on Expr types.
+      desc.AddArgument(arg.GetName(), ast::ScalarType(NumericType::Real),
                        arg.IsOptional() ? ast::ArgumentDirection::OptionalOutput
                                         : ast::ArgumentDirection::Output);
     } else {
-      desc.AddArgument(arg.GetName(), ast::ScalarType(), ast::ArgumentDirection::Input);
+      desc.AddArgument(arg.GetName(), ast::ScalarType(NumericType::Real),
+                       ast::ArgumentDirection::Input);
     }
   }
 };
@@ -122,7 +124,10 @@ struct RecordReturnTypes;
 
 template <>
 struct RecordReturnTypes<Expr> {
-  void operator()(ast::FunctionSignature& desc) const { desc.AddReturnValue(ast::ScalarType()); }
+  void operator()(ast::FunctionSignature& desc) const {
+    // TODO: We need to get the actual expression here and deduce the type.
+    desc.AddReturnValue(ast::ScalarType(NumericType::Real));
+  }
 };
 
 template <index_t Rows, index_t Cols>

@@ -69,9 +69,16 @@ namespace math::ast {
 
 class ScalarType {
  public:
+  explicit ScalarType(NumericType numeric_type) : numeric_type_(numeric_type) {}
+
   std::size_t Dimension() const { return 1; }
 
-  std::string ToString() const;
+  //  std::string ToString() const;
+
+  NumericType GetNumericType() const { return numeric_type_; }
+
+ private:
+  NumericType numeric_type_;
 };
 
 class MatrixType {

@@ -77,21 +77,36 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
   formatter.Append(")\n");
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType&,
+constexpr std::string_view StringFromNumericCastType(const NumericType destination_type) {
+  switch (destination_type) {
+    case NumericType::Bool:
+      return "bool";
+    case NumericType::Integer:
+      return "std::int64_t";
+    case NumericType::Real:
+      return "double";
+    case NumericType::Complex:
+      return "std::complex<double>";
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType& scalar,
                                   const TypeContext context) const {
+  const std::string_view numeric_type = StringFromNumericCastType(scalar.GetNumericType());
   switch (context) {
     case TypeContext::InputArgument:
     case TypeContext::FunctionBody:
     case TypeContext::ReturnValue: {
-      formatter.Append("double");
+      formatter.Format(numeric_type);
       break;
     }
     case TypeContext::OutputArgument: {
-      formatter.Append("double&");
+      formatter.Format("{}&", numeric_type);
       break;
     }
     case TypeContext::OptionalOutputArgument: {
-      formatter.Append("double*");
+      formatter.Format("{}*", numeric_type);
       break;
     }
   }
@@ -132,8 +147,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
   const ast::Type& type = assignment.argument->Type();
   if (assignment.argument->IsOptional()) {
     dest_name = fmt::format("_{}", dest_name);
-    formatter.Format("{}& {} = *{};\n", View(type, TypeContext::FunctionBody), dest_name,
-                     assignment.argument->Name());
+    // This is a bit of a cop-out, use auto here to simplify code-generation:
+    formatter.Format("auto& {} = *{};\n", dest_name, assignment.argument->Name());
   }
 
   if (std::holds_alternative<ast::MatrixType>(type)) {
@@ -213,22 +228,9 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
   ASSERT(false, "Invalid function type. TODO: Implement me");
 }
 
-constexpr std::string_view GetCastType(const NumericType destination_type) {
-  switch (destination_type) {
-    case NumericType::Bool:
-      return "bool";
-    case NumericType::Integer:
-      return "std::int64_t";
-    case NumericType::Real:
-      return "double";
-    case NumericType::Complex:
-      return "std::complex<double>";
-  }
-  return "<INVALID ENUM VALUE>";
-}
-
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
-  formatter.Format("static_cast<{}>({})", GetCastType(x.destination_type), View(x.arg));
+  formatter.Format("static_cast<{}>({})", StringFromNumericCastType(x.destination_type),
+                   View(x.arg));
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare& x) const {
