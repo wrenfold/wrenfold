@@ -5,8 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "ast.h"
-#include "code_generation.h"
+#include "code_generation/ast.h"
 #include "expression.h"
 
 namespace py = pybind11;
@@ -29,22 +28,6 @@ PYBIND11_MODULE(pycodegen, m) {
         return MatrixExpr::Create(rows, cols, std::move(expressions));
       },
       py::arg("index"), py::arg("rows"), py::arg("cols"));
-
-  py::class_<ir::Value>(m, "IrValue").def("__repr__", [](const ir::Value& v) {
-    return fmt::format("IrValue({})", v.Id());
-  });
-
-  // TODO: Not sure if this needs to be wrapped, but it might be convenient for now.
-  py::class_<IrBuilder>(m, "IrBuilder")
-      // Construct from a vector of expressions:
-      .def(py::init<const std::vector<Expr>&>())
-      .def("output_values", &IrBuilder::OutputValues, py::doc("Retrieve list of output values."))
-      .def("to_string", &IrBuilder::ToString, py::doc("Format the IR to a string for debugging."))
-      .def("create_expression", &IrBuilder::CreateExpression,
-           py::doc("Rebuild the expression tree for a given IR value."))
-      .def("eliminate_duplicates", &IrBuilder::EliminateDuplicates,
-           py::doc("Eliminate duplicate sub-expressions."))
-      .def("create_ast", &IrBuilder::CreateAST);
 
   py::enum_<UnaryFunctionName>(m, "UnaryFunctionName")
       .value("Cos", UnaryFunctionName::Cos)

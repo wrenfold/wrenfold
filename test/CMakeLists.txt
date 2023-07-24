@@ -18,9 +18,8 @@ set(${PROJECT_NAME}_TEST_SOURCES
     numeric_expressions_test.cc
     functions_test.cc
     matrix_operations_test.cc
-    code_generation_test.cc
-    substitute_test.cc
-    owning_ptr_test.cc)
+    ir_builder_test.cc
+    substitute_test.cc)
 
 foreach(test_file ${${PROJECT_NAME}_TEST_SOURCES})
   # get just the filename w/o extension

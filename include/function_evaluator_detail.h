@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 
-#include "ast.h"
+#include "code_generation/ast.h"
 #include "constants.h"
 #include "expressions/function_argument.h"
 #include "template_utils.h"
@@ -203,7 +203,12 @@ constexpr auto FilterArguments(std::index_sequence<Indices...>) {
 
 template <bool TakeInputs, typename... Args>
 constexpr auto FilterArguments() {
-  return FilterArguments<TakeInputs, Args...>(std::make_index_sequence<sizeof...(Args)>());
+  if constexpr (sizeof...(Args) > 0) {
+    return FilterArguments<TakeInputs, Args...>(std::make_index_sequence<sizeof...(Args)>());
+  } else {
+    // Need to handle this differently, since we can't fold over an empty sequence.
+    return std::make_index_sequence<0>();
+  }
 }
 
 template <bool TakeInputs, typename... Args>
@@ -212,7 +217,7 @@ constexpr auto FilterArguments(TypeList<Args...>) {
 }
 
 template <typename ArgList, typename Callable, std::size_t... Indices>
-auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>) {
+auto InvokeWithOutputCapture(Callable&& callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= TypeListSize<ArgList>::Value);
 
   // Create a tuple of arguments. Inputs are created as `FunctionArgument` objects, while outputs
@@ -221,13 +226,23 @@ auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>)
   auto args = std::make_tuple(BuildFunctionArguments<Indices, ArgList>()...);
 
   // Call the user provided function with the args we just created:
-  auto return_values = std::invoke(std::move(callable), std::get<Indices>(args)...);
+  using ReturnType = std::invoke_result_t<Callable, decltype(std::get<Indices>(args))...>;
+  if constexpr (std::is_same_v<ReturnType, void>) {
+    std::invoke(std::forward<Callable>(callable), std::get<Indices>(args)...);
 
-  // Now extract the output arguments:
-  constexpr auto output_arg_indices = FilterArguments<false>(ArgList{});
-  auto output_arguments = SelectFromTuple(args, output_arg_indices);
+    constexpr auto output_arg_indices = FilterArguments<false>(ArgList{});
+    auto output_arguments = SelectFromTuple(args, output_arg_indices);
 
-  return std::make_pair(std::move(return_values), std::move(output_arguments));
+    return std::make_pair(std::make_tuple(), std::move(output_arguments));
+  } else {
+    auto return_values = std::invoke(std::forward<Callable>(callable), std::get<Indices>(args)...);
+
+    // Now extract the output arguments:
+    constexpr auto output_arg_indices = FilterArguments<false>(ArgList{});
+    auto output_arguments = SelectFromTuple(args, output_arg_indices);
+
+    return std::make_pair(std::move(return_values), std::move(output_arguments));
+  }
 }
 
 // tests:

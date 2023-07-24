@@ -4,11 +4,6 @@
 namespace math {
 
 std::string CppCodeGenerator::Generate(const ast::FunctionDefinition& definition) const {
-  //
-  for (const auto& thing : definition.body) {
-    fmt::print("{}\n", thing);
-  }
-
   CodeFormatter result;
   FormatSignature(result, definition.signature);
   result.WithIndentation(2, "{\n", "\n}", [&] {

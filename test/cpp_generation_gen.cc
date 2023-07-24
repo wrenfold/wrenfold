@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <fmt/format.h>
+#include <iostream>
 
 #include "code_generation/ir_builder.h"
 #include "cpp_code_generator.h"
@@ -16,22 +17,21 @@ namespace math {
 namespace ta = type_annotations;
 
 template <typename Func, typename... Args>
-void GenerateFunc(std::string& output, Func func, const std::string_view name, Args&&... args) {
-  auto tuple = BuildFunctionDescription(func, name, std::forward<Args>(args)...);
-  ast::FunctionSignature& signature = std::get<0>(tuple);
+void GenerateFunc(std::string& output, Func&& func, const std::string_view name, Args&&... args) {
+  auto tuple =
+      BuildFunctionDescription(std::forward<Func>(func), name, std::forward<Args>(args)...);
+  const ast::FunctionSignature& signature = std::get<0>(tuple);
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
-  IrBuilder ir{expressions};
+  FlatIr ir{expressions};
   ir.EliminateDuplicates();
-  ir.StripUnusedValues();
-  ir.ConvertTernaryConditionalsToJumps();
-  ir.DropValues();
 
-  const std::string ir_string = ir.ToString();
-  fmt::print("IR:\n{}\n\n\n", ir_string);
+  OutputIr output_ir{std::move(ir)};
+  fmt::print("IR ({}):\n{}\n", name, output_ir.ToString());
+  std::cout << std::endl;
 
   // Generate syntax tree:
-  ast::FunctionDefinition ast = ir.CreateAST(signature);
+  ast::FunctionDefinition ast = ast::CreateAST(output_ir, signature);
 
   CppCodeGenerator generator{};
   const std::string code = generator.Generate(ast);
@@ -53,6 +53,7 @@ int main() {
   GenerateFunc(code, &VectorRotation2D, "vector_rotation_2d", "theta", "v", Arg("D_theta", true));
   GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v", Arg("D_v", false));
   GenerateFunc(code, &Heaviside, "heaviside", Arg("x"));
+  GenerateFunc(code, &ExclusiveOr, "exclusive_or", Arg("x"), Arg("y"));
 
   code += "\n\n} // namespace gen";
 

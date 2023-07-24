@@ -1,13 +1,10 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <algorithm>
-#include <array>
-#include <typeindex>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
-#include "ast.h"
+#include "assertions.h"
+#include "code_generation/expression_group.h"
 #include "code_generation/ir_types.h"
 #include "enumerations.h"
 #include "expression.h"
@@ -15,67 +12,96 @@
 #include "hashing.h"
 
 namespace math {
-
 struct IRFormVisitor;
 
-// Object for creating the intermediate representation. The IR is then given to the code-generator
-// to be simplified.
-struct IrBuilder {
+// Object for creating and manipulating our simple intermediate representation.
+struct FlatIr {
  public:
   // Construct from a set of output expressions.
-  explicit IrBuilder(const std::vector<ExpressionGroup>& expressions);
+  explicit FlatIr(const std::vector<ExpressionGroup>& expressions);
 
   // Format IR for every value.
-  std::string ToString(bool print_jump_origins = false) const;
+  std::string ToString() const;
 
   // Size of value numbers when printed (# digits).
   std::size_t ValuePrintWidth() const;
 
-  // Recreate the expression tree for all the output expressions.
-  std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> CreateOutputExpressions() const;
-
-  ast::FunctionDefinition CreateAST(const ast::FunctionSignature& signature) const;
-
-  // Eliminate duplicated operations.
+  // Eliminate duplicate operations. Most are eliminated during the conversion from expressions
+  // to the IR.
   void EliminateDuplicates();
-  void StripUnusedValues();
-  void ConvertTernaryConditionalsToJumps();
-  void ReorderConditionalsInBlock(const ir::BlockPtr block);
-
-  void DropValues();
 
   // Number of operations:
   std::size_t NumOperations() const;
 
-  // Number of conditional jumps.
-  std::size_t NumJumps() const;
+  std::size_t NumConditionals() const;
+
+  // Get the single block of operations.
+  ir::BlockPtr GetBlock() const { return ir::BlockPtr{block_}; }
 
  protected:
+  void StripUnusedValues();
+
+  // Single flat block:
+  ir::Block::unique_ptr block_;
+
+  // Owns all the instructions.
+  std::vector<ir::Value::unique_ptr> values_;
+
+  friend struct IRFormVisitor;
+  friend struct OutputIr;
+};
+
+struct OutputIr {
+ public:
+  // Construct from `FlatIr` (which is cleared in the process).
+  explicit OutputIr(FlatIr&& input);
+
+  // Format IR for every value.
+  std::string ToString() const;
+
+  // Size of value numbers when printed (# digits).
+  std::size_t ValuePrintWidth() const;
+
+  // Number of operations in the IR.
+  std::size_t NumOperations() const;
+
+  // Number of operations:
+  std::size_t NumConditionals() const;
+
+  // NUmber of blocks.
+  std::size_t NumBlocks() const { return blocks_.size(); }
+
+  // Get the first block (start of execution).
   ir::BlockPtr FirstBlock() const {
-    ASSERT(!blocks_.empty());
-    return ir::BlockPtr{blocks_.front()};
+    const auto it =
+        std::find_if(blocks_.begin(), blocks_.end(),
+                     [](const ir::Block::unique_ptr& block) { return block->HasNoAncestors(); });
+    ASSERT(it != blocks_.end(), "Must be an entry block");
+    return ir::BlockPtr{*it};
   }
 
-  // Allocate new value and insert it into block.
-  template <typename OpType, typename... Args>
-  ir::ValuePtr CreateOperation(ir::BlockPtr block, OpType&& op, Args... args);
-
+ private:
   // Allocate a new block
   ir::BlockPtr CreateBlock();
 
   // Owns all the blocks.
   std::vector<ir::Block::unique_ptr> blocks_;
 
-  // Owns all the instructions.
+  // Owns all the instructions
   std::vector<ir::Value::unique_ptr> values_;
 
-  // Next available value name, starting at zero.
-  uint32_t insertion_point_{0};
-
-  // Dead blocks:
-  std::vector<ir::Block::unique_ptr> dead_blocks_;
-
-  friend struct IRFormVisitor;
+  friend struct IrConverter;
 };
+
+// Argument to FindMergePoints
+enum class SearchDirection { Downwards, Upwards };
+
+// Find the block where control flow merges after branching into left/right.
+ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right,
+                            const SearchDirection direction);
+
+// Re-create `Expr` tree from the IR representation. For use in unit tests.
+std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> CreateOutputExpressionMap(
+    ir::BlockPtr starting_block, const std::unordered_map<std::size_t, bool>* output_arg_exists);
 
 }  // namespace math

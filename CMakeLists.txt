@@ -22,7 +22,7 @@ add_subdirectory(dependencies)
 
 set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
-    source/ast.cc
+    source/code_generation/ast.cc
     source/code_generation/ir_builder.cc
     source/constants.cc
     source/cpp_code_generator.cc
@@ -44,8 +44,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/ordering.cc
     source/plain_formatter.cc
     source/substitute.cc
-    source/tree_formatter.cc
-        )
+    source/tree_formatter.cc)
 
 # define binary from the sources
 add_library(${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES})

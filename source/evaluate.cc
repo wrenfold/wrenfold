@@ -1,6 +1,9 @@
 // Copyright 2023 Gareth Cross
 #include <algorithm>
 
+#define _USE_MATH_DEFINES  //  for clang
+#include <math.h>
+
 #include "expression.h"
 #include "expressions/all_expressions.h"
 #include "visitor_impl.h"

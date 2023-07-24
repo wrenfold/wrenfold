@@ -3,13 +3,20 @@
 #include <functional>
 #include <optional>
 #include <tuple>
+#include <variant>
 
 namespace math {
 
+// Does nothing but act as a list of types:
+template <typename... Ts>
+struct TypeList {};
+
 // Struct for getting argument types and return types from a function pointer or lambda.
+// This specialization is for lambdas.
 template <typename T>
 struct FunctionTraits : public FunctionTraits<decltype(&T::operator())> {};
 
+// This specialization is for member functions (like operator() on a lambda).
 template <typename ClassType, typename Ret, typename... Args>
 struct FunctionTraits<Ret (ClassType::*)(Args...) const> {
   constexpr static auto Arity = sizeof...(Args);
@@ -17,13 +24,28 @@ struct FunctionTraits<Ret (ClassType::*)(Args...) const> {
   // Return type of the function.
   using ReturnType = Ret;
 
+  // The arg type list.
+  using ArgsTypeList = TypeList<Args...>;
+
   // Get the i'th argument type.
   template <std::size_t i>
   using ArgType = typename std::tuple_element<i, std::tuple<Args...>>::type;
+};
 
-  // Get the i'th argument type + decay it.
+// This specialization is for general function pointers.
+template <typename Ret, typename... Args>
+struct FunctionTraits<Ret (*)(Args...)> {
+  constexpr static auto Arity = sizeof...(Args);
+
+  // Return type of the function.
+  using ReturnType = Ret;
+
+  // The arg type list.
+  using ArgsTypeList = TypeList<Args...>;
+
+  // Get the i'th argument type.
   template <std::size_t i>
-  using DecayedArgType = std::decay_t<typename std::tuple_element<i, std::tuple<Args...>>::type>;
+  using ArgType = typename std::tuple_element<i, std::tuple<Args...>>::type;
 };
 
 // Template to check if the `Apply` method is implemented.
@@ -67,10 +89,6 @@ struct ApplyInvocationType<Callable, Argument,
                                     void())> {
   using Type = decltype(std::declval<Callable>().Apply(std::declval<const Argument>()));
 };
-
-// Does nothing but act as a list of types:
-template <typename... Ts>
-struct TypeList {};
 
 // Size of type list.
 template <typename T>

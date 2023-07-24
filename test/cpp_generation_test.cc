@@ -64,4 +64,13 @@ TEST(CppGenerationTest, TestVectorNorm3D) {
   EXPECT_EIGEN_NEAR(D_vec_eval, D_vec_gen, 1.0e-15);
 }
 
+TEST(CppGenerationTest, TestHeaviside) {
+  constexpr auto inf = std::numeric_limits<double>::infinity();
+  EXPECT_EQ(0.0, gen::heaviside(-1.0));
+  EXPECT_EQ(0.0, gen::heaviside(std::nextafter(0.0, -inf)));
+  EXPECT_EQ(0.0, gen::heaviside(0.0));
+  EXPECT_EQ(1.0, gen::heaviside(std::nextafter(0.0, inf)));
+  EXPECT_EQ(1.0, gen::heaviside(1.));
+}
+
 }  // namespace math
