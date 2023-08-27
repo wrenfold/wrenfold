@@ -89,24 +89,28 @@ enum class TriState {
 
 struct RelationalSimplification {
   using ReturnType = TriState;
-  using Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::CompileError;
 
   explicit RelationalSimplification(RelationalOperation operation) : operation_(operation) {}
 
-  // Handle cases where both operators are numeric or constant values.
-  template <typename A, typename B, typename = std::enable_if_t<detail::SupportsComparison<A, B>>>
+  template <typename A, typename B>
   TriState Apply(const A& a, const B& b) {
-    const bool a_lt_b = CompareNumerics{}(a, b);
-    const bool b_lt_a = CompareNumerics{}(b, a);
-    if (operation_ == RelationalOperation::LessThan) {
-      return a_lt_b ? TriState::True : TriState::False;
-    } else if (operation_ == RelationalOperation::Equal) {
-      return (!a_lt_b && !b_lt_a) ? TriState::True : TriState::False;
+    if constexpr (detail::SupportsComparison<A, B>) {
+      // Handle cases where both operators are numeric or constant values.
+      const bool a_lt_b = CompareNumerics{}(a, b);
+      const bool b_lt_a = CompareNumerics{}(b, a);
+      if (operation_ == RelationalOperation::LessThan) {
+        return a_lt_b ? TriState::True : TriState::False;
+      } else if (operation_ == RelationalOperation::Equal) {
+        return (!a_lt_b && !b_lt_a) ? TriState::True : TriState::False;
+      }
+      ASSERT(operation_ == RelationalOperation::LessThanOrEqual, "Invalid relational operation: {}",
+             StringFromRelationalOperation(operation_));
+      // either `a` < `b`, or: `a` >= `b` and `b` is not less than `a`, so `a` == `b`
+      return a_lt_b || !b_lt_a ? TriState::True : TriState::False;
+    } else {
+      return TriState::Unknown;
     }
-    ASSERT(operation_ == RelationalOperation::LessThanOrEqual, "Invalid relational operation: {}",
-           StringFromRelationalOperation(operation_));
-    // either `a` < `b`, or: `a` >= `b` and `b` is not less than `a`, so `a` == `b`
-    return a_lt_b || !b_lt_a ? TriState::True : TriState::False;
   }
 
   RelationalOperation operation_;
@@ -114,8 +118,7 @@ struct RelationalSimplification {
 
 Expr Relational::Create(RelationalOperation operation, Expr left, Expr right) {
   // See if this relational automatically simplifies to a boolean constant:
-  const TriState simplified = VisitBinaryStruct(left, right, RelationalSimplification{operation})
-                                  .value_or(TriState::Unknown);
+  const TriState simplified = VisitBinaryStruct(left, right, RelationalSimplification{operation});
   if (simplified == TriState::True) {
     return Constants::True;
   } else if (simplified == TriState::False) {

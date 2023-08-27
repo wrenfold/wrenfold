@@ -12,7 +12,7 @@ class ExpressionConcept {
   virtual bool IsIdenticalTo(const ExpressionConcept& other) const = 0;
 
   // Apply a visitor to this expression.
-  virtual void Receive(class VisitorBase& visitor) const = 0;
+  virtual void Receive(VisitorBase& visitor) const = 0;
 
   // Get the string name of the underlying expression.
   virtual std::string_view TypeName() const = 0;

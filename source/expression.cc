@@ -74,17 +74,27 @@ Expr operator==(const Expr& a, const Expr& b) {
 
 // Visitor to determine mathematical precedence.
 struct PrecedenceVisitor {
-  using Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Precedence;
-  constexpr Precedence Apply(const Multiplication&) const { return Precedence::Multiplication; }
-  constexpr Precedence Apply(const Addition&) const { return Precedence::Addition; }
-  constexpr Precedence Apply(const Power&) const { return Precedence::Power; }
-  constexpr Precedence Apply(const Rational&) const { return Precedence::Multiplication; }
-  constexpr Precedence Apply(const Relational&) const { return Precedence::Relational; }
+
+  template <typename T>
+  constexpr Precedence Apply(const T&) const {
+    if constexpr (std::is_same_v<Multiplication, T>) {
+      return Precedence::Multiplication;
+    } else if constexpr (std::is_same_v<Addition, T>) {
+      return Precedence::Addition;
+    } else if constexpr (std::is_same_v<Power, T>) {
+      return Precedence::Power;
+    } else if constexpr (std::is_same_v<Rational, T>) {
+      return Precedence::Multiplication;
+    } else if constexpr (std::is_same_v<Relational, T>) {
+      return Precedence::Relational;
+    } else {
+      return Precedence::None;
+    }
+  }
 };
 
-Precedence GetPrecedence(const Expr& expr) {
-  return VisitStruct(expr, PrecedenceVisitor{}).value_or(Precedence::None);
-}
+Precedence GetPrecedence(const Expr& expr) { return VisitStruct(expr, PrecedenceVisitor{}); }
 
 }  // namespace math

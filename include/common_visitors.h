@@ -16,26 +16,27 @@ class NAryOp;
 // Visitor that returns true for numerical values, or powers of numerical values.
 struct IsNumericVisitor {
   using ReturnType = bool;
-  using Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::CompileError;
 
-  constexpr bool Apply(const Float&) const { return true; }
-  constexpr bool Apply(const Integer&) const { return true; }
-  constexpr bool Apply(const Rational&) const { return true; }
-  bool Apply(const Power& pow) const {
-    return VisitStruct(pow.Base(), IsNumericVisitor{}).value_or(false) &&
-           VisitStruct(pow.Exponent(), IsNumericVisitor{}).value_or(false);
+  template <typename T>
+  bool Apply(const T& arg) const {
+    if constexpr (ContainsTypeHelper<T, Float, Integer, Rational>) {
+      return true;
+    } else if constexpr (std::is_same_v<T, Power>) {
+      return IsNumeric(arg.Base()) && IsNumeric(arg.Exponent());
+    } else {
+      return false;
+    }
   }
 };
 
-inline bool IsNumeric(const Expr& expr) {
-  return VisitStruct(expr, IsNumericVisitor{}).value_or(false);
-}
+inline bool IsNumeric(const Expr& expr) { return VisitStruct(expr, IsNumericVisitor{}); }
 
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
 struct IsNegativeNumberVisitor {
   using ReturnType = bool;
-  using Policy = VisitorPolicy::NoError;
+  using Policy = VisitorPolicy::CompileError;
 
   // Numerics < 0 are all negative.
   bool Apply(const Integer& num) const { return num.GetValue() < 0; }
@@ -45,16 +46,21 @@ struct IsNegativeNumberVisitor {
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
   bool Apply(const Multiplication& m) const {
     const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
-      return VisitStruct(expr, IsNegativeNumberVisitor{}).value_or(false);
+      return VisitStruct(expr, IsNegativeNumberVisitor{});
     });
     // odd = negative, even = positive
     return static_cast<bool>(count & 1);
+  }
+
+  template <typename T>
+  constexpr bool Apply(const T&) const {
+    return false;
   }
 };
 
 // TODO: This probably deserves a better name, since it doesn't just check for numbers.
 inline bool IsNegativeNumber(const Expr& expr) {
-  return VisitStruct(expr, IsNegativeNumberVisitor{}).value_or(false);
+  return VisitStruct(expr, IsNegativeNumberVisitor{});
 }
 
 }  // namespace math

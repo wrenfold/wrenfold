@@ -2,6 +2,7 @@
 #pragma once
 
 #include "code_generation/ast.h"
+#include "code_generation/expression_group.h"
 #include "constants.h"
 #include "expressions/function_argument.h"
 #include "template_utils.h"

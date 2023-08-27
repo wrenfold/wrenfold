@@ -20,22 +20,22 @@ class ConditionalSimplificationVisitor {
   Expr ApplyConditional(const Conditional& cond) {
     if (cond.Condition().IsIdenticalTo(condition_)) {
       if (value_) {
-        return VisitStruct(cond.IfBranch(), *this);
+        return VisitStruct(cond.IfBranch(), *this, cond.IfBranch());
       } else {
-        return VisitStruct(cond.ElseBranch(), *this);
+        return VisitStruct(cond.ElseBranch(), *this, cond.ElseBranch());
       }
     }
-    return MapChildren(cond, [this](const Expr& x) { return VisitStruct(x, *this); });
+    return MapChildren(cond, [this](const Expr& x) { return VisitStruct(x, *this, x); });
   }
 
   template <typename T>
-  Expr Apply(const Expr& expr, const T& thing) {
+  Expr Apply(const T& thing, const Expr& expr) {
     if constexpr (std::is_same_v<T, Conditional>) {
       return ApplyConditional(thing);
     } else if constexpr (T::IsLeafNode) {
       return expr;
     } else {
-      return MapChildren(thing, [this](const Expr& x) { return VisitStruct(x, *this); });
+      return MapChildren(thing, [this](const Expr& x) { return VisitStruct(x, *this, x); });
     }
   }
 
@@ -53,9 +53,9 @@ Expr Conditional::Create(math::Expr condition, math::Expr if_branch, math::Expr 
 
   // Check for redundancies and eliminate them:
   Expr if_branch_simplified =
-      VisitStruct(if_branch, ConditionalSimplificationVisitor{condition, true});
+      VisitStruct(if_branch, ConditionalSimplificationVisitor{condition, true}, if_branch);
   Expr else_branch_simplified =
-      VisitStruct(else_branch, ConditionalSimplificationVisitor{condition, false});
+      VisitStruct(else_branch, ConditionalSimplificationVisitor{condition, false}, else_branch);
 
   return MakeExpr<Conditional>(std::move(condition), std::move(if_branch_simplified),
                                std::move(else_branch_simplified));

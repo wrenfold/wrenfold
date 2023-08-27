@@ -11,23 +11,38 @@
 namespace math {
 
 struct PowerNumerics {
-  using ReturnType = Expr;
-  using Policy = VisitorPolicy::NoError;
+  using ReturnType = std::optional<Expr>;
+  using Policy = VisitorPolicy::CompileError;
+
+  template <typename A, typename B>
+  ReturnType Apply(const A& a, const B& b) {
+    if constexpr (IsFloatAndNumeric<A, B>) {
+      return ApplyFloatAndNumeric(a, b);
+    } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Integer, B>) {
+      return ApplyIntAndInt(a, b);
+    } else if constexpr (std::is_same_v<Rational, A> && std::is_same_v<Integer, B>) {
+      return ApplyRationalAndInt(a, b);
+    } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Rational, B>) {
+      return ApplyIntegerAndRational(a, b);
+    } else {
+      return std::nullopt;
+    }
+  }
 
   // If either operand is a float, coerce the other to float:
   template <typename A, typename B>
-  std::enable_if_t<IsFloatAndNumeric<A, B>, Expr> Apply(const A& a, const B& b) {
+  std::enable_if_t<IsFloatAndNumeric<A, B>, Expr> ApplyFloatAndNumeric(const A& a, const B& b) {
     const auto result =
         std::pow(static_cast<Float>(a).GetValue(), static_cast<Float>(b).GetValue());
     return MakeExpr<Float>(result);
   }
 
   // If both operands are integers:
-  Expr Apply(const Integer& a, const Integer& b) {
+  Expr ApplyIntAndInt(const Integer& a, const Integer& b) {
     if (b.GetValue() < 0) {
       ASSERT_NOT_EQUAL(a.GetValue(), 0, "TODO: Handle taking 0 to a negative power?");
       // Convert a -> (1/a), then take the power:
-      return Apply(Rational{1, a.GetValue()}, -b);
+      return ApplyRationalAndInt(Rational{1, a.GetValue()}, -b);
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = Pow(a.GetValue(), b.GetValue());
@@ -35,7 +50,7 @@ struct PowerNumerics {
   }
 
   // If the left operand is a rational and right operand is integer:
-  Expr Apply(const Rational& a, const Integer& b) {
+  Expr ApplyRationalAndInt(const Rational& a, const Integer& b) {
     const auto exponent = b.GetValue();
     const auto n = Pow(a.Numerator(), std::abs(exponent));
     const auto d = Pow(a.Denominator(), std::abs(exponent));
@@ -48,7 +63,7 @@ struct PowerNumerics {
   }
 
   // If the left operand is integer, and the right is rational:
-  Expr Apply(const Integer& a, const Rational& b) {
+  Expr ApplyIntegerAndRational(const Integer& a, const Rational& b) {
     ASSERT_GREATER(b.Denominator(), 0, "Rational must have positive denominator");
 
     // Factorize the integer into primes:

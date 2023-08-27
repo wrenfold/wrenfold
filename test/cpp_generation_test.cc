@@ -1,5 +1,4 @@
 // Copyright 2023 Gareth Cross
-#include "code_generation/ir_builder.h"
 #include "eigen_test_helpers.h"
 #include "numeric_testing.h"
 #include "test_helpers.h"

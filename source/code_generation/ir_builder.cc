@@ -346,7 +346,7 @@ struct IRFormVisitor {
   // Handler for additions and multiplications:
   template <typename T>
   std::enable_if_t<std::is_same_v<T, Multiplication> || std::is_same_v<T, Addition>, ir::ValuePtr>
-  Apply(const T& op) {
+  Apply(const T& op, const Expr&) {
     // Put the thing w/ the highest count in the first cell:
     std::vector<Expr> expressions{op.begin(), op.end()};
     std::nth_element(expressions.begin(), expressions.begin(), expressions.end(),
@@ -396,7 +396,7 @@ struct IRFormVisitor {
     return prev_result;
   }
 
-  ir::ValuePtr Apply(const Conditional& cond) {
+  ir::ValuePtr Apply(const Conditional& cond, const Expr&) {
     const ir::ValuePtr condition = Visit(cond.Condition());
     const ir::ValuePtr if_branch = Visit(cond.IfBranch());
     const ir::ValuePtr else_branch = Visit(cond.ElseBranch());
@@ -408,30 +408,32 @@ struct IRFormVisitor {
                          MaybeCast(else_branch, promoted_type));
   }
 
-  ir::ValuePtr Apply(const Expr& input_expression, const Constant&) {
+  ir::ValuePtr Apply(const Constant&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
 
-  ir::ValuePtr Apply(const Matrix&) const { throw TypeError("Cannot evaluate this on a matrix."); }
+  ir::ValuePtr Apply(const Matrix&, const Expr&) const {
+    throw TypeError("Cannot evaluate this on a matrix.");
+  }
 
-  ir::ValuePtr Apply(const UnaryFunction& func) {
+  ir::ValuePtr Apply(const UnaryFunction& func, const Expr&) {
     return PushOperation(ir::CallUnaryFunc{func.Func()}, Visit(func.Arg()));
   }
 
-  ir::ValuePtr Apply(const Expr&, const Infinity&) const {
+  ir::ValuePtr Apply(const Infinity&, const Expr&) const {
     throw TypeError("Cannot generate code for complex infinity.");
   }
-  ir::ValuePtr Apply(const Expr& input_expression, const Integer&) {
+  ir::ValuePtr Apply(const Integer&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
-  ir::ValuePtr Apply(const Expr& input_expression, const Float&) {
+  ir::ValuePtr Apply(const Float&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
-  ir::ValuePtr Apply(const Expr& input_expression, const FunctionArgument&) {
+  ir::ValuePtr Apply(const FunctionArgument&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
 
-  ir::ValuePtr Apply(const Power& pow) {
+  ir::ValuePtr Apply(const Power& pow, const Expr&) {
     const ir::ValuePtr b = Visit(pow.Base());
     const ir::ValuePtr e = Visit(pow.Exponent());
     const NumericType promoted_type =
@@ -439,12 +441,12 @@ struct IRFormVisitor {
     return PushOperation(ir::Pow{}, MaybeCast(b, promoted_type), MaybeCast(e, promoted_type));
   }
 
-  ir::ValuePtr Apply(const Expr& expr, const Rational&) {
+  ir::ValuePtr Apply(const Rational&, const Expr& expr) {
     // We just send Rational directly to the code generator.
     return PushOperation(ir::Load{expr});
   }
 
-  ir::ValuePtr Apply(const Relational& relational) {
+  ir::ValuePtr Apply(const Relational& relational, const Expr&) {
     ir::ValuePtr left = Visit(relational.Left());
     ir::ValuePtr right = Visit(relational.Right());
     NumericType promoted_type = std::max(left->DetermineType(), right->DetermineType());
@@ -452,7 +454,7 @@ struct IRFormVisitor {
                          MaybeCast(right, promoted_type));
   }
 
-  ir::ValuePtr Apply(const Expr& input_expression, const Variable&) {
+  ir::ValuePtr Apply(const Variable&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
 
@@ -467,7 +469,7 @@ struct IRFormVisitor {
     if (it != computed_values_.end()) {
       return it->second;
     }
-    ir::ValuePtr val = VisitStruct(expr, *this);
+    ir::ValuePtr val = VisitStruct(expr, *this, expr);
     computed_values_.emplace(expr, val);
     return val;
   }

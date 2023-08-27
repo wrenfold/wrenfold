@@ -23,7 +23,7 @@ struct NumericFunctionEvaluator {
   using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
-  Expr Apply(const FunctionArgument& arg) const {
+  Expr Apply(const FunctionArgument& arg, const Expr&) const {
     auto it = values.find(arg);
     ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.ArgIndex(),
            arg.ElementIndex());
@@ -31,13 +31,13 @@ struct NumericFunctionEvaluator {
   }
 
   template <typename T>
-  std::enable_if_t<!std::is_same_v<T, FunctionArgument>, Expr> Apply(const Expr& input,
-                                                                     const T& input_typed) {
+  std::enable_if_t<!std::is_same_v<T, FunctionArgument>, Expr> Apply(const T& input_typed,
+                                                                     const Expr& input) {
     if constexpr (T::IsLeafStatic()) {
       return input;
     } else {
       return MapChildren(input_typed,
-                         [this](const Expr& expr) { return VisitStruct(expr, *this); });
+                         [this](const Expr& expr) { return VisitStruct(expr, *this, expr); });
     }
   }
 
@@ -62,7 +62,7 @@ template <>
 struct ApplyNumericEvaluatorImpl<Expr> {
   // TODO: Numeric evaluator should be const here, but must be non-const to satisfy Visit.
   double operator()(NumericFunctionEvaluator& evaluator, const Expr& input) const {
-    const Expr subs = VisitStruct(input, evaluator);
+    const Expr subs = VisitStruct(input, evaluator, input);
     const Float* f = CastPtr<Float>(subs);
     if (!f) {
       throw TypeError("Expression should be a floating point value. Got type {}: {}",
@@ -98,8 +98,6 @@ struct ApplyNumericEvaluatorImpl<std::tuple<Ts...>> {
           [&evaluator](const auto& element) { return ApplyNumericEvaluator(evaluator, element); },
           tup);
     } else if constexpr (sizeof...(Ts) == 1) {
-      // std::apply strips the tuple if it has one element for some wacko reason.
-      // Handle this case manually.
       return std::make_tuple(ApplyNumericEvaluator(evaluator, std::get<0>(tup)));
     } else {
 #ifdef _MSC_VER

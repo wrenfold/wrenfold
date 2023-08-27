@@ -48,18 +48,18 @@ template <typename... Ts>
 class VisitorDeclareAll<TypeList<Ts...>> : public virtual VisitorDeclare<Ts>... {};
 
 // Base type for visitors that produce expressions.
-class VisitorBase : public VisitorDeclareAll<ApprovedTypeList> {
+template <typename Types>
+class VisitorBaseGeneric : public VisitorDeclareAll<Types> {
  public:
-  virtual ~VisitorBase() = default;
+  virtual ~VisitorBaseGeneric() = default;
 };
+
+using VisitorBase = VisitorBaseGeneric<ApprovedTypeList>;
 
 // The type of error that is generated when a visitor fails to implement an `Apply` method.
 namespace VisitorPolicy {
 // Fail at compile time.
 struct CompileError {};
-// Silently do nothing. (Allow non-implemented Apply for some types).
-// This is useful for visitors implemented via Lambda, which operate on one specific type only.
-struct NoError {};
 }  // namespace VisitorPolicy
 
 }  // namespace math
