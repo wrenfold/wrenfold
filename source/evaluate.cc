@@ -11,7 +11,6 @@ namespace math {
 
 struct EvaluateVisitor {
   using ReturnType = Expr;
-  using Policy = VisitorPolicy::CompileError;
 
   Expr Apply(const Addition& add, const Expr&) const { return MapChildren(add, &Eval); }
   Expr Apply(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Eval); }

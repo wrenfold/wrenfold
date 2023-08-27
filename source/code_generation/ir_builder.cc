@@ -17,7 +17,6 @@
 namespace math {
 
 struct DetermineNumericTypeVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = NumericType;
 
   NumericType Apply(const Addition& add) const {
@@ -164,7 +163,6 @@ void Value::Remove() {
 }
 
 struct PairCountVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
   // Keys are either single expressions, or pairs of expressions.
@@ -329,7 +327,6 @@ ir::ValuePtr CreateOperation(std::vector<ir::Value::unique_ptr>& values, ir::Blo
 
 // Visitor for converting an expression tree into static-single-assignment form.
 struct IRFormVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = ir::ValuePtr;
 
   explicit IRFormVisitor(FlatIr& builder, const ir::PairCountVisitor& pair_count)

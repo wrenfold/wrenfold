@@ -74,7 +74,6 @@ Expr operator==(const Expr& a, const Expr& b) {
 
 // Visitor to determine mathematical precedence.
 struct PrecedenceVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Precedence;
 
   template <typename T>

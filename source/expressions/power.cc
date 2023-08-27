@@ -12,7 +12,6 @@ namespace math {
 
 struct PowerNumerics {
   using ReturnType = std::optional<Expr>;
-  using Policy = VisitorPolicy::CompileError;
 
   template <typename A, typename B>
   ReturnType Apply(const A& a, const B& b) {

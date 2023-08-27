@@ -16,7 +16,6 @@ class NAryOp;
 // Visitor that returns true for numerical values, or powers of numerical values.
 struct IsNumericVisitor {
   using ReturnType = bool;
-  using Policy = VisitorPolicy::CompileError;
 
   template <typename T>
   bool Apply(const T& arg) const {
@@ -36,7 +35,6 @@ inline bool IsNumeric(const Expr& expr) { return VisitStruct(expr, IsNumericVisi
 // negative.
 struct IsNegativeNumberVisitor {
   using ReturnType = bool;
-  using Policy = VisitorPolicy::CompileError;
 
   // Numerics < 0 are all negative.
   bool Apply(const Integer& num) const { return num.GetValue() < 0; }

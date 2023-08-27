@@ -16,7 +16,6 @@ enum class PowerStyle {
 class PlainFormatter {
  public:
   using ReturnType = void;
-  using Policy = VisitorPolicy::CompileError;
 
   PlainFormatter() = default;
   PlainFormatter(PowerStyle style) : power_style_(style) {}

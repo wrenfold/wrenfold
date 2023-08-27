@@ -20,7 +20,6 @@ struct ConvertArgType;
 }  // namespace detail
 
 struct NumericFunctionEvaluator {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   Expr Apply(const FunctionArgument& arg, const Expr&) const {

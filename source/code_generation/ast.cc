@@ -247,24 +247,23 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value&, const ir::Load& load) {
-    return detail::VisitLambdaWithPolicy<VisitorPolicy::CompileError>(
-        load.expr, [this](const auto& inner) -> ast::Variant {
-          using T = std::decay_t<decltype(inner)>;
-          if constexpr (std::is_same_v<T, Integer>) {
-            return ast::IntegerConstant{inner.GetValue()};
-          } else if constexpr (std::is_same_v<T, Float>) {
-            return ast::FloatConstant{inner.GetValue()};
-          } else if constexpr (std::is_same_v<T, Rational>) {
-            return ast::FloatConstant{static_cast<Float>(inner).GetValue()};
-          } else if constexpr (std::is_same_v<T, Variable>) {
-            return ast::VariableRef{inner.GetName()};
-          } else if constexpr (std::is_same_v<T, FunctionArgument>) {
-            const auto element_index = static_cast<index_t>(inner.ElementIndex());
-            return ast::InputValue{signature_.arguments[inner.ArgIndex()], element_index};
-          } else {
-            throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
-          }
-        });
+    return VisitLambda(load.expr, [this](const auto& inner) -> ast::Variant {
+      using T = std::decay_t<decltype(inner)>;
+      if constexpr (std::is_same_v<T, Integer>) {
+        return ast::IntegerConstant{inner.GetValue()};
+      } else if constexpr (std::is_same_v<T, Float>) {
+        return ast::FloatConstant{inner.GetValue()};
+      } else if constexpr (std::is_same_v<T, Rational>) {
+        return ast::FloatConstant{static_cast<Float>(inner).GetValue()};
+      } else if constexpr (std::is_same_v<T, Variable>) {
+        return ast::VariableRef{inner.GetName()};
+      } else if constexpr (std::is_same_v<T, FunctionArgument>) {
+        const auto element_index = static_cast<index_t>(inner.ElementIndex());
+        return ast::InputValue{signature_.arguments[inner.ArgIndex()], element_index};
+      } else {
+        throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
+      }
+    });
   }
 
   ast::Variant operator()(const ir::Value&, const ir::OutputRequired& oreq) {

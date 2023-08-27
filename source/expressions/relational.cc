@@ -89,7 +89,6 @@ enum class TriState {
 
 struct RelationalSimplification {
   using ReturnType = TriState;
-  using Policy = VisitorPolicy::CompileError;
 
   explicit RelationalSimplification(RelationalOperation operation) : operation_(operation) {}
 

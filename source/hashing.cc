@@ -24,7 +24,6 @@ constexpr auto MakeUnaryFunctionHashes() {
 
 // TODO: Hashes should be cached in containers like Addition/Multiplication.
 struct HashVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = std::size_t;
 
   template <typename Iterator>

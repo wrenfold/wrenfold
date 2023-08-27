@@ -17,9 +17,6 @@ static void RightTrimInPlace(std::string& str) {
 struct TreeFormatter {
   using ReturnType = void;
 
-  // Generate a compile-time error if we forget a visitor here.
-  using Policy = VisitorPolicy::CompileError;
-
   // Add indentation to the output string.
   void ApplyIndentation() {
     if (indentations_.empty()) {

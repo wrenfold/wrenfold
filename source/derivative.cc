@@ -14,8 +14,6 @@ template <typename T>
 class DiffVisitor {
  public:
   static_assert(std::is_same_v<T, Variable> || std::is_same_v<T, FunctionArgument>);
-
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   // Construct w/ const reference to the variable to differentiate wrt to.

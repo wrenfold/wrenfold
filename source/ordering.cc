@@ -8,7 +8,6 @@ namespace math {
 // Visitor that can be used to sort expressions by determining their relative order.
 struct OrderVisitor {
   using ReturnType = RelativeOrder;
-  using Policy = VisitorPolicy::CompileError;
 
   using OrderOfTypes =
       TypeList<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,

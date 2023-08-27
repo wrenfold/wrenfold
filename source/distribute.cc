@@ -11,7 +11,6 @@ namespace math {
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
   using ReturnType = Expr;
-  using Policy = VisitorPolicy::CompileError;
 
   Expr Apply(const Addition& add, const Expr&) const { return MapChildren(add, &Distribute); }
   Expr Apply(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Distribute); }

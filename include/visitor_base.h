@@ -56,10 +56,4 @@ class VisitorBaseGeneric : public VisitorDeclareAll<Types> {
 
 using VisitorBase = VisitorBaseGeneric<ApprovedTypeList>;
 
-// The type of error that is generated when a visitor fails to implement an `Apply` method.
-namespace VisitorPolicy {
-// Fail at compile time.
-struct CompileError {};
-}  // namespace VisitorPolicy
-
 }  // namespace math

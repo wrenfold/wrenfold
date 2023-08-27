@@ -50,7 +50,6 @@ Expr Addition::FromOperands(const std::vector<Expr>& args) {
 }
 
 struct AdditionVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
   explicit AdditionVisitor(AdditionParts& parts) : parts(parts) {}

@@ -10,7 +10,6 @@ namespace math {
 // Visitor that eliminates redundant conditionals.
 class ConditionalSimplificationVisitor {
  public:
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   ConditionalSimplificationVisitor(const Expr& condition, bool value)
