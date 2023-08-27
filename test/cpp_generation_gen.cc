@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <fmt/format.h>
+#include <cstdio>
 #include <iostream>
 
 #include "code_generation/ir_builder.h"
@@ -27,8 +28,10 @@ void GenerateFunc(std::string& output, Func&& func, const std::string_view name,
   ir.EliminateDuplicates();
 
   OutputIr output_ir{std::move(ir)};
+#if 0
   fmt::print("IR ({}):\n{}\n", name, output_ir.ToString());
-  std::cout << std::endl;
+  std::fflush(nullptr);
+#endif
 
   // Generate syntax tree:
   ast::FunctionDefinition ast = ast::CreateAST(output_ir, signature);

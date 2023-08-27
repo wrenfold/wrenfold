@@ -78,7 +78,7 @@ struct Add {
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Add&) const { return true; }
 
-  const NumericType DetermineType(ValuePtr a, ValuePtr b) const {
+  NumericType DetermineType(ValuePtr a, ValuePtr b) const {
     return std::max(std::max(DetermineValueType(a), DetermineValueType(b)), NumericType::Integer);
   }
 };
@@ -91,7 +91,7 @@ struct Copy {
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Copy&) const { return true; }
 
-  const NumericType DetermineType(ValuePtr arg) const { return DetermineValueType(arg); }
+  NumericType DetermineType(ValuePtr arg) const { return DetermineValueType(arg); }
 };
 
 // Cast the operand to the specified destination type.
@@ -180,7 +180,7 @@ struct Div {
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Div&) const { return true; }
 
-  const NumericType DetermineType(ValuePtr a, ValuePtr b) const {
+  NumericType DetermineType(ValuePtr a, ValuePtr b) const {
     return std::max(DetermineValueType(a), DetermineValueType(b));
   }
 };
@@ -210,7 +210,7 @@ struct Mul {
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Mul&) const { return true; }
 
-  const NumericType DetermineType(ValuePtr a, ValuePtr b) const {
+  NumericType DetermineType(ValuePtr a, ValuePtr b) const {
     return std::max(std::max(DetermineValueType(a), DetermineValueType(b)), NumericType::Integer);
   }
 };
@@ -254,7 +254,7 @@ struct Pow {
   constexpr std::size_t Hash() const { return 0; }
   constexpr bool IsSame(const Pow&) const { return true; }
 
-  const NumericType DetermineType(ValuePtr a, ValuePtr b) const {
+  NumericType DetermineType(ValuePtr a, ValuePtr b) const {
     return std::max(std::max(DetermineValueType(a), DetermineValueType(b)), NumericType::Integer);
   }
 };
@@ -274,13 +274,7 @@ struct Save {
     return key == other.key;  // && output_index == other.output_index;
   }
 
-  // Allow `Save` to be ordered by key, then output index.
-  //  bool operator<(const Save& other) const {
-  //    return std::make_pair(key, output_index) < std::make_pair(other.key, other.output_index);
-  //  }
-
   OutputKey key;
-  //  std::size_t output_index;
 };
 
 // A deterministic jump that connects one block in the control flow graph to the next one.

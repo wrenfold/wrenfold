@@ -332,9 +332,8 @@ struct IRFormVisitor {
   using Policy = VisitorPolicy::CompileError;
   using ReturnType = ir::ValuePtr;
 
-  explicit IRFormVisitor(FlatIr& builder, const ir::PairCountVisitor& pair_count,
-                         ir::BlockPtr block)
-      : builder_(builder), pair_counts(pair_count), current_block_(block) {}
+  explicit IRFormVisitor(FlatIr& builder, const ir::PairCountVisitor& pair_count)
+      : builder_(builder), pair_counts(pair_count) {}
 
   ir::ValuePtr MaybeCast(ir::ValuePtr input, NumericType output_type) {
     if (input->DetermineType() != output_type) {
@@ -459,7 +458,7 @@ struct IRFormVisitor {
 
   template <typename OpType, typename... Args>
   ir::ValuePtr PushOperation(OpType&& op, Args... args) {
-    return CreateOperation(builder_.values_, ir::BlockPtr{current_block_}, std::move(op), args...);
+    return CreateOperation(builder_.values_, builder_.GetBlock(), std::move(op), args...);
   }
 
   // Check if a value has been computed. If not, convert it and return the result.
@@ -475,7 +474,6 @@ struct IRFormVisitor {
 
  private:
   FlatIr& builder_;
-  ir::BlockPtr current_block_;
 
   std::unordered_map<Expr, ir::ValuePtr, ExprHash, ExprEquality> computed_values_;
 
@@ -493,7 +491,9 @@ ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right,
   visited.reserve(20);
 
   while (!queue.empty()) {
-    const auto [b, color] = queue.front();
+    const auto top = queue.front();
+    const auto b = std::get<0>(top);
+    const auto color = std::get<1>(top);
     queue.pop_front();
 
     const auto [it, was_inserted] = visited.emplace(b, color);
@@ -502,7 +502,7 @@ ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right,
       return b;
     }
     if (direction == SearchDirection::Downwards) {
-      b->VisitSuccessors([&](ir::BlockPtr child) { queue.emplace_back(child, color); });
+      b->VisitSuccessors([&queue, color](ir::BlockPtr child) { queue.emplace_back(child, color); });
     } else {
       for (ir::BlockPtr ancestor : b->ancestors) {
         queue.emplace_back(ancestor, color);
@@ -517,16 +517,13 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     : block_(std::make_unique<ir::Block>(0)) {
   // First pass where we count occurrence of some sub-expressions:
   ir::PairCountVisitor pair_visitor{};
-  std::size_t total_output_size = 0;
   for (const ExpressionGroup& group : groups) {
     for (const Expr& expr : group.expressions) {
       VisitStruct(expr, pair_visitor);
     }
-    total_output_size += group.expressions.size();
   }
 
-  const ir::BlockPtr block{block_};
-  IRFormVisitor visitor{*this, pair_visitor, block};
+  IRFormVisitor visitor{*this, pair_visitor};
 
   // order of traversal:
   std::vector<std::size_t> argsort(groups.size());
@@ -546,14 +543,14 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
                      if (output->DetermineType() != NumericType::Real) {
                        // TODO: Allow returning other types - derive the numeric type from the
                        // group.
-                       output =
-                           CreateOperation(values_, block, ir::Cast{NumericType::Real}, output);
+                       output = CreateOperation(values_, GetBlock(), ir::Cast{NumericType::Real},
+                                                output);
                      }
                      return output;
                    });
 
     // Then create a sink to consume these values, the `Save` operation is the sink:
-    CreateOperation(values_, block, ir::Save{group.key}, std::move(group_values));
+    CreateOperation(values_, GetBlock(), ir::Save{group.key}, std::move(group_values));
   }
 }
 

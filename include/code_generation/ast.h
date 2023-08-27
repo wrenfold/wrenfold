@@ -160,11 +160,6 @@ struct Add {
   std::string ToString() const;
 };
 
-struct ArrayAccess {
-  VariantPtr arg;
-  std::size_t element;
-};
-
 struct AssignTemporary {
   std::string left;
   VariantPtr right;

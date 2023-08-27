@@ -7,6 +7,8 @@
 
 #include "code_generation/ast.h"
 #include "expression.h"
+#include "expressions/function_argument.h"
+#include "matrix_expression.h"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -46,9 +48,8 @@ PYBIND11_MODULE(pycodegen, m) {
       .value("Mod", BinaryFunctionName::Mod)
       .value("Pow", BinaryFunctionName::Pow);
 
-  py::class_<ast::ScalarType>(m, "ScalarType")
-      .def(py::init<>())
-      .def("__repr__", &ast::ScalarType::ToString);
+  py::class_<ast::ScalarType>(m, "ScalarType").def(py::init<NumericType>());
+  //      .def("__repr__", &ast::ScalarType::ToString);
 
   py::class_<ast::MatrixType>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
@@ -68,24 +69,30 @@ PYBIND11_MODULE(pycodegen, m) {
       .def("__repr__",
            [](const ast::FunctionSignature& s) {
              return fmt::format("FunctionSignature('{}', {} args)", s.function_name,
-                                s.input_args.size() + s.output_args.size());
+                                s.arguments.size());
            })
       .def(
-          "add_input_arg",
-          [](ast::FunctionSignature& self, const std::string_view name, ast::Type type) {
-            self.AddInput(name, std::move(type), false);
+          "add_argument",
+          [](ast::FunctionSignature& self, const std::string_view name,
+             const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& type,
+             ast::ArgumentDirection direction) {
+            // workaround for `type` requiring a default constructor:
+            ast::Type type_casted = std::visit(
+                [](const auto& element) -> ast::Type {
+                  using T = std::decay_t<decltype(element)>;
+                  if constexpr (std::is_same_v<T, std::monostate>) {
+                    throw TypeError("`type` cannot be None");
+                  } else {
+                    return element;
+                  }
+                },
+                type);
+            return self.AddArgument(name, std::move(type_casted), direction);
           },
-          py::arg("name"), py::arg("type"))
-      .def(
-          "add_output_arg",
-          [](ast::FunctionSignature& self, const std::string_view name, ast::Type type,
-             bool optional) { return self.AddOutput(name, std::move(type), optional); },
           py::arg("name"), py::arg("type"), py::arg("optional") = false)
-      .def("add_return_value", &ast::FunctionSignature::AddReturnValue, py::arg("type"))
-      .def_property_readonly("input_args",
-                             [](const ast::FunctionSignature& self) { return self.input_args; })
-      .def_property_readonly("output_args",
-                             [](const ast::FunctionSignature& self) { return self.output_args; })
+      //      .def("add_return_value", &ast::FunctionSignature::AddReturnValue, py::arg("type"))
+      .def_property_readonly("arguments",
+                             [](const ast::FunctionSignature& self) { return self.arguments; })
       .def_property_readonly("return_values",
                              [](const ast::FunctionSignature& self) { return self.return_values; });
 
@@ -108,21 +115,33 @@ PYBIND11_MODULE(pycodegen, m) {
   //      .def_property_readonly("right", [](const ast::Assignment& x) { return *x.right; })
   //      .def("__repr__", &ast::Assignment::ToString);
 
+  py::class_<ast::Branch>(m, "Branch")
+      .def_property_readonly("condition", [](const ast::Branch& c) { return *c.condition; })
+      .def_property_readonly("if_branch", [](const ast::Branch& c) { return c.if_branch; })
+      .def_property_readonly("else_branch", [](const ast::Branch& c) { return c.else_branch; })
+      .def("__repr__", &ast::Branch::ToString);
+
   py::class_<ast::Call>(m, "Call")
       .def_property_readonly("function", [](const ast::Call& c) { return c.function; })
       .def_property_readonly("args", [](const ast::Call& c) { return c.args; })
       .def("__repr__", &ast::Call::ToString);
 
-  py::class_<ast::Conditional>(m, "Conditional")
-      .def_property_readonly("condition", [](const ast::Conditional& c) { return *c.condition; })
-      .def_property_readonly("if_branch", [](const ast::Conditional& c) { return c.if_branch; })
-      .def_property_readonly("else_branch", [](const ast::Conditional& c) { return c.else_branch; })
-      .def("__repr__", &ast::Conditional::ToString);
+  py::class_<ast::Cast>(m, "Cast")
+      .def_property_readonly("destination_type",
+                             [](const ast::Cast& c) { return c.destination_type; })
+      .def_property_readonly("arg", [](const ast::Cast& c) { return c.arg; });
+  //      .def("__repr__", &ast::Call::ToString);
 
-  py::class_<ast::ConstructMatrix>(m, "ConstructMatrix")
-      .def_property_readonly("type", [](const ast::ConstructMatrix& c) { return c.type; })
-      .def_property_readonly("args", [](const ast::ConstructMatrix& c) { return c.args; })
-      .def("__repr__", &ast::ConstructMatrix::ToString);
+  py::class_<ast::Compare>(m, "Compare")
+      .def_property_readonly("left", [](const ast::Compare& c) { return c.left; })
+      .def_property_readonly("right", [](const ast::Compare& c) { return c.right; })
+      .def_property_readonly("operation", [](const ast::Compare& c) { return c.operation; });
+
+  py::class_<ast::ConstructReturnValue>(m, "ConstructReturnValue")
+      .def_property_readonly("position",
+                             [](const ast::ConstructReturnValue& c) { return c.position; })
+      .def_property_readonly("type", [](const ast::ConstructReturnValue& c) { return c.type; })
+      .def_property_readonly("args", [](const ast::ConstructReturnValue& c) { return c.args; });
 
   py::class_<ast::Declaration>(m, "Declaration")
       .def_property_readonly("name", [](const ast::Declaration& d) { return d.name; })
