@@ -14,7 +14,7 @@ struct PowerNumerics {
   using ReturnType = std::optional<Expr>;
 
   template <typename A, typename B>
-  ReturnType Apply(const A& a, const B& b) {
+  ReturnType operator()(const A& a, const B& b) {
     if constexpr (IsFloatAndNumeric<A, B>) {
       return ApplyFloatAndNumeric(a, b);
     } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Integer, B>) {

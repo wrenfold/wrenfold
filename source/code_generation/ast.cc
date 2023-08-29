@@ -172,7 +172,7 @@ struct AstBuilder {
 
   std::string FormatTemporary(const ir::ValuePtr val) const { return FormatTemporary(*val); }
 
-  ast::Variant Visit(ir::ValuePtr val) {
+  ast::Variant VisitValue(ir::ValuePtr val) {
     return std::visit(
         [this, &val](const auto& op) -> ast::Variant {
           // These types should never get converted to AST:
@@ -189,7 +189,7 @@ struct AstBuilder {
   }
 
   ast::VariantPtr VisitMakePtr(ir::ValuePtr val) {
-    return std::make_shared<const ast::Variant>(Visit(val));
+    return std::make_shared<const ast::Variant>(VisitValue(val));
   }
 
   // Return true if the specified value should be inlined instead of declared as a variable.
@@ -210,7 +210,7 @@ struct AstBuilder {
 
   ast::Variant MakeArg(const ir::ValuePtr val) {
     if (ShouldInlineConstant(val)) {
-      return Visit(val);
+      return VisitValue(val);
     }
     return MakeVariableRef(val);
   }
@@ -247,7 +247,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value&, const ir::Load& load) {
-    return VisitLambda(load.expr, [this](const auto& inner) -> ast::Variant {
+    return Visit(load.expr, [this](const auto& inner) -> ast::Variant {
       using T = std::decay_t<decltype(inner)>;
       if constexpr (std::is_same_v<T, Integer>) {
         return ast::IntegerConstant{inner.GetValue()};

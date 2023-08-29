@@ -21,22 +21,21 @@ class DiffVisitor {
   explicit DiffVisitor(const T& argument) : argument_(argument) {}
 
   // Differentiate every argument to make a new sum.
-  Expr Apply(const Addition& add) {
-    return MapChildren(add, [&](const Expr& x) { return VisitStruct(x, *this); });
+  Expr operator()(const Addition& add) {
+    return MapChildren(add, [&](const Expr& x) { return Visit(x, *this); });
   }
 
   // TODO: This should insert a dirac delta function at the transition point (if the condition
   // is a function of the variable we are differentiating).
-  Expr Apply(const Conditional& cond) {
-    return where(cond.Condition(), VisitStruct(cond.IfBranch(), *this),
-                 VisitStruct(cond.ElseBranch(), *this));
+  Expr operator()(const Conditional& cond) {
+    return where(cond.Condition(), Visit(cond.IfBranch(), *this), Visit(cond.ElseBranch(), *this));
   }
 
-  Expr Apply(const Constant&) const { return Constants::Zero; }
+  Expr operator()(const Constant&) const { return Constants::Zero; }
 
   // Element-wise derivative of matrix.
-  Expr Apply(const Matrix& mat) {
-    return MapChildren(mat, [this](const Expr& x) { return VisitStruct(x, *this); });
+  Expr operator()(const Matrix& mat) {
+    return MapChildren(mat, [this](const Expr& x) { return Visit(x, *this); });
   }
 
   // Do product expansion over all terms in the multiplication:
@@ -44,7 +43,7 @@ class DiffVisitor {
   // a' * b + a * b'
   // a * b * c
   // a' * b * c + a * b' * c + a * b * c'
-  Expr Apply(const Multiplication& mul) {
+  Expr operator()(const Multiplication& mul) {
     std::vector<Expr> add_terms;  //  TODO: Small vector.
     add_terms.reserve(mul.Arity());
     // Differentiate wrt every argument:
@@ -53,7 +52,7 @@ class DiffVisitor {
       mul_terms.reserve(mul.Arity());
       for (std::size_t j = 0; j < mul.Arity(); ++j) {
         if (j == i) {
-          mul_terms.push_back(VisitStruct(mul[j], *this));
+          mul_terms.push_back(Visit(mul[j], *this));
         } else {
           mul_terms.push_back(mul[j]);
         }
@@ -65,9 +64,9 @@ class DiffVisitor {
   }
 
   // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
-  Expr Apply(const UnaryFunction& func) {
+  Expr operator()(const UnaryFunction& func) {
     // Differentiate the argument:
-    Expr d_arg = VisitStruct(func.Arg(), *this);
+    Expr d_arg = Visit(func.Arg(), *this);
     if (IsZero(d_arg)) {
       // If zero, we don't need to do any further operations.
       return Constants::Zero;
@@ -107,11 +106,11 @@ class DiffVisitor {
     return Constants::Zero;
   }
 
-  Expr Apply(const Infinity&) const { return Constants::Zero; }
-  Expr Apply(const Integer&) const { return Constants::Zero; }
-  Expr Apply(const Float&) const { return Constants::Zero; }
+  Expr operator()(const Infinity&) const { return Constants::Zero; }
+  Expr operator()(const Integer&) const { return Constants::Zero; }
+  Expr operator()(const Float&) const { return Constants::Zero; }
 
-  Expr Apply(const FunctionArgument& arg) const {
+  Expr operator()(const FunctionArgument& arg) const {
     if constexpr (std::is_same_v<T, FunctionArgument>) {
       if (argument_.IsIdenticalToImplTyped(arg)) {
         return Constants::One;
@@ -120,25 +119,25 @@ class DiffVisitor {
     return Constants::Zero;
   }
 
-  Expr Apply(const Power& pow) {
+  Expr operator()(const Power& pow) {
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
-    const Expr a_diff = VisitStruct(a, *this);
-    const Expr b_diff = VisitStruct(b, *this);
+    const Expr a_diff = Visit(a, *this);
+    const Expr b_diff = Visit(b, *this);
     // TODO: Check if a_diff and b_diff are zero.
     return b * Power::Create(a, b - Constants::One) * a_diff +
            Power::Create(a, b) * log(a) * b_diff;
   }
 
-  Expr Apply(const Rational&) const { return Constants::Zero; }
+  Expr operator()(const Rational&) const { return Constants::Zero; }
 
-  Expr Apply(const Relational& relational) const {
+  Expr operator()(const Relational& relational) const {
     throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", relational.TypeName(),
                     relational.Left().ToString(), relational.OperationString(),
                     relational.Right().ToString());
   }
 
-  Expr Apply(const Variable& var) const {
+  Expr operator()(const Variable& var) const {
     if constexpr (std::is_same_v<Variable, T>) {
       if (var.IsIdenticalToImplTyped(argument_)) {
         return Constants::One;
@@ -156,7 +155,7 @@ inline Expr DiffTyped(const Expr& expr, const T& arg, const int reps) {
   DiffVisitor<T> visitor{arg};
   Expr result = expr;
   for (int i = 0; i < reps; ++i) {
-    result = VisitStruct(result, visitor);
+    result = Visit(result, visitor);
   }
   return result;
 }

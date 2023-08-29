@@ -55,11 +55,11 @@ struct AdditionVisitor {
   explicit AdditionVisitor(AdditionParts& parts) : parts(parts) {}
 
   template <typename T>
-  void Apply(const T& arg, const Expr& input_expression) {
+  void operator()(const T& arg, const Expr& input_expression) {
     if constexpr (std::is_same_v<T, Addition>) {
       for (const Expr& expr : arg) {
         // Recursively add additions:
-        VisitStruct(expr, *this, expr);
+        Visit(expr, *this, expr);
       }
     } else if constexpr (std::is_same_v<T, Integer>) {
       parts.rational_term = parts.rational_term + static_cast<Rational>(arg);
@@ -98,7 +98,7 @@ void AdditionParts::Add(const Expr& arg) {
   if (IsZero(arg)) {
     return;
   }
-  VisitStruct(arg, AdditionVisitor{*this}, arg);
+  Visit(arg, AdditionVisitor{*this}, arg);
 }
 
 void AdditionParts::Normalize() {

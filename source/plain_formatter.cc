@@ -12,7 +12,7 @@
 
 namespace math {
 
-void PlainFormatter::Apply(const Addition& expr) {
+void PlainFormatter::operator()(const Addition& expr) {
   ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
   for (std::size_t i = 0; i < expr.Arity(); ++i) {
     const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(expr[i]);
@@ -28,7 +28,7 @@ void PlainFormatter::Apply(const Addition& expr) {
       if (IsNegativeOne(coeff)) {
         FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
-        VisitStruct(-coeff, *this);
+        Visit(-coeff, *this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
           FormatPrecedence(Precedence::Multiplication, multiplicand);
@@ -41,7 +41,7 @@ void PlainFormatter::Apply(const Addition& expr) {
       if (IsOne(coeff)) {
         FormatPrecedence(Precedence::Addition, multiplicand);
       } else {
-        VisitStruct(coeff, *this);
+        Visit(coeff, *this);
         if (!IsOne(multiplicand)) {
           output_ += " * ";
           FormatPrecedence(Precedence::Multiplication, multiplicand);
@@ -51,38 +51,38 @@ void PlainFormatter::Apply(const Addition& expr) {
   }
 }
 
-void PlainFormatter::Apply(const Conditional& conditional) {
+void PlainFormatter::operator()(const Conditional& conditional) {
   output_ += "where(";
-  VisitStruct(conditional.Condition(), *this);
+  Visit(conditional.Condition(), *this);
   output_ += ", ";
-  VisitStruct(conditional.IfBranch(), *this);
+  Visit(conditional.IfBranch(), *this);
   output_ += ", ";
-  VisitStruct(conditional.ElseBranch(), *this);
+  Visit(conditional.ElseBranch(), *this);
   output_ += ")";
 }
 
-void PlainFormatter::Apply(const Constant& expr) {
+void PlainFormatter::operator()(const Constant& expr) {
   output_ += StringFromSymbolicConstant(expr.GetName());
 }
 
-void PlainFormatter::Apply(const Infinity&) {
+void PlainFormatter::operator()(const Infinity&) {
   fmt::format_to(std::back_inserter(output_), "z-inf");
 }
 
-void PlainFormatter::Apply(const Integer& expr) {
+void PlainFormatter::operator()(const Integer& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
 }
 
-void PlainFormatter::Apply(const Float& expr) {
+void PlainFormatter::operator()(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
 }
 
-void PlainFormatter::Apply(const FunctionArgument& func_arg) {
+void PlainFormatter::operator()(const FunctionArgument& func_arg) {
   fmt::format_to(std::back_inserter(output_), "$arg({}, {})", func_arg.ArgIndex(),
                  func_arg.ElementIndex());
 }
 
-void PlainFormatter::Apply(const Matrix& mat) {
+void PlainFormatter::operator()(const Matrix& mat) {
   ASSERT_GREATER_OR_EQ(mat.NumRows(), 0);
   ASSERT_GREATER_OR_EQ(mat.NumCols(), 0);
 
@@ -99,7 +99,7 @@ void PlainFormatter::Apply(const Matrix& mat) {
   // Format all the child elements up front. That way we can do alignment:
   std::transform(mat.begin(), mat.end(), elements.begin(), [this](const Expr& expr) {
     PlainFormatter child_formatter{power_style_};
-    VisitStruct(expr, child_formatter);
+    Visit(expr, child_formatter);
     return child_formatter.output_;
   });
 
@@ -132,7 +132,7 @@ void PlainFormatter::Apply(const Matrix& mat) {
   output_ += "]";
 }
 
-void PlainFormatter::Apply(const Multiplication& expr) {
+void PlainFormatter::operator()(const Multiplication& expr) {
   ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
   using BaseExp = MultiplicationFormattingInfo::BaseExp;
 
@@ -145,9 +145,9 @@ void PlainFormatter::Apply(const Multiplication& expr) {
 
   const auto format_element = [this](const std::variant<Integer, Float, BaseExp>& element) {
     if (std::holds_alternative<Integer>(element)) {
-      this->Apply(std::get<Integer>(element));
+      this->operator()(std::get<Integer>(element));
     } else if (std::holds_alternative<Float>(element)) {
-      this->Apply(std::get<Float>(element));
+      this->operator()(std::get<Float>(element));
     } else {
       const BaseExp& pow = std::get<BaseExp>(element);
       if (IsOne(pow.exponent)) {
@@ -182,33 +182,33 @@ void PlainFormatter::Apply(const Multiplication& expr) {
   }
 }
 
-void PlainFormatter::Apply(const UnaryFunction& func) {
+void PlainFormatter::operator()(const UnaryFunction& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.Name());
-  VisitStruct(func.Arg(), *this);
+  Visit(func.Arg(), *this);
   output_ += ")";
 }
 
-void PlainFormatter::Apply(const Power& expr) { FormatPower(expr.Base(), expr.Exponent()); }
+void PlainFormatter::operator()(const Power& expr) { FormatPower(expr.Base(), expr.Exponent()); }
 
-void PlainFormatter::Apply(const Rational& expr) {
+void PlainFormatter::operator()(const Rational& expr) {
   fmt::format_to(std::back_inserter(output_), "{} / {}", expr.Numerator(), expr.Denominator());
 }
 
-void PlainFormatter::Apply(const Relational& expr) {
+void PlainFormatter::operator()(const Relational& expr) {
   FormatPrecedence(Precedence::Relational, expr.Left());
   fmt::format_to(std::back_inserter(output_), " {} ", expr.OperationString());
   FormatPrecedence(Precedence::Relational, expr.Right());
 }
 
-void PlainFormatter::Apply(const Variable& expr) { output_ += expr.GetName(); }
+void PlainFormatter::operator()(const Variable& expr) { output_ += expr.GetName(); }
 
 void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr) {
   if (GetPrecedence(expr) <= parent) {
     output_ += "(";
-    VisitStruct(expr, *this);
+    Visit(expr, *this);
     output_ += ")";
   } else {
-    VisitStruct(expr, *this);
+    Visit(expr, *this);
   }
 }
 

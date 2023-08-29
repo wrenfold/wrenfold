@@ -17,7 +17,7 @@ struct OrderVisitor {
   static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ApprovedTypeList>::Value);
 
   template <typename A, typename B>
-  RelativeOrder Apply(const A& a, const B& b) {
+  RelativeOrder operator()(const A& a, const B& b) {
     if constexpr (!std::is_same_v<A, B>) {
       return IndexOfType<A, OrderOfTypes>::Value < IndexOfType<B, OrderOfTypes>::Value
                  ? RelativeOrder::LessThan

@@ -19,22 +19,22 @@ namespace math {
 struct DetermineNumericTypeVisitor {
   using ReturnType = NumericType;
 
-  NumericType Apply(const Addition& add) const {
+  NumericType operator()(const Addition& add) const {
     // Adding bool to bool yields integer, add any floats - and it becomes real, etc...
     NumericType type = NumericType::Integer;
     for (const auto& expr : add) {
-      type = std::max(VisitStruct(expr, DetermineNumericTypeVisitor{}), type);
+      type = std::max(Visit(expr, DetermineNumericTypeVisitor{}), type);
     }
     return type;
   }
 
-  NumericType Apply(const Conditional& cond) const {
-    const NumericType left = VisitStruct(cond.IfBranch(), DetermineNumericTypeVisitor{});
-    const NumericType right = VisitStruct(cond.ElseBranch(), DetermineNumericTypeVisitor{});
+  NumericType operator()(const Conditional& cond) const {
+    const NumericType left = Visit(cond.IfBranch(), DetermineNumericTypeVisitor{});
+    const NumericType right = Visit(cond.ElseBranch(), DetermineNumericTypeVisitor{});
     return std::max(left, right);
   }
 
-  NumericType Apply(const Constant& c) const {
+  NumericType operator()(const Constant& c) const {
     switch (c.GetName()) {
       case SymbolicConstants::Euler:
       case SymbolicConstants::Pi:
@@ -46,44 +46,42 @@ struct DetermineNumericTypeVisitor {
     throw TypeError("Unhandled symbolic constant");
   }
 
-  constexpr NumericType Apply(const Float&) const { return NumericType::Real; }
+  constexpr NumericType operator()(const Float&) const { return NumericType::Real; }
 
-  constexpr NumericType Apply(const FunctionArgument&) const { return NumericType::Real; }
+  constexpr NumericType operator()(const FunctionArgument&) const { return NumericType::Real; }
 
-  constexpr NumericType Apply(const Infinity&) const { return NumericType::Complex; }
+  constexpr NumericType operator()(const Infinity&) const { return NumericType::Complex; }
 
-  constexpr NumericType Apply(const Integer&) const { return NumericType::Integer; }
+  constexpr NumericType operator()(const Integer&) const { return NumericType::Integer; }
 
   // TODO: For now all matrices are interpreted as real.
-  constexpr NumericType Apply(const Matrix&) const { return NumericType::Real; }
+  constexpr NumericType operator()(const Matrix&) const { return NumericType::Real; }
 
-  NumericType Apply(const Multiplication& mul) const {
+  NumericType operator()(const Multiplication& mul) const {
     // Multiplying booleans produces an integer, same as C++.
     NumericType type = NumericType::Integer;
     for (const auto& expr : mul) {
-      type = std::max(VisitStruct(expr, DetermineNumericTypeVisitor{}), type);
+      type = std::max(Visit(expr, DetermineNumericTypeVisitor{}), type);
     }
     return type;
   }
 
-  NumericType Apply(const Power& pow) const {
-    const NumericType b = VisitStruct(pow.Base(), DetermineNumericTypeVisitor{});
-    const NumericType e = VisitStruct(pow.Exponent(), DetermineNumericTypeVisitor{});
+  NumericType operator()(const Power& pow) const {
+    const NumericType b = Visit(pow.Base(), DetermineNumericTypeVisitor{});
+    const NumericType e = Visit(pow.Exponent(), DetermineNumericTypeVisitor{});
     return std::max(b, e);
   }
 
-  constexpr NumericType Apply(const Rational&) const { return NumericType::Real; }
+  constexpr NumericType operator()(const Rational&) const { return NumericType::Real; }
 
-  constexpr NumericType Apply(const Relational&) const { return NumericType::Bool; }
+  constexpr NumericType operator()(const Relational&) const { return NumericType::Bool; }
 
-  constexpr NumericType Apply(const UnaryFunction&) const { return NumericType::Real; }
+  constexpr NumericType operator()(const UnaryFunction&) const { return NumericType::Real; }
 
-  constexpr NumericType Apply(const Variable&) const { return NumericType::Real; }
+  constexpr NumericType operator()(const Variable&) const { return NumericType::Real; }
 };
 
-NumericType DetermineNumericType(const Expr& x) {
-  return VisitStruct(x, DetermineNumericTypeVisitor{});
-}
+NumericType DetermineNumericType(const Expr& x) { return Visit(x, DetermineNumericTypeVisitor{}); }
 
 namespace ir {
 
@@ -210,7 +208,7 @@ struct PairCountVisitor {
   void RecordCounts(const NAryOp<Derived>& operation, MapType& count_table) {
     for (const Expr& operand : operation) {
       count_table[operand]++;
-      VisitStruct(operand, *this);
+      Visit(operand, *this);
     }
     // generate pairs of expressions:
     for (auto i = operation.begin(); i != operation.end(); ++i) {
@@ -223,15 +221,15 @@ struct PairCountVisitor {
     }
   }
 
-  void Apply(const Multiplication& mul) { RecordCounts(mul, mul_counts); }
-  void Apply(const Addition& add) { RecordCounts(add, add_counts); }
+  void operator()(const Multiplication& mul) { RecordCounts(mul, mul_counts); }
+  void operator()(const Addition& add) { RecordCounts(add, add_counts); }
 
   // For every other type, just recurse into the children:
   template <typename T>
-  std::enable_if_t<!std::is_same_v<T, Multiplication> && !std::is_same_v<T, Addition>> Apply(
+  std::enable_if_t<!std::is_same_v<T, Multiplication> && !std::is_same_v<T, Addition>> operator()(
       const T& expr) {
     if constexpr (!T::IsLeafStatic()) {
-      IterateChildren(expr, [this](const Expr& expr) { VisitStruct(expr, *this); });
+      IterateChildren(expr, [this](const Expr& expr) { Visit(expr, *this); });
     }
   }
 
@@ -343,7 +341,7 @@ struct IRFormVisitor {
   // Handler for additions and multiplications:
   template <typename T>
   std::enable_if_t<std::is_same_v<T, Multiplication> || std::is_same_v<T, Addition>, ir::ValuePtr>
-  Apply(const T& op, const Expr&) {
+  operator()(const T& op, const Expr&) {
     // Put the thing w/ the highest count in the first cell:
     std::vector<Expr> expressions{op.begin(), op.end()};
     std::nth_element(expressions.begin(), expressions.begin(), expressions.end(),
@@ -373,7 +371,7 @@ struct IRFormVisitor {
     std::vector<ir::ValuePtr> args;
     args.reserve(op.Arity());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return Visit(expr); });
+                   [this](const Expr& expr) { return VisitExpr(expr); });
     ASSERT(!args.empty());
 
     NumericType promoted_type = NumericType::Integer;
@@ -393,10 +391,10 @@ struct IRFormVisitor {
     return prev_result;
   }
 
-  ir::ValuePtr Apply(const Conditional& cond, const Expr&) {
-    const ir::ValuePtr condition = Visit(cond.Condition());
-    const ir::ValuePtr if_branch = Visit(cond.IfBranch());
-    const ir::ValuePtr else_branch = Visit(cond.ElseBranch());
+  ir::ValuePtr operator()(const Conditional& cond, const Expr&) {
+    const ir::ValuePtr condition = VisitExpr(cond.Condition());
+    const ir::ValuePtr if_branch = VisitExpr(cond.IfBranch());
+    const ir::ValuePtr else_branch = VisitExpr(cond.ElseBranch());
 
     const NumericType promoted_type =
         std::max(if_branch->DetermineType(), else_branch->DetermineType());
@@ -405,53 +403,53 @@ struct IRFormVisitor {
                          MaybeCast(else_branch, promoted_type));
   }
 
-  ir::ValuePtr Apply(const Constant&, const Expr& input_expression) {
+  ir::ValuePtr operator()(const Constant&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
 
-  ir::ValuePtr Apply(const Matrix&, const Expr&) const {
+  ir::ValuePtr operator()(const Matrix&, const Expr&) const {
     throw TypeError("Cannot evaluate this on a matrix.");
   }
 
-  ir::ValuePtr Apply(const UnaryFunction& func, const Expr&) {
-    return PushOperation(ir::CallUnaryFunc{func.Func()}, Visit(func.Arg()));
+  ir::ValuePtr operator()(const UnaryFunction& func, const Expr&) {
+    return PushOperation(ir::CallUnaryFunc{func.Func()}, VisitExpr(func.Arg()));
   }
 
-  ir::ValuePtr Apply(const Infinity&, const Expr&) const {
+  ir::ValuePtr operator()(const Infinity&, const Expr&) const {
     throw TypeError("Cannot generate code for complex infinity.");
   }
-  ir::ValuePtr Apply(const Integer&, const Expr& input_expression) {
+  ir::ValuePtr operator()(const Integer&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
-  ir::ValuePtr Apply(const Float&, const Expr& input_expression) {
+  ir::ValuePtr operator()(const Float&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
-  ir::ValuePtr Apply(const FunctionArgument&, const Expr& input_expression) {
+  ir::ValuePtr operator()(const FunctionArgument&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
 
-  ir::ValuePtr Apply(const Power& pow, const Expr&) {
-    const ir::ValuePtr b = Visit(pow.Base());
-    const ir::ValuePtr e = Visit(pow.Exponent());
+  ir::ValuePtr operator()(const Power& pow, const Expr&) {
+    const ir::ValuePtr b = VisitExpr(pow.Base());
+    const ir::ValuePtr e = VisitExpr(pow.Exponent());
     const NumericType promoted_type =
         std::max(NumericType::Integer, std::max(b->DetermineType(), e->DetermineType()));
     return PushOperation(ir::Pow{}, MaybeCast(b, promoted_type), MaybeCast(e, promoted_type));
   }
 
-  ir::ValuePtr Apply(const Rational&, const Expr& expr) {
+  ir::ValuePtr operator()(const Rational&, const Expr& expr) {
     // We just send Rational directly to the code generator.
     return PushOperation(ir::Load{expr});
   }
 
-  ir::ValuePtr Apply(const Relational& relational, const Expr&) {
-    ir::ValuePtr left = Visit(relational.Left());
-    ir::ValuePtr right = Visit(relational.Right());
+  ir::ValuePtr operator()(const Relational& relational, const Expr&) {
+    ir::ValuePtr left = VisitExpr(relational.Left());
+    ir::ValuePtr right = VisitExpr(relational.Right());
     NumericType promoted_type = std::max(left->DetermineType(), right->DetermineType());
     return PushOperation(ir::Compare{relational.Operation()}, MaybeCast(left, promoted_type),
                          MaybeCast(right, promoted_type));
   }
 
-  ir::ValuePtr Apply(const Variable&, const Expr& input_expression) {
+  ir::ValuePtr operator()(const Variable&, const Expr& input_expression) {
     return PushOperation(ir::Load{input_expression});
   }
 
@@ -461,12 +459,12 @@ struct IRFormVisitor {
   }
 
   // Check if a value has been computed. If not, convert it and return the result.
-  ir::ValuePtr Visit(const Expr& expr) {
+  ir::ValuePtr VisitExpr(const Expr& expr) {
     auto it = computed_values_.find(expr);
     if (it != computed_values_.end()) {
       return it->second;
     }
-    ir::ValuePtr val = VisitStruct(expr, *this, expr);
+    ir::ValuePtr val = Visit(expr, *this, expr);
     computed_values_.emplace(expr, val);
     return val;
   }
@@ -518,7 +516,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
   ir::PairCountVisitor pair_visitor{};
   for (const ExpressionGroup& group : groups) {
     for (const Expr& expr : group.expressions) {
-      VisitStruct(expr, pair_visitor);
+      Visit(expr, pair_visitor);
     }
   }
 
@@ -538,7 +536,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     group_values.reserve(group.expressions.size());
     std::transform(group.expressions.begin(), group.expressions.end(),
                    std::back_inserter(group_values), [&](const Expr& expr) {
-                     ir::ValuePtr output = visitor.Visit(expr);
+                     ir::ValuePtr output = visitor.VisitExpr(expr);
                      if (output->DetermineType() != NumericType::Real) {
                        // TODO: Allow returning other types - derive the numeric type from the
                        // group.

@@ -93,7 +93,7 @@ struct RelationalSimplification {
   explicit RelationalSimplification(RelationalOperation operation) : operation_(operation) {}
 
   template <typename A, typename B>
-  TriState Apply(const A& a, const B& b) {
+  TriState operator()(const A& a, const B& b) {
     if constexpr (detail::SupportsComparison<A, B>) {
       // Handle cases where both operators are numeric or constant values.
       const bool a_lt_b = CompareNumerics{}(a, b);

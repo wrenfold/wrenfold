@@ -18,7 +18,7 @@ struct IsNumericVisitor {
   using ReturnType = bool;
 
   template <typename T>
-  bool Apply(const T& arg) const {
+  bool operator()(const T& arg) const {
     if constexpr (ContainsTypeHelper<T, Float, Integer, Rational>) {
       return true;
     } else if constexpr (std::is_same_v<T, Power>) {
@@ -29,7 +29,7 @@ struct IsNumericVisitor {
   }
 };
 
-inline bool IsNumeric(const Expr& expr) { return VisitStruct(expr, IsNumericVisitor{}); }
+inline bool IsNumeric(const Expr& expr) { return Visit(expr, IsNumericVisitor{}); }
 
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
@@ -37,28 +37,26 @@ struct IsNegativeNumberVisitor {
   using ReturnType = bool;
 
   // Numerics < 0 are all negative.
-  bool Apply(const Integer& num) const { return num.GetValue() < 0; }
-  bool Apply(const Float& f) const { return f.GetValue() < 0; }
-  bool Apply(const Rational& r) const { return r.Numerator() < 0; }
+  bool operator()(const Integer& num) const { return num.GetValue() < 0; }
+  bool operator()(const Float& f) const { return f.GetValue() < 0; }
+  bool operator()(const Rational& r) const { return r.Numerator() < 0; }
 
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
-  bool Apply(const Multiplication& m) const {
+  bool operator()(const Multiplication& m) const {
     const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
-      return VisitStruct(expr, IsNegativeNumberVisitor{});
+      return Visit(expr, IsNegativeNumberVisitor{});
     });
     // odd = negative, even = positive
     return static_cast<bool>(count & 1);
   }
 
   template <typename T>
-  constexpr bool Apply(const T&) const {
+  constexpr bool operator()(const T&) const {
     return false;
   }
 };
 
 // TODO: This probably deserves a better name, since it doesn't just check for numbers.
-inline bool IsNegativeNumber(const Expr& expr) {
-  return VisitStruct(expr, IsNegativeNumberVisitor{});
-}
+inline bool IsNegativeNumber(const Expr& expr) { return Visit(expr, IsNegativeNumberVisitor{}); }
 
 }  // namespace math

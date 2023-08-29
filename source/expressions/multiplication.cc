@@ -108,11 +108,11 @@ struct MultiplyVisitor {
   }
 
   template <typename T>
-  void Apply(const T& arg, const Expr& input_expression) {
+  void operator()(const T& arg, const Expr& input_expression) {
     if constexpr (std::is_same_v<T, Multiplication>) {
       for (const Expr& expr : arg) {
         // Recursively add multiplications:
-        VisitStruct(expr, *this, expr);
+        Visit(expr, *this, expr);
       }
     } else if constexpr (std::is_same_v<T, Power>) {
       const Power& arg_pow = arg;
@@ -180,7 +180,7 @@ struct NormalizeExponentVisitor {
   }
 
   template <typename A, typename B>
-  ReturnType Apply(const A& a, const B& b) {
+  ReturnType operator()(const A& a, const B& b) {
     if constexpr (std::is_same_v<A, Integer> && std::is_same_v<B, Rational>) {
       return ApplyIntAndRational(a, b);
     } else {
@@ -201,9 +201,9 @@ MultiplicationParts::MultiplicationParts(const Multiplication& mul, bool factori
 
 void MultiplicationParts::Multiply(const Expr& arg, bool factorize_integers) {
   if (factorize_integers) {
-    VisitStruct(arg, MultiplyVisitor<true>{*this}, arg);
+    Visit(arg, MultiplyVisitor<true>{*this}, arg);
   } else {
-    VisitStruct(arg, MultiplyVisitor<false>{*this}, arg);
+    Visit(arg, MultiplyVisitor<false>{*this}, arg);
   }
 }
 
@@ -279,7 +279,7 @@ struct AsCoeffAndMultiplicandVisitor {
 
   // If the input type is a numeric, return the numeric as a coefficient for multiplicand of one.
   template <typename T>
-  ReturnType Apply(const T& thing, const Expr& input) const {
+  ReturnType operator()(const T& thing, const Expr& input) const {
     if constexpr (ContainsTypeHelper<T, Integer, Rational, Float>) {
       return std::make_pair(input, Constants::One);
     } else if constexpr (std::is_same_v<T, Multiplication>) {
@@ -292,8 +292,7 @@ struct AsCoeffAndMultiplicandVisitor {
 };
 
 std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr) {
-  std::optional<std::pair<Expr, Expr>> result =
-      VisitStruct(expr, AsCoeffAndMultiplicandVisitor{}, expr);
+  std::optional<std::pair<Expr, Expr>> result = Visit(expr, AsCoeffAndMultiplicandVisitor{}, expr);
   if (result.has_value()) {
     return *result;
   }

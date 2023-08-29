@@ -12,14 +12,14 @@ namespace math {
 struct EvaluateVisitor {
   using ReturnType = Expr;
 
-  Expr Apply(const Addition& add, const Expr&) const { return MapChildren(add, &Eval); }
-  Expr Apply(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Eval); }
-  Expr Apply(const Multiplication& mul, const Expr&) const { return MapChildren(mul, &Eval); }
-  Expr Apply(const UnaryFunction& f, const Expr&) const { return MapChildren(f, &Eval); }
-  Expr Apply(const Power& pow, const Expr&) const { return MapChildren(pow, &Eval); }
-  Expr Apply(const Conditional& cond, const Expr&) const { return MapChildren(cond, &Eval); }
+  Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Eval); }
+  Expr operator()(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Eval); }
+  Expr operator()(const Multiplication& mul, const Expr&) const { return MapChildren(mul, &Eval); }
+  Expr operator()(const UnaryFunction& f, const Expr&) const { return MapChildren(f, &Eval); }
+  Expr operator()(const Power& pow, const Expr&) const { return MapChildren(pow, &Eval); }
+  Expr operator()(const Conditional& cond, const Expr&) const { return MapChildren(cond, &Eval); }
 
-  Expr Apply(const Constant& c, const Expr&) const {
+  Expr operator()(const Constant& c, const Expr&) const {
     switch (c.GetName()) {
       case SymbolicConstants::Euler:
         return Float::Create(std::exp(1.0));
@@ -35,17 +35,21 @@ struct EvaluateVisitor {
     ASSERT(false, "Invalid symbolic constant: {}", StringFromSymbolicConstant(c.GetName()));
     return Float::Create(std::numeric_limits<double>::quiet_NaN());
   }
-  Expr Apply(const Infinity&, const Expr&) const {
+  Expr operator()(const Infinity&, const Expr&) const {
     throw TypeError("Cannot evaluate complex infinity to float.");
   }
-  Expr Apply(const Integer& i, const Expr&) const { return MakeExpr<Float>(static_cast<Float>(i)); }
-  Expr Apply(const Float&, const Expr& arg) const { return arg; }
-  Expr Apply(const FunctionArgument&, const Expr& arg) const { return arg; }
-  Expr Apply(const Rational& r, const Expr&) const { return Float::Create(static_cast<Float>(r)); }
-  Expr Apply(const Relational& r, const Expr&) const { return MapChildren(r, &Eval); }
-  Expr Apply(const Variable&, const Expr& arg) const { return arg; }
+  Expr operator()(const Integer& i, const Expr&) const {
+    return MakeExpr<Float>(static_cast<Float>(i));
+  }
+  Expr operator()(const Float&, const Expr& arg) const { return arg; }
+  Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
+  Expr operator()(const Rational& r, const Expr&) const {
+    return Float::Create(static_cast<Float>(r));
+  }
+  Expr operator()(const Relational& r, const Expr&) const { return MapChildren(r, &Eval); }
+  Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Eval(const Expr& arg) { return VisitStruct(arg, EvaluateVisitor{}, arg); }
+Expr Eval(const Expr& arg) { return Visit(arg, EvaluateVisitor{}, arg); }
 
 }  // namespace math

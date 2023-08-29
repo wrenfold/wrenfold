@@ -26,7 +26,7 @@ Expr Expr::FromInt(const std::int64_t x) { return Integer::Create(x); }
 std::string Expr::ToString() const {
   ASSERT(impl_);
   PlainFormatter formatter{};
-  VisitStruct(*this, formatter);
+  Visit(*this, formatter);
   return formatter.GetOutput();
 }
 
@@ -77,7 +77,7 @@ struct PrecedenceVisitor {
   using ReturnType = Precedence;
 
   template <typename T>
-  constexpr Precedence Apply(const T&) const {
+  constexpr Precedence operator()(const T&) const {
     if constexpr (std::is_same_v<Multiplication, T>) {
       return Precedence::Multiplication;
     } else if constexpr (std::is_same_v<Addition, T>) {
@@ -94,6 +94,6 @@ struct PrecedenceVisitor {
   }
 };
 
-Precedence GetPrecedence(const Expr& expr) { return VisitStruct(expr, PrecedenceVisitor{}); }
+Precedence GetPrecedence(const Expr& expr) { return Visit(expr, PrecedenceVisitor{}); }
 
 }  // namespace math

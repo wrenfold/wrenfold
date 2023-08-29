@@ -12,10 +12,10 @@ namespace math {
 struct DistributeVisitor {
   using ReturnType = Expr;
 
-  Expr Apply(const Addition& add, const Expr&) const { return MapChildren(add, &Distribute); }
-  Expr Apply(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Distribute); }
+  Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Distribute); }
+  Expr operator()(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Distribute); }
 
-  Expr Apply(const Multiplication& mul, const Expr&) const {
+  Expr operator()(const Multiplication& mul, const Expr&) const {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};
     children.reserve(mul.Arity());
@@ -71,34 +71,34 @@ struct DistributeVisitor {
     return Addition::FromOperands(output_terms);
   }
 
-  Expr Apply(const UnaryFunction& f, const Expr&) const {
+  Expr operator()(const UnaryFunction& f, const Expr&) const {
     const Expr& arg = f.Arg();
     return CreateUnaryFunction(f.Func(), Distribute(arg));
   }
 
-  Expr Apply(const Power& pow, const Expr&) const {
+  Expr operator()(const Power& pow, const Expr&) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.Base();
     const Expr& b = pow.Exponent();
     return Power::Create(Distribute(a), Distribute(b));
   }
 
-  Expr Apply(const Conditional& conditional, const Expr&) const {
+  Expr operator()(const Conditional& conditional, const Expr&) const {
     return MapChildren(conditional, &Distribute);
   }
 
-  Expr Apply(const Constant&, const Expr& arg) const { return arg; }
-  Expr Apply(const Infinity&, const Expr& arg) const { return arg; }
-  Expr Apply(const Integer&, const Expr& arg) const { return arg; }
-  Expr Apply(const Float&, const Expr& arg) const { return arg; }
-  Expr Apply(const FunctionArgument&, const Expr& arg) const { return arg; }
-  Expr Apply(const Rational&, const Expr& arg) const { return arg; }
-  Expr Apply(const Relational& relation, const Expr&) const {
+  Expr operator()(const Constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
+  Expr operator()(const Integer&, const Expr& arg) const { return arg; }
+  Expr operator()(const Float&, const Expr& arg) const { return arg; }
+  Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
+  Expr operator()(const Rational&, const Expr& arg) const { return arg; }
+  Expr operator()(const Relational& relation, const Expr&) const {
     return MapChildren(relation, &Distribute);
   }
-  Expr Apply(const Variable&, const Expr& arg) const { return arg; }
+  Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Distribute(const Expr& arg) { return VisitStruct(arg, DistributeVisitor{}, arg); }
+Expr Distribute(const Expr& arg) { return Visit(arg, DistributeVisitor{}, arg); }
 
 }  // namespace math

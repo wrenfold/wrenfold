@@ -82,7 +82,7 @@ PYBIND11_MODULE(pysym, m) {
       .def("__repr__",
            [](const Expr& self) {
              PlainFormatter formatter{PowerStyle::Python};
-             VisitStruct(self, formatter);
+             Visit(self, formatter);
              return formatter.GetOutput();
            })
       .def("expression_tree_str", &FormatDebugTree,

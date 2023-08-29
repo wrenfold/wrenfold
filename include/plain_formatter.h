@@ -20,20 +20,20 @@ class PlainFormatter {
   PlainFormatter() = default;
   PlainFormatter(PowerStyle style) : power_style_(style) {}
 
-  void Apply(const Addition& add);
-  void Apply(const Conditional& conditional);
-  void Apply(const Constant& constant);
-  void Apply(const Float& num);
-  void Apply(const FunctionArgument& func_arg);
-  void Apply(const Infinity&);
-  void Apply(const Integer& num);
-  void Apply(const Matrix& mat);
-  void Apply(const Multiplication& mul);
-  void Apply(const Power& pow);
-  void Apply(const Rational& rational);
-  void Apply(const Relational& relational);
-  void Apply(const UnaryFunction& func);
-  void Apply(const Variable& var);
+  void operator()(const Addition& add);
+  void operator()(const Conditional& conditional);
+  void operator()(const Constant& constant);
+  void operator()(const Float& num);
+  void operator()(const FunctionArgument& func_arg);
+  void operator()(const Infinity&);
+  void operator()(const Integer& num);
+  void operator()(const Matrix& mat);
+  void operator()(const Multiplication& mul);
+  void operator()(const Power& pow);
+  void operator()(const Rational& rational);
+  void operator()(const Relational& relational);
+  void operator()(const UnaryFunction& func);
+  void operator()(const Variable& var);
 
   // Get the output string.
   const std::string& GetOutput() const { return output_; }
