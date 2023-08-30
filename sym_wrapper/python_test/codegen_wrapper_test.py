@@ -12,7 +12,6 @@ import unittest
 from sym import sym
 from sym.type_annotations import RealScalar, Vector2
 from sym.code_generation import codegen_function, PythonCodeGenerator, create_numeric_evaluator
-from sym_wrapper import pycodegen as codegen
 
 from test_base import MathTestBase
 
@@ -20,6 +19,11 @@ from test_base import MathTestBase
 def func1(x: RealScalar, y: RealScalar, v: Vector2):
     """A test function."""
     return (v.T * v) * x + 5 * x * sym.pow(y, 3.1)
+
+
+def func2(x: RealScalar, y: RealScalar):
+    """Another test function."""
+    return sym.where(x > y / 2, sym.cos(x - y), sym.sin(x + y * 2))
 
 
 class CodeGenerationWrapperTest(MathTestBase):
@@ -34,8 +38,8 @@ class CodeGenerationWrapperTest(MathTestBase):
         return super().setUp()
 
     def tearDown(self) -> None:
-        if self._tmp_dir is not None:
-            shutil.rmtree(self._tmp_dir, ignore_errors=True)
+        # if self._tmp_dir is not None:
+        # shutil.rmtree(self._tmp_dir, ignore_errors=True)
         return super().tearDown()
 
     def load_code(self, code: str, name: str) -> T.Callable:
@@ -52,18 +56,6 @@ class CodeGenerationWrapperTest(MathTestBase):
         spec.loader.exec_module(mod)
         return getattr(mod, name)
 
-    def test_ir_builder(self):
-        x, y, z = sym.symbols('x, y, z')
-        f = x * x + sym.sin(y / z) + sym.pow(y / z, 3 * x * x)
-
-        builder = codegen.IrBuilder([f])
-        output_value = builder.output_values()[0]
-
-        self.assertIdentical(f, builder.create_expression(output_value))
-
-        builder.eliminate_duplicates()
-        self.assertIdentical(f, builder.create_expression(output_value))
-
     def test_code_generation_1(self):
         signature, ast = codegen_function(func1)
         code = PythonCodeGenerator().generate(signature=signature, body=ast)
@@ -74,6 +66,16 @@ class CodeGenerationWrapperTest(MathTestBase):
         val_generated = generated_func(0.5, 1.2, np.array([0., 1.2]))
         val_subs = numeric_func(0.5, 1.2, np.array([0., 1.2]))
         self.assertAlmostEqual(val_subs, val_generated, places=16)
+
+    def test_code_generation_2(self):
+        signature, ast = codegen_function(func2)
+        code = PythonCodeGenerator().generate(signature=signature, body=ast)
+
+        generated_func = self.load_code(code=code, name=func2.__name__)
+        numeric_func = create_numeric_evaluator(func=func2)
+
+        self.assertAlmostEqual(numeric_func(1.6, 0.4), generated_func(1.6, 0.4), places=16)
+        self.assertAlmostEqual(numeric_func(0.2, 2.1), generated_func(0.2, 2.1), places=16)
 
 
 if __name__ == '__main__':

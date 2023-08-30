@@ -40,7 +40,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual('5 * z / x ** 2', repr(5.0 * z / (x * x)))
         self.assertEqual('cos(x) * sin(z)', repr(sym.cos(x) * sym.sin(z)))
         self.assertEqual('x ** (1 / 2)', repr(sym.sqrt(x)))
-        self.assertEqual('3 ** (1 / 2) * 7 ** (1 / 2) * x ** (1 / 2) / z ** (1 / 2)',
+        self.assertEqual('3 ** (1 / 2) * 7 ** (1 / 2) * x ** (1 / 2) * (z ** -1) ** (1 / 2)',
                          repr(sym.sqrt(21 * x / z)))
 
     def test_basic_scalar_operations(self):

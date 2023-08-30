@@ -65,6 +65,12 @@ else()
   endif()
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # Disable unused parameter warning (triggered by if constexpr)
+  list(APPEND MATH_COMPILATION_FLAGS -Wno-unused-parameter
+       -Wno-unused-but-set-parameter)
+endif()
+
 target_compile_options(${LIBRARY_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
 target_link_libraries(${LIBRARY_NAME} fmt-header-only)
 

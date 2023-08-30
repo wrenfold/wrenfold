@@ -10,17 +10,21 @@ import numpy as np
 from . import sym
 from sym_wrapper import pycodegen as codegen
 
-AstVariantTuple = (codegen.Add, codegen.Call, codegen.ConstructMatrix, codegen.Declaration,
-                   codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
-                   codegen.Multiply, codegen.OutputExists, codegen.ReturnValue, codegen.VariableRef,
+AstVariantTuple = (codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArgument,
+                   codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
+                   codegen.ConstructReturnValue, codegen.Declaration, codegen.FloatConstant,
+                   codegen.InputValue, codegen.IntegerConstant, codegen.Multiply,
+                   codegen.OutputExists, codegen.ReturnValue, codegen.VariableRef,
                    codegen.FunctionSignature)
 
 AstTypeTuple = (codegen.ScalarType, codegen.MatrixType)
 
-AstVariantAnnotation = T.Union[codegen.Add, codegen.Call, codegen.ConstructMatrix,
-                               codegen.Declaration, codegen.FloatConstant, codegen.InputValue,
-                               codegen.IntegerConstant, codegen.Multiply, codegen.OutputExists,
-                               codegen.ReturnValue, codegen.VariableRef]
+AstVariantAnnotation = T.Union[codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArgument,
+                               codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
+                               codegen.ConstructReturnValue, codegen.Declaration,
+                               codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
+                               codegen.Multiply, codegen.OutputExists, codegen.ReturnValue,
+                               codegen.VariableRef,]
 
 
 class CustomStringFormatter(string.Formatter):
@@ -75,7 +79,7 @@ class CodeGenerator:
         formatter = CustomStringFormatter(generator=self)
         result = formatter.format('{}\n', signature)
         reshape_statements = []
-        for arg in signature.input_args:
+        for arg in signature.arguments:
             if isinstance(arg.type, codegen.MatrixType):
                 statement = f'{arg.name} = {arg.name}.reshape(({arg.type.num_rows}, {arg.type.num_cols}))'
                 reshape_statements.append(statement)
@@ -92,7 +96,14 @@ class PythonCodeGenerator(CodeGenerator):
         super(PythonCodeGenerator, self).__init__()
 
     def format_ScalarType(self, fmt: CustomStringFormatter, x: codegen.ScalarType) -> str:
-        return 'float'
+        if x.numeric_type == codegen.NumericType.Bool:
+            return 'bool'
+        elif x.numeric_type == codegen.NumericType.Integer:
+            return 'int'
+        elif x.numeric_type == codegen.NumericType.Real:
+            return 'float'
+        elif x.numeric_type == codegen.NumericType.Complex:
+            raise TypeError("Complex is not supported here")
 
     def format_MatrixType(self, fmt: CustomStringFormatter, x: codegen.MatrixType) -> str:
         return 'np.ndarray'
@@ -101,26 +112,66 @@ class PythonCodeGenerator(CodeGenerator):
         """Format one of the AST types to python."""
         return fmt.format('{} + {}', x.left, x.right)
 
+    def format_AssignTemporary(self, fmt: CustomStringFormatter, x: codegen.AssignTemporary) -> str:
+        return fmt.format('{} = {}', x.left, x.right)
+
+    def format_Branch(self, fmt: CustomStringFormatter, x: codegen.Branch) -> str:
+        result = fmt.format('if {}:\n', x.condition) + fmt.indent('\n'.join(
+            fmt.format_ast(v) for v in x.if_branch))
+        if len(x.else_branch) > 0:
+            result += '\nelse:\n' + fmt.indent('\n'.join(fmt.format_ast(v) for v in x.else_branch))
+        return result
+
     def format_Call(self, fmt: CustomStringFormatter, x: codegen.Call) -> str:
         if isinstance(x.function, codegen.BinaryFunctionName):
             if x.function == codegen.BinaryFunctionName.Pow:
                 return fmt.format('np.power({}, {})', x.args[0], x.args[1])
         elif isinstance(x.function, codegen.UnaryFunctionName):
-            pass
+            funcs = {
+                codegen.UnaryFunctionName.Cos: "np.cos", codegen.UnaryFunctionName.Sin: "np.sin",
+                codegen.UnaryFunctionName.Log: "np.log", codegen.UnaryFunctionName.Sqrt: "np.sqrt",
+                codegen.UnaryFunctionName.Tan: "np.tan"
+            }
+            return fmt.format("{}({})", funcs[x.function], x.args[0])
 
         raise KeyError(f'Unsupported function name: {x.function}')
 
-    def format_Conditional(self, fmt: CustomStringFormatter, x: codegen.Conditional) -> str:
-        result += fmt.format('if {}:\n', x.condition) + fmt.indent('\n'.join(
-            fmt.format_ast(v) for v in x.if_branch))
-        if len(x.else_branch) > 0:
-            result += fmt.indent('else:\n') + fmt.indent('\n'.join(
-                fmt.format_ast(v) for v in x.else_branch))
-        return result
+    def format_Cast(self, fmt: CustomStringFormatter, x: codegen.Cast) -> str:
+        if x.destination_type == codegen.NumericType.Bool:
+            type_name = 'bool'
+        elif x.destination_type == codegen.NumericType.Integer:
+            type_name = 'int'
+        elif x.destination_type == codegen.NumericType.Real:
+            type_name = 'float'
+        elif x.destination_type == codegen.NumericType.Complex:
+            raise TypeError("Complex is not supported here")
+        return fmt.format("{}({})", type_name, x.arg)
+
+    def format_Compare(self, fmt: CustomStringFormatter, x: codegen.Compare) -> str:
+        if x.operation == codegen.RelationalOperation.LessThan:
+            op = '<'
+        elif x.operation == codegen.RelationalOperation.LessThanOrEqual:
+            op = '<='
+        else:
+            assert x.operation == codegen.RelationalOperation.Equal
+            op = '=='
+        return fmt.format('{} {} {}', x.left, op, x.right)
+
+    def format_ConstructReturnValue(self, fmt: CustomStringFormatter,
+                                    x: codegen.ReturnValue) -> str:
+        values = x.args
+        if len(values) > 1:
+            return fmt.format('return {}', values[0])
+        else:
+            joined = ', '.join(fmt.format_ast(v) for v in values)
+            return f'return {joined}'
 
     def format_Declaration(self, fmt: CustomStringFormatter, x: codegen.Declaration) -> str:
         """Format declaration."""
-        return fmt.format('{name}: {type} = {value}', name=x.name, type=x.type, value=x.value)
+        if x.value is not None:
+            return fmt.format('{name}: {type} = {value}', name=x.name, type=x.type, value=x.value)
+        else:
+            return str()
 
     def format_FloatConstant(self, fmt: CustomStringFormatter, x: codegen.FloatConstant) -> str:
         return '{:.16}'.format(x.value)
@@ -128,7 +179,7 @@ class PythonCodeGenerator(CodeGenerator):
     def format_FunctionSignature(self, fmt: CustomStringFormatter,
                                  x: codegen.FunctionSignature) -> str:
         args = []
-        for arg in x.input_args + x.output_args:
+        for arg in x.arguments:
             if arg.is_optional:
                 args.append(fmt.format('{}: T.Optional[{}]', arg.name, arg.type))
             else:
@@ -163,14 +214,6 @@ class PythonCodeGenerator(CodeGenerator):
         assert x.argument.is_optional, 'Argument must be optional'
         return f'{x.argument.name} is not None'
 
-    def format_ReturnValue(self, fmt: CustomStringFormatter, x: codegen.ReturnValue) -> str:
-        values = x.values
-        if len(values) > 1:
-            return fmt.format('return {}', values[0])
-        else:
-            joined = ', '.join(fmt.format_ast(v) for v in values)
-            return f'return {joined}'
-
     def format_VariableRef(self, fmt: CustomStringFormatter, x: codegen.VariableRef) -> str:
         return x.name
 
@@ -200,8 +243,8 @@ def codegen_function(func: T.Callable,
     # build the function signature:
     signature = codegen.FunctionSignature(name or func.__name__)
 
-    output_expressions = []
-    for val in return_value:
+    output_expressions: T.List[codegen.ExpressionGroup] = []
+    for index, val in enumerate(return_value):
         assert isinstance(val, (sym.Expr, sym.MatrixExpr)), f"Invalid type: {type(val)}"
         if isinstance(val, sym.Expr):
             # If return value is Expr, see if it can be coerced to matrix
@@ -211,24 +254,33 @@ def codegen_function(func: T.Callable,
                 pass
 
         if isinstance(val, sym.Expr):
-            signature.add_return_value(codegen.ScalarType())
-            output_expressions.append(val)
+            signature.add_return_value(codegen.ScalarType(codegen.NumericType.Real))
+            output = codegen.ExpressionGroup(
+                expressions=[val],
+                output_key=codegen.OutputKey(codegen.ExpressionUsage.ReturnValue, index))
+            output_expressions.append(output)
         elif isinstance(val, sym.MatrixExpr):
             signature.add_return_value(codegen.MatrixType(*val.shape))
-            flat = itertools.chain.from_iterable(val.to_list())
-            output_expressions.extend(list(flat))
+            output = codegen.ExpressionGroup(
+                expressions=val.to_list(),
+                output_key=codegen.OutputKey(codegen.ExpressionUsage.ReturnValue, index))
+            output_expressions.append(output)
 
     for arg_index, arg_name in enumerate(spec.args):
         type_annotation = spec.annotations[arg_name]
         if issubclass(type_annotation, sym.Expr):
-            signature.add_input_arg(name=arg_name, type=codegen.ScalarType())
+            signature.add_argument(
+                name=arg_name,
+                type=codegen.ScalarType(codegen.NumericType.Real),
+                direction=codegen.ArgumentDirection.Input)
         elif issubclass(type_annotation, sym.MatrixExpr):
-            signature.add_input_arg(name=arg_name, type=codegen.MatrixType(*type_annotation.SHAPE))
+            signature.add_argument(
+                name=arg_name,
+                type=codegen.MatrixType(*type_annotation.SHAPE),
+                direction=codegen.ArgumentDirection.Input)
 
     # Convert to ast that we can emit:
-    builder = codegen.IrBuilder(output_expressions)
-    builder.eliminate_duplicates()
-    ast = builder.create_ast(signature)
+    ast = codegen.generate_func(signature=signature, expressions=output_expressions)
     return (signature, ast)
 
 

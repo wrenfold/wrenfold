@@ -2,6 +2,9 @@
 if(NOT DEFINED STUBGEN_PATH)
   message(STATUS "Looking for stubgen...")
   find_program(STUBGEN_PATH stubgen)
+  if(DEFINED STUBGEN_PATH)
+    message(STATUS "stubgen path: ${STUBGEN_PATH}")
+  endif()
 endif()
 
 # Function for defining a wrapper module.

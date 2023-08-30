@@ -72,7 +72,7 @@ struct ExpressionGroup {
   // Key describing how these expressions are used in a function we intend to code generate.
   OutputKey key;
 
-  ExpressionGroup(std::vector<Expr>&& expressions, OutputKey key)
+  ExpressionGroup(std::vector<Expr> expressions, OutputKey key)
       : expressions(std::move(expressions)), key(key) {}
 };
 

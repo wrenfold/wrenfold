@@ -45,18 +45,7 @@ class Block {
 
   // Run the provided callable object on any successor blocks that this block jumps to.
   template <typename Callable>
-  void VisitSuccessors(Callable&& callable) const {
-    if (operations.empty()) {
-      return;
-    }
-    OverloadedVisit(
-        operations.back()->Op(), [&](const ir::Jump& j) { callable(j.Next()); },
-        [&](const ir::ConditionalJump& j) {
-          callable(j.NextTrue());
-          callable(j.NextFalse());
-        },
-        [](const auto&) constexpr {});
-  }
+  void VisitSuccessors(Callable&& callable) const;
 
   void ReplaceDescendant(ir::BlockPtr target, ir::BlockPtr replacement);
 
@@ -624,6 +613,22 @@ struct ValueEquality {
     return a->OperandsMatch(b);
   }
 };
+
+/// Method implementations:
+
+template <typename Callable>
+void Block::VisitSuccessors(Callable&& callable) const {
+  if (operations.empty()) {
+    return;
+  }
+  OverloadedVisit(
+      operations.back()->Op(), [&](const ir::Jump& j) { callable(j.Next()); },
+      [&](const ir::ConditionalJump& j) {
+        callable(j.NextTrue());
+        callable(j.NextFalse());
+      },
+      [](const auto&) constexpr {});
+}
 
 }  // namespace math::ir
 

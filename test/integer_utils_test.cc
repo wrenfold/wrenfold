@@ -143,9 +143,9 @@ constexpr T next_up(const Input v) {
   return std::nextafter(static_cast<T>(v), p_inf<T>());
 }
 
-TEST(IntegerUtils, TestCompareIntFloat) {
-  static_assert(std::is_same_v<int64_t, decltype(0ll)>);
+inline constexpr int64_t operator""_i64(unsigned long long x) { return static_cast<int64_t>(x); }
 
+TEST(IntegerUtils, TestCompareIntFloat) {
   // Invalid to compare w/ NaN:
   EXPECT_EQ(std::nullopt, CompareIntFloat(7, std::numeric_limits<float>::quiet_NaN()));
   EXPECT_EQ(std::nullopt, CompareIntFloat(13, std::numeric_limits<double>::quiet_NaN()));
@@ -153,21 +153,22 @@ TEST(IntegerUtils, TestCompareIntFloat) {
   // min() for doubles is the smallest positive value
   EXPECT_EQ(RelativeOrder::LessThan, CompareIntFloat(0, std::numeric_limits<float>::min()));
   EXPECT_EQ(RelativeOrder::LessThan, CompareIntFloat(0, std::numeric_limits<double>::min()));
-  EXPECT_EQ(RelativeOrder::LessThan, CompareIntFloat(0ll, std::numeric_limits<double>::min()));
+  EXPECT_EQ(RelativeOrder::LessThan, CompareIntFloat(0_i64, std::numeric_limits<double>::min()));
 
   EXPECT_EQ(RelativeOrder::GreaterThan, CompareIntFloat(0, -std::numeric_limits<float>::min()));
   EXPECT_EQ(RelativeOrder::GreaterThan, CompareIntFloat(0, -std::numeric_limits<double>::min()));
-  EXPECT_EQ(RelativeOrder::GreaterThan, CompareIntFloat(0ll, -std::numeric_limits<double>::min()));
+  EXPECT_EQ(RelativeOrder::GreaterThan,
+            CompareIntFloat(0_i64, -std::numeric_limits<double>::min()));
 
   EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(0, 0.0f));
-  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(0ll, 0.0));
+  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(0_i64, 0.0));
   EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(0, -0.0f));
-  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(0ll, -0.0));
+  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(0_i64, -0.0));
 
   EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(1, 1.0f));
-  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(1ll, 1.0));
+  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(1_i64, 1.0));
   EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(-1, -1.0f));
-  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(-1ll, -1.0));
+  EXPECT_EQ(RelativeOrder::Equal, CompareIntFloat(-1_i64, -1.0));
 
   // Infinity:
   constexpr auto i32_min = std::numeric_limits<int32_t>::min();

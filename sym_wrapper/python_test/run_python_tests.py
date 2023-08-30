@@ -3,6 +3,7 @@ Indirection for running the python tests. This is required because we cannot set
 path correctly from cmake on windows.
 """
 import os
+import platform
 import sys
 import subprocess
 from pathlib import Path
@@ -15,7 +16,11 @@ def main():
 
     # set python path and run tests
     env = dict(os.environ)
-    env['PYTHONPATH'] = f'{str(binary_dir)};{str(SCRIPT_PATH.parent.parent)}'
+    if platform.system() == "Windows":
+        sep = ";"
+    else:
+        sep = ":"
+    env['PYTHONPATH'] = f'{str(binary_dir)}{sep}{str(SCRIPT_PATH.parent.parent)}'
 
     for name in ['codegen_wrapper_test.py', 'expression_wrapper_test.py', 'matrix_wrapper_test.py']:
         subprocess.check_call([sys.executable, "-B", str(SCRIPT_PATH / name)], env=env)

@@ -110,16 +110,31 @@ PYBIND11_MODULE(pysym, m) {
       .def(py::self / py::self)
       .def(-py::self)
       .def("__pow__", &math::pow)
+      .def(py::self > py::self)
+      .def(py::self >= py::self)
+      .def(py::self < py::self)
+      .def(py::self <= py::self)
+      .def(py::self == py::self)
       // Operators involving integers (int on left side):
       .def(std::int64_t() + py::self)
       .def(std::int64_t() - py::self)
       .def(std::int64_t() * py::self)
       .def(std::int64_t() / py::self)
+      .def(std::int64_t() > py::self)
+      .def(std::int64_t() >= py::self)
+      .def(std::int64_t() < py::self)
+      .def(std::int64_t() <= py::self)
+      .def(std::int64_t() == py::self)
       // Operators involving doubles (double on left side):
       .def(double() + py::self)
       .def(double() - py::self)
       .def(double() * py::self)
-      .def(double() / py::self);
+      .def(double() / py::self)
+      .def(double() > py::self)
+      .def(double() >= py::self)
+      .def(double() < py::self)
+      .def(double() <= py::self)
+      .def(double() == py::self);
 
   py::implicitly_convertible<std::int64_t, Expr>();
   py::implicitly_convertible<double, Expr>();
@@ -141,6 +156,7 @@ PYBIND11_MODULE(pysym, m) {
   m.def("asin", &math::asin, "arg"_a, "Arc-sine function.");
   m.def("atan", &math::atan, "arg"_a, "Arc-tangent function.");
   m.def("sqrt", &math::sqrt, "arg"_a, "Square-root function.");
+  m.def("where", &math::where, "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
   // Special constants:
   m.attr("euler") = Constants::Euler;
