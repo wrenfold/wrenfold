@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
+#include <optional>
 #include <vector>
+
+#include "enumerations.h"
 
 namespace math {
 
@@ -74,6 +77,74 @@ constexpr int64_t Pow(int64_t base, int64_t exp) {
     base *= base;
   }
   return result;
+}
+
+// Compare integral and floating point value.
+// Based on: https://stackoverflow.com/questions/58734034
+// Simplified to only support signed integer, and cases where range of `F` exceeds that of `I`.
+// You can compare int64_t and f64, for example. You cannot compare int64_t and f32.
+template <typename I, typename F>
+constexpr std::optional<RelativeOrder> CompareIntFloat(const I i, const F f) {
+  static_assert(std::is_integral_v<I> && std::is_signed_v<I>, "First argument must be ");
+  static_assert(std::is_floating_point_v<F>);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4056)  //  Incorrect detection of floating point overflow.
+#endif
+  // Min is a power of two (2 ^ bits), max will be (2^bits - 1)
+  // This means min can be represented exactly as F (or it overflows to -inf).
+  // We round max up:
+  constexpr F I_min_as_float = static_cast<F>(std::numeric_limits<I>::min());
+  constexpr F I_max_as_float_plus_1 = static_cast<F>(std::numeric_limits<I>::max() / 2 + 1) * 2;
+
+  // If it overflows to infinity, the range of `I` exceeds `F` and we can always truncate `F` to
+  // `I`. that either we overflow, or the conversion did not truncate.
+  constexpr bool min_overflowed = I_min_as_float == -std::numeric_limits<F>::infinity();
+  constexpr bool max_overflowed = I_max_as_float_plus_1 == std::numeric_limits<F>::infinity();
+  // We don't need or support the case where `I` exceeds `F`:
+  static_assert(!min_overflowed && !max_overflowed, "Range of I cannot exceed F");
+  static_assert(static_cast<I>(I_min_as_float) == std::numeric_limits<I>::min());
+  static_assert(static_cast<I>(I_max_as_float_plus_1 / 2) - 1 == std::numeric_limits<I>::max() / 2);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+  if (std::isnan(f)) {
+    // Can't compare nan:
+    return std::nullopt;
+  } else if (!std::isfinite(f)) {
+    // Since range of `I` is smaller than `F`, inf is always > or < than any integral value.
+    return f < 0 ? RelativeOrder::GreaterThan : RelativeOrder::LessThan;
+  }
+
+  // Check if `f` can be truncated to type `I`.
+  if (f >= I_min_as_float) {
+    // Either upper bound of `I` exceeds range of `F`, or `f` <= I_max_as_float_plus_1 - 1
+    if (f - I_max_as_float_plus_1 <= static_cast<F>(-1)) {
+      // Compare integral part
+      const I f_truncated = static_cast<I>(f);
+      if (f_truncated < i) {
+        return RelativeOrder::GreaterThan;
+      }
+      if (f_truncated > i) {
+        return RelativeOrder::LessThan;
+      }
+      // Compare fractional part
+      const F f_fractional = f - static_cast<F>(f_truncated);
+      if (f_fractional < 0) {
+        return RelativeOrder::GreaterThan;
+      }
+      if (f_fractional > 0) {
+        return RelativeOrder::LessThan;
+      }
+      return RelativeOrder::Equal;
+    }
+    // `f` is outside the range of `I`, so `i` must be smaller.
+    return RelativeOrder::LessThan;
+  }
+  // `f` is < than the min value of I, so order must be greater.
+  return RelativeOrder::GreaterThan;
 }
 
 }  // namespace math

@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 
 #include "plain_formatter.h"
-#include "tree_formatter.h"
 
 namespace math {
 

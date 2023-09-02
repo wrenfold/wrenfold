@@ -24,7 +24,7 @@ class Integer : public ExpressionImpl<Integer> {
   using IntegralType = int64_t;
 
   // ConstructMatrix from number.
-  explicit Integer(IntegralType val) : val_(val) {}
+  explicit constexpr Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
   constexpr bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
@@ -34,9 +34,6 @@ class Integer : public ExpressionImpl<Integer> {
 
   // Cast to integer:
   explicit operator Float() const;
-
-  // Cast to rational:
-  explicit operator Rational() const;
 
   // Negate:
   Integer operator-() const { return Integer{-val_}; }
@@ -60,8 +57,11 @@ class Rational : public ExpressionImpl<Rational> {
 
   using IntegralType = Integer::IntegralType;
 
-  // ConstructMatrix a rational. Conversion to canonical form is automatic.
+  // Construct a rational. Conversion to canonical form is automatic.
   constexpr Rational(IntegralType n, IntegralType d) : Rational(CreatePair(n, d)) {}
+
+  // Construct a rational from an integer value.
+  explicit constexpr Rational(const Integer& integer) : n_(integer.GetValue()), d_(1) {}
 
   constexpr bool IsIdenticalToImplTyped(const Rational& other) const {
     return n_ == other.n_ && d_ == other.d_;
@@ -168,7 +168,6 @@ inline bool operator<(const Integer& a, const Integer& b) { return a.GetValue() 
 inline bool operator==(const Integer& a, const Integer& b) { return a.GetValue() == b.GetValue(); }
 
 inline Integer::operator Float() const { return Float{static_cast<Float::FloatType>(val_)}; }
-inline Integer::operator Rational() const { return Rational{GetValue(), 1}; }
 
 // Hashing of integers. Like std::hash, just pass the value through.
 template <>
@@ -277,3 +276,34 @@ static_assert(!IsFloatAndNumeric<Integer, Integer>);
 static_assert(!IsFloatAndNumeric<Integer, Rational>);
 
 }  // namespace math
+
+// Formatters
+template <>
+struct fmt::formatter<math::Integer, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::Integer& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "{}", x.GetValue());
+  }
+};
+
+template <>
+struct fmt::formatter<math::Rational, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::Rational& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "({} / {})", x.Numerator(), x.Denominator());
+  }
+};
+
+template <>
+struct fmt::formatter<math::Float, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::Float& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "{}", x.GetValue());
+  }
+};

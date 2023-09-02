@@ -24,9 +24,10 @@ class Expr {
 
   // Implicit construction from integers and floats.
   // enable_if argument is a trick we use until c++20 and constraints.
-  template <typename T>
-  Expr(T v, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>, void*> = nullptr)
-      : Expr(ConstructImplicit(v)) {}
+  template <typename T,
+            typename = std::enable_if_t<(std::is_integral_v<T> && !std::is_same_v<T, bool>) ||
+                                        std::is_floating_point_v<T>>>
+  Expr(T v) : Expr(ConstructImplicit(v)) {}
 
   // Test if the two expressions are identical.
   bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(*other.impl_); }
@@ -91,6 +92,7 @@ class Expr {
   template <typename T>
   static Expr ConstructImplicit(T v) {
     static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
+    static_assert(!std::is_same_v<T, bool>);
     if constexpr (std::is_integral_v<T>) {
       return FromInt(static_cast<std::int64_t>(v));
     } else if constexpr (std::is_floating_point_v<T>) {
@@ -116,11 +118,38 @@ inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   return stream;
 }
 
+// Print debug tree of expressions to a string.
+// Implemented in tree_formatter.cc
+std::string FormatDebugTree(const Expr& expr);
+
 // Math operators.
 Expr operator+(const Expr& a, const Expr& b);
 Expr operator-(const Expr& a, const Expr& b);
 Expr operator*(const Expr& a, const Expr& b);
 Expr operator/(const Expr& a, const Expr& b);
+
+// Comparison operators. These create relational expressions, rather than directly returning bool.
+Expr operator<(const Expr& a, const Expr& b);
+Expr operator>(const Expr& a, const Expr& b);
+Expr operator<=(const Expr& a, const Expr& b);
+Expr operator>=(const Expr& a, const Expr& b);
+Expr operator==(const Expr& a, const Expr& b);
+
+// Determine relative order of two expressions (for sorting).
+// Can be used to sort expressions into a canonical order, for instance to sort them.
+// Implemented in ordering.cc
+RelativeOrder ExpressionOrder(const Expr& a, const Expr& b);
+
+// Predicate for sorting expressions.
+struct ExpressionOrderPredicate {
+  bool operator()(const Expr& a, const Expr& b) const {
+    return ExpressionOrder(a, b) == RelativeOrder::LessThan;
+  }
+};
+
+// Get operation precedence (order of operations).
+// Implemented in expression.cc
+Precedence GetPrecedence(const Expr& expr);
 
 // Custom literal suffix support.
 namespace custom_literals {

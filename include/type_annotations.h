@@ -39,12 +39,9 @@ struct StaticMatrix {
   }
 
   const Expr& operator()(index_t row, index_t col) const { return expr_(row, col); }
-  const Expr& operator[](index_t element) const { return expr_[element]; }
 
-  template <index_t OtherCols>
-  StaticMatrix<Rows, OtherCols> operator*(const StaticMatrix<Cols, OtherCols>& other) const {
-    return StaticMatrix<Rows, OtherCols>{expr_ * other.expr_};
-  }
+  // Access vector element.
+  const Expr& operator[](index_t element) const { return expr_[element]; }
 
   // Assign from MatrixExpr
   StaticMatrix& operator=(const MatrixExpr& other) {
@@ -54,8 +51,14 @@ struct StaticMatrix {
     return *this;
   }
 
+  // Assign from Expr
+  StaticMatrix& operator=(const Expr& other) { return operator=(static_cast<MatrixExpr>(other)); }
+
   // Implicit cast to MatrixExpr.
   operator const MatrixExpr&() const { return expr_; }  // NOLINT
+
+  // Transpose:
+  StaticMatrix<Cols, Rows> Transpose() const { return StaticMatrix<Cols, Rows>{expr_.Transpose()}; }
 
  private:
   MatrixExpr expr_;

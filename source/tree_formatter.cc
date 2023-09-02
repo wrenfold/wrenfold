@@ -1,6 +1,4 @@
 // Copyright 2022 Gareth Cross
-#include "tree_formatter.h"
-
 #include <fmt/format.h>
 #include <vector>
 
@@ -18,9 +16,6 @@ static void RightTrimInPlace(std::string& str) {
 
 struct TreeFormatter {
   using ReturnType = void;
-
-  // Generate a compile-time error if we forget a visitor here.
-  using Policy = VisitorPolicy::CompileError;
 
   // Add indentation to the output string.
   void ApplyIndentation() {
@@ -53,18 +48,18 @@ struct TreeFormatter {
 
   void VisitLeft(const Expr& expr) {
     indentations_.push_back(true);
-    VisitStruct(expr, *this);
+    Visit(expr, *this);
     indentations_.pop_back();
   }
 
   void VisitRight(const Expr& expr) {
     indentations_.push_back(false);
-    VisitStruct(expr, *this);
+    Visit(expr, *this);
     indentations_.pop_back();
   }
 
   template <typename Derived>
-  void Apply(const NAryOp<Derived>& op) {
+  void operator()(const NAryOp<Derived>& op) {
     AppendName("{}:", op.Name());
     for (std::size_t i = 0; i + 1 < op.Arity(); ++i) {
       VisitLeft(op[i]);
@@ -72,7 +67,7 @@ struct TreeFormatter {
     VisitRight(op[op.Arity() - 1]);
   }
 
-  void Apply(const Matrix& mat) {
+  void operator()(const Matrix& mat) {
     // TODO: Print the (row, col) index for each element.
     AppendName("Matrix ({}, {}):", mat.NumRows(), mat.NumCols());
     const auto& elements = mat.Data();
@@ -82,32 +77,47 @@ struct TreeFormatter {
     VisitRight(elements.back());
   }
 
-  void Apply(const Power& op) {
+  void operator()(const Power& op) {
     AppendName("Power:");
     VisitLeft(op.Base());
     VisitRight(op.Exponent());
   }
 
-  void Apply(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
+  void operator()(const Infinity&) { AppendName("Infinity"); }
 
-  void Apply(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
+  void operator()(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
 
-  void Apply(const FunctionArgument& arg) {
+  void operator()(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
+
+  void operator()(const FunctionArgument& arg) {
     AppendName("FunctionArgument ({}, {})", arg.ArgIndex(), arg.ElementIndex());
   }
 
-  void Apply(const Rational& rational) {
+  void operator()(const Rational& rational) {
     AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());
   }
 
-  void Apply(const UnaryFunction& func) {
+  void operator()(const Relational& relational) {
+    AppendName("Relational ({})", relational.OperationString());
+    VisitLeft(relational.Left());
+    VisitRight(relational.Right());
+  }
+
+  void operator()(const UnaryFunction& func) {
     AppendName("UnaryFunction ({}):", func.Name());
     VisitRight(func.Arg());
   }
 
-  void Apply(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
+  void operator()(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
 
-  void Apply(const Constant& constant) {
+  void operator()(const Conditional& conditional) {
+    AppendName("Conditional:");
+    VisitLeft(conditional.Condition());
+    VisitLeft(conditional.IfBranch());
+    VisitRight(conditional.ElseBranch());
+  }
+
+  void operator()(const Constant& constant) {
     AppendName("Constant ({})", StringFromSymbolicConstant(constant.GetName()));
   }
 
@@ -130,7 +140,7 @@ struct TreeFormatter {
 
 std::string FormatDebugTree(const Expr& expr) {
   TreeFormatter formatter{};
-  VisitStruct(expr, formatter);
+  Visit(expr, formatter);
   std::string output;
   formatter.TakeOutput(output);
   return output;

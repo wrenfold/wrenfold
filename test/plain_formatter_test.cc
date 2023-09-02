@@ -4,7 +4,6 @@
 #include "functions.h"
 #include "matrix_functions.h"
 #include "test_helpers.h"
-#include "tree_formatter.h"
 
 namespace math {
 using namespace math::custom_literals;
@@ -107,7 +106,7 @@ TEST(PlainFormatterTest, TestPower) {
   const Expr y{"y"};
   const Expr z{"z"};
   ASSERT_STR_EQ("x ^ y", pow(x, y));
-  ASSERT_STR_EQ("8", pow(2, 3_s));
+  ASSERT_STR_EQ("8", pow(2, 3));
   ASSERT_STR_EQ("(x + y) ^ z", pow(x + y, z));
   ASSERT_STR_EQ("x ^ (-y + z)", pow(x, z - y));
   ASSERT_STR_EQ("x ^ z * y ^ z", pow(y * x, z));
@@ -117,6 +116,26 @@ TEST(PlainFormatterTest, TestPower) {
   ASSERT_STR_EQ("(x ^ (-x + y)) ^ (x ^ (-3 * z / 7))", pow(pow(x, y - x), pow(x, 3 * z / -7_s)));
   ASSERT_STR_EQ("-5 ^ (2 / 3) * 7 ^ (2 / 3) + x - y * z",
                 pow(5 * 7, 2 / 3_s) * Constants::NegativeOne + x - y * z);
+}
+
+TEST(PlainFormatterTest, TestRelationals) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+  ASSERT_STR_EQ("x < y", x < y);
+  ASSERT_STR_EQ("x <= y", x <= y);
+  ASSERT_STR_EQ("x == y", x == y);
+  ASSERT_STR_EQ("y < x", x > y);
+  ASSERT_STR_EQ("y <= x", x >= y);
+
+  // Test precedence:
+  ASSERT_STR_EQ("x * y < 5", x * y < 5);
+  ASSERT_STR_EQ("sin(y) < 2 * x + z", z + 2 * x > sin(y));
+  ASSERT_STR_EQ("x < (z < y)", x < (z < y));
+  ASSERT_STR_EQ("x < (y <= z)", x < (z >= y));
+}
+
+TEST(PlainFormatterTest, TestConditionals) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+  ASSERT_STR_EQ("where(0 < x, 2 * y, cos(z))", where(x > 0, y * 2, cos(z)));
 }
 
 TEST(PlainFormatterTest, TestBuiltInFunctions) {

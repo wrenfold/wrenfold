@@ -1,7 +1,10 @@
-set(FMT_TEST
-    OFF
-    CACHE BOOL "" FORCE) # Turn off libfmt tests
-add_subdirectory(fmt EXCLUDE_FROM_ALL) # Don't need to install.
+function(add_libfmt)
+  set(FMT_TEST
+      OFF
+      CACHE BOOL "" FORCE) # Turn off libfmt tests
+  add_subdirectory(fmt EXCLUDE_FROM_ALL) # Don't need to install.
+endfunction()
+add_libfmt()
 
 set(BUILD_GMOCK
     OFF

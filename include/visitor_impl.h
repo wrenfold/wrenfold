@@ -8,17 +8,34 @@
 #include "template_utils.h"
 #include "visitor_base.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4250)  // inherit via dominance
+#endif
+
 namespace math {
 
-// Implementation of a visitor.
-template <typename Derived, typename Policy>
-class VisitorImpl : public VisitorBase {
+// Implement abstract method from `VisitorDeclare`.
+template <typename Derived, typename T>
+class VisitorImpl : public virtual VisitorDeclare<T> {
  public:
-  // Cast to non-const derived type.
-  Derived& AsDerived() { return static_cast<Derived&>(*this); }
-
-  IMPLEMENT_ALL_VIRTUAL_APPLY_METHODS()
+  void ApplyVirtual(const T& arg) override {
+    // Check if derived type implements an apply method for T.
+    if constexpr (HasCallOperator<Derived, T>) {
+      static_cast<Derived&>(*this)(arg);
+    }
+    static_assert(HasCallOperator<Derived, T>, "The visitor fails to implement a required method");
+  }
 };
+
+// Inherit from `VisitorImpl` for all types in a type list.
+template <typename Derived, typename T>
+class VisitorImplAll;
+template <typename Derived, typename... Ts>
+class VisitorImplAll<Derived, TypeList<Ts...>> : public VisitorBaseGeneric<TypeList<Ts...>>,
+                                                 public VisitorImpl<Derived, Ts>... {};
+
+namespace detail {
 
 // Some amazing magic. TODO: Make language feature.
 struct Void {};
@@ -34,190 +51,118 @@ struct MaybeVoid<void> {
 };
 
 // Wraps a type-erased visitor. The wrapped visitor must produce `ReturnType`
-// as the result of a call to Apply(...). If no visitor method can be called,
+// as the result of a call to operator()(...). If no visitor method can be called,
 // the result is left empty.
-template <typename ReturnType, typename VisitorType, typename Policy>
+template <typename ReturnType, typename VisitorType, typename Types>
 struct VisitorWithCapturedResult final
-    : public VisitorImpl<VisitorWithCapturedResult<ReturnType, VisitorType, Policy>, Policy> {
+    : public VisitorImplAll<VisitorWithCapturedResult<ReturnType, VisitorType, Types>, Types> {
  public:
-  // ConstructMatrix with non-const ref to visitor type.
-  VisitorWithCapturedResult(VisitorType& impl, const Expr& input)
-      : impl_(impl), input_expression_(input) {}
+  // Construct with non-const ref to visitor type.
+  VisitorWithCapturedResult(VisitorType& impl) : impl_(impl) {}
 
   // Call the implementation. This method is enabled only if the visitor
-  // has an `Apply` method that accepts type `Argument`. This is required so that the visitor policy
+  // has an `operator()` method that accepts type `Argument`. This is required so that the visitor
   // correctly fails to compile when the user neglects to implement a type.
   template <typename Argument>
-  std::enable_if_t<HasApplyMethod<VisitorType, Argument>, void> Apply(const Argument& arg) {
+  std::enable_if_t<HasCallOperator<VisitorType, Argument>, void> operator()(const Argument& arg) {
     if constexpr (!std::is_same_v<ReturnType, Void>) {
-      result = impl_.Apply(arg);
+      result = impl_(arg);
     } else {
-      impl_.Apply(arg);
-      result = Void{};  //  Set the optional, so we record that a visitor ran.
+      impl_(arg);
+      result = Void{};
     }
   }
 
-  // Variant that is enabled for visitors that have `Apply` methods that accept (Expr, Argument).
-  // This is useful for visitors that can pass-through the input expression unmodified in certain
-  // cases.
-  template <typename Argument>
-  std::enable_if_t<HasBinaryApplyMethod<VisitorType, Expr, Argument>, void> Apply(
-      const Argument& arg) {
-    if constexpr (!std::is_same_v<ReturnType, Void>) {
-      result = impl_.Apply(input_expression_, arg);
+  // Move the result out of the visitor and return it.
+  ReturnType TakeResult() {
+    if constexpr (std::is_default_constructible_v<ReturnType>) {
+      return std::move(result);
     } else {
-      impl_.Apply(input_expression_, arg);
-      result = Void{};
+      ASSERT(result.has_value());
+      return std::move(*result);
     }
   }
 
  private:
   VisitorType& impl_;
-  const Expr& input_expression_;
 
  public:
-  std::optional<ReturnType> result{};
+  std::conditional_t<std::is_default_constructible_v<ReturnType>, ReturnType,
+                     std::optional<ReturnType>>
+      result{};
 };
 
-// Accepts a visitor struct and applies it to the provided expression.
+// Create a tuple that will capture `args` so it can be moved into a lambda.
+// - R-value references are converted to values and moved.
+// - Values will be copied.
+// - Other references will be passed by reference into the tuple.
+template <typename... CapturedArgs>
+auto MakeArgCaptureTuple(CapturedArgs&&... args) {
+  return std::tuple<std::conditional_t<std::is_rvalue_reference_v<CapturedArgs>,
+                                       std::decay_t<CapturedArgs>, CapturedArgs>...>{
+      std::forward<CapturedArgs>(args)...};
+}
+
+static_assert(std::is_same_v<std::tuple<int, std::string>,
+                             decltype(MakeArgCaptureTuple(5, std::string("test")))>);
+static_assert(std::is_same_v<std::tuple<int, const float&>,
+                             decltype(MakeArgCaptureTuple(5, std::declval<const float&>()))>);
+}  // namespace detail
+
+// Accepts a visitor struct or lambda and applies it to the provided expression.
 // If the visitor policy is CompileError or Throw, this method returns `VisitorType::ReturnType`.
 // Otherwise, it returns std::optional<VisitorType::ReturnType>. If the required visitor is not
 // implemented, the optional will be empty.
 template <typename VisitorType>
-auto VisitStruct(const Expr& expr, VisitorType&& visitor) {
-  // We need this `ReturnType` property because we cannot deduce the result type of operator()
-  // w/o first knowing the argument type. The argument type is unknown until the visitor is
-  // invoked on a concrete type.
-  using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
-  using ReturnTypeOrVoid = typename MaybeVoid<ReturnType>::Type;
-  using Policy = typename std::decay_t<VisitorType>::Policy;
+auto Visit(const Expr& expr, VisitorType&& visitor) {
+  // Deduce the return type by invoking the operator() w/ the different expression types.
+  // TODO: For now we allow one single ReturnType. We could allow returning std::variant<>.
+  using ReturnType = typename CallOperatorReturnTypes<VisitorType, ApprovedTypeList>::Head;
+  using ReturnTypeOrVoid = typename detail::MaybeVoid<ReturnType>::Type;
 
-  VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, Policy> capture_visitor{visitor, expr};
-  expr.Receive(capture_visitor);
-  if constexpr (std::is_same_v<Policy, VisitorPolicy::CompileError>) {
-    ASSERT(capture_visitor.result.has_value());
-    return std::move(*capture_visitor.result);  // ReturnType
-  } else {
-    return capture_visitor.result;  // std::optional<ReturnType>
+  detail::VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, ApprovedTypeList>
+      capture_visitor{visitor};
+  expr.Receive(static_cast<VisitorBase&>(capture_visitor));
+  if constexpr (!std::is_same_v<ReturnTypeOrVoid, detail::Void>) {
+    return capture_visitor.TakeResult();
   }
 }
 
-// This type exists so that we can deduce a Lambda return type.
-// Since the lambda may take auto, we evaluate it with all the approved types. `Apply` is
-// implemented only for those types that we can invoke the lambda with successfully.
-template <typename Lambda, typename PolicyIn>
-struct LambdaWrapper {
-  // Deduce the return type of the lambda by invoking it w/ the approved type list.
-  using ReturnType = typename CallableReturnType<Lambda, ApprovedTypeList>::Type;
-
-  // Policy is user-specified.
-  static_assert(std::is_same_v<PolicyIn, VisitorPolicy::CompileError> ||
-                std::is_same_v<PolicyIn, VisitorPolicy::NoError>);
-  using Policy = PolicyIn;
-
-  // ConstructMatrix by moving lambda inside.
-  explicit LambdaWrapper(Lambda&& func) : func_(std::move(func)) {}
-
-  // If the lambda implements an operator() that accepts `Argument`, we declare an `Apply()`
-  // method that calls it.
-  template <typename Argument>
-  std::enable_if_t<HasCallOperator<Lambda, Argument>, ReturnType> Apply(const Argument& arg) {
-    return func_(arg);
-  }
-
- protected:
-  Lambda func_;
-};
-
-namespace detail {
-// Visit using a lambda. We construct a struct
-template <typename Policy, typename F>
-auto VisitLambdaWithPolicy(const Expr& u, F&& func) {
-  LambdaWrapper<F, Policy> wrapper{std::forward<F>(func)};
-  return VisitStruct(u, std::move(wrapper));
-}
-}  // namespace detail
-
-// Try to visit an expression with a lambda or function pointer.
-// If the type matches, the lambda will be called and the optional will be filled w/ the result.
-template <typename F>
-auto VisitLambda(const Expr& u, F&& func) {
-  return detail::VisitLambdaWithPolicy<VisitorPolicy::NoError, F>(u, std::forward<F>(func));
+// Visit w/ captured arguments. The operator() on the visitor is expected to take the concrete
+// type contained in `expr`, plus all the forwarded args from `captured_args`.
+template <typename VisitorType, typename... CapturedArgs>
+auto Visit(const Expr& expr, VisitorType&& visitor, CapturedArgs&&... captured_args) {
+  // Capture the arguments in a tuple (r-values args are moved into values).
+  // Based on: https://stackoverflow.com/questions/63414770
+  auto arg_tuple = detail::MakeArgCaptureTuple(std::forward<CapturedArgs>(captured_args)...);
+  return Visit(expr, [&visitor, arg_tuple = std::move(arg_tuple)](const auto& concrete) mutable {
+    return std::apply(
+        [&visitor, &concrete](auto&&... args) {
+          return visitor(concrete, std::forward<decltype(args)>(args)...);
+        },
+        std::move(arg_tuple));
+  });
 }
 
-// Visit all the children of `expr`, and create a new expression w/ the arguments modified
-// by the provided visitor. The provided visitor must return `Expr` and support all argument
-// types.
-template <typename VisitorType>
-Expr VisitChildren(const Expr& expr, VisitorType&& visitor) {
-  return detail::VisitLambdaWithPolicy<VisitorPolicy::CompileError>(
-      expr, [&expr, &visitor](const auto& arg) {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (T::IsLeafStatic()) {
-          // This type has no children, so return the input expression unmodified:
-          return expr;
-        } else {
-          // This type does have children, so apply to all of them:
-          return MapChildren(
-              arg, [&visitor](const Expr& child) -> Expr { return VisitStruct(child, visitor); });
-        }
-      });
-}
-
-// Visit two expressions with a struct that accepts two concrete types in its Apply(...) signature.
-// The struct must declare a ReturnType associated type.
+// Visit two expressions with a struct that accepts two concrete types in its operator()(...)
+// signature. The struct must declare a ReturnType associated type.
 template <typename VisitorType>
 auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
-  using ReturnType = typename std::decay_t<VisitorType>::ReturnType;
-  using Policy = typename std::decay_t<VisitorType>::Policy;
-
-  // If the policy specifies that the visitor is mandatory, we can return the type
-  // directly. Otherwise, it will be an optional.
-  if constexpr (std::is_same_v<Policy, VisitorPolicy::CompileError>) {
-    return detail::VisitLambdaWithPolicy<Policy>(u, [&handler, &v](const auto& typed_u) {
-      return detail::VisitLambdaWithPolicy<Policy>(v, [&handler, &typed_u](const auto& typed_v) {
-        // Check if we can visit
-        using TypeU = std::decay_t<decltype(typed_u)>;
-        using TypeV = std::decay_t<decltype(typed_v)>;
-        static_assert(!std::is_const_v<decltype(handler)>);
-        static_assert(HasBinaryApplyMethod<std::decay_t<VisitorType>, TypeU, TypeV>,
-                      "Binary visitor fails to implement a required Apply() method.");
-        return handler.Apply(typed_u, typed_v);
-      });
-    });
-  } else {
-    // Passing the return type out of the nested `Visit` calls proves to be a big pain. Instead,
-    // we declare a new result here and ignore the two that are instantiated by each `Visit`.
-    std::optional<ReturnType> result{};
-    VisitLambda(u, [&handler, &v, &result](const auto& typed_u) {
+  return Visit(u, [&handler, &v](const auto& typed_u) {
+    return Visit(v, [&handler, &typed_u](const auto& typed_v) {
+      // Check if we can visit
       using TypeU = std::decay_t<decltype(typed_u)>;
-      VisitLambda(v, [&handler, &typed_u, &result](const auto& typed_v) {
-        // Check if we can visit
-        using TypeV = std::decay_t<decltype(typed_v)>;
-        static_assert(!std::is_const_v<decltype(handler)>);
-        if constexpr (HasBinaryApplyMethod<std::decay_t<VisitorType>, TypeU, TypeV>) {
-          if constexpr (!std::is_same_v<ReturnType, Void>) {
-            result = handler.Apply(typed_u, typed_v);
-          } else {
-            handler.Apply(typed_u, typed_v);
-            result = Void{};
-          }
-        }
-      });
+      using TypeV = std::decay_t<decltype(typed_v)>;
+      static_assert(!std::is_const_v<decltype(handler)>);
+      static_assert(HasBinaryCallOperator<std::decay_t<VisitorType>, TypeU, TypeV>,
+                    "Binary visitor fails to implement a required operator()() method.");
+      return handler(typed_u, typed_v);
     });
-    return result;
-  }
-}
-
-// Variant of ApplyOrThrow that takes no argument.
-template <typename Derived, typename Policy, typename Argument>
-void ApplyOrThrow(VisitorImpl<Derived, Policy>& visitor, const Argument& arg) {
-  if constexpr (HasApplyMethod<Derived, Argument>) {
-    visitor.AsDerived().Apply(arg);
-  }
-  static_assert(
-      HasApplyMethod<Derived, Argument> || !std::is_same_v<Policy, VisitorPolicy::CompileError>,
-      "The visitor fails to implement a required method");
+  });
 }
 
 }  // namespace math
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

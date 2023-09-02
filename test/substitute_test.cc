@@ -120,11 +120,11 @@ TEST(SubstituteTest, TestMultiplications) {
                    log(x * x * x * x * Constants::Pi * y * y * y * y * y).Subs(x * y, w));
 
   // Allow replacing part of a power (part of the exponent is subtracted):
-  ASSERT_IDENTICAL(x * x * pow(y, 3_s / 2), (x * pow(y, 2) * w).Subs(pow(y, 1_s / 2) * w, x));
+  ASSERT_IDENTICAL(x * x * pow(y, 3 / 2_s), (x * pow(y, 2) * w).Subs(pow(y, 1 / 2_s) * w, x));
   ASSERT_IDENTICAL(pow(w, 5) * x * y * y, (pow(x, 6) * pow(y, 7) * 32).Subs(2 * x * y, w));
 
   // Allow replacing part of the exponent, leaving behind fractional powers:
-  ASSERT_IDENTICAL(45 * w * pow(x, 1_s / 4) * pow(y, 1_s / 7),
+  ASSERT_IDENTICAL(45 * w * pow(x, 1 / 4_s) * pow(y, 1 / 7_s),
                    (pow(x, 9 / 4_s) * pow(y, 15 / 7_s) * 45).Subs(pow(x * y, 2), w));
 
   // Including negative powers:
@@ -133,9 +133,9 @@ TEST(SubstituteTest, TestMultiplications) {
                    (pow(x, -11_s / 4) * pow(y, -16_s / 7) * log(z)).Subs(pow(x * y, 2), w));
 
   // Don't do replacement if the candidate powers are less than the target:
-  ASSERT_IDENTICAL(pow(x, 2_s / 3), pow(x, 2_s / 3).Subs(x * x, y));
-  ASSERT_IDENTICAL(pow(x, -7_s / 6), pow(x, -7_s / 6).Subs(x * x, y));
-  ASSERT_IDENTICAL(pow(x, -35_s / 17), pow(x, -35_s / 17).Subs(x * x * x, z));
+  ASSERT_IDENTICAL(pow(x, 2 / 3_s), pow(x, 2 / 3_s).Subs(x * x, y));
+  ASSERT_IDENTICAL(pow(x, -7 / 6_s), pow(x, -7 / 6_s).Subs(x * x, y));
+  ASSERT_IDENTICAL(pow(x, -35 / 17_s), pow(x, -35 / 17_s).Subs(x * x * x, z));
   ASSERT_IDENTICAL(pow(x, 3 / 4_s) * pow(y, 2 / 7_s),
                    (pow(x, 3 / 4_s) * pow(y, 2 / 7_s)).Subs(pow(x * y, 2), w));
 
@@ -159,6 +159,14 @@ TEST(SubstituteTest, TestMatrix) {
   const MatrixExpr m1 = CreateMatrix(2, 2, a * b, c - Constants::Pi, cos(b), atan(b));
   const auto I2 = static_cast<Expr>(Identity(2));
   ASSERT_IDENTICAL(Identity(2), m1.Subs(static_cast<Expr>(m1), I2));
+}
+
+TEST(SubstituteTest, TestRelational) {
+  const auto [a, b, c] = Symbols("a", "b", "c");
+  ASSERT_IDENTICAL(b < c, (a < c).Subs(a, b));
+  ASSERT_IDENTICAL(Constants::True, (a == 5).Subs(a, 5));
+  ASSERT_IDENTICAL(Constants::True, (b + c > 2).Subs(b, 5 / 4_s).Subs(c, 1));
+  ASSERT_IDENTICAL(Constants::False, (b - c >= 2).Subs(b, 2).Subs(c, 1));
 }
 
 }  // namespace math

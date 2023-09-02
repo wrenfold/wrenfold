@@ -247,6 +247,87 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(sqrt(-1) * 3 * sqrt(x), pow(-9 * x, 1_s / 2));
 }
 
+// Test creating relational expressions
+TEST(ScalarOperationsTest, TestRelationals) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+  ASSERT_TRUE((x > y).Is<Relational>());
+  ASSERT_TRUE((x == y).Is<Relational>());
+  ASSERT_IDENTICAL(x > y, x > y);
+  ASSERT_IDENTICAL(x > y, y < x);
+  ASSERT_IDENTICAL(z <= x, x >= z);
+  ASSERT_NOT_IDENTICAL(x < y, x <= y);
+
+  // Simplification of numerical cases:
+  ASSERT_IDENTICAL(Constants::True, 3 > 2_s);
+  ASSERT_IDENTICAL(Constants::True, 3 >= 2_s);
+  ASSERT_IDENTICAL(Constants::False, 3 == 2_s);
+  ASSERT_IDENTICAL(Constants::True, 4 == 4_s);
+  ASSERT_IDENTICAL(Constants::False, -4 > 0_s);
+  ASSERT_IDENTICAL(Constants::False, -4 >= 0_s);
+  ASSERT_IDENTICAL(Constants::True, 0 < 1_s);
+  ASSERT_IDENTICAL(Constants::True, 2 <= 2_s);
+
+  ASSERT_IDENTICAL(Constants::True, 3 / 2_s > 1 / 5_s);
+  ASSERT_IDENTICAL(Constants::True, 7 / 9_s > 3 / 6_s);
+  ASSERT_IDENTICAL(Constants::True, 45 / 11_s > 4);
+  ASSERT_IDENTICAL(Constants::True, 9 > 116 / 13_s);
+  ASSERT_IDENTICAL(Constants::False, 9 < 116 / 13_s);
+  ASSERT_IDENTICAL(Constants::False, 9 <= 116 / 13_s);
+  ASSERT_IDENTICAL(Constants::True, 9 < 128 / 13_s);
+  ASSERT_IDENTICAL(Constants::False, 9 > 128 / 13_s);
+  ASSERT_IDENTICAL(Constants::False, 6 / 7_s == 2 / 3_s);
+  ASSERT_IDENTICAL(Constants::True, 6 / 7_s == 12 / 14_s);
+
+  // Float comparisons:
+  ASSERT_IDENTICAL(Constants::True, 1.2_s == 1.2);
+  ASSERT_IDENTICAL(Constants::True, 0.5_s < 0.6);
+  ASSERT_IDENTICAL(Constants::False, 2.45_s < 1.999);
+  ASSERT_IDENTICAL(Constants::True, 7.7_s >= 7.7);
+  ASSERT_IDENTICAL(Constants::False, 0.6667_s >= 10.0);
+
+  // Float to integer comparison (mostly tested in integer_utils):
+  ASSERT_IDENTICAL(Constants::True, 18.2_s > 10);
+  ASSERT_IDENTICAL(Constants::True, 10.0_s == 10);
+  ASSERT_IDENTICAL(Constants::True, 109.2_s < 110);
+  ASSERT_IDENTICAL(Constants::True, 22.0_s <= 22);
+
+  // Constant to constant comparison:
+  ASSERT_IDENTICAL(Constants::True, Constants::Pi > Constants::Euler);
+  ASSERT_IDENTICAL(Constants::True, Constants::Euler == Constants::Euler);
+  ASSERT_IDENTICAL(Constants::False, Constants::Euler >= Constants::Pi);
+  ASSERT_IDENTICAL(Constants::False, Constants::True > Constants::Pi);
+  ASSERT_IDENTICAL(Constants::True, Constants::True == Constants::True);
+  ASSERT_IDENTICAL(Constants::False, Constants::True == Constants::False);
+  ASSERT_IDENTICAL(Constants::True, Constants::False < Constants::True);
+
+  // Constant to integer comparison is simplified
+  ASSERT_IDENTICAL(Constants::True, Constants::True > 0);
+  ASSERT_IDENTICAL(Constants::False, Constants::True == 0);
+  ASSERT_IDENTICAL(Constants::False, Constants::False < 0);
+  ASSERT_IDENTICAL(Constants::True, Constants::False == 0);
+  ASSERT_IDENTICAL(Constants::True, Constants::Pi > 3);
+  ASSERT_IDENTICAL(Constants::True, Constants::Pi >= 3);
+  ASSERT_IDENTICAL(Constants::False, Constants::Pi > 4);
+  ASSERT_IDENTICAL(Constants::False, Constants::Pi == 3);
+  ASSERT_IDENTICAL(Constants::True, Constants::Pi < 4);
+  ASSERT_IDENTICAL(Constants::True, Constants::Euler > 2);
+  ASSERT_IDENTICAL(Constants::False, Constants::Euler > 3);
+  ASSERT_IDENTICAL(Constants::True, Constants::Euler < 3);
+}
+
+TEST(ScalarOperationsTest, TestConditional) {
+  const Expr w{"w"};
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+
+  ASSERT_TRUE(where(x > 0, y, z).Is<Conditional>());
+  ASSERT_IDENTICAL(x, where(Constants::True, x, z));
+  ASSERT_IDENTICAL(z, where(Constants::False, x, z));
+  ASSERT_IDENTICAL(where(x < 0, cos(x), log(z)),
+                   where(x < 0, where(x < 0, cos(x), sin(x)), log(z)));
+}
+
 TEST(ScalarOperationsTest, TestDistribute) {
   const Expr w{"w"};
   const Expr x{"x"};
@@ -272,6 +353,11 @@ TEST(ScalarOperationsTest, TestDistribute) {
   // Recursive distributions:
   ASSERT_IDENTICAL((2 * p * q * w * x) - (2_s * p * q * w * y) + (p * v * w * x) - (p * v * w * y),
                    (w * (x - y) * (p * (v + q * 2_s))).Distribute());
+
+  // Distribute through relational:
+  ASSERT_IDENTICAL(-8 + 2 * x + pow(x, 2) < q * x + q * y - v * x - v * y,
+                   (((x + y) * (q - v)) > (x - 2) * (x + 4)).Distribute());
+  ASSERT_IDENTICAL(x * y + 2 * y == sin(p), ((x + 2) * y == sin(p)).Distribute());
 }
 
 }  // namespace math

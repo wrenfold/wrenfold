@@ -1,5 +1,4 @@
 // Copyright 2023 Gareth Cross
-#include "code_generation.h"
 #include "eigen_test_helpers.h"
 #include "numeric_testing.h"
 #include "test_helpers.h"
@@ -62,6 +61,24 @@ TEST(CppGenerationTest, TestVectorNorm3D) {
   EXPECT_NEAR(evaluator({0.0, 5.2, -0.0001}, D_vec_eval),
               gen::vector_norm_3d({0.0, 5.2, -0.0001}, D_vec_gen), 1.0e-15);
   EXPECT_EIGEN_NEAR(D_vec_eval, D_vec_gen, 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestHeaviside) {
+  constexpr auto inf = std::numeric_limits<double>::infinity();
+  EXPECT_EQ(0.0, gen::heaviside(-1.0));
+  EXPECT_EQ(0.0, gen::heaviside(std::nextafter(0.0, -inf)));
+  EXPECT_EQ(0.0, gen::heaviside(0.0));
+  EXPECT_EQ(1.0, gen::heaviside(std::nextafter(0.0, inf)));
+  EXPECT_EQ(1.0, gen::heaviside(1.));
+}
+
+TEST(CppGenerationTest, TestExclusiveOr) {
+  constexpr auto inf = std::numeric_limits<double>::infinity();
+  EXPECT_EQ(0.0, gen::exclusive_or(0.5, 1.0));
+  EXPECT_EQ(0.0, gen::exclusive_or(-2.3, -0.5));
+  EXPECT_EQ(1.0, gen::exclusive_or(-1.0, 1.0));
+  EXPECT_EQ(1.0, gen::exclusive_or(1.0, -1.0));
+  EXPECT_EQ(1.0, gen::exclusive_or(std::nextafter(0.0, -inf), std::nextafter(0.0, inf)));
 }
 
 }  // namespace math

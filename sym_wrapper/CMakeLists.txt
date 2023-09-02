@@ -1,6 +1,10 @@
 # Find stubgen:
 if(NOT DEFINED STUBGEN_PATH)
-  find_program(STUBGEN_PATH stubgen REQUIRED)
+  message(STATUS "Looking for stubgen...")
+  find_program(STUBGEN_PATH stubgen)
+  if(DEFINED STUBGEN_PATH)
+    message(STATUS "stubgen path: ${STUBGEN_PATH}")
+  endif()
 endif()
 
 # Function for defining a wrapper module.
@@ -33,21 +37,26 @@ function(add_wrapper_module)
   # Add a command to generate stubs
   # https://mypy.readthedocs.io/en/stable/stubgen.html
   set(STUB_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}.pyi")
-  add_custom_command(
-    OUTPUT ${STUB_OUTPUT_PATH}
-    COMMAND ${STUBGEN_PATH} -m ${MODULE_NAME} --output
-            ${CMAKE_CURRENT_BINARY_DIR}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generate stubs for pybind module: ${MODULE_NAME}"
-    DEPENDS ${MODULE_NAME})
+  if(DEFINED STUBGEN_PATH)
+    message(STATUS "Will generate stubs for: ${MODULE_NAME}")
+    add_custom_command(
+      OUTPUT ${STUB_OUTPUT_PATH}
+      COMMAND ${STUBGEN_PATH} -m ${MODULE_NAME} --output
+              ${CMAKE_CURRENT_BINARY_DIR}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generate stubs for pybind module: ${MODULE_NAME}"
+      DEPENDS ${MODULE_NAME})
 
-  # Create a target labeled `ALL` so that the command runs:
-  add_custom_target(${MODULE_NAME}_stubs ALL DEPENDS ${STUB_OUTPUT_PATH})
+    # Create a target labeled `ALL` so that the command runs:
+    add_custom_target(${MODULE_NAME}_stubs ALL DEPENDS ${STUB_OUTPUT_PATH})
+  endif()
 
   # Add install targets for scikit-build-core
   if(DEFINED SKBUILD_PROJECT_NAME)
     install(TARGETS ${MODULE_NAME} DESTINATION sym_wrapper)
-    install(FILES ${STUB_OUTPUT_PATH} DESTINATION sym_wrapper)
+    if(DEFINED STUBGEN_PATH)
+      install(FILES ${STUB_OUTPUT_PATH} DESTINATION sym_wrapper)
+    endif()
   endif()
 endfunction()
 

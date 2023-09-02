@@ -22,12 +22,11 @@ struct SubstituteVisitorBase {
   explicit SubstituteVisitorBase(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
 
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = Expr;
 
   // The argument is neither an addition nor a multiplication:
   template <typename Arg>
-  Expr Apply(const Expr& input_expression, const Arg& other) {
+  Expr operator()(const Arg& other, const Expr& input_expression) {
     if constexpr (std::is_same_v<TargetExpressionType, Arg>) {
       if (target.IsIdenticalToImplTyped(other.AsDerived())) {
         // Exact match, so replace it:
@@ -36,9 +35,21 @@ struct SubstituteVisitorBase {
       if constexpr (Derived::PerformsPartialSubstitution) {
         // The derived type supports looking for partial matches, so try that:
         Expr partial_sub = static_cast<Derived&>(*this).AttemptPartial(input_expression, other);
+
         // Irrespective of whether that succeeded, one of the children may still contain the
         // expression we are searching for as well:
-        return VisitChildren(partial_sub, static_cast<Derived&>(*this));
+        return Visit(partial_sub, [this, &partial_sub](const auto& arg) {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (T::IsLeafStatic()) {
+            // This type has no children, so return the input expression unmodified:
+            return partial_sub;
+          } else {
+            // This type does have children, so apply to all of them:
+            return MapChildren(arg, [this](const Expr& child) -> Expr {
+              return Visit(child, static_cast<Derived&>(*this), child);
+            });
+          }
+        });
       }
     }
     // If these expressions don't match, and the target has no sub-expressions, we can stop here.
@@ -47,7 +58,7 @@ struct SubstituteVisitorBase {
     } else {
       // Otherwise we substitute in every child:
       return MapChildren(other, [this](const Expr& child) {
-        return VisitStruct(child, static_cast<Derived&>(*this));
+        return Visit(child, static_cast<Derived&>(*this), child);
       });
     }
   }
@@ -275,23 +286,22 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
 
 Expr Substitute(const Expr& input, const Expr& target, const Expr& replacement) {
   // Visit `target` to determine the underlying type, then visit the input w/ SubstituteVisitor:
-  return detail::VisitLambdaWithPolicy<VisitorPolicy::CompileError>(
-      target, [&](const auto& target) -> Expr {
-        using T = std::decay_t<decltype(target)>;
-        // Don't allow the target type to be a numeric literal:
-        if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
-                      std::is_same_v<T, Rational>) {
-          throw TypeError("Cannot perform a substitution with target type: {}", target.TypeName());
-        } else if constexpr (std::is_same_v<T, Addition>) {
-          return VisitStruct(input, SubstituteAddVisitor{target, replacement});
-        } else if constexpr (std::is_same_v<T, Multiplication>) {
-          return VisitStruct(input, SubstituteMulVisitor{target, replacement});
-        } else if constexpr (std::is_same_v<T, Power>) {
-          return VisitStruct(input, SubstitutePowVisitor{target, replacement});
-        } else {
-          return VisitStruct(input, SubstituteVisitor<T>{target, replacement});
-        }
-      });
+  return Visit(target, [&](const auto& target) -> Expr {
+    using T = std::decay_t<decltype(target)>;
+    // Don't allow the target type to be a numeric literal:
+    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
+                  std::is_same_v<T, Rational>) {
+      throw TypeError("Cannot perform a substitution with target type: {}", target.TypeName());
+    } else if constexpr (std::is_same_v<T, Addition>) {
+      return Visit(input, SubstituteAddVisitor{target, replacement}, input);
+    } else if constexpr (std::is_same_v<T, Multiplication>) {
+      return Visit(input, SubstituteMulVisitor{target, replacement}, input);
+    } else if constexpr (std::is_same_v<T, Power>) {
+      return Visit(input, SubstitutePowVisitor{target, replacement}, input);
+    } else {
+      return Visit(input, SubstituteVisitor<T>{target, replacement}, input);
+    }
+  });
 }
 
 }  // namespace math

@@ -1,7 +1,9 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 
-#include "ast.h"
+#include "code_generation/ast.h"
+#include "code_generation/expression_group.h"
+#include "constants.h"
 #include "expressions/function_argument.h"
 #include "template_utils.h"
 #include "type_annotations.h"
@@ -25,6 +27,7 @@ template <index_t Rows, index_t Cols>
 struct CopyOutputExpressionsImpl<type_annotations::StaticMatrix<Rows, Cols>> {
   void operator()(const type_annotations::StaticMatrix<Rows, Cols>& val,
                   std::vector<Expr>& outputs) const {
+    outputs.reserve(Rows * Cols);
     for (index_t row = 0; row < Rows; ++row) {
       for (index_t col = 0; col < Cols; ++col) {
         ASSERT(!GetUnfilledExprPlaceholder().IsIdenticalTo(val(row, col)),
@@ -39,23 +42,33 @@ struct CopyOutputExpressionsImpl<type_annotations::StaticMatrix<Rows, Cols>> {
 
 template <typename... Ts>
 struct CopyOutputExpressionsImpl<std::tuple<Ts...>> {
-  template <std::size_t... Indices>
-  void operator()(const std::tuple<Ts...>& tup, std::vector<Expr>& outputs,
-                  std::index_sequence<Indices...>) const {
-    using Tuple = std::tuple<Ts...>;
-    (CopyOutputExpressionsImpl<std::tuple_element_t<Indices, Tuple>>{}(std::get<Indices>(tup),
-                                                                       outputs),
-     ...);
+  // Create expression group for a single element of the tuple:
+  template <typename T>
+  ExpressionGroup CreateExpressionGroup(const T& tuple_element, const OutputKey& key) const {
+    std::vector<Expr> expressions;
+    CopyOutputExpressionsImpl<T>{}(tuple_element, expressions);
+    return ExpressionGroup(std::move(expressions), key);
   }
 
-  void operator()(const std::tuple<Ts...>& tup, std::vector<Expr>& outputs) const {
-    this->operator()(tup, outputs, std::make_index_sequence<sizeof...(Ts)>());
+  // We use this to get an index pack that we can expand over:
+  template <std::size_t... Indices>
+  void operator()(const std::tuple<Ts...>& tup, const std::vector<OutputKey>& arg_keys,
+                  std::vector<ExpressionGroup>& outputs, std::index_sequence<Indices...>) const {
+    (outputs.push_back(CreateExpressionGroup(std::get<Indices>(tup), arg_keys[Indices])), ...);
+  }
+
+  // Create an index pack that can be used to expand over `tup` and `arg_keys`.
+  void operator()(const std::tuple<Ts...>& tup, const std::vector<OutputKey>& arg_keys,
+                  std::vector<ExpressionGroup>& outputs) const {
+    ASSERT_EQUAL(sizeof...(Ts), arg_keys.size());
+    operator()(tup, arg_keys, outputs, std::make_index_sequence<sizeof...(Ts)>());
   }
 };
 
-template <typename T>
-void CopyOutputExpressions(const T& arg, std::vector<Expr>& outputs) {
-  CopyOutputExpressionsImpl<T>{}(arg, outputs);
+template <typename... Ts>
+void CopyOutputExpressions(const std::tuple<Ts...>& arg, const std::vector<OutputKey>& arg_keys,
+                           std::vector<ExpressionGroup>& outputs) {
+  CopyOutputExpressionsImpl<std::tuple<Ts...>>{}(arg, arg_keys, outputs);
 }
 
 template <typename T, bool OutputArg>
@@ -65,9 +78,13 @@ template <bool OutputArg>
 struct RecordFunctionArgument<Expr, OutputArg> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     if (OutputArg) {
-      desc.AddOutput(arg.GetName(), ast::ScalarType(), arg.IsOptional());
+      // TODO: Need to support type annotations on Expr types.
+      desc.AddArgument(arg.GetName(), ast::ScalarType(NumericType::Real),
+                       arg.IsOptional() ? ast::ArgumentDirection::OptionalOutput
+                                        : ast::ArgumentDirection::Output);
     } else {
-      desc.AddInput(arg.GetName(), ast::ScalarType(), false);
+      desc.AddArgument(arg.GetName(), ast::ScalarType(NumericType::Real),
+                       ast::ArgumentDirection::Input);
     }
   }
 };
@@ -76,9 +93,11 @@ template <index_t Rows, index_t Cols, bool OutputArg>
 struct RecordFunctionArgument<type_annotations::StaticMatrix<Rows, Cols>, OutputArg> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     if (OutputArg) {
-      desc.AddOutput(arg.GetName(), ast::MatrixType(Rows, Cols), arg.IsOptional());
+      desc.AddArgument(arg.GetName(), ast::MatrixType(Rows, Cols),
+                       arg.IsOptional() ? ast::ArgumentDirection::OptionalOutput
+                                        : ast::ArgumentDirection::Output);
     } else {
-      desc.AddInput(arg.GetName(), ast::MatrixType(Rows, Cols), false);
+      desc.AddArgument(arg.GetName(), ast::MatrixType(Rows, Cols), ast::ArgumentDirection::Input);
     }
   }
 };
@@ -106,7 +125,10 @@ struct RecordReturnTypes;
 
 template <>
 struct RecordReturnTypes<Expr> {
-  void operator()(ast::FunctionSignature& desc) const { desc.AddReturnValue(ast::ScalarType()); }
+  void operator()(ast::FunctionSignature& desc) const {
+    // TODO: We need to get the actual expression here and deduce the type.
+    desc.AddReturnValue(ast::ScalarType(NumericType::Real));
+  }
 };
 
 template <index_t Rows, index_t Cols>
@@ -142,6 +164,7 @@ struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>, IsO
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
     for (std::size_t i = 0; i < Rows * Cols; ++i) {
       if constexpr (IsOutputArg) {
+        (void)arg_index;  //  Suppress unused variable warning on GCC.
         expressions.push_back(GetUnfilledExprPlaceholder());
       } else {
         expressions.push_back(FunctionArgument::Create(arg_index, i));
@@ -170,8 +193,8 @@ template <std::size_t Index, typename... Args>
 constexpr bool IndexIsOutputArg =
     detail::IsOutputArgument<typename TypeListElement<Index, TypeList<Args...>>::Type>;
 
-// Create two index_sequence objects. The first contains the indices of input arguments, while
-// the second contains indices of output arguments.
+// Return an index_sequence<> that contains the indices of either input or output arguments.
+// If `TakeInputs` is true, we return the inputs.
 template <bool TakeInputs, typename... Args, std::size_t... Indices>
 constexpr auto FilterArguments(std::index_sequence<Indices...>) {
   return (std::conditional_t<!IndexIsOutputArg<Indices, Args...> == TakeInputs,
@@ -181,7 +204,12 @@ constexpr auto FilterArguments(std::index_sequence<Indices...>) {
 
 template <bool TakeInputs, typename... Args>
 constexpr auto FilterArguments() {
-  return FilterArguments<TakeInputs, Args...>(std::make_index_sequence<sizeof...(Args)>());
+  if constexpr (sizeof...(Args) > 0) {
+    return FilterArguments<TakeInputs, Args...>(std::make_index_sequence<sizeof...(Args)>());
+  } else {
+    // Need to handle this differently, since we can't fold over an empty sequence.
+    return std::make_index_sequence<0>();
+  }
 }
 
 template <bool TakeInputs, typename... Args>
@@ -190,7 +218,7 @@ constexpr auto FilterArguments(TypeList<Args...>) {
 }
 
 template <typename ArgList, typename Callable, std::size_t... Indices>
-auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>) {
+auto InvokeWithOutputCapture(Callable&& callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= TypeListSize<ArgList>::Value);
 
   // Create a tuple of arguments. Inputs are created as `FunctionArgument` objects, while outputs
@@ -199,13 +227,23 @@ auto InvokeWithOutputCapture(Callable callable, std::index_sequence<Indices...>)
   auto args = std::make_tuple(BuildFunctionArguments<Indices, ArgList>()...);
 
   // Call the user provided function with the args we just created:
-  auto return_values = std::invoke(std::move(callable), std::get<Indices>(args)...);
+  using ReturnType = std::invoke_result_t<Callable, decltype(std::get<Indices>(args))...>;
+  if constexpr (std::is_same_v<ReturnType, void>) {
+    std::invoke(std::forward<Callable>(callable), std::get<Indices>(args)...);
 
-  // Now extract the output arguments:
-  constexpr auto output_arg_indices = FilterArguments<false>(ArgList{});
-  auto output_arguments = SelectFromTuple(args, output_arg_indices);
+    constexpr auto output_arg_indices = FilterArguments<false>(ArgList{});
+    auto output_arguments = SelectFromTuple(args, output_arg_indices);
 
-  return std::make_pair(std::move(return_values), std::move(output_arguments));
+    return std::make_pair(std::make_tuple(), std::move(output_arguments));
+  } else {
+    auto return_values = std::invoke(std::forward<Callable>(callable), std::get<Indices>(args)...);
+
+    // Now extract the output arguments:
+    constexpr auto output_arg_indices = FilterArguments<false>(ArgList{});
+    auto output_arguments = SelectFromTuple(args, output_arg_indices);
+
+    return std::make_pair(std::move(return_values), std::move(output_arguments));
+  }
 }
 
 // tests:

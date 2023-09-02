@@ -6,9 +6,7 @@
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
 #include "integer_utils.h"
-#include "ordering.h"
 #include "string_utils.h"
-#include "tree_formatter.h"
 #include "visitor_impl.h"
 
 namespace math {
@@ -90,7 +88,6 @@ Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
 
 template <bool FactorizeIntegers>
 struct MultiplyVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
   explicit MultiplyVisitor(MultiplicationParts& builder) : builder(builder) {}
@@ -111,11 +108,11 @@ struct MultiplyVisitor {
   }
 
   template <typename T>
-  void Apply(const Expr& input_expression, const T& arg) {
+  void operator()(const T& arg, const Expr& input_expression) {
     if constexpr (std::is_same_v<T, Multiplication>) {
       for (const Expr& expr : arg) {
         // Recursively add multiplications:
-        VisitStruct(expr, *this);
+        Visit(expr, *this, expr);
       }
     } else if constexpr (std::is_same_v<T, Power>) {
       const Power& arg_pow = arg;
@@ -165,14 +162,13 @@ struct MultiplyVisitor {
 };
 
 struct NormalizeExponentVisitor {
-  using ReturnType = Expr;
-  using Policy = VisitorPolicy::NoError;
+  using ReturnType = std::optional<Expr>;
 
   explicit NormalizeExponentVisitor(Rational& coeff) : rational_coeff(coeff) {}
 
   // Check if the exponent is now greater than 1, in which case we factorize it into an integer part
   // and a fractional part. The integer part is multiplied onto the rational coefficient.
-  Expr Apply(const Integer& base, const Rational& exponent) {
+  Expr ApplyIntAndRational(const Integer& base, const Rational& exponent) {
     const auto [integer_part, fractional_part] = FactorizeRationalExponent(exponent);
     // Update the rational coefficient:
     if (integer_part.GetValue() >= 0) {
@@ -181,6 +177,15 @@ struct NormalizeExponentVisitor {
       rational_coeff = rational_coeff * Rational{1, Pow(base.GetValue(), -integer_part.GetValue())};
     }
     return Rational::Create(fractional_part);
+  }
+
+  template <typename A, typename B>
+  ReturnType operator()(const A& a, const B& b) {
+    if constexpr (std::is_same_v<A, Integer> && std::is_same_v<B, Rational>) {
+      return ApplyIntAndRational(a, b);
+    } else {
+      return std::nullopt;
+    }
   }
 
   Rational& rational_coeff;
@@ -196,9 +201,9 @@ MultiplicationParts::MultiplicationParts(const Multiplication& mul, bool factori
 
 void MultiplicationParts::Multiply(const Expr& arg, bool factorize_integers) {
   if (factorize_integers) {
-    VisitStruct(arg, MultiplyVisitor<true>{*this});
+    Visit(arg, MultiplyVisitor<true>{*this}, arg);
   } else {
-    VisitStruct(arg, MultiplyVisitor<false>{*this});
+    Visit(arg, MultiplyVisitor<false>{*this}, arg);
   }
 }
 
@@ -243,18 +248,16 @@ Expr MultiplicationParts::CreateMultiplication(std::vector<Expr>&& args) const {
   std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
     const auto& a_base = AsBaseAndExponent(a).first;
     const auto& b_base = AsBaseAndExponent(b).first;
-    return VisitBinaryStruct(a_base, b_base, OrderVisitor{}) ==
-           OrderVisitor::RelativeOrder::LessThan;
+    return ExpressionOrderPredicate{}(a_base, b_base);
   });
   return MaybeNewMul(std::move(args));
 }
 
 struct AsCoeffAndMultiplicandVisitor {
   using ReturnType = std::pair<Expr, Expr>;
-  using Policy = VisitorPolicy::NoError;
 
   // For multiplications, we need to break the expression up.
-  ReturnType Apply(const Expr& input, const Multiplication& mul) const {
+  ReturnType SplitMultiplication(const Expr& input, const Multiplication& mul) const {
     // TODO: Small vector.
     std::vector<Expr> numerics{};
     std::vector<Expr> remainder{};
@@ -276,14 +279,20 @@ struct AsCoeffAndMultiplicandVisitor {
 
   // If the input type is a numeric, return the numeric as a coefficient for multiplicand of one.
   template <typename T>
-  std::enable_if_t<ContainsTypeHelper<T, Integer, Rational, Float>, ReturnType> Apply(
-      const Expr& input, const T&) const {
-    return std::make_pair(input, Constants::One);
+  ReturnType operator()(const T& thing, const Expr& input) const {
+    if constexpr (ContainsTypeHelper<T, Integer, Rational, Float>) {
+      return std::make_pair(input, Constants::One);
+    } else if constexpr (std::is_same_v<T, Multiplication>) {
+      // Handle multiplication:
+      return SplitMultiplication(input, thing);
+    } else {
+      return std::make_pair(Constants::One, input);
+    }
   }
 };
 
 std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr) {
-  std::optional<std::pair<Expr, Expr>> result = VisitStruct(expr, AsCoeffAndMultiplicandVisitor{});
+  std::optional<std::pair<Expr, Expr>> result = Visit(expr, AsCoeffAndMultiplicandVisitor{}, expr);
   if (result.has_value()) {
     return *result;
   }

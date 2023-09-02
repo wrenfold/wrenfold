@@ -2,78 +2,58 @@
 #pragma once
 #include <memory>
 
-#include "expression_fwd.h"
-#include "operations_fwd.h"
+#include "enumerations.h"
 #include "template_utils.h"
 
 namespace math {
 
+class Expr;
+class ExpressionConcept;
+
 // TODO: Allow switching this out for something w/o atomic operations?
 using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>;
 
-// Declare pure virtual Apply method.
-// These are non-const, since visitors may need to cache or update internal values.
-#define DECLARE_VIRTUAL_APPLY_METHOD(ArgType) virtual void ApplyVirtual(const ArgType& arg) = 0
-
-// Implement override of the base method by calling the correct version for `ArgType`:
-#define IMPLEMENT_VIRTUAL_APPLY_METHOD(ArgType) \
-  void ApplyVirtual(const ArgType& arg) override { return ApplyOrThrow(*this, arg); }
-
-#define DECLARE_ALL_VIRTUAL_APPLY_METHODS()       \
-  DECLARE_VIRTUAL_APPLY_METHOD(Addition);         \
-  DECLARE_VIRTUAL_APPLY_METHOD(Constant);         \
-  DECLARE_VIRTUAL_APPLY_METHOD(Float);            \
-  DECLARE_VIRTUAL_APPLY_METHOD(FunctionArgument); \
-  DECLARE_VIRTUAL_APPLY_METHOD(Integer);          \
-  DECLARE_VIRTUAL_APPLY_METHOD(Matrix);           \
-  DECLARE_VIRTUAL_APPLY_METHOD(Multiplication);   \
-  DECLARE_VIRTUAL_APPLY_METHOD(Power);            \
-  DECLARE_VIRTUAL_APPLY_METHOD(Rational);         \
-  DECLARE_VIRTUAL_APPLY_METHOD(UnaryFunction);    \
-  DECLARE_VIRTUAL_APPLY_METHOD(Variable);
-
-#define IMPLEMENT_ALL_VIRTUAL_APPLY_METHODS()       \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Addition);         \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Constant);         \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Float);            \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(FunctionArgument); \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Integer);          \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Matrix);           \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Multiplication);   \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Power);            \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Rational);         \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(UnaryFunction);    \
-  IMPLEMENT_VIRTUAL_APPLY_METHOD(Variable);
-
 // clang-format off
 using ApprovedTypeList = TypeList<
-    Addition,
-    Constant,
-    Float,
-    FunctionArgument,
-    Integer,
-    Matrix,
-    Multiplication,
-    Power,
-    Rational,
-    UnaryFunction,
-    Variable
+    class Addition,
+    class Conditional,
+    class Constant,
+    class Float,
+    class FunctionArgument,
+    class Infinity,
+    class Integer,
+    class Matrix,
+    class Multiplication,
+    class Power,
+    class Rational,
+    class Relational,
+    class UnaryFunction,
+    class Variable
     >;
 // clang-format on
 
-// Base type for visitors that produce expressions.
-class VisitorBase {
+// Declare a virtual `Apply` method for the specified type.
+template <typename T>
+class VisitorDeclare {
  public:
-  DECLARE_ALL_VIRTUAL_APPLY_METHODS()
+  virtual void ApplyVirtual(const T& input) = 0;
 };
 
-// The type of error that is generated when a visitor fails to implement an `Apply` method.
-namespace VisitorPolicy {
-// Fail at compile time.
-struct CompileError {};
-// Silently do nothing. (Allow non-implemented Apply for some types).
-// This is useful for visitors implemented via Lambda, which operate on one specific type only.
-struct NoError {};
-}  // namespace VisitorPolicy
+// Implements `VisitorDeclare` for every type in a TypeList.
+// We use virtual inheritance since both VisitorBase and VisitorImplAll must inherit
+// from this, creating a diamond pattern.
+template <typename T>
+class VisitorDeclareAll;
+template <typename... Ts>
+class VisitorDeclareAll<TypeList<Ts...>> : public virtual VisitorDeclare<Ts>... {};
+
+// Base type for visitors that produce expressions.
+template <typename Types>
+class VisitorBaseGeneric : public VisitorDeclareAll<Types> {
+ public:
+  virtual ~VisitorBaseGeneric() = default;
+};
+
+using VisitorBase = VisitorBaseGeneric<ApprovedTypeList>;
 
 }  // namespace math

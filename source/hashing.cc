@@ -24,7 +24,6 @@ constexpr auto MakeUnaryFunctionHashes() {
 
 // TODO: Hashes should be cached in containers like Addition/Multiplication.
 struct HashVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = std::size_t;
 
   template <typename Iterator>
@@ -35,43 +34,54 @@ struct HashVisitor {
     return seed;
   }
 
-  std::size_t HashUnary(const std::size_t seed, const Expr& expr) const {
-    return HashCombine(seed, HashExpression(expr));
+  template <typename... Ts>
+  std::size_t HashExpressions(std::size_t seed, const Ts&... expressions) const {
+    const std::array<std::size_t, sizeof...(Ts)> hashes = {HashExpression(expressions)...};
+    for (std::size_t i = 0; i < hashes.size(); ++i) {
+      seed = HashCombine(seed, hashes[i]);
+    }
+    return seed;
   }
 
-  std::size_t HashBinary(const std::size_t seed, const Expr& a, const Expr& b) const {
-    return HashCombine(seed, HashCombine(HashExpression(a), HashExpression(b)));
-  }
-
-  std::size_t Apply(const Addition& a) const {
+  std::size_t operator()(const Addition& a) const {
     constexpr std::size_t type_hash = HashString("Addition");
     return HashAll(type_hash, a.begin(), a.end());
   }
 
-  std::size_t Apply(const Constant& c) const {
+  std::size_t operator()(const Conditional& c) const {
+    constexpr std::size_t type_hash = HashString("Conditional");
+    return HashExpressions(type_hash, c.Condition(), c.IfBranch(), c.ElseBranch());
+  }
+
+  std::size_t operator()(const Constant& c) const {
     constexpr std::size_t type_hash = HashString("Constant");
     const auto enum_value = static_cast<std::uint64_t>(c.GetName());
     return HashCombine(type_hash, std::hash<std::uint64_t>{}(enum_value));
   }
 
-  std::size_t Apply(const Float& f) const {
+  std::size_t operator()(const Float& f) const {
     constexpr std::size_t type_hash = HashString("Float");
     return HashCombine(type_hash, Hash<Float>{}(f));
   }
 
-  std::size_t Apply(const FunctionArgument& f) const {
+  std::size_t operator()(const FunctionArgument& f) const {
     constexpr std::size_t type_hash = HashString("FunctionArgument");
     const std::size_t arg_hash = HashCombine(std::hash<std::size_t>{}(f.ArgIndex()),
                                              std::hash<std::size_t>{}(f.ElementIndex()));
     return HashCombine(type_hash, arg_hash);
   }
 
-  std::size_t Apply(const Integer& i) const {
+  constexpr std::size_t operator()(const Infinity&) const {
+    constexpr std::size_t type_hash = HashString("Infinity");
+    return type_hash;
+  }
+
+  std::size_t operator()(const Integer& i) const {
     constexpr std::size_t type_hash = HashString("Integer");
     return HashCombine(type_hash, Hash<Integer>{}(i));
   }
 
-  std::size_t Apply(const Matrix& m) const {
+  std::size_t operator()(const Matrix& m) const {
     constexpr std::size_t type_hash = HashString("Matrix");
     std::size_t seed = type_hash;
     seed = HashCombine(seed, std::hash<std::size_t>{}(m.NumRows()));
@@ -79,35 +89,40 @@ struct HashVisitor {
     return HashAll(seed, m.begin(), m.end());
   }
 
-  std::size_t Apply(const Multiplication& m) const {
+  std::size_t operator()(const Multiplication& m) const {
     constexpr std::size_t type_hash = HashString("Multiplication");
     return HashAll(type_hash, m.begin(), m.end());
   }
 
-  std::size_t Apply(const Power& p) const {
+  std::size_t operator()(const Power& p) const {
     constexpr std::size_t type_hash = HashString("Power");
-    return HashBinary(type_hash, p.Base(), p.Exponent());
+    return HashExpressions(type_hash, p.Base(), p.Exponent());
   }
 
-  std::size_t Apply(const Rational& r) const {
+  std::size_t operator()(const Rational& r) const {
     constexpr std::size_t type_hash = HashString("Rational");
     return HashCombine(type_hash, Hash<Rational>{}(r));
   }
 
-  std::size_t Apply(const UnaryFunction& f) const {
+  std::size_t operator()(const Relational& r) const {
+    constexpr std::size_t type_hash = HashString("Relational");
+    return HashExpressions(type_hash, r.Left(), r.Right());
+  }
+
+  std::size_t operator()(const UnaryFunction& f) const {
     constexpr std::size_t type_hash = HashString("UnaryFunction");
     // Create a lookup table of hashes for each function name:
     constexpr static std::array lookup_table = MakeUnaryFunctionHashes();
     const std::size_t func_hash = lookup_table[static_cast<std::size_t>(f.Func())];
-    return HashUnary(HashCombine(type_hash, func_hash), f.Arg());
+    return HashExpressions(HashCombine(type_hash, func_hash), f.Arg());
   }
 
-  std::size_t Apply(const Variable& v) const {
+  std::size_t operator()(const Variable& v) const {
     constexpr std::size_t type_hash = HashString("Variable");
     return HashCombine(type_hash, std::hash<std::string>{}(v.GetName()));
   }
 };
 
-std::size_t HashExpression(const Expr& x) { return VisitStruct(x, HashVisitor{}); }
+std::size_t HashExpression(const Expr& x) { return Visit(x, HashVisitor{}); }
 
 }  // namespace math

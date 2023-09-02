@@ -21,7 +21,9 @@ class ExpressionImpl : public ExpressionConcept {
   }
 
   // Cast to derived type and apply the visitor.
-  void Receive(VisitorBase& visitor) const override { visitor.ApplyVirtual(AsDerived()); }
+  void Receive(VisitorBase& visitor) const override {
+    static_cast<VisitorDeclare<Derived>&>(visitor).ApplyVirtual(AsDerived());
+  }
 
   // Get the derived type string name (a static constexpr member).
   std::string_view TypeName() const override { return Derived::NameStr; }

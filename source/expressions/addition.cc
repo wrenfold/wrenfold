@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "expressions/matrix.h"
 #include "expressions/multiplication.h"
 #include "expressions/numeric_expressions.h"
 #include "hashing.h"
-#include "ordering.h"
 
 namespace math {
 
@@ -50,17 +50,16 @@ Expr Addition::FromOperands(const std::vector<Expr>& args) {
 }
 
 struct AdditionVisitor {
-  using Policy = VisitorPolicy::CompileError;
   using ReturnType = void;
 
   explicit AdditionVisitor(AdditionParts& parts) : parts(parts) {}
 
   template <typename T>
-  void Apply(const Expr& input_expression, const T& arg) {
+  void operator()(const T& arg, const Expr& input_expression) {
     if constexpr (std::is_same_v<T, Addition>) {
       for (const Expr& expr : arg) {
         // Recursively add additions:
-        VisitStruct(expr, *this);
+        Visit(expr, *this, expr);
       }
     } else if constexpr (std::is_same_v<T, Integer>) {
       parts.rational_term = parts.rational_term + static_cast<Rational>(arg);
@@ -99,7 +98,7 @@ void AdditionParts::Add(const Expr& arg) {
   if (IsZero(arg)) {
     return;
   }
-  VisitStruct(arg, AdditionVisitor{*this});
+  Visit(arg, AdditionVisitor{*this}, arg);
 }
 
 void AdditionParts::Normalize() {
@@ -130,7 +129,7 @@ Expr AdditionParts::CreateAddition(std::vector<Expr>&& args) const {
   std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
     const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
     const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
-    return VisitBinaryStruct(a_mul, b_mul, OrderVisitor{}) == OrderVisitor::RelativeOrder::LessThan;
+    return ExpressionOrderPredicate{}(a_mul, b_mul);
   });
   if (args.empty()) {
     return Constants::Zero;

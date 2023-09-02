@@ -16,60 +16,47 @@ class NAryOp;
 // Visitor that returns true for numerical values, or powers of numerical values.
 struct IsNumericVisitor {
   using ReturnType = bool;
-  using Policy = VisitorPolicy::NoError;
 
-  constexpr bool Apply(const Float&) const { return true; }
-  constexpr bool Apply(const Integer&) const { return true; }
-  constexpr bool Apply(const Rational&) const { return true; }
-  bool Apply(const Power& pow) const {
-    return VisitStruct(pow.Base(), IsNumericVisitor{}).value_or(false) &&
-           VisitStruct(pow.Exponent(), IsNumericVisitor{}).value_or(false);
+  template <typename T>
+  bool operator()(const T& arg) const {
+    if constexpr (ContainsTypeHelper<T, Float, Integer, Rational>) {
+      return true;
+    } else if constexpr (std::is_same_v<T, Power>) {
+      return IsNumeric(arg.Base()) && IsNumeric(arg.Exponent());
+    } else {
+      return false;
+    }
   }
 };
 
-inline bool IsNumeric(const Expr& expr) {
-  return VisitStruct(expr, IsNumericVisitor{}).value_or(false);
-}
+inline bool IsNumeric(const Expr& expr) { return Visit(expr, IsNumericVisitor{}); }
 
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
 struct IsNegativeNumberVisitor {
   using ReturnType = bool;
-  using Policy = VisitorPolicy::NoError;
 
   // Numerics < 0 are all negative.
-  bool Apply(const Integer& num) const { return num.GetValue() < 0; }
-  bool Apply(const Float& f) const { return f.GetValue() < 0; }
-  bool Apply(const Rational& r) const { return r.Numerator() < 0; }
+  bool operator()(const Integer& num) const { return num.GetValue() < 0; }
+  bool operator()(const Float& f) const { return f.GetValue() < 0; }
+  bool operator()(const Rational& r) const { return r.Numerator() < 0; }
 
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
-  bool Apply(const Multiplication& m) const {
+  bool operator()(const Multiplication& m) const {
     const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
-      return VisitStruct(expr, IsNegativeNumberVisitor{}).value_or(false);
+      return Visit(expr, IsNegativeNumberVisitor{});
     });
     // odd = negative, even = positive
     return static_cast<bool>(count & 1);
   }
+
+  template <typename T>
+  constexpr bool operator()(const T&) const {
+    return false;
+  }
 };
 
 // TODO: This probably deserves a better name, since it doesn't just check for numbers.
-inline bool IsNegativeNumber(const Expr& expr) {
-  return VisitStruct(expr, IsNegativeNumberVisitor{}).value_or(false);
-}
-
-// Visitor to determine mathematical precedence.
-struct PrecedenceVisitor {
-  using Policy = VisitorPolicy::NoError;
-  using ReturnType = Precedence;
-
-  constexpr Precedence Apply(const Multiplication&) const { return Precedence::Multiplication; }
-  constexpr Precedence Apply(const Addition&) const { return Precedence::Addition; }
-  constexpr Precedence Apply(const Power&) const { return Precedence::Power; }
-  constexpr Precedence Apply(const Rational&) const { return Precedence::Multiplication; }
-};
-
-inline Precedence GetPrecedence(const Expr& expr) {
-  return VisitStruct(expr, PrecedenceVisitor{}).value_or(Precedence::None);
-}
+inline bool IsNegativeNumber(const Expr& expr) { return Visit(expr, IsNegativeNumberVisitor{}); }
 
 }  // namespace math

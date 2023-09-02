@@ -8,46 +8,6 @@
 
 namespace math {
 
-// clang-format off
-enum class UnaryFunctionName {
-  Cos = 0,
-  Sin,
-  Tan,
-  ArcCos,
-  ArcSin,
-  ArcTan,
-  Log,
-  Sqrt,
-  // Just to get the length of the enum:
-  ENUM_SIZE,
-};
-// clang-format on
-
-// Convert unary function enum to string.
-constexpr std::string_view ToString(const UnaryFunctionName name) {
-  switch (name) {
-    case UnaryFunctionName::Cos:
-      return "cos";
-    case UnaryFunctionName::Sin:
-      return "sin";
-    case UnaryFunctionName::Tan:
-      return "tan";
-    case UnaryFunctionName::ArcCos:
-      return "acos";
-    case UnaryFunctionName::ArcSin:
-      return "asin";
-    case UnaryFunctionName::ArcTan:
-      return "atan";
-    case UnaryFunctionName::Log:
-      return "ln";
-    case UnaryFunctionName::Sqrt:
-      return "sqrt";
-    case UnaryFunctionName::ENUM_SIZE:
-      return "<NOT A VALID ENUM VALUE>";
-  }
-  return "<NOT A VALID ENUM VALUE>";
-}
-
 template <typename Derived>
 class BuiltInFunctionBase : public ExpressionImpl<Derived> {
  public:
@@ -87,7 +47,7 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr Map(Operation&& operation) const {
+  Expr Map(Operation operation) const {
     return CreateUnaryFunction(func_, operation(arg_));
   }
 
@@ -95,28 +55,6 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
   UnaryFunctionName func_;
   Expr arg_;
 };
-
-// clang-format off
-enum class BinaryFunctionName {
-  Mod,
-  Pow,
-  // Just to get the length of the enum:
-  ENUM_SIZE,
-};
-// clang-format on
-
-// Convert binary function enum to string.
-constexpr std::string_view ToString(const BinaryFunctionName name) {
-  switch (name) {
-    case BinaryFunctionName::Mod:
-      return "mod";
-    case BinaryFunctionName::Pow:
-      return "pow";
-    case BinaryFunctionName::ENUM_SIZE:
-      return "<NOT A VALID ENUM VALUE>";
-  }
-  return "<NOT A VALID ENUM VALUE>";
-}
 
 #if 0
 class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {

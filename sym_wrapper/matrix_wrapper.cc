@@ -11,7 +11,6 @@
 #include "expressions/numeric_expressions.h"
 #include "matrix_functions.h"
 #include "plain_formatter.h"
-#include "tree_formatter.h"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -333,7 +332,7 @@ void WrapMatrixOperations(py::module_& m) {
       .def("__repr__",
            [](const MatrixExpr& self) {
              PlainFormatter formatter{PowerStyle::Python};
-             VisitStruct(static_cast<const Expr&>(self), formatter);
+             Visit(static_cast<const Expr&>(self), formatter);
              return formatter.GetOutput();
            })
       .def(

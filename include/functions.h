@@ -1,3 +1,4 @@
+// Copyright 2023 Gareth Cross
 #pragma once
 #include "expression.h"
 
@@ -30,5 +31,8 @@ Expr atan(const Expr& arg);
 
 // Sqrt
 Expr sqrt(const Expr& arg);
+
+// Conditional/ternary expression.
+Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false);
 
 }  // namespace math
