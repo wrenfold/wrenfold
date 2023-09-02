@@ -35,7 +35,7 @@ class Matrix {
   }
 
   // All elements must match.
-  bool IsIdenticalToImplTyped(const Matrix& other) const {
+  bool IsIdenticalTo(const Matrix& other) const {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
            std::equal(data_.begin(), data_.end(), other.data_.begin(),
                       [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });

@@ -15,7 +15,7 @@ class Relational {
       : operation_(operation), left_(std::move(left)), right_(std::move(right)) {}
 
   // Base and exponent must match.
-  bool IsIdenticalToImplTyped(const Relational& other) const {
+  bool IsIdenticalTo(const Relational& other) const {
     return operation_ == other.operation_ && left_.IsIdenticalTo(other.left_) &&
            right_.IsIdenticalTo(other.right_);
   }

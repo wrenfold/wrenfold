@@ -38,7 +38,7 @@ class NAryOp {
 
   // This will only be called for things with the same derived type, so we don't
   // need to check the specific operator here.
-  bool IsIdenticalToImplTyped(const NAryOp<Derived>& other) const {
+  bool IsIdenticalTo(const NAryOp<Derived>& other) const {
     if (Arity() != other.Arity()) {
       return false;
     }

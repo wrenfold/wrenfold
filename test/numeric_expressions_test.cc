@@ -24,9 +24,9 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_EQ(a.Denominator(), 4);
   ASSERT_FALSE(a.IsZero());
   ASSERT_FALSE(a.IsOne());
-  ASSERT_TRUE(a.IsIdenticalToImplTyped({1, 4}));
-  ASSERT_TRUE(a.IsIdenticalToImplTyped({10, 40}));
-  ASSERT_FALSE(a.IsIdenticalToImplTyped({1, 3}));
+  ASSERT_TRUE(a.IsIdenticalTo({1, 4}));
+  ASSERT_TRUE(a.IsIdenticalTo({10, 40}));
+  ASSERT_FALSE(a.IsIdenticalTo({1, 3}));
   ASSERT_FALSE(a.TryConvertToInteger());
   ASSERT_EQ(a, Rational(16, 64));
   ASSERT_EQ(0.25, static_cast<Float>(a).GetValue());

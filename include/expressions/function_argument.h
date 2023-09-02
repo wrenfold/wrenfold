@@ -15,7 +15,7 @@ class FunctionArgument {
   FunctionArgument(std::size_t arg_index, std::size_t element_index)
       : arg_index_(arg_index), element_index_(element_index) {}
 
-  constexpr bool IsIdenticalToImplTyped(const FunctionArgument& other) const {
+  constexpr bool IsIdenticalTo(const FunctionArgument& other) const {
     return arg_index_ == other.arg_index_ && element_index_ == other.element_index_;
   }
 
@@ -28,9 +28,7 @@ class FunctionArgument {
   }
 
   // Equal if both indices are the same.
-  constexpr bool operator==(const FunctionArgument& other) const {
-    return IsIdenticalToImplTyped(other);
-  }
+  constexpr bool operator==(const FunctionArgument& other) const { return IsIdenticalTo(other); }
 
  private:
   std::size_t arg_index_;

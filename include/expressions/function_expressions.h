@@ -29,7 +29,7 @@ class UnaryFunction {
   const Expr& Arg() const { return arg_; }
 
   // Function type and argument must match.
-  bool IsIdenticalToImplTyped(const UnaryFunction& other) const {
+  bool IsIdenticalTo(const UnaryFunction& other) const {
     return func_ == other.func_ && arg_.IsIdenticalTo(other.arg_);
   }
 
@@ -66,7 +66,7 @@ class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
   const Expr& Arg1() const { return args_[1]; }
 
   // Function type and argument must match.
-  bool IsIdenticalToImplTyped(const BinaryFunction& other) const {
+  bool IsIdenticalTo(const BinaryFunction& other) const {
     return func_ == other.func_ && args_[0].IsIdenticalTo(other.args_[0]) &&
            args_[1].IsIdenticalTo(other.args_[1]);
   }

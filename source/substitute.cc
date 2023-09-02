@@ -28,7 +28,7 @@ struct SubstituteVisitorBase {
   template <typename Arg>
   Expr operator()(const Arg& other, const Expr& input_expression) {
     if constexpr (std::is_same_v<TargetExpressionType, Arg>) {
-      if (target.IsIdenticalToImplTyped(other)) {
+      if (target.IsIdenticalTo(other)) {
         // Exact match, so replace it:
         return replacement;
       }
@@ -91,7 +91,7 @@ struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor,
 
     if (target_parts.float_term.has_value()) {
       if (!input_parts.float_term ||
-          !input_parts.float_term->IsIdenticalToImplTyped(*target_parts.float_term)) {
+          !input_parts.float_term->IsIdenticalTo(*target_parts.float_term)) {
         // Don't allow substitutions that perform float operations.
         return input_expression;
       } else {
@@ -140,7 +140,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
 
     if (target_parts.float_coeff.has_value()) {
       if (!input_parts.float_coeff ||
-          !input_parts.float_coeff->IsIdenticalToImplTyped(*target_parts.float_coeff)) {
+          !input_parts.float_coeff->IsIdenticalTo(*target_parts.float_coeff)) {
         // Don't allow substitutions that perform float operations.
         // (Unless the float coefficients match exactly, then we allow it.)
         return input_expression;

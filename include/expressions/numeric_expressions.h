@@ -27,7 +27,7 @@ class Integer {
   explicit constexpr Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalTo(const Integer& other) const { return val_ == other.val_; }
 
   // Access numeric value.
   constexpr IntegralType GetValue() const { return val_; }
@@ -63,7 +63,7 @@ class Rational {
   // Construct a rational from an integer value.
   explicit constexpr Rational(const Integer& integer) : n_(integer.GetValue()), d_(1) {}
 
-  constexpr bool IsIdenticalToImplTyped(const Rational& other) const {
+  constexpr bool IsIdenticalTo(const Rational& other) const {
     return n_ == other.n_ && d_ == other.d_;
   }
 
@@ -141,7 +141,7 @@ class Float {
   }
 
   // Check if numerical constants are completely identical.
-  constexpr bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalTo(const Float& other) const { return val_ == other.val_; }
 
   // Access numeric value.
   constexpr FloatType GetValue() const { return val_; }

@@ -15,7 +15,7 @@ class Constant {
   explicit Constant(SymbolicConstants Name) : name_(Name) {}
 
   // Check if symbolic constants are the same.
-  bool IsIdenticalToImplTyped(const Constant& other) const { return name_ == other.name_; }
+  bool IsIdenticalTo(const Constant& other) const { return name_ == other.name_; }
 
   // Access name.
   SymbolicConstants GetName() const { return name_; }
@@ -33,7 +33,7 @@ class Infinity {
   static constexpr bool IsLeafNode = true;
 
   Infinity() = default;
-  constexpr bool IsIdenticalToImplTyped(const Infinity&) const { return true; }
+  constexpr bool IsIdenticalTo(const Infinity&) const { return true; }
 };
 
 // Convert symbolic constant enum to string constant.

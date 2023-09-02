@@ -20,7 +20,7 @@ class ExpressionImpl final : public ExpressionConcept {
   // Check if we can cast to this type.
   bool IsIdenticalTo(const ExpressionConcept& other) const override final {
     return other.IsType<ExpressionType>() &&
-           GetImplementation().IsIdenticalToImplTyped(
+           GetImplementation().IsIdenticalTo(
                static_cast<const ExpressionImpl<ExpressionType>&>(other).GetImplementation());
   }
 

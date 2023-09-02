@@ -15,7 +15,7 @@ class Conditional {
         if_branch_(std::move(if_branch)),
         else_branch_(std::move(else_branch)) {}
 
-  bool IsIdenticalToImplTyped(const Conditional& other) const {
+  bool IsIdenticalTo(const Conditional& other) const {
     return condition_.IsIdenticalTo(other.condition_) &&
            if_branch_.IsIdenticalTo(other.if_branch_) &&
            else_branch_.IsIdenticalTo(other.else_branch_);

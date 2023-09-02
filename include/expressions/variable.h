@@ -14,7 +14,7 @@ class Variable {
   explicit Variable(std::string name) : name_(std::move(name)) {}
 
   // Check if two variables are the same (names match).
-  bool IsIdenticalToImplTyped(const Variable& other) const { return name_ == other.name_; }
+  bool IsIdenticalTo(const Variable& other) const { return name_ == other.name_; }
 
   // Get variable name
   const std::string& GetName() const { return name_; }

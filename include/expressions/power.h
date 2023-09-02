@@ -14,7 +14,7 @@ class Power {
   Power(Expr base, Expr exponent) : base_(std::move(base)), exponent_(std::move(exponent)) {}
 
   // Base and exponent must match.
-  bool IsIdenticalToImplTyped(const Power& other) const {
+  bool IsIdenticalTo(const Power& other) const {
     return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
   }
 
