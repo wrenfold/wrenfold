@@ -43,8 +43,8 @@ struct AstBuilder {
     operations_.reserve(operations_.capacity() + block->operations.size());
 
     // Number of operations in the block, ignoring jump at the end:
-    const std::size_t len = block->operations.back()->IsJump() ? block->operations.size() - 1
-                                                               : block->operations.size();
+    //    const std::size_t len = block->operations.back()->IsJump() ? block->operations.size() - 1
+    //                                                               : block->operations.size();
 
     // We want to place any `ir::Save` operations at the end before conditional logic, so separate
     // those:
@@ -54,11 +54,13 @@ struct AstBuilder {
     std::vector<ast::AssignTemporary> phi_assignments{};
     phi_assignments.reserve(block->operations.size());
 
-    for (std::size_t i = 0; i < len; ++i) {
-      const ir::ValuePtr value = block->operations[i];
+    for (const ir::ValuePtr value : block->operations) {
+      //      const ir::ValuePtr value = block->operations[i];
       if (value->Is<ir::Save>()) {
         save_values.push_back(value);
       } else if (value->IsPhi()) {
+        // Do nothing.
+      } else if (value->Is<ir::JumpCondition>()) {
         // Do nothing.
       } else {
         std::vector<ir::ValuePtr> conditional_outputs{};
@@ -116,18 +118,26 @@ struct AstBuilder {
       }
     }
 
+    if (block->descendants.empty()) {
+      return;
+    }
+
     ir::ValuePtr last_op = block->operations.back();
-    if (last_op->Is<ir::Jump>()) {
+    if (!last_op->Is<ir::JumpCondition>()) {
       // just keep appending:
-      ir::BlockPtr next = last_op->As<ir::Jump>().Next();
-      ProcessBlock(next);
-    } else if (last_op->Is<ir::ConditionalJump>()) {
+      ASSERT_EQUAL(1, block->descendants.size());
+      //      ir::BlockPtr next = last_op->As<ir::Jump>().Next();
+      ProcessBlock(block->descendants[0]);
+    } else {
+      ASSERT(last_op->Is<ir::JumpCondition>());
+      ASSERT_EQUAL(2, block->descendants.size());
+
       // For conditionals, we need to determine the
-      const ir::ConditionalJump& jump = last_op->As<ir::ConditionalJump>();
+      //      const ir::ConditionalJump& jump = last_op->As<ir::ConditionalJump>();
 
       // Find phi functions:
       const ir::BlockPtr merge_point =
-          FindMergePoint(jump.NextTrue(), jump.NextFalse(), SearchDirection::Downwards);
+          FindMergePoint(block->descendants[0], block->descendants[1], SearchDirection::Downwards);
       stop_set_.insert(merge_point);
 
       for (ir::ValuePtr maybe_phi : merge_point->operations) {
@@ -148,12 +158,12 @@ struct AstBuilder {
       operations_.clear();
 
       // Process the true branch and save the output:
-      ProcessBlock(jump.NextTrue());  //  append to operations_
+      ProcessBlock(block->descendants[0]);  //  append to operations_
       std::vector<ast::Variant> operations_true = std::move(operations_);
       operations_.clear();
 
       // Process the right branch
-      ProcessBlock(jump.NextFalse());
+      ProcessBlock(block->descendants[1]);
       std::vector<ast::Variant> operations_false = std::move(operations_);
       operations_ = std::move(operations_stashed);  //  Put back operations for the current block.
 
@@ -177,8 +187,7 @@ struct AstBuilder {
         [this, &val](const auto& op) -> ast::Variant {
           // These types should never get converted to AST:
           using T = std::decay_t<decltype(op)>;
-          using ExcludedTypes =
-              TypeList<ir::Jump, ir::ConditionalJump, ir::Save, ir::Cond, ir::Phi>;
+          using ExcludedTypes = TypeList<ir::JumpCondition, ir::Save, ir::Cond, ir::Phi>;
           if constexpr (ContainsType<T, ExcludedTypes>) {
             throw TypeError("Type cannot be converted to AST: {}", typeid(T).name());
           } else {

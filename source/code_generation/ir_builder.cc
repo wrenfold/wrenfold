@@ -89,39 +89,28 @@ NumericType Load::DetermineType() const { return DetermineNumericType(expr); }
 
 void Block::ReplaceDescendant(ir::BlockPtr target, ir::BlockPtr replacement) {
   ASSERT_NOT_EQUAL(target, replacement);
-  ASSERT(!operations.empty() && operations.back()->IsJump(),
-         "Block cannot be empty, must contain a jump");
 
-  // TODO(gareth): This logic feels very inelegant somehow. It seems like the jump operations
-  // should perhaps not be held in `Value` objects, and just live on the `Block`.
-  const ir::ValuePtr jump_val = operations.back();
-  const Operation op = jump_val->Op();
+  if (!operations.empty()) {
+    const ir::ValuePtr jump_val = operations.back();
+    if (jump_val->Is<ir::JumpCondition>()) {
+      ASSERT_EQUAL(2, descendants.size());
+    } else {
+      ASSERT_GREATER_OR_EQ(1, descendants.size());
+    }
+  }
+
   const ir::BlockPtr self{this};
-  OverloadedVisit(
-      op,
-      [&](ir::Jump j) {
-        ASSERT_EQUAL(j.Next(), target, "Target is not a descendant of this block.");
-        target->RemoveAncestor(self);
-        replacement->AddAncestor(self);
-        jump_val->SetOp(ir::Jump{replacement});
-      },
-      [&](ir::ConditionalJump j) {
-        ASSERT(j.NextTrue() == target || j.NextFalse() == target,
-               "Target is not a descendant of this block.");
-        target->RemoveAncestor(self);
-        replacement->AddAncestor(self);
-        if (j.NextTrue() == target) {
-          jump_val->SetOp(ir::ConditionalJump{replacement, j.NextFalse()}, jump_val->Front());
-        } else if (j.NextFalse() == target) {
-          jump_val->SetOp(ir::ConditionalJump{j.NextTrue(), replacement}, jump_val->Front());
-        }
-      },
-      [](auto&&) constexpr {});
+  target->RemoveAncestor(self);
+  replacement->AddAncestor(self);
+
+  auto it = std::find(descendants.begin(), descendants.end(), target);
+  ASSERT(it != descendants.end());
+  *it = replacement;
 }
 
 void Block::AddAncestor(BlockPtr b) {
-  auto it = std::find(ancestors.begin(), ancestors.end(), b);
-  ASSERT(it == ancestors.end(), "Attempted to insert duplicate into ancestor list: {}", b->name);
+  ASSERT(std::find(ancestors.begin(), ancestors.end(), b) == ancestors.end(),
+         "Attempted to insert duplicate into ancestor list: {}", b->name);
   ancestors.push_back(b);
 }
 
@@ -129,6 +118,13 @@ void Block::RemoveAncestor(BlockPtr b) {
   auto it = std::find(ancestors.begin(), ancestors.end(), b);
   ASSERT(it != ancestors.end(), "Block {} is not an ancestor of {}", b->name, name);
   ancestors.erase(it);
+}
+
+void Block::AddDescendant(BlockPtr b) {
+  ASSERT(std::find(descendants.begin(), descendants.end(), b) == descendants.end(),
+         "Block {} already exists in descendants list: {},", b, fmt::join(descendants, ", "));
+  descendants.push_back(b);
+  b->AddAncestor(ir::BlockPtr{this});
 }
 
 // Replace this value w/ the argument.
@@ -148,14 +144,6 @@ void Value::Remove() {
   for (const ValuePtr& operand : operands_) {
     operand->RemoveConsumer(this);
   }
-  // If this is a jump, make sure to remove any ancestral connections from the blocks.
-  OverloadedVisit(
-      op_, [&](const ir::Jump& j) { j.Next()->RemoveAncestor(Parent()); },
-      [&](const ir::ConditionalJump& j) {
-        j.NextTrue()->RemoveAncestor(Parent());
-        j.NextFalse()->RemoveAncestor(Parent());
-      },
-      [](const auto&) constexpr {});
   // This value is dead, so clear the operand vector
   operands_.clear();
 }
@@ -260,24 +248,6 @@ struct FormatOpArgsHelper<ir::Load> {
 };
 
 template <>
-struct FormatOpArgsHelper<ir::Jump> {
-  void operator()(std::string& output, const ir::Jump& jump, const std::vector<ir::ValuePtr>&,
-                  const std::size_t) {
-    fmt::format_to(std::back_inserter(output), "block_{}", jump.Next()->name);
-  }
-};
-
-template <>
-struct FormatOpArgsHelper<ir::ConditionalJump> {
-  void operator()(std::string& output, const ir::ConditionalJump& jump,
-                  const std::vector<ir::ValuePtr>& args, const std::size_t width) {
-    fmt::format_to(std::back_inserter(output), "v{:0>{}}, ", args[0]->Name(), width);
-    fmt::format_to(std::back_inserter(output), "block_{}, ", jump.NextTrue()->name);
-    fmt::format_to(std::back_inserter(output), "block_{}", jump.NextFalse()->name);
-  }
-};
-
-template <>
 struct FormatOpArgsHelper<ir::OutputRequired> {
   void operator()(std::string& output, const ir::OutputRequired& oreq,
                   const std::vector<ir::ValuePtr>&, const std::size_t) {
@@ -300,18 +270,6 @@ void FormatOpArgs(std::string& output, const ir::Operation& op,
 template <typename OpType, typename... Args>
 ir::ValuePtr CreateOperation(std::vector<ir::Value::unique_ptr>& values, ir::BlockPtr block,
                              OpType&& op, Args&&... args) {
-  constexpr bool is_jump = std::is_same_v<ir::Jump, OpType>;
-  constexpr bool is_conditional_jump = std::is_same_v<ir::ConditionalJump, OpType>;
-  if constexpr (is_jump || is_conditional_jump) {
-    ASSERT(block->operations.empty() || !block->operations.back()->IsJump(),
-           "Cannot append another jump to the end of the block");
-  }
-  if constexpr (is_jump) {
-    op.Next()->AddAncestor(block);
-  } else if constexpr (is_conditional_jump) {
-    op.NextTrue()->AddAncestor(block);
-    op.NextFalse()->AddAncestor(block);
-  }
   // Create a new value:
   const uint32_t name = values.empty() ? 0 : (values.back()->Name() + 1);
   std::unique_ptr<ir::Value> value = std::make_unique<ir::Value>(
@@ -499,7 +457,9 @@ ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right,
       return b;
     }
     if (direction == SearchDirection::Downwards) {
-      b->VisitSuccessors([&queue, color](ir::BlockPtr child) { queue.emplace_back(child, color); });
+      for (ir::BlockPtr child : b->descendants) {
+        queue.emplace_back(child, color);
+      }
     } else {
       for (ir::BlockPtr ancestor : b->ancestors) {
         queue.emplace_back(ancestor, color);
@@ -589,139 +549,6 @@ std::size_t FlatIr::ValuePrintWidth() const {
   return GetPrintWidth(highest_value_name);
 }
 
-struct ExprFromIrVisitor {
-  explicit ExprFromIrVisitor(const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression,
-                             const std::unordered_map<std::size_t, bool>* output_arg_exists)
-      : value_to_expression_(value_to_expression), output_arg_exists_(output_arg_exists) {}
-
-  Expr operator()(const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]) + MapValue(args[1]);
-  }
-
-  Expr operator()(const ir::Mul&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]) * MapValue(args[1]);
-  }
-
-  Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
-    ASSERT(output_arg_exists_, "Must have an output arg map to process `OutputRequired`");
-    return output_arg_exists_->at(output.arg_position) ? Constants::True : Constants::False;
-  }
-
-  Expr operator()(const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
-    return Power::Create(MapValue(args[0]), MapValue(args[1]));
-  }
-
-  Expr operator()(const ir::CallUnaryFunc& func, const std::vector<ir::ValuePtr>& args) const {
-    return CreateUnaryFunction(func.name, MapValue(args[0]));
-  }
-
-  Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]);
-  }
-
-  Expr operator()(const ir::Cond&, const std::vector<ir::ValuePtr>& args) const {
-    return where(MapValue(args[0]), MapValue(args[1]), MapValue(args[2]));
-  }
-
-  Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
-    ASSERT_EQUAL(2, args.size());
-
-    // We find to find the condition for this jump:
-    const ir::BlockPtr jump_block =
-        FindMergePoint(args.front()->Parent(), args.back()->Parent(), SearchDirection::Upwards);
-
-    // Determine the condition:
-    ASSERT(!jump_block->IsEmpty());
-
-    ir::ValuePtr jump_val = jump_block->operations.back();
-    ASSERT(jump_val->Is<ir::ConditionalJump>());
-
-    return where(MapValue(jump_val->Front()), MapValue(args[0]), MapValue(args[1]));
-  }
-
-  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
-    return Relational::Create(cmp.operation, MapValue(args[0]), MapValue(args[1]));
-  }
-
-  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]);
-  }
-
-  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
-    return load.expr;
-  }
-
-  Expr MapValue(const ir::ValuePtr& val) const {
-    const auto arg_it = value_to_expression_.find(val);
-    ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", val->Name());
-    return arg_it->second;
-  }
-
-  const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression_;
-  const std::unordered_map<std::size_t, bool>* output_arg_exists_;
-};
-
-std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> CreateOutputExpressionMap(
-    ir::BlockPtr starting_block, const std::unordered_map<std::size_t, bool>* output_arg_exists) {
-  std::unordered_map<ir::ValuePtr, Expr> value_to_expression{};
-  value_to_expression.reserve(200);
-
-  // Set of all visited blocks:
-  std::unordered_set<ir::BlockPtr> completed;
-
-  // Queue of pending blocks
-  std::deque<ir::BlockPtr> queue;
-  queue.emplace_back(starting_block);
-
-  // Map from key to ordered output expressions:
-  std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> output_map{};
-  output_map.reserve(5);
-
-  while (!queue.empty()) {
-    // de-queue the next block
-    const ir::BlockPtr block = queue.front();
-    queue.pop_front();
-
-    if (completed.count(block)) {
-      continue;
-    }
-    completed.insert(block);
-
-    const ExprFromIrVisitor visitor{value_to_expression, output_arg_exists};
-    for (const ir::ValuePtr& code : block->operations) {
-      // Visit the operation, and convert it to an expression.
-      // We don't do anything w/ jumps, which don't actually translate to an output value directly.
-      OverloadedVisit(
-          code->Op(), [](const ir::Jump&) {}, [](const ir::ConditionalJump&) {},
-          [&](const ir::Save& save) {
-            // Get all the output expressions for this output:
-            std::vector<Expr> output_expressions{};
-            output_expressions.reserve(code->NumOperands());
-            for (const ir::ValuePtr operand : code->Operands()) {
-              auto it = value_to_expression.find(operand);
-              ASSERT(it != value_to_expression.end(), "Missing value: {}", operand->Name());
-              output_expressions.push_back(it->second);
-            }
-            output_map.emplace(save.key, std::move(output_expressions));
-          },
-          [&](const auto& op) {
-            Expr expr = visitor(op, code->Operands());
-            value_to_expression.emplace(code, std::move(expr));
-          });
-    }
-
-    // If all the ancestors of a block are done, we wire it jump.
-    block->VisitSuccessors([&](ir::BlockPtr b) {
-      const bool valid = std::all_of(b->ancestors.begin(), b->ancestors.end(),
-                                     [&](auto blk) { return completed.count(blk) > 0; });
-      if (valid) {
-        queue.push_back(b);
-      }
-    });
-  }
-  return output_map;
-}
-
 // A hash-set of values:
 using ValueTable = std::unordered_set<ir::ValuePtr, ir::ValueHasher, ir::ValueEquality>;
 
@@ -742,22 +569,6 @@ inline void LocalValueNumbering(ir::BlockPtr block, ValueTable& table) {
   }
 }
 
-inline void SuperLocalValueNumbering(ir::BlockPtr block, const ValueTable& table,
-                                     std::deque<ir::BlockPtr>& queue,
-                                     std::unordered_set<ir::BlockPtr>& processed) {
-  ValueTable local_table = table;  // TODO: Get rid of copy. Should use scoped hash-set.
-  LocalValueNumbering(block, local_table);
-
-  block->VisitSuccessors([&](ir::BlockPtr b) {
-    if (b->ancestors.size() == 1) {
-      // We are the only ancestor of this block, so process it immediately.
-      SuperLocalValueNumbering(b, local_table, queue, processed);
-    } else if (!processed.count(b)) {
-      queue.push_back(b);
-    }
-  });
-}
-
 void FlatIr::EliminateDuplicates() {
   ValueTable table{};
   table.reserve(values_.size());
@@ -769,24 +580,25 @@ void FlatIr::StripUnusedValues() {
   // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
   ir::BlockPtr block{block_};
   std::reverse(block->operations.begin(), block->operations.end());
-  const auto new_end = std::remove_if(block->operations.begin(), block->operations.end(),
-                                      [&](const ir::ValuePtr& v) {
-                                        if (v->IsUnused() && !v->Is<ir::Save>() && !v->IsJump()) {
-                                          v->Remove();
-                                          return true;
-                                        }
-                                        return false;
-                                      });
+  const auto new_end =
+      std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::ValuePtr v) {
+        if (v->IsUnused()) {
+          v->Remove();
+          return true;
+        }
+        return false;
+      });
   block->operations.erase(new_end, block->operations.end());
   std::reverse(block->operations.begin(), block->operations.end());
 }
 
 inline bool IsCountableOperation(ir::ValuePtr v) {
-  return !v->IsJump() && !v->Is<ir::Save>() && !v->Is<ir::Load>() && !v->Is<ir::Copy>();
+  return !v->Is<ir::JumpCondition>() && !v->Is<ir::Save>() && !v->Is<ir::Load>() &&
+         !v->Is<ir::Copy>();
 }
 
 inline bool IsConditional(ir::ValuePtr v) {
-  return v->Is<ir::ConditionalJump>() || v->Is<ir::Cond>();
+  return v->Is<ir::JumpCondition>() || v->Is<ir::Cond>();
 }
 
 std::size_t FlatIr::NumOperations() const {
@@ -841,8 +653,8 @@ struct IrConverter {
         continue;
       }
 
-      ir::BlockPtr left_block_exit = output.CreateBlock();
-      CreateOperation(output.values_, left_block_exit, ir::Jump{next_block});
+      const ir::BlockPtr left_block_exit = output.CreateBlock();
+      left_block_exit->AddDescendant(next_block);
 
       // Insert block to evaluate if this output is required:
       const ir::BlockPtr jump_block = output.CreateBlock();
@@ -852,8 +664,9 @@ struct IrConverter {
           CreateOperation(output.values_, jump_block, ir::OutputRequired{save.key.arg_position});
 
       // Either we go into `left_block` and compute the arg outputs, or we skip to `next_block`:
-      CreateOperation(output.values_, jump_block, ir::ConditionalJump{left_block_exit, next_block},
-                      jump_condition);
+      CreateOperation(output.values_, jump_block, ir::JumpCondition{}, jump_condition);
+      jump_block->AddDescendant(left_block_exit);
+      jump_block->AddDescendant(next_block);
 
       std::deque<ir::ValuePtr> queued_left = {v};
       Process(std::move(queued_left), left_block_exit, deferred_values);
@@ -1017,18 +830,21 @@ struct IrConverter {
     // Save the ancestor vector before modifying it by creating jumps:
     const std::vector<ir::BlockPtr> previous_ancestors = output_block->ancestors;
 
-    CreateOperation(output.values_, left_block_tail, ir::Jump{output_block});
-    CreateOperation(output.values_, right_block_tail, ir::Jump{output_block});
+    left_block_tail->AddDescendant(output_block);
+    right_block_tail->AddDescendant(output_block);
 
     const ir::BlockPtr jump_block = output.CreateBlock();
-    const ir::ValuePtr jump =
-        CreateOperation(output.values_, jump_block,
-                        ir::ConditionalJump{left_block_tail, right_block_tail}, condition);
+    const ir::ValuePtr jump_condition =
+        CreateOperation(output.values_, jump_block, ir::JumpCondition{}, condition);
+    visited.insert(jump_condition);
+
+    jump_block->AddDescendant(left_block_tail);
+    jump_block->AddDescendant(right_block_tail);
 
     // Any blocks that jumped to `output_block` should now jump to `jump_block` instead:
     for (ir::BlockPtr ancestor : previous_ancestors) {
       // If this block is our ancestor, it must contain a jump at the end:
-      ASSERT(!ancestor->operations.empty() && ancestor->operations.back()->IsJump(),
+      ASSERT(!ancestor->operations.empty() && !ancestor->descendants.empty(),
              "Block cannot be empty, must contain a jump");
       ancestor->ReplaceDescendant(output_block, jump_block);
     }
@@ -1037,7 +853,6 @@ struct IrConverter {
     std::vector<ir::ValuePtr> process_later;
     Process(std::move(queue_left), left_block_tail, process_later);
     Process(std::move(queue_right), right_block_tail, process_later);
-    visited.insert(jump);
 
     // Queue the nodes we deferred
     queue.clear();

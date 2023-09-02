@@ -24,6 +24,7 @@ set(LIBRARY_NAME ${PROJECT_NAME})
 set(${LIBRARY_NAME}_SOURCES
     source/code_generation/ast.cc
     source/code_generation/ir_builder.cc
+    source/code_generation/expr_from_ir.cc
     source/constants.cc
     source/cpp_code_generator.cc
     source/derivative.cc

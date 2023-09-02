@@ -37,16 +37,16 @@ class Block {
   // Ancestor blocks (blocks that preceded this one).
   std::vector<BlockPtr> ancestors;
 
+  // Descendants of this block (blocks we jump to from this one).
+  std::vector<BlockPtr> descendants{};
+
   // True if the block has no operations.
   bool IsEmpty() const { return operations.empty(); }
 
   // True if this block has no ancestors (typically only true for the starting block).
   bool HasNoAncestors() const { return ancestors.empty(); }
 
-  // Run the provided callable object on any successor blocks that this block jumps to.
-  template <typename Callable>
-  void VisitSuccessors(Callable&& callable) const;
-
+  // Replace descendant `target` w/ `replacement`.
   void ReplaceDescendant(ir::BlockPtr target, ir::BlockPtr replacement);
 
   // Insert block into `ancestors` vector.
@@ -54,6 +54,9 @@ class Block {
 
   // Remove block from `ancestors` vector.
   void RemoveAncestor(BlockPtr b);
+
+  // Add `b` as a descendant, and add `this` as an ancestor of b.
+  void AddDescendant(ir::BlockPtr b);
 };
 
 // Determine the underlying numeric type of the provided value.
@@ -266,51 +269,17 @@ struct Save {
   OutputKey key;
 };
 
-// A deterministic jump that connects one block in the control flow graph to the next one.
-struct Jump {
-  constexpr static bool IsCommutative() { return false; }
-  constexpr static int NumValueOperands() { return 0; }
-  constexpr std::string_view ToString() const { return "jump"; }
-  std::size_t Hash() const { return next_->name; }
-  bool IsSame(const Jump& other) const { return next_ == other.next_; }
-
-  explicit Jump(BlockPtr block) : next_{block} {}
-
-  BlockPtr Next() const { return next_; }
-
- private:
-  BlockPtr next_;
-};
-
-// A conditional jump. The operand is a boolean value. If true, the first block will be traversed.
-// If the false, the second block will be traversed.
-struct ConditionalJump {
+struct JumpCondition {
   constexpr static bool IsCommutative() { return false; }
   constexpr static int NumValueOperands() { return 1; }
-  constexpr std::string_view ToString() const { return "jump"; }
-
-  // Hash takes account of which block we are jumping to.
-  std::size_t Hash() const { return HashCombine(next_true_->name, next_false_->name); }
-
-  // Blocks must match.
-  bool IsSame(const ConditionalJump& other) const {
-    return next_true_ == other.next_true_ && next_false_ == other.next_false_;
-  }
-
-  ConditionalJump(BlockPtr next_true, BlockPtr next_false)
-      : next_true_(next_true), next_false_(next_false) {}
-
-  BlockPtr NextTrue() const { return next_true_; }
-  BlockPtr NextFalse() const { return next_false_; }
-
- private:
-  BlockPtr next_true_;
-  BlockPtr next_false_;
+  constexpr std::string_view ToString() const { return "jcnd"; }
+  constexpr std::size_t Hash() const { return 0; }
+  constexpr bool IsSame(const JumpCondition&) const { return true; }
 };
 
 // Different operations are represented by a variant.
 using Operation = std::variant<Add, CallUnaryFunc, Cast, Compare, Cond, Copy, Load, Mul,
-                               OutputRequired, Pow, Phi, Save, Jump, ConditionalJump>;
+                               OutputRequired, Pow, Phi, Save, JumpCondition>;
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
@@ -349,20 +318,7 @@ class Value {
 
   // Set the parent pointer.
   void SetParent(ir::BlockPtr b) {
-    std::visit(
-        [&](const auto& op) {
-          using T = std::decay_t<decltype(op)>;
-          if constexpr (std::is_same_v<T, ir::Jump>) {
-            op.Next()->RemoveAncestor(parent_);
-            op.Next()->AddAncestor(b);
-          } else if constexpr (std::is_same_v<T, ir::ConditionalJump>) {
-            op.NextTrue()->RemoveAncestor(parent_);
-            op.NextTrue()->AddAncestor(b);
-            op.NextFalse()->RemoveAncestor(parent_);
-            op.NextFalse()->AddAncestor(b);
-          }
-        },
-        op_);
+    ASSERT(!std::holds_alternative<ir::JumpCondition>(op_));
     parent_ = b;
   }
 
@@ -380,14 +336,6 @@ class Value {
   const T& As() const {
     return std::get<T>(op_);
   }
-
-  template <typename T>
-  const T* MaybeAs() const {
-    return std::get_if<T>(&op_);
-  }
-
-  // True if this is a jump.
-  bool IsJump() const { return Is<ir::ConditionalJump>() || Is<ir::Jump>(); }
 
   // True if this is a phi function.
   bool IsPhi() const { return Is<ir::Phi>(); }
@@ -474,11 +422,6 @@ class Value {
     return std::equal(operands_.begin(), operands_.end(), other->operands_.begin());
   }
 
-  template <typename Predicate>
-  bool AllOperandsSatisfy(Predicate&& predicate) const {
-    return std::all_of(operands_.begin(), operands_.end(), std::forward<Predicate>(predicate));
-  }
-
   // True if all the consumers of this value satisfy the given predicate.
   template <typename Predicate>
   bool AllConsumersSatisfy(Predicate&& predicate) const {
@@ -493,14 +436,17 @@ class Value {
   void Remove();
 
   // True if there are no consumers of this value.
-  bool IsUnused() const { return !IsJump() && consumers_.empty(); }
+  bool IsUnused() const {
+    return consumers_.empty() && !Is<ir::Save>() && !Is<ir::JumpCondition>();
+  }
 
   // Determine the numeric type of the resulting expression.
+  // TODO: This should be determined during construction and not require recursion.
   NumericType DetermineType() const {
     return std::visit(
         [&](const auto& op) -> NumericType {
           using T = std::decay_t<decltype(op)>;
-          using OmittedTypes = TypeList<Save, Jump, ConditionalJump>;
+          using OmittedTypes = TypeList<Save, JumpCondition>;
           if constexpr (ContainsType<T, OmittedTypes>) {
             throw TypeError("Operation does not have a numeric type");
           } else if constexpr (T::NumValueOperands() == 0) {
@@ -613,22 +559,6 @@ struct ValueEquality {
     return a->OperandsMatch(b);
   }
 };
-
-/// Method implementations:
-
-template <typename Callable>
-void Block::VisitSuccessors(Callable&& callable) const {
-  if (operations.empty()) {
-    return;
-  }
-  OverloadedVisit(
-      operations.back()->Op(), [&](const ir::Jump& j) { callable(j.Next()); },
-      [&](const ir::ConditionalJump& j) {
-        callable(j.NextTrue());
-        callable(j.NextFalse());
-      },
-      [](const auto&) constexpr {});
-}
 
 }  // namespace math::ir
 
