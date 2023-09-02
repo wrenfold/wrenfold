@@ -43,15 +43,6 @@ struct StaticMatrix {
   // Access vector element.
   const Expr& operator[](index_t element) const { return expr_[element]; }
 
-  // Right multiply by anothe matrix w/ compile-time dimension checking.
-  //  template <index_t OtherCols>
-  //  StaticMatrix<Rows, OtherCols> operator*(const StaticMatrix<Cols, OtherCols>& other) const {
-  //    using namespace matrix_operator_overloads;
-  //    // TODO: Fix operators so that Mat * Mat produces Mat, always.
-  //    Expr m = expr_ * static_cast<const MatrixExpr&>(other);
-  //    return StaticMatrix<Rows, OtherCols>{static_cast<MatrixExpr>(m)};
-  //  }
-
   // Assign from MatrixExpr
   StaticMatrix& operator=(const MatrixExpr& other) {
     ASSERT_EQUAL(Rows, other.NumRows());

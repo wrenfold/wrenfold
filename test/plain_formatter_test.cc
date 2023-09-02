@@ -133,6 +133,11 @@ TEST(PlainFormatterTest, TestRelationals) {
   ASSERT_STR_EQ("x < (y <= z)", x < (z >= y));
 }
 
+TEST(PlainFormatterTest, TestConditionals) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+  ASSERT_STR_EQ("where(0 < x, 2 * y, cos(z))", where(x > 0, y * 2, cos(z)));
+}
+
 TEST(PlainFormatterTest, TestBuiltInFunctions) {
   const Expr x{"x"};
   const Expr y{"y"};

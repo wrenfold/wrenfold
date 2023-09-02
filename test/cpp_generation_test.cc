@@ -72,4 +72,13 @@ TEST(CppGenerationTest, TestHeaviside) {
   EXPECT_EQ(1.0, gen::heaviside(1.));
 }
 
+TEST(CppGenerationTest, TestExclusiveOr) {
+  constexpr auto inf = std::numeric_limits<double>::infinity();
+  EXPECT_EQ(0.0, gen::exclusive_or(0.5, 1.0));
+  EXPECT_EQ(0.0, gen::exclusive_or(-2.3, -0.5));
+  EXPECT_EQ(1.0, gen::exclusive_or(-1.0, 1.0));
+  EXPECT_EQ(1.0, gen::exclusive_or(1.0, -1.0));
+  EXPECT_EQ(1.0, gen::exclusive_or(std::nextafter(0.0, -inf), std::nextafter(0.0, inf)));
+}
+
 }  // namespace math

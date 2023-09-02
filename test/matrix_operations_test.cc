@@ -131,9 +131,9 @@ TEST(MatrixOperationsTest, TestAddition) {
   const Expr b{"b"};
   const Expr c{"c"};
   const Expr d{"d"};
-//  ASSERT_IDENTICAL(Vector(a + c, b - d, b * 2 + 5), Vector(a, -d, b) + Vector(c, b, b + 5));
+  ASSERT_IDENTICAL(Vector(a + c, b - d, b * 2 + 5), Vector(a, -d, b) + Vector(c, b, b + 5));
   ASSERT_IDENTICAL(Vector(0, 0, 0), Vector(a, b, c) + Vector(-a, -b, -c));
-//  ASSERT_IDENTICAL(Vector(a, b) + RowVector(c, d).Transpose(), Vector(a + c, b + d));
+  ASSERT_IDENTICAL(Vector(a, b) + RowVector(c, d).Transpose(), Vector(a + c, b + d));
 
   // Dimension mismatch:
   ASSERT_THROW(Vector(a, b) + RowVector(c, d), DimensionError);

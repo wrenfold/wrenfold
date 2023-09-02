@@ -42,10 +42,6 @@ struct AstBuilder {
     }
     operations_.reserve(operations_.capacity() + block->operations.size());
 
-    // Number of operations in the block, ignoring jump at the end:
-    //    const std::size_t len = block->operations.back()->IsJump() ? block->operations.size() - 1
-    //                                                               : block->operations.size();
-
     // We want to place any `ir::Save` operations at the end before conditional logic, so separate
     // those:
     std::vector<ir::ValuePtr> save_values{};
@@ -126,14 +122,10 @@ struct AstBuilder {
     if (!last_op->Is<ir::JumpCondition>()) {
       // just keep appending:
       ASSERT_EQUAL(1, block->descendants.size());
-      //      ir::BlockPtr next = last_op->As<ir::Jump>().Next();
       ProcessBlock(block->descendants[0]);
     } else {
       ASSERT(last_op->Is<ir::JumpCondition>());
       ASSERT_EQUAL(2, block->descendants.size());
-
-      // For conditionals, we need to determine the
-      //      const ir::ConditionalJump& jump = last_op->As<ir::ConditionalJump>();
 
       // Find phi functions:
       const ir::BlockPtr merge_point =

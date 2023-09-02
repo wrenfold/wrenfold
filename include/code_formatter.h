@@ -51,13 +51,11 @@ class CodeFormatter {
     std::string appended{};
     std::swap(output_, appended);
     Append(open);
-    //    indentation_ += indent;
     callable();
     // Restore appended -> output_
     std::swap(appended, output_);
     // Copy appended into output_, adding indentation as required
     AppendWithIndentation(appended, indent);
-    //    indentation_ -= indent;
     Append(close);
   }
 
