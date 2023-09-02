@@ -151,11 +151,7 @@ void Value::Remove() {
 struct PairCountVisitor {
   using ReturnType = void;
 
-  // Keys are either single expressions, or pairs of expressions.
-  using MapKey = std::variant<Expr, std::pair<Expr, Expr>>;
-
-  struct KeyHash {
-    std::size_t operator()(const Expr& expr) const { return HashExpression(expr); }
+  struct PairHash {
     std::size_t operator()(const std::pair<Expr, Expr>& pair) const {
       // Ignore the order of pairs:
       const std::size_t seed_a = HashExpression(pair.first);
@@ -166,34 +162,22 @@ struct PairCountVisitor {
         return HashCombine(seed_b, seed_a);
       }
     }
-    std::size_t operator()(const MapKey& key) const { return std::visit(*this, key); }
   };
 
-  struct KeyEquality {
-    bool operator()(const Expr& a, const Expr& b) const { return a.IsIdenticalTo(b); }
+  struct PairEquality {
     bool operator()(const std::pair<Expr, Expr>& a, const std::pair<Expr, Expr>& b) const {
       // Order independent:
       return (a.first.IsIdenticalTo(b.first) && a.second.IsIdenticalTo(b.second)) ||
              (a.first.IsIdenticalTo(b.second) && a.second.IsIdenticalTo(b.first));
     }
-    bool operator()(const MapKey& a, const MapKey& b) const {
-      return std::visit(
-          [this](const auto& a, const auto& b) {
-            if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
-              return this->operator()(a, b);
-            } else {
-              return false;
-            }
-          },
-          a, b);
-    }
   };
-
-  using MapType = std::unordered_map<MapKey, std::size_t, KeyHash, KeyEquality>;
 
   // Record counts of single `Expr` children, and every pair-wise combination of children.
   template <typename Derived>
-  void RecordCounts(const NAryOp<Derived>& operation, MapType& count_table) {
+  void RecordCounts(const NAryOp<Derived>& operation,
+                    std::unordered_map<Expr, std::size_t, ExprHash, ExprEquality>& count_table,
+                    std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
+                        pair_count_table) {
     for (const Expr& operand : operation) {
       count_table[operand]++;
       Visit(operand, *this);
@@ -201,7 +185,7 @@ struct PairCountVisitor {
     // generate pairs of expressions:
     for (auto i = operation.begin(); i != operation.end(); ++i) {
       for (auto j = std::next(i); j != operation.end(); ++j) {
-        auto [it, was_inserted] = count_table.emplace(std::make_pair(*i, *j), 1);
+        auto [it, was_inserted] = pair_count_table.emplace(std::make_pair(*i, *j), 1);
         if (!was_inserted) {
           it->second += 1;
         }
@@ -209,8 +193,10 @@ struct PairCountVisitor {
     }
   }
 
-  void operator()(const Multiplication& mul) { RecordCounts(mul, mul_counts); }
-  void operator()(const Addition& add) { RecordCounts(add, add_counts); }
+  void operator()(const Multiplication& mul) {
+    RecordCounts(mul, mul_element_counts_, mul_pair_counts_);
+  }
+  void operator()(const Addition& add) { RecordCounts(add, add_element_counts_, add_pair_counts_); }
 
   // For every other type, just recurse into the children:
   template <typename T>
@@ -221,8 +207,11 @@ struct PairCountVisitor {
     }
   }
 
-  MapType mul_counts;
-  MapType add_counts;
+  std::unordered_map<Expr, std::size_t, ExprHash, ExprEquality> mul_element_counts_;
+  std::unordered_map<Expr, std::size_t, ExprHash, ExprEquality> add_element_counts_;
+
+  std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> mul_pair_counts_;
+  std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> add_pair_counts_;
 };
 
 template <typename T>
@@ -302,25 +291,27 @@ struct IRFormVisitor {
   operator()(const T& op, const Expr&) {
     // Put the thing w/ the highest count in the first cell:
     std::vector<Expr> expressions{op.begin(), op.end()};
-    std::nth_element(expressions.begin(), expressions.begin(), expressions.end(),
-                     [&](const Expr& a, const Expr& b) {
-                       if constexpr (std::is_same_v<T, Multiplication>) {
-                         return pair_counts.mul_counts.at(a) > pair_counts.mul_counts.at(b);
-                       } else {
-                         return pair_counts.add_counts.at(a) > pair_counts.add_counts.at(b);
-                       }
-                     });
+    std::nth_element(
+        expressions.begin(), expressions.begin(), expressions.end(),
+        [&](const Expr& a, const Expr& b) {
+          if constexpr (std::is_same_v<T, Multiplication>) {
+            return pair_counts.mul_element_counts_.at(a) > pair_counts.mul_element_counts_.at(b);
+          } else {
+            return pair_counts.add_element_counts_.at(a) > pair_counts.add_element_counts_.at(b);
+          }
+        });
 
     // then pick the rest to obtain max pair count
+    // TODO: There must be a more efficient way to do this...
     for (auto it = std::next(expressions.begin()); it != expressions.end(); ++it) {
       const auto prev = std::prev(it);
       std::nth_element(it, it, expressions.end(), [&](const Expr& a, const Expr& b) {
         if constexpr (std::is_same_v<T, Multiplication>) {
-          return pair_counts.mul_counts.at(std::make_pair(*prev, a)) >
-                 pair_counts.mul_counts.at(std::make_pair(*prev, b));
+          return pair_counts.mul_pair_counts_.at(std::make_pair(*prev, a)) >
+                 pair_counts.mul_pair_counts_.at(std::make_pair(*prev, b));
         } else {
-          return pair_counts.add_counts.at(std::make_pair(*prev, a)) >
-                 pair_counts.add_counts.at(std::make_pair(*prev, b));
+          return pair_counts.add_pair_counts_.at(std::make_pair(*prev, a)) >
+                 pair_counts.add_pair_counts_.at(std::make_pair(*prev, b));
         }
       });
     }

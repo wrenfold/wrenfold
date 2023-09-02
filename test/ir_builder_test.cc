@@ -262,8 +262,6 @@ TEST(IrTest, TestConditionals4) {
   ASSERT_EQ(20, output_ir.NumOperations()) << output_ir;
   ASSERT_EQ(3, output_ir.NumConditionals()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
-
-  fmt::print("{}\n", output_ir.ToString());
 }
 
 TEST(IrTest, TestConditionals5) {
