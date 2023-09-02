@@ -519,8 +519,6 @@ inline constexpr std::size_t GetPrintWidth(std::size_t num_assignments) {
   return width;
 }
 
-inline std::string BlockName(const ir::Block& b) { return fmt::format("block_{}", b.name); }
-
 std::string FlatIr::ToString() const {
   const std::size_t width = ValuePrintWidth();
   std::string output{};
@@ -913,17 +911,28 @@ OutputIr::OutputIr(math::FlatIr&& input) {
                 values_.end());
 }
 
+struct BlockNameFormatter {
+  uint32_t name;
+};
+
 std::string OutputIr::ToString() const {
   const std::size_t width = ValuePrintWidth();
   std::string output{};
 
+  // size of the left column, so we can align things
+  const std::size_t left_column_width = fmt::formatted_size("  v{:0>{}} <- ", 0, width);
+
   for (const std::unique_ptr<ir::Block>& block : blocks_) {
-    fmt::format_to(std::back_inserter(output), "{}:", BlockName(*block));
+    fmt::format_to(std::back_inserter(output), "{}:", ir::BlockPtr{block});
     output += "\n";
 
     for (const ir::ValuePtr& code : block->operations) {
       // Print the value name:
-      fmt::format_to(std::back_inserter(output), "  v{:0>{}} <- ", code->Name(), width);
+      if (code->NumConsumers() > 0) {
+        fmt::format_to(std::back_inserter(output), "  v{:0>{}} <- ", code->Name(), width);
+      } else {
+        output.append(left_column_width, ' ');
+      }
 
       // Print the instruction name:
       constexpr int OperationWidth = 4;
@@ -932,6 +941,11 @@ std::string OutputIr::ToString() const {
                      OperationWidth);
       FormatOpArgs(output, code->Op(), code->Operands(), width);
       output += "\n";
+    }
+
+    if (!block->descendants.empty()) {
+      output.append(left_column_width, ' ');
+      fmt::format_to(std::back_inserter(output), "jump {}\n", fmt::join(block->descendants, ", "));
     }
   }
   if (!output.empty()) {
@@ -968,3 +982,14 @@ ir::BlockPtr OutputIr::CreateBlock() {
 }
 
 }  // namespace math
+
+// Formatter for pointer to Block
+template <>
+struct fmt::formatter<math::ir::BlockPtr, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::ir::BlockPtr x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "block_{}", x->name);
+  }
+};
