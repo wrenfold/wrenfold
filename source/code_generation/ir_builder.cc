@@ -202,9 +202,7 @@ struct PairCountVisitor {
   template <typename T>
   std::enable_if_t<!std::is_same_v<T, Multiplication> && !std::is_same_v<T, Addition>> operator()(
       const T& expr) {
-    if constexpr (!T::IsLeafStatic()) {
-      IterateChildren(expr, [this](const Expr& expr) { Visit(expr, *this); });
-    }
+    IterateChildren(expr, [this](const Expr& expr) { Visit(expr, *this); });
   }
 
   std::unordered_map<Expr, std::size_t, ExprHash, ExprEquality> mul_element_counts_;

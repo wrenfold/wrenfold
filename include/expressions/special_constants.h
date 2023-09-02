@@ -6,7 +6,7 @@
 namespace math {
 
 // A symbolic constant, like pi or euler's number.
-class Constant : public ExpressionImpl<Constant> {
+class Constant {
  public:
   static constexpr std::string_view NameStr = "Constant";
   static constexpr bool IsLeafNode = true;
@@ -27,7 +27,7 @@ class Constant : public ExpressionImpl<Constant> {
 // Complex infinity.
 // TODO: Should this store an enum to support different types of infinities?
 // For example, complex, +real, -real, etc.
-class Infinity : public ExpressionImpl<Infinity> {
+class Infinity {
  public:
   static constexpr std::string_view NameStr = "Infinity";
   static constexpr bool IsLeafNode = true;

@@ -106,12 +106,6 @@ class Expr {
 static_assert(std::is_nothrow_move_constructible_v<Expr> && std::is_nothrow_move_assignable_v<Expr>,
               "Should be movable");
 
-// Cast expression to const pointer of the specified type.
-template <typename T>
-const T* CastPtr(const Expr& x) {
-  return x.impl_->IsType<T>() ? static_cast<const T*>(x.impl_.get()) : nullptr;
-}
-
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   stream << x.ToString();
@@ -156,12 +150,6 @@ namespace custom_literals {
 inline Expr operator"" _s(unsigned long long int arg) { return Expr{arg}; }
 inline Expr operator"" _s(long double arg) { return Expr{arg}; }
 }  // namespace custom_literals
-
-// Create an `Expr` with underlying type `T` and constructor args `Args`.
-template <typename T, typename... Args>
-Expr MakeExpr(Args&&... args) {
-  return Expr{std::make_shared<const T>(std::forward<Args>(args)...)};
-}
 
 // Create a tuple of `Expr` from string arguments.
 template <typename... Args>

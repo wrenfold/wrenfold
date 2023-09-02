@@ -132,7 +132,7 @@ class DiffVisitor {
   Expr operator()(const Rational&) const { return Constants::Zero; }
 
   Expr operator()(const Relational& relational) const {
-    throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", relational.TypeName(),
+    throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", Relational::NameStr,
                     relational.Left().ToString(), relational.OperationString(),
                     relational.Right().ToString());
   }

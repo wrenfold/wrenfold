@@ -12,7 +12,7 @@ namespace math {
 
 // A matrix of expressions.
 // Stores a 2D grid of sub-expressions in row-major order.
-class Matrix : public ExpressionImpl<Matrix> {
+class Matrix {
  public:
   static constexpr std::string_view NameStr = "Matrix";
   static constexpr bool IsLeafNode = false;

@@ -5,7 +5,7 @@
 
 namespace math {
 
-class Conditional : public ExpressionImpl<Conditional> {
+class Conditional {
  public:
   static constexpr std::string_view NameStr = "Conditional";
   static constexpr bool IsLeafNode = false;

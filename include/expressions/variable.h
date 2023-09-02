@@ -5,10 +5,8 @@
 
 namespace math {
 
-/**
- * A variable w/ a string name.
- */
-class Variable : public ExpressionImpl<Variable> {
+// A variable with a string name.
+class Variable {
  public:
   static constexpr std::string_view NameStr = "Variable";
   static constexpr bool IsLeafNode = true;

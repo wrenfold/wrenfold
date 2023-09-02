@@ -6,7 +6,7 @@
 namespace math {
 
 // Power operation: base^exponent
-class Power : public ExpressionImpl<Power> {
+class Power {
  public:
   static constexpr std::string_view NameStr = "Power";
   static constexpr bool IsLeafNode = false;

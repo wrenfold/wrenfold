@@ -2,23 +2,17 @@
 #pragma once
 #include "assertions.h"
 #include "constants.h"
-#include "expression_impl.h"
 #include "functions.h"
 #include "hashing.h"
 
 namespace math {
-
-template <typename Derived>
-class BuiltInFunctionBase : public ExpressionImpl<Derived> {
- public:
-};
 
 // Fwd declare.
 Expr CreateUnaryFunction(const UnaryFunctionName name, const Expr& arg);
 
 // Store a unary function. Built-in unary functions `f(x)` are described by an enum
 // indicating what `f` is.
-class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
+class UnaryFunction {
  public:
   static constexpr std::string_view NameStr = "UnaryFunction";
   static constexpr bool IsLeafNode = false;

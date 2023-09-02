@@ -7,7 +7,7 @@ namespace math {
 
 // A type that is substituted into user-provided expressions during code-generation.
 // Typically, the user does not create these directly.
-class FunctionArgument : public ExpressionImpl<FunctionArgument> {
+class FunctionArgument {
  public:
   constexpr static std::string_view NameStr = "FunctionArgument";
   constexpr static bool IsLeafNode = true;

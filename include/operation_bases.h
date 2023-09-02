@@ -10,7 +10,7 @@ namespace math {
 
 // Operation that has `N` arguments.
 template <typename Derived>
-class NAryOp : public ExpressionImpl<Derived> {
+class NAryOp {
  public:
   using ContainerType = std::vector<Expr>;
   static constexpr bool IsLeafNode = false;

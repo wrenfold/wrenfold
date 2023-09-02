@@ -16,7 +16,7 @@ class Float;
 class Rational;
 
 // An integral constant.
-class Integer : public ExpressionImpl<Integer> {
+class Integer {
  public:
   static constexpr std::string_view NameStr = "Integer";
   static constexpr bool IsLeafNode = true;
@@ -50,7 +50,7 @@ class Integer : public ExpressionImpl<Integer> {
 };
 
 // A rational value (in form numerator / denominator).
-class Rational : public ExpressionImpl<Rational> {
+class Rational {
  public:
   static constexpr std::string_view NameStr = "Rational";
   static constexpr bool IsLeafNode = true;
@@ -128,7 +128,7 @@ class Rational : public ExpressionImpl<Rational> {
 };
 
 // A floating point constant.
-class Float : public ExpressionImpl<Float> {
+class Float {
  public:
   static constexpr std::string_view NameStr = "Float";
   static constexpr bool IsLeafNode = true;

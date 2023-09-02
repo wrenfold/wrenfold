@@ -23,8 +23,9 @@ class ExpressionConcept {
   // Check if the underlying derived type is one of `... Ts`.
   template <typename... Ts>
   bool IsType() const {
-    static_assert((ContainsType<Ts, ApprovedTypeList> && ...), "Ts is not a valid expression type");
-    return (TypeMatchesIndex(IndexOfType<Ts, ApprovedTypeList>::Value) || ...);
+    static_assert((ContainsType<Ts, ExpressionTypeList> && ...),
+                  "Ts is not a valid expression type");
+    return (TypeMatchesIndex(IndexOfType<Ts, ExpressionTypeList>::Value) || ...);
   }
 
  protected:

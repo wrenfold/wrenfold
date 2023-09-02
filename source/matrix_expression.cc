@@ -43,7 +43,9 @@ MatrixExpr MatrixExpr::Transpose() const {
 
 const Matrix& MatrixExpr::AsMatrix() const {
   // Cast is safe since the constructor checked this condition.
-  return static_cast<const Matrix&>(*expr_.Impl());
+  const Matrix* m = CastPtr<Matrix>(expr_);
+  ASSERT(m != nullptr);
+  return *m;
 }
 
 }  // namespace math

@@ -6,7 +6,7 @@
 namespace math {
 
 // A relational expression for equalities and inequalities.
-class Relational : public ExpressionImpl<Relational> {
+class Relational {
  public:
   static constexpr std::string_view NameStr = "Relational";
   static constexpr bool IsLeafNode = false;
