@@ -25,6 +25,11 @@ class Addition : public NAryOp<Addition> {
   static Expr FromOperands(const std::vector<Expr>& args);
 };
 
+template <>
+struct Hash<Addition> {
+  std::size_t operator()(const Addition& add) const { return HashAll(0, add.begin(), add.end()); }
+};
+
 // Helper object used to execute multiplications.
 struct AdditionParts {
   AdditionParts() = default;
@@ -38,7 +43,7 @@ struct AdditionParts {
   // Floating point coefficient:
   std::optional<Float> float_term{};
   // Map from multiplicand to coefficient.
-  std::unordered_map<Expr, Expr, ExprHash, ExprEquality> terms{};
+  std::unordered_map<Expr, Expr, Hash<Expr>, ExprsIdentical> terms{};
 
   // Update the internal representation by adding `arg`.
   void Add(const Expr& arg);

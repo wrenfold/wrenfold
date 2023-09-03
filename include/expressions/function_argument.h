@@ -19,8 +19,8 @@ class FunctionArgument {
     return arg_index_ == other.arg_index_ && element_index_ == other.element_index_;
   }
 
-  std::size_t ArgIndex() const { return arg_index_; }
-  std::size_t ElementIndex() const { return element_index_; }
+  constexpr std::size_t ArgIndex() const { return arg_index_; }
+  constexpr std::size_t ElementIndex() const { return element_index_; }
 
   // Create `Expr` w/ the specified indices.
   static Expr Create(std::size_t arg_index, std::size_t element_index) {
@@ -33,6 +33,13 @@ class FunctionArgument {
  private:
   std::size_t arg_index_;
   std::size_t element_index_;
+};
+
+template <>
+struct Hash<FunctionArgument> {
+  constexpr std::size_t operator()(const FunctionArgument& c) const {
+    return HashCombine(c.ArgIndex(), c.ElementIndex());
+  }
 };
 
 }  // namespace math

@@ -39,7 +39,6 @@ set(${LIBRARY_NAME}_SOURCES
     source/expressions/power.cc
     source/expressions/relational.cc
     source/functions.cc
-    source/hashing.cc
     source/matrix_expression.cc
     source/matrix_functions.cc
     source/ordering.cc

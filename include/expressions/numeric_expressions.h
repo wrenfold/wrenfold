@@ -75,10 +75,10 @@ class Rational {
   explicit operator Float() const;
 
   // True if numerator equals denominator.
-  bool IsOne() const { return n_ == d_; }
+  constexpr bool IsOne() const { return n_ == d_; }
 
   // True if numerator is zero.
-  bool IsZero() const { return n_ == 0; }
+  constexpr bool IsZero() const { return n_ == 0; }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
@@ -225,9 +225,8 @@ inline Rational::operator Float() const {
 // Hashing of rationals.
 template <>
 struct Hash<Rational> {
-  constexpr std::size_t operator()(const Rational& r) const {
-    using Hasher = Hash<Rational::IntegralType>;
-    return HashCombine(Hasher{}(r.Numerator()), Hasher{}(r.Denominator()));
+  std::size_t operator()(const Rational& r) const {
+    return HashArgs(0, r.Numerator(), r.Denominator());
   }
 };
 

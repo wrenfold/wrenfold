@@ -20,10 +20,10 @@ class UnaryFunction {
   UnaryFunction(UnaryFunctionName func, Expr arg) : func_(func), arg_(std::move(arg)) {}
 
   // Get the function name.
-  const UnaryFunctionName& Func() const { return func_; }
+  constexpr const UnaryFunctionName& Func() const { return func_; }
 
   // Get name as a string.
-  std::string_view Name() const { return ToString(func_); }
+  constexpr std::string_view Name() const { return ToString(func_); }
 
   // Get the function argument.
   const Expr& Arg() const { return arg_; }
@@ -48,6 +48,13 @@ class UnaryFunction {
  protected:
   UnaryFunctionName func_;
   Expr arg_;
+};
+
+template <>
+struct Hash<UnaryFunction> {
+  std::size_t operator()(const UnaryFunction& func) const {
+    return HashArgs(static_cast<std::size_t>(func.Func()), func.Arg());
+  }
 };
 
 #if 0

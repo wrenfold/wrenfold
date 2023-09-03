@@ -53,6 +53,9 @@ class Expr {
   // Convert to string.
   std::string ToString() const;
 
+  // Get the hash of the expression.
+  std::size_t Hash() const { return impl_->GetHash(); }
+
   // Negation operator.
   Expr operator-() const;
 
@@ -144,6 +147,11 @@ struct ExpressionOrderPredicate {
 // Get operation precedence (order of operations).
 // Implemented in expression.cc
 Precedence GetPrecedence(const Expr& expr);
+
+// Check for equality. For use in template parameter lists for maps and sets.
+struct ExprsIdentical {
+  bool operator()(const Expr& a, const Expr& b) const { return a.IsIdenticalTo(b); }
+};
 
 // Custom literal suffix support.
 namespace custom_literals {

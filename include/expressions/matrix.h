@@ -76,8 +76,8 @@ class Matrix {
   void MultiplyByScalarInPlace(const Expr& arg);
 
   // Dimensions of the matrix.
-  index_t NumRows() const { return rows_; }
-  index_t NumCols() const { return cols_; }
+  constexpr index_t NumRows() const { return rows_; }
+  constexpr index_t NumCols() const { return cols_; }
 
   // Total size (product of elements).
   std::size_t Size() const { return data_.size(); }
@@ -90,7 +90,9 @@ class Matrix {
   auto end() const { return data_.end(); }
 
   // Compute flattened row-major index.
-  std::size_t Index(index_t i, index_t j) const { return static_cast<std::size_t>(i * cols_ + j); }
+  constexpr std::size_t Index(index_t i, index_t j) const {
+    return static_cast<std::size_t>(i * cols_ + j);
+  }
 
  private:
   index_t rows_;
@@ -138,5 +140,14 @@ inline void IterMatrix(index_t rows, index_t cols, Callable&& callable) {
     }
   }
 }
+
+template <>
+struct Hash<Matrix> {
+  std::size_t operator()(const Matrix& m) const {
+    const std::size_t seed =
+        HashCombine(std::hash<std::size_t>{}(m.NumRows()), std::hash<std::size_t>{}(m.NumCols()));
+    return HashAll(seed, m.begin(), m.end());
+  }
+};
 
 }  // namespace math

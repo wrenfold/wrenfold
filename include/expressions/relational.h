@@ -36,7 +36,7 @@ class Relational {
   // Create a relational operation.
   static Expr Create(RelationalOperation operation, Expr left, Expr right);
 
-  RelationalOperation Operation() const { return operation_; }
+  constexpr RelationalOperation Operation() const { return operation_; }
   const Expr& Left() const { return left_; }
   const Expr& Right() const { return right_; }
 
@@ -48,6 +48,13 @@ class Relational {
   RelationalOperation operation_;
   Expr left_;
   Expr right_;
+};
+
+template <>
+struct Hash<Relational> {
+  std::size_t operator()(const Relational& rel) const {
+    return HashArgs(static_cast<std::size_t>(rel.Operation()), rel.Left(), rel.Right());
+  }
 };
 
 }  // namespace math

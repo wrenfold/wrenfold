@@ -12,13 +12,13 @@ class Constant {
   static constexpr bool IsLeafNode = true;
 
   // ConstructMatrix with name.
-  explicit Constant(SymbolicConstants Name) : name_(Name) {}
+  explicit constexpr Constant(SymbolicConstants name) : name_(name) {}
 
   // Check if symbolic constants are the same.
-  bool IsIdenticalTo(const Constant& other) const { return name_ == other.name_; }
+  constexpr bool IsIdenticalTo(const Constant& other) const { return name_ == other.name_; }
 
   // Access name.
-  SymbolicConstants GetName() const { return name_; }
+  constexpr SymbolicConstants GetName() const { return name_; }
 
  protected:
   SymbolicConstants name_;
@@ -53,7 +53,24 @@ inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants v
 }
 
 // Order constants by their enum values.
-inline bool operator<(const Constant& a, const Constant& b) { return a.GetName() < b.GetName(); }
+inline constexpr bool operator<(const Constant& a, const Constant& b) {
+  return a.GetName() < b.GetName();
+}
+
+template <>
+struct Hash<Constant> {
+  constexpr std::size_t operator()(const Constant& c) const {
+    return static_cast<std::size_t>(c.GetName());
+  }
+};
+
+template <>
+struct Hash<Infinity> {
+  constexpr std::size_t operator()(const Infinity&) const {
+    constexpr auto inf_hash = HashString("inf");
+    return inf_hash;
+  }
+};
 
 }  // namespace math
 

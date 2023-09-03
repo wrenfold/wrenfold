@@ -1,5 +1,6 @@
 #pragma once
 #include "expression.h"
+#include "hashing.h"
 #include "visitor_base.h"
 
 namespace math {
@@ -12,7 +13,8 @@ class ExpressionImpl final : public ExpressionConcept {
   ~ExpressionImpl() override = default;
 
   // Construct w/ concrete inner type.
-  explicit ExpressionImpl(ExpressionType&& impl) : implementation_(std::move(impl)) {}
+  explicit ExpressionImpl(ExpressionType&& impl)
+      : ExpressionConcept(ComputeHash(impl)), implementation_(std::move(impl)) {}
 
   // Cast to the concrete expression type. type.
   const ExpressionType& GetImplementation() const { return implementation_; }
@@ -43,6 +45,12 @@ class ExpressionImpl final : public ExpressionConcept {
     static_assert(ContainsType<ExpressionType, ExpressionTypeList>,
                   "ExpressionType is not a valid expression type");
     return IndexOfType<ExpressionType, ExpressionTypeList>::Value == index;
+  }
+
+  // Compute the hash of the underlying expression, and hash it again w/ the index of the type.
+  static std::size_t ComputeHash(const ExpressionType& impl) {
+    return HashCombine(IndexOfType<ExpressionType, ExpressionTypeList>::Value,
+                       Hash<ExpressionType>{}(impl));
   }
 
   ExpressionType implementation_;

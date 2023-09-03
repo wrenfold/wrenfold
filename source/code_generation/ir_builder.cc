@@ -154,8 +154,8 @@ struct PairCountVisitor {
   struct PairHash {
     std::size_t operator()(const std::pair<Expr, Expr>& pair) const {
       // Ignore the order of pairs:
-      const std::size_t seed_a = HashExpression(pair.first);
-      const std::size_t seed_b = HashExpression(pair.second);
+      const std::size_t seed_a = pair.first.Hash();
+      const std::size_t seed_b = pair.second.Hash();
       if (seed_a < seed_b) {
         return HashCombine(seed_a, seed_b);
       } else {
@@ -175,7 +175,7 @@ struct PairCountVisitor {
   // Record counts of single `Expr` children, and every pair-wise combination of children.
   template <typename Derived>
   void RecordCounts(const NAryOp<Derived>& operation,
-                    std::unordered_map<Expr, std::size_t, ExprHash, ExprEquality>& count_table,
+                    std::unordered_map<Expr, std::size_t, Hash<Expr>, ExprsIdentical>& count_table,
                     std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
                         pair_count_table) {
     for (const Expr& operand : operation) {
@@ -205,8 +205,8 @@ struct PairCountVisitor {
     IterateChildren(expr, [this](const Expr& expr) { Visit(expr, *this); });
   }
 
-  std::unordered_map<Expr, std::size_t, ExprHash, ExprEquality> mul_element_counts_;
-  std::unordered_map<Expr, std::size_t, ExprHash, ExprEquality> add_element_counts_;
+  std::unordered_map<Expr, std::size_t, Hash<Expr>, ExprsIdentical> mul_element_counts_;
+  std::unordered_map<Expr, std::size_t, Hash<Expr>, ExprsIdentical> add_element_counts_;
 
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> mul_pair_counts_;
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> add_pair_counts_;
@@ -419,7 +419,7 @@ struct IRFormVisitor {
  private:
   FlatIr& builder_;
 
-  std::unordered_map<Expr, ir::ValuePtr, ExprHash, ExprEquality> computed_values_;
+  std::unordered_map<Expr, ir::ValuePtr, Hash<Expr>, ExprsIdentical> computed_values_;
 
   const ir::PairCountVisitor& pair_counts;
 };

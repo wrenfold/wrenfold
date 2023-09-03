@@ -48,4 +48,11 @@ class Conditional {
   Expr else_branch_;
 };
 
+template <>
+struct Hash<Conditional> {
+  std::size_t operator()(const Conditional& c) const {
+    return HashArgs(0, c.Condition(), c.IfBranch(), c.ElseBranch());
+  }
+};
+
 }  // namespace math

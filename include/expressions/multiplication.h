@@ -34,6 +34,13 @@ class Multiplication : public NAryOp<Multiplication> {
   static Expr CanonicalizeArguments(std::vector<Expr>& args);
 };
 
+template <>
+struct Hash<Multiplication> {
+  std::size_t operator()(const Multiplication& mul) const {
+    return HashAll(0, mul.begin(), mul.end());
+  }
+};
+
 // Convert an expression into a coefficient and a multiplicand. This operation checks if
 // expr is a multiplication. If it is, we extract all numeric constants and return them
 // as the first value. The remaining terms form a new multiplication, which is returned as
@@ -53,7 +60,7 @@ struct MultiplicationParts {
   // Floating point coefficient:
   std::optional<Float> float_coeff{};
   // Map from base to exponent.
-  std::unordered_map<Expr, Expr, ExprHash, ExprEquality> terms{};
+  std::unordered_map<Expr, Expr, Hash<Expr>, ExprsIdentical> terms{};
 
   // Update the internal product by multiplying on `arg`.
   void Multiply(const Expr& arg, bool factorize_integers = false);
