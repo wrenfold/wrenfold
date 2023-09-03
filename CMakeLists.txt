@@ -57,7 +57,16 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Adjust warnings
 if(MSVC)
-  set(MATH_COMPILATION_FLAGS /W4 /WX /D_USE_MATH_DEFINES /bigobj /wd4244 /EHs)
+  # We turn off C4702 (unreachable code) because constexpr blocks trigger it
+  # incorrectly.
+  set(MATH_COMPILATION_FLAGS
+      /W4
+      /WX
+      /D_USE_MATH_DEFINES
+      /bigobj
+      /wd4244
+      /wd4702
+      /EHs)
 else()
   set(MATH_COMPILATION_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
   if(WIN32)
@@ -98,6 +107,7 @@ install(
 # Add tests, if not building from scikit-build-core
 if(NOT DEFINED SKBUILD_PROJECT_NAME)
   add_subdirectory(test)
+  add_subdirectory(benchmarks)
 endif()
 
 # Add pybind11 wrapper.

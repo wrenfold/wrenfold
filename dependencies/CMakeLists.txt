@@ -25,6 +25,10 @@ function(add_google_benchmark)
   set(BENCHMARK_ENABLE_INSTALL
       OFF
       CACHE BOOL "" FORCE)
+  if(MSVC)
+    # Turn off warning about failure to specify /EHs
+    add_compile_options(/wd4530)
+  endif()
   add_subdirectory(benchmark)
 endfunction()
 add_google_benchmark()
