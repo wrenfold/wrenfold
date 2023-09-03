@@ -65,12 +65,19 @@ struct VisitorWithCapturedResult final
   // correctly fails to compile when the user neglects to implement a type.
   template <typename Argument>
   std::enable_if_t<HasCallOperator<VisitorType, Argument>, void> operator()(const Argument& arg) {
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4702)  //  incorrectly labeled unreachable code
+#endif
     if constexpr (!std::is_same_v<ReturnType, Void>) {
       result = impl_(arg);
     } else {
       impl_(arg);
       result = Void{};
     }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
   }
 
   // Move the result out of the visitor and return it.
