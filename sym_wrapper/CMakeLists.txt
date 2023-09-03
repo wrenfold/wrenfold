@@ -19,6 +19,7 @@ function(add_wrapper_module)
   # Depend on the static library
   add_dependencies(${MODULE_NAME} mathcpp)
   target_link_libraries(${MODULE_NAME} PRIVATE mathcpp)
+  target_compile_options(${MODULE_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
 
   # Copy from Debug or Release into the current binary dir. We need to do this
   # because msbuild puts libraries in sub-directories, which breaks our ability
