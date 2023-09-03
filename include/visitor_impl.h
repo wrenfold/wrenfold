@@ -117,10 +117,10 @@ template <typename VisitorType>
 auto Visit(const Expr& expr, VisitorType&& visitor) {
   // Deduce the return type by invoking the operator() w/ the different expression types.
   // TODO: For now we allow one single ReturnType. We could allow returning std::variant<>.
-  using ReturnType = typename CallOperatorReturnTypes<VisitorType, ApprovedTypeList>::Head;
+  using ReturnType = typename CallOperatorReturnTypes<VisitorType, ExpressionTypeList>::Head;
   using ReturnTypeOrVoid = typename detail::MaybeVoid<ReturnType>::Type;
 
-  detail::VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, ApprovedTypeList>
+  detail::VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, ExpressionTypeList>
       capture_visitor{visitor};
   expr.Receive(static_cast<VisitorBase&>(capture_visitor));
   if constexpr (!std::is_same_v<ReturnTypeOrVoid, detail::Void>) {

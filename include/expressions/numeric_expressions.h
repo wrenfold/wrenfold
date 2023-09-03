@@ -16,7 +16,7 @@ class Float;
 class Rational;
 
 // An integral constant.
-class Integer : public ExpressionImpl<Integer> {
+class Integer {
  public:
   static constexpr std::string_view NameStr = "Integer";
   static constexpr bool IsLeafNode = true;
@@ -27,7 +27,7 @@ class Integer : public ExpressionImpl<Integer> {
   explicit constexpr Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool IsIdenticalToImplTyped(const Integer& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalTo(const Integer& other) const { return val_ == other.val_; }
 
   // Access numeric value.
   constexpr IntegralType GetValue() const { return val_; }
@@ -50,7 +50,7 @@ class Integer : public ExpressionImpl<Integer> {
 };
 
 // A rational value (in form numerator / denominator).
-class Rational : public ExpressionImpl<Rational> {
+class Rational {
  public:
   static constexpr std::string_view NameStr = "Rational";
   static constexpr bool IsLeafNode = true;
@@ -63,7 +63,7 @@ class Rational : public ExpressionImpl<Rational> {
   // Construct a rational from an integer value.
   explicit constexpr Rational(const Integer& integer) : n_(integer.GetValue()), d_(1) {}
 
-  constexpr bool IsIdenticalToImplTyped(const Rational& other) const {
+  constexpr bool IsIdenticalTo(const Rational& other) const {
     return n_ == other.n_ && d_ == other.d_;
   }
 
@@ -75,10 +75,10 @@ class Rational : public ExpressionImpl<Rational> {
   explicit operator Float() const;
 
   // True if numerator equals denominator.
-  bool IsOne() const { return n_ == d_; }
+  constexpr bool IsOne() const { return n_ == d_; }
 
   // True if numerator is zero.
-  bool IsZero() const { return n_ == 0; }
+  constexpr bool IsZero() const { return n_ == 0; }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
@@ -128,7 +128,7 @@ class Rational : public ExpressionImpl<Rational> {
 };
 
 // A floating point constant.
-class Float : public ExpressionImpl<Float> {
+class Float {
  public:
   static constexpr std::string_view NameStr = "Float";
   static constexpr bool IsLeafNode = true;
@@ -141,7 +141,7 @@ class Float : public ExpressionImpl<Float> {
   }
 
   // Check if numerical constants are completely identical.
-  constexpr bool IsIdenticalToImplTyped(const Float& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalTo(const Float& other) const { return val_ == other.val_; }
 
   // Access numeric value.
   constexpr FloatType GetValue() const { return val_; }
@@ -225,9 +225,8 @@ inline Rational::operator Float() const {
 // Hashing of rationals.
 template <>
 struct Hash<Rational> {
-  constexpr std::size_t operator()(const Rational& r) const {
-    using Hasher = Hash<Rational::IntegralType>;
-    return HashCombine(Hasher{}(r.Numerator()), Hasher{}(r.Denominator()));
+  std::size_t operator()(const Rational& r) const {
+    return HashArgs(0, r.Numerator(), r.Denominator());
   }
 };
 

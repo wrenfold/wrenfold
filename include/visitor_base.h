@@ -14,7 +14,7 @@ class ExpressionConcept;
 using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>;
 
 // clang-format off
-using ApprovedTypeList = TypeList<
+using ExpressionTypeList = TypeList<
     class Addition,
     class Conditional,
     class Constant,
@@ -54,6 +54,6 @@ class VisitorBaseGeneric : public VisitorDeclareAll<Types> {
   virtual ~VisitorBaseGeneric() = default;
 };
 
-using VisitorBase = VisitorBaseGeneric<ApprovedTypeList>;
+using VisitorBase = VisitorBaseGeneric<ExpressionTypeList>;
 
 }  // namespace math

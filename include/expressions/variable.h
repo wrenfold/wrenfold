@@ -5,10 +5,8 @@
 
 namespace math {
 
-/**
- * A variable w/ a string name.
- */
-class Variable : public ExpressionImpl<Variable> {
+// A variable with a string name.
+class Variable {
  public:
   static constexpr std::string_view NameStr = "Variable";
   static constexpr bool IsLeafNode = true;
@@ -16,13 +14,18 @@ class Variable : public ExpressionImpl<Variable> {
   explicit Variable(std::string name) : name_(std::move(name)) {}
 
   // Check if two variables are the same (names match).
-  bool IsIdenticalToImplTyped(const Variable& other) const { return name_ == other.name_; }
+  bool IsIdenticalTo(const Variable& other) const { return name_ == other.name_; }
 
   // Get variable name
   const std::string& GetName() const { return name_; }
 
  private:
   std::string name_;
+};
+
+template <>
+struct Hash<Variable> {
+  std::size_t operator()(const Variable& v) const { return std::hash<std::string>{}(v.GetName()); }
 };
 
 }  // namespace math

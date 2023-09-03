@@ -73,7 +73,7 @@ struct AdditionVisitor {
       }
     } else if constexpr (std::is_same_v<T, Matrix>) {
       throw TypeError("Cannot add a matrix into a scalar addition expression. Arg type = {}",
-                      arg.TypeName());
+                      T::NameStr);
     } else {
       // Everything else: Just add to the coeff
       auto [coeff, mul] = AsCoefficientAndMultiplicand(input_expression);

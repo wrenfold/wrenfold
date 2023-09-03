@@ -6,7 +6,7 @@
 namespace math {
 
 // A relational expression for equalities and inequalities.
-class Relational : public ExpressionImpl<Relational> {
+class Relational {
  public:
   static constexpr std::string_view NameStr = "Relational";
   static constexpr bool IsLeafNode = false;
@@ -15,7 +15,7 @@ class Relational : public ExpressionImpl<Relational> {
       : operation_(operation), left_(std::move(left)), right_(std::move(right)) {}
 
   // Base and exponent must match.
-  bool IsIdenticalToImplTyped(const Relational& other) const {
+  bool IsIdenticalTo(const Relational& other) const {
     return operation_ == other.operation_ && left_.IsIdenticalTo(other.left_) &&
            right_.IsIdenticalTo(other.right_);
   }
@@ -36,7 +36,7 @@ class Relational : public ExpressionImpl<Relational> {
   // Create a relational operation.
   static Expr Create(RelationalOperation operation, Expr left, Expr right);
 
-  RelationalOperation Operation() const { return operation_; }
+  constexpr RelationalOperation Operation() const { return operation_; }
   const Expr& Left() const { return left_; }
   const Expr& Right() const { return right_; }
 
@@ -48,6 +48,13 @@ class Relational : public ExpressionImpl<Relational> {
   RelationalOperation operation_;
   Expr left_;
   Expr right_;
+};
+
+template <>
+struct Hash<Relational> {
+  std::size_t operator()(const Relational& rel) const {
+    return HashArgs(static_cast<std::size_t>(rel.Operation()), rel.Left(), rel.Right());
+  }
 };
 
 }  // namespace math

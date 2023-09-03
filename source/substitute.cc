@@ -28,7 +28,7 @@ struct SubstituteVisitorBase {
   template <typename Arg>
   Expr operator()(const Arg& other, const Expr& input_expression) {
     if constexpr (std::is_same_v<TargetExpressionType, Arg>) {
-      if (target.IsIdenticalToImplTyped(other.AsDerived())) {
+      if (target.IsIdenticalTo(other)) {
         // Exact match, so replace it:
         return replacement;
       }
@@ -40,7 +40,7 @@ struct SubstituteVisitorBase {
         // expression we are searching for as well:
         return Visit(partial_sub, [this, &partial_sub](const auto& arg) {
           using T = std::decay_t<decltype(arg)>;
-          if constexpr (T::IsLeafStatic()) {
+          if constexpr (T::IsLeafNode) {
             // This type has no children, so return the input expression unmodified:
             return partial_sub;
           } else {
@@ -53,7 +53,7 @@ struct SubstituteVisitorBase {
       }
     }
     // If these expressions don't match, and the target has no sub-expressions, we can stop here.
-    if constexpr (Arg::IsLeafStatic()) {
+    if constexpr (Arg::IsLeafNode) {
       return input_expression;
     } else {
       // Otherwise we substitute in every child:
@@ -91,7 +91,7 @@ struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor,
 
     if (target_parts.float_term.has_value()) {
       if (!input_parts.float_term ||
-          !input_parts.float_term->IsIdenticalToImplTyped(*target_parts.float_term)) {
+          !input_parts.float_term->IsIdenticalTo(*target_parts.float_term)) {
         // Don't allow substitutions that perform float operations.
         return input_expression;
       } else {
@@ -140,7 +140,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
 
     if (target_parts.float_coeff.has_value()) {
       if (!input_parts.float_coeff ||
-          !input_parts.float_coeff->IsIdenticalToImplTyped(*target_parts.float_coeff)) {
+          !input_parts.float_coeff->IsIdenticalTo(*target_parts.float_coeff)) {
         // Don't allow substitutions that perform float operations.
         // (Unless the float coefficients match exactly, then we allow it.)
         return input_expression;
@@ -291,7 +291,7 @@ Expr Substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     // Don't allow the target type to be a numeric literal:
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
                   std::is_same_v<T, Rational>) {
-      throw TypeError("Cannot perform a substitution with target type: {}", target.TypeName());
+      throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
     } else if constexpr (std::is_same_v<T, Addition>) {
       return Visit(input, SubstituteAddVisitor{target, replacement}, input);
     } else if constexpr (std::is_same_v<T, Multiplication>) {

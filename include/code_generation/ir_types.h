@@ -183,7 +183,7 @@ struct Load {
   constexpr static bool IsCommutative() { return false; }
   constexpr static int NumValueOperands() { return 0; }
   constexpr std::string_view ToString() const { return "load"; }
-  std::size_t Hash() const { return HashExpression(expr); }
+  std::size_t Hash() const { return expr.Hash(); }
   bool IsSame(const Load& other) const { return expr.IsIdenticalTo(other.expr); }
 
   // Defined in cc file.

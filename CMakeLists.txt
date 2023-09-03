@@ -39,7 +39,6 @@ set(${LIBRARY_NAME}_SOURCES
     source/expressions/power.cc
     source/expressions/relational.cc
     source/functions.cc
-    source/hashing.cc
     source/matrix_expression.cc
     source/matrix_functions.cc
     source/ordering.cc
@@ -58,7 +57,7 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Adjust warnings
 if(MSVC)
-  set(MATH_COMPILATION_FLAGS /W4 /WX /D_USE_MATH_DEFINES /bigobj /wd4244)
+  set(MATH_COMPILATION_FLAGS /W4 /WX /D_USE_MATH_DEFINES /bigobj /wd4244 /EHs)
 else()
   set(MATH_COMPILATION_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
   if(WIN32)

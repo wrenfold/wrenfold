@@ -5,7 +5,7 @@
 
 namespace math {
 
-class Conditional : public ExpressionImpl<Conditional> {
+class Conditional {
  public:
   static constexpr std::string_view NameStr = "Conditional";
   static constexpr bool IsLeafNode = false;
@@ -15,7 +15,7 @@ class Conditional : public ExpressionImpl<Conditional> {
         if_branch_(std::move(if_branch)),
         else_branch_(std::move(else_branch)) {}
 
-  bool IsIdenticalToImplTyped(const Conditional& other) const {
+  bool IsIdenticalTo(const Conditional& other) const {
     return condition_.IsIdenticalTo(other.condition_) &&
            if_branch_.IsIdenticalTo(other.if_branch_) &&
            else_branch_.IsIdenticalTo(other.else_branch_);
@@ -46,6 +46,13 @@ class Conditional : public ExpressionImpl<Conditional> {
   Expr condition_;
   Expr if_branch_;
   Expr else_branch_;
+};
+
+template <>
+struct Hash<Conditional> {
+  std::size_t operator()(const Conditional& c) const {
+    return HashArgs(0, c.Condition(), c.IfBranch(), c.ElseBranch());
+  }
 };
 
 }  // namespace math

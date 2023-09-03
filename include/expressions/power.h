@@ -6,7 +6,7 @@
 namespace math {
 
 // Power operation: base^exponent
-class Power : public ExpressionImpl<Power> {
+class Power {
  public:
   static constexpr std::string_view NameStr = "Power";
   static constexpr bool IsLeafNode = false;
@@ -14,7 +14,7 @@ class Power : public ExpressionImpl<Power> {
   Power(Expr base, Expr exponent) : base_(std::move(base)), exponent_(std::move(exponent)) {}
 
   // Base and exponent must match.
-  bool IsIdenticalToImplTyped(const Power& other) const {
+  bool IsIdenticalTo(const Power& other) const {
     return base_.IsIdenticalTo(other.base_) && exponent_.IsIdenticalTo(other.exponent_);
   }
 
@@ -60,5 +60,10 @@ inline std::pair<Integer, Rational> FactorizeRationalExponent(const Rational& r)
                           fractional_part_signed + Rational{1, 1});
   }
 }
+
+template <>
+struct Hash<Power> {
+  std::size_t operator()(const Power& pow) const { return HashArgs(0, pow.Base(), pow.Exponent()); }
+};
 
 }  // namespace math

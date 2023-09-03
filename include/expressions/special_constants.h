@@ -6,19 +6,19 @@
 namespace math {
 
 // A symbolic constant, like pi or euler's number.
-class Constant : public ExpressionImpl<Constant> {
+class Constant {
  public:
   static constexpr std::string_view NameStr = "Constant";
   static constexpr bool IsLeafNode = true;
 
   // ConstructMatrix with name.
-  explicit Constant(SymbolicConstants Name) : name_(Name) {}
+  explicit constexpr Constant(SymbolicConstants name) : name_(name) {}
 
   // Check if symbolic constants are the same.
-  bool IsIdenticalToImplTyped(const Constant& other) const { return name_ == other.name_; }
+  constexpr bool IsIdenticalTo(const Constant& other) const { return name_ == other.name_; }
 
   // Access name.
-  SymbolicConstants GetName() const { return name_; }
+  constexpr SymbolicConstants GetName() const { return name_; }
 
  protected:
   SymbolicConstants name_;
@@ -27,13 +27,13 @@ class Constant : public ExpressionImpl<Constant> {
 // Complex infinity.
 // TODO: Should this store an enum to support different types of infinities?
 // For example, complex, +real, -real, etc.
-class Infinity : public ExpressionImpl<Infinity> {
+class Infinity {
  public:
   static constexpr std::string_view NameStr = "Infinity";
   static constexpr bool IsLeafNode = true;
 
   Infinity() = default;
-  constexpr bool IsIdenticalToImplTyped(const Infinity&) const { return true; }
+  constexpr bool IsIdenticalTo(const Infinity&) const { return true; }
 };
 
 // Convert symbolic constant enum to string constant.
@@ -53,7 +53,24 @@ inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants v
 }
 
 // Order constants by their enum values.
-inline bool operator<(const Constant& a, const Constant& b) { return a.GetName() < b.GetName(); }
+inline constexpr bool operator<(const Constant& a, const Constant& b) {
+  return a.GetName() < b.GetName();
+}
+
+template <>
+struct Hash<Constant> {
+  constexpr std::size_t operator()(const Constant& c) const {
+    return static_cast<std::size_t>(c.GetName());
+  }
+};
+
+template <>
+struct Hash<Infinity> {
+  constexpr std::size_t operator()(const Infinity&) const {
+    constexpr auto inf_hash = HashString("inf");
+    return inf_hash;
+  }
+};
 
 }  // namespace math
 

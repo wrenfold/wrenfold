@@ -53,6 +53,9 @@ class Expr {
   // Convert to string.
   std::string ToString() const;
 
+  // Get the hash of the expression.
+  std::size_t Hash() const { return impl_->GetHash(); }
+
   // Negation operator.
   Expr operator-() const;
 
@@ -106,12 +109,6 @@ class Expr {
 static_assert(std::is_nothrow_move_constructible_v<Expr> && std::is_nothrow_move_assignable_v<Expr>,
               "Should be movable");
 
-// Cast expression to const pointer of the specified type.
-template <typename T>
-const T* CastPtr(const Expr& x) {
-  return x.impl_->IsType<T>() ? static_cast<const T*>(x.impl_.get()) : nullptr;
-}
-
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const Expr& x) {
   stream << x.ToString();
@@ -151,17 +148,16 @@ struct ExpressionOrderPredicate {
 // Implemented in expression.cc
 Precedence GetPrecedence(const Expr& expr);
 
+// Check for equality. For use in template parameter lists for maps and sets.
+struct ExprsIdentical {
+  bool operator()(const Expr& a, const Expr& b) const { return a.IsIdenticalTo(b); }
+};
+
 // Custom literal suffix support.
 namespace custom_literals {
 inline Expr operator"" _s(unsigned long long int arg) { return Expr{arg}; }
 inline Expr operator"" _s(long double arg) { return Expr{arg}; }
 }  // namespace custom_literals
-
-// Create an `Expr` with underlying type `T` and constructor args `Args`.
-template <typename T, typename... Args>
-Expr MakeExpr(Args&&... args) {
-  return Expr{std::make_shared<const T>(std::forward<Args>(args)...)};
-}
 
 // Create a tuple of `Expr` from string arguments.
 template <typename... Args>

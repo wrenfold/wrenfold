@@ -1,21 +1,14 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include <array>
+
 #include "expression.h"
 
 namespace math {
 
-// HashExpression expression.
-std::size_t HashExpression(const Expr& x);
-
-// Object to use as the map hasher type.
-struct ExprHash {
-  std::size_t operator()(const Expr& x) const { return HashExpression(x); }
-};
-
-// Check for equality. For use in hash-maps.
-struct ExprEquality {
-  bool operator()(const Expr& a, const Expr& b) const { return a.IsIdenticalTo(b); }
-};
+// Hash object T. Specializations are implemented elsewhere.
+template <typename T>
+struct Hash;
 
 // constexpr FNV hash of string_view
 inline constexpr std::size_t HashString(const std::string_view& str) {
@@ -36,8 +29,29 @@ inline constexpr std::size_t HashCombine(const std::size_t seed, const std::size
   return seed ^ (new_hash + 0x9e3779b97f4a7c15 + (seed << 6) + (seed >> 2));
 }
 
-// Hash object T. Specializations are implemented elsewhere.
-template <typename T>
-struct Hash;
+// Hash a container of objects by traversing a range specified by iterators.
+template <typename Iterator>
+std::size_t HashAll(std::size_t seed, Iterator begin, Iterator end) {
+  using T = std::decay_t<decltype(*begin)>;
+  for (; begin != end; ++begin) {
+    seed = HashCombine(seed, Hash<T>{}(*begin));
+  }
+  return seed;
+}
+
+// Hash a variadic list of arguments.
+template <typename... Ts>
+std::size_t HashArgs(std::size_t seed, const Ts&... expressions) {
+  const std::array<std::size_t, sizeof...(Ts)> hashes = {Hash<Ts>{}(expressions)...};
+  for (std::size_t i = 0; i < hashes.size(); ++i) {
+    seed = HashCombine(seed, hashes[i]);
+  }
+  return seed;
+}
+
+template <>
+struct Hash<Expr> {
+  std::size_t operator()(const Expr& expr) const { return expr.Hash(); }
+};
 
 }  // namespace math

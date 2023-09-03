@@ -31,8 +31,8 @@ struct NumericFunctionEvaluator {
 
   template <typename T>
   std::enable_if_t<!std::is_same_v<T, FunctionArgument>, Expr> operator()(const T& input_typed,
-                                                                     const Expr& input) {
-    if constexpr (T::IsLeafStatic()) {
+                                                                          const Expr& input) {
+    if constexpr (T::IsLeafNode) {
       return input;
     } else {
       return MapChildren(input_typed,

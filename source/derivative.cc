@@ -112,7 +112,7 @@ class DiffVisitor {
 
   Expr operator()(const FunctionArgument& arg) const {
     if constexpr (std::is_same_v<T, FunctionArgument>) {
-      if (argument_.IsIdenticalToImplTyped(arg)) {
+      if (argument_.IsIdenticalTo(arg)) {
         return Constants::One;
       }
     }
@@ -132,14 +132,14 @@ class DiffVisitor {
   Expr operator()(const Rational&) const { return Constants::Zero; }
 
   Expr operator()(const Relational& relational) const {
-    throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", relational.TypeName(),
+    throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", Relational::NameStr,
                     relational.Left().ToString(), relational.OperationString(),
                     relational.Right().ToString());
   }
 
   Expr operator()(const Variable& var) const {
     if constexpr (std::is_same_v<Variable, T>) {
-      if (var.IsIdenticalToImplTyped(argument_)) {
+      if (var.IsIdenticalTo(argument_)) {
         return Constants::One;
       }
     }

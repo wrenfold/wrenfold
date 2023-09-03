@@ -2,23 +2,17 @@
 #pragma once
 #include "assertions.h"
 #include "constants.h"
-#include "expression_impl.h"
 #include "functions.h"
 #include "hashing.h"
 
 namespace math {
-
-template <typename Derived>
-class BuiltInFunctionBase : public ExpressionImpl<Derived> {
- public:
-};
 
 // Fwd declare.
 Expr CreateUnaryFunction(const UnaryFunctionName name, const Expr& arg);
 
 // Store a unary function. Built-in unary functions `f(x)` are described by an enum
 // indicating what `f` is.
-class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
+class UnaryFunction {
  public:
   static constexpr std::string_view NameStr = "UnaryFunction";
   static constexpr bool IsLeafNode = false;
@@ -26,16 +20,16 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
   UnaryFunction(UnaryFunctionName func, Expr arg) : func_(func), arg_(std::move(arg)) {}
 
   // Get the function name.
-  const UnaryFunctionName& Func() const { return func_; }
+  constexpr const UnaryFunctionName& Func() const { return func_; }
 
   // Get name as a string.
-  std::string_view Name() const { return ToString(func_); }
+  constexpr std::string_view Name() const { return ToString(func_); }
 
   // Get the function argument.
   const Expr& Arg() const { return arg_; }
 
   // Function type and argument must match.
-  bool IsIdenticalToImplTyped(const UnaryFunction& other) const {
+  bool IsIdenticalTo(const UnaryFunction& other) const {
     return func_ == other.func_ && arg_.IsIdenticalTo(other.arg_);
   }
 
@@ -56,6 +50,13 @@ class UnaryFunction : public BuiltInFunctionBase<UnaryFunction> {
   Expr arg_;
 };
 
+template <>
+struct Hash<UnaryFunction> {
+  std::size_t operator()(const UnaryFunction& func) const {
+    return HashArgs(static_cast<std::size_t>(func.Func()), func.Arg());
+  }
+};
+
 #if 0
 class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
  public:
@@ -72,7 +73,7 @@ class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
   const Expr& Arg1() const { return args_[1]; }
 
   // Function type and argument must match.
-  bool IsIdenticalToImplTyped(const BinaryFunction& other) const {
+  bool IsIdenticalTo(const BinaryFunction& other) const {
     return func_ == other.func_ && args_[0].IsIdenticalTo(other.args_[0]) &&
            args_[1].IsIdenticalTo(other.args_[1]);
   }

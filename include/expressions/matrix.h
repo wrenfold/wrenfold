@@ -12,7 +12,7 @@ namespace math {
 
 // A matrix of expressions.
 // Stores a 2D grid of sub-expressions in row-major order.
-class Matrix : public ExpressionImpl<Matrix> {
+class Matrix {
  public:
   static constexpr std::string_view NameStr = "Matrix";
   static constexpr bool IsLeafNode = false;
@@ -35,7 +35,7 @@ class Matrix : public ExpressionImpl<Matrix> {
   }
 
   // All elements must match.
-  bool IsIdenticalToImplTyped(const Matrix& other) const {
+  bool IsIdenticalTo(const Matrix& other) const {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
            std::equal(data_.begin(), data_.end(), other.data_.begin(),
                       [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });
@@ -76,8 +76,8 @@ class Matrix : public ExpressionImpl<Matrix> {
   void MultiplyByScalarInPlace(const Expr& arg);
 
   // Dimensions of the matrix.
-  index_t NumRows() const { return rows_; }
-  index_t NumCols() const { return cols_; }
+  constexpr index_t NumRows() const { return rows_; }
+  constexpr index_t NumCols() const { return cols_; }
 
   // Total size (product of elements).
   std::size_t Size() const { return data_.size(); }
@@ -90,7 +90,9 @@ class Matrix : public ExpressionImpl<Matrix> {
   auto end() const { return data_.end(); }
 
   // Compute flattened row-major index.
-  std::size_t Index(index_t i, index_t j) const { return static_cast<std::size_t>(i * cols_ + j); }
+  constexpr std::size_t Index(index_t i, index_t j) const {
+    return static_cast<std::size_t>(i * cols_ + j);
+  }
 
  private:
   index_t rows_;
@@ -138,5 +140,14 @@ inline void IterMatrix(index_t rows, index_t cols, Callable&& callable) {
     }
   }
 }
+
+template <>
+struct Hash<Matrix> {
+  std::size_t operator()(const Matrix& m) const {
+    const std::size_t seed =
+        HashCombine(std::hash<std::size_t>{}(m.NumRows()), std::hash<std::size_t>{}(m.NumCols()));
+    return HashAll(seed, m.begin(), m.end());
+  }
+};
 
 }  // namespace math

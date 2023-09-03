@@ -14,7 +14,7 @@ struct OrderVisitor {
                Multiplication, Addition, Power, UnaryFunction, Relational, Conditional, Matrix>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
-  static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ApprovedTypeList>::Value);
+  static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ExpressionTypeList>::Value);
 
   template <typename A, typename B>
   RelativeOrder operator()(const A& a, const B& b) {

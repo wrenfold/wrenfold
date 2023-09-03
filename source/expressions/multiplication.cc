@@ -148,7 +148,7 @@ struct MultiplyVisitor {
     } else if constexpr (std::is_same_v<T, Matrix>) {
       throw TypeError(
           "Cannot multiply a matrix into a scalar multiplication expression. Arg type = {}",
-          arg.TypeName());
+          T::NameStr);
     } else {
       // Everything else: Just raise the power by +1.
       const auto [it, was_inserted] = builder.terms.emplace(input_expression, Constants::One);
