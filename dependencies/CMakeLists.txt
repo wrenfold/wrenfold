@@ -17,8 +17,23 @@ function(add_gtest)
 endfunction()
 add_gtest()
 
+# Google benchmark
+function(add_google_benchmark)
+  set(BENCHMARK_ENABLE_TESTING
+      OFF
+      CACHE BOOL "" FORCE)
+  set(BENCHMARK_ENABLE_INSTALL
+      OFF
+      CACHE BOOL "" FORCE)
+  add_subdirectory(benchmark)
+endfunction()
+add_google_benchmark()
+
 # Add pybind:
-add_subdirectory(pybind11)
+function(add_pybind)
+  add_subdirectory(pybind11)
+endfunction()
+add_pybind()
 
 # Create a target for eigen.
 function(add_eigen)
