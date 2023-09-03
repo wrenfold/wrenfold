@@ -6,21 +6,27 @@ function(add_libfmt)
 endfunction()
 add_libfmt()
 
-set(BUILD_GMOCK
-    OFF
-    CACHE BOOL "" FORCE)
-set(INSTALL_GTEST
-    OFF
-    CACHE BOOL "" FORCE)
-add_subdirectory(gtest)
+function(add_gtest)
+  set(BUILD_GMOCK
+      OFF
+      CACHE BOOL "" FORCE)
+  set(INSTALL_GTEST
+      OFF
+      CACHE BOOL "" FORCE)
+  add_subdirectory(gtest)
+endfunction()
+add_gtest()
 
 # Add pybind:
 add_subdirectory(pybind11)
 
 # Create a target for eigen.
-set(EIGEN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/eigen")
-if(NOT TARGET eigen)
-  add_library(eigen INTERFACE IMPORTED GLOBAL)
-  set_target_properties(eigen PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                         "${EIGEN_INCLUDE_DIRS}")
-endif()
+function(add_eigen)
+  set(EIGEN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/eigen")
+  if(NOT TARGET eigen)
+    add_library(eigen INTERFACE IMPORTED GLOBAL)
+    set_target_properties(eigen PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                           "${EIGEN_INCLUDE_DIRS}")
+  endif()
+endfunction()
+add_eigen()
