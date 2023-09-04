@@ -250,49 +250,44 @@ Expr MultiplicationParts::CreateMultiplication() const {
   return MaybeNewMul(std::move(args));
 }
 
-struct AsCoeffAndMultiplicandVisitor {
-  using ReturnType = std::pair<Expr, Expr>;
-
-  // For multiplications, we need to break the expression up.
-  ReturnType SplitMultiplication(const Expr& input, const Multiplication& mul) const {
-    Multiplication::ContainerType numerics{};
-    Multiplication::ContainerType remainder{};
-    for (const Expr& expr : mul) {
-      if (IsNumeric(expr)) {
-        numerics.push_back(expr);
-      } else {
-        remainder.push_back(expr);
-      }
-    }
-    if (numerics.empty()) {
-      // No point making a new multiplication:
-      return std::make_pair(Constants::One, input);
-    }
-    auto coeff = MaybeNewMul(std::move(numerics));
-    auto multiplicand = MaybeNewMul(std::move(remainder));
-    return std::make_pair(std::move(coeff), std::move(multiplicand));
-  }
-
-  // If the input type is a numeric, return the numeric as a coefficient for multiplicand of one.
-  template <typename T>
-  ReturnType operator()(const T& thing, const Expr& input) const {
-    if constexpr (ContainsTypeHelper<T, Integer, Rational, Float>) {
-      return std::make_pair(input, Constants::One);
-    } else if constexpr (std::is_same_v<T, Multiplication>) {
-      // Handle multiplication:
-      return SplitMultiplication(input, thing);
+// For multiplications, we need to break the expression up.
+inline std::pair<Expr, Expr> SplitMultiplication(const Expr& input, const Multiplication& mul) {
+  Multiplication::ContainerType numerics{};
+  Multiplication::ContainerType remainder{};
+  for (const Expr& expr : mul) {
+    if (IsNumeric(expr)) {
+      numerics.push_back(expr);
     } else {
-      return std::make_pair(Constants::One, input);
+      remainder.push_back(expr);
     }
   }
-};
+  if (numerics.empty()) {
+    // No point making a new multiplication:
+    return std::make_pair(Constants::One, input);
+  }
+  auto coeff = MaybeNewMul(std::move(numerics));
+  auto multiplicand = MaybeNewMul(std::move(remainder));
+  return std::make_pair(std::move(coeff), std::move(multiplicand));
+}
 
 std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr) {
-  std::optional<std::pair<Expr, Expr>> result = Visit(expr, AsCoeffAndMultiplicandVisitor{}, expr);
-  if (result.has_value()) {
-    return *result;
-  }
-  return std::make_pair(Constants::One, expr);
+  return Visit(expr, [&expr](const auto& x) -> std::pair<Expr, Expr> {
+    using T = std::decay_t<decltype(x)>;
+    if constexpr (ContainsTypeHelper<T, Integer, Rational, Float>) {
+      // Numerical values are always the coefficient:
+      return std::make_pair(expr, Constants::One);
+    } else if constexpr (std::is_same_v<T, Multiplication>) {
+      // Handle multiplication. We do a faster path for a common case (binary mul where first
+      // element is numeric).
+      const Multiplication& mul = x;
+      if (mul.Arity() == 2 && mul[0].Is<Integer, Rational, Float>()) {
+        return std::make_pair(mul[0], mul[1]);
+      }
+      return SplitMultiplication(expr, x);
+    } else {
+      return std::make_pair(Constants::One, expr);
+    }
+  });
 }
 
 MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul) {
