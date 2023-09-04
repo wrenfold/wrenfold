@@ -255,7 +255,6 @@ struct AsCoeffAndMultiplicandVisitor {
 
   // For multiplications, we need to break the expression up.
   ReturnType SplitMultiplication(const Expr& input, const Multiplication& mul) const {
-    // TODO: Small vector.
     Multiplication::ContainerType numerics{};
     Multiplication::ContainerType remainder{};
     for (const Expr& expr : mul) {
