@@ -173,9 +173,9 @@ struct PairCountVisitor {
   };
 
   // Record counts of single `Expr` children, and every pair-wise combination of children.
-  template <typename Derived>
+  template <typename Operation>
   void RecordCounts(
-      const NAryOp<Derived>& operation,
+      const Operation& operation,
       std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>>& count_table,
       std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
           pair_count_table) {

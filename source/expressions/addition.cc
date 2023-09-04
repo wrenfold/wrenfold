@@ -1,4 +1,4 @@
-// Copyright 2022 Gareth Cross
+// Copyright 2023 Gareth Cross
 #include "expressions/addition.h"
 
 #include <algorithm>
@@ -11,11 +11,9 @@
 
 namespace math {
 
-Addition::Addition(std::vector<Expr> args) : NAryOp(std::move(args)) {}
-
 // TODO: This logic will need to generalize once we have symbolic matrix expressions.
 // We might need a `MatrixAddition` expression.
-inline Expr FromMatrixOperands(const std::vector<Expr>& args) {
+inline Expr AddMatrixOperands(const absl::Span<const Expr>& args) {
   std::vector<const Matrix*> matrices;
   matrices.reserve(args.size());
   std::transform(args.begin(), args.end(), std::back_inserter(matrices), [](const Expr& expr) {
@@ -35,18 +33,18 @@ inline Expr FromMatrixOperands(const std::vector<Expr>& args) {
   return MakeExpr<Matrix>(std::move(output));
 }
 
-Expr Addition::FromOperands(const std::vector<Expr>& args) {
+Expr Addition::FromOperands(absl::Span<const Expr> args) {
   const bool input_contains_matrix =
       std::any_of(args.begin(), args.end(), [](const Expr& arg) { return arg.Is<Matrix>(); });
   if (input_contains_matrix) {
-    return FromMatrixOperands(args);
+    return AddMatrixOperands(args);
   }
   AdditionParts parts{args.size()};
   for (const Expr& arg : args) {
     parts.Add(arg);
   }
   parts.Normalize();
-  return parts.CreateAddition(std::vector<Expr>{});
+  return parts.CreateAddition();
 }
 
 struct AdditionVisitor {
@@ -59,7 +57,7 @@ struct AdditionVisitor {
     if constexpr (std::is_same_v<T, Addition>) {
       for (const Expr& expr : arg) {
         // Recursively add additions:
-        Visit(expr, *this, expr);
+        Visit(expr, [this, &expr](const auto& x) { this->operator()(x, expr); });
       }
     } else if constexpr (std::is_same_v<T, Integer>) {
       parts.rational_term = parts.rational_term + static_cast<Rational>(arg);
@@ -98,7 +96,8 @@ void AdditionParts::Add(const Expr& arg) {
   if (IsZero(arg)) {
     return;
   }
-  Visit(arg, AdditionVisitor{*this}, arg);
+  AdditionVisitor visitor{*this};
+  Visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
 }
 
 void AdditionParts::Normalize() {
@@ -112,9 +111,8 @@ void AdditionParts::Normalize() {
   }
 }
 
-Expr AdditionParts::CreateAddition(std::vector<Expr>&& args) const {
-  args.clear();
-  args.reserve(terms.size() + 1);
+Expr AdditionParts::CreateAddition() const {
+  Addition::ContainerType args{};
   if (float_term.has_value()) {
     const Float promoted_rational = static_cast<Float>(rational_term);
     args.push_back(MakeExpr<Float>(float_term.value() + promoted_rational));
@@ -123,19 +121,23 @@ Expr AdditionParts::CreateAddition(std::vector<Expr>&& args) const {
   } else {
     args.push_back(Rational::Create(rational_term));
   }
+
+  args.reserve(args.size() + terms.size());
   std::transform(terms.begin(), terms.end(), std::back_inserter(args), [](const auto& pair) {
-    return Multiplication::FromTwoOperands(pair.first, pair.second);
+    return Multiplication::FromOperands({pair.first, pair.second});
   });
-  std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
-    const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
-    const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
-    return ExpressionOrderPredicate{}(a_mul, b_mul);
-  });
+
   if (args.empty()) {
     return Constants::Zero;
   } else if (args.size() == 1) {
     return args.front();
   }
+
+  std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
+    const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
+    const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
+    return ExpressionOrderPredicate{}(a_mul, b_mul);
+  });
   return MakeExpr<Addition>(std::move(args));
 }
 

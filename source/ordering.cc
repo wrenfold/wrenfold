@@ -61,12 +61,12 @@ struct OrderVisitor {
     return RelativeOrder::Equal;
   }
 
-  template <typename Derived>
-  RelativeOrder Compare(const NAryOp<Derived>& a, const NAryOp<Derived>& b) const {
-    // For multiplication and addition, sort lexicographically by recursively invoking OrderVisitor.
-    const std::vector<Expr>& args_a = a.Args();
-    const std::vector<Expr>& args_b = b.Args();
-    return LexicographicalCompare(args_a.begin(), args_a.end(), args_b.begin(), args_b.end());
+  RelativeOrder Compare(const Addition& a, const Addition& b) const {
+    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
+  }
+
+  RelativeOrder Compare(const Multiplication& a, const Multiplication& b) const {
+    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
   }
 
   RelativeOrder Compare(const Matrix& a, const Matrix& b) const {

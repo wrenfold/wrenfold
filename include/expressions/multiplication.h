@@ -1,37 +1,73 @@
-// Copyright 2022 Gareth Cross
+// Copyright 2023 Gareth Cross
 #pragma once
-#include <array>
 #include <unordered_map>
 #include <variant>
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4127)  // conditional expression is constant
+#endif                           // _MSC_VER
+#include <absl/container/inlined_vector.h>
+#include <absl/types/span.h>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif  //  _MSC_VER
 
 #include "constants.h"
 #include "expressions/numeric_expressions.h"
 #include "hashing.h"
-#include "operation_bases.h"
 
 namespace math {
 
 // A multiplication of `N` terms.
-class Multiplication : public NAryOp<Multiplication> {
+class Multiplication {
  public:
   static constexpr std::string_view NameStr = "Multiplication";
   static constexpr bool IsLeafNode = false;
+  using ContainerType = absl::InlinedVector<Expr, 16>;
 
-  // Do not call this - use `FromTwoOperands`.
-  explicit Multiplication(std::vector<Expr> args);
+  // Move-construct.
+  explicit Multiplication(ContainerType&& terms) : terms_(std::move(terms)) {}
 
-  // ConstructMatrix from two operands. Creates an expression corresponding to: a * b
-  static Expr FromTwoOperands(const Expr& a, const Expr& b) {
-    // TODO: Dumb that we allocate for this, but in future it will be an inline vector:
-    return Multiplication::FromOperands({a, b});
+  // Access specific argument.
+  const Expr& operator[](const std::size_t i) const { return terms_[i]; }
+
+  // Number of arguments.
+  std::size_t Arity() const { return terms_.size(); }
+
+  // Iterators.
+  ContainerType::const_iterator begin() const { return terms_.begin(); }
+  ContainerType::const_iterator end() const { return terms_.end(); }
+
+  // All terms must be identical.
+  bool IsIdenticalTo(const Multiplication& other) const {
+    if (Arity() != other.Arity()) {
+      return false;
+    }
+    return std::equal(begin(), end(), other.begin(), IsIdenticalOperator<Expr>{});
   }
 
-  // ConstructMatrix form a vector of operands. The result is automatically simplified, and may not
-  // be a multiplication.
-  static Expr FromOperands(const std::vector<Expr>& args);
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation&& operation) const {
+    std::for_each(begin(), end(), std::forward<Operation>(operation));
+  }
 
-  // Convert the vector of arguments to canonical form (modified in place).
-  static Expr CanonicalizeArguments(std::vector<Expr>& args);
+  // Implement ExpressionImpl::Map
+  template <typename Operation>
+  Expr Map(Operation&& operation) const {
+    ContainerType transformed{};
+    transformed.reserve(Arity());
+    std::transform(begin(), end(), std::back_inserter(transformed),
+                   std::forward<Operation>(operation));
+    return Multiplication::FromOperands(transformed);
+  }
+
+  // Construct from a span of operands. Result is automatically simplified.
+  static Expr FromOperands(absl::Span<const Expr> span);
+
+ private:
+  ContainerType terms_;
 };
 
 template <>
@@ -68,8 +104,8 @@ struct MultiplicationParts {
   // Nuke any terms w/ a zero exponent and normalize powers of integers.
   void Normalize();
 
-  // Create the resulting multiplication. The provided storage is re-used.
-  Expr CreateMultiplication(std::vector<Expr>&& args) const;
+  // Create the resulting multiplication.
+  Expr CreateMultiplication() const;
 };
 
 // A decomposition of `Multiplication` that is more convenient for printing.

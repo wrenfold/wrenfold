@@ -11,56 +11,60 @@
 
 namespace math {
 
-inline Expr MaybeNewMul(std::vector<Expr>&& terms) {
+inline Expr MaybeNewMul(Multiplication::ContainerType&& terms) {
   if (terms.empty()) {
     return Constants::One;
   } else if (terms.size() == 1) {
-    return terms.front();
+    return std::move(terms.front());
   } else {
     return MakeExpr<Multiplication>(std::move(terms));
   }
 }
 
-Multiplication::Multiplication(std::vector<Expr> args) : NAryOp(std::move(args)) {}
+inline Expr MultiplyMatrixOperands(const absl::Span<const Expr>& args) {
+  Multiplication::ContainerType scalars;
+  scalars.reserve(args.size() / 2);
 
-Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
+  std::optional<Matrix> matrix_product{};  //  Optional because we can't default initialize.
+  for (const Expr& term : args) {
+    if (const Matrix* m = CastPtr<Matrix>(term); m != nullptr) {
+      if (!matrix_product) {
+        // We need to copy:
+        matrix_product = *m;
+      } else {
+        // TODO: Avoid copies if dimensions don't change.
+        matrix_product = matrix_product.value() * *m;
+      }
+    } else {
+      scalars.push_back(term);
+    }
+  }
+
+  ASSERT(matrix_product.has_value(), "Must have been at least one matrix");
+
+  Matrix result = std::move(*matrix_product);
+  if (!scalars.empty()) {
+    // If there were any scalar terms, multiply them into the matrix now:
+    result.MultiplyByScalarInPlace(Multiplication::FromOperands(scalars));
+  }
+  if (result.NumRows() == 1 && result.NumCols() == 1) {
+    // Discard the matrix dimension, and return a scalar.
+    // TODO: Remove this behavior!
+    return result[0];
+  }
+  return MakeExpr<Matrix>(std::move(result));
+}
+
+Expr Multiplication::FromOperands(absl::Span<const Expr> args) {
   ASSERT(!args.empty());
   if (args.size() < 2) {
     return args.front();
   }
 
-  if (std::any_of(args.begin(), args.end(), [](const Expr& x) { return x.Is<Matrix>(); })) {
-    // TODO: Don't copy here - operate on args directly.
-    std::vector<Expr> scalars = args;
-    std::optional<Matrix> matrix_product{};  //  Optional because we can't default initialize.
-    const auto new_end =
-        std::remove_if(scalars.begin(), scalars.end(), [&matrix_product](const Expr& expr) -> bool {
-          // This is a matrix, pull it out and chain them together. If dimensions don't work out,
-          // we'll throw in the multiplication operator.
-          if (const Matrix* m = CastPtr<Matrix>(expr); m != nullptr) {
-            if (!matrix_product) {
-              matrix_product = std::move(*m);
-            } else {
-              matrix_product = matrix_product.value() * *m;
-            }
-            return true;
-          }
-          return false;
-        });
-
-    ASSERT(matrix_product.has_value(), "Must have been at least one matrix");
-    scalars.erase(new_end, scalars.end());
-
-    Matrix result = std::move(*matrix_product);
-    if (!scalars.empty()) {
-      // If there were any scalar terms, multiply them into the matrix now:
-      result.MultiplyByScalarInPlace(FromOperands(scalars));
-    }
-    if (result.NumRows() == 1 && result.NumCols() == 1) {
-      // Discard the matrix dimension, and return a scalar.
-      return result[0];
-    }
-    return MakeExpr<Matrix>(std::move(result));
+  const bool any_matrices =
+      std::any_of(args.begin(), args.end(), [](const Expr& x) { return x.Is<Matrix>(); });
+  if (any_matrices) {
+    return MultiplyMatrixOperands(args);
   }
 
   // Check for zeros:
@@ -72,18 +76,12 @@ Expr Multiplication::FromOperands(const std::vector<Expr>& args) {
   }
 
   // Now canonicalize the arguments:
-  // TODO: Get rid of this copy.
-  std::vector<Expr> mutable_args = args;
-  return CanonicalizeArguments(mutable_args);
-}
-
-Expr Multiplication::CanonicalizeArguments(std::vector<Expr>& args) {
   MultiplicationParts builder{args.size()};
-  for (const Expr& expr : args) {
-    builder.Multiply(expr);
+  for (const Expr& term : args) {
+    builder.Multiply(term);
   }
   builder.Normalize();
-  return builder.CreateMultiplication(std::move(args));
+  return builder.CreateMultiplication();
 }
 
 template <bool FactorizeIntegers>
@@ -227,9 +225,9 @@ void MultiplicationParts::Normalize() {
   }
 }
 
-Expr MultiplicationParts::CreateMultiplication(std::vector<Expr>&& args) const {
+Expr MultiplicationParts::CreateMultiplication() const {
   // Create the result:
-  args.clear();
+  Multiplication::ContainerType args{};
   args.reserve(terms.size() + 1);
   if (float_coeff.has_value()) {
     const Float promoted_rational = static_cast<Float>(rational_coeff);
@@ -258,9 +256,9 @@ struct AsCoeffAndMultiplicandVisitor {
   // For multiplications, we need to break the expression up.
   ReturnType SplitMultiplication(const Expr& input, const Multiplication& mul) const {
     // TODO: Small vector.
-    std::vector<Expr> numerics{};
-    std::vector<Expr> remainder{};
-    for (const Expr& expr : mul.Args()) {
+    Multiplication::ContainerType numerics{};
+    Multiplication::ContainerType remainder{};
+    for (const Expr& expr : mul) {
       if (IsNumeric(expr)) {
         numerics.push_back(expr);
       } else {

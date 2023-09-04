@@ -10,7 +10,7 @@ include(GNUInstallDirs)
 
 set(CMAKE_COLOR_MAKEFILE ON)
 
-# Find python (for nanobind)
+# Find python (for pybind11)
 find_package(
   Python 3.8
   COMPONENTS Interpreter Development.Module
