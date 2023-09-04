@@ -81,7 +81,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 target_compile_options(${LIBRARY_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
-target_link_libraries(${LIBRARY_NAME} fmt-header-only)
+target_link_libraries(${LIBRARY_NAME} fmt-header-only absl::inlined_vector
+                      absl::span)
 
 # Includes
 target_include_directories(

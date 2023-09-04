@@ -33,6 +33,21 @@ function(add_google_benchmark)
 endfunction()
 add_google_benchmark()
 
+# Add abseil-cpp
+function(add_abseil)
+  set(ABSL_USE_EXTERNAL_GOOGLETEST
+      ON
+      CACHE BOOL "" FORCE)
+  set(ABSL_ENABLE_INSTALL
+      OFF
+      CACHE BOOL "" FORCE)
+  set(ABSL_PROPAGATE_CXX_STD
+      ON
+      CACHE BOOL "" FORCE)
+  add_subdirectory(abseil-cpp)
+endfunction()
+add_abseil()
+
 # Add pybind:
 function(add_pybind)
   add_subdirectory(pybind11)

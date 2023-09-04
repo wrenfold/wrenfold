@@ -13,3 +13,6 @@
 [submodule "dependencies/benchmark"]
 	path = dependencies/benchmark
 	url = https://github.com/google/benchmark.git
+[submodule "dependencies/abseil-cpp"]
+	path = dependencies/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
