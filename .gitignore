@@ -20,6 +20,7 @@
 # BUILD FOLDERS
 build/
 build/*
+build_*/
 tmp/
 build_linux/*
 

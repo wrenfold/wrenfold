@@ -8,7 +8,6 @@
 #pragma warning(disable : 4100)  // unreferenced formal parameter
 #pragma warning(disable : 4324)  // padded for alignment
 #endif                           // _MSC_VER
-#include <absl/container/flat_hash_map.h>
 #include <absl/container/inlined_vector.h>
 #include <absl/types/span.h>
 #ifdef _MSC_VER

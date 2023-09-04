@@ -31,6 +31,19 @@ class Multiplication {
     ASSERT_GREATER_OR_EQ(terms_.size(), 2);
   }
 
+  // Construct from expressions:
+  template <typename... Ts>
+  explicit Multiplication(Ts&&... terms) : terms_() {
+    static_assert(sizeof...(terms) >= 2);
+    static_assert(std::conjunction_v<std::is_constructible<Expr, Ts>...>);
+    terms_.reserve(sizeof...(terms));
+    (terms_.emplace_back(std::forward<Ts>(terms)), ...);
+    for (const auto& term : terms_) {
+      ASSERT(!term.Is<Multiplication>(), "Multiplications should all be flattened: {}",
+             term.ToString());
+    }
+  }
+
   // Access specific argument.
   const Expr& operator[](const std::size_t i) const { return terms_[i]; }
 
