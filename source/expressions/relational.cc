@@ -117,7 +117,7 @@ struct RelationalSimplification {
 
 Expr Relational::Create(RelationalOperation operation, Expr left, Expr right) {
   // See if this relational automatically simplifies to a boolean constant:
-  const TriState simplified = VisitBinaryStruct(left, right, RelationalSimplification{operation});
+  const TriState simplified = VisitBinary(left, right, RelationalSimplification{operation});
   if (simplified == TriState::True) {
     return Constants::True;
   } else if (simplified == TriState::False) {

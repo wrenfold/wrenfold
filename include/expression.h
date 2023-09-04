@@ -19,7 +19,7 @@ class Expr {
   explicit Expr(ExpressionConceptConstPtr&& impl) : impl_(std::move(impl)) {}
   explicit Expr(const ExpressionConceptConstPtr& impl) : impl_(impl) {}
 
-  // ConstructMatrix variable:
+  // Construct variable:
   explicit Expr(std::string_view name);
 
   // Implicit construction from integers and floats.
@@ -148,9 +148,10 @@ struct ExpressionOrderPredicate {
 // Implemented in expression.cc
 Precedence GetPrecedence(const Expr& expr);
 
-// Check for equality. For use in template parameter lists for maps and sets.
-struct ExprsIdentical {
-  bool operator()(const Expr& a, const Expr& b) const { return a.IsIdenticalTo(b); }
+// Check for strict equality. For use in template parameter lists for maps and sets.
+template <typename T>
+struct IsIdenticalOperator {
+  bool operator()(const T& a, const T& b) const { return a.IsIdenticalTo(b); }
 };
 
 // Custom literal suffix support.

@@ -61,12 +61,12 @@ struct OrderVisitor {
     return RelativeOrder::Equal;
   }
 
-  template <typename Derived>
-  RelativeOrder Compare(const NAryOp<Derived>& a, const NAryOp<Derived>& b) const {
-    // For multiplication and addition, sort lexicographically by recursively invoking OrderVisitor.
-    const std::vector<Expr>& args_a = a.Args();
-    const std::vector<Expr>& args_b = b.Args();
-    return LexicographicalCompare(args_a.begin(), args_a.end(), args_b.begin(), args_b.end());
+  RelativeOrder Compare(const Addition& a, const Addition& b) const {
+    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
+  }
+
+  RelativeOrder Compare(const Multiplication& a, const Multiplication& b) const {
+    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
   }
 
   RelativeOrder Compare(const Matrix& a, const Matrix& b) const {
@@ -81,14 +81,14 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Power& a, const Power& b) const {
-    const RelativeOrder base_order = VisitBinaryStruct(a.Base(), b.Base(), OrderVisitor{});
+    const RelativeOrder base_order = VisitBinary(a.Base(), b.Base(), OrderVisitor{});
     if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
     } else if (base_order == RelativeOrder::GreaterThan) {
       return RelativeOrder::GreaterThan;
     }
     // Otherwise order is determined by the exponent:
-    return VisitBinaryStruct(a.Exponent(), b.Exponent(), OrderVisitor{});
+    return VisitBinary(a.Exponent(), b.Exponent(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const UnaryFunction& a, const UnaryFunction& b) const {
@@ -100,7 +100,7 @@ struct OrderVisitor {
       return RelativeOrder::LessThan;
     }
     // Then compare by value of the argument:
-    return VisitBinaryStruct(a.Arg(), b.Arg(), OrderVisitor{});
+    return VisitBinary(a.Arg(), b.Arg(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const FunctionArgument& a, const FunctionArgument& b) const {
@@ -120,13 +120,13 @@ struct OrderVisitor {
     } else if (a.Operation() > b.Operation()) {
       return RelativeOrder::GreaterThan;
     }
-    const RelativeOrder base_order = VisitBinaryStruct(a.Left(), b.Left(), OrderVisitor{});
+    const RelativeOrder base_order = VisitBinary(a.Left(), b.Left(), OrderVisitor{});
     if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
     } else if (base_order == RelativeOrder::GreaterThan) {
       return RelativeOrder::GreaterThan;
     }
-    return VisitBinaryStruct(a.Right(), b.Right(), OrderVisitor{});
+    return VisitBinary(a.Right(), b.Right(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const Variable& a, const Variable& b) const {
@@ -160,7 +160,7 @@ struct OrderVisitor {
 };
 
 RelativeOrder ExpressionOrder(const Expr& a, const Expr& b) {
-  return VisitBinaryStruct(a, b, OrderVisitor{});
+  return VisitBinary(a, b, OrderVisitor{});
 }
 
 }  // namespace math

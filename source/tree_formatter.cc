@@ -58,13 +58,22 @@ struct TreeFormatter {
     indentations_.pop_back();
   }
 
-  template <typename Derived>
-  void operator()(const NAryOp<Derived>& op) {
-    AppendName("{}:", op.Name());
-    for (std::size_t i = 0; i + 1 < op.Arity(); ++i) {
-      VisitLeft(op[i]);
+  void operator()(const Addition& op) {
+    AppendName("Addition:");
+    auto it = op.begin();
+    for (; std::next(it) != op.end(); ++it) {
+      VisitLeft(*it);
     }
-    VisitRight(op[op.Arity() - 1]);
+    VisitRight(*it);
+  }
+
+  void operator()(const Multiplication& op) {
+    AppendName("Multiplication:");
+    auto it = op.begin();
+    for (; std::next(it) != op.end(); ++it) {
+      VisitLeft(*it);
+    }
+    VisitRight(*it);
   }
 
   void operator()(const Matrix& mat) {

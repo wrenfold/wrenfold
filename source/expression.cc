@@ -31,25 +31,27 @@ std::string Expr::ToString() const {
 }
 
 Expr Expr::operator-() const {
-  return Multiplication::FromTwoOperands(Constants::NegativeOne, *this);
+  return Multiplication::FromOperands({Constants::NegativeOne, *this});
 }
 
-// TODO: It would be good if these could be inlined for internal library code.
-// In some cases, Expr can be a universal reference to avoid a shared_ptr copy.
-
-Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
+Expr operator+(const Expr& a, const Expr& b) {
+  // See note on absl::Span() constructor, the lifetimes here are valid.
+  // We are constructing an initializer_list.
+  return Addition::FromOperands({a, b});
+}
 
 Expr operator-(const Expr& a, const Expr& b) {
-  return a + Multiplication::FromTwoOperands(Constants::NegativeOne, b);
+  return a + Multiplication::FromOperands({Constants::NegativeOne, b});
 }
 
-Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromTwoOperands(a, b); }
+Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromOperands({a, b}); }
 
 Expr operator/(const Expr& a, const Expr& b) {
   if (b.Is<Matrix>()) {
     throw TypeError("Cannot divide by a matrix expression of type: {}", b.TypeName());
   }
-  return Multiplication::FromTwoOperands(a, Power::Create(b, Constants::NegativeOne));
+  auto one_over_b = Power::Create(b, Constants::NegativeOne);
+  return Multiplication::FromOperands({a, one_over_b});
 }
 
 Expr operator<(const Expr& a, const Expr& b) {

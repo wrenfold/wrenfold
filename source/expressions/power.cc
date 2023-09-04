@@ -119,7 +119,7 @@ struct PowerNumerics {
 
 Expr Power::Create(const Expr& a, const Expr& b) {
   // Check for numeric quantities.
-  std::optional<Expr> numeric_pow = VisitBinaryStruct(a, b, PowerNumerics{});
+  std::optional<Expr> numeric_pow = VisitBinary(a, b, PowerNumerics{});
   if (numeric_pow) {
     return *numeric_pow;
   }
@@ -158,7 +158,7 @@ Expr Power::Create(const Expr& a, const Expr& b) {
   if (const Multiplication* const mul = CastPtr<Multiplication>(a); mul != nullptr) {
     std::vector<Expr> args;
     args.reserve(mul->Arity());
-    for (const Expr& arg : mul->Args()) {
+    for (const Expr& arg : *mul) {
       args.push_back(Power::Create(arg, b));
     }
     return Multiplication::FromOperands(args);

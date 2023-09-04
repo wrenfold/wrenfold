@@ -116,7 +116,7 @@ struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor,
 
     // Add in the replacement and build a new addition:
     input_parts.Add(replacement);
-    return input_parts.CreateAddition({});
+    return input_parts.CreateAddition();
   }
 
  private:
@@ -201,7 +201,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
     }
 
     input_parts.Normalize();
-    return input_parts.CreateMultiplication(std::vector<Expr>{});
+    return input_parts.CreateMultiplication();
   }
 
  protected:
@@ -244,7 +244,7 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
           // x**(3*y + 5) replacing [x**y -> w] producing w**3 * x**5
           parts.terms.erase(it);
           // Put the exponent back together and swap in the replacement:
-          Expr new_exponent = parts.CreateAddition({});
+          Expr new_exponent = parts.CreateAddition();
           return Power::Create(replacement, ratio) * Power::Create(candidate_base, new_exponent);
         } else if (const Rational* const as_rational = CastPtr<Rational>(ratio);
                    as_rational != nullptr) {
@@ -257,7 +257,7 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
           // For example, this would handle the replacement:
           // x**(4/3*y + z) replacing [x**y -> w] producing w * x**(1/3y + z)
           it->second = it->second - target_exp_coeff * int_part.GetValue();
-          Expr new_exponent = parts.CreateAddition({});
+          Expr new_exponent = parts.CreateAddition();
           return Power::Create(replacement, int_part.GetValue()) *
                  Power::Create(candidate_base, new_exponent);
         }

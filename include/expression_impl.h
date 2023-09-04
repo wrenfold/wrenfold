@@ -74,6 +74,17 @@ const T* CastPtr(const Expr& x) {
   }
 }
 
+// Cast expression `x` to type `T` if possible, and check if it is identical
+// to `typed_y`.
+template <typename T>
+bool IsIdenticalToConcrete(const Expr& x, const T& typed_y) {
+  const T* as_typed = CastPtr<T>(x);
+  if (!as_typed) {
+    return false;
+  }
+  return as_typed->IsIdenticalTo(typed_y);
+}
+
 // Traverse all sub-expressions of the input expression. The provided `operation` will be called
 // once on each child.
 template <typename ExpressionType, typename Operation>

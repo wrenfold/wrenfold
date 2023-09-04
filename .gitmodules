@@ -4,12 +4,15 @@
 [submodule "dependencies/gtest"]
 	path = dependencies/gtest
 	url = https://github.com/google/googletest.git
-[submodule "dependencies/nanobind"]
-	path = dependencies/nanobind
-	url = https://github.com/gareth-cross/nanobind.git
 [submodule "dependencies/pybind11"]
 	path = dependencies/pybind11
 	url = https://github.com/pybind/pybind11.git
 [submodule "dependencies/eigen"]
 	path = dependencies/eigen
 	url = https://gitlab.com/libeigen/eigen.git
+[submodule "dependencies/benchmark"]
+	path = dependencies/benchmark
+	url = https://github.com/google/benchmark.git
+[submodule "dependencies/abseil-cpp"]
+	path = dependencies/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
