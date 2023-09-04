@@ -60,7 +60,7 @@ struct MultiplicationParts {
   // Floating point coefficient:
   std::optional<Float> float_coeff{};
   // Map from base to exponent.
-  std::unordered_map<Expr, Expr, Hash<Expr>, ExprsIdentical> terms{};
+  std::unordered_map<Expr, Expr, Hash<Expr>, IsIdenticalOperator<Expr>> terms{};
 
   // Update the internal product by multiplying on `arg`.
   void Multiply(const Expr& arg, bool factorize_integers = false);

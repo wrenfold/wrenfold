@@ -33,7 +33,7 @@ class Integer {
   constexpr IntegralType GetValue() const { return val_; }
 
   // Cast to integer:
-  explicit operator Float() const;
+  constexpr explicit operator Float() const;
 
   // Negate:
   Integer operator-() const { return Integer{-val_}; }
@@ -82,7 +82,7 @@ class Rational {
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
-  std::optional<Integer> TryConvertToInteger() const {
+  constexpr std::optional<Integer> TryConvertToInteger() const {
     if (n_ % d_ == 0) {
       return {Integer(n_ / d_)};
     }
@@ -91,7 +91,7 @@ class Rational {
 
   // Normalize a rational into a whole integer part, and a rational whose absolute value is less
   // than one.
-  std::pair<Integer, Rational> Normalize() const {
+  constexpr std::pair<Integer, Rational> Normalize() const {
     return std::make_pair(Integer{n_ / d_}, Rational{n_ % d_, d_});
   }
 
@@ -136,9 +136,7 @@ class Float {
   using FloatType = double;
 
   // ConstructMatrix from float value.
-  explicit Float(FloatType val) : val_(val) {
-    ASSERT(std::isfinite(val_), "Float values must be finite: val = {}", val_);
-  }
+  explicit constexpr Float(FloatType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
   constexpr bool IsIdenticalTo(const Float& other) const { return val_ == other.val_; }
@@ -151,71 +149,81 @@ class Float {
 
   // Create floating point expression.
   static Expr Create(Float f) { return MakeExpr<Float>(f); }
-  static Expr Create(FloatType f) { return Create(Float{f}); }
+  static Expr Create(FloatType f) {
+    ASSERT(std::isfinite(f), "Float values must be finite: {}", f);
+    return Create(Float{f});
+  }
 
  private:
   FloatType val_;
 };
 
 // Operations on integers:
-inline auto operator*(const Integer& a, const Integer& b) {
+inline constexpr auto operator*(const Integer& a, const Integer& b) {
   return Integer{a.GetValue() * b.GetValue()};
 }
-inline auto operator+(const Integer& a, const Integer& b) {
+inline constexpr auto operator+(const Integer& a, const Integer& b) {
   return Integer{a.GetValue() + b.GetValue()};
 }
-inline bool operator<(const Integer& a, const Integer& b) { return a.GetValue() < b.GetValue(); }
-inline bool operator==(const Integer& a, const Integer& b) { return a.GetValue() == b.GetValue(); }
+inline constexpr bool operator<(const Integer& a, const Integer& b) {
+  return a.GetValue() < b.GetValue();
+}
+inline constexpr bool operator==(const Integer& a, const Integer& b) {
+  return a.GetValue() == b.GetValue();
+}
 
-inline Integer::operator Float() const { return Float{static_cast<Float::FloatType>(val_)}; }
+inline constexpr Integer::operator Float() const {
+  return Float{static_cast<Float::FloatType>(val_)};
+}
 
 // Hashing of integers. Like std::hash, just pass the value through.
 template <>
 struct Hash<Integer::IntegralType> {
-  constexpr std::size_t operator()(Integer::IntegralType value) const {
-    return static_cast<std::size_t>(value);
+  std::size_t operator()(Integer::IntegralType value) const {
+    return std::hash<Integer::IntegralType>{}(value);
   }
 };
 template <>
 struct Hash<Integer> {
-  constexpr std::size_t operator()(const Integer& value) const {
+  std::size_t operator()(const Integer& value) const {
     return Hash<Integer::IntegralType>{}(value.GetValue());
   }
 };
 
 // Operations on rationals:
-inline auto operator*(const Rational& a, const Rational& b) {
+inline constexpr auto operator*(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Numerator(), a.Denominator() * b.Denominator()};
 }
-inline auto operator/(const Rational& a, const Rational& b) {
+inline constexpr auto operator/(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Denominator(), a.Denominator() * b.Numerator()};
 }
-inline auto operator+(const Rational& a, const Rational& b) {
+inline constexpr auto operator+(const Rational& a, const Rational& b) {
   // Create common denominator and create a new rational:
   return Rational{a.Numerator() * b.Denominator() + b.Numerator() * a.Denominator(),
                   a.Denominator() * b.Denominator()};
 }
-inline auto operator-(const Rational& a, const Rational& b) {
+inline constexpr auto operator-(const Rational& a, const Rational& b) {
   return Rational{a.Numerator() * b.Denominator() - b.Numerator() * a.Denominator(),
                   a.Denominator() * b.Denominator()};
 }
-inline auto operator%(const Rational& a, const Rational& b) {
+inline constexpr auto operator%(const Rational& a, const Rational& b) {
   // Divide a/b, then determine the remainder after dropping the integer part.
   const Rational quotient = a / b;
   return Rational{quotient.Numerator() % quotient.Denominator(), quotient.Denominator()};
 }
 
-inline bool operator<(const Rational& a, const Rational& b) {
+inline constexpr bool operator<(const Rational& a, const Rational& b) {
   // TODO: Watch for overflow.
   return a.Numerator() * b.Denominator() < b.Numerator() * a.Denominator();
 }
-inline bool operator>(const Rational& a, const Rational& b) {
+inline constexpr bool operator>(const Rational& a, const Rational& b) {
   return a.Numerator() * b.Denominator() > b.Numerator() * a.Denominator();
 }
-inline bool operator==(const Rational& a, const Rational& b) {
+inline constexpr bool operator==(const Rational& a, const Rational& b) {
   // Constructor ensures we reduce to common denominator, so we can compare directly.
   return a.Numerator() == b.Numerator() && a.Denominator() == b.Denominator();
 }
+inline constexpr bool operator!=(const Rational& a, const Rational& b) { return !operator==(a, b); }
 
 inline Rational::operator Float() const {
   // TODO: Look up if there is a more accurate way of doing this.
@@ -232,7 +240,7 @@ struct Hash<Rational> {
 
 // Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
 // coefficient between (-1, 1] is returned.
-inline Rational ModPiRational(const Rational& r) {
+inline constexpr Rational ModPiRational(const Rational& r) {
   // Split into integer and rational parts:
   const auto [integer_part_unwrapped, fractional_part] = r.Normalize();
   // Wrap the integer part into (-2, 2).
@@ -247,9 +255,21 @@ inline Rational ModPiRational(const Rational& r) {
 }
 
 // Operations on floats:
-inline auto operator*(const Float& a, const Float& b) { return Float{a.GetValue() * b.GetValue()}; }
-inline auto operator+(const Float& a, const Float& b) { return Float{a.GetValue() + b.GetValue()}; }
-inline bool operator<(const Float& a, const Float& b) { return a.GetValue() < b.GetValue(); }
+inline constexpr auto operator*(const Float& a, const Float& b) {
+  return Float{a.GetValue() * b.GetValue()};
+}
+inline constexpr auto operator+(const Float& a, const Float& b) {
+  return Float{a.GetValue() + b.GetValue()};
+}
+inline constexpr bool operator<(const Float& a, const Float& b) {
+  return a.GetValue() < b.GetValue();
+}
+inline constexpr bool operator==(const Float& a, const Float& b) {
+  return a.GetValue() == b.GetValue();
+}
+inline constexpr bool operator!=(const Float& a, const Float& b) {
+  return a.GetValue() != b.GetValue();
+}
 
 // Hashing of floats.
 template <>

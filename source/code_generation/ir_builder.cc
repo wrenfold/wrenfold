@@ -174,10 +174,11 @@ struct PairCountVisitor {
 
   // Record counts of single `Expr` children, and every pair-wise combination of children.
   template <typename Derived>
-  void RecordCounts(const NAryOp<Derived>& operation,
-                    std::unordered_map<Expr, std::size_t, Hash<Expr>, ExprsIdentical>& count_table,
-                    std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
-                        pair_count_table) {
+  void RecordCounts(
+      const NAryOp<Derived>& operation,
+      std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>>& count_table,
+      std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
+          pair_count_table) {
     for (const Expr& operand : operation) {
       count_table[operand]++;
       Visit(operand, *this);
@@ -205,8 +206,8 @@ struct PairCountVisitor {
     IterateChildren(expr, [this](const Expr& expr) { Visit(expr, *this); });
   }
 
-  std::unordered_map<Expr, std::size_t, Hash<Expr>, ExprsIdentical> mul_element_counts_;
-  std::unordered_map<Expr, std::size_t, Hash<Expr>, ExprsIdentical> add_element_counts_;
+  std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>> mul_element_counts_;
+  std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>> add_element_counts_;
 
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> mul_pair_counts_;
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> add_pair_counts_;
@@ -419,7 +420,7 @@ struct IRFormVisitor {
  private:
   FlatIr& builder_;
 
-  std::unordered_map<Expr, ir::ValuePtr, Hash<Expr>, ExprsIdentical> computed_values_;
+  std::unordered_map<Expr, ir::ValuePtr, Hash<Expr>, IsIdenticalOperator<Expr>> computed_values_;
 
   const ir::PairCountVisitor& pair_counts;
 };

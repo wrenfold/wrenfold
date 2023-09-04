@@ -210,8 +210,7 @@ void MultiplicationParts::Multiply(const Expr& arg, bool factorize_integers) {
 void MultiplicationParts::Normalize() {
   NormalizeExponentVisitor normalize_visitor{rational_coeff};
   for (auto it = terms.begin(); it != terms.end(); ++it) {
-    std::optional<Expr> updated_exponent =
-        VisitBinaryStruct(it->first, it->second, normalize_visitor);
+    std::optional<Expr> updated_exponent = VisitBinary(it->first, it->second, normalize_visitor);
     if (updated_exponent.has_value()) {
       // We changed the exponent on this term, so update it.
       it->second = std::move(*updated_exponent);

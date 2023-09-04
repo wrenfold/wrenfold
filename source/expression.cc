@@ -34,10 +34,8 @@ Expr Expr::operator-() const {
   return Multiplication::FromTwoOperands(Constants::NegativeOne, *this);
 }
 
-// TODO: It would be good if these could be inlined for internal library code.
-// In some cases, Expr can be a universal reference to avoid a shared_ptr copy.
-
-Expr operator+(const Expr& a, const Expr& b) { return Addition::FromTwoOperands(a, b); }
+// TODO: Use a span here instead.
+Expr operator+(const Expr& a, const Expr& b) { return Addition::FromOperands({a, b}); }
 
 Expr operator-(const Expr& a, const Expr& b) {
   return a + Multiplication::FromTwoOperands(Constants::NegativeOne, b);

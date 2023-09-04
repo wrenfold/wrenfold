@@ -146,7 +146,7 @@ auto Visit(const Expr& expr, VisitorType&& visitor, CapturedArgs&&... captured_a
 // Visit two expressions with a struct that accepts two concrete types in its operator()(...)
 // signature. The struct must declare a ReturnType associated type.
 template <typename VisitorType>
-auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
+auto VisitBinary(const Expr& u, const Expr& v, VisitorType&& handler) {
   return Visit(u, [&handler, &v](const auto& typed_u) {
     return Visit(v, [&handler, &typed_u](const auto& typed_v) {
       // Check if we can visit
@@ -154,7 +154,7 @@ auto VisitBinaryStruct(const Expr& u, const Expr& v, VisitorType&& handler) {
       using TypeV = std::decay_t<decltype(typed_v)>;
       static_assert(!std::is_const_v<decltype(handler)>);
       static_assert(HasBinaryCallOperator<std::decay_t<VisitorType>, TypeU, TypeV>,
-                    "Binary visitor fails to implement a required operator()() method.");
+                    "Binary visitor fails to implement a required operator() method.");
       return handler(typed_u, typed_v);
     });
   });
