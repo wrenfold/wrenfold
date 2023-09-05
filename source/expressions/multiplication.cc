@@ -176,7 +176,6 @@ void MultiplicationParts::Multiply(const Expr& arg, bool factorize_integers) {
 }
 
 void MultiplicationParts::Normalize() {
-  //  NormalizeExponentVisitor normalize_visitor{rational_coeff};
   for (auto it = terms.begin(); it != terms.end(); ++it) {
     const Integer* base = CastPtr<Integer>(it->first);
     const Rational* exponent = CastPtr<Rational>(it->second);
