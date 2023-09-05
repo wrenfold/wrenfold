@@ -59,18 +59,36 @@ struct TreeFormatter {
   }
 
   void operator()(const Addition& op) {
+    absl::InlinedVector<Expr, 16> terms;
+    terms.reserve(op.Arity());
+    std::copy(op.begin(), op.end(), std::back_inserter(terms));
+    std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
+      auto acm = AsCoefficientAndMultiplicand(a);
+      auto bcm = AsCoefficientAndMultiplicand(b);
+      return ExpressionOrder(acm.second, bcm.second) == RelativeOrder::LessThan;
+    });
+
     AppendName("Addition:");
-    auto it = op.begin();
-    for (; std::next(it) != op.end(); ++it) {
+    auto it = terms.begin();
+    for (; std::next(it) != terms.end(); ++it) {
       VisitLeft(*it);
     }
     VisitRight(*it);
   }
 
   void operator()(const Multiplication& op) {
+    absl::InlinedVector<Expr, 16> terms;
+    terms.reserve(op.Arity());
+    std::copy(op.begin(), op.end(), std::back_inserter(terms));
+    std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
+      const auto abe = AsBaseAndExponent(a);
+      const auto bbe = AsBaseAndExponent(b);
+      return ExpressionOrder(abe.first, bbe.first) == RelativeOrder::LessThan;
+    });
+
     AppendName("Multiplication:");
-    auto it = op.begin();
-    for (; std::next(it) != op.end(); ++it) {
+    auto it = terms.begin();
+    for (; std::next(it) != terms.end(); ++it) {
       VisitLeft(*it);
     }
     VisitRight(*it);

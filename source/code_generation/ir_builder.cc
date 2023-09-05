@@ -290,6 +290,11 @@ struct IRFormVisitor {
   operator()(const T& op, const Expr&) {
     // Put the thing w/ the highest count in the first cell:
     std::vector<Expr> expressions{op.begin(), op.end()};
+
+    // Place things into a canonical order so that we get consistent code-generation even if the
+    // hash function changes.
+    std::sort(expressions.begin(), expressions.end(), ExpressionOrderPredicate{});
+
     std::nth_element(
         expressions.begin(), expressions.begin(), expressions.end(),
         [&](const Expr& a, const Expr& b) {

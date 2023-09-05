@@ -159,36 +159,6 @@ struct MultiplyVisitor {
   MultiplicationParts& builder;
 };
 
-struct NormalizeExponentVisitor {
-  using ReturnType = std::optional<Expr>;
-
-  explicit NormalizeExponentVisitor(Rational& coeff) : rational_coeff(coeff) {}
-
-  // Check if the exponent is now greater than 1, in which case we factorize it into an integer part
-  // and a fractional part. The integer part is multiplied onto the rational coefficient.
-  Expr ApplyIntAndRational(const Integer& base, const Rational& exponent) {
-    const auto [integer_part, fractional_part] = FactorizeRationalExponent(exponent);
-    // Update the rational coefficient:
-    if (integer_part.GetValue() >= 0) {
-      rational_coeff = rational_coeff * Rational{Pow(base.GetValue(), integer_part.GetValue()), 1};
-    } else {
-      rational_coeff = rational_coeff * Rational{1, Pow(base.GetValue(), -integer_part.GetValue())};
-    }
-    return Rational::Create(fractional_part);
-  }
-
-  template <typename A, typename B>
-  ReturnType operator()(const A& a, const B& b) {
-    if constexpr (std::is_same_v<A, Integer> && std::is_same_v<B, Rational>) {
-      return ApplyIntAndRational(a, b);
-    } else {
-      return std::nullopt;
-    }
-  }
-
-  Rational& rational_coeff;
-};
-
 MultiplicationParts::MultiplicationParts(const Multiplication& mul, bool factorize_integers)
     : MultiplicationParts(mul.Arity()) {
   for (const Expr& expr : mul) {
@@ -206,12 +176,24 @@ void MultiplicationParts::Multiply(const Expr& arg, bool factorize_integers) {
 }
 
 void MultiplicationParts::Normalize() {
-  NormalizeExponentVisitor normalize_visitor{rational_coeff};
   for (auto it = terms.begin(); it != terms.end(); ++it) {
-    std::optional<Expr> updated_exponent = VisitBinary(it->first, it->second, normalize_visitor);
-    if (updated_exponent.has_value()) {
+    const Integer* base = CastPtr<Integer>(it->first);
+    const Rational* exponent = CastPtr<Rational>(it->second);
+    // Check if the exponent is now greater than 1, in which case we factorize it into an integer
+    // part and a fractional part. The integer part is multiplied onto the rational coefficient.
+    if (base && exponent) {
+      const auto [integer_part, fractional_part] = FactorizeRationalExponent(*exponent);
+      // Update the rational coefficient:
+      if (integer_part.GetValue() >= 0) {
+        rational_coeff =
+            rational_coeff * Rational{Pow(base->GetValue(), integer_part.GetValue()), 1};
+      } else {
+        rational_coeff =
+            rational_coeff * Rational{1, Pow(base->GetValue(), -integer_part.GetValue())};
+      }
+
       // We changed the exponent on this term, so update it.
-      it->second = std::move(*updated_exponent);
+      it->second = Rational::Create(fractional_part);
     }
   }
 
@@ -242,11 +224,6 @@ Expr MultiplicationParts::CreateMultiplication() const {
   std::transform(terms.begin(), terms.end(), std::back_inserter(args),
                  [](const auto& pair) { return Power::Create(pair.first, pair.second); });
 
-  std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
-    const auto& a_base = AsBaseAndExponent(a).first;
-    const auto& b_base = AsBaseAndExponent(b).first;
-    return ExpressionOrderPredicate{}(a_base, b_base);
-  });
   return MaybeNewMul(std::move(args));
 }
 
@@ -294,8 +271,16 @@ MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul) {
   using BaseExp = MultiplicationFormattingInfo::BaseExp;
   MultiplicationFormattingInfo result{};
 
+  // Sort into canonical order:
+  absl::InlinedVector<Expr, 16> terms{mul.begin(), mul.end()};
+  std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
+    const auto abe = AsBaseAndExponent(a);
+    const auto bbe = AsBaseAndExponent(b);
+    return ExpressionOrder(abe.first, bbe.first) == RelativeOrder::LessThan;
+  });
+
   std::size_t sign_count = 0;
-  for (const Expr& expr : mul) {
+  for (const Expr& expr : terms) {
     // Extract rationals:
     if (const Rational* const rational = CastPtr<Rational>(expr); rational != nullptr) {
       const auto abs_num = std::abs(rational->Numerator());

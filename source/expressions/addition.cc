@@ -123,9 +123,17 @@ Expr AdditionParts::CreateAddition() const {
   }
 
   args.reserve(args.size() + terms.size());
-  std::transform(terms.begin(), terms.end(), std::back_inserter(args), [](const auto& pair) {
-    return Multiplication::FromOperands({pair.first, pair.second});
-  });
+  std::transform(
+      terms.begin(), terms.end(), std::back_inserter(args), [](const std::pair<Expr, Expr>& pair) {
+        if (IsOne(pair.second)) {
+          return pair.first;
+        } else if (!pair.first.Is<Multiplication>() && !pair.second.Is<Multiplication>()) {
+          // We can skip calling FromOperands here because we know the first element in
+          // the pair is the non-numeric value and the second is the numeric coefficient.
+          return MakeExpr<Multiplication>(pair.second, pair.first);
+        }
+        return Multiplication::FromOperands({pair.first, pair.second});
+      });
 
   if (args.empty()) {
     return Constants::Zero;
@@ -133,11 +141,6 @@ Expr AdditionParts::CreateAddition() const {
     return args.front();
   }
 
-  std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
-    const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
-    const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
-    return ExpressionOrderPredicate{}(a_mul, b_mul);
-  });
   return MakeExpr<Addition>(std::move(args));
 }
 

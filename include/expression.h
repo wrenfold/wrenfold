@@ -47,6 +47,9 @@ class Expr {
   // Get the underlying type name as a string.
   std::string_view TypeName() const { return impl_->TypeName(); }
 
+  // Return the unique index of the underlying type.
+  std::size_t TypeIndex() const { return impl_->TypeIndex(); }
+
   // Whether this expression is a leaf node in the expression tree.
   bool IsLeaf() const { return impl_->IsLeaf(); }
 

@@ -8,7 +8,6 @@
 #pragma warning(disable : 4100)  // unreferenced formal parameter
 #pragma warning(disable : 4324)  // padded for alignment
 #endif                           // _MSC_VER
-#include <absl/container/flat_hash_map.h>
 #include <absl/container/inlined_vector.h>
 #include <absl/types/span.h>
 #ifdef _MSC_VER
@@ -31,6 +30,17 @@ class Addition {
   // Move-construct.
   explicit Addition(ContainerType&& terms) : terms_(std::move(terms)) {
     ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    // Place into a deterministic (but otherwise arbitrary) order.
+    std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
+      if (a.Hash() < b.Hash()) {
+        return true;
+      } else if (a.Hash() > b.Hash()) {
+        return false;
+      } else {
+        // There could be a collision, so we fall back to a slow path here.
+        return ExpressionOrderPredicate{}(a, b);
+      }
+    });
   }
 
   // Access specific argument.

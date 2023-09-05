@@ -28,11 +28,15 @@ class ExpressionConcept {
   bool IsType() const {
     static_assert((ContainsType<Ts, ExpressionTypeList> && ...),
                   "Ts is not a valid expression type");
+    // TODO: We can save a couple of percent if we save type_index on this object.
     return (TypeMatchesIndex(IndexOfType<Ts, ExpressionTypeList>::Value) || ...);
   }
 
   // Retrieve the hash of the expression.
   std::size_t GetHash() const { return hash_; }
+
+  // Retrieve the type index.
+  virtual std::size_t TypeIndex() const = 0;
 
  protected:
   // True if the underlying type matches the provided index.
