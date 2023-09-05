@@ -179,13 +179,30 @@ struct PairCountVisitor {
       std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>>& count_table,
       std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
           pair_count_table) {
-    for (const Expr& operand : operation) {
+    absl::InlinedVector<Expr, 16> terms;
+    terms.reserve(operation.Arity());
+    std::copy(operation.begin(), operation.end(), std::back_inserter(terms));
+    if constexpr (std::is_same_v<Operation, Multiplication>) {
+      std::sort(terms.begin(), terms.end(), [](const Expr& a, const Expr& b) {
+        const auto& a_base = AsBaseAndExponent(a).first;
+        const auto& b_base = AsBaseAndExponent(b).first;
+        return ExpressionOrderPredicate{}(a_base, b_base);
+      });
+    } else {
+      std::sort(terms.begin(), terms.end(), [](const Expr& a, const Expr& b) {
+        const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
+        const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
+        return ExpressionOrderPredicate{}(a_mul, b_mul);
+      });
+    }
+
+    for (const Expr& operand : terms) {
       count_table[operand]++;
       Visit(operand, *this);
     }
     // generate pairs of expressions:
-    for (auto i = operation.begin(); i != operation.end(); ++i) {
-      for (auto j = std::next(i); j != operation.end(); ++j) {
+    for (auto i = terms.begin(); i != terms.end(); ++i) {
+      for (auto j = std::next(i); j != terms.end(); ++j) {
         auto [it, was_inserted] = pair_count_table.emplace(std::make_pair(*i, *j), 1);
         if (!was_inserted) {
           it->second += 1;
@@ -290,6 +307,11 @@ struct IRFormVisitor {
   operator()(const T& op, const Expr&) {
     // Put the thing w/ the highest count in the first cell:
     std::vector<Expr> expressions{op.begin(), op.end()};
+
+    // Place things into a canonical order so that we get consistent code-generation even if the
+    // hash function changes.
+    std::sort(expressions.begin(), expressions.end(), ExpressionOrderPredicate{});
+
     std::nth_element(
         expressions.begin(), expressions.begin(), expressions.end(),
         [&](const Expr& a, const Expr& b) {

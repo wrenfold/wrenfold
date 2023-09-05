@@ -27,6 +27,7 @@ auto CreateIR(Func&& func, const std::string_view name, Args&&... args) {
       BuildFunctionDescription(std::forward<Func>(func), name, std::forward<Args>(args)...);
   std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
   FlatIr flat_ir{expressions};
+  fmt::print("before dup {}:\n{}", flat_ir.NumOperations(), flat_ir.ToString());
   flat_ir.EliminateDuplicates();
   return std::make_tuple(std::move(expressions), std::move(flat_ir));
 }

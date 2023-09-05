@@ -14,8 +14,19 @@ namespace math {
 
 void PlainFormatter::operator()(const Addition& expr) {
   ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
-  for (std::size_t i = 0; i < expr.Arity(); ++i) {
-    const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(expr[i]);
+
+  // Sort into canonical order:
+  absl::InlinedVector<std::pair<Expr, Expr>, 16> terms;
+  terms.reserve(expr.Arity());
+  std::transform(expr.begin(), expr.end(), std::back_inserter(terms),
+                 [](const Expr& x) { return AsCoefficientAndMultiplicand(x); });
+
+  std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
+    return ExpressionOrder(a.second, b.second) == RelativeOrder::LessThan;
+  });
+
+  for (std::size_t i = 0; i < terms.size(); ++i) {
+    const auto [coeff, multiplicand] = terms[i];
     if (IsNegativeNumber(coeff)) {
       if (i == 0) {
         // For the first term, just negate it:

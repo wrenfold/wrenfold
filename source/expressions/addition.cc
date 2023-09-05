@@ -141,11 +141,6 @@ Expr AdditionParts::CreateAddition() const {
     return args.front();
   }
 
-  std::sort(args.begin(), args.end(), [](const Expr& a, const Expr& b) {
-    const Expr& a_mul = AsCoefficientAndMultiplicand(a).second;
-    const Expr& b_mul = AsCoefficientAndMultiplicand(b).second;
-    return ExpressionOrderPredicate{}(a_mul, b_mul);
-  });
   return MakeExpr<Addition>(std::move(args));
 }
 

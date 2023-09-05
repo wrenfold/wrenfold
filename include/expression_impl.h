@@ -40,6 +40,11 @@ class ExpressionImpl final : public ExpressionConcept {
   // Virtual version of `IsLeafStatic`.
   bool IsLeaf() const override final { return IsLeafStatic(); }
 
+  // Implementation of `TypeIndex`.
+  std::size_t TypeIndex() const override final {
+    return IndexOfType<ExpressionType, ExpressionTypeList>::Value;
+  }
+
  protected:
   bool TypeMatchesIndex(const std::size_t index) const override final {
     static_assert(ContainsType<ExpressionType, ExpressionTypeList>,

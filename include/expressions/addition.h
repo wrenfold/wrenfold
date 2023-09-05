@@ -30,6 +30,17 @@ class Addition {
   // Move-construct.
   explicit Addition(ContainerType&& terms) : terms_(std::move(terms)) {
     ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    // Place into a deterministic (but otherwise arbitrary) order.
+    std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
+      if (a.Hash() < b.Hash()) {
+        return true;
+      } else if (a.Hash() > b.Hash()) {
+        return false;
+      } else {
+        // There could be a collision, so we fall back to a slow path here.
+        return ExpressionOrderPredicate{}(a, b);
+      }
+    });
   }
 
   // Access specific argument.
