@@ -23,7 +23,7 @@ class Integer {
 
   using IntegralType = int64_t;
 
-  // ConstructMatrix from number.
+  // Construct from number.
   explicit constexpr Integer(IntegralType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
@@ -135,7 +135,7 @@ class Float {
 
   using FloatType = double;
 
-  // ConstructMatrix from float value.
+  // Construct from float value.
   explicit constexpr Float(FloatType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.

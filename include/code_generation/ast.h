@@ -231,7 +231,7 @@ struct Compare {
   VariantPtr right;
 };
 
-// ConstructMatrix a type from the provided arguments.
+// Construct a type from the provided arguments.
 struct ConstructReturnValue {
   std::size_t position;
   ast::Type type;

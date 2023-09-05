@@ -11,7 +11,7 @@ class Constant {
   static constexpr std::string_view NameStr = "Constant";
   static constexpr bool IsLeafNode = true;
 
-  // ConstructMatrix with name.
+  // Construct with name.
   explicit constexpr Constant(SymbolicConstants name) : name_(name) {}
 
   // Check if symbolic constants are the same.

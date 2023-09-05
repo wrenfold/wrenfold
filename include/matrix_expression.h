@@ -10,7 +10,7 @@ namespace math {
 // Rather than inheriting, we store another `Expr` via composition.
 class MatrixExpr {
  public:
-  // ConstructMatrix from expression. The underlying type is checked and an exception will be thrown
+  // Construct from expression. The underlying type is checked and an exception will be thrown
   // if the argument is not a matrix.
   explicit MatrixExpr(Expr&& arg);
   explicit MatrixExpr(const Expr& arg);

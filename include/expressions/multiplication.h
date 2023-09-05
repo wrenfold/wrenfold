@@ -122,7 +122,7 @@ struct MultiplicationParts {
   MultiplicationParts() = default;
   explicit MultiplicationParts(std::size_t capacity) { terms.reserve(capacity); }
 
-  // ConstructMatrix from existing multiplication.
+  // Construct from existing multiplication.
   explicit MultiplicationParts(const Multiplication& mul, bool factorize_integers);
 
   // Rational coefficient.

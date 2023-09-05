@@ -88,10 +88,10 @@ class Expr {
   friend const T* CastPtr(const Expr&);
 
  private:
-  // ConstructMatrix constant from float.
+  // Construct constant from float.
   static Expr FromFloat(double x);
 
-  // ConstructMatrix from integer.
+  // Construct from integer.
   static Expr FromInt(std::int64_t x);
 
   // TODO: Use checked casts here + safe numeric type.
