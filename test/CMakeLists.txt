@@ -9,30 +9,45 @@ set(TEST_CONFIG_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_config)
 configure_file(config/config_variables.h.in
                ${TEST_CONFIG_OUTPUT_DIR}/config_variables.h)
 
-# Specify individual tests here:
-set(${PROJECT_NAME}_TEST_SOURCES
-    plain_formatter_test.cc
-    scalar_operations_test.cc
-    derivatives_test.cc
-    integer_utils_test.cc
-    numeric_expressions_test.cc
-    functions_test.cc
-    matrix_operations_test.cc
-    ir_builder_test.cc
-    substitute_test.cc)
+# Add a single test.
+function(add_custom_test SOURCE_FILE)
+  set(options OMIT_MAIN_LIBRARY)
+  set(oneValueArgs "")
+  set(multiValueArgs COMPILE_FEATURES)
+  cmake_parse_arguments(TEST "${options}" "${oneValueArgs}" "${multiValueArgs}"
+                        ${ARGN})
 
-foreach(test_file ${${PROJECT_NAME}_TEST_SOURCES})
   # get just the filename w/o extension
-  get_filename_component(test_name ${test_file} NAME_WE)
+  get_filename_component(TEST_NAME ${SOURCE_FILE} NAME_WE)
 
-  # add test executable for every file
-  message(STATUS "Discovered test: ${test_name}")
-  add_executable(${test_name} ${test_file} custom_main.cc)
-  target_link_libraries(${test_name} ${TEST_LIBRARY_NAME} gtest)
-  target_include_directories(${test_name} PRIVATE ${TEST_CONFIG_OUTPUT_DIR})
+  # add executable for the test:
+  message(STATUS "Adding test: ${TEST_NAME}")
+  add_executable(${TEST_NAME} ${SOURCE_FILE} custom_main.cc)
+  target_link_libraries(${TEST_NAME} gtest)
+  if(NOT ${TEST_OMIT_MAIN_LIBRARY})
+    target_link_libraries(${TEST_NAME} ${TEST_LIBRARY_NAME})
+  endif()
+  target_link_libraries(${TEST_NAME} math_runtime eigen fmt::fmt-header-only)
 
-  add_test(${test_name} ${test_name})
-endforeach(test_file)
+  target_compile_features(${TEST_NAME} PRIVATE ${TEST_COMPILE_FEATURES})
+  target_compile_options(${TEST_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_include_directories(${TEST_NAME} PRIVATE ${TEST_CONFIG_OUTPUT_DIR})
+  add_test(${TEST_NAME} ${TEST_NAME})
+endfunction()
+
+add_custom_test(plain_formatter_test.cc)
+add_custom_test(scalar_operations_test.cc)
+add_custom_test(derivatives_test.cc)
+add_custom_test(integer_utils_test.cc)
+add_custom_test(numeric_expressions_test.cc)
+add_custom_test(functions_test.cc)
+add_custom_test(matrix_operations_test.cc)
+add_custom_test(ir_builder_test.cc)
+add_custom_test(substitute_test.cc)
+
+# TODO: MSVC doesn't give a shit about our request for C++11, and just compiles
+# with C++14.
+add_custom_test(span_test.cc OMIT_MAIN_LIBRARY COMPILE_FEATURES cxx_std_11)
 
 # Function for defining code-generation tests, which are built and run twice.
 # The first pass performs code-generation, while the second compiles w/ the
