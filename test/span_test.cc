@@ -2,7 +2,15 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+// Define an assertion so we can test that functionality:
 #define MATH_SPAN_EIGEN_SUPPORT
+#define MATH_SPAN_RUNTIME_ASSERT(condition)    \
+  do {                                         \
+    if (!static_cast<bool>(condition)) {       \
+      throw std::runtime_error("Test assert"); \
+    }                                          \
+  } while (false)
+
 #include "span.h"
 
 #define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(math::detail::ExpectEigenSpanEqual, a, b)
@@ -16,24 +24,26 @@ template <typename Ta, typename Scalar, std::size_t R, std::size_t C, typename R
           typename ColStride>
 testing::AssertionResult ExpectEigenSpanEqual(
     const std::string& name_a, const std::string& name_b, const Eigen::MatrixBase<Ta>& a,
-    const math::Span<Scalar, R, C, RowStride, ColStride> b);
+    const math::not_null_span<Scalar, R, C, RowStride, ColStride> b);
 }  // namespace detail
 
 TEST(SpanTest, TestStaticIndexing) {
-  Span<float, 3, 3, Const<3>, Const<1>> row_major{nullptr, {}, {}};
+  std::array<float, 9> unused_data{};
+
+  not_null_span<float, 3, 3, constant<3>, constant<1>> row_major{unused_data.data(), {}, {}};
   ASSERT_EQ(sizeof(void*), sizeof(row_major));  //  Should be same size as a pointer.
   ASSERT_EQ(0, row_major.compute_index(0, 0));
   ASSERT_EQ(1, row_major.compute_index(0, 1));
   ASSERT_EQ(3, row_major.compute_index(1, 0));
   ASSERT_EQ(5, row_major.compute_index(1, 2));
 
-  Span<float, 3, 3, Const<1>, Const<4>> col_major{nullptr, {}, {}};
+  not_null_span<float, 3, 3, constant<1>, constant<4>> col_major{unused_data.data(), {}, {}};
   ASSERT_EQ(0, col_major.compute_index(0, 0));
   ASSERT_EQ(4, col_major.compute_index(0, 1));
   ASSERT_EQ(1, col_major.compute_index(1, 0));
   ASSERT_EQ(6, col_major.compute_index(2, 1));
 
-  Span<float, 3, 3, Const<3>, Const<9>> both{nullptr, {}, {}};
+  not_null_span<float, 3, 3, constant<3>, constant<9>> both{unused_data.data(), {}, {}};
   ASSERT_EQ(0, both.compute_index(0, 0));
   ASSERT_EQ(9, both.compute_index(0, 1));
   ASSERT_EQ(3, both.compute_index(1, 0));
@@ -42,13 +52,15 @@ TEST(SpanTest, TestStaticIndexing) {
 }
 
 TEST(SpanTest, TestDynamicIndexing) {
-  Span<float, 3, 4, Dynamic, Const<1>> row_major{nullptr, Dynamic(8), {}};
+  std::array<float, 12> unused_data{};
+
+  not_null_span<float, 3, 4, dynamic, constant<1>> row_major{unused_data.data(), dynamic(8), {}};
   ASSERT_EQ(0, row_major.compute_index(0, 0));
   ASSERT_EQ(8, row_major.compute_index(1, 0));
   ASSERT_EQ(11, row_major.compute_index(1, 3));
   ASSERT_EQ(17, row_major.compute_index(2, 1));
 
-  Span<float, 3, 4, Const<1>, Dynamic> col_major{nullptr, {}, Dynamic(6)};
+  not_null_span<float, 3, 4, constant<1>, dynamic> col_major{unused_data.data(), {}, dynamic(6)};
   ASSERT_EQ(0, col_major.compute_index(0, 0));
   ASSERT_EQ(1, col_major.compute_index(1, 0));
   ASSERT_EQ(8, col_major.compute_index(2, 1));
@@ -56,7 +68,7 @@ TEST(SpanTest, TestDynamicIndexing) {
 
 TEST(SpanTest, TestConstructor) {
   std::array<int, 6> data = {0, 1, 2, 3, 4, 5};
-  auto span = Span<int, 3, 2, Const<1>, Const<3>>{data.data(), {}, {}};
+  auto span = not_null_span<int, 3, 2, constant<1>, constant<3>>{data.data(), {}, {}};
   EXPECT_EQ(3, span.rows());
   EXPECT_EQ(2, span.cols());
   EXPECT_EQ(1, span.stride<0>().value());
@@ -66,20 +78,53 @@ TEST(SpanTest, TestConstructor) {
   EXPECT_EQ(3, span(0, 1));
 
   // Implicit conversion to const:
-  auto const_span = Span<int, 3, 2, Const<1>, Const<3>>{span};
+  auto const_span = not_null_span<const int, 3, 2, constant<1>, constant<3>>{span};
   EXPECT_EQ(span.data(), const_span.data());
   EXPECT_EQ(span, const_span);
+
+  // Conversion to nullable span.
+  auto nullable_span = const_span.as_span();
+  EXPECT_TRUE(nullable_span);
+  EXPECT_EQ(const_span.data(), nullable_span.data());
+  EXPECT_EQ(const_span.rows(), nullable_span.rows());
+  EXPECT_EQ(const_span.cols(), nullable_span.cols());
+  EXPECT_EQ(const_span, nullable_span.as_not_null_span());
+}
+
+TEST(SpanTest, TestConstructorAssertion) {
+  // Try constructing not-null span w/ a null pointer.
+  // Based on our macro definition above, this should throw runtime_error.
+  auto construct_null = []() {
+    int* data = nullptr;
+    return not_null_span<const int, 2, 2, constant<1>, constant<2>>{data, constant<1>(),
+                                                                    constant<2>()};
+  };
+  EXPECT_THROW(construct_null(), std::runtime_error);
+
+  auto null_span = span<int, 2, 2, constant<1>, constant<2>>{nullptr};
+  EXPECT_FALSE(null_span);
+  EXPECT_THROW(null_span.as_not_null_span(), std::runtime_error);
+}
+
+TEST(SpanTest, TestMakeNullSpan) {
+  auto span = make_null_span<float, 2, 3>();
+  EXPECT_EQ(nullptr, span.data());
+  EXPECT_EQ(2, span.rows());
+  EXPECT_EQ(3, span.cols());
+  EXPECT_EQ(0, span.stride<0>().value());
+  EXPECT_EQ(0, span.stride<1>().value());
+  EXPECT_THROW(span.as_not_null_span(), std::runtime_error);
 }
 
 TEST(SpanTest, TestEqualityOperator) {
   const std::array<int, 4> data1 = {0, 1, 2, 3};
   std::array<int, 4> data2 = {4, 5, 6, 7};
 
-  auto span1 = Span<const int, 2, 2, Const<1>, Const<2>>{data1.data(), {}, {}};
+  auto span1 = not_null_span<const int, 2, 2, constant<1>, constant<2>>{data1.data(), {}, {}};
   EXPECT_EQ(span1, span1);
   EXPECT_EQ(span1, span1.with_dynamic_strides());
 
-  auto span2 = Span<int, 2, 2, Const<2>, Const<1>>{data2.data(), {}, {}};
+  auto span2 = not_null_span<int, 2, 2, constant<2>, constant<1>>{data2.data(), {}, {}};
   EXPECT_EQ(span2, span2.with_dynamic_strides());
 }
 
@@ -152,7 +197,7 @@ TEST(SpanTest, TestEigenMap) {
 // In the tests below, we fill elements that should be skipped by the strides w/ zero.
 // Then we check that our span does not include any zero elements.
 template <std::size_t Rows, std::size_t Cols, typename... Strides>
-void CheckNonZero(math::Span<const int, Rows, Cols, Strides...> span) {
+void CheckNonZero(const math::span_base<const int, Rows, Cols, Strides...>& span) {
   for (int i = 0; i < span.rows(); ++i) {
     for (int j = 0; j < span.cols(); ++j) {
       ASSERT_NE(0, span(i, j));
@@ -223,12 +268,18 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
   CheckNonZero(span_dynamic);
 }
 
+TEST(SpanTest, TestEigenNullMapAssertion) {
+  // Constructing from null map should trigger our assertion macro.
+  const Eigen::Map<const Eigen::Matrix<int, 3, 3>> map{nullptr};
+  ASSERT_THROW(make_span_eigen(map), std::runtime_error);
+}
+
 namespace detail {
 template <typename Ta, typename Scalar, std::size_t R, std::size_t C, typename RowStride,
           typename ColStride>
 testing::AssertionResult ExpectEigenSpanEqual(
     const std::string& name_a, const std::string& name_b, const Eigen::MatrixBase<Ta>& a,
-    const math::Span<Scalar, R, C, RowStride, ColStride> b) {
+    const math::not_null_span<Scalar, R, C, RowStride, ColStride> b) {
   if (a.rows() != static_cast<Eigen::Index>(b.rows()) ||
       a.cols() != static_cast<Eigen::Index>(b.cols())) {
     return testing::AssertionFailure()
