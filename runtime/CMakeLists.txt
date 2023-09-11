@@ -7,7 +7,7 @@ target_include_directories(
             $<INSTALL_INTERFACE:include>)
 
 # Specify public headers
-set(${RUNTIME_INTERFACE_NAME}_HEADERS span.h)
+set(${RUNTIME_INTERFACE_NAME}_HEADERS span.h span_detail.h span_eigen.h)
 set_target_properties(
   ${RUNTIME_INTERFACE_NAME} PROPERTIES PUBLIC_HEADER
                                        "${RUNTIME_INTERFACE_NAME}_HEADERS")

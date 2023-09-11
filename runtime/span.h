@@ -1,15 +1,9 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <tuple>
+#include "span_detail.h"
 
-// Define `MATH_SPAN_EIGEN_SUPPORT` prior to including this header to enable convenient conversion
-// from Eigen types to `Span`. Once defined, you may call make_span_eigen() to construct `Span`
-// objects from Eigen matrices, maps, and blocks.
-#ifdef MATH_SPAN_EIGEN_SUPPORT
-#include <Eigen/Core>
-#endif  // MATH_SPAN_EIGEN_SUPPORT
-
-//
+// The user may optionally define `MATH_SPAN_RUNTIME_ASSERT` before importing this file. This macro
+// is expected to take a boolean argument, and run a user-specified assert.
 #ifndef MATH_SPAN_RUNTIME_ASSERT
 #define MATH_SPAN_RUNTIME_ASSERT(condition) \
   do {                                      \
@@ -32,194 +26,17 @@ class constant;
 // Type used for strides computed at runtime.
 class dynamic;
 
-// Forward declare.
-template <typename T, std::size_t Rows, std::size_t Cols, typename RowStride, typename ColStride>
-class span_base;
-
-// Forward declare.
-template <typename T, std::size_t Rows, std::size_t Cols, typename RowStride, typename ColStride>
-class span;
-
-namespace detail {
-// Enable if: `T` is the const version of `U`.
-template <typename T, typename U>
-using enable_if_adding_const_t =
-    typename std::enable_if<std::is_const<T>::value &&
-                            std::is_same<std::remove_const_t<T>, U>::value>::type;
-
-// Enable if `T` is the same as `U` after const is removed from both.
-template <typename T, typename U>
-using enable_if_same_after_removing_const_t =
-    typename std::enable_if<std::is_same<typename std::remove_const<T>::type,
-                                         typename std::remove_const<T>::type>::value>::type;
-}  // namespace detail
-
-// A 2D span type used to pass matrix arguments to generated functions.
-// `Rows` and `Cols` must be compile-time constants.
-// `RowStride` and `ColStride` may be either Const<D> or dynamic.
-// TODO: Extend this to `n` dimensions.
-template <typename T, std::size_t Rows, std::size_t Cols, typename RowStride, typename ColStride>
-class not_null_span final : public span_base<T, Rows, Cols, RowStride, ColStride> {
+// Base class for multidimensional spans.
+// Don't instantiate this directly, use `not_null_span` and `span` (defined below).
+template <typename T, typename Dimensions, typename Strides>
+class span_base {
  public:
-  using Base = span_base<T, Rows, Cols, RowStride, ColStride>;
-
-  // The equivalent nullable type.
-  using equivalent_span = span<T, Rows, Cols, RowStride, ColStride>;
-
-  // Construct from non-null pointer and strides.
-  constexpr not_null_span(T* data, RowStride row_stride,
-                          ColStride col_stride) MATH_SPAN_MAYBE_NOEXCEPT
-      : Base(data, row_stride, col_stride) {
-    MATH_SPAN_RUNTIME_ASSERT(data != nullptr);
-  }
-
-  // Construct from non-null pointer and strides.
-  // Specialization for when `U` is the non-const version of T.
-  template <typename U, typename = detail::enable_if_adding_const_t<T, U>>
-  constexpr not_null_span(U* data, RowStride row_stride,
-                          ColStride col_stride) MATH_SPAN_MAYBE_NOEXCEPT
-      : Base(const_cast<T*>(data), row_stride, col_stride) {
-    MATH_SPAN_RUNTIME_ASSERT(data != nullptr);
-  }
-
-  // Cannot construct from nullptr.
-  constexpr not_null_span(std::nullptr_t, RowStride, ColStride) noexcept = delete;
-  constexpr not_null_span(std::nullptr_t) noexcept = delete;
-
-  // Implicit construct if U is the non-const version of T.
-  // Allows promotion from non-const to const span.
-  template <typename U, typename = detail::enable_if_adding_const_t<T, U>>
-  constexpr not_null_span(not_null_span<U, Rows, Cols, RowStride, ColStride> span) noexcept
-      : Base(span.data(), span.template stride<0>(), span.template stride<1>()) {}
-
-  // Convert to an equivalent span w/ dynamic strides.
-  constexpr not_null_span<T, Rows, Cols, dynamic, dynamic> with_dynamic_strides() const noexcept {
-    return {Base::data(), dynamic(Base::template stride<0>().value()),
-            dynamic(Base::template stride<1>().value())};
-  }
-
-  // Convert to a span that can be null.
-  constexpr equivalent_span as_span() const noexcept {
-    return {Base::data(), Base::template stride<0>(), Base::template stride<1>()};
-  }
-};
-
-// A 2D span used for optional output arguments. This version of the container is nullable.
-template <typename T, std::size_t Rows, std::size_t Cols, typename RowStride, typename ColStride>
-class span final : public span_base<T, Rows, Cols, RowStride, ColStride> {
- public:
-  using Base = span_base<T, Rows, Cols, RowStride, ColStride>;
-
-  // Construct from pointer (which may be null) and strides.
-  constexpr span(T* data, RowStride row_stride, ColStride col_stride) noexcept
-      : Base(data, row_stride, col_stride) {}
-
-  // Construct from nullptr.
-  constexpr span(std::nullptr_t) noexcept : Base(nullptr, RowStride{0}, ColStride{0}) {}
-
-  // Implicit conversion to bool to check if this object is null.
-  constexpr operator bool() const noexcept { return Base::data() != nullptr; }  // NOLINT
-
-  // Convert to a not-null span.
-  constexpr not_null_span<T, Rows, Cols, RowStride, ColStride> as_not_null_span() const
-      MATH_SPAN_MAYBE_NOEXCEPT {
-    return not_null_span<T, Rows, Cols, RowStride, ColStride>{
-        Base::data(), Base::template stride<0>(), Base::template stride<1>()};
-  }
-};
-
-// Create a null span.
-template <typename T, std::size_t Rows, std::size_t Cols>
-constexpr auto make_null_span() noexcept {
-  return span<T, Rows, Cols, constant<0>, constant<0>>{nullptr};
-}
-
-// Represent a compile-time constant stride value.
-template <std::size_t D>
-class constant {
- public:
-  constexpr constant() noexcept = default;
-  explicit constexpr constant(std::size_t) noexcept {};
-
-  static constexpr std::size_t value() noexcept { return D; }
-};
-
-// Represent a run-time stride value.
-class dynamic {
- public:
-  // Construct with stride value.
-  explicit constexpr dynamic(std::size_t value) noexcept : value_(value) {}
-
-  // Access the stride value.
-  constexpr std::size_t value() const noexcept { return value_; }
-
- private:
-  std::size_t value_;
-};
-
-// Equality operator for spans of the same type.
-// Dimensions must match at compile time.
-template <typename T, std::size_t Rows, std::size_t Cols, typename RS1, typename CS1, typename U,
-          typename RS2, typename CS2,
-          typename = detail::enable_if_same_after_removing_const_t<T, U>>
-bool operator==(const not_null_span<T, Rows, Cols, RS1, CS1> a,
-                const not_null_span<U, Rows, Cols, RS2, CS2> b) noexcept {
-  for (std::size_t i = 0; i < a.rows(); ++i) {
-    for (std::size_t j = 0; j < a.cols(); ++j) {
-      if (a(i, j) != b(i, j)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-// Non-equality operator for spans of the same type.
-// Dimensions must match at compile time.
-template <typename T, std::size_t Rows, std::size_t Cols, typename RS1, typename CS1, typename RS2,
-          typename CS2>
-bool operator!=(const not_null_span<T, Rows, Cols, RS1, CS1> a,
-                const not_null_span<T, Rows, Cols, RS2, CS2> b) noexcept {
-  return !(a == b);
-}
-
-// Implementation of SpanBase for non-const row and col strides.
-template <typename RowStride, typename ColStride>
-class span_stride_storage {
- public:
-  span_stride_storage(RowStride row_stride, ColStride col_stride)
-      : strides_(row_stride, col_stride) {}
-
-  template <std::size_t D>
-  constexpr auto stride() const noexcept {
-    static_assert(D <= 1, "Only two dimensions are supported");
-    return std::get<D>(strides_);
-  }
-
- private:
-  // TODO: Use uint32_t for these to minimize object size?
-  std::tuple<RowStride, ColStride> strides_;
-};
-
-// Specialization of SpanBase for constant Row and Col strides.
-// Removes any storage for the strides to minimize object size.
-template <std::size_t R, std::size_t C>
-class span_stride_storage<constant<R>, constant<C>> {
- public:
-  span_stride_storage(constant<R>, constant<C>) {}
-
-  template <std::size_t D>
-  constexpr auto stride() const noexcept {
-    static_assert(D <= 1, "Only two dimensions are supported");
-    using TupleType = std::tuple<constant<R>, constant<C>>;
-    return std::tuple_element_t<D, TupleType>{};
-  }
-};
-
-template <typename T, std::size_t Rows, std::size_t Cols, typename RowStride, typename ColStride>
-class span_base : public span_stride_storage<RowStride, ColStride> {
- public:
-  using Base = span_stride_storage<RowStride, ColStride>;
+  static_assert(detail::is_value_pack<Dimensions>::value,
+                "Second template argument must be value_pack<...>");
+  static_assert(detail::is_value_pack<Strides>::value,
+                "Third template argument must be value_pack<...>");
+  static_assert(Strides::length == Dimensions::length,
+                "Number of strides must match number of dimensions");
 
   // Type alias members so this type smells something like a std::span or absl::span.
   using element_type = T;
@@ -231,119 +48,202 @@ class span_base : public span_stride_storage<RowStride, ColStride> {
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
 
-  // Number of rows.
-  constexpr auto rows() const noexcept { return Rows; }
+  // Number of dimensions in this span. Must be at least one.
+  static constexpr std::size_t num_dimensions = Dimensions::length;
 
-  // Number of columns.
-  constexpr auto cols() const noexcept { return Cols; }
+  // Construct from non-null pointer and strides.
+  constexpr span_base(T* data, Dimensions dims, Strides strides) noexcept
+      : data_(data), dimensions_(dims), strides_(strides) {}
+
+  // Number of rows. Valid for 1D and 2D spans.
+  constexpr std::size_t rows() const noexcept { return dimensions_.template get<0>().value(); }
+
+  // Number of columns. Valid for 2D spans.
+  constexpr std::size_t cols() const noexcept { return dimensions_.template get<1>().value(); }
+
+  // Access all dimensions.
+  constexpr const Dimensions& dimensions() const noexcept { return dimensions_; }
+
+  // Access all strides.
+  constexpr const Strides& strides() const noexcept { return strides_; }
+
+  // Access the stride for dimension `D`.
+  template <std::size_t D>
+  constexpr auto stride() const noexcept {
+    static_assert(D < num_dimensions, "Dimension index is invalid");
+    return strides_.template get<D>().value();
+  }
 
   // Matrix-access operator.
   // Interpret (i, j) as row and column indices and return a reference.
-  constexpr reference operator()(std::size_t i, std::size_t j) const {
-    return data_[compute_index(i, j)];
+  template <typename... Indices>
+  constexpr reference operator()(Indices... indices) const {
+    return data_[compute_index(indices...)];
   }
 
+  // Array access operator, valid for 1D spans.
+  constexpr reference operator[](std::ptrdiff_t index) const { return data_[compute_index(index)]; }
+
   // Compute linear index from (row, column) matrix indices.
-  constexpr std::size_t compute_index(std::size_t i, std::size_t j) const noexcept {
-    return Base::template stride<0>().value() * i + Base::template stride<1>().value() * j;
+  template <typename... Indices>
+  constexpr std::ptrdiff_t compute_index(Indices... indices) const noexcept {
+    static_assert(std::conjunction_v<std::is_convertible<Indices, std::ptrdiff_t>...>,
+                  "Indices must be convertible to std::ptrdiff_t");
+    static_assert(sizeof...(Indices) == num_dimensions,
+                  "Number of indices much match number of dimensions");
+    return compute_index_internal(std::make_integer_sequence<std::size_t, num_dimensions>(),
+                                  indices...);
   }
 
   // Access pointer to data:
   constexpr pointer data() const noexcept { return data_; }
 
- protected:
-  // Construct from pointers and strides.
-  constexpr span_base(T* data, RowStride row_stride, ColStride col_stride) noexcept
-      : Base(row_stride, col_stride), data_{data} {}
-
  private:
+  template <typename I, typename... Is, std::size_t Dim, std::size_t... Dims>
+  constexpr std::ptrdiff_t compute_index_internal(std::integer_sequence<std::size_t, Dim, Dims...>,
+                                                  I i, Is... jk) const noexcept {
+    return compute_index_internal<Dim, Dims...>(i, jk...);
+  }
+
+  template <std::size_t Dim, std::size_t... Dims, typename I, typename... Is>
+  constexpr std::ptrdiff_t compute_index_internal(I i, Is... jk) const noexcept {
+    return static_cast<std::ptrdiff_t>(stride<Dim>()) * static_cast<std::ptrdiff_t>(i) +
+           compute_index_internal<Dims...>(jk...);
+  }
+
+  // Handle the final recursion.
+  template <std::size_t Dim, typename I>
+  constexpr std::ptrdiff_t compute_index_internal(I i) const noexcept {
+    return stride<Dim>() * static_cast<std::ptrdiff_t>(i);
+  }
+
+  // TODO: Use the compressed pair trick on dimensions and strides?
   pointer data_;
+  Dimensions dimensions_;
+  Strides strides_;
 };
 
-#ifdef MATH_SPAN_EIGEN_SUPPORT
+// Forward declare.
+template <typename T, typename Dimensions, typename Strides>
+class span;
 
-namespace detail {
-constexpr auto inherits_matrix_base_(...) -> std::false_type;
-template <typename Derived>
-constexpr auto inherits_matrix_base_(const Eigen::MatrixBase<Derived>&) -> std::true_type;
+// A 2D span type used to pass matrix arguments to generated functions.
+// `Rows` and `Cols` must be compile-time constants.
+// `RowStride` and `ColStride` may be either Const<D> or dynamic.
+template <typename T, typename Dimensions, typename Strides>
+class not_null_span final : public span_base<T, Dimensions, Strides> {
+ private:
+  // Private unchecked version of the constructor. (`data` has already been validated)
+  constexpr not_null_span(T* data, Dimensions dims, Strides strides, detail::unchecked) noexcept
+      : Base(data, dims, strides) {}
 
-// Get the row-stride of an eigen matrix.
-template <typename Derived>
-constexpr auto EigenRowStride(const Eigen::MatrixBase<Derived>& mat);
+ public:
+  using Base = span_base<T, Dimensions, Strides>;
 
-// Get the column stride of an eigen matrix.
-template <typename Derived>
-constexpr auto EigenColStride(const Eigen::MatrixBase<Derived>& mat);
+  // The equivalent nullable type.
+  using equivalent_span = span<T, Dimensions, Strides>;
 
-// Evaluates to std::true_type if `T` inherits form MatrixBase, otherwise std::false_type.
-template <typename T>
-using inherits_matrix_base = decltype(inherits_matrix_base_(std::declval<const T>()));
+  // Construct from non-null pointer and strides.
+  constexpr not_null_span(T* data, Dimensions dims, Strides strides) MATH_SPAN_MAYBE_NOEXCEPT
+      : Base(data, dims, strides) {
+    MATH_SPAN_RUNTIME_ASSERT(data != nullptr);
+  }
 
-template <typename T>
-using enable_if_inherits_matrix_base_t =
-    typename std::enable_if<inherits_matrix_base<typename std::decay<T>::type>::value>::type;
+  // Construct from non-null pointer and strides.
+  // Specialization for when `U` is the non-const version of T.
+  template <typename U, typename = detail::enable_if_adding_const_t<T, U>>
+  constexpr not_null_span(U* data, Dimensions dims, Strides strides) MATH_SPAN_MAYBE_NOEXCEPT
+      : Base(const_cast<T*>(data), dims, strides) {
+    MATH_SPAN_RUNTIME_ASSERT(data != nullptr);
+  }
 
-}  // namespace detail
+  // Cannot construct from nullptr.
+  constexpr not_null_span(std::nullptr_t, Dimensions, Strides) noexcept = delete;
+  constexpr not_null_span(std::nullptr_t) noexcept = delete;
 
-// Create a `Span` object from an eigen type. `mat` may be an Eigen::Matrix, Eigen::Block, or an
-// Eigen::Map. The dimensionality of `mat` must be known at compile-time, but stride values may be
-// runtime quantities.
-//
-// Note that if `T` is an Eigen::Map, it must be a non-null map or else:
-//  - The user-defined `MATH_SPAN_RUNTIME_ASSERT` assertion macro will be invoked with a false
-//    argument.
-//  - Undefined behavior will occur when elements of the span are accessed.
-template <typename T, typename = detail::enable_if_inherits_matrix_base_t<T>>
-constexpr auto make_span_eigen(T&& mat) MATH_SPAN_MAYBE_NOEXCEPT {
-  using TDecay = std::decay_t<T>;
-  using ScalarType =
-      std::conditional_t<std::is_const_v<std::remove_pointer_t<decltype(mat.data())>>,
-                         const typename Eigen::MatrixBase<TDecay>::Scalar,
-                         typename Eigen::MatrixBase<TDecay>::Scalar>;
+  // Implicit construct if U is the non-const version of T.
+  // Allows promotion from non-const to const span.
+  template <typename U, typename = detail::enable_if_adding_const_t<T, U>>
+  constexpr not_null_span(not_null_span<U, Dimensions, Strides> span) noexcept
+      : Base(span.data(), span.dimensions(), span.strides()) {}
 
-  constexpr Eigen::Index RowsAtCompileTime = Eigen::DenseBase<TDecay>::RowsAtCompileTime;
-  constexpr Eigen::Index ColsAtCompileTime = Eigen::DenseBase<TDecay>::ColsAtCompileTime;
-  static_assert(RowsAtCompileTime != Eigen::Dynamic, "Rows must be known at compile time");
-  static_assert(ColsAtCompileTime != Eigen::Dynamic, "Cols must be known at compile time");
+  // Convert to a span that can be null.
+  constexpr equivalent_span as_span() const noexcept {
+    return {Base::data(), Base::dimensions(), Base::strides()};
+  }
 
-  auto row_stride = detail::EigenRowStride(mat);
-  auto col_stride = detail::EigenColStride(mat);
+  // Create a const version of this span.
+  constexpr not_null_span<const typename std::remove_const<T>::type, Dimensions, Strides> as_const()
+      const noexcept {
+    return {Base::data(), Base::dimensions(), Base::strides(), detail::unchecked{}};
+  }
 
-  using return_type = not_null_span<ScalarType, static_cast<std::size_t>(RowsAtCompileTime),
-                                    static_cast<std::size_t>(ColsAtCompileTime),
-                                    decltype(row_stride), decltype(col_stride)>;
-  return return_type{mat.data(), row_stride, col_stride};
+ private:
+  template <typename U, typename D, typename S>
+  friend class not_null_span;
+};
+
+// A 2D span used for optional output arguments. This version of the container is nullable.
+template <typename T, typename Dimensions, typename Strides>
+class span final : public span_base<T, Dimensions, Strides> {
+ public:
+  using Base = span_base<T, Dimensions, Strides>;
+
+  // Construct from pointer (which may be null) and strides.
+  constexpr span(T* data, Dimensions dims, Strides strides) noexcept : Base(data, dims, strides) {}
+
+  // Construct from nullptr.
+  constexpr span(std::nullptr_t) noexcept : Base(nullptr, Dimensions{}, Strides{}) {}
+
+  // Implicit conversion to bool to check if this object is null.
+  constexpr operator bool() const noexcept { return Base::data() != nullptr; }  // NOLINT
+
+  // Convert to a not-null span.
+  constexpr not_null_span<T, Dimensions, Strides> as_not_null_span() const
+      MATH_SPAN_MAYBE_NOEXCEPT {
+    return not_null_span<T, Dimensions, Strides>{Base::data(), Base::dimensions(), Base::strides()};
+  }
+};
+
+// Shorthand to construct a non-null span from pointer, dimensions, and strides.
+// `Dimensions` and `Strides` must be instances of `value_pack`.
+template <typename T, typename Dimensions, typename Strides>
+constexpr auto make_not_null_span(T* data, Dimensions dims,
+                                  Strides strides) MATH_SPAN_MAYBE_NOEXCEPT {
+  using dimension_type = typename std::decay<Dimensions>::type;
+  using stride_type = typename std::decay<Strides>::type;
+  return not_null_span<T, dimension_type, stride_type>{data, dims, strides};
 }
 
-namespace detail {
-
-template <Eigen::Index InnerStride>
-using EigenStrideType =
-    typename std::conditional<InnerStride == Eigen::Dynamic, dynamic,
-                              constant<static_cast<std::size_t>(InnerStride)>>::type;
-
-template <typename Derived>
-constexpr auto EigenRowStride(const Eigen::MatrixBase<Derived>& mat) {
-  constexpr bool RowMajor = Eigen::MatrixBase<Derived>::IsRowMajor;
-  using ReturnType =
-      std::conditional_t<RowMajor,
-                         EigenStrideType<Eigen::MatrixBase<Derived>::OuterStrideAtCompileTime>,
-                         EigenStrideType<Eigen::MatrixBase<Derived>::InnerStrideAtCompileTime>>;
-  return ReturnType{static_cast<std::size_t>(RowMajor ? mat.outerStride() : mat.innerStride())};
+// Shorthand to construct a span from pointer, dimensions, and strides.
+// `Dimensions` and `Strides` must be instances of `value_pack`.
+template <typename T, typename Dimensions, typename Strides>
+constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept {
+  using dimension_type = typename std::decay<Dimensions>::type;
+  using stride_type = typename std::decay<Strides>::type;
+  return span<T, dimension_type, stride_type>{data, dims, strides};
 }
 
-template <typename Derived>
-constexpr auto EigenColStride(const Eigen::MatrixBase<Derived>& mat) {
-  constexpr bool RowMajor = Eigen::MatrixBase<Derived>::IsRowMajor;
-  using ReturnType =
-      std::conditional_t<RowMajor,
-                         EigenStrideType<Eigen::MatrixBase<Derived>::InnerStrideAtCompileTime>,
-                         EigenStrideType<Eigen::MatrixBase<Derived>::OuterStrideAtCompileTime>>;
-  return ReturnType{static_cast<std::size_t>(RowMajor ? mat.innerStride() : mat.outerStride())};
+// Create a span that is null.
+template <typename T, std::size_t... Dims>
+constexpr auto make_always_null_span() noexcept {
+  return make_span<T>(nullptr, make_constant_value_pack<Dims...>(),
+                      detail::make_zero_strides<sizeof...(Dims)>());
 }
 
-}  // namespace detail
+// Make a span from a 1D array.
+template <typename T, typename = detail::enable_if_array_like_t<T>>
+constexpr auto make_array_span(T&& array) noexcept {
+  // TODO: In some cases (std::array for example) we could make the size static.
+  const dynamic dim{array.size()};
+  return make_span(array.data(), make_value_pack(dim), make_constant_value_pack<1>());
+}
 
-#endif  //  MATH_SPAN_EIGEN_SUPPORT
+// Make a span from a 1D C-style array.
+template <typename T, std::size_t N>
+constexpr auto make_array_span(T (&array)[N]) noexcept {
+  static_assert(N > 0, "Array must have at least one element.");
+  return make_span(&array[0], make_constant_value_pack<N>(), make_constant_value_pack<1>());
+}
 
 }  // namespace math
