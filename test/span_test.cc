@@ -160,24 +160,22 @@ TEST(SpanTest, TestMakeArraySpan) {
   }
 }
 
-TEST(SpanTest, TestMakeVectorSpan) {
+TEST(SpanTest, TestMakeEmptyVectorSpan) {
   std::vector<int> data;
+  auto span = make_array_span(static_cast<const std::vector<int>&>(data));
+  EXPECT_EQ(nullptr, span.data());
+  EXPECT_EQ(0, span.rows());
+  EXPECT_EQ(1, span.stride<0>());
+}
 
-  // vector is initially empty
-  {
-    auto span_1 = make_array_span(static_cast<const std::vector<int>&>(data));
-    EXPECT_EQ(nullptr, span_1.data());
-    EXPECT_EQ(0, span_1.rows());
-    EXPECT_EQ(1, span_1.stride<0>());
-  }
-
-  data = {5, 3, 8, 22};
-  auto span_2 = make_array_span(data);
-  EXPECT_EQ(data.data(), span_2.data());
-  EXPECT_EQ(data.size(), span_2.rows());
-  EXPECT_EQ(1, span_2.stride<0>());
+TEST(SpanTest, TestMakeVectorSpan) {
+  std::vector<int> data = {5, 3, 8, 22};
+  auto span = make_array_span(data);
+  EXPECT_EQ(data.data(), span.data());
+  EXPECT_EQ(data.size(), span.rows());
+  EXPECT_EQ(1, span.stride<0>());
   for (std::size_t i = 0; i < data.size(); ++i) {
-    EXPECT_EQ(data[i], span_2[i]);
+    EXPECT_EQ(data[i], span[i]);
   }
 }
 
@@ -199,6 +197,33 @@ TEST(SpanTest, TestMakeCArraySpan) {
   for (std::size_t i = 0; i < span_const.rows(); ++i) {
     EXPECT_EQ(values_const[i], span_const[i]);
   }
+}
+
+TEST(SpanTest, TestMakeInitializerListSpan2d) {
+  // Use invoke to ensure span lifetime is valid:
+  std::invoke(
+      [](auto span) {
+        ASSERT_EQ(0, span(0, 0));
+        ASSERT_EQ(1, span(0, 1));
+        ASSERT_EQ(2, span(1, 0));
+        ASSERT_EQ(3, span(1, 1));
+      },
+      make_array_span_2d<2, 2, ordering::row_major>({0, 1, 2, 3}));
+
+  std::invoke(
+      [](auto span) {
+        ASSERT_EQ(0, span(0, 0));
+        ASSERT_EQ(2, span(0, 1));
+        ASSERT_EQ(1, span(1, 0));
+        ASSERT_EQ(3, span(1, 1));
+      },
+      make_array_span_2d<2, 2, ordering::col_major>({0, 1, 2, 3}));
+
+  // This should throw due to invalid size:
+  auto construct_invalid_span = []() {
+    make_array_span_2d<3, 4, ordering::row_major>({9.81, 3.14159});
+  };
+  ASSERT_THROW(construct_invalid_span(), std::runtime_error);
 }
 
 TEST(SpanTest, TestEigenColMajor) {

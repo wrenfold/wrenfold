@@ -207,6 +207,9 @@ class span final : public span_base<T, Dimensions, Strides> {
 
 // Shorthand to construct a non-null span from pointer, dimensions, and strides.
 // `Dimensions` and `Strides` must be instances of `value_pack`.
+//
+// If `data` is null, the user-defined assertion macro `MATH_SPAN_RUNTIME_ASSERT` will be invoked
+// with a false condition.
 template <typename T, typename Dimensions, typename Strides>
 constexpr auto make_not_null_span(T* data, Dimensions dims,
                                   Strides strides) MATH_SPAN_MAYBE_NOEXCEPT {
@@ -245,5 +248,65 @@ constexpr auto make_array_span(T (&array)[N]) noexcept {
   static_assert(N > 0, "Array must have at least one element.");
   return make_span(&array[0], make_constant_value_pack<N>(), make_constant_value_pack<1>());
 }
+
+// Enum for selecting ordering when using make_*_span convenience constructor.
+enum class ordering {
+  // All values on a row are contiguous in memory.
+  // [[0, 1],
+  //  [2, 3]]
+  row_major,
+  // All values in a column are contiguous in memory.
+  // [[0, 2],
+  //  [1, 3]]
+  col_major,
+};
+
+// Make a span with 2D dimensions from the data in an initializer list.
+//
+// When calling this method, you need to be sure that the initializer list outlives the span. For
+// example, the invocation:
+//
+//  some_function(make_array_span_2d<3, 1, ordering::row_major>({1.0, -2.0, 3.0}));
+//
+// is valid, because the initializer list lives to the end of the full expression (C++ standard
+// [12.2.3-4]). The storage referenced by the span argument will last until the invocation of
+// `some_function`.
+//
+// However, it would be invalid to do the following:
+//
+//  auto span = make_array_span_2d<3, 1, ordering::row_major>({1.0, -2.0, 3.0}});
+//  some_function(span);  //  <-- Invalid, the initializer list storage was destroyed.
+//
+// If you pass this function an empty initializer list, initializer_list::begin will return
+// nullptr and the user-defined assertion macro `MATH_SPAN_RUNTIME_ASSERT` will be invoked
+// with a false condition upon construction of the span.
+template <std::size_t Rows, std::size_t Cols, ordering Order, typename T>
+constexpr auto make_array_span_2d(std::initializer_list<T> list) MATH_SPAN_MAYBE_NOEXCEPT {
+  static_assert(Rows > 0, "Need at least one row");
+  static_assert(Cols > 0, "Need at least one column");
+
+  // We for initializer lists to become const spans, since their lifetime is
+  // only good for passing input args.
+  using const_value_type = const typename std::remove_const<T>::type;
+
+  constexpr std::size_t row_stride = Order == ordering::row_major ? Cols : 1;
+  constexpr std::size_t col_stride = Order == ordering::row_major ? 1 : Rows;
+
+  auto span = make_not_null_span(const_cast<const_value_type*>(list.begin()),
+                                 make_constant_value_pack<Rows, Cols>(),
+                                 make_constant_value_pack<row_stride, col_stride>());
+  // Runtime check we were passed sufficient data:
+  MATH_SPAN_RUNTIME_ASSERT(static_cast<std::size_t>(span.compute_index(Rows - 1, Cols - 1)) <
+                           list.size());
+  return span;
+}
+
+// Type alias for a 2D span with dimensions that are known at compile time.
+template <typename T, std::size_t Rows, std::size_t Cols, typename Strides>
+using not_null_span_2d = not_null_span<T, value_pack<constant<Rows>, constant<Cols>>, Strides>;
+
+// Type alias for nullable 2D span with dimensions that are known at compile time.
+template <typename T, std::size_t Rows, std::size_t Cols, typename Strides>
+using span_2d = span<T, value_pack<constant<Rows>, constant<Cols>>, Strides>;
 
 }  // namespace math
