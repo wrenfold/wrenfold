@@ -258,3 +258,15 @@ static_assert(std::is_same_v<std::index_sequence<1, 2>,
 
 }  // namespace detail
 }  // namespace math
+
+// Formatter for std::integer_sequence<T, vals...>
+template <typename T, T... vals>
+struct fmt::formatter<std::integer_sequence<T, vals...>, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(std::integer_sequence<T, vals...>, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "std::integer_sequence<{}, {}>", typeid(T).name(),
+                          fmt::join(std::initializer_list<T>{vals...}, ", "));
+  }
+};

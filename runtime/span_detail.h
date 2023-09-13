@@ -51,6 +51,9 @@ class value_pack_const {
   static_assert(std::conjunction<is_constant<Values>...>::value,
                 "All values must be compile-time constants");
 
+  // Default construct.
+  explicit constexpr value_pack_const() noexcept = default;
+
   // Construct from values.
   explicit constexpr value_pack_const(Values...) noexcept {}
 
@@ -61,6 +64,9 @@ class value_pack_const {
     using tuple_type = std::tuple<Values...>;
     return std::tuple_element_t<D, tuple_type>{};
   }
+
+  // Access all the values as a tuple.
+  constexpr std::tuple<Values...> values() const noexcept { return std::make_tuple(Values{}...); }
 };
 
 // Stores a variadic list of values when some values are `constant<>` and others `dynamic`.
@@ -71,12 +77,15 @@ class value_pack_dynamic {
   explicit constexpr value_pack_dynamic(Values... values) noexcept : values_{values...} {}
 
   // Get the value on axis `D`.
-  // TODO: This cannot be constexpr until c++14 because of std::get<>.
+  // TODO: This cannot be constexpr pre-c++14 because of std::get<>.
   template <std::size_t D>
   constexpr auto get_axis() const noexcept {
     static_assert(D < sizeof...(Values), "Invalid dimension index");
     return std::get<D>(values_);
   }
+
+  // Access all the values as a tuple.
+  constexpr const std::tuple<Values...>& values() const noexcept { return values_; }
 
  private:
   // TODO: Only store the dynamic ones for space saving?
@@ -110,11 +119,18 @@ class value_pack : public std::conditional<std::conjunction<detail::is_constant<
   // Include constructor from the base type.
   using Base::Base;
 
+  // Create a zero-initialized value pack.
+  static constexpr value_pack zero_initialized() noexcept { return value_pack(Values(0)...); }
+
   template <std::size_t D>
   constexpr auto get() const noexcept {
     return Base::template get_axis<D>();
   }
 };
+
+// Shorthand for value-pack of constants.
+template <std::size_t... IJK>
+using constant_value_pack = value_pack<constant<IJK>...>;
 
 namespace detail {
 
@@ -128,13 +144,13 @@ struct is_value_pack<value_pack<Values...>> : public std::true_type {};
 
 // Construct `dimensions` from variadic args.
 template <typename... Values>
-auto make_value_pack(Values&&... values) {
+constexpr auto make_value_pack(Values&&... values) noexcept {
   return value_pack<typename std::decay<Values>::type...>{std::forward<Values>(values)...};
 }
 
 // Construct compile-time constant dimensions from template parameters.
 template <std::size_t... Dims>
-auto make_constant_value_pack() {
+constexpr auto make_constant_value_pack() noexcept {
   return make_value_pack(constant<Dims>{}...);
 }
 
@@ -171,20 +187,28 @@ template <typename T>
 using enable_if_array_like_t =
     typename std::enable_if<has_data_method<T>::value && has_size_method<T>::value>::type;
 
+// True if `T` is a value-pack.
+template <typename T>
+using enable_if_value_pack_t = typename std::enable_if_t<is_value_pack<T>::value>::type;
+
 // Create a `strides` object w/ all zero strides. The dimensionality is determined by the integer
 // sequence.
 template <std::size_t... Counter>
-constexpr auto make_zero_strides(std::integer_sequence<std::size_t, Counter...>) noexcept {
+constexpr auto make_zero_value_pack(std::integer_sequence<std::size_t, Counter...>) noexcept {
   return make_value_pack(constant<0>(Counter & 0)...);
 }
 template <std::size_t N>
-constexpr auto make_zero_strides() noexcept {
-  return make_zero_strides(std::make_integer_sequence<std::size_t, N>());
+constexpr auto make_zero_value_pack() noexcept {
+  return make_zero_value_pack(std::make_integer_sequence<std::size_t, N>());
 }
 
-// Use a placeholder type for selecting the unchecked constructor of not_null_span.
-struct unchecked {};
+// A type that does nothing, and can be assigned from anything.
+struct void_type {
+  template <typename T>
+  constexpr void_type& operator=(T&&) {
+    return *this;
+  }
+};
 
 }  // namespace detail
-
 }  // namespace math

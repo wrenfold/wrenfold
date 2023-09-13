@@ -12,13 +12,13 @@ namespace ta = type_annotations;
 
 inline Expr SimpleMultiplyAdd(Expr x, Expr y, Expr z) { return x * y + z; }
 
-inline ta::StaticMatrix<2, 1> VectorRotation2D(Expr theta, ta::StaticMatrix<2, 1> v,
-                                               ta::StaticMatrix<2, 1>& D_theta) {
+inline void VectorRotation2D(Expr theta, ta::StaticMatrix<2, 1> v,
+                             ta::StaticMatrix<2, 1>& v_rot_out, ta::StaticMatrix<2, 1>& D_theta) {
   using namespace matrix_operator_overloads;
   MatrixExpr R = CreateMatrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
   MatrixExpr v_rot{R * v};
+  v_rot_out = v_rot;
   D_theta = v_rot.Diff(theta);
-  return v_rot;
 }
 
 // Norm of a 3D vector + the 1x3 derivative.

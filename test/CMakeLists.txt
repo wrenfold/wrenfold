@@ -45,8 +45,8 @@ add_custom_test(matrix_operations_test.cc)
 add_custom_test(ir_builder_test.cc)
 add_custom_test(substitute_test.cc)
 
-# TODO: MSVC doesn't give a shit about our request for C++11, and just compiles
-# with C++14.
+# TODO: MSVC doesn't care about our request for C++11, and just compiles with
+# C++14.
 add_custom_test(span_test.cc OMIT_MAIN_LIBRARY COMPILE_FEATURES cxx_std_11)
 
 # Function for defining code-generation tests, which are built and run twice.
@@ -78,7 +78,8 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   # Then create a target that evaluates the result:
   set(evaluate_target ${NAME}_evaluate)
   add_executable(${evaluate_target} ${TEST_SOURCE_FILE} custom_main.cc)
-  target_link_libraries(${evaluate_target} ${TEST_LIBRARY_NAME} gtest eigen)
+  target_link_libraries(${evaluate_target} ${TEST_LIBRARY_NAME} gtest
+                        math_runtime eigen)
   target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})
   target_compile_definitions(${evaluate_target} PRIVATE EVALUATION_TIME)
 

@@ -3,10 +3,44 @@
 
 namespace math {
 
+static constexpr std::string_view UtilityNamespace = "math";
+
 std::string CppCodeGenerator::Generate(const ast::FunctionDefinition& definition) const {
   CodeFormatter result;
   FormatSignature(result, definition.signature);
   result.WithIndentation(2, "{\n", "\n}", [&] {
+    //
+    std::size_t counter = 0;
+    for (const auto& arg : definition.signature.arguments) {
+      if (arg->IsMatrix()) {
+        const ast::MatrixType& mat = std::get<ast::MatrixType>(arg->Type());
+
+        // Generate matrix conversion logic.
+        // TODO: Support dynamic sizes here too.
+        result.Format("auto _{} = ", arg->Name());
+        const std::string dims_type = fmt::format("{}, {}", mat.NumRows(), mat.NumCols());
+        switch (arg->Direction()) {
+          case ast::ArgumentDirection::Input:
+            result.Format("{}::make_input_span<{}>({});\n", UtilityNamespace, dims_type,
+                          arg->Name());
+            break;
+          case ast::ArgumentDirection::Output:
+            result.Format("{}::make_output_span<{}>({});\n", UtilityNamespace, dims_type,
+                          arg->Name());
+            break;
+          case ast::ArgumentDirection::OptionalOutput:
+            result.Format("{}::make_optional_output_span<{}>({});\n", UtilityNamespace, dims_type,
+                          arg->Name());
+            break;
+        }
+        ++counter;
+      }
+    }
+
+    if (counter > 0) {
+      result.Append("\n");
+    }
+
     result.Join(*this, "\n", definition.body);
     result.Append("\n");
     const std::size_t num_return_vals = definition.signature.return_values.size();
@@ -44,46 +78,63 @@ void CppCodeGenerator::FormatReturnType(CodeFormatter& formatter,
   }
 }
 
-CppCodeGenerator::TypeContext TypeContextFromArgumentDirection(ast::ArgumentDirection dir) {
-  switch (dir) {
-    case ast::ArgumentDirection::Input:
-      return CppCodeGenerator::TypeContext::InputArgument;
-    case ast::ArgumentDirection::Output:
-      return CppCodeGenerator::TypeContext::OutputArgument;
-    case ast::ArgumentDirection::OptionalOutput:
-      return CppCodeGenerator::TypeContext::OptionalOutputArgument;
-  }
-  throw AssertionError("Invalid argument direction specified");
-}
-
-void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
-                                       const ast::FunctionSignature& signature) const {
-  FormatReturnType(formatter, signature);
-  formatter.Format(" {}(", signature.function_name);
-
-  auto arg_printer = [this](CodeFormatter& formatter, const ast::Argument::shared_ptr& arg) {
-    const auto type_context = TypeContextFromArgumentDirection(arg->Direction());
-    if (arg->Direction() == ast::ArgumentDirection::Input) {
-      formatter.Append("const ");
-    }
-    formatter.Format("{} {}", View(arg->Type(), type_context), arg->Name());
-  };
-  formatter.Join(std::move(arg_printer), ", ", signature.arguments);
-  formatter.Append(")\n");
-}
-
-constexpr std::string_view StringFromNumericCastType(const NumericType destination_type) {
+constexpr static std::string_view StringFromNumericCastType(const NumericType destination_type) {
   switch (destination_type) {
     case NumericType::Bool:
       return "bool";
     case NumericType::Integer:
       return "std::int64_t";
     case NumericType::Real:
-      return "double";
+      return "Scalar";
     case NumericType::Complex:
-      return "std::complex<double>";
+      return "std::complex<Scalar>";
   }
   return "<INVALID ENUM VALUE>";
+}
+
+void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
+                                       const ast::FunctionSignature& signature) const {
+  formatter.Format("template <typename Scalar");
+  const bool has_matrix_args =
+      std::any_of(signature.arguments.begin(), signature.arguments.end(),
+                  [](const std::shared_ptr<const ast::Argument>& arg) { return arg->IsMatrix(); });
+
+  if (has_matrix_args) {
+    std::size_t counter = 0;
+    for (const std::shared_ptr<const ast::Argument>& arg : signature.arguments) {
+      if (arg->IsMatrix()) {
+        formatter.Format(", typename T{}", counter);
+        ++counter;
+      }
+    }
+  }
+  formatter.Append(">\n");
+
+  FormatReturnType(formatter, signature);
+  formatter.Format(" {}(", signature.function_name);
+
+  std::size_t counter = 0;
+  auto arg_printer = [&counter](CodeFormatter& formatter, const ast::Argument::shared_ptr& arg) {
+    if (arg->IsMatrix()) {
+      if (arg->Direction() == ast::ArgumentDirection::Input) {
+        formatter.Format("const T{}&", counter);
+      } else {
+        formatter.Format("T{}&&", counter);
+      }
+      ++counter;
+    } else {
+      if (arg->Direction() == ast::ArgumentDirection::Input) {
+        formatter.Append("const ");
+      }
+      const NumericType numeric_type = std::get<ast::ScalarType>(arg->Type()).GetNumericType();
+      formatter.Append(StringFromNumericCastType(numeric_type));
+    }
+
+    formatter.Format(" {}", arg->Name());
+  };
+
+  formatter.Join(std::move(arg_printer), ", ", signature.arguments);
+  formatter.Append(")\n");
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType& scalar,
@@ -107,30 +158,6 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarTyp
   }
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::MatrixType& mat,
-                                  const TypeContext context) const {
-  switch (context) {
-    case TypeContext::InputArgument: {
-      formatter.Format("Eigen::Matrix<double, {}, {}>&", mat.NumRows(), mat.NumCols());
-      break;
-    }
-    case TypeContext::FunctionBody:
-    case TypeContext::ReturnValue: {
-      formatter.Format("Eigen::Matrix<double, {}, {}>", mat.NumRows(), mat.NumCols());
-      break;
-    }
-    case TypeContext::OutputArgument: {
-      formatter.Format("Eigen::Ref<Eigen::Matrix<double, {}, {}>>", mat.NumRows(), mat.NumCols());
-      break;
-    }
-    case TypeContext::OptionalOutputArgument: {
-      formatter.Format("std::optional<Eigen::Ref<Eigen::Matrix<double, {}, {}>>>", mat.NumRows(),
-                       mat.NumCols());
-      break;
-    }
-  }
-}
-
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) const {
   formatter.Format("{} + {}", View(x.left), View(x.right));
 }
@@ -138,32 +165,22 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) c
 void CppCodeGenerator::operator()(CodeFormatter& formatter,
                                   const ast::AssignOutputArgument& assignment) const {
   // For optional args, we need to de-reference to get the underlying Eigen::Ref
-  std::string dest_name = assignment.argument->Name();
+  const auto& dest_name = assignment.argument->Name();
   const ast::Type& type = assignment.argument->Type();
-  if (assignment.argument->IsOptional()) {
-    dest_name = fmt::format("_{}", dest_name);
-    // This is a bit of a cop-out, use auto here to simplify code-generation:
-    formatter.Format("auto& {} = *{};\n", dest_name, assignment.argument->Name());
-  }
 
   if (std::holds_alternative<ast::MatrixType>(type)) {
     const ast::MatrixType mat = std::get<ast::MatrixType>(type);
     auto range = MakeRange<std::size_t>(0, assignment.values.size());
 
-    if (mat.HasUnitDimension()) {
-      formatter.Join(
-          [&](CodeFormatter& fmt, std::size_t i) {
-            fmt.Format("{}[{}] = {};", dest_name, i, View(assignment.values[i]));
-          },
-          "\n", range);
-    } else {
-      formatter.Join(
-          [&](CodeFormatter& fmt, std::size_t i) {
-            const auto [row, col] = mat.ComputeIndices(i);
-            fmt.Format("[]({}, {}) = {};", dest_name, row, col, View(assignment.values[i]));
-          },
-          "\n", range);
-    }
+    // TODO: If there is a unit dimension, use the [] operator?
+    formatter.Join(
+        [&](CodeFormatter& fmt, std::size_t i) {
+          const auto [row, col] = mat.ComputeIndices(i);
+          fmt.Format("{}{}({}, {}) = {};", assignment.argument->IsMatrix() ? "_" : "", dest_name,
+                     row, col, View(assignment.values[i]));
+        },
+        "\n", range);
+
   } else {
     // Otherwise it is a scalar, so just assign it:
     ASSERT_EQUAL(1, assignment.values.size());
@@ -289,12 +306,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValu
     formatter.Append(x.argument->Name());
   } else {
     const ast::MatrixType& mat = std::get<ast::MatrixType>(x.argument->Type());
-    if (mat.NumCols() == 1) {
-      formatter.Format("{}[{}]", x.argument->Name(), x.element);
-    } else {
-      const auto [r, c] = mat.ComputeIndices(x.element);
-      formatter.Format("{}({}, {})", x.argument->Name(), r, c);
-    }
+    const auto [r, c] = mat.ComputeIndices(x.element);
+    formatter.Format("_{}({}, {})", x.argument->Name(), r, c);
   }
 }
 
@@ -303,7 +316,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply&
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::OutputExists& x) const {
-  formatter.Format("static_cast<bool>({})", x.argument->Name());
+  formatter.Format("static_cast<bool>({}{})", x.argument->IsMatrix() ? "_" : "",
+                   x.argument->Name());
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ReturnValue& v) const {
