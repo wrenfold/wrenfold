@@ -112,11 +112,17 @@ struct FunctionSignature {
     arguments.push_back(std::make_shared<const ast::Argument>(std::forward<Args>(args)...));
   }
 
-  void AddReturnValue(ast::Type type) { return_values.push_back(std::move(type)); }
+  // Find an argument by name.
+  const std::shared_ptr<const ast::Argument>& GetArgument(const std::string_view str) const {
+    auto it = std::find_if(arguments.begin(), arguments.end(),
+                           [&](const auto& arg) { return arg->Name() == str; });
+    ASSERT(it != arguments.end(), "Argument does not exist: {}", str);
+    return *it;
+  }
 
   std::string function_name;
   std::vector<std::shared_ptr<const ast::Argument>> arguments{};
-  std::vector<ast::Type> return_values{};
+  std::optional<ast::Type> return_value;
 };
 
 // clang-format off
@@ -135,7 +141,6 @@ using Variant = std::variant<
     struct IntegerConstant,
     struct Multiply,
     struct OutputExists,
-    struct ReturnValue,
     struct VariableRef
     >;
 // clang-format on
@@ -236,11 +241,10 @@ struct Compare {
 
 // Construct a type from the provided arguments.
 struct ConstructReturnValue {
-  std::size_t position;
   ast::Type type;
   std::vector<Variant> args;
 
-  ConstructReturnValue(std::size_t position, ast::Type, std::vector<Variant>&& args);
+  ConstructReturnValue(ast::Type, std::vector<Variant>&& args);
 
   std::string ToString() const;
 };
@@ -311,24 +315,14 @@ struct OutputExists {
   std::string ToString() const;
 };
 
-struct ReturnValue {
-  // All the return values.
-  std::vector<Variant> values{};
-
-  explicit ReturnValue(std::vector<Variant> values);
-
-  std::string ToString() const;
-};
-
 // method definitions:
 
 inline FunctionDefinition::FunctionDefinition(FunctionSignature signature,
                                               std::vector<ast::Variant> body)
     : signature(std::move(signature)), body(std::move(body)) {}
 
-inline ConstructReturnValue::ConstructReturnValue(std::size_t position, ast::Type type,
-                                                  std::vector<Variant>&& args)
-    : position(position), type(type), args(std::move(args)) {}
+inline ConstructReturnValue::ConstructReturnValue(ast::Type type, std::vector<Variant>&& args)
+    : type(type), args(std::move(args)) {}
 
 inline Declaration::Declaration(std::string name, Type type, VariantPtr value)
     : name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
@@ -342,13 +336,6 @@ inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
     : condition(std::move(condition)),
       if_branch(std::move(if_branch)),
       else_branch(std::move(else_branch)) {}
-
-// inline OutputBlock::OutputBlock(std::shared_ptr<const Argument> arg,
-//                                 std::vector<ast::Variant> statements,
-//                                 std::vector<VariableRef> outputs)
-//     : argument(std::move(arg)), statements(std::move(statements)), outputs(std::move(outputs)) {}
-
-inline ReturnValue::ReturnValue(std::vector<Variant> values) : values(std::move(values)) {}
 
 // Create AST from the IR:
 ast::FunctionDefinition CreateAST(const math::OutputIr& ir, const FunctionSignature& signature);
@@ -419,8 +406,7 @@ auto Format(Iterator it, const math::ast::Compare& c) {
 
 template <typename Iterator>
 auto Format(Iterator it, const math::ast::ConstructReturnValue& c) {
-  return fmt::format_to(it, "ConstructReturnValue({}, {}, {})", c.position, c.type,
-                        fmt::join(c.args, ", "));
+  return fmt::format_to(it, "ConstructReturnValue({}, {})", c.type, fmt::join(c.args, ", "));
 }
 
 template <typename Iterator>
@@ -455,11 +441,6 @@ auto Format(Iterator it, const math::ast::Multiply& m) {
 template <typename Iterator>
 auto Format(Iterator it, const math::ast::OutputExists& m) {
   return fmt::format_to(it, "OutputExists({})", m.argument->Name());
-}
-
-template <typename Iterator>
-auto Format(Iterator it, const math::ast::ReturnValue& m) {
-  return fmt::format_to(it, "ReturnValue({})", fmt::join(m.values, ", "));
 }
 
 }  // namespace math::ast

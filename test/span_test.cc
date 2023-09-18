@@ -124,7 +124,7 @@ TEST(SpanTest, TestConstructor) {
 }
 
 TEST(SpanTest, TestMakeNullSpan) {
-  auto span = make_always_null_span<float, 2, 3>();
+  auto span = make_always_null_span<2, 3>();
   EXPECT_FALSE(span);
   EXPECT_EQ(nullptr, span.data());
   EXPECT_EQ(2, span.rows());

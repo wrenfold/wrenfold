@@ -97,7 +97,7 @@ struct AstBuilder {
     // insert outputs
     for (const ir::ValuePtr save_value : save_values) {
       const ir::Save& save = save_value->As<ir::Save>();
-      const OutputKey key = save.key;
+      const OutputKey& key = save.key;
 
       std::vector<ast::Variant> args{};
       args.reserve(save_value->NumOperands());
@@ -106,11 +106,10 @@ struct AstBuilder {
       }
 
       if (key.usage == ExpressionUsage::ReturnValue) {
-        Emplace<ast::ConstructReturnValue>(
-            key.arg_position, signature_.return_values.at(key.arg_position), std::move(args));
+        ASSERT(block->descendants.empty());  //  This must be the final block.
+        Emplace<ast::ConstructReturnValue>(signature_.return_value.value(), std::move(args));
       } else {
-        Emplace<ast::AssignOutputArgument>(signature_.arguments.at(key.arg_position),
-                                           std::move(args));
+        Emplace<ast::AssignOutputArgument>(signature_.GetArgument(key.name), std::move(args));
       }
     }
 
@@ -122,7 +121,7 @@ struct AstBuilder {
     if (!last_op->Is<ir::JumpCondition>()) {
       // just keep appending:
       ASSERT_EQUAL(1, block->descendants.size());
-      ProcessBlock(block->descendants[0]);
+      ProcessBlock(block->descendants.front());
     } else {
       ASSERT(last_op->Is<ir::JumpCondition>());
       ASSERT_EQUAL(2, block->descendants.size());
@@ -268,7 +267,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value&, const ir::OutputRequired& oreq) {
-    return ast::OutputExists{signature_.arguments[oreq.arg_position]};
+    return ast::OutputExists{signature_.GetArgument(oreq.name)};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Pow&) {

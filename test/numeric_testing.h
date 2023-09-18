@@ -17,11 +17,11 @@ namespace ta = type_annotations;
 namespace detail {
 template <typename T>
 struct ConvertArgType;
+template <typename T>
+struct ConvertOutputArgType;
 }  // namespace detail
 
 struct NumericFunctionEvaluator {
-  using ReturnType = Expr;
-
   Expr operator()(const FunctionArgument& arg, const Expr&) const {
     auto it = values.find(arg);
     ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.ArgIndex(),
@@ -31,37 +31,32 @@ struct NumericFunctionEvaluator {
 
   template <typename T>
   std::enable_if_t<!std::is_same_v<T, FunctionArgument>, Expr> operator()(const T& input_typed,
-                                                                          const Expr& input) {
+                                                                          const Expr& input) const {
     if constexpr (T::IsLeafNode) {
       return input;
     } else {
-      return MapChildren(input_typed,
-                         [this](const Expr& expr) { return Visit(expr, *this, expr); });
+      return MapChildren(input_typed, [this](const Expr& expr) {
+        return Visit(expr, [this, &expr](const auto& x) { return this->operator()(x, expr); });
+      });
     }
   }
 
-  struct FunctionArgHasher {
-    std::size_t operator()(const FunctionArgument& arg) const {
-      return HashCombine(arg.ArgIndex(), arg.ElementIndex());
-    }
-  };
-
-  std::unordered_map<FunctionArgument, Expr, FunctionArgHasher> values;
+  std::unordered_map<FunctionArgument, Expr, Hash<FunctionArgument>> values;
 };
 
 template <typename T>
 struct ApplyNumericEvaluatorImpl;
 
 template <typename T>
-auto ApplyNumericEvaluator(NumericFunctionEvaluator& evaluator, const T& input) {
+auto ApplyNumericEvaluator(const NumericFunctionEvaluator& evaluator, const T& input) {
   return ApplyNumericEvaluatorImpl<T>{}(evaluator, input);
 }
 
 template <>
 struct ApplyNumericEvaluatorImpl<Expr> {
-  // TODO: Numeric evaluator should be const here, but must be non-const to satisfy Visit.
-  double operator()(NumericFunctionEvaluator& evaluator, const Expr& input) const {
-    const Expr subs = Visit(input, evaluator, input);
+  double operator()(const NumericFunctionEvaluator& evaluator, const Expr& input) const {
+    const Expr subs =
+        Visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
     const Float* f = CastPtr<Float>(subs);
     if (!f) {
       throw TypeError("Expression should be a floating point value. Got type {}: {}",
@@ -71,9 +66,23 @@ struct ApplyNumericEvaluatorImpl<Expr> {
   }
 };
 
+template <>
+struct ApplyNumericEvaluatorImpl<MatrixExpr> {
+  Eigen::MatrixXd operator()(const NumericFunctionEvaluator& evaluator,
+                             const MatrixExpr& input) const {
+    Eigen::MatrixXd output{input.NumRows(), input.NumCols()};
+    for (index_t i = 0; i < input.NumRows(); ++i) {
+      for (index_t j = 0; j < input.NumCols(); ++j) {
+        output(i, j) = ApplyNumericEvaluator(evaluator, input(i, j));
+      }
+    }
+    return output;
+  }
+};
+
 template <index_t Rows, index_t Cols>
 struct ApplyNumericEvaluatorImpl<ta::StaticMatrix<Rows, Cols>> {
-  Eigen::Matrix<double, Rows, Cols> operator()(NumericFunctionEvaluator& evaluator,
+  Eigen::Matrix<double, Rows, Cols> operator()(const NumericFunctionEvaluator& evaluator,
                                                const MatrixExpr& input) const {
     ASSERT_EQUAL(input.NumRows(), Rows);
     ASSERT_EQUAL(input.NumCols(), Cols);
@@ -85,29 +94,6 @@ struct ApplyNumericEvaluatorImpl<ta::StaticMatrix<Rows, Cols>> {
       }
     }
     return output;
-  }
-};
-
-template <typename... Ts>
-struct ApplyNumericEvaluatorImpl<std::tuple<Ts...>> {
-  auto operator()(NumericFunctionEvaluator& evaluator, const std::tuple<Ts...>& tup) const {
-    // std::apply is invalid for empty tuples:
-    if constexpr (sizeof...(Ts) > 1) {
-      return std::apply(
-          [&evaluator](auto&&... element) {
-            return std::make_tuple(ApplyNumericEvaluator(evaluator, element)...);
-          },
-          tup);
-    } else if constexpr (sizeof...(Ts) == 1) {
-      return std::make_tuple(ApplyNumericEvaluator(evaluator, std::get<0>(tup)));
-    } else {
-#ifdef _MSC_VER
-      // We need this to silence MSVC
-      (void)sizeof(evaluator);
-      (void)sizeof(tup);
-#endif
-      return std::tuple<>{};
-    }
   }
 };
 
@@ -153,62 +139,85 @@ void CollectFunctionInputs(NumericFunctionEvaluator& evaluator, std::index_seque
    ...);
 }
 
+template <typename ArgList, typename OutputTuple, std::size_t... InputIndices,
+          std::size_t... OutputIndices>
+auto CreateEvaluatorWithOutputExpressions(OutputTuple&& output_expressions,
+                                          std::index_sequence<InputIndices...> input_seq,
+                                          std::index_sequence<OutputIndices...> output_arg_seq) {
+  return [output_expressions = std::move(output_expressions), input_seq, output_arg_seq](
+             // Convert input arguments to const references:
+             const typename detail::ConvertArgType<
+                 typename TypeListElement<InputIndices, ArgList>::Type>::Type&... args,
+             // Convert output expression types to non-const references:
+             typename detail::ConvertOutputArgType<
+                 std::tuple_element_t<OutputIndices, OutputTuple>>::Type&... output_args) {
+    // Copy all the input arguments into the evaluator:
+    NumericFunctionEvaluator evaluator{};
+    CollectFunctionInputs(evaluator, input_seq, args...);
+
+    // Create a tuple of non-const references to output arguments of this lambda, and write to it
+    // by doing substitution with the NumericFunctionEvaluator:
+    std::forward_as_tuple(output_args...) = std::apply(
+        [&evaluator](const auto&... output_expression) {
+          // Call .Value() to convert from OutputArg<> to the underlying expression.
+          return std::make_tuple(ApplyNumericEvaluator(evaluator, output_expression.Value())...);
+        },
+        SelectFromTuple(output_expressions, output_arg_seq));
+
+    // Now we need to deal w/ the return value:
+    constexpr std::ptrdiff_t return_value_index = ReturnValueIndex<OutputTuple>::value;
+    if constexpr (return_value_index >= 0) {
+      // This function also has a return value that we need to fill out:
+      return ApplyNumericEvaluator(evaluator,
+                                   std::get<return_value_index>(output_expressions).Value());
+    }
+  };
+}
+
 // Given a function pointer to a symbolic function, create a lambda that accepts numeric types
 // like double and Eigen::Matrix<double, ...>. The lambda converts the numeric arguments to the
 // equivalent `Expr` type, and invokes the symbolic function. The results are converted back to
 // numeric types.
 template <typename ReturnType, typename... Args>
 auto CreateEvaluator(ReturnType (*func)(Args... args)) {
-  using ArgList = TypeList<Args...>;
+  using ArgList = TypeList<std::decay_t<Args>...>;
 
   // Evaluate the function symbolically.
   // We don't substitute numerical values directly, because the function may wish to do symbolic
   // operations internally (like diff, subs, etc.). Instead, build symbolic expressions for every
   // output, and then substitute into those.
-  auto [result_expression, output_arg_expressions] =
+  std::tuple output_expressions =
       detail::InvokeWithOutputCapture<ArgList>(func, std::make_index_sequence<sizeof...(Args)>());
 
-  // Get indices of input and output arguments:
-  constexpr auto input_indices = detail::FilterArguments<true, Args...>();
-  constexpr auto output_indices = detail::FilterArguments<false, Args...>();
-
-  return [return_values = std::move(result_expression),
-          output_args = std::move(output_arg_expressions), input_indices,
-          output_indices](typename detail::ConvertArgType<Args>::Type&... args) {
-    // Copy all the input arguments into the evaluator:
-    NumericFunctionEvaluator evaluator{};
-    CollectFunctionInputs(evaluator, input_indices, args...);
-
-    // Create a tuple of non-const references to output arguments of this lambda, and write to it
-    // by doing substitution with the NumericFunctionEvaluator:
-    SelectFromTuple(std::forward_as_tuple(args...), output_indices) =
-        ApplyNumericEvaluator(evaluator, output_args);
-
-    if constexpr (!std::is_same_v<ReturnType, void>) {
-      return ApplyNumericEvaluator(evaluator, return_values);
-    }
-  };
+  constexpr auto output_indices = detail::SelectOutputArgIndices(output_expressions);
+  return CreateEvaluatorWithOutputExpressions<ArgList>(
+      std::move(output_expressions), std::make_index_sequence<sizeof...(Args)>(), output_indices);
 }
 
 namespace detail {
 template <>
 struct ConvertArgType<Expr> {
-  using Type = const double;
-};
-
-template <>
-struct ConvertArgType<Expr&> {
-  using Type = double&;
+  using Type = double;
 };
 
 template <index_t Rows, index_t Cols>
 struct ConvertArgType<ta::StaticMatrix<Rows, Cols>> {
-  using Type = const Eigen::Matrix<double, Rows, Cols>;
+  using Type = Eigen::Matrix<double, Rows, Cols>;
+};
+
+template <typename T>
+struct ConvertOutputArgType<OutputArg<T>> {
+  using Type = typename ConvertOutputArgType<T>::Type;
+};
+
+template <>
+struct ConvertOutputArgType<Expr> {
+  using Type = double;
 };
 
 template <index_t Rows, index_t Cols>
-struct ConvertArgType<ta::StaticMatrix<Rows, Cols>&> {
-  using Type = Eigen::Matrix<double, Rows, Cols>&;
+struct ConvertOutputArgType<ta::StaticMatrix<Rows, Cols>> {
+  using Type = Eigen::Matrix<double, Rows, Cols>;
 };
 
 }  // namespace detail

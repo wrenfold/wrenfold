@@ -19,28 +19,20 @@ struct OutputKey {
   // How this block of expressions is used in the generated code.
   ExpressionUsage usage;
 
-  // Position in the output. If this is a return value, this indicates whether it
-  // is the first, second, ... return value in a tuple. If this is an output argument, then this
-  // indicates the position in the argument list.
-  std::size_t arg_position;
+  // Name of the output. If this is the return value, it will be empty.
+  // If this is an output argument, this is the name of the argument.
+  std::string name;
 
-  constexpr OutputKey(ExpressionUsage usage, std::size_t arg_position)
-      : usage(usage), arg_position(arg_position) {}
+  // Construct w/ usage ane name.
+  OutputKey(ExpressionUsage usage, std::string_view name) : usage(usage), name(name) {}
 
   // Equality test.
   constexpr bool operator==(const OutputKey& other) const {
-    return usage == other.usage && arg_position == other.arg_position;
+    return usage == other.usage && name == other.name;
   }
 
   // Non-equality test.
-  constexpr bool operator!=(const OutputKey& other) const {
-    return usage != other.usage || arg_position != other.arg_position;
-  }
-
-  // Relative order (lexicographical order).
-  constexpr bool operator<(const OutputKey& other) const {
-    return std::make_pair(usage, arg_position) < std::make_pair(other.usage, other.arg_position);
-  }
+  constexpr bool operator!=(const OutputKey& other) const { return !operator==(other); }
 };
 
 // Convert `ExpressionUsage` to a string.
@@ -59,7 +51,7 @@ inline constexpr std::string_view StringFromExpressionUsage(const ExpressionUsag
 // Hash `OutputKey` type.
 struct OutputKeyHasher {
   constexpr std::size_t operator()(const OutputKey& k) const {
-    return HashCombine(static_cast<std::size_t>(k.usage), k.arg_position);
+    return HashCombine(static_cast<std::size_t>(k.usage), HashString(k.name));
   }
 };
 
@@ -73,7 +65,7 @@ struct ExpressionGroup {
   OutputKey key;
 
   ExpressionGroup(std::vector<Expr> expressions, OutputKey key)
-      : expressions(std::move(expressions)), key(key) {}
+      : expressions(std::move(expressions)), key(std::move(key)) {}
 };
 
 }  // namespace math

@@ -10,7 +10,7 @@ namespace math {
 
 struct ExprFromIrVisitor {
   explicit ExprFromIrVisitor(const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression,
-                             const std::unordered_map<std::size_t, bool>* output_arg_exists)
+                             const std::unordered_map<std::string, bool>* output_arg_exists)
       : value_to_expression_(value_to_expression), output_arg_exists_(output_arg_exists) {}
 
   Expr operator()(const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
@@ -23,7 +23,7 @@ struct ExprFromIrVisitor {
 
   Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
     ASSERT(output_arg_exists_, "Must have an output arg map to process `OutputRequired`");
-    return output_arg_exists_->at(output.arg_position) ? Constants::True : Constants::False;
+    return output_arg_exists_->at(output.name) ? Constants::True : Constants::False;
   }
 
   Expr operator()(const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
@@ -77,11 +77,11 @@ struct ExprFromIrVisitor {
   }
 
   const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression_;
-  const std::unordered_map<std::size_t, bool>* output_arg_exists_;
+  const std::unordered_map<std::string, bool>* output_arg_exists_;
 };
 
 std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> CreateOutputExpressionMap(
-    ir::BlockPtr starting_block, const std::unordered_map<std::size_t, bool>* output_arg_exists) {
+    ir::BlockPtr starting_block, const std::unordered_map<std::string, bool>* output_arg_exists) {
   std::unordered_map<ir::ValuePtr, Expr> value_to_expression{};
   value_to_expression.reserve(200);
 

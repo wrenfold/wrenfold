@@ -23,7 +23,11 @@ def main():
     env['PYTHONPATH'] = f'{str(binary_dir)}{sep}{str(SCRIPT_PATH.parent.parent)}'
 
     for name in ['codegen_wrapper_test.py', 'expression_wrapper_test.py', 'matrix_wrapper_test.py']:
-        subprocess.check_call([sys.executable, "-B", str(SCRIPT_PATH / name)], env=env)
+        try:
+            subprocess.check_call([sys.executable, "-B", str(SCRIPT_PATH / name)], env=env)
+        except subprocess.CalledProcessError:
+            print(f"\n*** The following test failed: {name}\n")
+            raise
 
 
 if __name__ == '__main__':

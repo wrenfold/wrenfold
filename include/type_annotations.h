@@ -9,16 +9,12 @@ namespace math {
 // User specifies this as an argument to `BuildFunctionDescription`.
 struct Arg {
   Arg() = default;
-  explicit Arg(const std::string_view name, bool optional = false)
-      : name_(name), optional_(optional) {}
+  explicit Arg(const std::string_view name) : name_(name) {}
 
-  const std::string& GetName() const { return name_; }
-
-  bool IsOptional() const { return optional_; }
+  constexpr const std::string& GetName() const { return name_; }
 
  private:
   std::string name_;
-  bool optional_{false};
 };
 
 namespace type_annotations {
@@ -30,6 +26,9 @@ struct StaticMatrix {
     ASSERT_EQUAL(Rows, expr_.NumRows());
     ASSERT_EQUAL(Cols, expr_.NumCols());
   }
+
+  constexpr index_t NumRows() const { return Rows; }
+  constexpr index_t NumCols() const { return Cols; }
 
   template <typename... Args>
   static std::enable_if_t<std::conjunction_v<std::is_constructible<Expr, Args>...>, StaticMatrix>
