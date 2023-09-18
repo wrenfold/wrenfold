@@ -45,15 +45,13 @@ void GenerateFunc(std::string& output, Func&& func, const std::string_view name,
 
 int main() {
   using namespace math;
-  std::string code =
-      "// Machine generated code.\n#include <cmath>\n#include <optional>\n#include "
-      "<tuple>\n\n#include "
-      "<Eigen/Core>\n\n";
+  std::string code = "// Machine generated code.\n#include <cmath>\n\n#include <span.h>\n\n";
 
   code += "namespace gen {\n\n";
 
   GenerateFunc(code, &SimpleMultiplyAdd, "simple_multiply_add", "x", "y", "z");
-  GenerateFunc(code, &VectorRotation2D, "vector_rotation_2d", "theta", "v", Arg("D_theta", true));
+  GenerateFunc(code, &VectorRotation2D, "vector_rotation_2d", "theta", "v", Arg("v_rot"),
+               Arg("D_theta", true));
   GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v", Arg("D_v", false));
   GenerateFunc(code, &Heaviside, "heaviside", Arg("x"));
   GenerateFunc(code, &ExclusiveOr, "exclusive_or", Arg("x"), Arg("y"));

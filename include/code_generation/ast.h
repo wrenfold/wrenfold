@@ -86,6 +86,9 @@ class Argument {
 
   const ast::Type& Type() const { return type_; }
 
+  // Is the argument type a matrix.
+  bool IsMatrix() const { return std::holds_alternative<ast::MatrixType>(type_); }
+
   // Is this argument optional? Presently only output arguments may be optional.
   bool IsOptional() const { return direction_ == ArgumentDirection::OptionalOutput; }
 
@@ -231,7 +234,7 @@ struct Compare {
   VariantPtr right;
 };
 
-// ConstructMatrix a type from the provided arguments.
+// Construct a type from the provided arguments.
 struct ConstructReturnValue {
   std::size_t position;
   ast::Type type;

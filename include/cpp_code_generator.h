@@ -26,9 +26,6 @@ class CppCodeGenerator {
   void operator()(CodeFormatter& formatter, const ast::ScalarType&,
                   const TypeContext context) const;
 
-  void operator()(CodeFormatter& formatter, const ast::MatrixType& mat,
-                  const TypeContext context) const;
-
   void operator()(CodeFormatter& formatter, const ast::Type& x, TypeContext context) const {
     std::visit([&](const auto& type) { return operator()(formatter, type, context); }, x);
   }

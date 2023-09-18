@@ -66,7 +66,8 @@ if(MSVC)
       /bigobj
       /wd4244
       /wd4702
-      /EHs)
+      /EHs
+      /Zc:__cplusplus)
 else()
   set(MATH_COMPILATION_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
   if(WIN32)
@@ -90,7 +91,49 @@ target_include_directories(
                          $<INSTALL_INTERFACE:include>)
 
 # Specify public headers
-file(GLOB_RECURSE ${LIBRARY_NAME}_HEADERS "include/*.h*")
+set(${LIBRARY_NAME}_HEADERS
+    include/assertions.h
+    include/code_formatter.h
+    include/code_generation/ast.h
+    include/code_generation/expression_group.h
+    include/code_generation/ir_builder.h
+    include/code_generation/ir_types.h
+    include/common_visitors.h
+    include/constants.h
+    include/cpp_code_generator.h
+    include/enumerations.h
+    include/error_types.h
+    include/expression.h
+    include/expressions/addition.h
+    include/expressions/all_expressions.h
+    include/expressions/conditional.h
+    include/expressions/function_argument.h
+    include/expressions/function_expressions.h
+    include/expressions/matrix.h
+    include/expressions/multiplication.h
+    include/expressions/numeric_expressions.h
+    include/expressions/power.h
+    include/expressions/relational.h
+    include/expressions/special_constants.h
+    include/expressions/variable.h
+    include/expression_concept.h
+    include/expression_impl.h
+    include/functions.h
+    include/function_evaluator.h
+    include/function_evaluator_detail.h
+    include/hashing.h
+    include/index_range.h
+    include/integer_utils.h
+    include/matrix_expression.h
+    include/matrix_functions.h
+    include/non_null_ptr.h
+    include/operations.h
+    include/plain_formatter.h
+    include/string_utils.h
+    include/template_utils.h
+    include/type_annotations.h
+    include/visitor_base.h
+    include/visitor_impl.h)
 set_target_properties(${LIBRARY_NAME} PROPERTIES PUBLIC_HEADER
                                                  "${${LIBRARY_NAME}_HEADERS}")
 
@@ -104,6 +147,9 @@ install(
   INCLUDES
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBRARY_NAME}")
+
+# Add the runtime library
+add_subdirectory(runtime)
 
 # Add tests, if not building from scikit-build-core
 if(NOT DEFINED SKBUILD_PROJECT_NAME)

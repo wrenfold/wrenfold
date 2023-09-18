@@ -94,7 +94,9 @@ struct ApplyNumericEvaluatorImpl<std::tuple<Ts...>> {
     // std::apply is invalid for empty tuples:
     if constexpr (sizeof...(Ts) > 1) {
       return std::apply(
-          [&evaluator](const auto& element) { return ApplyNumericEvaluator(evaluator, element); },
+          [&evaluator](auto&&... element) {
+            return std::make_tuple(ApplyNumericEvaluator(evaluator, element)...);
+          },
           tup);
     } else if constexpr (sizeof...(Ts) == 1) {
       return std::make_tuple(ApplyNumericEvaluator(evaluator, std::get<0>(tup)));
@@ -161,18 +163,18 @@ auto CreateEvaluator(ReturnType (*func)(Args... args)) {
 
   // Evaluate the function symbolically.
   // We don't substitute numerical values directly, because the function may wish to do symbolic
-  // operations internally (like diff, subs, etc). Instead, build symbolic expressions for every
+  // operations internally (like diff, subs, etc.). Instead, build symbolic expressions for every
   // output, and then substitute into those.
   auto [result_expression, output_arg_expressions] =
       detail::InvokeWithOutputCapture<ArgList>(func, std::make_index_sequence<sizeof...(Args)>());
 
-  return [return_values = std::move(result_expression),
-          output_args = std::move(output_arg_expressions)](
-             typename detail::ConvertArgType<Args>::Type&... args) {
-    // Get indices of input and output arguments:
-    constexpr auto input_indices = detail::FilterArguments<true, Args...>();
-    constexpr auto output_indices = detail::FilterArguments<false, Args...>();
+  // Get indices of input and output arguments:
+  constexpr auto input_indices = detail::FilterArguments<true, Args...>();
+  constexpr auto output_indices = detail::FilterArguments<false, Args...>();
 
+  return [return_values = std::move(result_expression),
+          output_args = std::move(output_arg_expressions), input_indices,
+          output_indices](typename detail::ConvertArgType<Args>::Type&... args) {
     // Copy all the input arguments into the evaluator:
     NumericFunctionEvaluator evaluator{};
     CollectFunctionInputs(evaluator, input_indices, args...);
