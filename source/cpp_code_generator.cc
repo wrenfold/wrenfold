@@ -1,6 +1,8 @@
 // Copyright 2023 Gareth Cross
 #include "cpp_code_generator.h"
 
+#include "code_generation/ast_formatters.h"
+
 namespace math {
 
 static constexpr std::string_view UtilityNamespace = "math";

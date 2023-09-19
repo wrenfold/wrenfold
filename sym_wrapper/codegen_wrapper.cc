@@ -6,6 +6,7 @@
 #include <pybind11/stl.h>
 
 #include "code_generation/ast.h"
+#include "code_generation/ast_formatters.h"
 #include "code_generation/expression_group.h"
 #include "code_generation/ir_builder.h"
 #include "expression.h"
@@ -31,6 +32,11 @@ static ast::Type TypeFromVariant(
         }
       },
       variant);
+}
+
+template <class T>
+static std::string FormatAst(const T& x) {
+  return fmt::format("{}", x);
 }
 
 PYBIND11_MODULE(pycodegen, m) {
@@ -106,18 +112,19 @@ PYBIND11_MODULE(pycodegen, m) {
 
   py::class_<ast::ScalarType>(m, "ScalarType")
       .def(py::init<NumericType>())
-      .def_property_readonly("numeric_type", &ast::ScalarType::GetNumericType);
+      .def_property_readonly("numeric_type", &ast::ScalarType::GetNumericType)
+      .def("__repr__", &FormatAst<ast::ScalarType>);
 
   py::class_<ast::MatrixType>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
       .def_property_readonly("num_rows", &ast::MatrixType::NumRows)
       .def_property_readonly("num_cols", &ast::MatrixType::NumCols)
-      .def("compute_indices", &ast::MatrixType::ComputeIndices);
-  //      .def("__repr__", &ast::MatrixType::ToString);
+      .def("compute_indices", &ast::MatrixType::ComputeIndices)
+      .def("__repr__", &FormatAst<ast::MatrixType>);
 
   py::class_<ast::VariableRef>(m, "VariableRef")
-      .def_property_readonly("name", [](const ast::VariableRef& v) { return v.name; });
-  //      .def("__repr__", &ast::VariableRef::ToString);
+      .def_property_readonly("name", [](const ast::VariableRef& v) { return v.name; })
+      .def("__repr__", &FormatAst<ast::VariableRef>);
 
   py::class_<ast::FunctionSignature>(m, "FunctionSignature")
       .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
@@ -159,15 +166,17 @@ PYBIND11_MODULE(pycodegen, m) {
 
   py::class_<ast::Add>(m, "Add")
       .def_property_readonly("left", [](const ast::Add& x) { return *x.left; })
-      .def_property_readonly("right", [](const ast::Add& x) { return *x.right; });
-  //      .def("__repr__", &ast::Add::ToString);
+      .def_property_readonly("right", [](const ast::Add& x) { return *x.right; })
+      .def("__repr__", &FormatAst<ast::Add>);
 
   py::class_<ast::AssignTemporary>(m, "AssignTemporary")
       .def_property_readonly("left", [](const ast::AssignTemporary& x) { return x.left; })
-      .def_property_readonly("right", [](const ast::AssignTemporary& x) {
-        ASSERT(x.right);
-        return *x.right;
-      });
+      .def_property_readonly("right",
+                             [](const ast::AssignTemporary& x) {
+                               ASSERT(x.right);
+                               return *x.right;
+                             })
+      .def("__repr__", &FormatAst<ast::AssignTemporary>);
 
   py::class_<ast::AssignOutputArgument>(m, "AssignOutputArgument")
       .def_property_readonly("argument",
@@ -175,27 +184,29 @@ PYBIND11_MODULE(pycodegen, m) {
                                ASSERT(x.argument);
                                return *x.argument;
                              })
-      .def_property_readonly("values", [](const ast::AssignOutputArgument& x) { return x.values; });
+      .def_property_readonly("values", [](const ast::AssignOutputArgument& x) { return x.values; })
+      .def("__repr__", &FormatAst<ast::AssignOutputArgument>);
 
   py::class_<ast::Branch>(m, "Branch")
       .def_property_readonly("condition", [](const ast::Branch& c) { return *c.condition; })
       .def_property_readonly("if_branch", [](const ast::Branch& c) { return c.if_branch; })
-      .def_property_readonly("else_branch", [](const ast::Branch& c) { return c.else_branch; });
-  //      .def("__repr__", &ast::Branch::ToString);
+      .def_property_readonly("else_branch", [](const ast::Branch& c) { return c.else_branch; })
+      .def("__repr__", &FormatAst<ast::Branch>);
 
   py::class_<ast::Call>(m, "Call")
       .def_property_readonly("function", [](const ast::Call& c) { return c.function; })
-      .def_property_readonly("args", [](const ast::Call& c) { return c.args; });
-  //      .def("__repr__", &ast::Call::ToString);
+      .def_property_readonly("args", [](const ast::Call& c) { return c.args; })
+      .def("__repr__", &FormatAst<ast::Call>);
 
   py::class_<ast::Cast>(m, "Cast")
       .def_property_readonly("destination_type",
                              [](const ast::Cast& c) { return c.destination_type; })
-      .def_property_readonly("arg", [](const ast::Cast& c) {
-        ASSERT(c.arg);
-        return *c.arg;
-      });
-  //      .def("__repr__", &ast::Call::ToString);
+      .def_property_readonly("arg",
+                             [](const ast::Cast& c) {
+                               ASSERT(c.arg);
+                               return *c.arg;
+                             })
+      .def("__repr__", &FormatAst<ast::Cast>);
 
   py::class_<ast::Compare>(m, "Compare")
       .def_property_readonly("left",
@@ -208,36 +219,39 @@ PYBIND11_MODULE(pycodegen, m) {
                                ASSERT(c.right);
                                return *c.right;
                              })
-      .def_property_readonly("operation", [](const ast::Compare& c) { return c.operation; });
+      .def_property_readonly("operation", [](const ast::Compare& c) { return c.operation; })
+      .def("__repr__", &FormatAst<ast::Compare>);
 
   py::class_<ast::ConstructReturnValue>(m, "ConstructReturnValue")
       .def_property_readonly("type", [](const ast::ConstructReturnValue& c) { return c.type; })
-      .def_property_readonly("args", [](const ast::ConstructReturnValue& c) { return c.args; });
+      .def_property_readonly("args", [](const ast::ConstructReturnValue& c) { return c.args; })
+      .def("__repr__", &FormatAst<ast::ConstructReturnValue>);
 
   py::class_<ast::Declaration>(m, "Declaration")
       .def_property_readonly("name", [](const ast::Declaration& d) { return d.name; })
       .def_property_readonly("type", [](const ast::Declaration& d) { return d.type; })
-      .def_property_readonly("value", [](const ast::Declaration& d) -> std::optional<ast::Variant> {
-        if (d.value) {
-          return *d.value;
-        } else {
-          return std::nullopt;
-        }
-      });
-  //      .def("__repr__", &ast::Declaration::ToString);
+      .def_property_readonly("value",
+                             [](const ast::Declaration& d) -> std::optional<ast::Variant> {
+                               if (d.value) {
+                                 return *d.value;
+                               } else {
+                                 return std::nullopt;
+                               }
+                             })
+      .def("__repr__", &FormatAst<ast::Declaration>);
 
   py::class_<ast::FloatConstant>(m, "FloatConstant")
-      .def_property_readonly("value", [](const ast::FloatConstant& f) { return f.value; });
-  //      .def("__repr__", &ast::FloatConstant::ToString);
+      .def_property_readonly("value", [](const ast::FloatConstant& f) { return f.value; })
+      .def("__repr__", &FormatAst<ast::FloatConstant>);
 
   py::class_<ast::InputValue>(m, "InputValue")
       .def_property_readonly("argument", [](const ast::InputValue& v) { return v.argument; })
-      .def_property_readonly("element", [](const ast::InputValue& v) { return v.element; });
-  //      .def("__repr__", &ast::InputValue::ToString);
+      .def_property_readonly("element", [](const ast::InputValue& v) { return v.element; })
+      .def("__repr__", &FormatAst<ast::InputValue>);
 
   py::class_<ast::IntegerConstant>(m, "IntegerConstant")
-      .def_property_readonly("value", [](const ast::IntegerConstant& i) { return i.value; });
-  //      .def("__repr__", &ast::IntegerConstant::ToString);
+      .def_property_readonly("value", [](const ast::IntegerConstant& i) { return i.value; })
+      .def("__repr__", &FormatAst<ast::IntegerConstant>);
 
   py::class_<ast::Multiply>(m, "Multiply")
       .def_property_readonly("left",
@@ -245,16 +259,15 @@ PYBIND11_MODULE(pycodegen, m) {
                                ASSERT(x.left);
                                return *x.left;
                              })
-      .def_property_readonly("right", [](const ast::Multiply& x) {
-        ASSERT(x.right);
-        return *x.right;
-      });
-  //      .def("__repr__", &ast::Multiply::ToString);
+      .def_property_readonly("right",
+                             [](const ast::Multiply& x) {
+                               ASSERT(x.right);
+                               return *x.right;
+                             })
+      .def("__repr__", &FormatAst<ast::Multiply>);
 
   py::class_<ast::OutputExists>(m, "OutputExists")
-      .def_property_readonly("argument", [](const ast::OutputExists& b) { return b.argument; });
-  //      .def("__repr__", &ast::OutputExists::ToString);
-
-  //      .def("__repr__", &ast::ReturnValue::ToString);
+      .def_property_readonly("argument", [](const ast::OutputExists& b) { return b.argument; })
+      .def("__repr__", &FormatAst<ast::OutputExists>);
 
 }  // PYBIND11_MODULE
