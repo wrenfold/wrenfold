@@ -17,6 +17,22 @@ using namespace py::literals;
 
 using namespace math;
 
+// Pybind11 requires that std::variant be default-constructible.
+// We have to allow monostate to achieve this.
+static ast::Type TypeFromVariant(
+    const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& variant) {
+  return std::visit(
+      [](const auto& element) -> ast::Type {
+        using T = std::decay_t<decltype(element)>;
+        if constexpr (std::is_same_v<T, std::monostate>) {
+          throw TypeError("`type` cannot be None");
+        } else {
+          return element;
+        }
+      },
+      variant);
+}
+
 PYBIND11_MODULE(pycodegen, m) {
   m.def(
       "create_function_argument",
@@ -50,7 +66,7 @@ PYBIND11_MODULE(pycodegen, m) {
       .value("ReturnValue", ExpressionUsage::ReturnValue);
 
   py::class_<OutputKey>(m, "OutputKey")
-      .def(py::init<ExpressionUsage, std::size_t>(), py::arg("usage"), py::arg("arg_position"));
+      .def(py::init<ExpressionUsage, std::string_view>(), py::arg("usage"), py::arg("name"));
 
   py::class_<ExpressionGroup>(m, "ExpressionGroup")
       .def(py::init<std::vector<Expr>, OutputKey>(), py::arg("expressions"), py::arg("output_key"));
@@ -117,42 +133,20 @@ PYBIND11_MODULE(pycodegen, m) {
           [](ast::FunctionSignature& self, const std::string_view name,
              const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& type,
              ast::ArgumentDirection direction) {
-            // workaround for `type` requiring a default constructor:
-            ast::Type type_casted = std::visit(
-                [](const auto& element) -> ast::Type {
-                  using T = std::decay_t<decltype(element)>;
-                  if constexpr (std::is_same_v<T, std::monostate>) {
-                    throw TypeError("`type` cannot be None");
-                  } else {
-                    return element;
-                  }
-                },
-                type);
-            return self.AddArgument(name, std::move(type_casted), direction);
+            return self.AddArgument(name, TypeFromVariant(type), direction);
           },
           py::arg("name"), py::arg("type"), py::arg("direction"))
       .def(
-          "add_return_value",
+          "set_return_type",
           [](ast::FunctionSignature& self,
              const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& type) {
-            // workaround for `type` requiring a default constructor:
-            ast::Type type_casted = std::visit(
-                [](const auto& element) -> ast::Type {
-                  using T = std::decay_t<decltype(element)>;
-                  if constexpr (std::is_same_v<T, std::monostate>) {
-                    throw TypeError("`type` cannot be None");
-                  } else {
-                    return element;
-                  }
-                },
-                type);
-            self.AddReturnValue(type_casted);
+            self.return_value = TypeFromVariant(type);
           },
           py::arg("type"))
+      .def_property_readonly("return_type",
+                             [](const ast::FunctionSignature& self) { return self.return_value; })
       .def_property_readonly("arguments",
-                             [](const ast::FunctionSignature& self) { return self.arguments; })
-      .def_property_readonly("return_values",
-                             [](const ast::FunctionSignature& self) { return self.return_values; });
+                             [](const ast::FunctionSignature& self) { return self.arguments; });
 
   // Use std::shared_ptr to store argument, since this is what ast::FunctionSignature uses.
   // If we don't do this, we might free something incorrectly when accessing arguments.
@@ -217,8 +211,6 @@ PYBIND11_MODULE(pycodegen, m) {
       .def_property_readonly("operation", [](const ast::Compare& c) { return c.operation; });
 
   py::class_<ast::ConstructReturnValue>(m, "ConstructReturnValue")
-      .def_property_readonly("position",
-                             [](const ast::ConstructReturnValue& c) { return c.position; })
       .def_property_readonly("type", [](const ast::ConstructReturnValue& c) { return c.type; })
       .def_property_readonly("args", [](const ast::ConstructReturnValue& c) { return c.args; });
 
@@ -263,8 +255,6 @@ PYBIND11_MODULE(pycodegen, m) {
       .def_property_readonly("argument", [](const ast::OutputExists& b) { return b.argument; });
   //      .def("__repr__", &ast::OutputExists::ToString);
 
-  py::class_<ast::ReturnValue>(m, "ReturnValue")
-      .def_property_readonly("values", [](const ast::ReturnValue& v) { return v.values; });
   //      .def("__repr__", &ast::ReturnValue::ToString);
 
 }  // PYBIND11_MODULE

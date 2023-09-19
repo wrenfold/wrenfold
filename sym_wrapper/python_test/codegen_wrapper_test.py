@@ -38,8 +38,8 @@ class CodeGenerationWrapperTest(MathTestBase):
         return super().setUp()
 
     def tearDown(self) -> None:
-        # if self._tmp_dir is not None:
-        # shutil.rmtree(self._tmp_dir, ignore_errors=True)
+        if self._tmp_dir is not None:
+            shutil.rmtree(self._tmp_dir, ignore_errors=True)
         return super().tearDown()
 
     def load_code(self, code: str, name: str) -> T.Callable:

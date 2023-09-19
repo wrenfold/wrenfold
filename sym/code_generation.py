@@ -1,5 +1,6 @@
 """Utility functions to support code-generation."""
 import collections
+import dataclasses
 import inspect
 import itertools
 import string
@@ -14,8 +15,7 @@ AstVariantTuple = (codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArg
                    codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
                    codegen.ConstructReturnValue, codegen.Declaration, codegen.FloatConstant,
                    codegen.InputValue, codegen.IntegerConstant, codegen.Multiply,
-                   codegen.OutputExists, codegen.ReturnValue, codegen.VariableRef,
-                   codegen.FunctionSignature)
+                   codegen.OutputExists, codegen.VariableRef, codegen.FunctionSignature)
 
 AstTypeTuple = (codegen.ScalarType, codegen.MatrixType)
 
@@ -23,8 +23,7 @@ AstVariantAnnotation = T.Union[codegen.Add, codegen.AssignTemporary, codegen.Ass
                                codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
                                codegen.ConstructReturnValue, codegen.Declaration,
                                codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
-                               codegen.Multiply, codegen.OutputExists, codegen.ReturnValue,
-                               codegen.VariableRef,]
+                               codegen.Multiply, codegen.OutputExists, codegen.VariableRef,]
 
 
 class CustomStringFormatter(string.Formatter):
@@ -55,10 +54,10 @@ class CustomStringFormatter(string.Formatter):
         return format_method(self, value)
 
     @staticmethod
-    def indent(string: str, amount: int = 2) -> str:
+    def indent(input_string: str, amount: int = 2) -> str:
         """Indent the provided string by `amount` spaces."""
         assert amount >= 0, f'amount = {amount}'
-        return (' ' * amount) + string.replace('\n', '\n' + ' ' * amount).rstrip(' ')
+        return (' ' * amount) + input_string.replace('\n', '\n' + ' ' * amount).rstrip(' ')
 
 
 class CodeGenerator:
@@ -158,7 +157,7 @@ class PythonCodeGenerator(CodeGenerator):
         return fmt.format('{} {} {}', x.left, op, x.right)
 
     def format_ConstructReturnValue(self, fmt: CustomStringFormatter,
-                                    x: codegen.ReturnValue) -> str:
+                                    x: codegen.ConstructReturnValue) -> str:
         values = x.args
         if len(values) > 1:
             return fmt.format('return {}', values[0])
@@ -185,12 +184,11 @@ class PythonCodeGenerator(CodeGenerator):
             else:
                 args.append(fmt.format('{}: {}', arg.name, arg.type))
 
-        return_types = x.return_values
-        if len(return_types) == 1:
-            return_type_str = fmt.format('{}', return_types[0])
+        return_type = x.return_type
+        if return_type is None:
+            return_type_str = 'None'
         else:
-            return_type_str = 'T.Tuple[{}]'.format(', '.join(
-                fmt.format_ast(v) for v in return_types))
+            return_type_str = fmt.format('{}', return_type)
 
         return f'def {x.name}({", ".join(args)}) -> {return_type_str}:'
 
@@ -218,8 +216,29 @@ class PythonCodeGenerator(CodeGenerator):
         return x.name
 
 
-def codegen_function(func: T.Callable,
-                     name: T.Optional[str] = None) -> T.List[AstVariantAnnotation]:
+@dataclasses.dataclass
+class ReturnValue:
+    """Designate a return value in the result of symbolic function invocation."""
+    expression: T.Union[sym.Expr, sym.MatrixExpr]
+
+
+@dataclasses.dataclass
+class OutputArg:
+    """Designate an output argument in the result of a symbolic function invocation."""
+    expression: T.Union[sym.Expr, sym.MatrixExpr]
+    name: str
+    is_optional: bool
+
+
+ReturnValueOrOutputArg = T.Union[ReturnValue, OutputArg]
+
+CodegenFuncInvocationResult = T.Union[sym.Expr, sym.MatrixExpr, T.Iterable[ReturnValueOrOutputArg]]
+
+
+def codegen_function(
+    func: T.Callable[..., CodegenFuncInvocationResult],
+    name: T.Optional[str] = None
+) -> T.Tuple[codegen.FunctionSignature, T.List[AstVariantAnnotation]]:
     """Code-generate the provided function."""
     spec = inspect.getfullargspec(func=func)
     kwargs = dict()
@@ -235,37 +254,8 @@ def codegen_function(func: T.Callable,
         else:
             raise TypeError(f'Invalid type used in annotation: {type_annotation}')
 
-    # run the function
-    return_value = func(**kwargs)
-    if not isinstance(return_value, tuple):
-        return_value = (return_value,)
-
-    # build the function signature:
+    # add the input arguments:
     signature = codegen.FunctionSignature(name or func.__name__)
-
-    output_expressions: T.List[codegen.ExpressionGroup] = []
-    for index, val in enumerate(return_value):
-        assert isinstance(val, (sym.Expr, sym.MatrixExpr)), f"Invalid type: {type(val)}"
-        if isinstance(val, sym.Expr):
-            # If return value is Expr, see if it can be coerced to matrix
-            try:
-                val = sym.MatrixExpr(val)
-            except sym.TypeError:
-                pass
-
-        if isinstance(val, sym.Expr):
-            signature.add_return_value(codegen.ScalarType(codegen.NumericType.Real))
-            output = codegen.ExpressionGroup(
-                expressions=[val],
-                output_key=codegen.OutputKey(codegen.ExpressionUsage.ReturnValue, index))
-            output_expressions.append(output)
-        elif isinstance(val, sym.MatrixExpr):
-            signature.add_return_value(codegen.MatrixType(*val.shape))
-            output = codegen.ExpressionGroup(
-                expressions=val.to_list(),
-                output_key=codegen.OutputKey(codegen.ExpressionUsage.ReturnValue, index))
-            output_expressions.append(output)
-
     for arg_index, arg_name in enumerate(spec.args):
         type_annotation = spec.annotations[arg_name]
         if issubclass(type_annotation, sym.Expr):
@@ -279,9 +269,53 @@ def codegen_function(func: T.Callable,
                 type=codegen.MatrixType(*type_annotation.SHAPE),
                 direction=codegen.ArgumentDirection.Input)
 
+    # run the function
+    result_expressions: CodegenFuncInvocationResult = func(**kwargs)
+    if isinstance(result_expressions, (sym.Expr, sym.MatrixExpr)):
+        # if one thing was returned, interpret it as the return value:
+        result_expressions = (ReturnValue(expression=result_expressions),)
+
+    if len([val for val in result_expressions if isinstance(val, ReturnValue)]) > 1:
+        raise RuntimeError("Only one ReturnValue is permitted.")
+
+    output_expressions: T.List[codegen.ExpressionGroup] = []
+    for val in result_expressions:
+        if not isinstance(val, (ReturnValue, OutputArg)):
+            raise TypeError(f"Returned values must be: {ReturnValueOrOutputArg}, got: {type(val)}")
+        elif isinstance(val.expression, sym.Expr):
+            # If return value is `Expr`, see if it can be coerced to matrix:
+            try:
+                val.expression = sym.MatrixExpr(val.expression)
+            except sym.TypeError:
+                pass
+
+        if isinstance(val.expression, sym.Expr):
+            output_type = codegen.ScalarType(codegen.NumericType.Real)
+            group_expressions = [val.expression]
+        else:
+            output_type = codegen.MatrixType(*val.expression.shape)
+            group_expressions = val.expression.to_list()
+
+        if isinstance(val, ReturnValue):
+            output = codegen.ExpressionGroup(
+                expressions=group_expressions,
+                output_key=codegen.OutputKey(codegen.ExpressionUsage.ReturnValue, ""))
+            # set the function signature return type
+            signature.set_return_type(output_type)
+        else:
+            usage = codegen.ExpressionUsage.OptionalOutputArgument if val.is_optional else \
+                codegen.ExpressionUsage.OutputArg
+            output = codegen.ExpressionGroup(
+                expressions=group_expressions, output_key=codegen.OutputKey(usage, val.name))
+            # add an argument:
+            signature.add_argument(
+                name=val.name, type=output_type, direction=codegen.ArgumentDirection.Input)
+
+        output_expressions.append(output)
+
     # Convert to ast that we can emit:
     ast = codegen.generate_func(signature=signature, expressions=output_expressions)
-    return (signature, ast)
+    return signature, ast
 
 
 def create_numeric_evaluator(func: T.Callable) -> T.Callable:

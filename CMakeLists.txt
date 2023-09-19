@@ -119,6 +119,7 @@ set(${LIBRARY_NAME}_HEADERS
     include/expression_concept.h
     include/expression_impl.h
     include/functions.h
+    include/output_annotations.h
     include/function_evaluator.h
     include/function_evaluator_detail.h
     include/hashing.h

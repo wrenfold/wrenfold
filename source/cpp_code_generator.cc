@@ -42,40 +42,8 @@ std::string CppCodeGenerator::Generate(const ast::FunctionDefinition& definition
     }
 
     result.Join(*this, "\n", definition.body);
-    result.Append("\n");
-    const std::size_t num_return_vals = definition.signature.return_values.size();
-    if (num_return_vals == 0) {
-      // No return statement.
-    } else if (num_return_vals == 1) {
-      result.Append("return return_value_0;");
-    } else {
-      result.Append("return std::make_tuple(");
-      result.Join([&](CodeFormatter& formatter,
-                      const std::size_t index) { formatter.Format("return_value_{}", index); },
-                  ", ", MakeRange<std::size_t>(0, num_return_vals));
-      result.Append(");");
-    }
   });
   return result.GetOutput();
-}
-
-void CppCodeGenerator::FormatReturnType(CodeFormatter& formatter,
-                                        const ast::FunctionSignature& signature) const {
-  if (signature.return_values.empty()) {
-    formatter.Append("void");
-  } else if (signature.return_values.size() == 1) {
-    // there is a single type
-    operator()(formatter, signature.return_values[0], TypeContext::ReturnValue);
-  } else {
-    // make a tuple
-    formatter.Append("std::tuple<");
-    formatter.Join(
-        [&](CodeFormatter& formatter, const ast::Type& type) {
-          operator()(formatter, type, TypeContext::ReturnValue);
-        },
-        ", ", signature.return_values);
-    formatter.Append(">");
-  }
 }
 
 constexpr static std::string_view StringFromNumericCastType(const NumericType destination_type) {
@@ -110,8 +78,16 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
   }
   formatter.Append(">\n");
 
-  FormatReturnType(formatter, signature);
-  formatter.Format(" {}(", signature.function_name);
+  if (signature.return_value) {
+    if (!std::holds_alternative<ast::ScalarType>(*signature.return_value)) {
+      // TODO: To support returning matrices in C++ we need more than just a `span` type.
+      throw TypeError("Only scalars can be returned.");
+    } else {
+      formatter.Format("auto {}(", signature.function_name);
+    }
+  } else {
+    formatter.Format("void {}(", signature.function_name);
+  }
 
   std::size_t counter = 0;
   auto arg_printer = [&counter](CodeFormatter& formatter, const ast::Argument::shared_ptr& arg) {
@@ -261,34 +237,9 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter,
                                   const ast::ConstructReturnValue& x) const {
-  formatter.Format("{} return_value_{}", View(x.type, TypeContext::ReturnValue), x.position);
-
-  if (std::holds_alternative<ast::ScalarType>(x.type)) {
-    ASSERT_EQUAL(1, x.args.size());
-    formatter.Format(" = {}", View(x.args.front()));
-  } else {
-    const ast::MatrixType& type = std::get<ast::MatrixType>(x.type);
-    if (type.HasUnitDimension()) {
-      formatter.Append("{");
-      formatter.Join(*this, ", ", x.args);
-      formatter.Append("}");
-    } else {
-      formatter.WithIndentation(2, "{\n", "}", [&] {
-        formatter.Join(
-            [&](CodeFormatter& formatter, index_t row) {
-              formatter.Append("{");
-              formatter.Join(
-                  [&](CodeFormatter& formatter, index_t col) {
-                    this->operator()(formatter, x.args[row * type.NumCols() + col]);
-                  },
-                  ", ", MakeRange(0, type.NumCols()));
-              formatter.Append("}");
-            },
-            ",\n", MakeRange(0, type.NumRows()));
-      });
-    }
-  }
-  formatter.Append(";");
+  ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
+  ASSERT_EQUAL(1, x.args.size());
+  formatter.Format("return {};", View(x.args[0]));
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
@@ -318,18 +269,6 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply&
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::OutputExists& x) const {
   formatter.Format("static_cast<bool>({}{})", x.argument->IsMatrix() ? "_" : "",
                    x.argument->Name());
-}
-
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ReturnValue& v) const {
-  if (v.values.empty()) {
-    // No return statement.
-  } else if (v.values.size() == 1) {
-    formatter.Format("return {};", View(v.values[0]));
-  } else {
-    formatter.Append("std::make_tuple(");
-    formatter.Join(*this, ", ", v.values);
-    formatter.Append(");");
-  }
 }
 
 }  // namespace math

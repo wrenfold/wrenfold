@@ -212,16 +212,14 @@ struct OutputRequired {
   constexpr static bool IsCommutative() { return false; }
   constexpr static int NumValueOperands() { return 0; }
   constexpr std::string_view ToString() const { return "oreq"; }
-  constexpr std::size_t Hash() const { return arg_position; }
-  constexpr bool IsSame(const OutputRequired& other) const {
-    return arg_position == other.arg_position;
-  }
+  constexpr std::size_t Hash() const { return HashString(name); }
+  bool IsSame(const OutputRequired& other) const { return name == other.name; }
 
   constexpr NumericType DetermineType() const { return NumericType::Bool; }
 
-  explicit OutputRequired(std::size_t arg_position) : arg_position(arg_position) {}
+  explicit OutputRequired(std::string name) : name(name) {}
 
-  std::size_t arg_position;
+  std::string name;
 };
 
 // Phi function. The output is equal to whichever operand was generated on the evaluated code-path.
@@ -265,6 +263,8 @@ struct Save {
   constexpr bool IsSame(const Save& other) const {
     return key == other.key;  // && output_index == other.output_index;
   }
+
+  constexpr bool IsReturnValue() const { return key.usage == ExpressionUsage::ReturnValue; }
 
   OutputKey key;
 };

@@ -39,7 +39,7 @@ struct OptionalArgPermutations {
   explicit OptionalArgPermutations(const std::vector<ExpressionGroup>& expressions) {
     for (auto it = expressions.begin(); it != expressions.end(); ++it) {
       if (it->key.usage == ExpressionUsage::OptionalOutputArgument) {
-        scatter_.emplace(it->key.arg_position, scatter_.size());
+        scatter_.emplace(it->key.name, scatter_.size());
       }
     }
     ASSERT_LESS(scatter_.size(), MaxOptionalArgs);
@@ -54,21 +54,21 @@ struct OptionalArgPermutations {
 
   // Get the n'th permutation of optional arguments.
   // The returned map is a mapping from `arg index` --> whether the argument is to be computed.
-  std::unordered_map<std::size_t, bool> GetPermutation(std::size_t n) const {
+  std::unordered_map<std::string, bool> GetPermutation(std::size_t n) const {
     ASSERT_LESS(n, NumPermutations());
     const std::bitset<MaxOptionalArgs> permutation{n};
 
-    std::unordered_map<std::size_t, bool> output{};
+    std::unordered_map<std::string, bool> output{};
     output.reserve(scatter_.size());
-    for (const auto [arg_index, bitfield_index] : scatter_) {
-      output.emplace(arg_index, permutation[bitfield_index]);
+    for (const auto [name, bitfield_index] : scatter_) {
+      output.emplace(name, permutation[bitfield_index]);
     }
     return output;
   }
 
  private:
-  // Map from arg index to bit index in a permutation.
-  std::unordered_map<std::size_t, std::size_t> scatter_;
+  // Map from arg name to bit index in a permutation.
+  std::unordered_map<std::string, std::size_t> scatter_;
 };
 
 template <typename T>
@@ -80,7 +80,7 @@ void CheckOutputExpressions(
     auto it = output_expressions.find(group.key);
     ASSERT_TRUE(it != output_expressions.end())
         << fmt::format("Missing key ({}, {})\n", StringFromExpressionUsage(group.key.usage),
-                       group.key.arg_position)
+                       group.key.name)
         << ir;
 
     ASSERT_EQ(group.expressions.size(), it->second.size()) << ir;
@@ -88,7 +88,7 @@ void CheckOutputExpressions(
     for (std::size_t i = 0; i < group.expressions.size(); ++i) {
       ASSERT_IDENTICAL(group.expressions[i], it->second[i])
           << fmt::format("Key: ({}, {}), i: {}\n", StringFromExpressionUsage(group.key.usage),
-                         group.key.arg_position, i)
+                         group.key.name, i)
           << ir;
     }
   }
@@ -118,24 +118,22 @@ TEST(IrTest, TestNumericConstant1) {
 
 TEST(IrTest, TestNumericConstant2) {
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr& a, Expr& b) {
-        a = 7_s;
-        b = 1_s;
-        return 2.0_s;
+      []() {
+        return std::make_tuple(ReturnValue(2.0_s), OutputArg("a", 7_s), OutputArg("b", 1_s));
       },
-      "func", Arg("a"), Arg("b", true));
+      "func");
   CheckExpressions(expected_expressions, ir);
   CheckExpressions(expected_expressions, OutputIr{std::move(ir)});
 }
 
 TEST(IrTest, TestScalarExpressions1) {
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr& a, Expr& b) {
-        a = x * y;
-        b = x + y;
-        return x * y;
+      [](Expr x, Expr y) {
+        Expr a = x * y;
+        Expr b = x + y;
+        return std::make_tuple(ReturnValue(x * y), OutputArg("a", a), OutputArg("b", b));
       },
-      "func", Arg("x"), Arg("y"), Arg("a"), Arg("b"));
+      "func", Arg("x"), Arg("y"));
   ASSERT_EQ(2, ir.NumOperations()) << ir;
   ASSERT_EQ(0, ir.NumConditionals()) << ir;
   CheckExpressions(expected_expressions, ir);
@@ -150,11 +148,12 @@ TEST(IrTest, TestScalarExpressions1) {
 TEST(IrTest, TestScalarExpressions2) {
   // Create an optional output:
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr z, Expr& f, Expr& g) {
-        f = x * y * sin(z * x) + 5;
-        g = cos(z * x) * x * y - log(y - z * 2.1) * 3;
+      [](Expr x, Expr y, Expr z) {
+        Expr f = x * y * sin(z * x) + 5;
+        Expr g = cos(z * x) * x * y - log(y - z * 2.1) * 3;
+        return std::make_tuple(OutputArg("f", f), OptionalOutputArg("g", g));
       },
-      "func", Arg("x"), Arg("y"), Arg("z"), Arg("f"), Arg("g", true));
+      "func", Arg("x"), Arg("y"), Arg("z"));
 
   ASSERT_EQ(14, ir.NumOperations()) << ir;
   ASSERT_EQ(0, ir.NumConditionals()) << ir;
@@ -169,9 +168,9 @@ TEST(IrTest, TestScalarExpressions2) {
 
 TEST(IrTest, TestScalarExpressions3) {
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr z, Expr& f) {
+      [](Expr x, Expr y, Expr z) {
         // Chain together a few operations (this doesn't reduce at all).
-        f = Constants::One;
+        Expr f = Constants::One;
         for (int i = 0; i < 20; ++i) {
           if (i & 1) {
             f = (f + x) * y;
@@ -179,8 +178,9 @@ TEST(IrTest, TestScalarExpressions3) {
             f = (f - y) * z;
           }
         }
+        return f;
       },
-      "func", Arg("x"), Arg("y"), Arg("z"), Arg("f"));
+      "func", Arg("x"), Arg("y"), Arg("z"));
 
   ASSERT_EQ(43, ir.NumOperations()) << ir;
   ASSERT_EQ(0, ir.NumConditionals()) << ir;
@@ -190,11 +190,11 @@ TEST(IrTest, TestScalarExpressions3) {
 
 TEST(IrTest, TestConditionals1) {
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr& f) {
+      [](Expr x) {
         // heaviside step function:
-        f = where(x > 0, 1, 0);
+        return where(x > 0, 1, 0);
       },
-      "func", Arg("x"), Arg("f"));
+      "func", Arg("x"));
 
   ASSERT_EQ(4, ir.NumOperations()) << ir;
   ASSERT_EQ(1, ir.NumConditionals()) << ir;
@@ -208,12 +208,12 @@ TEST(IrTest, TestConditionals1) {
 
 TEST(IrTest, TestConditionals2) {
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr& f) {
+      [](Expr x, Expr y) {
         // use the condition in one of the branches:
         Expr condition = x > y;
-        f = where(condition, condition * 2, cos(y - 2));
+        return where(condition, condition * 2, cos(y - 2));
       },
-      "func", Arg("x"), Arg("y"), Arg("f"));
+      "func", Arg("x"), Arg("y"));
 
   ASSERT_EQ(8, ir.NumOperations()) << ir;
   ASSERT_EQ(1, ir.NumConditionals()) << ir;
@@ -227,11 +227,11 @@ TEST(IrTest, TestConditionals2) {
 
 TEST(IrTest, TestConditionals3) {
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr& f) {
+      [](Expr x, Expr y) {
         // exclusive or
-        f = where(x > 0, where(y > 0, 0, 1), where(y > 0, 1, 0));
+        return where(x > 0, where(y > 0, 0, 1), where(y > 0, 1, 0));
       },
-      "func", Arg("x"), Arg("y"), Arg("f"));
+      "func", Arg("x"), Arg("y"));
 
   ASSERT_EQ(7, ir.NumOperations()) << ir;
   ASSERT_EQ(3, ir.NumConditionals()) << ir;
@@ -246,13 +246,13 @@ TEST(IrTest, TestConditionals3) {
 TEST(IrTest, TestConditionals4) {
   // Nested conditionals:
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr z, Expr& f) {
+      [](Expr x, Expr y, Expr z) {
         Expr p = where(x > 0, cos(x), sin(z));
         Expr q = where(y < -5, -log(p), tan(x + y));
         Expr l = where(pow(z, 2) < y, q, q - p);
-        f = l * 2;
+        return l * 2;
       },
-      "func", Arg("x"), Arg("y"), Arg("z"), Arg("f"));
+      "func", Arg("x"), Arg("y"), Arg("z"));
 
   ASSERT_EQ(20, ir.NumOperations()) << ir;
   ASSERT_EQ(3, ir.NumConditionals()) << ir;
@@ -267,14 +267,16 @@ TEST(IrTest, TestConditionals4) {
 TEST(IrTest, TestConditionals5) {
   // Optional outputs and conditionals:
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr z, Expr& f, Expr& g, Expr& h) {
+      [](Expr x, Expr y, Expr z) {
         Expr p = where(x > y, cos(x) * sin(z) - sin(x) * cos(z) * 2, log(z - x) * 23);
         Expr q = where(pow(z, y) < x, p * p, -cos(p) + x);
-        f = q;
-        g = q.Diff(x);
-        h = q.Diff(x, 2);
+        Expr f = q;
+        Expr g = q.Diff(x);
+        Expr h = q.Diff(x, 2);
+        return std::make_tuple(ReturnValue(f), OptionalOutputArg("g", g),
+                               OptionalOutputArg("h", h));
       },
-      "func", Arg("x"), Arg("y"), Arg("z"), Arg("f"), Arg("g", true), Arg("h", true));
+      "func", Arg("x"), Arg("y"), Arg("z"));
 
   ASSERT_EQ(56, ir.NumOperations()) << ir;
   ASSERT_EQ(6, ir.NumConditionals()) << ir;
@@ -289,13 +291,13 @@ TEST(IrTest, TestConditionals5) {
 TEST(IrTest, TestConditionals6) {
   // Create nested conditionals several layers deep:
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr z, Expr w, Expr& f) {
-        f = where(x > 0, x, 1 - x);
+      [](Expr x, Expr y, Expr z, Expr w) {
+        Expr f = where(x > 0, x, 1 - x);
         f = where(y > 0, f * y, f * (1 - y));
         f = where(z > 0, f * z, f * (1 - z));
-        f = where(w > 0, f * w, f * (1 - w));
+        return where(w > 0, f * w, f * (1 - w));
       },
-      "func", Arg("x"), Arg("y"), Arg("z"), Arg("w"), Arg("f"));
+      "func", Arg("x"), Arg("y"), Arg("z"), Arg("w"));
 
   ASSERT_EQ(25, ir.NumOperations()) << ir;
   ASSERT_EQ(4, ir.NumConditionals()) << ir;
@@ -310,12 +312,13 @@ TEST(IrTest, TestConditionals6) {
 TEST(IrTest, TestMatrixExpressions1) {
   // Create a matrix output:
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, const ta::StaticMatrix<2, 1>& v, ta::StaticMatrix<2, 2>& m) {
+      [](Expr x, const ta::StaticMatrix<2, 1>& v) {
         using namespace matrix_operator_overloads;
         auto v_outer = v * v.Transpose();
-        m = v_outer * x;
+        ta::StaticMatrix<2, 2> m{static_cast<MatrixExpr>(v_outer * x)};
+        return m;
       },
-      "func", Arg("x"), Arg("y"), Arg("m"));
+      "func", Arg("x"), Arg("y"));
 
   ASSERT_EQ(7, ir.NumOperations()) << ir;
   ASSERT_EQ(0, ir.NumConditionals()) << ir;
@@ -330,14 +333,14 @@ TEST(IrTest, TestMatrixExpressions1) {
 TEST(IrTest, TestMatrixExpressions2) {
   // Construct a matrix w/ a repeated conditional:
   auto [expected_expressions, ir] = CreateIR(
-      [](Expr x, Expr y, Expr z, ta::StaticMatrix<4, 4>& m) {
+      [](Expr x, Expr y, Expr z) {
         std::vector<Expr> expressions{};
         for (int i = 0; i < 16; ++i) {
           expressions.push_back(where(x > 0, pow(y, i), pow(z, 16 - z)));
         }
-        m = MatrixExpr::Create(4, 4, std::move(expressions));
+        return ta::StaticMatrix<4, 4>{MatrixExpr::Create(4, 4, std::move(expressions))};
       },
-      "func", Arg("x"), Arg("y"), Arg("z"), Arg("m"));
+      "func", Arg("x"), Arg("y"), Arg("z"));
 
   ASSERT_EQ(52, ir.NumOperations()) << ir;
   ASSERT_EQ(16, ir.NumConditionals()) << ir;
@@ -354,17 +357,20 @@ TEST(IrTest, TestMatrixExpressions3) {
   // Create matrices with conditionals and optional output arguments:
   auto [expected_expressions, ir] = CreateIR(
       [](const ta::StaticMatrix<2, 1>& v, const ta::StaticMatrix<3, 3>& u,
-         const ta::StaticMatrix<3, 1>& t, ta::StaticMatrix<2, 3>& f, ta::StaticMatrix<3, 3>& g) {
+         const ta::StaticMatrix<3, 1>& t) {
         using namespace matrix_operator_overloads;
         auto I3 = Identity(3);
         auto zeros = static_cast<Expr>(Zeros(2, 3));
-        f = where(v[0] - t[1] > 0, v * t.Transpose() * (u - I3), zeros);
+        Expr f = where(v[0] - t[1] > 0, v * t.Transpose() * (u - I3), zeros);
 
         auto path_1 = u * t * t.Transpose();
         auto path_2 = (u - I3) * (u - I3).Transpose();
-        g = where(u(1, 1) < -v[1], path_1, path_2);
+        MatrixExpr g{where(u(1, 1) < -v[1], path_1, path_2)};
+
+        return std::make_tuple(ReturnValue(ta::StaticMatrix<2, 3>{static_cast<MatrixExpr>(f)}),
+                               OptionalOutputArg("g", ta::StaticMatrix<3, 3>{g}));
       },
-      "func", Arg("v"), Arg("u"), Arg("t"), Arg("f"), Arg("g", true));
+      "func", Arg("v"), Arg("u"), Arg("t"));
 
   ASSERT_EQ(116, ir.NumOperations()) << ir;
   ASSERT_EQ(15, ir.NumConditionals()) << ir;

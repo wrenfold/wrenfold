@@ -239,7 +239,7 @@ template <>
 struct FormatOpArgsHelper<ir::OutputRequired> {
   void operator()(std::string& output, const ir::OutputRequired& oreq,
                   const std::vector<ir::ValuePtr>&, const std::size_t) {
-    fmt::format_to(std::back_inserter(output), "{}", oreq.arg_position);
+    fmt::format_to(std::back_inserter(output), "{}", oreq.name);
   }
 };
 
@@ -477,15 +477,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
 
   IRFormVisitor visitor{*this, pair_visitor};
 
-  // order of traversal:
-  std::vector<std::size_t> argsort(groups.size());
-  std::iota(argsort.begin(), argsort.end(), 0);
-  std::sort(argsort.begin(), argsort.end(),
-            [&groups](auto a, auto b) { return groups[a].key < groups[b].key; });
-
-  for (const std::size_t index : argsort) {
-    const ExpressionGroup& group = groups[index];
-
+  for (const ExpressionGroup& group : groups) {
     // Transform expressions into Values
     std::vector<ir::ValuePtr> group_values;
     group_values.reserve(group.expressions.size());
@@ -620,15 +612,15 @@ struct IrConverter {
     const std::vector<ir::ValuePtr> output_values = GetAllOutputValues();
 
     // Pull out all the required outputs, these are processed first:
+    // Order is: queue the return values, then the required output arguments.
     std::deque<ir::ValuePtr> required_outputs_queue{};
     std::copy_if(output_values.rbegin(), output_values.rend(),
+                 std::back_inserter(required_outputs_queue),
+                 [&](ir::ValuePtr v) { return v->As<ir::Save>().IsReturnValue(); });
+    std::copy_if(output_values.rbegin(), output_values.rend(),
                  std::back_inserter(required_outputs_queue), [&](ir::ValuePtr v) {
-                   // Color anything that contributes to required outputs w/ our first color_index_
                    const ir::Save& save = v->As<ir::Save>();
-                   if (save.key.usage != ExpressionUsage::OptionalOutputArgument) {
-                     return true;
-                   }
-                   return false;
+                   return save.key.usage == ExpressionUsage::OutputArgument;
                  });
 
     // Insert computations for required output values:
@@ -654,7 +646,7 @@ struct IrConverter {
 
       // Operation that evaluates whether this argument is required:
       const ir::ValuePtr jump_condition =
-          CreateOperation(output.values_, jump_block, ir::OutputRequired{save.key.arg_position});
+          CreateOperation(output.values_, jump_block, ir::OutputRequired{save.key.name});
 
       // Either we go into `left_block` and compute the arg outputs, or we skip to `next_block`:
       CreateOperation(output.values_, jump_block, ir::JumpCondition{}, jump_condition);

@@ -24,7 +24,4 @@ inline bool IsPi(const Expr& expr) { return expr.IsIdenticalTo(Constants::Pi); }
 
 inline bool IsInfinity(const Expr& expr) { return expr.IsIdenticalTo(Constants::Infinity); }
 
-// A placeholder used to default initialize certain expressions during code-generation.
-Expr GetUnfilledExprPlaceholder();
-
 }  // namespace math

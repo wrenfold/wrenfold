@@ -66,8 +66,6 @@ class CppCodeGenerator {
 
   void operator()(CodeFormatter& formatter, const ast::OutputExists& x) const;
 
-  void operator()(CodeFormatter& formatter, const ast::ReturnValue& v) const;
-
   // Accept ast::Variant and delegate formatting of the stored type to our derived class.
   // Using enable_if here to prevent implicit conversion to the variant type.
   template <typename T, typename = std::enable_if_t<std::is_same_v<T, ast::Variant>>>
@@ -88,7 +86,6 @@ class CppCodeGenerator {
   }
 
  protected:
-  void FormatReturnType(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
   void FormatSignature(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
 };
 

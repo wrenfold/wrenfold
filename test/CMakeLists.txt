@@ -77,7 +77,8 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
 
   # Then create a target that evaluates the result:
   set(evaluate_target ${NAME}_evaluate)
-  add_executable(${evaluate_target} ${TEST_SOURCE_FILE} custom_main.cc)
+  add_executable(${evaluate_target} ${TEST_SOURCE_FILE} custom_main.cc
+                                    "${TEST_OUTPUT_DIR}/generated.h")
   target_link_libraries(${evaluate_target} ${TEST_LIBRARY_NAME} gtest
                         math_runtime eigen)
   target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})

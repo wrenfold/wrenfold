@@ -50,9 +50,14 @@ int main() {
   code += "namespace gen {\n\n";
 
   GenerateFunc(code, &SimpleMultiplyAdd, "simple_multiply_add", "x", "y", "z");
-  GenerateFunc(code, &VectorRotation2D, "vector_rotation_2d", "theta", "v", Arg("v_rot"),
-               Arg("D_theta", true));
-  GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v", Arg("D_v", false));
+  GenerateFunc(
+      code,
+      [](Expr theta, ta::StaticMatrix<2, 1> v) {
+        auto [v_rot, v_rot_D_theta] = VectorRotation2D(theta, v);
+        return std::make_tuple(v_rot.ToOutputArg("v_rot"), std::move(v_rot_D_theta));
+      },
+      "vector_rotation_2d", "theta", "v");
+  GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v");
   GenerateFunc(code, &Heaviside, "heaviside", Arg("x"));
   GenerateFunc(code, &ExclusiveOr, "exclusive_or", Arg("x"), Arg("y"));
 

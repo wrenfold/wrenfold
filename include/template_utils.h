@@ -175,6 +175,12 @@ struct DecayRValueToValue {
       std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>, const std::decay_t<T>&>;
 };
 
+// True if the type is a tuple.
+template <typename T>
+constexpr bool IsTuple = false;
+template <typename... Ts>
+constexpr bool IsTuple<std::tuple<Ts...>> = true;
+
 namespace detail {
 template <class... Ts>
 struct Overloaded : Ts... {
