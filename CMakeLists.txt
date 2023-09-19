@@ -95,6 +95,7 @@ set(${LIBRARY_NAME}_HEADERS
     include/assertions.h
     include/code_formatter.h
     include/code_generation/ast.h
+    include/code_generation/ast_formatters.h
     include/code_generation/expression_group.h
     include/code_generation/ir_builder.h
     include/code_generation/ir_types.h
