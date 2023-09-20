@@ -99,6 +99,8 @@ struct DistributeVisitor {
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Distribute(const Expr& arg) { return Visit(arg, DistributeVisitor{}, arg); }
+Expr Distribute(const Expr& arg) {
+  return Visit(arg, [&arg](const auto& x) { return DistributeVisitor{}(x, arg); });
+}
 
 }  // namespace math

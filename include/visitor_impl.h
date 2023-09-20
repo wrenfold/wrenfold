@@ -127,22 +127,6 @@ auto Visit(const Expr& expr, VisitorType&& visitor) {
   }
 }
 
-// Visit w/ captured arguments. The operator() on the visitor is expected to take the concrete
-// type contained in `expr`, plus all the forwarded args from `captured_args`.
-template <typename VisitorType, typename... CapturedArgs>
-auto Visit(const Expr& expr, VisitorType&& visitor, CapturedArgs&&... captured_args) {
-  // Capture the arguments in a tuple (r-values args are moved into values).
-  // Based on: https://stackoverflow.com/questions/63414770
-  auto arg_tuple = detail::MakeArgCaptureTuple(std::forward<CapturedArgs>(captured_args)...);
-  return Visit(expr, [&visitor, arg_tuple = std::move(arg_tuple)](const auto& concrete) mutable {
-    return std::apply(
-        [&visitor, &concrete](auto&&... args) {
-          return visitor(concrete, std::forward<decltype(args)>(args)...);
-        },
-        std::move(arg_tuple));
-  });
-}
-
 // Visit two expressions with a struct that accepts two concrete types in its operator()(...)
 // signature. The struct must declare a ReturnType associated type.
 template <typename VisitorType>

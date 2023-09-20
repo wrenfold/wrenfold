@@ -10,8 +10,8 @@ namespace math {
 // Fwd declare.
 Expr CreateUnaryFunction(const UnaryFunctionName name, const Expr& arg);
 
-// Store a unary function. Built-in unary functions `f(x)` are described by an enum
-// indicating what `f` is.
+// Store a unary function. Built-in unary functions `f(x)` are described by the enum
+// `UnaryFunctionName`.
 class UnaryFunction {
  public:
   static constexpr std::string_view NameStr = "UnaryFunction";
@@ -20,7 +20,7 @@ class UnaryFunction {
   UnaryFunction(UnaryFunctionName func, Expr arg) : func_(func), arg_(std::move(arg)) {}
 
   // Get the function name.
-  constexpr const UnaryFunctionName& Func() const { return func_; }
+  constexpr UnaryFunctionName Func() const { return func_; }
 
   // Get name as a string.
   constexpr std::string_view Name() const { return ToString(func_); }
@@ -57,20 +57,25 @@ struct Hash<UnaryFunction> {
   }
 };
 
-#if 0
-class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
+class BinaryFunction {
  public:
+  static constexpr std::string_view NameStr = "BinaryFunction";
+  static constexpr bool IsLeafNode = false;
+
   BinaryFunction(BinaryFunctionName func, Expr first, Expr second)
       : func_(func), args_{std::move(first), std::move(second)} {}
 
   // Get the function name.
-  const BinaryFunctionName& Func() const { return func_; }
+  constexpr BinaryFunctionName Func() const noexcept { return func_; }
 
   // Get the first function argument.
-  const Expr& Arg0() const { return args_[0]; }
+  constexpr const Expr& First() const noexcept { return args_[0]; }
 
   // Get the second function argument.
-  const Expr& Arg1() const { return args_[1]; }
+  constexpr const Expr& Second() const noexcept { return args_[1]; }
+
+  constexpr auto begin() const noexcept { return args_.begin(); }
+  constexpr auto end() const noexcept { return args_.end(); }
 
   // Function type and argument must match.
   bool IsIdenticalTo(const BinaryFunction& other) const {
@@ -78,11 +83,29 @@ class BinaryFunction : public BuiltInFunctionBase<BinaryFunction> {
            args_[1].IsIdenticalTo(other.args_[1]);
   }
 
+  // Implement ExpressionImpl::Iterate
+  template <typename Operation>
+  void Iterate(Operation&& operation) const {
+    std::for_each(args_.begin(), args_.end(), std::forward<Operation>(operation));
+  }
+
+  // Implement ExpressionImpl::Map
+  //  template <typename Operation>
+  //  Expr Map(Operation operation) const {
+  //    return CreateUnaryFunction(func_, operation(arg_));
+  //  }
+
  protected:
   BinaryFunctionName func_;
   std::array<Expr, 2> args_;
 };
-#endif
+
+template <>
+struct Hash<BinaryFunction> {
+  std::size_t operator()(const BinaryFunction& func) const {
+    return HashArgs(static_cast<std::size_t>(func.Func()), func.First(), func.Second());
+  }
+};
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic because each type of unary has simplifications it applies.

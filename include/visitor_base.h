@@ -16,6 +16,7 @@ using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>
 // clang-format off
 using ExpressionTypeList = TypeList<
     class Addition,
+//    class BinaryFunction,
     class Conditional,
     class Constant,
     class Float,

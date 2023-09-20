@@ -50,6 +50,8 @@ struct EvaluateVisitor {
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Eval(const Expr& arg) { return Visit(arg, EvaluateVisitor{}, arg); }
+Expr Eval(const Expr& arg) {
+  return Visit(arg, [&arg](const auto& x) { return EvaluateVisitor{}(x, arg); });
+}
 
 }  // namespace math

@@ -417,7 +417,7 @@ struct IRFormVisitor {
     if (it != computed_values_.end()) {
       return it->second;
     }
-    ir::ValuePtr val = Visit(expr, *this, expr);
+    ir::ValuePtr val = Visit(expr, [this, &expr](const auto& x) { return operator()(x, expr); });
     computed_values_.emplace(expr, val);
     return val;
   }
