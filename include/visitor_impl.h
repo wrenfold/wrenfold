@@ -91,21 +91,6 @@ struct VisitorWithCapturedResult final
       result{};
 };
 
-// Create a tuple that will capture `args` so it can be moved into a lambda.
-// - R-value references are converted to values and moved.
-// - Values will be copied.
-// - Other references will be passed by reference into the tuple.
-template <typename... CapturedArgs>
-auto MakeArgCaptureTuple(CapturedArgs&&... args) {
-  return std::tuple<std::conditional_t<std::is_rvalue_reference_v<CapturedArgs>,
-                                       std::decay_t<CapturedArgs>, CapturedArgs>...>{
-      std::forward<CapturedArgs>(args)...};
-}
-
-static_assert(std::is_same_v<std::tuple<int, std::string>,
-                             decltype(MakeArgCaptureTuple(5, std::string("test")))>);
-static_assert(std::is_same_v<std::tuple<int, const float&>,
-                             decltype(MakeArgCaptureTuple(5, std::declval<const float&>()))>);
 }  // namespace detail
 
 // Accepts a visitor struct or lambda and applies it to the provided expression.
