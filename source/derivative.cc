@@ -64,42 +64,55 @@ class DiffVisitor {
   }
 
   // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
-  Expr operator()(const UnaryFunction& func) {
-    // Differentiate the argument:
-    Expr d_arg = Visit(func.Arg(), *this);
-    if (IsZero(d_arg)) {
+  Expr operator()(const Function& func) {
+    // Differentiate the arguments:
+    Function::ContainerType d_args{};
+    std::transform(func.begin(), func.end(), std::back_inserter(d_args),
+                   [this](const Expr& arg) { return Visit(arg, *this); });
+
+    const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &IsZero);
+    if (all_derivatives_zero) {
       // If zero, we don't need to do any further operations.
       return Constants::Zero;
     }
+
     // TODO: Make global constants for 2, one half, etc...
     static const Expr one_half = 1_s / 2;
     static const Expr negative_one_half = -1_s / 2;
+
+    const auto& args = func.Args();
     switch (func.Func()) {
-      case UnaryFunctionName::Cos:
+      case BuiltInFunctionName::Cos:
         // cos(f(x)) --> -sin(f(x)) * f'(x)
-        return -sin(func.Arg()) * d_arg;
-      case UnaryFunctionName::Sin:
+        return -sin(args[0]) * d_args[0];
+      case BuiltInFunctionName::Sin:
         // sin(f(x)) --> cos(f(x)) * f'(x)
-        return cos(func.Arg()) * d_arg;
-      case UnaryFunctionName::Tan:
+        return cos(args[0]) * d_args[0];
+      case BuiltInFunctionName::Tan:
         // tan(f(x)) --> sec^2(f(x)) * f'(x) --> 1/cos^2(f(x)) * f'(x)
-        return pow(cos(func.Arg()), -2) * d_arg;
-      case UnaryFunctionName::ArcCos:
+        return pow(cos(args[0]), -2) * d_args[0];
+      case BuiltInFunctionName::ArcCos:
         // acos(f(x)) --> -f'(x) / sqrt(1 - f(x)^2)
-        return -pow(Constants::One - pow(func.Arg(), 2), negative_one_half) * d_arg;
-      case UnaryFunctionName::ArcSin:
+        return -pow(Constants::One - pow(args[0], 2), negative_one_half) * d_args[0];
+      case BuiltInFunctionName::ArcSin:
         // asin(f(x)) --> f'(x) / sqrt(1 - f(x)^2)
-        return pow(Constants::One - pow(func.Arg(), 2), negative_one_half) * d_arg;
-      case UnaryFunctionName::ArcTan:
+        return pow(Constants::One - pow(args[0], 2), negative_one_half) * d_args[0];
+      case BuiltInFunctionName::ArcTan:
         // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
-        return d_arg / (pow(func.Arg(), 2) + Constants::One);
-      case UnaryFunctionName::Log:
+        return d_args[0] / (pow(args[0], 2) + Constants::One);
+      case BuiltInFunctionName::Log:
         // log(f(x)) --> 1/f(x) * f'(x)
-        return Power::Create(func.Arg(), Constants::NegativeOne) * d_arg;
-      case UnaryFunctionName::Sqrt: {
-        return pow(func.Arg(), negative_one_half) * one_half * d_arg;
+        return Power::Create(args[0], Constants::NegativeOne) * d_args[0];
+      case BuiltInFunctionName::Sqrt: {
+        return pow(args[0], negative_one_half) * one_half * d_args[0];
       }
-      case UnaryFunctionName::ENUM_SIZE:
+      case BuiltInFunctionName::Mod:
+        // TODO: Implement.
+        break;
+      case BuiltInFunctionName::Pow:
+        // TODO: Implement.
+        break;
+      case BuiltInFunctionName::ENUM_SIZE:
         break;
     }
     ASSERT(false, "Invalid unary function: {}", func.Name());

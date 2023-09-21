@@ -15,7 +15,7 @@ struct EvaluateVisitor {
   Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Eval); }
   Expr operator()(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Eval); }
   Expr operator()(const Multiplication& mul, const Expr&) const { return MapChildren(mul, &Eval); }
-  Expr operator()(const UnaryFunction& f, const Expr&) const { return MapChildren(f, &Eval); }
+  Expr operator()(const Function& f, const Expr&) const { return MapChildren(f, &Eval); }
   Expr operator()(const Power& pow, const Expr&) const { return MapChildren(pow, &Eval); }
   Expr operator()(const Conditional& cond, const Expr&) const { return MapChildren(cond, &Eval); }
 

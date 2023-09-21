@@ -205,24 +205,19 @@ struct Branch {
       : condition{std::make_shared<const ast::Variant>(std::forward<T>(arg))},
         if_branch(std::move(if_branch)),
         else_branch(std::move(else_branch)) {}
-
-  std::string ToString() const;
 };
 
 struct Call {
-  std::variant<UnaryFunctionName, BinaryFunctionName> function;
+  BuiltInFunctionName function;
   std::vector<Variant> args;
 
-  Call(std::variant<UnaryFunctionName, BinaryFunctionName> function, std::vector<Variant>&& args);
+  Call(BuiltInFunctionName function, std::vector<Variant>&& args);
 
   template <typename... Args>
-  explicit Call(std::variant<UnaryFunctionName, BinaryFunctionName> function, Args&&... inputs)
-      : function(function) {
+  explicit Call(BuiltInFunctionName function, Args&&... inputs) : function(function) {
     args.reserve(sizeof...(inputs));
     (args.emplace_back(std::forward<Args>(inputs)), ...);
   }
-
-  std::string ToString() const;
 };
 
 struct Cast {
@@ -327,8 +322,7 @@ inline ConstructReturnValue::ConstructReturnValue(ast::Type type, std::vector<Va
 inline Declaration::Declaration(std::string name, Type type, VariantPtr value)
     : name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
 
-inline Call::Call(std::variant<UnaryFunctionName, BinaryFunctionName> function,
-                  std::vector<Variant>&& args)
+inline Call::Call(BuiltInFunctionName function, std::vector<Variant>&& args)
     : function(function), args(std::move(args)) {}
 
 inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,

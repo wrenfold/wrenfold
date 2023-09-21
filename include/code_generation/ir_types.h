@@ -114,9 +114,9 @@ struct CallUnaryFunc {
   constexpr bool IsSame(const CallUnaryFunc& other) const { return name == other.name; }
   constexpr NumericType DetermineType(const ValuePtr&) const { return NumericType::Real; }
 
-  CallUnaryFunc(UnaryFunctionName name) : name(name) {}
+  CallUnaryFunc(BuiltInFunctionName name) : name(name) {}
 
-  UnaryFunctionName name;
+  BuiltInFunctionName name;
 };
 
 // Compare two operands (equality or inequality).

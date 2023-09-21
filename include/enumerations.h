@@ -29,7 +29,8 @@ enum class RelativeOrder : int {
 
 // Types of built-in unary functions.
 // clang-format off
-enum class UnaryFunctionName {
+enum class BuiltInFunctionName {
+  // Unary functions.
   Cos = 0,
   Sin,
   Tan,
@@ -38,13 +39,7 @@ enum class UnaryFunctionName {
   ArcTan,
   Log,
   Sqrt,
-  // Just to get the length of the enum:
-  ENUM_SIZE,
-};
-// clang-format on
-
-// clang-format off
-enum class BinaryFunctionName {
+  // Binary functions
   Mod,
   Pow,
   // Just to get the length of the enum:
@@ -92,38 +87,29 @@ constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
 }
 
 // Convert unary function enum to string.
-constexpr std::string_view ToString(const UnaryFunctionName name) {
+constexpr std::string_view ToString(const BuiltInFunctionName name) {
   switch (name) {
-    case UnaryFunctionName::Cos:
+    case BuiltInFunctionName::Cos:
       return "cos";
-    case UnaryFunctionName::Sin:
+    case BuiltInFunctionName::Sin:
       return "sin";
-    case UnaryFunctionName::Tan:
+    case BuiltInFunctionName::Tan:
       return "tan";
-    case UnaryFunctionName::ArcCos:
+    case BuiltInFunctionName::ArcCos:
       return "acos";
-    case UnaryFunctionName::ArcSin:
+    case BuiltInFunctionName::ArcSin:
       return "asin";
-    case UnaryFunctionName::ArcTan:
+    case BuiltInFunctionName::ArcTan:
       return "atan";
-    case UnaryFunctionName::Log:
+    case BuiltInFunctionName::Log:
       return "ln";
-    case UnaryFunctionName::Sqrt:
+    case BuiltInFunctionName::Sqrt:
       return "sqrt";
-    case UnaryFunctionName::ENUM_SIZE:
-      return "<NOT A VALID ENUM VALUE>";
-  }
-  return "<NOT A VALID ENUM VALUE>";
-}
-
-// Convert binary function enum to string.
-constexpr std::string_view ToString(const BinaryFunctionName name) {
-  switch (name) {
-    case BinaryFunctionName::Mod:
+    case BuiltInFunctionName::Mod:
       return "mod";
-    case BinaryFunctionName::Pow:
+    case BuiltInFunctionName::Pow:
       return "pow";
-    case BinaryFunctionName::ENUM_SIZE:
+    case BuiltInFunctionName::ENUM_SIZE:
       return "<NOT A VALID ENUM VALUE>";
   }
   return "<NOT A VALID ENUM VALUE>";

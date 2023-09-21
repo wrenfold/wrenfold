@@ -193,9 +193,16 @@ void PlainFormatter::operator()(const Multiplication& expr) {
   }
 }
 
-void PlainFormatter::operator()(const UnaryFunction& func) {
+void PlainFormatter::operator()(const Function& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.Name());
-  Visit(func.Arg(), *this);
+  auto it = func.begin();
+  if (it != func.end()) {
+    Visit(*it, *this);
+  }
+  for (++it; it != func.end(); ++it) {
+    output_ += ", ";
+    Visit(*it, *this);
+  }
   output_ += ")";
 }
 

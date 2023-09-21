@@ -271,7 +271,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Pow&) {
-    return ast::Call{BinaryFunctionName::Pow, MakeArg(val[0]), MakeArg(val[1])};
+    return ast::Call{BuiltInFunctionName::Pow, MakeArg(val[0]), MakeArg(val[1])};
   }
 
  private:

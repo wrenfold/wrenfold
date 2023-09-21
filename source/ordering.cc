@@ -11,7 +11,7 @@ struct OrderVisitor {
 
   using OrderOfTypes =
       TypeList<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
-               Multiplication, Addition, Power, UnaryFunction, Relational, Conditional, Matrix>;
+               Multiplication, Addition, Power, Function, Relational, Conditional, Matrix>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ExpressionTypeList>::Value);
@@ -91,7 +91,7 @@ struct OrderVisitor {
     return VisitBinary(a.Exponent(), b.Exponent(), OrderVisitor{});
   }
 
-  RelativeOrder Compare(const UnaryFunction& a, const UnaryFunction& b) const {
+  RelativeOrder Compare(const Function& a, const Function& b) const {
     // First compare by name:
     const int name_comp = a.Name().compare(b.Name());
     if (name_comp > 0) {
@@ -99,8 +99,7 @@ struct OrderVisitor {
     } else if (name_comp < 0) {
       return RelativeOrder::LessThan;
     }
-    // Then compare by value of the argument:
-    return VisitBinary(a.Arg(), b.Arg(), OrderVisitor{});
+    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
   }
 
   RelativeOrder Compare(const FunctionArgument& a, const FunctionArgument& b) const {

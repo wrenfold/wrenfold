@@ -32,7 +32,7 @@ class PlainFormatter {
   void operator()(const Power& pow);
   void operator()(const Rational& rational);
   void operator()(const Relational& relational);
-  void operator()(const UnaryFunction& func);
+  void operator()(const Function& func);
   void operator()(const Variable& var);
 
   // Get the output string.

@@ -130,9 +130,13 @@ struct TreeFormatter {
     VisitRight(relational.Right());
   }
 
-  void operator()(const UnaryFunction& func) {
-    AppendName("UnaryFunction ({}):", func.Name());
-    VisitRight(func.Arg());
+  void operator()(const Function& func) {
+    AppendName("Function ({}):", func.Name());
+    auto it = func.begin();
+    for (; std::next(it) != func.end(); ++it) {
+      VisitLeft(*it);
+    }
+    VisitRight(*it);
   }
 
   void operator()(const Variable& var) { AppendName("Variable ({})", var.GetName()); }

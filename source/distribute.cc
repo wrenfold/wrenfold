@@ -71,10 +71,7 @@ struct DistributeVisitor {
     return Addition::FromOperands(output_terms);
   }
 
-  Expr operator()(const UnaryFunction& f, const Expr&) const {
-    const Expr& arg = f.Arg();
-    return CreateUnaryFunction(f.Func(), Distribute(arg));
-  }
+  Expr operator()(const Function& f, const Expr&) const { return f.Map(&Distribute); }
 
   Expr operator()(const Power& pow, const Expr&) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.

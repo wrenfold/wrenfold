@@ -15,7 +15,7 @@ Expr log(const Expr& x) {
     return Constants::Zero;
   }
   // TODO: Check for negative values.
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Log, x);
+  return MakeExpr<Function>(BuiltInFunctionName::Log, x);
 }
 
 Expr pow(const Expr& x, const Expr& y) { return Power::Create(x, y); }
@@ -52,8 +52,8 @@ Expr cos(const Expr& arg) {
       } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
         return Constants::Zero;
       }
-      return MakeExpr<UnaryFunction>(UnaryFunctionName::Cos,
-                                     Rational::Create(r_mod_pi) * Constants::Pi);
+      return MakeExpr<Function>(BuiltInFunctionName::Cos,
+                                Rational::Create(r_mod_pi) * Constants::Pi);
     }
   } else if (IsZero(coeff)) {
     return Constants::One;
@@ -70,7 +70,7 @@ Expr cos(const Expr& arg) {
     return *result;
   }
   // TODO: Check for phase offsets.
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Cos, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::Cos, arg);
 }
 
 Expr sin(const Expr& arg) {
@@ -86,8 +86,8 @@ Expr sin(const Expr& arg) {
       } else if (r_mod_pi == Rational{-1, 2}) {
         return Constants::NegativeOne;
       }
-      return MakeExpr<UnaryFunction>(UnaryFunctionName::Sin,
-                                     Rational::Create(r_mod_pi) * Constants::Pi);
+      return MakeExpr<Function>(BuiltInFunctionName::Sin,
+                                Rational::Create(r_mod_pi) * Constants::Pi);
     }
   } else if (IsZero(arg)) {
     return Constants::Zero;
@@ -99,7 +99,7 @@ Expr sin(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Sin, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::Sin, arg);
 }
 
 inline Rational ConvertToTanRange(const Rational& r) {
@@ -130,8 +130,8 @@ Expr tan(const Expr& arg) {
         // Infinity, as in the projectively scaled real numbers.
         return Constants::Infinity;
       }
-      return MakeExpr<UnaryFunction>(UnaryFunctionName::Tan,
-                                     Rational::Create(r_mod_half_pi) * PiOverTwo());
+      return MakeExpr<Function>(BuiltInFunctionName::Tan,
+                                Rational::Create(r_mod_half_pi) * PiOverTwo());
     }
   } else if (IsZero(arg)) {
     return Constants::Zero;
@@ -143,7 +143,7 @@ Expr tan(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Tan, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::Tan, arg);
 }
 
 // TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
@@ -156,7 +156,7 @@ Expr acos(const Expr& arg) {
   } else if (IsNegativeOne(arg)) {
     return Constants::Pi;
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcCos, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::ArcCos, arg);
 }
 
 Expr asin(const Expr& arg) {
@@ -169,7 +169,7 @@ Expr asin(const Expr& arg) {
   } else if (IsNegativeNumber(arg)) {
     return -asin(-arg);
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcSin, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::ArcSin, arg);
 }
 
 inline Expr PiOverFour() {
@@ -187,7 +187,7 @@ Expr atan(const Expr& arg) {
   } else if (IsNegativeNumber(arg)) {
     return -atan(-arg);
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcTan, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::ArcTan, arg);
 }
 
 Expr sqrt(const Expr& arg) {
