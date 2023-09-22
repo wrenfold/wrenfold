@@ -40,7 +40,7 @@ enum class BuiltInFunctionName {
   Log,
   Sqrt,
   // Binary functions
-  Mod,
+  Arctan2,
   Pow,
   // Just to get the length of the enum:
   ENUM_SIZE,
@@ -105,8 +105,8 @@ constexpr std::string_view ToString(const BuiltInFunctionName name) {
       return "ln";
     case BuiltInFunctionName::Sqrt:
       return "sqrt";
-    case BuiltInFunctionName::Mod:
-      return "mod";
+    case BuiltInFunctionName::Arctan2:
+      return "atan2";
     case BuiltInFunctionName::Pow:
       return "pow";
     case BuiltInFunctionName::ENUM_SIZE:

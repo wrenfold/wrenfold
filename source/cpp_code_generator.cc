@@ -188,8 +188,8 @@ static inline std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName 
       return "std::log";
     case BuiltInFunctionName::Sqrt:
       return "std::sqrt";
-    case BuiltInFunctionName::Mod:
-      return "std::fmod";
+    case BuiltInFunctionName::Arctan2:
+      return "std::atan2";
     case BuiltInFunctionName::Pow:
       return "std::pow";
     default:

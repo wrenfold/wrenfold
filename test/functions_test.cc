@@ -1,5 +1,6 @@
 #include "functions.h"
 #include "constants.h"
+#include "expressions/function_expressions.h"
 #include "expressions/numeric_expressions.h"
 #include "test_helpers.h"
 
@@ -158,6 +159,14 @@ TEST(FunctionsTest, TestArctan) {
   ASSERT_IDENTICAL(Constants::Zero, atan(0_s));
   ASSERT_IDENTICAL(Constants::Pi / 4_s, atan(1_s));
   ASSERT_IDENTICAL(-Constants::Pi / 4_s, atan(-1_s));
+}
+
+// TODO: When atan2 simplifications are added, test them here.
+TEST(FunctionsTest, TestArctan2) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const auto f = atan2(y, x);
+  ASSERT_TRUE(CastPtr<Function>(f));
 }
 
 }  // namespace math

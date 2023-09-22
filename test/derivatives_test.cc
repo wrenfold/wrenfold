@@ -89,6 +89,7 @@ TEST(DerivativesTest, TestTrig) {
   const Expr y{"y"};
   ASSERT_IDENTICAL(cos(x), sin(x).Diff(x));
   ASSERT_IDENTICAL(-sin(x), cos(x).Diff(x));
+  ASSERT_IDENTICAL(-cos(y) * cos(cos(sin(y))) * sin(sin(y)), sin(cos(sin(y))).Diff(y));
   ASSERT_IDENTICAL(y * cos(x * y), sin(x * y).Diff(x));
   ASSERT_IDENTICAL(-2_s * sin(2 * x + y), cos(2 * x + y).Diff(x));
   ASSERT_IDENTICAL(1_s / pow(cos(x), 2_s), tan(x).Diff(x));
@@ -110,6 +111,19 @@ TEST(DerivativesTest, TestInverseTrig) {
   ASSERT_IDENTICAL(Constants::Zero, atan(Constants::Euler).Diff(y));
   ASSERT_IDENTICAL(1_s / (x * x + 1), atan(x).Diff(x));
   ASSERT_IDENTICAL(3_s * (x * x) / (pow(x, 6) + 1), atan(pow(x, 3)).Diff(x));
+}
+
+TEST(DerivativesTest, TestAtan2) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+  ASSERT_IDENTICAL(Constants::Zero, atan2(y, x).Diff(z));
+  ASSERT_IDENTICAL(x / (x * x + y * y), atan2(y, x).Diff(y));
+  ASSERT_IDENTICAL(-y / (x * x + y * y), atan2(y, x).Diff(x));
+  ASSERT_IDENTICAL(-y / (pow(log(x), 2) + y * y) * (1 / x), atan2(y, log(x)).Diff(x));
+  ASSERT_IDENTICAL(5 * x * -sin(y) / (pow(5 * x, 2) + pow(cos(y), 2)),
+                   atan2(cos(y), 5 * x).Diff(y));
+  ASSERT_IDENTICAL(Constants::Zero, atan2(x, x).Diff(x));
 }
 
 TEST(DerivativesTest, TestMatrix) {

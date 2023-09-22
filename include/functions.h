@@ -29,6 +29,9 @@ Expr asin(const Expr& arg);
 // Inverse tangent.
 Expr atan(const Expr& arg);
 
+// Inverse tangent 2.
+Expr atan2(const Expr& y, const Expr& x);
+
 // Sqrt
 Expr sqrt(const Expr& arg);
 

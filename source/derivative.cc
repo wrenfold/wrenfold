@@ -103,15 +103,21 @@ class DiffVisitor {
       case BuiltInFunctionName::Log:
         // log(f(x)) --> 1/f(x) * f'(x)
         return Power::Create(args[0], Constants::NegativeOne) * d_args[0];
-      case BuiltInFunctionName::Sqrt: {
+      case BuiltInFunctionName::Sqrt:
+        // sqrt(f(x)) --> (1/2) * f'(x) / sqrt(f(x))
         return pow(args[0], negative_one_half) * one_half * d_args[0];
-      }
-      case BuiltInFunctionName::Mod:
-        // TODO: Implement.
-        break;
+      case BuiltInFunctionName::Arctan2: {
+        const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
+        const Expr& y_diff = Visit(args[0], *this);
+        const Expr& x_diff = Visit(args[1], *this);
+        if (IsZero(y_diff) && IsZero(x_diff)) {
+          return Constants::Zero;
+        }
+        // atan2(y(u), x(u))/du = -y/(y^2 + x^2) * x'(u) + x/(y^2 + x^2) * y'(u)
+        return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
+      } break;
       case BuiltInFunctionName::Pow:
-        // TODO: Implement.
-        break;
+        return PowerDiff(args[0], args[1]);
       case BuiltInFunctionName::ENUM_SIZE:
         break;
     }
@@ -132,12 +138,14 @@ class DiffVisitor {
     return Constants::Zero;
   }
 
-  Expr operator()(const Power& pow) {
-    const Expr& a = pow.Base();
-    const Expr& b = pow.Exponent();
+  Expr operator()(const Power& pow) { return PowerDiff(pow.Base(), pow.Exponent()); }
+
+  Expr PowerDiff(const Expr& a, const Expr& b) {
     const Expr a_diff = Visit(a, *this);
     const Expr b_diff = Visit(b, *this);
-    // TODO: Check if a_diff and b_diff are zero.
+    if (IsZero(a_diff) && IsZero(b_diff)) {
+      return Constants::Zero;
+    }
     return b * Power::Create(a, b - Constants::One) * a_diff +
            Power::Create(a, b) * log(a) * b_diff;
   }

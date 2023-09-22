@@ -114,6 +114,9 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertIdentical(1 / x, sym.log(y * x).diff(x))
 
+        self.assertIdentical(-y / (x ** 2 + y ** 2), sym.atan2(y, x).diff(x))
+        self.assertIdentical(2 * x / (x ** 2 + 4 * y ** 2), sym.atan2(2 * y, x).diff(y))
+
     def test_subs(self):
         """Test calling subs() on expressions."""
         x, y, z = sym.symbols('x, y, z')

@@ -190,6 +190,11 @@ Expr atan(const Expr& arg) {
   return MakeExpr<Function>(BuiltInFunctionName::ArcTan, arg);
 }
 
+Expr atan2(const Expr& y, const Expr& x) {
+  // TODO: Implement simplifications for atan2.
+  return MakeExpr<Function>(BuiltInFunctionName::Arctan2, y, x);
+}
+
 Expr sqrt(const Expr& arg) {
   static const Expr one_half = Constants::One / 2_s;
   return Power::Create(arg, one_half);
