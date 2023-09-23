@@ -81,7 +81,7 @@ PYBIND11_MODULE(pysym, m) {
       // String conversion:
       .def("__repr__",
            [](const Expr& self) {
-             PlainFormatter formatter{PowerStyle::Python};
+             PlainFormatter formatter{};
              Visit(self, formatter);
              return formatter.GetOutput();
            })

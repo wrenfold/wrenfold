@@ -4,22 +4,9 @@
 
 namespace math {
 
-// How to print the pow() operation:
-enum class PowerStyle {
-  // Use the ^ operator.
-  Hat,
-  // Use the python ** operator.
-  Python,
-};
-
 // Simple plain-text formatter.
 class PlainFormatter {
  public:
-  using ReturnType = void;
-
-  PlainFormatter() = default;
-  PlainFormatter(PowerStyle style) : power_style_(style) {}
-
   void operator()(const Addition& add);
   void operator()(const Conditional& conditional);
   void operator()(const Constant& constant);
@@ -47,7 +34,6 @@ class PlainFormatter {
   void FormatPower(const Expr& Base, const Expr& Exponent);
 
   std::string output_{};
-  PowerStyle power_style_{PowerStyle::Hat};
 };
 
 }  // namespace math
