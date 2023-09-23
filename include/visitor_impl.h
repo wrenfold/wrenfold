@@ -112,6 +112,22 @@ auto Visit(const Expr& expr, VisitorType&& visitor) {
   }
 }
 
+// Version of `Visit` that accepts visitors that can re-use the input expression.
+// Methods on the visitor can optionally be of the form operator()(x, expr) where `x`
+// is the underlying expression type and `expr` is the abstract `Expr`. This allows
+// optionally re-using the expression to avoid allocation.
+template <typename VisitorType>
+auto VisitWithExprArg(const Expr& expr, VisitorType&& visitor) {
+  return Visit(expr, [&expr, &visitor](const auto& x) {
+    using T = std::decay_t<decltype(x)>;
+    if constexpr (HasBinaryCallOperator<VisitorType, T, Expr>) {
+      return visitor(x, expr);
+    } else {
+      return visitor(x);
+    }
+  });
+}
+
 // Visit two expressions with a struct that accepts two concrete types in its operator()(...)
 // signature. The struct must declare a ReturnType associated type.
 template <typename VisitorType>

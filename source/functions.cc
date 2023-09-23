@@ -278,6 +278,53 @@ Expr abs(const Expr& arg) {
   return MakeExpr<Function>(BuiltInFunctionName::Abs, arg);
 }
 
+// TODO: Add simplifications for expressions like:
+//  signum(-x) --> -signum(x)
+//  signum(5 * x) --> signum(x)
+struct SignumVisitor {
+  // https://stackoverflow.com/questions/1903954/
+  template <typename T>
+  static constexpr int sign(T val) {
+    return (static_cast<T>(0) < val) - (val < static_cast<T>(0));
+  }
+
+  // Expr constructor will convert to `One` or `NegativeOne` constants for us
+  std::optional<Expr> operator()(const Integer& i) const { return Expr{sign(i.GetValue())}; }
+  std::optional<Expr> operator()(const Rational& r) const { return Expr{sign(r.Numerator())}; }
+  std::optional<Expr> operator()(const Float& f) const {
+    ASSERT(!std::isnan(f.GetValue()));
+    return Expr{sign(f.GetValue())};
+  }
+
+  std::optional<Expr> operator()(const Constant& c) const {
+    // Conversion to float is valid for all the constants we currently support:
+    const auto cf = DoubleFromSymbolicConstant(c.GetName());
+    return Expr{sign(cf)};
+  }
+
+  std::optional<Expr> operator()(const Function& func, const Expr& func_expr) const {
+    if (func.Func() == BuiltInFunctionName::Signum) {
+      // sgn(sgn(x)) --> sgn(x), valid for real and complex
+      return func_expr;
+    }
+    return std::nullopt;
+  }
+
+  // Handle all other cases.
+  template <typename T>
+  std::optional<Expr> operator()(const T&) const {
+    return std::nullopt;
+  }
+};
+
+Expr signum(const Expr& arg) {
+  std::optional<Expr> maybe_simplified = VisitWithExprArg(arg, SignumVisitor{});
+  if (maybe_simplified) {
+    return std::move(*maybe_simplified);
+  }
+  return MakeExpr<Function>(BuiltInFunctionName::Signum, arg);
+}
+
 // Max and min are implemented as conditionals. That way:
 // - The same conditionals can be combined in the output code.
 // - When differentiating max/min, the selected derivative matches the selected argument.

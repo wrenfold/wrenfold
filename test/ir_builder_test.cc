@@ -388,17 +388,17 @@ TEST(IrTest, TestBuiltInFunctions) {
       [](Expr x, Expr y, Expr z) {
         Expr g = acos(x - log(y));
         Expr h = asin(2.0 * tan(y) - abs(z));
-        return atan2(abs(x) + cos(y), -sin(y) + sqrt(z));
+        return atan2(abs(x) + cos(y) + signum(y), -sin(y) + sqrt(z) - signum(x));
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(9, ir.NumOperations()) << ir;
+  ASSERT_EQ(14, ir.NumOperations()) << ir;
   ASSERT_EQ(0, ir.NumConditionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   CheckExpressions(expected_expressions, output_ir);
-  ASSERT_EQ(9, output_ir.NumOperations()) << output_ir;
+  ASSERT_EQ(14, output_ir.NumOperations()) << output_ir;
   ASSERT_EQ(0, output_ir.NumConditionals()) << output_ir;
 }
 

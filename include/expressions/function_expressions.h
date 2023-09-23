@@ -94,6 +94,8 @@ inline Expr Function::Create(BuiltInFunctionName name, Function::ContainerType&&
       return sqrt(container.front());
     case BuiltInFunctionName::Abs:
       return abs(container.front());
+    case BuiltInFunctionName::Signum:
+      return signum(container.front());
     case BuiltInFunctionName::Arctan2:
       return atan2(container[0], container[1]);
     case BuiltInFunctionName::Pow:

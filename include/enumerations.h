@@ -40,6 +40,7 @@ enum class BuiltInFunctionName {
   Log,
   Sqrt,
   Abs,
+  Signum,
   // Binary functions
   Arctan2,
   Pow,
@@ -108,6 +109,8 @@ constexpr std::string_view ToString(const BuiltInFunctionName name) {
       return "sqrt";
     case BuiltInFunctionName::Abs:
       return "abs";
+    case BuiltInFunctionName::Signum:
+      return "signum";
     case BuiltInFunctionName::Arctan2:
       return "atan2";
     case BuiltInFunctionName::Pow:

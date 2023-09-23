@@ -1,5 +1,6 @@
 #include "constants.h"
 #include "error_types.h"
+#include "expressions/derivative_expression.h"
 #include "functions.h"
 #include "matrix_functions.h"
 #include "test_helpers.h"
@@ -134,6 +135,25 @@ TEST(DerivativesTest, TestAbs) {
   ASSERT_IDENTICAL(cos(x) * sin(x) / abs(sin(x)), abs(sin(x)).Diff(x));
 }
 
+TEST(DerivativesTest, TestSignum) {
+  const auto [x, y] = Symbols("x", "y");
+  ASSERT_IDENTICAL(0, signum(x).Diff(y));
+  ASSERT_IDENTICAL(Derivative::Create(signum(x), x, 1), signum(x).Diff(x));
+  ASSERT_IDENTICAL(Derivative::Create(signum(x), x, 2), signum(x).Diff(x, 2));
+}
+
+TEST(DerivativesTest, TestMaxMin) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+
+  ASSERT_IDENTICAL(0, max(x, y).Diff(z));
+  ASSERT_IDENTICAL(0, min(2 * x, y - 3).Diff(z));
+
+  ASSERT_IDENTICAL(where(x < y, 0, 1), max(x, y).Diff(x));
+  ASSERT_IDENTICAL(where(y < x, 0, 1), min(x, y).Diff(x));
+
+  ASSERT_IDENTICAL(where(cos(x) < sin(x), cos(x), -sin(x)), max(cos(x), sin(x)).Diff(x));
+}
+
 TEST(DerivativesTest, TestMatrix) {
   // Matrix derivative should do element-wise differentiation.
   const Expr x{"x"};
@@ -152,16 +172,15 @@ TEST(DerivativesTest, TestRelational) {
   ASSERT_THROW((y == x).Diff(x), TypeError);
 }
 
-TEST(DerivativesTest, TestMaxMin) {
+TEST(DerivativesTest, TestDerivativeExpression) {
   const auto [x, y, z] = Symbols("x", "y", "z");
 
-  ASSERT_IDENTICAL(0, max(x, y).Diff(z));
-  ASSERT_IDENTICAL(0, min(2 * x, y - 3).Diff(z));
-
-  ASSERT_IDENTICAL(where(x < y, 0, 1), max(x, y).Diff(x));
-  ASSERT_IDENTICAL(where(y < x, 0, 1), min(x, y).Diff(x));
-
-  ASSERT_IDENTICAL(where(cos(x) < sin(x), cos(x), -sin(x)), max(cos(x), sin(x)).Diff(x));
+  // Create an abstract derivative expression and differentiate it.
+  // Normally you wouldn't do this with a function like abs(), but it serves for a test here.
+  auto f = Derivative::Create(abs(x + y), x, 1);
+  ASSERT_IDENTICAL(Derivative::Create(abs(x + y), x, 2), f.Diff(x));
+  ASSERT_IDENTICAL(Derivative::Create(f, y, 1), f.Diff(y));
+  ASSERT_IDENTICAL(0, f.Diff(z));
 }
 
 }  // namespace math

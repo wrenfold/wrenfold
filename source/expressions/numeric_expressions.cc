@@ -5,6 +5,7 @@
 
 namespace math {
 
+// Defined here to resolve a circular import issue for now.
 Expr Integer::Create(IntegralType x) {
   if (x == 0) {
     return Constants::Zero;

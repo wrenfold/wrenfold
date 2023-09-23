@@ -38,6 +38,9 @@ Expr sqrt(const Expr& arg);
 // Absolute value function.
 Expr abs(const Expr& arg);
 
+// Signum function.
+Expr signum(const Expr& arg);
+
 // Maximum of two values. Equivalent to: (a < b) ? b : a
 Expr max(const Expr& a, const Expr& b);
 

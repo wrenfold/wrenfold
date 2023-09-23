@@ -18,6 +18,7 @@ using ExpressionTypeList = TypeList<
     class Addition,
     class Conditional,
     class Constant,
+    class Derivative,
     class Float,
     class Function,
     class FunctionArgument,

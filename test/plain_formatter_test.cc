@@ -157,6 +157,7 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
   ASSERT_STR_EQ("atan2(y + cos(x), 6 - y)", atan2(y + cos(x), 6 - y));
   ASSERT_STR_EQ("abs(x)", abs(x));
   ASSERT_STR_EQ("abs(1 + x - sin(y))", abs(x + 1 - sin(y)));
+  ASSERT_STR_EQ("signum(3 * y)", signum(3 * y));
 }
 
 TEST(PlainFormatterTest, TestMatrix) {
@@ -169,6 +170,12 @@ TEST(PlainFormatterTest, TestMatrix) {
   ASSERT_STR_EQ("[[a],\n [b],\n [c]]", Vector(a, b, c));
   ASSERT_STR_EQ("[[-3 + a],\n [     b],\n [cos(c)]]", Vector(a - 3, b, cos(c)));
   ASSERT_STR_EQ("[[2, a * b * c, sin(d)]]", RowVector(2, a * b * c, sin(d)));
+}
+
+TEST(PlainFormatterTest, TestDerivativeExpression) {
+  const Expr a{"a"};
+  ASSERT_STR_EQ("Derivative(signum(a), a)", signum(a).Diff(a));
+  ASSERT_STR_EQ("Derivative(signum(a), a, 2)", signum(a).Diff(a, 2));
 }
 
 }  // namespace math

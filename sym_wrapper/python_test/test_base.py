@@ -32,3 +32,7 @@ class MathTestBase(unittest.TestCase):
             f'The expression tree for `a` is:\n{a.expression_tree_str()}\n' +
             f'The expression tree for `b` is:\n{b.expression_tree_str()}')
         raise self.failureException(message)
+
+    def assertReprEqual(self, a: str, b: sym.Expr):
+        """Assert that the repr of `b` matches string `a`."""
+        self.assertEqual(a, repr(b))

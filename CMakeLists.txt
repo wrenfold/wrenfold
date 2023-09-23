@@ -33,6 +33,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/expression.cc
     source/expressions/addition.cc
     source/expressions/conditional.cc
+    source/expressions/derivative_expression.cc
     source/expressions/matrix.cc
     source/expressions/multiplication.cc
     source/expressions/numeric_expressions.cc
@@ -109,6 +110,7 @@ set(${LIBRARY_NAME}_HEADERS
     include/expressions/addition.h
     include/expressions/all_expressions.h
     include/expressions/conditional.h
+    include/expressions/derivative_expression.h
     include/expressions/function_argument.h
     include/expressions/function_expressions.h
     include/expressions/matrix.h

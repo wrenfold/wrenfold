@@ -76,6 +76,12 @@ struct TreeFormatter {
     VisitRight(*it);
   }
 
+  void operator()(const Derivative& diff) {
+    AppendName("Derivative (order = {}):", diff.Order());
+    VisitLeft(diff.Differentiand());
+    VisitRight(diff.Arg());
+  }
+
   void operator()(const Multiplication& op) {
     absl::InlinedVector<Expr, 16> terms;
     terms.reserve(op.Arity());
