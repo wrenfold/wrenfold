@@ -76,6 +76,18 @@ void PlainFormatter::operator()(const Constant& expr) {
   output_ += StringFromSymbolicConstant(expr.GetName());
 }
 
+void PlainFormatter::operator()(const Derivative& derivative) {
+  output_ += "Derivative(";
+  Visit(derivative.Differentiand(), *this);
+  output_ += ", ";
+  Visit(derivative.Arg(), *this);
+  if (derivative.Order() > 1) {
+    fmt::format_to(std::back_inserter(output_), ", {})", derivative.Order());
+  } else {
+    output_ += ")";
+  }
+}
+
 void PlainFormatter::operator()(const Infinity&) {
   fmt::format_to(std::back_inserter(output_), "z-inf");
 }

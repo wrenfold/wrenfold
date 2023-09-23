@@ -195,6 +195,25 @@ TEST(FunctionsTest, TestAbs) {
   ASSERT_IDENTICAL(Constants::Pi, abs(Constants::Pi));
 }
 
+TEST(FunctionsTest, TestSignum) {
+  const auto [x, y] = Symbols("x", "y");
+  ASSERT_IDENTICAL(signum(x), signum(x));
+  ASSERT_NOT_IDENTICAL(signum(x), signum(y));
+
+  ASSERT_IDENTICAL(signum(x), signum(signum(x)));
+
+  ASSERT_IDENTICAL(0, signum(0));
+  ASSERT_IDENTICAL(1, signum(10));
+  ASSERT_IDENTICAL(-1, signum(-82));
+
+  ASSERT_IDENTICAL(0, signum(0.0));
+  ASSERT_IDENTICAL(1, signum(8.911));
+  ASSERT_IDENTICAL(-1, signum(-111.0));
+
+  ASSERT_IDENTICAL(1, signum(Constants::Pi));
+  ASSERT_IDENTICAL(1, signum(Constants::Euler));
+}
+
 TEST(FunctionTest, TestMinMax) {
   const auto [x, y, z] = Symbols("x", "y", "z");
   ASSERT_NOT_IDENTICAL(max(x, y), max(y, x));  //  order matters

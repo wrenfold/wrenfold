@@ -85,6 +85,9 @@ struct DistributeVisitor {
   }
 
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const Derivative& diff, const Expr&) const {
+    return MapChildren(diff, &Distribute);
+  }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const Integer&, const Expr& arg) const { return arg; }
   Expr operator()(const Float&, const Expr& arg) const { return arg; }

@@ -46,6 +46,11 @@ struct DetermineNumericTypeVisitor {
     throw TypeError("Unhandled symbolic constant");
   }
 
+  constexpr NumericType operator()(const Derivative&) const {
+    // TODO: This should be "unknown", since we don't know the type of the input function.
+    return NumericType::Real;
+  }
+
   constexpr NumericType operator()(const Float&) const { return NumericType::Real; }
 
   constexpr NumericType operator()(const FunctionArgument&) const { return NumericType::Real; }
@@ -360,6 +365,13 @@ struct IRFormVisitor {
     return PushOperation(ir::Load{input_expression});
   }
 
+  ir::ValuePtr operator()(const Derivative& derivative) {
+    throw TypeError(
+        "Cannot generate code for expressions containing `Derivative`. Offending expression is: "
+        "Derivative({}, {}, {})",
+        derivative.Differentiand().ToString(), derivative.Arg().ToString(), derivative.Order());
+  }
+
   ir::ValuePtr operator()(const Matrix&, const Expr&) const {
     throw TypeError("Cannot evaluate this on a matrix.");
   }
@@ -422,7 +434,7 @@ struct IRFormVisitor {
     if (it != computed_values_.end()) {
       return it->second;
     }
-    ir::ValuePtr val = Visit(expr, [this, &expr](const auto& x) { return operator()(x, expr); });
+    ir::ValuePtr val = VisitWithExprArg(expr, *this);
     computed_values_.emplace(expr, val);
     return val;
   }

@@ -157,6 +157,7 @@ PYBIND11_MODULE(pysym, m) {
   m.def("atan", &math::atan, "arg"_a, "Arc-tangent function.");
   m.def("sqrt", &math::sqrt, "arg"_a, "Square-root function.");
   m.def("abs", &math::abs, "arg"_a, "Absolute value function.");
+  m.def("signum", &math::signum, "arg"_a, "Signum/sign function.");
   m.def("atan2", &math::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
 
   m.def("max", &math::max, "a"_a, "b"_a, "Maximum of two scalar values.");
