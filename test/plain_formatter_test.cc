@@ -122,7 +122,7 @@ TEST(PlainFormatterTest, TestRelationals) {
   const auto [x, y, z] = Symbols("x", "y", "z");
   ASSERT_STR_EQ("x < y", x < y);
   ASSERT_STR_EQ("x <= y", x <= y);
-  ASSERT_STR_EQ("x == y", x == y);
+  ASSERT_STR_EQ("y == x", x == y);
   ASSERT_STR_EQ("y < x", x > y);
   ASSERT_STR_EQ("y <= x", x >= y);
 
@@ -136,6 +136,10 @@ TEST(PlainFormatterTest, TestRelationals) {
 TEST(PlainFormatterTest, TestConditionals) {
   const auto [x, y, z] = Symbols("x", "y", "z");
   ASSERT_STR_EQ("where(0 < x, 2 * y, cos(z))", where(x > 0, y * 2, cos(z)));
+
+  // TODO: This output is a bit gross for min/max. Maybe automatically re-write?
+  ASSERT_STR_EQ("where(x < y, y, x)", max(x, y));
+  ASSERT_STR_EQ("where(where(x < y, x, y) < y, y, where(x < y, x, y))", max(min(y, x), y));
 }
 
 TEST(PlainFormatterTest, TestBuiltInFunctions) {

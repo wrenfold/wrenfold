@@ -158,6 +158,9 @@ PYBIND11_MODULE(pysym, m) {
   m.def("sqrt", &math::sqrt, "arg"_a, "Square-root function.");
   m.def("abs", &math::abs, "arg"_a, "Absolute value function.");
   m.def("atan2", &math::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
+
+  m.def("max", &math::max, "a"_a, "b"_a, "Maximum of two scalar values.");
+  m.def("min", &math::min, "a"_a, "b"_a, "Minimum of two scalar values.");
   m.def("where", &math::where, "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
   // Special constants:
@@ -166,6 +169,8 @@ PYBIND11_MODULE(pysym, m) {
   m.attr("one") = Constants::One;
   m.attr("pi") = Constants::Pi;
   m.attr("zero") = Constants::Zero;
+  m.attr("true") = Constants::True;
+  m.attr("false") = Constants::False;
 
   // Exceptions:
   py::register_exception<DimensionError>(m, "DimensionError");

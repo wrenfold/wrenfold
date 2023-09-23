@@ -112,7 +112,7 @@ constexpr std::string_view ToString(const BuiltInFunctionName name) {
       return "atan2";
     case BuiltInFunctionName::Pow:
       return "pow";
-    case BuiltInFunctionName::ENUM_SIZE:
+    default:
       break;
   }
   return "<NOT A VALID ENUM VALUE>";

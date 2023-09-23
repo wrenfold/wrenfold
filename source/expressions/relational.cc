@@ -117,6 +117,10 @@ Expr Relational::Create(RelationalOperation operation, Expr left, Expr right) {
   } else if (simplified == TriState::False) {
     return Constants::False;
   }
+  if (operation == RelationalOperation::Equal && left.Hash() > right.Hash()) {
+    // We put equality operations into a canonical order.
+    std::swap(left, right);
+  }
   return MakeExpr<Relational>(operation, std::move(left), std::move(right));
 }
 

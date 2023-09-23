@@ -255,6 +255,7 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_IDENTICAL(x > y, x > y);
   ASSERT_IDENTICAL(x > y, y < x);
   ASSERT_IDENTICAL(z <= x, x >= z);
+  ASSERT_IDENTICAL(x == y, y == x);
   ASSERT_NOT_IDENTICAL(x < y, x <= y);
 
   // Simplification of numerical cases:

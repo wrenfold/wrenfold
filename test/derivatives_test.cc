@@ -152,4 +152,16 @@ TEST(DerivativesTest, TestRelational) {
   ASSERT_THROW((y == x).Diff(x), TypeError);
 }
 
+TEST(DerivativesTest, TestMaxMin) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+
+  ASSERT_IDENTICAL(0, max(x, y).Diff(z));
+  ASSERT_IDENTICAL(0, min(2 * x, y - 3).Diff(z));
+
+  ASSERT_IDENTICAL(where(x < y, 0, 1), max(x, y).Diff(x));
+  ASSERT_IDENTICAL(where(y < x, 0, 1), min(x, y).Diff(x));
+
+  ASSERT_IDENTICAL(where(cos(x) < sin(x), cos(x), -sin(x)), max(cos(x), sin(x)).Diff(x));
+}
+
 }  // namespace math

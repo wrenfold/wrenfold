@@ -112,8 +112,8 @@ class DiffVisitor {
         return args[0] / abs(args[0]) * d_args[0];
       case BuiltInFunctionName::Arctan2: {
         const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
-        const Expr& y_diff = Visit(args[0], *this);
-        const Expr& x_diff = Visit(args[1], *this);
+        const Expr y_diff = Visit(args[0], *this);
+        const Expr x_diff = Visit(args[1], *this);
         if (IsZero(y_diff) && IsZero(x_diff)) {
           return Constants::Zero;
         }

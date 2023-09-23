@@ -278,6 +278,12 @@ Expr abs(const Expr& arg) {
   return MakeExpr<Function>(BuiltInFunctionName::Abs, arg);
 }
 
+// Max and min are implemented as conditionals. That way:
+// - The same conditionals can be combined in the output code.
+// - When differentiating max/min, the selected derivative matches the selected argument.
+Expr max(const Expr& a, const Expr& b) { return where(a < b, b, a); }
+Expr min(const Expr& a, const Expr& b) { return where(b < a, b, a); }
+
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
   const Matrix* mat_true = CastPtr<Matrix>(if_true);
   const Matrix* mat_false = CastPtr<Matrix>(if_false);

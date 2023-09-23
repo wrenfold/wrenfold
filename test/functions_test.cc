@@ -195,4 +195,30 @@ TEST(FunctionsTest, TestAbs) {
   ASSERT_IDENTICAL(Constants::Pi, abs(Constants::Pi));
 }
 
+TEST(FunctionTest, TestMinMax) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+  ASSERT_NOT_IDENTICAL(max(x, y), max(y, x));  //  order matters
+  ASSERT_NOT_IDENTICAL(max(x, y), max(x, z));
+  ASSERT_IDENTICAL(max(x, y), where(x < y, y, x));
+
+  ASSERT_IDENTICAL(2, max(1, 2));
+  ASSERT_IDENTICAL(0, max(-5, 0));
+  ASSERT_IDENTICAL(Constants::Pi, max(3, Constants::Pi));
+  ASSERT_IDENTICAL(6.02, max(5, 6.02));
+  ASSERT_IDENTICAL(Constants::Pi, max(Constants::Euler, Constants::Pi));
+  ASSERT_IDENTICAL(3_s / 2, max(-1, 3_s / 2));
+
+  ASSERT_NOT_IDENTICAL(min(x, y), min(y, x));  //  order matters
+  ASSERT_NOT_IDENTICAL(min(x, y), min(x, z));
+  ASSERT_IDENTICAL(min(x, y), where(y < x, y, x));
+
+  ASSERT_IDENTICAL(0, min(1, 0));
+  ASSERT_IDENTICAL(1.4123, min(1.4123, 10));
+  ASSERT_IDENTICAL(Constants::False, min(Constants::False, Constants::True));
+  ASSERT_IDENTICAL(-10, min(-10, Constants::Euler));
+
+  ASSERT_IDENTICAL(x, max(x, x));
+  ASSERT_IDENTICAL(z + 2, min(z + 2, z + 2));
+}
+
 }  // namespace math
