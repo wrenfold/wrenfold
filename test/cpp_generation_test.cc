@@ -95,6 +95,7 @@ TEST(CppGenerationTest, TestExclusiveOr) {
   EXPECT_EQ(1.0, gen::exclusive_or(std::nextafter(0.0, -inf), std::nextafter(0.0, inf)));
 }
 
+// We use this test to check that abs() is generated correctly.
 TEST(CppGenerationTest, TestHandwrittenSignum) {
   auto evaluator = CreateEvaluator(&HandwrittenSignum);
 
@@ -110,6 +111,16 @@ TEST(CppGenerationTest, TestHandwrittenSignum) {
 
   EXPECT_EQ(1.0, gen::handwritten_signum(2.3));
   EXPECT_EQ(-1.0, gen::handwritten_signum(-800.0));
+}
+
+// We use this to test the signum implementation.
+TEST(CppGenerationTest, TestHandwrittenAbs) {
+  EXPECT_EQ(0.0, gen::handwritten_abs(0.0));
+  EXPECT_EQ(0.0, gen::handwritten_abs(-0.0));
+  EXPECT_EQ(1.0, gen::handwritten_abs(1.0));
+  EXPECT_EQ(22.0, gen::handwritten_abs(22.0));
+  EXPECT_EQ(3.0, gen::handwritten_abs(-3.0));
+  EXPECT_EQ(1e9, gen::handwritten_abs(-1.0e9));
 }
 
 TEST(CppGenerationTest, TestAtan2WithDerivatives) {

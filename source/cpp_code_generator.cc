@@ -203,7 +203,17 @@ static inline std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName 
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  return formatter.Format("{}({})", GetBuiltInFunctionCall(x.function), Join(*this, ", ", x.args));
+  if (x.function == BuiltInFunctionName::Signum) {
+    // We need to special-case signum because it doesn't exist as a free-standing function in the
+    // stl.
+    // TODO: This should be an int expression.
+    return formatter.Format(
+        "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
+        View(x.args[0]), View(x.args[0]));
+  } else {
+    return formatter.Format("{}({})", GetBuiltInFunctionCall(x.function),
+                            Join(*this, ", ", x.args));
+  }
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {

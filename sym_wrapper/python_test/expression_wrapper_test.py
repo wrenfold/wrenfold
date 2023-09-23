@@ -34,17 +34,18 @@ class ExpressionWrapperTest(MathTestBase):
     def test_repr(self):
         """Test __repr__ method."""
         x, y, z = sym.symbols('x, y, z')
-        self.assertEqual('x', repr(x))
-        self.assertEqual('x * y / 3', repr(x * y / 3))
-        self.assertEqual('x * z ** 3', repr(z * z * z * x))
-        self.assertEqual('5 * z / x ** 2', repr(5.0 * z / (x * x)))
-        self.assertEqual('cos(x) * sin(z)', repr(sym.cos(x) * sym.sin(z)))
-        self.assertEqual('x ** (1 / 2)', repr(sym.sqrt(x)))
-        self.assertEqual('3 ** (1 / 2) * 7 ** (1 / 2) * x ** (1 / 2) * (z ** -1) ** (1 / 2)',
-                         repr(sym.sqrt(21 * x / z)))
-        self.assertEqual('atan2(y, x)', repr(sym.atan2(y, x)))
-        self.assertEqual('abs(x)', repr(sym.abs(x)))
-        self.assertEqual('where(x < 0, -x, cos(x))', repr(sym.where(x < 0, -x, sym.cos(x))))
+        self.assertReprEqual('x', x)
+        self.assertReprEqual('x * y / 3', x * y / 3)
+        self.assertReprEqual('x * z ** 3', z * z * z * x)
+        self.assertReprEqual('5 * z / x ** 2', 5.0 * z / (x * x))
+        self.assertReprEqual('cos(x) * sin(z)', sym.cos(x) * sym.sin(z))
+        self.assertReprEqual('x ** (1 / 2)', sym.sqrt(x))
+        self.assertReprEqual('3 ** (1 / 2) * 7 ** (1 / 2) * x ** (1 / 2) * (z ** -1) ** (1 / 2)',
+                             sym.sqrt(21 * x / z))
+        self.assertReprEqual('atan2(y, x)', sym.atan2(y, x))
+        self.assertReprEqual('abs(x)', sym.abs(x))
+        self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
+        self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x))
 
     def test_basic_scalar_operations(self):
         """Test wrappers for addition, multiplication, subtraction, negation."""
@@ -96,6 +97,14 @@ class ExpressionWrapperTest(MathTestBase):
         x = sym.symbols("x")
         self.assertIdentical(3, sym.abs(-3))
         self.assertIdentical(sym.abs(x), sym.abs(sym.abs(x)))
+
+    def test_signum(self):
+        """Test calling signum."""
+        x, y = sym.symbols("x, y")
+        self.assertIdentical(1, sym.signum(3))
+        self.assertIdentical(-1, sym.signum(-5.22))
+        self.assertIdentical(1, sym.signum(sym.true))
+        self.assertNotIdentical(sym.signum(x), sym.signum(y))
 
     def test_distribute(self):
         """Test calling distribute on scalar expressions."""

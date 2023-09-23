@@ -41,6 +41,10 @@ inline Expr ExclusiveOr(Expr x, Expr y) {
 // Not very useful, but we use it as a unit test case.
 inline Expr HandwrittenSignum(Expr x) { return where(x == 0, 0, x / abs(x)); }
 
+// A handwritten `abs` implemented with signum.
+// Not very useful, but used as a unit test case.
+inline Expr HandwrittenAbs(Expr x) { return signum(x) * x; }
+
 // Arc-tangent w/ derivatives.
 inline auto Atan2WithDerivatives(Expr y, Expr x) {
   Expr f = atan2(y, x);
