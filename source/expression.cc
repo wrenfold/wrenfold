@@ -24,7 +24,6 @@ Expr Expr::FromFloat(const double x) {
 Expr Expr::FromInt(const std::int64_t x) { return Integer::Create(x); }
 
 std::string Expr::ToString() const {
-  ASSERT(impl_);
   PlainFormatter formatter{};
   Visit(*this, formatter);
   return formatter.GetOutput();

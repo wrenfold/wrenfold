@@ -120,8 +120,8 @@ void PlainFormatter::operator()(const Matrix& mat) {
   elements.resize(mat.Size());
 
   // Format all the child elements up front. That way we can do alignment:
-  std::transform(mat.begin(), mat.end(), elements.begin(), [this](const Expr& expr) {
-    PlainFormatter child_formatter{power_style_};
+  std::transform(mat.begin(), mat.end(), elements.begin(), [](const Expr& expr) {
+    PlainFormatter child_formatter{};
     Visit(expr, child_formatter);
     return child_formatter.output_;
   });
@@ -244,11 +244,7 @@ void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr)
 
 void PlainFormatter::FormatPower(const Expr& base, const Expr& exponent) {
   FormatPrecedence(Precedence::Power, base);
-  if (power_style_ == PowerStyle::Hat) {
-    output_ += " ^ ";
-  } else if (power_style_ == PowerStyle::Python) {
-    output_ += " ** ";
-  }
+  output_ += " ** ";
   FormatPrecedence(Precedence::Power, exponent);
 }
 

@@ -332,7 +332,7 @@ void WrapMatrixOperations(py::module_& m) {
       // Expr inherited properties:
       .def("__repr__",
            [](const MatrixExpr& self) {
-             PlainFormatter formatter{PowerStyle::Python};
+             PlainFormatter formatter{};
              Visit(static_cast<const Expr&>(self), formatter);
              return formatter.GetOutput();
            })
