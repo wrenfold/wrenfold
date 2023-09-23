@@ -228,8 +228,13 @@ struct AstBuilder {
     return ast::Add{MakeArgPtr(val[0]), MakeArgPtr(val[1])};
   }
 
-  ast::Variant operator()(const ir::Value& val, const ir::CallUnaryFunc& func) {
-    return ast::Call{func.name, MakeArg(val[0])};
+  ast::Variant operator()(const ir::Value& val, const ir::CallBuiltInFunction& func) {
+    std::vector<ast::Variant> transformed_args{};
+    transformed_args.reserve(val.NumOperands());
+    for (ir::ValuePtr arg : val.Operands()) {
+      transformed_args.push_back(MakeArg(arg));
+    }
+    return ast::Call{func.name, std::move(transformed_args)};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Cast& cast) {

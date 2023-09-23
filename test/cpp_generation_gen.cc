@@ -60,6 +60,8 @@ int main() {
   GenerateFunc(code, &VectorNorm3D, "vector_norm_3d", "v");
   GenerateFunc(code, &Heaviside, "heaviside", Arg("x"));
   GenerateFunc(code, &ExclusiveOr, "exclusive_or", Arg("x"), Arg("y"));
+  GenerateFunc(code, &HandwrittenSignum, "handwritten_signum", Arg("x"));
+  GenerateFunc(code, &Atan2WithDerivatives, "atan2_with_derivatives", Arg("y"), Arg("x"));
 
   code += "\n\n} // namespace gen";
 

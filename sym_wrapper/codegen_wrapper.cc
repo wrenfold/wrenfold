@@ -86,6 +86,7 @@ PYBIND11_MODULE(pycodegen, m) {
       .value("ArcTan", BuiltInFunctionName::ArcTan)
       .value("Log", BuiltInFunctionName::Log)
       .value("Sqrt", BuiltInFunctionName::Sqrt)
+      .value("Abs", BuiltInFunctionName::Abs)
       .value("Arctan2", BuiltInFunctionName::Arctan2)
       .value("Pow", BuiltInFunctionName::Pow)
       .def(

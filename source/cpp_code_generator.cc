@@ -101,11 +101,13 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
       }
       ++counter;
     } else {
-      if (arg->Direction() == ast::ArgumentDirection::Input) {
-        formatter.Append("const ");
-      }
       const NumericType numeric_type = std::get<ast::ScalarType>(arg->Type()).GetNumericType();
-      formatter.Append(StringFromNumericCastType(numeric_type));
+      if (arg->Direction() == ast::ArgumentDirection::Input) {
+        formatter.Format("const {}", StringFromNumericCastType(numeric_type));
+      } else {
+        // Output reference for now.
+        formatter.Format("{}&", StringFromNumericCastType(numeric_type));
+      }
     }
 
     formatter.Format(" {}", arg->Name());
@@ -188,11 +190,13 @@ static inline std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName 
       return "std::log";
     case BuiltInFunctionName::Sqrt:
       return "std::sqrt";
+    case BuiltInFunctionName::Abs:
+      return "std::abs";
     case BuiltInFunctionName::Arctan2:
       return "std::atan2";
     case BuiltInFunctionName::Pow:
       return "std::pow";
-    default:
+    case BuiltInFunctionName::ENUM_SIZE:
       break;
   }
   return "<INVALID ENUM VALUE>";

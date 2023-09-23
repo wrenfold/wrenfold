@@ -23,8 +23,6 @@ class ScalarType {
 
   std::size_t Dimension() const { return 1; }
 
-  //  std::string ToString() const;
-
   NumericType GetNumericType() const { return numeric_type_; }
 
  private:
@@ -50,8 +48,6 @@ class MatrixType {
     return std::make_pair(static_cast<index_t>(element) / cols_,
                           static_cast<index_t>(element) % cols_);
   }
-
-  std::string ToString() const;
 
  private:
   index_t rows_;
@@ -178,8 +174,6 @@ struct AssignTemporary {
   template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::Variant, T>>>
   AssignTemporary(std::string left, T&& arg)
       : left(left), right(std::make_shared<const ast::Variant>(std::forward<T>(arg))) {}
-
-  std::string ToString() const;
 };
 
 // Assign values to an output argument. All output values are written in one operation.
@@ -211,13 +205,9 @@ struct Call {
   BuiltInFunctionName function;
   std::vector<Variant> args;
 
-  Call(BuiltInFunctionName function, std::vector<Variant>&& args);
-
   template <typename... Args>
-  explicit Call(BuiltInFunctionName function, Args&&... inputs) : function(function) {
-    args.reserve(sizeof...(inputs));
-    (args.emplace_back(std::forward<Args>(inputs)), ...);
-  }
+  explicit Call(BuiltInFunctionName function, Args&&... inputs)
+      : function(function), args{std::forward<Args>(inputs)...} {}
 };
 
 struct Cast {
@@ -240,8 +230,6 @@ struct ConstructReturnValue {
   std::vector<Variant> args;
 
   ConstructReturnValue(ast::Type, std::vector<Variant>&& args);
-
-  std::string ToString() const;
 };
 
 struct Declaration {
@@ -257,8 +245,6 @@ struct Declaration {
 
   // Construct w/ no rhs.
   Declaration(std::string name, Type type) : name(std::move(name)), type(type) {}
-
-  std::string ToString() const;
 };
 
 struct FloatConstant {
@@ -281,14 +267,10 @@ struct FunctionDefinition {
 struct InputValue {
   std::shared_ptr<const Argument> argument;
   index_t element;
-
-  std::string ToString() const;
 };
 
 struct IntegerConstant {
   std::int64_t value;
-
-  std::string ToString() const;
 };
 
 struct Multiply {
@@ -296,8 +278,6 @@ struct Multiply {
   VariantPtr right;
 
   Multiply(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
-
-  std::string ToString() const;
 };
 
 // Check if an output exists.
@@ -306,8 +286,6 @@ struct OutputExists {
   std::shared_ptr<const Argument> argument;
 
   explicit OutputExists(std::shared_ptr<const Argument> arg) : argument(std::move(arg)) {}
-
-  std::string ToString() const;
 };
 
 // method definitions:
@@ -321,9 +299,6 @@ inline ConstructReturnValue::ConstructReturnValue(ast::Type type, std::vector<Va
 
 inline Declaration::Declaration(std::string name, Type type, VariantPtr value)
     : name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
-
-inline Call::Call(BuiltInFunctionName function, std::vector<Variant>&& args)
-    : function(function), args(std::move(args)) {}
 
 inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
                       std::vector<Variant>&& else_branch)

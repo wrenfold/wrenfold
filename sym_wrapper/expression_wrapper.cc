@@ -156,6 +156,7 @@ PYBIND11_MODULE(pysym, m) {
   m.def("asin", &math::asin, "arg"_a, "Arc-sine function.");
   m.def("atan", &math::atan, "arg"_a, "Arc-tangent function.");
   m.def("sqrt", &math::sqrt, "arg"_a, "Square-root function.");
+  m.def("abs", &math::abs, "arg"_a, "Absolute value function.");
   m.def("atan2", &math::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
   m.def("where", &math::where, "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 

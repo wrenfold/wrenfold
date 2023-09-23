@@ -92,9 +92,13 @@ inline Expr Function::Create(BuiltInFunctionName name, Function::ContainerType&&
       return log(container.front());
     case BuiltInFunctionName::Sqrt:
       return sqrt(container.front());
+    case BuiltInFunctionName::Abs:
+      return abs(container.front());
+    case BuiltInFunctionName::Arctan2:
+      return atan2(container[0], container[1]);
     case BuiltInFunctionName::Pow:
       return pow(container[0], container[1]);
-    default:
+    case BuiltInFunctionName::ENUM_SIZE:
       break;
   }
   ASSERT(false, "Invalid function name: {}", ToString(name));

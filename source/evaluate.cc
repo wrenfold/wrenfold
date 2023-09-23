@@ -20,20 +20,10 @@ struct EvaluateVisitor {
   Expr operator()(const Conditional& cond, const Expr&) const { return MapChildren(cond, &Eval); }
 
   Expr operator()(const Constant& c, const Expr&) const {
-    switch (c.GetName()) {
-      case SymbolicConstants::Euler:
-        return Float::Create(std::exp(1.0));
-      case SymbolicConstants::Pi:
-        return Float::Create(M_PI);
-      case SymbolicConstants::True:
-        return Constants::One;
-      case SymbolicConstants::False:
-        return Constants::Zero;
-      default:
-        break;
-    }
-    ASSERT(false, "Invalid symbolic constant: {}", StringFromSymbolicConstant(c.GetName()));
-    return Float::Create(std::numeric_limits<double>::quiet_NaN());
+    const double value = DoubleFromSymbolicConstant(c.GetName());
+    ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
+           StringFromSymbolicConstant(c.GetName()));
+    return Float::Create(value);
   }
   Expr operator()(const Infinity&, const Expr&) const {
     throw TypeError("Cannot evaluate complex infinity to float.");

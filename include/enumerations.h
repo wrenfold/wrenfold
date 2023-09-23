@@ -39,6 +39,7 @@ enum class BuiltInFunctionName {
   ArcTan,
   Log,
   Sqrt,
+  Abs,
   // Binary functions
   Arctan2,
   Pow,
@@ -105,12 +106,14 @@ constexpr std::string_view ToString(const BuiltInFunctionName name) {
       return "ln";
     case BuiltInFunctionName::Sqrt:
       return "sqrt";
+    case BuiltInFunctionName::Abs:
+      return "abs";
     case BuiltInFunctionName::Arctan2:
       return "atan2";
     case BuiltInFunctionName::Pow:
       return "pow";
     case BuiltInFunctionName::ENUM_SIZE:
-      return "<NOT A VALID ENUM VALUE>";
+      break;
   }
   return "<NOT A VALID ENUM VALUE>";
 }
@@ -140,6 +143,21 @@ constexpr std::string_view StringFromNumericType(const NumericType type) {
       return "Complex";
   }
   return "<NOT A VALID ENUM VALUE>";
+}
+
+// Convert `SymbolicConstants` to a floating point double.
+constexpr double DoubleFromSymbolicConstant(SymbolicConstants constant) {
+  switch (constant) {
+    case SymbolicConstants::Euler:
+      return M_E;
+    case SymbolicConstants::Pi:
+      return M_PI;
+    case SymbolicConstants::True:
+      return 1.0;
+    case SymbolicConstants::False:
+      return 0.0;
+  }
+  return std::numeric_limits<double>::quiet_NaN();
 }
 
 }  // namespace math

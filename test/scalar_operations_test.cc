@@ -326,6 +326,9 @@ TEST(ScalarOperationsTest, TestConditional) {
   ASSERT_IDENTICAL(z, where(Constants::False, x, z));
   ASSERT_IDENTICAL(where(x < 0, cos(x), log(z)),
                    where(x < 0, where(x < 0, cos(x), sin(x)), log(z)));
+
+  // both branches are identical anyway:
+  ASSERT_IDENTICAL(abs(x) + z * 5, where(x - y < z, abs(x) + z * 5, abs(x) + z * 5));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {

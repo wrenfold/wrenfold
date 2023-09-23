@@ -149,6 +149,10 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
   ASSERT_STR_EQ("atan(x * y)", atan(x * y));
   ASSERT_STR_EQ("acos(-5 * y)", acos(y * -5));
   ASSERT_STR_EQ("acos(x) * asin(y)", acos(x) * asin(y));
+  ASSERT_STR_EQ("atan2(y, x)", atan2(y, x));
+  ASSERT_STR_EQ("atan2(y + cos(x), 6 - y)", atan2(y + cos(x), 6 - y));
+  ASSERT_STR_EQ("abs(x)", abs(x));
+  ASSERT_STR_EQ("abs(1 + x - sin(y))", abs(x + 1 - sin(y)));
 }
 
 TEST(PlainFormatterTest, TestMatrix) {

@@ -36,34 +36,32 @@ TEST(CppGenerationTest, TestSimpleMultiplyAdd) {
 TEST(CppGenerationTest, TestVectorRotation2D) {
   auto evaluator = CreateEvaluator(&VectorRotation2D);
 
-  Eigen::Vector2d D_angle_eval;
-  Eigen::Vector2d v_rot_eval = evaluator(1.12, {-6.5, 7.2}, D_angle_eval);
+  for (double angle = -2.0 * M_PI; angle < 2.0 * M_PI; angle += 0.2) {
+    Eigen::Vector2d D_angle_eval;
 
-  Eigen::Vector2d v_rot_gen, D_angle_gen;
-  gen::vector_rotation_2d(1.12, Eigen::Vector2d{-6.5, 7.2}, v_rot_gen, D_angle_gen);
-  EXPECT_EIGEN_NEAR(v_rot_eval, v_rot_gen, 1.0e-15);
-  EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+    Eigen::Vector2d v_rot_gen, D_angle_gen;
+    gen::vector_rotation_2d(angle, Eigen::Vector2d{-6.5, 7.2}, v_rot_gen, D_angle_gen);
+    EXPECT_EIGEN_NEAR(evaluator(angle, {-6.5, 7.2}, D_angle_eval), v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
 
-  // should still work if the optional arg is omitted
-  v_rot_eval = evaluator(-0.7, {-5.5, 12.0}, D_angle_eval);
-  gen::vector_rotation_2d(-0.7, Eigen::Vector2d{-5.5, 12.0}, v_rot_gen, nullptr);
-  EXPECT_EIGEN_NEAR(v_rot_eval, v_rot_gen, 1.0e-15);
+    // should still work without the optional arg
+    gen::vector_rotation_2d(angle, Eigen::Vector2d{-5.5, 12.0}, v_rot_gen, nullptr);
+    EXPECT_EIGEN_NEAR(evaluator(angle, {-5.5, 12.0}, D_angle_eval), v_rot_gen, 1.0e-15);
 
-  // Pass a map to the data:
-  const std::array<double, 2> input_v = {7.123, -4.001};
-  const Eigen::Map<const Eigen::Vector2d> input_v_map(input_v.data());
-  v_rot_eval = evaluator(22.0, input_v_map, D_angle_eval);
-  gen::vector_rotation_2d(22.0, input_v_map, v_rot_gen, D_angle_gen);
+    // Pass a map to the data:
+    const std::array<double, 2> input_v = {7.123, -4.001};
+    const Eigen::Map<const Eigen::Vector2d> input_v_map(input_v.data());
 
-  EXPECT_EIGEN_NEAR(v_rot_eval, v_rot_gen, 1.0e-15);
-  EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+    gen::vector_rotation_2d(angle, input_v_map, v_rot_gen, D_angle_gen);
+    EXPECT_EIGEN_NEAR(evaluator(angle, input_v_map, D_angle_eval), v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
 
-  // pass a map for the output:
-  v_rot_eval = evaluator(0.3, {2.0, 3.0}, D_angle_eval);
-  gen::vector_rotation_2d(0.3, Eigen::Vector2d{2.0, 3.0}, v_rot_gen,
-                          Eigen::Map<Eigen::Vector2d>(D_angle_gen.data()));
-  EXPECT_EIGEN_NEAR(v_rot_eval, v_rot_gen, 1.0e-15);
-  EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+    // pass a map for the output:
+    gen::vector_rotation_2d(angle, Eigen::Vector2d{2.0, 3.0}, v_rot_gen,
+                            Eigen::Map<Eigen::Vector2d>(D_angle_gen.data()));
+    EXPECT_EIGEN_NEAR(evaluator(angle, {2.0, 3.0}, D_angle_eval), v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+  }
 }
 
 TEST(CppGenerationTest, TestVectorNorm3D) {
@@ -95,6 +93,51 @@ TEST(CppGenerationTest, TestExclusiveOr) {
   EXPECT_EQ(1.0, gen::exclusive_or(-1.0, 1.0));
   EXPECT_EQ(1.0, gen::exclusive_or(1.0, -1.0));
   EXPECT_EQ(1.0, gen::exclusive_or(std::nextafter(0.0, -inf), std::nextafter(0.0, inf)));
+}
+
+TEST(CppGenerationTest, TestHandwrittenSignum) {
+  auto evaluator = CreateEvaluator(&HandwrittenSignum);
+
+  EXPECT_EQ(evaluator(0.0), gen::handwritten_signum(0.0));
+  EXPECT_EQ(0.0, gen::handwritten_signum(0.0));
+  EXPECT_EQ(0.0, gen::handwritten_signum(-0.0));
+
+  EXPECT_EQ(evaluator(1.0e-16), gen::handwritten_signum(1.0e-16));
+  EXPECT_EQ(1.0, gen::handwritten_signum(1.0e-16));
+
+  EXPECT_EQ(evaluator(-1.0e-16), gen::handwritten_signum(-1.0e-16));
+  EXPECT_EQ(-1.0, gen::handwritten_signum(-1.0e-16));
+
+  EXPECT_EQ(1.0, gen::handwritten_signum(2.3));
+  EXPECT_EQ(-1.0, gen::handwritten_signum(-800.0));
+}
+
+TEST(CppGenerationTest, TestAtan2WithDerivatives) {
+  auto evaluator = CreateEvaluator(&Atan2WithDerivatives);
+
+  double D_y_num, D_x_num;
+  double D_y_gen, D_x_gen;
+
+  // clang-format off
+  const std::vector<std::tuple<double, double, double>> test_cases = {
+      {0.0, 1.0, 0.0},
+      {1.0, 0.0, M_PI / 2},
+      {1.0, 1.0, M_PI / 4},
+      {1.0, -1.0, 3 * M_PI / 4},
+      {0.0, -1.0, M_PI},
+      {-1.0, -1.0, -3 * M_PI / 4},
+      {-1.0, 0.0, -M_PI / 2},
+      {-1.0, 1.0, -M_PI / 4}
+  };
+  // clang-format on
+
+  for (auto [y, x, solution] : test_cases) {
+    EXPECT_EQ(evaluator(y, x, D_y_num, D_x_num),
+              gen::atan2_with_derivatives(y, x, D_y_gen, D_x_gen));
+    EXPECT_EQ(solution, gen::atan2_with_derivatives(y, x, D_y_gen, D_x_gen));
+    EXPECT_NEAR(D_y_num, D_y_gen, 1.0e-15);
+    EXPECT_NEAR(D_x_num, D_x_gen, 1.0e-15);
+  }
 }
 
 }  // namespace math

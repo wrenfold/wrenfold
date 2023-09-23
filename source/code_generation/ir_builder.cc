@@ -369,7 +369,7 @@ struct IRFormVisitor {
     args.reserve(func.Arity());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return VisitExpr(expr); });
-    return PushOperation(ir::CallUnaryFunc{func.Func()}, std::move(args));
+    return PushOperation(ir::CallBuiltInFunction{func.Func()}, std::move(args));
   }
 
   ir::ValuePtr operator()(const Infinity&, const Expr&) const {

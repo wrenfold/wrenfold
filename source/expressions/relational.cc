@@ -22,18 +22,12 @@ struct CompareNumerics {
   }
 
   static double FloatFromConstant(const Constant& c) {
-    switch (c.GetName()) {
-      case SymbolicConstants::Euler:
-        return M_E;
-      case SymbolicConstants::Pi:
-        return M_PI;
-      case SymbolicConstants::True:
-        return 1.0;
-      case SymbolicConstants::False:
-        return 0.0;
+    const double value = DoubleFromSymbolicConstant(c.GetName());
+    if (std::isnan(value)) {
+      throw TypeError("Invalid comparison with constant: {}",
+                      StringFromSymbolicConstant(c.GetName()));
     }
-    throw TypeError("Invalid comparison with constant: {}",
-                    StringFromSymbolicConstant(c.GetName()));
+    return value;
   }
 
   bool operator()(const Integer& a, const Constant& b) const {
@@ -68,7 +62,7 @@ struct CompareNumerics {
 };
 
 namespace detail {
-// For detecting if `SupportsComparison` is supported.
+// For detecting if `CompareNumerics` is supported.
 template <typename, typename, typename = void>
 constexpr bool SupportsComparison = false;
 template <typename Argument1, typename Argument2>

@@ -29,11 +29,14 @@ Expr asin(const Expr& arg);
 // Inverse tangent.
 Expr atan(const Expr& arg);
 
-// Inverse tangent 2.
+// 2-argument inverse tangent.
 Expr atan2(const Expr& y, const Expr& x);
 
-// Sqrt
+// Square root.
 Expr sqrt(const Expr& arg);
+
+// Absolute value function.
+Expr abs(const Expr& arg);
 
 // Conditional/ternary expression.
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false);

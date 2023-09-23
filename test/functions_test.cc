@@ -161,12 +161,38 @@ TEST(FunctionsTest, TestArctan) {
   ASSERT_IDENTICAL(-Constants::Pi / 4_s, atan(-1_s));
 }
 
-// TODO: When atan2 simplifications are added, test them here.
 TEST(FunctionsTest, TestArctan2) {
   const Expr x{"x"};
   const Expr y{"y"};
-  const auto f = atan2(y, x);
-  ASSERT_TRUE(CastPtr<Function>(f));
+  ASSERT_IDENTICAL(atan2(y, x), atan2(y, x));
+  ASSERT_NOT_IDENTICAL(atan2(y, x), atan2(x, y));
+  ASSERT_IDENTICAL(0, atan2(0, 1));
+  ASSERT_IDENTICAL(Constants::Pi / 2, atan2(1, 0));
+  ASSERT_IDENTICAL(Constants::Pi, atan2(y, x).Subs(y, 0).Subs(x, -1));
+  ASSERT_IDENTICAL(-Constants::Pi / 2, atan2(y, x).Subs(x, 0).Subs(y, -1));
+
+  ASSERT_IDENTICAL(Constants::Pi / 4, atan2(5, 5));
+  ASSERT_IDENTICAL(3 * Constants::Pi / 4, atan2(8, -8));
+  ASSERT_IDENTICAL(-Constants::Pi / 4, atan2(-2, 2));
+  ASSERT_IDENTICAL(-3 * Constants::Pi / 4, atan2(-4, -4));
+
+  // floating point inputs should be evaluated immediately
+  ASSERT_IDENTICAL(std::atan2(0.1, -0.6), atan2(0.1, -0.6));
+  ASSERT_IDENTICAL(std::atan2(-1.2, 0.2), atan2(-1.2, 0.2));
+}
+
+TEST(FunctionsTest, TestAbs) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_IDENTICAL(abs(x), abs(x));
+  ASSERT_NOT_IDENTICAL(abs(x), abs(y));
+  ASSERT_IDENTICAL(abs(x), abs(abs(x)));
+  ASSERT_IDENTICAL(abs(y - 3), abs(abs(abs(y - 3))));
+  ASSERT_IDENTICAL(3, abs(3));
+  ASSERT_IDENTICAL(7, abs(-7));
+  ASSERT_IDENTICAL(3 / 2_s, abs(-3 / 2_s));
+  ASSERT_IDENTICAL(0.1, abs(-0.1));
+  ASSERT_IDENTICAL(Constants::Pi, abs(Constants::Pi));
 }
 
 }  // namespace math

@@ -106,6 +106,10 @@ class DiffVisitor {
       case BuiltInFunctionName::Sqrt:
         // sqrt(f(x)) --> (1/2) * f'(x) / sqrt(f(x))
         return pow(args[0], negative_one_half) * one_half * d_args[0];
+      case BuiltInFunctionName::Abs:
+        // |f(x)| --> f(x)/|f(x)| * f'(x)
+        // TODO: Add complex argument version.
+        return args[0] / abs(args[0]) * d_args[0];
       case BuiltInFunctionName::Arctan2: {
         const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
         const Expr& y_diff = Visit(args[0], *this);
@@ -115,7 +119,7 @@ class DiffVisitor {
         }
         // atan2(y(u), x(u))/du = -y/(y^2 + x^2) * x'(u) + x/(y^2 + x^2) * y'(u)
         return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
-      } break;
+      }
       case BuiltInFunctionName::Pow:
         return PowerDiff(args[0], args[1]);
       case BuiltInFunctionName::ENUM_SIZE:

@@ -30,7 +30,8 @@ struct ExprFromIrVisitor {
     return Power::Create(MapValue(args[0]), MapValue(args[1]));
   }
 
-  Expr operator()(const ir::CallUnaryFunc& func, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::CallBuiltInFunction& func,
+                  const std::vector<ir::ValuePtr>& args) const {
     Function::ContainerType container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::ValuePtr v) { return MapValue(v); });
