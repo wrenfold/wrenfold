@@ -57,12 +57,16 @@ struct ApplyNumericEvaluatorImpl<Expr> {
   double operator()(const NumericFunctionEvaluator& evaluator, const Expr& input) const {
     const Expr subs =
         Visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
-    const Float* f = CastPtr<Float>(subs);
-    if (!f) {
-      throw TypeError("Expression should be a floating point value. Got type {}: {}",
+    if (const Float* f = CastPtr<Float>(subs); f != nullptr) {
+      return f->GetValue();
+
+    } else if (const Integer* i = CastPtr<Integer>(subs); i != nullptr) {
+      // TODO: Support returning the correct type here.
+      return static_cast<double>(i->GetValue());
+    } else {
+      throw TypeError("Expression should be a floating point value or integer. Got type {}: {}",
                       input.TypeName(), input.ToString());
     }
-    return f->GetValue();
   }
 };
 

@@ -105,18 +105,22 @@ struct Cast {
   NumericType destination_type;
 };
 
-// TODO: Should probably just support n-ary functions w/ one object.
-struct CallUnaryFunc {
+// A call to a built-in mathematical function like sin, cos, log, etc.
+struct CallBuiltInFunction {
   constexpr static bool IsCommutative() { return false; }
-  constexpr static int NumValueOperands() { return 1; }
+  constexpr static int NumValueOperands() { return -1; }
   constexpr std::string_view ToString() const { return math::ToString(name); }
   constexpr std::size_t Hash() const { return static_cast<std::size_t>(name); }
-  constexpr bool IsSame(const CallUnaryFunc& other) const { return name == other.name; }
-  constexpr NumericType DetermineType(const ValuePtr&) const { return NumericType::Real; }
+  constexpr bool IsSame(const CallBuiltInFunction& other) const { return name == other.name; }
 
-  CallUnaryFunc(UnaryFunctionName name) : name(name) {}
+  // TODO: This should not be hardcoded to `real`.
+  constexpr NumericType DetermineType(const std::vector<ValuePtr>&) const {
+    return NumericType::Real;
+  }
 
-  UnaryFunctionName name;
+  CallBuiltInFunction(BuiltInFunctionName name) : name(name) {}
+
+  BuiltInFunctionName name;
 };
 
 // Compare two operands (equality or inequality).
@@ -278,7 +282,7 @@ struct JumpCondition {
 };
 
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, CallUnaryFunc, Cast, Compare, Cond, Copy, Load, Mul,
+using Operation = std::variant<Add, CallBuiltInFunction, Cast, Compare, Cond, Copy, Load, Mul,
                                OutputRequired, Pow, Phi, Save, JumpCondition>;
 
 // Values are the result of any instruction we store in the IR.

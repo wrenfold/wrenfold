@@ -36,11 +36,11 @@ TEST(DerivativesTest, TestMultiplication) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_IDENTICAL(Constants::Zero, (x * y).Diff(w));
+  ASSERT_IDENTICAL(0, (x * y).Diff(w));
   ASSERT_IDENTICAL(y, (x * y).Diff(x));
   ASSERT_IDENTICAL(x, (x * y).Diff(y));
-  ASSERT_IDENTICAL(3_s, (x * 3).Diff(x));
-  ASSERT_IDENTICAL(Constants::Zero, (x * y).Diff(x, 2));
+  ASSERT_IDENTICAL(3, (x * 3).Diff(x));
+  ASSERT_IDENTICAL(0, (x * y).Diff(x, 2));
   ASSERT_IDENTICAL(2 * x, (x * x).Diff(x));
   ASSERT_IDENTICAL(2, (x * x).Diff(x, 2));
   ASSERT_IDENTICAL(3 * pow(x, 2), (x * x * x).Diff(x));
@@ -79,7 +79,7 @@ TEST(DerivativesTest, TestLog) {
   const Expr x{"x"};
   const Expr y{"y"};
   ASSERT_IDENTICAL(1 / x, log(x).Diff(x));
-  ASSERT_IDENTICAL(Constants::Zero, log(x).Diff(y));
+  ASSERT_IDENTICAL(0, log(x).Diff(y));
   ASSERT_IDENTICAL(1 / y, log(x * y).Diff(y));
   ASSERT_IDENTICAL(1 / (2 * x), log(sqrt(x)).Diff(x));
 }
@@ -89,9 +89,10 @@ TEST(DerivativesTest, TestTrig) {
   const Expr y{"y"};
   ASSERT_IDENTICAL(cos(x), sin(x).Diff(x));
   ASSERT_IDENTICAL(-sin(x), cos(x).Diff(x));
+  ASSERT_IDENTICAL(-cos(y) * cos(cos(sin(y))) * sin(sin(y)), sin(cos(sin(y))).Diff(y));
   ASSERT_IDENTICAL(y * cos(x * y), sin(x * y).Diff(x));
-  ASSERT_IDENTICAL(-2_s * sin(2 * x + y), cos(2 * x + y).Diff(x));
-  ASSERT_IDENTICAL(1_s / pow(cos(x), 2_s), tan(x).Diff(x));
+  ASSERT_IDENTICAL(-2 * sin(2 * x + y), cos(2 * x + y).Diff(x));
+  ASSERT_IDENTICAL(1 / pow(cos(x), 2), tan(x).Diff(x));
   ASSERT_IDENTICAL(-y / (x * x) / (cos(y / x) * cos(y / x)), tan(y / x).Diff(x));
 }
 
@@ -112,6 +113,27 @@ TEST(DerivativesTest, TestInverseTrig) {
   ASSERT_IDENTICAL(3_s * (x * x) / (pow(x, 6) + 1), atan(pow(x, 3)).Diff(x));
 }
 
+TEST(DerivativesTest, TestAtan2) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  const Expr z{"z"};
+  ASSERT_IDENTICAL(0, atan2(y, x).Diff(z));
+  ASSERT_IDENTICAL(x / (x * x + y * y), atan2(y, x).Diff(y));
+  ASSERT_IDENTICAL(-y / (x * x + y * y), atan2(y, x).Diff(x));
+  ASSERT_IDENTICAL(-y / (pow(log(x), 2) + y * y) * (1 / x), atan2(y, log(x)).Diff(x));
+  ASSERT_IDENTICAL(5 * x * -sin(y) / (pow(5 * x, 2) + pow(cos(y), 2)),
+                   atan2(cos(y), 5 * x).Diff(y));
+  ASSERT_IDENTICAL(0, atan2(x, x).Diff(x));
+}
+
+TEST(DerivativesTest, TestAbs) {
+  const Expr x{"x"};
+  const Expr y{"y"};
+  ASSERT_IDENTICAL(0, abs(x).Diff(y));
+  ASSERT_IDENTICAL(y / abs(y), abs(y).Diff(y));
+  ASSERT_IDENTICAL(cos(x) * sin(x) / abs(sin(x)), abs(sin(x)).Diff(x));
+}
+
 TEST(DerivativesTest, TestMatrix) {
   // Matrix derivative should do element-wise differentiation.
   const Expr x{"x"};
@@ -128,6 +150,18 @@ TEST(DerivativesTest, TestRelational) {
   const auto [x, y] = Symbols("x", "y");
   ASSERT_THROW((x < y).Diff(x), TypeError);
   ASSERT_THROW((y == x).Diff(x), TypeError);
+}
+
+TEST(DerivativesTest, TestMaxMin) {
+  const auto [x, y, z] = Symbols("x", "y", "z");
+
+  ASSERT_IDENTICAL(0, max(x, y).Diff(z));
+  ASSERT_IDENTICAL(0, min(2 * x, y - 3).Diff(z));
+
+  ASSERT_IDENTICAL(where(x < y, 0, 1), max(x, y).Diff(x));
+  ASSERT_IDENTICAL(where(y < x, 0, 1), min(x, y).Diff(x));
+
+  ASSERT_IDENTICAL(where(cos(x) < sin(x), cos(x), -sin(x)), max(cos(x), sin(x)).Diff(x));
 }
 
 }  // namespace math

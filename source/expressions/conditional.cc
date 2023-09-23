@@ -19,12 +19,17 @@ class ConditionalSimplificationVisitor {
   Expr ApplyConditional(const Conditional& cond) {
     if (cond.Condition().IsIdenticalTo(condition_)) {
       if (value_) {
-        return Visit(cond.IfBranch(), *this, cond.IfBranch());
+        return Visit(cond.IfBranch(),
+                     [this, &cond](const auto& x) { return this->operator()(x, cond.IfBranch()); });
       } else {
-        return Visit(cond.ElseBranch(), *this, cond.ElseBranch());
+        return Visit(cond.ElseBranch(), [this, &cond](const auto& x) {
+          return this->operator()(x, cond.ElseBranch());
+        });
       }
     }
-    return MapChildren(cond, [this](const Expr& x) { return Visit(x, *this, x); });
+    return MapChildren(cond, [this](const Expr& x) {
+      return Visit(x, [this, &x](const auto& y) { return operator()(y, x); });
+    });
   }
 
   template <typename T>
@@ -34,7 +39,9 @@ class ConditionalSimplificationVisitor {
     } else if constexpr (T::IsLeafNode) {
       return expr;
     } else {
-      return MapChildren(thing, [this](const Expr& x) { return Visit(x, *this, x); });
+      return MapChildren(thing, [this](const Expr& x) {
+        return Visit(x, [this, &x](const auto& y) { return operator()(y, x); });
+      });
     }
   }
 
@@ -51,11 +58,16 @@ Expr Conditional::Create(math::Expr condition, math::Expr if_branch, math::Expr 
   }
 
   // Check for redundancies and eliminate them:
-  Expr if_branch_simplified =
-      Visit(if_branch, ConditionalSimplificationVisitor{condition, true}, if_branch);
-  Expr else_branch_simplified =
-      Visit(else_branch, ConditionalSimplificationVisitor{condition, false}, else_branch);
+  Expr if_branch_simplified = Visit(if_branch, [&](const auto& x) {
+    return ConditionalSimplificationVisitor{condition, true}(x, if_branch);
+  });
+  Expr else_branch_simplified = Visit(else_branch, [&](const auto& x) {
+    return ConditionalSimplificationVisitor{condition, false}(x, else_branch);
+  });
 
+  if (if_branch_simplified.IsIdenticalTo(else_branch_simplified)) {
+    return std::move(if_branch_simplified);
+  }
   return MakeExpr<Conditional>(std::move(condition), std::move(if_branch_simplified),
                                std::move(else_branch_simplified));
 }

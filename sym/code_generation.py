@@ -122,18 +122,15 @@ class PythonCodeGenerator(CodeGenerator):
         return result
 
     def format_Call(self, fmt: CustomStringFormatter, x: codegen.Call) -> str:
-        if isinstance(x.function, codegen.BinaryFunctionName):
-            if x.function == codegen.BinaryFunctionName.Pow:
-                return fmt.format('np.power({}, {})', x.args[0], x.args[1])
-        elif isinstance(x.function, codegen.UnaryFunctionName):
-            funcs = {
-                codegen.UnaryFunctionName.Cos: "np.cos", codegen.UnaryFunctionName.Sin: "np.sin",
-                codegen.UnaryFunctionName.Log: "np.log", codegen.UnaryFunctionName.Sqrt: "np.sqrt",
-                codegen.UnaryFunctionName.Tan: "np.tan"
-            }
-            return fmt.format("{}({})", funcs[x.function], x.args[0])
-
-        raise KeyError(f'Unsupported function name: {x.function}')
+        funcs = {
+            codegen.BuiltInFunctionName.Cos: "np.cos",
+            codegen.BuiltInFunctionName.Sin: "np.sin",
+            codegen.BuiltInFunctionName.Log: "np.log",
+            codegen.BuiltInFunctionName.Sqrt: "np.sqrt",
+            codegen.BuiltInFunctionName.Tan: "np.tan",
+            codegen.BuiltInFunctionName.Pow: "np.power",
+        }
+        return fmt.format("{}({})", funcs[x.function], ', '.join(fmt.format_ast(v) for v in x.args))
 
     def format_Cast(self, fmt: CustomStringFormatter, x: codegen.Cast) -> str:
         if x.destination_type == codegen.NumericType.Bool:

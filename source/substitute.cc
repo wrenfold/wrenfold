@@ -45,8 +45,10 @@ struct SubstituteVisitorBase {
             return partial_sub;
           } else {
             // This type does have children, so apply to all of them:
-            return MapChildren(arg, [this](const Expr& child) -> Expr {
-              return Visit(child, static_cast<Derived&>(*this), child);
+            Derived& as_derived = static_cast<Derived&>(*this);
+            return MapChildren(arg, [&as_derived](const Expr& child) -> Expr {
+              return Visit(child,
+                           [&as_derived, &child](const auto& x) { return as_derived(x, child); });
             });
           }
         });
@@ -57,8 +59,9 @@ struct SubstituteVisitorBase {
       return input_expression;
     } else {
       // Otherwise we substitute in every child:
-      return MapChildren(other, [this](const Expr& child) {
-        return Visit(child, static_cast<Derived&>(*this), child);
+      Derived& as_derived = static_cast<Derived&>(*this);
+      return MapChildren(other, [&](const Expr& child) {
+        return Visit(child, [&](const auto& x) { return as_derived(x, child); });
       });
     }
   }
@@ -284,6 +287,23 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
   }
 };
 
+template <typename T>
+struct SubVisitorType {
+  using Type = SubstituteVisitor<T>;
+};
+template <>
+struct SubVisitorType<Addition> {
+  using Type = SubstituteAddVisitor;
+};
+template <>
+struct SubVisitorType<Multiplication> {
+  using Type = SubstituteMulVisitor;
+};
+template <>
+struct SubVisitorType<Power> {
+  using Type = SubstitutePowVisitor;
+};
+
 Expr Substitute(const Expr& input, const Expr& target, const Expr& replacement) {
   // Visit `target` to determine the underlying type, then visit the input w/ SubstituteVisitor:
   return Visit(target, [&](const auto& target) -> Expr {
@@ -292,14 +312,11 @@ Expr Substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
                   std::is_same_v<T, Rational>) {
       throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
-    } else if constexpr (std::is_same_v<T, Addition>) {
-      return Visit(input, SubstituteAddVisitor{target, replacement}, input);
-    } else if constexpr (std::is_same_v<T, Multiplication>) {
-      return Visit(input, SubstituteMulVisitor{target, replacement}, input);
-    } else if constexpr (std::is_same_v<T, Power>) {
-      return Visit(input, SubstitutePowVisitor{target, replacement}, input);
     } else {
-      return Visit(input, SubstituteVisitor<T>{target, replacement}, input);
+      using VisitorType = typename SubVisitorType<T>::Type;
+      return Visit(input, [&target, &replacement, &input](const auto& x) {
+        return VisitorType{target, replacement}(x, input);
+      });
     }
   });
 }

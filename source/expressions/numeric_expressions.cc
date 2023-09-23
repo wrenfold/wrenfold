@@ -16,12 +16,4 @@ Expr Integer::Create(IntegralType x) {
   return MakeExpr<Integer>(x);
 }
 
-Expr Rational::Create(Rational r) {
-  // Make sure this isn't actually an integer:
-  if (auto as_int = r.TryConvertToInteger(); as_int) {
-    return Integer::Create(as_int->GetValue());
-  }
-  return MakeExpr<Rational>(r);
-}
-
 }  // namespace math

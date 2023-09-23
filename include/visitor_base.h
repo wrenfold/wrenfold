@@ -19,6 +19,7 @@ using ExpressionTypeList = TypeList<
     class Conditional,
     class Constant,
     class Float,
+    class Function,
     class FunctionArgument,
     class Infinity,
     class Integer,
@@ -27,7 +28,6 @@ using ExpressionTypeList = TypeList<
     class Power,
     class Rational,
     class Relational,
-    class UnaryFunction,
     class Variable
     >;
 // clang-format on

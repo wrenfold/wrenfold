@@ -255,6 +255,7 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_IDENTICAL(x > y, x > y);
   ASSERT_IDENTICAL(x > y, y < x);
   ASSERT_IDENTICAL(z <= x, x >= z);
+  ASSERT_IDENTICAL(x == y, y == x);
   ASSERT_NOT_IDENTICAL(x < y, x <= y);
 
   // Simplification of numerical cases:
@@ -326,6 +327,9 @@ TEST(ScalarOperationsTest, TestConditional) {
   ASSERT_IDENTICAL(z, where(Constants::False, x, z));
   ASSERT_IDENTICAL(where(x < 0, cos(x), log(z)),
                    where(x < 0, where(x < 0, cos(x), sin(x)), log(z)));
+
+  // both branches are identical anyway:
+  ASSERT_IDENTICAL(abs(x) + z * 5, where(x - y < z, abs(x) + z * 5, abs(x) + z * 5));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {

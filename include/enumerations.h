@@ -29,7 +29,8 @@ enum class RelativeOrder : int {
 
 // Types of built-in unary functions.
 // clang-format off
-enum class UnaryFunctionName {
+enum class BuiltInFunctionName {
+  // Unary functions.
   Cos = 0,
   Sin,
   Tan,
@@ -38,14 +39,9 @@ enum class UnaryFunctionName {
   ArcTan,
   Log,
   Sqrt,
-  // Just to get the length of the enum:
-  ENUM_SIZE,
-};
-// clang-format on
-
-// clang-format off
-enum class BinaryFunctionName {
-  Mod,
+  Abs,
+  // Binary functions
+  Arctan2,
   Pow,
   // Just to get the length of the enum:
   ENUM_SIZE,
@@ -92,39 +88,32 @@ constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
 }
 
 // Convert unary function enum to string.
-constexpr std::string_view ToString(const UnaryFunctionName name) {
+constexpr std::string_view ToString(const BuiltInFunctionName name) {
   switch (name) {
-    case UnaryFunctionName::Cos:
+    case BuiltInFunctionName::Cos:
       return "cos";
-    case UnaryFunctionName::Sin:
+    case BuiltInFunctionName::Sin:
       return "sin";
-    case UnaryFunctionName::Tan:
+    case BuiltInFunctionName::Tan:
       return "tan";
-    case UnaryFunctionName::ArcCos:
+    case BuiltInFunctionName::ArcCos:
       return "acos";
-    case UnaryFunctionName::ArcSin:
+    case BuiltInFunctionName::ArcSin:
       return "asin";
-    case UnaryFunctionName::ArcTan:
+    case BuiltInFunctionName::ArcTan:
       return "atan";
-    case UnaryFunctionName::Log:
+    case BuiltInFunctionName::Log:
       return "ln";
-    case UnaryFunctionName::Sqrt:
+    case BuiltInFunctionName::Sqrt:
       return "sqrt";
-    case UnaryFunctionName::ENUM_SIZE:
-      return "<NOT A VALID ENUM VALUE>";
-  }
-  return "<NOT A VALID ENUM VALUE>";
-}
-
-// Convert binary function enum to string.
-constexpr std::string_view ToString(const BinaryFunctionName name) {
-  switch (name) {
-    case BinaryFunctionName::Mod:
-      return "mod";
-    case BinaryFunctionName::Pow:
+    case BuiltInFunctionName::Abs:
+      return "abs";
+    case BuiltInFunctionName::Arctan2:
+      return "atan2";
+    case BuiltInFunctionName::Pow:
       return "pow";
-    case BinaryFunctionName::ENUM_SIZE:
-      return "<NOT A VALID ENUM VALUE>";
+    default:
+      break;
   }
   return "<NOT A VALID ENUM VALUE>";
 }
@@ -154,6 +143,21 @@ constexpr std::string_view StringFromNumericType(const NumericType type) {
       return "Complex";
   }
   return "<NOT A VALID ENUM VALUE>";
+}
+
+// Convert `SymbolicConstants` to a floating point double.
+constexpr double DoubleFromSymbolicConstant(SymbolicConstants constant) {
+  switch (constant) {
+    case SymbolicConstants::Euler:
+      return M_E;
+    case SymbolicConstants::Pi:
+      return M_PI;
+    case SymbolicConstants::True:
+      return 1.0;
+    case SymbolicConstants::False:
+      return 0.0;
+  }
+  return std::numeric_limits<double>::quiet_NaN();
 }
 
 }  // namespace math

@@ -76,7 +76,7 @@ struct DetermineNumericTypeVisitor {
 
   constexpr NumericType operator()(const Relational&) const { return NumericType::Bool; }
 
-  constexpr NumericType operator()(const UnaryFunction&) const { return NumericType::Real; }
+  constexpr NumericType operator()(const Function&) const { return NumericType::Real; }
 
   constexpr NumericType operator()(const Variable&) const { return NumericType::Real; }
 };
@@ -364,8 +364,12 @@ struct IRFormVisitor {
     throw TypeError("Cannot evaluate this on a matrix.");
   }
 
-  ir::ValuePtr operator()(const UnaryFunction& func, const Expr&) {
-    return PushOperation(ir::CallUnaryFunc{func.Func()}, VisitExpr(func.Arg()));
+  ir::ValuePtr operator()(const Function& func, const Expr&) {
+    std::vector<ir::ValuePtr> args;
+    args.reserve(func.Arity());
+    std::transform(func.begin(), func.end(), std::back_inserter(args),
+                   [this](const Expr& expr) { return VisitExpr(expr); });
+    return PushOperation(ir::CallBuiltInFunction{func.Func()}, std::move(args));
   }
 
   ir::ValuePtr operator()(const Infinity&, const Expr&) const {
@@ -407,8 +411,9 @@ struct IRFormVisitor {
   }
 
   template <typename OpType, typename... Args>
-  ir::ValuePtr PushOperation(OpType&& op, Args... args) {
-    return CreateOperation(builder_.values_, builder_.GetBlock(), std::move(op), args...);
+  ir::ValuePtr PushOperation(OpType&& op, Args&&... args) {
+    return CreateOperation(builder_.values_, builder_.GetBlock(), std::move(op),
+                           std::forward<Args>(args)...);
   }
 
   // Check if a value has been computed. If not, convert it and return the result.
@@ -417,7 +422,7 @@ struct IRFormVisitor {
     if (it != computed_values_.end()) {
       return it->second;
     }
-    ir::ValuePtr val = Visit(expr, *this, expr);
+    ir::ValuePtr val = Visit(expr, [this, &expr](const auto& x) { return operator()(x, expr); });
     computed_values_.emplace(expr, val);
     return val;
   }

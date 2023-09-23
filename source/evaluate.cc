@@ -15,25 +15,15 @@ struct EvaluateVisitor {
   Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Eval); }
   Expr operator()(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Eval); }
   Expr operator()(const Multiplication& mul, const Expr&) const { return MapChildren(mul, &Eval); }
-  Expr operator()(const UnaryFunction& f, const Expr&) const { return MapChildren(f, &Eval); }
+  Expr operator()(const Function& f, const Expr&) const { return MapChildren(f, &Eval); }
   Expr operator()(const Power& pow, const Expr&) const { return MapChildren(pow, &Eval); }
   Expr operator()(const Conditional& cond, const Expr&) const { return MapChildren(cond, &Eval); }
 
   Expr operator()(const Constant& c, const Expr&) const {
-    switch (c.GetName()) {
-      case SymbolicConstants::Euler:
-        return Float::Create(std::exp(1.0));
-      case SymbolicConstants::Pi:
-        return Float::Create(M_PI);
-      case SymbolicConstants::True:
-        return Constants::One;
-      case SymbolicConstants::False:
-        return Constants::Zero;
-      default:
-        break;
-    }
-    ASSERT(false, "Invalid symbolic constant: {}", StringFromSymbolicConstant(c.GetName()));
-    return Float::Create(std::numeric_limits<double>::quiet_NaN());
+    const double value = DoubleFromSymbolicConstant(c.GetName());
+    ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
+           StringFromSymbolicConstant(c.GetName()));
+    return Float::Create(value);
   }
   Expr operator()(const Infinity&, const Expr&) const {
     throw TypeError("Cannot evaluate complex infinity to float.");
@@ -50,6 +40,8 @@ struct EvaluateVisitor {
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Eval(const Expr& arg) { return Visit(arg, EvaluateVisitor{}, arg); }
+Expr Eval(const Expr& arg) {
+  return Visit(arg, [&arg](const auto& x) { return EvaluateVisitor{}(x, arg); });
+}
 
 }  // namespace math

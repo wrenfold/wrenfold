@@ -110,7 +110,7 @@ struct MultiplyVisitor {
     if constexpr (std::is_same_v<T, Multiplication>) {
       for (const Expr& expr : arg) {
         // Recursively add multiplications:
-        Visit(expr, *this, expr);
+        Visit(expr, [this, &expr](const auto& x) { operator()(x, expr); });
       }
     } else if constexpr (std::is_same_v<T, Power>) {
       const Power& arg_pow = arg;
@@ -169,9 +169,11 @@ MultiplicationParts::MultiplicationParts(const Multiplication& mul, bool factori
 
 void MultiplicationParts::Multiply(const Expr& arg, bool factorize_integers) {
   if (factorize_integers) {
-    Visit(arg, MultiplyVisitor<true>{*this}, arg);
+    MultiplyVisitor<true> visitor{*this};
+    Visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
   } else {
-    Visit(arg, MultiplyVisitor<false>{*this}, arg);
+    MultiplyVisitor<false> visitor{*this};
+    Visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
   }
 }
 

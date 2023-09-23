@@ -10,13 +10,8 @@
 // This file is intended to contain common utility visitors.
 namespace math {
 
-template <typename Derived>
-class NAryOp;
-
 // Visitor that returns true for numerical values, or powers of numerical values.
 struct IsNumericVisitor {
-  using ReturnType = bool;
-
   template <typename T>
   bool operator()(const T& arg) const {
     if constexpr (ContainsTypeHelper<T, Float, Integer, Rational>) {
@@ -34,8 +29,6 @@ inline bool IsNumeric(const Expr& expr) { return Visit(expr, IsNumericVisitor{})
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
 struct IsNegativeNumberVisitor {
-  using ReturnType = bool;
-
   // Numerics < 0 are all negative.
   bool operator()(const Integer& num) const { return num.GetValue() < 0; }
   bool operator()(const Float& f) const { return f.GetValue() < 0; }

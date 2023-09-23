@@ -101,11 +101,13 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
       }
       ++counter;
     } else {
-      if (arg->Direction() == ast::ArgumentDirection::Input) {
-        formatter.Append("const ");
-      }
       const NumericType numeric_type = std::get<ast::ScalarType>(arg->Type()).GetNumericType();
-      formatter.Append(StringFromNumericCastType(numeric_type));
+      if (arg->Direction() == ast::ArgumentDirection::Input) {
+        formatter.Format("const {}", StringFromNumericCastType(numeric_type));
+      } else {
+        // Output reference for now.
+        formatter.Format("{}&", StringFromNumericCastType(numeric_type));
+      }
     }
 
     formatter.Format(" {}", arg->Name());
@@ -170,52 +172,38 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTem
   formatter.Format("{} = {};", x.left, View(x.right));
 }
 
-static inline std::string_view GetUnaryFunctionCall(const UnaryFunctionName name) {
+static inline std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName name) {
   switch (name) {
-    case UnaryFunctionName::Cos:
+    case BuiltInFunctionName::Cos:
       return "std::cos";
-    case UnaryFunctionName::Sin:
+    case BuiltInFunctionName::Sin:
       return "std::sin";
-    case UnaryFunctionName::Tan:
+    case BuiltInFunctionName::Tan:
       return "std::tan";
-    case UnaryFunctionName::ArcCos:
+    case BuiltInFunctionName::ArcCos:
       return "std::acos";
-    case UnaryFunctionName::ArcSin:
+    case BuiltInFunctionName::ArcSin:
       return "std::asin";
-    case UnaryFunctionName::ArcTan:
+    case BuiltInFunctionName::ArcTan:
       return "std::atan";
-    case UnaryFunctionName::Log:
+    case BuiltInFunctionName::Log:
       return "std::log";
-    case UnaryFunctionName::Sqrt:
+    case BuiltInFunctionName::Sqrt:
       return "std::sqrt";
-    default:
-      break;
-  }
-  return "<INVALID ENUM VALUE>";
-}
-
-static inline std::string_view GetBinaryFunctionCall(const BinaryFunctionName name) {
-  switch (name) {
-    case BinaryFunctionName::Mod:
-      return "std::fmod";
-    case BinaryFunctionName::Pow:
+    case BuiltInFunctionName::Abs:
+      return "std::abs";
+    case BuiltInFunctionName::Arctan2:
+      return "std::atan2";
+    case BuiltInFunctionName::Pow:
       return "std::pow";
-    default:
+    case BuiltInFunctionName::ENUM_SIZE:
       break;
   }
   return "<INVALID ENUM VALUE>";
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  if (std::holds_alternative<UnaryFunctionName>(x.function)) {
-    return formatter.Format("{}({})", GetUnaryFunctionCall(std::get<UnaryFunctionName>(x.function)),
-                            View(x.args.front()));
-  } else if (std::holds_alternative<BinaryFunctionName>(x.function)) {
-    return formatter.Format("{}({}, {})",
-                            GetBinaryFunctionCall(std::get<BinaryFunctionName>(x.function)),
-                            View(x.args.front()), View(x.args.back()));
-  }
-  ASSERT(false, "Invalid function type. TODO: Implement me");
+  return formatter.Format("{}({})", GetBuiltInFunctionCall(x.function), Join(*this, ", ", x.args));
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {

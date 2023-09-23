@@ -1,8 +1,8 @@
 // Benchmark addition + multiplication operations.
 #include <benchmark/benchmark.h>
-#include <fmt/format.h>
 
 #include "expression.h"
+#include "fmt_imports.h"
 
 namespace math {
 

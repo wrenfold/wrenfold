@@ -42,6 +42,9 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual('x ** (1 / 2)', repr(sym.sqrt(x)))
         self.assertEqual('3 ** (1 / 2) * 7 ** (1 / 2) * x ** (1 / 2) * (z ** -1) ** (1 / 2)',
                          repr(sym.sqrt(21 * x / z)))
+        self.assertEqual('atan2(y, x)', repr(sym.atan2(y, x)))
+        self.assertEqual('abs(x)', repr(sym.abs(x)))
+        self.assertEqual('where(x < 0, -x, cos(x))', repr(sym.where(x < 0, -x, sym.cos(x))))
 
     def test_basic_scalar_operations(self):
         """Test wrappers for addition, multiplication, subtraction, negation."""
@@ -85,6 +88,15 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.inf, sym.tan(arg=sym.pi / 2))
         self.assertIdentical(sym.inf, sym.tan(arg=-sym.pi / 2))
 
+        self.assertIdentical(sym.pi / 2, sym.atan2(1, 0))
+        self.assertIdentical(sym.pi / 4, sym.atan2(1, 1))
+
+    def test_abs(self):
+        """Test calling abs."""
+        x = sym.symbols("x")
+        self.assertIdentical(3, sym.abs(-3))
+        self.assertIdentical(sym.abs(x), sym.abs(sym.abs(x)))
+
     def test_distribute(self):
         """Test calling distribute on scalar expressions."""
         a, b, c, d, e, f = sym.symbols('a, b, c, d, e, f')
@@ -113,6 +125,33 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(1 / sym.cos(x) ** 2, sym.tan(x).diff(x))
 
         self.assertIdentical(1 / x, sym.log(y * x).diff(x))
+
+        self.assertIdentical(-y / (x ** 2 + y ** 2), sym.atan2(y, x).diff(x))
+        self.assertIdentical(2 * x / (x ** 2 + 4 * y ** 2), sym.atan2(2 * y, x).diff(y))
+
+        # Differentiate conditionals:
+        self.assertIdentical(
+            sym.where(x > 0, 5 * sym.cos(5 * x), 0),
+            sym.where(x > 0, sym.sin(5 * x), y + 5).diff(x))
+
+    def test_relational(self):
+        """Test creating relational expressions."""
+        x, y, z = sym.symbols('x, y, z')
+        self.assertIdentical(x < y, y > x)
+        self.assertIdentical(z > 0, 0 < z)
+        self.assertIdentical(x >= 0.0, 0.0 <= x)
+        self.assertIdentical(x == y, y == x)
+        self.assertNotIdentical(x == z, x == y)
+        self.assertIdentical(sym.true, sym.Expr(1) > 0)
+        self.assertIdentical(sym.true, sym.pi > sym.euler)
+
+    def test_conditionals(self):
+        """Test creating conditional logic."""
+        x, y, z = sym.symbols('x, y, z')
+        self.assertIdentical(sym.where(x < y, y, x), sym.max(x, y))
+        self.assertIdentical(sym.where(y < x, y, x), sym.min(x, y))
+        self.assertIdentical(x, sym.where(0 < sym.Expr(1), x, y))
+        self.assertIdentical(y - 3, sym.where(sym.pi >= sym.euler, y - 3, x * 5))
 
     def test_subs(self):
         """Test calling subs() on expressions."""

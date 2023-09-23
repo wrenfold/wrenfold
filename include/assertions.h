@@ -2,16 +2,7 @@
 #pragma once
 #include "error_types.h"
 
-#ifdef _MSC_VER
-// Silence some warnings that libfmt can trigger w/ Microsoft compiler.
-#pragma warning(push)
-#pragma warning(disable : 4583)
-#pragma warning(disable : 4582)
-#endif  // _MSC_VER
-#include <fmt/format.h>
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif  // _MSC_VER
+#include "fmt_imports.h"
 
 namespace math {
 

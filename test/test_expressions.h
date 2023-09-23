@@ -37,4 +37,14 @@ inline Expr ExclusiveOr(Expr x, Expr y) {
   return where(cond_x, where(cond_y, 0, 1), where(cond_y, 1, 0));
 }
 
+// A handwritten signum implemented with conditionals and abs().
+// Not very useful, but we use it as a unit test case.
+inline Expr HandwrittenSignum(Expr x) { return where(x == 0, 0, x / abs(x)); }
+
+// Arc-tangent w/ derivatives.
+inline auto Atan2WithDerivatives(Expr y, Expr x) {
+  Expr f = atan2(y, x);
+  return std::make_tuple(ReturnValue(f), OutputArg("D_y", f.Diff(y)), OutputArg("D_x", f.Diff(x)));
+}
+
 }  // namespace math

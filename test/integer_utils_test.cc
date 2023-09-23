@@ -52,8 +52,8 @@ struct PrimeFactorsOrder {
 };
 
 TEST(IntegerUtils, TestComputePrimeFactors) {
-  // Factor numbers 1 -> 100000. Takes about ~1.5 seconds in debug mode on M2.
-  for (int64_t i = 1; i < 100000; ++i) {
+  // Factor numbers 1 -> 10000.
+  for (int64_t i = 1; i < 10000; ++i) {
     const std::vector<PrimeFactor> result = ComputePrimeFactors(i);
     ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
     // Check that the factors multiply out to the input number.

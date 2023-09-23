@@ -91,21 +91,6 @@ struct VisitorWithCapturedResult final
       result{};
 };
 
-// Create a tuple that will capture `args` so it can be moved into a lambda.
-// - R-value references are converted to values and moved.
-// - Values will be copied.
-// - Other references will be passed by reference into the tuple.
-template <typename... CapturedArgs>
-auto MakeArgCaptureTuple(CapturedArgs&&... args) {
-  return std::tuple<std::conditional_t<std::is_rvalue_reference_v<CapturedArgs>,
-                                       std::decay_t<CapturedArgs>, CapturedArgs>...>{
-      std::forward<CapturedArgs>(args)...};
-}
-
-static_assert(std::is_same_v<std::tuple<int, std::string>,
-                             decltype(MakeArgCaptureTuple(5, std::string("test")))>);
-static_assert(std::is_same_v<std::tuple<int, const float&>,
-                             decltype(MakeArgCaptureTuple(5, std::declval<const float&>()))>);
 }  // namespace detail
 
 // Accepts a visitor struct or lambda and applies it to the provided expression.
@@ -125,22 +110,6 @@ auto Visit(const Expr& expr, VisitorType&& visitor) {
   if constexpr (!std::is_same_v<ReturnTypeOrVoid, detail::Void>) {
     return capture_visitor.TakeResult();
   }
-}
-
-// Visit w/ captured arguments. The operator() on the visitor is expected to take the concrete
-// type contained in `expr`, plus all the forwarded args from `captured_args`.
-template <typename VisitorType, typename... CapturedArgs>
-auto Visit(const Expr& expr, VisitorType&& visitor, CapturedArgs&&... captured_args) {
-  // Capture the arguments in a tuple (r-values args are moved into values).
-  // Based on: https://stackoverflow.com/questions/63414770
-  auto arg_tuple = detail::MakeArgCaptureTuple(std::forward<CapturedArgs>(captured_args)...);
-  return Visit(expr, [&visitor, arg_tuple = std::move(arg_tuple)](const auto& concrete) mutable {
-    return std::apply(
-        [&visitor, &concrete](auto&&... args) {
-          return visitor(concrete, std::forward<decltype(args)>(args)...);
-        },
-        std::move(arg_tuple));
-  });
 }
 
 // Visit two expressions with a struct that accepts two concrete types in its operator()(...)

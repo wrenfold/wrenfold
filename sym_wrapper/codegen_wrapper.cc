@@ -77,22 +77,21 @@ PYBIND11_MODULE(pycodegen, m) {
   py::class_<ExpressionGroup>(m, "ExpressionGroup")
       .def(py::init<std::vector<Expr>, OutputKey>(), py::arg("expressions"), py::arg("output_key"));
 
-  py::enum_<UnaryFunctionName>(m, "UnaryFunctionName")
-      .value("Cos", UnaryFunctionName::Cos)
-      .value("Sin", UnaryFunctionName::Sin)
-      .value("Tan", UnaryFunctionName::Tan)
-      .value("ArcCos", UnaryFunctionName::ArcCos)
-      .value("ArcSin", UnaryFunctionName::ArcSin)
-      .value("ArcTan", UnaryFunctionName::ArcTan)
-      .value("Log", UnaryFunctionName::Log)
-      .value("Sqrt", UnaryFunctionName::Sqrt)
+  py::enum_<BuiltInFunctionName>(m, "BuiltInFunctionName")
+      .value("Cos", BuiltInFunctionName::Cos)
+      .value("Sin", BuiltInFunctionName::Sin)
+      .value("Tan", BuiltInFunctionName::Tan)
+      .value("ArcCos", BuiltInFunctionName::ArcCos)
+      .value("ArcSin", BuiltInFunctionName::ArcSin)
+      .value("ArcTan", BuiltInFunctionName::ArcTan)
+      .value("Log", BuiltInFunctionName::Log)
+      .value("Sqrt", BuiltInFunctionName::Sqrt)
+      .value("Abs", BuiltInFunctionName::Abs)
+      .value("Arctan2", BuiltInFunctionName::Arctan2)
+      .value("Pow", BuiltInFunctionName::Pow)
       .def(
-          "to_string", [](UnaryFunctionName name) { return ToString(name); },
+          "to_string", [](BuiltInFunctionName name) { return ToString(name); },
           py::doc("Convert to string."));
-
-  py::enum_<BinaryFunctionName>(m, "BinaryFunctionName")
-      .value("Mod", BinaryFunctionName::Mod)
-      .value("Pow", BinaryFunctionName::Pow);
 
   py::enum_<NumericType>(m, "NumericType")
       .value("Bool", NumericType::Bool)

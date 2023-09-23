@@ -2,6 +2,7 @@
 
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
+#include "integer_utils.h"
 #include "matrix_expression.h"
 
 namespace math {
@@ -15,7 +16,7 @@ Expr log(const Expr& x) {
     return Constants::Zero;
   }
   // TODO: Check for negative values.
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Log, x);
+  return MakeExpr<Function>(BuiltInFunctionName::Log, x);
 }
 
 Expr pow(const Expr& x, const Expr& y) { return Power::Create(x, y); }
@@ -24,7 +25,13 @@ template <typename Callable>
 std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
   if (const Float* const f = CastPtr<Float>(arg); f != nullptr) {
     const auto value = f->GetValue();
-    return Float::Create(method(value));
+    const auto result = method(value);
+    if (result == value) {
+      // Don't allocate if no change occurred.
+      return arg;
+    } else {
+      return Float::Create(static_cast<Float::FloatType>(result));
+    }
   }
   return {};
 }
@@ -52,8 +59,8 @@ Expr cos(const Expr& arg) {
       } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
         return Constants::Zero;
       }
-      return MakeExpr<UnaryFunction>(UnaryFunctionName::Cos,
-                                     Rational::Create(r_mod_pi) * Constants::Pi);
+      return MakeExpr<Function>(BuiltInFunctionName::Cos,
+                                Rational::Create(r_mod_pi) * Constants::Pi);
     }
   } else if (IsZero(coeff)) {
     return Constants::One;
@@ -70,7 +77,7 @@ Expr cos(const Expr& arg) {
     return *result;
   }
   // TODO: Check for phase offsets.
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Cos, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::Cos, arg);
 }
 
 Expr sin(const Expr& arg) {
@@ -86,8 +93,8 @@ Expr sin(const Expr& arg) {
       } else if (r_mod_pi == Rational{-1, 2}) {
         return Constants::NegativeOne;
       }
-      return MakeExpr<UnaryFunction>(UnaryFunctionName::Sin,
-                                     Rational::Create(r_mod_pi) * Constants::Pi);
+      return MakeExpr<Function>(BuiltInFunctionName::Sin,
+                                Rational::Create(r_mod_pi) * Constants::Pi);
     }
   } else if (IsZero(arg)) {
     return Constants::Zero;
@@ -99,7 +106,7 @@ Expr sin(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Sin, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::Sin, arg);
 }
 
 inline Rational ConvertToTanRange(const Rational& r) {
@@ -130,8 +137,8 @@ Expr tan(const Expr& arg) {
         // Infinity, as in the projectively scaled real numbers.
         return Constants::Infinity;
       }
-      return MakeExpr<UnaryFunction>(UnaryFunctionName::Tan,
-                                     Rational::Create(r_mod_half_pi) * PiOverTwo());
+      return MakeExpr<Function>(BuiltInFunctionName::Tan,
+                                Rational::Create(r_mod_half_pi) * PiOverTwo());
     }
   } else if (IsZero(arg)) {
     return Constants::Zero;
@@ -143,7 +150,7 @@ Expr tan(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::Tan, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::Tan, arg);
 }
 
 // TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
@@ -156,7 +163,7 @@ Expr acos(const Expr& arg) {
   } else if (IsNegativeOne(arg)) {
     return Constants::Pi;
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcCos, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::ArcCos, arg);
 }
 
 Expr asin(const Expr& arg) {
@@ -169,7 +176,7 @@ Expr asin(const Expr& arg) {
   } else if (IsNegativeNumber(arg)) {
     return -asin(-arg);
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcSin, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::ArcSin, arg);
 }
 
 inline Expr PiOverFour() {
@@ -187,13 +194,95 @@ Expr atan(const Expr& arg) {
   } else if (IsNegativeNumber(arg)) {
     return -atan(-arg);
   }
-  return MakeExpr<UnaryFunction>(UnaryFunctionName::ArcTan, arg);
+  return MakeExpr<Function>(BuiltInFunctionName::ArcTan, arg);
+}
+
+// Support some very basic simplifications for numerical inputs.
+struct Atan2Visitor {
+  std::optional<Expr> operator()(const Float& y, const Float& x) const {
+    return Float::Create(std::atan2(y.GetValue(), x.GetValue()));
+  }
+
+  std::optional<Expr> operator()(const Integer& y, const Integer& x) const {
+    static const Expr pi_over_two = Constants::Pi / 2;
+    static const Expr neg_pi_over_two = -pi_over_two;
+
+    if (y.GetValue() == 0 && x.GetValue() == 1) {
+      return Constants::Zero;
+    } else if (y.GetValue() == 1 && x.GetValue() == 0) {
+      return pi_over_two;
+    } else if (y.GetValue() == 0 && x.GetValue() == -1) {
+      return Constants::Pi;
+    } else if (y.GetValue() == -1 && x.GetValue() == 0) {
+      return neg_pi_over_two;
+    } else if (y.Abs() == x.Abs() && x.GetValue() != 0) {
+      static const std::array<Expr, 4> quadrant_solutions = {
+          Constants::Pi / 4,
+          3 * Constants::Pi / 4,
+          -Constants::Pi / 4,
+          -3 * Constants::Pi / 4,
+      };
+      return quadrant_solutions[(y.GetValue() < 0) * 2 + (x.GetValue() < 0)];
+    }
+    return std::nullopt;
+  }
+
+  template <typename A, typename B>
+  std::optional<Expr> operator()(const A&, const B&) const {
+    return std::nullopt;
+  }
+};
+
+Expr atan2(const Expr& y, const Expr& x) {
+  std::optional<Expr> maybe_simplified = VisitBinary(y, x, Atan2Visitor{});
+  if (maybe_simplified) {
+    return std::move(*maybe_simplified);
+  }
+  // TODO: Implement simplifications for atan2.
+  return MakeExpr<Function>(BuiltInFunctionName::Arctan2, y, x);
 }
 
 Expr sqrt(const Expr& arg) {
   static const Expr one_half = Constants::One / 2_s;
   return Power::Create(arg, one_half);
 }
+
+Expr abs(const Expr& arg) {
+  if (const Function* func = CastPtr<Function>(arg);
+      func != nullptr && func->Func() == BuiltInFunctionName::Abs) {
+    // abs(abs(x)) --> abs(x)
+    return arg;
+  }
+  if (const std::optional<Rational> r = TryCastToRational(arg); r.has_value()) {
+    // If the inner argument is a negative integer or rational, just flip it.
+    if (r->Numerator() >= 0) {
+      ASSERT_GREATER(r->Denominator(), 0);
+      return arg;
+    }
+    return Rational::Create(-r->Numerator(), r->Denominator());
+  }
+  // Evaluate floats immediately:
+  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::abs(x); });
+      result.has_value()) {
+    return *result;
+  }
+  if (const Constant* constant = CastPtr<Constant>(arg); constant != nullptr) {
+    const auto as_double = DoubleFromSymbolicConstant(constant->GetName());
+    if (CompareIntFloat(0, as_double).value() != RelativeOrder::GreaterThan) {
+      // Constant that is already positive.
+      return arg;
+    }
+  }
+  // TODO: Add simplifications for real inputs, like powers.
+  // TODO: Add simplifications for multiplications.
+  return MakeExpr<Function>(BuiltInFunctionName::Abs, arg);
+}
+
+// Max and min are implemented as conditionals. That way:
+// - The same conditionals can be combined in the output code.
+// - When differentiating max/min, the selected derivative matches the selected argument.
+Expr max(const Expr& a, const Expr& b) { return where(a < b, b, a); }
+Expr min(const Expr& a, const Expr& b) { return where(b < a, b, a); }
 
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
   const Matrix* mat_true = CastPtr<Matrix>(if_true);

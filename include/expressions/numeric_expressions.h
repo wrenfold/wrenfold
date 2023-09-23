@@ -99,7 +99,12 @@ class Rational {
   bool IsNormalized() const { return std::abs(n_) < d_; }
 
   // Create a rational expression and simplify if possible.
-  static Expr Create(Rational r);
+  static Expr Create(Rational r) {
+    if (auto as_int = r.TryConvertToInteger(); as_int) {
+      return Integer::Create(as_int->GetValue());
+    }
+    return MakeExpr<Rational>(r);
+  }
 
   // Create a rational expression and simplify if possible.
   static Expr Create(IntegralType n, IntegralType d) { return Create(Rational{n, d}); }
