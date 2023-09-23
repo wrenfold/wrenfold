@@ -9,6 +9,7 @@
 #include "expression.h"
 #include "expressions/matrix.h"
 #include "expressions/numeric_expressions.h"
+#include "functions.h"
 #include "matrix_functions.h"
 #include "plain_formatter.h"
 
@@ -423,6 +424,14 @@ void WrapMatrixOperations(py::module_& m) {
         "Construct a matrix of symbols.");
 
   m.def("vec", &Vec, py::arg("m"), "Vectorize matrix in column-major order");
+
+  // Version of where() for matrices
+  m.def(
+      "where",
+      [](Expr condition, MatrixExpr if_true, MatrixExpr if_false) {
+        return MatrixExpr{where(condition, if_true.AsExpr(), if_false.AsExpr())};
+      },
+      "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
 }
 
 }  // namespace math

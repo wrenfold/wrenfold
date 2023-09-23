@@ -300,6 +300,16 @@ class MatrixWrapperTest(MathTestBase):
             sym.matrix([(0, b - c), (c - sym.sin(y), z)]),
             m.subs(a, -x * 2).subs(d + sym.log(d), z))
 
+    def test_matrix_conditional(self):
+        """Test creating a matrix conditional."""
+        a, b, c, d, x, y, z = sym.symbols('a, b, c, d, x, y, z')
+
+        u = sym.vector(2 * a, b - a, c * d)
+        v = sym.vector(x * y, 2, d * z)
+        self.assertIdentical(u, sym.where(sym.Expr(1) > 0, u, v))
+        self.assertRaises(TypeError, lambda: sym.where(x < 0, u, d + c))
+        self.assertRaises(sym.DimensionError, lambda: sym.where(x > 0, u, u.transpose()))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
