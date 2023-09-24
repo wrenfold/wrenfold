@@ -1,18 +1,15 @@
 // Copyright 2023 Gareth Cross
-#include <filesystem>
 #include <fstream>
 
 #include "code_gen_helpers.h"
-#include "code_generation/cpp_code_generator.h"
+#include "code_generation/rust_code_generator.h"
 #include "test_expressions.h"
 
 int main() {
   using namespace math;
-  std::string code = "// Machine generated code.\n#include <cmath>\n\n#include <span.h>\n\n";
+  std::string code = "// Machine generated code.\n\n";
 
-  code += "namespace gen {\n\n";
-
-  CppCodeGenerator gen{};
+  RustCodeGenerator gen{};
   GenerateFunc(gen, code, &SimpleMultiplyAdd, "simple_multiply_add", "x", "y", "z");
   GenerateFunc(
       gen, code,
@@ -28,9 +25,7 @@ int main() {
   GenerateFunc(gen, code, &HandwrittenAbs, "handwritten_abs", Arg("x"));
   GenerateFunc(gen, code, &Atan2WithDerivatives, "atan2_with_derivatives", Arg("y"), Arg("x"));
 
-  code += "} // namespace gen";
-
-  std::ofstream output{"generated.h"};
+  std::ofstream output{"generated.rs"};
   output << code;
   output.flush();
   return 0;

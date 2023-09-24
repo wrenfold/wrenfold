@@ -17,7 +17,11 @@ class CodeFormatter {
   // Format into internal string buffer.
   template <typename... Args>
   void Format(const std::string_view fmt, Args&&... args) {
-    fmt::format_to(std::back_inserter(output_), fmt, std::forward<Args>(args)...);
+    if constexpr (sizeof...(args) > 0) {
+      fmt::format_to(std::back_inserter(output_), fmt, std::forward<Args>(args)...);
+    } else {
+      output_.append(fmt);
+    }
   }
 
   // Append a plain string.
@@ -41,18 +45,18 @@ class CodeFormatter {
   // callable will be intended by `indent` spaces and wrapped in `open` and `close`.
   template <typename Callable>
   void WithIndentation(const int indent, const std::string_view open, const std::string_view close,
-                       Callable callable) {
+                       Callable&& callable) {
     ASSERT_GREATER_OR_EQ(indent, 0);
     // Move output_ -> appended
     std::string appended{};
     std::swap(output_, appended);
-    Append(open);
+    Format(open);
     callable();
     // Restore appended -> output_
     std::swap(appended, output_);
     // Copy appended into output_, adding indentation as required
     AppendWithIndentation(appended, indent);
-    Append(close);
+    Format(close);
   }
 
   const std::string& GetOutput() const { return output_; }

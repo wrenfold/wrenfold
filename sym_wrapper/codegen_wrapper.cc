@@ -265,8 +265,11 @@ PYBIND11_MODULE(pycodegen, m) {
                              })
       .def("__repr__", &FormatAst<ast::Multiply>);
 
-  py::class_<ast::OutputExists>(m, "OutputExists")
-      .def_property_readonly("argument", [](const ast::OutputExists& b) { return b.argument; })
-      .def("__repr__", &FormatAst<ast::OutputExists>);
+  py::class_<ast::OptionalOutputBranch>(m, "OptionalOutputBranch")
+      .def_property_readonly("argument",
+                             [](const ast::OptionalOutputBranch& b) { return b.argument; })
+      .def_property_readonly("statements",
+                             [](const ast::OptionalOutputBranch& b) { return b.statements; })
+      .def("__repr__", &FormatAst<ast::OptionalOutputBranch>);
 
 }  // PYBIND11_MODULE

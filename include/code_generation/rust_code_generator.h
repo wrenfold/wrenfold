@@ -2,18 +2,13 @@
 #pragma once
 #include "code_formatter.h"
 
+#include "assertions.h"
+
 namespace math {
 
-class CppCodeGenerator {
+// Generate rust code.
+class RustCodeGenerator {
  public:
-  enum class TypeContext {
-    FunctionBody,
-    ReturnValue,
-    InputArgument,
-    OutputArgument,
-    OptionalOutputArgument,
-  };
-
   std::string Generate(const ast::FunctionDefinition& func) const;
 
   // Create a FmtView that can be passed to CodeFormatter. All args will be
@@ -21,13 +16,6 @@ class CppCodeGenerator {
   template <typename... Args>
   auto View(Args&&... args) const {
     return ::math::View(*this, std::forward<Args>(args)...);
-  }
-
-  void operator()(CodeFormatter& formatter, const ast::ScalarType&,
-                  const TypeContext context) const;
-
-  void operator()(CodeFormatter& formatter, const ast::Type& x, TypeContext context) const {
-    std::visit([&](const auto& type) { return operator()(formatter, type, context); }, x);
   }
 
   void operator()(CodeFormatter& formatter, const ast::Add& x) const;
@@ -49,17 +37,17 @@ class CppCodeGenerator {
   void operator()(CodeFormatter& formatter, const ast::Declaration& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::FloatConstant& x) const {
-    formatter.Format("{:.16}", x.value);
+    formatter.Format("{}f64", x.value);
   }
 
   void operator()(CodeFormatter& formatter, const ast::VariableRef& x) const {
-    formatter.Append(x.name);
+    formatter.Format(x.name);
   }
 
   void operator()(CodeFormatter& formatter, const ast::InputValue& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::IntegerConstant& x) const {
-    formatter.Format("{}", x.value);
+    formatter.Format("{}i64", x.value);
   }
 
   void operator()(CodeFormatter& formatter, const ast::Multiply& x) const;
@@ -79,13 +67,7 @@ class CppCodeGenerator {
     operator()(formatter, *var);
   }
 
-  // Format ptr to argument.
-  void operator()(CodeFormatter& formatter, const std::shared_ptr<const ast::Argument>& var) const {
-    ASSERT(var);
-    formatter.Append(var->Name());
-  }
-
- protected:
+ private:
   void FormatSignature(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
 };
 

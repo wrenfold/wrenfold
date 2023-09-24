@@ -144,7 +144,6 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) c
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter,
                                   const ast::AssignOutputArgument& assignment) const {
-  // For optional args, we need to de-reference to get the underlying Eigen::Ref
   const auto& dest_name = assignment.argument->Name();
   const ast::Type& type = assignment.argument->Type();
 
@@ -172,7 +171,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTem
   formatter.Format("{} = {};", x.left, View(x.right));
 }
 
-static inline std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName name) {
+static constexpr std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName name) {
   switch (name) {
     case BuiltInFunctionName::Cos:
       return "std::cos";
@@ -196,7 +195,7 @@ static inline std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName 
       return "std::atan2";
     case BuiltInFunctionName::Pow:
       return "std::pow";
-    case BuiltInFunctionName::ENUM_SIZE:
+    default:
       break;
   }
   return "<INVALID ENUM VALUE>";
@@ -243,10 +242,9 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
   if (!x.value) {
-    formatter.Format("{} {};", View(x.type, TypeContext::FunctionBody), x.name);
+    formatter.Format("{} {};", StringFromNumericCastType(x.type), x.name);
   } else {
-    formatter.Format("const {} {} = {};", View(x.type, TypeContext::FunctionBody), x.name,
-                     View(x.value));
+    formatter.Format("const {} {} = {};", StringFromNumericCastType(x.type), x.name, View(x.value));
   }
 }
 
@@ -265,9 +263,11 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply&
   formatter.Format("{} * {}", View(x.left), View(x.right));
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::OutputExists& x) const {
-  formatter.Format("static_cast<bool>({}{})", x.argument->IsMatrix() ? "_" : "",
+void CppCodeGenerator::operator()(CodeFormatter& formatter,
+                                  const ast::OptionalOutputBranch& x) const {
+  formatter.Format("if (static_cast<bool>({}{})) ", x.argument->IsMatrix() ? "_" : "",
                    x.argument->Name());
+  formatter.WithIndentation(2, "{\n", "\n}", [&] { formatter.Join(*this, "\n", x.statements); });
 }
 
 }  // namespace math
