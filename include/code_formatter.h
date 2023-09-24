@@ -13,14 +13,10 @@ struct FmtJoinView;
 class CodeFormatter {
  public:
   CodeFormatter() = default;
-  explicit CodeFormatter(int indent) : indentation_(indent) {
-    ASSERT_GREATER_OR_EQ(indentation_, 0);
-  }
 
   // Format into internal string buffer.
   template <typename... Args>
   void Format(const std::string_view fmt, Args&&... args) {
-    (SetFormatterPtr(std::forward<Args>(args)), ...);
     fmt::format_to(std::back_inserter(output_), fmt, std::forward<Args>(args)...);
   }
 
@@ -59,27 +55,9 @@ class CodeFormatter {
     Append(close);
   }
 
-  int GetIndentation() const { return indentation_; }
-
   const std::string& GetOutput() const { return output_; }
 
  private:
-  // Do nothing to most types.
-  template <typename T>
-  constexpr void SetFormatterPtr(T&&) const {}
-
-  // Modify FmtView to point at `this`.
-  template <typename UserFormatter, typename T>
-  void SetFormatterPtr(FmtView<UserFormatter, T>&& view) const {
-    view.code_formatter = this;
-  }
-
-  // Modify FmtView to point at `this`.
-  template <typename UserFormatter, typename T>
-  void SetFormatterPtr(FmtJoinView<UserFormatter, T>&& view) const {
-    view.code_formatter = this;
-  }
-
   void AppendWithIndentation(const std::string& appended, const int indentation) {
     for (auto it = appended.begin(); it != appended.end(); ++it) {
       output_.push_back(*it);
@@ -94,14 +72,12 @@ class CodeFormatter {
   // TODO: gcc/clang/msvc all allow ~24 bytes for small string. Could potentially
   // replace this w/ a custom type if we want more than that.
   std::string output_{};
-  int indentation_{0};
 };
 
 template <typename Formatter, typename... Args>
 struct FmtView<Formatter, std::tuple<Args...>> {
   Formatter formatter;
   std::tuple<Args...> tuple;
-  const class CodeFormatter* code_formatter{nullptr};
 };
 
 // Wrap an argument to fmt::formatter, such that the underlying argument will be
@@ -121,7 +97,6 @@ struct FmtJoinView {
   Formatter formatter;
   Container container;  //  Container, which may be a const lvalue reference.
   std::string_view separator;
-  const class CodeFormatter* code_formatter{nullptr};
 };
 
 template <typename Formatter, typename Container>
@@ -146,10 +121,7 @@ struct fmt::formatter<math::FmtView<Formatter, std::tuple<Args...>>> {
   template <typename FormatContext>
   auto format(const math::FmtView<Formatter, std::tuple<Args...>>& view, FormatContext& ctx) const
       -> decltype(ctx.out()) {
-    // Create a child formatter w/ the same indentation as the one that was used to create
-    // this view.
-    ASSERT(view.code_formatter);
-    math::CodeFormatter nested_formatter{view.code_formatter->GetIndentation()};
+    math::CodeFormatter nested_formatter{};
 
     // Invoke the user provided method w/ the nested formatter:
     std::apply(
@@ -171,9 +143,7 @@ struct fmt::formatter<math::FmtJoinView<Formatter, Container>> {
   template <typename FormatContext>
   auto format(const math::FmtJoinView<Formatter, Container>& view, FormatContext& ctx) const
       -> decltype(ctx.out()) {
-    // Create a child formatter w/ the same indentation.
-    ASSERT(view.code_formatter);
-    math::CodeFormatter nested_formatter{view.code_formatter->GetIndentation()};
+    math::CodeFormatter nested_formatter{};
     nested_formatter.Join(view.formatter, view.separator, view.container);
     const auto& result = nested_formatter.GetOutput();
     return std::copy(result.begin(), result.end(), ctx.out());
