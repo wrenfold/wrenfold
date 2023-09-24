@@ -6,8 +6,8 @@
 #include <cstdio>
 #include <iostream>
 
+#include "code_generation/cpp_code_generator.h"
 #include "code_generation/ir_builder.h"
-#include "cpp_code_generator.h"
 #include "function_evaluator.h"
 #include "type_annotations.h"
 

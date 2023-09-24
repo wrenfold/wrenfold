@@ -26,7 +26,7 @@ set(${LIBRARY_NAME}_SOURCES
     source/code_generation/ir_builder.cc
     source/code_generation/expr_from_ir.cc
     source/constants.cc
-    source/cpp_code_generator.cc
+    source/code_generation/cpp_code_generator.cc
     source/derivative.cc
     source/distribute.cc
     source/evaluate.cc
@@ -103,7 +103,7 @@ set(${LIBRARY_NAME}_HEADERS
     include/code_generation/ir_types.h
     include/common_visitors.h
     include/constants.h
-    include/cpp_code_generator.h
+    include/code_generation/cpp_code_generator.h
     include/enumerations.h
     include/error_types.h
     include/expression.h

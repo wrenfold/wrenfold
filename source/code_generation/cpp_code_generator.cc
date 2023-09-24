@@ -1,5 +1,5 @@
 // Copyright 2023 Gareth Cross
-#include "cpp_code_generator.h"
+#include "code_generation/cpp_code_generator.h"
 
 #include "code_generation/ast_formatters.h"
 
