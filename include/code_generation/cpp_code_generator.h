@@ -64,7 +64,7 @@ class CppCodeGenerator {
 
   void operator()(CodeFormatter& formatter, const ast::Multiply& x) const;
 
-  void operator()(CodeFormatter& formatter, const ast::OutputExists& x) const;
+  void operator()(CodeFormatter& formatter, const ast::OptionalOutputBranch& x) const;
 
   // Accept ast::Variant and delegate formatting of the stored type to our derived class.
   // Using enable_if here to prevent implicit conversion to the variant type.

@@ -2,7 +2,6 @@
 import collections
 import dataclasses
 import inspect
-import itertools
 import string
 import typing as T
 
@@ -15,7 +14,7 @@ AstVariantTuple = (codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArg
                    codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
                    codegen.ConstructReturnValue, codegen.Declaration, codegen.FloatConstant,
                    codegen.InputValue, codegen.IntegerConstant, codegen.Multiply,
-                   codegen.OutputExists, codegen.VariableRef, codegen.FunctionSignature)
+                   codegen.OptionalOutputBranch, codegen.VariableRef, codegen.FunctionSignature)
 
 AstTypeTuple = (codegen.ScalarType, codegen.MatrixType)
 
@@ -23,7 +22,7 @@ AstVariantAnnotation = T.Union[codegen.Add, codegen.AssignTemporary, codegen.Ass
                                codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
                                codegen.ConstructReturnValue, codegen.Declaration,
                                codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
-                               codegen.Multiply, codegen.OutputExists, codegen.VariableRef,]
+                               codegen.Multiply, codegen.OptionalOutputBranch, codegen.VariableRef,]
 
 
 class CustomStringFormatter(string.Formatter):
@@ -141,6 +140,8 @@ class PythonCodeGenerator(CodeGenerator):
             type_name = 'float'
         elif x.destination_type == codegen.NumericType.Complex:
             raise TypeError("Complex is not supported here")
+        else:
+            type_name = f'<INVALID ENUM VALUE: {x.destination_type}>'
         return fmt.format("{}({})", type_name, x.arg)
 
     def format_Compare(self, fmt: CustomStringFormatter, x: codegen.Compare) -> str:
@@ -205,9 +206,13 @@ class PythonCodeGenerator(CodeGenerator):
     def format_Multiply(self, fmt: CustomStringFormatter, x: codegen.Multiply) -> str:
         return fmt.format('{} * {}', x.left, x.right)
 
-    def format_OutputExists(self, fmt: CustomStringFormatter, x: codegen.OutputExists) -> str:
+    def format_OptionalOutputBranch(self, fmt: CustomStringFormatter,
+                                    x: codegen.OptionalOutputBranch) -> str:
         assert x.argument.is_optional, 'Argument must be optional'
-        return f'{x.argument.name} is not None'
+
+        result = fmt.format('if {} is not None:\n', x.argument.name) + fmt.indent('\n'.join(
+            fmt.format_ast(v) for v in x.statements))
+        return result
 
     def format_VariableRef(self, fmt: CustomStringFormatter, x: codegen.VariableRef) -> str:
         return x.name

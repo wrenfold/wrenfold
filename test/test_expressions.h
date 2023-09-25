@@ -28,7 +28,7 @@ inline auto VectorNorm3D(ta::StaticMatrix<3, 1> v) {
 }
 
 // Heaviside step function - a very simple conditional.
-inline Expr Heaviside(Expr x) { return where(x > 0, 1, 0); }
+inline Expr Heaviside(Expr x) { return where(x >= 0, 1, 0); }
 
 // Exclusive or on the conditions x > 0 and y > 0.
 inline Expr ExclusiveOr(Expr x, Expr y) {

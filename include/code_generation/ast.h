@@ -21,9 +21,9 @@ class ScalarType {
  public:
   explicit ScalarType(NumericType numeric_type) : numeric_type_(numeric_type) {}
 
-  std::size_t Dimension() const { return 1; }
+  constexpr std::size_t Dimension() const { return 1; }
 
-  NumericType GetNumericType() const { return numeric_type_; }
+  constexpr NumericType GetNumericType() const { return numeric_type_; }
 
  private:
   NumericType numeric_type_;
@@ -33,14 +33,14 @@ class MatrixType {
  public:
   MatrixType(index_t rows, index_t cols) : rows_(rows), cols_(cols) {}
 
-  std::size_t Dimension() const {
+  constexpr std::size_t Dimension() const {
     return static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_);
   }
 
-  index_t NumRows() const { return rows_; }
-  index_t NumCols() const { return cols_; }
+  constexpr index_t NumRows() const { return rows_; }
+  constexpr index_t NumCols() const { return cols_; }
 
-  bool HasUnitDimension() const { return rows_ == 1 || cols_ == 1; }
+  constexpr bool HasUnitDimension() const { return rows_ == 1 || cols_ == 1; }
 
   // Convert to [row, col] indices (assuming row major order).
   std::pair<index_t, index_t> ComputeIndices(std::size_t element) const {
@@ -83,10 +83,17 @@ class Argument {
   const ast::Type& Type() const { return type_; }
 
   // Is the argument type a matrix.
-  bool IsMatrix() const { return std::holds_alternative<ast::MatrixType>(type_); }
+  constexpr bool IsMatrix() const { return std::holds_alternative<ast::MatrixType>(type_); }
 
   // Is this argument optional? Presently only output arguments may be optional.
   bool IsOptional() const { return direction_ == ArgumentDirection::OptionalOutput; }
+
+  constexpr bool IsFloat() const {
+    if (IsMatrix()) {
+      return true;
+    }
+    return std::get<ast::ScalarType>(type_).GetNumericType() == NumericType::Real;
+  }
 
   // Argument direction.
   ArgumentDirection Direction() const { return direction_; }
@@ -116,6 +123,11 @@ struct FunctionSignature {
     return *it;
   }
 
+  bool HasMatrixArguments() const {
+    return std::any_of(arguments.begin(), arguments.end(),
+                       [](const auto& arg) { return arg->IsMatrix(); });
+  }
+
   std::string function_name;
   std::vector<std::shared_ptr<const ast::Argument>> arguments{};
   std::optional<ast::Type> return_value;
@@ -136,7 +148,7 @@ using Variant = std::variant<
     struct InputValue,
     struct IntegerConstant,
     struct Multiply,
-    struct OutputExists,
+    struct OptionalOutputBranch,
     struct VariableRef
     >;
 // clang-format on
@@ -151,8 +163,6 @@ struct VariableRef {
   std::string name;
 
   explicit VariableRef(std::string name) : name(std::move(name)) {}
-
-  std::string ToString() const;
 };
 
 struct Add {
@@ -160,8 +170,6 @@ struct Add {
   VariantPtr right;
 
   Add(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
-
-  std::string ToString() const;
 };
 
 struct AssignTemporary {
@@ -212,10 +220,11 @@ struct Call {
 
 struct Cast {
   NumericType destination_type;
+  NumericType source_type;
   VariantPtr arg;
 
-  Cast(NumericType destination_type, const VariantPtr& arg)
-      : destination_type(destination_type), arg(arg) {}
+  Cast(NumericType destination_type, NumericType source_type, const VariantPtr& arg)
+      : destination_type(destination_type), source_type(source_type), arg(arg) {}
 };
 
 struct Compare {
@@ -236,23 +245,21 @@ struct Declaration {
   // Name for the value being declared
   std::string name;
   // Type of the value:
-  Type type;
+  NumericType type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
   VariantPtr value{};
 
-  Declaration(std::string name, Type type, VariantPtr value);
+  Declaration(std::string name, NumericType type, VariantPtr value);
 
   // Construct w/ no rhs.
-  Declaration(std::string name, Type type) : name(std::move(name)), type(type) {}
+  Declaration(std::string name, NumericType type) : name(std::move(name)), type(type) {}
 };
 
 struct FloatConstant {
   double value;
 
   explicit FloatConstant(double v) : value(v) {}
-
-  std::string ToString() const;
 };
 
 // Signature and body of a function.
@@ -280,12 +287,21 @@ struct Multiply {
   Multiply(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
 };
 
-// Check if an output exists.
-struct OutputExists {
+// A one-sided branch that assigns to an optional output, after checking for its existence.
+// This corresponds to a block that looks something like:
+//  if (<argument exists>) {
+//    ... statements ...
+//  }
+struct OptionalOutputBranch {
   // The argument this output corresponds to.
   std::shared_ptr<const Argument> argument;
 
-  explicit OutputExists(std::shared_ptr<const Argument> arg) : argument(std::move(arg)) {}
+  // Statements in the if-branch.
+  std::vector<Variant> statements;
+
+  explicit OptionalOutputBranch(std::shared_ptr<const Argument> arg,
+                                std::vector<Variant>&& statements)
+      : argument(std::move(arg)), statements(std::move(statements)) {}
 };
 
 // method definitions:
@@ -297,8 +313,8 @@ inline FunctionDefinition::FunctionDefinition(FunctionSignature signature,
 inline ConstructReturnValue::ConstructReturnValue(ast::Type type, std::vector<Variant>&& args)
     : type(type), args(std::move(args)) {}
 
-inline Declaration::Declaration(std::string name, Type type, VariantPtr value)
-    : name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
+inline Declaration::Declaration(std::string name, NumericType type, VariantPtr value)
+    : name(std::move(name)), type(type), value(std::move(value)) {}
 
 inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
                       std::vector<Variant>&& else_branch)

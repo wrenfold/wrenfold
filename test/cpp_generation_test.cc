@@ -81,7 +81,8 @@ TEST(CppGenerationTest, TestHeaviside) {
   constexpr auto inf = std::numeric_limits<double>::infinity();
   EXPECT_EQ(0.0, gen::heaviside(-1.0));
   EXPECT_EQ(0.0, gen::heaviside(std::nextafter(0.0, -inf)));
-  EXPECT_EQ(0.0, gen::heaviside(0.0));
+  EXPECT_EQ(1.0, gen::heaviside(0.0));
+  EXPECT_EQ(1.0, gen::heaviside(1.0));
   EXPECT_EQ(1.0, gen::heaviside(std::nextafter(0.0, inf)));
   EXPECT_EQ(1.0, gen::heaviside(1.));
 }

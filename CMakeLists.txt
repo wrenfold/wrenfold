@@ -25,8 +25,9 @@ set(${LIBRARY_NAME}_SOURCES
     source/code_generation/ast.cc
     source/code_generation/ir_builder.cc
     source/code_generation/expr_from_ir.cc
+    source/code_generation/cpp_code_generator.cc
+    source/code_generation/rust_code_generator.cc
     source/constants.cc
-    source/cpp_code_generator.cc
     source/derivative.cc
     source/distribute.cc
     source/evaluate.cc
@@ -98,12 +99,13 @@ set(${LIBRARY_NAME}_HEADERS
     include/code_formatter.h
     include/code_generation/ast.h
     include/code_generation/ast_formatters.h
+    include/code_generation/cpp_code_generator.h
     include/code_generation/expression_group.h
     include/code_generation/ir_builder.h
     include/code_generation/ir_types.h
+    include/code_generation/rust_code_generator.h
     include/common_visitors.h
     include/constants.h
-    include/cpp_code_generator.h
     include/enumerations.h
     include/error_types.h
     include/expression.h

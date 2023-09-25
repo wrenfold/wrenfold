@@ -73,9 +73,10 @@ auto Format(Iterator it, const math::ast::ConstructReturnValue& c) {
 template <typename Iterator>
 auto Format(Iterator it, const math::ast::Declaration& d) {
   if (d.value) {
-    return fmt::format_to(it, "Declaration({}: {} = {})", d.name, d.type, *d.value);
+    return fmt::format_to(it, "Declaration({}: {} = {})", d.name, StringFromNumericType(d.type),
+                          *d.value);
   } else {
-    return fmt::format_to(it, "Declaration({}: {})", d.name, d.type);
+    return fmt::format_to(it, "Declaration({}: {})", d.name, StringFromNumericType(d.type));
   }
 }
 
@@ -100,8 +101,9 @@ auto Format(Iterator it, const math::ast::Multiply& m) {
 }
 
 template <typename Iterator>
-auto Format(Iterator it, const math::ast::OutputExists& m) {
-  return fmt::format_to(it, "OutputExists({})", m.argument->Name());
+auto Format(Iterator it, const math::ast::OptionalOutputBranch& m) {
+  return fmt::format_to(it, "OptionalOutputBranch({}, <{} statements>)", m.argument->Name(),
+                        m.statements.size());
 }
 
 }  // namespace math::ast

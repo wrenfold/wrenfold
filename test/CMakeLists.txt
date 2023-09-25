@@ -62,7 +62,6 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
   target_link_libraries(${generate_target} ${TEST_LIBRARY_NAME})
   target_include_directories(${generate_target} PRIVATE ${TEST_OUTPUT_DIR})
-  target_compile_definitions(${generate_target} PRIVATE GENERATION_TIME)
 
   # Add a target that runs the generation:
   add_custom_command(
@@ -72,6 +71,7 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
     WORKING_DIRECTORY "${TEST_OUTPUT_DIR}"
     COMMENT "Run code-generation for test ${NAME}"
     DEPENDS ${generate_target})
+
   add_custom_target(${generate_target}_run
                     DEPENDS "${TEST_OUTPUT_DIR}/generated.h")
 
@@ -82,7 +82,6 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   target_link_libraries(${evaluate_target} ${TEST_LIBRARY_NAME} gtest
                         math_runtime eigen)
   target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})
-  target_compile_definitions(${evaluate_target} PRIVATE EVALUATION_TIME)
 
   # The evaluation target must depend on running the code-generation
   add_dependencies(${evaluate_target} ${generate_target}_run)
@@ -93,3 +92,44 @@ endfunction()
 
 add_code_generation_test(generate_cpp_test cpp_generation_gen.cc
                          cpp_generation_test.cc)
+
+#
+function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
+  # First create a target that generates the code:
+  set(generate_target ${NAME}_generate)
+  set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
+
+  add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
+  target_link_libraries(${generate_target} ${LIBRARY_NAME})
+  target_compile_options(${generate_target} PRIVATE ${MATH_COMPILATION_FLAGS})
+
+  # Add a target that runs the generation:
+  add_custom_command(
+    OUTPUT "${TEST_OUTPUT_DIR}/generated.rs"
+    COMMAND
+      "$<TARGET_FILE_DIR:${generate_target}>/$<TARGET_FILE_NAME:${generate_target}>"
+    WORKING_DIRECTORY "${TEST_OUTPUT_DIR}"
+    COMMENT "Run code-generation for test ${NAME}"
+    DEPENDS ${generate_target})
+
+  # Find cargo
+  find_program(CARGO_PATH cargo)
+  if(DEFINED CARGO_PATH)
+    message(STATUS "cargo path: ${CARGO_PATH}")
+    # Add a target to do the cargo build:
+    add_custom_target(
+      ${NAME}_evaluate
+      COMMAND
+        ${CMAKE_COMMAND} -E env
+        "CODE_GENERATION_FILE=${TEST_OUTPUT_DIR}/generated.rs"
+        "CARGO_TARGET_DIR=${TEST_OUTPUT_DIR}/target" ${CARGO_PATH} test --
+        --test-threads 1
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/rust_tests"
+      COMMENT "Cargo build for test ${NAME}"
+      DEPENDS "${TEST_OUTPUT_DIR}/generated.rs"
+              "${CMAKE_CURRENT_SOURCE_DIR}/rust_tests/src/lib.rs"
+              "${CMAKE_CURRENT_SOURCE_DIR}/rust_tests/Cargo.toml")
+  endif()
+endfunction()
+
+add_rust_generation_test(generate_rust_test rust_generation_gen.cc)

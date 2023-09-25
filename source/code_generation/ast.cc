@@ -51,12 +51,11 @@ struct AstBuilder {
     phi_assignments.reserve(block->operations.size());
 
     for (const ir::ValuePtr value : block->operations) {
-      //      const ir::ValuePtr value = block->operations[i];
       if (value->Is<ir::Save>()) {
         save_values.push_back(value);
       } else if (value->IsPhi()) {
         // Do nothing.
-      } else if (value->Is<ir::JumpCondition>()) {
+      } else if (value->Is<ir::JumpCondition>() || value->Is<ir::OutputRequired>()) {
         // Do nothing.
       } else {
         std::vector<ir::ValuePtr> conditional_outputs{};
@@ -74,8 +73,8 @@ struct AstBuilder {
           if (ShouldInlineConstant(value)) {
             rhs = MakeArgPtr(value);
           } else {
-            Emplace<ast::Declaration>(FormatTemporary(value),
-                                      ast::ScalarType(value->DetermineType()), VisitMakePtr(value));
+            Emplace<ast::Declaration>(FormatTemporary(value), value->DetermineType(),
+                                      VisitMakePtr(value));
             rhs = MakeVariableRefPtr(value);
           }
         } else {
@@ -139,32 +138,44 @@ struct AstBuilder {
             continue;
           }
           // We should declare this variable prior to entering the branch:
-          Emplace<ast::Declaration>(FormatTemporary(maybe_phi),
-                                    ast::ScalarType(maybe_phi->DetermineType()));
+          Emplace<ast::Declaration>(FormatTemporary(maybe_phi), maybe_phi->DetermineType());
         }
       }
 
       // move aside the contents of this block, as we are about to descend the branches:
-      std::vector<ast::Variant> operations_stashed = std::move(operations_);
-      operations_.clear();
+      std::vector<ast::Variant> operations_true = ProcessNestedBlock(block->descendants[0]);
+      std::vector<ast::Variant> operations_false = ProcessNestedBlock(block->descendants[1]);
 
-      // Process the true branch and save the output:
-      ProcessBlock(block->descendants[0]);  //  append to operations_
-      std::vector<ast::Variant> operations_true = std::move(operations_);
-      operations_.clear();
-
-      // Process the right branch
-      ProcessBlock(block->descendants[1]);
-      std::vector<ast::Variant> operations_false = std::move(operations_);
-      operations_ = std::move(operations_stashed);  //  Put back operations for the current block.
-
-      // Create a conditional
-      Emplace<ast::Branch>(ast::VariableRef{FormatTemporary(last_op->Front())},
-                           std::move(operations_true), std::move(operations_false));
+      ir::ValuePtr condition = last_op->Front();
+      if (condition->Is<ir::OutputRequired>()) {
+        ASSERT(operations_false.empty());
+        const ir::OutputRequired& oreq = condition->As<ir::OutputRequired>();
+        // Create an optional-output assignment block
+        Emplace<ast::OptionalOutputBranch>(signature_.GetArgument(oreq.name),
+                                           std::move(operations_true));
+      } else {
+        // Create a conditional
+        Emplace<ast::Branch>(ast::VariableRef{FormatTemporary(last_op->Front())},
+                             std::move(operations_true), std::move(operations_false));
+      }
 
       stop_set_.erase(merge_point);
       ProcessBlock(merge_point);
     }
+  }
+
+  std::vector<ast::Variant> ProcessNestedBlock(const ir::BlockPtr b) {
+    // Move aside operations of the current block temporarily:
+    std::vector<ast::Variant> operations_stashed = std::move(operations_);
+    operations_.clear();
+
+    // Process the block, writing to operations_ in the process.
+    ProcessBlock(b);
+
+    // Take the accrued operations and put them in `operations_stashed`.
+    // In the process, we reset operations for the calling block.
+    std::swap(operations_, operations_stashed);
+    return operations_stashed;
   }
 
   std::string FormatTemporary(const ir::Value& val) const {
@@ -178,7 +189,8 @@ struct AstBuilder {
         [this, &val](const auto& op) -> ast::Variant {
           // These types should never get converted to AST:
           using T = std::decay_t<decltype(op)>;
-          using ExcludedTypes = TypeList<ir::JumpCondition, ir::Save, ir::Cond, ir::Phi>;
+          using ExcludedTypes =
+              TypeList<ir::JumpCondition, ir::Save, ir::Cond, ir::Phi, ir::OutputRequired>;
           if constexpr (ContainsType<T, ExcludedTypes>) {
             throw TypeError("Type cannot be converted to AST: {}", typeid(T).name());
           } else {
@@ -238,7 +250,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Cast& cast) {
-    return ast::Cast{cast.destination_type, MakeArgPtr(val[0])};
+    return ast::Cast{cast.destination_type, val.DetermineType(), MakeArgPtr(val[0])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Compare& compare) {
@@ -269,10 +281,6 @@ struct AstBuilder {
         throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
       }
     });
-  }
-
-  ast::Variant operator()(const ir::Value&, const ir::OutputRequired& oreq) {
-    return ast::OutputExists{signature_.GetArgument(oreq.name)};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Pow&) {
