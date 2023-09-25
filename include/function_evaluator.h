@@ -19,7 +19,6 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> BuildFunctionDe
   // Extract return type and argument list of the provided function pointer or lambda.
   using Traits = FunctionTraits<Func>;
   using ArgList = typename Traits::ArgsTypeList;  //  List of all argument types.
-  using ReturnType = typename Traits::ReturnType;
   static_assert(TypeListSize<ArgList>::Value == sizeof...(ArgumentInfo),
                 "Mismatch in # args and # arg names");
 

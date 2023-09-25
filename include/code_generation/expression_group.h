@@ -1,6 +1,8 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include "hashing.h"
 
@@ -50,7 +52,7 @@ inline constexpr std::string_view StringFromExpressionUsage(const ExpressionUsag
 
 // Hash `OutputKey` type.
 struct OutputKeyHasher {
-  constexpr std::size_t operator()(const OutputKey& k) const {
+  std::size_t operator()(const OutputKey& k) const {
     return HashCombine(static_cast<std::size_t>(k.usage), HashString(k.name));
   }
 };
