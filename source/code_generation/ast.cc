@@ -146,21 +146,6 @@ struct AstBuilder {
       std::vector<ast::Variant> operations_true = ProcessNestedBlock(block->descendants[0]);
       std::vector<ast::Variant> operations_false = ProcessNestedBlock(block->descendants[1]);
 
-      //      std::vector<ast::Variant> operations_stashed = std::move(operations_);
-      //      {
-      //        // Process the true branch and save the output:
-      //        operations_.clear();
-      //        ProcessBlock(block->descendants[0]);  //  append to operations_
-      //        std::vector<ast::Variant> operations_true = std::move(operations_);
-      //
-      //        // Process the right branch
-      //        operations_.clear();
-      //        ProcessBlock(block->descendants[1]);
-      //        std::vector<ast::Variant> operations_false = std::move(operations_);
-      //      }
-      //      operations_ = std::move(operations_stashed);  //  Put back operations for the current
-      //      block.
-
       ir::ValuePtr condition = last_op->Front();
       if (condition->Is<ir::OutputRequired>()) {
         ASSERT(operations_false.empty());

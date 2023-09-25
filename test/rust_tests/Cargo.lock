@@ -27,8 +27,8 @@ checksum = "374d28ec25809ee0e23827c2ab573d729e293f281dfe393500e7ad618baa61c6"
 name = "math-rust-tests"
 version = "0.1.0"
 dependencies = [
+ "approx",
  "nalgebra",
- "num-traits",
 ]
 
 [[package]]

@@ -5,5 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-num-traits = { version = "0.2.16"}
 nalgebra = { version = "0.32.3" }
+
+[dev-dependencies]
+approx = { version = "0.5.1" }

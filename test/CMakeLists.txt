@@ -122,7 +122,8 @@ function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
       COMMAND
         ${CMAKE_COMMAND} -E env
         "CODE_GENERATION_FILE=${TEST_OUTPUT_DIR}/generated.rs"
-        "CARGO_TARGET_DIR=${TEST_OUTPUT_DIR}/target" ${CARGO_PATH} test
+        "CARGO_TARGET_DIR=${TEST_OUTPUT_DIR}/target" ${CARGO_PATH} test --
+        --test-threads 1
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/rust_tests"
       COMMENT "Cargo build for test ${NAME}"
       DEPENDS "${TEST_OUTPUT_DIR}/generated.rs"
