@@ -40,7 +40,7 @@ std::string CppCodeGenerator::Generate(const ast::FunctionDefinition& definition
     }
 
     if (counter > 0) {
-      result.Append("\n");
+      result.Format("\n");
     }
 
     result.Join(*this, "\n", definition.body);
@@ -78,7 +78,7 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
       }
     }
   }
-  formatter.Append(">\n");
+  formatter.Format(">\n");
 
   if (signature.return_value) {
     if (!std::holds_alternative<ast::ScalarType>(*signature.return_value)) {
@@ -114,7 +114,7 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
   };
 
   formatter.Join(std::move(arg_printer), ", ", signature.arguments);
-  formatter.Append(")\n");
+  formatter.Format(")\n");
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType& scalar,
@@ -251,7 +251,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
   ASSERT(x.argument);
   if (std::holds_alternative<ast::ScalarType>(x.argument->Type())) {
-    formatter.Append(x.argument->Name());
+    formatter.Format(x.argument->Name());
   } else {
     const ast::MatrixType& mat = std::get<ast::MatrixType>(x.argument->Type());
     const auto [r, c] = mat.ComputeIndices(x.element);

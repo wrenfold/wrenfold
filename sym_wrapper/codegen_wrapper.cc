@@ -7,6 +7,7 @@
 
 #include "code_generation/ast.h"
 #include "code_generation/ast_formatters.h"
+#include "code_generation/cpp_code_generator.h"
 #include "code_generation/expression_group.h"
 #include "code_generation/ir_builder.h"
 #include "expression.h"
@@ -271,5 +272,6 @@ PYBIND11_MODULE(pycodegen, m) {
       .def_property_readonly("statements",
                              [](const ast::OptionalOutputBranch& b) { return b.statements; })
       .def("__repr__", &FormatAst<ast::OptionalOutputBranch>);
+
 
 }  // PYBIND11_MODULE

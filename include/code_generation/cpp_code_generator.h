@@ -53,7 +53,7 @@ class CppCodeGenerator {
   }
 
   void operator()(CodeFormatter& formatter, const ast::VariableRef& x) const {
-    formatter.Append(x.name);
+    formatter.Format(x.name);
   }
 
   void operator()(CodeFormatter& formatter, const ast::InputValue& x) const;
@@ -82,7 +82,7 @@ class CppCodeGenerator {
   // Format ptr to argument.
   void operator()(CodeFormatter& formatter, const std::shared_ptr<const ast::Argument>& var) const {
     ASSERT(var);
-    formatter.Append(var->Name());
+    formatter.Format(var->Name());
   }
 
  protected:
