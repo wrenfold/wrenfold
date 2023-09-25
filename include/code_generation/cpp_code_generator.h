@@ -14,7 +14,8 @@ class CppCodeGenerator {
     OptionalOutputArgument,
   };
 
-  std::string Generate(const ast::FunctionDefinition& func) const;
+  std::string Generate(const ast::FunctionSignature& signature,
+                       const std::vector<ast::Variant>& body) const;
 
   // Create a FmtView that can be passed to CodeFormatter. All args will be
   // forwarded back to the operator on this class that matches them.

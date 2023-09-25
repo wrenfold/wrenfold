@@ -4,10 +4,11 @@
 
 namespace math {
 
-std::string RustCodeGenerator::Generate(const ast::FunctionDefinition& func) const {
+std::string RustCodeGenerator::Generate(const ast::FunctionSignature& signature,
+                                        const std::vector<ast::Variant>& body) const {
   CodeFormatter result{};
-  FormatSignature(result, func.signature);
-  result.WithIndentation(2, "{\n", "\n}", [&] { result.Join(*this, "\n", func.body); });
+  FormatSignature(result, signature);
+  result.WithIndentation(2, "{\n", "\n}", [&] { result.Join(*this, "\n", body); });
   return result.GetOutput();
 }
 

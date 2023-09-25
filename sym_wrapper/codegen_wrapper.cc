@@ -62,10 +62,10 @@ PYBIND11_MODULE(pycodegen, m) {
         FlatIr ir{expressions};
         ir.EliminateDuplicates();
         OutputIr output_ir{std::move(ir)};
-        return ast::CreateAST(output_ir, signature).body;
+        return ast::CreateAST(output_ir, signature);
       },
       py::arg("signature"), py::arg("expressions"),
-      py::doc("Generate function AST from signature and output expressions."));
+      py::doc("Generate function body AST from signature and output expressions."));
 
   py::enum_<ExpressionUsage>(m, "ExpressionUsage")
       .value("OptionalOutputArgument", ExpressionUsage::OptionalOutputArgument)
@@ -272,6 +272,5 @@ PYBIND11_MODULE(pycodegen, m) {
       .def_property_readonly("statements",
                              [](const ast::OptionalOutputBranch& b) { return b.statements; })
       .def("__repr__", &FormatAst<ast::OptionalOutputBranch>);
-
 
 }  // PYBIND11_MODULE

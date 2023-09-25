@@ -323,6 +323,6 @@ inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
       else_branch(std::move(else_branch)) {}
 
 // Create AST from the IR:
-ast::FunctionDefinition CreateAST(const math::OutputIr& ir, const FunctionSignature& signature);
+std::vector<ast::Variant> CreateAST(const math::OutputIr& ir, const FunctionSignature& signature);
 
 }  // namespace math::ast

@@ -7,13 +7,14 @@ namespace math {
 
 static constexpr std::string_view UtilityNamespace = "math";
 
-std::string CppCodeGenerator::Generate(const ast::FunctionDefinition& definition) const {
+std::string CppCodeGenerator::Generate(const ast::FunctionSignature& signature,
+                                       const std::vector<ast::Variant>& body) const {
   CodeFormatter result;
-  FormatSignature(result, definition.signature);
+  FormatSignature(result, signature);
   result.WithIndentation(2, "{\n", "\n}", [&] {
-    //
+    // Convert input args to spans:
     std::size_t counter = 0;
-    for (const auto& arg : definition.signature.arguments) {
+    for (const auto& arg : signature.arguments) {
       if (arg->IsMatrix()) {
         const ast::MatrixType& mat = std::get<ast::MatrixType>(arg->Type());
 
@@ -43,7 +44,7 @@ std::string CppCodeGenerator::Generate(const ast::FunctionDefinition& definition
       result.Format("\n");
     }
 
-    result.Join(*this, "\n", definition.body);
+    result.Join(*this, "\n", body);
   });
   return result.GetOutput();
 }
