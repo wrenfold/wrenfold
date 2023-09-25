@@ -185,22 +185,20 @@ TEST(SpanTest, TestMakeCArraySpan) {
 
 TEST(SpanTest, TestMakeInitializerListSpan2d) {
   // Use invoke to ensure span lifetime is valid:
-  std::invoke(
-      [](auto span) {
+  [](auto span) {
         ASSERT_EQ(0, span(0, 0));
         ASSERT_EQ(1, span(0, 1));
         ASSERT_EQ(2, span(1, 0));
         ASSERT_EQ(3, span(1, 1));
-      },
+      }(
       make_array_span_2d<2, 2, ordering::row_major>({0, 1, 2, 3}));
 
-  std::invoke(
-      [](auto span) {
+  [](auto span) {
         ASSERT_EQ(0, span(0, 0));
         ASSERT_EQ(2, span(0, 1));
         ASSERT_EQ(1, span(1, 0));
         ASSERT_EQ(3, span(1, 1));
-      },
+      }(
       make_array_span_2d<2, 2, ordering::col_major>({0, 1, 2, 3}));
 
   // This should throw due to invalid size:
@@ -350,14 +348,15 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
   CheckNonZero(span_dynamic);
 }
 
+// TODO: Should we restore this assertion?
+#if 0
 TEST(SpanTest, TestEigenNullMapAssertion) {
   // Constructing from null map should trigger our assertion macro.
   const Eigen::Map<const Eigen::Matrix<int, 3, 3>> map{nullptr};
   auto make_span = [&]() { make_input_span<3, 3>(map); };
-
-  // TODO: Should we restore this assertion?
-  //  ASSERT_THROW(make_span(), std::runtime_error);
+  ASSERT_THROW(make_span(), std::runtime_error);
 }
+#endif
 
 namespace detail {
 template <typename Derived, typename Scalar, typename Dimensions, typename Strides>

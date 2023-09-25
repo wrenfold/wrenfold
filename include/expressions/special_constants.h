@@ -52,6 +52,21 @@ inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants v
   return "<INVALID ENUM VALUE>";
 }
 
+// Convert `SymbolicConstants` to a floating point double.
+constexpr double DoubleFromSymbolicConstant(SymbolicConstants constant) {
+  switch (constant) {
+    case SymbolicConstants::Euler:
+      return M_E;
+    case SymbolicConstants::Pi:
+      return M_PI;
+    case SymbolicConstants::True:
+      return 1.0;
+    case SymbolicConstants::False:
+      return 0.0;
+  }
+  return std::numeric_limits<double>::quiet_NaN();
+}
+
 // Order constants by their enum values.
 inline constexpr bool operator<(const Constant& a, const Constant& b) {
   return a.GetName() < b.GetName();

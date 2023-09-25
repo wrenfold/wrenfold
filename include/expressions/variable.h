@@ -25,7 +25,7 @@ class Variable {
 
 template <>
 struct Hash<Variable> {
-  std::size_t operator()(const Variable& v) const { return std::hash<std::string>{}(v.GetName()); }
+  std::size_t operator()(const Variable& v) const { return HashString(v.GetName()); }
 };
 
 }  // namespace math

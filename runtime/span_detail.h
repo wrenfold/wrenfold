@@ -1,6 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include <tuple>
+#include <type_traits>
 
 namespace math {
 
@@ -32,23 +33,28 @@ class dynamic {
 
 namespace detail {
 
+// Implementation of conjunction (since this file is pre C++17).
+template <typename...> struct conjunction : std::true_type {};
+template <typename T, typename... Ts>
+struct conjunction<T, Ts...> : std::conditional<T::value, conjunction<Ts...>, std::false_type>::type {};
+
 // Evaluates to true if `T` is an instance of `constant<D>`
 template <typename T>
-struct is_constant : public std::false_type {};
+struct is_constant : std::false_type {};
 template <std::size_t D>
-struct is_constant<constant<D>> : public std::true_type {};
+struct is_constant<constant<D>> : std::true_type {};
 
 // Enable if all the `Ints` are convertible to ptrdiff_t.
 template <typename... Ints>
 using enable_if_convertible_to_ptrdiff_t = typename std::enable_if<
-    std::conjunction<std::is_convertible<Ints, std::ptrdiff_t>...>::value>::type;
+    conjunction<std::is_convertible<Ints, std::ptrdiff_t>...>::value>::type;
 
 // Represents a variadic list of values when all values are instances of `constant<>`.
 // Does not store anything, since the values are knowable at compile time.
 template <typename... Values>
 class value_pack_const {
  public:
-  static_assert(std::conjunction<is_constant<Values>...>::value,
+  static_assert(detail::conjunction<is_constant<Values>...>::value,
                 "All values must be compile-time constants");
 
   // Default construct.
@@ -96,7 +102,7 @@ class value_pack_dynamic {
 
 // Inherits either `value_pack_const` or `value_pack_dynamic`, depending on the types of `Values`.
 template <typename... Values>
-class value_pack : public std::conditional<std::conjunction<detail::is_constant<Values>...>::value,
+class value_pack : public std::conditional<detail::conjunction<detail::is_constant<Values>...>::value,
                                            detail::value_pack_const<Values...>,
                                            detail::value_pack_dynamic<Values...>>::type {
  public:
@@ -104,7 +110,7 @@ class value_pack : public std::conditional<std::conjunction<detail::is_constant<
 
   // True if all values are known at compile time.
   static constexpr bool known_at_compile_time =
-      std::conjunction<detail::is_constant<Values>...>::value;
+      detail::conjunction<detail::is_constant<Values>...>::value;
 
   // Number of dimensions.
   static constexpr std::size_t length = sizeof...(Values);

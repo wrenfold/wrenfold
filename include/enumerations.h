@@ -148,19 +148,4 @@ constexpr std::string_view StringFromNumericType(const NumericType type) {
   return "<NOT A VALID ENUM VALUE>";
 }
 
-// Convert `SymbolicConstants` to a floating point double.
-constexpr double DoubleFromSymbolicConstant(SymbolicConstants constant) {
-  switch (constant) {
-    case SymbolicConstants::Euler:
-      return M_E;
-    case SymbolicConstants::Pi:
-      return M_PI;
-    case SymbolicConstants::True:
-      return 1.0;
-    case SymbolicConstants::False:
-      return 0.0;
-  }
-  return std::numeric_limits<double>::quiet_NaN();
-}
-
 }  // namespace math

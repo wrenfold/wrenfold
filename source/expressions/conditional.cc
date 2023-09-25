@@ -58,15 +58,13 @@ Expr Conditional::Create(math::Expr condition, math::Expr if_branch, math::Expr 
   }
 
   // Check for redundancies and eliminate them:
-  Expr if_branch_simplified = Visit(if_branch, [&](const auto& x) {
-    return ConditionalSimplificationVisitor{condition, true}(x, if_branch);
-  });
-  Expr else_branch_simplified = Visit(else_branch, [&](const auto& x) {
-    return ConditionalSimplificationVisitor{condition, false}(x, else_branch);
-  });
+  Expr if_branch_simplified =
+      VisitWithExprArg(if_branch, ConditionalSimplificationVisitor{condition, true});
+  Expr else_branch_simplified =
+      VisitWithExprArg(else_branch, ConditionalSimplificationVisitor{condition, false});
 
   if (if_branch_simplified.IsIdenticalTo(else_branch_simplified)) {
-    return std::move(if_branch_simplified);
+    return if_branch_simplified;
   }
   return MakeExpr<Conditional>(std::move(condition), std::move(if_branch_simplified),
                                std::move(else_branch_simplified));

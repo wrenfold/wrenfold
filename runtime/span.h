@@ -99,7 +99,7 @@ class span {
   // Compute linear index from (row, column) matrix indices.
   template <typename... Indices>
   constexpr std::ptrdiff_t compute_index(Indices... indices) const noexcept {
-    static_assert(std::conjunction_v<std::is_convertible<Indices, std::ptrdiff_t>...>,
+    static_assert(detail::conjunction<std::is_convertible<Indices, std::ptrdiff_t>...>::value,
                   "Indices must be convertible to std::ptrdiff_t");
     static_assert(sizeof...(Indices) == num_dimensions,
                   "Number of indices much match number of dimensions");

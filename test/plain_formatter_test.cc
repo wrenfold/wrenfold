@@ -122,7 +122,7 @@ TEST(PlainFormatterTest, TestRelationals) {
   const auto [x, y, z] = Symbols("x", "y", "z");
   ASSERT_STR_EQ("x < y", x < y);
   ASSERT_STR_EQ("x <= y", x <= y);
-  ASSERT_STR_EQ("y == x", x == y);
+  ASSERT_STR_EQ("x == y", x == y);
   ASSERT_STR_EQ("y < x", x > y);
   ASSERT_STR_EQ("y <= x", x >= y);
 
