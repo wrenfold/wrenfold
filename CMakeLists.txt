@@ -96,7 +96,7 @@ target_include_directories(
 set(${LIBRARY_NAME}_HEADERS
     include/absl_imports.h
     include/assertions.h
-    include/code_formatter.h
+    include/code_generation/code_formatter.h
     include/code_generation/ast.h
     include/code_generation/ast_formatters.h
     include/code_generation/cpp_code_generator.h

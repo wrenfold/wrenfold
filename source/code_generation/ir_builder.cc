@@ -12,7 +12,7 @@
 #include "hashing.h"
 #include "visitor_impl.h"
 
-#include "code_formatter.h"
+#include "code_generation/code_formatter.h"
 
 namespace math {
 
