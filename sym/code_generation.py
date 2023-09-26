@@ -363,18 +363,21 @@ def create_numeric_evaluator(func: T.Callable) -> T.Callable:
         num_args = len(args) + len(kwargs)
         assert num_args <= len(
             function_args), f'Expected {len(function_args)} arguments, received {num_args}'
-        for arg_name, arg_val in zip(function_args, args):
-            assert arg_name not in kwargs, f'Specified argument twice: {arg_name}'
-            kwargs[arg_name] = arg_val
+        for func_arg_name, arg_val in zip(function_args, args):
+            assert func_arg_name not in kwargs, f'Specified argument twice: {func_arg_name}'
+            kwargs[func_arg_name] = arg_val
 
         numeric_return_values: T.List[T.Union[float, np.ndarray]] = []
         # iterate over all return values and substitute all args (This is inefficient)
         for return_val in symbolic_return_values:
-            for arg_name in kwargs:
-                symbolic_arg = function_args[arg_name]
-                numeric_value = kwargs[arg_name]
+            for func_arg_name in kwargs:
+                symbolic_arg = function_args[func_arg_name]
+                numeric_value = kwargs[func_arg_name]
                 return_val = subs(
-                    name=arg_name, output=return_val, symbolic=symbolic_arg, numeric=numeric_value)
+                    name=func_arg_name,
+                    output=return_val,
+                    symbolic=symbolic_arg,
+                    numeric=numeric_value)
 
             numeric_return_values.append(return_val)
 

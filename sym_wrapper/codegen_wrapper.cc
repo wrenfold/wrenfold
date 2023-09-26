@@ -7,8 +7,10 @@
 
 #include "code_generation/ast.h"
 #include "code_generation/ast_formatters.h"
+#include "code_generation/cpp_code_generator.h"
 #include "code_generation/expression_group.h"
 #include "code_generation/ir_builder.h"
+#include "code_generation/rust_code_generator.h"
 #include "expression.h"
 #include "expressions/function_argument.h"
 #include "matrix_expression.h"
@@ -39,6 +41,10 @@ static std::string FormatAst(const T& x) {
   return fmt::format("{}", x);
 }
 
+// We make this type opaque and wrap it manually below.
+// This allows us to avoid problems from Variant not being default constructible.
+PYBIND11_MAKE_OPAQUE(std::vector<ast::Variant>);
+
 PYBIND11_MODULE(pycodegen, m) {
   m.def(
       "create_function_argument",
@@ -55,16 +61,31 @@ PYBIND11_MODULE(pycodegen, m) {
       },
       py::arg("index"), py::arg("rows"), py::arg("cols"));
 
+  // Stored as shared-ptr to avoid copies.
+  py::class_<std::vector<ast::Variant>, std::shared_ptr<std::vector<ast::Variant>>>(m, "AstVector")
+      .def("__repr__",
+           [](const std::vector<ast::Variant>& vec) {
+             return fmt::format("AstVector({} elements)", vec.size());
+           })
+      .def("__len__", [](const std::vector<ast::Variant>& vec) { return vec.size(); })
+      .def(
+          "__iter__",
+          [](const std::vector<ast::Variant>& vec) {
+            return py::make_iterator(vec.begin(), vec.end());
+          },
+          py::keep_alive<0, 1>());
+
   m.def(
       "generate_func",
       [](const ast::FunctionSignature& signature, const std::vector<ExpressionGroup>& expressions) {
         FlatIr ir{expressions};
         ir.EliminateDuplicates();
         OutputIr output_ir{std::move(ir)};
-        return ast::CreateAST(output_ir, signature).body;
+        return ast::CreateAST(output_ir, signature);
       },
       py::arg("signature"), py::arg("expressions"),
-      py::doc("Generate function AST from signature and output expressions."));
+      py::doc("Generate function body AST from signature and output expressions."),
+      py::return_value_policy::take_ownership);
 
   py::enum_<ExpressionUsage>(m, "ExpressionUsage")
       .value("OptionalOutputArgument", ExpressionUsage::OptionalOutputArgument)
@@ -87,6 +108,7 @@ PYBIND11_MODULE(pycodegen, m) {
       .value("Log", BuiltInFunctionName::Log)
       .value("Sqrt", BuiltInFunctionName::Sqrt)
       .value("Abs", BuiltInFunctionName::Abs)
+      .value("Signum", BuiltInFunctionName::Signum)
       .value("Arctan2", BuiltInFunctionName::Arctan2)
       .value("Pow", BuiltInFunctionName::Pow)
       .def(
@@ -271,5 +293,19 @@ PYBIND11_MODULE(pycodegen, m) {
       .def_property_readonly("statements",
                              [](const ast::OptionalOutputBranch& b) { return b.statements; })
       .def("__repr__", &FormatAst<ast::OptionalOutputBranch>);
+
+  m.def(
+      "generate_cpp",
+      [](const ast::FunctionSignature& signature, const std::vector<ast::Variant>& ast)
+          -> std::string { return CppCodeGenerator{}.Generate(signature, ast); },
+      "signature"_a, "ast"_a,
+      py::doc("Generate C++ code from the given function signature and expressions."));
+
+  m.def(
+      "generate_rust",
+      [](const ast::FunctionSignature& signature, const std::vector<ast::Variant>& ast)
+          -> std::string { return RustCodeGenerator{}.Generate(signature, ast); },
+      "signature"_a, "ast"_a,
+      py::doc("Generate Rust code from the given function signature and expressions."));
 
 }  // PYBIND11_MODULE

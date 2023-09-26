@@ -30,9 +30,11 @@ struct AstBuilder {
   AstBuilder(std::size_t value_width, const ast::FunctionSignature& signature)
       : value_width_(value_width), signature_(signature) {}
 
-  ast::FunctionDefinition CreateFunction(ir::BlockPtr block) {
+  std::vector<ast::Variant> CreateFunction(ir::BlockPtr block) {
     ProcessBlock(block);
-    return ast::FunctionDefinition{signature_, std::move(operations_)};
+    std::vector<ast::Variant> result = std::move(operations_);
+    operations_.clear();
+    return result;
   }
 
   void ProcessBlock(ir::BlockPtr block) {
@@ -296,7 +298,7 @@ struct AstBuilder {
 };
 
 namespace ast {
-ast::FunctionDefinition CreateAST(const math::OutputIr& ir, const FunctionSignature& signature) {
+std::vector<ast::Variant> CreateAST(const math::OutputIr& ir, const FunctionSignature& signature) {
   AstBuilder builder(ir.ValuePrintWidth(), signature);
   return builder.CreateFunction(ir.FirstBlock());
 }

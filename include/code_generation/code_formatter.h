@@ -1,4 +1,5 @@
 // Copyright 2023 Gareth Cross
+#pragma once
 #include "code_generation/ir_builder.h"
 #include "index_range.h"
 
@@ -24,9 +25,6 @@ class CodeFormatter {
     }
   }
 
-  // Append a plain string.
-  void Append(const std::string_view str) { output_ += str; }
-
   // Join using the provided formatter and separator.
   template <typename Formatter, typename Container>
   void Join(Formatter&& formatter, const std::string_view separator, const Container& container) {
@@ -36,7 +34,7 @@ class CodeFormatter {
     }
     formatter(*this, *it);
     for (++it; it != container.end(); ++it) {
-      Append(separator);
+      Format(separator);
       formatter(*this, *it);
     }
   }
