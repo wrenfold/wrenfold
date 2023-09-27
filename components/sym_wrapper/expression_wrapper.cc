@@ -72,7 +72,7 @@ namespace math {
 void WrapMatrixOperations(py::module_& m);
 }  // namespace math
 
-PYBIND11_MODULE(pysym, m) {
+PYBIND11_MODULE(PY_MODULE_NAME, m) {
   // Primary expression type:
   py::class_<Expr>(m, "Expr")
       // Implicit construction from numerics:

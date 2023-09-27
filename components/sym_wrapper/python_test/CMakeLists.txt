@@ -17,7 +17,7 @@ function(add_python_test PYTHON_SOURCE_FILE)
     NAME ${TEST_NAME}
     COMMAND
       ${CMAKE_COMMAND} -E env
-      "PYTHONPATH=${CMAKE_BINARY_DIR}${PATH_SEP}${CMAKE_SOURCE_DIR}"
+      "PYTHONPATH=${COMPONENTS_BINARY_DIR}${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python"
       ${Python_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE})
   message(STATUS "Added python test: ${TEST_NAME}")
 endfunction()

@@ -8,7 +8,7 @@ import typing as T
 import numpy as np
 
 from . import sym
-from sym_wrapper import pycodegen as codegen
+from sym_wrapper import zen_pycodegen as codegen
 
 AstVariantTuple = (codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArgument,
                    codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,

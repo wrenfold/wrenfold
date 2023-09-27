@@ -45,7 +45,7 @@ static std::string FormatAst(const T& x) {
 // This allows us to avoid problems from Variant not being default constructible.
 PYBIND11_MAKE_OPAQUE(std::vector<ast::Variant>);
 
-PYBIND11_MODULE(pycodegen, m) {
+PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def(
       "create_function_argument",
       [](std::size_t index) { return FunctionArgument::Create(index, 0); }, py::arg("index"));

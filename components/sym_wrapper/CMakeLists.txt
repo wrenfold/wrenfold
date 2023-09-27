@@ -17,14 +17,16 @@ function(add_wrapper_module)
   pybind11_add_module(${MODULE_NAME} ${MODULE_SOURCES})
 
   # Depend on the static library
-  add_dependencies(${MODULE_NAME} mathcpp)
-  target_link_libraries(${MODULE_NAME} PRIVATE mathcpp)
+  add_dependencies(${MODULE_NAME} ${LIBRARY_NAME})
+  target_link_libraries(${MODULE_NAME} PRIVATE ${LIBRARY_NAME})
   target_compile_options(${MODULE_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_compile_definitions(${MODULE_NAME}
+                             PRIVATE PY_MODULE_NAME=${MODULE_NAME})
 
   # Copy from Debug or Release into the current binary dir. We need to do this
   # because msbuild puts libraries in sub-directories, which breaks our ability
-  # to import them under the `sym_wrapper` module name while developing.
-  if(${MSVC})
+  # to import them from the cmake binary dir.
+  if(${CMAKE_GENERATOR} MATCHES "Visual Studio.+")
     add_custom_command(
       TARGET ${MODULE_NAME}
       POST_BUILD
@@ -61,8 +63,9 @@ function(add_wrapper_module)
   endif()
 endfunction()
 
-add_wrapper_module(NAME pysym SOURCES expression_wrapper.cc matrix_wrapper.cc)
-add_wrapper_module(NAME pycodegen SOURCES codegen_wrapper.cc)
+add_wrapper_module(NAME ${PROJECT_PREFIX}_pysym SOURCES expression_wrapper.cc
+                   matrix_wrapper.cc)
+add_wrapper_module(NAME ${PROJECT_PREFIX}_pycodegen SOURCES codegen_wrapper.cc)
 
 # Add python tests:
 if(NOT DEFINED SKBUILD_PROJECT_NAME)
