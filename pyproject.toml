@@ -19,10 +19,14 @@ readme = "README.md"
 
 [tool.scikit-build]
 cmake.minimum-version = "3.18"
-ninja.minimum-version = "1.5"
-ninja.make-fallback = true
+cmake.args = ["-G", "Ninja", "-Wno-deprecated"]
 cmake.verbose = true
 cmake.build-type = "RelWithDebInfo"
+
+ninja.minimum-version = "1.5"
+ninja.make-fallback = true
+
 logging.level = "WARNING"
 
 wheel.packages = ["components/python/sym", "sym_wrapper"]
+wheel.license-files = ["LICENSE"]
