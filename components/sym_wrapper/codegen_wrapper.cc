@@ -43,7 +43,7 @@ static std::string FormatAst(const T& x) {
 
 // We make this type opaque and wrap it manually below.
 // This allows us to avoid problems from Variant not being default constructible.
-PYBIND11_MAKE_OPAQUE(std::vector<ast::Variant>);
+PYBIND11_MAKE_OPAQUE(std::vector<ast::Variant>)
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def(
