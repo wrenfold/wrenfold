@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+zen-traits = { path = "../../components/rust/zen-traits", version = "0.0.1", features = ["nalgebra"] }
 nalgebra = { version = "0.32.3" }
 
 [dev-dependencies]

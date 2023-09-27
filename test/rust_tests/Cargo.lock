@@ -29,6 +29,7 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "nalgebra",
+ "zen-traits",
 ]
 
 [[package]]
@@ -190,4 +191,11 @@ checksum = "aa469ffa65ef7e0ba0f164183697b89b854253fd31aeb92358b7b6155177d62f"
 dependencies = [
  "bytemuck",
  "safe_arch",
+]
+
+[[package]]
+name = "zen-traits"
+version = "0.0.1"
+dependencies = [
+ "nalgebra",
 ]

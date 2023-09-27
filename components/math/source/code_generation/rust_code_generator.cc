@@ -115,7 +115,7 @@ void RustCodeGenerator::FormatSignature(math::CodeFormatter& formatter,
       for (const auto& arg : signature.arguments) {
         if (arg->IsMatrix()) {
           const ast::MatrixType mat = std::get<ast::MatrixType>(arg->Type());
-          formatter.Format("T{}: crate::{}<{}, {}, ValueType = {}>,\n", counter++,
+          formatter.Format("T{}: zen_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
                            SpanTypeFromDirection(arg->Direction()), mat.NumRows(), mat.NumCols(),
                            TypeFromNumericType(NumericType::Real));
         }

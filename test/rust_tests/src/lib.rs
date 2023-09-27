@@ -2,9 +2,6 @@
 //! numerical results.
 #![allow(non_snake_case)]
 
-mod traits;
-pub use traits::*;
-
 #[allow(dead_code)]
 mod gen;
 
