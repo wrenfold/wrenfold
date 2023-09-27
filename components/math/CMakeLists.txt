@@ -35,13 +35,10 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(MSVC)
   set(LIB_COMPILATION_FLAGS_PRIVATE /bigobj /EHs)
-  set(LIB_COMPILATION_FLAGS_PUBLIC /D_USE_MATH_DEFINES /Zc:__cplusplus)
+  set(LIB_COMPILATION_FLAGS_PUBLIC /Zc:__cplusplus)
 else()
   set(LIB_COMPILATION_FLAGS_PRIVATE "")
   set(LIB_COMPILATION_FLAGS_PUBLIC "")
-  if(WIN32)
-    list(APPEND LIB_COMPILATION_FLAGS_PUBLIC -D_USE_MATH_DEFINES)
-  endif()
 endif()
 
 # Append our shared warning flags.
@@ -53,6 +50,10 @@ target_compile_options(${LIBRARY_NAME} PUBLIC ${LIB_COMPILATION_FLAGS_PUBLIC})
 
 target_link_libraries(${LIBRARY_NAME} fmt::fmt-header-only absl::inlined_vector
                       absl::span)
+
+if(WIN32)
+  target_compile_definitions(${LIBRARY_NAME} PUBLIC -D_USE_MATH_DEFINES)
+endif()
 
 # TODO: Properly nest things in a named directory.
 target_include_directories(

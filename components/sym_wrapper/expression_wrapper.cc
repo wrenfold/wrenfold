@@ -68,8 +68,11 @@ std::variant<double, Expr> EvalToNumeric(const Expr& self) {
 }
 
 namespace math {
-// Defined in matrix_wrapper_methods.cc
+// Defined in matrix_wrapper.cc
 void WrapMatrixOperations(py::module_& m);
+
+// Defined in codegen_wrapper.cc
+void WrapCodegenOperations(py::module_& m);
 }  // namespace math
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
@@ -179,4 +182,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   // Include other wrappers in this module:
   WrapMatrixOperations(m);
+
+  auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
+  WrapCodegenOperations(m_codegen);
 }  // PYBIND11_MODULE

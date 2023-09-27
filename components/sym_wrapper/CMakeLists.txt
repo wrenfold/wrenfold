@@ -7,10 +7,10 @@ if(NOT DEFINED STUBGEN_PATH)
   endif()
 endif()
 
-# Function for defining a wrapper module.
+# Function for defining the wrapper module.
 function(add_wrapper_module)
   set(oneValueArgs NAME)
-  set(multiValueArgs SOURCES)
+  set(multiValueArgs "SOURCES;SUB_MODULE_NAMES")
   cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   # Add pybind11 module
@@ -37,35 +37,54 @@ function(add_wrapper_module)
       COMMENT "Copying module to binary dir: ${MODULE_NAME}")
   endif()
 
+  # There can be multiple submodules in the same shared object. Iterate over all
+  # of them and make sure we record their output `pyi` files.
+  set(STUB_OUTPUT_PATHS
+      "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/__init__.pyi")
+  foreach(SUB_MODULE_NAME ${MODULE_SUB_MODULE_NAMES})
+    set(SUB_MODULE_STUB_OUTPUT_PATH
+        "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/${SUB_MODULE_NAME}.pyi")
+    list(APPEND STUB_OUTPUT_PATHS ${SUB_MODULE_STUB_OUTPUT_PATH})
+    message(
+      STATUS
+        "Adding sub-module to stubgen output: ${SUB_MODULE_STUB_OUTPUT_PATH}")
+  endforeach()
+
   # Add a command to generate stubs
-  # https://mypy.readthedocs.io/en/stable/stubgen.html
-  set(STUB_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}.pyi")
+  # https://mypy.readthedocs.io/en/stable/stubgen.html set(STUB_OUTPUT_PATH
+  # "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}.pyi")
   if(DEFINED STUBGEN_PATH)
     message(STATUS "Will generate stubs for: ${MODULE_NAME}")
     add_custom_command(
-      OUTPUT ${STUB_OUTPUT_PATH}
-      COMMAND ${STUBGEN_PATH} -m ${MODULE_NAME} --output
+      OUTPUT ${STUB_OUTPUT_PATHS}
+      COMMAND ${STUBGEN_PATH} --package ${MODULE_NAME} --output
               ${CMAKE_CURRENT_BINARY_DIR}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generate stubs for pybind module: ${MODULE_NAME}"
       DEPENDS ${MODULE_NAME})
 
     # Create a target labeled `ALL` so that the command runs:
-    add_custom_target(${MODULE_NAME}_stubs ALL DEPENDS ${STUB_OUTPUT_PATH})
+    add_custom_target(${MODULE_NAME}_stubs ALL DEPENDS ${STUB_OUTPUT_PATHS})
   endif()
 
   # Add install targets for scikit-build-core
   if(DEFINED SKBUILD_PROJECT_NAME)
     install(TARGETS ${MODULE_NAME} DESTINATION sym_wrapper)
     if(DEFINED STUBGEN_PATH)
-      install(FILES ${STUB_OUTPUT_PATH} DESTINATION sym_wrapper)
+      install(FILES ${STUB_OUTPUT_PATHS} DESTINATION sym_wrapper)
     endif()
   endif()
 endfunction()
 
-add_wrapper_module(NAME ${PROJECT_PREFIX}_pysym SOURCES expression_wrapper.cc
-                   matrix_wrapper.cc)
-add_wrapper_module(NAME ${PROJECT_PREFIX}_pycodegen SOURCES codegen_wrapper.cc)
+add_wrapper_module(
+  NAME
+  ${PROJECT_PREFIX}_pysym
+  SOURCES
+  expression_wrapper.cc
+  matrix_wrapper.cc
+  codegen_wrapper.cc
+  SUB_MODULE_NAMES
+  codegen)
 
 # Add python tests:
 if(NOT DEFINED SKBUILD_PROJECT_NAME)
