@@ -22,7 +22,7 @@ cmake.minimum-version = "3.18"
 ninja.minimum-version = "1.5"
 ninja.make-fallback = true
 cmake.verbose = true
-cmake.build-type = "Debug"
+cmake.build-type = "RelWithDebInfo"
 logging.level = "WARNING"
 
-wheel.packages = ["sym", "sym_wrapper"]
+wheel.packages = ["components/python/sym", "sym_wrapper"]
