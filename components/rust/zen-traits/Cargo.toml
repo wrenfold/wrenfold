@@ -1,0 +1,11 @@
+[package]
+name = "zen-traits"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[dependencies]
+nalgebra = { version = "0.32.3", optional = true }
+
+[features]
+nalgebra = ["dep:nalgebra"]
