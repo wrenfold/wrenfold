@@ -19,7 +19,7 @@ function(add_wrapper_module)
   # Depend on the static library
   add_dependencies(${MODULE_NAME} ${LIBRARY_NAME})
   target_link_libraries(${MODULE_NAME} PRIVATE ${LIBRARY_NAME})
-  target_compile_options(${MODULE_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_compile_options(${MODULE_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
   target_compile_definitions(${MODULE_NAME}
                              PRIVATE PY_MODULE_NAME=${MODULE_NAME})
 

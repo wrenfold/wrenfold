@@ -7,7 +7,7 @@ if(NOT TARGET ${LIBRARY_NAME})
 endif()
 
 target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main eigen)
-target_compile_options(${TEST_LIBRARY_NAME} PUBLIC ${MATH_COMPILATION_FLAGS})
+target_compile_options(${TEST_LIBRARY_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
 
 # get_target_property(EIGEN_INCLUDE_DIRS eigen INTERFACE_INCLUDE_DIRECTORIES)
 
@@ -39,7 +39,7 @@ function(add_custom_test SOURCE_FILE)
                         fmt::fmt-header-only)
 
   target_compile_features(${TEST_NAME} PRIVATE ${TEST_COMPILE_FEATURES})
-  target_compile_options(${TEST_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_compile_options(${TEST_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
   target_include_directories(${TEST_NAME} PRIVATE ${TEST_CONFIG_OUTPUT_DIR})
 
   add_test(${TEST_NAME} ${TEST_NAME})
@@ -111,7 +111,7 @@ function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
 
   add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
   target_link_libraries(${generate_target} ${LIBRARY_NAME})
-  target_compile_options(${generate_target} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_compile_options(${generate_target} PRIVATE ${SHARED_WARNING_FLAGS})
 
   # Add a target that runs the generation:
   add_custom_command(

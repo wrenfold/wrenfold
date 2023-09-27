@@ -22,29 +22,18 @@ add_subdirectory(dependencies)
 set(PROJECT_PREFIX zen)
 set(LIBRARY_NAME ${PROJECT_PREFIX}-math)
 
-# Adjust warnings
+# Some shared warning flags:
 if(MSVC)
   # We turn off C4702 (unreachable code) because constexpr blocks trigger it
   # incorrectly.
-  set(MATH_COMPILATION_FLAGS
-      /W4
-      /WX
-      /D_USE_MATH_DEFINES
-      /bigobj
-      /wd4244
-      /wd4702
-      /EHs
-      /Zc:__cplusplus)
+  set(SHARED_WARNING_FLAGS /W4 /WX /wd4244 /wd4702)
 else()
-  set(MATH_COMPILATION_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
-  if(WIN32)
-    list(APPEND MATH_COMPILATION_FLAGS -D_USE_MATH_DEFINES)
-  endif()
+  set(SHARED_WARNING_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   # Disable unused parameter warning (triggered by if constexpr)
-  list(APPEND MATH_COMPILATION_FLAGS -Wno-unused-parameter
+  list(APPEND SHARED_WARNING_FLAGS -Wno-unused-parameter
        -Wno-unused-but-set-parameter)
 endif()
 

@@ -7,7 +7,7 @@ function(add_benchmark SOURCE_FILE)
   message(STATUS "Adding benchmark: ${BENCH_NAME}")
   add_executable(${BENCH_NAME} ${SOURCE_FILE})
   target_link_libraries(${BENCH_NAME} ${LIBRARY_NAME} benchmark::benchmark)
-  target_compile_options(${BENCH_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_compile_options(${BENCH_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
 endfunction()
 
 # Add all of our benchmarks:

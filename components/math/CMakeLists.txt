@@ -29,10 +29,27 @@ add_library(
 
 # Turn on C++17
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
+
 # Set -fPIC since we will need to build shared libraries for python.
 set_target_properties(${LIBRARY_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_compile_options(${LIBRARY_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
+if(MSVC)
+  set(LIB_COMPILATION_FLAGS_PRIVATE /bigobj /EHs)
+  set(LIB_COMPILATION_FLAGS_PUBLIC /D_USE_MATH_DEFINES /Zc:__cplusplus)
+else()
+  set(LIB_COMPILATION_FLAGS_PRIVATE "")
+  set(LIB_COMPILATION_FLAGS_PUBLIC "")
+  if(WIN32)
+    list(APPEND LIB_COMPILATION_FLAGS_PUBLIC -D_USE_MATH_DEFINES)
+  endif()
+endif()
+
+# Append our shared warning flags.
+list(APPEND LIB_COMPILATION_FLAGS_PRIVATE ${SHARED_WARNING_FLAGS})
+message(STATUS "Warning flags set to: ${SHARED_WARNING_FLAGS}")
+
+target_compile_options(${LIBRARY_NAME} PRIVATE ${LIB_COMPILATION_FLAGS_PRIVATE})
+target_compile_options(${LIBRARY_NAME} PUBLIC ${LIB_COMPILATION_FLAGS_PUBLIC})
 
 target_link_libraries(${LIBRARY_NAME} fmt::fmt-header-only absl::inlined_vector
                       absl::span)
