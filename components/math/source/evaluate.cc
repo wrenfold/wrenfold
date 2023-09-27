@@ -1,8 +1,4 @@
 // Copyright 2023 Gareth Cross
-#include <algorithm>
-
-#include <math.h>
-
 #include "expression.h"
 #include "expressions/all_expressions.h"
 #include "visitor_impl.h"

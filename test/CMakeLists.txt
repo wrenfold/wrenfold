@@ -1,10 +1,16 @@
 # Create a library with reusable test utilities.
-set(TEST_LIBRARY_NAME ${PROJECT_NAME}_test_utils)
+set(TEST_LIBRARY_NAME ${PROJECT_PREFIX}-test-utils)
 add_library(${TEST_LIBRARY_NAME} STATIC test_helpers.cc)
-target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main eigen)
-target_compile_options(${TEST_LIBRARY_NAME} PUBLIC ${MATH_COMPILATION_FLAGS})
 
-get_target_property(EIGEN_INCLUDE_DIRS eigen INTERFACE_INCLUDE_DIRECTORIES)
+if(NOT TARGET ${LIBRARY_NAME})
+  message(FATAL_ERROR "Main library target has not been defined.")
+endif()
+
+target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main eigen)
+target_compile_options(${TEST_LIBRARY_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
+
+# get_target_property(EIGEN_INCLUDE_DIRS eigen INTERFACE_INCLUDE_DIRECTORIES)
+
 set(TEST_CONFIG_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_config)
 configure_file(config/config_variables.h.in
                ${TEST_CONFIG_OUTPUT_DIR}/config_variables.h)
@@ -24,14 +30,18 @@ function(add_custom_test SOURCE_FILE)
   message(STATUS "Adding test: ${TEST_NAME}")
   add_executable(${TEST_NAME} ${SOURCE_FILE} custom_main.cc)
   target_link_libraries(${TEST_NAME} gtest)
+
   if(NOT ${TEST_OMIT_MAIN_LIBRARY})
     target_link_libraries(${TEST_NAME} ${TEST_LIBRARY_NAME})
   endif()
-  target_link_libraries(${TEST_NAME} math_runtime eigen fmt::fmt-header-only)
+
+  target_link_libraries(${TEST_NAME} ${PROJECT_PREFIX}-runtime eigen
+                        fmt::fmt-header-only)
 
   target_compile_features(${TEST_NAME} PRIVATE ${TEST_COMPILE_FEATURES})
-  target_compile_options(${TEST_NAME} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_compile_options(${TEST_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
   target_include_directories(${TEST_NAME} PRIVATE ${TEST_CONFIG_OUTPUT_DIR})
+
   add_test(${TEST_NAME} ${TEST_NAME})
 endfunction()
 
@@ -80,7 +90,7 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   add_executable(${evaluate_target} ${TEST_SOURCE_FILE} custom_main.cc
                                     "${TEST_OUTPUT_DIR}/generated.h")
   target_link_libraries(${evaluate_target} ${TEST_LIBRARY_NAME} gtest
-                        math_runtime eigen)
+                        ${PROJECT_PREFIX}-runtime eigen)
   target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})
 
   # The evaluation target must depend on running the code-generation
@@ -101,7 +111,7 @@ function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
 
   add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
   target_link_libraries(${generate_target} ${LIBRARY_NAME})
-  target_compile_options(${generate_target} PRIVATE ${MATH_COMPILATION_FLAGS})
+  target_compile_options(${generate_target} PRIVATE ${SHARED_WARNING_FLAGS})
 
   # Add a target that runs the generation:
   add_custom_command(

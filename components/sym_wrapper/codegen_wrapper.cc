@@ -18,7 +18,11 @@
 namespace py = pybind11;
 using namespace py::literals;
 
-using namespace math;
+// We make this type opaque and wrap it manually below.
+// This allows us to avoid problems from Variant not being default constructible.
+PYBIND11_MAKE_OPAQUE(std::vector<math::ast::Variant>)
+
+namespace math {
 
 // Pybind11 requires that std::variant be default-constructible.
 // We have to allow monostate to achieve this.
@@ -41,11 +45,7 @@ static std::string FormatAst(const T& x) {
   return fmt::format("{}", x);
 }
 
-// We make this type opaque and wrap it manually below.
-// This allows us to avoid problems from Variant not being default constructible.
-PYBIND11_MAKE_OPAQUE(std::vector<ast::Variant>);
-
-PYBIND11_MODULE(pycodegen, m) {
+void WrapCodegenOperations(py::module_& m) {
   m.def(
       "create_function_argument",
       [](std::size_t index) { return FunctionArgument::Create(index, 0); }, py::arg("index"));
@@ -307,5 +307,6 @@ PYBIND11_MODULE(pycodegen, m) {
           -> std::string { return RustCodeGenerator{}.Generate(signature, ast); },
       "signature"_a, "ast"_a,
       py::doc("Generate Rust code from the given function signature and expressions."));
+}
 
-}  // PYBIND11_MODULE
+}  // namespace math
