@@ -26,6 +26,10 @@ class constant;
 // Type used for strides computed at runtime.
 class dynamic;
 
+// Fwd declare.
+template <typename T, typename Dimensions, typename Strides>
+constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept;
+
 // Base class for multidimensional spans.
 // Don't instantiate this directly, use `not_null_span` and `span` (defined below).
 template <typename T, typename Dimensions, typename Strides>
@@ -79,7 +83,14 @@ class span {
   // Access all strides.
   constexpr const Strides& strides() const noexcept { return strides_; }
 
-  // Access the stride for dimension `D`.
+  // Access the dimension for axis `D`.
+  template <std::size_t D>
+  constexpr auto dimension() const noexcept {
+    static_assert(D < num_dimensions, "Dimension index is invalid");
+    return dimensions_.template get<D>().value();
+  }
+
+  // Access the stride for axis `D`.
   template <std::size_t D>
   constexpr auto stride() const noexcept {
     static_assert(D < num_dimensions, "Dimension index is invalid");
@@ -89,12 +100,14 @@ class span {
   // Matrix-access operator.
   // Interpret (i, j) as row and column indices and return a reference.
   template <typename... Indices>
-  constexpr reference operator()(Indices... indices) const {
+  constexpr reference operator()(Indices... indices) const noexcept {
     return data_[compute_index(indices...)];
   }
 
   // Array access operator, valid for 1D spans.
-  constexpr reference operator[](std::ptrdiff_t index) const { return data_[compute_index(index)]; }
+  constexpr reference operator[](std::ptrdiff_t index) const noexcept {
+    return data_[compute_index(index)];
+  }
 
   // Compute linear index from (row, column) matrix indices.
   template <typename... Indices>
@@ -119,6 +132,15 @@ class span {
     return {data_, dimensions(), strides()};
   }
 
+  // Access a sub-block of the span with the given offsets and dimensions.
+  template <typename O, typename D>
+  constexpr auto block(O offsets, D dims) const noexcept {
+    static_assert(num_dimensions == O::length, "Incorrect # of dimensions in offsets.");
+    static_assert(num_dimensions == D::length, "Incorrect # of dimensions in sizes.");
+    auto start_index = compute_index_internal_vp(offsets);
+    return make_span(data() + start_index, dims, strides());
+  }
+
  private:
   template <typename I, typename... Is, std::size_t Dim, std::size_t... Dims>
   constexpr std::ptrdiff_t compute_index_internal(std::integer_sequence<std::size_t, Dim, Dims...>,
@@ -136,6 +158,23 @@ class span {
   template <std::size_t Dim, typename I>
   constexpr std::ptrdiff_t compute_index_internal(I i) const noexcept {
     return stride<Dim>() * static_cast<std::ptrdiff_t>(i);
+  }
+
+  template <typename... Values, std::size_t... Dims>
+  constexpr std::ptrdiff_t compute_index_internal_vp(
+      std::integer_sequence<std::size_t, Dims...>,
+      const value_pack<Values...>& values) const noexcept {
+    static_assert(sizeof...(Dims) == sizeof...(Values), "");
+    return compute_index_internal(std::make_integer_sequence<std::size_t, sizeof...(Values)>(),
+                                  values.template get<Dims>().value()...);
+  }
+
+  // Compute index from a value pack of offsets.
+  template <typename... Values>
+  constexpr std::ptrdiff_t compute_index_internal_vp(
+      const value_pack<Values...>& values) const noexcept {
+    return compute_index_internal_vp(std::make_integer_sequence<std::size_t, sizeof...(Values)>(),
+                                     values);
   }
 
   // TODO: Use the compressed pair trick on dimensions and strides?

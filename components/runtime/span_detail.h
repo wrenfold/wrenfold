@@ -34,9 +34,11 @@ class dynamic {
 namespace detail {
 
 // Implementation of conjunction (since this file is pre C++17).
-template <typename...> struct conjunction : std::true_type {};
+template <typename...>
+struct conjunction : std::true_type {};
 template <typename T, typename... Ts>
-struct conjunction<T, Ts...> : std::conditional<T::value, conjunction<Ts...>, std::false_type>::type {};
+struct conjunction<T, Ts...>
+    : std::conditional<T::value, conjunction<Ts...>, std::false_type>::type {};
 
 // Evaluates to true if `T` is an instance of `constant<D>`
 template <typename T>
@@ -46,8 +48,8 @@ struct is_constant<constant<D>> : std::true_type {};
 
 // Enable if all the `Ints` are convertible to ptrdiff_t.
 template <typename... Ints>
-using enable_if_convertible_to_ptrdiff_t = typename std::enable_if<
-    conjunction<std::is_convertible<Ints, std::ptrdiff_t>...>::value>::type;
+using enable_if_convertible_to_ptrdiff_t =
+    typename std::enable_if<conjunction<std::is_convertible<Ints, std::ptrdiff_t>...>::value>::type;
 
 // Represents a variadic list of values when all values are instances of `constant<>`.
 // Does not store anything, since the values are knowable at compile time.
@@ -102,9 +104,10 @@ class value_pack_dynamic {
 
 // Inherits either `value_pack_const` or `value_pack_dynamic`, depending on the types of `Values`.
 template <typename... Values>
-class value_pack : public std::conditional<detail::conjunction<detail::is_constant<Values>...>::value,
-                                           detail::value_pack_const<Values...>,
-                                           detail::value_pack_dynamic<Values...>>::type {
+class value_pack
+    : public std::conditional<detail::conjunction<detail::is_constant<Values>...>::value,
+                              detail::value_pack_const<Values...>,
+                              detail::value_pack_dynamic<Values...>>::type {
  public:
   static_assert(sizeof...(Values) > 0, "Must have at least one dimension");
 
@@ -146,6 +149,11 @@ struct is_value_pack : public std::false_type {};
 template <typename... Values>
 struct is_value_pack<value_pack<Values...>> : public std::true_type {};
 
+// Enable if the input type can be converted to size_t.
+template <typename... T>
+using enable_if_convertible_to_size_t = typename std::enable_if<
+    detail::conjunction<std::is_convertible<T, std::size_t>...>::value>::type;
+
 }  // namespace detail
 
 // Construct `dimensions` from variadic args.
@@ -158,6 +166,12 @@ constexpr auto make_value_pack(Values&&... values) noexcept {
 template <std::size_t... Dims>
 constexpr auto make_constant_value_pack() noexcept {
   return make_value_pack(constant<Dims>{}...);
+}
+
+// Construct runtime dimensions:
+template <typename... Dims, typename = detail::enable_if_convertible_to_size_t<Dims...>>
+constexpr auto make_dynamic_value_pack(Dims... dims) noexcept {
+  return make_value_pack(dynamic{static_cast<std::size_t>(dims)}...);
 }
 
 namespace detail {

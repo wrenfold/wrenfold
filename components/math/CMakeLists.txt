@@ -48,8 +48,8 @@ message(STATUS "Warning flags set to: ${SHARED_WARNING_FLAGS}")
 target_compile_options(${LIBRARY_NAME} PRIVATE ${LIB_COMPILATION_FLAGS_PRIVATE})
 target_compile_options(${LIBRARY_NAME} PUBLIC ${LIB_COMPILATION_FLAGS_PUBLIC})
 
-target_link_libraries(${LIBRARY_NAME} fmt::fmt-header-only absl::inlined_vector
-                      absl::span)
+target_link_libraries(${LIBRARY_NAME} ${PROJECT_PREFIX}-runtime
+                      fmt::fmt-header-only absl::inlined_vector absl::span)
 
 if(WIN32)
   target_compile_definitions(${LIBRARY_NAME} PUBLIC -D_USE_MATH_DEFINES)
