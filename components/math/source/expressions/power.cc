@@ -64,6 +64,9 @@ struct PowerNumerics {
   // If the left operand is integer, and the right is rational:
   Expr ApplyIntegerAndRational(const Integer& a, const Rational& b) {
     ASSERT_GREATER(b.Denominator(), 0, "Rational must have positive denominator");
+    if (a.GetValue() == 1) {
+      return Constants::One;
+    }
 
     // Factorize the integer into primes:
     const std::vector<PrimeFactor> factors = ComputePrimeFactors(a.GetValue());
