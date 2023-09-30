@@ -42,4 +42,7 @@ MatrixExpr Vec(const MatrixExpr& m);
 // matrices.
 std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(const MatrixExpr& A);
 
+// Compute determinant of a matrix. Only valid for square matrices.
+Expr Determinant(const MatrixExpr& m);
+
 }  // namespace math

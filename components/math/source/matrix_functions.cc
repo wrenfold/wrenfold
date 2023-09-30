@@ -87,23 +87,30 @@ struct PermutationMatrix {
   std::size_t NumRows() const noexcept { return p_.size(); }
 
   // Insert a new row at the start, and then swap row `0` and `row`.
-  void ShiftDownAndSwap(index_t row) noexcept {
+  void ShiftDownAndSwap(index_t row) {
     for (index_t& index : p_) {
       index += 1;
     }
     p_.insert(p_.begin(), 0);
-    std::swap(p_[0], p_[static_cast<std::size_t>(row)]);
+    if (row != 0) {
+      ASSERT_LESS(static_cast<std::size_t>(row), p_.size());
+      std::swap(p_[0], p_[row]);
+      ++num_swaps_;
+    }
   }
 
   // Insert a new row at the start, then swap whatever row contains `row` with 0.
-  void ShiftDownAndSwapRight(index_t row) noexcept {
+  void ShiftDownAndSwapRight(index_t row) {
     for (index_t& index : p_) {
       index += 1;
     }
     p_.insert(p_.begin(), 0);
-
     auto it = std::find(p_.begin(), p_.end(), row);
-    std::swap(*it, p_[0]);
+    ASSERT(it != p_.end());
+    if (it != p_.begin()) {
+      std::swap(*it, p_[0]);
+      ++num_swaps_;
+    }
   }
 
   PermutationMatrix Transpose() const {
@@ -115,8 +122,18 @@ struct PermutationMatrix {
     return PermutationMatrix{std::move(p_transpose)};
   }
 
+  // Determinant of this permutation matrix. Either 1 or -1.
+  constexpr int Determinant() const noexcept {
+    if (num_swaps_ & 1) {
+      return -1;
+    } else {
+      return 1;
+    }
+  }
+
  private:
   Container p_{};
+  std::size_t num_swaps_{0};
 };
 
 using dynamic_row_major_span =
@@ -322,6 +339,45 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(
   return std::make_tuple(
       CreateMatrixFromPermutations(P), MatrixExpr{MakeExpr<Matrix>(std::move(L))},
       MatrixExpr{MakeExpr<Matrix>(std::move(U))}, CreateMatrixFromPermutations(Q));
+}
+
+Expr Determinant(const MatrixExpr& m) {
+  const Matrix& mat = m.AsMatrix();
+  if (mat.NumRows() != mat.NumCols()) {
+    throw DimensionError(
+        "Determinant can only be computed for square matrices. Dimensions = [{}, {}]",
+        mat.NumRows(), mat.NumCols());
+  }
+
+  // Hardcoded solutions for 1x1, 2x2, and 3x3
+  if (mat.NumRows() == 1) {
+    return mat.GetUnchecked(0, 0);
+  } else if (mat.NumRows() == 2) {
+    return mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 1) -
+           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 0);
+  } else if (mat.NumRows() == 3) {
+    return mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 1) * mat.GetUnchecked(2, 2) -
+           mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 2) * mat.GetUnchecked(2, 1) -
+           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 0) * mat.GetUnchecked(2, 2) +
+           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 2) * mat.GetUnchecked(2, 0) +
+           mat.GetUnchecked(0, 2) * mat.GetUnchecked(1, 0) * mat.GetUnchecked(2, 1) -
+           mat.GetUnchecked(0, 2) * mat.GetUnchecked(1, 1) * mat.GetUnchecked(2, 0);
+  }
+
+  // General case, use full-piv LU:
+  // TODO: Not sure if this is preferable, or if symbolic co-factor method is better?
+  auto factorization = FactorizeFullPivLUInternal(mat);
+
+  const auto& P = std::get<0>(factorization);
+  const auto& U = std::get<2>(factorization);
+  const auto& Q = std::get<3>(factorization);
+
+  // The product of the diagonal is the product of eigenvalues, which equals the determinant:
+  Expr prod = P.Determinant() * Q.Determinant();
+  for (index_t i = 0; i < U.NumRows(); ++i) {
+    prod = prod * U.GetUnchecked(i, i);
+  }
+  return prod;
 }
 
 }  // namespace math

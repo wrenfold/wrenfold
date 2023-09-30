@@ -362,4 +362,78 @@ TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
   }
 }
 
+TEST(MatrixOperationsTest, TestFactorizeLU4) {
+  // clang-format off
+  auto M = CreateMatrix(4, 4,
+                        0, -2, -7, 7,
+                        3, 0, 1, -7,
+                        5, -3, 0, 1,
+                        -1, -1, 4, 0);
+  // clang-format on
+  CheckFullPivLUSolution(M, FactorizeFullPivLU(M));
+}
+
+TEST(MatrixOperationsTest, TestDeterminant2x2) {
+  auto I2 = Identity(2);
+  ASSERT_IDENTICAL(1, Determinant(I2));
+  ASSERT_IDENTICAL(1, Determinant(-I2));
+
+  // 2x2 version
+  auto [a, b, c, d] = Symbols("a", "b", "c", "d");
+  auto A2 = CreateMatrix(2, 2, a, b, c, d);
+  ASSERT_IDENTICAL(a * d - c * b, Determinant(A2));
+}
+
+TEST(MatrixOperationsTest, TestDeterminant3x3) {
+  // Compare 3x3 to cofactor method:
+  auto A = MatrixOfSymbols("x", 3, 3);
+  auto det_cofactor =
+      A(0, 0) * Determinant(A.GetBlock(1, 1, 2, 2)) -
+      A(0, 1) * Determinant(CreateMatrix(2, 2, A(1, 0), A(1, 2), A(2, 0), A(2, 2))) +
+      A(0, 2) * Determinant(A.GetBlock(1, 0, 2, 2));
+  ASSERT_IDENTICAL(det_cofactor.Distribute(), Determinant(A));
+
+  auto I3 = Identity(3);
+  ASSERT_IDENTICAL(1, Determinant(I3));
+  ASSERT_IDENTICAL(-1, Determinant(-I3));
+  ASSERT_IDENTICAL(0, Determinant(Zeros(3, 3)));
+
+  // test the 3x3 version against some hardcoded matrices
+  auto M1 = CreateMatrix(3, 3, -2, 2, -4, 2, -4, -3, -3, 0, 4);
+  ASSERT_IDENTICAL(82, Determinant(M1));
+
+  auto M2 = CreateMatrix(3, 3, 1, -1, -2, -3, 4, 4, -1, -1, -1);
+  ASSERT_IDENTICAL(-7, Determinant(M2));
+
+  auto M3 = CreateMatrix(3, 3, 4, -3, -3, 3, -3, 0, 4, 3, -1);
+  ASSERT_IDENTICAL(-60, Determinant(M3));
+}
+
+// TODO: Test the LU factors against the cofactor method?
+TEST(MatrixOperationsTest, TestDeterminant) {
+  auto M1 = CreateMatrix(4, 4, 4, -1, -1, -3, 0, 3, -2, -1, 4, 1, 2, 1, -1, 3, -1, 1);
+  ASSERT_IDENTICAL(28, Determinant(M1));
+
+  auto M2 = CreateMatrix(4, 4, -2, 0, 6, 2, 6, 6, 2, -7, 7, 1, 3, -6, -8, 9, 0, 4);
+  ASSERT_IDENTICAL(-136, Determinant(M2));
+
+  auto M3 = CreateMatrix(4, 4, -9, 6, -2, 0, -3, -2, -9, 0, -1, -5, 3, 0, -3, -1, -9, 0);
+  ASSERT_IDENTICAL(0, Determinant(M3));
+
+  auto M4 = CreateMatrix(4, 4, 0, -2, -7, 7, 3, 0, 1, -7, 5, -3, 0, 1, -1, -1, 4, 0);
+  ASSERT_IDENTICAL(-411, Determinant(M4));
+
+  auto M5 = CreateMatrix(5, 5, 5, -9, 3, -7, 3, 5, 1, 5, 6, -3, 5, -8, 0, 3, 6, -9, 9, -2, -4, -7,
+                         -1, 0, -6, -1, 0);
+  ASSERT_IDENTICAL(6870, Determinant(M5));
+
+  auto M6 = CreateMatrix(6, 6, 1, -4, 4, -1, 1, 2, -1, -3, 2, 4, 1, -1, 4, -3, -1, 2, 2, -3, 0, 3,
+                         2, 4, 2, 1, -4, 0, 0, 4, -3, 2, 4, -1, -2, -1, -4, 0);
+  ASSERT_IDENTICAL(6995, Determinant(M6));
+
+  auto M7 = CreateMatrix(6, 6, 0, 4, -1, -1, 4, -2, 2, 0, -2, 2, -2, 3, -4, -4, 0, -2, 2, -1, 0, 0,
+                         -1, 0, -3, -3, 0, -4, -4, 1, 0, -2, 3, 3, 1, 4, 2, 0);
+  ASSERT_IDENTICAL(3714, Determinant(M7));
+}
+
 }  // namespace math
