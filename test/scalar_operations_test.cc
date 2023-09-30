@@ -78,13 +78,19 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * 1.25_s, x * 5_s * 0.125_s * 2.0_s);
   ASSERT_IDENTICAL(x * 0.0625_s, (x * 2.0_s) * (1_s / 32_s));
 
+  // Automatic distribution of numeric constants into additions:
+  ASSERT_IDENTICAL(3 * x + 3 * y, 3 * (x + y));
+  ASSERT_IDENTICAL(-5_s / 6 * z - 5_s / 6 * Constants::Pi, -5_s / 6 * (z + Constants::Pi));
+  ASSERT_IDENTICAL(x / 3 - y, (x - 3 * y) / 3);
+  ASSERT_IDENTICAL(3.2 * x - 6.4 * y, (x - 2 * y) * 3.2);
+
   // Collections of powers:
   ASSERT_IDENTICAL(pow(x, 2), x * x);
   ASSERT_IDENTICAL(pow(x, 3), x * x * x);
   ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), x * y * x * y);
   ASSERT_IDENTICAL(1, pow(x, 2) * pow(x, -2));
   ASSERT_IDENTICAL(x * pow(y, 2) * pow(log(z), 3), log(z) * y * x * log(z) * y * log(z));
-  ASSERT_IDENTICAL(1 / 33_s * x * pow(3, 2 / 3_s) * pow(11, 2 / 3_s),
+  ASSERT_IDENTICAL(x * pow(3, 2 / 3_s) * pow(11, 2 / 3_s) / 33,
                    pow(33, -2 / 3_s) * pow(33, 1 / 3_s) * x);
   ASSERT_IDENTICAL(x, sqrt(x) * sqrt(x));
   ASSERT_IDENTICAL(pow(x, 3 / 2_s), sqrt(x) * sqrt(x) * sqrt(x));

@@ -120,6 +120,13 @@ template <typename VisitorType>
 auto VisitWithExprArg(const Expr& expr, VisitorType&& visitor) {
   return Visit(expr, [&expr, &visitor](const auto& x) {
     using T = std::decay_t<decltype(x)>;
+
+    // Make sure this is not ambiguous:
+    static_assert(
+        (HasBinaryCallOperator<VisitorType, T, Expr> || HasCallOperator<VisitorType, T>)&&!(
+            HasBinaryCallOperator<VisitorType, T, Expr> && HasCallOperator<VisitorType, T>),
+        "Visitor must support either unary or binary operator(), but not both.");
+
     if constexpr (HasBinaryCallOperator<VisitorType, T, Expr>) {
       return visitor(x, expr);
     } else {

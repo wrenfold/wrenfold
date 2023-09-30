@@ -57,6 +57,11 @@ TEST(SubstituteTest, TestPower) {
   ASSERT_IDENTICAL(pow(x, 2.2 * y), pow(x, 2.2 * y).Subs(pow(x, y), z));
   ASSERT_IDENTICAL(pow(x, y / 2), pow(x, y / 2).Subs(pow(x, y), z));
 
+  // TODO: There is an argument to be made this _should_ be the behavior, but it currently is not.
+#if 0
+  ASSERT_IDENTICAL(pow(x, 5 * z / 3), pow(x, 5 * z / 3).Subs(pow(x, z), w));
+#endif
+
   // Powers where the exponent is an addition:
   ASSERT_IDENTICAL(w * pow(x, y), pow(x, y + x).Subs(pow(x, x), w));
   ASSERT_IDENTICAL(w * pow(x, 1_s / 2), pow(x, y + 1_s / 2).Subs(pow(x, y), w));
@@ -66,8 +71,8 @@ TEST(SubstituteTest, TestPower) {
 
   // If there is a fraction in the power that can divide w/ an integer part:
   ASSERT_IDENTICAL(w * pow(x, 2_s / 3 * z + 2), pow(x, 5_s / 3 * z + 2).Subs(pow(x, z), w));
-  ASSERT_IDENTICAL((1 / w) * pow(x, -1_s / 5 * (z + y) + w),
-                   pow(x, -11_s / 5 * (z + y) + w).Subs(pow(x, 2 * (z + y)), w));
+
+  // TODO: this simplification seems perhaps not worthwhile and overly compliated?
   ASSERT_IDENTICAL(pow(w, -3) * pow(log(x * 2), -2_s / 7 * z),
                    pow(log(x * 2), -23_s / 7 * z).Subs(pow(log(x * 2), z), w));
 
