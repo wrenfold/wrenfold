@@ -1,5 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include <tuple>
+
 #include "matrix_expression.h"
 
 namespace math {
@@ -33,5 +35,11 @@ MatrixExpr Identity(index_t rows);
 
 // Create a vector by flattening a matrix in column-major order.
 MatrixExpr Vec(const MatrixExpr& m);
+
+// Perform full-pivoting gaussian elimination on a symbolic matrix.
+// Returns matrices [P, L, U, Q] such that: A = P*L*U*Q
+// Where `L` is lower triangular, `U` is upper triangular, and both `P` and `Q` are permutation
+// matrices.
+std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(const MatrixExpr& A);
 
 }  // namespace math

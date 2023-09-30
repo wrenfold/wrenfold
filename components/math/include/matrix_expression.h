@@ -113,3 +113,14 @@ inline std::ostream& operator<<(std::ostream& stream, const MatrixExpr& x) {
 }
 
 }  // namespace math
+
+// libfmt support:
+template <>
+struct fmt::formatter<math::MatrixExpr> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::MatrixExpr& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "{}", x.ToString());
+  }
+};

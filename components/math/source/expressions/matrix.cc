@@ -2,6 +2,7 @@
 #include "expressions/matrix.h"
 
 #include "expressions/addition.h"
+#include "matrix_functions.h"
 
 namespace math {
 

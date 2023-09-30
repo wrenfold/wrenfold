@@ -5,6 +5,7 @@
 #include <string>
 
 #include "expression_concept.h"
+#include "fmt_imports.h"
 #include "operations.h"
 
 namespace math {
@@ -172,3 +173,16 @@ auto Symbols(Args&&... args) {
 }
 
 }  // namespace math
+
+// libfmt support:
+template <>
+struct fmt::formatter<math::Expr> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const math::Expr& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    // TODO: This could be implemented so as to avoid the string copy.
+    //  It would require all types being visible at the formatter location though.
+    return fmt::format_to(ctx.out(), "{}", x.ToString());
+  }
+};

@@ -1,4 +1,8 @@
 // Copyright 2023 Gareth Cross
+#include <array>
+#include <random>
+
+#include "absl_imports.h"
 #include "constants.h"
 #include "error_types.h"
 #include "functions.h"
@@ -193,6 +197,169 @@ TEST(MatrixOperationsTest, TestMultiplication) {
 
   // Cannot divide by matrix.
   ASSERT_THROW(1 / static_cast<Expr>(Vector(1, 2, w)), TypeError);
+}
+
+void CheckFullPivLUSolution(
+    const MatrixExpr& A_in,
+    const std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr>& solution) {
+  auto [P, L, U, Q] = solution;
+
+  // print verbosely
+#if 0
+  fmt::print("P:\n{}\n", P);
+  fmt::print("L:\n{}\n", L);
+  fmt::print("U:\n{}\n", U);
+  fmt::print("Q:\n{}\n", Q);
+#endif
+
+  // check that P/Q are pivot matrices:
+  // this is only a partial check, since any orthonormal matrix would satisfy
+  ASSERT_IDENTICAL(Identity(A_in.NumRows()), P * P.Transpose());
+  ASSERT_IDENTICAL(Identity(A_in.NumCols()), Q * Q.Transpose());
+
+  // Check that L is lower triangular
+  ASSERT_EQ(L.NumRows(), A_in.NumRows());
+  for (int row = 0; row < L.NumRows(); ++row) {
+    for (int col = 0; col < L.NumCols(); ++col) {
+      if (row < col) {
+        ASSERT_IDENTICAL(0, L(row, col)) << fmt::format("row = {}, col = {}\nL = {}", row, col, L);
+      }
+    }
+  }
+
+  // Check that U is upper triangular
+  for (int row = 0; row < U.NumRows(); ++row) {
+    for (int col = 0; col < U.NumCols(); ++col) {
+      if (row > col) {
+        ASSERT_IDENTICAL(0, U(row, col)) << fmt::format("row = {}, col = {}\nU = {}", row, col, U);
+      }
+    }
+  }
+
+  const MatrixExpr A_out{P * L * U * Q};
+  ASSERT_IDENTICAL(A_in, A_out) << fmt::format("P = {}\nL={}\nU={}\nQ={}\n", P, L, U, Q);
+}
+
+MatrixExpr CreatePermutationMatrix(absl::Span<const int> permutation) {
+  std::vector<Expr> elements(permutation.size() * permutation.size(), Constants::Zero);
+
+  for (std::size_t row = 0; row < permutation.size(); ++row) {
+    const int col_index = permutation[row];
+    elements[row * permutation.size() + static_cast<std::size_t>(col_index)] = Constants::One;
+  }
+  const auto dim = static_cast<index_t>(permutation.size());
+  return MatrixExpr::Create(dim, dim, std::move(elements));
+}
+
+const auto& GetFourElementPermutations() {
+  // all permutations of 4 indices: https://oeis.org/A159880
+  static const std::vector<std::array<int, 4>> permutations_4 = {
+      {0, 1, 2, 3}, {1, 0, 2, 3}, {2, 0, 1, 3}, {0, 2, 1, 3}, {1, 2, 0, 3}, {2, 1, 0, 3},
+      {3, 1, 0, 2}, {0, 1, 3, 2}, {1, 0, 3, 2}, {3, 0, 1, 2}, {0, 3, 1, 2}, {1, 3, 0, 2},
+      {2, 3, 0, 1}, {3, 2, 0, 1}, {0, 2, 3, 1}, {2, 0, 3, 1}, {3, 0, 2, 1}, {0, 3, 2, 1},
+      {1, 3, 2, 0}, {2, 3, 1, 0}, {3, 2, 1, 0}, {1, 2, 3, 0}, {2, 1, 3, 0}, {3, 1, 2, 0},
+  };
+  return permutations_4;
+}
+
+TEST(MatrixOperationsTest, TestFactorizeLU1) {
+  const std::vector<std::array<int, 4>>& permutations_4 = GetFourElementPermutations();
+
+  // dimension 2:
+  for (std::size_t i = 0; i < 2; ++i) {
+    MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]).subspan(0, 2));
+    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  }
+
+  // dimension 3:
+  for (std::size_t i = 0; i < 3; ++i) {
+    MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]).subspan(0, 3));
+    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  }
+
+  // dimension 4:
+  for (std::size_t i = 0; i < permutations_4.size(); ++i) {
+    MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]));
+    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  }
+
+  // fully symbolic matrices:
+  MatrixExpr A2 = MatrixOfSymbols("x", 2, 2);
+  CheckFullPivLUSolution(A2, FactorizeFullPivLU(A2));
+
+  MatrixExpr A3 = MatrixOfSymbols("x", 3, 3);
+  CheckFullPivLUSolution(A3, FactorizeFullPivLU(A3));
+
+  MatrixExpr A4 = MatrixOfSymbols("x", 4, 4);
+  CheckFullPivLUSolution(A4, FactorizeFullPivLU(A4));
+
+  // zeros:
+  MatrixExpr Z2 = Zeros(2, 2);
+  CheckFullPivLUSolution(Z2, FactorizeFullPivLU(Z2));
+
+  MatrixExpr Z3 = Zeros(3, 3);
+  CheckFullPivLUSolution(Z3, FactorizeFullPivLU(Z3));
+}
+
+TEST(MatrixOperationsTest, TestFactorizeLU2) {
+  // some non-square symbolic matrices:
+  const std::vector<std::pair<index_t, index_t>> dims = {
+      {2, 3}, {2, 4}, {2, 5}, {3, 4}, {3, 5}, {3, 6}, {4, 5}, {4, 6},
+  };
+
+  for (const auto [row, col] : dims) {
+    MatrixExpr A = MatrixOfSymbols("x", row, col);
+    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  }
+
+  for (const auto [col, row] : dims) {
+    // Transposed version:
+    MatrixExpr A = MatrixOfSymbols("x", row, col);
+    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  }
+
+  MatrixExpr Z24 = Zeros(2, 4);
+  CheckFullPivLUSolution(Z24, FactorizeFullPivLU(Z24));
+
+  MatrixExpr Z42 = Zeros(4, 2);
+  CheckFullPivLUSolution(Z42, FactorizeFullPivLU(Z42));
+
+  MatrixExpr Z53 = Zeros(5, 3);
+  CheckFullPivLUSolution(Z53, FactorizeFullPivLU(Z53));
+}
+
+TEST(MatrixOperationsTest, TestFactorizeLU3) {
+  // Some singular matrices that require full pivot:
+  MatrixExpr A = CreateMatrix(3, 3, 0, 0, 0, 0, 0, "x", 0, 0, 0);
+  CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+
+  A = CreateMatrix(4, 4, 0, 0, 0, 0, 0, "y", 0, 0, 0, 0, 0, 0, 0, 0, 0, -5);
+  CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+
+  A = CreateMatrix(5, 3, 0, 0, 0, 0, "z", 0, 0, 0, 0, 0, 0, 0, 0, 0, 8);
+  CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+}
+
+TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
+  // Test some random integer matrices to see if we can find failures.
+  std::default_random_engine engine{1399};
+  std::uniform_int_distribution<int> distribution{-10, 10};
+
+  const std::vector<std::pair<index_t, index_t>> dims = {{2, 2}, {2, 3}, {3, 3}, {3, 4},
+                                                         {5, 3}, {4, 4}, {4, 6}};
+
+  for (const auto [rows, cols] : dims) {
+    constexpr int num_trials = 25;
+    for (int i = 0; i < num_trials; ++i) {
+      std::vector<Expr> data{};
+      data.reserve(rows * cols);
+      for (int j = 0; j < rows * cols; ++j) {
+        data.emplace_back(distribution(engine));
+      }
+      MatrixExpr M = MatrixExpr::Create(rows, cols, std::move(data));
+      CheckFullPivLUSolution(M, FactorizeFullPivLU(M));
+    }
+  }
 }
 
 }  // namespace math
