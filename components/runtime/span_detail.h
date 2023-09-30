@@ -149,29 +149,47 @@ struct is_value_pack : public std::false_type {};
 template <typename... Values>
 struct is_value_pack<value_pack<Values...>> : public std::true_type {};
 
-// Enable if the input type can be converted to size_t.
-template <typename... T>
-using enable_if_convertible_to_size_t = typename std::enable_if<
-    detail::conjunction<std::is_convertible<T, std::size_t>...>::value>::type;
+// Template for converting a type `T` to either `dynamic` or `constant`.
+template <typename T, typename = void>
+struct convert_to_dimension_type;
+
+template <typename T>
+using convert_to_dimension_type_t = typename convert_to_dimension_type<T>::type;
+
+template <>
+struct convert_to_dimension_type<dynamic> {
+  using type = dynamic;
+  static constexpr auto convert(dynamic x) noexcept { return x; }
+};
+template <std::size_t D>
+struct convert_to_dimension_type<constant<D>> {
+  using type = constant<D>;
+  static constexpr auto convert(constant<D>) noexcept { return type{}; }
+};
+// Allow promotion of integral types to `dynamic`.
+template <typename T>
+struct convert_to_dimension_type<
+    T, typename std::enable_if<std::is_integral<T>::value &&
+                               std::is_convertible<T, std::size_t>::value>::type> {
+  using type = dynamic;
+  static constexpr auto convert(T value) noexcept {
+    return dynamic(static_cast<std::size_t>(value));
+  }
+};
 
 }  // namespace detail
 
 // Construct `dimensions` from variadic args.
 template <typename... Values>
-constexpr auto make_value_pack(Values&&... values) noexcept {
-  return value_pack<typename std::decay<Values>::type...>{std::forward<Values>(values)...};
+constexpr auto make_value_pack(Values... values) noexcept {
+  return value_pack<detail::convert_to_dimension_type_t<Values>...>{
+      detail::convert_to_dimension_type<Values>::convert(values)...};
 }
 
 // Construct compile-time constant dimensions from template parameters.
 template <std::size_t... Dims>
 constexpr auto make_constant_value_pack() noexcept {
   return make_value_pack(constant<Dims>{}...);
-}
-
-// Construct runtime dimensions:
-template <typename... Dims, typename = detail::enable_if_convertible_to_size_t<Dims...>>
-constexpr auto make_dynamic_value_pack(Dims... dims) noexcept {
-  return make_value_pack(dynamic{static_cast<std::size_t>(dims)}...);
 }
 
 namespace detail {

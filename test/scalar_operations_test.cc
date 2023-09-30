@@ -169,9 +169,7 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
 }
 
 TEST(ScalarOperationsTest, TestPower) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  auto [x, y, z] = Symbols("x", "y", "z");
   ASSERT_IDENTICAL(pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
   ASSERT_IDENTICAL(AsBaseAndExponent(pow(x, y)).first, x);
@@ -204,6 +202,8 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(Expr{std::pow(6.7, -0.5)}, pow(6.7, -0.5));
 
   // Rational powers of integers:
+  ASSERT_IDENTICAL(1, pow(1, 7_s / 9));
+  ASSERT_IDENTICAL(1, pow(1, -3_s / 22));
   ASSERT_IDENTICAL(pow(3, 3 / 4_s), pow(3, 3 / 4_s));
   ASSERT_IDENTICAL(3 * pow(3, 1 / 3_s), pow(3, 4 / 3_s));
   ASSERT_IDENTICAL(3 * pow(3, 1 / 3_s), pow(9, 2 / 3_s));

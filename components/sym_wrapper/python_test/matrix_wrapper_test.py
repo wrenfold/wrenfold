@@ -310,6 +310,13 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(TypeError, lambda: sym.where(x < 0, u, d + c))
         self.assertRaises(sym.DimensionError, lambda: sym.where(x > 0, u, u.transpose()))
 
+    def test_determinant(self):
+        """Test calling `det()` on a matrix."""
+        a, b, c, d = sym.symbols('a, b, c, d')
+        M = sym.matrix([[a, b], [c, d]])
+        self.assertIdentical(a * d - b * c, M.det())
+        self.assertIdentical(M.det(), sym.det(M))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

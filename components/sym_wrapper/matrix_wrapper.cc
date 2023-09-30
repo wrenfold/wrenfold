@@ -395,6 +395,7 @@ void WrapMatrixOperations(py::module_& m) {
       .def("to_list", &ListFromMatrix, "Convert to list of lists.")
       .def("transpose", &MatrixExpr::Transpose, "Transpose the matrix.")
       .def_property_readonly("T", &MatrixExpr::Transpose, "Transpose the matrix.")
+      .def("det", &Determinant, "Compute determinant of the matrix.")
       // Operators:
       // We need to override these again so that we get `MatrixExpr` return type.
       .def(py::self + py::self)
@@ -413,7 +414,7 @@ void WrapMatrixOperations(py::module_& m) {
   // Matrix constructors:
   m.def("identity", &Identity, "rows"_a, "Create identity matrix.");
   m.def("eye", &Identity, "rows"_a, "Create identity matrix (alias for identity).");
-  m.def("zeros", &Zeros, "rows"_a, "cols"_a, "Create a matrix of zeros");
+  m.def("zeros", &Zeros, "rows"_a, "cols"_a, "Create a matrix of zeros.");
   m.def("vector", &ColumnVectorFromContainer<py::args>,
         "Construct a column vector from the arguments.");
   m.def("row_vector", &RowVectorFromContainer<py::args>,
@@ -423,7 +424,10 @@ void WrapMatrixOperations(py::module_& m) {
   m.def("matrix_of_symbols", &MatrixOfSymbols, py::arg("prefix"), py::arg("rows"), py::arg("cols"),
         "Construct a matrix of symbols.");
 
-  m.def("vec", &Vec, py::arg("m"), "Vectorize matrix in column-major order");
+  m.def("vec", &Vec, py::arg("m"), "Vectorize matrix in column-major order.");
+  m.def("det", &Determinant, py::arg("m"), "Compute determinant of a matrix.");
+  m.def("full_piv_lu", &FactorizeFullPivLU, py::arg("m"),
+        "Factorize a matrix using fully-pivoting LU decomposition.");
 
   // Version of where() for matrices
   m.def(

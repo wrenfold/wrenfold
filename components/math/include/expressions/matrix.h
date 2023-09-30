@@ -64,7 +64,10 @@ class Matrix {
   const Expr& operator()(index_t i, index_t j) const;
 
   // Get with no bounds checking.
-  const Expr& GetUnchecked(index_t i, index_t j) const;
+  const Expr& GetUnchecked(index_t i, index_t j) const noexcept { return data_[Index(i, j)]; }
+
+  // Non-const accessor with no bounds checking.
+  Expr& GetUnchecked(index_t i, index_t j) noexcept { return data_[Index(i, j)]; }
 
   // Get a sub-block from this matrix.
   Matrix GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const;
@@ -76,21 +79,21 @@ class Matrix {
   void MultiplyByScalarInPlace(const Expr& arg);
 
   // Dimensions of the matrix.
-  constexpr index_t NumRows() const { return rows_; }
-  constexpr index_t NumCols() const { return cols_; }
+  constexpr index_t NumRows() const noexcept { return rows_; }
+  constexpr index_t NumCols() const noexcept { return cols_; }
 
   // Total size (product of elements).
-  std::size_t Size() const { return data_.size(); }
+  std::size_t Size() const noexcept { return data_.size(); }
 
   // Access elements.
   const std::vector<Expr>& Data() const { return data_; }
 
   // Iterators:
-  auto begin() const { return data_.begin(); }
-  auto end() const { return data_.end(); }
+  auto begin() const noexcept { return data_.begin(); }
+  auto end() const noexcept { return data_.end(); }
 
   // Compute flattened row-major index.
-  constexpr std::size_t Index(index_t i, index_t j) const {
+  constexpr std::size_t Index(index_t i, index_t j) const noexcept {
     return static_cast<std::size_t>(i * cols_ + j);
   }
 
@@ -121,8 +124,6 @@ inline const Expr& Matrix::operator()(index_t i, index_t j) const {
   }
   return data_[Index(i, j)];
 }
-
-inline const Expr& Matrix::GetUnchecked(index_t i, index_t j) const { return data_[Index(i, j)]; }
 
 // Multiply matrices w/ dimension checking.
 Matrix operator*(const Matrix& a, const Matrix& b);

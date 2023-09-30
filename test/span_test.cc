@@ -54,6 +54,32 @@ bool operator==(const span<T, Dims1, Stride1> a, const span<U, Dims2, Stride2> b
   return true;
 }
 
+TEST(SpanTest, TestMakeValuePack) {
+  // Check that we get the right types.
+  auto pack1 = make_value_pack(1, 3);
+  static_assert(std::is_same<decltype(pack1), value_pack<dynamic, dynamic>>::value, "");
+  ASSERT_FALSE(decltype(pack1)::known_at_compile_time);
+  ASSERT_EQ(2, decltype(pack1)::length);
+  ASSERT_EQ(1, pack1.get<0>().value());
+  ASSERT_EQ(3, pack1.get<1>().value());
+
+  auto pack2 = make_value_pack(constant<4>{}, constant<6>{});
+  static_assert(std::is_same<decltype(pack2), value_pack<constant<4>, constant<6>>>::value, "");
+  ASSERT_TRUE(decltype(pack2)::known_at_compile_time);
+  ASSERT_EQ(2, decltype(pack2)::length);
+  ASSERT_EQ(4, pack2.get<0>().value());
+  ASSERT_EQ(6, pack2.get<1>().value());
+
+  auto pack3 = make_value_pack(10, 8, constant<3>{});
+  static_assert(std::is_same<decltype(pack3), value_pack<dynamic, dynamic, constant<3>>>::value,
+                "");
+  ASSERT_FALSE(decltype(pack3)::known_at_compile_time);
+  ASSERT_EQ(3, decltype(pack3)::length);
+  ASSERT_EQ(10, pack3.get<0>().value());
+  ASSERT_EQ(8, pack3.get<1>().value());
+  ASSERT_EQ(3, pack3.get<2>().value());
+}
+
 TEST(SpanTest, TestStaticIndexing) {
   std::array<float, 9> unused_data{};
 
@@ -176,7 +202,7 @@ TEST(SpanTest, TestMakeCArraySpan) {
   }
 
   // Access a subsection of the array via a 1D block:
-  auto sub_span = span.block(make_constant_value_pack<1>(), make_dynamic_value_pack(2));
+  auto sub_span = span.block(make_constant_value_pack<1>(), make_value_pack(2));
   EXPECT_EQ(2, sub_span.rows());
   EXPECT_EQ(values[1], sub_span[0]);
   EXPECT_EQ(values[2], sub_span[1]);
@@ -275,11 +301,11 @@ TEST(SpanTest, TestEigenColMajor) {
   static_assert(2 == span_blk_1.stride<1>(), "Should be computable at compile time");
   EXPECT_EIGEN_SPAN_EQ(A.leftCols<2>(), span_blk_1);
 
-  auto span_blk_2 = span.block(make_dynamic_value_pack(1, 1), make_constant_value_pack<1, 2>());
+  auto span_blk_2 = span.block(make_value_pack(1, 1), make_constant_value_pack<1, 2>());
   EXPECT_EIGEN_SPAN_EQ(A.bottomRightCorner(1, 2), span_blk_2);
 
   // get a sub-block from a sub-block
-  auto span_blk_3 = span.block(make_dynamic_value_pack(0, 1), make_constant_value_pack<2, 2>())
+  auto span_blk_3 = span.block(make_value_pack(0, 1), make_constant_value_pack<2, 2>())
                         .block(make_constant_value_pack<0, 1>(), make_constant_value_pack<2, 1>());
   EXPECT_EIGEN_SPAN_EQ(A.rightCols<1>(), span_blk_3);
 }
@@ -301,7 +327,7 @@ TEST(SpanTest, TestEigenRowMajor) {
   static_assert(1 == span.stride<1>(), "Should be computable at compile time");
   EXPECT_EIGEN_SPAN_EQ(B, span);
 
-  auto span_blk = span.block(make_dynamic_value_pack(1, 1), make_dynamic_value_pack(2, 1));
+  auto span_blk = span.block(make_value_pack(1, 1), make_value_pack(2, 1));
   EXPECT_EIGEN_SPAN_EQ(B.block(1, 1, 2, 1), span_blk);
 }
 
@@ -326,10 +352,10 @@ TEST(SpanTest, TestEigenColMajorBlock) {
   // compare to pulling out block with the span itself
   EXPECT_EIGEN_SPAN_EQ(
       blk_2, A_span.block(make_constant_value_pack<2, 2>(), make_constant_value_pack<3, 4>()));
-  EXPECT_EIGEN_SPAN_EQ(
-      blk_2, A_span.block(make_constant_value_pack<2, 2>(), make_dynamic_value_pack(3, 4)));
-  EXPECT_EIGEN_SPAN_EQ(
-      blk_2, A_span.block(make_dynamic_value_pack(2, 2), make_constant_value_pack<3, 4>()));
+  EXPECT_EIGEN_SPAN_EQ(blk_2,
+                       A_span.block(make_constant_value_pack<2, 2>(), make_value_pack(3, 4)));
+  EXPECT_EIGEN_SPAN_EQ(blk_2,
+                       A_span.block(make_value_pack(2, 2), make_constant_value_pack<3, 4>()));
 
   auto blk_3 = A.middleCols<3>(2).middleRows<3>(1);
   auto span_3 = make_input_span<3, 3>(blk_3);
@@ -380,7 +406,7 @@ TEST(SpanTest, TestEigenMapInnerStride) {
   EXPECT_EIGEN_SPAN_EQ(map, span);
   CheckNonZero(span);
 
-  auto sub_span_1 = span.block(make_dynamic_value_pack(2, 2), make_constant_value_pack<3, 2>());
+  auto sub_span_1 = span.block(make_value_pack(2, 2), make_constant_value_pack<3, 2>());
   EXPECT_EIGEN_SPAN_EQ(map.block(2, 2, 3, 2), sub_span_1);
   CheckNonZero(sub_span_1);
 
@@ -391,8 +417,7 @@ TEST(SpanTest, TestEigenMapInnerStride) {
   EXPECT_EIGEN_SPAN_EQ(map_dynamic, span_dynamic);
   CheckNonZero(span_dynamic);
 
-  auto sub_span_2 =
-      span_dynamic.block(make_dynamic_value_pack(1, 2), make_constant_value_pack<3, 2>());
+  auto sub_span_2 = span_dynamic.block(make_value_pack(1, 2), make_constant_value_pack<3, 2>());
   EXPECT_EIGEN_SPAN_EQ(map.block(1, 2, 3, 2), sub_span_2);
   CheckNonZero(sub_span_2);
 }

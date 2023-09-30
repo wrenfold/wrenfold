@@ -8,7 +8,7 @@
 #pragma warning(disable : 4582)
 #pragma warning(disable : 4061)  // enum/switch
 #endif                           // _MSC_VER
-#include <fmt/format.h>
+#include <fmt/core.h>
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif  // _MSC_VER

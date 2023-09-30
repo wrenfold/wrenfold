@@ -51,8 +51,7 @@ function(add_wrapper_module)
   endforeach()
 
   # Add a command to generate stubs
-  # https://mypy.readthedocs.io/en/stable/stubgen.html set(STUB_OUTPUT_PATH
-  # "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}.pyi")
+  # https://mypy.readthedocs.io/en/stable/stubgen.html
   if(DEFINED STUBGEN_PATH)
     message(STATUS "Will generate stubs for: ${MODULE_NAME}")
     add_custom_command(
