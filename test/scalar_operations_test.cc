@@ -208,6 +208,7 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(Expr{std::pow(6.7, -0.5)}, pow(6.7, -0.5));
 
   // Rational powers of integers:
+  ASSERT_IDENTICAL(0, pow(0, 6_s / 11));
   ASSERT_IDENTICAL(1, pow(1, 7_s / 9));
   ASSERT_IDENTICAL(1, pow(1, -3_s / 22));
   ASSERT_IDENTICAL(pow(3, 3 / 4_s), pow(3, 3 / 4_s));
