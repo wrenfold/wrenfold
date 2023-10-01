@@ -10,8 +10,6 @@ namespace math {
 // Visitor for distributing terms in multiplications:
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
-  using ReturnType = Expr;
-
   Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Distribute); }
   Expr operator()(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Distribute); }
 
@@ -99,8 +97,6 @@ struct DistributeVisitor {
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Distribute(const Expr& arg) {
-  return Visit(arg, [&arg](const auto& x) { return DistributeVisitor{}(x, arg); });
-}
+Expr Distribute(const Expr& arg) { return VisitWithExprArg(arg, DistributeVisitor{}); }
 
 }  // namespace math

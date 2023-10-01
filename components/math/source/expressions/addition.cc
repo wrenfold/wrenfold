@@ -39,6 +39,9 @@ Expr Addition::FromOperands(absl::Span<const Expr> args) {
   if (input_contains_matrix) {
     return AddMatrixOperands(args);
   }
+
+  // TODO: extract common denominator?
+
   AdditionParts parts{args.size()};
   for (const Expr& arg : args) {
     parts.Add(arg);

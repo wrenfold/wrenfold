@@ -22,8 +22,6 @@ struct SubstituteVisitorBase {
   explicit SubstituteVisitorBase(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
 
-  using ReturnType = Expr;
-
   // The argument is neither an addition nor a multiplication:
   template <typename Arg>
   Expr operator()(const Arg& other, const Expr& input_expression) {

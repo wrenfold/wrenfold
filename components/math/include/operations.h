@@ -1,4 +1,5 @@
 // Copyright 2023 Gareth Cross
+#include "absl_imports.h"
 
 namespace math {
 class Expr;
@@ -15,6 +16,14 @@ Expr Diff(const Expr& differentiand, const Expr& arg, const int reps);
 // Expands terms like: (a + b) * (c * d) --> a*c + a*d + b*c + b*d
 // Implemented in distribute.cc
 Expr Distribute(const Expr& arg);
+
+// Collect powers of the specified terms.
+// Terms are prioritized by their order in `terms`.
+// Implemented in collect.cc
+Expr CollectMany(const Expr& arg, absl::Span<const Expr> terms);
+
+// Version of `CollectMany` that accepts a single term.
+Expr Collect(const Expr& arg, const Expr& term);
 
 // Evaluate to a number. If the result is a matrix, returns a matrix expression of numbers.
 // Implemented in evaluate.cc
