@@ -24,13 +24,16 @@ class Integer {
   using IntegralType = int64_t;
 
   // Construct from number.
-  explicit constexpr Integer(IntegralType val) : val_(val) {}
+  explicit constexpr Integer(IntegralType val) noexcept : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool IsIdenticalTo(const Integer& other) const { return val_ == other.val_; }
+  constexpr bool IsIdenticalTo(const Integer& other) const noexcept { return val_ == other.val_; }
 
   // Access numeric value.
-  constexpr IntegralType GetValue() const { return val_; }
+  constexpr IntegralType GetValue() const noexcept { return val_; }
+
+  // True if this integer is zero.
+  constexpr bool IsZero() const noexcept { return val_ == 0; }
 
   // Cast to integer:
   constexpr explicit operator Float() const;

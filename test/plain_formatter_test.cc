@@ -66,14 +66,14 @@ TEST(PlainFormatterTest, TestMultiplication) {
   ASSERT_STR_EQ("(3.14 + x) * (x + z)", (x + 3.14_s) * (z + x));
   ASSERT_STR_EQ("2 * x + y * z", x + y * z + x);
   ASSERT_STR_EQ("z + x * y * z", z + z * (x * y));
-  ASSERT_STR_EQ("x + 2 * (-3 + w)", x + 2 * (w - 3));
-  ASSERT_STR_EQ("x * z - 5 / 3 * (x + y)", x * z - 5_s / 3 * (x + y));
+  ASSERT_STR_EQ("-6 + 2 * w + x", x + 2 * (w - 3));
+  ASSERT_STR_EQ("-5 / 3 * x - 5 / 3 * y + x * z", x * z - 5_s / 3 * (x + y));
   ASSERT_STR_EQ("5 - 2 * y", -2 * y + 5);
   ASSERT_STR_EQ("-x + 2 * y", 2 * y - x);
 
   // Negations:
   ASSERT_STR_EQ("-x", -x);
-  ASSERT_STR_EQ("-(x + y)", -(x + y));
+  ASSERT_STR_EQ("-x - y", -(x + y));
   ASSERT_STR_EQ("-x * y", -(x * y));
 
   // Test division:

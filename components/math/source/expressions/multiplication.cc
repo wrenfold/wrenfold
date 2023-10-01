@@ -55,6 +55,15 @@ inline Expr MultiplyMatrixOperands(const absl::Span<const Expr>& args) {
   return MakeExpr<Matrix>(std::move(result));
 }
 
+static inline Expr MultiplyIntoAddition(const Addition& add, const Expr& numerical_constant) {
+  Addition::ContainerType add_args{};
+  add_args.reserve(add.Arity());
+  std::transform(
+      add.begin(), add.end(), std::back_inserter(add_args),
+      [&numerical_constant](const Expr& add_term) { return add_term * numerical_constant; });
+  return Addition::FromOperands(add_args);  // TODO: make this a move!
+}
+
 Expr Multiplication::FromOperands(absl::Span<const Expr> args) {
   ASSERT(!args.empty());
   if (args.size() < 2) {
@@ -73,6 +82,15 @@ Expr Multiplication::FromOperands(absl::Span<const Expr> args) {
   const bool contains_zeros = std::any_of(args.begin(), args.end(), &IsZero);
   if (contains_zeros) {
     return Constants::Zero;
+  }
+
+  if (args.size() == 2) {
+    if (const Addition* add = CastPtr<Addition>(args[0]);
+        add && args[1].Is<Integer, Rational, Float>()) {
+      return MultiplyIntoAddition(*add, args[1]);
+    } else if (add = CastPtr<Addition>(args[1]); add && args[0].Is<Integer, Float, Rational>()) {
+      return MultiplyIntoAddition(*add, args[0]);
+    }
   }
 
   // Now canonicalize the arguments:

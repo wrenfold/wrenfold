@@ -22,8 +22,6 @@ struct SubstituteVisitorBase {
   explicit SubstituteVisitorBase(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
 
-  using ReturnType = Expr;
-
   // The argument is neither an addition nor a multiplication:
   template <typename Arg>
   Expr operator()(const Arg& other, const Expr& input_expression) {
@@ -252,7 +250,7 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
         } else if (const Rational* const as_rational = CastPtr<Rational>(ratio);
                    as_rational != nullptr) {
           const auto [int_part, _] = as_rational->Normalize();
-          if (!int_part.GetValue()) {
+          if (int_part.IsZero()) {
             // If int_part is zero, the rest of this logic just wastes time.
             return input_expression;
           }
@@ -274,7 +272,7 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
       } else if (const Rational* const as_rational = CastPtr<Rational>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, frac_remainder] = as_rational->Normalize();
-        if (!int_part.GetValue()) {
+        if (int_part.IsZero()) {
           // Can't do a full division
           return input_expression;
         }

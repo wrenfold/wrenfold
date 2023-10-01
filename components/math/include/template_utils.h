@@ -84,6 +84,16 @@ constexpr bool ContainsType = false;
 template <typename T, typename... Ts>
 constexpr bool ContainsType<T, TypeList<Ts...>> = ContainsTypeHelper<T, Ts...>;
 
+template <typename T, typename... Ts>
+struct EnableIfDoesNotContainTypeHelper : std::enable_if<!ContainsTypeHelper<T, Ts...>> {};
+
+template <typename T, typename... Ts>
+struct EnableIfDoesNotContainTypeHelper<T, TypeList<Ts...>>
+    : std::enable_if<!ContainsTypeHelper<T, Ts...>> {};
+
+template <typename T, typename... Ts>
+using EnableIfDoesNotContainType = typename EnableIfDoesNotContainTypeHelper<T, Ts...>::type;
+
 // Helper to append a type to the front of a type list.
 template <typename, typename>
 struct AppendToTypeList;

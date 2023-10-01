@@ -39,6 +39,9 @@ Expr Addition::FromOperands(absl::Span<const Expr> args) {
   if (input_contains_matrix) {
     return AddMatrixOperands(args);
   }
+
+  // TODO: extract common denominator?
+
   AdditionParts parts{args.size()};
   for (const Expr& arg : args) {
     parts.Add(arg);
@@ -48,37 +51,43 @@ Expr Addition::FromOperands(absl::Span<const Expr> args) {
 }
 
 struct AdditionVisitor {
-  using ReturnType = void;
-
   explicit AdditionVisitor(AdditionParts& parts) : parts(parts) {}
 
-  template <typename T>
-  void operator()(const T& arg, const Expr& input_expression) {
-    if constexpr (std::is_same_v<T, Addition>) {
-      for (const Expr& expr : arg) {
-        // Recursively add additions:
-        Visit(expr, [this, &expr](const auto& x) { this->operator()(x, expr); });
-      }
-    } else if constexpr (std::is_same_v<T, Integer>) {
-      parts.rational_term = parts.rational_term + static_cast<Rational>(arg);
-    } else if constexpr (std::is_same_v<T, Rational>) {
-      parts.rational_term = parts.rational_term + arg;
-    } else if constexpr (std::is_same_v<T, Float>) {
-      if (!parts.float_term.has_value()) {
-        parts.float_term = arg;
-      } else {
-        parts.float_term = (*parts.float_term) + arg;
-      }
-    } else if constexpr (std::is_same_v<T, Matrix>) {
-      throw TypeError("Cannot add a matrix into a scalar addition expression. Arg type = {}",
-                      T::NameStr);
+  void operator()(const Addition& arg) {
+    for (const Expr& expr : arg) {
+      // Recursively add additions:
+      VisitWithExprArg(expr, *this);
+    }
+  }
+
+  void operator()(const Integer& i) {
+    parts.rational_term = parts.rational_term + static_cast<Rational>(i);
+  }
+  void operator()(const Rational& r) { parts.rational_term = parts.rational_term + r; }
+  void operator()(const Float& f) {
+    if (!parts.float_term.has_value()) {
+      parts.float_term = f;
     } else {
-      // Everything else: Just add to the coeff
-      auto [coeff, mul] = AsCoefficientAndMultiplicand(input_expression);
-      const auto [it, was_inserted] = parts.terms.emplace(std::move(mul), coeff);
-      if (!was_inserted) {
-        it->second = it->second + coeff;
-      }
+      parts.float_term = (*parts.float_term) + f;
+    }
+  }
+
+  void operator()(const Matrix&) {
+    throw TypeError("Cannot add a matrix into a scalar addition expression. Arg type = {}",
+                    Matrix::NameStr);
+  }
+
+  using ExcludedTypes = TypeList<Addition, Integer, Rational, Float, Matrix>;
+
+  template <typename T, typename = EnableIfDoesNotContainType<T, ExcludedTypes>>
+  void operator()(const T&, const Expr& input_expression) {
+    // Everything else: Just add to the coeff
+    auto [coeff, mul] = AsCoefficientAndMultiplicand(input_expression);
+    ASSERT(!mul.Is<Addition>(), "TODO: Should just silently merge cases like this");
+
+    const auto [it, was_inserted] = parts.terms.emplace(std::move(mul), coeff);
+    if (!was_inserted) {
+      it->second = it->second + coeff;
     }
   }
 
@@ -97,7 +106,7 @@ void AdditionParts::Add(const Expr& arg) {
     return;
   }
   AdditionVisitor visitor{*this};
-  Visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
+  VisitWithExprArg(arg, visitor);
 }
 
 void AdditionParts::Normalize() {

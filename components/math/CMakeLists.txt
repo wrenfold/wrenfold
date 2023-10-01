@@ -6,6 +6,7 @@ add_library(
   source/code_generation/expr_from_ir.cc
   source/code_generation/cpp_code_generator.cc
   source/code_generation/rust_code_generator.cc
+  source/collect.cc
   source/constants.cc
   source/derivative.cc
   source/distribute.cc

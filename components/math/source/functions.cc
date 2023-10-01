@@ -311,7 +311,8 @@ struct SignumVisitor {
   }
 
   // Handle all other cases.
-  template <typename T>
+  template <typename T,
+            typename = EnableIfDoesNotContainType<T, Integer, Rational, Float, Constant, Function>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }

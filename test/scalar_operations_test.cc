@@ -78,13 +78,19 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * 1.25_s, x * 5_s * 0.125_s * 2.0_s);
   ASSERT_IDENTICAL(x * 0.0625_s, (x * 2.0_s) * (1_s / 32_s));
 
+  // Automatic distribution of numeric constants into additions:
+  ASSERT_IDENTICAL(3 * x + 3 * y, 3 * (x + y));
+  ASSERT_IDENTICAL(-5_s / 6 * z - 5_s / 6 * Constants::Pi, -5_s / 6 * (z + Constants::Pi));
+  ASSERT_IDENTICAL(x / 3 - y, (x - 3 * y) / 3);
+  ASSERT_IDENTICAL(3.2 * x - 6.4 * y, (x - 2 * y) * 3.2);
+
   // Collections of powers:
   ASSERT_IDENTICAL(pow(x, 2), x * x);
   ASSERT_IDENTICAL(pow(x, 3), x * x * x);
   ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), x * y * x * y);
   ASSERT_IDENTICAL(1, pow(x, 2) * pow(x, -2));
   ASSERT_IDENTICAL(x * pow(y, 2) * pow(log(z), 3), log(z) * y * x * log(z) * y * log(z));
-  ASSERT_IDENTICAL(1 / 33_s * x * pow(3, 2 / 3_s) * pow(11, 2 / 3_s),
+  ASSERT_IDENTICAL(x * pow(3, 2 / 3_s) * pow(11, 2 / 3_s) / 33,
                    pow(33, -2 / 3_s) * pow(33, 1 / 3_s) * x);
   ASSERT_IDENTICAL(x, sqrt(x) * sqrt(x));
   ASSERT_IDENTICAL(pow(x, 3 / 2_s), sqrt(x) * sqrt(x) * sqrt(x));
@@ -362,6 +368,134 @@ TEST(ScalarOperationsTest, TestDistribute) {
   ASSERT_IDENTICAL(-8 + 2 * x + pow(x, 2) < q * x + q * y - v * x - v * y,
                    (((x + y) * (q - v)) > (x - 2) * (x + 4)).Distribute());
   ASSERT_IDENTICAL(x * y + 2 * y == sin(p), ((x + 2) * y == sin(p)).Distribute());
+}
+
+TEST(ScalarOperationsTest, TestCollect) {
+  auto [x, y, z, w] = Symbols("x", "y", "z", "w");
+
+  // No relevant terms:
+  ASSERT_IDENTICAL(5, Collect(5, x));
+  ASSERT_IDENTICAL(Constants::Pi + y, Collect(Constants::Pi + y, x));
+
+  // Single term that does not need collection:
+  ASSERT_IDENTICAL(x * 3, Collect(x * 3, x));
+  ASSERT_IDENTICAL(pow(x, y), Collect(pow(x, y), x));
+
+  // Collecting polynomial terms:
+  ASSERT_IDENTICAL(x * (y + 2), Collect(x * y + 2 * x, x));
+  ASSERT_IDENTICAL(x * (y + z) + pow(x, 2) * (5 + z),
+                   Collect(x * y + x * z + pow(x, 2) * 5 + pow(x, 2) * z, x));
+
+  // Recursive collection, w/ cancelling terms:
+  // clang-format off
+  auto f1 = pow(x, z) * Constants::Pi +
+                 pow(x, z) * sin(y) +
+                 log(x * 5 + x * y) +
+                 pow(x, 2) * z +
+                 pow(x, 2) * -z;
+  // clang-format on
+  ASSERT_IDENTICAL(pow(x, z) * (Constants::Pi + sin(y)) + log(x * (5 + y)), Collect(f1, x));
+
+  // Many recursions for one term:
+  // clang-format off
+  auto f2 =
+    pow(x, 2) * log(pow(x, y) * sin(z) +
+    cos(y) * pow(x, y) -
+    x * 5 +
+    x * abs(pow(x, 3) * z + pow(x, 3) * -3 + y)) -
+    pow(x, 2) * z + x * 3 +
+    sin(abs(z) - x) * x +
+    Constants::Pi;
+  // clang-format on
+  ASSERT_IDENTICAL(pow(x, 2) * (-z + log(pow(x, y) * (sin(z) + cos(y)) +
+                                         x * (-5 + abs(x * x * x * (z - 3) + y)))) +
+                       x * (3 + sin(abs(z) - x)) + Constants::Pi,
+                   Collect(f2, x));
+
+  // power with non-trivial exponent:
+  // clang-format off
+  auto f3 = pow(x, y) * pow(x, 2) * 5 +
+                 pow(x, 3) * Constants::Pi +
+                 pow(x, 2) * sin(y) +
+                 pow(x, y + 2) * -log(z) +
+                 22 +
+                 pow(x, 3) * z;
+  // clang-format on
+  ASSERT_IDENTICAL(
+      22 + pow(x, y + 2) * (5 - log(z)) + pow(x, 3) * (Constants::Pi + z) + pow(x, 2) * sin(y),
+      Collect(f3, x));
+
+  // collected base is a function:
+  // clang-format off
+  auto f4 = cos(x) * cos(x) * 5 +
+                 cos(x) * cos(x) * (y - 17) +
+                 cos(x) * sin(cos(x) * 4 -
+                 cos(x) * log(z)) -
+                 cos(x) * tan(z);
+  // clang-format on
+  ASSERT_IDENTICAL(pow(cos(x), 2) * (y - 12) + cos(x) * (sin(cos(x) * (4 - log(z))) - tan(z)),
+                   Collect(f4, cos(x)));
+}
+
+TEST(ScalarOperationsTest, TestCollectMany) {
+  auto [x, y, z, w] = Symbols("x", "y", "z", "w");
+
+  // Collecting multiple variables:
+  // clang-format off
+  auto f1 = x * y +
+                 x * -5 -
+                 x * y * log(z);
+  // clang-format on
+  ASSERT_IDENTICAL(x * (-5 + y * (1 - log(z))), CollectMany(f1, {x, y}));
+  ASSERT_IDENTICAL(y * x * (1 - log(z)) - x * 5, CollectMany(f1, {y, x}));
+
+  // clang-format off
+  auto f2 = x * x * y * y * y +
+            x * x * 2 * y * y * y -
+            x * x * y * y * sin(z) -
+            x * x * y * y +
+            x * x + x * x * 4;
+  // clang-format on
+  ASSERT_IDENTICAL(x * x * (y * y * y * 3 + y * y * (-sin(z) - 1) + 5), CollectMany(f2, {x, y}));
+  ASSERT_IDENTICAL(y * y * y * x * x * 3 + y * y * x * x * (-sin(z) - 1) + pow(x, 2) * 5,
+                   CollectMany(f2, {y, x}));
+
+  // Collecting many functions:
+  // clang-format off
+  auto f3 = log(y) * z * -cos(x) * cos(x) +
+                 cos(x) * cos(x) * 16 -
+                 log(y) / tan(z) * cos(x) * cos(x) +
+                 log(y) * (z * z) +
+                 log(y) * -3;
+  // clang-format on
+  ASSERT_IDENTICAL(cos(x) * cos(x) * (16 + log(y) * (-z - 1 / tan(z))) + log(y) * (z * z - 3),
+                   CollectMany(f3, {cos(x), log(y)}));
+  ASSERT_IDENTICAL(log(y) * (pow(cos(x), 2) * (-z - 1 / tan(z)) + z * z - 3) + pow(cos(x), 2) * 16,
+                   CollectMany(f3, {log(y), cos(x)}));
+
+  // Three layers of nesting
+  // clang-format off
+  auto f4 =
+    pow(x, 2) * (pow(y, 2) * (pow(z, 2) - 4 * z + 8) - 2 * y + 10) +
+    x * (pow(y, 3) * z * (8 - sin(y)) + pow(y, 2) * z * log(x)) +
+    pow(y, 2) * (pow(z, 2) * (5 + Constants::Euler) - z * 8 + 1) + y * (pow(z, 5) - 22);
+  // clang-format on
+  ASSERT_IDENTICAL(f4, CollectMany(f4.Distribute(), {x, y, z}));
+
+  // Generate a polynomial in four variables:
+  // Use std::function, so that we can recurse this lambda.
+  std::function<Expr(absl::Span<const Expr>)> make_poly;
+  make_poly = [&make_poly](absl::Span<const Expr> vars) -> Expr {
+    if (vars.size() == 1) {
+      return pow(vars[0], 2) + vars[0] + 1;
+    } else {
+      return pow(vars[0], 2) * make_poly(vars.subspan(1)) + vars[0] * make_poly(vars.subspan(1)) +
+             1;
+    }
+  };
+
+  auto f5 = make_poly({x, y, z, w});
+  ASSERT_IDENTICAL(f5, CollectMany(f5.Distribute(), {x, y, z, w}));
 }
 
 }  // namespace math
