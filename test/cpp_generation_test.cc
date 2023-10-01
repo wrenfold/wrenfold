@@ -6,24 +6,10 @@
 
 #include "test_expressions.h"  //  Symbolic test functions.
 
-// #define MATH_SPAN_RUNTIME_ASSERT(x) ASSERT(x)
 #define MATH_SPAN_EIGEN_SUPPORT
 #include "span_eigen.h"
 
 #include "generated.h"
-
-template <typename T>
-struct fmt::formatter<T, std::enable_if_t<std::is_base_of_v<Eigen::DenseBase<T>, T>, char>> {
-  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
-
-  template <typename Arg, typename FormatContext>
-  auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
-    const Eigen::IOFormat heavy(Eigen::FullPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
-    std::stringstream ss;
-    ss << m.format(heavy);
-    return fmt::format_to(ctx.out(), "{}", ss.str());
-  }
-};
 
 namespace math {
 
