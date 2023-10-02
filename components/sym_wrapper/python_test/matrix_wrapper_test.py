@@ -245,11 +245,12 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(sym.matrix(np.array(m0) @ np.array(v)), m0 * v)
         self.assertIdentical(sym.matrix(np.array(v).T @ np.array(m0).T), v.T * m0.T)
 
-        # inner product should produce scalar, not matrix:
+        # inner product still produces a matrix of size 1x1
         x, z = sym.symbols('x, z')
         u = sym.row_vector(x, 0, z)
-        self.assertIsInstance(u * v, sym.Expr)
-        self.assertIdentical(2 * x + sym.integer(5) / 2 * z, u * v)
+        self.assertIsInstance(u * v, sym.MatrixExpr)
+        self.assertEqual((1, 1), (u * v).shape)
+        self.assertIdentical(sym.vector(2 * x + sym.integer(5) / 2 * z), u * v)
 
         # negation:
         self.assertIsInstance(-m0, sym.MatrixExpr)

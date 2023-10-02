@@ -99,6 +99,8 @@ class Expr {
   friend const T* CastPtr(const Expr&);
   template <typename T>
   friend const T& CastChecked(const Expr&);
+  template <typename T>
+  friend const T& CastUnchecked(const Expr& x);
 
  private:
   // Construct constant from float.

@@ -131,6 +131,9 @@ Matrix operator*(const Matrix& a, const Matrix& b);
 // Add matrices w/ dimension checking.
 Matrix operator+(const Matrix& a, const Matrix& b);
 
+// Subtract matrices w/ dimension checking.
+Matrix operator-(const Matrix& a, const Matrix& b);
+
 // Iterate over a matrix and run `callable` on each element. The purpose of this method is
 // to have one place (or fewer places) where the traversal order (row-major) is specified.
 template <typename Callable>

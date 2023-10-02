@@ -177,7 +177,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   m.def("max", &math::max, "a"_a, "b"_a, "Maximum of two scalar values.");
   m.def("min", &math::min, "a"_a, "b"_a, "Minimum of two scalar values.");
-  m.def("where", &math::where, "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
+  m.def("where", static_cast<Expr (*)(const Expr&, const Expr&, const Expr&)>(&math::where),
+        "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
   // Special constants:
   m.attr("euler") = Constants::Euler;

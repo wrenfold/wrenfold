@@ -333,34 +333,30 @@ Expr max(const Expr& a, const Expr& b) { return where(a < b, b, a); }
 Expr min(const Expr& a, const Expr& b) { return where(b < a, b, a); }
 
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
-  const Matrix* mat_true = CastPtr<Matrix>(if_true);
-  const Matrix* mat_false = CastPtr<Matrix>(if_false);
-  if (mat_true || mat_false) {
-    if (!mat_true || !mat_false) {
-      throw TypeError(
-          "Cannot mix matrix and scalar expressions in the if/else clauses. if = {}, else = {}",
-          if_true.TypeName(), if_false.TypeName());
-    }
-
-    // dimensions of left and right operands must match:
-    if (mat_true->NumRows() != mat_false->NumRows() ||
-        mat_true->NumCols() != mat_false->NumCols()) {
-      throw DimensionError(
-          "Dimension mismatch between operands to where(). if shape = [{}, {}], else shape = [{}, "
-          "{}]",
-          mat_true->NumRows(), mat_true->NumCols(), mat_false->NumRows(), mat_false->NumCols());
-    }
-
-    // For now, we just create a matrix of conditionals. Maybe add a conditional matrix type?
-    std::vector<Expr> conditionals;
-    conditionals.reserve(mat_true->Size());
-    std::transform(mat_true->begin(), mat_true->end(), mat_false->begin(),
-                   std::back_inserter(conditionals),
-                   [&](const Expr& a, const Expr& b) { return where(condition, a, b); });
-    return MatrixExpr::Create(mat_true->NumRows(), mat_true->NumCols(), std::move(conditionals))
-        .AsExpr();
-  }
+  ASSERT(!if_true.Is<Matrix>() && !if_false.Is<Matrix>(),
+         "TODO: Should be illegal to pass Matrix here.");
   return Conditional::Create(condition, if_true, if_false);
+}
+
+MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixExpr& if_false) {
+  const Matrix& mat_true = if_true.AsMatrix();
+  const Matrix& mat_false = if_false.AsMatrix();
+
+  // dimensions of left and right operands must match:
+  if (mat_true.NumRows() != mat_false.NumRows() || mat_true.NumCols() != mat_false.NumCols()) {
+    throw DimensionError(
+        "Dimension mismatch between operands to where(). if shape = [{}, {}], else shape = [{}, "
+        "{}]",
+        mat_true.NumRows(), mat_true.NumCols(), mat_false.NumRows(), mat_false.NumCols());
+  }
+
+  // For now, we just create a matrix of conditionals. Maybe add a conditional matrix type?
+  std::vector<Expr> conditionals;
+  conditionals.reserve(mat_true.Size());
+  std::transform(mat_true.begin(), mat_true.end(), mat_false.begin(),
+                 std::back_inserter(conditionals),
+                 [&](const Expr& a, const Expr& b) { return where(condition, a, b); });
+  return MatrixExpr::Create(mat_true.NumRows(), mat_true.NumCols(), std::move(conditionals));
 }
 
 }  // namespace math

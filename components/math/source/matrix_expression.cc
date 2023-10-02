@@ -1,6 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include "matrix_expression.h"
 
+#include "constants.h"
 #include "expressions/matrix.h"
 
 namespace math {
@@ -42,10 +43,38 @@ MatrixExpr MatrixExpr::Transpose() const {
 }
 
 const Matrix& MatrixExpr::AsMatrix() const {
-  // Cast is safe since the constructor checked this condition.
-  const Matrix* m = CastPtr<Matrix>(expr_);
-  ASSERT(m != nullptr);
-  return *m;
+  // We already checked the type in the constructor, so just static-cast here with no validation.
+  return CastUnchecked<Matrix>(expr_);
 }
 
+MatrixExpr MatrixExpr::operator-() const {
+  return matrix_operator_overloads::operator*(*this, Constants::NegativeOne);
+}
+
+namespace matrix_operator_overloads {
+
+MatrixExpr operator+(const MatrixExpr& a, const MatrixExpr& b) {
+  return MatrixExpr{MakeExpr<Matrix>(a.AsMatrix() + b.AsMatrix())};
+}
+
+MatrixExpr operator-(const MatrixExpr& a, const MatrixExpr& b) {
+  return MatrixExpr{MakeExpr<Matrix>(a.AsMatrix() - b.AsMatrix())};
+}
+
+MatrixExpr operator*(const MatrixExpr& a, const MatrixExpr& b) {
+  return MatrixExpr{MakeExpr<Matrix>(a.AsMatrix() * b.AsMatrix())};
+}
+
+MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
+  const Matrix& a_mat = a.AsMatrix();
+
+  std::vector<Expr> data{};
+  data.reserve(a_mat.Size());
+  std::transform(a_mat.begin(), a_mat.end(), std::back_inserter(data),
+                 [&b](const Expr& a_expr) { return a_expr * b; });
+
+  return MatrixExpr{MakeExpr<Matrix>(a_mat.NumRows(), a_mat.NumCols(), std::move(data))};
+}
+
+}  // namespace matrix_operator_overloads
 }  // namespace math

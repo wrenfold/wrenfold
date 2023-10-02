@@ -80,4 +80,17 @@ Matrix operator+(const Matrix& a, const Matrix& b) {
   return Matrix(a.NumRows(), a.NumCols(), std::move(output));
 }
 
+Matrix operator-(const Matrix& a, const Matrix& b) {
+  if (a.NumRows() != b.NumRows() || a.NumCols() != b.NumCols()) {
+    throw DimensionError("Dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).",
+                         a.NumRows(), a.NumCols(), b.NumRows(), b.NumCols());
+  }
+  std::vector<Expr> output;
+  output.reserve(a.Size());
+  IterMatrix(a.NumRows(), a.NumCols(),
+             [&](index_t i, index_t j) { output.push_back(a(i, j) - b(i, j)); });
+
+  return Matrix(a.NumRows(), a.NumCols(), std::move(output));
+}
+
 }  // namespace math

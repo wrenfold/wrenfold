@@ -50,4 +50,7 @@ Expr min(const Expr& a, const Expr& b);
 // Conditional/ternary expression.
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false);
 
+// Conditional over a matrix w/ scalar condition.
+MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixExpr& if_false);
+
 }  // namespace math

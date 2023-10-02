@@ -31,7 +31,7 @@ class MatrixExpr {
   std::string ToString() const { return expr_.ToString(); }
 
   // Negation operator.
-  MatrixExpr operator-() const { return MatrixExpr(-expr_); }
+  MatrixExpr operator-() const;
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
   MatrixExpr Diff(const Expr& var, int reps = 1) const { return MatrixExpr{expr_.Diff(var, reps)}; }
@@ -87,23 +87,13 @@ static_assert(std::is_move_assignable_v<MatrixExpr> && std::is_move_constructibl
 
 // Math operators:
 namespace matrix_operator_overloads {
-// TODO: These can potentially take shortcuts instead of just casting to Expr.
-inline MatrixExpr operator+(const MatrixExpr& a, const MatrixExpr& b) {
-  return MatrixExpr{static_cast<Expr>(a) + static_cast<Expr>(b)};
-}
-inline MatrixExpr operator-(const MatrixExpr& a, const MatrixExpr& b) {
-  return MatrixExpr{static_cast<Expr>(a) - static_cast<Expr>(b)};
-}
-inline Expr operator*(const MatrixExpr& a, const MatrixExpr& b) {
-  // This returns `Expr` since matrix multiplication can reduce to a scalar.
-  return static_cast<Expr>(a) * static_cast<Expr>(b);
-}
-inline Expr operator*(const MatrixExpr& a, const Expr& b) {
-  return static_cast<Expr>(a) * static_cast<Expr>(b);
-}
-inline Expr operator*(const Expr& a, const MatrixExpr& b) {
-  return static_cast<Expr>(a) * static_cast<Expr>(b);
-}
+
+MatrixExpr operator+(const MatrixExpr& a, const MatrixExpr& b);
+MatrixExpr operator-(const MatrixExpr& a, const MatrixExpr& b);
+MatrixExpr operator*(const MatrixExpr& a, const MatrixExpr& b);
+MatrixExpr operator*(const MatrixExpr& a, const Expr& b);
+inline MatrixExpr operator*(const Expr& a, const MatrixExpr& b) { return b * a; }
+
 }  // namespace matrix_operator_overloads
 
 // ostream support

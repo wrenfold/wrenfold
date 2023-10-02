@@ -276,30 +276,6 @@ py::array EvalToNumeric(const MatrixExpr& self) {
   return NumpyFromMatrix(eval);
 }
 
-// For the benefit of python types, we need to re-define these with MatrixExpr as the type.
-MatrixExpr operator+(const MatrixExpr& a, const MatrixExpr& b) {
-  return matrix_operator_overloads::operator+(a, b);
-}
-
-MatrixExpr operator-(const MatrixExpr& a, const MatrixExpr& b) {
-  return matrix_operator_overloads::operator-(a, b);
-}
-
-// Handle matrix * matrix, which may produce a scalar.
-std::variant<Expr, MatrixExpr> operator*(const MatrixExpr& a, const MatrixExpr& b) {
-  Expr result = matrix_operator_overloads::operator*(a, b);
-  if (result.Is<Matrix>()) {
-    return static_cast<MatrixExpr>(result);
-  }
-  return result;
-}
-MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
-  return MatrixExpr{matrix_operator_overloads::operator*(a, b)};
-}
-MatrixExpr operator*(const Expr& a, const MatrixExpr& b) {
-  return MatrixExpr{matrix_operator_overloads::operator*(a, b)};
-}
-
 void WrapMatrixOperations(py::module_& m) {
   // Matrix expression type.
   py::class_<MatrixExpr>(m, "MatrixExpr")
@@ -372,19 +348,29 @@ void WrapMatrixOperations(py::module_& m) {
       .def_property_readonly("T", &MatrixExpr::Transpose, "Transpose the matrix.")
       .def("det", &Determinant, "Compute determinant of the matrix.")
       // Operators:
-      // We need to override these again so that we get `MatrixExpr` return type.
-      .def(py::self + py::self)
-      .def(py::self - py::self)
-      .def(
-          "__mul__", [](const MatrixExpr& a, const MatrixExpr& b) { return a * b; },
-          py::is_operator())
-      .def(
-          "__mul__", [](const MatrixExpr& a, const Expr& b) { return a * b; }, py::is_operator())
-      .def(
-          "__rmul__", [](const Expr& a, const MatrixExpr& b) { return a * b; }, py::is_operator())
-      .def(
-          "__neg__", [](const MatrixExpr& x) -> MatrixExpr { return -x; },
-          "Element-wise negation of the matrix.");
+      .def("__add__",
+           static_cast<MatrixExpr (*)(const MatrixExpr&, const MatrixExpr&)>(
+               &matrix_operator_overloads::operator+),
+           py::is_operator())
+      .def("__sub__",
+           static_cast<MatrixExpr (*)(const MatrixExpr&, const MatrixExpr&)>(
+               &matrix_operator_overloads::operator-),
+           py::is_operator())
+      .def("__mul__",
+           static_cast<MatrixExpr (*)(const MatrixExpr&, const MatrixExpr&)>(
+               &matrix_operator_overloads::operator*),
+           py::is_operator())
+      // Right-multiply by scalar:
+      .def("__mul__",
+           static_cast<MatrixExpr (*)(const MatrixExpr&, const Expr&)>(
+               &matrix_operator_overloads::operator*),
+           py::is_operator())
+      // Left multiply by scalar:
+      .def("__rmul__",
+           static_cast<MatrixExpr (*)(const Expr&, const MatrixExpr&)>(
+               &matrix_operator_overloads::operator*),
+           py::is_operator())
+      .def("__neg__", &MatrixExpr::operator-, "Element-wise negation of the matrix.");
 
   // Matrix constructors:
   m.def("identity", &Identity, "rows"_a, "Create identity matrix.");
@@ -407,9 +393,7 @@ void WrapMatrixOperations(py::module_& m) {
   // Version of where() for matrices
   m.def(
       "where",
-      [](Expr condition, MatrixExpr if_true, MatrixExpr if_false) {
-        return MatrixExpr{where(condition, if_true.AsExpr(), if_false.AsExpr())};
-      },
+      static_cast<MatrixExpr (*)(const Expr&, const MatrixExpr&, const MatrixExpr&)>(&math::where),
       "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
 }
 
