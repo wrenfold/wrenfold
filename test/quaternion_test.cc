@@ -165,7 +165,7 @@ TEST(QuaternionTest, TestToRotationMatrix) {
 
   const Quaternion q_v_q_conj = q * Quaternion(0, a, b, c) * q.Conjugate();
   const MatrixExpr R_v_expected = Vector(q_v_q_conj.x(), q_v_q_conj.y(), q_v_q_conj.z());
-  const MatrixExpr R_v = static_cast<MatrixExpr>(q.ToRotationMatrix() * v);
+  const MatrixExpr R_v = q.ToRotationMatrix() * v;
 
   // If we did everything correctly, there should be no difference between these.
   // We need to provide a small hint, and enforce that |q|^2 = 1
@@ -193,7 +193,7 @@ TEST(QuaternionTest, TestFromAxisAngle) {
                           .Subs(pow(cos(half_angle), 2) + pow(sin(half_angle), 2), 1));
 
   // V should be unmodified by the rotation matrix
-  const MatrixExpr v_rot = static_cast<MatrixExpr>(q.ToRotationMatrix() * Vector(vx, vy, vz));
+  const MatrixExpr v_rot = q.ToRotationMatrix() * Vector(vx, vy, vz);
   ASSERT_IDENTICAL(Vector(vx, vy, vz), v_rot.Distribute());
 
   // Compare to Rodrigues formula:
@@ -211,8 +211,7 @@ TEST(QuaternionTest, TestFromAxisAngle) {
                                      vz, 0, -vx,
                                     -vy, vx, 0);
   // clang-format on
-  const MatrixExpr R_rodrigues = Identity(3) + static_cast<MatrixExpr>(K * sin(angle)) +
-                                 static_cast<MatrixExpr>((1 - cos(angle)) * K * K);
+  const MatrixExpr R_rodrigues = Identity(3) + K * sin(angle) + (1 - cos(angle)) * K * K;
   ASSERT_IDENTICAL(R_rodrigues.Distribute(), R);
 
   // check that this throws if we pass invalid arguments:
@@ -410,9 +409,7 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   ASSERT_IDENTICAL(0, q_pi_over_2_x.z());
 
   const Quaternion q_pi_x =
-      Quaternion::FromRotationMatrix(CreateMatrix(3, 3, 1, 0, 0,
-                                                  0, -1, 0,
-                                                  0, 0, -1));
+      Quaternion::FromRotationMatrix(CreateMatrix(3, 3, 1, 0, 0, 0, -1, 0, 0, 0, -1));
   ASSERT_IDENTICAL(0, q_pi_x.w());
   ASSERT_IDENTICAL(1, q_pi_x.x());
   ASSERT_IDENTICAL(0, q_pi_x.y());

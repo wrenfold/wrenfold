@@ -186,9 +186,10 @@ TEST(MatrixOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(CreateMatrix(2, 3, sin(x) * 3, z * 3, 9, cos(y) * 3, 2, 0),
                    CreateMatrix(2, 3, sin(x), z, 3, cos(y), 2_s / 3, 0) * 3);
 
-  // Reduction to scalar:
-  ASSERT_IDENTICAL(a * c + b * d, RowVector(a, b) * Vector(c, d));
-  ASSERT_IDENTICAL(a * c * x + b * d * x, (RowVector(a, b) * Vector(c, d) * x).Distribute());
+  // 1xn * nx1 --> 1x1
+  ASSERT_IDENTICAL(CreateMatrix(1, 1, a * c + b * d), RowVector(a, b) * Vector(c, d));
+  ASSERT_IDENTICAL(CreateMatrix(1, 1, a * c * x + b * d * x),
+                   (RowVector(a, b) * Vector(c, d) * x).Distribute());
 
   // Inner dimension mismatch
   ASSERT_THROW(Zeros(2, 3) * Zeros(4, 2), DimensionError);

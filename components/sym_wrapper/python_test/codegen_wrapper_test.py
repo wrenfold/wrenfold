@@ -18,7 +18,7 @@ from test_base import MathTestBase
 
 def func1(x: RealScalar, y: RealScalar, v: Vector2):
     """A test function."""
-    return (v.T * v) * x + 5 * x * sym.pow(y, 3.1)
+    return (v.T * v)[0] * x + 5 * x * sym.pow(y, 3.1)
 
 
 def func2(x: RealScalar, y: RealScalar):

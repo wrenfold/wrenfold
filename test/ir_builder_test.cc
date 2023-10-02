@@ -314,8 +314,7 @@ TEST(IrTest, TestMatrixExpressions1) {
   auto [expected_expressions, ir] = CreateIR(
       [](Expr x, const ta::StaticMatrix<2, 1>& v) {
         using namespace matrix_operator_overloads;
-        auto v_outer = v * v.Transpose();
-        ta::StaticMatrix<2, 2> m{static_cast<MatrixExpr>(v_outer * x)};
+        ta::StaticMatrix<2, 2> m = v * v.Transpose() * x;
         return m;
       },
       "func", Arg("x"), Arg("y"));
@@ -360,15 +359,14 @@ TEST(IrTest, TestMatrixExpressions3) {
          const ta::StaticMatrix<3, 1>& t) {
         using namespace matrix_operator_overloads;
         auto I3 = Identity(3);
-        auto zeros = static_cast<Expr>(Zeros(2, 3));
-        Expr f = where(v[0] - t[1] > 0, v * t.Transpose() * (u - I3), zeros);
+        auto zeros = Zeros(2, 3);
+        ta::StaticMatrix<2, 3> f = where(v[0] - t[1] > 0, v * t.Transpose() * (u - I3), zeros);
 
         auto path_1 = u * t * t.Transpose();
         auto path_2 = (u - I3) * (u - I3).Transpose();
-        MatrixExpr g{where(u(1, 1) < -v[1], path_1, path_2)};
+        ta::StaticMatrix<3, 3> g{where(u(1, 1) < -v[1], path_1, path_2)};
 
-        return std::make_tuple(ReturnValue(ta::StaticMatrix<2, 3>{static_cast<MatrixExpr>(f)}),
-                               OptionalOutputArg("g", ta::StaticMatrix<3, 3>{g}));
+        return std::make_tuple(ReturnValue(f), OptionalOutputArg("g", g));
       },
       "func", Arg("v"), Arg("u"), Arg("t"));
 

@@ -21,40 +21,6 @@ inline Expr MaybeNewMul(Multiplication::ContainerType&& terms) {
   }
 }
 
-inline Expr MultiplyMatrixOperands(const absl::Span<const Expr>& args) {
-  Multiplication::ContainerType scalars;
-  scalars.reserve(args.size() / 2);
-
-  std::optional<Matrix> matrix_product{};  //  Optional because we can't default initialize.
-  for (const Expr& term : args) {
-    if (const Matrix* m = CastPtr<Matrix>(term); m != nullptr) {
-      if (!matrix_product) {
-        // We need to copy:
-        matrix_product = *m;
-      } else {
-        // TODO: Avoid copies if dimensions don't change.
-        matrix_product = matrix_product.value() * *m;
-      }
-    } else {
-      scalars.push_back(term);
-    }
-  }
-
-  ASSERT(matrix_product.has_value(), "Must have been at least one matrix");
-
-  Matrix result = std::move(*matrix_product);
-  if (!scalars.empty()) {
-    // If there were any scalar terms, multiply them into the matrix now:
-    result.MultiplyByScalarInPlace(Multiplication::FromOperands(scalars));
-  }
-  if (result.NumRows() == 1 && result.NumCols() == 1) {
-    // Discard the matrix dimension, and return a scalar.
-    // TODO: Remove this behavior!
-    return result[0];
-  }
-  return MakeExpr<Matrix>(std::move(result));
-}
-
 static inline Expr MultiplyIntoAddition(const Addition& add, const Expr& numerical_constant) {
   Addition::ContainerType add_args{};
   add_args.reserve(add.Arity());
@@ -70,10 +36,11 @@ Expr Multiplication::FromOperands(absl::Span<const Expr> args) {
     return args.front();
   }
 
+  // TODO: Delete this once matrix is removed from `Expr` hierarchy.
   const bool any_matrices =
       std::any_of(args.begin(), args.end(), [](const Expr& x) { return x.Is<Matrix>(); });
   if (any_matrices) {
-    return MultiplyMatrixOperands(args);
+    throw TypeError("This should be handled elsewhere!");
   }
 
   // Check for zeros:

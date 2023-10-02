@@ -91,6 +91,12 @@ const T& CastChecked(const Expr& x) {
   }
 }
 
+// Cast expression with no checking. UB will occur if the wrong type is accessed.
+template <typename T>
+const T& CastUnchecked(const Expr& x) {
+  return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->GetImplementation();
+}
+
 // Cast expression `x` to type `T` if possible, and check if it is identical
 // to `typed_y`.
 template <typename T>

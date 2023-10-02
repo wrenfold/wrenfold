@@ -50,9 +50,6 @@ struct StaticMatrix {
     return *this;
   }
 
-  // Assign from Expr
-  StaticMatrix& operator=(const Expr& other) { return operator=(static_cast<MatrixExpr>(other)); }
-
   // Implicit cast to MatrixExpr.
   operator const MatrixExpr&() const { return expr_; }  // NOLINT
 

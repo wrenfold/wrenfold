@@ -176,10 +176,8 @@ class Quaternion {
     // TODO: MatrixExpr should be an entirely separate type so this gross casting is not required.
     return std::make_tuple(
         where(vector_norm > zero_epsilon, angle, Constants::Zero),
-        static_cast<MatrixExpr>(
-            where(vector_norm > zero_epsilon,
-                  Vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm).AsExpr(),
-                  unit_x.AsExpr())));
+        where(vector_norm > zero_epsilon,
+              Vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm), unit_x));
   }
 
   // Construct a quaternion from a rotation matrix using Caley's method.

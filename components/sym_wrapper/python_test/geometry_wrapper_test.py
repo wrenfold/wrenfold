@@ -3,7 +3,6 @@ Test of geometry module wrapper.
 
 NB: Most of this is tested in `quaternion_test.cc`. This is just a test of the wrapper itself.
 """
-import sys
 import unittest
 
 from sym import sym
