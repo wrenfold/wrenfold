@@ -12,6 +12,7 @@
 #include "functions.h"
 #include "matrix_functions.h"
 #include "plain_formatter.h"
+#include "wrapper_utils.h"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -151,25 +152,6 @@ MatrixExpr MatrixGetRowSliceColIndex(const MatrixExpr& self,
   return MatrixExpr::Create(row_index.Length(), 1, std::move(elements));
 }
 
-// Iterate over a container and transform every element into `Expr`.
-template <typename Container>
-std::size_t TransformIntoExpr(const Container& inputs, std::vector<Expr>& output) {
-  // len_hint will get the length if possible, otherwise return 0.
-  if constexpr (std::is_base_of_v<py::handle, std::decay_t<Container>>) {
-    output.reserve(output.size() + py::len_hint(inputs));
-  } else {
-    output.reserve(output.size() + inputs.size());
-  }
-  // Count so we only traverse the input iterators once (to handle generators).
-  std::size_t count = 0;
-  std::transform(inputs.begin(), inputs.end(), std::back_inserter(output),
-                 [&](const py::handle& handle) {
-                   ++count;
-                   return py::cast<Expr>(handle);
-                 });
-  return count;
-}
-
 template <typename Container>
 MatrixExpr ColumnVectorFromContainer(const Container& inputs) {
   std::vector<Expr> converted;
@@ -280,14 +262,7 @@ py::list ListFromMatrix(const MatrixExpr& self) {
 py::array NumpyFromMatrix(const MatrixExpr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
   for (const Expr& expr : self.AsMatrix()) {
-    // Convert numeric types:
-    if (const Float* f = CastPtr<Float>(expr); f != nullptr) {
-      list.append(f->GetValue());
-    } else if (const Integer* i = CastPtr<Integer>(expr); i != nullptr) {
-      list.append(i->GetValue());
-    } else {
-      list.append(expr);
-    }
+    list.append(TryConvertToNumeric(expr));
   }
   auto array = py::array(list);
   const std::array<std::size_t, 2> new_shape{static_cast<std::size_t>(self.NumRows()),

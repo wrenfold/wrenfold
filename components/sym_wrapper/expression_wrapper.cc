@@ -73,6 +73,9 @@ void WrapMatrixOperations(py::module_& m);
 
 // Defined in codegen_wrapper.cc
 void WrapCodegenOperations(py::module_& m);
+
+// Defined in geometry_wrapper.cc
+void WrapGeometryOperations(py::module_& m);
 }  // namespace math
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
@@ -106,6 +109,15 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def("subs", &Expr::Subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
       .def("eval", &EvalToNumeric, "Evaluate into float expression.")
+      .def(
+          "collect", [](const Expr& self, const Expr& term) { return self.Collect(term); },
+          "term"_a, "Collect powers of the provided expression.")
+      .def(
+          "collect",
+          [](const Expr& self, const std::vector<Expr>& terms) {
+            return math::CollectMany(self, terms);
+          },
+          "terms"_a, "Collect powers of the provided expressions.")
       // Operators:
       .def(py::self + py::self)
       .def(py::self - py::self)
@@ -182,6 +194,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   // Include other wrappers in this module:
   WrapMatrixOperations(m);
+
+  auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
+  WrapGeometryOperations(m_geo);
 
   auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
   WrapCodegenOperations(m_codegen);
