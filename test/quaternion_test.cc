@@ -19,9 +19,6 @@ TEST(QuaternionTest, TestConstructor) {
   ASSERT_IDENTICAL(y, q.y());
   ASSERT_IDENTICAL(z, q.z());
 
-  // Cannot pass vector or matrix arg
-  ASSERT_THROW(Quaternion(Vector(x, y, z).AsExpr(), x, y, z), TypeError);
-
   // Default construction:
   Quaternion q_identity{};
   ASSERT_IDENTICAL(0, q_identity.x());

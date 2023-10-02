@@ -34,7 +34,7 @@ testing::AssertionResult StringEqualTestHelper(const std::string&, const std::st
              "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
              "The expression tree for `{}` is:\n{}",
              EscapeNewlines(a), name_b, name_b, EscapeNewlines(b_str), name_b,
-             FormatDebugTree(static_cast<Expr>(b)));
+             b.ToExpressionTreeString());
 }
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {

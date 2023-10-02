@@ -1,9 +1,10 @@
 // Copyright 2022 Gareth Cross
-#include <fmt/format.h>
 #include <vector>
 
 #include "expression.h"
 #include "expressions/all_expressions.h"
+#include "fmt_imports.h"
+#include "matrix_expression.h"
 #include "visitor_impl.h"
 
 namespace math {
@@ -159,12 +160,12 @@ struct TreeFormatter {
   }
 
   // Get the output string via move.
-  void TakeOutput(std::string& output) {
+  std::string TakeOutput() {
     // Somewhat hacky. The formatter appends a superfluous newline on the last element. I think
     // this is tricky to avoid w/o knowing the tree depth apriori. Instead, just trim it from the
     // end.
     RightTrimInPlace(output_);
-    output = std::move(output_);
+    return std::move(output_);
   }
 
  private:
@@ -175,12 +176,16 @@ struct TreeFormatter {
   std::string output_;
 };
 
-std::string FormatDebugTree(const Expr& expr) {
+std::string Expr::ToExpressionTreeString() const {
   TreeFormatter formatter{};
-  Visit(expr, formatter);
-  std::string output;
-  formatter.TakeOutput(output);
-  return output;
+  Visit(*this, formatter);
+  return formatter.TakeOutput();
+}
+
+std::string MatrixExpr::ToExpressionTreeString() const {
+  TreeFormatter formatter{};
+  formatter(AsMatrix());
+  return formatter.TakeOutput();
 }
 
 }  // namespace math

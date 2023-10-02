@@ -30,15 +30,6 @@ Matrix Matrix::Transpose() const {
   return Matrix(output_rows, output_cols, std::move(output));
 }
 
-void Matrix::MultiplyByScalarInPlace(const Expr& arg) {
-  if (arg.Is<Matrix>()) {
-    throw TypeError("Expected a scalar expression, but got a matrix of type: {}", arg.TypeName());
-  }
-  for (Expr& expr : data_) {
-    expr = expr * arg;
-  }
-}
-
 Matrix operator*(const Matrix& a, const Matrix& b) {
   if (a.NumCols() != b.NumRows()) {
     throw DimensionError(

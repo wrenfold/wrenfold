@@ -284,17 +284,12 @@ def codegen_function(
     for val in result_expressions:
         if not isinstance(val, (ReturnValue, OutputArg)):
             raise TypeError(f"Returned values must be: {ReturnValueOrOutputArg}, got: {type(val)}")
-        elif isinstance(val.expression, sym.Expr):
-            # If return value is `Expr`, see if it can be coerced to matrix:
-            try:
-                val.expression = sym.MatrixExpr(val.expression)
-            except sym.TypeError:
-                pass
 
         if isinstance(val.expression, sym.Expr):
             output_type = codegen.ScalarType(codegen.NumericType.Real)
             group_expressions = [val.expression]
         else:
+            assert isinstance(val.expression, sym.MatrixExpr), "Expected MatrixExpr"
             output_type = codegen.MatrixType(*val.expression.shape)
             group_expressions = val.expression.to_list()
 

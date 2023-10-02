@@ -85,18 +85,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(py::init<std::int64_t>())
       .def(py::init<double>())
       // String conversion:
-      .def("__repr__",
-           [](const Expr& self) {
-             PlainFormatter formatter{};
-             Visit(self, formatter);
-             return formatter.GetOutput();
-           })
-      .def("expression_tree_str", &FormatDebugTree,
+      .def("__repr__", &Expr::ToString)
+      .def("expression_tree_str", &Expr::ToExpressionTreeString,
            "Retrieve the expression tree as a pretty-printed string.")
-      .def(
-          "print_expression_tree",
-          [](const Expr& self) { fmt::print("{}\n", FormatDebugTree(self)); },
-          "Print the expression tree to standard out.")
       .def(
           "is_identical_to",
           [](const Expr& self, const Expr& other) { return self.IsIdenticalTo(other); }, "other"_a,

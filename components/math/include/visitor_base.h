@@ -24,7 +24,6 @@ using ExpressionTypeList = TypeList<
     class FunctionArgument,
     class Infinity,
     class Integer,
-    class Matrix,
     class Multiplication,
     class Power,
     class Rational,

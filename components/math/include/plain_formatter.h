@@ -15,7 +15,7 @@ class PlainFormatter {
   void operator()(const FunctionArgument& func_arg);
   void operator()(const Infinity&);
   void operator()(const Integer& num);
-  void operator()(const Matrix& mat);
+  void operator()(const class Matrix& mat);
   void operator()(const Multiplication& mul);
   void operator()(const Power& pow);
   void operator()(const Rational& rational);
@@ -23,8 +23,8 @@ class PlainFormatter {
   void operator()(const Function& func);
   void operator()(const Variable& var);
 
-  // Get the output string.
-  const std::string& GetOutput() const { return output_; }
+  // Get the output string (transferring ownership to the caller).
+  std::string TakeOutput() const { return std::move(output_); }
 
  private:
   // Wrap `expr` in braces if the precedence is <= the parent.

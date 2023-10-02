@@ -71,11 +71,6 @@ class DiffVisitor {
     return Derivative::Create(derivative_abstract, argument_abstract_, 1);
   }
 
-  // Element-wise derivative of matrix.
-  Expr operator()(const Matrix& mat) {
-    return MapChildren(mat, [this](const Expr& x) { return VisitWithExprArg(x, *this); });
-  }
-
   // Do product expansion over all terms in the multiplication:
   // a * b
   // a' * b + a * b'

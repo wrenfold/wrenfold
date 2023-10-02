@@ -6,49 +6,50 @@
 
 namespace math {
 
-// Variation of `Expr` that exposes certain operations only valid on matrices.
-// Rather than inheriting, we store another `Expr` via composition.
+// Matrix type that stores a dense block of expressions. For context, this was originally
+// part of the `Expr` type hierarchy. However, this proved to be a mistake because the rules for
+// matrices are sufficiently different from scalars. For now, it is just a wrapper around a shared
+// ptr to `Matrix`. In future a symbolic matrix expression might exist, and then this will be more
+// like the `Expr` type.
 class MatrixExpr {
  public:
-  // Construct from expression. The underlying type is checked and an exception will be thrown
-  // if the argument is not a matrix.
-  explicit MatrixExpr(Expr&& arg);
-  explicit MatrixExpr(const Expr& arg);
+  // Construct w/ matrix content.
+  explicit MatrixExpr(class Matrix&& content);
 
   // Static constructor: Create a dense matrix of expressions.
   static MatrixExpr Create(index_t rows, index_t cols, std::vector<Expr> args);
 
   // Test if the two expressions are identical.
-  bool IsIdenticalTo(const MatrixExpr& other) const { return expr_.IsIdenticalTo(other.expr_); }
+  bool IsIdenticalTo(const MatrixExpr& other) const;
 
   // Test if the two expressions have the same underlying address.
-  bool HasSameAddress(const MatrixExpr& other) const { return expr_.HasSameAddress(other.expr_); }
+  bool HasSameAddress(const MatrixExpr& other) const {
+    return matrix_.get() == other.matrix_.get();
+  }
 
   // Get the underlying type name as a string.
-  std::string_view TypeName() const { return expr_.TypeName(); }
+  std::string_view TypeName() const;
 
   // Convert to string.
-  std::string ToString() const { return expr_.ToString(); }
+  std::string ToString() const;
+
+  // Defined in tree_formatter.cc
+  std::string ToExpressionTreeString() const;
 
   // Negation operator.
   MatrixExpr operator-() const;
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
-  MatrixExpr Diff(const Expr& var, int reps = 1) const { return MatrixExpr{expr_.Diff(var, reps)}; }
+  MatrixExpr Diff(const Expr& var, int reps = 1) const;
 
   // Distribute terms in this expression.
-  MatrixExpr Distribute() const { return MatrixExpr{expr_.Distribute()}; }
+  MatrixExpr Distribute() const;
 
   // Create a new expression by recursively substituting `replacement` for `target`.
-  MatrixExpr Subs(const Expr& target, const Expr& replacement) const {
-    return MatrixExpr{expr_.Subs(target, replacement)};
-  }
+  MatrixExpr Subs(const Expr& target, const Expr& replacement) const;
 
   // Evaluate to matrix of floats.
-  MatrixExpr Eval() const { return MatrixExpr{math::Eval(expr_)}; }
-
-  // Receive a visitor.
-  void Receive(VisitorBase& visitor) const { expr_.Receive(visitor); }
+  MatrixExpr Eval() const;
 
   // Get # of rows.
   index_t NumRows() const;
@@ -74,16 +75,15 @@ class MatrixExpr {
   // Static cast to underlying matrix type.
   const Matrix& AsMatrix() const;
 
-  // Explicit cast to expr.
-  explicit operator const Expr&() const { return expr_; }
-  const Expr& AsExpr() const { return expr_; }
-
  private:
-  Expr expr_;
+  std::shared_ptr<const Matrix> matrix_;
 };
 
 static_assert(std::is_move_assignable_v<MatrixExpr> && std::is_move_constructible_v<MatrixExpr>,
               "Should be movable");
+
+// Format debug tree
+std::string FormatDebugTree(const MatrixExpr& expr);
 
 // Math operators:
 namespace matrix_operator_overloads {

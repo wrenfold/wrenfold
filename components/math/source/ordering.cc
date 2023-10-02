@@ -9,9 +9,9 @@ namespace math {
 struct OrderVisitor {
   using ReturnType = RelativeOrder;
 
-  using OrderOfTypes = TypeList<Float, Integer, Rational, Constant, Infinity, Variable,
-                                FunctionArgument, Multiplication, Addition, Power, Function,
-                                Relational, Conditional, Derivative, Matrix>;
+  using OrderOfTypes =
+      TypeList<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
+               Multiplication, Addition, Power, Function, Relational, Conditional, Derivative>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ExpressionTypeList>::Value);
@@ -75,17 +75,6 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Multiplication& a, const Multiplication& b) const {
-    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
-  }
-
-  RelativeOrder Compare(const Matrix& a, const Matrix& b) const {
-    const auto dims_a = std::make_pair(a.NumRows(), a.NumCols());
-    const auto dims_b = std::make_pair(b.NumRows(), b.NumCols());
-    if (dims_a < dims_b) {
-      return RelativeOrder::LessThan;
-    } else if (dims_a > dims_b) {
-      return RelativeOrder::GreaterThan;
-    }
     return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
   }
 

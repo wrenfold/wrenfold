@@ -57,6 +57,10 @@ class Expr {
   // Convert to string.
   std::string ToString() const;
 
+  // Convert to string of the expression tree.
+  // Defined in tree_formatter.cc
+  std::string ToExpressionTreeString() const;
+
   // Get the hash of the expression.
   std::size_t Hash() const { return impl_->GetHash(); }
 

@@ -59,9 +59,6 @@ struct DetermineNumericTypeVisitor {
 
   constexpr NumericType operator()(const Integer&) const { return NumericType::Integer; }
 
-  // TODO: For now all matrices are interpreted as real.
-  constexpr NumericType operator()(const Matrix&) const { return NumericType::Real; }
-
   NumericType operator()(const Multiplication& mul) const {
     // Multiplying booleans produces an integer, same as C++.
     NumericType type = NumericType::Integer;
@@ -370,10 +367,6 @@ struct IRFormVisitor {
         "Cannot generate code for expressions containing `Derivative`. Offending expression is: "
         "Derivative({}, {}, {})",
         derivative.Differentiand().ToString(), derivative.Arg().ToString(), derivative.Order());
-  }
-
-  ir::ValuePtr operator()(const Matrix&, const Expr&) const {
-    throw TypeError("Cannot evaluate this on a matrix.");
   }
 
   ir::ValuePtr operator()(const Function& func, const Expr&) {

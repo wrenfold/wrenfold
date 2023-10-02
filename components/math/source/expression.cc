@@ -26,7 +26,7 @@ Expr Expr::FromInt(const std::int64_t x) { return Integer::Create(x); }
 std::string Expr::ToString() const {
   PlainFormatter formatter{};
   Visit(*this, formatter);
-  return formatter.GetOutput();
+  return formatter.TakeOutput();
 }
 
 Expr Expr::operator-() const {
@@ -46,9 +46,6 @@ Expr operator-(const Expr& a, const Expr& b) {
 Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromOperands({a, b}); }
 
 Expr operator/(const Expr& a, const Expr& b) {
-  if (b.Is<Matrix>()) {
-    throw TypeError("Cannot divide by a matrix expression of type: {}", b.TypeName());
-  }
   auto one_over_b = Power::Create(b, Constants::NegativeOne);
   return Multiplication::FromOperands({a, one_over_b});
 }
