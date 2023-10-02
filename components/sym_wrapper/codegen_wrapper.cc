@@ -297,14 +297,14 @@ void WrapCodegenOperations(py::module_& m) {
   m.def(
       "generate_cpp",
       [](const ast::FunctionSignature& signature, const std::vector<ast::Variant>& ast)
-          -> std::string { return CppCodeGenerator{}.Generate(signature, ast); },
+          -> std::string { return CppCodeGenerator{}.generate_code(signature, ast); },
       "signature"_a, "ast"_a,
       py::doc("Generate C++ code from the given function signature and expressions."));
 
   m.def(
       "generate_rust",
       [](const ast::FunctionSignature& signature, const std::vector<ast::Variant>& ast)
-          -> std::string { return RustCodeGenerator{}.Generate(signature, ast); },
+          -> std::string { return RustCodeGenerator{}.generate_code(signature, ast); },
       "signature"_a, "ast"_a,
       py::doc("Generate Rust code from the given function signature and expressions."));
 }

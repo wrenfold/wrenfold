@@ -9,14 +9,14 @@ namespace math {
 // Generate rust code.
 class RustCodeGenerator {
  public:
-  std::string Generate(const ast::FunctionSignature& signature,
+  std::string generate_code(const ast::FunctionSignature& signature,
                        const std::vector<ast::Variant>& body) const;
 
   // Create a FmtView that can be passed to CodeFormatter. All args will be
   // forwarded back to the operator on this class that matches them.
   template <typename... Args>
-  auto View(Args&&... args) const {
-    return ::math::View(*this, std::forward<Args>(args)...);
+  auto make_view(Args&&... args) const {
+    return ::math::make_fmt_view(*this, std::forward<Args>(args)...);
   }
 
   void operator()(CodeFormatter& formatter, const ast::Add& x) const;
@@ -38,17 +38,17 @@ class RustCodeGenerator {
   void operator()(CodeFormatter& formatter, const ast::Declaration& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::FloatConstant& x) const {
-    formatter.Format("{}f64", x.value);
+    formatter.format("{}f64", x.value);
   }
 
   void operator()(CodeFormatter& formatter, const ast::VariableRef& x) const {
-    formatter.Format(x.name);
+    formatter.format(x.name);
   }
 
   void operator()(CodeFormatter& formatter, const ast::InputValue& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::IntegerConstant& x) const {
-    formatter.Format("{}i64", x.value);
+    formatter.format("{}i64", x.value);
   }
 
   void operator()(CodeFormatter& formatter, const ast::Multiply& x) const;
@@ -69,7 +69,7 @@ class RustCodeGenerator {
   }
 
  private:
-  void FormatSignature(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
+  void format_signature(CodeFormatter& formatter, const ast::FunctionSignature& signature) const;
 };
 
 }  // namespace math

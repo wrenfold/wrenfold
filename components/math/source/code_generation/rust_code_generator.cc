@@ -4,12 +4,12 @@
 
 namespace math {
 
-std::string RustCodeGenerator::Generate(const ast::FunctionSignature& signature,
+std::string RustCodeGenerator::generate_code(const ast::FunctionSignature& signature,
                                         const std::vector<ast::Variant>& body) const {
   CodeFormatter result{};
-  FormatSignature(result, signature);
-  result.WithIndentation(2, "{\n", "\n}", [&] { result.Join(*this, "\n", body); });
-  return result.GetOutput();
+  format_signature(result, signature);
+  result.with_indentation(2, "{\n", "\n}", [&] { result.join(*this, "\n", body); });
+  return result.get_output();
 }
 
 constexpr std::string_view TypeFromNumericType(NumericType type) {
@@ -57,29 +57,29 @@ static std::vector<std::string_view> GetAttributes(const ast::FunctionSignature&
   return result;
 }
 
-void RustCodeGenerator::FormatSignature(math::CodeFormatter& formatter,
+void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
                                         const ast::FunctionSignature& signature) const {
-  formatter.Format("#[inline]\n");
+  formatter.format("#[inline]\n");
 
   const auto attributes = GetAttributes(signature);
   if (!attributes.empty()) {
-    formatter.Format("#[allow({})]\n", fmt::join(attributes, ", "));
+    formatter.format("#[allow({})]\n", fmt::join(attributes, ", "));
   }
-  formatter.Format("pub fn {}{}", signature.function_name,
+  formatter.format("pub fn {}{}", signature.function_name,
                    signature.has_matrix_arguments() ? "<" : "");
 
   std::size_t counter = 0;
   for (const auto& arg : signature.arguments) {
     if (arg->is_matrix()) {
-      formatter.Format("T{}, ", counter++);
+      formatter.format("T{}, ", counter++);
     }
   }
 
-  formatter.Format("{}(", signature.has_matrix_arguments() ? ">" : "");
+  formatter.format("{}(", signature.has_matrix_arguments() ? ">" : "");
 
   counter = 0;
   for (const auto& arg : signature.arguments) {
-    formatter.Format("{}: ", arg->name());
+    formatter.format("{}: ", arg->name());
 
     std::string output_type;
     if (arg->is_matrix()) {
@@ -91,31 +91,31 @@ void RustCodeGenerator::FormatSignature(math::CodeFormatter& formatter,
 
     switch (arg->direction()) {
       case ast::ArgumentDirection::Input:
-        formatter.Format("{}{}, ", arg->is_matrix() ? "&" : "", output_type);
+        formatter.format("{}{}, ", arg->is_matrix() ? "&" : "", output_type);
         break;
       case ast::ArgumentDirection::Output:
-        formatter.Format("&mut {}, ", output_type);
+        formatter.format("&mut {}, ", output_type);
         break;
       case ast::ArgumentDirection::OptionalOutput:
-        formatter.Format("Option<&mut {}>, ", output_type);
+        formatter.format("Option<&mut {}>, ", output_type);
         break;
     }
   }
 
   if (!signature.return_value) {
-    formatter.Format(")\n");
+    formatter.format(")\n");
   } else {
     const auto& scalar = std::get<ast::ScalarType>(*signature.return_value);
-    formatter.Format(") -> {}\n", TypeFromNumericType(scalar));
+    formatter.format(") -> {}\n", TypeFromNumericType(scalar));
   }
 
   if (signature.has_matrix_arguments()) {
-    formatter.WithIndentation(2, "where\n", "", [&] {
+    formatter.with_indentation(2, "where\n", "", [&] {
       std::size_t counter = 0;
       for (const auto& arg : signature.arguments) {
         if (arg->is_matrix()) {
           const ast::MatrixType mat = std::get<ast::MatrixType>(arg->type());
-          formatter.Format("T{}: zen_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
+          formatter.format("T{}: zen_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
                            SpanTypeFromDirection(arg->direction()), mat.rows(), mat.cols(),
                            TypeFromNumericType(NumericType::Real));
         }
@@ -125,7 +125,7 @@ void RustCodeGenerator::FormatSignature(math::CodeFormatter& formatter,
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) const {
-  formatter.Format("{} + {}", View(x.left), View(x.right));
+  formatter.format("{} + {}", make_view(x.left), make_view(x.right));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter,
@@ -136,31 +136,31 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter,
   if (std::holds_alternative<ast::MatrixType>(type)) {
     const ast::MatrixType mat = std::get<ast::MatrixType>(type);
     auto range = MakeRange<std::size_t>(0, assignment.values.size());
-    formatter.Join(
+    formatter.join(
         [&](CodeFormatter& fmt, std::size_t i) {
           const auto [row, col] = mat.compute_indices(i);
-          fmt.Format("{}.set({}, {}, {});", dest_name, row, col, View(assignment.values[i]));
+          fmt.format("{}.set({}, {}, {});", dest_name, row, col, make_view(assignment.values[i]));
         },
         "\n", range);
   } else {
     // Otherwise it is a scalar, so just assign it:
     ASSERT_EQUAL(1, assignment.values.size());
-    formatter.Format("*{} = {};", dest_name, assignment.values.front());
+    formatter.format("*{} = {};", dest_name, assignment.values.front());
   }
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTemporary& x) const {
-  formatter.Format("{} = {};", x.left, View(x.right));
+  formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x) const {
   ASSERT(x.condition);
-  formatter.Format("if {} ", View(x.condition));
-  formatter.WithIndentation(2, "{\n", "\n}", [&] { formatter.Join(*this, "\n", x.if_branch); });
+  formatter.format("if {} ", make_view(x.condition));
+  formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.if_branch); });
 
   if (!x.else_branch.empty()) {
-    formatter.WithIndentation(2, " else {\n", "\n}",
-                              [&] { formatter.Join(*this, "\n", x.else_branch); });
+    formatter.with_indentation(2, " else {\n", "\n}",
+                              [&] { formatter.join(*this, "\n", x.else_branch); });
   }
 }
 
@@ -197,32 +197,32 @@ static constexpr std::string_view GetBuiltInFunctionCall(const BuiltInFunctionNa
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  formatter.Format("{}({})", GetBuiltInFunctionCall(x.function), Join(*this, ", ", x.args));
+  formatter.format("{}({})", GetBuiltInFunctionCall(x.function), make_join_view(*this, ", ", x.args));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
   // TODO: Parens are sometimes superfluous here.
-  formatter.Format("({}) as {}", View(x.arg), TypeFromNumericType(x.destination_type));
+  formatter.format("({}) as {}", make_view(x.arg), TypeFromNumericType(x.destination_type));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare& x) const {
   // TODO: Parens are sometimes superfluous.
-  formatter.Format("({}) {} ({})", View(x.left), StringFromRelationalOperation(x.operation),
-                   View(x.right));
+  formatter.format("({}) {} ({})", make_view(x.left), StringFromRelationalOperation(x.operation),
+                   make_view(x.right));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter,
                                    const ast::ConstructReturnValue& x) const {
   ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
   ASSERT_EQUAL(1, x.args.size());
-  formatter.Format("{}", View(x.args[0]));
+  formatter.format("{}", make_view(x.args[0]));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
   if (!x.value) {
-    formatter.Format("let {}: {};", x.name, TypeFromNumericType(x.type));
+    formatter.format("let {}: {};", x.name, TypeFromNumericType(x.type));
   } else {
-    formatter.Format("let {}: {} = {};", x.name, TypeFromNumericType(x.type), View(x.value));
+    formatter.format("let {}: {} = {};", x.name, TypeFromNumericType(x.type), make_view(x.value));
   }
 }
 
@@ -231,20 +231,20 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputVal
   if (x.argument->is_matrix()) {
     const ast::MatrixType mat = std::get<ast::MatrixType>(x.argument->type());
     const auto [r, c] = mat.compute_indices(x.element);
-    formatter.Format("{}.get({}, {})", x.argument->name(), r, c);
+    formatter.format("{}.get({}, {})", x.argument->name(), r, c);
   } else {
-    formatter.Format(x.argument->name());
+    formatter.format(x.argument->name());
   }
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply& x) const {
-  formatter.Format("{} * {}", View(x.left), View(x.right));
+  formatter.format("{} * {}", make_view(x.left), make_view(x.right));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter,
                                    const ast::OptionalOutputBranch& x) const {
-  formatter.Format("if let Some({}) = {} ", x.argument->name(), x.argument->name());
-  formatter.WithIndentation(2, "{\n", "\n}", [&] { formatter.Join(*this, "\n", x.statements); });
+  formatter.format("if let Some({}) = {} ", x.argument->name(), x.argument->name());
+  formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
 }
 
 }  // namespace math

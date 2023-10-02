@@ -28,7 +28,7 @@ void GenerateFunc(CodeGenerator&& generator, std::string& output, Func&& func,
   // Generate syntax tree:
   std::vector<ast::Variant> body = ast::create_ast(output_ir, signature);
 
-  const std::string code = generator.Generate(signature, body);
+  const std::string code = generator.generate_code(signature, body);
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);
 }
 

@@ -17,7 +17,7 @@ class CodeFormatter {
 
   // Format into internal string buffer.
   template <typename... Args>
-  void Format(const std::string_view fmt, Args&&... args) {
+  void format(const std::string_view fmt, Args&&... args) {
     if constexpr (sizeof...(args) > 0) {
       fmt::format_to(std::back_inserter(output_), fmt, std::forward<Args>(args)...);
     } else {
@@ -27,14 +27,14 @@ class CodeFormatter {
 
   // Join using the provided formatter and separator.
   template <typename Formatter, typename Container>
-  void Join(Formatter&& formatter, const std::string_view separator, const Container& container) {
+  void join(Formatter&& formatter, const std::string_view separator, const Container& container) {
     auto it = container.begin();
     if (it == container.end()) {
       return;
     }
     formatter(*this, *it);
     for (++it; it != container.end(); ++it) {
-      Format(separator);
+      format(separator);
       formatter(*this, *it);
     }
   }
@@ -42,25 +42,25 @@ class CodeFormatter {
   // Invoke the user-provided callable. Any content added in the scope of the
   // callable will be intended by `indent` spaces and wrapped in `open` and `close`.
   template <typename Callable>
-  void WithIndentation(const int indent, const std::string_view open, const std::string_view close,
+  void with_indentation(const int indent, const std::string_view open, const std::string_view close,
                        Callable&& callable) {
     ASSERT_GREATER_OR_EQ(indent, 0);
     // Move output_ -> appended
     std::string appended{};
     std::swap(output_, appended);
-    Format(open);
+    format(open);
     callable();
     // Restore appended -> output_
     std::swap(appended, output_);
     // Copy appended into output_, adding indentation as required
-    AppendWithIndentation(appended, indent);
-    Format(close);
+    append_with_indentation(appended, indent);
+    format(close);
   }
 
-  const std::string& GetOutput() const { return output_; }
+  const std::string& get_output() const { return output_; }
 
  private:
-  void AppendWithIndentation(const std::string& appended, const int indentation) {
+  void append_with_indentation(const std::string& appended, const int indentation) {
     for (auto it = appended.begin(); it != appended.end(); ++it) {
       output_.push_back(*it);
       if (*it == '\n' && std::next(it) != appended.end()) {
@@ -85,7 +85,7 @@ struct FmtView<Formatter, std::tuple<Args...>> {
 // Wrap an argument to fmt::formatter, such that the underlying argument will be
 // formatted by calling back into an object of type `Formatter`.
 template <typename Formatter, typename... Args>
-auto View(Formatter&& formatter, Args&&... args) {
+auto make_fmt_view(Formatter&& formatter, Args&&... args) {
   // Convert r-value references to values. These are moved into the tuple. l-value references
   // are store as `const Args&` in the tuple to avoid copies.
   std::tuple<typename DecayRValueToValue<decltype(args)>::Type...> tup{std::forward<Args>(args)...};
@@ -93,7 +93,6 @@ auto View(Formatter&& formatter, Args&&... args) {
   return FmtView<FormatterType, decltype(tup)>{std::forward<Formatter>(formatter), std::move(tup)};
 }
 
-// TODO: Unused - delete this.
 template <typename Formatter, typename Container>
 struct FmtJoinView {
   Formatter formatter;
@@ -102,7 +101,7 @@ struct FmtJoinView {
 };
 
 template <typename Formatter, typename Container>
-auto Join(Formatter&& formatter, const std::string_view separator, Container&& container) {
+auto make_join_view(Formatter&& formatter, const std::string_view separator, Container&& container) {
   // Determine if args are r-values or l-values, and move them if appropriate.
   // The resulting JoinView will store either values or const references.
   using FormatterType = typename DecayRValueToValue<decltype(formatter)>::Type;
@@ -133,7 +132,7 @@ struct fmt::formatter<math::FmtView<Formatter, std::tuple<Args...>>> {
         view.tuple);
 
     // Append the result
-    const auto& result = nested_formatter.GetOutput();
+    const auto& result = nested_formatter.get_output();
     return std::copy(result.begin(), result.end(), ctx.out());
   }
 };
@@ -146,8 +145,8 @@ struct fmt::formatter<math::FmtJoinView<Formatter, Container>> {
   auto format(const math::FmtJoinView<Formatter, Container>& view, FormatContext& ctx) const
       -> decltype(ctx.out()) {
     math::CodeFormatter nested_formatter{};
-    nested_formatter.Join(view.formatter, view.separator, view.container);
-    const auto& result = nested_formatter.GetOutput();
+    nested_formatter.join(view.formatter, view.separator, view.container);
+    const auto& result = nested_formatter.get_output();
     return std::copy(result.begin(), result.end(), ctx.out());
   }
 };
