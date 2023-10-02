@@ -12,11 +12,11 @@ using namespace math::custom_literals;
 namespace ta = type_annotations;
 
 std::ostream& operator<<(std::ostream& s, const FlatIr& b) {
-  s << "Flat IR:\n" << b.ToString();
+  s << "Flat IR:\n" << b.to_string();
   return s;
 }
 std::ostream& operator<<(std::ostream& s, const OutputIr& b) {
-  s << "Output IR:\n" << b.ToString();
+  s << "Output IR:\n" << b.to_string();
   return s;
 }
 
@@ -27,7 +27,7 @@ auto CreateIR(Func&& func, const std::string_view name, Args&&... args) {
       BuildFunctionDescription(std::forward<Func>(func), name, std::forward<Args>(args)...);
   std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
   FlatIr flat_ir{expressions};
-  flat_ir.EliminateDuplicates();
+  flat_ir.eliminate_duplicates();
   return std::make_tuple(std::move(expressions), std::move(flat_ir));
 }
 
@@ -95,7 +95,7 @@ void CheckOutputExpressions(
 }
 
 void CheckExpressions(const std::vector<ExpressionGroup>& expected_expressions, const FlatIr& ir) {
-  auto output_expressions = CreateOutputExpressionMap(ir.GetBlock(), nullptr);
+  auto output_expressions = create_output_expression_map(ir.get_block(), nullptr);
   CheckOutputExpressions(expected_expressions, output_expressions, ir);
 }
 
@@ -105,7 +105,7 @@ void CheckExpressions(const std::vector<ExpressionGroup>& expected_expressions,
   for (std::size_t i = 0; i < permutations.NumPermutations(); ++i) {
     // test permutation `i`:
     const auto output_map = permutations.GetPermutation(i);
-    auto output_expressions = CreateOutputExpressionMap(ir.FirstBlock(), &output_map);
+    auto output_expressions = create_output_expression_map(ir.first_block(), &output_map);
     CheckOutputExpressions(expected_expressions, output_expressions, ir);
   }
 }
@@ -134,14 +134,14 @@ TEST(IrTest, TestScalarExpressions1) {
         return std::make_tuple(ReturnValue(x * y), OutputArg("a", a), OutputArg("b", b));
       },
       "func", Arg("x"), Arg("y"));
-  ASSERT_EQ(2, ir.NumOperations()) << ir;
-  ASSERT_EQ(0, ir.NumConditionals()) << ir;
+  ASSERT_EQ(2, ir.num_operations()) << ir;
+  ASSERT_EQ(0, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(2, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(0, output_ir.NumConditionals()) << output_ir;
-  ASSERT_EQ(1, output_ir.NumBlocks()) << output_ir;
+  ASSERT_EQ(2, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
+  ASSERT_EQ(1, output_ir.num_blocks()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -155,14 +155,14 @@ TEST(IrTest, TestScalarExpressions2) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(14, ir.NumOperations()) << ir;
-  ASSERT_EQ(0, ir.NumConditionals()) << ir;
+  ASSERT_EQ(14, ir.num_operations()) << ir;
+  ASSERT_EQ(0, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(15, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(1, output_ir.NumConditionals()) << output_ir;
-  ASSERT_EQ(3, output_ir.NumBlocks()) << output_ir;
+  ASSERT_EQ(15, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
+  ASSERT_EQ(3, output_ir.num_blocks()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -182,8 +182,8 @@ TEST(IrTest, TestScalarExpressions3) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(43, ir.NumOperations()) << ir;
-  ASSERT_EQ(0, ir.NumConditionals()) << ir;
+  ASSERT_EQ(43, ir.num_operations()) << ir;
+  ASSERT_EQ(0, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
   CheckExpressions(expected_expressions, OutputIr{std::move(ir)});
 }
@@ -196,13 +196,13 @@ TEST(IrTest, TestConditionals1) {
       },
       "func", Arg("x"));
 
-  ASSERT_EQ(4, ir.NumOperations()) << ir;
-  ASSERT_EQ(1, ir.NumConditionals()) << ir;
+  ASSERT_EQ(4, ir.num_operations()) << ir;
+  ASSERT_EQ(1, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(4, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(1, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(4, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -215,13 +215,13 @@ TEST(IrTest, TestConditionals2) {
       },
       "func", Arg("x"), Arg("y"));
 
-  ASSERT_EQ(8, ir.NumOperations()) << ir;
-  ASSERT_EQ(1, ir.NumConditionals()) << ir;
+  ASSERT_EQ(8, ir.num_operations()) << ir;
+  ASSERT_EQ(1, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(8, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(1, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(8, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -233,13 +233,13 @@ TEST(IrTest, TestConditionals3) {
       },
       "func", Arg("x"), Arg("y"));
 
-  ASSERT_EQ(7, ir.NumOperations()) << ir;
-  ASSERT_EQ(3, ir.NumConditionals()) << ir;
+  ASSERT_EQ(7, ir.num_operations()) << ir;
+  ASSERT_EQ(3, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(7, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(3, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(7, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -254,13 +254,13 @@ TEST(IrTest, TestConditionals4) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(20, ir.NumOperations()) << ir;
-  ASSERT_EQ(3, ir.NumConditionals()) << ir;
+  ASSERT_EQ(20, ir.num_operations()) << ir;
+  ASSERT_EQ(3, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(20, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(3, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(20, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -278,14 +278,14 @@ TEST(IrTest, TestConditionals5) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(56, ir.NumOperations()) << ir;
-  ASSERT_EQ(6, ir.NumConditionals()) << ir;
+  ASSERT_EQ(56, ir.num_operations()) << ir;
+  ASSERT_EQ(6, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   CheckExpressions(expected_expressions, output_ir);
-  ASSERT_EQ(58, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(7, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(58, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
 }
 
 TEST(IrTest, TestConditionals6) {
@@ -299,14 +299,14 @@ TEST(IrTest, TestConditionals6) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"), Arg("w"));
 
-  ASSERT_EQ(25, ir.NumOperations()) << ir;
-  ASSERT_EQ(4, ir.NumConditionals()) << ir;
+  ASSERT_EQ(25, ir.num_operations()) << ir;
+  ASSERT_EQ(4, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   CheckExpressions(expected_expressions, output_ir);
-  ASSERT_EQ(25, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(4, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(25, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(4, output_ir.num_conditionals()) << output_ir;
 }
 
 TEST(IrTest, TestMatrixExpressions1) {
@@ -319,13 +319,13 @@ TEST(IrTest, TestMatrixExpressions1) {
       },
       "func", Arg("x"), Arg("y"));
 
-  ASSERT_EQ(7, ir.NumOperations()) << ir;
-  ASSERT_EQ(0, ir.NumConditionals()) << ir;
+  ASSERT_EQ(7, ir.num_operations()) << ir;
+  ASSERT_EQ(0, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(7, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(0, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(7, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -341,14 +341,14 @@ TEST(IrTest, TestMatrixExpressions2) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(52, ir.NumOperations()) << ir;
-  ASSERT_EQ(16, ir.NumConditionals()) << ir;
+  ASSERT_EQ(52, ir.num_operations()) << ir;
+  ASSERT_EQ(16, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   // Conditionals should get reduced:
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(52, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(1, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(52, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   CheckExpressions(expected_expressions, output_ir);
 }
 
@@ -370,14 +370,14 @@ TEST(IrTest, TestMatrixExpressions3) {
       },
       "func", Arg("v"), Arg("u"), Arg("t"));
 
-  ASSERT_EQ(116, ir.NumOperations()) << ir;
-  ASSERT_EQ(15, ir.NumConditionals()) << ir;
+  ASSERT_EQ(116, ir.num_operations()) << ir;
+  ASSERT_EQ(15, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   CheckExpressions(expected_expressions, output_ir);
-  ASSERT_EQ(117, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(3, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(117, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
 }
 
 TEST(IrTest, TestBuiltInFunctions) {
@@ -390,14 +390,14 @@ TEST(IrTest, TestBuiltInFunctions) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(14, ir.NumOperations()) << ir;
-  ASSERT_EQ(0, ir.NumConditionals()) << ir;
+  ASSERT_EQ(14, ir.num_operations()) << ir;
+  ASSERT_EQ(0, ir.num_condtionals()) << ir;
   CheckExpressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   CheckExpressions(expected_expressions, output_ir);
-  ASSERT_EQ(14, output_ir.NumOperations()) << output_ir;
-  ASSERT_EQ(0, output_ir.NumConditionals()) << output_ir;
+  ASSERT_EQ(14, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
 }
 
 }  // namespace math

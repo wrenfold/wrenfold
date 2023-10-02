@@ -12,8 +12,8 @@ namespace math {
 
 inline void GetConditionalOutputs(const ir::ValuePtr v, std::vector<ir::ValuePtr>& outputs) {
   bool all_phi_consumers = true;
-  for (ir::ValuePtr consumer : v->Consumers()) {
-    if (consumer->IsPhi()) {
+  for (ir::ValuePtr consumer : v->consumers()) {
+    if (consumer->is_phi()) {
       GetConditionalOutputs(consumer, outputs);
     } else {
       all_phi_consumers = false;
@@ -38,7 +38,7 @@ struct AstBuilder {
   }
 
   void ProcessBlock(ir::BlockPtr block) {
-    ASSERT(!block->IsEmpty());
+    ASSERT(!block->is_empty());
     if (stop_set_.count(block)) {
       return;
     }
@@ -53,17 +53,17 @@ struct AstBuilder {
     phi_assignments.reserve(block->operations.size());
 
     for (const ir::ValuePtr value : block->operations) {
-      if (value->Is<ir::Save>()) {
+      if (value->is_type<ir::Save>()) {
         save_values.push_back(value);
-      } else if (value->IsPhi()) {
+      } else if (value->is_phi()) {
         // Do nothing.
-      } else if (value->Is<ir::JumpCondition>() || value->Is<ir::OutputRequired>()) {
+      } else if (value->is_type<ir::JumpCondition>() || value->is_type<ir::OutputRequired>()) {
         // Do nothing.
       } else {
         std::vector<ir::ValuePtr> conditional_outputs{};
         bool all_phi_consumers = true;
-        for (ir::ValuePtr consumer : value->Consumers()) {
-          if (consumer->IsPhi()) {
+        for (ir::ValuePtr consumer : value->consumers()) {
+          if (consumer->is_phi()) {
             GetConditionalOutputs(consumer, conditional_outputs);
           } else {
             all_phi_consumers = false;
@@ -75,7 +75,7 @@ struct AstBuilder {
           if (ShouldInlineConstant(value)) {
             rhs = MakeArgPtr(value);
           } else {
-            Emplace<ast::Declaration>(FormatTemporary(value), value->DetermineType(),
+            Emplace<ast::Declaration>(FormatTemporary(value), value->determine_type(),
                                       VisitMakePtr(value));
             rhs = MakeVariableRefPtr(value);
           }
@@ -97,12 +97,12 @@ struct AstBuilder {
 
     // insert outputs
     for (const ir::ValuePtr save_value : save_values) {
-      const ir::Save& save = save_value->As<ir::Save>();
+      const ir::Save& save = save_value->as_type<ir::Save>();
       const OutputKey& key = save.key;
 
       std::vector<ast::Variant> args{};
-      args.reserve(save_value->NumOperands());
-      for (const ir::ValuePtr v : save_value->Operands()) {
+      args.reserve(save_value->num_operands());
+      for (const ir::ValuePtr v : save_value->operands()) {
         args.emplace_back(MakeVariableRef(v));
       }
 
@@ -119,28 +119,28 @@ struct AstBuilder {
     }
 
     ir::ValuePtr last_op = block->operations.back();
-    if (!last_op->Is<ir::JumpCondition>()) {
+    if (!last_op->is_type<ir::JumpCondition>()) {
       // just keep appending:
       ASSERT_EQUAL(1, block->descendants.size());
       ProcessBlock(block->descendants.front());
     } else {
-      ASSERT(last_op->Is<ir::JumpCondition>());
+      ASSERT(last_op->is_type<ir::JumpCondition>());
       ASSERT_EQUAL(2, block->descendants.size());
 
       // Find phi functions:
       const ir::BlockPtr merge_point =
-          FindMergePoint(block->descendants[0], block->descendants[1], SearchDirection::Downwards);
+          find_merge_point(block->descendants[0], block->descendants[1], SearchDirection::Downwards);
       stop_set_.insert(merge_point);
 
       for (ir::ValuePtr maybe_phi : merge_point->operations) {
-        if (maybe_phi->IsPhi()) {
+        if (maybe_phi->is_phi()) {
           const bool no_declaration =
-              maybe_phi->AllConsumersSatisfy([](ir::ValuePtr v) { return v->IsPhi(); });
+              maybe_phi->all_consumers_satisfy([](ir::ValuePtr v) { return v->is_phi(); });
           if (no_declaration) {
             continue;
           }
           // We should declare this variable prior to entering the branch:
-          Emplace<ast::Declaration>(FormatTemporary(maybe_phi), maybe_phi->DetermineType());
+          Emplace<ast::Declaration>(FormatTemporary(maybe_phi), maybe_phi->determine_type());
         }
       }
 
@@ -148,16 +148,16 @@ struct AstBuilder {
       std::vector<ast::Variant> operations_true = ProcessNestedBlock(block->descendants[0]);
       std::vector<ast::Variant> operations_false = ProcessNestedBlock(block->descendants[1]);
 
-      ir::ValuePtr condition = last_op->Front();
-      if (condition->Is<ir::OutputRequired>()) {
+      ir::ValuePtr condition = last_op->first_operand();
+      if (condition->is_type<ir::OutputRequired>()) {
         ASSERT(operations_false.empty());
-        const ir::OutputRequired& oreq = condition->As<ir::OutputRequired>();
+        const ir::OutputRequired& oreq = condition->as_type<ir::OutputRequired>();
         // Create an optional-output assignment block
         Emplace<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name),
                                            std::move(operations_true));
       } else {
         // Create a conditional
-        Emplace<ast::Branch>(ast::VariableRef{FormatTemporary(last_op->Front())},
+        Emplace<ast::Branch>(ast::VariableRef{FormatTemporary(last_op->first_operand())},
                              std::move(operations_true), std::move(operations_false));
       }
 
@@ -181,7 +181,7 @@ struct AstBuilder {
   }
 
   std::string FormatTemporary(const ir::Value& val) const {
-    return fmt::format("v{:0>{}}", val.Name(), value_width_);
+    return fmt::format("v{:0>{}}", val.name(), value_width_);
   }
 
   std::string FormatTemporary(const ir::ValuePtr val) const { return FormatTemporary(*val); }
@@ -199,7 +199,7 @@ struct AstBuilder {
             return this->operator()(*val, op);
           }
         },
-        val->Op());
+        val->value_op());
   }
 
   ast::VariantPtr VisitMakePtr(ir::ValuePtr val) {
@@ -209,8 +209,8 @@ struct AstBuilder {
   // Return true if the specified value should be inlined instead of declared as a variable.
   bool ShouldInlineConstant(const ir::ValuePtr val) const {
     return OverloadedVisit(
-        val->Op(), [](const ir::Load& load) { return load.expr.Is<Integer, Float, Constant>(); },
-        [&](const ir::Cast&) { return ShouldInlineConstant(val->Front()); },
+        val->value_op(), [](const ir::Load& load) { return load.expr.Is<Integer, Float, Constant>(); },
+        [&](const ir::Cast&) { return ShouldInlineConstant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
   }
 
@@ -244,22 +244,22 @@ struct AstBuilder {
 
   ast::Variant operator()(const ir::Value& val, const ir::CallBuiltInFunction& func) {
     std::vector<ast::Variant> transformed_args{};
-    transformed_args.reserve(val.NumOperands());
-    for (ir::ValuePtr arg : val.Operands()) {
+    transformed_args.reserve(val.num_operands());
+    for (ir::ValuePtr arg : val.operands()) {
       transformed_args.push_back(MakeArg(arg));
     }
     return ast::Call{func.name, std::move(transformed_args)};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Cast& cast) {
-    return ast::Cast{cast.destination_type, val.DetermineType(), MakeArgPtr(val[0])};
+    return ast::Cast{cast.destination_type, val.determine_type(), MakeArgPtr(val[0])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Compare& compare) {
     return ast::Compare{compare.operation, MakeArgPtr(val[0]), MakeArgPtr(val[1])};
   }
 
-  ast::Variant operator()(const ir::Value& val, const ir::Copy&) { return MakeArg(val.Front()); }
+  ast::Variant operator()(const ir::Value& val, const ir::Copy&) { return MakeArg(val.first_operand()); }
 
   ast::Variant operator()(const ir::Value& val, const ir::Mul&) {
     return ast::Multiply{MakeArgPtr(val[0]), MakeArgPtr(val[1])};
@@ -299,8 +299,8 @@ struct AstBuilder {
 
 namespace ast {
 std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature) {
-  AstBuilder builder(ir.ValuePrintWidth(), signature);
-  return builder.CreateFunction(ir.FirstBlock());
+  AstBuilder builder(ir.value_print_width(), signature);
+  return builder.CreateFunction(ir.first_block());
 }
 }  // namespace ast
 }  // namespace math

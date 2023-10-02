@@ -21,25 +21,26 @@ struct FlatIr {
   explicit FlatIr(const std::vector<ExpressionGroup>& expressions);
 
   // Format IR for every value.
-  std::string ToString() const;
+  std::string to_string() const;
 
   // Size of value numbers when printed (# digits).
-  std::size_t ValuePrintWidth() const;
+  std::size_t value_print_width() const;
 
   // Eliminate duplicate operations. Most are eliminated during the conversion from expressions
   // to the IR.
-  void EliminateDuplicates();
+  void eliminate_duplicates();
 
   // Number of operations:
-  std::size_t NumOperations() const;
+  std::size_t num_operations() const;
 
-  std::size_t NumConditionals() const;
+  // Number of conditional statements.
+  std::size_t num_condtionals() const;
 
   // Get the single block of operations.
-  ir::BlockPtr GetBlock() const { return ir::BlockPtr{block_}; }
+  ir::BlockPtr get_block() const { return ir::BlockPtr{block_}; }
 
  protected:
-  void StripUnusedValues();
+  void strip_unused_values();
 
   // Single flat block:
   ir::Block::unique_ptr block_;
@@ -57,32 +58,32 @@ struct OutputIr {
   explicit OutputIr(FlatIr&& input);
 
   // Format IR for every value.
-  std::string ToString() const;
+  std::string to_string() const;
 
   // Size of value numbers when printed (# digits).
-  std::size_t ValuePrintWidth() const;
+  std::size_t value_print_width() const;
 
   // Number of operations in the IR.
-  std::size_t NumOperations() const;
+  std::size_t num_operations() const;
 
   // Number of operations:
-  std::size_t NumConditionals() const;
+  std::size_t num_conditionals() const;
 
   // NUmber of blocks.
-  std::size_t NumBlocks() const { return blocks_.size(); }
+  std::size_t num_blocks() const { return blocks_.size(); }
 
   // Get the first block (start of execution).
-  ir::BlockPtr FirstBlock() const {
+  ir::BlockPtr first_block() const {
     const auto it =
         std::find_if(blocks_.begin(), blocks_.end(),
-                     [](const ir::Block::unique_ptr& block) { return block->HasNoAncestors(); });
+                     [](const ir::Block::unique_ptr& block) { return block->has_no_ancestors(); });
     ASSERT(it != blocks_.end(), "Must be an entry block");
     return ir::BlockPtr{*it};
   }
 
  private:
   // Allocate a new block
-  ir::BlockPtr CreateBlock();
+  ir::BlockPtr create_block();
 
   // Owns all the blocks.
   std::vector<ir::Block::unique_ptr> blocks_;
@@ -97,11 +98,11 @@ struct OutputIr {
 enum class SearchDirection { Downwards, Upwards };
 
 // Find the block where control flow merges after branching into left/right.
-ir::BlockPtr FindMergePoint(const ir::BlockPtr left, const ir::BlockPtr right,
+ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
                             const SearchDirection direction);
 
 // Re-create `Expr` tree from the IR representation. For use in unit tests.
-std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> CreateOutputExpressionMap(
+std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> create_output_expression_map(
     ir::BlockPtr starting_block, const std::unordered_map<std::string, bool>* output_arg_exists);
 
 }  // namespace math

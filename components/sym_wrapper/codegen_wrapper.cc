@@ -79,7 +79,7 @@ void WrapCodegenOperations(py::module_& m) {
       "generate_func",
       [](const ast::FunctionSignature& signature, const std::vector<ExpressionGroup>& expressions) {
         FlatIr ir{expressions};
-        ir.EliminateDuplicates();
+        ir.eliminate_duplicates();
         OutputIr output_ir{std::move(ir)};
         return ast::create_ast(output_ir, signature);
       },

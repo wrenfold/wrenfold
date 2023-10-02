@@ -17,7 +17,7 @@ void GenerateFunc(CodeGenerator&& generator, std::string& output, Func&& func,
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
   FlatIr ir{expressions};
-  ir.EliminateDuplicates();
+  ir.eliminate_duplicates();
 
   OutputIr output_ir{std::move(ir)};
 #if 0
