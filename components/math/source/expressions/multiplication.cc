@@ -36,13 +36,6 @@ Expr Multiplication::FromOperands(absl::Span<const Expr> args) {
     return args.front();
   }
 
-  // TODO: Delete this once matrix is removed from `Expr` hierarchy.
-  const bool any_matrices =
-      std::any_of(args.begin(), args.end(), [](const Expr& x) { return x.Is<Matrix>(); });
-  if (any_matrices) {
-    throw TypeError("This should be handled elsewhere!");
-  }
-
   // Check for zeros:
   // TODO: This is not valid if there are divisions by zero...
   // We need an 'undefined' type.

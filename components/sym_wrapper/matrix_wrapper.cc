@@ -58,11 +58,11 @@ struct RowIterator {
   }
 
   // De-reference. Behaves like doing `m[row]`.
-  Expr operator*() const {
+  std::variant<Expr, MatrixExpr> operator*() const {
     if (parent_.NumCols() == 1) {
       return parent_[row_];
     } else {
-      return parent_.GetBlock(row_, 0, 1, parent_.NumCols()).AsExpr();
+      return parent_.GetBlock(row_, 0, 1, parent_.NumCols());
     }
   }
 
@@ -279,34 +279,14 @@ py::array EvalToNumeric(const MatrixExpr& self) {
 void WrapMatrixOperations(py::module_& m) {
   // Matrix expression type.
   py::class_<MatrixExpr>(m, "MatrixExpr")
-      .def(py::init<Expr>(), py::doc("Construct from Expr."))
       // Expr inherited properties:
-      .def("__repr__",
-           [](const MatrixExpr& self) {
-             PlainFormatter formatter{};
-             Visit(static_cast<const Expr&>(self), formatter);
-             return formatter.GetOutput();
-           })
-      .def(
-          "expression_tree_str",
-          [](const MatrixExpr& self) { return FormatDebugTree(static_cast<Expr>(self)); },
-          "Retrieve the expression tree as a pretty-printed string.")
-      .def(
-          "print_expression_tree",
-          [](const MatrixExpr& self) {
-            fmt::print("{}\n", FormatDebugTree(static_cast<Expr>(self)));
-          },
-          "Print the expression tree to standard out.")
+      .def("__repr__", &MatrixExpr::ToString)
+      .def("expression_tree_str", &MatrixExpr::ToExpressionTreeString,
+           "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "is_identical_to",
           [](const MatrixExpr& self, const MatrixExpr& other) { return self.IsIdenticalTo(other); },
           "other"_a, "Test if two matrix expressions have identical expression trees.")
-      .def(
-          "is_identical_to",
-          [](const MatrixExpr& self, const Expr& other) {
-            return self.AsExpr().IsIdenticalTo(other);
-          },
-          "other"_a, "Test if two expressions have identical expression trees.")
       .def_property_readonly("type_name", &MatrixExpr::TypeName)
       // Operations:
       .def("diff", &MatrixExpr::Diff, "var"_a, py::arg("order") = 1,

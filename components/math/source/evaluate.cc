@@ -9,7 +9,6 @@ struct EvaluateVisitor {
   using ReturnType = Expr;
 
   Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Eval); }
-  Expr operator()(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Eval); }
   Expr operator()(const Multiplication& mul, const Expr&) const { return MapChildren(mul, &Eval); }
   Expr operator()(const Function& f, const Expr&) const { return MapChildren(f, &Eval); }
   Expr operator()(const Power& pow, const Expr&) const { return MapChildren(pow, &Eval); }

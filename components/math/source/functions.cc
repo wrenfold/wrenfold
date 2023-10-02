@@ -333,8 +333,6 @@ Expr max(const Expr& a, const Expr& b) { return where(a < b, b, a); }
 Expr min(const Expr& a, const Expr& b) { return where(b < a, b, a); }
 
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
-  ASSERT(!if_true.Is<Matrix>() && !if_false.Is<Matrix>(),
-         "TODO: Should be illegal to pass Matrix here.");
   return Conditional::Create(condition, if_true, if_false);
 }
 

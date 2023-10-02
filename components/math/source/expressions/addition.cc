@@ -12,14 +12,7 @@
 namespace math {
 
 Expr Addition::FromOperands(absl::Span<const Expr> args) {
-  const bool any_matrices =
-      std::any_of(args.begin(), args.end(), [](const Expr& arg) { return arg.Is<Matrix>(); });
-  if (any_matrices) {
-    throw TypeError("This should be handled elsewhere!");
-  }
-
   // TODO: extract common denominator?
-
   AdditionParts parts{args.size()};
   for (const Expr& arg : args) {
     parts.Add(arg);
@@ -48,11 +41,6 @@ struct AdditionVisitor {
     } else {
       parts.float_term = (*parts.float_term) + f;
     }
-  }
-
-  void operator()(const Matrix&) {
-    throw TypeError("Cannot add a matrix into a scalar addition expression. Arg type = {}",
-                    Matrix::NameStr);
   }
 
   using ExcludedTypes = TypeList<Addition, Integer, Rational, Float, Matrix>;

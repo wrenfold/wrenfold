@@ -56,10 +56,6 @@ TEST(MatrixOperationsTest, TestConstruct) {
   ASSERT_THROW(m(0, -1), DimensionError);
   ASSERT_THROW(m(5, 0), DimensionError);
   ASSERT_THROW(m(1, 10), DimensionError);
-
-  // Cannot make a matrix from sub-matrices:
-  ASSERT_THROW(RowVector(2.0, m), TypeError);
-  ASSERT_THROW(CreateMatrix(1, 1, m), TypeError);
 }
 
 TEST(MatrixOperationsTest, TestGetBlock) {
@@ -142,8 +138,6 @@ TEST(MatrixOperationsTest, TestAddition) {
   // Dimension mismatch:
   ASSERT_THROW(Vector(a, b) + RowVector(c, d), DimensionError);
   ASSERT_THROW(Vector(a, b) + CreateMatrix(2, 2, c, d, 2, -3_s / 5), DimensionError);
-  ASSERT_THROW(static_cast<Expr>(RowVector(c, d)) + a, TypeError);
-  ASSERT_THROW(static_cast<Expr>(RowVector(c, d)) - d, TypeError);
 
   const MatrixExpr m = CreateMatrix(2, 2, a, b, c, d);
   ASSERT_IDENTICAL(m, m + Zeros(2, 2));
@@ -195,9 +189,6 @@ TEST(MatrixOperationsTest, TestMultiplication) {
   ASSERT_THROW(Zeros(2, 3) * Zeros(4, 2), DimensionError);
   ASSERT_THROW(Zeros(10, 10) * Vector(x, y, z), DimensionError);
   ASSERT_THROW(RowVector(1, -3, z) * Vector(z, sin(y)), DimensionError);
-
-  // Cannot divide by matrix.
-  ASSERT_THROW(1 / static_cast<Expr>(Vector(1, 2, w)), TypeError);
 }
 
 void CheckFullPivLUSolution(

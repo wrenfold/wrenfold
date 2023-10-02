@@ -17,14 +17,7 @@ class Quaternion {
   // Initialize with elements in order [w, x, y, z].
   // No normalization occurs by default.
   Quaternion(Expr w, Expr x, Expr y, Expr z)
-      : wxyz_{std::move(w), std::move(x), std::move(y), std::move(z)} {
-    for (const Expr& expr : wxyz_) {
-      if (expr.Is<Matrix>()) {
-        throw TypeError("Arguments to Quaternion() cannot be matrices. Received: {}",
-                        expr.ToString());
-      }
-    }
-  }
+      : wxyz_{std::move(w), std::move(x), std::move(y), std::move(z)} {}
 
   // Default initialize to identity (w = 1, xyz = 0).
   Quaternion() : Quaternion(Constants::One, Constants::Zero, Constants::Zero, Constants::Zero) {}

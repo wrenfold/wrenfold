@@ -11,7 +11,6 @@ namespace math {
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
   Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Distribute); }
-  Expr operator()(const Matrix& mat, const Expr&) const { return MapChildren(mat, &Distribute); }
 
   Expr operator()(const Multiplication& mul, const Expr&) const {
     // First distribute all the children of the multiplication:

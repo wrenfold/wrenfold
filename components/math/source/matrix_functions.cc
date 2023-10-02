@@ -336,9 +336,8 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(
   auto U = std::move(std::get<2>(results));
 
   // Convert to MatrixExpr:
-  return std::make_tuple(
-      CreateMatrixFromPermutations(P), MatrixExpr{MakeExpr<Matrix>(std::move(L))},
-      MatrixExpr{MakeExpr<Matrix>(std::move(U))}, CreateMatrixFromPermutations(Q));
+  return std::make_tuple(CreateMatrixFromPermutations(P), MatrixExpr{std::move(L)},
+                         MatrixExpr{std::move(U)}, CreateMatrixFromPermutations(Q));
 }
 
 Expr Determinant(const MatrixExpr& m) {

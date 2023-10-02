@@ -24,12 +24,6 @@ class Matrix {
       throw DimensionError("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
                            data_.size(), rows_, cols_);
     }
-    for (const Expr& expr : data_) {
-      if (expr.Is<Matrix>()) {
-        throw TypeError("Cannot nest expression of type {} in a matrix. Inner expression:\n{}",
-                        expr.TypeName(), expr.ToString());
-      }
-    }
     ASSERT_GREATER_OR_EQ(rows_, 0);
     ASSERT_GREATER_OR_EQ(cols_, 0);
   }
@@ -37,8 +31,7 @@ class Matrix {
   // All elements must match.
   bool IsIdenticalTo(const Matrix& other) const {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
-           std::equal(data_.begin(), data_.end(), other.data_.begin(),
-                      [](const Expr& x, const Expr& y) { return x.IsIdenticalTo(y); });
+           std::equal(data_.begin(), data_.end(), other.data_.begin(), IsIdenticalOperator<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
@@ -49,12 +42,12 @@ class Matrix {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr Map(Operation&& operation) const {
+  Matrix Map(Operation&& operation) const {
     std::vector<Expr> transformed;
     transformed.reserve(Size());
     std::transform(data_.begin(), data_.end(), std::back_inserter(transformed),
                    std::forward<Operation>(operation));
-    return MakeExpr<Matrix>(NumRows(), NumCols(), std::move(transformed));
+    return {NumRows(), NumCols(), std::move(transformed)};
   }
 
   // Access element in a vector. Only valid if `cols` or `rows` is 1.
@@ -74,9 +67,6 @@ class Matrix {
 
   // Transpose the matrix.
   Matrix Transpose() const;
-
-  // Multiply by a scalar, modifying in place.
-  void MultiplyByScalarInPlace(const Expr& arg);
 
   // Dimensions of the matrix.
   constexpr index_t NumRows() const noexcept { return rows_; }

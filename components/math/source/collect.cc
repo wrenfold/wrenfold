@@ -112,7 +112,6 @@ struct CollectVisitor {
     return CollectAdditionTerms(std::move(children));
   }
 
-  Expr operator()(const Matrix& mat) { return Recurse(mat); }
   Expr operator()(const Multiplication& mul, const Expr&) { return Recurse(mul); }
   Expr operator()(const Function& f) { return Recurse(f); }
   Expr operator()(const Power& pow) { return Recurse(pow); }

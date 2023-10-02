@@ -158,12 +158,6 @@ TEST(SubstituteTest, TestMatrix) {
   const auto [a, b, c] = Symbols("a", "b", "c");
   const MatrixExpr m0 = Vector(a + b, c + sin(b), 22 + c);
   ASSERT_IDENTICAL(Vector(a - log(c), c - sin(log(c)), 22 + c), m0.Subs(b, -log(c)));
-
-  // Replace a whole matrix at once:
-  // TODO: Does it make sense to allow this?
-  const MatrixExpr m1 = CreateMatrix(2, 2, a * b, c - Constants::Pi, cos(b), atan(b));
-  const auto I2 = static_cast<Expr>(Identity(2));
-  ASSERT_IDENTICAL(Identity(2), m1.Subs(static_cast<Expr>(m1), I2));
 }
 
 TEST(SubstituteTest, TestRelational) {
