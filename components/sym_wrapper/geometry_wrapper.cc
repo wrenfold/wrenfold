@@ -76,13 +76,13 @@ void WrapGeometryOperations(py::module_& m) {
       .def_property_readonly("type_name",
                              [](const Quaternion&) -> std::string_view { return "Quaternion"; })
       // Expression operations:
-      .def("subs", &Quaternion::Subs, py::arg("target"), py::arg("replacement"),
+      .def("subs", &Quaternion::subs, py::arg("target"), py::arg("replacement"),
            "Replace the `target` expression with `substitute` in the expression tree.")
       .def("eval", &EvalQuaternion,
            "Evaluate into a float expression. Return the result as a numpy array.")
       // Storage conversions:
       .def("to_list", &ListFromQuaternion, "Convert to list in WXYZ order (scalar first).")
-      .def("to_vector_wxyz", &Quaternion::ToVectorWXYZ,
+      .def("to_vector_wxyz", &Quaternion::to_vector_wxyz,
            "Convert to 4x1 vector in WXYZ order (scalar first).")
       .def_property_readonly("w", &Quaternion::w, "Access scalar element of quaternion.")
       .def_property_readonly("x", &Quaternion::x, "Access `i` coefficient of quaternion.")
@@ -117,12 +117,12 @@ void WrapGeometryOperations(py::module_& m) {
           },
           "iterable"_a, "Construct from iterable over wxyz elements.")
       // Quaternion operations:
-      .def("squared_norm", &Quaternion::SquaredNorm, "Squared norm of four quaternion elements.")
-      .def("norm", &Quaternion::Norm, "Norm of the four quaternion elements.")
-      .def("normalized", &Quaternion::Normalized, "Return a normalized version of the quaternion.")
-      .def("conjugate", &Quaternion::Conjugate, "Return the complex conjugate.")
-      .def("inverse", &Quaternion::Inverse, "Return the normalized complex conjugate.")
-      .def("to_rotation_matrix", &Quaternion::ToRotationMatrix,
+      .def("squared_norm", &Quaternion::squared_norm, "Squared norm of four quaternion elements.")
+      .def("norm", &Quaternion::norm, "Norm of the four quaternion elements.")
+      .def("normalized", &Quaternion::normalized, "Return a normalized version of the quaternion.")
+      .def("conjugate", &Quaternion::conjugate, "Return the complex conjugate.")
+      .def("inverse", &Quaternion::inverse, "Return the normalized complex conjugate.")
+      .def("to_rotation_matrix", &Quaternion::to_rotation_matrix,
            "Return the equivalent member of SO(3). If this quaternion has non-unit norm, the "
            "result is undefined.")
       .def(py::self * py::self)
@@ -131,7 +131,7 @@ void WrapGeometryOperations(py::module_& m) {
       .def_static(
           "from_angle_axis",
           static_cast<Quaternion (*)(const Expr&, const Expr&, const Expr&, const Expr&)>(
-              &Quaternion::FromAngleAxis),
+              &Quaternion::from_angle_axis),
           "angle"_a, "vx"_a, "vy"_a, "vz"_a,
           py::doc(
               "Create a quaternion from angle-axis parameters. Parameters [vx, vy, vz] must be a "
@@ -139,32 +139,32 @@ void WrapGeometryOperations(py::module_& m) {
               "radians."))
       .def_static(
           "from_angle_axis",
-          static_cast<Quaternion (*)(const Expr&, const MatrixExpr&)>(&Quaternion::FromAngleAxis),
+          static_cast<Quaternion (*)(const Expr&, const MatrixExpr&)>(&Quaternion::from_angle_axis),
           "angle"_a, "v"_a,
           py::doc("Create a quaternion from angle-axis parameters. Vector v must be a "
                   "unit vector, or the result does not represent a rotation. Angle is specified in "
                   "radians."))
       .def_static("from_rotation_vector",
                   static_cast<Quaternion (*)(const Expr&, const Expr&, const Expr&)>(
-                      &Quaternion::FromRotationVector),
+                      &Quaternion::from_rotation_vector),
                   "x"_a, "y"_a, "z"_a,
                   py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
                           "of radians."))
       .def_static("from_rotation_vector",
-                  static_cast<Quaternion (*)(const MatrixExpr&)>(&Quaternion::FromRotationVector),
+                  static_cast<Quaternion (*)(const MatrixExpr&)>(&Quaternion::from_rotation_vector),
                   "v"_a,
                   py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
                           "of radians."))
-      .def_static("from_x_angle", &Quaternion::FromXAngle, "angle"_a,
+      .def_static("from_x_angle", &Quaternion::from_x_angle, "angle"_a,
                   py::doc("Construct a rotation about the x-axis. Angle is in radians."))
-      .def_static("from_y_angle", &Quaternion::FromYAngle, "angle"_a,
+      .def_static("from_y_angle", &Quaternion::from_y_angle, "angle"_a,
                   py::doc("Construct a rotation about the y-axis. Angle is in radians."))
-      .def_static("from_z_angle", &Quaternion::FromZAngle, "angle"_a,
+      .def_static("from_z_angle", &Quaternion::from_z_angle, "angle"_a,
                   py::doc("Construct a rotation about the z-axis. Angle is in radians."))
-      .def("to_angle_axis", &Quaternion::ToAngleAxis, py::arg("zero_epsilon") = Constants::Zero,
+      .def("to_angle_axis", &Quaternion::to_angle_axis, py::arg("zero_epsilon") = Constants::Zero,
            py::doc("Convert quaternion to angle-axis representation. Returns an angle in the [0, "
                    "pi] interval and a unit-vector."))
-      .def_static("from_rotation_matrix", &Quaternion::FromRotationMatrix, py::arg("R"),
+      .def_static("from_rotation_matrix", &Quaternion::from_rotation_matrix, py::arg("R"),
                   py::doc("Convert from a rotation matrix via Calley's method."));
 }
 }  // namespace math

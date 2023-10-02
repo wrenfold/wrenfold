@@ -34,43 +34,43 @@ class Quaternion {
   }
 
   // Convert to a column vector in [w,x,y,z] order.
-  const MatrixExpr ToVectorWXYZ() const { return Vector(w(), x(), y(), z()); }
+  const MatrixExpr to_vector_wxyz() const { return Vector(w(), x(), y(), z()); }
 
   // Create a new quaternion by substituting.
-  Quaternion Subs(const Expr& target, const Expr& replacement) const {
+  Quaternion subs(const Expr& target, const Expr& replacement) const {
     return Quaternion(w().Subs(target, replacement), x().Subs(target, replacement),
                       y().Subs(target, replacement), z().Subs(target, replacement));
   }
 
   // The squared norm.
-  Expr SquaredNorm() const {
+  Expr squared_norm() const {
     // TODO: Add a faster path for this type of summation.
     return wxyz_[0] * wxyz_[0] + wxyz_[1] * wxyz_[1] + wxyz_[2] * wxyz_[2] + wxyz_[3] * wxyz_[3];
   }
 
   // The norm of the quaternion.
-  Expr Norm() const { return sqrt(SquaredNorm()); }
+  Expr norm() const { return sqrt(squared_norm()); }
 
   // Return a copy of this quaternion that has been normalized.
-  Quaternion Normalized() const {
-    const Expr norm = Norm();
-    return {w() / norm, x() / norm, y() / norm, z() / norm};
+  Quaternion normalized() const {
+    const Expr n = norm();
+    return {w() / n, x() / n, y() / n, z() / n};
   }
 
   // Conjugate the quaternion by negating the complex coefficients:
   // [w, x, y, z] --> [w, -x, -y, -z].
-  Quaternion Conjugate() const { return {w(), -x(), -y(), -z()}; }
+  Quaternion conjugate() const { return {w(), -x(), -y(), -z()}; }
 
   // Invert the quaternion by conjugating and normalizing.
-  Quaternion Inverse() const {
-    const Expr norm = Norm();
-    const Expr negative_norm = -norm;
-    return {w() / norm, x() / negative_norm, y() / negative_norm, z() / negative_norm};
+  Quaternion inverse() const {
+    const Expr n = norm();
+    const Expr negative_norm = -n;
+    return {w() / n, x() / negative_norm, y() / negative_norm, z() / negative_norm};
   }
 
   // Convert a unit-norm to a rotation matrix. If the input does not have unit norm, the
   // result will not be a valid member of SO(3).
-  MatrixExpr ToRotationMatrix() const {
+  MatrixExpr to_rotation_matrix() const {
     const Expr x2 = x() * 2;
     const Expr y2 = y() * 2;
     const Expr z2 = z() * 2;
@@ -94,7 +94,7 @@ class Quaternion {
 
   // Construct quaternion from axis and angle.
   // It is expected that [vx, vy, vz] form a unit vector. Angle is in radians.
-  static Quaternion FromAngleAxis(const Expr& angle, const Expr& vx, const Expr& vy,
+  static Quaternion from_angle_axis(const Expr& angle, const Expr& vx, const Expr& vy,
                                   const Expr& vz) {
     Expr half_angle = angle / 2;
     Expr sin_angle = sin(half_angle);
@@ -103,15 +103,15 @@ class Quaternion {
 
   // Construct quaternion from axis and angle. It is expected that `v` has unit norm.
   // Angle is in radians.
-  static Quaternion FromAngleAxis(const Expr& angle, const MatrixExpr& v) {
+  static Quaternion from_angle_axis(const Expr& angle, const MatrixExpr& v) {
     if (v.NumRows() != 3 || v.NumCols() != 1) {
       throw DimensionError("Axis vector must be 3x1. Received: [{}, {}]", v.NumRows(), v.NumCols());
     }
-    return FromAngleAxis(angle, v[0], v[1], v[2]);
+    return from_angle_axis(angle, v[0], v[1], v[2]);
   }
 
   // Construct quaternion from a rotation vector.
-  static Quaternion FromRotationVector(const Expr& vx, const Expr& vy, const Expr& vz) {
+  static Quaternion from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz) {
     Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
     Expr half_angle = angle / 2;
     // TODO: Small angle approximation w/ variable zero tolerance instead?
@@ -124,33 +124,33 @@ class Quaternion {
   }
 
   // Construct quaternion from a rotation vector.
-  static Quaternion FromRotationVector(const MatrixExpr& v) {
+  static Quaternion from_rotation_vector(const MatrixExpr& v) {
     if (v.NumRows() != 3 || v.NumCols() != 1) {
       throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.NumRows(),
                            v.NumCols());
     }
-    return FromRotationVector(v[0], v[1], v[2]);
+    return from_rotation_vector(v[0], v[1], v[2]);
   }
 
   // Convenience method for X-axis rotation. Angle is in radians.
-  static Quaternion FromXAngle(const Expr& angle) {
-    return FromAngleAxis(angle, Constants::One, Constants::Zero, Constants::Zero);
+  static Quaternion from_x_angle(const Expr& angle) {
+    return from_angle_axis(angle, Constants::One, Constants::Zero, Constants::Zero);
   }
 
   // Convenience method for Y-axis rotation. Angle is in radians.
-  static Quaternion FromYAngle(const Expr& angle) {
-    return FromAngleAxis(angle, Constants::Zero, Constants::One, Constants::Zero);
+  static Quaternion from_y_angle(const Expr& angle) {
+    return from_angle_axis(angle, Constants::Zero, Constants::One, Constants::Zero);
   }
 
   // Convenience method for Z-axis rotation. Angle is in radians.
-  static Quaternion FromZAngle(const Expr& angle) {
-    return FromAngleAxis(angle, Constants::Zero, Constants::Zero, Constants::One);
+  static Quaternion from_z_angle(const Expr& angle) {
+    return from_angle_axis(angle, Constants::Zero, Constants::Zero, Constants::One);
   }
 
   // Convert to axis-angle representation.
   // Angle is converted into the range [0, pi]. If the norm of the vector component falls below
   // `zero_epsilon`, the rotation cannot be recovered, and we return a zero angle.
-  std::tuple<Expr, MatrixExpr> ToAngleAxis(const Expr& zero_epsilon = Constants::Zero) const {
+  std::tuple<Expr, MatrixExpr> to_angle_axis(const Expr& zero_epsilon = Constants::Zero) const {
     // We want to recover angle and axis from:
     // [cos(angle/2), vx * sin(angle/2), vy * sin(angle/2), vz * sin(angle/2)]
     // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
@@ -178,7 +178,7 @@ class Quaternion {
   // Section 3.5 of: "A survey on the Computation of Quaternions from Rotation Matrices"
   // By S. Sarabandi and F. Thomas
   // This method avoids introducing any divisions.
-  static Quaternion FromRotationMatrix(const MatrixExpr& R_in) {
+  static Quaternion from_rotation_matrix(const MatrixExpr& R_in) {
     if (R_in.NumRows() != 3 || R_in.NumCols() != 3) {
       throw DimensionError("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.NumRows(),
                            R_in.NumCols());
