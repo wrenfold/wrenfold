@@ -29,13 +29,13 @@ struct DetermineNumericTypeVisitor {
   }
 
   NumericType operator()(const Conditional& cond) const {
-    const NumericType left = Visit(cond.IfBranch(), DetermineNumericTypeVisitor{});
-    const NumericType right = Visit(cond.ElseBranch(), DetermineNumericTypeVisitor{});
+    const NumericType left = Visit(cond.if_branch(), DetermineNumericTypeVisitor{});
+    const NumericType right = Visit(cond.else_branch(), DetermineNumericTypeVisitor{});
     return std::max(left, right);
   }
 
   NumericType operator()(const Constant& c) const {
-    switch (c.GetName()) {
+    switch (c.name()) {
       case SymbolicConstants::Euler:
       case SymbolicConstants::Pi:
         return NumericType::Real;
@@ -69,8 +69,8 @@ struct DetermineNumericTypeVisitor {
   }
 
   NumericType operator()(const Power& pow) const {
-    const NumericType b = Visit(pow.Base(), DetermineNumericTypeVisitor{});
-    const NumericType e = Visit(pow.Exponent(), DetermineNumericTypeVisitor{});
+    const NumericType b = Visit(pow.base(), DetermineNumericTypeVisitor{});
+    const NumericType e = Visit(pow.exponent(), DetermineNumericTypeVisitor{});
     return std::max(b, e);
   }
 
@@ -169,8 +169,8 @@ struct PairCountVisitor {
   struct PairEquality {
     bool operator()(const std::pair<Expr, Expr>& a, const std::pair<Expr, Expr>& b) const {
       // Order independent:
-      return (a.first.IsIdenticalTo(b.first) && a.second.IsIdenticalTo(b.second)) ||
-             (a.first.IsIdenticalTo(b.second) && a.second.IsIdenticalTo(b.first));
+      return (a.first.is_identical_to(b.first) && a.second.is_identical_to(b.second)) ||
+             (a.first.is_identical_to(b.second) && a.second.is_identical_to(b.first));
     }
   };
 
@@ -324,7 +324,7 @@ struct IRFormVisitor {
 
     // first recursively transform all the inputs
     std::vector<ir::ValuePtr> args;
-    args.reserve(op.Arity());
+    args.reserve(op.arity());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return VisitExpr(expr); });
     ASSERT(!args.empty());
@@ -347,9 +347,9 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Conditional& cond, const Expr&) {
-    const ir::ValuePtr condition = VisitExpr(cond.Condition());
-    const ir::ValuePtr if_branch = VisitExpr(cond.IfBranch());
-    const ir::ValuePtr else_branch = VisitExpr(cond.ElseBranch());
+    const ir::ValuePtr condition = VisitExpr(cond.condition());
+    const ir::ValuePtr if_branch = VisitExpr(cond.if_branch());
+    const ir::ValuePtr else_branch = VisitExpr(cond.else_branch());
 
     const NumericType promoted_type =
         std::max(if_branch->determine_type(), else_branch->determine_type());
@@ -366,15 +366,15 @@ struct IRFormVisitor {
     throw TypeError(
         "Cannot generate code for expressions containing `Derivative`. Offending expression is: "
         "Derivative({}, {}, {})",
-        derivative.Differentiand().ToString(), derivative.Arg().ToString(), derivative.Order());
+        derivative.differentiand().ToString(), derivative.argument().ToString(), derivative.order());
   }
 
   ir::ValuePtr operator()(const Function& func, const Expr&) {
     std::vector<ir::ValuePtr> args;
-    args.reserve(func.Arity());
+    args.reserve(func.arity());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return VisitExpr(expr); });
-    return PushOperation(ir::CallBuiltInFunction{func.Func()}, std::move(args));
+    return PushOperation(ir::CallBuiltInFunction{func.enum_value()}, std::move(args));
   }
 
   ir::ValuePtr operator()(const Infinity&, const Expr&) const {
@@ -391,8 +391,8 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Power& pow, const Expr&) {
-    const ir::ValuePtr b = VisitExpr(pow.Base());
-    const ir::ValuePtr e = VisitExpr(pow.Exponent());
+    const ir::ValuePtr b = VisitExpr(pow.base());
+    const ir::ValuePtr e = VisitExpr(pow.exponent());
     const NumericType promoted_type =
         std::max(NumericType::Integer, std::max(b->determine_type(), e->determine_type()));
     return PushOperation(ir::Pow{}, MaybeCast(b, promoted_type), MaybeCast(e, promoted_type));
@@ -404,10 +404,10 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Relational& relational, const Expr&) {
-    ir::ValuePtr left = VisitExpr(relational.Left());
-    ir::ValuePtr right = VisitExpr(relational.Right());
+    ir::ValuePtr left = VisitExpr(relational.left());
+    ir::ValuePtr right = VisitExpr(relational.right());
     NumericType promoted_type = std::max(left->determine_type(), right->determine_type());
-    return PushOperation(ir::Compare{relational.Operation()}, MaybeCast(left, promoted_type),
+    return PushOperation(ir::Compare{relational.operation()}, MaybeCast(left, promoted_type),
                          MaybeCast(right, promoted_type));
   }
 

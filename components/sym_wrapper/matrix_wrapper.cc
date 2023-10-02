@@ -29,10 +29,10 @@ struct Slice {
   }
 
   // Number of iterations in the slice.
-  index_t Length() const { return static_cast<index_t>(length_); }
+  index_t length() const { return static_cast<index_t>(length_); }
 
   // Convert flat index to modified index.
-  index_t Map(index_t i) const { return static_cast<index_t>(start_ + i * step_); }
+  index_t map_index(index_t i) const { return static_cast<index_t>(start_ + i * step_); }
 
  private:
   py::ssize_t start_{0};
@@ -62,7 +62,7 @@ struct RowIterator {
     if (parent_.NumCols() == 1) {
       return parent_[row_];
     } else {
-      return parent_.GetBlock(row_, 0, 1, parent_.NumCols());
+      return parent_.get_block(row_, 0, 1, parent_.NumCols());
     }
   }
 
@@ -85,7 +85,7 @@ std::variant<Expr, MatrixExpr> MatrixGetRow(const MatrixExpr& self, const index_
     // Vectors convert to scalar automatically (don't form 1x1 matrix).
     return self[row < 0 ? (self.NumRows() + row) : row];
   } else {
-    return self.GetBlock(row < 0 ? (self.NumRows() + row) : row, 0, 1, self.NumCols());
+    return self.get_block(row < 0 ? (self.NumRows() + row) : row, 0, 1, self.NumCols());
   }
 }
 
@@ -93,15 +93,15 @@ MatrixExpr MatrixGetRowSlice(const MatrixExpr& self, py::slice slice) {
   const Slice slice_index{self.NumRows(), slice};
 
   std::vector<Expr> elements;
-  elements.reserve(static_cast<std::size_t>(slice_index.Length() * self.NumCols()));
+  elements.reserve(static_cast<std::size_t>(slice_index.length() * self.NumCols()));
 
   // Step over sliced rows and pull out all columns:
-  for (index_t i = 0; i < slice_index.Length(); ++i) {
+  for (index_t i = 0; i < slice_index.length(); ++i) {
     for (index_t j = 0; j < self.NumCols(); ++j) {
-      elements.push_back(self(slice_index.Map(i), j));
+      elements.push_back(self(slice_index.map_index(i), j));
     }
   }
-  return MatrixExpr::Create(slice_index.Length(), self.NumCols(), std::move(elements));
+  return MatrixExpr::Create(slice_index.length(), self.NumCols(), std::move(elements));
 }
 
 MatrixExpr MatrixGetRowColSlice(const MatrixExpr& self,
@@ -110,18 +110,18 @@ MatrixExpr MatrixGetRowColSlice(const MatrixExpr& self,
   const Slice row_index{self.NumRows(), row_slice};
   const Slice col_index{self.NumCols(), col_slice};
   const std::size_t num_elements =
-      static_cast<std::size_t>(row_index.Length()) * static_cast<std::size_t>(col_index.Length());
+      static_cast<std::size_t>(row_index.length()) * static_cast<std::size_t>(col_index.length());
 
   std::vector<Expr> elements;
   elements.reserve(num_elements);
 
   // Step over sliced rows and pull out all columns:
-  for (index_t i = 0; i < row_index.Length(); ++i) {
-    for (index_t j = 0; j < col_index.Length(); ++j) {
-      elements.push_back(self(row_index.Map(i), col_index.Map(j)));
+  for (index_t i = 0; i < row_index.length(); ++i) {
+    for (index_t j = 0; j < col_index.length(); ++j) {
+      elements.push_back(self(row_index.map_index(i), col_index.map_index(j)));
     }
   }
-  return MatrixExpr::Create(row_index.Length(), col_index.Length(), std::move(elements));
+  return MatrixExpr::Create(row_index.length(), col_index.length(), std::move(elements));
 }
 
 MatrixExpr MatrixGetRowIndexColSlice(const MatrixExpr& self,
@@ -131,11 +131,11 @@ MatrixExpr MatrixGetRowIndexColSlice(const MatrixExpr& self,
   const Slice col_index{self.NumCols(), col_slice};
 
   std::vector<Expr> elements;
-  elements.reserve(static_cast<std::size_t>(col_index.Length()));
-  for (index_t j = 0; j < col_index.Length(); ++j) {
-    elements.push_back(self(wrapped_row, col_index.Map(j)));
+  elements.reserve(static_cast<std::size_t>(col_index.length()));
+  for (index_t j = 0; j < col_index.length(); ++j) {
+    elements.push_back(self(wrapped_row, col_index.map_index(j)));
   }
-  return MatrixExpr::Create(1, col_index.Length(), std::move(elements));
+  return MatrixExpr::Create(1, col_index.length(), std::move(elements));
 }
 
 MatrixExpr MatrixGetRowSliceColIndex(const MatrixExpr& self,
@@ -145,11 +145,11 @@ MatrixExpr MatrixGetRowSliceColIndex(const MatrixExpr& self,
   const Slice row_index{self.NumRows(), row_slice};
 
   std::vector<Expr> elements;
-  elements.reserve(static_cast<std::size_t>(row_index.Length()));
-  for (index_t i = 0; i < row_index.Length(); ++i) {
-    elements.push_back(self(row_index.Map(i), wrapped_col));
+  elements.reserve(static_cast<std::size_t>(row_index.length()));
+  for (index_t i = 0; i < row_index.length(); ++i) {
+    elements.push_back(self(row_index.map_index(i), wrapped_col));
   }
-  return MatrixExpr::Create(row_index.Length(), 1, std::move(elements));
+  return MatrixExpr::Create(row_index.length(), 1, std::move(elements));
 }
 
 template <typename Container>
@@ -285,7 +285,7 @@ void WrapMatrixOperations(py::module_& m) {
            "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "is_identical_to",
-          [](const MatrixExpr& self, const MatrixExpr& other) { return self.IsIdenticalTo(other); },
+          [](const MatrixExpr& self, const MatrixExpr& other) { return self.is_identical_to(other); },
           "other"_a, "Test if two matrix expressions have identical expression trees.")
       .def_property_readonly("type_name", &MatrixExpr::TypeName)
       // Operations:

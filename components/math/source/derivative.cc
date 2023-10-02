@@ -18,11 +18,11 @@ struct IsFunctionOfVisitor {
   template <typename U>
   bool operator()(const U& x) {
     if constexpr (std::is_same_v<U, T>) {
-      return target_.IsIdenticalTo(x);
+      return target_.is_identical_to(x);
     } else if constexpr (!U::IsLeafNode) {
       // True if any of the children satisfy this.
       bool contained_in_child = false;
-      x.Iterate([this, &contained_in_child](const Expr& expr) {
+      x.iterate([this, &contained_in_child](const Expr& expr) {
         if (Visit(expr, *this)) {
           contained_in_child = true;
         }
@@ -49,26 +49,26 @@ class DiffVisitor {
 
   // Differentiate every argument to make a new sum.
   Expr operator()(const Addition& add) {
-    return MapChildren(add, [&](const Expr& x) { return VisitWithExprArg(x, *this); });
+    return add.map_children([&](const Expr& x) { return VisitWithExprArg(x, *this); });
   }
 
   // TODO: This is not strictly correct. If the condition is a function of `x` (where x is the
   //  the variable wrt we are differentiating), we should insert the dirac delta function.
   //  That said, this is more useful practically in most cases.
   Expr operator()(const Conditional& cond) {
-    return where(cond.Condition(), VisitWithExprArg(cond.IfBranch(), *this),
-                 VisitWithExprArg(cond.ElseBranch(), *this));
+    return where(cond.condition(), VisitWithExprArg(cond.if_branch(), *this),
+                 VisitWithExprArg(cond.else_branch(), *this));
   }
 
   Expr operator()(const Constant&) const { return Constants::Zero; }
 
   // Derivative of an abstract derivative expression.
   Expr operator()(const Derivative& derivative, const Expr& derivative_abstract) const {
-    const bool is_relevant = Visit(derivative.Differentiand(), IsFunctionOfVisitor<T>{argument_});
+    const bool is_relevant = Visit(derivative.differentiand(), IsFunctionOfVisitor<T>{argument_});
     if (!is_relevant) {
       return Constants::Zero;
     }
-    return Derivative::Create(derivative_abstract, argument_abstract_, 1);
+    return Derivative::create(derivative_abstract, argument_abstract_, 1);
   }
 
   // Do product expansion over all terms in the multiplication:
@@ -78,22 +78,22 @@ class DiffVisitor {
   // a' * b * c + a * b' * c + a * b * c'
   Expr operator()(const Multiplication& mul) {
     std::vector<Expr> add_terms;  //  TODO: Small vector.
-    add_terms.reserve(mul.Arity());
+    add_terms.reserve(mul.arity());
     // Differentiate wrt every argument:
-    for (std::size_t i = 0; i < mul.Arity(); ++i) {
+    for (std::size_t i = 0; i < mul.arity(); ++i) {
       std::vector<Expr> mul_terms;
-      mul_terms.reserve(mul.Arity());
-      for (std::size_t j = 0; j < mul.Arity(); ++j) {
+      mul_terms.reserve(mul.arity());
+      for (std::size_t j = 0; j < mul.arity(); ++j) {
         if (j == i) {
           mul_terms.push_back(VisitWithExprArg(mul[j], *this));
         } else {
           mul_terms.push_back(mul[j]);
         }
       }
-      add_terms.push_back(Multiplication::FromOperands(mul_terms));
+      add_terms.push_back(Multiplication::from_operands(mul_terms));
     }
     // TODO: Move, don't copy.
-    return Addition::FromOperands(add_terms);
+    return Addition::from_operands(add_terms);
   }
 
   // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
@@ -113,8 +113,8 @@ class DiffVisitor {
     static const Expr one_half = 1_s / 2;
     static const Expr negative_one_half = -1_s / 2;
 
-    const auto& args = func.Args();
-    switch (func.Func()) {
+    const auto& args = func.args();
+    switch (func.enum_value()) {
       case BuiltInFunctionName::Cos:
         // cos(f(x)) --> -sin(f(x)) * f'(x)
         return -sin(args[0]) * d_args[0];
@@ -135,7 +135,7 @@ class DiffVisitor {
         return d_args[0] / (pow(args[0], 2) + Constants::One);
       case BuiltInFunctionName::Log:
         // log(f(x)) --> 1/f(x) * f'(x)
-        return Power::Create(args[0], Constants::NegativeOne) * d_args[0];
+        return Power::create(args[0], Constants::NegativeOne) * d_args[0];
       case BuiltInFunctionName::Sqrt:
         // sqrt(f(x)) --> (1/2) * f'(x) / sqrt(f(x))
         return pow(args[0], negative_one_half) * one_half * d_args[0];
@@ -146,7 +146,7 @@ class DiffVisitor {
       case BuiltInFunctionName::Signum:
         // signum(f(x)) --> d[heaviside(f(x)) - heaviside(-f(x))]/dx = 2 * dirac(f(x)) * f'(x)
         // However, we don't have dirac - so we leave this abstract.
-        return Derivative::Create(signum(args[0]), argument_abstract_, 1) * d_args[0];
+        return Derivative::create(signum(args[0]), argument_abstract_, 1) * d_args[0];
       case BuiltInFunctionName::Arctan2: {
         const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
         const Expr y_diff = VisitWithExprArg(args[0], *this);
@@ -162,7 +162,7 @@ class DiffVisitor {
       case BuiltInFunctionName::ENUM_SIZE:
         break;
     }
-    ASSERT(false, "Invalid unary function: {}", func.Name());
+    ASSERT(false, "Invalid unary function: {}", func.function_name());
     return Constants::Zero;
   }
 
@@ -172,14 +172,14 @@ class DiffVisitor {
 
   Expr operator()(const FunctionArgument& arg) const {
     if constexpr (std::is_same_v<T, FunctionArgument>) {
-      if (argument_.IsIdenticalTo(arg)) {
+      if (argument_.is_identical_to(arg)) {
         return Constants::One;
       }
     }
     return Constants::Zero;
   }
 
-  Expr operator()(const Power& pow) { return PowerDiff(pow.Base(), pow.Exponent()); }
+  Expr operator()(const Power& pow) { return PowerDiff(pow.base(), pow.exponent()); }
 
   Expr PowerDiff(const Expr& a, const Expr& b) {
     const Expr a_diff = VisitWithExprArg(a, *this);
@@ -187,21 +187,21 @@ class DiffVisitor {
     if (IsZero(a_diff) && IsZero(b_diff)) {
       return Constants::Zero;
     }
-    return b * Power::Create(a, b - Constants::One) * a_diff +
-           Power::Create(a, b) * log(a) * b_diff;
+    return b * Power::create(a, b - Constants::One) * a_diff +
+           Power::create(a, b) * log(a) * b_diff;
   }
 
   Expr operator()(const Rational&) const { return Constants::Zero; }
 
   Expr operator()(const Relational& relational) const {
     throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", Relational::NameStr,
-                    relational.Left().ToString(), relational.OperationString(),
-                    relational.Right().ToString());
+                    relational.left().ToString(), relational.operation_string(),
+                    relational.right().ToString());
   }
 
   Expr operator()(const Variable& var) const {
     if constexpr (std::is_same_v<Variable, T>) {
-      if (var.IsIdenticalTo(argument_)) {
+      if (var.is_identical_to(argument_)) {
         return Constants::One;
       }
     }

@@ -45,12 +45,12 @@ struct ConvertAssertionArgument<MatrixExpr> {
   MatrixExpr operator()(const MatrixExpr& arg) const { return arg; }
 };
 
-// Test IsIdenticalTo
+// Test is_identical_to
 template <typename A, typename B>
 testing::AssertionResult IdenticalTestHelper2(const std::string_view name_a,
                                               const std::string_view name_b, const A& a,
                                               const B& b) {
-  if (a.IsIdenticalTo(b)) {
+  if (a.is_identical_to(b)) {
     return testing::AssertionSuccess();
   }
   return FormatFailedResult("is not identical to", name_a, name_b, a, b);
@@ -64,12 +64,12 @@ testing::AssertionResult IdenticalTestHelper(const std::string_view name_a,
                               ConvertAssertionArgument<B>{}(b));
 }
 
-// Test !IsIdenticalTo
+// Test !is_identical_to
 template <typename A, typename B>
 testing::AssertionResult NotIdenticalTestHelper2(const std::string_view name_a,
                                                  const std::string_view name_b, const A& a,
                                                  const B& b) {
-  if (!a.IsIdenticalTo(b)) {
+  if (!a.is_identical_to(b)) {
     return testing::AssertionSuccess();
   }
   return FormatFailedResult("is identical (and should not be) to", name_a, name_b, a, b);

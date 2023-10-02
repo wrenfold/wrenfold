@@ -12,7 +12,7 @@ class ExpressionConcept {
   explicit ExpressionConcept(std::size_t hash) : hash_(hash) {}
 
   // Test if two expressions are identical.
-  virtual bool IsIdenticalTo(const ExpressionConcept& other) const = 0;
+  virtual bool is_identical_to(const ExpressionConcept& other) const = 0;
 
   // Apply a visitor to this expression.
   virtual void Receive(VisitorBase& visitor) const = 0;

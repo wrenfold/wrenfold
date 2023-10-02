@@ -36,15 +36,15 @@ class Addition {
   const Expr& operator[](const std::size_t i) const { return terms_[i]; }
 
   // Number of arguments.
-  std::size_t Arity() const { return terms_.size(); }
+  std::size_t arity() const { return terms_.size(); }
 
   // Iterators.
   ContainerType::const_iterator begin() const { return terms_.begin(); }
   ContainerType::const_iterator end() const { return terms_.end(); }
 
   // All terms must be identical.
-  bool IsIdenticalTo(const Addition& other) const {
-    if (Arity() != other.Arity()) {
+  bool is_identical_to(const Addition& other) const {
+    if (arity() != other.arity()) {
       return false;
     }
     return std::equal(begin(), end(), other.begin(), IsIdenticalOperator<Expr>{});
@@ -52,23 +52,23 @@ class Addition {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void Iterate(Operation&& operation) const {
+  void iterate(Operation&& operation) const {
     std::for_each(begin(), end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr Map(Operation&& operation) const {
+  Expr map_children(Operation&& operation) const {
     ContainerType transformed{};
-    transformed.reserve(Arity());
+    transformed.reserve(arity());
     std::transform(begin(), end(), std::back_inserter(transformed),
                    std::forward<Operation>(operation));
-    return Addition::FromOperands(transformed);
+    return Addition::from_operands(transformed);
   }
 
   // Construct from a span of operands.
   // The result is automatically simplified, and may not be an addition.
-  static Expr FromOperands(absl::Span<const Expr> span);
+  static Expr from_operands(absl::Span<const Expr> span);
 
  private:
   ContainerType terms_;
@@ -91,19 +91,21 @@ struct AdditionParts {
 
   // Rational coefficient.
   Rational rational_term{0, 1};
+
   // Floating point coefficient:
   std::optional<Float> float_term{};
+
   // Map from multiplicand to coefficient.
   std::unordered_map<Expr, Expr, Hash<Expr>, IsIdenticalOperator<Expr>> terms{};
 
   // Update the internal representation by adding `arg`.
-  void Add(const Expr& arg);
+  void add_terms(const Expr& arg);
 
-  // Nuke any terms w/ a zero exponent and normalize powers of integers.
-  void Normalize();
+  // Nuke any terms w/ a zero coefficient.
+  void normalize_coefficients();
 
   // Create the resulting addition.
-  Expr CreateAddition() const;
+  Expr create_addition() const;
 };
 
 }  // namespace math

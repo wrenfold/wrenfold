@@ -138,8 +138,8 @@ TEST(DerivativesTest, TestAbs) {
 TEST(DerivativesTest, TestSignum) {
   const auto [x, y] = Symbols("x", "y");
   ASSERT_IDENTICAL(0, signum(x).Diff(y));
-  ASSERT_IDENTICAL(Derivative::Create(signum(x), x, 1), signum(x).Diff(x));
-  ASSERT_IDENTICAL(Derivative::Create(signum(x), x, 2), signum(x).Diff(x, 2));
+  ASSERT_IDENTICAL(Derivative::create(signum(x), x, 1), signum(x).Diff(x));
+  ASSERT_IDENTICAL(Derivative::create(signum(x), x, 2), signum(x).Diff(x, 2));
 }
 
 TEST(DerivativesTest, TestMaxMin) {
@@ -177,9 +177,9 @@ TEST(DerivativesTest, TestDerivativeExpression) {
 
   // Create an abstract derivative expression and differentiate it.
   // Normally you wouldn't do this with a function like abs(), but it serves for a test here.
-  auto f = Derivative::Create(abs(x + y), x, 1);
-  ASSERT_IDENTICAL(Derivative::Create(abs(x + y), x, 2), f.Diff(x));
-  ASSERT_IDENTICAL(Derivative::Create(f, y, 1), f.Diff(y));
+  auto f = Derivative::create(abs(x + y), x, 1);
+  ASSERT_IDENTICAL(Derivative::create(abs(x + y), x, 2), f.Diff(x));
+  ASSERT_IDENTICAL(Derivative::create(f, y, 1), f.Diff(y));
   ASSERT_IDENTICAL(0, f.Diff(z));
 }
 

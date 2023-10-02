@@ -188,7 +188,7 @@ struct Load {
   constexpr static int num_value_operands() { return 0; }
   constexpr std::string_view to_string() const { return "load"; }
   std::size_t hash_seed() const { return expr.Hash(); }
-  bool is_same(const Load& other) const { return expr.IsIdenticalTo(other.expr); }
+  bool is_same(const Load& other) const { return expr.is_identical_to(other.expr); }
 
   // Defined in cc file.
   NumericType determine_type() const;

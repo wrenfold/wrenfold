@@ -29,7 +29,7 @@ class Quaternion {
   constexpr const Expr& z() const noexcept { return wxyz_[3]; }
 
   // True if all sub-expressions in the quaternion are identical to those in the argument.
-  bool IsIdenticalTo(const Quaternion& other) const {
+  bool is_identical_to(const Quaternion& other) const {
     return std::equal(wxyz_.begin(), wxyz_.end(), other.wxyz_.begin(), IsIdenticalOperator<Expr>{});
   }
 

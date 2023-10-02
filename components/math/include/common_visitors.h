@@ -17,7 +17,7 @@ struct IsNumericVisitor {
     if constexpr (ContainsTypeHelper<T, Float, Integer, Rational>) {
       return true;
     } else if constexpr (std::is_same_v<T, Power>) {
-      return IsNumeric(arg.Base()) && IsNumeric(arg.Exponent());
+      return IsNumeric(arg.base()) && IsNumeric(arg.exponent());
     } else {
       return false;
     }
@@ -30,9 +30,9 @@ inline bool IsNumeric(const Expr& expr) { return Visit(expr, IsNumericVisitor{})
 // negative.
 struct IsNegativeNumberVisitor {
   // Numerics < 0 are all negative.
-  bool operator()(const Integer& num) const { return num.GetValue() < 0; }
-  bool operator()(const Float& f) const { return f.GetValue() < 0; }
-  bool operator()(const Rational& r) const { return r.Numerator() < 0; }
+  bool operator()(const Integer& num) const { return num.get_value() < 0; }
+  bool operator()(const Float& f) const { return f.get_value() < 0; }
+  bool operator()(const Rational& r) const { return r.numerator() < 0; }
 
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
   bool operator()(const Multiplication& m) const {

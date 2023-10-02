@@ -6,7 +6,7 @@
 namespace math {
 
 // Defined here to resolve a circular import issue for now.
-Expr Integer::Create(IntegralType x) {
+Expr Integer::create(IntegralType x) {
   if (x == 0) {
     return Constants::Zero;
   } else if (x == 1) {

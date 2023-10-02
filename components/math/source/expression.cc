@@ -18,10 +18,10 @@ Expr Expr::FromFloat(const double x) {
   if (x == 0) {
     return Constants::Zero;
   }
-  return Float::Create(x);
+  return Float::create(x);
 }
 
-Expr Expr::FromInt(const std::int64_t x) { return Integer::Create(x); }
+Expr Expr::FromInt(const std::int64_t x) { return Integer::create(x); }
 
 std::string Expr::ToString() const {
   PlainFormatter formatter{};
@@ -30,44 +30,44 @@ std::string Expr::ToString() const {
 }
 
 Expr Expr::operator-() const {
-  return Multiplication::FromOperands({Constants::NegativeOne, *this});
+  return Multiplication::from_operands({Constants::NegativeOne, *this});
 }
 
 Expr operator+(const Expr& a, const Expr& b) {
   // See note on absl::Span() constructor, the lifetimes here are valid.
   // We are constructing an initializer_list.
-  return Addition::FromOperands({a, b});
+  return Addition::from_operands({a, b});
 }
 
 Expr operator-(const Expr& a, const Expr& b) {
-  return a + Multiplication::FromOperands({Constants::NegativeOne, b});
+  return a + Multiplication::from_operands({Constants::NegativeOne, b});
 }
 
-Expr operator*(const Expr& a, const Expr& b) { return Multiplication::FromOperands({a, b}); }
+Expr operator*(const Expr& a, const Expr& b) { return Multiplication::from_operands({a, b}); }
 
 Expr operator/(const Expr& a, const Expr& b) {
-  auto one_over_b = Power::Create(b, Constants::NegativeOne);
-  return Multiplication::FromOperands({a, one_over_b});
+  auto one_over_b = Power::create(b, Constants::NegativeOne);
+  return Multiplication::from_operands({a, one_over_b});
 }
 
 Expr operator<(const Expr& a, const Expr& b) {
-  return Relational::Create(RelationalOperation::LessThan, a, b);
+  return Relational::create(RelationalOperation::LessThan, a, b);
 }
 
 Expr operator>(const Expr& a, const Expr& b) {
-  return Relational::Create(RelationalOperation::LessThan, b, a);
+  return Relational::create(RelationalOperation::LessThan, b, a);
 }
 
 Expr operator<=(const Expr& a, const Expr& b) {
-  return Relational::Create(RelationalOperation::LessThanOrEqual, a, b);
+  return Relational::create(RelationalOperation::LessThanOrEqual, a, b);
 }
 
 Expr operator>=(const Expr& a, const Expr& b) {
-  return Relational::Create(RelationalOperation::LessThanOrEqual, b, a);
+  return Relational::create(RelationalOperation::LessThanOrEqual, b, a);
 }
 
 Expr operator==(const Expr& a, const Expr& b) {
-  return Relational::Create(RelationalOperation::Equal, a, b);
+  return Relational::create(RelationalOperation::Equal, a, b);
 }
 
 // Visitor to determine mathematical precedence.

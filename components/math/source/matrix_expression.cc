@@ -18,8 +18,8 @@ MatrixExpr MatrixExpr::Create(index_t rows, index_t cols, std::vector<Expr> args
 // we may have different matrix types.
 
 // Test if the two expressions are identical.
-bool MatrixExpr::IsIdenticalTo(const MatrixExpr& other) const {
-  return AsMatrix().IsIdenticalTo(other.AsMatrix());
+bool MatrixExpr::is_identical_to(const MatrixExpr& other) const {
+  return AsMatrix().is_identical_to(other.AsMatrix());
 }
 
 std::string_view MatrixExpr::TypeName() const { return Matrix::NameStr; }
@@ -30,20 +30,20 @@ std::string MatrixExpr::ToString() const {
   return formatter.TakeOutput();
 }
 
-index_t MatrixExpr::NumRows() const { return AsMatrix().NumRows(); }
+index_t MatrixExpr::NumRows() const { return AsMatrix().rows(); }
 
-index_t MatrixExpr::NumCols() const { return AsMatrix().NumCols(); }
+index_t MatrixExpr::NumCols() const { return AsMatrix().cols(); }
 
 const Expr& MatrixExpr::operator[](index_t i) const { return AsMatrix()[i]; }
 
 const Expr& MatrixExpr::operator()(index_t i, index_t j) const { return AsMatrix()(i, j); }
 
-MatrixExpr MatrixExpr::GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const {
-  Matrix result = AsMatrix().GetBlock(row, col, nrows, ncols);
+MatrixExpr MatrixExpr::get_block(index_t row, index_t col, index_t nrows, index_t ncols) const {
+  Matrix result = AsMatrix().get_block(row, col, nrows, ncols);
   return MatrixExpr{std::move(result)};
 }
 
-MatrixExpr MatrixExpr::Transpose() const { return MatrixExpr{AsMatrix().Transpose()}; }
+MatrixExpr MatrixExpr::Transpose() const { return MatrixExpr{AsMatrix().transposed()}; }
 
 const Matrix& MatrixExpr::AsMatrix() const { return *matrix_.get(); }
 
@@ -52,16 +52,16 @@ MatrixExpr MatrixExpr::operator-() const {
 }
 
 MatrixExpr MatrixExpr::Diff(const Expr& var, int reps) const {
-  return MatrixExpr{AsMatrix().Map([&](const Expr& x) { return x.Diff(var, reps); })};
+  return MatrixExpr{AsMatrix().map_children([&](const Expr& x) { return x.Diff(var, reps); })};
 }
 
-MatrixExpr MatrixExpr::Distribute() const { return MatrixExpr{AsMatrix().Map(&math::Distribute)}; }
+MatrixExpr MatrixExpr::Distribute() const { return MatrixExpr{AsMatrix().map_children(&math::Distribute)}; }
 
 MatrixExpr MatrixExpr::Subs(const Expr& target, const Expr& replacement) const {
-  return MatrixExpr{AsMatrix().Map([&](const Expr& x) { return x.Subs(target, replacement); })};
+  return MatrixExpr{AsMatrix().map_children([&](const Expr& x) { return x.Subs(target, replacement); })};
 }
 
-MatrixExpr MatrixExpr::Eval() const { return MatrixExpr{AsMatrix().Map(&math::Eval)}; }
+MatrixExpr MatrixExpr::Eval() const { return MatrixExpr{AsMatrix().map_children(&math::Eval)}; }
 
 namespace matrix_operator_overloads {
 
@@ -81,11 +81,11 @@ MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
   const Matrix& a_mat = a.AsMatrix();
 
   std::vector<Expr> data{};
-  data.reserve(a_mat.Size());
+  data.reserve(a_mat.size());
   std::transform(a_mat.begin(), a_mat.end(), std::back_inserter(data),
                  [&b](const Expr& a_expr) { return a_expr * b; });
 
-  return MatrixExpr{Matrix(a_mat.NumRows(), a_mat.NumCols(), std::move(data))};
+  return MatrixExpr{Matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
 }
 
 }  // namespace matrix_operator_overloads

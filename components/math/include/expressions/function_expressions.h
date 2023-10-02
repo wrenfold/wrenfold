@@ -20,44 +20,44 @@ class Function {
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
-  static Expr Create(BuiltInFunctionName name, ContainerType&& container);
+  static Expr create(BuiltInFunctionName name, ContainerType&& container);
 
   // Get the function name.
-  constexpr BuiltInFunctionName Func() const noexcept { return func_; }
+  constexpr BuiltInFunctionName enum_value() const noexcept { return func_; }
 
   // Get name as a string.
-  constexpr std::string_view Name() const noexcept { return ToString(func_); }
+  constexpr std::string_view function_name() const noexcept { return ToString(func_); }
 
   // Get the function argument.
-  constexpr const auto& Args() const noexcept { return args_; }
+  constexpr const auto& args() const noexcept { return args_; }
 
   // Number of arguments.
-  std::size_t Arity() const noexcept { return args_.size(); }
+  std::size_t arity() const noexcept { return args_.size(); }
 
   // Iterator over argument.
   auto begin() const noexcept { return args_.begin(); }
   auto end() const noexcept { return args_.end(); }
 
   // Function type and argument must match.
-  bool IsIdenticalTo(const Function& other) const {
+  bool is_identical_to(const Function& other) const {
     return func_ == other.func_ && args_.size() == other.args_.size() &&
            std::equal(begin(), end(), other.begin(), IsIdenticalOperator<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void Iterate(Operation&& operation) const {
+  void iterate(Operation&& operation) const {
     std::for_each(begin(), end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr Map(Operation&& operation) const {
+  Expr map_children(Operation&& operation) const {
     ContainerType transformed{};
     transformed.reserve(args_.size());
     std::transform(begin(), end(), std::back_inserter(transformed),
                    std::forward<Operation>(operation));
-    return Function::Create(func_, std::move(transformed));
+    return Function::create(func_, std::move(transformed));
   }
 
  protected:
@@ -68,13 +68,13 @@ class Function {
 template <>
 struct Hash<Function> {
   std::size_t operator()(const Function& func) const {
-    return HashAll(static_cast<std::size_t>(func.Func()), func.begin(), func.end());
+    return HashAll(static_cast<std::size_t>(func.enum_value()), func.begin(), func.end());
   }
 };
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic because each type of function has simplifications it applies.
-inline Expr Function::Create(BuiltInFunctionName name, Function::ContainerType&& container) {
+inline Expr Function::create(BuiltInFunctionName name, Function::ContainerType&& container) {
   switch (name) {
     case BuiltInFunctionName::Cos:
       return cos(container.front());

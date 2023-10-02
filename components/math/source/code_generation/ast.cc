@@ -269,16 +269,16 @@ struct AstBuilder {
     return Visit(load.expr, [this](const auto& inner) -> ast::Variant {
       using T = std::decay_t<decltype(inner)>;
       if constexpr (std::is_same_v<T, Integer>) {
-        return ast::IntegerConstant{inner.GetValue()};
+        return ast::IntegerConstant{inner.get_value()};
       } else if constexpr (std::is_same_v<T, Float>) {
-        return ast::FloatConstant{inner.GetValue()};
+        return ast::FloatConstant{static_cast<Float>(inner).get_value()};
       } else if constexpr (std::is_same_v<T, Rational>) {
-        return ast::FloatConstant{static_cast<Float>(inner).GetValue()};
+        return ast::FloatConstant{static_cast<Float>(inner).get_value()};
       } else if constexpr (std::is_same_v<T, Variable>) {
-        return ast::VariableRef{inner.GetName()};
+        return ast::VariableRef{static_cast<const Variable&>(inner).name()};
       } else if constexpr (std::is_same_v<T, FunctionArgument>) {
-        const auto element_index = static_cast<index_t>(inner.ElementIndex());
-        return ast::InputValue{signature_.arguments[inner.ArgIndex()], element_index};
+        const auto element_index = static_cast<index_t>(inner.element_index());
+        return ast::InputValue{signature_.arguments[inner.arg_index()], element_index};
       } else {
         throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
       }

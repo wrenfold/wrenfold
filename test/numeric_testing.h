@@ -24,8 +24,8 @@ struct ConvertOutputArgType;
 struct NumericFunctionEvaluator {
   Expr operator()(const FunctionArgument& arg, const Expr&) const {
     auto it = values.find(arg);
-    ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.ArgIndex(),
-           arg.ElementIndex());
+    ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.arg_index(),
+           arg.element_index());
     return it->second;
   }
 
@@ -35,7 +35,7 @@ struct NumericFunctionEvaluator {
     if constexpr (T::IsLeafNode) {
       return input;
     } else {
-      return MapChildren(input_typed, [this](const Expr& expr) {
+      return input_typed.map_children([this](const Expr& expr) {
         return Visit(expr, [this, &expr](const auto& x) { return this->operator()(x, expr); });
       });
     }
@@ -58,11 +58,11 @@ struct ApplyNumericEvaluatorImpl<Expr> {
     const Expr subs =
         Visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
     if (const Float* f = CastPtr<Float>(subs); f != nullptr) {
-      return f->GetValue();
+      return f->get_value();
 
     } else if (const Integer* i = CastPtr<Integer>(subs); i != nullptr) {
       // TODO: Support returning the correct type here.
-      return static_cast<double>(i->GetValue());
+      return static_cast<double>(i->get_value());
     } else {
       throw TypeError("Expression should be a floating point value or integer. Got type {}: {}",
                       input.TypeName(), input.ToString());
@@ -107,7 +107,7 @@ struct CollectFunctionInputImpl;
 template <std::size_t Index>
 struct CollectFunctionInputImpl<Index, double> {
   void operator()(NumericFunctionEvaluator& output, const double arg) const {
-    output.values.emplace(FunctionArgument(Index, 0), Float::Create(arg));
+    output.values.emplace(FunctionArgument(Index, 0), Float::create(arg));
   }
 };
 
@@ -120,7 +120,7 @@ struct CollectFunctionInputImpl<Index, Eigen::Matrix<double, Rows, Cols>> {
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
-        output.values.emplace(FunctionArgument(Index, element), Float::Create(arg(i, j)));
+        output.values.emplace(FunctionArgument(Index, element), Float::create(arg(i, j)));
       }
     }
   }

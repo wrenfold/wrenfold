@@ -14,7 +14,7 @@ struct CollectVisitor {
 
   template <typename T>
   Expr Recurse(const T& op) {
-    return op.Map([this](const Expr& x) { return VisitWithExprArg(x, *this); });
+    return op.map_children([this](const Expr& x) { return VisitWithExprArg(x, *this); });
   }
 
   Expr CollectAdditionTerms(Addition::ContainerType&& container) {
@@ -34,8 +34,8 @@ struct CollectVisitor {
         // Look for relevant terms:
         std::optional<Expr> exponent;
         const auto it = std::find_if(mul->begin(), mul->end(), [&](const Expr& mul_term) {
-          auto [base, exp] = AsBaseAndExponent(mul_term);
-          if (base.IsIdenticalTo(collected_term)) {
+          auto [base, exp] = as_base_and_exp(mul_term);
+          if (base.is_identical_to(collected_term)) {
             // found the base we want
             exponent = std::move(exp);
             return true;
@@ -55,14 +55,14 @@ struct CollectVisitor {
           Multiplication::ContainerType mul_parts{};
           std::copy(mul->begin(), it, std::back_inserter(mul_parts));
           std::copy(std::next(it), mul->end(), std::back_inserter(mul_parts));
-          auto reduced_mul = Multiplication::FromOperands(mul_parts);
+          auto reduced_mul = Multiplication::from_operands(mul_parts);
           // TODO: Move into multiplication:
           exponents_to_mul[*exponent].push_back(std::move(reduced_mul));
         }
         return true;
       } else {
-        auto [base, exp] = AsBaseAndExponent(child);
-        if (base.IsIdenticalTo(collected_term)) {
+        auto [base, exp] = as_base_and_exp(child);
+        if (base.is_identical_to(collected_term)) {
           // This term is standalone in the sum, so just push one
           exponents_to_mul[exp].push_back(Constants::One);
           return true;
@@ -85,7 +85,7 @@ struct CollectVisitor {
     // Now we're done with the first term, we recurse for the remaining terms.
     for (auto it = exponents_to_mul.begin(); it != exponents_to_mul.end(); ++it) {
       // The term we are collecting, e.g. x, x**2, x**3, etc...
-      Expr collected_pow = Power::Create(collected_term, it->first);
+      Expr collected_pow = Power::create(collected_term, it->first);
 
       // Check if we need to collect remaining terms of our coefficient, otherwise just turn it into
       // an addition. In some cases, the addition might just reduce to a single expression.
@@ -93,20 +93,20 @@ struct CollectVisitor {
           collected_terms_.size() > 1
               ? CollectVisitor{collected_terms_.subspan(1)}.CollectAdditionTerms(
                     std::move(it->second))
-              : Addition::FromOperands(it->second);
+              : Addition::from_operands(it->second);
 
       // Multiply the power by the collected terms: x**2 * (y + pi - 3)
       Expr mul =
-          Multiplication::FromOperands({std::move(collected_pow), std::move(term_coefficient)});
+          Multiplication::from_operands({std::move(collected_pow), std::move(term_coefficient)});
       container.push_back(std::move(mul));
     }
-    return Addition::FromOperands(container);  //  TODO: should be a move
+    return Addition::from_operands(container);  //  TODO: should be a move
   }
 
   Expr operator()(const Addition& add, const Expr&) {
     // transform all children of the addition:
     Addition::ContainerType children{};
-    children.reserve(add.Arity());
+    children.reserve(add.arity());
     std::transform(add.begin(), add.end(), std::back_inserter(children),
                    [this](const Expr& x) { return VisitWithExprArg(x, *this); });
     return CollectAdditionTerms(std::move(children));

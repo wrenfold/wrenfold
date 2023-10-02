@@ -15,20 +15,20 @@ class FunctionArgument {
   FunctionArgument(std::size_t arg_index, std::size_t element_index)
       : arg_index_(arg_index), element_index_(element_index) {}
 
-  constexpr bool IsIdenticalTo(const FunctionArgument& other) const {
+  constexpr bool is_identical_to(const FunctionArgument& other) const {
     return arg_index_ == other.arg_index_ && element_index_ == other.element_index_;
   }
 
-  constexpr std::size_t ArgIndex() const { return arg_index_; }
-  constexpr std::size_t ElementIndex() const { return element_index_; }
+  constexpr std::size_t arg_index() const { return arg_index_; }
+  constexpr std::size_t element_index() const { return element_index_; }
 
   // Create `Expr` w/ the specified indices.
-  static Expr Create(std::size_t arg_index, std::size_t element_index) {
+  static Expr create(std::size_t arg_index, std::size_t element_index) {
     return MakeExpr<FunctionArgument>(arg_index, element_index);
   }
 
   // Equal if both indices are the same.
-  constexpr bool operator==(const FunctionArgument& other) const { return IsIdenticalTo(other); }
+  constexpr bool operator==(const FunctionArgument& other) const { return is_identical_to(other); }
 
  private:
   std::size_t arg_index_;
@@ -38,7 +38,7 @@ class FunctionArgument {
 template <>
 struct Hash<FunctionArgument> {
   constexpr std::size_t operator()(const FunctionArgument& c) const {
-    return HashCombine(c.ArgIndex(), c.ElementIndex());
+    return HashCombine(c.arg_index(), c.element_index());
   }
 };
 

@@ -60,12 +60,12 @@ inline Eigen::MatrixXd EigenMatrixFromMatrixExpr(const MatrixExpr& m) {
   for (index_t i = 0; i < result.rows(); ++i) {
     for (index_t j = 0; j < result.cols(); ++j) {
       if (const Float* as_flt = CastPtr<Float>(m_eval(i, j)); as_flt != nullptr) {
-        result(i, j) = as_flt->GetValue();
+        result(i, j) = as_flt->get_value();
       } else if (const Integer* as_int = CastPtr<Integer>(m_eval(i, j)); as_int != nullptr) {
-        result(i, j) = static_cast<Float>(*as_int).GetValue();
+        result(i, j) = static_cast<Float>(*as_int).get_value();
       } else if (const Rational* as_rational = CastPtr<Rational>(m_eval(i, j));
                  as_rational != nullptr) {
-        result(i, j) = static_cast<Float>(*as_rational).GetValue();
+        result(i, j) = static_cast<Float>(*as_rational).get_value();
       } else {
         throw TypeError("Cannot coerce value to float: {}", m_eval(i, j));
       }

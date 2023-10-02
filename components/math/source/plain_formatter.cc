@@ -13,13 +13,13 @@
 namespace math {
 
 void PlainFormatter::operator()(const Addition& expr) {
-  ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
+  ASSERT_GREATER_OR_EQ(expr.arity(), 2);
 
   // Sort into canonical order:
   absl::InlinedVector<std::pair<Expr, Expr>, 16> terms;
-  terms.reserve(expr.Arity());
+  terms.reserve(expr.arity());
   std::transform(expr.begin(), expr.end(), std::back_inserter(terms),
-                 [](const Expr& x) { return AsCoefficientAndMultiplicand(x); });
+                 [](const Expr& x) { return as_coeff_and_mul(x); });
 
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
     return ExpressionOrder(a.second, b.second) == RelativeOrder::LessThan;
@@ -64,25 +64,25 @@ void PlainFormatter::operator()(const Addition& expr) {
 
 void PlainFormatter::operator()(const Conditional& conditional) {
   output_ += "where(";
-  Visit(conditional.Condition(), *this);
+  Visit(conditional.condition(), *this);
   output_ += ", ";
-  Visit(conditional.IfBranch(), *this);
+  Visit(conditional.if_branch(), *this);
   output_ += ", ";
-  Visit(conditional.ElseBranch(), *this);
+  Visit(conditional.else_branch(), *this);
   output_ += ")";
 }
 
 void PlainFormatter::operator()(const Constant& expr) {
-  output_ += StringFromSymbolicConstant(expr.GetName());
+  output_ += string_from_symbolic_constant(expr.name());
 }
 
 void PlainFormatter::operator()(const Derivative& derivative) {
   output_ += "Derivative(";
-  Visit(derivative.Differentiand(), *this);
+  Visit(derivative.differentiand(), *this);
   output_ += ", ";
-  Visit(derivative.Arg(), *this);
-  if (derivative.Order() > 1) {
-    fmt::format_to(std::back_inserter(output_), ", {})", derivative.Order());
+  Visit(derivative.argument(), *this);
+  if (derivative.order() > 1) {
+    fmt::format_to(std::back_inserter(output_), ", {})", derivative.order());
   } else {
     output_ += ")";
   }
@@ -93,23 +93,23 @@ void PlainFormatter::operator()(const Infinity&) {
 }
 
 void PlainFormatter::operator()(const Integer& expr) {
-  fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
+  fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
 void PlainFormatter::operator()(const Float& expr) {
-  fmt::format_to(std::back_inserter(output_), "{}", expr.GetValue());
+  fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
 void PlainFormatter::operator()(const FunctionArgument& func_arg) {
-  fmt::format_to(std::back_inserter(output_), "$arg({}, {})", func_arg.ArgIndex(),
-                 func_arg.ElementIndex());
+  fmt::format_to(std::back_inserter(output_), "$arg({}, {})", func_arg.arg_index(),
+                 func_arg.element_index());
 }
 
 void PlainFormatter::operator()(const Matrix& mat) {
-  ASSERT_GREATER_OR_EQ(mat.NumRows(), 0);
-  ASSERT_GREATER_OR_EQ(mat.NumCols(), 0);
+  ASSERT_GREATER_OR_EQ(mat.rows(), 0);
+  ASSERT_GREATER_OR_EQ(mat.cols(), 0);
 
-  if (mat.Size() == 0) {
+  if (mat.size() == 0) {
     // Empty matrix:
     output_ += "[]";
     return;
@@ -117,7 +117,7 @@ void PlainFormatter::operator()(const Matrix& mat) {
 
   // Buffer of all the formatted elements:
   std::vector<std::string> elements;
-  elements.resize(mat.Size());
+  elements.resize(mat.size());
 
   // Format all the child elements up front. That way we can do alignment:
   std::transform(mat.begin(), mat.end(), elements.begin(), [](const Expr& expr) {
@@ -127,26 +127,26 @@ void PlainFormatter::operator()(const Matrix& mat) {
   });
 
   // Determine widest element in each column
-  std::vector<std::size_t> column_widths(mat.NumCols(), 0);
-  for (index_t j = 0; j < mat.NumCols(); ++j) {
-    for (index_t i = 0; i < mat.NumRows(); ++i) {
+  std::vector<std::size_t> column_widths(mat.cols(), 0);
+  for (index_t j = 0; j < mat.cols(); ++j) {
+    for (index_t i = 0; i < mat.rows(); ++i) {
       column_widths[static_cast<std::size_t>(j)] =
-          std::max(column_widths[static_cast<std::size_t>(j)], elements[mat.Index(i, j)].size());
+          std::max(column_widths[static_cast<std::size_t>(j)], elements[mat.compute_index(i, j)].size());
     }
   }
 
   output_ += "[";
-  for (index_t i = 0; i < mat.NumRows(); ++i) {
+  for (index_t i = 0; i < mat.rows(); ++i) {
     output_ += "[";
-    const index_t last_col = mat.NumCols() - 1;
+    const index_t last_col = mat.cols() - 1;
     for (index_t j = 0; j < last_col; ++j) {
-      fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.Index(i, j)],
+      fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.compute_index(i, j)],
                      column_widths[static_cast<std::size_t>(j)]);
     }
-    fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.Index(i, last_col)],
+    fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.compute_index(i, last_col)],
                    column_widths[static_cast<std::size_t>(last_col)]);
     // Insert a comma and new-line if another row is coming.
-    if (i + 1 < mat.NumRows()) {
+    if (i + 1 < mat.rows()) {
       output_ += "],\n ";
     } else {
       output_ += "]";
@@ -156,11 +156,11 @@ void PlainFormatter::operator()(const Matrix& mat) {
 }
 
 void PlainFormatter::operator()(const Multiplication& expr) {
-  ASSERT_GREATER_OR_EQ(expr.Arity(), 2);
+  ASSERT_GREATER_OR_EQ(expr.arity(), 2);
   using BaseExp = MultiplicationFormattingInfo::BaseExp;
 
   // Break multiplication up into numerator and denominator:
-  const MultiplicationFormattingInfo info = GetFormattingInfo(expr);
+  const MultiplicationFormattingInfo info = get_formatting_info(expr);
 
   if (info.is_negative) {
     output_ += "-";
@@ -206,7 +206,7 @@ void PlainFormatter::operator()(const Multiplication& expr) {
 }
 
 void PlainFormatter::operator()(const Function& func) {
-  fmt::format_to(std::back_inserter(output_), "{}(", func.Name());
+  fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
   auto it = func.begin();
   if (it != func.end()) {
     Visit(*it, *this);
@@ -218,19 +218,19 @@ void PlainFormatter::operator()(const Function& func) {
   output_ += ")";
 }
 
-void PlainFormatter::operator()(const Power& expr) { FormatPower(expr.Base(), expr.Exponent()); }
+void PlainFormatter::operator()(const Power& expr) { FormatPower(expr.base(), expr.exponent()); }
 
 void PlainFormatter::operator()(const Rational& expr) {
-  fmt::format_to(std::back_inserter(output_), "{} / {}", expr.Numerator(), expr.Denominator());
+  fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());
 }
 
 void PlainFormatter::operator()(const Relational& expr) {
-  FormatPrecedence(Precedence::Relational, expr.Left());
-  fmt::format_to(std::back_inserter(output_), " {} ", expr.OperationString());
-  FormatPrecedence(Precedence::Relational, expr.Right());
+  FormatPrecedence(Precedence::Relational, expr.left());
+  fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
+  FormatPrecedence(Precedence::Relational, expr.right());
 }
 
-void PlainFormatter::operator()(const Variable& expr) { output_ += expr.GetName(); }
+void PlainFormatter::operator()(const Variable& expr) { output_ += expr.name(); }
 
 void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr) {
   if (GetPrecedence(expr) <= parent) {

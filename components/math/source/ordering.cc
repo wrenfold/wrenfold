@@ -42,15 +42,15 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Conditional& a, const Conditional& b) const {
-    if (const RelativeOrder o = ExpressionOrder(a.Condition(), b.Condition());
+    if (const RelativeOrder o = ExpressionOrder(a.condition(), b.condition());
         o != RelativeOrder::Equal) {
       return o;
     }
-    if (const RelativeOrder o = ExpressionOrder(a.IfBranch(), b.IfBranch());
+    if (const RelativeOrder o = ExpressionOrder(a.if_branch(), b.if_branch());
         o != RelativeOrder::Equal) {
       return o;
     }
-    if (const RelativeOrder o = ExpressionOrder(a.ElseBranch(), b.ElseBranch());
+    if (const RelativeOrder o = ExpressionOrder(a.else_branch(), b.else_branch());
         o != RelativeOrder::Equal) {
       return o;
     }
@@ -66,9 +66,9 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Derivative& a, const Derivative& b) const {
-    if (a.Order() < b.Order()) {
+    if (a.order() < b.order()) {
       return RelativeOrder::LessThan;
-    } else if (a.Order() > b.Order()) {
+    } else if (a.order() > b.order()) {
       return RelativeOrder::GreaterThan;
     }
     return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
@@ -79,19 +79,19 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Power& a, const Power& b) const {
-    const RelativeOrder base_order = VisitBinary(a.Base(), b.Base(), OrderVisitor{});
+    const RelativeOrder base_order = VisitBinary(a.base(), b.base(), OrderVisitor{});
     if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
     } else if (base_order == RelativeOrder::GreaterThan) {
       return RelativeOrder::GreaterThan;
     }
     // Otherwise order is determined by the exponent:
-    return VisitBinary(a.Exponent(), b.Exponent(), OrderVisitor{});
+    return VisitBinary(a.exponent(), b.exponent(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const Function& a, const Function& b) const {
     // First compare by name:
-    const int name_comp = a.Name().compare(b.Name());
+    const int name_comp = a.function_name().compare(b.function_name());
     if (name_comp > 0) {
       return RelativeOrder::GreaterThan;
     } else if (name_comp < 0) {
@@ -101,8 +101,8 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const FunctionArgument& a, const FunctionArgument& b) const {
-    const auto p_a = std::make_pair(a.ArgIndex(), a.ElementIndex());
-    const auto p_b = std::make_pair(b.ArgIndex(), b.ElementIndex());
+    const auto p_a = std::make_pair(a.arg_index(), a.element_index());
+    const auto p_b = std::make_pair(b.arg_index(), b.element_index());
     if (p_a < p_b) {
       return RelativeOrder::LessThan;
     } else if (p_a > p_b) {
@@ -112,24 +112,24 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Relational& a, const Relational& b) const {
-    if (a.Operation() < b.Operation()) {
+    if (a.operation() < b.operation()) {
       return RelativeOrder::LessThan;
-    } else if (a.Operation() > b.Operation()) {
+    } else if (a.operation() > b.operation()) {
       return RelativeOrder::GreaterThan;
     }
-    const RelativeOrder base_order = VisitBinary(a.Left(), b.Left(), OrderVisitor{});
+    const RelativeOrder base_order = VisitBinary(a.left(), b.left(), OrderVisitor{});
     if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
     } else if (base_order == RelativeOrder::GreaterThan) {
       return RelativeOrder::GreaterThan;
     }
-    return VisitBinary(a.Right(), b.Right(), OrderVisitor{});
+    return VisitBinary(a.right(), b.right(), OrderVisitor{});
   }
 
   RelativeOrder Compare(const Variable& a, const Variable& b) const {
-    if (a.GetName() < b.GetName()) {
+    if (a.name() < b.name()) {
       return RelativeOrder::LessThan;
-    } else if (a.GetName() > b.GetName()) {
+    } else if (a.name() > b.name()) {
       return RelativeOrder::GreaterThan;
     }
     return RelativeOrder::Equal;

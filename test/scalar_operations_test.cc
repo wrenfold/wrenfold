@@ -137,7 +137,7 @@ TEST(ScalarOperationsTest, TestDivision) {
   // Cancellation of powers:
   ASSERT_TRUE(pow(x, 3).Is<Power>());
   ASSERT_TRUE(pow(x, 2).Is<Power>());
-  ASSERT_TRUE(CastPtr<Power>(pow(x, 3))->Base().IsIdenticalTo(CastPtr<Power>(pow(x, 2))->Base()));
+  ASSERT_TRUE(CastPtr<Power>(pow(x, 3))->base().is_identical_to(CastPtr<Power>(pow(x, 2))->base()));
 
   ASSERT_IDENTICAL(x, pow(x, 3) / pow(x, 2));
   ASSERT_IDENTICAL(Constants::One, pow(x, 3) / (x * x * x));
@@ -150,41 +150,41 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
   const Expr y{"y"};
   const Expr z{"z"};
 
-  ASSERT_IDENTICAL(Constants::Zero, AsCoefficientAndMultiplicand(0).first);
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(0).second);
+  ASSERT_IDENTICAL(Constants::Zero, as_coeff_and_mul(0).first);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(0).second);
 
-  ASSERT_IDENTICAL(2_s, AsCoefficientAndMultiplicand(2).first);
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(2).second);
+  ASSERT_IDENTICAL(2_s, as_coeff_and_mul(2).first);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(2).second);
 
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(x).first);
-  ASSERT_IDENTICAL(x, AsCoefficientAndMultiplicand(x).second);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(x).first);
+  ASSERT_IDENTICAL(x, as_coeff_and_mul(x).second);
 
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(x / y).first);
-  ASSERT_IDENTICAL(x / y, AsCoefficientAndMultiplicand(x / y).second);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(x / y).first);
+  ASSERT_IDENTICAL(x / y, as_coeff_and_mul(x / y).second);
 
   // Special constants are symbols, and do not go in the multiplicand:
-  ASSERT_IDENTICAL(3_s, AsCoefficientAndMultiplicand(3 * Constants::Pi).first);
-  ASSERT_IDENTICAL(Constants::Pi, AsCoefficientAndMultiplicand(3 * Constants::Pi).second);
+  ASSERT_IDENTICAL(3_s, as_coeff_and_mul(3 * Constants::Pi).first);
+  ASSERT_IDENTICAL(Constants::Pi, as_coeff_and_mul(3 * Constants::Pi).second);
 
-  ASSERT_IDENTICAL(5_s / 7, AsCoefficientAndMultiplicand(Constants::Pi * z * 5_s / 7).first);
-  ASSERT_IDENTICAL(Constants::Pi * z, AsCoefficientAndMultiplicand(Constants::Pi * z).second);
+  ASSERT_IDENTICAL(5_s / 7, as_coeff_and_mul(Constants::Pi * z * 5_s / 7).first);
+  ASSERT_IDENTICAL(Constants::Pi * z, as_coeff_and_mul(Constants::Pi * z).second);
 
   // Include some functions:
-  ASSERT_IDENTICAL(1.22_s, AsCoefficientAndMultiplicand(1.22 * sin(x) * cos(y)).first);
-  ASSERT_IDENTICAL(cos(y) * sin(x), AsCoefficientAndMultiplicand(1.22 * sin(x) * cos(y)).second);
+  ASSERT_IDENTICAL(1.22_s, as_coeff_and_mul(1.22 * sin(x) * cos(y)).first);
+  ASSERT_IDENTICAL(cos(y) * sin(x), as_coeff_and_mul(1.22 * sin(x) * cos(y)).second);
 }
 
 TEST(ScalarOperationsTest, TestPower) {
   auto [x, y, z] = Symbols("x", "y", "z");
   ASSERT_IDENTICAL(pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(x, y)).first, x);
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(x, y)).second, y);
+  ASSERT_IDENTICAL(as_base_and_exp(pow(x, y)).first, x);
+  ASSERT_IDENTICAL(as_base_and_exp(pow(x, y)).second, y);
   ASSERT_EQ("Power", pow(x, y).TypeName());
 
   // Powers don't get combined automatically (for variable exponents):
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(pow(x, y), z)).first, pow(x, y));
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(pow(x, y), z)).second, z);
+  ASSERT_IDENTICAL(as_base_and_exp(pow(pow(x, y), z)).first, pow(x, y));
+  ASSERT_IDENTICAL(as_base_and_exp(pow(pow(x, y), z)).second, z);
 
   // Powers of expressions to constants:
   ASSERT_IDENTICAL(Constants::One, pow(x * y, 0));
@@ -196,7 +196,7 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(8, pow(2, 3));
   ASSERT_IDENTICAL(-243_s, pow(-3, 5));
   ASSERT_IDENTICAL(Constants::Zero, pow(0, 10));
-  ASSERT_IDENTICAL(Rational::Create(1, 8), pow(2, -3));
+  ASSERT_IDENTICAL(Rational::create(1, 8), pow(2, -3));
   ASSERT_IDENTICAL(25 / 64_s, pow(5 / 8_s, 2));
   ASSERT_IDENTICAL(343 / 729_s, pow(9 / 7_s, -3));
   ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));

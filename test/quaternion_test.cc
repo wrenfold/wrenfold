@@ -27,15 +27,15 @@ TEST(QuaternionTest, TestConstructor) {
   ASSERT_IDENTICAL(1, q_identity.w());
 }
 
-TEST(QuaternionTest, TestIsIdenticalTo) {
+TEST(QuaternionTest, Testis_identical_to) {
   auto [w, x, y, z] = Symbols("w", "x", "y", "z");
   const Quaternion q1{w, x, y, z};
-  ASSERT_TRUE(q1.IsIdenticalTo(q1));
-  ASSERT_TRUE(q1.IsIdenticalTo({q1.w(), q1.x(), q1.y(), q1.z()}));
-  ASSERT_FALSE(q1.IsIdenticalTo({1, 0, 0, 0}));
-  ASSERT_FALSE(q1.IsIdenticalTo({q1.w(), 2, q1.y(), q1.z()}));
-  ASSERT_FALSE(q1.IsIdenticalTo({q1.w(), q1.x(), 2, q1.z()}));
-  ASSERT_FALSE(q1.IsIdenticalTo({q1.w(), q1.x(), q1.y(), 2}));
+  ASSERT_TRUE(q1.is_identical_to(q1));
+  ASSERT_TRUE(q1.is_identical_to({q1.w(), q1.x(), q1.y(), q1.z()}));
+  ASSERT_FALSE(q1.is_identical_to({1, 0, 0, 0}));
+  ASSERT_FALSE(q1.is_identical_to({q1.w(), 2, q1.y(), q1.z()}));
+  ASSERT_FALSE(q1.is_identical_to({q1.w(), q1.x(), 2, q1.z()}));
+  ASSERT_FALSE(q1.is_identical_to({q1.w(), q1.x(), q1.y(), 2}));
 }
 
 TEST(QuaternionTest, TestNorm) {
@@ -123,10 +123,10 @@ TEST(QuaternionTest, TestMultiply) {
                                 .Subs(q2.y(), q2_num.y())
                                 .Subs(q2.z(), q2_num.z());
   // Won't match exactly due to floating point order:
-  ASSERT_NEAR((q1_num * q2_num).w(), CastChecked<Float>(result.w()).GetValue(), 1.0e-15);
-  ASSERT_NEAR((q1_num * q2_num).x(), CastChecked<Float>(result.x()).GetValue(), 1.0e-15);
-  ASSERT_NEAR((q1_num * q2_num).y(), CastChecked<Float>(result.y()).GetValue(), 1.0e-15);
-  ASSERT_NEAR((q1_num * q2_num).z(), CastChecked<Float>(result.z()).GetValue(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).w(), CastChecked<Float>(result.w()).get_value(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).x(), CastChecked<Float>(result.x()).get_value(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).y(), CastChecked<Float>(result.y()).get_value(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).z(), CastChecked<Float>(result.z()).get_value(), 1.0e-15);
 }
 
 TEST(QuaternionTest, TestInverse) {
@@ -372,7 +372,7 @@ TEST(QuaternionTest, TestToAxisAngle) {
                                        .Subs(y, axis_num.y())
                                        .Subs(z, axis_num.z())
                                        .Eval())
-                    .GetValue(),
+                    .get_value(),
                 1.0e-15)
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
 
@@ -462,16 +462,16 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
     const MatrixExpr R = Quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.ToRotationMatrix();
     const Quaternion q = Quaternion::FromRotationMatrix(R);
 
-    ASSERT_NEAR(q_num.w(), CastChecked<Float>(q.w()).GetValue(), 1.0e-15)
+    ASSERT_NEAR(q_num.w(), CastChecked<Float>(q.w()).get_value(), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.ToVectorWXYZ().Transpose(), R);
-    ASSERT_NEAR(q_num.x(), CastChecked<Float>(q.x()).GetValue(), 1.0e-15)
+    ASSERT_NEAR(q_num.x(), CastChecked<Float>(q.x()).get_value(), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.ToVectorWXYZ().Transpose(), R);
-    ASSERT_NEAR(q_num.y(), CastChecked<Float>(q.y()).GetValue(), 1.0e-15)
+    ASSERT_NEAR(q_num.y(), CastChecked<Float>(q.y()).get_value(), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.ToVectorWXYZ().Transpose(), R);
-    ASSERT_NEAR(q_num.z(), CastChecked<Float>(q.z()).GetValue(), 1.0e-15)
+    ASSERT_NEAR(q_num.z(), CastChecked<Float>(q.z()).get_value(), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.ToVectorWXYZ().Transpose(), R);
   }

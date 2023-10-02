@@ -62,7 +62,7 @@ std::variant<Expr, py::list> CreateSymbols(std::variant<std::string_view, py::it
 std::variant<double, Expr> EvalToNumeric(const Expr& self) {
   Expr eval = self.Eval();
   if (const Float* f = CastPtr<Float>(eval); f != nullptr) {
-    return f->GetValue();
+    return f->get_value();
   }
   return eval;
 }
@@ -90,7 +90,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
            "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "is_identical_to",
-          [](const Expr& self, const Expr& other) { return self.IsIdenticalTo(other); }, "other"_a,
+          [](const Expr& self, const Expr& other) { return self.is_identical_to(other); }, "other"_a,
           "Test if two expressions have identical expression trees.")
       .def_property_readonly("type_name", &Expr::TypeName)
       // Operations:

@@ -22,20 +22,20 @@ struct CompareNumerics {
   }
 
   static double FloatFromConstant(const Constant& c) {
-    const double value = DoubleFromSymbolicConstant(c.GetName());
+    const double value = double_from_symbolic_constant(c.name());
     if (std::isnan(value)) {
       throw TypeError("Invalid comparison with constant: {}",
-                      StringFromSymbolicConstant(c.GetName()));
+                      string_from_symbolic_constant(c.name()));
     }
     return value;
   }
 
   bool operator()(const Integer& a, const Constant& b) const {
     // This must have a value since float will not be nan.
-    return CompareIntFloat(a.GetValue(), FloatFromConstant(b)).value() == RelativeOrder::LessThan;
+    return CompareIntFloat(a.get_value(), FloatFromConstant(b)).value() == RelativeOrder::LessThan;
   }
   bool operator()(const Constant& a, const Integer& b) const {
-    return CompareIntFloat(b.GetValue(), FloatFromConstant(a)).value() ==
+    return CompareIntFloat(b.get_value(), FloatFromConstant(a)).value() ==
            RelativeOrder::GreaterThan;
   }
 
@@ -49,13 +49,13 @@ struct CompareNumerics {
 
   // Integer and float:
   bool operator()(const Integer& a, const Float& b) const {
-    const auto result = CompareIntFloat(a.GetValue(), b.GetValue());
+    const auto result = CompareIntFloat(a.get_value(), b.get_value());
     ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == RelativeOrder::LessThan;
   }
 
   bool operator()(const Float& a, const Integer& b) const {
-    const auto result = CompareIntFloat(b.GetValue(), a.GetValue());
+    const auto result = CompareIntFloat(b.get_value(), a.get_value());
     ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == RelativeOrder::GreaterThan;
   }
@@ -98,7 +98,7 @@ struct RelationalSimplification {
         return (!a_lt_b && !b_lt_a) ? TriState::True : TriState::False;
       }
       ASSERT(operation_ == RelationalOperation::LessThanOrEqual, "Invalid relational operation: {}",
-             StringFromRelationalOperation(operation_));
+             string_from_relational_operation(operation_));
       // either `a` < `b`, or: `a` >= `b` and `b` is not less than `a`, so `a` == `b`
       return a_lt_b || !b_lt_a ? TriState::True : TriState::False;
     } else {
@@ -109,7 +109,7 @@ struct RelationalSimplification {
   RelationalOperation operation_;
 };
 
-Expr Relational::Create(RelationalOperation operation, Expr left, Expr right) {
+Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
   // See if this relational automatically simplifies to a boolean constant:
   const TriState simplified = VisitBinary(left, right, RelationalSimplification{operation});
   if (simplified == TriState::True) {

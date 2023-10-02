@@ -41,15 +41,15 @@ class Multiplication {
   const Expr& operator[](const std::size_t i) const { return terms_[i]; }
 
   // Number of arguments.
-  std::size_t Arity() const { return terms_.size(); }
+  std::size_t arity() const { return terms_.size(); }
 
   // Iterators.
   ContainerType::const_iterator begin() const { return terms_.begin(); }
   ContainerType::const_iterator end() const { return terms_.end(); }
 
   // All terms must be identical.
-  bool IsIdenticalTo(const Multiplication& other) const {
-    if (Arity() != other.Arity()) {
+  bool is_identical_to(const Multiplication& other) const {
+    if (arity() != other.arity()) {
       return false;
     }
     return std::equal(begin(), end(), other.begin(), IsIdenticalOperator<Expr>{});
@@ -57,22 +57,22 @@ class Multiplication {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void Iterate(Operation&& operation) const {
+  void iterate(Operation&& operation) const {
     std::for_each(begin(), end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr Map(Operation&& operation) const {
+  Expr map_children(Operation&& operation) const {
     ContainerType transformed{};
-    transformed.reserve(Arity());
+    transformed.reserve(arity());
     std::transform(begin(), end(), std::back_inserter(transformed),
                    std::forward<Operation>(operation));
-    return Multiplication::FromOperands(transformed);
+    return Multiplication::from_operands(transformed);
   }
 
   // Construct from a span of operands. Result is automatically simplified.
-  static Expr FromOperands(absl::Span<const Expr> span);
+  static Expr from_operands(absl::Span<const Expr> span);
 
  private:
   void SortTerms() {
@@ -106,7 +106,7 @@ struct Hash<Multiplication> {
 // expr is a multiplication. If it is, we extract all numeric constants and return them
 // as the first value. The remaining terms form a new multiplication, which is returned as
 // the second value.
-std::pair<Expr, Expr> AsCoefficientAndMultiplicand(const Expr& expr);
+std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr);
 
 // Helper object used to execute multiplications.
 struct MultiplicationParts {
@@ -124,13 +124,13 @@ struct MultiplicationParts {
   std::unordered_map<Expr, Expr, Hash<Expr>, IsIdenticalOperator<Expr>> terms{};
 
   // Update the internal product by multiplying on `arg`.
-  void Multiply(const Expr& arg, bool factorize_integers = false);
+  void multiply_term(const Expr& arg, bool factorize_integers = false);
 
   // Nuke any terms w/ a zero exponent and normalize powers of integers.
-  void Normalize();
+  void normalize_coefficients();
 
   // Create the resulting multiplication.
-  Expr CreateMultiplication() const;
+  Expr create_multiplication() const;
 };
 
 // A decomposition of `Multiplication` that is more convenient for printing.
@@ -148,6 +148,6 @@ struct MultiplicationFormattingInfo {
 };
 
 // Create `MultiplicationFormattingInfo` from a multiplication.
-MultiplicationFormattingInfo GetFormattingInfo(const Multiplication& mul);
+MultiplicationFormattingInfo get_formatting_info(const Multiplication& mul);
 
 }  // namespace math

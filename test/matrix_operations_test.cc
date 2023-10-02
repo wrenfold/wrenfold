@@ -71,12 +71,12 @@ TEST(MatrixOperationsTest, TestGetBlock) {
                                      y, b,
                                      z, c);
   // clang-format on
-  ASSERT_IDENTICAL(Vector(x, y, z), m1.GetBlock(0, 0, 3, 1));
-  ASSERT_IDENTICAL(Vector(y, z), m1.GetBlock(1, 0, 2, 1));
-  ASSERT_IDENTICAL(Vector(a, b), m1.GetBlock(0, 1, 2, 1));
-  ASSERT_IDENTICAL(RowVector(y, b), m1.GetBlock(1, 0, 1, 2));
-  ASSERT_IDENTICAL(RowVector(y), m1.GetBlock(1, 0, 1, 1));
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, y, b, z, c), m1.GetBlock(1, 0, 2, 2));
+  ASSERT_IDENTICAL(Vector(x, y, z), m1.get_block(0, 0, 3, 1));
+  ASSERT_IDENTICAL(Vector(y, z), m1.get_block(1, 0, 2, 1));
+  ASSERT_IDENTICAL(Vector(a, b), m1.get_block(0, 1, 2, 1));
+  ASSERT_IDENTICAL(RowVector(y, b), m1.get_block(1, 0, 1, 2));
+  ASSERT_IDENTICAL(RowVector(y), m1.get_block(1, 0, 1, 1));
+  ASSERT_IDENTICAL(CreateMatrix(2, 2, y, b, z, c), m1.get_block(1, 0, 2, 2));
 
   // clang-format off
   const MatrixExpr m2 = CreateMatrix(3, 4,
@@ -84,15 +84,15 @@ TEST(MatrixOperationsTest, TestGetBlock) {
                                      3.0, -5, y, pow(z, 2),
                                      2 * z, Constants::Euler, -1, sin(x));
   // clang-format on
-  ASSERT_IDENTICAL(RowVector(x, Constants::Pi, 2, x - z), m2.GetBlock(0, 0, 1, 4));
-  ASSERT_IDENTICAL(Vector(x, 3.0, 2 * z), m2.GetBlock(0, 0, 3, 1));
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, y, pow(z, 2), -1, sin(x)), m2.GetBlock(1, 2, 2, 2));
+  ASSERT_IDENTICAL(RowVector(x, Constants::Pi, 2, x - z), m2.get_block(0, 0, 1, 4));
+  ASSERT_IDENTICAL(Vector(x, 3.0, 2 * z), m2.get_block(0, 0, 3, 1));
+  ASSERT_IDENTICAL(CreateMatrix(2, 2, y, pow(z, 2), -1, sin(x)), m2.get_block(1, 2, 2, 2));
 
   // bounds checking:
-  ASSERT_THROW(m2.GetBlock(-1, 0, 2, 1), DimensionError);
-  ASSERT_THROW(m2.GetBlock(1, -5, 1, 1), DimensionError);
-  ASSERT_THROW(m2.GetBlock(1, 1, 4, 1), DimensionError);
-  ASSERT_THROW(m2.GetBlock(1, 1, 2, 5), DimensionError);
+  ASSERT_THROW(m2.get_block(-1, 0, 2, 1), DimensionError);
+  ASSERT_THROW(m2.get_block(1, -5, 1, 1), DimensionError);
+  ASSERT_THROW(m2.get_block(1, 1, 4, 1), DimensionError);
+  ASSERT_THROW(m2.get_block(1, 1, 2, 5), DimensionError);
 }
 
 TEST(MatrixOperationsTest, TestTranspose) {
@@ -380,9 +380,9 @@ TEST(MatrixOperationsTest, TestDeterminant3x3) {
   // Compare 3x3 to cofactor method:
   auto A = MatrixOfSymbols("x", 3, 3);
   auto det_cofactor =
-      A(0, 0) * Determinant(A.GetBlock(1, 1, 2, 2)) -
+      A(0, 0) * Determinant(A.get_block(1, 1, 2, 2)) -
       A(0, 1) * Determinant(CreateMatrix(2, 2, A(1, 0), A(1, 2), A(2, 0), A(2, 2))) +
-      A(0, 2) * Determinant(A.GetBlock(1, 0, 2, 2));
+      A(0, 2) * Determinant(A.get_block(1, 0, 2, 2));
   ASSERT_IDENTICAL(det_cofactor.Distribute(), Determinant(A));
 
   auto I3 = Identity(3);

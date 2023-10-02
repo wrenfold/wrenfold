@@ -20,7 +20,7 @@ class MatrixExpr {
   static MatrixExpr Create(index_t rows, index_t cols, std::vector<Expr> args);
 
   // Test if the two expressions are identical.
-  bool IsIdenticalTo(const MatrixExpr& other) const;
+  bool is_identical_to(const MatrixExpr& other) const;
 
   // Test if the two expressions have the same underlying address.
   bool HasSameAddress(const MatrixExpr& other) const {
@@ -67,7 +67,7 @@ class MatrixExpr {
   const Expr& operator()(index_t i, index_t j) const;
 
   // Get a block of rows [start, start + length).
-  MatrixExpr GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const;
+  MatrixExpr get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
 
   // Transpose the matrix.
   [[nodiscard]] MatrixExpr Transpose() const;

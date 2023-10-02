@@ -221,7 +221,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) 
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare& x) const {
-  formatter.format("{} {} {}", make_view(x.left), StringFromRelationalOperation(x.operation),
+  formatter.format("{} {} {}", make_view(x.left), string_from_relational_operation(x.operation),
                    make_view(x.right));
 }
 

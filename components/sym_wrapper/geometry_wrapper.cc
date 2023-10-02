@@ -71,7 +71,7 @@ void WrapGeometryOperations(py::module_& m) {
            })
       .def(
           "is_identical_to",
-          [](const Quaternion& self, const Quaternion& other) { return self.IsIdenticalTo(other); },
+          [](const Quaternion& self, const Quaternion& other) { return self.is_identical_to(other); },
           "other"_a, "Test if two quaternions have identical expression trees.")
       .def_property_readonly("type_name",
                              [](const Quaternion&) -> std::string_view { return "Quaternion"; })

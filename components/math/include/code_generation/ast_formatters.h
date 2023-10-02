@@ -62,7 +62,7 @@ auto format_ast(Iterator it, const math::ast::Cast& c) {
 template <typename Iterator>
 auto format_ast(Iterator it, const math::ast::Compare& c) {
   return fmt::format_to(it, "Compare({} {} {})", *c.left,
-                        StringFromRelationalOperation(c.operation), *c.right);
+                        string_from_relational_operation(c.operation), *c.right);
 }
 
 template <typename Iterator>

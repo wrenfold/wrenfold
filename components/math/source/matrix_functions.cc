@@ -15,7 +15,7 @@ template <typename Callable>
 MatrixExpr CreateMatrixWithLambda(index_t rows, index_t cols, Callable&& callable) {
   std::vector<Expr> data;
   data.reserve(static_cast<std::size_t>(rows * cols));
-  IterMatrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
+  iter_matrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
     data.push_back(callable(i, j));
   });
   return MatrixExpr::Create(rows, cols, std::move(data));
@@ -260,46 +260,46 @@ static std::tuple<PermutationMatrix, PermutationMatrix> FactorizeFullPivLUIntern
 
 static std::tuple<PermutationMatrix, Matrix, Matrix, PermutationMatrix> FactorizeFullPivLUInternal(
     const Matrix& A) {
-  if (A.NumRows() > A.NumCols()) {
+  if (A.rows() > A.cols()) {
     // To simplify the implementation, we factorize the transpose and then do a fix-up step:
-    auto [P, L, U, Q] = FactorizeFullPivLUInternal(A.Transpose());
+    auto [P, L, U, Q] = FactorizeFullPivLUInternal(A.transposed());
 
     // First transpose the outputs:
-    Matrix U_out = L.Transpose();
-    Matrix L_out = U.Transpose();
+    Matrix U_out = L.transposed();
+    Matrix L_out = U.transposed();
 
-    ASSERT_EQUAL(L_out.NumRows(), A.NumRows());
-    ASSERT_EQUAL(L_out.NumCols(), A.NumCols());
-    ASSERT_EQUAL(U_out.NumRows(), A.NumCols());
-    ASSERT_EQUAL(U_out.NumRows(), U_out.NumCols());
+    ASSERT_EQUAL(L_out.rows(), A.rows());
+    ASSERT_EQUAL(L_out.cols(), A.cols());
+    ASSERT_EQUAL(U_out.rows(), A.cols());
+    ASSERT_EQUAL(U_out.rows(), U_out.cols());
 
     // Then we need to normalize the diagonal of L
-    for (index_t col = 0; col < L_out.NumCols(); ++col) {
-      Expr v = L_out.GetUnchecked(col, col);
-      L_out.GetUnchecked(col, col) = Constants::One;
+    for (index_t col = 0; col < L_out.cols(); ++col) {
+      Expr v = L_out.get_unchecked(col, col);
+      L_out.get_unchecked(col, col) = Constants::One;
 
       if (!IsZero(v)) {
-        for (index_t row = col + 1; row < L_out.NumRows(); ++row) {
-          L_out.GetUnchecked(row, col) = L_out.GetUnchecked(row, col) / v;
+        for (index_t row = col + 1; row < L_out.rows(); ++row) {
+          L_out.get_unchecked(row, col) = L_out.get_unchecked(row, col) / v;
         }
       }
 
       // Multiply onto rows of U:
-      for (index_t u_col = 0; u_col < U_out.NumCols(); ++u_col) {
-        U_out.GetUnchecked(col, u_col) = U_out.GetUnchecked(col, u_col) * v;
+      for (index_t u_col = 0; u_col < U_out.cols(); ++u_col) {
+        U_out.get_unchecked(col, u_col) = U_out.get_unchecked(col, u_col) * v;
       }
     }
     return std::make_tuple(Q.Transpose(), std::move(L_out), std::move(U_out), P.Transpose());
   } else {
     // We copy A and then use this as storage for the output `U`.
     std::vector<Expr> U_storage{A.begin(), A.end()};
-    auto U_span = make_span(U_storage.data(), make_value_pack(A.NumRows(), A.NumCols()),
-                            make_value_pack(A.NumCols(), constant<1>{}));
+    auto U_span = make_span(U_storage.data(), make_value_pack(A.rows(), A.cols()),
+                            make_value_pack(A.cols(), constant<1>{}));
 
-    std::vector<Expr> L_storage(static_cast<std::size_t>(A.NumRows() * A.NumRows()),
+    std::vector<Expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()),
                                 Constants::Zero);
-    auto L_span = make_span(L_storage.data(), make_value_pack(A.NumRows(), A.NumRows()),
-                            make_value_pack(A.NumRows(), constant<1>{}));
+    auto L_span = make_span(L_storage.data(), make_value_pack(A.rows(), A.rows()),
+                            make_value_pack(A.rows(), constant<1>{}));
 
     auto [P, Q] = FactorizeFullPivLUInternal(L_span, U_span);
 
@@ -342,25 +342,25 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(
 
 Expr Determinant(const MatrixExpr& m) {
   const Matrix& mat = m.AsMatrix();
-  if (mat.NumRows() != mat.NumCols()) {
+  if (mat.rows() != mat.cols()) {
     throw DimensionError(
         "Determinant can only be computed for square matrices. Dimensions = [{}, {}]",
-        mat.NumRows(), mat.NumCols());
+        mat.rows(), mat.cols());
   }
 
   // Hardcoded solutions for 1x1, 2x2, and 3x3
-  if (mat.NumRows() == 1) {
-    return mat.GetUnchecked(0, 0);
-  } else if (mat.NumRows() == 2) {
-    return mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 1) -
-           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 0);
-  } else if (mat.NumRows() == 3) {
-    return mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 1) * mat.GetUnchecked(2, 2) -
-           mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 2) * mat.GetUnchecked(2, 1) -
-           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 0) * mat.GetUnchecked(2, 2) +
-           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 2) * mat.GetUnchecked(2, 0) +
-           mat.GetUnchecked(0, 2) * mat.GetUnchecked(1, 0) * mat.GetUnchecked(2, 1) -
-           mat.GetUnchecked(0, 2) * mat.GetUnchecked(1, 1) * mat.GetUnchecked(2, 0);
+  if (mat.rows() == 1) {
+    return mat.get_unchecked(0, 0);
+  } else if (mat.rows() == 2) {
+    return mat.get_unchecked(0, 0) * mat.get_unchecked(1, 1) -
+           mat.get_unchecked(0, 1) * mat.get_unchecked(1, 0);
+  } else if (mat.rows() == 3) {
+    return mat.get_unchecked(0, 0) * mat.get_unchecked(1, 1) * mat.get_unchecked(2, 2) -
+           mat.get_unchecked(0, 0) * mat.get_unchecked(1, 2) * mat.get_unchecked(2, 1) -
+           mat.get_unchecked(0, 1) * mat.get_unchecked(1, 0) * mat.get_unchecked(2, 2) +
+           mat.get_unchecked(0, 1) * mat.get_unchecked(1, 2) * mat.get_unchecked(2, 0) +
+           mat.get_unchecked(0, 2) * mat.get_unchecked(1, 0) * mat.get_unchecked(2, 1) -
+           mat.get_unchecked(0, 2) * mat.get_unchecked(1, 1) * mat.get_unchecked(2, 0);
   }
 
   // General case, use full-piv LU:
@@ -373,8 +373,8 @@ Expr Determinant(const MatrixExpr& m) {
 
   // The product of the diagonal is the product of eigenvalues, which equals the determinant:
   Expr prod = P.Determinant() * Q.Determinant();
-  for (index_t i = 0; i < U.NumRows(); ++i) {
-    prod = prod * U.GetUnchecked(i, i);
+  for (index_t i = 0; i < U.rows(); ++i) {
+    prod = prod * U.get_unchecked(i, i);
   }
   return prod;
 }

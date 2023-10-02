@@ -122,7 +122,7 @@ constexpr std::string_view ToString(const BuiltInFunctionName name) {
 }
 
 // Convert `RelationalOperation` to short string.
-constexpr std::string_view StringFromRelationalOperation(const RelationalOperation op) {
+constexpr std::string_view string_from_relational_operation(const RelationalOperation op) {
   switch (op) {
     case RelationalOperation::LessThan:
       return "<";

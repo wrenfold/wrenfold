@@ -12,13 +12,13 @@ class Constant {
   static constexpr bool IsLeafNode = true;
 
   // Construct with name.
-  explicit constexpr Constant(SymbolicConstants name) : name_(name) {}
+  explicit constexpr Constant(SymbolicConstants name) noexcept : name_(name) {}
 
   // Check if symbolic constants are the same.
-  constexpr bool IsIdenticalTo(const Constant& other) const { return name_ == other.name_; }
+  constexpr bool is_identical_to(const Constant& other) const noexcept { return name_ == other.name_; }
 
   // Access name.
-  constexpr SymbolicConstants GetName() const { return name_; }
+  constexpr SymbolicConstants name() const noexcept { return name_; }
 
  protected:
   SymbolicConstants name_;
@@ -33,12 +33,12 @@ class Infinity {
   static constexpr bool IsLeafNode = true;
 
   Infinity() = default;
-  constexpr bool IsIdenticalTo(const Infinity&) const { return true; }
+  constexpr bool is_identical_to(const Infinity&) const noexcept { return true; }
 };
 
 // Convert symbolic constant enum to string constant.
 // For debugging purposes.
-inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants value) {
+inline constexpr std::string_view string_from_symbolic_constant(SymbolicConstants value) {
   switch (value) {
     case SymbolicConstants::Euler:
       return "e";
@@ -53,7 +53,7 @@ inline constexpr std::string_view StringFromSymbolicConstant(SymbolicConstants v
 }
 
 // Convert `SymbolicConstants` to a floating point double.
-constexpr double DoubleFromSymbolicConstant(SymbolicConstants constant) {
+constexpr double double_from_symbolic_constant(SymbolicConstants constant) {
   switch (constant) {
     case SymbolicConstants::Euler:
       return M_E;
@@ -69,13 +69,13 @@ constexpr double DoubleFromSymbolicConstant(SymbolicConstants constant) {
 
 // Order constants by their enum values.
 inline constexpr bool operator<(const Constant& a, const Constant& b) {
-  return a.GetName() < b.GetName();
+  return a.name() < b.name();
 }
 
 template <>
 struct Hash<Constant> {
   constexpr std::size_t operator()(const Constant& c) const {
-    return static_cast<std::size_t>(c.GetName());
+    return static_cast<std::size_t>(c.name());
   }
 };
 
@@ -96,6 +96,6 @@ struct fmt::formatter<math::Constant, char> {
 
   template <typename FormatContext>
   auto format(const math::Constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "{}", math::StringFromSymbolicConstant(x.GetName()));
+    return fmt::format_to(ctx.out(), "{}", math::string_from_symbolic_constant(x.name()));
   }
 };

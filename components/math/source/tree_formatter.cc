@@ -61,11 +61,11 @@ struct TreeFormatter {
 
   void operator()(const Addition& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.Arity());
+    terms.reserve(op.arity());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-      auto acm = AsCoefficientAndMultiplicand(a);
-      auto bcm = AsCoefficientAndMultiplicand(b);
+      auto acm = as_coeff_and_mul(a);
+      auto bcm = as_coeff_and_mul(b);
       return ExpressionOrder(acm.second, bcm.second) == RelativeOrder::LessThan;
     });
 
@@ -78,18 +78,18 @@ struct TreeFormatter {
   }
 
   void operator()(const Derivative& diff) {
-    AppendName("Derivative (order = {}):", diff.Order());
-    VisitLeft(diff.Differentiand());
-    VisitRight(diff.Arg());
+    AppendName("Derivative (order = {}):", diff.order());
+    VisitLeft(diff.differentiand());
+    VisitRight(diff.argument());
   }
 
   void operator()(const Multiplication& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.Arity());
+    terms.reserve(op.arity());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-      const auto abe = AsBaseAndExponent(a);
-      const auto bbe = AsBaseAndExponent(b);
+      const auto abe = as_base_and_exp(a);
+      const auto bbe = as_base_and_exp(b);
       return ExpressionOrder(abe.first, bbe.first) == RelativeOrder::LessThan;
     });
 
@@ -103,8 +103,8 @@ struct TreeFormatter {
 
   void operator()(const Matrix& mat) {
     // TODO: Print the (row, col) index for each element.
-    AppendName("Matrix ({}, {}):", mat.NumRows(), mat.NumCols());
-    const auto& elements = mat.Data();
+    AppendName("Matrix ({}, {}):", mat.rows(), mat.cols());
+    const auto& elements = mat.data();
     for (std::size_t i = 0; i + 1 < elements.size(); ++i) {
       VisitLeft(elements[i]);
     }
@@ -113,32 +113,32 @@ struct TreeFormatter {
 
   void operator()(const Power& op) {
     AppendName("Power:");
-    VisitLeft(op.Base());
-    VisitRight(op.Exponent());
+    VisitLeft(op.base());
+    VisitRight(op.exponent());
   }
 
   void operator()(const Infinity&) { AppendName("Infinity"); }
 
-  void operator()(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
+  void operator()(const Integer& neg) { AppendName("Integer ({})", neg.get_value()); }
 
-  void operator()(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
+  void operator()(const Float& neg) { AppendName("Float ({})", neg.get_value()); }
 
   void operator()(const FunctionArgument& arg) {
-    AppendName("FunctionArgument ({}, {})", arg.ArgIndex(), arg.ElementIndex());
+    AppendName("FunctionArgument ({}, {})", arg.arg_index(), arg.element_index());
   }
 
   void operator()(const Rational& rational) {
-    AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());
+    AppendName("Rational ({} / {})", rational.numerator(), rational.denominator());
   }
 
   void operator()(const Relational& relational) {
-    AppendName("Relational ({})", relational.OperationString());
-    VisitLeft(relational.Left());
-    VisitRight(relational.Right());
+    AppendName("Relational ({})", relational.operation_string());
+    VisitLeft(relational.left());
+    VisitRight(relational.right());
   }
 
   void operator()(const Function& func) {
-    AppendName("Function ({}):", func.Name());
+    AppendName("Function ({}):", func.function_name());
     auto it = func.begin();
     for (; std::next(it) != func.end(); ++it) {
       VisitLeft(*it);
@@ -146,17 +146,17 @@ struct TreeFormatter {
     VisitRight(*it);
   }
 
-  void operator()(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
+  void operator()(const Variable& var) { AppendName("Variable ({})", var.name()); }
 
   void operator()(const Conditional& conditional) {
     AppendName("Conditional:");
-    VisitLeft(conditional.Condition());
-    VisitLeft(conditional.IfBranch());
-    VisitRight(conditional.ElseBranch());
+    VisitLeft(conditional.condition());
+    VisitLeft(conditional.if_branch());
+    VisitRight(conditional.else_branch());
   }
 
   void operator()(const Constant& constant) {
-    AppendName("Constant ({})", StringFromSymbolicConstant(constant.GetName()));
+    AppendName("Constant ({})", string_from_symbolic_constant(constant.name()));
   }
 
   // Get the output string via move.

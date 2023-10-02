@@ -31,7 +31,7 @@ class Expr {
   Expr(T v) : Expr(ConstructImplicit(v)) {}
 
   // Test if the two expressions are identical.
-  bool IsIdenticalTo(const Expr& other) const { return impl_->IsIdenticalTo(*other.impl_); }
+  bool is_identical_to(const Expr& other) const { return impl_->is_identical_to(*other.impl_); }
 
   // Check if the underlying expression is one of the specified types.
   template <typename... Ts>
@@ -169,7 +169,7 @@ Precedence GetPrecedence(const Expr& expr);
 // Check for strict equality. For use in template parameter lists for maps and sets.
 template <typename T>
 struct IsIdenticalOperator {
-  bool operator()(const T& a, const T& b) const { return a.IsIdenticalTo(b); }
+  bool operator()(const T& a, const T& b) const { return a.is_identical_to(b); }
 };
 
 // Custom literal suffix support.

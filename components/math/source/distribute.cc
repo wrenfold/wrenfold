@@ -10,12 +10,12 @@ namespace math {
 // Visitor for distributing terms in multiplications:
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
-  Expr operator()(const Addition& add, const Expr&) const { return MapChildren(add, &Distribute); }
+  Expr operator()(const Addition& add, const Expr&) const { return add.map_children(&Distribute); }
 
   Expr operator()(const Multiplication& mul, const Expr&) const {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};
-    children.reserve(mul.Arity());
+    children.reserve(mul.arity());
     std::transform(mul.begin(), mul.end(), std::back_inserter(children),
                    [](const Expr& expr) { return Distribute(expr); });
 
@@ -24,7 +24,7 @@ struct DistributeVisitor {
         std::accumulate(children.begin(), children.end(), static_cast<std::size_t>(1lu),
                         [](std::size_t total, const Expr& expr) {
                           if (const Addition* const add = CastPtr<Addition>(expr); add != nullptr) {
-                            total *= add->Arity();
+                            total *= add->arity();
                           }
                           return total;
                         });
@@ -34,7 +34,7 @@ struct DistributeVisitor {
     if (!contains_additions) {
       // If there are no additions, just create a new multiplication:
       // TODO: If there are no additions, and no children were altered, we could avoid this step.
-      return Multiplication::FromOperands(children);
+      return Multiplication::from_operands(children);
     }
 
     // Otherwise, we need to expand all the terms. This multiplication will become an addition of
@@ -46,9 +46,9 @@ struct DistributeVisitor {
     for (const Expr& expr : children) {
       if (const Addition* add = CastPtr<Addition>(expr); add != nullptr) {
         // For additions, first update the step by dividing by the size of this addition:
-        ASSERT_EQUAL(0, step % add->Arity());
-        ASSERT_GREATER_OR_EQ(step / add->Arity(), 1);
-        step /= add->Arity();
+        ASSERT_EQUAL(0, step % add->arity());
+        ASSERT_GREATER_OR_EQ(step / add->arity(), 1);
+        step /= add->arity();
         // Now multiply terms in the addition:
         for (std::size_t out = 0; out < total_terms;) {
           for (const Expr& term : *add) {
@@ -65,25 +65,25 @@ struct DistributeVisitor {
       }
     }
 
-    return Addition::FromOperands(output_terms);
+    return Addition::from_operands(output_terms);
   }
 
-  Expr operator()(const Function& f, const Expr&) const { return f.Map(&Distribute); }
+  Expr operator()(const Function& f, const Expr&) const { return f.map_children(&Distribute); }
 
   Expr operator()(const Power& pow, const Expr&) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
-    const Expr& a = pow.Base();
-    const Expr& b = pow.Exponent();
-    return Power::Create(Distribute(a), Distribute(b));
+    const Expr& a = pow.base();
+    const Expr& b = pow.exponent();
+    return Power::create(Distribute(a), Distribute(b));
   }
 
   Expr operator()(const Conditional& conditional, const Expr&) const {
-    return MapChildren(conditional, &Distribute);
+    return conditional.map_children(&Distribute);
   }
 
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }
   Expr operator()(const Derivative& diff, const Expr&) const {
-    return MapChildren(diff, &Distribute);
+    return diff.map_children(&Distribute);
   }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const Integer&, const Expr& arg) const { return arg; }
@@ -91,7 +91,7 @@ struct DistributeVisitor {
   Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation, const Expr&) const {
-    return MapChildren(relation, &Distribute);
+    return relation.map_children(&Distribute);
   }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };

@@ -21,9 +21,9 @@ class ExpressionImpl final : public ExpressionConcept {
   const ExpressionType& GetImplementation() const { return implementation_; }
 
   // Check if we can cast to this type.
-  bool IsIdenticalTo(const ExpressionConcept& other) const override final {
+  bool is_identical_to(const ExpressionConcept& other) const override final {
     return other.IsType<ExpressionType>() &&
-           GetImplementation().IsIdenticalTo(
+           GetImplementation().is_identical_to(
                static_cast<const ExpressionImpl<ExpressionType>&>(other).GetImplementation());
   }
 
@@ -100,12 +100,12 @@ const T& CastUnchecked(const Expr& x) {
 // Cast expression `x` to type `T` if possible, and check if it is identical
 // to `typed_y`.
 template <typename T>
-bool IsIdenticalToConcrete(const Expr& x, const T& typed_y) {
+bool is_identical_toConcrete(const Expr& x, const T& typed_y) {
   const T* as_typed = CastPtr<T>(x);
   if (!as_typed) {
     return false;
   }
-  return as_typed->IsIdenticalTo(typed_y);
+  return as_typed->is_identical_to(typed_y);
 }
 
 // Traverse all sub-expressions of the input expression. The provided `operation` will be called
@@ -114,16 +114,8 @@ template <typename ExpressionType, typename Operation>
 void IterateChildren(const ExpressionType& expr, Operation&& operation) {
   constexpr bool is_leaf = ExpressionType::IsLeafNode;
   if constexpr (!is_leaf) {
-    expr.Iterate(std::forward<Operation>(operation));
+    expr.iterate(std::forward<Operation>(operation));
   }
-}
-
-// Create a copy of an expression by running a unary map on its child expressions.
-// The derived type should copy itself w/ new children, leaving any other properties identical.
-template <typename ExpressionType, typename Operation>
-std::enable_if_t<!ExpressionType::IsLeafNode, Expr> MapChildren(const ExpressionType& expr,
-                                                                Operation&& operation) {
-  return expr.Map(std::forward<Operation>(operation));
 }
 
 }  // namespace math
