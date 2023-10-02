@@ -110,7 +110,7 @@ struct AstBuilder {
         ASSERT(block->descendants.empty());  //  This must be the final block.
         Emplace<ast::ConstructReturnValue>(signature_.return_value.value(), std::move(args));
       } else {
-        Emplace<ast::AssignOutputArgument>(signature_.GetArgument(key.name), std::move(args));
+        Emplace<ast::AssignOutputArgument>(signature_.get_argument(key.name), std::move(args));
       }
     }
 
@@ -153,7 +153,7 @@ struct AstBuilder {
         ASSERT(operations_false.empty());
         const ir::OutputRequired& oreq = condition->As<ir::OutputRequired>();
         // Create an optional-output assignment block
-        Emplace<ast::OptionalOutputBranch>(signature_.GetArgument(oreq.name),
+        Emplace<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name),
                                            std::move(operations_true));
       } else {
         // Create a conditional
@@ -298,7 +298,7 @@ struct AstBuilder {
 };
 
 namespace ast {
-std::vector<ast::Variant> CreateAST(const math::OutputIr& ir, const FunctionSignature& signature) {
+std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature) {
   AstBuilder builder(ir.ValuePrintWidth(), signature);
   return builder.CreateFunction(ir.FirstBlock());
 }

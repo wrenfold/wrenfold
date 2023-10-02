@@ -86,14 +86,14 @@ class span {
   // Access the dimension for axis `D`.
   template <std::size_t D>
   constexpr auto dimension() const noexcept {
-    static_assert(D < num_dimensions, "Dimension index is invalid");
+    static_assert(D < num_dimensions, "dimension index is invalid");
     return dimensions_.template get<D>().value();
   }
 
   // Access the stride for axis `D`.
   template <std::size_t D>
   constexpr auto stride() const noexcept {
-    static_assert(D < num_dimensions, "Dimension index is invalid");
+    static_assert(D < num_dimensions, "dimension index is invalid");
     return strides_.template get<D>().value();
   }
 

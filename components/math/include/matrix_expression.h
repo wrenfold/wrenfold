@@ -82,9 +82,6 @@ class MatrixExpr {
 static_assert(std::is_move_assignable_v<MatrixExpr> && std::is_move_constructible_v<MatrixExpr>,
               "Should be movable");
 
-// Format debug tree
-std::string FormatDebugTree(const MatrixExpr& expr);
-
 // Math operators:
 namespace matrix_operator_overloads {
 

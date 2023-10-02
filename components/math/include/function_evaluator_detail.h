@@ -52,9 +52,10 @@ ExpressionGroup CreateExpressionGroup(const T& tuple_element) {
     OutputKey key{ExpressionUsage::ReturnValue, ""};
     return ExpressionGroup(std::move(expressions), std::move(key));
   } else {
-    OutputKey key{tuple_element.IsOptional() ? ExpressionUsage::OptionalOutputArgument
+    const OutputArg<TInner>& as_output_arg = tuple_element;
+    OutputKey key{as_output_arg.IsOptional() ? ExpressionUsage::OptionalOutputArgument
                                              : ExpressionUsage::OutputArgument,
-                  tuple_element.Name()};
+                  as_output_arg.Name()};
     return ExpressionGroup(std::move(expressions), std::move(key));
   }
 }
@@ -90,7 +91,8 @@ struct RecordOutput<ReturnValue<T>> {
     if constexpr (std::is_same_v<Expr, T>) {
       desc.return_value = ast::ScalarType(NumericType::Real);
     } else {
-      desc.return_value = ast::MatrixType(output.Value().NumRows(), output.Value().NumCols());
+      const MatrixExpr& mat = output.Value();
+      desc.return_value = ast::MatrixType(mat.NumRows(), mat.NumCols());
     }
   }
 };
@@ -99,12 +101,12 @@ template <typename T>
 struct RecordOutput<OutputArg<T>> {
   void operator()(ast::FunctionSignature& desc, const OutputArg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
-      desc.AddArgument(output.Name(), ast::ScalarType(NumericType::Real),
+      desc.add_argument(output.Name(), ast::ScalarType(NumericType::Real),
                        output.IsOptional() ? ast::ArgumentDirection::OptionalOutput
                                            : ast::ArgumentDirection::Output);
     } else {
       // todo: static assert this is StaticMatrix
-      desc.AddArgument(output.Name(),
+      desc.add_argument(output.Name(),
                        ast::MatrixType(output.Value().NumRows(), output.Value().NumCols()),
                        output.IsOptional() ? ast::ArgumentDirection::OptionalOutput
                                            : ast::ArgumentDirection::Output);
@@ -118,7 +120,7 @@ struct RecordInputArgument;
 template <>
 struct RecordInputArgument<Expr> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
-    desc.AddArgument(arg.GetName(), ast::ScalarType(NumericType::Real),
+    desc.add_argument(arg.GetName(), ast::ScalarType(NumericType::Real),
                      ast::ArgumentDirection::Input);
   }
 };
@@ -126,7 +128,7 @@ struct RecordInputArgument<Expr> {
 template <index_t Rows, index_t Cols>
 struct RecordInputArgument<type_annotations::StaticMatrix<Rows, Cols>> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
-    desc.AddArgument(arg.GetName(), ast::MatrixType(Rows, Cols), ast::ArgumentDirection::Input);
+    desc.add_argument(arg.GetName(), ast::MatrixType(Rows, Cols), ast::ArgumentDirection::Input);
   }
 };
 

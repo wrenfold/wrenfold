@@ -33,7 +33,7 @@ Matrix Matrix::Transpose() const {
 Matrix operator*(const Matrix& a, const Matrix& b) {
   if (a.NumCols() != b.NumRows()) {
     throw DimensionError(
-        "Dimension mismatch in matrix multiplication: ({}, {}) x ({}, {}). Inner dimensions must "
+        "dimension mismatch in matrix multiplication: ({}, {}) x ({}, {}). Inner dimensions must "
         "match.",
         a.NumRows(), a.NumCols(), b.NumRows(), b.NumCols());
   }
@@ -60,7 +60,7 @@ Matrix operator*(const Matrix& a, const Matrix& b) {
 
 Matrix operator+(const Matrix& a, const Matrix& b) {
   if (a.NumRows() != b.NumRows() || a.NumCols() != b.NumCols()) {
-    throw DimensionError("Dimension mismatch in matrix addition: ({}, {}) + ({}, {}).", a.NumRows(),
+    throw DimensionError("dimension mismatch in matrix addition: ({}, {}) + ({}, {}).", a.NumRows(),
                          a.NumCols(), b.NumRows(), b.NumCols());
   }
   std::vector<Expr> output;
@@ -73,7 +73,7 @@ Matrix operator+(const Matrix& a, const Matrix& b) {
 
 Matrix operator-(const Matrix& a, const Matrix& b) {
   if (a.NumRows() != b.NumRows() || a.NumCols() != b.NumCols()) {
-    throw DimensionError("Dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).",
+    throw DimensionError("dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).",
                          a.NumRows(), a.NumCols(), b.NumRows(), b.NumCols());
   }
   std::vector<Expr> output;

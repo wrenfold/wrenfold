@@ -81,7 +81,7 @@ void WrapCodegenOperations(py::module_& m) {
         FlatIr ir{expressions};
         ir.EliminateDuplicates();
         OutputIr output_ir{std::move(ir)};
-        return ast::CreateAST(output_ir, signature);
+        return ast::create_ast(output_ir, signature);
       },
       py::arg("signature"), py::arg("expressions"),
       py::doc("Generate function body AST from signature and output expressions."),
@@ -133,14 +133,14 @@ void WrapCodegenOperations(py::module_& m) {
 
   py::class_<ast::ScalarType>(m, "ScalarType")
       .def(py::init<NumericType>())
-      .def_property_readonly("numeric_type", &ast::ScalarType::GetNumericType)
+      .def_property_readonly("numeric_type", &ast::ScalarType::numeric_type)
       .def("__repr__", &FormatAst<ast::ScalarType>);
 
   py::class_<ast::MatrixType>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
-      .def_property_readonly("num_rows", &ast::MatrixType::NumRows)
-      .def_property_readonly("num_cols", &ast::MatrixType::NumCols)
-      .def("compute_indices", &ast::MatrixType::ComputeIndices)
+      .def_property_readonly("num_rows", &ast::MatrixType::rows)
+      .def_property_readonly("num_cols", &ast::MatrixType::cols)
+      .def("compute_indices", &ast::MatrixType::compute_indices)
       .def("__repr__", &FormatAst<ast::MatrixType>);
 
   py::class_<ast::VariableRef>(m, "VariableRef")
@@ -161,7 +161,7 @@ void WrapCodegenOperations(py::module_& m) {
           [](ast::FunctionSignature& self, const std::string_view name,
              const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& type,
              ast::ArgumentDirection direction) {
-            return self.AddArgument(name, TypeFromVariant(type), direction);
+            return self.add_argument(name, TypeFromVariant(type), direction);
           },
           py::arg("name"), py::arg("type"), py::arg("direction"))
       .def(
@@ -179,11 +179,11 @@ void WrapCodegenOperations(py::module_& m) {
   // Use std::shared_ptr to store argument, since this is what ast::FunctionSignature uses.
   // If we don't do this, we might free something incorrectly when accessing arguments.
   py::class_<ast::Argument, std::shared_ptr<ast::Argument>>(m, "Argument")
-      .def_property_readonly("name", &ast::Argument::Name)
-      .def_property_readonly("type", &ast::Argument::Type)
-      .def_property_readonly("is_optional", &ast::Argument::IsOptional)
+      .def_property_readonly("name", &ast::Argument::name)
+      .def_property_readonly("type", &ast::Argument::type)
+      .def_property_readonly("is_optional", &ast::Argument::is_optional)
       .def("__repr__",
-           [](const ast::Argument& self) { return fmt::format("Argument('{}')", self.Name()); });
+           [](const ast::Argument& self) { return fmt::format("Argument('{}')", self.name()); });
 
   py::class_<ast::Add>(m, "Add")
       .def_property_readonly("left", [](const ast::Add& x) { return *x.left; })

@@ -343,7 +343,7 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
   // dimensions of left and right operands must match:
   if (mat_true.NumRows() != mat_false.NumRows() || mat_true.NumCols() != mat_false.NumCols()) {
     throw DimensionError(
-        "Dimension mismatch between operands to where(). if shape = [{}, {}], else shape = [{}, "
+        "dimension mismatch between operands to where(). if shape = [{}, {}], else shape = [{}, "
         "{}]",
         mat_true.NumRows(), mat_true.NumCols(), mat_false.NumRows(), mat_false.NumCols());
   }

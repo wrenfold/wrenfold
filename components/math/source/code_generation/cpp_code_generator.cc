@@ -15,25 +15,25 @@ std::string CppCodeGenerator::Generate(const ast::FunctionSignature& signature,
     // Convert input args to spans:
     std::size_t counter = 0;
     for (const auto& arg : signature.arguments) {
-      if (arg->IsMatrix()) {
-        const ast::MatrixType& mat = std::get<ast::MatrixType>(arg->Type());
+      if (arg->is_matrix()) {
+        const ast::MatrixType& mat = std::get<ast::MatrixType>(arg->type());
 
         // Generate matrix conversion logic.
         // TODO: Support dynamic sizes here too.
-        result.Format("auto _{} = ", arg->Name());
-        const std::string dims_type = fmt::format("{}, {}", mat.NumRows(), mat.NumCols());
-        switch (arg->Direction()) {
+        result.Format("auto _{} = ", arg->name());
+        const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
+        switch (arg->direction()) {
           case ast::ArgumentDirection::Input:
             result.Format("{}::make_input_span<{}>({});\n", UtilityNamespace, dims_type,
-                          arg->Name());
+                          arg->name());
             break;
           case ast::ArgumentDirection::Output:
             result.Format("{}::make_output_span<{}>({});\n", UtilityNamespace, dims_type,
-                          arg->Name());
+                          arg->name());
             break;
           case ast::ArgumentDirection::OptionalOutput:
             result.Format("{}::make_optional_output_span<{}>({});\n", UtilityNamespace, dims_type,
-                          arg->Name());
+                          arg->name());
             break;
         }
         ++counter;
@@ -68,12 +68,12 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
   formatter.Format("template <typename Scalar");
   const bool has_matrix_args =
       std::any_of(signature.arguments.begin(), signature.arguments.end(),
-                  [](const std::shared_ptr<const ast::Argument>& arg) { return arg->IsMatrix(); });
+                  [](const std::shared_ptr<const ast::Argument>& arg) { return arg->is_matrix(); });
 
   if (has_matrix_args) {
     std::size_t counter = 0;
     for (const std::shared_ptr<const ast::Argument>& arg : signature.arguments) {
-      if (arg->IsMatrix()) {
+      if (arg->is_matrix()) {
         formatter.Format(", typename T{}", counter);
         ++counter;
       }
@@ -94,16 +94,16 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
 
   std::size_t counter = 0;
   auto arg_printer = [&counter](CodeFormatter& formatter, const ast::Argument::shared_ptr& arg) {
-    if (arg->IsMatrix()) {
-      if (arg->Direction() == ast::ArgumentDirection::Input) {
+    if (arg->is_matrix()) {
+      if (arg->direction() == ast::ArgumentDirection::Input) {
         formatter.Format("const T{}&", counter);
       } else {
         formatter.Format("T{}&&", counter);
       }
       ++counter;
     } else {
-      const NumericType numeric_type = std::get<ast::ScalarType>(arg->Type()).GetNumericType();
-      if (arg->Direction() == ast::ArgumentDirection::Input) {
+      const NumericType numeric_type = std::get<ast::ScalarType>(arg->type()).numeric_type();
+      if (arg->direction() == ast::ArgumentDirection::Input) {
         formatter.Format("const {}", StringFromNumericCastType(numeric_type));
       } else {
         // Output reference for now.
@@ -111,7 +111,7 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
       }
     }
 
-    formatter.Format(" {}", arg->Name());
+    formatter.Format(" {}", arg->name());
   };
 
   formatter.Join(std::move(arg_printer), ", ", signature.arguments);
@@ -120,7 +120,7 @@ void CppCodeGenerator::FormatSignature(CodeFormatter& formatter,
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType& scalar,
                                   const TypeContext context) const {
-  const std::string_view numeric_type = StringFromNumericCastType(scalar.GetNumericType());
+  const std::string_view numeric_type = StringFromNumericCastType(scalar.numeric_type());
   switch (context) {
     case TypeContext::InputArgument:
     case TypeContext::FunctionBody:
@@ -145,8 +145,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) c
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter,
                                   const ast::AssignOutputArgument& assignment) const {
-  const auto& dest_name = assignment.argument->Name();
-  const ast::Type& type = assignment.argument->Type();
+  const auto& dest_name = assignment.argument->name();
+  const ast::Type& type = assignment.argument->type();
 
   if (std::holds_alternative<ast::MatrixType>(type)) {
     const ast::MatrixType mat = std::get<ast::MatrixType>(type);
@@ -155,8 +155,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
     // TODO: If there is a unit dimension, use the [] operator?
     formatter.Join(
         [&](CodeFormatter& fmt, std::size_t i) {
-          const auto [row, col] = mat.ComputeIndices(i);
-          fmt.Format("{}{}({}, {}) = {};", assignment.argument->IsMatrix() ? "_" : "", dest_name,
+          const auto [row, col] = mat.compute_indices(i);
+          fmt.Format("{}{}({}, {}) = {};", assignment.argument->is_matrix() ? "_" : "", dest_name,
                      row, col, View(assignment.values[i]));
         },
         "\n", range);
@@ -251,12 +251,12 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
   ASSERT(x.argument);
-  if (std::holds_alternative<ast::ScalarType>(x.argument->Type())) {
-    formatter.Format(x.argument->Name());
+  if (std::holds_alternative<ast::ScalarType>(x.argument->type())) {
+    formatter.Format(x.argument->name());
   } else {
-    const ast::MatrixType& mat = std::get<ast::MatrixType>(x.argument->Type());
-    const auto [r, c] = mat.ComputeIndices(x.element);
-    formatter.Format("_{}({}, {})", x.argument->Name(), r, c);
+    const ast::MatrixType& mat = std::get<ast::MatrixType>(x.argument->type());
+    const auto [r, c] = mat.compute_indices(x.element);
+    formatter.Format("_{}({}, {})", x.argument->name(), r, c);
   }
 }
 
@@ -266,8 +266,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply&
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter,
                                   const ast::OptionalOutputBranch& x) const {
-  formatter.Format("if (static_cast<bool>({}{})) ", x.argument->IsMatrix() ? "_" : "",
-                   x.argument->Name());
+  formatter.Format("if (static_cast<bool>({}{})) ", x.argument->is_matrix() ? "_" : "",
+                   x.argument->name());
   formatter.WithIndentation(2, "{\n", "\n}", [&] { formatter.Join(*this, "\n", x.statements); });
 }
 
