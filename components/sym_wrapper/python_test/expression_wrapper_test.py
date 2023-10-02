@@ -171,6 +171,18 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(z ** 2 * x, (x ** 3 * y ** 2).subs(x * y, z))
         self.assertIdentical(2 * z, (x + 2 * z - (y * 3) / 2).subs(x - (y * 3) / 2, 0))
 
+    def test_collect(self):
+        """Test calling collect() on expressions."""
+        x, y, z = sym.symbols('x, y, z')
+        self.assertIdentical(x ** 2 * (y + 3), (x ** 2 * y + x ** 2 * 3).collect(x))
+        self.assertIdentical(x ** 2 * (sym.log(y) - sym.pi) + x * (sym.cos(y) + sym.sin(y)),
+                             (x ** 2 * sym.log(y) - x ** 2 * sym.pi + x * sym.cos(y) +
+                              x * sym.sin(y)).collect(x))
+
+        f = x ** 2 * y + x ** 2 * 2 + x * y * 5 + x * (y ** 2) * sym.pi - x * y * sym.log(z)
+        self.assertIdentical(x ** 2 * (y + 2) + x * (y ** 2 * sym.pi + y * (5 - sym.log(z))),
+                             f.collect([x, y]))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

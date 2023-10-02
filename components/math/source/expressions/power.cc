@@ -66,6 +66,8 @@ struct PowerNumerics {
     ASSERT_GREATER(b.Denominator(), 0, "Rational must have positive denominator");
     if (a.GetValue() == 1) {
       return Constants::One;
+    } else if (a.GetValue() == 0) {
+      return Constants::Zero;
     }
 
     // Factorize the integer into primes:

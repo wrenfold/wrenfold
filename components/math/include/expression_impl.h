@@ -1,4 +1,5 @@
 #pragma once
+#include "error_types.h"
 #include "expression.h"
 #include "hashing.h"
 #include "visitor_base.h"
@@ -76,6 +77,17 @@ const T* CastPtr(const Expr& x) {
     return &concrete;
   } else {
     return nullptr;
+  }
+}
+
+// Cast expression to const reference of the specified type. TypeError is thrown if the cast is
+// invalid.
+template <typename T>
+const T& CastChecked(const Expr& x) {
+  if (x.impl_->IsType<T>()) {
+    return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->GetImplementation();
+  } else {
+    throw TypeError("Cannot cast expression of type `{}` to `{}`", x.TypeName(), T::NameStr);
   }
 }
 

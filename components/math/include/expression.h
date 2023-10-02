@@ -74,6 +74,16 @@ class Expr {
     return math::Substitute(*this, target, replacement);
   }
 
+  // Collect terms in this expression.
+  template <typename... Args>
+  Expr Collect(Args&&... args) const {
+    if constexpr (sizeof...(Args) == 1) {
+      return math::Collect(*this, std::forward<Args>(args)...);
+    } else {
+      return math::CollectMany(*this, {std::forward<Args>(args)...});
+    }
+  }
+
   // Evaluate into float.
   Expr Eval() const { return math::Eval(*this); }
 
@@ -87,6 +97,8 @@ class Expr {
 
   template <typename T>
   friend const T* CastPtr(const Expr&);
+  template <typename T>
+  friend const T& CastChecked(const Expr&);
 
  private:
   // Construct constant from float.

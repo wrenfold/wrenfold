@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include "constants.h"
 #include "expression.h"
 #include "expression_impl.h"
 
@@ -32,7 +33,13 @@ class Conditional {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr Map(Operation operation) const {
-    return Create(operation(condition_), operation(if_branch_), operation(else_branch_));
+    Expr cond = operation(condition_);
+    if (cond.IsIdenticalTo(Constants::True)) {
+      return operation(if_branch_);
+    } else if (cond.IsIdenticalTo(Constants::False)) {
+      return operation(else_branch_);
+    }
+    return Create(std::move(cond), operation(if_branch_), operation(else_branch_));
   }
 
   // Create a new conditional.
