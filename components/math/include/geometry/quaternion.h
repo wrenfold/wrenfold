@@ -29,16 +29,6 @@ class Quaternion {
   // Default initialize to identity (w = 1, xyz = 0).
   Quaternion() : Quaternion(Constants::One, Constants::Zero, Constants::Zero, Constants::Zero) {}
 
-  // Initialize with a 4-vector in order [x,y,z,w] (scalar last, eigen-style).
-  static Quaternion FromXYZW(const MatrixExpr& xyzw) {
-    if (xyzw.NumRows() == 4 && xyzw.NumCols() == 1) {
-      return Quaternion(xyzw(3, 0), xyzw(0, 0), xyzw(1, 0), xyzw(2, 0));
-    } else {
-      throw DimensionError("Cannot construct quaternion from matrix with dimensions: [{}, {}]",
-                           xyzw.NumRows(), xyzw.NumCols());
-    }
-  }
-
   // Access components:
   constexpr const Expr& w() const noexcept { return wxyz_[0]; }
   constexpr const Expr& x() const noexcept { return wxyz_[1]; }
@@ -165,7 +155,8 @@ class Quaternion {
   }
 
   // Convert to axis-angle representation.
-  // Angle is converted into the range [0, pi], with the unit vector being flipped accordingly.
+  // Angle is converted into the range [0, pi]. If the norm of the vector component falls below
+  // `zero_epsilon`, the rotation cannot be recovered, and we return a zero angle.
   std::tuple<Expr, MatrixExpr> ToAngleAxis(const Expr& zero_epsilon = Constants::Zero) const {
     // We want to recover angle and axis from:
     // [cos(angle/2), vx * sin(angle/2), vy * sin(angle/2), vz * sin(angle/2)]
@@ -192,8 +183,7 @@ class Quaternion {
   }
 
   // Construct a quaternion from a rotation matrix using Caley's method.
-  // If `R` is not a member of SO(3), the behavior is undefined.
-  // Reference:
+  // If `R` is not a member of SO(3), the behavior is undefined. See:
   // Section 3.5 of: "A survey on the Computation of Quaternions from Rotation Matrices"
   // By S. Sarabandi and F. Thomas
   // This method avoids introducing any divisions.
@@ -223,9 +213,9 @@ class Quaternion {
     return {
     sqrt(a) / 4,
       // TODO: Add a sign-no-zero method to avoid conditional here?
-    where(R(2, 1) - R(1, 2) > 0, 1, -1) * sqrt(b) / 4,
-    where(R(0, 2) - R(2, 0) > 0, 1, -1) * sqrt(c) / 4,
-    where(R(1, 0) - R(0, 1) > 0, 1, -1) * sqrt(d) / 4
+    where(R(2, 1) - R(1, 2) >= 0, 1, -1) * sqrt(b) / 4,
+    where(R(0, 2) - R(2, 0) >= 0, 1, -1) * sqrt(c) / 4,
+    where(R(1, 0) - R(0, 1) >= 0, 1, -1) * sqrt(d) / 4
     };
     // clang-format on
   }

@@ -82,8 +82,10 @@ add_wrapper_module(
   expression_wrapper.cc
   matrix_wrapper.cc
   codegen_wrapper.cc
+  geometry_wrapper.cc
   SUB_MODULE_NAMES
-  codegen)
+  codegen
+  geometry)
 
 # Add python tests:
 if(NOT DEFINED SKBUILD_PROJECT_NAME)

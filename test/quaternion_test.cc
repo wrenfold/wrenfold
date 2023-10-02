@@ -22,13 +22,6 @@ TEST(QuaternionTest, TestConstructor) {
   // Cannot pass vector or matrix arg
   ASSERT_THROW(Quaternion(Vector(x, y, z).AsExpr(), x, y, z), TypeError);
 
-  // Construct with different order:
-  Quaternion q2 = Quaternion::FromXYZW(Vector(x, y, z, w));
-  ASSERT_IDENTICAL(w, q2.w());
-  ASSERT_IDENTICAL(x, q2.x());
-  ASSERT_IDENTICAL(y, q2.y());
-  ASSERT_IDENTICAL(z, q2.z());
-
   // Default construction:
   Quaternion q_identity{};
   ASSERT_IDENTICAL(0, q_identity.x());
@@ -67,6 +60,9 @@ TEST(QuaternionTest, TestNormalize) {
   ASSERT_IDENTICAL(q.x() / q.Norm(), q_normalized.x());
   ASSERT_IDENTICAL(q.y() / q.Norm(), q_normalized.y());
   ASSERT_IDENTICAL(q.z() / q.Norm(), q_normalized.z());
+
+  // We can demonstrate that the norm is one:
+  ASSERT_IDENTICAL(1, q.Normalized().Norm().Collect(q.SquaredNorm()));
 }
 
 TEST(QuaternionTest, TestConjugate) {
@@ -142,17 +138,15 @@ TEST(QuaternionTest, TestInverse) {
   ASSERT_IDENTICAL(q.Conjugate().Normalized().ToVectorWXYZ(), q.Inverse().ToVectorWXYZ());
 
   // We should be able to recovery the identity symbolically:
-  // TODO: We have to subs twice here because subs doesn't recurse.
-  //  If we collect common denominators automatically, this shouldn't be required anymore.
   auto q_norm_2 = q.SquaredNorm();
-  auto q_q_inv = (q * q.Inverse()).Subs(q_norm_2, 1).Subs(q_norm_2, 1);
-  ASSERT_IDENTICAL(1, q_q_inv.w());
+  auto q_q_inv = (q * q.Inverse());
+  ASSERT_IDENTICAL(1, q_q_inv.w().Collect(q_norm_2).Subs(q_norm_2, 1));
   ASSERT_IDENTICAL(0, q_q_inv.x());
   ASSERT_IDENTICAL(0, q_q_inv.y());
   ASSERT_IDENTICAL(0, q_q_inv.z());
 
-  auto q_inv_q = (q.Inverse() * q).Subs(q_norm_2, 1).Subs(q_norm_2, 1);
-  ASSERT_IDENTICAL(1, q_inv_q.w());
+  auto q_inv_q = (q.Inverse() * q);
+  ASSERT_IDENTICAL(1, q_inv_q.w().Collect(q_norm_2).Subs(q_norm_2, 1));
   ASSERT_IDENTICAL(0, q_inv_q.x());
   ASSERT_IDENTICAL(0, q_inv_q.y());
   ASSERT_IDENTICAL(0, q_inv_q.z());
@@ -178,6 +172,9 @@ TEST(QuaternionTest, TestToRotationMatrix) {
   ASSERT_IDENTICAL(0, Collect((R_v_expected[0] - R_v[0]).Distribute(), a).Subs(q.SquaredNorm(), 1));
   ASSERT_IDENTICAL(0, Collect((R_v_expected[1] - R_v[1]).Distribute(), b).Subs(q.SquaredNorm(), 1));
   ASSERT_IDENTICAL(0, Collect((R_v_expected[2] - R_v[2]).Distribute(), c).Subs(q.SquaredNorm(), 1));
+
+  // Conjugate and transpose should match:
+  ASSERT_IDENTICAL(q.Conjugate().ToRotationMatrix(), q.ToRotationMatrix().Transpose());
 }
 
 TEST(QuaternionTest, TestFromAxisAngle) {
@@ -413,9 +410,11 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   ASSERT_IDENTICAL(0, q_pi_over_2_x.z());
 
   const Quaternion q_pi_x =
-      Quaternion::FromRotationMatrix(CreateMatrix(3, 3, 1, 0, 0, 0, -1, 0, 0, 0, -1));
+      Quaternion::FromRotationMatrix(CreateMatrix(3, 3, 1, 0, 0,
+                                                  0, -1, 0,
+                                                  0, 0, -1));
   ASSERT_IDENTICAL(0, q_pi_x.w());
-  ASSERT_IDENTICAL(-1, q_pi_x.x());
+  ASSERT_IDENTICAL(1, q_pi_x.x());
   ASSERT_IDENTICAL(0, q_pi_x.y());
   ASSERT_IDENTICAL(0, q_pi_x.z());
 
@@ -435,7 +434,7 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
       Quaternion::FromRotationMatrix(CreateMatrix(3, 3, -1, 0, 0, 0, 1, 0, 0, 0, -1));
   ASSERT_IDENTICAL(0, q_pi_y.w());
   ASSERT_IDENTICAL(0, q_pi_y.x());
-  ASSERT_IDENTICAL(-1, q_pi_y.y());
+  ASSERT_IDENTICAL(1, q_pi_y.y());
   ASSERT_IDENTICAL(0, q_pi_y.z());
 
   // clang-format off
@@ -455,7 +454,7 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   ASSERT_IDENTICAL(0, q_pi_z.w());
   ASSERT_IDENTICAL(0, q_pi_z.x());
   ASSERT_IDENTICAL(0, q_pi_z.y());
-  ASSERT_IDENTICAL(-1, q_pi_z.z());
+  ASSERT_IDENTICAL(1, q_pi_z.z());
 
   // TODO: With a bit more work on collect(), I could analytically demonstrate the mapping:
   //  S(4) -> SO(3) -> S(4)

@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 
+#include "expressions/numeric_expressions.h"
+#include "matrix_expression.h"
+
 #define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(math::ExpectEigenNear, a, b, tol)
 #define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(math::ExpectEigenNear, a, b, tol)
 

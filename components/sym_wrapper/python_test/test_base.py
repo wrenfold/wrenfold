@@ -1,5 +1,6 @@
 """Shared utilities for unit testing."""
 import unittest
+import sys
 import typing as T
 
 from sym import sym
@@ -7,6 +8,11 @@ from sym import sym
 
 class MathTestBase(unittest.TestCase):
     """Base class for unit tests."""
+
+    def setUp(self):
+        if sys.platform == "win32":
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
 
     def assertIdentical(self, a: T.Union[sym.Expr, int, float], b: sym.Expr):
         """Assert that two expressions are identical."""

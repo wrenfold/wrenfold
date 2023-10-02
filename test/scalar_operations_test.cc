@@ -436,6 +436,16 @@ TEST(ScalarOperationsTest, TestCollect) {
   // clang-format on
   ASSERT_IDENTICAL(pow(cos(x), 2) * (y - 12) + cos(x) * (sin(cos(x) * (4 - log(z))) - tan(z)),
                    Collect(f4, cos(x)));
+
+  // A power of a sum: 1 / (x**2 + y**2)
+  // Currently this only works if the sum appears as one cohesive term in a multiplication.
+  auto denominator = pow(x, 2) + pow(y, 2);
+  auto f5 = x / denominator - y / denominator;
+  ASSERT_IDENTICAL((x - y) / denominator, Collect(f5, denominator));
+
+  // Try with: 1 / sqrt(x**2 + y**2)
+  auto f6 = x / sqrt(denominator) - 5 * y / sqrt(denominator);
+  ASSERT_IDENTICAL((x - 5 * y) / sqrt(denominator), Collect(f6, denominator));
 }
 
 TEST(ScalarOperationsTest, TestCollectMany) {
