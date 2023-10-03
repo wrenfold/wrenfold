@@ -103,7 +103,7 @@ inline Expr Function::create(BuiltInFunctionName name, Function::ContainerType&&
     case BuiltInFunctionName::ENUM_SIZE:
       break;
   }
-  ASSERT(false, "Invalid function name: {}", to_string(name));
+  ZEN_ASSERT(false, "Invalid function name: {}", to_string(name));
   return Constants::Zero;  //  Unreachable.
 }
 

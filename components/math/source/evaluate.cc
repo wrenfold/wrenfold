@@ -18,8 +18,8 @@ struct EvaluateVisitor {
 
   Expr operator()(const Constant& c) const {
     const double value = double_from_symbolic_constant(c.name());
-    ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
-           string_from_symbolic_constant(c.name()));
+    ZEN_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
+               string_from_symbolic_constant(c.name()));
     return Float::create(value);
   }
 

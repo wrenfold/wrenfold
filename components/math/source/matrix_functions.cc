@@ -94,7 +94,7 @@ struct PermutationMatrix {
     }
     p_.insert(p_.begin(), 0);
     if (row != 0) {
-      ASSERT_LESS(static_cast<std::size_t>(row), p_.size());
+      ZEN_ASSERT_LESS(static_cast<std::size_t>(row), p_.size());
       std::swap(p_[0], p_[row]);
       ++num_swaps_;
     }
@@ -107,7 +107,7 @@ struct PermutationMatrix {
     }
     p_.insert(p_.begin(), 0);
     auto it = std::find(p_.begin(), p_.end(), row);
-    ASSERT(it != p_.end());
+    ZEN_ASSERT(it != p_.end());
     if (it != p_.begin()) {
       std::swap(*it, p_[0]);
       ++num_swaps_;
@@ -175,12 +175,12 @@ static inline std::optional<std::tuple<std::size_t, std::size_t>> find_pivot(
 static std::tuple<PermutationMatrix, PermutationMatrix> factorize_full_piv_lu_internal(
     dynamic_row_major_span L, dynamic_row_major_span U) {
   if (L.rows() == 1) {
-    ASSERT_EQUAL(1, L.cols());
+    ZEN_ASSERT_EQUAL(1, L.cols());
     L(0, 0) = Constants::One;
     return std::make_tuple(PermutationMatrix(1), PermutationMatrix(U.cols()));
   }
 
-  ASSERT_GREATER_OR_EQ(U.rows(), 2);
+  ZEN_ASSERT_GREATER_OR_EQ(U.rows(), 2);
 
   // Search for a non-zero pivot.
   auto pivot_indices = find_pivot(U);
@@ -230,7 +230,7 @@ static std::tuple<PermutationMatrix, PermutationMatrix> factorize_full_piv_lu_in
   L(0, 0) = Constants::One;
 
   // then the column underneath it:
-  ASSERT_EQUAL(static_cast<std::size_t>(P.rows()), c.rows());
+  ZEN_ASSERT_EQUAL(static_cast<std::size_t>(P.rows()), c.rows());
   for (std::size_t i = 0; i < c.rows(); ++i) {
     L(i + 1, 0) = c(P.permuted_row_transposed(static_cast<index_t>(i)), 0) / pivot;
   }
@@ -243,7 +243,7 @@ static std::tuple<PermutationMatrix, PermutationMatrix> factorize_full_piv_lu_in
   }
 
   // Permute the top-right row of U:
-  ASSERT_EQUAL(static_cast<std::size_t>(Q.rows()), r_t.cols());
+  ZEN_ASSERT_EQUAL(static_cast<std::size_t>(Q.rows()), r_t.cols());
   for (std::size_t j = 0; j < r_t.cols(); ++j) {
     U(0, j + 1) = r_t_copied[Q.PermutedRow(static_cast<index_t>(j))];
   }
@@ -269,10 +269,10 @@ factorize_full_piv_lu_internal(const Matrix& A) {
     Matrix U_out = L.transposed();
     Matrix L_out = U.transposed();
 
-    ASSERT_EQUAL(L_out.rows(), A.rows());
-    ASSERT_EQUAL(L_out.cols(), A.cols());
-    ASSERT_EQUAL(U_out.rows(), A.cols());
-    ASSERT_EQUAL(U_out.rows(), U_out.cols());
+    ZEN_ASSERT_EQUAL(L_out.rows(), A.rows());
+    ZEN_ASSERT_EQUAL(L_out.cols(), A.cols());
+    ZEN_ASSERT_EQUAL(U_out.rows(), A.cols());
+    ZEN_ASSERT_EQUAL(U_out.rows(), U_out.cols());
 
     // Then we need to normalize the diagonal of L
     for (index_t col = 0; col < L_out.cols(); ++col) {

@@ -190,7 +190,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
     const Integer max_valid_exponent = max_valid_integer_exponent.value();
     for (const auto& [base, exponent] : target_parts.terms) {
       auto it = input_parts.terms.find(base);
-      ASSERT(it != input_parts.terms.end());
+      ZEN_ASSERT(it != input_parts.terms.end());
       it->second = it->second - (exponent * max_valid_exponent.get_value());
     }
 

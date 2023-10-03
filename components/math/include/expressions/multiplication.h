@@ -19,7 +19,7 @@ class Multiplication {
 
   // Move-construct.
   explicit Multiplication(ContainerType&& terms) : terms_(std::move(terms)) {
-    ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    ZEN_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     sort_terms();
   }
 
@@ -31,8 +31,8 @@ class Multiplication {
     terms_.reserve(sizeof...(terms));
     (terms_.emplace_back(std::forward<Ts>(terms)), ...);
     for (const auto& term : terms_) {
-      ASSERT(!term.is_type<Multiplication>(), "Multiplications should all be flattened: {}",
-             term.to_string());
+      ZEN_ASSERT(!term.is_type<Multiplication>(), "Multiplications should all be flattened: {}",
+                 term.to_string());
     }
     sort_terms();
   }

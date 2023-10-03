@@ -49,7 +49,7 @@ struct AdditionVisitor {
   void operator()(const T&, const Expr& input_expression) {
     // Everything else: Just add to the coeff
     auto [coeff, mul] = as_coeff_and_mul(input_expression);
-    ASSERT(!mul.is_type<Addition>(), "TODO: Should just silently merge cases like this");
+    ZEN_ASSERT(!mul.is_type<Addition>(), "TODO: Should just silently merge cases like this");
 
     const auto [it, was_inserted] = parts.terms.emplace(std::move(mul), coeff);
     if (!was_inserted) {

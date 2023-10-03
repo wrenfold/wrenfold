@@ -81,7 +81,7 @@ struct VisitorWithCapturedResult final
     if constexpr (std::is_default_constructible_v<ReturnType>) {
       return std::move(result);
     } else {
-      ASSERT(result.has_value());
+      ZEN_ASSERT(result.has_value());
       return std::move(*result);
     }
   }

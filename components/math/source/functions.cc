@@ -256,7 +256,7 @@ Expr abs(const Expr& arg) {
   if (const std::optional<Rational> r = try_cast_to_rational(arg); r.has_value()) {
     // If the inner argument is a negative integer or rational, just flip it.
     if (r->numerator() >= 0) {
-      ASSERT_GREATER(r->denominator(), 0);
+      ZEN_ASSERT_GREATER(r->denominator(), 0);
       return arg;
     }
     return Rational::create(-r->numerator(), r->denominator());
@@ -292,7 +292,7 @@ struct SignumVisitor {
   std::optional<Expr> operator()(const Integer& i) const { return Expr{sign(i.get_value())}; }
   std::optional<Expr> operator()(const Rational& r) const { return Expr{sign(r.numerator())}; }
   std::optional<Expr> operator()(const Float& f) const {
-    ASSERT(!std::isnan(f.get_value()));
+    ZEN_ASSERT(!std::isnan(f.get_value()));
     return Expr{sign(f.get_value())};
   }
 

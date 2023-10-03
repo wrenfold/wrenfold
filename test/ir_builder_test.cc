@@ -42,7 +42,7 @@ struct OptionalArgPermutations {
         scatter_.emplace(it->key.name, scatter_.size());
       }
     }
-    ASSERT_LESS(scatter_.size(), MaxOptionalArgs);
+    ZEN_ASSERT_LESS(scatter_.size(), MaxOptionalArgs);
   }
 
   std::size_t num_permutations() const {
@@ -55,7 +55,7 @@ struct OptionalArgPermutations {
   // Get the n'th permutation of optional arguments.
   // The returned map is a mapping from `arg name` --> whether the argument is to be computed.
   std::unordered_map<std::string, bool> get_permutation(std::size_t n) const {
-    ASSERT_LESS(n, num_permutations());
+    ZEN_ASSERT_LESS(n, num_permutations());
     const std::bitset<MaxOptionalArgs> permutation{n};
 
     std::unordered_map<std::string, bool> output{};

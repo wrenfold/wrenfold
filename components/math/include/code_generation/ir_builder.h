@@ -77,7 +77,7 @@ struct OutputIr {
     const auto it =
         std::find_if(blocks_.begin(), blocks_.end(),
                      [](const ir::Block::unique_ptr& block) { return block->has_no_ancestors(); });
-    ASSERT(it != blocks_.end(), "Must be an entry block");
+    ZEN_ASSERT(it != blocks_.end(), "Must be an entry block");
     return ir::BlockPtr{*it};
   }
 

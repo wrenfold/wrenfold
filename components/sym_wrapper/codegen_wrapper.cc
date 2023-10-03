@@ -195,7 +195,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("left", [](const ast::AssignTemporary& x) { return x.left; })
       .def_property_readonly("right",
                              [](const ast::AssignTemporary& x) {
-                               ASSERT(x.right);
+                               ZEN_ASSERT(x.right);
                                return *x.right;
                              })
       .def("__repr__", &format_ast<ast::AssignTemporary>);
@@ -203,7 +203,7 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<ast::AssignOutputArgument>(m, "AssignOutputArgument")
       .def_property_readonly("argument",
                              [](const ast::AssignOutputArgument& x) {
-                               ASSERT(x.argument);
+                               ZEN_ASSERT(x.argument);
                                return *x.argument;
                              })
       .def_property_readonly("values", [](const ast::AssignOutputArgument& x) { return x.values; })
@@ -225,7 +225,7 @@ void wrap_codegen_operations(py::module_& m) {
                              [](const ast::Cast& c) { return c.destination_type; })
       .def_property_readonly("arg",
                              [](const ast::Cast& c) {
-                               ASSERT(c.arg);
+                               ZEN_ASSERT(c.arg);
                                return *c.arg;
                              })
       .def("__repr__", &format_ast<ast::Cast>);
@@ -233,12 +233,12 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<ast::Compare>(m, "Compare")
       .def_property_readonly("left",
                              [](const ast::Compare& c) {
-                               ASSERT(c.left);
+                               ZEN_ASSERT(c.left);
                                return *c.left;
                              })
       .def_property_readonly("right",
                              [](const ast::Compare& c) {
-                               ASSERT(c.right);
+                               ZEN_ASSERT(c.right);
                                return *c.right;
                              })
       .def_property_readonly("operation", [](const ast::Compare& c) { return c.operation; })
@@ -278,12 +278,12 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<ast::Multiply>(m, "Multiply")
       .def_property_readonly("left",
                              [](const ast::Multiply& x) {
-                               ASSERT(x.left);
+                               ZEN_ASSERT(x.left);
                                return *x.left;
                              })
       .def_property_readonly("right",
                              [](const ast::Multiply& x) {
-                               ASSERT(x.right);
+                               ZEN_ASSERT(x.right);
                                return *x.right;
                              })
       .def("__repr__", &format_ast<ast::Multiply>);

@@ -17,7 +17,7 @@ class Derivative {
 
   Derivative(Expr differentiand, Expr arg, int order = 1)
       : children_{std::move(differentiand), std::move(arg)}, order_(order) {
-    ASSERT_GREATER_OR_EQ(order_, 1);
+    ZEN_ASSERT_GREATER_OR_EQ(order_, 1);
   }
 
   // The function we are taking the derivative of:

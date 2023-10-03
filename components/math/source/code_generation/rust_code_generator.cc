@@ -144,7 +144,7 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter,
         "\n", range);
   } else {
     // Otherwise it is a scalar, so just assign it:
-    ASSERT_EQUAL(1, assignment.values.size());
+    ZEN_ASSERT_EQUAL(1, assignment.values.size());
     formatter.format("*{} = {};", dest_name, assignment.values.front());
   }
 }
@@ -154,7 +154,7 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTe
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x) const {
-  ASSERT(x.condition);
+  ZEN_ASSERT(x.condition);
   formatter.format("if {} ", make_view(x.condition));
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.if_branch); });
 
@@ -216,8 +216,8 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare&
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter,
                                    const ast::ConstructReturnValue& x) const {
-  ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
-  ASSERT_EQUAL(1, x.args.size());
+  ZEN_ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
+  ZEN_ASSERT_EQUAL(1, x.args.size());
   formatter.format("{}", make_view(x.args[0]));
 }
 
@@ -231,7 +231,7 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarat
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
-  ASSERT(x.argument);
+  ZEN_ASSERT(x.argument);
   if (x.argument->is_matrix()) {
     const ast::MatrixType mat = std::get<ast::MatrixType>(x.argument->type());
     const auto [r, c] = mat.compute_indices(x.element);

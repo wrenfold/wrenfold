@@ -28,8 +28,8 @@ struct convert_output_arg_type;
 struct NumericFunctionEvaluator {
   Expr operator()(const FunctionArgument& arg, const Expr&) const {
     auto it = values.find(arg);
-    ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.arg_index(),
-           arg.element_index());
+    ZEN_ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.arg_index(),
+               arg.element_index());
     return it->second;
   }
 
@@ -91,8 +91,8 @@ template <index_t Rows, index_t Cols>
 struct apply_numeric_evaluator_impl<ta::StaticMatrix<Rows, Cols>> {
   Eigen::Matrix<double, Rows, Cols> operator()(const NumericFunctionEvaluator& evaluator,
                                                const MatrixExpr& input) const {
-    ASSERT_EQUAL(input.rows(), Rows);
-    ASSERT_EQUAL(input.cols(), Cols);
+    ZEN_ASSERT_EQUAL(input.rows(), Rows);
+    ZEN_ASSERT_EQUAL(input.cols(), Cols);
     Eigen::Matrix<double, Rows, Cols> output;
     for (index_t i = 0; i < Rows; ++i) {
       for (index_t j = 0; j < Cols; ++j) {

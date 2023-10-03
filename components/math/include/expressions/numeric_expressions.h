@@ -158,7 +158,7 @@ class Float {
   // Create floating point expression.
   static Expr create(Float f) { return make_expr<Float>(f); }
   static Expr create(FloatType f) {
-    ASSERT(std::isfinite(f), "Float values must be finite: {}", f);
+    ZEN_ASSERT(std::isfinite(f), "Float values must be finite: {}", f);
     return create(Float{f});
   }
 

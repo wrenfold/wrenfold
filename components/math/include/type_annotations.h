@@ -23,8 +23,8 @@ template <index_t Rows, index_t Cols>
 struct StaticMatrix {
   // Allow implicit construction from MatrixExpr.
   StaticMatrix(MatrixExpr expr) : expr_(std::move(expr)) {  // NOLINT(google-explicit-constructor)
-    ASSERT_EQUAL(Rows, expr_.rows());
-    ASSERT_EQUAL(Cols, expr_.cols());
+    ZEN_ASSERT_EQUAL(Rows, expr_.rows());
+    ZEN_ASSERT_EQUAL(Cols, expr_.cols());
   }
 
   constexpr index_t rows() const { return Rows; }
@@ -44,8 +44,8 @@ struct StaticMatrix {
 
   // Assign from MatrixExpr
   StaticMatrix& operator=(const MatrixExpr& other) {
-    ASSERT_EQUAL(Rows, other.rows());
-    ASSERT_EQUAL(Cols, other.cols());
+    ZEN_ASSERT_EQUAL(Rows, other.rows());
+    ZEN_ASSERT_EQUAL(Cols, other.cols());
     expr_ = other;
     return *this;
   }
