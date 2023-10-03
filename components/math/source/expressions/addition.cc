@@ -11,14 +11,14 @@
 
 namespace math {
 
-Expr Addition::FromOperands(absl::Span<const Expr> args) {
+Expr Addition::from_operands(absl::Span<const Expr> args) {
   // TODO: extract common denominator?
   AdditionParts parts{args.size()};
   for (const Expr& arg : args) {
-    parts.Add(arg);
+    parts.add_terms(arg);
   }
-  parts.Normalize();
-  return parts.CreateAddition();
+  parts.normalize_coefficients();
+  return parts.create_addition();
 }
 
 struct AdditionVisitor {
@@ -27,7 +27,7 @@ struct AdditionVisitor {
   void operator()(const Addition& arg) {
     for (const Expr& expr : arg) {
       // Recursively add additions:
-      VisitWithExprArg(expr, *this);
+      visit_with_expr(expr, *this);
     }
   }
 
@@ -43,13 +43,13 @@ struct AdditionVisitor {
     }
   }
 
-  using ExcludedTypes = TypeList<Addition, Integer, Rational, Float, Matrix>;
+  using ExcludedTypes = type_list<Addition, Integer, Rational, Float, Matrix>;
 
-  template <typename T, typename = EnableIfDoesNotContainType<T, ExcludedTypes>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, ExcludedTypes>>
   void operator()(const T&, const Expr& input_expression) {
     // Everything else: Just add to the coeff
-    auto [coeff, mul] = AsCoefficientAndMultiplicand(input_expression);
-    ASSERT(!mul.Is<Addition>(), "TODO: Should just silently merge cases like this");
+    auto [coeff, mul] = as_coeff_and_mul(input_expression);
+    ASSERT(!mul.is_type<Addition>(), "TODO: Should just silently merge cases like this");
 
     const auto [it, was_inserted] = parts.terms.emplace(std::move(mul), coeff);
     if (!was_inserted) {
@@ -60,25 +60,25 @@ struct AdditionVisitor {
   AdditionParts& parts;
 };
 
-AdditionParts::AdditionParts(const Addition& add) : AdditionParts(add.Arity()) {
+AdditionParts::AdditionParts(const Addition& add) : AdditionParts(add.arity()) {
   for (const Expr& expr : add) {
-    Add(expr);
+    add_terms(expr);
   }
-  Normalize();
+  normalize_coefficients();
 }
 
-void AdditionParts::Add(const Expr& arg) {
-  if (IsZero(arg)) {
+void AdditionParts::add_terms(const Expr& arg) {
+  if (is_zero(arg)) {
     return;
   }
   AdditionVisitor visitor{*this};
-  VisitWithExprArg(arg, visitor);
+  visit_with_expr(arg, visitor);
 }
 
-void AdditionParts::Normalize() {
+void AdditionParts::normalize_coefficients() {
   // Remove anything where the coefficient worked out to zero:
   for (auto it = terms.begin(); it != terms.end();) {
-    if (IsZero(it->second)) {
+    if (is_zero(it->second)) {
       it = terms.erase(it);
     } else {
       ++it;
@@ -86,29 +86,30 @@ void AdditionParts::Normalize() {
   }
 }
 
-Expr AdditionParts::CreateAddition() const {
+Expr AdditionParts::create_addition() const {
   Addition::ContainerType args{};
   if (float_term.has_value()) {
     const Float promoted_rational = static_cast<Float>(rational_term);
-    args.push_back(MakeExpr<Float>(float_term.value() + promoted_rational));
-  } else if (rational_term.IsZero()) {
+    args.push_back(make_expr<Float>(float_term.value() + promoted_rational));
+  } else if (rational_term.is_zero()) {
     // Don't insert a useless zero in the add.
   } else {
-    args.push_back(Rational::Create(rational_term));
+    args.push_back(Rational::create(rational_term));
   }
 
   args.reserve(args.size() + terms.size());
-  std::transform(
-      terms.begin(), terms.end(), std::back_inserter(args), [](const std::pair<Expr, Expr>& pair) {
-        if (IsOne(pair.second)) {
-          return pair.first;
-        } else if (!pair.first.Is<Multiplication>() && !pair.second.Is<Multiplication>()) {
-          // We can skip calling FromOperands here because we know the first element in
-          // the pair is the non-numeric value and the second is the numeric coefficient.
-          return MakeExpr<Multiplication>(pair.second, pair.first);
-        }
-        return Multiplication::FromOperands({pair.first, pair.second});
-      });
+  std::transform(terms.begin(), terms.end(), std::back_inserter(args),
+                 [](const std::pair<Expr, Expr>& pair) {
+                   if (is_one(pair.second)) {
+                     return pair.first;
+                   } else if (!pair.first.is_type<Multiplication>() &&
+                              !pair.second.is_type<Multiplication>()) {
+                     // We can skip calling FromOperands here because we know the first element in
+                     // the pair is the non-numeric value and the second is the numeric coefficient.
+                     return make_expr<Multiplication>(pair.second, pair.first);
+                   }
+                   return Multiplication::from_operands({pair.first, pair.second});
+                 });
 
   if (args.empty()) {
     return Constants::Zero;
@@ -116,7 +117,7 @@ Expr AdditionParts::CreateAddition() const {
     return args.front();
   }
 
-  return MakeExpr<Addition>(std::move(args));
+  return make_expr<Addition>(std::move(args));
 }
 
 }  // namespace math

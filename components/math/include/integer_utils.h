@@ -9,7 +9,7 @@ namespace math {
 
 // Perform the wheel factorization algorithm. Finds a prime number that factorizes `n_in`.
 // I haven't optimized this much, but in benchmarks it beats trial division.
-inline constexpr int64_t WheelFactorization(const int64_t n_in) {
+inline constexpr int64_t wheel_factorization(const int64_t n_in) noexcept {
   if (n_in % 2 == 0) {
     return 2;
   } else if (n_in % 3 == 0) {
@@ -32,14 +32,14 @@ inline constexpr int64_t WheelFactorization(const int64_t n_in) {
   return n_in;
 }
 
-// Result of `ComputePrimeFactors`.
+// Result of `compute_prime_factors`.
 struct PrimeFactor {
   int64_t base;
   int64_t exponent;
 };
 
 // Compute the prime factors of `n_in`. TODO: Use small vector here.
-inline std::vector<PrimeFactor> ComputePrimeFactors(const int64_t n_in) {
+inline std::vector<PrimeFactor> compute_prime_factors(const int64_t n_in) {
   std::vector<PrimeFactor> result;
   result.reserve(10);
   int64_t x = n_in;
@@ -50,7 +50,7 @@ inline std::vector<PrimeFactor> ComputePrimeFactors(const int64_t n_in) {
     x = -x;
   }
   while (x != 1) {
-    const int64_t factor = WheelFactorization(x);
+    const int64_t factor = wheel_factorization(x);
     if (!result.empty() && result.back().base == factor) {
       // This is a repeated factor.
       result.back().exponent += 1;
@@ -64,7 +64,7 @@ inline std::vector<PrimeFactor> ComputePrimeFactors(const int64_t n_in) {
 
 // Integer power function.
 // TODO: Check for overflow.
-constexpr int64_t Pow(int64_t base, int64_t exp) {
+constexpr int64_t integer_power(int64_t base, int64_t exp) {
   int64_t result = 1;
   for (;;) {
     if (exp & 1) {
@@ -84,7 +84,7 @@ constexpr int64_t Pow(int64_t base, int64_t exp) {
 // Simplified to only support signed integer, and cases where range of `F` exceeds that of `I`.
 // You can compare int64_t and f64, for example. You cannot compare int64_t and f32.
 template <typename I, typename F>
-constexpr std::optional<RelativeOrder> CompareIntFloat(const I i, const F f) {
+constexpr std::optional<RelativeOrder> compare_int_float(const I i, const F f) {
   static_assert(std::is_integral_v<I> && std::is_signed_v<I>, "First argument must be ");
   static_assert(std::is_floating_point_v<F>);
 

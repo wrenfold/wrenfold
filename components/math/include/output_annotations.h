@@ -10,24 +10,24 @@ template <typename T>
 class OutputArg {
  public:
   template <typename U>
-  using EnableIfDecayedTypeMatches = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
+  using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
 
-  template <typename U, typename = EnableIfDecayedTypeMatches<U>>
+  template <typename U, typename = enable_if_decayed_type_matches_t<U>>
   constexpr OutputArg(std::string_view name, U&& u)
       : value_(std::forward<U>(u)), name_(name), is_optional_(false) {}
 
-  template <typename U, typename = EnableIfDecayedTypeMatches<U>>
+  template <typename U, typename = enable_if_decayed_type_matches_t<U>>
   constexpr OutputArg(std::string_view name, U&& u, bool is_optional)
       : value_(std::forward<U>(u)), name_(name), is_optional_(is_optional) {}
 
   // Access the output value. Typically, an `Expr` or `MatrixExpr`, etc.
-  constexpr const T& Value() const { return value_; }
+  constexpr const T& value() const { return value_; }
 
   // Name of the argument.
-  constexpr const std::string& Name() const { return name_; }
+  constexpr const std::string& name() const { return name_; }
 
   // True if the output argument is optional.
-  constexpr bool IsOptional() const { return is_optional_; }
+  constexpr bool is_optional() const { return is_optional_; }
 
  private:
   T value_;
@@ -51,16 +51,16 @@ template <typename T>
 class ReturnValue {
  public:
   template <typename U>
-  using EnableIfDecayedTypeMatches = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
+  using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
 
-  template <typename U, typename = EnableIfDecayedTypeMatches<U>>
+  template <typename U, typename = enable_if_decayed_type_matches_t<U>>
   explicit ReturnValue(U&& value) : value_(std::forward<U>(value)) {}
 
   // Access the output value. Typically, an `Expr` or `MatrixExpr`, etc.
-  constexpr const T& Value() const { return value_; }
+  constexpr const T& value() const { return value_; }
 
   // Convert to `OutputArg`.
-  OutputArg<T> ToOutputArg(const std::string_view name) const { return OutputArg(name, value_); }
+  OutputArg<T> to_output_arg(const std::string_view name) const { return OutputArg(name, value_); }
 
  private:
   T value_;
@@ -71,41 +71,42 @@ template <class T>
 ReturnValue(T&& value) -> ReturnValue<std::decay_t<T>>;
 
 template <typename T>
-struct IsOutputArg : public std::false_type {};
+struct is_output_arg : public std::false_type {};
 template <typename T>
-struct IsOutputArg<OutputArg<T>> : public std::true_type {};
+struct is_output_arg<OutputArg<T>> : public std::true_type {};
 
 template <typename T>
-struct IsReturnValue : public std::false_type {};
+struct is_return_value : public std::false_type {};
 template <typename T>
-struct IsReturnValue<ReturnValue<T>> : public std::true_type {};
+struct is_return_value<ReturnValue<T>> : public std::true_type {};
 
 template <typename T>
-struct IsOutputArgOrReturnValue : public std::disjunction<IsOutputArg<T>, IsReturnValue<T>> {};
+struct is_output_arg_or_return_value
+    : public std::disjunction<is_output_arg<T>, is_return_value<T>> {};
 
 // Count the number of instances of `ReturnValue` in a type pack.
 template <typename... Ts>
-constexpr std::size_t CountReturnValues =
-    (static_cast<std::size_t>(IsReturnValue<Ts>::value) + ...);
+constexpr std::size_t count_return_values_v =
+    (static_cast<std::size_t>(is_return_value<Ts>::value) + ...);
 
 namespace detail {
 template <std::ptrdiff_t Index>
-constexpr std::ptrdiff_t ReturnValueIndexRecursive() {
+constexpr std::ptrdiff_t return_value_index_recursive() {
   return -1;
 }
 template <std::ptrdiff_t Index, typename T, typename... Ts>
-constexpr std::ptrdiff_t ReturnValueIndexRecursive() {
-  return IsReturnValue<T>::value ? Index : ReturnValueIndexRecursive<Index + 1, Ts...>();
+constexpr std::ptrdiff_t return_value_index_recursive() {
+  return is_return_value<T>::value ? Index : return_value_index_recursive<Index + 1, Ts...>();
 }
 }  // namespace detail
 
 // Get the index of the first `ReturnValue` type in a type pack or tuple by recursively searching
 // the list of types. Yields -1 if there is no return value.
 template <typename T>
-struct ReturnValueIndex;
+struct return_value_index;
 template <typename... Ts>
-struct ReturnValueIndex<std::tuple<Ts...>> {
-  static constexpr std::ptrdiff_t value = detail::ReturnValueIndexRecursive<0, Ts...>();
+struct return_value_index<std::tuple<Ts...>> {
+  static constexpr std::ptrdiff_t value = detail::return_value_index_recursive<0, Ts...>();
 };
 
 }  // namespace math

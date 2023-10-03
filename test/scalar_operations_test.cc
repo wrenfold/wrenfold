@@ -14,12 +14,12 @@ TEST(ScalarOperationsTest, TestAddition) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_TRUE((x + y).Is<Addition>());
+  ASSERT_TRUE((x + y).is_type<Addition>());
   ASSERT_IDENTICAL(x + y, x + y);
   ASSERT_IDENTICAL(x + y, y + x);
   ASSERT_NOT_IDENTICAL(x + w, x + y);
   ASSERT_NOT_IDENTICAL(x - w, z + y);
-  ASSERT_EQ("Addition", (x + y).TypeName());
+  ASSERT_EQ("Addition", (x + y).type_name());
 
   // Canonicalization of order:
   ASSERT_IDENTICAL(w + x + y, y + x + w);
@@ -51,9 +51,9 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_TRUE((x * y).Is<Multiplication>());
+  ASSERT_TRUE((x * y).is_type<Multiplication>());
   ASSERT_IDENTICAL(x * y, x * y);
-  ASSERT_EQ("Multiplication", (x * y).TypeName());
+  ASSERT_EQ("Multiplication", (x * y).type_name());
 
   // Canonicalization of order for a simple case:
   ASSERT_IDENTICAL(y * x, x * y);
@@ -114,7 +114,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
 TEST(ScalarOperationsTest, TestNegation) {
   const Expr x{"x"};
   ASSERT_IDENTICAL(-x, -x);
-  ASSERT_TRUE((-x).Is<Multiplication>());
+  ASSERT_TRUE((-x).is_type<Multiplication>());
   ASSERT_IDENTICAL(-(-x), x);
   ASSERT_IDENTICAL(-(-(-x)), -x);
 }
@@ -124,7 +124,7 @@ TEST(ScalarOperationsTest, TestDivision) {
   const Expr y{"y"};
   const Expr z{"z"};
   ASSERT_IDENTICAL(x / y, x / y);
-  ASSERT_TRUE((x / y).Is<Multiplication>());
+  ASSERT_TRUE((x / y).is_type<Multiplication>());
   ASSERT_NOT_IDENTICAL(y / x, x / y);
   ASSERT_IDENTICAL(x / y / z, (x / y) / z);
   ASSERT_IDENTICAL(Constants::Zero, 0 / x);
@@ -135,9 +135,10 @@ TEST(ScalarOperationsTest, TestDivision) {
   ASSERT_IDENTICAL(z / (y * z), 1_s / y);
 
   // Cancellation of powers:
-  ASSERT_TRUE(pow(x, 3).Is<Power>());
-  ASSERT_TRUE(pow(x, 2).Is<Power>());
-  ASSERT_TRUE(CastPtr<Power>(pow(x, 3))->Base().IsIdenticalTo(CastPtr<Power>(pow(x, 2))->Base()));
+  ASSERT_TRUE(pow(x, 3).is_type<Power>());
+  ASSERT_TRUE(pow(x, 2).is_type<Power>());
+  ASSERT_TRUE(
+      cast_ptr<Power>(pow(x, 3))->base().is_identical_to(cast_ptr<Power>(pow(x, 2))->base()));
 
   ASSERT_IDENTICAL(x, pow(x, 3) / pow(x, 2));
   ASSERT_IDENTICAL(Constants::One, pow(x, 3) / (x * x * x));
@@ -150,41 +151,41 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
   const Expr y{"y"};
   const Expr z{"z"};
 
-  ASSERT_IDENTICAL(Constants::Zero, AsCoefficientAndMultiplicand(0).first);
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(0).second);
+  ASSERT_IDENTICAL(Constants::Zero, as_coeff_and_mul(0).first);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(0).second);
 
-  ASSERT_IDENTICAL(2_s, AsCoefficientAndMultiplicand(2).first);
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(2).second);
+  ASSERT_IDENTICAL(2_s, as_coeff_and_mul(2).first);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(2).second);
 
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(x).first);
-  ASSERT_IDENTICAL(x, AsCoefficientAndMultiplicand(x).second);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(x).first);
+  ASSERT_IDENTICAL(x, as_coeff_and_mul(x).second);
 
-  ASSERT_IDENTICAL(Constants::One, AsCoefficientAndMultiplicand(x / y).first);
-  ASSERT_IDENTICAL(x / y, AsCoefficientAndMultiplicand(x / y).second);
+  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(x / y).first);
+  ASSERT_IDENTICAL(x / y, as_coeff_and_mul(x / y).second);
 
   // Special constants are symbols, and do not go in the multiplicand:
-  ASSERT_IDENTICAL(3_s, AsCoefficientAndMultiplicand(3 * Constants::Pi).first);
-  ASSERT_IDENTICAL(Constants::Pi, AsCoefficientAndMultiplicand(3 * Constants::Pi).second);
+  ASSERT_IDENTICAL(3_s, as_coeff_and_mul(3 * Constants::Pi).first);
+  ASSERT_IDENTICAL(Constants::Pi, as_coeff_and_mul(3 * Constants::Pi).second);
 
-  ASSERT_IDENTICAL(5_s / 7, AsCoefficientAndMultiplicand(Constants::Pi * z * 5_s / 7).first);
-  ASSERT_IDENTICAL(Constants::Pi * z, AsCoefficientAndMultiplicand(Constants::Pi * z).second);
+  ASSERT_IDENTICAL(5_s / 7, as_coeff_and_mul(Constants::Pi * z * 5_s / 7).first);
+  ASSERT_IDENTICAL(Constants::Pi * z, as_coeff_and_mul(Constants::Pi * z).second);
 
   // Include some functions:
-  ASSERT_IDENTICAL(1.22_s, AsCoefficientAndMultiplicand(1.22 * sin(x) * cos(y)).first);
-  ASSERT_IDENTICAL(cos(y) * sin(x), AsCoefficientAndMultiplicand(1.22 * sin(x) * cos(y)).second);
+  ASSERT_IDENTICAL(1.22_s, as_coeff_and_mul(1.22 * sin(x) * cos(y)).first);
+  ASSERT_IDENTICAL(cos(y) * sin(x), as_coeff_and_mul(1.22 * sin(x) * cos(y)).second);
 }
 
 TEST(ScalarOperationsTest, TestPower) {
-  auto [x, y, z] = Symbols("x", "y", "z");
+  auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_IDENTICAL(pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(x, y)).first, x);
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(x, y)).second, y);
-  ASSERT_EQ("Power", pow(x, y).TypeName());
+  ASSERT_IDENTICAL(as_base_and_exp(pow(x, y)).first, x);
+  ASSERT_IDENTICAL(as_base_and_exp(pow(x, y)).second, y);
+  ASSERT_EQ("Power", pow(x, y).type_name());
 
   // Powers don't get combined automatically (for variable exponents):
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(pow(x, y), z)).first, pow(x, y));
-  ASSERT_IDENTICAL(AsBaseAndExponent(pow(pow(x, y), z)).second, z);
+  ASSERT_IDENTICAL(as_base_and_exp(pow(pow(x, y), z)).first, pow(x, y));
+  ASSERT_IDENTICAL(as_base_and_exp(pow(pow(x, y), z)).second, z);
 
   // Powers of expressions to constants:
   ASSERT_IDENTICAL(Constants::One, pow(x * y, 0));
@@ -196,7 +197,7 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(8, pow(2, 3));
   ASSERT_IDENTICAL(-243_s, pow(-3, 5));
   ASSERT_IDENTICAL(Constants::Zero, pow(0, 10));
-  ASSERT_IDENTICAL(Rational::Create(1, 8), pow(2, -3));
+  ASSERT_IDENTICAL(Rational::create(1, 8), pow(2, -3));
   ASSERT_IDENTICAL(25 / 64_s, pow(5 / 8_s, 2));
   ASSERT_IDENTICAL(343 / 729_s, pow(9 / 7_s, -3));
   ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));
@@ -256,9 +257,9 @@ TEST(ScalarOperationsTest, TestPower) {
 
 // Test creating relational expressions
 TEST(ScalarOperationsTest, TestRelationals) {
-  const auto [x, y, z] = Symbols("x", "y", "z");
-  ASSERT_TRUE((x > y).Is<Relational>());
-  ASSERT_TRUE((x == y).Is<Relational>());
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  ASSERT_TRUE((x > y).is_type<Relational>());
+  ASSERT_TRUE((x == y).is_type<Relational>());
   ASSERT_IDENTICAL(x > y, x > y);
   ASSERT_IDENTICAL(x > y, y < x);
   ASSERT_IDENTICAL(z <= x, x >= z);
@@ -329,7 +330,7 @@ TEST(ScalarOperationsTest, TestConditional) {
   const Expr y{"y"};
   const Expr z{"z"};
 
-  ASSERT_TRUE(where(x > 0, y, z).Is<Conditional>());
+  ASSERT_TRUE(where(x > 0, y, z).is_type<Conditional>());
   ASSERT_IDENTICAL(x, where(Constants::True, x, z));
   ASSERT_IDENTICAL(z, where(Constants::False, x, z));
   ASSERT_IDENTICAL(where(x < 0, cos(x), log(z)),
@@ -347,45 +348,45 @@ TEST(ScalarOperationsTest, TestDistribute) {
   const Expr p{"p"};
   const Expr q{"q"};
   const Expr v{"v"};
-  ASSERT_IDENTICAL(x, x.Distribute());
-  ASSERT_IDENTICAL(x + y, (x + y).Distribute());
-  ASSERT_IDENTICAL(6 + 3 * x, (3 * (x + 2)).Distribute());
-  ASSERT_IDENTICAL(w * x + w * y, (w * (x + y)).Distribute());
-  ASSERT_IDENTICAL(x * x * y + x * x * 5 / 3_s, (x * x * (y + 5 / 3_s)).Distribute());
-  ASSERT_IDENTICAL(x * log(y) - x * w, ((log(y) - w) * x).Distribute());
+  ASSERT_IDENTICAL(x, x.distribute());
+  ASSERT_IDENTICAL(x + y, (x + y).distribute());
+  ASSERT_IDENTICAL(6 + 3 * x, (3 * (x + 2)).distribute());
+  ASSERT_IDENTICAL(w * x + w * y, (w * (x + y)).distribute());
+  ASSERT_IDENTICAL(x * x * y + x * x * 5 / 3_s, (x * x * (y + 5 / 3_s)).distribute());
+  ASSERT_IDENTICAL(x * log(y) - x * w, ((log(y) - w) * x).distribute());
 
   // Multiple distributions:
-  ASSERT_IDENTICAL(w * y + w * z + x * y + x * z, ((w + x) * (y + z)).Distribute());
-  ASSERT_IDENTICAL(w * w - 16, ((w - 4) * (w + 4)).Distribute());
+  ASSERT_IDENTICAL(w * y + w * z + x * y + x * z, ((w + x) * (y + z)).distribute());
+  ASSERT_IDENTICAL(w * w - 16, ((w - 4) * (w + 4)).distribute());
   ASSERT_IDENTICAL((p * w * y + p * w * z - p * x * y - p * x * z) +
                        (q * w * y + q * w * z - q * x * y - q * x * z) +
                        (v * w * y + v * w * z - v * x * y - v * x * z),
-                   ((w - x) * (p + q + v) * (y + z)).Distribute());
+                   ((w - x) * (p + q + v) * (y + z)).distribute());
   // Recursive distributions:
   ASSERT_IDENTICAL((2 * p * q * w * x) - (2_s * p * q * w * y) + (p * v * w * x) - (p * v * w * y),
-                   (w * (x - y) * (p * (v + q * 2_s))).Distribute());
+                   (w * (x - y) * (p * (v + q * 2_s))).distribute());
 
   // Distribute through relational:
   ASSERT_IDENTICAL(-8 + 2 * x + pow(x, 2) < q * x + q * y - v * x - v * y,
-                   (((x + y) * (q - v)) > (x - 2) * (x + 4)).Distribute());
-  ASSERT_IDENTICAL(x * y + 2 * y == sin(p), ((x + 2) * y == sin(p)).Distribute());
+                   (((x + y) * (q - v)) > (x - 2) * (x + 4)).distribute());
+  ASSERT_IDENTICAL(x * y + 2 * y == sin(p), ((x + 2) * y == sin(p)).distribute());
 }
 
 TEST(ScalarOperationsTest, TestCollect) {
-  auto [x, y, z, w] = Symbols("x", "y", "z", "w");
+  auto [x, y, z, w] = make_symbols("x", "y", "z", "w");
 
   // No relevant terms:
-  ASSERT_IDENTICAL(5, Collect(5, x));
-  ASSERT_IDENTICAL(Constants::Pi + y, Collect(Constants::Pi + y, x));
+  ASSERT_IDENTICAL(5, collect(5, x));
+  ASSERT_IDENTICAL(Constants::Pi + y, collect(Constants::Pi + y, x));
 
   // Single term that does not need collection:
-  ASSERT_IDENTICAL(x * 3, Collect(x * 3, x));
-  ASSERT_IDENTICAL(pow(x, y), Collect(pow(x, y), x));
+  ASSERT_IDENTICAL(x * 3, collect(x * 3, x));
+  ASSERT_IDENTICAL(pow(x, y), collect(pow(x, y), x));
 
   // Collecting polynomial terms:
-  ASSERT_IDENTICAL(x * (y + 2), Collect(x * y + 2 * x, x));
+  ASSERT_IDENTICAL(x * (y + 2), collect(x * y + 2 * x, x));
   ASSERT_IDENTICAL(x * (y + z) + pow(x, 2) * (5 + z),
-                   Collect(x * y + x * z + pow(x, 2) * 5 + pow(x, 2) * z, x));
+                   collect(x * y + x * z + pow(x, 2) * 5 + pow(x, 2) * z, x));
 
   // Recursive collection, w/ cancelling terms:
   // clang-format off
@@ -395,7 +396,7 @@ TEST(ScalarOperationsTest, TestCollect) {
                  pow(x, 2) * z +
                  pow(x, 2) * -z;
   // clang-format on
-  ASSERT_IDENTICAL(pow(x, z) * (Constants::Pi + sin(y)) + log(x * (5 + y)), Collect(f1, x));
+  ASSERT_IDENTICAL(pow(x, z) * (Constants::Pi + sin(y)) + log(x * (5 + y)), collect(f1, x));
 
   // Many recursions for one term:
   // clang-format off
@@ -411,7 +412,7 @@ TEST(ScalarOperationsTest, TestCollect) {
   ASSERT_IDENTICAL(pow(x, 2) * (-z + log(pow(x, y) * (sin(z) + cos(y)) +
                                          x * (-5 + abs(x * x * x * (z - 3) + y)))) +
                        x * (3 + sin(abs(z) - x)) + Constants::Pi,
-                   Collect(f2, x));
+                   collect(f2, x));
 
   // power with non-trivial exponent:
   // clang-format off
@@ -424,7 +425,7 @@ TEST(ScalarOperationsTest, TestCollect) {
   // clang-format on
   ASSERT_IDENTICAL(
       22 + pow(x, y + 2) * (5 - log(z)) + pow(x, 3) * (Constants::Pi + z) + pow(x, 2) * sin(y),
-      Collect(f3, x));
+      collect(f3, x));
 
   // collected base is a function:
   // clang-format off
@@ -435,21 +436,21 @@ TEST(ScalarOperationsTest, TestCollect) {
                  cos(x) * tan(z);
   // clang-format on
   ASSERT_IDENTICAL(pow(cos(x), 2) * (y - 12) + cos(x) * (sin(cos(x) * (4 - log(z))) - tan(z)),
-                   Collect(f4, cos(x)));
+                   collect(f4, cos(x)));
 
   // A power of a sum: 1 / (x**2 + y**2)
   // Currently this only works if the sum appears as one cohesive term in a multiplication.
   auto denominator = pow(x, 2) + pow(y, 2);
   auto f5 = x / denominator - y / denominator;
-  ASSERT_IDENTICAL((x - y) / denominator, Collect(f5, denominator));
+  ASSERT_IDENTICAL((x - y) / denominator, collect(f5, denominator));
 
   // Try with: 1 / sqrt(x**2 + y**2)
   auto f6 = x / sqrt(denominator) - 5 * y / sqrt(denominator);
-  ASSERT_IDENTICAL((x - 5 * y) / sqrt(denominator), Collect(f6, denominator));
+  ASSERT_IDENTICAL((x - 5 * y) / sqrt(denominator), collect(f6, denominator));
 }
 
 TEST(ScalarOperationsTest, TestCollectMany) {
-  auto [x, y, z, w] = Symbols("x", "y", "z", "w");
+  auto [x, y, z, w] = make_symbols("x", "y", "z", "w");
 
   // Collecting multiple variables:
   // clang-format off
@@ -457,8 +458,8 @@ TEST(ScalarOperationsTest, TestCollectMany) {
                  x * -5 -
                  x * y * log(z);
   // clang-format on
-  ASSERT_IDENTICAL(x * (-5 + y * (1 - log(z))), CollectMany(f1, {x, y}));
-  ASSERT_IDENTICAL(y * x * (1 - log(z)) - x * 5, CollectMany(f1, {y, x}));
+  ASSERT_IDENTICAL(x * (-5 + y * (1 - log(z))), collect_many(f1, {x, y}));
+  ASSERT_IDENTICAL(y * x * (1 - log(z)) - x * 5, collect_many(f1, {y, x}));
 
   // clang-format off
   auto f2 = x * x * y * y * y +
@@ -467,9 +468,9 @@ TEST(ScalarOperationsTest, TestCollectMany) {
             x * x * y * y +
             x * x + x * x * 4;
   // clang-format on
-  ASSERT_IDENTICAL(x * x * (y * y * y * 3 + y * y * (-sin(z) - 1) + 5), CollectMany(f2, {x, y}));
+  ASSERT_IDENTICAL(x * x * (y * y * y * 3 + y * y * (-sin(z) - 1) + 5), collect_many(f2, {x, y}));
   ASSERT_IDENTICAL(y * y * y * x * x * 3 + y * y * x * x * (-sin(z) - 1) + pow(x, 2) * 5,
-                   CollectMany(f2, {y, x}));
+                   collect_many(f2, {y, x}));
 
   // Collecting many functions:
   // clang-format off
@@ -480,9 +481,9 @@ TEST(ScalarOperationsTest, TestCollectMany) {
                  log(y) * -3;
   // clang-format on
   ASSERT_IDENTICAL(cos(x) * cos(x) * (16 + log(y) * (-z - 1 / tan(z))) + log(y) * (z * z - 3),
-                   CollectMany(f3, {cos(x), log(y)}));
+                   collect_many(f3, {cos(x), log(y)}));
   ASSERT_IDENTICAL(log(y) * (pow(cos(x), 2) * (-z - 1 / tan(z)) + z * z - 3) + pow(cos(x), 2) * 16,
-                   CollectMany(f3, {log(y), cos(x)}));
+                   collect_many(f3, {log(y), cos(x)}));
 
   // Three layers of nesting
   // clang-format off
@@ -491,7 +492,7 @@ TEST(ScalarOperationsTest, TestCollectMany) {
     x * (pow(y, 3) * z * (8 - sin(y)) + pow(y, 2) * z * log(x)) +
     pow(y, 2) * (pow(z, 2) * (5 + Constants::Euler) - z * 8 + 1) + y * (pow(z, 5) - 22);
   // clang-format on
-  ASSERT_IDENTICAL(f4, CollectMany(f4.Distribute(), {x, y, z}));
+  ASSERT_IDENTICAL(f4, collect_many(f4.distribute(), {x, y, z}));
 
   // Generate a polynomial in four variables:
   // Use std::function, so that we can recurse this lambda.
@@ -506,7 +507,7 @@ TEST(ScalarOperationsTest, TestCollectMany) {
   };
 
   auto f5 = make_poly({x, y, z, w});
-  ASSERT_IDENTICAL(f5, CollectMany(f5.Distribute(), {x, y, z, w}));
+  ASSERT_IDENTICAL(f5, collect_many(f5.distribute(), {x, y, z, w}));
 }
 
 }  // namespace math

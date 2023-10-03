@@ -21,9 +21,7 @@ class ScalarType {
  public:
   explicit ScalarType(NumericType numeric_type) : numeric_type_(numeric_type) {}
 
-  constexpr std::size_t Dimension() const { return 1; }
-
-  constexpr NumericType GetNumericType() const { return numeric_type_; }
+  constexpr NumericType numeric_type() const { return numeric_type_; }
 
  private:
   NumericType numeric_type_;
@@ -33,18 +31,12 @@ class MatrixType {
  public:
   MatrixType(index_t rows, index_t cols) : rows_(rows), cols_(cols) {}
 
-  constexpr std::size_t Dimension() const {
-    return static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_);
-  }
-
-  constexpr index_t NumRows() const { return rows_; }
-  constexpr index_t NumCols() const { return cols_; }
-
-  constexpr bool HasUnitDimension() const { return rows_ == 1 || cols_ == 1; }
+  constexpr index_t rows() const { return rows_; }
+  constexpr index_t cols() const { return cols_; }
 
   // Convert to [row, col] indices (assuming row major order).
-  std::pair<index_t, index_t> ComputeIndices(std::size_t element) const {
-    ASSERT_LESS(element, Dimension());
+  std::pair<index_t, index_t> compute_indices(std::size_t element) const {
+    ASSERT_LESS(element, static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_));
     return std::make_pair(static_cast<index_t>(element) / cols_,
                           static_cast<index_t>(element) % cols_);
   }
@@ -56,10 +48,6 @@ class MatrixType {
 
 // TODO: Add ability to add custom type.
 using Type = std::variant<ScalarType, MatrixType>;
-
-inline std::size_t Dimension(const Type& type) {
-  return std::visit([](const auto& type) { return type.Dimension(); }, type);
-}
 
 enum class ArgumentDirection {
   Input,
@@ -75,28 +63,20 @@ class Argument {
   Argument(const std::string_view& name, ast::Type type, ArgumentDirection direction)
       : name_(name), type_(std::move(type)), direction_(direction) {}
 
-  const std::string& Name() const { return name_; }
+  // Name of the argument.
+  const std::string& name() const { return name_; }
 
-  // Get the dimension of the underlying type.
-  std::size_t TypeDimension() const { return ::math::ast::Dimension(type_); }
-
-  const ast::Type& Type() const { return type_; }
+  // Type of the argument.
+  const ast::Type& type() const { return type_; }
 
   // Is the argument type a matrix.
-  constexpr bool IsMatrix() const { return std::holds_alternative<ast::MatrixType>(type_); }
+  constexpr bool is_matrix() const { return std::holds_alternative<ast::MatrixType>(type_); }
 
   // Is this argument optional? Presently only output arguments may be optional.
-  bool IsOptional() const { return direction_ == ArgumentDirection::OptionalOutput; }
-
-  constexpr bool IsFloat() const {
-    if (IsMatrix()) {
-      return true;
-    }
-    return std::get<ast::ScalarType>(type_).GetNumericType() == NumericType::Real;
-  }
+  bool is_optional() const { return direction_ == ArgumentDirection::OptionalOutput; }
 
   // Argument direction.
-  ArgumentDirection Direction() const { return direction_; }
+  ArgumentDirection direction() const { return direction_; }
 
  private:
   std::string name_;
@@ -111,21 +91,22 @@ struct FunctionSignature {
   explicit FunctionSignature(std::string name) : function_name(std::move(name)) {}
 
   template <typename... Args>
-  void AddArgument(Args&&... args) {
+  void add_argument(Args&&... args) {
     arguments.push_back(std::make_shared<const ast::Argument>(std::forward<Args>(args)...));
   }
 
   // Find an argument by name.
-  const std::shared_ptr<const ast::Argument>& GetArgument(const std::string_view str) const {
+  const std::shared_ptr<const ast::Argument>& get_argument(const std::string_view str) const {
     auto it = std::find_if(arguments.begin(), arguments.end(),
-                           [&](const auto& arg) { return arg->Name() == str; });
+                           [&](const auto& arg) { return arg->name() == str; });
     ASSERT(it != arguments.end(), "Argument does not exist: {}", str);
     return *it;
   }
 
-  bool HasMatrixArguments() const {
+  // Are any of the arguments to this function a matrix?
+  bool has_matrix_arguments() const {
     return std::any_of(arguments.begin(), arguments.end(),
-                       [](const auto& arg) { return arg->IsMatrix(); });
+                       [](const auto& arg) { return arg->is_matrix(); });
   }
 
   std::string function_name;
@@ -323,6 +304,6 @@ inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
       else_branch(std::move(else_branch)) {}
 
 // Create AST from the IR:
-std::vector<ast::Variant> CreateAST(const math::OutputIr& ir, const FunctionSignature& signature);
+std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature);
 
 }  // namespace math::ast

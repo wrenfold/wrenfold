@@ -13,7 +13,7 @@ namespace py = pybind11;
 
 // Iterate over a container and transform every element into `Expr`.
 template <typename Container, typename Output>
-std::size_t TransformIntoExpr(const Container& inputs, Output& output) {
+std::size_t cast_to_expr(const Container& inputs, Output& output) {
   // len_hint will get the length if possible, otherwise return 0.
   if constexpr (std::is_base_of_v<py::handle, std::decay_t<Container>>) {
     output.reserve(output.size() + py::len_hint(inputs));
@@ -31,11 +31,11 @@ std::size_t TransformIntoExpr(const Container& inputs, Output& output) {
 }
 
 // Try converting `x` to an int or float, otherwise just return Expr.
-inline std::variant<std::int64_t, double, Expr> TryConvertToNumeric(const Expr& x) {
-  if (const Float* f = CastPtr<Float>(x); f != nullptr) {
-    return f->GetValue();
-  } else if (const Integer* i = CastPtr<Integer>(x); i != nullptr) {
-    return i->GetValue();
+inline std::variant<std::int64_t, double, Expr> try_convert_to_numeric(const Expr& x) {
+  if (const Float* f = cast_ptr<Float>(x); f != nullptr) {
+    return f->get_value();
+  } else if (const Integer* i = cast_ptr<Integer>(x); i != nullptr) {
+    return i->get_value();
   } else {
     return x;
   }

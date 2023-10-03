@@ -5,24 +5,24 @@
 
 namespace math {
 
-Expr Derivative::Create(Expr differentiand, Expr arg, int order) {
+Expr Derivative::create(Expr differentiand, Expr arg, int order) {
   ASSERT_GREATER_OR_EQ(order, 1, "Order of the derivative must >= 1");
 
-  if (!arg.Is<Variable, FunctionArgument>()) {
+  if (!arg.is_type<Variable, FunctionArgument>()) {
     throw TypeError("Derivatives can only be taken with respect to variables. Arg = {}",
-                    arg.ToString());
+                    arg.to_string());
   }
 
-  if (const Derivative* d = CastPtr<Derivative>(differentiand);
-      d != nullptr && d->Arg().IsIdenticalTo(arg)) {
+  if (const Derivative* d = cast_ptr<Derivative>(differentiand);
+      d != nullptr && d->argument().is_identical_to(arg)) {
     // We are just increasing the order of a derivative taken with respect to the same variable.
     // dD(f(x), x, n)/dx = D(f(x), x, n + 1)
-    return MakeExpr<Derivative>(d->Differentiand(), std::move(arg), d->order_ + order);
+    return make_expr<Derivative>(d->differentiand(), std::move(arg), d->order_ + order);
   }
   // We don't really do extra simplification here, that already happens in the derivative visitor
   // in `derivative.cc`.
   // dD(f(y), y, n)/dx = D(D(f(y), y, n), x, 1)
-  return MakeExpr<Derivative>(std::move(differentiand), std::move(arg), order);
+  return make_expr<Derivative>(std::move(differentiand), std::move(arg), order);
 }
 
 }  // namespace math

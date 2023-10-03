@@ -16,15 +16,15 @@ class Conditional {
         if_branch_(std::move(if_branch)),
         else_branch_(std::move(else_branch)) {}
 
-  bool IsIdenticalTo(const Conditional& other) const {
-    return condition_.IsIdenticalTo(other.condition_) &&
-           if_branch_.IsIdenticalTo(other.if_branch_) &&
-           else_branch_.IsIdenticalTo(other.else_branch_);
+  bool is_identical_to(const Conditional& other) const {
+    return condition_.is_identical_to(other.condition_) &&
+           if_branch_.is_identical_to(other.if_branch_) &&
+           else_branch_.is_identical_to(other.else_branch_);
   }
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void Iterate(Operation operation) const {
+  void for_each(Operation&& operation) const {
     operation(condition_);
     operation(if_branch_);
     operation(else_branch_);
@@ -32,22 +32,22 @@ class Conditional {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr Map(Operation operation) const {
+  Expr map_children(Operation&& operation) const {
     Expr cond = operation(condition_);
-    if (cond.IsIdenticalTo(Constants::True)) {
+    if (cond.is_identical_to(Constants::True)) {
       return operation(if_branch_);
-    } else if (cond.IsIdenticalTo(Constants::False)) {
+    } else if (cond.is_identical_to(Constants::False)) {
       return operation(else_branch_);
     }
-    return Create(std::move(cond), operation(if_branch_), operation(else_branch_));
+    return create(std::move(cond), operation(if_branch_), operation(else_branch_));
   }
 
   // Create a new conditional.
-  static Expr Create(Expr condition, Expr if_branch, Expr else_branch);
+  static Expr create(Expr condition, Expr if_branch, Expr else_branch);
 
-  const Expr& Condition() const { return condition_; }
-  const Expr& IfBranch() const { return if_branch_; }
-  const Expr& ElseBranch() const { return else_branch_; }
+  const Expr& condition() const { return condition_; }
+  const Expr& if_branch() const { return if_branch_; }
+  const Expr& else_branch() const { return else_branch_; }
 
  protected:
   Expr condition_;
@@ -56,9 +56,9 @@ class Conditional {
 };
 
 template <>
-struct Hash<Conditional> {
+struct hash_struct<Conditional> {
   std::size_t operator()(const Conditional& c) const {
-    return HashArgs(0, c.Condition(), c.IfBranch(), c.ElseBranch());
+    return hash_args(0, c.condition(), c.if_branch(), c.else_branch());
   }
 };
 

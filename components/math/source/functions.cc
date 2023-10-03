@@ -9,37 +9,37 @@ namespace math {
 using namespace math::custom_literals;
 
 Expr log(const Expr& x) {
-  if (x.IsIdenticalTo(Constants::Euler)) {
+  if (x.is_identical_to(Constants::Euler)) {
     return Constants::One;
   }
-  if (IsOne(x)) {
+  if (is_one(x)) {
     return Constants::Zero;
   }
   // TODO: Check for negative values.
-  return MakeExpr<Function>(BuiltInFunctionName::Log, x);
+  return make_expr<Function>(BuiltInFunctionName::Log, x);
 }
 
-Expr pow(const Expr& x, const Expr& y) { return Power::Create(x, y); }
+Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
 
 template <typename Callable>
-std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
-  if (const Float* const f = CastPtr<Float>(arg); f != nullptr) {
-    const auto value = f->GetValue();
+std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
+  if (const Float* const f = cast_ptr<Float>(arg); f != nullptr) {
+    const auto value = f->get_value();
     const auto result = method(value);
     if (result == value) {
       // Don't allocate if no change occurred.
       return arg;
     } else {
-      return Float::Create(static_cast<Float::FloatType>(result));
+      return Float::create(static_cast<Float::FloatType>(result));
     }
   }
   return {};
 }
 
-std::optional<Rational> TryCastToRational(const Expr& expr) {
-  if (const Rational* const r = CastPtr<Rational>(expr); r != nullptr) {
+std::optional<Rational> try_cast_to_rational(const Expr& expr) {
+  if (const Rational* const r = cast_ptr<Rational>(expr); r != nullptr) {
     return *r;
-  } else if (const Integer* const i = CastPtr<Integer>(expr); i != nullptr) {
+  } else if (const Integer* const i = cast_ptr<Integer>(expr); i != nullptr) {
     return static_cast<Rational>(*i);
   }
   return {};
@@ -47,69 +47,69 @@ std::optional<Rational> TryCastToRational(const Expr& expr) {
 
 // TODO: Support common multiples of pi/3, pi/4, pi/6, etc.
 Expr cos(const Expr& arg) {
-  const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(arg);
-  if (IsPi(multiplicand)) {
-    if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
-      const Rational r_mod_pi = ModPiRational(*r);
+  const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
+  if (is_pi(multiplicand)) {
+    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
+      const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
-      if (r_mod_pi.IsZero()) {
+      if (r_mod_pi.is_zero()) {
         return Constants::One;
-      } else if (r_mod_pi.IsOne()) {
+      } else if (r_mod_pi.is_one()) {
         return Constants::NegativeOne;
       } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
         return Constants::Zero;
       }
-      return MakeExpr<Function>(BuiltInFunctionName::Cos,
-                                Rational::Create(r_mod_pi) * Constants::Pi);
+      return make_expr<Function>(BuiltInFunctionName::Cos,
+                                 Rational::create(r_mod_pi) * Constants::Pi);
     }
-  } else if (IsZero(coeff)) {
+  } else if (is_zero(coeff)) {
     return Constants::One;
   }
 
   // Make signs canonical automatically:
-  if (IsNegativeNumber(arg)) {
+  if (is_negative_number(arg)) {
     return cos(-arg);
   }
 
   // For floats, evaluate immediately:
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::cos(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::cos(x); });
       result.has_value()) {
     return *result;
   }
   // TODO: Check for phase offsets.
-  return MakeExpr<Function>(BuiltInFunctionName::Cos, arg);
+  return make_expr<Function>(BuiltInFunctionName::Cos, arg);
 }
 
 Expr sin(const Expr& arg) {
-  const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(arg);
-  if (IsPi(multiplicand)) {
-    if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
-      const Rational r_mod_pi = ModPiRational(*r);
+  const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
+  if (is_pi(multiplicand)) {
+    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
+      const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
-      if (r_mod_pi.IsZero() || r_mod_pi.IsOne()) {
+      if (r_mod_pi.is_zero() || r_mod_pi.is_one()) {
         return Constants::Zero;
       } else if (r_mod_pi == Rational{1, 2}) {
         return Constants::One;
       } else if (r_mod_pi == Rational{-1, 2}) {
         return Constants::NegativeOne;
       }
-      return MakeExpr<Function>(BuiltInFunctionName::Sin,
-                                Rational::Create(r_mod_pi) * Constants::Pi);
+      return make_expr<Function>(BuiltInFunctionName::Sin,
+                                 Rational::create(r_mod_pi) * Constants::Pi);
     }
-  } else if (IsZero(arg)) {
+  } else if (is_zero(arg)) {
     return Constants::Zero;
   }
-  if (IsNegativeNumber(arg)) {
+  if (is_negative_number(arg)) {
     return -sin(-arg);
   }
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::sin(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::sin(x); });
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<Function>(BuiltInFunctionName::Sin, arg);
+  return make_expr<Function>(BuiltInFunctionName::Sin, arg);
 }
 
-inline Rational ConvertToTanRange(const Rational& r) {
+inline Rational convert_to_tan_range(const Rational& r) {
   const Rational one{1, 1};
   if (r > Rational{1, 2}) {
     return r - one;
@@ -119,64 +119,64 @@ inline Rational ConvertToTanRange(const Rational& r) {
   return r;
 }
 
-inline Expr PiOverTwo() {
+inline Expr pi_over_two() {
   static const Expr Value = Constants::Pi / 2_s;
   return Value;
 }
 
 Expr tan(const Expr& arg) {
-  const auto [coeff, multiplicand] = AsCoefficientAndMultiplicand(arg);
-  if (IsPi(multiplicand)) {
-    if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
+  const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
+  if (is_pi(multiplicand)) {
+    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
       // Map into [-pi/2, pi/2]:
-      const Rational r_mod_half_pi = ConvertToTanRange(ModPiRational(*r));
+      const Rational r_mod_half_pi = convert_to_tan_range(mod_pi_rational(*r));
       // Do some very basic simplification:
-      if (r_mod_half_pi.IsZero()) {
+      if (r_mod_half_pi.is_zero()) {
         return Constants::Zero;
       } else if (r_mod_half_pi == Rational{1, 2} || r_mod_half_pi == Rational{-1, 2}) {
         // Infinity, as in the projectively scaled real numbers.
         return Constants::Infinity;
       }
-      return MakeExpr<Function>(BuiltInFunctionName::Tan,
-                                Rational::Create(r_mod_half_pi) * PiOverTwo());
+      return make_expr<Function>(BuiltInFunctionName::Tan,
+                                 Rational::create(r_mod_half_pi) * pi_over_two());
     }
-  } else if (IsZero(arg)) {
+  } else if (is_zero(arg)) {
     return Constants::Zero;
   }
-  if (IsNegativeNumber(arg)) {
+  if (is_negative_number(arg)) {
     return -tan(-arg);
   }
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::tan(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::tan(x); });
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<Function>(BuiltInFunctionName::Tan, arg);
+  return make_expr<Function>(BuiltInFunctionName::Tan, arg);
 }
 
 // TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
 // TODO: Support some common numerical values, ie. acos(1 / sqrt(2)) -> pi/4
 Expr acos(const Expr& arg) {
-  if (IsZero(arg)) {
-    return PiOverTwo();
-  } else if (IsOne(arg)) {
+  if (is_zero(arg)) {
+    return pi_over_two();
+  } else if (is_one(arg)) {
     return Constants::Zero;
-  } else if (IsNegativeOne(arg)) {
+  } else if (is_negative_one(arg)) {
     return Constants::Pi;
   }
-  return MakeExpr<Function>(BuiltInFunctionName::ArcCos, arg);
+  return make_expr<Function>(BuiltInFunctionName::ArcCos, arg);
 }
 
 Expr asin(const Expr& arg) {
-  if (IsZero(arg)) {
+  if (is_zero(arg)) {
     return Constants::Zero;
-  } else if (IsOne(arg)) {
-    return PiOverTwo();
-  } else if (IsNegativeOne(arg)) {
-    return -PiOverTwo();
-  } else if (IsNegativeNumber(arg)) {
+  } else if (is_one(arg)) {
+    return pi_over_two();
+  } else if (is_negative_one(arg)) {
+    return -pi_over_two();
+  } else if (is_negative_number(arg)) {
     return -asin(-arg);
   }
-  return MakeExpr<Function>(BuiltInFunctionName::ArcSin, arg);
+  return make_expr<Function>(BuiltInFunctionName::ArcSin, arg);
 }
 
 inline Expr PiOverFour() {
@@ -185,44 +185,44 @@ inline Expr PiOverFour() {
 }
 
 Expr atan(const Expr& arg) {
-  if (IsZero(arg)) {
+  if (is_zero(arg)) {
     return Constants::Zero;
-  } else if (IsOne(arg)) {
+  } else if (is_one(arg)) {
     return PiOverFour();
-  } else if (IsNegativeOne(arg)) {
+  } else if (is_negative_one(arg)) {
     return -PiOverFour();
-  } else if (IsNegativeNumber(arg)) {
+  } else if (is_negative_number(arg)) {
     return -atan(-arg);
   }
-  return MakeExpr<Function>(BuiltInFunctionName::ArcTan, arg);
+  return make_expr<Function>(BuiltInFunctionName::ArcTan, arg);
 }
 
 // Support some very basic simplifications for numerical inputs.
 struct Atan2Visitor {
   std::optional<Expr> operator()(const Float& y, const Float& x) const {
-    return Float::Create(std::atan2(y.GetValue(), x.GetValue()));
+    return Float::create(std::atan2(y.get_value(), x.get_value()));
   }
 
   std::optional<Expr> operator()(const Integer& y, const Integer& x) const {
     static const Expr pi_over_two = Constants::Pi / 2;
     static const Expr neg_pi_over_two = -pi_over_two;
 
-    if (y.GetValue() == 0 && x.GetValue() == 1) {
+    if (y.get_value() == 0 && x.get_value() == 1) {
       return Constants::Zero;
-    } else if (y.GetValue() == 1 && x.GetValue() == 0) {
+    } else if (y.get_value() == 1 && x.get_value() == 0) {
       return pi_over_two;
-    } else if (y.GetValue() == 0 && x.GetValue() == -1) {
+    } else if (y.get_value() == 0 && x.get_value() == -1) {
       return Constants::Pi;
-    } else if (y.GetValue() == -1 && x.GetValue() == 0) {
+    } else if (y.get_value() == -1 && x.get_value() == 0) {
       return neg_pi_over_two;
-    } else if (y.Abs() == x.Abs() && x.GetValue() != 0) {
+    } else if (y.abs() == x.abs() && x.get_value() != 0) {
       static const std::array<Expr, 4> quadrant_solutions = {
           Constants::Pi / 4,
           3 * Constants::Pi / 4,
           -Constants::Pi / 4,
           -3 * Constants::Pi / 4,
       };
-      return quadrant_solutions[(y.GetValue() < 0) * 2 + (x.GetValue() < 0)];
+      return quadrant_solutions[(y.get_value() < 0) * 2 + (x.get_value() < 0)];
     }
     return std::nullopt;
   }
@@ -234,48 +234,48 @@ struct Atan2Visitor {
 };
 
 Expr atan2(const Expr& y, const Expr& x) {
-  std::optional<Expr> maybe_simplified = VisitBinary(y, x, Atan2Visitor{});
+  std::optional<Expr> maybe_simplified = visit_binary(y, x, Atan2Visitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
   // TODO: Implement simplifications for atan2.
-  return MakeExpr<Function>(BuiltInFunctionName::Arctan2, y, x);
+  return make_expr<Function>(BuiltInFunctionName::Arctan2, y, x);
 }
 
 Expr sqrt(const Expr& arg) {
   static const Expr one_half = Constants::One / 2_s;
-  return Power::Create(arg, one_half);
+  return Power::create(arg, one_half);
 }
 
 Expr abs(const Expr& arg) {
-  if (const Function* func = CastPtr<Function>(arg);
-      func != nullptr && func->Func() == BuiltInFunctionName::Abs) {
+  if (const Function* func = cast_ptr<Function>(arg);
+      func != nullptr && func->enum_value() == BuiltInFunctionName::Abs) {
     // abs(abs(x)) --> abs(x)
     return arg;
   }
-  if (const std::optional<Rational> r = TryCastToRational(arg); r.has_value()) {
+  if (const std::optional<Rational> r = try_cast_to_rational(arg); r.has_value()) {
     // If the inner argument is a negative integer or rational, just flip it.
-    if (r->Numerator() >= 0) {
-      ASSERT_GREATER(r->Denominator(), 0);
+    if (r->numerator() >= 0) {
+      ASSERT_GREATER(r->denominator(), 0);
       return arg;
     }
-    return Rational::Create(-r->Numerator(), r->Denominator());
+    return Rational::create(-r->numerator(), r->denominator());
   }
   // Evaluate floats immediately:
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::abs(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::abs(x); });
       result.has_value()) {
     return *result;
   }
-  if (const Constant* constant = CastPtr<Constant>(arg); constant != nullptr) {
-    const auto as_double = DoubleFromSymbolicConstant(constant->GetName());
-    if (CompareIntFloat(0, as_double).value() != RelativeOrder::GreaterThan) {
+  if (const Constant* constant = cast_ptr<Constant>(arg); constant != nullptr) {
+    const auto as_double = double_from_symbolic_constant(constant->name());
+    if (compare_int_float(0, as_double).value() != RelativeOrder::GreaterThan) {
       // Constant that is already positive.
       return arg;
     }
   }
   // TODO: Add simplifications for real inputs, like powers.
   // TODO: Add simplifications for multiplications.
-  return MakeExpr<Function>(BuiltInFunctionName::Abs, arg);
+  return make_expr<Function>(BuiltInFunctionName::Abs, arg);
 }
 
 // TODO: Add simplifications for expressions like:
@@ -289,21 +289,21 @@ struct SignumVisitor {
   }
 
   // Expr constructor will convert to `One` or `NegativeOne` constants for us
-  std::optional<Expr> operator()(const Integer& i) const { return Expr{sign(i.GetValue())}; }
-  std::optional<Expr> operator()(const Rational& r) const { return Expr{sign(r.Numerator())}; }
+  std::optional<Expr> operator()(const Integer& i) const { return Expr{sign(i.get_value())}; }
+  std::optional<Expr> operator()(const Rational& r) const { return Expr{sign(r.numerator())}; }
   std::optional<Expr> operator()(const Float& f) const {
-    ASSERT(!std::isnan(f.GetValue()));
-    return Expr{sign(f.GetValue())};
+    ASSERT(!std::isnan(f.get_value()));
+    return Expr{sign(f.get_value())};
   }
 
   std::optional<Expr> operator()(const Constant& c) const {
     // Conversion to float is valid for all the constants we currently support:
-    const auto cf = DoubleFromSymbolicConstant(c.GetName());
+    const auto cf = double_from_symbolic_constant(c.name());
     return Expr{sign(cf)};
   }
 
   std::optional<Expr> operator()(const Function& func, const Expr& func_expr) const {
-    if (func.Func() == BuiltInFunctionName::Signum) {
+    if (func.enum_value() == BuiltInFunctionName::Signum) {
       // sgn(sgn(x)) --> sgn(x), valid for real and complex
       return func_expr;
     }
@@ -311,19 +311,19 @@ struct SignumVisitor {
   }
 
   // Handle all other cases.
-  template <typename T,
-            typename = EnableIfDoesNotContainType<T, Integer, Rational, Float, Constant, Function>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float,
+                                                                     Constant, Function>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }
 };
 
 Expr signum(const Expr& arg) {
-  std::optional<Expr> maybe_simplified = VisitWithExprArg(arg, SignumVisitor{});
+  std::optional<Expr> maybe_simplified = visit_with_expr(arg, SignumVisitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
-  return MakeExpr<Function>(BuiltInFunctionName::Signum, arg);
+  return make_expr<Function>(BuiltInFunctionName::Signum, arg);
 }
 
 // Max and min are implemented as conditionals. That way:
@@ -333,28 +333,28 @@ Expr max(const Expr& a, const Expr& b) { return where(a < b, b, a); }
 Expr min(const Expr& a, const Expr& b) { return where(b < a, b, a); }
 
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
-  return Conditional::Create(condition, if_true, if_false);
+  return Conditional::create(condition, if_true, if_false);
 }
 
 MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixExpr& if_false) {
-  const Matrix& mat_true = if_true.AsMatrix();
-  const Matrix& mat_false = if_false.AsMatrix();
+  const Matrix& mat_true = if_true.as_matrix();
+  const Matrix& mat_false = if_false.as_matrix();
 
   // dimensions of left and right operands must match:
-  if (mat_true.NumRows() != mat_false.NumRows() || mat_true.NumCols() != mat_false.NumCols()) {
+  if (mat_true.rows() != mat_false.rows() || mat_true.cols() != mat_false.cols()) {
     throw DimensionError(
-        "Dimension mismatch between operands to where(). if shape = [{}, {}], else shape = [{}, "
+        "dimension mismatch between operands to where(). if shape = [{}, {}], else shape = [{}, "
         "{}]",
-        mat_true.NumRows(), mat_true.NumCols(), mat_false.NumRows(), mat_false.NumCols());
+        mat_true.rows(), mat_true.cols(), mat_false.rows(), mat_false.cols());
   }
 
   // For now, we just create a matrix of conditionals. Maybe add a conditional matrix type?
   std::vector<Expr> conditionals;
-  conditionals.reserve(mat_true.Size());
+  conditionals.reserve(mat_true.size());
   std::transform(mat_true.begin(), mat_true.end(), mat_false.begin(),
                  std::back_inserter(conditionals),
                  [&](const Expr& a, const Expr& b) { return where(condition, a, b); });
-  return MatrixExpr::Create(mat_true.NumRows(), mat_true.NumCols(), std::move(conditionals));
+  return MatrixExpr::create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
 }
 
 }  // namespace math

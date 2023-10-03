@@ -16,17 +16,18 @@
 #include "span.h"
 #include "span_eigen.h"
 
-#define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(math::detail::ExpectEigenSpanEqual, a, b)
-#define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(math ::detail::ExpectEigenSpanEqual, a, b)
+#define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(math::detail::expect_eigen_span_equal, a, b)
+#define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(math::detail::expect_eigen_span_equal, a, b)
 
 namespace math {
 namespace detail {
 // Compare eigen matrix and span. Use ASSERT_EIGEN_SPAN_EQ()
 // Implementation defined below.
 template <typename Derived, typename Scalar, typename Dimensions, typename Strides>
-testing::AssertionResult ExpectEigenSpanEqual(const std::string& name_a, const std::string& name_b,
-                                              const Eigen::MatrixBase<Derived>& a,
-                                              const math::span<Scalar, Dimensions, Strides> b);
+testing::AssertionResult expect_eigen_span_equal(const std::string& name_a,
+                                                 const std::string& name_b,
+                                                 const Eigen::MatrixBase<Derived>& a,
+                                                 const math::span<Scalar, Dimensions, Strides> b);
 }  // namespace detail
 
 // Equality operator for spans of the same type.
@@ -386,7 +387,7 @@ TEST(SpanTest, TestEigenMap) {
 // In the tests below, we fill elements that should be skipped by the strides w/ zero.
 // Then we check that our span does not include any zero elements.
 template <typename Dimensions, typename Strides>
-void CheckNonZero(const math::span<const int, Dimensions, Strides>& span) {
+void check_non_zero(const math::span<const int, Dimensions, Strides>& span) {
   for (int i = 0; i < span.rows(); ++i) {
     for (int j = 0; j < span.cols(); ++j) {
       ASSERT_NE(0, span(i, j));
@@ -404,22 +405,22 @@ TEST(SpanTest, TestEigenMapInnerStride) {
       map{data.data()};
   auto span = make_input_span<5, 4>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
-  CheckNonZero(span);
+  check_non_zero(span);
 
   auto sub_span_1 = span.block(make_value_pack(2, 2), make_constant_value_pack<3, 2>());
   EXPECT_EIGEN_SPAN_EQ(map.block(2, 2, 3, 2), sub_span_1);
-  CheckNonZero(sub_span_1);
+  check_non_zero(sub_span_1);
 
   using DynamicStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
   const Eigen::Map<const Eigen::Matrix<int, 5, 4, Eigen::RowMajor>, Eigen::Unaligned, DynamicStride>
       map_dynamic{data.data(), DynamicStride{8, 2}};
   auto span_dynamic = make_input_span<5, 4>(map_dynamic);
   EXPECT_EIGEN_SPAN_EQ(map_dynamic, span_dynamic);
-  CheckNonZero(span_dynamic);
+  check_non_zero(span_dynamic);
 
   auto sub_span_2 = span_dynamic.block(make_value_pack(1, 2), make_constant_value_pack<3, 2>());
   EXPECT_EIGEN_SPAN_EQ(map.block(1, 2, 3, 2), sub_span_2);
-  CheckNonZero(sub_span_2);
+  check_non_zero(sub_span_2);
 }
 
 TEST(SpanTest, TestEigenMapOuterStride) {
@@ -430,7 +431,7 @@ TEST(SpanTest, TestEigenMapOuterStride) {
       data.data()};
   auto span = make_input_span<3, 5>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
-  CheckNonZero(span);
+  check_non_zero(span);
 
   using DynamicStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
   const Eigen::Map<const Eigen::Matrix<int, 3, 5>, Eigen::Unaligned, DynamicStride> map_dynamic{
@@ -438,7 +439,7 @@ TEST(SpanTest, TestEigenMapOuterStride) {
 
   auto span_dynamic = make_input_span<3, 5>(map_dynamic);
   EXPECT_EIGEN_SPAN_EQ(map_dynamic, span_dynamic);
-  CheckNonZero(span_dynamic);
+  check_non_zero(span_dynamic);
 }
 
 TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
@@ -452,12 +453,12 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
   EXPECT_EQ(1, span(0, 0));
   EXPECT_EQ(4, span(1, 0));
   EXPECT_EQ(2, span(0, 1));
-  CheckNonZero(span);
+  check_non_zero(span);
 
   auto sub_span_1 = span.block(make_value_pack(constant<0>{}, dynamic(1)),
                                make_value_pack(dynamic(2), constant<2>{}));
   EXPECT_EIGEN_SPAN_EQ(map.block(0, 1, 2, 2), sub_span_1);
-  CheckNonZero(sub_span_1);
+  check_non_zero(sub_span_1);
 
   using DynamicStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
   const Eigen::Map<const Eigen::Matrix<int, 3, 3>, Eigen::Unaligned, DynamicStride> map_dynamic{
@@ -467,7 +468,7 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
   static_assert(sizeof(span_dynamic) == 32, "");
 
   EXPECT_EIGEN_SPAN_EQ(map_dynamic, span_dynamic);
-  CheckNonZero(span_dynamic);
+  check_non_zero(span_dynamic);
 }
 
 // TODO: Should we restore this assertion?
@@ -482,9 +483,10 @@ TEST(SpanTest, TestEigenNullMapAssertion) {
 
 namespace detail {
 template <typename Derived, typename Scalar, typename Dimensions, typename Strides>
-testing::AssertionResult ExpectEigenSpanEqual(const std::string& name_a, const std::string& name_b,
-                                              const Eigen::MatrixBase<Derived>& a,
-                                              const math::span<Scalar, Dimensions, Strides> b) {
+testing::AssertionResult expect_eigen_span_equal(const std::string& name_a,
+                                                 const std::string& name_b,
+                                                 const Eigen::MatrixBase<Derived>& a,
+                                                 const math::span<Scalar, Dimensions, Strides> b) {
   if (b.data() == nullptr) {
     return testing::AssertionFailure() << fmt::format("Span expression has null data: {} ", name_b);
   }

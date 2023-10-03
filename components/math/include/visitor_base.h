@@ -11,10 +11,10 @@ class Expr;
 class ExpressionConcept;
 
 // TODO: Allow switching this out for something w/o atomic operations?
-using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>;
+using expression_concept_const_ptr = std::shared_ptr<const class ExpressionConcept>;
 
 // clang-format off
-using ExpressionTypeList = TypeList<
+using ExpressionTypeList = type_list<
     class Addition,
     class Conditional,
     class Constant,
@@ -36,18 +36,18 @@ using ExpressionTypeList = TypeList<
 template <typename T>
 class VisitorDeclare {
  public:
-  virtual void ApplyVirtual(const T& input) = 0;
+  virtual void apply_visitor_virtual(const T& input) = 0;
 };
 
-// Implements `VisitorDeclare` for every type in a TypeList.
+// Implements `VisitorDeclare` for every type in a type_list.
 // We use virtual inheritance since both VisitorBase and VisitorImplAll must inherit
 // from this, creating a diamond pattern.
 template <typename T>
 class VisitorDeclareAll;
 template <typename... Ts>
-class VisitorDeclareAll<TypeList<Ts...>> : public virtual VisitorDeclare<Ts>... {};
+class VisitorDeclareAll<type_list<Ts...>> : public virtual VisitorDeclare<Ts>... {};
 
-// Base type for visitors that produce expressions.
+// Base type for visitors.
 template <typename Types>
 class VisitorBaseGeneric : public VisitorDeclareAll<Types> {
  public:

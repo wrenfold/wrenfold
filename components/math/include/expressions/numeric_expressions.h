@@ -27,13 +27,13 @@ class Integer {
   explicit constexpr Integer(IntegralType val) noexcept : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool IsIdenticalTo(const Integer& other) const noexcept { return val_ == other.val_; }
+  constexpr bool is_identical_to(const Integer& other) const noexcept { return val_ == other.val_; }
 
   // Access numeric value.
-  constexpr IntegralType GetValue() const noexcept { return val_; }
+  constexpr IntegralType get_value() const noexcept { return val_; }
 
   // True if this integer is zero.
-  constexpr bool IsZero() const noexcept { return val_ == 0; }
+  constexpr bool is_zero() const noexcept { return val_ == 0; }
 
   // Cast to integer:
   constexpr explicit operator Float() const;
@@ -42,11 +42,11 @@ class Integer {
   Integer operator-() const { return Integer{-val_}; }
 
   // Get absolute value.
-  Integer Abs() const { return Integer{std::abs(val_)}; }
+  Integer abs() const { return Integer{std::abs(val_)}; }
 
   // Create an integer expression.
-  static Expr Create(IntegralType x);
-  static Expr Create(const Integer& x) { return Create(x.GetValue()); }
+  static Expr create(IntegralType x);
+  static Expr create(const Integer& x) { return create(x.get_value()); }
 
  private:
   IntegralType val_;
@@ -61,31 +61,31 @@ class Rational {
   using IntegralType = Integer::IntegralType;
 
   // Construct a rational. Conversion to canonical form is automatic.
-  constexpr Rational(IntegralType n, IntegralType d) : Rational(CreatePair(n, d)) {}
+  constexpr Rational(IntegralType n, IntegralType d) : Rational(create_pair(n, d)) {}
 
   // Construct a rational from an integer value.
-  explicit constexpr Rational(const Integer& integer) : n_(integer.GetValue()), d_(1) {}
+  explicit constexpr Rational(const Integer& integer) : n_(integer.get_value()), d_(1) {}
 
-  constexpr bool IsIdenticalTo(const Rational& other) const {
+  constexpr bool is_identical_to(const Rational& other) const {
     return n_ == other.n_ && d_ == other.d_;
   }
 
   // Access numerator and denominator.
-  constexpr IntegralType Numerator() const { return n_; }
-  constexpr IntegralType Denominator() const { return d_; }
+  constexpr IntegralType numerator() const { return n_; }
+  constexpr IntegralType denominator() const { return d_; }
 
   // Cast to float.
   explicit operator Float() const;
 
   // True if numerator equals denominator.
-  constexpr bool IsOne() const { return n_ == d_; }
+  constexpr bool is_one() const { return n_ == d_; }
 
   // True if numerator is zero.
-  constexpr bool IsZero() const { return n_ == 0; }
+  constexpr bool is_zero() const { return n_ == 0; }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
-  constexpr std::optional<Integer> TryConvertToInteger() const {
+  constexpr std::optional<Integer> try_convert_to_integer() const {
     if (n_ % d_ == 0) {
       return {Integer(n_ / d_)};
     }
@@ -94,26 +94,26 @@ class Rational {
 
   // Normalize a rational into a whole integer part, and a rational whose absolute value is less
   // than one.
-  constexpr std::pair<Integer, Rational> Normalize() const {
+  constexpr std::pair<Integer, Rational> normalized() const {
     return std::make_pair(Integer{n_ / d_}, Rational{n_ % d_, d_});
   }
 
   // True if the absolute value of the fraction is less than one.
-  bool IsNormalized() const { return std::abs(n_) < d_; }
+  bool is_normalized() const { return std::abs(n_) < d_; }
 
   // Create a rational expression and simplify if possible.
-  static Expr Create(Rational r) {
-    if (auto as_int = r.TryConvertToInteger(); as_int) {
-      return Integer::Create(as_int->GetValue());
+  static Expr create(Rational r) {
+    if (auto as_int = r.try_convert_to_integer(); as_int) {
+      return Integer::create(as_int->get_value());
     }
-    return MakeExpr<Rational>(r);
+    return make_expr<Rational>(r);
   }
 
   // Create a rational expression and simplify if possible.
-  static Expr Create(IntegralType n, IntegralType d) { return Create(Rational{n, d}); }
+  static Expr create(IntegralType n, IntegralType d) { return create(Rational{n, d}); }
 
  private:
-  constexpr std::pair<IntegralType, IntegralType> CreatePair(IntegralType n, IntegralType d) {
+  constexpr std::pair<IntegralType, IntegralType> create_pair(IntegralType n, IntegralType d) {
     // Find the largest common denominator and reduce:
     const IntegralType gcd = std::gcd(n, d);
     n = n / gcd;
@@ -147,19 +147,19 @@ class Float {
   explicit constexpr Float(FloatType val) : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool IsIdenticalTo(const Float& other) const { return val_ == other.val_; }
+  constexpr bool is_identical_to(const Float& other) const { return val_ == other.val_; }
 
   // Access numeric value.
-  constexpr FloatType GetValue() const { return val_; }
+  constexpr FloatType get_value() const { return val_; }
 
   // Get absolute value.
-  Float Abs() const { return Float{std::abs(val_)}; }
+  Float abs() const { return Float{std::abs(val_)}; }
 
   // Create floating point expression.
-  static Expr Create(Float f) { return MakeExpr<Float>(f); }
-  static Expr Create(FloatType f) {
+  static Expr create(Float f) { return make_expr<Float>(f); }
+  static Expr create(FloatType f) {
     ASSERT(std::isfinite(f), "Float values must be finite: {}", f);
-    return Create(Float{f});
+    return create(Float{f});
   }
 
  private:
@@ -168,16 +168,16 @@ class Float {
 
 // Operations on integers:
 inline constexpr auto operator*(const Integer& a, const Integer& b) {
-  return Integer{a.GetValue() * b.GetValue()};
+  return Integer{a.get_value() * b.get_value()};
 }
 inline constexpr auto operator+(const Integer& a, const Integer& b) {
-  return Integer{a.GetValue() + b.GetValue()};
+  return Integer{a.get_value() + b.get_value()};
 }
 inline constexpr bool operator<(const Integer& a, const Integer& b) {
-  return a.GetValue() < b.GetValue();
+  return a.get_value() < b.get_value();
 }
 inline constexpr bool operator==(const Integer& a, const Integer& b) {
-  return a.GetValue() == b.GetValue();
+  return a.get_value() == b.get_value();
 }
 
 inline constexpr Integer::operator Float() const {
@@ -186,50 +186,50 @@ inline constexpr Integer::operator Float() const {
 
 // Hashing of integers. Like std::hash, just pass the value through.
 template <>
-struct Hash<Integer::IntegralType> {
+struct hash_struct<Integer::IntegralType> {
   std::size_t operator()(Integer::IntegralType value) const {
     return std::hash<Integer::IntegralType>{}(value);
   }
 };
 template <>
-struct Hash<Integer> {
+struct hash_struct<Integer> {
   std::size_t operator()(const Integer& value) const {
-    return Hash<Integer::IntegralType>{}(value.GetValue());
+    return hash_struct<Integer::IntegralType>{}(value.get_value());
   }
 };
 
 // Operations on rationals:
 inline constexpr auto operator*(const Rational& a, const Rational& b) {
-  return Rational{a.Numerator() * b.Numerator(), a.Denominator() * b.Denominator()};
+  return Rational{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
 }
 inline constexpr auto operator/(const Rational& a, const Rational& b) {
-  return Rational{a.Numerator() * b.Denominator(), a.Denominator() * b.Numerator()};
+  return Rational{a.numerator() * b.denominator(), a.denominator() * b.numerator()};
 }
 inline constexpr auto operator+(const Rational& a, const Rational& b) {
   // Create common denominator and create a new rational:
-  return Rational{a.Numerator() * b.Denominator() + b.Numerator() * a.Denominator(),
-                  a.Denominator() * b.Denominator()};
+  return Rational{a.numerator() * b.denominator() + b.numerator() * a.denominator(),
+                  a.denominator() * b.denominator()};
 }
 inline constexpr auto operator-(const Rational& a, const Rational& b) {
-  return Rational{a.Numerator() * b.Denominator() - b.Numerator() * a.Denominator(),
-                  a.Denominator() * b.Denominator()};
+  return Rational{a.numerator() * b.denominator() - b.numerator() * a.denominator(),
+                  a.denominator() * b.denominator()};
 }
 inline constexpr auto operator%(const Rational& a, const Rational& b) {
   // Divide a/b, then determine the remainder after dropping the integer part.
   const Rational quotient = a / b;
-  return Rational{quotient.Numerator() % quotient.Denominator(), quotient.Denominator()};
+  return Rational{quotient.numerator() % quotient.denominator(), quotient.denominator()};
 }
 
 inline constexpr bool operator<(const Rational& a, const Rational& b) {
   // TODO: Watch for overflow.
-  return a.Numerator() * b.Denominator() < b.Numerator() * a.Denominator();
+  return a.numerator() * b.denominator() < b.numerator() * a.denominator();
 }
 inline constexpr bool operator>(const Rational& a, const Rational& b) {
-  return a.Numerator() * b.Denominator() > b.Numerator() * a.Denominator();
+  return a.numerator() * b.denominator() > b.numerator() * a.denominator();
 }
 inline constexpr bool operator==(const Rational& a, const Rational& b) {
   // Constructor ensures we reduce to common denominator, so we can compare directly.
-  return a.Numerator() == b.Numerator() && a.Denominator() == b.Denominator();
+  return a.numerator() == b.numerator() && a.denominator() == b.denominator();
 }
 inline constexpr bool operator!=(const Rational& a, const Rational& b) { return !operator==(a, b); }
 
@@ -240,22 +240,22 @@ inline Rational::operator Float() const {
 
 // Hashing of rationals.
 template <>
-struct Hash<Rational> {
+struct hash_struct<Rational> {
   std::size_t operator()(const Rational& r) const {
-    return HashArgs(0, r.Numerator(), r.Denominator());
+    return hash_args(0, r.numerator(), r.denominator());
   }
 };
 
 // Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
 // coefficient between (-1, 1] is returned.
-inline constexpr Rational ModPiRational(const Rational& r) {
+inline constexpr Rational mod_pi_rational(const Rational& r) {
   // Split into integer and rational parts:
-  const auto [integer_part_unwrapped, fractional_part] = r.Normalize();
+  const auto [integer_part_unwrapped, fractional_part] = r.normalized();
   // Wrap the integer part into (-2, 2).
-  const int64_t integer_part = integer_part_unwrapped.GetValue() % 2;
+  const int64_t integer_part = integer_part_unwrapped.get_value() % 2;
   // Now we want to convert into range (-1, 1]:
   if (integer_part == 1) {
-    return fractional_part.IsZero() ? Rational{1, 1} : fractional_part - Rational{1, 1};
+    return fractional_part.is_zero() ? Rational{1, 1} : fractional_part - Rational{1, 1};
   } else if (integer_part == -1) {
     return Rational{1, 1} + fractional_part;
   }
@@ -264,43 +264,43 @@ inline constexpr Rational ModPiRational(const Rational& r) {
 
 // Operations on floats:
 inline constexpr auto operator*(const Float& a, const Float& b) {
-  return Float{a.GetValue() * b.GetValue()};
+  return Float{a.get_value() * b.get_value()};
 }
 inline constexpr auto operator+(const Float& a, const Float& b) {
-  return Float{a.GetValue() + b.GetValue()};
+  return Float{a.get_value() + b.get_value()};
 }
 inline constexpr bool operator<(const Float& a, const Float& b) {
-  return a.GetValue() < b.GetValue();
+  return a.get_value() < b.get_value();
 }
 inline constexpr bool operator==(const Float& a, const Float& b) {
-  return a.GetValue() == b.GetValue();
+  return a.get_value() == b.get_value();
 }
 inline constexpr bool operator!=(const Float& a, const Float& b) {
-  return a.GetValue() != b.GetValue();
+  return a.get_value() != b.get_value();
 }
 
 // Hashing of floats.
 template <>
-struct Hash<Float> {
+struct hash_struct<Float> {
   // Can't be constexpr, because std::hash is not constexpr.
   std::size_t operator()(const Float& f) const {
-    return std::hash<Float::FloatType>{}(f.GetValue());
+    return std::hash<Float::FloatType>{}(f.get_value());
   }
 };
 
 // Will evaluate to true if A or B (or both) is a float, w/ the other being Integer or Rational.
 // This is so we can promote integers/rationals -> float when they are combined with floats.
 template <typename A, typename B>
-constexpr bool IsFloatAndNumeric =
-    (std::is_same_v<A, Float> && ContainsTypeHelper<B, Integer, Rational>) ||
-    (std::is_same_v<B, Float> && ContainsTypeHelper<A, Integer, Rational>) ||
+constexpr bool is_float_and_numeric_v =
+    (std::is_same_v<A, Float> && list_contains_type_v<B, Integer, Rational>) ||
+    (std::is_same_v<B, Float> && list_contains_type_v<A, Integer, Rational>) ||
     (std::is_same_v<A, Float> && std::is_same_v<B, Float>);
 
-static_assert(IsFloatAndNumeric<Float, Float>);
-static_assert(IsFloatAndNumeric<Float, Integer>);
-static_assert(IsFloatAndNumeric<Rational, Float>);
-static_assert(!IsFloatAndNumeric<Integer, Integer>);
-static_assert(!IsFloatAndNumeric<Integer, Rational>);
+static_assert(is_float_and_numeric_v<Float, Float>);
+static_assert(is_float_and_numeric_v<Float, Integer>);
+static_assert(is_float_and_numeric_v<Rational, Float>);
+static_assert(!is_float_and_numeric_v<Integer, Integer>);
+static_assert(!is_float_and_numeric_v<Integer, Rational>);
 
 }  // namespace math
 
@@ -311,7 +311,7 @@ struct fmt::formatter<math::Integer, char> {
 
   template <typename FormatContext>
   auto format(const math::Integer& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "{}", x.GetValue());
+    return fmt::format_to(ctx.out(), "{}", x.get_value());
   }
 };
 
@@ -321,7 +321,7 @@ struct fmt::formatter<math::Rational, char> {
 
   template <typename FormatContext>
   auto format(const math::Rational& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "({} / {})", x.Numerator(), x.Denominator());
+    return fmt::format_to(ctx.out(), "({} / {})", x.numerator(), x.denominator());
   }
 };
 
@@ -331,6 +331,6 @@ struct fmt::formatter<math::Float, char> {
 
   template <typename FormatContext>
   auto format(const math::Float& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "{}", x.GetValue());
+    return fmt::format_to(ctx.out(), "{}", x.get_value());
   }
 };

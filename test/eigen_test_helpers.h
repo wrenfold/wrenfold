@@ -1,14 +1,14 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 
 #include "expressions/numeric_expressions.h"
+#include "fmt_imports.h"
 #include "matrix_expression.h"
 
-#define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(math::ExpectEigenNear, a, b, tol)
-#define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(math::ExpectEigenNear, a, b, tol)
+#define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(math::expect_eigen_near, a, b, tol)
+#define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(math::expect_eigen_near, a, b, tol)
 
 // Allow formatting of Eigen matrices.
 template <typename T>
@@ -28,9 +28,10 @@ namespace math {
 
 // Compare two eigen matrices. Use EXPECT_EIGEN_NEAR()
 template <typename Ta, typename Tb>
-testing::AssertionResult ExpectEigenNear(const std::string& name_a, const std::string& name_b,
-                                         const std::string& name_tol, const Ta& a, const Tb& b,
-                                         double tolerance) {
+testing::AssertionResult expect_eigen_near(const std::string_view name_a,
+                                           const std::string_view name_b,
+                                           const std::string_view name_tol, const Ta& a,
+                                           const Tb& b, double tolerance) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
     return testing::AssertionFailure()
            << fmt::format("Dimensions of {} [{}, {}] and {} [{}, {}] do not match.", name_a,
@@ -54,18 +55,18 @@ testing::AssertionResult ExpectEigenNear(const std::string& name_a, const std::s
 }
 
 // Construct an eigen matrix from a matrix expr by evaluating and converting to floats.
-inline Eigen::MatrixXd EigenMatrixFromMatrixExpr(const MatrixExpr& m) {
-  MatrixExpr m_eval = m.Eval();
-  Eigen::MatrixXd result{m_eval.NumRows(), m_eval.NumCols()};
+inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
+  MatrixExpr m_eval = m.eval();
+  Eigen::MatrixXd result{m_eval.rows(), m_eval.cols()};
   for (index_t i = 0; i < result.rows(); ++i) {
     for (index_t j = 0; j < result.cols(); ++j) {
-      if (const Float* as_flt = CastPtr<Float>(m_eval(i, j)); as_flt != nullptr) {
-        result(i, j) = as_flt->GetValue();
-      } else if (const Integer* as_int = CastPtr<Integer>(m_eval(i, j)); as_int != nullptr) {
-        result(i, j) = static_cast<Float>(*as_int).GetValue();
-      } else if (const Rational* as_rational = CastPtr<Rational>(m_eval(i, j));
+      if (const Float* as_flt = cast_ptr<Float>(m_eval(i, j)); as_flt != nullptr) {
+        result(i, j) = as_flt->get_value();
+      } else if (const Integer* as_int = cast_ptr<Integer>(m_eval(i, j)); as_int != nullptr) {
+        result(i, j) = static_cast<Float>(*as_int).get_value();
+      } else if (const Rational* as_rational = cast_ptr<Rational>(m_eval(i, j));
                  as_rational != nullptr) {
-        result(i, j) = static_cast<Float>(*as_rational).GetValue();
+        result(i, j) = static_cast<Float>(*as_rational).get_value();
       } else {
         throw TypeError("Cannot coerce value to float: {}", m_eval(i, j));
       }

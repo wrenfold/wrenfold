@@ -7,16 +7,19 @@
 
 namespace math {
 
-#define ASSERT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(IdenticalTestHelper, val1, val2)
-#define ASSERT_NOT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(NotIdenticalTestHelper, val1, val2)
+#define ASSERT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(identical_test_helper, val1, val2)
+#define ASSERT_NOT_IDENTICAL(val1, val2) \
+  ASSERT_PRED_FORMAT2(not_identical_test_helper_2, val1, val2)
+
+#define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(string_equal_test_helper, val1, val2)
 
 template <typename A, typename B>
-testing::AssertionResult FormatFailedResult(const std::string_view description,
-                                            const std::string_view name_a,
-                                            const std::string_view name_b, const A& a, B& b) {
+testing::AssertionResult format_failed_result(const std::string_view description,
+                                              const std::string_view name_a,
+                                              const std::string_view name_b, const A& a, B& b) {
   // If the formatted string has multiple lines, preface it w/ a line break:
-  const std::string a_str = a.ToString();
-  const std::string b_str = b.ToString();
+  const std::string a_str = a.to_string();
+  const std::string b_str = b.to_string();
   const std::string_view a_prefix = std::count(a_str.begin(), a_str.end(), '\n') > 0 ? "\n" : " ";
   const std::string_view b_prefix = std::count(b_str.begin(), b_str.end(), '\n') > 0 ? "\n" : " ";
 
@@ -27,60 +30,89 @@ testing::AssertionResult FormatFailedResult(const std::string_view description,
              "expression tree for `{}`:\n{}",
              name_a, description, name_b,
              name_a, a_prefix, a_str, name_b, b_prefix, b_str,
-             name_a, a.ToExpressionTreeString(),
-             name_b, b.ToExpressionTreeString());
+             name_a, a.to_expression_tree_string(),
+             name_b, b.to_expression_tree_string());
   // clang-format on
 }
 
 // This indirection exists so that we can coerce numeric literals to expressions.
 template <typename T, typename = void>
-struct ConvertAssertionArgument;
+struct convert_assertion_argument;
 template <typename T>
-struct ConvertAssertionArgument<T, std::enable_if_t<std::is_convertible_v<T, Expr>>> {
+struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, Expr>>> {
   // This overload will get selected for numeric literals.
   Expr operator()(const T& arg) const { return static_cast<Expr>(arg); }
 };
 template <>
-struct ConvertAssertionArgument<MatrixExpr> {
+struct convert_assertion_argument<MatrixExpr> {
   MatrixExpr operator()(const MatrixExpr& arg) const { return arg; }
 };
 
-// Test IsIdenticalTo
+// Test is_identical_to
 template <typename A, typename B>
-testing::AssertionResult IdenticalTestHelper2(const std::string_view name_a,
-                                              const std::string_view name_b, const A& a,
-                                              const B& b) {
-  if (a.IsIdenticalTo(b)) {
-    return testing::AssertionSuccess();
-  }
-  return FormatFailedResult("is not identical to", name_a, name_b, a, b);
-}
-
-template <typename A, typename B>
-testing::AssertionResult IdenticalTestHelper(const std::string_view name_a,
-                                             const std::string_view name_b, const A& a,
-                                             const B& b) {
-  return IdenticalTestHelper2(name_a, name_b, ConvertAssertionArgument<A>{}(a),
-                              ConvertAssertionArgument<B>{}(b));
-}
-
-// Test !IsIdenticalTo
-template <typename A, typename B>
-testing::AssertionResult NotIdenticalTestHelper2(const std::string_view name_a,
+testing::AssertionResult identical_test_helper_2(const std::string_view name_a,
                                                  const std::string_view name_b, const A& a,
                                                  const B& b) {
-  if (!a.IsIdenticalTo(b)) {
+  if (a.is_identical_to(b)) {
     return testing::AssertionSuccess();
   }
-  return FormatFailedResult("is identical (and should not be) to", name_a, name_b, a, b);
+  return format_failed_result("is not identical to", name_a, name_b, a, b);
 }
 
 template <typename A, typename B>
-testing::AssertionResult NotIdenticalTestHelper(const std::string_view name_a,
-                                                const std::string_view name_b, const A& a,
-                                                const B& b) {
-  return NotIdenticalTestHelper2(name_a, name_b, ConvertAssertionArgument<A>{}(a),
-                                 ConvertAssertionArgument<B>{}(b));
+testing::AssertionResult identical_test_helper(const std::string_view name_a,
+                                               const std::string_view name_b, const A& a,
+                                               const B& b) {
+  return identical_test_helper_2(name_a, name_b, convert_assertion_argument<A>{}(a),
+                                 convert_assertion_argument<B>{}(b));
+}
+
+// Test !is_identical_to
+template <typename A, typename B>
+testing::AssertionResult not_identical_test_helper_2(const std::string_view name_a,
+                                                     const std::string_view name_b, const A& a,
+                                                     const B& b) {
+  if (!a.is_identical_to(b)) {
+    return testing::AssertionSuccess();
+  }
+  return format_failed_result("is identical (and should not be) to", name_a, name_b, a, b);
+}
+
+template <typename A, typename B>
+testing::AssertionResult not_identical_test_helper(const std::string_view name_a,
+                                                   const std::string_view name_b, const A& a,
+                                                   const B& b) {
+  return not_identical_test_helper_2(name_a, name_b, convert_assertion_argument<A>{}(a),
+                                     convert_assertion_argument<B>{}(b));
+}
+
+// Escape all newlines in a string so they can be printed to console literally.
+inline std::string escape_newlines(const std::string_view input) {
+  std::string output;
+  output.reserve(input.size());
+  for (char c : input) {
+    if (c == '\n') {
+      output += "\\n";
+    } else {
+      output += c;
+    }
+  }
+  return output;
+}
+
+template <typename ExprType>
+testing::AssertionResult string_equal_test_helper(const std::string_view,
+                                                  const std::string_view name_b,
+                                                  const std::string& a, const ExprType& b) {
+  const std::string b_str = b.to_string();
+  if (a == b_str) {
+    return testing::AssertionSuccess();
+  }
+  return testing::AssertionFailure() << fmt::format(
+             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
+             "The expression tree for `{}` is:\n{}",
+             escape_newlines(a), name_b, name_b, escape_newlines(b_str), name_b,
+             b.to_expression_tree_string());
 }
 
 }  // namespace math

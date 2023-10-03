@@ -29,25 +29,25 @@ class Matrix {
   }
 
   // All elements must match.
-  bool IsIdenticalTo(const Matrix& other) const {
+  bool is_identical_to(const Matrix& other) const {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
            std::equal(data_.begin(), data_.end(), other.data_.begin(), IsIdenticalOperator<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void Iterate(Operation operation) const {
-    std::for_each(data_.begin(), data_.end(), std::move(operation));
+  void for_each(Operation&& operation) const {
+    std::for_each(data_.begin(), data_.end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Matrix Map(Operation&& operation) const {
+  Matrix map_children(Operation&& operation) const {
     std::vector<Expr> transformed;
-    transformed.reserve(Size());
+    transformed.reserve(size());
     std::transform(data_.begin(), data_.end(), std::back_inserter(transformed),
                    std::forward<Operation>(operation));
-    return {NumRows(), NumCols(), std::move(transformed)};
+    return {rows(), cols(), std::move(transformed)};
   }
 
   // Access element in a vector. Only valid if `cols` or `rows` is 1.
@@ -57,33 +57,35 @@ class Matrix {
   const Expr& operator()(index_t i, index_t j) const;
 
   // Get with no bounds checking.
-  const Expr& GetUnchecked(index_t i, index_t j) const noexcept { return data_[Index(i, j)]; }
+  const Expr& get_unchecked(index_t i, index_t j) const noexcept {
+    return data_[compute_index(i, j)];
+  }
 
   // Non-const accessor with no bounds checking.
-  Expr& GetUnchecked(index_t i, index_t j) noexcept { return data_[Index(i, j)]; }
+  Expr& get_unchecked(index_t i, index_t j) noexcept { return data_[compute_index(i, j)]; }
 
   // Get a sub-block from this matrix.
-  Matrix GetBlock(index_t row, index_t col, index_t nrows, index_t ncols) const;
+  Matrix get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
 
   // Transpose the matrix.
-  Matrix Transpose() const;
+  Matrix transposed() const;
 
   // Dimensions of the matrix.
-  constexpr index_t NumRows() const noexcept { return rows_; }
-  constexpr index_t NumCols() const noexcept { return cols_; }
+  constexpr index_t rows() const noexcept { return rows_; }
+  constexpr index_t cols() const noexcept { return cols_; }
 
   // Total size (product of elements).
-  std::size_t Size() const noexcept { return data_.size(); }
+  std::size_t size() const noexcept { return data_.size(); }
 
   // Access elements.
-  const std::vector<Expr>& Data() const { return data_; }
+  const std::vector<Expr>& data() const { return data_; }
 
   // Iterators:
   auto begin() const noexcept { return data_.begin(); }
   auto end() const noexcept { return data_.end(); }
 
   // Compute flattened row-major index.
-  constexpr std::size_t Index(index_t i, index_t j) const noexcept {
+  constexpr std::size_t compute_index(index_t i, index_t j) const noexcept {
     return static_cast<std::size_t>(i * cols_ + j);
   }
 
@@ -112,7 +114,7 @@ inline const Expr& Matrix::operator()(index_t i, index_t j) const {
     throw DimensionError("Index ({}, {}) is out of bounds for matrix of size ({}, {})", i, j, rows_,
                          cols_);
   }
-  return data_[Index(i, j)];
+  return data_[compute_index(i, j)];
 }
 
 // Multiply matrices w/ dimension checking.
@@ -127,7 +129,7 @@ Matrix operator-(const Matrix& a, const Matrix& b);
 // Iterate over a matrix and run `callable` on each element. The purpose of this method is
 // to have one place (or fewer places) where the traversal order (row-major) is specified.
 template <typename Callable>
-inline void IterMatrix(index_t rows, index_t cols, Callable&& callable) {
+inline void iter_matrix(index_t rows, index_t cols, Callable&& callable) {
   for (index_t i = 0; i < rows; ++i) {
     for (index_t j = 0; j < cols; ++j) {
       callable(i, j);
@@ -136,11 +138,11 @@ inline void IterMatrix(index_t rows, index_t cols, Callable&& callable) {
 }
 
 template <>
-struct Hash<Matrix> {
+struct hash_struct<Matrix> {
   std::size_t operator()(const Matrix& m) const {
     const std::size_t seed =
-        HashCombine(std::hash<std::size_t>{}(m.NumRows()), std::hash<std::size_t>{}(m.NumCols()));
-    return HashAll(seed, m.begin(), m.end());
+        hash_combine(std::hash<std::size_t>{}(m.rows()), std::hash<std::size_t>{}(m.cols()));
+    return hash_all(seed, m.begin(), m.end());
   }
 };
 

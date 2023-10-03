@@ -12,54 +12,54 @@
 namespace math {
 
 template <typename Callable>
-MatrixExpr CreateMatrixWithLambda(index_t rows, index_t cols, Callable&& callable) {
+MatrixExpr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& callable) {
   std::vector<Expr> data;
   data.reserve(static_cast<std::size_t>(rows * cols));
-  IterMatrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
+  iter_matrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
     data.push_back(callable(i, j));
   });
-  return MatrixExpr::Create(rows, cols, std::move(data));
+  return MatrixExpr::create(rows, cols, std::move(data));
 }
 
-MatrixExpr MatrixOfSymbols(const std::string_view prefix, index_t rows, index_t cols) {
+MatrixExpr make_matrix_of_symbols(const std::string_view prefix, index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
     throw DimensionError("Cannot construct symbolic matrix with shape: ({}, {})", rows, cols);
   }
-  return CreateMatrixWithLambda(rows, cols, [&](index_t i, index_t j) {
+  return create_matrix_with_lambda(rows, cols, [&](index_t i, index_t j) {
     std::string name = fmt::format("{}_{}_{}", prefix, i, j);
-    return MakeExpr<Variable>(std::move(name));
+    return make_expr<Variable>(std::move(name));
   });
 }
 
-MatrixExpr Zeros(index_t rows, index_t cols) {
+MatrixExpr make_zeros(index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
     throw DimensionError("Cannot construct zero matrix with shape: ({}, {})", rows, cols);
   }
   // Eventually we might have a symbolic zero matrix, and this won't be required.
   std::vector<Expr> data(static_cast<std::size_t>(rows * cols), Constants::Zero);
-  return MatrixExpr::Create(rows, cols, std::move(data));
+  return MatrixExpr::create(rows, cols, std::move(data));
 }
 
 // Create an identity matrix.
-MatrixExpr Identity(index_t rows) {
+MatrixExpr make_identity(index_t rows) {
   if (rows <= 0) {
     throw DimensionError("Cannot construct identity matrix with dimension: {}", rows);
   }
-  return CreateMatrixWithLambda(
+  return create_matrix_with_lambda(
       rows, rows, [&](index_t i, index_t j) { return i == j ? Constants::One : Constants::Zero; });
 }
 
-MatrixExpr Vec(const MatrixExpr& m) {
+MatrixExpr vectorize_matrix(const MatrixExpr& m) {
   std::vector<Expr> flattened;
-  const auto flat_size = m.NumRows() * m.NumCols();
+  const auto flat_size = m.rows() * m.cols();
   flattened.reserve(static_cast<std::size_t>(flat_size));
   // Iterate over columns first, transposing the underlying data:
-  for (index_t j = 0; j < m.NumCols(); ++j) {
-    for (index_t i = 0; i < m.NumRows(); ++i) {
+  for (index_t j = 0; j < m.cols(); ++j) {
+    for (index_t i = 0; i < m.rows(); ++i) {
       flattened.push_back(m(i, j));
     }
   }
-  return MatrixExpr::Create(flat_size, 1, std::move(flattened));
+  return MatrixExpr::create(flat_size, 1, std::move(flattened));
 }
 
 // A simple permutation "matrix".
@@ -72,22 +72,23 @@ struct PermutationMatrix {
     p_.resize(size);
     std::iota(p_.begin(), p_.end(), static_cast<index_t>(0));
   }
-  explicit PermutationMatrix(Container&& p) : p_(std::move(p)) {}
+  explicit PermutationMatrix(Container&& p, std::size_t num_swaps = 0)
+      : p_(std::move(p)), num_swaps_(num_swaps) {}
 
   // The row index in the input matrix to read from.
   index_t PermutedRow(index_t i) const noexcept { return p_[static_cast<std::size_t>(i)]; }
 
   // Equivalent to `PermutedRow`, but if this matrix were transposed.
-  index_t PermutedRowTransposed(index_t i) const noexcept {
+  index_t permuted_row_transposed(index_t i) const noexcept {
     auto it = std::find(p_.begin(), p_.end(), i);
     return static_cast<index_t>(std::distance(p_.begin(), it));
   }
 
   // Number of rows in the permutation.
-  std::size_t NumRows() const noexcept { return p_.size(); }
+  std::size_t rows() const noexcept { return p_.size(); }
 
   // Insert a new row at the start, and then swap row `0` and `row`.
-  void ShiftDownAndSwap(index_t row) {
+  void shift_down_and_swap(index_t row) {
     for (index_t& index : p_) {
       index += 1;
     }
@@ -100,7 +101,7 @@ struct PermutationMatrix {
   }
 
   // Insert a new row at the start, then swap whatever row contains `row` with 0.
-  void ShiftDownAndSwapRight(index_t row) {
+  void shift_down_and_swap_right(index_t row) {
     for (index_t& index : p_) {
       index += 1;
     }
@@ -113,17 +114,17 @@ struct PermutationMatrix {
     }
   }
 
-  PermutationMatrix Transpose() const {
+  PermutationMatrix transposed() const {
     Container p_transpose{};
-    p_transpose.resize(NumRows());
+    p_transpose.resize(rows());
     for (std::size_t i = 0; i < p_.size(); ++i) {
       p_transpose[p_[i]] = static_cast<index_t>(i);
     }
-    return PermutationMatrix{std::move(p_transpose)};
+    return PermutationMatrix{std::move(p_transpose), num_swaps_};
   }
 
   // Determinant of this permutation matrix. Either 1 or -1.
-  constexpr int Determinant() const noexcept {
+  constexpr int determinant() const noexcept {
     if (num_swaps_ & 1) {
       return -1;
     } else {
@@ -139,12 +140,12 @@ struct PermutationMatrix {
 using dynamic_row_major_span =
     span<Expr, value_pack<dynamic, dynamic>, value_pack<dynamic, constant<1>>>;
 
-static inline std::optional<std::tuple<std::size_t, std::size_t>> FindPivot(
+static inline std::optional<std::tuple<std::size_t, std::size_t>> find_pivot(
     dynamic_row_major_span U) {
   for (std::size_t p_row = 0; p_row < U.rows(); ++p_row) {
     for (std::size_t p_col = 0; p_col < U.cols(); ++p_col) {
       const Expr& el = U(p_row, p_col);
-      if (!IsZero(el)) {
+      if (!is_zero(el)) {
         // We can't really know for sure this isn't zero, since it is symbolic. But we can avoid
         // things that are analytically zero.
         return std::make_tuple(p_row, p_col);
@@ -171,7 +172,7 @@ static inline std::optional<std::tuple<std::size_t, std::size_t>> FindPivot(
 // This method cannot guarantee a successful decomposition, because the symbolic variable selected
 // as the pivot could turn out to be zero after substitution. But we can do best-effort, and avoid
 // analytical zeros.
-static std::tuple<PermutationMatrix, PermutationMatrix> FactorizeFullPivLUInternal(
+static std::tuple<PermutationMatrix, PermutationMatrix> factorize_full_piv_lu_internal(
     dynamic_row_major_span L, dynamic_row_major_span U) {
   if (L.rows() == 1) {
     ASSERT_EQUAL(1, L.cols());
@@ -182,7 +183,7 @@ static std::tuple<PermutationMatrix, PermutationMatrix> FactorizeFullPivLUIntern
   ASSERT_GREATER_OR_EQ(U.rows(), 2);
 
   // Search for a non-zero pivot.
-  auto pivot_indices = FindPivot(U);
+  auto pivot_indices = find_pivot(U);
   if (!pivot_indices) {
     // no non-zero pivot - just return identity:
     for (std::size_t i = 0; i < L.rows(); ++i) {
@@ -222,16 +223,16 @@ static std::tuple<PermutationMatrix, PermutationMatrix> FactorizeFullPivLUIntern
     }
   }
 
-  auto permutation_matrices = FactorizeFullPivLUInternal(L_inner, U_inner);
+  auto permutation_matrices = factorize_full_piv_lu_internal(L_inner, U_inner);
   auto [P, Q] = std::move(permutation_matrices);
 
   // fill in the upper left element of `L`
   L(0, 0) = Constants::One;
 
   // then the column underneath it:
-  ASSERT_EQUAL(static_cast<std::size_t>(P.NumRows()), c.rows());
+  ASSERT_EQUAL(static_cast<std::size_t>(P.rows()), c.rows());
   for (std::size_t i = 0; i < c.rows(); ++i) {
-    L(i + 1, 0) = c(P.PermutedRowTransposed(static_cast<index_t>(i)), 0) / pivot;
+    L(i + 1, 0) = c(P.permuted_row_transposed(static_cast<index_t>(i)), 0) / pivot;
   }
 
   // Copy r_t so we can permute it:
@@ -242,7 +243,7 @@ static std::tuple<PermutationMatrix, PermutationMatrix> FactorizeFullPivLUIntern
   }
 
   // Permute the top-right row of U:
-  ASSERT_EQUAL(static_cast<std::size_t>(Q.NumRows()), r_t.cols());
+  ASSERT_EQUAL(static_cast<std::size_t>(Q.rows()), r_t.cols());
   for (std::size_t j = 0; j < r_t.cols(); ++j) {
     U(0, j + 1) = r_t_copied[Q.PermutedRow(static_cast<index_t>(j))];
   }
@@ -252,56 +253,55 @@ static std::tuple<PermutationMatrix, PermutationMatrix> FactorizeFullPivLUIntern
     U(j, 0) = Constants::Zero;
   }
 
-  P.ShiftDownAndSwap(static_cast<index_t>(p_row));
-  Q.ShiftDownAndSwapRight(static_cast<index_t>(p_col));
+  P.shift_down_and_swap(static_cast<index_t>(p_row));
+  Q.shift_down_and_swap_right(static_cast<index_t>(p_col));
 
   return std::make_tuple(std::move(P), std::move(Q));
 }
 
-static std::tuple<PermutationMatrix, Matrix, Matrix, PermutationMatrix> FactorizeFullPivLUInternal(
-    const Matrix& A) {
-  if (A.NumRows() > A.NumCols()) {
+static std::tuple<PermutationMatrix, Matrix, Matrix, PermutationMatrix>
+factorize_full_piv_lu_internal(const Matrix& A) {
+  if (A.rows() > A.cols()) {
     // To simplify the implementation, we factorize the transpose and then do a fix-up step:
-    auto [P, L, U, Q] = FactorizeFullPivLUInternal(A.Transpose());
+    auto [P, L, U, Q] = factorize_full_piv_lu_internal(A.transposed());
 
     // First transpose the outputs:
-    Matrix U_out = L.Transpose();
-    Matrix L_out = U.Transpose();
+    Matrix U_out = L.transposed();
+    Matrix L_out = U.transposed();
 
-    ASSERT_EQUAL(L_out.NumRows(), A.NumRows());
-    ASSERT_EQUAL(L_out.NumCols(), A.NumCols());
-    ASSERT_EQUAL(U_out.NumRows(), A.NumCols());
-    ASSERT_EQUAL(U_out.NumRows(), U_out.NumCols());
+    ASSERT_EQUAL(L_out.rows(), A.rows());
+    ASSERT_EQUAL(L_out.cols(), A.cols());
+    ASSERT_EQUAL(U_out.rows(), A.cols());
+    ASSERT_EQUAL(U_out.rows(), U_out.cols());
 
     // Then we need to normalize the diagonal of L
-    for (index_t col = 0; col < L_out.NumCols(); ++col) {
-      Expr v = L_out.GetUnchecked(col, col);
-      L_out.GetUnchecked(col, col) = Constants::One;
+    for (index_t col = 0; col < L_out.cols(); ++col) {
+      Expr v = L_out.get_unchecked(col, col);
+      L_out.get_unchecked(col, col) = Constants::One;
 
-      if (!IsZero(v)) {
-        for (index_t row = col + 1; row < L_out.NumRows(); ++row) {
-          L_out.GetUnchecked(row, col) = L_out.GetUnchecked(row, col) / v;
+      if (!is_zero(v)) {
+        for (index_t row = col + 1; row < L_out.rows(); ++row) {
+          L_out.get_unchecked(row, col) = L_out.get_unchecked(row, col) / v;
         }
       }
 
       // Multiply onto rows of U:
-      for (index_t u_col = 0; u_col < U_out.NumCols(); ++u_col) {
-        U_out.GetUnchecked(col, u_col) = U_out.GetUnchecked(col, u_col) * v;
+      for (index_t u_col = 0; u_col < U_out.cols(); ++u_col) {
+        U_out.get_unchecked(col, u_col) = U_out.get_unchecked(col, u_col) * v;
       }
     }
-    return std::make_tuple(Q.Transpose(), std::move(L_out), std::move(U_out), P.Transpose());
+    return std::make_tuple(Q.transposed(), std::move(L_out), std::move(U_out), P.transposed());
   } else {
     // We copy A and then use this as storage for the output `U`.
     std::vector<Expr> U_storage{A.begin(), A.end()};
-    auto U_span = make_span(U_storage.data(), make_value_pack(A.NumRows(), A.NumCols()),
-                            make_value_pack(A.NumCols(), constant<1>{}));
+    auto U_span = make_span(U_storage.data(), make_value_pack(A.rows(), A.cols()),
+                            make_value_pack(A.cols(), constant<1>{}));
 
-    std::vector<Expr> L_storage(static_cast<std::size_t>(A.NumRows() * A.NumRows()),
-                                Constants::Zero);
-    auto L_span = make_span(L_storage.data(), make_value_pack(A.NumRows(), A.NumRows()),
-                            make_value_pack(A.NumRows(), constant<1>{}));
+    std::vector<Expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()), Constants::Zero);
+    auto L_span = make_span(L_storage.data(), make_value_pack(A.rows(), A.rows()),
+                            make_value_pack(A.rows(), constant<1>{}));
 
-    auto [P, Q] = FactorizeFullPivLUInternal(L_span, U_span);
+    auto [P, Q] = factorize_full_piv_lu_internal(L_span, U_span);
 
     // convert L and U to `Matrix` type
     Matrix L{static_cast<index_t>(L_span.rows()), static_cast<index_t>(L_span.cols()),
@@ -313,21 +313,21 @@ static std::tuple<PermutationMatrix, Matrix, Matrix, PermutationMatrix> Factoriz
   }
 }
 
-static MatrixExpr CreateMatrixFromPermutations(const PermutationMatrix& P) {
-  std::vector<Expr> data(P.NumRows() * P.NumRows(), Constants::Zero);
-  auto span = make_span(data.data(), make_value_pack(P.NumRows(), P.NumRows()),
-                        make_value_pack(P.NumRows(), constant<1>{}));
+static MatrixExpr create_matrix_from_permutations(const PermutationMatrix& P) {
+  std::vector<Expr> data(P.rows() * P.rows(), Constants::Zero);
+  auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
+                        make_value_pack(P.rows(), constant<1>{}));
 
-  for (index_t row = 0; row < P.NumRows(); ++row) {
+  for (index_t row = 0; row < P.rows(); ++row) {
     span(row, P.PermutedRow(row)) = Constants::One;
   }
-  return MatrixExpr::Create(static_cast<index_t>(P.NumRows()), static_cast<index_t>(P.NumRows()),
+  return MatrixExpr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),
                             std::move(data));
 }
 
-std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(
+std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu(
     const MatrixExpr& A_in) {
-  auto results = FactorizeFullPivLUInternal(A_in.AsMatrix());
+  auto results = factorize_full_piv_lu_internal(A_in.as_matrix());
 
   const auto& P = std::get<0>(results);
   const auto& Q = std::get<3>(results);
@@ -336,45 +336,45 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(
   auto U = std::move(std::get<2>(results));
 
   // Convert to MatrixExpr:
-  return std::make_tuple(CreateMatrixFromPermutations(P), MatrixExpr{std::move(L)},
-                         MatrixExpr{std::move(U)}, CreateMatrixFromPermutations(Q));
+  return std::make_tuple(create_matrix_from_permutations(P), MatrixExpr{std::move(L)},
+                         MatrixExpr{std::move(U)}, create_matrix_from_permutations(Q));
 }
 
-Expr Determinant(const MatrixExpr& m) {
-  const Matrix& mat = m.AsMatrix();
-  if (mat.NumRows() != mat.NumCols()) {
+Expr determinant(const MatrixExpr& m) {
+  const Matrix& mat = m.as_matrix();
+  if (mat.rows() != mat.cols()) {
     throw DimensionError(
-        "Determinant can only be computed for square matrices. Dimensions = [{}, {}]",
-        mat.NumRows(), mat.NumCols());
+        "Determinant can only be computed for square matrices. Dimensions = [{}, {}]", mat.rows(),
+        mat.cols());
   }
 
   // Hardcoded solutions for 1x1, 2x2, and 3x3
-  if (mat.NumRows() == 1) {
-    return mat.GetUnchecked(0, 0);
-  } else if (mat.NumRows() == 2) {
-    return mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 1) -
-           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 0);
-  } else if (mat.NumRows() == 3) {
-    return mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 1) * mat.GetUnchecked(2, 2) -
-           mat.GetUnchecked(0, 0) * mat.GetUnchecked(1, 2) * mat.GetUnchecked(2, 1) -
-           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 0) * mat.GetUnchecked(2, 2) +
-           mat.GetUnchecked(0, 1) * mat.GetUnchecked(1, 2) * mat.GetUnchecked(2, 0) +
-           mat.GetUnchecked(0, 2) * mat.GetUnchecked(1, 0) * mat.GetUnchecked(2, 1) -
-           mat.GetUnchecked(0, 2) * mat.GetUnchecked(1, 1) * mat.GetUnchecked(2, 0);
+  if (mat.rows() == 1) {
+    return mat.get_unchecked(0, 0);
+  } else if (mat.rows() == 2) {
+    return mat.get_unchecked(0, 0) * mat.get_unchecked(1, 1) -
+           mat.get_unchecked(0, 1) * mat.get_unchecked(1, 0);
+  } else if (mat.rows() == 3) {
+    return mat.get_unchecked(0, 0) * mat.get_unchecked(1, 1) * mat.get_unchecked(2, 2) -
+           mat.get_unchecked(0, 0) * mat.get_unchecked(1, 2) * mat.get_unchecked(2, 1) -
+           mat.get_unchecked(0, 1) * mat.get_unchecked(1, 0) * mat.get_unchecked(2, 2) +
+           mat.get_unchecked(0, 1) * mat.get_unchecked(1, 2) * mat.get_unchecked(2, 0) +
+           mat.get_unchecked(0, 2) * mat.get_unchecked(1, 0) * mat.get_unchecked(2, 1) -
+           mat.get_unchecked(0, 2) * mat.get_unchecked(1, 1) * mat.get_unchecked(2, 0);
   }
 
   // General case, use full-piv LU:
   // TODO: Not sure if this is preferable, or if symbolic co-factor method is better?
-  auto factorization = FactorizeFullPivLUInternal(mat);
+  auto factorization = factorize_full_piv_lu_internal(mat);
 
   const auto& P = std::get<0>(factorization);
   const auto& U = std::get<2>(factorization);
   const auto& Q = std::get<3>(factorization);
 
   // The product of the diagonal is the product of eigenvalues, which equals the determinant:
-  Expr prod = P.Determinant() * Q.Determinant();
-  for (index_t i = 0; i < U.NumRows(); ++i) {
-    prod = prod * U.GetUnchecked(i, i);
+  Expr prod = P.determinant() * Q.determinant();
+  for (index_t i = 0; i < U.rows(); ++i) {
+    prod = prod * U.get_unchecked(i, i);
   }
   return prod;
 }

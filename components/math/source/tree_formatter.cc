@@ -9,17 +9,15 @@
 
 namespace math {
 
-static void RightTrimInPlace(std::string& str) {
+static void right_trim_in_place(std::string& str) {
   while (!str.empty() && std::isspace(str.back())) {
     str.pop_back();
   }
 }
 
 struct TreeFormatter {
-  using ReturnType = void;
-
   // Add indentation to the output string.
-  void ApplyIndentation() {
+  void apply_indentation() {
     if (indentations_.empty()) {
       return;
     }
@@ -41,130 +39,130 @@ struct TreeFormatter {
   }
 
   template <typename... Args>
-  void AppendName(const std::string_view fmt_str, Args&&... args) {
-    ApplyIndentation();
+  void append_name(const std::string_view fmt_str, Args&&... args) {
+    apply_indentation();
     fmt::format_to(std::back_inserter(output_), fmt_str, std::forward<Args>(args)...);
     output_ += "\n";
   }
 
-  void VisitLeft(const Expr& expr) {
+  void visit_left(const Expr& expr) {
     indentations_.push_back(true);
-    Visit(expr, *this);
+    visit(expr, *this);
     indentations_.pop_back();
   }
 
-  void VisitRight(const Expr& expr) {
+  void visit_right(const Expr& expr) {
     indentations_.push_back(false);
-    Visit(expr, *this);
+    visit(expr, *this);
     indentations_.pop_back();
   }
 
   void operator()(const Addition& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.Arity());
+    terms.reserve(op.arity());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-      auto acm = AsCoefficientAndMultiplicand(a);
-      auto bcm = AsCoefficientAndMultiplicand(b);
-      return ExpressionOrder(acm.second, bcm.second) == RelativeOrder::LessThan;
+      auto acm = as_coeff_and_mul(a);
+      auto bcm = as_coeff_and_mul(b);
+      return expression_order(acm.second, bcm.second) == RelativeOrder::LessThan;
     });
 
-    AppendName("Addition:");
+    append_name("Addition:");
     auto it = terms.begin();
     for (; std::next(it) != terms.end(); ++it) {
-      VisitLeft(*it);
+      visit_left(*it);
     }
-    VisitRight(*it);
+    visit_right(*it);
   }
 
   void operator()(const Derivative& diff) {
-    AppendName("Derivative (order = {}):", diff.Order());
-    VisitLeft(diff.Differentiand());
-    VisitRight(diff.Arg());
+    append_name("Derivative (order = {}):", diff.order());
+    visit_left(diff.differentiand());
+    visit_right(diff.argument());
   }
 
   void operator()(const Multiplication& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.Arity());
+    terms.reserve(op.arity());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-      const auto abe = AsBaseAndExponent(a);
-      const auto bbe = AsBaseAndExponent(b);
-      return ExpressionOrder(abe.first, bbe.first) == RelativeOrder::LessThan;
+      const auto abe = as_base_and_exp(a);
+      const auto bbe = as_base_and_exp(b);
+      return expression_order(abe.first, bbe.first) == RelativeOrder::LessThan;
     });
 
-    AppendName("Multiplication:");
+    append_name("Multiplication:");
     auto it = terms.begin();
     for (; std::next(it) != terms.end(); ++it) {
-      VisitLeft(*it);
+      visit_left(*it);
     }
-    VisitRight(*it);
+    visit_right(*it);
   }
 
   void operator()(const Matrix& mat) {
     // TODO: Print the (row, col) index for each element.
-    AppendName("Matrix ({}, {}):", mat.NumRows(), mat.NumCols());
-    const auto& elements = mat.Data();
+    append_name("Matrix ({}, {}):", mat.rows(), mat.cols());
+    const auto& elements = mat.data();
     for (std::size_t i = 0; i + 1 < elements.size(); ++i) {
-      VisitLeft(elements[i]);
+      visit_left(elements[i]);
     }
-    VisitRight(elements.back());
+    visit_right(elements.back());
   }
 
   void operator()(const Power& op) {
-    AppendName("Power:");
-    VisitLeft(op.Base());
-    VisitRight(op.Exponent());
+    append_name("Power:");
+    visit_left(op.base());
+    visit_right(op.exponent());
   }
 
-  void operator()(const Infinity&) { AppendName("Infinity"); }
+  void operator()(const Infinity&) { append_name("Infinity"); }
 
-  void operator()(const Integer& neg) { AppendName("Integer ({})", neg.GetValue()); }
+  void operator()(const Integer& neg) { append_name("Integer ({})", neg.get_value()); }
 
-  void operator()(const Float& neg) { AppendName("Float ({})", neg.GetValue()); }
+  void operator()(const Float& neg) { append_name("Float ({})", neg.get_value()); }
 
   void operator()(const FunctionArgument& arg) {
-    AppendName("FunctionArgument ({}, {})", arg.ArgIndex(), arg.ElementIndex());
+    append_name("FunctionArgument ({}, {})", arg.arg_index(), arg.element_index());
   }
 
   void operator()(const Rational& rational) {
-    AppendName("Rational ({} / {})", rational.Numerator(), rational.Denominator());
+    append_name("Rational ({} / {})", rational.numerator(), rational.denominator());
   }
 
   void operator()(const Relational& relational) {
-    AppendName("Relational ({})", relational.OperationString());
-    VisitLeft(relational.Left());
-    VisitRight(relational.Right());
+    append_name("Relational ({})", relational.operation_string());
+    visit_left(relational.left());
+    visit_right(relational.right());
   }
 
   void operator()(const Function& func) {
-    AppendName("Function ({}):", func.Name());
+    append_name("Function ({}):", func.function_name());
     auto it = func.begin();
     for (; std::next(it) != func.end(); ++it) {
-      VisitLeft(*it);
+      visit_left(*it);
     }
-    VisitRight(*it);
+    visit_right(*it);
   }
 
-  void operator()(const Variable& var) { AppendName("Variable ({})", var.GetName()); }
+  void operator()(const Variable& var) { append_name("Variable ({})", var.name()); }
 
   void operator()(const Conditional& conditional) {
-    AppendName("Conditional:");
-    VisitLeft(conditional.Condition());
-    VisitLeft(conditional.IfBranch());
-    VisitRight(conditional.ElseBranch());
+    append_name("Conditional:");
+    visit_left(conditional.condition());
+    visit_left(conditional.if_branch());
+    visit_right(conditional.else_branch());
   }
 
   void operator()(const Constant& constant) {
-    AppendName("Constant ({})", StringFromSymbolicConstant(constant.GetName()));
+    append_name("Constant ({})", string_from_symbolic_constant(constant.name()));
   }
 
   // Get the output string via move.
-  std::string TakeOutput() {
+  std::string take_output() {
     // Somewhat hacky. The formatter appends a superfluous newline on the last element. I think
     // this is tricky to avoid w/o knowing the tree depth apriori. Instead, just trim it from the
     // end.
-    RightTrimInPlace(output_);
+    right_trim_in_place(output_);
     return std::move(output_);
   }
 
@@ -176,16 +174,16 @@ struct TreeFormatter {
   std::string output_;
 };
 
-std::string Expr::ToExpressionTreeString() const {
+std::string Expr::to_expression_tree_string() const {
   TreeFormatter formatter{};
-  Visit(*this, formatter);
-  return formatter.TakeOutput();
+  visit(*this, formatter);
+  return formatter.take_output();
 }
 
-std::string MatrixExpr::ToExpressionTreeString() const {
+std::string MatrixExpr::to_expression_tree_string() const {
   TreeFormatter formatter{};
-  formatter(AsMatrix());
-  return formatter.TakeOutput();
+  formatter(as_matrix());
+  return formatter.take_output();
 }
 
 }  // namespace math

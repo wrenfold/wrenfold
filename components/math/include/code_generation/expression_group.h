@@ -38,7 +38,7 @@ struct OutputKey {
 };
 
 // Convert `ExpressionUsage` to a string.
-inline constexpr std::string_view StringFromExpressionUsage(const ExpressionUsage usage) {
+inline constexpr std::string_view string_from_expression_usage(const ExpressionUsage usage) {
   switch (usage) {
     case ExpressionUsage::ReturnValue:
       return "ReturnValue";
@@ -51,9 +51,10 @@ inline constexpr std::string_view StringFromExpressionUsage(const ExpressionUsag
 }
 
 // Hash `OutputKey` type.
-struct OutputKeyHasher {
+template <>
+struct hash_struct<OutputKey> {
   std::size_t operator()(const OutputKey& k) const {
-    return HashCombine(static_cast<std::size_t>(k.usage), HashString(k.name));
+    return hash_combine(static_cast<std::size_t>(k.usage), hash_string_fnv(k.name));
   }
 };
 

@@ -5,20 +5,20 @@ namespace math {
 
 // Simple checked pointer type which cannot be null.
 template <typename T>
-class NonNullPtr {
+class non_null_ptr {
  public:
-  explicit NonNullPtr(T* ptr) : ptr_(ptr) { ASSERT(ptr_, "Cannot be constructed null"); }
+  explicit non_null_ptr(T* ptr) : ptr_(ptr) { ASSERT(ptr_, "Cannot be constructed null"); }
 
   // Construct from unique_ptr.
-  explicit NonNullPtr(const std::unique_ptr<T>& ptr) : NonNullPtr(ptr.get()) {}
+  explicit non_null_ptr(const std::unique_ptr<T>& ptr) : non_null_ptr(ptr.get()) {}
 
   // Construct from non-const version of ourselves:
   template <typename U, typename = std::enable_if_t<std::is_const_v<T> &&
                                                     std::is_same_v<U, std::remove_const_t<T>>>>
-  NonNullPtr(const NonNullPtr<U>& other) : ptr_(other.ptr) {}  // NOLINT
+  non_null_ptr(const non_null_ptr<U>& other) : ptr_(other.ptr) {}  // NOLINT
 
   // nullptr constructor is explicitly deleted.
-  [[maybe_unused]] NonNullPtr(std::nullptr_t) = delete;
+  [[maybe_unused]] non_null_ptr(std::nullptr_t) = delete;
 
   // Access the underlying pointer.
   constexpr T* get() const { return ptr_; }
@@ -36,29 +36,29 @@ class NonNullPtr {
 
 // Test for equality.
 template <typename T>
-constexpr bool operator==(const NonNullPtr<T>& a, const NonNullPtr<T>& b) {
+constexpr bool operator==(const non_null_ptr<T>& a, const non_null_ptr<T>& b) {
   return a.get() == b.get();
 }
 template <typename T>
-constexpr bool operator==(const NonNullPtr<T>& a, const T* b) {
+constexpr bool operator==(const non_null_ptr<T>& a, const T* b) {
   return a.get() == b;
 }
 template <typename T>
-constexpr bool operator==(const T* a, const NonNullPtr<T>& b) {
+constexpr bool operator==(const T* a, const non_null_ptr<T>& b) {
   return a == b.get();
 }
 
 // Test for inequality.
 template <typename T>
-constexpr bool operator!=(const NonNullPtr<T>& a, const NonNullPtr<T>& b) {
+constexpr bool operator!=(const non_null_ptr<T>& a, const non_null_ptr<T>& b) {
   return a.get() != b.get();
 }
 template <typename T>
-constexpr bool operator!=(const NonNullPtr<T>& a, const T* b) {
+constexpr bool operator!=(const non_null_ptr<T>& a, const T* b) {
   return a.get() != b;
 }
 template <typename T>
-constexpr bool operator!=(const T* a, const NonNullPtr<T>& b) {
+constexpr bool operator!=(const T* a, const non_null_ptr<T>& b) {
   return a != b.get();
 }
 
@@ -67,8 +67,8 @@ constexpr bool operator!=(const T* a, const NonNullPtr<T>& b) {
 // Specialization of std::hash
 namespace std {
 template <class T>
-struct hash<math::NonNullPtr<T>> {
-  std::size_t operator()(const math::NonNullPtr<T>& ptr) const {
+struct hash<math::non_null_ptr<T>> {
+  std::size_t operator()(const math::non_null_ptr<T>& ptr) const {
     return std::hash<const T*>{}(ptr.get());
   }
 };

@@ -25,8 +25,8 @@ TEST(FunctionsTest, TestCosine) {
   ASSERT_IDENTICAL(Constants::One, cos(0_s));
   for (int i = -15; i < 15; ++i) {
     // Even and odd multiples of pi.
-    ASSERT_IDENTICAL(Constants::One, cos(Integer::Create(i * 2) * Constants::Pi));
-    ASSERT_IDENTICAL(Constants::NegativeOne, cos(Integer::Create(i * 2 + 1) * Constants::Pi));
+    ASSERT_IDENTICAL(Constants::One, cos(Integer::create(i * 2) * Constants::Pi));
+    ASSERT_IDENTICAL(Constants::NegativeOne, cos(Integer::create(i * 2 + 1) * Constants::Pi));
   }
 
   ASSERT_IDENTICAL(Constants::Zero, cos(Constants::Pi / 2_s));
@@ -34,15 +34,15 @@ TEST(FunctionsTest, TestCosine) {
   for (int i = -15; i < 15; ++i) {
     // Multiples of pi/2
     ASSERT_IDENTICAL(Constants::Zero,
-                     cos(Constants::Pi / 2_s + Integer::Create(i) * Constants::Pi));
+                     cos(Constants::Pi / 2_s + Integer::create(i) * Constants::Pi));
   }
 
   // Modulo:
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(cos(Constants::Pi * 3_s / 5_s),
-                     cos(Constants::Pi * 3_s / 5_s + Integer::Create(2 * i) * Constants::Pi));
+                     cos(Constants::Pi * 3_s / 5_s + Integer::create(2 * i) * Constants::Pi));
     ASSERT_IDENTICAL(cos(Constants::Pi * -2_s / 7_s),
-                     cos(Constants::Pi * -2_s / 7_s + Integer::Create(2 * i) * Constants::Pi));
+                     cos(Constants::Pi * -2_s / 7_s + Integer::create(2 * i) * Constants::Pi));
   }
 
   // Sign adjustment
@@ -52,7 +52,7 @@ TEST(FunctionsTest, TestCosine) {
 
   // Evaluation on floats:
   for (double v : {-0.51, 0.78, 1.8, -2.1}) {
-    ASSERT_IDENTICAL(Float::Create(std::cos(v)), cos(v));
+    ASSERT_IDENTICAL(Float::create(std::cos(v)), cos(v));
   }
 }
 
@@ -64,25 +64,25 @@ TEST(FunctionsTest, TestSine) {
 
   ASSERT_IDENTICAL(Constants::Zero, sin(0_s));
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(Constants::Zero, sin(Integer::Create(i * 2) * Constants::Pi));
-    ASSERT_IDENTICAL(Constants::Zero, sin(Integer::Create(i * 2 + 1) * Constants::Pi));
+    ASSERT_IDENTICAL(Constants::Zero, sin(Integer::create(i * 2) * Constants::Pi));
+    ASSERT_IDENTICAL(Constants::Zero, sin(Integer::create(i * 2 + 1) * Constants::Pi));
   }
 
   ASSERT_IDENTICAL(Constants::One, sin(Constants::Pi / 2_s));
   ASSERT_IDENTICAL(Constants::NegativeOne, sin(-Constants::Pi / 2_s));
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(Constants::One,
-                     sin(Constants::Pi / 2_s + Integer::Create(i * 2) * Constants::Pi));
+                     sin(Constants::Pi / 2_s + Integer::create(i * 2) * Constants::Pi));
     ASSERT_IDENTICAL(Constants::NegativeOne,
-                     sin(-Constants::Pi / 2_s + Integer::Create(i * 2) * Constants::Pi));
+                     sin(-Constants::Pi / 2_s + Integer::create(i * 2) * Constants::Pi));
   }
 
   // Modulo:
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(sin(Constants::Pi * 2_s / 11_s),
-                     sin(Constants::Pi * 2_s / 11_s + Integer::Create(2 * i) * Constants::Pi));
+                     sin(Constants::Pi * 2_s / 11_s + Integer::create(2 * i) * Constants::Pi));
     ASSERT_IDENTICAL(sin(Constants::Pi * -6_s / 13_s),
-                     sin(Constants::Pi * -6_s / 13_s + Integer::Create(2 * i) * Constants::Pi));
+                     sin(Constants::Pi * -6_s / 13_s + Integer::create(2 * i) * Constants::Pi));
   }
 
   ASSERT_IDENTICAL(-sin(x), sin(-x));
@@ -90,7 +90,7 @@ TEST(FunctionsTest, TestSine) {
   ASSERT_IDENTICAL(-sin(3_s / 5_s), sin(-3_s / 5_s));
 
   for (double v : {6.0, 0.112, -0.65, 0.22}) {
-    ASSERT_IDENTICAL(Float::Create(std::sin(v)), sin(v));
+    ASSERT_IDENTICAL(Float::create(std::sin(v)), sin(v));
   }
 }
 
@@ -102,27 +102,27 @@ TEST(FunctionsTest, TestTan) {
 
   // Zero at multiples of pi.
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(Constants::Zero, tan(Integer::Create(i) * Constants::Pi));
+    ASSERT_IDENTICAL(Constants::Zero, tan(Integer::create(i) * Constants::Pi));
   }
 
   // Infinity at odd multiples of pi/2:
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(Constants::Infinity, tan(Integer::Create(i * 2 + 1) * Constants::Pi / 2_s));
+    ASSERT_IDENTICAL(Constants::Infinity, tan(Integer::create(i * 2 + 1) * Constants::Pi / 2_s));
   }
 
   // Modulo pi:
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(tan(Constants::Pi * 4_s / 11_s),
-                     tan(Constants::Pi * 4_s / 11_s + Integer::Create(i) * Constants::Pi));
+                     tan(Constants::Pi * 4_s / 11_s + Integer::create(i) * Constants::Pi));
     ASSERT_IDENTICAL(tan(Constants::Pi * -3_s / 13_s),
-                     tan(Constants::Pi * -3_s / 13_s + Integer::Create(i) * Constants::Pi));
+                     tan(Constants::Pi * -3_s / 13_s + Integer::create(i) * Constants::Pi));
   }
 
   ASSERT_IDENTICAL(-tan(x), tan(-x));
   ASSERT_IDENTICAL(-tan(x * y), tan(-x * y));
 
   for (double v : {-4.0, -0.132, 1.6, 6.8}) {
-    ASSERT_IDENTICAL(Float::Create(std::tan(v)), tan(v));
+    ASSERT_IDENTICAL(Float::create(std::tan(v)), tan(v));
   }
 }
 
@@ -168,8 +168,8 @@ TEST(FunctionsTest, TestArctan2) {
   ASSERT_NOT_IDENTICAL(atan2(y, x), atan2(x, y));
   ASSERT_IDENTICAL(0, atan2(0, 1));
   ASSERT_IDENTICAL(Constants::Pi / 2, atan2(1, 0));
-  ASSERT_IDENTICAL(Constants::Pi, atan2(y, x).Subs(y, 0).Subs(x, -1));
-  ASSERT_IDENTICAL(-Constants::Pi / 2, atan2(y, x).Subs(x, 0).Subs(y, -1));
+  ASSERT_IDENTICAL(Constants::Pi, atan2(y, x).subs(y, 0).subs(x, -1));
+  ASSERT_IDENTICAL(-Constants::Pi / 2, atan2(y, x).subs(x, 0).subs(y, -1));
 
   ASSERT_IDENTICAL(Constants::Pi / 4, atan2(5, 5));
   ASSERT_IDENTICAL(3 * Constants::Pi / 4, atan2(8, -8));
@@ -196,7 +196,7 @@ TEST(FunctionsTest, TestAbs) {
 }
 
 TEST(FunctionsTest, TestSignum) {
-  const auto [x, y] = Symbols("x", "y");
+  const auto [x, y] = make_symbols("x", "y");
   ASSERT_IDENTICAL(signum(x), signum(x));
   ASSERT_NOT_IDENTICAL(signum(x), signum(y));
 
@@ -215,7 +215,7 @@ TEST(FunctionsTest, TestSignum) {
 }
 
 TEST(FunctionTest, TestMinMax) {
-  const auto [x, y, z] = Symbols("x", "y", "z");
+  const auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_NOT_IDENTICAL(max(x, y), max(y, x));  //  order matters
   ASSERT_NOT_IDENTICAL(max(x, y), max(x, z));
   ASSERT_IDENTICAL(max(x, y), where(x < y, y, x));

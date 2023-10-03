@@ -14,14 +14,16 @@ class Constants {
   static const Expr False;
 };
 
-inline bool IsZero(const Expr& expr) { return expr.IsIdenticalTo(Constants::Zero); }
+inline bool is_zero(const Expr& expr) { return expr.is_identical_to(Constants::Zero); }
 
-inline bool IsOne(const Expr& expr) { return expr.IsIdenticalTo(Constants::One); }
+inline bool is_one(const Expr& expr) { return expr.is_identical_to(Constants::One); }
 
-inline bool IsNegativeOne(const Expr& expr) { return expr.IsIdenticalTo(Constants::NegativeOne); }
+inline bool is_negative_one(const Expr& expr) {
+  return expr.is_identical_to(Constants::NegativeOne);
+}
 
-inline bool IsPi(const Expr& expr) { return expr.IsIdenticalTo(Constants::Pi); }
+inline bool is_pi(const Expr& expr) { return expr.is_identical_to(Constants::Pi); }
 
-inline bool IsInfinity(const Expr& expr) { return expr.IsIdenticalTo(Constants::Infinity); }
+inline bool is_infinity(const Expr& expr) { return expr.is_identical_to(Constants::Infinity); }
 
 }  // namespace math
