@@ -16,7 +16,7 @@ namespace math {
 
 static auto ComponentsFromIterable(const py::iterable& iterable) {
   absl::InlinedVector<Expr, 4> values;
-  TransformIntoExpr(iterable, values);
+  cast_to_expr(iterable, values);
   if (values.size() != 4) {
     throw DimensionError("Expected 4 values but {} were provided.", values.size());
   }
@@ -43,14 +43,14 @@ static py::list ListFromQuaternion(const Quaternion& q) {
 
 static py::array EvalQuaternion(const Quaternion& q) {
   py::list list{};  // TODO: Avoid copy into list.
-  list.append(TryConvertToNumeric(q.w().eval()));
-  list.append(TryConvertToNumeric(q.x().eval()));
-  list.append(TryConvertToNumeric(q.y().eval()));
-  list.append(TryConvertToNumeric(q.z().eval()));
+  list.append(try_convert_to_numeric(q.w().eval()));
+  list.append(try_convert_to_numeric(q.x().eval()));
+  list.append(try_convert_to_numeric(q.y().eval()));
+  list.append(try_convert_to_numeric(q.z().eval()));
   return py::array(list);
 }
 
-void WrapGeometryOperations(py::module_& m) {
+void wrap_geometry_operations(py::module_& m) {
   py::class_<Quaternion>(m, "Quaternion")
       .def(py::init<Expr, Expr, Expr, Expr>(), "w"_a, "x"_a, "y"_a, "z"_a,
            py::doc("Construct from wxyz elements."))

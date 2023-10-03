@@ -155,7 +155,7 @@ MatrixExpr MatrixGetRowSliceColIndex(const MatrixExpr& self,
 template <typename Container>
 MatrixExpr ColumnVectorFromContainer(const Container& inputs) {
   std::vector<Expr> converted;
-  TransformIntoExpr(inputs, converted);
+  cast_to_expr(inputs, converted);
   if (converted.empty()) {
     throw DimensionError("Cannot construct empty vector.");
   }
@@ -166,7 +166,7 @@ MatrixExpr ColumnVectorFromContainer(const Container& inputs) {
 template <typename Container>
 MatrixExpr RowVectorFromContainer(const Container& inputs) {
   std::vector<Expr> converted;
-  TransformIntoExpr(inputs, converted);
+  cast_to_expr(inputs, converted);
   if (converted.empty()) {
     throw DimensionError("Cannot construct empty row vector.");
   }
@@ -184,7 +184,7 @@ inline std::size_t ExtractIterableRows(const py::handle& row, std::vector<Expr>&
               std::back_inserter(output));
     return as_matrix.cols();
   }
-  return TransformIntoExpr(py::iter(row), output);
+  return cast_to_expr(py::iter(row), output);
 }
 
 // Vertically stack a bunch of iterable objects into one big matrix.
@@ -263,7 +263,7 @@ py::list ListFromMatrix(const MatrixExpr& self) {
 py::array NumpyFromMatrix(const MatrixExpr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
   for (const Expr& expr : self.as_matrix()) {
-    list.append(TryConvertToNumeric(expr));
+    list.append(try_convert_to_numeric(expr));
   }
   auto array = py::array(list);
   const std::array<std::size_t, 2> new_shape{static_cast<std::size_t>(self.rows()),
@@ -272,12 +272,12 @@ py::array NumpyFromMatrix(const MatrixExpr& self) {
   return array;
 }
 
-py::array EvalToNumeric(const MatrixExpr& self) {
+py::array maybe_eval_to_numeric(const MatrixExpr& self) {
   MatrixExpr eval = self.eval();
   return NumpyFromMatrix(eval);
 }
 
-void WrapMatrixOperations(py::module_& m) {
+void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
   py::class_<MatrixExpr>(m, "MatrixExpr")
       // Expr inherited properties:
@@ -297,7 +297,7 @@ void WrapMatrixOperations(py::module_& m) {
       .def("distribute", &MatrixExpr::distribute, "Expand products of additions and subtractions.")
       .def("subs", &MatrixExpr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
-      .def("eval", &EvalToNumeric, "Evaluate into float expression.")
+      .def("eval", &maybe_eval_to_numeric, "Evaluate into float expression.")
       // Matrix specific properties:
       .def_property_readonly(
           "shape", [](const MatrixExpr& m) { return py::make_tuple(m.rows(), m.cols()); },

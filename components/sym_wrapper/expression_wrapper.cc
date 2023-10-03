@@ -13,13 +13,14 @@
 #include "expressions/variable.h"
 #include "functions.h"
 #include "plain_formatter.h"
+#include "wrapper_utils.h"
 
 namespace py = pybind11;
 using namespace py::literals;
 using namespace math;
 
 // Create symbols from CSV list of names.
-inline std::variant<Expr, py::list> CreateSymbolsFrom(const std::string_view csv) {
+inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_view csv) {
   py::list variables{};
   std::string name{};
   for (const char c : csv) {
@@ -43,39 +44,35 @@ inline std::variant<Expr, py::list> CreateSymbolsFrom(const std::string_view csv
   return variables;
 }
 
-inline std::variant<Expr, py::list> CreateSymbolsFrom(const py::iterable& iterable) {
+// Traverse the provided iterable, inspecting elements. If the inner element is a
+// string, then parse it into symbols. If the inner element is an iterable, recurse on it.
+inline std::variant<Expr, py::list> create_symbols_from_str(const py::iterable& iterable) {
   py::list result{};
   for (const py::handle& handle : iterable) {
     // Each element of the iterable could be a string, or a nested iterable:
     auto casted = py::cast<std::variant<std::string_view, py::iterable>>(handle);
-    auto symbols =
-        std::visit([](const auto& input) { return CreateSymbolsFrom(input); }, std::move(casted));
+    auto symbols = std::visit([](const auto& input) { return create_symbols_from_str(input); },
+                              std::move(casted));
     result.append(std::move(symbols));
   }
   return result;
 }
 
-std::variant<Expr, py::list> CreateSymbols(std::variant<std::string_view, py::iterable> arg) {
-  return std::visit([](const auto& input) { return CreateSymbolsFrom(input); }, std::move(arg));
-}
-
-std::variant<double, Expr> EvalToNumeric(const Expr& self) {
-  Expr eval = self.eval();
-  if (const Float* f = cast_ptr<Float>(eval); f != nullptr) {
-    return f->get_value();
-  }
-  return eval;
+std::variant<Expr, py::list> create_symbols_from_str_or_iterable(
+    std::variant<std::string_view, py::iterable> arg) {
+  return std::visit([](const auto& input) { return create_symbols_from_str(input); },
+                    std::move(arg));
 }
 
 namespace math {
 // Defined in matrix_wrapper.cc
-void WrapMatrixOperations(py::module_& m);
+void wrap_matrix_operations(py::module_& m);
 
 // Defined in codegen_wrapper.cc
-void WrapCodegenOperations(py::module_& m);
+void wrap_codegen_operations(py::module_& m);
 
 // Defined in geometry_wrapper.cc
-void WrapGeometryOperations(py::module_& m);
+void wrap_geometry_operations(py::module_& m);
 }  // namespace math
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
@@ -99,7 +96,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def("distribute", &Expr::distribute, "Expand products of additions and subtractions.")
       .def("subs", &Expr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
-      .def("eval", &EvalToNumeric, "Evaluate into float expression.")
+      .def("eval", &try_convert_to_numeric, "Evaluate into float expression.")
       .def(
           "collect", [](const Expr& self, const Expr& term) { return self.collect(term); },
           "term"_a, "Collect powers of the provided expression.")
@@ -146,7 +143,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   py::implicitly_convertible<double, Expr>();
 
   // Methods for declaring expressions:
-  m.def("symbols", &CreateSymbols, py::arg("arg"),
+  m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("arg"),
         "Create variables from a string or an iterable of strings.");
   m.def(
       "integer", [](std::int64_t value) { return Expr{value}; }, "value"_a,
@@ -185,11 +182,11 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   py::register_exception<TypeError>(m, "TypeError");
 
   // Include other wrappers in this module:
-  WrapMatrixOperations(m);
+  wrap_matrix_operations(m);
 
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
-  WrapGeometryOperations(m_geo);
+  wrap_geometry_operations(m_geo);
 
   auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
-  WrapCodegenOperations(m_codegen);
+  wrap_codegen_operations(m_codegen);
 }  // PYBIND11_MODULE
