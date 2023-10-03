@@ -292,8 +292,8 @@ struct hash_struct<Float> {
 // This is so we can promote integers/rationals -> float when they are combined with floats.
 template <typename A, typename B>
 constexpr bool is_float_and_numeric_v =
-    (std::is_same_v<A, Float> && ContainsTypeHelper<B, Integer, Rational>) ||
-    (std::is_same_v<B, Float> && ContainsTypeHelper<A, Integer, Rational>) ||
+    (std::is_same_v<A, Float> && list_contains_type_v<B, Integer, Rational>) ||
+    (std::is_same_v<B, Float> && list_contains_type_v<A, Integer, Rational>) ||
     (std::is_same_v<A, Float> && std::is_same_v<B, Float>);
 
 static_assert(is_float_and_numeric_v<Float, Float>);

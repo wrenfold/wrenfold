@@ -453,8 +453,8 @@ class Value {
     return std::visit(
         [&](const auto& op) -> NumericType {
           using T = std::decay_t<decltype(op)>;
-          using OmittedTypes = TypeList<Save, JumpCondition>;
-          if constexpr (ContainsType<T, OmittedTypes>) {
+          using OmittedTypes = type_list<Save, JumpCondition>;
+          if constexpr (list_contains_type_v<T, OmittedTypes>) {
             throw TypeError("Operation does not have a numeric type");
           } else if constexpr (T::num_value_operands() == 0) {
             return op.determine_type();

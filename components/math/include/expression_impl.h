@@ -48,7 +48,7 @@ class ExpressionImpl final : public ExpressionConcept {
 
  protected:
   bool type_matches_index(const std::size_t index) const override final {
-    static_assert(ContainsType<ExpressionType, ExpressionTypeList>,
+    static_assert(list_contains_type_v<ExpressionType, ExpressionTypeList>,
                   "ExpressionType is not a valid expression type");
     return index_of_type<ExpressionType, ExpressionTypeList>::value == index;
   }

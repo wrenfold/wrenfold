@@ -18,7 +18,7 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_
 
   // Extract return type and argument list of the provided function pointer or lambda.
   using Traits = function_traits<Func>;
-  using ArgList = typename Traits::ArgsTypeList;  //  List of all argument types.
+  using ArgList = typename Traits::args_list;  //  List of all argument types.
   static_assert(type_list_size_v<ArgList> == sizeof...(ArgumentInfo),
                 "Mismatch in # args and # arg names");
 
@@ -28,7 +28,7 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_
 
   // Build inputs and invoke the function
   std::tuple outputs = detail::invoke_with_output_capture<ArgList>(
-      std::forward<Func>(func), std::make_index_sequence<Traits::Arity>());
+      std::forward<Func>(func), std::make_index_sequence<Traits::arity>());
 
   // Copy expressions into `ExpressionGroup` objects, one per output:
   std::vector<ExpressionGroup> groups{};
@@ -36,7 +36,7 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_
 
   // Add all the input arguments:
   ast::FunctionSignature signature{std::string(function_name)};
-  detail::record_input_args<ArgList>(signature, args, std::make_index_sequence<Traits::Arity>());
+  detail::record_input_args<ArgList>(signature, args, std::make_index_sequence<Traits::arity>());
 
   // Record all the output arguments:
   std::apply(

@@ -45,15 +45,15 @@ struct NumericFunctionEvaluator {
 };
 
 template <typename T>
-struct ApplyNumericEvaluatorImpl;
+struct apply_numeric_evaluator_impl;
 
 template <typename T>
-auto ApplyNumericEvaluator(const NumericFunctionEvaluator& evaluator, const T& input) {
-  return ApplyNumericEvaluatorImpl<T>{}(evaluator, input);
+auto apply_numeric_evaluator(const NumericFunctionEvaluator& evaluator, const T& input) {
+  return apply_numeric_evaluator_impl<T>{}(evaluator, input);
 }
 
 template <>
-struct ApplyNumericEvaluatorImpl<Expr> {
+struct apply_numeric_evaluator_impl<Expr> {
   double operator()(const NumericFunctionEvaluator& evaluator, const Expr& input) const {
     const Expr subs =
         Visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
@@ -71,13 +71,13 @@ struct ApplyNumericEvaluatorImpl<Expr> {
 };
 
 template <>
-struct ApplyNumericEvaluatorImpl<MatrixExpr> {
+struct apply_numeric_evaluator_impl<MatrixExpr> {
   Eigen::MatrixXd operator()(const NumericFunctionEvaluator& evaluator,
                              const MatrixExpr& input) const {
     Eigen::MatrixXd output{input.rows(), input.cols()};
     for (index_t i = 0; i < input.rows(); ++i) {
       for (index_t j = 0; j < input.cols(); ++j) {
-        output(i, j) = ApplyNumericEvaluator(evaluator, input(i, j));
+        output(i, j) = apply_numeric_evaluator(evaluator, input(i, j));
       }
     }
     return output;
@@ -85,7 +85,7 @@ struct ApplyNumericEvaluatorImpl<MatrixExpr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct ApplyNumericEvaluatorImpl<ta::StaticMatrix<Rows, Cols>> {
+struct apply_numeric_evaluator_impl<ta::StaticMatrix<Rows, Cols>> {
   Eigen::Matrix<double, Rows, Cols> operator()(const NumericFunctionEvaluator& evaluator,
                                                const MatrixExpr& input) const {
     ASSERT_EQUAL(input.rows(), Rows);
@@ -94,7 +94,7 @@ struct ApplyNumericEvaluatorImpl<ta::StaticMatrix<Rows, Cols>> {
     for (index_t i = 0; i < Rows; ++i) {
       for (index_t j = 0; j < Cols; ++j) {
         // Apply the evaluator for `Expr`
-        output(i, j) = ApplyNumericEvaluator(evaluator, input(i, j));
+        output(i, j) = apply_numeric_evaluator(evaluator, input(i, j));
       }
     }
     return output;
@@ -102,17 +102,17 @@ struct ApplyNumericEvaluatorImpl<ta::StaticMatrix<Rows, Cols>> {
 };
 
 template <std::size_t Index, typename NumericArgType>
-struct CollectFunctionInputImpl;
+struct collect_function_input_impl;
 
 template <std::size_t Index>
-struct CollectFunctionInputImpl<Index, double> {
+struct collect_function_input_impl<Index, double> {
   void operator()(NumericFunctionEvaluator& output, const double arg) const {
     output.values.emplace(FunctionArgument(Index, 0), Float::create(arg));
   }
 };
 
 template <std::size_t Index, int Rows, int Cols>
-struct CollectFunctionInputImpl<Index, Eigen::Matrix<double, Rows, Cols>> {
+struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
   void operator()(NumericFunctionEvaluator& output,
                   const Eigen::Matrix<double, Rows, Cols>& arg) const {
     static_assert(Rows > 0);
@@ -127,19 +127,20 @@ struct CollectFunctionInputImpl<Index, Eigen::Matrix<double, Rows, Cols>> {
 };
 
 template <std::size_t Index, typename NumericArgType>
-void CollectFunctionInput(NumericFunctionEvaluator& evaluator, const NumericArgType& numeric_arg) {
-  CollectFunctionInputImpl<Index, NumericArgType>{}(evaluator, numeric_arg);
+void collect_function_input(NumericFunctionEvaluator& evaluator,
+                            const NumericArgType& numeric_arg) {
+  collect_function_input_impl<Index, NumericArgType>{}(evaluator, numeric_arg);
 }
 
 template <std::size_t... Indices, typename... NumericArgs>
-void CollectFunctionInputs(NumericFunctionEvaluator& evaluator, std::index_sequence<Indices...>,
-                           NumericArgs&&... args) {
+void collect_function_inputs(NumericFunctionEvaluator& evaluator, std::index_sequence<Indices...>,
+                             NumericArgs&&... args) {
   static_assert(sizeof...(Indices) <= sizeof...(NumericArgs));
 #ifndef __GNUG__
   ([]() constexpr { static_assert(Indices <= sizeof...(NumericArgs)); }(), ...);
 #endif
-  // Access args specified by `Indices` and call `CollectFunctionInput` on all of them.
-  (CollectFunctionInput<Indices>(evaluator, std::get<Indices>(std::forward_as_tuple(args...))),
+  // Access args specified by `Indices` and call `collect_function_input` on all of them.
+  (collect_function_input<Indices>(evaluator, std::get<Indices>(std::forward_as_tuple(args...))),
    ...);
 }
 
@@ -156,23 +157,23 @@ auto create_evaluator_with_output_expressions(
                  std::tuple_element_t<OutputIndices, OutputTuple>>&... output_args) {
     // Copy all the input arguments into the evaluator:
     NumericFunctionEvaluator evaluator{};
-    CollectFunctionInputs(evaluator, input_seq, args...);
+    collect_function_inputs(evaluator, input_seq, args...);
 
     // Create a tuple of non-const references to output arguments of this lambda, and write to it
     // by doing substitution with the NumericFunctionEvaluator:
     std::forward_as_tuple(output_args...) = std::apply(
         [&evaluator](const auto&... output_expression) {
           // Call .Value() to convert from OutputArg<> to the underlying expression.
-          return std::make_tuple(ApplyNumericEvaluator(evaluator, output_expression.value())...);
+          return std::make_tuple(apply_numeric_evaluator(evaluator, output_expression.value())...);
         },
-        SelectFromTuple(output_expressions, output_arg_seq));
+        select_from_tuple(output_expressions, output_arg_seq));
 
     // Now we need to deal w/ the return value:
     constexpr std::ptrdiff_t return_val_index = return_value_index<OutputTuple>::value;
     if constexpr (return_val_index >= 0) {
       // This function also has a return value that we need to fill out:
-      return ApplyNumericEvaluator(evaluator,
-                                   std::get<return_val_index>(output_expressions).value());
+      return apply_numeric_evaluator(evaluator,
+                                     std::get<return_val_index>(output_expressions).value());
     }
   };
 }
@@ -183,7 +184,7 @@ auto create_evaluator_with_output_expressions(
 // numeric types.
 template <typename ReturnType, typename... Args>
 auto create_evaluator(ReturnType (*func)(Args... args)) {
-  using ArgList = TypeList<std::decay_t<Args>...>;
+  using ArgList = type_list<std::decay_t<Args>...>;
 
   // Evaluate the function symbolically.
   // We don't substitute numerical values directly, because the function may wish to do symbolic

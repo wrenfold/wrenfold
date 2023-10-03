@@ -43,7 +43,7 @@ struct AdditionVisitor {
     }
   }
 
-  using ExcludedTypes = TypeList<Addition, Integer, Rational, Float, Matrix>;
+  using ExcludedTypes = type_list<Addition, Integer, Rational, Float, Matrix>;
 
   template <typename T, typename = enable_if_does_not_contain_type_t<T, ExcludedTypes>>
   void operator()(const T&, const Expr& input_expression) {

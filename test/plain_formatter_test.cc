@@ -8,35 +8,6 @@
 namespace math {
 using namespace math::custom_literals;
 
-#define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(StringEqualTestHelper, val1, val2)
-
-inline std::string escape_newlines(const std::string_view input) {
-  std::string output;
-  output.reserve(input.size());
-  for (char c : input) {
-    if (c == '\n') {
-      output += "\\n";
-    } else {
-      output += c;
-    }
-  }
-  return output;
-}
-
-template <typename ExprType>
-testing::AssertionResult StringEqualTestHelper(const std::string&, const std::string& name_b,
-                                               const std::string& a, const ExprType& b) {
-  const std::string b_str = b.to_string();
-  if (a == b_str) {
-    return testing::AssertionSuccess();
-  }
-  return testing::AssertionFailure() << fmt::format(
-             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
-             "The expression tree for `{}` is:\n{}",
-             escape_newlines(a), name_b, name_b, escape_newlines(b_str), name_b,
-             b.to_expression_tree_string());
-}
-
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
   const Expr w{"w"};
   const Expr x{"x"};

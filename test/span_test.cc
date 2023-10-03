@@ -16,17 +16,18 @@
 #include "span.h"
 #include "span_eigen.h"
 
-#define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(math::detail::ExpectEigenSpanEqual, a, b)
-#define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(math ::detail::ExpectEigenSpanEqual, a, b)
+#define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(math::detail::expect_eigen_span_equal, a, b)
+#define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(math::detail::expect_eigen_span_equal, a, b)
 
 namespace math {
 namespace detail {
 // Compare eigen matrix and span. Use ASSERT_EIGEN_SPAN_EQ()
 // Implementation defined below.
 template <typename Derived, typename Scalar, typename Dimensions, typename Strides>
-testing::AssertionResult ExpectEigenSpanEqual(const std::string& name_a, const std::string& name_b,
-                                              const Eigen::MatrixBase<Derived>& a,
-                                              const math::span<Scalar, Dimensions, Strides> b);
+testing::AssertionResult expect_eigen_span_equal(const std::string& name_a,
+                                                 const std::string& name_b,
+                                                 const Eigen::MatrixBase<Derived>& a,
+                                                 const math::span<Scalar, Dimensions, Strides> b);
 }  // namespace detail
 
 // Equality operator for spans of the same type.
@@ -482,9 +483,10 @@ TEST(SpanTest, TestEigenNullMapAssertion) {
 
 namespace detail {
 template <typename Derived, typename Scalar, typename Dimensions, typename Strides>
-testing::AssertionResult ExpectEigenSpanEqual(const std::string& name_a, const std::string& name_b,
-                                              const Eigen::MatrixBase<Derived>& a,
-                                              const math::span<Scalar, Dimensions, Strides> b) {
+testing::AssertionResult expect_eigen_span_equal(const std::string& name_a,
+                                                 const std::string& name_b,
+                                                 const Eigen::MatrixBase<Derived>& a,
+                                                 const math::span<Scalar, Dimensions, Strides> b) {
   if (b.data() == nullptr) {
     return testing::AssertionFailure() << fmt::format("Span expression has null data: {} ", name_b);
   }

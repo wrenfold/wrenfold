@@ -14,7 +14,7 @@ namespace math {
 struct IsNumericVisitor {
   template <typename T>
   bool operator()(const T& arg) const {
-    if constexpr (ContainsTypeHelper<T, Float, Integer, Rational>) {
+    if constexpr (list_contains_type_v<T, Float, Integer, Rational>) {
       return true;
     } else if constexpr (std::is_same_v<T, Power>) {
       return is_numeric(arg.base()) && is_numeric(arg.exponent());

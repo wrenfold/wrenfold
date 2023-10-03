@@ -9,8 +9,8 @@
 namespace math {
 
 template <typename CodeGenerator, typename Func, typename... Args>
-void GenerateFunc(CodeGenerator&& generator, std::string& output, Func&& func,
-                  const std::string_view name, Args&&... args) {
+void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
+                   const std::string_view name, Args&&... args) {
   auto tuple =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
   const ast::FunctionSignature& signature = std::get<0>(tuple);

@@ -9,9 +9,9 @@
 namespace math {
 
 template <typename T, typename List>
-using IfOneOf = std::enable_if_t<ContainsType<T, List>>;
+using IfOneOf = std::enable_if_t<list_contains_type_v<T, List>>;
 
-using IntAndRational = TypeList<Integer, Rational>;
+using IntAndRational = type_list<Integer, Rational>;
 
 struct CompareNumerics {
   // Int and rational can be compared:

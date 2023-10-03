@@ -14,13 +14,13 @@
 namespace math {
 
 TEST(CppGenerationTest, TestSimpleMultiplyAdd) {
-  auto evaluator = create_evaluator(&SimpleMultiplyAdd);
+  auto evaluator = create_evaluator(&simple_multiply_add);
   ASSERT_NEAR(evaluator(1.5, -2.2, 0.11), gen::simple_multiply_add(1.5, -2.2, 0.11), 1.0e-15);
   ASSERT_NEAR(evaluator(5.112, -0.01, -4.2), gen::simple_multiply_add(5.112, -0.01, -4.2), 1.0e-15);
 }
 
 TEST(CppGenerationTest, TestVectorRotation2D) {
-  auto evaluator = create_evaluator(&VectorRotation2D);
+  auto evaluator = create_evaluator(&vector_rotation_2d);
 
   for (double angle = -2.0 * M_PI; angle < 2.0 * M_PI; angle += 0.2) {
     Eigen::Vector2d D_angle_eval;
@@ -51,7 +51,7 @@ TEST(CppGenerationTest, TestVectorRotation2D) {
 }
 
 TEST(CppGenerationTest, TestVectorNorm3D) {
-  auto evaluator = create_evaluator(&VectorNorm3D);
+  auto evaluator = create_evaluator(&vector_norm_3d);
 
   Eigen::RowVector3d D_vec_eval, D_vec_gen;
   EXPECT_NEAR(evaluator({0.5, -0.23, 0.9}, D_vec_eval),
@@ -84,7 +84,7 @@ TEST(CppGenerationTest, TestExclusiveOr) {
 
 // We use this test to check that abs() is generated correctly.
 TEST(CppGenerationTest, TestHandwrittenSignum) {
-  auto evaluator = create_evaluator(&HandwrittenSignum);
+  auto evaluator = create_evaluator(&handwritten_signum);
 
   EXPECT_EQ(evaluator(0.0), gen::handwritten_signum(0.0));
   EXPECT_EQ(0.0, gen::handwritten_signum(0.0));
@@ -111,7 +111,7 @@ TEST(CppGenerationTest, TestHandwrittenAbs) {
 }
 
 TEST(CppGenerationTest, TestAtan2WithDerivatives) {
-  auto evaluator = create_evaluator(&Atan2WithDerivatives);
+  auto evaluator = create_evaluator(&atan2_with_derivatives);
 
   double D_y_num, D_x_num;
   double D_y_gen, D_x_gen;

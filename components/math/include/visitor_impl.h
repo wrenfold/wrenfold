@@ -33,8 +33,8 @@ class VisitorImpl : public virtual VisitorDeclare<T> {
 template <typename Derived, typename T>
 class VisitorImplAll;
 template <typename Derived, typename... Ts>
-class VisitorImplAll<Derived, TypeList<Ts...>> : public VisitorBaseGeneric<TypeList<Ts...>>,
-                                                 public VisitorImpl<Derived, Ts>... {};
+class VisitorImplAll<Derived, type_list<Ts...>> : public VisitorBaseGeneric<type_list<Ts...>>,
+                                                  public VisitorImpl<Derived, Ts>... {};
 
 namespace detail {
 

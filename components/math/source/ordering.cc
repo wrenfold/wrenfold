@@ -10,8 +10,8 @@ struct OrderVisitor {
   using ReturnType = RelativeOrder;
 
   using OrderOfTypes =
-      TypeList<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
-               Multiplication, Addition, Power, Function, Relational, Conditional, Derivative>;
+      type_list<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
+                Multiplication, Addition, Power, Function, Relational, Conditional, Derivative>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(type_list_size<OrderOfTypes>::value == type_list_size<ExpressionTypeList>::value);
@@ -30,8 +30,9 @@ struct OrderVisitor {
   }
 
   // This visitor applies to any two members of `OrderOfTypes` that are _not_ the same type.
-  template <typename Numeric, typename = std::enable_if_t<
-                                  ContainsTypeHelper<Numeric, Float, Integer, Rational, Constant>>>
+  template <typename Numeric,
+            typename =
+                std::enable_if_t<list_contains_type_v<Numeric, Float, Integer, Rational, Constant>>>
   RelativeOrder Compare(const Numeric& a, const Numeric& b) const {
     if (a < b) {
       return RelativeOrder::LessThan;
