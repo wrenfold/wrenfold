@@ -30,14 +30,14 @@ struct AstBuilder {
   AstBuilder(std::size_t value_width, const ast::FunctionSignature& signature)
       : value_width_(value_width), signature_(signature) {}
 
-  std::vector<ast::Variant> CreateFunction(ir::BlockPtr block) {
-    ProcessBlock(block);
+  std::vector<ast::Variant> create_function(ir::BlockPtr block) {
+    process_block(block);
     std::vector<ast::Variant> result = std::move(operations_);
     operations_.clear();
     return result;
   }
 
-  void ProcessBlock(ir::BlockPtr block) {
+  void process_block(ir::BlockPtr block) {
     ASSERT(!block->is_empty());
     if (stop_set_.count(block)) {
       return;
@@ -72,19 +72,19 @@ struct AstBuilder {
 
         ast::VariantPtr rhs;
         if (!all_phi_consumers || conditional_outputs.size() > 1) {
-          if (ShouldInlineConstant(value)) {
-            rhs = MakeArgPtr(value);
+          if (should_inline_constant(value)) {
+            rhs = make_argument_ptr(value);
           } else {
-            Emplace<ast::Declaration>(FormatTemporary(value), value->determine_type(),
-                                      VisitMakePtr(value));
-            rhs = MakeVariableRefPtr(value);
+            emplace_operation<ast::Declaration>(format_temporary(value), value->determine_type(),
+                                                visit_and_make_ptr(value));
+            rhs = make_variable_ref_ptr(value);
           }
         } else {
-          rhs = VisitMakePtr(value);
+          rhs = visit_and_make_ptr(value);
         }
 
         for (ir::ValuePtr consumer : conditional_outputs) {
-          phi_assignments.emplace_back(FormatTemporary(consumer), rhs);
+          phi_assignments.emplace_back(format_temporary(consumer), rhs);
         }
       }
     }
@@ -103,14 +103,16 @@ struct AstBuilder {
       std::vector<ast::Variant> args{};
       args.reserve(save_value->num_operands());
       for (const ir::ValuePtr v : save_value->operands()) {
-        args.emplace_back(MakeVariableRef(v));
+        args.emplace_back(make_variable_ref(v));
       }
 
       if (key.usage == ExpressionUsage::ReturnValue) {
         ASSERT(block->descendants.empty());  //  This must be the final block.
-        Emplace<ast::ConstructReturnValue>(signature_.return_value.value(), std::move(args));
+        emplace_operation<ast::ConstructReturnValue>(signature_.return_value.value(),
+                                                     std::move(args));
       } else {
-        Emplace<ast::AssignOutputArgument>(signature_.get_argument(key.name), std::move(args));
+        emplace_operation<ast::AssignOutputArgument>(signature_.get_argument(key.name),
+                                                     std::move(args));
       }
     }
 
@@ -122,7 +124,7 @@ struct AstBuilder {
     if (!last_op->is_type<ir::JumpCondition>()) {
       // just keep appending:
       ASSERT_EQUAL(1, block->descendants.size());
-      ProcessBlock(block->descendants.front());
+      process_block(block->descendants.front());
     } else {
       ASSERT(last_op->is_type<ir::JumpCondition>());
       ASSERT_EQUAL(2, block->descendants.size());
@@ -140,39 +142,42 @@ struct AstBuilder {
             continue;
           }
           // We should declare this variable prior to entering the branch:
-          Emplace<ast::Declaration>(FormatTemporary(maybe_phi), maybe_phi->determine_type());
+          emplace_operation<ast::Declaration>(format_temporary(maybe_phi),
+                                              maybe_phi->determine_type());
         }
       }
 
       // move aside the contents of this block, as we are about to descend the branches:
-      std::vector<ast::Variant> operations_true = ProcessNestedBlock(block->descendants[0]);
-      std::vector<ast::Variant> operations_false = ProcessNestedBlock(block->descendants[1]);
+      std::vector<ast::Variant> operations_true = process_nested_block(block->descendants[0]);
+      std::vector<ast::Variant> operations_false = process_nested_block(block->descendants[1]);
 
       ir::ValuePtr condition = last_op->first_operand();
       if (condition->is_type<ir::OutputRequired>()) {
         ASSERT(operations_false.empty());
         const ir::OutputRequired& oreq = condition->as_type<ir::OutputRequired>();
         // Create an optional-output assignment block
-        Emplace<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name),
-                                           std::move(operations_true));
+        emplace_operation<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name),
+                                                     std::move(operations_true));
       } else {
         // Create a conditional
-        Emplace<ast::Branch>(ast::VariableRef{FormatTemporary(last_op->first_operand())},
-                             std::move(operations_true), std::move(operations_false));
+        emplace_operation<ast::Branch>(ast::VariableRef{format_temporary(last_op->first_operand())},
+                                       std::move(operations_true), std::move(operations_false));
       }
 
       stop_set_.erase(merge_point);
-      ProcessBlock(merge_point);
+      process_block(merge_point);
     }
   }
 
-  std::vector<ast::Variant> ProcessNestedBlock(const ir::BlockPtr b) {
+  // Stash the current set of operations, and process a child block.
+  // We return the nested block's operations (and pop our stash before returning).
+  std::vector<ast::Variant> process_nested_block(const ir::BlockPtr b) {
     // Move aside operations of the current block temporarily:
     std::vector<ast::Variant> operations_stashed = std::move(operations_);
     operations_.clear();
 
     // Process the block, writing to operations_ in the process.
-    ProcessBlock(b);
+    process_block(b);
 
     // Take the accrued operations and put them in `operations_stashed`.
     // In the process, we reset operations for the calling block.
@@ -180,13 +185,13 @@ struct AstBuilder {
     return operations_stashed;
   }
 
-  std::string FormatTemporary(const ir::Value& val) const {
+  std::string format_temporary(const ir::Value& val) const {
     return fmt::format("v{:0>{}}", val.name(), value_width_);
   }
 
-  std::string FormatTemporary(const ir::ValuePtr val) const { return FormatTemporary(*val); }
+  std::string format_temporary(const ir::ValuePtr val) const { return format_temporary(*val); }
 
-  ast::Variant VisitValue(ir::ValuePtr val) {
+  ast::Variant visit_value(ir::ValuePtr val) {
     return std::visit(
         [this, &val](const auto& op) -> ast::Variant {
           // These types should never get converted to AST:
@@ -202,70 +207,70 @@ struct AstBuilder {
         val->value_op());
   }
 
-  ast::VariantPtr VisitMakePtr(ir::ValuePtr val) {
-    return std::make_shared<const ast::Variant>(VisitValue(val));
+  ast::VariantPtr visit_and_make_ptr(ir::ValuePtr val) {
+    return std::make_shared<const ast::Variant>(visit_value(val));
   }
 
   // Return true if the specified value should be inlined instead of declared as a variable.
-  bool ShouldInlineConstant(const ir::ValuePtr val) const {
+  bool should_inline_constant(const ir::ValuePtr val) const {
     return overloaded_visit(
         val->value_op(),
         [](const ir::Load& load) { return load.expr.is_type<Integer, Float, Constant>(); },
-        [&](const ir::Cast&) { return ShouldInlineConstant(val->first_operand()); },
+        [&](const ir::Cast&) { return should_inline_constant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
   }
 
-  ast::Variant MakeVariableRef(const ir::ValuePtr val) const {
-    return ast::VariableRef{FormatTemporary(val)};
+  ast::Variant make_variable_ref(const ir::ValuePtr val) const {
+    return ast::VariableRef{format_temporary(val)};
   }
 
-  ast::VariantPtr MakeVariableRefPtr(const ir::ValuePtr val) const {
-    return std::make_shared<const ast::Variant>(MakeVariableRef(val));
+  ast::VariantPtr make_variable_ref_ptr(const ir::ValuePtr val) const {
+    return std::make_shared<const ast::Variant>(make_variable_ref(val));
   }
 
-  ast::Variant MakeArg(const ir::ValuePtr val) {
-    if (ShouldInlineConstant(val)) {
-      return VisitValue(val);
+  ast::Variant make_argument(const ir::ValuePtr val) {
+    if (should_inline_constant(val)) {
+      return visit_value(val);
     }
-    return MakeVariableRef(val);
+    return make_variable_ref(val);
   }
 
-  ast::VariantPtr MakeArgPtr(const ir::ValuePtr val) {
-    return std::make_shared<const ast::Variant>(MakeArg(val));
+  ast::VariantPtr make_argument_ptr(const ir::ValuePtr val) {
+    return std::make_shared<const ast::Variant>(make_argument(val));
   }
 
   template <typename T, typename... Args>
-  void Emplace(Args&&... args) {
+  void emplace_operation(Args&&... args) {
     operations_.emplace_back(T{std::forward<Args>(args)...});
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Add&) {
-    return ast::Add{MakeArgPtr(val[0]), MakeArgPtr(val[1])};
+    return ast::Add{make_argument_ptr(val[0]), make_argument_ptr(val[1])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::CallBuiltInFunction& func) {
     std::vector<ast::Variant> transformed_args{};
     transformed_args.reserve(val.num_operands());
     for (ir::ValuePtr arg : val.operands()) {
-      transformed_args.push_back(MakeArg(arg));
+      transformed_args.push_back(make_argument(arg));
     }
     return ast::Call{func.name, std::move(transformed_args)};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Cast& cast) {
-    return ast::Cast{cast.destination_type, val.determine_type(), MakeArgPtr(val[0])};
+    return ast::Cast{cast.destination_type, val.determine_type(), make_argument_ptr(val[0])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Compare& compare) {
-    return ast::Compare{compare.operation, MakeArgPtr(val[0]), MakeArgPtr(val[1])};
+    return ast::Compare{compare.operation, make_argument_ptr(val[0]), make_argument_ptr(val[1])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Copy&) {
-    return MakeArg(val.first_operand());
+    return make_argument(val.first_operand());
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Mul&) {
-    return ast::Multiply{MakeArgPtr(val[0]), MakeArgPtr(val[1])};
+    return ast::Multiply{make_argument_ptr(val[0]), make_argument_ptr(val[1])};
   }
 
   ast::Variant operator()(const ir::Value&, const ir::Load& load) {
@@ -289,7 +294,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Pow&) {
-    return ast::Call{BuiltInFunctionName::Pow, MakeArg(val[0]), MakeArg(val[1])};
+    return ast::Call{BuiltInFunctionName::Pow, make_argument(val[0]), make_argument(val[1])};
   }
 
  private:
@@ -303,7 +308,7 @@ struct AstBuilder {
 namespace ast {
 std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature) {
   AstBuilder builder(ir.value_print_width(), signature);
-  return builder.CreateFunction(ir.first_block());
+  return builder.create_function(ir.first_block());
 }
 }  // namespace ast
 }  // namespace math

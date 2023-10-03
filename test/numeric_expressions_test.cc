@@ -1,8 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include "expressions/numeric_expressions.h"
 
-#include <fmt/format.h>
-
+#include "fmt_imports.h"
 #include "test_helpers.h"
 
 namespace math {

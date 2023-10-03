@@ -74,13 +74,14 @@ struct RowIterator {
   RowIterator(MatrixExpr parent, index_t row) : parent_(std::move(parent)), row_(row) {}
 };
 
-Expr MatrixGetRowCol(const MatrixExpr& self, const std::tuple<index_t, index_t>& row_col) {
+// Access a particular row and column (with support for negative indexing).
+Expr matrix_get_row_and_col(const MatrixExpr& self, const std::tuple<index_t, index_t>& row_col) {
   auto [row, col] = row_col;
   return self(row < 0 ? (self.rows() + row) : row, col < 0 ? (self.cols() + col) : col);
 }
 
 // Return variant because this could be a single expression, or a matrix expression.
-std::variant<Expr, MatrixExpr> MatrixGetRow(const MatrixExpr& self, const index_t row) {
+std::variant<Expr, MatrixExpr> matrix_get_row(const MatrixExpr& self, const index_t row) {
   if (self.cols() == 1) {
     // Vectors convert to scalar automatically (don't form 1x1 matrix).
     return self[row < 0 ? (self.rows() + row) : row];
@@ -89,7 +90,8 @@ std::variant<Expr, MatrixExpr> MatrixGetRow(const MatrixExpr& self, const index_
   }
 }
 
-MatrixExpr MatrixGetRowSlice(const MatrixExpr& self, py::slice slice) {
+// Return a sub-block by slicing just rows.
+MatrixExpr matrix_get_row_slice(const MatrixExpr& self, py::slice slice) {
   const Slice slice_index{self.rows(), slice};
 
   std::vector<Expr> elements;
@@ -104,8 +106,9 @@ MatrixExpr MatrixGetRowSlice(const MatrixExpr& self, py::slice slice) {
   return MatrixExpr::create(slice_index.length(), self.cols(), std::move(elements));
 }
 
-MatrixExpr MatrixGetRowColSlice(const MatrixExpr& self,
-                                const std::tuple<py::slice, py::slice>& slices) {
+// Return a sub-block by slicing both rows and cols.
+MatrixExpr matrix_get_row_and_col_slice(const MatrixExpr& self,
+                                        const std::tuple<py::slice, py::slice>& slices) {
   const auto [row_slice, col_slice] = slices;
   const Slice row_index{self.rows(), row_slice};
   const Slice col_index{self.cols(), col_slice};
@@ -124,8 +127,9 @@ MatrixExpr MatrixGetRowColSlice(const MatrixExpr& self,
   return MatrixExpr::create(row_index.length(), col_index.length(), std::move(elements));
 }
 
-MatrixExpr MatrixGetRowIndexColSlice(const MatrixExpr& self,
-                                     const std::tuple<index_t, py::slice>& row_and_col_slice) {
+// Return a given row index, and slice along columns.
+MatrixExpr matrix_get_row_index_and_col_slice(
+    const MatrixExpr& self, const std::tuple<index_t, py::slice>& row_and_col_slice) {
   const auto [row, col_slice] = row_and_col_slice;
   const index_t wrapped_row = row < 0 ? self.rows() - row : row;
   const Slice col_index{self.cols(), col_slice};
@@ -138,8 +142,9 @@ MatrixExpr MatrixGetRowIndexColSlice(const MatrixExpr& self,
   return MatrixExpr::create(1, col_index.length(), std::move(elements));
 }
 
-MatrixExpr MatrixGetRowSliceColIndex(const MatrixExpr& self,
-                                     const std::tuple<py::slice, index_t>& row_slice_and_col) {
+// Return a given row slice, and pick a particular index of column.
+MatrixExpr matrix_get_row_slice_and_col_index(
+    const MatrixExpr& self, const std::tuple<py::slice, index_t>& row_slice_and_col) {
   const auto [row_slice, col] = row_slice_and_col;
   const index_t wrapped_col = col < 0 ? self.cols() - col : col;
   const Slice row_index{self.rows(), row_slice};
@@ -152,8 +157,9 @@ MatrixExpr MatrixGetRowSliceColIndex(const MatrixExpr& self,
   return MatrixExpr::create(row_index.length(), 1, std::move(elements));
 }
 
+// Convert a container of Expr objects to a column vector.
 template <typename Container>
-MatrixExpr ColumnVectorFromContainer(const Container& inputs) {
+MatrixExpr column_vector_from_container(const Container& inputs) {
   std::vector<Expr> converted;
   cast_to_expr(inputs, converted);
   if (converted.empty()) {
@@ -163,8 +169,9 @@ MatrixExpr ColumnVectorFromContainer(const Container& inputs) {
   return MatrixExpr::create(rows, 1, std::move(converted));
 }
 
+// Convert a container of Expr objects to a row vector.
 template <typename Container>
-MatrixExpr RowVectorFromContainer(const Container& inputs) {
+MatrixExpr row_vector_from_container(const Container& inputs) {
   std::vector<Expr> converted;
   cast_to_expr(inputs, converted);
   if (converted.empty()) {
@@ -174,7 +181,7 @@ MatrixExpr RowVectorFromContainer(const Container& inputs) {
   return MatrixExpr::create(1, cols, std::move(converted));
 }
 
-inline std::size_t ExtractIterableRows(const py::handle& row, std::vector<Expr>& output) {
+inline std::size_t extract_iterable_rows(const py::handle& row, std::vector<Expr>& output) {
   if (py::isinstance<MatrixExpr>(row)) {
     const MatrixExpr as_matrix = py::cast<MatrixExpr>(row);
     // If the "row" is a matrix, we stack them vertically:
@@ -188,17 +195,17 @@ inline std::size_t ExtractIterableRows(const py::handle& row, std::vector<Expr>&
 }
 
 // Vertically stack a bunch of iterable objects into one big matrix.
-inline MatrixExpr StackIterables(const std::vector<py::object>& rows) {
+inline MatrixExpr stack_iterables(const std::vector<py::object>& rows) {
   std::vector<Expr> converted{};
 
   // Transform the first row to get the # of columns.
   auto it = rows.begin();
-  const std::size_t expected_num_cols = ExtractIterableRows(*it, converted);
+  const std::size_t expected_num_cols = extract_iterable_rows(*it, converted);
   converted.reserve(rows.size() * expected_num_cols);
 
   // All other elements must match.
   for (++it; it != rows.end(); ++it) {
-    const std::size_t num_cols = ExtractIterableRows(*it, converted);
+    const std::size_t num_cols = extract_iterable_rows(*it, converted);
     if (num_cols != expected_num_cols) {
       throw DimensionError(
           "Mismatch in number of provided columns. First input had {} columns, but input [{}] has "
@@ -214,8 +221,9 @@ inline MatrixExpr StackIterables(const std::vector<py::object>& rows) {
                             std::move(converted));
 }
 
-// Create matrix from iterable.
-MatrixExpr MatrixFromIterable(py::iterable rows) {
+// Create matrix from iterable. When the input is an iterable over iterables, we stack
+// them as rows.
+MatrixExpr matrix_from_iterable(py::iterable rows) {
   // The input could be a generator, in which case we can only iterate over it once.
   // Calling `begin` more than once does not yield the same position. We have to create
   // py::object here so that the reference count is properly incremented, otherwise the
@@ -232,14 +240,14 @@ MatrixExpr MatrixFromIterable(py::iterable rows) {
   // Try to cast the first row to an iterable. If it works, interpret this as an iterable over
   // iterables (rows and columns).
   if (py::isinstance<py::iterable>(extracted[0])) {
-    return StackIterables(extracted);
+    return stack_iterables(extracted);
   }
   // If the argument is not iterable, interpret it as a list of expressions.
-  return ColumnVectorFromContainer(extracted);
+  return column_vector_from_container(extracted);
 }
 
 // Perform element-wise map operation on a matrix.
-MatrixExpr MapMatrix(const MatrixExpr& self, const std::function<Expr(Expr)>& func) {
+MatrixExpr unary_map_matrix(const MatrixExpr& self, const std::function<Expr(Expr)>& func) {
   std::vector<Expr> result{};
   result.reserve(self.size());
   const auto& m = self.as_matrix();
@@ -247,7 +255,8 @@ MatrixExpr MapMatrix(const MatrixExpr& self, const std::function<Expr(Expr)>& fu
   return MatrixExpr::create(self.rows(), self.cols(), std::move(result));
 }
 
-py::list ListFromMatrix(const MatrixExpr& self) {
+// Convert `MatrixExpr` to a nested list.
+py::list list_from_matrix(const MatrixExpr& self) {
   py::list rows{};
   for (index_t i = 0; i < self.rows(); ++i) {
     py::list cols{};
@@ -260,7 +269,7 @@ py::list ListFromMatrix(const MatrixExpr& self) {
 }
 
 // Convert matrix to numpy array.
-py::array NumpyFromMatrix(const MatrixExpr& self) {
+py::array numpy_from_matrix(const MatrixExpr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
   for (const Expr& expr : self.as_matrix()) {
     list.append(try_convert_to_numeric(expr));
@@ -274,7 +283,7 @@ py::array NumpyFromMatrix(const MatrixExpr& self) {
 
 py::array maybe_eval_to_numeric(const MatrixExpr& self) {
   MatrixExpr eval = self.eval();
-  return NumpyFromMatrix(eval);
+  return numpy_from_matrix(eval);
 }
 
 void wrap_matrix_operations(py::module_& m) {
@@ -307,26 +316,27 @@ void wrap_matrix_operations(py::module_& m) {
           "is_empty", [](const MatrixExpr& m) { return m.rows() == 0 || m.cols() == 0; },
           "Is the matrix empty (either zero rows or cols).")
       // Slicing:
-      .def("__getitem__", &MatrixGetRow, py::arg("row"), "Retrieve a row from the matrix.")
-      .def("__getitem__", &MatrixGetRowCol, py::arg("row_col"),
+      .def("__getitem__", &matrix_get_row, py::arg("row"), "Retrieve a row from the matrix.")
+      .def("__getitem__", &matrix_get_row_and_col, py::arg("row_col"),
            "Retrieve a row and column from the matrix.")
-      .def("__getitem__", &MatrixGetRowSlice, py::arg("slice"), "Slice along rows.")
-      .def("__getitem__", &MatrixGetRowColSlice, py::arg("slices"), "Slice along rows and cols.")
-      .def("__getitem__", &MatrixGetRowIndexColSlice, py::arg("row_and_col_slice"),
+      .def("__getitem__", &matrix_get_row_slice, py::arg("slice"), "Slice along rows.")
+      .def("__getitem__", &matrix_get_row_and_col_slice, py::arg("slices"),
+           "Slice along rows and cols.")
+      .def("__getitem__", &matrix_get_row_index_and_col_slice, py::arg("row_and_col_slice"),
            "Slice a specific row.")
-      .def("__getitem__", &MatrixGetRowSliceColIndex, py::arg("row_slice_and_col"),
+      .def("__getitem__", &matrix_get_row_slice_and_col_index, py::arg("row_slice_and_col"),
            "Slice a specific column.")
       // Support conversion to numpy.
-      .def("__array__", &NumpyFromMatrix, "Convert to numpy array.")
+      .def("__array__", &numpy_from_matrix, "Convert to numpy array.")
       // Iterable:
       .def("__len__", &MatrixExpr::rows, "Number of rows in the matrix.")
       .def("__iter__",  //  We don't need keep_alive since MatrixExpr does that for us.
            [](const MatrixExpr& expr) {
              return py::make_iterator(RowIterator::Begin(expr), RowIterator::End(expr));
            })
-      .def("unary_map", &MapMatrix, py::arg("func"), "Perform element-wise map operation.")
+      .def("unary_map", &unary_map_matrix, py::arg("func"), "Perform element-wise map operation.")
       // Convert to list
-      .def("to_list", &ListFromMatrix, "Convert to list of lists.")
+      .def("to_list", &list_from_matrix, "Convert to list of lists.")
       .def("transpose", &MatrixExpr::transposed, "Transpose the matrix.")
       .def_property_readonly("T", &MatrixExpr::transposed, "Transpose the matrix.")
       .def("det", &determinant, "Compute determinant of the matrix.")
@@ -359,11 +369,11 @@ void wrap_matrix_operations(py::module_& m) {
   m.def("identity", &make_identity, "rows"_a, "Create identity matrix.");
   m.def("eye", &make_identity, "rows"_a, "Create identity matrix (alias for identity).");
   m.def("zeros", &make_zeros, "rows"_a, "cols"_a, "Create a matrix of zeros.");
-  m.def("vector", &ColumnVectorFromContainer<py::args>,
+  m.def("vector", &column_vector_from_container<py::args>,
         "Construct a column vector from the arguments.");
-  m.def("row_vector", &RowVectorFromContainer<py::args>,
+  m.def("row_vector", &row_vector_from_container<py::args>,
         "Construct a row vector from the arguments.");
-  m.def("matrix", &MatrixFromIterable, py::arg("rows"),
+  m.def("matrix", &matrix_from_iterable, py::arg("rows"),
         "Construct a matrix from an iterator over rows.");
   m.def("matrix_of_symbols", &make_matrix_of_symbols, py::arg("prefix"), py::arg("rows"),
         py::arg("cols"), "Construct a matrix of symbols.");

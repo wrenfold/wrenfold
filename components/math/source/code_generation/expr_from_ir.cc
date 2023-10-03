@@ -84,8 +84,9 @@ struct ExprFromIrVisitor {
   const std::unordered_map<std::string, bool>* output_arg_exists_;
 };
 
-std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> create_output_expression_map(
-    ir::BlockPtr starting_block, const std::unordered_map<std::string, bool>* output_arg_exists) {
+std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>
+create_output_expression_map(ir::BlockPtr starting_block,
+                             const std::unordered_map<std::string, bool>* output_arg_exists) {
   std::unordered_map<ir::ValuePtr, Expr> value_to_expression{};
   value_to_expression.reserve(200);
 
@@ -97,7 +98,7 @@ std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> create_output_
   queue.emplace_back(starting_block);
 
   // Map from key to ordered output expressions:
-  std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> output_map{};
+  std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>> output_map{};
   output_map.reserve(5);
 
   while (!queue.empty()) {

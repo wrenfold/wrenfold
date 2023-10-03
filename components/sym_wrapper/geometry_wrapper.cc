@@ -14,7 +14,8 @@ using namespace py::literals;
 
 namespace math {
 
-static auto ComponentsFromIterable(const py::iterable& iterable) {
+// Get four elements from an iterable, throw if there are not four.
+static auto components_from_iterable(const py::iterable& iterable) {
   absl::InlinedVector<Expr, 4> values;
   cast_to_expr(iterable, values);
   if (values.size() != 4) {
@@ -24,7 +25,7 @@ static auto ComponentsFromIterable(const py::iterable& iterable) {
 }
 
 // Check that matrix has correct dims to be converted to quaternion.
-static void CheckMatrixDims(const MatrixExpr& m) {
+static void check_matrix_dims(const MatrixExpr& m) {
   const bool valid_dims = (m.rows() == 4 && m.cols() == 1) || (m.rows() == 1 && m.cols() == 4);
   if (!valid_dims) {
     throw TypeError("Matrix must be a 4-element vector. Provided has dimension: [{}, {}]", m.rows(),
@@ -32,7 +33,7 @@ static void CheckMatrixDims(const MatrixExpr& m) {
   }
 }
 
-static py::list ListFromQuaternion(const Quaternion& q) {
+static py::list list_from_quaternion(const Quaternion& q) {
   py::list list{};
   list.append(q.w());
   list.append(q.x());
@@ -41,7 +42,7 @@ static py::list ListFromQuaternion(const Quaternion& q) {
   return list;
 }
 
-static py::array EvalQuaternion(const Quaternion& q) {
+static py::array eval_quaternion(const Quaternion& q) {
   py::list list{};  // TODO: Avoid copy into list.
   list.append(try_convert_to_numeric(q.w().eval()));
   list.append(try_convert_to_numeric(q.x().eval()));
@@ -79,10 +80,10 @@ void wrap_geometry_operations(py::module_& m) {
       // Expression operations:
       .def("subs", &Quaternion::subs, py::arg("target"), py::arg("replacement"),
            "Replace the `target` expression with `substitute` in the expression tree.")
-      .def("eval", &EvalQuaternion,
+      .def("eval", &eval_quaternion,
            "Evaluate into a float expression. Return the result as a numpy array.")
       // Storage conversions:
-      .def("to_list", &ListFromQuaternion, "Convert to list in WXYZ order (scalar first).")
+      .def("to_list", &list_from_quaternion, "Convert to list in WXYZ order (scalar first).")
       .def("to_vector_wxyz", &Quaternion::to_vector_wxyz,
            "Convert to 4x1 vector in WXYZ order (scalar first).")
       .def_property_readonly("w", &Quaternion::w, "Access scalar element of quaternion.")
@@ -92,28 +93,28 @@ void wrap_geometry_operations(py::module_& m) {
       .def_static(
           "from_xyzw",
           [](const MatrixExpr& xyzw) {
-            CheckMatrixDims(xyzw);
+            check_matrix_dims(xyzw);
             return Quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]};
           },
           "xyzw"_a, "Construct from matrix of xyzw elements.")
       .def_static(
           "from_xyzw",
           [](py::iterable iterable) {
-            const auto xyzw = ComponentsFromIterable(iterable);
+            const auto xyzw = components_from_iterable(iterable);
             return Quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]};
           },
           "m"_a, "Construct from iterable over xyzw elements.")
       .def_static(
           "from_wxyz",
           [](const MatrixExpr& wxyz) {
-            CheckMatrixDims(wxyz);
+            check_matrix_dims(wxyz);
             return Quaternion{wxyz[0], wxyz[1], wxyz[2], wxyz[3]};
           },
           "m"_a, "Construct from matrix of wxyz elements.")
       .def_static(
           "from_wxyz",
           [](py::iterable iterable) {
-            const auto wxyz = ComponentsFromIterable(iterable);
+            const auto wxyz = components_from_iterable(iterable);
             return Quaternion{wxyz[0], wxyz[1], wxyz[2], wxyz[3]};
           },
           "iterable"_a, "Construct from iterable over wxyz elements.")

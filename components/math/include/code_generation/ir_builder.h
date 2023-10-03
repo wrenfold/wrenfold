@@ -102,7 +102,8 @@ ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
                               const SearchDirection direction);
 
 // Re-create `Expr` tree from the IR representation. For use in unit tests.
-std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> create_output_expression_map(
-    ir::BlockPtr starting_block, const std::unordered_map<std::string, bool>* output_arg_exists);
+std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>
+create_output_expression_map(ir::BlockPtr starting_block,
+                             const std::unordered_map<std::string, bool>* output_arg_exists);
 
 }  // namespace math

@@ -21,6 +21,10 @@ template <typename T>
 struct convert_output_arg_type;
 }  // namespace detail
 
+// The numeric function evaluator operates in two steps:
+// 1. We traverse the input arguments and copy their values into `values` as `Float` objects.
+// 2. We traverse an expression tree and replace `FunctionArgument` objects by their corresponding
+// `Float`.
 struct NumericFunctionEvaluator {
   Expr operator()(const FunctionArgument& arg, const Expr&) const {
     auto it = values.find(arg);
@@ -59,7 +63,6 @@ struct apply_numeric_evaluator_impl<Expr> {
         Visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
     if (const Float* f = cast_ptr<Float>(subs); f != nullptr) {
       return f->get_value();
-
     } else if (const Integer* i = cast_ptr<Integer>(subs); i != nullptr) {
       // TODO: Support returning the correct type here.
       return static_cast<double>(i->get_value());
@@ -163,7 +166,7 @@ auto create_evaluator_with_output_expressions(
     // by doing substitution with the NumericFunctionEvaluator:
     std::forward_as_tuple(output_args...) = std::apply(
         [&evaluator](const auto&... output_expression) {
-          // Call .Value() to convert from OutputArg<> to the underlying expression.
+          // Call .value() to convert from OutputArg<> to the underlying expression.
           return std::make_tuple(apply_numeric_evaluator(evaluator, output_expression.value())...);
         },
         select_from_tuple(output_expressions, output_arg_seq));

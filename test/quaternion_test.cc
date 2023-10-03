@@ -219,18 +219,18 @@ TEST(QuaternionTest, TestFromAxisAngle) {
 }
 
 // Sample points uniformly on the sphere (approximately) using fibonacci sphere.
-inline Eigen::Vector3d FibSphere(int i, int n) {
+inline Eigen::Vector3d fib_sphere(int i, int n) {
   const double ratio = (1 + std::sqrt(5.0)) / 2;
   const double theta = 2 * M_PI * static_cast<double>(i) / ratio;
   const double phi = std::acos(1.0 - 2.0 * (static_cast<double>(i) + 0.5) / static_cast<double>(n));
   return {std::cos(theta) * std::sin(phi), std::sin(theta) * std::sin(phi), std::cos(phi)};
 }
 
-auto GenerateAngleAxisTestPairs(int num_vectors, int num_angles) {
+auto generate_angle_axis_test_pairs(int num_vectors, int num_angles) {
   using Eigen::Vector3d;
   std::vector<std::tuple<double, Vector3d>> test_pairs;
   for (int i = 0; i < num_vectors; ++i) {
-    const Vector3d axis = FibSphere(i, num_vectors);
+    const Vector3d axis = fib_sphere(i, num_vectors);
     for (int j = 0; j < num_angles; ++j) {
       const double angle_num =
           (static_cast<double>(j) + 0.5) / static_cast<double>(num_angles) * 2 * M_PI - M_PI;
@@ -241,7 +241,7 @@ auto GenerateAngleAxisTestPairs(int num_vectors, int num_angles) {
 }
 
 // Generate a bunch of angle-axis test pairs:
-auto GetAngleAxisTestPairs() {
+auto get_angle_axis_test_pairs() {
   using Eigen::Vector3d;
 
   // clang-format off
@@ -270,7 +270,7 @@ auto GetAngleAxisTestPairs() {
   // TODO: Turn these numbers up when building in release mode.
   constexpr int num_vectors = 25;
   constexpr int num_angles = 10;
-  auto pseudo_random_pairs = GenerateAngleAxisTestPairs(num_vectors, num_angles);
+  auto pseudo_random_pairs = generate_angle_axis_test_pairs(num_vectors, num_angles);
   test_pairs.insert(test_pairs.end(), pseudo_random_pairs.begin(), pseudo_random_pairs.end());
   return test_pairs;
 }
@@ -293,13 +293,13 @@ TEST(QuaternionTest, FromRotationVector) {
 
   // Do some numerical tests.
   // Due to conditional logic we can't compare to rodrigues yet.
-  for (auto [angle_num, axis_num] : GetAngleAxisTestPairs()) {
+  for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd{angle_num, axis_num}};
     EXPECT_EIGEN_NEAR(q_num.toRotationMatrix(),
-                      EigenMatrixFromMatrixExpr(q.subs(vx, axis_num.x() * angle_num)
-                                                    .subs(vy, axis_num.y() * angle_num)
-                                                    .subs(vz, axis_num.z() * angle_num)
-                                                    .to_rotation_matrix()),
+                      eigen_matrix_from_matrix_expr(q.subs(vx, axis_num.x() * angle_num)
+                                                        .subs(vy, axis_num.y() * angle_num)
+                                                        .subs(vz, axis_num.z() * angle_num)
+                                                        .to_rotation_matrix()),
                       1.0e-15);
   }
 
@@ -363,7 +363,7 @@ TEST(QuaternionTest, TestToAxisAngle) {
   ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(angle, 0));
   ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(x, 0).subs(y, 0).subs(z, 0));
 
-  for (auto [angle_num, axis_num] : GetAngleAxisTestPairs()) {
+  for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
     if (angle_num < 0.0) {
       // Our solution will always be in [0, pi]
       angle_num *= -1.0;
@@ -380,10 +380,10 @@ TEST(QuaternionTest, TestToAxisAngle) {
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
 
     const Eigen::Vector3d axis_recovered_num =
-        EigenMatrixFromMatrixExpr(axis_recovered.subs(angle, angle_num)
-                                      .subs(x, axis_num.x())
-                                      .subs(y, axis_num.y())
-                                      .subs(z, axis_num.z()));
+        eigen_matrix_from_matrix_expr(axis_recovered.subs(angle, angle_num)
+                                          .subs(x, axis_num.x())
+                                          .subs(y, axis_num.y())
+                                          .subs(z, axis_num.z()));
     EXPECT_EIGEN_NEAR(axis_num, axis_recovered_num, 1.0e-15)
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
@@ -459,7 +459,7 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
 
   constexpr int num_vectors = 75;
   constexpr int num_angles = 20;
-  for (auto [angle_num, axis_num] : GenerateAngleAxisTestPairs(num_vectors, num_angles)) {
+  for (auto [angle_num, axis_num] : generate_angle_axis_test_pairs(num_vectors, num_angles)) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle_num, axis_num)};
 
     const MatrixExpr R =

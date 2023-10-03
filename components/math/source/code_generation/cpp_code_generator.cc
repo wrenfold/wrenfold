@@ -49,7 +49,8 @@ std::string CppCodeGenerator::generate_code(const ast::FunctionSignature& signat
   return result.get_output();
 }
 
-constexpr static std::string_view StringFromNumericCastType(const NumericType destination_type) {
+constexpr static std::string_view string_from_numeric_cast_type(
+    const NumericType destination_type) {
   switch (destination_type) {
     case NumericType::Bool:
       return "bool";
@@ -104,10 +105,10 @@ void CppCodeGenerator::format_signature(CodeFormatter& formatter,
     } else {
       const NumericType numeric_type = std::get<ast::ScalarType>(arg->type()).numeric_type();
       if (arg->direction() == ast::ArgumentDirection::Input) {
-        formatter.format("const {}", StringFromNumericCastType(numeric_type));
+        formatter.format("const {}", string_from_numeric_cast_type(numeric_type));
       } else {
         // Output reference for now.
-        formatter.format("{}&", StringFromNumericCastType(numeric_type));
+        formatter.format("{}&", string_from_numeric_cast_type(numeric_type));
       }
     }
 
@@ -120,7 +121,7 @@ void CppCodeGenerator::format_signature(CodeFormatter& formatter,
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType& scalar,
                                   const TypeContext context) const {
-  const std::string_view numeric_type = StringFromNumericCastType(scalar.numeric_type());
+  const std::string_view numeric_type = string_from_numeric_cast_type(scalar.numeric_type());
   switch (context) {
     case TypeContext::InputArgument:
     case TypeContext::FunctionBody:
@@ -218,7 +219,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
-  formatter.format("static_cast<{}>({})", StringFromNumericCastType(x.destination_type),
+  formatter.format("static_cast<{}>({})", string_from_numeric_cast_type(x.destination_type),
                    make_view(x.arg));
 }
 
@@ -245,9 +246,9 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
   if (!x.value) {
-    formatter.format("{} {};", StringFromNumericCastType(x.type), x.name);
+    formatter.format("{} {};", string_from_numeric_cast_type(x.type), x.name);
   } else {
-    formatter.format("const {} {} = {};", StringFromNumericCastType(x.type), x.name,
+    formatter.format("const {} {} = {};", string_from_numeric_cast_type(x.type), x.name,
                      make_view(x.value));
   }
 }

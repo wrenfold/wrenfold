@@ -33,7 +33,7 @@ namespace math {
 using namespace math::custom_literals;
 
 // Simple brute force check for prime-ness.
-bool TrialDivisionIsPrime(const int64_t n_in) {
+bool trial_division_is_prime(const int64_t n_in) {
   int64_t x = n_in;
   int64_t factor = 2;
   while (x > 1 && factor != n_in) {
@@ -64,7 +64,8 @@ TEST(IntegerUtils, TestComputePrimeFactors) {
     ASSERT_EQ(product, i);
     // Check that all the factors are prime:
     for (const PrimeFactor factor : result) {
-      ASSERT_TRUE((factor.base == -1 && factor.exponent == 1) || TrialDivisionIsPrime(factor.base))
+      ASSERT_TRUE((factor.base == -1 && factor.exponent == 1) ||
+                  trial_division_is_prime(factor.base))
           << fmt::format("i = {}, factors = [{}]\n", i, fmt::join(result, ", "));
     }
   }
@@ -96,7 +97,6 @@ TEST(IntegerUtils, TestComputePrimeFactors2) {
   };
   // clang-format on
 
-  // Factor numbers 1 -> 100000
   for (const auto& expected_factors : primes) {
     const int64_t product = std::accumulate(expected_factors.begin(), expected_factors.end(),
                                             static_cast<int64_t>(1), std::multiplies<>());
@@ -146,7 +146,7 @@ constexpr T next_up(const Input v) {
 
 inline constexpr int64_t operator""_i64(unsigned long long x) { return static_cast<int64_t>(x); }
 
-TEST(IntegerUtils, Testcompare_int_float) {
+TEST(IntegerUtils, TestCompareIntFloat) {
   // Invalid to compare w/ NaN:
   EXPECT_EQ(std::nullopt, compare_int_float(7, std::numeric_limits<float>::quiet_NaN()));
   EXPECT_EQ(std::nullopt, compare_int_float(13, std::numeric_limits<double>::quiet_NaN()));

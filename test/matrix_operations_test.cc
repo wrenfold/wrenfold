@@ -195,7 +195,7 @@ TEST(MatrixOperationsTest, TestMultiplication) {
   ASSERT_THROW(make_row_vector(1, -3, z) * make_vector(z, sin(y)), DimensionError);
 }
 
-void CheckFullPivLUSolution(
+void check_full_piv_lu_solution(
     const MatrixExpr& A_in,
     const std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr>& solution) {
   auto [P, L, U, Q] = solution;
@@ -236,7 +236,7 @@ void CheckFullPivLUSolution(
   ASSERT_IDENTICAL(A_in, A_out) << fmt::format("P = {}\nL={}\nU={}\nQ={}\n", P, L, U, Q);
 }
 
-MatrixExpr CreatePermutationMatrix(absl::Span<const int> permutation) {
+MatrixExpr check_permutation_matrix(absl::Span<const int> permutation) {
   std::vector<Expr> elements(permutation.size() * permutation.size(), Constants::Zero);
 
   for (std::size_t row = 0; row < permutation.size(); ++row) {
@@ -247,7 +247,7 @@ MatrixExpr CreatePermutationMatrix(absl::Span<const int> permutation) {
   return MatrixExpr::create(dim, dim, std::move(elements));
 }
 
-const auto& GetFourElementPermutations() {
+const auto& get_four_element_permutations() {
   // all permutations of 4 indices: https://oeis.org/A159880
   static const std::vector<std::array<int, 4>> permutations_4 = {
       {0, 1, 2, 3}, {1, 0, 2, 3}, {2, 0, 1, 3}, {0, 2, 1, 3}, {1, 2, 0, 3}, {2, 1, 0, 3},
@@ -259,42 +259,42 @@ const auto& GetFourElementPermutations() {
 }
 
 TEST(MatrixOperationsTest, TestFactorizeLU1) {
-  const std::vector<std::array<int, 4>>& permutations_4 = GetFourElementPermutations();
+  const std::vector<std::array<int, 4>>& permutations_4 = get_four_element_permutations();
 
   // dimension 2:
   for (std::size_t i = 0; i < 2; ++i) {
-    MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]).subspan(0, 2));
-    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+    MatrixExpr A = check_permutation_matrix(absl::Span<const int>(permutations_4[i]).subspan(0, 2));
+    check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   // dimension 3:
   for (std::size_t i = 0; i < 3; ++i) {
-    MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]).subspan(0, 3));
-    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+    MatrixExpr A = check_permutation_matrix(absl::Span<const int>(permutations_4[i]).subspan(0, 3));
+    check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   // dimension 4:
   for (std::size_t i = 0; i < permutations_4.size(); ++i) {
-    MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]));
-    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+    MatrixExpr A = check_permutation_matrix(absl::Span<const int>(permutations_4[i]));
+    check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   // fully symbolic matrices:
   MatrixExpr A2 = make_matrix_of_symbols("x", 2, 2);
-  CheckFullPivLUSolution(A2, factorize_full_piv_lu(A2));
+  check_full_piv_lu_solution(A2, factorize_full_piv_lu(A2));
 
   MatrixExpr A3 = make_matrix_of_symbols("x", 3, 3);
-  CheckFullPivLUSolution(A3, factorize_full_piv_lu(A3));
+  check_full_piv_lu_solution(A3, factorize_full_piv_lu(A3));
 
   MatrixExpr A4 = make_matrix_of_symbols("x", 4, 4);
-  CheckFullPivLUSolution(A4, factorize_full_piv_lu(A4));
+  check_full_piv_lu_solution(A4, factorize_full_piv_lu(A4));
 
   // zeros:
   MatrixExpr Z2 = make_zeros(2, 2);
-  CheckFullPivLUSolution(Z2, factorize_full_piv_lu(Z2));
+  check_full_piv_lu_solution(Z2, factorize_full_piv_lu(Z2));
 
   MatrixExpr Z3 = make_zeros(3, 3);
-  CheckFullPivLUSolution(Z3, factorize_full_piv_lu(Z3));
+  check_full_piv_lu_solution(Z3, factorize_full_piv_lu(Z3));
 }
 
 TEST(MatrixOperationsTest, TestFactorizeLU2) {
@@ -305,35 +305,35 @@ TEST(MatrixOperationsTest, TestFactorizeLU2) {
 
   for (const auto [row, col] : dims) {
     MatrixExpr A = make_matrix_of_symbols("x", row, col);
-    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+    check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   for (const auto [col, row] : dims) {
     // Transposed version:
     MatrixExpr A = make_matrix_of_symbols("x", row, col);
-    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+    check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   MatrixExpr Z24 = make_zeros(2, 4);
-  CheckFullPivLUSolution(Z24, factorize_full_piv_lu(Z24));
+  check_full_piv_lu_solution(Z24, factorize_full_piv_lu(Z24));
 
   MatrixExpr Z42 = make_zeros(4, 2);
-  CheckFullPivLUSolution(Z42, factorize_full_piv_lu(Z42));
+  check_full_piv_lu_solution(Z42, factorize_full_piv_lu(Z42));
 
   MatrixExpr Z53 = make_zeros(5, 3);
-  CheckFullPivLUSolution(Z53, factorize_full_piv_lu(Z53));
+  check_full_piv_lu_solution(Z53, factorize_full_piv_lu(Z53));
 }
 
 TEST(MatrixOperationsTest, TestFactorizeLU3) {
   // Some singular matrices that require full pivot:
   MatrixExpr A = make_matrix(3, 3, 0, 0, 0, 0, 0, "x", 0, 0, 0);
-  CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+  check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
 
   A = make_matrix(4, 4, 0, 0, 0, 0, 0, "y", 0, 0, 0, 0, 0, 0, 0, 0, 0, -5);
-  CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+  check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
 
   A = make_matrix(5, 3, 0, 0, 0, 0, "z", 0, 0, 0, 0, 0, 0, 0, 0, 0, 8);
-  CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
+  check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
 }
 
 TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
@@ -353,7 +353,7 @@ TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
         data.emplace_back(distribution(engine));
       }
       MatrixExpr M = MatrixExpr::create(rows, cols, std::move(data));
-      CheckFullPivLUSolution(M, factorize_full_piv_lu(M));
+      check_full_piv_lu_solution(M, factorize_full_piv_lu(M));
     }
   }
 }
@@ -366,7 +366,7 @@ TEST(MatrixOperationsTest, TestFactorizeLU4) {
                         5, -3, 0, 1,
                         -1, -1, 4, 0);
   // clang-format on
-  CheckFullPivLUSolution(M, factorize_full_piv_lu(M));
+  check_full_piv_lu_solution(M, factorize_full_piv_lu(M));
 }
 
 TEST(MatrixOperationsTest, TestDeterminant2x2) {

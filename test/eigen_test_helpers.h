@@ -7,8 +7,8 @@
 #include "expressions/numeric_expressions.h"
 #include "matrix_expression.h"
 
-#define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(math::ExpectEigenNear, a, b, tol)
-#define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(math::ExpectEigenNear, a, b, tol)
+#define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(math::expect_eigen_near, a, b, tol)
+#define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(math::expect_eigen_near, a, b, tol)
 
 // Allow formatting of Eigen matrices.
 template <typename T>
@@ -28,9 +28,10 @@ namespace math {
 
 // Compare two eigen matrices. Use EXPECT_EIGEN_NEAR()
 template <typename Ta, typename Tb>
-testing::AssertionResult ExpectEigenNear(const std::string& name_a, const std::string& name_b,
-                                         const std::string& name_tol, const Ta& a, const Tb& b,
-                                         double tolerance) {
+testing::AssertionResult expect_eigen_near(const std::string_view name_a,
+                                           const std::string_view name_b,
+                                           const std::string_view name_tol, const Ta& a,
+                                           const Tb& b, double tolerance) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
     return testing::AssertionFailure()
            << fmt::format("Dimensions of {} [{}, {}] and {} [{}, {}] do not match.", name_a,
@@ -54,7 +55,7 @@ testing::AssertionResult ExpectEigenNear(const std::string& name_a, const std::s
 }
 
 // Construct an eigen matrix from a matrix expr by evaluating and converting to floats.
-inline Eigen::MatrixXd EigenMatrixFromMatrixExpr(const MatrixExpr& m) {
+inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
   MatrixExpr m_eval = m.eval();
   Eigen::MatrixXd result{m_eval.rows(), m_eval.cols()};
   for (index_t i = 0; i < result.rows(); ++i) {

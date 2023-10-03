@@ -66,7 +66,7 @@ template <bool FactorizeIntegers>
 struct MultiplyVisitor {
   explicit MultiplyVisitor(MultiplicationParts& builder) : builder(builder) {}
 
-  void InsertIntegerFactors(const std::vector<PrimeFactor>& factors, bool positive) {
+  void insert_integer_factors(const std::vector<PrimeFactor>& factors, bool positive) {
     for (const PrimeFactor& factor : factors) {
       Expr base = Integer::create(factor.base);
       Expr exponent = Integer::create(factor.exponent);
@@ -99,7 +99,7 @@ struct MultiplyVisitor {
       if constexpr (FactorizeIntegers) {
         // Factorize integers into primes:
         const auto factors = compute_prime_factors(arg.get_value());
-        InsertIntegerFactors(factors, true);
+        insert_integer_factors(factors, true);
       } else {
         // Promote integers to rationals and multiply them onto `rational_coeff`.
         builder.rational_coeff = builder.rational_coeff * static_cast<Rational>(arg);
@@ -108,8 +108,8 @@ struct MultiplyVisitor {
       if constexpr (FactorizeIntegers) {
         const auto num_factors = compute_prime_factors(arg.numerator());
         const auto den_factors = compute_prime_factors(arg.denominator());
-        InsertIntegerFactors(num_factors, true);
-        InsertIntegerFactors(den_factors, false);
+        insert_integer_factors(num_factors, true);
+        insert_integer_factors(den_factors, false);
       } else {
         builder.rational_coeff = builder.rational_coeff * arg;
       }
@@ -206,7 +206,7 @@ Expr MultiplicationParts::create_multiplication() const {
 }
 
 // For multiplications, we need to break the expression up.
-inline std::pair<Expr, Expr> SplitMultiplication(const Expr& input, const Multiplication& mul) {
+inline std::pair<Expr, Expr> split_multiplication(const Expr& input, const Multiplication& mul) {
   Multiplication::ContainerType numerics{};
   Multiplication::ContainerType remainder{};
   for (const Expr& expr : mul) {
@@ -238,7 +238,7 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
       if (mul.arity() == 2 && mul[0].is_type<Integer, Rational, Float>()) {
         return std::make_pair(mul[0], mul[1]);
       }
-      return SplitMultiplication(expr, x);
+      return split_multiplication(expr, x);
     } else {
       return std::make_pair(Constants::One, expr);
     }

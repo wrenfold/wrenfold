@@ -14,8 +14,8 @@ namespace math::ir {
 
 class Value;
 class Block;
-using ValuePtr = NonNullPtr<ir::Value>;
-using BlockPtr = NonNullPtr<ir::Block>;
+using ValuePtr = non_null_ptr<ir::Value>;
+using BlockPtr = non_null_ptr<ir::Block>;
 
 // A block of operations:
 class Block {
@@ -265,7 +265,7 @@ struct Save {
   }
   constexpr std::string_view to_string() const { return "save"; }
 
-  std::size_t hash_seed() const { return OutputKeyHasher{}(key); }
+  std::size_t hash_seed() const { return hash_struct<OutputKey>{}(key); }
 
   constexpr bool is_same(const Save& other) const {
     return key == other.key;  // && output_index == other.output_index;

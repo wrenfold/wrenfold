@@ -41,7 +41,7 @@ constexpr std::string_view span_type_from_direction(ast::ArgumentDirection direc
   return "<NOT A VALID ENUM VALUE>";
 }
 
-static std::vector<std::string_view> GetAttributes(const ast::FunctionSignature& signature) {
+static std::vector<std::string_view> get_attributes(const ast::FunctionSignature& signature) {
   std::vector<std::string_view> result{};
 
   // TODO: Properly checking for snake case would require doing upper/lower case comparison with
@@ -61,7 +61,7 @@ void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
                                          const ast::FunctionSignature& signature) const {
   formatter.format("#[inline]\n");
 
-  const auto attributes = GetAttributes(signature);
+  const auto attributes = get_attributes(signature);
   if (!attributes.empty()) {
     formatter.format("#[allow({})]\n", fmt::join(attributes, ", "));
   }
