@@ -10,13 +10,11 @@ namespace math {
 // Visitor that eliminates redundant conditionals.
 class ConditionalSimplificationVisitor {
  public:
-  using ReturnType = Expr;
-
   ConditionalSimplificationVisitor(const Expr& condition, bool value)
       : condition_(condition), value_(value) {}
 
   // TODO: Cannot yet simplify when a condition implies the opposite of another condition.
-  Expr ApplyConditional(const Conditional& cond) {
+  Expr apply_conditional(const Conditional& cond) {
     if (cond.condition().is_identical_to(condition_)) {
       if (value_) {
         return Visit(cond.if_branch(), [this, &cond](const auto& x) {
@@ -36,7 +34,7 @@ class ConditionalSimplificationVisitor {
   template <typename T>
   Expr operator()(const T& thing, const Expr& expr) {
     if constexpr (std::is_same_v<T, Conditional>) {
-      return ApplyConditional(thing);
+      return apply_conditional(thing);
     } else if constexpr (T::IsLeafNode) {
       return expr;
     } else {

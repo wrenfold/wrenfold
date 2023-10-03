@@ -32,7 +32,7 @@ struct SubstituteVisitorBase {
       }
       if constexpr (Derived::PerformsPartialSubstitution) {
         // The derived type supports looking for partial matches, so try that:
-        Expr partial_sub = static_cast<Derived&>(*this).AttemptPartial(input_expression, other);
+        Expr partial_sub = static_cast<Derived&>(*this).attempt_partial(input_expression, other);
 
         // Irrespective of whether that succeeded, one of the children may still contain the
         // expression we are searching for as well:
@@ -86,7 +86,7 @@ struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor,
   SubstituteAddVisitor(const Addition& target, const Expr& replacement)
       : SubstituteVisitorBase(target, replacement), target_parts(target) {}
 
-  Expr AttemptPartial(const Expr& input_expression, const Addition& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const Addition& candidate) {
     // Create map representation for the input:
     AdditionParts input_parts{candidate};
 
@@ -134,7 +134,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
   SubstituteMulVisitor(const Multiplication& target, const Expr& replacement)
       : SubstituteVisitorBase(target, replacement), target_parts(target, true) {}
 
-  Expr AttemptPartial(const Expr& input_expression, const Multiplication& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const Multiplication& candidate) {
     // Take this multiplication and break it into constituent parts.
     // TODO: Should we just store multiplications pre-factored in this format?
     MultiplicationParts input_parts{candidate, true};
@@ -219,7 +219,7 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
   SubstitutePowVisitor(const Power& target, const Expr& replacement)
       : SubstituteVisitorBase(target, replacement) {}
 
-  Expr AttemptPartial(const Expr& input_expression, const Power& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const Power& candidate) {
     const Expr& target_base = target.base();
     const Expr& target_exponent = target.exponent();
     const Expr& candidate_base = candidate.base();
@@ -286,20 +286,20 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
 };
 
 template <typename T>
-struct SubVisitorType {
-  using Type = SubstituteVisitor<T>;
+struct sub_visitor_type {
+  using type = SubstituteVisitor<T>;
 };
 template <>
-struct SubVisitorType<Addition> {
-  using Type = SubstituteAddVisitor;
+struct sub_visitor_type<Addition> {
+  using type = SubstituteAddVisitor;
 };
 template <>
-struct SubVisitorType<Multiplication> {
-  using Type = SubstituteMulVisitor;
+struct sub_visitor_type<Multiplication> {
+  using type = SubstituteMulVisitor;
 };
 template <>
-struct SubVisitorType<Power> {
-  using Type = SubstitutePowVisitor;
+struct sub_visitor_type<Power> {
+  using type = SubstitutePowVisitor;
 };
 
 Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) {
@@ -311,7 +311,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
                   std::is_same_v<T, Rational>) {
       throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
     } else {
-      using VisitorType = typename SubVisitorType<T>::Type;
+      using VisitorType = typename sub_visitor_type<T>::type;
       return Visit(input, [&target, &replacement, &input](const auto& x) {
         return VisitorType{target, replacement}(x, input);
       });

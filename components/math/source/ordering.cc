@@ -7,8 +7,6 @@ namespace math {
 
 // Visitor that can be used to sort expressions by determining their relative order.
 struct OrderVisitor {
-  using ReturnType = RelativeOrder;
-
   using OrderOfTypes =
       type_list<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
                 Multiplication, Addition, Power, Function, Relational, Conditional, Derivative>;
@@ -25,7 +23,7 @@ struct OrderVisitor {
     } else {
       // Otherwise call a method that compares equivalent types:
       // This will generate a compiler error if we forget types here.
-      return Compare(a, b);
+      return compare(a, b);
     }
   }
 
@@ -33,7 +31,7 @@ struct OrderVisitor {
   template <typename Numeric,
             typename =
                 std::enable_if_t<list_contains_type_v<Numeric, Float, Integer, Rational, Constant>>>
-  RelativeOrder Compare(const Numeric& a, const Numeric& b) const {
+  RelativeOrder compare(const Numeric& a, const Numeric& b) const {
     if (a < b) {
       return RelativeOrder::LessThan;
     } else if (b < a) {
@@ -42,7 +40,7 @@ struct OrderVisitor {
     return RelativeOrder::Equal;
   }
 
-  RelativeOrder Compare(const Conditional& a, const Conditional& b) const {
+  RelativeOrder compare(const Conditional& a, const Conditional& b) const {
     if (const RelativeOrder o = expression_order(a.condition(), b.condition());
         o != RelativeOrder::Equal) {
       return o;
@@ -58,28 +56,28 @@ struct OrderVisitor {
     return RelativeOrder::Equal;
   }
 
-  constexpr RelativeOrder Compare(const Infinity&, const Infinity&) const {
+  constexpr RelativeOrder compare(const Infinity&, const Infinity&) const {
     return RelativeOrder::Equal;
   }
 
-  RelativeOrder Compare(const Addition& a, const Addition& b) const {
-    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
+  RelativeOrder compare(const Addition& a, const Addition& b) const {
+    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  RelativeOrder Compare(const Derivative& a, const Derivative& b) const {
+  RelativeOrder compare(const Derivative& a, const Derivative& b) const {
     if (a.order() < b.order()) {
       return RelativeOrder::LessThan;
     } else if (a.order() > b.order()) {
       return RelativeOrder::GreaterThan;
     }
-    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
+    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  RelativeOrder Compare(const Multiplication& a, const Multiplication& b) const {
-    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
+  RelativeOrder compare(const Multiplication& a, const Multiplication& b) const {
+    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  RelativeOrder Compare(const Power& a, const Power& b) const {
+  RelativeOrder compare(const Power& a, const Power& b) const {
     const RelativeOrder base_order = VisitBinary(a.base(), b.base(), OrderVisitor{});
     if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
@@ -90,7 +88,7 @@ struct OrderVisitor {
     return VisitBinary(a.exponent(), b.exponent(), OrderVisitor{});
   }
 
-  RelativeOrder Compare(const Function& a, const Function& b) const {
+  RelativeOrder compare(const Function& a, const Function& b) const {
     // First compare by name:
     const int name_comp = a.function_name().compare(b.function_name());
     if (name_comp > 0) {
@@ -98,10 +96,10 @@ struct OrderVisitor {
     } else if (name_comp < 0) {
       return RelativeOrder::LessThan;
     }
-    return LexicographicalCompare(a.begin(), a.end(), b.begin(), b.end());
+    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  RelativeOrder Compare(const FunctionArgument& a, const FunctionArgument& b) const {
+  RelativeOrder compare(const FunctionArgument& a, const FunctionArgument& b) const {
     const auto p_a = std::make_pair(a.arg_index(), a.element_index());
     const auto p_b = std::make_pair(b.arg_index(), b.element_index());
     if (p_a < p_b) {
@@ -112,7 +110,7 @@ struct OrderVisitor {
     return RelativeOrder::Equal;
   }
 
-  RelativeOrder Compare(const Relational& a, const Relational& b) const {
+  RelativeOrder compare(const Relational& a, const Relational& b) const {
     if (a.operation() < b.operation()) {
       return RelativeOrder::LessThan;
     } else if (a.operation() > b.operation()) {
@@ -127,7 +125,7 @@ struct OrderVisitor {
     return VisitBinary(a.right(), b.right(), OrderVisitor{});
   }
 
-  RelativeOrder Compare(const Variable& a, const Variable& b) const {
+  RelativeOrder compare(const Variable& a, const Variable& b) const {
     if (a.name() < b.name()) {
       return RelativeOrder::LessThan;
     } else if (a.name() > b.name()) {
@@ -138,8 +136,8 @@ struct OrderVisitor {
 
   // Order two sequences lexicographically.
   template <typename Iterator>
-  static RelativeOrder LexicographicalCompare(Iterator begin_a, Iterator end_a, Iterator begin_b,
-                                              Iterator end_b) {
+  static RelativeOrder lexicographical_compare(Iterator begin_a, Iterator end_a, Iterator begin_b,
+                                               Iterator end_b) {
     for (; begin_a != end_a && begin_b != end_b; ++begin_a, ++begin_b) {
       const RelativeOrder result = expression_order(*begin_a, *begin_b);
       if (result == RelativeOrder::LessThan) {

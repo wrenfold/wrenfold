@@ -114,7 +114,7 @@ std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> create_output_
     for (const ir::ValuePtr& code : block->operations) {
       // Visit the operation, and convert it to an expression.
       // We don't do anything w/ jumps, which don't actually translate to an output value directly.
-      OverloadedVisit(
+      overloaded_visit(
           code->value_op(), [](const ir::JumpCondition&) {},
           [&](const ir::Save& save) {
             // Get all the output expressions for this output:

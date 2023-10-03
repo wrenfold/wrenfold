@@ -13,11 +13,11 @@ struct CollectVisitor {
   explicit CollectVisitor(absl::Span<const Expr> terms) : collected_terms_(terms) {}
 
   template <typename T>
-  Expr Recurse(const T& op) {
+  Expr recurse(const T& op) {
     return op.map_children([this](const Expr& x) { return VisitWithExprArg(x, *this); });
   }
 
-  Expr CollectAdditionTerms(Addition::ContainerType&& container) {
+  Expr collect_addition_terms(Addition::ContainerType&& container) {
     // iterate over the terms we want to search for:
     const Expr& collected_term = collected_terms_.front();
 
@@ -77,7 +77,7 @@ struct CollectVisitor {
     // Some terms ignored above could still be relevant to the other terms we are collecting over.
     if (collected_terms_.size() > 1) {
       Expr remaining_addition_terms =
-          CollectVisitor{collected_terms_.subspan(1)}.CollectAdditionTerms(std::move(container));
+          CollectVisitor{collected_terms_.subspan(1)}.collect_addition_terms(std::move(container));
       container.clear();
       container.push_back(std::move(remaining_addition_terms));
     }
@@ -91,7 +91,7 @@ struct CollectVisitor {
       // an addition. In some cases, the addition might just reduce to a single expression.
       Expr term_coefficient =
           collected_terms_.size() > 1
-              ? CollectVisitor{collected_terms_.subspan(1)}.CollectAdditionTerms(
+              ? CollectVisitor{collected_terms_.subspan(1)}.collect_addition_terms(
                     std::move(it->second))
               : Addition::from_operands(it->second);
 
@@ -109,21 +109,21 @@ struct CollectVisitor {
     children.reserve(add.arity());
     std::transform(add.begin(), add.end(), std::back_inserter(children),
                    [this](const Expr& x) { return VisitWithExprArg(x, *this); });
-    return CollectAdditionTerms(std::move(children));
+    return collect_addition_terms(std::move(children));
   }
 
-  Expr operator()(const Multiplication& mul, const Expr&) { return Recurse(mul); }
-  Expr operator()(const Function& f) { return Recurse(f); }
-  Expr operator()(const Power& pow) { return Recurse(pow); }
-  Expr operator()(const Conditional& conditional) { return Recurse(conditional); }
+  Expr operator()(const Multiplication& mul, const Expr&) { return recurse(mul); }
+  Expr operator()(const Function& f) { return recurse(f); }
+  Expr operator()(const Power& pow) { return recurse(pow); }
+  Expr operator()(const Conditional& conditional) { return recurse(conditional); }
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }
-  Expr operator()(const Derivative& diff, const Expr&) { return Recurse(diff); }
+  Expr operator()(const Derivative& diff, const Expr&) { return recurse(diff); }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const Integer&, const Expr& arg) const { return arg; }
   Expr operator()(const Float&, const Expr& arg) const { return arg; }
   Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational&, const Expr& arg) const { return arg; }
-  Expr operator()(const Relational& relation) { return Recurse(relation); }
+  Expr operator()(const Relational& relation) { return recurse(relation); }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 
  private:

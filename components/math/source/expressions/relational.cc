@@ -8,15 +8,13 @@
 
 namespace math {
 
-template <typename T, typename List>
-using IfOneOf = std::enable_if_t<list_contains_type_v<T, List>>;
-
-using IntAndRational = type_list<Integer, Rational>;
+template <typename T, typename... Ts>
+using enable_if_one_of_t = std::enable_if_t<list_contains_type_v<T, Ts...>>;
 
 struct CompareNumerics {
   // Int and rational can be compared:
-  template <typename A, typename B, typename = IfOneOf<A, IntAndRational>,
-            typename = IfOneOf<B, IntAndRational>>
+  template <typename A, typename B, typename = enable_if_one_of_t<A, Integer, Rational>,
+            typename = enable_if_one_of_t<B, Integer, Rational>>
   bool operator()(const A& a, const B& b) const {
     return static_cast<Rational>(a) < static_cast<Rational>(b);
   }
@@ -83,8 +81,6 @@ enum class TriState {
 };
 
 struct RelationalSimplification {
-  using ReturnType = TriState;
-
   explicit RelationalSimplification(RelationalOperation operation) : operation_(operation) {}
 
   template <typename A, typename B>

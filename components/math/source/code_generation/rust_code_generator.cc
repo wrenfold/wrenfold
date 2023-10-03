@@ -12,7 +12,7 @@ std::string RustCodeGenerator::generate_code(const ast::FunctionSignature& signa
   return result.get_output();
 }
 
-constexpr std::string_view TypeFromNumericType(NumericType type) {
+constexpr std::string_view type_string_from_numeric_type(NumericType type) {
   switch (type) {
     case NumericType::Bool:
       return "bool";
@@ -26,11 +26,11 @@ constexpr std::string_view TypeFromNumericType(NumericType type) {
   throw TypeError("Not a valid enum value: {}", string_from_numeric_type(type));
 }
 
-constexpr std::string_view TypeFromNumericType(const ast::ScalarType& scalar) {
-  return TypeFromNumericType(scalar.numeric_type());
+constexpr std::string_view type_string_from_numeric_type(const ast::ScalarType& scalar) {
+  return type_string_from_numeric_type(scalar.numeric_type());
 }
 
-constexpr std::string_view SpanTypeFromDirection(ast::ArgumentDirection direction) {
+constexpr std::string_view span_type_from_direction(ast::ArgumentDirection direction) {
   switch (direction) {
     case ast::ArgumentDirection::Input:
       return "Span2D";
@@ -106,7 +106,7 @@ void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
     formatter.format(")\n");
   } else {
     const auto& scalar = std::get<ast::ScalarType>(*signature.return_value);
-    formatter.format(") -> {}\n", TypeFromNumericType(scalar));
+    formatter.format(") -> {}\n", type_string_from_numeric_type(scalar));
   }
 
   if (signature.has_matrix_arguments()) {
@@ -116,8 +116,8 @@ void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
         if (arg->is_matrix()) {
           const ast::MatrixType mat = std::get<ast::MatrixType>(arg->type());
           formatter.format("T{}: zen_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
-                           SpanTypeFromDirection(arg->direction()), mat.rows(), mat.cols(),
-                           TypeFromNumericType(NumericType::Real));
+                           span_type_from_direction(arg->direction()), mat.rows(), mat.cols(),
+                           type_string_from_numeric_type(NumericType::Real));
         }
       }
     });
@@ -164,7 +164,8 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& 
   }
 }
 
-static constexpr std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName name) {
+static constexpr std::string_view string_for_built_in_function_call(
+    const BuiltInFunctionName name) {
   switch (name) {
     case BuiltInFunctionName::Cos:
       return "f64::cos";
@@ -197,13 +198,14 @@ static constexpr std::string_view GetBuiltInFunctionCall(const BuiltInFunctionNa
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  formatter.format("{}({})", GetBuiltInFunctionCall(x.function),
+  formatter.format("{}({})", string_for_built_in_function_call(x.function),
                    make_join_view(*this, ", ", x.args));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
   // TODO: Parens are sometimes superfluous here.
-  formatter.format("({}) as {}", make_view(x.arg), TypeFromNumericType(x.destination_type));
+  formatter.format("({}) as {}", make_view(x.arg),
+                   type_string_from_numeric_type(x.destination_type));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare& x) const {
@@ -221,9 +223,10 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter,
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
   if (!x.value) {
-    formatter.format("let {}: {};", x.name, TypeFromNumericType(x.type));
+    formatter.format("let {}: {};", x.name, type_string_from_numeric_type(x.type));
   } else {
-    formatter.format("let {}: {} = {};", x.name, TypeFromNumericType(x.type), make_view(x.value));
+    formatter.format("let {}: {} = {};", x.name, type_string_from_numeric_type(x.type),
+                     make_view(x.value));
   }
 }
 

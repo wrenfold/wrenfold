@@ -11,18 +11,16 @@
 namespace math {
 
 struct PowerNumerics {
-  using ReturnType = std::optional<Expr>;
-
   template <typename A, typename B>
-  ReturnType operator()(const A& a, const B& b) {
+  std::optional<Expr> operator()(const A& a, const B& b) {
     if constexpr (is_float_and_numeric_v<A, B>) {
-      return ApplyFloatAndNumeric(a, b);
+      return apply_float_and_numeric(a, b);
     } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Integer, B>) {
-      return ApplyIntAndInt(a, b);
+      return apply_int_and_int(a, b);
     } else if constexpr (std::is_same_v<Rational, A> && std::is_same_v<Integer, B>) {
-      return ApplyRationalAndInt(a, b);
+      return apply_rational_and_int(a, b);
     } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Rational, B>) {
-      return ApplyIntegerAndRational(a, b);
+      return apply_int_and_rational(a, b);
     } else {
       return std::nullopt;
     }
@@ -30,19 +28,19 @@ struct PowerNumerics {
 
   // If either operand is a float, coerce the other to float:
   template <typename A, typename B>
-  std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> ApplyFloatAndNumeric(const A& a,
-                                                                            const B& b) {
+  std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> apply_float_and_numeric(const A& a,
+                                                                               const B& b) {
     const auto result =
         std::pow(static_cast<Float>(a).get_value(), static_cast<Float>(b).get_value());
     return make_expr<Float>(result);
   }
 
   // If both operands are integers:
-  Expr ApplyIntAndInt(const Integer& a, const Integer& b) {
+  Expr apply_int_and_int(const Integer& a, const Integer& b) {
     if (b.get_value() < 0) {
       ASSERT_NOT_EQUAL(a.get_value(), 0, "TODO: Handle taking 0 to a negative power?");
       // Convert a -> (1/a), then take the power:
-      return ApplyRationalAndInt(Rational{1, a.get_value()}, -b);
+      return apply_rational_and_int(Rational{1, a.get_value()}, -b);
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(a.get_value(), b.get_value());
@@ -50,7 +48,7 @@ struct PowerNumerics {
   }
 
   // If the left operand is a rational and right operand is integer:
-  Expr ApplyRationalAndInt(const Rational& a, const Integer& b) {
+  Expr apply_rational_and_int(const Rational& a, const Integer& b) {
     const auto exponent = b.get_value();
     const auto n = integer_power(a.numerator(), std::abs(exponent));
     const auto d = integer_power(a.denominator(), std::abs(exponent));
@@ -63,7 +61,7 @@ struct PowerNumerics {
   }
 
   // If the left operand is integer, and the right is rational:
-  Expr ApplyIntegerAndRational(const Integer& a, const Rational& b) {
+  Expr apply_int_and_rational(const Integer& a, const Rational& b) {
     ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
     if (a.get_value() == 1) {
       return Constants::One;

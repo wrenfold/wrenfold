@@ -22,7 +22,7 @@ Expr log(const Expr& x) {
 Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
 
 template <typename Callable>
-std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
+std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
   if (const Float* const f = cast_ptr<Float>(arg); f != nullptr) {
     const auto value = f->get_value();
     const auto result = method(value);
@@ -36,7 +36,7 @@ std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
   return {};
 }
 
-std::optional<Rational> TryCastToRational(const Expr& expr) {
+std::optional<Rational> try_cast_to_rational(const Expr& expr) {
   if (const Rational* const r = cast_ptr<Rational>(expr); r != nullptr) {
     return *r;
   } else if (const Integer* const i = cast_ptr<Integer>(expr); i != nullptr) {
@@ -49,7 +49,7 @@ std::optional<Rational> TryCastToRational(const Expr& expr) {
 Expr cos(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
   if (is_pi(multiplicand)) {
-    if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
+    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
       const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
       if (r_mod_pi.is_zero()) {
@@ -72,7 +72,7 @@ Expr cos(const Expr& arg) {
   }
 
   // For floats, evaluate immediately:
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::cos(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::cos(x); });
       result.has_value()) {
     return *result;
   }
@@ -83,7 +83,7 @@ Expr cos(const Expr& arg) {
 Expr sin(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
   if (is_pi(multiplicand)) {
-    if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
+    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
       const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
       if (r_mod_pi.is_zero() || r_mod_pi.is_one()) {
@@ -102,14 +102,14 @@ Expr sin(const Expr& arg) {
   if (is_negative_number(arg)) {
     return -sin(-arg);
   }
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::sin(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::sin(x); });
       result.has_value()) {
     return *result;
   }
   return make_expr<Function>(BuiltInFunctionName::Sin, arg);
 }
 
-inline Rational ConvertToTanRange(const Rational& r) {
+inline Rational convert_to_tan_range(const Rational& r) {
   const Rational one{1, 1};
   if (r > Rational{1, 2}) {
     return r - one;
@@ -119,7 +119,7 @@ inline Rational ConvertToTanRange(const Rational& r) {
   return r;
 }
 
-inline Expr PiOverTwo() {
+inline Expr pi_over_two() {
   static const Expr Value = Constants::Pi / 2_s;
   return Value;
 }
@@ -127,9 +127,9 @@ inline Expr PiOverTwo() {
 Expr tan(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
   if (is_pi(multiplicand)) {
-    if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
+    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
       // Map into [-pi/2, pi/2]:
-      const Rational r_mod_half_pi = ConvertToTanRange(mod_pi_rational(*r));
+      const Rational r_mod_half_pi = convert_to_tan_range(mod_pi_rational(*r));
       // Do some very basic simplification:
       if (r_mod_half_pi.is_zero()) {
         return Constants::Zero;
@@ -138,7 +138,7 @@ Expr tan(const Expr& arg) {
         return Constants::Infinity;
       }
       return make_expr<Function>(BuiltInFunctionName::Tan,
-                                 Rational::create(r_mod_half_pi) * PiOverTwo());
+                                 Rational::create(r_mod_half_pi) * pi_over_two());
     }
   } else if (is_zero(arg)) {
     return Constants::Zero;
@@ -146,7 +146,7 @@ Expr tan(const Expr& arg) {
   if (is_negative_number(arg)) {
     return -tan(-arg);
   }
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::tan(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::tan(x); });
       result.has_value()) {
     return *result;
   }
@@ -157,7 +157,7 @@ Expr tan(const Expr& arg) {
 // TODO: Support some common numerical values, ie. acos(1 / sqrt(2)) -> pi/4
 Expr acos(const Expr& arg) {
   if (is_zero(arg)) {
-    return PiOverTwo();
+    return pi_over_two();
   } else if (is_one(arg)) {
     return Constants::Zero;
   } else if (is_negative_one(arg)) {
@@ -170,9 +170,9 @@ Expr asin(const Expr& arg) {
   if (is_zero(arg)) {
     return Constants::Zero;
   } else if (is_one(arg)) {
-    return PiOverTwo();
+    return pi_over_two();
   } else if (is_negative_one(arg)) {
-    return -PiOverTwo();
+    return -pi_over_two();
   } else if (is_negative_number(arg)) {
     return -asin(-arg);
   }
@@ -253,7 +253,7 @@ Expr abs(const Expr& arg) {
     // abs(abs(x)) --> abs(x)
     return arg;
   }
-  if (const std::optional<Rational> r = TryCastToRational(arg); r.has_value()) {
+  if (const std::optional<Rational> r = try_cast_to_rational(arg); r.has_value()) {
     // If the inner argument is a negative integer or rational, just flip it.
     if (r->numerator() >= 0) {
       ASSERT_GREATER(r->denominator(), 0);
@@ -262,7 +262,7 @@ Expr abs(const Expr& arg) {
     return Rational::create(-r->numerator(), r->denominator());
   }
   // Evaluate floats immediately:
-  if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::abs(x); });
+  if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::abs(x); });
       result.has_value()) {
     return *result;
   }

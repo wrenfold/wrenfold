@@ -172,7 +172,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTem
   formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
-static constexpr std::string_view GetBuiltInFunctionCall(const BuiltInFunctionName name) {
+static constexpr std::string_view string_for_built_in_function_call(
+    const BuiltInFunctionName name) {
   switch (name) {
     case BuiltInFunctionName::Cos:
       return "std::cos";
@@ -211,7 +212,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
         "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
         make_view(x.args[0]), make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", GetBuiltInFunctionCall(x.function),
+    formatter.format("{}({})", string_for_built_in_function_call(x.function),
                      make_join_view(*this, ", ", x.args));
   }
 }

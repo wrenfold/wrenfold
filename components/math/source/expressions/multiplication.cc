@@ -64,8 +64,6 @@ Expr Multiplication::from_operands(absl::Span<const Expr> args) {
 
 template <bool FactorizeIntegers>
 struct MultiplyVisitor {
-  using ReturnType = void;
-
   explicit MultiplyVisitor(MultiplicationParts& builder) : builder(builder) {}
 
   void InsertIntegerFactors(const std::vector<PrimeFactor>& factors, bool positive) {

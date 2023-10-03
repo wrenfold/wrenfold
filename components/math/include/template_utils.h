@@ -184,14 +184,6 @@ auto select_from_tuple(Tuple&& tuple, std::index_sequence<Indices...>) {
       std::get<Indices>(std::forward<Tuple>(tuple))...);
 }
 
-// If `T` is an r-value reference, get the decayed type.
-// Otherwise, get a const T&.
-template <typename T>
-struct DecayRValueToValue {
-  using Type =
-      std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>, const std::decay_t<T>&>;
-};
-
 // True if the type is a tuple.
 template <typename T>
 constexpr bool is_tuple_v = false;
@@ -200,26 +192,26 @@ constexpr bool is_tuple_v<std::tuple<Ts...>> = true;
 
 namespace detail {
 template <class... Ts>
-struct Overloaded : Ts... {
+struct overloaded_struct : Ts... {
   using Ts::operator()...;
 };
 
-// A user-defined deduction guide for `Overloaded`.
+// A user-defined deduction guide for `overloaded_struct`.
 template <class... Ts>
-Overloaded(Ts...) -> Overloaded<Ts...>;
+overloaded_struct(Ts...) -> overloaded_struct<Ts...>;
 }  // namespace detail
 
 // Create a struct w/ multiple operator() methods (determined by `funcs`).
 template <typename... Funcs>
-auto MakeOverloaded(Funcs&&... funcs) {
-  return detail::Overloaded{std::forward<Funcs>(funcs)...};
+auto make_overloaded(Funcs&&... funcs) {
+  return detail::overloaded_struct{std::forward<Funcs>(funcs)...};
 }
 
 // Visit a variant w/ the lambdas `funcs`. Whichever lambda matches the variant type is invoked.
 // If the last lambda is `auto`, it will match any remaining types.
 template <typename... Funcs, typename Variant>
-auto OverloadedVisit(Variant&& var, Funcs&&... funcs) {
-  return std::visit(MakeOverloaded(std::forward<Funcs>(funcs)...), std::forward<Variant>(var));
+auto overloaded_visit(Variant&& var, Funcs&&... funcs) {
+  return std::visit(make_overloaded(std::forward<Funcs>(funcs)...), std::forward<Variant>(var));
 }
 
 }  // namespace math

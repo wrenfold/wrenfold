@@ -2,12 +2,7 @@
 
 #include "assertions.h"
 #include "constants.h"
-#include "expressions/addition.h"
-#include "expressions/multiplication.h"
-#include "expressions/numeric_expressions.h"
-#include "expressions/power.h"
-#include "expressions/relational.h"
-#include "expressions/variable.h"
+#include "expressions/all_expressions.h"
 #include "plain_formatter.h"
 
 namespace math {
@@ -72,8 +67,6 @@ Expr operator==(const Expr& a, const Expr& b) {
 
 // Visitor to determine mathematical precedence.
 struct PrecedenceVisitor {
-  using ReturnType = Precedence;
-
   template <typename T>
   constexpr Precedence operator()(const T&) const {
     if constexpr (std::is_same_v<Multiplication, T>) {

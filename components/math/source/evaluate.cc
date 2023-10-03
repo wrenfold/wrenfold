@@ -6,8 +6,6 @@
 namespace math {
 
 struct EvaluateVisitor {
-  using ReturnType = Expr;
-
   Expr operator()(const Addition& add, const Expr&) const { return add.map_children(&evaluate); }
   Expr operator()(const Multiplication& mul, const Expr&) const {
     return mul.map_children(&evaluate);

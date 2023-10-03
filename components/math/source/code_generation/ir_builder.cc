@@ -17,8 +17,6 @@
 namespace math {
 
 struct DetermineNumericTypeVisitor {
-  using ReturnType = NumericType;
-
   NumericType operator()(const Addition& add) const {
     // Adding bool to bool yields integer, add any floats - and it becomes real, etc...
     NumericType type = NumericType::Integer;
@@ -83,11 +81,9 @@ struct DetermineNumericTypeVisitor {
   constexpr NumericType operator()(const Variable&) const { return NumericType::Real; }
 };
 
-NumericType DetermineNumericType(const Expr& x) { return Visit(x, DetermineNumericTypeVisitor{}); }
-
 namespace ir {
 
-NumericType Load::determine_type() const { return DetermineNumericType(expr); }
+NumericType Load::determine_type() const { return Visit(expr, DetermineNumericTypeVisitor{}); }
 
 void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
   ASSERT_NOT_EQUAL(target, replacement);
@@ -151,8 +147,6 @@ void Value::remove() {
 }
 
 struct PairCountVisitor {
-  using ReturnType = void;
-
   struct PairHash {
     std::size_t operator()(const std::pair<Expr, Expr>& pair) const {
       // Ignore the order of pairs:
@@ -176,11 +170,11 @@ struct PairCountVisitor {
 
   // Record counts of single `Expr` children, and every pair-wise combination of children.
   template <typename Operation>
-  void RecordCounts(const Operation& operation,
-                    std::unordered_map<Expr, std::size_t, hash_struct<Expr>,
-                                       IsIdenticalOperator<Expr>>& count_table,
-                    std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
-                        pair_count_table) {
+  void record_counts(const Operation& operation,
+                     std::unordered_map<Expr, std::size_t, hash_struct<Expr>,
+                                        IsIdenticalOperator<Expr>>& count_table,
+                     std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
+                         pair_count_table) {
     for (const Expr& operand : operation) {
       count_table[operand]++;
       Visit(operand, *this);
@@ -197,9 +191,11 @@ struct PairCountVisitor {
   }
 
   void operator()(const Multiplication& mul) {
-    RecordCounts(mul, mul_element_counts_, mul_pair_counts_);
+    record_counts(mul, mul_element_counts_, mul_pair_counts_);
   }
-  void operator()(const Addition& add) { RecordCounts(add, add_element_counts_, add_pair_counts_); }
+  void operator()(const Addition& add) {
+    record_counts(add, add_element_counts_, add_pair_counts_);
+  }
 
   // For every other type, just recurse into the children:
   template <typename T>
@@ -277,8 +273,6 @@ ir::ValuePtr CreateOperation(std::vector<ir::Value::unique_ptr>& values, ir::Blo
 
 // Visitor for converting an expression tree into static-single-assignment form.
 struct IRFormVisitor {
-  using ReturnType = ir::ValuePtr;
-
   explicit IRFormVisitor(FlatIr& builder, const ir::PairCountVisitor& pair_count)
       : builder_(builder), pair_counts(pair_count) {}
 

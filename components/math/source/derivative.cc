@@ -214,7 +214,7 @@ class DiffVisitor {
 };
 
 template <typename T>
-inline Expr DiffTyped(const Expr& expr, const T& arg, const Expr& arg_abstract, const int reps) {
+inline Expr diff_typed(const Expr& expr, const T& arg, const Expr& arg_abstract, const int reps) {
   DiffVisitor<T> visitor{arg, arg_abstract};
   Expr result = expr;
   for (int i = 0; i < reps; ++i) {
@@ -226,9 +226,9 @@ inline Expr DiffTyped(const Expr& expr, const T& arg, const Expr& arg_abstract, 
 Expr diff(const Expr& differentiand, const Expr& arg, const int reps) {
   ASSERT_GREATER_OR_EQ(reps, 0);
   if (const Variable* var = cast_ptr<Variable>(arg); var != nullptr) {
-    return DiffTyped<Variable>(differentiand, *var, arg, reps);
+    return diff_typed<Variable>(differentiand, *var, arg, reps);
   } else if (const FunctionArgument* func = cast_ptr<FunctionArgument>(arg); func != nullptr) {
-    return DiffTyped<FunctionArgument>(differentiand, *func, arg, reps);
+    return diff_typed<FunctionArgument>(differentiand, *func, arg, reps);
   } else {
     throw TypeError(
         "Argument to diff must be of type Variable or FunctionArgument. Received expression "
