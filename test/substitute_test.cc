@@ -30,7 +30,7 @@ TEST(SubstituteTest, TestFunctions) {
   ASSERT_IDENTICAL(cos(x), cos(z).subs(z, x));
   ASSERT_IDENTICAL(cos(sin(y) * log(z)), cos(z).subs(z, sin(y) * log(z)));
   ASSERT_IDENTICAL(0, cos(x).subs(x, Constants::Pi / 2));
-  ASSERT_IDENTICAL(Constants::Infinity, tan(z).subs(z, Constants::Pi / 2));
+  ASSERT_IDENTICAL(Constants::ComplexInfinity, tan(z).subs(z, Constants::Pi / 2));
 
   // Replacing function expressions:
   ASSERT_IDENTICAL(z + y, cos(x).subs(cos(x), z + y));
@@ -72,7 +72,7 @@ TEST(SubstituteTest, TestPower) {
   // If there is a fraction in the power that can divide w/ an integer part:
   ASSERT_IDENTICAL(w * pow(x, 2_s / 3 * z + 2), pow(x, 5_s / 3 * z + 2).subs(pow(x, z), w));
 
-  // TODO: this simplification seems perhaps not worthwhile and overly compliated?
+  // TODO: this simplification seems perhaps not worthwhile and overly complicated?
   ASSERT_IDENTICAL(pow(w, -3) * pow(log(x * 2), -2_s / 7 * z),
                    pow(log(x * 2), -23_s / 7 * z).subs(pow(log(x * 2), z), w));
 

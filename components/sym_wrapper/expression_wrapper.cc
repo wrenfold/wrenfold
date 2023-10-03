@@ -170,7 +170,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   // Special constants:
   m.attr("euler") = Constants::Euler;
-  m.attr("inf") = Constants::Infinity;
+  m.attr("zoo") = Constants::ComplexInfinity;
   m.attr("one") = Constants::One;
   m.attr("pi") = Constants::Pi;
   m.attr("zero") = Constants::Zero;

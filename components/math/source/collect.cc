@@ -75,7 +75,7 @@ struct CollectVisitor {
 
     // We need to recurse on the remaining terms in the container.
     // Some terms ignored above could still be relevant to the other terms we are collecting over.
-    if (collected_terms_.size() > 1) {
+    if (collected_terms_.size() > 1 && !container.empty()) {
       Expr remaining_addition_terms =
           CollectVisitor{collected_terms_.subspan(1)}.collect_addition_terms(std::move(container));
       container.clear();
@@ -124,6 +124,7 @@ struct CollectVisitor {
   Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation) { return recurse(relation); }
+  Expr operator()(const Undefined&) const { return Constants::Undefined; }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 
  private:

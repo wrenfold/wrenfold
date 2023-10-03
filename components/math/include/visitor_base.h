@@ -28,6 +28,7 @@ using ExpressionTypeList = type_list<
     class Power,
     class Rational,
     class Relational,
+    class Undefined,
     class Variable
     >;
 // clang-format on

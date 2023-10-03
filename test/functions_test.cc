@@ -8,8 +8,8 @@ namespace math {
 using namespace math::custom_literals;
 
 TEST(FunctionsTest, TestLog) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(log(x), log(x));
   ASSERT_NOT_IDENTICAL(log(x), log(y));
   ASSERT_IDENTICAL(Constants::One, log(Constants::Euler));
@@ -17,8 +17,8 @@ TEST(FunctionsTest, TestLog) {
 }
 
 TEST(FunctionsTest, TestCosine) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(cos(x), cos(x));
   ASSERT_NOT_IDENTICAL(cos(x), cos(y));
 
@@ -54,11 +54,14 @@ TEST(FunctionsTest, TestCosine) {
   for (double v : {-0.51, 0.78, 1.8, -2.1}) {
     ASSERT_IDENTICAL(Float::create(std::cos(v)), cos(v));
   }
+
+  ASSERT_IDENTICAL(Constants::Undefined, cos(Constants::ComplexInfinity));
+  ASSERT_IDENTICAL(Constants::Undefined, cos(Constants::Undefined));
 }
 
 TEST(FunctionsTest, TestSine) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(sin(x), sin(x));
   ASSERT_NOT_IDENTICAL(sin(x), sin(y));
 
@@ -92,11 +95,14 @@ TEST(FunctionsTest, TestSine) {
   for (double v : {6.0, 0.112, -0.65, 0.22}) {
     ASSERT_IDENTICAL(Float::create(std::sin(v)), sin(v));
   }
+
+  ASSERT_IDENTICAL(Constants::Undefined, sin(Constants::ComplexInfinity));
+  ASSERT_IDENTICAL(Constants::Undefined, sin(Constants::Undefined));
 }
 
 TEST(FunctionsTest, TestTan) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(tan(x), tan(x));
   ASSERT_NOT_IDENTICAL(tan(x), tan(y));
 
@@ -107,7 +113,8 @@ TEST(FunctionsTest, TestTan) {
 
   // Infinity at odd multiples of pi/2:
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(Constants::Infinity, tan(Integer::create(i * 2 + 1) * Constants::Pi / 2_s));
+    ASSERT_IDENTICAL(Constants::ComplexInfinity,
+                     tan(Integer::create(i * 2 + 1) * Constants::Pi / 2_s));
   }
 
   // Modulo pi:
@@ -124,21 +131,28 @@ TEST(FunctionsTest, TestTan) {
   for (double v : {-4.0, -0.132, 1.6, 6.8}) {
     ASSERT_IDENTICAL(Float::create(std::tan(v)), tan(v));
   }
+
+  ASSERT_IDENTICAL(Constants::Undefined, tan(Constants::ComplexInfinity));
+  ASSERT_IDENTICAL(Constants::Undefined, tan(Constants::Undefined));
 }
 
 TEST(FunctionsTest, TestArccos) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(acos(x), acos(x));
   ASSERT_NOT_IDENTICAL(acos(x), acos(y));
+
   ASSERT_IDENTICAL(Constants::Zero, acos(1_s));
   ASSERT_IDENTICAL(Constants::Pi, acos(-1_s));
   ASSERT_IDENTICAL(Constants::Pi / 2_s, acos(Constants::Zero));
+
+  ASSERT_IDENTICAL(Constants::Undefined, acos(Constants::Undefined));
+  ASSERT_IDENTICAL(Constants::Undefined, acos(Constants::ComplexInfinity));
 }
 
 TEST(FunctionsTest, TestArcsin) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(asin(x), asin(x));
   ASSERT_NOT_IDENTICAL(asin(x), asin(y));
   ASSERT_IDENTICAL(-asin(x), asin(-x));
@@ -147,11 +161,14 @@ TEST(FunctionsTest, TestArcsin) {
   ASSERT_IDENTICAL(Constants::Zero, asin(0_s));
   ASSERT_IDENTICAL(Constants::Pi / 2_s, asin(1_s));
   ASSERT_IDENTICAL(-Constants::Pi / 2_s, asin(-1_s));
+
+  ASSERT_IDENTICAL(Constants::Undefined, asin(Constants::Undefined));
+  ASSERT_IDENTICAL(Constants::Undefined, asin(Constants::ComplexInfinity));
 }
 
 TEST(FunctionsTest, TestArctan) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(atan(x), atan(x));
   ASSERT_NOT_IDENTICAL(atan(x), atan(y));
   ASSERT_IDENTICAL(-atan(x), atan(-x));
@@ -159,11 +176,14 @@ TEST(FunctionsTest, TestArctan) {
   ASSERT_IDENTICAL(Constants::Zero, atan(0_s));
   ASSERT_IDENTICAL(Constants::Pi / 4_s, atan(1_s));
   ASSERT_IDENTICAL(-Constants::Pi / 4_s, atan(-1_s));
+
+  ASSERT_IDENTICAL(Constants::Undefined, atan(Constants::Undefined));
+  ASSERT_IDENTICAL(Constants::Undefined, atan(Constants::ComplexInfinity));
 }
 
 TEST(FunctionsTest, TestArctan2) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(atan2(y, x), atan2(y, x));
   ASSERT_NOT_IDENTICAL(atan2(y, x), atan2(x, y));
   ASSERT_IDENTICAL(0, atan2(0, 1));
@@ -179,11 +199,17 @@ TEST(FunctionsTest, TestArctan2) {
   // floating point inputs should be evaluated immediately
   ASSERT_IDENTICAL(std::atan2(0.1, -0.6), atan2(0.1, -0.6));
   ASSERT_IDENTICAL(std::atan2(-1.2, 0.2), atan2(-1.2, 0.2));
+
+  // undefined and infinity
+  ASSERT_IDENTICAL(Constants::Undefined, atan2(y, Constants::Undefined));
+  ASSERT_IDENTICAL(Constants::Undefined, atan2(y, Constants::ComplexInfinity));
+  ASSERT_IDENTICAL(Constants::Undefined, atan2(Constants::Undefined, x));
+  ASSERT_IDENTICAL(Constants::Undefined, atan2(Constants::ComplexInfinity, x));
 }
 
 TEST(FunctionsTest, TestAbs) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(abs(x), abs(x));
   ASSERT_NOT_IDENTICAL(abs(x), abs(y));
   ASSERT_IDENTICAL(abs(x), abs(abs(x)));
@@ -193,10 +219,13 @@ TEST(FunctionsTest, TestAbs) {
   ASSERT_IDENTICAL(3 / 2_s, abs(-3 / 2_s));
   ASSERT_IDENTICAL(0.1, abs(-0.1));
   ASSERT_IDENTICAL(Constants::Pi, abs(Constants::Pi));
+  ASSERT_IDENTICAL(Constants::Undefined, abs(Constants::ComplexInfinity));
+  ASSERT_IDENTICAL(Constants::Undefined, abs(Constants::Undefined));
 }
 
 TEST(FunctionsTest, TestSignum) {
   const auto [x, y] = make_symbols("x", "y");
+
   ASSERT_IDENTICAL(signum(x), signum(x));
   ASSERT_NOT_IDENTICAL(signum(x), signum(y));
 
@@ -212,6 +241,8 @@ TEST(FunctionsTest, TestSignum) {
 
   ASSERT_IDENTICAL(1, signum(Constants::Pi));
   ASSERT_IDENTICAL(1, signum(Constants::Euler));
+
+  ASSERT_IDENTICAL(Constants::Undefined, signum(Constants::Undefined));
 }
 
 TEST(FunctionTest, TestMinMax) {

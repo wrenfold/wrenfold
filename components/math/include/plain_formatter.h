@@ -21,6 +21,7 @@ class PlainFormatter {
   void operator()(const Rational& rational);
   void operator()(const Relational& relational);
   void operator()(const Function& func);
+  void operator()(const Undefined&);
   void operator()(const Variable& var);
 
   // Get the output string (transferring ownership to the caller).

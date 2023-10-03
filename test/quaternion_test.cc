@@ -457,6 +457,13 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   //  S(4) -> SO(3) -> S(4)
   //  For now I'll just test this numerically.
 
+  auto cast_to_float = [](const Expr& expr) -> double {
+    if (expr.is_type<Float>()) {
+      return cast_checked<Float>(expr).get_value();
+    }
+    return static_cast<double>(cast_checked<Integer>(expr).get_value());
+  };
+
   constexpr int num_vectors = 75;
   constexpr int num_angles = 20;
   for (auto [angle_num, axis_num] : generate_angle_axis_test_pairs(num_vectors, num_angles)) {
@@ -466,16 +473,16 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
         Quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.to_rotation_matrix();
     const Quaternion q = Quaternion::from_rotation_matrix(R);
 
-    ASSERT_NEAR(q_num.w(), cast_checked<Float>(q.w()).get_value(), 1.0e-15)
+    ASSERT_NEAR(q_num.w(), cast_to_float(q.w()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
-    ASSERT_NEAR(q_num.x(), cast_checked<Float>(q.x()).get_value(), 1.0e-15)
+    ASSERT_NEAR(q_num.x(), cast_to_float(q.x()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
-    ASSERT_NEAR(q_num.y(), cast_checked<Float>(q.y()).get_value(), 1.0e-15)
+    ASSERT_NEAR(q_num.y(), cast_to_float(q.y()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
-    ASSERT_NEAR(q_num.z(), cast_checked<Float>(q.z()).get_value(), 1.0e-15)
+    ASSERT_NEAR(q_num.z(), cast_to_float(q.z()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
   }

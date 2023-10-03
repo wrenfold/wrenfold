@@ -55,6 +55,7 @@ add_custom_test(matrix_operations_test.cc)
 add_custom_test(ir_builder_test.cc)
 add_custom_test(substitute_test.cc)
 add_custom_test(quaternion_test.cc)
+add_custom_test(limits_test.cc)
 
 # TODO: MSVC doesn't care about our request for C++11, and just compiles with
 # C++14.

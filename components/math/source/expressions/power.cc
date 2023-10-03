@@ -21,6 +21,13 @@ struct PowerNumerics {
       return apply_rational_and_int(a, b);
     } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Rational, B>) {
       return apply_int_and_rational(a, b);
+    } else if constexpr (std::is_same_v<Infinity, A> &&
+                         list_contains_type_v<B, Integer, Rational>) {
+      return apply_infinity_and_rational(a, static_cast<Rational>(b));
+    } else if constexpr (std::is_same_v<Infinity, A> && std::is_same_v<B, Float>) {
+      return apply_infinity_and_float(a, b);
+    } else if constexpr (std::is_same_v<Undefined, A> || std::is_same_v<Undefined, B>) {
+      return Constants::Undefined;
     } else {
       return std::nullopt;
     }
@@ -30,6 +37,9 @@ struct PowerNumerics {
   template <typename A, typename B>
   std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> apply_float_and_numeric(const A& a,
                                                                                const B& b) {
+    if (a.is_zero() && b.is_negative()) {
+      return Constants::ComplexInfinity;
+    }
     const auto result =
         std::pow(static_cast<Float>(a).get_value(), static_cast<Float>(b).get_value());
     return make_expr<Float>(result);
@@ -38,9 +48,15 @@ struct PowerNumerics {
   // If both operands are integers:
   Expr apply_int_and_int(const Integer& a, const Integer& b) {
     if (b.get_value() < 0) {
-      ZEN_ASSERT_NOT_EQUAL(a.get_value(), 0, "TODO: Handle taking 0 to a negative power?");
+      if (a.is_zero()) {
+        // 1 / (0)^b --> complex infinity
+        return Constants::ComplexInfinity;
+      }
       // Convert a -> (1/a), then take the power:
       return apply_rational_and_int(Rational{1, a.get_value()}, -b);
+    }
+    if (a.is_zero() && b.is_zero()) {
+      return Constants::Undefined;
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(a.get_value(), b.get_value());
@@ -50,6 +66,12 @@ struct PowerNumerics {
   // If the left operand is a rational and right operand is integer:
   Expr apply_rational_and_int(const Rational& a, const Integer& b) {
     const auto exponent = b.get_value();
+    if (a.is_zero() && exponent < 0) {
+      return Constants::ComplexInfinity;
+    }
+    if (a.is_zero() && b.is_zero()) {
+      return Constants::Undefined;
+    }
     const auto n = integer_power(a.numerator(), std::abs(exponent));
     const auto d = integer_power(a.denominator(), std::abs(exponent));
     if (exponent >= 0) {
@@ -66,7 +88,14 @@ struct PowerNumerics {
     if (a.get_value() == 1) {
       return Constants::One;
     } else if (a.get_value() == 0) {
-      return Constants::Zero;
+      if (b.is_zero()) {
+        // 0^0 --> undefined
+        return Constants::Undefined;
+      } else if (b.is_negative()) {
+        return Constants::ComplexInfinity;
+      } else {
+        return Constants::Zero;
+      }
     }
 
     // Factorize the integer into primes:
@@ -121,13 +150,44 @@ struct PowerNumerics {
     }
     return Multiplication::from_operands(operands);
   }
+
+  Expr apply_infinity_and_rational(const Infinity&, const Rational& r) const {
+    if (r.numerator() > 0) {
+      return Constants::ComplexInfinity;
+    } else if (r.numerator() < 0) {
+      return Constants::Zero;
+    } else {
+      // infinity ^ 0
+      return Constants::Undefined;
+    }
+  }
+
+  Expr apply_infinity_and_float(const Infinity&, const Float& f) const {
+    if (f.get_value() > 0) {
+      return Constants::ComplexInfinity;
+    } else if (f.get_value() < 0) {
+      return Constants::Zero;
+    } else {
+      // infinity ^ 0.0
+      return Constants::Undefined;
+    }
+  }
+
+  Expr apply_constant_and_infinity(const Constant&, const Infinity&) const {
+    return Constants::Undefined;
+  }
 };
 
-Expr Power::create(const Expr& a, const Expr& b) {
+Expr Power::create(Expr a, Expr b) {
   // Check for numeric quantities.
   std::optional<Expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
   if (numeric_pow) {
     return *numeric_pow;
+  }
+
+  if ((is_one(a) || is_negative_one(a)) && is_complex_infinity(b)) {
+    // 1^∞ (for any type of infinity) is undefined
+    return Constants::Undefined;
   }
 
   // Check if the base is itself a power:
@@ -149,6 +209,9 @@ Expr Power::create(const Expr& a, const Expr& b) {
 
   // Check for zeroes:
   if (is_zero(a)) {
+    if (is_complex_infinity(b)) {
+      return Constants::Undefined;
+    }
     // 0^x -> 0  (TODO: Only true for real x)
     return Constants::Zero;
   } else if (is_zero(b)) {
@@ -170,7 +233,7 @@ Expr Power::create(const Expr& a, const Expr& b) {
     }
     return Multiplication::from_operands(args);
   }
-  return make_expr<Power>(a, b);
+  return make_expr<Power>(std::move(a), std::move(b));
 }
 
 std::pair<Expr, Expr> as_base_and_exp(const Expr& expr) {

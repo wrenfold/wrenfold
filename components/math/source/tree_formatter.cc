@@ -115,7 +115,7 @@ struct TreeFormatter {
     visit_right(op.exponent());
   }
 
-  void operator()(const Infinity&) { append_name("Infinity"); }
+  void operator()(const Infinity&) { append_name("{}", Infinity::NameStr); }
 
   void operator()(const Integer& neg) { append_name("Integer ({})", neg.get_value()); }
 
@@ -144,7 +144,9 @@ struct TreeFormatter {
     visit_right(*it);
   }
 
-  void operator()(const Variable& var) { append_name("Variable ({})", var.name()); }
+  void operator()(const Undefined&) { append_name(Undefined::NameStr); }
+
+  void operator()(const Variable& var) { append_name("{} ({})", Variable::NameStr, var.name()); }
 
   void operator()(const Conditional& conditional) {
     append_name("Conditional:");

@@ -107,6 +107,11 @@ struct RelationalSimplification {
 };
 
 Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
+  if (is_complex_infinity(left) || is_complex_infinity(right) || is_undefined(left) ||
+      is_undefined(right)) {
+    throw TypeError("Cannot construct relational with types: {} {} {}", left.type_name(),
+                    string_from_relational_operation(operation), right.type_name());
+  }
   // See if this relational automatically simplifies to a boolean constant:
   const TriState simplified = visit_binary(left, right, RelationalSimplification{operation});
   if (simplified == TriState::True) {

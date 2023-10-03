@@ -79,6 +79,7 @@ class DiffVisitor {
   Expr operator()(const Multiplication& mul) {
     std::vector<Expr> add_terms;  //  TODO: Small vector.
     add_terms.reserve(mul.arity());
+
     // Differentiate wrt every argument:
     for (std::size_t i = 0; i < mul.arity(); ++i) {
       std::vector<Expr> mul_terms;
@@ -92,6 +93,7 @@ class DiffVisitor {
       }
       add_terms.push_back(Multiplication::from_operands(mul_terms));
     }
+
     // TODO: Move, don't copy.
     return Addition::from_operands(add_terms);
   }
@@ -198,6 +200,8 @@ class DiffVisitor {
                     relational.left().to_string(), relational.operation_string(),
                     relational.right().to_string());
   }
+
+  Expr operator()(const Undefined&) const { return Constants::Undefined; }
 
   Expr operator()(const Variable& var) const {
     if constexpr (std::is_same_v<Variable, T>) {

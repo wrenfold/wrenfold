@@ -86,8 +86,8 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(0, sym.cos(-sym.pi / 2))
 
         self.assertIdentical(0, sym.tan(arg=0))
-        self.assertIdentical(sym.inf, sym.tan(arg=sym.pi / 2))
-        self.assertIdentical(sym.inf, sym.tan(arg=-sym.pi / 2))
+        self.assertIdentical(sym.zoo, sym.tan(arg=sym.pi / 2))
+        self.assertIdentical(sym.zoo, sym.tan(arg=-sym.pi / 2))
 
         self.assertIdentical(sym.pi / 2, sym.atan2(1, 0))
         self.assertIdentical(sym.pi / 4, sym.atan2(1, 1))

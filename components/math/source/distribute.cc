@@ -93,6 +93,7 @@ struct DistributeVisitor {
   Expr operator()(const Relational& relation, const Expr&) const {
     return relation.map_children(&distribute);
   }
+  Expr operator()(const Undefined&) const { return Constants::Undefined; }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 

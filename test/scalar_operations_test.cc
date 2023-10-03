@@ -47,6 +47,27 @@ TEST(ScalarOperationsTest, TestAddition) {
   ASSERT_IDENTICAL(z * x, z * x / 3_s + 2 * z * x / 3_s);
 }
 
+TEST(ScalarOperationsTest, TestAdditionInfinities) {
+  // Test handling of infinities under addition/subtraction:
+  auto [x, y] = make_symbols("x", "y");
+  const auto z_inf = Constants::ComplexInfinity;
+  ASSERT_IDENTICAL(x + z_inf, x + 3 + z_inf);
+  ASSERT_IDENTICAL(x + z_inf, x - z_inf);
+  ASSERT_IDENTICAL(y - 0.1231 + z_inf, y + z_inf);
+  ASSERT_IDENTICAL(Constants::Undefined, z_inf + z_inf);
+  ASSERT_IDENTICAL(Constants::Undefined, Addition::from_operands({y, x, z_inf, z_inf}));
+}
+
+TEST(ScalarOperationsTest, TestAdditionUndefined) {
+  auto [x, y] = make_symbols("x", "y");
+  const auto& undef = Constants::Undefined;
+  ASSERT_IDENTICAL(undef, 3 + undef);
+  ASSERT_IDENTICAL(undef, 3.14 + undef);
+  ASSERT_IDENTICAL(undef, 5_s / 3 + undef);
+  ASSERT_IDENTICAL(undef, undef + undef);
+  ASSERT_IDENTICAL(undef, (x + y - 3) + undef);
+}
+
 TEST(ScalarOperationsTest, TestMultiplication) {
   const Expr x{"x"};
   const Expr y{"y"};
@@ -109,6 +130,37 @@ TEST(ScalarOperationsTest, TestMultiplication) {
                    cos(x) * cos(x) * pow(tan(y), 1 / 5_s) * pow(tan(y), 2 / 5_s));
   ASSERT_IDENTICAL(pow(sin(x), 2) * pow(log(z * y), Constants::NegativeOne),
                    sin(x) * sin(x) / log(z * y));
+}
+
+TEST(ScalarOperationsTest, TestMultiplicationInfinities) {
+  auto [x, y] = make_symbols("x", "y");
+  const auto z_inf = Constants::ComplexInfinity;
+  ASSERT_IDENTICAL(Constants::Undefined, 0 * z_inf);
+  ASSERT_IDENTICAL(z_inf, 5 * z_inf);
+  ASSERT_IDENTICAL(z_inf, (7_s / 11) * z_inf);
+  ASSERT_IDENTICAL(z_inf, -1.231 * z_inf);
+  ASSERT_IDENTICAL(z_inf, z_inf * z_inf);
+  ASSERT_IDENTICAL(Constants::Undefined, z_inf / z_inf);
+
+  ASSERT_IDENTICAL(x * z_inf, x * z_inf);
+  ASSERT_IDENTICAL(x * z_inf, x * 5 * z_inf);
+  ASSERT_IDENTICAL(y * z_inf, y * -1 * z_inf);
+  ASSERT_IDENTICAL(z_inf, -z_inf);
+  ASSERT_IDENTICAL(0, 22 * x / z_inf);
+  ASSERT_IDENTICAL(0, Constants::Pi / z_inf);
+  ASSERT_IDENTICAL(0, (y * x) / z_inf);
+
+  ASSERT_IDENTICAL(z_inf, Multiplication::from_operands({z_inf, z_inf, 22, -1.02}));
+}
+
+TEST(ScalarOperationsTest, TestMultiplicationUndefined) {
+  const auto [x, y] = make_symbols("x", "y");
+  const auto& undef = Constants::Undefined;
+  ASSERT_IDENTICAL(undef, undef * 5);
+  ASSERT_IDENTICAL(undef, undef * (x * y) * 3_s / 7);
+  ASSERT_IDENTICAL(undef, (1.23 * y) * undef);
+  ASSERT_IDENTICAL(undef, undef * undef);
+  ASSERT_IDENTICAL(undef, -undef);
 }
 
 TEST(ScalarOperationsTest, TestNegation) {
@@ -201,7 +253,6 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(25 / 64_s, pow(5 / 8_s, 2));
   ASSERT_IDENTICAL(343 / 729_s, pow(9 / 7_s, -3));
   ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));
-  ASSERT_THROW(pow(0, -1), AssertionError);
 
   // Floats...
   ASSERT_IDENTICAL(Expr{std::pow(2.0, 4.5)}, pow(2, 4.5));
@@ -253,6 +304,40 @@ TEST(ScalarOperationsTest, TestPower) {
   // TODO: This should produce `i` = sqrt(-1)
   ASSERT_IDENTICAL(sqrt(-1) * sqrt(2) * sqrt(x), pow(-2 * x, 1_s / 2));
   ASSERT_IDENTICAL(sqrt(-1) * 3 * sqrt(x), pow(-9 * x, 1_s / 2));
+}
+
+TEST(ScalarOperationsTest, TestPowerInfinities) {
+  const auto z_inf = Constants::ComplexInfinity;
+  ASSERT_IDENTICAL(Constants::Undefined, pow(z_inf, 0));
+  ASSERT_IDENTICAL(Constants::Undefined, pow(0, z_inf));
+
+  ASSERT_IDENTICAL(Constants::Undefined, pow(1, z_inf));
+  ASSERT_IDENTICAL(Constants::Undefined, pow(-1, z_inf));
+
+  ASSERT_IDENTICAL(z_inf, pow(0_s, -1));
+  ASSERT_IDENTICAL(z_inf, pow(0_s, -3_s / 5));
+  ASSERT_IDENTICAL(z_inf, pow(0_s, -5.2));
+  ASSERT_IDENTICAL(z_inf, pow(0_s, -0.12));
+
+  ASSERT_IDENTICAL(z_inf, pow(z_inf, 1_s / 2));
+  ASSERT_IDENTICAL(0, pow(z_inf, -1));
+  ASSERT_IDENTICAL(0, pow(z_inf, -1.234123));
+  ASSERT_IDENTICAL(0, pow(z_inf, -9_s / 13));
+  ASSERT_IDENTICAL(z_inf, pow(z_inf, 0.1234));
+}
+
+TEST(ScalarOperationsTest, TestPowerUndefined) {
+  const auto [x, y] = make_symbols("x", "y");
+  const auto& undef = Constants::Undefined;
+  ASSERT_IDENTICAL(undef, pow(undef, undef));
+  ASSERT_IDENTICAL(undef, pow(undef, x));
+  ASSERT_IDENTICAL(undef, pow(y, undef));
+  ASSERT_IDENTICAL(undef, pow(2, undef));
+  ASSERT_IDENTICAL(undef, pow(undef, -5));
+  ASSERT_IDENTICAL(undef, pow(2_s / 3, undef));
+  ASSERT_IDENTICAL(undef, pow(undef, 7_s / 11));
+  ASSERT_IDENTICAL(undef, pow(2.123, undef));
+  ASSERT_IDENTICAL(undef, pow(undef, -0.1231));
 }
 
 // Test creating relational expressions
@@ -322,6 +407,12 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_IDENTICAL(Constants::True, Constants::Euler > 2);
   ASSERT_IDENTICAL(Constants::False, Constants::Euler > 3);
   ASSERT_IDENTICAL(Constants::True, Constants::Euler < 3);
+
+  ASSERT_THROW(3 < Constants::ComplexInfinity, TypeError);
+  ASSERT_THROW(-0.4 > Constants::ComplexInfinity, TypeError);
+  ASSERT_THROW(Constants::ComplexInfinity == z, TypeError);
+  ASSERT_THROW(Constants::Undefined > x, TypeError);
+  ASSERT_THROW(3_s / 5 == Constants::Undefined, TypeError);
 }
 
 TEST(ScalarOperationsTest, TestConditional) {

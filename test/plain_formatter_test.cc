@@ -148,4 +148,8 @@ TEST(PlainFormatterTest, TestDerivativeExpression) {
   ASSERT_STR_EQ("Derivative(signum(a), a, 2)", signum(a).diff(a, 2));
 }
 
+TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", Constants::ComplexInfinity); }
+
+TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", Constants::Undefined); }
+
 }  // namespace math
