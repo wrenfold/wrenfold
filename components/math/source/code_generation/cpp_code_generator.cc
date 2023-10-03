@@ -164,7 +164,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
 
   } else {
     // Otherwise it is a scalar, so just assign it:
-    ASSERT_EQUAL(1, assignment.values.size());
+    ZEN_ASSERT_EQUAL(1, assignment.values.size());
     formatter.format("{} = {};", dest_name, assignment.values.front());
   }
 }
@@ -239,8 +239,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter,
                                   const ast::ConstructReturnValue& x) const {
-  ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
-  ASSERT_EQUAL(1, x.args.size());
+  ZEN_ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
+  ZEN_ASSERT_EQUAL(1, x.args.size());
   formatter.format("return {};", make_view(x.args[0]));
 }
 
@@ -254,7 +254,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
-  ASSERT(x.argument);
+  ZEN_ASSERT(x.argument);
   if (std::holds_alternative<ast::ScalarType>(x.argument->type())) {
     formatter.format(x.argument->name());
   } else {

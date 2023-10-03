@@ -76,13 +76,13 @@ class CppCodeGenerator {
 
   // Accept ast::VariantPtr
   void operator()(CodeFormatter& formatter, const ast::VariantPtr& var) const {
-    ASSERT(var);
+    ZEN_ASSERT(var);
     operator()(formatter, *var);
   }
 
   // Format ptr to argument.
   void operator()(CodeFormatter& formatter, const std::shared_ptr<const ast::Argument>& var) const {
-    ASSERT(var);
+    ZEN_ASSERT(var);
     formatter.format(var->name());
   }
 

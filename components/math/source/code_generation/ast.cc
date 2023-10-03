@@ -38,7 +38,7 @@ struct AstBuilder {
   }
 
   void process_block(ir::BlockPtr block) {
-    ASSERT(!block->is_empty());
+    ZEN_ASSERT(!block->is_empty());
     if (stop_set_.count(block)) {
       return;
     }
@@ -107,7 +107,7 @@ struct AstBuilder {
       }
 
       if (key.usage == ExpressionUsage::ReturnValue) {
-        ASSERT(block->descendants.empty());  //  This must be the final block.
+        ZEN_ASSERT(block->descendants.empty());  //  This must be the final block.
         emplace_operation<ast::ConstructReturnValue>(signature_.return_value.value(),
                                                      std::move(args));
       } else {
@@ -123,11 +123,11 @@ struct AstBuilder {
     ir::ValuePtr last_op = block->operations.back();
     if (!last_op->is_type<ir::JumpCondition>()) {
       // just keep appending:
-      ASSERT_EQUAL(1, block->descendants.size());
+      ZEN_ASSERT_EQUAL(1, block->descendants.size());
       process_block(block->descendants.front());
     } else {
-      ASSERT(last_op->is_type<ir::JumpCondition>());
-      ASSERT_EQUAL(2, block->descendants.size());
+      ZEN_ASSERT(last_op->is_type<ir::JumpCondition>());
+      ZEN_ASSERT_EQUAL(2, block->descendants.size());
 
       // Find phi functions:
       const ir::BlockPtr merge_point = find_merge_point(
@@ -153,7 +153,7 @@ struct AstBuilder {
 
       ir::ValuePtr condition = last_op->first_operand();
       if (condition->is_type<ir::OutputRequired>()) {
-        ASSERT(operations_false.empty());
+        ZEN_ASSERT(operations_false.empty());
         const ir::OutputRequired& oreq = condition->as_type<ir::OutputRequired>();
         // Create an optional-output assignment block
         emplace_operation<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name),

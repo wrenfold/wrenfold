@@ -6,7 +6,7 @@
 namespace math {
 
 Expr Derivative::create(Expr differentiand, Expr arg, int order) {
-  ASSERT_GREATER_OR_EQ(order, 1, "Order of the derivative must >= 1");
+  ZEN_ASSERT_GREATER_OR_EQ(order, 1, "Order of the derivative must >= 1");
 
   if (!arg.is_type<Variable, FunctionArgument>()) {
     throw TypeError("Derivatives can only be taken with respect to variables. Arg = {}",

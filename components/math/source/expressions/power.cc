@@ -38,7 +38,7 @@ struct PowerNumerics {
   // If both operands are integers:
   Expr apply_int_and_int(const Integer& a, const Integer& b) {
     if (b.get_value() < 0) {
-      ASSERT_NOT_EQUAL(a.get_value(), 0, "TODO: Handle taking 0 to a negative power?");
+      ZEN_ASSERT_NOT_EQUAL(a.get_value(), 0, "TODO: Handle taking 0 to a negative power?");
       // Convert a -> (1/a), then take the power:
       return apply_rational_and_int(Rational{1, a.get_value()}, -b);
     }
@@ -62,7 +62,7 @@ struct PowerNumerics {
 
   // If the left operand is integer, and the right is rational:
   Expr apply_int_and_rational(const Integer& a, const Rational& b) {
-    ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
+    ZEN_ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
     if (a.get_value() == 1) {
       return Constants::One;
     } else if (a.get_value() == 0) {
@@ -71,9 +71,9 @@ struct PowerNumerics {
 
     // Factorize the integer into primes:
     const std::vector<PrimeFactor> factors = compute_prime_factors(a.get_value());
-    ASSERT(std::is_sorted(factors.begin(), factors.end(),
-                          [](const auto& x, const auto& y) { return x.base < y.base; }),
-           "Factors should be sorted");
+    ZEN_ASSERT(std::is_sorted(factors.begin(), factors.end(),
+                              [](const auto& x, const auto& y) { return x.base < y.base; }),
+               "Factors should be sorted");
 
     // Next we will create expressions.
     std::vector<Expr> operands{};
@@ -90,7 +90,7 @@ struct PowerNumerics {
     for (const PrimeFactor& f : factors) {
       // Multiply the power by the rational to get the exponent applied to this prime factor:
       const Rational actual_exp = b * static_cast<Rational>(Integer{f.exponent});
-      ASSERT_GREATER(f.exponent, 0);  //  Exponents must be >= 1 in this context.
+      ZEN_ASSERT_GREATER(f.exponent, 0);  //  Exponents must be >= 1 in this context.
 
       // Factorize the exponent: x^(int_part + frac_part) --> x^int_part * x^frac_part
       // Both of these should have the same sign as actual_exp.

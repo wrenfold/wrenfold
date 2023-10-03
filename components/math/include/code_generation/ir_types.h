@@ -325,7 +325,7 @@ class Value {
 
   // Set the parent pointer.
   void set_parent(ir::BlockPtr b) {
-    ASSERT(!std::holds_alternative<ir::JumpCondition>(op_));
+    ZEN_ASSERT(!std::holds_alternative<ir::JumpCondition>(op_));
     parent_ = b;
   }
 
@@ -408,7 +408,7 @@ class Value {
 
   // Get the first operand.
   const ValuePtr& first_operand() const {
-    ASSERT(!operands_.empty());
+    ZEN_ASSERT(!operands_.empty());
     return operands_.front();
   }
 
@@ -488,7 +488,7 @@ class Value {
   void check_num_operands() {
     constexpr int expected_num_args = OpType::num_value_operands();
     if constexpr (expected_num_args >= 0) {
-      ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
+      ZEN_ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
     }
   }
 

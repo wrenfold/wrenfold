@@ -22,7 +22,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
-    ASSERT(output_arg_exists_, "Must have an output arg map to process `OutputRequired`");
+    ZEN_ASSERT(output_arg_exists_, "Must have an output arg map to process `OutputRequired`");
     return output_arg_exists_->at(output.name) ? Constants::True : Constants::False;
   }
 
@@ -47,17 +47,17 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
-    ASSERT_EQUAL(2, args.size());
+    ZEN_ASSERT_EQUAL(2, args.size());
 
     // We find to find the condition for this jump:
     const ir::BlockPtr jump_block =
         find_merge_point(args.front()->parent(), args.back()->parent(), SearchDirection::Upwards);
 
     // Determine the condition:
-    ASSERT(!jump_block->is_empty());
+    ZEN_ASSERT(!jump_block->is_empty());
 
     const ir::ValuePtr jump_val = jump_block->operations.back();
-    ASSERT(jump_val->is_type<ir::JumpCondition>());
+    ZEN_ASSERT(jump_val->is_type<ir::JumpCondition>());
 
     return where(map_value(jump_val->first_operand()), map_value(args[0]), map_value(args[1]));
   }
@@ -76,7 +76,7 @@ struct ExprFromIrVisitor {
 
   Expr map_value(const ir::ValuePtr& val) const {
     const auto arg_it = value_to_expression_.find(val);
-    ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", val->name());
+    ZEN_ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", val->name());
     return arg_it->second;
   }
 
@@ -123,7 +123,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
             output_expressions.reserve(code->num_operands());
             for (const ir::ValuePtr operand : code->operands()) {
               auto it = value_to_expression.find(operand);
-              ASSERT(it != value_to_expression.end(), "Missing value: {}", operand->name());
+              ZEN_ASSERT(it != value_to_expression.end(), "Missing value: {}", operand->name());
               output_expressions.push_back(it->second);
             }
             output_map.emplace(save.key, std::move(output_expressions));

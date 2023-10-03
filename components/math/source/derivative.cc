@@ -162,7 +162,7 @@ class DiffVisitor {
       case BuiltInFunctionName::ENUM_SIZE:
         break;
     }
-    ASSERT(false, "Invalid unary function: {}", func.function_name());
+    ZEN_ASSERT(false, "Invalid unary function: {}", func.function_name());
     return Constants::Zero;
   }
 
@@ -224,7 +224,7 @@ inline Expr diff_typed(const Expr& expr, const T& arg, const Expr& arg_abstract,
 }
 
 Expr diff(const Expr& differentiand, const Expr& arg, const int reps) {
-  ASSERT_GREATER_OR_EQ(reps, 0);
+  ZEN_ASSERT_GREATER_OR_EQ(reps, 0);
   if (const Variable* var = cast_ptr<Variable>(arg); var != nullptr) {
     return diff_typed<Variable>(differentiand, *var, arg, reps);
   } else if (const FunctionArgument* func = cast_ptr<FunctionArgument>(arg); func != nullptr) {

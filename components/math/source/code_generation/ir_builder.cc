@@ -86,14 +86,14 @@ namespace ir {
 NumericType Load::determine_type() const { return visit(expr, DetermineNumericTypeVisitor{}); }
 
 void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
-  ASSERT_NOT_EQUAL(target, replacement);
+  ZEN_ASSERT_NOT_EQUAL(target, replacement);
 
   if (!operations.empty()) {
     const ir::ValuePtr jump_val = operations.back();
     if (jump_val->is_type<ir::JumpCondition>()) {
-      ASSERT_EQUAL(2, descendants.size());
+      ZEN_ASSERT_EQUAL(2, descendants.size());
     } else {
-      ASSERT_GREATER_OR_EQ(1, descendants.size());
+      ZEN_ASSERT_GREATER_OR_EQ(1, descendants.size());
     }
   }
 
@@ -102,25 +102,25 @@ void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
   replacement->add_ancestor(self);
 
   auto it = std::find(descendants.begin(), descendants.end(), target);
-  ASSERT(it != descendants.end());
+  ZEN_ASSERT(it != descendants.end());
   *it = replacement;
 }
 
 void Block::add_ancestor(BlockPtr b) {
-  ASSERT(std::find(ancestors.begin(), ancestors.end(), b) == ancestors.end(),
-         "Attempted to insert duplicate into ancestor list: {}", b->name);
+  ZEN_ASSERT(std::find(ancestors.begin(), ancestors.end(), b) == ancestors.end(),
+             "Attempted to insert duplicate into ancestor list: {}", b->name);
   ancestors.push_back(b);
 }
 
 void Block::remove_ancestor(BlockPtr b) {
   auto it = std::find(ancestors.begin(), ancestors.end(), b);
-  ASSERT(it != ancestors.end(), "Block {} is not an ancestor of {}", b->name, name);
+  ZEN_ASSERT(it != ancestors.end(), "Block {} is not an ancestor of {}", b->name, name);
   ancestors.erase(it);
 }
 
 void Block::add_descendant(BlockPtr b) {
-  ASSERT(std::find(descendants.begin(), descendants.end(), b) == descendants.end(),
-         "Block {} already exists in descendants list: {},", b, fmt::join(descendants, ", "));
+  ZEN_ASSERT(std::find(descendants.begin(), descendants.end(), b) == descendants.end(),
+             "Block {} already exists in descendants list: {},", b, fmt::join(descendants, ", "));
   descendants.push_back(b);
   b->add_ancestor(ir::BlockPtr{this});
 }
@@ -128,7 +128,7 @@ void Block::add_descendant(BlockPtr b) {
 // Replace this value w/ the argument.
 void Value::replace_with(const ValuePtr other) {
   const ValuePtr self{this};
-  ASSERT_NOT_EQUAL(self, other);
+  ZEN_ASSERT_NOT_EQUAL(self, other);
   for (const ValuePtr& consumer : consumers_) {
     consumer->replace_operand(self, other);
   }
@@ -136,8 +136,8 @@ void Value::replace_with(const ValuePtr other) {
 }
 
 void Value::remove() {
-  ASSERT(consumers_.empty(), "Attempting to remove a value `{}` that is consumed by: [{}]", name_,
-         fmt::join(consumers_, ","));
+  ZEN_ASSERT(consumers_.empty(), "Attempting to remove a value `{}` that is consumed by: [{}]",
+             name_, fmt::join(consumers_, ","));
   // Notify our operands we no longer consume them.
   for (const ValuePtr& operand : operands_) {
     operand->remove_consumer(this);
@@ -325,7 +325,7 @@ struct IRFormVisitor {
     args.reserve(op.arity());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return VisitExpr(expr); });
-    ASSERT(!args.empty());
+    ZEN_ASSERT(!args.empty());
 
     NumericType promoted_type = NumericType::Integer;
     for (ir::ValuePtr v : args) {
@@ -640,7 +640,7 @@ struct IrConverter {
         process(std::move(required_outputs_queue), output.create_block(), deferred_values);
 
     // Should be nothing deferred yet:
-    ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
+    ZEN_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
 
     // Traverse optional outputs:
     for (ir::ValuePtr v : output_values) {
@@ -670,7 +670,8 @@ struct IrConverter {
       std::deque<ir::ValuePtr> queue{deferred_values.begin(), deferred_values.end()};
       deferred_values.clear();
       next_block = process(std::move(queue), jump_block, deferred_values);
-      ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
+      ZEN_ASSERT(deferred_values.empty(), "deferred_values = [{}]",
+                 fmt::join(deferred_values, ", "));
     }
 
     std::deque<ir::ValuePtr> queue;
@@ -678,10 +679,10 @@ struct IrConverter {
     deferred_values.clear();
 
     process(std::move(queue), next_block, deferred_values);
-    ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
+    ZEN_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
 
     // There should only be one start block:
-    ASSERT_EQUAL(
+    ZEN_ASSERT_EQUAL(
         1,
         std::count_if(output.blocks_.begin(), output.blocks_.end(),
                       [](const ir::Block::unique_ptr& block) { return block->has_no_ancestors(); }),
@@ -736,7 +737,7 @@ struct IrConverter {
       if (is_visited(top)) {
         continue;
       }
-      ASSERT(all_consumers_visited(top), "Not all consumers have been visited: {}", top);
+      ZEN_ASSERT(all_consumers_visited(top), "Not all consumers have been visited: {}", top);
 
       // Check if this block is a valid place to insert this value. This will be the case
       // if `output_block` is on all paths through the downstream consumer blocks.
@@ -842,8 +843,8 @@ struct IrConverter {
     // Any blocks that jumped to `output_block` should now jump to `jump_block` instead:
     for (ir::BlockPtr ancestor : previous_ancestors) {
       // If this block is our ancestor, it must contain a jump at the end:
-      ASSERT(!ancestor->operations.empty() && !ancestor->descendants.empty(),
-             "Block cannot be empty, must contain a jump");
+      ZEN_ASSERT(!ancestor->operations.empty() && !ancestor->descendants.empty(),
+                 "Block cannot be empty, must contain a jump");
       ancestor->replace_descendant(output_block, jump_block);
     }
 
@@ -904,7 +905,7 @@ OutputIr::OutputIr(math::FlatIr&& input) {
   values_.erase(std::remove_if(values_.begin(), values_.end(),
                                [&input](const ir::Value::unique_ptr& v) {
                                  if (v->parent() == input.get_block()) {
-                                   ASSERT_EQUAL(0, v->num_consumers(), "v = {}", v->name());
+                                   ZEN_ASSERT_EQUAL(0, v->num_consumers(), "v = {}", v->name());
                                    return true;
                                  }
                                  return false;
