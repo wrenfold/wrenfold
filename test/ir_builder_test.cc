@@ -24,7 +24,7 @@ std::ostream& operator<<(std::ostream& s, const OutputIr& b) {
 template <typename Func, typename... Args>
 auto CreateIR(Func&& func, const std::string_view name, Args&&... args) {
   auto tuple =
-      BuildFunctionDescription(std::forward<Func>(func), name, std::forward<Args>(args)...);
+      build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
   std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
   FlatIr flat_ir{expressions};
   flat_ir.eliminate_duplicates();
@@ -271,8 +271,8 @@ TEST(IrTest, TestConditionals5) {
         Expr p = where(x > y, cos(x) * sin(z) - sin(x) * cos(z) * 2, log(z - x) * 23);
         Expr q = where(pow(z, y) < x, p * p, -cos(p) + x);
         Expr f = q;
-        Expr g = q.Diff(x);
-        Expr h = q.Diff(x, 2);
+        Expr g = q.diff(x);
+        Expr h = q.diff(x, 2);
         return std::make_tuple(ReturnValue(f), OptionalOutputArg("g", g),
                                OptionalOutputArg("h", h));
       },
@@ -314,7 +314,7 @@ TEST(IrTest, TestMatrixExpressions1) {
   auto [expected_expressions, ir] = CreateIR(
       [](Expr x, const ta::StaticMatrix<2, 1>& v) {
         using namespace matrix_operator_overloads;
-        ta::StaticMatrix<2, 2> m = v * v.Transpose() * x;
+        ta::StaticMatrix<2, 2> m = v * v.transposed() * x;
         return m;
       },
       "func", Arg("x"), Arg("y"));
@@ -337,7 +337,7 @@ TEST(IrTest, TestMatrixExpressions2) {
         for (int i = 0; i < 16; ++i) {
           expressions.push_back(where(x > 0, pow(y, i), pow(z, 16 - z)));
         }
-        return ta::StaticMatrix<4, 4>{MatrixExpr::Create(4, 4, std::move(expressions))};
+        return ta::StaticMatrix<4, 4>{MatrixExpr::create(4, 4, std::move(expressions))};
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
@@ -358,12 +358,12 @@ TEST(IrTest, TestMatrixExpressions3) {
       [](const ta::StaticMatrix<2, 1>& v, const ta::StaticMatrix<3, 3>& u,
          const ta::StaticMatrix<3, 1>& t) {
         using namespace matrix_operator_overloads;
-        auto I3 = Identity(3);
-        auto zeros = Zeros(2, 3);
-        ta::StaticMatrix<2, 3> f = where(v[0] - t[1] > 0, v * t.Transpose() * (u - I3), zeros);
+        auto I3 = make_identity(3);
+        auto zeros = make_zeros(2, 3);
+        ta::StaticMatrix<2, 3> f = where(v[0] - t[1] > 0, v * t.transposed() * (u - I3), zeros);
 
-        auto path_1 = u * t * t.Transpose();
-        auto path_2 = (u - I3) * (u - I3).Transpose();
+        auto path_1 = u * t * t.transposed();
+        auto path_2 = (u - I3) * (u - I3).transposed();
         ta::StaticMatrix<3, 3> g{where(u(1, 1) < -v[1], path_1, path_2)};
 
         return std::make_tuple(ReturnValue(f), OptionalOutputArg("g", g));

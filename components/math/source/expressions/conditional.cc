@@ -66,7 +66,7 @@ Expr Conditional::create(math::Expr condition, math::Expr if_branch, math::Expr 
   if (if_branch_simplified.is_identical_to(else_branch_simplified)) {
     return if_branch_simplified;
   }
-  return MakeExpr<Conditional>(std::move(condition), std::move(if_branch_simplified),
+  return make_expr<Conditional>(std::move(condition), std::move(if_branch_simplified),
                                std::move(else_branch_simplified));
 }
 

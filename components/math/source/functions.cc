@@ -12,18 +12,18 @@ Expr log(const Expr& x) {
   if (x.is_identical_to(Constants::Euler)) {
     return Constants::One;
   }
-  if (IsOne(x)) {
+  if (is_one(x)) {
     return Constants::Zero;
   }
   // TODO: Check for negative values.
-  return MakeExpr<Function>(BuiltInFunctionName::Log, x);
+  return make_expr<Function>(BuiltInFunctionName::Log, x);
 }
 
 Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
 
 template <typename Callable>
 std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
-  if (const Float* const f = CastPtr<Float>(arg); f != nullptr) {
+  if (const Float* const f = cast_ptr<Float>(arg); f != nullptr) {
     const auto value = f->get_value();
     const auto result = method(value);
     if (result == value) {
@@ -37,9 +37,9 @@ std::optional<Expr> OperateOnFloat(const Expr& arg, Callable&& method) {
 }
 
 std::optional<Rational> TryCastToRational(const Expr& expr) {
-  if (const Rational* const r = CastPtr<Rational>(expr); r != nullptr) {
+  if (const Rational* const r = cast_ptr<Rational>(expr); r != nullptr) {
     return *r;
-  } else if (const Integer* const i = CastPtr<Integer>(expr); i != nullptr) {
+  } else if (const Integer* const i = cast_ptr<Integer>(expr); i != nullptr) {
     return static_cast<Rational>(*i);
   }
   return {};
@@ -48,7 +48,7 @@ std::optional<Rational> TryCastToRational(const Expr& expr) {
 // TODO: Support common multiples of pi/3, pi/4, pi/6, etc.
 Expr cos(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
-  if (IsPi(multiplicand)) {
+  if (is_pi(multiplicand)) {
     if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
       const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
@@ -59,15 +59,15 @@ Expr cos(const Expr& arg) {
       } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
         return Constants::Zero;
       }
-      return MakeExpr<Function>(BuiltInFunctionName::Cos,
+      return make_expr<Function>(BuiltInFunctionName::Cos,
                                 Rational::create(r_mod_pi) * Constants::Pi);
     }
-  } else if (IsZero(coeff)) {
+  } else if (is_zero(coeff)) {
     return Constants::One;
   }
 
   // Make signs canonical automatically:
-  if (IsNegativeNumber(arg)) {
+  if (is_negative_number(arg)) {
     return cos(-arg);
   }
 
@@ -77,12 +77,12 @@ Expr cos(const Expr& arg) {
     return *result;
   }
   // TODO: Check for phase offsets.
-  return MakeExpr<Function>(BuiltInFunctionName::Cos, arg);
+  return make_expr<Function>(BuiltInFunctionName::Cos, arg);
 }
 
 Expr sin(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
-  if (IsPi(multiplicand)) {
+  if (is_pi(multiplicand)) {
     if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
       const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
@@ -93,20 +93,20 @@ Expr sin(const Expr& arg) {
       } else if (r_mod_pi == Rational{-1, 2}) {
         return Constants::NegativeOne;
       }
-      return MakeExpr<Function>(BuiltInFunctionName::Sin,
+      return make_expr<Function>(BuiltInFunctionName::Sin,
                                 Rational::create(r_mod_pi) * Constants::Pi);
     }
-  } else if (IsZero(arg)) {
+  } else if (is_zero(arg)) {
     return Constants::Zero;
   }
-  if (IsNegativeNumber(arg)) {
+  if (is_negative_number(arg)) {
     return -sin(-arg);
   }
   if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::sin(x); });
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<Function>(BuiltInFunctionName::Sin, arg);
+  return make_expr<Function>(BuiltInFunctionName::Sin, arg);
 }
 
 inline Rational ConvertToTanRange(const Rational& r) {
@@ -126,7 +126,7 @@ inline Expr PiOverTwo() {
 
 Expr tan(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
-  if (IsPi(multiplicand)) {
+  if (is_pi(multiplicand)) {
     if (const std::optional<Rational> r = TryCastToRational(coeff); r.has_value()) {
       // Map into [-pi/2, pi/2]:
       const Rational r_mod_half_pi = ConvertToTanRange(mod_pi_rational(*r));
@@ -137,46 +137,46 @@ Expr tan(const Expr& arg) {
         // Infinity, as in the projectively scaled real numbers.
         return Constants::Infinity;
       }
-      return MakeExpr<Function>(BuiltInFunctionName::Tan,
+      return make_expr<Function>(BuiltInFunctionName::Tan,
                                 Rational::create(r_mod_half_pi) * PiOverTwo());
     }
-  } else if (IsZero(arg)) {
+  } else if (is_zero(arg)) {
     return Constants::Zero;
   }
-  if (IsNegativeNumber(arg)) {
+  if (is_negative_number(arg)) {
     return -tan(-arg);
   }
   if (std::optional<Expr> result = OperateOnFloat(arg, [](double x) { return std::tan(x); });
       result.has_value()) {
     return *result;
   }
-  return MakeExpr<Function>(BuiltInFunctionName::Tan, arg);
+  return make_expr<Function>(BuiltInFunctionName::Tan, arg);
 }
 
 // TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
 // TODO: Support some common numerical values, ie. acos(1 / sqrt(2)) -> pi/4
 Expr acos(const Expr& arg) {
-  if (IsZero(arg)) {
+  if (is_zero(arg)) {
     return PiOverTwo();
-  } else if (IsOne(arg)) {
+  } else if (is_one(arg)) {
     return Constants::Zero;
-  } else if (IsNegativeOne(arg)) {
+  } else if (is_negative_one(arg)) {
     return Constants::Pi;
   }
-  return MakeExpr<Function>(BuiltInFunctionName::ArcCos, arg);
+  return make_expr<Function>(BuiltInFunctionName::ArcCos, arg);
 }
 
 Expr asin(const Expr& arg) {
-  if (IsZero(arg)) {
+  if (is_zero(arg)) {
     return Constants::Zero;
-  } else if (IsOne(arg)) {
+  } else if (is_one(arg)) {
     return PiOverTwo();
-  } else if (IsNegativeOne(arg)) {
+  } else if (is_negative_one(arg)) {
     return -PiOverTwo();
-  } else if (IsNegativeNumber(arg)) {
+  } else if (is_negative_number(arg)) {
     return -asin(-arg);
   }
-  return MakeExpr<Function>(BuiltInFunctionName::ArcSin, arg);
+  return make_expr<Function>(BuiltInFunctionName::ArcSin, arg);
 }
 
 inline Expr PiOverFour() {
@@ -185,16 +185,16 @@ inline Expr PiOverFour() {
 }
 
 Expr atan(const Expr& arg) {
-  if (IsZero(arg)) {
+  if (is_zero(arg)) {
     return Constants::Zero;
-  } else if (IsOne(arg)) {
+  } else if (is_one(arg)) {
     return PiOverFour();
-  } else if (IsNegativeOne(arg)) {
+  } else if (is_negative_one(arg)) {
     return -PiOverFour();
-  } else if (IsNegativeNumber(arg)) {
+  } else if (is_negative_number(arg)) {
     return -atan(-arg);
   }
-  return MakeExpr<Function>(BuiltInFunctionName::ArcTan, arg);
+  return make_expr<Function>(BuiltInFunctionName::ArcTan, arg);
 }
 
 // Support some very basic simplifications for numerical inputs.
@@ -239,7 +239,7 @@ Expr atan2(const Expr& y, const Expr& x) {
     return std::move(*maybe_simplified);
   }
   // TODO: Implement simplifications for atan2.
-  return MakeExpr<Function>(BuiltInFunctionName::Arctan2, y, x);
+  return make_expr<Function>(BuiltInFunctionName::Arctan2, y, x);
 }
 
 Expr sqrt(const Expr& arg) {
@@ -248,7 +248,7 @@ Expr sqrt(const Expr& arg) {
 }
 
 Expr abs(const Expr& arg) {
-  if (const Function* func = CastPtr<Function>(arg);
+  if (const Function* func = cast_ptr<Function>(arg);
       func != nullptr && func->enum_value() == BuiltInFunctionName::Abs) {
     // abs(abs(x)) --> abs(x)
     return arg;
@@ -266,16 +266,16 @@ Expr abs(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  if (const Constant* constant = CastPtr<Constant>(arg); constant != nullptr) {
+  if (const Constant* constant = cast_ptr<Constant>(arg); constant != nullptr) {
     const auto as_double = double_from_symbolic_constant(constant->name());
-    if (CompareIntFloat(0, as_double).value() != RelativeOrder::GreaterThan) {
+    if (compare_int_float(0, as_double).value() != RelativeOrder::GreaterThan) {
       // Constant that is already positive.
       return arg;
     }
   }
   // TODO: Add simplifications for real inputs, like powers.
   // TODO: Add simplifications for multiplications.
-  return MakeExpr<Function>(BuiltInFunctionName::Abs, arg);
+  return make_expr<Function>(BuiltInFunctionName::Abs, arg);
 }
 
 // TODO: Add simplifications for expressions like:
@@ -312,7 +312,7 @@ struct SignumVisitor {
 
   // Handle all other cases.
   template <typename T,
-            typename = EnableIfDoesNotContainType<T, Integer, Rational, Float, Constant, Function>>
+            typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float, Constant, Function>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }
@@ -323,7 +323,7 @@ Expr signum(const Expr& arg) {
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
-  return MakeExpr<Function>(BuiltInFunctionName::Signum, arg);
+  return make_expr<Function>(BuiltInFunctionName::Signum, arg);
 }
 
 // Max and min are implemented as conditionals. That way:
@@ -337,8 +337,8 @@ Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
 }
 
 MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixExpr& if_false) {
-  const Matrix& mat_true = if_true.AsMatrix();
-  const Matrix& mat_false = if_false.AsMatrix();
+  const Matrix& mat_true = if_true.as_matrix();
+  const Matrix& mat_false = if_false.as_matrix();
 
   // dimensions of left and right operands must match:
   if (mat_true.rows() != mat_false.rows() || mat_true.cols() != mat_false.cols()) {
@@ -354,7 +354,7 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
   std::transform(mat_true.begin(), mat_true.end(), mat_false.begin(),
                  std::back_inserter(conditionals),
                  [&](const Expr& a, const Expr& b) { return where(condition, a, b); });
-  return MatrixExpr::Create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
+  return MatrixExpr::create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
 }
 
 }  // namespace math

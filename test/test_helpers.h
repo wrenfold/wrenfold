@@ -15,8 +15,8 @@ testing::AssertionResult FormatFailedResult(const std::string_view description,
                                             const std::string_view name_a,
                                             const std::string_view name_b, const A& a, B& b) {
   // If the formatted string has multiple lines, preface it w/ a line break:
-  const std::string a_str = a.ToString();
-  const std::string b_str = b.ToString();
+  const std::string a_str = a.to_string();
+  const std::string b_str = b.to_string();
   const std::string_view a_prefix = std::count(a_str.begin(), a_str.end(), '\n') > 0 ? "\n" : " ";
   const std::string_view b_prefix = std::count(b_str.begin(), b_str.end(), '\n') > 0 ? "\n" : " ";
 
@@ -27,8 +27,8 @@ testing::AssertionResult FormatFailedResult(const std::string_view description,
              "expression tree for `{}`:\n{}",
              name_a, description, name_b,
              name_a, a_prefix, a_str, name_b, b_prefix, b_str,
-             name_a, a.ToExpressionTreeString(),
-             name_b, b.ToExpressionTreeString());
+             name_a, a.to_expression_tree_string(),
+             name_b, b.to_expression_tree_string());
   // clang-format on
 }
 

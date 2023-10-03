@@ -10,20 +10,20 @@ namespace math {
 // Visitor for distributing terms in multiplications:
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct DistributeVisitor {
-  Expr operator()(const Addition& add, const Expr&) const { return add.map_children(&Distribute); }
+  Expr operator()(const Addition& add, const Expr&) const { return add.map_children(&distribute); }
 
   Expr operator()(const Multiplication& mul, const Expr&) const {
     // First distribute all the children of the multiplication:
     std::vector<Expr> children{};
     children.reserve(mul.arity());
     std::transform(mul.begin(), mul.end(), std::back_inserter(children),
-                   [](const Expr& expr) { return Distribute(expr); });
+                   [](const Expr& expr) { return distribute(expr); });
 
     // Are any of the child expressions additions?
     const std::size_t total_terms =
         std::accumulate(children.begin(), children.end(), static_cast<std::size_t>(1lu),
                         [](std::size_t total, const Expr& expr) {
-                          if (const Addition* const add = CastPtr<Addition>(expr); add != nullptr) {
+                          if (const Addition* const add = cast_ptr<Addition>(expr); add != nullptr) {
                             total *= add->arity();
                           }
                           return total;
@@ -44,7 +44,7 @@ struct DistributeVisitor {
 
     std::size_t step = total_terms;
     for (const Expr& expr : children) {
-      if (const Addition* add = CastPtr<Addition>(expr); add != nullptr) {
+      if (const Addition* add = cast_ptr<Addition>(expr); add != nullptr) {
         // For additions, first update the step by dividing by the size of this addition:
         ASSERT_EQUAL(0, step % add->arity());
         ASSERT_GREATER_OR_EQ(step / add->arity(), 1);
@@ -68,22 +68,22 @@ struct DistributeVisitor {
     return Addition::from_operands(output_terms);
   }
 
-  Expr operator()(const Function& f, const Expr&) const { return f.map_children(&Distribute); }
+  Expr operator()(const Function& f, const Expr&) const { return f.map_children(&distribute); }
 
   Expr operator()(const Power& pow, const Expr&) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.base();
     const Expr& b = pow.exponent();
-    return Power::create(Distribute(a), Distribute(b));
+    return Power::create(distribute(a), distribute(b));
   }
 
   Expr operator()(const Conditional& conditional, const Expr&) const {
-    return conditional.map_children(&Distribute);
+    return conditional.map_children(&distribute);
   }
 
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }
   Expr operator()(const Derivative& diff, const Expr&) const {
-    return diff.map_children(&Distribute);
+    return diff.map_children(&distribute);
   }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const Integer&, const Expr& arg) const { return arg; }
@@ -91,11 +91,11 @@ struct DistributeVisitor {
   Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation, const Expr&) const {
-    return relation.map_children(&Distribute);
+    return relation.map_children(&distribute);
   }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Distribute(const Expr& arg) { return VisitWithExprArg(arg, DistributeVisitor{}); }
+Expr distribute(const Expr& arg) { return VisitWithExprArg(arg, DistributeVisitor{}); }
 
 }  // namespace math

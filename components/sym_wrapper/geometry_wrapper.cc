@@ -26,10 +26,10 @@ static auto ComponentsFromIterable(const py::iterable& iterable) {
 // Check that matrix has correct dims to be converted to quaternion.
 static void CheckMatrixDims(const MatrixExpr& m) {
   const bool valid_dims =
-      (m.NumRows() == 4 && m.NumCols() == 1) || (m.NumRows() == 1 && m.NumCols() == 4);
+      (m.rows() == 4 && m.cols() == 1) || (m.rows() == 1 && m.cols() == 4);
   if (!valid_dims) {
     throw TypeError("Matrix must be a 4-element vector. Provided has dimension: [{}, {}]",
-                    m.NumRows(), m.NumCols());
+                    m.rows(), m.cols());
   }
 }
 
@@ -44,10 +44,10 @@ static py::list ListFromQuaternion(const Quaternion& q) {
 
 static py::array EvalQuaternion(const Quaternion& q) {
   py::list list{};  // TODO: Avoid copy into list.
-  list.append(TryConvertToNumeric(q.w().Eval()));
-  list.append(TryConvertToNumeric(q.x().Eval()));
-  list.append(TryConvertToNumeric(q.y().Eval()));
-  list.append(TryConvertToNumeric(q.z().Eval()));
+  list.append(TryConvertToNumeric(q.w().eval()));
+  list.append(TryConvertToNumeric(q.x().eval()));
+  list.append(TryConvertToNumeric(q.y().eval()));
+  list.append(TryConvertToNumeric(q.z().eval()));
   return py::array(list);
 }
 
@@ -59,7 +59,7 @@ void WrapGeometryOperations(py::module_& m) {
       .def_static(
           "with_name",
           [](const std::string_view name) {
-            auto [w, x, y, z] = Symbols(fmt::format("{}_w", name), fmt::format("{}_x", name),
+            auto [w, x, y, z] = make_symbols(fmt::format("{}_w", name), fmt::format("{}_x", name),
                                         fmt::format("{}_y", name), fmt::format("{}_z", name));
             return Quaternion{std::move(w), std::move(x), std::move(y), std::move(z)};
           },

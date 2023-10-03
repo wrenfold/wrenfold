@@ -60,9 +60,9 @@ class Derivative {
 };
 
 template <>
-struct Hash<Derivative> {
+struct hash_struct<Derivative> {
   std::size_t operator()(const Derivative& func) const {
-    return HashArgs(static_cast<std::size_t>(func.order()), func.differentiand(), func.argument());
+    return hash_args(static_cast<std::size_t>(func.order()), func.differentiand(), func.argument());
   }
 };
 

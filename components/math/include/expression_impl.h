@@ -15,48 +15,48 @@ class ExpressionImpl final : public ExpressionConcept {
 
   // Construct w/ concrete inner type.
   explicit ExpressionImpl(ExpressionType&& impl)
-      : ExpressionConcept(ComputeHash(impl)), implementation_(std::move(impl)) {}
+      : ExpressionConcept(compute_hash(impl)), implementation_(std::move(impl)) {}
 
   // Cast to the concrete expression type. type.
-  const ExpressionType& GetImplementation() const { return implementation_; }
+  const ExpressionType& get_implementation() const { return implementation_; }
 
   // Check if we can cast to this type.
   bool is_identical_to(const ExpressionConcept& other) const override final {
-    return other.IsType<ExpressionType>() &&
-           GetImplementation().is_identical_to(
-               static_cast<const ExpressionImpl<ExpressionType>&>(other).GetImplementation());
+    return other.is_type<ExpressionType>() &&
+           get_implementation().is_identical_to(
+               static_cast<const ExpressionImpl<ExpressionType>&>(other).get_implementation());
   }
 
   // Cast to derived type and apply the visitor.
-  void Receive(VisitorBase& visitor) const override final {
-    static_cast<VisitorDeclare<ExpressionType>&>(visitor).ApplyVirtual(GetImplementation());
+  void receive_visitor(VisitorBase& visitor) const override final {
+    static_cast<VisitorDeclare<ExpressionType>&>(visitor).ApplyVirtual(get_implementation());
   }
 
   // Get the derived type string name (a static constexpr member).
-  std::string_view TypeName() const override final { return ExpressionType::NameStr; }
+  std::string_view type_name() const override final { return ExpressionType::NameStr; }
 
   // Whether the derived type is a leaf (it contains no references to child expressions).
   static constexpr bool IsLeafStatic() { return ExpressionType::IsLeafNode; }
 
   // Virtual version of `IsLeafStatic`.
-  bool IsLeaf() const override final { return IsLeafStatic(); }
+  bool is_leaf() const override final { return IsLeafStatic(); }
 
   // Implementation of `TypeIndex`.
-  std::size_t TypeIndex() const override final {
-    return IndexOfType<ExpressionType, ExpressionTypeList>::Value;
+  std::size_t type_index() const override final {
+    return index_of_type<ExpressionType, ExpressionTypeList>::value;
   }
 
  protected:
-  bool TypeMatchesIndex(const std::size_t index) const override final {
+  bool type_matches_index(const std::size_t index) const override final {
     static_assert(ContainsType<ExpressionType, ExpressionTypeList>,
                   "ExpressionType is not a valid expression type");
-    return IndexOfType<ExpressionType, ExpressionTypeList>::Value == index;
+    return index_of_type<ExpressionType, ExpressionTypeList>::value == index;
   }
 
   // Compute the hash of the underlying expression, and hash it again w/ the index of the type.
-  static std::size_t ComputeHash(const ExpressionType& impl) {
-    return HashCombine(IndexOfType<ExpressionType, ExpressionTypeList>::Value,
-                       Hash<ExpressionType>{}(impl));
+  static std::size_t compute_hash(const ExpressionType& impl) {
+    return hash_combine(index_of_type<ExpressionType, ExpressionTypeList>::value,
+                       hash_struct<ExpressionType>{}(impl));
   }
 
   ExpressionType implementation_;
@@ -64,16 +64,16 @@ class ExpressionImpl final : public ExpressionConcept {
 
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>
-Expr MakeExpr(Args&&... args) {
+Expr make_expr(Args&&... args) {
   return Expr{std::make_shared<const ExpressionImpl<T>>(T{std::forward<Args>(args)...})};
 }
 
 // Cast expression to const pointer of the specified type.
 // Returned pointer is valid in scope only as long as the argument `x` survives.
 template <typename T>
-const T* CastPtr(const Expr& x) {
-  if (x.impl_->IsType<T>()) {
-    const T& concrete = static_cast<const ExpressionImpl<T>*>(x.impl_.get())->GetImplementation();
+const T* cast_ptr(const Expr& x) {
+  if (x.impl_->is_type<T>()) {
+    const T& concrete = static_cast<const ExpressionImpl<T>*>(x.impl_.get())->get_implementation();
     return &concrete;
   } else {
     return nullptr;
@@ -83,39 +83,18 @@ const T* CastPtr(const Expr& x) {
 // Cast expression to const reference of the specified type. TypeError is thrown if the cast is
 // invalid.
 template <typename T>
-const T& CastChecked(const Expr& x) {
-  if (x.impl_->IsType<T>()) {
-    return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->GetImplementation();
+const T& cast_checked(const Expr& x) {
+  if (x.impl_->is_type<T>()) {
+    return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->get_implementation();
   } else {
-    throw TypeError("Cannot cast expression of type `{}` to `{}`", x.TypeName(), T::NameStr);
+    throw TypeError("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::NameStr);
   }
 }
 
 // Cast expression with no checking. UB will occur if the wrong type is accessed.
 template <typename T>
-const T& CastUnchecked(const Expr& x) {
-  return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->GetImplementation();
-}
-
-// Cast expression `x` to type `T` if possible, and check if it is identical
-// to `typed_y`.
-template <typename T>
-bool is_identical_toConcrete(const Expr& x, const T& typed_y) {
-  const T* as_typed = CastPtr<T>(x);
-  if (!as_typed) {
-    return false;
-  }
-  return as_typed->is_identical_to(typed_y);
-}
-
-// Traverse all sub-expressions of the input expression. The provided `operation` will be called
-// once on each child.
-template <typename ExpressionType, typename Operation>
-void IterateChildren(const ExpressionType& expr, Operation&& operation) {
-  constexpr bool is_leaf = ExpressionType::IsLeafNode;
-  if constexpr (!is_leaf) {
-    expr.iterate(std::forward<Operation>(operation));
-  }
+const T& cast_unchecked(const Expr& x) {
+  return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->get_implementation();
 }
 
 }  // namespace math

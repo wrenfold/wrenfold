@@ -109,7 +109,7 @@ struct Cast {
 struct CallBuiltInFunction {
   constexpr static bool is_commutative() { return false; }
   constexpr static int num_value_operands() { return -1; }
-  constexpr std::string_view to_string() const { return math::ToString(name); }
+  constexpr std::string_view to_string() const { return math::to_string(name); }
   constexpr std::size_t hash_seed() const { return static_cast<std::size_t>(name); }
   constexpr bool is_same(const CallBuiltInFunction& other) const { return name == other.name; }
 
@@ -187,7 +187,7 @@ struct Load {
   constexpr static bool is_commutative() { return false; }
   constexpr static int num_value_operands() { return 0; }
   constexpr std::string_view to_string() const { return "load"; }
-  std::size_t hash_seed() const { return expr.Hash(); }
+  std::size_t hash_seed() const { return expr.get_hash(); }
   bool is_same(const Load& other) const { return expr.is_identical_to(other.expr); }
 
   // Defined in cc file.
@@ -216,7 +216,7 @@ struct OutputRequired {
   constexpr static bool is_commutative() { return false; }
   constexpr static int num_value_operands() { return 0; }
   constexpr std::string_view to_string() const { return "oreq"; }
-  std::size_t hash_seed() const { return HashString(name); }
+  std::size_t hash_seed() const { return hash_string_fnv(name); }
   bool is_same(const OutputRequired& other) const { return name == other.name; }
 
   constexpr NumericType determine_type() const { return NumericType::Bool; }
@@ -532,10 +532,10 @@ struct ValueHasher {
     // Seed the hash w/ the index in the variant, which accounts for the type of the op.
     std::size_t seed = val->value_op().index();
     // Then some operations w/ members need to reason about the hash of those members:
-    seed = HashCombine(seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
+    seed = hash_combine(seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
     for (const ir::ValuePtr& operand : val->operands()) {
       const uint32_t val_name = operand->name();
-      seed = HashCombine(seed, static_cast<std::size_t>(val_name));
+      seed = hash_combine(seed, static_cast<std::size_t>(val_name));
     }
     return seed;
   }

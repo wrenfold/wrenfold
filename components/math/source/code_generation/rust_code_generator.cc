@@ -23,7 +23,7 @@ constexpr std::string_view TypeFromNumericType(NumericType type) {
     case NumericType::Complex:
       throw TypeError("No complex number type yet in Rust");
   }
-  throw TypeError("Not a valid enum value: {}", StringFromNumericType(type));
+  throw TypeError("Not a valid enum value: {}", string_from_numeric_type(type));
 }
 
 constexpr std::string_view TypeFromNumericType(const ast::ScalarType& scalar) {
@@ -135,7 +135,7 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter,
 
   if (std::holds_alternative<ast::MatrixType>(type)) {
     const ast::MatrixType mat = std::get<ast::MatrixType>(type);
-    auto range = MakeRange<std::size_t>(0, assignment.values.size());
+    auto range = make_range<std::size_t>(0, assignment.values.size());
     formatter.join(
         [&](CodeFormatter& fmt, std::size_t i) {
           const auto [row, col] = mat.compute_indices(i);

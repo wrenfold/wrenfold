@@ -26,7 +26,7 @@ class Function {
   constexpr BuiltInFunctionName enum_value() const noexcept { return func_; }
 
   // Get name as a string.
-  constexpr std::string_view function_name() const noexcept { return ToString(func_); }
+  constexpr std::string_view function_name() const noexcept { return to_string(func_); }
 
   // Get the function argument.
   constexpr const auto& args() const noexcept { return args_; }
@@ -66,9 +66,9 @@ class Function {
 };
 
 template <>
-struct Hash<Function> {
+struct hash_struct<Function> {
   std::size_t operator()(const Function& func) const {
-    return HashAll(static_cast<std::size_t>(func.enum_value()), func.begin(), func.end());
+    return hash_all(static_cast<std::size_t>(func.enum_value()), func.begin(), func.end());
   }
 };
 
@@ -103,7 +103,7 @@ inline Expr Function::create(BuiltInFunctionName name, Function::ContainerType&&
     case BuiltInFunctionName::ENUM_SIZE:
       break;
   }
-  ASSERT(false, "Invalid function name: {}", ToString(name));
+  ASSERT(false, "Invalid function name: {}", to_string(name));
   return Constants::Zero;  //  Unreachable.
 }
 

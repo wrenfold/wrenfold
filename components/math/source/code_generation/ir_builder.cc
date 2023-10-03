@@ -156,12 +156,12 @@ struct PairCountVisitor {
   struct PairHash {
     std::size_t operator()(const std::pair<Expr, Expr>& pair) const {
       // Ignore the order of pairs:
-      const std::size_t seed_a = pair.first.Hash();
-      const std::size_t seed_b = pair.second.Hash();
+      const std::size_t seed_a = pair.first.get_hash();
+      const std::size_t seed_b = pair.second.get_hash();
       if (seed_a < seed_b) {
-        return HashCombine(seed_a, seed_b);
+        return hash_combine(seed_a, seed_b);
       } else {
-        return HashCombine(seed_b, seed_a);
+        return hash_combine(seed_b, seed_a);
       }
     }
   };
@@ -178,7 +178,7 @@ struct PairCountVisitor {
   template <typename Operation>
   void RecordCounts(
       const Operation& operation,
-      std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>>& count_table,
+      std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>>& count_table,
       std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
           pair_count_table) {
     for (const Expr& operand : operation) {
@@ -205,11 +205,13 @@ struct PairCountVisitor {
   template <typename T>
   std::enable_if_t<!std::is_same_v<T, Multiplication> && !std::is_same_v<T, Addition>> operator()(
       const T& expr) {
-    IterateChildren(expr, [this](const Expr& expr) { Visit(expr, *this); });
+    if constexpr (!T::IsLeafNode) {
+      expr.iterate([this](const Expr& expr) { Visit(expr, *this); });
+    }
   }
 
-  std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>> mul_element_counts_;
-  std::unordered_map<Expr, std::size_t, Hash<Expr>, IsIdenticalOperator<Expr>> add_element_counts_;
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> mul_element_counts_;
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> add_element_counts_;
 
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> mul_pair_counts_;
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> add_pair_counts_;
@@ -233,7 +235,7 @@ template <>
 struct FormatOpArgsHelper<ir::Load> {
   void operator()(std::string& output, const ir::Load& load, const std::vector<ir::ValuePtr>&,
                   const std::size_t) {
-    output += load.expr.ToString();
+    output += load.expr.to_string();
   }
 };
 
@@ -366,7 +368,7 @@ struct IRFormVisitor {
     throw TypeError(
         "Cannot generate code for expressions containing `Derivative`. Offending expression is: "
         "Derivative({}, {}, {})",
-        derivative.differentiand().ToString(), derivative.argument().ToString(), derivative.order());
+        derivative.differentiand().to_string(), derivative.argument().to_string(), derivative.order());
   }
 
   ir::ValuePtr operator()(const Function& func, const Expr&) {
@@ -435,7 +437,7 @@ struct IRFormVisitor {
  private:
   FlatIr& builder_;
 
-  std::unordered_map<Expr, ir::ValuePtr, Hash<Expr>, IsIdenticalOperator<Expr>> computed_values_;
+  std::unordered_map<Expr, ir::ValuePtr, hash_struct<Expr>, IsIdenticalOperator<Expr>> computed_values_;
 
   const ir::PairCountVisitor& pair_counts;
 };

@@ -34,12 +34,12 @@ class Quaternion {
   }
 
   // Convert to a column vector in [w,x,y,z] order.
-  const MatrixExpr to_vector_wxyz() const { return Vector(w(), x(), y(), z()); }
+  const MatrixExpr to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
 
   // Create a new quaternion by substituting.
   Quaternion subs(const Expr& target, const Expr& replacement) const {
-    return Quaternion(w().Subs(target, replacement), x().Subs(target, replacement),
-                      y().Subs(target, replacement), z().Subs(target, replacement));
+    return Quaternion(w().subs(target, replacement), x().subs(target, replacement),
+                      y().subs(target, replacement), z().subs(target, replacement));
   }
 
   // The squared norm.
@@ -52,17 +52,17 @@ class Quaternion {
   Expr norm() const { return sqrt(squared_norm()); }
 
   // Return a copy of this quaternion that has been normalized.
-  Quaternion normalized() const {
+  [[nodiscard]] Quaternion normalized() const {
     const Expr n = norm();
     return {w() / n, x() / n, y() / n, z() / n};
   }
 
   // Conjugate the quaternion by negating the complex coefficients:
   // [w, x, y, z] --> [w, -x, -y, -z].
-  Quaternion conjugate() const { return {w(), -x(), -y(), -z()}; }
+  [[nodiscard]] Quaternion conjugate() const { return {w(), -x(), -y(), -z()}; }
 
   // Invert the quaternion by conjugating and normalizing.
-  Quaternion inverse() const {
+  [[nodiscard]] Quaternion inverse() const {
     const Expr n = norm();
     const Expr negative_norm = -n;
     return {w() / n, x() / negative_norm, y() / negative_norm, z() / negative_norm};
@@ -84,7 +84,7 @@ class Quaternion {
     const Expr yz2 = z2 * y();
     const Expr zz2 = z2 * z();
     // clang-format off
-    return CreateMatrix(3, 3,
+    return make_matrix(3, 3,
                         1 - yy2 - zz2,      xy2 - wz2,      xz2 + wy2,
                         xy2 + wz2,      1 - xx2 - zz2,      yz2 - wx2,
                         xz2 - wy2,          yz2 + wx2,  1 - xx2 - yy2
@@ -104,8 +104,8 @@ class Quaternion {
   // Construct quaternion from axis and angle. It is expected that `v` has unit norm.
   // Angle is in radians.
   static Quaternion from_angle_axis(const Expr& angle, const MatrixExpr& v) {
-    if (v.NumRows() != 3 || v.NumCols() != 1) {
-      throw DimensionError("Axis vector must be 3x1. Received: [{}, {}]", v.NumRows(), v.NumCols());
+    if (v.rows() != 3 || v.cols() != 1) {
+      throw DimensionError("Axis vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
     }
     return from_angle_axis(angle, v[0], v[1], v[2]);
   }
@@ -125,9 +125,9 @@ class Quaternion {
 
   // Construct quaternion from a rotation vector.
   static Quaternion from_rotation_vector(const MatrixExpr& v) {
-    if (v.NumRows() != 3 || v.NumCols() != 1) {
-      throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.NumRows(),
-                           v.NumCols());
+    if (v.rows() != 3 || v.cols() != 1) {
+      throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(),
+                           v.cols());
     }
     return from_rotation_vector(v[0], v[1], v[2]);
   }
@@ -156,8 +156,8 @@ class Quaternion {
     // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
     const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
 
-    static const auto unit_x = Vector(Constants::One, Constants::Zero, Constants::Zero);
-    if (IsZero(vector_norm)) {
+    static const auto unit_x = make_vector(Constants::One, Constants::Zero, Constants::Zero);
+    if (is_zero(vector_norm)) {
       // If the norm is analytically zero, we can't do anything else here:
       return std::make_tuple(Constants::Zero, unit_x);
     }
@@ -170,7 +170,7 @@ class Quaternion {
     return std::make_tuple(
         where(vector_norm > zero_epsilon, angle, Constants::Zero),
         where(vector_norm > zero_epsilon,
-              Vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm), unit_x));
+              make_vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm), unit_x));
   }
 
   // Construct a quaternion from a rotation matrix using Caley's method.
@@ -179,11 +179,11 @@ class Quaternion {
   // By S. Sarabandi and F. Thomas
   // This method avoids introducing any divisions.
   static Quaternion from_rotation_matrix(const MatrixExpr& R_in) {
-    if (R_in.NumRows() != 3 || R_in.NumCols() != 3) {
-      throw DimensionError("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.NumRows(),
-                           R_in.NumCols());
+    if (R_in.rows() != 3 || R_in.cols() != 3) {
+      throw DimensionError("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
+                           R_in.cols());
     }
-    const Matrix& R = R_in.AsMatrix();
+    const Matrix& R = R_in.as_matrix();
     // clang-format off
     Expr a = pow(R(0, 0) + R(1, 1) + R(2, 2) + 1, 2) +
              pow(R(2, 1) - R(1, 2), 2) +

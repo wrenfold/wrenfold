@@ -62,8 +62,8 @@ inline constexpr std::pair<Integer, Rational> factorize_rational_exponent(const 
 }
 
 template <>
-struct Hash<Power> {
-  std::size_t operator()(const Power& pow) const { return HashArgs(0, pow.base(), pow.exponent()); }
+struct hash_struct<Power> {
+  std::size_t operator()(const Power& pow) const { return hash_args(0, pow.base(), pow.exponent()); }
 };
 
 }  // namespace math

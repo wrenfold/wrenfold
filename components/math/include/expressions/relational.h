@@ -51,9 +51,9 @@ class Relational {
 };
 
 template <>
-struct Hash<Relational> {
+struct hash_struct<Relational> {
   std::size_t operator()(const Relational& rel) const {
-    return HashArgs(static_cast<std::size_t>(rel.operation()), rel.left(), rel.right());
+    return hash_args(static_cast<std::size_t>(rel.operation()), rel.left(), rel.right());
   }
 };
 

@@ -66,7 +66,7 @@ struct TreeFormatter {
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       auto acm = as_coeff_and_mul(a);
       auto bcm = as_coeff_and_mul(b);
-      return ExpressionOrder(acm.second, bcm.second) == RelativeOrder::LessThan;
+      return expression_order(acm.second, bcm.second) == RelativeOrder::LessThan;
     });
 
     AppendName("Addition:");
@@ -90,7 +90,7 @@ struct TreeFormatter {
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       const auto abe = as_base_and_exp(a);
       const auto bbe = as_base_and_exp(b);
-      return ExpressionOrder(abe.first, bbe.first) == RelativeOrder::LessThan;
+      return expression_order(abe.first, bbe.first) == RelativeOrder::LessThan;
     });
 
     AppendName("Multiplication:");
@@ -176,15 +176,15 @@ struct TreeFormatter {
   std::string output_;
 };
 
-std::string Expr::ToExpressionTreeString() const {
+std::string Expr::to_expression_tree_string() const {
   TreeFormatter formatter{};
   Visit(*this, formatter);
   return formatter.TakeOutput();
 }
 
-std::string MatrixExpr::ToExpressionTreeString() const {
+std::string MatrixExpr::to_expression_tree_string() const {
   TreeFormatter formatter{};
-  formatter(AsMatrix());
+  formatter(as_matrix());
   return formatter.TakeOutput();
 }
 

@@ -24,7 +24,7 @@ class FunctionArgument {
 
   // Create `Expr` w/ the specified indices.
   static Expr create(std::size_t arg_index, std::size_t element_index) {
-    return MakeExpr<FunctionArgument>(arg_index, element_index);
+    return make_expr<FunctionArgument>(arg_index, element_index);
   }
 
   // Equal if both indices are the same.
@@ -36,9 +36,9 @@ class FunctionArgument {
 };
 
 template <>
-struct Hash<FunctionArgument> {
+struct hash_struct<FunctionArgument> {
   constexpr std::size_t operator()(const FunctionArgument& c) const {
-    return HashCombine(c.arg_index(), c.element_index());
+    return hash_combine(c.arg_index(), c.element_index());
   }
 };
 

@@ -14,12 +14,12 @@ struct OrderVisitor {
                Multiplication, Addition, Power, Function, Relational, Conditional, Derivative>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
-  static_assert(TypeListSize<OrderOfTypes>::Value == TypeListSize<ExpressionTypeList>::Value);
+  static_assert(type_list_size<OrderOfTypes>::value == type_list_size<ExpressionTypeList>::value);
 
   template <typename A, typename B>
   RelativeOrder operator()(const A& a, const B& b) {
     if constexpr (!std::is_same_v<A, B>) {
-      return IndexOfType<A, OrderOfTypes>::Value < IndexOfType<B, OrderOfTypes>::Value
+      return index_of_type<A, OrderOfTypes>::value < index_of_type<B, OrderOfTypes>::value
                  ? RelativeOrder::LessThan
                  : RelativeOrder::GreaterThan;
     } else {
@@ -42,15 +42,15 @@ struct OrderVisitor {
   }
 
   RelativeOrder Compare(const Conditional& a, const Conditional& b) const {
-    if (const RelativeOrder o = ExpressionOrder(a.condition(), b.condition());
+    if (const RelativeOrder o = expression_order(a.condition(), b.condition());
         o != RelativeOrder::Equal) {
       return o;
     }
-    if (const RelativeOrder o = ExpressionOrder(a.if_branch(), b.if_branch());
+    if (const RelativeOrder o = expression_order(a.if_branch(), b.if_branch());
         o != RelativeOrder::Equal) {
       return o;
     }
-    if (const RelativeOrder o = ExpressionOrder(a.else_branch(), b.else_branch());
+    if (const RelativeOrder o = expression_order(a.else_branch(), b.else_branch());
         o != RelativeOrder::Equal) {
       return o;
     }
@@ -140,7 +140,7 @@ struct OrderVisitor {
   static RelativeOrder LexicographicalCompare(Iterator begin_a, Iterator end_a, Iterator begin_b,
                                               Iterator end_b) {
     for (; begin_a != end_a && begin_b != end_b; ++begin_a, ++begin_b) {
-      const RelativeOrder result = ExpressionOrder(*begin_a, *begin_b);
+      const RelativeOrder result = expression_order(*begin_a, *begin_b);
       if (result == RelativeOrder::LessThan) {
         return RelativeOrder::LessThan;
       } else if (result == RelativeOrder::GreaterThan) {
@@ -156,7 +156,7 @@ struct OrderVisitor {
   }
 };
 
-RelativeOrder ExpressionOrder(const Expr& a, const Expr& b) {
+RelativeOrder expression_order(const Expr& a, const Expr& b) {
   return VisitBinary(a, b, OrderVisitor{});
 }
 

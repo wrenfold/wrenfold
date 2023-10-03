@@ -49,7 +49,7 @@ Matrix operator*(const Matrix& a, const Matrix& b) {
     addition_args.clear();
     for (index_t k = 0; k < a.cols(); ++k) {
       Expr prod = a(i, k) * b(k, j);
-      if (!IsZero(prod)) {
+      if (!is_zero(prod)) {
         addition_args.push_back(std::move(prod));
       }
     }

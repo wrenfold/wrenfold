@@ -6,7 +6,6 @@
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
 #include "integer_utils.h"
-#include "string_utils.h"
 #include "visitor_impl.h"
 
 namespace math {
@@ -17,7 +16,7 @@ inline Expr MaybeNewMul(Multiplication::ContainerType&& terms) {
   } else if (terms.size() == 1) {
     return std::move(terms.front());
   } else {
-    return MakeExpr<Multiplication>(std::move(terms));
+    return make_expr<Multiplication>(std::move(terms));
   }
 }
 
@@ -39,16 +38,16 @@ Expr Multiplication::from_operands(absl::Span<const Expr> args) {
   // Check for zeros:
   // TODO: This is not valid if there are divisions by zero...
   // We need an 'undefined' type.
-  const bool contains_zeros = std::any_of(args.begin(), args.end(), &IsZero);
+  const bool contains_zeros = std::any_of(args.begin(), args.end(), &is_zero);
   if (contains_zeros) {
     return Constants::Zero;
   }
 
   if (args.size() == 2) {
-    if (const Addition* add = CastPtr<Addition>(args[0]);
-        add && args[1].Is<Integer, Rational, Float>()) {
+    if (const Addition* add = cast_ptr<Addition>(args[0]);
+        add && args[1].is_type<Integer, Rational, Float>()) {
       return MultiplyIntoAddition(*add, args[1]);
-    } else if (add = CastPtr<Addition>(args[1]); add && args[0].Is<Integer, Float, Rational>()) {
+    } else if (add = cast_ptr<Addition>(args[1]); add && args[0].is_type<Integer, Float, Rational>()) {
       return MultiplyIntoAddition(*add, args[0]);
     }
   }
@@ -100,7 +99,7 @@ struct MultiplyVisitor {
     } else if constexpr (std::is_same_v<T, Integer>) {
       if constexpr (FactorizeIntegers) {
         // Factorize integers into primes:
-        const auto factors = ComputePrimeFactors(arg.get_value());
+        const auto factors = compute_prime_factors(arg.get_value());
         InsertIntegerFactors(factors, true);
       } else {
         // Promote integers to rationals and multiply them onto `rational_coeff`.
@@ -108,8 +107,8 @@ struct MultiplyVisitor {
       }
     } else if constexpr (std::is_same_v<T, Rational>) {
       if constexpr (FactorizeIntegers) {
-        const auto num_factors = ComputePrimeFactors(arg.numerator());
-        const auto den_factors = ComputePrimeFactors(arg.denominator());
+        const auto num_factors = compute_prime_factors(arg.numerator());
+        const auto den_factors = compute_prime_factors(arg.denominator());
         InsertIntegerFactors(num_factors, true);
         InsertIntegerFactors(den_factors, false);
       } else {
@@ -157,8 +156,8 @@ void MultiplicationParts::multiply_term(const Expr& arg, bool factorize_integers
 
 void MultiplicationParts::normalize_coefficients() {
   for (auto it = terms.begin(); it != terms.end(); ++it) {
-    const Integer* base = CastPtr<Integer>(it->first);
-    const Rational* exponent = CastPtr<Rational>(it->second);
+    const Integer* base = cast_ptr<Integer>(it->first);
+    const Rational* exponent = cast_ptr<Rational>(it->second);
     // Check if the exponent is now greater than 1, in which case we factorize it into an integer
     // part and a fractional part. The integer part is multiplied onto the rational coefficient.
     if (base && exponent) {
@@ -166,10 +165,10 @@ void MultiplicationParts::normalize_coefficients() {
       // Update the rational coefficient:
       if (integer_part.get_value() >= 0) {
         rational_coeff =
-            rational_coeff * Rational{Pow(base->get_value(), integer_part.get_value()), 1};
+            rational_coeff * Rational{integer_power(base->get_value(), integer_part.get_value()), 1};
       } else {
         rational_coeff =
-            rational_coeff * Rational{1, Pow(base->get_value(), -integer_part.get_value())};
+            rational_coeff * Rational{1, integer_power(base->get_value(), -integer_part.get_value())};
       }
 
       // We changed the exponent on this term, so update it.
@@ -179,7 +178,7 @@ void MultiplicationParts::normalize_coefficients() {
 
   // Nuke anything w/ a zero exponent.
   for (auto it = terms.begin(); it != terms.end();) {
-    if (IsZero(it->second)) {
+    if (is_zero(it->second)) {
       it = terms.erase(it);
     } else {
       ++it;
@@ -193,7 +192,7 @@ Expr MultiplicationParts::create_multiplication() const {
   args.reserve(terms.size() + 1);
   if (float_coeff.has_value()) {
     const Float promoted_rational = static_cast<Float>(rational_coeff);
-    args.push_back(MakeExpr<Float>(float_coeff.value() * promoted_rational));
+    args.push_back(make_expr<Float>(float_coeff.value() * promoted_rational));
   } else if (rational_coeff.is_one()) {
     // Don't insert a useless one in the multiplication.
   } else {
@@ -212,7 +211,7 @@ inline std::pair<Expr, Expr> SplitMultiplication(const Expr& input, const Multip
   Multiplication::ContainerType numerics{};
   Multiplication::ContainerType remainder{};
   for (const Expr& expr : mul) {
-    if (IsNumeric(expr)) {
+    if (is_numeric(expr)) {
       numerics.push_back(expr);
     } else {
       remainder.push_back(expr);
@@ -237,7 +236,7 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
       // Handle multiplication. We do a faster path for a common case (binary mul where first
       // element is numeric).
       const Multiplication& mul = x;
-      if (mul.arity() == 2 && mul[0].Is<Integer, Rational, Float>()) {
+      if (mul.arity() == 2 && mul[0].is_type<Integer, Rational, Float>()) {
         return std::make_pair(mul[0], mul[1]);
       }
       return SplitMultiplication(expr, x);
@@ -256,13 +255,13 @@ MultiplicationFormattingInfo get_formatting_info(const Multiplication& mul) {
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
     const auto abe = as_base_and_exp(a);
     const auto bbe = as_base_and_exp(b);
-    return ExpressionOrder(abe.first, bbe.first) == RelativeOrder::LessThan;
+    return expression_order(abe.first, bbe.first) == RelativeOrder::LessThan;
   });
 
   std::size_t sign_count = 0;
   for (const Expr& expr : terms) {
     // Extract rationals:
-    if (const Rational* const rational = CastPtr<Rational>(expr); rational != nullptr) {
+    if (const Rational* const rational = cast_ptr<Rational>(expr); rational != nullptr) {
       const auto abs_num = std::abs(rational->numerator());
       if (abs_num != 1) {
         // Don't put redundant ones into the numerator for rationals of the form 1/n.
@@ -274,14 +273,14 @@ MultiplicationFormattingInfo get_formatting_info(const Multiplication& mul) {
         // If negative, increase the sign count.
         ++sign_count;
       }
-    } else if (const Integer* const integer = CastPtr<Integer>(expr); integer != nullptr) {
+    } else if (const Integer* const integer = cast_ptr<Integer>(expr); integer != nullptr) {
       if (integer->get_value() != 1 && integer->get_value() != -1) {
         result.numerator.emplace_back(integer->abs());
       }
       if (integer->get_value() < 0) {
         ++sign_count;
       }
-    } else if (const Float* const f = CastPtr<Float>(expr); f != nullptr) {
+    } else if (const Float* const f = cast_ptr<Float>(expr); f != nullptr) {
       result.numerator.emplace_back(f->abs());
       if (f->get_value() < 0) {
         ++sign_count;
@@ -292,9 +291,9 @@ MultiplicationFormattingInfo get_formatting_info(const Multiplication& mul) {
       // Sort into numerator and denominator, depending on sign of the exponent:
       const auto [coeff, _] = as_coeff_and_mul(exponent);
       // See if the exponent seems negative:
-      const bool is_negative_exp = IsNegativeNumber(coeff);
+      const bool is_negative_exp = is_negative_number(coeff);
       if (is_negative_exp) {
-        if (IsNegativeOne(exponent)) {
+        if (is_negative_one(exponent)) {
           result.denominator.emplace_back(BaseExp{std::move(base), Constants::One});
         } else {
           // Flip the sign and create a new power.

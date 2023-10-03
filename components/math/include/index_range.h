@@ -50,12 +50,12 @@ struct IndexRange {
 };
 
 template <typename T>
-constexpr auto MakeRange(T start, T stop) {
+constexpr auto make_range(T start, T stop) {
   return IndexRange<T>{start, stop};
 }
 
-static_assert(*(++MakeRange(0, 5).begin()) == 1);
-static_assert(*(++(++MakeRange(0, 5).begin())) == 2);
-static_assert(*((++MakeRange(2, 5).begin())++) == 3);
+static_assert(*(++make_range(0, 5).begin()) == 1);
+static_assert(*(++(++make_range(0, 5).begin())) == 2);
+static_assert(*((++make_range(2, 5).begin())++) == 3);
 
 }  // namespace math

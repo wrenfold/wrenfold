@@ -12,21 +12,21 @@
 
 namespace math {
 
-Expr::Expr(const std::string_view name) : Expr(MakeExpr<Variable>(std::string{name})) {}
+Expr::Expr(const std::string_view name) : Expr(make_expr<Variable>(std::string{name})) {}
 
-Expr Expr::FromFloat(const double x) {
+Expr Expr::from_float(const double x) {
   if (x == 0) {
     return Constants::Zero;
   }
   return Float::create(x);
 }
 
-Expr Expr::FromInt(const std::int64_t x) { return Integer::create(x); }
+Expr Expr::from_int(const std::int64_t x) { return Integer::create(x); }
 
-std::string Expr::ToString() const {
+std::string Expr::to_string() const {
   PlainFormatter formatter{};
   Visit(*this, formatter);
-  return formatter.TakeOutput();
+  return formatter.take_output();
 }
 
 Expr Expr::operator-() const {
@@ -92,6 +92,6 @@ struct PrecedenceVisitor {
   }
 };
 
-Precedence GetPrecedence(const Expr& expr) { return Visit(expr, PrecedenceVisitor{}); }
+Precedence get_precedence(const Expr& expr) { return Visit(expr, PrecedenceVisitor{}); }
 
 }  // namespace math

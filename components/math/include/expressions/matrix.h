@@ -136,11 +136,11 @@ inline void iter_matrix(index_t rows, index_t cols, Callable&& callable) {
 }
 
 template <>
-struct Hash<Matrix> {
+struct hash_struct<Matrix> {
   std::size_t operator()(const Matrix& m) const {
     const std::size_t seed =
-        HashCombine(std::hash<std::size_t>{}(m.rows()), std::hash<std::size_t>{}(m.cols()));
-    return HashAll(seed, m.begin(), m.end());
+        hash_combine(std::hash<std::size_t>{}(m.rows()), std::hash<std::size_t>{}(m.cols()));
+    return hash_all(seed, m.begin(), m.end());
   }
 };
 

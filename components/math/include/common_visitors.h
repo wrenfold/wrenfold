@@ -17,14 +17,14 @@ struct IsNumericVisitor {
     if constexpr (ContainsTypeHelper<T, Float, Integer, Rational>) {
       return true;
     } else if constexpr (std::is_same_v<T, Power>) {
-      return IsNumeric(arg.base()) && IsNumeric(arg.exponent());
+      return is_numeric(arg.base()) && is_numeric(arg.exponent());
     } else {
       return false;
     }
   }
 };
 
-inline bool IsNumeric(const Expr& expr) { return Visit(expr, IsNumericVisitor{}); }
+inline bool is_numeric(const Expr& expr) { return Visit(expr, IsNumericVisitor{}); }
 
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
@@ -50,6 +50,6 @@ struct IsNegativeNumberVisitor {
 };
 
 // TODO: This probably deserves a better name, since it doesn't just check for numbers.
-inline bool IsNegativeNumber(const Expr& expr) { return Visit(expr, IsNegativeNumberVisitor{}); }
+inline bool is_negative_number(const Expr& expr) { return Visit(expr, IsNegativeNumberVisitor{}); }
 
 }  // namespace math

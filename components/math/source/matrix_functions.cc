@@ -18,30 +18,30 @@ MatrixExpr CreateMatrixWithLambda(index_t rows, index_t cols, Callable&& callabl
   iter_matrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
     data.push_back(callable(i, j));
   });
-  return MatrixExpr::Create(rows, cols, std::move(data));
+  return MatrixExpr::create(rows, cols, std::move(data));
 }
 
-MatrixExpr MatrixOfSymbols(const std::string_view prefix, index_t rows, index_t cols) {
+MatrixExpr make_matrix_of_symbols(const std::string_view prefix, index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
     throw DimensionError("Cannot construct symbolic matrix with shape: ({}, {})", rows, cols);
   }
   return CreateMatrixWithLambda(rows, cols, [&](index_t i, index_t j) {
     std::string name = fmt::format("{}_{}_{}", prefix, i, j);
-    return MakeExpr<Variable>(std::move(name));
+    return make_expr<Variable>(std::move(name));
   });
 }
 
-MatrixExpr Zeros(index_t rows, index_t cols) {
+MatrixExpr make_zeros(index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
     throw DimensionError("Cannot construct zero matrix with shape: ({}, {})", rows, cols);
   }
   // Eventually we might have a symbolic zero matrix, and this won't be required.
   std::vector<Expr> data(static_cast<std::size_t>(rows * cols), Constants::Zero);
-  return MatrixExpr::Create(rows, cols, std::move(data));
+  return MatrixExpr::create(rows, cols, std::move(data));
 }
 
 // Create an identity matrix.
-MatrixExpr Identity(index_t rows) {
+MatrixExpr make_identity(index_t rows) {
   if (rows <= 0) {
     throw DimensionError("Cannot construct identity matrix with dimension: {}", rows);
   }
@@ -49,17 +49,17 @@ MatrixExpr Identity(index_t rows) {
       rows, rows, [&](index_t i, index_t j) { return i == j ? Constants::One : Constants::Zero; });
 }
 
-MatrixExpr Vec(const MatrixExpr& m) {
+MatrixExpr vectorize_matrix(const MatrixExpr& m) {
   std::vector<Expr> flattened;
-  const auto flat_size = m.NumRows() * m.NumCols();
+  const auto flat_size = m.rows() * m.cols();
   flattened.reserve(static_cast<std::size_t>(flat_size));
   // Iterate over columns first, transposing the underlying data:
-  for (index_t j = 0; j < m.NumCols(); ++j) {
-    for (index_t i = 0; i < m.NumRows(); ++i) {
+  for (index_t j = 0; j < m.cols(); ++j) {
+    for (index_t i = 0; i < m.rows(); ++i) {
       flattened.push_back(m(i, j));
     }
   }
-  return MatrixExpr::Create(flat_size, 1, std::move(flattened));
+  return MatrixExpr::create(flat_size, 1, std::move(flattened));
 }
 
 // A simple permutation "matrix".
@@ -144,7 +144,7 @@ static inline std::optional<std::tuple<std::size_t, std::size_t>> FindPivot(
   for (std::size_t p_row = 0; p_row < U.rows(); ++p_row) {
     for (std::size_t p_col = 0; p_col < U.cols(); ++p_col) {
       const Expr& el = U(p_row, p_col);
-      if (!IsZero(el)) {
+      if (!is_zero(el)) {
         // We can't really know for sure this isn't zero, since it is symbolic. But we can avoid
         // things that are analytically zero.
         return std::make_tuple(p_row, p_col);
@@ -278,7 +278,7 @@ static std::tuple<PermutationMatrix, Matrix, Matrix, PermutationMatrix> Factoriz
       Expr v = L_out.get_unchecked(col, col);
       L_out.get_unchecked(col, col) = Constants::One;
 
-      if (!IsZero(v)) {
+      if (!is_zero(v)) {
         for (index_t row = col + 1; row < L_out.rows(); ++row) {
           L_out.get_unchecked(row, col) = L_out.get_unchecked(row, col) / v;
         }
@@ -321,13 +321,13 @@ static MatrixExpr CreateMatrixFromPermutations(const PermutationMatrix& P) {
   for (index_t row = 0; row < P.NumRows(); ++row) {
     span(row, P.PermutedRow(row)) = Constants::One;
   }
-  return MatrixExpr::Create(static_cast<index_t>(P.NumRows()), static_cast<index_t>(P.NumRows()),
+  return MatrixExpr::create(static_cast<index_t>(P.NumRows()), static_cast<index_t>(P.NumRows()),
                             std::move(data));
 }
 
-std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(
+std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu(
     const MatrixExpr& A_in) {
-  auto results = FactorizeFullPivLUInternal(A_in.AsMatrix());
+  auto results = FactorizeFullPivLUInternal(A_in.as_matrix());
 
   const auto& P = std::get<0>(results);
   const auto& Q = std::get<3>(results);
@@ -340,8 +340,8 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> FactorizeFullPivLU(
                          MatrixExpr{std::move(U)}, CreateMatrixFromPermutations(Q));
 }
 
-Expr Determinant(const MatrixExpr& m) {
-  const Matrix& mat = m.AsMatrix();
+Expr determinant(const MatrixExpr& m) {
+  const Matrix& mat = m.as_matrix();
   if (mat.rows() != mat.cols()) {
     throw DimensionError(
         "Determinant can only be computed for square matrices. Dimensions = [{}, {}]",

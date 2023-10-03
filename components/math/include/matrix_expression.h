@@ -17,48 +17,48 @@ class MatrixExpr {
   explicit MatrixExpr(class Matrix&& content);
 
   // Static constructor: Create a dense matrix of expressions.
-  static MatrixExpr Create(index_t rows, index_t cols, std::vector<Expr> args);
+  static MatrixExpr create(index_t rows, index_t cols, std::vector<Expr> args);
 
   // Test if the two expressions are identical.
   bool is_identical_to(const MatrixExpr& other) const;
 
   // Test if the two expressions have the same underlying address.
-  bool HasSameAddress(const MatrixExpr& other) const {
+  bool has_same_address(const MatrixExpr& other) const {
     return matrix_.get() == other.matrix_.get();
   }
 
   // Get the underlying type name as a string.
-  std::string_view TypeName() const;
+  std::string_view type_name() const;
 
   // Convert to string.
-  std::string ToString() const;
+  std::string to_string() const;
 
   // Defined in tree_formatter.cc
-  std::string ToExpressionTreeString() const;
+  std::string to_expression_tree_string() const;
 
   // Negation operator.
   MatrixExpr operator-() const;
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
-  MatrixExpr Diff(const Expr& var, int reps = 1) const;
+  MatrixExpr diff(const Expr& var, int reps = 1) const;
 
   // Distribute terms in this expression.
-  MatrixExpr Distribute() const;
+  MatrixExpr distribute() const;
 
   // Create a new expression by recursively substituting `replacement` for `target`.
-  MatrixExpr Subs(const Expr& target, const Expr& replacement) const;
+  MatrixExpr subs(const Expr& target, const Expr& replacement) const;
 
   // Evaluate to matrix of floats.
-  MatrixExpr Eval() const;
+  MatrixExpr eval() const;
 
   // Get # of rows.
-  index_t NumRows() const;
+  index_t rows() const;
 
   // Get # of columns.
-  index_t NumCols() const;
+  index_t cols() const;
 
   // Size as size_t.
-  std::size_t Size() const { return static_cast<std::size_t>(NumRows() * NumCols()); }
+  std::size_t size() const { return static_cast<std::size_t>(rows() * cols()); }
 
   // For vectors or row-vectors only. Access element `i`.
   const Expr& operator[](index_t i) const;
@@ -70,10 +70,10 @@ class MatrixExpr {
   MatrixExpr get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
 
   // Transpose the matrix.
-  [[nodiscard]] MatrixExpr Transpose() const;
+  [[nodiscard]] MatrixExpr transposed() const;
 
   // Static cast to underlying matrix type.
-  const Matrix& AsMatrix() const;
+  const Matrix& as_matrix() const;
 
  private:
   std::shared_ptr<const Matrix> matrix_;
@@ -95,7 +95,7 @@ inline MatrixExpr operator*(const Expr& a, const MatrixExpr& b) { return b * a; 
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const MatrixExpr& x) {
-  stream << x.ToString();
+  stream << x.to_string();
   return stream;
 }
 
@@ -108,6 +108,6 @@ struct fmt::formatter<math::MatrixExpr> {
 
   template <typename FormatContext>
   auto format(const math::MatrixExpr& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "{}", x.ToString());
+    return fmt::format_to(ctx.out(), "{}", x.to_string());
   }
 };

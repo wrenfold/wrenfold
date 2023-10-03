@@ -150,7 +150,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
 
   if (std::holds_alternative<ast::MatrixType>(type)) {
     const ast::MatrixType mat = std::get<ast::MatrixType>(type);
-    auto range = MakeRange<std::size_t>(0, assignment.values.size());
+    auto range = make_range<std::size_t>(0, assignment.values.size());
 
     // TODO: If there is a unit dimension, use the [] operator?
     formatter.join(

@@ -162,7 +162,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
 
       // See how many times we can divide term into the target expression
       const Expr multiple = it->second / exponent;
-      if (const Integer* const as_int = CastPtr<Integer>(multiple); as_int != nullptr) {
+      if (const Integer* const as_int = cast_ptr<Integer>(multiple); as_int != nullptr) {
         // We do `abs` here so that doing a substitution like:
         // 1 / (x*x*y*y*y) replacing [x*y -> w] produces 1 / (w*w*y)
         // Instead of producing (if we used the sign): x / w^3
@@ -172,7 +172,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
             as_int->abs() < max_valid_integer_exponent.value().abs()) {
           max_valid_integer_exponent = *as_int;
         }
-      } else if (const Rational* const as_rational = CastPtr<Rational>(multiple);
+      } else if (const Rational* const as_rational = cast_ptr<Rational>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, _] = as_rational->normalized();
         // Same rationale for `abs` as above for integers:
@@ -230,7 +230,7 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
     }
 
     // If the exponent is an addition, it might contain a multiple of our target exponent.
-    if (const Addition* const add_exp = CastPtr<Addition>(candidate.exponent());
+    if (const Addition* const add_exp = cast_ptr<Addition>(candidate.exponent());
         add_exp != nullptr) {
       const auto [target_exp_coeff, target_exp_mul] = as_coeff_and_mul(target_exponent);
 
@@ -240,14 +240,14 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
       if (it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
         const Expr ratio = it->second / target_exp_coeff;
-        if (const Integer* const as_int = CastPtr<Integer>(ratio); as_int != nullptr) {
+        if (const Integer* const as_int = cast_ptr<Integer>(ratio); as_int != nullptr) {
           // It divides evenly. This case handles things like:
           // x**(3*y + 5) replacing [x**y -> w] producing w**3 * x**5
           parts.terms.erase(it);
           // Put the exponent back together and swap in the replacement:
           Expr new_exponent = parts.create_addition();
           return Power::create(replacement, ratio) * Power::create(candidate_base, new_exponent);
-        } else if (const Rational* const as_rational = CastPtr<Rational>(ratio);
+        } else if (const Rational* const as_rational = cast_ptr<Rational>(ratio);
                    as_rational != nullptr) {
           const auto [int_part, _] = as_rational->normalized();
           if (int_part.is_zero()) {
@@ -267,9 +267,9 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
       // See if the exponent is an integer multiple of the target exponent.
       // TODO: De-duplicate this block with the equivalent section in the addition above.
       const Expr multiple = candidate.exponent() / target_exponent;
-      if (const Integer* const as_int = CastPtr<Integer>(multiple); as_int != nullptr) {
+      if (const Integer* const as_int = cast_ptr<Integer>(multiple); as_int != nullptr) {
         return Power::create(replacement, multiple);
-      } else if (const Rational* const as_rational = CastPtr<Rational>(multiple);
+      } else if (const Rational* const as_rational = cast_ptr<Rational>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, frac_remainder] = as_rational->normalized();
         if (int_part.is_zero()) {
@@ -302,7 +302,7 @@ struct SubVisitorType<Power> {
   using Type = SubstitutePowVisitor;
 };
 
-Expr Substitute(const Expr& input, const Expr& target, const Expr& replacement) {
+Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) {
   // Visit `target` to determine the underlying type, then visit the input w/ SubstituteVisitor:
   return Visit(target, [&](const auto& target) -> Expr {
     using T = std::decay_t<decltype(target)>;

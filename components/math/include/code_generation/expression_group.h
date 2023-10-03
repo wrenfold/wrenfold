@@ -53,7 +53,7 @@ inline constexpr std::string_view StringFromExpressionUsage(const ExpressionUsag
 // Hash `OutputKey` type.
 struct OutputKeyHasher {
   std::size_t operator()(const OutputKey& k) const {
-    return HashCombine(static_cast<std::size_t>(k.usage), HashString(k.name));
+    return hash_combine(static_cast<std::size_t>(k.usage), hash_string_fnv(k.name));
   }
 };
 

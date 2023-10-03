@@ -8,7 +8,6 @@
 #include "assertions.h"
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
-#include "string_utils.h"
 
 namespace math {
 
@@ -22,12 +21,12 @@ void PlainFormatter::operator()(const Addition& expr) {
                  [](const Expr& x) { return as_coeff_and_mul(x); });
 
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-    return ExpressionOrder(a.second, b.second) == RelativeOrder::LessThan;
+    return expression_order(a.second, b.second) == RelativeOrder::LessThan;
   });
 
   for (std::size_t i = 0; i < terms.size(); ++i) {
     const auto [coeff, multiplicand] = terms[i];
-    if (IsNegativeNumber(coeff)) {
+    if (is_negative_number(coeff)) {
       if (i == 0) {
         // For the first term, just negate it:
         output_ += "-";
@@ -36,26 +35,26 @@ void PlainFormatter::operator()(const Addition& expr) {
         output_ += " - ";
       }
       // Don't multiply by negative one:
-      if (IsNegativeOne(coeff)) {
-        FormatPrecedence(Precedence::Addition, multiplicand);
+      if (is_negative_one(coeff)) {
+        format_precedence(Precedence::Addition, multiplicand);
       } else {
         Visit(-coeff, *this);
-        if (!IsOne(multiplicand)) {
+        if (!is_one(multiplicand)) {
           output_ += " * ";
-          FormatPrecedence(Precedence::Multiplication, multiplicand);
+          format_precedence(Precedence::Multiplication, multiplicand);
         }
       }
     } else {
       if (i > 0) {
         output_ += " + ";
       }
-      if (IsOne(coeff)) {
-        FormatPrecedence(Precedence::Addition, multiplicand);
+      if (is_one(coeff)) {
+        format_precedence(Precedence::Addition, multiplicand);
       } else {
         Visit(coeff, *this);
-        if (!IsOne(multiplicand)) {
+        if (!is_one(multiplicand)) {
           output_ += " * ";
-          FormatPrecedence(Precedence::Multiplication, multiplicand);
+          format_precedence(Precedence::Multiplication, multiplicand);
         }
       }
     }
@@ -173,10 +172,10 @@ void PlainFormatter::operator()(const Multiplication& expr) {
       this->operator()(std::get<Float>(element));
     } else {
       const BaseExp& pow = std::get<BaseExp>(element);
-      if (IsOne(pow.exponent)) {
-        this->FormatPrecedence(Precedence::Multiplication, pow.base);
+      if (is_one(pow.exponent)) {
+        this->format_precedence(Precedence::Multiplication, pow.base);
       } else {
-        this->FormatPower(pow.base, pow.exponent);
+        this->format_power(pow.base, pow.exponent);
       }
     }
   };
@@ -218,22 +217,22 @@ void PlainFormatter::operator()(const Function& func) {
   output_ += ")";
 }
 
-void PlainFormatter::operator()(const Power& expr) { FormatPower(expr.base(), expr.exponent()); }
+void PlainFormatter::operator()(const Power& expr) { format_power(expr.base(), expr.exponent()); }
 
 void PlainFormatter::operator()(const Rational& expr) {
   fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());
 }
 
 void PlainFormatter::operator()(const Relational& expr) {
-  FormatPrecedence(Precedence::Relational, expr.left());
+  format_precedence(Precedence::Relational, expr.left());
   fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
-  FormatPrecedence(Precedence::Relational, expr.right());
+  format_precedence(Precedence::Relational, expr.right());
 }
 
 void PlainFormatter::operator()(const Variable& expr) { output_ += expr.name(); }
 
-void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr) {
-  if (GetPrecedence(expr) <= parent) {
+void PlainFormatter::format_precedence(const Precedence parent, const Expr& expr) {
+  if (get_precedence(expr) <= parent) {
     output_ += "(";
     Visit(expr, *this);
     output_ += ")";
@@ -242,10 +241,10 @@ void PlainFormatter::FormatPrecedence(const Precedence parent, const Expr& expr)
   }
 }
 
-void PlainFormatter::FormatPower(const Expr& base, const Expr& exponent) {
-  FormatPrecedence(Precedence::Power, base);
+void PlainFormatter::format_power(const Expr& base, const Expr& exponent) {
+  format_precedence(Precedence::Power, base);
   output_ += " ** ";
-  FormatPrecedence(Precedence::Power, exponent);
+  format_precedence(Precedence::Power, exponent);
 }
 
 }  // namespace math

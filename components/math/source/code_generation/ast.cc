@@ -209,7 +209,7 @@ struct AstBuilder {
   // Return true if the specified value should be inlined instead of declared as a variable.
   bool ShouldInlineConstant(const ir::ValuePtr val) const {
     return OverloadedVisit(
-        val->value_op(), [](const ir::Load& load) { return load.expr.Is<Integer, Float, Constant>(); },
+        val->value_op(), [](const ir::Load& load) { return load.expr.is_type<Integer, Float, Constant>(); },
         [&](const ir::Cast&) { return ShouldInlineConstant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
   }

@@ -31,8 +31,8 @@ class Multiplication {
     terms_.reserve(sizeof...(terms));
     (terms_.emplace_back(std::forward<Ts>(terms)), ...);
     for (const auto& term : terms_) {
-      ASSERT(!term.Is<Multiplication>(), "Multiplications should all be flattened: {}",
-             term.ToString());
+      ASSERT(!term.is_type<Multiplication>(), "Multiplications should all be flattened: {}",
+             term.to_string());
     }
     SortTerms();
   }
@@ -79,12 +79,12 @@ class Multiplication {
     // We leave the integer/rational/float part in front.
     // TODO: Add a BinaryMul where the first term is always int/rational/float.
     const auto begin = std::find_if(terms_.begin(), terms_.end(), [](const Expr& term) {
-      return !term.Is<Integer, Rational, Float>();
+      return !term.is_type<Integer, Rational, Float>();
     });
     std::sort(begin, terms_.end(), [](const Expr& a, const Expr& b) {
-      if (a.Hash() < b.Hash()) {
+      if (a.get_hash() < b.get_hash()) {
         return true;
-      } else if (a.Hash() > b.Hash()) {
+      } else if (a.get_hash() > b.get_hash()) {
         return false;
       } else {
         return ExpressionOrderPredicate{}(a, b);
@@ -96,9 +96,9 @@ class Multiplication {
 };
 
 template <>
-struct Hash<Multiplication> {
+struct hash_struct<Multiplication> {
   std::size_t operator()(const Multiplication& mul) const {
-    return HashAll(0, mul.begin(), mul.end());
+    return hash_all(0, mul.begin(), mul.end());
   }
 };
 
@@ -121,7 +121,7 @@ struct MultiplicationParts {
   // Floating point coefficient:
   std::optional<Float> float_coeff{};
   // Map from base to exponent.
-  std::unordered_map<Expr, Expr, Hash<Expr>, IsIdenticalOperator<Expr>> terms{};
+  std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> terms{};
 
   // Update the internal product by multiplying on `arg`.
   void multiply_term(const Expr& arg, bool factorize_integers = false);

@@ -21,9 +21,9 @@ class Addition {
     ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     // Place into a deterministic (but otherwise arbitrary) order.
     std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
-      if (a.Hash() < b.Hash()) {
+      if (a.get_hash() < b.get_hash()) {
         return true;
-      } else if (a.Hash() > b.Hash()) {
+      } else if (a.get_hash() > b.get_hash()) {
         return false;
       } else {
         // There could be a collision, so we fall back to a slow path here.
@@ -75,8 +75,8 @@ class Addition {
 };
 
 template <>
-struct Hash<Addition> {
-  std::size_t operator()(const Addition& add) const { return HashAll(0, add.begin(), add.end()); }
+struct hash_struct<Addition> {
+  std::size_t operator()(const Addition& add) const { return hash_all(0, add.begin(), add.end()); }
 };
 
 // Helper object used to manipulate additions.
@@ -96,7 +96,7 @@ struct AdditionParts {
   std::optional<Float> float_term{};
 
   // Map from multiplicand to coefficient.
-  std::unordered_map<Expr, Expr, Hash<Expr>, IsIdenticalOperator<Expr>> terms{};
+  std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> terms{};
 
   // Update the internal representation by adding `arg`.
   void add_terms(const Expr& arg);

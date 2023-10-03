@@ -106,7 +106,6 @@ set(${LIBRARY_NAME}_HEADERS
     include/non_null_ptr.h
     include/operations.h
     include/plain_formatter.h
-    include/string_utils.h
     include/template_utils.h
     include/type_annotations.h
     include/visitor_base.h

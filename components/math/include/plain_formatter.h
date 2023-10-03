@@ -24,14 +24,14 @@ class PlainFormatter {
   void operator()(const Variable& var);
 
   // Get the output string (transferring ownership to the caller).
-  std::string TakeOutput() const { return std::move(output_); }
+  std::string take_output() const { return std::move(output_); }
 
  private:
   // Wrap `expr` in braces if the precedence is <= the parent.
-  void FormatPrecedence(Precedence parent, const Expr& expr);
+  void format_precedence(Precedence parent, const Expr& expr);
 
   // Format power operation with the appropriate operator.
-  void FormatPower(const Expr& Base, const Expr& Exponent);
+  void format_power(const Expr& Base, const Expr& Exponent);
 
   std::string output_{};
 };

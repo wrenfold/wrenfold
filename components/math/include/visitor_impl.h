@@ -21,10 +21,10 @@ class VisitorImpl : public virtual VisitorDeclare<T> {
  public:
   void ApplyVirtual(const T& arg) override {
     // Check if derived type implements an apply method for T.
-    if constexpr (HasCallOperator<Derived, T>) {
+    if constexpr (has_call_operator_v<Derived, T>) {
       static_cast<Derived&>(*this)(arg);
     }
-    static_assert(HasCallOperator<Derived, T>, "The visitor fails to implement a required method");
+    static_assert(has_call_operator_v<Derived, T>, "The visitor fails to implement a required method");
   }
 };
 
@@ -64,7 +64,7 @@ struct VisitorWithCapturedResult final
   // has an `operator()` method that accepts type `Argument`. This is required so that the visitor
   // correctly fails to compile when the user neglects to implement a type.
   template <typename Argument>
-  std::enable_if_t<HasCallOperator<VisitorType, Argument>, void> operator()(const Argument& arg) {
+  std::enable_if_t<has_call_operator_v<VisitorType, Argument>, void> operator()(const Argument& arg) {
     if constexpr (!std::is_same_v<ReturnType, Void>) {
       result = impl_(arg);
     } else {
@@ -106,7 +106,7 @@ auto Visit(const Expr& expr, VisitorType&& visitor) {
 
   detail::VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, ExpressionTypeList>
       capture_visitor{visitor};
-  expr.Receive(static_cast<VisitorBase&>(capture_visitor));
+  expr.receive_visitor(static_cast<VisitorBase&>(capture_visitor));
   if constexpr (!std::is_same_v<ReturnTypeOrVoid, detail::Void>) {
     return capture_visitor.TakeResult();
   }
@@ -123,11 +123,11 @@ auto VisitWithExprArg(const Expr& expr, VisitorType&& visitor) {
 
     // Make sure this is not ambiguous:
     static_assert(
-        (HasBinaryCallOperator<VisitorType, T, Expr> || HasCallOperator<VisitorType, T>)&&!(
-            HasBinaryCallOperator<VisitorType, T, Expr> && HasCallOperator<VisitorType, T>),
+        (has_binary_call_operator_v<VisitorType, T, Expr> || has_call_operator_v<VisitorType, T>)&&!(
+            has_binary_call_operator_v<VisitorType, T, Expr> && has_call_operator_v<VisitorType, T>),
         "Visitor must support either unary or binary operator(), but not both.");
 
-    if constexpr (HasBinaryCallOperator<VisitorType, T, Expr>) {
+    if constexpr (has_binary_call_operator_v<VisitorType, T, Expr>) {
       return visitor(x, expr);
     } else {
       return visitor(x);
@@ -145,7 +145,7 @@ auto VisitBinary(const Expr& u, const Expr& v, VisitorType&& handler) {
       using TypeU = std::decay_t<decltype(typed_u)>;
       using TypeV = std::decay_t<decltype(typed_v)>;
       static_assert(!std::is_const_v<decltype(handler)>);
-      static_assert(HasBinaryCallOperator<std::decay_t<VisitorType>, TypeU, TypeV>,
+      static_assert(has_binary_call_operator_v<std::decay_t<VisitorType>, TypeU, TypeV>,
                     "Binary visitor fails to implement a required operator() method.");
       return handler(typed_u, typed_v);
     });

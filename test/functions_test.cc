@@ -168,8 +168,8 @@ TEST(FunctionsTest, TestArctan2) {
   ASSERT_NOT_IDENTICAL(atan2(y, x), atan2(x, y));
   ASSERT_IDENTICAL(0, atan2(0, 1));
   ASSERT_IDENTICAL(Constants::Pi / 2, atan2(1, 0));
-  ASSERT_IDENTICAL(Constants::Pi, atan2(y, x).Subs(y, 0).Subs(x, -1));
-  ASSERT_IDENTICAL(-Constants::Pi / 2, atan2(y, x).Subs(x, 0).Subs(y, -1));
+  ASSERT_IDENTICAL(Constants::Pi, atan2(y, x).subs(y, 0).subs(x, -1));
+  ASSERT_IDENTICAL(-Constants::Pi / 2, atan2(y, x).subs(x, 0).subs(y, -1));
 
   ASSERT_IDENTICAL(Constants::Pi / 4, atan2(5, 5));
   ASSERT_IDENTICAL(3 * Constants::Pi / 4, atan2(8, -8));
@@ -196,7 +196,7 @@ TEST(FunctionsTest, TestAbs) {
 }
 
 TEST(FunctionsTest, TestSignum) {
-  const auto [x, y] = Symbols("x", "y");
+  const auto [x, y] = make_symbols("x", "y");
   ASSERT_IDENTICAL(signum(x), signum(x));
   ASSERT_NOT_IDENTICAL(signum(x), signum(y));
 
@@ -215,7 +215,7 @@ TEST(FunctionsTest, TestSignum) {
 }
 
 TEST(FunctionTest, TestMinMax) {
-  const auto [x, y, z] = Symbols("x", "y", "z");
+  const auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_NOT_IDENTICAL(max(x, y), max(y, x));  //  order matters
   ASSERT_NOT_IDENTICAL(max(x, y), max(x, z));
   ASSERT_IDENTICAL(max(x, y), where(x < y, y, x));

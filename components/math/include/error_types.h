@@ -27,7 +27,7 @@ struct Exception : public std::exception {
       : Exception(fmt::format(fmt, std::forward<Ts>(args)...)) {}
 
   // Retrieve error message as a string view.
-  [[nodiscard]] std::string_view Message() const noexcept { return message_; }
+  [[nodiscard]] std::string_view message() const noexcept { return message_; }
 
   // Implement std::exception
   const char* what() const noexcept override { return message_.c_str(); }

@@ -8,11 +8,11 @@ namespace math {
 struct EvaluateVisitor {
   using ReturnType = Expr;
 
-  Expr operator()(const Addition& add, const Expr&) const { return add.map_children(&Eval); }
-  Expr operator()(const Multiplication& mul, const Expr&) const { return mul.map_children(&Eval); }
-  Expr operator()(const Function& f, const Expr&) const { return f.map_children(&Eval); }
-  Expr operator()(const Power& pow, const Expr&) const { return pow.map_children(&Eval); }
-  Expr operator()(const Conditional& cond, const Expr&) const { return cond.map_children(&Eval); }
+  Expr operator()(const Addition& add, const Expr&) const { return add.map_children(&evaluate); }
+  Expr operator()(const Multiplication& mul, const Expr&) const { return mul.map_children(&evaluate); }
+  Expr operator()(const Function& f, const Expr&) const { return f.map_children(&evaluate); }
+  Expr operator()(const Power& pow, const Expr&) const { return pow.map_children(&evaluate); }
+  Expr operator()(const Conditional& cond, const Expr&) const { return cond.map_children(&evaluate); }
 
   Expr operator()(const Constant& c) const {
     const double value = double_from_symbolic_constant(c.name());
@@ -21,19 +21,19 @@ struct EvaluateVisitor {
     return Float::create(value);
   }
 
-  Expr operator()(const Derivative& d, const Expr&) const { return d.map_children(&Eval); }
+  Expr operator()(const Derivative& d, const Expr&) const { return d.map_children(&evaluate); }
 
   Expr operator()(const Infinity&) const {
     throw TypeError("Cannot evaluate complex infinity to float.");
   }
-  Expr operator()(const Integer& i) const { return MakeExpr<Float>(static_cast<Float>(i)); }
+  Expr operator()(const Integer& i) const { return make_expr<Float>(static_cast<Float>(i)); }
   Expr operator()(const Float&, const Expr& arg) const { return arg; }
   Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational& r) const { return Float::create(static_cast<Float>(r)); }
-  Expr operator()(const Relational& r) const { return r.map_children(&Eval); }
+  Expr operator()(const Relational& r) const { return r.map_children(&evaluate); }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr Eval(const Expr& arg) { return VisitWithExprArg(arg, EvaluateVisitor{}); }
+Expr evaluate(const Expr& arg) { return VisitWithExprArg(arg, EvaluateVisitor{}); }
 
 }  // namespace math

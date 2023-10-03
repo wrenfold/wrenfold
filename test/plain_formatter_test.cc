@@ -10,7 +10,7 @@ using namespace math::custom_literals;
 
 #define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(StringEqualTestHelper, val1, val2)
 
-inline std::string EscapeNewlines(const std::string input) {
+inline std::string escape_newlines(const std::string_view input) {
   std::string output;
   output.reserve(input.size());
   for (char c : input) {
@@ -26,15 +26,15 @@ inline std::string EscapeNewlines(const std::string input) {
 template <typename ExprType>
 testing::AssertionResult StringEqualTestHelper(const std::string&, const std::string& name_b,
                                                const std::string& a, const ExprType& b) {
-  const std::string b_str = b.ToString();
+  const std::string b_str = b.to_string();
   if (a == b_str) {
     return testing::AssertionSuccess();
   }
   return testing::AssertionFailure() << fmt::format(
              "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
              "The expression tree for `{}` is:\n{}",
-             EscapeNewlines(a), name_b, name_b, EscapeNewlines(b_str), name_b,
-             b.ToExpressionTreeString());
+             escape_newlines(a), name_b, name_b, escape_newlines(b_str), name_b,
+             b.to_expression_tree_string());
 }
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
@@ -119,7 +119,7 @@ TEST(PlainFormatterTest, TestPower) {
 }
 
 TEST(PlainFormatterTest, TestRelationals) {
-  const auto [x, y, z] = Symbols("x", "y", "z");
+  const auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_STR_EQ("x < y", x < y);
   ASSERT_STR_EQ("x <= y", x <= y);
   ASSERT_STR_EQ("x == y", x == y);
@@ -134,7 +134,7 @@ TEST(PlainFormatterTest, TestRelationals) {
 }
 
 TEST(PlainFormatterTest, TestConditionals) {
-  const auto [x, y, z] = Symbols("x", "y", "z");
+  const auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_STR_EQ("where(0 < x, 2 * y, cos(z))", where(x > 0, y * 2, cos(z)));
 
   // TODO: This output is a bit gross for min/max. Maybe automatically re-write?
@@ -165,17 +165,17 @@ TEST(PlainFormatterTest, TestMatrix) {
   const Expr b{"b"};
   const Expr c{"c"};
   const Expr d{"d"};
-  ASSERT_STR_EQ("[[a, b],\n [c, d]]", CreateMatrix(2, 2, a, b, c, d));
-  ASSERT_STR_EQ("[[2 * a, b - c],\n [    c, 3 * d]]", CreateMatrix(2, 2, a * 2, b - c, c, d * 3));
-  ASSERT_STR_EQ("[[a],\n [b],\n [c]]", Vector(a, b, c));
-  ASSERT_STR_EQ("[[-3 + a],\n [     b],\n [cos(c)]]", Vector(a - 3, b, cos(c)));
-  ASSERT_STR_EQ("[[2, a * b * c, sin(d)]]", RowVector(2, a * b * c, sin(d)));
+  ASSERT_STR_EQ("[[a, b],\n [c, d]]", make_matrix(2, 2, a, b, c, d));
+  ASSERT_STR_EQ("[[2 * a, b - c],\n [    c, 3 * d]]", make_matrix(2, 2, a * 2, b - c, c, d * 3));
+  ASSERT_STR_EQ("[[a],\n [b],\n [c]]", make_vector(a, b, c));
+  ASSERT_STR_EQ("[[-3 + a],\n [     b],\n [cos(c)]]", make_vector(a - 3, b, cos(c)));
+  ASSERT_STR_EQ("[[2, a * b * c, sin(d)]]", make_row_vector(2, a * b * c, sin(d)));
 }
 
 TEST(PlainFormatterTest, TestDerivativeExpression) {
   const Expr a{"a"};
-  ASSERT_STR_EQ("Derivative(signum(a), a)", signum(a).Diff(a));
-  ASSERT_STR_EQ("Derivative(signum(a), a, 2)", signum(a).Diff(a, 2));
+  ASSERT_STR_EQ("Derivative(signum(a), a)", signum(a).diff(a));
+  ASSERT_STR_EQ("Derivative(signum(a), a, 2)", signum(a).diff(a, 2));
 }
 
 }  // namespace math

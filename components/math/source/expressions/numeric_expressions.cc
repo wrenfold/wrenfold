@@ -14,7 +14,7 @@ Expr Integer::create(IntegralType x) {
   } else if (x == -1) {
     return Constants::NegativeOne;
   }
-  return MakeExpr<Integer>(x);
+  return make_expr<Integer>(x);
 }
 
 }  // namespace math

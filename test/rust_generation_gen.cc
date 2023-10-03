@@ -15,7 +15,7 @@ int main() {
       gen, code,
       [](Expr theta, ta::StaticMatrix<2, 1> v) {
         auto [v_rot, v_rot_D_theta] = VectorRotation2D(theta, v);
-        return std::make_tuple(v_rot.ToOutputArg("v_rot"), std::move(v_rot_D_theta));
+        return std::make_tuple(v_rot.to_output_arg("v_rot"), std::move(v_rot_D_theta));
       },
       "vector_rotation_2d", "theta", "v");
   GenerateFunc(gen, code, &VectorNorm3D, "vector_norm_3d", "v");

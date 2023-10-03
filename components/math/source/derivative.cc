@@ -103,7 +103,7 @@ class DiffVisitor {
     std::transform(func.begin(), func.end(), std::back_inserter(d_args),
                    [this](const Expr& arg) { return VisitWithExprArg(arg, *this); });
 
-    const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &IsZero);
+    const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
     if (all_derivatives_zero) {
       // If zero, we don't need to do any further operations.
       return Constants::Zero;
@@ -151,7 +151,7 @@ class DiffVisitor {
         const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
         const Expr y_diff = VisitWithExprArg(args[0], *this);
         const Expr x_diff = VisitWithExprArg(args[1], *this);
-        if (IsZero(y_diff) && IsZero(x_diff)) {
+        if (is_zero(y_diff) && is_zero(x_diff)) {
           return Constants::Zero;
         }
         // atan2(y(u), x(u))/du = -y/(y^2 + x^2) * x'(u) + x/(y^2 + x^2) * y'(u)
@@ -184,7 +184,7 @@ class DiffVisitor {
   Expr PowerDiff(const Expr& a, const Expr& b) {
     const Expr a_diff = VisitWithExprArg(a, *this);
     const Expr b_diff = VisitWithExprArg(b, *this);
-    if (IsZero(a_diff) && IsZero(b_diff)) {
+    if (is_zero(a_diff) && is_zero(b_diff)) {
       return Constants::Zero;
     }
     return b * Power::create(a, b - Constants::One) * a_diff +
@@ -195,8 +195,8 @@ class DiffVisitor {
 
   Expr operator()(const Relational& relational) const {
     throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", Relational::NameStr,
-                    relational.left().ToString(), relational.operation_string(),
-                    relational.right().ToString());
+                    relational.left().to_string(), relational.operation_string(),
+                    relational.right().to_string());
   }
 
   Expr operator()(const Variable& var) const {
@@ -223,17 +223,17 @@ inline Expr DiffTyped(const Expr& expr, const T& arg, const Expr& arg_abstract, 
   return result;
 }
 
-Expr Diff(const Expr& differentiand, const Expr& arg, const int reps) {
+Expr diff(const Expr& differentiand, const Expr& arg, const int reps) {
   ASSERT_GREATER_OR_EQ(reps, 0);
-  if (const Variable* var = CastPtr<Variable>(arg); var != nullptr) {
+  if (const Variable* var = cast_ptr<Variable>(arg); var != nullptr) {
     return DiffTyped<Variable>(differentiand, *var, arg, reps);
-  } else if (const FunctionArgument* func = CastPtr<FunctionArgument>(arg); func != nullptr) {
+  } else if (const FunctionArgument* func = cast_ptr<FunctionArgument>(arg); func != nullptr) {
     return DiffTyped<FunctionArgument>(differentiand, *func, arg, reps);
   } else {
     throw TypeError(
         "Argument to diff must be of type Variable or FunctionArgument. Received expression "
         "of type: {}",
-        arg.TypeName());
+        arg.type_name());
   }
 }
 

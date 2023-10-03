@@ -21,7 +21,7 @@ struct CompareNumerics {
     return static_cast<Rational>(a) < static_cast<Rational>(b);
   }
 
-  static double FloatFromConstant(const Constant& c) {
+  static double float_from_constant(const Constant& c) {
     const double value = double_from_symbolic_constant(c.name());
     if (std::isnan(value)) {
       throw TypeError("Invalid comparison with constant: {}",
@@ -32,30 +32,30 @@ struct CompareNumerics {
 
   bool operator()(const Integer& a, const Constant& b) const {
     // This must have a value since float will not be nan.
-    return CompareIntFloat(a.get_value(), FloatFromConstant(b)).value() == RelativeOrder::LessThan;
+    return compare_int_float(a.get_value(), float_from_constant(b)).value() == RelativeOrder::LessThan;
   }
   bool operator()(const Constant& a, const Integer& b) const {
-    return CompareIntFloat(b.get_value(), FloatFromConstant(a)).value() ==
+    return compare_int_float(b.get_value(), float_from_constant(a)).value() ==
            RelativeOrder::GreaterThan;
   }
 
   // Floating point comparison should be viable for constants, there is no ambiguity from the
   // float precision for the set of constants that we have.
   bool operator()(const Constant& a, const Constant& b) const {
-    return FloatFromConstant(a) < FloatFromConstant(b);
+    return float_from_constant(a) < float_from_constant(b);
   }
 
   bool operator()(const Float& a, const Float& b) const { return a < b; }
 
   // Integer and float:
   bool operator()(const Integer& a, const Float& b) const {
-    const auto result = CompareIntFloat(a.get_value(), b.get_value());
+    const auto result = compare_int_float(a.get_value(), b.get_value());
     ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == RelativeOrder::LessThan;
   }
 
   bool operator()(const Float& a, const Integer& b) const {
-    const auto result = CompareIntFloat(b.get_value(), a.get_value());
+    const auto result = compare_int_float(b.get_value(), a.get_value());
     ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == RelativeOrder::GreaterThan;
   }
@@ -64,9 +64,9 @@ struct CompareNumerics {
 namespace detail {
 // For detecting if `CompareNumerics` is supported.
 template <typename, typename, typename = void>
-constexpr bool SupportsComparison = false;
+constexpr bool supports_comparison_v = false;
 template <typename Argument1, typename Argument2>
-constexpr bool SupportsComparison<Argument1, Argument2,
+constexpr bool supports_comparison_v<Argument1, Argument2,
                                   decltype(CompareNumerics{}(std::declval<const Argument1>(),
                                                              std::declval<const Argument2>()),
                                            void())> = true;
@@ -88,7 +88,7 @@ struct RelationalSimplification {
 
   template <typename A, typename B>
   TriState operator()(const A& a, const B& b) {
-    if constexpr (detail::SupportsComparison<A, B>) {
+    if constexpr (detail::supports_comparison_v<A, B>) {
       // Handle cases where both operators are numeric or constant values.
       const bool a_lt_b = CompareNumerics{}(a, b);
       const bool b_lt_a = CompareNumerics{}(b, a);
@@ -119,11 +119,11 @@ Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
   }
   if (operation == RelationalOperation::Equal) {
     // We put equality operations into a canonical order.
-    if (ExpressionOrder(left, right) != RelativeOrder::LessThan) {
+    if (expression_order(left, right) != RelativeOrder::LessThan) {
       std::swap(left, right);
     }
   }
-  return MakeExpr<Relational>(operation, std::move(left), std::move(right));
+  return make_expr<Relational>(operation, std::move(left), std::move(right));
 }
 
 }  // namespace math

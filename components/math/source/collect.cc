@@ -26,11 +26,11 @@ struct CollectVisitor {
     // This map would look like:
     //  2 --> [3]
     //  1 --> [5, pi]
-    std::unordered_map<Expr, Addition::ContainerType, Hash<Expr>, IsIdenticalOperator<Expr>>
+    std::unordered_map<Expr, Addition::ContainerType, hash_struct<Expr>, IsIdenticalOperator<Expr>>
         exponents_to_mul{};
 
     const auto new_end = std::remove_if(container.begin(), container.end(), [&](const Expr& child) {
-      if (const Multiplication* mul = CastPtr<Multiplication>(child); mul != nullptr) {
+      if (const Multiplication* mul = cast_ptr<Multiplication>(child); mul != nullptr) {
         // Look for relevant terms:
         std::optional<Expr> exponent;
         const auto it = std::find_if(mul->begin(), mul->end(), [&](const Expr& mul_term) {
@@ -130,18 +130,18 @@ struct CollectVisitor {
   absl::Span<const Expr> collected_terms_;
 };
 
-Expr CollectMany(const Expr& arg, absl::Span<const Expr> terms) {
+Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
   if (terms.empty()) {
     return arg;
   }
   for (const Expr& term : terms) {
-    if (term.Is<Integer, Float, Rational>()) {
+    if (term.is_type<Integer, Float, Rational>()) {
       throw TypeError("Arguments to collect cannot be numeric values. Term = {}", term);
     }
   }
   return VisitWithExprArg(arg, CollectVisitor{terms});
 }
 
-Expr Collect(const Expr& arg, const Expr& term) { return CollectMany(arg, {term}); }
+Expr collect(const Expr& arg, const Expr& term) { return collect_many(arg, {term}); }
 
 }  // namespace math

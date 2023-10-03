@@ -19,9 +19,9 @@ TEST(MatrixOperationsTest, TestConstruct) {
   const Expr z{"z"};
 
   // Construct vector:
-  const MatrixExpr v = Vector(x, 4, y + z);
-  ASSERT_EQ(v.NumRows(), 3);
-  ASSERT_EQ(v.NumCols(), 1);
+  const MatrixExpr v = make_vector(x, 4, y + z);
+  ASSERT_EQ(v.rows(), 3);
+  ASSERT_EQ(v.cols(), 1);
   ASSERT_IDENTICAL(x, v[0]);
   ASSERT_IDENTICAL(x, v(0, 0));
   ASSERT_IDENTICAL(4, v[1]);
@@ -34,16 +34,16 @@ TEST(MatrixOperationsTest, TestConstruct) {
   ASSERT_THROW(v(10, 2), DimensionError);
 
   // Compare to row-vector constructor
-  ASSERT_IDENTICAL(v.Transpose(), RowVector(x, 4, y + z));
+  ASSERT_IDENTICAL(v.transposed(), make_row_vector(x, 4, y + z));
 
   // Construct matrix:
   // clang-format off
-  const MatrixExpr m = CreateMatrix(2, 3,
+  const MatrixExpr m = make_matrix(2, 3,
                                     x + y, 0, 5 - z,
                                     z * y, x, 2 / x);
   // clang-format on
-  ASSERT_EQ(2, m.NumRows());
-  ASSERT_EQ(3, m.NumCols());
+  ASSERT_EQ(2, m.rows());
+  ASSERT_EQ(3, m.cols());
   ASSERT_IDENTICAL(x + y, m(0, 0));  //  first row
   ASSERT_IDENTICAL(0, m(0, 1));
   ASSERT_IDENTICAL(5 - z, m(0, 2));
@@ -66,27 +66,27 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   const Expr b{"b"};
   const Expr c{"c"};
   // clang-format off
-  const MatrixExpr m1 = CreateMatrix(3, 2,
+  const MatrixExpr m1 = make_matrix(3, 2,
                                      x, a,
                                      y, b,
                                      z, c);
   // clang-format on
-  ASSERT_IDENTICAL(Vector(x, y, z), m1.get_block(0, 0, 3, 1));
-  ASSERT_IDENTICAL(Vector(y, z), m1.get_block(1, 0, 2, 1));
-  ASSERT_IDENTICAL(Vector(a, b), m1.get_block(0, 1, 2, 1));
-  ASSERT_IDENTICAL(RowVector(y, b), m1.get_block(1, 0, 1, 2));
-  ASSERT_IDENTICAL(RowVector(y), m1.get_block(1, 0, 1, 1));
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, y, b, z, c), m1.get_block(1, 0, 2, 2));
+  ASSERT_IDENTICAL(make_vector(x, y, z), m1.get_block(0, 0, 3, 1));
+  ASSERT_IDENTICAL(make_vector(y, z), m1.get_block(1, 0, 2, 1));
+  ASSERT_IDENTICAL(make_vector(a, b), m1.get_block(0, 1, 2, 1));
+  ASSERT_IDENTICAL(make_row_vector(y, b), m1.get_block(1, 0, 1, 2));
+  ASSERT_IDENTICAL(make_row_vector(y), m1.get_block(1, 0, 1, 1));
+  ASSERT_IDENTICAL(make_matrix(2, 2, y, b, z, c), m1.get_block(1, 0, 2, 2));
 
   // clang-format off
-  const MatrixExpr m2 = CreateMatrix(3, 4,
+  const MatrixExpr m2 = make_matrix(3, 4,
                                      x, Constants::Pi, 2, x - z,
                                      3.0, -5, y, pow(z, 2),
                                      2 * z, Constants::Euler, -1, sin(x));
   // clang-format on
-  ASSERT_IDENTICAL(RowVector(x, Constants::Pi, 2, x - z), m2.get_block(0, 0, 1, 4));
-  ASSERT_IDENTICAL(Vector(x, 3.0, 2 * z), m2.get_block(0, 0, 3, 1));
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, y, pow(z, 2), -1, sin(x)), m2.get_block(1, 2, 2, 2));
+  ASSERT_IDENTICAL(make_row_vector(x, Constants::Pi, 2, x - z), m2.get_block(0, 0, 1, 4));
+  ASSERT_IDENTICAL(make_vector(x, 3.0, 2 * z), m2.get_block(0, 0, 3, 1));
+  ASSERT_IDENTICAL(make_matrix(2, 2, y, pow(z, 2), -1, sin(x)), m2.get_block(1, 2, 2, 2));
 
   // bounds checking:
   ASSERT_THROW(m2.get_block(-1, 0, 2, 1), DimensionError);
@@ -100,19 +100,19 @@ TEST(MatrixOperationsTest, TestTranspose) {
   const Expr b{"b"};
   const Expr c{"c"};
   // clang-format off
-  const MatrixExpr m = CreateMatrix(2, 5,
+  const MatrixExpr m = make_matrix(2, 5,
                                     cos(a), sin(b), -1, Constants::Pi * 3, 0.0,
                                     tan(c), c*a, 4, 5.0, a);
   // clang-format on
-  const MatrixExpr m_t = m.Transpose();
-  ASSERT_EQ(5, m_t.NumRows());
-  ASSERT_EQ(2, m_t.NumCols());
-  for (int i = 0; i < m_t.NumRows(); ++i) {
-    for (int j = 0; j < m_t.NumCols(); ++j) {
+  const MatrixExpr m_t = m.transposed();
+  ASSERT_EQ(5, m_t.rows());
+  ASSERT_EQ(2, m_t.cols());
+  for (int i = 0; i < m_t.rows(); ++i) {
+    for (int j = 0; j < m_t.cols(); ++j) {
       ASSERT_IDENTICAL(m_t(i, j), m(j, i));
     }
   }
-  ASSERT_IDENTICAL(m, m.Transpose().Transpose());
+  ASSERT_IDENTICAL(m, m.transposed().transposed());
 }
 
 TEST(MatrixOperationsTest, TestVec) {
@@ -122,8 +122,8 @@ TEST(MatrixOperationsTest, TestVec) {
   const Expr d{"d"};
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_IDENTICAL(Vector(a, b, c), Vec(RowVector(a, b, c)));
-  ASSERT_IDENTICAL(Vector(a, c, b, d, x, y), Vec(CreateMatrix(2, 3, a, b, x, c, d, y)));
+  ASSERT_IDENTICAL(make_vector(a, b, c), vectorize_matrix(make_row_vector(a, b, c)));
+  ASSERT_IDENTICAL(make_vector(a, c, b, d, x, y), vectorize_matrix(make_matrix(2, 3, a, b, x, c, d, y)));
 }
 
 TEST(MatrixOperationsTest, TestAddition) {
@@ -131,19 +131,19 @@ TEST(MatrixOperationsTest, TestAddition) {
   const Expr b{"b"};
   const Expr c{"c"};
   const Expr d{"d"};
-  ASSERT_IDENTICAL(Vector(a + c, b - d, b * 2 + 5), Vector(a, -d, b) + Vector(c, b, b + 5));
-  ASSERT_IDENTICAL(Vector(0, 0, 0), Vector(a, b, c) + Vector(-a, -b, -c));
-  ASSERT_IDENTICAL(Vector(a, b) + RowVector(c, d).Transpose(), Vector(a + c, b + d));
+  ASSERT_IDENTICAL(make_vector(a + c, b - d, b * 2 + 5), make_vector(a, -d, b) + make_vector(c, b, b + 5));
+  ASSERT_IDENTICAL(make_vector(0, 0, 0), make_vector(a, b, c) + make_vector(-a, -b, -c));
+  ASSERT_IDENTICAL(make_vector(a, b) + make_row_vector(c, d).transposed(), make_vector(a + c, b + d));
 
   // Dimension mismatch:
-  ASSERT_THROW(Vector(a, b) + RowVector(c, d), DimensionError);
-  ASSERT_THROW(Vector(a, b) + CreateMatrix(2, 2, c, d, 2, -3_s / 5), DimensionError);
+  ASSERT_THROW(make_vector(a, b) + make_row_vector(c, d), DimensionError);
+  ASSERT_THROW(make_vector(a, b) + make_matrix(2, 2, c, d, 2, -3_s / 5), DimensionError);
 
-  const MatrixExpr m = CreateMatrix(2, 2, a, b, c, d);
-  ASSERT_IDENTICAL(m, m + Zeros(2, 2));
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, a + 1, b, c, d + 1), m + Identity(2));
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, 2 * a, b + c, c + b, d + d), m + m.Transpose());
-  ASSERT_IDENTICAL(Zeros(2, 2), CreateMatrix(2, 2, a, b, c, d) - CreateMatrix(2, 2, a, b, c, d));
+  const MatrixExpr m = make_matrix(2, 2, a, b, c, d);
+  ASSERT_IDENTICAL(m, m + make_zeros(2, 2));
+  ASSERT_IDENTICAL(make_matrix(2, 2, a + 1, b, c, d + 1), m + make_identity(2));
+  ASSERT_IDENTICAL(make_matrix(2, 2, 2 * a, b + c, c + b, d + d), m + m.transposed());
+  ASSERT_IDENTICAL(make_zeros(2, 2), make_matrix(2, 2, a, b, c, d) - make_matrix(2, 2, a, b, c, d));
 }
 
 TEST(MatrixOperationsTest, TestMultiplication) {
@@ -156,39 +156,39 @@ TEST(MatrixOperationsTest, TestMultiplication) {
   const Expr z{"z"};
   const Expr w{"w"};
 
-  ASSERT_IDENTICAL(Identity(4), Identity(4) * Identity(4));
-  ASSERT_IDENTICAL(Vector(a, b, c, d), Identity(4) * Vector(a, b, c, d));
-  ASSERT_IDENTICAL(Vector(0, 0), Zeros(2, 4) * Vector(a, b, c, d));
+  ASSERT_IDENTICAL(make_identity(4), make_identity(4) * make_identity(4));
+  ASSERT_IDENTICAL(make_vector(a, b, c, d), make_identity(4) * make_vector(a, b, c, d));
+  ASSERT_IDENTICAL(make_vector(0, 0), make_zeros(2, 4) * make_vector(a, b, c, d));
 
-  ASSERT_IDENTICAL(Vector(a * x + 2 * b * y + 2 * (c - 3), d * a * x - cos(d) * y + c * 2),
-                   CreateMatrix(2, 3, a, -2 * b, c - 3, d * a, cos(d), c) * Vector(x, -y, 2));
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, a * c, 0, 0, b * d),
-                   CreateMatrix(2, 2, a, 0, 0, b) * CreateMatrix(2, 2, c, 0, 0, d));
+  ASSERT_IDENTICAL(make_vector(a * x + 2 * b * y + 2 * (c - 3), d * a * x - cos(d) * y + c * 2),
+                   make_matrix(2, 3, a, -2 * b, c - 3, d * a, cos(d), c) * make_vector(x, -y, 2));
+  ASSERT_IDENTICAL(make_matrix(2, 2, a * c, 0, 0, b * d),
+                   make_matrix(2, 2, a, 0, 0, b) * make_matrix(2, 2, c, 0, 0, d));
 
   // clang-format off
-  ASSERT_IDENTICAL(CreateMatrix(2, 2,
+  ASSERT_IDENTICAL(make_matrix(2, 2,
                                 a * x + b * z, a * y + b * w,
                                 c * x + d * z, c * y + d * w),
-                   CreateMatrix(2, 2, a, b, c, d) * CreateMatrix(2, 2, x, y, z, w));
+                   make_matrix(2, 2, a, b, c, d) * make_matrix(2, 2, x, y, z, w));
   // clang-format on
 
   // Outer product:
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, x * a, x * b, y * a, y * b), Vector(x, y) * RowVector(a, b));
+  ASSERT_IDENTICAL(make_matrix(2, 2, x * a, x * b, y * a, y * b), make_vector(x, y) * make_row_vector(a, b));
 
   // Distribute scalars into matrix:
-  ASSERT_IDENTICAL(CreateMatrix(2, 2, x + 5, 0, 0, x + 5), Identity(2) * (x + 5));
-  ASSERT_IDENTICAL(CreateMatrix(2, 3, sin(x) * 3, z * 3, 9, cos(y) * 3, 2, 0),
-                   CreateMatrix(2, 3, sin(x), z, 3, cos(y), 2_s / 3, 0) * 3);
+  ASSERT_IDENTICAL(make_matrix(2, 2, x + 5, 0, 0, x + 5), make_identity(2) * (x + 5));
+  ASSERT_IDENTICAL(make_matrix(2, 3, sin(x) * 3, z * 3, 9, cos(y) * 3, 2, 0),
+                   make_matrix(2, 3, sin(x), z, 3, cos(y), 2_s / 3, 0) * 3);
 
   // 1xn * nx1 --> 1x1
-  ASSERT_IDENTICAL(CreateMatrix(1, 1, a * c + b * d), RowVector(a, b) * Vector(c, d));
-  ASSERT_IDENTICAL(CreateMatrix(1, 1, a * c * x + b * d * x),
-                   (RowVector(a, b) * Vector(c, d) * x).Distribute());
+  ASSERT_IDENTICAL(make_matrix(1, 1, a * c + b * d), make_row_vector(a, b) * make_vector(c, d));
+  ASSERT_IDENTICAL(make_matrix(1, 1, a * c * x + b * d * x),
+                   (make_row_vector(a, b) * make_vector(c, d) * x).distribute());
 
   // Inner dimension mismatch
-  ASSERT_THROW(Zeros(2, 3) * Zeros(4, 2), DimensionError);
-  ASSERT_THROW(Zeros(10, 10) * Vector(x, y, z), DimensionError);
-  ASSERT_THROW(RowVector(1, -3, z) * Vector(z, sin(y)), DimensionError);
+  ASSERT_THROW(make_zeros(2, 3) * make_zeros(4, 2), DimensionError);
+  ASSERT_THROW(make_zeros(10, 10) * make_vector(x, y, z), DimensionError);
+  ASSERT_THROW(make_row_vector(1, -3, z) * make_vector(z, sin(y)), DimensionError);
 }
 
 void CheckFullPivLUSolution(
@@ -206,13 +206,13 @@ void CheckFullPivLUSolution(
 
   // check that P/Q are pivot matrices:
   // this is only a partial check, since any orthonormal matrix would satisfy
-  ASSERT_IDENTICAL(Identity(A_in.NumRows()), P * P.Transpose());
-  ASSERT_IDENTICAL(Identity(A_in.NumCols()), Q * Q.Transpose());
+  ASSERT_IDENTICAL(make_identity(A_in.rows()), P * P.transposed());
+  ASSERT_IDENTICAL(make_identity(A_in.cols()), Q * Q.transposed());
 
   // Check that L is lower triangular
-  ASSERT_EQ(L.NumRows(), A_in.NumRows());
-  for (int row = 0; row < L.NumRows(); ++row) {
-    for (int col = 0; col < L.NumCols(); ++col) {
+  ASSERT_EQ(L.rows(), A_in.rows());
+  for (int row = 0; row < L.rows(); ++row) {
+    for (int col = 0; col < L.cols(); ++col) {
       if (row < col) {
         ASSERT_IDENTICAL(0, L(row, col)) << fmt::format("row = {}, col = {}\nL = {}", row, col, L);
       }
@@ -220,8 +220,8 @@ void CheckFullPivLUSolution(
   }
 
   // Check that U is upper triangular
-  for (int row = 0; row < U.NumRows(); ++row) {
-    for (int col = 0; col < U.NumCols(); ++col) {
+  for (int row = 0; row < U.rows(); ++row) {
+    for (int col = 0; col < U.cols(); ++col) {
       if (row > col) {
         ASSERT_IDENTICAL(0, U(row, col)) << fmt::format("row = {}, col = {}\nU = {}", row, col, U);
       }
@@ -240,7 +240,7 @@ MatrixExpr CreatePermutationMatrix(absl::Span<const int> permutation) {
     elements[row * permutation.size() + static_cast<std::size_t>(col_index)] = Constants::One;
   }
   const auto dim = static_cast<index_t>(permutation.size());
-  return MatrixExpr::Create(dim, dim, std::move(elements));
+  return MatrixExpr::create(dim, dim, std::move(elements));
 }
 
 const auto& GetFourElementPermutations() {
@@ -260,37 +260,37 @@ TEST(MatrixOperationsTest, TestFactorizeLU1) {
   // dimension 2:
   for (std::size_t i = 0; i < 2; ++i) {
     MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]).subspan(0, 2));
-    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
   }
 
   // dimension 3:
   for (std::size_t i = 0; i < 3; ++i) {
     MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]).subspan(0, 3));
-    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
   }
 
   // dimension 4:
   for (std::size_t i = 0; i < permutations_4.size(); ++i) {
     MatrixExpr A = CreatePermutationMatrix(absl::Span<const int>(permutations_4[i]));
-    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
   }
 
   // fully symbolic matrices:
-  MatrixExpr A2 = MatrixOfSymbols("x", 2, 2);
-  CheckFullPivLUSolution(A2, FactorizeFullPivLU(A2));
+  MatrixExpr A2 = make_matrix_of_symbols("x", 2, 2);
+  CheckFullPivLUSolution(A2, factorize_full_piv_lu(A2));
 
-  MatrixExpr A3 = MatrixOfSymbols("x", 3, 3);
-  CheckFullPivLUSolution(A3, FactorizeFullPivLU(A3));
+  MatrixExpr A3 = make_matrix_of_symbols("x", 3, 3);
+  CheckFullPivLUSolution(A3, factorize_full_piv_lu(A3));
 
-  MatrixExpr A4 = MatrixOfSymbols("x", 4, 4);
-  CheckFullPivLUSolution(A4, FactorizeFullPivLU(A4));
+  MatrixExpr A4 = make_matrix_of_symbols("x", 4, 4);
+  CheckFullPivLUSolution(A4, factorize_full_piv_lu(A4));
 
   // zeros:
-  MatrixExpr Z2 = Zeros(2, 2);
-  CheckFullPivLUSolution(Z2, FactorizeFullPivLU(Z2));
+  MatrixExpr Z2 = make_zeros(2, 2);
+  CheckFullPivLUSolution(Z2, factorize_full_piv_lu(Z2));
 
-  MatrixExpr Z3 = Zeros(3, 3);
-  CheckFullPivLUSolution(Z3, FactorizeFullPivLU(Z3));
+  MatrixExpr Z3 = make_zeros(3, 3);
+  CheckFullPivLUSolution(Z3, factorize_full_piv_lu(Z3));
 }
 
 TEST(MatrixOperationsTest, TestFactorizeLU2) {
@@ -300,36 +300,36 @@ TEST(MatrixOperationsTest, TestFactorizeLU2) {
   };
 
   for (const auto [row, col] : dims) {
-    MatrixExpr A = MatrixOfSymbols("x", row, col);
-    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+    MatrixExpr A = make_matrix_of_symbols("x", row, col);
+    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
   }
 
   for (const auto [col, row] : dims) {
     // Transposed version:
-    MatrixExpr A = MatrixOfSymbols("x", row, col);
-    CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+    MatrixExpr A = make_matrix_of_symbols("x", row, col);
+    CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
   }
 
-  MatrixExpr Z24 = Zeros(2, 4);
-  CheckFullPivLUSolution(Z24, FactorizeFullPivLU(Z24));
+  MatrixExpr Z24 = make_zeros(2, 4);
+  CheckFullPivLUSolution(Z24, factorize_full_piv_lu(Z24));
 
-  MatrixExpr Z42 = Zeros(4, 2);
-  CheckFullPivLUSolution(Z42, FactorizeFullPivLU(Z42));
+  MatrixExpr Z42 = make_zeros(4, 2);
+  CheckFullPivLUSolution(Z42, factorize_full_piv_lu(Z42));
 
-  MatrixExpr Z53 = Zeros(5, 3);
-  CheckFullPivLUSolution(Z53, FactorizeFullPivLU(Z53));
+  MatrixExpr Z53 = make_zeros(5, 3);
+  CheckFullPivLUSolution(Z53, factorize_full_piv_lu(Z53));
 }
 
 TEST(MatrixOperationsTest, TestFactorizeLU3) {
   // Some singular matrices that require full pivot:
-  MatrixExpr A = CreateMatrix(3, 3, 0, 0, 0, 0, 0, "x", 0, 0, 0);
-  CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  MatrixExpr A = make_matrix(3, 3, 0, 0, 0, 0, 0, "x", 0, 0, 0);
+  CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
 
-  A = CreateMatrix(4, 4, 0, 0, 0, 0, 0, "y", 0, 0, 0, 0, 0, 0, 0, 0, 0, -5);
-  CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  A = make_matrix(4, 4, 0, 0, 0, 0, 0, "y", 0, 0, 0, 0, 0, 0, 0, 0, 0, -5);
+  CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
 
-  A = CreateMatrix(5, 3, 0, 0, 0, 0, "z", 0, 0, 0, 0, 0, 0, 0, 0, 0, 8);
-  CheckFullPivLUSolution(A, FactorizeFullPivLU(A));
+  A = make_matrix(5, 3, 0, 0, 0, 0, "z", 0, 0, 0, 0, 0, 0, 0, 0, 0, 8);
+  CheckFullPivLUSolution(A, factorize_full_piv_lu(A));
 }
 
 TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
@@ -348,84 +348,84 @@ TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
       for (int j = 0; j < rows * cols; ++j) {
         data.emplace_back(distribution(engine));
       }
-      MatrixExpr M = MatrixExpr::Create(rows, cols, std::move(data));
-      CheckFullPivLUSolution(M, FactorizeFullPivLU(M));
+      MatrixExpr M = MatrixExpr::create(rows, cols, std::move(data));
+      CheckFullPivLUSolution(M, factorize_full_piv_lu(M));
     }
   }
 }
 
 TEST(MatrixOperationsTest, TestFactorizeLU4) {
   // clang-format off
-  auto M = CreateMatrix(4, 4,
+  auto M = make_matrix(4, 4,
                         0, -2, -7, 7,
                         3, 0, 1, -7,
                         5, -3, 0, 1,
                         -1, -1, 4, 0);
   // clang-format on
-  CheckFullPivLUSolution(M, FactorizeFullPivLU(M));
+  CheckFullPivLUSolution(M, factorize_full_piv_lu(M));
 }
 
 TEST(MatrixOperationsTest, TestDeterminant2x2) {
-  auto I2 = Identity(2);
-  ASSERT_IDENTICAL(1, Determinant(I2));
-  ASSERT_IDENTICAL(1, Determinant(-I2));
+  auto I2 = make_identity(2);
+  ASSERT_IDENTICAL(1, determinant(I2));
+  ASSERT_IDENTICAL(1, determinant(-I2));
 
   // 2x2 version
-  auto [a, b, c, d] = Symbols("a", "b", "c", "d");
-  auto A2 = CreateMatrix(2, 2, a, b, c, d);
-  ASSERT_IDENTICAL(a * d - c * b, Determinant(A2));
+  auto [a, b, c, d] = make_symbols("a", "b", "c", "d");
+  auto A2 = make_matrix(2, 2, a, b, c, d);
+  ASSERT_IDENTICAL(a * d - c * b, determinant(A2));
 }
 
 TEST(MatrixOperationsTest, TestDeterminant3x3) {
   // Compare 3x3 to cofactor method:
-  auto A = MatrixOfSymbols("x", 3, 3);
+  auto A = make_matrix_of_symbols("x", 3, 3);
   auto det_cofactor =
-      A(0, 0) * Determinant(A.get_block(1, 1, 2, 2)) -
-      A(0, 1) * Determinant(CreateMatrix(2, 2, A(1, 0), A(1, 2), A(2, 0), A(2, 2))) +
-      A(0, 2) * Determinant(A.get_block(1, 0, 2, 2));
-  ASSERT_IDENTICAL(det_cofactor.Distribute(), Determinant(A));
+      A(0, 0) * determinant(A.get_block(1, 1, 2, 2)) -
+      A(0, 1) * determinant(make_matrix(2, 2, A(1, 0), A(1, 2), A(2, 0), A(2, 2))) +
+      A(0, 2) * determinant(A.get_block(1, 0, 2, 2));
+  ASSERT_IDENTICAL(det_cofactor.distribute(), determinant(A));
 
-  auto I3 = Identity(3);
-  ASSERT_IDENTICAL(1, Determinant(I3));
-  ASSERT_IDENTICAL(-1, Determinant(-I3));
-  ASSERT_IDENTICAL(0, Determinant(Zeros(3, 3)));
+  auto I3 = make_identity(3);
+  ASSERT_IDENTICAL(1, determinant(I3));
+  ASSERT_IDENTICAL(-1, determinant(-I3));
+  ASSERT_IDENTICAL(0, determinant(make_zeros(3, 3)));
 
   // test the 3x3 version against some hardcoded matrices
-  auto M1 = CreateMatrix(3, 3, -2, 2, -4, 2, -4, -3, -3, 0, 4);
-  ASSERT_IDENTICAL(82, Determinant(M1));
+  auto M1 = make_matrix(3, 3, -2, 2, -4, 2, -4, -3, -3, 0, 4);
+  ASSERT_IDENTICAL(82, determinant(M1));
 
-  auto M2 = CreateMatrix(3, 3, 1, -1, -2, -3, 4, 4, -1, -1, -1);
-  ASSERT_IDENTICAL(-7, Determinant(M2));
+  auto M2 = make_matrix(3, 3, 1, -1, -2, -3, 4, 4, -1, -1, -1);
+  ASSERT_IDENTICAL(-7, determinant(M2));
 
-  auto M3 = CreateMatrix(3, 3, 4, -3, -3, 3, -3, 0, 4, 3, -1);
-  ASSERT_IDENTICAL(-60, Determinant(M3));
+  auto M3 = make_matrix(3, 3, 4, -3, -3, 3, -3, 0, 4, 3, -1);
+  ASSERT_IDENTICAL(-60, determinant(M3));
 }
 
 // TODO: Test the LU factors against the cofactor method?
 TEST(MatrixOperationsTest, TestDeterminant) {
-  auto M1 = CreateMatrix(4, 4, 4, -1, -1, -3, 0, 3, -2, -1, 4, 1, 2, 1, -1, 3, -1, 1);
-  ASSERT_IDENTICAL(28, Determinant(M1));
+  auto M1 = make_matrix(4, 4, 4, -1, -1, -3, 0, 3, -2, -1, 4, 1, 2, 1, -1, 3, -1, 1);
+  ASSERT_IDENTICAL(28, determinant(M1));
 
-  auto M2 = CreateMatrix(4, 4, -2, 0, 6, 2, 6, 6, 2, -7, 7, 1, 3, -6, -8, 9, 0, 4);
-  ASSERT_IDENTICAL(-136, Determinant(M2));
+  auto M2 = make_matrix(4, 4, -2, 0, 6, 2, 6, 6, 2, -7, 7, 1, 3, -6, -8, 9, 0, 4);
+  ASSERT_IDENTICAL(-136, determinant(M2));
 
-  auto M3 = CreateMatrix(4, 4, -9, 6, -2, 0, -3, -2, -9, 0, -1, -5, 3, 0, -3, -1, -9, 0);
-  ASSERT_IDENTICAL(0, Determinant(M3));
+  auto M3 = make_matrix(4, 4, -9, 6, -2, 0, -3, -2, -9, 0, -1, -5, 3, 0, -3, -1, -9, 0);
+  ASSERT_IDENTICAL(0, determinant(M3));
 
-  auto M4 = CreateMatrix(4, 4, 0, -2, -7, 7, 3, 0, 1, -7, 5, -3, 0, 1, -1, -1, 4, 0);
-  ASSERT_IDENTICAL(-411, Determinant(M4));
+  auto M4 = make_matrix(4, 4, 0, -2, -7, 7, 3, 0, 1, -7, 5, -3, 0, 1, -1, -1, 4, 0);
+  ASSERT_IDENTICAL(-411, determinant(M4));
 
-  auto M5 = CreateMatrix(5, 5, 5, -9, 3, -7, 3, 5, 1, 5, 6, -3, 5, -8, 0, 3, 6, -9, 9, -2, -4, -7,
+  auto M5 = make_matrix(5, 5, 5, -9, 3, -7, 3, 5, 1, 5, 6, -3, 5, -8, 0, 3, 6, -9, 9, -2, -4, -7,
                          -1, 0, -6, -1, 0);
-  ASSERT_IDENTICAL(6870, Determinant(M5));
+  ASSERT_IDENTICAL(6870, determinant(M5));
 
-  auto M6 = CreateMatrix(6, 6, 1, -4, 4, -1, 1, 2, -1, -3, 2, 4, 1, -1, 4, -3, -1, 2, 2, -3, 0, 3,
+  auto M6 = make_matrix(6, 6, 1, -4, 4, -1, 1, 2, -1, -3, 2, 4, 1, -1, 4, -3, -1, 2, 2, -3, 0, 3,
                          2, 4, 2, 1, -4, 0, 0, 4, -3, 2, 4, -1, -2, -1, -4, 0);
-  ASSERT_IDENTICAL(6995, Determinant(M6));
+  ASSERT_IDENTICAL(6995, determinant(M6));
 
-  auto M7 = CreateMatrix(6, 6, 0, 4, -1, -1, 4, -2, 2, 0, -2, 2, -2, 3, -4, -4, 0, -2, 2, -1, 0, 0,
+  auto M7 = make_matrix(6, 6, 0, 4, -1, -1, 4, -2, 2, 0, -2, 2, -2, 3, -4, -4, 0, -2, 2, -1, 0, 0,
                          -1, 0, -3, -3, 0, -4, -4, 1, 0, -2, 3, 3, 1, 4, 2, 0);
-  ASSERT_IDENTICAL(3714, Determinant(M7));
+  ASSERT_IDENTICAL(3714, determinant(M7));
 }
 
 }  // namespace math

@@ -73,16 +73,16 @@ inline constexpr bool operator<(const Constant& a, const Constant& b) {
 }
 
 template <>
-struct Hash<Constant> {
+struct hash_struct<Constant> {
   constexpr std::size_t operator()(const Constant& c) const {
     return static_cast<std::size_t>(c.name());
   }
 };
 
 template <>
-struct Hash<Infinity> {
+struct hash_struct<Infinity> {
   constexpr std::size_t operator()(const Infinity&) const {
-    constexpr auto inf_hash = HashString("inf");
+    constexpr auto inf_hash = hash_string_fnv("inf");
     return inf_hash;
   }
 };

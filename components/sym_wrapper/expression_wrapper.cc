@@ -25,7 +25,7 @@ inline std::variant<Expr, py::list> CreateSymbolsFrom(const std::string_view csv
   for (const char c : csv) {
     if (std::isspace(c) || c == ',') {
       if (!name.empty()) {
-        auto var = MakeExpr<Variable>(std::move(name));
+        auto var = make_expr<Variable>(std::move(name));
         variables.append(std::move(var));
         name = std::string();
       }
@@ -34,7 +34,7 @@ inline std::variant<Expr, py::list> CreateSymbolsFrom(const std::string_view csv
     name += c;
   }
   if (!name.empty()) {
-    auto var = MakeExpr<Variable>(std::move(name));
+    auto var = make_expr<Variable>(std::move(name));
     variables.append(std::move(var));
   }
   if (variables.size() == 1) {
@@ -60,8 +60,8 @@ std::variant<Expr, py::list> CreateSymbols(std::variant<std::string_view, py::it
 }
 
 std::variant<double, Expr> EvalToNumeric(const Expr& self) {
-  Expr eval = self.Eval();
-  if (const Float* f = CastPtr<Float>(eval); f != nullptr) {
+  Expr eval = self.eval();
+  if (const Float* f = cast_ptr<Float>(eval); f != nullptr) {
     return f->get_value();
   }
   return eval;
@@ -85,28 +85,28 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(py::init<std::int64_t>())
       .def(py::init<double>())
       // String conversion:
-      .def("__repr__", &Expr::ToString)
-      .def("expression_tree_str", &Expr::ToExpressionTreeString,
+      .def("__repr__", &Expr::to_string)
+      .def("expression_tree_str", &Expr::to_expression_tree_string,
            "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "is_identical_to",
           [](const Expr& self, const Expr& other) { return self.is_identical_to(other); }, "other"_a,
           "Test if two expressions have identical expression trees.")
-      .def_property_readonly("type_name", &Expr::TypeName)
+      .def_property_readonly("type_name", &Expr::type_name)
       // Operations:
-      .def("diff", &Expr::Diff, "var"_a, py::arg("order") = 1,
+      .def("diff", &Expr::diff, "var"_a, py::arg("order") = 1,
            "Differentiate the expression with respect to the specified variable.")
-      .def("distribute", &Expr::Distribute, "Expand products of additions and subtractions.")
-      .def("subs", &Expr::Subs, py::arg("target"), py::arg("substitute"),
+      .def("distribute", &Expr::distribute, "Expand products of additions and subtractions.")
+      .def("subs", &Expr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
       .def("eval", &EvalToNumeric, "Evaluate into float expression.")
       .def(
-          "collect", [](const Expr& self, const Expr& term) { return self.Collect(term); },
+          "collect", [](const Expr& self, const Expr& term) { return self.collect(term); },
           "term"_a, "Collect powers of the provided expression.")
       .def(
           "collect",
           [](const Expr& self, const std::vector<Expr>& terms) {
-            return math::CollectMany(self, terms);
+            return math::collect_many(self, terms);
           },
           "terms"_a, "Collect powers of the provided expressions.")
       // Operators:

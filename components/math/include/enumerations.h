@@ -76,7 +76,7 @@ enum class NumericType : int {
 };
 
 // Convert `RelativeOrder` to string view.
-constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
+constexpr std::string_view string_from_relative_order(const RelativeOrder order) noexcept {
   switch (order) {
     case RelativeOrder::LessThan:
       return "LessThan";
@@ -89,7 +89,7 @@ constexpr std::string_view StringFromRelativeOrder(const RelativeOrder order) {
 }
 
 // Convert unary function enum to string.
-constexpr std::string_view ToString(const BuiltInFunctionName name) {
+constexpr std::string_view to_string(const BuiltInFunctionName name) noexcept {
   switch (name) {
     case BuiltInFunctionName::Cos:
       return "cos";
@@ -122,7 +122,7 @@ constexpr std::string_view ToString(const BuiltInFunctionName name) {
 }
 
 // Convert `RelationalOperation` to short string.
-constexpr std::string_view string_from_relational_operation(const RelationalOperation op) {
+constexpr std::string_view string_from_relational_operation(const RelationalOperation op) noexcept {
   switch (op) {
     case RelationalOperation::LessThan:
       return "<";
@@ -134,7 +134,8 @@ constexpr std::string_view string_from_relational_operation(const RelationalOper
   return "<NOT A VALID ENUM VALUE>";
 }
 
-constexpr std::string_view StringFromNumericType(const NumericType type) {
+// Convert `NumericType` to string.
+constexpr std::string_view string_from_numeric_type(const NumericType type) noexcept {
   switch (type) {
     case NumericType::Bool:
       return "Bool";

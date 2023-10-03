@@ -106,7 +106,7 @@ class Rational {
     if (auto as_int = r.try_convert_to_integer(); as_int) {
       return Integer::create(as_int->get_value());
     }
-    return MakeExpr<Rational>(r);
+    return make_expr<Rational>(r);
   }
 
   // Create a rational expression and simplify if possible.
@@ -156,7 +156,7 @@ class Float {
   Float abs() const { return Float{std::abs(val_)}; }
 
   // Create floating point expression.
-  static Expr create(Float f) { return MakeExpr<Float>(f); }
+  static Expr create(Float f) { return make_expr<Float>(f); }
   static Expr create(FloatType f) {
     ASSERT(std::isfinite(f), "Float values must be finite: {}", f);
     return create(Float{f});
@@ -186,15 +186,15 @@ inline constexpr Integer::operator Float() const {
 
 // Hashing of integers. Like std::hash, just pass the value through.
 template <>
-struct Hash<Integer::IntegralType> {
+struct hash_struct<Integer::IntegralType> {
   std::size_t operator()(Integer::IntegralType value) const {
     return std::hash<Integer::IntegralType>{}(value);
   }
 };
 template <>
-struct Hash<Integer> {
+struct hash_struct<Integer> {
   std::size_t operator()(const Integer& value) const {
-    return Hash<Integer::IntegralType>{}(value.get_value());
+    return hash_struct<Integer::IntegralType>{}(value.get_value());
   }
 };
 
@@ -240,9 +240,9 @@ inline Rational::operator Float() const {
 
 // Hashing of rationals.
 template <>
-struct Hash<Rational> {
+struct hash_struct<Rational> {
   std::size_t operator()(const Rational& r) const {
-    return HashArgs(0, r.numerator(), r.denominator());
+    return hash_args(0, r.numerator(), r.denominator());
   }
 };
 
@@ -281,7 +281,7 @@ inline constexpr bool operator!=(const Float& a, const Float& b) {
 
 // Hashing of floats.
 template <>
-struct Hash<Float> {
+struct hash_struct<Float> {
   // Can't be constexpr, because std::hash is not constexpr.
   std::size_t operator()(const Float& f) const {
     return std::hash<Float::FloatType>{}(f.get_value());

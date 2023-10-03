@@ -57,7 +57,7 @@ void WrapCodegenOperations(py::module_& m) {
         for (std::size_t i = 0; i < rows * cols; ++i) {
           expressions.push_back(FunctionArgument::create(index, i));
         }
-        return MatrixExpr::Create(rows, cols, std::move(expressions));
+        return MatrixExpr::create(rows, cols, std::move(expressions));
       },
       py::arg("index"), py::arg("rows"), py::arg("cols"));
 
@@ -112,7 +112,7 @@ void WrapCodegenOperations(py::module_& m) {
       .value("Arctan2", BuiltInFunctionName::Arctan2)
       .value("Pow", BuiltInFunctionName::Pow)
       .def(
-          "to_string", [](BuiltInFunctionName name) { return ToString(name); },
+          "to_string", [](BuiltInFunctionName name) { return to_string(name); },
           py::doc("Convert to string."));
 
   py::enum_<NumericType>(m, "NumericType")

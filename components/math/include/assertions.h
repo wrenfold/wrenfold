@@ -8,7 +8,7 @@ namespace math {
 
 // Generates an exception w/ a formatted string.
 template <typename... Ts>
-void RaiseAssert(const char* const condition, const char* const file, const int line,
+void raise_assert(const char* const condition, const char* const file, const int line,
                  const char* const reason_fmt = nullptr, Ts&&... args) {
   const std::string details =
       reason_fmt ? fmt::format(reason_fmt, std::forward<Ts>(args)...) : "None";
@@ -19,7 +19,7 @@ void RaiseAssert(const char* const condition, const char* const file, const int 
 
 // Version that prints args A & B as well. For binary comparisons.
 template <typename A, typename B, typename... Ts>
-void RaiseAssertBinaryOp(const char* const condition, const char* const file, const int line,
+void raise_assert_binary_op(const char* const condition, const char* const file, const int line,
                          const char* const a_name, A&& a, const char* const b_name, B&& b,
                          const char* const reason_fmt = nullptr, Ts&&... args) {
   const std::string details =
@@ -49,28 +49,28 @@ void RaiseAssertBinaryOp(const char* const condition, const char* const file, co
   } while (false)
 
 // Macro to use when defining an assertion.
-#define ASSERT(cond, ...) ASSERT_IMPL(cond, __FILE__, __LINE__, math::RaiseAssert, ##__VA_ARGS__)
+#define ASSERT(cond, ...) ASSERT_IMPL(cond, __FILE__, __LINE__, math::raise_assert, ##__VA_ARGS__)
 
 #define ASSERT_EQUAL(a, b, ...)                                                        \
-  ASSERT_IMPL((a) == (b), __FILE__, __LINE__, math::RaiseAssertBinaryOp, #a, a, #b, b, \
+  ASSERT_IMPL((a) == (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
               ##__VA_ARGS__)
 
 #define ASSERT_NOT_EQUAL(a, b, ...)                                                    \
-  ASSERT_IMPL((a) != (b), __FILE__, __LINE__, math::RaiseAssertBinaryOp, #a, a, #b, b, \
+  ASSERT_IMPL((a) != (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
               ##__VA_ARGS__)
 
 #define ASSERT_LESS(a, b, ...) \
-  ASSERT_IMPL((a) < (b), __FILE__, __LINE__, math::RaiseAssertBinaryOp, #a, a, #b, b, ##__VA_ARGS__)
+  ASSERT_IMPL((a) < (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, ##__VA_ARGS__)
 
 #define ASSERT_GREATER(a, b, ...) \
-  ASSERT_IMPL((a) > (b), __FILE__, __LINE__, math::RaiseAssertBinaryOp, #a, a, #b, b, ##__VA_ARGS__)
+  ASSERT_IMPL((a) > (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, ##__VA_ARGS__)
 
 #define ASSERT_LESS_OR_EQ(a, b, ...)                                                   \
-  ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, math::RaiseAssertBinaryOp, #a, a, #b, b, \
+  ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
               ##__VA_ARGS__)
 
 #define ASSERT_GREATER_OR_EQ(a, b, ...)                                                \
-  ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, math::RaiseAssertBinaryOp, #a, a, #b, b, \
+  ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
               ##__VA_ARGS__)
 
 #ifdef __clang__

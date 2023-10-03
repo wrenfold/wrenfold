@@ -12,7 +12,7 @@ template <typename CodeGenerator, typename Func, typename... Args>
 void GenerateFunc(CodeGenerator&& generator, std::string& output, Func&& func,
                   const std::string_view name, Args&&... args) {
   auto tuple =
-      BuildFunctionDescription(std::forward<Func>(func), name, std::forward<Args>(args)...);
+      build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
   const ast::FunctionSignature& signature = std::get<0>(tuple);
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 

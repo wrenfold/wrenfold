@@ -56,9 +56,9 @@ class Conditional {
 };
 
 template <>
-struct Hash<Conditional> {
+struct hash_struct<Conditional> {
   std::size_t operator()(const Conditional& c) const {
-    return HashArgs(0, c.condition(), c.if_branch(), c.else_branch());
+    return hash_args(0, c.condition(), c.if_branch(), c.else_branch());
   }
 };
 

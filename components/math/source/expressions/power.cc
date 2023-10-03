@@ -33,7 +33,7 @@ struct PowerNumerics {
   std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> ApplyFloatAndNumeric(const A& a, const B& b) {
     const auto result =
         std::pow(static_cast<Float>(a).get_value(), static_cast<Float>(b).get_value());
-    return MakeExpr<Float>(result);
+    return make_expr<Float>(result);
   }
 
   // If both operands are integers:
@@ -44,15 +44,15 @@ struct PowerNumerics {
       return ApplyRationalAndInt(Rational{1, a.get_value()}, -b);
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
-    const auto pow = Pow(a.get_value(), b.get_value());
+    const auto pow = integer_power(a.get_value(), b.get_value());
     return Integer::create(pow);
   }
 
   // If the left operand is a rational and right operand is integer:
   Expr ApplyRationalAndInt(const Rational& a, const Integer& b) {
     const auto exponent = b.get_value();
-    const auto n = Pow(a.numerator(), std::abs(exponent));
-    const auto d = Pow(a.denominator(), std::abs(exponent));
+    const auto n = integer_power(a.numerator(), std::abs(exponent));
+    const auto d = integer_power(a.denominator(), std::abs(exponent));
     if (exponent >= 0) {
       return Rational::create(n, d);
     } else {
@@ -71,7 +71,7 @@ struct PowerNumerics {
     }
 
     // Factorize the integer into primes:
-    const std::vector<PrimeFactor> factors = ComputePrimeFactors(a.get_value());
+    const std::vector<PrimeFactor> factors = compute_prime_factors(a.get_value());
     ASSERT(std::is_sorted(factors.begin(), factors.end(),
                           [](const auto& x, const auto& y) { return x.base < y.base; }),
            "Factors should be sorted");
@@ -99,16 +99,16 @@ struct PowerNumerics {
 
       // Apply the integer part to the rational coefficient:
       if (integer_part.get_value() >= 0) {
-        rational_coeff = rational_coeff * Rational{Pow(f.base, integer_part.get_value()), 1};
+        rational_coeff = rational_coeff * Rational{integer_power(f.base, integer_part.get_value()), 1};
       } else {
-        rational_coeff = rational_coeff * Rational{1, Pow(f.base, -integer_part.get_value())};
+        rational_coeff = rational_coeff * Rational{1, integer_power(f.base, -integer_part.get_value())};
       }
 
       // There is still the business of the fractional part to deal with:
       if (fractional_part.numerator() != 0) {
         Expr base = Integer::create(f.base);
         Expr exponent = Rational::create(fractional_part);
-        operands.push_back(MakeExpr<Power>(std::move(base), std::move(exponent)));
+        operands.push_back(make_expr<Power>(std::move(base), std::move(exponent)));
       }
     }
 
@@ -130,7 +130,7 @@ Expr Power::create(const Expr& a, const Expr& b) {
   }
 
   // Check if the base is itself a power:
-  if (const Power* a_pow = CastPtr<Power>(a); a_pow != nullptr) {
+  if (const Power* a_pow = cast_ptr<Power>(a); a_pow != nullptr) {
     // We want to avoid doing incorrect simplifications like:
     //    (x^2)^(1/2) --> x (incorrect, loses the sign of x)
     //    (x^2)^0.5 --> x
@@ -138,21 +138,21 @@ Expr Power::create(const Expr& a, const Expr& b) {
     //    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
     // If the inner is already a rational, or the outer is an integer - we can multiply
     // safely. If the outer is a float, it can be multiplied onto rationals or floats.
-    const bool can_multiply_exponents = a_pow->exponent().Is<Rational>() || b.Is<Integer>() ||
-                                        (a_pow->exponent().Is<Float>() && b.Is<Float>());
+    const bool can_multiply_exponents = a_pow->exponent().is_type<Rational>() || b.is_type<Integer>() ||
+                                        (a_pow->exponent().is_type<Float>() && b.is_type<Float>());
     if (can_multiply_exponents) {
       return Power::create(a_pow->base(), a_pow->exponent() * b);
     }
   }
 
   // Check for zeroes:
-  if (IsZero(a)) {
+  if (is_zero(a)) {
     // 0^x -> 0  (TODO: Only true for real x)
     return Constants::Zero;
-  } else if (IsZero(b)) {
+  } else if (is_zero(b)) {
     // x^0 -> 1
     return Constants::One;
-  } else if (IsOne(b)) {
+  } else if (is_one(b)) {
     // x^1 -> x
     return a;
   }
@@ -160,7 +160,7 @@ Expr Power::create(const Expr& a, const Expr& b) {
   // Check if the base is a multiplication.
   // In this case, we convert to a multiplication of powers:
   // TODO: Should we only do this distribution for integer powers?
-  if (const Multiplication* const mul = CastPtr<Multiplication>(a); mul != nullptr) {
+  if (const Multiplication* const mul = cast_ptr<Multiplication>(a); mul != nullptr) {
     std::vector<Expr> args;
     args.reserve(mul->arity());
     for (const Expr& arg : *mul) {
@@ -168,11 +168,11 @@ Expr Power::create(const Expr& a, const Expr& b) {
     }
     return Multiplication::from_operands(args);
   }
-  return MakeExpr<Power>(a, b);
+  return make_expr<Power>(a, b);
 }
 
 std::pair<Expr, Expr> as_base_and_exp(const Expr& expr) {
-  if (const Power* pow = CastPtr<Power>(expr); pow != nullptr) {
+  if (const Power* pow = cast_ptr<Power>(expr); pow != nullptr) {
     // Return as base/exponent pair.
     return std::make_pair(pow->base(), pow->exponent());
   }

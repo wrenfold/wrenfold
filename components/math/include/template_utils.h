@@ -14,11 +14,11 @@ struct TypeList {};
 // Struct for getting argument types and return types from a function pointer or lambda.
 // This specialization is for lambdas.
 template <typename T>
-struct FunctionTraits : public FunctionTraits<decltype(&T::operator())> {};
+struct function_traits : public function_traits<decltype(&T::operator())> {};
 
 // This specialization is for member functions (like operator() on a lambda).
 template <typename ClassType, typename Ret, typename... Args>
-struct FunctionTraits<Ret (ClassType::*)(Args...) const> {
+struct function_traits<Ret (ClassType::*)(Args...) const> {
   constexpr static auto Arity = sizeof...(Args);
 
   // Return type of the function.
@@ -34,7 +34,7 @@ struct FunctionTraits<Ret (ClassType::*)(Args...) const> {
 
 // This specialization is for general function pointers.
 template <typename Ret, typename... Args>
-struct FunctionTraits<Ret (*)(Args...)> {
+struct function_traits<Ret (*)(Args...)> {
   constexpr static auto Arity = sizeof...(Args);
 
   // Return type of the function.
@@ -50,31 +50,33 @@ struct FunctionTraits<Ret (*)(Args...)> {
 
 // Template to check if the `operator()` method is implemented.
 template <typename T, typename, typename = void>
-constexpr bool HasCallOperator = false;
+constexpr bool has_call_operator_v = false;
 
 // Specialization that is activated when the Apply method exists:
 template <typename T, typename Argument>
-constexpr bool HasCallOperator<
+constexpr bool has_call_operator_v<
     T, Argument, decltype(std::declval<T>()(std::declval<const Argument>()), void())> = true;
 
 // Template to check if the `operator()` method is implemented for two types.
 template <typename T, typename, typename, typename = void>
-constexpr bool HasBinaryCallOperator = false;
+constexpr bool has_binary_call_operator_v = false;
 
 // Specialization that is activated when the binary operator() method exists.
 template <typename T, typename Argument1, typename Argument2>
-constexpr bool HasBinaryCallOperator<T, Argument1, Argument2,
+constexpr bool has_binary_call_operator_v<T, Argument1, Argument2,
                                      decltype(std::declval<T>()(std::declval<const Argument1>(),
                                                                 std::declval<const Argument2>()),
                                               void())> = true;
 
 // Size of type list.
 template <typename T>
-struct TypeListSize;
+struct type_list_size;
 template <typename... Ts>
-struct TypeListSize<TypeList<Ts...>> {
-  static constexpr std::size_t Value = sizeof...(Ts);
+struct type_list_size<TypeList<Ts...>> {
+  static constexpr std::size_t value = sizeof...(Ts);
 };
+template <typename List>
+constexpr std::size_t type_list_size_v = type_list_size<List>::value;
 
 // Check if a type is in a TypeList.
 template <typename T, typename... Ts>
@@ -85,55 +87,61 @@ template <typename T, typename... Ts>
 constexpr bool ContainsType<T, TypeList<Ts...>> = ContainsTypeHelper<T, Ts...>;
 
 template <typename T, typename... Ts>
-struct EnableIfDoesNotContainTypeHelper : std::enable_if<!ContainsTypeHelper<T, Ts...>> {};
+struct enable_if_does_not_contain_type : std::enable_if<!ContainsTypeHelper<T, Ts...>> {};
 
 template <typename T, typename... Ts>
-struct EnableIfDoesNotContainTypeHelper<T, TypeList<Ts...>>
+struct enable_if_does_not_contain_type<T, TypeList<Ts...>>
     : std::enable_if<!ContainsTypeHelper<T, Ts...>> {};
 
 template <typename T, typename... Ts>
-using EnableIfDoesNotContainType = typename EnableIfDoesNotContainTypeHelper<T, Ts...>::type;
+using enable_if_does_not_contain_type_t = typename enable_if_does_not_contain_type<T, Ts...>::type;
 
 // Helper to append a type to the front of a type list.
 template <typename, typename>
-struct AppendToTypeList;
+struct append_to_type_list;
 template <typename T, typename... Args>
-struct AppendToTypeList<T, TypeList<Args...>> {
-  using Type = TypeList<T, Args...>;
+struct append_to_type_list<T, TypeList<Args...>> {
+  using type = TypeList<T, Args...>;
 };
+template <typename T, typename List>
+using append_to_type_list_t = typename append_to_type_list<T, List>::type;
 
 // Ge the head of a type list.
 template <typename T>
-struct HeadOfTypeList {};
+struct head_of_type_list {};
 template <typename Head, typename... Ts>
-struct HeadOfTypeList<TypeList<Head, Ts...>> {
-  using Type = Head;
+struct head_of_type_list<TypeList<Head, Ts...>> {
+  using type = Head;
 };
 
 // Get the index of a type in a type list.
 template <typename T, typename U = void, typename... Types>
-constexpr std::size_t IndexOfTypeHelper() {
-  return std::is_same<T, U>::value ? 0 : 1 + IndexOfTypeHelper<T, Types...>();
+constexpr std::size_t index_of_type_helper() {
+  return std::is_same<T, U>::value ? 0 : 1 + index_of_type_helper<T, Types...>();
 }
 template <typename T, typename List>
-struct IndexOfType;
+struct index_of_type;
 template <typename T, typename... Ts>
-struct IndexOfType<T, TypeList<Ts...>> {
-  constexpr static std::size_t Value = IndexOfTypeHelper<T, Ts...>();
+struct index_of_type<T, TypeList<Ts...>> {
+  constexpr static std::size_t value = index_of_type_helper<T, Ts...>();
 };
+template <typename T, typename List>
+constexpr std::size_t index_of_type_v = index_of_type<T, List>::value;
 
 // Get the N'th element of a type list.
 template <std::size_t N, typename... Ts>
-struct TypeListElement;
+struct type_list_element;
 
 template <std::size_t N, typename T, typename... Ts>
-struct TypeListElement<N, TypeList<T, Ts...>> {
-  using Type = typename TypeListElement<N - 1, TypeList<Ts...>>::Type;
+struct type_list_element<N, TypeList<T, Ts...>> {
+  using type = typename type_list_element<N - 1, TypeList<Ts...>>::type;
 };
 template <typename T, typename... Ts>
-struct TypeListElement<0, TypeList<T, Ts...>> {
-  using Type = T;
+struct type_list_element<0, TypeList<T, Ts...>> {
+  using type = T;
 };
+template <std::size_t N, typename List>
+using type_list_element_t = typename type_list_element<N, List>::type;
 
 // This template iterates over a TypeList and creates a new TypeList of return types that occur
 // when `Callable` is invoked with each type in the input type list. Duplicates may occur.
@@ -148,14 +156,14 @@ struct CallOperatorReturnTypesImpl<Callable> {
 template <typename Callable, typename Head, typename... Tail>
 struct CallOperatorReturnTypesImpl<Callable, Head, Tail...> {
   using CandidateType =
-      typename std::conditional_t<HasCallOperator<Callable, Head>,
+      typename std::conditional_t<has_call_operator_v<Callable, Head>,
                                   std::invoke_result_t<Callable, Head>, std::nullptr_t>;
 
   // Don't append nullptr_t, this is the signal for an invocation that isn't valid (no operator()).
   using Type = typename std::conditional_t<
       !std::is_same_v<CandidateType, std::nullptr_t>,
-      typename AppendToTypeList<
-          CandidateType, typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>::Type,
+      append_to_type_list_t<
+          CandidateType, typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>,
       typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>;
 };
 
@@ -167,7 +175,7 @@ struct CallOperatorReturnTypes<Callable, TypeList<Ts...>> {
   // Build the list of possible turn types.
   using List = typename CallOperatorReturnTypesImpl<Callable, Ts...>::Type;
   // Get the first one (TODO: Check they all match?)
-  using Head = typename HeadOfTypeList<List>::Type;
+  using Head = typename head_of_type_list<List>::type;
 };
 
 // Select `Indices` elements from a tuple. Returns a new tuple with just those elements.
@@ -187,9 +195,9 @@ struct DecayRValueToValue {
 
 // True if the type is a tuple.
 template <typename T>
-constexpr bool IsTuple = false;
+constexpr bool is_tuple_v = false;
 template <typename... Ts>
-constexpr bool IsTuple<std::tuple<Ts...>> = true;
+constexpr bool is_tuple_v<std::tuple<Ts...>> = true;
 
 namespace detail {
 template <class... Ts>
