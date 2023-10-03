@@ -41,7 +41,7 @@ class Derivative {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void iterate(Operation&& operation) const {
+  void for_each(Operation&& operation) const {
     std::for_each(begin(), end(), std::forward<Operation>(operation));
   }
 

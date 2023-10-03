@@ -10,7 +10,7 @@
 
 namespace math {
 
-inline Expr MaybeNewMul(Multiplication::ContainerType&& terms) {
+inline Expr maybe_new_mul(Multiplication::ContainerType&& terms) {
   if (terms.empty()) {
     return Constants::One;
   } else if (terms.size() == 1) {
@@ -20,7 +20,7 @@ inline Expr MaybeNewMul(Multiplication::ContainerType&& terms) {
   }
 }
 
-static inline Expr MultiplyIntoAddition(const Addition& add, const Expr& numerical_constant) {
+static inline Expr multiply_into_addition(const Addition& add, const Expr& numerical_constant) {
   Addition::ContainerType add_args{};
   add_args.reserve(add.arity());
   std::transform(
@@ -46,10 +46,10 @@ Expr Multiplication::from_operands(absl::Span<const Expr> args) {
   if (args.size() == 2) {
     if (const Addition* add = cast_ptr<Addition>(args[0]);
         add && args[1].is_type<Integer, Rational, Float>()) {
-      return MultiplyIntoAddition(*add, args[1]);
+      return multiply_into_addition(*add, args[1]);
     } else if (add = cast_ptr<Addition>(args[1]);
                add && args[0].is_type<Integer, Float, Rational>()) {
-      return MultiplyIntoAddition(*add, args[0]);
+      return multiply_into_addition(*add, args[0]);
     }
   }
 
@@ -202,7 +202,7 @@ Expr MultiplicationParts::create_multiplication() const {
   std::transform(terms.begin(), terms.end(), std::back_inserter(args),
                  [](const auto& pair) { return Power::create(pair.first, pair.second); });
 
-  return MaybeNewMul(std::move(args));
+  return maybe_new_mul(std::move(args));
 }
 
 // For multiplications, we need to break the expression up.
@@ -220,8 +220,8 @@ inline std::pair<Expr, Expr> split_multiplication(const Expr& input, const Multi
     // No point making a new multiplication:
     return std::make_pair(Constants::One, input);
   }
-  auto coeff = MaybeNewMul(std::move(numerics));
-  auto multiplicand = MaybeNewMul(std::move(remainder));
+  auto coeff = maybe_new_mul(std::move(numerics));
+  auto multiplicand = maybe_new_mul(std::move(remainder));
   return std::make_pair(std::move(coeff), std::move(multiplicand));
 }
 

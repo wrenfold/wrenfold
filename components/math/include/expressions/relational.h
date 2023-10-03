@@ -22,7 +22,7 @@ class Relational {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void iterate(Operation&& operation) const {
+  void for_each(Operation&& operation) const {
     operation(left_);
     operation(right_);
   }

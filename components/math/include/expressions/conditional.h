@@ -24,7 +24,7 @@ class Conditional {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void iterate(Operation&& operation) const {
+  void for_each(Operation&& operation) const {
     operation(condition_);
     operation(if_branch_);
     operation(else_branch_);

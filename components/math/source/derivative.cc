@@ -22,7 +22,7 @@ struct IsFunctionOfVisitor {
     } else if constexpr (!U::IsLeafNode) {
       // True if any of the children satisfy this.
       bool contained_in_child = false;
-      x.iterate([this, &contained_in_child](const Expr& expr) {
+      x.for_each([this, &contained_in_child](const Expr& expr) {
         if (visit(expr, *this)) {
           contained_in_child = true;
         }
@@ -158,7 +158,7 @@ class DiffVisitor {
         return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
       }
       case BuiltInFunctionName::Pow:
-        return PowerDiff(args[0], args[1]);
+        return power_diff(args[0], args[1]);
       case BuiltInFunctionName::ENUM_SIZE:
         break;
     }
@@ -179,9 +179,9 @@ class DiffVisitor {
     return Constants::Zero;
   }
 
-  Expr operator()(const Power& pow) { return PowerDiff(pow.base(), pow.exponent()); }
+  Expr operator()(const Power& pow) { return power_diff(pow.base(), pow.exponent()); }
 
-  Expr PowerDiff(const Expr& a, const Expr& b) {
+  Expr power_diff(const Expr& a, const Expr& b) {
     const Expr a_diff = visit_with_expr(a, *this);
     const Expr b_diff = visit_with_expr(b, *this);
     if (is_zero(a_diff) && is_zero(b_diff)) {

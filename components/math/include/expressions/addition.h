@@ -19,7 +19,7 @@ class Addition {
   // Move-construct.
   explicit Addition(ContainerType&& terms) : terms_(std::move(terms)) {
     ASSERT_GREATER_OR_EQ(terms_.size(), 2);
-    // Place into a deterministic (but otherwise arbitrary) order.
+    // Place into a deterministic (but otherwise mostly arbitrary) order.
     std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
       if (a.get_hash() < b.get_hash()) {
         return true;
@@ -52,7 +52,7 @@ class Addition {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void iterate(Operation&& operation) const {
+  void for_each(Operation&& operation) const {
     std::for_each(begin(), end(), std::forward<Operation>(operation));
   }
 

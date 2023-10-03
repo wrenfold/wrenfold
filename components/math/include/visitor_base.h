@@ -47,7 +47,7 @@ class VisitorDeclareAll;
 template <typename... Ts>
 class VisitorDeclareAll<type_list<Ts...>> : public virtual VisitorDeclare<Ts>... {};
 
-// Base type for visitors that produce expressions.
+// Base type for visitors.
 template <typename Types>
 class VisitorBaseGeneric : public VisitorDeclareAll<Types> {
  public:

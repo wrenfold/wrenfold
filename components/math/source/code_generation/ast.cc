@@ -10,11 +10,11 @@
 
 namespace math {
 
-inline void GetConditionalOutputs(const ir::ValuePtr v, std::vector<ir::ValuePtr>& outputs) {
+inline void get_conditional_outputs(const ir::ValuePtr v, std::vector<ir::ValuePtr>& outputs) {
   bool all_phi_consumers = true;
   for (ir::ValuePtr consumer : v->consumers()) {
     if (consumer->is_phi()) {
-      GetConditionalOutputs(consumer, outputs);
+      get_conditional_outputs(consumer, outputs);
     } else {
       all_phi_consumers = false;
     }
@@ -64,7 +64,7 @@ struct AstBuilder {
         bool all_phi_consumers = true;
         for (ir::ValuePtr consumer : value->consumers()) {
           if (consumer->is_phi()) {
-            GetConditionalOutputs(consumer, conditional_outputs);
+            get_conditional_outputs(consumer, conditional_outputs);
           } else {
             all_phi_consumers = false;
           }

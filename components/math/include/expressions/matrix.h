@@ -36,8 +36,8 @@ class Matrix {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void iterate(Operation operation) const {
-    std::for_each(data_.begin(), data_.end(), std::move(operation));
+  void for_each(Operation&& operation) const {
+    std::for_each(data_.begin(), data_.end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map

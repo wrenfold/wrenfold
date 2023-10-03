@@ -3,11 +3,10 @@
 #include <algorithm>
 #include <optional>
 
-#include <fmt/format.h>
-
 #include "assertions.h"
 #include "common_visitors.h"
 #include "expressions/all_expressions.h"
+#include "fmt_imports.h"
 
 namespace math {
 

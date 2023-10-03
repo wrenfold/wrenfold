@@ -1,6 +1,5 @@
-#include <fmt/format.h>
-
 #include "constants.h"
+#include "fmt_imports.h"
 #include "functions.h"
 #include "matrix_functions.h"
 #include "test_helpers.h"

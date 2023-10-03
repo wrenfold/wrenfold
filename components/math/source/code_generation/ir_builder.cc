@@ -202,7 +202,7 @@ struct PairCountVisitor {
   std::enable_if_t<!std::is_same_v<T, Multiplication> && !std::is_same_v<T, Addition>> operator()(
       const T& expr) {
     if constexpr (!T::IsLeafNode) {
-      expr.iterate([this](const Expr& expr) { visit(expr, *this); });
+      expr.for_each([this](const Expr& expr) { visit(expr, *this); });
     }
   }
 

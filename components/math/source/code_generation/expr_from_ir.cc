@@ -14,11 +14,11 @@ struct ExprFromIrVisitor {
       : value_to_expression_(value_to_expression), output_arg_exists_(output_arg_exists) {}
 
   Expr operator()(const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]) + MapValue(args[1]);
+    return map_value(args[0]) + map_value(args[1]);
   }
 
   Expr operator()(const ir::Mul&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]) * MapValue(args[1]);
+    return map_value(args[0]) * map_value(args[1]);
   }
 
   Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
@@ -27,23 +27,23 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
-    return Power::create(MapValue(args[0]), MapValue(args[1]));
+    return Power::create(map_value(args[0]), map_value(args[1]));
   }
 
   Expr operator()(const ir::CallBuiltInFunction& func,
                   const std::vector<ir::ValuePtr>& args) const {
     Function::ContainerType container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
-                   [this](ir::ValuePtr v) { return MapValue(v); });
+                   [this](ir::ValuePtr v) { return map_value(v); });
     return Function::create(func.name, std::move(container));
   }
 
   Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]);
+    return map_value(args[0]);
   }
 
   Expr operator()(const ir::Cond&, const std::vector<ir::ValuePtr>& args) const {
-    return where(MapValue(args[0]), MapValue(args[1]), MapValue(args[2]));
+    return where(map_value(args[0]), map_value(args[1]), map_value(args[2]));
   }
 
   Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
@@ -59,22 +59,22 @@ struct ExprFromIrVisitor {
     const ir::ValuePtr jump_val = jump_block->operations.back();
     ASSERT(jump_val->is_type<ir::JumpCondition>());
 
-    return where(MapValue(jump_val->first_operand()), MapValue(args[0]), MapValue(args[1]));
+    return where(map_value(jump_val->first_operand()), map_value(args[0]), map_value(args[1]));
   }
 
   Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
-    return Relational::create(cmp.operation, MapValue(args[0]), MapValue(args[1]));
+    return Relational::create(cmp.operation, map_value(args[0]), map_value(args[1]));
   }
 
   Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
-    return MapValue(args[0]);
+    return map_value(args[0]);
   }
 
   Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
     return load.expr;
   }
 
-  Expr MapValue(const ir::ValuePtr& val) const {
+  Expr map_value(const ir::ValuePtr& val) const {
     const auto arg_it = value_to_expression_.find(val);
     ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", val->name());
     return arg_it->second;

@@ -1,10 +1,10 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 
 #include "expressions/numeric_expressions.h"
+#include "fmt_imports.h"
 #include "matrix_expression.h"
 
 #define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(math::expect_eigen_near, a, b, tol)

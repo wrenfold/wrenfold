@@ -20,7 +20,7 @@ class Power {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void iterate(Operation operation) const {
+  void for_each(Operation operation) const {
     operation(base_);
     operation(exponent_);
   }

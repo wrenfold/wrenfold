@@ -1,7 +1,6 @@
 #include <numeric>
 
-#include <fmt/format.h>
-
+#include "fmt_imports.h"
 #include "index_range.h"
 #include "integer_utils.h"
 #include "test_helpers.h"

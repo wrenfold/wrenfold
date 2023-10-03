@@ -20,7 +20,7 @@ class Multiplication {
   // Move-construct.
   explicit Multiplication(ContainerType&& terms) : terms_(std::move(terms)) {
     ASSERT_GREATER_OR_EQ(terms_.size(), 2);
-    SortTerms();
+    sort_terms();
   }
 
   // Construct from expressions:
@@ -34,7 +34,7 @@ class Multiplication {
       ASSERT(!term.is_type<Multiplication>(), "Multiplications should all be flattened: {}",
              term.to_string());
     }
-    SortTerms();
+    sort_terms();
   }
 
   // Access specific argument.
@@ -57,7 +57,7 @@ class Multiplication {
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void iterate(Operation&& operation) const {
+  void for_each(Operation&& operation) const {
     std::for_each(begin(), end(), std::forward<Operation>(operation));
   }
 
@@ -75,7 +75,7 @@ class Multiplication {
   static Expr from_operands(absl::Span<const Expr> span);
 
  private:
-  void SortTerms() {
+  void sort_terms() {
     // We leave the integer/rational/float part in front.
     // TODO: Add a BinaryMul where the first term is always int/rational/float.
     const auto begin = std::find_if(terms_.begin(), terms_.end(), [](const Expr& term) {
