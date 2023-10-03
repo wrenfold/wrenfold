@@ -21,14 +21,14 @@ struct DetermineNumericTypeVisitor {
     // Adding bool to bool yields integer, add any floats - and it becomes real, etc...
     NumericType type = NumericType::Integer;
     for (const auto& expr : add) {
-      type = std::max(Visit(expr, DetermineNumericTypeVisitor{}), type);
+      type = std::max(visit(expr, DetermineNumericTypeVisitor{}), type);
     }
     return type;
   }
 
   NumericType operator()(const Conditional& cond) const {
-    const NumericType left = Visit(cond.if_branch(), DetermineNumericTypeVisitor{});
-    const NumericType right = Visit(cond.else_branch(), DetermineNumericTypeVisitor{});
+    const NumericType left = visit(cond.if_branch(), DetermineNumericTypeVisitor{});
+    const NumericType right = visit(cond.else_branch(), DetermineNumericTypeVisitor{});
     return std::max(left, right);
   }
 
@@ -61,14 +61,14 @@ struct DetermineNumericTypeVisitor {
     // Multiplying booleans produces an integer, same as C++.
     NumericType type = NumericType::Integer;
     for (const auto& expr : mul) {
-      type = std::max(Visit(expr, DetermineNumericTypeVisitor{}), type);
+      type = std::max(visit(expr, DetermineNumericTypeVisitor{}), type);
     }
     return type;
   }
 
   NumericType operator()(const Power& pow) const {
-    const NumericType b = Visit(pow.base(), DetermineNumericTypeVisitor{});
-    const NumericType e = Visit(pow.exponent(), DetermineNumericTypeVisitor{});
+    const NumericType b = visit(pow.base(), DetermineNumericTypeVisitor{});
+    const NumericType e = visit(pow.exponent(), DetermineNumericTypeVisitor{});
     return std::max(b, e);
   }
 
@@ -83,7 +83,7 @@ struct DetermineNumericTypeVisitor {
 
 namespace ir {
 
-NumericType Load::determine_type() const { return Visit(expr, DetermineNumericTypeVisitor{}); }
+NumericType Load::determine_type() const { return visit(expr, DetermineNumericTypeVisitor{}); }
 
 void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
   ASSERT_NOT_EQUAL(target, replacement);
@@ -177,7 +177,7 @@ struct PairCountVisitor {
                          pair_count_table) {
     for (const Expr& operand : operation) {
       count_table[operand]++;
-      Visit(operand, *this);
+      visit(operand, *this);
     }
     // generate pairs of expressions:
     for (auto i = operation.begin(); i != operation.end(); ++i) {
@@ -202,7 +202,7 @@ struct PairCountVisitor {
   std::enable_if_t<!std::is_same_v<T, Multiplication> && !std::is_same_v<T, Addition>> operator()(
       const T& expr) {
     if constexpr (!T::IsLeafNode) {
-      expr.iterate([this](const Expr& expr) { Visit(expr, *this); });
+      expr.iterate([this](const Expr& expr) { visit(expr, *this); });
     }
   }
 
@@ -426,7 +426,7 @@ struct IRFormVisitor {
     if (it != computed_values_.end()) {
       return it->second;
     }
-    ir::ValuePtr val = VisitWithExprArg(expr, *this);
+    ir::ValuePtr val = visit_with_expr(expr, *this);
     computed_values_.emplace(expr, val);
     return val;
   }
@@ -481,7 +481,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
   ir::PairCountVisitor pair_visitor{};
   for (const ExpressionGroup& group : groups) {
     for (const Expr& expr : group.expressions) {
-      Visit(expr, pair_visitor);
+      visit(expr, pair_visitor);
     }
   }
 

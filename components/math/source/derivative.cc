@@ -23,7 +23,7 @@ struct IsFunctionOfVisitor {
       // True if any of the children satisfy this.
       bool contained_in_child = false;
       x.iterate([this, &contained_in_child](const Expr& expr) {
-        if (Visit(expr, *this)) {
+        if (visit(expr, *this)) {
           contained_in_child = true;
         }
       });
@@ -49,22 +49,22 @@ class DiffVisitor {
 
   // Differentiate every argument to make a new sum.
   Expr operator()(const Addition& add) {
-    return add.map_children([&](const Expr& x) { return VisitWithExprArg(x, *this); });
+    return add.map_children([&](const Expr& x) { return visit_with_expr(x, *this); });
   }
 
   // TODO: This is not strictly correct. If the condition is a function of `x` (where x is the
   //  the variable wrt we are differentiating), we should insert the dirac delta function.
   //  That said, this is more useful practically in most cases.
   Expr operator()(const Conditional& cond) {
-    return where(cond.condition(), VisitWithExprArg(cond.if_branch(), *this),
-                 VisitWithExprArg(cond.else_branch(), *this));
+    return where(cond.condition(), visit_with_expr(cond.if_branch(), *this),
+                 visit_with_expr(cond.else_branch(), *this));
   }
 
   Expr operator()(const Constant&) const { return Constants::Zero; }
 
   // Derivative of an abstract derivative expression.
   Expr operator()(const Derivative& derivative, const Expr& derivative_abstract) const {
-    const bool is_relevant = Visit(derivative.differentiand(), IsFunctionOfVisitor<T>{argument_});
+    const bool is_relevant = visit(derivative.differentiand(), IsFunctionOfVisitor<T>{argument_});
     if (!is_relevant) {
       return Constants::Zero;
     }
@@ -85,7 +85,7 @@ class DiffVisitor {
       mul_terms.reserve(mul.arity());
       for (std::size_t j = 0; j < mul.arity(); ++j) {
         if (j == i) {
-          mul_terms.push_back(VisitWithExprArg(mul[j], *this));
+          mul_terms.push_back(visit_with_expr(mul[j], *this));
         } else {
           mul_terms.push_back(mul[j]);
         }
@@ -101,7 +101,7 @@ class DiffVisitor {
     // Differentiate the arguments:
     Function::ContainerType d_args{};
     std::transform(func.begin(), func.end(), std::back_inserter(d_args),
-                   [this](const Expr& arg) { return VisitWithExprArg(arg, *this); });
+                   [this](const Expr& arg) { return visit_with_expr(arg, *this); });
 
     const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
     if (all_derivatives_zero) {
@@ -149,8 +149,8 @@ class DiffVisitor {
         return Derivative::create(signum(args[0]), argument_abstract_, 1) * d_args[0];
       case BuiltInFunctionName::Arctan2: {
         const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
-        const Expr y_diff = VisitWithExprArg(args[0], *this);
-        const Expr x_diff = VisitWithExprArg(args[1], *this);
+        const Expr y_diff = visit_with_expr(args[0], *this);
+        const Expr x_diff = visit_with_expr(args[1], *this);
         if (is_zero(y_diff) && is_zero(x_diff)) {
           return Constants::Zero;
         }
@@ -182,8 +182,8 @@ class DiffVisitor {
   Expr operator()(const Power& pow) { return PowerDiff(pow.base(), pow.exponent()); }
 
   Expr PowerDiff(const Expr& a, const Expr& b) {
-    const Expr a_diff = VisitWithExprArg(a, *this);
-    const Expr b_diff = VisitWithExprArg(b, *this);
+    const Expr a_diff = visit_with_expr(a, *this);
+    const Expr b_diff = visit_with_expr(b, *this);
     if (is_zero(a_diff) && is_zero(b_diff)) {
       return Constants::Zero;
     }
@@ -218,7 +218,7 @@ inline Expr diff_typed(const Expr& expr, const T& arg, const Expr& arg_abstract,
   DiffVisitor<T> visitor{arg, arg_abstract};
   Expr result = expr;
   for (int i = 0; i < reps; ++i) {
-    result = VisitWithExprArg(result, visitor);
+    result = visit_with_expr(result, visitor);
   }
   return result;
 }

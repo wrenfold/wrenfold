@@ -105,7 +105,7 @@ struct append_front_to_type_list<T, type_list<Args...>> {
 template <typename T, typename List>
 using append_front_to_type_list_t = typename append_front_to_type_list<T, List>::type;
 
-// Ge the head of a type list.
+// Get the head of a type list.
 template <typename T>
 struct head_of_type_list {};
 template <typename Head, typename... Ts>
@@ -145,36 +145,36 @@ using type_list_element_t = typename type_list_element<N, List>::type;
 // This template iterates over a type_list and creates a new type_list of return types that occur
 // when `Callable` is invoked with each type in the input type list. Duplicates may occur.
 template <typename Callable, typename...>
-struct CallOperatorReturnTypesImpl;
+struct call_operator_return_types;
+template <typename Callable, typename... Ts>
+using call_operator_return_types_t = typename call_operator_return_types<Callable, Ts...>::type;
 
 template <typename Callable>
-struct CallOperatorReturnTypesImpl<Callable> {
-  using Type = type_list<>;
+struct call_operator_return_types<Callable> {
+  using type = type_list<>;  //  This is the end of the recursion.
 };
 
 template <typename Callable, typename Head, typename... Tail>
-struct CallOperatorReturnTypesImpl<Callable, Head, Tail...> {
-  using CandidateType =
+struct call_operator_return_types<Callable, Head, Tail...> {
+  // Check if the callable accepts this type, and determine the invoke result.
+  using candidate_type =
       typename std::conditional_t<has_call_operator_v<Callable, Head>,
                                   std::invoke_result_t<Callable, Head>, std::nullptr_t>;
 
   // Don't append nullptr_t, this is the signal for an invocation that isn't valid (no operator()).
-  using Type = typename std::conditional_t<
-      !std::is_same_v<CandidateType, std::nullptr_t>,
-      append_front_to_type_list_t<CandidateType,
-                                  typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>,
-      typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>;
+  using type = typename std::conditional_t<
+      !std::is_same_v<candidate_type, std::nullptr_t>,
+      append_front_to_type_list_t<candidate_type, call_operator_return_types_t<Callable, Tail...>>,
+      call_operator_return_types_t<Callable, Tail...>>;
 };
 
-// Simplified interface for invoking CallOperatorReturnTypesImpl.
-template <typename Callable, typename T>
-struct CallOperatorReturnTypes;
+// Specialization that accepts a type-list.
 template <typename Callable, typename... Ts>
-struct CallOperatorReturnTypes<Callable, type_list<Ts...>> {
+struct call_operator_return_types<Callable, type_list<Ts...>> {
   // Build the list of possible turn types.
-  using List = typename CallOperatorReturnTypesImpl<Callable, Ts...>::Type;
-  // Get the first one (TODO: Check they all match?)
-  using Head = typename head_of_type_list<List>::type;
+  using list = call_operator_return_types_t<Callable, Ts...>;
+  // Get the first one (TODO: Check they all match!)
+  using type = typename head_of_type_list<list>::type;
 };
 
 // Select `Indices` elements from a tuple. Returns a new tuple with just those elements.

@@ -14,7 +14,7 @@ struct CollectVisitor {
 
   template <typename T>
   Expr recurse(const T& op) {
-    return op.map_children([this](const Expr& x) { return VisitWithExprArg(x, *this); });
+    return op.map_children([this](const Expr& x) { return visit_with_expr(x, *this); });
   }
 
   Expr collect_addition_terms(Addition::ContainerType&& container) {
@@ -108,7 +108,7 @@ struct CollectVisitor {
     Addition::ContainerType children{};
     children.reserve(add.arity());
     std::transform(add.begin(), add.end(), std::back_inserter(children),
-                   [this](const Expr& x) { return VisitWithExprArg(x, *this); });
+                   [this](const Expr& x) { return visit_with_expr(x, *this); });
     return collect_addition_terms(std::move(children));
   }
 
@@ -139,7 +139,7 @@ Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
       throw TypeError("Arguments to collect cannot be numeric values. Term = {}", term);
     }
   }
-  return VisitWithExprArg(arg, CollectVisitor{terms});
+  return visit_with_expr(arg, CollectVisitor{terms});
 }
 
 Expr collect(const Expr& arg, const Expr& term) { return collect_many(arg, {term}); }

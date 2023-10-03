@@ -27,7 +27,7 @@ struct AdditionVisitor {
   void operator()(const Addition& arg) {
     for (const Expr& expr : arg) {
       // Recursively add additions:
-      VisitWithExprArg(expr, *this);
+      visit_with_expr(expr, *this);
     }
   }
 
@@ -72,7 +72,7 @@ void AdditionParts::add_terms(const Expr& arg) {
     return;
   }
   AdditionVisitor visitor{*this};
-  VisitWithExprArg(arg, visitor);
+  visit_with_expr(arg, visitor);
 }
 
 void AdditionParts::normalize_coefficients() {

@@ -29,7 +29,8 @@ class ExpressionImpl final : public ExpressionConcept {
 
   // Cast to derived type and apply the visitor.
   void receive_visitor(VisitorBase& visitor) const override final {
-    static_cast<VisitorDeclare<ExpressionType>&>(visitor).ApplyVirtual(get_implementation());
+    static_cast<VisitorDeclare<ExpressionType>&>(visitor).apply_visitor_virtual(
+        get_implementation());
   }
 
   // Get the derived type string name (a static constexpr member).

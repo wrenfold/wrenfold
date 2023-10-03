@@ -11,7 +11,7 @@ class Expr;
 class ExpressionConcept;
 
 // TODO: Allow switching this out for something w/o atomic operations?
-using ExpressionConceptConstPtr = std::shared_ptr<const class ExpressionConcept>;
+using expression_concept_const_ptr = std::shared_ptr<const class ExpressionConcept>;
 
 // clang-format off
 using ExpressionTypeList = type_list<
@@ -36,7 +36,7 @@ using ExpressionTypeList = type_list<
 template <typename T>
 class VisitorDeclare {
  public:
-  virtual void ApplyVirtual(const T& input) = 0;
+  virtual void apply_visitor_virtual(const T& input) = 0;
 };
 
 // Implements `VisitorDeclare` for every type in a type_list.

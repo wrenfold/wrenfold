@@ -20,7 +20,7 @@ Expr Expr::from_int(const std::int64_t x) { return Integer::create(x); }
 
 std::string Expr::to_string() const {
   PlainFormatter formatter{};
-  Visit(*this, formatter);
+  visit(*this, formatter);
   return formatter.take_output();
 }
 
@@ -85,6 +85,6 @@ struct PrecedenceVisitor {
   }
 };
 
-Precedence get_precedence(const Expr& expr) { return Visit(expr, PrecedenceVisitor{}); }
+Precedence get_precedence(const Expr& expr) { return visit(expr, PrecedenceVisitor{}); }
 
 }  // namespace math

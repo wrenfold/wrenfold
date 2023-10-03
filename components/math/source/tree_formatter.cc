@@ -47,13 +47,13 @@ struct TreeFormatter {
 
   void visit_left(const Expr& expr) {
     indentations_.push_back(true);
-    Visit(expr, *this);
+    visit(expr, *this);
     indentations_.pop_back();
   }
 
   void visit_right(const Expr& expr) {
     indentations_.push_back(false);
-    Visit(expr, *this);
+    visit(expr, *this);
     indentations_.pop_back();
   }
 
@@ -176,7 +176,7 @@ struct TreeFormatter {
 
 std::string Expr::to_expression_tree_string() const {
   TreeFormatter formatter{};
-  Visit(*this, formatter);
+  visit(*this, formatter);
   return formatter.take_output();
 }
 

@@ -86,7 +86,7 @@ struct MultiplyVisitor {
     if constexpr (std::is_same_v<T, Multiplication>) {
       for (const Expr& expr : arg) {
         // Recursively add multiplications:
-        Visit(expr, [this, &expr](const auto& x) { operator()(x, expr); });
+        visit(expr, [this, &expr](const auto& x) { operator()(x, expr); });
       }
     } else if constexpr (std::is_same_v<T, Power>) {
       const Power& arg_pow = arg;
@@ -146,10 +146,10 @@ MultiplicationParts::MultiplicationParts(const Multiplication& mul, bool factori
 void MultiplicationParts::multiply_term(const Expr& arg, bool factorize_integers) {
   if (factorize_integers) {
     MultiplyVisitor<true> visitor{*this};
-    Visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
+    visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
   } else {
     MultiplyVisitor<false> visitor{*this};
-    Visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
+    visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
   }
 }
 
@@ -226,7 +226,7 @@ inline std::pair<Expr, Expr> split_multiplication(const Expr& input, const Multi
 }
 
 std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
-  return Visit(expr, [&expr](const auto& x) -> std::pair<Expr, Expr> {
+  return visit(expr, [&expr](const auto& x) -> std::pair<Expr, Expr> {
     using T = std::decay_t<decltype(x)>;
     if constexpr (list_contains_type_v<T, Integer, Rational, Float>) {
       // Numerical values are always the coefficient:

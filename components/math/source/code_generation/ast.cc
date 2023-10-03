@@ -274,7 +274,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value&, const ir::Load& load) {
-    return Visit(load.expr, [this](const auto& inner) -> ast::Variant {
+    return visit(load.expr, [this](const auto& inner) -> ast::Variant {
       using T = std::decay_t<decltype(inner)>;
       if constexpr (std::is_same_v<T, Integer>) {
         return ast::IntegerConstant{inner.get_value()};

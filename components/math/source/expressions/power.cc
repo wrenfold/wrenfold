@@ -125,7 +125,7 @@ struct PowerNumerics {
 
 Expr Power::create(const Expr& a, const Expr& b) {
   // Check for numeric quantities.
-  std::optional<Expr> numeric_pow = VisitBinary(a, b, PowerNumerics{});
+  std::optional<Expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
   if (numeric_pow) {
     return *numeric_pow;
   }

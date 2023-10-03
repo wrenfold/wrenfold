@@ -78,14 +78,14 @@ struct OrderVisitor {
   }
 
   RelativeOrder compare(const Power& a, const Power& b) const {
-    const RelativeOrder base_order = VisitBinary(a.base(), b.base(), OrderVisitor{});
+    const RelativeOrder base_order = visit_binary(a.base(), b.base(), OrderVisitor{});
     if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
     } else if (base_order == RelativeOrder::GreaterThan) {
       return RelativeOrder::GreaterThan;
     }
     // Otherwise order is determined by the exponent:
-    return VisitBinary(a.exponent(), b.exponent(), OrderVisitor{});
+    return visit_binary(a.exponent(), b.exponent(), OrderVisitor{});
   }
 
   RelativeOrder compare(const Function& a, const Function& b) const {
@@ -116,13 +116,13 @@ struct OrderVisitor {
     } else if (a.operation() > b.operation()) {
       return RelativeOrder::GreaterThan;
     }
-    const RelativeOrder base_order = VisitBinary(a.left(), b.left(), OrderVisitor{});
+    const RelativeOrder base_order = visit_binary(a.left(), b.left(), OrderVisitor{});
     if (base_order == RelativeOrder::LessThan) {
       return RelativeOrder::LessThan;
     } else if (base_order == RelativeOrder::GreaterThan) {
       return RelativeOrder::GreaterThan;
     }
-    return VisitBinary(a.right(), b.right(), OrderVisitor{});
+    return visit_binary(a.right(), b.right(), OrderVisitor{});
   }
 
   RelativeOrder compare(const Variable& a, const Variable& b) const {
@@ -156,7 +156,7 @@ struct OrderVisitor {
 };
 
 RelativeOrder expression_order(const Expr& a, const Expr& b) {
-  return VisitBinary(a, b, OrderVisitor{});
+  return visit_binary(a, b, OrderVisitor{});
 }
 
 }  // namespace math

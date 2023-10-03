@@ -17,8 +17,8 @@ namespace math {
 class Expr {
  public:
   // Constructors.
-  explicit Expr(ExpressionConceptConstPtr&& impl) : impl_(std::move(impl)) {}
-  explicit Expr(const ExpressionConceptConstPtr& impl) : impl_(impl) {}
+  explicit Expr(expression_concept_const_ptr&& impl) : impl_(std::move(impl)) {}
+  explicit Expr(const expression_concept_const_ptr& impl) : impl_(impl) {}
 
   // Construct variable:
   explicit Expr(std::string_view name);
@@ -95,7 +95,7 @@ class Expr {
   void receive_visitor(VisitorBase& visitor) const { impl_->receive_visitor(visitor); }
 
  protected:
-  [[nodiscard]] const ExpressionConceptConstPtr& Impl() const { return impl_; }
+  [[nodiscard]] const expression_concept_const_ptr& Impl() const { return impl_; }
 
   friend class MatrixExpr;
 
@@ -125,7 +125,7 @@ class Expr {
     }
   }
 
-  ExpressionConceptConstPtr impl_;
+  expression_concept_const_ptr impl_;
 };
 
 static_assert(std::is_nothrow_move_constructible_v<Expr> && std::is_nothrow_move_assignable_v<Expr>,

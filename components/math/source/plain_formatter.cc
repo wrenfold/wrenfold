@@ -38,7 +38,7 @@ void PlainFormatter::operator()(const Addition& expr) {
       if (is_negative_one(coeff)) {
         format_precedence(Precedence::Addition, multiplicand);
       } else {
-        Visit(-coeff, *this);
+        visit(-coeff, *this);
         if (!is_one(multiplicand)) {
           output_ += " * ";
           format_precedence(Precedence::Multiplication, multiplicand);
@@ -51,7 +51,7 @@ void PlainFormatter::operator()(const Addition& expr) {
       if (is_one(coeff)) {
         format_precedence(Precedence::Addition, multiplicand);
       } else {
-        Visit(coeff, *this);
+        visit(coeff, *this);
         if (!is_one(multiplicand)) {
           output_ += " * ";
           format_precedence(Precedence::Multiplication, multiplicand);
@@ -63,11 +63,11 @@ void PlainFormatter::operator()(const Addition& expr) {
 
 void PlainFormatter::operator()(const Conditional& conditional) {
   output_ += "where(";
-  Visit(conditional.condition(), *this);
+  visit(conditional.condition(), *this);
   output_ += ", ";
-  Visit(conditional.if_branch(), *this);
+  visit(conditional.if_branch(), *this);
   output_ += ", ";
-  Visit(conditional.else_branch(), *this);
+  visit(conditional.else_branch(), *this);
   output_ += ")";
 }
 
@@ -77,9 +77,9 @@ void PlainFormatter::operator()(const Constant& expr) {
 
 void PlainFormatter::operator()(const Derivative& derivative) {
   output_ += "Derivative(";
-  Visit(derivative.differentiand(), *this);
+  visit(derivative.differentiand(), *this);
   output_ += ", ";
-  Visit(derivative.argument(), *this);
+  visit(derivative.argument(), *this);
   if (derivative.order() > 1) {
     fmt::format_to(std::back_inserter(output_), ", {})", derivative.order());
   } else {
@@ -121,7 +121,7 @@ void PlainFormatter::operator()(const Matrix& mat) {
   // Format all the child elements up front. That way we can do alignment:
   std::transform(mat.begin(), mat.end(), elements.begin(), [](const Expr& expr) {
     PlainFormatter child_formatter{};
-    Visit(expr, child_formatter);
+    visit(expr, child_formatter);
     return child_formatter.output_;
   });
 
@@ -208,11 +208,11 @@ void PlainFormatter::operator()(const Function& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
   auto it = func.begin();
   if (it != func.end()) {
-    Visit(*it, *this);
+    visit(*it, *this);
   }
   for (++it; it != func.end(); ++it) {
     output_ += ", ";
-    Visit(*it, *this);
+    visit(*it, *this);
   }
   output_ += ")";
 }
@@ -234,10 +234,10 @@ void PlainFormatter::operator()(const Variable& expr) { output_ += expr.name(); 
 void PlainFormatter::format_precedence(const Precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {
     output_ += "(";
-    Visit(expr, *this);
+    visit(expr, *this);
     output_ += ")";
   } else {
-    Visit(expr, *this);
+    visit(expr, *this);
   }
 }
 

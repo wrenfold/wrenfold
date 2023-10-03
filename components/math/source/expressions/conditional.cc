@@ -17,17 +17,17 @@ class ConditionalSimplificationVisitor {
   Expr apply_conditional(const Conditional& cond) {
     if (cond.condition().is_identical_to(condition_)) {
       if (value_) {
-        return Visit(cond.if_branch(), [this, &cond](const auto& x) {
+        return visit(cond.if_branch(), [this, &cond](const auto& x) {
           return this->operator()(x, cond.if_branch());
         });
       } else {
-        return Visit(cond.else_branch(), [this, &cond](const auto& x) {
+        return visit(cond.else_branch(), [this, &cond](const auto& x) {
           return this->operator()(x, cond.else_branch());
         });
       }
     }
     return cond.map_children([this](const Expr& x) {
-      return Visit(x, [this, &x](const auto& y) { return operator()(y, x); });
+      return visit(x, [this, &x](const auto& y) { return operator()(y, x); });
     });
   }
 
@@ -39,7 +39,7 @@ class ConditionalSimplificationVisitor {
       return expr;
     } else {
       return thing.map_children([this](const Expr& x) {
-        return Visit(x, [this, &x](const auto& y) { return operator()(y, x); });
+        return visit(x, [this, &x](const auto& y) { return operator()(y, x); });
       });
     }
   }
@@ -58,9 +58,9 @@ Expr Conditional::create(math::Expr condition, math::Expr if_branch, math::Expr 
 
   // Check for redundancies and eliminate them:
   Expr if_branch_simplified =
-      VisitWithExprArg(if_branch, ConditionalSimplificationVisitor{condition, true});
+      visit_with_expr(if_branch, ConditionalSimplificationVisitor{condition, true});
   Expr else_branch_simplified =
-      VisitWithExprArg(else_branch, ConditionalSimplificationVisitor{condition, false});
+      visit_with_expr(else_branch, ConditionalSimplificationVisitor{condition, false});
 
   if (if_branch_simplified.is_identical_to(else_branch_simplified)) {
     return if_branch_simplified;

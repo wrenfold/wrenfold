@@ -36,6 +36,6 @@ struct EvaluateVisitor {
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 
-Expr evaluate(const Expr& arg) { return VisitWithExprArg(arg, EvaluateVisitor{}); }
+Expr evaluate(const Expr& arg) { return visit_with_expr(arg, EvaluateVisitor{}); }
 
 }  // namespace math

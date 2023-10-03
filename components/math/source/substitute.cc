@@ -36,7 +36,7 @@ struct SubstituteVisitorBase {
 
         // Irrespective of whether that succeeded, one of the children may still contain the
         // expression we are searching for as well:
-        return Visit(partial_sub, [this, &partial_sub](const auto& arg) {
+        return visit(partial_sub, [this, &partial_sub](const auto& arg) {
           using T = std::decay_t<decltype(arg)>;
           if constexpr (T::IsLeafNode) {
             // This type has no children, so return the input expression unmodified:
@@ -45,7 +45,7 @@ struct SubstituteVisitorBase {
             // This type does have children, so apply to all of them:
             Derived& as_derived = static_cast<Derived&>(*this);
             return arg.map_children([&as_derived](const Expr& child) -> Expr {
-              return Visit(child,
+              return visit(child,
                            [&as_derived, &child](const auto& x) { return as_derived(x, child); });
             });
           }
@@ -59,7 +59,7 @@ struct SubstituteVisitorBase {
       // Otherwise we substitute in every child:
       Derived& as_derived = static_cast<Derived&>(*this);
       return other.map_children([&](const Expr& child) {
-        return Visit(child, [&](const auto& x) { return as_derived(x, child); });
+        return visit(child, [&](const auto& x) { return as_derived(x, child); });
       });
     }
   }
@@ -304,7 +304,7 @@ struct sub_visitor_type<Power> {
 
 Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) {
   // Visit `target` to determine the underlying type, then visit the input w/ SubstituteVisitor:
-  return Visit(target, [&](const auto& target) -> Expr {
+  return visit(target, [&](const auto& target) -> Expr {
     using T = std::decay_t<decltype(target)>;
     // Don't allow the target type to be a numeric literal:
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
@@ -312,7 +312,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
       throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
     } else {
       using VisitorType = typename sub_visitor_type<T>::type;
-      return Visit(input, [&target, &replacement, &input](const auto& x) {
+      return visit(input, [&target, &replacement, &input](const auto& x) {
         return VisitorType{target, replacement}(x, input);
       });
     }

@@ -234,7 +234,7 @@ struct Atan2Visitor {
 };
 
 Expr atan2(const Expr& y, const Expr& x) {
-  std::optional<Expr> maybe_simplified = VisitBinary(y, x, Atan2Visitor{});
+  std::optional<Expr> maybe_simplified = visit_binary(y, x, Atan2Visitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
@@ -319,7 +319,7 @@ struct SignumVisitor {
 };
 
 Expr signum(const Expr& arg) {
-  std::optional<Expr> maybe_simplified = VisitWithExprArg(arg, SignumVisitor{});
+  std::optional<Expr> maybe_simplified = visit_with_expr(arg, SignumVisitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }

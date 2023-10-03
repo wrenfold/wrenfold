@@ -40,7 +40,7 @@ struct NumericFunctionEvaluator {
       return input;
     } else {
       return input_typed.map_children([this](const Expr& expr) {
-        return Visit(expr, [this, &expr](const auto& x) { return this->operator()(x, expr); });
+        return visit(expr, [this, &expr](const auto& x) { return this->operator()(x, expr); });
       });
     }
   }
@@ -60,7 +60,7 @@ template <>
 struct apply_numeric_evaluator_impl<Expr> {
   double operator()(const NumericFunctionEvaluator& evaluator, const Expr& input) const {
     const Expr subs =
-        Visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
+        visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
     if (const Float* f = cast_ptr<Float>(subs); f != nullptr) {
       return f->get_value();
     } else if (const Integer* i = cast_ptr<Integer>(subs); i != nullptr) {
