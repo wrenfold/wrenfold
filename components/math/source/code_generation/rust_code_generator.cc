@@ -5,7 +5,7 @@
 namespace math {
 
 std::string RustCodeGenerator::generate_code(const ast::FunctionSignature& signature,
-                                        const std::vector<ast::Variant>& body) const {
+                                             const std::vector<ast::Variant>& body) const {
   CodeFormatter result{};
   format_signature(result, signature);
   result.with_indentation(2, "{\n", "\n}", [&] { result.join(*this, "\n", body); });
@@ -58,7 +58,7 @@ static std::vector<std::string_view> GetAttributes(const ast::FunctionSignature&
 }
 
 void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
-                                        const ast::FunctionSignature& signature) const {
+                                         const ast::FunctionSignature& signature) const {
   formatter.format("#[inline]\n");
 
   const auto attributes = GetAttributes(signature);
@@ -160,7 +160,7 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& 
 
   if (!x.else_branch.empty()) {
     formatter.with_indentation(2, " else {\n", "\n}",
-                              [&] { formatter.join(*this, "\n", x.else_branch); });
+                               [&] { formatter.join(*this, "\n", x.else_branch); });
   }
 }
 
@@ -197,7 +197,8 @@ static constexpr std::string_view GetBuiltInFunctionCall(const BuiltInFunctionNa
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  formatter.format("{}({})", GetBuiltInFunctionCall(x.function), make_join_view(*this, ", ", x.args));
+  formatter.format("{}({})", GetBuiltInFunctionCall(x.function),
+                   make_join_view(*this, ", ", x.args));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {

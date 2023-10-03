@@ -54,7 +54,7 @@ ExpressionGroup create_expression_group(const T& tuple_element) {
   } else {
     const OutputArg<TInner>& as_output_arg = tuple_element;
     OutputKey key{as_output_arg.is_optional() ? ExpressionUsage::OptionalOutputArgument
-                                             : ExpressionUsage::OutputArgument,
+                                              : ExpressionUsage::OutputArgument,
                   as_output_arg.name()};
     return ExpressionGroup(std::move(expressions), std::move(key));
   }
@@ -62,8 +62,8 @@ ExpressionGroup create_expression_group(const T& tuple_element) {
 
 template <typename... Ts, std::size_t... Indices>
 void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
-                                    std::vector<ExpressionGroup>& groups,
-                                    std::index_sequence<Indices...>) {
+                                       std::vector<ExpressionGroup>& groups,
+                                       std::index_sequence<Indices...>) {
   static_assert(std::conjunction_v<is_output_arg_or_return_value<Ts>...>,
                 "All returned elements of the tuple must be explicitly marked as `ReturnValue` or "
                 "`OutputArg`.");
@@ -73,12 +73,13 @@ void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
   (groups.push_back(create_expression_group(std::get<Indices>(output_tuple))), ...);
 }
 
-// Create an index sequence, so we can invoke `copy_output_expression_from_tuple` over all the elements
-// of the tuple.
+// Create an index sequence, so we can invoke `copy_output_expression_from_tuple` over all the
+// elements of the tuple.
 template <typename... Ts>
 void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
-                                    std::vector<ExpressionGroup>& groups) {
-  copy_output_expression_from_tuple(output_tuple, groups, std::make_index_sequence<sizeof...(Ts)>());
+                                       std::vector<ExpressionGroup>& groups) {
+  copy_output_expression_from_tuple(output_tuple, groups,
+                                    std::make_index_sequence<sizeof...(Ts)>());
 }
 
 template <typename T>
@@ -102,14 +103,14 @@ struct RecordOutput<OutputArg<T>> {
   void operator()(ast::FunctionSignature& desc, const OutputArg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
       desc.add_argument(output.name(), ast::ScalarType(NumericType::Real),
-                       output.is_optional() ? ast::ArgumentDirection::OptionalOutput
-                                           : ast::ArgumentDirection::Output);
+                        output.is_optional() ? ast::ArgumentDirection::OptionalOutput
+                                             : ast::ArgumentDirection::Output);
     } else {
       // todo: static assert this is StaticMatrix
       desc.add_argument(output.name(),
-                       ast::MatrixType(output.value().rows(), output.value().cols()),
-                       output.is_optional() ? ast::ArgumentDirection::OptionalOutput
-                                           : ast::ArgumentDirection::Output);
+                        ast::MatrixType(output.value().rows(), output.value().cols()),
+                        output.is_optional() ? ast::ArgumentDirection::OptionalOutput
+                                             : ast::ArgumentDirection::Output);
     }
   }
 };
@@ -121,7 +122,7 @@ template <>
 struct RecordInputArgument<Expr> {
   void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
     desc.add_argument(arg.name(), ast::ScalarType(NumericType::Real),
-                     ast::ArgumentDirection::Input);
+                      ast::ArgumentDirection::Input);
   }
 };
 
@@ -134,9 +135,8 @@ struct RecordInputArgument<type_annotations::StaticMatrix<Rows, Cols>> {
 
 template <typename ArgList, std::size_t... Indices, std::size_t N>
 void record_input_args(ast::FunctionSignature& desc, const std::array<Arg, N>& args,
-                     std::index_sequence<Indices...>) {
-  (RecordInputArgument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(
-       desc, args[Indices]),
+                       std::index_sequence<Indices...>) {
+  (RecordInputArgument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(desc, args[Indices]),
    ...);
 }
 

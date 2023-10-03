@@ -20,14 +20,14 @@ struct DistributeVisitor {
                    [](const Expr& expr) { return distribute(expr); });
 
     // Are any of the child expressions additions?
-    const std::size_t total_terms =
-        std::accumulate(children.begin(), children.end(), static_cast<std::size_t>(1lu),
-                        [](std::size_t total, const Expr& expr) {
-                          if (const Addition* const add = cast_ptr<Addition>(expr); add != nullptr) {
-                            total *= add->arity();
-                          }
-                          return total;
-                        });
+    const std::size_t total_terms = std::accumulate(
+        children.begin(), children.end(), static_cast<std::size_t>(1lu),
+        [](std::size_t total, const Expr& expr) {
+          if (const Addition* const add = cast_ptr<Addition>(expr); add != nullptr) {
+            total *= add->arity();
+          }
+          return total;
+        });
 
     // If the total terms is > 1, we have an addition to distribute over.
     const bool contains_additions = total_terms > 1;

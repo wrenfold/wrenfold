@@ -15,7 +15,7 @@ class CppCodeGenerator {
   };
 
   std::string generate_code(const ast::FunctionSignature& signature,
-                       const std::vector<ast::Variant>& body) const;
+                            const std::vector<ast::Variant>& body) const;
 
   // Create a FmtView that can be passed to CodeFormatter. All args will be
   // forwarded back to the operator on this class that matches them.

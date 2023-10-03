@@ -129,8 +129,8 @@ void PlainFormatter::operator()(const Matrix& mat) {
   std::vector<std::size_t> column_widths(mat.cols(), 0);
   for (index_t j = 0; j < mat.cols(); ++j) {
     for (index_t i = 0; i < mat.rows(); ++i) {
-      column_widths[static_cast<std::size_t>(j)] =
-          std::max(column_widths[static_cast<std::size_t>(j)], elements[mat.compute_index(i, j)].size());
+      column_widths[static_cast<std::size_t>(j)] = std::max(
+          column_widths[static_cast<std::size_t>(j)], elements[mat.compute_index(i, j)].size());
     }
   }
 

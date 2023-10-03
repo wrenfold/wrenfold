@@ -7,7 +7,7 @@
 namespace math {
 
 Matrix Matrix::get_block(const index_t row, const index_t col, const index_t nrows,
-                        const index_t ncols) const {
+                         const index_t ncols) const {
   if (row < 0 || row + nrows > rows_ || col < 0 || col + ncols > cols_) {
     throw DimensionError(
         "Block [position: ({}, {}), size: ({}, {})] is out of bounds for matrix of shape ({}, {})",
@@ -16,7 +16,7 @@ Matrix Matrix::get_block(const index_t row, const index_t col, const index_t nro
   std::vector<Expr> data;
   data.reserve(nrows * ncols);
   iter_matrix(nrows, ncols,
-             [&](index_t i, index_t j) { data.push_back(get_unchecked(i + row, j + col)); });
+              [&](index_t i, index_t j) { data.push_back(get_unchecked(i + row, j + col)); });
   return Matrix(nrows, ncols, std::move(data));
 }
 
@@ -26,7 +26,7 @@ Matrix Matrix::transposed() const {
   const index_t output_rows = cols();
   const index_t output_cols = rows();
   iter_matrix(output_rows, output_cols,
-             [&](index_t r, index_t c) { output.push_back(operator()(c, r)); });
+              [&](index_t r, index_t c) { output.push_back(operator()(c, r)); });
   return Matrix(output_rows, output_cols, std::move(output));
 }
 
@@ -66,20 +66,20 @@ Matrix operator+(const Matrix& a, const Matrix& b) {
   std::vector<Expr> output;
   output.reserve(a.size());
   iter_matrix(a.rows(), a.cols(),
-             [&](index_t i, index_t j) { output.push_back(a(i, j) + b(i, j)); });
+              [&](index_t i, index_t j) { output.push_back(a(i, j) + b(i, j)); });
 
   return Matrix(a.rows(), a.cols(), std::move(output));
 }
 
 Matrix operator-(const Matrix& a, const Matrix& b) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
-    throw DimensionError("dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).",
-                         a.rows(), a.cols(), b.rows(), b.cols());
+    throw DimensionError("dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).", a.rows(),
+                         a.cols(), b.rows(), b.cols());
   }
   std::vector<Expr> output;
   output.reserve(a.size());
   iter_matrix(a.rows(), a.cols(),
-             [&](index_t i, index_t j) { output.push_back(a(i, j) - b(i, j)); });
+              [&](index_t i, index_t j) { output.push_back(a(i, j) - b(i, j)); });
 
   return Matrix(a.rows(), a.cols(), std::move(output));
 }

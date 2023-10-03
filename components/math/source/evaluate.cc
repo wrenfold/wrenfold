@@ -9,10 +9,14 @@ struct EvaluateVisitor {
   using ReturnType = Expr;
 
   Expr operator()(const Addition& add, const Expr&) const { return add.map_children(&evaluate); }
-  Expr operator()(const Multiplication& mul, const Expr&) const { return mul.map_children(&evaluate); }
+  Expr operator()(const Multiplication& mul, const Expr&) const {
+    return mul.map_children(&evaluate);
+  }
   Expr operator()(const Function& f, const Expr&) const { return f.map_children(&evaluate); }
   Expr operator()(const Power& pow, const Expr&) const { return pow.map_children(&evaluate); }
-  Expr operator()(const Conditional& cond, const Expr&) const { return cond.map_children(&evaluate); }
+  Expr operator()(const Conditional& cond, const Expr&) const {
+    return cond.map_children(&evaluate);
+  }
 
   Expr operator()(const Constant& c) const {
     const double value = double_from_symbolic_constant(c.name());

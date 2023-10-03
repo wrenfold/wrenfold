@@ -57,9 +57,10 @@ TEST(IntegerUtils, TestComputePrimeFactors) {
     const std::vector<PrimeFactor> result = compute_prime_factors(i);
     ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
     // Check that the factors multiply out to the input number.
-    const int64_t product = std::accumulate(
-        result.begin(), result.end(), 1l,
-        [](int64_t product, const PrimeFactor& f) { return product * integer_power(f.base, f.exponent); });
+    const int64_t product = std::accumulate(result.begin(), result.end(), 1l,
+                                            [](int64_t product, const PrimeFactor& f) {
+                                              return product * integer_power(f.base, f.exponent);
+                                            });
     ASSERT_EQ(product, i);
     // Check that all the factors are prime:
     for (const PrimeFactor factor : result) {

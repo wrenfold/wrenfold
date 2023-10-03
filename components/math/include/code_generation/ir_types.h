@@ -71,7 +71,8 @@ struct Add {
   constexpr bool is_same(const Add&) const { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(std::max(determine_value_type(a), determine_value_type(b)), NumericType::Integer);
+    return std::max(std::max(determine_value_type(a), determine_value_type(b)),
+                    NumericType::Integer);
   }
 };
 
@@ -163,7 +164,7 @@ struct Cond {
   constexpr bool is_same(const Cond&) const { return true; }
 
   NumericType determine_type(const ValuePtr&, const ValuePtr& true_val,
-                            const ValuePtr& false_val) const {
+                             const ValuePtr& false_val) const {
     return std::max(determine_value_type(true_val), determine_value_type(false_val));
   }
 };
@@ -207,7 +208,8 @@ struct Mul {
   constexpr bool is_same(const Mul&) const { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(std::max(determine_value_type(a), determine_value_type(b)), NumericType::Integer);
+    return std::max(std::max(determine_value_type(a), determine_value_type(b)),
+                    NumericType::Integer);
   }
 };
 
@@ -249,7 +251,8 @@ struct Pow {
   constexpr bool is_same(const Pow&) const { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(std::max(determine_value_type(a), determine_value_type(b)), NumericType::Integer);
+    return std::max(std::max(determine_value_type(a), determine_value_type(b)),
+                    NumericType::Integer);
   }
 };
 
@@ -532,7 +535,8 @@ struct ValueHasher {
     // Seed the hash w/ the index in the variant, which accounts for the type of the op.
     std::size_t seed = val->value_op().index();
     // Then some operations w/ members need to reason about the hash of those members:
-    seed = hash_combine(seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
+    seed = hash_combine(
+        seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
     for (const ir::ValuePtr& operand : val->operands()) {
       const uint32_t val_name = operand->name();
       seed = hash_combine(seed, static_cast<std::size_t>(val_name));

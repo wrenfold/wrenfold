@@ -63,10 +63,10 @@ constexpr bool has_binary_call_operator_v = false;
 
 // Specialization that is activated when the binary operator() method exists.
 template <typename T, typename Argument1, typename Argument2>
-constexpr bool has_binary_call_operator_v<T, Argument1, Argument2,
-                                     decltype(std::declval<T>()(std::declval<const Argument1>(),
-                                                                std::declval<const Argument2>()),
-                                              void())> = true;
+constexpr bool has_binary_call_operator_v<
+    T, Argument1, Argument2,
+    decltype(std::declval<T>()(std::declval<const Argument1>(), std::declval<const Argument2>()),
+             void())> = true;
 
 // Size of type list.
 template <typename T>
@@ -162,8 +162,8 @@ struct CallOperatorReturnTypesImpl<Callable, Head, Tail...> {
   // Don't append nullptr_t, this is the signal for an invocation that isn't valid (no operator()).
   using Type = typename std::conditional_t<
       !std::is_same_v<CandidateType, std::nullptr_t>,
-      append_to_type_list_t<
-          CandidateType, typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>,
+      append_to_type_list_t<CandidateType,
+                            typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>,
       typename CallOperatorReturnTypesImpl<Callable, Tail...>::Type>;
 };
 

@@ -57,7 +57,9 @@ class Matrix {
   const Expr& operator()(index_t i, index_t j) const;
 
   // Get with no bounds checking.
-  const Expr& get_unchecked(index_t i, index_t j) const noexcept { return data_[compute_index(i, j)]; }
+  const Expr& get_unchecked(index_t i, index_t j) const noexcept {
+    return data_[compute_index(i, j)];
+  }
 
   // Non-const accessor with no bounds checking.
   Expr& get_unchecked(index_t i, index_t j) noexcept { return data_[compute_index(i, j)]; }

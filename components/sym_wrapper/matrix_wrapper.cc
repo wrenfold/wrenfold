@@ -180,7 +180,8 @@ inline std::size_t ExtractIterableRows(const py::handle& row, std::vector<Expr>&
     // If the "row" is a matrix, we stack them vertically:
     const auto num_elements = as_matrix.cols() * as_matrix.rows();
     output.reserve(output.size() + static_cast<std::size_t>(num_elements));
-    std::copy(as_matrix.as_matrix().begin(), as_matrix.as_matrix().end(), std::back_inserter(output));
+    std::copy(as_matrix.as_matrix().begin(), as_matrix.as_matrix().end(),
+              std::back_inserter(output));
     return as_matrix.cols();
   }
   return TransformIntoExpr(py::iter(row), output);
@@ -285,7 +286,9 @@ void WrapMatrixOperations(py::module_& m) {
            "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "is_identical_to",
-          [](const MatrixExpr& self, const MatrixExpr& other) { return self.is_identical_to(other); },
+          [](const MatrixExpr& self, const MatrixExpr& other) {
+            return self.is_identical_to(other);
+          },
           "other"_a, "Test if two matrix expressions have identical expression trees.")
       .def_property_readonly("type_name", &MatrixExpr::type_name)
       // Operations:
@@ -362,8 +365,8 @@ void WrapMatrixOperations(py::module_& m) {
         "Construct a row vector from the arguments.");
   m.def("matrix", &MatrixFromIterable, py::arg("rows"),
         "Construct a matrix from an iterator over rows.");
-  m.def("matrix_of_symbols", &make_matrix_of_symbols, py::arg("prefix"), py::arg("rows"), py::arg("cols"),
-        "Construct a matrix of symbols.");
+  m.def("matrix_of_symbols", &make_matrix_of_symbols, py::arg("prefix"), py::arg("rows"),
+        py::arg("cols"), "Construct a matrix of symbols.");
 
   m.def("vec", &vectorize_matrix, py::arg("m"), "Vectorize matrix in column-major order.");
   m.def("det", &determinant, py::arg("m"), "Compute determinant of a matrix.");

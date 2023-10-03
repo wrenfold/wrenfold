@@ -55,13 +55,18 @@ MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
   return MatrixExpr{as_matrix().map_children([&](const Expr& x) { return x.diff(var, reps); })};
 }
 
-MatrixExpr MatrixExpr::distribute() const { return MatrixExpr{as_matrix().map_children(&math::distribute)}; }
-
-MatrixExpr MatrixExpr::subs(const Expr& target, const Expr& replacement) const {
-  return MatrixExpr{as_matrix().map_children([&](const Expr& x) { return x.subs(target, replacement); })};
+MatrixExpr MatrixExpr::distribute() const {
+  return MatrixExpr{as_matrix().map_children(&math::distribute)};
 }
 
-MatrixExpr MatrixExpr::eval() const { return MatrixExpr{as_matrix().map_children(&math::evaluate)}; }
+MatrixExpr MatrixExpr::subs(const Expr& target, const Expr& replacement) const {
+  return MatrixExpr{
+      as_matrix().map_children([&](const Expr& x) { return x.subs(target, replacement); })};
+}
+
+MatrixExpr MatrixExpr::eval() const {
+  return MatrixExpr{as_matrix().map_children(&math::evaluate)};
+}
 
 namespace matrix_operator_overloads {
 

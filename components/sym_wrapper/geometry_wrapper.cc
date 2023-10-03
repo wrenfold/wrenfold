@@ -25,11 +25,10 @@ static auto ComponentsFromIterable(const py::iterable& iterable) {
 
 // Check that matrix has correct dims to be converted to quaternion.
 static void CheckMatrixDims(const MatrixExpr& m) {
-  const bool valid_dims =
-      (m.rows() == 4 && m.cols() == 1) || (m.rows() == 1 && m.cols() == 4);
+  const bool valid_dims = (m.rows() == 4 && m.cols() == 1) || (m.rows() == 1 && m.cols() == 4);
   if (!valid_dims) {
-    throw TypeError("Matrix must be a 4-element vector. Provided has dimension: [{}, {}]",
-                    m.rows(), m.cols());
+    throw TypeError("Matrix must be a 4-element vector. Provided has dimension: [{}, {}]", m.rows(),
+                    m.cols());
   }
 }
 
@@ -60,7 +59,7 @@ void WrapGeometryOperations(py::module_& m) {
           "with_name",
           [](const std::string_view name) {
             auto [w, x, y, z] = make_symbols(fmt::format("{}_w", name), fmt::format("{}_x", name),
-                                        fmt::format("{}_y", name), fmt::format("{}_z", name));
+                                             fmt::format("{}_y", name), fmt::format("{}_z", name));
             return Quaternion{std::move(w), std::move(x), std::move(y), std::move(z)};
           },
           "name"_a, "Construct a symbolic quaternion with the given prefix.")
@@ -71,7 +70,9 @@ void WrapGeometryOperations(py::module_& m) {
            })
       .def(
           "is_identical_to",
-          [](const Quaternion& self, const Quaternion& other) { return self.is_identical_to(other); },
+          [](const Quaternion& self, const Quaternion& other) {
+            return self.is_identical_to(other);
+          },
           "other"_a, "Test if two quaternions have identical expression trees.")
       .def_property_readonly("type_name",
                              [](const Quaternion&) -> std::string_view { return "Quaternion"; })

@@ -56,7 +56,7 @@ class ExpressionImpl final : public ExpressionConcept {
   // Compute the hash of the underlying expression, and hash it again w/ the index of the type.
   static std::size_t compute_hash(const ExpressionType& impl) {
     return hash_combine(index_of_type<ExpressionType, ExpressionTypeList>::value,
-                       hash_struct<ExpressionType>{}(impl));
+                        hash_struct<ExpressionType>{}(impl));
   }
 
   ExpressionType implementation_;

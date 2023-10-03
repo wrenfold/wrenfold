@@ -98,17 +98,18 @@ Expr AdditionParts::create_addition() const {
   }
 
   args.reserve(args.size() + terms.size());
-  std::transform(
-      terms.begin(), terms.end(), std::back_inserter(args), [](const std::pair<Expr, Expr>& pair) {
-        if (is_one(pair.second)) {
-          return pair.first;
-        } else if (!pair.first.is_type<Multiplication>() && !pair.second.is_type<Multiplication>()) {
-          // We can skip calling FromOperands here because we know the first element in
-          // the pair is the non-numeric value and the second is the numeric coefficient.
-          return make_expr<Multiplication>(pair.second, pair.first);
-        }
-        return Multiplication::from_operands({pair.first, pair.second});
-      });
+  std::transform(terms.begin(), terms.end(), std::back_inserter(args),
+                 [](const std::pair<Expr, Expr>& pair) {
+                   if (is_one(pair.second)) {
+                     return pair.first;
+                   } else if (!pair.first.is_type<Multiplication>() &&
+                              !pair.second.is_type<Multiplication>()) {
+                     // We can skip calling FromOperands here because we know the first element in
+                     // the pair is the non-numeric value and the second is the numeric coefficient.
+                     return make_expr<Multiplication>(pair.second, pair.first);
+                   }
+                   return Multiplication::from_operands({pair.first, pair.second});
+                 });
 
   if (args.empty()) {
     return Constants::Zero;

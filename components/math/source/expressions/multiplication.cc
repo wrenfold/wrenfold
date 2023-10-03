@@ -47,7 +47,8 @@ Expr Multiplication::from_operands(absl::Span<const Expr> args) {
     if (const Addition* add = cast_ptr<Addition>(args[0]);
         add && args[1].is_type<Integer, Rational, Float>()) {
       return MultiplyIntoAddition(*add, args[1]);
-    } else if (add = cast_ptr<Addition>(args[1]); add && args[0].is_type<Integer, Float, Rational>()) {
+    } else if (add = cast_ptr<Addition>(args[1]);
+               add && args[0].is_type<Integer, Float, Rational>()) {
       return MultiplyIntoAddition(*add, args[0]);
     }
   }
@@ -164,11 +165,11 @@ void MultiplicationParts::normalize_coefficients() {
       const auto [integer_part, fractional_part] = factorize_rational_exponent(*exponent);
       // Update the rational coefficient:
       if (integer_part.get_value() >= 0) {
-        rational_coeff =
-            rational_coeff * Rational{integer_power(base->get_value(), integer_part.get_value()), 1};
+        rational_coeff = rational_coeff *
+                         Rational{integer_power(base->get_value(), integer_part.get_value()), 1};
       } else {
-        rational_coeff =
-            rational_coeff * Rational{1, integer_power(base->get_value(), -integer_part.get_value())};
+        rational_coeff = rational_coeff *
+                         Rational{1, integer_power(base->get_value(), -integer_part.get_value())};
       }
 
       // We changed the exponent on this term, so update it.

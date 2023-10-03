@@ -40,7 +40,8 @@ MatrixExpr vectorize_matrix(const MatrixExpr& m);
 // Returns matrices [P, L, U, Q] such that: A = P*L*U*Q
 // Where `L` is lower triangular, `U` is upper triangular, and both `P` and `Q` are permutation
 // matrices.
-std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu(const MatrixExpr& A);
+std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu(
+    const MatrixExpr& A);
 
 // Compute determinant of a matrix. Only valid for square matrices.
 Expr determinant(const MatrixExpr& m);

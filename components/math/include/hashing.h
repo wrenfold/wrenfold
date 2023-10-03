@@ -24,7 +24,8 @@ inline constexpr std::size_t hash_string_fnv(const std::string_view& str) noexce
 // Based on https://stackoverflow.com/questions/2590677/
 // TODO: Investigate if there is something better than this.
 // The special numeric value here is 2^64 divided by the golden ratio, as uint64_t.
-inline constexpr std::size_t hash_combine(const std::size_t seed, const std::size_t new_hash) noexcept {
+inline constexpr std::size_t hash_combine(const std::size_t seed,
+                                          const std::size_t new_hash) noexcept {
   static_assert(sizeof(std::size_t) == 8);
   return seed ^ (new_hash + 0x9e3779b97f4a7c15 + (seed << 6) + (seed >> 2));
 }

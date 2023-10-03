@@ -54,7 +54,9 @@ struct StaticMatrix {
   operator const MatrixExpr&() const { return expr_; }  // NOLINT
 
   // Transpose:
-  [[nodiscard]] StaticMatrix<Cols, Rows> transposed() const { return StaticMatrix<Cols, Rows>{expr_.transposed()}; }
+  [[nodiscard]] StaticMatrix<Cols, Rows> transposed() const {
+    return StaticMatrix<Cols, Rows>{expr_.transposed()};
+  }
 
  private:
   MatrixExpr expr_;

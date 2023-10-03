@@ -18,7 +18,9 @@ inline bool is_zero(const Expr& expr) { return expr.is_identical_to(Constants::Z
 
 inline bool is_one(const Expr& expr) { return expr.is_identical_to(Constants::One); }
 
-inline bool is_negative_one(const Expr& expr) { return expr.is_identical_to(Constants::NegativeOne); }
+inline bool is_negative_one(const Expr& expr) {
+  return expr.is_identical_to(Constants::NegativeOne);
+}
 
 inline bool is_pi(const Expr& expr) { return expr.is_identical_to(Constants::Pi); }
 

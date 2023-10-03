@@ -32,7 +32,8 @@ struct CompareNumerics {
 
   bool operator()(const Integer& a, const Constant& b) const {
     // This must have a value since float will not be nan.
-    return compare_int_float(a.get_value(), float_from_constant(b)).value() == RelativeOrder::LessThan;
+    return compare_int_float(a.get_value(), float_from_constant(b)).value() ==
+           RelativeOrder::LessThan;
   }
   bool operator()(const Constant& a, const Integer& b) const {
     return compare_int_float(b.get_value(), float_from_constant(a)).value() ==
@@ -67,9 +68,9 @@ template <typename, typename, typename = void>
 constexpr bool supports_comparison_v = false;
 template <typename Argument1, typename Argument2>
 constexpr bool supports_comparison_v<Argument1, Argument2,
-                                  decltype(CompareNumerics{}(std::declval<const Argument1>(),
-                                                             std::declval<const Argument2>()),
-                                           void())> = true;
+                                     decltype(CompareNumerics{}(std::declval<const Argument1>(),
+                                                                std::declval<const Argument2>()),
+                                              void())> = true;
 }  // namespace detail
 
 enum class TriState {

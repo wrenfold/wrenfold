@@ -123,7 +123,8 @@ TEST(MatrixOperationsTest, TestVec) {
   const Expr x{"x"};
   const Expr y{"y"};
   ASSERT_IDENTICAL(make_vector(a, b, c), vectorize_matrix(make_row_vector(a, b, c)));
-  ASSERT_IDENTICAL(make_vector(a, c, b, d, x, y), vectorize_matrix(make_matrix(2, 3, a, b, x, c, d, y)));
+  ASSERT_IDENTICAL(make_vector(a, c, b, d, x, y),
+                   vectorize_matrix(make_matrix(2, 3, a, b, x, c, d, y)));
 }
 
 TEST(MatrixOperationsTest, TestAddition) {
@@ -131,9 +132,11 @@ TEST(MatrixOperationsTest, TestAddition) {
   const Expr b{"b"};
   const Expr c{"c"};
   const Expr d{"d"};
-  ASSERT_IDENTICAL(make_vector(a + c, b - d, b * 2 + 5), make_vector(a, -d, b) + make_vector(c, b, b + 5));
+  ASSERT_IDENTICAL(make_vector(a + c, b - d, b * 2 + 5),
+                   make_vector(a, -d, b) + make_vector(c, b, b + 5));
   ASSERT_IDENTICAL(make_vector(0, 0, 0), make_vector(a, b, c) + make_vector(-a, -b, -c));
-  ASSERT_IDENTICAL(make_vector(a, b) + make_row_vector(c, d).transposed(), make_vector(a + c, b + d));
+  ASSERT_IDENTICAL(make_vector(a, b) + make_row_vector(c, d).transposed(),
+                   make_vector(a + c, b + d));
 
   // Dimension mismatch:
   ASSERT_THROW(make_vector(a, b) + make_row_vector(c, d), DimensionError);
@@ -173,7 +176,8 @@ TEST(MatrixOperationsTest, TestMultiplication) {
   // clang-format on
 
   // Outer product:
-  ASSERT_IDENTICAL(make_matrix(2, 2, x * a, x * b, y * a, y * b), make_vector(x, y) * make_row_vector(a, b));
+  ASSERT_IDENTICAL(make_matrix(2, 2, x * a, x * b, y * a, y * b),
+                   make_vector(x, y) * make_row_vector(a, b));
 
   // Distribute scalars into matrix:
   ASSERT_IDENTICAL(make_matrix(2, 2, x + 5, 0, 0, x + 5), make_identity(2) * (x + 5));
@@ -379,10 +383,9 @@ TEST(MatrixOperationsTest, TestDeterminant2x2) {
 TEST(MatrixOperationsTest, TestDeterminant3x3) {
   // Compare 3x3 to cofactor method:
   auto A = make_matrix_of_symbols("x", 3, 3);
-  auto det_cofactor =
-      A(0, 0) * determinant(A.get_block(1, 1, 2, 2)) -
-      A(0, 1) * determinant(make_matrix(2, 2, A(1, 0), A(1, 2), A(2, 0), A(2, 2))) +
-      A(0, 2) * determinant(A.get_block(1, 0, 2, 2));
+  auto det_cofactor = A(0, 0) * determinant(A.get_block(1, 1, 2, 2)) -
+                      A(0, 1) * determinant(make_matrix(2, 2, A(1, 0), A(1, 2), A(2, 0), A(2, 2))) +
+                      A(0, 2) * determinant(A.get_block(1, 0, 2, 2));
   ASSERT_IDENTICAL(det_cofactor.distribute(), determinant(A));
 
   auto I3 = make_identity(3);
@@ -416,15 +419,15 @@ TEST(MatrixOperationsTest, TestDeterminant) {
   ASSERT_IDENTICAL(-411, determinant(M4));
 
   auto M5 = make_matrix(5, 5, 5, -9, 3, -7, 3, 5, 1, 5, 6, -3, 5, -8, 0, 3, 6, -9, 9, -2, -4, -7,
-                         -1, 0, -6, -1, 0);
+                        -1, 0, -6, -1, 0);
   ASSERT_IDENTICAL(6870, determinant(M5));
 
-  auto M6 = make_matrix(6, 6, 1, -4, 4, -1, 1, 2, -1, -3, 2, 4, 1, -1, 4, -3, -1, 2, 2, -3, 0, 3,
-                         2, 4, 2, 1, -4, 0, 0, 4, -3, 2, 4, -1, -2, -1, -4, 0);
+  auto M6 = make_matrix(6, 6, 1, -4, 4, -1, 1, 2, -1, -3, 2, 4, 1, -1, 4, -3, -1, 2, 2, -3, 0, 3, 2,
+                        4, 2, 1, -4, 0, 0, 4, -3, 2, 4, -1, -2, -1, -4, 0);
   ASSERT_IDENTICAL(6995, determinant(M6));
 
   auto M7 = make_matrix(6, 6, 0, 4, -1, -1, 4, -2, 2, 0, -2, 2, -2, 3, -4, -4, 0, -2, 2, -1, 0, 0,
-                         -1, 0, -3, -3, 0, -4, -4, 1, 0, -2, 3, 3, 1, 4, 2, 0);
+                        -1, 0, -3, -3, 0, -4, -4, 1, 0, -2, 3, 3, 1, 4, 2, 0);
   ASSERT_IDENTICAL(3714, determinant(M7));
 }
 

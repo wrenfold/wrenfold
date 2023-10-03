@@ -99,7 +99,7 @@ enum class SearchDirection { Downwards, Upwards };
 
 // Find the block where control flow merges after branching into left/right.
 ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
-                            const SearchDirection direction);
+                              const SearchDirection direction);
 
 // Re-create `Expr` tree from the IR representation. For use in unit tests.
 std::unordered_map<OutputKey, std::vector<Expr>, OutputKeyHasher> create_output_expression_map(

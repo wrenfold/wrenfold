@@ -8,7 +8,7 @@ namespace math {
 static constexpr std::string_view UtilityNamespace = "math";
 
 std::string CppCodeGenerator::generate_code(const ast::FunctionSignature& signature,
-                                       const std::vector<ast::Variant>& body) const {
+                                            const std::vector<ast::Variant>& body) const {
   CodeFormatter result;
   format_signature(result, signature);
   result.with_indentation(2, "{\n", "\n}", [&] {
@@ -64,7 +64,7 @@ constexpr static std::string_view StringFromNumericCastType(const NumericType de
 }
 
 void CppCodeGenerator::format_signature(CodeFormatter& formatter,
-                                       const ast::FunctionSignature& signature) const {
+                                        const ast::FunctionSignature& signature) const {
   formatter.format("template <typename Scalar");
   const bool has_matrix_args =
       std::any_of(signature.arguments.begin(), signature.arguments.end(),
@@ -211,7 +211,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
         "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
         make_view(x.args[0]), make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", GetBuiltInFunctionCall(x.function), make_join_view(*this, ", ", x.args));
+    formatter.format("{}({})", GetBuiltInFunctionCall(x.function),
+                     make_join_view(*this, ", ", x.args));
   }
 }
 
@@ -230,7 +231,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.if_branch); });
   if (!x.else_branch.empty()) {
     formatter.with_indentation(2, " else {\n", "\n}",
-                              [&] { formatter.join(*this, "\n", x.else_branch); });
+                               [&] { formatter.join(*this, "\n", x.else_branch); });
   }
 }
 
@@ -245,7 +246,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
   if (!x.value) {
     formatter.format("{} {};", StringFromNumericCastType(x.type), x.name);
   } else {
-    formatter.format("const {} {} = {};", StringFromNumericCastType(x.type), x.name, make_view(x.value));
+    formatter.format("const {} {} = {};", StringFromNumericCastType(x.type), x.name,
+                     make_view(x.value));
   }
 }
 

@@ -19,8 +19,9 @@ class ConditionalSimplificationVisitor {
   Expr ApplyConditional(const Conditional& cond) {
     if (cond.condition().is_identical_to(condition_)) {
       if (value_) {
-        return Visit(cond.if_branch(),
-                     [this, &cond](const auto& x) { return this->operator()(x, cond.if_branch()); });
+        return Visit(cond.if_branch(), [this, &cond](const auto& x) {
+          return this->operator()(x, cond.if_branch());
+        });
       } else {
         return Visit(cond.else_branch(), [this, &cond](const auto& x) {
           return this->operator()(x, cond.else_branch());
@@ -67,7 +68,7 @@ Expr Conditional::create(math::Expr condition, math::Expr if_branch, math::Expr 
     return if_branch_simplified;
   }
   return make_expr<Conditional>(std::move(condition), std::move(if_branch_simplified),
-                               std::move(else_branch_simplified));
+                                std::move(else_branch_simplified));
 }
 
 }  // namespace math

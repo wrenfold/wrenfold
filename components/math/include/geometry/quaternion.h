@@ -95,7 +95,7 @@ class Quaternion {
   // Construct quaternion from axis and angle.
   // It is expected that [vx, vy, vz] form a unit vector. Angle is in radians.
   static Quaternion from_angle_axis(const Expr& angle, const Expr& vx, const Expr& vy,
-                                  const Expr& vz) {
+                                    const Expr& vz) {
     Expr half_angle = angle / 2;
     Expr sin_angle = sin(half_angle);
     return {cos(half_angle), vx * sin_angle, vy * sin_angle, vz * sin_angle};
@@ -126,8 +126,7 @@ class Quaternion {
   // Construct quaternion from a rotation vector.
   static Quaternion from_rotation_vector(const MatrixExpr& v) {
     if (v.rows() != 3 || v.cols() != 1) {
-      throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(),
-                           v.cols());
+      throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
     }
     return from_rotation_vector(v[0], v[1], v[2]);
   }

@@ -60,7 +60,7 @@ Expr cos(const Expr& arg) {
         return Constants::Zero;
       }
       return make_expr<Function>(BuiltInFunctionName::Cos,
-                                Rational::create(r_mod_pi) * Constants::Pi);
+                                 Rational::create(r_mod_pi) * Constants::Pi);
     }
   } else if (is_zero(coeff)) {
     return Constants::One;
@@ -94,7 +94,7 @@ Expr sin(const Expr& arg) {
         return Constants::NegativeOne;
       }
       return make_expr<Function>(BuiltInFunctionName::Sin,
-                                Rational::create(r_mod_pi) * Constants::Pi);
+                                 Rational::create(r_mod_pi) * Constants::Pi);
     }
   } else if (is_zero(arg)) {
     return Constants::Zero;
@@ -138,7 +138,7 @@ Expr tan(const Expr& arg) {
         return Constants::Infinity;
       }
       return make_expr<Function>(BuiltInFunctionName::Tan,
-                                Rational::create(r_mod_half_pi) * PiOverTwo());
+                                 Rational::create(r_mod_half_pi) * PiOverTwo());
     }
   } else if (is_zero(arg)) {
     return Constants::Zero;
@@ -311,8 +311,8 @@ struct SignumVisitor {
   }
 
   // Handle all other cases.
-  template <typename T,
-            typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float, Constant, Function>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float,
+                                                                     Constant, Function>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }

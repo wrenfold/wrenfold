@@ -296,8 +296,7 @@ static std::tuple<PermutationMatrix, Matrix, Matrix, PermutationMatrix> Factoriz
     auto U_span = make_span(U_storage.data(), make_value_pack(A.rows(), A.cols()),
                             make_value_pack(A.cols(), constant<1>{}));
 
-    std::vector<Expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()),
-                                Constants::Zero);
+    std::vector<Expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()), Constants::Zero);
     auto L_span = make_span(L_storage.data(), make_value_pack(A.rows(), A.rows()),
                             make_value_pack(A.rows(), constant<1>{}));
 
@@ -344,8 +343,8 @@ Expr determinant(const MatrixExpr& m) {
   const Matrix& mat = m.as_matrix();
   if (mat.rows() != mat.cols()) {
     throw DimensionError(
-        "Determinant can only be computed for square matrices. Dimensions = [{}, {}]",
-        mat.rows(), mat.cols());
+        "Determinant can only be computed for square matrices. Dimensions = [{}, {}]", mat.rows(),
+        mat.cols());
   }
 
   // Hardcoded solutions for 1x1, 2x2, and 3x3

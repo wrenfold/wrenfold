@@ -30,7 +30,8 @@ struct PowerNumerics {
 
   // If either operand is a float, coerce the other to float:
   template <typename A, typename B>
-  std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> ApplyFloatAndNumeric(const A& a, const B& b) {
+  std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> ApplyFloatAndNumeric(const A& a,
+                                                                            const B& b) {
     const auto result =
         std::pow(static_cast<Float>(a).get_value(), static_cast<Float>(b).get_value());
     return make_expr<Float>(result);
@@ -99,9 +100,11 @@ struct PowerNumerics {
 
       // Apply the integer part to the rational coefficient:
       if (integer_part.get_value() >= 0) {
-        rational_coeff = rational_coeff * Rational{integer_power(f.base, integer_part.get_value()), 1};
+        rational_coeff =
+            rational_coeff * Rational{integer_power(f.base, integer_part.get_value()), 1};
       } else {
-        rational_coeff = rational_coeff * Rational{1, integer_power(f.base, -integer_part.get_value())};
+        rational_coeff =
+            rational_coeff * Rational{1, integer_power(f.base, -integer_part.get_value())};
       }
 
       // There is still the business of the fractional part to deal with:
@@ -138,7 +141,8 @@ Expr Power::create(const Expr& a, const Expr& b) {
     //    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
     // If the inner is already a rational, or the outer is an integer - we can multiply
     // safely. If the outer is a float, it can be multiplied onto rationals or floats.
-    const bool can_multiply_exponents = a_pow->exponent().is_type<Rational>() || b.is_type<Integer>() ||
+    const bool can_multiply_exponents = a_pow->exponent().is_type<Rational>() ||
+                                        b.is_type<Integer>() ||
                                         (a_pow->exponent().is_type<Float>() && b.is_type<Float>());
     if (can_multiply_exponents) {
       return Power::create(a_pow->base(), a_pow->exponent() * b);

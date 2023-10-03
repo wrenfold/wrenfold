@@ -90,8 +90,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
            "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "is_identical_to",
-          [](const Expr& self, const Expr& other) { return self.is_identical_to(other); }, "other"_a,
-          "Test if two expressions have identical expression trees.")
+          [](const Expr& self, const Expr& other) { return self.is_identical_to(other); },
+          "other"_a, "Test if two expressions have identical expression trees.")
       .def_property_readonly("type_name", &Expr::type_name)
       // Operations:
       .def("diff", &Expr::diff, "var"_a, py::arg("order") = 1,

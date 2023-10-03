@@ -176,11 +176,11 @@ struct PairCountVisitor {
 
   // Record counts of single `Expr` children, and every pair-wise combination of children.
   template <typename Operation>
-  void RecordCounts(
-      const Operation& operation,
-      std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>>& count_table,
-      std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
-          pair_count_table) {
+  void RecordCounts(const Operation& operation,
+                    std::unordered_map<Expr, std::size_t, hash_struct<Expr>,
+                                       IsIdenticalOperator<Expr>>& count_table,
+                    std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
+                        pair_count_table) {
     for (const Expr& operand : operation) {
       count_table[operand]++;
       Visit(operand, *this);
@@ -210,8 +210,10 @@ struct PairCountVisitor {
     }
   }
 
-  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> mul_element_counts_;
-  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> add_element_counts_;
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>>
+      mul_element_counts_;
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>>
+      add_element_counts_;
 
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> mul_pair_counts_;
   std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> add_pair_counts_;
@@ -368,7 +370,8 @@ struct IRFormVisitor {
     throw TypeError(
         "Cannot generate code for expressions containing `Derivative`. Offending expression is: "
         "Derivative({}, {}, {})",
-        derivative.differentiand().to_string(), derivative.argument().to_string(), derivative.order());
+        derivative.differentiand().to_string(), derivative.argument().to_string(),
+        derivative.order());
   }
 
   ir::ValuePtr operator()(const Function& func, const Expr&) {
@@ -437,13 +440,14 @@ struct IRFormVisitor {
  private:
   FlatIr& builder_;
 
-  std::unordered_map<Expr, ir::ValuePtr, hash_struct<Expr>, IsIdenticalOperator<Expr>> computed_values_;
+  std::unordered_map<Expr, ir::ValuePtr, hash_struct<Expr>, IsIdenticalOperator<Expr>>
+      computed_values_;
 
   const ir::PairCountVisitor& pair_counts;
 };
 
 ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
-                            const SearchDirection direction) {
+                              const SearchDirection direction) {
   // queue with [node, color]
   std::deque<std::pair<ir::BlockPtr, bool>> queue;
   queue.emplace_back(left, true);
@@ -869,7 +873,8 @@ struct IrConverter {
       auto new_end =
           std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::ValuePtr v) {
             // A copy is useless if we are duplicating a value in our current block:
-            const bool should_eliminate = v->is_type<ir::Copy>() && v->first_operand()->parent() == v->parent();
+            const bool should_eliminate =
+                v->is_type<ir::Copy>() && v->first_operand()->parent() == v->parent();
             if (should_eliminate) {
               v->replace_with(v->first_operand());
               v->remove();

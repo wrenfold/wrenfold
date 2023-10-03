@@ -81,7 +81,8 @@ template <typename T>
 struct is_return_value<ReturnValue<T>> : public std::true_type {};
 
 template <typename T>
-struct is_output_arg_or_return_value : public std::disjunction<is_output_arg<T>, is_return_value<T>> {};
+struct is_output_arg_or_return_value
+    : public std::disjunction<is_output_arg<T>, is_return_value<T>> {};
 
 // Count the number of instances of `ReturnValue` in a type pack.
 template <typename... Ts>

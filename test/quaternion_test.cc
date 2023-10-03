@@ -166,9 +166,12 @@ TEST(QuaternionTest, TestToRotationMatrix) {
 
   // If we did everything correctly, there should be no difference between these.
   // We need to provide a small hint, and enforce that |q|^2 = 1
-  ASSERT_IDENTICAL(0, collect((R_v_expected[0] - R_v[0]).distribute(), a).subs(q.squared_norm(), 1));
-  ASSERT_IDENTICAL(0, collect((R_v_expected[1] - R_v[1]).distribute(), b).subs(q.squared_norm(), 1));
-  ASSERT_IDENTICAL(0, collect((R_v_expected[2] - R_v[2]).distribute(), c).subs(q.squared_norm(), 1));
+  ASSERT_IDENTICAL(0,
+                   collect((R_v_expected[0] - R_v[0]).distribute(), a).subs(q.squared_norm(), 1));
+  ASSERT_IDENTICAL(0,
+                   collect((R_v_expected[1] - R_v[1]).distribute(), b).subs(q.squared_norm(), 1));
+  ASSERT_IDENTICAL(0,
+                   collect((R_v_expected[2] - R_v[2]).distribute(), c).subs(q.squared_norm(), 1));
 
   // Conjugate and transpose should match:
   ASSERT_IDENTICAL(q.conjugate().to_rotation_matrix(), q.to_rotation_matrix().transposed());
@@ -368,10 +371,10 @@ TEST(QuaternionTest, TestToAxisAngle) {
     }
     EXPECT_NEAR(angle_num,
                 cast_checked<Float>(angle_recovered.subs(angle, angle_num)
-                                       .subs(x, axis_num.x())
-                                       .subs(y, axis_num.y())
-                                       .subs(z, axis_num.z())
-                                       .eval())
+                                        .subs(x, axis_num.x())
+                                        .subs(y, axis_num.y())
+                                        .subs(z, axis_num.z())
+                                        .eval())
                     .get_value(),
                 1.0e-15)
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
@@ -459,7 +462,8 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   for (auto [angle_num, axis_num] : GenerateAngleAxisTestPairs(num_vectors, num_angles)) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle_num, axis_num)};
 
-    const MatrixExpr R = Quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.to_rotation_matrix();
+    const MatrixExpr R =
+        Quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.to_rotation_matrix();
     const Quaternion q = Quaternion::from_rotation_matrix(R);
 
     ASSERT_NEAR(q_num.w(), cast_checked<Float>(q.w()).get_value(), 1.0e-15)

@@ -15,7 +15,9 @@ class Constant {
   explicit constexpr Constant(SymbolicConstants name) noexcept : name_(name) {}
 
   // Check if symbolic constants are the same.
-  constexpr bool is_identical_to(const Constant& other) const noexcept { return name_ == other.name_; }
+  constexpr bool is_identical_to(const Constant& other) const noexcept {
+    return name_ == other.name_;
+  }
 
   // Access name.
   constexpr SymbolicConstants name() const noexcept { return name_; }

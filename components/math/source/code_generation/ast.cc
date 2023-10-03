@@ -128,8 +128,8 @@ struct AstBuilder {
       ASSERT_EQUAL(2, block->descendants.size());
 
       // Find phi functions:
-      const ir::BlockPtr merge_point =
-          find_merge_point(block->descendants[0], block->descendants[1], SearchDirection::Downwards);
+      const ir::BlockPtr merge_point = find_merge_point(
+          block->descendants[0], block->descendants[1], SearchDirection::Downwards);
       stop_set_.insert(merge_point);
 
       for (ir::ValuePtr maybe_phi : merge_point->operations) {
@@ -209,7 +209,8 @@ struct AstBuilder {
   // Return true if the specified value should be inlined instead of declared as a variable.
   bool ShouldInlineConstant(const ir::ValuePtr val) const {
     return OverloadedVisit(
-        val->value_op(), [](const ir::Load& load) { return load.expr.is_type<Integer, Float, Constant>(); },
+        val->value_op(),
+        [](const ir::Load& load) { return load.expr.is_type<Integer, Float, Constant>(); },
         [&](const ir::Cast&) { return ShouldInlineConstant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
   }
@@ -259,7 +260,9 @@ struct AstBuilder {
     return ast::Compare{compare.operation, MakeArgPtr(val[0]), MakeArgPtr(val[1])};
   }
 
-  ast::Variant operator()(const ir::Value& val, const ir::Copy&) { return MakeArg(val.first_operand()); }
+  ast::Variant operator()(const ir::Value& val, const ir::Copy&) {
+    return MakeArg(val.first_operand());
+  }
 
   ast::Variant operator()(const ir::Value& val, const ir::Mul&) {
     return ast::Multiply{MakeArgPtr(val[0]), MakeArgPtr(val[1])};

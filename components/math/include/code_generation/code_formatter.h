@@ -43,7 +43,7 @@ class CodeFormatter {
   // callable will be intended by `indent` spaces and wrapped in `open` and `close`.
   template <typename Callable>
   void with_indentation(const int indent, const std::string_view open, const std::string_view close,
-                       Callable&& callable) {
+                        Callable&& callable) {
     ASSERT_GREATER_OR_EQ(indent, 0);
     // Move output_ -> appended
     std::string appended{};
@@ -101,7 +101,8 @@ struct FmtJoinView {
 };
 
 template <typename Formatter, typename Container>
-auto make_join_view(Formatter&& formatter, const std::string_view separator, Container&& container) {
+auto make_join_view(Formatter&& formatter, const std::string_view separator,
+                    Container&& container) {
   // Determine if args are r-values or l-values, and move them if appropriate.
   // The resulting JoinView will store either values or const references.
   using FormatterType = typename DecayRValueToValue<decltype(formatter)>::Type;
