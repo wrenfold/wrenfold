@@ -33,6 +33,7 @@ struct EvaluateVisitor {
   Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational& r) const { return Float::create(static_cast<Float>(r)); }
   Expr operator()(const Relational& r) const { return r.map_children(&evaluate); }
+  Expr operator()(const Undefined&) const { return Constants::Undefined; }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 

@@ -35,14 +35,12 @@ Expr Multiplication::from_operands(absl::Span<const Expr> args) {
     return args.front();
   }
 
-  // Check for zeros:
-  // TODO: This is not valid if there are divisions by zero...
-  // We need an 'undefined' type.
-  const bool contains_zeros = std::any_of(args.begin(), args.end(), &is_zero);
-  if (contains_zeros) {
-    return Constants::Zero;
+  if (std::any_of(args.begin(), args.end(), &is_undefined)) {
+    return Constants::Undefined;
   }
 
+  // TODO: this simplification doesn't always work because there might be multiple
+  // integer/rational/float terms.
   if (args.size() == 2) {
     if (const Addition* add = cast_ptr<Addition>(args[0]);
         add && args[1].is_type<Integer, Rational, Float>()) {
@@ -119,10 +117,8 @@ struct MultiplyVisitor {
       } else {
         builder.float_coeff = (*builder.float_coeff) * arg;
       }
-    } else if constexpr (std::is_same_v<T, Matrix>) {
-      throw TypeError(
-          "Cannot multiply a matrix into a scalar multiplication expression. Arg type = {}",
-          T::NameStr);
+    } else if constexpr (std::is_same_v<T, Infinity>) {
+      ++builder.num_infinities;
     } else {
       // Everything else: Just raise the power by +1.
       const auto [it, was_inserted] = builder.terms.emplace(input_expression, Constants::One);
@@ -186,21 +182,40 @@ void MultiplicationParts::normalize_coefficients() {
 }
 
 Expr MultiplicationParts::create_multiplication() const {
-  // Create the result:
   Multiplication::ContainerType args{};
-  args.reserve(terms.size() + 1);
-  if (float_coeff.has_value()) {
-    const Float promoted_rational = static_cast<Float>(rational_coeff);
-    args.push_back(make_expr<Float>(float_coeff.value() * promoted_rational));
-  } else if (rational_coeff.is_one()) {
-    // Don't insert a useless one in the multiplication.
-  } else {
-    args.push_back(Rational::create(rational_coeff));
+
+  // TODO: Would be good to front-load this logic so we can early exit before building the map.
+  const bool has_zero_coeff =
+      rational_coeff.is_zero() || (float_coeff.has_value() && float_coeff->is_zero());
+  if (num_infinities > 0 && has_zero_coeff) {
+    // Indeterminate: ∞ * 0, applies to any kind of infinity
+    return Constants::Undefined;
+  } else if (num_infinities > 0) {
+    // z∞ * z∞ -> z∞
+    args.push_back(Constants::ComplexInfinity);
+  } else if (has_zero_coeff) {
+    return Constants::Zero;
+  }
+
+  // Consider any other numerical terms, if we didn't add infinity in.
+  if (args.empty()) {
+    if (float_coeff.has_value()) {
+      const Float promoted_rational = static_cast<Float>(rational_coeff);
+      args.push_back(make_expr<Float>(float_coeff.value() * promoted_rational));
+    } else if (rational_coeff.is_one()) {
+      // Don't insert a useless one in the multiplication.
+    } else {
+      args.push_back(Rational::create(rational_coeff));
+    }
   }
 
   // Convert into a vector of powers, and sort into canonical order:
   std::transform(terms.begin(), terms.end(), std::back_inserter(args),
                  [](const auto& pair) { return Power::create(pair.first, pair.second); });
+
+  if (std::any_of(args.begin(), args.end(), &is_undefined)) {
+    return Constants::Undefined;
+  }
 
   return maybe_new_mul(std::move(args));
 }

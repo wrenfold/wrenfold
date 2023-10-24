@@ -6,6 +6,7 @@
 #include "absl_imports.h"
 #include "constants.h"
 #include "expressions/numeric_expressions.h"
+#include "expressions/special_constants.h"
 #include "hashing.h"
 
 namespace math {
@@ -122,6 +123,8 @@ struct MultiplicationParts {
   std::optional<Float> float_coeff{};
   // Map from base to exponent.
   std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> terms{};
+  // Number of infinities.
+  std::size_t num_infinities{0};
 
   // Update the internal product by multiplying on `arg`.
   void multiply_term(const Expr& arg, bool factorize_integers = false);

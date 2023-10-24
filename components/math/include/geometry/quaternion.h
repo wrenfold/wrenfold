@@ -200,14 +200,12 @@ class Quaternion {
              pow(R(2, 0) + R(0, 2), 2) +
              pow(R(2, 1) + R(1, 2), 2) +
              pow(R(2, 2) - R(0, 0) - R(1, 1) + 1, 2);
-    return {
-    sqrt(a) / 4,
-      // TODO: Add a sign-no-zero method to avoid conditional here?
-    where(R(2, 1) - R(1, 2) >= 0, 1, -1) * sqrt(b) / 4,
-    where(R(0, 2) - R(2, 0) >= 0, 1, -1) * sqrt(c) / 4,
-    where(R(1, 0) - R(0, 1) >= 0, 1, -1) * sqrt(d) / 4
-    };
     // clang-format on
+    return {sqrt(a) / 4,
+            // TODO: Add a sign-no-zero method to avoid conditional here?
+            where(R(2, 1) - R(1, 2) >= 0, 1, -1) * sqrt(b) / 4,
+            where(R(0, 2) - R(2, 0) >= 0, 1, -1) * sqrt(c) / 4,
+            where(R(1, 0) - R(0, 1) >= 0, 1, -1) * sqrt(d) / 4};
   }
 
  private:

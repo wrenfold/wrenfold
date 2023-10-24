@@ -15,6 +15,13 @@ Expr log(const Expr& x) {
   if (is_one(x)) {
     return Constants::Zero;
   }
+  if (is_zero(x)) {
+    // log(0) does not exist. In the context of limits, it can be -∞ (but not otherwise).
+    return Constants::Undefined;
+  }
+  if (is_complex_infinity(x) || is_undefined(x)) {
+    return Constants::Undefined;  //  log(z-∞) is ∞, but we can't represent that.
+  }
   // TODO: Check for negative values.
   return make_expr<Function>(BuiltInFunctionName::Log, x);
 }
@@ -76,6 +83,9 @@ Expr cos(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
+  if (arg.is_type<Infinity>() || is_undefined(arg)) {
+    return Constants::Undefined;
+  }
   // TODO: Check for phase offsets.
   return make_expr<Function>(BuiltInFunctionName::Cos, arg);
 }
@@ -106,6 +116,9 @@ Expr sin(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
+  if (arg.is_type<Infinity>() || is_undefined(arg)) {
+    return Constants::Undefined;
+  }
   return make_expr<Function>(BuiltInFunctionName::Sin, arg);
 }
 
@@ -134,8 +147,8 @@ Expr tan(const Expr& arg) {
       if (r_mod_half_pi.is_zero()) {
         return Constants::Zero;
       } else if (r_mod_half_pi == Rational{1, 2} || r_mod_half_pi == Rational{-1, 2}) {
-        // Infinity, as in the projectively scaled real numbers.
-        return Constants::Infinity;
+        // Complex infinity.
+        return Constants::ComplexInfinity;
       }
       return make_expr<Function>(BuiltInFunctionName::Tan,
                                  Rational::create(r_mod_half_pi) * pi_over_two());
@@ -150,6 +163,9 @@ Expr tan(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
+  if (arg.is_type<Infinity>() || is_undefined(arg)) {
+    return Constants::Undefined;
+  }
   return make_expr<Function>(BuiltInFunctionName::Tan, arg);
 }
 
@@ -162,6 +178,8 @@ Expr acos(const Expr& arg) {
     return Constants::Zero;
   } else if (is_negative_one(arg)) {
     return Constants::Pi;
+  } else if (is_undefined(arg) || is_complex_infinity(arg)) {
+    return Constants::Undefined;
   }
   return make_expr<Function>(BuiltInFunctionName::ArcCos, arg);
 }
@@ -175,6 +193,8 @@ Expr asin(const Expr& arg) {
     return -pi_over_two();
   } else if (is_negative_number(arg)) {
     return -asin(-arg);
+  } else if (is_undefined(arg) || is_complex_infinity(arg)) {
+    return Constants::Undefined;
   }
   return make_expr<Function>(BuiltInFunctionName::ArcSin, arg);
 }
@@ -193,6 +213,8 @@ Expr atan(const Expr& arg) {
     return -PiOverFour();
   } else if (is_negative_number(arg)) {
     return -atan(-arg);
+  } else if (is_undefined(arg) || is_complex_infinity(arg)) {
+    return Constants::Undefined;
   }
   return make_expr<Function>(BuiltInFunctionName::ArcTan, arg);
 }
@@ -229,6 +251,10 @@ struct Atan2Visitor {
 
   template <typename A, typename B>
   std::optional<Expr> operator()(const A&, const B&) const {
+    if constexpr (std::is_same_v<A, Infinity> || std::is_same_v<B, Infinity> ||
+                  std::is_same_v<A, Undefined> || std::is_same_v<B, Undefined>) {
+      return Constants::Undefined;
+    }
     return std::nullopt;
   }
 };
@@ -273,6 +299,9 @@ Expr abs(const Expr& arg) {
       return arg;
     }
   }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return Constants::Undefined;
+  }
   // TODO: Add simplifications for real inputs, like powers.
   // TODO: Add simplifications for multiplications.
   return make_expr<Function>(BuiltInFunctionName::Abs, arg);
@@ -310,9 +339,11 @@ struct SignumVisitor {
     return std::nullopt;
   }
 
+  std::optional<Expr> operator()(const Undefined&) const { return Constants::Undefined; }
+
   // Handle all other cases.
   template <typename T, typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float,
-                                                                     Constant, Function>>
+                                                                     Constant, Function, Undefined>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }

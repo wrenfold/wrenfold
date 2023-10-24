@@ -35,6 +35,12 @@ class Integer {
   // True if this integer is zero.
   constexpr bool is_zero() const noexcept { return val_ == 0; }
 
+  // True if this integer is less than zero.
+  constexpr bool is_negative() const noexcept { return val_ < 0; }
+
+  // True if this integer is even. (Zero is even).
+  constexpr bool is_even() const noexcept { return !static_cast<bool>(val_ & 1); }
+
   // Cast to integer:
   constexpr explicit operator Float() const;
 
@@ -66,26 +72,29 @@ class Rational {
   // Construct a rational from an integer value.
   explicit constexpr Rational(const Integer& integer) : n_(integer.get_value()), d_(1) {}
 
-  constexpr bool is_identical_to(const Rational& other) const {
+  constexpr bool is_identical_to(const Rational& other) const noexcept {
     return n_ == other.n_ && d_ == other.d_;
   }
 
   // Access numerator and denominator.
-  constexpr IntegralType numerator() const { return n_; }
-  constexpr IntegralType denominator() const { return d_; }
+  constexpr IntegralType numerator() const noexcept { return n_; }
+  constexpr IntegralType denominator() const noexcept { return d_; }
 
   // Cast to float.
   explicit operator Float() const;
 
   // True if numerator equals denominator.
-  constexpr bool is_one() const { return n_ == d_; }
+  constexpr bool is_one() const noexcept { return n_ == d_; }
 
   // True if numerator is zero.
-  constexpr bool is_zero() const { return n_ == 0; }
+  constexpr bool is_zero() const noexcept { return n_ == 0; }
+
+  // True if negative (only the numerator may be < 0).
+  constexpr bool is_negative() const noexcept { return n_ < 0; }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
-  constexpr std::optional<Integer> try_convert_to_integer() const {
+  constexpr std::optional<Integer> try_convert_to_integer() const noexcept {
     if (n_ % d_ == 0) {
       return {Integer(n_ / d_)};
     }
@@ -144,13 +153,19 @@ class Float {
   using FloatType = double;
 
   // Construct from float value.
-  explicit constexpr Float(FloatType val) : val_(val) {}
+  explicit constexpr Float(FloatType val) noexcept : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool is_identical_to(const Float& other) const { return val_ == other.val_; }
+  constexpr bool is_identical_to(const Float& other) const noexcept { return val_ == other.val_; }
 
   // Access numeric value.
-  constexpr FloatType get_value() const { return val_; }
+  constexpr FloatType get_value() const noexcept { return val_; }
+
+  // Is this float identical to zero?
+  constexpr bool is_zero() const noexcept { return val_ == static_cast<FloatType>(0); }
+
+  // True if the float is negative.
+  constexpr bool is_negative() const noexcept { return val_ < static_cast<FloatType>(0); }
 
   // Get absolute value.
   Float abs() const { return Float{std::abs(val_)}; }

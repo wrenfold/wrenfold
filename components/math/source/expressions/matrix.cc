@@ -53,7 +53,11 @@ Matrix operator*(const Matrix& a, const Matrix& b) {
         addition_args.push_back(std::move(prod));
       }
     }
-    output.push_back(Addition::from_operands(addition_args));
+    if (addition_args.empty()) {
+      output.push_back(Constants::Zero);
+    } else {
+      output.push_back(Addition::from_operands(addition_args));
+    }
   });
   return Matrix(output_rows, output_cols, std::move(output));
 }

@@ -3,6 +3,7 @@
 #include "expressions/derivative_expression.h"
 #include "functions.h"
 #include "matrix_functions.h"
+
 #include "test_helpers.h"
 
 // Test `diff` operation.
@@ -15,7 +16,7 @@ TEST(DerivativesTest, TestConstants) {
   ASSERT_IDENTICAL(Constants::Zero, (22.5_s).diff(x, 4));
   ASSERT_IDENTICAL(Constants::Zero, Constants::Pi.diff(x));
   ASSERT_IDENTICAL(Constants::Zero, Constants::Euler.diff(x));
-  ASSERT_IDENTICAL(Constants::Zero, Constants::Infinity.diff(x));
+  ASSERT_IDENTICAL(Constants::Zero, Constants::ComplexInfinity.diff(x));
   ASSERT_THROW(x.diff(5), TypeError);
   ASSERT_THROW(x.diff(Constants::Pi), TypeError);
 }

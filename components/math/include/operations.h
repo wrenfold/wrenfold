@@ -1,8 +1,11 @@
 // Copyright 2023 Gareth Cross
 #include "absl_imports.h"
 
+#include <optional>
+
 namespace math {
 class Expr;
+class MatrixExpr;
 
 // Replace instances of `target` w/ `replacement` in the input expression tree `input`.
 // Implemented in substitute.cc
@@ -22,11 +25,20 @@ Expr distribute(const Expr& arg);
 // Implemented in collect.cc
 Expr collect_many(const Expr& arg, absl::Span<const Expr> terms);
 
-// Version of `CollectMany` that accepts a single term.
+// Version of `collect_many` that accepts a single term.
 Expr collect(const Expr& arg, const Expr& term);
 
 // Evaluate to a number. If the result is a matrix, returns a matrix expression of numbers.
 // Implemented in evaluate.cc
 Expr evaluate(const Expr& arg);
+
+// Take the limit of `f_of_x` as `x` goes to 0 from the right.
+// The expression `x` must be a variable.
+// Implemented in limit.cc
+std::optional<Expr> limit(const Expr& f_of_x, const Expr& x);
+
+// Take the limit of matrix-valued function `f_of_x` as `x` goes to 0 from the right.
+// The expression `x` must be a variable.
+std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x);
 
 }  // namespace math

@@ -87,7 +87,7 @@ void PlainFormatter::operator()(const Derivative& derivative) {
 }
 
 void PlainFormatter::operator()(const Infinity&) {
-  fmt::format_to(std::back_inserter(output_), "z-inf");
+  fmt::format_to(std::back_inserter(output_), "zoo");
 }
 
 void PlainFormatter::operator()(const Integer& expr) {
@@ -227,6 +227,8 @@ void PlainFormatter::operator()(const Relational& expr) {
   fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
   format_precedence(Precedence::Relational, expr.right());
 }
+
+void PlainFormatter::operator()(const Undefined&) { output_.append("nan"); }
 
 void PlainFormatter::operator()(const Variable& expr) { output_ += expr.name(); }
 

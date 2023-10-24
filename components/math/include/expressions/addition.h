@@ -5,6 +5,7 @@
 #include "absl_imports.h"
 #include "constants.h"
 #include "expressions/numeric_expressions.h"
+#include "expressions/special_constants.h"
 #include "hashing.h"
 #include "visitor_impl.h"
 
@@ -97,6 +98,9 @@ struct AdditionParts {
 
   // Map from multiplicand to coefficient.
   std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> terms{};
+
+  // Number of infinities.
+  std::size_t num_infinities{0};
 
   // Update the internal representation by adding `arg`.
   void add_terms(const Expr& arg);

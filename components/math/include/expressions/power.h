@@ -11,36 +11,37 @@ class Power {
   static constexpr std::string_view NameStr = "Power";
   static constexpr bool IsLeafNode = false;
 
-  Power(Expr base, Expr exponent) : base_(std::move(base)), exponent_(std::move(exponent)) {}
+  Power(Expr base, Expr exponent) : children_{std::move(base), std::move(exponent)} {}
 
   // Base and exponent must match.
   bool is_identical_to(const Power& other) const {
-    return base_.is_identical_to(other.base_) && exponent_.is_identical_to(other.exponent_);
+    return base().is_identical_to(other.base()) && exponent().is_identical_to(other.exponent());
   }
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
-  void for_each(Operation operation) const {
-    operation(base_);
-    operation(exponent_);
+  void for_each(Operation&& operation) const {
+    std::for_each(children_.begin(), children_.end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    return Power::create(operation(base_), operation(exponent_));
+    return Power::create(operation(base()), operation(exponent()));
   }
 
   // Create a new power.
   // Will apply rules to simplify automatically.
-  static Expr create(const Expr& a, const Expr& b);
+  static Expr create(Expr a, Expr b);
 
-  const Expr& base() const { return base_; }
-  const Expr& exponent() const { return exponent_; }
+  constexpr const Expr& base() const noexcept { return children_[0]; }
+  constexpr const Expr& exponent() const noexcept { return children_[1]; }
+
+  constexpr auto begin() const noexcept { return children_.begin(); }
+  constexpr auto end() const noexcept { return children_.end(); }
 
  protected:
-  Expr base_;
-  Expr exponent_;
+  std::array<Expr, 2> children_;
 };
 
 // Convert an expression to a base/exponent pair.

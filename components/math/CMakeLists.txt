@@ -26,6 +26,7 @@ add_library(
   source/ordering.cc
   source/plain_formatter.cc
   source/substitute.cc
+  source/limits.cc
   source/tree_formatter.cc)
 
 # Turn on C++17

@@ -78,6 +78,9 @@ struct DetermineNumericTypeVisitor {
 
   constexpr NumericType operator()(const Function&) const { return NumericType::Real; }
 
+  // Not really true, but it doesn't matter what we return in this context.
+  constexpr NumericType operator()(const Undefined&) const { return NumericType::Real; }
+
   constexpr NumericType operator()(const Variable&) const { return NumericType::Real; }
 };
 
@@ -408,6 +411,10 @@ struct IRFormVisitor {
     NumericType promoted_type = std::max(left->determine_type(), right->determine_type());
     return push_operation(ir::Compare{relational.operation()}, maybe_cast(left, promoted_type),
                           maybe_cast(right, promoted_type));
+  }
+
+  ir::ValuePtr operator()(const Undefined&) const {
+    throw TypeError("Cannot generate code with expressions containing {}", Undefined::NameStr);
   }
 
   ir::ValuePtr operator()(const Variable&, const Expr& input_expression) {

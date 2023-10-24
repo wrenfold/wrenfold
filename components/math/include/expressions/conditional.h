@@ -12,47 +12,43 @@ class Conditional {
   static constexpr bool IsLeafNode = false;
 
   Conditional(Expr condition, Expr if_branch, Expr else_branch)
-      : condition_(std::move(condition)),
-        if_branch_(std::move(if_branch)),
-        else_branch_(std::move(else_branch)) {}
+      : children_{std::move(condition), std::move(if_branch), std::move(else_branch)} {}
 
   bool is_identical_to(const Conditional& other) const {
-    return condition_.is_identical_to(other.condition_) &&
-           if_branch_.is_identical_to(other.if_branch_) &&
-           else_branch_.is_identical_to(other.else_branch_);
+    return std::equal(children_.begin(), children_.end(), other.children_.begin(),
+                      IsIdenticalOperator<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
   void for_each(Operation&& operation) const {
-    operation(condition_);
-    operation(if_branch_);
-    operation(else_branch_);
+    std::for_each(children_.begin(), children_.end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    Expr cond = operation(condition_);
+    Expr cond = operation(condition());
     if (cond.is_identical_to(Constants::True)) {
-      return operation(if_branch_);
+      return operation(if_branch());
     } else if (cond.is_identical_to(Constants::False)) {
-      return operation(else_branch_);
+      return operation(else_branch());
     }
-    return create(std::move(cond), operation(if_branch_), operation(else_branch_));
+    return create(std::move(cond), operation(if_branch()), operation(else_branch()));
   }
 
   // Create a new conditional.
   static Expr create(Expr condition, Expr if_branch, Expr else_branch);
 
-  const Expr& condition() const { return condition_; }
-  const Expr& if_branch() const { return if_branch_; }
-  const Expr& else_branch() const { return else_branch_; }
+  constexpr const Expr& condition() const noexcept { return children_[0]; }
+  constexpr const Expr& if_branch() const noexcept { return children_[1]; }
+  constexpr const Expr& else_branch() const noexcept { return children_[2]; }
+
+  constexpr auto begin() const noexcept { return children_.begin(); }
+  constexpr auto end() const noexcept { return children_.end(); }
 
  protected:
-  Expr condition_;
-  Expr if_branch_;
-  Expr else_branch_;
+  std::array<Expr, 3> children_;
 };
 
 template <>

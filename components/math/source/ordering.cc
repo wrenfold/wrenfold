@@ -7,9 +7,9 @@ namespace math {
 
 // Visitor that can be used to sort expressions by determining their relative order.
 struct OrderVisitor {
-  using OrderOfTypes =
-      type_list<Float, Integer, Rational, Constant, Infinity, Variable, FunctionArgument,
-                Multiplication, Addition, Power, Function, Relational, Conditional, Derivative>;
+  using OrderOfTypes = type_list<Float, Integer, Rational, Constant, Infinity, Variable,
+                                 FunctionArgument, Multiplication, Addition, Power, Function,
+                                 Relational, Conditional, Derivative, Undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(type_list_size<OrderOfTypes>::value == type_list_size<ExpressionTypeList>::value);
@@ -56,7 +56,7 @@ struct OrderVisitor {
     return RelativeOrder::Equal;
   }
 
-  constexpr RelativeOrder compare(const Infinity&, const Infinity&) const {
+  constexpr RelativeOrder compare(const Infinity&, const Infinity&) const noexcept {
     return RelativeOrder::Equal;
   }
 
@@ -123,6 +123,10 @@ struct OrderVisitor {
       return RelativeOrder::GreaterThan;
     }
     return visit_binary(a.right(), b.right(), OrderVisitor{});
+  }
+
+  constexpr RelativeOrder compare(const Undefined&, const Undefined&) const noexcept {
+    return RelativeOrder::Equal;
   }
 
   RelativeOrder compare(const Variable& a, const Variable& b) const {

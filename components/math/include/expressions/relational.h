@@ -12,42 +12,43 @@ class Relational {
   static constexpr bool IsLeafNode = false;
 
   Relational(RelationalOperation operation, Expr left, Expr right)
-      : operation_(operation), left_(std::move(left)), right_(std::move(right)) {}
+      : operation_(operation), children_{std::move(left), std::move(right)} {}
 
   // Base and exponent must match.
   bool is_identical_to(const Relational& other) const {
-    return operation_ == other.operation_ && left_.is_identical_to(other.left_) &&
-           right_.is_identical_to(other.right_);
+    return operation_ == other.operation_ && left().is_identical_to(other.left()) &&
+           right().is_identical_to(other.right());
   }
 
   // Implement ExpressionImpl::Iterate
   template <typename Operation>
   void for_each(Operation&& operation) const {
-    operation(left_);
-    operation(right_);
+    std::for_each(children_.begin(), children_.end(), std::forward<Operation>(operation));
   }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    return Relational::create(operation_, operation(left_), operation(right_));
+    return Relational::create(operation_, operation(left()), operation(right()));
   }
 
   // Create a relational operation.
   static Expr create(RelationalOperation operation, Expr left, Expr right);
 
-  constexpr RelationalOperation operation() const { return operation_; }
-  const Expr& left() const { return left_; }
-  const Expr& right() const { return right_; }
+  constexpr RelationalOperation operation() const noexcept { return operation_; }
+  constexpr const Expr& left() const noexcept { return children_[0]; }
+  constexpr const Expr& right() const noexcept { return children_[1]; }
 
-  constexpr std::string_view operation_string() const {
+  constexpr std::string_view operation_string() const noexcept {
     return string_from_relational_operation(operation_);
   }
 
+  constexpr auto begin() const noexcept { return children_.begin(); }
+  constexpr auto end() const noexcept { return children_.end(); }
+
  protected:
   RelationalOperation operation_;
-  Expr left_;
-  Expr right_;
+  std::array<Expr, 2> children_;
 };
 
 template <>

@@ -26,21 +26,29 @@ class Constant {
   SymbolicConstants name_;
 };
 
-// Complex infinity.
-// TODO: Should this store an enum to support different types of infinities?
-// For example, complex, +real, -real, etc.
+// Complex infinity (the north-pole of the riemann sphere).
 class Infinity {
  public:
-  static constexpr std::string_view NameStr = "Infinity";
+  static constexpr std::string_view NameStr = "ComplexInfinity";
   static constexpr bool IsLeafNode = true;
 
-  Infinity() = default;
+  constexpr Infinity() noexcept = default;
   constexpr bool is_identical_to(const Infinity&) const noexcept { return true; }
+};
+
+// Result of invalid expressions.
+class Undefined {
+ public:
+  static constexpr std::string_view NameStr = "Undefined";
+  static constexpr bool IsLeafNode = true;
+
+  Undefined() noexcept = default;
+  constexpr bool is_identical_to(const Undefined&) const noexcept { return true; }
 };
 
 // Convert symbolic constant enum to string constant.
 // For debugging purposes.
-inline constexpr std::string_view string_from_symbolic_constant(SymbolicConstants value) {
+inline constexpr std::string_view string_from_symbolic_constant(SymbolicConstants value) noexcept {
   switch (value) {
     case SymbolicConstants::Euler:
       return "e";
@@ -55,7 +63,7 @@ inline constexpr std::string_view string_from_symbolic_constant(SymbolicConstant
 }
 
 // Convert `SymbolicConstants` to a floating point double.
-constexpr double double_from_symbolic_constant(SymbolicConstants constant) {
+constexpr double double_from_symbolic_constant(SymbolicConstants constant) noexcept {
   switch (constant) {
     case SymbolicConstants::Euler:
       return M_E;
@@ -70,22 +78,30 @@ constexpr double double_from_symbolic_constant(SymbolicConstants constant) {
 }
 
 // Order constants by their enum values.
-inline constexpr bool operator<(const Constant& a, const Constant& b) {
+inline constexpr bool operator<(const Constant& a, const Constant& b) noexcept {
   return a.name() < b.name();
 }
 
 template <>
 struct hash_struct<Constant> {
-  constexpr std::size_t operator()(const Constant& c) const {
+  constexpr std::size_t operator()(const Constant& c) const noexcept {
     return static_cast<std::size_t>(c.name());
   }
 };
 
 template <>
 struct hash_struct<Infinity> {
-  constexpr std::size_t operator()(const Infinity&) const {
+  constexpr std::size_t operator()(const Infinity&) const noexcept {
     constexpr auto inf_hash = hash_string_fnv("inf");
     return inf_hash;
+  }
+};
+
+template <>
+struct hash_struct<Undefined> {
+  constexpr std::size_t operator()(const Undefined&) const noexcept {
+    constexpr auto undef_hash = hash_string_fnv("undef");
+    return undef_hash;
   }
 };
 
