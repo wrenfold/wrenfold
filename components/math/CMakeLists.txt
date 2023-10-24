@@ -20,6 +20,7 @@ add_library(
   source/expressions/numeric_expressions.cc
   source/expressions/power.cc
   source/expressions/relational.cc
+  source/expressions/variable.cc
   source/functions.cc
   source/matrix_expression.cc
   source/matrix_functions.cc
@@ -83,7 +84,6 @@ set(${LIBRARY_NAME}_HEADERS
     include/expressions/all_expressions.h
     include/expressions/conditional.h
     include/expressions/derivative_expression.h
-    include/expressions/function_argument.h
     include/expressions/function_expressions.h
     include/expressions/matrix.h
     include/expressions/multiplication.h

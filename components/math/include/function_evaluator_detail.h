@@ -4,7 +4,7 @@
 #include "code_generation/ast.h"
 #include "code_generation/expression_group.h"
 #include "constants.h"
-#include "expressions/function_argument.h"
+#include "expressions/variable.h"
 #include "output_annotations.h"
 #include "template_utils.h"
 #include "type_annotations.h"
@@ -145,7 +145,9 @@ struct BuildFunctionArgumentImpl;
 
 template <>
 struct BuildFunctionArgumentImpl<Expr> {
-  auto operator()(std::size_t arg_index) const { return FunctionArgument::create(arg_index, 0); }
+  auto operator()(std::size_t arg_index) const {
+    return Variable::create_function_argument(arg_index, 0);
+  }
 };
 
 template <index_t Rows, index_t Cols>
@@ -154,7 +156,7 @@ struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>> {
     std::vector<Expr> expressions{};
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
     for (std::size_t i = 0; i < Rows * Cols; ++i) {
-      expressions.push_back(FunctionArgument::create(arg_index, i));
+      expressions.push_back(Variable::create_function_argument(arg_index, i));
     }
     MatrixExpr expr = MatrixExpr::create(Rows, Cols, std::move(expressions));
     return type_annotations::StaticMatrix<Rows, Cols>(std::move(expr));
@@ -189,14 +191,12 @@ constexpr auto select_output_arg_indices(const std::tuple<Ts...>&) {
 }
 
 // Invoke the provided callable and capture the output expressions. First builds a tuple of input
-// arguments by constructing `FunctionArgument` expressions for every input arg of `callable`. The
+// arguments by constructing `FuncArgVariable` expressions for every input arg of `callable`. The
 // resulting expressions are returned as a tuple of `OutputArg<>` or `ReturnValue<>`.
 template <typename ArgList, typename Callable, std::size_t... Indices>
 auto invoke_with_output_capture(Callable&& callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= type_list_size_v<ArgList>);
-  // Create a tuple of arguments. Inputs are created as `FunctionArgument` objects, while outputs
-  // are unfilled place-holders (since we cannot default-initialize Expr) that `callable` will
-  // replace.
+  // Create a tuple of arguments w/ Variable expressions.
   auto args = std::make_tuple(build_function_arguments<Indices, ArgList>()...);
 
   // Call the user provided function with the args we just created:

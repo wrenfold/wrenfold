@@ -7,9 +7,9 @@ namespace math {
 
 // Visitor that can be used to sort expressions by determining their relative order.
 struct OrderVisitor {
-  using OrderOfTypes = type_list<Float, Integer, Rational, Constant, Infinity, Variable,
-                                 FunctionArgument, Multiplication, Addition, Power, Function,
-                                 Relational, Conditional, Derivative, Undefined>;
+  using OrderOfTypes =
+      type_list<Float, Integer, Rational, Constant, Infinity, Variable, Multiplication, Addition,
+                Power, Function, Relational, Conditional, Derivative, Undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(type_list_size<OrderOfTypes>::value == type_list_size<ExpressionTypeList>::value);
@@ -99,17 +99,6 @@ struct OrderVisitor {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  RelativeOrder compare(const FunctionArgument& a, const FunctionArgument& b) const {
-    const auto p_a = std::make_pair(a.arg_index(), a.element_index());
-    const auto p_b = std::make_pair(b.arg_index(), b.element_index());
-    if (p_a < p_b) {
-      return RelativeOrder::LessThan;
-    } else if (p_a > p_b) {
-      return RelativeOrder::GreaterThan;
-    }
-    return RelativeOrder::Equal;
-  }
-
   RelativeOrder compare(const Relational& a, const Relational& b) const {
     if (a.operation() < b.operation()) {
       return RelativeOrder::LessThan;
@@ -130,12 +119,12 @@ struct OrderVisitor {
   }
 
   RelativeOrder compare(const Variable& a, const Variable& b) const {
-    if (a.name() < b.name()) {
+    if (a.content() < b.content()) {
       return RelativeOrder::LessThan;
-    } else if (a.name() > b.name()) {
-      return RelativeOrder::GreaterThan;
+    } else if (a.is_identical_to(b)) {
+      return RelativeOrder::Equal;
     }
-    return RelativeOrder::Equal;
+    return RelativeOrder::GreaterThan;
   }
 
   // Order two sequences lexicographically.

@@ -3,7 +3,6 @@
 #include "expressions/addition.h"
 #include "expressions/conditional.h"
 #include "expressions/derivative_expression.h"
-#include "expressions/function_argument.h"
 #include "expressions/function_expressions.h"
 #include "expressions/matrix.h"
 #include "expressions/multiplication.h"

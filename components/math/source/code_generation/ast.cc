@@ -273,6 +273,17 @@ struct AstBuilder {
     return ast::Multiply{make_argument_ptr(val[0]), make_argument_ptr(val[1])};
   }
 
+  ast::Variant operator()(const NamedVariable& v) const { return ast::VariableRef{v.name()}; }
+
+  ast::Variant operator()(const FuncArgVariable& a) const {
+    const auto element_index = static_cast<index_t>(a.element_index());
+    return ast::InputValue{signature_.arguments.at(a.arg_index()), element_index};
+  }
+
+  ast::Variant operator()(const UniqueVariable& u) const {
+    throw TypeError("Cannot convert UniqueVariable to ast: {}", u.index());
+  }
+
   ast::Variant operator()(const ir::Value&, const ir::Load& load) {
     return visit(load.expr, [this](const auto& inner) -> ast::Variant {
       using T = std::decay_t<decltype(inner)>;
@@ -283,10 +294,8 @@ struct AstBuilder {
       } else if constexpr (std::is_same_v<T, Rational>) {
         return ast::FloatConstant{static_cast<Float>(inner).get_value()};
       } else if constexpr (std::is_same_v<T, Variable>) {
-        return ast::VariableRef{static_cast<const Variable&>(inner).name()};
-      } else if constexpr (std::is_same_v<T, FunctionArgument>) {
-        const auto element_index = static_cast<index_t>(inner.element_index());
-        return ast::InputValue{signature_.arguments[inner.arg_index()], element_index};
+        // inspect inner type of the variable
+        return std::visit(*this, inner.content());
       } else {
         throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
       }

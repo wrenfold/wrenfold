@@ -12,7 +12,6 @@ class PlainFormatter {
   void operator()(const Constant& constant);
   void operator()(const Derivative& derivative);
   void operator()(const Float& num);
-  void operator()(const FunctionArgument& func_arg);
   void operator()(const Infinity&);
   void operator()(const Integer& num);
   void operator()(const class Matrix& mat);

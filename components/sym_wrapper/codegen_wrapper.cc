@@ -12,7 +12,6 @@
 #include "code_generation/ir_builder.h"
 #include "code_generation/rust_code_generator.h"
 #include "expression.h"
-#include "expressions/function_argument.h"
 #include "matrix_expression.h"
 
 namespace py = pybind11;
@@ -48,14 +47,15 @@ static std::string format_ast(const T& x) {
 void wrap_codegen_operations(py::module_& m) {
   m.def(
       "create_function_argument",
-      [](std::size_t index) { return FunctionArgument::create(index, 0); }, py::arg("index"));
+      [](std::size_t index) { return Variable::create_function_argument(index, 0); },
+      py::arg("index"));
   m.def(
       "create_matrix_function_argument",
       [](std::size_t index, index_t rows, index_t cols) {
         std::vector<Expr> expressions{};
         expressions.reserve(static_cast<std::size_t>(rows * cols));
         for (std::size_t i = 0; i < rows * cols; ++i) {
-          expressions.push_back(FunctionArgument::create(index, i));
+          expressions.push_back(Variable::create_function_argument(index, i));
         }
         return MatrixExpr::create(rows, cols, std::move(expressions));
       },

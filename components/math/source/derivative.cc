@@ -37,14 +37,11 @@ struct IsFunctionOfVisitor {
 };
 
 // Visitor that takes the derivative of an input expression.
-template <typename T>
 class DiffVisitor {
  public:
-  static_assert(std::is_same_v<T, Variable> || std::is_same_v<T, FunctionArgument>);
-
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit DiffVisitor(const T& argument, const Expr& argument_abstract)
+  explicit DiffVisitor(const Variable& argument, const Expr& argument_abstract)
       : argument_(argument), argument_abstract_(argument_abstract) {}
 
   // Differentiate every argument to make a new sum.
@@ -64,7 +61,8 @@ class DiffVisitor {
 
   // Derivative of an abstract derivative expression.
   Expr operator()(const Derivative& derivative, const Expr& derivative_abstract) const {
-    const bool is_relevant = visit(derivative.differentiand(), IsFunctionOfVisitor<T>{argument_});
+    const bool is_relevant =
+        visit(derivative.differentiand(), IsFunctionOfVisitor<Variable>{argument_});
     if (!is_relevant) {
       return Constants::Zero;
     }
@@ -171,16 +169,6 @@ class DiffVisitor {
   Expr operator()(const Infinity&) const { return Constants::Zero; }
   Expr operator()(const Integer&) const { return Constants::Zero; }
   Expr operator()(const Float&) const { return Constants::Zero; }
-
-  Expr operator()(const FunctionArgument& arg) const {
-    if constexpr (std::is_same_v<T, FunctionArgument>) {
-      if (argument_.is_identical_to(arg)) {
-        return Constants::One;
-      }
-    }
-    return Constants::Zero;
-  }
-
   Expr operator()(const Power& pow) { return power_diff(pow.base(), pow.exponent()); }
 
   Expr power_diff(const Expr& a, const Expr& b) {
@@ -204,22 +192,20 @@ class DiffVisitor {
   Expr operator()(const Undefined&) const { return Constants::Undefined; }
 
   Expr operator()(const Variable& var) const {
-    if constexpr (std::is_same_v<Variable, T>) {
-      if (var.is_identical_to(argument_)) {
-        return Constants::One;
-      }
+    if (var.is_identical_to(argument_)) {
+      return Constants::One;
     }
     return Constants::Zero;
   }
 
  private:
-  const T& argument_;
+  const Variable& argument_;
   const Expr& argument_abstract_;
 };
 
-template <typename T>
-inline Expr diff_typed(const Expr& expr, const T& arg, const Expr& arg_abstract, const int reps) {
-  DiffVisitor<T> visitor{arg, arg_abstract};
+inline Expr diff_typed(const Expr& expr, const Variable& arg, const Expr& arg_abstract,
+                       const int reps) {
+  DiffVisitor visitor{arg, arg_abstract};
   Expr result = expr;
   for (int i = 0; i < reps; ++i) {
     result = visit_with_expr(result, visitor);
@@ -230,12 +216,10 @@ inline Expr diff_typed(const Expr& expr, const T& arg, const Expr& arg_abstract,
 Expr diff(const Expr& differentiand, const Expr& arg, const int reps) {
   ZEN_ASSERT_GREATER_OR_EQ(reps, 0);
   if (const Variable* var = cast_ptr<Variable>(arg); var != nullptr) {
-    return diff_typed<Variable>(differentiand, *var, arg, reps);
-  } else if (const FunctionArgument* func = cast_ptr<FunctionArgument>(arg); func != nullptr) {
-    return diff_typed<FunctionArgument>(differentiand, *func, arg, reps);
+    return diff_typed(differentiand, *var, arg, reps);
   } else {
     throw TypeError(
-        "Argument to diff must be of type Variable or FunctionArgument. Received expression "
+        "Argument to diff must be of type Variable. Received expression "
         "of type: {}",
         arg.type_name());
   }

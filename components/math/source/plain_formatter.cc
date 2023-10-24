@@ -98,11 +98,6 @@ void PlainFormatter::operator()(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
-void PlainFormatter::operator()(const FunctionArgument& func_arg) {
-  fmt::format_to(std::back_inserter(output_), "$arg({}, {})", func_arg.arg_index(),
-                 func_arg.element_index());
-}
-
 void PlainFormatter::operator()(const Matrix& mat) {
   ZEN_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
   ZEN_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
@@ -230,7 +225,7 @@ void PlainFormatter::operator()(const Relational& expr) {
 
 void PlainFormatter::operator()(const Undefined&) { output_.append("nan"); }
 
-void PlainFormatter::operator()(const Variable& expr) { output_ += expr.name(); }
+void PlainFormatter::operator()(const Variable& expr) { output_.append(expr.to_string()); }
 
 void PlainFormatter::format_precedence(const Precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {

@@ -88,7 +88,6 @@ struct DistributeVisitor {
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const Integer&, const Expr& arg) const { return arg; }
   Expr operator()(const Float&, const Expr& arg) const { return arg; }
-  Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation, const Expr&) const {
     return relation.map_children(&distribute);
