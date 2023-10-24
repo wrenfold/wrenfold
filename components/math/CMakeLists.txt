@@ -20,6 +20,7 @@ add_library(
   source/expressions/numeric_expressions.cc
   source/expressions/power.cc
   source/expressions/relational.cc
+  source/expressions/variable.cc
   source/functions.cc
   source/matrix_expression.cc
   source/matrix_functions.cc

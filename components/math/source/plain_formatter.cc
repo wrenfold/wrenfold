@@ -230,7 +230,7 @@ void PlainFormatter::operator()(const Relational& expr) {
 
 void PlainFormatter::operator()(const Undefined&) { output_.append("nan"); }
 
-void PlainFormatter::operator()(const Variable& expr) { output_ += expr.name(); }
+void PlainFormatter::operator()(const Variable& expr) { output_.append(expr.to_string()); }
 
 void PlainFormatter::format_precedence(const Precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {

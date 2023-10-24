@@ -4,7 +4,7 @@
 #include "code_generation/ast.h"
 #include "code_generation/expression_group.h"
 #include "constants.h"
-#include "expressions/function_argument.h"
+#include "expressions/variable.h"
 #include "output_annotations.h"
 #include "template_utils.h"
 #include "type_annotations.h"
@@ -145,7 +145,9 @@ struct BuildFunctionArgumentImpl;
 
 template <>
 struct BuildFunctionArgumentImpl<Expr> {
-  auto operator()(std::size_t arg_index) const { return FunctionArgument::create(arg_index, 0); }
+  auto operator()(std::size_t arg_index) const {
+    return Variable::create_function_argument(arg_index, 0);
+  }
 };
 
 template <index_t Rows, index_t Cols>
@@ -154,7 +156,7 @@ struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>> {
     std::vector<Expr> expressions{};
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
     for (std::size_t i = 0; i < Rows * Cols; ++i) {
-      expressions.push_back(FunctionArgument::create(arg_index, i));
+      expressions.push_back(Variable::create_function_argument(arg_index, i));
     }
     MatrixExpr expr = MatrixExpr::create(Rows, Cols, std::move(expressions));
     return type_annotations::StaticMatrix<Rows, Cols>(std::move(expr));

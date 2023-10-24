@@ -146,7 +146,9 @@ struct TreeFormatter {
 
   void operator()(const Undefined&) { append_name(Undefined::NameStr); }
 
-  void operator()(const Variable& var) { append_name("{} ({})", Variable::NameStr, var.name()); }
+  void operator()(const Variable& var) {
+    append_name("{} ({})", Variable::NameStr, var.to_string());
+  }
 
   void operator()(const Conditional& conditional) {
     append_name("Conditional:");

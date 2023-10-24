@@ -130,12 +130,12 @@ struct OrderVisitor {
   }
 
   RelativeOrder compare(const Variable& a, const Variable& b) const {
-    if (a.name() < b.name()) {
+    if (a.content() < b.content()) {
       return RelativeOrder::LessThan;
-    } else if (a.name() > b.name()) {
-      return RelativeOrder::GreaterThan;
+    } else if (a.is_identical_to(b)) {
+      return RelativeOrder::Equal;
     }
-    return RelativeOrder::Equal;
+    return RelativeOrder::GreaterThan;
   }
 
   // Order two sequences lexicographically.

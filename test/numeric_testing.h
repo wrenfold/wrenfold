@@ -26,16 +26,21 @@ struct convert_output_arg_type;
 // 2. We traverse an expression tree and replace `FunctionArgument` objects by their corresponding
 // `Float`.
 struct NumericFunctionEvaluator {
-  Expr operator()(const FunctionArgument& arg, const Expr&) const {
-    auto it = values.find(arg);
-    ZEN_ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg.arg_index(),
-               arg.element_index());
-    return it->second;
+  Expr operator()(const Variable& var, const Expr& input) const {
+    const auto& content = var.content();
+    if (const FuncArg* arg = std::get_if<FuncArg>(&var.content()); arg != nullptr) {
+      auto it = values.find(*arg);
+      ZEN_ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg->arg_index(),
+                 arg->element_index());
+      return it->second;
+    } else {
+      return input;
+    }
   }
 
   template <typename T>
-  std::enable_if_t<!std::is_same_v<T, FunctionArgument>, Expr> operator()(const T& input_typed,
-                                                                          const Expr& input) const {
+  std::enable_if_t<!std::is_same_v<T, Variable>, Expr> operator()(const T& input_typed,
+                                                                  const Expr& input) const {
     if constexpr (T::IsLeafNode) {
       return input;
     } else {
@@ -45,7 +50,7 @@ struct NumericFunctionEvaluator {
     }
   }
 
-  std::unordered_map<FunctionArgument, Expr, hash_struct<FunctionArgument>> values;
+  std::unordered_map<FuncArg, Expr, hash_struct<FuncArg>> values;
 };
 
 template <typename T>
@@ -110,7 +115,7 @@ struct collect_function_input_impl;
 template <std::size_t Index>
 struct collect_function_input_impl<Index, double> {
   void operator()(NumericFunctionEvaluator& output, const double arg) const {
-    output.values.emplace(FunctionArgument(Index, 0), Float::create(arg));
+    output.values.emplace(FuncArg(Index, 0), Float::create(arg));
   }
 };
 
@@ -123,7 +128,7 @@ struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
-        output.values.emplace(FunctionArgument(Index, element), Float::create(arg(i, j)));
+        output.values.emplace(FuncArg(Index, element), Float::create(arg(i, j)));
       }
     }
   }
