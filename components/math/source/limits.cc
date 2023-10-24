@@ -19,7 +19,10 @@ class LimitVisitor {
   // x is the variable we are taking the limit wrt to.
   // 0+ is the value of `x` at the limit.
   explicit LimitVisitor(const Expr& x)
-      : x_(x), x_typed_(cast_checked<Variable>(x_)), positive_inf_{"pinf"}, negative_inf_{"ninf"} {}
+      : x_(x),
+        x_typed_(cast_checked<Variable>(x_)),
+        positive_inf_{positive_inf_placeholder()},
+        negative_inf_{negative_inf_placeholder()} {}
 
   // Check the cache, and if no value exists, visit with this:
   std::optional<Expr> visit(const Expr& expr) {
@@ -490,6 +493,16 @@ class LimitVisitor {
   }
 
  private:
+  static Expr positive_inf_placeholder() {
+    static const Expr p_inf = make_expr<Variable>(UniqueVariable());
+    return p_inf;
+  }
+
+  static Expr negative_inf_placeholder() {
+    static const Expr n_inf = make_expr<Variable>(UniqueVariable());
+    return n_inf;
+  }
+
   const Expr& x_;
   const Variable& x_typed_;
 

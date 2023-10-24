@@ -19,6 +19,10 @@ template <typename T>
 struct convert_arg_type;
 template <typename T>
 struct convert_output_arg_type;
+template <typename T>
+using convert_arg_type_t = typename convert_arg_type<T>::type;
+template <typename T>
+using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
 }  // namespace detail
 
 // The numeric function evaluator operates in two steps:
@@ -216,8 +220,6 @@ template <index_t Rows, index_t Cols>
 struct convert_arg_type<ta::StaticMatrix<Rows, Cols>> {
   using type = Eigen::Matrix<double, Rows, Cols>;
 };
-template <typename T>
-using convert_arg_type_t = typename convert_arg_type<T>::type;
 
 template <typename T>
 struct convert_output_arg_type<OutputArg<T>> {
@@ -231,8 +233,5 @@ template <index_t Rows, index_t Cols>
 struct convert_output_arg_type<ta::StaticMatrix<Rows, Cols>> {
   using type = Eigen::Matrix<double, Rows, Cols>;
 };
-template <typename T>
-using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
-
 }  // namespace detail
 }  // namespace math
