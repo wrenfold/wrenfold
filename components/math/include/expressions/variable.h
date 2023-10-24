@@ -6,20 +6,26 @@
 
 namespace math {
 
-class FuncArg {
+// A type that is substituted into user-provided expressions during code-generation.
+// Typically, the user does not create these directly.
+class FuncArgVariable {
  public:
-  constexpr FuncArg(std::size_t arg_index, std::size_t element_index) noexcept
+  constexpr FuncArgVariable(std::size_t arg_index, std::size_t element_index) noexcept
       : arg_index_(arg_index), element_index_(element_index) {}
 
-  constexpr bool operator<(const FuncArg& other) const noexcept {
+  constexpr bool operator<(const FuncArgVariable& other) const noexcept {
     return std::make_pair(arg_index_, element_index_) <
            std::make_pair(other.arg_index_, other.element_index_);
   }
-  constexpr bool operator==(const FuncArg& other) const noexcept {
+  constexpr bool operator==(const FuncArgVariable& other) const noexcept {
     return (arg_index_ == other.arg_index_) && (element_index_ == other.element_index_);
   }
 
+  // Which function argument this refers to.
   constexpr std::size_t arg_index() const noexcept { return arg_index_; }
+
+  // Index into the function argument.
+  // For a matrix arg, this is a flat index into the matrix.
   constexpr std::size_t element_index() const noexcept { return element_index_; }
 
  private:
@@ -27,6 +33,7 @@ class FuncArg {
   std::size_t element_index_;
 };
 
+// A variable designated by a unique integer index that is not reused.
 class UniqueVariable {
  public:
   // Create a new variable w/ the next index.
@@ -35,6 +42,7 @@ class UniqueVariable {
   bool operator<(const UniqueVariable& other) const noexcept { return index_ < other.index_; }
   bool operator==(const UniqueVariable& other) const noexcept { return index_ == other.index_; }
 
+  // Retrieve the underlying index.
   constexpr std::size_t index() const noexcept { return index_; }
 
  private:
@@ -43,6 +51,7 @@ class UniqueVariable {
   std::size_t index_;
 };
 
+// A variable w/ a user-provided name.
 class NamedVariable {
  public:
   explicit NamedVariable(std::string name) noexcept : name_(std::move(name)) {}
@@ -50,6 +59,7 @@ class NamedVariable {
   bool operator<(const NamedVariable& other) const noexcept { return name_ < other.name_; }
   bool operator==(const NamedVariable& other) const noexcept { return name_ == other.name_; }
 
+  // String name of the variable.
   constexpr const std::string& name() const noexcept { return name_; }
 
  private:
@@ -57,6 +67,7 @@ class NamedVariable {
 };
 
 // A named variable used in an expression.
+// This can be one of three underlying types: NamedVariable, FuncArg, UniqueVariable
 class Variable {
  public:
   static constexpr std::string_view NameStr = "Variable";
@@ -79,7 +90,7 @@ class Variable {
   std::string to_string() const {
     struct string_converter {
       std::string operator()(const NamedVariable& n) const { return n.name(); }
-      std::string operator()(const FuncArg& f) const {
+      std::string operator()(const FuncArgVariable& f) const {
         return fmt::format("$arg({}, {})", f.arg_index(), f.element_index());
       }
       std::string operator()(const UniqueVariable& u) const {
@@ -91,11 +102,11 @@ class Variable {
 
   // Create a function argument expression.
   static Expr create_function_argument(std::size_t arg_index, std::size_t element_index) {
-    return make_expr<Variable>(FuncArg(arg_index, element_index));
+    return make_expr<Variable>(FuncArgVariable(arg_index, element_index));
   }
 
  private:
-  std::variant<NamedVariable, FuncArg, UniqueVariable> content_;
+  std::variant<NamedVariable, FuncArgVariable, UniqueVariable> content_;
 };
 
 template <>
@@ -111,8 +122,8 @@ struct hash_struct<UniqueVariable> {
 };
 
 template <>
-struct hash_struct<FuncArg> {
-  constexpr std::size_t operator()(const FuncArg& v) const noexcept {
+struct hash_struct<FuncArgVariable> {
+  constexpr std::size_t operator()(const FuncArgVariable& v) const noexcept {
     return hash_combine(v.arg_index(), v.element_index());
   }
 };

@@ -51,8 +51,6 @@ struct DetermineNumericTypeVisitor {
 
   constexpr NumericType operator()(const Float&) const { return NumericType::Real; }
 
-  constexpr NumericType operator()(const FunctionArgument&) const { return NumericType::Real; }
-
   constexpr NumericType operator()(const Infinity&) const { return NumericType::Complex; }
 
   constexpr NumericType operator()(const Integer&) const { return NumericType::Integer; }
@@ -386,9 +384,6 @@ struct IRFormVisitor {
     return push_operation(ir::Load{input_expression});
   }
   ir::ValuePtr operator()(const Float&, const Expr& input_expression) {
-    return push_operation(ir::Load{input_expression});
-  }
-  ir::ValuePtr operator()(const FunctionArgument&, const Expr& input_expression) {
     return push_operation(ir::Load{input_expression});
   }
 

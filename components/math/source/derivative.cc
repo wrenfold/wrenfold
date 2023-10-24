@@ -40,7 +40,7 @@ struct IsFunctionOfVisitor {
 template <typename T>
 class DiffVisitor {
  public:
-  static_assert(std::is_same_v<T, Variable> || std::is_same_v<T, FunctionArgument>);
+  static_assert(std::is_same_v<T, Variable>);
 
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
@@ -171,16 +171,6 @@ class DiffVisitor {
   Expr operator()(const Infinity&) const { return Constants::Zero; }
   Expr operator()(const Integer&) const { return Constants::Zero; }
   Expr operator()(const Float&) const { return Constants::Zero; }
-
-  Expr operator()(const FunctionArgument& arg) const {
-    if constexpr (std::is_same_v<T, FunctionArgument>) {
-      if (argument_.is_identical_to(arg)) {
-        return Constants::One;
-      }
-    }
-    return Constants::Zero;
-  }
-
   Expr operator()(const Power& pow) { return power_diff(pow.base(), pow.exponent()); }
 
   Expr power_diff(const Expr& a, const Expr& b) {
@@ -231,11 +221,9 @@ Expr diff(const Expr& differentiand, const Expr& arg, const int reps) {
   ZEN_ASSERT_GREATER_OR_EQ(reps, 0);
   if (const Variable* var = cast_ptr<Variable>(arg); var != nullptr) {
     return diff_typed<Variable>(differentiand, *var, arg, reps);
-  } else if (const FunctionArgument* func = cast_ptr<FunctionArgument>(arg); func != nullptr) {
-    return diff_typed<FunctionArgument>(differentiand, *func, arg, reps);
   } else {
     throw TypeError(
-        "Argument to diff must be of type Variable or FunctionArgument. Received expression "
+        "Argument to diff must be of type Variable. Received expression "
         "of type: {}",
         arg.type_name());
   }

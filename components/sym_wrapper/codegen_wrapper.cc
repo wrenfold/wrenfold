@@ -12,7 +12,6 @@
 #include "code_generation/ir_builder.h"
 #include "code_generation/rust_code_generator.h"
 #include "expression.h"
-#include "expressions/function_argument.h"
 #include "matrix_expression.h"
 
 namespace py = pybind11;

@@ -84,7 +84,6 @@ set(${LIBRARY_NAME}_HEADERS
     include/expressions/all_expressions.h
     include/expressions/conditional.h
     include/expressions/derivative_expression.h
-    include/expressions/function_argument.h
     include/expressions/function_expressions.h
     include/expressions/matrix.h
     include/expressions/multiplication.h

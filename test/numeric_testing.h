@@ -23,12 +23,12 @@ struct convert_output_arg_type;
 
 // The numeric function evaluator operates in two steps:
 // 1. We traverse the input arguments and copy their values into `values` as `Float` objects.
-// 2. We traverse an expression tree and replace `FunctionArgument` objects by their corresponding
+// 2. We traverse an expression tree and replace `FuncArgVariable` objects by their corresponding
 // `Float`.
 struct NumericFunctionEvaluator {
   Expr operator()(const Variable& var, const Expr& input) const {
     const auto& content = var.content();
-    if (const FuncArg* arg = std::get_if<FuncArg>(&var.content()); arg != nullptr) {
+    if (const FuncArgVariable* arg = std::get_if<FuncArgVariable>(&var.content()); arg != nullptr) {
       auto it = values.find(*arg);
       ZEN_ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg->arg_index(),
                  arg->element_index());
@@ -50,7 +50,7 @@ struct NumericFunctionEvaluator {
     }
   }
 
-  std::unordered_map<FuncArg, Expr, hash_struct<FuncArg>> values;
+  std::unordered_map<FuncArgVariable, Expr, hash_struct<FuncArgVariable>> values;
 };
 
 template <typename T>
@@ -115,7 +115,7 @@ struct collect_function_input_impl;
 template <std::size_t Index>
 struct collect_function_input_impl<Index, double> {
   void operator()(NumericFunctionEvaluator& output, const double arg) const {
-    output.values.emplace(FuncArg(Index, 0), Float::create(arg));
+    output.values.emplace(FuncArgVariable(Index, 0), Float::create(arg));
   }
 };
 
@@ -128,7 +128,7 @@ struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
-        output.values.emplace(FuncArg(Index, element), Float::create(arg(i, j)));
+        output.values.emplace(FuncArgVariable(Index, element), Float::create(arg(i, j)));
       }
     }
   }

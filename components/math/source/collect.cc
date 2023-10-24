@@ -121,7 +121,6 @@ struct CollectVisitor {
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const Integer&, const Expr& arg) const { return arg; }
   Expr operator()(const Float&, const Expr& arg) const { return arg; }
-  Expr operator()(const FunctionArgument&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation) { return recurse(relation); }
   Expr operator()(const Undefined&) const { return Constants::Undefined; }

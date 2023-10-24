@@ -1,7 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include "code_generation/ast.h"
-#include "expressions/function_argument.h"
 #include "function_evaluator_detail.h"
 #include "type_annotations.h"
 

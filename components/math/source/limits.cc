@@ -461,7 +461,6 @@ class LimitVisitor {
   std::optional<Expr> operator()(const Infinity&, const Expr& expr) const { return expr; }
   std::optional<Expr> operator()(const Integer&, const Expr& expr) { return expr; }
   std::optional<Expr> operator()(const Float&, const Expr& expr) { return expr; }
-  std::optional<Expr> operator()(const FunctionArgument&, const Expr& expr) { return expr; }
   std::optional<Expr> operator()(const Rational&, const Expr& expr) { return expr; }
 
   std::optional<Expr> operator()(const Power& pow) {

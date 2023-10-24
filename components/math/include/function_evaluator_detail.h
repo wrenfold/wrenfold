@@ -191,14 +191,12 @@ constexpr auto select_output_arg_indices(const std::tuple<Ts...>&) {
 }
 
 // Invoke the provided callable and capture the output expressions. First builds a tuple of input
-// arguments by constructing `FunctionArgument` expressions for every input arg of `callable`. The
+// arguments by constructing `FuncArgVariable` expressions for every input arg of `callable`. The
 // resulting expressions are returned as a tuple of `OutputArg<>` or `ReturnValue<>`.
 template <typename ArgList, typename Callable, std::size_t... Indices>
 auto invoke_with_output_capture(Callable&& callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= type_list_size_v<ArgList>);
-  // Create a tuple of arguments. Inputs are created as `FunctionArgument` objects, while outputs
-  // are unfilled place-holders (since we cannot default-initialize Expr) that `callable` will
-  // replace.
+  // Create a tuple of arguments w/ Variable expressions.
   auto args = std::make_tuple(build_function_arguments<Indices, ArgList>()...);
 
   // Call the user provided function with the args we just created:

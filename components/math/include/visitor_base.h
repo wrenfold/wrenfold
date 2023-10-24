@@ -21,7 +21,6 @@ using ExpressionTypeList = type_list<
     class Derivative,
     class Float,
     class Function,
-    class FunctionArgument,
     class Infinity,
     class Integer,
     class Multiplication,

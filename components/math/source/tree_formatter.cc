@@ -121,10 +121,6 @@ struct TreeFormatter {
 
   void operator()(const Float& neg) { append_name("Float ({})", neg.get_value()); }
 
-  void operator()(const FunctionArgument& arg) {
-    append_name("FunctionArgument ({}, {})", arg.arg_index(), arg.element_index());
-  }
-
   void operator()(const Rational& rational) {
     append_name("Rational ({} / {})", rational.numerator(), rational.denominator());
   }
