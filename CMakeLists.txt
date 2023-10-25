@@ -39,9 +39,3 @@ endif()
 
 # Add libraries
 add_subdirectory(components)
-
-# Add tests, if not building from scikit-build-core
-if(NOT DEFINED SKBUILD_PROJECT_NAME)
-  add_subdirectory(test)
-  add_subdirectory(benchmarks)
-endif()

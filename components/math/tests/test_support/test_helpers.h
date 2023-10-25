@@ -8,8 +8,7 @@
 namespace math {
 
 #define ASSERT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(identical_test_helper, val1, val2)
-#define ASSERT_NOT_IDENTICAL(val1, val2) \
-  ASSERT_PRED_FORMAT2(not_identical_test_helper_2, val1, val2)
+#define ASSERT_NOT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(not_identical_test_helper, val1, val2)
 
 #define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(string_equal_test_helper, val1, val2)
 

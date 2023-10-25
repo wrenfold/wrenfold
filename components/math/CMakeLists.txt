@@ -125,3 +125,9 @@ install(
   INCLUDES
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBRARY_NAME}")
+
+# Add tests and benchmarks, if not building from scikit-build-core
+if(NOT DEFINED SKBUILD_PROJECT_NAME)
+  add_subdirectory(tests)
+  add_subdirectory(benchmarks)
+endif()
