@@ -45,8 +45,6 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   # First create a target that generates the code:
   set(generate_target ${NAME}_generate)
   set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
-  configure_file(config/config_variables.h.in
-                 ${TEST_OUTPUT_DIR}/config_variables.h)
 
   add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
   target_link_libraries(${generate_target} ${TEST_LIBRARY_NAME})
@@ -82,7 +80,7 @@ endfunction()
 add_code_generation_test(generate_cpp_test cpp_generation_gen.cc
                          cpp_generation_test.cc)
 
-#
+# Function to define a test that generates in C++ and then runs Rust tests.
 function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
   # First create a target that generates the code:
   set(generate_target ${NAME}_generate)
@@ -101,6 +99,9 @@ function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
     COMMENT "Run code-generation for test ${NAME}"
     DEPENDS ${generate_target})
 
+  # Path to the crate that implements the rust tests
+  set(CRATE_ROOT "${CMAKE_SOURCE_DIR}/components/rust/rust-codegen-tests")
+
   # Find cargo
   find_program(CARGO_PATH cargo)
   if(DEFINED CARGO_PATH)
@@ -113,11 +114,10 @@ function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
         "CODE_GENERATION_FILE=${TEST_OUTPUT_DIR}/generated.rs"
         "CARGO_TARGET_DIR=${TEST_OUTPUT_DIR}/target" ${CARGO_PATH} test --
         --test-threads 1
-      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/rust_tests"
+      WORKING_DIRECTORY ${CRATE_ROOT}
       COMMENT "Cargo build for test ${NAME}"
-      DEPENDS "${TEST_OUTPUT_DIR}/generated.rs"
-              "${CMAKE_CURRENT_SOURCE_DIR}/rust_tests/src/lib.rs"
-              "${CMAKE_CURRENT_SOURCE_DIR}/rust_tests/Cargo.toml")
+      DEPENDS "${TEST_OUTPUT_DIR}/generated.rs" "${CRATE_ROOT}/src/lib.rs"
+              "${CRATE_ROOT}/Cargo.toml")
   endif()
 endfunction()
 
