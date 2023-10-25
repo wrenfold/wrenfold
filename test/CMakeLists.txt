@@ -6,41 +6,22 @@ if(NOT TARGET ${LIBRARY_NAME})
   message(FATAL_ERROR "Main library target has not been defined.")
 endif()
 
-target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest_main eigen)
+target_link_libraries(${TEST_LIBRARY_NAME} ${LIBRARY_NAME} gtest eigen)
 target_compile_options(${TEST_LIBRARY_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
-
-# get_target_property(EIGEN_INCLUDE_DIRS eigen INTERFACE_INCLUDE_DIRECTORIES)
-
-set(TEST_CONFIG_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_config)
-configure_file(config/config_variables.h.in
-               ${TEST_CONFIG_OUTPUT_DIR}/config_variables.h)
 
 # Add a single test.
 function(add_custom_test SOURCE_FILE)
-  set(options OMIT_MAIN_LIBRARY)
-  set(oneValueArgs "")
-  set(multiValueArgs COMPILE_FEATURES)
-  cmake_parse_arguments(TEST "${options}" "${oneValueArgs}" "${multiValueArgs}"
-                        ${ARGN})
-
   # get just the filename w/o extension
   get_filename_component(TEST_NAME ${SOURCE_FILE} NAME_WE)
 
   # add executable for the test:
   message(STATUS "Adding test: ${TEST_NAME}")
   add_executable(${TEST_NAME} ${SOURCE_FILE} custom_main.cc)
-  target_link_libraries(${TEST_NAME} gtest)
 
-  if(NOT ${TEST_OMIT_MAIN_LIBRARY})
-    target_link_libraries(${TEST_NAME} ${TEST_LIBRARY_NAME})
-  endif()
-
-  target_link_libraries(${TEST_NAME} ${PROJECT_PREFIX}-runtime eigen
+  target_link_libraries(${TEST_NAME} ${TEST_LIBRARY_NAME})
+  target_link_libraries(${TEST_NAME} ${PROJECT_PREFIX}-runtime gtest eigen
                         fmt::fmt-header-only)
-
-  target_compile_features(${TEST_NAME} PRIVATE ${TEST_COMPILE_FEATURES})
   target_compile_options(${TEST_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
-  target_include_directories(${TEST_NAME} PRIVATE ${TEST_CONFIG_OUTPUT_DIR})
 
   add_test(${TEST_NAME} ${TEST_NAME})
 endfunction()
@@ -56,10 +37,6 @@ add_custom_test(ir_builder_test.cc)
 add_custom_test(substitute_test.cc)
 add_custom_test(quaternion_test.cc)
 add_custom_test(limits_test.cc)
-
-# TODO: MSVC doesn't care about our request for C++11, and just compiles with
-# C++14.
-add_custom_test(span_test.cc OMIT_MAIN_LIBRARY COMPILE_FEATURES cxx_std_11)
 
 # Function for defining code-generation tests, which are built and run twice.
 # The first pass performs code-generation, while the second compiles w/ the

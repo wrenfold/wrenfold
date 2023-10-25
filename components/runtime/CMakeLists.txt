@@ -12,3 +12,5 @@ target_include_directories(
 set_target_properties(
   ${RUNTIME_INTERFACE_NAME} PROPERTIES PUBLIC_HEADER span.h span_detail.h
                                                             span_eigen.h)
+
+add_subdirectory(tests)
