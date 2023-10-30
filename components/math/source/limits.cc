@@ -494,12 +494,12 @@ class LimitVisitor {
 
  private:
   static Expr positive_inf_placeholder() {
-    static const Expr p_inf = make_expr<Variable>(UniqueVariable());
+    static const Expr p_inf = make_unique_variable_symbol(NumberSet::Unknown);
     return p_inf;
   }
 
   static Expr negative_inf_placeholder() {
-    static const Expr n_inf = make_expr<Variable>(UniqueVariable());
+    static const Expr n_inf = make_unique_variable_symbol(NumberSet::Unknown);
     return n_inf;
   }
 

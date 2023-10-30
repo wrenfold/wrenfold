@@ -54,7 +54,7 @@ class UniqueVariable {
 // A variable w/ a user-provided name.
 class NamedVariable {
  public:
-  explicit NamedVariable(std::string name) noexcept : name_(std::move(name)) {}
+  explicit NamedVariable(std::string_view name) noexcept : name_{name} {}
 
   bool operator<(const NamedVariable& other) const noexcept { return name_ < other.name_; }
   bool operator==(const NamedVariable& other) const noexcept { return name_ == other.name_; }
@@ -73,20 +73,31 @@ class Variable {
   static constexpr std::string_view NameStr = "Variable";
   static constexpr bool IsLeafNode = true;
 
-  // Construct variable from user-provided name.
-  explicit Variable(std::string name) noexcept : content_{NamedVariable(std::move(name))} {}
+  // There are different kinds of variables, but the different kinds don't matter to most visitors.
+  // We don't expose that information at the expression level, and instead store it inside Variable.
+  using IdentifierType = std::variant<NamedVariable, FuncArgVariable, UniqueVariable>;
 
-  template <typename T>
-  explicit Variable(T&& content) noexcept(std::is_nothrow_constructible_v<decltype(content_), T>)
-      : content_(std::forward<T>(content)) {}
+  // Construct variable from user-provided name.
+  explicit Variable(std::string name) noexcept(
+      std::is_nothrow_constructible_v<IdentifierType, NamedVariable&&>)
+      : identifier_{NamedVariable(std::move(name))}, set_(NumberSet::Real) {}
+
+  Variable(IdentifierType identifier,
+           NumberSet set) noexcept(std::is_nothrow_move_constructible_v<IdentifierType>)
+      : identifier_(std::move(identifier)), set_(set) {}
 
   // Check if two variables are the same.
-  bool is_identical_to(const Variable& other) const { return content_ == other.content_; }
+  bool is_identical_to(const Variable& other) const {
+    return identifier_ == other.identifier_ && set_ == other.set_;
+  }
 
   // Access the variant of different variable representations.
-  constexpr const auto& content() const noexcept { return content_; }
+  constexpr const auto& identifier() const noexcept { return identifier_; }
 
-  // Convert to string.
+  // The numeric set this variable belongs to.
+  constexpr NumberSet set() const noexcept { return set_; }
+
+  // Convert the identifier to a string.
   std::string to_string() const {
     struct string_converter {
       std::string operator()(const NamedVariable& n) const { return n.name(); }
@@ -97,16 +108,18 @@ class Variable {
         return fmt::format("$u_{}", u.index());
       }
     };
-    return std::visit(string_converter{}, content_);
+    return std::visit(string_converter{}, identifier_);
   }
 
   // Create a function argument expression.
   static Expr create_function_argument(std::size_t arg_index, std::size_t element_index) {
-    return make_expr<Variable>(FuncArgVariable(arg_index, element_index));
+    // TODO: Support creating function arguments that are not real.
+    return make_expr<Variable>(FuncArgVariable(arg_index, element_index), NumberSet::Real);
   }
 
  private:
-  std::variant<NamedVariable, FuncArgVariable, UniqueVariable> content_;
+  IdentifierType identifier_;
+  NumberSet set_;
 };
 
 template <>
@@ -129,16 +142,18 @@ struct hash_struct<FuncArgVariable> {
 };
 
 template <>
+struct hash_struct<NumberSet> {
+  constexpr std::size_t operator()(NumberSet set) const noexcept {
+    return static_cast<std::size_t>(set);
+  }
+};
+
+template <>
 struct hash_struct<Variable> {
   std::size_t operator()(const Variable& v) const {
-    const std::size_t seed = v.content().index();
-    const std::size_t inner_hash = std::visit(
-        [](const auto& x) {
-          using T = std::decay_t<decltype(x)>;
-          return hash_struct<T>{}(x);
-        },
-        v.content());
-    return hash_combine(seed, inner_hash);
+    std::size_t seed = v.identifier().index();
+    seed = hash_combine(seed, std::visit([](const auto& x) { return hash(x); }, v.identifier()));
+    return hash_args(seed, v.set());
   }
 };
 

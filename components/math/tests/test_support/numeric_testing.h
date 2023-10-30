@@ -31,8 +31,9 @@ using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
 // `Float`.
 struct NumericFunctionEvaluator {
   Expr operator()(const Variable& var, const Expr& input) const {
-    const auto& content = var.content();
-    if (const FuncArgVariable* arg = std::get_if<FuncArgVariable>(&var.content()); arg != nullptr) {
+    const auto& content = var.identifier();
+    if (const FuncArgVariable* arg = std::get_if<FuncArgVariable>(&var.identifier());
+        arg != nullptr) {
       auto it = values.find(*arg);
       ZEN_ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg->arg_index(),
                  arg->element_index());

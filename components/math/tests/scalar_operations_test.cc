@@ -601,4 +601,120 @@ TEST(ScalarOperationsTest, TestCollectMany) {
   ASSERT_IDENTICAL(f5, collect_many(f5.distribute(), {x, y, z, w}));
 }
 
+TEST(ScalarOperationsTest, TestNumericSetsVariables) {
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(Expr{"x"}));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(Expr{"x", NumberSet::Real}));
+  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(Expr{"x", NumberSet::Complex}));
+
+  // Identical must consider the numeric set of the variable.
+  ASSERT_IDENTICAL(Expr("x"), Expr("x", NumberSet::Unknown));
+  ASSERT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::Real));
+  ASSERT_NOT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::Complex));
+  ASSERT_NOT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::RealNonNegative));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsNumericalValues) {
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(0));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(3));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-5.0123));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-10));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(11_s / 13));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-3_s / 2));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsAddMul) {
+  const Expr x{"x", NumberSet::Real};
+  const Expr y{"y", NumberSet::RealNonNegative};
+  const Expr z{"z", NumberSet::Complex};
+  const Expr w{"w", NumberSet::Real};
+  const Expr v{"v", NumberSet::RealNonNegative};
+
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(x + w));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(v + y));
+  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(x + z));
+  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(z + v + x));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(x - w));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(y - v));
+
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(2 * x));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(2 * y));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-3_s / 5 * y));
+
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(x * w));
+  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(x * z));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(y * v));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(x * Constants::Pi));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(y + 2 * v));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsPow) {
+  const Expr x{"x", NumberSet::Real};
+  const Expr y{"y", NumberSet::RealNonNegative};
+  const Expr z{"z", NumberSet::Complex};
+  const Expr w{"w", NumberSet::Real};
+  const Expr v{"v", NumberSet::RealNonNegative};
+
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(x * x));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(y * y));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(x, 3)));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(x, 4)));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(x, 6)));
+
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(y, 2.1231)));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(y, 3_s / 5)));
+
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(x, w)));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(x, y)));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(y, v)));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(z, z)));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
+  const Expr x{"x", NumberSet::Real};
+  const Expr y{"y", NumberSet::RealNonNegative};
+  const Expr z{"z", NumberSet::Complex};
+
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(cos(x)));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(sin(x)));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(cos(y)));
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(sin(y)));
+  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(sin(z)));
+  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(cos(z)));
+
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(tan(x)));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(tan(z)));
+
+  // not implemented
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(x)));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(y)));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(z)));
+
+  // not implemented
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(x)));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(y)));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(z)));
+
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(x)));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(y)));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(z)));
+
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(signum(x)));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(signum(y)));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsSpecialValues) {
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(Constants::Euler));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(Constants::Pi));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(Constants::ComplexInfinity));
+  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(Constants::Undefined));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsConditional) {
+  const Expr x{"x", NumberSet::Real};
+  const Expr y{"y", NumberSet::RealNonNegative};
+  const auto f = where(x > 0, cos(y), sin(y));
+  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(x > 0));  //  TODO: Should be boolean.
+  ASSERT_EQ(NumberSet::Real, determine_numeric_set(f));
+}
+
 }  // namespace math

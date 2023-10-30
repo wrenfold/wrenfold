@@ -114,4 +114,10 @@ testing::AssertionResult string_equal_test_helper(const std::string_view,
              b.to_expression_tree_string());
 }
 
+// ostream operator for `NumericSet`.
+std::ostream& operator<<(std::ostream& s, NumberSet set) {
+  s << string_from_number_set(set);
+  return s;
+}
+
 }  // namespace math

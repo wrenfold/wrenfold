@@ -295,7 +295,7 @@ struct AstBuilder {
         return ast::FloatConstant{static_cast<Float>(inner).get_value()};
       } else if constexpr (std::is_same_v<T, Variable>) {
         // inspect inner type of the variable
-        return std::visit(*this, inner.content());
+        return std::visit(*this, inner.identifier());
       } else {
         throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
       }
