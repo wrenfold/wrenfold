@@ -98,6 +98,14 @@ enum class NumberSet : uint8_t {
   Complex,
 };
 
+// True if the set is real numbers, or a constrained subset of the real numbers.
+constexpr inline bool is_real_set(NumberSet set) noexcept {
+  if (set == NumberSet::Real || set == NumberSet::RealNonNegative) {
+    return true;
+  }
+  return false;
+}
+
 // Convert `RelativeOrder` to string view.
 constexpr std::string_view string_from_relative_order(const RelativeOrder order) noexcept {
   switch (order) {

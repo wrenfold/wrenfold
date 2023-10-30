@@ -108,7 +108,7 @@ class Rational {
   }
 
   // True if the absolute value of the fraction is less than one.
-  bool is_normalized() const { return std::abs(n_) < d_; }
+  bool is_proper() const noexcept { return std::abs(n_) < d_; }
 
   // Create a rational expression and simplify if possible.
   static Expr create(Rational r) {

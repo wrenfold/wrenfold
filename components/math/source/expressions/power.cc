@@ -174,16 +174,41 @@ struct PowerNumerics {
   }
 };
 
+static bool magnitude_less_than_one(const Expr& value) {
+  if (const Rational* r = cast_ptr<Rational>(value); r != nullptr && r->is_proper()) {
+    return true;
+  } else if (const Float* f = cast_ptr<Float>(value);
+             f != nullptr && std::abs(f->get_value()) < 1.0) {
+    return true;
+  }
+  return false;
+}
+
 // We want to avoid doing incorrect simplifications like:
 //    (x^2)^(1/2) --> x (incorrect, loses the sign of x)
-//    (x^2)^0.5 --> x
+//    (x^2)^0.5
 //    (x^2)^z --> x^(2*z) (incorrect, z could be 1/2 or 0.5)
 //    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
 static bool can_multiply_exponents(const Power& base_pow, const Expr& outer_exp) {
-  // If the inner is already a rational, or the outer is an integer - we can multiply
-  // safely. If the outer is a float, it can be multiplied onto rationals or floats.
-  return base_pow.exponent().is_type<Rational>() || outer_exp.is_type<Integer>() ||
-         (base_pow.exponent().is_type<Float>() && outer_exp.is_type<Float>());
+  // If the inner power is a rational:
+  // For example, it is valid to do (inner exponent is proper):
+  //  (x**(1/4))**y  --> x**(y/4)
+  // But, in general, not valid to do:
+  //  (x**(5/3))**y --> x**(5*y/3)
+  // Unless:
+  //  - `y` is an integer
+  //  - `x` is real and non-negative
+  const Expr& inner_exp = base_pow.exponent();
+  if (magnitude_less_than_one(inner_exp)) {
+    return true;
+  }
+  if (outer_exp.is_type<Integer>()) {
+    return true;
+  }
+  if (determine_numeric_set(base_pow.base()) == NumberSet::RealNonNegative) {
+    return true;
+  }
+  return false;
 }
 
 Expr Power::create(Expr a, Expr b) {
@@ -210,8 +235,7 @@ Expr Power::create(Expr a, Expr b) {
     if (is_complex_infinity(b)) {
       return Constants::Undefined;
     }
-    // 0^x -> 0  (TODO: Only true for real x)
-    return Constants::Zero;
+    // TODO: Check for `b > 0`, then 0**b --> 0
   } else if (is_zero(b)) {
     // x^0 -> 1
     return Constants::One;

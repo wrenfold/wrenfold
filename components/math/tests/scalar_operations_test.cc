@@ -228,7 +228,10 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
 }
 
 TEST(ScalarOperationsTest, TestPower) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr w{"w", NumberSet::RealNonNegative};
+  const Expr v{"v", NumberSet::Real};
+
   ASSERT_IDENTICAL(pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
   ASSERT_IDENTICAL(as_base_and_exp(pow(x, y)).first, x);
@@ -240,16 +243,18 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(as_base_and_exp(pow(pow(x, y), z)).second, z);
 
   // Powers of expressions to constants:
-  ASSERT_IDENTICAL(Constants::One, pow(x * y, 0));
-  ASSERT_IDENTICAL(Constants::Zero, pow(0, y + z));
+  ASSERT_IDENTICAL(1, pow(x * y, 0));
   ASSERT_IDENTICAL(x + y, pow(x + y, 1));
 
+  // Should not get simplified, because we can't make assumptions about y+z.
+  ASSERT_NOT_IDENTICAL(0, pow(0, y + z));
+
   // Numeric simplification rules:
-  ASSERT_IDENTICAL(Constants::One, pow(1, 1));
+  ASSERT_IDENTICAL(1, pow(1, 1));
   ASSERT_IDENTICAL(8, pow(2, 3));
   ASSERT_IDENTICAL(-243_s, pow(-3, 5));
-  ASSERT_IDENTICAL(Constants::Zero, pow(0, 10));
-  ASSERT_IDENTICAL(Rational::create(1, 8), pow(2, -3));
+  ASSERT_IDENTICAL(0, pow(0, 10));
+  ASSERT_IDENTICAL(1 / 8_s, pow(2, -3));
   ASSERT_IDENTICAL(25 / 64_s, pow(5 / 8_s, 2));
   ASSERT_IDENTICAL(343 / 729_s, pow(9 / 7_s, -3));
   ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));
@@ -275,31 +280,57 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL((1 / 5_s) * pow(5, -1 / 11_s), pow(5, -12 / 11_s));
   ASSERT_IDENTICAL((1 / 8281_s) * pow(7, 2 / 3_s) * pow(13, 2 / 3_s), pow(91, -4 / 3_s));
 
-  // Powers of powers. Cases that simplify:
+  // Outer power is an integer:
   ASSERT_IDENTICAL(pow(x, y * 2), pow(pow(x, y), 2));
   ASSERT_IDENTICAL(pow(x, y * 27), pow(pow(x, y * 3), 9));
-  ASSERT_IDENTICAL(pow(x, 3.0), pow(pow(x, 1.5), 2.0));
+  ASSERT_IDENTICAL(pow(x, 35_s / 6), pow(pow(x, 7 / 6_s), 5));
+  ASSERT_IDENTICAL(pow(x, 5.01 * 4), pow(pow(x, 5.01), 4));
+  ASSERT_IDENTICAL(pow(x, 3 * y + 3 * z), pow(pow(x, y + z), 3));
+  ASSERT_IDENTICAL(pow(x, -y), 1 / pow(x, y));
+
+  // Inner exponent is a proper rational:
   ASSERT_IDENTICAL(pow(x, 2 / 5_s), pow(pow(x, 1 / 5_s), 2));
   ASSERT_IDENTICAL(pow(x, 6 / 55_s), pow(pow(x, 2 / 11_s), 3_s / 5));
   ASSERT_IDENTICAL(pow(x, 3 / 4_s * z), pow(pow(x, 3 / 4_s), z));
+  ASSERT_IDENTICAL(pow(x, -1 / 2_s), 1 / sqrt(x));
+  ASSERT_IDENTICAL(pow(x, z / 3 + 2 / 3_s), pow(pow(x, 1 / 3_s), z + 2));
+
+  // Inner exponent is a float < 1:
   ASSERT_IDENTICAL(pow(x, 0.25), pow(pow(x, 1 / 2_s), 0.5));
   ASSERT_IDENTICAL(pow(x, 3.0), pow(pow(x, 1.0), 3));
-  ASSERT_IDENTICAL(pow(x, -1 / 2_s), 1 / sqrt(x));
+  ASSERT_IDENTICAL(pow(x, -0.3412 * 4), pow(pow(x, -0.3412), 4));
+  ASSERT_IDENTICAL(pow(x, 0.42 * y), pow(pow(x, 0.42), y));
+  ASSERT_IDENTICAL(pow(x, 0.77 * z - 0.77 * 4), pow(pow(x, 0.77), z - 4));
 
-  // Should not simplify:
+  // Cannot simplify if the inner power is >= 1
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 2), 1 / 2_s));
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 4), 1 / 4_s));
-  ASSERT_NOT_IDENTICAL(pow(x, y / 14_s), pow(pow(x, y * 2 / 7_s), 1 / 2_s));
-  ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y / 2), 1 / 2_s));
   ASSERT_NOT_IDENTICAL(pow(x, -2), pow(pow(x, 14), -1 / 7_s));
-  ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y), 1 / 4_s));
+  ASSERT_NOT_IDENTICAL(pow(x, 1.52 * 2.0), pow(pow(x, 1.52), 2.0));
+  ASSERT_NOT_IDENTICAL(pow(x, -1.01 * 5_s / 7), pow(pow(x, -1.01), 5 / 7_s));
   ASSERT_NOT_IDENTICAL(pow(x, 2 * z), pow(pow(x, 2), z));
+
+  // Inner power is -1
   ASSERT_NOT_IDENTICAL(pow(x, -1 / 2_s), sqrt(1 / x));
   ASSERT_NOT_IDENTICAL(pow(x, 1 / 2_s) * pow(z, -1 / 2_s), sqrt(x / z));
+
+  // Cannot simplify if the inner exponent is not a constant:
+  ASSERT_NOT_IDENTICAL(pow(x, y / 14_s), pow(pow(x, y * 2 / 7_s), 1 / 2_s));
+  ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y / 2), 1 / 2_s));
+  ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y), 1 / 4_s));
+
+  // Simplifications when the inner value is non-negative:
+  ASSERT_IDENTICAL(w, pow(pow(w, 2), 1 / 2_s));
+  ASSERT_IDENTICAL(w, pow(pow(w, 3), 1 / 3_s));
+  ASSERT_IDENTICAL(pow(w, 12 / 7_s), pow(pow(w, 2), 6 / 7_s));
+  ASSERT_IDENTICAL(pow(w + 3, x / 3), pow(pow(w + 3, x), 1 / 3_s));
+  ASSERT_IDENTICAL(pow(abs(v), 5 * x / 3), pow(pow(abs(v), 5 / 3_s), x));
+  ASSERT_IDENTICAL(abs(v), pow(pow(abs(v), 2), 1_s / 2));
 
   // Powers of multiplications:
   ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), pow(x * y, 2));
   ASSERT_IDENTICAL(pow(x, z) * pow(y, z), pow(x * y, z));
+  ASSERT_IDENTICAL(pow(x, 3_s / 8 * z) * pow(y, 3_s / 8 * z), pow(x * y, 3_s / 8 * z));
 
   // TODO: This should produce `i` = sqrt(-1)
   ASSERT_IDENTICAL(sqrt(-1) * sqrt(2) * sqrt(x), pow(-2 * x, 1_s / 2));
