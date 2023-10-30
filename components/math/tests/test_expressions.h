@@ -38,11 +38,11 @@ inline Expr exclusive_or(Expr x, Expr y) {
 }
 
 // A handwritten signum implemented with conditionals and abs().
-// Not very useful, but we use it as a unit test case.
+// Not very useful, but we employ it as a unit test case for `abs`.
 inline Expr handwritten_signum(Expr x) { return where(x == 0, 0, x / abs(x)); }
 
 // A handwritten `abs` implemented with signum.
-// Not very useful, but used as a unit test case.
+// Not very useful, but we employ it as a unit test case for `signum`.
 inline Expr handwritten_abs(Expr x) { return signum(x) * x; }
 
 // Arc-tangent w/ derivatives.

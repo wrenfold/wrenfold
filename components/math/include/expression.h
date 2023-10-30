@@ -20,8 +20,8 @@ class Expr {
   explicit Expr(expression_concept_const_ptr&& impl) : impl_(std::move(impl)) {}
   explicit Expr(const expression_concept_const_ptr& impl) : impl_(impl) {}
 
-  // Construct variable:
-  explicit Expr(std::string_view name);
+  // Construct variable with name and specific numeric set:
+  explicit Expr(std::string_view name, NumberSet set = NumberSet::Unknown);
 
   // Implicit construction from integers and floats.
   // enable_if argument is a trick we use until c++20 and constraints.
@@ -185,6 +185,9 @@ auto make_symbols(Args&&... args) {
                 "Argument types must be coercible to string_view");
   return std::make_tuple(Expr{std::forward<Args>(args)}...);
 }
+
+// Make a unique variable symbol.
+Expr make_unique_variable_symbol(NumberSet set);
 
 }  // namespace math
 

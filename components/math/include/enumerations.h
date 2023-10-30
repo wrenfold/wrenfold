@@ -68,11 +68,33 @@ enum class SymbolicConstants : int {
   False,
 };
 
-// Types of numeric values.
+// Types of numeric values (at code-generation time).
 enum class NumericType : int {
   Bool = 0,
   Integer,
   Real,
+  Complex,
+};
+
+// A tri-state value.
+enum class TriState : uint8_t {
+  // False
+  False = 0,
+  // True
+  True = 1,
+  // We cannot determine whether the outcome is true or false.
+  Unknown = 2,
+};
+
+// Different sets of numbers that we can deal with.
+enum class NumberSet : uint8_t {
+  // Cannot determine the set.
+  Unknown = 0,
+  // On the real number line.
+  Real,
+  // On the real number line and >= 0
+  RealNonNegative,
+  // In the complex plane.
   Complex,
 };
 
@@ -145,6 +167,21 @@ constexpr std::string_view string_from_numeric_type(const NumericType type) noex
     case NumericType::Real:
       return "Real";
     case NumericType::Complex:
+      return "Complex";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
+
+// Convert `NumberSet` to string.
+constexpr inline std::string_view string_from_number_set(const NumberSet set) noexcept {
+  switch (set) {
+    case NumberSet::Unknown:
+      return "Unknown";
+    case NumberSet::Real:
+      return "Real";
+    case NumberSet::RealNonNegative:
+      return "RealNonNegative";
+    case NumberSet::Complex:
       return "Complex";
   }
   return "<NOT A VALID ENUM VALUE>";

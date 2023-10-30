@@ -143,7 +143,8 @@ struct TreeFormatter {
   void operator()(const Undefined&) { append_name(Undefined::NameStr); }
 
   void operator()(const Variable& var) {
-    append_name("{} ({})", Variable::NameStr, var.to_string());
+    append_name("{} ({}, {})", Variable::NameStr, var.to_string(),
+                string_from_number_set(var.set()));
   }
 
   void operator()(const Conditional& conditional) {

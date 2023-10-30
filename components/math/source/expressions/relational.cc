@@ -71,15 +71,6 @@ constexpr bool supports_comparison_v<Argument1, Argument2,
                                               void())> = true;
 }  // namespace detail
 
-enum class TriState {
-  // The relational is always true.
-  True,
-  // The relational is always false.
-  False,
-  // We cannot determine the value yet.
-  Unknown,
-};
-
 struct RelationalSimplification {
   explicit RelationalSimplification(RelationalOperation operation) : operation_(operation) {}
 

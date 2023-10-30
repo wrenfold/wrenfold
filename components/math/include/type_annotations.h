@@ -27,8 +27,8 @@ struct StaticMatrix {
     ZEN_ASSERT_EQUAL(Cols, expr_.cols());
   }
 
-  constexpr index_t rows() const { return Rows; }
-  constexpr index_t cols() const { return Cols; }
+  constexpr index_t rows() const noexcept { return Rows; }
+  constexpr index_t cols() const noexcept { return Cols; }
 
   template <typename... Args>
   static std::enable_if_t<std::conjunction_v<std::is_constructible<Expr, Args>...>, StaticMatrix>
@@ -50,8 +50,11 @@ struct StaticMatrix {
     return *this;
   }
 
+  // Explicit cast to MatrixExpr.
+  constexpr const MatrixExpr& inner() const noexcept { return expr_; }
+
   // Implicit cast to MatrixExpr.
-  operator const MatrixExpr&() const { return expr_; }  // NOLINT
+  constexpr operator const MatrixExpr&() const noexcept { return expr_; }  // NOLINT
 
   // Transpose:
   [[nodiscard]] StaticMatrix<Cols, Rows> transposed() const {

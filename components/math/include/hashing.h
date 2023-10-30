@@ -55,4 +55,10 @@ struct hash_struct<Expr> {
   std::size_t operator()(const Expr& expr) const { return expr.get_hash(); }
 };
 
+// Shorthand for invoking `hash_struct<T>` on an object.
+template <typename T>
+std::size_t hash(const T& object) noexcept(std::is_nothrow_invocable_v<hash_struct<T>, const T>) {
+  return hash_struct<T>{}(object);
+}
+
 }  // namespace math

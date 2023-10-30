@@ -28,7 +28,8 @@ add_library(
   source/plain_formatter.cc
   source/substitute.cc
   source/limits.cc
-  source/tree_formatter.cc)
+  source/tree_formatter.cc
+  source/numeric_set.cc)
 
 # Turn on C++17
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
@@ -130,4 +131,5 @@ install(
 if(NOT DEFINED SKBUILD_PROJECT_NAME)
   add_subdirectory(tests)
   add_subdirectory(benchmarks)
+  add_subdirectory(examples)
 endif()

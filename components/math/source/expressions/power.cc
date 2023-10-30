@@ -172,11 +172,19 @@ struct PowerNumerics {
       return Constants::Undefined;
     }
   }
-
-  Expr apply_constant_and_infinity(const Constant&, const Infinity&) const {
-    return Constants::Undefined;
-  }
 };
+
+// We want to avoid doing incorrect simplifications like:
+//    (x^2)^(1/2) --> x (incorrect, loses the sign of x)
+//    (x^2)^0.5 --> x
+//    (x^2)^z --> x^(2*z) (incorrect, z could be 1/2 or 0.5)
+//    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
+static bool can_multiply_exponents(const Power& base_pow, const Expr& outer_exp) {
+  // If the inner is already a rational, or the outer is an integer - we can multiply
+  // safely. If the outer is a float, it can be multiplied onto rationals or floats.
+  return base_pow.exponent().is_type<Rational>() || outer_exp.is_type<Integer>() ||
+         (base_pow.exponent().is_type<Float>() && outer_exp.is_type<Float>());
+}
 
 Expr Power::create(Expr a, Expr b) {
   // Check for numeric quantities.
@@ -192,17 +200,7 @@ Expr Power::create(Expr a, Expr b) {
 
   // Check if the base is itself a power:
   if (const Power* a_pow = cast_ptr<Power>(a); a_pow != nullptr) {
-    // We want to avoid doing incorrect simplifications like:
-    //    (x^2)^(1/2) --> x (incorrect, loses the sign of x)
-    //    (x^2)^0.5 --> x
-    //    (x^2)^z --> x^(2*z) (incorrect, z could be 1/2 or 0.5)
-    //    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
-    // If the inner is already a rational, or the outer is an integer - we can multiply
-    // safely. If the outer is a float, it can be multiplied onto rationals or floats.
-    const bool can_multiply_exponents = a_pow->exponent().is_type<Rational>() ||
-                                        b.is_type<Integer>() ||
-                                        (a_pow->exponent().is_type<Float>() && b.is_type<Float>());
-    if (can_multiply_exponents) {
+    if (can_multiply_exponents(*a_pow, b)) {
       return Power::create(a_pow->base(), a_pow->exponent() * b);
     }
   }

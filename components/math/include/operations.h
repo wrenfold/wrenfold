@@ -1,7 +1,8 @@
 // Copyright 2023 Gareth Cross
-#include "absl_imports.h"
-
 #include <optional>
+
+#include "absl_imports.h"
+#include "enumerations.h"
 
 namespace math {
 class Expr;
@@ -40,5 +41,9 @@ std::optional<Expr> limit(const Expr& f_of_x, const Expr& x);
 // Take the limit of matrix-valued function `f_of_x` as `x` goes to 0 from the right.
 // The expression `x` must be a variable.
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x);
+
+// Determine what set of numbers an expression belongs to.
+// Returns `NumberSet::Unknown` if the set cannot be determined.
+NumberSet determine_numeric_set(const Expr& x);
 
 }  // namespace math

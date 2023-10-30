@@ -119,7 +119,7 @@ struct OrderVisitor {
   }
 
   RelativeOrder compare(const Variable& a, const Variable& b) const {
-    if (a.content() < b.content()) {
+    if (a.identifier() < b.identifier()) {
       return RelativeOrder::LessThan;
     } else if (a.is_identical_to(b)) {
       return RelativeOrder::Equal;
