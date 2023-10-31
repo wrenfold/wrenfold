@@ -33,10 +33,13 @@ class Integer {
   constexpr IntegralType get_value() const noexcept { return val_; }
 
   // True if this integer is zero.
-  constexpr bool is_zero() const noexcept { return val_ == 0; }
+  constexpr bool is_zero() const noexcept { return val_ == static_cast<IntegralType>(0); }
+
+  // True if this integer is greater than zero.
+  constexpr bool is_positive() const noexcept { return val_ > static_cast<IntegralType>(0); }
 
   // True if this integer is less than zero.
-  constexpr bool is_negative() const noexcept { return val_ < 0; }
+  constexpr bool is_negative() const noexcept { return val_ < static_cast<IntegralType>(0); }
 
   // True if this integer is even. (Zero is even).
   constexpr bool is_even() const noexcept { return !static_cast<bool>(val_ & 1); }
@@ -87,10 +90,13 @@ class Rational {
   constexpr bool is_one() const noexcept { return n_ == d_; }
 
   // True if numerator is zero.
-  constexpr bool is_zero() const noexcept { return n_ == 0; }
+  constexpr bool is_zero() const noexcept { return n_ == static_cast<IntegralType>(0); }
+
+  // True if positive (numerator is > 0).
+  constexpr bool is_positive() const noexcept { return n_ > static_cast<IntegralType>(0); }
 
   // True if negative (only the numerator may be < 0).
-  constexpr bool is_negative() const noexcept { return n_ < 0; }
+  constexpr bool is_negative() const noexcept { return n_ < static_cast<IntegralType>(0); }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
@@ -163,6 +169,9 @@ class Float {
 
   // Is this float identical to zero?
   constexpr bool is_zero() const noexcept { return val_ == static_cast<FloatType>(0); }
+
+  // True if the float is negative.
+  constexpr bool is_positive() const noexcept { return val_ > static_cast<FloatType>(0); }
 
   // True if the float is negative.
   constexpr bool is_negative() const noexcept { return val_ < static_cast<FloatType>(0); }
