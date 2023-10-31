@@ -22,7 +22,13 @@ class LimitVisitor {
       : x_(x),
         x_typed_(cast_checked<Variable>(x_)),
         positive_inf_{positive_inf_placeholder()},
-        negative_inf_{negative_inf_placeholder()} {}
+        negative_inf_{negative_inf_placeholder()} {
+    if (x_typed_.set() != NumberSet::RealNonNegative) {
+      throw DomainError("Domain of limit variable `{}` is {}, but it should be {}.", x_,
+                        string_from_number_set(x_typed_.set()),
+                        string_from_number_set(NumberSet::RealNonNegative));
+    }
+  }
 
   // Check the cache, and if no value exists, visit with this:
   std::optional<Expr> visit(const Expr& expr) {
@@ -105,6 +111,7 @@ class LimitVisitor {
     const Expr dg = g.diff(x_);
     const Expr df_over_dg = df / dg;
 
+    // Some useful prints when debugging this method:
 #if 0
     const std::string prefix(num_recursions_, ' ');
     fmt::print("{}f: {}\n", prefix, f);
@@ -114,6 +121,8 @@ class LimitVisitor {
     fmt::print("{}df_over_dg: {}\n", prefix, df_over_dg);
 #endif
 
+    // TODO: Actually detect recursion properly. For now we just bail if the complexity grows too
+    //  large.
     constexpr std::size_t max_recursions = 4;
     if (num_recursions_ >= max_recursions) {
       return std::nullopt;
@@ -176,6 +185,8 @@ class LimitVisitor {
   //  ∞ * 0, ∞ / ∞, 0 / 0
   template <typename Container>
   std::optional<Expr> process_indeterminate_form_multiplied_terms_1(const Container& mul) {
+    // Try to extract common integer powers:
+    // TODO: Clean this up and generalize to any common power...
     if (std::optional<IntegralPowers> integral_exponents = extract_integer_exponents(mul);
         integral_exponents.has_value() && integral_exponents->are_all_identical_up_to_sign() &&
         !integral_exponents->are_all_one()) {
@@ -220,9 +231,11 @@ class LimitVisitor {
       std::optional<Expr> child = visit(expr);
       ZEN_ASSERT(child.has_value(), "Already checked this expression is valid: {}", expr);
       if (is_zero(*child)) {
-        f_funcs.push_back(expr);
+        // Collect the powers of `x_` as we extract terms, in the hope that the expression will
+        // simplify:
+        f_funcs.push_back(expr.collect(x_));
       } else if (is_inf(*child)) {
-        g_funcs.push_back(expr);
+        g_funcs.push_back(expr.collect(x_));
       } else {
         throw TypeError("Child expression should be zero or infinity. Found: {}", *child);
       }
@@ -241,6 +254,8 @@ class LimitVisitor {
     const Expr f = Multiplication::from_operands(f_funcs);
     const Expr g = Multiplication::from_operands(g_funcs);
 
+    // TODO: This is slower than it needs to be, we can make a better guess as to what form
+    //  to use by inspecting the powers of `f` and `g`.
     std::optional<Expr> result = hopitals_rule_quotient(f, pow(g, -1));
     if (!result.has_value()) {
       // Try switching indeterminate forms:
@@ -350,8 +365,9 @@ class LimitVisitor {
       // 0 ^ 0 is an indeterminate form, and ∞ ^ 0
       // lim[x->c] f(x)^g(x) = e ^ (lim[x->c] g(x) * log(f(x)))
       // Where f(x) base `b` and g(x) is exponent `e`.
+
       // TODO: There is a requirement that f(x) approaches 0 from above, if the result is to be
-      //  a real value (for 0^0).
+      //  a real value (for 0^0). We are not currently enforcing this.
       std::optional<Expr> exponent = visit(e * log(b));
       if (!exponent) {
         return std::nullopt;
@@ -510,6 +526,11 @@ std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
 }
 
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
+  if (!x.is_type<Variable>()) {
+    throw TypeError(
+        "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
+        x.type_name(), x);
+  }
   // Reuse the visitor, so that we get the benefit of caching results:
   LimitVisitor visitor{x};
 

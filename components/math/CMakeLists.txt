@@ -29,7 +29,7 @@ add_library(
   source/substitute.cc
   source/limits.cc
   source/tree_formatter.cc
-  source/numeric_set.cc)
+  source/number_set.cc)
 
 # Turn on C++17
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
