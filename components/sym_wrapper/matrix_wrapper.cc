@@ -303,10 +303,27 @@ void wrap_matrix_operations(py::module_& m) {
       // Operations:
       .def("diff", &MatrixExpr::diff, "var"_a, py::arg("order") = 1,
            "Differentiate the expression with respect to the specified variable.")
+      .def(
+          "jacobian",
+          [](const MatrixExpr& self, const MatrixExpr& vars) { return self.jacobian(vars); },
+          "vars"_a,
+          "Compute the jacobian of a vector-valued function with respect to vector of arguments.")
+      .def(
+          "jacobian",
+          [](const MatrixExpr& self, const std::vector<Expr>& vars) { return self.jacobian(vars); },
+          "vars"_a,
+          "Compute the jacobian of a vector-valued function with respect to a list of arguments.")
       .def("distribute", &MatrixExpr::distribute, "Expand products of additions and subtractions.")
       .def("subs", &MatrixExpr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
       .def("eval", &maybe_eval_to_numeric, "Evaluate into float expression.")
+      .def(
+          "collect", [](const MatrixExpr& self, const Expr& var) { return self.collect({var}); },
+          "var"_a, "Collect powers of the provided expression.")
+      .def(
+          "collect",
+          [](const MatrixExpr& self, const std::vector<Expr>& vars) { return self.collect(vars); },
+          "var"_a, "Collect powers of the provided expressions.")
       // Matrix specific properties:
       .def_property_readonly(
           "shape", [](const MatrixExpr& m) { return py::make_tuple(m.rows(), m.cols()); },
@@ -339,6 +356,7 @@ void wrap_matrix_operations(py::module_& m) {
       .def("to_list", &list_from_matrix, "Convert to list of lists.")
       .def("transpose", &MatrixExpr::transposed, "Transpose the matrix.")
       .def_property_readonly("T", &MatrixExpr::transposed, "Transpose the matrix.")
+      .def("squared_norm", &MatrixExpr::squared_norm, "Get the squared L2 norm of the matrix.")
       .def("det", &determinant, "Compute determinant of the matrix.")
       // Operators:
       .def("__add__",

@@ -2,6 +2,7 @@
 #pragma once
 #include <vector>
 
+#include "absl_imports.h"
 #include "expression.h"
 
 namespace math {
@@ -39,14 +40,26 @@ class MatrixExpr {
   // Negation operator.
   MatrixExpr operator-() const;
 
-  // Differentiate wrt a single variable. Reps defines how many derivatives to take.
+  // Differentiate with respect to a single variable. Reps defines how many derivatives to take.
+  // The returned matrix is the element-wise derivative.
   MatrixExpr diff(const Expr& var, int reps = 1) const;
+
+  // Differentiate a vector with respect to another vector, producing a Jacobian.
+  // If the input is an [N,1] vector and `vars` has M expressions, the result will be an NxM matrix.
+  // Throws if `this` is not a column vector.
+  MatrixExpr jacobian(absl::Span<const Expr> vars) const;
+
+  // Version of `jacobian` that accepts `MatrixExpr` directly.
+  MatrixExpr jacobian(const MatrixExpr& vars) const;
 
   // Distribute terms in this expression.
   MatrixExpr distribute() const;
 
   // Create a new expression by recursively substituting `replacement` for `target`.
   MatrixExpr subs(const Expr& target, const Expr& replacement) const;
+
+  // Collect terms in every element of this matrix.
+  MatrixExpr collect(absl::Span<const Expr> terms) const;
 
   // Evaluate to matrix of floats.
   MatrixExpr eval() const;
@@ -71,6 +84,9 @@ class MatrixExpr {
 
   // Transpose the matrix.
   [[nodiscard]] MatrixExpr transposed() const;
+
+  // Get the squared norm of the matrix.
+  Expr squared_norm() const;
 
   // Static cast to underlying matrix type.
   const Matrix& as_matrix() const;

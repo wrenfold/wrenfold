@@ -195,6 +195,29 @@ TEST(MatrixOperationsTest, TestMultiplication) {
   ASSERT_THROW(make_row_vector(1, -3, z) * make_vector(z, sin(y)), DimensionError);
 }
 
+TEST(MatrixOperationsTest, TestSquaredNorm) {
+  auto [x, y, z] = make_symbols("x", "y", "z");
+  ASSERT_IDENTICAL(x * x + y * y + z * z, make_vector(x, y, z).squared_norm());
+  ASSERT_IDENTICAL(4 * x * x + 9 * y * y + 36, make_vector(2 * x, 3 * y, 6).squared_norm());
+  ASSERT_IDENTICAL(0, make_zeros(2, 3).squared_norm());
+  ASSERT_IDENTICAL(3, make_identity(3).squared_norm());
+}
+
+TEST(MatrixOperationsTest, TestJacobian) {
+  auto [x, y, z] = make_symbols("x", "y", "z");
+  const auto v1 = make_vector(x * x + z, sin(y) * x);
+
+  const auto v1_jacobian = make_matrix(2, 3, v1[0].diff(x), v1[0].diff(y), v1[0].diff(z),
+                                       v1[1].diff(x), v1[1].diff(y), v1[1].diff(z));
+  ASSERT_IDENTICAL(v1_jacobian, v1.jacobian({x, y, z}));
+
+  const auto v2 = make_vector(x * y * z * sin(z), pow(y, x), cos(x * y) - sin(z));
+  const auto v2_jacobian =
+      make_matrix(3, 3, v2[0].diff(x), v2[0].diff(y), v2[0].diff(z), v2[1].diff(x), v2[1].diff(y),
+                  v2[1].diff(z), v2[2].diff(x), v2[2].diff(y), v2[2].diff(z));
+  ASSERT_IDENTICAL(v2_jacobian, v2.jacobian({x, y, z}));
+}
+
 void check_full_piv_lu_solution(
     const MatrixExpr& A_in,
     const std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr>& solution) {

@@ -285,6 +285,13 @@ class MatrixWrapperTest(MathTestBase):
             sym.vector(2 * x + z * x + y * 2 + y * z,
                        sym.sin(x) * y + sym.sin(x) * 2), m.distribute())
 
+    def test_collect(self):
+        """Test calling collect on a matrix."""
+        x, y, z = sym.symbols('x, y, z')
+        m = sym.vector(x * x * (y - 3) + x * (5 - y) + x * x * x * (y * y * (z - 3) + y * (2 - z)),
+                       x * x * (z + 6) + y * y * (sym.sin(z) - 2))
+        self.assertIdentical(m, m.distribute().collect([x, y]))
+
     def test_diff(self):
         """Test calling diff on a matrix (element-wise differentiation)."""
         x, y, z, w = sym.symbols('x, y, z, w')
@@ -292,6 +299,15 @@ class MatrixWrapperTest(MathTestBase):
         for var in (x, y, z, w):
             m_diff = m.diff(var=var, order=1)
             self.assertIdentical(m_diff, m.unary_map(lambda el: el.diff(var)))
+
+    def test_jacobian(self):
+        """Test calling jacobian on a matrix."""
+        x, y, z, w = sym.symbols('x, y, z, w')
+        m = sym.matrix([x * x + y * z * w, w * y * sym.cos(x - z) + z])
+        jac_expected = sym.matrix([[m[0].diff(x), m[0].diff(y), m[0].diff(z)],
+                                   [m[1].diff(x), m[1].diff(y), m[1].diff(z)]])
+        self.assertIdentical(jac_expected, m.jacobian([x, y, z]))
+        self.assertIdentical(jac_expected, m.jacobian(sym.vector(x, y, z)))
 
     def test_subs(self):
         """Test calling subs on a matrix."""

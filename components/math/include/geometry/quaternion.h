@@ -111,16 +111,26 @@ class Quaternion {
   }
 
   // Construct quaternion from a rotation vector.
-  static Quaternion from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz) {
-    Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
-    Expr half_angle = angle / 2;
-    // TODO: Small angle approximation w/ variable zero tolerance instead?
-    return {
-        cos(half_angle),
-        where(angle > 0, sin(half_angle) * vx / angle, Constants::Zero),
-        where(angle > 0, sin(half_angle) * vy / angle, Constants::Zero),
-        where(angle > 0, sin(half_angle) * vz / angle, Constants::Zero),
-    };
+  static Quaternion from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
+                                         const bool insert_conditional = true) {
+    const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
+    const Expr half_angle = angle / 2;
+    const Expr sinc_half_angle = sin(half_angle) / angle;
+    if (insert_conditional) {
+      return {
+          cos(half_angle),
+          where(angle > 0, vx * sinc_half_angle, Constants::Zero),
+          where(angle > 0, vy * sinc_half_angle, Constants::Zero),
+          where(angle > 0, vz * sinc_half_angle, Constants::Zero),
+      };
+    } else {
+      return {
+          cos(half_angle),
+          vx * sinc_half_angle,
+          vy * sinc_half_angle,
+          vz * sinc_half_angle,
+      };
+    }
   }
 
   // Construct quaternion from a rotation vector.

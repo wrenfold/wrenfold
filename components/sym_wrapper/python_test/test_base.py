@@ -21,7 +21,7 @@ class MathTestBase(unittest.TestCase):
 
         if a.is_identical_to(b):
             return
-        message = (f'The expressions a=`{repr(a)}` b=`{repr(b)}` are not identical.\n' +
+        message = (f'The expressions a:\n{repr(a)}\nb:\n{repr(b)}\nare not identical.\n' +
                    f'The expression tree for `a` is:\n{a.expression_tree_str()}\n' +
                    f'The expression tree for `b` is:\n{b.expression_tree_str()}')
         raise self.failureException(message)
@@ -34,8 +34,8 @@ class MathTestBase(unittest.TestCase):
         if not a.is_identical_to(b):
             return
         message = (
-            f'The expressions a=`{repr(a)}` b=`{repr(b)}` are identical (they should not be).\n' +
-            f'The expression tree for `a` is:\n{a.expression_tree_str()}\n' +
+            f'The expressions a:\n{repr(a)}\nb:\n{repr(b)}\n are identical (they should not be).\n'
+            + f'The expression tree for `a` is:\n{a.expression_tree_str()}\n' +
             f'The expression tree for `b` is:\n{b.expression_tree_str()}')
         raise self.failureException(message)
 

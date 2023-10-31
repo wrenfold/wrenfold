@@ -44,4 +44,9 @@ struct DimensionError : public Exception {
   using Exception::Exception;
 };
 
+// Thrown when function is provided with input outside its domain.
+struct DomainError : public Exception {
+  using Exception::Exception;
+};
+
 }  // namespace math

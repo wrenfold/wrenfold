@@ -88,15 +88,26 @@ enum class TriState : uint8_t {
 
 // Different sets of numbers that we can deal with.
 enum class NumberSet : uint8_t {
-  // Cannot determine the set.
-  Unknown = 0,
-  // On the real number line.
-  Real,
+  // On the real number line and > 0
+  RealPositive,
   // On the real number line and >= 0
   RealNonNegative,
+  // On the real number line.
+  Real,
   // In the complex plane.
   Complex,
+  // Cannot determine the set.
+  Unknown,
 };
+
+// True if the set is real numbers, or a constrained subset of the real numbers.
+constexpr inline bool is_real_set(NumberSet set) noexcept {
+  if (set == NumberSet::Real || set == NumberSet::RealNonNegative ||
+      set == NumberSet::RealPositive) {
+    return true;
+  }
+  return false;
+}
 
 // Convert `RelativeOrder` to string view.
 constexpr std::string_view string_from_relative_order(const RelativeOrder order) noexcept {
@@ -175,14 +186,16 @@ constexpr std::string_view string_from_numeric_type(const NumericType type) noex
 // Convert `NumberSet` to string.
 constexpr inline std::string_view string_from_number_set(const NumberSet set) noexcept {
   switch (set) {
-    case NumberSet::Unknown:
-      return "Unknown";
-    case NumberSet::Real:
-      return "Real";
+    case NumberSet::RealPositive:
+      return "RealPositive";
     case NumberSet::RealNonNegative:
       return "RealNonNegative";
+    case NumberSet::Real:
+      return "Real";
     case NumberSet::Complex:
       return "Complex";
+    case NumberSet::Unknown:
+      return "Unknown";
   }
   return "<NOT A VALID ENUM VALUE>";
 }

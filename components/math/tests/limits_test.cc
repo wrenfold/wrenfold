@@ -1,10 +1,11 @@
 // Copyright 2023 Gareth Cross
 #include "constants.h"
 #include "expression.h"
+#include "expressions/addition.h"
 #include "functions.h"
+#include "geometry/quaternion.h"
 #include "operations.h"
 
-#include "geometry/quaternion.h"
 #include "test_helpers.h"
 
 // Test `limits` operation.
@@ -13,17 +14,22 @@ using namespace custom_literals;
 
 // Test some trivial limits.
 TEST(LimitsTest, TestSimpleLimits1) {
-  auto [x, y] = make_symbols("x", "y");
-  ASSERT_IDENTICAL(22, limit(22, y).value());
+  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr y{"y"};
+  ASSERT_IDENTICAL(22, limit(22, x).value());
   ASSERT_IDENTICAL(0, limit(x, x).value());
   ASSERT_IDENTICAL(-y, limit(x - y, x).value());
   ASSERT_IDENTICAL(6, limit((x - 3) * (x - 2), x).value());
   ASSERT_IDENTICAL(1, limit(cos(x), x).value());
   ASSERT_IDENTICAL(-1, limit(sin(x - Constants::Pi / 2), x).value());
+
+  // Invalid argument domain:
+  ASSERT_THROW(limit(23 * y, y), DomainError);
 }
 
 TEST(LimitsTest, TestIndeterminateMultiplicativeForms1) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr x{"x", NumberSet::RealNonNegative};
+  const auto [y, z] = make_symbols("y", "z");
 
   // (x^3 - x*y^2) / (x - x*y)
   auto f0 = (pow(x, 3) - x * y * y) / (x - x * y);
@@ -76,13 +82,11 @@ TEST(LimitsTest, TestIndeterminateMultiplicativeForms1) {
   ASSERT_IDENTICAL(Constants::Undefined, f11.subs(x, 0));
   ASSERT_IDENTICAL(0, limit(f11, x).value());
   ASSERT_IDENTICAL(0, limit(pow(f11, 2), x).value());
-
-  auto f12 = x * z / sqrt(x * x * z + y * y * z);
-  ASSERT_IDENTICAL(0, limit(f12, z).value());
 }
 
 TEST(LimitsTest, TestIndeterminateMultiplicativeForms2) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr x{"x", NumberSet::RealNonNegative};
+  const auto [y, z] = make_symbols("y", "z");
 
   auto f1 = tan(7 * x) / log(1 + 2 * x) + 3 * cos(x);
   ASSERT_IDENTICAL(Constants::Undefined, f1.subs(x, 0));
@@ -120,7 +124,8 @@ TEST(LimitsTest, TestIndeterminateMultiplicativeForms2) {
 
 // Test limits of the form 0^0
 TEST(LimitsTest, TestIndeterminatePowerForms1) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr x{"x", NumberSet::RealNonNegative};
+  const auto [y, z] = make_symbols("y", "z");
 
   auto f1 = pow(x, x);
   ASSERT_IDENTICAL(Constants::Undefined, f1.subs(x, 0));
@@ -153,7 +158,8 @@ TEST(LimitsTest, TestIndeterminatePowerForms1) {
 
 // Test limits of the form ∞^0
 TEST(LimitsTest, TestIndeterminatePowerForms2) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr x{"x", NumberSet::RealNonNegative};
+  const auto [y, z] = make_symbols("y", "z");
 
   // Contains both 0^0 (sin(x)/x) and ∞^0 (1/x)^x
   auto f1 = pow(sin(x) / x, x);
@@ -183,7 +189,8 @@ TEST(LimitsTest, TestIndeterminatePowerForms2) {
 
 // Test limits of the form 1^∞
 TEST(LimitsTest, TestIndeterminatePowerForms3) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr x{"x", NumberSet::RealNonNegative};
+  const auto [y, z] = make_symbols("y", "z");
 
   auto f1 = pow(cos(x * y), 1 / x);
   ASSERT_IDENTICAL(Constants::Undefined, f1.subs(x, 0));
@@ -204,7 +211,7 @@ TEST(LimitsTest, TestIndeterminatePowerForms3) {
 
 // Test limits of the form ∞ - ∞
 TEST(LimitsTest, TestIndeterminateSubtractiveForms1) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr x{"x", NumberSet::RealNonNegative};
 
   auto f1 = 1 / x - 1 / log(x + 1);
   ASSERT_IDENTICAL(Constants::Undefined, f1.subs(x, 0));
@@ -216,7 +223,7 @@ TEST(LimitsTest, TestIndeterminateSubtractiveForms1) {
 }
 
 TEST(LimitsTest, TestInvalidForms) {
-  auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr x{"x", NumberSet::RealNonNegative};
 
   // This would recurse indefinitely:
   const auto e = Constants::Euler;
@@ -234,23 +241,71 @@ TEST(LimitsTest, TestInvalidForms) {
   // We don't support affine-extension of real numbers outside of limits, so these do not exist:
   ASSERT_FALSE(limit(1 / x, x).has_value());
   ASSERT_FALSE(limit(log(x), x).has_value());
+
+  // We don't support conditionals yet:
+  ASSERT_FALSE(limit(where(x > 0, sin(x), x * log(x)), x).has_value());
 }
 
 // Test the limit function called on matrices.
 TEST(LimitsTest, TestMatrixLimits) {
-  auto [x, y, z, t] = make_symbols("x", "y", "z", "t");
-
+  const Expr x{"x", NumberSet::RealNonNegative};
+  auto [y, z] = make_symbols("y", "z");
   auto f1 = make_matrix(2, 2, sin(y * x) / (x * 3), x * log(x * y), x + 2,
                         3 * (x - 1) * sin(y * x) / (x * z));
   ASSERT_IDENTICAL(make_matrix(2, 2, y / 3, 0, 2, -3 * y / z), limit(f1, x).value());
+}
 
-  // Create rotation matrix and take limit as angles goes to zero:
-  auto R = Quaternion::from_rotation_vector(x * t, y * t, z * t).to_rotation_matrix();
-  ASSERT_IDENTICAL(make_identity(3), limit(R, t).value());
+// Test on computation of quaternion derivative:
+TEST(LimitsTest, TestMatrixLimitsQuaternion) {
+  const auto [x0, y0, z0] = make_symbols("x0", "y0", "z0");
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr t{"t", NumberSet::RealNonNegative};
 
-  // If one term in the matrix is invalid, the whole thing should be none:
-  auto f2 = make_matrix(2, 2, 1 / x, x * x, x + 1, z);
-  ASSERT_FALSE(limit(f2, x).has_value());
+  const Quaternion Q = Quaternion::from_rotation_vector(x0, y0, z0, false);
+
+  const Quaternion Q_subbed = Q.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
+  ASSERT_IDENTICAL(make_vector(1, 0, 0, 0), limit(Q_subbed.to_vector_wxyz(), t).value());
+
+  // Take the derivative wrt the rotation vector params:
+  const MatrixExpr Q_diff_subbed =
+      Q.to_vector_wxyz().jacobian({x0, y0, z0}).subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
+
+  const MatrixExpr Q_diff_subbed_expected =
+      make_matrix(4, 3, 0, 0, 0, 1 / 2_s, 0, 0, 0, 1 / 2_s, 0, 0, 0, 1 / 2_s);
+  ASSERT_IDENTICAL(Q_diff_subbed_expected, limit(Q_diff_subbed, t).value());
+}
+
+// Test on computation of matrix derivative.
+TEST(LimitsTest, TestMatrixLimitsRotation) {
+  const auto [x0, y0, z0] = make_symbols("x0", "y0", "z0");
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr t{"t", NumberSet::RealNonNegative};
+
+  const Quaternion Q = Quaternion::from_rotation_vector(x0, y0, z0, false);
+  const MatrixExpr R = Q.to_rotation_matrix();
+
+  const MatrixExpr R_subbed = R.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
+  ASSERT_IDENTICAL(make_identity(3), limit(R_subbed, t).value());
+
+  // Do the derivative of the rotation elements wrt the rotation vector:
+  const MatrixExpr R_diff =
+      vectorize_matrix(R).jacobian({x0, y0, z0}).subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
+
+  // clang-format off
+  // Section 10.3.1.1 of "A tutorial on SE(3) transformation parameterizations
+  //   and on-manifold optimization", J.L. Blanco
+  const MatrixExpr R_diff_expected = make_matrix(9, 3,
+                                                 0,  0,  0,
+                                                 0,  0,  1,
+                                                 0, -1,  0,
+                                                 0,  0, -1,
+                                                 0,  0,  0,
+                                                 1,  0,  0,
+                                                 0,  1,  0,
+                                                -1,  0,  0,
+                                                 0,  0,  0);
+  // clang-format on
+  ASSERT_IDENTICAL(R_diff_expected, limit(R_diff, t).value());
 }
 
 }  // namespace math

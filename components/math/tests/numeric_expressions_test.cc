@@ -90,10 +90,10 @@ TEST(NumericExpressionsTest, TestRationalNormalize) {
   ASSERT_EQ(std::make_pair(Integer(-2), Rational(-2, 7)), Rational(-16, 7).normalized());
   ASSERT_EQ(std::make_pair(Integer(-11), Rational(-6, 15)), Rational(-171, 15).normalized());
 
-  ASSERT_TRUE(Rational(1, 2).is_normalized());
-  ASSERT_TRUE(Rational(-5, 7).is_normalized());
-  ASSERT_FALSE(Rational(4, 4).is_normalized());
-  ASSERT_FALSE(Rational(-7, 5).is_normalized());
+  ASSERT_TRUE(Rational(1, 2).is_proper());
+  ASSERT_TRUE(Rational(-5, 7).is_proper());
+  ASSERT_FALSE(Rational(4, 4).is_proper());
+  ASSERT_FALSE(Rational(-7, 5).is_proper());
 }
 
 TEST(NumericExpressionsTest, TestModPiRational) {
