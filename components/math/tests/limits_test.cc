@@ -234,6 +234,9 @@ TEST(LimitsTest, TestInvalidForms) {
   // We don't support affine-extension of real numbers outside of limits, so these do not exist:
   ASSERT_FALSE(limit(1 / x, x).has_value());
   ASSERT_FALSE(limit(log(x), x).has_value());
+
+  // We don't support conditionals yet:
+  ASSERT_FALSE(limit(where(x > 0, y, z), x).has_value());
 }
 
 // Test the limit function called on matrices.

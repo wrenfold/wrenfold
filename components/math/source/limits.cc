@@ -85,28 +85,9 @@ class LimitVisitor {
     return Addition::from_operands(terms);
   }
 
-  std::optional<Expr> operator()(const Conditional& cond) {
-    std::optional<Expr> condition = visit(cond.condition());
-    if (!condition) {
-      return std::nullopt;
-    }
-
-    if (condition->is_identical_to(Constants::True)) {
-      return visit(cond.if_branch());
-    } else if (condition->is_identical_to(Constants::False)) {
-      return visit(cond.else_branch());
-    }
-
-    std::optional<Expr> if_branch = visit(cond.if_branch());
-    std::optional<Expr> else_branch = visit(cond.else_branch());
-    if (!if_branch) {
-      return std::nullopt;
-    }
-    if (!else_branch) {
-      return std::nullopt;
-    }
-    return Conditional::create(std::move(*condition), std::move(*if_branch),
-                               std::move(*else_branch));
+  std::optional<Expr> operator()(const Conditional&) {
+    // We don't support limits of conditionals yet.
+    return std::nullopt;
   }
 
   std::optional<Expr> operator()(const Constant&, const Expr& expr) const { return expr; }
