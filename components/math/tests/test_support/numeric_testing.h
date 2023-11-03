@@ -69,8 +69,7 @@ auto apply_numeric_evaluator(const NumericFunctionEvaluator& evaluator, const T&
 template <>
 struct apply_numeric_evaluator_impl<Expr> {
   double operator()(const NumericFunctionEvaluator& evaluator, const Expr& input) const {
-    const Expr subs =
-        visit(input, [&evaluator, &input](const auto& x) { return evaluator(x, input); });
+    const Expr subs = visit_with_expr(input, evaluator);
     if (const Float* f = cast_ptr<Float>(subs); f != nullptr) {
       return f->get_value();
     } else if (const Integer* i = cast_ptr<Integer>(subs); i != nullptr) {

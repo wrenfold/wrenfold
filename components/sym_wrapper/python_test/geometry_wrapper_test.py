@@ -93,7 +93,9 @@ class GeometryWrapperTest(MathTestBase):
             Quaternion.from_angle_axis(sym.pi / 6, 0, 0, 1), Quaternion.from_z_angle(sym.pi / 6))
         self.assertQuatIdentical(
             Quaternion.from_x_angle(0.125),
-            Quaternion.from_rotation_vector(sym.vector(0.125, 0, 0)))
+            Quaternion.from_rotation_vector(sym.vector(0.125, 0, 0), None))
+        self.assertQuatIdentical(
+            Quaternion.from_y_angle(-0.32), Quaternion.from_rotation_vector(0.0, -0.32, 0.0, None))
 
     def test_from_rotation_matrix(self):
         """Test conversion from rotation matrix."""

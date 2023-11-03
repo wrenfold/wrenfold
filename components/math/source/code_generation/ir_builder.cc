@@ -26,6 +26,8 @@ struct DetermineNumericTypeVisitor {
     return type;
   }
 
+  constexpr NumericType operator()(const CastBool&) const noexcept { return NumericType::Integer; }
+
   NumericType operator()(const Conditional& cond) const {
     const NumericType left = visit(cond.if_branch(), DetermineNumericTypeVisitor{});
     const NumericType right = visit(cond.else_branch(), DetermineNumericTypeVisitor{});
@@ -343,6 +345,11 @@ struct IRFormVisitor {
       }
     }
     return prev_result;
+  }
+
+  ir::ValuePtr operator()(const CastBool& cast) {
+    const ir::ValuePtr arg = VisitExpr(cast.arg());
+    return push_operation(ir::Cast{NumericType::Integer}, arg);
   }
 
   ir::ValuePtr operator()(const Conditional& cond, const Expr&) {

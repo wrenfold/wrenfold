@@ -8,6 +8,7 @@ namespace math {
 class PlainFormatter {
  public:
   void operator()(const Addition& add);
+  void operator()(const CastBool& cast);
   void operator()(const Conditional& conditional);
   void operator()(const Constant& constant);
   void operator()(const Derivative& derivative);

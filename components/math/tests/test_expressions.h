@@ -2,6 +2,7 @@
 #pragma once
 #include "expression.h"
 #include "functions.h"
+#include "geometry/quaternion.h"
 #include "matrix_functions.h"
 #include "type_annotations.h"
 
@@ -37,18 +38,24 @@ inline Expr exclusive_or(Expr x, Expr y) {
   return where(cond_x, where(cond_y, 0, 1), where(cond_y, 1, 0));
 }
 
-// A handwritten signum implemented with conditionals and abs().
-// Not very useful, but we employ it as a unit test case for `abs`.
-inline Expr handwritten_signum(Expr x) { return where(x == 0, 0, x / abs(x)); }
-
-// A handwritten `abs` implemented with signum.
-// Not very useful, but we employ it as a unit test case for `signum`.
-inline Expr handwritten_abs(Expr x) { return signum(x) * x; }
+// Test generation of signum and abs.
+inline auto signum_and_abs(Expr x) {
+  return std::make_tuple(ReturnValue(signum(x)), OutputArg("abs", abs(x)));
+}
 
 // Arc-tangent w/ derivatives.
 inline auto atan2_with_derivatives(Expr y, Expr x) {
   Expr f = atan2(y, x);
   return std::make_tuple(ReturnValue(f), OutputArg("D_y", f.diff(y)), OutputArg("D_x", f.diff(x)));
+}
+
+// Create a rotation matrix from a rodrigues vector, and the 9x3 Jacobian of the rotation matrix
+// elements with respect to the vector.
+inline auto create_rotation_matrix(ta::StaticMatrix<3, 1> w) {
+  MatrixExpr R = Quaternion::from_rotation_vector(w.inner(), 1.0e-16).to_rotation_matrix();
+  MatrixExpr R_diff = vectorize_matrix(R).jacobian(w);
+  return std::make_tuple(OutputArg("R", ta::StaticMatrix<3, 3>{R}),
+                         OptionalOutputArg("R_D_w", ta::StaticMatrix<9, 3>{R_diff}));
 }
 
 }  // namespace math

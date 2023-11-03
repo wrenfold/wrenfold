@@ -83,31 +83,34 @@ TEST(CppGenerationTest, TestExclusiveOr) {
 }
 
 // We use this test to check that abs() is generated correctly.
-TEST(CppGenerationTest, TestHandwrittenSignum) {
-  auto evaluator = create_evaluator(&handwritten_signum);
+TEST(CppGenerationTest, TestSignumAndAbs) {
+  auto evaluator = create_evaluator(&signum_and_abs);
 
-  EXPECT_EQ(evaluator(0.0), gen::handwritten_signum(0.0));
-  EXPECT_EQ(0.0, gen::handwritten_signum(0.0));
-  EXPECT_EQ(0.0, gen::handwritten_signum(-0.0));
+  double abs_num, abs_gen;
+  EXPECT_EQ(evaluator(0.0, abs_num), gen::signum_and_abs(0.0, abs_gen));
+  EXPECT_EQ(abs_num, abs_gen);
 
-  EXPECT_EQ(evaluator(1.0e-16), gen::handwritten_signum(1.0e-16));
-  EXPECT_EQ(1.0, gen::handwritten_signum(1.0e-16));
+  EXPECT_EQ(0.0, gen::signum_and_abs(0.0, abs_gen));
+  EXPECT_EQ(0.0, abs_gen);
+  EXPECT_EQ(0.0, gen::signum_and_abs(-0.0, abs_gen));
+  EXPECT_EQ(0.0, abs_gen);
 
-  EXPECT_EQ(evaluator(-1.0e-16), gen::handwritten_signum(-1.0e-16));
-  EXPECT_EQ(-1.0, gen::handwritten_signum(-1.0e-16));
+  EXPECT_EQ(evaluator(1.0e-16, abs_num), gen::signum_and_abs(1.0e-16, abs_gen));
+  EXPECT_EQ(abs_num, abs_gen);
 
-  EXPECT_EQ(1.0, gen::handwritten_signum(2.3));
-  EXPECT_EQ(-1.0, gen::handwritten_signum(-800.0));
-}
+  EXPECT_EQ(1.0, gen::signum_and_abs(1.0e-16, abs_gen));
+  EXPECT_EQ(1.0e-16, abs_gen);
 
-// We use this to test the signum implementation.
-TEST(CppGenerationTest, TestHandwrittenAbs) {
-  EXPECT_EQ(0.0, gen::handwritten_abs(0.0));
-  EXPECT_EQ(0.0, gen::handwritten_abs(-0.0));
-  EXPECT_EQ(1.0, gen::handwritten_abs(1.0));
-  EXPECT_EQ(22.0, gen::handwritten_abs(22.0));
-  EXPECT_EQ(3.0, gen::handwritten_abs(-3.0));
-  EXPECT_EQ(1e9, gen::handwritten_abs(-1.0e9));
+  EXPECT_EQ(evaluator(-1.0e-16, abs_num), gen::signum_and_abs(-1.0e-16, abs_gen));
+  EXPECT_EQ(abs_num, abs_gen);
+  EXPECT_EQ(-1.0, gen::signum_and_abs(-1.0e-16, abs_gen));
+  EXPECT_EQ(1.0e-16, abs_gen);
+
+  EXPECT_EQ(1.0, gen::signum_and_abs(2.3, abs_gen));
+  EXPECT_EQ(2.3, abs_gen);
+
+  EXPECT_EQ(-1.0, gen::signum_and_abs(-800.0, abs_gen));
+  EXPECT_EQ(800.0, abs_gen);
 }
 
 TEST(CppGenerationTest, TestAtan2WithDerivatives) {
@@ -136,6 +139,37 @@ TEST(CppGenerationTest, TestAtan2WithDerivatives) {
     EXPECT_NEAR(D_y_num, D_y_gen, 1.0e-15);
     EXPECT_NEAR(D_x_num, D_x_gen, 1.0e-15);
   }
+}
+
+TEST(CppGenerationTest, TestCreateRotationMatrix) {
+  auto evaluator = create_evaluator(&create_rotation_matrix);
+
+  Eigen::Matrix3d R_num, R_gen;
+  Eigen::Matrix<double, 9, 3> D_num, D_gen;
+
+  // Evaluate at zero
+  evaluator({0.0, 0.0, 0.0}, R_num, D_num);
+  gen::create_rotation_matrix<double>(Eigen::Vector3d::Zero().eval(), R_gen, D_gen);
+  EXPECT_EQ(R_num, R_gen);
+  EXPECT_EQ(D_num, D_gen);
+
+  const Eigen::Vector3d w1{-0.23, 0.52, 0.2};
+  evaluator(w1, R_num, D_num);
+  gen::create_rotation_matrix<double>(w1, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
+  const Eigen::Vector3d w2{-0.0022, 0.0003, -0.00015};
+  evaluator(w2, R_num, D_num);
+  gen::create_rotation_matrix<double>(w2, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
+  const Eigen::Vector3d w3{5.0, -4.0, 2.1};
+  evaluator(w3, R_num, D_num);
+  gen::create_rotation_matrix<double>(w3, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }
 
 }  // namespace math

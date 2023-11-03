@@ -60,6 +60,12 @@ void PlainFormatter::operator()(const Addition& expr) {
   }
 }
 
+void PlainFormatter::operator()(const CastBool& cast) {
+  output_ += "cast(";
+  visit(cast.arg(), *this);
+  output_ += ")";
+}
+
 void PlainFormatter::operator()(const Conditional& conditional) {
   output_ += "where(";
   visit(conditional.condition(), *this);

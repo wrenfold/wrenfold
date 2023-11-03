@@ -39,6 +39,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {
+    ZEN_ASSERT(!args.empty());
     return map_value(args[0]);
   }
 

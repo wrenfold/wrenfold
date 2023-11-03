@@ -279,12 +279,15 @@ TEST(QuaternionTest, FromRotationVector) {
   auto [vx, vy, vz] = make_symbols("vx", "vy", "vz");
   const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
   const Expr half_angle = angle / 2;
-  const Quaternion q = Quaternion::from_rotation_vector(vx, vy, vz);
-  ASSERT_IDENTICAL(q.w(), cos(angle / 2));
-  ASSERT_IDENTICAL(q.x(), where(angle > 0, vx * sin(angle / 2) / angle, 0));
-  ASSERT_IDENTICAL(q.y(), where(angle > 0, vy * sin(angle / 2) / angle, 0));
-  ASSERT_IDENTICAL(q.z(), where(angle > 0, vz * sin(angle / 2) / angle, 0));
+  const Quaternion q_no_conditional = Quaternion::from_rotation_vector(vx, vy, vz, std::nullopt);
+  ASSERT_IDENTICAL(q_no_conditional.w(), cos(angle / 2));
+  ASSERT_IDENTICAL(q_no_conditional.x(), vx * sin(angle / 2) / angle);
+  ASSERT_IDENTICAL(q_no_conditional.y(), vy * sin(angle / 2) / angle);
+  ASSERT_IDENTICAL(q_no_conditional.z(), vz * sin(angle / 2) / angle);
 
+  const Quaternion q = Quaternion::from_rotation_vector(vx, vy, vz, 1.0e-16);
+
+  // Check that angle of norm 0 works and produces identity:
   const Quaternion q_ident = q.subs(vx, 0).subs(vy, 0).subs(vz, 0);
   ASSERT_IDENTICAL(1, q_ident.w());
   ASSERT_IDENTICAL(0, q_ident.x());
@@ -303,8 +306,24 @@ TEST(QuaternionTest, FromRotationVector) {
                       1.0e-15);
   }
 
-  ASSERT_THROW(Quaternion::from_rotation_vector(make_vector(-3, vx)), DimensionError);
-  ASSERT_THROW(Quaternion::from_rotation_vector(make_identity(3)), DimensionError);
+  // Test a couple of very small values:
+  EXPECT_EIGEN_NEAR(
+      eigen_matrix_from_matrix_expr(
+          q.subs(vx, 1.0e-19).subs(vy, -1.2e-22).subs(vz, 3.0e-18).to_vector_wxyz()),
+      eigen_matrix_from_matrix_expr(
+          q_no_conditional.subs(vx, 1.0e-19).subs(vy, -1.2e-22).subs(vz, 3.0e-18).to_vector_wxyz()),
+      1.0e-32);
+
+  EXPECT_EIGEN_NEAR(eigen_matrix_from_matrix_expr(
+                        q.subs(vx, -2.3e-17).subs(vy, 4.1e-18).subs(vz, -3.3e-17).to_vector_wxyz()),
+                    eigen_matrix_from_matrix_expr(q_no_conditional.subs(vx, -2.3e-17)
+                                                      .subs(vy, 4.1e-18)
+                                                      .subs(vz, -3.3e-17)
+                                                      .to_vector_wxyz()),
+                    1.0e-32);
+
+  ASSERT_THROW(Quaternion::from_rotation_vector(make_vector(-3, vx), std::nullopt), DimensionError);
+  ASSERT_THROW(Quaternion::from_rotation_vector(make_identity(3), std::nullopt), DimensionError);
 }
 
 TEST(QuaternionTest, TestAngleConversions) {
@@ -385,6 +404,46 @@ TEST(QuaternionTest, TestToAxisAngle) {
                                           .subs(y, axis_num.y())
                                           .subs(z, axis_num.z()));
     EXPECT_EIGEN_NEAR(axis_num, axis_recovered_num, 1.0e-15)
+        << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
+  }
+}
+
+TEST(QuaternionTest, TestToRotationVector) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const Quaternion Q = Quaternion::from_rotation_vector(x, y, z, std::nullopt);
+  const MatrixExpr w = Q.to_rotation_vector(std::nullopt);
+
+  // We sub this in for the angle (the norm of [x, y, z]).
+  const Expr a{"a", NumberSet::RealNonNegative};
+
+  // Sin and cosine of the half-angle:
+  const Expr s{"s", NumberSet::Real};
+  const Expr c{"c", NumberSet::Real};
+
+  // Simplify the round-trip conversion.
+  const Expr vector_norm = sqrt(x * x + y * y + z * z);
+  const MatrixExpr w_simplified = w.subs(vector_norm, a)
+                                      .subs(sin(a / 2), s)
+                                      .subs(cos(a / 2), c)
+                                      .collect({s, a})
+                                      .subs(vector_norm, a)
+                                      .subs(pow(pow(s, 2), 1_s / 2), abs(s))
+                                      .subs(s / abs(s), signum(s));
+
+  // We can't simplify this completely w/o some trig-simp functionality. We can get close though:
+  // Since atan2(|s|, c) --> |a/2|, we have 2 * |a/2| * signum(a) / a, which is 1.
+  ASSERT_IDENTICAL(make_matrix(3, 1, x, y, z) * (2 * atan2(abs(s), c) * signum(s) / a),
+                   w_simplified);
+
+  // Check numerically as well:
+  const auto w_num = Quaternion::from_rotation_vector(x, y, z, 0).to_rotation_vector(1.0e-16);
+  for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
+    const Eigen::Vector3d axis_recovered_num =
+        eigen_matrix_from_matrix_expr(w_num.subs(x, angle_num * axis_num.x())
+                                          .subs(y, angle_num * axis_num.y())
+                                          .subs(z, angle_num * axis_num.z())
+                                          .eval());
+    EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-15)
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
 }

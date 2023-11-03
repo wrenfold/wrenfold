@@ -91,6 +91,14 @@ class LimitVisitor {
     return Addition::from_operands(terms);
   }
 
+  std::optional<Expr> operator()(const CastBool& cast) {
+    std::optional<Expr> arg = visit(cast.arg());
+    if (!arg) {
+      return std::nullopt;
+    }
+    return cast_int_from_bool(*arg);
+  }
+
   std::optional<Expr> operator()(const Conditional&) {
     // We don't support limits of conditionals yet.
     return std::nullopt;

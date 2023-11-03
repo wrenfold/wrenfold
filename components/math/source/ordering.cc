@@ -9,7 +9,7 @@ namespace math {
 struct OrderVisitor {
   using OrderOfTypes =
       type_list<Float, Integer, Rational, Constant, Infinity, Variable, Multiplication, Addition,
-                Power, Function, Relational, Conditional, Derivative, Undefined>;
+                Power, Function, Relational, Conditional, CastBool, Derivative, Undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(type_list_size<OrderOfTypes>::value == type_list_size<ExpressionTypeList>::value);
@@ -38,6 +38,10 @@ struct OrderVisitor {
       return RelativeOrder::GreaterThan;
     }
     return RelativeOrder::Equal;
+  }
+
+  RelativeOrder compare(const CastBool& a, const CastBool& b) const {
+    return expression_order(a.arg(), b.arg());
   }
 
   RelativeOrder compare(const Conditional& a, const Conditional& b) const {

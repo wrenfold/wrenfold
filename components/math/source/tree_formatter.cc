@@ -147,6 +147,11 @@ struct TreeFormatter {
                 string_from_number_set(var.set()));
   }
 
+  void operator()(const CastBool& cast) {
+    append_name("CastBool:");
+    visit_right(cast.arg());
+  }
+
   void operator()(const Conditional& conditional) {
     append_name("Conditional:");
     visit_left(conditional.condition());

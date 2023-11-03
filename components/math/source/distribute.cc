@@ -77,6 +77,7 @@ struct DistributeVisitor {
     return Power::create(distribute(a), distribute(b));
   }
 
+  Expr operator()(const CastBool& cast) const { return cast.map_children(&distribute); }
   Expr operator()(const Conditional& conditional, const Expr&) const {
     return conditional.map_children(&distribute);
   }

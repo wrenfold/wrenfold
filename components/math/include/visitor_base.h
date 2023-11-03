@@ -16,6 +16,7 @@ using expression_concept_const_ptr = std::shared_ptr<const class ExpressionConce
 // clang-format off
 using ExpressionTypeList = type_list<
     class Addition,
+    class CastBool,
     class Conditional,
     class Constant,
     class Derivative,

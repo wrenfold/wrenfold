@@ -198,8 +198,14 @@ static constexpr std::string_view string_for_built_in_function_call(
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  formatter.format("{}({})", string_for_built_in_function_call(x.function),
-                   make_join_view(*this, ", ", x.args));
+  if (x.function == BuiltInFunctionName::Signum) {
+    // TODO: should be an integer rexpression
+    formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
+                     make_view(x.args[0]));
+  } else {
+    formatter.format("{}({})", string_for_built_in_function_call(x.function),
+                     make_join_view(*this, ", ", x.args));
+  }
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
