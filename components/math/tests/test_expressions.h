@@ -38,13 +38,10 @@ inline Expr exclusive_or(Expr x, Expr y) {
   return where(cond_x, where(cond_y, 0, 1), where(cond_y, 1, 0));
 }
 
-// A handwritten signum implemented with conditionals and abs().
-// Not very useful, but we employ it as a unit test case for `abs`.
-inline Expr handwritten_signum(Expr x) { return where(x == 0, 0, x / abs(x)); }
-
-// A handwritten `abs` implemented with signum.
-// Not very useful, but we employ it as a unit test case for `signum`.
-inline Expr handwritten_abs(Expr x) { return signum(x) * x; }
+// Test generation of signum and abs.
+inline auto signum_and_abs(Expr x) {
+  return std::make_tuple(ReturnValue(signum(x)), OutputArg("abs", abs(x)));
+}
 
 // Arc-tangent w/ derivatives.
 inline auto atan2_with_derivatives(Expr y, Expr x) {

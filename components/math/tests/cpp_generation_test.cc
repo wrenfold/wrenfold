@@ -83,31 +83,34 @@ TEST(CppGenerationTest, TestExclusiveOr) {
 }
 
 // We use this test to check that abs() is generated correctly.
-TEST(CppGenerationTest, TestHandwrittenSignum) {
-  auto evaluator = create_evaluator(&handwritten_signum);
+TEST(CppGenerationTest, TestSignumAndAbs) {
+  auto evaluator = create_evaluator(&signum_and_abs);
 
-  EXPECT_EQ(evaluator(0.0), gen::handwritten_signum(0.0));
-  EXPECT_EQ(0.0, gen::handwritten_signum(0.0));
-  EXPECT_EQ(0.0, gen::handwritten_signum(-0.0));
+  double abs_num, abs_gen;
+  EXPECT_EQ(evaluator(0.0, abs_num), gen::signum_and_abs(0.0, abs_gen));
+  EXPECT_EQ(abs_num, abs_gen);
 
-  EXPECT_EQ(evaluator(1.0e-16), gen::handwritten_signum(1.0e-16));
-  EXPECT_EQ(1.0, gen::handwritten_signum(1.0e-16));
+  EXPECT_EQ(0.0, gen::signum_and_abs(0.0, abs_gen));
+  EXPECT_EQ(0.0, abs_gen);
+  EXPECT_EQ(0.0, gen::signum_and_abs(-0.0, abs_gen));
+  EXPECT_EQ(0.0, abs_gen);
 
-  EXPECT_EQ(evaluator(-1.0e-16), gen::handwritten_signum(-1.0e-16));
-  EXPECT_EQ(-1.0, gen::handwritten_signum(-1.0e-16));
+  EXPECT_EQ(evaluator(1.0e-16, abs_num), gen::signum_and_abs(1.0e-16, abs_gen));
+  EXPECT_EQ(abs_num, abs_gen);
 
-  EXPECT_EQ(1.0, gen::handwritten_signum(2.3));
-  EXPECT_EQ(-1.0, gen::handwritten_signum(-800.0));
-}
+  EXPECT_EQ(1.0, gen::signum_and_abs(1.0e-16, abs_gen));
+  EXPECT_EQ(1.0e-16, abs_gen);
 
-// We use this to test the signum implementation.
-TEST(CppGenerationTest, TestHandwrittenAbs) {
-  EXPECT_EQ(0.0, gen::handwritten_abs(0.0));
-  EXPECT_EQ(0.0, gen::handwritten_abs(-0.0));
-  EXPECT_EQ(1.0, gen::handwritten_abs(1.0));
-  EXPECT_EQ(22.0, gen::handwritten_abs(22.0));
-  EXPECT_EQ(3.0, gen::handwritten_abs(-3.0));
-  EXPECT_EQ(1e9, gen::handwritten_abs(-1.0e9));
+  EXPECT_EQ(evaluator(-1.0e-16, abs_num), gen::signum_and_abs(-1.0e-16, abs_gen));
+  EXPECT_EQ(abs_num, abs_gen);
+  EXPECT_EQ(-1.0, gen::signum_and_abs(-1.0e-16, abs_gen));
+  EXPECT_EQ(1.0e-16, abs_gen);
+
+  EXPECT_EQ(1.0, gen::signum_and_abs(2.3, abs_gen));
+  EXPECT_EQ(2.3, abs_gen);
+
+  EXPECT_EQ(-1.0, gen::signum_and_abs(-800.0, abs_gen));
+  EXPECT_EQ(800.0, abs_gen);
 }
 
 TEST(CppGenerationTest, TestAtan2WithDerivatives) {

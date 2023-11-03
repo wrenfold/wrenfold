@@ -21,8 +21,7 @@ int main() {
   generate_func(gen, code, &vector_norm_3d, "vector_norm_3d", "v");
   generate_func(gen, code, &heaviside, "heaviside", Arg("x"));
   generate_func(gen, code, &exclusive_or, "exclusive_or", Arg("x"), Arg("y"));
-  generate_func(gen, code, &handwritten_signum, "handwritten_signum", Arg("x"));
-  generate_func(gen, code, &handwritten_abs, "handwritten_abs", Arg("x"));
+  generate_func(gen, code, &signum_and_abs, "signum_and_abs", Arg("x"));
   generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", Arg("y"), Arg("x"));
   generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", Arg("w"));
 
