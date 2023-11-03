@@ -17,7 +17,7 @@ struct fmt::formatter<T, std::enable_if_t<std::is_base_of_v<Eigen::MatrixBase<T>
 
   template <typename Arg, typename FormatContext>
   auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
-    const Eigen::IOFormat heavy(Eigen::FullPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
+    const Eigen::IOFormat heavy(Eigen::FullPrecision, 0, ", ", ",\n", "[", "]", "[", "]");
     std::stringstream ss;
     ss << m.format(heavy);
     return fmt::format_to(ctx.out(), "{}", ss.str());

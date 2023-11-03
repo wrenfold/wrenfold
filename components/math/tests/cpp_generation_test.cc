@@ -138,4 +138,35 @@ TEST(CppGenerationTest, TestAtan2WithDerivatives) {
   }
 }
 
+TEST(CppGenerationTest, TestCreateRotationMatrix) {
+  auto evaluator = create_evaluator(&create_rotation_matrix);
+
+  Eigen::Matrix3d R_num, R_gen;
+  Eigen::Matrix<double, 9, 3> D_num, D_gen;
+
+  // Evaluate at zero
+  evaluator({0.0, 0.0, 0.0}, R_num, D_num);
+  gen::create_rotation_matrix<double>(Eigen::Vector3d::Zero().eval(), R_gen, D_gen);
+  EXPECT_EQ(R_num, R_gen);
+  EXPECT_EQ(D_num, D_gen);
+
+  const Eigen::Vector3d w1{-0.23, 0.52, 0.2};
+  evaluator(w1, R_num, D_num);
+  gen::create_rotation_matrix<double>(w1, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
+  const Eigen::Vector3d w2{-0.0022, 0.0003, -0.00015};
+  evaluator(w2, R_num, D_num);
+  gen::create_rotation_matrix<double>(w2, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
+  const Eigen::Vector3d w3{5.0, -4.0, 2.1};
+  evaluator(w3, R_num, D_num);
+  gen::create_rotation_matrix<double>(w3, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+}
+
 }  // namespace math

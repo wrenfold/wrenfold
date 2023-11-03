@@ -313,7 +313,7 @@ Expr abs(const Expr& arg) {
 struct SignumVisitor {
   // https://stackoverflow.com/questions/1903954/
   template <typename T>
-  static constexpr int sign(T val) {
+  static constexpr int sign(T val) noexcept {
     return (static_cast<T>(0) < val) - (val < static_cast<T>(0));
   }
 
