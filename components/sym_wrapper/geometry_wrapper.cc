@@ -3,6 +3,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "expression.h"
 #include "geometry/quaternion.h"
@@ -146,15 +147,17 @@ void wrap_geometry_operations(py::module_& m) {
           py::doc("Create a quaternion from angle-axis parameters. Vector v must be a "
                   "unit vector, or the result does not represent a rotation. Angle is specified in "
                   "radians."))
+      .def_static(
+          "from_rotation_vector",
+          static_cast<Quaternion (*)(const Expr&, const Expr&, const Expr&, std::optional<Expr>)>(
+              &Quaternion::from_rotation_vector),
+          "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
+          py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
+                  "of radians."))
       .def_static("from_rotation_vector",
-                  static_cast<Quaternion (*)(const Expr&, const Expr&, const Expr&, bool)>(
+                  static_cast<Quaternion (*)(const MatrixExpr&, std::optional<Expr>)>(
                       &Quaternion::from_rotation_vector),
-                  "x"_a, "y"_a, "z"_a, py::arg("insert_conditional") = true,
-                  py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
-                          "of radians."))
-      .def_static("from_rotation_vector",
-                  static_cast<Quaternion (*)(const MatrixExpr&)>(&Quaternion::from_rotation_vector),
-                  "v"_a,
+                  "v"_a, py::arg("epsilon"),
                   py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
                           "of radians."))
       .def_static("from_x_angle", &Quaternion::from_x_angle, "angle"_a,

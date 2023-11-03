@@ -112,16 +112,19 @@ class Quaternion {
 
   // Construct quaternion from a rotation vector.
   static Quaternion from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
-                                         const bool insert_conditional = true) {
+                                         const std::optional<Expr> epsilon) {
     const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
     const Expr half_angle = angle / 2;
     const Expr sinc_half_angle = sin(half_angle) / angle;
-    if (insert_conditional) {
+    if (epsilon) {
+      // When angle <= epsilon, we use the first order taylor series expansion of this method,
+      // linearized about v = [0, 0, 0]. The series is projected back onto the unit norm quaternion.
+      const Quaternion q_small_angle = Quaternion{1, vx / 2, vy / 2, vz / 2}.normalized();
       return {
-          cos(half_angle),
-          where(angle > 0, vx * sinc_half_angle, Constants::Zero),
-          where(angle > 0, vy * sinc_half_angle, Constants::Zero),
-          where(angle > 0, vz * sinc_half_angle, Constants::Zero),
+          where(angle > *epsilon, cos(half_angle), q_small_angle.w()),
+          where(angle > *epsilon, vx * sinc_half_angle, q_small_angle.x()),
+          where(angle > *epsilon, vy * sinc_half_angle, q_small_angle.y()),
+          where(angle > *epsilon, vz * sinc_half_angle, q_small_angle.z()),
       };
     } else {
       return {
@@ -134,11 +137,11 @@ class Quaternion {
   }
 
   // Construct quaternion from a rotation vector.
-  static Quaternion from_rotation_vector(const MatrixExpr& v) {
+  static Quaternion from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon) {
     if (v.rows() != 3 || v.cols() != 1) {
       throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
     }
-    return from_rotation_vector(v[0], v[1], v[2]);
+    return from_rotation_vector(v[0], v[1], v[2], std::move(epsilon));
   }
 
   // Convenience method for X-axis rotation. Angle is in radians.
@@ -172,14 +175,32 @@ class Quaternion {
     }
 
     // Compute half-angle in range [0, pi/2] --> times 2 --> [0, pi]
-    Expr angle = atan2(vector_norm, abs(w())) * 2;
-    Expr flipped_norm = where(w() < 0, -vector_norm, vector_norm);
+    const Expr angle = atan2(vector_norm, abs(w())) * 2;
+    const Expr flipped_norm = where(w() < 0, -vector_norm, vector_norm);
 
     // TODO: MatrixExpr should be an entirely separate type so this gross casting is not required.
     return std::make_tuple(
         where(vector_norm > zero_epsilon, angle, Constants::Zero),
         where(vector_norm > zero_epsilon,
               make_vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm), unit_x));
+  }
+
+  // Convert quaternion to a rodrigues rotation vector.
+  MatrixExpr to_rotation_vector(const std::optional<Expr> epsilon = std::nullopt) const {
+    // The vector part norm is equal to sin(angle / 2)
+    const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
+    const Expr half_angle = atan2(vector_norm, w());
+    const Expr angle_over_norm = (half_angle * 2) / vector_norm;
+
+    if (epsilon) {
+      // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
+      // It is linearized about q = identity.
+      return make_vector(where(vector_norm > *epsilon, angle_over_norm * x(), 2 * x()),
+                         where(vector_norm > *epsilon, angle_over_norm * y(), 2 * y()),
+                         where(vector_norm > *epsilon, angle_over_norm * z(), 2 * z()));
+    } else {
+      return make_vector(angle_over_norm * x(), angle_over_norm * y(), angle_over_norm * z());
+    }
   }
 
   // Construct a quaternion from a rotation matrix using Caley's method.
@@ -211,11 +232,11 @@ class Quaternion {
              pow(R(2, 1) + R(1, 2), 2) +
              pow(R(2, 2) - R(0, 0) - R(1, 1) + 1, 2);
     // clang-format on
-    return {sqrt(a) / 4,
-            // TODO: Add a sign-no-zero method to avoid conditional here?
-            where(R(2, 1) - R(1, 2) >= 0, 1, -1) * sqrt(b) / 4,
-            where(R(0, 2) - R(2, 0) >= 0, 1, -1) * sqrt(c) / 4,
-            where(R(1, 0) - R(0, 1) >= 0, 1, -1) * sqrt(d) / 4};
+    // We implement a signum without zeros:
+    const Expr sign_21 = 1 - 2 * cast_int_from_bool(R(2, 1) - R(1, 2) < 0);
+    const Expr sign_02 = 1 - 2 * cast_int_from_bool(R(0, 2) - R(2, 0) < 0);
+    const Expr sign_10 = 1 - 2 * cast_int_from_bool(R(1, 0) - R(0, 1) < 0);
+    return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
   }
 
  private:
