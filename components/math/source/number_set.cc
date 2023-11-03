@@ -49,6 +49,10 @@ class DetermineSetVisitor {
     return handle_add_or_mul(add, &combine_sets_add);
   }
 
+  constexpr NumberSet operator()(const CastBool&) const noexcept {
+    return NumberSet::RealNonNegative;
+  }
+
   NumberSet operator()(const Conditional& cond) const {
     NumberSet left = determine_numeric_set(cond.if_branch());
     NumberSet right = determine_numeric_set(cond.else_branch());

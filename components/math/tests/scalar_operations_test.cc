@@ -377,6 +377,7 @@ TEST(ScalarOperationsTest, TestPowerUndefined) {
 // Test creating relational expressions
 TEST(ScalarOperationsTest, TestRelationals) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
+
   ASSERT_TRUE((x > y).is_type<Relational>());
   ASSERT_TRUE((x == y).is_type<Relational>());
   ASSERT_IDENTICAL(x > y, x > y);
@@ -449,11 +450,24 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_THROW(3_s / 5 == Constants::Undefined, TypeError);
 }
 
+TEST(ScalarOperationsTest, TestCastBool) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_TRUE(cast_int_from_bool(x < y).is_type<CastBool>());
+  ASSERT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x < y));
+  ASSERT_NOT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x == y));
+
+  ASSERT_IDENTICAL(1, cast_int_from_bool(Constants::True));
+  ASSERT_IDENTICAL(0, cast_int_from_bool(Constants::False));
+
+  ASSERT_THROW(cast_int_from_bool(1.02), TypeError);
+  ASSERT_THROW(cast_int_from_bool(x + y), TypeError);
+  ASSERT_THROW(cast_int_from_bool(x * y), TypeError);
+  ASSERT_THROW(cast_int_from_bool(sin(x)), TypeError);
+}
+
 TEST(ScalarOperationsTest, TestConditional) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
 
   ASSERT_TRUE(where(x > 0, y, z).is_type<Conditional>());
   ASSERT_IDENTICAL(x, where(Constants::True, x, z));

@@ -115,6 +115,7 @@ struct CollectVisitor {
   Expr operator()(const Multiplication& mul, const Expr&) { return recurse(mul); }
   Expr operator()(const Function& f) { return recurse(f); }
   Expr operator()(const Power& pow) { return recurse(pow); }
+  Expr operator()(const CastBool& cast) { return recurse(cast); }
   Expr operator()(const Conditional& conditional) { return recurse(conditional); }
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }
   Expr operator()(const Derivative& diff, const Expr&) { return recurse(diff); }

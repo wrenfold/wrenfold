@@ -19,8 +19,6 @@ Expr Derivative::create(Expr differentiand, Expr arg, int order) {
     // dD(f(x), x, n)/dx = D(f(x), x, n + 1)
     return make_expr<Derivative>(d->differentiand(), std::move(arg), d->order_ + order);
   }
-  // We don't really do extra simplification here, that already happens in the derivative visitor
-  // in `derivative.cc`.
   // dD(f(y), y, n)/dx = D(D(f(y), y, n), x, 1)
   return make_expr<Derivative>(std::move(differentiand), std::move(arg), order);
 }

@@ -388,4 +388,33 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
   return MatrixExpr::create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
 }
 
+struct BoolCastVisitor {
+  std::optional<Expr> operator()(const Constant& c) const {
+    if (c.name() == SymbolicConstants::True) {
+      return Constants::One;
+    } else if (c.name() == SymbolicConstants::False) {
+      return Constants::Zero;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<Expr> operator()(const Relational&, const Expr& arg) const {
+    return make_expr<CastBool>(arg);
+  }
+
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, Relational>>
+  std::optional<Expr> operator()(const T&) const noexcept {
+    return std::nullopt;
+  }
+};
+
+Expr cast_int_from_bool(const Expr& bool_expression) {
+  std::optional<Expr> result = visit_with_expr(bool_expression, BoolCastVisitor{});
+  if (!result) {
+    throw TypeError("Expression of type `{}` is not a boolean arg: {}", bool_expression.type_name(),
+                    bool_expression);
+  }
+  return std::move(*result);
+}
+
 }  // namespace math

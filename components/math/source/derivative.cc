@@ -49,6 +49,10 @@ class DiffVisitor {
     return add.map_children([&](const Expr& x) { return visit_with_expr(x, *this); });
   }
 
+  Expr operator()(const CastBool&, const Expr& expr) {
+    return Derivative::create(expr, argument_abstract_, 1);
+  }
+
   // TODO: This is not strictly correct. If the condition is a function of `x` (where x is the
   //  the variable wrt we are differentiating), we should insert the dirac delta function.
   //  That said, this is more useful practically in most cases.
@@ -143,10 +147,11 @@ class DiffVisitor {
         // |f(x)| --> f(x)/|f(x)| * f'(x)
         // TODO: Add complex argument version.
         return args[0] / abs(args[0]) * d_args[0];
-      case BuiltInFunctionName::Signum:
+      case BuiltInFunctionName::Signum: {
         // signum(f(x)) --> d[heaviside(f(x)) - heaviside(-f(x))]/dx = 2 * dirac(f(x)) * f'(x)
         // However, we don't have dirac - so we leave this abstract.
-        return Derivative::create(signum(args[0]), argument_abstract_, 1) * d_args[0];
+        return Derivative::create(signum(args[0]), argument_abstract_, 1);
+      }
       case BuiltInFunctionName::Arctan2: {
         const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
         const Expr y_diff = visit_with_expr(args[0], *this);
@@ -183,10 +188,9 @@ class DiffVisitor {
 
   Expr operator()(const Rational&) const { return Constants::Zero; }
 
-  Expr operator()(const Relational& relational) const {
-    throw TypeError("Cannot differentiate expression of type `{}`: {} {} {}", Relational::NameStr,
-                    relational.left().to_string(), relational.operation_string(),
-                    relational.right().to_string());
+  Expr operator()(const Relational&, const Expr& rel_expr) const {
+    // Cannot differentiate relationals, so insert an abstract expression.
+    return Derivative::create(rel_expr, argument_abstract_, 1);
   }
 
   Expr operator()(const Undefined&) const { return Constants::Undefined; }

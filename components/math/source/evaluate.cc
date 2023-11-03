@@ -16,6 +16,14 @@ struct EvaluateVisitor {
     return cond.map_children(&evaluate);
   }
 
+  Expr operator()(const CastBool& cast) const {
+    Expr eval = cast.map_children(&evaluate);
+    if (!eval.is_type<CastBool>()) {
+      return evaluate(eval);
+    }
+    return eval;
+  }
+
   Expr operator()(const Constant& c) const {
     const double value = double_from_symbolic_constant(c.name());
     ZEN_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",

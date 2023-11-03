@@ -53,4 +53,7 @@ Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false);
 // Conditional over a matrix w/ scalar condition.
 MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixExpr& if_false);
 
+// Cast the provided expression from a boolean to an integer.
+Expr cast_int_from_bool(const Expr& bool_expression);
+
 }  // namespace math

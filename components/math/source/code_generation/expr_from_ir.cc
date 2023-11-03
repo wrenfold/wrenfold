@@ -38,7 +38,12 @@ struct ExprFromIrVisitor {
     return Function::create(func.name, std::move(container));
   }
 
-  Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Cast& cast, const std::vector<ir::ValuePtr>& args) const {
+    ZEN_ASSERT(!args.empty());
+    if (cast.destination_type == NumericType::Integer &&
+        args[0]->determine_type() == NumericType::Bool) {
+      return cast_int_from_bool(map_value(args[0]));
+    }
     return map_value(args[0]);
   }
 
