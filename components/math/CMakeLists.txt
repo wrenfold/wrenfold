@@ -22,6 +22,7 @@ add_library(
   source/expressions/relational.cc
   source/expressions/variable.cc
   source/functions.cc
+  source/geometry/quaternion.cc
   source/matrix_expression.cc
   source/matrix_functions.cc
   source/ordering.cc
