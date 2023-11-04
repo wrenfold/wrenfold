@@ -29,6 +29,8 @@ add_custom_test(ir_builder_test.cc)
 add_custom_test(substitute_test.cc)
 add_custom_test(quaternion_test.cc)
 add_custom_test(limits_test.cc)
+add_code_generation_test(generate_cpp_test cpp_generation_gen.cc
+                         cpp_generation_test.cc)
 
 # Function to define a test that generates in C++ and then runs Rust tests.
 function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
