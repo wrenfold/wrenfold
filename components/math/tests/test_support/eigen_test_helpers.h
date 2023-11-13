@@ -2,6 +2,7 @@
 #pragma once
 #include <gtest/gtest.h>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include "expressions/numeric_expressions.h"
 #include "fmt_imports.h"

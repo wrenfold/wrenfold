@@ -3,6 +3,12 @@
 
 namespace math {
 
+Quaternion Quaternion::from_name_prefix(const std::string_view name) {
+  auto [w, x, y, z] = make_symbols(fmt::format("{}_w", name), fmt::format("{}_x", name),
+                                   fmt::format("{}_y", name), fmt::format("{}_z", name));
+  return {std::move(w), std::move(x), std::move(y), std::move(z)};
+}
+
 Quaternion Quaternion::subs(const Expr& target, const Expr& replacement) const {
   return Quaternion(w().subs(target, replacement), x().subs(target, replacement),
                     y().subs(target, replacement), z().subs(target, replacement));

@@ -377,9 +377,9 @@ TEST(QuaternionTest, TestToAxisAngle) {
   auto [angle, x, y, z] = make_symbols("angle", "x", "y", "z");
   const Quaternion q = Quaternion::from_angle_axis(angle, x, y, z);
 
-  auto [angle_recovered, axis_recovered] = q.to_angle_axis(std::nullopt);
+  auto [angle_recovered, axis_recovered] = q.to_angle_axis(0);
   ASSERT_IDENTICAL(0, angle_recovered.subs(angle, 0));
-  ASSERT_IDENTICAL(0, angle_recovered.subs(x, 0).subs(y, 0).subs(z, 0));
+  ASSERT_IDENTICAL(0, angle_recovered.subs(x, 0).subs(y, 0).subs(z, 0).subs(angle, 0));
   ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(angle, 0));
   ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(x, 0).subs(y, 0).subs(z, 0));
 

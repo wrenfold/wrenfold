@@ -32,6 +32,10 @@ class Quaternion {
     return Quaternion{q[0], q[1], q[2], q[3]};
   }
 
+  // Construct a quaternion of variables w/ the given name prefix.
+  // Members will have the names `{name}_[w|x|y|z]`.
+  static Quaternion from_name_prefix(std::string_view name);
+
   // Access components:
   constexpr const Expr& w() const noexcept { return wxyz_[0]; }
   constexpr const Expr& x() const noexcept { return wxyz_[1]; }
