@@ -166,6 +166,21 @@ TEST(IrTest, TestScalarExpressions2) {
   check_expressions(expected_expressions, output_ir);
 }
 
+TEST(IrTest, TestRepeatedScalarExpressions1) {
+  // y * z should get combined in the output, since it appears more:
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y, Expr z) {
+        Expr f = (x * y * z) + (y * z) - sin(y * z) * (y * z) + log(x * z) + cos(x * y);
+        return f;
+      },
+      "func", Arg("x"), Arg("y"), Arg("z"));
+
+  ASSERT_EQ(14, ir.num_operations()) << ir;  //  TODO: Add more explicit check here.
+  ASSERT_EQ(0, ir.num_condtionals()) << ir;
+  check_expressions(expected_expressions, ir);
+  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+}
+
 TEST(IrTest, TestScalarExpressions3) {
   auto [expected_expressions, ir] = create_ir(
       [](Expr x, Expr y, Expr z) {
