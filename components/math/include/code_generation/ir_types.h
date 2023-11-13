@@ -60,7 +60,8 @@ class Block {
 };
 
 // Determine the underlying numeric type of the provided value.
-NumericType determine_value_type(ValuePtr v);
+// Defined here so that we can use this prior to defining ValuePtr.
+inline NumericType get_value_type(const ValuePtr& v);
 
 // Add together two operands.
 struct Add {
@@ -71,8 +72,7 @@ struct Add {
   constexpr bool is_same(const Add&) const { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(std::max(determine_value_type(a), determine_value_type(b)),
-                    NumericType::Integer);
+    return std::max(std::max(get_value_type(a), get_value_type(b)), NumericType::Integer);
   }
 };
 
@@ -84,7 +84,7 @@ struct Copy {
   constexpr std::size_t hash_seed() const { return 0; }
   constexpr bool is_same(const Copy&) const { return true; }
 
-  NumericType determine_type(ValuePtr arg) const { return determine_value_type(arg); }
+  NumericType determine_type(ValuePtr arg) const { return get_value_type(arg); }
 };
 
 // Cast the operand to the specified destination type.
@@ -165,7 +165,7 @@ struct Cond {
 
   NumericType determine_type(const ValuePtr&, const ValuePtr& true_val,
                              const ValuePtr& false_val) const {
-    return std::max(determine_value_type(true_val), determine_value_type(false_val));
+    return std::max(get_value_type(true_val), get_value_type(false_val));
   }
 };
 
@@ -178,7 +178,7 @@ struct Div {
   constexpr bool is_same(const Div&) const { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(determine_value_type(a), determine_value_type(b));
+    return std::max(get_value_type(a), get_value_type(b));
   }
 };
 
@@ -208,8 +208,7 @@ struct Mul {
   constexpr bool is_same(const Mul&) const { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(std::max(determine_value_type(a), determine_value_type(b)),
-                    NumericType::Integer);
+    return std::max(std::max(get_value_type(a), get_value_type(b)), NumericType::Integer);
   }
 };
 
@@ -238,7 +237,7 @@ struct Phi {
 
   NumericType determine_type(const ValuePtr& a, const ValuePtr&) const {
     // Both values should be the same:
-    return determine_value_type(a);
+    return get_value_type(a);
   }
 };
 
@@ -251,8 +250,7 @@ struct Pow {
   constexpr bool is_same(const Pow&) const { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(std::max(determine_value_type(a), determine_value_type(b)),
-                    NumericType::Integer);
+    return std::max(std::max(get_value_type(a), get_value_type(b)), NumericType::Integer);
   }
 };
 
@@ -302,7 +300,8 @@ class Value {
       : name_(name),
         parent_(parent),
         op_(std::forward<OpType>(operation)),
-        operands_(std::move(operands)) {
+        operands_(std::move(operands)),
+        numeric_type_(determine_type(op_, operands_)) {
     notify_operands();
     if constexpr (OpType::is_commutative()) {
       // Sort operands for commutative operations so everything is a canonical order.
@@ -376,6 +375,7 @@ class Value {
     // Record new operands:
     operands_.clear();
     (operands_.push_back(args), ...);
+    numeric_type_ = determine_type(op, operands_);
     op_ = std::forward<OpType>(op);
     notify_operands();
     if constexpr (OpType::is_commutative()) {
@@ -447,28 +447,10 @@ class Value {
     return consumers_.empty() && !is_type<ir::Save>() && !is_type<ir::JumpCondition>();
   }
 
-  // Determine the numeric type of the resulting expression.
-  // TODO: This should be determined during construction and not require recursion.
-  NumericType determine_type() const {
-    return std::visit(
-        [&](const auto& op) -> NumericType {
-          using T = std::decay_t<decltype(op)>;
-          using OmittedTypes = type_list<Save, JumpCondition>;
-          if constexpr (list_contains_type_v<T, OmittedTypes>) {
-            throw TypeError("Operation does not have a numeric type");
-          } else if constexpr (T::num_value_operands() == 0) {
-            return op.determine_type();
-          } else if constexpr (T::num_value_operands() == 1) {
-            return op.determine_type(operands_[0]);
-          } else if constexpr (T::num_value_operands() == 2) {
-            return op.determine_type(operands_[0], operands_[1]);
-          } else if constexpr (T::num_value_operands() == 3) {
-            return op.determine_type(operands_[0], operands_[1], operands_[2]);
-          } else {
-            return op.determine_type(operands_);
-          }
-        },
-        op_);
+  // Access the underlying numeric type.
+  NumericType numeric_type() const {
+    ZEN_ASSERT(numeric_type_.has_value());
+    return *numeric_type_;
   }
 
  protected:
@@ -499,6 +481,30 @@ class Value {
     }
   }
 
+  // Determine the numeric type of the resulting expression.
+  template <typename T>
+  static std::optional<NumericType> determine_type(const T& op,
+                                                   const std::vector<ir::ValuePtr>& operands) {
+    if constexpr (list_contains_type_v<T, Save, JumpCondition>) {
+      return std::nullopt;
+    } else if constexpr (T::num_value_operands() == 0) {
+      return op.determine_type();
+    } else if constexpr (T::num_value_operands() == 1) {
+      return op.determine_type(operands[0]);
+    } else if constexpr (T::num_value_operands() == 2) {
+      return op.determine_type(operands[0], operands[1]);
+    } else if constexpr (T::num_value_operands() == 3) {
+      return op.determine_type(operands[0], operands[1], operands[2]);
+    } else {
+      return op.determine_type(operands);
+    }
+  }
+
+  // Version of determine_type that accepts the operation directly.
+  static auto determine_type(const Operation& op, const std::vector<ir::ValuePtr>& operands) {
+    return std::visit([&operands](const auto& op) { return determine_type(op, operands); }, op);
+  }
+
   template <typename... Args>
   std::vector<ValuePtr> make_value_vector(Args&&... args) {
     std::vector<ValuePtr> vec{};
@@ -522,10 +528,13 @@ class Value {
 
   // Downstream values that consume this one:
   std::vector<ValuePtr> consumers_;
+
+  // The cached numeric type of this operation.
+  std::optional<NumericType> numeric_type_;
 };
 
 // Inline method definition:
-inline NumericType determine_value_type(ValuePtr v) { return v->determine_type(); }
+inline NumericType get_value_type(const ValuePtr& v) { return v->numeric_type(); }
 
 // Hashes the operation and all the arguments of a value.
 // This deliberately ignores the name of the value. Two different values w/ identical operations

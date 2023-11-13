@@ -75,7 +75,7 @@ struct AstBuilder {
           if (should_inline_constant(value)) {
             rhs = make_argument_ptr(value);
           } else {
-            emplace_operation<ast::Declaration>(format_temporary(value), value->determine_type(),
+            emplace_operation<ast::Declaration>(format_temporary(value), value->numeric_type(),
                                                 visit_and_make_ptr(value));
             rhs = make_variable_ref_ptr(value);
           }
@@ -143,7 +143,7 @@ struct AstBuilder {
           }
           // We should declare this variable prior to entering the branch:
           emplace_operation<ast::Declaration>(format_temporary(maybe_phi),
-                                              maybe_phi->determine_type());
+                                              maybe_phi->numeric_type());
         }
       }
 
@@ -258,7 +258,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Cast& cast) {
-    return ast::Cast{cast.destination_type, val.determine_type(), make_argument_ptr(val[0])};
+    return ast::Cast{cast.destination_type, val.numeric_type(), make_argument_ptr(val[0])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Compare& compare) {

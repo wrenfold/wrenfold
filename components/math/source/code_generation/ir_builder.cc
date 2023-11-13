@@ -238,7 +238,7 @@ struct IRFormVisitor {
       : builder_(builder), counts_(counts) {}
 
   ir::ValuePtr maybe_cast(ir::ValuePtr input, NumericType output_type) {
-    if (input->determine_type() != output_type) {
+    if (input->numeric_type() != output_type) {
       return push_operation(ir::Cast{output_type}, input);
     } else {
       return input;
@@ -274,7 +274,7 @@ struct IRFormVisitor {
 
     NumericType promoted_type = NumericType::Integer;
     for (ir::ValuePtr v : args) {
-      promoted_type = std::max(promoted_type, v->determine_type());
+      promoted_type = std::max(promoted_type, v->numeric_type());
     }
 
     // then create multiplications or adds for this expression:
@@ -300,7 +300,7 @@ struct IRFormVisitor {
     const ir::ValuePtr else_branch = VisitExpr(cond.else_branch());
 
     const NumericType promoted_type =
-        std::max(if_branch->determine_type(), else_branch->determine_type());
+        std::max(if_branch->numeric_type(), else_branch->numeric_type());
 
     return push_operation(ir::Cond{}, condition, maybe_cast(if_branch, promoted_type),
                           maybe_cast(else_branch, promoted_type));
@@ -340,7 +340,7 @@ struct IRFormVisitor {
     const ir::ValuePtr b = VisitExpr(pow.base());
     const ir::ValuePtr e = VisitExpr(pow.exponent());
     const NumericType promoted_type =
-        std::max(NumericType::Integer, std::max(b->determine_type(), e->determine_type()));
+        std::max(NumericType::Integer, std::max(b->numeric_type(), e->numeric_type()));
     return push_operation(ir::Pow{}, maybe_cast(b, promoted_type), maybe_cast(e, promoted_type));
   }
 
@@ -352,7 +352,7 @@ struct IRFormVisitor {
   ir::ValuePtr operator()(const Relational& relational, const Expr&) {
     ir::ValuePtr left = VisitExpr(relational.left());
     ir::ValuePtr right = VisitExpr(relational.right());
-    NumericType promoted_type = std::max(left->determine_type(), right->determine_type());
+    NumericType promoted_type = std::max(left->numeric_type(), right->numeric_type());
     return push_operation(ir::Compare{relational.operation()}, maybe_cast(left, promoted_type),
                           maybe_cast(right, promoted_type));
   }
@@ -445,7 +445,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     std::transform(group.expressions.begin(), group.expressions.end(),
                    std::back_inserter(group_values), [&](const Expr& expr) {
                      ir::ValuePtr output = visitor.VisitExpr(expr);
-                     if (output->determine_type() != NumericType::Real) {
+                     if (output->numeric_type() != NumericType::Real) {
                        // TODO: Allow returning other types - derive the numeric type from the
                        // group.
                        output = create_operation(values_, get_block(), ir::Cast{NumericType::Real},
