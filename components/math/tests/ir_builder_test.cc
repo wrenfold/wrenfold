@@ -309,6 +309,22 @@ TEST(IrTest, TestConditionals6) {
   ASSERT_EQ(4, output_ir.num_conditionals()) << output_ir;
 }
 
+TEST(IrTest, TestConditionals7) {
+  // Nested conditionals with identical conditions:
+  auto [expected_expressions, ir] =
+      create_ir([](Expr x, Expr y, Expr z) { return where(x > 0, where(x > 0, y, z), 10 * z - y); },
+                "func", Arg("x"), Arg("y"), Arg("z"));
+
+  ASSERT_EQ(9, ir.num_operations()) << ir;
+  ASSERT_EQ(2, ir.num_condtionals()) << ir;
+  check_expressions(expected_expressions, ir);
+
+  OutputIr output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(9, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(2, output_ir.num_conditionals()) << output_ir;
+}
+
 TEST(IrTest, TestMatrixExpressions1) {
   // Create a matrix output:
   auto [expected_expressions, ir] = create_ir(

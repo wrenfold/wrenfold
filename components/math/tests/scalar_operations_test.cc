@@ -1,5 +1,6 @@
 #include "constants.h"
 #include "expressions/addition.h"
+#include "expressions/conditional.h"
 #include "expressions/multiplication.h"
 #include "expressions/power.h"
 #include "functions.h"
@@ -472,11 +473,16 @@ TEST(ScalarOperationsTest, TestConditional) {
   ASSERT_TRUE(where(x > 0, y, z).is_type<Conditional>());
   ASSERT_IDENTICAL(x, where(Constants::True, x, z));
   ASSERT_IDENTICAL(z, where(Constants::False, x, z));
-  ASSERT_IDENTICAL(where(x < 0, cos(x), log(z)),
-                   where(x < 0, where(x < 0, cos(x), sin(x)), log(z)));
 
-  // both branches are identical anyway:
+  // Identical branches simplify:
+  ASSERT_IDENTICAL(w + 3, where(x > 0, 3 + w, w + 3));
+  ASSERT_IDENTICAL(23 * z, where(y == 0, 23 * z, 23 * z));
   ASSERT_IDENTICAL(abs(x) + z * 5, where(x - y < z, abs(x) + z * 5, abs(x) + z * 5));
+
+  // Nested conditionals don't simplify:
+  const Expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
+  ASSERT_IDENTICAL(cast_checked<Conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
+  ASSERT_IDENTICAL(cast_checked<Conditional>(nested).else_branch(), log(z));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {
