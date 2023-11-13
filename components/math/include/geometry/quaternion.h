@@ -132,9 +132,17 @@ class Quaternion {
   //
   //  d(Q * exp(w)) / dw evaluated at w = 0
   //
-  // Where `Q is this quaternion, and `w` is an infinitesimal rotation vector, retracted on the
-  // right side of Q.
-  MatrixExpr right_tangent_derivative() const;
+  // Where `Q` is this quaternion, and `w` is an infinitesimal rotation vector, retracted on the
+  // right side of Q. It is assumed that `Q` has unit norm, otherwise the result is undefined.
+  MatrixExpr right_retract_derivative() const;
+
+  // Compute the 3x4 tangent-space derivative of the operation:
+  //
+  //  d(log(Q^T * (Q + dq)) / dq evaluated at dq = 0
+  //
+  // Where `Q` is this (unit norm) quaternion, and Q^T denotes the conjugation operation. dQ is an
+  // infinitesimal additive perturbation to the quaternion.
+  MatrixExpr right_local_coordinates_derivative() const;
 
  private:
   // Quaternion elements in order [w, x, y, z].

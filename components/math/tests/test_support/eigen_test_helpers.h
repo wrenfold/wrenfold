@@ -75,4 +75,9 @@ inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
   return result;
 }
 
+// Convert Quaternion to Vector4, ordered [w,x,y,z] (scalar first).
+inline Eigen::Vector4d eigen_wxyz_vec_from_quaternion(const Eigen::Quaterniond& q) {
+  return (Eigen::Vector4d() << q.w(), q.x(), q.y(), q.z()).finished();
+}
+
 }  // namespace math

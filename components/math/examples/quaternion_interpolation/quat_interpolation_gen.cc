@@ -23,8 +23,8 @@ auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4,
   ta::StaticMatrix<4, 1> q_out = q_interp.to_vector_wxyz();
 
   // TODO: Add a simpler interface for getting the tangent space derivative.
-  ta::StaticMatrix<4, 3> D_q0 = q_out.inner().jacobian(q0_vec) * q0.right_tangent_derivative();
-  ta::StaticMatrix<4, 3> D_q1 = q_out.inner().jacobian(q1_vec) * q1.right_tangent_derivative();
+  ta::StaticMatrix<4, 3> D_q0 = q_out.inner().jacobian(q0_vec) * q0.right_retract_derivative();
+  ta::StaticMatrix<4, 3> D_q1 = q_out.inner().jacobian(q1_vec) * q1.right_retract_derivative();
 
   return std::make_tuple(OutputArg("q_out", std::move(q_out)),
                          OptionalOutputArg("D_q0", std::move(D_q0)),

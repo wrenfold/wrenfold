@@ -151,7 +151,7 @@ Quaternion Quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
-MatrixExpr Quaternion::right_tangent_derivative() const {
+MatrixExpr Quaternion::right_retract_derivative() const {
   // Compute the expression `J` once, and substitute into it on subsequent calls:
   static const Quaternion q_sub{
       make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real),
@@ -166,6 +166,27 @@ MatrixExpr Quaternion::right_tangent_derivative() const {
   });
 
   // Substitute into J, replacing q_sub with the values in this quaternion:
+  return J.subs(q_sub.w(), w()).subs(q_sub.x(), x()).subs(q_sub.y(), y()).subs(q_sub.z(), z());
+}
+
+MatrixExpr Quaternion::right_local_coordinates_derivative() const {
+  static const Quaternion q_sub{
+      make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real),
+      make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real)};
+  static const auto J = std::invoke([&]() -> MatrixExpr {
+    const auto dw = make_unique_variable_symbol(NumberSet::Real);
+    const auto dx = make_unique_variable_symbol(NumberSet::Real);
+    const auto dy = make_unique_variable_symbol(NumberSet::Real);
+    const auto dz = make_unique_variable_symbol(NumberSet::Real);
+    const Quaternion q_diff = q_sub.conjugate() * Quaternion{q_sub.w() + dw, q_sub.x() + dx,
+                                                             q_sub.y() + dy, q_sub.z() + dz};
+    return q_diff.to_rotation_vector(0)
+        .jacobian({dw, dx, dy, dz})
+        .subs(dw, 0)
+        .subs(dx, 0)
+        .subs(dy, 0)
+        .subs(dz, 0);
+  });
   return J.subs(q_sub.w(), w()).subs(q_sub.x(), x()).subs(q_sub.y(), y()).subs(q_sub.z(), z());
 }
 
