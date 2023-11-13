@@ -79,6 +79,7 @@ set(${LIBRARY_NAME}_HEADERS
     include/code_generation/rust_code_generator.h
     include/common_visitors.h
     include/constants.h
+    include/derivative.h
     include/enumerations.h
     include/error_types.h
     include/expression.h

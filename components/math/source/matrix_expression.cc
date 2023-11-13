@@ -2,10 +2,12 @@
 #include "matrix_expression.h"
 
 #include "constants.h"
+#include "derivative.h"
 #include "expressions/addition.h"
 #include "expressions/matrix.h"
 #include "functions.h"
 #include "plain_formatter.h"
+#include "span.h"
 
 namespace math {
 
@@ -67,7 +69,6 @@ MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
   return MatrixExpr{as_matrix().map_children([&](const Expr& x) { return x.diff(var, reps); })};
 }
 
-// TODO: Cache the derivatives in the diff visitor.
 MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
   if (vars.empty()) {
     throw DimensionError("A non-empty set of variables must be provided to compute a jacobian.");
@@ -80,12 +81,20 @@ MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
   const auto& m = as_matrix();
 
   std::vector<Expr> result{};
-  result.reserve(m.size() * vars.size());
-  for (index_t row = 0; row < m.rows(); ++row) {
-    for (std::size_t col = 0; col < vars.size(); ++col) {
-      result.push_back(m.get_unchecked(row, 0).diff(vars[col]));
+  result.resize(m.size() * vars.size(), Constants::Zero);
+
+  // Crate row-major span over `result`:
+  auto result_span = make_span(result.data(), make_value_pack(m.rows(), vars.size()),
+                               make_value_pack(vars.size(), constant<1>{}));
+
+  for (std::size_t col = 0; col < vars.size(); ++col) {
+    // We cache derivative expressions, so that every row reuses the same cache:
+    DiffVisitor diff_visitor{vars[col]};
+    for (index_t row = 0; row < m.rows(); ++row) {
+      result_span(row, col) = diff_visitor.apply(m.get_unchecked(row, 0));
     }
   }
+
   return MatrixExpr::create(m.rows(), static_cast<index_t>(vars.size()), std::move(result));
 }
 
