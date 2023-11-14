@@ -35,6 +35,7 @@ add_google_benchmark()
 
 # Add abseil-cpp
 function(add_abseil)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   set(ABSL_USE_EXTERNAL_GOOGLETEST
       ON
       CACHE BOOL "" FORCE)

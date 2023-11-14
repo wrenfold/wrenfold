@@ -124,7 +124,7 @@ class Variable {
 
 template <>
 struct hash_struct<NamedVariable> {
-  constexpr std::size_t operator()(const NamedVariable& v) const noexcept {
+  std::size_t operator()(const NamedVariable& v) const noexcept {
     return hash_string_fnv(v.name());
   }
 };

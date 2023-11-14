@@ -32,23 +32,24 @@ TEST(SpanTest, TestMakeValuePack) {
   // Check that we get the right types.
   auto pack1 = make_value_pack(1, 3);
   static_assert(std::is_same<decltype(pack1), value_pack<dynamic, dynamic>>::value, "");
-  ASSERT_FALSE(decltype(pack1)::known_at_compile_time);
-  ASSERT_EQ(2, decltype(pack1)::length);
+  // == to avoid ODR for static constexpr
+  ASSERT_FALSE(true == decltype(pack1)::known_at_compile_time);
+  ASSERT_EQ(2, static_cast<int>(decltype(pack1)::length));
   ASSERT_EQ(1, pack1.get<0>().value());
   ASSERT_EQ(3, pack1.get<1>().value());
 
   auto pack2 = make_value_pack(constant<4>{}, constant<6>{});
   static_assert(std::is_same<decltype(pack2), value_pack<constant<4>, constant<6>>>::value, "");
-  ASSERT_TRUE(decltype(pack2)::known_at_compile_time);
-  ASSERT_EQ(2, decltype(pack2)::length);
+  ASSERT_TRUE(true == decltype(pack2)::known_at_compile_time);
+  ASSERT_EQ(2, static_cast<int>(decltype(pack2)::length));
   ASSERT_EQ(4, pack2.get<0>().value());
   ASSERT_EQ(6, pack2.get<1>().value());
 
   auto pack3 = make_value_pack(10, 8, constant<3>{});
   static_assert(std::is_same<decltype(pack3), value_pack<dynamic, dynamic, constant<3>>>::value,
                 "");
-  ASSERT_FALSE(decltype(pack3)::known_at_compile_time);
-  ASSERT_EQ(3, decltype(pack3)::length);
+  ASSERT_FALSE(true == decltype(pack3)::known_at_compile_time);
+  ASSERT_EQ(3, static_cast<int>(decltype(pack3)::length));
   ASSERT_EQ(10, pack3.get<0>().value());
   ASSERT_EQ(8, pack3.get<1>().value());
   ASSERT_EQ(3, pack3.get<2>().value());
