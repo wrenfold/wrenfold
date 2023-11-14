@@ -8,7 +8,7 @@ namespace ta = math::type_annotations;
 namespace math {
 
 // Interpolate between two quaternions, `q0` and `q1` (passed as scalar-last vectors).
-// Outputs the interpolated quaternion, as well as the tangent space
+// Outputs the interpolated quaternion, as well as the tangent space derivatives.
 auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4, 1> q1_vec,
                               Expr alpha) {
   using namespace matrix_operator_overloads;
