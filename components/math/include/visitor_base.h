@@ -33,28 +33,4 @@ using ExpressionTypeList = type_list<
     >;
 // clang-format on
 
-// Declare a virtual `Apply` method for the specified type.
-template <typename T>
-class VisitorDeclare {
- public:
-  virtual void apply_visitor_virtual(const T& input) = 0;
-};
-
-// Implements `VisitorDeclare` for every type in a type_list.
-// We use virtual inheritance since both VisitorBase and VisitorImplAll must inherit
-// from this, creating a diamond pattern.
-template <typename T>
-class VisitorDeclareAll;
-template <typename... Ts>
-class VisitorDeclareAll<type_list<Ts...>> : public virtual VisitorDeclare<Ts>... {};
-
-// Base type for visitors.
-template <typename Types>
-class VisitorBaseGeneric : public VisitorDeclareAll<Types> {
- public:
-  virtual ~VisitorBaseGeneric() = default;
-};
-
-using VisitorBase = VisitorBaseGeneric<ExpressionTypeList>;
-
 }  // namespace math

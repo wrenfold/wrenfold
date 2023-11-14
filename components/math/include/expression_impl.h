@@ -15,22 +15,17 @@ class ExpressionImpl final : public ExpressionConcept {
 
   // Construct w/ concrete inner type.
   explicit ExpressionImpl(ExpressionType&& impl)
-      : ExpressionConcept(compute_hash(impl)), implementation_(std::move(impl)) {}
+      : ExpressionConcept(compute_hash(impl), index_of_type_v<ExpressionType, ExpressionTypeList>),
+        implementation_(std::move(impl)) {}
 
   // Cast to the concrete expression type. type.
-  const ExpressionType& get_implementation() const { return implementation_; }
+  constexpr const ExpressionType& get_implementation() const noexcept { return implementation_; }
 
   // Check if we can cast to this type.
   bool is_identical_to(const ExpressionConcept& other) const override final {
     return other.is_type<ExpressionType>() &&
            get_implementation().is_identical_to(
                static_cast<const ExpressionImpl<ExpressionType>&>(other).get_implementation());
-  }
-
-  // Cast to derived type and apply the visitor.
-  void receive_visitor(VisitorBase& visitor) const override final {
-    static_cast<VisitorDeclare<ExpressionType>&>(visitor).apply_visitor_virtual(
-        get_implementation());
   }
 
   // Get the derived type string name (a static constexpr member).
@@ -42,18 +37,7 @@ class ExpressionImpl final : public ExpressionConcept {
   // Virtual version of `IsLeafStatic`.
   bool is_leaf() const override final { return IsLeafStatic(); }
 
-  // Implementation of `TypeIndex`.
-  std::size_t type_index() const override final {
-    return index_of_type<ExpressionType, ExpressionTypeList>::value;
-  }
-
  protected:
-  bool type_matches_index(const std::size_t index) const override final {
-    static_assert(list_contains_type_v<ExpressionType, ExpressionTypeList>,
-                  "ExpressionType is not a valid expression type");
-    return index_of_type<ExpressionType, ExpressionTypeList>::value == index;
-  }
-
   // Compute the hash of the underlying expression, and hash it again w/ the index of the type.
   static std::size_t compute_hash(const ExpressionType& impl) {
     return hash_combine(index_of_type<ExpressionType, ExpressionTypeList>::value,

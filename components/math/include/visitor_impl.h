@@ -1,116 +1,54 @@
-// Copyright 2022 Gareth Cross
+// Copyright 2023 Gareth Cross
 #pragma once
-#include <optional>
-#include <string>
-
 #include "assertions.h"
 #include "expression.h"
 #include "template_utils.h"
 #include "visitor_base.h"
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4250)  // inherit via dominance
-#endif
+// All expression definitions need to be available to static_cast.
+#include "expressions/all_expressions.h"
 
 namespace math {
 
-// Implement abstract method from `VisitorDeclare`.
-template <typename Derived, typename T>
-class VisitorImpl : public virtual VisitorDeclare<T> {
- public:
-  void apply_visitor_virtual(const T& arg) override {
-    // Check if derived type implements an apply method for T.
-    if constexpr (has_call_operator_v<Derived, T>) {
-      static_cast<Derived&>(*this)(arg);
-    }
-    static_assert(has_call_operator_v<Derived, T>,
-                  "The visitor fails to implement a required method");
-  }
-};
-
-// Inherit from `VisitorImpl` for all types in a type list.
-template <typename Derived, typename T>
-class VisitorImplAll;
-template <typename Derived, typename... Ts>
-class VisitorImplAll<Derived, type_list<Ts...>> : public VisitorBaseGeneric<type_list<Ts...>>,
-                                                  public VisitorImpl<Derived, Ts>... {};
-
-namespace detail {
-
-// Some amazing magic. TODO: Make language feature.
-struct constructible_void {};
-
-// maybe_void converts `void` -> `constructible_void`, so that we can put something in an optional<>
-template <typename T>
-struct maybe_void {
-  using type = T;
-};
-template <>
-struct maybe_void<void> {
-  using type = constructible_void;
-};
-template <typename T>
-using maybe_void_t = typename maybe_void<T>::type;
-
-// Wraps a type-erased visitor. The wrapped visitor must produce `ReturnType`
-// as the result of a call to operator()(...). If no visitor method can be called,
-// the result is left empty.
-template <typename ReturnType, typename VisitorType, typename Types>
-struct VisitorWithCapturedResult final
-    : public VisitorImplAll<VisitorWithCapturedResult<ReturnType, VisitorType, Types>, Types> {
- public:
-  // Construct with non-const ref to visitor type.
-  VisitorWithCapturedResult(VisitorType& impl) : impl_(impl) {}
-
-  // Call the implementation. This method is enabled only if the visitor
-  // has an `operator()` method that accepts type `Argument`. This is required so that the visitor
-  // correctly fails to compile when the user neglects to implement a type.
-  template <typename Argument>
-  std::enable_if_t<has_call_operator_v<VisitorType, Argument>, void> operator()(
-      const Argument& arg) {
-    if constexpr (!std::is_same_v<ReturnType, constructible_void>) {
-      result = impl_(arg);
-    } else {
-      impl_(arg);
-    }
-  }
-
-  // Move the result out of the visitor and return it.
-  ReturnType take_result() {
-    if constexpr (std::is_default_constructible_v<ReturnType>) {
-      return std::move(result);
-    } else {
-      ZEN_ASSERT(result.has_value());
-      return std::move(*result);
-    }
-  }
-
- private:
-  VisitorType& impl_;
-
- public:
-  std::conditional_t<std::is_default_constructible_v<ReturnType>, ReturnType,
-                     std::optional<ReturnType>>
-      result{};
-};
-
-}  // namespace detail
-
 // Accepts a visitor struct or lambda and applies it to the provided expression.
-// The return type will be deduced from the visitor iself.
+// The return type will be deduced from the visitor itself.
 template <typename VisitorType>
 auto visit(const Expr& expr, VisitorType&& visitor) {
   // Deduce the return type by invoking the operator() w/ the different expression types.
   // TODO: For now we allow one single ReturnType. We could allow returning std::variant<>.
-  using ReturnType = call_operator_return_types_t<VisitorType, ExpressionTypeList>;
-  using ReturnTypeOrVoid = detail::maybe_void_t<ReturnType>;
-
-  detail::VisitorWithCapturedResult<ReturnTypeOrVoid, VisitorType, ExpressionTypeList>
-      capture_visitor{visitor};
-  expr.receive_visitor(static_cast<VisitorBase&>(capture_visitor));
-  if constexpr (!std::is_same_v<ReturnTypeOrVoid, detail::constructible_void>) {
-    return capture_visitor.take_result();
+  // using ReturnType = call_operator_return_types_t<VisitorType, ExpressionTypeList>;
+  if (expr.is_type<Addition>()) {
+    return visitor(cast_unchecked<Addition>(expr));
+  } else if (expr.is_type<CastBool>()) {
+    return visitor(cast_unchecked<CastBool>(expr));
+  } else if (expr.is_type<Conditional>()) {
+    return visitor(cast_unchecked<Conditional>(expr));
+  } else if (expr.is_type<Constant>()) {
+    return visitor(cast_unchecked<Constant>(expr));
+  } else if (expr.is_type<Derivative>()) {
+    return visitor(cast_unchecked<Derivative>(expr));
+  } else if (expr.is_type<Float>()) {
+    return visitor(cast_unchecked<Float>(expr));
+  } else if (expr.is_type<Function>()) {
+    return visitor(cast_unchecked<Function>(expr));
+  } else if (expr.is_type<Infinity>()) {
+    return visitor(cast_unchecked<Infinity>(expr));
+  } else if (expr.is_type<Integer>()) {
+    return visitor(cast_unchecked<Integer>(expr));
+  } else if (expr.is_type<Multiplication>()) {
+    return visitor(cast_unchecked<Multiplication>(expr));
+  } else if (expr.is_type<Power>()) {
+    return visitor(cast_unchecked<Power>(expr));
+  } else if (expr.is_type<Rational>()) {
+    return visitor(cast_unchecked<Rational>(expr));
+  } else if (expr.is_type<Relational>()) {
+    return visitor(cast_unchecked<Relational>(expr));
+  } else if (expr.is_type<Undefined>()) {
+    return visitor(cast_unchecked<Undefined>(expr));
+  } else {
+    ZEN_ASSERT(expr.is_type<Variable>(), "Neglected to implement if-else switch for type: {}",
+               expr.type_name());
+    return visitor(cast_unchecked<Variable>(expr));
   }
 }
 
@@ -156,7 +94,3 @@ auto visit_binary(const Expr& u, const Expr& v, VisitorType&& handler) {
 }
 
 }  // namespace math
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
