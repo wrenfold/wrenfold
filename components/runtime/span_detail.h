@@ -118,9 +118,6 @@ class value_pack
   // Number of dimensions.
   static constexpr std::size_t length = sizeof...(Values);
 
-  // Is this a one dimensional span.
-  static constexpr bool is_one_dimensional = length == 1;
-
   // The base class, which differs if all dimensions are known at compile time.
   using Base = typename std::conditional<known_at_compile_time, detail::value_pack_const<Values...>,
                                          detail::value_pack_dynamic<Values...>>::type;
