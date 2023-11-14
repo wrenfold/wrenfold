@@ -32,6 +32,15 @@ class Quaternion {
     return Quaternion{q[0], q[1], q[2], q[3]};
   }
 
+  // Construct from a vector ordered `xyzw` (scalar last).
+  static Quaternion from_vector_xyzw(const MatrixExpr& q) {
+    if (q.rows() != 4 || q.cols() != 1) {
+      throw DimensionError("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
+                           q.cols());
+    }
+    return Quaternion{q[3], q[0], q[1], q[2]};
+  }
+
   // Construct a quaternion of variables w/ the given name prefix.
   // Members will have the names `{name}_[w|x|y|z]`.
   static Quaternion from_name_prefix(std::string_view name);
@@ -48,7 +57,10 @@ class Quaternion {
   }
 
   // Convert to a column vector in [w,x,y,z] order.
-  const MatrixExpr to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+  MatrixExpr to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+
+  // Convert to a column vector in [x,y,z,w] order.
+  MatrixExpr to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
 
   // Create a new quaternion by substituting.
   Quaternion subs(const Expr& target, const Expr& replacement) const;

@@ -26,6 +26,11 @@ TEST(QuaternionTest, TestConstructor) {
   ASSERT_IDENTICAL(0, q_identity.y());
   ASSERT_IDENTICAL(0, q_identity.z());
   ASSERT_IDENTICAL(1, q_identity.w());
+
+  ASSERT_TRUE(Quaternion::from_vector_wxyz(make_vector(w, x, y, z)).is_identical_to(q));
+  ASSERT_TRUE(Quaternion::from_vector_xyzw(make_vector(x, y, z, w)).is_identical_to(q));
+  ASSERT_IDENTICAL(make_vector(x, y, z, w),
+                   Quaternion::from_vector_xyzw(make_vector(x, y, z, w)).to_vector_xyzw());
 }
 
 TEST(QuaternionTest, TestIsIdenticalTo) {
