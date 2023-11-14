@@ -2,11 +2,19 @@
 # First the `xxx_generate` target generates a header named `generated.h`, and
 # then the `xxx_evaluate` target includes the generated code and runs tests.
 function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
+  # Parse args to get the `CODE_GEN_TEST_SHARED_SOURCE_FILES` arg:
+  set(options "")
+  set(oneValueArgs "")
+  set(multiValueArgs SHARED_SOURCE_FILES)
+  cmake_parse_arguments(CODE_GEN_TEST "${options}" "${oneValueArgs}"
+                        "${multiValueArgs}" ${ARGN})
+
   # First create a target that generates the code:
   set(generate_target ${NAME}_generate)
   set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
 
-  add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
+  add_executable(${generate_target} ${GENERATION_SOURCE_FILE}
+                                    ${CODE_GEN_TEST_SHARED_SOURCE_FILES})
   target_link_libraries(${generate_target} ${PROJECT_PREFIX}-test-support)
   target_include_directories(${generate_target} PRIVATE ${TEST_OUTPUT_DIR})
 
@@ -27,7 +35,7 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   set(evaluate_target ${NAME}_evaluate)
   add_executable(
     ${evaluate_target}
-    ${TEST_SOURCE_FILE}
+    ${TEST_SOURCE_FILE} ${CODE_GEN_TEST_SHARED_SOURCE_FILES}
     "${CMAKE_SOURCE_DIR}/components/math/tests/custom_main.cc"
     "${TEST_OUTPUT_DIR}/generated.h")
   target_link_libraries(${evaluate_target} ${PROJECT_PREFIX}-runtime
