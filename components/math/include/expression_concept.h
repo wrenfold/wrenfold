@@ -9,13 +9,11 @@ class ExpressionConcept {
   virtual ~ExpressionConcept() = default;
 
   // Construct w/ hash.
-  explicit ExpressionConcept(std::size_t hash) : hash_(hash) {}
+  explicit ExpressionConcept(std::size_t hash, std::size_t type_index)
+      : hash_(hash), type_index_(type_index) {}
 
   // Test if two expressions are identical.
   virtual bool is_identical_to(const ExpressionConcept& other) const = 0;
-
-  // Apply a visitor to this expression.
-  virtual void receive_visitor(VisitorBase& visitor) const = 0;
 
   // Get the string name of the underlying expression.
   virtual std::string_view type_name() const = 0;
@@ -25,25 +23,24 @@ class ExpressionConcept {
 
   // Check if the underlying derived type is one of `... Ts`.
   template <typename... Ts>
-  bool is_type() const {
+  constexpr bool is_type() const noexcept {
     static_assert((list_contains_type_v<Ts, ExpressionTypeList> && ...),
                   "Ts is not a valid expression type");
-    // TODO: We can save a couple of percent if we save type_index on this object.
-    return (type_matches_index(index_of_type_v<Ts, ExpressionTypeList>) || ...);
+    return ((index_of_type_v<Ts, ExpressionTypeList> == type_index_) || ...);
   }
 
   // Retrieve the hash of the expression.
-  std::size_t get_hash() const { return hash_; }
+  constexpr std::size_t get_hash() const noexcept { return hash_; }
 
   // Retrieve the type index.
-  virtual std::size_t type_index() const = 0;
+  constexpr std::size_t type_index() const noexcept { return type_index_; }
 
  protected:
-  // True if the underlying type matches the provided index.
-  virtual bool type_matches_index(std::size_t index) const = 0;
-
   // Hash of the derived type, which we compute on construction and cache here.
   std::size_t hash_{};
+
+  // Index of the type.
+  std::size_t type_index_{};
 };
 
 }  // namespace math
