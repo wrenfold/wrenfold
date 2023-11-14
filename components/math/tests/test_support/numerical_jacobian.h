@@ -41,7 +41,7 @@ template <typename T>
 using eigen_matrix_base_derived_type_t = typename eigen_matrix_base_derived_type<T>::type;
 
 template <typename T>
-struct eigen_matrix_base_derived_type<T, detail::enable_if_inherits_matrix_base_t<T>> {
+struct eigen_matrix_base_derived_type<T, enable_if_inherits_matrix_base_t<T>> {
   using type = decltype(derived_type(std::declval<const T>()));
 };
 
@@ -49,7 +49,7 @@ template <typename T, typename = void>
 struct eigen_matrix_base_traits;
 
 template <typename T>
-struct eigen_matrix_base_traits<T, detail::enable_if_inherits_matrix_base_t<T>> {
+struct eigen_matrix_base_traits<T, enable_if_inherits_matrix_base_t<T>> {
   using derived_type = eigen_matrix_base_derived_type_t<T>;
   static constexpr int rows = Eigen::MatrixBase<derived_type>::RowsAtCompileTime;
   static constexpr int cols = Eigen::MatrixBase<derived_type>::ColsAtCompileTime;
