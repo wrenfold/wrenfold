@@ -12,8 +12,6 @@
 #include "hashing.h"
 #include "visitor_impl.h"
 
-#include "code_generation/code_formatter.h"
-
 namespace math {
 
 struct DetermineNumericTypeVisitor {
@@ -149,73 +147,33 @@ void Value::remove() {
   operands_.clear();
 }
 
-struct PairCountVisitor {
-  struct PairHash {
-    std::size_t operator()(const std::pair<Expr, Expr>& pair) const {
-      // Ignore the order of pairs:
-      const std::size_t seed_a = pair.first.get_hash();
-      const std::size_t seed_b = pair.second.get_hash();
-      if (seed_a < seed_b) {
-        return hash_combine(seed_a, seed_b);
-      } else {
-        return hash_combine(seed_b, seed_a);
-      }
-    }
-  };
-
-  struct PairEquality {
-    bool operator()(const std::pair<Expr, Expr>& a, const std::pair<Expr, Expr>& b) const {
-      // Order independent:
-      return (a.first.is_identical_to(b.first) && a.second.is_identical_to(b.second)) ||
-             (a.first.is_identical_to(b.second) && a.second.is_identical_to(b.first));
-    }
-  };
-
-  // Record counts of single `Expr` children, and every pair-wise combination of children.
+struct CountVisitor {
+  // Record counts of single `Expr` children.
   template <typename Operation>
   void record_counts(const Operation& operation,
                      std::unordered_map<Expr, std::size_t, hash_struct<Expr>,
-                                        IsIdenticalOperator<Expr>>& count_table,
-                     std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality>&
-                         pair_count_table) {
+                                        IsIdenticalOperator<Expr>>& count_table) {
     for (const Expr& operand : operation) {
       count_table[operand]++;
       visit(operand, *this);
     }
-    // generate pairs of expressions:
-    for (auto i = operation.begin(); i != operation.end(); ++i) {
-      for (auto j = std::next(i); j != operation.end(); ++j) {
-        auto [it, was_inserted] = pair_count_table.emplace(std::make_pair(*i, *j), 1);
-        if (!was_inserted) {
-          it->second += 1;
-        }
+  }
+
+  void operator()(const Multiplication& mul) { record_counts(mul, muls); }
+  void operator()(const Addition& add) { record_counts(add, adds); }
+
+  // For every other type, just recurse into the children:
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, Multiplication, Addition>>
+  void operator()(const T& expr) {
+    if constexpr (!T::IsLeafNode) {
+      for (const Expr& child : expr) {
+        visit(child, *this);
       }
     }
   }
 
-  void operator()(const Multiplication& mul) {
-    record_counts(mul, mul_element_counts_, mul_pair_counts_);
-  }
-  void operator()(const Addition& add) {
-    record_counts(add, add_element_counts_, add_pair_counts_);
-  }
-
-  // For every other type, just recurse into the children:
-  template <typename T>
-  std::enable_if_t<!std::is_same_v<T, Multiplication> && !std::is_same_v<T, Addition>> operator()(
-      const T& expr) {
-    if constexpr (!T::IsLeafNode) {
-      expr.for_each([this](const Expr& expr) { visit(expr, *this); });
-    }
-  }
-
-  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>>
-      mul_element_counts_;
-  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>>
-      add_element_counts_;
-
-  std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> mul_pair_counts_;
-  std::unordered_map<std::pair<Expr, Expr>, std::size_t, PairHash, PairEquality> add_pair_counts_;
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> muls;
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> adds;
 };
 
 template <typename T>
@@ -276,11 +234,11 @@ ir::ValuePtr create_operation(std::vector<ir::Value::unique_ptr>& values, ir::Bl
 
 // Visitor for converting an expression tree into static-single-assignment form.
 struct IRFormVisitor {
-  explicit IRFormVisitor(FlatIr& builder, const ir::PairCountVisitor& pair_count)
-      : builder_(builder), pair_counts(pair_count) {}
+  explicit IRFormVisitor(FlatIr& builder, const ir::CountVisitor& counts)
+      : builder_(builder), counts_(counts) {}
 
   ir::ValuePtr maybe_cast(ir::ValuePtr input, NumericType output_type) {
-    if (input->determine_type() != output_type) {
+    if (input->numeric_type() != output_type) {
       return push_operation(ir::Cast{output_type}, input);
     } else {
       return input;
@@ -298,30 +256,14 @@ struct IRFormVisitor {
     // hash function changes.
     std::sort(expressions.begin(), expressions.end(), ExpressionOrderPredicate{});
 
-    std::nth_element(
-        expressions.begin(), expressions.begin(), expressions.end(),
-        [&](const Expr& a, const Expr& b) {
-          if constexpr (std::is_same_v<T, Multiplication>) {
-            return pair_counts.mul_element_counts_.at(a) > pair_counts.mul_element_counts_.at(b);
-          } else {
-            return pair_counts.add_element_counts_.at(a) > pair_counts.add_element_counts_.at(b);
-          }
-        });
-
-    // then pick the rest to obtain max pair count
-    // TODO: There must be a more efficient way to do this...
-    for (auto it = std::next(expressions.begin()); it != expressions.end(); ++it) {
-      const auto prev = std::prev(it);
-      std::nth_element(it, it, expressions.end(), [&](const Expr& a, const Expr& b) {
-        if constexpr (std::is_same_v<T, Multiplication>) {
-          return pair_counts.mul_pair_counts_.at(std::make_pair(*prev, a)) >
-                 pair_counts.mul_pair_counts_.at(std::make_pair(*prev, b));
-        } else {
-          return pair_counts.add_pair_counts_.at(std::make_pair(*prev, a)) >
-                 pair_counts.add_pair_counts_.at(std::make_pair(*prev, b));
-        }
-      });
-    }
+    // Then sort by count order (highest to lowest):
+    std::sort(expressions.begin(), expressions.end(), [&](const Expr& a, const Expr& b) {
+      if constexpr (std::is_same_v<T, Multiplication>) {
+        return counts_.muls.at(a) > counts_.muls.at(b);
+      } else {
+        return counts_.adds.at(a) > counts_.adds.at(b);
+      }
+    });
 
     // first recursively transform all the inputs
     std::vector<ir::ValuePtr> args;
@@ -332,7 +274,7 @@ struct IRFormVisitor {
 
     NumericType promoted_type = NumericType::Integer;
     for (ir::ValuePtr v : args) {
-      promoted_type = std::max(promoted_type, v->determine_type());
+      promoted_type = std::max(promoted_type, v->numeric_type());
     }
 
     // then create multiplications or adds for this expression:
@@ -358,7 +300,7 @@ struct IRFormVisitor {
     const ir::ValuePtr else_branch = VisitExpr(cond.else_branch());
 
     const NumericType promoted_type =
-        std::max(if_branch->determine_type(), else_branch->determine_type());
+        std::max(if_branch->numeric_type(), else_branch->numeric_type());
 
     return push_operation(ir::Cond{}, condition, maybe_cast(if_branch, promoted_type),
                           maybe_cast(else_branch, promoted_type));
@@ -398,7 +340,7 @@ struct IRFormVisitor {
     const ir::ValuePtr b = VisitExpr(pow.base());
     const ir::ValuePtr e = VisitExpr(pow.exponent());
     const NumericType promoted_type =
-        std::max(NumericType::Integer, std::max(b->determine_type(), e->determine_type()));
+        std::max(NumericType::Integer, std::max(b->numeric_type(), e->numeric_type()));
     return push_operation(ir::Pow{}, maybe_cast(b, promoted_type), maybe_cast(e, promoted_type));
   }
 
@@ -410,7 +352,7 @@ struct IRFormVisitor {
   ir::ValuePtr operator()(const Relational& relational, const Expr&) {
     ir::ValuePtr left = VisitExpr(relational.left());
     ir::ValuePtr right = VisitExpr(relational.right());
-    NumericType promoted_type = std::max(left->determine_type(), right->determine_type());
+    NumericType promoted_type = std::max(left->numeric_type(), right->numeric_type());
     return push_operation(ir::Compare{relational.operation()}, maybe_cast(left, promoted_type),
                           maybe_cast(right, promoted_type));
   }
@@ -446,7 +388,7 @@ struct IRFormVisitor {
   std::unordered_map<Expr, ir::ValuePtr, hash_struct<Expr>, IsIdenticalOperator<Expr>>
       computed_values_;
 
-  const ir::PairCountVisitor& pair_counts;
+  const ir::CountVisitor& counts_;
 };
 
 ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
@@ -487,14 +429,14 @@ ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
 FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     : block_(std::make_unique<ir::Block>(0)) {
   // First pass where we count occurrence of some sub-expressions:
-  ir::PairCountVisitor pair_visitor{};
+  ir::CountVisitor count_visitor{};
   for (const ExpressionGroup& group : groups) {
     for (const Expr& expr : group.expressions) {
-      visit(expr, pair_visitor);
+      visit(expr, count_visitor);
     }
   }
 
-  IRFormVisitor visitor{*this, pair_visitor};
+  IRFormVisitor visitor{*this, count_visitor};
 
   for (const ExpressionGroup& group : groups) {
     // Transform expressions into Values
@@ -503,7 +445,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     std::transform(group.expressions.begin(), group.expressions.end(),
                    std::back_inserter(group_values), [&](const Expr& expr) {
                      ir::ValuePtr output = visitor.VisitExpr(expr);
-                     if (output->determine_type() != NumericType::Real) {
+                     if (output->numeric_type() != NumericType::Real) {
                        // TODO: Allow returning other types - derive the numeric type from the
                        // group.
                        output = create_operation(values_, get_block(), ir::Cast{NumericType::Real},

@@ -2,6 +2,7 @@
 #pragma once
 #include <gtest/gtest.h>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include "expressions/numeric_expressions.h"
 #include "fmt_imports.h"
@@ -73,6 +74,11 @@ inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
     }
   }
   return result;
+}
+
+// Convert Quaternion to Vector4, ordered [w,x,y,z] (scalar first).
+inline Eigen::Vector4d eigen_wxyz_vec_from_quaternion(const Eigen::Quaterniond& q) {
+  return (Eigen::Vector4d() << q.w(), q.x(), q.y(), q.z()).finished();
 }
 
 }  // namespace math

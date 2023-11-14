@@ -444,6 +444,20 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
   check_non_zero(span_dynamic);
 }
 
+TEST(SpanTest, TestEigenQuaternion) {
+  Eigen::Quaternion<double> q{1.0, -0.5, 0.23, 0.11};
+
+  const auto q_input = make_input_span<4, 1>(q);
+  EXPECT_EQ(4, q_input.dimension<0>());
+  EXPECT_EQ(1, q_input.dimension<1>());
+  EXPECT_EQ(1, q_input.stride<0>());
+  EXPECT_EQ(4, q_input.stride<1>());
+  EXPECT_EIGEN_SPAN_EQ(q.coeffs(), q_input);
+
+  const auto q_output = make_output_span<4, 1>(q);
+  EXPECT_EIGEN_SPAN_EQ(q.coeffs(), q_output);
+}
+
 // TODO: Should we restore this assertion?
 #if 0
 TEST(SpanTest, TestEigenNullMapAssertion) {

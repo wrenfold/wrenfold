@@ -1,3 +1,4 @@
+// Copyright 2023 Gareth Cross
 #pragma once
 #include "assertions.h"
 #include "constants.h"
@@ -22,6 +23,28 @@ class Quaternion {
   // Default initialize to identity (w = 1, xyz = 0).
   Quaternion() : Quaternion(Constants::One, Constants::Zero, Constants::Zero, Constants::Zero) {}
 
+  // Construct from a vector ordered `wxyz`.
+  static Quaternion from_vector_wxyz(const MatrixExpr& q) {
+    if (q.rows() != 4 || q.cols() != 1) {
+      throw DimensionError("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
+                           q.cols());
+    }
+    return Quaternion{q[0], q[1], q[2], q[3]};
+  }
+
+  // Construct from a vector ordered `xyzw` (scalar last).
+  static Quaternion from_vector_xyzw(const MatrixExpr& q) {
+    if (q.rows() != 4 || q.cols() != 1) {
+      throw DimensionError("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
+                           q.cols());
+    }
+    return Quaternion{q[3], q[0], q[1], q[2]};
+  }
+
+  // Construct a quaternion of variables w/ the given name prefix.
+  // Members will have the names `{name}_[w|x|y|z]`.
+  static Quaternion from_name_prefix(std::string_view name);
+
   // Access components:
   constexpr const Expr& w() const noexcept { return wxyz_[0]; }
   constexpr const Expr& x() const noexcept { return wxyz_[1]; }
@@ -34,15 +57,15 @@ class Quaternion {
   }
 
   // Convert to a column vector in [w,x,y,z] order.
-  const MatrixExpr to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+  MatrixExpr to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+
+  // Convert to a column vector in [x,y,z,w] order.
+  MatrixExpr to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
 
   // Create a new quaternion by substituting.
-  Quaternion subs(const Expr& target, const Expr& replacement) const {
-    return Quaternion(w().subs(target, replacement), x().subs(target, replacement),
-                      y().subs(target, replacement), z().subs(target, replacement));
-  }
+  Quaternion subs(const Expr& target, const Expr& replacement) const;
 
-  // The squared norm.
+  // The squared L2 norm of the quaternion elements.
   Expr squared_norm() const {
     // TODO: Add a faster path for this type of summation.
     return wxyz_[0] * wxyz_[0] + wxyz_[1] * wxyz_[1] + wxyz_[2] * wxyz_[2] + wxyz_[3] * wxyz_[3];
@@ -70,79 +93,25 @@ class Quaternion {
 
   // Convert a unit-norm to a rotation matrix. If the input does not have unit norm, the
   // result will not be a valid member of SO(3).
-  MatrixExpr to_rotation_matrix() const {
-    const Expr x2 = x() * 2;
-    const Expr y2 = y() * 2;
-    const Expr z2 = z() * 2;
-    const Expr wx2 = x2 * w();
-    const Expr wy2 = y2 * w();
-    const Expr wz2 = z2 * w();
-    const Expr xx2 = x2 * x();
-    const Expr xy2 = y2 * x();
-    const Expr xz2 = z2 * x();
-    const Expr yy2 = y2 * y();
-    const Expr yz2 = z2 * y();
-    const Expr zz2 = z2 * z();
-    // clang-format off
-    return make_matrix(3, 3,
-                        1 - yy2 - zz2,      xy2 - wz2,      xz2 + wy2,
-                        xy2 + wz2,      1 - xx2 - zz2,      yz2 - wx2,
-                        xz2 - wy2,          yz2 + wx2,  1 - xx2 - yy2
-                        );
-    // clang-format on
-  }
+  MatrixExpr to_rotation_matrix() const;
 
   // Construct quaternion from axis and angle.
   // It is expected that [vx, vy, vz] form a unit vector. Angle is in radians.
   static Quaternion from_angle_axis(const Expr& angle, const Expr& vx, const Expr& vy,
-                                    const Expr& vz) {
-    Expr half_angle = angle / 2;
-    Expr sin_angle = sin(half_angle);
-    return {cos(half_angle), vx * sin_angle, vy * sin_angle, vz * sin_angle};
-  }
+                                    const Expr& vz);
 
   // Construct quaternion from axis and angle. It is expected that `v` has unit norm.
   // Angle is in radians.
-  static Quaternion from_angle_axis(const Expr& angle, const MatrixExpr& v) {
-    if (v.rows() != 3 || v.cols() != 1) {
-      throw DimensionError("Axis vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
-    }
-    return from_angle_axis(angle, v[0], v[1], v[2]);
-  }
+  static Quaternion from_angle_axis(const Expr& angle, const MatrixExpr& v);
 
   // Construct quaternion from a rotation vector.
+  // When the rotation angle < epsilon, the first order taylor series is used instead.
   static Quaternion from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
-                                         const std::optional<Expr> epsilon) {
-    const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
-    const Expr half_angle = angle / 2;
-    const Expr sinc_half_angle = sin(half_angle) / angle;
-    if (epsilon) {
-      // When angle <= epsilon, we use the first order taylor series expansion of this method,
-      // linearized about v = [0, 0, 0]. The series is projected back onto the unit norm quaternion.
-      const Quaternion q_small_angle = Quaternion{1, vx / 2, vy / 2, vz / 2}.normalized();
-      return {
-          where(angle > *epsilon, cos(half_angle), q_small_angle.w()),
-          where(angle > *epsilon, vx * sinc_half_angle, q_small_angle.x()),
-          where(angle > *epsilon, vy * sinc_half_angle, q_small_angle.y()),
-          where(angle > *epsilon, vz * sinc_half_angle, q_small_angle.z()),
-      };
-    } else {
-      return {
-          cos(half_angle),
-          vx * sinc_half_angle,
-          vy * sinc_half_angle,
-          vz * sinc_half_angle,
-      };
-    }
-  }
+                                         std::optional<Expr> epsilon);
 
   // Construct quaternion from a rotation vector.
-  static Quaternion from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon) {
-    if (v.rows() != 3 || v.cols() != 1) {
-      throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
-    }
-    return from_rotation_vector(v[0], v[1], v[2], std::move(epsilon));
-  }
+  // When the rotation angle < epsilon, the first order taylor series is used instead.
+  static Quaternion from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon);
 
   // Convenience method for X-axis rotation. Angle is in radians.
   static Quaternion from_x_angle(const Expr& angle) {
@@ -161,83 +130,35 @@ class Quaternion {
 
   // Convert to axis-angle representation.
   // Angle is converted into the range [0, pi]. If the norm of the vector component falls below
-  // `zero_epsilon`, the rotation cannot be recovered, and we return a zero angle.
-  std::tuple<Expr, MatrixExpr> to_angle_axis(const Expr& zero_epsilon = Constants::Zero) const {
-    // We want to recover angle and axis from:
-    // [cos(angle/2), vx * sin(angle/2), vy * sin(angle/2), vz * sin(angle/2)]
-    // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
-    const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
+  // `epsilon`, the rotation cannot be recovered, and we return a zero angle.
+  std::tuple<Expr, MatrixExpr> to_angle_axis(std::optional<Expr> epsilon) const;
 
-    static const auto unit_x = make_vector(Constants::One, Constants::Zero, Constants::Zero);
-    if (is_zero(vector_norm)) {
-      // If the norm is analytically zero, we can't do anything else here:
-      return std::make_tuple(Constants::Zero, unit_x);
-    }
-
-    // Compute half-angle in range [0, pi/2] --> times 2 --> [0, pi]
-    const Expr angle = atan2(vector_norm, abs(w())) * 2;
-    const Expr flipped_norm = where(w() < 0, -vector_norm, vector_norm);
-
-    // TODO: MatrixExpr should be an entirely separate type so this gross casting is not required.
-    return std::make_tuple(
-        where(vector_norm > zero_epsilon, angle, Constants::Zero),
-        where(vector_norm > zero_epsilon,
-              make_vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm), unit_x));
-  }
-
-  // Convert quaternion to a rodrigues rotation vector.
-  MatrixExpr to_rotation_vector(const std::optional<Expr> epsilon = std::nullopt) const {
-    // The vector part norm is equal to sin(angle / 2)
-    const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
-    const Expr half_angle = atan2(vector_norm, w());
-    const Expr angle_over_norm = (half_angle * 2) / vector_norm;
-
-    if (epsilon) {
-      // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
-      // It is linearized about q = identity.
-      return make_vector(where(vector_norm > *epsilon, angle_over_norm * x(), 2 * x()),
-                         where(vector_norm > *epsilon, angle_over_norm * y(), 2 * y()),
-                         where(vector_norm > *epsilon, angle_over_norm * z(), 2 * z()));
-    } else {
-      return make_vector(angle_over_norm * x(), angle_over_norm * y(), angle_over_norm * z());
-    }
-  }
+  // Convert quaternion to a Rodrigues rotation vector.
+  // When the rotation angle < epsilon, the first order taylor series is used instead.
+  MatrixExpr to_rotation_vector(std::optional<Expr> epsilon) const;
 
   // Construct a quaternion from a rotation matrix using Caley's method.
   // If `R` is not a member of SO(3), the behavior is undefined. See:
   // Section 3.5 of: "A survey on the Computation of Quaternions from Rotation Matrices"
   // By S. Sarabandi and F. Thomas
-  // This method avoids introducing any divisions.
-  static Quaternion from_rotation_matrix(const MatrixExpr& R_in) {
-    if (R_in.rows() != 3 || R_in.cols() != 3) {
-      throw DimensionError("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
-                           R_in.cols());
-    }
-    const Matrix& R = R_in.as_matrix();
-    // clang-format off
-    Expr a = pow(R(0, 0) + R(1, 1) + R(2, 2) + 1, 2) +
-             pow(R(2, 1) - R(1, 2), 2) +
-             pow(R(0, 2) - R(2, 0), 2) +
-             pow(R(1, 0) - R(0, 1), 2);
-    Expr b = pow(R(2, 1) - R(1, 2), 2) +
-             pow(R(0, 0) - R(1, 1) - R(2, 2) + 1, 2) +
-             pow(R(1, 0) + R(0, 1), 2) +
-             pow(R(2, 0) + R(0, 2), 2);
-    Expr c = pow(R(0, 2) - R(2, 0), 2) +
-             pow(R(1, 0) + R(0, 1), 2) +
-             pow(R(1, 1) - R(0, 0) - R(2, 2) + 1, 2) +
-             pow(R(2, 1) + R(1, 2), 2);
-    Expr d = pow(R(1, 0) - R(0, 1), 2) +
-             pow(R(2, 0) + R(0, 2), 2) +
-             pow(R(2, 1) + R(1, 2), 2) +
-             pow(R(2, 2) - R(0, 0) - R(1, 1) + 1, 2);
-    // clang-format on
-    // We implement a signum without zeros:
-    const Expr sign_21 = 1 - 2 * cast_int_from_bool(R(2, 1) - R(1, 2) < 0);
-    const Expr sign_02 = 1 - 2 * cast_int_from_bool(R(0, 2) - R(2, 0) < 0);
-    const Expr sign_10 = 1 - 2 * cast_int_from_bool(R(1, 0) - R(0, 1) < 0);
-    return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
-  }
+  static Quaternion from_rotation_matrix(const MatrixExpr& R_in);
+
+  // Compute the 4x3 tangent-space derivative of this quaternion with respect to a right-multiplied
+  // perturbation. This is the derivative:
+  //
+  //  d(Q * exp(w)) / dw evaluated at w = 0
+  //
+  // Where `Q` is this quaternion, and `w` is an infinitesimal rotation vector, retracted on the
+  // right side of Q. It is assumed that `Q` has unit norm, otherwise the result is undefined.
+  MatrixExpr right_retract_derivative() const;
+
+  // Compute the 3x4 tangent-space derivative of the operation:
+  //
+  //  d(log(Q^T * (Q + dq)) / dq evaluated at dq = 0
+  //
+  // Where `Q` is this (unit norm) quaternion, and Q^T denotes the conjugation operation. dQ is an
+  // infinitesimal additive perturbation to the quaternion.
+  MatrixExpr right_local_coordinates_derivative() const;
 
  private:
   // Quaternion elements in order [w, x, y, z].
@@ -245,11 +166,6 @@ class Quaternion {
 };
 
 // Multiply two quaternions together.
-inline Quaternion operator*(const Quaternion& a, const Quaternion& b) {
-  return {a.w() * b.w() - a.x() * b.x() - a.y() * b.y() - a.z() * b.z(),
-          a.w() * b.x() + a.x() * b.w() + a.y() * b.z() - a.z() * b.y(),
-          a.w() * b.y() + a.y() * b.w() + a.z() * b.x() - a.x() * b.z(),
-          a.w() * b.z() + a.z() * b.w() + a.x() * b.y() - a.y() * b.x()};
-}
+Quaternion operator*(const Quaternion& a, const Quaternion& b);
 
 }  // namespace math

@@ -12,3 +12,4 @@ endfunction()
 
 # Add all of our benchmarks:
 add_benchmark(bench_add_mul.cc)
+add_benchmark(bench_jacobian.cc)

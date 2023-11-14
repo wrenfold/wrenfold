@@ -5,6 +5,7 @@
 #include "geometry/quaternion.h"
 
 #include "eigen_test_helpers.h"
+#include "numerical_jacobian.h"
 #include "test_helpers.h"
 
 namespace math {
@@ -25,6 +26,11 @@ TEST(QuaternionTest, TestConstructor) {
   ASSERT_IDENTICAL(0, q_identity.y());
   ASSERT_IDENTICAL(0, q_identity.z());
   ASSERT_IDENTICAL(1, q_identity.w());
+
+  ASSERT_TRUE(Quaternion::from_vector_wxyz(make_vector(w, x, y, z)).is_identical_to(q));
+  ASSERT_TRUE(Quaternion::from_vector_xyzw(make_vector(x, y, z, w)).is_identical_to(q));
+  ASSERT_IDENTICAL(make_vector(x, y, z, w),
+                   Quaternion::from_vector_xyzw(make_vector(x, y, z, w)).to_vector_xyzw());
 }
 
 TEST(QuaternionTest, TestIsIdenticalTo) {
@@ -376,9 +382,9 @@ TEST(QuaternionTest, TestToAxisAngle) {
   auto [angle, x, y, z] = make_symbols("angle", "x", "y", "z");
   const Quaternion q = Quaternion::from_angle_axis(angle, x, y, z);
 
-  auto [angle_recovered, axis_recovered] = q.to_angle_axis();
+  auto [angle_recovered, axis_recovered] = q.to_angle_axis(0);
   ASSERT_IDENTICAL(0, angle_recovered.subs(angle, 0));
-  ASSERT_IDENTICAL(0, angle_recovered.subs(x, 0).subs(y, 0).subs(z, 0));
+  ASSERT_IDENTICAL(0, angle_recovered.subs(x, 0).subs(y, 0).subs(z, 0).subs(angle, 0));
   ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(angle, 0));
   ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(x, 0).subs(y, 0).subs(z, 0));
 
@@ -544,6 +550,49 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
     ASSERT_NEAR(q_num.z(), cast_to_float(q.z()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
+  }
+}
+
+TEST(QuaternionTest, TestRightRetractDerivative) {
+  const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
+  const auto J = Quaternion{w, x, y, z}.right_retract_derivative();
+
+  for (const auto [angle, axis] : get_angle_axis_test_pairs()) {
+    const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle, axis)};
+    const Eigen::Matrix<double, 4, 3> J_numerical = numerical_jacobian(
+        Eigen::Vector3d::Zero().eval(),
+        [&](const Eigen::Vector3d& dw) -> Eigen::Vector4d {
+          const Eigen::AngleAxisd aa{dw.norm(), dw.normalized()};
+          return eigen_wxyz_vec_from_quaternion(q_num * static_cast<Eigen::Quaterniond>(aa));
+        },
+        0.001);
+
+    const MatrixExpr J_analytical =
+        J.subs(w, q_num.w()).subs(x, q_num.x()).subs(y, q_num.y()).subs(z, q_num.z());
+    EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_analytical), 1.0e-12);
+  }
+}
+
+TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
+  const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
+  const auto J = Quaternion{w, x, y, z}.right_local_coordinates_derivative();
+
+  // Compare analytical derivative to numerical derivative, evaluated at a few different rotations.
+  for (const auto [angle, axis] : get_angle_axis_test_pairs()) {
+    const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle, axis)};
+    const Eigen::Matrix<double, 3, 4> J_numerical = numerical_jacobian(
+        eigen_wxyz_vec_from_quaternion(q_num),
+        [&](const Eigen::Vector4d& q_perturbed) -> Eigen::Vector3d {
+          const Eigen::AngleAxisd aa{
+              q_num.conjugate() *
+              Eigen::Quaterniond(q_perturbed[0], q_perturbed[1], q_perturbed[2], q_perturbed[3])};
+          return (aa.angle() * aa.axis()).eval();
+        },
+        0.001);
+
+    const MatrixExpr J_analytical =
+        J.subs(w, q_num.w()).subs(x, q_num.x()).subs(y, q_num.y()).subs(z, q_num.z());
+    EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_analytical), 1.0e-12);
   }
 }
 

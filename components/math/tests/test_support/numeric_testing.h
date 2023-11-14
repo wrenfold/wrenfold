@@ -45,31 +45,44 @@ struct NumericFunctionEvaluator {
 
   template <typename T>
   std::enable_if_t<!std::is_same_v<T, Variable>, Expr> operator()(const T& input_typed,
-                                                                  const Expr& input) const {
+                                                                  const Expr& input) {
     if constexpr (T::IsLeafNode) {
       return input;
     } else {
-      return input_typed.map_children([this](const Expr& expr) {
-        return visit(expr, [this, &expr](const auto& x) { return this->operator()(x, expr); });
-      });
+      return input_typed.map_children([this](const Expr& expr) { return cached_visit(expr); });
     }
   }
 
+  // Visit and cache the result.
+  Expr cached_visit(const Expr& input) {
+    auto it = cache.find(input);
+    if (it != cache.end()) {
+      return it->second;
+    }
+    Expr result = visit_with_expr(input, *this);
+    cache.emplace(input, result);
+    return result;
+  }
+
+  // Map from function argument input to numeric expression:
   std::unordered_map<FuncArgVariable, Expr, hash_struct<FuncArgVariable>> values;
+
+  // Cached evaluated values:
+  std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> cache;
 };
 
 template <typename T>
 struct apply_numeric_evaluator_impl;
 
 template <typename T>
-auto apply_numeric_evaluator(const NumericFunctionEvaluator& evaluator, const T& input) {
+auto apply_numeric_evaluator(NumericFunctionEvaluator& evaluator, const T& input) {
   return apply_numeric_evaluator_impl<T>{}(evaluator, input);
 }
 
 template <>
 struct apply_numeric_evaluator_impl<Expr> {
-  double operator()(const NumericFunctionEvaluator& evaluator, const Expr& input) const {
-    const Expr subs = visit_with_expr(input, evaluator);
+  double operator()(NumericFunctionEvaluator& evaluator, const Expr& input) const {
+    const Expr subs = evaluator.cached_visit(input);
     if (const Float* f = cast_ptr<Float>(subs); f != nullptr) {
       return f->get_value();
     } else if (const Integer* i = cast_ptr<Integer>(subs); i != nullptr) {
@@ -84,8 +97,7 @@ struct apply_numeric_evaluator_impl<Expr> {
 
 template <>
 struct apply_numeric_evaluator_impl<MatrixExpr> {
-  Eigen::MatrixXd operator()(const NumericFunctionEvaluator& evaluator,
-                             const MatrixExpr& input) const {
+  Eigen::MatrixXd operator()(NumericFunctionEvaluator& evaluator, const MatrixExpr& input) const {
     Eigen::MatrixXd output{input.rows(), input.cols()};
     for (index_t i = 0; i < input.rows(); ++i) {
       for (index_t j = 0; j < input.cols(); ++j) {
@@ -98,7 +110,7 @@ struct apply_numeric_evaluator_impl<MatrixExpr> {
 
 template <index_t Rows, index_t Cols>
 struct apply_numeric_evaluator_impl<ta::StaticMatrix<Rows, Cols>> {
-  Eigen::Matrix<double, Rows, Cols> operator()(const NumericFunctionEvaluator& evaluator,
+  Eigen::Matrix<double, Rows, Cols> operator()(NumericFunctionEvaluator& evaluator,
                                                const MatrixExpr& input) const {
     ZEN_ASSERT_EQUAL(input.rows(), Rows);
     ZEN_ASSERT_EQUAL(input.cols(), Cols);
