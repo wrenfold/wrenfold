@@ -30,18 +30,20 @@ class Expr {
                                         std::is_floating_point_v<T>>>
   Expr(T v) : Expr(construct_implicit(v)) {}
 
+  // Test if the two expressions have the same underlying address.
+  bool has_same_address(const Expr& other) const noexcept {
+    return impl_.get() == other.impl_.get();
+  }
+
   // Test if the two expressions are identical.
-  bool is_identical_to(const Expr& other) const { return impl_->is_identical_to(*other.impl_); }
+  bool is_identical_to(const Expr& other) const {
+    return has_same_address(other) || impl_->is_identical_to(*other.impl_);
+  }
 
   // Check if the underlying expression is one of the specified types.
   template <typename... Ts>
   bool is_type() const noexcept {
     return impl_->is_type<Ts...>();
-  }
-
-  // Test if the two expressions have the same underlying address.
-  bool has_same_address(const Expr& other) const noexcept {
-    return impl_.get() == other.impl_.get();
   }
 
   // Useful for debugging sometimes: get the underlying address as void*.
