@@ -516,7 +516,7 @@ class LimitVisitor {
   Expr negative_inf_;
 
   // Cache of sub-expressions we've already evaluated the limit on.
-  std::unordered_map<Expr, std::optional<Expr>, hash_struct<Expr>, IsIdenticalOperator<Expr>>
+  std::unordered_map<Expr, std::optional<Expr>, hash_struct<Expr>, is_identical_struct<Expr>>
       cache_{};
 
   // Used to detect the # of times hôpital's rule has recursed.

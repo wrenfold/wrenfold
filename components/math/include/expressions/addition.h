@@ -48,7 +48,7 @@ class Addition {
     if (arity() != other.arity()) {
       return false;
     }
-    return std::equal(begin(), end(), other.begin(), IsIdenticalOperator<Expr>{});
+    return std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
@@ -97,7 +97,7 @@ struct AdditionParts {
   std::optional<Float> float_term{};
 
   // Map from multiplicand to coefficient.
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> terms{};
+  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> terms{};
 
   // Number of infinities.
   std::size_t num_infinities{0};

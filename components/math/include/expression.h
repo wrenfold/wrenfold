@@ -171,7 +171,7 @@ Precedence get_precedence(const Expr& expr);
 
 // Check for strict equality. For use in template parameter lists for maps and sets.
 template <typename T>
-struct IsIdenticalOperator {
+struct is_identical_struct {
   bool operator()(const T& a, const T& b) const { return a.is_identical_to(b); }
 };
 

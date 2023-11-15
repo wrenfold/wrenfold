@@ -53,7 +53,7 @@ class Quaternion {
 
   // True if all sub-expressions in the quaternion are identical to those in the argument.
   bool is_identical_to(const Quaternion& other) const {
-    return std::equal(wxyz_.begin(), wxyz_.end(), other.wxyz_.begin(), IsIdenticalOperator<Expr>{});
+    return std::equal(wxyz_.begin(), wxyz_.end(), other.wxyz_.begin(), is_identical_struct<Expr>{});
   }
 
   // Convert to a column vector in [w,x,y,z] order.

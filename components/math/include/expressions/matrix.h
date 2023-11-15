@@ -31,7 +31,7 @@ class Matrix {
   // All elements must match.
   bool is_identical_to(const Matrix& other) const {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
-           std::equal(data_.begin(), data_.end(), other.data_.begin(), IsIdenticalOperator<Expr>{});
+           std::equal(data_.begin(), data_.end(), other.data_.begin(), is_identical_struct<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
