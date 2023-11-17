@@ -12,6 +12,15 @@ class MatrixExpr;
 // Implemented in substitute.cc
 Expr substitute(const Expr& input, const Expr& target, const Expr& replacement);
 
+// Replace all the [target, replacement] pairs in the input expression tree `input`.
+// Every `target` must be a variable.
+Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, Expr>> pairs);
+
+// Replace all the [target, replacement] pairs in the input matrix expression tree `input`.
+// Every `target` must be a variable.
+MatrixExpr substitute_variables(const MatrixExpr& input,
+                                absl::Span<const std::tuple<Expr, Expr>> pairs);
+
 // Take the derivative of `differentiand` wrt `arg`. The derivative is taken `reps` times.
 // Implemented in derivative.cc
 Expr diff(const Expr& differentiand, const Expr& arg, const int reps);

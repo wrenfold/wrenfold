@@ -84,6 +84,11 @@ class Expr {
     return math::substitute(*this, target, replacement);
   }
 
+  // Create a new expression by recursively replacing [variable, replacement] pairs.
+  Expr substitute_variables(absl::Span<const std::tuple<Expr, Expr>> pairs) const {
+    return math::substitute_variables(*this, pairs);
+  }
+
   // Collect terms in this expression.
   template <typename... Args>
   Expr collect(Args&&... args) const {

@@ -3,9 +3,10 @@
 
 #include <unordered_map>
 
-#include "common_visitors.h"
 #include "expressions/all_expressions.h"
 #include "hashing.h"
+#include "matrix_expression.h"
+#include "substitute.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -303,20 +304,81 @@ struct sub_visitor_type<Power> {
 };
 
 Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) {
-  // Visit `target` to determine the underlying type, then visit the input w/ SubstituteVisitor:
-  return visit(target, [&](const auto& target) -> Expr {
-    using T = std::decay_t<decltype(target)>;
+  return visit(target, [&](const auto& target_concrete) -> Expr {
+    using T = std::decay_t<decltype(target_concrete)>;
     // Don't allow the target type to be a numeric literal:
-    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Float> ||
-                  std::is_same_v<T, Rational>) {
+    using disallowed_types = type_list<Integer, Float, Rational, Constant>;
+    if constexpr (list_contains_type_v<T, disallowed_types>) {
       throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
     } else {
       using VisitorType = typename sub_visitor_type<T>::type;
-      return visit(input, [&target, &replacement, &input](const auto& x) {
-        return VisitorType{target, replacement}(x, input);
-      });
+      return visit_with_expr(input, VisitorType{target_concrete, replacement});
     }
   });
+}
+
+static SubstituteVariablesVisitor create_subs_visitor(
+    const absl::Span<const std::tuple<Expr, Expr>> pairs) {
+  SubstituteVariablesVisitor visitor{};
+  for (const auto& [target, replacement] : pairs) {
+    if (!target.is_type<Variable>()) {
+      throw TypeError("Input needs to be type Variable, received type `{}`: {}", target.type_name(),
+                      target);
+    }
+    visitor.add_substitution(target, replacement);
+  }
+  return visitor;
+}
+
+Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, Expr>> pairs) {
+  return create_subs_visitor(pairs).apply(input);
+}
+
+MatrixExpr substitute_variables(const MatrixExpr& input,
+                                absl::Span<const std::tuple<Expr, Expr>> pairs) {
+  SubstituteVariablesVisitor visitor = create_subs_visitor(pairs);
+  const Matrix& m = input.as_matrix();
+
+  std::vector<Expr> replaced{};
+  replaced.reserve(m.size());
+  std::transform(m.begin(), m.end(), std::back_inserter(replaced),
+                 [&visitor](const Expr& x) { return visitor.apply(x); });
+  return MatrixExpr::create(m.rows(), m.cols(), std::move(replaced));
+}
+
+void SubstituteVariablesVisitor::add_substitution(const Expr& target, Expr replacement) {
+  cache_.clear();  //  No longer valid when new expressions are added.
+  const Variable& var = cast_checked<Variable>(target);
+  const auto [_, was_inserted] = substitutions_.emplace(var, std::move(replacement));
+  ZEN_ASSERT(was_inserted, "Variable already exists in the substitution list: {}", target);
+}
+
+Expr SubstituteVariablesVisitor::apply(const Expr& expression) {
+  auto it = cache_.find(expression);
+  if (it != cache_.end()) {
+    return it->second;
+  }
+  Expr result = visit_with_expr(expression, *this);
+  const auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
+  return it_inserted->second;
+}
+
+template <typename T>
+Expr SubstituteVariablesVisitor::operator()(const T& concrete, const Expr& abstract) {
+  if constexpr (std::is_same_v<T, Variable>) {
+    // Is this a variable we care about substituting?
+    const Variable& v = concrete;
+    const auto it = substitutions_.find(v);
+    if (it != substitutions_.end()) {
+      return it->second;
+    } else {
+      return abstract;
+    }
+  } else if constexpr (T::IsLeafNode) {
+    return abstract;
+  } else {
+    return concrete.map_children([this](const Expr& expr) { return apply(expr); });
+  }
 }
 
 }  // namespace math

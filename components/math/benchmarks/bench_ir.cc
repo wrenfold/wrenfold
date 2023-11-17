@@ -48,7 +48,7 @@ static void BM_CreateFlatIrMediumComplexity(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_CreateFlatIrMediumComplexity)->Iterations(20)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_CreateFlatIrMediumComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
 
 }  // namespace math
 
