@@ -264,27 +264,6 @@ struct MulAddCountVisitor {
   }
 };
 
-struct DeduplicateVisitor {
-  template <typename T>
-  Expr operator()(const T& concrete, const Expr& something) {
-    auto existing_it = map_.find(something);
-    if (existing_it != map_.end()) {
-      return existing_it->second;
-    }
-    if constexpr (T::IsLeafNode) {
-      map_.emplace(something, something);
-      return something;
-    } else {
-      Expr something_dedup =
-          concrete.map_children([this](const Expr& x) { return visit_with_expr(x, *this); });
-      auto [it, _] = map_.emplace(something, std::move(something_dedup));
-      return it->second;
-    }
-  }
-
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> map_;
-};
-
 // Visitor for converting an expression tree into static-single-assignment form.
 struct IRFormVisitor {
   explicit IRFormVisitor(FlatIr& builder, const FinalCounts& counts)
@@ -481,25 +460,9 @@ ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
 
 FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     : block_(std::make_unique<ir::Block>(0)) {
-  // Eliminate duplicates
-  DeduplicateVisitor dedup_visitor{};
-
-  // First eliminate duplicates:
-  std::vector<ExpressionGroup> modified_groups{};
-  modified_groups.reserve(groups.size());
-
-  for (const ExpressionGroup& group : groups) {
-    std::vector<Expr> expressions{};
-    expressions.reserve(group.expressions.size());
-    std::transform(
-        group.expressions.begin(), group.expressions.end(), std::back_inserter(expressions),
-        [&dedup_visitor](const Expr& expr) { return visit_with_expr(expr, dedup_visitor); });
-    modified_groups.emplace_back(std::move(expressions), group.key);
-  }
-
   // First pass where we count occurrence of some sub-expressions:
   MulAddCountVisitor count_visitor{};
-  for (const ExpressionGroup& group : modified_groups) {
+  for (const ExpressionGroup& group : groups) {
     for (const Expr& expr : group.expressions) {
       visit_with_expr(expr, count_visitor);
     }
@@ -507,8 +470,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
   const FinalCounts final_counts = count_visitor.generate_final_counts();
 
   IRFormVisitor visitor{*this, final_counts};
-
-  for (const ExpressionGroup& group : modified_groups) {
+  for (const ExpressionGroup& group : groups) {
     // Transform expressions into Values
     std::vector<ir::ValuePtr> group_values;
     group_values.reserve(group.expressions.size());
