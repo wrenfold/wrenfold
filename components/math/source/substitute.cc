@@ -308,7 +308,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     using T = std::decay_t<decltype(target_concrete)>;
     // Don't allow the target type to be a numeric literal:
     using disallowed_types = type_list<Integer, Float, Rational, Constant>;
-    if constexpr (list_contains_type_v<T, disallowed_types>) {
+    if constexpr (type_list_contains_type_v<T, disallowed_types>) {
       throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
     } else {
       using VisitorType = typename sub_visitor_type<T>::type;

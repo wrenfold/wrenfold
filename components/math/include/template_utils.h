@@ -80,18 +80,27 @@ constexpr std::size_t type_list_size_v = type_list_size<List>::value;
 
 // Check if a type is in a type_list.
 template <typename T, typename... Ts>
-struct list_contains_type : std::disjunction<std::is_same<T, Ts>...> {};
+struct type_list_contains_type : std::disjunction<std::is_same<T, Ts>...> {};
 template <typename T, typename... Ts>
-struct list_contains_type<T, type_list<Ts...>> : list_contains_type<T, Ts...> {};
+struct type_list_contains_type<T, type_list<Ts...>> : type_list_contains_type<T, Ts...> {};
 template <typename T, typename... Ts>
-constexpr bool list_contains_type_v = list_contains_type<T, Ts...>::value;
+constexpr bool type_list_contains_type_v = type_list_contains_type<T, Ts...>::value;
+
+// enable-if that enables when `T` is in a list of types.
+template <typename T, typename... Ts>
+struct enable_if_contains_type : std::enable_if<type_list_contains_type_v<T, Ts...>> {};
+template <typename T, typename... Ts>
+struct enable_if_contains_type<T, type_list<Ts...>>
+    : std::enable_if<type_list_contains_type_v<T, Ts...>> {};
+template <typename T, typename... Ts>
+using enable_if_contains_type_t = typename enable_if_contains_type<T, Ts...>::type;
 
 // enable-if that enables when `T` is _not_ in a list of types.
 template <typename T, typename... Ts>
-struct enable_if_does_not_contain_type : std::enable_if<!list_contains_type_v<T, Ts...>> {};
+struct enable_if_does_not_contain_type : std::enable_if<!type_list_contains_type_v<T, Ts...>> {};
 template <typename T, typename... Ts>
 struct enable_if_does_not_contain_type<T, type_list<Ts...>>
-    : std::enable_if<!list_contains_type_v<T, Ts...>> {};
+    : std::enable_if<!type_list_contains_type_v<T, Ts...>> {};
 template <typename T, typename... Ts>
 using enable_if_does_not_contain_type_t = typename enable_if_does_not_contain_type<T, Ts...>::type;
 

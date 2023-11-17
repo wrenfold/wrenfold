@@ -198,7 +198,7 @@ struct AstBuilder {
           using T = std::decay_t<decltype(op)>;
           using ExcludedTypes =
               type_list<ir::JumpCondition, ir::Save, ir::Cond, ir::Phi, ir::OutputRequired>;
-          if constexpr (list_contains_type_v<T, ExcludedTypes>) {
+          if constexpr (type_list_contains_type_v<T, ExcludedTypes>) {
             throw TypeError("Type cannot be converted to AST: {}", typeid(T).name());
           } else {
             return this->operator()(*val, op);
