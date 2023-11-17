@@ -16,7 +16,7 @@ class Conditional {
 
   bool is_identical_to(const Conditional& other) const {
     return std::equal(children_.begin(), children_.end(), other.children_.begin(),
-                      IsIdenticalOperator<Expr>{});
+                      is_identical_struct<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate

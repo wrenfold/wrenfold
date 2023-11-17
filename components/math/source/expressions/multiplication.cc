@@ -243,7 +243,7 @@ inline std::pair<Expr, Expr> split_multiplication(const Expr& input, const Multi
 std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
   return visit(expr, [&expr](const auto& x) -> std::pair<Expr, Expr> {
     using T = std::decay_t<decltype(x)>;
-    if constexpr (list_contains_type_v<T, Integer, Rational, Float>) {
+    if constexpr (type_list_contains_type_v<T, Integer, Rational, Float>) {
       // Numerical values are always the coefficient:
       return std::make_pair(expr, Constants::One);
     } else if constexpr (std::is_same_v<T, Multiplication>) {

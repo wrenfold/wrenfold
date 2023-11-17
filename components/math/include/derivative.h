@@ -40,7 +40,7 @@ class DiffVisitor {
   const Expr& argument_;
 
   // Cache of f(x) --> df(x)/dx.
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> cache_;
+  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_;
 };
 
 }  // namespace math

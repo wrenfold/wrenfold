@@ -34,7 +34,7 @@ struct FlatIr {
   std::size_t num_operations() const;
 
   // Number of conditional statements.
-  std::size_t num_condtionals() const;
+  std::size_t num_conditionals() const;
 
   // Get the single block of operations.
   ir::BlockPtr get_block() const { return ir::BlockPtr{block_}; }

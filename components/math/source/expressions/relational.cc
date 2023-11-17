@@ -8,13 +8,10 @@
 
 namespace math {
 
-template <typename T, typename... Ts>
-using enable_if_one_of_t = std::enable_if_t<list_contains_type_v<T, Ts...>>;
-
 struct CompareNumerics {
   // Int and rational can be compared:
-  template <typename A, typename B, typename = enable_if_one_of_t<A, Integer, Rational>,
-            typename = enable_if_one_of_t<B, Integer, Rational>>
+  template <typename A, typename B, typename = enable_if_contains_type_t<A, Integer, Rational>,
+            typename = enable_if_contains_type_t<B, Integer, Rational>>
   bool operator()(const A& a, const B& b) const {
     return static_cast<Rational>(a) < static_cast<Rational>(b);
   }

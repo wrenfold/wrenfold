@@ -36,7 +36,7 @@ auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4,
 }
 
 // Benchmark interpolation between two quaternions and then computing the jacobian.
-static void BM_CreateFlatIrMediumComplexity(benchmark::State& state) {
+static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
   auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
                                           Arg("q0"), Arg("q1"), Arg("alpha"));
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
@@ -48,7 +48,24 @@ static void BM_CreateFlatIrMediumComplexity(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_CreateFlatIrMediumComplexity)->Iterations(20)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_CreateFlatIrLowComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
+
+static void BM_ConvertIrLowComplexity(benchmark::State& state) {
+  auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
+                                          Arg("q0"), Arg("q1"), Arg("alpha"));
+  const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
+
+  FlatIr flat_ir{expressions};
+  flat_ir.eliminate_duplicates();
+
+  for (auto _ : state) {
+    // Convert to the non-flat IR.
+    OutputIr output_ir{std::move(flat_ir)};
+    benchmark::DoNotOptimize(output_ir);
+  }
+}
+
+BENCHMARK(BM_ConvertIrLowComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
 
 }  // namespace math
 

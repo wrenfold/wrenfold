@@ -68,7 +68,7 @@ struct NumericFunctionEvaluator {
   std::unordered_map<FuncArgVariable, Expr, hash_struct<FuncArgVariable>> values;
 
   // Cached evaluated values:
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, IsIdenticalOperator<Expr>> cache;
+  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache;
 };
 
 template <typename T>

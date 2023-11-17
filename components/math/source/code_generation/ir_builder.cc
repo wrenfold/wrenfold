@@ -147,35 +147,6 @@ void Value::remove() {
   operands_.clear();
 }
 
-struct CountVisitor {
-  // Record counts of single `Expr` children.
-  template <typename Operation>
-  void record_counts(const Operation& operation,
-                     std::unordered_map<Expr, std::size_t, hash_struct<Expr>,
-                                        IsIdenticalOperator<Expr>>& count_table) {
-    for (const Expr& operand : operation) {
-      count_table[operand]++;
-      visit(operand, *this);
-    }
-  }
-
-  void operator()(const Multiplication& mul) { record_counts(mul, muls); }
-  void operator()(const Addition& add) { record_counts(add, adds); }
-
-  // For every other type, just recurse into the children:
-  template <typename T, typename = enable_if_does_not_contain_type_t<T, Multiplication, Addition>>
-  void operator()(const T& expr) {
-    if constexpr (!T::IsLeafNode) {
-      for (const Expr& child : expr) {
-        visit(child, *this);
-      }
-    }
-  }
-
-  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> muls;
-  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, IsIdenticalOperator<Expr>> adds;
-};
-
 template <typename T>
 struct FormatOpArgsHelper {
   void operator()(std::string& output, const T&, const std::vector<ir::ValuePtr>& operands,
@@ -232,9 +203,70 @@ ir::ValuePtr create_operation(std::vector<ir::Value::unique_ptr>& values, ir::Bl
   return block->operations.back();
 }
 
+struct FinalCounts {
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, is_identical_struct<Expr>> muls;
+  std::unordered_map<Expr, std::size_t, hash_struct<Expr>, is_identical_struct<Expr>> adds;
+};
+
+// Count incidences of unique muls and additions.
+struct MulAddCountVisitor {
+  std::unordered_map<Expr, absl::InlinedVector<Expr, 16>, hash_struct<Expr>,
+                     is_identical_struct<Expr>>
+      inbound_edges{};
+
+  std::unordered_set<Expr, hash_struct<Expr>, is_identical_struct<Expr>> visited;
+
+  MulAddCountVisitor() {
+    inbound_edges.reserve(100);
+    visited.reserve(100);
+  }
+
+  template <typename T>
+  void operator()(const T& concrete, const Expr& abstract) {
+    if constexpr (!T::IsLeafNode) {
+      // If this is an add or a mul, record the incoming edges to children.
+      if constexpr (std::is_same_v<T, Addition> || std::is_same_v<T, Multiplication>) {
+        for (const Expr& child : concrete) {
+          inbound_edges[child].push_back(abstract);
+        }
+      }
+
+      // Recurse:
+      for (const Expr& child : concrete) {
+        if (!visited.count(child)) {
+          visited.insert(child);
+          visit_with_expr(child, *this);
+        }
+      }
+    }
+  }
+
+  // Return final counts of how many times each term appears in a unique addition
+  // or multiplication.
+  FinalCounts generate_final_counts() const {
+    FinalCounts counts{};
+    for (const auto& pair : inbound_edges) {
+      const std::size_t mul_count =
+          std::count_if(pair.second.begin(), pair.second.end(),
+                        [](const Expr& x) { return x.is_type<Multiplication>(); });
+      if (mul_count > 0) {
+        counts.muls[pair.first] += mul_count;
+      }
+
+      const std::size_t add_count =
+          std::count_if(pair.second.begin(), pair.second.end(),
+                        [](const Expr& x) { return x.is_type<Addition>(); });
+      if (add_count > 0) {
+        counts.adds[pair.first] += add_count;
+      }
+    }
+    return counts;
+  }
+};
+
 // Visitor for converting an expression tree into static-single-assignment form.
 struct IRFormVisitor {
-  explicit IRFormVisitor(FlatIr& builder, const ir::CountVisitor& counts)
+  explicit IRFormVisitor(FlatIr& builder, const FinalCounts& counts)
       : builder_(builder), counts_(counts) {}
 
   ir::ValuePtr maybe_cast(ir::ValuePtr input, NumericType output_type) {
@@ -257,7 +289,7 @@ struct IRFormVisitor {
     std::sort(expressions.begin(), expressions.end(), ExpressionOrderPredicate{});
 
     // Then sort by count order (highest to lowest):
-    std::sort(expressions.begin(), expressions.end(), [&](const Expr& a, const Expr& b) {
+    std::stable_sort(expressions.begin(), expressions.end(), [&](const Expr& a, const Expr& b) {
       if constexpr (std::is_same_v<T, Multiplication>) {
         return counts_.muls.at(a) > counts_.muls.at(b);
       } else {
@@ -385,10 +417,10 @@ struct IRFormVisitor {
  private:
   FlatIr& builder_;
 
-  std::unordered_map<Expr, ir::ValuePtr, hash_struct<Expr>, IsIdenticalOperator<Expr>>
+  std::unordered_map<Expr, ir::ValuePtr, hash_struct<Expr>, is_identical_struct<Expr>>
       computed_values_;
 
-  const ir::CountVisitor& counts_;
+  const FinalCounts& counts_;
 };
 
 ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
@@ -429,15 +461,15 @@ ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
 FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     : block_(std::make_unique<ir::Block>(0)) {
   // First pass where we count occurrence of some sub-expressions:
-  ir::CountVisitor count_visitor{};
+  MulAddCountVisitor count_visitor{};
   for (const ExpressionGroup& group : groups) {
     for (const Expr& expr : group.expressions) {
-      visit(expr, count_visitor);
+      visit_with_expr(expr, count_visitor);
     }
   }
+  const FinalCounts final_counts = count_visitor.generate_final_counts();
 
-  IRFormVisitor visitor{*this, count_visitor};
-
+  IRFormVisitor visitor{*this, final_counts};
   for (const ExpressionGroup& group : groups) {
     // Transform expressions into Values
     std::vector<ir::ValuePtr> group_values;
@@ -552,7 +584,7 @@ std::size_t FlatIr::num_operations() const {
                        &is_countable_operation);
 }
 
-std::size_t FlatIr::num_condtionals() const {
+std::size_t FlatIr::num_conditionals() const {
   return std::count_if(block_->operations.begin(), block_->operations.end(), &is_conditional);
 }
 

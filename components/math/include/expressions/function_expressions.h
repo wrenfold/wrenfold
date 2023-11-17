@@ -41,7 +41,7 @@ class Function {
   // Function type and argument must match.
   bool is_identical_to(const Function& other) const {
     return func_ == other.func_ && args_.size() == other.args_.size() &&
-           std::equal(begin(), end(), other.begin(), IsIdenticalOperator<Expr>{});
+           std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate

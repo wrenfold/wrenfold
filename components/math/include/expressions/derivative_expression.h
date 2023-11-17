@@ -36,7 +36,7 @@ class Derivative {
   // All arguments must match.
   bool is_identical_to(const Derivative& other) const {
     return order_ == other.order_ &&
-           std::equal(begin(), end(), other.begin(), IsIdenticalOperator<Expr>{});
+           std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
   }
 
   // Implement ExpressionImpl::Iterate

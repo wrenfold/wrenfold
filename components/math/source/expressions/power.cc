@@ -22,7 +22,7 @@ struct PowerNumerics {
     } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Rational, B>) {
       return apply_int_and_rational(a, b);
     } else if constexpr (std::is_same_v<Infinity, A> &&
-                         list_contains_type_v<B, Integer, Rational>) {
+                         type_list_contains_type_v<B, Integer, Rational>) {
       return apply_infinity_and_rational(a, static_cast<Rational>(b));
     } else if constexpr (std::is_same_v<Infinity, A> && std::is_same_v<B, Float>) {
       return apply_infinity_and_float(a, b);

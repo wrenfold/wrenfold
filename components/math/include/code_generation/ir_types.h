@@ -485,7 +485,7 @@ class Value {
   template <typename T>
   static std::optional<NumericType> determine_type(const T& op,
                                                    const std::vector<ir::ValuePtr>& operands) {
-    if constexpr (list_contains_type_v<T, Save, JumpCondition>) {
+    if constexpr (type_list_contains_type_v<T, Save, JumpCondition>) {
       return std::nullopt;
     } else if constexpr (T::num_value_operands() == 0) {
       return op.determine_type();

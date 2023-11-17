@@ -26,7 +26,7 @@ struct CollectVisitor {
     // This map would look like:
     //  2 --> [3]
     //  1 --> [5, pi]
-    std::unordered_map<Expr, Addition::ContainerType, hash_struct<Expr>, IsIdenticalOperator<Expr>>
+    std::unordered_map<Expr, Addition::ContainerType, hash_struct<Expr>, is_identical_struct<Expr>>
         exponents_to_mul{};
 
     const auto new_end = std::remove_if(container.begin(), container.end(), [&](const Expr& child) {
