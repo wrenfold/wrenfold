@@ -96,7 +96,11 @@ void wrap_codegen_operations(py::module_& m) {
       .def(py::init<ExpressionUsage, std::string_view>(), py::arg("usage"), py::arg("name"));
 
   py::class_<ExpressionGroup>(m, "ExpressionGroup")
-      .def(py::init<std::vector<Expr>, OutputKey>(), py::arg("expressions"), py::arg("output_key"));
+      .def(py::init<std::vector<Expr>, OutputKey>(), py::arg("expressions"), py::arg("output_key"))
+      .def(py::init([](const MatrixExpr& m, OutputKey key) {
+             return ExpressionGroup(m.to_vector(), key);
+           }),
+           py::arg("expressions"), py::arg("output_key"));
 
   py::enum_<BuiltInFunctionName>(m, "BuiltInFunctionName")
       .value("Cos", BuiltInFunctionName::Cos)

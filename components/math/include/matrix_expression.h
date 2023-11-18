@@ -91,6 +91,9 @@ class MatrixExpr {
   // Static cast to underlying matrix type.
   const Matrix& as_matrix() const;
 
+  // Convert to vector of expressions.
+  std::vector<Expr> to_vector() const;
+
  private:
   std::shared_ptr<const Matrix> matrix_;
 };

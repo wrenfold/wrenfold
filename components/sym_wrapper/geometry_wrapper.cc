@@ -25,15 +25,6 @@ static auto components_from_iterable(const py::iterable& iterable) {
   return values;
 }
 
-// Check that matrix has correct dims to be converted to quaternion.
-static void check_matrix_dims(const MatrixExpr& m) {
-  const bool valid_dims = (m.rows() == 4 && m.cols() == 1) || (m.rows() == 1 && m.cols() == 4);
-  if (!valid_dims) {
-    throw TypeError("Matrix must be a 4-element vector. Provided has dimension: [{}, {}]", m.rows(),
-                    m.cols());
-  }
-}
-
 static py::list list_from_quaternion(const Quaternion& q) {
   py::list list{};
   list.append(q.w());
@@ -87,17 +78,14 @@ void wrap_geometry_operations(py::module_& m) {
       .def("to_list", &list_from_quaternion, "Convert to list in WXYZ order (scalar first).")
       .def("to_vector_wxyz", &Quaternion::to_vector_wxyz,
            "Convert to 4x1 vector in WXYZ order (scalar first).")
+      .def("to_vector_xyzw", &Quaternion::to_vector_xyzw,
+           "Convert to 4x1 vector in XYZW order (scalar last).")
       .def_property_readonly("w", &Quaternion::w, "Access scalar element of quaternion.")
       .def_property_readonly("x", &Quaternion::x, "Access `i` coefficient of quaternion.")
       .def_property_readonly("y", &Quaternion::y, "Access `j` coefficient of quaternion.")
       .def_property_readonly("z", &Quaternion::z, "Access `k` coefficient of quaternion.")
-      .def_static(
-          "from_xyzw",
-          [](const MatrixExpr& xyzw) {
-            check_matrix_dims(xyzw);
-            return Quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]};
-          },
-          "xyzw"_a, "Construct from matrix of xyzw elements.")
+      .def_static("from_xyzw", &Quaternion::from_vector_xyzw, "xyzw"_a,
+                  "Construct from matrix of xyzw elements.")
       .def_static(
           "from_xyzw",
           [](py::iterable iterable) {
@@ -105,13 +93,8 @@ void wrap_geometry_operations(py::module_& m) {
             return Quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]};
           },
           "m"_a, "Construct from iterable over xyzw elements.")
-      .def_static(
-          "from_wxyz",
-          [](const MatrixExpr& wxyz) {
-            check_matrix_dims(wxyz);
-            return Quaternion{wxyz[0], wxyz[1], wxyz[2], wxyz[3]};
-          },
-          "m"_a, "Construct from matrix of wxyz elements.")
+      .def_static("from_wxyz", &Quaternion::from_vector_wxyz, "m"_a,
+                  "Construct from matrix of wxyz elements.")
       .def_static(
           "from_wxyz",
           [](py::iterable iterable) {
@@ -166,10 +149,17 @@ void wrap_geometry_operations(py::module_& m) {
                   py::doc("Construct a rotation about the y-axis. Angle is in radians."))
       .def_static("from_z_angle", &Quaternion::from_z_angle, "angle"_a,
                   py::doc("Construct a rotation about the z-axis. Angle is in radians."))
-      .def("to_angle_axis", &Quaternion::to_angle_axis, py::arg("zero_epsilon") = Constants::Zero,
+      .def("to_angle_axis", &Quaternion::to_angle_axis, py::arg("epsilon") = Constants::Zero,
            py::doc("Convert quaternion to angle-axis representation. Returns an angle in the [0, "
                    "pi] interval and a unit-vector."))
+      .def("to_rotation_vector", &Quaternion::to_rotation_vector,
+           py::arg("epsilon") = Constants::Zero,
+           py::doc("Convert quaternion to rotation-vector representation."))
       .def_static("from_rotation_matrix", &Quaternion::from_rotation_matrix, py::arg("R"),
-                  py::doc("Convert from a rotation matrix via Calley's method."));
+                  py::doc("Convert from a rotation matrix via Calley's method."))
+      .def("right_retract_derivative", &Quaternion::right_retract_derivative,
+           py::doc("Jacobian of q * exp(w) wrt w around w = 0."))
+      .def("right_local_coordinates_derivative", &Quaternion::right_local_coordinates_derivative,
+           py::doc("Jacobian of log(q^T * (q + dq)) wrt dq around dq = 0."));
 }
 }  // namespace math

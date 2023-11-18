@@ -48,3 +48,28 @@ function(add_code_generation_test NAME GENERATION_SOURCE_FILE TEST_SOURCE_FILE)
   # Create test case from the evaluation target:
   add_test(${evaluate_target} ${evaluate_target})
 endfunction()
+
+# Define a new python test.
+function(add_python_test PYTHON_SOURCE_FILE)
+  get_filename_component(TEST_NAME ${PYTHON_SOURCE_FILE} NAME_WE)
+  if(WIN32)
+    set(PATH_SEP ";")
+  else()
+    set(PATH_SEP ":")
+  endif()
+
+  if(NOT DEFINED Python_EXECUTABLE)
+    message(FATAL_ERROR "The Python executable could not be located.")
+  endif()
+
+  # In order for `PYTHONPATH` to be set correctly, we need to pass the
+  # environment variable using the cmake command. No other mechanism I have
+  # tried will work here.
+  add_test(
+    NAME ${TEST_NAME}
+    COMMAND
+      ${CMAKE_COMMAND} -E env
+      "PYTHONPATH=${COMPONENTS_BINARY_DIR}${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python"
+      ${Python_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE})
+  message(STATUS "Added python test: ${TEST_NAME}")
+endfunction()

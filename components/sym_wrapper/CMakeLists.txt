@@ -39,15 +39,23 @@ function(add_wrapper_module)
 
   # There can be multiple submodules in the same shared object. Iterate over all
   # of them and make sure we record their output `pyi` files.
-  set(STUB_OUTPUT_PATHS
-      "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/__init__.pyi")
+  set(STUBGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/scratch")
+  set(STUB_OUTPUT_PATHS "${STUBGEN_OUTPUT_DIR}/${MODULE_NAME}/__init__.pyi")
   foreach(SUB_MODULE_NAME ${MODULE_SUB_MODULE_NAMES})
     set(SUB_MODULE_STUB_OUTPUT_PATH
-        "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}/${SUB_MODULE_NAME}.pyi")
+        "${STUBGEN_OUTPUT_DIR}/${MODULE_NAME}/${SUB_MODULE_NAME}.pyi")
     list(APPEND STUB_OUTPUT_PATHS ${SUB_MODULE_STUB_OUTPUT_PATH})
     message(
       STATUS
         "Adding sub-module to stubgen output: ${SUB_MODULE_STUB_OUTPUT_PATH}")
+  endforeach()
+
+  # Create list of the final output paths, after the fix-up step:
+  set(STUB_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}")
+  set(STUB_FINAL_OUTPUT_PATHS "${STUB_OUTPUT_DIR}/__init__.pyi")
+  foreach(SUB_MODULE_NAME ${MODULE_SUB_MODULE_NAMES})
+    list(APPEND STUB_FINAL_OUTPUT_PATHS
+         "${STUB_OUTPUT_DIR}/${SUB_MODULE_NAME}.pyi")
   endforeach()
 
   # Add a command to generate stubs
@@ -57,20 +65,36 @@ function(add_wrapper_module)
     add_custom_command(
       OUTPUT ${STUB_OUTPUT_PATHS}
       COMMAND ${STUBGEN_PATH} --package ${MODULE_NAME} --output
-              ${CMAKE_CURRENT_BINARY_DIR}
+              ${STUBGEN_OUTPUT_DIR}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generate stubs for pybind module: ${MODULE_NAME}"
       DEPENDS ${MODULE_NAME})
 
     # Create a target labeled `ALL` so that the command runs:
     add_custom_target(${MODULE_NAME}_stubs ALL DEPENDS ${STUB_OUTPUT_PATHS})
+
+    # Add the fix-up step: This re-writes the stubs, and moves them from
+    # `scratch` to the actual output directory.
+    set(FIXUP_SCRIPT_PATH
+        "${CMAKE_CURRENT_SOURCE_DIR}/stubs_fixup/stubs_fixup.py")
+    add_custom_command(
+      OUTPUT ${STUB_FINAL_OUTPUT_PATHS}
+      COMMAND ${Python_EXECUTABLE} ${FIXUP_SCRIPT_PATH} --inputs
+              ${STUB_OUTPUT_PATHS} --output-dir ${STUB_OUTPUT_DIR}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Running fixup step on stubgen output: ${MODULE_NAME}"
+      DEPENDS ${MODULE_NAME} ${MODULE_NAME}_stubs ${FIXUP_SCRIPT_PATH})
+
+    add_custom_target(${MODULE_NAME}_stubs_fixup ALL
+                      DEPENDS ${STUB_FINAL_OUTPUT_PATHS})
   endif()
 
   # Add install targets for scikit-build-core
   if(DEFINED SKBUILD_PROJECT_NAME)
     install(TARGETS ${MODULE_NAME} DESTINATION sym_wrapper)
     if(DEFINED STUBGEN_PATH)
-      install(FILES ${STUB_OUTPUT_PATHS} DESTINATION sym_wrapper)
+      install(FILES ${STUB_FINAL_OUTPUT_PATHS}
+              DESTINATION "sym_wrapper/${MODULE_NAME}")
     endif()
   endif()
 endfunction()
