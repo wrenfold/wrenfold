@@ -278,9 +278,8 @@ struct IRFormVisitor {
   }
 
   // Handler for additions and multiplications:
-  template <typename T>
-  std::enable_if_t<std::is_same_v<T, Multiplication> || std::is_same_v<T, Addition>, ir::ValuePtr>
-  operator()(const T& op, const Expr&) {
+  template <typename T, typename = enable_if_contains_type_t<T, Multiplication, Addition>>
+  ir::ValuePtr operator()(const T& op, const Expr&) {
     // Put the thing w/ the highest count in the first cell:
     std::vector<Expr> expressions{op.begin(), op.end()};
 
@@ -301,7 +300,7 @@ struct IRFormVisitor {
     std::vector<ir::ValuePtr> args;
     args.reserve(op.arity());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return VisitExpr(expr); });
+                   [this](const Expr& expr) { return apply(expr); });
     ZEN_ASSERT(!args.empty());
 
     NumericType promoted_type = NumericType::Integer;
@@ -322,14 +321,14 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const CastBool& cast) {
-    const ir::ValuePtr arg = VisitExpr(cast.arg());
+    const ir::ValuePtr arg = apply(cast.arg());
     return push_operation(ir::Cast{NumericType::Integer}, arg);
   }
 
   ir::ValuePtr operator()(const Conditional& cond, const Expr&) {
-    const ir::ValuePtr condition = VisitExpr(cond.condition());
-    const ir::ValuePtr if_branch = VisitExpr(cond.if_branch());
-    const ir::ValuePtr else_branch = VisitExpr(cond.else_branch());
+    const ir::ValuePtr condition = apply(cond.condition());
+    const ir::ValuePtr if_branch = apply(cond.if_branch());
+    const ir::ValuePtr else_branch = apply(cond.else_branch());
 
     const NumericType promoted_type =
         std::max(if_branch->numeric_type(), else_branch->numeric_type());
@@ -342,19 +341,15 @@ struct IRFormVisitor {
     return push_operation(ir::Load{input_expression});
   }
 
-  ir::ValuePtr operator()(const Derivative& derivative) {
-    throw TypeError(
-        "Cannot generate code for expressions containing `Derivative`. Offending expression is: "
-        "Derivative({}, {}, {})",
-        derivative.differentiand().to_string(), derivative.argument().to_string(),
-        derivative.order());
+  ir::ValuePtr operator()(const Derivative&) {
+    throw TypeError("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
   }
 
   ir::ValuePtr operator()(const Function& func, const Expr&) {
     std::vector<ir::ValuePtr> args;
     args.reserve(func.arity());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return VisitExpr(expr); });
+                   [this](const Expr& expr) { return apply(expr); });
     return push_operation(ir::CallBuiltInFunction{func.enum_value()}, std::move(args));
   }
 
@@ -369,8 +364,8 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Power& pow, const Expr&) {
-    const ir::ValuePtr b = VisitExpr(pow.base());
-    const ir::ValuePtr e = VisitExpr(pow.exponent());
+    const ir::ValuePtr b = apply(pow.base());
+    const ir::ValuePtr e = apply(pow.exponent());
     const NumericType promoted_type =
         std::max(NumericType::Integer, std::max(b->numeric_type(), e->numeric_type()));
     return push_operation(ir::Pow{}, maybe_cast(b, promoted_type), maybe_cast(e, promoted_type));
@@ -382,8 +377,8 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Relational& relational, const Expr&) {
-    ir::ValuePtr left = VisitExpr(relational.left());
-    ir::ValuePtr right = VisitExpr(relational.right());
+    ir::ValuePtr left = apply(relational.left());
+    ir::ValuePtr right = apply(relational.right());
     NumericType promoted_type = std::max(left->numeric_type(), right->numeric_type());
     return push_operation(ir::Compare{relational.operation()}, maybe_cast(left, promoted_type),
                           maybe_cast(right, promoted_type));
@@ -399,16 +394,25 @@ struct IRFormVisitor {
 
   template <typename OpType, typename... Args>
   ir::ValuePtr push_operation(OpType&& op, Args&&... args) {
-    return create_operation(builder_.values_, builder_.get_block(), std::move(op),
+    return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
                             std::forward<Args>(args)...);
   }
 
   // Check if a value has been computed. If not, convert it and return the result.
-  ir::ValuePtr VisitExpr(const Expr& expr) {
-    auto it = computed_values_.find(expr);
-    if (it != computed_values_.end()) {
+  ir::ValuePtr apply(const Expr& expr) {
+    if (auto it = computed_values_.find(expr); it != computed_values_.end()) {
       return it->second;
     }
+    if (expr.is_type<Addition>()) {
+      // For additions, check if the negative of this sum was already computed:
+      const Expr negative_add = -expr;
+      if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
+        ir::ValuePtr mul = push_operation(ir::Mul{}, it->second, apply(Constants::NegativeOne));
+        computed_values_.emplace(expr, mul);
+        return mul;
+      }
+    }
+    // TODO: Factorize constants out of multiplications here.
     ir::ValuePtr val = visit_with_expr(expr, *this);
     computed_values_.emplace(expr, val);
     return val;
@@ -476,7 +480,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     group_values.reserve(group.expressions.size());
     std::transform(group.expressions.begin(), group.expressions.end(),
                    std::back_inserter(group_values), [&](const Expr& expr) {
-                     ir::ValuePtr output = visitor.VisitExpr(expr);
+                     ir::ValuePtr output = visitor.apply(expr);
                      if (output->numeric_type() != NumericType::Real) {
                        // TODO: Allow returning other types - derive the numeric type from the
                        // group.
