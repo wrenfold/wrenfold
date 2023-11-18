@@ -1,6 +1,8 @@
 // Copyright 2023 Gareth Cross
 #include "derivative.h"
 #include "expressions/all_expressions.h"
+#include "matrix_expression.h"
+#include "span.h"
 
 #include <algorithm>
 
@@ -210,14 +212,42 @@ Expr DiffVisitor::operator()(const Variable& var) const {
   return Constants::Zero;
 }
 
-Expr diff(const Expr& differentiand, const Expr& arg, const int reps) {
+Expr diff(const Expr& function, const Expr& var, const int reps) {
   ZEN_ASSERT_GREATER_OR_EQ(reps, 0);
-  DiffVisitor visitor{arg};
-  Expr result = differentiand;
+  DiffVisitor visitor{var};
+  Expr result = function;
   for (int i = 0; i < reps; ++i) {
     result = visit_with_expr(result, visitor);
   }
   return result;
+}
+
+MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<const Expr> vars) {
+  if (functions.empty()) {
+    throw TypeError("Need at least one function to differentiate.");
+  }
+  if (vars.empty()) {
+    throw TypeError("Need at least one variable to differentiate with respect to.");
+  }
+
+  std::vector<Expr> result{};
+  result.resize(functions.size() * vars.size(), Constants::Zero);
+
+  // Crate row-major span over `result`:
+  const auto output_dims = make_value_pack(functions.size(), vars.size());
+  const auto output_strides = make_value_pack(vars.size(), constant<1>{});
+  auto result_span = make_span(result.data(), output_dims, output_strides);
+
+  for (std::size_t col = 0; col < vars.size(); ++col) {
+    // We cache derivative expressions, so that every row reuses the same cache:
+    DiffVisitor diff_visitor{vars[col]};
+    for (std::size_t row = 0; row < functions.size(); ++row) {
+      result_span(row, col) = diff_visitor.apply(functions[row]);
+    }
+  }
+
+  return MatrixExpr::create(static_cast<index_t>(functions.size()),
+                            static_cast<index_t>(vars.size()), std::move(result));
 }
 
 }  // namespace math

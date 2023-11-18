@@ -1,6 +1,10 @@
 // Copyright 2023 Gareth Cross
 #include "geometry/quaternion.h"
 
+#include "expressions/matrix.h"
+#include "functions.h"
+#include "matrix_functions.h"
+
 namespace math {
 
 Quaternion Quaternion::from_name_prefix(const std::string_view name) {
@@ -9,10 +13,20 @@ Quaternion Quaternion::from_name_prefix(const std::string_view name) {
   return {std::move(w), std::move(x), std::move(y), std::move(z)};
 }
 
+MatrixExpr Quaternion::to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+
+MatrixExpr Quaternion::to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
+
 Quaternion Quaternion::subs(const Expr& target, const Expr& replacement) const {
   return Quaternion(w().subs(target, replacement), x().subs(target, replacement),
                     y().subs(target, replacement), z().subs(target, replacement));
 }
+
+Expr Quaternion::squared_norm() const {
+  return wxyz_[0] * wxyz_[0] + wxyz_[1] * wxyz_[1] + wxyz_[2] * wxyz_[2] + wxyz_[3] * wxyz_[3];
+}
+
+Expr Quaternion::norm() const { return sqrt(squared_norm()); }
 
 MatrixExpr Quaternion::to_rotation_matrix() const {
   const Expr x2 = x() * 2;
@@ -157,6 +171,15 @@ Quaternion Quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
+MatrixExpr Quaternion::jacobian(const math::MatrixExpr& vars) const {
+  if (vars.rows() != 1 && vars.cols() != 1) {
+    throw DimensionError("Variables must be a row or column vector. Received dimensions: [{}, {}]",
+                         vars.rows(), vars.cols());
+  }
+  const auto& m = vars.as_matrix();
+  return jacobian(m.data());
+}
+
 MatrixExpr Quaternion::right_retract_derivative() const {
   // Compute the expression `J` once, and substitute into it on subsequent calls:
   static const Quaternion q_sub{
@@ -170,7 +193,7 @@ MatrixExpr Quaternion::right_retract_derivative() const {
     // Compute the Jacobian about 0:
     // clang-format off
     return substitute_variables(
-        q_perturb.to_vector_wxyz().jacobian({vx, vy, vz}),
+        q_perturb.jacobian({vx, vy, vz}),
         {
             std::make_tuple(vx, Constants::Zero),
             std::make_tuple(vy, Constants::Zero),
