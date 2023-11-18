@@ -4,6 +4,7 @@
 #include "expressions/addition.h"
 #include "functions.h"
 #include "geometry/quaternion.h"
+#include "matrix_functions.h"
 #include "operations.h"
 
 #include "test_helpers.h"

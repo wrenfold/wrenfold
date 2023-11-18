@@ -3,7 +3,6 @@
 #include "numeric_testing.h"
 #include "numerical_jacobian.h"
 #include "test_helpers.h"
-#include "type_annotations.h"
 
 #include "quat_interpolation_expressions.h"
 

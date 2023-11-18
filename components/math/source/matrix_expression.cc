@@ -68,36 +68,24 @@ MatrixExpr MatrixExpr::operator-() const {
 }
 
 MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
-  return MatrixExpr{as_matrix().map_children([&](const Expr& x) { return x.diff(var, reps); })};
+  DiffVisitor visitor{var};
+  return MatrixExpr{as_matrix().map_children([&visitor, reps](const Expr& x) {
+    Expr result = x;
+    for (int i = 0; i < reps; ++i) {
+      result = visitor.apply(result);
+    }
+    return result;
+  })};
 }
 
 MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
-  if (vars.empty()) {
-    throw DimensionError("A non-empty set of variables must be provided to compute a jacobian.");
-  }
   if (cols() != 1) {
     throw DimensionError(
         "Jacobian can only be computed on column-vectors. Received dimensions: [{}, {}]", rows(),
         cols());
   }
   const auto& m = as_matrix();
-
-  std::vector<Expr> result{};
-  result.resize(m.size() * vars.size(), Constants::Zero);
-
-  // Crate row-major span over `result`:
-  auto result_span = make_span(result.data(), make_value_pack(m.rows(), vars.size()),
-                               make_value_pack(vars.size(), constant<1>{}));
-
-  for (std::size_t col = 0; col < vars.size(); ++col) {
-    // We cache derivative expressions, so that every row reuses the same cache:
-    DiffVisitor diff_visitor{vars[col]};
-    for (index_t row = 0; row < m.rows(); ++row) {
-      result_span(row, col) = diff_visitor.apply(m.get_unchecked(row, 0));
-    }
-  }
-
-  return MatrixExpr::create(m.rows(), static_cast<index_t>(vars.size()), std::move(result));
+  return math::jacobian(m.data(), vars);
 }
 
 MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars) const {

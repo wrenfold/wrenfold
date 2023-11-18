@@ -3,10 +3,7 @@
 #include "assertions.h"
 #include "constants.h"
 #include "expression.h"
-#include "expressions/matrix.h"
-#include "functions.h"
 #include "matrix_expression.h"
-#include "matrix_functions.h"
 
 #include <array>
 
@@ -60,22 +57,19 @@ class Quaternion {
   }
 
   // Convert to a column vector in [w,x,y,z] order.
-  MatrixExpr to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+  MatrixExpr to_vector_wxyz() const;
 
   // Convert to a column vector in [x,y,z,w] order.
-  MatrixExpr to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
+  MatrixExpr to_vector_xyzw() const;
 
   // Create a new quaternion by substituting.
   Quaternion subs(const Expr& target, const Expr& replacement) const;
 
   // The squared L2 norm of the quaternion elements.
-  Expr squared_norm() const {
-    // TODO: Add a faster path for this type of summation.
-    return wxyz_[0] * wxyz_[0] + wxyz_[1] * wxyz_[1] + wxyz_[2] * wxyz_[2] + wxyz_[3] * wxyz_[3];
-  }
+  Expr squared_norm() const;
 
   // The norm of the quaternion.
-  Expr norm() const { return sqrt(squared_norm()); }
+  Expr norm() const;
 
   // Return a copy of this quaternion that has been normalized.
   [[nodiscard]] Quaternion normalized() const {
@@ -145,6 +139,19 @@ class Quaternion {
   // Section 3.5 of: "A survey on the Computation of Quaternions from Rotation Matrices"
   // By S. Sarabandi and F. Thomas
   static Quaternion from_rotation_matrix(const MatrixExpr& R_in);
+
+  // Compute 4xN jacobian of this quaternion with respect to the `N` input variables `vars`.
+  // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
+  MatrixExpr jacobian(absl::Span<const Expr> vars) const { return math::jacobian(wxyz(), vars); }
+
+  // Compute the 4xN jacobian of this quaternion with respect to the `Nx1` column vector `vars`.
+  // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
+  MatrixExpr jacobian(const MatrixExpr& vars) const;
+
+  // Compute the 4x4 jacobian of this quaternion with respect to the variables in quaternion `vars`.
+  // The rows and columns of the output jacobian are ordered in the storage order of the quaternion:
+  // [w,x,y,z].
+  MatrixExpr jacobian(const Quaternion& vars) const { return jacobian(vars.wxyz()); }
 
   // Compute the 4x3 tangent-space derivative of this quaternion with respect to a right-multiplied
   // perturbation. This is the derivative:

@@ -2,7 +2,9 @@
 
 #include "expression_impl.h"
 #include "expressions/numeric_expressions.h"
+#include "functions.h"
 #include "geometry/quaternion.h"
+#include "matrix_functions.h"
 
 #include "eigen_test_helpers.h"
 #include "numerical_jacobian.h"
@@ -550,6 +552,25 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
     ASSERT_NEAR(q_num.z(), cast_to_float(q.z()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
+  }
+}
+
+// Test calling `jacobian` directly on a quaternion.
+TEST(QuaternionTest, TestJacobian) {
+  const auto [x, y, z, angle] = make_symbols("x", "y", "z", "angle");
+  const auto Q = Quaternion::from_angle_axis(angle, x, y, z).inverse();
+
+  // swap the order around:
+  const auto vars = make_vector(y, x, angle);
+  const MatrixExpr J = Q.jacobian(vars);
+  ASSERT_EQ(4, J.rows());
+  ASSERT_EQ(3, J.cols());
+
+  for (index_t i = 0; i < J.rows(); ++i) {
+    for (index_t j = 0; j < J.cols(); ++j) {
+      ASSERT_IDENTICAL(
+          Q.wxyz()[static_cast<std::size_t>(i)].diff(vars[static_cast<std::size_t>(j)]), J(i, j));
+    }
   }
 }
 

@@ -157,6 +157,22 @@ void wrap_geometry_operations(py::module_& m) {
            py::doc("Convert quaternion to rotation-vector representation."))
       .def_static("from_rotation_matrix", &Quaternion::from_rotation_matrix, py::arg("R"),
                   py::doc("Convert from a rotation matrix via Calley's method."))
+      .def(
+          "jacobian",
+          [](const Quaternion& self, const MatrixExpr& vars) { return self.jacobian(vars); },
+          py::arg("vars"),
+          py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
+      .def(
+          "jacobian",
+          [](const Quaternion& self, const std::vector<Expr>& vars) { return self.jacobian(vars); },
+          py::arg("vars"),
+          py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
+      .def(
+          "jacobian",
+          [](const Quaternion& self, const Quaternion& vars) { return self.jacobian(vars); },
+          py::arg("vars"),
+          py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables in "
+                  "another quaternion."))
       .def("right_retract_derivative", &Quaternion::right_retract_derivative,
            py::doc("Jacobian of q * exp(w) wrt w around w = 0."))
       .def("right_local_coordinates_derivative", &Quaternion::right_local_coordinates_derivative,

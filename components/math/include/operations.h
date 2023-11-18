@@ -21,9 +21,13 @@ Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, E
 MatrixExpr substitute_variables(const MatrixExpr& input,
                                 absl::Span<const std::tuple<Expr, Expr>> pairs);
 
-// Take the derivative of `differentiand` wrt `arg`. The derivative is taken `reps` times.
+// Take the derivative of `function` wrt `var`. The derivative is taken `reps` times.
 // Implemented in derivative.cc
-Expr diff(const Expr& differentiand, const Expr& arg, const int reps);
+Expr diff(const Expr& function, const Expr& var, const int reps);
+
+// Compute the jacobian of the vector `functions` wrt the variables in `vars`.
+// If `functions` has length `N` and `vars` length `M`, the result will be NxM.
+MatrixExpr jacobian(absl::Span<const Expr> functions, absl::Span<const Expr> vars);
 
 // Distribute over multiplications in the input expression.
 // Expands terms like: (a + b) * (c * d) --> a*c + a*d + b*c + b*d
