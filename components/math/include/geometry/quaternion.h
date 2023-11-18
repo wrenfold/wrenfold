@@ -51,6 +51,9 @@ class Quaternion {
   constexpr const Expr& y() const noexcept { return wxyz_[2]; }
   constexpr const Expr& z() const noexcept { return wxyz_[3]; }
 
+  // Access coeff array as wxyz array.
+  constexpr const std::array<Expr, 4>& wxyz() const noexcept { return wxyz_; }
+
   // True if all sub-expressions in the quaternion are identical to those in the argument.
   bool is_identical_to(const Quaternion& other) const {
     return std::equal(wxyz_.begin(), wxyz_.end(), other.wxyz_.begin(), is_identical_struct<Expr>{});

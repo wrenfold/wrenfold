@@ -20,10 +20,10 @@ auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4,
       q0 * Quaternion::from_rotation_vector(q_delta_tangent * alpha, 1.0e-16);
 
   ta::StaticMatrix<3, 3> D_q0 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.to_vector_wxyz().jacobian(q0.to_vector_wxyz()) *
+                                q_interp.to_vector_wxyz().jacobian(q0.wxyz()) *
                                 q0.right_retract_derivative();
   ta::StaticMatrix<3, 3> D_q1 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.to_vector_wxyz().jacobian(q1.to_vector_wxyz()) *
+                                q_interp.to_vector_wxyz().jacobian(q1.wxyz()) *
                                 q1.right_retract_derivative();
 
   return std::make_tuple(OutputArg("q_out", ta::StaticMatrix<4, 1>(q_interp.to_vector_xyzw())),
