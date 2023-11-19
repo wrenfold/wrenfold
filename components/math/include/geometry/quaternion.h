@@ -178,4 +178,17 @@ class Quaternion {
 // Multiply two quaternions together.
 Quaternion operator*(const Quaternion& a, const Quaternion& b);
 
+// Compute the left Jacobian of SO(3) as a function of a rodrigues vector `w`.
+// This is the integral of `exp(w * alpha)` over the interval alpha = [0, 1], where
+// `exp(v)` is the exponential map of SO(3). If `v` is a rodrigues vector, then `exp(v)` is
+// the matching 3x3 rotation matrix.
+//
+// This is _also_ the derivative of: log(exp(w + dw) * R^T) with respect to the additive
+// perturbation `dw`, evaluated about `dw = 0`.
+//
+// You can obtain the _right_ jacobian of SO(3) by transposing this quantity.
+//
+// When the norm of `w` falls below `epsilon`, the small angle approximation is used.
+MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon);
+
 }  // namespace math

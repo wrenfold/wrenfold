@@ -92,10 +92,12 @@ Eigen::Vector<Scalar, 3> local_coordinates(const Eigen::Quaternion<Scalar>& a,
 
 // Retract implement with Eigen quaternions.
 // Right multiply the tangent perturbation `w`: q * exp(w)
-template <typename Scalar>
+template <typename Scalar, typename Derived>
 Eigen::Quaternion<Scalar> retract(const Eigen::Quaternion<Scalar>& q,
-                                  const Eigen::Vector<Scalar, 3>& w) {
-  return q * Eigen::Quaternion<Scalar>{Eigen::AngleAxis<Scalar>{w.norm(), w.normalized()}};
+                                  const Eigen::MatrixBase<Derived>& w) {
+  const Eigen::Vector<Scalar, 3> w_eval = w.eval();
+  return q *
+         Eigen::Quaternion<Scalar>{Eigen::AngleAxis<Scalar>{w_eval.norm(), w_eval.normalized()}};
 }
 
 }  // namespace math
