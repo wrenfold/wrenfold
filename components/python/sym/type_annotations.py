@@ -12,3 +12,11 @@ class RealScalar(Expr):
 
 class Vector2(MatrixExpr):
     SHAPE = (2, 1)
+
+
+class Vector3(MatrixExpr):
+    SHAPE = (3, 1)
+
+
+class Vector4(MatrixExpr):
+    SHAPE = (4, 1)

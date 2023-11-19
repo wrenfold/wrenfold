@@ -81,4 +81,21 @@ inline Eigen::Vector4d eigen_wxyz_vec_from_quaternion(const Eigen::Quaterniond& 
   return (Eigen::Vector4d() << q.w(), q.x(), q.y(), q.z()).finished();
 }
 
+// Local coordinates implemented with Eigen.
+// Computes log(a^-1 * b)
+template <typename Scalar>
+Eigen::Vector<Scalar, 3> local_coordinates(const Eigen::Quaternion<Scalar>& a,
+                                           const Eigen::Quaternion<Scalar>& b) {
+  const Eigen::AngleAxis<Scalar> w_ab{a.inverse() * b};
+  return w_ab.angle() * w_ab.axis();
+}
+
+// Retract implement with Eigen quaternions.
+// Right multiply the tangent perturbation `w`: q * exp(w)
+template <typename Scalar>
+Eigen::Quaternion<Scalar> retract(const Eigen::Quaternion<Scalar>& q,
+                                  const Eigen::Vector<Scalar, 3>& w) {
+  return q * Eigen::Quaternion<Scalar>{Eigen::AngleAxis<Scalar>{w.norm(), w.normalized()}};
+}
+
 }  // namespace math

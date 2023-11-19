@@ -8,7 +8,7 @@ import typing as T
 import numpy as np
 
 from . import sym
-from .sym import codegen
+from . import codegen
 
 AstVariantTuple = (codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArgument,
                    codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
@@ -122,12 +122,10 @@ class PythonCodeGenerator(CodeGenerator):
 
     def format_Call(self, fmt: CustomStringFormatter, x: codegen.Call) -> str:
         funcs = {
-            codegen.BuiltInFunctionName.Cos: "np.cos",
-            codegen.BuiltInFunctionName.Sin: "np.sin",
-            codegen.BuiltInFunctionName.Log: "np.log",
-            codegen.BuiltInFunctionName.Sqrt: "np.sqrt",
-            codegen.BuiltInFunctionName.Tan: "np.tan",
-            codegen.BuiltInFunctionName.Pow: "np.power",
+            codegen.BuiltInFunctionName.Cos: "np.cos", codegen.BuiltInFunctionName.Sin: "np.sin",
+            codegen.BuiltInFunctionName.Log: "np.log", codegen.BuiltInFunctionName.Sqrt: "np.sqrt",
+            codegen.BuiltInFunctionName.Tan: "np.tan", codegen.BuiltInFunctionName.Pow: "np.power",
+            codegen.BuiltInFunctionName.Arctan2: "np.atan2"
         }
         return fmt.format("{}({})", funcs[x.function], ', '.join(fmt.format_ast(v) for v in x.args))
 
@@ -208,6 +206,8 @@ class PythonCodeGenerator(CodeGenerator):
 
     def format_OptionalOutputBranch(self, fmt: CustomStringFormatter,
                                     x: codegen.OptionalOutputBranch) -> str:
+        import ipdb
+        ipdb.set_trace()
         assert x.argument.is_optional, 'Argument must be optional'
 
         result = fmt.format('if {} is not None:\n', x.argument.name) + fmt.indent('\n'.join(
@@ -229,7 +229,7 @@ class OutputArg:
     """Designate an output argument in the result of a symbolic function invocation."""
     expression: T.Union[sym.Expr, sym.MatrixExpr]
     name: str
-    is_optional: bool
+    is_optional: bool = False
 
 
 ReturnValueOrOutputArg = T.Union[ReturnValue, OutputArg]
@@ -291,7 +291,7 @@ def codegen_function(
         else:
             assert isinstance(val.expression, sym.MatrixExpr), "Expected MatrixExpr"
             output_type = codegen.MatrixType(*val.expression.shape)
-            group_expressions = val.expression.to_list()
+            group_expressions = val.expression  # pass matrix directly
 
         if isinstance(val, ReturnValue):
             output = codegen.ExpressionGroup(
@@ -301,12 +301,15 @@ def codegen_function(
             signature.set_return_type(output_type)
         else:
             usage = codegen.ExpressionUsage.OptionalOutputArgument if val.is_optional else \
-                codegen.ExpressionUsage.OutputArg
+                codegen.ExpressionUsage.OutputArgument
             output = codegen.ExpressionGroup(
-                expressions=group_expressions, output_key=codegen.OutputKey(usage, val.name))
+                group_expressions, output_key=codegen.OutputKey(usage, val.name))
             # add an argument:
             signature.add_argument(
-                name=val.name, type=output_type, direction=codegen.ArgumentDirection.Input)
+                name=val.name,
+                type=output_type,
+                direction=codegen.ArgumentDirection.OptionalOutput
+                if val.is_optional else codegen.ArgumentDirection.Output)
 
         output_expressions.append(output)
 
