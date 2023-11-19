@@ -18,17 +18,10 @@ using Eigen::Matrix3d;
 using Eigen::Quaterniond;
 using Eigen::Vector3d;
 
-Vector3d local_coordinates(const Quaterniond& a, const Quaterniond& b) {
-  const AngleAxisd w_ab{a.inverse() * b};
-  return w_ab.angle() * w_ab.axis();
-}
-
-Quaterniond retract(const Quaterniond& q, const Vector3d& w) {
-  return q * Quaterniond{AngleAxisd{w.norm(), w.normalized()}};
-}
-
-Quaterniond quat_interp(const Quaterniond& a, const Quaterniond& b, const double alpha) {
-  return retract(a, local_coordinates(a, b) * alpha);
+template <typename Scalar>
+Eigen::Quaternion<Scalar> quat_interp(const Eigen::Quaternion<Scalar>& a,
+                                      const Eigen::Quaternion<Scalar>& b, const Scalar alpha) {
+  return retract(a, (local_coordinates(a, b) * alpha).eval());
 }
 
 // Test the quaternion interpolation result numerically.

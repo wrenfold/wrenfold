@@ -63,15 +63,16 @@ struct eigen_matrix_base_traits<T, enable_if_inherits_matrix_base_t<T>> {
  * accepts type `XExpr` and returns type `YExpr`, both of which may be manifolds. This method uses
  * the Manifold<> trait to determine how make the manifold locally euclidean.
  */
-template <typename Derived, typename Function>
-auto numerical_jacobian(const Eigen::MatrixBase<Derived>& x, Function func, const double h = 0.01) {
-  using YType = std::decay_t<decltype(func(x))>;
-  using XTraits = detail::eigen_matrix_base_traits<Eigen::MatrixBase<Derived>>;
-  using YTraits = detail::eigen_matrix_base_traits<YType>;
+template <typename XType, typename Function>
+auto numerical_jacobian(const XType& x, Function func, const double h = 0.01) {
+  using FuncOutputType = std::decay_t<decltype(func(x))>;
+  using XTraits = detail::eigen_matrix_base_traits<XType>;
+  using YTraits = detail::eigen_matrix_base_traits<FuncOutputType>;
   static_assert(XTraits::cols == 1 && YTraits::cols == 1, "X and Y must be column vectors");
 
   // Compute the output expression at the linearization point.
-  const Eigen::Matrix<typename YTraits::scalar_type, YTraits::rows, 1> y_0 = func(x);
+  using YType = Eigen::Matrix<typename YTraits::scalar_type, YTraits::rows, 1>;
+  const YType y_0 = func(x);
 
   // Possibly allocate for the result, since dimensions may be dynamic.
   Eigen::Matrix<typename YTraits::scalar_type, YTraits::rows, XTraits::rows> J;
@@ -87,12 +88,11 @@ auto numerical_jacobian(const Eigen::MatrixBase<Derived>& x, Function func, cons
 
   for (int j = 0; j < x.rows(); ++j) {
     // Take derivative wrt dimension `j` of X
-    J.col(j) = numerical_derivative(
-        static_cast<typename XTraits::scalar_type>(h),
-        [&](auto dx) -> Eigen::Matrix<typename YTraits::scalar_type, YTraits::rows, 1> {
+    J.col(j) =
+        numerical_derivative(static_cast<typename XTraits::scalar_type>(h), [&](auto dx) -> YType {
           delta.setZero();
           delta[j] = dx;
-          const auto y = func(x + delta);
+          const YType y = func((x + delta).eval());
           return y - y_0;
         });
   }
