@@ -127,6 +127,23 @@ TEST(MatrixOperationsTest, TestVec) {
                    vectorize_matrix(make_matrix(2, 3, a, b, x, c, d, y)));
 }
 
+TEST(MatrixOperationsTest, TestStack) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const auto m0 = make_matrix(2, 3, x, 2 * y, z - 2, sin(x), -x, 5 * z);
+  const auto m1 = make_matrix(3, 3, pow(x, z), 0, -2, 5 - x, sin(y) * cos(z), -x, 7, 0, y * z);
+  const auto m2 = make_matrix(1, 3, y * y - z, -3 * x, cos(y + z));
+
+  const auto vertical = vstack({m0, m1, m2});
+  ASSERT_IDENTICAL(m0, vertical.get_block(0, 0, 2, 3));
+  ASSERT_IDENTICAL(m1, vertical.get_block(2, 0, 3, 3));
+  ASSERT_IDENTICAL(m2, vertical.get_block(5, 0, 1, 3));
+
+  const auto horizontal = hstack({m0.transposed(), m1, m2.transposed()});
+  ASSERT_IDENTICAL(m0.transposed(), horizontal.get_block(0, 0, 3, 2));
+  ASSERT_IDENTICAL(m1, horizontal.get_block(0, 2, 3, 3));
+  ASSERT_IDENTICAL(m2.transposed(), horizontal.get_block(0, 5, 3, 1));
+}
+
 TEST(MatrixOperationsTest, TestAddition) {
   const Expr a{"a"};
   const Expr b{"b"};

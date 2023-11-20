@@ -62,6 +62,85 @@ MatrixExpr vectorize_matrix(const MatrixExpr& m) {
   return MatrixExpr::create(flat_size, 1, std::move(flattened));
 }
 
+MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
+  if (values.empty()) {
+    throw DimensionError("Need at least one matrix to stack.");
+  }
+
+  const index_t num_rows = values[0].rows();
+
+  index_t total_cols = 0;
+  for (const MatrixExpr& m : values) {
+    total_cols += m.cols();
+    if (m.rows() != num_rows) {
+      throw DimensionError(
+          "All input matrices must have the same number of rows. Received mixed dimensions {} and "
+          "{}.",
+          num_rows, m.rows());
+    }
+  }
+
+  std::vector<Expr> result{};
+  result.resize(static_cast<std::size_t>(num_rows * total_cols), Constants::Zero);
+
+  constexpr constant<1> col_stride{};
+  auto output_span = make_span(result.data(), make_value_pack(num_rows, total_cols),
+                               make_value_pack(total_cols, col_stride));
+
+  index_t output_col = 0;
+  for (const MatrixExpr& m : values) {
+    const Matrix& m_concrete = m.as_matrix();
+    for (index_t i = 0; i < m_concrete.rows(); ++i) {
+      for (index_t j = 0; j < m_concrete.cols(); ++j) {
+        output_span(i, j + output_col) = m_concrete(i, j);
+      }
+    }
+
+    output_col += m_concrete.cols();
+  }
+
+  return MatrixExpr::create(num_rows, total_cols, std::move(result));
+}
+
+// TODO: De-duplicate w/ hstack.
+MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
+  if (values.empty()) {
+    throw DimensionError("Need at least one matrix to stack.");
+  }
+
+  const index_t num_cols = values[0].cols();
+
+  index_t total_rows = 0;
+  for (const MatrixExpr& m : values) {
+    total_rows += m.rows();
+    if (m.cols() != num_cols) {
+      throw DimensionError(
+          "All input matrices must have the same number of cols. Received mixed dimensions {} and "
+          "{}.",
+          num_cols, m.cols());
+    }
+  }
+
+  std::vector<Expr> result{};
+  result.resize(static_cast<std::size_t>(num_cols * total_rows), Constants::Zero);
+
+  constexpr constant<1> col_stride{};
+  auto output_span = make_span(result.data(), make_value_pack(total_rows, num_cols),
+                               make_value_pack(num_cols, col_stride));
+
+  index_t output_row = 0;
+  for (const MatrixExpr& m : values) {
+    const Matrix& m_concrete = m.as_matrix();
+    for (index_t i = 0; i < m_concrete.rows(); ++i) {
+      for (index_t j = 0; j < m_concrete.cols(); ++j) {
+        output_span(i + output_row, j) = m_concrete(i, j);
+      }
+    }
+    output_row += m_concrete.rows();
+  }
+  return MatrixExpr::create(total_rows, num_cols, std::move(result));
+}
+
 // A simple permutation "matrix".
 // Stores a mapping from `permuted row` --> `original row`.
 struct PermutationMatrix {
