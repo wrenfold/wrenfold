@@ -130,7 +130,7 @@ TEST(MatrixOperationsTest, TestVec) {
 TEST(MatrixOperationsTest, TestStack) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
   const auto m0 = make_matrix(2, 3, x, 2 * y, z - 2, sin(x), -x, 5 * z);
-  const auto m1 = make_matrix(3, 3, pow(x, z), 0, -2, 5 - x, sin(y) * cos(z), -x, 7, 0, y * z);
+  const auto m1 = make_matrix(3, 3, pow(x, z), z - y, -2, 5 - x, sin(y) * cos(z), -x, 7, 6, y * z);
   const auto m2 = make_matrix(1, 3, y * y - z, -3 * x, cos(y + z));
 
   const auto vertical = vstack({m0, m1, m2});
@@ -142,6 +142,26 @@ TEST(MatrixOperationsTest, TestStack) {
   ASSERT_IDENTICAL(m0.transposed(), horizontal.get_block(0, 0, 3, 2));
   ASSERT_IDENTICAL(m1, horizontal.get_block(0, 2, 3, 3));
   ASSERT_IDENTICAL(m2.transposed(), horizontal.get_block(0, 5, 3, 1));
+
+  // stack diagonally and fill in with zeros:
+  const auto diagonal = diagonal_stack({m0, m1, m2});
+  ASSERT_EQ(6, diagonal.rows());
+  ASSERT_EQ(9, diagonal.cols());
+  ASSERT_IDENTICAL(m0, diagonal.get_block(0, 0, 2, 3));
+  ASSERT_IDENTICAL(m1, diagonal.get_block(2, 3, 3, 3));
+  ASSERT_IDENTICAL(m2, diagonal.get_block(5, 6, 1, 3));
+
+  // check off diagonal blocks:
+  for (index_t i = 0; i < diagonal.rows(); ++i) {
+    for (index_t j = 0; j < diagonal.cols(); ++j) {
+      const bool in_first_block = (i < 2) && (j < 3);
+      const bool in_second_block = (i >= 2 && i < 5) && (j >= 3 && j < 6);
+      const bool in_third_block = (i >= 5 && i < 6) && (j >= 6 && j < 9);
+      if (!in_first_block && !in_second_block && !in_third_block) {
+        ASSERT_IDENTICAL(0, diagonal(i, j));
+      }
+    }
+  }
 }
 
 TEST(MatrixOperationsTest, TestAddition) {

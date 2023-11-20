@@ -405,6 +405,10 @@ void wrap_matrix_operations(py::module_& m) {
   m.def(
       "vstack", [](const std::vector<MatrixExpr>& values) { return vstack(values); },
       py::arg("values"), py::doc("Vertically stack matrices."));
+  m.def(
+      "diagonal", [](const std::vector<MatrixExpr>& values) { return diagonal_stack(values); },
+      py::arg("values"),
+      py::doc("Diagonally stack matrix blocks. Fill off-diagonal blocks with zeros"));
 
   m.def("vec", &vectorize_matrix, py::arg("m"), "Vectorize matrix in column-major order.");
   m.def("det", &determinant, py::arg("m"), "Compute determinant of a matrix.");

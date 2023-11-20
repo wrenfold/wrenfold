@@ -1,0 +1,2 @@
+
+namespace math {}  // namespace math
