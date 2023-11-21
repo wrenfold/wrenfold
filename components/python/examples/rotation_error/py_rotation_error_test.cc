@@ -1,5 +1,4 @@
 #include "eigen_test_helpers.h"
-#include "numeric_testing.h"
 #include "numerical_jacobian.h"
 #include "test_helpers.h"
 

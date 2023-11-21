@@ -11,7 +11,6 @@
 #include "expressions/numeric_expressions.h"
 #include "functions.h"
 #include "matrix_functions.h"
-#include "plain_formatter.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;

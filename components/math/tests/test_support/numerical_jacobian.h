@@ -56,7 +56,58 @@ struct eigen_matrix_base_traits<T, enable_if_inherits_matrix_base_t<T>> {
   using scalar_type = typename Eigen::MatrixBase<derived_type>::Scalar;
 };
 
+template <typename T, typename = void>
+struct evaluated_type {
+  using type = T;
+};
+
+// Specialization for Eigen so we can determine the underlying type with actual storage.
+template <typename T>
+struct evaluated_type<T, enable_if_inherits_matrix_base_t<T>> {
+  using type = std::decay_t<decltype(std::declval<T>().eval())>;
+};
+
 }  // namespace detail
+
+template <typename T, typename = void>
+struct manifold;
+
+template <typename T>
+struct manifold<T, enable_if_inherits_matrix_base_t<T>> {
+  static constexpr int dimension = detail::eigen_matrix_base_traits<T>::rows;
+  using scalar_type = typename detail::eigen_matrix_base_traits<T>::scalar_type;
+
+  static_assert(Eigen::Dynamic != dimension, "Dimension must be known at compile time.");
+  static_assert(1 == detail::eigen_matrix_base_traits<T>::cols, "Must be a column vector.");
+
+  static Eigen::Vector<scalar_type, dimension> local_coordinates(const T& x, const T& y) noexcept {
+    return y - x;
+  }
+
+  template <typename Derived>
+  static T retract(const T& x, const Eigen::MatrixBase<Derived>& dx) noexcept {
+    const Eigen::Vector<scalar_type, dimension> dx_eval = dx.eval();
+    return x + dx_eval;
+  }
+};
+
+template <typename T>
+struct manifold<T, enable_if_inherits_quaternion_base_t<T>> {
+  static constexpr int dimension = 3;
+  using scalar_type = typename T::Scalar;
+
+  static Eigen::Vector<scalar_type, dimension> local_coordinates(const T& x, const T& y) noexcept {
+    const Eigen::AngleAxis<scalar_type> delta{x.inverse() * y};
+    return delta.angle() * delta.axis();
+  }
+
+  template <typename Derived>
+  static T retract(const T& x, const Eigen::MatrixBase<Derived>& dx) noexcept {
+    const Eigen::Vector<scalar_type, dimension> dx_eval = dx.eval();
+    return x * Eigen::Quaternion<scalar_type>{
+                   Eigen::AngleAxis<scalar_type>{dx_eval.norm(), dx_eval.normalized()}};
+  }
+};
 
 /**
  * Numerically compute the jacobian of vector function `y = f(x)` via the central-difference. `func`
@@ -65,35 +116,26 @@ struct eigen_matrix_base_traits<T, enable_if_inherits_matrix_base_t<T>> {
  */
 template <typename XType, typename Function>
 auto numerical_jacobian(const XType& x, Function func, const double h = 0.01) {
-  using FuncOutputType = std::decay_t<decltype(func(x))>;
-  using XTraits = detail::eigen_matrix_base_traits<XType>;
-  using YTraits = detail::eigen_matrix_base_traits<FuncOutputType>;
-  static_assert(XTraits::cols == 1 && YTraits::cols == 1, "X and Y must be column vectors");
+  using XEvalType = typename detail::evaluated_type<XType>::type;
+  using XTraits = manifold<XEvalType>;
+  using YTraits = manifold<std::invoke_result_t<Function, XType>>;
 
   // Compute the output expression at the linearization point.
-  using YType = Eigen::Matrix<typename YTraits::scalar_type, YTraits::rows, 1>;
-  const YType y_0 = func(x);
+  const auto y_0 = func(x);
 
-  // Possibly allocate for the result, since dimensions may be dynamic.
-  Eigen::Matrix<typename YTraits::scalar_type, YTraits::rows, XTraits::rows> J;
-  if constexpr (YTraits::rows == Eigen::Dynamic || XTraits::rows == Eigen::Dynamic) {
-    J.resize(y_0.rows(), x.rows());
-  }
+  // Storage for jacobian + tangent space delta:
+  Eigen::Matrix<typename YTraits::scalar_type, YTraits::dimension, XTraits::dimension> J;
+  Eigen::Matrix<typename XTraits::scalar_type, XTraits::dimension, 1> delta;
 
-  // Pre-allocate `delta` once and re-use it.
-  Eigen::Matrix<typename XTraits::scalar_type, XTraits::rows, 1> delta;
-  if constexpr (XTraits::rows == Eigen::Dynamic) {
-    delta.resize(x.rows());
-  }
-
-  for (int j = 0; j < x.rows(); ++j) {
+  for (int j = 0; j < XTraits::dimension; ++j) {
     // Take derivative wrt dimension `j` of X
-    J.col(j) =
-        numerical_derivative(static_cast<typename XTraits::scalar_type>(h), [&](auto dx) -> YType {
+    J.col(j) = numerical_derivative(
+        static_cast<typename XTraits::scalar_type>(h),
+        [&](auto dx) -> Eigen::Matrix<typename YTraits::scalar_type, YTraits::dimension, 1> {
           delta.setZero();
           delta[j] = dx;
-          const YType y = func((x + delta).eval());
-          return y - y_0;
+          const auto y = func(XTraits::retract(x, delta));
+          return YTraits::local_coordinates(y_0, y);
         });
   }
   return J;
