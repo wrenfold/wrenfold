@@ -174,7 +174,7 @@ def unweighted_imu_preintegration_error(
     the idealized PIM delta between them, then subtract the actual preintegrated IMU measurements.
 
     A couple of important notes:
-    1. This is the unweighted error. Typically you would follow up this step by weighting the
+    1. This is the unweighted error. Typically, you would follow up this step by weighting the
        errors by the sqrt information of the IMU measurements themselves.
     2. This example does not account for the bias. It is assumed that the input preintegrated measurements
        have already been corrected, and the caller will propagate the jacobian onto the bias using
@@ -201,7 +201,7 @@ def unweighted_imu_preintegration_error(
     error_D_rotation_k = error.jacobian(
         world_R_k.to_vector_wxyz()) * world_R_k.right_retract_derivative()
 
-    # Compute the jacobian of the error wrt the PIM itself. In practice you need this term
+    # Compute the jacobian of the error wrt the PIM itself. In practice, you need this term
     # for the preintegrated bias correction:
     stacked_measurements = sym.vstack(
         [i_R_k_measured.to_vector_wxyz(), i_t_k_measured, i_v_k_measured])
