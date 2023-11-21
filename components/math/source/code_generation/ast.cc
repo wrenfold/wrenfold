@@ -103,7 +103,7 @@ struct AstBuilder {
       std::vector<ast::Variant> args{};
       args.reserve(save_value->num_operands());
       for (const ir::ValuePtr v : save_value->operands()) {
-        args.emplace_back(make_variable_ref(v));
+        args.emplace_back(make_argument(v));
       }
 
       if (key.usage == ExpressionUsage::ReturnValue) {
