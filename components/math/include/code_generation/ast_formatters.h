@@ -106,6 +106,11 @@ auto format_ast(Iterator it, const math::ast::OptionalOutputBranch& m) {
                         m.statements.size());
 }
 
+template <typename Iterator>
+auto format_ast(Iterator it, const math::ast::SpecialConstant& c) {
+  return fmt::format_to(it, "SpecialConstant({})", string_from_symbolic_constant(c.value));
+}
+
 }  // namespace math::ast
 
 // Support fmt printing of types convertible to `ast::Variant`

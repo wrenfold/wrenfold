@@ -46,22 +46,6 @@ class Undefined {
   constexpr bool is_identical_to(const Undefined&) const noexcept { return true; }
 };
 
-// Convert symbolic constant enum to string constant.
-// For debugging purposes.
-inline constexpr std::string_view string_from_symbolic_constant(SymbolicConstants value) noexcept {
-  switch (value) {
-    case SymbolicConstants::Euler:
-      return "e";
-    case SymbolicConstants::Pi:
-      return "pi";
-    case SymbolicConstants::True:
-      return "true";
-    case SymbolicConstants::False:
-      return "false";
-  }
-  return "<INVALID ENUM VALUE>";
-}
-
 // Convert `SymbolicConstants` to a floating point double.
 constexpr double double_from_symbolic_constant(SymbolicConstants constant) noexcept {
   switch (constant) {

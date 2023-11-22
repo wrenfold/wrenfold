@@ -130,6 +130,7 @@ using Variant = std::variant<
     struct IntegerConstant,
     struct Multiply,
     struct OptionalOutputBranch,
+    struct SpecialConstant,
     struct VariableRef
     >;
 // clang-format on
@@ -239,8 +240,6 @@ struct Declaration {
 
 struct FloatConstant {
   double value;
-
-  explicit FloatConstant(double v) : value(v) {}
 };
 
 // Signature and body of a function.
@@ -283,6 +282,10 @@ struct OptionalOutputBranch {
   explicit OptionalOutputBranch(std::shared_ptr<const Argument> arg,
                                 std::vector<Variant>&& statements)
       : argument(std::move(arg)), statements(std::move(statements)) {}
+};
+
+struct SpecialConstant {
+  SymbolicConstants value;
 };
 
 // method definitions:

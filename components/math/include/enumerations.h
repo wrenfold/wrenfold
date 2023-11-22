@@ -168,6 +168,21 @@ constexpr std::string_view string_from_relational_operation(const RelationalOper
   return "<NOT A VALID ENUM VALUE>";
 }
 
+// Convert symbolic constant enum to string constant.
+inline constexpr std::string_view string_from_symbolic_constant(SymbolicConstants value) noexcept {
+  switch (value) {
+    case SymbolicConstants::Euler:
+      return "e";
+    case SymbolicConstants::Pi:
+      return "pi";
+    case SymbolicConstants::True:
+      return "true";
+    case SymbolicConstants::False:
+      return "false";
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
 // Convert `NumericType` to string.
 constexpr std::string_view string_from_numeric_type(const NumericType type) noexcept {
   switch (type) {

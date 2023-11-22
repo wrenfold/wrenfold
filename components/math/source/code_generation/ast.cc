@@ -296,6 +296,8 @@ struct AstBuilder {
       } else if constexpr (std::is_same_v<T, Variable>) {
         // inspect inner type of the variable
         return std::visit(*this, inner.identifier());
+      } else if constexpr (std::is_same_v<T, Constant>) {
+        return ast::SpecialConstant{inner.name()};
       } else {
         throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
       }
