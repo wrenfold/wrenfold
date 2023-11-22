@@ -1,5 +1,13 @@
 """
 Example: IMU integration, as it might appear in pre-integrated estimation scheme.
+
+This is one particular implementation of preintegration, included here as an example
+and for the purpose of testing the code-generation framework.
+
+In practice, there is a larger space of design choices you could make. For instance:
+- Placing the tangent space in world frame instead of body.
+- Incorporating rotational effects of the earth.
+- Higher-order numerical integration schemes.
 """
 import typing as T
 
@@ -56,7 +64,8 @@ def integrate_imu(
 
     The updated state is returned, as well as the 9x9 Jacobian of the new state with respect
     to the previous one. In addition, we compute 9x6 jacobians of the new state with respect
-    to the input measurements and sensor biases.
+    to the input measurements and sensor biases. These would typically be used to propagate
+    forward your filter uncertainty.
     """
 
     # This operation does not produce a math operation - it can be thought of as a cast
@@ -123,7 +132,7 @@ def compute_pim_delta_from_endpoints(
     Given two 9-DOF navigation states of the form (world_R_imu, world_t_imu, world_v_imu), compute what
     the preintegrated IMU measurements should be, assuming no noise or integration error.
 
-    The first state is denoted as frame `i`, while the second is frame `k`.
+    The first state (t0) is denoted as frame `i`, while the second (t1) is frame `k`.
 
     Returns the triplet: (i_R_k, i_t_k, i_v_k)
     """
@@ -132,23 +141,53 @@ def compute_pim_delta_from_endpoints(
     i_R_world = world_R_i.conjugate()
     i_R_world_mat = i_R_world.to_rotation_matrix()
 
-    # Compute the estimated rotation delta from `i` to `k`:
+    # Compute the estimated rotation delta from t0 -> t1:
     # Normalize for numerical stability.
     i_R_k_predicted = (i_R_world * world_R_k).normalized()
 
-    # Compute the estimated translation between poses in frame `i`:
-    # This expression comes from:
-    #  world_t_k = (world_t_i + world_v_i * dt + gravity_world * dt^2 / 2) + i_t_k_pim
-    # Where `i_t_k_pim` is the preintegrated translational delta.
+    # Compute the estimated velocity change between t0 and t1:
+    # This expression can be derived from:
+    #
+    #  world_v_t1 = world_v_t0 + ∫ a_world(t) dt    (1)
+    #
+    # Where `∫ a_world(t) dt` is the integral of world-frame acceleration, not including
+    # gravity (over the interval t0 --> t1). It can be written as:
+    #
+    #  ∫ a_world(t) dt = ∫ w_R_imu(t) * a_imu(t) dt
+    #
+    #                  = world_R_t0 * ∫ t0_R_imu(t) * a_imu(t) dt    (2)
+    #
+    # Where `a_imu(t)` is the acceleration in IMU frame, again not incorporating gravity.
+    #
+    # Meanwhile, the PIM integral of velocity can be written (ignoring biases):
+    #
+    #  t0_v_t1 = ∫ t0_R_imu(t) * world_R_imu(t)^T * (a_world(t) - g_world) dt
+    #
+    #          = -(world_R_t0^T * g_world) Δt + ∫ t0_R_imu(t) * a_imu(t) dt    (3)
+    #
+    # Where Δt is the duration t1 - t0, and g_world is approximately [0, 0, -9.81m/s^2].
+    #
+    # Then we can combine (1) and (2) to obtain:
+    #
+    #  world_v_t1 = world_v_t0 + world_R_t0 * ∫ t0_R_imu(t) * a_imu(t) dt   (4)
+    #
+    # Then we combine (3) and (4):
+    #
+    #  world_v_t1 = world_v_t0 + world_R_t0 * (t0_v_t1 + world_R_t0^T * g_world * Δt)
+    #
+    #             = world_v_t0 + (world_R_t0 * t0_v_t1) + g_world * Δt
+    #
+    # Or, after rearranging for `t0_v_t1`:
+    #
+    #  t0_v_t1 = world_R_t0^T * (world_v_t1 - world_R_t0 - g_world * Δt)
+    #
+    i_v_k = i_R_world_mat * (world_v_k - world_v_i - gravity_world * duration)
+
+    # A similar derivation may be performed for position, albeit involving the double
+    # integral of acceleration.
     half_dt2 = duration * sym.abs(duration) / 2
     i_t_k = i_R_world_mat * (
         world_t_k - world_t_i - world_v_i * duration - gravity_world * half_dt2)
-
-    # And the velocity delta:
-    # This expression comes from:
-    #  world_v_k = (world_v_i + gravity_world * dt) + i_v_k_pim
-    # Where `i_v_k_pim` is the preintegrated velocity delta.
-    i_v_k = i_R_world_mat * (world_v_k - world_v_i - gravity_world * duration)
 
     return i_R_k_predicted, i_t_k, i_v_k
 
@@ -225,6 +264,41 @@ def unweighted_imu_preintegration_error(
     ]
 
 
+def integration_test_sequence(t: RealScalar):
+    """
+    A motion sequence parameterized as a function of time `t`. We use this as a test sequence
+    for evaluating our IMU integration code.
+
+    This trajectory is not particularly exciting.
+    """
+    position = sym.vector(3 * t * t + 2, sym.sin(2 * sym.pi * t * 0.5), 0)
+    velocity = position.diff(t)
+    acceleration = velocity.diff(t)
+
+    # Constant angular velocity about each rotational axis:
+    world_R_body: Quaternion = Quaternion.from_x_angle(0.5 * t) * \
+       Quaternion.from_y_angle(-0.2 * t) * \
+       Quaternion.from_z_angle(0.3 * t)
+    world_R_body_mat = world_R_body.to_rotation_matrix()
+
+    # Recover the body-frame angular velocity as a function of time:
+    # dR/dt = R * skew(w) --> skew(w) = R^T * (dR/dt)
+    skew_w = world_R_body_mat.transpose() * world_R_body_mat.diff(t)
+    angular_velocity_body = sym.vector(-skew_w[1, 2], skew_w[0, 2], -skew_w[0, 1])
+
+    # Compute body-frame measured acceleration, including force from gravity:
+    g = 9.80665
+    linear_acceleration_body = world_R_body_mat.transpose() * (acceleration + sym.vector(0, 0, g))
+
+    return [
+        OutputArg(world_R_body.to_vector_xyzw(), name='world_R_body'),
+        OutputArg(position, name='world_t_body'),
+        OutputArg(velocity, name='world_v_body'),
+        OutputArg(angular_velocity_body, name='angular_velocity_body'),
+        OutputArg(linear_acceleration_body, name='linear_acceleration_body')
+    ]
+
+
 CODE_TEMPLATE = \
 """// Machine generated code.
 #include <cmath>
@@ -241,9 +315,13 @@ namespace {namespace} {{
 def main():
     signature, ast = codegen_function(integrate_imu)
     code = generate_cpp(signature=signature, ast=ast)
-    code += '\n'
+    code += '\n\n'
 
     signature, ast = codegen_function(unweighted_imu_preintegration_error)
+    code += generate_cpp(signature=signature, ast=ast)
+    code += '\n\n'
+
+    signature, ast = codegen_function(integration_test_sequence)
     code += generate_cpp(signature=signature, ast=ast)
 
     code = CODE_TEMPLATE.format(code=code, namespace="gen")

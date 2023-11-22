@@ -141,4 +141,20 @@ auto numerical_jacobian(const XType& x, Function func, const double h = 0.01) {
   return J;
 }
 
+// Perform numerical integration via Boole's rule.
+// Some care must be taken that `func` does not return Eigen expressions with invalid lifetimes.
+template <typename Function>
+auto integrate_boole(Function&& func, const double lower, const double upper)
+    -> decltype(func(lower)) {
+  const double h = (upper - lower) / 4.0;
+  const auto f0 = func(lower);
+  const auto f1 = func(lower + h);
+  const auto f2 = func(lower + h * 2);
+  const auto f3 = func(lower + h * 3);
+  const auto f4 = func(upper);
+  const auto sum = f0 * 7.0 + f1 * 32.0 + f2 * 12.0 + f3 * 32.0 + f4 * 7.0;
+  const double normalization = 2 * h / 45.0;
+  return sum * normalization;
+}
+
 }  // namespace math

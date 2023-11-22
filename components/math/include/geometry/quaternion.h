@@ -183,10 +183,10 @@ Quaternion operator*(const Quaternion& a, const Quaternion& b);
 // `exp(v)` is the exponential map of SO(3). If `v` is a rodrigues vector, then `exp(v)` is
 // the matching 3x3 rotation matrix.
 //
-// This is _also_ the derivative of: log(exp(w + dw) * R^T) with respect to the additive
+// This is also the derivative of: log(exp(w + dw) * R^T) with respect to the additive
 // perturbation `dw`, evaluated about `dw = 0`.
 //
-// You can obtain the _right_ jacobian of SO(3) by transposing this quantity.
+// You can obtain the right jacobian of SO(3) by transposing this quantity.
 //
 // When the norm of `w` falls below `epsilon`, the small angle approximation is used.
 MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon);

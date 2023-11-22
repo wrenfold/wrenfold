@@ -46,8 +46,90 @@ struct manifold<NavigationState> {
   }
 };
 
+// Store the ground-truth stat and IMU data.
+struct TestSample {
+  double time{};
+  NavigationState navigation_state{};
+  Vector3d angular_velocity{};
+  Vector3d linear_acceleration{};
+};
+
+template <typename Function>
+std::vector<TestSample> generate_samples(const double duration, const double dt,
+                                         const Vector3d& gyro_bias,
+                                         const Vector3d& accelerometer_bias, Function&& func) {
+  ZEN_ASSERT_GREATER(dt, 0);
+  ZEN_ASSERT_GREATER(duration, dt);
+
+  std::vector<TestSample> samples;
+  samples.push_back(func(0.0));
+
+  for (double t = dt; t <= duration; t += dt) {
+    const double t0 = samples.back().time;
+    const Vector<double, 6> measurements =
+        integrate_boole(
+            [&](double t) -> Vector<double, 6> {
+              const TestSample sample = func(t);
+              return (Vector<double, 6>() << sample.angular_velocity, sample.linear_acceleration)
+                  .finished();
+            },
+            t0, t) /
+        (t - t0);
+
+    TestSample sample = func(t);
+    sample.angular_velocity = measurements.head<3>() + gyro_bias;
+    sample.linear_acceleration = measurements.tail<3>() + accelerometer_bias;
+    samples.push_back(sample);
+  }
+  return samples;
+}
+
 // Integrate some synthetic IMU data to validate that we defined the integration correctly.
-TEST(PyImuIntegrationTest, TestImuIntegration) {}
+TEST(PyImuIntegrationTest, TestImuIntegration) {
+  // Generate about 3 seconds of test data:
+  const Vector3d gyro_bias{0.03, -0.02, 0.015};
+  const Vector3d accel_bias{0.1, -0.22, 0.05};
+  const std::vector<TestSample> samples =
+      generate_samples(3.0, 0.001, gyro_bias, accel_bias, [](double t) {
+        TestSample sample;
+        gen::integration_test_sequence(
+            t, sample.navigation_state.rotation, sample.navigation_state.translation,
+            sample.navigation_state.velocity, sample.angular_velocity, sample.linear_acceleration);
+        sample.time = t;
+        return sample;
+      });
+  ASSERT_FALSE(samples.empty());
+
+  auto it = samples.begin();
+  const NavigationState& initial_state = it->navigation_state;
+
+  double t = it->time;
+  NavigationState pim{};
+  for (++it; it != samples.end(); ++it) {
+    const TestSample& gt_state = *it;
+
+    // Update the preintegrated measurements:
+    NavigationState new_pim{};
+    gen::integrate_imu(pim.rotation, pim.translation, pim.velocity, gyro_bias, accel_bias,
+                       gt_state.angular_velocity, gt_state.linear_acceleration, gt_state.time - t,
+                       new_pim.rotation, new_pim.translation, new_pim.velocity, nullptr, nullptr,
+                       nullptr);
+    pim = new_pim;
+    t = gt_state.time;
+
+    // Compute the errors:
+    Vector<double, 9> error{};
+    gen::unweighted_imu_preintegration_error(
+        initial_state.rotation, initial_state.translation, initial_state.velocity,
+        gt_state.navigation_state.rotation, gt_state.navigation_state.translation,
+        gt_state.navigation_state.velocity, pim.rotation, pim.translation, pim.velocity,
+        gt_state.time, Vector3d{0.0, 0.0, -9.80665}, error, nullptr, nullptr, nullptr, nullptr,
+        nullptr, nullptr, nullptr);
+
+    const auto zero = Vector<double, 9>::Zero();
+    ASSERT_EIGEN_NEAR(zero, error, 1.0e-6) << fmt::format("time = {} seconds", gt_state.time);
+  }
+}
 
 // Test jacobians of `integrate_imu` numerically.
 TEST(PyImuIntegrationTest, TestIntegrationJacobians) {

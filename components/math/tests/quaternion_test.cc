@@ -617,20 +617,6 @@ TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
   }
 }
 
-// Perform numerical integration via Boole's rule.
-template <typename Function>
-auto booles_rule(Function&& func, const double lower, const double upper) -> decltype(func(lower)) {
-  const double h = (upper - lower) / 4.0;
-  const auto f0 = func(lower);
-  const auto f1 = func(lower + h);
-  const auto f2 = func(lower + h * 2);
-  const auto f3 = func(lower + h * 3);
-  const auto f4 = func(upper);
-  const auto sum = f0 * 7.0 + f1 * 32.0 + f2 * 12.0 + f3 * 32.0 + f4 * 7.0;
-  const double normalization = 2 * h / 45.0;
-  return sum * normalization;
-}
-
 TEST(QuaternionTest, TestJacobianOfSO3) {
   const auto [theta, x, y, z] = make_symbols("theta", "x", "y", "z");
   const auto J_expr = left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), 1.0e-16);
@@ -660,7 +646,7 @@ TEST(QuaternionTest, TestJacobianOfSO3) {
     for (std::size_t index = 1; index <= num_steps; ++index) {
       const double lower = static_cast<double>(index - 1) / static_cast<double>(num_steps);
       const double upper = static_cast<double>(index) / static_cast<double>(num_steps);
-      J_numerical_integral += booles_rule(func, lower, upper);
+      J_numerical_integral += integrate_boole(func, lower, upper);
     }
     EXPECT_EIGEN_NEAR(J_numerical_integral, eigen_matrix_from_matrix_expr(J_sub), 1.0e-12);
 
