@@ -327,4 +327,14 @@ TEST(LimitsTest, TestMatrixLimitsQuaternionToVector) {
   ASSERT_IDENTICAL(make_matrix(3, 4, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2), *J_lim);
 }
 
+TEST(LimitsTest, TestJacobianSo3) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const Expr t{"t", NumberSet::RealNonNegative};
+  // Should converge to identify as norm of `w` goes to zero:
+  const MatrixExpr J = left_jacobian_of_so3(make_vector(x * t, y * t, z * t), std::nullopt);
+  const std::optional<MatrixExpr> J_lim = limit(J, t);
+  ASSERT_TRUE(J_lim.has_value());
+  ASSERT_IDENTICAL(make_identity(3), *J_lim);
+}
+
 }  // namespace math

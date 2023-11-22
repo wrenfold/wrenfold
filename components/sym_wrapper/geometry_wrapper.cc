@@ -177,5 +177,8 @@ void wrap_geometry_operations(py::module_& m) {
            py::doc("Jacobian of q * exp(w) wrt w around w = 0."))
       .def("right_local_coordinates_derivative", &Quaternion::right_local_coordinates_derivative,
            py::doc("Jacobian of log(q^T * (q + dq)) wrt dq around dq = 0."));
+
+  m.def("left_jacobian_of_so3", &left_jacobian_of_so3, "w"_a, "epsilon"_a,
+        py::doc("Evaluate the left jacobian of SO(3)."));
 }
 }  // namespace math

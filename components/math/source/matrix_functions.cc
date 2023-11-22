@@ -62,6 +62,90 @@ MatrixExpr vectorize_matrix(const MatrixExpr& m) {
   return MatrixExpr::create(flat_size, 1, std::move(flattened));
 }
 
+static MatrixExpr stack(const absl::Span<const MatrixExpr> values, index_t num_rows,
+                        index_t num_cols) {
+  std::vector<Expr> result{};
+  result.resize(static_cast<std::size_t>(num_rows * num_cols), Constants::Zero);
+
+  constexpr constant<1> col_stride{};
+  auto output_span = make_span(result.data(), make_value_pack(num_rows, num_cols),
+                               make_value_pack(num_cols, col_stride));
+
+  // We call this method for horizontal, vertical, and diagonal stacking. So check if we need to
+  // increment both or just one dimension.
+  const bool increment_rows = num_rows > values[0].rows();
+  const bool increment_cols = num_cols > values[0].cols();
+
+  // Maybe not the fastest way of doing this iteration in some cases...
+  index_t row_offset = 0;
+  index_t col_offset = 0;
+  for (const MatrixExpr& m : values) {
+    const Matrix& m_concrete = m.as_matrix();
+    for (index_t i = 0; i < m_concrete.rows(); ++i) {
+      for (index_t j = 0; j < m_concrete.cols(); ++j) {
+        output_span(i + row_offset, j + col_offset) = m_concrete.get_unchecked(i, j);
+      }
+    }
+    row_offset += m_concrete.rows() * static_cast<index_t>(increment_rows);
+    col_offset += m_concrete.cols() * static_cast<index_t>(increment_cols);
+  }
+  return MatrixExpr::create(num_rows, num_cols, std::move(result));
+}
+
+MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
+  if (values.empty()) {
+    throw DimensionError("Need at least one matrix to stack.");
+  }
+
+  const index_t num_rows = values[0].rows();
+
+  index_t total_cols = 0;
+  for (const MatrixExpr& m : values) {
+    total_cols += m.cols();
+    if (m.rows() != num_rows) {
+      throw DimensionError(
+          "All input matrices must have the same number of rows. Received mixed dimensions {} and "
+          "{}.",
+          num_rows, m.rows());
+    }
+  }
+
+  return stack(values, num_rows, total_cols);
+}
+
+MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
+  if (values.empty()) {
+    throw DimensionError("Need at least one matrix to stack.");
+  }
+
+  const index_t num_cols = values[0].cols();
+
+  index_t total_rows = 0;
+  for (const MatrixExpr& m : values) {
+    total_rows += m.rows();
+    if (m.cols() != num_cols) {
+      throw DimensionError(
+          "All input matrices must have the same number of cols. Received mixed dimensions {} and "
+          "{}.",
+          num_cols, m.cols());
+    }
+  }
+  return stack(values, total_rows, num_cols);
+}
+
+MatrixExpr diagonal_stack(const absl::Span<const MatrixExpr> values) {
+  if (values.empty()) {
+    throw DimensionError("Need at least one matrix to stack.");
+  }
+  index_t total_rows = 0;
+  index_t total_cols = 0;
+  for (const MatrixExpr& m : values) {
+    total_rows += m.rows();
+    total_cols += m.cols();
+  }
+  return stack(values, total_rows, total_cols);
+}
+
 // A simple permutation "matrix".
 // Stores a mapping from `permuted row` --> `original row`.
 struct PermutationMatrix {

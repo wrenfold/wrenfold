@@ -11,7 +11,6 @@
 #include "expressions/numeric_expressions.h"
 #include "functions.h"
 #include "matrix_functions.h"
-#include "plain_formatter.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -29,10 +28,12 @@ struct Slice {
   }
 
   // Number of iterations in the slice.
-  index_t length() const { return static_cast<index_t>(length_); }
+  constexpr index_t length() const noexcept { return static_cast<index_t>(length_); }
 
   // Convert flat index to modified index.
-  index_t map_index(index_t i) const { return static_cast<index_t>(start_ + i * step_); }
+  constexpr index_t map_index(index_t i) const noexcept {
+    return static_cast<index_t>(start_ + i * step_);
+  }
 
  private:
   py::ssize_t start_{0};
@@ -281,11 +282,6 @@ py::array numpy_from_matrix(const MatrixExpr& self) {
   return array;
 }
 
-py::array maybe_eval_to_numeric(const MatrixExpr& self) {
-  MatrixExpr eval = self.eval();
-  return numpy_from_matrix(eval);
-}
-
 void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
   py::class_<MatrixExpr>(m, "MatrixExpr")
@@ -316,7 +312,13 @@ void wrap_matrix_operations(py::module_& m) {
       .def("distribute", &MatrixExpr::distribute, "Expand products of additions and subtractions.")
       .def("subs", &MatrixExpr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
-      .def("eval", &maybe_eval_to_numeric, "Evaluate into float expression.")
+      .def(
+          "eval",
+          [](const MatrixExpr& self) {
+            MatrixExpr eval = self.eval();
+            return numpy_from_matrix(eval);
+          },
+          "Evaluate into float expression.")
       .def(
           "collect", [](const MatrixExpr& self, const Expr& var) { return self.collect({var}); },
           "var"_a, "Collect powers of the provided expression.")
@@ -395,6 +397,17 @@ void wrap_matrix_operations(py::module_& m) {
         "Construct a matrix from an iterator over rows.");
   m.def("matrix_of_symbols", &make_matrix_of_symbols, py::arg("prefix"), py::arg("rows"),
         py::arg("cols"), "Construct a matrix of symbols.");
+
+  m.def(
+      "hstack", [](const std::vector<MatrixExpr>& values) { return hstack(values); },
+      py::arg("values"), py::doc("Horizontally stack matrices."));
+  m.def(
+      "vstack", [](const std::vector<MatrixExpr>& values) { return vstack(values); },
+      py::arg("values"), py::doc("Vertically stack matrices."));
+  m.def(
+      "diagonal", [](const std::vector<MatrixExpr>& values) { return diagonal_stack(values); },
+      py::arg("values"),
+      py::doc("Diagonally stack matrix blocks. Fill off-diagonal blocks with zeros"));
 
   m.def("vec", &vectorize_matrix, py::arg("m"), "Vectorize matrix in column-major order.");
   m.def("det", &determinant, py::arg("m"), "Compute determinant of a matrix.");

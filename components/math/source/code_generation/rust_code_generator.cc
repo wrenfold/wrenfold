@@ -164,7 +164,7 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& 
   }
 }
 
-static constexpr std::string_view string_for_built_in_function_call(
+static constexpr std::string_view cpp_string_for_built_in_function_call(
     const BuiltInFunctionName name) {
   switch (name) {
     case BuiltInFunctionName::Cos:
@@ -203,7 +203,7 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x)
     formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
                      make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", string_for_built_in_function_call(x.function),
+    formatter.format("{}({})", cpp_string_for_built_in_function_call(x.function),
                      make_join_view(*this, ", ", x.args));
   }
 }
@@ -245,6 +245,25 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputVal
   } else {
     formatter.format(x.argument->name());
   }
+}
+
+static constexpr std::string_view rust_string_for_symbolic_constant(
+    const SymbolicConstants value) noexcept {
+  switch (value) {
+    case SymbolicConstants::Euler:
+      return "std::f64::consts::E";
+    case SymbolicConstants::Pi:
+      return "std::f64::consts::PI";
+    case SymbolicConstants::True:
+      return "true";
+    case SymbolicConstants::False:
+      return "false";
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
+void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::SpecialConstant& x) const {
+  formatter.format("{}", rust_string_for_symbolic_constant(x.value));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply& x) const {

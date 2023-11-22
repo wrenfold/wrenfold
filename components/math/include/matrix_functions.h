@@ -36,6 +36,15 @@ MatrixExpr make_identity(index_t rows);
 // Create a vector by flattening a matrix in column-major order.
 MatrixExpr vectorize_matrix(const MatrixExpr& m);
 
+// Horizontally stack matrices.
+MatrixExpr hstack(absl::Span<const MatrixExpr> values);
+
+// Vertically stack matrices.
+MatrixExpr vstack(absl::Span<const MatrixExpr> values);
+
+// Diagonally stack matrices (filling in off-diagonal elements with zero).
+MatrixExpr diagonal_stack(absl::Span<const MatrixExpr> values);
+
 // Perform full-pivoting gaussian elimination on a symbolic matrix.
 // Returns matrices [P, L, U, Q] such that: A = P*L*U*Q
 // Where `L` is lower triangular, `U` is upper triangular, and both `P` and `Q` are permutation

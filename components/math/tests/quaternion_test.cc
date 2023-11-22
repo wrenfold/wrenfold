@@ -581,7 +581,7 @@ TEST(QuaternionTest, TestRightRetractDerivative) {
   for (const auto [angle, axis] : get_angle_axis_test_pairs()) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle, axis)};
     const Eigen::Matrix<double, 4, 3> J_numerical = numerical_jacobian(
-        Eigen::Vector3d::Zero().eval(),
+        Eigen::Vector3d::Zero(),
         [&](const Eigen::Vector3d& dw) -> Eigen::Vector4d {
           const Eigen::AngleAxisd aa{dw.norm(), dw.normalized()};
           return eigen_wxyz_vec_from_quaternion(q_num * static_cast<Eigen::Quaterniond>(aa));
@@ -614,6 +614,53 @@ TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
     const MatrixExpr J_analytical =
         J.subs(w, q_num.w()).subs(x, q_num.x()).subs(y, q_num.y()).subs(z, q_num.z());
     EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_analytical), 1.0e-12);
+  }
+}
+
+TEST(QuaternionTest, TestJacobianOfSO3) {
+  const auto [theta, x, y, z] = make_symbols("theta", "x", "y", "z");
+  const auto J_expr = left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), 1.0e-16);
+
+  // Compare jacobian of SO(3) expression to numerical integration.
+  for (const auto& pair : get_angle_axis_test_pairs()) {
+    const auto angle = std::get<0>(pair);
+    const auto axis = std::get<1>(pair);
+
+    // clang-format off
+    const MatrixExpr J_sub = substitute_variables(J_expr,
+                                                  {
+                                                      std::make_tuple(theta, angle),
+                                                      std::make_tuple(x, axis[0]),
+                                                      std::make_tuple(y, axis[1]),
+                                                      std::make_tuple(z, axis[2])
+                                                  });
+    // clang-format on
+
+    // Evaluate numerical integration over multiple steps to get a tighter tolerance:
+    const auto func = [&](double alpha) {
+      return Eigen::Quaterniond(Eigen::AngleAxisd(angle * alpha, axis)).toRotationMatrix();
+    };
+
+    Eigen::Matrix3d J_numerical_integral = Eigen::Matrix3d::Zero();
+    constexpr std::size_t num_steps = 32;
+    for (std::size_t index = 1; index <= num_steps; ++index) {
+      const double lower = static_cast<double>(index - 1) / static_cast<double>(num_steps);
+      const double upper = static_cast<double>(index) / static_cast<double>(num_steps);
+      J_numerical_integral += integrate_boole(func, lower, upper);
+    }
+    EXPECT_EIGEN_NEAR(J_numerical_integral, eigen_matrix_from_matrix_expr(J_sub), 1.0e-12);
+
+    // Compare to numerical (left) jacobian:
+    const Eigen::Quaterniond q(Eigen::AngleAxisd(angle, axis));
+    const Eigen::Matrix3d J_numerical =
+        numerical_jacobian(Eigen::Vector3d::Zero(), [&](const auto& dw) {
+          // evaluate exp(w + dw)
+          const auto q_perturb = retract(Eigen::Quaterniond::Identity(), (axis * angle) + dw);
+          // evaluate log(exp(w + dw) * q^T)
+          const Eigen::AngleAxisd aa{q_perturb * q.conjugate()};
+          return (aa.angle() * aa.axis()).eval();
+        });
+    EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_sub), 1.0e-12);
   }
 }
 

@@ -73,11 +73,12 @@ Quaternion Quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, cons
     // When angle <= epsilon, we use the first order taylor series expansion of this method,
     // linearized about v = [0, 0, 0]. The series is projected back onto the unit norm quaternion.
     const Quaternion q_small_angle = Quaternion{1, vx / 2, vy / 2, vz / 2}.normalized();
+    const Expr condition = angle > *epsilon;
     return {
-        where(angle > *epsilon, cos(half_angle), q_small_angle.w()),
-        where(angle > *epsilon, vx * sinc_half_angle, q_small_angle.x()),
-        where(angle > *epsilon, vy * sinc_half_angle, q_small_angle.y()),
-        where(angle > *epsilon, vz * sinc_half_angle, q_small_angle.z()),
+        where(condition, cos(half_angle), q_small_angle.w()),
+        where(condition, vx * sinc_half_angle, q_small_angle.x()),
+        where(condition, vy * sinc_half_angle, q_small_angle.y()),
+        where(condition, vz * sinc_half_angle, q_small_angle.z()),
     };
   } else {
     return {
@@ -244,6 +245,44 @@ Quaternion operator*(const Quaternion& a, const Quaternion& b) {
           a.w() * b.x() + a.x() * b.w() + a.y() * b.z() - a.z() * b.y(),
           a.w() * b.y() + a.y() * b.w() + a.z() * b.x() - a.x() * b.z(),
           a.w() * b.z() + a.z() * b.w() + a.x() * b.y() - a.y() * b.x()};
+}
+
+// A bit odd to put this here, since it technically doesn't have that much to do with
+// quaternions. But it is a useful expression when dealing with rotations.
+MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon) {
+  using namespace matrix_operator_overloads;
+  if (w.rows() != 3 || w.cols() != 1) {
+    throw DimensionError("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
+                         w.cols());
+  }
+  const Matrix& m = w.as_matrix();
+  const Expr& vx = m[0];
+  const Expr& vy = m[1];
+  const Expr& vz = m[2];
+  const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
+
+  // Coefficients of the converged power series.
+  // You can obtain these by integrating the exponential map of SO(3).
+  const Expr c0 = (1 - cos(angle)) / pow(angle, 2);
+  const Expr c1 = (angle - sin(angle)) / pow(angle, 3);
+  static const Expr c0_small_angle = Constants::One / 2;  // lim[angle -> 0] c0
+  static const Expr c1_small_angle = Constants::One / 6;  // lim[angle -> 0] c1
+
+  // clang-format off
+  const MatrixExpr skew_v = make_matrix(3, 3,
+                                          0, -vz,  vy,
+                                         vz,   0, -vx,
+                                        -vy,  vx,   0);
+  // clang-format on
+  static const auto I3 = make_identity(3);
+
+  if (epsilon) {
+    const Expr condition = angle > *epsilon;
+    return I3 + skew_v * where(condition, c0, c0_small_angle) +
+           (skew_v * skew_v) * where(condition, c1, c1_small_angle);
+  } else {
+    return I3 + skew_v * c0 + (skew_v * skew_v) * c1;
+  }
 }
 
 }  // namespace math

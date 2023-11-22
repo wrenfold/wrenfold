@@ -173,8 +173,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTem
   formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
-static constexpr std::string_view string_for_built_in_function_call(
-    const BuiltInFunctionName name) {
+static constexpr std::string_view cpp_string_for_built_in_function_call(
+    const BuiltInFunctionName name) noexcept {
   switch (name) {
     case BuiltInFunctionName::Cos:
       return "std::cos";
@@ -213,7 +213,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
         "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
         make_view(x.args[0]), make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", string_for_built_in_function_call(x.function),
+    formatter.format("{}({})", cpp_string_for_built_in_function_call(x.function),
                      make_join_view(*this, ", ", x.args));
   }
 }
@@ -251,6 +251,25 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
     formatter.format("const {} {} = {};", string_from_numeric_cast_type(x.type), x.name,
                      make_view(x.value));
   }
+}
+
+static constexpr std::string_view cpp_string_for_symbolic_constant(
+    const SymbolicConstants value) noexcept {
+  switch (value) {
+    case SymbolicConstants::Euler:
+      return "M_E";
+    case SymbolicConstants::Pi:
+      return "M_PI";
+    case SymbolicConstants::True:
+      return "true";
+    case SymbolicConstants::False:
+      return "false";
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::SpecialConstant& x) const {
+  formatter.format("{}", cpp_string_for_symbolic_constant(x.value));
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {

@@ -48,10 +48,10 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
   EXPECT_EIGEN_NEAR(quat_interp(q0, q1, 0.25).coeffs(), q_gen.coeffs(), 2.0e-16);
 
   // compute derivatives numerically
-  const Matrix3d D0_num = numerical_jacobian(Vector3d::Zero().eval(), [&](const Vector3d& w) {
+  const Matrix3d D0_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
     return local_coordinates(quat_interp(q0, q1, 0.25), quat_interp(retract(q0, w), q1, 0.25));
   });
-  const Matrix3d D1_num = numerical_jacobian(Vector3d::Zero().eval(), [&](const Vector3d& w) {
+  const Matrix3d D1_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
     return local_coordinates(quat_interp(q0, q1, 0.25), quat_interp(q0, retract(q1, w), 0.25));
   });
 

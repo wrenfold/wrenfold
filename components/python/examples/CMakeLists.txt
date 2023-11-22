@@ -1,1 +1,2 @@
+add_subdirectory(imu_integration)
 add_subdirectory(rotation_error)
