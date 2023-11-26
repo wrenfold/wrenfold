@@ -8,10 +8,13 @@
 
 namespace math {
 
+// Convert the IR operations back to expressions.
+// This is supported so we can do round-trip tests.
 struct ExprFromIrVisitor {
   explicit ExprFromIrVisitor(const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression,
-                             const std::unordered_map<std::string, bool>* output_arg_exists)
-      : value_to_expression_(value_to_expression), output_arg_exists_(output_arg_exists) {}
+                             std::unordered_map<std::string, bool>&& output_arg_exists)
+      : value_to_expression_(value_to_expression),
+        output_arg_exists_(std::move(output_arg_exists)) {}
 
   Expr operator()(const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
     return map_value(args[0]) + map_value(args[1]);
@@ -22,8 +25,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
-    ZEN_ASSERT(output_arg_exists_, "Must have an output arg map to process `OutputRequired`");
-    return output_arg_exists_->at(output.name) ? Constants::True : Constants::False;
+    return output_arg_exists_.at(output.name) ? Constants::True : Constants::False;
   }
 
   Expr operator()(const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
@@ -75,19 +77,19 @@ struct ExprFromIrVisitor {
     return load.expr;
   }
 
-  Expr map_value(const ir::ValuePtr& val) const {
-    const auto arg_it = value_to_expression_.find(val);
-    ZEN_ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", val->name());
+  Expr map_value(ir::ValuePtr value) const {
+    const auto arg_it = value_to_expression_.find(value);
+    ZEN_ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", value->name());
     return arg_it->second;
   }
 
   const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression_;
-  const std::unordered_map<std::string, bool>* output_arg_exists_;
+  const std::unordered_map<std::string, bool> output_arg_exists_;
 };
 
 std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>
 create_output_expression_map(ir::BlockPtr starting_block,
-                             const std::unordered_map<std::string, bool>* output_arg_exists) {
+                             std::unordered_map<std::string, bool>&& output_arg_exists) {
   std::unordered_map<ir::ValuePtr, Expr> value_to_expression{};
   value_to_expression.reserve(200);
 
@@ -102,6 +104,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
   std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>> output_map{};
   output_map.reserve(5);
 
+  const ExprFromIrVisitor visitor{value_to_expression, std::move(output_arg_exists)};
   while (!queue.empty()) {
     // de-queue the next block
     const ir::BlockPtr block = queue.front();
@@ -112,12 +115,11 @@ create_output_expression_map(ir::BlockPtr starting_block,
     }
     completed.insert(block);
 
-    const ExprFromIrVisitor visitor{value_to_expression, output_arg_exists};
     for (const ir::ValuePtr& code : block->operations) {
       // Visit the operation, and convert it to an expression.
-      // We don't do anything w/ jumps, which don't actually translate to an output value directly.
+      // We don't do anything w/ jumps - they do not actually translate to an output value directly.
       overloaded_visit(
-          code->value_op(), [](const ir::JumpCondition&) {},
+          code->value_op(), [](const ir::JumpCondition&) constexpr {},
           [&](const ir::Save& save) {
             // Get all the output expressions for this output:
             std::vector<Expr> output_expressions{};
@@ -135,7 +137,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
           });
     }
 
-    // If all the ancestors of a block are done, we wire it jump.
+    // If all the ancestors of a block are done, we can queue it:
     for (const ir::BlockPtr b : block->descendants) {
       const bool valid = std::all_of(b->ancestors.begin(), b->ancestors.end(),
                                      [&](auto blk) { return completed.count(blk) > 0; });

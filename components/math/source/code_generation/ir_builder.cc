@@ -427,6 +427,9 @@ struct IRFormVisitor {
   const FinalCounts& counts_;
 };
 
+// We traverse either upwards or downwards, recursively coloring nodes until we find a node
+// that has already been colored - that is the intersection point. There might be more efficient
+// ways to implement this, but we are doing relatively small searches.
 ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
                               const SearchDirection direction) {
   // queue with [node, color]

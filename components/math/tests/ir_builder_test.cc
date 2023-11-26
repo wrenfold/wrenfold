@@ -95,7 +95,7 @@ void check_output_expressions(const std::vector<ExpressionGroup>& expected_expre
 }
 
 void check_expressions(const std::vector<ExpressionGroup>& expected_expressions, const FlatIr& ir) {
-  auto output_expressions = create_output_expression_map(ir.get_block(), nullptr);
+  auto output_expressions = create_output_expression_map(ir.get_block(), {});
   check_output_expressions(expected_expressions, output_expressions, ir);
 }
 
@@ -104,8 +104,8 @@ void check_expressions(const std::vector<ExpressionGroup>& expected_expressions,
   const OptionalArgPermutations permutations{expected_expressions};
   for (std::size_t i = 0; i < permutations.num_permutations(); ++i) {
     // test permutation `i`:
-    const auto output_map = permutations.get_permutation(i);
-    auto output_expressions = create_output_expression_map(ir.first_block(), &output_map);
+    auto output_map = permutations.get_permutation(i);
+    auto output_expressions = create_output_expression_map(ir.first_block(), std::move(output_map));
     check_output_expressions(expected_expressions, output_expressions, ir);
   }
 }

@@ -181,9 +181,6 @@ struct Branch {
   // Statements if the condition is false:
   std::vector<Variant> else_branch;
 
-  Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
-         std::vector<Variant>&& else_branch);
-
   template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::Variant, T>>>
   Branch(T&& arg, std::vector<Variant>&& if_branch, std::vector<Variant>&& else_branch)
       : condition{std::make_shared<const ast::Variant>(std::forward<T>(arg))},
@@ -288,25 +285,19 @@ struct SpecialConstant {
   SymbolicConstants value;
 };
 
+// Create AST from the IR:
+std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature);
+
 // method definitions:
 
 inline FunctionDefinition::FunctionDefinition(FunctionSignature signature,
                                               std::vector<ast::Variant> body)
     : signature(std::move(signature)), body(std::move(body)) {}
 
-inline ConstructReturnValue::ConstructReturnValue(ast::Type type, std::vector<Variant>&& args)
+inline ConstructReturnValue::ConstructReturnValue(ast::Type type, std::vector<ast::Variant>&& args)
     : type(type), args(std::move(args)) {}
 
 inline Declaration::Declaration(std::string name, NumericType type, VariantPtr value)
     : name(std::move(name)), type(type), value(std::move(value)) {}
-
-inline Branch::Branch(VariantPtr condition, std::vector<Variant>&& if_branch,
-                      std::vector<Variant>&& else_branch)
-    : condition(std::move(condition)),
-      if_branch(std::move(if_branch)),
-      else_branch(std::move(else_branch)) {}
-
-// Create AST from the IR:
-std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature);
 
 }  // namespace math::ast
