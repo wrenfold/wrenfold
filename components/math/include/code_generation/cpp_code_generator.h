@@ -6,14 +6,6 @@ namespace math {
 
 class CppCodeGenerator {
  public:
-  enum class TypeContext {
-    FunctionBody,
-    ReturnValue,
-    InputArgument,
-    OutputArgument,
-    OptionalOutputArgument,
-  };
-
   std::string generate_code(const ast::FunctionSignature& signature,
                             const std::vector<ast::Variant>& body) const;
 
@@ -22,13 +14,6 @@ class CppCodeGenerator {
   template <typename... Args>
   auto make_view(Args&&... args) const {
     return ::math::make_fmt_view(*this, std::forward<Args>(args)...);
-  }
-
-  void operator()(CodeFormatter& formatter, const ast::ScalarType&,
-                  const TypeContext context) const;
-
-  void operator()(CodeFormatter& formatter, const ast::Type& x, TypeContext context) const {
-    std::visit([&](const auto& type) { return operator()(formatter, type, context); }, x);
   }
 
   void operator()(CodeFormatter& formatter, const ast::Add& x) const;
@@ -50,7 +35,7 @@ class CppCodeGenerator {
   void operator()(CodeFormatter& formatter, const ast::Declaration& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::FloatConstant& x) const {
-    formatter.format("{:.16}", x.value);
+    formatter.format("{}", x.value);
   }
 
   void operator()(CodeFormatter& formatter, const ast::SpecialConstant& x) const;
