@@ -38,6 +38,21 @@ inline Expr exclusive_or(Expr x, Expr y) {
   return where(cond_x, where(cond_y, 0, 1), where(cond_y, 1, 0));
 }
 
+// Some arbitrary nested conditional logic.
+inline auto nested_conditionals_1(Expr x, Expr y) {
+  Expr c0 = where(y > 0, cos(x * y), cos(x) + 2);
+  Expr c1 = where(x > 0, log(abs(y)), atan2(y, x) * 3);
+  Expr c2 = where(x - y > 0, c0 * 3 - sqrt(abs(c0)), pow(abs(c1), 1.0 / 3.0) / 5);
+  return std::make_tuple(ReturnValue(c2), OutputArg("output_2", c2));
+}
+
+inline auto nested_conditionals_2(Expr x, Expr y) {
+  Expr c0 = where(y > 0, cos(x * y), sin(22 / y) - 1);
+  Expr c1 = where(x > 0, c0, atan2(y * 0.4, x * 0.1) * 19);
+  Expr c2 = where(x - y > 0, c1, sqrt(abs(x * y)));
+  return std::make_tuple(ReturnValue(c2), OutputArg("output_2", c2));
+}
+
 // Test generation of signum and abs.
 inline auto signum_and_abs(Expr x) {
   return std::make_tuple(ReturnValue(signum(x)), OutputArg("abs", abs(x)));
