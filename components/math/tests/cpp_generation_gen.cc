@@ -29,6 +29,7 @@ int main() {
   generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", Arg("x"), Arg("y"));
   generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", Arg("x"), Arg("y"));
   generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", Arg("w"));
+  generate_func(gen, code, &rotation_vector_from_matrix, "rotation_vector_from_matrix", Arg("R"));
 
   code += "} // namespace gen";
 

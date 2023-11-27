@@ -345,12 +345,40 @@ struct IRFormVisitor {
     throw TypeError("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
   }
 
+  static constexpr StandardLibraryMathFunction standard_library_function_from_built_in(
+      BuiltInFunction name) {
+    switch (name) {
+      case BuiltInFunction::Cos:
+        return StandardLibraryMathFunction::Cos;
+      case BuiltInFunction::Sin:
+        return StandardLibraryMathFunction::Sin;
+      case BuiltInFunction::Tan:
+        return StandardLibraryMathFunction::Tan;
+      case BuiltInFunction::ArcCos:
+        return StandardLibraryMathFunction::ArcCos;
+      case BuiltInFunction::ArcSin:
+        return StandardLibraryMathFunction::ArcSin;
+      case BuiltInFunction::ArcTan:
+        return StandardLibraryMathFunction::ArcTan;
+      case BuiltInFunction::Log:
+        return StandardLibraryMathFunction::Log;
+      case BuiltInFunction::Abs:
+        return StandardLibraryMathFunction::Abs;
+      case BuiltInFunction::Signum:
+        return StandardLibraryMathFunction::Signum;
+      case BuiltInFunction::Arctan2:
+        return StandardLibraryMathFunction::Arctan2;
+    }
+    throw AssertionError("Invalid enum value: {}", string_from_built_in_function(name));
+  }
+
   ir::ValuePtr operator()(const Function& func, const Expr&) {
     std::vector<ir::ValuePtr> args;
     args.reserve(func.arity());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
-    return push_operation(ir::CallBuiltInFunction{func.enum_value()}, std::move(args));
+    auto enum_value = standard_library_function_from_built_in(func.enum_value());
+    return push_operation(ir::CallStandardLibraryFunction{enum_value}, std::move(args));
   }
 
   ir::ValuePtr operator()(const Infinity&, const Expr&) const {
@@ -364,11 +392,13 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Power& pow, const Expr&) {
-    const ir::ValuePtr b = apply(pow.base());
-    const ir::ValuePtr e = apply(pow.exponent());
+    const ir::ValuePtr base = apply(pow.base());
+    const ir::ValuePtr exponent = apply(pow.exponent());
     const NumericType promoted_type =
-        std::max(NumericType::Integer, std::max(b->numeric_type(), e->numeric_type()));
-    return push_operation(ir::Pow{}, maybe_cast(b, promoted_type), maybe_cast(e, promoted_type));
+        std::max(NumericType::Integer, std::max(base->numeric_type(), exponent->numeric_type()));
+    // TODO: Should not be hard-coded to Powf.
+    return push_operation(ir::CallStandardLibraryFunction{StandardLibraryMathFunction::Powf},
+                          maybe_cast(base, promoted_type), maybe_cast(exponent, promoted_type));
   }
 
   ir::ValuePtr operator()(const Rational&, const Expr& expr) {

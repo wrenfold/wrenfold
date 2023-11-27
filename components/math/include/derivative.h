@@ -34,7 +34,6 @@ class DiffVisitor {
 
  private:
   Expr cached_visit(const Expr& expr);
-  Expr power_diff(const Expr& a, const Expr& b);
 
   // Argument we differentiate with respect to.
   const Expr& argument_;

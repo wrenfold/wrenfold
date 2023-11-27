@@ -68,13 +68,20 @@ inline auto nested_conditionals_2(Expr x, Expr y) {
   return c2;
 }
 
-// Create a rotation matrix from a rodrigues vector, and the 9x3 Jacobian of the rotation matrix
+// Create a rotation matrix from a Rodrigues vector, and the 9x3 Jacobian of the rotation matrix
 // elements with respect to the vector.
 inline auto create_rotation_matrix(ta::StaticMatrix<3, 1> w) {
   MatrixExpr R = Quaternion::from_rotation_vector(w.inner(), 1.0e-16).to_rotation_matrix();
   MatrixExpr R_diff = vectorize_matrix(R).jacobian(w);
   return std::make_tuple(OutputArg("R", ta::StaticMatrix<3, 3>{R}),
                          OptionalOutputArg("R_D_w", ta::StaticMatrix<9, 3>{R_diff}));
+}
+
+// Recover a Rodrigues rotation vector from a 3x3 rotation matrix.
+inline auto rotation_vector_from_matrix(ta::StaticMatrix<3, 3> R) {
+  Quaternion q = Quaternion::from_rotation_matrix(R);
+  ta::StaticMatrix<3, 1> w = q.to_rotation_vector(1.0e-16);
+  return std::make_tuple(OutputArg("w", w));
 }
 
 }  // namespace math

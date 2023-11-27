@@ -189,11 +189,11 @@ struct Branch {
 };
 
 struct Call {
-  BuiltInFunctionName function;
+  StandardLibraryMathFunction function;
   std::vector<Variant> args;
 
   template <typename... Args>
-  explicit Call(BuiltInFunctionName function, Args&&... inputs)
+  explicit Call(StandardLibraryMathFunction function, Args&&... inputs)
       : function(function), args{std::forward<Args>(inputs)...} {}
 };
 

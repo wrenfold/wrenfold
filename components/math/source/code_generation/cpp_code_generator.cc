@@ -152,30 +152,31 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTem
   formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
-static constexpr std::string_view cpp_string_for_built_in_function_call(
-    const BuiltInFunctionName name) noexcept {
+static constexpr std::string_view cpp_string_for_std_function(
+    const StandardLibraryMathFunction name) noexcept {
   switch (name) {
-    case BuiltInFunctionName::Cos:
+    case StandardLibraryMathFunction::Cos:
       return "std::cos";
-    case BuiltInFunctionName::Sin:
+    case StandardLibraryMathFunction::Sin:
       return "std::sin";
-    case BuiltInFunctionName::Tan:
+    case StandardLibraryMathFunction::Tan:
       return "std::tan";
-    case BuiltInFunctionName::ArcCos:
+    case StandardLibraryMathFunction::ArcCos:
       return "std::acos";
-    case BuiltInFunctionName::ArcSin:
+    case StandardLibraryMathFunction::ArcSin:
       return "std::asin";
-    case BuiltInFunctionName::ArcTan:
+    case StandardLibraryMathFunction::ArcTan:
       return "std::atan";
-    case BuiltInFunctionName::Log:
+    case StandardLibraryMathFunction::Log:
       return "std::log";
-    case BuiltInFunctionName::Sqrt:
+    case StandardLibraryMathFunction::Sqrt:
       return "std::sqrt";
-    case BuiltInFunctionName::Abs:
+    case StandardLibraryMathFunction::Abs:
       return "std::abs";
-    case BuiltInFunctionName::Arctan2:
+    case StandardLibraryMathFunction::Arctan2:
       return "std::atan2";
-    case BuiltInFunctionName::Pow:
+    case StandardLibraryMathFunction::Powi:
+    case StandardLibraryMathFunction::Powf:
       return "std::pow";
     default:
       break;
@@ -184,15 +185,14 @@ static constexpr std::string_view cpp_string_for_built_in_function_call(
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  if (x.function == BuiltInFunctionName::Signum) {
-    // We need to special-case signum because it doesn't exist as a free-standing function in the
-    // stl.
+  if (x.function == StandardLibraryMathFunction::Signum) {
+    // We need to special-case signum because it doesn't exist as a free-standing function.
     // TODO: This should be an int expression.
     formatter.format(
         "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
         make_view(x.args[0]), make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", cpp_string_for_built_in_function_call(x.function),
+    formatter.format("{}({})", cpp_string_for_std_function(x.function),
                      make_join_view(*this, ", ", x.args));
   }
 }

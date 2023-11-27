@@ -453,7 +453,7 @@ class LimitVisitor {
     }
 
     switch (func.enum_value()) {
-      case BuiltInFunctionName::Log: {
+      case BuiltInFunction::Log: {
         ZEN_ASSERT_EQUAL(1, args.size());
         if (is_zero(args[0])) {
           // In the context of a limit, allow log(0) --> -∞

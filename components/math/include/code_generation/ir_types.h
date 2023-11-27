@@ -107,21 +107,29 @@ struct Cast {
 };
 
 // A call to a built-in mathematical function like sin, cos, log, etc.
-struct CallBuiltInFunction {
+struct CallStandardLibraryFunction {
   constexpr static bool is_commutative() { return false; }
   constexpr static int num_value_operands() { return -1; }
-  constexpr std::string_view to_string() const { return math::to_string(name); }
+
+  constexpr std::string_view to_string() const {
+    return string_from_standard_library_function(name);
+  }
+
   constexpr std::size_t hash_seed() const { return static_cast<std::size_t>(name); }
-  constexpr bool is_same(const CallBuiltInFunction& other) const { return name == other.name; }
+
+  constexpr bool is_same(const CallStandardLibraryFunction& other) const {
+    return name == other.name;
+  }
 
   // TODO: This should not be hardcoded to `real`.
   constexpr NumericType determine_type(const std::vector<ValuePtr>&) const {
     return NumericType::Real;
   }
 
-  CallBuiltInFunction(BuiltInFunctionName name) : name(name) {}
+  explicit constexpr CallStandardLibraryFunction(StandardLibraryMathFunction name) noexcept
+      : name(name) {}
 
-  BuiltInFunctionName name;
+  StandardLibraryMathFunction name;
 };
 
 // Compare two operands (equality or inequality).
@@ -241,19 +249,6 @@ struct Phi {
   }
 };
 
-// Take thw power of the first operand to the second.
-struct Pow {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 2; }
-  constexpr std::string_view to_string() const { return "pow"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Pow&) const { return true; }
-
-  NumericType determine_type(ValuePtr a, ValuePtr b) const {
-    return std::max(std::max(get_value_type(a), get_value_type(b)), NumericType::Integer);
-  }
-};
-
 // A sink used to indicate that a value is consumed by the output (for example in a return type or
 // an output argument). Operands to `Save` are never eliminated.
 struct Save {
@@ -283,8 +278,8 @@ struct JumpCondition {
 };
 
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, CallBuiltInFunction, Cast, Compare, Cond, Copy, Load, Mul,
-                               OutputRequired, Pow, Phi, Save, JumpCondition>;
+using Operation = std::variant<Add, CallStandardLibraryFunction, Cast, Compare, Cond, Copy, Load,
+                               Mul, OutputRequired, Phi, Save, JumpCondition>;
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.

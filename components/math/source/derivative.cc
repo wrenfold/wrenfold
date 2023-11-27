@@ -129,40 +129,37 @@ Expr DiffVisitor::operator()(const Function& func) {
 
   const auto& args = func.args();
   switch (func.enum_value()) {
-    case BuiltInFunctionName::Cos:
+    case BuiltInFunction::Cos:
       // cos(f(x)) --> -sin(f(x)) * f'(x)
       return -sin(args[0]) * d_args[0];
-    case BuiltInFunctionName::Sin:
+    case BuiltInFunction::Sin:
       // sin(f(x)) --> cos(f(x)) * f'(x)
       return cos(args[0]) * d_args[0];
-    case BuiltInFunctionName::Tan:
+    case BuiltInFunction::Tan:
       // tan(f(x)) --> sec^2(f(x)) * f'(x) --> 1/cos^2(f(x)) * f'(x)
       return pow(cos(args[0]), -2) * d_args[0];
-    case BuiltInFunctionName::ArcCos:
+    case BuiltInFunction::ArcCos:
       // acos(f(x)) --> -f'(x) / sqrt(1 - f(x)^2)
       return -pow(Constants::One - pow(args[0], 2), negative_one_half) * d_args[0];
-    case BuiltInFunctionName::ArcSin:
+    case BuiltInFunction::ArcSin:
       // asin(f(x)) --> f'(x) / sqrt(1 - f(x)^2)
       return pow(Constants::One - pow(args[0], 2), negative_one_half) * d_args[0];
-    case BuiltInFunctionName::ArcTan:
+    case BuiltInFunction::ArcTan:
       // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
       return d_args[0] / (pow(args[0], 2) + Constants::One);
-    case BuiltInFunctionName::Log:
+    case BuiltInFunction::Log:
       // log(f(x)) --> 1/f(x) * f'(x)
       return Power::create(args[0], Constants::NegativeOne) * d_args[0];
-    case BuiltInFunctionName::Sqrt:
-      // sqrt(f(x)) --> (1/2) * f'(x) / sqrt(f(x))
-      return pow(args[0], negative_one_half) * one_half * d_args[0];
-    case BuiltInFunctionName::Abs:
+    case BuiltInFunction::Abs:
       // |f(x)| --> f(x)/|f(x)| * f'(x)
       // TODO: Add complex argument version.
       return args[0] / abs(args[0]) * d_args[0];
-    case BuiltInFunctionName::Signum: {
+    case BuiltInFunction::Signum: {
       // signum(f(x)) --> d[heaviside(f(x)) - heaviside(-f(x))]/dx = 2 * dirac(f(x)) * f'(x)
       // However, we don't have dirac - so we leave this abstract.
       return Derivative::create(signum(args[0]), argument_, 1);
     }
-    case BuiltInFunctionName::Arctan2: {
+    case BuiltInFunction::Arctan2: {
       const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
       const Expr y_diff = visit_with_expr(args[0], *this);
       const Expr x_diff = visit_with_expr(args[1], *this);
@@ -172,10 +169,6 @@ Expr DiffVisitor::operator()(const Function& func) {
       // atan2(y(u), x(u))/du = -y/(y^2 + x^2) * x'(u) + x/(y^2 + x^2) * y'(u)
       return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
     }
-    case BuiltInFunctionName::Pow:
-      return power_diff(args[0], args[1]);
-    case BuiltInFunctionName::ENUM_SIZE:
-      break;
   }
   ZEN_ASSERT(false, "Invalid unary function: {}", func.function_name());
   return Constants::Zero;
@@ -184,9 +177,9 @@ Expr DiffVisitor::operator()(const Function& func) {
 Expr DiffVisitor::operator()(const Infinity&) const { return Constants::Zero; }
 Expr DiffVisitor::operator()(const Integer&) const { return Constants::Zero; }
 Expr DiffVisitor::operator()(const Float&) const { return Constants::Zero; }
-Expr DiffVisitor::operator()(const Power& pow) { return power_diff(pow.base(), pow.exponent()); }
-
-Expr DiffVisitor::power_diff(const Expr& a, const Expr& b) {
+Expr DiffVisitor::operator()(const Power& pow) {
+  const Expr& a = pow.base();
+  const Expr& b = pow.exponent();
   const Expr a_diff = cached_visit(a);
   const Expr b_diff = cached_visit(b);
   if (is_zero(a_diff) && is_zero(b_diff)) {
