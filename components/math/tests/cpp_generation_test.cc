@@ -115,7 +115,6 @@ TEST(CppGenerationTest, TestSignumAndAbs) {
 
 TEST(CppGenerationTest, TestNestedConditionals1) {
   auto evaluator = create_evaluator(&nested_conditionals_1);
-
   // Exercise all the different control paths.
   // x > 0, y > 0, |x| > |y|
   EXPECT_EQ(evaluator(0.5, 0.2), gen::nested_conditionals_1(0.5, 0.2));
@@ -133,7 +132,6 @@ TEST(CppGenerationTest, TestNestedConditionals1) {
 
 TEST(CppGenerationTest, TestNestedConditionals2) {
   auto evaluator = create_evaluator(&nested_conditionals_2);
-
   // x > 0, y > 0, |x| > |y|
   EXPECT_EQ(evaluator(0.73, 0.02), gen::nested_conditionals_2(0.73, 0.02));
   // x > 0, y > 0, |x| <= |y|

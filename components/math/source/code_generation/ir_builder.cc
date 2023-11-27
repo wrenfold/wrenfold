@@ -407,7 +407,9 @@ struct IRFormVisitor {
       // For additions, check if the negative of this sum was already computed:
       const Expr negative_add = -expr;
       if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
-        ir::ValuePtr mul = push_operation(ir::Mul{}, it->second, apply(Constants::NegativeOne));
+        const auto promoted_type = std::max(it->second->numeric_type(), NumericType::Integer);
+        const ir::ValuePtr negative_one = maybe_cast(apply(Constants::NegativeOne), promoted_type);
+        ir::ValuePtr mul = push_operation(ir::Mul{}, it->second, negative_one);
         computed_values_.emplace(expr, mul);
         return mul;
       }
