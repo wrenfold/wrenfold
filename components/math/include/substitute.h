@@ -8,7 +8,6 @@
 namespace math {
 
 // Visitor for replacing variables in an expression tree.
-// TODO: De-duplicate NumericFunctionEvaluator with this object?
 class SubstituteVariablesVisitor {
  public:
   SubstituteVariablesVisitor() { cache_.reserve(50); }
@@ -16,6 +15,10 @@ class SubstituteVariablesVisitor {
   // Add a new substitution to the list we will apply.
   // This should be called before visiting any expressions.
   void add_substitution(const Expr& target, Expr replacement);
+
+  // Add a new substitution to the list we will apply.
+  // Version that accepts `Variable` directly.
+  void add_substitution(Variable variable, Expr replacement);
 
   // Apply the substitute variable visitor. The cache is checked first.
   Expr apply(const Expr& expression);

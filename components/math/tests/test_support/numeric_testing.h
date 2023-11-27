@@ -2,9 +2,10 @@
 #pragma once
 #include <Eigen/Core>
 
+#include "evaluate.h"
 #include "expression.h"
-#include "expressions/all_expressions.h"  //  Needed for NumericFunctionEvaluator
 #include "function_evaluator_detail.h"
+#include "substitute.h"
 #include "type_annotations.h"
 #include "visitor_impl.h"
 
@@ -26,49 +27,11 @@ using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
 }  // namespace detail
 
 // The numeric function evaluator operates in two steps:
-// 1. We traverse the input arguments and copy their values into `values` as `Float` objects.
-// 2. We traverse an expression tree and replace `FuncArgVariable` objects by their corresponding
-// `Float`.
+// 1. Replace `Variable` expression with float values.
+// 2. Collapse all other numeric values into floats.
 struct NumericFunctionEvaluator {
-  Expr operator()(const Variable& var, const Expr& input) const {
-    const auto& content = var.identifier();
-    if (const FuncArgVariable* arg = std::get_if<FuncArgVariable>(&var.identifier());
-        arg != nullptr) {
-      auto it = values.find(*arg);
-      ZEN_ASSERT(it != values.end(), "Missing function argument: ({}, {})", arg->arg_index(),
-                 arg->element_index());
-      return it->second;
-    } else {
-      return input;
-    }
-  }
-
-  template <typename T>
-  std::enable_if_t<!std::is_same_v<T, Variable>, Expr> operator()(const T& input_typed,
-                                                                  const Expr& input) {
-    if constexpr (T::IsLeafNode) {
-      return input;
-    } else {
-      return input_typed.map_children([this](const Expr& expr) { return cached_visit(expr); });
-    }
-  }
-
-  // Visit and cache the result.
-  Expr cached_visit(const Expr& input) {
-    auto it = cache.find(input);
-    if (it != cache.end()) {
-      return it->second;
-    }
-    Expr result = visit_with_expr(input, *this);
-    cache.emplace(input, result);
-    return result;
-  }
-
-  // Map from function argument input to numeric expression:
-  std::unordered_map<FuncArgVariable, Expr, hash_struct<FuncArgVariable>> values;
-
-  // Cached evaluated values:
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache;
+  SubstituteVariablesVisitor substitute{};
+  EvaluateVisitor evaluate{};
 };
 
 template <typename T>
@@ -82,15 +45,13 @@ auto apply_numeric_evaluator(NumericFunctionEvaluator& evaluator, const T& input
 template <>
 struct apply_numeric_evaluator_impl<Expr> {
   double operator()(NumericFunctionEvaluator& evaluator, const Expr& input) const {
-    const Expr subs = evaluator.cached_visit(input);
-    if (const Float* f = cast_ptr<Float>(subs); f != nullptr) {
+    const Expr subs = evaluator.substitute.apply(input);
+    const Expr evaluated = evaluator.evaluate.apply(subs);
+    if (const Float* f = cast_ptr<Float>(evaluated); f != nullptr) {
       return f->get_value();
-    } else if (const Integer* i = cast_ptr<Integer>(subs); i != nullptr) {
-      // TODO: Support returning the correct type here.
-      return static_cast<double>(i->get_value());
     } else {
       throw TypeError("Expression should be a floating point value or integer. Got type {}: {}",
-                      input.type_name(), input.to_string());
+                      subs.type_name(), subs);
     }
   }
 };
@@ -117,7 +78,6 @@ struct apply_numeric_evaluator_impl<ta::StaticMatrix<Rows, Cols>> {
     Eigen::Matrix<double, Rows, Cols> output;
     for (index_t i = 0; i < Rows; ++i) {
       for (index_t j = 0; j < Cols; ++j) {
-        // Apply the evaluator for `Expr`
         output(i, j) = apply_numeric_evaluator(evaluator, input(i, j));
       }
     }
@@ -130,42 +90,42 @@ struct collect_function_input_impl;
 
 template <std::size_t Index>
 struct collect_function_input_impl<Index, double> {
-  void operator()(NumericFunctionEvaluator& output, const double arg) const {
-    output.values.emplace(FuncArgVariable(Index, 0), Float::create(arg));
+  void operator()(SubstituteVariablesVisitor& output, const double arg) const {
+    Variable var{FuncArgVariable(Index, 0), NumberSet::Real};
+    output.add_substitution(std::move(var), Float::create(arg));
   }
 };
 
 template <std::size_t Index, int Rows, int Cols>
 struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
-  void operator()(NumericFunctionEvaluator& output,
+  void operator()(SubstituteVariablesVisitor& output,
                   const Eigen::Matrix<double, Rows, Cols>& arg) const {
     static_assert(Rows > 0);
     static_assert(Cols > 0);
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
-        output.values.emplace(FuncArgVariable(Index, element), Float::create(arg(i, j)));
+        Variable var{FuncArgVariable(Index, element), NumberSet::Real};
+        output.add_substitution(std::move(var), Float::create(arg(i, j)));
       }
     }
   }
 };
 
 template <std::size_t Index, typename NumericArgType>
-void collect_function_input(NumericFunctionEvaluator& evaluator,
-                            const NumericArgType& numeric_arg) {
-  collect_function_input_impl<Index, NumericArgType>{}(evaluator, numeric_arg);
+void collect_function_input(SubstituteVariablesVisitor& output, const NumericArgType& numeric_arg) {
+  collect_function_input_impl<Index, NumericArgType>{}(output, numeric_arg);
 }
 
 template <std::size_t... Indices, typename... NumericArgs>
-void collect_function_inputs(NumericFunctionEvaluator& evaluator, std::index_sequence<Indices...>,
+void collect_function_inputs(SubstituteVariablesVisitor& output, std::index_sequence<Indices...>,
                              NumericArgs&&... args) {
   static_assert(sizeof...(Indices) <= sizeof...(NumericArgs));
 #ifndef __GNUG__
   ([]() constexpr { static_assert(Indices <= sizeof...(NumericArgs)); }(), ...);
 #endif
   // Access args specified by `Indices` and call `collect_function_input` on all of them.
-  (collect_function_input<Indices>(evaluator, std::get<Indices>(std::forward_as_tuple(args...))),
-   ...);
+  (collect_function_input<Indices>(output, std::get<Indices>(std::forward_as_tuple(args...))), ...);
 }
 
 template <typename ArgList, typename OutputTuple, std::size_t... InputIndices,
@@ -181,7 +141,7 @@ auto create_evaluator_with_output_expressions(
                  std::tuple_element_t<OutputIndices, OutputTuple>>&... output_args) {
     // Copy all the input arguments into the evaluator:
     NumericFunctionEvaluator evaluator{};
-    collect_function_inputs(evaluator, input_seq, args...);
+    collect_function_inputs(evaluator.substitute, input_seq, args...);
 
     // Create a tuple of non-const references to output arguments of this lambda, and write to it
     // by doing substitution with the NumericFunctionEvaluator:
