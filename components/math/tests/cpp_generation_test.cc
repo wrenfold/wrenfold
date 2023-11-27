@@ -113,6 +113,41 @@ TEST(CppGenerationTest, TestSignumAndAbs) {
   EXPECT_EQ(800.0, abs_gen);
 }
 
+TEST(CppGenerationTest, TestNestedConditionals1) {
+  auto evaluator = create_evaluator(&nested_conditionals_1);
+
+  // Exercise all the different control paths.
+  // x > 0, y > 0, |x| > |y|
+  EXPECT_EQ(evaluator(0.5, 0.2), gen::nested_conditionals_1(0.5, 0.2));
+  // x > 0, y > 0, |x| <= |y|
+  EXPECT_EQ(evaluator(0.1, 0.3), gen::nested_conditionals_1(0.1, 0.3));
+  // x > 0, y <= 0, |x| > |y|
+  EXPECT_EQ(evaluator(2.4, -0.11), gen::nested_conditionals_1(2.4, -0.11));
+  // x > 0, y <= 0, |x| <= |y|
+  EXPECT_EQ(evaluator(1.3, -3.0), gen::nested_conditionals_1(1.3, -3.0));
+  // x <= 0, y > 0, |x| > |y|
+  EXPECT_EQ(evaluator(-0.8, 0.66), gen::nested_conditionals_1(-0.8, 0.66));
+  // x <= 0, y <= 0, |x| <= |y|
+  EXPECT_EQ(evaluator(-0.123, -0.5), gen::nested_conditionals_1(-0.123, -0.5));
+}
+
+TEST(CppGenerationTest, TestNestedConditionals2) {
+  auto evaluator = create_evaluator(&nested_conditionals_2);
+
+  // x > 0, y > 0, |x| > |y|
+  EXPECT_EQ(evaluator(0.73, 0.02), gen::nested_conditionals_2(0.73, 0.02));
+  // x > 0, y > 0, |x| <= |y|
+  EXPECT_EQ(evaluator(1.32, 1.32), gen::nested_conditionals_2(1.32, 1.32));
+  // x > 0, y <= 0, |x| > |y|
+  EXPECT_EQ(evaluator(7.2, -7.0), gen::nested_conditionals_2(7.2, -7.0));
+  // x > 0, y <= 0, |x| <= |y|
+  EXPECT_EQ(evaluator(5.6, -6.3), gen::nested_conditionals_2(5.6, -6.3));
+  // x <= 0, y > 0, |x| > |y|
+  EXPECT_EQ(evaluator(-1.0, 0.95), gen::nested_conditionals_2(-1.0, 0.95));
+  // x <= 0, y <= 0, |x| <= |y|
+  EXPECT_EQ(evaluator(-1.7, -2.0), gen::nested_conditionals_2(-1.7, -2.0));
+}
+
 TEST(CppGenerationTest, TestAtan2WithDerivatives) {
   auto evaluator = create_evaluator(&atan2_with_derivatives);
 

@@ -23,7 +23,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
 
   OutputIr output_ir{std::move(ir)};
 #if 0
-  fmt::print("IR ({}):\n{}\n", name, output_ir.ToString());
+  fmt::print("IR ({}):\n{}\n", name, output_ir.to_string());
   std::fflush(nullptr);
 #endif
 

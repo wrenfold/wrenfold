@@ -340,6 +340,27 @@ TEST(IrTest, TestConditionals7) {
   ASSERT_EQ(2, output_ir.num_conditionals()) << output_ir;
 }
 
+TEST(IrTest, TestConditionals8) {
+  // Nested conditionals (values of inner conditionals used for outer ones).
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        Expr c0 = where(y > 0, cos(x * y), cos(x) + 2);
+        Expr c1 = where(x > 0, log(abs(y)), atan2(y, x) * 3);
+        Expr c2 = where(x - y > 0, c0 * 3 - sqrt(abs(c0)), pow(abs(c1), 1.0 / 3.0) / 5);
+        return c2;
+      },
+      "func", Arg("x"), Arg("y"));
+
+  ASSERT_EQ(28, ir.num_operations()) << ir;
+  ASSERT_EQ(3, ir.num_conditionals()) << ir;
+  check_expressions(expected_expressions, ir);
+
+  OutputIr output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(28, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
+}
+
 TEST(IrTest, TestMatrixExpressions1) {
   // Create a matrix output:
   auto [expected_expressions, ir] = create_ir(
