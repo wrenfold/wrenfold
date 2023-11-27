@@ -26,6 +26,8 @@ int main() {
   generate_func(gen, code, &exclusive_or, "exclusive_or", Arg("x"), Arg("y"));
   generate_func(gen, code, &signum_and_abs, "signum_and_abs", Arg("x"));
   generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", Arg("y"), Arg("x"));
+  generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", Arg("x"), Arg("y"));
+  generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", Arg("x"), Arg("y"));
   generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", Arg("w"));
 
   code += "} // namespace gen";

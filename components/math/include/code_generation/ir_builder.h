@@ -98,12 +98,11 @@ struct OutputIr {
 enum class SearchDirection { Downwards, Upwards };
 
 // Find the block where control flow merges after branching into left/right.
-ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
-                              const SearchDirection direction);
+ir::BlockPtr find_merge_point(ir::BlockPtr left, ir::BlockPtr right, SearchDirection direction);
 
-// Re-create `Expr` tree from the IR representation. For use in unit tests.
+// Re-create `Expr` tree from the IR representation. For use in round-trip unit tests.
 std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>
 create_output_expression_map(ir::BlockPtr starting_block,
-                             const std::unordered_map<std::string, bool>* output_arg_exists);
+                             std::unordered_map<std::string, bool>&& output_arg_exists);
 
 }  // namespace math

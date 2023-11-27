@@ -8,26 +8,6 @@
 namespace math {
 using namespace math::custom_literals;
 
-Expr log(const Expr& x) {
-  if (x.is_identical_to(Constants::Euler)) {
-    return Constants::One;
-  }
-  if (is_one(x)) {
-    return Constants::Zero;
-  }
-  if (is_zero(x)) {
-    // log(0) does not exist. In the context of limits, it can be -∞ (but not otherwise).
-    return Constants::Undefined;
-  }
-  if (is_complex_infinity(x) || is_undefined(x)) {
-    return Constants::Undefined;  //  log(z-∞) is ∞, but we can't represent that.
-  }
-  // TODO: Check for negative values.
-  return make_expr<Function>(BuiltInFunctionName::Log, x);
-}
-
-Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
-
 template <typename Callable>
 std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
   if (const Float* const f = cast_ptr<Float>(arg); f != nullptr) {
@@ -42,6 +22,30 @@ std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
   }
   return {};
 }
+
+Expr log(const Expr& x) {
+  if (x.is_identical_to(Constants::Euler)) {
+    return Constants::One;
+  }
+  if (is_one(x)) {
+    return Constants::Zero;
+  }
+  if (is_zero(x)) {
+    // log(0) does not exist. In the context of limits, it can be -∞ (but not otherwise).
+    return Constants::Undefined;
+  }
+  if (is_complex_infinity(x) || is_undefined(x)) {
+    return Constants::Undefined;  //  log(z-∞) is ∞, but we can't represent that.
+  }
+  if (std::optional<Expr> f = operate_on_float(x, [](double x) { return std::log(x); });
+      f.has_value()) {
+    return std::move(*f);
+  }
+  // TODO: Check for negative values.
+  return make_expr<Function>(BuiltInFunctionName::Log, x);
+}
+
+Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
 
 std::optional<Rational> try_cast_to_rational(const Expr& expr) {
   if (const Rational* const r = cast_ptr<Rational>(expr); r != nullptr) {

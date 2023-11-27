@@ -407,7 +407,9 @@ struct IRFormVisitor {
       // For additions, check if the negative of this sum was already computed:
       const Expr negative_add = -expr;
       if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
-        ir::ValuePtr mul = push_operation(ir::Mul{}, it->second, apply(Constants::NegativeOne));
+        const auto promoted_type = std::max(it->second->numeric_type(), NumericType::Integer);
+        const ir::ValuePtr negative_one = maybe_cast(apply(Constants::NegativeOne), promoted_type);
+        ir::ValuePtr mul = push_operation(ir::Mul{}, it->second, negative_one);
         computed_values_.emplace(expr, mul);
         return mul;
       }
@@ -427,6 +429,9 @@ struct IRFormVisitor {
   const FinalCounts& counts_;
 };
 
+// We traverse either upwards or downwards, recursively coloring nodes until we find a node
+// that has already been colored - that is the intersection point. There might be more efficient
+// ways to implement this, but we are doing relatively small searches.
 ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
                               const SearchDirection direction) {
   // queue with [node, color]

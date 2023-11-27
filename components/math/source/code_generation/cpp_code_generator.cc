@@ -49,8 +49,8 @@ std::string CppCodeGenerator::generate_code(const ast::FunctionSignature& signat
   return result.get_output();
 }
 
-constexpr static std::string_view string_from_numeric_cast_type(
-    const NumericType destination_type) {
+constexpr static std::string_view cpp_string_from_numeric_cast_type(
+    const NumericType destination_type) noexcept {
   switch (destination_type) {
     case NumericType::Bool:
       return "bool";
@@ -105,10 +105,10 @@ void CppCodeGenerator::format_signature(CodeFormatter& formatter,
     } else {
       const NumericType numeric_type = std::get<ast::ScalarType>(arg->type()).numeric_type();
       if (arg->direction() == ast::ArgumentDirection::Input) {
-        formatter.format("const {}", string_from_numeric_cast_type(numeric_type));
+        formatter.format("const {}", cpp_string_from_numeric_cast_type(numeric_type));
       } else {
         // Output reference for now.
-        formatter.format("{}&", string_from_numeric_cast_type(numeric_type));
+        formatter.format("{}&", cpp_string_from_numeric_cast_type(numeric_type));
       }
     }
 
@@ -117,27 +117,6 @@ void CppCodeGenerator::format_signature(CodeFormatter& formatter,
 
   formatter.join(std::move(arg_printer), ", ", signature.arguments);
   formatter.format(")\n");
-}
-
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::ScalarType& scalar,
-                                  const TypeContext context) const {
-  const std::string_view numeric_type = string_from_numeric_cast_type(scalar.numeric_type());
-  switch (context) {
-    case TypeContext::InputArgument:
-    case TypeContext::FunctionBody:
-    case TypeContext::ReturnValue: {
-      formatter.format(numeric_type);
-      break;
-    }
-    case TypeContext::OutputArgument: {
-      formatter.format("{}&", numeric_type);
-      break;
-    }
-    case TypeContext::OptionalOutputArgument: {
-      formatter.format("{}*", numeric_type);
-      break;
-    }
-  }
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) const {
@@ -219,7 +198,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
-  formatter.format("static_cast<{}>({})", string_from_numeric_cast_type(x.destination_type),
+  formatter.format("static_cast<{}>({})", cpp_string_from_numeric_cast_type(x.destination_type),
                    make_view(x.arg));
 }
 
@@ -246,9 +225,9 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
   if (!x.value) {
-    formatter.format("{} {};", string_from_numeric_cast_type(x.type), x.name);
+    formatter.format("{} {};", cpp_string_from_numeric_cast_type(x.type), x.name);
   } else {
-    formatter.format("const {} {} = {};", string_from_numeric_cast_type(x.type), x.name,
+    formatter.format("const {} {} = {};", cpp_string_from_numeric_cast_type(x.type), x.name,
                      make_view(x.value));
   }
 }

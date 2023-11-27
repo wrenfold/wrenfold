@@ -11,8 +11,11 @@ namespace math {
 
 namespace ta = type_annotations;
 
+// A very simple function that combines three input arguments.
 inline Expr simple_multiply_add(Expr x, Expr y, Expr z) { return x * y + z; }
 
+// Rotate a 2D vector by an angle. Output the vector, and its derivative with respect
+// to the angle.
 inline auto vector_rotation_2d(Expr theta, ta::StaticMatrix<2, 1> v) {
   using namespace matrix_operator_overloads;
   MatrixExpr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
@@ -28,10 +31,10 @@ inline auto vector_norm_3d(ta::StaticMatrix<3, 1> v) {
   return std::make_tuple(ReturnValue(len), OutputArg("D_v", D_v));
 }
 
-// Heaviside step function - a very simple conditional.
+// Heaviside step function - a very simple test of conditionals.
 inline Expr heaviside(Expr x) { return where(x >= 0, 1, 0); }
 
-// Exclusive or on the conditions x > 0 and y > 0.
+// Exclusive or on the conditions x > 0 and y > 0 (a simple nested conditional).
 inline Expr exclusive_or(Expr x, Expr y) {
   Expr cond_x = x > 0;
   Expr cond_y = y > 0;
@@ -47,6 +50,22 @@ inline auto signum_and_abs(Expr x) {
 inline auto atan2_with_derivatives(Expr y, Expr x) {
   Expr f = atan2(y, x);
   return std::make_tuple(ReturnValue(f), OutputArg("D_y", f.diff(y)), OutputArg("D_x", f.diff(x)));
+}
+
+// Three layers of nested conditionals.
+inline auto nested_conditionals_1(Expr x, Expr y) {
+  Expr c0 = where(y > 0, cos(x * y), cos(x) + 2);
+  Expr c1 = where(x > 0, log(abs(y)), atan2(y, x) * 3);
+  Expr c2 = where(abs(x) > abs(y), c0 * 3 - sqrt(abs(c0)), pow(abs(c1), 1.0 / 3.0) / 5);
+  return c2;
+}
+
+// Nested conditionals, but only on the if-branch side.
+inline auto nested_conditionals_2(Expr x, Expr y) {
+  Expr c0 = where(y > 0, cos(x * y * Constants::Pi), sin(22 / y) - 3 * x);
+  Expr c1 = where(x > 0, c0, atan2(y * 0.4, x * 0.1) * 19 - y);
+  Expr c2 = where(abs(x) > abs(y), c1, sqrt(abs(x * y + 2 * x)));
+  return c2;
 }
 
 // Create a rotation matrix from a rodrigues vector, and the 9x3 Jacobian of the rotation matrix

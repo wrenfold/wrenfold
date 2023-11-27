@@ -347,10 +347,16 @@ MatrixExpr substitute_variables(const MatrixExpr& input,
 }
 
 void SubstituteVariablesVisitor::add_substitution(const Expr& target, Expr replacement) {
-  cache_.clear();  //  No longer valid when new expressions are added.
   const Variable& var = cast_checked<Variable>(target);
-  const auto [_, was_inserted] = substitutions_.emplace(var, std::move(replacement));
-  ZEN_ASSERT(was_inserted, "Variable already exists in the substitution list: {}", target);
+  add_substitution(var, std::move(replacement));
+}
+
+void SubstituteVariablesVisitor::add_substitution(Variable variable, Expr replacement) {
+  cache_.clear();  //  No longer valid when new expressions are added.
+  const auto [_, was_inserted] =
+      substitutions_.emplace(std::move(variable), std::move(replacement));
+  ZEN_ASSERT(was_inserted, "Variable already exists in the substitution list: {}",
+             variable.to_string());
 }
 
 Expr SubstituteVariablesVisitor::apply(const Expr& expression) {
