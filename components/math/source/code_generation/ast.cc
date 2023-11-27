@@ -298,7 +298,7 @@ struct AstBuilder {
     return ast::Add{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
-  ast::Variant operator()(const ir::Value& val, const ir::CallBuiltInFunction& func) {
+  ast::Variant operator()(const ir::Value& val, const ir::CallStandardLibraryFunction& func) {
     std::vector<ast::Variant> transformed_args{};
     transformed_args.reserve(val.num_operands());
     for (ir::ValuePtr arg : val.operands()) {
@@ -354,11 +354,6 @@ struct AstBuilder {
         throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
       }
     });
-  }
-
-  ast::Variant operator()(const ir::Value& val, const ir::Pow&) {
-    return ast::Call{BuiltInFunctionName::Pow, make_operation_argument(val[0]),
-                     make_operation_argument(val[1])};
   }
 
  private:

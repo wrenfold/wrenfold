@@ -177,7 +177,24 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("true") = Constants::True;
   m.attr("false") = Constants::False;
 
+  // Function enums.
+  py::enum_<BuiltInFunction>(m, "BuiltInFunction")
+      .value("Cos", BuiltInFunction::Cos)
+      .value("Sin", BuiltInFunction::Sin)
+      .value("Tan", BuiltInFunction::Tan)
+      .value("ArcCos", BuiltInFunction::ArcCos)
+      .value("ArcSin", BuiltInFunction::ArcSin)
+      .value("ArcTan", BuiltInFunction::ArcTan)
+      .value("Log", BuiltInFunction::Log)
+      .value("Abs", BuiltInFunction::Abs)
+      .value("Signum", BuiltInFunction::Signum)
+      .value("Arctan2", BuiltInFunction::Arctan2)
+      .def(
+          "to_string", [](BuiltInFunction name) { return string_from_built_in_function(name); },
+          py::doc("Convert to string."));
+
   // Exceptions:
+  py::register_exception<AssertionError>(m, "AssertionError");
   py::register_exception<DimensionError>(m, "DimensionError");
   py::register_exception<TypeError>(m, "TypeError");
 

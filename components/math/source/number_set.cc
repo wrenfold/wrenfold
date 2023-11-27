@@ -82,55 +82,42 @@ class DetermineSetVisitor {
     }
 
     switch (func.enum_value()) {
-      case BuiltInFunctionName::Cos:
-      case BuiltInFunctionName::Sin: {
+      case BuiltInFunction::Cos:
+      case BuiltInFunction::Sin: {
         if (is_real_set(args[0])) {
           return NumberSet::Real;
         }
         return NumberSet::Complex;
       }
-      case BuiltInFunctionName::Tan:
+      case BuiltInFunction::Tan:
         // Any real argument could be +/- pi/2, which is unknown
         return NumberSet::Unknown;
-      case BuiltInFunctionName::ArcCos:
-      case BuiltInFunctionName::ArcSin:
-      case BuiltInFunctionName::ArcTan:
+      case BuiltInFunction::ArcCos:
+      case BuiltInFunction::ArcSin:
+      case BuiltInFunction::ArcTan:
         return NumberSet::Unknown;  //  TODO: implement inverse trig functions.
-      case BuiltInFunctionName::Log: {
+      case BuiltInFunction::Log: {
         if (args[0] == NumberSet::RealPositive) {
           return NumberSet::RealPositive;
         }
         // Otherwise could be zero.
         return NumberSet::Unknown;
       }
-      case BuiltInFunctionName::Sqrt: {
-        if (args[0] == NumberSet::RealPositive) {
-          return NumberSet::RealPositive;
-        } else if (args[0] == NumberSet::RealNonNegative) {
-          return NumberSet::RealNonNegative;
-        }
-        return NumberSet::Complex;
-      }
-      case BuiltInFunctionName::Abs: {
+      case BuiltInFunction::Abs: {
         if (args[0] == NumberSet::RealPositive) {
           return NumberSet::RealPositive;
         }
         return NumberSet::RealNonNegative;
       }
-      case BuiltInFunctionName::Signum: {
+      case BuiltInFunction::Signum: {
         if (is_real_set(args[0])) {
           return args[0];
         }
         return NumberSet::Unknown;
       }
-      case BuiltInFunctionName::Arctan2:
+      case BuiltInFunction::Arctan2:
         // Can always be undefined.
         return NumberSet::Unknown;
-      case BuiltInFunctionName::Pow: {
-        throw TypeError("Should not happen.");
-      }
-      case BuiltInFunctionName::ENUM_SIZE:
-        break;
     }
     throw TypeError("Invalid function: {}\n", func.function_name());
   }

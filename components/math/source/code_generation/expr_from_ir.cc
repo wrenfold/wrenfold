@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #include "code_generation/ir_builder.h"
+#include "code_generation/ir_types.h"
 
 #include <deque>
 #include <unordered_set>
@@ -28,16 +29,52 @@ struct ExprFromIrVisitor {
     return output_arg_exists_.at(output.name) ? Constants::True : Constants::False;
   }
 
-  Expr operator()(const ir::Pow&, const std::vector<ir::ValuePtr>& args) const {
-    return Power::create(map_value(args[0]), map_value(args[1]));
+  static constexpr BuiltInFunction built_in_function_from_standard_library_function(
+      StandardLibraryMathFunction func) {
+    switch (func) {
+      case StandardLibraryMathFunction::Cos:
+        return BuiltInFunction::Cos;
+      case StandardLibraryMathFunction::Sin:
+        return BuiltInFunction::Sin;
+      case StandardLibraryMathFunction::Tan:
+        return BuiltInFunction::Tan;
+      case StandardLibraryMathFunction::ArcCos:
+        return BuiltInFunction::ArcCos;
+      case StandardLibraryMathFunction::ArcSin:
+        return BuiltInFunction::ArcSin;
+      case StandardLibraryMathFunction::ArcTan:
+        return BuiltInFunction::ArcTan;
+      case StandardLibraryMathFunction::Log:
+        return BuiltInFunction::Log;
+      case StandardLibraryMathFunction::Abs:
+        return BuiltInFunction::Abs;
+      case StandardLibraryMathFunction::Signum:
+        return BuiltInFunction::Signum;
+      case StandardLibraryMathFunction::Arctan2:
+        return BuiltInFunction::Arctan2;
+      default:
+        // Other cases handled by the assertion below.
+        break;
+    }
+    throw AssertionError("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
-  Expr operator()(const ir::CallBuiltInFunction& func,
+  Expr operator()(const ir::CallStandardLibraryFunction& func,
                   const std::vector<ir::ValuePtr>& args) const {
     Function::ContainerType container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::ValuePtr v) { return map_value(v); });
-    return Function::create(func.name, std::move(container));
+
+    if (func.name == StandardLibraryMathFunction::Powi ||
+        func.name == StandardLibraryMathFunction::Powf) {
+      return pow(container[0], container[1]);
+    } else if (func.name == StandardLibraryMathFunction::Sqrt) {
+      static const Expr one_half = Constants::One / 2;
+      return pow(container[0], one_half);
+    } else {
+      return Function::create(built_in_function_from_standard_library_function(func.name),
+                              std::move(container));
+    }
   }
 
   Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {

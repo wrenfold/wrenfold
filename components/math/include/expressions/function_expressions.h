@@ -16,17 +16,19 @@ class Function {
   using ContainerType = absl::InlinedVector<Expr, 2>;
 
   template <typename... Args>
-  Function(BuiltInFunctionName func, Args&&... args)
+  Function(BuiltInFunction func, Args&&... args)
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
-  static Expr create(BuiltInFunctionName name, ContainerType&& container);
+  static Expr create(BuiltInFunction name, ContainerType&& container);
 
   // Get the function name.
-  constexpr BuiltInFunctionName enum_value() const noexcept { return func_; }
+  constexpr BuiltInFunction enum_value() const noexcept { return func_; }
 
   // Get name as a string.
-  constexpr std::string_view function_name() const noexcept { return to_string(func_); }
+  constexpr std::string_view function_name() const noexcept {
+    return string_from_built_in_function(func_);
+  }
 
   // Get the function argument.
   constexpr const auto& args() const noexcept { return args_; }
@@ -61,7 +63,7 @@ class Function {
   }
 
  protected:
-  BuiltInFunctionName func_;
+  BuiltInFunction func_;
   ContainerType args_;
 };
 
@@ -74,36 +76,30 @@ struct hash_struct<Function> {
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic because each type of function has simplifications it applies.
-inline Expr Function::create(BuiltInFunctionName name, Function::ContainerType&& container) {
+inline Expr Function::create(BuiltInFunction name, Function::ContainerType&& container) {
   switch (name) {
-    case BuiltInFunctionName::Cos:
+    case BuiltInFunction::Cos:
       return cos(container.front());
-    case BuiltInFunctionName::Sin:
+    case BuiltInFunction::Sin:
       return sin(container.front());
-    case BuiltInFunctionName::Tan:
+    case BuiltInFunction::Tan:
       return tan(container.front());
-    case BuiltInFunctionName::ArcCos:
+    case BuiltInFunction::ArcCos:
       return acos(container.front());
-    case BuiltInFunctionName::ArcSin:
+    case BuiltInFunction::ArcSin:
       return asin(container.front());
-    case BuiltInFunctionName::ArcTan:
+    case BuiltInFunction::ArcTan:
       return atan(container.front());
-    case BuiltInFunctionName::Log:
+    case BuiltInFunction::Log:
       return log(container.front());
-    case BuiltInFunctionName::Sqrt:
-      return sqrt(container.front());
-    case BuiltInFunctionName::Abs:
+    case BuiltInFunction::Abs:
       return abs(container.front());
-    case BuiltInFunctionName::Signum:
+    case BuiltInFunction::Signum:
       return signum(container.front());
-    case BuiltInFunctionName::Arctan2:
+    case BuiltInFunction::Arctan2:
       return atan2(container[0], container[1]);
-    case BuiltInFunctionName::Pow:
-      return pow(container[0], container[1]);
-    case BuiltInFunctionName::ENUM_SIZE:
-      break;
   }
-  ZEN_ASSERT(false, "Invalid function name: {}", to_string(name));
+  ZEN_ASSERT(false, "Invalid function name: {}", string_from_built_in_function(name));
   return Constants::Zero;  //  Unreachable.
 }
 

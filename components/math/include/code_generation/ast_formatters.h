@@ -51,7 +51,8 @@ auto format_ast(Iterator it, const math::ast::Branch& d) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const math::ast::Call& c) {
-  return fmt::format_to(it, "Call({}, {})", math::to_string(c.function), fmt::join(c.args, ", "));
+  return fmt::format_to(it, "Call({}, {})", string_from_standard_library_function(c.function),
+                        fmt::join(c.args, ", "));
 }
 
 template <typename Iterator>

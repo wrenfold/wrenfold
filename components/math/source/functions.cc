@@ -42,7 +42,7 @@ Expr log(const Expr& x) {
     return std::move(*f);
   }
   // TODO: Check for negative values.
-  return make_expr<Function>(BuiltInFunctionName::Log, x);
+  return make_expr<Function>(BuiltInFunction::Log, x);
 }
 
 Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
@@ -70,8 +70,7 @@ Expr cos(const Expr& arg) {
       } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
         return Constants::Zero;
       }
-      return make_expr<Function>(BuiltInFunctionName::Cos,
-                                 Rational::create(r_mod_pi) * Constants::Pi);
+      return make_expr<Function>(BuiltInFunction::Cos, Rational::create(r_mod_pi) * Constants::Pi);
     }
   } else if (is_zero(coeff)) {
     return Constants::One;
@@ -91,7 +90,7 @@ Expr cos(const Expr& arg) {
     return Constants::Undefined;
   }
   // TODO: Check for phase offsets.
-  return make_expr<Function>(BuiltInFunctionName::Cos, arg);
+  return make_expr<Function>(BuiltInFunction::Cos, arg);
 }
 
 Expr sin(const Expr& arg) {
@@ -107,8 +106,7 @@ Expr sin(const Expr& arg) {
       } else if (r_mod_pi == Rational{-1, 2}) {
         return Constants::NegativeOne;
       }
-      return make_expr<Function>(BuiltInFunctionName::Sin,
-                                 Rational::create(r_mod_pi) * Constants::Pi);
+      return make_expr<Function>(BuiltInFunction::Sin, Rational::create(r_mod_pi) * Constants::Pi);
     }
   } else if (is_zero(arg)) {
     return Constants::Zero;
@@ -123,7 +121,7 @@ Expr sin(const Expr& arg) {
   if (arg.is_type<Infinity>() || is_undefined(arg)) {
     return Constants::Undefined;
   }
-  return make_expr<Function>(BuiltInFunctionName::Sin, arg);
+  return make_expr<Function>(BuiltInFunction::Sin, arg);
 }
 
 inline Rational convert_to_tan_range(const Rational& r) {
@@ -154,7 +152,7 @@ Expr tan(const Expr& arg) {
         // Complex infinity.
         return Constants::ComplexInfinity;
       }
-      return make_expr<Function>(BuiltInFunctionName::Tan,
+      return make_expr<Function>(BuiltInFunction::Tan,
                                  Rational::create(r_mod_half_pi) * pi_over_two());
     }
   } else if (is_zero(arg)) {
@@ -170,7 +168,7 @@ Expr tan(const Expr& arg) {
   if (arg.is_type<Infinity>() || is_undefined(arg)) {
     return Constants::Undefined;
   }
-  return make_expr<Function>(BuiltInFunctionName::Tan, arg);
+  return make_expr<Function>(BuiltInFunction::Tan, arg);
 }
 
 // TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
@@ -185,7 +183,7 @@ Expr acos(const Expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return Constants::Undefined;
   }
-  return make_expr<Function>(BuiltInFunctionName::ArcCos, arg);
+  return make_expr<Function>(BuiltInFunction::ArcCos, arg);
 }
 
 Expr asin(const Expr& arg) {
@@ -200,7 +198,7 @@ Expr asin(const Expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return Constants::Undefined;
   }
-  return make_expr<Function>(BuiltInFunctionName::ArcSin, arg);
+  return make_expr<Function>(BuiltInFunction::ArcSin, arg);
 }
 
 inline Expr PiOverFour() {
@@ -220,7 +218,7 @@ Expr atan(const Expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return Constants::Undefined;
   }
-  return make_expr<Function>(BuiltInFunctionName::ArcTan, arg);
+  return make_expr<Function>(BuiltInFunction::ArcTan, arg);
 }
 
 // Support some very basic simplifications for numerical inputs.
@@ -269,7 +267,7 @@ Expr atan2(const Expr& y, const Expr& x) {
     return std::move(*maybe_simplified);
   }
   // TODO: Implement simplifications for atan2.
-  return make_expr<Function>(BuiltInFunctionName::Arctan2, y, x);
+  return make_expr<Function>(BuiltInFunction::Arctan2, y, x);
 }
 
 Expr sqrt(const Expr& arg) {
@@ -279,7 +277,7 @@ Expr sqrt(const Expr& arg) {
 
 Expr abs(const Expr& arg) {
   if (const Function* func = cast_ptr<Function>(arg);
-      func != nullptr && func->enum_value() == BuiltInFunctionName::Abs) {
+      func != nullptr && func->enum_value() == BuiltInFunction::Abs) {
     // abs(abs(x)) --> abs(x)
     return arg;
   }
@@ -308,7 +306,7 @@ Expr abs(const Expr& arg) {
   }
   // TODO: Add simplifications for real inputs, like powers.
   // TODO: Add simplifications for multiplications.
-  return make_expr<Function>(BuiltInFunctionName::Abs, arg);
+  return make_expr<Function>(BuiltInFunction::Abs, arg);
 }
 
 // TODO: Add simplifications for expressions like:
@@ -336,7 +334,7 @@ struct SignumVisitor {
   }
 
   std::optional<Expr> operator()(const Function& func, const Expr& func_expr) const {
-    if (func.enum_value() == BuiltInFunctionName::Signum) {
+    if (func.enum_value() == BuiltInFunction::Signum) {
       // sgn(sgn(x)) --> sgn(x), valid for real and complex
       return func_expr;
     }
@@ -358,7 +356,7 @@ Expr signum(const Expr& arg) {
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
-  return make_expr<Function>(BuiltInFunctionName::Signum, arg);
+  return make_expr<Function>(BuiltInFunction::Signum, arg);
 }
 
 // Max and min are implemented as conditionals. That way:

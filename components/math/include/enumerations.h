@@ -28,9 +28,9 @@ enum class RelativeOrder : int {
   GreaterThan = 1,
 };
 
-// Types of built-in unary functions.
+// Types of mathematical functions.
 // clang-format off
-enum class BuiltInFunctionName {
+enum class BuiltInFunction {
   // Unary functions.
   Cos = 0,
   Sin,
@@ -39,14 +39,10 @@ enum class BuiltInFunctionName {
   ArcSin,
   ArcTan,
   Log,
-  Sqrt,
   Abs,
   Signum,
   // Binary functions
   Arctan2,
-  Pow,
-  // Just to get the length of the enum:
-  ENUM_SIZE,
 };
 // clang-format on
 
@@ -100,6 +96,28 @@ enum class NumberSet : uint8_t {
   Unknown,
 };
 
+// List of mathematical functions typically found in your standard library.
+// This seems like a duplicate of `BuiltInFunction` at first, but they differ
+// in that this list contains additional specialized cases. In the math
+// expression tree powi, powf, and sqrt are all just instances of `Power`.
+enum class StandardLibraryMathFunction {
+  Cos,
+  Sin,
+  Tan,
+  ArcCos,
+  ArcSin,
+  ArcTan,
+  Log,
+  Sqrt,
+  Abs,
+  Signum,
+  Arctan2,
+  // Integral exponent power.
+  Powi,
+  // Floating point exponent power.
+  Powf,
+};
+
 // True if the set is real numbers, or a constrained subset of the real numbers.
 constexpr inline bool is_real_set(NumberSet set) noexcept {
   if (set == NumberSet::Real || set == NumberSet::RealNonNegative ||
@@ -123,32 +141,28 @@ constexpr std::string_view string_from_relative_order(const RelativeOrder order)
 }
 
 // Convert unary function enum to string.
-constexpr std::string_view to_string(const BuiltInFunctionName name) noexcept {
+constexpr std::string_view string_from_built_in_function(const BuiltInFunction name) noexcept {
   switch (name) {
-    case BuiltInFunctionName::Cos:
+    case BuiltInFunction::Cos:
       return "cos";
-    case BuiltInFunctionName::Sin:
+    case BuiltInFunction::Sin:
       return "sin";
-    case BuiltInFunctionName::Tan:
+    case BuiltInFunction::Tan:
       return "tan";
-    case BuiltInFunctionName::ArcCos:
+    case BuiltInFunction::ArcCos:
       return "acos";
-    case BuiltInFunctionName::ArcSin:
+    case BuiltInFunction::ArcSin:
       return "asin";
-    case BuiltInFunctionName::ArcTan:
+    case BuiltInFunction::ArcTan:
       return "atan";
-    case BuiltInFunctionName::Log:
+    case BuiltInFunction::Log:
       return "ln";
-    case BuiltInFunctionName::Sqrt:
-      return "sqrt";
-    case BuiltInFunctionName::Abs:
+    case BuiltInFunction::Abs:
       return "abs";
-    case BuiltInFunctionName::Signum:
+    case BuiltInFunction::Signum:
       return "signum";
-    case BuiltInFunctionName::Arctan2:
+    case BuiltInFunction::Arctan2:
       return "atan2";
-    case BuiltInFunctionName::Pow:
-      return "pow";
     default:
       break;
   }
@@ -211,6 +225,40 @@ constexpr inline std::string_view string_from_number_set(const NumberSet set) no
       return "Complex";
     case NumberSet::Unknown:
       return "Unknown";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
+
+// Convert `StandardLibraryMathFunction` to string.
+constexpr inline std::string_view string_from_standard_library_function(
+    StandardLibraryMathFunction name) noexcept {
+  switch (name) {
+    case StandardLibraryMathFunction::Cos:
+      return "cos";
+    case StandardLibraryMathFunction::Sin:
+      return "sin";
+    case StandardLibraryMathFunction::Tan:
+      return "tan";
+    case StandardLibraryMathFunction::ArcCos:
+      return "acos";
+    case StandardLibraryMathFunction::ArcSin:
+      return "asin";
+    case StandardLibraryMathFunction::ArcTan:
+      return "atan";
+    case StandardLibraryMathFunction::Log:
+      return "log";
+    case StandardLibraryMathFunction::Sqrt:
+      return "sqrt";
+    case StandardLibraryMathFunction::Abs:
+      return "abs";
+    case StandardLibraryMathFunction::Signum:
+      return "signum";
+    case StandardLibraryMathFunction::Arctan2:
+      return "atan2";
+    case StandardLibraryMathFunction::Powi:
+      return "powi";
+    case StandardLibraryMathFunction::Powf:
+      return "powf";
   }
   return "<NOT A VALID ENUM VALUE>";
 }

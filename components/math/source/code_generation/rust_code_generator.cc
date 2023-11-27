@@ -164,32 +164,34 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& 
   }
 }
 
-static constexpr std::string_view cpp_string_for_built_in_function_call(
-    const BuiltInFunctionName name) {
+static constexpr std::string_view rust_string_for_std_function(
+    const StandardLibraryMathFunction name) noexcept {
   switch (name) {
-    case BuiltInFunctionName::Cos:
+    case StandardLibraryMathFunction::Cos:
       return "f64::cos";
-    case BuiltInFunctionName::Sin:
+    case StandardLibraryMathFunction::Sin:
       return "f64::sin";
-    case BuiltInFunctionName::Tan:
+    case StandardLibraryMathFunction::Tan:
       return "f64::tan";
-    case BuiltInFunctionName::ArcCos:
+    case StandardLibraryMathFunction::ArcCos:
       return "f64::acos";
-    case BuiltInFunctionName::ArcSin:
+    case StandardLibraryMathFunction::ArcSin:
       return "f64::asin";
-    case BuiltInFunctionName::ArcTan:
+    case StandardLibraryMathFunction::ArcTan:
       return "f64::atan";
-    case BuiltInFunctionName::Log:
+    case StandardLibraryMathFunction::Log:
       return "f64::ln";
-    case BuiltInFunctionName::Sqrt:
+    case StandardLibraryMathFunction::Sqrt:
       return "f64::sqrt";
-    case BuiltInFunctionName::Abs:
+    case StandardLibraryMathFunction::Abs:
       return "f64::abs";
-    case BuiltInFunctionName::Signum:
+    case StandardLibraryMathFunction::Signum:
       return "f64::signum";
-    case BuiltInFunctionName::Arctan2:
+    case StandardLibraryMathFunction::Arctan2:
       return "f64::atan2";
-    case BuiltInFunctionName::Pow:
+    case StandardLibraryMathFunction::Powi:
+      return "f64::powi";
+    case StandardLibraryMathFunction::Powf:
       return "f64::powf";
     default:
       break;
@@ -198,12 +200,13 @@ static constexpr std::string_view cpp_string_for_built_in_function_call(
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  if (x.function == BuiltInFunctionName::Signum) {
-    // TODO: should be an integer rexpression
+  // We have to override signum specially here, because the built-in rust signum does not return 0.
+  if (x.function == StandardLibraryMathFunction::Signum) {
+    // TODO: should be an integer expression:
     formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
                      make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", cpp_string_for_built_in_function_call(x.function),
+    formatter.format("{}({})", rust_string_for_std_function(x.function),
                      make_join_view(*this, ", ", x.args));
   }
 }
