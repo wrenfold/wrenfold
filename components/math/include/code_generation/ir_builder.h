@@ -36,10 +36,23 @@ struct FlatIr {
   // Number of conditional statements.
   std::size_t num_conditionals() const;
 
+  // Count instances of operations matching predicate `Func`.
+  template <typename Func>
+  std::size_t count_operation(Func&& func) const {
+    return block_->count_operation(std::forward<Func>(func));
+  }
+
+  // Count invocations of the specified function.
+  std::size_t count_functions(StdMathFunction enum_value) const {
+    return count_operation(
+        [&](const ir::CallStdFunction& func) { return func.name == enum_value; });
+  }
+
   // Get the single block of operations.
   ir::BlockPtr get_block() const { return ir::BlockPtr{block_}; }
 
  protected:
+  // Remove any values without consumers (that are not endpoints like Save).
   void strip_unused_values();
 
   // Single flat block:
@@ -79,6 +92,20 @@ struct OutputIr {
                      [](const ir::Block::unique_ptr& block) { return block->has_no_ancestors(); });
     ZEN_ASSERT(it != blocks_.end(), "Must be an entry block");
     return ir::BlockPtr{*it};
+  }
+
+  // Count instances of operations matching predicate `Func`.
+  template <typename Func>
+  std::size_t count_operation(Func&& func) const {
+    return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
+                           [&func](std::size_t total, const ir::Block::unique_ptr& blk) {
+                             return total + blk->count_operation(func);
+                           });
+  }
+
+  // Count instances of a function call.
+  std::size_t count_function(StdMathFunction enum_value) const {
+    return count_operation([&](ir::CallStdFunction func) { return func.name == enum_value; });
   }
 
  private:

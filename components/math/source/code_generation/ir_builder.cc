@@ -346,29 +346,28 @@ struct IRFormVisitor {
     throw TypeError("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
   }
 
-  static constexpr StandardLibraryMathFunction standard_library_function_from_built_in(
-      BuiltInFunction name) {
+  static constexpr StdMathFunction standard_library_function_from_built_in(BuiltInFunction name) {
     switch (name) {
       case BuiltInFunction::Cos:
-        return StandardLibraryMathFunction::Cos;
+        return StdMathFunction::Cos;
       case BuiltInFunction::Sin:
-        return StandardLibraryMathFunction::Sin;
+        return StdMathFunction::Sin;
       case BuiltInFunction::Tan:
-        return StandardLibraryMathFunction::Tan;
+        return StdMathFunction::Tan;
       case BuiltInFunction::ArcCos:
-        return StandardLibraryMathFunction::ArcCos;
+        return StdMathFunction::ArcCos;
       case BuiltInFunction::ArcSin:
-        return StandardLibraryMathFunction::ArcSin;
+        return StdMathFunction::ArcSin;
       case BuiltInFunction::ArcTan:
-        return StandardLibraryMathFunction::ArcTan;
+        return StdMathFunction::ArcTan;
       case BuiltInFunction::Log:
-        return StandardLibraryMathFunction::Log;
+        return StdMathFunction::Log;
       case BuiltInFunction::Abs:
-        return StandardLibraryMathFunction::Abs;
+        return StdMathFunction::Abs;
       case BuiltInFunction::Signum:
-        return StandardLibraryMathFunction::Signum;
+        return StdMathFunction::Signum;
       case BuiltInFunction::Arctan2:
-        return StandardLibraryMathFunction::Arctan2;
+        return StdMathFunction::Arctan2;
     }
     throw AssertionError("Invalid enum value: {}", string_from_built_in_function(name));
   }
@@ -379,20 +378,41 @@ struct IRFormVisitor {
     std::transform(func.begin(), func.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
     auto enum_value = standard_library_function_from_built_in(func.enum_value());
-    return push_operation(ir::CallStandardLibraryFunction{enum_value}, std::move(args));
+    return push_operation(ir::CallStdFunction{enum_value}, std::move(args));
   }
 
   ir::ValuePtr operator()(const Infinity&, const Expr&) const {
     throw TypeError("Cannot generate code for complex infinity.");
   }
+
   ir::ValuePtr operator()(const Integer&, const Expr& input_expression) {
     return push_operation(ir::Load{input_expression});
   }
+
   ir::ValuePtr operator()(const Float&, const Expr& input_expression) {
     return push_operation(ir::Load{input_expression});
   }
 
-  ir::ValuePtr operator()(const Power& power, const Expr&) {
+  // Apply exponentiation by squaring to implement a power of an integer.
+  ir::ValuePtr exponentiate_by_squaring(ir::ValuePtr base, uint64_t exponent) {
+    if (exponent == 0) {
+      return apply(Constants::One);
+    }
+    std::optional<ir::ValuePtr> result{};
+    for (;;) {
+      if (exponent & 1) {
+        result = result.has_value() ? push_operation(ir::Mul{}, *result, base) : base;
+      }
+      exponent /= 2;
+      if (exponent == 0) {
+        break;
+      }
+      base = push_operation(ir::Mul{}, base, base);
+    }
+    return result.value();
+  }
+
+  ir::ValuePtr operator()(const Power& power) {
     const ir::ValuePtr base = apply(power.base());
 
     // Check if this exponent has a negative coefficient on it:
@@ -409,11 +429,37 @@ struct IRFormVisitor {
                             maybe_cast(reciprocal_value, promoted_type));
     }
 
+    constexpr int max_integer_mul_exponent = 16;
+    if (const Integer* exp_int = cast_ptr<Integer>(power.exponent()); exp_int != nullptr) {
+      ZEN_ASSERT_GREATER_OR_EQ(exp_int->get_value(), 0, "Negative exponents were handled above");
+      // Maximum exponent below which we rewrite `pow` as a series of multiplications.
+      // Have not experimented with this cutoff much, but on GCC94 and Clang17, using a series of
+      // multiplications is still faster even past x^32.
+      if (exp_int->get_value() <= max_integer_mul_exponent) {
+        return exponentiate_by_squaring(base, static_cast<uint64_t>(exp_int->get_value()));
+      } else {
+        // Just call power variant with integer exponent:
+        return push_operation(ir::CallStdFunction{StdMathFunction::Powi}, base,
+                              apply(power.exponent()));
+      }
+    } else if (const Rational* exp_rational = cast_ptr<Rational>(power.exponent());
+               exp_rational != nullptr) {
+      ZEN_ASSERT_GREATER_OR_EQ(exp_rational->numerator(), 0, "rational = {}", *exp_rational);
+      // If the denominator is 1/2 and the exponent is small, it is faster to do power
+      // exponentiation followed by sqrt. This is not the case for cbrt, where pow() is the same
+      // approximate performance.
+      if (exp_rational->denominator() == 2 &&
+          exp_rational->numerator() <= max_integer_mul_exponent) {
+        const ir::ValuePtr sqrt = push_operation(ir::CallStdFunction{StdMathFunction::Sqrt},
+                                                 maybe_cast(base, NumericType::Real));
+        return exponentiate_by_squaring(sqrt, static_cast<uint64_t>(exp_rational->numerator()));
+      }
+    }
+
+    // TODO: Support (int ** int) powers?
     const ir::ValuePtr exponent = apply(power.exponent());
-    const NumericType promoted_type =
-        std::max(NumericType::Integer, std::max(base->numeric_type(), exponent->numeric_type()));
-    // TODO: Should not be hard-coded to Powf.
-    return push_operation(ir::CallStandardLibraryFunction{StandardLibraryMathFunction::Powf},
+    constexpr NumericType promoted_type = NumericType::Real;
+    return push_operation(ir::CallStdFunction{StdMathFunction::Powf},
                           maybe_cast(base, promoted_type), maybe_cast(exponent, promoted_type));
   }
 
@@ -832,6 +878,9 @@ struct IrConverter {
     // Sort in descending order of variable name:
     std::sort(grouped_conditionals.begin(), grouped_conditionals.end(),
               [](ir::ValuePtr a, ir::ValuePtr b) { return a->name() > b->name(); });
+    grouped_conditionals.erase(
+        std::unique(grouped_conditionals.begin(), grouped_conditionals.end()),
+        grouped_conditionals.end());
 
     ir::BlockPtr left_block_tail = output.create_block();
     ir::BlockPtr right_block_tail = output.create_block();

@@ -190,11 +190,11 @@ struct Branch {
 };
 
 struct Call {
-  StandardLibraryMathFunction function;
+  StdMathFunction function;
   std::vector<Variant> args;
 
   template <typename... Args>
-  explicit Call(StandardLibraryMathFunction function, Args&&... inputs)
+  explicit Call(StdMathFunction function, Args&&... inputs)
       : function(function), args{std::forward<Args>(inputs)...} {}
 };
 

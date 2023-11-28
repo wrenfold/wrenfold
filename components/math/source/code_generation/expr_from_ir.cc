@@ -30,27 +30,27 @@ struct ExprFromIrVisitor {
   }
 
   static constexpr BuiltInFunction built_in_function_from_standard_library_function(
-      StandardLibraryMathFunction func) {
+      StdMathFunction func) {
     switch (func) {
-      case StandardLibraryMathFunction::Cos:
+      case StdMathFunction::Cos:
         return BuiltInFunction::Cos;
-      case StandardLibraryMathFunction::Sin:
+      case StdMathFunction::Sin:
         return BuiltInFunction::Sin;
-      case StandardLibraryMathFunction::Tan:
+      case StdMathFunction::Tan:
         return BuiltInFunction::Tan;
-      case StandardLibraryMathFunction::ArcCos:
+      case StdMathFunction::ArcCos:
         return BuiltInFunction::ArcCos;
-      case StandardLibraryMathFunction::ArcSin:
+      case StdMathFunction::ArcSin:
         return BuiltInFunction::ArcSin;
-      case StandardLibraryMathFunction::ArcTan:
+      case StdMathFunction::ArcTan:
         return BuiltInFunction::ArcTan;
-      case StandardLibraryMathFunction::Log:
+      case StdMathFunction::Log:
         return BuiltInFunction::Log;
-      case StandardLibraryMathFunction::Abs:
+      case StdMathFunction::Abs:
         return BuiltInFunction::Abs;
-      case StandardLibraryMathFunction::Signum:
+      case StdMathFunction::Signum:
         return BuiltInFunction::Signum;
-      case StandardLibraryMathFunction::Arctan2:
+      case StdMathFunction::Arctan2:
         return BuiltInFunction::Arctan2;
       default:
         // Other cases handled by the assertion below.
@@ -59,16 +59,14 @@ struct ExprFromIrVisitor {
     throw AssertionError("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
-  Expr operator()(const ir::CallStandardLibraryFunction& func,
-                  const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::CallStdFunction& func, const std::vector<ir::ValuePtr>& args) const {
     Function::ContainerType container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::ValuePtr v) { return map_value(v); });
 
-    if (func.name == StandardLibraryMathFunction::Powi ||
-        func.name == StandardLibraryMathFunction::Powf) {
+    if (func.name == StdMathFunction::Powi || func.name == StdMathFunction::Powf) {
       return pow(container[0], container[1]);
-    } else if (func.name == StandardLibraryMathFunction::Sqrt) {
+    } else if (func.name == StdMathFunction::Sqrt) {
       static const Expr one_half = Constants::One / 2;
       return pow(container[0], one_half);
     } else {

@@ -102,25 +102,23 @@ void wrap_codegen_operations(py::module_& m) {
            }),
            py::arg("expressions"), py::arg("output_key"));
 
-  py::enum_<StandardLibraryMathFunction>(m, "StandardLibraryMathFunction")
-      .value("Cos", StandardLibraryMathFunction::Cos)
-      .value("Sin", StandardLibraryMathFunction::Sin)
-      .value("Tan", StandardLibraryMathFunction::Tan)
-      .value("ArcCos", StandardLibraryMathFunction::ArcCos)
-      .value("ArcSin", StandardLibraryMathFunction::ArcSin)
-      .value("ArcTan", StandardLibraryMathFunction::ArcTan)
-      .value("Log", StandardLibraryMathFunction::Log)
-      .value("Sqrt", StandardLibraryMathFunction::Sqrt)
-      .value("Abs", StandardLibraryMathFunction::Abs)
-      .value("Signum", StandardLibraryMathFunction::Signum)
-      .value("Arctan2", StandardLibraryMathFunction::Arctan2)
-      .value("Powi", StandardLibraryMathFunction::Powi)
-      .value("Powf", StandardLibraryMathFunction::Powf)
+  py::enum_<StdMathFunction>(m, "StdMathFunction")
+      .value("Cos", StdMathFunction::Cos)
+      .value("Sin", StdMathFunction::Sin)
+      .value("Tan", StdMathFunction::Tan)
+      .value("ArcCos", StdMathFunction::ArcCos)
+      .value("ArcSin", StdMathFunction::ArcSin)
+      .value("ArcTan", StdMathFunction::ArcTan)
+      .value("Log", StdMathFunction::Log)
+      .value("Sqrt", StdMathFunction::Sqrt)
+      .value("Abs", StdMathFunction::Abs)
+      .value("Signum", StdMathFunction::Signum)
+      .value("Arctan2", StdMathFunction::Arctan2)
+      .value("Powi", StdMathFunction::Powi)
+      .value("Powf", StdMathFunction::Powf)
       .def(
           "to_string",
-          [](StandardLibraryMathFunction name) {
-            return string_from_standard_library_function(name);
-          },
+          [](StdMathFunction name) { return string_from_standard_library_function(name); },
           py::doc("Convert to string."));
 
   py::enum_<NumericType>(m, "NumericType")

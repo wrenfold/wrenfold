@@ -297,7 +297,7 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(pow(x, -1 / 2_s), 1 / sqrt(x));
   ASSERT_IDENTICAL(pow(x, z / 3 + 2 / 3_s), pow(pow(x, 1 / 3_s), z + 2));
 
-  // Inner exponent is a float < 1:
+  // Inner exponent is a float <= 1:
   ASSERT_IDENTICAL(pow(x, 0.25), pow(pow(x, 1 / 2_s), 0.5));
   ASSERT_IDENTICAL(pow(x, 3.0), pow(pow(x, 1.0), 3));
   ASSERT_IDENTICAL(pow(x, -0.3412 * 4), pow(pow(x, -0.3412), 4));
@@ -308,9 +308,9 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 2), 1 / 2_s));
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 4), 1 / 4_s));
   ASSERT_NOT_IDENTICAL(pow(x, -2), pow(pow(x, 14), -1 / 7_s));
-  ASSERT_NOT_IDENTICAL(pow(x, 1.52 * 2.0), pow(pow(x, 1.52), 2.0));
-  ASSERT_NOT_IDENTICAL(pow(x, -1.01 * 5_s / 7), pow(pow(x, -1.01), 5 / 7_s));
   ASSERT_NOT_IDENTICAL(pow(x, 2 * z), pow(pow(x, 2), z));
+  ASSERT_TRUE(cast_checked<Power>(pow(pow(x, 1.52), 2.0)).base().is_type<Power>());
+  ASSERT_TRUE(cast_checked<Power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<Power>());
 
   // Inner power is -1
   ASSERT_NOT_IDENTICAL(pow(x, -1 / 2_s), sqrt(1 / x));

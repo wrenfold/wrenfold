@@ -100,7 +100,7 @@ enum class NumberSet : uint8_t {
 // This seems like a duplicate of `BuiltInFunction` at first, but they differ
 // in that this list contains additional specialized cases. In the math
 // expression tree powi, powf, and sqrt are all just instances of `Power`.
-enum class StandardLibraryMathFunction {
+enum class StdMathFunction {
   Cos,
   Sin,
   Tan,
@@ -231,33 +231,33 @@ constexpr inline std::string_view string_from_number_set(const NumberSet set) no
 
 // Convert `StandardLibraryMathFunction` to string.
 constexpr inline std::string_view string_from_standard_library_function(
-    StandardLibraryMathFunction name) noexcept {
+    StdMathFunction name) noexcept {
   switch (name) {
-    case StandardLibraryMathFunction::Cos:
+    case StdMathFunction::Cos:
       return "cos";
-    case StandardLibraryMathFunction::Sin:
+    case StdMathFunction::Sin:
       return "sin";
-    case StandardLibraryMathFunction::Tan:
+    case StdMathFunction::Tan:
       return "tan";
-    case StandardLibraryMathFunction::ArcCos:
+    case StdMathFunction::ArcCos:
       return "acos";
-    case StandardLibraryMathFunction::ArcSin:
+    case StdMathFunction::ArcSin:
       return "asin";
-    case StandardLibraryMathFunction::ArcTan:
+    case StdMathFunction::ArcTan:
       return "atan";
-    case StandardLibraryMathFunction::Log:
+    case StdMathFunction::Log:
       return "log";
-    case StandardLibraryMathFunction::Sqrt:
+    case StdMathFunction::Sqrt:
       return "sqrt";
-    case StandardLibraryMathFunction::Abs:
+    case StdMathFunction::Abs:
       return "abs";
-    case StandardLibraryMathFunction::Signum:
+    case StdMathFunction::Signum:
       return "signum";
-    case StandardLibraryMathFunction::Arctan2:
+    case StdMathFunction::Arctan2:
       return "atan2";
-    case StandardLibraryMathFunction::Powi:
+    case StdMathFunction::Powi:
       return "powi";
-    case StandardLibraryMathFunction::Powf:
+    case StdMathFunction::Powf:
       return "powf";
   }
   return "<NOT A VALID ENUM VALUE>";
