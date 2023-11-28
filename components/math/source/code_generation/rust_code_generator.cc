@@ -239,6 +239,10 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarat
   }
 }
 
+void RustCodeGenerator::operator()(math::CodeFormatter& formatter, const ast::Divide& x) const {
+  formatter.format("{} / {}", make_view(x.left), make_view(x.right));
+}
+
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
   ZEN_ASSERT(x.argument);
   if (x.argument->is_matrix()) {

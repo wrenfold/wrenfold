@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common_visitors.h"
 #include "expressions/all_expressions.h"
 #include "hashing.h"
 #include "visitor_impl.h"
@@ -391,9 +392,24 @@ struct IRFormVisitor {
     return push_operation(ir::Load{input_expression});
   }
 
-  ir::ValuePtr operator()(const Power& pow, const Expr&) {
-    const ir::ValuePtr base = apply(pow.base());
-    const ir::ValuePtr exponent = apply(pow.exponent());
+  ir::ValuePtr operator()(const Power& power, const Expr&) {
+    const ir::ValuePtr base = apply(power.base());
+
+    // Check if this exponent has a negative coefficient on it:
+    const auto [exp_coefficient, exp_mul] = as_coeff_and_mul(power.exponent());
+    if (is_negative_number(exp_coefficient)) {
+      // Construct the reciprocal version of this power.
+      const Expr reciprocal = pow(power.base(), -power.exponent());
+      const ir::ValuePtr reciprocal_value = apply(reciprocal);
+
+      // Write the power as: 1 / pow(base, -exponent)
+      const ir::ValuePtr one = apply(Constants::One);
+      const NumericType promoted_type = ir::Div::determine_type(one, reciprocal_value);
+      return push_operation(ir::Div{}, maybe_cast(one, promoted_type),
+                            maybe_cast(reciprocal_value, promoted_type));
+    }
+
+    const ir::ValuePtr exponent = apply(power.exponent());
     const NumericType promoted_type =
         std::max(NumericType::Integer, std::max(base->numeric_type(), exponent->numeric_type()));
     // TODO: Should not be hard-coded to Powf.

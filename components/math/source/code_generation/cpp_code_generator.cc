@@ -232,6 +232,10 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
   }
 }
 
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Divide& x) const {
+  formatter.format("{} / {}", make_view(x.left), make_view(x.right));
+}
+
 static constexpr std::string_view cpp_string_for_symbolic_constant(
     const SymbolicConstants value) noexcept {
   switch (value) {

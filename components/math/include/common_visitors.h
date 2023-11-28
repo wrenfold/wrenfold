@@ -29,10 +29,9 @@ inline bool is_numeric(const Expr& expr) { return visit(expr, IsNumericVisitor{}
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
 struct IsNegativeNumberVisitor {
-  // Numerics < 0 are all negative.
-  bool operator()(const Integer& num) const { return num.get_value() < 0; }
-  bool operator()(const Float& f) const { return f.get_value() < 0; }
-  bool operator()(const Rational& r) const { return r.numerator() < 0; }
+  constexpr bool operator()(const Integer& i) const noexcept { return i.is_negative(); }
+  constexpr bool operator()(const Float& f) const noexcept { return f.is_negative(); }
+  constexpr bool operator()(const Rational& r) const noexcept { return r.is_negative(); }
 
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
   bool operator()(const Multiplication& m) const {
@@ -44,7 +43,7 @@ struct IsNegativeNumberVisitor {
   }
 
   template <typename T>
-  constexpr bool operator()(const T&) const {
+  constexpr bool operator()(const T&) const noexcept {
     return false;
   }
 };

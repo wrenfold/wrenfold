@@ -86,6 +86,22 @@ struct ExprFromIrVisitor {
     return where(map_value(args[0]), map_value(args[1]), map_value(args[2]));
   }
 
+  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
+    return Relational::create(cmp.operation, map_value(args[0]), map_value(args[1]));
+  }
+
+  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
+    return map_value(args[0]);
+  }
+
+  Expr operator()(const ir::Div&, const std::vector<ir::ValuePtr>& args) const {
+    return map_value(args[0]) / map_value(args[1]);
+  }
+
+  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
+    return load.expr;
+  }
+
   Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
     ZEN_ASSERT_EQUAL(2, args.size());
 
@@ -100,18 +116,6 @@ struct ExprFromIrVisitor {
     ZEN_ASSERT(jump_val->is_type<ir::JumpCondition>());
 
     return where(map_value(jump_val->first_operand()), map_value(args[0]), map_value(args[1]));
-  }
-
-  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
-    return Relational::create(cmp.operation, map_value(args[0]), map_value(args[1]));
-  }
-
-  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
-    return map_value(args[0]);
-  }
-
-  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
-    return load.expr;
   }
 
   Expr map_value(ir::ValuePtr value) const {

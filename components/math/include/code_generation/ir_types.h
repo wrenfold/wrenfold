@@ -76,17 +76,6 @@ struct Add {
   }
 };
 
-// Copy the operand.
-struct Copy {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 1; }
-  constexpr std::string_view to_string() const { return "copy"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Copy&) const { return true; }
-
-  NumericType determine_type(ValuePtr arg) const { return get_value_type(arg); }
-};
-
 // Cast the operand to the specified destination type.
 struct Cast {
   constexpr static bool is_commutative() { return false; }
@@ -177,15 +166,26 @@ struct Cond {
   }
 };
 
+// Copy the operand.
+struct Copy {
+  constexpr static bool is_commutative() { return false; }
+  constexpr static int num_value_operands() { return 1; }
+  constexpr std::string_view to_string() const { return "copy"; }
+  constexpr std::size_t hash_seed() const { return 0; }
+  constexpr bool is_same(const Copy&) const { return true; }
+
+  NumericType determine_type(ValuePtr arg) const { return get_value_type(arg); }
+};
+
 // Divide first operand by the second one.
 struct Div {
-  constexpr static bool is_commutative() { return true; }
-  constexpr static int num_value_operands() { return 2; }
-  constexpr std::string_view to_string() const { return "div"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Div&) const { return true; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr std::string_view to_string() const noexcept { return "div"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const Div&) const noexcept { return true; }
 
-  NumericType determine_type(ValuePtr a, ValuePtr b) const {
+  static NumericType determine_type(ValuePtr a, ValuePtr b) {
     return std::max(get_value_type(a), get_value_type(b));
   }
 };
@@ -278,8 +278,8 @@ struct JumpCondition {
 };
 
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, CallStandardLibraryFunction, Cast, Compare, Cond, Copy, Load,
-                               Mul, OutputRequired, Phi, Save, JumpCondition>;
+using Operation = std::variant<Add, CallStandardLibraryFunction, Cast, Compare, Cond, Copy, Div,
+                               Load, Mul, OutputRequired, Phi, Save, JumpCondition>;
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.

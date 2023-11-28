@@ -321,6 +321,10 @@ struct AstBuilder {
     return make_operation_argument(val.first_operand());
   }
 
+  ast::Variant operator()(const ir::Value& val, const ir::Div&) {
+    return ast::Divide{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
+  }
+
   ast::Variant operator()(const ir::Value& val, const ir::Mul&) {
     return ast::Multiply{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }

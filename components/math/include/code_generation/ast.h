@@ -125,6 +125,7 @@ using Variant = std::variant<
     struct Compare,
     struct ConstructReturnValue,
     struct Declaration,
+    struct Divide,
     struct FloatConstant,
     struct InputValue,
     struct IntegerConstant,
@@ -233,6 +234,14 @@ struct Declaration {
 
   // Construct w/ no rhs.
   Declaration(std::string name, NumericType type) : name(std::move(name)), type(type) {}
+};
+
+// Divide first operand by second operand.
+struct Divide {
+  VariantPtr left;
+  VariantPtr right;
+
+  Divide(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
 };
 
 struct FloatConstant {
