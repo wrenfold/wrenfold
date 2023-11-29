@@ -26,7 +26,7 @@ class Block {
   using unique_ptr = std::unique_ptr<Block>;
 
   // Construct w/ counter.
-  explicit Block(std::size_t name) : name(name) {}
+  explicit Block(std::size_t name) noexcept : name(name) {}
 
   // Unique number to refer to the block (a counter).
   std::size_t name;
@@ -44,10 +44,10 @@ class Block {
   std::vector<BlockPtr> descendants{};
 
   // True if the block has no operations.
-  bool is_empty() const { return operations.empty(); }
+  bool is_empty() const noexcept { return operations.empty(); }
 
   // True if this block has no ancestors (typically only true for the starting block).
-  bool has_no_ancestors() const { return ancestors.empty(); }
+  bool has_no_ancestors() const noexcept { return ancestors.empty(); }
 
   // Replace descendant `target` w/ `replacement`.
   void replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement);
@@ -72,11 +72,11 @@ inline NumericType get_value_type(const ValuePtr& v);
 
 // Add together two operands.
 struct Add {
-  constexpr static bool is_commutative() { return true; }
-  constexpr static int num_value_operands() { return 2; }
-  constexpr std::string_view to_string() const { return "add"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Add&) const { return true; }
+  constexpr static bool is_commutative() noexcept { return true; }
+  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr std::string_view to_string() const noexcept { return "add"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const Add&) const noexcept { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
     return std::max(std::max(get_value_type(a), get_value_type(b)), NumericType::Integer);
@@ -85,38 +85,41 @@ struct Add {
 
 // Cast the operand to the specified destination type.
 struct Cast {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 1; }
-  constexpr std::string_view to_string() const { return "cast"; }
-  constexpr std::size_t hash_seed() const { return static_cast<std::size_t>(destination_type); }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 1; }
+  constexpr std::string_view to_string() const noexcept { return "cast"; }
+  constexpr std::size_t hash_seed() const noexcept {
+    return static_cast<std::size_t>(destination_type);
+  }
 
-  constexpr bool is_same(const Cast& other) const {
+  constexpr bool is_same(const Cast& other) const noexcept {
     return destination_type == other.destination_type;
   }
 
-  constexpr NumericType determine_type(const ValuePtr&) const { return destination_type; }
+  constexpr NumericType determine_type(const ValuePtr&) const noexcept { return destination_type; }
 
   // Construct w/ destination type.
-  constexpr explicit Cast(NumericType destination) : destination_type(destination) {}
+  constexpr explicit Cast(NumericType destination) noexcept : destination_type(destination) {}
 
   NumericType destination_type;
 };
 
 // A call to a built-in mathematical function like sin, cos, log, etc.
 struct CallStdFunction {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return -1; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return -1; }
 
-  constexpr std::string_view to_string() const {
+  constexpr std::string_view to_string() const noexcept {
     return string_from_standard_library_function(name);
   }
 
-  constexpr std::size_t hash_seed() const { return static_cast<std::size_t>(name); }
+  constexpr std::size_t hash_seed() const noexcept { return static_cast<std::size_t>(name); }
 
-  constexpr bool is_same(const CallStdFunction& other) const { return name == other.name; }
+  constexpr bool is_same(const CallStdFunction& other) const noexcept { return name == other.name; }
 
   // TODO: This should not be hardcoded to `real`.
-  constexpr NumericType determine_type(const std::vector<ValuePtr>&) const {
+  template <typename Container>
+  constexpr NumericType determine_type(const Container&) const {
     return NumericType::Real;
   }
 
@@ -127,10 +130,10 @@ struct CallStdFunction {
 
 // Compare two operands (equality or inequality).
 struct Compare {
-  constexpr static int num_value_operands() { return 2; }
-  constexpr static bool is_commutative() { return false; }
+  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr static bool is_commutative() noexcept { return false; }
 
-  constexpr std::string_view to_string() const {
+  constexpr std::string_view to_string() const noexcept {
     switch (operation) {
       case RelationalOperation::LessThan:
         return "lt";
@@ -142,13 +145,13 @@ struct Compare {
     return "<NOT A VALID ENUM VALUE>";
   }
 
-  constexpr std::size_t hash_seed() const { return static_cast<std::size_t>(operation); }
-  constexpr bool is_same(const Compare& comp) const { return operation == comp.operation; }
-  constexpr NumericType determine_type(const ValuePtr&, const ValuePtr&) const {
+  constexpr std::size_t hash_seed() const noexcept { return static_cast<std::size_t>(operation); }
+  constexpr bool is_same(const Compare& comp) const noexcept { return operation == comp.operation; }
+  constexpr NumericType determine_type(const ValuePtr&, const ValuePtr&) const noexcept {
     return NumericType::Bool;
   }
 
-  explicit Compare(const RelationalOperation operation) : operation(operation) {}
+  explicit constexpr Compare(const RelationalOperation operation) noexcept : operation(operation) {}
 
   RelationalOperation operation;
 };
@@ -158,11 +161,11 @@ struct Compare {
 // This expression is used to simplify duplicate elimination. It is then replaced by conditional
 // logic and phi functions.
 struct Cond {
-  constexpr static int num_value_operands() { return 3; }
-  constexpr static bool is_commutative() { return false; }
-  constexpr std::string_view to_string() const { return "cond"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Cond&) const { return true; }
+  constexpr static int num_value_operands() noexcept { return 3; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr std::string_view to_string() const noexcept { return "cond"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const Cond&) const noexcept { return true; }
 
   NumericType determine_type(const ValuePtr&, const ValuePtr& true_val,
                              const ValuePtr& false_val) const {
@@ -172,11 +175,11 @@ struct Cond {
 
 // Copy the operand.
 struct Copy {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 1; }
-  constexpr std::string_view to_string() const { return "copy"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Copy&) const { return true; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 1; }
+  constexpr std::string_view to_string() const noexcept { return "copy"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const Copy&) const noexcept { return true; }
 
   NumericType determine_type(ValuePtr arg) const { return get_value_type(arg); }
 };
@@ -210,9 +213,9 @@ struct JumpCondition {
 struct Load {
   using storage_type = std::variant<Constant, Integer, Float, Rational, Variable>;
 
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 0; }
-  constexpr std::string_view to_string() const { return "load"; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 0; }
+  constexpr std::string_view to_string() const noexcept { return "load"; }
 
   std::size_t hash_seed() const {
     return std::visit([](const auto& contents) { return hash(contents); }, variant);
@@ -233,7 +236,7 @@ struct Load {
 
   // Returns true if variant contains one of the types `Ts...`
   template <typename... Ts>
-  bool is_type() const {
+  bool is_type() const noexcept {
     return ((std::holds_alternative<Ts>(variant)) || ...);
   }
 
@@ -250,11 +253,11 @@ struct Load {
 
 // Multiply together two operands.
 struct Mul {
-  constexpr static bool is_commutative() { return true; }
-  constexpr static int num_value_operands() { return 2; }
-  constexpr std::string_view to_string() const { return "mul"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Mul&) const { return true; }
+  constexpr static bool is_commutative() noexcept { return true; }
+  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr std::string_view to_string() const noexcept { return "mul"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const Mul&) const noexcept { return true; }
 
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
     return std::max(std::max(get_value_type(a), get_value_type(b)), NumericType::Integer);
@@ -263,13 +266,13 @@ struct Mul {
 
 // Evaluates to true if the specified output index is required.
 struct OutputRequired {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 0; }
-  constexpr std::string_view to_string() const { return "oreq"; }
-  std::size_t hash_seed() const { return hash_string_fnv(name); }
-  bool is_same(const OutputRequired& other) const { return name == other.name; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 0; }
+  constexpr std::string_view to_string() const noexcept { return "oreq"; }
+  std::size_t hash_seed() const noexcept { return hash_string_fnv(name); }
+  bool is_same(const OutputRequired& other) const noexcept { return name == other.name; }
 
-  constexpr NumericType determine_type() const { return NumericType::Bool; }
+  constexpr NumericType determine_type() const noexcept { return NumericType::Bool; }
 
   explicit OutputRequired(std::string name) : name(name) {}
 
@@ -278,11 +281,11 @@ struct OutputRequired {
 
 // Phi function. The output is equal to whichever operand was generated on the evaluated code-path.
 struct Phi {
-  constexpr static int num_value_operands() { return 2; }
-  constexpr static bool is_commutative() { return false; }
-  constexpr std::string_view to_string() const { return "phi"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Phi&) const { return true; }
+  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr std::string_view to_string() const noexcept { return "phi"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const Phi&) const noexcept { return true; }
 
   NumericType determine_type(const ValuePtr& a, const ValuePtr&) const {
     // Both values should be the same:
@@ -293,19 +296,15 @@ struct Phi {
 // A sink used to indicate that a value is consumed by the output (for example in a return type or
 // an output argument). Operands to `Save` are never eliminated.
 struct Save {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() {
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept {
     return -1;  //  Dynamic
   }
-  constexpr std::string_view to_string() const { return "save"; }
+  constexpr std::string_view to_string() const noexcept { return "save"; }
 
   std::size_t hash_seed() const { return hash_struct<OutputKey>{}(key); }
 
-  constexpr bool is_same(const Save& other) const {
-    return key == other.key;  // && output_index == other.output_index;
-  }
-
-  constexpr bool IsReturnValue() const { return key.usage == ExpressionUsage::ReturnValue; }
+  constexpr bool is_same(const Save& other) const noexcept { return key == other.key; }
 
   OutputKey key;
 };
@@ -320,11 +319,12 @@ using Operation = std::variant<Add, CallStdFunction, Cast, Compare, Cond, Copy, 
 class Value {
  public:
   using unique_ptr = std::unique_ptr<Value>;
+  using operands_container = std::vector<ir::ValuePtr>;
 
   // Construct:
   template <typename OpType>
   explicit Value(uint32_t name, ir::BlockPtr parent, OpType&& operation,
-                 std::vector<ValuePtr>&& operands)
+                 operands_container&& operands)
       : name_(name),
         parent_(parent),
         op_(std::forward<OpType>(operation)),
@@ -345,23 +345,20 @@ class Value {
       : Value(name, parent, std::forward<OpType>(operation), make_value_vector(args...)) {}
 
   // Access underlying integer.
-  constexpr uint32_t name() const { return name_; }
+  constexpr uint32_t name() const noexcept { return name_; }
 
   // Get the parent block.
-  ir::BlockPtr parent() const { return parent_; }
+  ir::BlockPtr parent() const noexcept { return parent_; }
 
   // Set the parent pointer.
-  void set_parent(ir::BlockPtr b) {
-    ZEN_ASSERT(!std::holds_alternative<ir::JumpCondition>(op_));
-    parent_ = b;
-  }
+  void set_parent(ir::BlockPtr b);
 
   // Access underlying operation
-  const Operation& value_op() const { return op_; }
+  constexpr const Operation& value_op() const noexcept { return op_; }
 
   // True if the underlying operation is `T`.
   template <typename T>
-  bool is_type() const {
+  constexpr bool is_type() const noexcept {
     return std::holds_alternative<T>(op_);
   }
 
@@ -372,26 +369,13 @@ class Value {
   }
 
   // True if this is a phi function.
-  bool is_phi() const { return is_type<ir::Phi>(); }
+  constexpr bool is_phi() const noexcept { return is_type<ir::Phi>(); }
 
   // True if any values that consume this one are phi functions.
-  bool is_consumed_by_phi() const {
-    return std::any_of(consumers_.begin(), consumers_.end(),
-                       [](const ValuePtr& v) { return v->is_phi(); });
-  }
+  bool is_consumed_by_phi() const noexcept;
 
   // Replace an operand to this instruction with another.
-  void replace_operand(const ValuePtr old, const ValuePtr replacement) {
-    const ValuePtr self{this};
-    for (ir::ValuePtr& operand : operands_) {
-      if (operand == old) {
-        // Note we don't remove the consumer from `operand`, that happens in replace_with(...)
-        operand = replacement;
-        replacement->add_consumer(self);
-      }
-    }
-    maybe_sort_operands();
-  }
+  void replace_operand(ValuePtr old, ValuePtr replacement);
 
   // Change the underlying operation that computes this value.
   template <typename OpType, typename... Args>
@@ -412,27 +396,17 @@ class Value {
     check_num_operands<OpType>();
   }
 
-  void add_consumer(const ir::ValuePtr v) {
-    // The value might be consumed twice by the same expression, for instance: pow(x, x)
-    auto it = std::find(consumers_.begin(), consumers_.end(), v);
-    if (it == consumers_.end()) {
-      consumers_.push_back(v);
-    }
-  }
+  // Add `v` to the list of consumers of this value.
+  void add_consumer(ValuePtr v);
 
-  void remove_consumer(ir::Value* v) {
-    auto it = std::find(consumers_.begin(), consumers_.end(), v);
-    if (it != consumers_.end()) {
-      // Might have already been removed, if we were an operand twice.
-      consumers_.erase(it);
-    }
-  }
+  // Remove `v` from the list of consumers of this value.
+  void remove_consumer(ir::Value* v);
 
   // Access instruction operands.
-  const std::vector<ValuePtr>& operands() const { return operands_; }
+  constexpr const operands_container& operands() const noexcept { return operands_; }
 
   // Number of operands.
-  std::size_t num_operands() const { return operands_.size(); }
+  std::size_t num_operands() const noexcept { return operands_.size(); }
 
   // Get the first operand.
   const ValuePtr& first_operand() const {
@@ -447,18 +421,13 @@ class Value {
   }
 
   // Access all consumers of this value.
-  const std::vector<ValuePtr>& consumers() const { return consumers_; }
+  constexpr const std::vector<ValuePtr>& consumers() const noexcept { return consumers_; }
 
   // Number of values that directly consume this one.
   std::size_t num_consumers() const { return consumers_.size(); }
 
-  // True if operands to values match.
-  bool operands_match(const ValuePtr& other) const {
-    if (operands_.size() != other->operands_.size()) {
-      return false;
-    }
-    return std::equal(operands_.begin(), operands_.end(), other->operands_.begin());
-  }
+  // True if operands of `this` and `other` match (have the same names).
+  bool operands_match(ValuePtr other) const noexcept;
 
   // True if all the consumers of this value satisfy the given predicate.
   template <typename Predicate>
@@ -474,7 +443,7 @@ class Value {
   void remove();
 
   // True if there are no consumers of this value.
-  bool is_unused() const {
+  bool is_unused() const noexcept {
     return consumers_.empty() && !is_type<ir::Save>() && !is_type<ir::JumpCondition>();
   }
 
@@ -485,13 +454,10 @@ class Value {
   }
 
  protected:
-  void maybe_sort_operands() {
-    const bool commutative = std::visit([](const auto& op) { return op.is_commutative(); }, op_);
-    if (commutative) {
-      sort_operands();
-    }
-  }
+  // If the underlying operation is commutative, sort the operands by name.
+  void maybe_sort_operands();
 
+  // Sort operands in-place by increasing value of name.
   void sort_operands() {
     std::sort(operands_.begin(), operands_.end(),
               [](const ValuePtr& a, const ValuePtr& b) { return a->name() < b->name(); });
@@ -513,9 +479,8 @@ class Value {
   }
 
   // Determine the numeric type of the resulting expression.
-  template <typename T>
-  static std::optional<NumericType> determine_type(const T& op,
-                                                   const std::vector<ir::ValuePtr>& operands) {
+  template <typename T, typename Container>
+  static std::optional<NumericType> determine_type(const T& op, const Container& operands) {
     if constexpr (type_list_contains_type_v<T, Save, JumpCondition>) {
       return std::nullopt;
     } else if constexpr (T::num_value_operands() == 0) {
@@ -532,13 +497,14 @@ class Value {
   }
 
   // Version of determine_type that accepts the operation directly.
-  static auto determine_type(const Operation& op, const std::vector<ir::ValuePtr>& operands) {
+  template <typename Container>
+  static auto determine_type(const Operation& op, const Container& operands) {
     return std::visit([&operands](const auto& op) { return determine_type(op, operands); }, op);
   }
 
   template <typename... Args>
-  std::vector<ValuePtr> make_value_vector(Args&&... args) {
-    std::vector<ValuePtr> vec{};
+  operands_container make_value_vector(Args&&... args) {
+    operands_container vec{};
     vec.reserve(sizeof...(Args));
     (vec.emplace_back(std::forward<Args>(args)), ...);
     return vec;
@@ -553,14 +519,15 @@ class Value {
   // The operation that computes this value.
   Operation op_;
 
-  // Operands to the operation. Maybe be empty for some operations.
-  // TODO: Small vector of size ~4:
-  std::vector<ValuePtr> operands_;
+  // Operands to the operation. May be empty for some operations.
+  // TODO: An inlined vector doesn't make any meaningful difference here, but that maybe merits
+  //  a bit more thorough investigation.
+  operands_container operands_;
 
   // Downstream values that consume this one:
   std::vector<ValuePtr> consumers_;
 
-  // The cached numeric type of this operation.
+  // The cached numeric type of this operation. Optional because some operations lack a type.
   std::optional<NumericType> numeric_type_;
 };
 

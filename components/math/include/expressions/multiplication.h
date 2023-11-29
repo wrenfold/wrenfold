@@ -88,7 +88,7 @@ class Multiplication {
       } else if (a.get_hash() > b.get_hash()) {
         return false;
       } else {
-        return ExpressionOrderPredicate{}(a, b);
+        return expression_order_struct{}(a, b);
       }
     });
   }

@@ -24,11 +24,9 @@ auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4,
       q0 * Quaternion::from_rotation_vector(q_delta_tangent * alpha, 1.0e-16);
 
   ta::StaticMatrix<3, 3> D_q0 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.to_vector_wxyz().jacobian(q0.to_vector_wxyz()) *
-                                q0.right_retract_derivative();
+                                q_interp.jacobian(q0) * q0.right_retract_derivative();
   ta::StaticMatrix<3, 3> D_q1 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.to_vector_wxyz().jacobian(q1.to_vector_wxyz()) *
-                                q1.right_retract_derivative();
+                                q_interp.jacobian(q1) * q1.right_retract_derivative();
 
   return std::make_tuple(OutputArg("q_out", ta::StaticMatrix<4, 1>(q_interp.to_vector_xyzw())),
                          OptionalOutputArg("D_q0", std::move(D_q0)),
@@ -55,10 +53,11 @@ static void BM_ConvertIrLowComplexity(benchmark::State& state) {
                                           Arg("q0"), Arg("q1"), Arg("alpha"));
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
-  FlatIr flat_ir{expressions};
-  flat_ir.eliminate_duplicates();
-
   for (auto _ : state) {
+    state.PauseTiming();
+    FlatIr flat_ir{expressions};
+    flat_ir.eliminate_duplicates();
+    state.ResumeTiming();
     // Convert to the non-flat IR.
     OutputIr output_ir{std::move(flat_ir)};
     benchmark::DoNotOptimize(output_ir);
