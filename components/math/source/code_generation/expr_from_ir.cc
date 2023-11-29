@@ -97,7 +97,12 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
-    return load.expr;
+    return std::visit(
+        [](const auto& expression) {
+          using T = std::decay_t<decltype(expression)>;
+          return make_expr<T>(expression);
+        },
+        load.variant);
   }
 
   Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {

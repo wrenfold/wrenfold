@@ -85,7 +85,9 @@ struct DetermineNumericTypeVisitor {
 
 namespace ir {
 
-NumericType Load::determine_type() const { return visit(expr, DetermineNumericTypeVisitor{}); }
+NumericType Load::determine_type() const {
+  return std::visit(DetermineNumericTypeVisitor{}, variant);
+}
 
 void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
   ZEN_ASSERT_NOT_EQUAL(target, replacement);
@@ -166,7 +168,9 @@ template <>
 struct FormatOpArgsHelper<ir::Load> {
   void operator()(std::string& output, const ir::Load& load, const std::vector<ir::ValuePtr>&,
                   const std::size_t) {
-    output += load.expr.to_string();
+    PlainFormatter formatter{};
+    std::visit(formatter, load.variant);
+    output += formatter.take_output();
   }
 };
 
@@ -338,9 +342,7 @@ struct IRFormVisitor {
                           maybe_cast(else_branch, promoted_type));
   }
 
-  ir::ValuePtr operator()(const Constant&, const Expr& input_expression) {
-    return push_operation(ir::Load{input_expression});
-  }
+  ir::ValuePtr operator()(const Constant& c) { return push_operation(ir::Load{c}); }
 
   ir::ValuePtr operator()(const Derivative&) {
     throw TypeError("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
@@ -385,13 +387,9 @@ struct IRFormVisitor {
     throw TypeError("Cannot generate code for complex infinity.");
   }
 
-  ir::ValuePtr operator()(const Integer&, const Expr& input_expression) {
-    return push_operation(ir::Load{input_expression});
-  }
+  ir::ValuePtr operator()(const Integer& i) { return push_operation(ir::Load{i}); }
 
-  ir::ValuePtr operator()(const Float&, const Expr& input_expression) {
-    return push_operation(ir::Load{input_expression});
-  }
+  ir::ValuePtr operator()(const Float& f) { return push_operation(ir::Load{f}); }
 
   // Apply exponentiation by squaring to implement a power of an integer.
   ir::ValuePtr exponentiate_by_squaring(ir::ValuePtr base, uint64_t exponent) {
@@ -463,10 +461,7 @@ struct IRFormVisitor {
                           maybe_cast(base, promoted_type), maybe_cast(exponent, promoted_type));
   }
 
-  ir::ValuePtr operator()(const Rational&, const Expr& expr) {
-    // We just send Rational directly to the code generator.
-    return push_operation(ir::Load{expr});
-  }
+  ir::ValuePtr operator()(const Rational& r) { return push_operation(ir::Load{r}); }
 
   ir::ValuePtr operator()(const Relational& relational, const Expr&) {
     ir::ValuePtr left = apply(relational.left());
@@ -480,9 +475,7 @@ struct IRFormVisitor {
     throw TypeError("Cannot generate code with expressions containing {}", Undefined::NameStr);
   }
 
-  ir::ValuePtr operator()(const Variable&, const Expr& input_expression) {
-    return push_operation(ir::Load{input_expression});
-  }
+  ir::ValuePtr operator()(const Variable& var) { return push_operation(ir::Load{var}); }
 
   template <typename OpType, typename... Args>
   ir::ValuePtr push_operation(OpType&& op, Args&&... args) {

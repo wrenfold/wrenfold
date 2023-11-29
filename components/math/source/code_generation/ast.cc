@@ -263,7 +263,7 @@ struct AstBuilder {
   bool should_inline_constant(const ir::ValuePtr val) const {
     return overloaded_visit(
         val->value_op(),
-        [](const ir::Load& load) { return load.expr.is_type<Integer, Float, Constant>(); },
+        [](const ir::Load& load) { return load.is_type<Integer, Float, Constant>(); },
         [&](const ir::Cast&) { return should_inline_constant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
   }
@@ -341,23 +341,23 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const ir::Value&, const ir::Load& load) {
-    return visit(load.expr, [this](const auto& inner) -> ast::Variant {
-      using T = std::decay_t<decltype(inner)>;
-      if constexpr (std::is_same_v<T, Integer>) {
-        return ast::IntegerConstant{inner.get_value()};
-      } else if constexpr (std::is_same_v<T, Float>) {
-        return ast::FloatConstant{static_cast<Float>(inner).get_value()};
-      } else if constexpr (std::is_same_v<T, Rational>) {
-        return ast::FloatConstant{static_cast<Float>(inner).get_value()};
-      } else if constexpr (std::is_same_v<T, Variable>) {
-        // inspect inner type of the variable
-        return std::visit(*this, inner.identifier());
-      } else if constexpr (std::is_same_v<T, Constant>) {
-        return ast::SpecialConstant{inner.name()};
-      } else {
-        throw TypeError("Invalid type in code generation expression: {}", T::NameStr);
-      }
-    });
+    return std::visit(
+        [this](const auto& inner) -> ast::Variant {
+          using T = std::decay_t<decltype(inner)>;
+          if constexpr (std::is_same_v<T, Constant>) {
+            return ast::SpecialConstant{inner.name()};
+          } else if constexpr (std::is_same_v<T, Integer>) {
+            return ast::IntegerConstant{inner.get_value()};
+          } else if constexpr (std::is_same_v<T, Float>) {
+            return ast::FloatConstant{static_cast<Float>(inner).get_value()};
+          } else if constexpr (std::is_same_v<T, Rational>) {
+            return ast::FloatConstant{static_cast<Float>(inner).get_value()};
+          } else if constexpr (std::is_same_v<T, Variable>) {
+            // inspect inner type of the variable
+            return std::visit(*this, inner.identifier());
+          }
+        },
+        load.variant);
   }
 
  private:

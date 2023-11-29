@@ -4,6 +4,9 @@
 #include <variant>
 #include <vector>
 
+#include "expressions/numeric_expressions.h"
+#include "expressions/special_constants.h"
+#include "expressions/variable.h"
 #include "hashing.h"
 #include "non_null_ptr.h"
 #include "template_utils.h"
@@ -205,18 +208,43 @@ struct JumpCondition {
 // A source to insert input values (either constants or function arguments) into the IR. Has no
 // value arguments, but has an expression.
 struct Load {
+  using storage_type = std::variant<Constant, Integer, Float, Rational, Variable>;
+
   constexpr static bool is_commutative() { return false; }
   constexpr static int num_value_operands() { return 0; }
   constexpr std::string_view to_string() const { return "load"; }
-  std::size_t hash_seed() const { return expr.get_hash(); }
-  bool is_same(const Load& other) const { return expr.is_identical_to(other.expr); }
+
+  std::size_t hash_seed() const {
+    return std::visit([](const auto& contents) { return hash(contents); }, variant);
+  }
+
+  //  Check if the underlying variants contain identical expressions.
+  bool is_same(const Load& other) const {
+    return std::visit(
+        [](const auto& a, const auto& b) {
+          if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
+            return a.is_identical_to(b);
+          } else {
+            return false;
+          }
+        },
+        variant, other.variant);
+  }
+
+  // Returns true if variant contains one of the types `Ts...`
+  template <typename... Ts>
+  bool is_type() const {
+    return ((std::holds_alternative<Ts>(variant)) || ...);
+  }
 
   // Defined in cc file.
   NumericType determine_type() const;
 
-  explicit Load(Expr expr) : expr(std::move(expr)) {}
+  // Construct with one of the types in `storage_type`.
+  template <typename T, typename = std::enable_if_t<std::is_constructible_v<storage_type, T>>>
+  explicit Load(T&& contents) : variant{std::forward<T>(contents)} {}
 
-  Expr expr;
+  storage_type variant;
 };
 
 // Multiply together two operands.
