@@ -244,6 +244,7 @@ struct Load {
   template <typename T, typename = std::enable_if_t<std::is_constructible_v<storage_type, T>>>
   explicit Load(T&& contents) : variant{std::forward<T>(contents)} {}
 
+  // Variant of different leaf expression types.
   storage_type variant;
 };
 
@@ -566,24 +567,6 @@ class Value {
 // Inline method definition:
 inline NumericType get_value_type(const ValuePtr& v) { return v->numeric_type(); }
 
-// Hashes the operation and all the arguments of a value.
-// This deliberately ignores the name of the value. Two different values w/ identical operations
-// should produce the same hash.
-struct ValueHasher {
-  std::size_t operator()(const ir::ValuePtr& val) const {
-    // Seed the hash w/ the index in the variant, which accounts for the type of the op.
-    std::size_t seed = val->value_op().index();
-    // Then some operations w/ members need to reason about the hash of those members:
-    seed = hash_combine(
-        seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
-    for (const ir::ValuePtr& operand : val->operands()) {
-      const uint32_t val_name = operand->name();
-      seed = hash_combine(seed, static_cast<std::size_t>(val_name));
-    }
-    return seed;
-  }
-};
-
 // Test two values for equality. The operation must be the same type, and the operands must be
 // identical. This does not recursively test the operands for equality - the pointer themselves
 // must match.
@@ -626,6 +609,29 @@ std::size_t Block::count_operation(Func&& func) const {
 }
 
 }  // namespace math::ir
+
+namespace math {
+
+// Hashes the operation and all the arguments of a value.
+// This deliberately ignores the name of the value. Two different values w/ identical operations
+// should produce the same hash.
+template <>
+struct hash_struct<ir::ValuePtr> {
+  std::size_t operator()(const ir::ValuePtr& val) const {
+    // Seed the hash w/ the index in the variant, which accounts for the type of the op.
+    std::size_t seed = val->value_op().index();
+    // Then some operations w/ members need to reason about the hash of those members:
+    seed = hash_combine(
+        seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
+    for (const ir::ValuePtr& operand : val->operands()) {
+      const uint32_t val_name = operand->name();
+      seed = hash_combine(seed, static_cast<std::size_t>(val_name));
+    }
+    return seed;
+  }
+};
+
+}  // namespace math
 
 // Formatter for Value
 template <>

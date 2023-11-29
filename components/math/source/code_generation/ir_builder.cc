@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <deque>
-#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -14,79 +13,27 @@
 #include "visitor_impl.h"
 
 namespace math {
-
-struct DetermineNumericTypeVisitor {
-  NumericType operator()(const Addition& add) const {
-    // Adding bool to bool yields integer, add any floats - and it becomes real, etc...
-    NumericType type = NumericType::Integer;
-    for (const auto& expr : add) {
-      type = std::max(visit(expr, DetermineNumericTypeVisitor{}), type);
-    }
-    return type;
-  }
-
-  constexpr NumericType operator()(const CastBool&) const noexcept { return NumericType::Integer; }
-
-  NumericType operator()(const Conditional& cond) const {
-    const NumericType left = visit(cond.if_branch(), DetermineNumericTypeVisitor{});
-    const NumericType right = visit(cond.else_branch(), DetermineNumericTypeVisitor{});
-    return std::max(left, right);
-  }
-
-  NumericType operator()(const Constant& c) const {
-    switch (c.name()) {
-      case SymbolicConstants::Euler:
-      case SymbolicConstants::Pi:
-        return NumericType::Real;
-      case SymbolicConstants::True:
-      case SymbolicConstants::False:
-        return NumericType::Bool;
-    }
-    throw TypeError("Unhandled symbolic constant");
-  }
-
-  constexpr NumericType operator()(const Derivative&) const {
-    // TODO: This should be "unknown", since we don't know the type of the input function.
-    return NumericType::Real;
-  }
-
-  constexpr NumericType operator()(const Float&) const { return NumericType::Real; }
-
-  constexpr NumericType operator()(const Infinity&) const { return NumericType::Complex; }
-
-  constexpr NumericType operator()(const Integer&) const { return NumericType::Integer; }
-
-  NumericType operator()(const Multiplication& mul) const {
-    // Multiplying booleans produces an integer, same as C++.
-    NumericType type = NumericType::Integer;
-    for (const auto& expr : mul) {
-      type = std::max(visit(expr, DetermineNumericTypeVisitor{}), type);
-    }
-    return type;
-  }
-
-  NumericType operator()(const Power& pow) const {
-    const NumericType b = visit(pow.base(), DetermineNumericTypeVisitor{});
-    const NumericType e = visit(pow.exponent(), DetermineNumericTypeVisitor{});
-    return std::max(b, e);
-  }
-
-  constexpr NumericType operator()(const Rational&) const { return NumericType::Real; }
-
-  constexpr NumericType operator()(const Relational&) const { return NumericType::Bool; }
-
-  constexpr NumericType operator()(const Function&) const { return NumericType::Real; }
-
-  // Not really true, but it doesn't matter what we return in this context.
-  constexpr NumericType operator()(const Undefined&) const { return NumericType::Real; }
-
-  constexpr NumericType operator()(const Variable&) const { return NumericType::Real; }
-};
-
 namespace ir {
 
 NumericType Load::determine_type() const {
-  return std::visit(DetermineNumericTypeVisitor{}, variant);
+  struct determine_numeric_type {
+    NumericType operator()(const Constant& c) const {
+      switch (c.name()) {
+        case SymbolicConstants::Euler:
+        case SymbolicConstants::Pi:
+          return NumericType::Real;
+        case SymbolicConstants::True:
+        case SymbolicConstants::False:
+          return NumericType::Bool;
+      }
+      throw TypeError("Unhandled symbolic constant");
+    }
+    constexpr NumericType operator()(const Float&) const noexcept { return NumericType::Real; }
+    constexpr NumericType operator()(const Integer&) const noexcept { return NumericType::Integer; }
+    constexpr NumericType operator()(const Rational&) const noexcept { return NumericType::Real; }
+    constexpr NumericType operator()(const Variable&) const noexcept { return NumericType::Real; }
+  };
+  return std::visit(determine_numeric_type{}, variant);
 }
 
 void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
@@ -284,7 +231,7 @@ struct IRFormVisitor {
 
   // Handler for additions and multiplications:
   template <typename T, typename = enable_if_contains_type_t<T, Multiplication, Addition>>
-  ir::ValuePtr operator()(const T& op, const Expr&) {
+  ir::ValuePtr operator()(const T& op) {
     // Put the thing w/ the highest count in the first cell:
     std::vector<Expr> expressions{op.begin(), op.end()};
 
@@ -330,7 +277,7 @@ struct IRFormVisitor {
     return push_operation(ir::Cast{NumericType::Integer}, arg);
   }
 
-  ir::ValuePtr operator()(const Conditional& cond, const Expr&) {
+  ir::ValuePtr operator()(const Conditional& cond) {
     const ir::ValuePtr condition = apply(cond.condition());
     const ir::ValuePtr if_branch = apply(cond.if_branch());
     const ir::ValuePtr else_branch = apply(cond.else_branch());
@@ -374,7 +321,7 @@ struct IRFormVisitor {
     throw AssertionError("Invalid enum value: {}", string_from_built_in_function(name));
   }
 
-  ir::ValuePtr operator()(const Function& func, const Expr&) {
+  ir::ValuePtr operator()(const Function& func) {
     std::vector<ir::ValuePtr> args;
     args.reserve(func.arity());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
@@ -383,7 +330,7 @@ struct IRFormVisitor {
     return push_operation(ir::CallStdFunction{enum_value}, std::move(args));
   }
 
-  ir::ValuePtr operator()(const Infinity&, const Expr&) const {
+  ir::ValuePtr operator()(const Infinity&) const {
     throw TypeError("Cannot generate code for complex infinity.");
   }
 
@@ -463,7 +410,7 @@ struct IRFormVisitor {
 
   ir::ValuePtr operator()(const Rational& r) { return push_operation(ir::Load{r}); }
 
-  ir::ValuePtr operator()(const Relational& relational, const Expr&) {
+  ir::ValuePtr operator()(const Relational& relational) {
     ir::ValuePtr left = apply(relational.left());
     ir::ValuePtr right = apply(relational.right());
     NumericType promoted_type = std::max(left->numeric_type(), right->numeric_type());
@@ -500,7 +447,7 @@ struct IRFormVisitor {
       }
     }
     // TODO: Factorize constants out of multiplications here.
-    ir::ValuePtr val = visit_with_expr(expr, *this);
+    ir::ValuePtr val = visit(expr, *this);
     computed_values_.emplace(expr, val);
     return val;
   }
@@ -602,10 +549,10 @@ std::string FlatIr::to_string() const {
     fmt::format_to(std::back_inserter(output), "  v{:0>{}} <- ", code->name(), width);
 
     // Print the instruction name:
-    constexpr int OperationWidth = 4;
+    constexpr int operation_width = 4;
     fmt::format_to(std::back_inserter(output), "{:>{}} ",
                    std::visit([](const auto& op) { return op.to_string(); }, code->value_op()),
-                   OperationWidth);
+                   operation_width);
     format_op_args(output, code->value_op(), code->operands(), width);
     output += "\n";
   }
@@ -622,7 +569,7 @@ std::size_t FlatIr::value_print_width() const {
 }
 
 // A hash-set of values:
-using ValueTable = std::unordered_set<ir::ValuePtr, ir::ValueHasher, ir::ValueEquality>;
+using ValueTable = std::unordered_set<ir::ValuePtr, hash_struct<ir::ValuePtr>, ir::ValueEquality>;
 
 // Eliminate duplicates in `block`, using existing values stored in `table`.
 inline void local_value_numbering(ir::BlockPtr block, ValueTable& table) {
@@ -993,10 +940,6 @@ OutputIr::OutputIr(math::FlatIr&& input) {
                 values_.end());
 }
 
-struct BlockNameFormatter {
-  uint32_t name;
-};
-
 std::string OutputIr::to_string() const {
   const std::size_t width = value_print_width();
   std::string output{};
@@ -1017,10 +960,10 @@ std::string OutputIr::to_string() const {
       }
 
       // Print the instruction name:
-      constexpr int OperationWidth = 4;
+      constexpr int operation_width = 4;
       fmt::format_to(std::back_inserter(output), "{:>{}} ",
                      std::visit([](const auto& op) { return op.to_string(); }, code->value_op()),
-                     OperationWidth);
+                     operation_width);
       format_op_args(output, code->value_op(), code->operands(), width);
       output += "\n";
     }
