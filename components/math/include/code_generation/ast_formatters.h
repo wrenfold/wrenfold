@@ -82,6 +82,11 @@ auto format_ast(Iterator it, const math::ast::Declaration& d) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const math::ast::Divide& d) {
+  return fmt::format_to(it, "Divide({}, {})", *d.left, *d.right);
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const math::ast::FloatConstant& c) {
   return fmt::format_to(it, "{}f", c.value);
 }

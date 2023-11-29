@@ -165,33 +165,33 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& 
 }
 
 static constexpr std::string_view rust_string_for_std_function(
-    const StandardLibraryMathFunction name) noexcept {
+    const StdMathFunction name) noexcept {
   switch (name) {
-    case StandardLibraryMathFunction::Cos:
+    case StdMathFunction::Cos:
       return "f64::cos";
-    case StandardLibraryMathFunction::Sin:
+    case StdMathFunction::Sin:
       return "f64::sin";
-    case StandardLibraryMathFunction::Tan:
+    case StdMathFunction::Tan:
       return "f64::tan";
-    case StandardLibraryMathFunction::ArcCos:
+    case StdMathFunction::ArcCos:
       return "f64::acos";
-    case StandardLibraryMathFunction::ArcSin:
+    case StdMathFunction::ArcSin:
       return "f64::asin";
-    case StandardLibraryMathFunction::ArcTan:
+    case StdMathFunction::ArcTan:
       return "f64::atan";
-    case StandardLibraryMathFunction::Log:
+    case StdMathFunction::Log:
       return "f64::ln";
-    case StandardLibraryMathFunction::Sqrt:
+    case StdMathFunction::Sqrt:
       return "f64::sqrt";
-    case StandardLibraryMathFunction::Abs:
+    case StdMathFunction::Abs:
       return "f64::abs";
-    case StandardLibraryMathFunction::Signum:
+    case StdMathFunction::Signum:
       return "f64::signum";
-    case StandardLibraryMathFunction::Arctan2:
+    case StdMathFunction::Arctan2:
       return "f64::atan2";
-    case StandardLibraryMathFunction::Powi:
+    case StdMathFunction::Powi:
       return "f64::powi";
-    case StandardLibraryMathFunction::Powf:
+    case StdMathFunction::Powf:
       return "f64::powf";
     default:
       break;
@@ -201,7 +201,7 @@ static constexpr std::string_view rust_string_for_std_function(
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
   // We have to override signum specially here, because the built-in rust signum does not return 0.
-  if (x.function == StandardLibraryMathFunction::Signum) {
+  if (x.function == StdMathFunction::Signum) {
     // TODO: should be an integer expression:
     formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
                      make_view(x.args[0]));
@@ -237,6 +237,10 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarat
     formatter.format("let {}: {} = {};", x.name, type_string_from_numeric_type(x.type),
                      make_view(x.value));
   }
+}
+
+void RustCodeGenerator::operator()(math::CodeFormatter& formatter, const ast::Divide& x) const {
+  formatter.format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
 void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {

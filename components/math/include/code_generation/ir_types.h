@@ -57,6 +57,10 @@ class Block {
 
   // Add `b` as a descendant, and add `this` as an ancestor of b.
   void add_descendant(ir::BlockPtr b);
+
+  // Count instances of operation of type `T`.
+  template <typename Func>
+  std::size_t count_operation(Func&& func) const;
 };
 
 // Determine the underlying numeric type of the provided value.
@@ -74,17 +78,6 @@ struct Add {
   NumericType determine_type(ValuePtr a, ValuePtr b) const {
     return std::max(std::max(get_value_type(a), get_value_type(b)), NumericType::Integer);
   }
-};
-
-// Copy the operand.
-struct Copy {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 1; }
-  constexpr std::string_view to_string() const { return "copy"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Copy&) const { return true; }
-
-  NumericType determine_type(ValuePtr arg) const { return get_value_type(arg); }
 };
 
 // Cast the operand to the specified destination type.
@@ -107,7 +100,7 @@ struct Cast {
 };
 
 // A call to a built-in mathematical function like sin, cos, log, etc.
-struct CallStandardLibraryFunction {
+struct CallStdFunction {
   constexpr static bool is_commutative() { return false; }
   constexpr static int num_value_operands() { return -1; }
 
@@ -117,19 +110,16 @@ struct CallStandardLibraryFunction {
 
   constexpr std::size_t hash_seed() const { return static_cast<std::size_t>(name); }
 
-  constexpr bool is_same(const CallStandardLibraryFunction& other) const {
-    return name == other.name;
-  }
+  constexpr bool is_same(const CallStdFunction& other) const { return name == other.name; }
 
   // TODO: This should not be hardcoded to `real`.
   constexpr NumericType determine_type(const std::vector<ValuePtr>&) const {
     return NumericType::Real;
   }
 
-  explicit constexpr CallStandardLibraryFunction(StandardLibraryMathFunction name) noexcept
-      : name(name) {}
+  explicit constexpr CallStdFunction(StdMathFunction name) noexcept : name(name) {}
 
-  StandardLibraryMathFunction name;
+  StdMathFunction name;
 };
 
 // Compare two operands (equality or inequality).
@@ -177,17 +167,39 @@ struct Cond {
   }
 };
 
+// Copy the operand.
+struct Copy {
+  constexpr static bool is_commutative() { return false; }
+  constexpr static int num_value_operands() { return 1; }
+  constexpr std::string_view to_string() const { return "copy"; }
+  constexpr std::size_t hash_seed() const { return 0; }
+  constexpr bool is_same(const Copy&) const { return true; }
+
+  NumericType determine_type(ValuePtr arg) const { return get_value_type(arg); }
+};
+
 // Divide first operand by the second one.
 struct Div {
-  constexpr static bool is_commutative() { return true; }
-  constexpr static int num_value_operands() { return 2; }
-  constexpr std::string_view to_string() const { return "div"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const Div&) const { return true; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr std::string_view to_string() const noexcept { return "div"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const Div&) const noexcept { return true; }
 
-  NumericType determine_type(ValuePtr a, ValuePtr b) const {
+  static NumericType determine_type(ValuePtr a, ValuePtr b) {
     return std::max(get_value_type(a), get_value_type(b));
   }
+};
+
+// This objects acts as a sink to indicate that a value will be used in the output code
+// to adjust control flow. The single operand is a boolean value that will ultimately
+// determine which path an if-else statement takes.
+struct JumpCondition {
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 1; }
+  constexpr std::string_view to_string() const noexcept { return "jcnd"; }
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const JumpCondition&) const noexcept { return true; }
 };
 
 // A source to insert input values (either constants or function arguments) into the IR. Has no
@@ -269,17 +281,9 @@ struct Save {
   OutputKey key;
 };
 
-struct JumpCondition {
-  constexpr static bool is_commutative() { return false; }
-  constexpr static int num_value_operands() { return 1; }
-  constexpr std::string_view to_string() const { return "jcnd"; }
-  constexpr std::size_t hash_seed() const { return 0; }
-  constexpr bool is_same(const JumpCondition&) const { return true; }
-};
-
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, CallStandardLibraryFunction, Cast, Compare, Cond, Copy, Load,
-                               Mul, OutputRequired, Phi, Save, JumpCondition>;
+using Operation = std::variant<Add, CallStdFunction, Cast, Compare, Cond, Copy, Div, JumpCondition,
+                               Load, Mul, OutputRequired, Phi, Save>;
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
@@ -408,7 +412,10 @@ class Value {
   }
 
   // Access i'th operand:
-  ValuePtr operator[](std::size_t i) const { return operands_[i]; }
+  ValuePtr operator[](std::size_t i) const {
+    ZEN_ASSERT_LESS(i, operands_.size());
+    return operands_[i];
+  }
 
   // Access all consumers of this value.
   const std::vector<ValuePtr>& consumers() const { return consumers_; }
@@ -571,6 +578,24 @@ struct ValueEquality {
     return a->operands_match(b);
   }
 };
+
+// Count instances of operation of type `T`.
+// Defined here so that we can use methods on `Value`.
+template <typename Func>
+std::size_t Block::count_operation(Func&& func) const {
+  return std::count_if(operations.begin(), operations.end(), [&func](ir::ValuePtr v) -> bool {
+    return std::visit(
+        [&func](const auto& op) -> bool {
+          using argument_type = std::decay_t<decltype(op)>;
+          if constexpr (has_call_operator_v<Func, argument_type>) {
+            return func(op);
+          } else {
+            return false;
+          }
+        },
+        v->value_op());
+  });
+}
 
 }  // namespace math::ir
 

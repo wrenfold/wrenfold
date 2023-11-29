@@ -152,31 +152,30 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTem
   formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
-static constexpr std::string_view cpp_string_for_std_function(
-    const StandardLibraryMathFunction name) noexcept {
+static constexpr std::string_view cpp_string_for_std_function(const StdMathFunction name) noexcept {
   switch (name) {
-    case StandardLibraryMathFunction::Cos:
+    case StdMathFunction::Cos:
       return "std::cos";
-    case StandardLibraryMathFunction::Sin:
+    case StdMathFunction::Sin:
       return "std::sin";
-    case StandardLibraryMathFunction::Tan:
+    case StdMathFunction::Tan:
       return "std::tan";
-    case StandardLibraryMathFunction::ArcCos:
+    case StdMathFunction::ArcCos:
       return "std::acos";
-    case StandardLibraryMathFunction::ArcSin:
+    case StdMathFunction::ArcSin:
       return "std::asin";
-    case StandardLibraryMathFunction::ArcTan:
+    case StdMathFunction::ArcTan:
       return "std::atan";
-    case StandardLibraryMathFunction::Log:
+    case StdMathFunction::Log:
       return "std::log";
-    case StandardLibraryMathFunction::Sqrt:
+    case StdMathFunction::Sqrt:
       return "std::sqrt";
-    case StandardLibraryMathFunction::Abs:
+    case StdMathFunction::Abs:
       return "std::abs";
-    case StandardLibraryMathFunction::Arctan2:
+    case StdMathFunction::Arctan2:
       return "std::atan2";
-    case StandardLibraryMathFunction::Powi:
-    case StandardLibraryMathFunction::Powf:
+    case StdMathFunction::Powi:
+    case StdMathFunction::Powf:
       return "std::pow";
     default:
       break;
@@ -185,7 +184,7 @@ static constexpr std::string_view cpp_string_for_std_function(
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
-  if (x.function == StandardLibraryMathFunction::Signum) {
+  if (x.function == StdMathFunction::Signum) {
     // We need to special-case signum because it doesn't exist as a free-standing function.
     // TODO: This should be an int expression.
     formatter.format(
@@ -230,6 +229,10 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
     formatter.format("const {} {} = {};", cpp_string_from_numeric_cast_type(x.type), x.name,
                      make_view(x.value));
   }
+}
+
+void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Divide& x) const {
+  formatter.format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
 static constexpr std::string_view cpp_string_for_symbolic_constant(

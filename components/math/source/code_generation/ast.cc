@@ -298,7 +298,7 @@ struct AstBuilder {
     return ast::Add{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
-  ast::Variant operator()(const ir::Value& val, const ir::CallStandardLibraryFunction& func) {
+  ast::Variant operator()(const ir::Value& val, const ir::CallStdFunction& func) {
     std::vector<ast::Variant> transformed_args{};
     transformed_args.reserve(val.num_operands());
     for (ir::ValuePtr arg : val.operands()) {
@@ -319,6 +319,10 @@ struct AstBuilder {
 
   ast::Variant operator()(const ir::Value& val, const ir::Copy&) {
     return make_operation_argument(val.first_operand());
+  }
+
+  ast::Variant operator()(const ir::Value& val, const ir::Div&) {
+    return ast::Divide{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Mul&) {

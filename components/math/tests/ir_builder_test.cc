@@ -203,6 +203,43 @@ TEST(IrTest, TestScalarExpressions3) {
   check_expressions(expected_expressions, OutputIr{std::move(ir)});
 }
 
+// Test that powers can be converted into multiplications.
+TEST(IrTest, TestPowerConversion1) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x) {
+        return 0.13 * pow(x, 2) + 1.2 * pow(x, 3) - 5.0 * pow(x, 4) + 0.9 * pow(x, 5) -
+               7 * pow(x, 6);
+      },
+      "func", Arg("x"));
+
+  ASSERT_EQ(15, ir.num_operations()) << ir;
+  ASSERT_EQ(0, ir.num_conditionals()) << ir;
+  ASSERT_EQ(10, ir.count_operation([](ir::Mul) { return true; })) << ir;
+  ASSERT_EQ(0, ir.count_operation([](ir::CallStdFunction) { return true; })) << ir;
+
+  check_expressions(expected_expressions, ir);
+  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+}
+
+// Test that powers of square roots are convert into sqrt operations.
+TEST(IrTest, TestPowerConversion2) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        Expr c = x * x + y * y;
+        return pow(c, 1_s / 2) + 1 / pow(c, 5_s / 2) + pow(c, 3_s / 2);
+      },
+      "func", Arg("x"), Arg("y"));
+
+  ASSERT_EQ(12, ir.num_operations()) << ir;
+  ASSERT_EQ(0, ir.num_conditionals()) << ir;
+  ASSERT_EQ(6, ir.count_operation([](ir::Mul) { return true; })) << ir;
+  ASSERT_EQ(1, ir.count_operation([](ir::Div) { return true; })) << ir;
+  ASSERT_EQ(1, ir.count_functions(StdMathFunction::Sqrt)) << ir;
+
+  check_expressions(expected_expressions, ir);
+  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+}
+
 TEST(IrTest, TestConditionals1) {
   auto [expected_expressions, ir] = create_ir(
       [](Expr x) {
@@ -293,13 +330,13 @@ TEST(IrTest, TestConditionals5) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(53, ir.num_operations()) << ir;
+  ASSERT_EQ(54, ir.num_operations()) << ir;
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
-  ASSERT_EQ(55, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(56, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
 }
 
@@ -371,12 +408,12 @@ TEST(IrTest, TestMatrixExpressions1) {
       },
       "func", Arg("x"), Arg("y"));
 
-  ASSERT_EQ(7, ir.num_operations()) << ir;
+  ASSERT_EQ(6, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(7, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(6, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
 }
@@ -393,13 +430,13 @@ TEST(IrTest, TestMatrixExpressions2) {
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(52, ir.num_operations()) << ir;
+  ASSERT_EQ(38, ir.num_operations()) << ir;
   ASSERT_EQ(16, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   // Conditionals should get reduced:
   OutputIr output_ir{std::move(ir)};
-  ASSERT_EQ(52, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(38, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
 }
@@ -422,13 +459,13 @@ TEST(IrTest, TestMatrixExpressions3) {
       },
       "func", Arg("v"), Arg("u"), Arg("t"));
 
-  ASSERT_EQ(116, ir.num_operations()) << ir;
+  ASSERT_EQ(115, ir.num_operations()) << ir;
   ASSERT_EQ(15, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
-  ASSERT_EQ(117, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(116, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
 }
 
@@ -436,19 +473,31 @@ TEST(IrTest, TestBuiltInFunctions) {
   // create expressions that use all the built-in functions
   auto [expected_expressions, ir] = create_ir(
       [](Expr x, Expr y, Expr z) {
-        Expr g = acos(x - log(y));
+        Expr g = acos(x - log(y) * pow(x, 1.231) + pow(z, 22));
         Expr h = asin(2.0 * tan(y) - abs(z));
-        return atan2(abs(x) + cos(y) + signum(y), -sin(y) + sqrt(z) - signum(x));
+        return atan2(abs(g) + cos(y) + signum(h), -sin(y) + sqrt(z) - signum(x));
       },
       "func", Arg("x"), Arg("y"), Arg("z"));
 
-  ASSERT_EQ(14, ir.num_operations()) << ir;
+  ASSERT_EQ(28, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Cos));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Sin));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Tan));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::ArcCos));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::ArcSin));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Log));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Sqrt));
+  EXPECT_EQ(2, ir.count_functions(StdMathFunction::Abs));
+  EXPECT_EQ(2, ir.count_functions(StdMathFunction::Signum));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Arctan2));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Powi));
+  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Powf));
   check_expressions(expected_expressions, ir);
 
   OutputIr output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
-  ASSERT_EQ(14, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(28, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
 }
 

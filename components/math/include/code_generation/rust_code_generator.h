@@ -37,6 +37,8 @@ class RustCodeGenerator {
 
   void operator()(CodeFormatter& formatter, const ast::Declaration& x) const;
 
+  void operator()(CodeFormatter& formatter, const ast::Divide& x) const;
+
   void operator()(CodeFormatter& formatter, const ast::FloatConstant& x) const {
     formatter.format("{}f64", x.value);
   }

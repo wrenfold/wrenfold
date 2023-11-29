@@ -122,14 +122,10 @@ class PythonCodeGenerator(CodeGenerator):
 
     def format_Call(self, fmt: CustomStringFormatter, x: codegen.Call) -> str:
         funcs = {
-            codegen.StandardLibraryMathFunction.Cos: "np.cos",
-            codegen.StandardLibraryMathFunction.Sin: "np.sin",
-            codegen.StandardLibraryMathFunction.Log: "np.log",
-            codegen.StandardLibraryMathFunction.Sqrt: "np.sqrt",
-            codegen.StandardLibraryMathFunction.Tan: "np.tan",
-            codegen.StandardLibraryMathFunction.Powi: "np.power",
-            codegen.StandardLibraryMathFunction.Powf: "np.power",
-            codegen.StandardLibraryMathFunction.Arctan2: "np.atan2"
+            codegen.StdMathFunction.Cos: "np.cos", codegen.StdMathFunction.Sin: "np.sin",
+            codegen.StdMathFunction.Log: "np.log", codegen.StdMathFunction.Sqrt: "np.sqrt",
+            codegen.StdMathFunction.Tan: "np.tan", codegen.StdMathFunction.Powi: "np.power",
+            codegen.StdMathFunction.Powf: "np.power", codegen.StdMathFunction.Arctan2: "np.atan2"
         }
         return fmt.format("{}({})", funcs[x.function], ', '.join(fmt.format_ast(v) for v in x.args))
 

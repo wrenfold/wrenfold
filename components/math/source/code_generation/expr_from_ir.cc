@@ -30,27 +30,27 @@ struct ExprFromIrVisitor {
   }
 
   static constexpr BuiltInFunction built_in_function_from_standard_library_function(
-      StandardLibraryMathFunction func) {
+      StdMathFunction func) {
     switch (func) {
-      case StandardLibraryMathFunction::Cos:
+      case StdMathFunction::Cos:
         return BuiltInFunction::Cos;
-      case StandardLibraryMathFunction::Sin:
+      case StdMathFunction::Sin:
         return BuiltInFunction::Sin;
-      case StandardLibraryMathFunction::Tan:
+      case StdMathFunction::Tan:
         return BuiltInFunction::Tan;
-      case StandardLibraryMathFunction::ArcCos:
+      case StdMathFunction::ArcCos:
         return BuiltInFunction::ArcCos;
-      case StandardLibraryMathFunction::ArcSin:
+      case StdMathFunction::ArcSin:
         return BuiltInFunction::ArcSin;
-      case StandardLibraryMathFunction::ArcTan:
+      case StdMathFunction::ArcTan:
         return BuiltInFunction::ArcTan;
-      case StandardLibraryMathFunction::Log:
+      case StdMathFunction::Log:
         return BuiltInFunction::Log;
-      case StandardLibraryMathFunction::Abs:
+      case StdMathFunction::Abs:
         return BuiltInFunction::Abs;
-      case StandardLibraryMathFunction::Signum:
+      case StdMathFunction::Signum:
         return BuiltInFunction::Signum;
-      case StandardLibraryMathFunction::Arctan2:
+      case StdMathFunction::Arctan2:
         return BuiltInFunction::Arctan2;
       default:
         // Other cases handled by the assertion below.
@@ -59,16 +59,14 @@ struct ExprFromIrVisitor {
     throw AssertionError("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
-  Expr operator()(const ir::CallStandardLibraryFunction& func,
-                  const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::CallStdFunction& func, const std::vector<ir::ValuePtr>& args) const {
     Function::ContainerType container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::ValuePtr v) { return map_value(v); });
 
-    if (func.name == StandardLibraryMathFunction::Powi ||
-        func.name == StandardLibraryMathFunction::Powf) {
+    if (func.name == StdMathFunction::Powi || func.name == StdMathFunction::Powf) {
       return pow(container[0], container[1]);
-    } else if (func.name == StandardLibraryMathFunction::Sqrt) {
+    } else if (func.name == StdMathFunction::Sqrt) {
       static const Expr one_half = Constants::One / 2;
       return pow(container[0], one_half);
     } else {
@@ -86,6 +84,22 @@ struct ExprFromIrVisitor {
     return where(map_value(args[0]), map_value(args[1]), map_value(args[2]));
   }
 
+  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
+    return Relational::create(cmp.operation, map_value(args[0]), map_value(args[1]));
+  }
+
+  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
+    return map_value(args[0]);
+  }
+
+  Expr operator()(const ir::Div&, const std::vector<ir::ValuePtr>& args) const {
+    return map_value(args[0]) / map_value(args[1]);
+  }
+
+  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
+    return load.expr;
+  }
+
   Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
     ZEN_ASSERT_EQUAL(2, args.size());
 
@@ -100,18 +114,6 @@ struct ExprFromIrVisitor {
     ZEN_ASSERT(jump_val->is_type<ir::JumpCondition>());
 
     return where(map_value(jump_val->first_operand()), map_value(args[0]), map_value(args[1]));
-  }
-
-  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
-    return Relational::create(cmp.operation, map_value(args[0]), map_value(args[1]));
-  }
-
-  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
-    return map_value(args[0]);
-  }
-
-  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
-    return load.expr;
   }
 
   Expr map_value(ir::ValuePtr value) const {
