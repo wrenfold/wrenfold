@@ -58,7 +58,7 @@ struct AstBuilder {
         continue;
       }
       const ir::Save& save = value->as_type<ir::Save>();
-      const OutputKey& key = save.key;
+      const OutputKey& key = save.key();
 
       std::vector<ast::Variant> args{};
       args.reserve(value->num_operands());
@@ -220,7 +220,7 @@ struct AstBuilder {
         const ir::OutputRequired& oreq = condition->as_type<ir::OutputRequired>();
 
         // Create an optional-output assignment block
-        emplace_operation<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name),
+        emplace_operation<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name()),
                                                      std::move(operations_true));
       } else {
         // Fill out operations in the else branch:
@@ -304,16 +304,16 @@ struct AstBuilder {
     for (ir::ValuePtr arg : val.operands()) {
       transformed_args.push_back(make_operation_argument(arg));
     }
-    return ast::Call{func.name, std::move(transformed_args)};
+    return ast::Call{func.name(), std::move(transformed_args)};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Cast& cast) {
-    return ast::Cast{cast.destination_type, val.numeric_type(),
+    return ast::Cast{cast.destination_type(), val[0]->numeric_type(),
                      make_operation_argument_ptr(val[0])};
   }
 
   ast::Variant operator()(const ir::Value& val, const ir::Compare& compare) {
-    return ast::Compare{compare.operation, make_operation_argument_ptr(val[0]),
+    return ast::Compare{compare.operation(), make_operation_argument_ptr(val[0]),
                         make_operation_argument_ptr(val[1])};
   }
 
@@ -357,7 +357,7 @@ struct AstBuilder {
             return std::visit(*this, inner.identifier());
           }
         },
-        load.variant);
+        load.variant());
   }
 
  private:

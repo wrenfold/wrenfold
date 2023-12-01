@@ -15,27 +15,6 @@
 namespace math {
 namespace ir {
 
-NumericType Load::determine_type() const {
-  struct determine_numeric_type {
-    NumericType operator()(const Constant& c) const {
-      switch (c.name()) {
-        case SymbolicConstants::Euler:
-        case SymbolicConstants::Pi:
-          return NumericType::Real;
-        case SymbolicConstants::True:
-        case SymbolicConstants::False:
-          return NumericType::Bool;
-      }
-      throw TypeError("Unhandled symbolic constant");
-    }
-    constexpr NumericType operator()(const Float&) const noexcept { return NumericType::Real; }
-    constexpr NumericType operator()(const Integer&) const noexcept { return NumericType::Integer; }
-    constexpr NumericType operator()(const Rational&) const noexcept { return NumericType::Real; }
-    constexpr NumericType operator()(const Variable&) const noexcept { return NumericType::Real; }
-  };
-  return std::visit(determine_numeric_type{}, variant);
-}
-
 void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
   ZEN_ASSERT_NOT_EQUAL(target, replacement);
 
@@ -148,8 +127,15 @@ void Value::maybe_sort_operands() {
   }
 }
 
+void Value::notify_operands() {
+  const ValuePtr self{this};
+  for (const ValuePtr& operand : operands_) {
+    operand->add_consumer(self);
+  }
+}
+
 template <typename T>
-struct FormatOpArgsHelper {
+struct format_op_args_struct {
   template <typename Container>
   void operator()(std::string& output, const T&, const Container& operands,
                   const std::size_t width) {
@@ -164,21 +150,21 @@ struct FormatOpArgsHelper {
 };
 
 template <>
-struct FormatOpArgsHelper<ir::Load> {
+struct format_op_args_struct<ir::Load> {
   template <typename Container>
   void operator()(std::string& output, const ir::Load& load, const Container&, const std::size_t) {
     PlainFormatter formatter{};
-    std::visit(formatter, load.variant);
+    std::visit(formatter, load.variant());
     output += formatter.take_output();
   }
 };
 
 template <>
-struct FormatOpArgsHelper<ir::OutputRequired> {
+struct format_op_args_struct<ir::OutputRequired> {
   template <typename Container>
   void operator()(std::string& output, const ir::OutputRequired& oreq, const Container&,
                   const std::size_t) {
-    fmt::format_to(std::back_inserter(output), "{}", oreq.name);
+    fmt::format_to(std::back_inserter(output), "{}", oreq.name());
   }
 };
 
@@ -188,7 +174,7 @@ void format_op_args(std::string& output, const ir::Operation& op, const Containe
   std::visit(
       [&](const auto& op) {
         using T = std::decay_t<decltype(op)>;
-        FormatOpArgsHelper<T>{}(output, op, operands, width);
+        format_op_args_struct<T>{}(output, op, operands, width);
       },
       op);
 }
@@ -197,11 +183,12 @@ void format_op_args(std::string& output, const ir::Operation& op, const Containe
 
 template <typename OpType, typename... Args>
 static ir::ValuePtr create_operation(std::vector<ir::Value::unique_ptr>& values, ir::BlockPtr block,
-                                     OpType&& op, Args&&... args) {
+                                     OpType&& op, std::optional<NumericType> numeric_type,
+                                     Args&&... args) {
   // Create a new value:
   const uint32_t name = values.empty() ? 0 : (values.back()->name() + 1);
   std::unique_ptr<ir::Value> value = std::make_unique<ir::Value>(
-      name, block, std::forward<OpType>(op), std::forward<Args>(args)...);
+      name, block, std::forward<OpType>(op), numeric_type, std::forward<Args>(args)...);
   // Insert int the provided block:
   block->operations.emplace_back(value.get());
   // This is owned by the `values` vector:
@@ -283,7 +270,7 @@ struct IRFormVisitor {
 
   ir::ValuePtr maybe_cast(ir::ValuePtr input, NumericType output_type) {
     if (input->numeric_type() != output_type) {
-      return push_operation(ir::Cast{output_type}, input);
+      return push_operation(ir::Cast{output_type}, output_type, input);
     } else {
       return input;
     }
@@ -323,9 +310,11 @@ struct IRFormVisitor {
     ir::ValuePtr prev_result = maybe_cast(args[0], promoted_type);
     for (std::size_t i = 1; i < args.size(); ++i) {
       if constexpr (std::is_same_v<T, Multiplication>) {
-        prev_result = push_operation(ir::Mul{}, prev_result, maybe_cast(args[i], promoted_type));
+        prev_result = push_operation(ir::Mul{}, promoted_type, prev_result,
+                                     maybe_cast(args[i], promoted_type));
       } else {
-        prev_result = push_operation(ir::Add{}, prev_result, maybe_cast(args[i], promoted_type));
+        prev_result = push_operation(ir::Add{}, promoted_type, prev_result,
+                                     maybe_cast(args[i], promoted_type));
       }
     }
     return prev_result;
@@ -333,7 +322,7 @@ struct IRFormVisitor {
 
   ir::ValuePtr operator()(const CastBool& cast) {
     const ir::ValuePtr arg = apply(cast.arg());
-    return push_operation(ir::Cast{NumericType::Integer}, arg);
+    return push_operation(ir::Cast{NumericType::Integer}, NumericType::Integer, arg);
   }
 
   ir::ValuePtr operator()(const Conditional& cond) {
@@ -343,12 +332,26 @@ struct IRFormVisitor {
 
     const NumericType promoted_type =
         std::max(if_branch->numeric_type(), else_branch->numeric_type());
-
-    return push_operation(ir::Cond{}, condition, maybe_cast(if_branch, promoted_type),
+    return push_operation(ir::Cond{}, promoted_type, condition,
+                          maybe_cast(if_branch, promoted_type),
                           maybe_cast(else_branch, promoted_type));
   }
 
-  ir::ValuePtr operator()(const Constant& c) { return push_operation(ir::Load{c}); }
+  static NumericType numeric_type_from_constant(const Constant& c) {
+    switch (c.name()) {
+      case SymbolicConstants::Euler:
+      case SymbolicConstants::Pi:
+        return NumericType::Real;
+      case SymbolicConstants::True:
+      case SymbolicConstants::False:
+        return NumericType::Bool;
+    }
+    throw TypeError("Unhandled symbolic constant: {}", string_from_symbolic_constant(c.name()));
+  }
+
+  ir::ValuePtr operator()(const Constant& c) {
+    return push_operation(ir::Load{c}, numeric_type_from_constant(c));
+  }
 
   ir::ValuePtr operator()(const Derivative&) {
     throw TypeError("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
@@ -385,33 +388,38 @@ struct IRFormVisitor {
     args.reserve(func.arity());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
-    auto enum_value = std_math_function_from_built_in(func.enum_value());
-    return push_operation(ir::CallStdFunction{enum_value}, std::move(args));
+    const StdMathFunction enum_value = std_math_function_from_built_in(func.enum_value());
+    // TODO: Special case for `abs` and `signum` here.
+    return push_operation(ir::CallStdFunction{enum_value}, NumericType::Real, std::move(args));
   }
 
   ir::ValuePtr operator()(const Infinity&) const {
     throw TypeError("Cannot generate code for complex infinity.");
   }
 
-  ir::ValuePtr operator()(const Integer& i) { return push_operation(ir::Load{i}); }
+  ir::ValuePtr operator()(const Integer& i) {
+    return push_operation(ir::Load{i}, NumericType::Integer);
+  }
 
-  ir::ValuePtr operator()(const Float& f) { return push_operation(ir::Load{f}); }
+  ir::ValuePtr operator()(const Float& f) { return push_operation(ir::Load{f}, NumericType::Real); }
 
   // Apply exponentiation by squaring to implement a power of an integer.
   ir::ValuePtr exponentiate_by_squaring(ir::ValuePtr base, uint64_t exponent) {
     if (exponent == 0) {
       return apply(Constants::One);
     }
+    // TODO: Somewhat lazy way of handling the first iteration - use an empty optional.
     std::optional<ir::ValuePtr> result{};
     for (;;) {
       if (exponent & 1) {
-        result = result.has_value() ? push_operation(ir::Mul{}, *result, base) : base;
+        result = result.has_value() ? push_operation(ir::Mul{}, base->numeric_type(), *result, base)
+                                    : base;
       }
       exponent /= 2;
       if (exponent == 0) {
         break;
       }
-      base = push_operation(ir::Mul{}, base, base);
+      base = push_operation(ir::Mul{}, base->numeric_type(), base, base);
     }
     return result.value();
   }
@@ -428,8 +436,8 @@ struct IRFormVisitor {
 
       // Write the power as: 1 / pow(base, -exponent)
       const ir::ValuePtr one = apply(Constants::One);
-      const NumericType promoted_type = ir::Div::determine_type(one, reciprocal_value);
-      return push_operation(ir::Div{}, maybe_cast(one, promoted_type),
+      constexpr NumericType promoted_type = NumericType::Real;
+      return push_operation(ir::Div{}, promoted_type, maybe_cast(one, promoted_type),
                             maybe_cast(reciprocal_value, promoted_type));
     }
 
@@ -443,7 +451,7 @@ struct IRFormVisitor {
         return exponentiate_by_squaring(base, static_cast<uint64_t>(exp_int->get_value()));
       } else {
         // Just call power variant with integer exponent:
-        return push_operation(ir::CallStdFunction{StdMathFunction::Powi}, base,
+        return push_operation(ir::CallStdFunction{StdMathFunction::Powi}, NumericType::Real, base,
                               apply(power.exponent()));
       }
     } else if (const Rational* exp_rational = cast_ptr<Rational>(power.exponent());
@@ -454,37 +462,43 @@ struct IRFormVisitor {
       // approximate performance.
       if (exp_rational->denominator() == 2 &&
           exp_rational->numerator() <= max_integer_mul_exponent) {
-        const ir::ValuePtr sqrt = push_operation(ir::CallStdFunction{StdMathFunction::Sqrt}, base);
+        const ir::ValuePtr sqrt =
+            push_operation(ir::CallStdFunction{StdMathFunction::Sqrt}, NumericType::Real, base);
         return exponentiate_by_squaring(sqrt, static_cast<uint64_t>(exp_rational->numerator()));
       }
     }
 
     // TODO: Support (int ** int) powers?
     const ir::ValuePtr exponent = apply(power.exponent());
-    return push_operation(ir::CallStdFunction{StdMathFunction::Powf}, base,
+    return push_operation(ir::CallStdFunction{StdMathFunction::Powf}, NumericType::Real, base,
                           maybe_cast(exponent, NumericType::Real));
   }
 
-  ir::ValuePtr operator()(const Rational& r) { return push_operation(ir::Load{r}); }
+  ir::ValuePtr operator()(const Rational& r) {
+    return push_operation(ir::Load{r}, NumericType::Real);
+  }
 
   ir::ValuePtr operator()(const Relational& relational) {
     ir::ValuePtr left = apply(relational.left());
     ir::ValuePtr right = apply(relational.right());
     NumericType promoted_type = std::max(left->numeric_type(), right->numeric_type());
-    return push_operation(ir::Compare{relational.operation()}, maybe_cast(left, promoted_type),
-                          maybe_cast(right, promoted_type));
+    return push_operation(ir::Compare{relational.operation()}, NumericType::Bool,
+                          maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
   }
 
   ir::ValuePtr operator()(const Undefined&) const {
     throw TypeError("Cannot generate code with expressions containing {}", Undefined::NameStr);
   }
 
-  ir::ValuePtr operator()(const Variable& var) { return push_operation(ir::Load{var}); }
+  ir::ValuePtr operator()(const Variable& var) {
+    return push_operation(ir::Load{var}, NumericType::Real);
+  }
 
   template <typename OpType, typename... Args>
-  ir::ValuePtr push_operation(OpType&& op, Args&&... args) {
+  ir::ValuePtr push_operation(OpType&& op, std::optional<NumericType> numeric_type,
+                              Args&&... args) {
     return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
-                            std::forward<Args>(args)...);
+                            numeric_type, std::forward<Args>(args)...);
   }
 
   // Check if a value has been computed. If not, convert it and return the result.
@@ -498,7 +512,7 @@ struct IRFormVisitor {
       if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
         const auto promoted_type = std::max(it->second->numeric_type(), NumericType::Integer);
         const ir::ValuePtr negative_one = maybe_cast(apply(Constants::NegativeOne), promoted_type);
-        ir::ValuePtr mul = push_operation(ir::Mul{}, it->second, negative_one);
+        ir::ValuePtr mul = push_operation(ir::Mul{}, promoted_type, it->second, negative_one);
         computed_values_.emplace(expr, mul);
         return mul;
       }
@@ -538,13 +552,14 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
                        // TODO: Allow returning other types - derive the numeric type from the
                        // group.
                        output = create_operation(values_, get_block(), ir::Cast{NumericType::Real},
-                                                 output);
+                                                 NumericType::Real, output);
                      }
                      return output;
                    });
 
     // Then create a sink to consume these values, the `Save` operation is the sink:
-    create_operation(values_, get_block(), ir::Save{group.key}, std::move(group_values));
+    create_operation(values_, get_block(), ir::Save{group.key}, std::nullopt,
+                     std::move(group_values));
   }
 }
 
@@ -584,8 +599,32 @@ std::size_t FlatIr::value_print_width() const {
   return compute_print_width(highest_value_name);
 }
 
+// Test two values for equality. The operation must be the same type, and the operands must be
+// identical. This does not recursively test the operands for equality - the pointer themselves
+// must match.
+struct value_equality_struct {
+  bool operator()(const ir::ValuePtr& a, const ir::ValuePtr& b) const {
+    const bool ops_match = std::visit(
+        [&](const auto& a, const auto& b) -> bool {
+          using A = std::decay_t<decltype(a)>;
+          using B = std::decay_t<decltype(b)>;
+          if constexpr (std::is_same_v<A, B>) {
+            return a.is_same(b);
+          } else {
+            return false;
+          }
+        },
+        a->value_op(), b->value_op());
+    if (!ops_match) {
+      return false;
+    }
+    return a->operands_match(b);
+  }
+};
+
 // A hash-set of values:
-using ValueTable = std::unordered_set<ir::ValuePtr, hash_struct<ir::ValuePtr>, ir::ValueEquality>;
+using ValueTable =
+    std::unordered_set<ir::ValuePtr, hash_struct<ir::ValuePtr>, value_equality_struct>;
 
 // Eliminate duplicates in `block`, using existing values stored in `table`.
 inline void local_value_numbering(ir::BlockPtr block, ValueTable& table) {
@@ -596,7 +635,7 @@ inline void local_value_numbering(ir::BlockPtr block, ValueTable& table) {
       // Propagate the copy:
       if (code->is_consumed_by_phi()) {
         // If this value feeds a phi function, we need to keep it, but turn it into a copy:
-        code->set_value_op(ir::Copy{}, *it);
+        code->set_value_op(ir::Copy{}, (*it)->numeric_type(), *it);
       } else {
         code->replace_with(*it);
       }
@@ -651,7 +690,7 @@ static void reverse_copy_save_value_ptrs(const Container& container, ExpressionU
   for (auto it = container.rbegin(); it != container.rend(); ++it) {
     const ir::ValuePtr val{*it};
     if (const ir::Save* save = std::get_if<ir::Save>(&val->value_op()); save != nullptr) {
-      if (save->key.usage == usage) {
+      if (save->key().usage == usage) {
         *output_iterator = val;
       }
     }
@@ -697,8 +736,9 @@ struct IrConverter {
     // Traverse optional outputs:
     for (ir::ValuePtr v : optional_outputs) {
       const ir::Save& save = v->as_type<ir::Save>();
-      ZEN_ASSERT(save.key.usage == ExpressionUsage::OptionalOutputArgument, "Usage: {}",
-                 string_from_expression_usage(save.key.usage));
+      const OutputKey& key = save.key();
+      ZEN_ASSERT(key.usage == ExpressionUsage::OptionalOutputArgument, "Usage: {}",
+                 string_from_expression_usage(key.usage));
 
       const ir::BlockPtr left_block_exit = output.create_block();
       left_block_exit->add_descendant(next_block);
@@ -708,10 +748,11 @@ struct IrConverter {
 
       // Operation that evaluates whether this argument is required:
       const ir::ValuePtr jump_condition =
-          create_operation(output.values_, jump_block, ir::OutputRequired{save.key.name});
+          create_operation(output.values_, jump_block, ir::OutputRequired{key.name}, std::nullopt);
 
       // Either we go into `left_block` and compute the arg outputs, or we skip to `next_block`:
-      create_operation(output.values_, jump_block, ir::JumpCondition{}, jump_condition);
+      create_operation(output.values_, jump_block, ir::JumpCondition{}, std::nullopt,
+                       jump_condition);
       jump_block->add_descendant(left_block_exit);
       jump_block->add_descendant(next_block);
 
@@ -851,11 +892,13 @@ struct IrConverter {
       // arguments to the phi functions are computed on the branched code path, even if the
       // computation is just a copy. These copies can be eliminated later, in some cases.
       const ir::ValuePtr copy_left =
-          create_operation(output.values_, left_block_tail, ir::Copy{}, v->operator[](1));
+          create_operation(output.values_, left_block_tail, ir::Copy{},
+                           v->operator[](1)->numeric_type(), v->operator[](1));
       const ir::ValuePtr copy_right =
-          create_operation(output.values_, right_block_tail, ir::Copy{}, v->operator[](2));
+          create_operation(output.values_, right_block_tail, ir::Copy{},
+                           v->operator[](2)->numeric_type(), v->operator[](2));
 
-      v->set_value_op(ir::Phi{}, copy_left, copy_right);
+      v->set_value_op(ir::Phi{}, copy_left->numeric_type(), copy_left, copy_right);
       v->set_parent(output_block);
       visited.insert(v);
       visited.insert(copy_left);
@@ -876,7 +919,7 @@ struct IrConverter {
 
     const ir::BlockPtr jump_block = output.create_block();
     const ir::ValuePtr jump_condition =
-        create_operation(output.values_, jump_block, ir::JumpCondition{}, condition);
+        create_operation(output.values_, jump_block, ir::JumpCondition{}, std::nullopt, condition);
     visited.insert(jump_condition);
 
     jump_block->add_descendant(left_block_tail);

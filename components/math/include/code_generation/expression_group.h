@@ -29,12 +29,12 @@ struct OutputKey {
   OutputKey(ExpressionUsage usage, std::string_view name) : usage(usage), name(name) {}
 
   // Equality test.
-  constexpr bool operator==(const OutputKey& other) const {
+  bool operator==(const OutputKey& other) const noexcept {
     return usage == other.usage && name == other.name;
   }
 
   // Non-equality test.
-  constexpr bool operator!=(const OutputKey& other) const { return !operator==(other); }
+  bool operator!=(const OutputKey& other) const noexcept { return !operator==(other); }
 };
 
 // Convert `ExpressionUsage` to a string.
