@@ -252,7 +252,7 @@ constexpr inline std::string_view string_from_standard_library_function(
     case StdMathFunction::Abs:
       return "abs";
     case StdMathFunction::Signum:
-      return "signum";
+      return "sign";
     case StdMathFunction::Arctan2:
       return "atan2";
     case StdMathFunction::Powi:

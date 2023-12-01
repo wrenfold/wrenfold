@@ -26,7 +26,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
-    return output_arg_exists_.at(output.name) ? Constants::True : Constants::False;
+    return output_arg_exists_.at(output.name()) ? Constants::True : Constants::False;
   }
 
   static constexpr BuiltInFunction built_in_function_from_standard_library_function(
@@ -64,13 +64,13 @@ struct ExprFromIrVisitor {
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::ValuePtr v) { return map_value(v); });
 
-    if (func.name == StdMathFunction::Powi || func.name == StdMathFunction::Powf) {
+    if (func.name() == StdMathFunction::Powi || func.name() == StdMathFunction::Powf) {
       return pow(container[0], container[1]);
-    } else if (func.name == StdMathFunction::Sqrt) {
+    } else if (func.name() == StdMathFunction::Sqrt) {
       static const Expr one_half = Constants::One / 2;
       return pow(container[0], one_half);
     } else {
-      return Function::create(built_in_function_from_standard_library_function(func.name),
+      return Function::create(built_in_function_from_standard_library_function(func.name()),
                               std::move(container));
     }
   }
@@ -85,7 +85,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
-    return Relational::create(cmp.operation, map_value(args[0]), map_value(args[1]));
+    return Relational::create(cmp.operation(), map_value(args[0]), map_value(args[1]));
   }
 
   Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
@@ -97,7 +97,12 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
-    return load.expr;
+    return std::visit(
+        [](const auto& expression) {
+          using T = std::decay_t<decltype(expression)>;
+          return make_expr<T>(expression);
+        },
+        load.variant());
   }
 
   Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
@@ -168,7 +173,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
               ZEN_ASSERT(it != value_to_expression.end(), "Missing value: {}", operand->name());
               output_expressions.push_back(it->second);
             }
-            output_map.emplace(save.key, std::move(output_expressions));
+            output_map.emplace(save.key(), std::move(output_expressions));
           },
           [&](const auto& op) {
             Expr expr = visitor(op, code->operands());

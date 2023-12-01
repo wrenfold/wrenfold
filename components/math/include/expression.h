@@ -164,7 +164,7 @@ Expr operator==(const Expr& a, const Expr& b);
 RelativeOrder expression_order(const Expr& a, const Expr& b);
 
 // Predicate for sorting expressions.
-struct ExpressionOrderPredicate {
+struct expression_order_struct {
   bool operator()(const Expr& a, const Expr& b) const {
     return expression_order(a, b) == RelativeOrder::LessThan;
   }

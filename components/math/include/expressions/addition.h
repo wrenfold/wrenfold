@@ -28,7 +28,7 @@ class Addition {
         return false;
       } else {
         // There could be a collision, so we fall back to a slow path here.
-        return ExpressionOrderPredicate{}(a, b);
+        return expression_order_struct{}(a, b);
       }
     });
   }
