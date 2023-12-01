@@ -276,21 +276,30 @@ struct IRFormVisitor {
     }
   }
 
-  // Handler for additions and multiplications:
-  template <typename T, typename = enable_if_contains_type_t<T, Multiplication, Addition>>
-  ir::ValuePtr operator()(const T& op) {
-    // Place things into a canonical order so that we get consistent code-generation even if the
-    // hash function changes.
-    Multiplication::ContainerType expressions{op.begin(), op.end()};
-    std::sort(expressions.begin(), expressions.end(), expression_order_struct{});
+  template <typename T>
+  constexpr const operation_term_counts::count_container& get_count_table() const noexcept {
+    if constexpr (std::is_same_v<T, Multiplication>) {
+      return counts_.muls;
+    } else {
+      return counts_.adds;
+    }
+  }
 
-    // Then sort by count order (highest to lowest).
-    // This way we approximately maximize common pairs of terms that can be eliminated later.
-    std::stable_sort(expressions.begin(), expressions.end(), [&](const Expr& a, const Expr& b) {
-      if constexpr (std::is_same_v<T, Multiplication>) {
-        return counts_.muls.at(a) > counts_.muls.at(b);
+  // Handler for additions and multiplications:
+  template <typename T>
+  ir::ValuePtr convert_addition_or_multiplication(const T& op) {
+    // Sort first by frequency of occurrence, then in ambiguous cases by expression order:
+    Multiplication::ContainerType expressions{op.begin(), op.end()};
+    std::sort(expressions.begin(), expressions.end(), [&](const Expr& a, const Expr& b) {
+      const operation_term_counts::count_container& count_table = get_count_table<T>();
+      const std::size_t count_a = count_table.at(a);
+      const std::size_t count_b = count_table.at(b);
+      if (count_a > count_b) {
+        return true;
+      } else if (count_a < count_b) {
+        return false;
       } else {
-        return counts_.adds.at(a) > counts_.adds.at(b);
+        return expression_order_struct{}(a, b);
       }
     });
 
@@ -299,7 +308,6 @@ struct IRFormVisitor {
     args.reserve(op.arity());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
-    ZEN_ASSERT(!args.empty());
 
     NumericType promoted_type = NumericType::Integer;
     for (ir::ValuePtr v : args) {
@@ -318,6 +326,17 @@ struct IRFormVisitor {
       }
     }
     return prev_result;
+  }
+
+  ir::ValuePtr operator()(const Addition& add, const Expr& add_abstract) {
+    // For additions, first check if the negated version has already been cached:
+    const Expr negative_add = -add_abstract;
+    if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
+      const auto promoted_type = std::max(it->second->numeric_type(), NumericType::Integer);
+      const ir::ValuePtr negative_one = maybe_cast(apply(Constants::NegativeOne), promoted_type);
+      return push_operation(ir::Mul{}, promoted_type, it->second, negative_one);
+    }
+    return convert_addition_or_multiplication(add);
   }
 
   ir::ValuePtr operator()(const CastBool& cast) {
@@ -424,6 +443,11 @@ struct IRFormVisitor {
     return result.value();
   }
 
+  ir::ValuePtr operator()(const Multiplication& mul) {
+    // Extract constants here? Empirically it appears to introduce more expressions, not fewer.
+    return convert_addition_or_multiplication(mul);
+  }
+
   ir::ValuePtr operator()(const Power& power) {
     const ir::ValuePtr base = maybe_cast(apply(power.base()), NumericType::Real);
 
@@ -506,19 +530,7 @@ struct IRFormVisitor {
     if (auto it = computed_values_.find(expr); it != computed_values_.end()) {
       return it->second;
     }
-    if (expr.is_type<Addition>()) {
-      // For additions, check if the negative of this sum was already computed:
-      const Expr negative_add = -expr;
-      if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
-        const auto promoted_type = std::max(it->second->numeric_type(), NumericType::Integer);
-        const ir::ValuePtr negative_one = maybe_cast(apply(Constants::NegativeOne), promoted_type);
-        ir::ValuePtr mul = push_operation(ir::Mul{}, promoted_type, it->second, negative_one);
-        computed_values_.emplace(expr, mul);
-        return mul;
-      }
-    }
-    // TODO: Factorize constants out of multiplications here.
-    ir::ValuePtr val = visit(expr, *this);
+    ir::ValuePtr val = visit_with_expr(expr, *this);
     computed_values_.emplace(expr, val);
     return val;
   }
