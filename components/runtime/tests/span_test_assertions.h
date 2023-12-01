@@ -13,8 +13,8 @@
     }                                          \
   } while (false)
 
-#include "span.h"
-#include "span_eigen.h"
+#include "wf_runtime/span.h"
+#include "wf_runtime/span_eigen.h"
 
 namespace math {
 namespace detail {

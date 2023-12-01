@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(
-  zen-codegen
+  wrenfold-codegen
   VERSION 0.1
   DESCRIPTION "Tools for generating code from symbolic math."
   LANGUAGES CXX)
@@ -20,8 +20,8 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 # Add third party code
 add_subdirectory(dependencies)
 
-set(PROJECT_PREFIX zen)
-set(LIBRARY_NAME ${PROJECT_PREFIX}-math)
+set(PROJECT_PREFIX wf)
+set(LIBRARY_NAME ${PROJECT_PREFIX}-core)
 
 # Some shared warning flags:
 if(MSVC)

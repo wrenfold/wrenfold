@@ -5,6 +5,6 @@ set(COMPONENTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(cmake/functions.cmake)
 
 add_subdirectory(runtime)
-add_subdirectory(math)
-add_subdirectory(sym_wrapper)
+add_subdirectory(core)
+add_subdirectory(wrapper)
 add_subdirectory(python)

@@ -135,7 +135,7 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "nalgebra",
- "zen-traits",
+ "wrenfold-traits",
 ]
 
 [[package]]
@@ -194,7 +194,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zen-traits"
+name = "wrenfold-traits"
 version = "0.0.1"
 dependencies = [
  "nalgebra",

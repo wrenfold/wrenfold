@@ -11,13 +11,13 @@ In practice, there is a larger space of design choices you could make. For insta
 """
 import typing as T
 
-from sym.type_annotations import RealScalar, Vector4, Vector3
-from sym.code_generation import codegen_function
-from sym.code_generation import OutputArg
+from wrenfold.type_annotations import RealScalar, Vector4, Vector3
+from wrenfold.code_generation import codegen_function
+from wrenfold.code_generation import OutputArg
 
-from sym.geometry import Quaternion, left_jacobian_of_so3
-from sym.codegen import generate_cpp
-from sym import sym
+from wrenfold.geometry import Quaternion, left_jacobian_of_so3
+from wrenfold.codegen import generate_cpp
+from wrenfold import sym
 
 
 def blockwise_jacobians(
@@ -302,7 +302,7 @@ def integration_test_sequence(t: RealScalar):
 CODE_TEMPLATE = \
 """// Machine generated code.
 #include <cmath>
-#include <span.h>
+#include <wf_runtime/span.h>
 
 namespace {namespace} {{
 
