@@ -24,20 +24,6 @@ class Multiplication {
     sort_terms();
   }
 
-  // Construct from expressions:
-  template <typename... Ts>
-  explicit Multiplication(Ts&&... terms) : terms_() {
-    static_assert(sizeof...(terms) >= 2);
-    static_assert(std::conjunction_v<std::is_constructible<Expr, Ts>...>);
-    terms_.reserve(sizeof...(terms));
-    (terms_.emplace_back(std::forward<Ts>(terms)), ...);
-    for (const auto& term : terms_) {
-      ZEN_ASSERT(!term.is_type<Multiplication>(), "Multiplications should all be flattened: {}",
-                 term.to_string());
-    }
-    sort_terms();
-  }
-
   // Access specific argument.
   const Expr& operator[](const std::size_t i) const { return terms_[i]; }
 
@@ -102,6 +88,11 @@ struct hash_struct<Multiplication> {
     return hash_all(0, mul.begin(), mul.end());
   }
 };
+
+// Split a multiplication up into numerical values and non-numerical expressions.
+// Returns [coefficient, multiplicand] where the coefficient is the numerical part.
+// If there are no numerical terms, the coefficient will be one.
+std::pair<Expr, Expr> split_multiplication(const Multiplication& mul, const Expr& mul_abstract);
 
 // Convert an expression into a coefficient and a multiplicand. This operation checks if
 // expr is a multiplication. If it is, we extract all numeric constants and return them

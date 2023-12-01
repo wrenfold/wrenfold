@@ -221,7 +221,7 @@ Expr MultiplicationParts::create_multiplication() const {
 }
 
 // For multiplications, we need to break the expression up.
-inline std::pair<Expr, Expr> split_multiplication(const Expr& input, const Multiplication& mul) {
+std::pair<Expr, Expr> split_multiplication(const Multiplication& mul, const Expr& mul_abstract) {
   Multiplication::ContainerType numerics{};
   Multiplication::ContainerType remainder{};
   for (const Expr& expr : mul) {
@@ -233,7 +233,7 @@ inline std::pair<Expr, Expr> split_multiplication(const Expr& input, const Multi
   }
   if (numerics.empty()) {
     // No point making a new multiplication:
-    return std::make_pair(Constants::One, input);
+    return std::make_pair(Constants::One, mul_abstract);
   }
   auto coeff = maybe_new_mul(std::move(numerics));
   auto multiplicand = maybe_new_mul(std::move(remainder));
@@ -253,7 +253,7 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
       if (mul.arity() == 2 && mul[0].is_type<Integer, Rational, Float>()) {
         return std::make_pair(mul[0], mul[1]);
       }
-      return split_multiplication(expr, x);
+      return split_multiplication(x, expr);
     } else {
       return std::make_pair(Constants::One, expr);
     }
