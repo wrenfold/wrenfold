@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-zen-traits = { path = "../zen-traits", version = "0.0.1", features = ["nalgebra"] }
+wrenfold-traits = { path = "../wrenfold-traits", version = "0.0.1", features = ["nalgebra"] }
 nalgebra = { version = "0.32.3" }
 
 [dev-dependencies]

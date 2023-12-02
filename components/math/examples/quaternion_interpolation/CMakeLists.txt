@@ -1,3 +1,0 @@
-add_code_generation_test(
-  quat_interpolation quat_interpolation_gen.cc quat_interpolation_test.cc
-  SHARED_SOURCE_FILES quat_interpolation_expressions.h)

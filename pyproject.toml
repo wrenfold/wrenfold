@@ -7,13 +7,13 @@ requires = [
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "sym"
+name = "wrenfold-codegen"
 version = "0.0.1"
 requires-python = ">=3.8"
 authors = [
     { name = "Gareth Cross", email = "gcross.code@icloud.com" },
 ]
-description = "Symbolic tools for code-generation."
+description = "Tools for code-generating mathematical functions."
 license = { text = "MIT" }
 readme = "README.md"
 
@@ -28,5 +28,5 @@ ninja.make-fallback = true
 
 logging.level = "WARNING"
 
-wheel.packages = ["components/python/sym", "sym_wrapper"]
+wheel.packages = ["components/python/wrenfold", "wrenfold_wrapper"]
 wheel.license-files = ["LICENSE"]

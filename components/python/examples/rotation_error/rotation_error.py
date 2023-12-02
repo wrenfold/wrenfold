@@ -4,12 +4,12 @@ Example: Tangent-space delta between two quaternions, with tangent-space jacobia
 This is an example of a relatively simple factor one might implement for a rotation
 averaging optimization.
 """
-from sym.type_annotations import RealScalar, Vector4
-from sym.code_generation import codegen_function
-from sym.code_generation import OutputArg
+from wrenfold.type_annotations import RealScalar, Vector4
+from wrenfold.code_generation import codegen_function
+from wrenfold.code_generation import OutputArg
 
-from sym.geometry import Quaternion
-from sym.codegen import generate_cpp
+from wrenfold.geometry import Quaternion
+from wrenfold.codegen import generate_cpp
 
 
 def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
@@ -34,7 +34,7 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
 CODE_TEMPLATE = \
 """// Machine generated code.
 #include <cmath>
-#include <span.h>
+#include <wf_runtime/span.h>
 
 namespace {namespace} {{
 

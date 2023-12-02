@@ -1,9 +1,9 @@
-#include "eigen_test_helpers.h"
-#include "numerical_jacobian.h"
-#include "test_helpers.h"
+#include "wf_test_support/eigen_test_macros.h"
+#include "wf_test_support/numerical_jacobian.h"
+#include "wf_test_support/test_macros.h"
 
 #define MATH_SPAN_EIGEN_SUPPORT
-#include "span_eigen.h"
+#include "wf_runtime/span_eigen.h"
 
 #include "generated.h"
 
