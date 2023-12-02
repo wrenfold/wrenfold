@@ -27,8 +27,8 @@ Expr EvaluateVisitor::operator()(const Rational& x) const {
 Expr EvaluateVisitor::operator()(const Constant& c) const {
   const auto c_enum = c.name();
   const double value = double_from_symbolic_constant(c_enum);
-  ZEN_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
-             string_from_symbolic_constant(c_enum));
+  WF_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
+            string_from_symbolic_constant(c_enum));
   return Float::create(value);
 }
 

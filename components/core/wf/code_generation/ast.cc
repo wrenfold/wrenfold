@@ -67,7 +67,7 @@ struct AstBuilder {
       }
 
       if (key.usage == ExpressionUsage::ReturnValue) {
-        ZEN_ASSERT(block->descendants.empty(), "Must be the final block");
+        WF_ASSERT(block->descendants.empty(), "Must be the final block");
         emplace_operation<ast::ConstructReturnValue>(signature_.return_value.value(),
                                                      std::move(args));
       } else {
@@ -106,7 +106,7 @@ struct AstBuilder {
   }
 
   void process_block(ir::BlockPtr block) {
-    ZEN_ASSERT(!block->is_empty());
+    WF_ASSERT(!block->is_empty());
     if (non_traversable_blocks_.count(block)) {
       // Don't recurse too far - we are waiting on one of the ancestors of this block to get
       // processed.
@@ -195,11 +195,11 @@ struct AstBuilder {
     const ir::ValuePtr last_op = block->operations.back();
     if (!last_op->is_type<ir::JumpCondition>()) {
       // just keep appending:
-      ZEN_ASSERT_EQUAL(1, block->descendants.size());
+      WF_ASSERT_EQUAL(1, block->descendants.size());
       process_block(block->descendants.front());
     } else {
-      ZEN_ASSERT(last_op->is_type<ir::JumpCondition>());
-      ZEN_ASSERT_EQUAL(2, block->descendants.size());
+      WF_ASSERT(last_op->is_type<ir::JumpCondition>());
+      WF_ASSERT_EQUAL(2, block->descendants.size());
 
       // Figure out where this if-else statement will terminate:
       const ir::BlockPtr merge_point = find_merge_point(

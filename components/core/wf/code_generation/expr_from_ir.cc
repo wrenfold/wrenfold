@@ -75,7 +75,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {
-    ZEN_ASSERT(!args.empty());
+    WF_ASSERT(!args.empty());
     return map_value(args[0]);
   }
 
@@ -105,24 +105,24 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
-    ZEN_ASSERT_EQUAL(2, args.size());
+    WF_ASSERT_EQUAL(2, args.size());
 
     // We find to find the condition for this jump:
     const ir::BlockPtr jump_block =
         find_merge_point(args.front()->parent(), args.back()->parent(), SearchDirection::Upwards);
 
     // Determine the condition:
-    ZEN_ASSERT(!jump_block->is_empty());
+    WF_ASSERT(!jump_block->is_empty());
 
     const ir::ValuePtr jump_val = jump_block->operations.back();
-    ZEN_ASSERT(jump_val->is_type<ir::JumpCondition>());
+    WF_ASSERT(jump_val->is_type<ir::JumpCondition>());
 
     return where(map_value(jump_val->first_operand()), map_value(args[0]), map_value(args[1]));
   }
 
   Expr map_value(ir::ValuePtr value) const {
     const auto arg_it = value_to_expression_.find(value);
-    ZEN_ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", value->name());
+    WF_ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", value->name());
     return arg_it->second;
   }
 
@@ -169,7 +169,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
             output_expressions.reserve(code->num_operands());
             for (const ir::ValuePtr operand : code->operands()) {
               auto it = value_to_expression.find(operand);
-              ZEN_ASSERT(it != value_to_expression.end(), "Missing value: {}", operand->name());
+              WF_ASSERT(it != value_to_expression.end(), "Missing value: {}", operand->name());
               output_expressions.push_back(it->second);
             }
             output_map.emplace(save.key(), std::move(output_expressions));

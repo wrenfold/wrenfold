@@ -35,7 +35,7 @@ class MatrixType {
 
   // Convert to [row, col] indices (assuming row major order).
   std::pair<index_t, index_t> compute_indices(std::size_t element) const {
-    ZEN_ASSERT_LESS(element, static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_));
+    WF_ASSERT_LESS(element, static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_));
     return std::make_pair(static_cast<index_t>(element) / cols_,
                           static_cast<index_t>(element) % cols_);
   }
@@ -98,7 +98,7 @@ struct FunctionSignature {
   const std::shared_ptr<const ast::Argument>& get_argument(const std::string_view str) const {
     auto it = std::find_if(arguments.begin(), arguments.end(),
                            [&](const auto& arg) { return arg->name() == str; });
-    ZEN_ASSERT(it != arguments.end(), "Argument does not exist: {}", str);
+    WF_ASSERT(it != arguments.end(), "Argument does not exist: {}", str);
     return *it;
   }
 

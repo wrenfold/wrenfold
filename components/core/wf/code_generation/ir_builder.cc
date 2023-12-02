@@ -16,14 +16,14 @@ namespace math {
 namespace ir {
 
 void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
-  ZEN_ASSERT_NOT_EQUAL(target, replacement);
+  WF_ASSERT_NOT_EQUAL(target, replacement);
 
   if (!operations.empty()) {
     const ir::ValuePtr jump_val = operations.back();
     if (jump_val->is_type<ir::JumpCondition>()) {
-      ZEN_ASSERT_EQUAL(2, descendants.size());
+      WF_ASSERT_EQUAL(2, descendants.size());
     } else {
-      ZEN_ASSERT_GREATER_OR_EQ(1, descendants.size());
+      WF_ASSERT_GREATER_OR_EQ(1, descendants.size());
     }
   }
 
@@ -32,31 +32,31 @@ void Block::replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement) {
   replacement->add_ancestor(self);
 
   auto it = std::find(descendants.begin(), descendants.end(), target);
-  ZEN_ASSERT(it != descendants.end());
+  WF_ASSERT(it != descendants.end());
   *it = replacement;
 }
 
 void Block::add_ancestor(BlockPtr b) {
-  ZEN_ASSERT(std::find(ancestors.begin(), ancestors.end(), b) == ancestors.end(),
-             "Attempted to insert duplicate into ancestor list: {}", b->name);
+  WF_ASSERT(std::find(ancestors.begin(), ancestors.end(), b) == ancestors.end(),
+            "Attempted to insert duplicate into ancestor list: {}", b->name);
   ancestors.push_back(b);
 }
 
 void Block::remove_ancestor(BlockPtr b) {
   auto it = std::find(ancestors.begin(), ancestors.end(), b);
-  ZEN_ASSERT(it != ancestors.end(), "Block {} is not an ancestor of {}", b->name, name);
+  WF_ASSERT(it != ancestors.end(), "Block {} is not an ancestor of {}", b->name, name);
   ancestors.erase(it);
 }
 
 void Block::add_descendant(BlockPtr b) {
-  ZEN_ASSERT(std::find(descendants.begin(), descendants.end(), b) == descendants.end(),
-             "Block {} already exists in descendants list: {},", b, fmt::join(descendants, ", "));
+  WF_ASSERT(std::find(descendants.begin(), descendants.end(), b) == descendants.end(),
+            "Block {} already exists in descendants list: {},", b, fmt::join(descendants, ", "));
   descendants.push_back(b);
   b->add_ancestor(ir::BlockPtr{this});
 }
 
 void Value::set_parent(ir::BlockPtr b) {
-  ZEN_ASSERT(!std::holds_alternative<ir::JumpCondition>(op_));
+  WF_ASSERT(!std::holds_alternative<ir::JumpCondition>(op_));
   parent_ = b;
 }
 
@@ -102,7 +102,7 @@ bool Value::operands_match(const ValuePtr other) const noexcept {
 
 void Value::replace_with(const ValuePtr other) {
   const ValuePtr self{this};
-  ZEN_ASSERT_NOT_EQUAL(self, other);
+  WF_ASSERT_NOT_EQUAL(self, other);
   for (const ValuePtr& consumer : consumers_) {
     consumer->replace_operand(self, other);
   }
@@ -110,8 +110,8 @@ void Value::replace_with(const ValuePtr other) {
 }
 
 void Value::remove() {
-  ZEN_ASSERT(consumers_.empty(), "Attempting to remove a value `{}` that is consumed by: [{}]",
-             name_, fmt::join(consumers_, ","));
+  WF_ASSERT(consumers_.empty(), "Attempting to remove a value `{}` that is consumed by: [{}]",
+            name_, fmt::join(consumers_, ","));
   // Notify our operands we no longer consume them.
   for (const ValuePtr& operand : operands_) {
     operand->remove_consumer(this);
@@ -467,7 +467,7 @@ struct IRFormVisitor {
 
     constexpr int max_integer_mul_exponent = 16;
     if (const Integer* exp_int = cast_ptr<Integer>(power.exponent()); exp_int != nullptr) {
-      ZEN_ASSERT_GREATER_OR_EQ(exp_int->get_value(), 0, "Negative exponents were handled above");
+      WF_ASSERT_GREATER_OR_EQ(exp_int->get_value(), 0, "Negative exponents were handled above");
       // Maximum exponent below which we rewrite `pow` as a series of multiplications.
       // Have not experimented with this cutoff much, but on GCC94 and Clang17, using a series of
       // multiplications is still faster even past x^32.
@@ -480,7 +480,7 @@ struct IRFormVisitor {
       }
     } else if (const Rational* exp_rational = cast_ptr<Rational>(power.exponent());
                exp_rational != nullptr) {
-      ZEN_ASSERT_GREATER_OR_EQ(exp_rational->numerator(), 0, "rational = {}", *exp_rational);
+      WF_ASSERT_GREATER_OR_EQ(exp_rational->numerator(), 0, "rational = {}", *exp_rational);
       // If the denominator is 1/2 and the exponent is small, it is faster to do power
       // exponentiation followed by sqrt. This is not the case for cbrt, where pow() is the same
       // approximate performance.
@@ -743,14 +743,14 @@ struct IrConverter {
         process(std::move(required_outputs_queue), output.create_block(), deferred_values);
 
     // Should be nothing deferred yet:
-    ZEN_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
+    WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
 
     // Traverse optional outputs:
     for (ir::ValuePtr v : optional_outputs) {
       const ir::Save& save = v->as_type<ir::Save>();
       const OutputKey& key = save.key();
-      ZEN_ASSERT(key.usage == ExpressionUsage::OptionalOutputArgument, "Usage: {}",
-                 string_from_expression_usage(key.usage));
+      WF_ASSERT(key.usage == ExpressionUsage::OptionalOutputArgument, "Usage: {}",
+                string_from_expression_usage(key.usage));
 
       const ir::BlockPtr left_block_exit = output.create_block();
       left_block_exit->add_descendant(next_block);
@@ -774,8 +774,8 @@ struct IrConverter {
       std::deque<ir::ValuePtr> queue{deferred_values.begin(), deferred_values.end()};
       deferred_values.clear();
       next_block = process(std::move(queue), jump_block, deferred_values);
-      ZEN_ASSERT(deferred_values.empty(), "deferred_values = [{}]",
-                 fmt::join(deferred_values, ", "));
+      WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]",
+                fmt::join(deferred_values, ", "));
     }
 
     std::deque<ir::ValuePtr> queue;
@@ -783,10 +783,10 @@ struct IrConverter {
     deferred_values.clear();
 
     process(std::move(queue), next_block, deferred_values);
-    ZEN_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
+    WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
 
     // There should only be one start block:
-    ZEN_ASSERT_EQUAL(
+    WF_ASSERT_EQUAL(
         1,
         std::count_if(output.blocks_.begin(), output.blocks_.end(),
                       [](const ir::Block::unique_ptr& block) { return block->has_no_ancestors(); }),
@@ -846,7 +846,7 @@ struct IrConverter {
       if (is_visited(top)) {
         continue;
       }
-      ZEN_ASSERT(all_consumers_visited(top), "Not all consumers have been visited: {}", top);
+      WF_ASSERT(all_consumers_visited(top), "Not all consumers have been visited: {}", top);
 
       // Check if this block is a valid place to insert this value. This will be the case
       // if `output_block` is on all paths through the downstream consumer blocks. This check
@@ -890,9 +890,9 @@ struct IrConverter {
     const auto [condition, grouped_conditionals] =
         select_conditionals_to_group(queued_conditionals);
 
-    ZEN_ASSERT(std::is_sorted(grouped_conditionals.begin(), grouped_conditionals.end(),
-                              [](ir::ValuePtr a, ir::ValuePtr b) { return a->name() > b->name(); }),
-               "Should be sorted: {}", fmt::join(grouped_conditionals, ","));
+    WF_ASSERT(std::is_sorted(grouped_conditionals.begin(), grouped_conditionals.end(),
+                             [](ir::ValuePtr a, ir::ValuePtr b) { return a->name() > b->name(); }),
+              "Should be sorted: {}", fmt::join(grouped_conditionals, ","));
 
     const ir::BlockPtr left_block_tail = output.create_block();
     const ir::BlockPtr right_block_tail = output.create_block();
@@ -940,8 +940,8 @@ struct IrConverter {
     // Any blocks that jumped to `output_block` should now jump to `jump_block` instead:
     for (ir::BlockPtr ancestor : previous_ancestors) {
       // If this block is our ancestor, it must contain a jump at the end:
-      ZEN_ASSERT(!ancestor->operations.empty() && !ancestor->descendants.empty(),
-                 "Block cannot be empty, must contain a jump");
+      WF_ASSERT(!ancestor->operations.empty() && !ancestor->descendants.empty(),
+                "Block cannot be empty, must contain a jump");
       ancestor->replace_descendant(output_block, jump_block);
     }
 
@@ -1047,7 +1047,7 @@ OutputIr::OutputIr(math::FlatIr&& input) {
   values_.erase(std::remove_if(values_.begin(), values_.end(),
                                [&input](const ir::Value::unique_ptr& v) {
                                  if (v->parent() == input.get_block()) {
-                                   ZEN_ASSERT_EQUAL(0, v->num_consumers(), "v = {}", v->name());
+                                   WF_ASSERT_EQUAL(0, v->num_consumers(), "v = {}", v->name());
                                    return true;
                                  }
                                  return false;

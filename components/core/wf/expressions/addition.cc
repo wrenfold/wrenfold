@@ -12,7 +12,7 @@
 namespace math {
 
 Expr Addition::from_operands(absl::Span<const Expr> args) {
-  ZEN_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
+  WF_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
   if (args.size() < 2) {
     return args.front();
   }

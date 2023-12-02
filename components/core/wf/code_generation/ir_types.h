@@ -409,13 +409,13 @@ class Value {
 
   // Get the first operand.
   const ValuePtr& first_operand() const {
-    ZEN_ASSERT(!operands_.empty());
+    WF_ASSERT(!operands_.empty());
     return operands_.front();
   }
 
   // Access i'th operand:
   ValuePtr operator[](std::size_t i) const {
-    ZEN_ASSERT_LESS(i, operands_.size());
+    WF_ASSERT_LESS(i, operands_.size());
     return operands_[i];
   }
 
@@ -448,7 +448,7 @@ class Value {
 
   // Access the underlying numeric type.
   NumericType numeric_type() const {
-    ZEN_ASSERT(numeric_type_.has_value());
+    WF_ASSERT(numeric_type_.has_value());
     return *numeric_type_;
   }
 
@@ -466,7 +466,7 @@ class Value {
   void check_num_operands() {
     constexpr int expected_num_args = OpType::num_value_operands();
     if constexpr (expected_num_args >= 0) {
-      ZEN_ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
+      WF_ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
     }
   }
 

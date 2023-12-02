@@ -11,7 +11,7 @@
 namespace math {
 
 void PlainFormatter::operator()(const Addition& expr) {
-  ZEN_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
+  WF_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
 
   // Sort into canonical order:
   absl::InlinedVector<std::pair<Expr, Expr>, 16> terms;
@@ -105,8 +105,8 @@ void PlainFormatter::operator()(const Float& expr) {
 }
 
 void PlainFormatter::operator()(const Matrix& mat) {
-  ZEN_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
-  ZEN_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
+  WF_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
+  WF_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
 
   if (mat.size() == 0) {
     // Empty matrix:
@@ -155,7 +155,7 @@ void PlainFormatter::operator()(const Matrix& mat) {
 }
 
 void PlainFormatter::operator()(const Multiplication& expr) {
-  ZEN_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
+  WF_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
   using BaseExp = MultiplicationFormattingInfo::BaseExp;
 
   // Break multiplication up into numerator and denominator:

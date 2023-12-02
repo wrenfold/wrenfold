@@ -46,13 +46,13 @@ struct CompareNumerics {
   // Integer and float:
   bool operator()(const Integer& a, const Float& b) const {
     const auto result = compare_int_float(a.get_value(), b.get_value());
-    ZEN_ASSERT(result.has_value(), "Invalid float value: {}", b);
+    WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == RelativeOrder::LessThan;
   }
 
   bool operator()(const Float& a, const Integer& b) const {
     const auto result = compare_int_float(b.get_value(), a.get_value());
-    ZEN_ASSERT(result.has_value(), "Invalid float value: {}", b);
+    WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == RelativeOrder::GreaterThan;
   }
 };
@@ -82,8 +82,8 @@ struct RelationalSimplification {
       } else if (operation_ == RelationalOperation::Equal) {
         return (!a_lt_b && !b_lt_a) ? TriState::True : TriState::False;
       }
-      ZEN_ASSERT(operation_ == RelationalOperation::LessThanOrEqual,
-                 "Invalid relational operation: {}", string_from_relational_operation(operation_));
+      WF_ASSERT(operation_ == RelationalOperation::LessThanOrEqual,
+                "Invalid relational operation: {}", string_from_relational_operation(operation_));
       // either `a` < `b`, or: `a` >= `b` and `b` is not less than `a`, so `a` == `b`
       return a_lt_b || !b_lt_a ? TriState::True : TriState::False;
     } else {

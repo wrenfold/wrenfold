@@ -191,7 +191,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
     const Integer max_valid_exponent = max_valid_integer_exponent.value();
     for (const auto& [base, exponent] : target_parts.terms) {
       auto it = input_parts.terms.find(base);
-      ZEN_ASSERT(it != input_parts.terms.end());
+      WF_ASSERT(it != input_parts.terms.end());
       it->second = it->second - (exponent * max_valid_exponent.get_value());
     }
 
@@ -355,8 +355,8 @@ void SubstituteVariablesVisitor::add_substitution(Variable variable, Expr replac
   cache_.clear();  //  No longer valid when new expressions are added.
   const auto [_, was_inserted] =
       substitutions_.emplace(std::move(variable), std::move(replacement));
-  ZEN_ASSERT(was_inserted, "Variable already exists in the substitution list: {}",
-             variable.to_string());
+  WF_ASSERT(was_inserted, "Variable already exists in the substitution list: {}",
+            variable.to_string());
 }
 
 Expr SubstituteVariablesVisitor::apply(const Expr& expression) {
