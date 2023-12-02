@@ -7,7 +7,7 @@ namespace math {
 template <typename T>
 class non_null_ptr {
  public:
-  explicit non_null_ptr(T* ptr) : ptr_(ptr) { ZEN_ASSERT(ptr_, "Cannot be constructed null"); }
+  explicit non_null_ptr(T* ptr) : ptr_(ptr) { WF_ASSERT(ptr_, "Cannot be constructed null"); }
 
   // Construct from unique_ptr.
   explicit non_null_ptr(const std::unique_ptr<T>& ptr) : non_null_ptr(ptr.get()) {}

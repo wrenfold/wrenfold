@@ -170,7 +170,7 @@ Expr DiffVisitor::operator()(const Function& func) {
       return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
     }
   }
-  ZEN_ASSERT(false, "Invalid unary function: {}", func.function_name());
+  WF_ASSERT(false, "Invalid unary function: {}", func.function_name());
   return Constants::Zero;
 }
 
@@ -206,7 +206,7 @@ Expr DiffVisitor::operator()(const Variable& var) const {
 }
 
 Expr diff(const Expr& function, const Expr& var, const int reps) {
-  ZEN_ASSERT_GREATER_OR_EQ(reps, 0);
+  WF_ASSERT_GREATER_OR_EQ(reps, 0);
   DiffVisitor visitor{var};
   Expr result = function;
   for (int i = 0; i < reps; ++i) {

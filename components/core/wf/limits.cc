@@ -149,7 +149,7 @@ class LimitVisitor {
     std::vector<Integer> powers{};
 
     bool are_all_identical_up_to_sign() const {
-      ZEN_ASSERT(!powers.empty());
+      WF_ASSERT(!powers.empty());
       const auto first = powers.begin();
       return std::all_of(std::next(first), powers.end(),
                          [&](const Integer& i) { return first->abs() == i.abs(); });
@@ -237,7 +237,7 @@ class LimitVisitor {
     Multiplication::ContainerType f_funcs{}, g_funcs{};
     for (const Expr& expr : mul) {
       std::optional<Expr> child = visit(expr);
-      ZEN_ASSERT(child.has_value(), "Already checked this expression is valid: {}", expr);
+      WF_ASSERT(child.has_value(), "Already checked this expression is valid: {}", expr);
       if (is_zero(*child)) {
         // Collect the powers of `x_` as we extract terms, in the hope that the expression will
         // simplify:
@@ -367,7 +367,7 @@ class LimitVisitor {
       return std::nullopt;
     }
 
-    ZEN_ASSERT(!exp_sub.is_identical_to(Constants::False));
+    WF_ASSERT(!exp_sub.is_identical_to(Constants::False));
 
     if (is_zero(exp_sub) && (is_inf(base_sub) || is_zero(base_sub))) {
       // 0 ^ 0 is an indeterminate form, and ∞ ^ 0
@@ -410,7 +410,7 @@ class LimitVisitor {
         if (is_numeric_or_constant(exp_sub) && is_negative_number(exp_sub)) {
           return Constants::Zero;  // (-∞)^u where u < 0
         } else if (const Integer* exp_int = cast_ptr<Integer>(exp_sub); exp_int != nullptr) {
-          ZEN_ASSERT(!exp_int->is_zero() && !exp_int->is_negative(), "value = {}", *exp_int);
+          WF_ASSERT(!exp_int->is_zero() && !exp_int->is_negative(), "value = {}", *exp_int);
           if (exp_int->is_even()) {
             return positive_inf_;
           } else {
@@ -454,7 +454,7 @@ class LimitVisitor {
 
     switch (func.enum_value()) {
       case BuiltInFunction::Log: {
-        ZEN_ASSERT_EQUAL(1, args.size());
+        WF_ASSERT_EQUAL(1, args.size());
         if (is_zero(args[0])) {
           // In the context of a limit, allow log(0) --> -∞
           return negative_inf_;

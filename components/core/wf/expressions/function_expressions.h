@@ -99,7 +99,7 @@ inline Expr Function::create(BuiltInFunction name, Function::ContainerType&& con
     case BuiltInFunction::Arctan2:
       return atan2(container[0], container[1]);
   }
-  ZEN_ASSERT(false, "Invalid function name: {}", string_from_built_in_function(name));
+  WF_ASSERT(false, "Invalid function name: {}", string_from_built_in_function(name));
   return Constants::Zero;  //  Unreachable.
 }
 

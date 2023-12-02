@@ -46,8 +46,8 @@ struct DistributeVisitor {
     for (const Expr& expr : children) {
       if (const Addition* add = cast_ptr<Addition>(expr); add != nullptr) {
         // For additions, first update the step by dividing by the size of this addition:
-        ZEN_ASSERT_EQUAL(0, step % add->arity());
-        ZEN_ASSERT_GREATER_OR_EQ(step / add->arity(), 1);
+        WF_ASSERT_EQUAL(0, step % add->arity());
+        WF_ASSERT_GREATER_OR_EQ(step / add->arity(), 1);
         step /= add->arity();
         // Now multiply terms in the addition:
         for (std::size_t out = 0; out < total_terms;) {

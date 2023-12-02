@@ -68,7 +68,7 @@ class RustCodeGenerator {
 
   // Accept ast::VariantPtr
   void operator()(CodeFormatter& formatter, const ast::VariantPtr& var) const {
-    ZEN_ASSERT(var);
+    WF_ASSERT(var);
     operator()(formatter, *var);
   }
 

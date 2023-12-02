@@ -40,40 +40,40 @@ void raise_assert_binary_op(const char* const condition, const char* const file,
 
 // Assertion macros.
 // Based on: http://cnicholson.net/2009/02/stupid-c-tricks-adventures-in-assert
-#define ZEN_ASSERT_IMPL(cond, file, line, handler, ...) \
-  do {                                                  \
-    if (!static_cast<bool>(cond)) {                     \
-      handler(#cond, file, line, ##__VA_ARGS__);        \
-    }                                                   \
+#define WF_ASSERT_IMPL(cond, file, line, handler, ...) \
+  do {                                                 \
+    if (!static_cast<bool>(cond)) {                    \
+      handler(#cond, file, line, ##__VA_ARGS__);       \
+    }                                                  \
   } while (false)
 
 // Macro to use when defining an assertion.
-#define ZEN_ASSERT(cond, ...) \
-  ZEN_ASSERT_IMPL(cond, __FILE__, __LINE__, math::raise_assert, ##__VA_ARGS__)
+#define WF_ASSERT(cond, ...) \
+  WF_ASSERT_IMPL(cond, __FILE__, __LINE__, math::raise_assert, ##__VA_ARGS__)
 
-#define ZEN_ASSERT_EQUAL(a, b, ...)                                                           \
-  ZEN_ASSERT_IMPL((a) == (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
-                  ##__VA_ARGS__)
+#define WF_ASSERT_EQUAL(a, b, ...)                                                           \
+  WF_ASSERT_IMPL((a) == (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+                 ##__VA_ARGS__)
 
-#define ZEN_ASSERT_NOT_EQUAL(a, b, ...)                                                       \
-  ZEN_ASSERT_IMPL((a) != (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
-                  ##__VA_ARGS__)
+#define WF_ASSERT_NOT_EQUAL(a, b, ...)                                                       \
+  WF_ASSERT_IMPL((a) != (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+                 ##__VA_ARGS__)
 
-#define ZEN_ASSERT_LESS(a, b, ...)                                                           \
-  ZEN_ASSERT_IMPL((a) < (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
-                  ##__VA_ARGS__)
+#define WF_ASSERT_LESS(a, b, ...)                                                           \
+  WF_ASSERT_IMPL((a) < (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+                 ##__VA_ARGS__)
 
-#define ZEN_ASSERT_GREATER(a, b, ...)                                                        \
-  ZEN_ASSERT_IMPL((a) > (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
-                  ##__VA_ARGS__)
+#define WF_ASSERT_GREATER(a, b, ...)                                                        \
+  WF_ASSERT_IMPL((a) > (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+                 ##__VA_ARGS__)
 
-#define ZEN_ASSERT_LESS_OR_EQ(a, b, ...)                                                      \
-  ZEN_ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
-                  ##__VA_ARGS__)
+#define WF_ASSERT_LESS_OR_EQ(a, b, ...)                                                      \
+  WF_ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+                 ##__VA_ARGS__)
 
-#define ZEN_ASSERT_GREATER_OR_EQ(a, b, ...)                                                   \
-  ZEN_ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
-                  ##__VA_ARGS__)
+#define WF_ASSERT_GREATER_OR_EQ(a, b, ...)                                                   \
+  WF_ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+                 ##__VA_ARGS__)
 
 #ifdef __clang__
 #pragma clang diagnostic pop

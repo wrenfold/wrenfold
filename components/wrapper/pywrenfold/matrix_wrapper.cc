@@ -217,7 +217,7 @@ inline MatrixExpr stack_iterables(const std::vector<py::object>& rows) {
   }
 
   // Figure out how many rows we extracted:
-  ZEN_ASSERT_EQUAL(0, converted.size() % expected_num_cols);
+  WF_ASSERT_EQUAL(0, converted.size() % expected_num_cols);
   const auto total_rows = static_cast<index_t>(converted.size() / expected_num_cols);
   return MatrixExpr::create(total_rows, static_cast<index_t>(expected_num_cols),
                             std::move(converted));

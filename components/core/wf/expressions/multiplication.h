@@ -20,7 +20,7 @@ class Multiplication {
 
   // Move-construct.
   explicit Multiplication(ContainerType&& terms) : terms_(std::move(terms)) {
-    ZEN_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     sort_terms();
   }
 

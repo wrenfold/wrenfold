@@ -32,7 +32,7 @@ class DetermineSetVisitor {
  public:
   template <typename Container, typename Callable>
   NumberSet handle_add_or_mul(const Container& container, Callable callable) const {
-    ZEN_ASSERT_GREATER_OR_EQ(container.arity(), 1);
+    WF_ASSERT_GREATER_OR_EQ(container.arity(), 1);
     auto it = container.begin();
     NumberSet set = determine_numeric_set(*it);
     for (it = std::next(it); it != container.end(); ++it) {
@@ -75,7 +75,7 @@ class DetermineSetVisitor {
   NumberSet operator()(const Function& func) {
     absl::InlinedVector<NumberSet, 4> args{};
     std::transform(func.begin(), func.end(), std::back_inserter(args), &determine_numeric_set);
-    ZEN_ASSERT_GREATER_OR_EQ(args.size(), 1);
+    WF_ASSERT_GREATER_OR_EQ(args.size(), 1);
 
     if (std::count(args.begin(), args.end(), NumberSet::Unknown) > 0) {
       return NumberSet::Unknown;

@@ -46,8 +46,8 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
   } else if (expr.is_type<Undefined>()) {
     return visitor(cast_unchecked<Undefined>(expr));
   } else {
-    ZEN_ASSERT(expr.is_type<Variable>(), "Neglected to implement if-else switch for type: {}",
-               expr.type_name());
+    WF_ASSERT(expr.is_type<Variable>(), "Neglected to implement if-else switch for type: {}",
+              expr.type_name());
     return visitor(cast_unchecked<Variable>(expr));
   }
 }

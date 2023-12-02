@@ -30,7 +30,7 @@ static inline Expr multiply_into_addition(const Addition& add, const Expr& numer
 }
 
 Expr Multiplication::from_operands(absl::Span<const Expr> args) {
-  ZEN_ASSERT(!args.empty());
+  WF_ASSERT(!args.empty());
   if (args.size() < 2) {
     return args.front();
   }

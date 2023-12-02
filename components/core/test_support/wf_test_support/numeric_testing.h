@@ -73,8 +73,8 @@ template <index_t Rows, index_t Cols>
 struct apply_numeric_evaluator_impl<ta::StaticMatrix<Rows, Cols>> {
   Eigen::Matrix<double, Rows, Cols> operator()(NumericFunctionEvaluator& evaluator,
                                                const MatrixExpr& input) const {
-    ZEN_ASSERT_EQUAL(input.rows(), Rows);
-    ZEN_ASSERT_EQUAL(input.cols(), Cols);
+    WF_ASSERT_EQUAL(input.rows(), Rows);
+    WF_ASSERT_EQUAL(input.cols(), Cols);
     Eigen::Matrix<double, Rows, Cols> output;
     for (index_t i = 0; i < Rows; ++i) {
       for (index_t j = 0; j < Cols; ++j) {

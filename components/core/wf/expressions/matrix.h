@@ -24,8 +24,8 @@ class Matrix {
       throw DimensionError("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
                            data_.size(), rows_, cols_);
     }
-    ZEN_ASSERT_GREATER_OR_EQ(rows_, 0);
-    ZEN_ASSERT_GREATER_OR_EQ(cols_, 0);
+    WF_ASSERT_GREATER_OR_EQ(rows_, 0);
+    WF_ASSERT_GREATER_OR_EQ(cols_, 0);
   }
 
   // All elements must match.
