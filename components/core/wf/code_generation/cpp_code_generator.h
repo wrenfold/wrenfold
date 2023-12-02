@@ -37,7 +37,7 @@ class CppCodeGenerator {
   void operator()(CodeFormatter& formatter, const ast::Divide& x) const;
 
   void operator()(CodeFormatter& formatter, const ast::FloatConstant& x) const {
-    formatter.format("{}", x.value);
+    formatter.format("static_cast<Scalar>({})", x.value);
   }
 
   void operator()(CodeFormatter& formatter, const ast::SpecialConstant& x) const;
