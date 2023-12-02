@@ -14,9 +14,9 @@ import typing as T
 from wrenfold.type_annotations import RealScalar, Vector4, Vector3
 from wrenfold.code_generation import codegen_function
 from wrenfold.code_generation import OutputArg
+from wrenfold.code_generation import generate_cpp
 
 from wrenfold.geometry import Quaternion, left_jacobian_of_so3
-from wrenfold.codegen import generate_cpp
 from wrenfold import sym
 
 

@@ -251,7 +251,7 @@ static constexpr std::string_view cpp_string_for_symbolic_constant(
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::SpecialConstant& x) const {
-  formatter.format("{}", cpp_string_for_symbolic_constant(x.value));
+  formatter.format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
 }
 
 void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {

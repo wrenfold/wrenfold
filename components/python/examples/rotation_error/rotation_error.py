@@ -9,7 +9,7 @@ from wrenfold.code_generation import codegen_function
 from wrenfold.code_generation import OutputArg
 
 from wrenfold.geometry import Quaternion
-from wrenfold.codegen import generate_cpp
+from wrenfold.code_generation import generate_cpp
 
 
 def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
