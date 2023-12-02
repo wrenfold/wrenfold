@@ -1,8 +1,8 @@
 [build-system]
 requires = [
     "scikit-build-core>=0.2.2",
-    "pybind11",
-    "cmake>=3.18",
+    "cmake>=3.19",
+    "mypy",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -18,7 +18,7 @@ license = { text = "MIT" }
 readme = "README.md"
 
 [tool.scikit-build]
-cmake.minimum-version = "3.18"
+cmake.minimum-version = "3.19"
 cmake.args = ["-G", "Ninja", "-Wno-deprecated"]
 cmake.verbose = true
 cmake.build-type = "RelWithDebInfo"
