@@ -33,8 +33,8 @@ struct CopyOutputExpressionsImpl<MatrixExpr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct CopyOutputExpressionsImpl<type_annotations::StaticMatrix<Rows, Cols>> {
-  void operator()(const type_annotations::StaticMatrix<Rows, Cols>& val,
+struct CopyOutputExpressionsImpl<type_annotations::static_matrix<Rows, Cols>> {
+  void operator()(const type_annotations::static_matrix<Rows, Cols>& val,
                   std::vector<Expr>& outputs) const {
     CopyOutputExpressionsImpl<MatrixExpr>{}.operator()(val, outputs);
   }
@@ -120,21 +120,21 @@ struct RecordInputArgument;
 
 template <>
 struct RecordInputArgument<Expr> {
-  void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
+  void operator()(ast::FunctionSignature& desc, const arg& arg) const {
     desc.add_argument(arg.name(), ast::ScalarType(NumericType::Real),
                       ast::ArgumentDirection::Input);
   }
 };
 
 template <index_t Rows, index_t Cols>
-struct RecordInputArgument<type_annotations::StaticMatrix<Rows, Cols>> {
-  void operator()(ast::FunctionSignature& desc, const Arg& arg) const {
+struct RecordInputArgument<type_annotations::static_matrix<Rows, Cols>> {
+  void operator()(ast::FunctionSignature& desc, const arg& arg) const {
     desc.add_argument(arg.name(), ast::MatrixType(Rows, Cols), ast::ArgumentDirection::Input);
   }
 };
 
 template <typename ArgList, std::size_t... Indices, std::size_t N>
-void record_input_args(ast::FunctionSignature& desc, const std::array<Arg, N>& args,
+void record_input_args(ast::FunctionSignature& desc, const std::array<arg, N>& args,
                        std::index_sequence<Indices...>) {
   (RecordInputArgument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(desc, args[Indices]),
    ...);
@@ -151,7 +151,7 @@ struct BuildFunctionArgumentImpl<Expr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>> {
+struct BuildFunctionArgumentImpl<type_annotations::static_matrix<Rows, Cols>> {
   auto operator()(std::size_t arg_index) const {
     std::vector<Expr> expressions{};
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
@@ -159,7 +159,7 @@ struct BuildFunctionArgumentImpl<type_annotations::StaticMatrix<Rows, Cols>> {
       expressions.push_back(Variable::create_function_argument(arg_index, i));
     }
     MatrixExpr expr = MatrixExpr::create(Rows, Cols, std::move(expressions));
-    return type_annotations::StaticMatrix<Rows, Cols>(std::move(expr));
+    return type_annotations::static_matrix<Rows, Cols>(std::move(expr));
   }
 };
 

@@ -13,7 +13,7 @@ using namespace matrix_operator_overloads;
 namespace ta = type_annotations;
 
 // TODO: De-dup with quat_interpolation_expressions example.
-auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4, 1> q1_vec,
+auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec,
                               Expr alpha) {
   using namespace matrix_operator_overloads;
 
@@ -23,12 +23,12 @@ auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4,
   const Quaternion q_interp =
       q0 * Quaternion::from_rotation_vector(q_delta_tangent * alpha, 1.0e-16);
 
-  ta::StaticMatrix<3, 3> D_q0 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.jacobian(q0) * q0.right_retract_derivative();
-  ta::StaticMatrix<3, 3> D_q1 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.jacobian(q1) * q1.right_retract_derivative();
+  ta::static_matrix<3, 3> D_q0 = q_interp.right_local_coordinates_derivative() *
+                                 q_interp.jacobian(q0) * q0.right_retract_derivative();
+  ta::static_matrix<3, 3> D_q1 = q_interp.right_local_coordinates_derivative() *
+                                 q_interp.jacobian(q1) * q1.right_retract_derivative();
 
-  return std::make_tuple(OutputArg("q_out", ta::StaticMatrix<4, 1>(q_interp.to_vector_xyzw())),
+  return std::make_tuple(OutputArg("q_out", ta::static_matrix<4, 1>(q_interp.to_vector_xyzw())),
                          OptionalOutputArg("D_q0", std::move(D_q0)),
                          OptionalOutputArg("D_q1", std::move(D_q1)));
 }
@@ -36,7 +36,7 @@ auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4,
 // Benchmark interpolation between two quaternions and then computing the jacobian.
 static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
   auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
-                                          Arg("q0"), Arg("q1"), Arg("alpha"));
+                                          arg("q0"), arg("q1"), arg("alpha"));
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
   for (auto _ : state) {
@@ -50,7 +50,7 @@ BENCHMARK(BM_CreateFlatIrLowComplexity)->Iterations(200)->Unit(benchmark::kMilli
 
 static void BM_ConvertIrLowComplexity(benchmark::State& state) {
   auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
-                                          Arg("q0"), Arg("q1"), Arg("alpha"));
+                                          arg("q0"), arg("q1"), arg("alpha"));
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
   for (auto _ : state) {

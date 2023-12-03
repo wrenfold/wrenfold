@@ -12,7 +12,7 @@ namespace math {
 template <typename Func, typename... ArgumentInfo>
 std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_description(
     Func&& func, const std::string_view function_name, ArgumentInfo&&... args_in) {
-  static_assert(std::conjunction_v<std::is_constructible<Arg, ArgumentInfo>...>,
+  static_assert(std::conjunction_v<std::is_constructible<arg, ArgumentInfo>...>,
                 "args_in must be convertible to type Arg.");
 
   // Extract return type and argument list of the provided function pointer or lambda.
@@ -22,8 +22,8 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_
                 "Mismatch in # args and # arg names");
 
   // Convert args into an array so that we can index them.
-  const std::array<Arg, sizeof...(ArgumentInfo)> args = {
-      Arg(std::forward<ArgumentInfo>(args_in))...};
+  const std::array<arg, sizeof...(ArgumentInfo)> args = {
+      arg(std::forward<ArgumentInfo>(args_in))...};
 
   // Build inputs and invoke the function
   std::tuple outputs = detail::invoke_with_output_capture<ArgList>(

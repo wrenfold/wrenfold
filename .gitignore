@@ -18,8 +18,8 @@
 *.lib
 
 # BUILD FOLDERS
-build/
-build/*
+build*/
+build*/*
 build_*/
 tmp/
 build_linux/*

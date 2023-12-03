@@ -14,19 +14,19 @@ int main() {
   generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", "x", "y", "z");
   generate_func(
       gen, code,
-      [](Expr theta, ta::StaticMatrix<2, 1> v) {
+      [](Expr theta, ta::static_matrix<2, 1> v) {
         auto [v_rot, v_rot_D_theta] = vector_rotation_2d(theta, v);
         return std::make_tuple(v_rot.to_output_arg("v_rot"), std::move(v_rot_D_theta));
       },
       "vector_rotation_2d", "theta", "v");
   generate_func(gen, code, &vector_norm_3d, "vector_norm_3d", "v");
-  generate_func(gen, code, &heaviside, "heaviside", Arg("x"));
-  generate_func(gen, code, &exclusive_or, "exclusive_or", Arg("x"), Arg("y"));
-  generate_func(gen, code, &signum_and_abs, "signum_and_abs", Arg("x"));
-  generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", Arg("y"), Arg("x"));
-  generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", Arg("x"), Arg("y"));
-  generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", Arg("x"), Arg("y"));
-  generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", Arg("w"));
+  generate_func(gen, code, &heaviside, "heaviside", arg("x"));
+  generate_func(gen, code, &exclusive_or, "exclusive_or", arg("x"), arg("y"));
+  generate_func(gen, code, &signum_and_abs, "signum_and_abs", arg("x"));
+  generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", arg("y"), arg("x"));
+  generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", arg("x"), arg("y"));
+  generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", arg("x"), arg("y"));
+  generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", arg("w"));
 
   std::ofstream output{"generated.rs"};
   output << code;

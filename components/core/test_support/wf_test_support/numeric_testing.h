@@ -70,7 +70,7 @@ struct apply_numeric_evaluator_impl<MatrixExpr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct apply_numeric_evaluator_impl<ta::StaticMatrix<Rows, Cols>> {
+struct apply_numeric_evaluator_impl<ta::static_matrix<Rows, Cols>> {
   Eigen::Matrix<double, Rows, Cols> operator()(NumericFunctionEvaluator& evaluator,
                                                const MatrixExpr& input) const {
     WF_ASSERT_EQUAL(input.rows(), Rows);
@@ -189,7 +189,7 @@ struct convert_arg_type<Expr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct convert_arg_type<ta::StaticMatrix<Rows, Cols>> {
+struct convert_arg_type<ta::static_matrix<Rows, Cols>> {
   using type = Eigen::Matrix<double, Rows, Cols>;
 };
 
@@ -202,7 +202,7 @@ struct convert_output_arg_type<Expr> {
   using type = double;
 };
 template <index_t Rows, index_t Cols>
-struct convert_output_arg_type<ta::StaticMatrix<Rows, Cols>> {
+struct convert_output_arg_type<ta::static_matrix<Rows, Cols>> {
   using type = Eigen::Matrix<double, Rows, Cols>;
 };
 }  // namespace detail

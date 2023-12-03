@@ -9,7 +9,7 @@ namespace math {
 
 // Interpolate between two quaternions, `q0` and `q1` (passed as scalar-last vectors).
 // Outputs the interpolated quaternion, as well as the tangent space derivatives.
-auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4, 1> q1_vec,
+auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec,
                               Expr alpha) {
   using namespace matrix_operator_overloads;
 
@@ -19,12 +19,12 @@ auto quaternion_interpolation(ta::StaticMatrix<4, 1> q0_vec, ta::StaticMatrix<4,
   const Quaternion q_interp =
       q0 * Quaternion::from_rotation_vector(q_delta_tangent * alpha, 1.0e-16);
 
-  ta::StaticMatrix<3, 3> D_q0 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.jacobian(q0) * q0.right_retract_derivative();
-  ta::StaticMatrix<3, 3> D_q1 = q_interp.right_local_coordinates_derivative() *
-                                q_interp.jacobian(q1) * q1.right_retract_derivative();
+  ta::static_matrix<3, 3> D_q0 = q_interp.right_local_coordinates_derivative() *
+                                 q_interp.jacobian(q0) * q0.right_retract_derivative();
+  ta::static_matrix<3, 3> D_q1 = q_interp.right_local_coordinates_derivative() *
+                                 q_interp.jacobian(q1) * q1.right_retract_derivative();
 
-  return std::make_tuple(OutputArg("q_out", ta::StaticMatrix<4, 1>(q_interp.to_vector_xyzw())),
+  return std::make_tuple(OutputArg("q_out", ta::static_matrix<4, 1>(q_interp.to_vector_xyzw())),
                          OptionalOutputArg("D_q0", std::move(D_q0)),
                          OptionalOutputArg("D_q1", std::move(D_q1)));
 }
