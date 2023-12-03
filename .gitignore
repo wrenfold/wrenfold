@@ -37,6 +37,7 @@ build_linux/*
 # JETBRAINS
 *.idea
 cmake-build-*/
+cmake-*/
 
 # VSCODE
 .vscode/

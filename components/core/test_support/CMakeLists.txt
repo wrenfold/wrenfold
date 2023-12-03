@@ -25,3 +25,5 @@ target_link_libraries(
 set(CUSTOM_MAIN ${PROJECT_PREFIX}-custom-main)
 add_library(${CUSTOM_MAIN} OBJECT custom_main.cc)
 target_link_libraries(${CUSTOM_MAIN} gtest)
+target_compile_features(${CUSTOM_MAIN} PRIVATE cxx_std_17)
+target_compile_options(${CUSTOM_MAIN} PRIVATE ${SHARED_WARNING_FLAGS})

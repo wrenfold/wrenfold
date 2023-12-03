@@ -60,7 +60,7 @@ struct OptionalArgPermutations {
 
     std::unordered_map<std::string, bool> output{};
     output.reserve(scatter_.size());
-    for (const auto [name, bitfield_index] : scatter_) {
+    for (const auto& [name, bitfield_index] : scatter_) {
       output.emplace(name, permutation[bitfield_index]);
     }
     return output;

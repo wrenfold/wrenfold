@@ -13,6 +13,10 @@ function(add_custom_test SOURCE_FILE)
                         fmt::fmt-header-only)
   target_compile_options(${TEST_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
 
+  if(NOT MSVC)
+    target_compile_options(${TEST_NAME} PRIVATE -Wno-unused-comparison)
+  endif()
+
   add_test(${TEST_NAME} ${TEST_NAME})
 endfunction()
 

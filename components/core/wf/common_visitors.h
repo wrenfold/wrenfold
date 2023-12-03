@@ -33,6 +33,11 @@ struct IsNegativeNumberVisitor {
   constexpr bool operator()(const Float& f) const noexcept { return f.is_negative(); }
   constexpr bool operator()(const Rational& r) const noexcept { return r.is_negative(); }
 
+  template <typename T>
+  constexpr bool operator()(const T&) const noexcept {
+    return false;
+  }
+
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
   bool operator()(const Multiplication& m) const {
     const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
@@ -40,11 +45,6 @@ struct IsNegativeNumberVisitor {
     });
     // odd = negative, even = positive
     return static_cast<bool>(count & 1);
-  }
-
-  template <typename T>
-  constexpr bool operator()(const T&) const noexcept {
-    return false;
   }
 };
 

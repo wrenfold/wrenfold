@@ -1,5 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include <unordered_map>
+
 #include "wf/expression.h"
 #include "wf/hashing.h"
 
