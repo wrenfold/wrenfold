@@ -49,10 +49,12 @@ Expr evaluate(const Expr& arg);
 // Take the limit of `f_of_x` as `x` goes to 0 from the right.
 // The expression `x` must be a variable.
 // Implemented in limit.cc
+// This feature is considered unstable.
 std::optional<Expr> limit(const Expr& f_of_x, const Expr& x);
 
 // Take the limit of matrix-valued function `f_of_x` as `x` goes to 0 from the right.
 // The expression `x` must be a variable.
+// This feature is considered unstable.
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x);
 
 // Determine what set of numbers an expression belongs to.
