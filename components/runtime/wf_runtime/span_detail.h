@@ -59,6 +59,10 @@ class value_pack_const {
   static_assert(detail::conjunction<is_constant<Values>...>::value,
                 "All values must be compile-time constants");
 
+  using tuple_type = std::tuple<Values...>;
+  template <std::size_t D>
+  using tuple_element_t = typename std::tuple_element<D, tuple_type>::type;
+
   // Default construct.
   explicit constexpr value_pack_const() noexcept = default;
 
@@ -67,10 +71,9 @@ class value_pack_const {
 
   // Get the value on axis `D`.
   template <std::size_t D>
-  constexpr auto get_axis() const noexcept {
+  constexpr tuple_element_t<D> get_axis() const noexcept {
     static_assert(D < sizeof...(Values), "Invalid dimension index");
-    using tuple_type = std::tuple<Values...>;
-    return std::tuple_element_t<D, tuple_type>{};
+    return tuple_element_t<D>{};
   }
 
   // Access all the values as a tuple.
@@ -81,23 +84,27 @@ class value_pack_const {
 template <typename... Values>
 class value_pack_dynamic {
  public:
+  using tuple_type = std::tuple<Values...>;
+  template <std::size_t D>
+  using tuple_element_t = typename std::tuple_element<D, tuple_type>::type;
+
   // Construct from `Values`, which may be dynamic or constant structs.
   explicit constexpr value_pack_dynamic(Values... values) noexcept : values_{values...} {}
 
   // Get the value on axis `D`.
   // TODO: This cannot be constexpr pre-c++14 because of std::get<>.
   template <std::size_t D>
-  constexpr auto get_axis() const noexcept {
+  constexpr tuple_element_t<D> get_axis() const noexcept {
     static_assert(D < sizeof...(Values), "Invalid dimension index");
     return std::get<D>(values_);
   }
 
   // Access all the values as a tuple.
-  constexpr const std::tuple<Values...>& values() const noexcept { return values_; }
+  constexpr const tuple_type& values() const noexcept { return values_; }
 
  private:
   // TODO: Only store the dynamic ones for space saving?
-  std::tuple<Values...> values_;
+  tuple_type values_;
 };
 
 }  // namespace detail
@@ -153,6 +160,7 @@ struct convert_to_dimension_type;
 template <typename T>
 using convert_to_dimension_type_t = typename convert_to_dimension_type<T>::type;
 
+// dynamic and constant are already dimension types and require no conversion.
 template <>
 struct convert_to_dimension_type<dynamic> {
   using type = dynamic;
@@ -163,6 +171,7 @@ struct convert_to_dimension_type<constant<D>> {
   using type = constant<D>;
   static constexpr auto convert(constant<D>) noexcept { return type{}; }
 };
+
 // Allow promotion of integral types to `dynamic`.
 template <typename T>
 struct convert_to_dimension_type<

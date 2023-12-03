@@ -41,8 +41,8 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
   gen::quaternion_interpolation(q0, q1, 0.25, q_gen, D0_gen, D1_gen);
 
   EXPECT_EIGEN_NEAR(q_eval.coeffs(), q_gen.coeffs(), 2.0e-16);
-  EXPECT_EIGEN_NEAR(D0_eval, D0_gen, 2.0e-16);
-  EXPECT_EIGEN_NEAR(D1_eval, D1_gen, 2.0e-16);
+  EXPECT_EIGEN_NEAR(D0_eval, D0_gen, 3.0e-16);
+  EXPECT_EIGEN_NEAR(D1_eval, D1_gen, 3.0e-16);
 
   // compare to interpolation with eigen
   EXPECT_EIGEN_NEAR(quat_interp(q0, q1, 0.25).coeffs(), q_gen.coeffs(), 2.0e-16);

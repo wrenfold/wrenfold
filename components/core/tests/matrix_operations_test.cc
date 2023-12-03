@@ -363,12 +363,12 @@ TEST(MatrixOperationsTest, TestFactorizeLU2) {
       {2, 3}, {2, 4}, {2, 5}, {3, 4}, {3, 5}, {3, 6}, {4, 5}, {4, 6},
   };
 
-  for (const auto [row, col] : dims) {
+  for (const auto& [row, col] : dims) {
     MatrixExpr A = make_matrix_of_symbols("x", row, col);
     check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
-  for (const auto [col, row] : dims) {
+  for (const auto& [col, row] : dims) {
     // Transposed version:
     MatrixExpr A = make_matrix_of_symbols("x", row, col);
     check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
@@ -404,7 +404,7 @@ TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
   const std::vector<std::pair<index_t, index_t>> dims = {{2, 2}, {2, 3}, {3, 3}, {3, 4},
                                                          {5, 3}, {4, 4}, {4, 6}};
 
-  for (const auto [rows, cols] : dims) {
+  for (const auto& [rows, cols] : dims) {
     constexpr int num_trials = 25;
     for (int i = 0; i < num_trials; ++i) {
       std::vector<Expr> data{};

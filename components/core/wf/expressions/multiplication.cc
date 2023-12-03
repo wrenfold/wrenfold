@@ -84,7 +84,7 @@ struct MultiplyVisitor {
     if constexpr (std::is_same_v<T, Multiplication>) {
       for (const Expr& expr : arg) {
         // Recursively add multiplications:
-        visit(expr, [this, &expr](const auto& x) { operator()(x, expr); });
+        visit(expr, [this, &expr](const auto& x) { this->operator()(x, expr); });
       }
     } else if constexpr (std::is_same_v<T, Power>) {
       const Power& arg_pow = arg;

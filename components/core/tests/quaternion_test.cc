@@ -578,7 +578,7 @@ TEST(QuaternionTest, TestRightRetractDerivative) {
   const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
   const auto J = Quaternion{w, x, y, z}.right_retract_derivative();
 
-  for (const auto [angle, axis] : get_angle_axis_test_pairs()) {
+  for (const auto& [angle, axis] : get_angle_axis_test_pairs()) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle, axis)};
     const Eigen::Matrix<double, 4, 3> J_numerical = numerical_jacobian(
         Eigen::Vector3d::Zero(),
@@ -599,7 +599,7 @@ TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
   const auto J = Quaternion{w, x, y, z}.right_local_coordinates_derivative();
 
   // Compare analytical derivative to numerical derivative, evaluated at a few different rotations.
-  for (const auto [angle, axis] : get_angle_axis_test_pairs()) {
+  for (const auto& [angle, axis] : get_angle_axis_test_pairs()) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle, axis)};
     const Eigen::Matrix<double, 3, 4> J_numerical = numerical_jacobian(
         eigen_wxyz_vec_from_quaternion(q_num),
