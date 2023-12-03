@@ -2,6 +2,7 @@
 #pragma once
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 #include "wf/absl_imports.h"
 #include "wf/constants.h"
