@@ -15,7 +15,7 @@ static void right_trim_in_place(std::string& str) {
   }
 }
 
-struct TreeFormatter {
+struct tree_formatter {
   // Add indentation to the output string.
   void apply_indentation() {
     if (indentations_.empty()) {
@@ -181,13 +181,13 @@ struct TreeFormatter {
 };
 
 std::string Expr::to_expression_tree_string() const {
-  TreeFormatter formatter{};
+  tree_formatter formatter{};
   visit(*this, formatter);
   return formatter.take_output();
 }
 
 std::string MatrixExpr::to_expression_tree_string() const {
-  TreeFormatter formatter{};
+  tree_formatter formatter{};
   formatter(as_matrix());
   return formatter.take_output();
 }

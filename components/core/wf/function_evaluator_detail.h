@@ -44,7 +44,7 @@ template <typename T>
 ExpressionGroup create_expression_group(const T& tuple_element) {
   std::vector<Expr> expressions;
 
-  // TInner is the inner type of `ReturnValue` or `OutputArg`.
+  // TInner is the inner type of `return_value` or `output_arg`.
   using TInner = std::decay_t<decltype(tuple_element.value())>;
   CopyOutputExpressionsImpl<TInner>{}(tuple_element.value(), expressions);
 
@@ -52,7 +52,7 @@ ExpressionGroup create_expression_group(const T& tuple_element) {
     OutputKey key{ExpressionUsage::ReturnValue, ""};
     return ExpressionGroup(std::move(expressions), std::move(key));
   } else {
-    const OutputArg<TInner>& as_output_arg = tuple_element;
+    const output_arg<TInner>& as_output_arg = tuple_element;
     OutputKey key{as_output_arg.is_optional() ? ExpressionUsage::OptionalOutputArgument
                                               : ExpressionUsage::OutputArgument,
                   as_output_arg.name()};
@@ -66,7 +66,7 @@ void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
                                        std::index_sequence<Indices...>) {
   static_assert(std::conjunction_v<is_output_arg_or_return_value<Ts>...>,
                 "All returned elements of the tuple must be explicitly marked as `ReturnValue` or "
-                "`OutputArg`.");
+                "`output_arg`.");
   static_assert(count_return_values_v<Ts...> <= 1, "Only one return value is allowed.");
   groups.reserve(sizeof...(Ts));
   // Comma operator ensures the order of evaluation here will be left -> right.
@@ -86,8 +86,8 @@ template <typename T>
 struct RecordOutput;
 
 template <typename T>
-struct RecordOutput<ReturnValue<T>> {
-  void operator()(ast::FunctionSignature& desc, const ReturnValue<T>& output) const {
+struct RecordOutput<return_value<T>> {
+  void operator()(ast::FunctionSignature& desc, const return_value<T>& output) const {
     // This is a return value.
     if constexpr (std::is_same_v<Expr, T>) {
       desc.return_value = ast::ScalarType(NumericType::Real);
@@ -99,8 +99,8 @@ struct RecordOutput<ReturnValue<T>> {
 };
 
 template <typename T>
-struct RecordOutput<OutputArg<T>> {
-  void operator()(ast::FunctionSignature& desc, const OutputArg<T>& output) const {
+struct RecordOutput<output_arg<T>> {
+  void operator()(ast::FunctionSignature& desc, const output_arg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
       desc.add_argument(output.name(), ast::ScalarType(NumericType::Real),
                         output.is_optional() ? ast::ArgumentDirection::OptionalOutput
@@ -177,7 +177,7 @@ constexpr std::index_sequence<A..., B...> operator+(std::index_sequence<A...>,
   return {};
 }
 
-// Return an index_sequence<> that contains the indices of just `OutputArg` objects.
+// Return an index_sequence<> that contains the indices of just `output_arg` objects.
 // This is used to filter out any return values.
 template <typename TupleType, std::size_t... Indices>
 constexpr auto select_output_arg_indices(std::index_sequence<Indices...>) {
@@ -192,7 +192,7 @@ constexpr auto select_output_arg_indices(const std::tuple<Ts...>&) {
 
 // Invoke the provided callable and capture the output expressions. First builds a tuple of input
 // arguments by constructing `FuncArgVariable` expressions for every input arg of `callable`. The
-// resulting expressions are returned as a tuple of `OutputArg<>` or `ReturnValue<>`.
+// resulting expressions are returned as a tuple of `output_arg<>` or `return_value<>`.
 template <typename ArgList, typename Callable, std::size_t... Indices>
 auto invoke_with_output_capture(Callable&& callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= type_list_size_v<ArgList>);
@@ -214,7 +214,7 @@ auto invoke_with_output_capture(Callable&& callable, std::index_sequence<Indices
     if constexpr (is_return_value<decltype(return_expr)>::value) {
       return std::make_tuple(std::move(return_expr));
     } else {
-      return std::make_tuple(ReturnValue(std::move(return_expr)));
+      return std::make_tuple(return_value(std::move(return_expr)));
     }
   }
 }

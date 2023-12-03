@@ -8,9 +8,9 @@
 namespace math {
 
 // Visitor for replacing variables in an expression tree.
-class SubstituteVariablesVisitor {
+class substitute_variables_visitor {
  public:
-  SubstituteVariablesVisitor() { cache_.reserve(50); }
+  substitute_variables_visitor() { cache_.reserve(50); }
 
   // Add a new substitution to the list we will apply.
   // This should be called before visiting any expressions.

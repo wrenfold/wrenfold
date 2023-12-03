@@ -21,14 +21,14 @@ inline auto vector_rotation_2d(Expr theta, ta::static_matrix<2, 1> v) {
   MatrixExpr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
   MatrixExpr v_rot{R * v};
   ta::static_matrix<2, 1> v_dot_D_theta{v_rot.diff(theta)};
-  return std::make_tuple(ReturnValue(v_rot), OptionalOutputArg("D_theta", v_dot_D_theta));
+  return std::make_tuple(return_value(v_rot), OptionalOutputArg("D_theta", v_dot_D_theta));
 }
 
 // Norm of a 3D vector + the 1x3 derivative.
 inline auto vector_norm_3d(ta::static_matrix<3, 1> v) {
   Expr len = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   auto D_v = ta::static_matrix<1, 3>::create(len.diff(v[0]), len.diff(v[1]), len.diff(v[2]));
-  return std::make_tuple(ReturnValue(len), OutputArg("D_v", D_v));
+  return std::make_tuple(return_value(len), output_arg("D_v", D_v));
 }
 
 // Heaviside step function - a very simple test of conditionals.
@@ -43,13 +43,14 @@ inline Expr exclusive_or(Expr x, Expr y) {
 
 // Test generation of signum and abs.
 inline auto signum_and_abs(Expr x) {
-  return std::make_tuple(ReturnValue(signum(x)), OutputArg("abs", abs(x)));
+  return std::make_tuple(return_value(signum(x)), output_arg("abs", abs(x)));
 }
 
 // Arc-tangent w/ derivatives.
 inline auto atan2_with_derivatives(Expr y, Expr x) {
   Expr f = atan2(y, x);
-  return std::make_tuple(ReturnValue(f), OutputArg("D_y", f.diff(y)), OutputArg("D_x", f.diff(x)));
+  return std::make_tuple(return_value(f), output_arg("D_y", f.diff(y)),
+                         output_arg("D_x", f.diff(x)));
 }
 
 // Three layers of nested conditionals.
@@ -73,7 +74,7 @@ inline auto nested_conditionals_2(Expr x, Expr y) {
 inline auto create_rotation_matrix(ta::static_matrix<3, 1> w) {
   MatrixExpr R = Quaternion::from_rotation_vector(w.inner(), 1.0e-16).to_rotation_matrix();
   MatrixExpr R_diff = vectorize_matrix(R).jacobian(w);
-  return std::make_tuple(OutputArg("R", ta::static_matrix<3, 3>{R}),
+  return std::make_tuple(output_arg("R", ta::static_matrix<3, 3>{R}),
                          OptionalOutputArg("R_D_w", ta::static_matrix<9, 3>{R_diff}));
 }
 
@@ -81,7 +82,7 @@ inline auto create_rotation_matrix(ta::static_matrix<3, 1> w) {
 inline auto rotation_vector_from_matrix(ta::static_matrix<3, 3> R) {
   Quaternion q = Quaternion::from_rotation_matrix(R);
   ta::static_matrix<3, 1> w = q.to_rotation_vector(1.0e-16);
-  return std::make_tuple(OutputArg("w", w));
+  return std::make_tuple(output_arg("w", w));
 }
 
 }  // namespace math

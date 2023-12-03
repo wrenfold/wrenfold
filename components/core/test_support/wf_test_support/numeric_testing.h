@@ -30,7 +30,7 @@ using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
 // 1. Replace `Variable` expression with float values.
 // 2. Collapse all other numeric values into floats.
 struct NumericFunctionEvaluator {
-  SubstituteVariablesVisitor substitute{};
+  substitute_variables_visitor substitute{};
   EvaluateVisitor evaluate{};
 };
 
@@ -90,7 +90,7 @@ struct collect_function_input_impl;
 
 template <std::size_t Index>
 struct collect_function_input_impl<Index, double> {
-  void operator()(SubstituteVariablesVisitor& output, const double arg) const {
+  void operator()(substitute_variables_visitor& output, const double arg) const {
     Variable var{FuncArgVariable(Index, 0), NumberSet::Real};
     output.add_substitution(std::move(var), Float::create(arg));
   }
@@ -98,7 +98,7 @@ struct collect_function_input_impl<Index, double> {
 
 template <std::size_t Index, int Rows, int Cols>
 struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
-  void operator()(SubstituteVariablesVisitor& output,
+  void operator()(substitute_variables_visitor& output,
                   const Eigen::Matrix<double, Rows, Cols>& arg) const {
     static_assert(Rows > 0);
     static_assert(Cols > 0);
@@ -113,12 +113,13 @@ struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
 };
 
 template <std::size_t Index, typename NumericArgType>
-void collect_function_input(SubstituteVariablesVisitor& output, const NumericArgType& numeric_arg) {
+void collect_function_input(substitute_variables_visitor& output,
+                            const NumericArgType& numeric_arg) {
   collect_function_input_impl<Index, NumericArgType>{}(output, numeric_arg);
 }
 
 template <std::size_t... Indices, typename... NumericArgs>
-void collect_function_inputs(SubstituteVariablesVisitor& output, std::index_sequence<Indices...>,
+void collect_function_inputs(substitute_variables_visitor& output, std::index_sequence<Indices...>,
                              NumericArgs&&... args) {
   static_assert(sizeof...(Indices) <= sizeof...(NumericArgs));
 #ifndef __GNUG__
@@ -147,7 +148,7 @@ auto create_evaluator_with_output_expressions(
     // by doing substitution with the NumericFunctionEvaluator:
     std::forward_as_tuple(output_args...) = std::apply(
         [&evaluator](const auto&... output_expression) {
-          // Call .value() to convert from OutputArg<> to the underlying expression.
+          // Call .value() to convert from output_arg<> to the underlying expression.
           return std::make_tuple(apply_numeric_evaluator(evaluator, output_expression.value())...);
         },
         select_from_tuple(output_expressions, output_arg_seq));
@@ -194,7 +195,7 @@ struct convert_arg_type<ta::static_matrix<Rows, Cols>> {
 };
 
 template <typename T>
-struct convert_output_arg_type<OutputArg<T>> {
+struct convert_output_arg_type<output_arg<T>> {
   using type = typename convert_output_arg_type<T>::type;
 };
 template <>

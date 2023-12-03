@@ -44,7 +44,7 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_
             std::conjunction_v<
                 is_output_arg_or_return_value<std::decay_t<decltype(output_expression)>>...>,
             "All returned elements of the tuple must be explicitly marked as `ReturnValue` or "
-            "`OutputArg`.");
+            "`output_arg`.");
         (detail::RecordOutput<std::decay_t<decltype(output_expression)>>{}(signature,
                                                                            output_expression),
          ...);

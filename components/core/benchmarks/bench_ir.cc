@@ -28,7 +28,7 @@ auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<
   ta::static_matrix<3, 3> D_q1 = q_interp.right_local_coordinates_derivative() *
                                  q_interp.jacobian(q1) * q1.right_retract_derivative();
 
-  return std::make_tuple(OutputArg("q_out", ta::static_matrix<4, 1>(q_interp.to_vector_xyzw())),
+  return std::make_tuple(output_arg("q_out", ta::static_matrix<4, 1>(q_interp.to_vector_xyzw())),
                          OptionalOutputArg("D_q0", std::move(D_q0)),
                          OptionalOutputArg("D_q1", std::move(D_q1)));
 }

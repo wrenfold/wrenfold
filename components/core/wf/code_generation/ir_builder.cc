@@ -153,7 +153,7 @@ template <>
 struct format_op_args_struct<ir::Load> {
   template <typename Container>
   void operator()(std::string& output, const ir::Load& load, const Container&, const std::size_t) {
-    PlainFormatter formatter{};
+    plain_formatter formatter{};
     std::visit(formatter, load.variant());
     output += formatter.take_output();
   }

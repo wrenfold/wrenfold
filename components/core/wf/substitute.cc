@@ -18,9 +18,9 @@ namespace math {
 // Visitor that performs a substitution.
 // TargetExpressionType is the concrete type of the expression we are replacing.
 template <typename Derived, typename TargetExpressionType>
-struct SubstituteVisitorBase {
+struct substitute_visitor_base {
  public:
-  explicit SubstituteVisitorBase(const TargetExpressionType& target, const Expr& replacement)
+  explicit substitute_visitor_base(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
 
   // The argument is neither an addition nor a multiplication:
@@ -31,7 +31,7 @@ struct SubstituteVisitorBase {
         // Exact match, so replace it:
         return replacement;
       }
-      if constexpr (Derived::PerformsPartialSubstitution) {
+      if constexpr (Derived::performs_partial_substitution) {
         // The derived type supports looking for partial matches, so try that:
         Expr partial_sub = static_cast<Derived&>(*this).attempt_partial(input_expression, other);
 
@@ -71,21 +71,21 @@ struct SubstituteVisitorBase {
 };
 
 template <typename Target>
-struct SubstituteVisitor : public SubstituteVisitorBase<SubstituteVisitor<Target>, Target> {
+struct substitute_visitor : public substitute_visitor_base<substitute_visitor<Target>, Target> {
   // Standard substitute visitor does not allow partial matching.
-  constexpr static bool PerformsPartialSubstitution = false;
+  constexpr static bool performs_partial_substitution = false;
 
   // Inherit constructor.
-  using SubstituteVisitorBase<SubstituteVisitor<Target>, Target>::SubstituteVisitorBase;
+  using substitute_visitor_base<substitute_visitor<Target>, Target>::substitute_visitor_base;
 };
 
 // Specialization to allow partial substitution in additions.
-struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor, Addition> {
+struct substitute_add_visitor : public substitute_visitor_base<substitute_add_visitor, Addition> {
  public:
-  constexpr static bool PerformsPartialSubstitution = true;
+  constexpr static bool performs_partial_substitution = true;
 
-  SubstituteAddVisitor(const Addition& target, const Expr& replacement)
-      : SubstituteVisitorBase(target, replacement), target_parts(target) {}
+  substitute_add_visitor(const Addition& target, const Expr& replacement)
+      : substitute_visitor_base(target, replacement), target_parts(target) {}
 
   Expr attempt_partial(const Expr& input_expression, const Addition& candidate) {
     // Create map representation for the input:
@@ -128,12 +128,13 @@ struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor,
 // Specialization for doing partial substitution in multiplications.
 // This allows replacing parts of a product, for example:
 //  Replace `x * y` in `x**3 * y**2 * 5` with `z` to obtain `x * z**2 * 5`.
-struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor, Multiplication> {
+struct substitute_mul_visitor
+    : public substitute_visitor_base<substitute_mul_visitor, Multiplication> {
  public:
-  constexpr static bool PerformsPartialSubstitution = true;
+  constexpr static bool performs_partial_substitution = true;
 
-  SubstituteMulVisitor(const Multiplication& target, const Expr& replacement)
-      : SubstituteVisitorBase(target, replacement), target_parts(target, true) {}
+  substitute_mul_visitor(const Multiplication& target, const Expr& replacement)
+      : substitute_visitor_base(target, replacement), target_parts(target, true) {}
 
   Expr attempt_partial(const Expr& input_expression, const Multiplication& candidate) {
     // Take this multiplication and break it into constituent parts.
@@ -211,14 +212,14 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
 };
 
 // Specialization for power so we can match.
-// There is a lot of overlap w/ the SubstituteMulVisitor - since any power is just a multiplication
-// w/ one term. These can probably be unified somehow.
-struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor, Power> {
+// There is a lot of overlap w/ the substitute_mul_visitor - since any power is just a
+// multiplication w/ one term. These can probably be unified somehow.
+struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_visitor, Power> {
  public:
-  constexpr static bool PerformsPartialSubstitution = true;
+  constexpr static bool performs_partial_substitution = true;
 
-  SubstitutePowVisitor(const Power& target, const Expr& replacement)
-      : SubstituteVisitorBase(target, replacement) {}
+  substitute_pow_visitor(const Power& target, const Expr& replacement)
+      : substitute_visitor_base(target, replacement) {}
 
   Expr attempt_partial(const Expr& input_expression, const Power& candidate) {
     const Expr& target_base = target.base();
@@ -288,19 +289,19 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
 
 template <typename T>
 struct sub_visitor_type {
-  using type = SubstituteVisitor<T>;
+  using type = substitute_visitor<T>;
 };
 template <>
 struct sub_visitor_type<Addition> {
-  using type = SubstituteAddVisitor;
+  using type = substitute_add_visitor;
 };
 template <>
 struct sub_visitor_type<Multiplication> {
-  using type = SubstituteMulVisitor;
+  using type = substitute_mul_visitor;
 };
 template <>
 struct sub_visitor_type<Power> {
-  using type = SubstitutePowVisitor;
+  using type = substitute_pow_visitor;
 };
 
 Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) {
@@ -317,9 +318,9 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
   });
 }
 
-static SubstituteVariablesVisitor create_subs_visitor(
+static substitute_variables_visitor create_subs_visitor(
     const absl::Span<const std::tuple<Expr, Expr>> pairs) {
-  SubstituteVariablesVisitor visitor{};
+  substitute_variables_visitor visitor{};
   for (const auto& [target, replacement] : pairs) {
     if (!target.is_type<Variable>()) {
       throw TypeError("Input needs to be type Variable, received type `{}`: {}", target.type_name(),
@@ -336,7 +337,7 @@ Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, E
 
 MatrixExpr substitute_variables(const MatrixExpr& input,
                                 absl::Span<const std::tuple<Expr, Expr>> pairs) {
-  SubstituteVariablesVisitor visitor = create_subs_visitor(pairs);
+  substitute_variables_visitor visitor = create_subs_visitor(pairs);
   const Matrix& m = input.as_matrix();
 
   std::vector<Expr> replaced{};
@@ -346,12 +347,12 @@ MatrixExpr substitute_variables(const MatrixExpr& input,
   return MatrixExpr::create(m.rows(), m.cols(), std::move(replaced));
 }
 
-void SubstituteVariablesVisitor::add_substitution(const Expr& target, Expr replacement) {
+void substitute_variables_visitor::add_substitution(const Expr& target, Expr replacement) {
   const Variable& var = cast_checked<Variable>(target);
   add_substitution(var, std::move(replacement));
 }
 
-void SubstituteVariablesVisitor::add_substitution(Variable variable, Expr replacement) {
+void substitute_variables_visitor::add_substitution(Variable variable, Expr replacement) {
   cache_.clear();  //  No longer valid when new expressions are added.
   const auto [_, was_inserted] =
       substitutions_.emplace(std::move(variable), std::move(replacement));
@@ -359,7 +360,7 @@ void SubstituteVariablesVisitor::add_substitution(Variable variable, Expr replac
             variable.to_string());
 }
 
-Expr SubstituteVariablesVisitor::apply(const Expr& expression) {
+Expr substitute_variables_visitor::apply(const Expr& expression) {
   auto it = cache_.find(expression);
   if (it != cache_.end()) {
     return it->second;
@@ -370,7 +371,7 @@ Expr SubstituteVariablesVisitor::apply(const Expr& expression) {
 }
 
 template <typename T>
-Expr SubstituteVariablesVisitor::operator()(const T& concrete, const Expr& abstract) {
+Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abstract) {
   if constexpr (std::is_same_v<T, Variable>) {
     // Is this a variable we care about substituting?
     const Variable& v = concrete;

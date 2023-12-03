@@ -20,7 +20,7 @@ Expr Expr::from_float(const double x) {
 Expr Expr::from_int(const std::int64_t x) { return Integer::create(x); }
 
 std::string Expr::to_string() const {
-  PlainFormatter formatter{};
+  plain_formatter formatter{};
   visit(*this, formatter);
   return formatter.take_output();
 }

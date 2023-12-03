@@ -10,7 +10,7 @@
 
 namespace math {
 
-void PlainFormatter::operator()(const Addition& expr) {
+void plain_formatter::operator()(const Addition& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
 
   // Sort into canonical order:
@@ -60,13 +60,13 @@ void PlainFormatter::operator()(const Addition& expr) {
   }
 }
 
-void PlainFormatter::operator()(const CastBool& cast) {
+void plain_formatter::operator()(const CastBool& cast) {
   output_ += "cast(";
   visit(cast.arg(), *this);
   output_ += ")";
 }
 
-void PlainFormatter::operator()(const Conditional& conditional) {
+void plain_formatter::operator()(const Conditional& conditional) {
   output_ += "where(";
   visit(conditional.condition(), *this);
   output_ += ", ";
@@ -76,11 +76,11 @@ void PlainFormatter::operator()(const Conditional& conditional) {
   output_ += ")";
 }
 
-void PlainFormatter::operator()(const Constant& expr) {
+void plain_formatter::operator()(const Constant& expr) {
   output_ += string_from_symbolic_constant(expr.name());
 }
 
-void PlainFormatter::operator()(const Derivative& derivative) {
+void plain_formatter::operator()(const Derivative& derivative) {
   output_ += "Derivative(";
   visit(derivative.differentiand(), *this);
   output_ += ", ";
@@ -92,19 +92,19 @@ void PlainFormatter::operator()(const Derivative& derivative) {
   }
 }
 
-void PlainFormatter::operator()(const Infinity&) {
+void plain_formatter::operator()(const Infinity&) {
   fmt::format_to(std::back_inserter(output_), "zoo");
 }
 
-void PlainFormatter::operator()(const Integer& expr) {
+void plain_formatter::operator()(const Integer& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
-void PlainFormatter::operator()(const Float& expr) {
+void plain_formatter::operator()(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
-void PlainFormatter::operator()(const Matrix& mat) {
+void plain_formatter::operator()(const Matrix& mat) {
   WF_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
   WF_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
 
@@ -120,7 +120,7 @@ void PlainFormatter::operator()(const Matrix& mat) {
 
   // Format all the child elements up front. That way we can do alignment:
   std::transform(mat.begin(), mat.end(), elements.begin(), [](const Expr& expr) {
-    PlainFormatter child_formatter{};
+    plain_formatter child_formatter{};
     visit(expr, child_formatter);
     return child_formatter.output_;
   });
@@ -154,7 +154,7 @@ void PlainFormatter::operator()(const Matrix& mat) {
   output_ += "]";
 }
 
-void PlainFormatter::operator()(const Multiplication& expr) {
+void plain_formatter::operator()(const Multiplication& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
   using BaseExp = MultiplicationFormattingInfo::BaseExp;
 
@@ -204,7 +204,7 @@ void PlainFormatter::operator()(const Multiplication& expr) {
   }
 }
 
-void PlainFormatter::operator()(const Function& func) {
+void plain_formatter::operator()(const Function& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
   auto it = func.begin();
   if (it != func.end()) {
@@ -217,23 +217,23 @@ void PlainFormatter::operator()(const Function& func) {
   output_ += ")";
 }
 
-void PlainFormatter::operator()(const Power& expr) { format_power(expr.base(), expr.exponent()); }
+void plain_formatter::operator()(const Power& expr) { format_power(expr.base(), expr.exponent()); }
 
-void PlainFormatter::operator()(const Rational& expr) {
+void plain_formatter::operator()(const Rational& expr) {
   fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());
 }
 
-void PlainFormatter::operator()(const Relational& expr) {
+void plain_formatter::operator()(const Relational& expr) {
   format_precedence(Precedence::Relational, expr.left());
   fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
   format_precedence(Precedence::Relational, expr.right());
 }
 
-void PlainFormatter::operator()(const Undefined&) { output_.append("nan"); }
+void plain_formatter::operator()(const Undefined&) { output_.append("nan"); }
 
-void PlainFormatter::operator()(const Variable& expr) { output_.append(expr.to_string()); }
+void plain_formatter::operator()(const Variable& expr) { output_.append(expr.to_string()); }
 
-void PlainFormatter::format_precedence(const Precedence parent, const Expr& expr) {
+void plain_formatter::format_precedence(const Precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {
     output_ += "(";
     visit(expr, *this);
@@ -243,7 +243,7 @@ void PlainFormatter::format_precedence(const Precedence parent, const Expr& expr
   }
 }
 
-void PlainFormatter::format_power(const Expr& base, const Expr& exponent) {
+void plain_formatter::format_power(const Expr& base, const Expr& exponent) {
   format_precedence(Precedence::Power, base);
   output_ += " ** ";
   format_precedence(Precedence::Power, exponent);

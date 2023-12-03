@@ -5,7 +5,7 @@
 namespace math {
 
 // Simple plain-text formatter.
-class PlainFormatter {
+class plain_formatter {
  public:
   void operator()(const Addition& add);
   void operator()(const CastBool& cast);

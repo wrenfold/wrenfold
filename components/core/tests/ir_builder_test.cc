@@ -119,7 +119,7 @@ TEST(IrTest, TestNumericConstant1) {
 TEST(IrTest, TestNumericConstant2) {
   auto [expected_expressions, ir] = create_ir(
       []() {
-        return std::make_tuple(ReturnValue(2.0_s), OutputArg("a", 7_s), OutputArg("b", 1_s));
+        return std::make_tuple(return_value(2.0_s), output_arg("a", 7_s), output_arg("b", 1_s));
       },
       "func");
   check_expressions(expected_expressions, ir);
@@ -131,7 +131,7 @@ TEST(IrTest, TestScalarExpressions1) {
       [](Expr x, Expr y) {
         Expr a = x * y;
         Expr b = x + y;
-        return std::make_tuple(ReturnValue(x * y), OutputArg("a", a), OutputArg("b", b));
+        return std::make_tuple(return_value(x * y), output_arg("a", a), output_arg("b", b));
       },
       "func", arg("x"), arg("y"));
   ASSERT_EQ(2, ir.num_operations()) << ir;
@@ -151,7 +151,7 @@ TEST(IrTest, TestScalarExpressions2) {
       [](Expr x, Expr y, Expr z) {
         Expr f = x * y * sin(z * x) + 5;
         Expr g = cos(z * x) * x * y - log(y - z * 2.1) * 3;
-        return std::make_tuple(OutputArg("f", f), OptionalOutputArg("g", g));
+        return std::make_tuple(output_arg("f", f), OptionalOutputArg("g", g));
       },
       "func", arg("x"), arg("y"), arg("z"));
 
@@ -325,7 +325,7 @@ TEST(IrTest, TestConditionals5) {
         Expr f = q;
         Expr g = q.diff(x);
         Expr h = q.diff(x, 2);
-        return std::make_tuple(ReturnValue(f), OptionalOutputArg("g", g),
+        return std::make_tuple(return_value(f), OptionalOutputArg("g", g),
                                OptionalOutputArg("h", h));
       },
       "func", arg("x"), arg("y"), arg("z"));
@@ -455,7 +455,7 @@ TEST(IrTest, TestMatrixExpressions3) {
         auto path_2 = (u - I3) * (u - I3).transposed();
         ta::static_matrix<3, 3> g{where(u(1, 1) < -v[1], path_1, path_2)};
 
-        return std::make_tuple(ReturnValue(f), OptionalOutputArg("g", g));
+        return std::make_tuple(return_value(f), OptionalOutputArg("g", g));
       },
       "func", arg("v"), arg("u"), arg("t"));
 

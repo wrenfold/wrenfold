@@ -29,7 +29,7 @@ bool MatrixExpr::is_identical_to(const MatrixExpr& other) const {
 std::string_view MatrixExpr::type_name() const { return Matrix::NameStr; }
 
 std::string MatrixExpr::to_string() const {
-  PlainFormatter formatter{};
+  plain_formatter formatter{};
   formatter(as_matrix());
   return formatter.take_output();
 }
