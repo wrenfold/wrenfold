@@ -309,7 +309,7 @@ void wrap_codegen_operations(py::module_& m) {
   m.def(
       "generate_rust",
       [](const ast::FunctionSignature& signature, const std::vector<ast::Variant>& ast)
-          -> std::string { return RustCodeGenerator{}.generate_code(signature, ast); },
+          -> std::string { return rust_code_generator{}.generate_code(signature, ast); },
       "signature"_a, "ast"_a,
       py::doc("Generate Rust code from the given function signature and expressions."));
 }

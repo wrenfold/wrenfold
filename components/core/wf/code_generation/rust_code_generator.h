@@ -7,7 +7,7 @@
 namespace math {
 
 // Generate rust code.
-class RustCodeGenerator {
+class rust_code_generator {
  public:
   std::string generate_code(const ast::FunctionSignature& signature,
                             const std::vector<ast::Variant>& body) const;

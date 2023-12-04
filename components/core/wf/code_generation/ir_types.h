@@ -12,13 +12,13 @@
 #include "wf/template_utils.h"
 
 // Define types for a very simple "intermediate representation" we can use to simplify
-// and reduce the user's expressions.
+// and reduce the tree of mathematical operations.
 namespace math::ir {
 
-class Value;
-class Block;
-using ValuePtr = non_null_ptr<ir::Value>;
-using BlockPtr = non_null_ptr<ir::Block>;
+class value;
+class block;
+using value_ptr = non_null_ptr<ir::value>;
+using block_ptr = non_null_ptr<ir::block>;
 
 // Add together two operands.
 class Add {
@@ -261,12 +261,12 @@ using Operation = std::variant<Add, CallStdFunction, Cast, Compare, Cond, Copy, 
                                Load, Mul, OutputRequired, Phi, Save>;
 
 // A block of operations:
-class Block {
+class block {
  public:
-  using unique_ptr = std::unique_ptr<Block>;
+  using unique_ptr = std::unique_ptr<block>;
 
   // Construct w/ counter.
-  explicit Block(std::size_t name) noexcept : name(name) {}
+  explicit block(std::size_t name) noexcept : name(name) {}
 
   // Unique number to refer to the block (a counter).
   std::size_t name;
@@ -275,13 +275,13 @@ class Block {
   // TODO: There is an argument to be made that this should be an intrusive double-linked-list.
   // For now I'm going with vec of pointers, since this is simpler to get started, even though it
   // means we'll have some O(N) operations (for moderately small N).
-  std::vector<ValuePtr> operations{};
+  std::vector<value_ptr> operations{};
 
   // Ancestor blocks (blocks that preceded this one).
-  std::vector<BlockPtr> ancestors{};
+  std::vector<block_ptr> ancestors{};
 
   // Descendants of this block (blocks we jump to from this one).
-  std::vector<BlockPtr> descendants{};
+  std::vector<block_ptr> descendants{};
 
   // True if the block has no operations.
   bool is_empty() const noexcept { return operations.empty(); }
@@ -290,16 +290,16 @@ class Block {
   bool has_no_ancestors() const noexcept { return ancestors.empty(); }
 
   // Replace descendant `target` w/ `replacement`.
-  void replace_descendant(ir::BlockPtr target, ir::BlockPtr replacement);
+  void replace_descendant(ir::block_ptr target, ir::block_ptr replacement);
 
   // Insert block into `ancestors` vector.
-  void add_ancestor(BlockPtr b);
+  void add_ancestor(block_ptr b);
 
   // Remove block from `ancestors` vector.
-  void remove_ancestor(BlockPtr b);
+  void remove_ancestor(block_ptr b);
 
   // Add `b` as a descendant, and add `this` as an ancestor of b.
-  void add_descendant(ir::BlockPtr b);
+  void add_descendant(ir::block_ptr b);
 
   // Count instances of operation of type `T`.
   template <typename Func>
@@ -309,14 +309,14 @@ class Block {
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
 // Values may be used as operands to other operations.
-class Value {
+class value {
  public:
-  using unique_ptr = std::unique_ptr<Value>;
-  using operands_container = std::vector<ir::ValuePtr>;
+  using unique_ptr = std::unique_ptr<value>;
+  using operands_container = std::vector<ir::value_ptr>;
 
   // Construct:
   template <typename OpType>
-  Value(uint32_t name, ir::BlockPtr parent, OpType&& operation,
+  value(uint32_t name, ir::block_ptr parent, OpType&& operation,
         std::optional<NumericType> numeric_type, operands_container&& operands)
       : name_(name),
         parent_(parent),
@@ -331,26 +331,26 @@ class Value {
     check_num_operands<OpType>();
   }
 
-  // Enable if `Args` are all types that are convertible to ValuePtr.
+  // Enable if `Args` are all types that are convertible to value_ptr.
   template <typename... Args>
   using enable_if_convertible_to_value_ptr =
-      std::enable_if_t<std::conjunction_v<std::is_convertible<Args, ValuePtr>...>>;
+      std::enable_if_t<std::conjunction_v<std::is_convertible<Args, value_ptr>...>>;
 
   // Construct with input values specified as variadic arg list.
   template <typename Op, typename... Args, typename = enable_if_convertible_to_value_ptr<Args...>>
-  Value(uint32_t name, ir::BlockPtr parent, Op&& operation, std::optional<NumericType> numeric_type,
-        Args... args)
-      : Value(name, parent, std::forward<Op>(operation), numeric_type,
+  value(uint32_t name, ir::block_ptr parent, Op&& operation,
+        std::optional<NumericType> numeric_type, Args... args)
+      : value(name, parent, std::forward<Op>(operation), numeric_type,
               operands_container{args...}) {}
 
   // Access underlying integer.
   constexpr uint32_t name() const noexcept { return name_; }
 
   // Get the parent block.
-  ir::BlockPtr parent() const noexcept { return parent_; }
+  ir::block_ptr parent() const noexcept { return parent_; }
 
   // Set the parent pointer.
-  void set_parent(ir::BlockPtr b);
+  void set_parent(ir::block_ptr b);
 
   // Access underlying operation
   constexpr const Operation& value_op() const noexcept { return op_; }
@@ -374,13 +374,13 @@ class Value {
   bool is_consumed_by_phi() const noexcept;
 
   // Replace an operand to this instruction with another.
-  void replace_operand(ValuePtr old, ValuePtr replacement);
+  void replace_operand(value_ptr old, value_ptr replacement);
 
   // Change the underlying operation that computes this value.
   template <typename OpType, typename... Args>
   void set_value_op(OpType&& op, std::optional<NumericType> numeric_type, Args... args) {
     // Notify existing operands we no longer reference them
-    for (const ValuePtr& operand : operands_) {
+    for (const value_ptr& operand : operands_) {
       operand->remove_consumer(this);
     }
     // Record new operands:
@@ -396,10 +396,10 @@ class Value {
   }
 
   // Add `v` to the list of consumers of this value.
-  void add_consumer(ValuePtr v);
+  void add_consumer(value_ptr v);
 
   // Remove `v` from the list of consumers of this value.
-  void remove_consumer(ir::Value* v);
+  void remove_consumer(ir::value* v);
 
   // Access instruction operands.
   constexpr const operands_container& operands() const noexcept { return operands_; }
@@ -408,25 +408,25 @@ class Value {
   std::size_t num_operands() const noexcept { return operands_.size(); }
 
   // Get the first operand.
-  const ValuePtr& first_operand() const {
+  const value_ptr& first_operand() const {
     WF_ASSERT(!operands_.empty());
     return operands_.front();
   }
 
   // Access i'th operand:
-  ValuePtr operator[](std::size_t i) const {
+  value_ptr operator[](std::size_t i) const {
     WF_ASSERT_LESS(i, operands_.size());
     return operands_[i];
   }
 
   // Access all consumers of this value.
-  constexpr const std::vector<ValuePtr>& consumers() const noexcept { return consumers_; }
+  constexpr const std::vector<value_ptr>& consumers() const noexcept { return consumers_; }
 
   // Number of values that directly consume this one.
   std::size_t num_consumers() const { return consumers_.size(); }
 
   // True if operands of `this` and `other` match (have the same names).
-  bool operands_match(ValuePtr other) const noexcept;
+  bool operands_match(value_ptr other) const noexcept;
 
   // True if all the consumers of this value satisfy the given predicate.
   template <typename Predicate>
@@ -436,7 +436,7 @@ class Value {
 
   // Replace this value w/ the argument.
   // All downstream consumers have their arguments swapped, and the consumer list is cleared.
-  void replace_with(ValuePtr other);
+  void replace_with(value_ptr other);
 
   // Nuke this value. Only valid if it is not consumed.
   void remove();
@@ -459,7 +459,7 @@ class Value {
   // Sort operands in-place by increasing value of name.
   void sort_operands() {
     std::sort(operands_.begin(), operands_.end(),
-              [](const ValuePtr& a, const ValuePtr& b) { return a->name() < b->name(); });
+              [](const value_ptr& a, const value_ptr& b) { return a->name() < b->name(); });
   }
 
   template <typename OpType>
@@ -477,7 +477,7 @@ class Value {
   uint32_t name_;
 
   // Parent block
-  ir::BlockPtr parent_;
+  ir::block_ptr parent_;
 
   // The operation that computes this value.
   Operation op_;
@@ -488,17 +488,17 @@ class Value {
   operands_container operands_;
 
   // Downstream values that consume this one:
-  std::vector<ValuePtr> consumers_;
+  std::vector<value_ptr> consumers_;
 
   // The cached numeric type of this operation. Optional because some operations lack a type.
   std::optional<NumericType> numeric_type_;
 };
 
 // Count instances of operation of type `T`.
-// Defined here so that we can use methods on `Value`.
+// Defined here so that we can use methods on `value`.
 template <typename Func>
-std::size_t Block::count_operation(Func&& func) const {
-  return std::count_if(operations.begin(), operations.end(), [&func](ir::ValuePtr v) -> bool {
+std::size_t block::count_operation(Func&& func) const {
+  return std::count_if(operations.begin(), operations.end(), [&func](ir::value_ptr v) -> bool {
     return std::visit(
         [&func](const auto& op) -> bool {
           using argument_type = std::decay_t<decltype(op)>;
@@ -520,14 +520,14 @@ namespace math {
 // This deliberately ignores the name of the value. Two different values w/ identical operations
 // should produce the same hash.
 template <>
-struct hash_struct<ir::ValuePtr> {
-  std::size_t operator()(const ir::ValuePtr& val) const {
+struct hash_struct<ir::value_ptr> {
+  std::size_t operator()(const ir::value_ptr& val) const {
     // Seed the hash w/ the index in the variant, which accounts for the type of the op.
     std::size_t seed = val->value_op().index();
     // Then some operations w/ members need to reason about the hash of those members:
     seed = hash_combine(
         seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
-    for (const ir::ValuePtr& operand : val->operands()) {
+    for (const ir::value_ptr& operand : val->operands()) {
       const uint32_t val_name = operand->name();
       seed = hash_combine(seed, static_cast<std::size_t>(val_name));
     }
@@ -537,24 +537,24 @@ struct hash_struct<ir::ValuePtr> {
 
 }  // namespace math
 
-// Formatter for Value
+// Formatter for value
 template <>
-struct fmt::formatter<math::ir::Value, char> {
+struct fmt::formatter<math::ir::value, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::ir::Value& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::ir::value& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x.name());
   }
 };
 
-// Formatter for pointer to Value
+// Formatter for pointer to value
 template <>
-struct fmt::formatter<math::ir::ValuePtr, char> {
+struct fmt::formatter<math::ir::value_ptr, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::ir::ValuePtr x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::ir::value_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x->name());
   }
 };

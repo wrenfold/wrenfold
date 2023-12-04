@@ -135,8 +135,8 @@ inline Rational convert_to_tan_range(const Rational& r) {
 }
 
 inline Expr pi_over_two() {
-  static const Expr Value = constants::pi / 2_s;
-  return Value;
+  static const Expr val = constants::pi / 2_s;
+  return val;
 }
 
 Expr tan(const Expr& arg) {
@@ -202,8 +202,8 @@ Expr asin(const Expr& arg) {
 }
 
 inline Expr pi_over_four() {
-  static const Expr Value = constants::pi / 4_s;
-  return Value;
+  static const Expr val = constants::pi / 4_s;
+  return val;
 }
 
 Expr atan(const Expr& arg) {

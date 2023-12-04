@@ -49,17 +49,17 @@ struct FlatIr {
   }
 
   // Get the single block of operations.
-  ir::BlockPtr get_block() const { return ir::BlockPtr{block_}; }
+  ir::block_ptr get_block() const { return ir::block_ptr{block_}; }
 
  protected:
   // Remove any values without consumers (that are not endpoints like Save).
   void strip_unused_values();
 
   // Single flat block:
-  ir::Block::unique_ptr block_;
+  ir::block::unique_ptr block_;
 
   // Owns all the instructions.
-  std::vector<ir::Value::unique_ptr> values_;
+  std::vector<ir::value::unique_ptr> values_;
 
   friend struct IRFormVisitor;
   friend struct OutputIr;
@@ -86,19 +86,19 @@ struct OutputIr {
   std::size_t num_blocks() const { return blocks_.size(); }
 
   // Get the first block (start of execution).
-  ir::BlockPtr first_block() const {
+  ir::block_ptr first_block() const {
     const auto it =
         std::find_if(blocks_.begin(), blocks_.end(),
-                     [](const ir::Block::unique_ptr& block) { return block->has_no_ancestors(); });
+                     [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); });
     WF_ASSERT(it != blocks_.end(), "Must be an entry block");
-    return ir::BlockPtr{*it};
+    return ir::block_ptr{*it};
   }
 
   // Count instances of operations matching predicate `Func`.
   template <typename Func>
   std::size_t count_operation(Func&& func) const {
     return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
-                           [&func](std::size_t total, const ir::Block::unique_ptr& blk) {
+                           [&func](std::size_t total, const ir::block::unique_ptr& blk) {
                              return total + blk->count_operation(func);
                            });
   }
@@ -110,13 +110,13 @@ struct OutputIr {
 
  private:
   // Allocate a new block
-  ir::BlockPtr create_block();
+  ir::block_ptr create_block();
 
   // Owns all the blocks.
-  std::vector<ir::Block::unique_ptr> blocks_;
+  std::vector<ir::block::unique_ptr> blocks_;
 
   // Owns all the instructions
-  std::vector<ir::Value::unique_ptr> values_;
+  std::vector<ir::value::unique_ptr> values_;
 
   friend struct IrConverter;
 };
@@ -125,11 +125,11 @@ struct OutputIr {
 enum class SearchDirection { Downwards, Upwards };
 
 // Find the block where control flow merges after branching into left/right.
-ir::BlockPtr find_merge_point(ir::BlockPtr left, ir::BlockPtr right, SearchDirection direction);
+ir::block_ptr find_merge_point(ir::block_ptr left, ir::block_ptr right, SearchDirection direction);
 
 // Re-create `Expr` tree from the IR representation. For use in round-trip unit tests.
 std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>
-create_output_expression_map(ir::BlockPtr starting_block,
+create_output_expression_map(ir::block_ptr starting_block,
                              std::unordered_map<std::string, bool>&& output_arg_exists);
 
 }  // namespace math

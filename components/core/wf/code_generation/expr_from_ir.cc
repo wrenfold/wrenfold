@@ -11,20 +11,20 @@ namespace math {
 // Convert the IR operations back to expressions.
 // This is supported so we can do round-trip tests.
 struct ExprFromIrVisitor {
-  explicit ExprFromIrVisitor(const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression,
+  explicit ExprFromIrVisitor(const std::unordered_map<ir::value_ptr, Expr>& value_to_expression,
                              std::unordered_map<std::string, bool>&& output_arg_exists)
       : value_to_expression_(value_to_expression),
         output_arg_exists_(std::move(output_arg_exists)) {}
 
-  Expr operator()(const ir::Add&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Add&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]) + map_value(args[1]);
   }
 
-  Expr operator()(const ir::Mul&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Mul&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]) * map_value(args[1]);
   }
 
-  Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
+  Expr operator()(const ir::OutputRequired& output, const std::vector<ir::value_ptr>&) const {
     return output_arg_exists_.at(output.name()) ? constants::boolean_true
                                                 : constants::boolean_false;
   }
@@ -59,10 +59,10 @@ struct ExprFromIrVisitor {
     throw assertion_error("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
-  Expr operator()(const ir::CallStdFunction& func, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::CallStdFunction& func, const std::vector<ir::value_ptr>& args) const {
     Function::ContainerType container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
-                   [this](ir::ValuePtr v) { return map_value(v); });
+                   [this](ir::value_ptr v) { return map_value(v); });
 
     if (func.name() == StdMathFunction::Powi || func.name() == StdMathFunction::Powf) {
       return pow(container[0], container[1]);
@@ -75,28 +75,28 @@ struct ExprFromIrVisitor {
     }
   }
 
-  Expr operator()(const ir::Cast&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Cast&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT(!args.empty());
     return map_value(args[0]);
   }
 
-  Expr operator()(const ir::Cond&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Cond&, const std::vector<ir::value_ptr>& args) const {
     return where(map_value(args[0]), map_value(args[1]), map_value(args[2]));
   }
 
-  Expr operator()(const ir::Compare& cmp, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Compare& cmp, const std::vector<ir::value_ptr>& args) const {
     return Relational::create(cmp.operation(), map_value(args[0]), map_value(args[1]));
   }
 
-  Expr operator()(const ir::Copy&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Copy&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]);
   }
 
-  Expr operator()(const ir::Div&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Div&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]) / map_value(args[1]);
   }
 
-  Expr operator()(const ir::Load& load, const std::vector<ir::ValuePtr>&) const {
+  Expr operator()(const ir::Load& load, const std::vector<ir::value_ptr>&) const {
     return std::visit(
         [](const auto& expression) {
           using T = std::decay_t<decltype(expression)>;
@@ -105,43 +105,43 @@ struct ExprFromIrVisitor {
         load.variant());
   }
 
-  Expr operator()(const ir::Phi&, const std::vector<ir::ValuePtr>& args) const {
+  Expr operator()(const ir::Phi&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT_EQUAL(2, args.size());
 
     // We find to find the condition for this jump:
-    const ir::BlockPtr jump_block =
+    const ir::block_ptr jump_block =
         find_merge_point(args.front()->parent(), args.back()->parent(), SearchDirection::Upwards);
 
     // Determine the condition:
     WF_ASSERT(!jump_block->is_empty());
 
-    const ir::ValuePtr jump_val = jump_block->operations.back();
+    const ir::value_ptr jump_val = jump_block->operations.back();
     WF_ASSERT(jump_val->is_type<ir::JumpCondition>());
 
     return where(map_value(jump_val->first_operand()), map_value(args[0]), map_value(args[1]));
   }
 
-  Expr map_value(ir::ValuePtr value) const {
+  Expr map_value(ir::value_ptr value) const {
     const auto arg_it = value_to_expression_.find(value);
     WF_ASSERT(arg_it != value_to_expression_.end(), "Missing value: {}", value->name());
     return arg_it->second;
   }
 
-  const std::unordered_map<ir::ValuePtr, Expr>& value_to_expression_;
+  const std::unordered_map<ir::value_ptr, Expr>& value_to_expression_;
   const std::unordered_map<std::string, bool> output_arg_exists_;
 };
 
 std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>
-create_output_expression_map(ir::BlockPtr starting_block,
+create_output_expression_map(ir::block_ptr starting_block,
                              std::unordered_map<std::string, bool>&& output_arg_exists) {
-  std::unordered_map<ir::ValuePtr, Expr> value_to_expression{};
+  std::unordered_map<ir::value_ptr, Expr> value_to_expression{};
   value_to_expression.reserve(200);
 
   // Set of all visited blocks:
-  std::unordered_set<ir::BlockPtr> completed;
+  std::unordered_set<ir::block_ptr> completed;
 
   // Queue of pending blocks
-  std::deque<ir::BlockPtr> queue;
+  std::deque<ir::block_ptr> queue;
   queue.emplace_back(starting_block);
 
   // Map from key to ordered output expressions:
@@ -151,7 +151,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
   const ExprFromIrVisitor visitor{value_to_expression, std::move(output_arg_exists)};
   while (!queue.empty()) {
     // de-queue the next block
-    const ir::BlockPtr block = queue.front();
+    const ir::block_ptr block = queue.front();
     queue.pop_front();
 
     if (completed.count(block)) {
@@ -159,7 +159,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
     }
     completed.insert(block);
 
-    for (const ir::ValuePtr& code : block->operations) {
+    for (const ir::value_ptr& code : block->operations) {
       // Visit the operation, and convert it to an expression.
       // We don't do anything w/ jumps - they do not actually translate to an output value directly.
       overloaded_visit(
@@ -168,7 +168,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
             // Get all the output expressions for this output:
             std::vector<Expr> output_expressions{};
             output_expressions.reserve(code->num_operands());
-            for (const ir::ValuePtr operand : code->operands()) {
+            for (const ir::value_ptr operand : code->operands()) {
               auto it = value_to_expression.find(operand);
               WF_ASSERT(it != value_to_expression.end(), "Missing value: {}", operand->name());
               output_expressions.push_back(it->second);
@@ -182,7 +182,7 @@ create_output_expression_map(ir::BlockPtr starting_block,
     }
 
     // If all the ancestors of a block are done, we can queue it:
-    for (const ir::BlockPtr b : block->descendants) {
+    for (const ir::block_ptr b : block->descendants) {
       const bool valid = std::all_of(b->ancestors.begin(), b->ancestors.end(),
                                      [&](auto blk) { return completed.count(blk) > 0; });
       if (valid) {
