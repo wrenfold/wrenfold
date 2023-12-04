@@ -264,8 +264,8 @@ struct mul_add_count_visitor {
 };
 
 // Visitor for converting an expression tree into static-single-assignment form.
-struct IRFormVisitor {
-  explicit IRFormVisitor(FlatIr& builder, operation_term_counts&& counts)
+struct ir_form_visitor {
+  explicit ir_form_visitor(flat_ir& builder, operation_term_counts&& counts)
       : builder_(builder), counts_(counts) {}
 
   ir::value_ptr maybe_cast(ir::value_ptr input, NumericType output_type) {
@@ -538,7 +538,7 @@ struct IRFormVisitor {
   }
 
  private:
-  FlatIr& builder_;
+  flat_ir& builder_;
 
   std::unordered_map<Expr, ir::value_ptr, hash_struct<Expr>, is_identical_struct<Expr>>
       computed_values_;
@@ -546,7 +546,7 @@ struct IRFormVisitor {
   const operation_term_counts counts_;
 };
 
-FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
+flat_ir::flat_ir(const std::vector<ExpressionGroup>& groups)
     : block_(std::make_unique<ir::block>(0)) {
   // First pass where we count occurrences of some sub-expressions:
   mul_add_count_visitor count_visitor{};
@@ -554,7 +554,7 @@ FlatIr::FlatIr(const std::vector<ExpressionGroup>& groups)
     count_visitor.count_group_expressions(group);
   }
 
-  IRFormVisitor visitor{*this, count_visitor.take_counts()};
+  ir_form_visitor visitor{*this, count_visitor.take_counts()};
   for (const ExpressionGroup& group : groups) {
     // Transform expressions into Values
     ir::value::operands_container group_values{};
@@ -585,7 +585,7 @@ inline constexpr std::size_t compute_print_width(std::size_t num_assignments) {
   return width;
 }
 
-std::string FlatIr::to_string() const {
+std::string flat_ir::to_string() const {
   const std::size_t width = value_print_width();
   std::string output{};
 
@@ -608,7 +608,7 @@ std::string FlatIr::to_string() const {
   return output;
 }
 
-std::size_t FlatIr::value_print_width() const {
+std::size_t flat_ir::value_print_width() const {
   const uint32_t highest_value_name = values_.empty() ? 0 : values_.back()->name();
   return compute_print_width(highest_value_name);
 }
@@ -637,11 +637,11 @@ struct value_equality_struct {
 };
 
 // A hash-set of values:
-using ValueTable =
+using value_table =
     std::unordered_set<ir::value_ptr, hash_struct<ir::value_ptr>, value_equality_struct>;
 
 // Eliminate duplicates in `block`, using existing values stored in `table`.
-inline void local_value_numbering(ir::block_ptr block, ValueTable& table) {
+inline void local_value_numbering(ir::block_ptr block, value_table& table) {
   for (const ir::value_ptr& code : block->operations) {
     // Then see if this operation already exists in the map:
     auto [it, was_inserted] = table.insert(code);
@@ -657,14 +657,14 @@ inline void local_value_numbering(ir::block_ptr block, ValueTable& table) {
   }
 }
 
-void FlatIr::eliminate_duplicates() {
-  ValueTable table{};
+void flat_ir::eliminate_duplicates() {
+  value_table table{};
   table.reserve(values_.size());
   local_value_numbering(get_block(), table);
   strip_unused_values();
 }
 
-void FlatIr::strip_unused_values() {
+void flat_ir::strip_unused_values() {
   // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
   ir::block_ptr block{block_};
   std::reverse(block->operations.begin(), block->operations.end());
@@ -689,12 +689,12 @@ inline bool is_conditional(ir::value_ptr v) {
   return v->is_type<ir::jump_condition>() || v->is_type<ir::cond>();
 }
 
-std::size_t FlatIr::num_operations() const {
+std::size_t flat_ir::num_operations() const {
   return std::count_if(block_->operations.begin(), block_->operations.end(),
                        &is_countable_operation);
 }
 
-std::size_t FlatIr::num_conditionals() const {
+std::size_t flat_ir::num_conditionals() const {
   return std::count_if(block_->operations.begin(), block_->operations.end(), &is_conditional);
 }
 
@@ -733,7 +733,7 @@ static auto get_reverse_ordered_output_values(
   return std::make_tuple(std::move(required_outputs_queue), std::move(optional_outputs));
 }
 
-struct IrConverter {
+struct ir_converter {
   void convert() {
     // Conversion will modify `output.values_`, so shallow-copy the outputs first:
     auto [required_outputs_queue, optional_outputs] =
@@ -1029,22 +1029,22 @@ struct IrConverter {
     return std::make_tuple(condition, std::move(grouped_conditionals));
   }
 
-  explicit IrConverter(OutputIr& output) : output(output) {
+  explicit ir_converter(output_ir& output) : output(output) {
     visited.reserve(output.values_.size());
   }
 
-  OutputIr& output;
+  output_ir& output;
   std::unordered_set<ir::value_ptr> visited{};
 };
 
-OutputIr::OutputIr(math::FlatIr&& input) {
+output_ir::output_ir(math::flat_ir&& input) {
   // Take ownership of the values in `input`.
   values_.assign(std::make_move_iterator(input.values_.begin()),
                  std::make_move_iterator(input.values_.end()));
   input.values_.clear();
   input.block_->operations.clear();
 
-  IrConverter(*this).convert();
+  ir_converter(*this).convert();
 
   // Clean up anything that is not referenced in the output:
   values_.erase(std::remove_if(values_.begin(), values_.end(),
@@ -1058,7 +1058,7 @@ OutputIr::OutputIr(math::FlatIr&& input) {
                 values_.end());
 }
 
-std::string OutputIr::to_string() const {
+std::string output_ir::to_string() const {
   const std::size_t width = value_print_width();
   std::string output{};
 
@@ -1097,12 +1097,12 @@ std::string OutputIr::to_string() const {
   return output;
 }
 
-std::size_t OutputIr::value_print_width() const {
+std::size_t output_ir::value_print_width() const {
   const uint32_t highest_value_name = values_.empty() ? 0 : values_.back()->name();
   return compute_print_width(highest_value_name);
 }
 
-std::size_t OutputIr::num_operations() const {
+std::size_t output_ir::num_operations() const {
   return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
                          [](std::size_t total, const ir::block::unique_ptr& b) {
                            return total + std::count_if(b->operations.begin(), b->operations.end(),
@@ -1110,7 +1110,7 @@ std::size_t OutputIr::num_operations() const {
                          });
 }
 
-std::size_t OutputIr::num_conditionals() const {
+std::size_t output_ir::num_conditionals() const {
   return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
                          [](std::size_t total, const ir::block::unique_ptr& b) {
                            return total + std::count_if(b->operations.begin(), b->operations.end(),
@@ -1118,7 +1118,7 @@ std::size_t OutputIr::num_conditionals() const {
                          });
 }
 
-ir::block_ptr OutputIr::create_block() {
+ir::block_ptr output_ir::create_block() {
   ir::block::unique_ptr block = std::make_unique<ir::block>(blocks_.size());
   blocks_.push_back(std::move(block));
   return ir::block_ptr(blocks_.back());
@@ -1128,7 +1128,7 @@ ir::block_ptr OutputIr::create_block() {
 // that has already been colored - that is the intersection point. There might be more efficient
 // ways to implement this, but we are doing relatively small searches.
 ir::block_ptr find_merge_point(const ir::block_ptr left, const ir::block_ptr right,
-                               const SearchDirection direction) {
+                               const search_direction direction) {
   // queue with [node, color]
   std::deque<std::pair<ir::block_ptr, bool>> queue;
   queue.emplace_back(left, true);
@@ -1148,7 +1148,7 @@ ir::block_ptr find_merge_point(const ir::block_ptr left, const ir::block_ptr rig
       // Already visited by a different color, we found the intersection point:
       return b;
     }
-    if (direction == SearchDirection::Downwards) {
+    if (direction == search_direction::downwards) {
       for (ir::block_ptr child : b->descendants) {
         queue.emplace_back(child, color);
       }

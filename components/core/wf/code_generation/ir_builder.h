@@ -12,13 +12,13 @@
 #include "wf/hashing.h"
 
 namespace math {
-struct IRFormVisitor;
+struct ir_form_visitor;
 
 // Object for creating and manipulating our simple intermediate representation.
-struct FlatIr {
+struct flat_ir {
  public:
   // Construct from a set of output expressions.
-  explicit FlatIr(const std::vector<ExpressionGroup>& expressions);
+  explicit flat_ir(const std::vector<ExpressionGroup>& expressions);
 
   // Format IR for every value.
   std::string to_string() const;
@@ -61,14 +61,14 @@ struct FlatIr {
   // Owns all the instructions.
   std::vector<ir::value::unique_ptr> values_;
 
-  friend struct IRFormVisitor;
-  friend struct OutputIr;
+  friend struct ir_form_visitor;
+  friend struct output_ir;
 };
 
-struct OutputIr {
+struct output_ir {
  public:
-  // Construct from `FlatIr` (which is cleared in the process).
-  explicit OutputIr(FlatIr&& input);
+  // Construct from `flat_ir` (which is cleared in the process).
+  explicit output_ir(flat_ir&& input);
 
   // Format IR for every value.
   std::string to_string() const;
@@ -118,14 +118,14 @@ struct OutputIr {
   // Owns all the instructions
   std::vector<ir::value::unique_ptr> values_;
 
-  friend struct IrConverter;
+  friend struct ir_converter;
 };
 
 // Argument to FindMergePoints
-enum class SearchDirection { Downwards, Upwards };
+enum class search_direction { downwards, upwards };
 
 // Find the block where control flow merges after branching into left/right.
-ir::block_ptr find_merge_point(ir::block_ptr left, ir::block_ptr right, SearchDirection direction);
+ir::block_ptr find_merge_point(ir::block_ptr left, ir::block_ptr right, search_direction direction);
 
 // Re-create `Expr` tree from the IR representation. For use in round-trip unit tests.
 std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>

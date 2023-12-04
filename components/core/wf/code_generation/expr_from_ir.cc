@@ -110,7 +110,7 @@ struct ExprFromIrVisitor {
 
     // We find to find the condition for this jump:
     const ir::block_ptr jump_block =
-        find_merge_point(args.front()->parent(), args.back()->parent(), SearchDirection::Upwards);
+        find_merge_point(args.front()->parent(), args.back()->parent(), search_direction::upwards);
 
     // Determine the condition:
     WF_ASSERT(!jump_block->is_empty());

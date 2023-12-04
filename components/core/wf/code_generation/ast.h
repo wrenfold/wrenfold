@@ -10,8 +10,8 @@
 #include "wf/hashing.h"
 
 namespace math {
-struct FlatIr;
-struct OutputIr;
+struct flat_ir;
+struct output_ir;
 }  // namespace math
 
 namespace math::ast {
@@ -294,7 +294,7 @@ struct SpecialConstant {
 };
 
 // Create AST from the IR:
-std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature);
+std::vector<ast::Variant> create_ast(const math::output_ir& ir, const FunctionSignature& signature);
 
 // method definitions:
 

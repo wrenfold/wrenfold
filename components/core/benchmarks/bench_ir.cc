@@ -40,7 +40,7 @@ static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
   for (auto _ : state) {
-    FlatIr flat_ir{expressions};
+    flat_ir flat_ir{expressions};
     flat_ir.eliminate_duplicates();
     benchmark::DoNotOptimize(flat_ir);
   }
@@ -55,11 +55,11 @@ static void BM_ConvertIrLowComplexity(benchmark::State& state) {
 
   for (auto _ : state) {
     state.PauseTiming();
-    FlatIr flat_ir{expressions};
+    flat_ir flat_ir{expressions};
     flat_ir.eliminate_duplicates();
     state.ResumeTiming();
     // Convert to the non-flat IR.
-    OutputIr output_ir{std::move(flat_ir)};
+    output_ir output_ir{std::move(flat_ir)};
     benchmark::DoNotOptimize(output_ir);
   }
 }

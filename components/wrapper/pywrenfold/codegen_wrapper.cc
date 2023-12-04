@@ -76,9 +76,9 @@ void wrap_codegen_operations(py::module_& m) {
   m.def(
       "generate_func",
       [](const ast::FunctionSignature& signature, const std::vector<ExpressionGroup>& expressions) {
-        FlatIr ir{expressions};
+        flat_ir ir{expressions};
         ir.eliminate_duplicates();
-        OutputIr output_ir{std::move(ir)};
+        output_ir output_ir{std::move(ir)};
         return ast::create_ast(output_ir, signature);
       },
       py::arg("signature"), py::arg("expressions"),

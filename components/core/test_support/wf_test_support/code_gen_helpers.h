@@ -18,10 +18,10 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   const ast::FunctionSignature& signature = std::get<0>(tuple);
   const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
 
-  FlatIr ir{expressions};
+  flat_ir ir{expressions};
   ir.eliminate_duplicates();
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
 #if 0
   fmt::print("IR ({}, {} operations):\n{}\n", name, output_ir.num_operations(),
              output_ir.to_string());

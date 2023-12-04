@@ -203,7 +203,7 @@ struct AstBuilder {
 
       // Figure out where this if-else statement will terminate:
       const ir::block_ptr merge_point = find_merge_point(
-          block->descendants[0], block->descendants[1], SearchDirection::Downwards);
+          block->descendants[0], block->descendants[1], search_direction::downwards);
       non_traversable_blocks_.insert(merge_point);
 
       // Declare any variables that will be written in both the if and else blocks:
@@ -372,7 +372,8 @@ struct AstBuilder {
 };
 
 namespace ast {
-std::vector<ast::Variant> create_ast(const math::OutputIr& ir, const FunctionSignature& signature) {
+std::vector<ast::Variant> create_ast(const math::output_ir& ir,
+                                     const FunctionSignature& signature) {
   AstBuilder builder(ir.value_print_width(), signature);
   return builder.create_function(ir.first_block());
 }

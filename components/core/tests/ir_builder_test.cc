@@ -11,11 +11,11 @@ namespace math {
 using namespace math::custom_literals;
 namespace ta = type_annotations;
 
-std::ostream& operator<<(std::ostream& s, const FlatIr& b) {
+std::ostream& operator<<(std::ostream& s, const flat_ir& b) {
   s << "Flat IR:\n" << b.to_string();
   return s;
 }
-std::ostream& operator<<(std::ostream& s, const OutputIr& b) {
+std::ostream& operator<<(std::ostream& s, const output_ir& b) {
   s << "Output IR:\n" << b.to_string();
   return s;
 }
@@ -26,7 +26,7 @@ auto create_ir(Func&& func, const std::string_view name, Args&&... args) {
   auto tuple =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
   std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
-  FlatIr flat_ir{expressions};
+  flat_ir flat_ir{expressions};
   flat_ir.eliminate_duplicates();
   return std::make_tuple(std::move(expressions), std::move(flat_ir));
 }
@@ -94,13 +94,14 @@ void check_output_expressions(const std::vector<ExpressionGroup>& expected_expre
   }
 }
 
-void check_expressions(const std::vector<ExpressionGroup>& expected_expressions, const FlatIr& ir) {
+void check_expressions(const std::vector<ExpressionGroup>& expected_expressions,
+                       const flat_ir& ir) {
   auto output_expressions = create_output_expression_map(ir.get_block(), {});
   check_output_expressions(expected_expressions, output_expressions, ir);
 }
 
 void check_expressions(const std::vector<ExpressionGroup>& expected_expressions,
-                       const OutputIr& ir) {
+                       const output_ir& ir) {
   const OptionalArgPermutations permutations{expected_expressions};
   for (std::size_t i = 0; i < permutations.num_permutations(); ++i) {
     // test permutation `i`:
@@ -113,7 +114,7 @@ void check_expressions(const std::vector<ExpressionGroup>& expected_expressions,
 TEST(IrTest, TestNumericConstant1) {
   auto [expected_expressions, ir] = create_ir([]() { return 6_s; }, "func");
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+  check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
 
 TEST(IrTest, TestNumericConstant2) {
@@ -123,7 +124,7 @@ TEST(IrTest, TestNumericConstant2) {
       },
       "func");
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+  check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
 
 TEST(IrTest, TestScalarExpressions1) {
@@ -138,7 +139,7 @@ TEST(IrTest, TestScalarExpressions1) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(2, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   ASSERT_EQ(1, output_ir.num_blocks()) << output_ir;
@@ -159,7 +160,7 @@ TEST(IrTest, TestScalarExpressions2) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(15, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   ASSERT_EQ(3, output_ir.num_blocks()) << output_ir;
@@ -178,7 +179,7 @@ TEST(IrTest, TestRepeatedScalarExpressions1) {
   ASSERT_EQ(14, ir.num_operations()) << ir;  //  TODO: Add more explicit check here.
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+  check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
 
 TEST(IrTest, TestScalarExpressions3) {
@@ -200,7 +201,7 @@ TEST(IrTest, TestScalarExpressions3) {
   ASSERT_EQ(43, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+  check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
 
 // Test that powers can be converted into multiplications.
@@ -218,7 +219,7 @@ TEST(IrTest, TestPowerConversion1) {
   ASSERT_EQ(0, ir.count_operation([](ir::call_std_function) { return true; })) << ir;
 
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+  check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
 
 // Test that powers of square roots are convert into sqrt operations.
@@ -237,7 +238,7 @@ TEST(IrTest, TestPowerConversion2) {
   ASSERT_EQ(1, ir.count_functions(StdMathFunction::Sqrt)) << ir;
 
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, OutputIr{std::move(ir)});
+  check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
 
 TEST(IrTest, TestConditionals1) {
@@ -252,7 +253,7 @@ TEST(IrTest, TestConditionals1) {
   ASSERT_EQ(1, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(4, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
@@ -271,7 +272,7 @@ TEST(IrTest, TestConditionals2) {
   ASSERT_EQ(1, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(8, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
@@ -289,7 +290,7 @@ TEST(IrTest, TestConditionals3) {
   ASSERT_EQ(3, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(7, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
@@ -310,7 +311,7 @@ TEST(IrTest, TestConditionals4) {
   ASSERT_EQ(3, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(20, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
@@ -334,7 +335,7 @@ TEST(IrTest, TestConditionals5) {
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(56, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
@@ -355,7 +356,7 @@ TEST(IrTest, TestConditionals6) {
   ASSERT_EQ(4, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(25, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(4, output_ir.num_conditionals()) << output_ir;
@@ -371,7 +372,7 @@ TEST(IrTest, TestConditionals7) {
   ASSERT_EQ(2, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(9, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(2, output_ir.num_conditionals()) << output_ir;
@@ -392,7 +393,7 @@ TEST(IrTest, TestConditionals8) {
   ASSERT_EQ(3, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(28, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
@@ -412,7 +413,7 @@ TEST(IrTest, TestMatrixExpressions1) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(6, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
@@ -435,7 +436,7 @@ TEST(IrTest, TestMatrixExpressions2) {
   check_expressions(expected_expressions, ir);
 
   // Conditionals should get reduced:
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   ASSERT_EQ(38, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   check_expressions(expected_expressions, output_ir);
@@ -463,7 +464,7 @@ TEST(IrTest, TestMatrixExpressions3) {
   ASSERT_EQ(15, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(116, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
@@ -495,7 +496,7 @@ TEST(IrTest, TestBuiltInFunctions) {
   EXPECT_EQ(1, ir.count_functions(StdMathFunction::Powf));
   check_expressions(expected_expressions, ir);
 
-  OutputIr output_ir{std::move(ir)};
+  output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(28, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
