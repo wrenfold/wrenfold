@@ -87,7 +87,7 @@ struct record_output;
 
 template <typename T>
 struct record_output<return_value<T>> {
-  void operator()(ast::FunctionSignature& desc, const return_value<T>& output) const {
+  void operator()(ast::function_signature& desc, const return_value<T>& output) const {
     // This is a return value.
     if constexpr (std::is_same_v<Expr, T>) {
       desc.return_value = ast::scalar_type(NumericType::Real);
@@ -100,7 +100,7 @@ struct record_output<return_value<T>> {
 
 template <typename T>
 struct record_output<output_arg<T>> {
-  void operator()(ast::FunctionSignature& desc, const output_arg<T>& output) const {
+  void operator()(ast::function_signature& desc, const output_arg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
       desc.add_argument(output.name(), ast::scalar_type(NumericType::Real),
                         output.is_optional() ? ast::argument_direction::optional_output
@@ -120,7 +120,7 @@ struct record_input_argument;
 
 template <>
 struct record_input_argument<Expr> {
-  void operator()(ast::FunctionSignature& desc, const arg& arg) const {
+  void operator()(ast::function_signature& desc, const arg& arg) const {
     desc.add_argument(arg.name(), ast::scalar_type(NumericType::Real),
                       ast::argument_direction::input);
   }
@@ -128,13 +128,13 @@ struct record_input_argument<Expr> {
 
 template <index_t Rows, index_t Cols>
 struct record_input_argument<type_annotations::static_matrix<Rows, Cols>> {
-  void operator()(ast::FunctionSignature& desc, const arg& arg) const {
+  void operator()(ast::function_signature& desc, const arg& arg) const {
     desc.add_argument(arg.name(), ast::matrix_type(Rows, Cols), ast::argument_direction::input);
   }
 };
 
 template <typename ArgList, std::size_t... Indices, std::size_t N>
-void record_input_args(ast::FunctionSignature& desc, const std::array<arg, N>& args,
+void record_input_args(ast::function_signature& desc, const std::array<arg, N>& args,
                        std::index_sequence<Indices...>) {
   (record_input_argument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(desc,
                                                                                 args[Indices]),

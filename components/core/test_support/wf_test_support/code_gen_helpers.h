@@ -15,7 +15,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   const auto start = std::chrono::steady_clock::now();
   auto tuple =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
-  const ast::FunctionSignature& signature = std::get<0>(tuple);
+  const ast::function_signature& signature = std::get<0>(tuple);
   const std::vector<expression_group>& expressions = std::get<1>(tuple);
 
   flat_ir ir{expressions};
@@ -29,7 +29,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
 #endif
 
   // Generate syntax tree:
-  std::vector<ast::Variant> body = ast::create_ast(output_ir, signature);
+  std::vector<ast::variant> body = ast::create_ast(output_ir, signature);
 
   const std::string code = generator.generate_code(signature, body);
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);

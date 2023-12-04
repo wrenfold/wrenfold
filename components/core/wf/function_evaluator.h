@@ -7,10 +7,10 @@
 namespace math {
 
 // Invoke the provided function `func` and capture all the output expressions.
-// The outputs are inspected and converted into an instance of `ast::FunctionSignature` and a
+// The outputs are inspected and converted into an instance of `ast::function_signature` and a
 // vector of output expressions.
 template <typename Func, typename... ArgumentInfo>
-std::tuple<ast::FunctionSignature, std::vector<expression_group>> build_function_description(
+std::tuple<ast::function_signature, std::vector<expression_group>> build_function_description(
     Func&& func, const std::string_view function_name, ArgumentInfo&&... args_in) {
   static_assert(std::conjunction_v<std::is_constructible<arg, ArgumentInfo>...>,
                 "args_in must be convertible to type Arg.");
@@ -34,7 +34,7 @@ std::tuple<ast::FunctionSignature, std::vector<expression_group>> build_function
   detail::copy_output_expression_from_tuple(outputs, groups);
 
   // Add all the input arguments:
-  ast::FunctionSignature signature{std::string(function_name)};
+  ast::function_signature signature{std::string(function_name)};
   detail::record_input_args<ArgList>(signature, args, std::make_index_sequence<Traits::arity>());
 
   // Record all the output arguments:

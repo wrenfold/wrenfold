@@ -16,6 +16,7 @@ struct output_ir;
 
 namespace math::ast {
 
+// Represent a scalar argument type (float, int, etc).
 class scalar_type {
  public:
   explicit constexpr scalar_type(NumericType numeric_type) noexcept : numeric_type_(numeric_type) {}
@@ -26,6 +27,7 @@ class scalar_type {
   NumericType numeric_type_;
 };
 
+// Represent a matrix argument type. The dimensions are known at generation time.
 class matrix_type {
  public:
   constexpr matrix_type(index_t rows, index_t cols) noexcept : rows_(rows), cols_(cols) {}
@@ -90,9 +92,9 @@ class argument {
 
 // Describe a function signature.
 // Stores a name, and type+name information for all the arguments.
-struct FunctionSignature {
+struct function_signature {
  public:
-  explicit FunctionSignature(std::string name) : function_name(std::move(name)) {}
+  explicit function_signature(std::string name) noexcept : function_name(std::move(name)) {}
 
   template <typename... Args>
   void add_argument(Args&&... args) {
@@ -108,7 +110,7 @@ struct FunctionSignature {
   }
 
   // Are any of the arguments to this function a matrix?
-  bool has_matrix_arguments() const {
+  bool has_matrix_arguments() const noexcept {
     return std::any_of(arguments.begin(), arguments.end(),
                        [](const auto& arg) { return arg->is_matrix(); });
   }
@@ -119,162 +121,171 @@ struct FunctionSignature {
 };
 
 // clang-format off
-using Variant = std::variant<
-    struct Add,
-    struct AssignTemporary,
-    struct AssignOutputArgument,
-    struct Branch,
-    struct Call,
-    struct Cast,
-    struct Compare,
-    struct ConstructReturnValue,
-    struct Declaration,
-    struct Divide,
-    struct FloatConstant,
-    struct InputValue,
-    struct IntegerConstant,
-    struct Multiply,
-    struct OptionalOutputBranch,
-    struct SpecialConstant,
-    struct VariableRef
+using variant = std::variant<
+    struct add,
+    struct assign_temporary,
+    struct assign_output_argument,
+    struct branch,
+    struct call,
+    struct cast,
+    struct compare,
+    struct construct_return_value,
+    struct declaration,
+    struct divide,
+    struct float_constant,
+    struct input_value,
+    struct integer_constant,
+    struct multiply,
+    struct optional_output_branch,
+    struct special_constant,
+    struct variable_ref
     >;
 // clang-format on
 
 // This is a shared_ptr so that we can copy AST members.
 // Copying is desirable to satisfy the pybind11 wrapper.
-using VariantPtr = std::shared_ptr<const Variant>;
+using variant_ptr = std::shared_ptr<const variant>;
 
 // Usage of a variable.
-struct VariableRef {
+struct variable_ref {
   // Name of the variable.
   std::string name;
 
-  explicit VariableRef(std::string name) : name(std::move(name)) {}
+  explicit variable_ref(std::string name) : name(std::move(name)) {}
 };
 
-struct Add {
-  VariantPtr left;
-  VariantPtr right;
+// Add two values together.
+struct add {
+  variant_ptr left;
+  variant_ptr right;
 
-  Add(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
+  add(variant_ptr left, variant_ptr right) : left(std::move(left)), right(std::move(right)) {}
 };
 
-struct AssignTemporary {
+// Assign a value to a temporary variable.
+struct assign_temporary {
   std::string left;
-  VariantPtr right;
+  variant_ptr right;
 
-  AssignTemporary(std::string left, VariantPtr right)
+  assign_temporary(std::string left, variant_ptr right)
       : left(std::move(left)), right(std::move(right)) {}
 
-  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::Variant, T>>>
-  AssignTemporary(std::string left, T&& arg)
-      : left(left), right(std::make_shared<const ast::Variant>(std::forward<T>(arg))) {}
+  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::variant, T>>>
+  assign_temporary(std::string left, T&& arg)
+      : left(left), right(std::make_shared<const ast::variant>(std::forward<T>(arg))) {}
 };
 
 // Assign values to an output argument. All output values are written in one operation.
-struct AssignOutputArgument {
+struct assign_output_argument {
   std::shared_ptr<const argument> argument;
-  std::vector<Variant> values;
+  std::vector<variant> values;
 };
 
 // An if/else statement.
-struct Branch {
+struct branch {
   // Condition of the if statement.
-  VariantPtr condition;
+  variant_ptr condition;
   // Statements if the condition is true:
-  std::vector<Variant> if_branch;
+  std::vector<variant> if_branch;
   // Statements if the condition is false:
-  std::vector<Variant> else_branch;
+  std::vector<variant> else_branch;
 
-  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::Variant, T>>>
-  Branch(T&& arg, std::vector<Variant>&& if_branch, std::vector<Variant>&& else_branch)
-      : condition{std::make_shared<const ast::Variant>(std::forward<T>(arg))},
+  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::variant, T>>>
+  branch(T&& arg, std::vector<variant>&& if_branch, std::vector<variant>&& else_branch)
+      : condition{std::make_shared<const ast::variant>(std::forward<T>(arg))},
         if_branch(std::move(if_branch)),
         else_branch(std::move(else_branch)) {}
 };
 
-struct Call {
+// Call a standard library function.
+struct call {
   StdMathFunction function;
-  std::vector<Variant> args;
+  std::vector<variant> args;
 
   template <typename... Args>
-  explicit Call(StdMathFunction function, Args&&... inputs)
+  explicit call(StdMathFunction function, Args&&... inputs)
       : function(function), args{std::forward<Args>(inputs)...} {}
 };
 
-struct Cast {
+// Cast a scalar from one numeric type to another.
+struct cast {
   NumericType destination_type;
   NumericType source_type;
-  VariantPtr arg;
+  variant_ptr arg;
 
-  Cast(NumericType destination_type, NumericType source_type, const VariantPtr& arg)
+  cast(NumericType destination_type, NumericType source_type, const variant_ptr& arg)
       : destination_type(destination_type), source_type(source_type), arg(arg) {}
 };
 
-struct Compare {
+// A relational comparison.
+struct compare {
   RelationalOperation operation{};
-  VariantPtr left;
-  VariantPtr right;
+  variant_ptr left;
+  variant_ptr right;
 };
 
 // Construct a type from the provided arguments.
-struct ConstructReturnValue {
+struct construct_return_value {
   ast::argument_type type;
-  std::vector<Variant> args;
+  std::vector<variant> args;
 
-  ConstructReturnValue(ast::argument_type, std::vector<Variant>&& args);
+  construct_return_value(ast::argument_type, std::vector<variant>&& args);
 };
 
-struct Declaration {
+// Declare a new variable and optionally assign it a value.
+struct declaration {
   // Name for the value being declared
   std::string name;
   // Type of the value:
   NumericType type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
-  VariantPtr value{};
+  variant_ptr value{};
 
-  Declaration(std::string name, NumericType type, VariantPtr value);
+  declaration(std::string name, NumericType type, variant_ptr value);
 
   // Construct w/ no rhs.
-  Declaration(std::string name, NumericType type) : name(std::move(name)), type(type) {}
+  declaration(std::string name, NumericType type) : name(std::move(name)), type(type) {}
 };
 
 // Divide first operand by second operand.
-struct Divide {
-  VariantPtr left;
-  VariantPtr right;
+struct divide {
+  variant_ptr left;
+  variant_ptr right;
 
-  Divide(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
+  divide(variant_ptr left, variant_ptr right) : left(std::move(left)), right(std::move(right)) {}
 };
 
-struct FloatConstant {
+// Use a floating-point constant in the output code.
+struct float_constant {
   double value;
 };
 
 // Signature and body of a function.
-struct FunctionDefinition {
-  FunctionSignature signature;
-  std::vector<ast::Variant> body;
+struct function_definition {
+  function_signature signature;
+  std::vector<ast::variant> body;
 
-  FunctionDefinition(FunctionSignature signature, std::vector<ast::Variant> body);
+  function_definition(function_signature signature, std::vector<ast::variant> body);
 };
 
 // Access an input argument at a specific index.
-struct InputValue {
+struct input_value {
   std::shared_ptr<const argument> argument;
   index_t element;
 };
 
-struct IntegerConstant {
+// Use an integer constant in the output code.
+struct integer_constant {
   std::int64_t value;
 };
 
-struct Multiply {
-  VariantPtr left;
-  VariantPtr right;
+// Multiply two operands together.
+struct multiply {
+  variant_ptr left;
+  variant_ptr right;
 
-  Multiply(VariantPtr left, VariantPtr right) : left(std::move(left)), right(std::move(right)) {}
+  multiply(variant_ptr left, variant_ptr right) : left(std::move(left)), right(std::move(right)) {}
 };
 
 // A one-sided branch that assigns to an optional output, after checking for its existence.
@@ -282,36 +293,38 @@ struct Multiply {
 //  if (<argument exists>) {
 //    ... statements ...
 //  }
-struct OptionalOutputBranch {
+struct optional_output_branch {
   // The argument this output corresponds to.
   std::shared_ptr<const argument> arg;
 
   // Statements in the if-branch.
-  std::vector<Variant> statements;
+  std::vector<variant> statements;
 
-  explicit OptionalOutputBranch(std::shared_ptr<const argument> arg,
-                                std::vector<Variant>&& statements)
+  explicit optional_output_branch(std::shared_ptr<const argument> arg,
+                                  std::vector<variant>&& statements)
       : arg(std::move(arg)), statements(std::move(statements)) {}
 };
 
-struct SpecialConstant {
+// Use a symbolic constant in the output code.
+struct special_constant {
   SymbolicConstants value;
 };
 
 // Create AST from the IR:
-std::vector<ast::Variant> create_ast(const math::output_ir& ir, const FunctionSignature& signature);
+std::vector<ast::variant> create_ast(const math::output_ir& ir,
+                                     const function_signature& signature);
 
 // method definitions:
 
-inline FunctionDefinition::FunctionDefinition(FunctionSignature signature,
-                                              std::vector<ast::Variant> body)
+inline function_definition::function_definition(function_signature signature,
+                                                std::vector<ast::variant> body)
     : signature(std::move(signature)), body(std::move(body)) {}
 
-inline ConstructReturnValue::ConstructReturnValue(ast::argument_type type,
-                                                  std::vector<ast::Variant>&& args)
+inline construct_return_value::construct_return_value(ast::argument_type type,
+                                                      std::vector<ast::variant>&& args)
     : type(type), args(std::move(args)) {}
 
-inline Declaration::Declaration(std::string name, NumericType type, VariantPtr value)
+inline declaration::declaration(std::string name, NumericType type, variant_ptr value)
     : name(std::move(name)), type(type), value(std::move(value)) {}
 
 }  // namespace math::ast

@@ -6,8 +6,8 @@ namespace math {
 
 class cpp_code_generator {
  public:
-  std::string generate_code(const ast::FunctionSignature& signature,
-                            const std::vector<ast::Variant>& body) const;
+  std::string generate_code(const ast::function_signature& signature,
+                            const std::vector<ast::variant>& body) const;
 
   // Create a fmt_view that can be passed to code_formatter. All args will be
   // forwarded back to the operator on this class that matches them.
@@ -16,55 +16,55 @@ class cpp_code_generator {
     return ::math::make_fmt_view(*this, std::forward<Args>(args)...);
   }
 
-  void operator()(code_formatter& formatter, const ast::Add& x) const;
+  void operator()(code_formatter& formatter, const ast::add& x) const;
 
-  void operator()(code_formatter& formatter, const ast::AssignOutputArgument& x) const;
+  void operator()(code_formatter& formatter, const ast::assign_output_argument& x) const;
 
-  void operator()(code_formatter& formatter, const ast::AssignTemporary& x) const;
+  void operator()(code_formatter& formatter, const ast::assign_temporary& x) const;
 
-  void operator()(code_formatter& formatter, const ast::Branch& x) const;
+  void operator()(code_formatter& formatter, const ast::branch& x) const;
 
-  void operator()(code_formatter& formatter, const ast::Call& x) const;
+  void operator()(code_formatter& formatter, const ast::call& x) const;
 
-  void operator()(code_formatter& formatter, const ast::Cast& x) const;
+  void operator()(code_formatter& formatter, const ast::cast& x) const;
 
-  void operator()(code_formatter& formatter, const ast::Compare& x) const;
+  void operator()(code_formatter& formatter, const ast::compare& x) const;
 
-  void operator()(code_formatter& formatter, const ast::ConstructReturnValue& x) const;
+  void operator()(code_formatter& formatter, const ast::construct_return_value& x) const;
 
-  void operator()(code_formatter& formatter, const ast::Declaration& x) const;
+  void operator()(code_formatter& formatter, const ast::declaration& x) const;
 
-  void operator()(code_formatter& formatter, const ast::Divide& x) const;
+  void operator()(code_formatter& formatter, const ast::divide& x) const;
 
-  void operator()(code_formatter& formatter, const ast::FloatConstant& x) const {
+  void operator()(code_formatter& formatter, const ast::float_constant& x) const {
     formatter.format("static_cast<Scalar>({})", x.value);
   }
 
-  void operator()(code_formatter& formatter, const ast::SpecialConstant& x) const;
+  void operator()(code_formatter& formatter, const ast::special_constant& x) const;
 
-  void operator()(code_formatter& formatter, const ast::VariableRef& x) const {
+  void operator()(code_formatter& formatter, const ast::variable_ref& x) const {
     formatter.format(x.name);
   }
 
-  void operator()(code_formatter& formatter, const ast::InputValue& x) const;
+  void operator()(code_formatter& formatter, const ast::input_value& x) const;
 
-  void operator()(code_formatter& formatter, const ast::IntegerConstant& x) const {
+  void operator()(code_formatter& formatter, const ast::integer_constant& x) const {
     formatter.format("{}", x.value);
   }
 
-  void operator()(code_formatter& formatter, const ast::Multiply& x) const;
+  void operator()(code_formatter& formatter, const ast::multiply& x) const;
 
-  void operator()(code_formatter& formatter, const ast::OptionalOutputBranch& x) const;
+  void operator()(code_formatter& formatter, const ast::optional_output_branch& x) const;
 
-  // Accept ast::Variant and delegate formatting of the stored type to our derived class.
+  // Accept ast::variant and delegate formatting of the stored type to our derived class.
   // Using enable_if here to prevent implicit conversion to the variant type.
-  template <typename T, typename = std::enable_if_t<std::is_same_v<T, ast::Variant>>>
+  template <typename T, typename = std::enable_if_t<std::is_same_v<T, ast::variant>>>
   void operator()(code_formatter& formatter, const T& var) const {
     std::visit([&](const auto& x) { return operator()(formatter, x); }, var);
   }
 
-  // Accept ast::VariantPtr
-  void operator()(code_formatter& formatter, const ast::VariantPtr& var) const {
+  // Accept ast::variant_ptr
+  void operator()(code_formatter& formatter, const ast::variant_ptr& var) const {
     WF_ASSERT(var);
     operator()(formatter, *var);
   }
@@ -77,7 +77,7 @@ class cpp_code_generator {
   }
 
  protected:
-  void format_signature(code_formatter& formatter, const ast::FunctionSignature& signature) const;
+  void format_signature(code_formatter& formatter, const ast::function_signature& signature) const;
 };
 
 }  // namespace math
