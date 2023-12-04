@@ -39,7 +39,7 @@ class rust_code_generator {
 
   void operator()(code_formatter& formatter, const ast::divide& x) const;
 
-  void operator()(code_formatter& formatter, const ast::float_constant& x) const {
+  void operator()(code_formatter& formatter, const ast::float_literal& x) const {
     formatter.format("{}f64", x.value);
   }
 
@@ -51,7 +51,7 @@ class rust_code_generator {
 
   void operator()(code_formatter& formatter, const ast::input_value& x) const;
 
-  void operator()(code_formatter& formatter, const ast::integer_constant& x) const {
+  void operator()(code_formatter& formatter, const ast::integer_literal& x) const {
     formatter.format("{}i64", x.value);
   }
 

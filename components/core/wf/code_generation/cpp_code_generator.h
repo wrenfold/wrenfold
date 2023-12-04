@@ -36,7 +36,7 @@ class cpp_code_generator {
 
   void operator()(code_formatter& formatter, const ast::divide& x) const;
 
-  void operator()(code_formatter& formatter, const ast::float_constant& x) const {
+  void operator()(code_formatter& formatter, const ast::float_literal& x) const {
     formatter.format("static_cast<Scalar>({})", x.value);
   }
 
@@ -48,7 +48,7 @@ class cpp_code_generator {
 
   void operator()(code_formatter& formatter, const ast::input_value& x) const;
 
-  void operator()(code_formatter& formatter, const ast::integer_constant& x) const {
+  void operator()(code_formatter& formatter, const ast::integer_literal& x) const {
     formatter.format("{}", x.value);
   }
 

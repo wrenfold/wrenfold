@@ -347,11 +347,11 @@ struct ast_from_ir {
           if constexpr (std::is_same_v<T, Constant>) {
             return ast::special_constant{inner.name()};
           } else if constexpr (std::is_same_v<T, Integer>) {
-            return ast::integer_constant{inner.get_value()};
+            return ast::integer_literal{inner.get_value()};
           } else if constexpr (std::is_same_v<T, Float>) {
-            return ast::float_constant{static_cast<Float>(inner).get_value()};
+            return ast::float_literal{static_cast<Float>(inner).get_value()};
           } else if constexpr (std::is_same_v<T, Rational>) {
-            return ast::float_constant{static_cast<Float>(inner).get_value()};
+            return ast::float_literal{static_cast<Float>(inner).get_value()};
           } else if constexpr (std::is_same_v<T, Variable>) {
             // inspect inner type of the variable
             return std::visit(*this, inner.identifier());

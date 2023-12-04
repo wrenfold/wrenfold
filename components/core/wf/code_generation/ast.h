@@ -133,9 +133,9 @@ using variant = std::variant<
     struct construct_return_value,
     struct declaration,
     struct divide,
-    struct float_constant,
+    struct float_literal,
     struct input_value,
-    struct integer_constant,
+    struct integer_literal,
     struct multiply,
     struct optional_output_branch,
     struct special_constant,
@@ -258,7 +258,7 @@ struct divide {
 };
 
 // Use a floating-point constant in the output code.
-struct float_constant {
+struct float_literal {
   double value;
 };
 
@@ -277,7 +277,7 @@ struct input_value {
 };
 
 // Use an integer constant in the output code.
-struct integer_constant {
+struct integer_literal {
   std::int64_t value;
 };
 

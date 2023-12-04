@@ -268,18 +268,18 @@ void wrap_codegen_operations(py::module_& m) {
                              })
       .def("__repr__", &format_ast<ast::declaration>);
 
-  py::class_<ast::float_constant>(m, "FloatConstant")
-      .def_property_readonly("value", [](const ast::float_constant& f) { return f.value; })
-      .def("__repr__", &format_ast<ast::float_constant>);
+  py::class_<ast::float_literal>(m, "FloatConstant")
+      .def_property_readonly("value", [](const ast::float_literal& f) { return f.value; })
+      .def("__repr__", &format_ast<ast::float_literal>);
 
   py::class_<ast::input_value>(m, "InputValue")
       .def_property_readonly("argument", [](const ast::input_value& v) { return v.argument; })
       .def_property_readonly("element", [](const ast::input_value& v) { return v.element; })
       .def("__repr__", &format_ast<ast::input_value>);
 
-  py::class_<ast::integer_constant>(m, "IntegerConstant")
-      .def_property_readonly("value", [](const ast::integer_constant& i) { return i.value; })
-      .def("__repr__", &format_ast<ast::integer_constant>);
+  py::class_<ast::integer_literal>(m, "IntegerConstant")
+      .def_property_readonly("value", [](const ast::integer_literal& i) { return i.value; })
+      .def("__repr__", &format_ast<ast::integer_literal>);
 
   py::class_<ast::multiply>(m, "Multiply")
       .def_property_readonly("left",

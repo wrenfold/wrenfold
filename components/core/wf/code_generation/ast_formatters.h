@@ -88,7 +88,7 @@ auto format_ast(Iterator it, const math::ast::divide& d) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const math::ast::float_constant& c) {
+auto format_ast(Iterator it, const math::ast::float_literal& c) {
   return fmt::format_to(it, "{}f", c.value);
 }
 
@@ -98,7 +98,7 @@ auto format_ast(Iterator it, const math::ast::input_value& v) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const math::ast::integer_constant& c) {
+auto format_ast(Iterator it, const math::ast::integer_literal& c) {
   return fmt::format_to(it, "{}", c.value);
 }
 
