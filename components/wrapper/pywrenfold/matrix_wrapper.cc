@@ -45,8 +45,8 @@ struct slice {
 
 // Iterator over rows of a matrix expression.
 struct row_iterator {
-  static row_iterator Begin(const MatrixExpr& m) { return row_iterator(m, 0); }
-  static row_iterator End(const MatrixExpr& m) { return row_iterator(m, m.rows()); }
+  static row_iterator begin(const MatrixExpr& m) { return row_iterator(m, 0); }
+  static row_iterator end(const MatrixExpr& m) { return row_iterator(m, m.rows()); }
 
   // Iterators only match if the underlying matrix expression is the same instance.
   bool operator==(const row_iterator& other) const {
@@ -352,7 +352,7 @@ void wrap_matrix_operations(py::module_& m) {
       .def("__len__", &MatrixExpr::rows, "Number of rows in the matrix.")
       .def("__iter__",  //  We don't need keep_alive since MatrixExpr does that for us.
            [](const MatrixExpr& expr) {
-             return py::make_iterator(row_iterator::Begin(expr), row_iterator::End(expr));
+             return py::make_iterator(row_iterator::begin(expr), row_iterator::end(expr));
            })
       .def("unary_map", &unary_map_matrix, py::arg("func"), "Perform element-wise map operation.")
       // Convert to list

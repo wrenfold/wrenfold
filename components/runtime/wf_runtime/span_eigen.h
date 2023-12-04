@@ -28,23 +28,23 @@ using eigen_stride_type_t =
 // Get the row-stride of an eigen matrix.
 template <typename Derived>
 constexpr auto eigen_row_stride(const Eigen::MatrixBase<Derived>& mat) noexcept {
-  constexpr bool RowMajor = Eigen::MatrixBase<Derived>::IsRowMajor;
-  using ReturnType =
-      std::conditional_t<RowMajor,
+  constexpr bool row_major = Eigen::MatrixBase<Derived>::IsRowMajor;
+  using return_type =
+      std::conditional_t<row_major,
                          eigen_stride_type_t<Eigen::MatrixBase<Derived>::OuterStrideAtCompileTime>,
                          eigen_stride_type_t<Eigen::MatrixBase<Derived>::InnerStrideAtCompileTime>>;
-  return ReturnType{static_cast<std::size_t>(RowMajor ? mat.outerStride() : mat.innerStride())};
+  return return_type{static_cast<std::size_t>(row_major ? mat.outerStride() : mat.innerStride())};
 }
 
 // Get the column stride of an eigen matrix.
 template <typename Derived>
 constexpr auto eigen_col_stride(const Eigen::MatrixBase<Derived>& mat) noexcept {
-  constexpr bool RowMajor = Eigen::MatrixBase<Derived>::IsRowMajor;
-  using ReturnType =
-      std::conditional_t<RowMajor,
+  constexpr bool row_major = Eigen::MatrixBase<Derived>::IsRowMajor;
+  using return_type =
+      std::conditional_t<row_major,
                          eigen_stride_type_t<Eigen::MatrixBase<Derived>::InnerStrideAtCompileTime>,
                          eigen_stride_type_t<Eigen::MatrixBase<Derived>::OuterStrideAtCompileTime>>;
-  return ReturnType{static_cast<std::size_t>(RowMajor ? mat.innerStride() : mat.outerStride())};
+  return return_type{static_cast<std::size_t>(row_major ? mat.innerStride() : mat.outerStride())};
 }
 
 }  // namespace detail
@@ -79,13 +79,14 @@ struct convert_to_span<Dimensions, T, enable_if_inherits_matrix_base_t<T>> {
   constexpr auto convert(U&& mat) noexcept {
     using UDecay = typename std::decay<U>::type;
 
-    constexpr Eigen::Index RowsAtCompileTime = Eigen::DenseBase<UDecay>::RowsAtCompileTime;
-    constexpr Eigen::Index ColsAtCompileTime = Eigen::DenseBase<UDecay>::ColsAtCompileTime;
-    static_assert(RowsAtCompileTime != Eigen::Dynamic, "Rows must be known at compile time");
-    static_assert(ColsAtCompileTime != Eigen::Dynamic, "Cols must be known at compile time");
+    constexpr Eigen::Index rows_at_compile_time = Eigen::DenseBase<UDecay>::RowsAtCompileTime;
+    constexpr Eigen::Index cols_at_compile_time = Eigen::DenseBase<UDecay>::ColsAtCompileTime;
+    static_assert(rows_at_compile_time != Eigen::Dynamic, "Rows must be known at compile time");
+    static_assert(cols_at_compile_time != Eigen::Dynamic, "Cols must be known at compile time");
 
-    constexpr auto dims = make_constant_value_pack<static_cast<std::size_t>(RowsAtCompileTime),
-                                                   static_cast<std::size_t>(ColsAtCompileTime)>();
+    constexpr auto dims =
+        make_constant_value_pack<static_cast<std::size_t>(rows_at_compile_time),
+                                 static_cast<std::size_t>(cols_at_compile_time)>();
     auto strides = make_value_pack(detail::eigen_row_stride(mat), detail::eigen_col_stride(mat));
     return make_span(mat.data(), dims, strides);
   }

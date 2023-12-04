@@ -317,8 +317,8 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     if constexpr (type_list_contains_type_v<T, disallowed_types>) {
       throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {
-      using VisitorType = typename sub_visitor_type<T>::type;
-      return visit_with_expr(input, VisitorType{target_concrete, replacement});
+      using visitor_type = typename sub_visitor_type<T>::type;
+      return visit_with_expr(input, visitor_type{target_concrete, replacement});
     }
   });
 }

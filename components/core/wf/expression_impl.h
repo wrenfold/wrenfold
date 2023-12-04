@@ -34,10 +34,10 @@ class expression_implementation final : public expression_concept {
   std::string_view type_name() const override final { return ExpressionType::name_str; }
 
   // Whether the derived type is a leaf (it contains no references to child expressions).
-  static constexpr bool IsLeafStatic() { return ExpressionType::is_leaf_node; }
+  static constexpr bool is_leaf_static() { return ExpressionType::is_leaf_node; }
 
-  // Virtual version of `IsLeafStatic`.
-  bool is_leaf() const override final { return IsLeafStatic(); }
+  // Virtual version of `is_leaf_static`.
+  bool is_leaf() const override final { return is_leaf_static(); }
 
  protected:
   // Compute the hash of the underlying expression, and hash it again w/ the index of the type.

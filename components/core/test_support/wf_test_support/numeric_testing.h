@@ -169,17 +169,17 @@ auto create_evaluator_with_output_expressions(
 // numeric types.
 template <typename ReturnType, typename... Args>
 auto create_evaluator(ReturnType (*func)(Args... args)) {
-  using ArgList = type_list<std::decay_t<Args>...>;
+  using arg_type_list = type_list<std::decay_t<Args>...>;
 
   // Evaluate the function symbolically.
   // We don't substitute numerical values directly, because the function may wish to do symbolic
   // operations internally (like diff, subs, etc.). Instead, build symbolic expressions for every
   // output, and then substitute into those.
-  std::tuple output_expressions = detail::invoke_with_output_capture<ArgList>(
+  std::tuple output_expressions = detail::invoke_with_output_capture<arg_type_list>(
       func, std::make_index_sequence<sizeof...(Args)>());
 
   constexpr auto output_indices = detail::select_output_arg_indices(output_expressions);
-  return create_evaluator_with_output_expressions<ArgList>(
+  return create_evaluator_with_output_expressions<arg_type_list>(
       std::move(output_expressions), std::make_index_sequence<sizeof...(Args)>(), output_indices);
 }
 
