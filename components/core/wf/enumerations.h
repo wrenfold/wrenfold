@@ -30,46 +30,46 @@ enum class relative_order : int {
 
 // Types of mathematical functions.
 // clang-format off
-enum class BuiltInFunction {
+enum class built_in_function {
   // Unary functions.
-  Cos = 0,
-  Sin,
-  Tan,
-  ArcCos,
-  ArcSin,
-  ArcTan,
-  Log,
-  Abs,
-  Signum,
+  cos,
+  sin,
+  tan,
+  arccos,
+  arcsin,
+  arctan,
+  ln,
+  abs,
+  signum,
   // Binary functions
-  Arctan2,
+  arctan2,
 };
 // clang-format on
 
 // Types of relations we can express:
-enum class RelationalOperation {
+enum class relational_operation {
   // a < b
-  LessThan,
+  less_than,
   // a <= b
-  LessThanOrEqual,
+  less_than_or_equal,
   // a == b
-  Equal,
+  equal,
 };
 
 // List of mathematical symbolic constants.
-enum class SymbolicConstants : int {
-  Euler,
-  Pi,
-  True,
-  False,
+enum class symbolic_constants : int {
+  euler,
+  pi,
+  boolean_true,
+  boolean_false,
 };
 
 // Types of numeric values (at code-generation time).
-enum class NumericType : int {
-  Bool = 0,
-  Integer,
-  Real,
-  Complex,
+enum class code_numeric_type : int {
+  boolean,
+  integral,
+  floating_point,
+  complex,
 };
 
 // A tri-state value.
@@ -131,37 +131,37 @@ constexpr inline bool is_real_set(NumberSet set) noexcept {
 constexpr std::string_view string_from_relative_order(const relative_order order) noexcept {
   switch (order) {
     case relative_order::less_than:
-      return "LessThan";
+      return "less_than";
     case relative_order::equal:
-      return "Equal";
+      return "equal";
     case relative_order::greater_than:
-      return "GreaterThan";
+      return "greater_than";
   }
   return "<NOT A VALID ENUM VALUE>";
 }
 
 // Convert unary function enum to string.
-constexpr std::string_view string_from_built_in_function(const BuiltInFunction name) noexcept {
+constexpr std::string_view string_from_built_in_function(const built_in_function name) noexcept {
   switch (name) {
-    case BuiltInFunction::Cos:
+    case built_in_function::cos:
       return "cos";
-    case BuiltInFunction::Sin:
+    case built_in_function::sin:
       return "sin";
-    case BuiltInFunction::Tan:
+    case built_in_function::tan:
       return "tan";
-    case BuiltInFunction::ArcCos:
+    case built_in_function::arccos:
       return "acos";
-    case BuiltInFunction::ArcSin:
+    case built_in_function::arcsin:
       return "asin";
-    case BuiltInFunction::ArcTan:
+    case built_in_function::arctan:
       return "atan";
-    case BuiltInFunction::Log:
+    case built_in_function::ln:
       return "ln";
-    case BuiltInFunction::Abs:
+    case built_in_function::abs:
       return "abs";
-    case BuiltInFunction::Signum:
+    case built_in_function::signum:
       return "signum";
-    case BuiltInFunction::Arctan2:
+    case built_in_function::arctan2:
       return "atan2";
     default:
       break;
@@ -170,43 +170,44 @@ constexpr std::string_view string_from_built_in_function(const BuiltInFunction n
 }
 
 // Convert `RelationalOperation` to short string.
-constexpr std::string_view string_from_relational_operation(const RelationalOperation op) noexcept {
+constexpr std::string_view string_from_relational_operation(
+    const relational_operation op) noexcept {
   switch (op) {
-    case RelationalOperation::LessThan:
+    case relational_operation::less_than:
       return "<";
-    case RelationalOperation::LessThanOrEqual:
+    case relational_operation::less_than_or_equal:
       return "<=";
-    case RelationalOperation::Equal:
+    case relational_operation::equal:
       return "==";
   }
   return "<NOT A VALID ENUM VALUE>";
 }
 
 // Convert symbolic constant enum to string constant.
-inline constexpr std::string_view string_from_symbolic_constant(SymbolicConstants value) noexcept {
+inline constexpr std::string_view string_from_symbolic_constant(symbolic_constants value) noexcept {
   switch (value) {
-    case SymbolicConstants::Euler:
+    case symbolic_constants::euler:
       return "e";
-    case SymbolicConstants::Pi:
+    case symbolic_constants::pi:
       return "pi";
-    case SymbolicConstants::True:
+    case symbolic_constants::boolean_true:
       return "true";
-    case SymbolicConstants::False:
+    case symbolic_constants::boolean_false:
       return "false";
   }
   return "<INVALID ENUM VALUE>";
 }
 
 // Convert `NumericType` to string.
-constexpr std::string_view string_from_numeric_type(const NumericType type) noexcept {
+constexpr std::string_view string_from_numeric_type(const code_numeric_type type) noexcept {
   switch (type) {
-    case NumericType::Bool:
+    case code_numeric_type::boolean:
       return "Bool";
-    case NumericType::Integer:
+    case code_numeric_type::integral:
       return "Integer";
-    case NumericType::Real:
+    case code_numeric_type::floating_point:
       return "Real";
-    case NumericType::Complex:
+    case code_numeric_type::complex:
       return "Complex";
   }
   return "<NOT A VALID ENUM VALUE>";

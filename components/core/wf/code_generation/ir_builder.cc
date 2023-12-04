@@ -184,7 +184,8 @@ void format_op_args(std::string& output, const ir::operation& op, const Containe
 template <typename OpType, typename... Args>
 static ir::value_ptr create_operation(std::vector<ir::value::unique_ptr>& values,
                                       ir::block_ptr block, OpType&& op,
-                                      std::optional<NumericType> numeric_type, Args&&... args) {
+                                      std::optional<code_numeric_type> numeric_type,
+                                      Args&&... args) {
   // Create a new value:
   const uint32_t name = values.empty() ? 0 : (values.back()->name() + 1);
   std::unique_ptr<ir::value> value = std::make_unique<ir::value>(
@@ -269,7 +270,7 @@ class ir_form_visitor {
   explicit ir_form_visitor(flat_ir& builder, operation_term_counts&& counts)
       : builder_(builder), counts_(counts) {}
 
-  ir::value_ptr maybe_cast(ir::value_ptr input, NumericType output_type) {
+  ir::value_ptr maybe_cast(ir::value_ptr input, code_numeric_type output_type) {
     if (input->numeric_type() != output_type) {
       return push_operation(ir::cast{output_type}, output_type, input);
     } else {
@@ -310,7 +311,7 @@ class ir_form_visitor {
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
 
-    NumericType promoted_type = NumericType::Integer;
+    code_numeric_type promoted_type = code_numeric_type::integral;
     for (ir::value_ptr v : args) {
       promoted_type = std::max(promoted_type, v->numeric_type());
     }
@@ -333,7 +334,7 @@ class ir_form_visitor {
     // For additions, first check if the negated version has already been cached:
     const Expr negative_add = -add_abstract;
     if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
-      const auto promoted_type = std::max(it->second->numeric_type(), NumericType::Integer);
+      const auto promoted_type = std::max(it->second->numeric_type(), code_numeric_type::integral);
       const ir::value_ptr negative_one = maybe_cast(apply(constants::negative_one), promoted_type);
       return push_operation(ir::mul{}, promoted_type, it->second, negative_one);
     }
@@ -342,7 +343,7 @@ class ir_form_visitor {
 
   ir::value_ptr operator()(const CastBool& cast) {
     const ir::value_ptr arg = apply(cast.arg());
-    return push_operation(ir::cast{NumericType::Integer}, NumericType::Integer, arg);
+    return push_operation(ir::cast{code_numeric_type::integral}, code_numeric_type::integral, arg);
   }
 
   ir::value_ptr operator()(const Conditional& cond) {
@@ -350,21 +351,21 @@ class ir_form_visitor {
     const ir::value_ptr if_branch = apply(cond.if_branch());
     const ir::value_ptr else_branch = apply(cond.else_branch());
 
-    const NumericType promoted_type =
+    const code_numeric_type promoted_type =
         std::max(if_branch->numeric_type(), else_branch->numeric_type());
     return push_operation(ir::cond{}, promoted_type, condition,
                           maybe_cast(if_branch, promoted_type),
                           maybe_cast(else_branch, promoted_type));
   }
 
-  static NumericType numeric_type_from_constant(const Constant& c) {
+  static code_numeric_type numeric_type_from_constant(const Constant& c) {
     switch (c.name()) {
-      case SymbolicConstants::Euler:
-      case SymbolicConstants::Pi:
-        return NumericType::Real;
-      case SymbolicConstants::True:
-      case SymbolicConstants::False:
-        return NumericType::Bool;
+      case symbolic_constants::euler:
+      case symbolic_constants::pi:
+        return code_numeric_type::floating_point;
+      case symbolic_constants::boolean_true:
+      case symbolic_constants::boolean_false:
+        return code_numeric_type::boolean;
     }
     throw type_error("Unhandled symbolic constant: {}", string_from_symbolic_constant(c.name()));
   }
@@ -377,27 +378,27 @@ class ir_form_visitor {
     throw type_error("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
   }
 
-  static constexpr StdMathFunction std_math_function_from_built_in(BuiltInFunction name) {
+  static constexpr StdMathFunction std_math_function_from_built_in(built_in_function name) {
     switch (name) {
-      case BuiltInFunction::Cos:
+      case built_in_function::cos:
         return StdMathFunction::Cos;
-      case BuiltInFunction::Sin:
+      case built_in_function::sin:
         return StdMathFunction::Sin;
-      case BuiltInFunction::Tan:
+      case built_in_function::tan:
         return StdMathFunction::Tan;
-      case BuiltInFunction::ArcCos:
+      case built_in_function::arccos:
         return StdMathFunction::ArcCos;
-      case BuiltInFunction::ArcSin:
+      case built_in_function::arcsin:
         return StdMathFunction::ArcSin;
-      case BuiltInFunction::ArcTan:
+      case built_in_function::arctan:
         return StdMathFunction::ArcTan;
-      case BuiltInFunction::Log:
+      case built_in_function::ln:
         return StdMathFunction::Log;
-      case BuiltInFunction::Abs:
+      case built_in_function::abs:
         return StdMathFunction::Abs;
-      case BuiltInFunction::Signum:
+      case built_in_function::signum:
         return StdMathFunction::Signum;
-      case BuiltInFunction::Arctan2:
+      case built_in_function::arctan2:
         return StdMathFunction::Arctan2;
     }
     throw assertion_error("Invalid enum value: {}", string_from_built_in_function(name));
@@ -410,7 +411,8 @@ class ir_form_visitor {
                    [this](const Expr& expr) { return apply(expr); });
     const StdMathFunction enum_value = std_math_function_from_built_in(func.enum_value());
     // TODO: Special case for `abs` and `signum` here.
-    return push_operation(ir::call_std_function{enum_value}, NumericType::Real, std::move(args));
+    return push_operation(ir::call_std_function{enum_value}, code_numeric_type::floating_point,
+                          std::move(args));
   }
 
   ir::value_ptr operator()(const Infinity&) const {
@@ -418,11 +420,11 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const Integer& i) {
-    return push_operation(ir::load{i}, NumericType::Integer);
+    return push_operation(ir::load{i}, code_numeric_type::integral);
   }
 
   ir::value_ptr operator()(const Float& f) {
-    return push_operation(ir::load{f}, NumericType::Real);
+    return push_operation(ir::load{f}, code_numeric_type::floating_point);
   }
 
   // Apply exponentiation by squaring to implement a power of an integer.
@@ -452,7 +454,7 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const Power& power) {
-    const ir::value_ptr base = maybe_cast(apply(power.base()), NumericType::Real);
+    const ir::value_ptr base = maybe_cast(apply(power.base()), code_numeric_type::floating_point);
 
     // Check if this exponent has a negative coefficient on it:
     const auto [exp_coefficient, exp_mul] = as_coeff_and_mul(power.exponent());
@@ -463,7 +465,7 @@ class ir_form_visitor {
 
       // Write the power as: 1 / pow(base, -exponent)
       const ir::value_ptr one = apply(constants::one);
-      constexpr NumericType promoted_type = NumericType::Real;
+      constexpr code_numeric_type promoted_type = code_numeric_type::floating_point;
       return push_operation(ir::div{}, promoted_type, maybe_cast(one, promoted_type),
                             maybe_cast(reciprocal_value, promoted_type));
     }
@@ -478,8 +480,8 @@ class ir_form_visitor {
         return exponentiate_by_squaring(base, static_cast<uint64_t>(exp_int->get_value()));
       } else {
         // Just call power variant with integer exponent:
-        return push_operation(ir::call_std_function{StdMathFunction::Powi}, NumericType::Real, base,
-                              apply(power.exponent()));
+        return push_operation(ir::call_std_function{StdMathFunction::Powi},
+                              code_numeric_type::floating_point, base, apply(power.exponent()));
       }
     } else if (const Rational* exp_rational = cast_ptr<Rational>(power.exponent());
                exp_rational != nullptr) {
@@ -489,27 +491,28 @@ class ir_form_visitor {
       // approximate performance.
       if (exp_rational->denominator() == 2 &&
           exp_rational->numerator() <= max_integer_mul_exponent) {
-        const ir::value_ptr sqrt =
-            push_operation(ir::call_std_function{StdMathFunction::Sqrt}, NumericType::Real, base);
+        const ir::value_ptr sqrt = push_operation(ir::call_std_function{StdMathFunction::Sqrt},
+                                                  code_numeric_type::floating_point, base);
         return exponentiate_by_squaring(sqrt, static_cast<uint64_t>(exp_rational->numerator()));
       }
     }
 
     // TODO: Support (int ** int) powers?
     const ir::value_ptr exponent = apply(power.exponent());
-    return push_operation(ir::call_std_function{StdMathFunction::Powf}, NumericType::Real, base,
-                          maybe_cast(exponent, NumericType::Real));
+    return push_operation(ir::call_std_function{StdMathFunction::Powf},
+                          code_numeric_type::floating_point, base,
+                          maybe_cast(exponent, code_numeric_type::floating_point));
   }
 
   ir::value_ptr operator()(const Rational& r) {
-    return push_operation(ir::load{r}, NumericType::Real);
+    return push_operation(ir::load{r}, code_numeric_type::floating_point);
   }
 
   ir::value_ptr operator()(const Relational& relational) {
     ir::value_ptr left = apply(relational.left());
     ir::value_ptr right = apply(relational.right());
-    NumericType promoted_type = std::max(left->numeric_type(), right->numeric_type());
-    return push_operation(ir::compare{relational.operation()}, NumericType::Bool,
+    code_numeric_type promoted_type = std::max(left->numeric_type(), right->numeric_type());
+    return push_operation(ir::compare{relational.operation()}, code_numeric_type::boolean,
                           maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
   }
 
@@ -518,11 +521,11 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const Variable& var) {
-    return push_operation(ir::load{var}, NumericType::Real);
+    return push_operation(ir::load{var}, code_numeric_type::floating_point);
   }
 
   template <typename OpType, typename... Args>
-  ir::value_ptr push_operation(OpType&& op, std::optional<NumericType> numeric_type,
+  ir::value_ptr push_operation(OpType&& op, std::optional<code_numeric_type> numeric_type,
                                Args&&... args) {
     return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
                             numeric_type, std::forward<Args>(args)...);
@@ -563,11 +566,12 @@ flat_ir::flat_ir(const std::vector<expression_group>& groups)
     std::transform(group.expressions.begin(), group.expressions.end(),
                    std::back_inserter(group_values), [&](const Expr& expr) {
                      ir::value_ptr output = visitor.apply(expr);
-                     if (output->numeric_type() != NumericType::Real) {
+                     if (output->numeric_type() != code_numeric_type::floating_point) {
                        // TODO: Allow returning other types - derive the numeric type from the
                        // group.
-                       output = create_operation(values_, get_block(), ir::cast{NumericType::Real},
-                                                 NumericType::Real, output);
+                       output = create_operation(values_, get_block(),
+                                                 ir::cast{code_numeric_type::floating_point},
+                                                 code_numeric_type::floating_point, output);
                      }
                      return output;
                    });

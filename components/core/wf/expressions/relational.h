@@ -11,7 +11,7 @@ class Relational {
   static constexpr std::string_view NameStr = "Relational";
   static constexpr bool IsLeafNode = false;
 
-  Relational(RelationalOperation operation, Expr left, Expr right)
+  Relational(relational_operation operation, Expr left, Expr right)
       : operation_(operation), children_{std::move(left), std::move(right)} {}
 
   // Base and exponent must match.
@@ -33,9 +33,9 @@ class Relational {
   }
 
   // Create a relational operation.
-  static Expr create(RelationalOperation operation, Expr left, Expr right);
+  static Expr create(relational_operation operation, Expr left, Expr right);
 
-  constexpr RelationalOperation operation() const noexcept { return operation_; }
+  constexpr relational_operation operation() const noexcept { return operation_; }
   constexpr const Expr& left() const noexcept { return children_[0]; }
   constexpr const Expr& right() const noexcept { return children_[1]; }
 
@@ -47,7 +47,7 @@ class Relational {
   constexpr auto end() const noexcept { return children_.end(); }
 
  protected:
-  RelationalOperation operation_;
+  relational_operation operation_;
   std::array<Expr, 2> children_;
 };
 

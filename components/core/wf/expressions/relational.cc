@@ -69,7 +69,7 @@ constexpr bool supports_comparison_v<Argument1, Argument2,
 }  // namespace detail
 
 struct RelationalSimplification {
-  explicit RelationalSimplification(RelationalOperation operation) : operation_(operation) {}
+  explicit RelationalSimplification(relational_operation operation) : operation_(operation) {}
 
   template <typename A, typename B>
   TriState operator()(const A& a, const B& b) {
@@ -77,12 +77,12 @@ struct RelationalSimplification {
       // Handle cases where both operators are numeric or constant values.
       const bool a_lt_b = CompareNumerics{}(a, b);
       const bool b_lt_a = CompareNumerics{}(b, a);
-      if (operation_ == RelationalOperation::LessThan) {
+      if (operation_ == relational_operation::less_than) {
         return a_lt_b ? TriState::True : TriState::False;
-      } else if (operation_ == RelationalOperation::Equal) {
+      } else if (operation_ == relational_operation::equal) {
         return (!a_lt_b && !b_lt_a) ? TriState::True : TriState::False;
       }
-      WF_ASSERT(operation_ == RelationalOperation::LessThanOrEqual,
+      WF_ASSERT(operation_ == relational_operation::less_than_or_equal,
                 "Invalid relational operation: {}", string_from_relational_operation(operation_));
       // either `a` < `b`, or: `a` >= `b` and `b` is not less than `a`, so `a` == `b`
       return a_lt_b || !b_lt_a ? TriState::True : TriState::False;
@@ -91,10 +91,10 @@ struct RelationalSimplification {
     }
   }
 
-  RelationalOperation operation_;
+  relational_operation operation_;
 };
 
-Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
+Expr Relational::create(relational_operation operation, Expr left, Expr right) {
   if (is_complex_infinity(left) || is_complex_infinity(right) || is_undefined(left) ||
       is_undefined(right)) {
     throw type_error("Cannot construct relational with types: {} {} {}", left.type_name(),
@@ -107,7 +107,7 @@ Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
   } else if (simplified == TriState::False) {
     return constants::boolean_false;
   }
-  if (operation == RelationalOperation::Equal) {
+  if (operation == relational_operation::equal) {
     // We put equality operations into a canonical order.
     if (expression_order(left, right) != relative_order::less_than) {
       std::swap(left, right);

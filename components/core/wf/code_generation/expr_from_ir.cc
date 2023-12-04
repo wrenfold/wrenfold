@@ -29,29 +29,29 @@ struct ExprFromIrVisitor {
                                                 : constants::boolean_false;
   }
 
-  static constexpr BuiltInFunction built_in_function_from_standard_library_function(
+  static constexpr built_in_function built_in_function_from_standard_library_function(
       StdMathFunction func) {
     switch (func) {
       case StdMathFunction::Cos:
-        return BuiltInFunction::Cos;
+        return built_in_function::cos;
       case StdMathFunction::Sin:
-        return BuiltInFunction::Sin;
+        return built_in_function::sin;
       case StdMathFunction::Tan:
-        return BuiltInFunction::Tan;
+        return built_in_function::tan;
       case StdMathFunction::ArcCos:
-        return BuiltInFunction::ArcCos;
+        return built_in_function::arccos;
       case StdMathFunction::ArcSin:
-        return BuiltInFunction::ArcSin;
+        return built_in_function::arcsin;
       case StdMathFunction::ArcTan:
-        return BuiltInFunction::ArcTan;
+        return built_in_function::arctan;
       case StdMathFunction::Log:
-        return BuiltInFunction::Log;
+        return built_in_function::ln;
       case StdMathFunction::Abs:
-        return BuiltInFunction::Abs;
+        return built_in_function::abs;
       case StdMathFunction::Signum:
-        return BuiltInFunction::Signum;
+        return built_in_function::signum;
       case StdMathFunction::Arctan2:
-        return BuiltInFunction::Arctan2;
+        return built_in_function::arctan2;
       default:
         // Other cases handled by the assertion below.
         break;

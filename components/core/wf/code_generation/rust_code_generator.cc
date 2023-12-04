@@ -12,15 +12,15 @@ std::string rust_code_generator::generate_code(const ast::function_signature& si
   return result.get_output();
 }
 
-constexpr std::string_view type_string_from_numeric_type(NumericType type) {
+constexpr std::string_view type_string_from_numeric_type(code_numeric_type type) {
   switch (type) {
-    case NumericType::Bool:
+    case code_numeric_type::boolean:
       return "bool";
-    case NumericType::Integer:
+    case code_numeric_type::integral:
       return "i64";
-    case NumericType::Real:
+    case code_numeric_type::floating_point:
       return "f64";
-    case NumericType::Complex:
+    case code_numeric_type::complex:
       throw type_error("No complex number type yet in Rust");
   }
   throw type_error("Not a valid enum value: {}", string_from_numeric_type(type));
@@ -117,7 +117,7 @@ void rust_code_generator::format_signature(math::code_formatter& formatter,
           const ast::matrix_type mat = std::get<ast::matrix_type>(arg->type());
           formatter.format("T{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
                            span_type_from_direction(arg->direction()), mat.rows(), mat.cols(),
-                           type_string_from_numeric_type(NumericType::Real));
+                           type_string_from_numeric_type(code_numeric_type::floating_point));
         }
       }
     });
@@ -256,15 +256,15 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::input
 }
 
 static constexpr std::string_view rust_string_for_symbolic_constant(
-    const SymbolicConstants value) noexcept {
+    const symbolic_constants value) noexcept {
   switch (value) {
-    case SymbolicConstants::Euler:
+    case symbolic_constants::euler:
       return "std::f64::consts::E";
-    case SymbolicConstants::Pi:
+    case symbolic_constants::pi:
       return "std::f64::consts::PI";
-    case SymbolicConstants::True:
+    case symbolic_constants::boolean_true:
       return "true";
-    case SymbolicConstants::False:
+    case symbolic_constants::boolean_false:
       return "false";
   }
   return "<INVALID ENUM VALUE>";

@@ -193,7 +193,7 @@ TEST(IntegerUtils, TestCompareIntFloat) {
   EXPECT_EQ(relative_order::greater_than, compare_int_float(i64_min, next_down<double>(i64_min)));
   EXPECT_EQ(relative_order::less_than, compare_int_float(i64_min, next_up<double>(i64_min)));
 
-  // int::max gets rounded up in float, so this should be LessThan (not equal):
+  // int::max gets rounded up in float, so this should be less_than (not equal):
   EXPECT_EQ(relative_order::less_than, compare_int_float(i32_max, static_cast<float>(i32_max)));
   EXPECT_EQ(relative_order::less_than, compare_int_float(i64_max, static_cast<double>(i64_max)));
   EXPECT_EQ(relative_order::greater_than, compare_int_float(i32_max, next_down<float>(i32_max)));

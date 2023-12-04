@@ -454,7 +454,7 @@ class limit_visitor {
     }
 
     switch (func.enum_value()) {
-      case BuiltInFunction::Log: {
+      case built_in_function::ln: {
         WF_ASSERT_EQUAL(1, args.size());
         if (is_zero(args[0])) {
           // In the context of a limit, allow log(0) --> -∞

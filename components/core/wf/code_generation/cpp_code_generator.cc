@@ -50,15 +50,15 @@ std::string cpp_code_generator::generate_code(const ast::function_signature& sig
 }
 
 constexpr static std::string_view cpp_string_from_numeric_cast_type(
-    const NumericType destination_type) noexcept {
+    const code_numeric_type destination_type) noexcept {
   switch (destination_type) {
-    case NumericType::Bool:
+    case code_numeric_type::boolean:
       return "bool";
-    case NumericType::Integer:
+    case code_numeric_type::integral:
       return "std::int64_t";
-    case NumericType::Real:
+    case code_numeric_type::floating_point:
       return "Scalar";
-    case NumericType::Complex:
+    case code_numeric_type::complex:
       return "std::complex<Scalar>";
   }
   return "<INVALID ENUM VALUE>";
@@ -103,7 +103,7 @@ void cpp_code_generator::format_signature(code_formatter& formatter,
       }
       ++counter;
     } else {
-      const NumericType numeric_type = std::get<ast::scalar_type>(arg->type()).numeric_type();
+      const code_numeric_type numeric_type = std::get<ast::scalar_type>(arg->type()).numeric_type();
       if (arg->direction() == ast::argument_direction::input) {
         formatter.format("const {}", cpp_string_from_numeric_cast_type(numeric_type));
       } else {
@@ -237,15 +237,15 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::divide
 }
 
 static constexpr std::string_view cpp_string_for_symbolic_constant(
-    const SymbolicConstants value) noexcept {
+    const symbolic_constants value) noexcept {
   switch (value) {
-    case SymbolicConstants::Euler:
+    case symbolic_constants::euler:
       return "M_E";
-    case SymbolicConstants::Pi:
+    case symbolic_constants::pi:
       return "M_PI";
-    case SymbolicConstants::True:
+    case symbolic_constants::boolean_true:
       return "true";
-    case SymbolicConstants::False:
+    case symbolic_constants::boolean_false:
       return "false";
   }
   return "<INVALID ENUM VALUE>";

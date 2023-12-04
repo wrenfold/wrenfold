@@ -19,12 +19,13 @@ namespace math::ast {
 // Represent a scalar argument type (float, int, etc).
 class scalar_type {
  public:
-  explicit constexpr scalar_type(NumericType numeric_type) noexcept : numeric_type_(numeric_type) {}
+  explicit constexpr scalar_type(code_numeric_type numeric_type) noexcept
+      : numeric_type_(numeric_type) {}
 
-  constexpr NumericType numeric_type() const noexcept { return numeric_type_; }
+  constexpr code_numeric_type numeric_type() const noexcept { return numeric_type_; }
 
  private:
-  NumericType numeric_type_;
+  code_numeric_type numeric_type_;
 };
 
 // Represent a matrix argument type. The dimensions are known at generation time.
@@ -209,17 +210,17 @@ struct call {
 
 // Cast a scalar from one numeric type to another.
 struct cast {
-  NumericType destination_type;
-  NumericType source_type;
+  code_numeric_type destination_type;
+  code_numeric_type source_type;
   variant_ptr arg;
 
-  cast(NumericType destination_type, NumericType source_type, const variant_ptr& arg)
+  cast(code_numeric_type destination_type, code_numeric_type source_type, const variant_ptr& arg)
       : destination_type(destination_type), source_type(source_type), arg(arg) {}
 };
 
 // A relational comparison.
 struct compare {
-  RelationalOperation operation{};
+  relational_operation operation{};
   variant_ptr left;
   variant_ptr right;
 };
@@ -237,15 +238,15 @@ struct declaration {
   // Name for the value being declared
   std::string name;
   // Type of the value:
-  NumericType type;
+  code_numeric_type type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
   variant_ptr value{};
 
-  declaration(std::string name, NumericType type, variant_ptr value);
+  declaration(std::string name, code_numeric_type type, variant_ptr value);
 
   // Construct w/ no rhs.
-  declaration(std::string name, NumericType type) : name(std::move(name)), type(type) {}
+  declaration(std::string name, code_numeric_type type) : name(std::move(name)), type(type) {}
 };
 
 // Divide first operand by second operand.
@@ -307,7 +308,7 @@ struct optional_output_branch {
 
 // Use a symbolic constant in the output code.
 struct special_constant {
-  SymbolicConstants value;
+  symbolic_constants value;
 };
 
 // Create AST from the IR:
@@ -324,7 +325,7 @@ inline construct_return_value::construct_return_value(ast::argument_type type,
                                                       std::vector<ast::variant>&& args)
     : type(type), args(std::move(args)) {}
 
-inline declaration::declaration(std::string name, NumericType type, variant_ptr value)
+inline declaration::declaration(std::string name, code_numeric_type type, variant_ptr value)
     : name(std::move(name)), type(type), value(std::move(value)) {}
 
 }  // namespace math::ast

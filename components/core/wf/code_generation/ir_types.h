@@ -44,13 +44,14 @@ class cast {
   }
 
   // Construct w/ destination type.
-  constexpr explicit cast(NumericType destination) noexcept : destination_type_(destination) {}
+  constexpr explicit cast(code_numeric_type destination) noexcept
+      : destination_type_(destination) {}
 
   // Access the target type we are casting to.
-  constexpr NumericType destination_type() const noexcept { return destination_type_; }
+  constexpr code_numeric_type destination_type() const noexcept { return destination_type_; }
 
  private:
-  NumericType destination_type_;
+  code_numeric_type destination_type_;
 };
 
 // A call to a built-in mathematical function like sin, cos, log, etc.
@@ -82,11 +83,11 @@ class compare {
 
   constexpr std::string_view to_string() const noexcept {
     switch (operation_) {
-      case RelationalOperation::LessThan:
+      case relational_operation::less_than:
         return "lt";
-      case RelationalOperation::LessThanOrEqual:
+      case relational_operation::less_than_or_equal:
         return "lte";
-      case RelationalOperation::Equal:
+      case relational_operation::equal:
         return "eq";
     }
     return "<NOT A VALID ENUM VALUE>";
@@ -97,13 +98,13 @@ class compare {
     return operation_ == comp.operation_;
   }
 
-  explicit constexpr compare(RelationalOperation operation) noexcept : operation_(operation) {}
+  explicit constexpr compare(relational_operation operation) noexcept : operation_(operation) {}
 
   // Access operation enum.
-  constexpr RelationalOperation operation() const noexcept { return operation_; }
+  constexpr relational_operation operation() const noexcept { return operation_; }
 
  private:
-  RelationalOperation operation_;
+  relational_operation operation_;
 };
 
 // A trinary we use prior to insertion of conditional logic:
@@ -317,7 +318,7 @@ class value {
   // Construct:
   template <typename OpType>
   value(uint32_t name, ir::block_ptr parent, OpType&& operation,
-        std::optional<NumericType> numeric_type, operands_container&& operands)
+        std::optional<code_numeric_type> numeric_type, operands_container&& operands)
       : name_(name),
         parent_(parent),
         op_(std::forward<OpType>(operation)),
@@ -339,7 +340,7 @@ class value {
   // Construct with input values specified as variadic arg list.
   template <typename Op, typename... Args, typename = enable_if_convertible_to_value_ptr<Args...>>
   value(uint32_t name, ir::block_ptr parent, Op&& operation,
-        std::optional<NumericType> numeric_type, Args... args)
+        std::optional<code_numeric_type> numeric_type, Args... args)
       : value(name, parent, std::forward<Op>(operation), numeric_type,
               operands_container{args...}) {}
 
@@ -378,7 +379,7 @@ class value {
 
   // Change the underlying operation that computes this value.
   template <typename OpType, typename... Args>
-  void set_value_op(OpType&& op, std::optional<NumericType> numeric_type, Args... args) {
+  void set_value_op(OpType&& op, std::optional<code_numeric_type> numeric_type, Args... args) {
     // Notify existing operands we no longer reference them
     for (const value_ptr& operand : operands_) {
       operand->remove_consumer(this);
@@ -447,7 +448,7 @@ class value {
   }
 
   // Access the underlying numeric type.
-  NumericType numeric_type() const {
+  code_numeric_type numeric_type() const {
     WF_ASSERT(numeric_type_.has_value());
     return *numeric_type_;
   }
@@ -491,7 +492,7 @@ class value {
   std::vector<value_ptr> consumers_;
 
   // The cached numeric type of this operation. Optional because some operations lack a type.
-  std::optional<NumericType> numeric_type_;
+  std::optional<code_numeric_type> numeric_type_;
 };
 
 // Count instances of operation of type `T`.

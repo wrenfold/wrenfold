@@ -12,7 +12,7 @@ class Constant {
   static constexpr bool IsLeafNode = true;
 
   // Construct with name.
-  explicit constexpr Constant(SymbolicConstants name) noexcept : name_(name) {}
+  explicit constexpr Constant(symbolic_constants name) noexcept : name_(name) {}
 
   // Check if symbolic constants are the same.
   constexpr bool is_identical_to(const Constant& other) const noexcept {
@@ -20,10 +20,10 @@ class Constant {
   }
 
   // Access name.
-  constexpr SymbolicConstants name() const noexcept { return name_; }
+  constexpr symbolic_constants name() const noexcept { return name_; }
 
  protected:
-  SymbolicConstants name_;
+  symbolic_constants name_;
 };
 
 // Complex infinity (the north-pole of the riemann sphere).
@@ -46,16 +46,16 @@ class Undefined {
   constexpr bool is_identical_to(const Undefined&) const noexcept { return true; }
 };
 
-// Convert `SymbolicConstants` to a floating point double.
-constexpr double double_from_symbolic_constant(SymbolicConstants constant) noexcept {
+// Convert `symbolic_constants` to a floating point double.
+constexpr double double_from_symbolic_constant(symbolic_constants constant) noexcept {
   switch (constant) {
-    case SymbolicConstants::Euler:
+    case symbolic_constants::euler:
       return M_E;
-    case SymbolicConstants::Pi:
+    case symbolic_constants::pi:
       return M_PI;
-    case SymbolicConstants::True:
+    case symbolic_constants::boolean_true:
       return 1.0;
-    case SymbolicConstants::False:
+    case symbolic_constants::boolean_false:
       return 0.0;
   }
   return std::numeric_limits<double>::quiet_NaN();

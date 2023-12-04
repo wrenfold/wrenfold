@@ -179,19 +179,19 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("false") = constants::boolean_false;
 
   // Function enums.
-  py::enum_<BuiltInFunction>(m, "BuiltInFunction")
-      .value("Cos", BuiltInFunction::Cos)
-      .value("Sin", BuiltInFunction::Sin)
-      .value("Tan", BuiltInFunction::Tan)
-      .value("ArcCos", BuiltInFunction::ArcCos)
-      .value("ArcSin", BuiltInFunction::ArcSin)
-      .value("ArcTan", BuiltInFunction::ArcTan)
-      .value("Log", BuiltInFunction::Log)
-      .value("Abs", BuiltInFunction::Abs)
-      .value("Signum", BuiltInFunction::Signum)
-      .value("Arctan2", BuiltInFunction::Arctan2)
+  py::enum_<built_in_function>(m, "BuiltInFunction")
+      .value("Cos", built_in_function::cos)
+      .value("Sin", built_in_function::sin)
+      .value("Tan", built_in_function::tan)
+      .value("ArcCos", built_in_function::arccos)
+      .value("ArcSin", built_in_function::arcsin)
+      .value("ArcTan", built_in_function::arctan)
+      .value("Log", built_in_function::ln)
+      .value("Abs", built_in_function::abs)
+      .value("Signum", built_in_function::signum)
+      .value("Arctan2", built_in_function::arctan2)
       .def(
-          "to_string", [](BuiltInFunction name) { return string_from_built_in_function(name); },
+          "to_string", [](built_in_function name) { return string_from_built_in_function(name); },
           py::doc("Convert to string."));
 
   // Exceptions:

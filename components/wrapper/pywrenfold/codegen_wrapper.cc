@@ -120,16 +120,16 @@ void wrap_codegen_operations(py::module_& m) {
           [](StdMathFunction name) { return string_from_standard_library_function(name); },
           py::doc("Convert to string."));
 
-  py::enum_<NumericType>(m, "NumericType")
-      .value("Bool", NumericType::Bool)
-      .value("Integer", NumericType::Integer)
-      .value("Real", NumericType::Real)
-      .value("Complex", NumericType::Complex);
+  py::enum_<code_numeric_type>(m, "NumericType")
+      .value("Bool", code_numeric_type::boolean)
+      .value("Integer", code_numeric_type::integral)
+      .value("Real", code_numeric_type::floating_point)
+      .value("Complex", code_numeric_type::complex);
 
-  py::enum_<RelationalOperation>(m, "RelationalOperation")
-      .value("LessThan", RelationalOperation::LessThan)
-      .value("LessThanOrEqual", RelationalOperation::LessThanOrEqual)
-      .value("Equal", RelationalOperation::Equal);
+  py::enum_<relational_operation>(m, "RelationalOperation")
+      .value("LessThan", relational_operation::less_than)
+      .value("LessThanOrEqual", relational_operation::less_than_or_equal)
+      .value("Equal", relational_operation::equal);
 
   py::enum_<ast::argument_direction>(m, "ArgumentDirection")
       .value("Input", ast::argument_direction::input)
@@ -137,7 +137,7 @@ void wrap_codegen_operations(py::module_& m) {
       .value("OptionalOutput", ast::argument_direction::optional_output);
 
   py::class_<ast::scalar_type>(m, "ScalarType")
-      .def(py::init<NumericType>())
+      .def(py::init<code_numeric_type>())
       .def_property_readonly("numeric_type", &ast::scalar_type::numeric_type)
       .def("__repr__", &format_ast<ast::scalar_type>);
 

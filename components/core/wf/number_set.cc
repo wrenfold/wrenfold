@@ -60,7 +60,7 @@ class determine_set_visitor {
   }
 
   constexpr NumberSet operator()(const Constant& c) const noexcept {
-    if (c.name() == SymbolicConstants::False) {
+    if (c.name() == symbolic_constants::boolean_false) {
       return NumberSet::RealNonNegative;
     }
     return NumberSet::RealPositive;
@@ -82,40 +82,40 @@ class determine_set_visitor {
     }
 
     switch (func.enum_value()) {
-      case BuiltInFunction::Cos:
-      case BuiltInFunction::Sin: {
+      case built_in_function::cos:
+      case built_in_function::sin: {
         if (is_real_set(args[0])) {
           return NumberSet::Real;
         }
         return NumberSet::Complex;
       }
-      case BuiltInFunction::Tan:
+      case built_in_function::tan:
         // Any real argument could be +/- pi/2, which is unknown
         return NumberSet::Unknown;
-      case BuiltInFunction::ArcCos:
-      case BuiltInFunction::ArcSin:
-      case BuiltInFunction::ArcTan:
+      case built_in_function::arccos:
+      case built_in_function::arcsin:
+      case built_in_function::arctan:
         return NumberSet::Unknown;  //  TODO: implement inverse trig functions.
-      case BuiltInFunction::Log: {
+      case built_in_function::ln: {
         if (args[0] == NumberSet::RealPositive) {
           return NumberSet::RealPositive;
         }
         // Otherwise could be zero.
         return NumberSet::Unknown;
       }
-      case BuiltInFunction::Abs: {
+      case built_in_function::abs: {
         if (args[0] == NumberSet::RealPositive) {
           return NumberSet::RealPositive;
         }
         return NumberSet::RealNonNegative;
       }
-      case BuiltInFunction::Signum: {
+      case built_in_function::signum: {
         if (is_real_set(args[0])) {
           return args[0];
         }
         return NumberSet::Unknown;
       }
-      case BuiltInFunction::Arctan2:
+      case built_in_function::arctan2:
         // Can always be undefined.
         return NumberSet::Unknown;
     }

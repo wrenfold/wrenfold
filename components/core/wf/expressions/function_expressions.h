@@ -16,14 +16,14 @@ class Function {
   using ContainerType = absl::InlinedVector<Expr, 2>;
 
   template <typename... Args>
-  Function(BuiltInFunction func, Args&&... args)
+  Function(built_in_function func, Args&&... args)
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
-  static Expr create(BuiltInFunction name, ContainerType&& container);
+  static Expr create(built_in_function name, ContainerType&& container);
 
   // Get the function name.
-  constexpr BuiltInFunction enum_value() const noexcept { return func_; }
+  constexpr built_in_function enum_value() const noexcept { return func_; }
 
   // Get name as a string.
   constexpr std::string_view function_name() const noexcept {
@@ -63,7 +63,7 @@ class Function {
   }
 
  protected:
-  BuiltInFunction func_;
+  built_in_function func_;
   ContainerType args_;
 };
 
@@ -76,27 +76,27 @@ struct hash_struct<Function> {
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic because each type of function has simplifications it applies.
-inline Expr Function::create(BuiltInFunction name, Function::ContainerType&& container) {
+inline Expr Function::create(built_in_function name, Function::ContainerType&& container) {
   switch (name) {
-    case BuiltInFunction::Cos:
+    case built_in_function::cos:
       return cos(container.front());
-    case BuiltInFunction::Sin:
+    case built_in_function::sin:
       return sin(container.front());
-    case BuiltInFunction::Tan:
+    case built_in_function::tan:
       return tan(container.front());
-    case BuiltInFunction::ArcCos:
+    case built_in_function::arccos:
       return acos(container.front());
-    case BuiltInFunction::ArcSin:
+    case built_in_function::arcsin:
       return asin(container.front());
-    case BuiltInFunction::ArcTan:
+    case built_in_function::arctan:
       return atan(container.front());
-    case BuiltInFunction::Log:
+    case built_in_function::ln:
       return log(container.front());
-    case BuiltInFunction::Abs:
+    case built_in_function::abs:
       return abs(container.front());
-    case BuiltInFunction::Signum:
+    case built_in_function::signum:
       return signum(container.front());
-    case BuiltInFunction::Arctan2:
+    case built_in_function::arctan2:
       return atan2(container[0], container[1]);
   }
   WF_ASSERT(false, "Invalid function name: {}", string_from_built_in_function(name));

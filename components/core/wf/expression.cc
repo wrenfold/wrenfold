@@ -47,23 +47,23 @@ Expr operator/(const Expr& a, const Expr& b) {
 }
 
 Expr operator<(const Expr& a, const Expr& b) {
-  return Relational::create(RelationalOperation::LessThan, a, b);
+  return Relational::create(relational_operation::less_than, a, b);
 }
 
 Expr operator>(const Expr& a, const Expr& b) {
-  return Relational::create(RelationalOperation::LessThan, b, a);
+  return Relational::create(relational_operation::less_than, b, a);
 }
 
 Expr operator<=(const Expr& a, const Expr& b) {
-  return Relational::create(RelationalOperation::LessThanOrEqual, a, b);
+  return Relational::create(relational_operation::less_than_or_equal, a, b);
 }
 
 Expr operator>=(const Expr& a, const Expr& b) {
-  return Relational::create(RelationalOperation::LessThanOrEqual, b, a);
+  return Relational::create(relational_operation::less_than_or_equal, b, a);
 }
 
 Expr operator==(const Expr& a, const Expr& b) {
-  return Relational::create(RelationalOperation::Equal, a, b);
+  return Relational::create(relational_operation::equal, a, b);
 }
 
 // Visitor to determine mathematical precedence.
