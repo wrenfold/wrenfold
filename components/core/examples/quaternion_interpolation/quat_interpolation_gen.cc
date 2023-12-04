@@ -14,7 +14,7 @@ int main() {
 
   code += "namespace gen {\n\n";
 
-  CppCodeGenerator gen{};
+  cpp_code_generator gen{};
   generate_func(gen, code, &quaternion_interpolation, "quaternion_interpolation", "q0", "q1",
                 "alpha");
 

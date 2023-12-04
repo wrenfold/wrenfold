@@ -3,17 +3,18 @@
 
 namespace math {
 
-// Abstract base for type-erased expressions. See `ExpressionImpl` for the implementation.
-class ExpressionConcept {
+// Abstract base for type-erased expressions. See `expression_implementation` for the
+// implementation.
+class expression_concept {
  public:
-  virtual ~ExpressionConcept() = default;
+  virtual ~expression_concept() = default;
 
   // Construct w/ hash.
-  explicit ExpressionConcept(std::size_t hash, std::size_t type_index)
+  explicit expression_concept(std::size_t hash, std::size_t type_index)
       : hash_(hash), type_index_(type_index) {}
 
   // Test if two expressions are identical.
-  virtual bool is_identical_to(const ExpressionConcept& other) const = 0;
+  virtual bool is_identical_to(const expression_concept& other) const = 0;
 
   // Get the string name of the underlying expression.
   virtual std::string_view type_name() const = 0;
@@ -24,9 +25,9 @@ class ExpressionConcept {
   // Check if the underlying derived type is one of `... Ts`.
   template <typename... Ts>
   constexpr bool is_type() const noexcept {
-    static_assert((type_list_contains_type_v<Ts, ExpressionTypeList> && ...),
+    static_assert((type_list_contains_type_v<Ts, expression_type_list> && ...),
                   "Ts is not a valid expression type");
-    return ((index_of_type_v<Ts, ExpressionTypeList> == type_index_) || ...);
+    return ((index_of_type_v<Ts, expression_type_list> == type_index_) || ...);
   }
 
   // Retrieve the hash of the expression.

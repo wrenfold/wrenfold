@@ -6,43 +6,43 @@ namespace math {
 // A simple range type to allow forward-iterating over a sequence of integers as though
 // they were a container. Only intended to contain primitive integers.
 template <typename T>
-struct IndexRange {
-  struct Iterator {
+struct index_range {
+  struct iterator {
    public:
-    constexpr bool operator==(const Iterator& other) const {
+    constexpr bool operator==(const iterator& other) const noexcept {
       return value_ == other.value_ && stop_ == other.stop_;
     }
 
-    constexpr bool operator!=(const Iterator& other) const {
+    constexpr bool operator!=(const iterator& other) const noexcept {
       return value_ != other.value_ || stop_ != other.stop_;
     }
 
-    constexpr Iterator& operator++() {
+    constexpr iterator& operator++() noexcept {
       ++value_;
       return *this;
     }
 
-    constexpr Iterator operator++(int) {
-      Iterator copy = *this;
+    constexpr iterator operator++(int) noexcept {
+      iterator copy = *this;
       ++value_;
       return copy;
     }
 
-    constexpr const T& operator*() const { return value_; }
+    constexpr const T& operator*() const noexcept { return value_; }
 
-    constexpr Iterator(T value, T stop) : value_(value), stop_(stop) {}
+    constexpr iterator(T value, T stop) noexcept : value_(value), stop_(stop) {}
 
    private:
     T value_;
     T stop_;
   };
 
-  constexpr IndexRange(T start, T stop) : start_(start), stop_(stop) {}
+  constexpr index_range(T start, T stop) : start_(start), stop_(stop) {}
 
-  constexpr auto begin() const { return Iterator{start_, stop_}; }
-  constexpr auto end() const { return Iterator{stop_, stop_}; }
-  constexpr auto cbegin() const { return begin(); }
-  constexpr auto cend() const { return end(); }
+  constexpr auto begin() const noexcept { return iterator{start_, stop_}; }
+  constexpr auto end() const noexcept { return iterator{stop_, stop_}; }
+  constexpr auto cbegin() const noexcept { return begin(); }
+  constexpr auto cend() const noexcept { return end(); }
 
  private:
   T start_;
@@ -50,8 +50,8 @@ struct IndexRange {
 };
 
 template <typename T>
-constexpr auto make_range(T start, T stop) {
-  return IndexRange<T>{start, stop};
+constexpr auto make_range(T start, T stop) noexcept {
+  return index_range<T>{start, stop};
 }
 
 static_assert(*(++make_range(0, 5).begin()) == 1);

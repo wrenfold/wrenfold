@@ -8,28 +8,28 @@
 namespace math {
 
 class Expr;
-class ExpressionConcept;
+class expression_concept;
 
 // TODO: Allow switching this out for something w/o atomic operations?
-using expression_concept_const_ptr = std::shared_ptr<const class ExpressionConcept>;
+using expression_concept_const_ptr = std::shared_ptr<const class expression_concept>;
 
 // clang-format off
-using ExpressionTypeList = type_list<
-    class Addition,
-    class CastBool,
-    class Conditional,
-    class Constant,
-    class Derivative,
-    class Float,
-    class Function,
-    class Infinity,
-    class Integer,
-    class Multiplication,
-    class Power,
-    class Rational,
-    class Relational,
-    class Undefined,
-    class Variable
+using expression_type_list = type_list<
+    class addition,
+    class cast_bool,
+    class conditional,
+    class symbolic_constant,
+    class derivative,
+    class float_constant,
+    class function,
+    class complex_infinity,
+    class integer_constant,
+    class multiplication,
+    class power,
+    class rational_constant,
+    class relational,
+    class undefined,
+    class variable
     >;
 // clang-format on
 

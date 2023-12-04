@@ -4,44 +4,44 @@
 
 namespace math {
 
-std::string RustCodeGenerator::generate_code(const ast::FunctionSignature& signature,
-                                             const std::vector<ast::Variant>& body) const {
-  CodeFormatter result{};
+std::string rust_code_generator::generate_code(const ast::function_signature& signature,
+                                               const std::vector<ast::variant>& body) const {
+  code_formatter result{};
   format_signature(result, signature);
   result.with_indentation(2, "{\n", "\n}", [&] { result.join(*this, "\n", body); });
   return result.get_output();
 }
 
-constexpr std::string_view type_string_from_numeric_type(NumericType type) {
+constexpr std::string_view type_string_from_numeric_type(code_numeric_type type) {
   switch (type) {
-    case NumericType::Bool:
+    case code_numeric_type::boolean:
       return "bool";
-    case NumericType::Integer:
+    case code_numeric_type::integral:
       return "i64";
-    case NumericType::Real:
+    case code_numeric_type::floating_point:
       return "f64";
-    case NumericType::Complex:
-      throw TypeError("No complex number type yet in Rust");
+    case code_numeric_type::complex:
+      throw type_error("No complex number type yet in Rust");
   }
-  throw TypeError("Not a valid enum value: {}", string_from_numeric_type(type));
+  throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
 }
 
-constexpr std::string_view type_string_from_numeric_type(const ast::ScalarType& scalar) {
+constexpr std::string_view type_string_from_numeric_type(const ast::scalar_type& scalar) {
   return type_string_from_numeric_type(scalar.numeric_type());
 }
 
-constexpr std::string_view span_type_from_direction(ast::ArgumentDirection direction) {
+constexpr std::string_view span_type_from_direction(ast::argument_direction direction) {
   switch (direction) {
-    case ast::ArgumentDirection::Input:
+    case ast::argument_direction::input:
       return "Span2D";
-    case ast::ArgumentDirection::Output:
-    case ast::ArgumentDirection::OptionalOutput:
+    case ast::argument_direction::output:
+    case ast::argument_direction::optional_output:
       return "OutputSpan2D";
   }
   return "<NOT A VALID ENUM VALUE>";
 }
 
-static std::vector<std::string_view> get_attributes(const ast::FunctionSignature& signature) {
+static std::vector<std::string_view> get_attributes(const ast::function_signature& signature) {
   std::vector<std::string_view> result{};
 
   // TODO: Properly checking for snake case would require doing upper/lower case comparison with
@@ -57,8 +57,8 @@ static std::vector<std::string_view> get_attributes(const ast::FunctionSignature
   return result;
 }
 
-void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
-                                         const ast::FunctionSignature& signature) const {
+void rust_code_generator::format_signature(math::code_formatter& formatter,
+                                           const ast::function_signature& signature) const {
   formatter.format("#[inline]\n");
 
   const auto attributes = get_attributes(signature);
@@ -90,13 +90,13 @@ void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
     }
 
     switch (arg->direction()) {
-      case ast::ArgumentDirection::Input:
+      case ast::argument_direction::input:
         formatter.format("{}{}, ", arg->is_matrix() ? "&" : "", output_type);
         break;
-      case ast::ArgumentDirection::Output:
+      case ast::argument_direction::output:
         formatter.format("&mut {}, ", output_type);
         break;
-      case ast::ArgumentDirection::OptionalOutput:
+      case ast::argument_direction::optional_output:
         formatter.format("Option<&mut {}>, ", output_type);
         break;
     }
@@ -105,7 +105,7 @@ void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
   if (!signature.return_value) {
     formatter.format(")\n");
   } else {
-    const auto& scalar = std::get<ast::ScalarType>(*signature.return_value);
+    const auto& scalar = std::get<ast::scalar_type>(*signature.return_value);
     formatter.format(") -> {}\n", type_string_from_numeric_type(scalar));
   }
 
@@ -114,30 +114,30 @@ void RustCodeGenerator::format_signature(math::CodeFormatter& formatter,
       std::size_t counter = 0;
       for (const auto& arg : signature.arguments) {
         if (arg->is_matrix()) {
-          const ast::MatrixType mat = std::get<ast::MatrixType>(arg->type());
+          const ast::matrix_type mat = std::get<ast::matrix_type>(arg->type());
           formatter.format("T{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
                            span_type_from_direction(arg->direction()), mat.rows(), mat.cols(),
-                           type_string_from_numeric_type(NumericType::Real));
+                           type_string_from_numeric_type(code_numeric_type::floating_point));
         }
       }
     });
   }
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::add& x) const {
   formatter.format("{} + {}", make_view(x.left), make_view(x.right));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter,
-                                   const ast::AssignOutputArgument& assignment) const {
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::assign_output_argument& assignment) const {
   const auto& dest_name = assignment.argument->name();
-  const ast::Type& type = assignment.argument->type();
+  const ast::argument_type& type = assignment.argument->type();
 
-  if (std::holds_alternative<ast::MatrixType>(type)) {
-    const ast::MatrixType mat = std::get<ast::MatrixType>(type);
+  if (std::holds_alternative<ast::matrix_type>(type)) {
+    const ast::matrix_type mat = std::get<ast::matrix_type>(type);
     auto range = make_range<std::size_t>(0, assignment.values.size());
     formatter.join(
-        [&](CodeFormatter& fmt, std::size_t i) {
+        [&](code_formatter& fmt, std::size_t i) {
           const auto [row, col] = mat.compute_indices(i);
           fmt.format("{}.set({}, {}, {});", dest_name, row, col, make_view(assignment.values[i]));
         },
@@ -149,11 +149,12 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter,
   }
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTemporary& x) const {
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::assign_temporary& x) const {
   formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::branch& x) const {
   WF_ASSERT(x.condition);
   formatter.format("if {} ", make_view(x.condition));
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.if_branch); });
@@ -165,33 +166,33 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& 
 }
 
 static constexpr std::string_view rust_string_for_std_function(
-    const StdMathFunction name) noexcept {
+    const std_math_function name) noexcept {
   switch (name) {
-    case StdMathFunction::Cos:
+    case std_math_function::cos:
       return "f64::cos";
-    case StdMathFunction::Sin:
+    case std_math_function::sin:
       return "f64::sin";
-    case StdMathFunction::Tan:
+    case std_math_function::tan:
       return "f64::tan";
-    case StdMathFunction::ArcCos:
+    case std_math_function::acos:
       return "f64::acos";
-    case StdMathFunction::ArcSin:
+    case std_math_function::asin:
       return "f64::asin";
-    case StdMathFunction::ArcTan:
+    case std_math_function::atan:
       return "f64::atan";
-    case StdMathFunction::Log:
+    case std_math_function::log:
       return "f64::ln";
-    case StdMathFunction::Sqrt:
+    case std_math_function::sqrt:
       return "f64::sqrt";
-    case StdMathFunction::Abs:
+    case std_math_function::abs:
       return "f64::abs";
-    case StdMathFunction::Signum:
+    case std_math_function::signum:
       return "f64::signum";
-    case StdMathFunction::Arctan2:
+    case std_math_function::atan2:
       return "f64::atan2";
-    case StdMathFunction::Powi:
+    case std_math_function::powi:
       return "f64::powi";
-    case StdMathFunction::Powf:
+    case std_math_function::powf:
       return "f64::powf";
     default:
       break;
@@ -199,9 +200,9 @@ static constexpr std::string_view rust_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::call& x) const {
   // We have to override signum specially here, because the built-in rust signum does not return 0.
-  if (x.function == StdMathFunction::Signum) {
+  if (x.function == std_math_function::signum) {
     // TODO: should be an integer expression:
     formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
                      make_view(x.args[0]));
@@ -211,26 +212,26 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x)
   }
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::cast& x) const {
   // TODO: Parens are sometimes superfluous here.
   formatter.format("({}) as {}", make_view(x.arg),
                    type_string_from_numeric_type(x.destination_type));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::compare& x) const {
   // TODO: Parens are sometimes superfluous.
   formatter.format("({}) {} ({})", make_view(x.left), string_from_relational_operation(x.operation),
                    make_view(x.right));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter,
-                                   const ast::ConstructReturnValue& x) const {
-  WF_ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::construct_return_value& x) const {
+  WF_ASSERT(std::holds_alternative<ast::scalar_type>(x.type), "We cannot return matrices");
   WF_ASSERT_EQUAL(1, x.args.size());
   formatter.format("{}", make_view(x.args[0]));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::declaration& x) const {
   if (!x.value) {
     formatter.format("let {}: {};", x.name, type_string_from_numeric_type(x.type));
   } else {
@@ -239,14 +240,14 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarat
   }
 }
 
-void RustCodeGenerator::operator()(math::CodeFormatter& formatter, const ast::Divide& x) const {
+void rust_code_generator::operator()(math::code_formatter& formatter, const ast::divide& x) const {
   formatter.format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::input_value& x) const {
   WF_ASSERT(x.argument);
   if (x.argument->is_matrix()) {
-    const ast::MatrixType mat = std::get<ast::MatrixType>(x.argument->type());
+    const ast::matrix_type mat = std::get<ast::matrix_type>(x.argument->type());
     const auto [r, c] = mat.compute_indices(x.element);
     formatter.format("{}.get({}, {})", x.argument->name(), r, c);
   } else {
@@ -255,31 +256,32 @@ void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputVal
 }
 
 static constexpr std::string_view rust_string_for_symbolic_constant(
-    const SymbolicConstants value) noexcept {
+    const symbolic_constant_enum value) noexcept {
   switch (value) {
-    case SymbolicConstants::Euler:
+    case symbolic_constant_enum::euler:
       return "std::f64::consts::E";
-    case SymbolicConstants::Pi:
+    case symbolic_constant_enum::pi:
       return "std::f64::consts::PI";
-    case SymbolicConstants::True:
+    case symbolic_constant_enum::boolean_true:
       return "true";
-    case SymbolicConstants::False:
+    case symbolic_constant_enum::boolean_false:
       return "false";
   }
   return "<INVALID ENUM VALUE>";
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::SpecialConstant& x) const {
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::special_constant& x) const {
   formatter.format("{}", rust_string_for_symbolic_constant(x.value));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply& x) const {
+void rust_code_generator::operator()(code_formatter& formatter, const ast::multiply& x) const {
   formatter.format("{} * {}", make_view(x.left), make_view(x.right));
 }
 
-void RustCodeGenerator::operator()(CodeFormatter& formatter,
-                                   const ast::OptionalOutputBranch& x) const {
-  formatter.format("if let Some({}) = {} ", x.argument->name(), x.argument->name());
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::optional_output_branch& x) const {
+  formatter.format("if let Some({}) = {} ", x.arg->name(), x.arg->name());
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
 }
 

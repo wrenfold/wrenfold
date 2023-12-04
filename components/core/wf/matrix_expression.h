@@ -15,7 +15,7 @@ namespace math {
 class MatrixExpr {
  public:
   // Construct w/ matrix content.
-  explicit MatrixExpr(class Matrix&& content);
+  explicit MatrixExpr(class matrix&& content);
 
   // Static constructor: Create a dense matrix of expressions.
   static MatrixExpr create(index_t rows, index_t cols, std::vector<Expr> args);
@@ -89,13 +89,13 @@ class MatrixExpr {
   Expr squared_norm() const;
 
   // Static cast to underlying matrix type.
-  const Matrix& as_matrix() const;
+  const matrix& as_matrix() const;
 
   // Convert to vector of expressions.
   std::vector<Expr> to_vector() const;
 
  private:
-  std::shared_ptr<const Matrix> matrix_;
+  std::shared_ptr<const matrix> matrix_;
 };
 
 static_assert(std::is_move_assignable_v<MatrixExpr> && std::is_move_constructible_v<MatrixExpr>,

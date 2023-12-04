@@ -12,25 +12,25 @@ using namespace math::custom_literals;
 
 TEST(DerivativesTest, TestConstants) {
   const Expr x{"x"};
-  ASSERT_IDENTICAL(Constants::Zero, (5_s).diff(x));
-  ASSERT_IDENTICAL(Constants::Zero, (22.5_s).diff(x, 4));
-  ASSERT_IDENTICAL(Constants::Zero, Constants::Pi.diff(x));
-  ASSERT_IDENTICAL(Constants::Zero, Constants::Euler.diff(x));
-  ASSERT_IDENTICAL(Constants::Zero, Constants::ComplexInfinity.diff(x));
-  ASSERT_THROW(x.diff(5), TypeError);
-  ASSERT_THROW(x.diff(Constants::Pi), TypeError);
+  ASSERT_IDENTICAL(constants::zero, (5_s).diff(x));
+  ASSERT_IDENTICAL(constants::zero, (22.5_s).diff(x, 4));
+  ASSERT_IDENTICAL(constants::zero, constants::pi.diff(x));
+  ASSERT_IDENTICAL(constants::zero, constants::euler.diff(x));
+  ASSERT_IDENTICAL(constants::zero, constants::complex_infinity.diff(x));
+  ASSERT_THROW(x.diff(5), type_error);
+  ASSERT_THROW(x.diff(constants::pi), type_error);
 }
 
 TEST(DerivativesTest, TestAdditionAndSubtraction) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_IDENTICAL(Constants::Zero, (x + y).diff(w));
-  ASSERT_IDENTICAL(Constants::Zero, (x - y).diff(w, 2));
-  ASSERT_IDENTICAL(Constants::One, (x + y).diff(y));
+  ASSERT_IDENTICAL(constants::zero, (x + y).diff(w));
+  ASSERT_IDENTICAL(constants::zero, (x - y).diff(w, 2));
+  ASSERT_IDENTICAL(constants::one, (x + y).diff(y));
   ASSERT_IDENTICAL(-1, (x - y).diff(y));
   ASSERT_IDENTICAL(-5 / 7_s, ((x - y * 5) / 7_s).diff(y));
-  ASSERT_IDENTICAL(Constants::Zero, (x - y).diff(y, 2));
+  ASSERT_IDENTICAL(constants::zero, (x - y).diff(y, 2));
   ASSERT_IDENTICAL(2, (x + y + x).diff(x));
 }
 
@@ -61,7 +61,7 @@ TEST(DerivativesTest, TestPower) {
   const Expr w{"w"};
   const Expr x{"x"};
   const Expr y{"y"};
-  ASSERT_IDENTICAL(Constants::Zero, pow(x, y).diff(w));
+  ASSERT_IDENTICAL(constants::zero, pow(x, y).diff(w));
 
   ASSERT_IDENTICAL(y * pow(x, y - 1), pow(x, y).diff(x));
   ASSERT_IDENTICAL(y * (y - 1) * pow(x, y - 2), pow(x, y).diff(x, 2));
@@ -102,15 +102,15 @@ TEST(DerivativesTest, TestInverseTrig) {
   const Expr x{"x"};
   const Expr y{"y"};
 
-  ASSERT_IDENTICAL(Constants::Zero, acos(5).diff(x));
+  ASSERT_IDENTICAL(constants::zero, acos(5).diff(x));
   ASSERT_IDENTICAL(-1 / sqrt(1 - x * x), acos(x).diff(x));
   ASSERT_IDENTICAL(-y / sqrt(1 - x * x * y * y), acos(x * y).diff(x));
 
-  ASSERT_IDENTICAL(Constants::Zero, asin(y).diff(x));
+  ASSERT_IDENTICAL(constants::zero, asin(y).diff(x));
   ASSERT_IDENTICAL(1 / sqrt(1 - x * x), asin(x).diff(x));
   ASSERT_IDENTICAL(sqrt(x) / sqrt(1 - y * y * x), asin(y * sqrt(x)).diff(y));
 
-  ASSERT_IDENTICAL(Constants::Zero, atan(Constants::Euler).diff(y));
+  ASSERT_IDENTICAL(constants::zero, atan(constants::euler).diff(y));
   ASSERT_IDENTICAL(1_s / (x * x + 1), atan(x).diff(x));
   ASSERT_IDENTICAL(3_s * (x * x) / (pow(x, 6) + 1), atan(pow(x, 3)).diff(x));
 }
@@ -139,8 +139,8 @@ TEST(DerivativesTest, TestAbs) {
 TEST(DerivativesTest, TestSignum) {
   const auto [x, y] = make_symbols("x", "y");
   ASSERT_IDENTICAL(0, signum(x).diff(y));
-  ASSERT_IDENTICAL(Derivative::create(signum(2 * x), x, 1), signum(x * 2).diff(x));
-  ASSERT_IDENTICAL(Derivative::create(signum(x), x, 2), signum(x).diff(x, 2));
+  ASSERT_IDENTICAL(derivative::create(signum(2 * x), x, 1), signum(x * 2).diff(x));
+  ASSERT_IDENTICAL(derivative::create(signum(x), x, 2), signum(x).diff(x, 2));
 }
 
 TEST(DerivativesTest, TestMaxMin) {
@@ -169,17 +169,17 @@ TEST(DerivativesTest, TestMatrix) {
 TEST(DerivativesTest, TestRelational) {
   // Cannot diff a relational:
   const auto [x, y] = make_symbols("x", "y");
-  ASSERT_IDENTICAL(Derivative::create(x < y, x, 1), (x < y).diff(x));
-  ASSERT_IDENTICAL(Derivative::create(x == y, x, 1), (x == y).diff(x));
+  ASSERT_IDENTICAL(derivative::create(x < y, x, 1), (x < y).diff(x));
+  ASSERT_IDENTICAL(derivative::create(x == y, x, 1), (x == y).diff(x));
 }
 
 TEST(DerivativesTest, TestCastBool) {
   const auto [x, y] = make_symbols("x", "y");
 
-  // Check that this produces a `Derivative` expression:
-  ASSERT_IDENTICAL(Derivative::create(cast_int_from_bool(x < y), x, 1),
+  // Check that this produces a `derivative` expression:
+  ASSERT_IDENTICAL(derivative::create(cast_int_from_bool(x < y), x, 1),
                    cast_int_from_bool(x < y).diff(x));
-  ASSERT_IDENTICAL(Derivative::create(Derivative::create(cast_int_from_bool(x < y), x, 1), y, 1),
+  ASSERT_IDENTICAL(derivative::create(derivative::create(cast_int_from_bool(x < y), x, 1), y, 1),
                    cast_int_from_bool(x < y).diff(x).diff(y));
 }
 
@@ -188,9 +188,9 @@ TEST(DerivativesTest, TestDerivativeExpression) {
 
   // Create an abstract derivative expression and differentiate it.
   // Normally you wouldn't do this with a function like abs(), but it serves for a test here.
-  auto f = Derivative::create(abs(x + y), x, 1);
-  ASSERT_IDENTICAL(Derivative::create(abs(x + y), x, 2), f.diff(x));
-  ASSERT_IDENTICAL(Derivative::create(f, y, 1), f.diff(y));
+  auto f = derivative::create(abs(x + y), x, 1);
+  ASSERT_IDENTICAL(derivative::create(abs(x + y), x, 2), f.diff(x));
+  ASSERT_IDENTICAL(derivative::create(f, y, 1), f.diff(y));
   ASSERT_IDENTICAL(0, f.diff(z));
 }
 

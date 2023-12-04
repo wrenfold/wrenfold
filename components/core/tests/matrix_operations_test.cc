@@ -30,8 +30,8 @@ TEST(MatrixOperationsTest, TestConstruct) {
   ASSERT_IDENTICAL(y + z, v(2, 0));
 
   // Invalid access:
-  ASSERT_THROW(v[4], DimensionError);
-  ASSERT_THROW(v(10, 2), DimensionError);
+  ASSERT_THROW(v[4], dimension_error);
+  ASSERT_THROW(v(10, 2), dimension_error);
 
   // Compare to row-vector constructor
   ASSERT_IDENTICAL(v.transposed(), make_row_vector(x, 4, y + z));
@@ -52,10 +52,10 @@ TEST(MatrixOperationsTest, TestConstruct) {
   ASSERT_IDENTICAL(2 / x, m(1, 2));
 
   // Invalid access:
-  ASSERT_THROW(m(-1, 0), DimensionError);
-  ASSERT_THROW(m(0, -1), DimensionError);
-  ASSERT_THROW(m(5, 0), DimensionError);
-  ASSERT_THROW(m(1, 10), DimensionError);
+  ASSERT_THROW(m(-1, 0), dimension_error);
+  ASSERT_THROW(m(0, -1), dimension_error);
+  ASSERT_THROW(m(5, 0), dimension_error);
+  ASSERT_THROW(m(1, 10), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestGetBlock) {
@@ -80,19 +80,19 @@ TEST(MatrixOperationsTest, TestGetBlock) {
 
   // clang-format off
   const MatrixExpr m2 = make_matrix(3, 4,
-                                     x, Constants::Pi, 2, x - z,
+                                     x, constants::pi, 2, x - z,
                                      3.0, -5, y, pow(z, 2),
-                                     2 * z, Constants::Euler, -1, sin(x));
+                                     2 * z, constants::euler, -1, sin(x));
   // clang-format on
-  ASSERT_IDENTICAL(make_row_vector(x, Constants::Pi, 2, x - z), m2.get_block(0, 0, 1, 4));
+  ASSERT_IDENTICAL(make_row_vector(x, constants::pi, 2, x - z), m2.get_block(0, 0, 1, 4));
   ASSERT_IDENTICAL(make_vector(x, 3.0, 2 * z), m2.get_block(0, 0, 3, 1));
   ASSERT_IDENTICAL(make_matrix(2, 2, y, pow(z, 2), -1, sin(x)), m2.get_block(1, 2, 2, 2));
 
   // bounds checking:
-  ASSERT_THROW(m2.get_block(-1, 0, 2, 1), DimensionError);
-  ASSERT_THROW(m2.get_block(1, -5, 1, 1), DimensionError);
-  ASSERT_THROW(m2.get_block(1, 1, 4, 1), DimensionError);
-  ASSERT_THROW(m2.get_block(1, 1, 2, 5), DimensionError);
+  ASSERT_THROW(m2.get_block(-1, 0, 2, 1), dimension_error);
+  ASSERT_THROW(m2.get_block(1, -5, 1, 1), dimension_error);
+  ASSERT_THROW(m2.get_block(1, 1, 4, 1), dimension_error);
+  ASSERT_THROW(m2.get_block(1, 1, 2, 5), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestTranspose) {
@@ -101,7 +101,7 @@ TEST(MatrixOperationsTest, TestTranspose) {
   const Expr c{"c"};
   // clang-format off
   const MatrixExpr m = make_matrix(2, 5,
-                                    cos(a), sin(b), -1, Constants::Pi * 3, 0.0,
+                                    cos(a), sin(b), -1, constants::pi * 3, 0.0,
                                     tan(c), c*a, 4, 5.0, a);
   // clang-format on
   const MatrixExpr m_t = m.transposed();
@@ -176,8 +176,8 @@ TEST(MatrixOperationsTest, TestAddition) {
                    make_vector(a + c, b + d));
 
   // Dimension mismatch:
-  ASSERT_THROW(make_vector(a, b) + make_row_vector(c, d), DimensionError);
-  ASSERT_THROW(make_vector(a, b) + make_matrix(2, 2, c, d, 2, -3_s / 5), DimensionError);
+  ASSERT_THROW(make_vector(a, b) + make_row_vector(c, d), dimension_error);
+  ASSERT_THROW(make_vector(a, b) + make_matrix(2, 2, c, d, 2, -3_s / 5), dimension_error);
 
   const MatrixExpr m = make_matrix(2, 2, a, b, c, d);
   ASSERT_IDENTICAL(m, m + make_zeros(2, 2));
@@ -227,9 +227,9 @@ TEST(MatrixOperationsTest, TestMultiplication) {
                    (make_row_vector(a, b) * make_vector(c, d) * x).distribute());
 
   // Inner dimension mismatch
-  ASSERT_THROW(make_zeros(2, 3) * make_zeros(4, 2), DimensionError);
-  ASSERT_THROW(make_zeros(10, 10) * make_vector(x, y, z), DimensionError);
-  ASSERT_THROW(make_row_vector(1, -3, z) * make_vector(z, sin(y)), DimensionError);
+  ASSERT_THROW(make_zeros(2, 3) * make_zeros(4, 2), dimension_error);
+  ASSERT_THROW(make_zeros(10, 10) * make_vector(x, y, z), dimension_error);
+  ASSERT_THROW(make_row_vector(1, -3, z) * make_vector(z, sin(y)), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestSquaredNorm) {
@@ -297,11 +297,11 @@ void check_full_piv_lu_solution(
 }
 
 MatrixExpr check_permutation_matrix(absl::Span<const int> permutation) {
-  std::vector<Expr> elements(permutation.size() * permutation.size(), Constants::Zero);
+  std::vector<Expr> elements(permutation.size() * permutation.size(), constants::zero);
 
   for (std::size_t row = 0; row < permutation.size(); ++row) {
     const int col_index = permutation[row];
-    elements[row * permutation.size() + static_cast<std::size_t>(col_index)] = Constants::One;
+    elements[row * permutation.size() + static_cast<std::size_t>(col_index)] = constants::one;
   }
   const auto dim = static_cast<index_t>(permutation.size());
   return MatrixExpr::create(dim, dim, std::move(elements));

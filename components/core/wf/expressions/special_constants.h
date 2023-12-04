@@ -6,84 +6,84 @@
 namespace math {
 
 // A symbolic constant, like pi or euler's number.
-class Constant {
+class symbolic_constant {
  public:
-  static constexpr std::string_view NameStr = "Constant";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Constant";
+  static constexpr bool is_leaf_node = true;
 
   // Construct with name.
-  explicit constexpr Constant(SymbolicConstants name) noexcept : name_(name) {}
+  explicit constexpr symbolic_constant(symbolic_constant_enum name) noexcept : name_(name) {}
 
   // Check if symbolic constants are the same.
-  constexpr bool is_identical_to(const Constant& other) const noexcept {
+  constexpr bool is_identical_to(const symbolic_constant& other) const noexcept {
     return name_ == other.name_;
   }
 
   // Access name.
-  constexpr SymbolicConstants name() const noexcept { return name_; }
+  constexpr symbolic_constant_enum name() const noexcept { return name_; }
 
  protected:
-  SymbolicConstants name_;
+  symbolic_constant_enum name_;
 };
 
 // Complex infinity (the north-pole of the riemann sphere).
-class Infinity {
+class complex_infinity {
  public:
-  static constexpr std::string_view NameStr = "ComplexInfinity";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "ComplexInfinity";
+  static constexpr bool is_leaf_node = true;
 
-  constexpr Infinity() noexcept = default;
-  constexpr bool is_identical_to(const Infinity&) const noexcept { return true; }
+  constexpr complex_infinity() noexcept = default;
+  constexpr bool is_identical_to(const complex_infinity&) const noexcept { return true; }
 };
 
 // Result of invalid expressions.
-class Undefined {
+class undefined {
  public:
-  static constexpr std::string_view NameStr = "Undefined";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Undefined";
+  static constexpr bool is_leaf_node = true;
 
-  Undefined() noexcept = default;
-  constexpr bool is_identical_to(const Undefined&) const noexcept { return true; }
+  undefined() noexcept = default;
+  constexpr bool is_identical_to(const undefined&) const noexcept { return true; }
 };
 
-// Convert `SymbolicConstants` to a floating point double.
-constexpr double double_from_symbolic_constant(SymbolicConstants constant) noexcept {
+// Convert `symbolic_constant_enum` to a floating point double.
+constexpr double double_from_symbolic_constant(symbolic_constant_enum constant) noexcept {
   switch (constant) {
-    case SymbolicConstants::Euler:
+    case symbolic_constant_enum::euler:
       return M_E;
-    case SymbolicConstants::Pi:
+    case symbolic_constant_enum::pi:
       return M_PI;
-    case SymbolicConstants::True:
+    case symbolic_constant_enum::boolean_true:
       return 1.0;
-    case SymbolicConstants::False:
+    case symbolic_constant_enum::boolean_false:
       return 0.0;
   }
   return std::numeric_limits<double>::quiet_NaN();
 }
 
 // Order constants by their enum values.
-inline constexpr bool operator<(const Constant& a, const Constant& b) noexcept {
+inline constexpr bool operator<(const symbolic_constant& a, const symbolic_constant& b) noexcept {
   return a.name() < b.name();
 }
 
 template <>
-struct hash_struct<Constant> {
-  constexpr std::size_t operator()(const Constant& c) const noexcept {
+struct hash_struct<symbolic_constant> {
+  constexpr std::size_t operator()(const symbolic_constant& c) const noexcept {
     return static_cast<std::size_t>(c.name());
   }
 };
 
 template <>
-struct hash_struct<Infinity> {
-  constexpr std::size_t operator()(const Infinity&) const noexcept {
+struct hash_struct<complex_infinity> {
+  constexpr std::size_t operator()(const complex_infinity&) const noexcept {
     constexpr auto inf_hash = hash_string_fnv("inf");
     return inf_hash;
   }
 };
 
 template <>
-struct hash_struct<Undefined> {
-  constexpr std::size_t operator()(const Undefined&) const noexcept {
+struct hash_struct<undefined> {
+  constexpr std::size_t operator()(const undefined&) const noexcept {
     constexpr auto undef_hash = hash_string_fnv("undef");
     return undef_hash;
   }
@@ -93,11 +93,11 @@ struct hash_struct<Undefined> {
 
 // Formatter for printing in assertions.
 template <>
-struct fmt::formatter<math::Constant, char> {
+struct fmt::formatter<math::symbolic_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::Constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::symbolic_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", math::string_from_symbolic_constant(x.name()));
   }
 };

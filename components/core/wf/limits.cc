@@ -14,19 +14,19 @@ using namespace math::custom_literals;
 //  (1) substitute values
 //  (2) see if it produces a case we can handle w/ Hôpital's rule
 //  (3) try to apply the rule
-class LimitVisitor {
+class limit_visitor {
  public:
   // x is the variable we are taking the limit wrt to.
   // 0+ is the value of `x` at the limit.
-  explicit LimitVisitor(const Expr& x)
+  explicit limit_visitor(const Expr& x)
       : x_(x),
-        x_typed_(cast_checked<Variable>(x_)),
+        x_typed_(cast_checked<variable>(x_)),
         positive_inf_{positive_inf_placeholder()},
         negative_inf_{negative_inf_placeholder()} {
-    if (x_typed_.set() != NumberSet::RealNonNegative) {
-      throw DomainError("Domain of limit variable `{}` is {}, but it should be {}.", x_,
-                        string_from_number_set(x_typed_.set()),
-                        string_from_number_set(NumberSet::RealNonNegative));
+    if (x_typed_.set() != number_set::real_non_negative) {
+      throw domain_error("Domain of limit variable `{}` is {}, but it should be {}.", x_,
+                         string_from_number_set(x_typed_.set()),
+                         string_from_number_set(number_set::real_non_negative));
     }
   }
 
@@ -51,8 +51,8 @@ class LimitVisitor {
     return result;
   }
 
-  std::optional<Expr> operator()(const Addition& add) {
-    Addition::ContainerType f_funcs{}, g_funcs{}, terms{};
+  std::optional<Expr> operator()(const addition& add) {
+    addition::container_type f_funcs{}, g_funcs{}, terms{};
     for (const Expr& expr : add) {
       std::optional<Expr> child = visit(expr);
       if (!child || is_undefined(*child) || is_complex_infinity(*child)) {
@@ -79,8 +79,8 @@ class LimitVisitor {
     }
 
     if (!f_funcs.empty() && !g_funcs.empty()) {
-      const Expr f = Addition::from_operands(f_funcs);
-      const Expr g = Addition::from_operands(g_funcs);
+      const Expr f = addition::from_operands(f_funcs);
+      const Expr g = addition::from_operands(g_funcs);
       std::optional<Expr> indeterminate_term = visit((1 / g + 1 / f) * (g * f));
       if (!indeterminate_term) {
         return std::nullopt;
@@ -88,10 +88,10 @@ class LimitVisitor {
       terms.push_back(std::move(*indeterminate_term));
     }
 
-    return Addition::from_operands(terms);
+    return addition::from_operands(terms);
   }
 
-  std::optional<Expr> operator()(const CastBool& cast) {
+  std::optional<Expr> operator()(const cast_bool& cast) {
     std::optional<Expr> arg = visit(cast.arg());
     if (!arg) {
       return std::nullopt;
@@ -99,16 +99,17 @@ class LimitVisitor {
     return cast_int_from_bool(*arg);
   }
 
-  std::optional<Expr> operator()(const Conditional&) {
+  std::optional<Expr> operator()(const conditional&) {
     // We don't support limits of conditionals yet.
     return std::nullopt;
   }
 
-  std::optional<Expr> operator()(const Constant&, const Expr& expr) const { return expr; }
+  std::optional<Expr> operator()(const symbolic_constant&, const Expr& expr) const { return expr; }
 
-  std::optional<Expr> operator()(const Derivative&, const Expr& expr) const {
-    throw TypeError("Cannot take limits of expressions containing `{}`. Encountered expression: {}",
-                    Derivative::NameStr, expr);
+  std::optional<Expr> operator()(const derivative&, const Expr& expr) const {
+    throw type_error(
+        "Cannot take limits of expressions containing `{}`. Encountered expression: {}",
+        derivative::name_str, expr);
   }
 
   // Evaluate Hôpital's rule on a limit of the form:
@@ -145,20 +146,20 @@ class LimitVisitor {
     return df_over_dg_eval;
   }
 
-  struct IntegralPowers {
-    std::vector<Integer> powers{};
+  struct integral_powers {
+    std::vector<integer_constant> powers{};
 
     bool are_all_identical_up_to_sign() const {
       WF_ASSERT(!powers.empty());
       const auto first = powers.begin();
       return std::all_of(std::next(first), powers.end(),
-                         [&](const Integer& i) { return first->abs() == i.abs(); });
+                         [&](const integer_constant& i) { return first->abs() == i.abs(); });
     }
 
     std::tuple<int, int> determine_signs() const {
       int num_positive = 0;
       int num_negative = 0;
-      for (const Integer i : powers) {
+      for (const integer_constant i : powers) {
         if (i.get_value() >= 0) {
           ++num_positive;
         } else {
@@ -170,16 +171,16 @@ class LimitVisitor {
 
     bool are_all_one() const {
       return std::all_of(powers.begin(), powers.end(),
-                         [&](const Integer& i) { return i.get_value() == 1; });
+                         [&](const integer_constant& i) { return i.get_value() == 1; });
     }
   };
 
   template <typename Container>
-  std::optional<IntegralPowers> extract_integer_exponents(const Container& mul) {
-    IntegralPowers result{};
+  std::optional<integral_powers> extract_integer_exponents(const Container& mul) {
+    integral_powers result{};
     for (const Expr& expr : mul) {
       auto [base, exp] = as_base_and_exp(expr);
-      if (const Integer* i = cast_ptr<Integer>(exp); i != nullptr) {
+      if (const integer_constant* i = cast_ptr<integer_constant>(exp); i != nullptr) {
         result.powers.push_back(*i);
       } else {
         return std::nullopt;
@@ -195,10 +196,10 @@ class LimitVisitor {
   std::optional<Expr> process_indeterminate_form_multiplied_terms_1(const Container& mul) {
     // Try to extract common integer powers:
     // TODO: Clean this up and generalize to any common power...
-    if (std::optional<IntegralPowers> integral_exponents = extract_integer_exponents(mul);
+    if (std::optional<integral_powers> integral_exponents = extract_integer_exponents(mul);
         integral_exponents.has_value() && integral_exponents->are_all_identical_up_to_sign() &&
         !integral_exponents->are_all_one()) {
-      const Integer int_power = integral_exponents->powers.front().abs();
+      const integer_constant int_power = integral_exponents->powers.front().abs();
       const auto [num_positive, num_negative] = integral_exponents->determine_signs();
 
       std::vector<Expr> terms{};
@@ -212,16 +213,16 @@ class LimitVisitor {
         // mixed
         std::transform(mul.begin(), mul.end(), std::back_inserter(terms), [&](const Expr& v) {
           auto [base, exponent] = as_base_and_exp(v);
-          return Power::create(base, exponent / int_power.get_value());
+          return power::create(base, exponent / int_power.get_value());
         });
       }
 
       std::optional<Expr> inner_limit = process_indeterminate_form_multiplied_terms_2(terms);
       if (inner_limit.has_value()) {
         if (num_positive == 0) {
-          return Power::create(std::move(*inner_limit), -int_power.get_value());
+          return power::create(std::move(*inner_limit), -int_power.get_value());
         } else {
-          return Power::create(std::move(*inner_limit), int_power.get_value());
+          return power::create(std::move(*inner_limit), int_power.get_value());
         }
       } else {
         return std::nullopt;
@@ -234,7 +235,7 @@ class LimitVisitor {
   std::optional<Expr> process_indeterminate_form_multiplied_terms_2(const Container& mul) {
     // `f_funcs` contains functions that evaluate to zero, while `g_funcs` contains functions that
     // evaluate to infinity.
-    Multiplication::ContainerType f_funcs{}, g_funcs{};
+    multiplication::container_type f_funcs{}, g_funcs{};
     for (const Expr& expr : mul) {
       std::optional<Expr> child = visit(expr);
       WF_ASSERT(child.has_value(), "Already checked this expression is valid: {}", expr);
@@ -245,7 +246,7 @@ class LimitVisitor {
       } else if (is_inf(*child)) {
         g_funcs.push_back(expr.collect(x_));
       } else {
-        throw TypeError("Child expression should be zero or infinity. Found: {}", *child);
+        throw type_error("Child expression should be zero or infinity. Found: {}", *child);
       }
     }
 
@@ -259,8 +260,8 @@ class LimitVisitor {
     //  lim[x->c] f(x)g(x) = lim[x->c] g(x) / (1 / f(x)) = ∞ / ∞
     //
     // Either form qualifies for Hôpital's rule, but one might recurse indefinitely.
-    const Expr f = Multiplication::from_operands(f_funcs);
-    const Expr g = Multiplication::from_operands(g_funcs);
+    const Expr f = multiplication::from_operands(f_funcs);
+    const Expr g = multiplication::from_operands(g_funcs);
 
     // TODO: This is slower than it needs to be, we can make a better guess as to what form
     //  to use by inspecting the powers of `f` and `g`.
@@ -279,7 +280,7 @@ class LimitVisitor {
     //  0 --> f_funcs
     //  infinity --> g_funcs
     //  everything else --> remainder
-    Multiplication::ContainerType indeterminate_terms{}, remainder{};
+    multiplication::container_type indeterminate_terms{}, remainder{};
 
     std::size_t num_zeros = 0;
     std::size_t num_infinities = 0;
@@ -305,9 +306,9 @@ class LimitVisitor {
     // Otherwise we delegate to Multiplication::from_operands
     if (num_infinities == 0) {
       if (num_zeros > 0) {
-        remainder.push_back(Constants::Zero);
+        remainder.push_back(constants::zero);
       }
-      return Multiplication::from_operands(remainder);
+      return multiplication::from_operands(remainder);
     }
 
     // We have at least one infinity. Do we have zeros?
@@ -338,10 +339,10 @@ class LimitVisitor {
       return std::nullopt;
     }
     remainder.push_back(std::move(*indeterminate_result));
-    return Multiplication::from_operands(remainder);
+    return multiplication::from_operands(remainder);
   }
 
-  std::optional<Expr> operator()(const Multiplication& mul) {
+  std::optional<Expr> operator()(const multiplication& mul) {
     return process_multiplied_terms(mul);
   }
 
@@ -367,7 +368,7 @@ class LimitVisitor {
       return std::nullopt;
     }
 
-    WF_ASSERT(!exp_sub.is_identical_to(Constants::False));
+    WF_ASSERT(!exp_sub.is_identical_to(constants::boolean_false));
 
     if (is_zero(exp_sub) && (is_inf(base_sub) || is_zero(base_sub))) {
       // 0 ^ 0 is an indeterminate form, and ∞ ^ 0
@@ -380,7 +381,7 @@ class LimitVisitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return Power::create(Constants::Euler, std::move(*exponent));
+      return power::create(constants::euler, std::move(*exponent));
     } else if (is_one(base_sub) && is_inf(exp_sub)) {
       // 1 ^ ∞ is an indeterminate form
       // lim[x->c] f(x)^g(x) = e ^ (lim[x->c] log(f(x)) * g(x))
@@ -389,7 +390,7 @@ class LimitVisitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return Power::create(Constants::Euler, std::move(*exponent));
+      return power::create(constants::euler, std::move(*exponent));
     } else if (is_zero(base_sub)) {
       // base is zero, exponent is either function or a (+/-) constant
       if (is_numeric_or_constant(exp_sub)) {
@@ -398,18 +399,19 @@ class LimitVisitor {
           return positive_inf_;
         } else {
           // 0^positive --> 0
-          return Constants::Zero;
+          return constants::zero;
         }
       }
     } else if (is_inf(base_sub)) {
       if (base_sub.is_identical_to(positive_inf_)) {
         if (is_numeric_or_constant(exp_sub)) {
-          return is_negative_number(exp_sub) ? Constants::Zero : positive_inf_;
+          return is_negative_number(exp_sub) ? constants::zero : positive_inf_;
         }
       } else {
         if (is_numeric_or_constant(exp_sub) && is_negative_number(exp_sub)) {
-          return Constants::Zero;  // (-∞)^u where u < 0
-        } else if (const Integer* exp_int = cast_ptr<Integer>(exp_sub); exp_int != nullptr) {
+          return constants::zero;  // (-∞)^u where u < 0
+        } else if (const integer_constant* exp_int = cast_ptr<integer_constant>(exp_sub);
+                   exp_int != nullptr) {
           WF_ASSERT(!exp_int->is_zero() && !exp_int->is_negative(), "value = {}", *exp_int);
           if (exp_int->is_even()) {
             return positive_inf_;
@@ -429,7 +431,7 @@ class LimitVisitor {
         } else {
           // (positive) ^ ∞ --> ∞
           // (positive) ^ -∞ --> 0
-          return exp_sub.is_identical_to(positive_inf_) ? positive_inf_ : Constants::Zero;
+          return exp_sub.is_identical_to(positive_inf_) ? positive_inf_ : constants::zero;
         }
       } else {
         // We don't handle g(y)^∞
@@ -437,12 +439,12 @@ class LimitVisitor {
       }
     }
 
-    return Power::create(base_sub, exp_sub);
+    return power::create(base_sub, exp_sub);
   }
 
   // TODO: We need to handle the case of functions going to infinity.
-  std::optional<Expr> operator()(const Function& func) {
-    Function::ContainerType args{};
+  std::optional<Expr> operator()(const function& func) {
+    function::container_type args{};
     for (const Expr& arg : func) {
       std::optional<Expr> arg_limit = visit(arg);
       if (!arg_limit) {
@@ -453,7 +455,7 @@ class LimitVisitor {
     }
 
     switch (func.enum_value()) {
-      case BuiltInFunction::Log: {
+      case built_in_function::ln: {
         WF_ASSERT_EQUAL(1, args.size());
         if (is_zero(args[0])) {
           // In the context of a limit, allow log(0) --> -∞
@@ -463,19 +465,19 @@ class LimitVisitor {
       default:
         break;
     }
-    return Function::create(func.enum_value(), std::move(args));
+    return function::create(func.enum_value(), std::move(args));
   }
 
-  std::optional<Expr> operator()(const Infinity&, const Expr& expr) const { return expr; }
-  std::optional<Expr> operator()(const Integer&, const Expr& expr) { return expr; }
-  std::optional<Expr> operator()(const Float&, const Expr& expr) { return expr; }
-  std::optional<Expr> operator()(const Rational&, const Expr& expr) { return expr; }
+  std::optional<Expr> operator()(const complex_infinity&, const Expr& expr) const { return expr; }
+  std::optional<Expr> operator()(const integer_constant&, const Expr& expr) { return expr; }
+  std::optional<Expr> operator()(const float_constant&, const Expr& expr) { return expr; }
+  std::optional<Expr> operator()(const rational_constant&, const Expr& expr) { return expr; }
 
-  std::optional<Expr> operator()(const Power& pow) {
+  std::optional<Expr> operator()(const power& pow) {
     return process_power(pow.base(), pow.exponent());
   }
 
-  std::optional<Expr> operator()(const Relational& rel, const Expr&) {
+  std::optional<Expr> operator()(const relational& rel, const Expr&) {
     // For relationals, we do a substitution:
     std::optional<Expr> left = visit(rel.left());
     if (!left) {
@@ -485,31 +487,31 @@ class LimitVisitor {
     if (!right) {
       return std::nullopt;
     }
-    return Relational::create(rel.operation(), std::move(*left), std::move(*right));
+    return relational::create(rel.operation(), std::move(*left), std::move(*right));
   }
 
-  std::optional<Expr> operator()(const Undefined&) const { return Constants::Undefined; }
+  std::optional<Expr> operator()(const undefined&) const { return constants::undefined; }
 
-  std::optional<Expr> operator()(const Variable& var, const Expr& expr) const {
+  std::optional<Expr> operator()(const variable& var, const Expr& expr) const {
     if (x_typed_.is_identical_to(var)) {
-      return Constants::Zero;  //  TODO: Support any value here.
+      return constants::zero;  //  TODO: Support any value here.
     }
     return expr;
   }
 
  private:
   static Expr positive_inf_placeholder() {
-    static const Expr p_inf = make_unique_variable_symbol(NumberSet::Unknown);
+    static const Expr p_inf = make_unique_variable_symbol(number_set::unknown);
     return p_inf;
   }
 
   static Expr negative_inf_placeholder() {
-    static const Expr n_inf = make_unique_variable_symbol(NumberSet::Unknown);
+    static const Expr n_inf = make_unique_variable_symbol(number_set::unknown);
     return n_inf;
   }
 
   const Expr& x_;
-  const Variable& x_typed_;
+  const variable& x_typed_;
 
   // Placeholders we insert for positive/negative.
   Expr positive_inf_;
@@ -525,22 +527,22 @@ class LimitVisitor {
 
 // TODO: Add support for limits going to infinity.
 std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
-  if (!x.is_type<Variable>()) {
-    throw TypeError(
+  if (!x.is_type<variable>()) {
+    throw type_error(
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
         x.type_name(), x);
   }
-  return LimitVisitor{x}.visit_no_inf(f_of_x);
+  return limit_visitor{x}.visit_no_inf(f_of_x);
 }
 
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
-  if (!x.is_type<Variable>()) {
-    throw TypeError(
+  if (!x.is_type<variable>()) {
+    throw type_error(
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
         x.type_name(), x);
   }
   // Reuse the visitor, so that we get the benefit of caching results:
-  LimitVisitor visitor{x};
+  limit_visitor visitor{x};
 
   std::vector<Expr> values;
   values.reserve(f_of_x.size());

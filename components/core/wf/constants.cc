@@ -6,14 +6,16 @@
 
 namespace math {
 
-const Expr Constants::Zero = make_expr<Integer>(0);
-const Expr Constants::One = make_expr<Integer>(1);
-const Expr Constants::Pi = make_expr<Constant>(SymbolicConstants::Pi);
-const Expr Constants::Euler = make_expr<Constant>(SymbolicConstants::Euler);
-const Expr Constants::NegativeOne = make_expr<Integer>(-1);
-const Expr Constants::ComplexInfinity = make_expr<Infinity>();
-const Expr Constants::True = make_expr<Constant>(SymbolicConstants::True);
-const Expr Constants::False = make_expr<Constant>(SymbolicConstants::False);
-const Expr Constants::Undefined = make_expr<math::Undefined>();
+const Expr constants::zero = make_expr<integer_constant>(0);
+const Expr constants::one = make_expr<integer_constant>(1);
+const Expr constants::pi = make_expr<symbolic_constant>(symbolic_constant_enum::pi);
+const Expr constants::euler = make_expr<symbolic_constant>(symbolic_constant_enum::euler);
+const Expr constants::negative_one = make_expr<integer_constant>(-1);
+const Expr constants::complex_infinity = make_expr<math::complex_infinity>();
+const Expr constants::boolean_true =
+    make_expr<symbolic_constant>(symbolic_constant_enum::boolean_true);
+const Expr constants::boolean_false =
+    make_expr<symbolic_constant>(symbolic_constant_enum::boolean_false);
+const Expr constants::undefined = make_expr<math::undefined>();
 
 }  // namespace math

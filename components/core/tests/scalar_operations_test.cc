@@ -16,7 +16,7 @@ TEST(ScalarOperationsTest, TestAddition) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_TRUE((x + y).is_type<Addition>());
+  ASSERT_TRUE((x + y).is_type<addition>());
   ASSERT_IDENTICAL(x + y, x + y);
   ASSERT_IDENTICAL(x + y, y + x);
   ASSERT_NOT_IDENTICAL(x + w, x + y);
@@ -52,17 +52,17 @@ TEST(ScalarOperationsTest, TestAddition) {
 TEST(ScalarOperationsTest, TestAdditionInfinities) {
   // Test handling of infinities under addition/subtraction:
   auto [x, y] = make_symbols("x", "y");
-  const auto z_inf = Constants::ComplexInfinity;
+  const auto z_inf = constants::complex_infinity;
   ASSERT_IDENTICAL(x + z_inf, x + 3 + z_inf);
   ASSERT_IDENTICAL(x + z_inf, x - z_inf);
   ASSERT_IDENTICAL(y - 0.1231 + z_inf, y + z_inf);
-  ASSERT_IDENTICAL(Constants::Undefined, z_inf + z_inf);
-  ASSERT_IDENTICAL(Constants::Undefined, Addition::from_operands({y, x, z_inf, z_inf}));
+  ASSERT_IDENTICAL(constants::undefined, z_inf + z_inf);
+  ASSERT_IDENTICAL(constants::undefined, addition::from_operands({y, x, z_inf, z_inf}));
 }
 
 TEST(ScalarOperationsTest, TestAdditionUndefined) {
   auto [x, y] = make_symbols("x", "y");
-  const auto& undef = Constants::Undefined;
+  const auto& undef = constants::undefined;
   ASSERT_IDENTICAL(undef, 3 + undef);
   ASSERT_IDENTICAL(undef, 3.14 + undef);
   ASSERT_IDENTICAL(undef, 5_s / 3 + undef);
@@ -74,7 +74,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_TRUE((x * y).is_type<Multiplication>());
+  ASSERT_TRUE((x * y).is_type<multiplication>());
   ASSERT_IDENTICAL(x * y, x * y);
   ASSERT_EQ("Multiplication", (x * y).type_name());
 
@@ -85,9 +85,9 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * y * z, x * z * y);
 
   // Multiplication by zero:
-  ASSERT_IDENTICAL(Constants::Zero, x * 0);
-  ASSERT_IDENTICAL(Constants::Zero, 0 * z);
-  ASSERT_IDENTICAL(Constants::Zero, 0 * x * y);
+  ASSERT_IDENTICAL(constants::zero, x * 0);
+  ASSERT_IDENTICAL(constants::zero, 0 * z);
+  ASSERT_IDENTICAL(constants::zero, 0 * x * y);
 
   // Collapsing of numeric terms:
   ASSERT_IDENTICAL(1_s, 1_s * 1 * 1);
@@ -103,7 +103,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
 
   // Automatic distribution of numeric constants into additions:
   ASSERT_IDENTICAL(3 * x + 3 * y, 3 * (x + y));
-  ASSERT_IDENTICAL(-5_s / 6 * z - 5_s / 6 * Constants::Pi, -5_s / 6 * (z + Constants::Pi));
+  ASSERT_IDENTICAL(-5_s / 6 * z - 5_s / 6 * constants::pi, -5_s / 6 * (z + constants::pi));
   ASSERT_IDENTICAL(x / 3 - y, (x - 3 * y) / 3);
   ASSERT_IDENTICAL(3.2 * x - 6.4 * y, (x - 2 * y) * 3.2);
 
@@ -123,41 +123,41 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(pow(5, 10 / 11_s) / 25, pow(5, -5 / 11_s) * pow(5, -7 / 11_s));
 
   // Including symbolics constants:
-  ASSERT_IDENTICAL(pow(Constants::Pi, 3), Constants::Pi * Constants::Pi * Constants::Pi);
-  ASSERT_IDENTICAL(pow(Constants::Euler, 2) * x, Constants::Euler * x * Constants::Euler);
+  ASSERT_IDENTICAL(pow(constants::pi, 3), constants::pi * constants::pi * constants::pi);
+  ASSERT_IDENTICAL(pow(constants::euler, 2) * x, constants::euler * x * constants::euler);
 
   // Collections of powers of functions:
   ASSERT_IDENTICAL(pow(cos(x), 2), cos(x) * cos(x));
   ASSERT_IDENTICAL(pow(cos(x), 2) * pow(tan(y), 3 / 5_s),
                    cos(x) * cos(x) * pow(tan(y), 1 / 5_s) * pow(tan(y), 2 / 5_s));
-  ASSERT_IDENTICAL(pow(sin(x), 2) * pow(log(z * y), Constants::NegativeOne),
+  ASSERT_IDENTICAL(pow(sin(x), 2) * pow(log(z * y), constants::negative_one),
                    sin(x) * sin(x) / log(z * y));
 }
 
 TEST(ScalarOperationsTest, TestMultiplicationInfinities) {
   auto [x, y] = make_symbols("x", "y");
-  const auto z_inf = Constants::ComplexInfinity;
-  ASSERT_IDENTICAL(Constants::Undefined, 0 * z_inf);
+  const auto z_inf = constants::complex_infinity;
+  ASSERT_IDENTICAL(constants::undefined, 0 * z_inf);
   ASSERT_IDENTICAL(z_inf, 5 * z_inf);
   ASSERT_IDENTICAL(z_inf, (7_s / 11) * z_inf);
   ASSERT_IDENTICAL(z_inf, -1.231 * z_inf);
   ASSERT_IDENTICAL(z_inf, z_inf * z_inf);
-  ASSERT_IDENTICAL(Constants::Undefined, z_inf / z_inf);
+  ASSERT_IDENTICAL(constants::undefined, z_inf / z_inf);
 
   ASSERT_IDENTICAL(x * z_inf, x * z_inf);
   ASSERT_IDENTICAL(x * z_inf, x * 5 * z_inf);
   ASSERT_IDENTICAL(y * z_inf, y * -1 * z_inf);
   ASSERT_IDENTICAL(z_inf, -z_inf);
   ASSERT_IDENTICAL(0, 22 * x / z_inf);
-  ASSERT_IDENTICAL(0, Constants::Pi / z_inf);
+  ASSERT_IDENTICAL(0, constants::pi / z_inf);
   ASSERT_IDENTICAL(0, (y * x) / z_inf);
 
-  ASSERT_IDENTICAL(z_inf, Multiplication::from_operands({z_inf, z_inf, 22, -1.02}));
+  ASSERT_IDENTICAL(z_inf, multiplication::from_operands({z_inf, z_inf, 22, -1.02}));
 }
 
 TEST(ScalarOperationsTest, TestMultiplicationUndefined) {
   const auto [x, y] = make_symbols("x", "y");
-  const auto& undef = Constants::Undefined;
+  const auto& undef = constants::undefined;
   ASSERT_IDENTICAL(undef, undef * 5);
   ASSERT_IDENTICAL(undef, undef * (x * y) * 3_s / 7);
   ASSERT_IDENTICAL(undef, (1.23 * y) * undef);
@@ -168,7 +168,7 @@ TEST(ScalarOperationsTest, TestMultiplicationUndefined) {
 TEST(ScalarOperationsTest, TestNegation) {
   const Expr x{"x"};
   ASSERT_IDENTICAL(-x, -x);
-  ASSERT_TRUE((-x).is_type<Multiplication>());
+  ASSERT_TRUE((-x).is_type<multiplication>());
   ASSERT_IDENTICAL(-(-x), x);
   ASSERT_IDENTICAL(-(-(-x)), -x);
 }
@@ -178,10 +178,10 @@ TEST(ScalarOperationsTest, TestDivision) {
   const Expr y{"y"};
   const Expr z{"z"};
   ASSERT_IDENTICAL(x / y, x / y);
-  ASSERT_TRUE((x / y).is_type<Multiplication>());
+  ASSERT_TRUE((x / y).is_type<multiplication>());
   ASSERT_NOT_IDENTICAL(y / x, x / y);
   ASSERT_IDENTICAL(x / y / z, (x / y) / z);
-  ASSERT_IDENTICAL(Constants::Zero, 0 / x);
+  ASSERT_IDENTICAL(constants::zero, 0 / x);
   ASSERT_IDENTICAL(x, x / 1);
   ASSERT_IDENTICAL(1_s, x / x);
   ASSERT_IDENTICAL(x / y / z, x * pow(y, -1) * pow(z, -1_s));
@@ -189,13 +189,13 @@ TEST(ScalarOperationsTest, TestDivision) {
   ASSERT_IDENTICAL(z / (y * z), 1_s / y);
 
   // Cancellation of powers:
-  ASSERT_TRUE(pow(x, 3).is_type<Power>());
-  ASSERT_TRUE(pow(x, 2).is_type<Power>());
+  ASSERT_TRUE(pow(x, 3).is_type<power>());
+  ASSERT_TRUE(pow(x, 2).is_type<power>());
   ASSERT_TRUE(
-      cast_ptr<Power>(pow(x, 3))->base().is_identical_to(cast_ptr<Power>(pow(x, 2))->base()));
+      cast_ptr<power>(pow(x, 3))->base().is_identical_to(cast_ptr<power>(pow(x, 2))->base()));
 
   ASSERT_IDENTICAL(x, pow(x, 3) / pow(x, 2));
-  ASSERT_IDENTICAL(Constants::One, pow(x, 3) / (x * x * x));
+  ASSERT_IDENTICAL(constants::one, pow(x, 3) / (x * x * x));
   ASSERT_IDENTICAL(x * y * pow(z, 1_s / 2_s),
                    pow(x, 5) * pow(y, 3) * pow(z, 3_s / 2) / (x * x * x * x * y * y * z));
 }
@@ -205,24 +205,24 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
   const Expr y{"y"};
   const Expr z{"z"};
 
-  ASSERT_IDENTICAL(Constants::Zero, as_coeff_and_mul(0).first);
-  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(0).second);
+  ASSERT_IDENTICAL(constants::zero, as_coeff_and_mul(0).first);
+  ASSERT_IDENTICAL(constants::one, as_coeff_and_mul(0).second);
 
   ASSERT_IDENTICAL(2_s, as_coeff_and_mul(2).first);
-  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(2).second);
+  ASSERT_IDENTICAL(constants::one, as_coeff_and_mul(2).second);
 
-  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(x).first);
+  ASSERT_IDENTICAL(constants::one, as_coeff_and_mul(x).first);
   ASSERT_IDENTICAL(x, as_coeff_and_mul(x).second);
 
-  ASSERT_IDENTICAL(Constants::One, as_coeff_and_mul(x / y).first);
+  ASSERT_IDENTICAL(constants::one, as_coeff_and_mul(x / y).first);
   ASSERT_IDENTICAL(x / y, as_coeff_and_mul(x / y).second);
 
   // Special constants are symbols, and do not go in the multiplicand:
-  ASSERT_IDENTICAL(3_s, as_coeff_and_mul(3 * Constants::Pi).first);
-  ASSERT_IDENTICAL(Constants::Pi, as_coeff_and_mul(3 * Constants::Pi).second);
+  ASSERT_IDENTICAL(3_s, as_coeff_and_mul(3 * constants::pi).first);
+  ASSERT_IDENTICAL(constants::pi, as_coeff_and_mul(3 * constants::pi).second);
 
-  ASSERT_IDENTICAL(5_s / 7, as_coeff_and_mul(Constants::Pi * z * 5_s / 7).first);
-  ASSERT_IDENTICAL(Constants::Pi * z, as_coeff_and_mul(Constants::Pi * z).second);
+  ASSERT_IDENTICAL(5_s / 7, as_coeff_and_mul(constants::pi * z * 5_s / 7).first);
+  ASSERT_IDENTICAL(constants::pi * z, as_coeff_and_mul(constants::pi * z).second);
 
   // Include some functions:
   ASSERT_IDENTICAL(1.22_s, as_coeff_and_mul(1.22 * sin(x) * cos(y)).first);
@@ -231,9 +231,9 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
 
 TEST(ScalarOperationsTest, TestPower) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const Expr w{"w", NumberSet::RealNonNegative};
-  const Expr u{"u", NumberSet::RealPositive};
-  const Expr v{"v", NumberSet::Real};
+  const Expr w{"w", number_set::real_non_negative};
+  const Expr u{"u", number_set::real_positive};
+  const Expr v{"v", number_set::real};
 
   ASSERT_IDENTICAL(pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
@@ -310,8 +310,8 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 4), 1 / 4_s));
   ASSERT_NOT_IDENTICAL(pow(x, -2), pow(pow(x, 14), -1 / 7_s));
   ASSERT_NOT_IDENTICAL(pow(x, 2 * z), pow(pow(x, 2), z));
-  ASSERT_TRUE(cast_checked<Power>(pow(pow(x, 1.52), 2.0)).base().is_type<Power>());
-  ASSERT_TRUE(cast_checked<Power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<Power>());
+  ASSERT_TRUE(cast_checked<power>(pow(pow(x, 1.52), 2.0)).base().is_type<power>());
+  ASSERT_TRUE(cast_checked<power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<power>());
 
   // Inner power is -1
   ASSERT_NOT_IDENTICAL(pow(x, -1 / 2_s), sqrt(1 / x));
@@ -343,12 +343,12 @@ TEST(ScalarOperationsTest, TestPower) {
 }
 
 TEST(ScalarOperationsTest, TestPowerInfinities) {
-  const auto z_inf = Constants::ComplexInfinity;
-  ASSERT_IDENTICAL(Constants::Undefined, pow(z_inf, 0));
-  ASSERT_IDENTICAL(Constants::Undefined, pow(0, z_inf));
+  const auto z_inf = constants::complex_infinity;
+  ASSERT_IDENTICAL(constants::undefined, pow(z_inf, 0));
+  ASSERT_IDENTICAL(constants::undefined, pow(0, z_inf));
 
-  ASSERT_IDENTICAL(Constants::Undefined, pow(1, z_inf));
-  ASSERT_IDENTICAL(Constants::Undefined, pow(-1, z_inf));
+  ASSERT_IDENTICAL(constants::undefined, pow(1, z_inf));
+  ASSERT_IDENTICAL(constants::undefined, pow(-1, z_inf));
 
   ASSERT_IDENTICAL(z_inf, pow(0_s, -1));
   ASSERT_IDENTICAL(z_inf, pow(0_s, -3_s / 5));
@@ -364,7 +364,7 @@ TEST(ScalarOperationsTest, TestPowerInfinities) {
 
 TEST(ScalarOperationsTest, TestPowerUndefined) {
   const auto [x, y] = make_symbols("x", "y");
-  const auto& undef = Constants::Undefined;
+  const auto& undef = constants::undefined;
   ASSERT_IDENTICAL(undef, pow(undef, undef));
   ASSERT_IDENTICAL(undef, pow(undef, x));
   ASSERT_IDENTICAL(undef, pow(y, undef));
@@ -380,8 +380,8 @@ TEST(ScalarOperationsTest, TestPowerUndefined) {
 TEST(ScalarOperationsTest, TestRelationals) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
 
-  ASSERT_TRUE((x > y).is_type<Relational>());
-  ASSERT_TRUE((x == y).is_type<Relational>());
+  ASSERT_TRUE((x > y).is_type<relational>());
+  ASSERT_TRUE((x == y).is_type<relational>());
   ASSERT_IDENTICAL(x > y, x > y);
   ASSERT_IDENTICAL(x > y, y < x);
   ASSERT_IDENTICAL(z <= x, x >= z);
@@ -389,91 +389,91 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_NOT_IDENTICAL(x < y, x <= y);
 
   // Simplification of numerical cases:
-  ASSERT_IDENTICAL(Constants::True, 3 > 2_s);
-  ASSERT_IDENTICAL(Constants::True, 3 >= 2_s);
-  ASSERT_IDENTICAL(Constants::False, 3 == 2_s);
-  ASSERT_IDENTICAL(Constants::True, 4 == 4_s);
-  ASSERT_IDENTICAL(Constants::False, -4 > 0_s);
-  ASSERT_IDENTICAL(Constants::False, -4 >= 0_s);
-  ASSERT_IDENTICAL(Constants::True, 0 < 1_s);
-  ASSERT_IDENTICAL(Constants::True, 2 <= 2_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 3 > 2_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 3 >= 2_s);
+  ASSERT_IDENTICAL(constants::boolean_false, 3 == 2_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 4 == 4_s);
+  ASSERT_IDENTICAL(constants::boolean_false, -4 > 0_s);
+  ASSERT_IDENTICAL(constants::boolean_false, -4 >= 0_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 0 < 1_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 2 <= 2_s);
 
-  ASSERT_IDENTICAL(Constants::True, 3 / 2_s > 1 / 5_s);
-  ASSERT_IDENTICAL(Constants::True, 7 / 9_s > 3 / 6_s);
-  ASSERT_IDENTICAL(Constants::True, 45 / 11_s > 4);
-  ASSERT_IDENTICAL(Constants::True, 9 > 116 / 13_s);
-  ASSERT_IDENTICAL(Constants::False, 9 < 116 / 13_s);
-  ASSERT_IDENTICAL(Constants::False, 9 <= 116 / 13_s);
-  ASSERT_IDENTICAL(Constants::True, 9 < 128 / 13_s);
-  ASSERT_IDENTICAL(Constants::False, 9 > 128 / 13_s);
-  ASSERT_IDENTICAL(Constants::False, 6 / 7_s == 2 / 3_s);
-  ASSERT_IDENTICAL(Constants::True, 6 / 7_s == 12 / 14_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 3 / 2_s > 1 / 5_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 7 / 9_s > 3 / 6_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 45 / 11_s > 4);
+  ASSERT_IDENTICAL(constants::boolean_true, 9 > 116 / 13_s);
+  ASSERT_IDENTICAL(constants::boolean_false, 9 < 116 / 13_s);
+  ASSERT_IDENTICAL(constants::boolean_false, 9 <= 116 / 13_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 9 < 128 / 13_s);
+  ASSERT_IDENTICAL(constants::boolean_false, 9 > 128 / 13_s);
+  ASSERT_IDENTICAL(constants::boolean_false, 6 / 7_s == 2 / 3_s);
+  ASSERT_IDENTICAL(constants::boolean_true, 6 / 7_s == 12 / 14_s);
 
   // Float comparisons:
-  ASSERT_IDENTICAL(Constants::True, 1.2_s == 1.2);
-  ASSERT_IDENTICAL(Constants::True, 0.5_s < 0.6);
-  ASSERT_IDENTICAL(Constants::False, 2.45_s < 1.999);
-  ASSERT_IDENTICAL(Constants::True, 7.7_s >= 7.7);
-  ASSERT_IDENTICAL(Constants::False, 0.6667_s >= 10.0);
+  ASSERT_IDENTICAL(constants::boolean_true, 1.2_s == 1.2);
+  ASSERT_IDENTICAL(constants::boolean_true, 0.5_s < 0.6);
+  ASSERT_IDENTICAL(constants::boolean_false, 2.45_s < 1.999);
+  ASSERT_IDENTICAL(constants::boolean_true, 7.7_s >= 7.7);
+  ASSERT_IDENTICAL(constants::boolean_false, 0.6667_s >= 10.0);
 
   // Float to integer comparison (mostly tested in integer_utils):
-  ASSERT_IDENTICAL(Constants::True, 18.2_s > 10);
-  ASSERT_IDENTICAL(Constants::True, 10.0_s == 10);
-  ASSERT_IDENTICAL(Constants::True, 109.2_s < 110);
-  ASSERT_IDENTICAL(Constants::True, 22.0_s <= 22);
+  ASSERT_IDENTICAL(constants::boolean_true, 18.2_s > 10);
+  ASSERT_IDENTICAL(constants::boolean_true, 10.0_s == 10);
+  ASSERT_IDENTICAL(constants::boolean_true, 109.2_s < 110);
+  ASSERT_IDENTICAL(constants::boolean_true, 22.0_s <= 22);
 
   // Constant to constant comparison:
-  ASSERT_IDENTICAL(Constants::True, Constants::Pi > Constants::Euler);
-  ASSERT_IDENTICAL(Constants::True, Constants::Euler == Constants::Euler);
-  ASSERT_IDENTICAL(Constants::False, Constants::Euler >= Constants::Pi);
-  ASSERT_IDENTICAL(Constants::False, Constants::True > Constants::Pi);
-  ASSERT_IDENTICAL(Constants::True, Constants::True == Constants::True);
-  ASSERT_IDENTICAL(Constants::False, Constants::True == Constants::False);
-  ASSERT_IDENTICAL(Constants::True, Constants::False < Constants::True);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::pi > constants::euler);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::euler == constants::euler);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::euler >= constants::pi);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_true > constants::pi);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_true == constants::boolean_true);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_true == constants::boolean_false);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_false < constants::boolean_true);
 
   // Constant to integer comparison is simplified
-  ASSERT_IDENTICAL(Constants::True, Constants::True > 0);
-  ASSERT_IDENTICAL(Constants::False, Constants::True == 0);
-  ASSERT_IDENTICAL(Constants::False, Constants::False < 0);
-  ASSERT_IDENTICAL(Constants::True, Constants::False == 0);
-  ASSERT_IDENTICAL(Constants::True, Constants::Pi > 3);
-  ASSERT_IDENTICAL(Constants::True, Constants::Pi >= 3);
-  ASSERT_IDENTICAL(Constants::False, Constants::Pi > 4);
-  ASSERT_IDENTICAL(Constants::False, Constants::Pi == 3);
-  ASSERT_IDENTICAL(Constants::True, Constants::Pi < 4);
-  ASSERT_IDENTICAL(Constants::True, Constants::Euler > 2);
-  ASSERT_IDENTICAL(Constants::False, Constants::Euler > 3);
-  ASSERT_IDENTICAL(Constants::True, Constants::Euler < 3);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_true > 0);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_true == 0);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_false < 0);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_false == 0);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::pi > 3);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::pi >= 3);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::pi > 4);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::pi == 3);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::pi < 4);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::euler > 2);
+  ASSERT_IDENTICAL(constants::boolean_false, constants::euler > 3);
+  ASSERT_IDENTICAL(constants::boolean_true, constants::euler < 3);
 
-  ASSERT_THROW(3 < Constants::ComplexInfinity, TypeError);
-  ASSERT_THROW(-0.4 > Constants::ComplexInfinity, TypeError);
-  ASSERT_THROW(Constants::ComplexInfinity == z, TypeError);
-  ASSERT_THROW(Constants::Undefined > x, TypeError);
-  ASSERT_THROW(3_s / 5 == Constants::Undefined, TypeError);
+  ASSERT_THROW(3 < constants::complex_infinity, type_error);
+  ASSERT_THROW(-0.4 > constants::complex_infinity, type_error);
+  ASSERT_THROW(constants::complex_infinity == z, type_error);
+  ASSERT_THROW(constants::undefined > x, type_error);
+  ASSERT_THROW(3_s / 5 == constants::undefined, type_error);
 }
 
 TEST(ScalarOperationsTest, TestCastBool) {
   const auto [x, y] = make_symbols("x", "y");
 
-  ASSERT_TRUE(cast_int_from_bool(x < y).is_type<CastBool>());
+  ASSERT_TRUE(cast_int_from_bool(x < y).is_type<cast_bool>());
   ASSERT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x < y));
   ASSERT_NOT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x == y));
 
-  ASSERT_IDENTICAL(1, cast_int_from_bool(Constants::True));
-  ASSERT_IDENTICAL(0, cast_int_from_bool(Constants::False));
+  ASSERT_IDENTICAL(1, cast_int_from_bool(constants::boolean_true));
+  ASSERT_IDENTICAL(0, cast_int_from_bool(constants::boolean_false));
 
-  ASSERT_THROW(cast_int_from_bool(1.02), TypeError);
-  ASSERT_THROW(cast_int_from_bool(x + y), TypeError);
-  ASSERT_THROW(cast_int_from_bool(x * y), TypeError);
-  ASSERT_THROW(cast_int_from_bool(sin(x)), TypeError);
+  ASSERT_THROW(cast_int_from_bool(1.02), type_error);
+  ASSERT_THROW(cast_int_from_bool(x + y), type_error);
+  ASSERT_THROW(cast_int_from_bool(x * y), type_error);
+  ASSERT_THROW(cast_int_from_bool(sin(x)), type_error);
 }
 
 TEST(ScalarOperationsTest, TestConditional) {
   const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
 
-  ASSERT_TRUE(where(x > 0, y, z).is_type<Conditional>());
-  ASSERT_IDENTICAL(x, where(Constants::True, x, z));
-  ASSERT_IDENTICAL(z, where(Constants::False, x, z));
+  ASSERT_TRUE(where(x > 0, y, z).is_type<conditional>());
+  ASSERT_IDENTICAL(x, where(constants::boolean_true, x, z));
+  ASSERT_IDENTICAL(z, where(constants::boolean_false, x, z));
 
   // Identical branches simplify:
   ASSERT_IDENTICAL(w + 3, where(x > 0, 3 + w, w + 3));
@@ -482,8 +482,8 @@ TEST(ScalarOperationsTest, TestConditional) {
 
   // Nested conditionals don't simplify:
   const Expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
-  ASSERT_IDENTICAL(cast_checked<Conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
-  ASSERT_IDENTICAL(cast_checked<Conditional>(nested).else_branch(), log(z));
+  ASSERT_IDENTICAL(cast_checked<conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
+  ASSERT_IDENTICAL(cast_checked<conditional>(nested).else_branch(), log(z));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {
@@ -523,7 +523,7 @@ TEST(ScalarOperationsTest, TestCollect) {
 
   // No relevant terms:
   ASSERT_IDENTICAL(5, collect(5, x));
-  ASSERT_IDENTICAL(Constants::Pi + y, collect(Constants::Pi + y, x));
+  ASSERT_IDENTICAL(constants::pi + y, collect(constants::pi + y, x));
 
   // Single term that does not need collection:
   ASSERT_IDENTICAL(x * 3, collect(x * 3, x));
@@ -536,13 +536,13 @@ TEST(ScalarOperationsTest, TestCollect) {
 
   // Recursive collection, w/ cancelling terms:
   // clang-format off
-  auto f1 = pow(x, z) * Constants::Pi +
+  auto f1 = pow(x, z) * constants::pi +
                  pow(x, z) * sin(y) +
                  log(x * 5 + x * y) +
                  pow(x, 2) * z +
                  pow(x, 2) * -z;
   // clang-format on
-  ASSERT_IDENTICAL(pow(x, z) * (Constants::Pi + sin(y)) + log(x * (5 + y)), collect(f1, x));
+  ASSERT_IDENTICAL(pow(x, z) * (constants::pi + sin(y)) + log(x * (5 + y)), collect(f1, x));
 
   // Many recursions for one term:
   // clang-format off
@@ -553,24 +553,24 @@ TEST(ScalarOperationsTest, TestCollect) {
     x * abs(pow(x, 3) * z + pow(x, 3) * -3 + y)) -
     pow(x, 2) * z + x * 3 +
     sin(abs(z) - x) * x +
-    Constants::Pi;
+    constants::pi;
   // clang-format on
   ASSERT_IDENTICAL(pow(x, 2) * (-z + log(pow(x, y) * (sin(z) + cos(y)) +
                                          x * (-5 + abs(x * x * x * (z - 3) + y)))) +
-                       x * (3 + sin(abs(z) - x)) + Constants::Pi,
+                       x * (3 + sin(abs(z) - x)) + constants::pi,
                    collect(f2, x));
 
   // power with non-trivial exponent:
   // clang-format off
   auto f3 = pow(x, y) * pow(x, 2) * 5 +
-                 pow(x, 3) * Constants::Pi +
+                 pow(x, 3) * constants::pi +
                  pow(x, 2) * sin(y) +
                  pow(x, y + 2) * -log(z) +
                  22 +
                  pow(x, 3) * z;
   // clang-format on
   ASSERT_IDENTICAL(
-      22 + pow(x, y + 2) * (5 - log(z)) + pow(x, 3) * (Constants::Pi + z) + pow(x, 2) * sin(y),
+      22 + pow(x, y + 2) * (5 - log(z)) + pow(x, 3) * (constants::pi + z) + pow(x, 2) * sin(y),
       collect(f3, x));
 
   // collected base is a function:
@@ -636,7 +636,7 @@ TEST(ScalarOperationsTest, TestCollectMany) {
   auto f4 =
     pow(x, 2) * (pow(y, 2) * (pow(z, 2) - 4 * z + 8) - 2 * y + 10) +
     x * (pow(y, 3) * z * (8 - sin(y)) + pow(y, 2) * z * log(x)) +
-    pow(y, 2) * (pow(z, 2) * (5 + Constants::Euler) - z * 8 + 1) + y * (pow(z, 5) - 22);
+    pow(y, 2) * (pow(z, 2) * (5 + constants::euler) - z * 8 + 1) + y * (pow(z, 5) - 22);
   // clang-format on
   ASSERT_IDENTICAL(f4, collect_many(f4.distribute(), {x, y, z}));
 
@@ -657,181 +657,185 @@ TEST(ScalarOperationsTest, TestCollectMany) {
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsVariables) {
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(Expr{"x"}));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(Expr{"x", NumberSet::Real}));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(Expr{"x", NumberSet::Complex}));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(Expr{"x"}));
+  ASSERT_EQ(number_set::real, determine_numeric_set(Expr{"x", number_set::real}));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(Expr{"x", number_set::complex}));
 
   // Identical must consider the numeric set of the variable.
-  ASSERT_IDENTICAL(Expr("x"), Expr("x", NumberSet::Unknown));
-  ASSERT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::Real));
-  ASSERT_NOT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::Complex));
-  ASSERT_NOT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::RealNonNegative));
+  ASSERT_IDENTICAL(Expr("x"), Expr("x", number_set::unknown));
+  ASSERT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::real));
+  ASSERT_NOT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::complex));
+  ASSERT_NOT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::real_non_negative));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsNumericalValues) {
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(0));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(3));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-10));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(11_s / 13));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-3_s / 2));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(0.0));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(0));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(3));
+  ASSERT_EQ(number_set::real, determine_numeric_set(-10));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(11_s / 13));
+  ASSERT_EQ(number_set::real, determine_numeric_set(-3_s / 2));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(0.0));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsAddMul) {
   // make unique symbols so additions can't collapse into multiplications:
-  const auto real = []() { return make_unique_variable_symbol(NumberSet::Real); };
+  const auto real = []() { return make_unique_variable_symbol(number_set::real); };
   const auto real_non_negative = []() {
-    return make_unique_variable_symbol(NumberSet::RealNonNegative);
+    return make_unique_variable_symbol(number_set::real_non_negative);
   };
-  const auto real_positive = []() { return make_unique_variable_symbol(NumberSet::RealPositive); };
-  const auto complex = []() { return make_unique_variable_symbol(NumberSet::Complex); };
-  const auto unknown = []() { return make_unique_variable_symbol(NumberSet::Unknown); };
+  const auto real_positive = []() {
+    return make_unique_variable_symbol(number_set::real_positive);
+  };
+  const auto complex = []() { return make_unique_variable_symbol(number_set::complex); };
+  const auto unknown = []() { return make_unique_variable_symbol(number_set::unknown); };
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() + real()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() + real_non_negative()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() + real_positive()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real() + unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() + real()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() + real_non_negative()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() + real_positive()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real() + unknown()));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(real_positive() + real_positive()));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(real_positive() + real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_positive() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_positive() + unknown()));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(real_positive() + real_positive()));
+  ASSERT_EQ(number_set::real_positive,
+            determine_numeric_set(real_positive() + real_non_negative()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_positive() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_positive() + unknown()));
 
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real_non_negative() + real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_non_negative() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_non_negative() + unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_non_negative() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_non_negative() + unknown()));
 
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(complex() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(complex() + unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(complex() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(complex() + unknown()));
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() * real()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() * real_non_negative()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() * real_positive()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real() * unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() * real()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() * real_non_negative()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() * real_positive()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real() * unknown()));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(real_positive() * real_positive()));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(real_positive() * real_positive()));
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real_positive() * real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_positive() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_positive() * unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_positive() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_positive() * unknown()));
 
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real_non_negative() * real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_non_negative() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_non_negative() * unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_non_negative() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_non_negative() * unknown()));
 
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(complex() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(complex() * unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(complex() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(complex() * unknown()));
 
   // subtraction is both addition and multiplication:
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real_positive() - real_positive()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real_positive() - real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_positive() - complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_positive() - unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real_positive() - real_positive()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real_positive() - real_non_negative()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_positive() - complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_positive() - unknown()));
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real_non_negative() - real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_non_negative() - complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_non_negative() - unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real_non_negative() - real_non_negative()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_non_negative() - complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_non_negative() - unknown()));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsPow) {
-  const Expr real = make_unique_variable_symbol(NumberSet::Real);
-  const Expr real_non_negative = make_unique_variable_symbol(NumberSet::RealNonNegative);
-  const Expr real_positive = make_unique_variable_symbol(NumberSet::RealPositive);
-  const Expr complex{"z", NumberSet::Complex};
-  const Expr unknown{"v", NumberSet::Unknown};
+  const Expr real = make_unique_variable_symbol(number_set::real);
+  const Expr real_non_negative = make_unique_variable_symbol(number_set::real_non_negative);
+  const Expr real_positive = make_unique_variable_symbol(number_set::real_positive);
+  const Expr complex{"z", number_set::complex};
+  const Expr unknown{"v", number_set::unknown};
 
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(real * real));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real, 4)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real, 3)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real, real_positive)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real, real_non_negative)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real, real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real, complex)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real, unknown)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(real * real));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real, 4)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, 3)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, real_positive)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, real_non_negative)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, unknown)));
 
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 2)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 3)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 2.1231)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 3_s / 5)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real_non_negative, real)));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 2)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 3)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 2.1231)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 3_s / 5)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real_non_negative, real)));
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(pow(real_non_negative, real_non_negative)));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(pow(real_non_negative, real_positive)));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 4)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 3)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 2.1231)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 3_s / 5)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real_positive, real)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, real_positive)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 4)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 3)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 2.1231)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 3_s / 5)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real_positive, real)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, real_positive)));
+  ASSERT_EQ(number_set::real_positive,
+            determine_numeric_set(pow(real_positive, real_non_negative)));
 
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(complex, complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(complex, complex)));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
-  const Expr real{"x", NumberSet::Real};
-  const Expr real_non_negative{"y", NumberSet::RealNonNegative};
-  const Expr real_positive{"w", NumberSet::RealPositive};
-  const Expr complex{"z", NumberSet::Complex};
+  const Expr real{"x", number_set::real};
+  const Expr real_non_negative{"y", number_set::real_non_negative};
+  const Expr real_positive{"w", number_set::real_positive};
+  const Expr complex{"z", number_set::complex};
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(cos(real)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(sin(real)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(cos(real_non_negative)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(sin(real_non_negative)));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(sin(complex)));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(cos(complex)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(cos(real)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(sin(real)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(cos(real_non_negative)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(sin(real_non_negative)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(sin(complex)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(cos(complex)));
 
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(tan(real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(tan(complex)));
-
-  // not implemented
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(real_non_negative)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(tan(real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(tan(complex)));
 
   // not implemented
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(real_non_negative)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(complex)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(log(real_positive)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real_non_negative)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(complex)));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(abs(real_positive)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(real)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(real_non_negative)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(complex)));
+  // not implemented
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real_non_negative)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(log(complex)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(log(real_positive)));
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(signum(real)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(signum(real_non_negative)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(signum(real_positive)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(abs(real_positive)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(real)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(real_non_negative)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(complex)));
+
+  ASSERT_EQ(number_set::real, determine_numeric_set(signum(real)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(signum(real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(signum(real_positive)));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsSpecialValues) {
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(Constants::Euler));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(Constants::Pi));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(Constants::True));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(Constants::False));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(Constants::ComplexInfinity));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(Constants::Undefined));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::euler));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::pi));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::boolean_true));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(constants::boolean_false));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::complex_infinity));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::undefined));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsConditional) {
-  const Expr real{"x", NumberSet::Real};
-  const Expr real_non_negative{"y", NumberSet::RealNonNegative};
-  const Expr real_positive{"w", NumberSet::RealPositive};
-  const Expr complex{"z", NumberSet::Complex};
+  const Expr real{"x", number_set::real};
+  const Expr real_non_negative{"y", number_set::real_non_negative};
+  const Expr real_positive{"w", number_set::real_positive};
+  const Expr complex{"z", number_set::complex};
 
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real > 0));  //  TODO: Should be boolean.
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(where(real > 0, real, real_non_negative)));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real, determine_numeric_set(where(real > 0, real, real_non_negative)));
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(where(real > 0, real_positive, real_non_negative)));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(where(real > 0, real_positive, complex)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(where(real > 0, real_positive, complex)));
 }
 
 }  // namespace math

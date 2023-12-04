@@ -58,7 +58,7 @@ std::optional<Expr> limit(const Expr& f_of_x, const Expr& x);
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x);
 
 // Determine what set of numbers an expression belongs to.
-// Returns `NumberSet::Unknown` if the set cannot be determined.
-NumberSet determine_numeric_set(const Expr& x);
+// Returns `NumberSet::unknown` if the set cannot be determined.
+number_set determine_numeric_set(const Expr& x);
 
 }  // namespace math

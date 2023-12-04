@@ -11,14 +11,14 @@
 
 namespace math {
 
-class Addition {
+class addition {
  public:
-  static constexpr std::string_view NameStr = "Addition";
-  static constexpr bool IsLeafNode = false;
-  using ContainerType = absl::InlinedVector<Expr, 16>;
+  static constexpr std::string_view name_str = "Addition";
+  static constexpr bool is_leaf_node = false;
+  using container_type = absl::InlinedVector<Expr, 16>;
 
   // Move-construct.
-  explicit Addition(ContainerType&& terms) : terms_(std::move(terms)) {
+  explicit addition(container_type&& terms) : terms_(std::move(terms)) {
     WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     // Place into a deterministic (but otherwise mostly arbitrary) order.
     std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
@@ -37,15 +37,15 @@ class Addition {
   const Expr& operator[](const std::size_t i) const { return terms_[i]; }
 
   // Number of arguments.
-  std::size_t arity() const { return terms_.size(); }
+  std::size_t size() const noexcept { return terms_.size(); }
 
   // Iterators.
-  ContainerType::const_iterator begin() const { return terms_.begin(); }
-  ContainerType::const_iterator end() const { return terms_.end(); }
+  container_type::const_iterator begin() const noexcept { return terms_.begin(); }
+  container_type::const_iterator end() const noexcept { return terms_.end(); }
 
   // All terms must be identical.
-  bool is_identical_to(const Addition& other) const {
-    if (arity() != other.arity()) {
+  bool is_identical_to(const addition& other) const {
+    if (size() != other.size()) {
       return false;
     }
     return std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
@@ -60,11 +60,11 @@ class Addition {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    ContainerType transformed{};
-    transformed.reserve(arity());
+    container_type transformed{};
+    transformed.reserve(size());
     std::transform(begin(), end(), std::back_inserter(transformed),
                    std::forward<Operation>(operation));
-    return Addition::from_operands(transformed);
+    return addition::from_operands(transformed);
   }
 
   // Construct from a span of operands.
@@ -72,29 +72,29 @@ class Addition {
   static Expr from_operands(absl::Span<const Expr> span);
 
  private:
-  ContainerType terms_;
+  container_type terms_;
 };
 
 template <>
-struct hash_struct<Addition> {
-  std::size_t operator()(const Addition& add) const { return hash_all(0, add.begin(), add.end()); }
+struct hash_struct<addition> {
+  std::size_t operator()(const addition& add) const { return hash_all(0, add.begin(), add.end()); }
 };
 
 // Helper object used to manipulate additions.
-struct AdditionParts {
-  AdditionParts() = default;
+struct addition_parts {
+  addition_parts() = default;
 
   // Construct and reserve provided capacity.
-  explicit AdditionParts(std::size_t capacity) { terms.reserve(capacity); }
+  explicit addition_parts(std::size_t capacity) { terms.reserve(capacity); }
 
   // Construct from existing addition.
-  explicit AdditionParts(const Addition& add);
+  explicit addition_parts(const addition& add);
 
   // Rational coefficient.
-  Rational rational_term{0, 1};
+  rational_constant rational_term{0, 1};
 
   // Floating point coefficient:
-  std::optional<Float> float_term{};
+  std::optional<float_constant> float_term{};
 
   // Map from multiplicand to coefficient.
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> terms{};

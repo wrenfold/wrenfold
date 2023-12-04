@@ -27,7 +27,7 @@ inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_vi
   for (const char c : csv) {
     if (std::isspace(c) || c == ',') {
       if (!name.empty()) {
-        auto var = make_expr<Variable>(std::move(name));
+        auto var = make_expr<variable>(std::move(name));
         variables.append(std::move(var));
         name = std::string();
       }
@@ -36,7 +36,7 @@ inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_vi
     name += c;
   }
   if (!name.empty()) {
-    auto var = make_expr<Variable>(std::move(name));
+    auto var = make_expr<variable>(std::move(name));
     variables.append(std::move(var));
   }
   if (variables.size() == 1) {
@@ -170,34 +170,34 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
   // Special constants:
-  m.attr("euler") = Constants::Euler;
-  m.attr("zoo") = Constants::ComplexInfinity;
-  m.attr("one") = Constants::One;
-  m.attr("pi") = Constants::Pi;
-  m.attr("zero") = Constants::Zero;
-  m.attr("true") = Constants::True;
-  m.attr("false") = Constants::False;
+  m.attr("euler") = constants::euler;
+  m.attr("zoo") = constants::complex_infinity;
+  m.attr("one") = constants::one;
+  m.attr("pi") = constants::pi;
+  m.attr("zero") = constants::zero;
+  m.attr("true") = constants::boolean_true;
+  m.attr("false") = constants::boolean_false;
 
   // Function enums.
-  py::enum_<BuiltInFunction>(m, "BuiltInFunction")
-      .value("Cos", BuiltInFunction::Cos)
-      .value("Sin", BuiltInFunction::Sin)
-      .value("Tan", BuiltInFunction::Tan)
-      .value("ArcCos", BuiltInFunction::ArcCos)
-      .value("ArcSin", BuiltInFunction::ArcSin)
-      .value("ArcTan", BuiltInFunction::ArcTan)
-      .value("Log", BuiltInFunction::Log)
-      .value("Abs", BuiltInFunction::Abs)
-      .value("Signum", BuiltInFunction::Signum)
-      .value("Arctan2", BuiltInFunction::Arctan2)
+  py::enum_<built_in_function>(m, "BuiltInFunction")
+      .value("Cos", built_in_function::cos)
+      .value("Sin", built_in_function::sin)
+      .value("Tan", built_in_function::tan)
+      .value("ArcCos", built_in_function::arccos)
+      .value("ArcSin", built_in_function::arcsin)
+      .value("ArcTan", built_in_function::arctan)
+      .value("Log", built_in_function::ln)
+      .value("Abs", built_in_function::abs)
+      .value("Signum", built_in_function::signum)
+      .value("Arctan2", built_in_function::arctan2)
       .def(
-          "to_string", [](BuiltInFunction name) { return string_from_built_in_function(name); },
+          "to_string", [](built_in_function name) { return string_from_built_in_function(name); },
           py::doc("Convert to string."));
 
   // Exceptions:
-  py::register_exception<AssertionError>(m, "AssertionError");
-  py::register_exception<DimensionError>(m, "DimensionError");
-  py::register_exception<TypeError>(m, "TypeError");
+  py::register_exception<assertion_error>(m, "AssertionError");
+  py::register_exception<dimension_error>(m, "DimensionError");
+  py::register_exception<type_error>(m, "TypeError");
 
   // Include other wrappers in this module:
   wrap_matrix_operations(m);

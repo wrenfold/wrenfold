@@ -15,7 +15,7 @@ static void right_trim_in_place(std::string& str) {
   }
 }
 
-struct TreeFormatter {
+struct tree_formatter {
   // Add indentation to the output string.
   void apply_indentation() {
     if (indentations_.empty()) {
@@ -57,14 +57,14 @@ struct TreeFormatter {
     indentations_.pop_back();
   }
 
-  void operator()(const Addition& op) {
+  void operator()(const addition& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.arity());
+    terms.reserve(op.size());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       auto acm = as_coeff_and_mul(a);
       auto bcm = as_coeff_and_mul(b);
-      return expression_order(acm.second, bcm.second) == RelativeOrder::LessThan;
+      return expression_order(acm.second, bcm.second) == relative_order::less_than;
     });
 
     append_name("Addition:");
@@ -75,20 +75,20 @@ struct TreeFormatter {
     visit_right(*it);
   }
 
-  void operator()(const Derivative& diff) {
+  void operator()(const derivative& diff) {
     append_name("Derivative (order = {}):", diff.order());
     visit_left(diff.differentiand());
     visit_right(diff.argument());
   }
 
-  void operator()(const Multiplication& op) {
+  void operator()(const multiplication& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.arity());
+    terms.reserve(op.size());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       const auto abe = as_base_and_exp(a);
       const auto bbe = as_base_and_exp(b);
-      return expression_order(abe.first, bbe.first) == RelativeOrder::LessThan;
+      return expression_order(abe.first, bbe.first) == relative_order::less_than;
     });
 
     append_name("Multiplication:");
@@ -99,7 +99,7 @@ struct TreeFormatter {
     visit_right(*it);
   }
 
-  void operator()(const Matrix& mat) {
+  void operator()(const matrix& mat) {
     // TODO: Print the (row, col) index for each element.
     append_name("Matrix ({}, {}):", mat.rows(), mat.cols());
     const auto& elements = mat.data();
@@ -109,29 +109,29 @@ struct TreeFormatter {
     visit_right(elements.back());
   }
 
-  void operator()(const Power& op) {
+  void operator()(const power& op) {
     append_name("Power:");
     visit_left(op.base());
     visit_right(op.exponent());
   }
 
-  void operator()(const Infinity&) { append_name("{}", Infinity::NameStr); }
+  void operator()(const complex_infinity&) { append_name("{}", complex_infinity::name_str); }
 
-  void operator()(const Integer& neg) { append_name("Integer ({})", neg.get_value()); }
+  void operator()(const integer_constant& neg) { append_name("Integer ({})", neg.get_value()); }
 
-  void operator()(const Float& neg) { append_name("Float ({})", neg.get_value()); }
+  void operator()(const float_constant& neg) { append_name("Float ({})", neg.get_value()); }
 
-  void operator()(const Rational& rational) {
+  void operator()(const rational_constant& rational) {
     append_name("Rational ({} / {})", rational.numerator(), rational.denominator());
   }
 
-  void operator()(const Relational& relational) {
+  void operator()(const relational& relational) {
     append_name("Relational ({})", relational.operation_string());
     visit_left(relational.left());
     visit_right(relational.right());
   }
 
-  void operator()(const Function& func) {
+  void operator()(const function& func) {
     append_name("Function ({}):", func.function_name());
     auto it = func.begin();
     for (; std::next(it) != func.end(); ++it) {
@@ -140,26 +140,26 @@ struct TreeFormatter {
     visit_right(*it);
   }
 
-  void operator()(const Undefined&) { append_name(Undefined::NameStr); }
+  void operator()(const undefined&) { append_name(undefined::name_str); }
 
-  void operator()(const Variable& var) {
-    append_name("{} ({}, {})", Variable::NameStr, var.to_string(),
+  void operator()(const variable& var) {
+    append_name("{} ({}, {})", variable::name_str, var.to_string(),
                 string_from_number_set(var.set()));
   }
 
-  void operator()(const CastBool& cast) {
+  void operator()(const cast_bool& cast) {
     append_name("CastBool:");
     visit_right(cast.arg());
   }
 
-  void operator()(const Conditional& conditional) {
+  void operator()(const conditional& conditional) {
     append_name("Conditional:");
     visit_left(conditional.condition());
     visit_left(conditional.if_branch());
     visit_right(conditional.else_branch());
   }
 
-  void operator()(const Constant& constant) {
+  void operator()(const symbolic_constant& constant) {
     append_name("Constant ({})", string_from_symbolic_constant(constant.name()));
   }
 
@@ -181,13 +181,13 @@ struct TreeFormatter {
 };
 
 std::string Expr::to_expression_tree_string() const {
-  TreeFormatter formatter{};
+  tree_formatter formatter{};
   visit(*this, formatter);
   return formatter.take_output();
 }
 
 std::string MatrixExpr::to_expression_tree_string() const {
-  TreeFormatter formatter{};
+  tree_formatter formatter{};
   formatter(as_matrix());
   return formatter.take_output();
 }

@@ -86,7 +86,7 @@ TEST(PlainFormatterTest, TestPower) {
   ASSERT_STR_EQ("y ** (x ** z)", pow(y, pow(x, z)));
   ASSERT_STR_EQ("(x ** (-x + y)) ** (x ** (-3 * z / 7))", pow(pow(x, y - x), pow(x, 3 * z / -7_s)));
   ASSERT_STR_EQ("-5 ** (2 / 3) * 7 ** (2 / 3) + x - y * z",
-                pow(5 * 7, 2 / 3_s) * Constants::NegativeOne + x - y * z);
+                pow(5 * 7, 2 / 3_s) * constants::negative_one + x - y * z);
 }
 
 TEST(PlainFormatterTest, TestRelationals) {
@@ -149,8 +149,8 @@ TEST(PlainFormatterTest, TestDerivativeExpression) {
   ASSERT_STR_EQ("Derivative(signum(a), a, 2)", signum(a).diff(a, 2));
 }
 
-TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", Constants::ComplexInfinity); }
+TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", constants::complex_infinity); }
 
-TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", Constants::Undefined); }
+TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", constants::undefined); }
 
 }  // namespace math

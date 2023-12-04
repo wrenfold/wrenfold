@@ -6,33 +6,33 @@
 #include "wf/hashing.h"
 
 namespace math {
-class Variable;  //  Fwd declare.
+class variable;  //  Fwd declare.
 
 // Visitor that takes the derivative of an input expression.
-class DiffVisitor {
+class derivative_visitor {
  public:
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit DiffVisitor(const Expr& argument);
+  explicit derivative_visitor(const Expr& argument);
 
   // Apply this visitor to the specified expression.
   Expr apply(const Expr& expression);
 
-  Expr operator()(const Addition& add);
-  Expr operator()(const CastBool&, const Expr& expr);
-  Expr operator()(const Conditional& cond);
-  Expr operator()(const Constant&) const;
-  Expr operator()(const Derivative& derivative, const Expr& derivative_abstract) const;
-  Expr operator()(const Multiplication& mul);
-  Expr operator()(const Function& func);
-  Expr operator()(const Infinity&) const;
-  Expr operator()(const Integer&) const;
-  Expr operator()(const Float&) const;
-  Expr operator()(const Power& pow);
-  Expr operator()(const Rational&) const;
-  Expr operator()(const Relational&, const Expr& rel_expr) const;
-  Expr operator()(const Undefined&) const;
-  Expr operator()(const Variable& var) const;
+  Expr operator()(const addition& add);
+  Expr operator()(const cast_bool&, const Expr& expr);
+  Expr operator()(const conditional& cond);
+  Expr operator()(const symbolic_constant&) const;
+  Expr operator()(const derivative& derivative, const Expr& derivative_abstract) const;
+  Expr operator()(const multiplication& mul);
+  Expr operator()(const function& func);
+  Expr operator()(const complex_infinity&) const;
+  Expr operator()(const integer_constant&) const;
+  Expr operator()(const float_constant&) const;
+  Expr operator()(const power& pow);
+  Expr operator()(const rational_constant&) const;
+  Expr operator()(const relational&, const Expr& rel_expr) const;
+  Expr operator()(const undefined&) const;
+  Expr operator()(const variable& var) const;
 
  private:
   Expr cached_visit(const Expr& expr);

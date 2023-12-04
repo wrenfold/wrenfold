@@ -21,7 +21,7 @@ class Expr {
   explicit Expr(const expression_concept_const_ptr& impl) : impl_(impl) {}
 
   // Construct variable with name and specific numeric set:
-  explicit Expr(std::string_view name, NumberSet set = NumberSet::Unknown);
+  explicit Expr(std::string_view name, number_set set = number_set::unknown);
 
   // Implicit construction from integers and floats.
   // enable_if argument is a trick we use until c++20 and constraints.
@@ -44,11 +44,6 @@ class Expr {
   template <typename... Ts>
   bool is_type() const noexcept {
     return impl_->is_type<Ts...>();
-  }
-
-  // Useful for debugging sometimes: get the underlying address as void*.
-  [[maybe_unused]] const void* get_address() const noexcept {
-    return static_cast<const void*>(impl_.get());
   }
 
   // Get the underlying type name as a string.
@@ -161,18 +156,18 @@ Expr operator==(const Expr& a, const Expr& b);
 // Determine relative order of two expressions (for sorting).
 // Can be used to sort expressions into a canonical order, for instance to sort them.
 // Implemented in ordering.cc
-RelativeOrder expression_order(const Expr& a, const Expr& b);
+relative_order expression_order(const Expr& a, const Expr& b);
 
 // Predicate for sorting expressions.
 struct expression_order_struct {
   bool operator()(const Expr& a, const Expr& b) const {
-    return expression_order(a, b) == RelativeOrder::LessThan;
+    return expression_order(a, b) == relative_order::less_than;
   }
 };
 
 // Get operation precedence (order of operations).
 // Implemented in expression.cc
-Precedence get_precedence(const Expr& expr);
+precedence get_precedence(const Expr& expr);
 
 // Check for strict equality. For use in template parameter lists for maps and sets.
 template <typename T>
@@ -195,7 +190,7 @@ auto make_symbols(Args&&... args) {
 }
 
 // Make a unique variable symbol.
-Expr make_unique_variable_symbol(NumberSet set);
+Expr make_unique_variable_symbol(number_set set);
 
 }  // namespace math
 

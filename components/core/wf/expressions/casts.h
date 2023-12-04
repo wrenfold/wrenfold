@@ -8,12 +8,12 @@
 namespace math {
 
 // Cast a boolean value to an integer numerical value.
-class CastBool {
+class cast_bool {
  public:
-  static constexpr std::string_view NameStr = "CastBool";
-  static constexpr bool IsLeafNode = false;
+  static constexpr std::string_view name_str = "CastBool";
+  static constexpr bool is_leaf_node = false;
 
-  explicit CastBool(Expr arg) noexcept(std::is_nothrow_move_constructible_v<Expr>)
+  explicit cast_bool(Expr arg) noexcept(std::is_nothrow_move_constructible_v<Expr>)
       : arg_{std::move(arg)} {}
 
   constexpr const Expr& arg() const noexcept { return arg_[0]; }
@@ -23,7 +23,7 @@ class CastBool {
   constexpr auto end() const noexcept { return arg_.end(); }
 
   // Function type and argument must match.
-  bool is_identical_to(const CastBool& other) const {
+  bool is_identical_to(const cast_bool& other) const {
     return arg_[0].is_identical_to(other.arg_[0]);
   }
 
@@ -45,8 +45,8 @@ class CastBool {
 };
 
 template <>
-struct hash_struct<CastBool> {
-  std::size_t operator()(const CastBool& cast) const { return hash(cast.arg()); }
+struct hash_struct<cast_bool> {
+  std::size_t operator()(const cast_bool& cast) const { return hash(cast.arg()); }
 };
 
 }  // namespace math

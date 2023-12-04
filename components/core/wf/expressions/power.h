@@ -5,16 +5,16 @@
 
 namespace math {
 
-// Power operation: base^exponent
-class Power {
+// Power operation: base**exponent
+class power {
  public:
-  static constexpr std::string_view NameStr = "Power";
-  static constexpr bool IsLeafNode = false;
+  static constexpr std::string_view name_str = "Power";
+  static constexpr bool is_leaf_node = false;
 
-  Power(Expr base, Expr exponent) : children_{std::move(base), std::move(exponent)} {}
+  power(Expr base, Expr exponent) : children_{std::move(base), std::move(exponent)} {}
 
   // Base and exponent must match.
-  bool is_identical_to(const Power& other) const {
+  bool is_identical_to(const power& other) const {
     return base().is_identical_to(other.base()) && exponent().is_identical_to(other.exponent());
   }
 
@@ -27,7 +27,7 @@ class Power {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    return Power::create(operation(base()), operation(exponent()));
+    return power::create(operation(base()), operation(exponent()));
   }
 
   // Create a new power.
@@ -50,21 +50,22 @@ std::pair<Expr, Expr> as_base_and_exp(const Expr& expr);
 // Convert a rational exponent to the whole integer part and the remainder.
 // If the exponent is negative, we add to the whole integer part so that the rational part
 // can be positive (i.e. we eliminate "absurd" rationals).
-inline constexpr std::pair<Integer, Rational> factorize_rational_exponent(const Rational& r) {
-  const Integer integer_part{r.numerator() / r.denominator()};
-  const Rational fractional_part_signed{r.numerator() % r.denominator(), r.denominator()};
+inline constexpr std::pair<integer_constant, rational_constant> factorize_rational_exponent(
+    const rational_constant& r) {
+  const integer_constant integer_part{r.numerator() / r.denominator()};
+  const rational_constant fractional_part_signed{r.numerator() % r.denominator(), r.denominator()};
   if (r.numerator() >= 0) {
     return std::make_pair(integer_part, fractional_part_signed);
   } else {
     // If negative, we subtract one from the integer part and make the rational part positive:
-    return std::make_pair(Integer{integer_part.get_value() - 1},
-                          fractional_part_signed + Rational{1, 1});
+    return std::make_pair(integer_constant{integer_part.get_value() - 1},
+                          fractional_part_signed + rational_constant{1, 1});
   }
 }
 
 template <>
-struct hash_struct<Power> {
-  std::size_t operator()(const Power& pow) const {
+struct hash_struct<power> {
+  std::size_t operator()(const power& pow) const {
     return hash_args(0, pow.base(), pow.exponent());
   }
 };

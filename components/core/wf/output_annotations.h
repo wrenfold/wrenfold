@@ -7,17 +7,17 @@ namespace math {
 // Denote a captured result from a function that should be mapped to an output argument.
 // Stores the symbolic expression, a variable name, and whether the output should be optional.
 template <typename T>
-class OutputArg {
+class output_arg {
  public:
   template <typename U>
   using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
 
   template <typename U, typename = enable_if_decayed_type_matches_t<U>>
-  constexpr OutputArg(std::string_view name, U&& u)
+  constexpr output_arg(std::string_view name, U&& u)
       : value_(std::forward<U>(u)), name_(name), is_optional_(false) {}
 
   template <typename U, typename = enable_if_decayed_type_matches_t<U>>
-  constexpr OutputArg(std::string_view name, U&& u, bool is_optional)
+  constexpr output_arg(std::string_view name, U&& u, bool is_optional)
       : value_(std::forward<U>(u)), name_(name), is_optional_(is_optional) {}
 
   // Access the output value. Typically, an `Expr` or `MatrixExpr`, etc.
@@ -35,56 +35,58 @@ class OutputArg {
   bool is_optional_;
 };
 
-// Deduction guide for `OutputArg`.
+// Deduction guide for `output_arg`.
 template <class T>
-OutputArg(std::string_view name, T&& value) -> OutputArg<std::decay_t<T>>;
+output_arg(std::string_view name, T&& value) -> output_arg<std::decay_t<T>>;
 
 // Construct an output argument and designate it as optional.
 template <typename T>
-constexpr auto OptionalOutputArg(std::string_view name, T&& value) {
-  return OutputArg<std::decay_t<T>>(name, std::forward<T>(value), true);
+constexpr auto optional_output_arg(std::string_view name, T&& value) {
+  return output_arg<std::decay_t<T>>(name, std::forward<T>(value), true);
 }
 
 // Denote a captured result from a function that should be mapped to a return value.
 // Return values can never be optional.
 template <typename T>
-class ReturnValue {
+class return_value {
  public:
   template <typename U>
   using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
 
   template <typename U, typename = enable_if_decayed_type_matches_t<U>>
-  explicit ReturnValue(U&& value) : value_(std::forward<U>(value)) {}
+  explicit return_value(U&& value) : value_(std::forward<U>(value)) {}
 
   // Access the output value. Typically, an `Expr` or `MatrixExpr`, etc.
   constexpr const T& value() const { return value_; }
 
-  // Convert to `OutputArg`.
-  OutputArg<T> to_output_arg(const std::string_view name) const { return OutputArg(name, value_); }
+  // Convert to `output_arg`.
+  output_arg<T> to_output_arg(const std::string_view name) const {
+    return output_arg(name, value_);
+  }
 
  private:
   T value_;
 };
 
-// Deduction guide for `ReturnValue`.
+// Deduction guide for `return_value`.
 template <class T>
-ReturnValue(T&& value) -> ReturnValue<std::decay_t<T>>;
+return_value(T&& value) -> return_value<std::decay_t<T>>;
 
 template <typename T>
 struct is_output_arg : public std::false_type {};
 template <typename T>
-struct is_output_arg<OutputArg<T>> : public std::true_type {};
+struct is_output_arg<output_arg<T>> : public std::true_type {};
 
 template <typename T>
 struct is_return_value : public std::false_type {};
 template <typename T>
-struct is_return_value<ReturnValue<T>> : public std::true_type {};
+struct is_return_value<return_value<T>> : public std::true_type {};
 
 template <typename T>
 struct is_output_arg_or_return_value
     : public std::disjunction<is_output_arg<T>, is_return_value<T>> {};
 
-// Count the number of instances of `ReturnValue` in a type pack.
+// Count the number of instances of `return_value` in a type pack.
 template <typename... Ts>
 constexpr std::size_t count_return_values_v =
     (static_cast<std::size_t>(is_return_value<Ts>::value) + ...);
@@ -100,7 +102,7 @@ constexpr std::ptrdiff_t return_value_index_recursive() {
 }
 }  // namespace detail
 
-// Get the index of the first `ReturnValue` type in a type pack or tuple by recursively searching
+// Get the index of the first `return_value` type in a type pack or tuple by recursively searching
 // the list of types. Yields -1 if there is no return value.
 template <typename T>
 struct return_value_index;

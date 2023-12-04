@@ -11,11 +11,11 @@
 
 namespace math {
 
-MatrixExpr::MatrixExpr(Matrix&& content)
-    : matrix_(std::make_shared<const Matrix>(std::move(content))) {}
+MatrixExpr::MatrixExpr(matrix&& content)
+    : matrix_(std::make_shared<const matrix>(std::move(content))) {}
 
 MatrixExpr MatrixExpr::create(index_t rows, index_t cols, std::vector<Expr> args) {
-  return MatrixExpr{Matrix{rows, cols, std::move(args)}};
+  return MatrixExpr{matrix{rows, cols, std::move(args)}};
 }
 
 // For now, a lot of these methods just forward to the `Matrix` type. In the future,
@@ -26,10 +26,10 @@ bool MatrixExpr::is_identical_to(const MatrixExpr& other) const {
   return as_matrix().is_identical_to(other.as_matrix());
 }
 
-std::string_view MatrixExpr::type_name() const { return Matrix::NameStr; }
+std::string_view MatrixExpr::type_name() const { return matrix::name_str; }
 
 std::string MatrixExpr::to_string() const {
-  PlainFormatter formatter{};
+  plain_formatter formatter{};
   formatter(as_matrix());
   return formatter.take_output();
 }
@@ -43,32 +43,32 @@ const Expr& MatrixExpr::operator[](index_t i) const { return as_matrix()[i]; }
 const Expr& MatrixExpr::operator()(index_t i, index_t j) const { return as_matrix()(i, j); }
 
 MatrixExpr MatrixExpr::get_block(index_t row, index_t col, index_t nrows, index_t ncols) const {
-  Matrix result = as_matrix().get_block(row, col, nrows, ncols);
+  matrix result = as_matrix().get_block(row, col, nrows, ncols);
   return MatrixExpr{std::move(result)};
 }
 
 MatrixExpr MatrixExpr::transposed() const { return MatrixExpr{as_matrix().transposed()}; }
 
 Expr MatrixExpr::squared_norm() const {
-  const Matrix& m = as_matrix();
+  const matrix& m = as_matrix();
   std::vector<Expr> operands{};
   operands.reserve(m.size());
   for (const auto& x : m) {
     operands.push_back(pow(x, 2));
   }
-  return Addition::from_operands(operands);
+  return addition::from_operands(operands);
 }
 
-const Matrix& MatrixExpr::as_matrix() const { return *matrix_.get(); }
+const matrix& MatrixExpr::as_matrix() const { return *matrix_.get(); }
 
 std::vector<Expr> MatrixExpr::to_vector() const { return as_matrix().data(); }
 
 MatrixExpr MatrixExpr::operator-() const {
-  return matrix_operator_overloads::operator*(*this, Constants::NegativeOne);
+  return matrix_operator_overloads::operator*(*this, constants::negative_one);
 }
 
 MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
-  DiffVisitor visitor{var};
+  derivative_visitor visitor{var};
   return MatrixExpr{as_matrix().map_children([&visitor, reps](const Expr& x) {
     Expr result = x;
     for (int i = 0; i < reps; ++i) {
@@ -80,7 +80,7 @@ MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
 
 MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
   if (cols() != 1) {
-    throw DimensionError(
+    throw dimension_error(
         "Jacobian can only be computed on column-vectors. Received dimensions: [{}, {}]", rows(),
         cols());
   }
@@ -90,8 +90,8 @@ MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
 
 MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
-    throw DimensionError("Variables must be a row or column vector. Received dimensions: [{}, {}]",
-                         vars.rows(), vars.cols());
+    throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
+                          vars.rows(), vars.cols());
   }
   const auto& m = vars.as_matrix();
   return jacobian(m.data());  //  Call span version.
@@ -130,14 +130,14 @@ MatrixExpr operator*(const MatrixExpr& a, const MatrixExpr& b) {
 }
 
 MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
-  const Matrix& a_mat = a.as_matrix();
+  const matrix& a_mat = a.as_matrix();
 
   std::vector<Expr> data{};
   data.reserve(a_mat.size());
   std::transform(a_mat.begin(), a_mat.end(), std::back_inserter(data),
                  [&b](const Expr& a_expr) { return a_expr * b; });
 
-  return MatrixExpr{Matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
+  return MatrixExpr{matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
 }
 
 }  // namespace matrix_operator_overloads

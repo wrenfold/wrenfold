@@ -21,12 +21,12 @@ namespace math {
  */
 template <typename Scalar, typename Function>
 auto numerical_derivative(const Scalar dx, Function func) -> decltype(func(dx)) {
-  using ResultType = decltype(func(dx));
+  using result_type = decltype(func(dx));
   const Scalar dx2 = dx * 2;
   const Scalar dx3 = dx * 3;
-  const ResultType c1 = func(dx) - func(-dx);
-  const ResultType c2 = func(dx2) - func(-dx2);
-  const ResultType c3 = func(dx3) - func(-dx3);
+  const result_type c1 = func(dx) - func(-dx);
+  const result_type c2 = func(dx2) - func(-dx2);
+  const result_type c3 = func(dx3) - func(-dx3);
   return (c1 * 45 - c2 * 9 + c3) / (60 * dx);
 }
 

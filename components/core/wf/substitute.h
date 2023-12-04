@@ -8,9 +8,9 @@
 namespace math {
 
 // Visitor for replacing variables in an expression tree.
-class SubstituteVariablesVisitor {
+class substitute_variables_visitor {
  public:
-  SubstituteVariablesVisitor() { cache_.reserve(50); }
+  substitute_variables_visitor() { cache_.reserve(50); }
 
   // Add a new substitution to the list we will apply.
   // This should be called before visiting any expressions.
@@ -18,7 +18,7 @@ class SubstituteVariablesVisitor {
 
   // Add a new substitution to the list we will apply.
   // Version that accepts `Variable` directly.
-  void add_substitution(Variable variable, Expr replacement);
+  void add_substitution(variable variable, Expr replacement);
 
   // Apply the substitute variable visitor. The cache is checked first.
   Expr apply(const Expr& expression);
@@ -27,7 +27,7 @@ class SubstituteVariablesVisitor {
   Expr operator()(const T& concrete, const Expr& abstract);
 
  private:
-  std::unordered_map<Variable, Expr, hash_struct<Variable>, is_identical_struct<Variable>>
+  std::unordered_map<variable, Expr, hash_struct<variable>, is_identical_struct<variable>>
       substitutions_;
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_{};
 };

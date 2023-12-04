@@ -18,9 +18,9 @@ namespace math {
 // Visitor that performs a substitution.
 // TargetExpressionType is the concrete type of the expression we are replacing.
 template <typename Derived, typename TargetExpressionType>
-struct SubstituteVisitorBase {
+struct substitute_visitor_base {
  public:
-  explicit SubstituteVisitorBase(const TargetExpressionType& target, const Expr& replacement)
+  explicit substitute_visitor_base(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
 
   // The argument is neither an addition nor a multiplication:
@@ -31,7 +31,7 @@ struct SubstituteVisitorBase {
         // Exact match, so replace it:
         return replacement;
       }
-      if constexpr (Derived::PerformsPartialSubstitution) {
+      if constexpr (Derived::performs_partial_substitution) {
         // The derived type supports looking for partial matches, so try that:
         Expr partial_sub = static_cast<Derived&>(*this).attempt_partial(input_expression, other);
 
@@ -39,7 +39,7 @@ struct SubstituteVisitorBase {
         // expression we are searching for as well:
         return visit(partial_sub, [this, &partial_sub](const auto& arg) {
           using T = std::decay_t<decltype(arg)>;
-          if constexpr (T::IsLeafNode) {
+          if constexpr (T::is_leaf_node) {
             // This type has no children, so return the input expression unmodified:
             return partial_sub;
           } else {
@@ -54,7 +54,7 @@ struct SubstituteVisitorBase {
       }
     }
     // If these expressions don't match, and the target has no sub-expressions, we can stop here.
-    if constexpr (Arg::IsLeafNode) {
+    if constexpr (Arg::is_leaf_node) {
       return input_expression;
     } else {
       // Otherwise we substitute in every child:
@@ -71,25 +71,25 @@ struct SubstituteVisitorBase {
 };
 
 template <typename Target>
-struct SubstituteVisitor : public SubstituteVisitorBase<SubstituteVisitor<Target>, Target> {
+struct substitute_visitor : public substitute_visitor_base<substitute_visitor<Target>, Target> {
   // Standard substitute visitor does not allow partial matching.
-  constexpr static bool PerformsPartialSubstitution = false;
+  constexpr static bool performs_partial_substitution = false;
 
   // Inherit constructor.
-  using SubstituteVisitorBase<SubstituteVisitor<Target>, Target>::SubstituteVisitorBase;
+  using substitute_visitor_base<substitute_visitor<Target>, Target>::substitute_visitor_base;
 };
 
 // Specialization to allow partial substitution in additions.
-struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor, Addition> {
+struct substitute_add_visitor : public substitute_visitor_base<substitute_add_visitor, addition> {
  public:
-  constexpr static bool PerformsPartialSubstitution = true;
+  constexpr static bool performs_partial_substitution = true;
 
-  SubstituteAddVisitor(const Addition& target, const Expr& replacement)
-      : SubstituteVisitorBase(target, replacement), target_parts(target) {}
+  substitute_add_visitor(const addition& target, const Expr& replacement)
+      : substitute_visitor_base(target, replacement), target_parts(target) {}
 
-  Expr attempt_partial(const Expr& input_expression, const Addition& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const addition& candidate) {
     // Create map representation for the input:
-    AdditionParts input_parts{candidate};
+    addition_parts input_parts{candidate};
 
     if (target_parts.float_term.has_value()) {
       if (!input_parts.float_term ||
@@ -122,23 +122,24 @@ struct SubstituteAddVisitor : public SubstituteVisitorBase<SubstituteAddVisitor,
   }
 
  private:
-  const AdditionParts target_parts;
+  const addition_parts target_parts;
 };
 
 // Specialization for doing partial substitution in multiplications.
 // This allows replacing parts of a product, for example:
 //  Replace `x * y` in `x**3 * y**2 * 5` with `z` to obtain `x * z**2 * 5`.
-struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor, Multiplication> {
+struct substitute_mul_visitor
+    : public substitute_visitor_base<substitute_mul_visitor, multiplication> {
  public:
-  constexpr static bool PerformsPartialSubstitution = true;
+  constexpr static bool performs_partial_substitution = true;
 
-  SubstituteMulVisitor(const Multiplication& target, const Expr& replacement)
-      : SubstituteVisitorBase(target, replacement), target_parts(target, true) {}
+  substitute_mul_visitor(const multiplication& target, const Expr& replacement)
+      : substitute_visitor_base(target, replacement), target_parts(target, true) {}
 
-  Expr attempt_partial(const Expr& input_expression, const Multiplication& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const multiplication& candidate) {
     // Take this multiplication and break it into constituent parts.
     // TODO: Should we just store multiplications pre-factored in this format?
-    MultiplicationParts input_parts{candidate, true};
+    multiplication_parts input_parts{candidate, true};
 
     if (target_parts.float_coeff.has_value()) {
       if (!input_parts.float_coeff ||
@@ -154,7 +155,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
 
     // Determine the maximum number of times we can divide the exponent of the target
     // into the input multiplication.
-    std::optional<Integer> max_valid_integer_exponent{};
+    std::optional<integer_constant> max_valid_integer_exponent{};
     for (const auto& [base, exponent] : target_parts.terms) {
       auto it = input_parts.terms.find(base);
       if (it == input_parts.terms.end()) {
@@ -163,7 +164,8 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
 
       // See how many times we can divide term into the target expression
       const Expr multiple = it->second / exponent;
-      if (const Integer* const as_int = cast_ptr<Integer>(multiple); as_int != nullptr) {
+      if (const integer_constant* const as_int = cast_ptr<integer_constant>(multiple);
+          as_int != nullptr) {
         // We do `abs` here so that doing a substitution like:
         // 1 / (x*x*y*y*y) replacing [x*y -> w] produces 1 / (w*w*y)
         // Instead of producing (if we used the sign): x / w^3
@@ -173,7 +175,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
             as_int->abs() < max_valid_integer_exponent.value().abs()) {
           max_valid_integer_exponent = *as_int;
         }
-      } else if (const Rational* const as_rational = cast_ptr<Rational>(multiple);
+      } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, _] = as_rational->normalized();
         // Same rationale for `abs` as above for integers:
@@ -188,7 +190,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
     }
 
     // Deduct the replaced expression from the input:
-    const Integer max_valid_exponent = max_valid_integer_exponent.value();
+    const integer_constant max_valid_exponent = max_valid_integer_exponent.value();
     for (const auto& [base, exponent] : target_parts.terms) {
       auto it = input_parts.terms.find(base);
       WF_ASSERT(it != input_parts.terms.end());
@@ -196,7 +198,7 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
     }
 
     // Insert the replacement
-    const auto replacement_exp = Integer::create(max_valid_exponent);
+    const auto replacement_exp = integer_constant::create(max_valid_exponent);
     const auto [it, was_inserted] = input_parts.terms.emplace(replacement, replacement_exp);
     if (!was_inserted) {
       it->second = it->second + replacement_exp;
@@ -207,20 +209,20 @@ struct SubstituteMulVisitor : public SubstituteVisitorBase<SubstituteMulVisitor,
   }
 
  protected:
-  const MultiplicationParts target_parts;
+  const multiplication_parts target_parts;
 };
 
 // Specialization for power so we can match.
-// There is a lot of overlap w/ the SubstituteMulVisitor - since any power is just a multiplication
-// w/ one term. These can probably be unified somehow.
-struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor, Power> {
+// There is a lot of overlap w/ the substitute_mul_visitor - since any power is just a
+// multiplication w/ one term. These can probably be unified somehow.
+struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_visitor, power> {
  public:
-  constexpr static bool PerformsPartialSubstitution = true;
+  constexpr static bool performs_partial_substitution = true;
 
-  SubstitutePowVisitor(const Power& target, const Expr& replacement)
-      : SubstituteVisitorBase(target, replacement) {}
+  substitute_pow_visitor(const power& target, const Expr& replacement)
+      : substitute_visitor_base(target, replacement) {}
 
-  Expr attempt_partial(const Expr& input_expression, const Power& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const power& candidate) {
     const Expr& target_base = target.base();
     const Expr& target_exponent = target.exponent();
     const Expr& candidate_base = candidate.base();
@@ -231,24 +233,25 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
     }
 
     // If the exponent is an addition, it might contain a multiple of our target exponent.
-    if (const Addition* const add_exp = cast_ptr<Addition>(candidate.exponent());
+    if (const addition* const add_exp = cast_ptr<addition>(candidate.exponent());
         add_exp != nullptr) {
       const auto [target_exp_coeff, target_exp_mul] = as_coeff_and_mul(target_exponent);
 
       // Break into parts:
-      AdditionParts parts{*add_exp};
+      addition_parts parts{*add_exp};
       auto it = parts.terms.find(target_exp_mul);
       if (it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
         const Expr ratio = it->second / target_exp_coeff;
-        if (const Integer* const as_int = cast_ptr<Integer>(ratio); as_int != nullptr) {
+        if (const integer_constant* const as_int = cast_ptr<integer_constant>(ratio);
+            as_int != nullptr) {
           // It divides evenly. This case handles things like:
           // x**(3*y + 5) replacing [x**y -> w] producing w**3 * x**5
           parts.terms.erase(it);
           // Put the exponent back together and swap in the replacement:
           Expr new_exponent = parts.create_addition();
-          return Power::create(replacement, ratio) * Power::create(candidate_base, new_exponent);
-        } else if (const Rational* const as_rational = cast_ptr<Rational>(ratio);
+          return power::create(replacement, ratio) * power::create(candidate_base, new_exponent);
+        } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(ratio);
                    as_rational != nullptr) {
           const auto [int_part, _] = as_rational->normalized();
           if (int_part.is_zero()) {
@@ -260,25 +263,27 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
           // x**(4/3*y + z) replacing [x**y -> w] producing w * x**(1/3y + z)
           it->second = it->second - target_exp_coeff * int_part.get_value();
           Expr new_exponent = parts.create_addition();
-          return Power::create(replacement, int_part.get_value()) *
-                 Power::create(candidate_base, new_exponent);
+          return power::create(replacement, int_part.get_value()) *
+                 power::create(candidate_base, new_exponent);
         }
       }
     } else {
       // See if the exponent is an integer multiple of the target exponent.
       // TODO: De-duplicate this block with the equivalent section in the addition above.
       const Expr multiple = candidate.exponent() / target_exponent;
-      if (const Integer* const as_int = cast_ptr<Integer>(multiple); as_int != nullptr) {
-        return Power::create(replacement, multiple);
-      } else if (const Rational* const as_rational = cast_ptr<Rational>(multiple);
+      if (const integer_constant* const as_int = cast_ptr<integer_constant>(multiple);
+          as_int != nullptr) {
+        return power::create(replacement, multiple);
+      } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, frac_remainder] = as_rational->normalized();
         if (int_part.is_zero()) {
           // Can't do a full division
           return input_expression;
         }
-        return Power::create(replacement, int_part.get_value()) *
-               Power::create(candidate_base, target_exponent * Rational::create(frac_remainder));
+        return power::create(replacement, int_part.get_value()) *
+               power::create(candidate_base,
+                             target_exponent * rational_constant::create(frac_remainder));
       }
     }
 
@@ -288,42 +293,43 @@ struct SubstitutePowVisitor : public SubstituteVisitorBase<SubstitutePowVisitor,
 
 template <typename T>
 struct sub_visitor_type {
-  using type = SubstituteVisitor<T>;
+  using type = substitute_visitor<T>;
 };
 template <>
-struct sub_visitor_type<Addition> {
-  using type = SubstituteAddVisitor;
+struct sub_visitor_type<addition> {
+  using type = substitute_add_visitor;
 };
 template <>
-struct sub_visitor_type<Multiplication> {
-  using type = SubstituteMulVisitor;
+struct sub_visitor_type<multiplication> {
+  using type = substitute_mul_visitor;
 };
 template <>
-struct sub_visitor_type<Power> {
-  using type = SubstitutePowVisitor;
+struct sub_visitor_type<power> {
+  using type = substitute_pow_visitor;
 };
 
 Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) {
   return visit(target, [&](const auto& target_concrete) -> Expr {
     using T = std::decay_t<decltype(target_concrete)>;
     // Don't allow the target type to be a numeric literal:
-    using disallowed_types = type_list<Integer, Float, Rational, Constant>;
+    using disallowed_types =
+        type_list<integer_constant, float_constant, rational_constant, symbolic_constant>;
     if constexpr (type_list_contains_type_v<T, disallowed_types>) {
-      throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
+      throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {
-      using VisitorType = typename sub_visitor_type<T>::type;
-      return visit_with_expr(input, VisitorType{target_concrete, replacement});
+      using visitor_type = typename sub_visitor_type<T>::type;
+      return visit_with_expr(input, visitor_type{target_concrete, replacement});
     }
   });
 }
 
-static SubstituteVariablesVisitor create_subs_visitor(
+static substitute_variables_visitor create_subs_visitor(
     const absl::Span<const std::tuple<Expr, Expr>> pairs) {
-  SubstituteVariablesVisitor visitor{};
+  substitute_variables_visitor visitor{};
   for (const auto& [target, replacement] : pairs) {
-    if (!target.is_type<Variable>()) {
-      throw TypeError("Input needs to be type Variable, received type `{}`: {}", target.type_name(),
-                      target);
+    if (!target.is_type<variable>()) {
+      throw type_error("Input needs to be type Variable, received type `{}`: {}",
+                       target.type_name(), target);
     }
     visitor.add_substitution(target, replacement);
   }
@@ -336,8 +342,8 @@ Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, E
 
 MatrixExpr substitute_variables(const MatrixExpr& input,
                                 absl::Span<const std::tuple<Expr, Expr>> pairs) {
-  SubstituteVariablesVisitor visitor = create_subs_visitor(pairs);
-  const Matrix& m = input.as_matrix();
+  substitute_variables_visitor visitor = create_subs_visitor(pairs);
+  const matrix& m = input.as_matrix();
 
   std::vector<Expr> replaced{};
   replaced.reserve(m.size());
@@ -346,12 +352,12 @@ MatrixExpr substitute_variables(const MatrixExpr& input,
   return MatrixExpr::create(m.rows(), m.cols(), std::move(replaced));
 }
 
-void SubstituteVariablesVisitor::add_substitution(const Expr& target, Expr replacement) {
-  const Variable& var = cast_checked<Variable>(target);
+void substitute_variables_visitor::add_substitution(const Expr& target, Expr replacement) {
+  const variable& var = cast_checked<variable>(target);
   add_substitution(var, std::move(replacement));
 }
 
-void SubstituteVariablesVisitor::add_substitution(Variable variable, Expr replacement) {
+void substitute_variables_visitor::add_substitution(variable variable, Expr replacement) {
   cache_.clear();  //  No longer valid when new expressions are added.
   const auto [_, was_inserted] =
       substitutions_.emplace(std::move(variable), std::move(replacement));
@@ -359,7 +365,7 @@ void SubstituteVariablesVisitor::add_substitution(Variable variable, Expr replac
             variable.to_string());
 }
 
-Expr SubstituteVariablesVisitor::apply(const Expr& expression) {
+Expr substitute_variables_visitor::apply(const Expr& expression) {
   auto it = cache_.find(expression);
   if (it != cache_.end()) {
     return it->second;
@@ -370,17 +376,17 @@ Expr SubstituteVariablesVisitor::apply(const Expr& expression) {
 }
 
 template <typename T>
-Expr SubstituteVariablesVisitor::operator()(const T& concrete, const Expr& abstract) {
-  if constexpr (std::is_same_v<T, Variable>) {
+Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abstract) {
+  if constexpr (std::is_same_v<T, variable>) {
     // Is this a variable we care about substituting?
-    const Variable& v = concrete;
+    const variable& v = concrete;
     const auto it = substitutions_.find(v);
     if (it != substitutions_.end()) {
       return it->second;
     } else {
       return abstract;
     }
-  } else if constexpr (T::IsLeafNode) {
+  } else if constexpr (T::is_leaf_node) {
     return abstract;
   } else {
     return concrete.map_children([this](const Expr& expr) { return apply(expr); });

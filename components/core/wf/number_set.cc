@@ -6,37 +6,39 @@
 
 namespace math {
 
-constexpr static bool is_non_negative(const NumberSet set) noexcept {
-  return set == NumberSet::RealNonNegative || set == NumberSet::RealPositive;
+constexpr static bool is_non_negative(const number_set set) noexcept {
+  return set == number_set::real_non_negative || set == number_set::real_positive;
 }
 
-constexpr static bool contains_zero(const NumberSet set) noexcept {
-  return set != NumberSet::RealPositive;
+constexpr static bool contains_zero(const number_set set) noexcept {
+  return set != number_set::real_positive;
 }
 
-constexpr NumberSet combine_sets_add(NumberSet a, NumberSet b) noexcept {
+constexpr number_set combine_sets_add(number_set a, number_set b) noexcept {
   if (b < a) {
     return combine_sets_add(b, a);
   }
-  static_assert(NumberSet::RealPositive < NumberSet::RealNonNegative);
-  if (b == NumberSet::RealNonNegative && a == NumberSet::RealPositive) {
+  static_assert(number_set::real_positive < number_set::real_non_negative);
+  if (b == number_set::real_non_negative && a == number_set::real_positive) {
     // if (x > 0) and (y >= 0) then (x + y > 0)
-    return NumberSet::RealPositive;
+    return number_set::real_positive;
   }
   return b;  //  take the larger value in the enum
 }
 
-constexpr NumberSet combine_sets_mul(NumberSet a, NumberSet b) noexcept { return std::max(a, b); }
+constexpr number_set combine_sets_mul(number_set a, number_set b) noexcept {
+  return std::max(a, b);
+}
 
-class DetermineSetVisitor {
+class determine_set_visitor {
  public:
   template <typename Container, typename Callable>
-  NumberSet handle_add_or_mul(const Container& container, Callable callable) const {
-    WF_ASSERT_GREATER_OR_EQ(container.arity(), 1);
+  number_set handle_add_or_mul(const Container& container, Callable callable) const {
+    WF_ASSERT_GREATER_OR_EQ(container.size(), 1);
     auto it = container.begin();
-    NumberSet set = determine_numeric_set(*it);
+    number_set set = determine_numeric_set(*it);
     for (it = std::next(it); it != container.end(); ++it) {
-      if (set == NumberSet::Unknown) {
+      if (set == number_set::unknown) {
         // Can't become less specific than unknown.
         return set;
       }
@@ -45,142 +47,150 @@ class DetermineSetVisitor {
     return set;
   }
 
-  NumberSet operator()(const Addition& add) const {
+  number_set operator()(const addition& add) const {
     return handle_add_or_mul(add, &combine_sets_add);
   }
 
-  constexpr NumberSet operator()(const CastBool&) const noexcept {
-    return NumberSet::RealNonNegative;
+  constexpr number_set operator()(const cast_bool&) const noexcept {
+    return number_set::real_non_negative;
   }
 
-  NumberSet operator()(const Conditional& cond) const {
-    NumberSet left = determine_numeric_set(cond.if_branch());
-    NumberSet right = determine_numeric_set(cond.else_branch());
+  number_set operator()(const conditional& cond) const {
+    number_set left = determine_numeric_set(cond.if_branch());
+    number_set right = determine_numeric_set(cond.else_branch());
     return std::max(left, right);
   }
 
-  constexpr NumberSet operator()(const Constant& c) const noexcept {
-    if (c.name() == SymbolicConstants::False) {
-      return NumberSet::RealNonNegative;
+  constexpr number_set operator()(const symbolic_constant& c) const noexcept {
+    if (c.name() == symbolic_constant_enum::boolean_false) {
+      return number_set::real_non_negative;
     }
-    return NumberSet::RealPositive;
+    return number_set::real_positive;
   }
 
-  constexpr NumberSet operator()(const Derivative&) const noexcept { return NumberSet::Unknown; }
+  constexpr number_set operator()(const derivative&) const noexcept { return number_set::unknown; }
 
-  NumberSet operator()(const Multiplication& mul) const {
+  number_set operator()(const multiplication& mul) const {
     return handle_add_or_mul(mul, &combine_sets_mul);
   }
 
-  NumberSet operator()(const Function& func) {
-    absl::InlinedVector<NumberSet, 4> args{};
+  number_set operator()(const function& func) {
+    absl::InlinedVector<number_set, 4> args{};
     std::transform(func.begin(), func.end(), std::back_inserter(args), &determine_numeric_set);
     WF_ASSERT_GREATER_OR_EQ(args.size(), 1);
 
-    if (std::count(args.begin(), args.end(), NumberSet::Unknown) > 0) {
-      return NumberSet::Unknown;
+    if (std::count(args.begin(), args.end(), number_set::unknown) > 0) {
+      return number_set::unknown;
     }
 
     switch (func.enum_value()) {
-      case BuiltInFunction::Cos:
-      case BuiltInFunction::Sin: {
+      case built_in_function::cos:
+      case built_in_function::sin: {
         if (is_real_set(args[0])) {
-          return NumberSet::Real;
+          return number_set::real;
         }
-        return NumberSet::Complex;
+        return number_set::complex;
       }
-      case BuiltInFunction::Tan:
+      case built_in_function::tan:
         // Any real argument could be +/- pi/2, which is unknown
-        return NumberSet::Unknown;
-      case BuiltInFunction::ArcCos:
-      case BuiltInFunction::ArcSin:
-      case BuiltInFunction::ArcTan:
-        return NumberSet::Unknown;  //  TODO: implement inverse trig functions.
-      case BuiltInFunction::Log: {
-        if (args[0] == NumberSet::RealPositive) {
-          return NumberSet::RealPositive;
+        return number_set::unknown;
+      case built_in_function::arccos:
+      case built_in_function::arcsin:
+      case built_in_function::arctan:
+        return number_set::unknown;  //  TODO: implement inverse trig functions.
+      case built_in_function::ln: {
+        if (args[0] == number_set::real_positive) {
+          return number_set::real_positive;
         }
         // Otherwise could be zero.
-        return NumberSet::Unknown;
+        return number_set::unknown;
       }
-      case BuiltInFunction::Abs: {
-        if (args[0] == NumberSet::RealPositive) {
-          return NumberSet::RealPositive;
+      case built_in_function::abs: {
+        if (args[0] == number_set::real_positive) {
+          return number_set::real_positive;
         }
-        return NumberSet::RealNonNegative;
+        return number_set::real_non_negative;
       }
-      case BuiltInFunction::Signum: {
+      case built_in_function::signum: {
         if (is_real_set(args[0])) {
           return args[0];
         }
-        return NumberSet::Unknown;
+        return number_set::unknown;
       }
-      case BuiltInFunction::Arctan2:
+      case built_in_function::arctan2:
         // Can always be undefined.
-        return NumberSet::Unknown;
+        return number_set::unknown;
     }
-    throw TypeError("Invalid function: {}\n", func.function_name());
+    throw type_error("Invalid function: {}\n", func.function_name());
   }
 
   // In spite of its name, complex infinity is not part of the complex numbers.
-  constexpr NumberSet operator()(const Infinity&) const noexcept { return NumberSet::Unknown; }
-
-  template <typename T>
-  constexpr NumberSet handle_numeric(const T& val) const noexcept {
-    if (val.is_positive()) {
-      return NumberSet::RealPositive;
-    }
-    if (!val.is_negative()) {
-      return NumberSet::RealNonNegative;
-    }
-    return NumberSet::Real;
+  constexpr number_set operator()(const complex_infinity&) const noexcept {
+    return number_set::unknown;
   }
 
-  constexpr NumberSet operator()(const Integer& i) const noexcept { return handle_numeric(i); }
-  constexpr NumberSet operator()(const Float& f) const noexcept { return handle_numeric(f); }
+  template <typename T>
+  constexpr number_set handle_numeric(const T& val) const noexcept {
+    if (val.is_positive()) {
+      return number_set::real_positive;
+    }
+    if (!val.is_negative()) {
+      return number_set::real_non_negative;
+    }
+    return number_set::real;
+  }
 
-  NumberSet operator()(const Power& pow) const {
-    NumberSet base = determine_numeric_set(pow.base());
-    NumberSet exp = determine_numeric_set(pow.exponent());
-    if (base == NumberSet::Complex || exp == NumberSet::Complex || base == NumberSet::Unknown ||
-        exp == NumberSet::Unknown) {
-      return NumberSet::Unknown;
+  constexpr number_set operator()(const integer_constant& i) const noexcept {
+    return handle_numeric(i);
+  }
+  constexpr number_set operator()(const float_constant& f) const noexcept {
+    return handle_numeric(f);
+  }
+
+  number_set operator()(const power& pow) const {
+    number_set base = determine_numeric_set(pow.base());
+    number_set exp = determine_numeric_set(pow.exponent());
+    if (base == number_set::complex || exp == number_set::complex || base == number_set::unknown ||
+        exp == number_set::unknown) {
+      return number_set::unknown;
     }
 
     if (contains_zero(base) && !is_non_negative(exp)) {
       // If the exponent might be negative, we can't say confidently this isn't a division by zero.
-      return NumberSet::Unknown;
+      return number_set::unknown;
     }
 
     if (is_real_set(base)) {
-      if (const Integer* exp_int = cast_ptr<Integer>(pow.exponent());
+      if (const integer_constant* exp_int = cast_ptr<integer_constant>(pow.exponent());
           exp_int != nullptr && exp_int->is_even()) {
-        return contains_zero(base) ? NumberSet::RealNonNegative : NumberSet::RealPositive;
+        return contains_zero(base) ? number_set::real_non_negative : number_set::real_positive;
       }
       if (is_non_negative(base) && is_non_negative(exp)) {
-        // base is either RealNonNegative or RealPositive
+        // base is either real_non_negative or real_positive
         return base;
       }
-      return NumberSet::Real;
+      return number_set::real;
     }
-    return NumberSet::Unknown;
+    return number_set::unknown;
   }
 
-  constexpr NumberSet operator()(const Rational& r) const noexcept { return handle_numeric(r); }
+  constexpr number_set operator()(const rational_constant& r) const noexcept {
+    return handle_numeric(r);
+  }
 
   // Relational is always 0 or 1, so it must be non-negative.
-  constexpr NumberSet operator()(const Relational&) const noexcept {
-    return NumberSet::RealNonNegative;
+  constexpr number_set operator()(const relational&) const noexcept {
+    return number_set::real_non_negative;
   }
 
-  constexpr NumberSet operator()(const Undefined&) const noexcept {
+  constexpr number_set operator()(const undefined&) const noexcept {
     // Cannot establish
-    return NumberSet::Unknown;
+    return number_set::unknown;
   }
 
-  constexpr NumberSet operator()(const Variable& var) const noexcept { return var.set(); }
+  constexpr number_set operator()(const variable& var) const noexcept { return var.set(); }
 };
 
-NumberSet determine_numeric_set(const Expr& x) { return visit(x, DetermineSetVisitor{}); }
+number_set determine_numeric_set(const Expr& x) { return visit(x, determine_set_visitor{}); }
 
 }  // namespace math
