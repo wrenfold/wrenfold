@@ -6,7 +6,7 @@
 
 namespace math {
 
-Matrix Matrix::get_block(const index_t row, const index_t col, const index_t nrows,
+matrix matrix::get_block(const index_t row, const index_t col, const index_t nrows,
                          const index_t ncols) const {
   if (row < 0 || row + nrows > rows_ || col < 0 || col + ncols > cols_) {
     throw dimension_error(
@@ -17,20 +17,20 @@ Matrix Matrix::get_block(const index_t row, const index_t col, const index_t nro
   data.reserve(nrows * ncols);
   iter_matrix(nrows, ncols,
               [&](index_t i, index_t j) { data.push_back(get_unchecked(i + row, j + col)); });
-  return Matrix(nrows, ncols, std::move(data));
+  return matrix(nrows, ncols, std::move(data));
 }
 
-Matrix Matrix::transposed() const {
+matrix matrix::transposed() const {
   std::vector<Expr> output{};
   output.reserve(size());
   const index_t output_rows = cols();
   const index_t output_cols = rows();
   iter_matrix(output_rows, output_cols,
               [&](index_t r, index_t c) { output.push_back(operator()(c, r)); });
-  return Matrix(output_rows, output_cols, std::move(output));
+  return matrix(output_rows, output_cols, std::move(output));
 }
 
-Matrix operator*(const Matrix& a, const Matrix& b) {
+matrix operator*(const matrix& a, const matrix& b) {
   if (a.cols() != b.rows()) {
     throw dimension_error(
         "dimension mismatch in matrix multiplication: ({}, {}) x ({}, {}). Inner dimensions must "
@@ -56,13 +56,13 @@ Matrix operator*(const Matrix& a, const Matrix& b) {
     if (addition_args.empty()) {
       output.push_back(constants::zero);
     } else {
-      output.push_back(Addition::from_operands(addition_args));
+      output.push_back(addition::from_operands(addition_args));
     }
   });
-  return Matrix(output_rows, output_cols, std::move(output));
+  return matrix(output_rows, output_cols, std::move(output));
 }
 
-Matrix operator+(const Matrix& a, const Matrix& b) {
+matrix operator+(const matrix& a, const matrix& b) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
     throw dimension_error("dimension mismatch in matrix addition: ({}, {}) + ({}, {}).", a.rows(),
                           a.cols(), b.rows(), b.cols());
@@ -72,10 +72,10 @@ Matrix operator+(const Matrix& a, const Matrix& b) {
   iter_matrix(a.rows(), a.cols(),
               [&](index_t i, index_t j) { output.push_back(a(i, j) + b(i, j)); });
 
-  return Matrix(a.rows(), a.cols(), std::move(output));
+  return matrix(a.rows(), a.cols(), std::move(output));
 }
 
-Matrix operator-(const Matrix& a, const Matrix& b) {
+matrix operator-(const matrix& a, const matrix& b) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
     throw dimension_error("dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).",
                           a.rows(), a.cols(), b.rows(), b.cols());
@@ -85,7 +85,7 @@ Matrix operator-(const Matrix& a, const Matrix& b) {
   iter_matrix(a.rows(), a.cols(),
               [&](index_t i, index_t j) { output.push_back(a(i, j) - b(i, j)); });
 
-  return Matrix(a.rows(), a.cols(), std::move(output));
+  return matrix(a.rows(), a.cols(), std::move(output));
 }
 
 }  // namespace math

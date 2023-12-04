@@ -148,7 +148,7 @@ struct PowerNumerics {
     if (operands.size() == 1) {
       return operands.front();
     }
-    return Multiplication::from_operands(operands);
+    return multiplication::from_operands(operands);
   }
 
   Expr apply_infinity_and_rational(const Infinity&, const Rational& r) const {
@@ -248,13 +248,13 @@ Expr Power::create(Expr a, Expr b) {
   // Check if the base is a multiplication.
   // In this case, we convert to a multiplication of powers:
   // TODO: Should we only do this distribution for integer powers?
-  if (const Multiplication* const mul = cast_ptr<Multiplication>(a); mul != nullptr) {
+  if (const multiplication* const mul = cast_ptr<multiplication>(a); mul != nullptr) {
     std::vector<Expr> args;
-    args.reserve(mul->arity());
+    args.reserve(mul->size());
     for (const Expr& arg : *mul) {
       args.push_back(Power::create(arg, b));
     }
-    return Multiplication::from_operands(args);
+    return multiplication::from_operands(args);
   }
   return make_expr<Power>(std::move(a), std::move(b));
 }

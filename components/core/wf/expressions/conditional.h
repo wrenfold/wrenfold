@@ -6,15 +6,15 @@
 
 namespace math {
 
-class Conditional {
+class conditional {
  public:
-  static constexpr std::string_view NameStr = "Conditional";
-  static constexpr bool IsLeafNode = false;
+  static constexpr std::string_view name_str = "Conditional";
+  static constexpr bool is_leaf_node = false;
 
-  Conditional(Expr condition, Expr if_branch, Expr else_branch)
+  conditional(Expr condition, Expr if_branch, Expr else_branch)
       : children_{std::move(condition), std::move(if_branch), std::move(else_branch)} {}
 
-  bool is_identical_to(const Conditional& other) const {
+  bool is_identical_to(const conditional& other) const {
     return std::equal(children_.begin(), children_.end(), other.children_.begin(),
                       is_identical_struct<Expr>{});
   }
@@ -52,8 +52,8 @@ class Conditional {
 };
 
 template <>
-struct hash_struct<Conditional> {
-  std::size_t operator()(const Conditional& c) const {
+struct hash_struct<conditional> {
+  std::size_t operator()(const conditional& c) const {
     return hash_args(0, c.condition(), c.if_branch(), c.else_branch());
   }
 };

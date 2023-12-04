@@ -8,8 +8,8 @@ namespace math {
 // A relational expression for equalities and inequalities.
 class Relational {
  public:
-  static constexpr std::string_view NameStr = "Relational";
-  static constexpr bool IsLeafNode = false;
+  static constexpr std::string_view name_str = "Relational";
+  static constexpr bool is_leaf_node = false;
 
   Relational(relational_operation operation, Expr left, Expr right)
       : operation_(operation), children_{std::move(left), std::move(right)} {}

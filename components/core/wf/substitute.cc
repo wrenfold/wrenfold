@@ -39,7 +39,7 @@ struct substitute_visitor_base {
         // expression we are searching for as well:
         return visit(partial_sub, [this, &partial_sub](const auto& arg) {
           using T = std::decay_t<decltype(arg)>;
-          if constexpr (T::IsLeafNode) {
+          if constexpr (T::is_leaf_node) {
             // This type has no children, so return the input expression unmodified:
             return partial_sub;
           } else {
@@ -54,7 +54,7 @@ struct substitute_visitor_base {
       }
     }
     // If these expressions don't match, and the target has no sub-expressions, we can stop here.
-    if constexpr (Arg::IsLeafNode) {
+    if constexpr (Arg::is_leaf_node) {
       return input_expression;
     } else {
       // Otherwise we substitute in every child:
@@ -80,16 +80,16 @@ struct substitute_visitor : public substitute_visitor_base<substitute_visitor<Ta
 };
 
 // Specialization to allow partial substitution in additions.
-struct substitute_add_visitor : public substitute_visitor_base<substitute_add_visitor, Addition> {
+struct substitute_add_visitor : public substitute_visitor_base<substitute_add_visitor, addition> {
  public:
   constexpr static bool performs_partial_substitution = true;
 
-  substitute_add_visitor(const Addition& target, const Expr& replacement)
+  substitute_add_visitor(const addition& target, const Expr& replacement)
       : substitute_visitor_base(target, replacement), target_parts(target) {}
 
-  Expr attempt_partial(const Expr& input_expression, const Addition& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const addition& candidate) {
     // Create map representation for the input:
-    AdditionParts input_parts{candidate};
+    addition_parts input_parts{candidate};
 
     if (target_parts.float_term.has_value()) {
       if (!input_parts.float_term ||
@@ -122,21 +122,21 @@ struct substitute_add_visitor : public substitute_visitor_base<substitute_add_vi
   }
 
  private:
-  const AdditionParts target_parts;
+  const addition_parts target_parts;
 };
 
 // Specialization for doing partial substitution in multiplications.
 // This allows replacing parts of a product, for example:
 //  Replace `x * y` in `x**3 * y**2 * 5` with `z` to obtain `x * z**2 * 5`.
 struct substitute_mul_visitor
-    : public substitute_visitor_base<substitute_mul_visitor, Multiplication> {
+    : public substitute_visitor_base<substitute_mul_visitor, multiplication> {
  public:
   constexpr static bool performs_partial_substitution = true;
 
-  substitute_mul_visitor(const Multiplication& target, const Expr& replacement)
+  substitute_mul_visitor(const multiplication& target, const Expr& replacement)
       : substitute_visitor_base(target, replacement), target_parts(target, true) {}
 
-  Expr attempt_partial(const Expr& input_expression, const Multiplication& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const multiplication& candidate) {
     // Take this multiplication and break it into constituent parts.
     // TODO: Should we just store multiplications pre-factored in this format?
     MultiplicationParts input_parts{candidate, true};
@@ -232,12 +232,12 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
     }
 
     // If the exponent is an addition, it might contain a multiple of our target exponent.
-    if (const Addition* const add_exp = cast_ptr<Addition>(candidate.exponent());
+    if (const addition* const add_exp = cast_ptr<addition>(candidate.exponent());
         add_exp != nullptr) {
       const auto [target_exp_coeff, target_exp_mul] = as_coeff_and_mul(target_exponent);
 
       // Break into parts:
-      AdditionParts parts{*add_exp};
+      addition_parts parts{*add_exp};
       auto it = parts.terms.find(target_exp_mul);
       if (it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
@@ -292,11 +292,11 @@ struct sub_visitor_type {
   using type = substitute_visitor<T>;
 };
 template <>
-struct sub_visitor_type<Addition> {
+struct sub_visitor_type<addition> {
   using type = substitute_add_visitor;
 };
 template <>
-struct sub_visitor_type<Multiplication> {
+struct sub_visitor_type<multiplication> {
   using type = substitute_mul_visitor;
 };
 template <>
@@ -310,7 +310,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     // Don't allow the target type to be a numeric literal:
     using disallowed_types = type_list<Integer, Float, Rational, Constant>;
     if constexpr (type_list_contains_type_v<T, disallowed_types>) {
-      throw type_error("Cannot perform a substitution with target type: {}", T::NameStr);
+      throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {
       using VisitorType = typename sub_visitor_type<T>::type;
       return visit_with_expr(input, VisitorType{target_concrete, replacement});
@@ -338,7 +338,7 @@ Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, E
 MatrixExpr substitute_variables(const MatrixExpr& input,
                                 absl::Span<const std::tuple<Expr, Expr>> pairs) {
   substitute_variables_visitor visitor = create_subs_visitor(pairs);
-  const Matrix& m = input.as_matrix();
+  const matrix& m = input.as_matrix();
 
   std::vector<Expr> replaced{};
   replaced.reserve(m.size());
@@ -381,7 +381,7 @@ Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abs
     } else {
       return abstract;
     }
-  } else if constexpr (T::IsLeafNode) {
+  } else if constexpr (T::is_leaf_node) {
     return abstract;
   } else {
     return concrete.map_children([this](const Expr& expr) { return apply(expr); });

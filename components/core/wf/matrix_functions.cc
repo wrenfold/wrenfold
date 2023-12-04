@@ -80,7 +80,7 @@ static MatrixExpr stack(const absl::Span<const MatrixExpr> values, index_t num_r
   index_t row_offset = 0;
   index_t col_offset = 0;
   for (const MatrixExpr& m : values) {
-    const Matrix& m_concrete = m.as_matrix();
+    const matrix& m_concrete = m.as_matrix();
     for (index_t i = 0; i < m_concrete.rows(); ++i) {
       for (index_t j = 0; j < m_concrete.cols(); ++j) {
         output_span(i + row_offset, j + col_offset) = m_concrete.get_unchecked(i, j);
@@ -343,15 +343,15 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   return std::make_tuple(std::move(P), std::move(Q));
 }
 
-static std::tuple<permutation_matrix, Matrix, Matrix, permutation_matrix>
-factorize_full_piv_lu_internal(const Matrix& A) {
+static std::tuple<permutation_matrix, matrix, matrix, permutation_matrix>
+factorize_full_piv_lu_internal(const matrix& A) {
   if (A.rows() > A.cols()) {
     // To simplify the implementation, we factorize the transpose and then do a fix-up step:
     auto [P, L, U, Q] = factorize_full_piv_lu_internal(A.transposed());
 
     // First transpose the outputs:
-    Matrix U_out = L.transposed();
-    Matrix L_out = U.transposed();
+    matrix U_out = L.transposed();
+    matrix L_out = U.transposed();
 
     WF_ASSERT_EQUAL(L_out.rows(), A.rows());
     WF_ASSERT_EQUAL(L_out.cols(), A.cols());
@@ -388,9 +388,9 @@ factorize_full_piv_lu_internal(const Matrix& A) {
     auto [P, Q] = factorize_full_piv_lu_internal(L_span, U_span);
 
     // convert L and U to `Matrix` type
-    Matrix L{static_cast<index_t>(L_span.rows()), static_cast<index_t>(L_span.cols()),
+    matrix L{static_cast<index_t>(L_span.rows()), static_cast<index_t>(L_span.cols()),
              std::move(L_storage)};
-    Matrix U{static_cast<index_t>(U_span.rows()), static_cast<index_t>(U_span.cols()),
+    matrix U{static_cast<index_t>(U_span.rows()), static_cast<index_t>(U_span.cols()),
              std::move(U_storage)};
 
     return std::make_tuple(std::move(P), std::move(L), std::move(U), std::move(Q));
@@ -425,7 +425,7 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu
 }
 
 Expr determinant(const MatrixExpr& m) {
-  const Matrix& mat = m.as_matrix();
+  const matrix& mat = m.as_matrix();
   if (mat.rows() != mat.cols()) {
     throw dimension_error(
         "Determinant can only be computed for square matrices. Dimensions = [{}, {}]", mat.rows(),

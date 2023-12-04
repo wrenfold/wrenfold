@@ -18,13 +18,13 @@ class derivative_visitor {
   // Apply this visitor to the specified expression.
   Expr apply(const Expr& expression);
 
-  Expr operator()(const Addition& add);
-  Expr operator()(const CastBool&, const Expr& expr);
-  Expr operator()(const Conditional& cond);
+  Expr operator()(const addition& add);
+  Expr operator()(const cast_bool&, const Expr& expr);
+  Expr operator()(const conditional& cond);
   Expr operator()(const Constant&) const;
-  Expr operator()(const Derivative& derivative, const Expr& derivative_abstract) const;
-  Expr operator()(const Multiplication& mul);
-  Expr operator()(const Function& func);
+  Expr operator()(const derivative& derivative, const Expr& derivative_abstract) const;
+  Expr operator()(const multiplication& mul);
+  Expr operator()(const function& func);
   Expr operator()(const Infinity&) const;
   Expr operator()(const Integer&) const;
   Expr operator()(const Float&) const;

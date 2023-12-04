@@ -39,7 +39,7 @@ struct is_negative_number_visitor {
   }
 
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
-  bool operator()(const Multiplication& m) const {
+  bool operator()(const multiplication& m) const {
     const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
       return visit(expr, is_negative_number_visitor{});
     });

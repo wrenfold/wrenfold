@@ -146,7 +146,7 @@ quaternion quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
     throw dimension_error("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
                           R_in.cols());
   }
-  const Matrix& R = R_in.as_matrix();
+  const matrix& R = R_in.as_matrix();
   // clang-format off
   Expr a = pow(R(0, 0) + R(1, 1) + R(2, 2) + 1, 2) +
            pow(R(2, 1) - R(1, 2), 2) +
@@ -255,7 +255,7 @@ MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon
     throw dimension_error("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
                           w.cols());
   }
-  const Matrix& m = w.as_matrix();
+  const matrix& m = w.as_matrix();
   const Expr& vx = m[0];
   const Expr& vy = m[1];
   const Expr& vz = m[2];

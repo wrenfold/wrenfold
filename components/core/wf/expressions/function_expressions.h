@@ -8,19 +8,19 @@
 
 namespace math {
 
-// Store a built-in function. Valid functions are enumerated in `BuiltInFunctionName`.
-class Function {
+// Store a built-in function call. Valid functions are enumerated in `built_in_function`.
+class function {
  public:
-  static constexpr std::string_view NameStr = "UnaryFunction";
-  static constexpr bool IsLeafNode = false;
-  using ContainerType = absl::InlinedVector<Expr, 2>;
+  static constexpr std::string_view name_str = "Function";
+  static constexpr bool is_leaf_node = false;
+  using container_type = absl::InlinedVector<Expr, 2>;
 
   template <typename... Args>
-  Function(built_in_function func, Args&&... args)
+  function(built_in_function func, Args&&... args)
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
-  static Expr create(built_in_function name, ContainerType&& container);
+  static Expr create(built_in_function name, container_type&& container);
 
   // Get the function name.
   constexpr built_in_function enum_value() const noexcept { return func_; }
@@ -34,14 +34,14 @@ class Function {
   constexpr const auto& args() const noexcept { return args_; }
 
   // Number of arguments.
-  std::size_t arity() const noexcept { return args_.size(); }
+  std::size_t size() const noexcept { return args_.size(); }
 
   // Iterator over argument.
   auto begin() const noexcept { return args_.begin(); }
   auto end() const noexcept { return args_.end(); }
 
   // Function type and argument must match.
-  bool is_identical_to(const Function& other) const {
+  bool is_identical_to(const function& other) const {
     return func_ == other.func_ && args_.size() == other.args_.size() &&
            std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
   }
@@ -55,28 +55,28 @@ class Function {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    ContainerType transformed{};
+    container_type transformed{};
     transformed.reserve(args_.size());
     std::transform(begin(), end(), std::back_inserter(transformed),
                    std::forward<Operation>(operation));
-    return Function::create(func_, std::move(transformed));
+    return function::create(func_, std::move(transformed));
   }
 
  protected:
   built_in_function func_;
-  ContainerType args_;
+  container_type args_;
 };
 
 template <>
-struct hash_struct<Function> {
-  std::size_t operator()(const Function& func) const {
+struct hash_struct<function> {
+  std::size_t operator()(const function& func) const {
     return hash_all(static_cast<std::size_t>(func.enum_value()), func.begin(), func.end());
   }
 };
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic because each type of function has simplifications it applies.
-inline Expr Function::create(built_in_function name, Function::ContainerType&& container) {
+inline Expr function::create(built_in_function name, function::container_type&& container) {
   switch (name) {
     case built_in_function::cos:
       return cos(container.front());

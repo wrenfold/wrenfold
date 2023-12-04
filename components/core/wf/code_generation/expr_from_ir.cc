@@ -60,7 +60,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::call_std_function& func, const std::vector<ir::value_ptr>& args) const {
-    Function::ContainerType container{};
+    function::container_type container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::value_ptr v) { return map_value(v); });
 
@@ -70,7 +70,7 @@ struct ExprFromIrVisitor {
       static const Expr one_half = constants::one / 2;
       return pow(container[0], one_half);
     } else {
-      return Function::create(built_in_function_from_standard_library_function(func.name()),
+      return function::create(built_in_function_from_standard_library_function(func.name()),
                               std::move(container));
     }
   }

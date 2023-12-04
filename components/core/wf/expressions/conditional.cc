@@ -5,7 +5,7 @@
 
 namespace math {
 
-Expr Conditional::create(math::Expr condition, math::Expr if_branch, math::Expr else_branch) {
+Expr conditional::create(math::Expr condition, math::Expr if_branch, math::Expr else_branch) {
   if (condition.is_identical_to(constants::boolean_true)) {
     return if_branch;
   } else if (condition.is_identical_to(constants::boolean_false)) {
@@ -14,7 +14,7 @@ Expr Conditional::create(math::Expr condition, math::Expr if_branch, math::Expr 
     // If and else are the same anyway, so ignore the condition.
     return if_branch;
   }
-  return make_expr<Conditional>(std::move(condition), std::move(if_branch), std::move(else_branch));
+  return make_expr<conditional>(std::move(condition), std::move(if_branch), std::move(else_branch));
 }
 
 }  // namespace math

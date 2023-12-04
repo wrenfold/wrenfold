@@ -11,7 +11,7 @@
 
 namespace math {
 
-Expr Addition::from_operands(absl::Span<const Expr> args) {
+Expr addition::from_operands(absl::Span<const Expr> args) {
   WF_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
   if (args.size() < 2) {
     return args.front();
@@ -22,7 +22,7 @@ Expr Addition::from_operands(absl::Span<const Expr> args) {
   }
 
   // TODO: extract common denominator?
-  AdditionParts parts{args.size()};
+  addition_parts parts{args.size()};
   for (const Expr& arg : args) {
     parts.add_terms(arg);
   }
@@ -30,10 +30,10 @@ Expr Addition::from_operands(absl::Span<const Expr> args) {
   return parts.create_addition();
 }
 
-struct AdditionVisitor {
-  explicit AdditionVisitor(AdditionParts& parts) : parts(parts) {}
+struct addition_visitor {
+  explicit addition_visitor(addition_parts& parts) : parts(parts) {}
 
-  void operator()(const Addition& arg) {
+  void operator()(const addition& arg) {
     for (const Expr& expr : arg) {
       // Recursively add additions:
       visit_with_expr(expr, *this);
@@ -54,17 +54,17 @@ struct AdditionVisitor {
 
   constexpr void operator()(const Infinity&) noexcept { ++parts.num_infinities; }
 
-  using ExcludedTypes = type_list<Addition, Integer, Rational, Float, Infinity>;
+  using excluded_types = type_list<addition, Integer, Rational, Float, Infinity>;
 
-  template <typename T, typename = enable_if_does_not_contain_type_t<T, ExcludedTypes>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, excluded_types>>
   void operator()(const T&, const Expr& input_expression) {
     // Everything else: Just add to the coeff
     auto [coeff, mul] = as_coeff_and_mul(input_expression);
 
-    if (mul.is_type<Addition>()) {
+    if (mul.is_type<addition>()) {
       // This is probably not great for performance, but shouldn't be _that_ common.
       Expr distributed = input_expression.distribute();
-      operator()(cast_checked<Addition>(distributed));
+      operator()(cast_checked<addition>(distributed));
       return;
     }
 
@@ -74,26 +74,26 @@ struct AdditionVisitor {
     }
   }
 
-  AdditionParts& parts;
+  addition_parts& parts;
 };
 
-AdditionParts::AdditionParts(const Addition& add) : AdditionParts(add.arity()) {
+addition_parts::addition_parts(const addition& add) : addition_parts(add.size()) {
   for (const Expr& expr : add) {
     add_terms(expr);
   }
   normalize_coefficients();
 }
 
-void AdditionParts::add_terms(const Expr& arg) {
+void addition_parts::add_terms(const Expr& arg) {
   if (is_zero(arg)) {
     return;
   }
 
-  AdditionVisitor visitor{*this};
+  addition_visitor visitor{*this};
   visit_with_expr(arg, visitor);
 }
 
-void AdditionParts::normalize_coefficients() {
+void addition_parts::normalize_coefficients() {
   // Remove anything where the coefficient worked out to zero:
   for (auto it = terms.begin(); it != terms.end();) {
     if (is_zero(it->second)) {
@@ -104,8 +104,8 @@ void AdditionParts::normalize_coefficients() {
   }
 }
 
-Expr AdditionParts::create_addition() const {
-  Addition::ContainerType args{};
+Expr addition_parts::create_addition() const {
+  addition::container_type args{};
 
   // handle infinities in the input
   if (num_infinities > 1) {
@@ -132,14 +132,14 @@ Expr AdditionParts::create_addition() const {
                  [](const std::pair<Expr, Expr>& pair) {
                    if (is_one(pair.second)) {
                      return pair.first;
-                   } else if (!pair.first.is_type<Multiplication>() &&
-                              !pair.second.is_type<Multiplication>()) {
+                   } else if (!pair.first.is_type<multiplication>() &&
+                              !pair.second.is_type<multiplication>()) {
                      // We can skip calling FromOperands here because we know the first element in
                      // the pair is the non-numeric value and the second is the numeric coefficient.
-                     Multiplication::ContainerType mul_terms = {pair.second, pair.first};
-                     return make_expr<Multiplication>(std::move(mul_terms));
+                     multiplication::container_type mul_terms = {pair.second, pair.first};
+                     return make_expr<multiplication>(std::move(mul_terms));
                    }
-                   return Multiplication::from_operands({pair.first, pair.second});
+                   return multiplication::from_operands({pair.first, pair.second});
                  });
 
   if (args.empty()) {
@@ -148,7 +148,7 @@ Expr AdditionParts::create_addition() const {
     return args.front();
   }
 
-  return make_expr<Addition>(std::move(args));
+  return make_expr<addition>(std::move(args));
 }
 
 }  // namespace math

@@ -16,7 +16,7 @@ TEST(ScalarOperationsTest, TestAddition) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_TRUE((x + y).is_type<Addition>());
+  ASSERT_TRUE((x + y).is_type<addition>());
   ASSERT_IDENTICAL(x + y, x + y);
   ASSERT_IDENTICAL(x + y, y + x);
   ASSERT_NOT_IDENTICAL(x + w, x + y);
@@ -57,7 +57,7 @@ TEST(ScalarOperationsTest, TestAdditionInfinities) {
   ASSERT_IDENTICAL(x + z_inf, x - z_inf);
   ASSERT_IDENTICAL(y - 0.1231 + z_inf, y + z_inf);
   ASSERT_IDENTICAL(constants::undefined, z_inf + z_inf);
-  ASSERT_IDENTICAL(constants::undefined, Addition::from_operands({y, x, z_inf, z_inf}));
+  ASSERT_IDENTICAL(constants::undefined, addition::from_operands({y, x, z_inf, z_inf}));
 }
 
 TEST(ScalarOperationsTest, TestAdditionUndefined) {
@@ -74,7 +74,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   const Expr x{"x"};
   const Expr y{"y"};
   const Expr z{"z"};
-  ASSERT_TRUE((x * y).is_type<Multiplication>());
+  ASSERT_TRUE((x * y).is_type<multiplication>());
   ASSERT_IDENTICAL(x * y, x * y);
   ASSERT_EQ("Multiplication", (x * y).type_name());
 
@@ -152,7 +152,7 @@ TEST(ScalarOperationsTest, TestMultiplicationInfinities) {
   ASSERT_IDENTICAL(0, constants::pi / z_inf);
   ASSERT_IDENTICAL(0, (y * x) / z_inf);
 
-  ASSERT_IDENTICAL(z_inf, Multiplication::from_operands({z_inf, z_inf, 22, -1.02}));
+  ASSERT_IDENTICAL(z_inf, multiplication::from_operands({z_inf, z_inf, 22, -1.02}));
 }
 
 TEST(ScalarOperationsTest, TestMultiplicationUndefined) {
@@ -168,7 +168,7 @@ TEST(ScalarOperationsTest, TestMultiplicationUndefined) {
 TEST(ScalarOperationsTest, TestNegation) {
   const Expr x{"x"};
   ASSERT_IDENTICAL(-x, -x);
-  ASSERT_TRUE((-x).is_type<Multiplication>());
+  ASSERT_TRUE((-x).is_type<multiplication>());
   ASSERT_IDENTICAL(-(-x), x);
   ASSERT_IDENTICAL(-(-(-x)), -x);
 }
@@ -178,7 +178,7 @@ TEST(ScalarOperationsTest, TestDivision) {
   const Expr y{"y"};
   const Expr z{"z"};
   ASSERT_IDENTICAL(x / y, x / y);
-  ASSERT_TRUE((x / y).is_type<Multiplication>());
+  ASSERT_TRUE((x / y).is_type<multiplication>());
   ASSERT_NOT_IDENTICAL(y / x, x / y);
   ASSERT_IDENTICAL(x / y / z, (x / y) / z);
   ASSERT_IDENTICAL(constants::zero, 0 / x);
@@ -455,7 +455,7 @@ TEST(ScalarOperationsTest, TestRelationals) {
 TEST(ScalarOperationsTest, TestCastBool) {
   const auto [x, y] = make_symbols("x", "y");
 
-  ASSERT_TRUE(cast_int_from_bool(x < y).is_type<CastBool>());
+  ASSERT_TRUE(cast_int_from_bool(x < y).is_type<cast_bool>());
   ASSERT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x < y));
   ASSERT_NOT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x == y));
 
@@ -471,7 +471,7 @@ TEST(ScalarOperationsTest, TestCastBool) {
 TEST(ScalarOperationsTest, TestConditional) {
   const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
 
-  ASSERT_TRUE(where(x > 0, y, z).is_type<Conditional>());
+  ASSERT_TRUE(where(x > 0, y, z).is_type<conditional>());
   ASSERT_IDENTICAL(x, where(constants::boolean_true, x, z));
   ASSERT_IDENTICAL(z, where(constants::boolean_false, x, z));
 
@@ -482,8 +482,8 @@ TEST(ScalarOperationsTest, TestConditional) {
 
   // Nested conditionals don't simplify:
   const Expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
-  ASSERT_IDENTICAL(cast_checked<Conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
-  ASSERT_IDENTICAL(cast_checked<Conditional>(nested).else_branch(), log(z));
+  ASSERT_IDENTICAL(cast_checked<conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
+  ASSERT_IDENTICAL(cast_checked<conditional>(nested).else_branch(), log(z));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {

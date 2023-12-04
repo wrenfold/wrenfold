@@ -34,7 +34,7 @@ class determine_set_visitor {
  public:
   template <typename Container, typename Callable>
   number_set handle_add_or_mul(const Container& container, Callable callable) const {
-    WF_ASSERT_GREATER_OR_EQ(container.arity(), 1);
+    WF_ASSERT_GREATER_OR_EQ(container.size(), 1);
     auto it = container.begin();
     number_set set = determine_numeric_set(*it);
     for (it = std::next(it); it != container.end(); ++it) {
@@ -47,15 +47,15 @@ class determine_set_visitor {
     return set;
   }
 
-  number_set operator()(const Addition& add) const {
+  number_set operator()(const addition& add) const {
     return handle_add_or_mul(add, &combine_sets_add);
   }
 
-  constexpr number_set operator()(const CastBool&) const noexcept {
+  constexpr number_set operator()(const cast_bool&) const noexcept {
     return number_set::real_non_negative;
   }
 
-  number_set operator()(const Conditional& cond) const {
+  number_set operator()(const conditional& cond) const {
     number_set left = determine_numeric_set(cond.if_branch());
     number_set right = determine_numeric_set(cond.else_branch());
     return std::max(left, right);
@@ -68,13 +68,13 @@ class determine_set_visitor {
     return number_set::real_positive;
   }
 
-  constexpr number_set operator()(const Derivative&) const noexcept { return number_set::unknown; }
+  constexpr number_set operator()(const derivative&) const noexcept { return number_set::unknown; }
 
-  number_set operator()(const Multiplication& mul) const {
+  number_set operator()(const multiplication& mul) const {
     return handle_add_or_mul(mul, &combine_sets_mul);
   }
 
-  number_set operator()(const Function& func) {
+  number_set operator()(const function& func) {
     absl::InlinedVector<number_set, 4> args{};
     std::transform(func.begin(), func.end(), std::back_inserter(args), &determine_numeric_set);
     WF_ASSERT_GREATER_OR_EQ(args.size(), 1);

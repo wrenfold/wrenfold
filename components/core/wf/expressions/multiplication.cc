@@ -10,26 +10,26 @@
 
 namespace math {
 
-inline Expr maybe_new_mul(Multiplication::ContainerType&& terms) {
+inline Expr maybe_new_mul(multiplication::container_type&& terms) {
   if (terms.empty()) {
     return constants::one;
   } else if (terms.size() == 1) {
     return std::move(terms.front());
   } else {
-    return make_expr<Multiplication>(std::move(terms));
+    return make_expr<multiplication>(std::move(terms));
   }
 }
 
-static inline Expr multiply_into_addition(const Addition& add, const Expr& numerical_constant) {
-  Addition::ContainerType add_args{};
-  add_args.reserve(add.arity());
+static inline Expr multiply_into_addition(const addition& add, const Expr& numerical_constant) {
+  addition::container_type add_args{};
+  add_args.reserve(add.size());
   std::transform(
       add.begin(), add.end(), std::back_inserter(add_args),
       [&numerical_constant](const Expr& add_term) { return add_term * numerical_constant; });
-  return Addition::from_operands(add_args);  // TODO: make this a move!
+  return addition::from_operands(add_args);  // TODO: make this a move!
 }
 
-Expr Multiplication::from_operands(absl::Span<const Expr> args) {
+Expr multiplication::from_operands(absl::Span<const Expr> args) {
   WF_ASSERT(!args.empty());
   if (args.size() < 2) {
     return args.front();
@@ -42,10 +42,10 @@ Expr Multiplication::from_operands(absl::Span<const Expr> args) {
   // TODO: this simplification doesn't always work because there might be multiple
   // integer/rational/float terms.
   if (args.size() == 2) {
-    if (const Addition* add = cast_ptr<Addition>(args[0]);
+    if (const addition* add = cast_ptr<addition>(args[0]);
         add && args[1].is_type<Integer, Rational, Float>()) {
       return multiply_into_addition(*add, args[1]);
-    } else if (add = cast_ptr<Addition>(args[1]);
+    } else if (add = cast_ptr<addition>(args[1]);
                add && args[0].is_type<Integer, Float, Rational>()) {
       return multiply_into_addition(*add, args[0]);
     }
@@ -81,7 +81,7 @@ struct MultiplyVisitor {
 
   template <typename T>
   void operator()(const T& arg, const Expr& input_expression) {
-    if constexpr (std::is_same_v<T, Multiplication>) {
+    if constexpr (std::is_same_v<T, multiplication>) {
       for (const Expr& expr : arg) {
         // Recursively add multiplications:
         visit(expr, [this, &expr](const auto& x) { this->operator()(x, expr); });
@@ -131,8 +131,8 @@ struct MultiplyVisitor {
   MultiplicationParts& builder;
 };
 
-MultiplicationParts::MultiplicationParts(const Multiplication& mul, bool factorize_integers)
-    : MultiplicationParts(mul.arity()) {
+MultiplicationParts::MultiplicationParts(const multiplication& mul, bool factorize_integers)
+    : MultiplicationParts(mul.size()) {
   for (const Expr& expr : mul) {
     multiply_term(expr, factorize_integers);
   }
@@ -182,7 +182,7 @@ void MultiplicationParts::normalize_coefficients() {
 }
 
 Expr MultiplicationParts::create_multiplication() const {
-  Multiplication::ContainerType args{};
+  multiplication::container_type args{};
 
   // TODO: Would be good to front-load this logic so we can early exit before building the map.
   const bool has_zero_coeff =
@@ -221,9 +221,9 @@ Expr MultiplicationParts::create_multiplication() const {
 }
 
 // For multiplications, we need to break the expression up.
-std::pair<Expr, Expr> split_multiplication(const Multiplication& mul, const Expr& mul_abstract) {
-  Multiplication::ContainerType numerics{};
-  Multiplication::ContainerType remainder{};
+std::pair<Expr, Expr> split_multiplication(const multiplication& mul, const Expr& mul_abstract) {
+  multiplication::container_type numerics{};
+  multiplication::container_type remainder{};
   for (const Expr& expr : mul) {
     if (is_numeric(expr)) {
       numerics.push_back(expr);
@@ -246,11 +246,11 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
     if constexpr (type_list_contains_type_v<T, Integer, Rational, Float>) {
       // Numerical values are always the coefficient:
       return std::make_pair(expr, constants::one);
-    } else if constexpr (std::is_same_v<T, Multiplication>) {
+    } else if constexpr (std::is_same_v<T, multiplication>) {
       // Handle multiplication. We do a faster path for a common case (binary mul where first
       // element is numeric).
-      const Multiplication& mul = x;
-      if (mul.arity() == 2 && mul[0].is_type<Integer, Rational, Float>()) {
+      const multiplication& mul = x;
+      if (mul.size() == 2 && mul[0].is_type<Integer, Rational, Float>()) {
         return std::make_pair(mul[0], mul[1]);
       }
       return split_multiplication(x, expr);
@@ -260,7 +260,7 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
   });
 }
 
-MultiplicationFormattingInfo get_formatting_info(const Multiplication& mul) {
+MultiplicationFormattingInfo get_formatting_info(const multiplication& mul) {
   using BaseExp = MultiplicationFormattingInfo::BaseExp;
   MultiplicationFormattingInfo result{};
 

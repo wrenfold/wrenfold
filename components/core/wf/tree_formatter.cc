@@ -57,9 +57,9 @@ struct tree_formatter {
     indentations_.pop_back();
   }
 
-  void operator()(const Addition& op) {
+  void operator()(const addition& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.arity());
+    terms.reserve(op.size());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       auto acm = as_coeff_and_mul(a);
@@ -75,15 +75,15 @@ struct tree_formatter {
     visit_right(*it);
   }
 
-  void operator()(const Derivative& diff) {
+  void operator()(const derivative& diff) {
     append_name("Derivative (order = {}):", diff.order());
     visit_left(diff.differentiand());
     visit_right(diff.argument());
   }
 
-  void operator()(const Multiplication& op) {
+  void operator()(const multiplication& op) {
     absl::InlinedVector<Expr, 16> terms;
-    terms.reserve(op.arity());
+    terms.reserve(op.size());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       const auto abe = as_base_and_exp(a);
@@ -99,7 +99,7 @@ struct tree_formatter {
     visit_right(*it);
   }
 
-  void operator()(const Matrix& mat) {
+  void operator()(const matrix& mat) {
     // TODO: Print the (row, col) index for each element.
     append_name("Matrix ({}, {}):", mat.rows(), mat.cols());
     const auto& elements = mat.data();
@@ -115,7 +115,7 @@ struct tree_formatter {
     visit_right(op.exponent());
   }
 
-  void operator()(const Infinity&) { append_name("{}", Infinity::NameStr); }
+  void operator()(const Infinity&) { append_name("{}", Infinity::name_str); }
 
   void operator()(const Integer& neg) { append_name("Integer ({})", neg.get_value()); }
 
@@ -131,7 +131,7 @@ struct tree_formatter {
     visit_right(relational.right());
   }
 
-  void operator()(const Function& func) {
+  void operator()(const function& func) {
     append_name("Function ({}):", func.function_name());
     auto it = func.begin();
     for (; std::next(it) != func.end(); ++it) {
@@ -140,19 +140,19 @@ struct tree_formatter {
     visit_right(*it);
   }
 
-  void operator()(const Undefined&) { append_name(Undefined::NameStr); }
+  void operator()(const Undefined&) { append_name(Undefined::name_str); }
 
   void operator()(const Variable& var) {
-    append_name("{} ({}, {})", Variable::NameStr, var.to_string(),
+    append_name("{} ({}, {})", Variable::name_str, var.to_string(),
                 string_from_number_set(var.set()));
   }
 
-  void operator()(const CastBool& cast) {
+  void operator()(const cast_bool& cast) {
     append_name("CastBool:");
     visit_right(cast.arg());
   }
 
-  void operator()(const Conditional& conditional) {
+  void operator()(const conditional& conditional) {
     append_name("Conditional:");
     visit_left(conditional.condition());
     visit_left(conditional.if_branch());

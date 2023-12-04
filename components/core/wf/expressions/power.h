@@ -8,8 +8,8 @@ namespace math {
 // Power operation: base^exponent
 class Power {
  public:
-  static constexpr std::string_view NameStr = "Power";
-  static constexpr bool IsLeafNode = false;
+  static constexpr std::string_view name_str = "Power";
+  static constexpr bool is_leaf_node = false;
 
   Power(Expr base, Expr exponent) : children_{std::move(base), std::move(exponent)} {}
 

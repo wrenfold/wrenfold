@@ -17,7 +17,7 @@ struct collect_visitor {
     return op.map_children([this](const Expr& x) { return visit_with_expr(x, *this); });
   }
 
-  Expr collect_addition_terms(Addition::ContainerType&& container) {
+  Expr collect_addition_terms(addition::container_type&& container) {
     // iterate over the terms we want to search for:
     const Expr& collected_term = collected_terms_.front();
 
@@ -26,11 +26,11 @@ struct collect_visitor {
     // This map would look like:
     //  2 --> [3]
     //  1 --> [5, pi]
-    std::unordered_map<Expr, Addition::ContainerType, hash_struct<Expr>, is_identical_struct<Expr>>
+    std::unordered_map<Expr, addition::container_type, hash_struct<Expr>, is_identical_struct<Expr>>
         exponents_to_mul{};
 
     const auto new_end = std::remove_if(container.begin(), container.end(), [&](const Expr& child) {
-      if (const Multiplication* mul = cast_ptr<Multiplication>(child); mul != nullptr) {
+      if (const multiplication* mul = cast_ptr<multiplication>(child); mul != nullptr) {
         // Look for relevant terms:
         std::optional<Expr> exponent;
         const auto it = std::find_if(mul->begin(), mul->end(), [&](const Expr& mul_term) {
@@ -52,10 +52,10 @@ struct collect_visitor {
         // our table from exponents to coefficients of the collected term.
         // So for example, if we had found `x**5 * pi * y`, we'd insert `pi` and `y` into the table.
         if (it != mul->end()) {
-          Multiplication::ContainerType mul_parts{};
+          multiplication::container_type mul_parts{};
           std::copy(mul->begin(), it, std::back_inserter(mul_parts));
           std::copy(std::next(it), mul->end(), std::back_inserter(mul_parts));
-          auto reduced_mul = Multiplication::from_operands(mul_parts);
+          auto reduced_mul = multiplication::from_operands(mul_parts);
           // TODO: Move into multiplication:
           exponents_to_mul[*exponent].push_back(std::move(reduced_mul));
         }
@@ -93,32 +93,32 @@ struct collect_visitor {
           collected_terms_.size() > 1
               ? collect_visitor{collected_terms_.subspan(1)}.collect_addition_terms(
                     std::move(it->second))
-              : Addition::from_operands(it->second);
+              : addition::from_operands(it->second);
 
       // Multiply the power by the collected terms: x**2 * (y + pi - 3)
       Expr mul =
-          Multiplication::from_operands({std::move(collected_pow), std::move(term_coefficient)});
+          multiplication::from_operands({std::move(collected_pow), std::move(term_coefficient)});
       container.push_back(std::move(mul));
     }
-    return Addition::from_operands(container);  //  TODO: should be a move
+    return addition::from_operands(container);  //  TODO: should be a move
   }
 
-  Expr operator()(const Addition& add, const Expr&) {
+  Expr operator()(const addition& add, const Expr&) {
     // transform all children of the addition:
-    Addition::ContainerType children{};
-    children.reserve(add.arity());
+    addition::container_type children{};
+    children.reserve(add.size());
     std::transform(add.begin(), add.end(), std::back_inserter(children),
                    [this](const Expr& x) { return visit_with_expr(x, *this); });
     return collect_addition_terms(std::move(children));
   }
 
-  Expr operator()(const Multiplication& mul, const Expr&) { return recurse(mul); }
-  Expr operator()(const Function& f) { return recurse(f); }
+  Expr operator()(const multiplication& mul, const Expr&) { return recurse(mul); }
+  Expr operator()(const function& f) { return recurse(f); }
   Expr operator()(const Power& pow) { return recurse(pow); }
-  Expr operator()(const CastBool& cast) { return recurse(cast); }
-  Expr operator()(const Conditional& conditional) { return recurse(conditional); }
+  Expr operator()(const cast_bool& cast) { return recurse(cast); }
+  Expr operator()(const conditional& conditional) { return recurse(conditional); }
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }
-  Expr operator()(const Derivative& diff, const Expr&) { return recurse(diff); }
+  Expr operator()(const derivative& diff, const Expr&) { return recurse(diff); }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const Integer&, const Expr& arg) const { return arg; }
   Expr operator()(const Float&, const Expr& arg) const { return arg; }

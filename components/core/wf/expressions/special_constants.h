@@ -8,8 +8,8 @@ namespace math {
 // A symbolic constant, like pi or euler's number.
 class Constant {
  public:
-  static constexpr std::string_view NameStr = "Constant";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Constant";
+  static constexpr bool is_leaf_node = true;
 
   // Construct with name.
   explicit constexpr Constant(symbolic_constants name) noexcept : name_(name) {}
@@ -29,8 +29,8 @@ class Constant {
 // Complex infinity (the north-pole of the riemann sphere).
 class Infinity {
  public:
-  static constexpr std::string_view NameStr = "ComplexInfinity";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "ComplexInfinity";
+  static constexpr bool is_leaf_node = true;
 
   constexpr Infinity() noexcept = default;
   constexpr bool is_identical_to(const Infinity&) const noexcept { return true; }
@@ -39,8 +39,8 @@ class Infinity {
 // Result of invalid expressions.
 class Undefined {
  public:
-  static constexpr std::string_view NameStr = "Undefined";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Undefined";
+  static constexpr bool is_leaf_node = true;
 
   Undefined() noexcept = default;
   constexpr bool is_identical_to(const Undefined&) const noexcept { return true; }

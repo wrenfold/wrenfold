@@ -10,12 +10,12 @@
 
 namespace math {
 
-void plain_formatter::operator()(const Addition& expr) {
-  WF_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
+void plain_formatter::operator()(const addition& expr) {
+  WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
 
   // Sort into canonical order:
   absl::InlinedVector<std::pair<Expr, Expr>, 16> terms;
-  terms.reserve(expr.arity());
+  terms.reserve(expr.size());
   std::transform(expr.begin(), expr.end(), std::back_inserter(terms),
                  [](const Expr& x) { return as_coeff_and_mul(x); });
 
@@ -60,13 +60,13 @@ void plain_formatter::operator()(const Addition& expr) {
   }
 }
 
-void plain_formatter::operator()(const CastBool& cast) {
+void plain_formatter::operator()(const cast_bool& cast) {
   output_ += "cast(";
   visit(cast.arg(), *this);
   output_ += ")";
 }
 
-void plain_formatter::operator()(const Conditional& conditional) {
+void plain_formatter::operator()(const conditional& conditional) {
   output_ += "where(";
   visit(conditional.condition(), *this);
   output_ += ", ";
@@ -80,7 +80,7 @@ void plain_formatter::operator()(const Constant& expr) {
   output_ += string_from_symbolic_constant(expr.name());
 }
 
-void plain_formatter::operator()(const Derivative& derivative) {
+void plain_formatter::operator()(const derivative& derivative) {
   output_ += "Derivative(";
   visit(derivative.differentiand(), *this);
   output_ += ", ";
@@ -104,7 +104,7 @@ void plain_formatter::operator()(const Float& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
-void plain_formatter::operator()(const Matrix& mat) {
+void plain_formatter::operator()(const matrix& mat) {
   WF_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
   WF_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
 
@@ -154,8 +154,8 @@ void plain_formatter::operator()(const Matrix& mat) {
   output_ += "]";
 }
 
-void plain_formatter::operator()(const Multiplication& expr) {
-  WF_ASSERT_GREATER_OR_EQ(expr.arity(), 2);
+void plain_formatter::operator()(const multiplication& expr) {
+  WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
   using BaseExp = MultiplicationFormattingInfo::BaseExp;
 
   // Break multiplication up into numerator and denominator:
@@ -204,7 +204,7 @@ void plain_formatter::operator()(const Multiplication& expr) {
   }
 }
 
-void plain_formatter::operator()(const Function& func) {
+void plain_formatter::operator()(const function& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
   auto it = func.begin();
   if (it != func.end()) {

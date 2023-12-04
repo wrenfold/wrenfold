@@ -23,11 +23,11 @@ struct order_visitor {
     return relative_order::equal;
   }
 
-  relative_order compare(const CastBool& a, const CastBool& b) const {
+  relative_order compare(const cast_bool& a, const cast_bool& b) const {
     return expression_order(a.arg(), b.arg());
   }
 
-  relative_order compare(const Conditional& a, const Conditional& b) const {
+  relative_order compare(const conditional& a, const conditional& b) const {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
@@ -35,11 +35,11 @@ struct order_visitor {
     return relative_order::equal;
   }
 
-  relative_order compare(const Addition& a, const Addition& b) const {
+  relative_order compare(const addition& a, const addition& b) const {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  relative_order compare(const Derivative& a, const Derivative& b) const {
+  relative_order compare(const derivative& a, const derivative& b) const {
     if (a.order() < b.order()) {
       return relative_order::less_than;
     } else if (a.order() > b.order()) {
@@ -48,7 +48,7 @@ struct order_visitor {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  relative_order compare(const Multiplication& a, const Multiplication& b) const {
+  relative_order compare(const multiplication& a, const multiplication& b) const {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
@@ -56,7 +56,7 @@ struct order_visitor {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  relative_order compare(const Function& a, const Function& b) const {
+  relative_order compare(const function& a, const function& b) const {
     // First compare by name:
     const int name_comp = a.function_name().compare(b.function_name());
     if (name_comp > 0) {
@@ -113,8 +113,8 @@ struct order_visitor {
 template <typename... Ts>
 static constexpr auto get_type_order_indices(type_list<Ts...>) {
   using order_of_types =
-      type_list<Float, Integer, Rational, Constant, Infinity, Variable, Multiplication, Addition,
-                Power, Function, Relational, Conditional, CastBool, Derivative, Undefined>;
+      type_list<Float, Integer, Rational, Constant, Infinity, Variable, multiplication, addition,
+                Power, function, Relational, conditional, cast_bool, derivative, Undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(type_list_size<order_of_types>::value == type_list_size<ExpressionTypeList>::value);

@@ -7,20 +7,20 @@ namespace math {
 // Simple plain-text formatter.
 class plain_formatter {
  public:
-  void operator()(const Addition& add);
-  void operator()(const CastBool& cast);
-  void operator()(const Conditional& conditional);
+  void operator()(const addition& add);
+  void operator()(const cast_bool& cast);
+  void operator()(const conditional& conditional);
   void operator()(const Constant& constant);
-  void operator()(const Derivative& derivative);
+  void operator()(const derivative& derivative);
   void operator()(const Float& num);
   void operator()(const Infinity&);
   void operator()(const Integer& num);
-  void operator()(const class Matrix& mat);
-  void operator()(const Multiplication& mul);
+  void operator()(const class matrix& mat);
+  void operator()(const multiplication& mul);
   void operator()(const Power& pow);
   void operator()(const Rational& rational);
   void operator()(const Relational& relational);
-  void operator()(const Function& func);
+  void operator()(const function& func);
   void operator()(const Undefined&);
   void operator()(const Variable& var);
 

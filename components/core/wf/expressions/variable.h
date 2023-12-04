@@ -70,8 +70,8 @@ class NamedVariable {
 // This can be one of three underlying types: NamedVariable, FuncArg, UniqueVariable
 class Variable {
  public:
-  static constexpr std::string_view NameStr = "Variable";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Variable";
+  static constexpr bool is_leaf_node = true;
 
   // There are different kinds of variables, but the different kinds don't matter to most visitors.
   // We don't expose that information at the expression level, and instead store it inside Variable.

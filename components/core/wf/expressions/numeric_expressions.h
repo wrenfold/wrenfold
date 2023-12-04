@@ -18,8 +18,8 @@ class Rational;
 // An integral constant.
 class Integer {
  public:
-  static constexpr std::string_view NameStr = "Integer";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Integer";
+  static constexpr bool is_leaf_node = true;
 
   using IntegralType = int64_t;
 
@@ -64,8 +64,8 @@ class Integer {
 // A rational value (in form numerator / denominator).
 class Rational {
  public:
-  static constexpr std::string_view NameStr = "Rational";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Rational";
+  static constexpr bool is_leaf_node = true;
 
   using IntegralType = Integer::IntegralType;
 
@@ -153,8 +153,8 @@ class Rational {
 // A floating point constant.
 class Float {
  public:
-  static constexpr std::string_view NameStr = "Float";
-  static constexpr bool IsLeafNode = true;
+  static constexpr std::string_view name_str = "Float";
+  static constexpr bool is_leaf_node = true;
 
   using FloatType = double;
 

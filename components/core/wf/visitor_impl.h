@@ -17,26 +17,26 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
   // Deduce the return type by invoking the operator() w/ the different expression types.
   // TODO: For now we allow one single ReturnType. We could allow returning std::variant<>.
   // using ReturnType = call_operator_return_types_t<VisitorType, ExpressionTypeList>;
-  if (expr.is_type<Addition>()) {
-    return visitor(cast_unchecked<Addition>(expr));
-  } else if (expr.is_type<CastBool>()) {
-    return visitor(cast_unchecked<CastBool>(expr));
-  } else if (expr.is_type<Conditional>()) {
-    return visitor(cast_unchecked<Conditional>(expr));
+  if (expr.is_type<addition>()) {
+    return visitor(cast_unchecked<addition>(expr));
+  } else if (expr.is_type<cast_bool>()) {
+    return visitor(cast_unchecked<cast_bool>(expr));
+  } else if (expr.is_type<conditional>()) {
+    return visitor(cast_unchecked<conditional>(expr));
   } else if (expr.is_type<Constant>()) {
     return visitor(cast_unchecked<Constant>(expr));
-  } else if (expr.is_type<Derivative>()) {
-    return visitor(cast_unchecked<Derivative>(expr));
+  } else if (expr.is_type<derivative>()) {
+    return visitor(cast_unchecked<derivative>(expr));
   } else if (expr.is_type<Float>()) {
     return visitor(cast_unchecked<Float>(expr));
-  } else if (expr.is_type<Function>()) {
-    return visitor(cast_unchecked<Function>(expr));
+  } else if (expr.is_type<function>()) {
+    return visitor(cast_unchecked<function>(expr));
   } else if (expr.is_type<Infinity>()) {
     return visitor(cast_unchecked<Infinity>(expr));
   } else if (expr.is_type<Integer>()) {
     return visitor(cast_unchecked<Integer>(expr));
-  } else if (expr.is_type<Multiplication>()) {
-    return visitor(cast_unchecked<Multiplication>(expr));
+  } else if (expr.is_type<multiplication>()) {
+    return visitor(cast_unchecked<multiplication>(expr));
   } else if (expr.is_type<Power>()) {
     return visitor(cast_unchecked<Power>(expr));
   } else if (expr.is_type<Rational>()) {

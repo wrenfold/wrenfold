@@ -30,10 +30,10 @@ class expression_implementation final : public expression_concept {
   }
 
   // Get the derived type string name (a static constexpr member).
-  std::string_view type_name() const override final { return ExpressionType::NameStr; }
+  std::string_view type_name() const override final { return ExpressionType::name_str; }
 
   // Whether the derived type is a leaf (it contains no references to child expressions).
-  static constexpr bool IsLeafStatic() { return ExpressionType::IsLeafNode; }
+  static constexpr bool IsLeafStatic() { return ExpressionType::is_leaf_node; }
 
   // Virtual version of `IsLeafStatic`.
   bool is_leaf() const override final { return IsLeafStatic(); }
@@ -74,7 +74,7 @@ const T& cast_checked(const Expr& x) {
   if (x.impl_->is_type<T>()) {
     return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
   } else {
-    throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::NameStr);
+    throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::name_str);
   }
 }
 

@@ -22,7 +22,7 @@ struct is_function_of_visitor {
   bool operator()(const U& x) {
     if constexpr (std::is_same_v<U, T>) {
       return target_.is_identical_to(x);
-    } else if constexpr (!U::IsLeafNode) {
+    } else if constexpr (!U::is_leaf_node) {
       return std::any_of(x.begin(), x.end(),
                          [this](const Expr& expr) { return visit(expr, *this); });
     } else {
@@ -57,25 +57,25 @@ Expr derivative_visitor::cached_visit(const Expr& expr) {
 }
 
 // Differentiate every argument to make a new sum.
-Expr derivative_visitor::operator()(const Addition& add) {
+Expr derivative_visitor::operator()(const addition& add) {
   return add.map_children([this](const Expr& expr) { return cached_visit(expr); });
 }
 
-Expr derivative_visitor::operator()(const CastBool&, const Expr& expr) {
-  return Derivative::create(expr, argument_, 1);
+Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) {
+  return derivative::create(expr, argument_, 1);
 }
 
 // TODO: This is not strictly correct. If the condition is a function of `x` (where x is the
 //  the variable wrt we are differentiating), we should insert the dirac delta function.
 //  That said, this is more useful practically in most cases.
-Expr derivative_visitor::operator()(const Conditional& cond) {
+Expr derivative_visitor::operator()(const conditional& cond) {
   return where(cond.condition(), cached_visit(cond.if_branch()), cached_visit(cond.else_branch()));
 }
 
 Expr derivative_visitor::operator()(const Constant&) const { return constants::zero; }
 
 // Derivative of an abstract derivative expression.
-Expr derivative_visitor::operator()(const Derivative& derivative,
+Expr derivative_visitor::operator()(const derivative& derivative,
                                     const Expr& derivative_abstract) const {
   const Variable& argument = cast_unchecked<Variable>(argument_);
   const bool is_relevant =
@@ -83,7 +83,7 @@ Expr derivative_visitor::operator()(const Derivative& derivative,
   if (!is_relevant) {
     return constants::zero;
   }
-  return Derivative::create(derivative_abstract, argument_, 1);
+  return derivative::create(derivative_abstract, argument_, 1);
 }
 
 // Do product expansion over all terms in the multiplication:
@@ -91,32 +91,32 @@ Expr derivative_visitor::operator()(const Derivative& derivative,
 // a' * b + a * b'
 // a * b * c
 // a' * b * c + a * b' * c + a * b * c'
-Expr derivative_visitor::operator()(const Multiplication& mul) {
+Expr derivative_visitor::operator()(const multiplication& mul) {
   std::vector<Expr> add_terms;  //  TODO: Small vector.
-  add_terms.reserve(mul.arity());
+  add_terms.reserve(mul.size());
 
   // Differentiate wrt every argument:
-  for (std::size_t i = 0; i < mul.arity(); ++i) {
+  for (std::size_t i = 0; i < mul.size(); ++i) {
     std::vector<Expr> mul_terms;
-    mul_terms.reserve(mul.arity());
-    for (std::size_t j = 0; j < mul.arity(); ++j) {
+    mul_terms.reserve(mul.size());
+    for (std::size_t j = 0; j < mul.size(); ++j) {
       if (j == i) {
         mul_terms.push_back(cached_visit(mul[j]));
       } else {
         mul_terms.push_back(mul[j]);
       }
     }
-    add_terms.push_back(Multiplication::from_operands(mul_terms));
+    add_terms.push_back(multiplication::from_operands(mul_terms));
   }
 
   // TODO: Move, don't copy.
-  return Addition::from_operands(add_terms);
+  return addition::from_operands(add_terms);
 }
 
 // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
-Expr derivative_visitor::operator()(const Function& func) {
+Expr derivative_visitor::operator()(const function& func) {
   // Differentiate the arguments:
-  Function::ContainerType d_args{};
+  function::container_type d_args{};
   std::transform(func.begin(), func.end(), std::back_inserter(d_args),
                  [this](const Expr& arg) { return cached_visit(arg); });
 
@@ -160,7 +160,7 @@ Expr derivative_visitor::operator()(const Function& func) {
     case built_in_function::signum: {
       // signum(f(x)) --> d[heaviside(f(x)) - heaviside(-f(x))]/dx = 2 * dirac(f(x)) * f'(x)
       // However, we don't have dirac - so we leave this abstract.
-      return Derivative::create(signum(args[0]), argument_, 1);
+      return derivative::create(signum(args[0]), argument_, 1);
     }
     case built_in_function::arctan2: {
       const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
@@ -195,7 +195,7 @@ Expr derivative_visitor::operator()(const Rational&) const { return constants::z
 
 Expr derivative_visitor::operator()(const Relational&, const Expr& rel_expr) const {
   // Cannot differentiate relationals, so insert an abstract expression.
-  return Derivative::create(rel_expr, argument_, 1);
+  return derivative::create(rel_expr, argument_, 1);
 }
 
 Expr derivative_visitor::operator()(const Undefined&) const { return constants::undefined; }

@@ -10,12 +10,12 @@ namespace math {
 // Expression for expressing an unevaluated derivative operation.
 // For example df(x)/dx is `Derivative(f(x), x)`. We use this to represent derivatives that can't
 // be immediately evaluated.
-class Derivative {
+class derivative {
  public:
-  static constexpr std::string_view NameStr = "Derivative";
-  static constexpr bool IsLeafNode = false;
+  static constexpr std::string_view name_str = "Derivative";
+  static constexpr bool is_leaf_node = false;
 
-  Derivative(Expr differentiand, Expr arg, int order = 1)
+  derivative(Expr differentiand, Expr arg, int order = 1)
       : children_{std::move(differentiand), std::move(arg)}, order_(order) {
     WF_ASSERT_GREATER_OR_EQ(order_, 1);
   }
@@ -34,7 +34,7 @@ class Derivative {
   constexpr auto end() const noexcept { return children_.end(); }
 
   // All arguments must match.
-  bool is_identical_to(const Derivative& other) const {
+  bool is_identical_to(const derivative& other) const {
     return order_ == other.order_ &&
            std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
   }
@@ -48,7 +48,7 @@ class Derivative {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    return Derivative::create(operation(differentiand()), operation(argument()), order_);
+    return derivative::create(operation(differentiand()), operation(argument()), order_);
   }
 
   // Create a new derivative expression.
@@ -60,8 +60,8 @@ class Derivative {
 };
 
 template <>
-struct hash_struct<Derivative> {
-  std::size_t operator()(const Derivative& func) const {
+struct hash_struct<derivative> {
+  std::size_t operator()(const derivative& func) const {
     return hash_args(static_cast<std::size_t>(func.order()), func.differentiand(), func.argument());
   }
 };

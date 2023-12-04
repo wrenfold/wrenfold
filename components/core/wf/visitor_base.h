@@ -15,16 +15,16 @@ using expression_concept_const_ptr = std::shared_ptr<const class expression_conc
 
 // clang-format off
 using ExpressionTypeList = type_list<
-    class Addition,
-    class CastBool,
-    class Conditional,
+    class addition,
+    class cast_bool,
+    class conditional,
     class Constant,
-    class Derivative,
+    class derivative,
     class Float,
-    class Function,
+    class function,
     class Infinity,
     class Integer,
-    class Multiplication,
+    class multiplication,
     class Power,
     class Rational,
     class Relational,

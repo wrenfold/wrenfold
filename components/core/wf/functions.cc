@@ -42,7 +42,7 @@ Expr log(const Expr& x) {
     return std::move(*f);
   }
   // TODO: Check for negative values.
-  return make_expr<Function>(built_in_function::ln, x);
+  return make_expr<function>(built_in_function::ln, x);
 }
 
 Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
@@ -70,7 +70,7 @@ Expr cos(const Expr& arg) {
       } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
         return constants::zero;
       }
-      return make_expr<Function>(built_in_function::cos,
+      return make_expr<function>(built_in_function::cos,
                                  Rational::create(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(coeff)) {
@@ -91,7 +91,7 @@ Expr cos(const Expr& arg) {
     return constants::undefined;
   }
   // TODO: Check for phase offsets.
-  return make_expr<Function>(built_in_function::cos, arg);
+  return make_expr<function>(built_in_function::cos, arg);
 }
 
 Expr sin(const Expr& arg) {
@@ -107,7 +107,7 @@ Expr sin(const Expr& arg) {
       } else if (r_mod_pi == Rational{-1, 2}) {
         return constants::negative_one;
       }
-      return make_expr<Function>(built_in_function::sin,
+      return make_expr<function>(built_in_function::sin,
                                  Rational::create(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(arg)) {
@@ -123,7 +123,7 @@ Expr sin(const Expr& arg) {
   if (arg.is_type<Infinity>() || is_undefined(arg)) {
     return constants::undefined;
   }
-  return make_expr<Function>(built_in_function::sin, arg);
+  return make_expr<function>(built_in_function::sin, arg);
 }
 
 inline Rational convert_to_tan_range(const Rational& r) {
@@ -154,7 +154,7 @@ Expr tan(const Expr& arg) {
         // Complex infinity.
         return constants::complex_infinity;
       }
-      return make_expr<Function>(built_in_function::tan,
+      return make_expr<function>(built_in_function::tan,
                                  Rational::create(r_mod_half_pi) * pi_over_two());
     }
   } else if (is_zero(arg)) {
@@ -170,7 +170,7 @@ Expr tan(const Expr& arg) {
   if (arg.is_type<Infinity>() || is_undefined(arg)) {
     return constants::undefined;
   }
-  return make_expr<Function>(built_in_function::tan, arg);
+  return make_expr<function>(built_in_function::tan, arg);
 }
 
 // TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
@@ -185,7 +185,7 @@ Expr acos(const Expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return constants::undefined;
   }
-  return make_expr<Function>(built_in_function::arccos, arg);
+  return make_expr<function>(built_in_function::arccos, arg);
 }
 
 Expr asin(const Expr& arg) {
@@ -200,7 +200,7 @@ Expr asin(const Expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return constants::undefined;
   }
-  return make_expr<Function>(built_in_function::arcsin, arg);
+  return make_expr<function>(built_in_function::arcsin, arg);
 }
 
 inline Expr pi_over_four() {
@@ -220,7 +220,7 @@ Expr atan(const Expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return constants::undefined;
   }
-  return make_expr<Function>(built_in_function::arctan, arg);
+  return make_expr<function>(built_in_function::arctan, arg);
 }
 
 // Support some very basic simplifications for numerical inputs.
@@ -269,7 +269,7 @@ Expr atan2(const Expr& y, const Expr& x) {
     return std::move(*maybe_simplified);
   }
   // TODO: Implement simplifications for atan2.
-  return make_expr<Function>(built_in_function::arctan2, y, x);
+  return make_expr<function>(built_in_function::arctan2, y, x);
 }
 
 Expr sqrt(const Expr& arg) {
@@ -278,7 +278,7 @@ Expr sqrt(const Expr& arg) {
 }
 
 Expr abs(const Expr& arg) {
-  if (const Function* func = cast_ptr<Function>(arg);
+  if (const function* func = cast_ptr<function>(arg);
       func != nullptr && func->enum_value() == built_in_function::abs) {
     // abs(abs(x)) --> abs(x)
     return arg;
@@ -308,7 +308,7 @@ Expr abs(const Expr& arg) {
   }
   // TODO: Add simplifications for real inputs, like powers.
   // TODO: Add simplifications for multiplications.
-  return make_expr<Function>(built_in_function::abs, arg);
+  return make_expr<function>(built_in_function::abs, arg);
 }
 
 // TODO: Add simplifications for expressions like:
@@ -335,7 +335,7 @@ struct signum_visitor {
     return Expr{sign(cf)};
   }
 
-  std::optional<Expr> operator()(const Function& func, const Expr& func_expr) const {
+  std::optional<Expr> operator()(const function& func, const Expr& func_expr) const {
     if (func.enum_value() == built_in_function::signum) {
       // sgn(sgn(x)) --> sgn(x), valid for real and complex
       return func_expr;
@@ -347,7 +347,7 @@ struct signum_visitor {
 
   // Handle all other cases.
   template <typename T, typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float,
-                                                                     Constant, Function, Undefined>>
+                                                                     Constant, function, Undefined>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }
@@ -358,7 +358,7 @@ Expr signum(const Expr& arg) {
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
-  return make_expr<Function>(built_in_function::signum, arg);
+  return make_expr<function>(built_in_function::signum, arg);
 }
 
 // Max and min are implemented as conditionals. That way:
@@ -368,12 +368,12 @@ Expr max(const Expr& a, const Expr& b) { return where(a < b, b, a); }
 Expr min(const Expr& a, const Expr& b) { return where(b < a, b, a); }
 
 Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
-  return Conditional::create(condition, if_true, if_false);
+  return conditional::create(condition, if_true, if_false);
 }
 
 MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixExpr& if_false) {
-  const Matrix& mat_true = if_true.as_matrix();
-  const Matrix& mat_false = if_false.as_matrix();
+  const matrix& mat_true = if_true.as_matrix();
+  const matrix& mat_false = if_false.as_matrix();
 
   // dimensions of left and right operands must match:
   if (mat_true.rows() != mat_false.rows() || mat_true.cols() != mat_false.cols()) {
@@ -403,7 +403,7 @@ struct bool_cast_visitor {
   }
 
   std::optional<Expr> operator()(const Relational&, const Expr& arg) const {
-    return make_expr<CastBool>(arg);
+    return make_expr<cast_bool>(arg);
   }
 
   template <typename T, typename = enable_if_does_not_contain_type_t<T, Relational>>

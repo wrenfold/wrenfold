@@ -26,24 +26,24 @@ std::string Expr::to_string() const {
 }
 
 Expr Expr::operator-() const {
-  return Multiplication::from_operands({constants::negative_one, *this});
+  return multiplication::from_operands({constants::negative_one, *this});
 }
 
 Expr operator+(const Expr& a, const Expr& b) {
   // See note on absl::Span() constructor, the lifetimes here are valid.
   // We are constructing an initializer_list.
-  return Addition::from_operands({a, b});
+  return addition::from_operands({a, b});
 }
 
 Expr operator-(const Expr& a, const Expr& b) {
-  return a + Multiplication::from_operands({constants::negative_one, b});
+  return a + multiplication::from_operands({constants::negative_one, b});
 }
 
-Expr operator*(const Expr& a, const Expr& b) { return Multiplication::from_operands({a, b}); }
+Expr operator*(const Expr& a, const Expr& b) { return multiplication::from_operands({a, b}); }
 
 Expr operator/(const Expr& a, const Expr& b) {
   auto one_over_b = Power::create(b, constants::negative_one);
-  return Multiplication::from_operands({a, one_over_b});
+  return multiplication::from_operands({a, one_over_b});
 }
 
 Expr operator<(const Expr& a, const Expr& b) {
@@ -70,9 +70,9 @@ Expr operator==(const Expr& a, const Expr& b) {
 struct PrecedenceVisitor {
   template <typename T>
   constexpr precedence operator()(const T&) const {
-    if constexpr (std::is_same_v<Multiplication, T>) {
+    if constexpr (std::is_same_v<multiplication, T>) {
       return precedence::multiplication;
-    } else if constexpr (std::is_same_v<Addition, T>) {
+    } else if constexpr (std::is_same_v<addition, T>) {
       return precedence::addition;
     } else if constexpr (std::is_same_v<Power, T>) {
       return precedence::power;

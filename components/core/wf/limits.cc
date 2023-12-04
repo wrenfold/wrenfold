@@ -51,8 +51,8 @@ class limit_visitor {
     return result;
   }
 
-  std::optional<Expr> operator()(const Addition& add) {
-    Addition::ContainerType f_funcs{}, g_funcs{}, terms{};
+  std::optional<Expr> operator()(const addition& add) {
+    addition::container_type f_funcs{}, g_funcs{}, terms{};
     for (const Expr& expr : add) {
       std::optional<Expr> child = visit(expr);
       if (!child || is_undefined(*child) || is_complex_infinity(*child)) {
@@ -79,8 +79,8 @@ class limit_visitor {
     }
 
     if (!f_funcs.empty() && !g_funcs.empty()) {
-      const Expr f = Addition::from_operands(f_funcs);
-      const Expr g = Addition::from_operands(g_funcs);
+      const Expr f = addition::from_operands(f_funcs);
+      const Expr g = addition::from_operands(g_funcs);
       std::optional<Expr> indeterminate_term = visit((1 / g + 1 / f) * (g * f));
       if (!indeterminate_term) {
         return std::nullopt;
@@ -88,10 +88,10 @@ class limit_visitor {
       terms.push_back(std::move(*indeterminate_term));
     }
 
-    return Addition::from_operands(terms);
+    return addition::from_operands(terms);
   }
 
-  std::optional<Expr> operator()(const CastBool& cast) {
+  std::optional<Expr> operator()(const cast_bool& cast) {
     std::optional<Expr> arg = visit(cast.arg());
     if (!arg) {
       return std::nullopt;
@@ -99,17 +99,17 @@ class limit_visitor {
     return cast_int_from_bool(*arg);
   }
 
-  std::optional<Expr> operator()(const Conditional&) {
+  std::optional<Expr> operator()(const conditional&) {
     // We don't support limits of conditionals yet.
     return std::nullopt;
   }
 
   std::optional<Expr> operator()(const Constant&, const Expr& expr) const { return expr; }
 
-  std::optional<Expr> operator()(const Derivative&, const Expr& expr) const {
+  std::optional<Expr> operator()(const derivative&, const Expr& expr) const {
     throw type_error(
         "Cannot take limits of expressions containing `{}`. Encountered expression: {}",
-        Derivative::NameStr, expr);
+        derivative::name_str, expr);
   }
 
   // Evaluate Hôpital's rule on a limit of the form:
@@ -235,7 +235,7 @@ class limit_visitor {
   std::optional<Expr> process_indeterminate_form_multiplied_terms_2(const Container& mul) {
     // `f_funcs` contains functions that evaluate to zero, while `g_funcs` contains functions that
     // evaluate to infinity.
-    Multiplication::ContainerType f_funcs{}, g_funcs{};
+    multiplication::container_type f_funcs{}, g_funcs{};
     for (const Expr& expr : mul) {
       std::optional<Expr> child = visit(expr);
       WF_ASSERT(child.has_value(), "Already checked this expression is valid: {}", expr);
@@ -260,8 +260,8 @@ class limit_visitor {
     //  lim[x->c] f(x)g(x) = lim[x->c] g(x) / (1 / f(x)) = ∞ / ∞
     //
     // Either form qualifies for Hôpital's rule, but one might recurse indefinitely.
-    const Expr f = Multiplication::from_operands(f_funcs);
-    const Expr g = Multiplication::from_operands(g_funcs);
+    const Expr f = multiplication::from_operands(f_funcs);
+    const Expr g = multiplication::from_operands(g_funcs);
 
     // TODO: This is slower than it needs to be, we can make a better guess as to what form
     //  to use by inspecting the powers of `f` and `g`.
@@ -280,7 +280,7 @@ class limit_visitor {
     //  0 --> f_funcs
     //  infinity --> g_funcs
     //  everything else --> remainder
-    Multiplication::ContainerType indeterminate_terms{}, remainder{};
+    multiplication::container_type indeterminate_terms{}, remainder{};
 
     std::size_t num_zeros = 0;
     std::size_t num_infinities = 0;
@@ -308,7 +308,7 @@ class limit_visitor {
       if (num_zeros > 0) {
         remainder.push_back(constants::zero);
       }
-      return Multiplication::from_operands(remainder);
+      return multiplication::from_operands(remainder);
     }
 
     // We have at least one infinity. Do we have zeros?
@@ -339,10 +339,10 @@ class limit_visitor {
       return std::nullopt;
     }
     remainder.push_back(std::move(*indeterminate_result));
-    return Multiplication::from_operands(remainder);
+    return multiplication::from_operands(remainder);
   }
 
-  std::optional<Expr> operator()(const Multiplication& mul) {
+  std::optional<Expr> operator()(const multiplication& mul) {
     return process_multiplied_terms(mul);
   }
 
@@ -442,8 +442,8 @@ class limit_visitor {
   }
 
   // TODO: We need to handle the case of functions going to infinity.
-  std::optional<Expr> operator()(const Function& func) {
-    Function::ContainerType args{};
+  std::optional<Expr> operator()(const function& func) {
+    function::container_type args{};
     for (const Expr& arg : func) {
       std::optional<Expr> arg_limit = visit(arg);
       if (!arg_limit) {
@@ -464,7 +464,7 @@ class limit_visitor {
       default:
         break;
     }
-    return Function::create(func.enum_value(), std::move(args));
+    return function::create(func.enum_value(), std::move(args));
   }
 
   std::optional<Expr> operator()(const Infinity&, const Expr& expr) const { return expr; }

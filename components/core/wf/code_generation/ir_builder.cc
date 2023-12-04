@@ -232,13 +232,13 @@ struct mul_add_count_visitor {
 
   template <typename T>
   void operator()(const T& concrete) {
-    if constexpr (!T::IsLeafNode) {
+    if constexpr (!T::is_leaf_node) {
       // If this is an add or a mul, record the incoming edges to children.
-      if constexpr (std::is_same_v<T, Addition>) {
+      if constexpr (std::is_same_v<T, addition>) {
         for (const Expr& child : concrete) {
           adds[child]++;
         }
-      } else if constexpr (std::is_same_v<T, Multiplication>) {
+      } else if constexpr (std::is_same_v<T, multiplication>) {
         for (const Expr& child : concrete) {
           muls[child]++;
         }
@@ -280,7 +280,7 @@ class ir_form_visitor {
 
   template <typename T>
   constexpr const operation_term_counts::count_container& get_count_table() const noexcept {
-    if constexpr (std::is_same_v<T, Multiplication>) {
+    if constexpr (std::is_same_v<T, multiplication>) {
       return counts_.muls;
     } else {
       return counts_.adds;
@@ -291,7 +291,7 @@ class ir_form_visitor {
   template <typename T>
   ir::value_ptr convert_addition_or_multiplication(const T& op) {
     // Sort first by frequency of occurrence, then in ambiguous cases by expression order:
-    Multiplication::ContainerType expressions{op.begin(), op.end()};
+    multiplication::container_type expressions{op.begin(), op.end()};
     std::sort(expressions.begin(), expressions.end(), [&](const Expr& a, const Expr& b) {
       const operation_term_counts::count_container& count_table = get_count_table<T>();
       const std::size_t count_a = count_table.at(a);
@@ -307,7 +307,7 @@ class ir_form_visitor {
 
     // first recursively transform all the inputs
     std::vector<ir::value_ptr> args;
-    args.reserve(op.arity());
+    args.reserve(op.size());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
 
@@ -319,7 +319,7 @@ class ir_form_visitor {
     // then create multiplications or adds for this expression:
     ir::value_ptr prev_result = maybe_cast(args[0], promoted_type);
     for (std::size_t i = 1; i < args.size(); ++i) {
-      if constexpr (std::is_same_v<T, Multiplication>) {
+      if constexpr (std::is_same_v<T, multiplication>) {
         prev_result = push_operation(ir::mul{}, promoted_type, prev_result,
                                      maybe_cast(args[i], promoted_type));
       } else {
@@ -330,7 +330,7 @@ class ir_form_visitor {
     return prev_result;
   }
 
-  ir::value_ptr operator()(const Addition& add, const Expr& add_abstract) {
+  ir::value_ptr operator()(const addition& add, const Expr& add_abstract) {
     // For additions, first check if the negated version has already been cached:
     const Expr negative_add = -add_abstract;
     if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
@@ -341,12 +341,12 @@ class ir_form_visitor {
     return convert_addition_or_multiplication(add);
   }
 
-  ir::value_ptr operator()(const CastBool& cast) {
+  ir::value_ptr operator()(const cast_bool& cast) {
     const ir::value_ptr arg = apply(cast.arg());
     return push_operation(ir::cast{code_numeric_type::integral}, code_numeric_type::integral, arg);
   }
 
-  ir::value_ptr operator()(const Conditional& cond) {
+  ir::value_ptr operator()(const conditional& cond) {
     const ir::value_ptr condition = apply(cond.condition());
     const ir::value_ptr if_branch = apply(cond.if_branch());
     const ir::value_ptr else_branch = apply(cond.else_branch());
@@ -374,8 +374,8 @@ class ir_form_visitor {
     return push_operation(ir::load{c}, numeric_type_from_constant(c));
   }
 
-  ir::value_ptr operator()(const Derivative&) {
-    throw type_error("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
+  ir::value_ptr operator()(const derivative&) {
+    throw type_error("Cannot generate code for expressions containing `{}`.", derivative::name_str);
   }
 
   static constexpr std_math_function std_math_function_from_built_in(built_in_function name) {
@@ -404,9 +404,9 @@ class ir_form_visitor {
     throw assertion_error("Invalid enum value: {}", string_from_built_in_function(name));
   }
 
-  ir::value_ptr operator()(const Function& func) {
+  ir::value_ptr operator()(const function& func) {
     ir::value::operands_container args;
-    args.reserve(func.arity());
+    args.reserve(func.size());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
     const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
@@ -448,7 +448,7 @@ class ir_form_visitor {
     return result.value();
   }
 
-  ir::value_ptr operator()(const Multiplication& mul) {
+  ir::value_ptr operator()(const multiplication& mul) {
     // Extract constants here? Empirically it appears to introduce more expressions, not fewer.
     return convert_addition_or_multiplication(mul);
   }
@@ -517,7 +517,7 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const Undefined&) const {
-    throw type_error("Cannot generate code with expressions containing {}", Undefined::NameStr);
+    throw type_error("Cannot generate code with expressions containing {}", Undefined::name_str);
   }
 
   ir::value_ptr operator()(const Variable& var) {
