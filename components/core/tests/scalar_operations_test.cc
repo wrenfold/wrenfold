@@ -445,11 +445,11 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_IDENTICAL(Constants::False, Constants::Euler > 3);
   ASSERT_IDENTICAL(Constants::True, Constants::Euler < 3);
 
-  ASSERT_THROW(3 < Constants::ComplexInfinity, TypeError);
-  ASSERT_THROW(-0.4 > Constants::ComplexInfinity, TypeError);
-  ASSERT_THROW(Constants::ComplexInfinity == z, TypeError);
-  ASSERT_THROW(Constants::Undefined > x, TypeError);
-  ASSERT_THROW(3_s / 5 == Constants::Undefined, TypeError);
+  ASSERT_THROW(3 < Constants::ComplexInfinity, type_error);
+  ASSERT_THROW(-0.4 > Constants::ComplexInfinity, type_error);
+  ASSERT_THROW(Constants::ComplexInfinity == z, type_error);
+  ASSERT_THROW(Constants::Undefined > x, type_error);
+  ASSERT_THROW(3_s / 5 == Constants::Undefined, type_error);
 }
 
 TEST(ScalarOperationsTest, TestCastBool) {
@@ -462,10 +462,10 @@ TEST(ScalarOperationsTest, TestCastBool) {
   ASSERT_IDENTICAL(1, cast_int_from_bool(Constants::True));
   ASSERT_IDENTICAL(0, cast_int_from_bool(Constants::False));
 
-  ASSERT_THROW(cast_int_from_bool(1.02), TypeError);
-  ASSERT_THROW(cast_int_from_bool(x + y), TypeError);
-  ASSERT_THROW(cast_int_from_bool(x * y), TypeError);
-  ASSERT_THROW(cast_int_from_bool(sin(x)), TypeError);
+  ASSERT_THROW(cast_int_from_bool(1.02), type_error);
+  ASSERT_THROW(cast_int_from_bool(x + y), type_error);
+  ASSERT_THROW(cast_int_from_bool(x * y), type_error);
+  ASSERT_THROW(cast_int_from_bool(sin(x)), type_error);
 }
 
 TEST(ScalarOperationsTest, TestConditional) {

@@ -6,26 +6,27 @@
 
 namespace math {
 
-// Child of ExpressionConcept.
+// Child of expression_concept.
 // Stores the concrete expression type and implements virtual methods.
 template <typename ExpressionType>
-class ExpressionImpl final : public ExpressionConcept {
+class expression_implementation final : public expression_concept {
  public:
-  ~ExpressionImpl() override = default;
+  ~expression_implementation() override = default;
 
   // Construct w/ concrete inner type.
-  explicit ExpressionImpl(ExpressionType&& impl)
-      : ExpressionConcept(compute_hash(impl), index_of_type_v<ExpressionType, ExpressionTypeList>),
+  explicit expression_implementation(ExpressionType&& impl)
+      : expression_concept(compute_hash(impl), index_of_type_v<ExpressionType, ExpressionTypeList>),
         implementation_(std::move(impl)) {}
 
   // Cast to the concrete expression type. type.
   constexpr const ExpressionType& get_implementation() const noexcept { return implementation_; }
 
   // Check if we can cast to this type.
-  bool is_identical_to(const ExpressionConcept& other) const override final {
+  bool is_identical_to(const expression_concept& other) const override final {
     return other.is_type<ExpressionType>() &&
            get_implementation().is_identical_to(
-               static_cast<const ExpressionImpl<ExpressionType>&>(other).get_implementation());
+               static_cast<const expression_implementation<ExpressionType>&>(other)
+                   .get_implementation());
   }
 
   // Get the derived type string name (a static constexpr member).
@@ -50,7 +51,7 @@ class ExpressionImpl final : public ExpressionConcept {
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>
 Expr make_expr(Args&&... args) {
-  return Expr{std::make_shared<const ExpressionImpl<T>>(T{std::forward<Args>(args)...})};
+  return Expr{std::make_shared<const expression_implementation<T>>(T{std::forward<Args>(args)...})};
 }
 
 // Cast expression to const pointer of the specified type.
@@ -58,7 +59,8 @@ Expr make_expr(Args&&... args) {
 template <typename T>
 const T* cast_ptr(const Expr& x) {
   if (x.impl_->is_type<T>()) {
-    const T& concrete = static_cast<const ExpressionImpl<T>*>(x.impl_.get())->get_implementation();
+    const T& concrete =
+        static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
     return &concrete;
   } else {
     return nullptr;
@@ -70,16 +72,16 @@ const T* cast_ptr(const Expr& x) {
 template <typename T>
 const T& cast_checked(const Expr& x) {
   if (x.impl_->is_type<T>()) {
-    return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->get_implementation();
+    return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
   } else {
-    throw TypeError("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::NameStr);
+    throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::NameStr);
   }
 }
 
 // Cast expression with no checking. UB will occur if the wrong type is accessed.
 template <typename T>
 const T& cast_unchecked(const Expr& x) {
-  return static_cast<const ExpressionImpl<T>*>(x.impl_.get())->get_implementation();
+  return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
 }
 
 }  // namespace math

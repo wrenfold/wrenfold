@@ -23,7 +23,7 @@ MatrixExpr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& call
 
 MatrixExpr make_matrix_of_symbols(const std::string_view prefix, index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
-    throw DimensionError("Cannot construct symbolic matrix with shape: ({}, {})", rows, cols);
+    throw dimension_error("Cannot construct symbolic matrix with shape: ({}, {})", rows, cols);
   }
   return create_matrix_with_lambda(rows, cols, [&](index_t i, index_t j) {
     std::string name = fmt::format("{}_{}_{}", prefix, i, j);
@@ -33,7 +33,7 @@ MatrixExpr make_matrix_of_symbols(const std::string_view prefix, index_t rows, i
 
 MatrixExpr make_zeros(index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
-    throw DimensionError("Cannot construct zero matrix with shape: ({}, {})", rows, cols);
+    throw dimension_error("Cannot construct zero matrix with shape: ({}, {})", rows, cols);
   }
   // Eventually we might have a symbolic zero matrix, and this won't be required.
   std::vector<Expr> data(static_cast<std::size_t>(rows * cols), Constants::Zero);
@@ -43,7 +43,7 @@ MatrixExpr make_zeros(index_t rows, index_t cols) {
 // Create an identity matrix.
 MatrixExpr make_identity(index_t rows) {
   if (rows <= 0) {
-    throw DimensionError("Cannot construct identity matrix with dimension: {}", rows);
+    throw dimension_error("Cannot construct identity matrix with dimension: {}", rows);
   }
   return create_matrix_with_lambda(
       rows, rows, [&](index_t i, index_t j) { return i == j ? Constants::One : Constants::Zero; });
@@ -94,7 +94,7 @@ static MatrixExpr stack(const absl::Span<const MatrixExpr> values, index_t num_r
 
 MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
   if (values.empty()) {
-    throw DimensionError("Need at least one matrix to stack.");
+    throw dimension_error("Need at least one matrix to stack.");
   }
 
   const index_t num_rows = values[0].rows();
@@ -103,7 +103,7 @@ MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
   for (const MatrixExpr& m : values) {
     total_cols += m.cols();
     if (m.rows() != num_rows) {
-      throw DimensionError(
+      throw dimension_error(
           "All input matrices must have the same number of rows. Received mixed dimensions {} and "
           "{}.",
           num_rows, m.rows());
@@ -115,7 +115,7 @@ MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
 
 MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
   if (values.empty()) {
-    throw DimensionError("Need at least one matrix to stack.");
+    throw dimension_error("Need at least one matrix to stack.");
   }
 
   const index_t num_cols = values[0].cols();
@@ -124,7 +124,7 @@ MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
   for (const MatrixExpr& m : values) {
     total_rows += m.rows();
     if (m.cols() != num_cols) {
-      throw DimensionError(
+      throw dimension_error(
           "All input matrices must have the same number of cols. Received mixed dimensions {} and "
           "{}.",
           num_cols, m.cols());
@@ -135,7 +135,7 @@ MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
 
 MatrixExpr diagonal_stack(const absl::Span<const MatrixExpr> values) {
   if (values.empty()) {
-    throw DimensionError("Need at least one matrix to stack.");
+    throw dimension_error("Need at least one matrix to stack.");
   }
   index_t total_rows = 0;
   index_t total_cols = 0;
@@ -427,7 +427,7 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu
 Expr determinant(const MatrixExpr& m) {
   const Matrix& mat = m.as_matrix();
   if (mat.rows() != mat.cols()) {
-    throw DimensionError(
+    throw dimension_error(
         "Determinant can only be computed for square matrices. Dimensions = [{}, {}]", mat.rows(),
         mat.cols());
   }

@@ -55,7 +55,7 @@ struct ExprFromIrVisitor {
         // Other cases handled by the assertion below.
         break;
     }
-    throw AssertionError("Invalid enum value: {}", string_from_standard_library_function(func));
+    throw assertion_error("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
   Expr operator()(const ir::CallStdFunction& func, const std::vector<ir::ValuePtr>& args) const {

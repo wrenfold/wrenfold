@@ -13,7 +13,7 @@ void raise_assert(const char* const condition, const char* const file, const int
       reason_fmt ? fmt::format(reason_fmt, std::forward<Ts>(args)...) : "None";
   std::string err = fmt::format("Assertion failed: {}\nFile: {}\nLine: {}\nDetails: {}\n",
                                 condition, file, line, details);
-  throw AssertionError(std::move(err));
+  throw assertion_error(std::move(err));
 }
 
 // Version that prints args A & B as well. For binary comparisons.
@@ -28,7 +28,7 @@ void raise_assert_binary_op(const char* const condition, const char* const file,
       "Operands are: {} = {}, {} = {}\n"
       "File: {}\nLine: {}\nDetails: {}\n",
       condition, a_name, std::forward<A>(a), b_name, std::forward<B>(b), file, line, details);
-  throw AssertionError(std::move(err));
+  throw assertion_error(std::move(err));
 }
 
 }  // namespace math

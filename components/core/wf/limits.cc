@@ -24,9 +24,9 @@ class limit_visitor {
         positive_inf_{positive_inf_placeholder()},
         negative_inf_{negative_inf_placeholder()} {
     if (x_typed_.set() != NumberSet::RealNonNegative) {
-      throw DomainError("Domain of limit variable `{}` is {}, but it should be {}.", x_,
-                        string_from_number_set(x_typed_.set()),
-                        string_from_number_set(NumberSet::RealNonNegative));
+      throw domain_error("Domain of limit variable `{}` is {}, but it should be {}.", x_,
+                         string_from_number_set(x_typed_.set()),
+                         string_from_number_set(NumberSet::RealNonNegative));
     }
   }
 
@@ -107,8 +107,9 @@ class limit_visitor {
   std::optional<Expr> operator()(const Constant&, const Expr& expr) const { return expr; }
 
   std::optional<Expr> operator()(const Derivative&, const Expr& expr) const {
-    throw TypeError("Cannot take limits of expressions containing `{}`. Encountered expression: {}",
-                    Derivative::NameStr, expr);
+    throw type_error(
+        "Cannot take limits of expressions containing `{}`. Encountered expression: {}",
+        Derivative::NameStr, expr);
   }
 
   // Evaluate Hôpital's rule on a limit of the form:
@@ -245,7 +246,7 @@ class limit_visitor {
       } else if (is_inf(*child)) {
         g_funcs.push_back(expr.collect(x_));
       } else {
-        throw TypeError("Child expression should be zero or infinity. Found: {}", *child);
+        throw type_error("Child expression should be zero or infinity. Found: {}", *child);
       }
     }
 
@@ -526,7 +527,7 @@ class limit_visitor {
 // TODO: Add support for limits going to infinity.
 std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
   if (!x.is_type<Variable>()) {
-    throw TypeError(
+    throw type_error(
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
         x.type_name(), x);
   }
@@ -535,7 +536,7 @@ std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
 
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
   if (!x.is_type<Variable>()) {
-    throw TypeError(
+    throw type_error(
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
         x.type_name(), x);
   }

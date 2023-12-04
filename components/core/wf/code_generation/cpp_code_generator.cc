@@ -85,7 +85,7 @@ void CppCodeGenerator::format_signature(CodeFormatter& formatter,
   if (signature.return_value) {
     if (!std::holds_alternative<ast::ScalarType>(*signature.return_value)) {
       // TODO: To support returning matrices in C++ we need more than just a `span` type.
-      throw TypeError("Only scalars can be returned.");
+      throw type_error("Only scalars can be returned.");
     } else {
       formatter.format("auto {}(", signature.function_name);
     }

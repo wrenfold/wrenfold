@@ -8,7 +8,7 @@
 namespace math {
 
 // Convert expressions to `Float` values.
-class EvaluateVisitor {
+class evaluate_visitor {
  public:
   template <typename T,
             typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Constant>>

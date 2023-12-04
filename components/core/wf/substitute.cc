@@ -310,7 +310,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     // Don't allow the target type to be a numeric literal:
     using disallowed_types = type_list<Integer, Float, Rational, Constant>;
     if constexpr (type_list_contains_type_v<T, disallowed_types>) {
-      throw TypeError("Cannot perform a substitution with target type: {}", T::NameStr);
+      throw type_error("Cannot perform a substitution with target type: {}", T::NameStr);
     } else {
       using VisitorType = typename sub_visitor_type<T>::type;
       return visit_with_expr(input, VisitorType{target_concrete, replacement});
@@ -323,8 +323,8 @@ static substitute_variables_visitor create_subs_visitor(
   substitute_variables_visitor visitor{};
   for (const auto& [target, replacement] : pairs) {
     if (!target.is_type<Variable>()) {
-      throw TypeError("Input needs to be type Variable, received type `{}`: {}", target.type_name(),
-                      target);
+      throw type_error("Input needs to be type Variable, received type `{}`: {}",
+                       target.type_name(), target);
     }
     visitor.add_substitution(target, replacement);
   }

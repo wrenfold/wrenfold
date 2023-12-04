@@ -21,8 +21,8 @@ class Matrix {
   Matrix(index_t rows, index_t cols, std::vector<Expr> data)
       : rows_(rows), cols_(cols), data_(std::move(data)) {
     if (data_.size() != static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_)) {
-      throw DimensionError("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
-                           data_.size(), rows_, cols_);
+      throw dimension_error("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
+                            data_.size(), rows_, cols_);
     }
     WF_ASSERT_GREATER_OR_EQ(rows_, 0);
     WF_ASSERT_GREATER_OR_EQ(cols_, 0);
@@ -99,20 +99,20 @@ static_assert(std::is_move_constructible_v<Matrix> && std::is_move_assignable_v<
 
 inline const Expr& Matrix::operator[](index_t i) const {
   if (rows_ != 1 && cols_ != 1) {
-    throw DimensionError(
+    throw dimension_error(
         "Array-style accessor is only valid on vectors. Matrix has dimensions ({}, {}).", rows_,
         cols_);
   }
   if (i < 0 || static_cast<std::size_t>(i) >= data_.size()) {
-    throw DimensionError("Index {} is out of bounds for vector of length {}.", i, data_.size());
+    throw dimension_error("Index {} is out of bounds for vector of length {}.", i, data_.size());
   }
   return data_[static_cast<std::size_t>(i)];
 }
 
 inline const Expr& Matrix::operator()(index_t i, index_t j) const {
   if (i >= rows_ || i < 0 || j >= cols_ || j < 0) {
-    throw DimensionError("Index ({}, {}) is out of bounds for matrix of size ({}, {})", i, j, rows_,
-                         cols_);
+    throw dimension_error("Index ({}, {}) is out of bounds for matrix of size ({}, {})", i, j,
+                          rows_, cols_);
   }
   return data_[compute_index(i, j)];
 }

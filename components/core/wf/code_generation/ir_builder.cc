@@ -365,7 +365,7 @@ struct IRFormVisitor {
       case SymbolicConstants::False:
         return NumericType::Bool;
     }
-    throw TypeError("Unhandled symbolic constant: {}", string_from_symbolic_constant(c.name()));
+    throw type_error("Unhandled symbolic constant: {}", string_from_symbolic_constant(c.name()));
   }
 
   ir::ValuePtr operator()(const Constant& c) {
@@ -373,7 +373,7 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Derivative&) {
-    throw TypeError("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
+    throw type_error("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
   }
 
   static constexpr StdMathFunction std_math_function_from_built_in(BuiltInFunction name) {
@@ -399,7 +399,7 @@ struct IRFormVisitor {
       case BuiltInFunction::Arctan2:
         return StdMathFunction::Arctan2;
     }
-    throw AssertionError("Invalid enum value: {}", string_from_built_in_function(name));
+    throw assertion_error("Invalid enum value: {}", string_from_built_in_function(name));
   }
 
   ir::ValuePtr operator()(const Function& func) {
@@ -413,7 +413,7 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Infinity&) const {
-    throw TypeError("Cannot generate code for complex infinity.");
+    throw type_error("Cannot generate code for complex infinity.");
   }
 
   ir::ValuePtr operator()(const Integer& i) {
@@ -511,7 +511,7 @@ struct IRFormVisitor {
   }
 
   ir::ValuePtr operator()(const Undefined&) const {
-    throw TypeError("Cannot generate code with expressions containing {}", Undefined::NameStr);
+    throw type_error("Cannot generate code with expressions containing {}", Undefined::NameStr);
   }
 
   ir::ValuePtr operator()(const Variable& var) {
@@ -1156,7 +1156,7 @@ ir::BlockPtr find_merge_point(const ir::BlockPtr left, const ir::BlockPtr right,
     }
   }
 
-  throw AssertionError("All branches should have a merge point");
+  throw assertion_error("All branches should have a merge point");
 }
 
 }  // namespace math

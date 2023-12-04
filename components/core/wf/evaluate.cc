@@ -6,9 +6,9 @@
 namespace math {
 
 template <typename T, typename>
-Expr EvaluateVisitor::operator()(const T& input_typed, const Expr& input) {
+Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
   if constexpr (type_list_contains_type_v<T, Derivative, Infinity>) {
-    throw TypeError("Cannot call eval on expression of type: {}", T::NameStr);
+    throw type_error("Cannot call eval on expression of type: {}", T::NameStr);
   } else if constexpr (T::IsLeafNode) {
     return input;
   } else {
@@ -16,15 +16,15 @@ Expr EvaluateVisitor::operator()(const T& input_typed, const Expr& input) {
   }
 }
 
-Expr EvaluateVisitor::operator()(const Integer& x) const {
+Expr evaluate_visitor::operator()(const Integer& x) const {
   return Float::create(static_cast<Float>(x));
 }
 
-Expr EvaluateVisitor::operator()(const Rational& x) const {
+Expr evaluate_visitor::operator()(const Rational& x) const {
   return Float::create(static_cast<Float>(x));
 }
 
-Expr EvaluateVisitor::operator()(const Constant& c) const {
+Expr evaluate_visitor::operator()(const Constant& c) const {
   const auto c_enum = c.name();
   const double value = double_from_symbolic_constant(c_enum);
   WF_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
@@ -32,7 +32,7 @@ Expr EvaluateVisitor::operator()(const Constant& c) const {
   return Float::create(value);
 }
 
-Expr EvaluateVisitor::apply(const Expr& input) {
+Expr evaluate_visitor::apply(const Expr& input) {
   auto it = cache_.find(input);
   if (it != cache_.end()) {
     return it->second;
@@ -42,6 +42,6 @@ Expr EvaluateVisitor::apply(const Expr& input) {
   return result;
 }
 
-Expr evaluate(const Expr& arg) { return EvaluateVisitor{}.apply(arg); }
+Expr evaluate(const Expr& arg) { return evaluate_visitor{}.apply(arg); }
 
 }  // namespace math

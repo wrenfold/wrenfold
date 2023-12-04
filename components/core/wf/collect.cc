@@ -137,7 +137,7 @@ Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
   }
   for (const Expr& term : terms) {
     if (term.is_type<Integer, Float, Rational>()) {
-      throw TypeError("Arguments to collect cannot be numeric values. Term = {}", term);
+      throw type_error("Arguments to collect cannot be numeric values. Term = {}", term);
     }
   }
   return visit_with_expr(arg, CollectVisitor{terms});

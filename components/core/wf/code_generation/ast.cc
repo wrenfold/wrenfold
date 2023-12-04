@@ -250,7 +250,7 @@ struct AstBuilder {
           using excluded_types =
               type_list<ir::JumpCondition, ir::Save, ir::Cond, ir::Phi, ir::OutputRequired>;
           if constexpr (type_list_contains_type_v<T, excluded_types>) {
-            throw TypeError("Type cannot be converted to AST: {}", typeid(T).name());
+            throw type_error("Type cannot be converted to AST: {}", typeid(T).name());
           } else {
             return operator()(*value, op);
           }
@@ -337,7 +337,7 @@ struct AstBuilder {
   }
 
   ast::Variant operator()(const UniqueVariable& u) const {
-    throw TypeError("Cannot convert UniqueVariable to ast: {}", u.index());
+    throw type_error("Cannot convert UniqueVariable to ast: {}", u.index());
   }
 
   ast::Variant operator()(const ir::Value&, const ir::Load& load) {

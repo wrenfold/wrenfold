@@ -223,7 +223,7 @@ TEST(QuaternionTest, TestFromAxisAngle) {
   ASSERT_IDENTICAL(R_rodrigues.distribute(), R);
 
   // check that this throws if we pass invalid arguments:
-  ASSERT_THROW(Quaternion::from_angle_axis(0, make_vector(vx, vy)), DimensionError);
+  ASSERT_THROW(Quaternion::from_angle_axis(0, make_vector(vx, vy)), dimension_error);
 }
 
 // Sample points uniformly on the sphere (approximately) using fibonacci sphere.
@@ -330,8 +330,9 @@ TEST(QuaternionTest, FromRotationVector) {
                                                       .to_vector_wxyz()),
                     1.0e-32);
 
-  ASSERT_THROW(Quaternion::from_rotation_vector(make_vector(-3, vx), std::nullopt), DimensionError);
-  ASSERT_THROW(Quaternion::from_rotation_vector(make_identity(3), std::nullopt), DimensionError);
+  ASSERT_THROW(Quaternion::from_rotation_vector(make_vector(-3, vx), std::nullopt),
+               dimension_error);
+  ASSERT_THROW(Quaternion::from_rotation_vector(make_identity(3), std::nullopt), dimension_error);
 }
 
 TEST(QuaternionTest, TestAngleConversions) {

@@ -31,7 +31,7 @@ using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
 // 2. Collapse all other numeric values into floats.
 struct NumericFunctionEvaluator {
   substitute_variables_visitor substitute{};
-  EvaluateVisitor evaluate{};
+  evaluate_visitor evaluate{};
 };
 
 template <typename T>
@@ -50,8 +50,8 @@ struct apply_numeric_evaluator_impl<Expr> {
     if (const Float* f = cast_ptr<Float>(evaluated); f != nullptr) {
       return f->get_value();
     } else {
-      throw TypeError("Expression should be a floating point value or integer. Got type {}: {}",
-                      subs.type_name(), subs);
+      throw type_error("Expression should be a floating point value or integer. Got type {}: {}",
+                       subs.type_name(), subs);
     }
   }
 };

@@ -9,11 +9,11 @@ namespace math {
 class Variable;  //  Fwd declare.
 
 // Visitor that takes the derivative of an input expression.
-class DiffVisitor {
+class derivative_visitor {
  public:
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit DiffVisitor(const Expr& argument);
+  explicit derivative_visitor(const Expr& argument);
 
   // Apply this visitor to the specified expression.
   Expr apply(const Expr& expression);

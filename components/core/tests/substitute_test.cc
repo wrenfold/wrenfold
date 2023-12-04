@@ -20,9 +20,9 @@ TEST(SubstituteTest, TestVariables) {
   ASSERT_IDENTICAL(Constants::Pi * z, y.subs(y, Constants::Pi * z));
 
   // Cannot replace a literal numeric:
-  ASSERT_THROW(x.subs(5, y), TypeError);
-  ASSERT_THROW(x.subs(2.3, y), TypeError);
-  ASSERT_THROW(x.subs(3_s / 5, y), TypeError);
+  ASSERT_THROW(x.subs(5, y), type_error);
+  ASSERT_THROW(x.subs(2.3, y), type_error);
+  ASSERT_THROW(x.subs(3_s / 5, y), type_error);
 }
 
 TEST(SubstituteTest, TestFunctions) {

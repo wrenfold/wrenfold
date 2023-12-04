@@ -19,8 +19,8 @@ struct CompareNumerics {
   static double float_from_constant(const Constant& c) {
     const double value = double_from_symbolic_constant(c.name());
     if (std::isnan(value)) {
-      throw TypeError("Invalid comparison with constant: {}",
-                      string_from_symbolic_constant(c.name()));
+      throw type_error("Invalid comparison with constant: {}",
+                       string_from_symbolic_constant(c.name()));
     }
     return value;
   }
@@ -97,8 +97,8 @@ struct RelationalSimplification {
 Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
   if (is_complex_infinity(left) || is_complex_infinity(right) || is_undefined(left) ||
       is_undefined(right)) {
-    throw TypeError("Cannot construct relational with types: {} {} {}", left.type_name(),
-                    string_from_relational_operation(operation), right.type_name());
+    throw type_error("Cannot construct relational with types: {} {} {}", left.type_name(),
+                     string_from_relational_operation(operation), right.type_name());
   }
   // See if this relational automatically simplifies to a boolean constant:
   const TriState simplified = visit_binary(left, right, RelationalSimplification{operation});

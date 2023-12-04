@@ -69,7 +69,7 @@ inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
                  as_rational != nullptr) {
         result(i, j) = static_cast<Float>(*as_rational).get_value();
       } else {
-        throw TypeError("Cannot coerce value to float: {}", m_eval(i, j));
+        throw type_error("Cannot coerce value to float: {}", m_eval(i, j));
       }
     }
   }

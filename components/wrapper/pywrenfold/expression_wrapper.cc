@@ -195,9 +195,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
           py::doc("Convert to string."));
 
   // Exceptions:
-  py::register_exception<AssertionError>(m, "AssertionError");
-  py::register_exception<DimensionError>(m, "DimensionError");
-  py::register_exception<TypeError>(m, "TypeError");
+  py::register_exception<assertion_error>(m, "AssertionError");
+  py::register_exception<dimension_error>(m, "DimensionError");
+  py::register_exception<type_error>(m, "TypeError");
 
   // Include other wrappers in this module:
   wrap_matrix_operations(m);

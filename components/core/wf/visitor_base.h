@@ -8,10 +8,10 @@
 namespace math {
 
 class Expr;
-class ExpressionConcept;
+class expression_concept;
 
 // TODO: Allow switching this out for something w/o atomic operations?
-using expression_concept_const_ptr = std::shared_ptr<const class ExpressionConcept>;
+using expression_concept_const_ptr = std::shared_ptr<const class expression_concept>;
 
 // clang-format off
 using ExpressionTypeList = type_list<

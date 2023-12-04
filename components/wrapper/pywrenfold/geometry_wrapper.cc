@@ -21,7 +21,7 @@ static auto components_from_iterable(const py::iterable& iterable) {
   absl::InlinedVector<Expr, 4> values;
   cast_to_expr(iterable, values);
   if (values.size() != 4) {
-    throw DimensionError("Expected 4 values but {} were provided.", values.size());
+    throw dimension_error("Expected 4 values but {} were provided.", values.size());
   }
   return values;
 }

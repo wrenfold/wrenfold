@@ -25,7 +25,7 @@ TEST(LimitsTest, TestSimpleLimits1) {
   ASSERT_IDENTICAL(-1, limit(sin(x - Constants::Pi / 2), x).value());
 
   // Invalid argument domain:
-  ASSERT_THROW(limit(23 * y, y), DomainError);
+  ASSERT_THROW(limit(23 * y, y), domain_error);
 }
 
 TEST(LimitsTest, TestIndeterminateMultiplicativeForms1) {

@@ -68,7 +68,7 @@ MatrixExpr MatrixExpr::operator-() const {
 }
 
 MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
-  DiffVisitor visitor{var};
+  derivative_visitor visitor{var};
   return MatrixExpr{as_matrix().map_children([&visitor, reps](const Expr& x) {
     Expr result = x;
     for (int i = 0; i < reps; ++i) {
@@ -80,7 +80,7 @@ MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
 
 MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
   if (cols() != 1) {
-    throw DimensionError(
+    throw dimension_error(
         "Jacobian can only be computed on column-vectors. Received dimensions: [{}, {}]", rows(),
         cols());
   }
@@ -90,8 +90,8 @@ MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
 
 MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
-    throw DimensionError("Variables must be a row or column vector. Received dimensions: [{}, {}]",
-                         vars.rows(), vars.cols());
+    throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
+                          vars.rows(), vars.cols());
   }
   const auto& m = vars.as_matrix();
   return jacobian(m.data());  //  Call span version.

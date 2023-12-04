@@ -59,7 +59,7 @@ Quaternion Quaternion::from_angle_axis(const Expr& angle, const Expr& vx, const 
 
 Quaternion Quaternion::from_angle_axis(const Expr& angle, const MatrixExpr& v) {
   if (v.rows() != 3 || v.cols() != 1) {
-    throw DimensionError("Axis vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
+    throw dimension_error("Axis vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
   return from_angle_axis(angle, v[0], v[1], v[2]);
 }
@@ -92,7 +92,7 @@ Quaternion Quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, cons
 
 Quaternion Quaternion::from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon) {
   if (v.rows() != 3 || v.cols() != 1) {
-    throw DimensionError("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
+    throw dimension_error("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
   return from_rotation_vector(v[0], v[1], v[2], std::move(epsilon));
 }
@@ -143,8 +143,8 @@ MatrixExpr Quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
 
 Quaternion Quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   if (R_in.rows() != 3 || R_in.cols() != 3) {
-    throw DimensionError("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
-                         R_in.cols());
+    throw dimension_error("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
+                          R_in.cols());
   }
   const Matrix& R = R_in.as_matrix();
   // clang-format off
@@ -174,8 +174,8 @@ Quaternion Quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
 
 MatrixExpr Quaternion::jacobian(const math::MatrixExpr& vars) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
-    throw DimensionError("Variables must be a row or column vector. Received dimensions: [{}, {}]",
-                         vars.rows(), vars.cols());
+    throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
+                          vars.rows(), vars.cols());
   }
   const auto& m = vars.as_matrix();
   return jacobian(m.data());
@@ -252,8 +252,8 @@ Quaternion operator*(const Quaternion& a, const Quaternion& b) {
 MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon) {
   using namespace matrix_operator_overloads;
   if (w.rows() != 3 || w.cols() != 1) {
-    throw DimensionError("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
-                         w.cols());
+    throw dimension_error("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
+                          w.cols());
   }
   const Matrix& m = w.as_matrix();
   const Expr& vx = m[0];

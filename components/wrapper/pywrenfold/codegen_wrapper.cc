@@ -29,7 +29,7 @@ static ast::Type type_from_default_constructible_variant(
       [](const auto& element) -> ast::Type {
         using T = std::decay_t<decltype(element)>;
         if constexpr (std::is_same_v<T, std::monostate>) {
-          throw TypeError("`type` cannot be None");
+          throw type_error("`type` cannot be None");
         } else {
           return element;
         }

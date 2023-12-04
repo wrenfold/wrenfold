@@ -165,7 +165,7 @@ MatrixExpr column_vector_from_container(const Container& inputs) {
   std::vector<Expr> converted;
   cast_to_expr(inputs, converted);
   if (converted.empty()) {
-    throw DimensionError("Cannot construct empty vector.");
+    throw dimension_error("Cannot construct empty vector.");
   }
   const index_t rows = static_cast<index_t>(converted.size());
   return MatrixExpr::create(rows, 1, std::move(converted));
@@ -177,7 +177,7 @@ MatrixExpr row_vector_from_container(const Container& inputs) {
   std::vector<Expr> converted;
   cast_to_expr(inputs, converted);
   if (converted.empty()) {
-    throw DimensionError("Cannot construct empty row vector.");
+    throw dimension_error("Cannot construct empty row vector.");
   }
   const index_t cols = static_cast<index_t>(converted.size());
   return MatrixExpr::create(1, cols, std::move(converted));
@@ -209,7 +209,7 @@ inline MatrixExpr stack_iterables(const std::vector<py::object>& rows) {
   for (++it; it != rows.end(); ++it) {
     const std::size_t num_cols = extract_iterable_rows(*it, converted);
     if (num_cols != expected_num_cols) {
-      throw DimensionError(
+      throw dimension_error(
           "Mismatch in number of provided columns. First input had {} columns, but input [{}] has "
           "{} elements.",
           expected_num_cols, std::distance(rows.begin(), it), num_cols);
@@ -236,7 +236,7 @@ MatrixExpr matrix_from_iterable(py::iterable rows) {
                  [](const py::handle& handle) { return handle.cast<py::object>(); });
 
   if (extracted.empty()) {
-    throw DimensionError("Cannot construct matrix from empty iterator.");
+    throw dimension_error("Cannot construct matrix from empty iterator.");
   }
 
   // Try to cast the first row to an iterable. If it works, interpret this as an iterable over

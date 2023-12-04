@@ -21,9 +21,9 @@ constexpr std::string_view type_string_from_numeric_type(NumericType type) {
     case NumericType::Real:
       return "f64";
     case NumericType::Complex:
-      throw TypeError("No complex number type yet in Rust");
+      throw type_error("No complex number type yet in Rust");
   }
-  throw TypeError("Not a valid enum value: {}", string_from_numeric_type(type));
+  throw type_error("Not a valid enum value: {}", string_from_numeric_type(type));
 }
 
 constexpr std::string_view type_string_from_numeric_type(const ast::ScalarType& scalar) {

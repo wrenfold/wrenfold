@@ -119,7 +119,7 @@ class determine_set_visitor {
         // Can always be undefined.
         return NumberSet::Unknown;
     }
-    throw TypeError("Invalid function: {}\n", func.function_name());
+    throw type_error("Invalid function: {}\n", func.function_name());
   }
 
   // In spite of its name, complex infinity is not part of the complex numbers.

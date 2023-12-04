@@ -9,7 +9,7 @@ namespace math {
 Matrix Matrix::get_block(const index_t row, const index_t col, const index_t nrows,
                          const index_t ncols) const {
   if (row < 0 || row + nrows > rows_ || col < 0 || col + ncols > cols_) {
-    throw DimensionError(
+    throw dimension_error(
         "Block [position: ({}, {}), size: ({}, {})] is out of bounds for matrix of shape ({}, {})",
         row, col, nrows, ncols, rows_, cols_);
   }
@@ -32,7 +32,7 @@ Matrix Matrix::transposed() const {
 
 Matrix operator*(const Matrix& a, const Matrix& b) {
   if (a.cols() != b.rows()) {
-    throw DimensionError(
+    throw dimension_error(
         "dimension mismatch in matrix multiplication: ({}, {}) x ({}, {}). Inner dimensions must "
         "match.",
         a.rows(), a.cols(), b.rows(), b.cols());
@@ -64,8 +64,8 @@ Matrix operator*(const Matrix& a, const Matrix& b) {
 
 Matrix operator+(const Matrix& a, const Matrix& b) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
-    throw DimensionError("dimension mismatch in matrix addition: ({}, {}) + ({}, {}).", a.rows(),
-                         a.cols(), b.rows(), b.cols());
+    throw dimension_error("dimension mismatch in matrix addition: ({}, {}) + ({}, {}).", a.rows(),
+                          a.cols(), b.rows(), b.cols());
   }
   std::vector<Expr> output;
   output.reserve(a.size());
@@ -77,8 +77,8 @@ Matrix operator+(const Matrix& a, const Matrix& b) {
 
 Matrix operator-(const Matrix& a, const Matrix& b) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
-    throw DimensionError("dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).", a.rows(),
-                         a.cols(), b.rows(), b.cols());
+    throw dimension_error("dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).",
+                          a.rows(), a.cols(), b.rows(), b.cols());
   }
   std::vector<Expr> output;
   output.reserve(a.size());

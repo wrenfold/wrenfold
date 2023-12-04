@@ -23,8 +23,8 @@ class Quaternion {
   // Construct from a vector ordered `wxyz`.
   static Quaternion from_vector_wxyz(const MatrixExpr& q) {
     if (q.rows() != 4 || q.cols() != 1) {
-      throw DimensionError("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
-                           q.cols());
+      throw dimension_error("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
+                            q.cols());
     }
     return Quaternion{q[0], q[1], q[2], q[3]};
   }
@@ -32,8 +32,8 @@ class Quaternion {
   // Construct from a vector ordered `xyzw` (scalar last).
   static Quaternion from_vector_xyzw(const MatrixExpr& q) {
     if (q.rows() != 4 || q.cols() != 1) {
-      throw DimensionError("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
-                           q.cols());
+      throw dimension_error("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
+                            q.cols());
     }
     return Quaternion{q[3], q[0], q[1], q[2]};
   }

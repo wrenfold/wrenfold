@@ -375,7 +375,7 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
 
   // dimensions of left and right operands must match:
   if (mat_true.rows() != mat_false.rows() || mat_true.cols() != mat_false.cols()) {
-    throw DimensionError(
+    throw dimension_error(
         "dimension mismatch between operands to where(). if shape = [{}, {}], else shape = [{}, "
         "{}]",
         mat_true.rows(), mat_true.cols(), mat_false.rows(), mat_false.cols());
@@ -413,8 +413,8 @@ struct bool_cast_visitor {
 Expr cast_int_from_bool(const Expr& bool_expression) {
   std::optional<Expr> result = visit_with_expr(bool_expression, bool_cast_visitor{});
   if (!result) {
-    throw TypeError("Expression of type `{}` is not a boolean arg: {}", bool_expression.type_name(),
-                    bool_expression);
+    throw type_error("Expression of type `{}` is not a boolean arg: {}",
+                     bool_expression.type_name(), bool_expression);
   }
   return std::move(*result);
 }

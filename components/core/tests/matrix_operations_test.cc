@@ -30,8 +30,8 @@ TEST(MatrixOperationsTest, TestConstruct) {
   ASSERT_IDENTICAL(y + z, v(2, 0));
 
   // Invalid access:
-  ASSERT_THROW(v[4], DimensionError);
-  ASSERT_THROW(v(10, 2), DimensionError);
+  ASSERT_THROW(v[4], dimension_error);
+  ASSERT_THROW(v(10, 2), dimension_error);
 
   // Compare to row-vector constructor
   ASSERT_IDENTICAL(v.transposed(), make_row_vector(x, 4, y + z));
@@ -52,10 +52,10 @@ TEST(MatrixOperationsTest, TestConstruct) {
   ASSERT_IDENTICAL(2 / x, m(1, 2));
 
   // Invalid access:
-  ASSERT_THROW(m(-1, 0), DimensionError);
-  ASSERT_THROW(m(0, -1), DimensionError);
-  ASSERT_THROW(m(5, 0), DimensionError);
-  ASSERT_THROW(m(1, 10), DimensionError);
+  ASSERT_THROW(m(-1, 0), dimension_error);
+  ASSERT_THROW(m(0, -1), dimension_error);
+  ASSERT_THROW(m(5, 0), dimension_error);
+  ASSERT_THROW(m(1, 10), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestGetBlock) {
@@ -89,10 +89,10 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   ASSERT_IDENTICAL(make_matrix(2, 2, y, pow(z, 2), -1, sin(x)), m2.get_block(1, 2, 2, 2));
 
   // bounds checking:
-  ASSERT_THROW(m2.get_block(-1, 0, 2, 1), DimensionError);
-  ASSERT_THROW(m2.get_block(1, -5, 1, 1), DimensionError);
-  ASSERT_THROW(m2.get_block(1, 1, 4, 1), DimensionError);
-  ASSERT_THROW(m2.get_block(1, 1, 2, 5), DimensionError);
+  ASSERT_THROW(m2.get_block(-1, 0, 2, 1), dimension_error);
+  ASSERT_THROW(m2.get_block(1, -5, 1, 1), dimension_error);
+  ASSERT_THROW(m2.get_block(1, 1, 4, 1), dimension_error);
+  ASSERT_THROW(m2.get_block(1, 1, 2, 5), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestTranspose) {
@@ -176,8 +176,8 @@ TEST(MatrixOperationsTest, TestAddition) {
                    make_vector(a + c, b + d));
 
   // Dimension mismatch:
-  ASSERT_THROW(make_vector(a, b) + make_row_vector(c, d), DimensionError);
-  ASSERT_THROW(make_vector(a, b) + make_matrix(2, 2, c, d, 2, -3_s / 5), DimensionError);
+  ASSERT_THROW(make_vector(a, b) + make_row_vector(c, d), dimension_error);
+  ASSERT_THROW(make_vector(a, b) + make_matrix(2, 2, c, d, 2, -3_s / 5), dimension_error);
 
   const MatrixExpr m = make_matrix(2, 2, a, b, c, d);
   ASSERT_IDENTICAL(m, m + make_zeros(2, 2));
@@ -227,9 +227,9 @@ TEST(MatrixOperationsTest, TestMultiplication) {
                    (make_row_vector(a, b) * make_vector(c, d) * x).distribute());
 
   // Inner dimension mismatch
-  ASSERT_THROW(make_zeros(2, 3) * make_zeros(4, 2), DimensionError);
-  ASSERT_THROW(make_zeros(10, 10) * make_vector(x, y, z), DimensionError);
-  ASSERT_THROW(make_row_vector(1, -3, z) * make_vector(z, sin(y)), DimensionError);
+  ASSERT_THROW(make_zeros(2, 3) * make_zeros(4, 2), dimension_error);
+  ASSERT_THROW(make_zeros(10, 10) * make_vector(x, y, z), dimension_error);
+  ASSERT_THROW(make_row_vector(1, -3, z) * make_vector(z, sin(y)), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestSquaredNorm) {

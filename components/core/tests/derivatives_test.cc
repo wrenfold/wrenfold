@@ -17,8 +17,8 @@ TEST(DerivativesTest, TestConstants) {
   ASSERT_IDENTICAL(Constants::Zero, Constants::Pi.diff(x));
   ASSERT_IDENTICAL(Constants::Zero, Constants::Euler.diff(x));
   ASSERT_IDENTICAL(Constants::Zero, Constants::ComplexInfinity.diff(x));
-  ASSERT_THROW(x.diff(5), TypeError);
-  ASSERT_THROW(x.diff(Constants::Pi), TypeError);
+  ASSERT_THROW(x.diff(5), type_error);
+  ASSERT_THROW(x.diff(Constants::Pi), type_error);
 }
 
 TEST(DerivativesTest, TestAdditionAndSubtraction) {
