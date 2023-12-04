@@ -34,7 +34,7 @@ auto format_ast(Iterator it, const wf::ast::add& v) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::assign_output_argument& v) {
-  return fmt::format_to(it, "AssignOutputArgument({} = {})", v.argument->name(),
+  return fmt::format_to(it, "AssignOutputArgument({} = {})", v.arg->name(),
                         fmt::join(v.values, ", "));
 }
 
@@ -94,7 +94,7 @@ auto format_ast(Iterator it, const wf::ast::float_literal& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::input_value& v) {
-  return fmt::format_to(it, "{}[{}]", v.argument->name(), v.element);
+  return fmt::format_to(it, "{}[{}]", v.arg->name(), v.element);
 }
 
 template <typename Iterator>

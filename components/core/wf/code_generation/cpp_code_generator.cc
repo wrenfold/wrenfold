@@ -125,8 +125,8 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::add& x
 
 void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::assign_output_argument& assignment) const {
-  const auto& dest_name = assignment.argument->name();
-  const ast::argument_type& type = assignment.argument->type();
+  const auto& dest_name = assignment.arg->name();
+  const ast::argument_type& type = assignment.arg->type();
 
   if (std::holds_alternative<ast::matrix_type>(type)) {
     const ast::matrix_type mat = std::get<ast::matrix_type>(type);
@@ -136,8 +136,8 @@ void cpp_code_generator::operator()(code_formatter& formatter,
     formatter.join(
         [&](code_formatter& fmt, std::size_t i) {
           const auto [row, col] = mat.compute_indices(i);
-          fmt.format("{}{}({}, {}) = {};", assignment.argument->is_matrix() ? "_" : "", dest_name,
-                     row, col, make_view(assignment.values[i]));
+          fmt.format("{}{}({}, {}) = {};", assignment.arg->is_matrix() ? "_" : "", dest_name, row,
+                     col, make_view(assignment.values[i]));
         },
         "\n", range);
 
@@ -258,13 +258,13 @@ void cpp_code_generator::operator()(code_formatter& formatter,
 }
 
 void cpp_code_generator::operator()(code_formatter& formatter, const ast::input_value& x) const {
-  WF_ASSERT(x.argument);
-  if (std::holds_alternative<ast::scalar_type>(x.argument->type())) {
-    formatter.format(x.argument->name());
+  WF_ASSERT(x.arg);
+  if (std::holds_alternative<ast::scalar_type>(x.arg->type())) {
+    formatter.format(x.arg->name());
   } else {
-    const ast::matrix_type& mat = std::get<ast::matrix_type>(x.argument->type());
+    const ast::matrix_type& mat = std::get<ast::matrix_type>(x.arg->type());
     const auto [r, c] = mat.compute_indices(x.element);
-    formatter.format("_{}({}, {})", x.argument->name(), r, c);
+    formatter.format("_{}({}, {})", x.arg->name(), r, c);
   }
 }
 
