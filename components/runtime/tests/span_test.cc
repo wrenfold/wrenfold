@@ -195,6 +195,9 @@ template <typename Dimensions>
 struct convert_to_span<Dimensions, throwing_type> {
   template <typename U>
   constexpr auto convert(U&&) noexcept(false) {
+    // If we don't explicitly throw something here, MSVC appears to relabel
+    // the method as noexcept(true).
+    throw std::runtime_error("Oh no!");
     return make_always_null_span<Dimensions>();
   }
 };
@@ -214,9 +217,6 @@ TEST(SpanTest, TestNoexceptPropagation) {
   static_assert(noexcept(make_optional_output_span<2, 3, 4>(no_throw)), "");
 
   throwing_type yes_throw{};
-  static_assert(!noexcept(std::declval<detail::span_converter<dimensions, throwing_type>>().convert(
-                    yes_throw)),
-                "");
   static_assert(noexcept(make_input_span<2, 3, 4>(yes_throw)) == false, "");
   static_assert(noexcept(make_output_span<2, 3, 4>(yes_throw)) == false, "");
   static_assert(noexcept(make_optional_output_span<2, 3, 4>(yes_throw)) == false, "");

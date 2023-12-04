@@ -409,7 +409,7 @@ struct convert_to_span<Dimensions, std::nullptr_t> {
 // TODO: Allow conversion from dynamic -> constant dims with runtime checks.
 template <typename Dimensions, typename T, typename DimsIn, typename StridesIn>
 struct convert_to_span<Dimensions, span<T, DimsIn, StridesIn>,
-                       typename std::enable_if<std::is_same_v<Dimensions, DimsIn>>::type> {
+                       typename std::enable_if<std::is_same<Dimensions, DimsIn>::value>::type> {
   constexpr span<T, DimsIn, StridesIn> convert(span<T, DimsIn, StridesIn> x) noexcept { return x; }
 };
 
