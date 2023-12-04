@@ -9,12 +9,6 @@
   do {                                      \
     (void)sizeof((condition));              \
   } while (0)
-#define MATH_SPAN_MAYBE_NOEXCEPT noexcept
-#else
-// If user did not specify MATH_SPAN_MAYBE_NOEXCEPT, define it as empty here:
-#ifndef MATH_SPAN_MAYBE_NOEXCEPT
-#define MATH_SPAN_MAYBE_NOEXCEPT
-#endif  // ifndef MATH_SPAN_MAYBE_NOEXCEPT
 #endif  // ifndef MATH_SPAN_RUNTIME_ASSERT
 
 namespace wf {
@@ -42,11 +36,13 @@ constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept;
 //     constexpr auto convert(U&& matrix) noexcept {
 //        static_assert(constant_value_pack_axis_v<0, Dimensions> == Rows);
 //        static_assert(constant_value_pack_axis_v<1, Dimensions> == Cols);
-//        // Assuming row-major storage here:
+//        // Assuming row-major storage:
 //        constexpr auto strides = make_constant_value_pack<Cols, 1>();
 //        return make_span(matrix.data(), make_constant_value_pack<Rows, Cols>(), strides);
 //     }
 //  };
+//
+// See `span_eigen.h` for an example implementation.
 template <typename Dimensions, typename T, typename = void>
 struct convert_to_span;
 
@@ -342,59 +338,6 @@ template <std::size_t... Dims, typename T>
 constexpr auto make_optional_output_span(T& input) noexcept(
     detail::is_nothrow_convertible_to_span_v<constant_value_pack<Dims...>, T>) {
   return make_optional_output_span<constant_value_pack<Dims...>>(input);
-}
-
-// Enum for selecting ordering when using make_*_span convenience constructor.
-enum class ordering {
-  // All values on a row are contiguous in memory.
-  // [[0, 1],
-  //  [2, 3]]
-  row_major,
-  // All values in a column are contiguous in memory.
-  // [[0, 2],
-  //  [1, 3]]
-  col_major,
-};
-
-// Make a span with 2D dimensions from the data in an initializer list.
-//
-// When calling this method, you need to be sure that the initializer list outlives the span. For
-// example, the invocation:
-//
-//  some_function(make_array_span_2d<3, 1, ordering::row_major>({1.0, -2.0, 3.0}));
-//
-// is valid, because the initializer list lives to the end of the full expression (C++ standard
-// [12.2.3-4]). The storage referenced by the span argument will last until the invocation of
-// `some_function`.
-//
-// However, it would be invalid to do the following:
-//
-//  auto span = make_array_span_2d<3, 1, ordering::row_major>({1.0, -2.0, 3.0}});
-//  some_function(span);  //  <-- Invalid, the initializer list storage was destroyed.
-//
-// If you pass this function an empty initializer list, initializer_list::begin will return
-// nullptr and the user-defined assertion macro `MATH_SPAN_RUNTIME_ASSERT` will be invoked
-// with a false condition upon construction of the span.
-template <std::size_t Rows, std::size_t Cols, ordering Order, typename T>
-constexpr auto make_array_span_2d(std::initializer_list<T> list) MATH_SPAN_MAYBE_NOEXCEPT {
-  static_assert(Rows > 0, "Need at least one row");
-  static_assert(Cols > 0, "Need at least one column");
-
-  // We for initializer lists to become const spans, since their lifetime is
-  // only good for passing input args.
-  using const_value_type = const typename std::remove_const<T>::type;
-
-  constexpr std::size_t row_stride = Order == ordering::row_major ? Cols : 1;
-  constexpr std::size_t col_stride = Order == ordering::row_major ? 1 : Rows;
-
-  auto span =
-      make_span(const_cast<const_value_type*>(list.begin()), make_constant_value_pack<Rows, Cols>(),
-                make_constant_value_pack<row_stride, col_stride>());
-  // Runtime check we were passed sufficient data:
-  MATH_SPAN_RUNTIME_ASSERT(span.data() != nullptr);
-  MATH_SPAN_RUNTIME_ASSERT(static_cast<std::size_t>(span.compute_index(Rows - 1, Cols - 1)) <
-                           list.size());
-  return span;
 }
 
 // nullptr_t can be converted to a null span (for use in optional arguments).

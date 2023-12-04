@@ -319,29 +319,6 @@ TEST(SpanTest, TestMake3DSpan) {
   }
 }
 
-TEST(SpanTest, TestMakeInitializerListSpan2d) {
-  // Use invoke to ensure span lifetime is valid:
-  [](auto span) {
-    ASSERT_EQ(0, span(0, 0));
-    ASSERT_EQ(1, span(0, 1));
-    ASSERT_EQ(2, span(1, 0));
-    ASSERT_EQ(3, span(1, 1));
-  }(make_array_span_2d<2, 2, ordering::row_major>({0, 1, 2, 3}));
-
-  [](auto span) {
-    ASSERT_EQ(0, span(0, 0));
-    ASSERT_EQ(2, span(0, 1));
-    ASSERT_EQ(1, span(1, 0));
-    ASSERT_EQ(3, span(1, 1));
-  }(make_array_span_2d<2, 2, ordering::col_major>({0, 1, 2, 3}));
-
-  // This should throw due to invalid size:
-  auto construct_invalid_span = []() {
-    make_array_span_2d<3, 4, ordering::row_major>({9.81, 3.14159});
-  };
-  ASSERT_THROW(construct_invalid_span(), std::runtime_error);
-}
-
 TEST(SpanTest, TestEigenColMajor) {
   // clang-format off
   const Eigen::Matrix<int, 2, 3> A = (Eigen::Matrix<int, 2, 3>() <<
@@ -401,13 +378,13 @@ TEST(SpanTest, TestEigenColMajorBlock) {
   auto A_span = make_input_span<5, 6>(A.block<5, 6>(0, 0));
 
   auto blk_1 = A.topRightCorner<2, 2>();
-  auto span_1 = make_input_span<5, 6>(blk_1);
+  auto span_1 = make_input_span<2, 2>(blk_1);
   ASSERT_EQ(1, span_1.stride<0>());
   ASSERT_EQ(5, span_1.stride<1>());
   EXPECT_EIGEN_SPAN_EQ(blk_1, span_1);
 
   auto blk_2 = A.bottomRightCorner<3, 4>();
-  auto span_2 = make_input_span<1, 5>(blk_2);
+  auto span_2 = make_input_span<3, 4>(blk_2);
   ASSERT_EQ(1, span_2.stride<0>());
   ASSERT_EQ(5, span_2.stride<1>());
   EXPECT_EIGEN_SPAN_EQ(blk_2, span_2);
@@ -510,7 +487,7 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
 
   const Eigen::Map<const Eigen::Matrix<int, 3, 3>, Eigen::Unaligned, Eigen::Stride<12, 2>> map{
       data.data()};
-  auto span = make_input_span<3, 4>(map);
+  auto span = make_input_span<3, 3>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
   EXPECT_EQ(1, span(0, 0));
   EXPECT_EQ(4, span(1, 0));
@@ -546,15 +523,5 @@ TEST(SpanTest, TestEigenQuaternion) {
   const auto q_output = make_output_span<4, 1>(q);
   EXPECT_EIGEN_SPAN_EQ(q.coeffs(), q_output);
 }
-
-// TODO: Should we restore this assertion?
-#if 0
-TEST(SpanTest, TestEigenNullMapAssertion) {
-  // Constructing from null map should trigger our assertion macro.
-  const Eigen::Map<const Eigen::Matrix<int, 3, 3>> map{nullptr};
-  auto make_span = [&]() { make_input_span<3, 3>(map); };
-  ASSERT_THROW(make_span(), std::runtime_error);
-}
-#endif
 
 }  // namespace wf
