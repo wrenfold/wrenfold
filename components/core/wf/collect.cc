@@ -9,8 +9,8 @@ namespace math {
 
 // Visitor for collecting terms.
 // Can transform x^2*y + x^2*pi + -x * 5 - cos(z) * x --> x^2 * (y + pi) + x * (-5 - cos(z))
-struct CollectVisitor {
-  explicit CollectVisitor(absl::Span<const Expr> terms) : collected_terms_(terms) {}
+struct collect_visitor {
+  explicit collect_visitor(absl::Span<const Expr> terms) : collected_terms_(terms) {}
 
   template <typename T>
   Expr recurse(const T& op) {
@@ -77,7 +77,7 @@ struct CollectVisitor {
     // Some terms ignored above could still be relevant to the other terms we are collecting over.
     if (collected_terms_.size() > 1 && !container.empty()) {
       Expr remaining_addition_terms =
-          CollectVisitor{collected_terms_.subspan(1)}.collect_addition_terms(std::move(container));
+          collect_visitor{collected_terms_.subspan(1)}.collect_addition_terms(std::move(container));
       container.clear();
       container.push_back(std::move(remaining_addition_terms));
     }
@@ -91,7 +91,7 @@ struct CollectVisitor {
       // an addition. In some cases, the addition might just reduce to a single expression.
       Expr term_coefficient =
           collected_terms_.size() > 1
-              ? CollectVisitor{collected_terms_.subspan(1)}.collect_addition_terms(
+              ? collect_visitor{collected_terms_.subspan(1)}.collect_addition_terms(
                     std::move(it->second))
               : Addition::from_operands(it->second);
 
@@ -140,7 +140,7 @@ Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
       throw type_error("Arguments to collect cannot be numeric values. Term = {}", term);
     }
   }
-  return visit_with_expr(arg, CollectVisitor{terms});
+  return visit_with_expr(arg, collect_visitor{terms});
 }
 
 Expr collect(const Expr& arg, const Expr& term) { return collect_many(arg, {term}); }
