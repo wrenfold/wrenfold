@@ -5,16 +5,16 @@
 
 namespace math {
 
-// Power operation: base^exponent
-class Power {
+// Power operation: base**exponent
+class power {
  public:
   static constexpr std::string_view name_str = "Power";
   static constexpr bool is_leaf_node = false;
 
-  Power(Expr base, Expr exponent) : children_{std::move(base), std::move(exponent)} {}
+  power(Expr base, Expr exponent) : children_{std::move(base), std::move(exponent)} {}
 
   // Base and exponent must match.
-  bool is_identical_to(const Power& other) const {
+  bool is_identical_to(const power& other) const {
     return base().is_identical_to(other.base()) && exponent().is_identical_to(other.exponent());
   }
 
@@ -27,7 +27,7 @@ class Power {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    return Power::create(operation(base()), operation(exponent()));
+    return power::create(operation(base()), operation(exponent()));
   }
 
   // Create a new power.
@@ -64,8 +64,8 @@ inline constexpr std::pair<integer_constant, rational_constant> factorize_ration
 }
 
 template <>
-struct hash_struct<Power> {
-  std::size_t operator()(const Power& pow) const {
+struct hash_struct<power> {
+  std::size_t operator()(const power& pow) const {
     return hash_args(0, pow.base(), pow.exponent());
   }
 };

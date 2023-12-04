@@ -109,7 +109,7 @@ struct tree_formatter {
     visit_right(elements.back());
   }
 
-  void operator()(const Power& op) {
+  void operator()(const power& op) {
     append_name("Power:");
     visit_left(op.base());
     visit_right(op.exponent());

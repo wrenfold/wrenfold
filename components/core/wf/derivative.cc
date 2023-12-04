@@ -152,7 +152,7 @@ Expr derivative_visitor::operator()(const function& func) {
       return d_args[0] / (pow(args[0], 2) + constants::one);
     case built_in_function::ln:
       // log(f(x)) --> 1/f(x) * f'(x)
-      return Power::create(args[0], constants::negative_one) * d_args[0];
+      return power::create(args[0], constants::negative_one) * d_args[0];
     case built_in_function::abs:
       // |f(x)| --> f(x)/|f(x)| * f'(x)
       // TODO: Add complex argument version.
@@ -180,7 +180,7 @@ Expr derivative_visitor::operator()(const function& func) {
 Expr derivative_visitor::operator()(const Infinity&) const { return constants::zero; }
 Expr derivative_visitor::operator()(const integer_constant&) const { return constants::zero; }
 Expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
-Expr derivative_visitor::operator()(const Power& pow) {
+Expr derivative_visitor::operator()(const power& pow) {
   const Expr& a = pow.base();
   const Expr& b = pow.exponent();
   const Expr a_diff = cached_visit(a);
@@ -188,7 +188,7 @@ Expr derivative_visitor::operator()(const Power& pow) {
   if (is_zero(a_diff) && is_zero(b_diff)) {
     return constants::zero;
   }
-  return b * Power::create(a, b - constants::one) * a_diff + Power::create(a, b) * log(a) * b_diff;
+  return b * power::create(a, b - constants::one) * a_diff + power::create(a, b) * log(a) * b_diff;
 }
 
 Expr derivative_visitor::operator()(const rational_constant&) const { return constants::zero; }

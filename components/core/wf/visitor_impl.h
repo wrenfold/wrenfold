@@ -37,8 +37,8 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
     return visitor(cast_unchecked<integer_constant>(expr));
   } else if (expr.is_type<multiplication>()) {
     return visitor(cast_unchecked<multiplication>(expr));
-  } else if (expr.is_type<Power>()) {
-    return visitor(cast_unchecked<Power>(expr));
+  } else if (expr.is_type<power>()) {
+    return visitor(cast_unchecked<power>(expr));
   } else if (expr.is_type<rational_constant>()) {
     return visitor(cast_unchecked<rational_constant>(expr));
   } else if (expr.is_type<Relational>()) {

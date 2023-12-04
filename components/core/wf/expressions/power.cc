@@ -142,7 +142,7 @@ struct PowerNumerics {
       if (fractional_part.numerator() != 0) {
         Expr base = integer_constant::create(f.base);
         Expr exponent = rational_constant::create(fractional_part);
-        operands.push_back(make_expr<Power>(std::move(base), std::move(exponent)));
+        operands.push_back(make_expr<power>(std::move(base), std::move(exponent)));
       }
     }
 
@@ -194,7 +194,7 @@ static bool magnitude_less_than_one(const Expr& value) {
 //    (x^2)^0.5
 //    (x^2)^z --> x^(2*z) (incorrect, z could be 1/2 or 0.5)
 //    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
-static bool can_multiply_exponents(const Power& base_pow, const Expr& outer_exp) {
+static bool can_multiply_exponents(const power& base_pow, const Expr& outer_exp) {
   // If the inner power is a rational:
   // For example, it is valid to do (inner exponent is proper):
   //  (x**(1/4))**y  --> x**(y/4)
@@ -217,7 +217,7 @@ static bool can_multiply_exponents(const Power& base_pow, const Expr& outer_exp)
   return false;
 }
 
-Expr Power::create(Expr a, Expr b) {
+Expr power::create(Expr a, Expr b) {
   // Check for numeric quantities.
   std::optional<Expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
   if (numeric_pow) {
@@ -230,9 +230,9 @@ Expr Power::create(Expr a, Expr b) {
   }
 
   // Check if the base is itself a power:
-  if (const Power* a_pow = cast_ptr<Power>(a); a_pow != nullptr) {
+  if (const power* a_pow = cast_ptr<power>(a); a_pow != nullptr) {
     if (can_multiply_exponents(*a_pow, b)) {
-      return Power::create(a_pow->base(), a_pow->exponent() * b);
+      return power::create(a_pow->base(), a_pow->exponent() * b);
     }
   }
 
@@ -257,15 +257,15 @@ Expr Power::create(Expr a, Expr b) {
     std::vector<Expr> args;
     args.reserve(mul->size());
     for (const Expr& arg : *mul) {
-      args.push_back(Power::create(arg, b));
+      args.push_back(power::create(arg, b));
     }
     return multiplication::from_operands(args);
   }
-  return make_expr<Power>(std::move(a), std::move(b));
+  return make_expr<power>(std::move(a), std::move(b));
 }
 
 std::pair<Expr, Expr> as_base_and_exp(const Expr& expr) {
-  if (const Power* pow = cast_ptr<Power>(expr); pow != nullptr) {
+  if (const power* pow = cast_ptr<power>(expr); pow != nullptr) {
     // Return as base/exponent pair.
     return std::make_pair(pow->base(), pow->exponent());
   }

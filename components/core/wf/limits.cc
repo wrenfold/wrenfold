@@ -213,16 +213,16 @@ class limit_visitor {
         // mixed
         std::transform(mul.begin(), mul.end(), std::back_inserter(terms), [&](const Expr& v) {
           auto [base, exponent] = as_base_and_exp(v);
-          return Power::create(base, exponent / int_power.get_value());
+          return power::create(base, exponent / int_power.get_value());
         });
       }
 
       std::optional<Expr> inner_limit = process_indeterminate_form_multiplied_terms_2(terms);
       if (inner_limit.has_value()) {
         if (num_positive == 0) {
-          return Power::create(std::move(*inner_limit), -int_power.get_value());
+          return power::create(std::move(*inner_limit), -int_power.get_value());
         } else {
-          return Power::create(std::move(*inner_limit), int_power.get_value());
+          return power::create(std::move(*inner_limit), int_power.get_value());
         }
       } else {
         return std::nullopt;
@@ -381,7 +381,7 @@ class limit_visitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return Power::create(constants::euler, std::move(*exponent));
+      return power::create(constants::euler, std::move(*exponent));
     } else if (is_one(base_sub) && is_inf(exp_sub)) {
       // 1 ^ ∞ is an indeterminate form
       // lim[x->c] f(x)^g(x) = e ^ (lim[x->c] log(f(x)) * g(x))
@@ -390,7 +390,7 @@ class limit_visitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return Power::create(constants::euler, std::move(*exponent));
+      return power::create(constants::euler, std::move(*exponent));
     } else if (is_zero(base_sub)) {
       // base is zero, exponent is either function or a (+/-) constant
       if (is_numeric_or_constant(exp_sub)) {
@@ -439,7 +439,7 @@ class limit_visitor {
       }
     }
 
-    return Power::create(base_sub, exp_sub);
+    return power::create(base_sub, exp_sub);
   }
 
   // TODO: We need to handle the case of functions going to infinity.
@@ -473,7 +473,7 @@ class limit_visitor {
   std::optional<Expr> operator()(const float_constant&, const Expr& expr) { return expr; }
   std::optional<Expr> operator()(const rational_constant&, const Expr& expr) { return expr; }
 
-  std::optional<Expr> operator()(const Power& pow) {
+  std::optional<Expr> operator()(const power& pow) {
     return process_power(pow.base(), pow.exponent());
   }
 

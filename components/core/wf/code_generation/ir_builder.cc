@@ -453,7 +453,7 @@ class ir_form_visitor {
     return convert_addition_or_multiplication(mul);
   }
 
-  ir::value_ptr operator()(const Power& power) {
+  ir::value_ptr operator()(const power& power) {
     const ir::value_ptr base = maybe_cast(apply(power.base()), code_numeric_type::floating_point);
 
     // Check if this exponent has a negative coefficient on it:

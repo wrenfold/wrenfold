@@ -145,7 +145,7 @@ class determine_set_visitor {
     return handle_numeric(f);
   }
 
-  number_set operator()(const Power& pow) const {
+  number_set operator()(const power& pow) const {
     number_set base = determine_numeric_set(pow.base());
     number_set exp = determine_numeric_set(pow.exponent());
     if (base == number_set::complex || exp == number_set::complex || base == number_set::unknown ||

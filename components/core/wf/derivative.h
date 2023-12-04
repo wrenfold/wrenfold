@@ -28,7 +28,7 @@ class derivative_visitor {
   Expr operator()(const Infinity&) const;
   Expr operator()(const integer_constant&) const;
   Expr operator()(const float_constant&) const;
-  Expr operator()(const Power& pow);
+  Expr operator()(const power& pow);
   Expr operator()(const rational_constant&) const;
   Expr operator()(const Relational&, const Expr& rel_expr) const;
   Expr operator()(const Undefined&) const;

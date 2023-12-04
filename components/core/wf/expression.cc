@@ -42,7 +42,7 @@ Expr operator-(const Expr& a, const Expr& b) {
 Expr operator*(const Expr& a, const Expr& b) { return multiplication::from_operands({a, b}); }
 
 Expr operator/(const Expr& a, const Expr& b) {
-  auto one_over_b = Power::create(b, constants::negative_one);
+  auto one_over_b = power::create(b, constants::negative_one);
   return multiplication::from_operands({a, one_over_b});
 }
 
@@ -74,7 +74,7 @@ struct PrecedenceVisitor {
       return precedence::multiplication;
     } else if constexpr (std::is_same_v<addition, T>) {
       return precedence::addition;
-    } else if constexpr (std::is_same_v<Power, T>) {
+    } else if constexpr (std::is_same_v<power, T>) {
       return precedence::power;
     } else if constexpr (std::is_same_v<rational_constant, T>) {
       return precedence::multiplication;

@@ -85,7 +85,7 @@ struct collect_visitor {
     // Now we're done with the first term, we recurse for the remaining terms.
     for (auto it = exponents_to_mul.begin(); it != exponents_to_mul.end(); ++it) {
       // The term we are collecting, e.g. x, x**2, x**3, etc...
-      Expr collected_pow = Power::create(collected_term, it->first);
+      Expr collected_pow = power::create(collected_term, it->first);
 
       // Check if we need to collect remaining terms of our coefficient, otherwise just turn it into
       // an addition. In some cases, the addition might just reduce to a single expression.
@@ -114,7 +114,7 @@ struct collect_visitor {
 
   Expr operator()(const multiplication& mul, const Expr&) { return recurse(mul); }
   Expr operator()(const function& f) { return recurse(f); }
-  Expr operator()(const Power& pow) { return recurse(pow); }
+  Expr operator()(const power& pow) { return recurse(pow); }
   Expr operator()(const cast_bool& cast) { return recurse(cast); }
   Expr operator()(const conditional& conditional) { return recurse(conditional); }
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }

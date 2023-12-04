@@ -215,14 +215,14 @@ struct substitute_mul_visitor
 // Specialization for power so we can match.
 // There is a lot of overlap w/ the substitute_mul_visitor - since any power is just a
 // multiplication w/ one term. These can probably be unified somehow.
-struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_visitor, Power> {
+struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_visitor, power> {
  public:
   constexpr static bool performs_partial_substitution = true;
 
-  substitute_pow_visitor(const Power& target, const Expr& replacement)
+  substitute_pow_visitor(const power& target, const Expr& replacement)
       : substitute_visitor_base(target, replacement) {}
 
-  Expr attempt_partial(const Expr& input_expression, const Power& candidate) {
+  Expr attempt_partial(const Expr& input_expression, const power& candidate) {
     const Expr& target_base = target.base();
     const Expr& target_exponent = target.exponent();
     const Expr& candidate_base = candidate.base();
@@ -250,7 +250,7 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
           parts.terms.erase(it);
           // Put the exponent back together and swap in the replacement:
           Expr new_exponent = parts.create_addition();
-          return Power::create(replacement, ratio) * Power::create(candidate_base, new_exponent);
+          return power::create(replacement, ratio) * power::create(candidate_base, new_exponent);
         } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(ratio);
                    as_rational != nullptr) {
           const auto [int_part, _] = as_rational->normalized();
@@ -263,8 +263,8 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
           // x**(4/3*y + z) replacing [x**y -> w] producing w * x**(1/3y + z)
           it->second = it->second - target_exp_coeff * int_part.get_value();
           Expr new_exponent = parts.create_addition();
-          return Power::create(replacement, int_part.get_value()) *
-                 Power::create(candidate_base, new_exponent);
+          return power::create(replacement, int_part.get_value()) *
+                 power::create(candidate_base, new_exponent);
         }
       }
     } else {
@@ -273,7 +273,7 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
       const Expr multiple = candidate.exponent() / target_exponent;
       if (const integer_constant* const as_int = cast_ptr<integer_constant>(multiple);
           as_int != nullptr) {
-        return Power::create(replacement, multiple);
+        return power::create(replacement, multiple);
       } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, frac_remainder] = as_rational->normalized();
@@ -281,8 +281,8 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
           // Can't do a full division
           return input_expression;
         }
-        return Power::create(replacement, int_part.get_value()) *
-               Power::create(candidate_base,
+        return power::create(replacement, int_part.get_value()) *
+               power::create(candidate_base,
                              target_exponent * rational_constant::create(frac_remainder));
       }
     }
@@ -304,7 +304,7 @@ struct sub_visitor_type<multiplication> {
   using type = substitute_mul_visitor;
 };
 template <>
-struct sub_visitor_type<Power> {
+struct sub_visitor_type<power> {
   using type = substitute_pow_visitor;
 };
 

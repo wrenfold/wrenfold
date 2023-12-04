@@ -70,11 +70,11 @@ struct distribute_visitor {
 
   Expr operator()(const function& f, const Expr&) const { return f.map_children(&distribute); }
 
-  Expr operator()(const Power& pow, const Expr&) const {
+  Expr operator()(const power& pow, const Expr&) const {
     // TODO: If base is an addition, and exponent an integer, we should distribute.
     const Expr& a = pow.base();
     const Expr& b = pow.exponent();
-    return Power::create(distribute(a), distribute(b));
+    return power::create(distribute(a), distribute(b));
   }
 
   Expr operator()(const cast_bool& cast) const { return cast.map_children(&distribute); }

@@ -17,7 +17,7 @@ struct is_numeric_visitor {
     if constexpr (type_list_contains_type_v<T, float_constant, integer_constant,
                                             rational_constant>) {
       return true;
-    } else if constexpr (std::is_same_v<T, Power>) {
+    } else if constexpr (std::is_same_v<T, power>) {
       return is_numeric(arg.base()) && is_numeric(arg.exponent());
     } else {
       return false;

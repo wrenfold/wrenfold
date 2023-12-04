@@ -45,7 +45,7 @@ Expr log(const Expr& x) {
   return make_expr<function>(built_in_function::ln, x);
 }
 
-Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
+Expr pow(const Expr& x, const Expr& y) { return power::create(x, y); }
 
 std::optional<rational_constant> try_cast_to_rational(const Expr& expr) {
   if (const rational_constant* const r = cast_ptr<rational_constant>(expr); r != nullptr) {
@@ -275,7 +275,7 @@ Expr atan2(const Expr& y, const Expr& x) {
 
 Expr sqrt(const Expr& arg) {
   static const Expr one_half = constants::one / 2_s;
-  return Power::create(arg, one_half);
+  return power::create(arg, one_half);
 }
 
 Expr abs(const Expr& arg) {

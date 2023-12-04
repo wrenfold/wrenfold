@@ -25,7 +25,7 @@ using ExpressionTypeList = type_list<
     class Infinity,
     class integer_constant,
     class multiplication,
-    class Power,
+    class power,
     class rational_constant,
     class Relational,
     class Undefined,

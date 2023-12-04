@@ -189,10 +189,10 @@ TEST(ScalarOperationsTest, TestDivision) {
   ASSERT_IDENTICAL(z / (y * z), 1_s / y);
 
   // Cancellation of powers:
-  ASSERT_TRUE(pow(x, 3).is_type<Power>());
-  ASSERT_TRUE(pow(x, 2).is_type<Power>());
+  ASSERT_TRUE(pow(x, 3).is_type<power>());
+  ASSERT_TRUE(pow(x, 2).is_type<power>());
   ASSERT_TRUE(
-      cast_ptr<Power>(pow(x, 3))->base().is_identical_to(cast_ptr<Power>(pow(x, 2))->base()));
+      cast_ptr<power>(pow(x, 3))->base().is_identical_to(cast_ptr<power>(pow(x, 2))->base()));
 
   ASSERT_IDENTICAL(x, pow(x, 3) / pow(x, 2));
   ASSERT_IDENTICAL(constants::one, pow(x, 3) / (x * x * x));
@@ -310,8 +310,8 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 4), 1 / 4_s));
   ASSERT_NOT_IDENTICAL(pow(x, -2), pow(pow(x, 14), -1 / 7_s));
   ASSERT_NOT_IDENTICAL(pow(x, 2 * z), pow(pow(x, 2), z));
-  ASSERT_TRUE(cast_checked<Power>(pow(pow(x, 1.52), 2.0)).base().is_type<Power>());
-  ASSERT_TRUE(cast_checked<Power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<Power>());
+  ASSERT_TRUE(cast_checked<power>(pow(pow(x, 1.52), 2.0)).base().is_type<power>());
+  ASSERT_TRUE(cast_checked<power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<power>());
 
   // Inner power is -1
   ASSERT_NOT_IDENTICAL(pow(x, -1 / 2_s), sqrt(1 / x));

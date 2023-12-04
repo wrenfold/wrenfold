@@ -218,7 +218,7 @@ void plain_formatter::operator()(const function& func) {
   output_ += ")";
 }
 
-void plain_formatter::operator()(const Power& expr) { format_power(expr.base(), expr.exponent()); }
+void plain_formatter::operator()(const power& expr) { format_power(expr.base(), expr.exponent()); }
 
 void plain_formatter::operator()(const rational_constant& expr) {
   fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());

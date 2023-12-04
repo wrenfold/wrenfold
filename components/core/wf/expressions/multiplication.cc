@@ -86,8 +86,8 @@ struct MultiplyVisitor {
         // Recursively add multiplications:
         visit(expr, [this, &expr](const auto& x) { this->operator()(x, expr); });
       }
-    } else if constexpr (std::is_same_v<T, Power>) {
-      const Power& arg_pow = arg;
+    } else if constexpr (std::is_same_v<T, power>) {
+      const power& arg_pow = arg;
       // Try to insert. If it already exists, replace the exponent with the sum of exponents:
       const auto [it, was_inserted] = builder.terms.emplace(arg_pow.base(), arg_pow.exponent());
       if (!was_inserted) {
@@ -213,7 +213,7 @@ Expr MultiplicationParts::create_multiplication() const {
 
   // Convert into a vector of powers, and sort into canonical order:
   std::transform(terms.begin(), terms.end(), std::back_inserter(args),
-                 [](const auto& pair) { return Power::create(pair.first, pair.second); });
+                 [](const auto& pair) { return power::create(pair.first, pair.second); });
 
   if (std::any_of(args.begin(), args.end(), &is_undefined)) {
     return constants::undefined;

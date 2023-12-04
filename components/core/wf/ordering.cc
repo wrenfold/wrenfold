@@ -53,7 +53,7 @@ struct order_visitor {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  relative_order compare(const Power& a, const Power& b) const {
+  relative_order compare(const power& a, const power& b) const {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
@@ -114,7 +114,7 @@ struct order_visitor {
 template <typename... Ts>
 static constexpr auto get_type_order_indices(type_list<Ts...>) {
   using order_of_types = type_list<float_constant, integer_constant, rational_constant, Constant,
-                                   Infinity, Variable, multiplication, addition, Power, function,
+                                   Infinity, Variable, multiplication, addition, power, function,
                                    Relational, conditional, cast_bool, derivative, Undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
