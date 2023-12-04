@@ -5,7 +5,7 @@
 #include "wf/expression_impl.h"
 #include "wf/expressions/all_expressions.h"
 
-namespace math {
+namespace wf {
 
 // Visitor for collecting terms.
 // Can transform x^2*y + x^2*pi + -x * 5 - cos(z) * x --> x^2 * (y + pi) + x * (-5 - cos(z))
@@ -145,4 +145,4 @@ Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
 
 Expr collect(const Expr& arg, const Expr& term) { return collect_many(arg, {term}); }
 
-}  // namespace math
+}  // namespace wf

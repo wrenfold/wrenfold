@@ -5,7 +5,7 @@
 #include "absl_imports.h"
 #include "expression.h"
 
-namespace math {
+namespace wf {
 
 // Matrix type that stores a dense block of expressions. For context, this was originally
 // part of the `Expr` type hierarchy. However, this proved to be a mistake because the rules for
@@ -118,15 +118,15 @@ inline std::ostream& operator<<(std::ostream& stream, const MatrixExpr& x) {
   return stream;
 }
 
-}  // namespace math
+}  // namespace wf
 
 // libfmt support:
 template <>
-struct fmt::formatter<math::MatrixExpr> {
+struct fmt::formatter<wf::MatrixExpr> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::MatrixExpr& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::MatrixExpr& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x.to_string());
   }
 };

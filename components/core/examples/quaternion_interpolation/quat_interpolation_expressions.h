@@ -3,9 +3,9 @@
 #include "wf/output_annotations.h"
 #include "wf/type_annotations.h"
 
-namespace ta = math::type_annotations;
+namespace ta = wf::type_annotations;
 
-namespace math {
+namespace wf {
 
 // Interpolate between two quaternions, `q0` and `q1` (passed as scalar-last vectors).
 // Outputs the interpolated quaternion, as well as the tangent space derivatives.
@@ -29,4 +29,4 @@ auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<
                          optional_output_arg("D_q1", std::move(D_q1)));
 }
 
-}  // namespace math
+}  // namespace wf

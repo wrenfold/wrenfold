@@ -5,7 +5,7 @@
 #include "wf/enumerations.h"
 #include "wf/template_utils.h"
 
-namespace math {
+namespace wf {
 
 class Expr;
 class expression_concept;
@@ -33,4 +33,4 @@ using expression_type_list = type_list<
     >;
 // clang-format on
 
-}  // namespace math
+}  // namespace wf

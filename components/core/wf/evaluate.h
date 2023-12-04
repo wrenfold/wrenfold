@@ -5,7 +5,7 @@
 #include "wf/expression.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 
 // Convert expressions to `float_constant` values.
 class evaluate_visitor {
@@ -26,4 +26,4 @@ class evaluate_visitor {
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_;
 };
 
-}  // namespace math
+}  // namespace wf

@@ -4,7 +4,7 @@
 
 #include "wf/matrix_expression.h"
 
-namespace math {
+namespace wf {
 
 // Create a column vector from the arguments.
 template <typename... Ts>
@@ -55,4 +55,4 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu
 // Compute determinant of a matrix. Only valid for square matrices.
 Expr determinant(const MatrixExpr& m);
 
-}  // namespace math
+}  // namespace wf

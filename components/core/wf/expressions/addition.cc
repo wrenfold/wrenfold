@@ -9,7 +9,7 @@
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 
 Expr addition::from_operands(absl::Span<const Expr> args) {
   WF_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
@@ -152,4 +152,4 @@ Expr addition_parts::create_addition() const {
   return make_expr<addition>(std::move(args));
 }
 
-}  // namespace math
+}  // namespace wf

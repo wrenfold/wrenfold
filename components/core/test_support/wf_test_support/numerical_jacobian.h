@@ -6,7 +6,7 @@
 #include "wf_runtime/span_eigen.h"
 
 // Methods for testing derivatives by comparing to the numerical approximation.
-namespace math {
+namespace wf {
 
 /**
  * Numerically compute first derivative of f(x) via central difference. Uses the third-order
@@ -157,4 +157,4 @@ auto integrate_boole(Function&& func, const double lower, const double upper)
   return sum * normalization;
 }
 
-}  // namespace math
+}  // namespace wf

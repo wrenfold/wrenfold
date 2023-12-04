@@ -2,8 +2,8 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(math::detail::expect_eigen_span_equal, a, b)
-#define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(math::detail::expect_eigen_span_equal, a, b)
+#define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(wf::detail::expect_eigen_span_equal, a, b)
+#define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(wf::detail::expect_eigen_span_equal, a, b)
 
 // Define an assertion so we can test that functionality:
 #define MATH_SPAN_RUNTIME_ASSERT(condition)    \
@@ -16,7 +16,7 @@
 #include "wf_runtime/span.h"
 #include "wf_runtime/span_eigen.h"
 
-namespace math {
+namespace wf {
 namespace detail {
 
 // Compare eigen matrix and span. Use ASSERT_EIGEN_SPAN_EQ()
@@ -24,7 +24,7 @@ template <typename Derived, typename Scalar, typename Dimensions, typename Strid
 testing::AssertionResult expect_eigen_span_equal(const std::string& name_a,
                                                  const std::string& name_b,
                                                  const Eigen::MatrixBase<Derived>& a,
-                                                 const math::span<Scalar, Dimensions, Strides> b) {
+                                                 const wf::span<Scalar, Dimensions, Strides> b) {
   if (b.data() == nullptr) {
     return testing::AssertionFailure() << fmt::format("Span expression has null data: {} ", name_b);
   }
@@ -48,4 +48,4 @@ testing::AssertionResult expect_eigen_span_equal(const std::string& name_a,
 }
 
 }  // namespace detail
-}  // namespace math
+}  // namespace wf

@@ -4,7 +4,7 @@
 #include "wf/function_evaluator_detail.h"
 #include "wf/type_annotations.h"
 
-namespace math {
+namespace wf {
 
 // Invoke the provided function `func` and capture all the output expressions.
 // The outputs are inspected and converted into an instance of `ast::function_signature` and a
@@ -54,4 +54,4 @@ std::tuple<ast::function_signature, std::vector<expression_group>> build_functio
   return std::make_tuple(std::move(signature), std::move(groups));
 }
 
-}  // namespace math
+}  // namespace wf

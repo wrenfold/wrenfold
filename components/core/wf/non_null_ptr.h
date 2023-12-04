@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include <system_error>  // for std::hash
 
-namespace math {
+namespace wf {
 
 // Simple checked pointer type which cannot be null.
 template <typename T>
@@ -62,13 +62,13 @@ constexpr bool operator!=(const T* a, const non_null_ptr<T>& b) {
   return a != b.get();
 }
 
-}  // namespace math
+}  // namespace wf
 
 // Specialization of std::hash
 namespace std {
 template <class T>
-struct hash<math::non_null_ptr<T>> {
-  std::size_t operator()(const math::non_null_ptr<T>& ptr) const {
+struct hash<wf::non_null_ptr<T>> {
+  std::size_t operator()(const wf::non_null_ptr<T>& ptr) const {
     return std::hash<const T*>{}(ptr.get());
   }
 };

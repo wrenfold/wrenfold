@@ -5,7 +5,7 @@
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 
-namespace math {
+namespace wf {
 
 quaternion quaternion::from_name_prefix(const std::string_view name) {
   auto [w, x, y, z] = make_symbols(fmt::format("{}_w", name), fmt::format("{}_x", name),
@@ -172,7 +172,7 @@ quaternion quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
-MatrixExpr quaternion::jacobian(const math::MatrixExpr& vars) const {
+MatrixExpr quaternion::jacobian(const wf::MatrixExpr& vars) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());
@@ -285,4 +285,4 @@ MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon
   }
 }
 
-}  // namespace math
+}  // namespace wf

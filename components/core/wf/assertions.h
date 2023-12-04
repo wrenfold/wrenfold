@@ -3,7 +3,7 @@
 #include "wf/error_types.h"
 #include "wf/fmt_imports.h"
 
-namespace math {
+namespace wf {
 
 // Generates an exception w/ a formatted string.
 template <typename... Ts>
@@ -31,7 +31,7 @@ void raise_assert_binary_op(const char* const condition, const char* const file,
   throw assertion_error(std::move(err));
 }
 
-}  // namespace math
+}  // namespace wf
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -49,30 +49,30 @@ void raise_assert_binary_op(const char* const condition, const char* const file,
 
 // Macro to use when defining an assertion.
 #define WF_ASSERT(cond, ...) \
-  WF_ASSERT_IMPL(cond, __FILE__, __LINE__, math::raise_assert, ##__VA_ARGS__)
+  WF_ASSERT_IMPL(cond, __FILE__, __LINE__, wf::raise_assert, ##__VA_ARGS__)
 
-#define WF_ASSERT_EQUAL(a, b, ...)                                                           \
-  WF_ASSERT_IMPL((a) == (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+#define WF_ASSERT_EQUAL(a, b, ...)                                                         \
+  WF_ASSERT_IMPL((a) == (b), __FILE__, __LINE__, wf::raise_assert_binary_op, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_NOT_EQUAL(a, b, ...)                                                       \
-  WF_ASSERT_IMPL((a) != (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+#define WF_ASSERT_NOT_EQUAL(a, b, ...)                                                     \
+  WF_ASSERT_IMPL((a) != (b), __FILE__, __LINE__, wf::raise_assert_binary_op, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_LESS(a, b, ...)                                                           \
-  WF_ASSERT_IMPL((a) < (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+#define WF_ASSERT_LESS(a, b, ...)                                                         \
+  WF_ASSERT_IMPL((a) < (b), __FILE__, __LINE__, wf::raise_assert_binary_op, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_GREATER(a, b, ...)                                                        \
-  WF_ASSERT_IMPL((a) > (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+#define WF_ASSERT_GREATER(a, b, ...)                                                      \
+  WF_ASSERT_IMPL((a) > (b), __FILE__, __LINE__, wf::raise_assert_binary_op, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_LESS_OR_EQ(a, b, ...)                                                      \
-  WF_ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+#define WF_ASSERT_LESS_OR_EQ(a, b, ...)                                                    \
+  WF_ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, wf::raise_assert_binary_op, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_GREATER_OR_EQ(a, b, ...)                                                   \
-  WF_ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, math::raise_assert_binary_op, #a, a, #b, b, \
+#define WF_ASSERT_GREATER_OR_EQ(a, b, ...)                                                 \
+  WF_ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, wf::raise_assert_binary_op, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
 #ifdef __clang__

@@ -6,7 +6,7 @@
 #include "wf/integer_utils.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 struct CompareNumerics {
   // Int and rational can be compared:
@@ -117,4 +117,4 @@ Expr relational::create(relational_operation operation, Expr left, Expr right) {
   return make_expr<relational>(operation, std::move(left), std::move(right));
 }
 
-}  // namespace math
+}  // namespace wf

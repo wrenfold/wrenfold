@@ -6,7 +6,7 @@
 #include <deque>
 #include <unordered_set>
 
-namespace math {
+namespace wf {
 
 // Convert the IR operations back to expressions.
 // This is supported so we can do round-trip tests.
@@ -194,4 +194,4 @@ create_output_expression_map(ir::block_ptr starting_block,
   return output_map;
 }
 
-}  // namespace math
+}  // namespace wf

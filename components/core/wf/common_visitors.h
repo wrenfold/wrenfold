@@ -8,7 +8,7 @@
 #include "wf/visitor_impl.h"
 
 // This file is intended to contain common utility visitors.
-namespace math {
+namespace wf {
 
 // Visitor that returns true for numerical values, or powers of numerical values.
 struct is_numeric_visitor {
@@ -54,4 +54,4 @@ inline bool is_negative_number(const Expr& expr) {
   return visit(expr, is_negative_number_visitor{});
 }
 
-}  // namespace math
+}  // namespace wf

@@ -4,7 +4,7 @@
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
 
-namespace math {
+namespace wf {
 using namespace matrix_operator_overloads;
 
 // Benchmark interpolation between two quaternions and then computing the jacobian.
@@ -24,6 +24,6 @@ static void BM_QuaternionInterpolateJacobian(benchmark::State& state) {
 
 BENCHMARK(BM_QuaternionInterpolateJacobian)->Iterations(200)->Unit(benchmark::kMillisecond);
 
-}  // namespace math
+}  // namespace wf
 
 BENCHMARK_MAIN();

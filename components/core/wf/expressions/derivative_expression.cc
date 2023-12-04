@@ -3,7 +3,7 @@
 
 #include "wf/constants.h"
 
-namespace math {
+namespace wf {
 
 Expr derivative::create(Expr function, Expr arg, int order) {
   WF_ASSERT_GREATER_OR_EQ(order, 1, "Order of the derivative must >= 1");
@@ -23,4 +23,4 @@ Expr derivative::create(Expr function, Expr arg, int order) {
   return make_expr<derivative>(std::move(function), std::move(arg), order);
 }
 
-}  // namespace math
+}  // namespace wf

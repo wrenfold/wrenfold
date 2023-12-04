@@ -3,7 +3,7 @@
 #include <limits>
 #include <string_view>
 
-namespace math {
+namespace wf {
 
 // Index type for matrices/vectors.
 using index_t = int;
@@ -265,4 +265,4 @@ constexpr inline std::string_view string_from_standard_library_function(
   return "<NOT A VALID ENUM VALUE>";
 }
 
-}  // namespace math
+}  // namespace wf

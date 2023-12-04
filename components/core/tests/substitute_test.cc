@@ -7,8 +7,8 @@
 
 #include "wf_test_support/test_macros.h"
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 TEST(SubstituteTest, TestVariables) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
@@ -169,4 +169,4 @@ TEST(SubstituteTest, TestRelational) {
   ASSERT_IDENTICAL(constants::boolean_false, (b - c >= 2).subs(b, 2).subs(c, 1));
 }
 
-}  // namespace math
+}  // namespace wf

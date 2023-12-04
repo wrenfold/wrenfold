@@ -4,7 +4,7 @@
 #include "wf/hashing.h"
 #include "wf/visitor_base.h"
 
-namespace math {
+namespace wf {
 
 // Child of expression_concept.
 // Stores the concrete expression type and implements virtual methods.
@@ -85,4 +85,4 @@ const T& cast_unchecked(const Expr& x) {
   return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
 }
 
-}  // namespace math
+}  // namespace wf

@@ -7,7 +7,7 @@
 #include "wf/matrix_expression.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 static void right_trim_in_place(std::string& str) {
   while (!str.empty() && std::isspace(str.back())) {
@@ -192,4 +192,4 @@ std::string MatrixExpr::to_expression_tree_string() const {
   return formatter.take_output();
 }
 
-}  // namespace math
+}  // namespace wf

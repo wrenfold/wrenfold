@@ -18,7 +18,7 @@
 
 namespace py = pybind11;
 using namespace py::literals;
-using namespace math;
+using namespace wf;
 
 // Create symbols from CSV list of names.
 inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_view csv) {
@@ -65,7 +65,7 @@ std::variant<Expr, py::list> create_symbols_from_str_or_iterable(
                     std::move(arg));
 }
 
-namespace math {
+namespace wf {
 // Defined in matrix_wrapper.cc
 void wrap_matrix_operations(py::module_& m);
 
@@ -74,7 +74,7 @@ void wrap_codegen_operations(py::module_& m);
 
 // Defined in geometry_wrapper.cc
 void wrap_geometry_operations(py::module_& m);
-}  // namespace math
+}  // namespace wf
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   // Primary expression type:
@@ -104,7 +104,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(
           "collect",
           [](const Expr& self, const std::vector<Expr>& terms) {
-            return math::collect_many(self, terms);
+            return wf::collect_many(self, terms);
           },
           "terms"_a, "Collect powers of the provided expressions.")
       // Operators:
@@ -113,7 +113,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(py::self * py::self)
       .def(py::self / py::self)
       .def(-py::self)
-      .def("__pow__", &math::pow)
+      .def("__pow__", &wf::pow)
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
@@ -151,22 +151,22 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       "Create an integer expression.");
 
   // Built-in functions:
-  m.def("log", &math::log, "arg"_a, "Natural log.");
-  m.def("pow", &math::pow, "base"_a, "exp"_a, "Evaluates to: base ** exp.");
-  m.def("cos", &math::cos, "arg"_a, "Cosine function.");
-  m.def("sin", &math::sin, "arg"_a, "Sine function.");
-  m.def("tan", &math::tan, "arg"_a, "Tan function.");
-  m.def("acos", &math::acos, "arg"_a, "Arc-cosine function.");
-  m.def("asin", &math::asin, "arg"_a, "Arc-sine function.");
-  m.def("atan", &math::atan, "arg"_a, "Arc-tangent function.");
-  m.def("sqrt", &math::sqrt, "arg"_a, "Square-root function.");
-  m.def("abs", &math::abs, "arg"_a, "Absolute value function.");
-  m.def("signum", &math::signum, "arg"_a, "Signum/sign function.");
-  m.def("atan2", &math::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
+  m.def("log", &wf::log, "arg"_a, "Natural log.");
+  m.def("pow", &wf::pow, "base"_a, "exp"_a, "Evaluates to: base ** exp.");
+  m.def("cos", &wf::cos, "arg"_a, "Cosine function.");
+  m.def("sin", &wf::sin, "arg"_a, "Sine function.");
+  m.def("tan", &wf::tan, "arg"_a, "Tan function.");
+  m.def("acos", &wf::acos, "arg"_a, "Arc-cosine function.");
+  m.def("asin", &wf::asin, "arg"_a, "Arc-sine function.");
+  m.def("atan", &wf::atan, "arg"_a, "Arc-tangent function.");
+  m.def("sqrt", &wf::sqrt, "arg"_a, "Square-root function.");
+  m.def("abs", &wf::abs, "arg"_a, "Absolute value function.");
+  m.def("signum", &wf::signum, "arg"_a, "Signum/sign function.");
+  m.def("atan2", &wf::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
 
-  m.def("max", &math::max, "a"_a, "b"_a, "Maximum of two scalar values.");
-  m.def("min", &math::min, "a"_a, "b"_a, "Minimum of two scalar values.");
-  m.def("where", static_cast<Expr (*)(const Expr&, const Expr&, const Expr&)>(&math::where),
+  m.def("max", &wf::max, "a"_a, "b"_a, "Maximum of two scalar values.");
+  m.def("min", &wf::min, "a"_a, "b"_a, "Minimum of two scalar values.");
+  m.def("where", static_cast<Expr (*)(const Expr&, const Expr&, const Expr&)>(&wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
   // Special constants:

@@ -2,7 +2,7 @@
 #include "wf/expression.h"
 #include "wf/expressions/all_expressions.h"
 
-namespace math {
+namespace wf {
 
 // Visitor that can be used to sort expressions by determining their relative order.
 struct order_visitor {
@@ -147,4 +147,4 @@ relative_order expression_order(const Expr& a, const Expr& b) {
   });
 }
 
-}  // namespace math
+}  // namespace wf

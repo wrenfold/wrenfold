@@ -14,7 +14,7 @@
 namespace py = pybind11;
 using namespace py::literals;
 
-namespace math {
+namespace wf {
 
 // Get four elements from an iterable, throw if there are not four.
 static auto components_from_iterable(const py::iterable& iterable) {
@@ -182,4 +182,4 @@ void wrap_geometry_operations(py::module_& m) {
   m.def("left_jacobian_of_so3", &left_jacobian_of_so3, "w"_a, "epsilon"_a,
         py::doc("Evaluate the left jacobian of SO(3)."));
 }
-}  // namespace math
+}  // namespace wf

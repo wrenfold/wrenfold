@@ -1,7 +1,7 @@
 #pragma once
 #include "wf/expression.h"
 
-namespace math {
+namespace wf {
 class constants {
  public:
   static const Expr zero;
@@ -35,4 +35,4 @@ inline bool is_numeric_or_constant(const Expr& expr) {
   return expr.is_type<symbolic_constant, integer_constant, float_constant, rational_constant>();
 }
 
-}  // namespace math
+}  // namespace wf

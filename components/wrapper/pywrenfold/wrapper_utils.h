@@ -9,7 +9,7 @@
 #include "wf/expressions/numeric_expressions.h"
 
 // Shared utilities for writing wrappers.
-namespace math {
+namespace wf {
 namespace py = pybind11;
 
 // Iterate over a container and transform every element into `Expr`.
@@ -42,4 +42,4 @@ inline std::variant<std::int64_t, double, Expr> try_convert_to_numeric(const Exp
   }
 }
 
-}  // namespace math
+}  // namespace wf

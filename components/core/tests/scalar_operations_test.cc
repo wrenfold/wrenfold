@@ -8,8 +8,8 @@
 #include "wf_test_support/test_macros.h"
 
 // Test basic composition of scalars and functions of scalars.
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 TEST(ScalarOperationsTest, TestAddition) {
   const Expr w{"w"};
@@ -838,4 +838,4 @@ TEST(ScalarOperationsTest, TestNumericSetsConditional) {
   ASSERT_EQ(number_set::complex, determine_numeric_set(where(real > 0, real_positive, complex)));
 }
 
-}  // namespace math
+}  // namespace wf

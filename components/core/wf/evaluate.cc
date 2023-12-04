@@ -3,7 +3,7 @@
 #include "wf/expression.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 template <typename T, typename>
 Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
@@ -44,4 +44,4 @@ Expr evaluate_visitor::apply(const Expr& input) {
 
 Expr evaluate(const Expr& arg) { return evaluate_visitor{}.apply(arg); }
 
-}  // namespace math
+}  // namespace wf

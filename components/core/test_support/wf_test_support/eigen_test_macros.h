@@ -8,8 +8,8 @@
 #include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
 
-#define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(math::expect_eigen_near, a, b, tol)
-#define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(math::expect_eigen_near, a, b, tol)
+#define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(wf::expect_eigen_near, a, b, tol)
+#define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(wf::expect_eigen_near, a, b, tol)
 
 // Allow formatting of Eigen matrices.
 template <typename T>
@@ -25,7 +25,7 @@ struct fmt::formatter<T, std::enable_if_t<std::is_base_of_v<Eigen::MatrixBase<T>
   }
 };
 
-namespace math {
+namespace wf {
 
 // Compare two eigen matrices. Use EXPECT_EIGEN_NEAR()
 template <typename Ta, typename Tb>
@@ -102,4 +102,4 @@ Eigen::Quaternion<Scalar> retract(const Eigen::Quaternion<Scalar>& q,
          Eigen::Quaternion<Scalar>{Eigen::AngleAxis<Scalar>{w_eval.norm(), w_eval.normalized()}};
 }
 
-}  // namespace math
+}  // namespace wf

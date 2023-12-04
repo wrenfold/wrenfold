@@ -9,7 +9,7 @@
 #include "wf/hashing.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 class addition {
  public:
@@ -112,4 +112,4 @@ struct addition_parts {
   Expr create_addition() const;
 };
 
-}  // namespace math
+}  // namespace wf

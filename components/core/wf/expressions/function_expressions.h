@@ -6,7 +6,7 @@
 #include "wf/functions.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 
 // Store a built-in function call. Valid functions are enumerated in `built_in_function`.
 class function {
@@ -103,4 +103,4 @@ inline Expr function::create(built_in_function name, function::container_type&& 
   return constants::zero;  //  Unreachable.
 }
 
-}  // namespace math
+}  // namespace wf

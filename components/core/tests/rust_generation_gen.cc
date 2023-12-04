@@ -7,7 +7,7 @@
 #include "wf_test_support/code_gen_helpers.h"
 
 int main() {
-  using namespace math;
+  using namespace wf;
   std::string code = "// Machine generated code.\n\n";
 
   rust_code_generator gen{};

@@ -8,7 +8,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-namespace math {
+namespace wf {
 
 namespace detail {
 constexpr auto inherits_matrix_base_(...) -> std::false_type;
@@ -104,6 +104,6 @@ struct convert_to_span<Dimensions, T, enable_if_inherits_quaternion_base_t<T>> {
   }
 };
 
-}  // namespace math
+}  // namespace wf
 
 #endif  // MATH_SPAN_EIGEN_SUPPORT

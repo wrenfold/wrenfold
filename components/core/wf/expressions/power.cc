@@ -8,7 +8,7 @@
 #include "wf/integer_utils.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 struct PowerNumerics {
   template <typename A, typename B>
@@ -272,4 +272,4 @@ std::pair<Expr, Expr> as_base_and_exp(const Expr& expr) {
   return std::make_pair(expr, constants::one);
 }
 
-}  // namespace math
+}  // namespace wf

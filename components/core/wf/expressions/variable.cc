@@ -3,7 +3,7 @@
 
 #include <atomic>
 
-namespace math {
+namespace wf {
 
 std::size_t unique_variable::next_unique_variable_index() {
   // create thread-safe unique variable index:
@@ -26,4 +26,4 @@ std::string variable::to_string() const {
   return std::visit(string_converter{}, identifier_);
 }
 
-}  // namespace math
+}  // namespace wf

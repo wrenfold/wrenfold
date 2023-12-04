@@ -5,7 +5,7 @@
 #include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
 
-namespace math {
+namespace wf {
 
 #define ASSERT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(identical_test_helper, val1, val2)
 #define ASSERT_NOT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(not_identical_test_helper, val1, val2)
@@ -120,4 +120,4 @@ std::ostream& operator<<(std::ostream& s, number_set set) {
   return s;
 }
 
-}  // namespace math
+}  // namespace wf

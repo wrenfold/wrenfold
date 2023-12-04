@@ -8,7 +8,7 @@
 #include "wf/fmt_imports.h"
 #include "wf/operations.h"
 
-namespace math {
+namespace wf {
 
 /**
  * Wrapper around a pointer to an abstract expression. Defined so you can easily write chains of
@@ -69,33 +69,33 @@ class Expr {
   Expr operator-() const;
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
-  Expr diff(const Expr& var, int reps = 1) const { return math::diff(*this, var, reps); }
+  Expr diff(const Expr& var, int reps = 1) const { return wf::diff(*this, var, reps); }
 
   // Distribute terms in this expression.
-  Expr distribute() const { return math::distribute(*this); }
+  Expr distribute() const { return wf::distribute(*this); }
 
   // Create a new expression by recursively substituting `replacement` for `target`.
   Expr subs(const Expr& target, const Expr& replacement) const {
-    return math::substitute(*this, target, replacement);
+    return wf::substitute(*this, target, replacement);
   }
 
   // Create a new expression by recursively replacing [variable, replacement] pairs.
   Expr substitute_variables(absl::Span<const std::tuple<Expr, Expr>> pairs) const {
-    return math::substitute_variables(*this, pairs);
+    return wf::substitute_variables(*this, pairs);
   }
 
   // Collect terms in this expression.
   template <typename... Args>
   Expr collect(Args&&... args) const {
     if constexpr (sizeof...(Args) == 1) {
-      return math::collect(*this, std::forward<Args>(args)...);
+      return wf::collect(*this, std::forward<Args>(args)...);
     } else {
-      return math::collect_many(*this, {std::forward<Args>(args)...});
+      return wf::collect_many(*this, {std::forward<Args>(args)...});
     }
   }
 
   // Evaluate into float.
-  Expr eval() const { return math::evaluate(*this); }
+  Expr eval() const { return wf::evaluate(*this); }
 
  protected:
   [[nodiscard]] const expression_concept_const_ptr& Impl() const { return impl_; }
@@ -192,15 +192,15 @@ auto make_symbols(Args&&... args) {
 // Make a unique variable symbol.
 Expr make_unique_variable_symbol(number_set set);
 
-}  // namespace math
+}  // namespace wf
 
 // libfmt support:
 template <>
-struct fmt::formatter<math::Expr> {
+struct fmt::formatter<wf::Expr> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::Expr& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::Expr& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     // TODO: This could be implemented so as to avoid the string copy.
     //  It would require all types being visible at the formatter location though.
     return fmt::format_to(ctx.out(), "{}", x.to_string());

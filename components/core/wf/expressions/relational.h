@@ -3,7 +3,7 @@
 #include "wf/expression.h"
 #include "wf/expression_impl.h"
 
-namespace math {
+namespace wf {
 
 // A relational expression for equalities and inequalities.
 class relational {
@@ -58,4 +58,4 @@ struct hash_struct<relational> {
   }
 };
 
-}  // namespace math
+}  // namespace wf

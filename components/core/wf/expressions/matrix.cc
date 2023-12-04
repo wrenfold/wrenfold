@@ -4,7 +4,7 @@
 #include "wf/expressions/addition.h"
 #include "wf/matrix_functions.h"
 
-namespace math {
+namespace wf {
 
 matrix matrix::get_block(const index_t row, const index_t col, const index_t nrows,
                          const index_t ncols) const {
@@ -88,4 +88,4 @@ matrix operator-(const matrix& a, const matrix& b) {
   return matrix(a.rows(), a.cols(), std::move(output));
 }
 
-}  // namespace math
+}  // namespace wf

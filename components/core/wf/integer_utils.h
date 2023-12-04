@@ -5,7 +5,7 @@
 
 #include "wf/enumerations.h"
 
-namespace math {
+namespace wf {
 
 // Perform the wheel factorization algorithm. Finds a prime number that factorizes `n_in`.
 // I haven't optimized this much, but in benchmarks it beats trial division.
@@ -147,4 +147,4 @@ constexpr std::optional<relative_order> compare_int_float(const I i, const F f) 
   return relative_order::greater_than;
 }
 
-}  // namespace math
+}  // namespace wf

@@ -8,7 +8,7 @@
 #include "wf/expressions/all_expressions.h"
 #include "wf/fmt_imports.h"
 
-namespace math {
+namespace wf {
 
 void plain_formatter::operator()(const addition& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
@@ -250,4 +250,4 @@ void plain_formatter::format_power(const Expr& base, const Expr& exponent) {
   format_precedence(precedence::power, exponent);
 }
 
-}  // namespace math
+}  // namespace wf

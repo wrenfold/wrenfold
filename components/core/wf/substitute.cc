@@ -13,7 +13,7 @@
 #pragma warning(disable : 4702)  //  incorrectly labeled unreachable code
 #endif
 
-namespace math {
+namespace wf {
 
 // Visitor that performs a substitution.
 // TargetExpressionType is the concrete type of the expression we are replacing.
@@ -393,7 +393,7 @@ Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abs
   }
 }
 
-}  // namespace math
+}  // namespace wf
 
 #ifdef _MSC_VER
 #pragma warning(pop)

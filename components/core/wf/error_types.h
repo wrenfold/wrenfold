@@ -5,7 +5,7 @@
 #include "wf/fmt_imports.h"
 
 // Store all the types of exceptions we can throw.
-namespace math {
+namespace wf {
 
 // Base type for errors.
 struct exception_base : public std::exception {
@@ -49,4 +49,4 @@ struct domain_error : public exception_base {
   using exception_base::exception_base;
 };
 
-}  // namespace math
+}  // namespace wf

@@ -5,7 +5,7 @@
 
 #include "wf/assertions.h"
 
-namespace math {
+namespace wf {
 
 // Expression for expressing an unevaluated derivative operation.
 // For example df(x)/dx is `Derivative(f(x), x)`. We use this to represent derivatives that can't
@@ -66,4 +66,4 @@ struct hash_struct<derivative> {
   }
 };
 
-}  // namespace math
+}  // namespace wf

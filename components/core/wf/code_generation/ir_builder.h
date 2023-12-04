@@ -11,7 +11,7 @@
 #include "wf/function_evaluator.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 class ir_form_visitor;
 
 // Object for creating and manipulating our simple intermediate representation.
@@ -132,4 +132,4 @@ std::unordered_map<output_key, std::vector<Expr>, hash_struct<output_key>>
 create_output_expression_map(ir::block_ptr starting_block,
                              std::unordered_map<std::string, bool>&& output_arg_exists);
 
-}  // namespace math
+}  // namespace wf

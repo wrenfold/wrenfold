@@ -4,8 +4,8 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf_test_support/test_macros.h"
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 TEST(FunctionsTest, TestLog) {
   const auto [x, y] = make_symbols("x", "y");
@@ -278,4 +278,4 @@ TEST(FunctionTest, TestMinMax) {
   ASSERT_IDENTICAL(z + 2, min(z + 2, z + 2));
 }
 
-}  // namespace math
+}  // namespace wf

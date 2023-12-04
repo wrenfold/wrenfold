@@ -7,8 +7,8 @@
 #include "wf_test_support/test_macros.h"
 
 // Test `diff` operation.
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 TEST(DerivativesTest, TestConstants) {
   const Expr x{"x"};
@@ -194,4 +194,4 @@ TEST(DerivativesTest, TestDerivativeExpression) {
   ASSERT_IDENTICAL(0, f.diff(z));
 }
 
-}  // namespace math
+}  // namespace wf

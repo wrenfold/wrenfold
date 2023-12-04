@@ -17,7 +17,7 @@
 #endif  // ifndef MATH_SPAN_MAYBE_NOEXCEPT
 #endif  // ifndef MATH_SPAN_RUNTIME_ASSERT
 
-namespace math {
+namespace wf {
 
 // Type used for strides computed at compile time.
 template <std::size_t D>
@@ -363,4 +363,4 @@ struct convert_to_span<Dimensions, std::nullptr_t> {
   constexpr auto convert(std::nullptr_t) noexcept { return make_always_null_span<Dimensions>(); }
 };
 
-}  // namespace math
+}  // namespace wf

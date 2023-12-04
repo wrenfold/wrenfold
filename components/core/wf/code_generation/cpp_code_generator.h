@@ -2,7 +2,7 @@
 #pragma once
 #include "wf/code_generation/code_formatter.h"
 
-namespace math {
+namespace wf {
 
 class cpp_code_generator {
  public:
@@ -13,7 +13,7 @@ class cpp_code_generator {
   // forwarded back to the operator on this class that matches them.
   template <typename... Args>
   auto make_view(Args&&... args) const {
-    return ::math::make_fmt_view(*this, std::forward<Args>(args)...);
+    return ::wf::make_fmt_view(*this, std::forward<Args>(args)...);
   }
 
   void operator()(code_formatter& formatter, const ast::add& x) const;
@@ -80,4 +80,4 @@ class cpp_code_generator {
   void format_signature(code_formatter& formatter, const ast::function_signature& signature) const;
 };
 
-}  // namespace math
+}  // namespace wf

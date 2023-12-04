@@ -5,7 +5,7 @@
 #include "wf/expressions/variable.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 
 // Visitor for replacing variables in an expression tree.
 class substitute_variables_visitor {
@@ -32,4 +32,4 @@ class substitute_variables_visitor {
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_{};
 };
 
-}  // namespace math
+}  // namespace wf

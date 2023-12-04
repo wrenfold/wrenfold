@@ -4,7 +4,7 @@
 #include "wf/expression_impl.h"
 #include "wf/plain_formatter.h"
 
-namespace math {
+namespace wf {
 
 // A type that is substituted into user-provided expressions during code-generation.
 // Typically, the user does not create these directly.
@@ -148,4 +148,4 @@ struct hash_struct<variable> {
   }
 };
 
-}  // namespace math
+}  // namespace wf

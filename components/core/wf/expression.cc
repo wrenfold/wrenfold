@@ -5,7 +5,7 @@
 #include "wf/expressions/all_expressions.h"
 #include "wf/plain_formatter.h"
 
-namespace math {
+namespace wf {
 
 Expr::Expr(const std::string_view name, const number_set set)
     : Expr(make_expr<variable>(named_variable(name), set)) {}
@@ -92,4 +92,4 @@ Expr make_unique_variable_symbol(number_set set) {
   return make_expr<variable>(unique_variable(), set);
 }
 
-}  // namespace math
+}  // namespace wf

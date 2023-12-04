@@ -10,7 +10,7 @@
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 
 // A multiplication of `N` terms.
 class multiplication {
@@ -145,4 +145,4 @@ struct multiplication_format_parts {
 // Create `multiplication_format_parts` from a multiplication.
 multiplication_format_parts get_formatting_info(const multiplication& mul);
 
-}  // namespace math
+}  // namespace wf

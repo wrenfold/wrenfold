@@ -12,7 +12,7 @@
 
 #include "generated.h"
 
-namespace math {
+namespace wf {
 
 TEST(CppGenerationTest, TestSimpleMultiplyAdd) {
   auto evaluator = create_evaluator(&simple_multiply_add);
@@ -206,4 +206,4 @@ TEST(CppGenerationTest, TestCreateRotationMatrix) {
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }
 
-}  // namespace math
+}  // namespace wf
