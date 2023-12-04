@@ -73,34 +73,34 @@ enum class code_numeric_type : int {
 };
 
 // A tri-state value.
-enum class TriState : uint8_t {
+enum class tri_state : uint8_t {
   // False
   False = 0,
   // True
   True = 1,
   // We cannot determine whether the outcome is true or false.
-  Unknown = 2,
+  unknown = 2,
 };
 
 // Different sets of numbers that we can deal with.
-enum class NumberSet : uint8_t {
+enum class number_set : uint8_t {
   // On the real number line and > 0
-  RealPositive,
+  real_positive,
   // On the real number line and >= 0
-  RealNonNegative,
+  real_non_negative,
   // On the real number line.
-  Real,
+  real,
   // In the complex plane.
-  Complex,
+  complex,
   // Cannot determine the set.
-  Unknown,
+  unknown,
 };
 
 // List of mathematical functions typically found in your standard library.
 // This seems like a duplicate of `BuiltInFunction` at first, but they differ
 // in that this list contains additional specialized cases. In the math
 // expression tree powi, powf, and sqrt are all just instances of `Power`.
-enum class StdMathFunction {
+enum class std_math_function {
   Cos,
   Sin,
   Tan,
@@ -119,9 +119,9 @@ enum class StdMathFunction {
 };
 
 // True if the set is real numbers, or a constrained subset of the real numbers.
-constexpr inline bool is_real_set(NumberSet set) noexcept {
-  if (set == NumberSet::Real || set == NumberSet::RealNonNegative ||
-      set == NumberSet::RealPositive) {
+constexpr inline bool is_real_set(number_set set) noexcept {
+  if (set == number_set::real || set == number_set::real_non_negative ||
+      set == number_set::real_positive) {
     return true;
   }
   return false;
@@ -202,63 +202,63 @@ inline constexpr std::string_view string_from_symbolic_constant(symbolic_constan
 constexpr std::string_view string_from_numeric_type(const code_numeric_type type) noexcept {
   switch (type) {
     case code_numeric_type::boolean:
-      return "Bool";
+      return "boolean";
     case code_numeric_type::integral:
-      return "Integer";
+      return "integral";
     case code_numeric_type::floating_point:
-      return "Real";
+      return "floating_point";
     case code_numeric_type::complex:
-      return "Complex";
+      return "complex";
   }
   return "<NOT A VALID ENUM VALUE>";
 }
 
 // Convert `NumberSet` to string.
-constexpr inline std::string_view string_from_number_set(const NumberSet set) noexcept {
+constexpr inline std::string_view string_from_number_set(const number_set set) noexcept {
   switch (set) {
-    case NumberSet::RealPositive:
-      return "RealPositive";
-    case NumberSet::RealNonNegative:
-      return "RealNonNegative";
-    case NumberSet::Real:
-      return "Real";
-    case NumberSet::Complex:
-      return "Complex";
-    case NumberSet::Unknown:
-      return "Unknown";
+    case number_set::real_positive:
+      return "real_positive";
+    case number_set::real_non_negative:
+      return "real_non_negative";
+    case number_set::real:
+      return "real";
+    case number_set::complex:
+      return "complex";
+    case number_set::unknown:
+      return "unknown";
   }
   return "<NOT A VALID ENUM VALUE>";
 }
 
 // Convert `StandardLibraryMathFunction` to string.
 constexpr inline std::string_view string_from_standard_library_function(
-    StdMathFunction name) noexcept {
+    std_math_function name) noexcept {
   switch (name) {
-    case StdMathFunction::Cos:
+    case std_math_function::Cos:
       return "cos";
-    case StdMathFunction::Sin:
+    case std_math_function::Sin:
       return "sin";
-    case StdMathFunction::Tan:
+    case std_math_function::Tan:
       return "tan";
-    case StdMathFunction::ArcCos:
+    case std_math_function::ArcCos:
       return "acos";
-    case StdMathFunction::ArcSin:
+    case std_math_function::ArcSin:
       return "asin";
-    case StdMathFunction::ArcTan:
+    case std_math_function::ArcTan:
       return "atan";
-    case StdMathFunction::Log:
+    case std_math_function::Log:
       return "log";
-    case StdMathFunction::Sqrt:
+    case std_math_function::Sqrt:
       return "sqrt";
-    case StdMathFunction::Abs:
+    case std_math_function::Abs:
       return "abs";
-    case StdMathFunction::Signum:
+    case std_math_function::Signum:
       return "sign";
-    case StdMathFunction::Arctan2:
+    case std_math_function::Arctan2:
       return "atan2";
-    case StdMathFunction::Powi:
+    case std_math_function::Powi:
       return "powi";
-    case StdMathFunction::Powf:
+    case std_math_function::Powf:
       return "powf";
   }
   return "<NOT A VALID ENUM VALUE>";

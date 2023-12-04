@@ -91,7 +91,7 @@ struct collect_function_input_impl;
 template <std::size_t Index>
 struct collect_function_input_impl<Index, double> {
   void operator()(substitute_variables_visitor& output, const double arg) const {
-    Variable var{FuncArgVariable(Index, 0), NumberSet::Real};
+    Variable var{FuncArgVariable(Index, 0), number_set::real};
     output.add_substitution(std::move(var), Float::create(arg));
   }
 };
@@ -105,7 +105,7 @@ struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
-        Variable var{FuncArgVariable(Index, element), NumberSet::Real};
+        Variable var{FuncArgVariable(Index, element), number_set::real};
         output.add_substitution(std::move(var), Float::create(arg(i, j)));
       }
     }

@@ -80,10 +80,10 @@ class Variable {
   // Construct variable from user-provided name.
   explicit Variable(std::string name) noexcept(
       std::is_nothrow_constructible_v<IdentifierType, NamedVariable&&>)
-      : identifier_{NamedVariable(std::move(name))}, set_(NumberSet::Real) {}
+      : identifier_{NamedVariable(std::move(name))}, set_(number_set::real) {}
 
   Variable(IdentifierType identifier,
-           NumberSet set) noexcept(std::is_nothrow_move_constructible_v<IdentifierType>)
+           number_set set) noexcept(std::is_nothrow_move_constructible_v<IdentifierType>)
       : identifier_(std::move(identifier)), set_(set) {}
 
   // Check if two variables are the same.
@@ -95,7 +95,7 @@ class Variable {
   constexpr const auto& identifier() const noexcept { return identifier_; }
 
   // The numeric set this variable belongs to.
-  constexpr NumberSet set() const noexcept { return set_; }
+  constexpr number_set set() const noexcept { return set_; }
 
   // Convert the identifier to a string.
   std::string to_string() const {
@@ -114,12 +114,12 @@ class Variable {
   // Create a function argument expression.
   static Expr create_function_argument(std::size_t arg_index, std::size_t element_index) {
     // TODO: Support creating function arguments that are not real.
-    return make_expr<Variable>(FuncArgVariable(arg_index, element_index), NumberSet::Real);
+    return make_expr<Variable>(FuncArgVariable(arg_index, element_index), number_set::real);
   }
 
  private:
   IdentifierType identifier_;
-  NumberSet set_;
+  number_set set_;
 };
 
 template <>
@@ -142,8 +142,8 @@ struct hash_struct<FuncArgVariable> {
 };
 
 template <>
-struct hash_struct<NumberSet> {
-  constexpr std::size_t operator()(NumberSet set) const noexcept {
+struct hash_struct<number_set> {
+  constexpr std::size_t operator()(number_set set) const noexcept {
     return static_cast<std::size_t>(set);
   }
 };

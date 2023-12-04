@@ -30,27 +30,27 @@ struct ExprFromIrVisitor {
   }
 
   static constexpr built_in_function built_in_function_from_standard_library_function(
-      StdMathFunction func) {
+      std_math_function func) {
     switch (func) {
-      case StdMathFunction::Cos:
+      case std_math_function::Cos:
         return built_in_function::cos;
-      case StdMathFunction::Sin:
+      case std_math_function::Sin:
         return built_in_function::sin;
-      case StdMathFunction::Tan:
+      case std_math_function::Tan:
         return built_in_function::tan;
-      case StdMathFunction::ArcCos:
+      case std_math_function::ArcCos:
         return built_in_function::arccos;
-      case StdMathFunction::ArcSin:
+      case std_math_function::ArcSin:
         return built_in_function::arcsin;
-      case StdMathFunction::ArcTan:
+      case std_math_function::ArcTan:
         return built_in_function::arctan;
-      case StdMathFunction::Log:
+      case std_math_function::Log:
         return built_in_function::ln;
-      case StdMathFunction::Abs:
+      case std_math_function::Abs:
         return built_in_function::abs;
-      case StdMathFunction::Signum:
+      case std_math_function::Signum:
         return built_in_function::signum;
-      case StdMathFunction::Arctan2:
+      case std_math_function::Arctan2:
         return built_in_function::arctan2;
       default:
         // Other cases handled by the assertion below.
@@ -64,9 +64,9 @@ struct ExprFromIrVisitor {
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::value_ptr v) { return map_value(v); });
 
-    if (func.name() == StdMathFunction::Powi || func.name() == StdMathFunction::Powf) {
+    if (func.name() == std_math_function::Powi || func.name() == std_math_function::Powf) {
       return pow(container[0], container[1]);
-    } else if (func.name() == StdMathFunction::Sqrt) {
+    } else if (func.name() == std_math_function::Sqrt) {
       static const Expr one_half = constants::one / 2;
       return pow(container[0], one_half);
     } else {

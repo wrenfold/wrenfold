@@ -23,10 +23,10 @@ class limit_visitor {
         x_typed_(cast_checked<Variable>(x_)),
         positive_inf_{positive_inf_placeholder()},
         negative_inf_{negative_inf_placeholder()} {
-    if (x_typed_.set() != NumberSet::RealNonNegative) {
+    if (x_typed_.set() != number_set::real_non_negative) {
       throw domain_error("Domain of limit variable `{}` is {}, but it should be {}.", x_,
                          string_from_number_set(x_typed_.set()),
-                         string_from_number_set(NumberSet::RealNonNegative));
+                         string_from_number_set(number_set::real_non_negative));
     }
   }
 
@@ -500,12 +500,12 @@ class limit_visitor {
 
  private:
   static Expr positive_inf_placeholder() {
-    static const Expr p_inf = make_unique_variable_symbol(NumberSet::Unknown);
+    static const Expr p_inf = make_unique_variable_symbol(number_set::unknown);
     return p_inf;
   }
 
   static Expr negative_inf_placeholder() {
-    static const Expr n_inf = make_unique_variable_symbol(NumberSet::Unknown);
+    static const Expr n_inf = make_unique_variable_symbol(number_set::unknown);
     return n_inf;
   }
 

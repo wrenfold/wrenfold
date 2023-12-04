@@ -153,30 +153,31 @@ void cpp_code_generator::operator()(code_formatter& formatter,
   formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
-static constexpr std::string_view cpp_string_for_std_function(const StdMathFunction name) noexcept {
+static constexpr std::string_view cpp_string_for_std_function(
+    const std_math_function name) noexcept {
   switch (name) {
-    case StdMathFunction::Cos:
+    case std_math_function::Cos:
       return "std::cos";
-    case StdMathFunction::Sin:
+    case std_math_function::Sin:
       return "std::sin";
-    case StdMathFunction::Tan:
+    case std_math_function::Tan:
       return "std::tan";
-    case StdMathFunction::ArcCos:
+    case std_math_function::ArcCos:
       return "std::acos";
-    case StdMathFunction::ArcSin:
+    case std_math_function::ArcSin:
       return "std::asin";
-    case StdMathFunction::ArcTan:
+    case std_math_function::ArcTan:
       return "std::atan";
-    case StdMathFunction::Log:
+    case std_math_function::Log:
       return "std::log";
-    case StdMathFunction::Sqrt:
+    case std_math_function::Sqrt:
       return "std::sqrt";
-    case StdMathFunction::Abs:
+    case std_math_function::Abs:
       return "std::abs";
-    case StdMathFunction::Arctan2:
+    case std_math_function::Arctan2:
       return "std::atan2";
-    case StdMathFunction::Powi:
-    case StdMathFunction::Powf:
+    case std_math_function::Powi:
+    case std_math_function::Powf:
       return "std::pow";
     default:
       break;
@@ -185,7 +186,7 @@ static constexpr std::string_view cpp_string_for_std_function(const StdMathFunct
 }
 
 void cpp_code_generator::operator()(code_formatter& formatter, const ast::call& x) const {
-  if (x.function == StdMathFunction::Signum) {
+  if (x.function == std_math_function::Signum) {
     // We need to special-case signum because it doesn't exist as a free-standing function.
     // TODO: This should be an int expression.
     formatter.format(

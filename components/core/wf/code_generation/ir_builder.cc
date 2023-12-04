@@ -378,28 +378,28 @@ class ir_form_visitor {
     throw type_error("Cannot generate code for expressions containing `{}`.", Derivative::NameStr);
   }
 
-  static constexpr StdMathFunction std_math_function_from_built_in(built_in_function name) {
+  static constexpr std_math_function std_math_function_from_built_in(built_in_function name) {
     switch (name) {
       case built_in_function::cos:
-        return StdMathFunction::Cos;
+        return std_math_function::Cos;
       case built_in_function::sin:
-        return StdMathFunction::Sin;
+        return std_math_function::Sin;
       case built_in_function::tan:
-        return StdMathFunction::Tan;
+        return std_math_function::Tan;
       case built_in_function::arccos:
-        return StdMathFunction::ArcCos;
+        return std_math_function::ArcCos;
       case built_in_function::arcsin:
-        return StdMathFunction::ArcSin;
+        return std_math_function::ArcSin;
       case built_in_function::arctan:
-        return StdMathFunction::ArcTan;
+        return std_math_function::ArcTan;
       case built_in_function::ln:
-        return StdMathFunction::Log;
+        return std_math_function::Log;
       case built_in_function::abs:
-        return StdMathFunction::Abs;
+        return std_math_function::Abs;
       case built_in_function::signum:
-        return StdMathFunction::Signum;
+        return std_math_function::Signum;
       case built_in_function::arctan2:
-        return StdMathFunction::Arctan2;
+        return std_math_function::Arctan2;
     }
     throw assertion_error("Invalid enum value: {}", string_from_built_in_function(name));
   }
@@ -409,7 +409,7 @@ class ir_form_visitor {
     args.reserve(func.arity());
     std::transform(func.begin(), func.end(), std::back_inserter(args),
                    [this](const Expr& expr) { return apply(expr); });
-    const StdMathFunction enum_value = std_math_function_from_built_in(func.enum_value());
+    const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
     // TODO: Special case for `abs` and `signum` here.
     return push_operation(ir::call_std_function{enum_value}, code_numeric_type::floating_point,
                           std::move(args));
@@ -480,7 +480,7 @@ class ir_form_visitor {
         return exponentiate_by_squaring(base, static_cast<uint64_t>(exp_int->get_value()));
       } else {
         // Just call power variant with integer exponent:
-        return push_operation(ir::call_std_function{StdMathFunction::Powi},
+        return push_operation(ir::call_std_function{std_math_function::Powi},
                               code_numeric_type::floating_point, base, apply(power.exponent()));
       }
     } else if (const Rational* exp_rational = cast_ptr<Rational>(power.exponent());
@@ -491,7 +491,7 @@ class ir_form_visitor {
       // approximate performance.
       if (exp_rational->denominator() == 2 &&
           exp_rational->numerator() <= max_integer_mul_exponent) {
-        const ir::value_ptr sqrt = push_operation(ir::call_std_function{StdMathFunction::Sqrt},
+        const ir::value_ptr sqrt = push_operation(ir::call_std_function{std_math_function::Sqrt},
                                                   code_numeric_type::floating_point, base);
         return exponentiate_by_squaring(sqrt, static_cast<uint64_t>(exp_rational->numerator()));
       }
@@ -499,7 +499,7 @@ class ir_form_visitor {
 
     // TODO: Support (int ** int) powers?
     const ir::value_ptr exponent = apply(power.exponent());
-    return push_operation(ir::call_std_function{StdMathFunction::Powf},
+    return push_operation(ir::call_std_function{std_math_function::Powf},
                           code_numeric_type::floating_point, base,
                           maybe_cast(exponent, code_numeric_type::floating_point));
   }

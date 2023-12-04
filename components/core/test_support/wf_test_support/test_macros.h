@@ -115,7 +115,7 @@ testing::AssertionResult string_equal_test_helper(const std::string_view,
 }
 
 // ostream operator for `NumericSet`.
-std::ostream& operator<<(std::ostream& s, NumberSet set) {
+std::ostream& operator<<(std::ostream& s, number_set set) {
   s << string_from_number_set(set);
   return s;
 }

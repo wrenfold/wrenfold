@@ -236,7 +236,7 @@ TEST(IrTest, TestPowerConversion2) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   ASSERT_EQ(6, ir.count_operation([](ir::mul) { return true; })) << ir;
   ASSERT_EQ(1, ir.count_operation([](ir::div) { return true; })) << ir;
-  ASSERT_EQ(1, ir.count_functions(StdMathFunction::Sqrt)) << ir;
+  ASSERT_EQ(1, ir.count_functions(std_math_function::Sqrt)) << ir;
 
   check_expressions(expected_expressions, ir);
   check_expressions(expected_expressions, output_ir{std::move(ir)});
@@ -483,18 +483,18 @@ TEST(IrTest, TestBuiltInFunctions) {
 
   ASSERT_EQ(28, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Cos));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Sin));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Tan));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::ArcCos));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::ArcSin));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Log));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Sqrt));
-  EXPECT_EQ(2, ir.count_functions(StdMathFunction::Abs));
-  EXPECT_EQ(2, ir.count_functions(StdMathFunction::Signum));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Arctan2));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Powi));
-  EXPECT_EQ(1, ir.count_functions(StdMathFunction::Powf));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Cos));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Sin));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Tan));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::ArcCos));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::ArcSin));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Log));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Sqrt));
+  EXPECT_EQ(2, ir.count_functions(std_math_function::Abs));
+  EXPECT_EQ(2, ir.count_functions(std_math_function::Signum));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Arctan2));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Powi));
+  EXPECT_EQ(1, ir.count_functions(std_math_function::Powf));
   check_expressions(expected_expressions, ir);
 
   output_ir output_ir{std::move(ir)};

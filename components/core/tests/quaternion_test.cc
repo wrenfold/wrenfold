@@ -423,11 +423,11 @@ TEST(QuaternionTest, TestToRotationVector) {
   const MatrixExpr w = Q.to_rotation_vector(std::nullopt);
 
   // We sub this in for the angle (the norm of [x, y, z]).
-  const Expr a{"a", NumberSet::RealNonNegative};
+  const Expr a{"a", number_set::real_non_negative};
 
   // Sin and cosine of the half-angle:
-  const Expr s{"s", NumberSet::Real};
-  const Expr c{"c", NumberSet::Real};
+  const Expr s{"s", number_set::real};
+  const Expr c{"c", number_set::real};
 
   // Simplify the round-trip conversion.
   const Expr vector_norm = sqrt(x * x + y * y + z * z);

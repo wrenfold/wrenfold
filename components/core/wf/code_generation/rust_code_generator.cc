@@ -166,33 +166,33 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::branc
 }
 
 static constexpr std::string_view rust_string_for_std_function(
-    const StdMathFunction name) noexcept {
+    const std_math_function name) noexcept {
   switch (name) {
-    case StdMathFunction::Cos:
+    case std_math_function::Cos:
       return "f64::cos";
-    case StdMathFunction::Sin:
+    case std_math_function::Sin:
       return "f64::sin";
-    case StdMathFunction::Tan:
+    case std_math_function::Tan:
       return "f64::tan";
-    case StdMathFunction::ArcCos:
+    case std_math_function::ArcCos:
       return "f64::acos";
-    case StdMathFunction::ArcSin:
+    case std_math_function::ArcSin:
       return "f64::asin";
-    case StdMathFunction::ArcTan:
+    case std_math_function::ArcTan:
       return "f64::atan";
-    case StdMathFunction::Log:
+    case std_math_function::Log:
       return "f64::ln";
-    case StdMathFunction::Sqrt:
+    case std_math_function::Sqrt:
       return "f64::sqrt";
-    case StdMathFunction::Abs:
+    case std_math_function::Abs:
       return "f64::abs";
-    case StdMathFunction::Signum:
+    case std_math_function::Signum:
       return "f64::signum";
-    case StdMathFunction::Arctan2:
+    case std_math_function::Arctan2:
       return "f64::atan2";
-    case StdMathFunction::Powi:
+    case std_math_function::Powi:
       return "f64::powi";
-    case StdMathFunction::Powf:
+    case std_math_function::Powf:
       return "f64::powf";
     default:
       break;
@@ -202,7 +202,7 @@ static constexpr std::string_view rust_string_for_std_function(
 
 void rust_code_generator::operator()(code_formatter& formatter, const ast::call& x) const {
   // We have to override signum specially here, because the built-in rust signum does not return 0.
-  if (x.function == StdMathFunction::Signum) {
+  if (x.function == std_math_function::Signum) {
     // TODO: should be an integer expression:
     formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
                      make_view(x.args[0]));

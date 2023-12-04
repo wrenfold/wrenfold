@@ -43,7 +43,7 @@ class flat_ir {
   }
 
   // Count invocations of the specified function.
-  std::size_t count_functions(StdMathFunction enum_value) const noexcept {
+  std::size_t count_functions(std_math_function enum_value) const noexcept {
     return count_operation(
         [&](const ir::call_std_function& func) { return func.name() == enum_value; });
   }
@@ -104,7 +104,7 @@ class output_ir {
   }
 
   // Count instances of a function call.
-  std::size_t count_function(StdMathFunction enum_value) const noexcept {
+  std::size_t count_function(std_math_function enum_value) const noexcept {
     return count_operation([&](ir::call_std_function func) { return func.name() == enum_value; });
   }
 

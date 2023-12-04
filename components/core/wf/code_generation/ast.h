@@ -200,11 +200,11 @@ struct branch {
 
 // Call a standard library function.
 struct call {
-  StdMathFunction function;
+  std_math_function function;
   std::vector<variant> args;
 
   template <typename... Args>
-  explicit call(StdMathFunction function, Args&&... inputs)
+  explicit call(std_math_function function, Args&&... inputs)
       : function(function), args{std::forward<Args>(inputs)...} {}
 };
 

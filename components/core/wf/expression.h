@@ -21,7 +21,7 @@ class Expr {
   explicit Expr(const expression_concept_const_ptr& impl) : impl_(impl) {}
 
   // Construct variable with name and specific numeric set:
-  explicit Expr(std::string_view name, NumberSet set = NumberSet::Unknown);
+  explicit Expr(std::string_view name, number_set set = number_set::unknown);
 
   // Implicit construction from integers and floats.
   // enable_if argument is a trick we use until c++20 and constraints.
@@ -195,7 +195,7 @@ auto make_symbols(Args&&... args) {
 }
 
 // Make a unique variable symbol.
-Expr make_unique_variable_symbol(NumberSet set);
+Expr make_unique_variable_symbol(number_set set);
 
 }  // namespace math
 

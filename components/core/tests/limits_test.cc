@@ -15,7 +15,7 @@ using namespace custom_literals;
 
 // Test some trivial limits.
 TEST(LimitsTest, TestSimpleLimits1) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
   const Expr y{"y"};
   ASSERT_IDENTICAL(22, limit(22, x).value());
   ASSERT_IDENTICAL(0, limit(x, x).value());
@@ -29,7 +29,7 @@ TEST(LimitsTest, TestSimpleLimits1) {
 }
 
 TEST(LimitsTest, TestIndeterminateMultiplicativeForms1) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
   const auto [y, z] = make_symbols("y", "z");
 
   // (x^3 - x*y^2) / (x - x*y)
@@ -86,7 +86,7 @@ TEST(LimitsTest, TestIndeterminateMultiplicativeForms1) {
 }
 
 TEST(LimitsTest, TestIndeterminateMultiplicativeForms2) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
   const auto [y, z] = make_symbols("y", "z");
 
   auto f1 = tan(7 * x) / log(1 + 2 * x) + 3 * cos(x);
@@ -125,7 +125,7 @@ TEST(LimitsTest, TestIndeterminateMultiplicativeForms2) {
 
 // Test limits of the form 0^0
 TEST(LimitsTest, TestIndeterminatePowerForms1) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
   const auto [y, z] = make_symbols("y", "z");
 
   auto f1 = pow(x, x);
@@ -159,7 +159,7 @@ TEST(LimitsTest, TestIndeterminatePowerForms1) {
 
 // Test limits of the form ∞^0
 TEST(LimitsTest, TestIndeterminatePowerForms2) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
   const auto [y, z] = make_symbols("y", "z");
 
   // Contains both 0^0 (sin(x)/x) and ∞^0 (1/x)^x
@@ -190,7 +190,7 @@ TEST(LimitsTest, TestIndeterminatePowerForms2) {
 
 // Test limits of the form 1^∞
 TEST(LimitsTest, TestIndeterminatePowerForms3) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
   const auto [y, z] = make_symbols("y", "z");
 
   auto f1 = pow(cos(x * y), 1 / x);
@@ -212,7 +212,7 @@ TEST(LimitsTest, TestIndeterminatePowerForms3) {
 
 // Test limits of the form ∞ - ∞
 TEST(LimitsTest, TestIndeterminateSubtractiveForms1) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
 
   auto f1 = 1 / x - 1 / log(x + 1);
   ASSERT_IDENTICAL(constants::undefined, f1.subs(x, 0));
@@ -224,7 +224,7 @@ TEST(LimitsTest, TestIndeterminateSubtractiveForms1) {
 }
 
 TEST(LimitsTest, TestInvalidForms) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
 
   // This would recurse indefinitely:
   const auto e = constants::euler;
@@ -249,7 +249,7 @@ TEST(LimitsTest, TestInvalidForms) {
 
 // Test the limit function called on matrices.
 TEST(LimitsTest, TestMatrixLimits) {
-  const Expr x{"x", NumberSet::RealNonNegative};
+  const Expr x{"x", number_set::real_non_negative};
   auto [y, z] = make_symbols("y", "z");
   auto f1 = make_matrix(2, 2, sin(y * x) / (x * 3), x * log(x * y), x + 2,
                         3 * (x - 1) * sin(y * x) / (x * z));
@@ -260,7 +260,7 @@ TEST(LimitsTest, TestMatrixLimits) {
 TEST(LimitsTest, TestMatrixLimitsQuaternion) {
   const auto [x0, y0, z0] = make_symbols("x0", "y0", "z0");
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const Expr t{"t", NumberSet::RealNonNegative};
+  const Expr t{"t", number_set::real_non_negative};
 
   const quaternion Q = quaternion::from_rotation_vector(x0, y0, z0, std::nullopt);
   const quaternion Q_subbed = Q.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
@@ -279,7 +279,7 @@ TEST(LimitsTest, TestMatrixLimitsQuaternion) {
 TEST(LimitsTest, TestMatrixLimitsRotation) {
   const auto [x0, y0, z0] = make_symbols("x0", "y0", "z0");
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const Expr t{"t", NumberSet::RealNonNegative};
+  const Expr t{"t", number_set::real_non_negative};
 
   const quaternion Q = quaternion::from_rotation_vector(x0, y0, z0, std::nullopt);
   const MatrixExpr R = Q.to_rotation_matrix();
@@ -310,7 +310,7 @@ TEST(LimitsTest, TestMatrixLimitsRotation) {
 
 TEST(LimitsTest, TestMatrixLimitsQuaternionToVector) {
   const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const Expr t{"t", NumberSet::RealNonNegative};
+  const Expr t{"t", number_set::real_non_negative};
 
   // Take the limit as the quaternion approaches identity:
   const MatrixExpr J = quaternion{w, x, y, z}
@@ -329,7 +329,7 @@ TEST(LimitsTest, TestMatrixLimitsQuaternionToVector) {
 
 TEST(LimitsTest, TestJacobianSo3) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const Expr t{"t", NumberSet::RealNonNegative};
+  const Expr t{"t", number_set::real_non_negative};
   // Should converge to identify as norm of `w` goes to zero:
   const MatrixExpr J = left_jacobian_of_so3(make_vector(x * t, y * t, z * t), std::nullopt);
   const std::optional<MatrixExpr> J_lim = limit(J, t);

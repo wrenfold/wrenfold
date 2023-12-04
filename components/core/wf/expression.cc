@@ -7,7 +7,7 @@
 
 namespace math {
 
-Expr::Expr(const std::string_view name, const NumberSet set)
+Expr::Expr(const std::string_view name, const number_set set)
     : Expr(make_expr<Variable>(NamedVariable(name), set)) {}
 
 Expr Expr::from_float(const double x) {
@@ -88,7 +88,7 @@ struct PrecedenceVisitor {
 
 precedence get_precedence(const Expr& expr) { return visit(expr, PrecedenceVisitor{}); }
 
-Expr make_unique_variable_symbol(NumberSet set) {
+Expr make_unique_variable_symbol(number_set set) {
   return make_expr<Variable>(UniqueVariable(), set);
 }
 

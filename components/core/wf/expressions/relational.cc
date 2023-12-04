@@ -72,22 +72,22 @@ struct RelationalSimplification {
   explicit RelationalSimplification(relational_operation operation) : operation_(operation) {}
 
   template <typename A, typename B>
-  TriState operator()(const A& a, const B& b) {
+  tri_state operator()(const A& a, const B& b) {
     if constexpr (detail::supports_comparison_v<A, B>) {
       // Handle cases where both operators are numeric or constant values.
       const bool a_lt_b = CompareNumerics{}(a, b);
       const bool b_lt_a = CompareNumerics{}(b, a);
       if (operation_ == relational_operation::less_than) {
-        return a_lt_b ? TriState::True : TriState::False;
+        return a_lt_b ? tri_state::True : tri_state::False;
       } else if (operation_ == relational_operation::equal) {
-        return (!a_lt_b && !b_lt_a) ? TriState::True : TriState::False;
+        return (!a_lt_b && !b_lt_a) ? tri_state::True : tri_state::False;
       }
       WF_ASSERT(operation_ == relational_operation::less_than_or_equal,
                 "Invalid relational operation: {}", string_from_relational_operation(operation_));
       // either `a` < `b`, or: `a` >= `b` and `b` is not less than `a`, so `a` == `b`
-      return a_lt_b || !b_lt_a ? TriState::True : TriState::False;
+      return a_lt_b || !b_lt_a ? tri_state::True : tri_state::False;
     } else {
-      return TriState::Unknown;
+      return tri_state::unknown;
     }
   }
 
@@ -101,10 +101,10 @@ Expr Relational::create(relational_operation operation, Expr left, Expr right) {
                      string_from_relational_operation(operation), right.type_name());
   }
   // See if this relational automatically simplifies to a boolean constant:
-  const TriState simplified = visit_binary(left, right, RelationalSimplification{operation});
-  if (simplified == TriState::True) {
+  const tri_state simplified = visit_binary(left, right, RelationalSimplification{operation});
+  if (simplified == tri_state::True) {
     return constants::boolean_true;
-  } else if (simplified == TriState::False) {
+  } else if (simplified == tri_state::False) {
     return constants::boolean_false;
   }
   if (operation == relational_operation::equal) {

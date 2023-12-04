@@ -67,12 +67,12 @@ class call_std_function {
     return name_ == other.name_;
   }
 
-  explicit constexpr call_std_function(StdMathFunction name) noexcept : name_(name) {}
+  explicit constexpr call_std_function(std_math_function name) noexcept : name_(name) {}
 
-  constexpr StdMathFunction name() const noexcept { return name_; }
+  constexpr std_math_function name() const noexcept { return name_; }
 
  private:
-  StdMathFunction name_;
+  std_math_function name_;
 };
 
 // Compare two operands (equality or inequality).

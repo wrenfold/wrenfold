@@ -184,12 +184,12 @@ MatrixExpr quaternion::jacobian(const math::MatrixExpr& vars) const {
 MatrixExpr quaternion::right_retract_derivative() const {
   // Compute the expression `J` once, and substitute into it on subsequent calls:
   static const quaternion q_sub{
-      make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real),
-      make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real)};
+      make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real),
+      make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real)};
   static const auto J = std::invoke([&]() -> MatrixExpr {
-    const auto vx = make_unique_variable_symbol(NumberSet::Real);
-    const auto vy = make_unique_variable_symbol(NumberSet::Real);
-    const auto vz = make_unique_variable_symbol(NumberSet::Real);
+    const auto vx = make_unique_variable_symbol(number_set::real);
+    const auto vy = make_unique_variable_symbol(number_set::real);
+    const auto vz = make_unique_variable_symbol(number_set::real);
     const quaternion q_perturb = q_sub * quaternion::from_rotation_vector(vx, vy, vz, 0);
     // Compute the Jacobian about 0:
     // clang-format off
@@ -213,13 +213,13 @@ MatrixExpr quaternion::right_retract_derivative() const {
 
 MatrixExpr quaternion::right_local_coordinates_derivative() const {
   static const quaternion q_sub{
-      make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real),
-      make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real)};
+      make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real),
+      make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real)};
   static const auto J = std::invoke([&]() -> MatrixExpr {
-    const auto dw = make_unique_variable_symbol(NumberSet::Real);
-    const auto dx = make_unique_variable_symbol(NumberSet::Real);
-    const auto dy = make_unique_variable_symbol(NumberSet::Real);
-    const auto dz = make_unique_variable_symbol(NumberSet::Real);
+    const auto dw = make_unique_variable_symbol(number_set::real);
+    const auto dx = make_unique_variable_symbol(number_set::real);
+    const auto dy = make_unique_variable_symbol(number_set::real);
+    const auto dz = make_unique_variable_symbol(number_set::real);
     const quaternion q_diff = q_sub.conjugate() * quaternion{q_sub.w() + dw, q_sub.x() + dx,
                                                              q_sub.y() + dy, q_sub.z() + dz};
     // clang-format off

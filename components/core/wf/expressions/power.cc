@@ -205,8 +205,8 @@ static bool can_multiply_exponents(const Power& base_pow, const Expr& outer_exp)
   if (outer_exp.is_type<Integer>()) {
     return true;
   }
-  const NumberSet base_set = determine_numeric_set(base_pow.base());
-  if (base_set == NumberSet::RealNonNegative || base_set == NumberSet::RealPositive) {
+  const number_set base_set = determine_numeric_set(base_pow.base());
+  if (base_set == number_set::real_non_negative || base_set == number_set::real_positive) {
     return true;
   }
   return false;

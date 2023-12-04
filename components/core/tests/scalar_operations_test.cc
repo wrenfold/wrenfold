@@ -231,9 +231,9 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
 
 TEST(ScalarOperationsTest, TestPower) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const Expr w{"w", NumberSet::RealNonNegative};
-  const Expr u{"u", NumberSet::RealPositive};
-  const Expr v{"v", NumberSet::Real};
+  const Expr w{"w", number_set::real_non_negative};
+  const Expr u{"u", number_set::real_positive};
+  const Expr v{"v", number_set::real};
 
   ASSERT_IDENTICAL(pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
@@ -657,181 +657,185 @@ TEST(ScalarOperationsTest, TestCollectMany) {
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsVariables) {
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(Expr{"x"}));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(Expr{"x", NumberSet::Real}));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(Expr{"x", NumberSet::Complex}));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(Expr{"x"}));
+  ASSERT_EQ(number_set::real, determine_numeric_set(Expr{"x", number_set::real}));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(Expr{"x", number_set::complex}));
 
   // Identical must consider the numeric set of the variable.
-  ASSERT_IDENTICAL(Expr("x"), Expr("x", NumberSet::Unknown));
-  ASSERT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::Real));
-  ASSERT_NOT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::Complex));
-  ASSERT_NOT_IDENTICAL(Expr("x", NumberSet::Real), Expr("x", NumberSet::RealNonNegative));
+  ASSERT_IDENTICAL(Expr("x"), Expr("x", number_set::unknown));
+  ASSERT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::real));
+  ASSERT_NOT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::complex));
+  ASSERT_NOT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::real_non_negative));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsNumericalValues) {
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(0));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(3));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-10));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(11_s / 13));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(-3_s / 2));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(0.0));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(0));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(3));
+  ASSERT_EQ(number_set::real, determine_numeric_set(-10));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(11_s / 13));
+  ASSERT_EQ(number_set::real, determine_numeric_set(-3_s / 2));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(0.0));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsAddMul) {
   // make unique symbols so additions can't collapse into multiplications:
-  const auto real = []() { return make_unique_variable_symbol(NumberSet::Real); };
+  const auto real = []() { return make_unique_variable_symbol(number_set::real); };
   const auto real_non_negative = []() {
-    return make_unique_variable_symbol(NumberSet::RealNonNegative);
+    return make_unique_variable_symbol(number_set::real_non_negative);
   };
-  const auto real_positive = []() { return make_unique_variable_symbol(NumberSet::RealPositive); };
-  const auto complex = []() { return make_unique_variable_symbol(NumberSet::Complex); };
-  const auto unknown = []() { return make_unique_variable_symbol(NumberSet::Unknown); };
+  const auto real_positive = []() {
+    return make_unique_variable_symbol(number_set::real_positive);
+  };
+  const auto complex = []() { return make_unique_variable_symbol(number_set::complex); };
+  const auto unknown = []() { return make_unique_variable_symbol(number_set::unknown); };
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() + real()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() + real_non_negative()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() + real_positive()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real() + unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() + real()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() + real_non_negative()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() + real_positive()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real() + unknown()));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(real_positive() + real_positive()));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(real_positive() + real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_positive() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_positive() + unknown()));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(real_positive() + real_positive()));
+  ASSERT_EQ(number_set::real_positive,
+            determine_numeric_set(real_positive() + real_non_negative()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_positive() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_positive() + unknown()));
 
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real_non_negative() + real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_non_negative() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_non_negative() + unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_non_negative() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_non_negative() + unknown()));
 
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(complex() + complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(complex() + unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(complex() + complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(complex() + unknown()));
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() * real()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() * real_non_negative()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real() * real_positive()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real() * unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() * real()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() * real_non_negative()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real() * real_positive()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real() * unknown()));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(real_positive() * real_positive()));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(real_positive() * real_positive()));
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real_positive() * real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_positive() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_positive() * unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_positive() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_positive() * unknown()));
 
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real_non_negative() * real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_non_negative() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_non_negative() * unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_non_negative() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_non_negative() * unknown()));
 
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(complex() * complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(complex() * unknown()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(complex() * complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(complex() * unknown()));
 
   // subtraction is both addition and multiplication:
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real_positive() - real_positive()));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real_positive() - real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_positive() - complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_positive() - unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real_positive() - real_positive()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real_positive() - real_non_negative()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_positive() - complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_positive() - unknown()));
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(real_non_negative() - real_non_negative()));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(real_non_negative() - complex()));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(real_non_negative() - unknown()));
+  ASSERT_EQ(number_set::real, determine_numeric_set(real_non_negative() - real_non_negative()));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(real_non_negative() - complex()));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(real_non_negative() - unknown()));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsPow) {
-  const Expr real = make_unique_variable_symbol(NumberSet::Real);
-  const Expr real_non_negative = make_unique_variable_symbol(NumberSet::RealNonNegative);
-  const Expr real_positive = make_unique_variable_symbol(NumberSet::RealPositive);
-  const Expr complex{"z", NumberSet::Complex};
-  const Expr unknown{"v", NumberSet::Unknown};
+  const Expr real = make_unique_variable_symbol(number_set::real);
+  const Expr real_non_negative = make_unique_variable_symbol(number_set::real_non_negative);
+  const Expr real_positive = make_unique_variable_symbol(number_set::real_positive);
+  const Expr complex{"z", number_set::complex};
+  const Expr unknown{"v", number_set::unknown};
 
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(real * real));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real, 4)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real, 3)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real, real_positive)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real, real_non_negative)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real, real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real, complex)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real, unknown)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(real * real));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real, 4)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, 3)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, real_positive)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, real_non_negative)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, unknown)));
 
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 2)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 3)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 2.1231)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(pow(real_non_negative, 3_s / 5)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(real_non_negative, real)));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 2)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 3)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 2.1231)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 3_s / 5)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real_non_negative, real)));
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(pow(real_non_negative, real_non_negative)));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(pow(real_non_negative, real_positive)));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 4)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 3)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 2.1231)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, 3_s / 5)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(pow(real_positive, real)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, real_positive)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(pow(real_positive, real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 4)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 3)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 2.1231)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, 3_s / 5)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real_positive, real)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(pow(real_positive, real_positive)));
+  ASSERT_EQ(number_set::real_positive,
+            determine_numeric_set(pow(real_positive, real_non_negative)));
 
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(pow(complex, complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(complex, complex)));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
-  const Expr real{"x", NumberSet::Real};
-  const Expr real_non_negative{"y", NumberSet::RealNonNegative};
-  const Expr real_positive{"w", NumberSet::RealPositive};
-  const Expr complex{"z", NumberSet::Complex};
+  const Expr real{"x", number_set::real};
+  const Expr real_non_negative{"y", number_set::real_non_negative};
+  const Expr real_positive{"w", number_set::real_positive};
+  const Expr complex{"z", number_set::complex};
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(cos(real)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(sin(real)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(cos(real_non_negative)));
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(sin(real_non_negative)));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(sin(complex)));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(cos(complex)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(cos(real)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(sin(real)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(cos(real_non_negative)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(sin(real_non_negative)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(sin(complex)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(cos(complex)));
 
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(tan(real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(tan(complex)));
-
-  // not implemented
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(real_non_negative)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(acos(complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(tan(real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(tan(complex)));
 
   // not implemented
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(real)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(real_non_negative)));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(log(complex)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(log(real_positive)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real_non_negative)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(complex)));
 
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(abs(real_positive)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(real)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(real_non_negative)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(abs(complex)));
+  // not implemented
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real_non_negative)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(log(complex)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(log(real_positive)));
 
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(signum(real)));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(signum(real_non_negative)));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(signum(real_positive)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(abs(real_positive)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(real)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(real_non_negative)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(complex)));
+
+  ASSERT_EQ(number_set::real, determine_numeric_set(signum(real)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(signum(real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(signum(real_positive)));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsSpecialValues) {
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(constants::euler));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(constants::pi));
-  ASSERT_EQ(NumberSet::RealPositive, determine_numeric_set(constants::boolean_true));
-  ASSERT_EQ(NumberSet::RealNonNegative, determine_numeric_set(constants::boolean_false));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(constants::complex_infinity));
-  ASSERT_EQ(NumberSet::Unknown, determine_numeric_set(constants::undefined));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::euler));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::pi));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::boolean_true));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(constants::boolean_false));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::complex_infinity));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::undefined));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsConditional) {
-  const Expr real{"x", NumberSet::Real};
-  const Expr real_non_negative{"y", NumberSet::RealNonNegative};
-  const Expr real_positive{"w", NumberSet::RealPositive};
-  const Expr complex{"z", NumberSet::Complex};
+  const Expr real{"x", number_set::real};
+  const Expr real_non_negative{"y", number_set::real_non_negative};
+  const Expr real_positive{"w", number_set::real_positive};
+  const Expr complex{"z", number_set::complex};
 
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real > 0));  //  TODO: Should be boolean.
-  ASSERT_EQ(NumberSet::Real, determine_numeric_set(where(real > 0, real, real_non_negative)));
-  ASSERT_EQ(NumberSet::RealNonNegative,
+  ASSERT_EQ(number_set::real, determine_numeric_set(where(real > 0, real, real_non_negative)));
+  ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(where(real > 0, real_positive, real_non_negative)));
-  ASSERT_EQ(NumberSet::Complex, determine_numeric_set(where(real > 0, real_positive, complex)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(where(real > 0, real_positive, complex)));
 }
 
 }  // namespace math
