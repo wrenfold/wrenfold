@@ -331,15 +331,15 @@ struct ast_from_ir {
     return ast::multiply{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
-  ast::variant operator()(const NamedVariable& v) const { return ast::variable_ref{v.name()}; }
+  ast::variant operator()(const named_variable& v) const { return ast::variable_ref{v.name()}; }
 
-  ast::variant operator()(const FuncArgVariable& a) const {
+  ast::variant operator()(const function_argument_variable& a) const {
     const auto element_index = static_cast<index_t>(a.element_index());
     return ast::input_value{signature_.arguments.at(a.arg_index()), element_index};
   }
 
-  ast::variant operator()(const UniqueVariable& u) const {
-    throw type_error("Cannot convert UniqueVariable to ast: {}", u.index());
+  ast::variant operator()(const unique_variable& u) const {
+    throw type_error("Cannot convert unique_variable to ast: {}", u.index());
   }
 
   ast::variant operator()(const ir::value&, const ir::load& load) {
@@ -354,7 +354,7 @@ struct ast_from_ir {
             return ast::float_literal{static_cast<float_constant>(inner).get_value()};
           } else if constexpr (std::is_same_v<T, rational_constant>) {
             return ast::float_literal{static_cast<float_constant>(inner).get_value()};
-          } else if constexpr (std::is_same_v<T, Variable>) {
+          } else if constexpr (std::is_same_v<T, variable>) {
             // inspect inner type of the variable
             return std::visit(*this, inner.identifier());
           }

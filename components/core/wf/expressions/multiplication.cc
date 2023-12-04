@@ -117,7 +117,7 @@ struct multiply_visitor {
       } else {
         builder.float_coeff = (*builder.float_coeff) * arg;
       }
-    } else if constexpr (std::is_same_v<T, Infinity>) {
+    } else if constexpr (std::is_same_v<T, complex_infinity>) {
       ++builder.num_infinities;
     } else {
       // Everything else: Just raise the power by +1.

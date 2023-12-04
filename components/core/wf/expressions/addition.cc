@@ -52,10 +52,10 @@ struct addition_visitor {
     }
   }
 
-  constexpr void operator()(const Infinity&) noexcept { ++parts.num_infinities; }
+  constexpr void operator()(const complex_infinity&) noexcept { ++parts.num_infinities; }
 
   using excluded_types =
-      type_list<addition, integer_constant, rational_constant, float_constant, Infinity>;
+      type_list<addition, integer_constant, rational_constant, float_constant, complex_infinity>;
 
   template <typename T, typename = enable_if_does_not_contain_type_t<T, excluded_types>>
   void operator()(const T&, const Expr& input_expression) {

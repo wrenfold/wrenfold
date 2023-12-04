@@ -32,7 +32,8 @@ struct order_visitor {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  constexpr relative_order compare(const Infinity&, const Infinity&) const noexcept {
+  constexpr relative_order compare(const complex_infinity&,
+                                   const complex_infinity&) const noexcept {
     return relative_order::equal;
   }
 
@@ -77,11 +78,11 @@ struct order_visitor {
     return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
   }
 
-  constexpr relative_order compare(const Undefined&, const Undefined&) const noexcept {
+  constexpr relative_order compare(const undefined&, const undefined&) const noexcept {
     return relative_order::equal;
   }
 
-  relative_order compare(const Variable& a, const Variable& b) const {
+  relative_order compare(const variable& a, const variable& b) const {
     if (a.identifier() < b.identifier()) {
       return relative_order::less_than;
     } else if (a.is_identical_to(b)) {
@@ -114,9 +115,9 @@ struct order_visitor {
 template <typename... Ts>
 static constexpr auto get_type_order_indices(type_list<Ts...>) {
   using order_of_types =
-      type_list<float_constant, integer_constant, rational_constant, symbolic_constant, Infinity,
-                Variable, multiplication, addition, power, function, relational, conditional,
-                cast_bool, derivative, Undefined>;
+      type_list<float_constant, integer_constant, rational_constant, symbolic_constant,
+                complex_infinity, variable, multiplication, addition, power, function, relational,
+                conditional, cast_bool, derivative, undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(type_list_size<order_of_types>::value == type_list_size<ExpressionTypeList>::value);

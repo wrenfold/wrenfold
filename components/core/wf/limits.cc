@@ -20,7 +20,7 @@ class limit_visitor {
   // 0+ is the value of `x` at the limit.
   explicit limit_visitor(const Expr& x)
       : x_(x),
-        x_typed_(cast_checked<Variable>(x_)),
+        x_typed_(cast_checked<variable>(x_)),
         positive_inf_{positive_inf_placeholder()},
         negative_inf_{negative_inf_placeholder()} {
     if (x_typed_.set() != number_set::real_non_negative) {
@@ -468,7 +468,7 @@ class limit_visitor {
     return function::create(func.enum_value(), std::move(args));
   }
 
-  std::optional<Expr> operator()(const Infinity&, const Expr& expr) const { return expr; }
+  std::optional<Expr> operator()(const complex_infinity&, const Expr& expr) const { return expr; }
   std::optional<Expr> operator()(const integer_constant&, const Expr& expr) { return expr; }
   std::optional<Expr> operator()(const float_constant&, const Expr& expr) { return expr; }
   std::optional<Expr> operator()(const rational_constant&, const Expr& expr) { return expr; }
@@ -490,9 +490,9 @@ class limit_visitor {
     return relational::create(rel.operation(), std::move(*left), std::move(*right));
   }
 
-  std::optional<Expr> operator()(const Undefined&) const { return constants::undefined; }
+  std::optional<Expr> operator()(const undefined&) const { return constants::undefined; }
 
-  std::optional<Expr> operator()(const Variable& var, const Expr& expr) const {
+  std::optional<Expr> operator()(const variable& var, const Expr& expr) const {
     if (x_typed_.is_identical_to(var)) {
       return constants::zero;  //  TODO: Support any value here.
     }
@@ -511,7 +511,7 @@ class limit_visitor {
   }
 
   const Expr& x_;
-  const Variable& x_typed_;
+  const variable& x_typed_;
 
   // Placeholders we insert for positive/negative.
   Expr positive_inf_;
@@ -527,7 +527,7 @@ class limit_visitor {
 
 // TODO: Add support for limits going to infinity.
 std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
-  if (!x.is_type<Variable>()) {
+  if (!x.is_type<variable>()) {
     throw type_error(
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
         x.type_name(), x);
@@ -536,7 +536,7 @@ std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
 }
 
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
-  if (!x.is_type<Variable>()) {
+  if (!x.is_type<variable>()) {
     throw type_error(
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
         x.type_name(), x);

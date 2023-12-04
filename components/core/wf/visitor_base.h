@@ -22,14 +22,14 @@ using ExpressionTypeList = type_list<
     class derivative,
     class float_constant,
     class function,
-    class Infinity,
+    class complex_infinity,
     class integer_constant,
     class multiplication,
     class power,
     class rational_constant,
     class relational,
-    class Undefined,
-    class Variable
+    class undefined,
+    class variable
     >;
 // clang-format on
 

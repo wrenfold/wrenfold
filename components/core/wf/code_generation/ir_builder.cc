@@ -415,7 +415,7 @@ class ir_form_visitor {
                           std::move(args));
   }
 
-  ir::value_ptr operator()(const Infinity&) const {
+  ir::value_ptr operator()(const complex_infinity&) const {
     throw type_error("Cannot generate code for complex infinity.");
   }
 
@@ -518,11 +518,11 @@ class ir_form_visitor {
                           maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
   }
 
-  ir::value_ptr operator()(const Undefined&) const {
-    throw type_error("Cannot generate code with expressions containing {}", Undefined::name_str);
+  ir::value_ptr operator()(const undefined&) const {
+    throw type_error("Cannot generate code with expressions containing {}", undefined::name_str);
   }
 
-  ir::value_ptr operator()(const Variable& var) {
+  ir::value_ptr operator()(const variable& var) {
     return push_operation(ir::load{var}, code_numeric_type::floating_point);
   }
 

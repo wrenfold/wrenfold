@@ -87,7 +87,7 @@ Expr cos(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  if (arg.is_type<Infinity>() || is_undefined(arg)) {
+  if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
     return constants::undefined;
   }
   // TODO: Check for phase offsets.
@@ -120,7 +120,7 @@ Expr sin(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  if (arg.is_type<Infinity>() || is_undefined(arg)) {
+  if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
     return constants::undefined;
   }
   return make_expr<function>(built_in_function::sin, arg);
@@ -168,7 +168,7 @@ Expr tan(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  if (arg.is_type<Infinity>() || is_undefined(arg)) {
+  if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
     return constants::undefined;
   }
   return make_expr<function>(built_in_function::tan, arg);
@@ -256,8 +256,8 @@ struct atan2_visitor {
 
   template <typename A, typename B>
   std::optional<Expr> operator()(const A&, const B&) const {
-    if constexpr (std::is_same_v<A, Infinity> || std::is_same_v<B, Infinity> ||
-                  std::is_same_v<A, Undefined> || std::is_same_v<B, Undefined>) {
+    if constexpr (std::is_same_v<A, complex_infinity> || std::is_same_v<B, complex_infinity> ||
+                  std::is_same_v<A, undefined> || std::is_same_v<B, undefined>) {
       return constants::undefined;
     }
     return std::nullopt;
@@ -348,12 +348,12 @@ struct signum_visitor {
     return std::nullopt;
   }
 
-  std::optional<Expr> operator()(const Undefined&) const { return constants::undefined; }
+  std::optional<Expr> operator()(const undefined&) const { return constants::undefined; }
 
   // Handle all other cases.
   template <typename T, typename = enable_if_does_not_contain_type_t<
                             T, integer_constant, rational_constant, float_constant,
-                            symbolic_constant, function, Undefined>>
+                            symbolic_constant, function, undefined>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }

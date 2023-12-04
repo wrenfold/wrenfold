@@ -6,7 +6,7 @@
 #include "wf/hashing.h"
 
 namespace math {
-class Variable;  //  Fwd declare.
+class variable;  //  Fwd declare.
 
 // Visitor that takes the derivative of an input expression.
 class derivative_visitor {
@@ -25,14 +25,14 @@ class derivative_visitor {
   Expr operator()(const derivative& derivative, const Expr& derivative_abstract) const;
   Expr operator()(const multiplication& mul);
   Expr operator()(const function& func);
-  Expr operator()(const Infinity&) const;
+  Expr operator()(const complex_infinity&) const;
   Expr operator()(const integer_constant&) const;
   Expr operator()(const float_constant&) const;
   Expr operator()(const power& pow);
   Expr operator()(const rational_constant&) const;
   Expr operator()(const relational&, const Expr& rel_expr) const;
-  Expr operator()(const Undefined&) const;
-  Expr operator()(const Variable& var) const;
+  Expr operator()(const undefined&) const;
+  Expr operator()(const variable& var) const;
 
  private:
   Expr cached_visit(const Expr& expr);

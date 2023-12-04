@@ -13,7 +13,7 @@ class plain_formatter {
   void operator()(const symbolic_constant& constant);
   void operator()(const derivative& derivative);
   void operator()(const float_constant& num);
-  void operator()(const Infinity&);
+  void operator()(const complex_infinity&);
   void operator()(const integer_constant& num);
   void operator()(const class matrix& mat);
   void operator()(const multiplication& mul);
@@ -21,8 +21,8 @@ class plain_formatter {
   void operator()(const rational_constant& rational);
   void operator()(const relational& relational);
   void operator()(const function& func);
-  void operator()(const Undefined&);
-  void operator()(const Variable& var);
+  void operator()(const undefined&);
+  void operator()(const variable& var);
 
   // Get the output string (transferring ownership to the caller).
   std::string take_output() const { return std::move(output_); }

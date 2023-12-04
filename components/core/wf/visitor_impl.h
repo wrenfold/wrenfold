@@ -31,8 +31,8 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
     return visitor(cast_unchecked<float_constant>(expr));
   } else if (expr.is_type<function>()) {
     return visitor(cast_unchecked<function>(expr));
-  } else if (expr.is_type<Infinity>()) {
-    return visitor(cast_unchecked<Infinity>(expr));
+  } else if (expr.is_type<complex_infinity>()) {
+    return visitor(cast_unchecked<complex_infinity>(expr));
   } else if (expr.is_type<integer_constant>()) {
     return visitor(cast_unchecked<integer_constant>(expr));
   } else if (expr.is_type<multiplication>()) {
@@ -43,12 +43,12 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
     return visitor(cast_unchecked<rational_constant>(expr));
   } else if (expr.is_type<relational>()) {
     return visitor(cast_unchecked<relational>(expr));
-  } else if (expr.is_type<Undefined>()) {
-    return visitor(cast_unchecked<Undefined>(expr));
+  } else if (expr.is_type<undefined>()) {
+    return visitor(cast_unchecked<undefined>(expr));
   } else {
-    WF_ASSERT(expr.is_type<Variable>(), "Neglected to implement if-else switch for type: {}",
+    WF_ASSERT(expr.is_type<variable>(), "Neglected to implement if-else switch for type: {}",
               expr.type_name());
-    return visitor(cast_unchecked<Variable>(expr));
+    return visitor(cast_unchecked<variable>(expr));
   }
 }
 

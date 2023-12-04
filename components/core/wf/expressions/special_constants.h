@@ -27,23 +27,23 @@ class symbolic_constant {
 };
 
 // Complex infinity (the north-pole of the riemann sphere).
-class Infinity {
+class complex_infinity {
  public:
   static constexpr std::string_view name_str = "ComplexInfinity";
   static constexpr bool is_leaf_node = true;
 
-  constexpr Infinity() noexcept = default;
-  constexpr bool is_identical_to(const Infinity&) const noexcept { return true; }
+  constexpr complex_infinity() noexcept = default;
+  constexpr bool is_identical_to(const complex_infinity&) const noexcept { return true; }
 };
 
 // Result of invalid expressions.
-class Undefined {
+class undefined {
  public:
   static constexpr std::string_view name_str = "Undefined";
   static constexpr bool is_leaf_node = true;
 
-  Undefined() noexcept = default;
-  constexpr bool is_identical_to(const Undefined&) const noexcept { return true; }
+  undefined() noexcept = default;
+  constexpr bool is_identical_to(const undefined&) const noexcept { return true; }
 };
 
 // Convert `symbolic_constant_enum` to a floating point double.
@@ -74,16 +74,16 @@ struct hash_struct<symbolic_constant> {
 };
 
 template <>
-struct hash_struct<Infinity> {
-  constexpr std::size_t operator()(const Infinity&) const noexcept {
+struct hash_struct<complex_infinity> {
+  constexpr std::size_t operator()(const complex_infinity&) const noexcept {
     constexpr auto inf_hash = hash_string_fnv("inf");
     return inf_hash;
   }
 };
 
 template <>
-struct hash_struct<Undefined> {
-  constexpr std::size_t operator()(const Undefined&) const noexcept {
+struct hash_struct<undefined> {
+  constexpr std::size_t operator()(const undefined&) const noexcept {
     constexpr auto undef_hash = hash_string_fnv("undef");
     return undef_hash;
   }

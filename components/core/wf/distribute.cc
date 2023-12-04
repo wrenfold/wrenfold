@@ -86,15 +86,15 @@ struct distribute_visitor {
   Expr operator()(const derivative& diff, const Expr&) const {
     return diff.map_children(&distribute);
   }
-  Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
+  Expr operator()(const complex_infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const integer_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const float_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const rational_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const relational& relation, const Expr&) const {
     return relation.map_children(&distribute);
   }
-  Expr operator()(const Undefined&) const { return constants::undefined; }
-  Expr operator()(const Variable&, const Expr& arg) const { return arg; }
+  Expr operator()(const undefined&) const { return constants::undefined; }
+  Expr operator()(const variable&, const Expr& arg) const { return arg; }
 };
 
 Expr distribute(const Expr& arg) { return visit_with_expr(arg, distribute_visitor{}); }

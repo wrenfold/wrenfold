@@ -7,7 +7,7 @@ namespace math {
 
 template <typename T, typename>
 Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
-  if constexpr (type_list_contains_type_v<T, derivative, Infinity>) {
+  if constexpr (type_list_contains_type_v<T, derivative, complex_infinity>) {
     throw type_error("Cannot call eval on expression of type: {}", T::name_str);
   } else if constexpr (T::is_leaf_node) {
     return input;

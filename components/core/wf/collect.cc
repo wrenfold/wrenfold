@@ -119,13 +119,13 @@ struct collect_visitor {
   Expr operator()(const conditional& conditional) { return recurse(conditional); }
   Expr operator()(const symbolic_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const derivative& diff, const Expr&) { return recurse(diff); }
-  Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
+  Expr operator()(const complex_infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const integer_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const float_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const rational_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const relational& relation) { return recurse(relation); }
-  Expr operator()(const Undefined&) const { return constants::undefined; }
-  Expr operator()(const Variable&, const Expr& arg) const { return arg; }
+  Expr operator()(const undefined&) const { return constants::undefined; }
+  Expr operator()(const variable&, const Expr& arg) const { return arg; }
 
  private:
   absl::Span<const Expr> collected_terms_;

@@ -27,7 +27,7 @@ inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_vi
   for (const char c : csv) {
     if (std::isspace(c) || c == ',') {
       if (!name.empty()) {
-        auto var = make_expr<Variable>(std::move(name));
+        auto var = make_expr<variable>(std::move(name));
         variables.append(std::move(var));
         name = std::string();
       }
@@ -36,7 +36,7 @@ inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_vi
     name += c;
   }
   if (!name.empty()) {
-    auto var = make_expr<Variable>(std::move(name));
+    auto var = make_expr<variable>(std::move(name));
     variables.append(std::move(var));
   }
   if (variables.size() == 1) {

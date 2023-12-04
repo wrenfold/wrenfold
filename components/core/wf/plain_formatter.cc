@@ -92,7 +92,7 @@ void plain_formatter::operator()(const derivative& derivative) {
   }
 }
 
-void plain_formatter::operator()(const Infinity&) {
+void plain_formatter::operator()(const complex_infinity&) {
   fmt::format_to(std::back_inserter(output_), "zoo");
 }
 
@@ -230,9 +230,9 @@ void plain_formatter::operator()(const relational& expr) {
   format_precedence(precedence::relational, expr.right());
 }
 
-void plain_formatter::operator()(const Undefined&) { output_.append("nan"); }
+void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
 
-void plain_formatter::operator()(const Variable& expr) { output_.append(expr.to_string()); }
+void plain_formatter::operator()(const variable& expr) { output_.append(expr.to_string()); }
 
 void plain_formatter::format_precedence(const precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {

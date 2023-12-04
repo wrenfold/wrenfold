@@ -27,7 +27,7 @@ MatrixExpr make_matrix_of_symbols(const std::string_view prefix, index_t rows, i
   }
   return create_matrix_with_lambda(rows, cols, [&](index_t i, index_t j) {
     std::string name = fmt::format("{}_{}_{}", prefix, i, j);
-    return make_expr<Variable>(std::move(name));
+    return make_expr<variable>(std::move(name));
   });
 }
 

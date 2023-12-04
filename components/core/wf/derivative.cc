@@ -34,9 +34,9 @@ struct is_function_of_visitor {
 };
 
 derivative_visitor::derivative_visitor(const Expr& argument) : argument_(argument) {
-  if (!argument.is_type<Variable>()) {
+  if (!argument.is_type<variable>()) {
     throw type_error(
-        "Argument to diff must be of type Variable. Received expression "
+        "Argument to diff must be of type variable. Received expression "
         "of type: {}",
         argument.type_name());
   }
@@ -77,9 +77,9 @@ Expr derivative_visitor::operator()(const symbolic_constant&) const { return con
 // Derivative of an abstract derivative expression.
 Expr derivative_visitor::operator()(const derivative& derivative,
                                     const Expr& derivative_abstract) const {
-  const Variable& argument = cast_unchecked<Variable>(argument_);
+  const variable& argument = cast_unchecked<variable>(argument_);
   const bool is_relevant =
-      visit(derivative.differentiand(), is_function_of_visitor<Variable>{argument});
+      visit(derivative.differentiand(), is_function_of_visitor<variable>{argument});
   if (!is_relevant) {
     return constants::zero;
   }
@@ -177,7 +177,7 @@ Expr derivative_visitor::operator()(const function& func) {
   return constants::zero;
 }
 
-Expr derivative_visitor::operator()(const Infinity&) const { return constants::zero; }
+Expr derivative_visitor::operator()(const complex_infinity&) const { return constants::zero; }
 Expr derivative_visitor::operator()(const integer_constant&) const { return constants::zero; }
 Expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
 Expr derivative_visitor::operator()(const power& pow) {
@@ -198,10 +198,10 @@ Expr derivative_visitor::operator()(const relational&, const Expr& rel_expr) con
   return derivative::create(rel_expr, argument_, 1);
 }
 
-Expr derivative_visitor::operator()(const Undefined&) const { return constants::undefined; }
+Expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
-Expr derivative_visitor::operator()(const Variable& var) const {
-  const Variable& argument = cast_unchecked<Variable>(argument_);
+Expr derivative_visitor::operator()(const variable& var) const {
+  const variable& argument = cast_unchecked<variable>(argument_);
   if (var.is_identical_to(argument)) {
     return constants::one;
   }

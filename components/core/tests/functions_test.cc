@@ -116,7 +116,7 @@ TEST(FunctionsTest, TestTan) {
     ASSERT_IDENTICAL(constants::zero, tan(integer_constant::create(i) * constants::pi));
   }
 
-  // Infinity at odd multiples of pi/2:
+  // complex_infinity at odd multiples of pi/2:
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(constants::complex_infinity,
                      tan(integer_constant::create(i * 2 + 1) * constants::pi / 2_s));

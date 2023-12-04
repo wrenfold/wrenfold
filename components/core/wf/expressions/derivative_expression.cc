@@ -8,7 +8,7 @@ namespace math {
 Expr derivative::create(Expr function, Expr arg, int order) {
   WF_ASSERT_GREATER_OR_EQ(order, 1, "Order of the derivative must >= 1");
 
-  if (!arg.is_type<Variable>()) {
+  if (!arg.is_type<variable>()) {
     throw type_error("Derivatives can only be taken with respect to variables. Arg = {}",
                      arg.to_string());
   }

@@ -125,7 +125,9 @@ class determine_set_visitor {
   }
 
   // In spite of its name, complex infinity is not part of the complex numbers.
-  constexpr number_set operator()(const Infinity&) const noexcept { return number_set::unknown; }
+  constexpr number_set operator()(const complex_infinity&) const noexcept {
+    return number_set::unknown;
+  }
 
   template <typename T>
   constexpr number_set handle_numeric(const T& val) const noexcept {
@@ -181,12 +183,12 @@ class determine_set_visitor {
     return number_set::real_non_negative;
   }
 
-  constexpr number_set operator()(const Undefined&) const noexcept {
+  constexpr number_set operator()(const undefined&) const noexcept {
     // Cannot establish
     return number_set::unknown;
   }
 
-  constexpr number_set operator()(const Variable& var) const noexcept { return var.set(); }
+  constexpr number_set operator()(const variable& var) const noexcept { return var.set(); }
 };
 
 number_set determine_numeric_set(const Expr& x) { return visit(x, determine_set_visitor{}); }

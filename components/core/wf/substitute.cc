@@ -327,7 +327,7 @@ static substitute_variables_visitor create_subs_visitor(
     const absl::Span<const std::tuple<Expr, Expr>> pairs) {
   substitute_variables_visitor visitor{};
   for (const auto& [target, replacement] : pairs) {
-    if (!target.is_type<Variable>()) {
+    if (!target.is_type<variable>()) {
       throw type_error("Input needs to be type Variable, received type `{}`: {}",
                        target.type_name(), target);
     }
@@ -353,11 +353,11 @@ MatrixExpr substitute_variables(const MatrixExpr& input,
 }
 
 void substitute_variables_visitor::add_substitution(const Expr& target, Expr replacement) {
-  const Variable& var = cast_checked<Variable>(target);
+  const variable& var = cast_checked<variable>(target);
   add_substitution(var, std::move(replacement));
 }
 
-void substitute_variables_visitor::add_substitution(Variable variable, Expr replacement) {
+void substitute_variables_visitor::add_substitution(variable variable, Expr replacement) {
   cache_.clear();  //  No longer valid when new expressions are added.
   const auto [_, was_inserted] =
       substitutions_.emplace(std::move(variable), std::move(replacement));
@@ -377,9 +377,9 @@ Expr substitute_variables_visitor::apply(const Expr& expression) {
 
 template <typename T>
 Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abstract) {
-  if constexpr (std::is_same_v<T, Variable>) {
+  if constexpr (std::is_same_v<T, variable>) {
     // Is this a variable we care about substituting?
-    const Variable& v = concrete;
+    const variable& v = concrete;
     const auto it = substitutions_.find(v);
     if (it != substitutions_.end()) {
       return it->second;

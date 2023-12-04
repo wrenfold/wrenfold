@@ -147,7 +147,7 @@ struct construct_function_argument;
 template <>
 struct construct_function_argument<Expr> {
   auto operator()(std::size_t arg_index) const {
-    return Variable::create_function_argument(arg_index, 0);
+    return variable::create_function_argument(arg_index, 0);
   }
 };
 
@@ -157,7 +157,7 @@ struct construct_function_argument<type_annotations::static_matrix<Rows, Cols>> 
     std::vector<Expr> expressions{};
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
     for (std::size_t i = 0; i < Rows * Cols; ++i) {
-      expressions.push_back(Variable::create_function_argument(arg_index, i));
+      expressions.push_back(variable::create_function_argument(arg_index, i));
     }
     MatrixExpr expr = MatrixExpr::create(Rows, Cols, std::move(expressions));
     return type_annotations::static_matrix<Rows, Cols>(std::move(expr));
@@ -192,8 +192,9 @@ constexpr auto select_output_arg_indices(const std::tuple<Ts...>&) {
 }
 
 // Invoke the provided callable and capture the output expressions. First builds a tuple of input
-// arguments by constructing `FuncArgVariable` expressions for every input arg of `callable`. The
-// resulting expressions are returned as a tuple of `output_arg<>` or `return_value<>`.
+// arguments by constructing `function_argument_variable` expressions for every input arg of
+// `callable`. The resulting expressions are returned as a tuple of `output_arg<>` or
+// `return_value<>`.
 template <typename ArgList, typename Callable, std::size_t... Indices>
 auto invoke_with_output_capture(Callable&& callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= type_list_size_v<ArgList>);

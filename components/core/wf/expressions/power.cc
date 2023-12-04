@@ -24,12 +24,12 @@ struct PowerNumerics {
     } else if constexpr (std::is_same_v<integer_constant, A> &&
                          std::is_same_v<rational_constant, B>) {
       return apply_int_and_rational(a, b);
-    } else if constexpr (std::is_same_v<Infinity, A> &&
+    } else if constexpr (std::is_same_v<complex_infinity, A> &&
                          type_list_contains_type_v<B, integer_constant, rational_constant>) {
       return apply_infinity_and_rational(a, static_cast<rational_constant>(b));
-    } else if constexpr (std::is_same_v<Infinity, A> && std::is_same_v<B, float_constant>) {
+    } else if constexpr (std::is_same_v<complex_infinity, A> && std::is_same_v<B, float_constant>) {
       return apply_infinity_and_float(a, b);
-    } else if constexpr (std::is_same_v<Undefined, A> || std::is_same_v<Undefined, B>) {
+    } else if constexpr (std::is_same_v<undefined, A> || std::is_same_v<undefined, B>) {
       return constants::undefined;
     } else {
       return std::nullopt;
@@ -155,7 +155,7 @@ struct PowerNumerics {
     return multiplication::from_operands(operands);
   }
 
-  Expr apply_infinity_and_rational(const Infinity&, const rational_constant& r) const {
+  Expr apply_infinity_and_rational(const complex_infinity&, const rational_constant& r) const {
     if (r.numerator() > 0) {
       return constants::complex_infinity;
     } else if (r.numerator() < 0) {
@@ -166,7 +166,7 @@ struct PowerNumerics {
     }
   }
 
-  Expr apply_infinity_and_float(const Infinity&, const float_constant& f) const {
+  Expr apply_infinity_and_float(const complex_infinity&, const float_constant& f) const {
     if (f.get_value() > 0) {
       return constants::complex_infinity;
     } else if (f.get_value() < 0) {

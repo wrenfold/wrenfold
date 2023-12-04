@@ -157,7 +157,7 @@ class jump_condition {
 class load {
  public:
   using storage_type = std::variant<symbolic_constant, integer_constant, float_constant,
-                                    rational_constant, Variable>;
+                                    rational_constant, variable>;
 
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 0; }
