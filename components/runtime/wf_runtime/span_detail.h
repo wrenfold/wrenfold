@@ -46,11 +46,6 @@ struct is_constant : std::false_type {};
 template <std::size_t D>
 struct is_constant<constant<D>> : std::true_type {};
 
-// Enable if all the `Ints` are convertible to ptrdiff_t.
-template <typename... Ints>
-using enable_if_convertible_to_ptrdiff_t =
-    typename std::enable_if<conjunction<std::is_convertible<Ints, std::ptrdiff_t>...>::value>::type;
-
 // Represents a variadic list of values when all values are instances of `constant<>`.
 // Does not store anything, since the values are knowable at compile time.
 template <typename... Values>
@@ -145,18 +140,58 @@ class value_pack
 template <std::size_t... IJK>
 using constant_value_pack = value_pack<constant<IJK>...>;
 
-namespace detail {
-
 // Evaluates to true if `T` is an instance of `value_pack<...>`.
 template <typename T>
-struct is_value_pack : public std::false_type {};
+struct is_value_pack : std::false_type {};
 template <typename... Values>
-struct is_value_pack<value_pack<Values...>> : public std::true_type {};
+struct is_value_pack<value_pack<Values...>> : std::true_type {};
+template <typename T>
+constexpr bool is_value_pack_v = is_value_pack<T>::value;
+
+// Evaluates to true if `T` is a value_pack of compile-time values.
+template <typename T>
+struct is_constant_value_pack;
+template <typename... Values>
+struct is_constant_value_pack<value_pack<Values...>>
+    : detail::conjunction<detail::is_constant<Values>...> {};
+template <typename T>
+constexpr bool is_constant_value_pack_v = is_constant_value_pack<T>::value;
+
+// Get element `D` from the sequence of integers [I, JK...]
+template <std::size_t D, std::size_t I, std::size_t... JK>
+struct index_sequence_value : index_sequence_value<D - 1, JK...> {};
+template <std::size_t I, std::size_t... JK>
+struct index_sequence_value<0, I, JK...> : std::integral_constant<std::size_t, I> {};
+
+// Get dimension `D` of a compile-time constant value_pack.
+template <std::size_t D, typename T>
+struct constant_value_pack_axis;
+template <std::size_t D, std::size_t... IJK>
+struct constant_value_pack_axis<D, value_pack<constant<IJK>...>> {
+  static constexpr std::size_t value = index_sequence_value<D, IJK...>::value;
+};
+template <std::size_t D, typename T>
+constexpr auto constant_value_pack_axis_v = constant_value_pack_axis<D, T>::value;
+
+// Get the number of dimensions in a value pack.
+template <typename T>
+struct value_pack_length;
+template <typename... Values>
+struct value_pack_length<value_pack<Values...>> {
+  static constexpr std::size_t value = sizeof...(Values);
+};
+template <typename T>
+constexpr std::size_t value_pack_length_v = value_pack_length<T>::value;
+
+// Enable if `T` is a value-pack.
+template <typename T>
+using enable_if_value_pack_t = typename std::enable_if_t<is_value_pack<T>::value>::type;
+
+namespace detail {
 
 // Template for converting a type `T` to either `dynamic` or `constant`.
 template <typename T, typename = void>
 struct convert_to_dimension_type;
-
 template <typename T>
 using convert_to_dimension_type_t = typename convert_to_dimension_type<T>::type;
 
@@ -210,7 +245,7 @@ using enable_if_adding_const_t =
 template <typename T, typename U>
 using enable_if_same_after_removing_const_t =
     typename std::enable_if<std::is_same<typename std::remove_const<T>::type,
-                                         typename std::remove_const<T>::type>::value>::type;
+                                         typename std::remove_const<U>::type>::value>::type;
 
 // True if `T` has a method size() that returns an integral type.
 template <typename T, typename = void>
@@ -230,10 +265,6 @@ struct has_data_method<T, decltype(std::declval<const T>().data(), void())>
 template <typename T>
 using enable_if_array_like_t =
     typename std::enable_if<has_data_method<T>::value && has_size_method<T>::value>::type;
-
-// True if `T` is a value-pack.
-template <typename T>
-using enable_if_value_pack_t = typename std::enable_if_t<is_value_pack<T>::value>::type;
 
 // Create a `strides` object w/ all zero strides. The dimensionality is determined by the integer
 // sequence.

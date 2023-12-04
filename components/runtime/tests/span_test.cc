@@ -124,6 +124,29 @@ TEST(SpanTest, TestConstructor) {
   EXPECT_EQ(span, const_span);
 }
 
+TEST(SpanTest, TestSpanTraits) {
+  auto c = make_constant_value_pack<0, 3, 7>();
+  static_assert(is_value_pack_v<decltype(c)>, "");
+  static_assert(is_constant_value_pack_v<decltype(c)>, "");
+  static_assert(value_pack_length_v<decltype(c)> == 3, "");
+  static_assert(constant_value_pack_axis_v<0, decltype(c)> == 0, "");
+  static_assert(constant_value_pack_axis_v<1, decltype(c)> == 3, "");
+  static_assert(constant_value_pack_axis_v<2, decltype(c)> == 7, "");
+
+  auto d1 = make_value_pack(0, 1, 2);
+  static_assert(is_value_pack_v<decltype(d1)>, "");
+  static_assert(!is_constant_value_pack_v<decltype(d1)>, "");
+  static_assert(value_pack_length_v<decltype(d1)> == 3, "");
+
+  auto d2 = make_value_pack(constant<1>{}, 10, 12, constant<5>{});
+  static_assert(is_value_pack_v<decltype(d2)>, "");
+  static_assert(!is_constant_value_pack_v<decltype(d2)>, "");
+  static_assert(value_pack_length_v<decltype(d2)> == 4, "");
+
+  static_assert(!is_value_pack_v<std::string>, "");
+  static_assert(!is_value_pack_v<int>, "");
+}
+
 TEST(SpanTest, TestMakeNullSpan) {
   auto span = make_always_null_span<2, 3>();
   EXPECT_FALSE(span);
@@ -132,6 +155,71 @@ TEST(SpanTest, TestMakeNullSpan) {
   EXPECT_EQ(3, span.cols());
   EXPECT_EQ(0, span.stride<0>());
   EXPECT_EQ(0, span.stride<1>());
+}
+
+TEST(SpanTest, TestMakeSpanFromSpan) {
+  // Spans can be passed to make_input_span and make_output_span
+  std::array<int, 6> data = {0, 1, 2, 3, 4, 5};
+  const auto span =
+      make_span(data.data(), make_constant_value_pack<3, 2>(), make_constant_value_pack<1, 3>());
+
+  const auto input_span = make_input_span<3, 2>(span);
+  EXPECT_EQ(span.data(), input_span.data());
+  EXPECT_EQ(3, input_span.rows());
+  EXPECT_EQ(2, input_span.cols());
+  EXPECT_EQ(1, input_span.stride<0>());
+  EXPECT_EQ(3, input_span.stride<1>());
+
+  const auto output_span = make_output_span<3, 2>(span);
+  EXPECT_EQ(span.data(), output_span.data());
+  EXPECT_EQ(3, output_span.rows());
+  EXPECT_EQ(2, output_span.cols());
+  EXPECT_EQ(1, output_span.stride<0>());
+  EXPECT_EQ(3, output_span.stride<1>());
+}
+
+// A type we create, so we can specialized convert_to_span.
+// These are used below in TestNoexceptPropagation.
+struct non_throwing_type {};
+struct throwing_type {};
+
+template <typename Dimensions>
+struct convert_to_span<Dimensions, non_throwing_type> {
+  template <typename U>
+  constexpr auto convert(U&&) noexcept {
+    return make_always_null_span<Dimensions>();
+  }
+};
+
+template <typename Dimensions>
+struct convert_to_span<Dimensions, throwing_type> {
+  template <typename U>
+  constexpr auto convert(U&&) noexcept(false) {
+    // If we don't explicitly throw something here, MSVC appears to relabel
+    // the method as noexcept(true).
+    throw std::runtime_error("Oh no!");
+    return make_always_null_span<Dimensions>();
+  }
+};
+
+TEST(SpanTest, TestNoexceptPropagation) {
+  using dimensions = constant_value_pack<2, 3, 4>;
+  static_assert(detail::is_convertible_to_span_v<dimensions, non_throwing_type>, "");
+  static_assert(detail::is_convertible_to_span_v<dimensions, throwing_type>, "");
+
+  static_assert(detail::is_nothrow_convertible_to_span_v<dimensions, non_throwing_type>, "");
+  static_assert(!detail::is_nothrow_convertible_to_span_v<dimensions, throwing_type>, "");
+
+  non_throwing_type no_throw{};
+  static_assert(noexcept(make_input_span<2, 3, 4>(non_throwing_type{})), "");
+  static_assert(noexcept(make_input_span<2, 3, 4>(no_throw)), "");
+  static_assert(noexcept(make_output_span<2, 3, 4>(no_throw)), "");
+  static_assert(noexcept(make_optional_output_span<2, 3, 4>(no_throw)), "");
+
+  throwing_type yes_throw{};
+  static_assert(noexcept(make_input_span<2, 3, 4>(yes_throw)) == false, "");
+  static_assert(noexcept(make_output_span<2, 3, 4>(yes_throw)) == false, "");
+  static_assert(noexcept(make_optional_output_span<2, 3, 4>(yes_throw)) == false, "");
 }
 
 TEST(SpanTest, TestMakeArraySpan) {
@@ -231,29 +319,6 @@ TEST(SpanTest, TestMake3DSpan) {
   }
 }
 
-TEST(SpanTest, TestMakeInitializerListSpan2d) {
-  // Use invoke to ensure span lifetime is valid:
-  [](auto span) {
-    ASSERT_EQ(0, span(0, 0));
-    ASSERT_EQ(1, span(0, 1));
-    ASSERT_EQ(2, span(1, 0));
-    ASSERT_EQ(3, span(1, 1));
-  }(make_array_span_2d<2, 2, ordering::row_major>({0, 1, 2, 3}));
-
-  [](auto span) {
-    ASSERT_EQ(0, span(0, 0));
-    ASSERT_EQ(2, span(0, 1));
-    ASSERT_EQ(1, span(1, 0));
-    ASSERT_EQ(3, span(1, 1));
-  }(make_array_span_2d<2, 2, ordering::col_major>({0, 1, 2, 3}));
-
-  // This should throw due to invalid size:
-  auto construct_invalid_span = []() {
-    make_array_span_2d<3, 4, ordering::row_major>({9.81, 3.14159});
-  };
-  ASSERT_THROW(construct_invalid_span(), std::runtime_error);
-}
-
 TEST(SpanTest, TestEigenColMajor) {
   // clang-format off
   const Eigen::Matrix<int, 2, 3> A = (Eigen::Matrix<int, 2, 3>() <<
@@ -313,13 +378,13 @@ TEST(SpanTest, TestEigenColMajorBlock) {
   auto A_span = make_input_span<5, 6>(A.block<5, 6>(0, 0));
 
   auto blk_1 = A.topRightCorner<2, 2>();
-  auto span_1 = make_input_span<5, 6>(blk_1);
+  auto span_1 = make_input_span<2, 2>(blk_1);
   ASSERT_EQ(1, span_1.stride<0>());
   ASSERT_EQ(5, span_1.stride<1>());
   EXPECT_EIGEN_SPAN_EQ(blk_1, span_1);
 
   auto blk_2 = A.bottomRightCorner<3, 4>();
-  auto span_2 = make_input_span<1, 5>(blk_2);
+  auto span_2 = make_input_span<3, 4>(blk_2);
   ASSERT_EQ(1, span_2.stride<0>());
   ASSERT_EQ(5, span_2.stride<1>());
   EXPECT_EIGEN_SPAN_EQ(blk_2, span_2);
@@ -422,7 +487,7 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
 
   const Eigen::Map<const Eigen::Matrix<int, 3, 3>, Eigen::Unaligned, Eigen::Stride<12, 2>> map{
       data.data()};
-  auto span = make_input_span<3, 4>(map);
+  auto span = make_input_span<3, 3>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
   EXPECT_EQ(1, span(0, 0));
   EXPECT_EQ(4, span(1, 0));
@@ -458,15 +523,5 @@ TEST(SpanTest, TestEigenQuaternion) {
   const auto q_output = make_output_span<4, 1>(q);
   EXPECT_EIGEN_SPAN_EQ(q.coeffs(), q_output);
 }
-
-// TODO: Should we restore this assertion?
-#if 0
-TEST(SpanTest, TestEigenNullMapAssertion) {
-  // Constructing from null map should trigger our assertion macro.
-  const Eigen::Map<const Eigen::Matrix<int, 3, 3>> map{nullptr};
-  auto make_span = [&]() { make_input_span<3, 3>(map); };
-  ASSERT_THROW(make_span(), std::runtime_error);
-}
-#endif
 
 }  // namespace wf

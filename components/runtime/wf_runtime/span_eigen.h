@@ -73,6 +73,7 @@ using enable_if_inherits_quaternion_base_t =
     typename std::enable_if<inherits_quaternion_base_v<typename std::decay<T>::type>>::type;
 
 // Enable conversion of `MatrixBase` children to spans.
+// TODO: This does not check Eigen::Map for nullptr yet.
 template <typename Dimensions, typename T>
 struct convert_to_span<Dimensions, T, enable_if_inherits_matrix_base_t<T>> {
   template <typename U>
@@ -83,6 +84,14 @@ struct convert_to_span<Dimensions, T, enable_if_inherits_matrix_base_t<T>> {
     constexpr Eigen::Index cols_at_compile_time = Eigen::DenseBase<UDecay>::ColsAtCompileTime;
     static_assert(rows_at_compile_time != Eigen::Dynamic, "Rows must be known at compile time");
     static_assert(cols_at_compile_time != Eigen::Dynamic, "Cols must be known at compile time");
+
+    // Check that dimensions agree with what the generated method expects.
+    static_assert(
+        static_cast<std::size_t>(rows_at_compile_time) == constant_value_pack_axis_v<0, Dimensions>,
+        "Number of rows does not match expected dimension");
+    static_assert(
+        static_cast<std::size_t>(cols_at_compile_time) == constant_value_pack_axis_v<1, Dimensions>,
+        "Number of columns does not match expected dimension");
 
     constexpr auto dims =
         make_constant_value_pack<static_cast<std::size_t>(rows_at_compile_time),
