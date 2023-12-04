@@ -9,7 +9,7 @@ namespace math::ast {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const math::ast::scalar_type& s) {
-  return fmt::format_to(it, "ScalarType<{}>", string_from_numeric_type(s.numeric_type()));
+  return fmt::format_to(it, "ScalarType<{}>", string_from_code_numeric_type(s.numeric_type()));
 }
 
 template <typename Iterator>
@@ -57,7 +57,8 @@ auto format_ast(Iterator it, const math::ast::call& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const math::ast::cast& c) {
-  return fmt::format_to(it, "Cast({}, {})", string_from_numeric_type(c.destination_type), *c.arg);
+  return fmt::format_to(it, "Cast({}, {})", string_from_code_numeric_type(c.destination_type),
+                        *c.arg);
 }
 
 template <typename Iterator>
@@ -74,10 +75,10 @@ auto format_ast(Iterator it, const math::ast::construct_return_value& c) {
 template <typename Iterator>
 auto format_ast(Iterator it, const math::ast::declaration& d) {
   if (d.value) {
-    return fmt::format_to(it, "Declaration({}: {} = {})", d.name, string_from_numeric_type(d.type),
-                          *d.value);
+    return fmt::format_to(it, "Declaration({}: {} = {})", d.name,
+                          string_from_code_numeric_type(d.type), *d.value);
   } else {
-    return fmt::format_to(it, "Declaration({}: {})", d.name, string_from_numeric_type(d.type));
+    return fmt::format_to(it, "Declaration({}: {})", d.name, string_from_code_numeric_type(d.type));
   }
 }
 

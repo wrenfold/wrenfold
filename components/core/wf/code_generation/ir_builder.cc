@@ -381,25 +381,25 @@ class ir_form_visitor {
   static constexpr std_math_function std_math_function_from_built_in(built_in_function name) {
     switch (name) {
       case built_in_function::cos:
-        return std_math_function::Cos;
+        return std_math_function::cos;
       case built_in_function::sin:
-        return std_math_function::Sin;
+        return std_math_function::sin;
       case built_in_function::tan:
-        return std_math_function::Tan;
+        return std_math_function::tan;
       case built_in_function::arccos:
-        return std_math_function::ArcCos;
+        return std_math_function::acos;
       case built_in_function::arcsin:
-        return std_math_function::ArcSin;
+        return std_math_function::asin;
       case built_in_function::arctan:
-        return std_math_function::ArcTan;
+        return std_math_function::atan;
       case built_in_function::ln:
-        return std_math_function::Log;
+        return std_math_function::log;
       case built_in_function::abs:
-        return std_math_function::Abs;
+        return std_math_function::abs;
       case built_in_function::signum:
-        return std_math_function::Signum;
+        return std_math_function::signum;
       case built_in_function::arctan2:
-        return std_math_function::Arctan2;
+        return std_math_function::atan2;
     }
     throw assertion_error("Invalid enum value: {}", string_from_built_in_function(name));
   }
@@ -480,7 +480,7 @@ class ir_form_visitor {
         return exponentiate_by_squaring(base, static_cast<uint64_t>(exp_int->get_value()));
       } else {
         // Just call power variant with integer exponent:
-        return push_operation(ir::call_std_function{std_math_function::Powi},
+        return push_operation(ir::call_std_function{std_math_function::powi},
                               code_numeric_type::floating_point, base, apply(power.exponent()));
       }
     } else if (const Rational* exp_rational = cast_ptr<Rational>(power.exponent());
@@ -491,7 +491,7 @@ class ir_form_visitor {
       // approximate performance.
       if (exp_rational->denominator() == 2 &&
           exp_rational->numerator() <= max_integer_mul_exponent) {
-        const ir::value_ptr sqrt = push_operation(ir::call_std_function{std_math_function::Sqrt},
+        const ir::value_ptr sqrt = push_operation(ir::call_std_function{std_math_function::sqrt},
                                                   code_numeric_type::floating_point, base);
         return exponentiate_by_squaring(sqrt, static_cast<uint64_t>(exp_rational->numerator()));
       }
@@ -499,7 +499,7 @@ class ir_form_visitor {
 
     // TODO: Support (int ** int) powers?
     const ir::value_ptr exponent = apply(power.exponent());
-    return push_operation(ir::call_std_function{std_math_function::Powf},
+    return push_operation(ir::call_std_function{std_math_function::powf},
                           code_numeric_type::floating_point, base,
                           maybe_cast(exponent, code_numeric_type::floating_point));
   }

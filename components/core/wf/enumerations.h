@@ -101,21 +101,21 @@ enum class number_set : uint8_t {
 // in that this list contains additional specialized cases. In the math
 // expression tree powi, powf, and sqrt are all just instances of `Power`.
 enum class std_math_function {
-  Cos,
-  Sin,
-  Tan,
-  ArcCos,
-  ArcSin,
-  ArcTan,
-  Log,
-  Sqrt,
-  Abs,
-  Signum,
-  Arctan2,
+  cos,
+  sin,
+  tan,
+  acos,
+  asin,
+  atan,
+  log,
+  sqrt,
+  abs,
+  signum,
+  atan2,
   // Integral exponent power.
-  Powi,
+  powi,
   // Floating point exponent power.
-  Powf,
+  powf,
 };
 
 // True if the set is real numbers, or a constrained subset of the real numbers.
@@ -169,7 +169,7 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
   return "<NOT A VALID ENUM VALUE>";
 }
 
-// Convert `RelationalOperation` to short string.
+// Convert `relational_operation` to short string.
 constexpr std::string_view string_from_relational_operation(
     const relational_operation op) noexcept {
   switch (op) {
@@ -198,8 +198,8 @@ inline constexpr std::string_view string_from_symbolic_constant(symbolic_constan
   return "<INVALID ENUM VALUE>";
 }
 
-// Convert `NumericType` to string.
-constexpr std::string_view string_from_numeric_type(const code_numeric_type type) noexcept {
+// Convert `code_numeric_type` to string.
+constexpr std::string_view string_from_code_numeric_type(const code_numeric_type type) noexcept {
   switch (type) {
     case code_numeric_type::boolean:
       return "boolean";
@@ -213,7 +213,7 @@ constexpr std::string_view string_from_numeric_type(const code_numeric_type type
   return "<NOT A VALID ENUM VALUE>";
 }
 
-// Convert `NumberSet` to string.
+// Convert `number_set` to string.
 constexpr inline std::string_view string_from_number_set(const number_set set) noexcept {
   switch (set) {
     case number_set::real_positive:
@@ -230,35 +230,35 @@ constexpr inline std::string_view string_from_number_set(const number_set set) n
   return "<NOT A VALID ENUM VALUE>";
 }
 
-// Convert `StandardLibraryMathFunction` to string.
+// Convert `std_math_function` to string.
 constexpr inline std::string_view string_from_standard_library_function(
     std_math_function name) noexcept {
   switch (name) {
-    case std_math_function::Cos:
+    case std_math_function::cos:
       return "cos";
-    case std_math_function::Sin:
+    case std_math_function::sin:
       return "sin";
-    case std_math_function::Tan:
+    case std_math_function::tan:
       return "tan";
-    case std_math_function::ArcCos:
+    case std_math_function::acos:
       return "acos";
-    case std_math_function::ArcSin:
+    case std_math_function::asin:
       return "asin";
-    case std_math_function::ArcTan:
+    case std_math_function::atan:
       return "atan";
-    case std_math_function::Log:
+    case std_math_function::log:
       return "log";
-    case std_math_function::Sqrt:
+    case std_math_function::sqrt:
       return "sqrt";
-    case std_math_function::Abs:
+    case std_math_function::abs:
       return "abs";
-    case std_math_function::Signum:
+    case std_math_function::signum:
       return "sign";
-    case std_math_function::Arctan2:
+    case std_math_function::atan2:
       return "atan2";
-    case std_math_function::Powi:
+    case std_math_function::powi:
       return "powi";
-    case std_math_function::Powf:
+    case std_math_function::powf:
       return "powf";
   }
   return "<NOT A VALID ENUM VALUE>";

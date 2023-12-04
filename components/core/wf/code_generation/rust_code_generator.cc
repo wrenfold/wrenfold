@@ -23,7 +23,7 @@ constexpr std::string_view type_string_from_numeric_type(code_numeric_type type)
     case code_numeric_type::complex:
       throw type_error("No complex number type yet in Rust");
   }
-  throw type_error("Not a valid enum value: {}", string_from_numeric_type(type));
+  throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
 }
 
 constexpr std::string_view type_string_from_numeric_type(const ast::scalar_type& scalar) {
@@ -168,31 +168,31 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::branc
 static constexpr std::string_view rust_string_for_std_function(
     const std_math_function name) noexcept {
   switch (name) {
-    case std_math_function::Cos:
+    case std_math_function::cos:
       return "f64::cos";
-    case std_math_function::Sin:
+    case std_math_function::sin:
       return "f64::sin";
-    case std_math_function::Tan:
+    case std_math_function::tan:
       return "f64::tan";
-    case std_math_function::ArcCos:
+    case std_math_function::acos:
       return "f64::acos";
-    case std_math_function::ArcSin:
+    case std_math_function::asin:
       return "f64::asin";
-    case std_math_function::ArcTan:
+    case std_math_function::atan:
       return "f64::atan";
-    case std_math_function::Log:
+    case std_math_function::log:
       return "f64::ln";
-    case std_math_function::Sqrt:
+    case std_math_function::sqrt:
       return "f64::sqrt";
-    case std_math_function::Abs:
+    case std_math_function::abs:
       return "f64::abs";
-    case std_math_function::Signum:
+    case std_math_function::signum:
       return "f64::signum";
-    case std_math_function::Arctan2:
+    case std_math_function::atan2:
       return "f64::atan2";
-    case std_math_function::Powi:
+    case std_math_function::powi:
       return "f64::powi";
-    case std_math_function::Powf:
+    case std_math_function::powf:
       return "f64::powf";
     default:
       break;
@@ -202,7 +202,7 @@ static constexpr std::string_view rust_string_for_std_function(
 
 void rust_code_generator::operator()(code_formatter& formatter, const ast::call& x) const {
   // We have to override signum specially here, because the built-in rust signum does not return 0.
-  if (x.function == std_math_function::Signum) {
+  if (x.function == std_math_function::signum) {
     // TODO: should be an integer expression:
     formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
                      make_view(x.args[0]));

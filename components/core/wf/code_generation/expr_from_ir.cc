@@ -32,25 +32,25 @@ struct ExprFromIrVisitor {
   static constexpr built_in_function built_in_function_from_standard_library_function(
       std_math_function func) {
     switch (func) {
-      case std_math_function::Cos:
+      case std_math_function::cos:
         return built_in_function::cos;
-      case std_math_function::Sin:
+      case std_math_function::sin:
         return built_in_function::sin;
-      case std_math_function::Tan:
+      case std_math_function::tan:
         return built_in_function::tan;
-      case std_math_function::ArcCos:
+      case std_math_function::acos:
         return built_in_function::arccos;
-      case std_math_function::ArcSin:
+      case std_math_function::asin:
         return built_in_function::arcsin;
-      case std_math_function::ArcTan:
+      case std_math_function::atan:
         return built_in_function::arctan;
-      case std_math_function::Log:
+      case std_math_function::log:
         return built_in_function::ln;
-      case std_math_function::Abs:
+      case std_math_function::abs:
         return built_in_function::abs;
-      case std_math_function::Signum:
+      case std_math_function::signum:
         return built_in_function::signum;
-      case std_math_function::Arctan2:
+      case std_math_function::atan2:
         return built_in_function::arctan2;
       default:
         // Other cases handled by the assertion below.
@@ -64,9 +64,9 @@ struct ExprFromIrVisitor {
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::value_ptr v) { return map_value(v); });
 
-    if (func.name() == std_math_function::Powi || func.name() == std_math_function::Powf) {
+    if (func.name() == std_math_function::powi || func.name() == std_math_function::powf) {
       return pow(container[0], container[1]);
-    } else if (func.name() == std_math_function::Sqrt) {
+    } else if (func.name() == std_math_function::sqrt) {
       static const Expr one_half = constants::one / 2;
       return pow(container[0], one_half);
     } else {

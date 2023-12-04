@@ -156,28 +156,28 @@ void cpp_code_generator::operator()(code_formatter& formatter,
 static constexpr std::string_view cpp_string_for_std_function(
     const std_math_function name) noexcept {
   switch (name) {
-    case std_math_function::Cos:
+    case std_math_function::cos:
       return "std::cos";
-    case std_math_function::Sin:
+    case std_math_function::sin:
       return "std::sin";
-    case std_math_function::Tan:
+    case std_math_function::tan:
       return "std::tan";
-    case std_math_function::ArcCos:
+    case std_math_function::acos:
       return "std::acos";
-    case std_math_function::ArcSin:
+    case std_math_function::asin:
       return "std::asin";
-    case std_math_function::ArcTan:
+    case std_math_function::atan:
       return "std::atan";
-    case std_math_function::Log:
+    case std_math_function::log:
       return "std::log";
-    case std_math_function::Sqrt:
+    case std_math_function::sqrt:
       return "std::sqrt";
-    case std_math_function::Abs:
+    case std_math_function::abs:
       return "std::abs";
-    case std_math_function::Arctan2:
+    case std_math_function::atan2:
       return "std::atan2";
-    case std_math_function::Powi:
-    case std_math_function::Powf:
+    case std_math_function::powi:
+    case std_math_function::powf:
       return "std::pow";
     default:
       break;
@@ -186,7 +186,7 @@ static constexpr std::string_view cpp_string_for_std_function(
 }
 
 void cpp_code_generator::operator()(code_formatter& formatter, const ast::call& x) const {
-  if (x.function == std_math_function::Signum) {
+  if (x.function == std_math_function::signum) {
     // We need to special-case signum because it doesn't exist as a free-standing function.
     // TODO: This should be an int expression.
     formatter.format(

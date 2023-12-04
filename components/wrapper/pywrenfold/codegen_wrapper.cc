@@ -102,19 +102,19 @@ void wrap_codegen_operations(py::module_& m) {
            py::arg("expressions"), py::arg("output_key"));
 
   py::enum_<std_math_function>(m, "StdMathFunction")
-      .value("Cos", std_math_function::Cos)
-      .value("Sin", std_math_function::Sin)
-      .value("Tan", std_math_function::Tan)
-      .value("ArcCos", std_math_function::ArcCos)
-      .value("ArcSin", std_math_function::ArcSin)
-      .value("ArcTan", std_math_function::ArcTan)
-      .value("Log", std_math_function::Log)
-      .value("Sqrt", std_math_function::Sqrt)
-      .value("Abs", std_math_function::Abs)
-      .value("Signum", std_math_function::Signum)
-      .value("Arctan2", std_math_function::Arctan2)
-      .value("Powi", std_math_function::Powi)
-      .value("Powf", std_math_function::Powf)
+      .value("Cos", std_math_function::cos)
+      .value("Sin", std_math_function::sin)
+      .value("Tan", std_math_function::tan)
+      .value("ArcCos", std_math_function::acos)
+      .value("ArcSin", std_math_function::asin)
+      .value("ArcTan", std_math_function::atan)
+      .value("Log", std_math_function::log)
+      .value("Sqrt", std_math_function::sqrt)
+      .value("Abs", std_math_function::abs)
+      .value("Signum", std_math_function::signum)
+      .value("Arctan2", std_math_function::atan2)
+      .value("Powi", std_math_function::powi)
+      .value("Powf", std_math_function::powf)
       .def(
           "to_string",
           [](std_math_function name) { return string_from_standard_library_function(name); },
