@@ -104,7 +104,7 @@ class limit_visitor {
     return std::nullopt;
   }
 
-  std::optional<Expr> operator()(const Constant&, const Expr& expr) const { return expr; }
+  std::optional<Expr> operator()(const symbolic_constant&, const Expr& expr) const { return expr; }
 
   std::optional<Expr> operator()(const derivative&, const Expr& expr) const {
     throw type_error(

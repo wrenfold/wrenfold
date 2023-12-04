@@ -10,7 +10,7 @@ class plain_formatter {
   void operator()(const addition& add);
   void operator()(const cast_bool& cast);
   void operator()(const conditional& conditional);
-  void operator()(const Constant& constant);
+  void operator()(const symbolic_constant& constant);
   void operator()(const derivative& derivative);
   void operator()(const float_constant& num);
   void operator()(const Infinity&);

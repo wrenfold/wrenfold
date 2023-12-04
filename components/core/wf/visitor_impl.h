@@ -23,8 +23,8 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
     return visitor(cast_unchecked<cast_bool>(expr));
   } else if (expr.is_type<conditional>()) {
     return visitor(cast_unchecked<conditional>(expr));
-  } else if (expr.is_type<Constant>()) {
-    return visitor(cast_unchecked<Constant>(expr));
+  } else if (expr.is_type<symbolic_constant>()) {
+    return visitor(cast_unchecked<symbolic_constant>(expr));
   } else if (expr.is_type<derivative>()) {
     return visitor(cast_unchecked<derivative>(expr));
   } else if (expr.is_type<float_constant>()) {

@@ -24,7 +24,7 @@ Expr evaluate_visitor::operator()(const rational_constant& x) const {
   return float_constant::create(static_cast<float_constant>(x));
 }
 
-Expr evaluate_visitor::operator()(const Constant& c) const {
+Expr evaluate_visitor::operator()(const symbolic_constant& c) const {
   const auto c_enum = c.name();
   const double value = double_from_symbolic_constant(c_enum);
   WF_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",

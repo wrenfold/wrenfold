@@ -10,13 +10,13 @@ namespace math {
 // Convert expressions to `float_constant` values.
 class evaluate_visitor {
  public:
-  template <typename T, typename = enable_if_does_not_contain_type_t<T, integer_constant,
-                                                                     rational_constant, Constant>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<
+                            T, integer_constant, rational_constant, symbolic_constant>>
   Expr operator()(const T& input_typed, const Expr& input);
 
   Expr operator()(const integer_constant& x) const;
   Expr operator()(const rational_constant& x) const;
-  Expr operator()(const Constant& x) const;
+  Expr operator()(const symbolic_constant& x) const;
 
   // Visit and cache the result.
   Expr apply(const Expr& input);

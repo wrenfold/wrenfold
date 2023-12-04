@@ -297,7 +297,7 @@ Expr abs(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  if (const Constant* constant = cast_ptr<Constant>(arg); constant != nullptr) {
+  if (const symbolic_constant* constant = cast_ptr<symbolic_constant>(arg); constant != nullptr) {
     const auto as_double = double_from_symbolic_constant(constant->name());
     if (compare_int_float(0, as_double).value() != relative_order::greater_than) {
       // Constant that is already positive.
@@ -334,7 +334,7 @@ struct signum_visitor {
     return Expr{sign(f.get_value())};
   }
 
-  std::optional<Expr> operator()(const Constant& c) const {
+  std::optional<Expr> operator()(const symbolic_constant& c) const {
     // Conversion to float is valid for all the constants we currently support:
     const auto cf = double_from_symbolic_constant(c.name());
     return Expr{sign(cf)};
@@ -352,8 +352,8 @@ struct signum_visitor {
 
   // Handle all other cases.
   template <typename T, typename = enable_if_does_not_contain_type_t<
-                            T, integer_constant, rational_constant, float_constant, Constant,
-                            function, Undefined>>
+                            T, integer_constant, rational_constant, float_constant,
+                            symbolic_constant, function, Undefined>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }
@@ -399,10 +399,10 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
 }
 
 struct bool_cast_visitor {
-  std::optional<Expr> operator()(const Constant& c) const {
-    if (c.name() == symbolic_constants::boolean_true) {
+  std::optional<Expr> operator()(const symbolic_constant& c) const {
+    if (c.name() == symbolic_constant_enum::boolean_true) {
       return constants::one;
-    } else if (c.name() == symbolic_constants::boolean_false) {
+    } else if (c.name() == symbolic_constant_enum::boolean_false) {
       return constants::zero;
     }
     return std::nullopt;

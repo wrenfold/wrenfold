@@ -76,7 +76,7 @@ void plain_formatter::operator()(const conditional& conditional) {
   output_ += ")";
 }
 
-void plain_formatter::operator()(const Constant& expr) {
+void plain_formatter::operator()(const symbolic_constant& expr) {
   output_ += string_from_symbolic_constant(expr.name());
 }
 

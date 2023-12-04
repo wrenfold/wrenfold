@@ -308,7 +308,7 @@ struct optional_output_branch {
 
 // Use a symbolic constant in the output code.
 struct special_constant {
-  symbolic_constants value;
+  symbolic_constant_enum value;
 };
 
 // Create AST from the IR:

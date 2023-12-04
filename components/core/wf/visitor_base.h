@@ -18,7 +18,7 @@ using ExpressionTypeList = type_list<
     class addition,
     class cast_bool,
     class conditional,
-    class Constant,
+    class symbolic_constant,
     class derivative,
     class float_constant,
     class function,

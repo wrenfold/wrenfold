@@ -61,8 +61,8 @@ class determine_set_visitor {
     return std::max(left, right);
   }
 
-  constexpr number_set operator()(const Constant& c) const noexcept {
-    if (c.name() == symbolic_constants::boolean_false) {
+  constexpr number_set operator()(const symbolic_constant& c) const noexcept {
+    if (c.name() == symbolic_constant_enum::boolean_false) {
       return number_set::real_non_negative;
     }
     return number_set::real_positive;

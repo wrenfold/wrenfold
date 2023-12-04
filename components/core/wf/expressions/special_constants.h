@@ -6,24 +6,24 @@
 namespace math {
 
 // A symbolic constant, like pi or euler's number.
-class Constant {
+class symbolic_constant {
  public:
   static constexpr std::string_view name_str = "Constant";
   static constexpr bool is_leaf_node = true;
 
   // Construct with name.
-  explicit constexpr Constant(symbolic_constants name) noexcept : name_(name) {}
+  explicit constexpr symbolic_constant(symbolic_constant_enum name) noexcept : name_(name) {}
 
   // Check if symbolic constants are the same.
-  constexpr bool is_identical_to(const Constant& other) const noexcept {
+  constexpr bool is_identical_to(const symbolic_constant& other) const noexcept {
     return name_ == other.name_;
   }
 
   // Access name.
-  constexpr symbolic_constants name() const noexcept { return name_; }
+  constexpr symbolic_constant_enum name() const noexcept { return name_; }
 
  protected:
-  symbolic_constants name_;
+  symbolic_constant_enum name_;
 };
 
 // Complex infinity (the north-pole of the riemann sphere).
@@ -46,29 +46,29 @@ class Undefined {
   constexpr bool is_identical_to(const Undefined&) const noexcept { return true; }
 };
 
-// Convert `symbolic_constants` to a floating point double.
-constexpr double double_from_symbolic_constant(symbolic_constants constant) noexcept {
+// Convert `symbolic_constant_enum` to a floating point double.
+constexpr double double_from_symbolic_constant(symbolic_constant_enum constant) noexcept {
   switch (constant) {
-    case symbolic_constants::euler:
+    case symbolic_constant_enum::euler:
       return M_E;
-    case symbolic_constants::pi:
+    case symbolic_constant_enum::pi:
       return M_PI;
-    case symbolic_constants::boolean_true:
+    case symbolic_constant_enum::boolean_true:
       return 1.0;
-    case symbolic_constants::boolean_false:
+    case symbolic_constant_enum::boolean_false:
       return 0.0;
   }
   return std::numeric_limits<double>::quiet_NaN();
 }
 
 // Order constants by their enum values.
-inline constexpr bool operator<(const Constant& a, const Constant& b) noexcept {
+inline constexpr bool operator<(const symbolic_constant& a, const symbolic_constant& b) noexcept {
   return a.name() < b.name();
 }
 
 template <>
-struct hash_struct<Constant> {
-  constexpr std::size_t operator()(const Constant& c) const noexcept {
+struct hash_struct<symbolic_constant> {
+  constexpr std::size_t operator()(const symbolic_constant& c) const noexcept {
     return static_cast<std::size_t>(c.name());
   }
 };
@@ -93,11 +93,11 @@ struct hash_struct<Undefined> {
 
 // Formatter for printing in assertions.
 template <>
-struct fmt::formatter<math::Constant, char> {
+struct fmt::formatter<math::symbolic_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::Constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::symbolic_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", math::string_from_symbolic_constant(x.name()));
   }
 };

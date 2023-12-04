@@ -82,7 +82,7 @@ struct distribute_visitor {
     return conditional.map_children(&distribute);
   }
 
-  Expr operator()(const Constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const symbolic_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const derivative& diff, const Expr&) const {
     return diff.map_children(&distribute);
   }

@@ -256,15 +256,15 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::input
 }
 
 static constexpr std::string_view rust_string_for_symbolic_constant(
-    const symbolic_constants value) noexcept {
+    const symbolic_constant_enum value) noexcept {
   switch (value) {
-    case symbolic_constants::euler:
+    case symbolic_constant_enum::euler:
       return "std::f64::consts::E";
-    case symbolic_constants::pi:
+    case symbolic_constant_enum::pi:
       return "std::f64::consts::PI";
-    case symbolic_constants::boolean_true:
+    case symbolic_constant_enum::boolean_true:
       return "true";
-    case symbolic_constants::boolean_false:
+    case symbolic_constant_enum::boolean_false:
       return "false";
   }
   return "<INVALID ENUM VALUE>";

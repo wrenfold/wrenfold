@@ -358,19 +358,19 @@ class ir_form_visitor {
                           maybe_cast(else_branch, promoted_type));
   }
 
-  static code_numeric_type numeric_type_from_constant(const Constant& c) {
+  static code_numeric_type numeric_type_from_constant(const symbolic_constant& c) {
     switch (c.name()) {
-      case symbolic_constants::euler:
-      case symbolic_constants::pi:
+      case symbolic_constant_enum::euler:
+      case symbolic_constant_enum::pi:
         return code_numeric_type::floating_point;
-      case symbolic_constants::boolean_true:
-      case symbolic_constants::boolean_false:
+      case symbolic_constant_enum::boolean_true:
+      case symbolic_constant_enum::boolean_false:
         return code_numeric_type::boolean;
     }
     throw type_error("Unhandled symbolic constant: {}", string_from_symbolic_constant(c.name()));
   }
 
-  ir::value_ptr operator()(const Constant& c) {
+  ir::value_ptr operator()(const symbolic_constant& c) {
     return push_operation(ir::load{c}, numeric_type_from_constant(c));
   }
 

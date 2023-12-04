@@ -264,7 +264,7 @@ struct ast_from_ir {
     return overloaded_visit(
         val->value_op(),
         [](const ir::load& load) {
-          return load.is_type<integer_constant, float_constant, Constant>();
+          return load.is_type<integer_constant, float_constant, symbolic_constant>();
         },
         [&](const ir::cast&) { return should_inline_constant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
@@ -346,7 +346,7 @@ struct ast_from_ir {
     return std::visit(
         [this](const auto& inner) -> ast::variant {
           using T = std::decay_t<decltype(inner)>;
-          if constexpr (std::is_same_v<T, Constant>) {
+          if constexpr (std::is_same_v<T, symbolic_constant>) {
             return ast::special_constant{inner.name()};
           } else if constexpr (std::is_same_v<T, integer_constant>) {
             return ast::integer_literal{inner.get_value()};

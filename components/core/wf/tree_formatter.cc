@@ -159,7 +159,7 @@ struct tree_formatter {
     visit_right(conditional.else_branch());
   }
 
-  void operator()(const Constant& constant) {
+  void operator()(const symbolic_constant& constant) {
     append_name("Constant ({})", string_from_symbolic_constant(constant.name()));
   }
 

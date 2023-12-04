@@ -17,7 +17,7 @@ struct CompareNumerics {
     return static_cast<rational_constant>(a) < static_cast<rational_constant>(b);
   }
 
-  static double float_from_constant(const Constant& c) {
+  static double float_from_constant(const symbolic_constant& c) {
     const double value = double_from_symbolic_constant(c.name());
     if (std::isnan(value)) {
       throw type_error("Invalid comparison with constant: {}",
@@ -26,19 +26,19 @@ struct CompareNumerics {
     return value;
   }
 
-  bool operator()(const integer_constant& a, const Constant& b) const {
+  bool operator()(const integer_constant& a, const symbolic_constant& b) const {
     // This must have a value since float will not be nan.
     return compare_int_float(a.get_value(), float_from_constant(b)).value() ==
            relative_order::less_than;
   }
-  bool operator()(const Constant& a, const integer_constant& b) const {
+  bool operator()(const symbolic_constant& a, const integer_constant& b) const {
     return compare_int_float(b.get_value(), float_from_constant(a)).value() ==
            relative_order::greater_than;
   }
 
   // Floating point comparison should be viable for constants, there is no ambiguity from the
   // float precision for the set of constants that we have.
-  bool operator()(const Constant& a, const Constant& b) const {
+  bool operator()(const symbolic_constant& a, const symbolic_constant& b) const {
     return float_from_constant(a) < float_from_constant(b);
   }
 

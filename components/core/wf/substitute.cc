@@ -313,7 +313,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     using T = std::decay_t<decltype(target_concrete)>;
     // Don't allow the target type to be a numeric literal:
     using disallowed_types =
-        type_list<integer_constant, float_constant, rational_constant, Constant>;
+        type_list<integer_constant, float_constant, rational_constant, symbolic_constant>;
     if constexpr (type_list_contains_type_v<T, disallowed_types>) {
       throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {

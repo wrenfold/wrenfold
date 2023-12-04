@@ -57,7 +57,7 @@ enum class relational_operation {
 };
 
 // List of mathematical symbolic constants.
-enum class symbolic_constants : int {
+enum class symbolic_constant_enum {
   euler,
   pi,
   boolean_true,
@@ -65,7 +65,7 @@ enum class symbolic_constants : int {
 };
 
 // Types of numeric values (at code-generation time).
-enum class code_numeric_type : int {
+enum class code_numeric_type {
   boolean,
   integral,
   floating_point,
@@ -184,15 +184,16 @@ constexpr std::string_view string_from_relational_operation(
 }
 
 // Convert symbolic constant enum to string constant.
-inline constexpr std::string_view string_from_symbolic_constant(symbolic_constants value) noexcept {
+inline constexpr std::string_view string_from_symbolic_constant(
+    symbolic_constant_enum value) noexcept {
   switch (value) {
-    case symbolic_constants::euler:
+    case symbolic_constant_enum::euler:
       return "e";
-    case symbolic_constants::pi:
+    case symbolic_constant_enum::pi:
       return "pi";
-    case symbolic_constants::boolean_true:
+    case symbolic_constant_enum::boolean_true:
       return "true";
-    case symbolic_constants::boolean_false:
+    case symbolic_constant_enum::boolean_false:
       return "false";
   }
   return "<INVALID ENUM VALUE>";

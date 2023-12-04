@@ -72,7 +72,7 @@ Expr derivative_visitor::operator()(const conditional& cond) {
   return where(cond.condition(), cached_visit(cond.if_branch()), cached_visit(cond.else_branch()));
 }
 
-Expr derivative_visitor::operator()(const Constant&) const { return constants::zero; }
+Expr derivative_visitor::operator()(const symbolic_constant&) const { return constants::zero; }
 
 // Derivative of an abstract derivative expression.
 Expr derivative_visitor::operator()(const derivative& derivative,

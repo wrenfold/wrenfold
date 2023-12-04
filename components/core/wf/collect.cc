@@ -117,7 +117,7 @@ struct collect_visitor {
   Expr operator()(const power& pow) { return recurse(pow); }
   Expr operator()(const cast_bool& cast) { return recurse(cast); }
   Expr operator()(const conditional& conditional) { return recurse(conditional); }
-  Expr operator()(const Constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const symbolic_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const derivative& diff, const Expr&) { return recurse(diff); }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
   Expr operator()(const integer_constant&, const Expr& arg) const { return arg; }

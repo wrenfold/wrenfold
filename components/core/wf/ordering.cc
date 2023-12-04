@@ -14,7 +14,7 @@ struct order_visitor {
   // This visitor applies to any two members of `OrderOfTypes` that are _not_ the same type.
   template <typename Numeric,
             typename = enable_if_contains_type_t<Numeric, float_constant, integer_constant,
-                                                 rational_constant, Constant>>
+                                                 rational_constant, symbolic_constant>>
   constexpr relative_order compare(const Numeric& a, const Numeric& b) const noexcept {
     if (a < b) {
       return relative_order::less_than;
@@ -113,9 +113,10 @@ struct order_visitor {
 
 template <typename... Ts>
 static constexpr auto get_type_order_indices(type_list<Ts...>) {
-  using order_of_types = type_list<float_constant, integer_constant, rational_constant, Constant,
-                                   Infinity, Variable, multiplication, addition, power, function,
-                                   relational, conditional, cast_bool, derivative, Undefined>;
+  using order_of_types =
+      type_list<float_constant, integer_constant, rational_constant, symbolic_constant, Infinity,
+                Variable, multiplication, addition, power, function, relational, conditional,
+                cast_bool, derivative, Undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
   static_assert(type_list_size<order_of_types>::value == type_list_size<ExpressionTypeList>::value);

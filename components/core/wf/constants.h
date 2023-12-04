@@ -32,7 +32,7 @@ inline bool is_complex_infinity(const Expr& expr) {
 inline bool is_undefined(const Expr& expr) { return expr.is_identical_to(constants::undefined); }
 
 inline bool is_numeric_or_constant(const Expr& expr) {
-  return expr.is_type<Constant, integer_constant, float_constant, rational_constant>();
+  return expr.is_type<symbolic_constant, integer_constant, float_constant, rational_constant>();
 }
 
 }  // namespace math
