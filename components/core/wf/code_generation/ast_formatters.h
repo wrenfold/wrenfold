@@ -8,17 +8,17 @@ namespace math::ast {
 //
 
 template <typename Iterator>
-auto format_ast(Iterator it, const math::ast::ScalarType& s) {
+auto format_ast(Iterator it, const math::ast::scalar_type& s) {
   return fmt::format_to(it, "ScalarType<{}>", string_from_numeric_type(s.numeric_type()));
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const math::ast::MatrixType& m) {
+auto format_ast(Iterator it, const math::ast::matrix_type& m) {
   return fmt::format_to(it, "MatrixType<{}, {}>", m.rows(), m.cols());
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const math::ast::Type& t) {
+auto format_ast(Iterator it, const math::ast::argument_type& t) {
   return std::visit([it = std::move(it)](const auto& x) { return format_ast(it, x); }, t);
 }
 
@@ -108,7 +108,7 @@ auto format_ast(Iterator it, const math::ast::Multiply& m) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const math::ast::OptionalOutputBranch& m) {
-  return fmt::format_to(it, "OptionalOutputBranch({}, <{} statements>)", m.argument->name(),
+  return fmt::format_to(it, "OptionalOutputBranch({}, <{} statements>)", m.arg->name(),
                         m.statements.size());
 }
 
@@ -136,12 +136,13 @@ struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<math::ast::Var
 
 // Support fmt printing of types convertible to `ast::Type`
 template <typename T>
-struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<math::ast::Type, T>, char>> {
+struct fmt::formatter<
+    T, std::enable_if_t<std::is_constructible_v<math::ast::argument_type, T>, char>> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename Arg, typename FormatContext>
   auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
-    if constexpr (std::is_same_v<math::ast::Type, Arg>) {
+    if constexpr (std::is_same_v<math::ast::argument_type, Arg>) {
       return std::visit([&](const auto& x) { return math::ast::format_ast(ctx.out(), x); }, m);
     } else {
       return format_ast(ctx.out(), m);

@@ -16,22 +16,22 @@ std::string cpp_code_generator::generate_code(const ast::FunctionSignature& sign
     std::size_t counter = 0;
     for (const auto& arg : signature.arguments) {
       if (arg->is_matrix()) {
-        const ast::MatrixType& mat = std::get<ast::MatrixType>(arg->type());
+        const ast::matrix_type& mat = std::get<ast::matrix_type>(arg->type());
 
         // Generate matrix conversion logic.
         // TODO: Support dynamic sizes here too.
         result.format("auto _{} = ", arg->name());
         const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
         switch (arg->direction()) {
-          case ast::ArgumentDirection::Input:
+          case ast::argument_direction::input:
             result.format("{}::make_input_span<{}>({});\n", UtilityNamespace, dims_type,
                           arg->name());
             break;
-          case ast::ArgumentDirection::Output:
+          case ast::argument_direction::output:
             result.format("{}::make_output_span<{}>({});\n", UtilityNamespace, dims_type,
                           arg->name());
             break;
-          case ast::ArgumentDirection::OptionalOutput:
+          case ast::argument_direction::optional_output:
             result.format("{}::make_optional_output_span<{}>({});\n", UtilityNamespace, dims_type,
                           arg->name());
             break;
@@ -69,11 +69,11 @@ void cpp_code_generator::format_signature(code_formatter& formatter,
   formatter.format("template <typename Scalar");
   const bool has_matrix_args =
       std::any_of(signature.arguments.begin(), signature.arguments.end(),
-                  [](const std::shared_ptr<const ast::Argument>& arg) { return arg->is_matrix(); });
+                  [](const std::shared_ptr<const ast::argument>& arg) { return arg->is_matrix(); });
 
   if (has_matrix_args) {
     std::size_t counter = 0;
-    for (const std::shared_ptr<const ast::Argument>& arg : signature.arguments) {
+    for (const std::shared_ptr<const ast::argument>& arg : signature.arguments) {
       if (arg->is_matrix()) {
         formatter.format(", typename T{}", counter);
         ++counter;
@@ -83,7 +83,7 @@ void cpp_code_generator::format_signature(code_formatter& formatter,
   formatter.format(">\n");
 
   if (signature.return_value) {
-    if (!std::holds_alternative<ast::ScalarType>(*signature.return_value)) {
+    if (!std::holds_alternative<ast::scalar_type>(*signature.return_value)) {
       // TODO: To support returning matrices in C++ we need more than just a `span` type.
       throw type_error("Only scalars can be returned.");
     } else {
@@ -94,17 +94,17 @@ void cpp_code_generator::format_signature(code_formatter& formatter,
   }
 
   std::size_t counter = 0;
-  auto arg_printer = [&counter](code_formatter& formatter, const ast::Argument::shared_ptr& arg) {
+  auto arg_printer = [&counter](code_formatter& formatter, const ast::argument::shared_ptr& arg) {
     if (arg->is_matrix()) {
-      if (arg->direction() == ast::ArgumentDirection::Input) {
+      if (arg->direction() == ast::argument_direction::input) {
         formatter.format("const T{}&", counter);
       } else {
         formatter.format("T{}&&", counter);
       }
       ++counter;
     } else {
-      const NumericType numeric_type = std::get<ast::ScalarType>(arg->type()).numeric_type();
-      if (arg->direction() == ast::ArgumentDirection::Input) {
+      const NumericType numeric_type = std::get<ast::scalar_type>(arg->type()).numeric_type();
+      if (arg->direction() == ast::argument_direction::input) {
         formatter.format("const {}", cpp_string_from_numeric_cast_type(numeric_type));
       } else {
         // Output reference for now.
@@ -126,10 +126,10 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::Add& x
 void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::AssignOutputArgument& assignment) const {
   const auto& dest_name = assignment.argument->name();
-  const ast::Type& type = assignment.argument->type();
+  const ast::argument_type& type = assignment.argument->type();
 
-  if (std::holds_alternative<ast::MatrixType>(type)) {
-    const ast::MatrixType mat = std::get<ast::MatrixType>(type);
+  if (std::holds_alternative<ast::matrix_type>(type)) {
+    const ast::matrix_type mat = std::get<ast::matrix_type>(type);
     auto range = make_range<std::size_t>(0, assignment.values.size());
 
     // TODO: If there is a unit dimension, use the [] operator?
@@ -218,7 +218,7 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::Branch
 
 void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::ConstructReturnValue& x) const {
-  WF_ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
+  WF_ASSERT(std::holds_alternative<ast::scalar_type>(x.type), "We cannot return matrices");
   WF_ASSERT_EQUAL(1, x.args.size());
   formatter.format("return {};", make_view(x.args[0]));
 }
@@ -258,10 +258,10 @@ void cpp_code_generator::operator()(code_formatter& formatter,
 
 void cpp_code_generator::operator()(code_formatter& formatter, const ast::InputValue& x) const {
   WF_ASSERT(x.argument);
-  if (std::holds_alternative<ast::ScalarType>(x.argument->type())) {
+  if (std::holds_alternative<ast::scalar_type>(x.argument->type())) {
     formatter.format(x.argument->name());
   } else {
-    const ast::MatrixType& mat = std::get<ast::MatrixType>(x.argument->type());
+    const ast::matrix_type& mat = std::get<ast::matrix_type>(x.argument->type());
     const auto [r, c] = mat.compute_indices(x.element);
     formatter.format("_{}({}, {})", x.argument->name(), r, c);
   }
@@ -273,8 +273,7 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::Multip
 
 void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::OptionalOutputBranch& x) const {
-  formatter.format("if (static_cast<bool>({}{})) ", x.argument->is_matrix() ? "_" : "",
-                   x.argument->name());
+  formatter.format("if (static_cast<bool>({}{})) ", x.arg->is_matrix() ? "_" : "", x.arg->name());
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
 }
 

@@ -90,10 +90,10 @@ struct record_output<return_value<T>> {
   void operator()(ast::FunctionSignature& desc, const return_value<T>& output) const {
     // This is a return value.
     if constexpr (std::is_same_v<Expr, T>) {
-      desc.return_value = ast::ScalarType(NumericType::Real);
+      desc.return_value = ast::scalar_type(NumericType::Real);
     } else {
       const MatrixExpr& mat = output.value();
-      desc.return_value = ast::MatrixType(mat.rows(), mat.cols());
+      desc.return_value = ast::matrix_type(mat.rows(), mat.cols());
     }
   }
 };
@@ -102,15 +102,15 @@ template <typename T>
 struct record_output<output_arg<T>> {
   void operator()(ast::FunctionSignature& desc, const output_arg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
-      desc.add_argument(output.name(), ast::ScalarType(NumericType::Real),
-                        output.is_optional() ? ast::ArgumentDirection::OptionalOutput
-                                             : ast::ArgumentDirection::Output);
+      desc.add_argument(output.name(), ast::scalar_type(NumericType::Real),
+                        output.is_optional() ? ast::argument_direction::optional_output
+                                             : ast::argument_direction::output);
     } else {
       // todo: static assert this is StaticMatrix
       desc.add_argument(output.name(),
-                        ast::MatrixType(output.value().rows(), output.value().cols()),
-                        output.is_optional() ? ast::ArgumentDirection::OptionalOutput
-                                             : ast::ArgumentDirection::Output);
+                        ast::matrix_type(output.value().rows(), output.value().cols()),
+                        output.is_optional() ? ast::argument_direction::optional_output
+                                             : ast::argument_direction::output);
     }
   }
 };
@@ -121,15 +121,15 @@ struct record_input_argument;
 template <>
 struct record_input_argument<Expr> {
   void operator()(ast::FunctionSignature& desc, const arg& arg) const {
-    desc.add_argument(arg.name(), ast::ScalarType(NumericType::Real),
-                      ast::ArgumentDirection::Input);
+    desc.add_argument(arg.name(), ast::scalar_type(NumericType::Real),
+                      ast::argument_direction::input);
   }
 };
 
 template <index_t Rows, index_t Cols>
 struct record_input_argument<type_annotations::static_matrix<Rows, Cols>> {
   void operator()(ast::FunctionSignature& desc, const arg& arg) const {
-    desc.add_argument(arg.name(), ast::MatrixType(Rows, Cols), ast::ArgumentDirection::Input);
+    desc.add_argument(arg.name(), ast::matrix_type(Rows, Cols), ast::argument_direction::input);
   }
 };
 

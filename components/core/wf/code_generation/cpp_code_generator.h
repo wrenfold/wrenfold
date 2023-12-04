@@ -71,7 +71,7 @@ class cpp_code_generator {
 
   // Format ptr to argument.
   void operator()(code_formatter& formatter,
-                  const std::shared_ptr<const ast::Argument>& var) const {
+                  const std::shared_ptr<const ast::argument>& var) const {
     WF_ASSERT(var);
     formatter.format(var->name());
   }

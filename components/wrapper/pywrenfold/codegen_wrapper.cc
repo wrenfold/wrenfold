@@ -23,10 +23,10 @@ namespace math {
 
 // Pybind11 requires that std::variant be default-constructible.
 // We have to allow monostate to achieve this.
-static ast::Type type_from_default_constructible_variant(
-    const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& variant) {
+static ast::argument_type type_from_default_constructible_variant(
+    const std::variant<std::monostate, ast::scalar_type, ast::matrix_type>& variant) {
   return std::visit(
-      [](const auto& element) -> ast::Type {
+      [](const auto& element) -> ast::argument_type {
         using T = std::decay_t<decltype(element)>;
         if constexpr (std::is_same_v<T, std::monostate>) {
           throw type_error("`type` cannot be None");
@@ -131,22 +131,22 @@ void wrap_codegen_operations(py::module_& m) {
       .value("LessThanOrEqual", RelationalOperation::LessThanOrEqual)
       .value("Equal", RelationalOperation::Equal);
 
-  py::enum_<ast::ArgumentDirection>(m, "ArgumentDirection")
-      .value("Input", ast::ArgumentDirection::Input)
-      .value("Output", ast::ArgumentDirection::Output)
-      .value("OptionalOutput", ast::ArgumentDirection::OptionalOutput);
+  py::enum_<ast::argument_direction>(m, "ArgumentDirection")
+      .value("Input", ast::argument_direction::input)
+      .value("Output", ast::argument_direction::output)
+      .value("OptionalOutput", ast::argument_direction::optional_output);
 
-  py::class_<ast::ScalarType>(m, "ScalarType")
+  py::class_<ast::scalar_type>(m, "ScalarType")
       .def(py::init<NumericType>())
-      .def_property_readonly("numeric_type", &ast::ScalarType::numeric_type)
-      .def("__repr__", &format_ast<ast::ScalarType>);
+      .def_property_readonly("numeric_type", &ast::scalar_type::numeric_type)
+      .def("__repr__", &format_ast<ast::scalar_type>);
 
-  py::class_<ast::MatrixType>(m, "MatrixType")
+  py::class_<ast::matrix_type>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
-      .def_property_readonly("num_rows", &ast::MatrixType::rows)
-      .def_property_readonly("num_cols", &ast::MatrixType::cols)
-      .def("compute_indices", &ast::MatrixType::compute_indices)
-      .def("__repr__", &format_ast<ast::MatrixType>);
+      .def_property_readonly("num_rows", &ast::matrix_type::rows)
+      .def_property_readonly("num_cols", &ast::matrix_type::cols)
+      .def("compute_indices", &ast::matrix_type::compute_indices)
+      .def("__repr__", &format_ast<ast::matrix_type>);
 
   py::class_<ast::VariableRef>(m, "VariableRef")
       .def_property_readonly("name", [](const ast::VariableRef& v) { return v.name; })
@@ -164,8 +164,8 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "add_argument",
           [](ast::FunctionSignature& self, const std::string_view name,
-             const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& type,
-             ast::ArgumentDirection direction) {
+             const std::variant<std::monostate, ast::scalar_type, ast::matrix_type>& type,
+             ast::argument_direction direction) {
             return self.add_argument(name, type_from_default_constructible_variant(type),
                                      direction);
           },
@@ -173,7 +173,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "set_return_type",
           [](ast::FunctionSignature& self,
-             const std::variant<std::monostate, ast::ScalarType, ast::MatrixType>& type) {
+             const std::variant<std::monostate, ast::scalar_type, ast::matrix_type>& type) {
             self.return_value = type_from_default_constructible_variant(type);
           },
           py::arg("type"))
@@ -184,12 +184,12 @@ void wrap_codegen_operations(py::module_& m) {
 
   // Use std::shared_ptr to store argument, since this is what ast::FunctionSignature uses.
   // If we don't do this, we might free something incorrectly when accessing arguments.
-  py::class_<ast::Argument, std::shared_ptr<ast::Argument>>(m, "Argument")
-      .def_property_readonly("name", &ast::Argument::name)
-      .def_property_readonly("type", &ast::Argument::type)
-      .def_property_readonly("is_optional", &ast::Argument::is_optional)
+  py::class_<ast::argument, std::shared_ptr<ast::argument>>(m, "Argument")
+      .def_property_readonly("name", &ast::argument::name)
+      .def_property_readonly("type", &ast::argument::type)
+      .def_property_readonly("is_optional", &ast::argument::is_optional)
       .def("__repr__",
-           [](const ast::Argument& self) { return fmt::format("Argument('{}')", self.name()); });
+           [](const ast::argument& self) { return fmt::format("Argument('{}')", self.name()); });
 
   py::class_<ast::Add>(m, "Add")
       .def_property_readonly("left", [](const ast::Add& x) { return *x.left; })
@@ -294,8 +294,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def("__repr__", &format_ast<ast::Multiply>);
 
   py::class_<ast::OptionalOutputBranch>(m, "OptionalOutputBranch")
-      .def_property_readonly("argument",
-                             [](const ast::OptionalOutputBranch& b) { return b.argument; })
+      .def_property_readonly("argument", [](const ast::OptionalOutputBranch& b) { return b.arg; })
       .def_property_readonly("statements",
                              [](const ast::OptionalOutputBranch& b) { return b.statements; })
       .def("__repr__", &format_ast<ast::OptionalOutputBranch>);

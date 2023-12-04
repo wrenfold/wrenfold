@@ -26,16 +26,16 @@ constexpr std::string_view type_string_from_numeric_type(NumericType type) {
   throw type_error("Not a valid enum value: {}", string_from_numeric_type(type));
 }
 
-constexpr std::string_view type_string_from_numeric_type(const ast::ScalarType& scalar) {
+constexpr std::string_view type_string_from_numeric_type(const ast::scalar_type& scalar) {
   return type_string_from_numeric_type(scalar.numeric_type());
 }
 
-constexpr std::string_view span_type_from_direction(ast::ArgumentDirection direction) {
+constexpr std::string_view span_type_from_direction(ast::argument_direction direction) {
   switch (direction) {
-    case ast::ArgumentDirection::Input:
+    case ast::argument_direction::input:
       return "Span2D";
-    case ast::ArgumentDirection::Output:
-    case ast::ArgumentDirection::OptionalOutput:
+    case ast::argument_direction::output:
+    case ast::argument_direction::optional_output:
       return "OutputSpan2D";
   }
   return "<NOT A VALID ENUM VALUE>";
@@ -90,13 +90,13 @@ void rust_code_generator::format_signature(math::code_formatter& formatter,
     }
 
     switch (arg->direction()) {
-      case ast::ArgumentDirection::Input:
+      case ast::argument_direction::input:
         formatter.format("{}{}, ", arg->is_matrix() ? "&" : "", output_type);
         break;
-      case ast::ArgumentDirection::Output:
+      case ast::argument_direction::output:
         formatter.format("&mut {}, ", output_type);
         break;
-      case ast::ArgumentDirection::OptionalOutput:
+      case ast::argument_direction::optional_output:
         formatter.format("Option<&mut {}>, ", output_type);
         break;
     }
@@ -105,7 +105,7 @@ void rust_code_generator::format_signature(math::code_formatter& formatter,
   if (!signature.return_value) {
     formatter.format(")\n");
   } else {
-    const auto& scalar = std::get<ast::ScalarType>(*signature.return_value);
+    const auto& scalar = std::get<ast::scalar_type>(*signature.return_value);
     formatter.format(") -> {}\n", type_string_from_numeric_type(scalar));
   }
 
@@ -114,7 +114,7 @@ void rust_code_generator::format_signature(math::code_formatter& formatter,
       std::size_t counter = 0;
       for (const auto& arg : signature.arguments) {
         if (arg->is_matrix()) {
-          const ast::MatrixType mat = std::get<ast::MatrixType>(arg->type());
+          const ast::matrix_type mat = std::get<ast::matrix_type>(arg->type());
           formatter.format("T{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
                            span_type_from_direction(arg->direction()), mat.rows(), mat.cols(),
                            type_string_from_numeric_type(NumericType::Real));
@@ -131,10 +131,10 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::Add& 
 void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::AssignOutputArgument& assignment) const {
   const auto& dest_name = assignment.argument->name();
-  const ast::Type& type = assignment.argument->type();
+  const ast::argument_type& type = assignment.argument->type();
 
-  if (std::holds_alternative<ast::MatrixType>(type)) {
-    const ast::MatrixType mat = std::get<ast::MatrixType>(type);
+  if (std::holds_alternative<ast::matrix_type>(type)) {
+    const ast::matrix_type mat = std::get<ast::matrix_type>(type);
     auto range = make_range<std::size_t>(0, assignment.values.size());
     formatter.join(
         [&](code_formatter& fmt, std::size_t i) {
@@ -226,7 +226,7 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::Compa
 
 void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::ConstructReturnValue& x) const {
-  WF_ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
+  WF_ASSERT(std::holds_alternative<ast::scalar_type>(x.type), "We cannot return matrices");
   WF_ASSERT_EQUAL(1, x.args.size());
   formatter.format("{}", make_view(x.args[0]));
 }
@@ -247,7 +247,7 @@ void rust_code_generator::operator()(math::code_formatter& formatter, const ast:
 void rust_code_generator::operator()(code_formatter& formatter, const ast::InputValue& x) const {
   WF_ASSERT(x.argument);
   if (x.argument->is_matrix()) {
-    const ast::MatrixType mat = std::get<ast::MatrixType>(x.argument->type());
+    const ast::matrix_type mat = std::get<ast::matrix_type>(x.argument->type());
     const auto [r, c] = mat.compute_indices(x.element);
     formatter.format("{}.get({}, {})", x.argument->name(), r, c);
   } else {
@@ -281,7 +281,7 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::Multi
 
 void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::OptionalOutputBranch& x) const {
-  formatter.format("if let Some({}) = {} ", x.argument->name(), x.argument->name());
+  formatter.format("if let Some({}) = {} ", x.arg->name(), x.arg->name());
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
 }
 
