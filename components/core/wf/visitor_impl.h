@@ -41,8 +41,8 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
     return visitor(cast_unchecked<power>(expr));
   } else if (expr.is_type<rational_constant>()) {
     return visitor(cast_unchecked<rational_constant>(expr));
-  } else if (expr.is_type<Relational>()) {
-    return visitor(cast_unchecked<Relational>(expr));
+  } else if (expr.is_type<relational>()) {
+    return visitor(cast_unchecked<relational>(expr));
   } else if (expr.is_type<Undefined>()) {
     return visitor(cast_unchecked<Undefined>(expr));
   } else {

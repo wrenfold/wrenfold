@@ -47,23 +47,23 @@ Expr operator/(const Expr& a, const Expr& b) {
 }
 
 Expr operator<(const Expr& a, const Expr& b) {
-  return Relational::create(relational_operation::less_than, a, b);
+  return relational::create(relational_operation::less_than, a, b);
 }
 
 Expr operator>(const Expr& a, const Expr& b) {
-  return Relational::create(relational_operation::less_than, b, a);
+  return relational::create(relational_operation::less_than, b, a);
 }
 
 Expr operator<=(const Expr& a, const Expr& b) {
-  return Relational::create(relational_operation::less_than_or_equal, a, b);
+  return relational::create(relational_operation::less_than_or_equal, a, b);
 }
 
 Expr operator>=(const Expr& a, const Expr& b) {
-  return Relational::create(relational_operation::less_than_or_equal, b, a);
+  return relational::create(relational_operation::less_than_or_equal, b, a);
 }
 
 Expr operator==(const Expr& a, const Expr& b) {
-  return Relational::create(relational_operation::equal, a, b);
+  return relational::create(relational_operation::equal, a, b);
 }
 
 // Visitor to determine mathematical precedence.
@@ -78,7 +78,7 @@ struct PrecedenceVisitor {
       return precedence::power;
     } else if constexpr (std::is_same_v<rational_constant, T>) {
       return precedence::multiplication;
-    } else if constexpr (std::is_same_v<Relational, T>) {
+    } else if constexpr (std::is_same_v<relational, T>) {
       return precedence::relational;
     } else {
       return precedence::none;

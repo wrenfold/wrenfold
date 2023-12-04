@@ -19,7 +19,7 @@ class plain_formatter {
   void operator()(const multiplication& mul);
   void operator()(const power& pow);
   void operator()(const rational_constant& rational);
-  void operator()(const Relational& relational);
+  void operator()(const relational& relational);
   void operator()(const function& func);
   void operator()(const Undefined&);
   void operator()(const Variable& var);

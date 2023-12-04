@@ -95,7 +95,7 @@ struct RelationalSimplification {
   relational_operation operation_;
 };
 
-Expr Relational::create(relational_operation operation, Expr left, Expr right) {
+Expr relational::create(relational_operation operation, Expr left, Expr right) {
   if (is_complex_infinity(left) || is_complex_infinity(right) || is_undefined(left) ||
       is_undefined(right)) {
     throw type_error("Cannot construct relational with types: {} {} {}", left.type_name(),
@@ -114,7 +114,7 @@ Expr Relational::create(relational_operation operation, Expr left, Expr right) {
       std::swap(left, right);
     }
   }
-  return make_expr<Relational>(operation, std::move(left), std::move(right));
+  return make_expr<relational>(operation, std::move(left), std::move(right));
 }
 
 }  // namespace math

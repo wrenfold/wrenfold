@@ -52,7 +52,7 @@ Expr multiplication::from_operands(absl::Span<const Expr> args) {
   }
 
   // Now canonicalize the arguments:
-  MultiplicationParts builder{args.size()};
+  multiplication_parts builder{args.size()};
   for (const Expr& term : args) {
     builder.multiply_term(term);
   }
@@ -61,8 +61,8 @@ Expr multiplication::from_operands(absl::Span<const Expr> args) {
 }
 
 template <bool FactorizeIntegers>
-struct MultiplyVisitor {
-  explicit MultiplyVisitor(MultiplicationParts& builder) : builder(builder) {}
+struct multiply_visitor {
+  explicit multiply_visitor(multiplication_parts& builder) : builder(builder) {}
 
   void insert_integer_factors(const std::vector<prime_factor>& factors, bool positive) {
     for (const prime_factor& factor : factors) {
@@ -128,28 +128,28 @@ struct MultiplyVisitor {
     }
   }
 
-  MultiplicationParts& builder;
+  multiplication_parts& builder;
 };
 
-MultiplicationParts::MultiplicationParts(const multiplication& mul, bool factorize_integers)
-    : MultiplicationParts(mul.size()) {
+multiplication_parts::multiplication_parts(const multiplication& mul, bool factorize_integers)
+    : multiplication_parts(mul.size()) {
   for (const Expr& expr : mul) {
     multiply_term(expr, factorize_integers);
   }
   normalize_coefficients();
 }
 
-void MultiplicationParts::multiply_term(const Expr& arg, bool factorize_integers) {
+void multiplication_parts::multiply_term(const Expr& arg, bool factorize_integers) {
   if (factorize_integers) {
-    MultiplyVisitor<true> visitor{*this};
+    multiply_visitor<true> visitor{*this};
     visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
   } else {
-    MultiplyVisitor<false> visitor{*this};
+    multiply_visitor<false> visitor{*this};
     visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
   }
 }
 
-void MultiplicationParts::normalize_coefficients() {
+void multiplication_parts::normalize_coefficients() {
   for (auto it = terms.begin(); it != terms.end(); ++it) {
     const integer_constant* base = cast_ptr<integer_constant>(it->first);
     const rational_constant* exponent = cast_ptr<rational_constant>(it->second);
@@ -183,7 +183,7 @@ void MultiplicationParts::normalize_coefficients() {
   }
 }
 
-Expr MultiplicationParts::create_multiplication() const {
+Expr multiplication_parts::create_multiplication() const {
   multiplication::container_type args{};
 
   // TODO: Would be good to front-load this logic so we can early exit before building the map.
@@ -264,9 +264,9 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
   });
 }
 
-MultiplicationFormattingInfo get_formatting_info(const multiplication& mul) {
-  using BaseExp = MultiplicationFormattingInfo::BaseExp;
-  MultiplicationFormattingInfo result{};
+multiplication_format_parts get_formatting_info(const multiplication& mul) {
+  using base_exp = multiplication_format_parts::base_exp;
+  multiplication_format_parts result{};
 
   // Sort into canonical order:
   absl::InlinedVector<Expr, 16> terms{mul.begin(), mul.end()};
@@ -314,13 +314,13 @@ MultiplicationFormattingInfo get_formatting_info(const multiplication& mul) {
       const bool is_negative_exp = is_negative_number(coeff);
       if (is_negative_exp) {
         if (is_negative_one(exponent)) {
-          result.denominator.emplace_back(BaseExp{std::move(base), constants::one});
+          result.denominator.emplace_back(base_exp{std::move(base), constants::one});
         } else {
           // Flip the sign and create a new power.
-          result.denominator.emplace_back(BaseExp{std::move(base), -exponent});
+          result.denominator.emplace_back(base_exp{std::move(base), -exponent});
         }
       } else {
-        result.numerator.emplace_back(BaseExp{std::move(base), std::move(exponent)});
+        result.numerator.emplace_back(base_exp{std::move(base), std::move(exponent)});
       }
     }
   }

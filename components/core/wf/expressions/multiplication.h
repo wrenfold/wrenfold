@@ -102,12 +102,12 @@ std::pair<Expr, Expr> split_multiplication(const multiplication& mul, const Expr
 std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr);
 
 // Helper object used to execute multiplications.
-struct MultiplicationParts {
-  MultiplicationParts() = default;
-  explicit MultiplicationParts(std::size_t capacity) { terms.reserve(capacity); }
+struct multiplication_parts {
+  multiplication_parts() = default;
+  explicit multiplication_parts(std::size_t capacity) { terms.reserve(capacity); }
 
   // Construct from existing multiplication.
-  explicit MultiplicationParts(const multiplication& mul, bool factorize_integers);
+  explicit multiplication_parts(const multiplication& mul, bool factorize_integers);
 
   // Rational coefficient.
   rational_constant rational_coeff{1, 1};
@@ -131,18 +131,18 @@ struct MultiplicationParts {
 // A decomposition of `Multiplication` that is more convenient for printing.
 // This is defined here and not in one particular formatter, since it is likely useful more than
 // once.
-struct MultiplicationFormattingInfo {
-  struct BaseExp {
+struct multiplication_format_parts {
+  struct base_exp {
     Expr base;
     Expr exponent;
   };
 
   bool is_negative{false};
-  std::vector<std::variant<integer_constant, float_constant, BaseExp>> numerator;
-  std::vector<std::variant<integer_constant, float_constant, BaseExp>> denominator;
+  std::vector<std::variant<integer_constant, float_constant, base_exp>> numerator;
+  std::vector<std::variant<integer_constant, float_constant, base_exp>> denominator;
 };
 
-// Create `MultiplicationFormattingInfo` from a multiplication.
-MultiplicationFormattingInfo get_formatting_info(const multiplication& mul);
+// Create `multiplication_format_parts` from a multiplication.
+multiplication_format_parts get_formatting_info(const multiplication& mul);
 
 }  // namespace math

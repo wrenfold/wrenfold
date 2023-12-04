@@ -156,23 +156,23 @@ void plain_formatter::operator()(const matrix& mat) {
 
 void plain_formatter::operator()(const multiplication& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
-  using BaseExp = MultiplicationFormattingInfo::BaseExp;
+  using base_exp = multiplication_format_parts::base_exp;
 
   // Break multiplication up into numerator and denominator:
-  const MultiplicationFormattingInfo info = get_formatting_info(expr);
+  const multiplication_format_parts info = get_formatting_info(expr);
 
   if (info.is_negative) {
     output_ += "-";
   }
 
   const auto format_element =
-      [this](const std::variant<integer_constant, float_constant, BaseExp>& element) {
+      [this](const std::variant<integer_constant, float_constant, base_exp>& element) {
         if (std::holds_alternative<integer_constant>(element)) {
           this->operator()(std::get<integer_constant>(element));
         } else if (std::holds_alternative<float_constant>(element)) {
           this->operator()(std::get<float_constant>(element));
         } else {
-          const BaseExp& pow = std::get<BaseExp>(element);
+          const base_exp& pow = std::get<base_exp>(element);
           if (is_one(pow.exponent)) {
             this->format_precedence(precedence::multiplication, pow.base);
           } else {
@@ -224,7 +224,7 @@ void plain_formatter::operator()(const rational_constant& expr) {
   fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());
 }
 
-void plain_formatter::operator()(const Relational& expr) {
+void plain_formatter::operator()(const relational& expr) {
   format_precedence(precedence::relational, expr.left());
   fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
   format_precedence(precedence::relational, expr.right());

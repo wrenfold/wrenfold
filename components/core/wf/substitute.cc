@@ -139,7 +139,7 @@ struct substitute_mul_visitor
   Expr attempt_partial(const Expr& input_expression, const multiplication& candidate) {
     // Take this multiplication and break it into constituent parts.
     // TODO: Should we just store multiplications pre-factored in this format?
-    MultiplicationParts input_parts{candidate, true};
+    multiplication_parts input_parts{candidate, true};
 
     if (target_parts.float_coeff.has_value()) {
       if (!input_parts.float_coeff ||
@@ -209,7 +209,7 @@ struct substitute_mul_visitor
   }
 
  protected:
-  const MultiplicationParts target_parts;
+  const multiplication_parts target_parts;
 };
 
 // Specialization for power so we can match.

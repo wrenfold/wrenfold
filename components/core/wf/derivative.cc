@@ -193,7 +193,7 @@ Expr derivative_visitor::operator()(const power& pow) {
 
 Expr derivative_visitor::operator()(const rational_constant&) const { return constants::zero; }
 
-Expr derivative_visitor::operator()(const Relational&, const Expr& rel_expr) const {
+Expr derivative_visitor::operator()(const relational&, const Expr& rel_expr) const {
   // Cannot differentiate relationals, so insert an abstract expression.
   return derivative::create(rel_expr, argument_, 1);
 }

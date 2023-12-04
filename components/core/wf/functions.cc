@@ -408,11 +408,11 @@ struct bool_cast_visitor {
     return std::nullopt;
   }
 
-  std::optional<Expr> operator()(const Relational&, const Expr& arg) const {
+  std::optional<Expr> operator()(const relational&, const Expr& arg) const {
     return make_expr<cast_bool>(arg);
   }
 
-  template <typename T, typename = enable_if_does_not_contain_type_t<T, Relational>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, relational>>
   std::optional<Expr> operator()(const T&) const noexcept {
     return std::nullopt;
   }

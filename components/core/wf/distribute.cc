@@ -90,7 +90,7 @@ struct distribute_visitor {
   Expr operator()(const integer_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const float_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const rational_constant&, const Expr& arg) const { return arg; }
-  Expr operator()(const Relational& relation, const Expr&) const {
+  Expr operator()(const relational& relation, const Expr&) const {
     return relation.map_children(&distribute);
   }
   Expr operator()(const Undefined&) const { return constants::undefined; }

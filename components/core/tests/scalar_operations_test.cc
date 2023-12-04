@@ -380,8 +380,8 @@ TEST(ScalarOperationsTest, TestPowerUndefined) {
 TEST(ScalarOperationsTest, TestRelationals) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
 
-  ASSERT_TRUE((x > y).is_type<Relational>());
-  ASSERT_TRUE((x == y).is_type<Relational>());
+  ASSERT_TRUE((x > y).is_type<relational>());
+  ASSERT_TRUE((x == y).is_type<relational>());
   ASSERT_IDENTICAL(x > y, x > y);
   ASSERT_IDENTICAL(x > y, y < x);
   ASSERT_IDENTICAL(z <= x, x >= z);

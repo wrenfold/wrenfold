@@ -177,7 +177,7 @@ class determine_set_visitor {
   }
 
   // Relational is always 0 or 1, so it must be non-negative.
-  constexpr number_set operator()(const Relational&) const noexcept {
+  constexpr number_set operator()(const relational&) const noexcept {
     return number_set::real_non_negative;
   }
 

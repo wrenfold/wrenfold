@@ -123,7 +123,7 @@ struct collect_visitor {
   Expr operator()(const integer_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const float_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const rational_constant&, const Expr& arg) const { return arg; }
-  Expr operator()(const Relational& relation) { return recurse(relation); }
+  Expr operator()(const relational& relation) { return recurse(relation); }
   Expr operator()(const Undefined&) const { return constants::undefined; }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 

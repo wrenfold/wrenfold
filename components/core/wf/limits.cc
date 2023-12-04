@@ -477,7 +477,7 @@ class limit_visitor {
     return process_power(pow.base(), pow.exponent());
   }
 
-  std::optional<Expr> operator()(const Relational& rel, const Expr&) {
+  std::optional<Expr> operator()(const relational& rel, const Expr&) {
     // For relationals, we do a substitution:
     std::optional<Expr> left = visit(rel.left());
     if (!left) {
@@ -487,7 +487,7 @@ class limit_visitor {
     if (!right) {
       return std::nullopt;
     }
-    return Relational::create(rel.operation(), std::move(*left), std::move(*right));
+    return relational::create(rel.operation(), std::move(*left), std::move(*right));
   }
 
   std::optional<Expr> operator()(const Undefined&) const { return constants::undefined; }

@@ -85,7 +85,7 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::compare& cmp, const std::vector<ir::value_ptr>& args) const {
-    return Relational::create(cmp.operation(), map_value(args[0]), map_value(args[1]));
+    return relational::create(cmp.operation(), map_value(args[0]), map_value(args[1]));
   }
 
   Expr operator()(const ir::copy&, const std::vector<ir::value_ptr>& args) const {

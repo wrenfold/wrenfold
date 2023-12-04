@@ -510,7 +510,7 @@ class ir_form_visitor {
     return push_operation(ir::load{r}, code_numeric_type::floating_point);
   }
 
-  ir::value_ptr operator()(const Relational& relational) {
+  ir::value_ptr operator()(const relational& relational) {
     ir::value_ptr left = apply(relational.left());
     ir::value_ptr right = apply(relational.right());
     code_numeric_type promoted_type = std::max(left->numeric_type(), right->numeric_type());

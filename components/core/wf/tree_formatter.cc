@@ -125,7 +125,7 @@ struct tree_formatter {
     append_name("Rational ({} / {})", rational.numerator(), rational.denominator());
   }
 
-  void operator()(const Relational& relational) {
+  void operator()(const relational& relational) {
     append_name("Relational ({})", relational.operation_string());
     visit_left(relational.left());
     visit_right(relational.right());

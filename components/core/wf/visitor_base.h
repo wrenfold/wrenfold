@@ -27,7 +27,7 @@ using ExpressionTypeList = type_list<
     class multiplication,
     class power,
     class rational_constant,
-    class Relational,
+    class relational,
     class Undefined,
     class Variable
     >;
