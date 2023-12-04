@@ -178,7 +178,7 @@ struct assign_temporary {
 
 // Assign values to an output argument. All output values are written in one operation.
 struct assign_output_argument {
-  std::shared_ptr<const argument> argument;
+  std::shared_ptr<const argument> arg;
   std::vector<variant> values;
 };
 
@@ -272,7 +272,7 @@ struct function_definition {
 
 // Access an input argument at a specific index.
 struct input_value {
-  std::shared_ptr<const argument> argument;
+  std::shared_ptr<const argument> arg;
   index_t element;
 };
 

@@ -208,8 +208,8 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<ast::assign_output_argument>(m, "AssignOutputArgument")
       .def_property_readonly("argument",
                              [](const ast::assign_output_argument& x) {
-                               WF_ASSERT(x.argument);
-                               return *x.argument;
+                               WF_ASSERT(x.arg);
+                               return *x.arg;
                              })
       .def_property_readonly("values",
                              [](const ast::assign_output_argument& x) { return x.values; })
@@ -273,7 +273,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def("__repr__", &format_ast<ast::float_literal>);
 
   py::class_<ast::input_value>(m, "InputValue")
-      .def_property_readonly("argument", [](const ast::input_value& v) { return v.argument; })
+      .def_property_readonly("argument", [](const ast::input_value& v) { return v.arg; })
       .def_property_readonly("element", [](const ast::input_value& v) { return v.element; })
       .def("__repr__", &format_ast<ast::input_value>);
 
