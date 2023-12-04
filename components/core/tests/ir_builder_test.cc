@@ -25,7 +25,7 @@ template <typename Func, typename... Args>
 auto create_ir(Func&& func, const std::string_view name, Args&&... args) {
   auto tuple =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
-  std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
+  std::vector<expression_group>& expressions = std::get<1>(tuple);
   flat_ir flat_ir{expressions};
   flat_ir.eliminate_duplicates();
   return std::make_tuple(std::move(expressions), std::move(flat_ir));
@@ -36,9 +36,9 @@ struct OptionalArgPermutations {
   static constexpr std::size_t MaxOptionalArgs = 32;
 
   // Construct w/ vector of expressions.
-  explicit OptionalArgPermutations(const std::vector<ExpressionGroup>& expressions) {
+  explicit OptionalArgPermutations(const std::vector<expression_group>& expressions) {
     for (auto it = expressions.begin(); it != expressions.end(); ++it) {
-      if (it->key.usage == ExpressionUsage::OptionalOutputArgument) {
+      if (it->key.usage == expression_usage::optional_output_argument) {
         scatter_.emplace(it->key.name, scatter_.size());
       }
     }
@@ -72,11 +72,11 @@ struct OptionalArgPermutations {
 };
 
 template <typename T>
-void check_output_expressions(const std::vector<ExpressionGroup>& expected_expressions,
-                              const std::unordered_map<OutputKey, std::vector<Expr>,
-                                                       hash_struct<OutputKey>>& output_expressions,
+void check_output_expressions(const std::vector<expression_group>& expected_expressions,
+                              const std::unordered_map<output_key, std::vector<Expr>,
+                                                       hash_struct<output_key>>& output_expressions,
                               const T& ir) {
-  for (const ExpressionGroup& group : expected_expressions) {
+  for (const expression_group& group : expected_expressions) {
     auto it = output_expressions.find(group.key);
     ASSERT_TRUE(it != output_expressions.end())
         << fmt::format("Missing key ({}, {})\n", string_from_expression_usage(group.key.usage),
@@ -94,13 +94,13 @@ void check_output_expressions(const std::vector<ExpressionGroup>& expected_expre
   }
 }
 
-void check_expressions(const std::vector<ExpressionGroup>& expected_expressions,
+void check_expressions(const std::vector<expression_group>& expected_expressions,
                        const flat_ir& ir) {
   auto output_expressions = create_output_expression_map(ir.get_block(), {});
   check_output_expressions(expected_expressions, output_expressions, ir);
 }
 
-void check_expressions(const std::vector<ExpressionGroup>& expected_expressions,
+void check_expressions(const std::vector<expression_group>& expected_expressions,
                        const output_ir& ir) {
   const OptionalArgPermutations permutations{expected_expressions};
   for (std::size_t i = 0; i < permutations.num_permutations(); ++i) {

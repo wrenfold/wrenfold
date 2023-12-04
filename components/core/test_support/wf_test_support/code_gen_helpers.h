@@ -16,7 +16,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   auto tuple =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
   const ast::FunctionSignature& signature = std::get<0>(tuple);
-  const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
+  const std::vector<expression_group>& expressions = std::get<1>(tuple);
 
   flat_ir ir{expressions};
   ir.eliminate_duplicates();

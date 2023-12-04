@@ -58,7 +58,7 @@ struct AstBuilder {
         continue;
       }
       const ir::save& save = value->as_type<ir::save>();
-      const OutputKey& key = save.key();
+      const output_key& key = save.key();
 
       std::vector<ast::Variant> args{};
       args.reserve(value->num_operands());
@@ -66,7 +66,7 @@ struct AstBuilder {
         args.emplace_back(make_operation_argument(v));
       }
 
-      if (key.usage == ExpressionUsage::ReturnValue) {
+      if (key.usage == expression_usage::return_value) {
         WF_ASSERT(block->descendants.empty(), "Must be the final block");
         emplace_operation<ast::ConstructReturnValue>(signature_.return_value.value(),
                                                      std::move(args));

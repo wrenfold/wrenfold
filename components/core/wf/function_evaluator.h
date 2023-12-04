@@ -10,7 +10,7 @@ namespace math {
 // The outputs are inspected and converted into an instance of `ast::FunctionSignature` and a
 // vector of output expressions.
 template <typename Func, typename... ArgumentInfo>
-std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_description(
+std::tuple<ast::FunctionSignature, std::vector<expression_group>> build_function_description(
     Func&& func, const std::string_view function_name, ArgumentInfo&&... args_in) {
   static_assert(std::conjunction_v<std::is_constructible<arg, ArgumentInfo>...>,
                 "args_in must be convertible to type Arg.");
@@ -29,8 +29,8 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_
   std::tuple outputs = detail::invoke_with_output_capture<ArgList>(
       std::forward<Func>(func), std::make_index_sequence<Traits::arity>());
 
-  // Copy expressions into `ExpressionGroup` objects, one per output:
-  std::vector<ExpressionGroup> groups{};
+  // Copy expressions into `expression_group` objects, one per output:
+  std::vector<expression_group> groups{};
   detail::copy_output_expression_from_tuple(outputs, groups);
 
   // Add all the input arguments:
@@ -43,7 +43,7 @@ std::tuple<ast::FunctionSignature, std::vector<ExpressionGroup>> build_function_
         static_assert(
             std::conjunction_v<
                 is_output_arg_or_return_value<std::decay_t<decltype(output_expression)>>...>,
-            "All returned elements of the tuple must be explicitly marked as `ReturnValue` or "
+            "All returned elements of the tuple must be explicitly marked as `return_value` or "
             "`output_arg`.");
         (detail::record_output<std::decay_t<decltype(output_expression)>>{}(signature,
                                                                             output_expression),

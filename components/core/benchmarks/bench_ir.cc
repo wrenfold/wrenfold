@@ -37,7 +37,7 @@ auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<
 static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
   auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
                                           arg("q0"), arg("q1"), arg("alpha"));
-  const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
+  const std::vector<expression_group>& expressions = std::get<1>(tuple);
 
   for (auto _ : state) {
     flat_ir flat_ir{expressions};
@@ -51,7 +51,7 @@ BENCHMARK(BM_CreateFlatIrLowComplexity)->Iterations(200)->Unit(benchmark::kMilli
 static void BM_ConvertIrLowComplexity(benchmark::State& state) {
   auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
                                           arg("q0"), arg("q1"), arg("alpha"));
-  const std::vector<ExpressionGroup>& expressions = std::get<1>(tuple);
+  const std::vector<expression_group>& expressions = std::get<1>(tuple);
 
   for (auto _ : state) {
     state.PauseTiming();

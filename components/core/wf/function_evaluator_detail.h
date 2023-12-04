@@ -41,7 +41,7 @@ struct copy_output_expressions<type_annotations::static_matrix<Rows, Cols>> {
 };
 
 template <typename T>
-ExpressionGroup create_expression_group(const T& tuple_element) {
+expression_group create_expression_group(const T& tuple_element) {
   std::vector<Expr> expressions;
 
   // TInner is the inner type of `return_value` or `output_arg`.
@@ -49,23 +49,23 @@ ExpressionGroup create_expression_group(const T& tuple_element) {
   copy_output_expressions<TInner>{}(tuple_element.value(), expressions);
 
   if constexpr (is_return_value<T>::value) {
-    OutputKey key{ExpressionUsage::ReturnValue, ""};
-    return ExpressionGroup(std::move(expressions), std::move(key));
+    output_key key{expression_usage::return_value, ""};
+    return expression_group(std::move(expressions), std::move(key));
   } else {
     const output_arg<TInner>& as_output_arg = tuple_element;
-    OutputKey key{as_output_arg.is_optional() ? ExpressionUsage::OptionalOutputArgument
-                                              : ExpressionUsage::OutputArgument,
-                  as_output_arg.name()};
-    return ExpressionGroup(std::move(expressions), std::move(key));
+    output_key key{as_output_arg.is_optional() ? expression_usage::optional_output_argument
+                                               : expression_usage::output_argument,
+                   as_output_arg.name()};
+    return expression_group(std::move(expressions), std::move(key));
   }
 }
 
 template <typename... Ts, std::size_t... Indices>
 void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
-                                       std::vector<ExpressionGroup>& groups,
+                                       std::vector<expression_group>& groups,
                                        std::index_sequence<Indices...>) {
   static_assert(std::conjunction_v<is_output_arg_or_return_value<Ts>...>,
-                "All returned elements of the tuple must be explicitly marked as `ReturnValue` or "
+                "All returned elements of the tuple must be explicitly marked as `return_value` or "
                 "`output_arg`.");
   static_assert(count_return_values_v<Ts...> <= 1, "Only one return value is allowed.");
   groups.reserve(sizeof...(Ts));
@@ -77,7 +77,7 @@ void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
 // elements of the tuple.
 template <typename... Ts>
 void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
-                                       std::vector<ExpressionGroup>& groups) {
+                                       std::vector<expression_group>& groups) {
   copy_output_expression_from_tuple(output_tuple, groups,
                                     std::make_index_sequence<sizeof...(Ts)>());
 }

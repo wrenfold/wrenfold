@@ -7,9 +7,9 @@ namespace math {
 
 static constexpr std::string_view UtilityNamespace = "math";
 
-std::string CppCodeGenerator::generate_code(const ast::FunctionSignature& signature,
-                                            const std::vector<ast::Variant>& body) const {
-  CodeFormatter result;
+std::string cpp_code_generator::generate_code(const ast::FunctionSignature& signature,
+                                              const std::vector<ast::Variant>& body) const {
+  code_formatter result;
   format_signature(result, signature);
   result.with_indentation(2, "{\n", "\n}", [&] {
     // Convert input args to spans:
@@ -64,8 +64,8 @@ constexpr static std::string_view cpp_string_from_numeric_cast_type(
   return "<INVALID ENUM VALUE>";
 }
 
-void CppCodeGenerator::format_signature(CodeFormatter& formatter,
-                                        const ast::FunctionSignature& signature) const {
+void cpp_code_generator::format_signature(code_formatter& formatter,
+                                          const ast::FunctionSignature& signature) const {
   formatter.format("template <typename Scalar");
   const bool has_matrix_args =
       std::any_of(signature.arguments.begin(), signature.arguments.end(),
@@ -94,7 +94,7 @@ void CppCodeGenerator::format_signature(CodeFormatter& formatter,
   }
 
   std::size_t counter = 0;
-  auto arg_printer = [&counter](CodeFormatter& formatter, const ast::Argument::shared_ptr& arg) {
+  auto arg_printer = [&counter](code_formatter& formatter, const ast::Argument::shared_ptr& arg) {
     if (arg->is_matrix()) {
       if (arg->direction() == ast::ArgumentDirection::Input) {
         formatter.format("const T{}&", counter);
@@ -119,12 +119,12 @@ void CppCodeGenerator::format_signature(CodeFormatter& formatter,
   formatter.format(")\n");
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Add& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Add& x) const {
   formatter.format("{} + {}", make_view(x.left), make_view(x.right));
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter,
-                                  const ast::AssignOutputArgument& assignment) const {
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::AssignOutputArgument& assignment) const {
   const auto& dest_name = assignment.argument->name();
   const ast::Type& type = assignment.argument->type();
 
@@ -134,7 +134,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
 
     // TODO: If there is a unit dimension, use the [] operator?
     formatter.join(
-        [&](CodeFormatter& fmt, std::size_t i) {
+        [&](code_formatter& fmt, std::size_t i) {
           const auto [row, col] = mat.compute_indices(i);
           fmt.format("{}{}({}, {}) = {};", assignment.argument->is_matrix() ? "_" : "", dest_name,
                      row, col, make_view(assignment.values[i]));
@@ -148,7 +148,8 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter,
   }
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::AssignTemporary& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::AssignTemporary& x) const {
   formatter.format("{} = {};", x.left, make_view(x.right));
 }
 
@@ -183,7 +184,7 @@ static constexpr std::string_view cpp_string_for_std_function(const StdMathFunct
   return "<INVALID ENUM VALUE>";
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Call& x) const {
   if (x.function == StdMathFunction::Signum) {
     // We need to special-case signum because it doesn't exist as a free-standing function.
     // TODO: This should be an int expression.
@@ -196,17 +197,17 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Call& x) 
   }
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Cast& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Cast& x) const {
   formatter.format("static_cast<{}>({})", cpp_string_from_numeric_cast_type(x.destination_type),
                    make_view(x.arg));
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Compare& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Compare& x) const {
   formatter.format("{} {} {}", make_view(x.left), string_from_relational_operation(x.operation),
                    make_view(x.right));
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Branch& x) const {
   formatter.format("if ({}) ", make_view(x.condition));
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.if_branch); });
   if (!x.else_branch.empty()) {
@@ -215,14 +216,14 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Branch& x
   }
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter,
-                                  const ast::ConstructReturnValue& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::ConstructReturnValue& x) const {
   WF_ASSERT(std::holds_alternative<ast::ScalarType>(x.type), "We cannot return matrices");
   WF_ASSERT_EQUAL(1, x.args.size());
   formatter.format("return {};", make_view(x.args[0]));
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declaration& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Declaration& x) const {
   if (!x.value) {
     formatter.format("{} {};", cpp_string_from_numeric_cast_type(x.type), x.name);
   } else {
@@ -231,7 +232,7 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Declarati
   }
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Divide& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Divide& x) const {
   formatter.format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
@@ -250,11 +251,12 @@ static constexpr std::string_view cpp_string_for_symbolic_constant(
   return "<INVALID ENUM VALUE>";
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::SpecialConstant& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::SpecialConstant& x) const {
   formatter.format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValue& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::InputValue& x) const {
   WF_ASSERT(x.argument);
   if (std::holds_alternative<ast::ScalarType>(x.argument->type())) {
     formatter.format(x.argument->name());
@@ -265,12 +267,12 @@ void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::InputValu
   }
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter, const ast::Multiply& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::Multiply& x) const {
   formatter.format("{} * {}", make_view(x.left), make_view(x.right));
 }
 
-void CppCodeGenerator::operator()(CodeFormatter& formatter,
-                                  const ast::OptionalOutputBranch& x) const {
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::OptionalOutputBranch& x) const {
   formatter.format("if (static_cast<bool>({}{})) ", x.argument->is_matrix() ? "_" : "",
                    x.argument->name());
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });

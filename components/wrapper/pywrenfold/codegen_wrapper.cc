@@ -75,7 +75,8 @@ void wrap_codegen_operations(py::module_& m) {
 
   m.def(
       "generate_func",
-      [](const ast::FunctionSignature& signature, const std::vector<ExpressionGroup>& expressions) {
+      [](const ast::FunctionSignature& signature,
+         const std::vector<expression_group>& expressions) {
         flat_ir ir{expressions};
         ir.eliminate_duplicates();
         output_ir output_ir{std::move(ir)};
@@ -85,18 +86,18 @@ void wrap_codegen_operations(py::module_& m) {
       py::doc("Generate function body AST from signature and output expressions."),
       py::return_value_policy::take_ownership);
 
-  py::enum_<ExpressionUsage>(m, "ExpressionUsage")
-      .value("OptionalOutputArgument", ExpressionUsage::OptionalOutputArgument)
-      .value("OutputArgument", ExpressionUsage::OutputArgument)
-      .value("ReturnValue", ExpressionUsage::ReturnValue);
+  py::enum_<expression_usage>(m, "ExpressionUsage")
+      .value("OptionalOutputArgument", expression_usage::optional_output_argument)
+      .value("OutputArgument", expression_usage::output_argument)
+      .value("ReturnValue", expression_usage::return_value);
 
-  py::class_<OutputKey>(m, "OutputKey")
-      .def(py::init<ExpressionUsage, std::string_view>(), py::arg("usage"), py::arg("name"));
+  py::class_<output_key>(m, "OutputKey")
+      .def(py::init<expression_usage, std::string_view>(), py::arg("usage"), py::arg("name"));
 
-  py::class_<ExpressionGroup>(m, "ExpressionGroup")
-      .def(py::init<std::vector<Expr>, OutputKey>(), py::arg("expressions"), py::arg("output_key"))
-      .def(py::init([](const MatrixExpr& m, OutputKey key) {
-             return ExpressionGroup(m.to_vector(), key);
+  py::class_<expression_group>(m, "ExpressionGroup")
+      .def(py::init<std::vector<Expr>, output_key>(), py::arg("expressions"), py::arg("output_key"))
+      .def(py::init([](const MatrixExpr& m, output_key key) {
+             return expression_group(m.to_vector(), key);
            }),
            py::arg("expressions"), py::arg("output_key"));
 
@@ -302,7 +303,7 @@ void wrap_codegen_operations(py::module_& m) {
   m.def(
       "generate_cpp",
       [](const ast::FunctionSignature& signature, const std::vector<ast::Variant>& ast)
-          -> std::string { return CppCodeGenerator{}.generate_code(signature, ast); },
+          -> std::string { return cpp_code_generator{}.generate_code(signature, ast); },
       "signature"_a, "ast"_a,
       py::doc("Generate C++ code from the given function signature and expressions."));
 

@@ -243,17 +243,17 @@ class save {
     return -1;  //  Dynamic
   }
   constexpr std::string_view to_string() const noexcept { return "save"; }
-  std::size_t hash_seed() const { return hash_struct<OutputKey>{}(key_); }
+  std::size_t hash_seed() const { return hash_struct<output_key>{}(key_); }
   bool is_same(const save& other) const noexcept { return key_ == other.key_; }
 
   // Construct with key.
-  explicit save(OutputKey key) noexcept : key_(std::move(key)) {}
+  explicit save(output_key key) noexcept : key_(std::move(key)) {}
 
   // Get output key.
-  constexpr const OutputKey& key() const noexcept { return key_; }
+  constexpr const output_key& key() const noexcept { return key_; }
 
  private:
-  OutputKey key_;
+  output_key key_;
 };
 
 // Different operations are represented by a variant.

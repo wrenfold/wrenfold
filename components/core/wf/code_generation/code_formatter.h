@@ -11,9 +11,9 @@ struct fmt_view;
 template <typename Formatter, typename Container>
 struct fmt_join_view;
 
-class CodeFormatter {
+class code_formatter {
  public:
-  CodeFormatter() = default;
+  code_formatter() = default;
 
   // Format into internal string buffer.
   template <typename... Args>
@@ -142,7 +142,7 @@ struct fmt::formatter<math::detail::fmt_view<Formatter, std::tuple<Args...>>> {
   template <typename FormatContext>
   auto format(const math::detail::fmt_view<Formatter, std::tuple<Args...>>& view,
               FormatContext& ctx) const -> decltype(ctx.out()) {
-    math::CodeFormatter nested_formatter{};
+    math::code_formatter nested_formatter{};
 
     // Invoke the user provided method w/ the nested formatter:
     std::apply(
@@ -164,7 +164,7 @@ struct fmt::formatter<math::detail::fmt_join_view<Formatter, Container>> {
   template <typename FormatContext>
   auto format(const math::detail::fmt_join_view<Formatter, Container>& view,
               FormatContext& ctx) const -> decltype(ctx.out()) {
-    math::CodeFormatter nested_formatter{};
+    math::code_formatter nested_formatter{};
     nested_formatter.join(view.formatter, view.separator, view.container);
     const auto& result = nested_formatter.get_output();
     return std::copy(result.begin(), result.end(), ctx.out());

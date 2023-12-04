@@ -14,7 +14,7 @@ int main() {
 
   code += "namespace gen {\n\n";
 
-  CppCodeGenerator gen{};
+  cpp_code_generator gen{};
   generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", "x", "y", "z");
   generate_func(
       gen, code,

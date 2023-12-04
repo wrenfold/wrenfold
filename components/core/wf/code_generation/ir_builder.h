@@ -18,7 +18,7 @@ struct ir_form_visitor;
 struct flat_ir {
  public:
   // Construct from a set of output expressions.
-  explicit flat_ir(const std::vector<ExpressionGroup>& expressions);
+  explicit flat_ir(const std::vector<expression_group>& expressions);
 
   // Format IR for every value.
   std::string to_string() const;
@@ -128,7 +128,7 @@ enum class search_direction { downwards, upwards };
 ir::block_ptr find_merge_point(ir::block_ptr left, ir::block_ptr right, search_direction direction);
 
 // Re-create `Expr` tree from the IR representation. For use in round-trip unit tests.
-std::unordered_map<OutputKey, std::vector<Expr>, hash_struct<OutputKey>>
+std::unordered_map<output_key, std::vector<Expr>, hash_struct<output_key>>
 create_output_expression_map(ir::block_ptr starting_block,
                              std::unordered_map<std::string, bool>&& output_arg_exists);
 

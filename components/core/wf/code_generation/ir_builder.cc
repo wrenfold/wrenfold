@@ -223,7 +223,7 @@ struct mul_add_count_visitor {
   }
 
   // Visit every expression in the provided expression group.
-  void count_group_expressions(const ExpressionGroup& group) {
+  void count_group_expressions(const expression_group& group) {
     for (const Expr& expr : group.expressions) {
       visit(expr, *this);
     }
@@ -546,16 +546,16 @@ struct ir_form_visitor {
   const operation_term_counts counts_;
 };
 
-flat_ir::flat_ir(const std::vector<ExpressionGroup>& groups)
+flat_ir::flat_ir(const std::vector<expression_group>& groups)
     : block_(std::make_unique<ir::block>(0)) {
   // First pass where we count occurrences of some sub-expressions:
   mul_add_count_visitor count_visitor{};
-  for (const ExpressionGroup& group : groups) {
+  for (const expression_group& group : groups) {
     count_visitor.count_group_expressions(group);
   }
 
   ir_form_visitor visitor{*this, count_visitor.take_counts()};
-  for (const ExpressionGroup& group : groups) {
+  for (const expression_group& group : groups) {
     // Transform expressions into Values
     ir::value::operands_container group_values{};
     group_values.reserve(group.expressions.size());
@@ -699,7 +699,7 @@ std::size_t flat_ir::num_conditionals() const {
 }
 
 template <typename Container, typename OutputIterator>
-static void reverse_copy_save_value_ptrs(const Container& container, ExpressionUsage usage,
+static void reverse_copy_save_value_ptrs(const Container& container, expression_usage usage,
                                          OutputIterator output_iterator) {
   for (auto it = container.rbegin(); it != container.rend(); ++it) {
     const ir::value_ptr val{*it};
@@ -721,13 +721,13 @@ static auto get_reverse_ordered_output_values(
   std::deque<ir::value_ptr> required_outputs_queue{};
   std::vector<ir::value_ptr> optional_outputs{};
 
-  reverse_copy_save_value_ptrs(flat_values, ExpressionUsage::ReturnValue,
+  reverse_copy_save_value_ptrs(flat_values, expression_usage::return_value,
                                std::back_inserter(required_outputs_queue));
 
-  reverse_copy_save_value_ptrs(flat_values, ExpressionUsage::OutputArgument,
+  reverse_copy_save_value_ptrs(flat_values, expression_usage::output_argument,
                                std::back_inserter(required_outputs_queue));
 
-  reverse_copy_save_value_ptrs(flat_values, ExpressionUsage::OptionalOutputArgument,
+  reverse_copy_save_value_ptrs(flat_values, expression_usage::optional_output_argument,
                                std::back_inserter(optional_outputs));
 
   return std::make_tuple(std::move(required_outputs_queue), std::move(optional_outputs));
@@ -750,8 +750,8 @@ struct ir_converter {
     // Traverse optional outputs:
     for (ir::value_ptr v : optional_outputs) {
       const ir::save& save = v->as_type<ir::save>();
-      const OutputKey& key = save.key();
-      WF_ASSERT(key.usage == ExpressionUsage::OptionalOutputArgument, "Usage: {}",
+      const output_key& key = save.key();
+      WF_ASSERT(key.usage == expression_usage::optional_output_argument, "Usage: {}",
                 string_from_expression_usage(key.usage));
 
       const ir::block_ptr left_block_exit = output.create_block();
