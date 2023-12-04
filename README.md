@@ -89,8 +89,12 @@ Known issues and limitations:
 - Relationals like `<` or `==` can be used to create boolean expressions, but we currently lack logical boolean operators `&&` and `||`.
 - The type of expressions has limited visibility in python. You can inspect the `type_name` field to access the underlying type as a string, but not much more than that.
 - Printing methods to strings (via `repr` for example) tends to produce a wall of impenetrable text, particularly for matrix types. Ideally these strings would be truncated automatically.
+- Conversion from Eigen to span does not type-check adequately. You can pass an integer matrix to an argument that expects floating point.
+- Certain built-in functions are missing, such as `floor`, `ceil`, `round`, and `mod`. (And all the hyperbolic trig functions).
+- There is no mechanism for adding a user-specified built-in function.
 
 There are also some high-priority features that I would like to get done fairly soon:
+- Add more examples covering different use cases.
 - Conversion of expressions to and from sympy.
 - Customization of code-generation from python. Right now code is emitted in C++, but it would be convenient to be able to customize formatting of individual AST elements.
 - Add boolean logic operators.
