@@ -16,28 +16,28 @@ using namespace math::matrix_operator_overloads;
 
 TEST(QuaternionTest, TestConstructor) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  Quaternion q{w, x, y, z};
+  quaternion q{w, x, y, z};
   ASSERT_IDENTICAL(w, q.w());
   ASSERT_IDENTICAL(x, q.x());
   ASSERT_IDENTICAL(y, q.y());
   ASSERT_IDENTICAL(z, q.z());
 
   // Default construction:
-  Quaternion q_identity{};
+  quaternion q_identity{};
   ASSERT_IDENTICAL(0, q_identity.x());
   ASSERT_IDENTICAL(0, q_identity.y());
   ASSERT_IDENTICAL(0, q_identity.z());
   ASSERT_IDENTICAL(1, q_identity.w());
 
-  ASSERT_TRUE(Quaternion::from_vector_wxyz(make_vector(w, x, y, z)).is_identical_to(q));
-  ASSERT_TRUE(Quaternion::from_vector_xyzw(make_vector(x, y, z, w)).is_identical_to(q));
+  ASSERT_TRUE(quaternion::from_vector_wxyz(make_vector(w, x, y, z)).is_identical_to(q));
+  ASSERT_TRUE(quaternion::from_vector_xyzw(make_vector(x, y, z, w)).is_identical_to(q));
   ASSERT_IDENTICAL(make_vector(x, y, z, w),
-                   Quaternion::from_vector_xyzw(make_vector(x, y, z, w)).to_vector_xyzw());
+                   quaternion::from_vector_xyzw(make_vector(x, y, z, w)).to_vector_xyzw());
 }
 
 TEST(QuaternionTest, TestIsIdenticalTo) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const Quaternion q1{w, x, y, z};
+  const quaternion q1{w, x, y, z};
   ASSERT_TRUE(q1.is_identical_to(q1));
   ASSERT_TRUE(q1.is_identical_to({q1.w(), q1.x(), q1.y(), q1.z()}));
   ASSERT_FALSE(q1.is_identical_to({1, 0, 0, 0}));
@@ -48,17 +48,17 @@ TEST(QuaternionTest, TestIsIdenticalTo) {
 
 TEST(QuaternionTest, TestNorm) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const Quaternion q{w, x, y, z};
+  const quaternion q{w, x, y, z};
   ASSERT_IDENTICAL(w * w + x * x + y * y + z * z, q.squared_norm());
   ASSERT_IDENTICAL(sqrt(w * w + x * x + y * y + z * z), q.norm());
-  ASSERT_IDENTICAL(1, Quaternion().norm());
-  ASSERT_IDENTICAL(pow(506_s / 49, 1_s / 2), Quaternion(3, -4_s / 7, 0, 1).norm());
-  ASSERT_IDENTICAL(2 * sqrt(pow(x, 2)), Quaternion(x, x, x, x).norm());
+  ASSERT_IDENTICAL(1, quaternion().norm());
+  ASSERT_IDENTICAL(pow(506_s / 49, 1_s / 2), quaternion(3, -4_s / 7, 0, 1).norm());
+  ASSERT_IDENTICAL(2 * sqrt(pow(x, 2)), quaternion(x, x, x, x).norm());
 }
 
 TEST(QuaternionTest, TestNormalize) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const Quaternion q{w, x, y, z};
+  const quaternion q{w, x, y, z};
 
   const auto q_normalized = q.normalized();
   ASSERT_IDENTICAL(q.w() / q.norm(), q_normalized.w());
@@ -72,23 +72,23 @@ TEST(QuaternionTest, TestNormalize) {
 
 TEST(QuaternionTest, TestConjugate) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const Quaternion q{w, x, y, z};
+  const quaternion q{w, x, y, z};
 
-  const Quaternion q_conj = q.conjugate();
+  const quaternion q_conj = q.conjugate();
   ASSERT_IDENTICAL(q_conj.w(), q.w());
   ASSERT_IDENTICAL(-q_conj.x(), q.x());
   ASSERT_IDENTICAL(-q_conj.y(), q.y());
   ASSERT_IDENTICAL(-q_conj.z(), q.z());
 
-  ASSERT_IDENTICAL(Quaternion().to_vector_wxyz(), Quaternion().conjugate().to_vector_wxyz());
+  ASSERT_IDENTICAL(quaternion().to_vector_wxyz(), quaternion().conjugate().to_vector_wxyz());
 }
 
 TEST(QuaternionTest, TestMultiply) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
   auto [a, b, c, d] = make_symbols("a", "b", "c", "d");
 
-  const Quaternion q1{w, x, y, z};
-  const Quaternion q2{a, b, c, d};
+  const quaternion q1{w, x, y, z};
+  const quaternion q2{a, b, c, d};
 
   // Compare to matrix multiplication:
   // clang-format off
@@ -121,7 +121,7 @@ TEST(QuaternionTest, TestMultiply) {
   const Eigen::Quaternion<double> q2_num{0.8923991, 0.23911762, 0.09904576, 0.36964381};
 
   // TODO: Add a mechanism for subbing multiple things at once:
-  const Quaternion result = (q1 * q2)
+  const quaternion result = (q1 * q2)
                                 .subs(q1.w(), q1_num.w())
                                 .subs(q1.x(), q1_num.x())
                                 .subs(q1.y(), q1_num.y())
@@ -139,7 +139,7 @@ TEST(QuaternionTest, TestMultiply) {
 
 TEST(QuaternionTest, TestInverse) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const Quaternion q{w, x, y, z};
+  const quaternion q{w, x, y, z};
   ASSERT_IDENTICAL(q.conjugate().normalized().to_vector_wxyz(), q.inverse().to_vector_wxyz());
 
   // We should be able to recovery the identity symbolically:
@@ -159,16 +159,16 @@ TEST(QuaternionTest, TestInverse) {
 
 TEST(QuaternionTest, TestToRotationMatrix) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const Quaternion q{w, x, y, z};
+  const quaternion q{w, x, y, z};
 
-  ASSERT_IDENTICAL(make_identity(3), Quaternion().to_rotation_matrix());
-  ASSERT_IDENTICAL(make_identity(3), Quaternion(-1, 0, 0, 0).to_rotation_matrix());
+  ASSERT_IDENTICAL(make_identity(3), quaternion().to_rotation_matrix());
+  ASSERT_IDENTICAL(make_identity(3), quaternion(-1, 0, 0, 0).to_rotation_matrix());
 
   // Check the matrix against rotating the vector w/ quaternion:
   auto [a, b, c] = make_symbols("a", "b", "c");
   auto v = make_vector(a, b, c);
 
-  const Quaternion q_v_q_conj = q * Quaternion(0, a, b, c) * q.conjugate();
+  const quaternion q_v_q_conj = q * quaternion(0, a, b, c) * q.conjugate();
   const MatrixExpr R_v_expected = make_vector(q_v_q_conj.x(), q_v_q_conj.y(), q_v_q_conj.z());
   const MatrixExpr R_v = q.to_rotation_matrix() * v;
 
@@ -187,7 +187,7 @@ TEST(QuaternionTest, TestToRotationMatrix) {
 
 TEST(QuaternionTest, TestFromAxisAngle) {
   auto [angle, vx, vy, vz] = make_symbols("theta", "vx", "vy", "vz");
-  const Quaternion q = Quaternion::from_angle_axis(angle, vx, vy, vz);
+  const quaternion q = quaternion::from_angle_axis(angle, vx, vy, vz);
   ASSERT_IDENTICAL(q.w(), cos(angle / 2));
   ASSERT_IDENTICAL(q.x(), vx * sin(angle / 2));
   ASSERT_IDENTICAL(q.y(), vy * sin(angle / 2));
@@ -223,7 +223,7 @@ TEST(QuaternionTest, TestFromAxisAngle) {
   ASSERT_IDENTICAL(R_rodrigues.distribute(), R);
 
   // check that this throws if we pass invalid arguments:
-  ASSERT_THROW(Quaternion::from_angle_axis(0, make_vector(vx, vy)), dimension_error);
+  ASSERT_THROW(quaternion::from_angle_axis(0, make_vector(vx, vy)), dimension_error);
 }
 
 // Sample points uniformly on the sphere (approximately) using fibonacci sphere.
@@ -287,16 +287,16 @@ TEST(QuaternionTest, FromRotationVector) {
   auto [vx, vy, vz] = make_symbols("vx", "vy", "vz");
   const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
   const Expr half_angle = angle / 2;
-  const Quaternion q_no_conditional = Quaternion::from_rotation_vector(vx, vy, vz, std::nullopt);
+  const quaternion q_no_conditional = quaternion::from_rotation_vector(vx, vy, vz, std::nullopt);
   ASSERT_IDENTICAL(q_no_conditional.w(), cos(angle / 2));
   ASSERT_IDENTICAL(q_no_conditional.x(), vx * sin(angle / 2) / angle);
   ASSERT_IDENTICAL(q_no_conditional.y(), vy * sin(angle / 2) / angle);
   ASSERT_IDENTICAL(q_no_conditional.z(), vz * sin(angle / 2) / angle);
 
-  const Quaternion q = Quaternion::from_rotation_vector(vx, vy, vz, 1.0e-16);
+  const quaternion q = quaternion::from_rotation_vector(vx, vy, vz, 1.0e-16);
 
   // Check that angle of norm 0 works and produces identity:
-  const Quaternion q_ident = q.subs(vx, 0).subs(vy, 0).subs(vz, 0);
+  const quaternion q_ident = q.subs(vx, 0).subs(vy, 0).subs(vz, 0);
   ASSERT_IDENTICAL(1, q_ident.w());
   ASSERT_IDENTICAL(0, q_ident.x());
   ASSERT_IDENTICAL(0, q_ident.y());
@@ -330,9 +330,9 @@ TEST(QuaternionTest, FromRotationVector) {
                                                       .to_vector_wxyz()),
                     1.0e-32);
 
-  ASSERT_THROW(Quaternion::from_rotation_vector(make_vector(-3, vx), std::nullopt),
+  ASSERT_THROW(quaternion::from_rotation_vector(make_vector(-3, vx), std::nullopt),
                dimension_error);
-  ASSERT_THROW(Quaternion::from_rotation_vector(make_identity(3), std::nullopt), dimension_error);
+  ASSERT_THROW(quaternion::from_rotation_vector(make_identity(3), std::nullopt), dimension_error);
 }
 
 TEST(QuaternionTest, TestAngleConversions) {
@@ -345,7 +345,7 @@ TEST(QuaternionTest, TestAngleConversions) {
                    0, cos(angle), -sin(angle),
                    0, sin(angle), cos(angle));
   // clang-format on
-  ASSERT_IDENTICAL(R_x, Quaternion::from_x_angle(angle)
+  ASSERT_IDENTICAL(R_x, quaternion::from_x_angle(angle)
                             .to_rotation_matrix()
                             .subs(sin(half_angle) * sin(half_angle), (1 - cos(angle)) / 2)
                             .subs(cos(half_angle) * sin(half_angle), sin(angle) / 2)
@@ -358,7 +358,7 @@ TEST(QuaternionTest, TestAngleConversions) {
                    0, 1, 0,
                    -sin(angle), 0, cos(angle));
   // clang-format on
-  ASSERT_IDENTICAL(R_y, Quaternion::from_y_angle(angle)
+  ASSERT_IDENTICAL(R_y, quaternion::from_y_angle(angle)
                             .to_rotation_matrix()
                             .subs(sin(half_angle) * sin(half_angle), (1 - cos(angle)) / 2)
                             .subs(cos(half_angle) * sin(half_angle), sin(angle) / 2)
@@ -371,7 +371,7 @@ TEST(QuaternionTest, TestAngleConversions) {
                    sin(angle), cos(angle), 0,
                    0, 0, 1);
   // clang-format on
-  ASSERT_IDENTICAL(R_z, Quaternion::from_z_angle(angle)
+  ASSERT_IDENTICAL(R_z, quaternion::from_z_angle(angle)
                             .to_rotation_matrix()
                             .subs(sin(half_angle) * sin(half_angle), (1 - cos(angle)) / 2)
                             .subs(cos(half_angle) * sin(half_angle), sin(angle) / 2)
@@ -383,7 +383,7 @@ TEST(QuaternionTest, TestToAxisAngle) {
   using Eigen::Vector3d;
 
   auto [angle, x, y, z] = make_symbols("angle", "x", "y", "z");
-  const Quaternion q = Quaternion::from_angle_axis(angle, x, y, z);
+  const quaternion q = quaternion::from_angle_axis(angle, x, y, z);
 
   auto [angle_recovered, axis_recovered] = q.to_angle_axis(0);
   ASSERT_IDENTICAL(0, angle_recovered.subs(angle, 0));
@@ -419,7 +419,7 @@ TEST(QuaternionTest, TestToAxisAngle) {
 
 TEST(QuaternionTest, TestToRotationVector) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const Quaternion Q = Quaternion::from_rotation_vector(x, y, z, std::nullopt);
+  const quaternion Q = quaternion::from_rotation_vector(x, y, z, std::nullopt);
   const MatrixExpr w = Q.to_rotation_vector(std::nullopt);
 
   // We sub this in for the angle (the norm of [x, y, z]).
@@ -445,7 +445,7 @@ TEST(QuaternionTest, TestToRotationVector) {
                    w_simplified);
 
   // Check numerically as well:
-  const auto w_num = Quaternion::from_rotation_vector(x, y, z, 0).to_rotation_vector(1.0e-16);
+  const auto w_num = quaternion::from_rotation_vector(x, y, z, 0).to_rotation_vector(1.0e-16);
   for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
     const Eigen::Vector3d axis_recovered_num =
         eigen_matrix_from_matrix_expr(w_num.subs(x, angle_num * axis_num.x())
@@ -458,15 +458,15 @@ TEST(QuaternionTest, TestToRotationVector) {
 }
 
 TEST(QuaternionTest, TestFromRotationMatrix) {
-  const Quaternion q_ident = Quaternion::from_rotation_matrix(make_identity(3));
+  const quaternion q_ident = quaternion::from_rotation_matrix(make_identity(3));
   ASSERT_IDENTICAL(1, q_ident.w());
   ASSERT_IDENTICAL(0, q_ident.x());
   ASSERT_IDENTICAL(0, q_ident.y());
   ASSERT_IDENTICAL(0, q_ident.z());
 
   // clang-format off
-  const Quaternion q_pi_over_2_x =
-      Quaternion::from_rotation_matrix(make_matrix(3, 3,
+  const quaternion q_pi_over_2_x =
+      quaternion::from_rotation_matrix(make_matrix(3, 3,
         1, 0, 0,
         0, 0, -1,
         0, 1, 0));
@@ -476,16 +476,16 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   ASSERT_IDENTICAL(0, q_pi_over_2_x.y());
   ASSERT_IDENTICAL(0, q_pi_over_2_x.z());
 
-  const Quaternion q_pi_x =
-      Quaternion::from_rotation_matrix(make_matrix(3, 3, 1, 0, 0, 0, -1, 0, 0, 0, -1));
+  const quaternion q_pi_x =
+      quaternion::from_rotation_matrix(make_matrix(3, 3, 1, 0, 0, 0, -1, 0, 0, 0, -1));
   ASSERT_IDENTICAL(0, q_pi_x.w());
   ASSERT_IDENTICAL(1, q_pi_x.x());
   ASSERT_IDENTICAL(0, q_pi_x.y());
   ASSERT_IDENTICAL(0, q_pi_x.z());
 
   // clang-format off
-  const Quaternion q_pi_over_2_y =
-      Quaternion::from_rotation_matrix(make_matrix(3, 3,
+  const quaternion q_pi_over_2_y =
+      quaternion::from_rotation_matrix(make_matrix(3, 3,
          0, 0, 1,
          0, 1, 0,
         -1, 0, 0));
@@ -495,16 +495,16 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   ASSERT_IDENTICAL(1 / sqrt(2), q_pi_over_2_y.y());
   ASSERT_IDENTICAL(0, q_pi_over_2_y.z());
 
-  const Quaternion q_pi_y =
-      Quaternion::from_rotation_matrix(make_matrix(3, 3, -1, 0, 0, 0, 1, 0, 0, 0, -1));
+  const quaternion q_pi_y =
+      quaternion::from_rotation_matrix(make_matrix(3, 3, -1, 0, 0, 0, 1, 0, 0, 0, -1));
   ASSERT_IDENTICAL(0, q_pi_y.w());
   ASSERT_IDENTICAL(0, q_pi_y.x());
   ASSERT_IDENTICAL(1, q_pi_y.y());
   ASSERT_IDENTICAL(0, q_pi_y.z());
 
   // clang-format off
-  const Quaternion q_pi_over_2_z =
-      Quaternion::from_rotation_matrix(make_matrix(3, 3,
+  const quaternion q_pi_over_2_z =
+      quaternion::from_rotation_matrix(make_matrix(3, 3,
          0, -1, 0,
          1,  0, 0,
          0,  0, 1));
@@ -514,8 +514,8 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   ASSERT_IDENTICAL(0, q_pi_over_2_z.y());
   ASSERT_IDENTICAL(1 / sqrt(2), q_pi_over_2_z.z());
 
-  const Quaternion q_pi_z =
-      Quaternion::from_rotation_matrix(make_matrix(3, 3, -1, 0, 0, 0, -1, 0, 0, 0, 1));
+  const quaternion q_pi_z =
+      quaternion::from_rotation_matrix(make_matrix(3, 3, -1, 0, 0, 0, -1, 0, 0, 0, 1));
   ASSERT_IDENTICAL(0, q_pi_z.w());
   ASSERT_IDENTICAL(0, q_pi_z.x());
   ASSERT_IDENTICAL(0, q_pi_z.y());
@@ -538,8 +538,8 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle_num, axis_num)};
 
     const MatrixExpr R =
-        Quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.to_rotation_matrix();
-    const Quaternion q = Quaternion::from_rotation_matrix(R);
+        quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.to_rotation_matrix();
+    const quaternion q = quaternion::from_rotation_matrix(R);
 
     ASSERT_NEAR(q_num.w(), cast_to_float(q.w()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
@@ -559,7 +559,7 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
 // Test calling `jacobian` directly on a quaternion.
 TEST(QuaternionTest, TestJacobian) {
   const auto [x, y, z, angle] = make_symbols("x", "y", "z", "angle");
-  const auto Q = Quaternion::from_angle_axis(angle, x, y, z).inverse();
+  const auto Q = quaternion::from_angle_axis(angle, x, y, z).inverse();
 
   // swap the order around:
   const auto vars = make_vector(y, x, angle);
@@ -577,7 +577,7 @@ TEST(QuaternionTest, TestJacobian) {
 
 TEST(QuaternionTest, TestRightRetractDerivative) {
   const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const auto J = Quaternion{w, x, y, z}.right_retract_derivative();
+  const auto J = quaternion{w, x, y, z}.right_retract_derivative();
 
   for (const auto& [angle, axis] : get_angle_axis_test_pairs()) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle, axis)};
@@ -597,7 +597,7 @@ TEST(QuaternionTest, TestRightRetractDerivative) {
 
 TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
   const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
-  const auto J = Quaternion{w, x, y, z}.right_local_coordinates_derivative();
+  const auto J = quaternion{w, x, y, z}.right_local_coordinates_derivative();
 
   // Compare analytical derivative to numerical derivative, evaluated at a few different rotations.
   for (const auto& [angle, axis] : get_angle_axis_test_pairs()) {

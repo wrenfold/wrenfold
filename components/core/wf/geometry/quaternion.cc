@@ -7,28 +7,28 @@
 
 namespace math {
 
-Quaternion Quaternion::from_name_prefix(const std::string_view name) {
+quaternion quaternion::from_name_prefix(const std::string_view name) {
   auto [w, x, y, z] = make_symbols(fmt::format("{}_w", name), fmt::format("{}_x", name),
                                    fmt::format("{}_y", name), fmt::format("{}_z", name));
   return {std::move(w), std::move(x), std::move(y), std::move(z)};
 }
 
-MatrixExpr Quaternion::to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+MatrixExpr quaternion::to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
 
-MatrixExpr Quaternion::to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
+MatrixExpr quaternion::to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
 
-Quaternion Quaternion::subs(const Expr& target, const Expr& replacement) const {
-  return Quaternion(w().subs(target, replacement), x().subs(target, replacement),
+quaternion quaternion::subs(const Expr& target, const Expr& replacement) const {
+  return quaternion(w().subs(target, replacement), x().subs(target, replacement),
                     y().subs(target, replacement), z().subs(target, replacement));
 }
 
-Expr Quaternion::squared_norm() const {
+Expr quaternion::squared_norm() const {
   return wxyz_[0] * wxyz_[0] + wxyz_[1] * wxyz_[1] + wxyz_[2] * wxyz_[2] + wxyz_[3] * wxyz_[3];
 }
 
-Expr Quaternion::norm() const { return sqrt(squared_norm()); }
+Expr quaternion::norm() const { return sqrt(squared_norm()); }
 
-MatrixExpr Quaternion::to_rotation_matrix() const {
+MatrixExpr quaternion::to_rotation_matrix() const {
   const Expr x2 = x() * 2;
   const Expr y2 = y() * 2;
   const Expr z2 = z() * 2;
@@ -50,21 +50,21 @@ MatrixExpr Quaternion::to_rotation_matrix() const {
   // clang-format on
 }
 
-Quaternion Quaternion::from_angle_axis(const Expr& angle, const Expr& vx, const Expr& vy,
+quaternion quaternion::from_angle_axis(const Expr& angle, const Expr& vx, const Expr& vy,
                                        const Expr& vz) {
   Expr half_angle = angle / 2;
   Expr sin_angle = sin(half_angle);
   return {cos(half_angle), vx * sin_angle, vy * sin_angle, vz * sin_angle};
 }
 
-Quaternion Quaternion::from_angle_axis(const Expr& angle, const MatrixExpr& v) {
+quaternion quaternion::from_angle_axis(const Expr& angle, const MatrixExpr& v) {
   if (v.rows() != 3 || v.cols() != 1) {
     throw dimension_error("Axis vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
   return from_angle_axis(angle, v[0], v[1], v[2]);
 }
 
-Quaternion Quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
+quaternion quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
                                             const std::optional<Expr> epsilon) {
   const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
   const Expr half_angle = angle / 2;
@@ -72,7 +72,7 @@ Quaternion Quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, cons
   if (epsilon) {
     // When angle <= epsilon, we use the first order taylor series expansion of this method,
     // linearized about v = [0, 0, 0]. The series is projected back onto the unit norm quaternion.
-    const Quaternion q_small_angle = Quaternion{1, vx / 2, vy / 2, vz / 2}.normalized();
+    const quaternion q_small_angle = quaternion{1, vx / 2, vy / 2, vz / 2}.normalized();
     const Expr condition = angle > *epsilon;
     return {
         where(condition, cos(half_angle), q_small_angle.w()),
@@ -90,7 +90,7 @@ Quaternion Quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, cons
   }
 }
 
-Quaternion Quaternion::from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon) {
+quaternion quaternion::from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon) {
   if (v.rows() != 3 || v.cols() != 1) {
     throw dimension_error("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
@@ -98,7 +98,7 @@ Quaternion Quaternion::from_rotation_vector(const MatrixExpr& v, std::optional<E
 }
 
 // TODO: This should use the small angle approximation.
-std::tuple<Expr, MatrixExpr> Quaternion::to_angle_axis(std::optional<Expr> epsilon) const {
+std::tuple<Expr, MatrixExpr> quaternion::to_angle_axis(std::optional<Expr> epsilon) const {
   // We want to recover angle and axis from:
   // [cos(angle/2), vx * sin(angle/2), vy * sin(angle/2), vz * sin(angle/2)]
   // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
@@ -124,7 +124,7 @@ std::tuple<Expr, MatrixExpr> Quaternion::to_angle_axis(std::optional<Expr> epsil
   }
 }
 
-MatrixExpr Quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
+MatrixExpr quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
   // The vector part norm is equal to sin(angle / 2)
   const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
   const Expr half_angle = atan2(vector_norm, w());
@@ -141,7 +141,7 @@ MatrixExpr Quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
   }
 }
 
-Quaternion Quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
+quaternion quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   if (R_in.rows() != 3 || R_in.cols() != 3) {
     throw dimension_error("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
                           R_in.cols());
@@ -172,7 +172,7 @@ Quaternion Quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
-MatrixExpr Quaternion::jacobian(const math::MatrixExpr& vars) const {
+MatrixExpr quaternion::jacobian(const math::MatrixExpr& vars) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());
@@ -181,16 +181,16 @@ MatrixExpr Quaternion::jacobian(const math::MatrixExpr& vars) const {
   return jacobian(m.data());
 }
 
-MatrixExpr Quaternion::right_retract_derivative() const {
+MatrixExpr quaternion::right_retract_derivative() const {
   // Compute the expression `J` once, and substitute into it on subsequent calls:
-  static const Quaternion q_sub{
+  static const quaternion q_sub{
       make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real),
       make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real)};
   static const auto J = std::invoke([&]() -> MatrixExpr {
     const auto vx = make_unique_variable_symbol(NumberSet::Real);
     const auto vy = make_unique_variable_symbol(NumberSet::Real);
     const auto vz = make_unique_variable_symbol(NumberSet::Real);
-    const Quaternion q_perturb = q_sub * Quaternion::from_rotation_vector(vx, vy, vz, 0);
+    const quaternion q_perturb = q_sub * quaternion::from_rotation_vector(vx, vy, vz, 0);
     // Compute the Jacobian about 0:
     // clang-format off
     return substitute_variables(
@@ -211,8 +211,8 @@ MatrixExpr Quaternion::right_retract_derivative() const {
                                  });
 }
 
-MatrixExpr Quaternion::right_local_coordinates_derivative() const {
-  static const Quaternion q_sub{
+MatrixExpr quaternion::right_local_coordinates_derivative() const {
+  static const quaternion q_sub{
       make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real),
       make_unique_variable_symbol(NumberSet::Real), make_unique_variable_symbol(NumberSet::Real)};
   static const auto J = std::invoke([&]() -> MatrixExpr {
@@ -220,7 +220,7 @@ MatrixExpr Quaternion::right_local_coordinates_derivative() const {
     const auto dx = make_unique_variable_symbol(NumberSet::Real);
     const auto dy = make_unique_variable_symbol(NumberSet::Real);
     const auto dz = make_unique_variable_symbol(NumberSet::Real);
-    const Quaternion q_diff = q_sub.conjugate() * Quaternion{q_sub.w() + dw, q_sub.x() + dx,
+    const quaternion q_diff = q_sub.conjugate() * quaternion{q_sub.w() + dw, q_sub.x() + dx,
                                                              q_sub.y() + dy, q_sub.z() + dz};
     // clang-format off
     return substitute_variables(q_diff.to_rotation_vector(0).jacobian({dw, dx, dy, dz}),
@@ -240,7 +240,7 @@ MatrixExpr Quaternion::right_local_coordinates_derivative() const {
                                  });
 }
 
-Quaternion operator*(const Quaternion& a, const Quaternion& b) {
+quaternion operator*(const quaternion& a, const quaternion& b) {
   return {a.w() * b.w() - a.x() * b.x() - a.y() * b.y() - a.z() * b.z(),
           a.w() * b.x() + a.x() * b.w() + a.y() * b.z() - a.z() * b.y(),
           a.w() * b.y() + a.y() * b.w() + a.z() * b.x() - a.x() * b.z(),

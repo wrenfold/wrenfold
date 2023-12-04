@@ -262,8 +262,8 @@ TEST(LimitsTest, TestMatrixLimitsQuaternion) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
   const Expr t{"t", NumberSet::RealNonNegative};
 
-  const Quaternion Q = Quaternion::from_rotation_vector(x0, y0, z0, std::nullopt);
-  const Quaternion Q_subbed = Q.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
+  const quaternion Q = quaternion::from_rotation_vector(x0, y0, z0, std::nullopt);
+  const quaternion Q_subbed = Q.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
   ASSERT_IDENTICAL(make_vector(1, 0, 0, 0), limit(Q_subbed.to_vector_wxyz(), t).value());
 
   // Take the derivative wrt the rotation vector params:
@@ -281,7 +281,7 @@ TEST(LimitsTest, TestMatrixLimitsRotation) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
   const Expr t{"t", NumberSet::RealNonNegative};
 
-  const Quaternion Q = Quaternion::from_rotation_vector(x0, y0, z0, std::nullopt);
+  const quaternion Q = quaternion::from_rotation_vector(x0, y0, z0, std::nullopt);
   const MatrixExpr R = Q.to_rotation_matrix();
 
   const MatrixExpr R_subbed = R.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
@@ -313,7 +313,7 @@ TEST(LimitsTest, TestMatrixLimitsQuaternionToVector) {
   const Expr t{"t", NumberSet::RealNonNegative};
 
   // Take the limit as the quaternion approaches identity:
-  const MatrixExpr J = Quaternion{w, x, y, z}
+  const MatrixExpr J = quaternion{w, x, y, z}
                            .to_rotation_vector(std::nullopt)
                            .jacobian({w, x, y, z})
                            .subs(w, 1 - w * t)
