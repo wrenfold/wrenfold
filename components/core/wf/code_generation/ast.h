@@ -10,8 +10,8 @@
 #include "wf/hashing.h"
 
 namespace math {
-struct flat_ir;
-struct output_ir;
+class flat_ir;
+class output_ir;
 }  // namespace math
 
 namespace math::ast {

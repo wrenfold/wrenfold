@@ -264,7 +264,8 @@ struct mul_add_count_visitor {
 };
 
 // Visitor for converting an expression tree into static-single-assignment form.
-struct ir_form_visitor {
+class ir_form_visitor {
+ public:
   explicit ir_form_visitor(flat_ir& builder, operation_term_counts&& counts)
       : builder_(builder), counts_(counts) {}
 
@@ -733,7 +734,8 @@ static auto get_reverse_ordered_output_values(
   return std::make_tuple(std::move(required_outputs_queue), std::move(optional_outputs));
 }
 
-struct ir_converter {
+class ir_converter {
+ public:
   void convert() {
     // Conversion will modify `output.values_`, so shallow-copy the outputs first:
     auto [required_outputs_queue, optional_outputs] =

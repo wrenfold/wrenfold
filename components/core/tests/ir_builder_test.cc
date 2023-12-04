@@ -31,12 +31,13 @@ auto create_ir(Func&& func, const std::string_view name, Args&&... args) {
   return std::make_tuple(std::move(expressions), std::move(flat_ir));
 }
 
-struct OptionalArgPermutations {
+// Generate permutations that represent whether optional arguments are present or not.
+struct optional_arg_permutations {
  public:
   static constexpr std::size_t MaxOptionalArgs = 32;
 
   // Construct w/ vector of expressions.
-  explicit OptionalArgPermutations(const std::vector<expression_group>& expressions) {
+  explicit optional_arg_permutations(const std::vector<expression_group>& expressions) {
     for (auto it = expressions.begin(); it != expressions.end(); ++it) {
       if (it->key.usage == expression_usage::optional_output_argument) {
         scatter_.emplace(it->key.name, scatter_.size());
@@ -102,7 +103,7 @@ void check_expressions(const std::vector<expression_group>& expected_expressions
 
 void check_expressions(const std::vector<expression_group>& expected_expressions,
                        const output_ir& ir) {
-  const OptionalArgPermutations permutations{expected_expressions};
+  const optional_arg_permutations permutations{expected_expressions};
   for (std::size_t i = 0; i < permutations.num_permutations(); ++i) {
     // test permutation `i`:
     auto output_map = permutations.get_permutation(i);

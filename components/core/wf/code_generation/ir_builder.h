@@ -12,10 +12,10 @@
 #include "wf/hashing.h"
 
 namespace math {
-struct ir_form_visitor;
+class ir_form_visitor;
 
 // Object for creating and manipulating our simple intermediate representation.
-struct flat_ir {
+class flat_ir {
  public:
   // Construct from a set of output expressions.
   explicit flat_ir(const std::vector<expression_group>& expressions);
@@ -61,11 +61,11 @@ struct flat_ir {
   // Owns all the instructions.
   std::vector<ir::value::unique_ptr> values_;
 
-  friend struct ir_form_visitor;
-  friend struct output_ir;
+  friend class ir_form_visitor;
+  friend class output_ir;
 };
 
-struct output_ir {
+class output_ir {
  public:
   // Construct from `flat_ir` (which is cleared in the process).
   explicit output_ir(flat_ir&& input);
@@ -118,7 +118,7 @@ struct output_ir {
   // Owns all the instructions
   std::vector<ir::value::unique_ptr> values_;
 
-  friend struct ir_converter;
+  friend class ir_converter;
 };
 
 // Argument to FindMergePoints

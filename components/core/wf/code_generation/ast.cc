@@ -30,8 +30,8 @@ inline void find_conditional_output_values(const ir::value_ptr v, const bool top
 // Object that iterates over operations in IR blocks, and visits each operation. We recursively
 // convert our basic control-flow-graph to a limited syntax tree that can be emitted in different
 // languages.
-struct AstBuilder {
-  AstBuilder(std::size_t value_width, const ast::function_signature& signature)
+struct ast_from_ir {
+  ast_from_ir(std::size_t value_width, const ast::function_signature& signature)
       : value_width_(value_width), signature_(signature) {}
 
   std::vector<ast::variant> create_function(ir::block_ptr block) {
@@ -374,7 +374,7 @@ struct AstBuilder {
 namespace ast {
 std::vector<ast::variant> create_ast(const math::output_ir& ir,
                                      const function_signature& signature) {
-  AstBuilder builder(ir.value_print_width(), signature);
+  ast_from_ir builder(ir.value_print_width(), signature);
   return builder.create_function(ir.first_block());
 }
 }  // namespace ast

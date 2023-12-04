@@ -46,7 +46,7 @@ bool trial_division_is_prime(const int64_t n_in) {
   return true;
 }
 
-struct PrimeFactorsOrder {
+struct prime_factors_order {
   bool operator()(const prime_factor& a, const prime_factor& b) const { return a.base < b.base; }
 };
 
@@ -54,7 +54,7 @@ TEST(IntegerUtils, TestComputePrimeFactors) {
   // Factor numbers 1 -> 10000.
   for (int64_t i = 1; i < 10000; ++i) {
     const std::vector<prime_factor> result = compute_prime_factors(i);
-    ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
+    ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), prime_factors_order{}));
     // Check that the factors multiply out to the input number.
     const int64_t product = std::accumulate(result.begin(), result.end(), 1l,
                                             [](int64_t product, const prime_factor& f) {
@@ -100,7 +100,7 @@ TEST(IntegerUtils, TestComputePrimeFactors2) {
     const int64_t product = std::accumulate(expected_factors.begin(), expected_factors.end(),
                                             static_cast<int64_t>(1), std::multiplies<>());
     const std::vector<prime_factor> result = compute_prime_factors(product);
-    ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
+    ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), prime_factors_order{}));
     // Check we got the same factors out:
     ASSERT_EQ(result.size(), expected_factors.size());
     for (std::size_t i = 0; i < expected_factors.size(); ++i) {
