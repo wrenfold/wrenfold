@@ -69,24 +69,24 @@ Expr operator==(const Expr& a, const Expr& b) {
 // Visitor to determine mathematical precedence.
 struct PrecedenceVisitor {
   template <typename T>
-  constexpr Precedence operator()(const T&) const {
+  constexpr precedence operator()(const T&) const {
     if constexpr (std::is_same_v<Multiplication, T>) {
-      return Precedence::Multiplication;
+      return precedence::multiplication;
     } else if constexpr (std::is_same_v<Addition, T>) {
-      return Precedence::Addition;
+      return precedence::addition;
     } else if constexpr (std::is_same_v<Power, T>) {
-      return Precedence::Power;
+      return precedence::power;
     } else if constexpr (std::is_same_v<Rational, T>) {
-      return Precedence::Multiplication;
+      return precedence::multiplication;
     } else if constexpr (std::is_same_v<Relational, T>) {
-      return Precedence::Relational;
+      return precedence::relational;
     } else {
-      return Precedence::None;
+      return precedence::none;
     }
   }
 };
 
-Precedence get_precedence(const Expr& expr) { return visit(expr, PrecedenceVisitor{}); }
+precedence get_precedence(const Expr& expr) { return visit(expr, PrecedenceVisitor{}); }
 
 Expr make_unique_variable_symbol(NumberSet set) {
   return make_expr<Variable>(UniqueVariable(), set);

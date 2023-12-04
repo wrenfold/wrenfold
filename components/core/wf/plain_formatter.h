@@ -29,7 +29,7 @@ class plain_formatter {
 
  private:
   // Wrap `expr` in braces if the precedence is <= the parent.
-  void format_precedence(Precedence parent, const Expr& expr);
+  void format_precedence(precedence parent, const Expr& expr);
 
   // Format power operation with the appropriate operator.
   void format_power(const Expr& Base, const Expr& Exponent);

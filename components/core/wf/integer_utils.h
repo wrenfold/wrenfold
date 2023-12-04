@@ -84,7 +84,7 @@ constexpr int64_t integer_power(int64_t base, int64_t exp) {
 // Simplified to only support signed integer, and cases where range of `F` exceeds that of `I`.
 // You can compare int64_t and f64, for example. You cannot compare int64_t and f32.
 template <typename I, typename F>
-constexpr std::optional<RelativeOrder> compare_int_float(const I i, const F f) {
+constexpr std::optional<relative_order> compare_int_float(const I i, const F f) {
   static_assert(std::is_integral_v<I> && std::is_signed_v<I>, "First argument must be ");
   static_assert(std::is_floating_point_v<F>);
 
@@ -115,7 +115,7 @@ constexpr std::optional<RelativeOrder> compare_int_float(const I i, const F f) {
     return std::nullopt;
   } else if (!std::isfinite(f)) {
     // Since range of `I` is smaller than `F`, inf is always > or < than any integral value.
-    return f < 0 ? RelativeOrder::GreaterThan : RelativeOrder::LessThan;
+    return f < 0 ? relative_order::greater_than : relative_order::less_than;
   }
 
   // Check if `f` can be truncated to type `I`.
@@ -125,26 +125,26 @@ constexpr std::optional<RelativeOrder> compare_int_float(const I i, const F f) {
       // Compare integral part
       const I f_truncated = static_cast<I>(f);
       if (f_truncated < i) {
-        return RelativeOrder::GreaterThan;
+        return relative_order::greater_than;
       }
       if (f_truncated > i) {
-        return RelativeOrder::LessThan;
+        return relative_order::less_than;
       }
       // Compare fractional part
       const F f_fractional = f - static_cast<F>(f_truncated);
       if (f_fractional < 0) {
-        return RelativeOrder::GreaterThan;
+        return relative_order::greater_than;
       }
       if (f_fractional > 0) {
-        return RelativeOrder::LessThan;
+        return relative_order::less_than;
       }
-      return RelativeOrder::Equal;
+      return relative_order::equal;
     }
     // `f` is outside the range of `I`, so `i` must be smaller.
-    return RelativeOrder::LessThan;
+    return relative_order::less_than;
   }
   // `f` is < than the min value of I, so order must be greater.
-  return RelativeOrder::GreaterThan;
+  return relative_order::greater_than;
 }
 
 }  // namespace math

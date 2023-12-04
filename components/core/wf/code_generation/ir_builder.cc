@@ -819,7 +819,7 @@ class ir_converter {
 
   // Return true if `parent_block` is executed on all paths through `test_block`.
   static bool parent_is_on_all_paths_through_block(ir::block_ptr test_block,
-                                                   ir::block_ptr parent_block) {
+                                                   ir::block_ptr parent_block) noexcept {
     if (test_block == parent_block) {
       return true;
     }

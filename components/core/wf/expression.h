@@ -161,18 +161,18 @@ Expr operator==(const Expr& a, const Expr& b);
 // Determine relative order of two expressions (for sorting).
 // Can be used to sort expressions into a canonical order, for instance to sort them.
 // Implemented in ordering.cc
-RelativeOrder expression_order(const Expr& a, const Expr& b);
+relative_order expression_order(const Expr& a, const Expr& b);
 
 // Predicate for sorting expressions.
 struct expression_order_struct {
   bool operator()(const Expr& a, const Expr& b) const {
-    return expression_order(a, b) == RelativeOrder::LessThan;
+    return expression_order(a, b) == relative_order::less_than;
   }
 };
 
 // Get operation precedence (order of operations).
 // Implemented in expression.cc
-Precedence get_precedence(const Expr& expr);
+precedence get_precedence(const Expr& expr);
 
 // Check for strict equality. For use in template parameter lists for maps and sets.
 template <typename T>

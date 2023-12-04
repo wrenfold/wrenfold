@@ -20,7 +20,7 @@ void plain_formatter::operator()(const Addition& expr) {
                  [](const Expr& x) { return as_coeff_and_mul(x); });
 
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-    return expression_order(a.second, b.second) == RelativeOrder::LessThan;
+    return expression_order(a.second, b.second) == relative_order::less_than;
   });
 
   for (std::size_t i = 0; i < terms.size(); ++i) {
@@ -35,12 +35,12 @@ void plain_formatter::operator()(const Addition& expr) {
       }
       // Don't multiply by negative one:
       if (is_negative_one(coeff)) {
-        format_precedence(Precedence::Addition, multiplicand);
+        format_precedence(precedence::addition, multiplicand);
       } else {
         visit(-coeff, *this);
         if (!is_one(multiplicand)) {
           output_ += " * ";
-          format_precedence(Precedence::Multiplication, multiplicand);
+          format_precedence(precedence::multiplication, multiplicand);
         }
       }
     } else {
@@ -48,12 +48,12 @@ void plain_formatter::operator()(const Addition& expr) {
         output_ += " + ";
       }
       if (is_one(coeff)) {
-        format_precedence(Precedence::Addition, multiplicand);
+        format_precedence(precedence::addition, multiplicand);
       } else {
         visit(coeff, *this);
         if (!is_one(multiplicand)) {
           output_ += " * ";
-          format_precedence(Precedence::Multiplication, multiplicand);
+          format_precedence(precedence::multiplication, multiplicand);
         }
       }
     }
@@ -173,7 +173,7 @@ void plain_formatter::operator()(const Multiplication& expr) {
     } else {
       const BaseExp& pow = std::get<BaseExp>(element);
       if (is_one(pow.exponent)) {
-        this->format_precedence(Precedence::Multiplication, pow.base);
+        this->format_precedence(precedence::multiplication, pow.base);
       } else {
         this->format_power(pow.base, pow.exponent);
       }
@@ -224,16 +224,16 @@ void plain_formatter::operator()(const Rational& expr) {
 }
 
 void plain_formatter::operator()(const Relational& expr) {
-  format_precedence(Precedence::Relational, expr.left());
+  format_precedence(precedence::relational, expr.left());
   fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
-  format_precedence(Precedence::Relational, expr.right());
+  format_precedence(precedence::relational, expr.right());
 }
 
 void plain_formatter::operator()(const Undefined&) { output_.append("nan"); }
 
 void plain_formatter::operator()(const Variable& expr) { output_.append(expr.to_string()); }
 
-void plain_formatter::format_precedence(const Precedence parent, const Expr& expr) {
+void plain_formatter::format_precedence(const precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {
     output_ += "(";
     visit(expr, *this);
@@ -244,9 +244,9 @@ void plain_formatter::format_precedence(const Precedence parent, const Expr& exp
 }
 
 void plain_formatter::format_power(const Expr& base, const Expr& exponent) {
-  format_precedence(Precedence::Power, base);
+  format_precedence(precedence::power, base);
   output_ += " ** ";
-  format_precedence(Precedence::Power, exponent);
+  format_precedence(precedence::power, exponent);
 }
 
 }  // namespace math

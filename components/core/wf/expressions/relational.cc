@@ -28,11 +28,11 @@ struct CompareNumerics {
   bool operator()(const Integer& a, const Constant& b) const {
     // This must have a value since float will not be nan.
     return compare_int_float(a.get_value(), float_from_constant(b)).value() ==
-           RelativeOrder::LessThan;
+           relative_order::less_than;
   }
   bool operator()(const Constant& a, const Integer& b) const {
     return compare_int_float(b.get_value(), float_from_constant(a)).value() ==
-           RelativeOrder::GreaterThan;
+           relative_order::greater_than;
   }
 
   // Floating point comparison should be viable for constants, there is no ambiguity from the
@@ -47,13 +47,13 @@ struct CompareNumerics {
   bool operator()(const Integer& a, const Float& b) const {
     const auto result = compare_int_float(a.get_value(), b.get_value());
     WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
-    return result.value() == RelativeOrder::LessThan;
+    return result.value() == relative_order::less_than;
   }
 
   bool operator()(const Float& a, const Integer& b) const {
     const auto result = compare_int_float(b.get_value(), a.get_value());
     WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
-    return result.value() == RelativeOrder::GreaterThan;
+    return result.value() == relative_order::greater_than;
   }
 };
 
@@ -109,7 +109,7 @@ Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
   }
   if (operation == RelationalOperation::Equal) {
     // We put equality operations into a canonical order.
-    if (expression_order(left, right) != RelativeOrder::LessThan) {
+    if (expression_order(left, right) != relative_order::less_than) {
       std::swap(left, right);
     }
   }

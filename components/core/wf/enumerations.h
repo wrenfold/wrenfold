@@ -9,23 +9,23 @@ namespace math {
 using index_t = int;
 
 // Mathematical precedence of operators.
-enum class Precedence : int {
-  Relational = 0,
-  Addition,
-  Multiplication,
-  Power,
-  None = std::numeric_limits<int>::max(),
+enum class precedence : int {
+  relational = 0,
+  addition,
+  multiplication,
+  power,
+  none = std::numeric_limits<int>::max(),
 };
 
 // Describe the relative order of two expressions (a, b)
 // This is for operations like sorting, not for expressing mathematical relations.
-enum class RelativeOrder : int {
+enum class relative_order : int {
   // a < b
-  LessThan = -1,
+  less_than = -1,
   // a == b
-  Equal = 0,
+  equal = 0,
   // a > b
-  GreaterThan = 1,
+  greater_than = 1,
 };
 
 // Types of mathematical functions.
@@ -127,14 +127,14 @@ constexpr inline bool is_real_set(NumberSet set) noexcept {
   return false;
 }
 
-// Convert `RelativeOrder` to string view.
-constexpr std::string_view string_from_relative_order(const RelativeOrder order) noexcept {
+// Convert `relative_order` to string view.
+constexpr std::string_view string_from_relative_order(const relative_order order) noexcept {
   switch (order) {
-    case RelativeOrder::LessThan:
+    case relative_order::less_than:
       return "LessThan";
-    case RelativeOrder::Equal:
+    case relative_order::equal:
       return "Equal";
-    case RelativeOrder::GreaterThan:
+    case relative_order::greater_than:
       return "GreaterThan";
   }
   return "<NOT A VALID ENUM VALUE>";

@@ -64,7 +64,7 @@ struct tree_formatter {
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       auto acm = as_coeff_and_mul(a);
       auto bcm = as_coeff_and_mul(b);
-      return expression_order(acm.second, bcm.second) == RelativeOrder::LessThan;
+      return expression_order(acm.second, bcm.second) == relative_order::less_than;
     });
 
     append_name("Addition:");
@@ -88,7 +88,7 @@ struct tree_formatter {
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       const auto abe = as_base_and_exp(a);
       const auto bbe = as_base_and_exp(b);
-      return expression_order(abe.first, bbe.first) == RelativeOrder::LessThan;
+      return expression_order(abe.first, bbe.first) == relative_order::less_than;
     });
 
     append_name("Multiplication:");

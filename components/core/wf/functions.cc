@@ -296,7 +296,7 @@ Expr abs(const Expr& arg) {
   }
   if (const Constant* constant = cast_ptr<Constant>(arg); constant != nullptr) {
     const auto as_double = double_from_symbolic_constant(constant->name());
-    if (compare_int_float(0, as_double).value() != RelativeOrder::GreaterThan) {
+    if (compare_int_float(0, as_double).value() != relative_order::greater_than) {
       // Constant that is already positive.
       return arg;
     }

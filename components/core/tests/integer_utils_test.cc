@@ -18,12 +18,12 @@ struct fmt::formatter<math::prime_factor, char> {
   }
 };
 
-std::ostream& operator<<(std::ostream& out, const math::RelativeOrder order) {
+std::ostream& operator<<(std::ostream& out, const math::relative_order order) {
   out << string_from_relative_order(order);
   return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const std::optional<math::RelativeOrder> order) {
+std::ostream& operator<<(std::ostream& out, const std::optional<math::relative_order> order) {
   out << (order.has_value() ? string_from_relative_order(order.value()) : "nullopt");
   return out;
 }
@@ -151,24 +151,26 @@ TEST(IntegerUtils, TestCompareIntFloat) {
   EXPECT_EQ(std::nullopt, compare_int_float(13, std::numeric_limits<double>::quiet_NaN()));
 
   // min() for doubles is the smallest positive value
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(0, std::numeric_limits<float>::min()));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(0, std::numeric_limits<double>::min()));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(0_i64, std::numeric_limits<double>::min()));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(0, std::numeric_limits<float>::min()));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(0, std::numeric_limits<double>::min()));
+  EXPECT_EQ(relative_order::less_than,
+            compare_int_float(0_i64, std::numeric_limits<double>::min()));
 
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(0, -std::numeric_limits<float>::min()));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(0, -std::numeric_limits<double>::min()));
-  EXPECT_EQ(RelativeOrder::GreaterThan,
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(0, -std::numeric_limits<float>::min()));
+  EXPECT_EQ(relative_order::greater_than,
+            compare_int_float(0, -std::numeric_limits<double>::min()));
+  EXPECT_EQ(relative_order::greater_than,
             compare_int_float(0_i64, -std::numeric_limits<double>::min()));
 
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(0, 0.0f));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(0_i64, 0.0));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(0, -0.0f));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(0_i64, -0.0));
+  EXPECT_EQ(relative_order::equal, compare_int_float(0, 0.0f));
+  EXPECT_EQ(relative_order::equal, compare_int_float(0_i64, 0.0));
+  EXPECT_EQ(relative_order::equal, compare_int_float(0, -0.0f));
+  EXPECT_EQ(relative_order::equal, compare_int_float(0_i64, -0.0));
 
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(1, 1.0f));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(1_i64, 1.0));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(-1, -1.0f));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(-1_i64, -1.0));
+  EXPECT_EQ(relative_order::equal, compare_int_float(1, 1.0f));
+  EXPECT_EQ(relative_order::equal, compare_int_float(1_i64, 1.0));
+  EXPECT_EQ(relative_order::equal, compare_int_float(-1, -1.0f));
+  EXPECT_EQ(relative_order::equal, compare_int_float(-1_i64, -1.0));
 
   // Infinity:
   constexpr auto i32_min = std::numeric_limits<int32_t>::min();
@@ -176,54 +178,55 @@ TEST(IntegerUtils, TestCompareIntFloat) {
   constexpr auto i64_min = std::numeric_limits<int64_t>::min();
   constexpr auto i64_max = std::numeric_limits<int64_t>::max();
 
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(i32_max, p_inf<float>()));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(i64_max, p_inf<double>()));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(i32_max, p_inf<float>()));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(i64_max, p_inf<double>()));
 
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(i32_min, n_inf<float>()));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(i64_min, n_inf<double>()));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(i32_min, n_inf<float>()));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(i64_min, n_inf<double>()));
 
   // Values near int min/max:
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(i32_min, static_cast<float>(i32_min)));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(i32_min, next_down<float>(i32_min)));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(i32_min, next_up<float>(i32_min)));
+  EXPECT_EQ(relative_order::equal, compare_int_float(i32_min, static_cast<float>(i32_min)));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(i32_min, next_down<float>(i32_min)));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(i32_min, next_up<float>(i32_min)));
 
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(i64_min, static_cast<double>(i64_min)));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(i64_min, next_down<double>(i64_min)));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(i64_min, next_up<double>(i64_min)));
+  EXPECT_EQ(relative_order::equal, compare_int_float(i64_min, static_cast<double>(i64_min)));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(i64_min, next_down<double>(i64_min)));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(i64_min, next_up<double>(i64_min)));
 
   // int::max gets rounded up in float, so this should be LessThan (not equal):
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(i32_max, static_cast<float>(i32_max)));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(i64_max, static_cast<double>(i64_max)));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(i32_max, next_down<float>(i32_max)));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(i64_max, next_down<double>(i64_max)));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(i32_max, static_cast<float>(i32_max)));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(i64_max, static_cast<double>(i64_max)));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(i32_max, next_down<float>(i32_max)));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(i64_max, next_down<double>(i64_max)));
 
   // largest integral value that can be represented:
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(2 << 24, static_cast<float>(2 << 24)));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(2ll << 53, static_cast<double>(2ll << 53)));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(-(2 << 24), -static_cast<float>(2 << 24)));
-  EXPECT_EQ(RelativeOrder::Equal, compare_int_float(-(2ll << 53), -static_cast<double>(2ll << 53)));
+  EXPECT_EQ(relative_order::equal, compare_int_float(2 << 24, static_cast<float>(2 << 24)));
+  EXPECT_EQ(relative_order::equal, compare_int_float(2ll << 53, static_cast<double>(2ll << 53)));
+  EXPECT_EQ(relative_order::equal, compare_int_float(-(2 << 24), -static_cast<float>(2 << 24)));
+  EXPECT_EQ(relative_order::equal,
+            compare_int_float(-(2ll << 53), -static_cast<double>(2ll << 53)));
 
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(0, 0.5));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(0, -0.5));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(0, 0.5));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(0, -0.5));
 
   for (const int sign : {-1, 1}) {
     for (const int exp : make_range(0, 16)) {
       const int value = std::pow(10, exp) * sign;
       if (exp <= 6) {
-        EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(value, next_down<float>(value)));
-        EXPECT_EQ(RelativeOrder::Equal, compare_int_float(value, static_cast<float>(value)));
-        EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(value, next_up<float>(value)));
+        EXPECT_EQ(relative_order::greater_than, compare_int_float(value, next_down<float>(value)));
+        EXPECT_EQ(relative_order::equal, compare_int_float(value, static_cast<float>(value)));
+        EXPECT_EQ(relative_order::less_than, compare_int_float(value, next_up<float>(value)));
       }
-      EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(value, next_down<double>(value)));
-      EXPECT_EQ(RelativeOrder::Equal, compare_int_float(value, static_cast<double>(value)));
-      EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(value, next_up<double>(value)));
+      EXPECT_EQ(relative_order::greater_than, compare_int_float(value, next_down<double>(value)));
+      EXPECT_EQ(relative_order::equal, compare_int_float(value, static_cast<double>(value)));
+      EXPECT_EQ(relative_order::less_than, compare_int_float(value, next_up<double>(value)));
     }
   }
 
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(10, -1.0e40));
-  EXPECT_EQ(RelativeOrder::GreaterThan, compare_int_float(-13420052, -2.235e61));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(6448282, 2.9e34));
-  EXPECT_EQ(RelativeOrder::LessThan, compare_int_float(2008ll, 1.562e67));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(10, -1.0e40));
+  EXPECT_EQ(relative_order::greater_than, compare_int_float(-13420052, -2.235e61));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(6448282, 2.9e34));
+  EXPECT_EQ(relative_order::less_than, compare_int_float(2008ll, 1.562e67));
 }
 
 }  // namespace math
