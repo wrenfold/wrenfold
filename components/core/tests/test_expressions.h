@@ -21,7 +21,7 @@ inline auto vector_rotation_2d(Expr theta, ta::static_matrix<2, 1> v) {
   MatrixExpr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
   MatrixExpr v_rot{R * v};
   ta::static_matrix<2, 1> v_dot_D_theta{v_rot.diff(theta)};
-  return std::make_tuple(return_value(v_rot), OptionalOutputArg("D_theta", v_dot_D_theta));
+  return std::make_tuple(return_value(v_rot), optional_output_arg("D_theta", v_dot_D_theta));
 }
 
 // Norm of a 3D vector + the 1x3 derivative.
@@ -75,7 +75,7 @@ inline auto create_rotation_matrix(ta::static_matrix<3, 1> w) {
   MatrixExpr R = Quaternion::from_rotation_vector(w.inner(), 1.0e-16).to_rotation_matrix();
   MatrixExpr R_diff = vectorize_matrix(R).jacobian(w);
   return std::make_tuple(output_arg("R", ta::static_matrix<3, 3>{R}),
-                         OptionalOutputArg("R_D_w", ta::static_matrix<9, 3>{R_diff}));
+                         optional_output_arg("R_D_w", ta::static_matrix<9, 3>{R_diff}));
 }
 
 // Recover a Rodrigues rotation vector from a 3x3 rotation matrix.

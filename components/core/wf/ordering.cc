@@ -5,7 +5,7 @@
 namespace math {
 
 // Visitor that can be used to sort expressions by determining their relative order.
-struct OrderVisitor {
+struct order_visitor {
   template <typename T>
   RelativeOrder operator()(const T& a, const T& b) const {
     return compare(a, b);
@@ -139,7 +139,7 @@ RelativeOrder expression_order(const Expr& a, const Expr& b) {
   return visit(a, [&b](const auto& a_typed) -> RelativeOrder {
     using Ta = std::decay_t<decltype(a_typed)>;
     const auto& b_typed = cast_unchecked<Ta>(b);
-    return OrderVisitor{}(a_typed, b_typed);
+    return order_visitor{}(a_typed, b_typed);
   });
 }
 

@@ -14,11 +14,11 @@ using namespace math::custom_literals;
 //  (1) substitute values
 //  (2) see if it produces a case we can handle w/ Hôpital's rule
 //  (3) try to apply the rule
-class LimitVisitor {
+class limit_visitor {
  public:
   // x is the variable we are taking the limit wrt to.
   // 0+ is the value of `x` at the limit.
-  explicit LimitVisitor(const Expr& x)
+  explicit limit_visitor(const Expr& x)
       : x_(x),
         x_typed_(cast_checked<Variable>(x_)),
         positive_inf_{positive_inf_placeholder()},
@@ -145,7 +145,7 @@ class LimitVisitor {
     return df_over_dg_eval;
   }
 
-  struct IntegralPowers {
+  struct integral_powers {
     std::vector<Integer> powers{};
 
     bool are_all_identical_up_to_sign() const {
@@ -175,8 +175,8 @@ class LimitVisitor {
   };
 
   template <typename Container>
-  std::optional<IntegralPowers> extract_integer_exponents(const Container& mul) {
-    IntegralPowers result{};
+  std::optional<integral_powers> extract_integer_exponents(const Container& mul) {
+    integral_powers result{};
     for (const Expr& expr : mul) {
       auto [base, exp] = as_base_and_exp(expr);
       if (const Integer* i = cast_ptr<Integer>(exp); i != nullptr) {
@@ -195,7 +195,7 @@ class LimitVisitor {
   std::optional<Expr> process_indeterminate_form_multiplied_terms_1(const Container& mul) {
     // Try to extract common integer powers:
     // TODO: Clean this up and generalize to any common power...
-    if (std::optional<IntegralPowers> integral_exponents = extract_integer_exponents(mul);
+    if (std::optional<integral_powers> integral_exponents = extract_integer_exponents(mul);
         integral_exponents.has_value() && integral_exponents->are_all_identical_up_to_sign() &&
         !integral_exponents->are_all_one()) {
       const Integer int_power = integral_exponents->powers.front().abs();
@@ -530,7 +530,7 @@ std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
         x.type_name(), x);
   }
-  return LimitVisitor{x}.visit_no_inf(f_of_x);
+  return limit_visitor{x}.visit_no_inf(f_of_x);
 }
 
 std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
@@ -540,7 +540,7 @@ std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
         x.type_name(), x);
   }
   // Reuse the visitor, so that we get the benefit of caching results:
-  LimitVisitor visitor{x};
+  limit_visitor visitor{x};
 
   std::vector<Expr> values;
   values.reserve(f_of_x.size());

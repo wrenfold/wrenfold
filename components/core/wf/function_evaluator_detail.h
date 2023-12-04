@@ -13,15 +13,15 @@ namespace math {
 namespace detail {
 
 template <typename T>
-struct CopyOutputExpressionsImpl;
+struct copy_output_expressions;
 
 template <>
-struct CopyOutputExpressionsImpl<Expr> {
+struct copy_output_expressions<Expr> {
   void operator()(const Expr& val, std::vector<Expr>& outputs) const { outputs.push_back(val); }
 };
 
 template <>
-struct CopyOutputExpressionsImpl<MatrixExpr> {
+struct copy_output_expressions<MatrixExpr> {
   void operator()(const MatrixExpr& val, std::vector<Expr>& outputs) const {
     outputs.reserve(val.size());
     for (index_t row = 0; row < val.rows(); ++row) {
@@ -33,10 +33,10 @@ struct CopyOutputExpressionsImpl<MatrixExpr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct CopyOutputExpressionsImpl<type_annotations::static_matrix<Rows, Cols>> {
+struct copy_output_expressions<type_annotations::static_matrix<Rows, Cols>> {
   void operator()(const type_annotations::static_matrix<Rows, Cols>& val,
                   std::vector<Expr>& outputs) const {
-    CopyOutputExpressionsImpl<MatrixExpr>{}.operator()(val, outputs);
+    copy_output_expressions<MatrixExpr>{}.operator()(val, outputs);
   }
 };
 
@@ -46,7 +46,7 @@ ExpressionGroup create_expression_group(const T& tuple_element) {
 
   // TInner is the inner type of `return_value` or `output_arg`.
   using TInner = std::decay_t<decltype(tuple_element.value())>;
-  CopyOutputExpressionsImpl<TInner>{}(tuple_element.value(), expressions);
+  copy_output_expressions<TInner>{}(tuple_element.value(), expressions);
 
   if constexpr (is_return_value<T>::value) {
     OutputKey key{ExpressionUsage::ReturnValue, ""};
@@ -83,10 +83,10 @@ void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
 }
 
 template <typename T>
-struct RecordOutput;
+struct record_output;
 
 template <typename T>
-struct RecordOutput<return_value<T>> {
+struct record_output<return_value<T>> {
   void operator()(ast::FunctionSignature& desc, const return_value<T>& output) const {
     // This is a return value.
     if constexpr (std::is_same_v<Expr, T>) {
@@ -99,7 +99,7 @@ struct RecordOutput<return_value<T>> {
 };
 
 template <typename T>
-struct RecordOutput<output_arg<T>> {
+struct record_output<output_arg<T>> {
   void operator()(ast::FunctionSignature& desc, const output_arg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
       desc.add_argument(output.name(), ast::ScalarType(NumericType::Real),
@@ -116,10 +116,10 @@ struct RecordOutput<output_arg<T>> {
 };
 
 template <typename T>
-struct RecordInputArgument;
+struct record_input_argument;
 
 template <>
-struct RecordInputArgument<Expr> {
+struct record_input_argument<Expr> {
   void operator()(ast::FunctionSignature& desc, const arg& arg) const {
     desc.add_argument(arg.name(), ast::ScalarType(NumericType::Real),
                       ast::ArgumentDirection::Input);
@@ -127,7 +127,7 @@ struct RecordInputArgument<Expr> {
 };
 
 template <index_t Rows, index_t Cols>
-struct RecordInputArgument<type_annotations::static_matrix<Rows, Cols>> {
+struct record_input_argument<type_annotations::static_matrix<Rows, Cols>> {
   void operator()(ast::FunctionSignature& desc, const arg& arg) const {
     desc.add_argument(arg.name(), ast::MatrixType(Rows, Cols), ast::ArgumentDirection::Input);
   }
@@ -136,22 +136,23 @@ struct RecordInputArgument<type_annotations::static_matrix<Rows, Cols>> {
 template <typename ArgList, std::size_t... Indices, std::size_t N>
 void record_input_args(ast::FunctionSignature& desc, const std::array<arg, N>& args,
                        std::index_sequence<Indices...>) {
-  (RecordInputArgument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(desc, args[Indices]),
+  (record_input_argument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(desc,
+                                                                                args[Indices]),
    ...);
 }
 
 template <typename T>
-struct BuildFunctionArgumentImpl;
+struct construct_function_argument;
 
 template <>
-struct BuildFunctionArgumentImpl<Expr> {
+struct construct_function_argument<Expr> {
   auto operator()(std::size_t arg_index) const {
     return Variable::create_function_argument(arg_index, 0);
   }
 };
 
 template <index_t Rows, index_t Cols>
-struct BuildFunctionArgumentImpl<type_annotations::static_matrix<Rows, Cols>> {
+struct construct_function_argument<type_annotations::static_matrix<Rows, Cols>> {
   auto operator()(std::size_t arg_index) const {
     std::vector<Expr> expressions{};
     expressions.reserve(static_cast<std::size_t>(Rows * Cols));
@@ -164,11 +165,11 @@ struct BuildFunctionArgumentImpl<type_annotations::static_matrix<Rows, Cols>> {
 };
 
 template <std::size_t Index, typename ArgList>
-auto build_function_arguments() {
+auto construct_function_args() {
   using T = type_list_element_t<Index, ArgList>;
   using TDecay = std::decay_t<T>;
   // Increase input_index every time we hit an input argument.
-  return BuildFunctionArgumentImpl<TDecay>{}(Index);
+  return construct_function_argument<TDecay>{}(Index);
 }
 
 template <std::size_t... A, std::size_t... B>
@@ -197,14 +198,14 @@ template <typename ArgList, typename Callable, std::size_t... Indices>
 auto invoke_with_output_capture(Callable&& callable, std::index_sequence<Indices...>) {
   static_assert(sizeof...(Indices) <= type_list_size_v<ArgList>);
   // Create a tuple of arguments w/ Variable expressions.
-  auto args = std::make_tuple(build_function_arguments<Indices, ArgList>()...);
+  auto args = std::make_tuple(construct_function_args<Indices, ArgList>()...);
 
   // Call the user provided function with the args we just created:
-  using ReturnType =
+  using return_type =
       std::invoke_result_t<Callable, decltype(std::get<Indices>(std::move(args)))...>;
-  static_assert(!std::is_same_v<ReturnType, void>, "Return type should not be void.");
+  static_assert(!std::is_same_v<return_type, void>, "Return type should not be void.");
 
-  if constexpr (is_tuple_v<ReturnType>) {
+  if constexpr (is_tuple_v<return_type>) {
     return std::invoke(std::forward<Callable>(callable), std::get<Indices>(std::move(args))...);
   } else {
     // Function returns a single expression, so convert to a tuple.

@@ -64,8 +64,8 @@ template <bool FactorizeIntegers>
 struct MultiplyVisitor {
   explicit MultiplyVisitor(MultiplicationParts& builder) : builder(builder) {}
 
-  void insert_integer_factors(const std::vector<PrimeFactor>& factors, bool positive) {
-    for (const PrimeFactor& factor : factors) {
+  void insert_integer_factors(const std::vector<prime_factor>& factors, bool positive) {
+    for (const prime_factor& factor : factors) {
       Expr base = Integer::create(factor.base);
       Expr exponent = Integer::create(factor.exponent);
       const auto [it, was_inserted] = builder.terms.emplace(std::move(base), exponent);

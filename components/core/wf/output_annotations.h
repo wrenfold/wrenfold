@@ -41,7 +41,7 @@ output_arg(std::string_view name, T&& value) -> output_arg<std::decay_t<T>>;
 
 // Construct an output argument and designate it as optional.
 template <typename T>
-constexpr auto OptionalOutputArg(std::string_view name, T&& value) {
+constexpr auto optional_output_arg(std::string_view name, T&& value) {
   return output_arg<std::decay_t<T>>(name, std::forward<T>(value), true);
 }
 

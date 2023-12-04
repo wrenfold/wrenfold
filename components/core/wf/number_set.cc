@@ -28,7 +28,7 @@ constexpr NumberSet combine_sets_add(NumberSet a, NumberSet b) noexcept {
 
 constexpr NumberSet combine_sets_mul(NumberSet a, NumberSet b) noexcept { return std::max(a, b); }
 
-class DetermineSetVisitor {
+class determine_set_visitor {
  public:
   template <typename Container, typename Callable>
   NumberSet handle_add_or_mul(const Container& container, Callable callable) const {
@@ -181,6 +181,6 @@ class DetermineSetVisitor {
   constexpr NumberSet operator()(const Variable& var) const noexcept { return var.set(); }
 };
 
-NumberSet determine_numeric_set(const Expr& x) { return visit(x, DetermineSetVisitor{}); }
+NumberSet determine_numeric_set(const Expr& x) { return visit(x, determine_set_visitor{}); }
 
 }  // namespace math

@@ -7,13 +7,13 @@
 
 #include "wf_test_support/test_macros.h"
 
-// Format PrimeFactor
+// Format prime_factor
 template <>
-struct fmt::formatter<math::PrimeFactor, char> {
+struct fmt::formatter<math::prime_factor, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::PrimeFactor& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::prime_factor& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}^{}", x.base, x.exponent);
   }
 };
@@ -47,22 +47,22 @@ bool trial_division_is_prime(const int64_t n_in) {
 }
 
 struct PrimeFactorsOrder {
-  bool operator()(const PrimeFactor& a, const PrimeFactor& b) const { return a.base < b.base; }
+  bool operator()(const prime_factor& a, const prime_factor& b) const { return a.base < b.base; }
 };
 
 TEST(IntegerUtils, TestComputePrimeFactors) {
   // Factor numbers 1 -> 10000.
   for (int64_t i = 1; i < 10000; ++i) {
-    const std::vector<PrimeFactor> result = compute_prime_factors(i);
+    const std::vector<prime_factor> result = compute_prime_factors(i);
     ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
     // Check that the factors multiply out to the input number.
     const int64_t product = std::accumulate(result.begin(), result.end(), 1l,
-                                            [](int64_t product, const PrimeFactor& f) {
+                                            [](int64_t product, const prime_factor& f) {
                                               return product * integer_power(f.base, f.exponent);
                                             });
     ASSERT_EQ(product, i);
     // Check that all the factors are prime:
-    for (const PrimeFactor factor : result) {
+    for (const prime_factor factor : result) {
       ASSERT_TRUE((factor.base == -1 && factor.exponent == 1) ||
                   trial_division_is_prime(factor.base))
           << fmt::format("i = {}, factors = [{}]\n", i, fmt::join(result, ", "));
@@ -99,7 +99,7 @@ TEST(IntegerUtils, TestComputePrimeFactors2) {
   for (const auto& expected_factors : primes) {
     const int64_t product = std::accumulate(expected_factors.begin(), expected_factors.end(),
                                             static_cast<int64_t>(1), std::multiplies<>());
-    const std::vector<PrimeFactor> result = compute_prime_factors(product);
+    const std::vector<prime_factor> result = compute_prime_factors(product);
     ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), PrimeFactorsOrder{}));
     // Check we got the same factors out:
     ASSERT_EQ(result.size(), expected_factors.size());

@@ -201,7 +201,7 @@ Expr asin(const Expr& arg) {
   return make_expr<Function>(BuiltInFunction::ArcSin, arg);
 }
 
-inline Expr PiOverFour() {
+inline Expr pi_over_four() {
   static const Expr Value = Constants::Pi / 4_s;
   return Value;
 }
@@ -210,9 +210,9 @@ Expr atan(const Expr& arg) {
   if (is_zero(arg)) {
     return Constants::Zero;
   } else if (is_one(arg)) {
-    return PiOverFour();
+    return pi_over_four();
   } else if (is_negative_one(arg)) {
-    return -PiOverFour();
+    return -pi_over_four();
   } else if (is_negative_number(arg)) {
     return -atan(-arg);
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
@@ -222,7 +222,7 @@ Expr atan(const Expr& arg) {
 }
 
 // Support some very basic simplifications for numerical inputs.
-struct Atan2Visitor {
+struct atan2_visitor {
   std::optional<Expr> operator()(const Float& y, const Float& x) const {
     return Float::create(std::atan2(y.get_value(), x.get_value()));
   }
@@ -262,7 +262,7 @@ struct Atan2Visitor {
 };
 
 Expr atan2(const Expr& y, const Expr& x) {
-  std::optional<Expr> maybe_simplified = visit_binary(y, x, Atan2Visitor{});
+  std::optional<Expr> maybe_simplified = visit_binary(y, x, atan2_visitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
@@ -312,7 +312,7 @@ Expr abs(const Expr& arg) {
 // TODO: Add simplifications for expressions like:
 //  signum(-x) --> -signum(x)
 //  signum(5 * x) --> signum(x)
-struct SignumVisitor {
+struct signum_visitor {
   // https://stackoverflow.com/questions/1903954/
   template <typename T>
   static constexpr int sign(T val) noexcept {
@@ -352,7 +352,7 @@ struct SignumVisitor {
 };
 
 Expr signum(const Expr& arg) {
-  std::optional<Expr> maybe_simplified = visit_with_expr(arg, SignumVisitor{});
+  std::optional<Expr> maybe_simplified = visit_with_expr(arg, signum_visitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
@@ -390,7 +390,7 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
   return MatrixExpr::create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
 }
 
-struct BoolCastVisitor {
+struct bool_cast_visitor {
   std::optional<Expr> operator()(const Constant& c) const {
     if (c.name() == SymbolicConstants::True) {
       return Constants::One;
@@ -411,7 +411,7 @@ struct BoolCastVisitor {
 };
 
 Expr cast_int_from_bool(const Expr& bool_expression) {
-  std::optional<Expr> result = visit_with_expr(bool_expression, BoolCastVisitor{});
+  std::optional<Expr> result = visit_with_expr(bool_expression, bool_cast_visitor{});
   if (!result) {
     throw TypeError("Expression of type `{}` is not a boolean arg: {}", bool_expression.type_name(),
                     bool_expression);

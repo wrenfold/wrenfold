@@ -33,20 +33,20 @@ inline constexpr int64_t wheel_factorization(const int64_t n_in) noexcept {
 }
 
 // Result of `compute_prime_factors`.
-struct PrimeFactor {
+struct prime_factor {
   int64_t base;
   int64_t exponent;
 };
 
 // Compute the prime factors of `n_in`. TODO: Use small vector here.
-inline std::vector<PrimeFactor> compute_prime_factors(const int64_t n_in) {
-  std::vector<PrimeFactor> result;
+inline std::vector<prime_factor> compute_prime_factors(const int64_t n_in) {
+  std::vector<prime_factor> result;
   result.reserve(10);
   int64_t x = n_in;
   if (x == 0) {
     return result;
   } else if (x < 0) {
-    result.push_back(PrimeFactor{-1, 1});
+    result.push_back(prime_factor{-1, 1});
     x = -x;
   }
   while (x != 1) {
@@ -55,7 +55,7 @@ inline std::vector<PrimeFactor> compute_prime_factors(const int64_t n_in) {
       // This is a repeated factor.
       result.back().exponent += 1;
     } else {
-      result.push_back(PrimeFactor{factor, 1});
+      result.push_back(prime_factor{factor, 1});
     }
     x /= factor;
   }

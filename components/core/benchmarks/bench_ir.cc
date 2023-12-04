@@ -29,8 +29,8 @@ auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<
                                  q_interp.jacobian(q1) * q1.right_retract_derivative();
 
   return std::make_tuple(output_arg("q_out", ta::static_matrix<4, 1>(q_interp.to_vector_xyzw())),
-                         OptionalOutputArg("D_q0", std::move(D_q0)),
-                         OptionalOutputArg("D_q1", std::move(D_q1)));
+                         optional_output_arg("D_q0", std::move(D_q0)),
+                         optional_output_arg("D_q1", std::move(D_q1)));
 }
 
 // Benchmark interpolation between two quaternions and then computing the jacobian.

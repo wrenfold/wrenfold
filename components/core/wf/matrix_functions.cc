@@ -148,15 +148,15 @@ MatrixExpr diagonal_stack(const absl::Span<const MatrixExpr> values) {
 
 // A simple permutation "matrix".
 // Stores a mapping from `permuted row` --> `original row`.
-struct PermutationMatrix {
+struct permutation_matrix {
  public:
   using Container = absl::InlinedVector<index_t, 8>;
 
-  explicit PermutationMatrix(std::size_t size) {
+  explicit permutation_matrix(std::size_t size) {
     p_.resize(size);
     std::iota(p_.begin(), p_.end(), static_cast<index_t>(0));
   }
-  explicit PermutationMatrix(Container&& p, std::size_t num_swaps = 0)
+  explicit permutation_matrix(Container&& p, std::size_t num_swaps = 0)
       : p_(std::move(p)), num_swaps_(num_swaps) {}
 
   // The row index in the input matrix to read from.
@@ -198,13 +198,13 @@ struct PermutationMatrix {
     }
   }
 
-  PermutationMatrix transposed() const {
+  permutation_matrix transposed() const {
     Container p_transpose{};
     p_transpose.resize(rows());
     for (std::size_t i = 0; i < p_.size(); ++i) {
       p_transpose[p_[i]] = static_cast<index_t>(i);
     }
-    return PermutationMatrix{std::move(p_transpose), num_swaps_};
+    return permutation_matrix{std::move(p_transpose), num_swaps_};
   }
 
   // Determinant of this permutation matrix. Either 1 or -1.
@@ -256,12 +256,12 @@ static inline std::optional<std::tuple<std::size_t, std::size_t>> find_pivot(
 // This method cannot guarantee a successful decomposition, because the symbolic variable selected
 // as the pivot could turn out to be zero after substitution. But we can do best-effort, and avoid
 // analytical zeros.
-static std::tuple<PermutationMatrix, PermutationMatrix> factorize_full_piv_lu_internal(
+static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_internal(
     dynamic_row_major_span L, dynamic_row_major_span U) {
   if (L.rows() == 1) {
     WF_ASSERT_EQUAL(1, L.cols());
     L(0, 0) = Constants::One;
-    return std::make_tuple(PermutationMatrix(1), PermutationMatrix(U.cols()));
+    return std::make_tuple(permutation_matrix(1), permutation_matrix(U.cols()));
   }
 
   WF_ASSERT_GREATER_OR_EQ(U.rows(), 2);
@@ -273,7 +273,7 @@ static std::tuple<PermutationMatrix, PermutationMatrix> factorize_full_piv_lu_in
     for (std::size_t i = 0; i < L.rows(); ++i) {
       L(i, i) = Constants::One;
     }
-    return std::make_tuple(PermutationMatrix(L.rows()), PermutationMatrix(U.cols()));
+    return std::make_tuple(permutation_matrix(L.rows()), permutation_matrix(U.cols()));
   }
   const auto [p_row, p_col] = *pivot_indices;
 
@@ -343,7 +343,7 @@ static std::tuple<PermutationMatrix, PermutationMatrix> factorize_full_piv_lu_in
   return std::make_tuple(std::move(P), std::move(Q));
 }
 
-static std::tuple<PermutationMatrix, Matrix, Matrix, PermutationMatrix>
+static std::tuple<permutation_matrix, Matrix, Matrix, permutation_matrix>
 factorize_full_piv_lu_internal(const Matrix& A) {
   if (A.rows() > A.cols()) {
     // To simplify the implementation, we factorize the transpose and then do a fix-up step:
@@ -397,7 +397,7 @@ factorize_full_piv_lu_internal(const Matrix& A) {
   }
 }
 
-static MatrixExpr create_matrix_from_permutations(const PermutationMatrix& P) {
+static MatrixExpr create_matrix_from_permutations(const permutation_matrix& P) {
   std::vector<Expr> data(P.rows() * P.rows(), Constants::Zero);
   auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
                         make_value_pack(P.rows(), constant<1>{}));

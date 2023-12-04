@@ -99,7 +99,7 @@ struct PowerNumerics {
     }
 
     // Factorize the integer into primes:
-    const std::vector<PrimeFactor> factors = compute_prime_factors(a.get_value());
+    const std::vector<prime_factor> factors = compute_prime_factors(a.get_value());
     WF_ASSERT(std::is_sorted(factors.begin(), factors.end(),
                              [](const auto& x, const auto& y) { return x.base < y.base; }),
               "Factors should be sorted");
@@ -116,7 +116,7 @@ struct PowerNumerics {
     //    2 ^ (18/7) --> 4 * 2 ^ (4/7)
     // See https://arxiv.org/pdf/1302.2169.pdf for examples of canonical forms.
     Rational rational_coeff{1, 1};
-    for (const PrimeFactor& f : factors) {
+    for (const prime_factor& f : factors) {
       // Multiply the power by the rational to get the exponent applied to this prime factor:
       const Rational actual_exp = b * static_cast<Rational>(Integer{f.exponent});
       WF_ASSERT_GREATER(f.exponent, 0);  //  Exponents must be >= 1 in this context.

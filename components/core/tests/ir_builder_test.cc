@@ -151,7 +151,7 @@ TEST(IrTest, TestScalarExpressions2) {
       [](Expr x, Expr y, Expr z) {
         Expr f = x * y * sin(z * x) + 5;
         Expr g = cos(z * x) * x * y - log(y - z * 2.1) * 3;
-        return std::make_tuple(output_arg("f", f), OptionalOutputArg("g", g));
+        return std::make_tuple(output_arg("f", f), optional_output_arg("g", g));
       },
       "func", arg("x"), arg("y"), arg("z"));
 
@@ -325,8 +325,8 @@ TEST(IrTest, TestConditionals5) {
         Expr f = q;
         Expr g = q.diff(x);
         Expr h = q.diff(x, 2);
-        return std::make_tuple(return_value(f), OptionalOutputArg("g", g),
-                               OptionalOutputArg("h", h));
+        return std::make_tuple(return_value(f), optional_output_arg("g", g),
+                               optional_output_arg("h", h));
       },
       "func", arg("x"), arg("y"), arg("z"));
 
@@ -455,7 +455,7 @@ TEST(IrTest, TestMatrixExpressions3) {
         auto path_2 = (u - I3) * (u - I3).transposed();
         ta::static_matrix<3, 3> g{where(u(1, 1) < -v[1], path_1, path_2)};
 
-        return std::make_tuple(return_value(f), OptionalOutputArg("g", g));
+        return std::make_tuple(return_value(f), optional_output_arg("g", g));
       },
       "func", arg("v"), arg("u"), arg("t"));
 
