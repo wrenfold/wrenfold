@@ -16,15 +16,15 @@ struct ExprFromIrVisitor {
       : value_to_expression_(value_to_expression),
         output_arg_exists_(std::move(output_arg_exists)) {}
 
-  Expr operator()(const ir::Add&, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::add&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]) + map_value(args[1]);
   }
 
-  Expr operator()(const ir::Mul&, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::mul&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]) * map_value(args[1]);
   }
 
-  Expr operator()(const ir::OutputRequired& output, const std::vector<ir::value_ptr>&) const {
+  Expr operator()(const ir::output_required& output, const std::vector<ir::value_ptr>&) const {
     return output_arg_exists_.at(output.name()) ? constants::boolean_true
                                                 : constants::boolean_false;
   }
@@ -59,7 +59,7 @@ struct ExprFromIrVisitor {
     throw assertion_error("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
-  Expr operator()(const ir::CallStdFunction& func, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::call_std_function& func, const std::vector<ir::value_ptr>& args) const {
     Function::ContainerType container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::value_ptr v) { return map_value(v); });
@@ -75,28 +75,28 @@ struct ExprFromIrVisitor {
     }
   }
 
-  Expr operator()(const ir::Cast&, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::cast&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT(!args.empty());
     return map_value(args[0]);
   }
 
-  Expr operator()(const ir::Cond&, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::cond&, const std::vector<ir::value_ptr>& args) const {
     return where(map_value(args[0]), map_value(args[1]), map_value(args[2]));
   }
 
-  Expr operator()(const ir::Compare& cmp, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::compare& cmp, const std::vector<ir::value_ptr>& args) const {
     return Relational::create(cmp.operation(), map_value(args[0]), map_value(args[1]));
   }
 
-  Expr operator()(const ir::Copy&, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::copy&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]);
   }
 
-  Expr operator()(const ir::Div&, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::div&, const std::vector<ir::value_ptr>& args) const {
     return map_value(args[0]) / map_value(args[1]);
   }
 
-  Expr operator()(const ir::Load& load, const std::vector<ir::value_ptr>&) const {
+  Expr operator()(const ir::load& load, const std::vector<ir::value_ptr>&) const {
     return std::visit(
         [](const auto& expression) {
           using T = std::decay_t<decltype(expression)>;
@@ -105,7 +105,7 @@ struct ExprFromIrVisitor {
         load.variant());
   }
 
-  Expr operator()(const ir::Phi&, const std::vector<ir::value_ptr>& args) const {
+  Expr operator()(const ir::phi&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT_EQUAL(2, args.size());
 
     // We find to find the condition for this jump:
@@ -116,7 +116,7 @@ struct ExprFromIrVisitor {
     WF_ASSERT(!jump_block->is_empty());
 
     const ir::value_ptr jump_val = jump_block->operations.back();
-    WF_ASSERT(jump_val->is_type<ir::JumpCondition>());
+    WF_ASSERT(jump_val->is_type<ir::jump_condition>());
 
     return where(map_value(jump_val->first_operand()), map_value(args[0]), map_value(args[1]));
   }
@@ -163,8 +163,8 @@ create_output_expression_map(ir::block_ptr starting_block,
       // Visit the operation, and convert it to an expression.
       // We don't do anything w/ jumps - they do not actually translate to an output value directly.
       overloaded_visit(
-          code->value_op(), [](const ir::JumpCondition&) constexpr {},
-          [&](const ir::Save& save) {
+          code->value_op(), [](const ir::jump_condition&) constexpr {},
+          [&](const ir::save& save) {
             // Get all the output expressions for this output:
             std::vector<Expr> output_expressions{};
             output_expressions.reserve(code->num_operands());

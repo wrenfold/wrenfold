@@ -21,17 +21,17 @@ using value_ptr = non_null_ptr<ir::value>;
 using block_ptr = non_null_ptr<ir::block>;
 
 // Add together two operands.
-class Add {
+class add {
  public:
   constexpr static bool is_commutative() noexcept { return true; }
   constexpr static int num_value_operands() noexcept { return 2; }
   constexpr std::string_view to_string() const noexcept { return "add"; }
   constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const Add&) const noexcept { return true; }
+  constexpr bool is_same(const add&) const noexcept { return true; }
 };
 
 // Cast the operand to the specified destination type.
-class Cast {
+class cast {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
@@ -39,12 +39,12 @@ class Cast {
   constexpr std::size_t hash_seed() const noexcept {
     return static_cast<std::size_t>(destination_type_);
   }
-  constexpr bool is_same(const Cast& other) const noexcept {
+  constexpr bool is_same(const cast& other) const noexcept {
     return destination_type_ == other.destination_type_;
   }
 
   // Construct w/ destination type.
-  constexpr explicit Cast(NumericType destination) noexcept : destination_type_(destination) {}
+  constexpr explicit cast(NumericType destination) noexcept : destination_type_(destination) {}
 
   // Access the target type we are casting to.
   constexpr NumericType destination_type() const noexcept { return destination_type_; }
@@ -54,7 +54,7 @@ class Cast {
 };
 
 // A call to a built-in mathematical function like sin, cos, log, etc.
-class CallStdFunction {
+class call_std_function {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return -1; }
@@ -62,11 +62,11 @@ class CallStdFunction {
     return string_from_standard_library_function(name_);
   }
   constexpr std::size_t hash_seed() const noexcept { return static_cast<std::size_t>(name_); }
-  constexpr bool is_same(const CallStdFunction& other) const noexcept {
+  constexpr bool is_same(const call_std_function& other) const noexcept {
     return name_ == other.name_;
   }
 
-  explicit constexpr CallStdFunction(StdMathFunction name) noexcept : name_(name) {}
+  explicit constexpr call_std_function(StdMathFunction name) noexcept : name_(name) {}
 
   constexpr StdMathFunction name() const noexcept { return name_; }
 
@@ -75,7 +75,7 @@ class CallStdFunction {
 };
 
 // Compare two operands (equality or inequality).
-class Compare {
+class compare {
  public:
   constexpr static int num_value_operands() noexcept { return 2; }
   constexpr static bool is_commutative() noexcept { return false; }
@@ -93,11 +93,11 @@ class Compare {
   }
 
   constexpr std::size_t hash_seed() const noexcept { return static_cast<std::size_t>(operation_); }
-  constexpr bool is_same(const Compare& comp) const noexcept {
+  constexpr bool is_same(const compare& comp) const noexcept {
     return operation_ == comp.operation_;
   }
 
-  explicit constexpr Compare(RelationalOperation operation) noexcept : operation_(operation) {}
+  explicit constexpr compare(RelationalOperation operation) noexcept : operation_(operation) {}
 
   // Access operation enum.
   constexpr RelationalOperation operation() const noexcept { return operation_; }
@@ -110,50 +110,50 @@ class Compare {
 // cond(a, b, c) = a ? b : c;
 // This expression is used to simplify duplicate elimination. It is then replaced by conditional
 // logic and phi functions.
-class Cond {
+class cond {
  public:
   constexpr static int num_value_operands() noexcept { return 3; }
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr std::string_view to_string() const noexcept { return "cond"; }
   constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const Cond&) const noexcept { return true; }
+  constexpr bool is_same(const cond&) const noexcept { return true; }
 };
 
 // Copy the operand.
-class Copy {
+class copy {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
   constexpr std::string_view to_string() const noexcept { return "copy"; }
   constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const Copy&) const noexcept { return true; }
+  constexpr bool is_same(const copy&) const noexcept { return true; }
 };
 
 // Divide first operand by the second one.
-class Div {
+class div {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 2; }
   constexpr std::string_view to_string() const noexcept { return "div"; }
   constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const Div&) const noexcept { return true; }
+  constexpr bool is_same(const div&) const noexcept { return true; }
 };
 
 // This objects acts as a sink to indicate that a value will be used in the output code
 // to adjust control flow. The single operand is a boolean value that will ultimately
 // determine which path an if-else statement takes.
-class JumpCondition {
+class jump_condition {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
   constexpr std::string_view to_string() const noexcept { return "jcnd"; }
   constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const JumpCondition&) const noexcept { return true; }
+  constexpr bool is_same(const jump_condition&) const noexcept { return true; }
 };
 
 // A source to insert input values (either constants or function arguments) into the IR. Has no
 // value arguments, but has an expression.
-class Load {
+class load {
  public:
   using storage_type = std::variant<Constant, Integer, Float, Rational, Variable>;
 
@@ -166,7 +166,7 @@ class Load {
   }
 
   //  Check if the underlying variants contain identical expressions.
-  bool is_same(const Load& other) const {
+  bool is_same(const load& other) const {
     return std::visit(
         [](const auto& a, const auto& b) {
           if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
@@ -185,7 +185,7 @@ class Load {
   }
 
   // Construct with one of the types in `storage_type`.
-  explicit Load(storage_type contents) : variant_{std::move(contents)} {}
+  explicit load(storage_type contents) : variant_{std::move(contents)} {}
 
   // Access the underlying variant of input expressions.
   constexpr const storage_type& variant() const noexcept { return variant_; }
@@ -196,26 +196,26 @@ class Load {
 };
 
 // Multiply together two operands.
-class Mul {
+class mul {
  public:
   constexpr static bool is_commutative() noexcept { return true; }
   constexpr static int num_value_operands() noexcept { return 2; }
   constexpr std::string_view to_string() const noexcept { return "mul"; }
   constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const Mul&) const noexcept { return true; }
+  constexpr bool is_same(const mul&) const noexcept { return true; }
 };
 
 // Evaluates to true if the specified output index is required.
-class OutputRequired {
+class output_required {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 0; }
   constexpr std::string_view to_string() const noexcept { return "oreq"; }
   std::size_t hash_seed() const noexcept { return hash_string_fnv(name_); }
-  bool is_same(const OutputRequired& other) const noexcept { return name_ == other.name_; }
+  bool is_same(const output_required& other) const noexcept { return name_ == other.name_; }
 
   // Construct with string name of the relevant optional output argument.
-  explicit OutputRequired(std::string name) : name_(std::move(name)) {}
+  explicit output_required(std::string name) : name_(std::move(name)) {}
 
   // Name of the output argument.
   constexpr const std::string& name() const noexcept { return name_; }
@@ -225,18 +225,18 @@ class OutputRequired {
 };
 
 // Phi function. The output is equal to whichever operand was generated on the evaluated code-path.
-class Phi {
+class phi {
  public:
   constexpr static int num_value_operands() noexcept { return 2; }
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr std::string_view to_string() const noexcept { return "phi"; }
   constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const Phi&) const noexcept { return true; }
+  constexpr bool is_same(const phi&) const noexcept { return true; }
 };
 
 // A sink used to indicate that a value is consumed by the output (for example in a return type or
-// an output argument). Operands to `Save` are never eliminated.
-class Save {
+// an output argument). Operands to `save` are never eliminated.
+class save {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept {
@@ -244,10 +244,10 @@ class Save {
   }
   constexpr std::string_view to_string() const noexcept { return "save"; }
   std::size_t hash_seed() const { return hash_struct<OutputKey>{}(key_); }
-  bool is_same(const Save& other) const noexcept { return key_ == other.key_; }
+  bool is_same(const save& other) const noexcept { return key_ == other.key_; }
 
   // Construct with key.
-  explicit Save(OutputKey key) noexcept : key_(std::move(key)) {}
+  explicit save(OutputKey key) noexcept : key_(std::move(key)) {}
 
   // Get output key.
   constexpr const OutputKey& key() const noexcept { return key_; }
@@ -257,8 +257,8 @@ class Save {
 };
 
 // Different operations are represented by a variant.
-using Operation = std::variant<Add, CallStdFunction, Cast, Compare, Cond, Copy, Div, JumpCondition,
-                               Load, Mul, OutputRequired, Phi, Save>;
+using operation = std::variant<add, call_std_function, cast, compare, cond, copy, div,
+                               jump_condition, load, mul, output_required, phi, save>;
 
 // A block of operations:
 class block {
@@ -353,7 +353,7 @@ class value {
   void set_parent(ir::block_ptr b);
 
   // Access underlying operation
-  constexpr const Operation& value_op() const noexcept { return op_; }
+  constexpr const operation& value_op() const noexcept { return op_; }
 
   // True if the underlying operation is `T`.
   template <typename T>
@@ -368,7 +368,7 @@ class value {
   }
 
   // True if this is a phi function.
-  constexpr bool is_phi() const noexcept { return is_type<ir::Phi>(); }
+  constexpr bool is_phi() const noexcept { return is_type<ir::phi>(); }
 
   // True if any values that consume this one are phi functions.
   bool is_consumed_by_phi() const noexcept;
@@ -443,7 +443,7 @@ class value {
 
   // True if there are no consumers of this value.
   bool is_unused() const noexcept {
-    return consumers_.empty() && !is_type<ir::Save>() && !is_type<ir::JumpCondition>();
+    return consumers_.empty() && !is_type<ir::save>() && !is_type<ir::jump_condition>();
   }
 
   // Access the underlying numeric type.
@@ -480,7 +480,7 @@ class value {
   ir::block_ptr parent_;
 
   // The operation that computes this value.
-  Operation op_;
+  operation op_;
 
   // Operands to the operation. May be empty for some operations.
   // TODO: An inlined vector doesn't make any meaningful difference here, but that maybe merits

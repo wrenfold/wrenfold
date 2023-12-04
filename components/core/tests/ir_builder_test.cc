@@ -214,8 +214,8 @@ TEST(IrTest, TestPowerConversion1) {
 
   ASSERT_EQ(15, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
-  ASSERT_EQ(10, ir.count_operation([](ir::Mul) { return true; })) << ir;
-  ASSERT_EQ(0, ir.count_operation([](ir::CallStdFunction) { return true; })) << ir;
+  ASSERT_EQ(10, ir.count_operation([](ir::mul) { return true; })) << ir;
+  ASSERT_EQ(0, ir.count_operation([](ir::call_std_function) { return true; })) << ir;
 
   check_expressions(expected_expressions, ir);
   check_expressions(expected_expressions, OutputIr{std::move(ir)});
@@ -232,8 +232,8 @@ TEST(IrTest, TestPowerConversion2) {
 
   ASSERT_EQ(12, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
-  ASSERT_EQ(6, ir.count_operation([](ir::Mul) { return true; })) << ir;
-  ASSERT_EQ(1, ir.count_operation([](ir::Div) { return true; })) << ir;
+  ASSERT_EQ(6, ir.count_operation([](ir::mul) { return true; })) << ir;
+  ASSERT_EQ(1, ir.count_operation([](ir::div) { return true; })) << ir;
   ASSERT_EQ(1, ir.count_functions(StdMathFunction::Sqrt)) << ir;
 
   check_expressions(expected_expressions, ir);

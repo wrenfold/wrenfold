@@ -45,7 +45,7 @@ struct FlatIr {
   // Count invocations of the specified function.
   std::size_t count_functions(StdMathFunction enum_value) const noexcept {
     return count_operation(
-        [&](const ir::CallStdFunction& func) { return func.name() == enum_value; });
+        [&](const ir::call_std_function& func) { return func.name() == enum_value; });
   }
 
   // Get the single block of operations.
@@ -105,7 +105,7 @@ struct OutputIr {
 
   // Count instances of a function call.
   std::size_t count_function(StdMathFunction enum_value) const noexcept {
-    return count_operation([&](ir::CallStdFunction func) { return func.name() == enum_value; });
+    return count_operation([&](ir::call_std_function func) { return func.name() == enum_value; });
   }
 
  private:

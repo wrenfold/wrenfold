@@ -50,14 +50,14 @@ struct AstBuilder {
     assignments.clear();
   }
 
-  // Given all the `ir::Save` operations for a block, create the AST objects that represent
+  // Given all the `ir::save` operations for a block, create the AST objects that represent
   // either return values, or writing to output arguments (and add them to operations_).
   void push_back_outputs(const ir::block_ptr block) {
     for (const ir::value_ptr value : block->operations) {
-      if (!value->is_type<ir::Save>()) {
+      if (!value->is_type<ir::save>()) {
         continue;
       }
-      const ir::Save& save = value->as_type<ir::Save>();
+      const ir::save& save = value->as_type<ir::save>();
       const OutputKey& key = save.key();
 
       std::vector<ast::Variant> args{};
@@ -118,12 +118,12 @@ struct AstBuilder {
     phi_assignments.reserve(block->operations.size());
 
     for (const ir::value_ptr value : block->operations) {
-      if (value->is_type<ir::Save>()) {
+      if (value->is_type<ir::save>()) {
         // Defer output values to the end of the block.
       } else if (value->is_phi()) {
         // Phi is not a real operation, we just use it to determine when branches should write to
         // variables declared before the if-else.
-      } else if (value->is_type<ir::JumpCondition>() || value->is_type<ir::OutputRequired>()) {
+      } else if (value->is_type<ir::jump_condition>() || value->is_type<ir::output_required>()) {
         // These are placeholders and have no representation in the output code.
       } else {
         // Create the computation of the value:
@@ -193,12 +193,12 @@ struct AstBuilder {
     }
 
     const ir::value_ptr last_op = block->operations.back();
-    if (!last_op->is_type<ir::JumpCondition>()) {
+    if (!last_op->is_type<ir::jump_condition>()) {
       // just keep appending:
       WF_ASSERT_EQUAL(1, block->descendants.size());
       process_block(block->descendants.front());
     } else {
-      WF_ASSERT(last_op->is_type<ir::JumpCondition>());
+      WF_ASSERT(last_op->is_type<ir::jump_condition>());
       WF_ASSERT_EQUAL(2, block->descendants.size());
 
       // Figure out where this if-else statement will terminate:
@@ -216,8 +216,8 @@ struct AstBuilder {
       // an if-branch. The other is for conditional logic in computations (where both if and
       // else branches are required).
       const ir::value_ptr condition = last_op->first_operand();
-      if (condition->is_type<ir::OutputRequired>()) {
-        const ir::OutputRequired& oreq = condition->as_type<ir::OutputRequired>();
+      if (condition->is_type<ir::output_required>()) {
+        const ir::output_required& oreq = condition->as_type<ir::output_required>();
 
         // Create an optional-output assignment block
         emplace_operation<ast::OptionalOutputBranch>(signature_.get_argument(oreq.name()),
@@ -248,7 +248,7 @@ struct AstBuilder {
           // These types are placeholders, and don't directly appear in the ast output:
           using T = std::decay_t<decltype(op)>;
           using excluded_types =
-              type_list<ir::JumpCondition, ir::Save, ir::Cond, ir::Phi, ir::OutputRequired>;
+              type_list<ir::jump_condition, ir::save, ir::cond, ir::phi, ir::output_required>;
           if constexpr (type_list_contains_type_v<T, excluded_types>) {
             throw type_error("Type cannot be converted to AST: {}", typeid(T).name());
           } else {
@@ -263,8 +263,8 @@ struct AstBuilder {
   bool should_inline_constant(const ir::value_ptr val) const {
     return overloaded_visit(
         val->value_op(),
-        [](const ir::Load& load) { return load.is_type<Integer, Float, Constant>(); },
-        [&](const ir::Cast&) { return should_inline_constant(val->first_operand()); },
+        [](const ir::load& load) { return load.is_type<Integer, Float, Constant>(); },
+        [&](const ir::cast&) { return should_inline_constant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
   }
 
@@ -294,11 +294,11 @@ struct AstBuilder {
     operations_.emplace_back(T{std::forward<Args>(args)...});
   }
 
-  ast::Variant operator()(const ir::value& val, const ir::Add&) {
+  ast::Variant operator()(const ir::value& val, const ir::add&) {
     return ast::Add{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
-  ast::Variant operator()(const ir::value& val, const ir::CallStdFunction& func) {
+  ast::Variant operator()(const ir::value& val, const ir::call_std_function& func) {
     std::vector<ast::Variant> transformed_args{};
     transformed_args.reserve(val.num_operands());
     for (ir::value_ptr arg : val.operands()) {
@@ -307,25 +307,25 @@ struct AstBuilder {
     return ast::Call{func.name(), std::move(transformed_args)};
   }
 
-  ast::Variant operator()(const ir::value& val, const ir::Cast& cast) {
+  ast::Variant operator()(const ir::value& val, const ir::cast& cast) {
     return ast::Cast{cast.destination_type(), val[0]->numeric_type(),
                      make_operation_argument_ptr(val[0])};
   }
 
-  ast::Variant operator()(const ir::value& val, const ir::Compare& compare) {
+  ast::Variant operator()(const ir::value& val, const ir::compare& compare) {
     return ast::Compare{compare.operation(), make_operation_argument_ptr(val[0]),
                         make_operation_argument_ptr(val[1])};
   }
 
-  ast::Variant operator()(const ir::value& val, const ir::Copy&) {
+  ast::Variant operator()(const ir::value& val, const ir::copy&) {
     return make_operation_argument(val.first_operand());
   }
 
-  ast::Variant operator()(const ir::value& val, const ir::Div&) {
+  ast::Variant operator()(const ir::value& val, const ir::div&) {
     return ast::Divide{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
-  ast::Variant operator()(const ir::value& val, const ir::Mul&) {
+  ast::Variant operator()(const ir::value& val, const ir::mul&) {
     return ast::Multiply{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
@@ -340,7 +340,7 @@ struct AstBuilder {
     throw type_error("Cannot convert UniqueVariable to ast: {}", u.index());
   }
 
-  ast::Variant operator()(const ir::value&, const ir::Load& load) {
+  ast::Variant operator()(const ir::value&, const ir::load& load) {
     return std::visit(
         [this](const auto& inner) -> ast::Variant {
           using T = std::decay_t<decltype(inner)>;
