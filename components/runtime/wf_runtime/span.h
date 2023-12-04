@@ -30,15 +30,34 @@ class dynamic;
 template <typename T, typename Dimensions, typename Strides>
 constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept;
 
+// This is the trait you implement to add support for your custom argument type.
+//
+// An example implementation for a simple 2D matrix type with compile-time dimensions might look
+// something like:
+//
+//  template <typename Dimensions, int Rows, int Cols>
+//  struct convert_to_span<Dimensions, MyMatrixType<Rows, Cols>> {
+//     // Forwarding reference to accept both const and non-const.
+//     template <typename U>
+//     constexpr auto convert(U&& matrix) noexcept {
+//        static_assert(constant_value_pack_axis_v<0, Dimensions> == Rows);
+//        static_assert(constant_value_pack_axis_v<1, Dimensions> == Cols);
+//        // Assuming row-major storage here:
+//        constexpr auto strides = make_constant_value_pack<Cols, 1>();
+//        return make_span(matrix.data(), make_constant_value_pack<Rows, Cols>(), strides);
+//     }
+//  };
+template <typename Dimensions, typename T, typename = void>
+struct convert_to_span;
+
 // Base class for multidimensional spans.
-// Don't instantiate this directly, use `not_null_span` and `span` (defined below).
+// Don't instantiate this directly, use `make_span` or specialize the `convert_to_span` struct.
 template <typename T, typename Dimensions, typename Strides>
 class span {
  public:
-  static_assert(detail::is_value_pack<Dimensions>::value,
+  static_assert(is_value_pack<Dimensions>::value,
                 "Second template argument must be value_pack<...>");
-  static_assert(detail::is_value_pack<Strides>::value,
-                "Third template argument must be value_pack<...>");
+  static_assert(is_value_pack<Strides>::value, "Third template argument must be value_pack<...>");
   static_assert(Strides::length == Dimensions::length,
                 "Number of strides must match number of dimensions");
 
@@ -204,7 +223,7 @@ constexpr auto make_always_null_span() noexcept {
 // `Dimensions` is a value_pack.
 template <typename Dimensions>
 constexpr auto make_always_null_span() noexcept {
-  static_assert(detail::is_value_pack<Dimensions>::value, "Dimensions must be a value_pack");
+  static_assert(is_value_pack<Dimensions>::value, "Dimensions must be a value_pack");
   return make_span<detail::void_type>(nullptr, Dimensions::zero_initialized(),
                                       detail::make_zero_value_pack<Dimensions::length>());
 }
@@ -224,10 +243,6 @@ constexpr auto make_array_span(T (&array)[N]) noexcept {
   return make_span(&array[0], make_constant_value_pack<N>(), make_constant_value_pack<1>());
 }
 
-// This is the trait you implement to add support for your custom argument type.
-template <typename Dimensions, typename T, typename = void>
-struct convert_to_span;
-
 namespace detail {
 
 // Remove reference and const modifiers.
@@ -235,53 +250,74 @@ template <typename T>
 using remove_const_and_ref_t =
     typename std::remove_const<typename std::remove_reference<T>::type>::type;
 
-// Evaluates to true_Type if <Dimensions, T> is a valid specialization of `convert_to_span`.
+// Evaluate to specialized `convert_to_span` for T (minus const and reference attributes).
+template <typename Dimensions, typename T>
+using span_converter = convert_to_span<Dimensions, detail::remove_const_and_ref_t<T>>;
+
+// Evaluates to true_type if <Dimensions, T> is a valid specialization of `convert_to_span`.
 template <typename Dimensions, typename T, typename = void>
-struct is_convertible_to_span : public std::false_type {};
+struct is_convertible_to_span : std::false_type {};
 template <typename Dimensions, typename T>
 struct is_convertible_to_span<
     Dimensions, T,
-    decltype(std::declval<convert_to_span<Dimensions, detail::remove_const_and_ref_t<T>>>().convert(
-                 std::declval<T>()),
-             void())> : public std::true_type {};
+    decltype(std::declval<span_converter<Dimensions, T>>().convert(std::declval<T>()), void())>
+    : std::true_type {};
+
+// Evaluates to true if <Dimensions, T> is a valid specialization of `convert_to_span`.
+template <typename Dimensions, typename T>
+constexpr bool is_convertible_to_span_v = is_convertible_to_span<Dimensions, T>::value;
+
+// Evaluates to `true_type` if <Dimensions, T> is a valid specialization of `convert_to_span`, and
+// the `convert` method is noexcept.
+template <typename Dimensions, typename T>
+struct is_nothrow_convertible_to_span {
+  static constexpr bool value = is_convertible_to_span_v<Dimensions, T>&& noexcept(
+      std::declval<span_converter<Dimensions, T>>().convert(std::declval<T>()));
+};
+
+// Evaluates to true if <Dimensions, T> is a valid specialization of `convert_to_span`, and
+// the `convert` method is noexcept.
+template <typename Dimensions, typename T>
+constexpr bool is_nothrow_convertible_to_span_v =
+    is_nothrow_convertible_to_span<Dimensions, T>::value;
 
 }  // namespace detail
 
 // Create an input span.
 template <typename Dimensions, typename T>
-constexpr auto make_input_span(const T& input) noexcept {
-  static_assert(detail::is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
+constexpr auto make_input_span(const T& input) noexcept(
+    detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
+  static_assert(is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
   static_assert(!std::is_same<T, std::nullptr_t>::value, "Input spans may not be null.");
   static_assert(detail::is_convertible_to_span<Dimensions, const T>::value,
                 "The provided type does not have an implementation of: convert_to_span<T>");
-
-  auto span = convert_to_span<Dimensions, T>{}.convert(input);
-
-  // TODO: Check dimensions here, add runtime checks, fix noexcept specifier!
-  //  MATH_SPAN_RUNTIME_ASSERT(span.data());
-  return span;
+  return detail::span_converter<Dimensions, T>{}.convert(input);
 }
 
+// Create a span for a required output argument.
 template <typename Dimensions, typename T>
-constexpr auto make_output_span(T& output) noexcept {
-  static_assert(detail::is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
+constexpr auto make_output_span(T& output) noexcept(
+    detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
+  static_assert(is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
   static_assert(!std::is_same<T, std::nullptr_t>::value, "Required output spans may not be null.");
   static_assert(detail::is_convertible_to_span<Dimensions, T>::value,
                 "The provided type does not have an implementation of: convert_to_span<T>");
 
-  auto span = convert_to_span<Dimensions, T>{}.convert(output);
+  auto span = detail::span_converter<Dimensions, T>{}.convert(output);
   static_assert(!std::is_const<typename decltype(span)::value_type>::value,
                 "value_type of output spans may not be const");
   return span;
 }
 
+// Create a span for an optional output argument.
 template <typename Dimensions, typename T>
-constexpr auto make_optional_output_span(T& output) noexcept {
-  static_assert(detail::is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
+constexpr auto make_optional_output_span(T& output) noexcept(
+    detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
+  static_assert(is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
   static_assert(detail::is_convertible_to_span<Dimensions, T>::value,
                 "The provided type does not have an implementation of: convert_to_span<T>");
 
-  auto span = convert_to_span<Dimensions, T>{}.convert(output);
+  auto span = detail::span_converter<Dimensions, T>{}.convert(output);
   static_assert(!std::is_const<typename decltype(span)::value_type>::value,
                 "value_type of output spans may not be const");
   return span;
@@ -289,19 +325,22 @@ constexpr auto make_optional_output_span(T& output) noexcept {
 
 // Construct an input span w/ compile-time constant dimensions.
 template <std::size_t... Dims, typename T>
-constexpr auto make_input_span(const T& input) noexcept {
+constexpr auto make_input_span(const T& input) noexcept(
+    detail::is_nothrow_convertible_to_span_v<constant_value_pack<Dims...>, T>) {
   return make_input_span<constant_value_pack<Dims...>>(input);
 }
 
 // Construct an  output span w/ compile-time constant dimensions.
 template <std::size_t... Dims, typename T>
-constexpr auto make_output_span(T& input) noexcept {
+constexpr auto make_output_span(T& input) noexcept(
+    detail::is_nothrow_convertible_to_span_v<constant_value_pack<Dims...>, T>) {
   return make_output_span<constant_value_pack<Dims...>>(input);
 }
 
 // Construct an optional output span w/ compile-time constant dimensions.
 template <std::size_t... Dims, typename T>
-constexpr auto make_optional_output_span(T& input) noexcept {
+constexpr auto make_optional_output_span(T& input) noexcept(
+    detail::is_nothrow_convertible_to_span_v<constant_value_pack<Dims...>, T>) {
   return make_optional_output_span<constant_value_pack<Dims...>>(input);
 }
 
@@ -358,9 +397,20 @@ constexpr auto make_array_span_2d(std::initializer_list<T> list) MATH_SPAN_MAYBE
   return span;
 }
 
+// nullptr_t can be converted to a null span (for use in optional arguments).
 template <typename Dimensions>
 struct convert_to_span<Dimensions, std::nullptr_t> {
   constexpr auto convert(std::nullptr_t) noexcept { return make_always_null_span<Dimensions>(); }
+};
+
+// Spans are convertible to spans with identical dimensions.
+// This allows the user to pass a span directly if they want, rather than specializing
+// convert_to_span for their custom type.
+// TODO: Allow conversion from dynamic -> constant dims with runtime checks.
+template <typename Dimensions, typename T, typename DimsIn, typename StridesIn>
+struct convert_to_span<Dimensions, span<T, DimsIn, StridesIn>,
+                       typename std::enable_if<std::is_same_v<Dimensions, DimsIn>>::type> {
+  constexpr span<T, DimsIn, StridesIn> convert(span<T, DimsIn, StridesIn> x) noexcept { return x; }
 };
 
 }  // namespace wf

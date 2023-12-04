@@ -124,6 +124,29 @@ TEST(SpanTest, TestConstructor) {
   EXPECT_EQ(span, const_span);
 }
 
+TEST(SpanTest, TestSpanTraits) {
+  auto c = make_constant_value_pack<0, 3, 7>();
+  static_assert(is_value_pack_v<decltype(c)>, "");
+  static_assert(is_constant_value_pack_v<decltype(c)>, "");
+  static_assert(value_pack_length_v<decltype(c)> == 3, "");
+  static_assert(constant_value_pack_axis_v<0, decltype(c)> == 0, "");
+  static_assert(constant_value_pack_axis_v<1, decltype(c)> == 3, "");
+  static_assert(constant_value_pack_axis_v<2, decltype(c)> == 7, "");
+
+  auto d1 = make_value_pack(0, 1, 2);
+  static_assert(is_value_pack_v<decltype(d1)>, "");
+  static_assert(!is_constant_value_pack_v<decltype(d1)>, "");
+  static_assert(value_pack_length_v<decltype(d1)> == 3, "");
+
+  auto d2 = make_value_pack(constant<1>{}, 10, 12, constant<5>{});
+  static_assert(is_value_pack_v<decltype(d2)>, "");
+  static_assert(!is_constant_value_pack_v<decltype(d2)>, "");
+  static_assert(value_pack_length_v<decltype(d2)> == 4, "");
+
+  static_assert(!is_value_pack_v<std::string>, "");
+  static_assert(!is_value_pack_v<int>, "");
+}
+
 TEST(SpanTest, TestMakeNullSpan) {
   auto span = make_always_null_span<2, 3>();
   EXPECT_FALSE(span);
@@ -132,6 +155,71 @@ TEST(SpanTest, TestMakeNullSpan) {
   EXPECT_EQ(3, span.cols());
   EXPECT_EQ(0, span.stride<0>());
   EXPECT_EQ(0, span.stride<1>());
+}
+
+TEST(SpanTest, TestMakeSpanFromSpan) {
+  // Spans can be passed to make_input_span and make_output_span
+  std::array<int, 6> data = {0, 1, 2, 3, 4, 5};
+  const auto span =
+      make_span(data.data(), make_constant_value_pack<3, 2>(), make_constant_value_pack<1, 3>());
+
+  const auto input_span = make_input_span<3, 2>(span);
+  EXPECT_EQ(span.data(), input_span.data());
+  EXPECT_EQ(3, input_span.rows());
+  EXPECT_EQ(2, input_span.cols());
+  EXPECT_EQ(1, input_span.stride<0>());
+  EXPECT_EQ(3, input_span.stride<1>());
+
+  const auto output_span = make_output_span<3, 2>(span);
+  EXPECT_EQ(span.data(), output_span.data());
+  EXPECT_EQ(3, output_span.rows());
+  EXPECT_EQ(2, output_span.cols());
+  EXPECT_EQ(1, output_span.stride<0>());
+  EXPECT_EQ(3, output_span.stride<1>());
+}
+
+// A type we create, so we can specialized convert_to_span.
+// These are used below in TestNoexceptPropagation.
+struct non_throwing_type {};
+struct throwing_type {};
+
+template <typename Dimensions>
+struct convert_to_span<Dimensions, non_throwing_type> {
+  template <typename U>
+  constexpr auto convert(U&&) noexcept {
+    return make_always_null_span<Dimensions>();
+  }
+};
+
+template <typename Dimensions>
+struct convert_to_span<Dimensions, throwing_type> {
+  template <typename U>
+  constexpr auto convert(U&&) noexcept(false) {
+    return make_always_null_span<Dimensions>();
+  }
+};
+
+TEST(SpanTest, TestNoexceptPropagation) {
+  using dimensions = constant_value_pack<2, 3, 4>;
+  static_assert(detail::is_convertible_to_span_v<dimensions, non_throwing_type>, "");
+  static_assert(detail::is_convertible_to_span_v<dimensions, throwing_type>, "");
+
+  static_assert(detail::is_nothrow_convertible_to_span_v<dimensions, non_throwing_type>, "");
+  static_assert(!detail::is_nothrow_convertible_to_span_v<dimensions, throwing_type>, "");
+
+  non_throwing_type no_throw{};
+  static_assert(noexcept(make_input_span<2, 3, 4>(non_throwing_type{})), "");
+  static_assert(noexcept(make_input_span<2, 3, 4>(no_throw)), "");
+  static_assert(noexcept(make_output_span<2, 3, 4>(no_throw)), "");
+  static_assert(noexcept(make_optional_output_span<2, 3, 4>(no_throw)), "");
+
+  throwing_type yes_throw{};
+  static_assert(!noexcept(std::declval<detail::span_converter<dimensions, throwing_type>>().convert(
+                    yes_throw)),
+                "");
+  static_assert(noexcept(make_input_span<2, 3, 4>(yes_throw)) == false, "");
+  static_assert(noexcept(make_output_span<2, 3, 4>(yes_throw)) == false, "");
+  static_assert(noexcept(make_optional_output_span<2, 3, 4>(yes_throw)) == false, "");
 }
 
 TEST(SpanTest, TestMakeArraySpan) {
