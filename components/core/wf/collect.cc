@@ -64,7 +64,7 @@ struct CollectVisitor {
         auto [base, exp] = as_base_and_exp(child);
         if (base.is_identical_to(collected_term)) {
           // This term is standalone in the sum, so just push one
-          exponents_to_mul[exp].push_back(Constants::One);
+          exponents_to_mul[exp].push_back(constants::one);
           return true;
         }
       }
@@ -124,7 +124,7 @@ struct CollectVisitor {
   Expr operator()(const Float&, const Expr& arg) const { return arg; }
   Expr operator()(const Rational&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation) { return recurse(relation); }
-  Expr operator()(const Undefined&) const { return Constants::Undefined; }
+  Expr operator()(const Undefined&) const { return constants::undefined; }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 
  private:

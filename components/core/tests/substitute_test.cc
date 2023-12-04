@@ -17,7 +17,7 @@ TEST(SubstituteTest, TestVariables) {
   ASSERT_IDENTICAL(y, x.subs(x, y));
   ASSERT_IDENTICAL(z, z.subs(x, y));
   ASSERT_IDENTICAL(5, z.subs(z, 5));
-  ASSERT_IDENTICAL(Constants::Pi * z, y.subs(y, Constants::Pi * z));
+  ASSERT_IDENTICAL(constants::pi * z, y.subs(y, constants::pi * z));
 
   // Cannot replace a literal numeric:
   ASSERT_THROW(x.subs(5, y), type_error);
@@ -30,8 +30,8 @@ TEST(SubstituteTest, TestFunctions) {
 
   ASSERT_IDENTICAL(cos(x), cos(z).subs(z, x));
   ASSERT_IDENTICAL(cos(sin(y) * log(z)), cos(z).subs(z, sin(y) * log(z)));
-  ASSERT_IDENTICAL(0, cos(x).subs(x, Constants::Pi / 2));
-  ASSERT_IDENTICAL(Constants::ComplexInfinity, tan(z).subs(z, Constants::Pi / 2));
+  ASSERT_IDENTICAL(0, cos(x).subs(x, constants::pi / 2));
+  ASSERT_IDENTICAL(constants::complex_infinity, tan(z).subs(z, constants::pi / 2));
 
   // Replacing function expressions:
   ASSERT_IDENTICAL(z + y, cos(x).subs(cos(x), z + y));
@@ -47,13 +47,13 @@ TEST(SubstituteTest, TestPower) {
   // If an integer multiple of the exponent is found, replace it:
   ASSERT_IDENTICAL(pow(y, 2), pow(x, z * 2).subs(pow(x, z), y));
   ASSERT_IDENTICAL(pow(y, 4), pow(x, z * 4).subs(pow(x, z), y));
-  ASSERT_IDENTICAL(x * pow(y, 2), x * pow(x, cos(z) * 1_s / 2 * Constants::Pi)
-                                          .subs(pow(x, cos(z) * 1_s / 4 * Constants::Pi), y));
+  ASSERT_IDENTICAL(x * pow(y, 2), x * pow(x, cos(z) * 1_s / 2 * constants::pi)
+                                          .subs(pow(x, cos(z) * 1_s / 4 * constants::pi), y));
   ASSERT_IDENTICAL(pow(x * y, 18),
                    pow(sin(z), log(z) * z * 3_s).subs(pow(sin(z), log(z) * z * 1_s / 6), x * y));
 
   // Don't replace non-integer multiples:
-  ASSERT_IDENTICAL(pow(x, Constants::Pi * z), pow(x, Constants::Pi * z).subs(pow(x, z), y));
+  ASSERT_IDENTICAL(pow(x, constants::pi * z), pow(x, constants::pi * z).subs(pow(x, z), y));
   ASSERT_IDENTICAL(pow(x, tan(y) * z), pow(x, tan(y) * z).subs(pow(x, z), y));
   ASSERT_IDENTICAL(pow(x, 2.2 * y), pow(x, 2.2 * y).subs(pow(x, y), z));
   ASSERT_IDENTICAL(pow(x, y / 2), pow(x, y / 2).subs(pow(x, y), z));
@@ -122,8 +122,8 @@ TEST(SubstituteTest, TestMultiplications) {
   ASSERT_IDENTICAL(w * w, (cos(x) * cos(x) * sin(y) * sin(y)).subs(cos(x) * sin(y), w));
   ASSERT_IDENTICAL(w * w * sin(y),
                    (cos(x) * cos(x) * sin(y) * sin(y) * sin(y)).subs(cos(x) * sin(y), w));
-  ASSERT_IDENTICAL(log(Constants::Pi * pow(w, 4) * y),
-                   log(x * x * x * x * Constants::Pi * y * y * y * y * y).subs(x * y, w));
+  ASSERT_IDENTICAL(log(constants::pi * pow(w, 4) * y),
+                   log(x * x * x * x * constants::pi * y * y * y * y * y).subs(x * y, w));
 
   // Allow replacing part of a power (part of the exponent is subtracted):
   ASSERT_IDENTICAL(x * x * pow(y, 3 / 2_s), (x * pow(y, 2) * w).subs(pow(y, 1 / 2_s) * w, x));
@@ -164,9 +164,9 @@ TEST(SubstituteTest, TestMatrix) {
 TEST(SubstituteTest, TestRelational) {
   const auto [a, b, c] = make_symbols("a", "b", "c");
   ASSERT_IDENTICAL(b < c, (a < c).subs(a, b));
-  ASSERT_IDENTICAL(Constants::True, (a == 5).subs(a, 5));
-  ASSERT_IDENTICAL(Constants::True, (b + c > 2).subs(b, 5 / 4_s).subs(c, 1));
-  ASSERT_IDENTICAL(Constants::False, (b - c >= 2).subs(b, 2).subs(c, 1));
+  ASSERT_IDENTICAL(constants::boolean_true, (a == 5).subs(a, 5));
+  ASSERT_IDENTICAL(constants::boolean_true, (b + c > 2).subs(b, 5 / 4_s).subs(c, 1));
+  ASSERT_IDENTICAL(constants::boolean_false, (b - c >= 2).subs(b, 2).subs(c, 1));
 }
 
 }  // namespace math

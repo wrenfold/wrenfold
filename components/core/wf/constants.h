@@ -2,34 +2,34 @@
 #include "wf/expression.h"
 
 namespace math {
-class Constants {
+class constants {
  public:
-  static const Expr Zero;
-  static const Expr One;
-  static const Expr Pi;
-  static const Expr Euler;
-  static const Expr NegativeOne;
-  static const Expr ComplexInfinity;
-  static const Expr True;
-  static const Expr False;
-  static const Expr Undefined;
+  static const Expr zero;
+  static const Expr one;
+  static const Expr pi;
+  static const Expr euler;
+  static const Expr negative_one;
+  static const Expr complex_infinity;
+  static const Expr boolean_true;
+  static const Expr boolean_false;
+  static const Expr undefined;
 };
 
-inline bool is_zero(const Expr& expr) { return expr.is_identical_to(Constants::Zero); }
+inline bool is_zero(const Expr& expr) { return expr.is_identical_to(constants::zero); }
 
-inline bool is_one(const Expr& expr) { return expr.is_identical_to(Constants::One); }
+inline bool is_one(const Expr& expr) { return expr.is_identical_to(constants::one); }
 
 inline bool is_negative_one(const Expr& expr) {
-  return expr.is_identical_to(Constants::NegativeOne);
+  return expr.is_identical_to(constants::negative_one);
 }
 
-inline bool is_pi(const Expr& expr) { return expr.is_identical_to(Constants::Pi); }
+inline bool is_pi(const Expr& expr) { return expr.is_identical_to(constants::pi); }
 
 inline bool is_complex_infinity(const Expr& expr) {
-  return expr.is_identical_to(Constants::ComplexInfinity);
+  return expr.is_identical_to(constants::complex_infinity);
 }
 
-inline bool is_undefined(const Expr& expr) { return expr.is_identical_to(Constants::Undefined); }
+inline bool is_undefined(const Expr& expr) { return expr.is_identical_to(constants::undefined); }
 
 inline bool is_numeric_or_constant(const Expr& expr) {
   return expr.is_type<Constant, Integer, Float, Rational>();

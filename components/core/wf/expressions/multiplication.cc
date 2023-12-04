@@ -12,7 +12,7 @@ namespace math {
 
 inline Expr maybe_new_mul(Multiplication::ContainerType&& terms) {
   if (terms.empty()) {
-    return Constants::One;
+    return constants::one;
   } else if (terms.size() == 1) {
     return std::move(terms.front());
   } else {
@@ -36,7 +36,7 @@ Expr Multiplication::from_operands(absl::Span<const Expr> args) {
   }
 
   if (std::any_of(args.begin(), args.end(), &is_undefined)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
 
   // TODO: this simplification doesn't always work because there might be multiple
@@ -121,9 +121,9 @@ struct MultiplyVisitor {
       ++builder.num_infinities;
     } else {
       // Everything else: Just raise the power by +1.
-      const auto [it, was_inserted] = builder.terms.emplace(input_expression, Constants::One);
+      const auto [it, was_inserted] = builder.terms.emplace(input_expression, constants::one);
       if (!was_inserted) {
-        it->second = it->second + Constants::One;
+        it->second = it->second + constants::one;
       }
     }
   }
@@ -189,12 +189,12 @@ Expr MultiplicationParts::create_multiplication() const {
       rational_coeff.is_zero() || (float_coeff.has_value() && float_coeff->is_zero());
   if (num_infinities > 0 && has_zero_coeff) {
     // Indeterminate: ∞ * 0, applies to any kind of infinity
-    return Constants::Undefined;
+    return constants::undefined;
   } else if (num_infinities > 0) {
     // z∞ * z∞ -> z∞
-    args.push_back(Constants::ComplexInfinity);
+    args.push_back(constants::complex_infinity);
   } else if (has_zero_coeff) {
-    return Constants::Zero;
+    return constants::zero;
   }
 
   // Consider any other numerical terms, if we didn't add infinity in.
@@ -214,7 +214,7 @@ Expr MultiplicationParts::create_multiplication() const {
                  [](const auto& pair) { return Power::create(pair.first, pair.second); });
 
   if (std::any_of(args.begin(), args.end(), &is_undefined)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
 
   return maybe_new_mul(std::move(args));
@@ -233,7 +233,7 @@ std::pair<Expr, Expr> split_multiplication(const Multiplication& mul, const Expr
   }
   if (numerics.empty()) {
     // No point making a new multiplication:
-    return std::make_pair(Constants::One, mul_abstract);
+    return std::make_pair(constants::one, mul_abstract);
   }
   auto coeff = maybe_new_mul(std::move(numerics));
   auto multiplicand = maybe_new_mul(std::move(remainder));
@@ -245,7 +245,7 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
     using T = std::decay_t<decltype(x)>;
     if constexpr (type_list_contains_type_v<T, Integer, Rational, Float>) {
       // Numerical values are always the coefficient:
-      return std::make_pair(expr, Constants::One);
+      return std::make_pair(expr, constants::one);
     } else if constexpr (std::is_same_v<T, Multiplication>) {
       // Handle multiplication. We do a faster path for a common case (binary mul where first
       // element is numeric).
@@ -255,7 +255,7 @@ std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
       }
       return split_multiplication(x, expr);
     } else {
-      return std::make_pair(Constants::One, expr);
+      return std::make_pair(constants::one, expr);
     }
   });
 }
@@ -308,7 +308,7 @@ MultiplicationFormattingInfo get_formatting_info(const Multiplication& mul) {
       const bool is_negative_exp = is_negative_number(coeff);
       if (is_negative_exp) {
         if (is_negative_one(exponent)) {
-          result.denominator.emplace_back(BaseExp{std::move(base), Constants::One});
+          result.denominator.emplace_back(BaseExp{std::move(base), constants::one});
         } else {
           // Flip the sign and create a new power.
           result.denominator.emplace_back(BaseExp{std::move(base), -exponent});

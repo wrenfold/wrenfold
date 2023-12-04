@@ -72,7 +72,7 @@ Expr derivative_visitor::operator()(const Conditional& cond) {
   return where(cond.condition(), cached_visit(cond.if_branch()), cached_visit(cond.else_branch()));
 }
 
-Expr derivative_visitor::operator()(const Constant&) const { return Constants::Zero; }
+Expr derivative_visitor::operator()(const Constant&) const { return constants::zero; }
 
 // Derivative of an abstract derivative expression.
 Expr derivative_visitor::operator()(const Derivative& derivative,
@@ -81,7 +81,7 @@ Expr derivative_visitor::operator()(const Derivative& derivative,
   const bool is_relevant =
       visit(derivative.differentiand(), is_function_of_visitor<Variable>{argument});
   if (!is_relevant) {
-    return Constants::Zero;
+    return constants::zero;
   }
   return Derivative::create(derivative_abstract, argument_, 1);
 }
@@ -123,7 +123,7 @@ Expr derivative_visitor::operator()(const Function& func) {
   const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
   if (all_derivatives_zero) {
     // If zero, we don't need to do any further operations.
-    return Constants::Zero;
+    return constants::zero;
   }
 
   // TODO: Make global constants for 2, one half, etc...
@@ -143,16 +143,16 @@ Expr derivative_visitor::operator()(const Function& func) {
       return pow(cos(args[0]), -2) * d_args[0];
     case BuiltInFunction::ArcCos:
       // acos(f(x)) --> -f'(x) / sqrt(1 - f(x)^2)
-      return -pow(Constants::One - pow(args[0], 2), negative_one_half) * d_args[0];
+      return -pow(constants::one - pow(args[0], 2), negative_one_half) * d_args[0];
     case BuiltInFunction::ArcSin:
       // asin(f(x)) --> f'(x) / sqrt(1 - f(x)^2)
-      return pow(Constants::One - pow(args[0], 2), negative_one_half) * d_args[0];
+      return pow(constants::one - pow(args[0], 2), negative_one_half) * d_args[0];
     case BuiltInFunction::ArcTan:
       // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
-      return d_args[0] / (pow(args[0], 2) + Constants::One);
+      return d_args[0] / (pow(args[0], 2) + constants::one);
     case BuiltInFunction::Log:
       // log(f(x)) --> 1/f(x) * f'(x)
-      return Power::create(args[0], Constants::NegativeOne) * d_args[0];
+      return Power::create(args[0], constants::negative_one) * d_args[0];
     case BuiltInFunction::Abs:
       // |f(x)| --> f(x)/|f(x)| * f'(x)
       // TODO: Add complex argument version.
@@ -167,45 +167,45 @@ Expr derivative_visitor::operator()(const Function& func) {
       const Expr y_diff = visit_with_expr(args[0], *this);
       const Expr x_diff = visit_with_expr(args[1], *this);
       if (is_zero(y_diff) && is_zero(x_diff)) {
-        return Constants::Zero;
+        return constants::zero;
       }
       // atan2(y(u), x(u))/du = -y/(y^2 + x^2) * x'(u) + x/(y^2 + x^2) * y'(u)
       return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
     }
   }
   WF_ASSERT(false, "Invalid unary function: {}", func.function_name());
-  return Constants::Zero;
+  return constants::zero;
 }
 
-Expr derivative_visitor::operator()(const Infinity&) const { return Constants::Zero; }
-Expr derivative_visitor::operator()(const Integer&) const { return Constants::Zero; }
-Expr derivative_visitor::operator()(const Float&) const { return Constants::Zero; }
+Expr derivative_visitor::operator()(const Infinity&) const { return constants::zero; }
+Expr derivative_visitor::operator()(const Integer&) const { return constants::zero; }
+Expr derivative_visitor::operator()(const Float&) const { return constants::zero; }
 Expr derivative_visitor::operator()(const Power& pow) {
   const Expr& a = pow.base();
   const Expr& b = pow.exponent();
   const Expr a_diff = cached_visit(a);
   const Expr b_diff = cached_visit(b);
   if (is_zero(a_diff) && is_zero(b_diff)) {
-    return Constants::Zero;
+    return constants::zero;
   }
-  return b * Power::create(a, b - Constants::One) * a_diff + Power::create(a, b) * log(a) * b_diff;
+  return b * Power::create(a, b - constants::one) * a_diff + Power::create(a, b) * log(a) * b_diff;
 }
 
-Expr derivative_visitor::operator()(const Rational&) const { return Constants::Zero; }
+Expr derivative_visitor::operator()(const Rational&) const { return constants::zero; }
 
 Expr derivative_visitor::operator()(const Relational&, const Expr& rel_expr) const {
   // Cannot differentiate relationals, so insert an abstract expression.
   return Derivative::create(rel_expr, argument_, 1);
 }
 
-Expr derivative_visitor::operator()(const Undefined&) const { return Constants::Undefined; }
+Expr derivative_visitor::operator()(const Undefined&) const { return constants::undefined; }
 
 Expr derivative_visitor::operator()(const Variable& var) const {
   const Variable& argument = cast_unchecked<Variable>(argument_);
   if (var.is_identical_to(argument)) {
-    return Constants::One;
+    return constants::one;
   }
-  return Constants::Zero;
+  return constants::zero;
 }
 
 Expr diff(const Expr& function, const Expr& var, const int reps) {
@@ -227,7 +227,7 @@ MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<con
   }
 
   std::vector<Expr> result{};
-  result.resize(functions.size() * vars.size(), Constants::Zero);
+  result.resize(functions.size() * vars.size(), constants::zero);
 
   // Crate row-major span over `result`:
   const auto output_dims = make_value_pack(functions.size(), vars.size());

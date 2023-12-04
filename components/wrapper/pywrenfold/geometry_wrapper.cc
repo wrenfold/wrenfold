@@ -150,11 +150,11 @@ void wrap_geometry_operations(py::module_& m) {
                   py::doc("Construct a rotation about the y-axis. Angle is in radians."))
       .def_static("from_z_angle", &Quaternion::from_z_angle, "angle"_a,
                   py::doc("Construct a rotation about the z-axis. Angle is in radians."))
-      .def("to_angle_axis", &Quaternion::to_angle_axis, py::arg("epsilon") = Constants::Zero,
+      .def("to_angle_axis", &Quaternion::to_angle_axis, py::arg("epsilon") = constants::zero,
            py::doc("Convert quaternion to angle-axis representation. Returns an angle in the [0, "
                    "pi] interval and a unit-vector."))
       .def("to_rotation_vector", &Quaternion::to_rotation_vector,
-           py::arg("epsilon") = Constants::Zero,
+           py::arg("epsilon") = constants::zero,
            py::doc("Convert quaternion to rotation-vector representation."))
       .def_static("from_rotation_matrix", &Quaternion::from_rotation_matrix, py::arg("R"),
                   py::doc("Convert from a rotation matrix via Calley's method."))

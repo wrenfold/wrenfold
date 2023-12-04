@@ -80,11 +80,11 @@ TEST(MatrixOperationsTest, TestGetBlock) {
 
   // clang-format off
   const MatrixExpr m2 = make_matrix(3, 4,
-                                     x, Constants::Pi, 2, x - z,
+                                     x, constants::pi, 2, x - z,
                                      3.0, -5, y, pow(z, 2),
-                                     2 * z, Constants::Euler, -1, sin(x));
+                                     2 * z, constants::euler, -1, sin(x));
   // clang-format on
-  ASSERT_IDENTICAL(make_row_vector(x, Constants::Pi, 2, x - z), m2.get_block(0, 0, 1, 4));
+  ASSERT_IDENTICAL(make_row_vector(x, constants::pi, 2, x - z), m2.get_block(0, 0, 1, 4));
   ASSERT_IDENTICAL(make_vector(x, 3.0, 2 * z), m2.get_block(0, 0, 3, 1));
   ASSERT_IDENTICAL(make_matrix(2, 2, y, pow(z, 2), -1, sin(x)), m2.get_block(1, 2, 2, 2));
 
@@ -101,7 +101,7 @@ TEST(MatrixOperationsTest, TestTranspose) {
   const Expr c{"c"};
   // clang-format off
   const MatrixExpr m = make_matrix(2, 5,
-                                    cos(a), sin(b), -1, Constants::Pi * 3, 0.0,
+                                    cos(a), sin(b), -1, constants::pi * 3, 0.0,
                                     tan(c), c*a, 4, 5.0, a);
   // clang-format on
   const MatrixExpr m_t = m.transposed();
@@ -297,11 +297,11 @@ void check_full_piv_lu_solution(
 }
 
 MatrixExpr check_permutation_matrix(absl::Span<const int> permutation) {
-  std::vector<Expr> elements(permutation.size() * permutation.size(), Constants::Zero);
+  std::vector<Expr> elements(permutation.size() * permutation.size(), constants::zero);
 
   for (std::size_t row = 0; row < permutation.size(); ++row) {
     const int col_index = permutation[row];
-    elements[row * permutation.size() + static_cast<std::size_t>(col_index)] = Constants::One;
+    elements[row * permutation.size() + static_cast<std::size_t>(col_index)] = constants::one;
   }
   const auto dim = static_cast<index_t>(permutation.size());
   return MatrixExpr::create(dim, dim, std::move(elements));

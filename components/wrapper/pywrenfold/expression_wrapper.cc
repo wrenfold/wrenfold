@@ -170,13 +170,13 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
   // Special constants:
-  m.attr("euler") = Constants::Euler;
-  m.attr("zoo") = Constants::ComplexInfinity;
-  m.attr("one") = Constants::One;
-  m.attr("pi") = Constants::Pi;
-  m.attr("zero") = Constants::Zero;
-  m.attr("true") = Constants::True;
-  m.attr("false") = Constants::False;
+  m.attr("euler") = constants::euler;
+  m.attr("zoo") = constants::complex_infinity;
+  m.attr("one") = constants::one;
+  m.attr("pi") = constants::pi;
+  m.attr("zero") = constants::zero;
+  m.attr("true") = constants::boolean_true;
+  m.attr("false") = constants::boolean_false;
 
   // Function enums.
   py::enum_<BuiltInFunction>(m, "BuiltInFunction")

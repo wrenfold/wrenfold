@@ -306,7 +306,7 @@ class limit_visitor {
     // Otherwise we delegate to Multiplication::from_operands
     if (num_infinities == 0) {
       if (num_zeros > 0) {
-        remainder.push_back(Constants::Zero);
+        remainder.push_back(constants::zero);
       }
       return Multiplication::from_operands(remainder);
     }
@@ -368,7 +368,7 @@ class limit_visitor {
       return std::nullopt;
     }
 
-    WF_ASSERT(!exp_sub.is_identical_to(Constants::False));
+    WF_ASSERT(!exp_sub.is_identical_to(constants::boolean_false));
 
     if (is_zero(exp_sub) && (is_inf(base_sub) || is_zero(base_sub))) {
       // 0 ^ 0 is an indeterminate form, and ∞ ^ 0
@@ -381,7 +381,7 @@ class limit_visitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return Power::create(Constants::Euler, std::move(*exponent));
+      return Power::create(constants::euler, std::move(*exponent));
     } else if (is_one(base_sub) && is_inf(exp_sub)) {
       // 1 ^ ∞ is an indeterminate form
       // lim[x->c] f(x)^g(x) = e ^ (lim[x->c] log(f(x)) * g(x))
@@ -390,7 +390,7 @@ class limit_visitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return Power::create(Constants::Euler, std::move(*exponent));
+      return Power::create(constants::euler, std::move(*exponent));
     } else if (is_zero(base_sub)) {
       // base is zero, exponent is either function or a (+/-) constant
       if (is_numeric_or_constant(exp_sub)) {
@@ -399,17 +399,17 @@ class limit_visitor {
           return positive_inf_;
         } else {
           // 0^positive --> 0
-          return Constants::Zero;
+          return constants::zero;
         }
       }
     } else if (is_inf(base_sub)) {
       if (base_sub.is_identical_to(positive_inf_)) {
         if (is_numeric_or_constant(exp_sub)) {
-          return is_negative_number(exp_sub) ? Constants::Zero : positive_inf_;
+          return is_negative_number(exp_sub) ? constants::zero : positive_inf_;
         }
       } else {
         if (is_numeric_or_constant(exp_sub) && is_negative_number(exp_sub)) {
-          return Constants::Zero;  // (-∞)^u where u < 0
+          return constants::zero;  // (-∞)^u where u < 0
         } else if (const Integer* exp_int = cast_ptr<Integer>(exp_sub); exp_int != nullptr) {
           WF_ASSERT(!exp_int->is_zero() && !exp_int->is_negative(), "value = {}", *exp_int);
           if (exp_int->is_even()) {
@@ -430,7 +430,7 @@ class limit_visitor {
         } else {
           // (positive) ^ ∞ --> ∞
           // (positive) ^ -∞ --> 0
-          return exp_sub.is_identical_to(positive_inf_) ? positive_inf_ : Constants::Zero;
+          return exp_sub.is_identical_to(positive_inf_) ? positive_inf_ : constants::zero;
         }
       } else {
         // We don't handle g(y)^∞
@@ -489,11 +489,11 @@ class limit_visitor {
     return Relational::create(rel.operation(), std::move(*left), std::move(*right));
   }
 
-  std::optional<Expr> operator()(const Undefined&) const { return Constants::Undefined; }
+  std::optional<Expr> operator()(const Undefined&) const { return constants::undefined; }
 
   std::optional<Expr> operator()(const Variable& var, const Expr& expr) const {
     if (x_typed_.is_identical_to(var)) {
-      return Constants::Zero;  //  TODO: Support any value here.
+      return constants::zero;  //  TODO: Support any value here.
     }
     return expr;
   }

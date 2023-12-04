@@ -36,7 +36,7 @@ MatrixExpr make_zeros(index_t rows, index_t cols) {
     throw dimension_error("Cannot construct zero matrix with shape: ({}, {})", rows, cols);
   }
   // Eventually we might have a symbolic zero matrix, and this won't be required.
-  std::vector<Expr> data(static_cast<std::size_t>(rows * cols), Constants::Zero);
+  std::vector<Expr> data(static_cast<std::size_t>(rows * cols), constants::zero);
   return MatrixExpr::create(rows, cols, std::move(data));
 }
 
@@ -46,7 +46,7 @@ MatrixExpr make_identity(index_t rows) {
     throw dimension_error("Cannot construct identity matrix with dimension: {}", rows);
   }
   return create_matrix_with_lambda(
-      rows, rows, [&](index_t i, index_t j) { return i == j ? Constants::One : Constants::Zero; });
+      rows, rows, [&](index_t i, index_t j) { return i == j ? constants::one : constants::zero; });
 }
 
 MatrixExpr vectorize_matrix(const MatrixExpr& m) {
@@ -65,7 +65,7 @@ MatrixExpr vectorize_matrix(const MatrixExpr& m) {
 static MatrixExpr stack(const absl::Span<const MatrixExpr> values, index_t num_rows,
                         index_t num_cols) {
   std::vector<Expr> result{};
-  result.resize(static_cast<std::size_t>(num_rows * num_cols), Constants::Zero);
+  result.resize(static_cast<std::size_t>(num_rows * num_cols), constants::zero);
 
   constexpr constant<1> col_stride{};
   auto output_span = make_span(result.data(), make_value_pack(num_rows, num_cols),
@@ -260,7 +260,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
     dynamic_row_major_span L, dynamic_row_major_span U) {
   if (L.rows() == 1) {
     WF_ASSERT_EQUAL(1, L.cols());
-    L(0, 0) = Constants::One;
+    L(0, 0) = constants::one;
     return std::make_tuple(permutation_matrix(1), permutation_matrix(U.cols()));
   }
 
@@ -271,7 +271,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   if (!pivot_indices) {
     // no non-zero pivot - just return identity:
     for (std::size_t i = 0; i < L.rows(); ++i) {
-      L(i, i) = Constants::One;
+      L(i, i) = constants::one;
     }
     return std::make_tuple(permutation_matrix(L.rows()), permutation_matrix(U.cols()));
   }
@@ -311,7 +311,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   auto [P, Q] = std::move(permutation_matrices);
 
   // fill in the upper left element of `L`
-  L(0, 0) = Constants::One;
+  L(0, 0) = constants::one;
 
   // then the column underneath it:
   WF_ASSERT_EQUAL(static_cast<std::size_t>(P.rows()), c.rows());
@@ -334,7 +334,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
 
   // now zero out U below the diagonal
   for (std::size_t j = 1; j < U.rows(); ++j) {
-    U(j, 0) = Constants::Zero;
+    U(j, 0) = constants::zero;
   }
 
   P.shift_down_and_swap(static_cast<index_t>(p_row));
@@ -361,7 +361,7 @@ factorize_full_piv_lu_internal(const Matrix& A) {
     // Then we need to normalize the diagonal of L
     for (index_t col = 0; col < L_out.cols(); ++col) {
       Expr v = L_out.get_unchecked(col, col);
-      L_out.get_unchecked(col, col) = Constants::One;
+      L_out.get_unchecked(col, col) = constants::one;
 
       if (!is_zero(v)) {
         for (index_t row = col + 1; row < L_out.rows(); ++row) {
@@ -381,7 +381,7 @@ factorize_full_piv_lu_internal(const Matrix& A) {
     auto U_span = make_span(U_storage.data(), make_value_pack(A.rows(), A.cols()),
                             make_value_pack(A.cols(), constant<1>{}));
 
-    std::vector<Expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()), Constants::Zero);
+    std::vector<Expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()), constants::zero);
     auto L_span = make_span(L_storage.data(), make_value_pack(A.rows(), A.rows()),
                             make_value_pack(A.rows(), constant<1>{}));
 
@@ -398,12 +398,12 @@ factorize_full_piv_lu_internal(const Matrix& A) {
 }
 
 static MatrixExpr create_matrix_from_permutations(const permutation_matrix& P) {
-  std::vector<Expr> data(P.rows() * P.rows(), Constants::Zero);
+  std::vector<Expr> data(P.rows() * P.rows(), constants::zero);
   auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
                         make_value_pack(P.rows(), constant<1>{}));
 
   for (index_t row = 0; row < P.rows(); ++row) {
-    span(row, P.PermutedRow(row)) = Constants::One;
+    span(row, P.PermutedRow(row)) = constants::one;
   }
   return MatrixExpr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),
                             std::move(data));

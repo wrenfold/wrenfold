@@ -29,9 +29,9 @@ class Conditional {
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
     Expr cond = operation(condition());
-    if (cond.is_identical_to(Constants::True)) {
+    if (cond.is_identical_to(constants::boolean_true)) {
       return operation(if_branch());
-    } else if (cond.is_identical_to(Constants::False)) {
+    } else if (cond.is_identical_to(constants::boolean_false)) {
       return operation(else_branch());
     }
     return create(std::move(cond), operation(if_branch()), operation(else_branch()));

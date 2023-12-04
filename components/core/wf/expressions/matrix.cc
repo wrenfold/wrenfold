@@ -54,7 +54,7 @@ Matrix operator*(const Matrix& a, const Matrix& b) {
       }
     }
     if (addition_args.empty()) {
-      output.push_back(Constants::Zero);
+      output.push_back(constants::zero);
     } else {
       output.push_back(Addition::from_operands(addition_args));
     }

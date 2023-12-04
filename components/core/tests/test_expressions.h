@@ -63,7 +63,7 @@ inline auto nested_conditionals_1(Expr x, Expr y) {
 
 // Nested conditionals, but only on the if-branch side.
 inline auto nested_conditionals_2(Expr x, Expr y) {
-  Expr c0 = where(y > 0, cos(x * y * Constants::Pi), sin(22 / y) - 3 * x);
+  Expr c0 = where(y > 0, cos(x * y * constants::pi), sin(22 / y) - 3 * x);
   Expr c1 = where(x > 0, c0, atan2(y * 0.4, x * 0.1) * 19 - y);
   Expr c2 = where(abs(x) > abs(y), c1, sqrt(abs(x * y + 2 * x)));
   return c2;

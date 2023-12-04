@@ -6,9 +6,9 @@
 namespace math {
 
 Expr Conditional::create(math::Expr condition, math::Expr if_branch, math::Expr else_branch) {
-  if (condition.is_identical_to(Constants::True)) {
+  if (condition.is_identical_to(constants::boolean_true)) {
     return if_branch;
-  } else if (condition.is_identical_to(Constants::False)) {
+  } else if (condition.is_identical_to(constants::boolean_false)) {
     return else_branch;
   } else if (if_branch.is_identical_to(else_branch)) {
     // If and else are the same anyway, so ignore the condition.

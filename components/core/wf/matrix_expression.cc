@@ -64,7 +64,7 @@ const Matrix& MatrixExpr::as_matrix() const { return *matrix_.get(); }
 std::vector<Expr> MatrixExpr::to_vector() const { return as_matrix().data(); }
 
 MatrixExpr MatrixExpr::operator-() const {
-  return matrix_operator_overloads::operator*(*this, Constants::NegativeOne);
+  return matrix_operator_overloads::operator*(*this, constants::negative_one);
 }
 
 MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {

@@ -104,10 +104,10 @@ std::tuple<Expr, MatrixExpr> Quaternion::to_angle_axis(std::optional<Expr> epsil
   // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
   const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
 
-  static const auto unit_x = make_vector(Constants::One, Constants::Zero, Constants::Zero);
+  static const auto unit_x = make_vector(constants::one, constants::zero, constants::zero);
   if (is_zero(vector_norm)) {
     // If the norm is analytically zero, we can't do anything else here:
-    return std::make_tuple(Constants::Zero, unit_x);
+    return std::make_tuple(constants::zero, unit_x);
   }
 
   // Compute half-angle in range [0, pi/2] --> times 2 --> [0, pi]
@@ -117,7 +117,7 @@ std::tuple<Expr, MatrixExpr> Quaternion::to_angle_axis(std::optional<Expr> epsil
   MatrixExpr normalized_vector =
       make_vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm);
   if (epsilon) {
-    return std::make_tuple(where(vector_norm > *epsilon, angle, Constants::Zero),
+    return std::make_tuple(where(vector_norm > *epsilon, angle, constants::zero),
                            where(vector_norm > *epsilon, normalized_vector, unit_x));
   } else {
     return std::make_tuple(std::move(angle), std::move(normalized_vector));
@@ -196,9 +196,9 @@ MatrixExpr Quaternion::right_retract_derivative() const {
     return substitute_variables(
         q_perturb.jacobian({vx, vy, vz}),
         {
-            std::make_tuple(vx, Constants::Zero),
-            std::make_tuple(vy, Constants::Zero),
-            std::make_tuple(vz, Constants::Zero)
+            std::make_tuple(vx, constants::zero),
+            std::make_tuple(vy, constants::zero),
+            std::make_tuple(vz, constants::zero)
         });
     // clang-format on
   });
@@ -265,8 +265,8 @@ MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon
   // You can obtain these by integrating the exponential map of SO(3).
   const Expr c0 = (1 - cos(angle)) / pow(angle, 2);
   const Expr c1 = (angle - sin(angle)) / pow(angle, 3);
-  static const Expr c0_small_angle = Constants::One / 2;  // lim[angle -> 0] c0
-  static const Expr c1_small_angle = Constants::One / 6;  // lim[angle -> 0] c1
+  static const Expr c0_small_angle = constants::one / 2;  // lim[angle -> 0] c0
+  static const Expr c1_small_angle = constants::one / 6;  // lim[angle -> 0] c1
 
   // clang-format off
   const MatrixExpr skew_v = make_matrix(3, 3,

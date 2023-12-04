@@ -8,11 +8,11 @@ namespace math {
 // Defined here to resolve a circular import issue for now.
 Expr Integer::create(IntegralType x) {
   if (x == 0) {
-    return Constants::Zero;
+    return constants::zero;
   } else if (x == 1) {
-    return Constants::One;
+    return constants::one;
   } else if (x == -1) {
-    return Constants::NegativeOne;
+    return constants::negative_one;
   }
   return make_expr<Integer>(x);
 }

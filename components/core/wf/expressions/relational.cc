@@ -103,9 +103,9 @@ Expr Relational::create(RelationalOperation operation, Expr left, Expr right) {
   // See if this relational automatically simplifies to a boolean constant:
   const TriState simplified = visit_binary(left, right, RelationalSimplification{operation});
   if (simplified == TriState::True) {
-    return Constants::True;
+    return constants::boolean_true;
   } else if (simplified == TriState::False) {
-    return Constants::False;
+    return constants::boolean_false;
   }
   if (operation == RelationalOperation::Equal) {
     // We put equality operations into a canonical order.

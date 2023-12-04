@@ -40,7 +40,7 @@ struct distribute_visitor {
     // Otherwise, we need to expand all the terms. This multiplication will become an addition of
     // multiplications. For each addition, we need to distribute its terms over the remaining
     // values. TODO: Make each of these a small vector of Expr, then convert them to multiplication.
-    std::vector<Expr> output_terms(total_terms, Constants::One);
+    std::vector<Expr> output_terms(total_terms, constants::one);
 
     std::size_t step = total_terms;
     for (const Expr& expr : children) {
@@ -93,7 +93,7 @@ struct distribute_visitor {
   Expr operator()(const Relational& relation, const Expr&) const {
     return relation.map_children(&distribute);
   }
-  Expr operator()(const Undefined&) const { return Constants::Undefined; }
+  Expr operator()(const Undefined&) const { return constants::undefined; }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
 };
 

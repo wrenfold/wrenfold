@@ -18,7 +18,7 @@ Expr Addition::from_operands(absl::Span<const Expr> args) {
   }
 
   if (std::any_of(args.begin(), args.end(), &is_undefined)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
 
   // TODO: extract common denominator?
@@ -110,9 +110,9 @@ Expr AdditionParts::create_addition() const {
   // handle infinities in the input
   if (num_infinities > 1) {
     // any additive/subtractive combination of complex infinities is undefined
-    return Constants::Undefined;
+    return constants::undefined;
   } else if (num_infinities > 0) {
-    args.push_back(Constants::ComplexInfinity);
+    args.push_back(constants::complex_infinity);
   }
 
   // If we didn't add infinity, now consider float/rational.
@@ -143,7 +143,7 @@ Expr AdditionParts::create_addition() const {
                  });
 
   if (args.empty()) {
-    return Constants::Zero;
+    return constants::zero;
   } else if (args.size() == 1) {
     return args.front();
   }

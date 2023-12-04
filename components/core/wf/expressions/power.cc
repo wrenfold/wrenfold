@@ -27,7 +27,7 @@ struct PowerNumerics {
     } else if constexpr (std::is_same_v<Infinity, A> && std::is_same_v<B, Float>) {
       return apply_infinity_and_float(a, b);
     } else if constexpr (std::is_same_v<Undefined, A> || std::is_same_v<Undefined, B>) {
-      return Constants::Undefined;
+      return constants::undefined;
     } else {
       return std::nullopt;
     }
@@ -38,7 +38,7 @@ struct PowerNumerics {
   std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> apply_float_and_numeric(const A& a,
                                                                                const B& b) {
     if (a.is_zero() && b.is_negative()) {
-      return Constants::ComplexInfinity;
+      return constants::complex_infinity;
     }
     const auto result =
         std::pow(static_cast<Float>(a).get_value(), static_cast<Float>(b).get_value());
@@ -50,13 +50,13 @@ struct PowerNumerics {
     if (b.get_value() < 0) {
       if (a.is_zero()) {
         // 1 / (0)^b --> complex infinity
-        return Constants::ComplexInfinity;
+        return constants::complex_infinity;
       }
       // Convert a -> (1/a), then take the power:
       return apply_rational_and_int(Rational{1, a.get_value()}, -b);
     }
     if (a.is_zero() && b.is_zero()) {
-      return Constants::Undefined;
+      return constants::undefined;
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(a.get_value(), b.get_value());
@@ -67,10 +67,10 @@ struct PowerNumerics {
   Expr apply_rational_and_int(const Rational& a, const Integer& b) {
     const auto exponent = b.get_value();
     if (a.is_zero() && exponent < 0) {
-      return Constants::ComplexInfinity;
+      return constants::complex_infinity;
     }
     if (a.is_zero() && b.is_zero()) {
-      return Constants::Undefined;
+      return constants::undefined;
     }
     const auto n = integer_power(a.numerator(), std::abs(exponent));
     const auto d = integer_power(a.denominator(), std::abs(exponent));
@@ -86,15 +86,15 @@ struct PowerNumerics {
   Expr apply_int_and_rational(const Integer& a, const Rational& b) {
     WF_ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
     if (a.get_value() == 1) {
-      return Constants::One;
+      return constants::one;
     } else if (a.get_value() == 0) {
       if (b.is_zero()) {
         // 0^0 --> undefined
-        return Constants::Undefined;
+        return constants::undefined;
       } else if (b.is_negative()) {
-        return Constants::ComplexInfinity;
+        return constants::complex_infinity;
       } else {
-        return Constants::Zero;
+        return constants::zero;
       }
     }
 
@@ -153,23 +153,23 @@ struct PowerNumerics {
 
   Expr apply_infinity_and_rational(const Infinity&, const Rational& r) const {
     if (r.numerator() > 0) {
-      return Constants::ComplexInfinity;
+      return constants::complex_infinity;
     } else if (r.numerator() < 0) {
-      return Constants::Zero;
+      return constants::zero;
     } else {
       // infinity ^ 0
-      return Constants::Undefined;
+      return constants::undefined;
     }
   }
 
   Expr apply_infinity_and_float(const Infinity&, const Float& f) const {
     if (f.get_value() > 0) {
-      return Constants::ComplexInfinity;
+      return constants::complex_infinity;
     } else if (f.get_value() < 0) {
-      return Constants::Zero;
+      return constants::zero;
     } else {
       // infinity ^ 0.0
-      return Constants::Undefined;
+      return constants::undefined;
     }
   }
 };
@@ -221,7 +221,7 @@ Expr Power::create(Expr a, Expr b) {
 
   if ((is_one(a) || is_negative_one(a)) && is_complex_infinity(b)) {
     // 1^∞ (for any type of infinity) is undefined
-    return Constants::Undefined;
+    return constants::undefined;
   }
 
   // Check if the base is itself a power:
@@ -234,12 +234,12 @@ Expr Power::create(Expr a, Expr b) {
   // Check for zeroes:
   if (is_zero(a)) {
     if (is_complex_infinity(b)) {
-      return Constants::Undefined;
+      return constants::undefined;
     }
     // TODO: Check for `b > 0`, then 0**b --> 0
   } else if (is_zero(b)) {
     // x^0 -> 1
-    return Constants::One;
+    return constants::one;
   } else if (is_one(b)) {
     // x^1 -> x
     return a;
@@ -264,7 +264,7 @@ std::pair<Expr, Expr> as_base_and_exp(const Expr& expr) {
     // Return as base/exponent pair.
     return std::make_pair(pow->base(), pow->exponent());
   }
-  return std::make_pair(expr, Constants::One);
+  return std::make_pair(expr, constants::one);
 }
 
 }  // namespace math

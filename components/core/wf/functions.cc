@@ -24,18 +24,18 @@ std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
 }
 
 Expr log(const Expr& x) {
-  if (x.is_identical_to(Constants::Euler)) {
-    return Constants::One;
+  if (x.is_identical_to(constants::euler)) {
+    return constants::one;
   }
   if (is_one(x)) {
-    return Constants::Zero;
+    return constants::zero;
   }
   if (is_zero(x)) {
     // log(0) does not exist. In the context of limits, it can be -∞ (but not otherwise).
-    return Constants::Undefined;
+    return constants::undefined;
   }
   if (is_complex_infinity(x) || is_undefined(x)) {
-    return Constants::Undefined;  //  log(z-∞) is ∞, but we can't represent that.
+    return constants::undefined;  //  log(z-∞) is ∞, but we can't represent that.
   }
   if (std::optional<Expr> f = operate_on_float(x, [](double x) { return std::log(x); });
       f.has_value()) {
@@ -64,16 +64,16 @@ Expr cos(const Expr& arg) {
       const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
       if (r_mod_pi.is_zero()) {
-        return Constants::One;
+        return constants::one;
       } else if (r_mod_pi.is_one()) {
-        return Constants::NegativeOne;
+        return constants::negative_one;
       } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
-        return Constants::Zero;
+        return constants::zero;
       }
-      return make_expr<Function>(BuiltInFunction::Cos, Rational::create(r_mod_pi) * Constants::Pi);
+      return make_expr<Function>(BuiltInFunction::Cos, Rational::create(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(coeff)) {
-    return Constants::One;
+    return constants::one;
   }
 
   // Make signs canonical automatically:
@@ -87,7 +87,7 @@ Expr cos(const Expr& arg) {
     return *result;
   }
   if (arg.is_type<Infinity>() || is_undefined(arg)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
   // TODO: Check for phase offsets.
   return make_expr<Function>(BuiltInFunction::Cos, arg);
@@ -100,16 +100,16 @@ Expr sin(const Expr& arg) {
       const Rational r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
       if (r_mod_pi.is_zero() || r_mod_pi.is_one()) {
-        return Constants::Zero;
+        return constants::zero;
       } else if (r_mod_pi == Rational{1, 2}) {
-        return Constants::One;
+        return constants::one;
       } else if (r_mod_pi == Rational{-1, 2}) {
-        return Constants::NegativeOne;
+        return constants::negative_one;
       }
-      return make_expr<Function>(BuiltInFunction::Sin, Rational::create(r_mod_pi) * Constants::Pi);
+      return make_expr<Function>(BuiltInFunction::Sin, Rational::create(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(arg)) {
-    return Constants::Zero;
+    return constants::zero;
   }
   if (is_negative_number(arg)) {
     return -sin(-arg);
@@ -119,7 +119,7 @@ Expr sin(const Expr& arg) {
     return *result;
   }
   if (arg.is_type<Infinity>() || is_undefined(arg)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
   return make_expr<Function>(BuiltInFunction::Sin, arg);
 }
@@ -135,7 +135,7 @@ inline Rational convert_to_tan_range(const Rational& r) {
 }
 
 inline Expr pi_over_two() {
-  static const Expr Value = Constants::Pi / 2_s;
+  static const Expr Value = constants::pi / 2_s;
   return Value;
 }
 
@@ -147,16 +147,16 @@ Expr tan(const Expr& arg) {
       const Rational r_mod_half_pi = convert_to_tan_range(mod_pi_rational(*r));
       // Do some very basic simplification:
       if (r_mod_half_pi.is_zero()) {
-        return Constants::Zero;
+        return constants::zero;
       } else if (r_mod_half_pi == Rational{1, 2} || r_mod_half_pi == Rational{-1, 2}) {
         // Complex infinity.
-        return Constants::ComplexInfinity;
+        return constants::complex_infinity;
       }
       return make_expr<Function>(BuiltInFunction::Tan,
                                  Rational::create(r_mod_half_pi) * pi_over_two());
     }
   } else if (is_zero(arg)) {
-    return Constants::Zero;
+    return constants::zero;
   }
   if (is_negative_number(arg)) {
     return -tan(-arg);
@@ -166,7 +166,7 @@ Expr tan(const Expr& arg) {
     return *result;
   }
   if (arg.is_type<Infinity>() || is_undefined(arg)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
   return make_expr<Function>(BuiltInFunction::Tan, arg);
 }
@@ -177,18 +177,18 @@ Expr acos(const Expr& arg) {
   if (is_zero(arg)) {
     return pi_over_two();
   } else if (is_one(arg)) {
-    return Constants::Zero;
+    return constants::zero;
   } else if (is_negative_one(arg)) {
-    return Constants::Pi;
+    return constants::pi;
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
   return make_expr<Function>(BuiltInFunction::ArcCos, arg);
 }
 
 Expr asin(const Expr& arg) {
   if (is_zero(arg)) {
-    return Constants::Zero;
+    return constants::zero;
   } else if (is_one(arg)) {
     return pi_over_two();
   } else if (is_negative_one(arg)) {
@@ -196,19 +196,19 @@ Expr asin(const Expr& arg) {
   } else if (is_negative_number(arg)) {
     return -asin(-arg);
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
   return make_expr<Function>(BuiltInFunction::ArcSin, arg);
 }
 
 inline Expr pi_over_four() {
-  static const Expr Value = Constants::Pi / 4_s;
+  static const Expr Value = constants::pi / 4_s;
   return Value;
 }
 
 Expr atan(const Expr& arg) {
   if (is_zero(arg)) {
-    return Constants::Zero;
+    return constants::zero;
   } else if (is_one(arg)) {
     return pi_over_four();
   } else if (is_negative_one(arg)) {
@@ -216,7 +216,7 @@ Expr atan(const Expr& arg) {
   } else if (is_negative_number(arg)) {
     return -atan(-arg);
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
   return make_expr<Function>(BuiltInFunction::ArcTan, arg);
 }
@@ -228,23 +228,23 @@ struct atan2_visitor {
   }
 
   std::optional<Expr> operator()(const Integer& y, const Integer& x) const {
-    static const Expr pi_over_two = Constants::Pi / 2;
+    static const Expr pi_over_two = constants::pi / 2;
     static const Expr neg_pi_over_two = -pi_over_two;
 
     if (y.get_value() == 0 && x.get_value() == 1) {
-      return Constants::Zero;
+      return constants::zero;
     } else if (y.get_value() == 1 && x.get_value() == 0) {
       return pi_over_two;
     } else if (y.get_value() == 0 && x.get_value() == -1) {
-      return Constants::Pi;
+      return constants::pi;
     } else if (y.get_value() == -1 && x.get_value() == 0) {
       return neg_pi_over_two;
     } else if (y.abs() == x.abs() && x.get_value() != 0) {
       static const std::array<Expr, 4> quadrant_solutions = {
-          Constants::Pi / 4,
-          3 * Constants::Pi / 4,
-          -Constants::Pi / 4,
-          -3 * Constants::Pi / 4,
+          constants::pi / 4,
+          3 * constants::pi / 4,
+          -constants::pi / 4,
+          -3 * constants::pi / 4,
       };
       return quadrant_solutions[(y.get_value() < 0) * 2 + (x.get_value() < 0)];
     }
@@ -255,7 +255,7 @@ struct atan2_visitor {
   std::optional<Expr> operator()(const A&, const B&) const {
     if constexpr (std::is_same_v<A, Infinity> || std::is_same_v<B, Infinity> ||
                   std::is_same_v<A, Undefined> || std::is_same_v<B, Undefined>) {
-      return Constants::Undefined;
+      return constants::undefined;
     }
     return std::nullopt;
   }
@@ -271,7 +271,7 @@ Expr atan2(const Expr& y, const Expr& x) {
 }
 
 Expr sqrt(const Expr& arg) {
-  static const Expr one_half = Constants::One / 2_s;
+  static const Expr one_half = constants::one / 2_s;
   return Power::create(arg, one_half);
 }
 
@@ -302,7 +302,7 @@ Expr abs(const Expr& arg) {
     }
   }
   if (is_complex_infinity(arg) || is_undefined(arg)) {
-    return Constants::Undefined;
+    return constants::undefined;
   }
   // TODO: Add simplifications for real inputs, like powers.
   // TODO: Add simplifications for multiplications.
@@ -319,7 +319,7 @@ struct signum_visitor {
     return (static_cast<T>(0) < val) - (val < static_cast<T>(0));
   }
 
-  // Expr constructor will convert to `One` or `NegativeOne` constants for us
+  // Expr constructor will convert to `One` or `negative_one` constants for us
   std::optional<Expr> operator()(const Integer& i) const { return Expr{sign(i.get_value())}; }
   std::optional<Expr> operator()(const Rational& r) const { return Expr{sign(r.numerator())}; }
   std::optional<Expr> operator()(const Float& f) const {
@@ -341,7 +341,7 @@ struct signum_visitor {
     return std::nullopt;
   }
 
-  std::optional<Expr> operator()(const Undefined&) const { return Constants::Undefined; }
+  std::optional<Expr> operator()(const Undefined&) const { return constants::undefined; }
 
   // Handle all other cases.
   template <typename T, typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float,
@@ -393,9 +393,9 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
 struct bool_cast_visitor {
   std::optional<Expr> operator()(const Constant& c) const {
     if (c.name() == SymbolicConstants::True) {
-      return Constants::One;
+      return constants::one;
     } else if (c.name() == SymbolicConstants::False) {
-      return Constants::Zero;
+      return constants::zero;
     }
     return std::nullopt;
   }

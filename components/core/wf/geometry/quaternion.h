@@ -18,7 +18,7 @@ class Quaternion {
       : wxyz_{std::move(w), std::move(x), std::move(y), std::move(z)} {}
 
   // Default initialize to identity (w = 1, xyz = 0).
-  Quaternion() : Quaternion(Constants::One, Constants::Zero, Constants::Zero, Constants::Zero) {}
+  Quaternion() : Quaternion(constants::one, constants::zero, constants::zero, constants::zero) {}
 
   // Construct from a vector ordered `wxyz`.
   static Quaternion from_vector_wxyz(const MatrixExpr& q) {
@@ -112,17 +112,17 @@ class Quaternion {
 
   // Convenience method for X-axis rotation. Angle is in radians.
   static Quaternion from_x_angle(const Expr& angle) {
-    return from_angle_axis(angle, Constants::One, Constants::Zero, Constants::Zero);
+    return from_angle_axis(angle, constants::one, constants::zero, constants::zero);
   }
 
   // Convenience method for Y-axis rotation. Angle is in radians.
   static Quaternion from_y_angle(const Expr& angle) {
-    return from_angle_axis(angle, Constants::Zero, Constants::One, Constants::Zero);
+    return from_angle_axis(angle, constants::zero, constants::one, constants::zero);
   }
 
   // Convenience method for Z-axis rotation. Angle is in radians.
   static Quaternion from_z_angle(const Expr& angle) {
-    return from_angle_axis(angle, Constants::Zero, Constants::Zero, Constants::One);
+    return from_angle_axis(angle, constants::zero, constants::zero, constants::one);
   }
 
   // Convert to axis-angle representation.

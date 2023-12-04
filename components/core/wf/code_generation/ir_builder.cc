@@ -333,7 +333,7 @@ struct IRFormVisitor {
     const Expr negative_add = -add_abstract;
     if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
       const auto promoted_type = std::max(it->second->numeric_type(), NumericType::Integer);
-      const ir::ValuePtr negative_one = maybe_cast(apply(Constants::NegativeOne), promoted_type);
+      const ir::ValuePtr negative_one = maybe_cast(apply(constants::negative_one), promoted_type);
       return push_operation(ir::Mul{}, promoted_type, it->second, negative_one);
     }
     return convert_addition_or_multiplication(add);
@@ -425,7 +425,7 @@ struct IRFormVisitor {
   // Apply exponentiation by squaring to implement a power of an integer.
   ir::ValuePtr exponentiate_by_squaring(ir::ValuePtr base, uint64_t exponent) {
     if (exponent == 0) {
-      return apply(Constants::One);
+      return apply(constants::one);
     }
     // TODO: Somewhat lazy way of handling the first iteration - use an empty optional.
     std::optional<ir::ValuePtr> result{};
@@ -459,7 +459,7 @@ struct IRFormVisitor {
       const ir::ValuePtr reciprocal_value = apply(reciprocal);
 
       // Write the power as: 1 / pow(base, -exponent)
-      const ir::ValuePtr one = apply(Constants::One);
+      const ir::ValuePtr one = apply(constants::one);
       constexpr NumericType promoted_type = NumericType::Real;
       return push_operation(ir::Div{}, promoted_type, maybe_cast(one, promoted_type),
                             maybe_cast(reciprocal_value, promoted_type));

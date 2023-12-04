@@ -12,7 +12,7 @@ Expr::Expr(const std::string_view name, const NumberSet set)
 
 Expr Expr::from_float(const double x) {
   if (x == 0) {
-    return Constants::Zero;
+    return constants::zero;
   }
   return Float::create(x);
 }
@@ -26,7 +26,7 @@ std::string Expr::to_string() const {
 }
 
 Expr Expr::operator-() const {
-  return Multiplication::from_operands({Constants::NegativeOne, *this});
+  return Multiplication::from_operands({constants::negative_one, *this});
 }
 
 Expr operator+(const Expr& a, const Expr& b) {
@@ -36,13 +36,13 @@ Expr operator+(const Expr& a, const Expr& b) {
 }
 
 Expr operator-(const Expr& a, const Expr& b) {
-  return a + Multiplication::from_operands({Constants::NegativeOne, b});
+  return a + Multiplication::from_operands({constants::negative_one, b});
 }
 
 Expr operator*(const Expr& a, const Expr& b) { return Multiplication::from_operands({a, b}); }
 
 Expr operator/(const Expr& a, const Expr& b) {
-  auto one_over_b = Power::create(b, Constants::NegativeOne);
+  auto one_over_b = Power::create(b, constants::negative_one);
   return Multiplication::from_operands({a, one_over_b});
 }
 

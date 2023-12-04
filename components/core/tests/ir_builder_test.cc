@@ -185,7 +185,7 @@ TEST(IrTest, TestScalarExpressions3) {
   auto [expected_expressions, ir] = create_ir(
       [](Expr x, Expr y, Expr z) {
         // Chain together a few operations (this doesn't reduce at all).
-        Expr f = Constants::One;
+        Expr f = constants::one;
         for (int i = 0; i < 20; ++i) {
           if (i & 1) {
             f = (f + x) * y;

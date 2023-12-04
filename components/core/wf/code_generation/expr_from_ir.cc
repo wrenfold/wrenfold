@@ -25,7 +25,8 @@ struct ExprFromIrVisitor {
   }
 
   Expr operator()(const ir::OutputRequired& output, const std::vector<ir::ValuePtr>&) const {
-    return output_arg_exists_.at(output.name()) ? Constants::True : Constants::False;
+    return output_arg_exists_.at(output.name()) ? constants::boolean_true
+                                                : constants::boolean_false;
   }
 
   static constexpr BuiltInFunction built_in_function_from_standard_library_function(
@@ -66,7 +67,7 @@ struct ExprFromIrVisitor {
     if (func.name() == StdMathFunction::Powi || func.name() == StdMathFunction::Powf) {
       return pow(container[0], container[1]);
     } else if (func.name() == StdMathFunction::Sqrt) {
-      static const Expr one_half = Constants::One / 2;
+      static const Expr one_half = constants::one / 2;
       return pow(container[0], one_half);
     } else {
       return Function::create(built_in_function_from_standard_library_function(func.name()),
