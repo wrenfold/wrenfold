@@ -5,7 +5,7 @@
 #include <tuple>
 #include <variant>
 
-namespace math {
+namespace wf {
 
 // Does nothing but act as a list of types:
 template <typename... Ts>
@@ -223,4 +223,4 @@ auto overloaded_visit(Variant&& var, Funcs&&... funcs) {
   return std::visit(make_overloaded(std::forward<Funcs>(funcs)...), std::forward<Variant>(var));
 }
 
-}  // namespace math
+}  // namespace wf

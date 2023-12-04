@@ -9,7 +9,7 @@
 #include "wf/expression_impl.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 
 class integer_constant;
 class float_constant;
@@ -337,35 +337,35 @@ static_assert(is_float_and_numeric_v<rational_constant, float_constant>);
 static_assert(!is_float_and_numeric_v<integer_constant, integer_constant>);
 static_assert(!is_float_and_numeric_v<integer_constant, rational_constant>);
 
-}  // namespace math
+}  // namespace wf
 
 // Formatters
 template <>
-struct fmt::formatter<math::integer_constant, char> {
+struct fmt::formatter<wf::integer_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::integer_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::integer_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x.get_value());
   }
 };
 
 template <>
-struct fmt::formatter<math::rational_constant, char> {
+struct fmt::formatter<wf::rational_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::rational_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::rational_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "({} / {})", x.numerator(), x.denominator());
   }
 };
 
 template <>
-struct fmt::formatter<math::float_constant, char> {
+struct fmt::formatter<wf::float_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::float_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::float_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x.get_value());
   }
 };

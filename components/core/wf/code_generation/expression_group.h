@@ -6,7 +6,7 @@
 
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 
 enum class expression_usage {
   // Expression is an optional output argument.
@@ -72,4 +72,4 @@ struct expression_group {
       : expressions(std::move(expressions)), key(std::move(key)) {}
 };
 
-}  // namespace math
+}  // namespace wf

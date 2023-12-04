@@ -3,9 +3,9 @@
 
 #include "wf/code_generation/ast_formatters.h"
 
-namespace math {
+namespace wf {
 
-static constexpr std::string_view UtilityNamespace = "math";
+static constexpr std::string_view utility_namespace = "wf";
 
 std::string cpp_code_generator::generate_code(const ast::function_signature& signature,
                                               const std::vector<ast::variant>& body) const {
@@ -24,15 +24,15 @@ std::string cpp_code_generator::generate_code(const ast::function_signature& sig
         const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
         switch (arg->direction()) {
           case ast::argument_direction::input:
-            result.format("{}::make_input_span<{}>({});\n", UtilityNamespace, dims_type,
+            result.format("{}::make_input_span<{}>({});\n", utility_namespace, dims_type,
                           arg->name());
             break;
           case ast::argument_direction::output:
-            result.format("{}::make_output_span<{}>({});\n", UtilityNamespace, dims_type,
+            result.format("{}::make_output_span<{}>({});\n", utility_namespace, dims_type,
                           arg->name());
             break;
           case ast::argument_direction::optional_output:
-            result.format("{}::make_optional_output_span<{}>({});\n", UtilityNamespace, dims_type,
+            result.format("{}::make_optional_output_span<{}>({});\n", utility_namespace, dims_type,
                           arg->name());
             break;
         }
@@ -278,4 +278,4 @@ void cpp_code_generator::operator()(code_formatter& formatter,
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
 }
 
-}  // namespace math
+}  // namespace wf

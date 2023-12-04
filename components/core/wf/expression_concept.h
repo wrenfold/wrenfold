@@ -1,7 +1,7 @@
 #pragma once
 #include "wf/visitor_base.h"
 
-namespace math {
+namespace wf {
 
 // Abstract base for type-erased expressions. See `expression_implementation` for the
 // implementation.
@@ -44,4 +44,4 @@ class expression_concept {
   std::size_t type_index_{};
 };
 
-}  // namespace math
+}  // namespace wf

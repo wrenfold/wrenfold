@@ -11,7 +11,7 @@
 
 #include "generated.h"
 
-namespace math {
+namespace wf {
 
 using Eigen::AngleAxisd;
 using Eigen::Matrix3d;
@@ -26,7 +26,7 @@ Eigen::Quaternion<Scalar> quat_interp(const Eigen::Quaternion<Scalar>& a,
 
 // Test the quaternion interpolation result numerically.
 TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
-  auto evaluator = create_evaluator(&math::quaternion_interpolation);
+  auto evaluator = create_evaluator(&wf::quaternion_interpolation);
 
   const Quaterniond q0 = Quaterniond{AngleAxisd(M_PI / 3, Vector3d::UnitX())} *
                          Quaterniond{AngleAxisd(M_PI / 6, Vector3d::UnitZ())};
@@ -59,4 +59,4 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
   EXPECT_EIGEN_NEAR(D1_num, D1_gen, 1.0e-12);
 }
 
-}  // namespace math
+}  // namespace wf

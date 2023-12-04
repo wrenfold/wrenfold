@@ -17,7 +17,7 @@
 namespace py = pybind11;
 using namespace py::literals;
 
-namespace math {
+namespace wf {
 
 // Stores slice indices and provides a method for mapping from flat indices to sparse ones.
 struct slice {
@@ -70,8 +70,8 @@ struct row_iterator {
 
  private:
   // We store a strong reference to the parent, thereby ensuring this iterator is always valid.
-  math::MatrixExpr parent_;
-  math::index_t row_;
+  MatrixExpr parent_;
+  index_t row_;
 
   row_iterator(MatrixExpr parent, index_t row) : parent_(std::move(parent)), row_(row) {}
 };
@@ -416,10 +416,9 @@ void wrap_matrix_operations(py::module_& m) {
         "Factorize a matrix using fully-pivoting LU decomposition.");
 
   // Version of where() for matrices
-  m.def(
-      "where",
-      static_cast<MatrixExpr (*)(const Expr&, const MatrixExpr&, const MatrixExpr&)>(&math::where),
-      "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
+  m.def("where",
+        static_cast<MatrixExpr (*)(const Expr&, const MatrixExpr&, const MatrixExpr&)>(&wf::where),
+        "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
 }
 
-}  // namespace math
+}  // namespace wf

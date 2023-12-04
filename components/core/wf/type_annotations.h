@@ -3,7 +3,7 @@
 #include "wf/assertions.h"
 #include "wf/matrix_functions.h"
 
-namespace math {
+namespace wf {
 
 // Store information about an argument to a function.
 // User specifies this as an argument to `build_function_description`.
@@ -72,4 +72,4 @@ struct static_matrix {
 };
 
 }  // namespace type_annotations
-}  // namespace math
+}  // namespace wf

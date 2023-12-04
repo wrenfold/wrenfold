@@ -5,7 +5,7 @@
 #include "wf/hashing.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 // Cast a boolean value to an integer numerical value.
 class cast_bool {
@@ -49,4 +49,4 @@ struct hash_struct<cast_bool> {
   std::size_t operator()(const cast_bool& cast) const { return hash(cast.arg()); }
 };
 
-}  // namespace math
+}  // namespace wf

@@ -4,7 +4,7 @@
 #include "wf/operations.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 constexpr static bool is_non_negative(const number_set set) noexcept {
   return set == number_set::real_non_negative || set == number_set::real_positive;
@@ -193,4 +193,4 @@ class determine_set_visitor {
 
 number_set determine_numeric_set(const Expr& x) { return visit(x, determine_set_visitor{}); }
 
-}  // namespace math
+}  // namespace wf

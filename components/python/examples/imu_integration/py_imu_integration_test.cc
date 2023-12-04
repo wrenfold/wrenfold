@@ -7,7 +7,7 @@
 
 #include "generated.h"
 
-namespace math {
+namespace wf {
 
 using Eigen::AngleAxisd;
 using Eigen::Matrix3d;
@@ -237,4 +237,4 @@ TEST(PyImuIntegrationTest, TestErrorJacobians) {
   EXPECT_EIGEN_NEAR(error_D_pim_numerical, error_D_pim, 1.0e-12);
 }
 
-}  // namespace math
+}  // namespace wf

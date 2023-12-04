@@ -8,7 +8,7 @@
 #include "wf/expressions/all_expressions.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 // Given a starting value `v`, find any downstream conditionals values that equal this value.
 inline void find_conditional_output_values(const ir::value_ptr v, const bool top_level_invocation,
@@ -374,10 +374,9 @@ struct ast_from_ir {
 };
 
 namespace ast {
-std::vector<ast::variant> create_ast(const math::output_ir& ir,
-                                     const function_signature& signature) {
+std::vector<ast::variant> create_ast(const wf::output_ir& ir, const function_signature& signature) {
   ast_from_ir builder(ir.value_print_width(), signature);
   return builder.create_function(ir.first_block());
 }
 }  // namespace ast
-}  // namespace math
+}  // namespace wf

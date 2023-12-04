@@ -5,8 +5,8 @@
 
 #include "wf_test_support/test_macros.h"
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
   const Expr w{"w"};
@@ -153,4 +153,4 @@ TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", constants::
 
 TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", constants::undefined); }
 
-}  // namespace math
+}  // namespace wf

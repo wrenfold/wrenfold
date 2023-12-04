@@ -7,7 +7,7 @@
 #include "wf/type_annotations.h"
 
 // Some symbolic functions we use in unit tests.
-namespace math {
+namespace wf {
 
 namespace ta = type_annotations;
 
@@ -85,4 +85,4 @@ inline auto rotation_vector_from_matrix(ta::static_matrix<3, 3> R) {
   return std::make_tuple(output_arg("w", w));
 }
 
-}  // namespace math
+}  // namespace wf

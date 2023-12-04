@@ -3,7 +3,7 @@
 #include "wf/code_generation/ir_builder.h"
 #include "wf/index_range.h"
 
-namespace math {
+namespace wf {
 
 template <typename Formatter, typename T>
 struct fmt_view;
@@ -130,19 +130,19 @@ auto make_join_view(Formatter&& formatter, const std::string_view separator,
       std::forward<Formatter>(formatter), std::forward<Container>(container), separator};
 }
 
-}  // namespace math
+}  // namespace wf
 
 // Formatter that handles the fmt_view type.
 // This formatter takes the user-specified `Formatter` object from the fmt_view,
 // and delegates back to the appropriate operator() on that object.
 template <typename Formatter, typename... Args>
-struct fmt::formatter<math::detail::fmt_view<Formatter, std::tuple<Args...>>> {
+struct fmt::formatter<wf::detail::fmt_view<Formatter, std::tuple<Args...>>> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::detail::fmt_view<Formatter, std::tuple<Args...>>& view,
+  auto format(const wf::detail::fmt_view<Formatter, std::tuple<Args...>>& view,
               FormatContext& ctx) const -> decltype(ctx.out()) {
-    math::code_formatter nested_formatter{};
+    wf::code_formatter nested_formatter{};
 
     // Invoke the user provided method w/ the nested formatter:
     std::apply(
@@ -158,13 +158,13 @@ struct fmt::formatter<math::detail::fmt_view<Formatter, std::tuple<Args...>>> {
 };
 
 template <typename Formatter, typename Container>
-struct fmt::formatter<math::detail::fmt_join_view<Formatter, Container>> {
+struct fmt::formatter<wf::detail::fmt_join_view<Formatter, Container>> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::detail::fmt_join_view<Formatter, Container>& view,
-              FormatContext& ctx) const -> decltype(ctx.out()) {
-    math::code_formatter nested_formatter{};
+  auto format(const wf::detail::fmt_join_view<Formatter, Container>& view, FormatContext& ctx) const
+      -> decltype(ctx.out()) {
+    wf::code_formatter nested_formatter{};
     nested_formatter.join(view.formatter, view.separator, view.container);
     const auto& result = nested_formatter.get_output();
     return std::copy(result.begin(), result.end(), ctx.out());

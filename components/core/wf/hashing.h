@@ -4,7 +4,7 @@
 
 #include "wf/expression.h"
 
-namespace math {
+namespace wf {
 
 // Hash object T. Specializations are implemented elsewhere.
 template <typename T>
@@ -61,4 +61,4 @@ std::size_t hash(const T& object) noexcept(std::is_nothrow_invocable_v<hash_stru
   return hash_struct<T>{}(object);
 }
 
-}  // namespace math
+}  // namespace wf

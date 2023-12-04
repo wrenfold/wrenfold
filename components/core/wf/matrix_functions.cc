@@ -9,7 +9,7 @@
 #include "wf/expressions/variable.h"
 #include "wf_runtime/span.h"
 
-namespace math {
+namespace wf {
 
 template <typename Callable>
 MatrixExpr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& callable) {
@@ -463,4 +463,4 @@ Expr determinant(const MatrixExpr& m) {
   return prod;
 }
 
-}  // namespace math
+}  // namespace wf

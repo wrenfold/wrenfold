@@ -10,7 +10,7 @@
 #include "wf_test_support/test_macros.h"
 
 // Test `limits` operation.
-namespace math {
+namespace wf {
 using namespace custom_literals;
 
 // Test some trivial limits.
@@ -337,4 +337,4 @@ TEST(LimitsTest, TestJacobianSo3) {
   ASSERT_IDENTICAL(make_identity(3), *J_lim);
 }
 
-}  // namespace math
+}  // namespace wf

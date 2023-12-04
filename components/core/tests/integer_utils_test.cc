@@ -9,27 +9,27 @@
 
 // Format prime_factor
 template <>
-struct fmt::formatter<math::prime_factor, char> {
+struct fmt::formatter<wf::prime_factor, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::prime_factor& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::prime_factor& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}^{}", x.base, x.exponent);
   }
 };
 
-std::ostream& operator<<(std::ostream& out, const math::relative_order order) {
+std::ostream& operator<<(std::ostream& out, const wf::relative_order order) {
   out << string_from_relative_order(order);
   return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const std::optional<math::relative_order> order) {
+std::ostream& operator<<(std::ostream& out, const std::optional<wf::relative_order> order) {
   out << (order.has_value() ? string_from_relative_order(order.value()) : "nullopt");
   return out;
 }
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 // Simple brute force check for prime-ness.
 bool trial_division_is_prime(const int64_t n_in) {
@@ -229,4 +229,4 @@ TEST(IntegerUtils, TestCompareIntFloat) {
   EXPECT_EQ(relative_order::less_than, compare_int_float(2008ll, 1.562e67));
 }
 
-}  // namespace math
+}  // namespace wf

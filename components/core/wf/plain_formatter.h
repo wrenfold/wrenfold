@@ -2,7 +2,7 @@
 #pragma once
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 // Simple plain-text formatter.
 class plain_formatter {
@@ -37,4 +37,4 @@ class plain_formatter {
   std::string output_{};
 };
 
-}  // namespace math
+}  // namespace wf

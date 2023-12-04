@@ -3,7 +3,7 @@
 #include "wf/expression.h"
 
 // User facing math functions that operate on `Expr` go in this file.
-namespace math {
+namespace wf {
 
 // Natural log.
 Expr log(const Expr& arg);
@@ -56,4 +56,4 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
 // Cast the provided expression from a boolean to an integer.
 Expr cast_int_from_bool(const Expr& bool_expression);
 
-}  // namespace math
+}  // namespace wf

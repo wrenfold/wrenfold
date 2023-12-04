@@ -5,7 +5,7 @@
 #include "wf/expression.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 class variable;  //  Fwd declare.
 
 // Visitor that takes the derivative of an input expression.
@@ -44,4 +44,4 @@ class derivative_visitor {
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_;
 };
 
-}  // namespace math
+}  // namespace wf

@@ -8,7 +8,7 @@
 #include "wf/expression_impl.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 // A matrix of expressions.
 // Stores a 2D grid of sub-expressions in row-major order.
@@ -146,4 +146,4 @@ struct hash_struct<matrix> {
   }
 };
 
-}  // namespace math
+}  // namespace wf

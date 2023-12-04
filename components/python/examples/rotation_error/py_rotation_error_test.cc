@@ -7,7 +7,7 @@
 
 #include "generated.h"
 
-namespace math {
+namespace wf {
 
 using Eigen::AngleAxisd;
 using Eigen::Matrix3d;
@@ -42,4 +42,4 @@ TEST(PyRotationErrorTest, TestRotationError) {
   EXPECT_EIGEN_NEAR(D1_num, D1, 1.0e-12);
 }
 
-}  // namespace math
+}  // namespace wf

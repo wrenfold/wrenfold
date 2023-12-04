@@ -5,7 +5,7 @@
 #include "wf/expression_impl.h"
 #include "wf/expressions/all_expressions.h"
 
-namespace math {
+namespace wf {
 
 // Visitor for distributing terms in multiplications:
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
@@ -99,4 +99,4 @@ struct distribute_visitor {
 
 Expr distribute(const Expr& arg) { return visit_with_expr(arg, distribute_visitor{}); }
 
-}  // namespace math
+}  // namespace wf

@@ -7,7 +7,7 @@
 
 #include <array>
 
-namespace math {
+namespace wf {
 
 // Symbolic quaternion type.
 class quaternion {
@@ -142,7 +142,7 @@ class quaternion {
 
   // Compute 4xN jacobian of this quaternion with respect to the `N` input variables `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
-  MatrixExpr jacobian(absl::Span<const Expr> vars) const { return math::jacobian(wxyz(), vars); }
+  MatrixExpr jacobian(absl::Span<const Expr> vars) const { return wf::jacobian(wxyz(), vars); }
 
   // Compute the 4xN jacobian of this quaternion with respect to the `Nx1` column vector `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
@@ -191,4 +191,4 @@ quaternion operator*(const quaternion& a, const quaternion& b);
 // When the norm of `w` falls below `epsilon`, the small angle approximation is used.
 MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon);
 
-}  // namespace math
+}  // namespace wf

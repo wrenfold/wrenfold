@@ -2,7 +2,7 @@
 
 #include "wf/code_generation/ast_formatters.h"
 
-namespace math {
+namespace wf {
 
 std::string rust_code_generator::generate_code(const ast::function_signature& signature,
                                                const std::vector<ast::variant>& body) const {
@@ -57,7 +57,7 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   return result;
 }
 
-void rust_code_generator::format_signature(math::code_formatter& formatter,
+void rust_code_generator::format_signature(wf::code_formatter& formatter,
                                            const ast::function_signature& signature) const {
   formatter.format("#[inline]\n");
 
@@ -240,7 +240,7 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::decla
   }
 }
 
-void rust_code_generator::operator()(math::code_formatter& formatter, const ast::divide& x) const {
+void rust_code_generator::operator()(wf::code_formatter& formatter, const ast::divide& x) const {
   formatter.format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
@@ -285,4 +285,4 @@ void rust_code_generator::operator()(code_formatter& formatter,
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
 }
 
-}  // namespace math
+}  // namespace wf

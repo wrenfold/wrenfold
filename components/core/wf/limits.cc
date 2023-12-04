@@ -7,8 +7,8 @@
 #include "wf/operations.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 // Steps:
 //  (1) substitute values
@@ -557,4 +557,4 @@ std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
   return MatrixExpr::create(f_of_x.rows(), f_of_x.cols(), std::move(values));
 }
 
-}  // namespace math
+}  // namespace wf

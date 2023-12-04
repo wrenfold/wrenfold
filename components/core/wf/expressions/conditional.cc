@@ -3,9 +3,9 @@
 
 #include "wf/constants.h"
 
-namespace math {
+namespace wf {
 
-Expr conditional::create(math::Expr condition, math::Expr if_branch, math::Expr else_branch) {
+Expr conditional::create(wf::Expr condition, wf::Expr if_branch, wf::Expr else_branch) {
   if (condition.is_identical_to(constants::boolean_true)) {
     return if_branch;
   } else if (condition.is_identical_to(constants::boolean_false)) {
@@ -17,4 +17,4 @@ Expr conditional::create(math::Expr condition, math::Expr if_branch, math::Expr 
   return make_expr<conditional>(std::move(condition), std::move(if_branch), std::move(else_branch));
 }
 
-}  // namespace math
+}  // namespace wf

@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include "span_test_assertions.h"
 
-namespace math {
+namespace wf {
 
 // Equality operator for spans of the same type.
 // Defined for use in this test only for 2D matrices.
@@ -361,7 +361,7 @@ TEST(SpanTest, TestEigenMap) {
 // In the tests below, we fill elements that should be skipped by the strides w/ zero.
 // Then we check that our span does not include any zero elements.
 template <typename Dimensions, typename Strides>
-void check_non_zero(const math::span<const int, Dimensions, Strides>& span) {
+void check_non_zero(const wf::span<const int, Dimensions, Strides>& span) {
   for (int i = 0; i < span.rows(); ++i) {
     for (int j = 0; j < span.cols(); ++j) {
       ASSERT_NE(0, span(i, j));
@@ -469,4 +469,4 @@ TEST(SpanTest, TestEigenNullMapAssertion) {
 }
 #endif
 
-}  // namespace math
+}  // namespace wf

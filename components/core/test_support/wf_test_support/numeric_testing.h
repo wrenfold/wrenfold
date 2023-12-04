@@ -12,7 +12,7 @@
 // Utilities for evaluating symbolic functions into numeric values (like double,
 // or Eigen::Matrix). This is for unit testing code-generated methods against
 // numeric evaluation of the symbolic graph.
-namespace math {
+namespace wf {
 namespace ta = type_annotations;
 
 namespace detail {
@@ -207,4 +207,4 @@ struct convert_output_arg_type<ta::static_matrix<Rows, Cols>> {
   using type = Eigen::Matrix<double, Rows, Cols>;
 };
 }  // namespace detail
-}  // namespace math
+}  // namespace wf

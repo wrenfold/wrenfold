@@ -4,7 +4,7 @@
 #include "wf/expression.h"
 #include "wf/expression_impl.h"
 
-namespace math {
+namespace wf {
 
 class conditional {
  public:
@@ -58,4 +58,4 @@ struct hash_struct<conditional> {
   }
 };
 
-}  // namespace math
+}  // namespace wf

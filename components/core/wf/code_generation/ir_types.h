@@ -13,7 +13,7 @@
 
 // Define types for a very simple "intermediate representation" we can use to simplify
 // and reduce the tree of mathematical operations.
-namespace math::ir {
+namespace wf::ir {
 
 class value;
 class block;
@@ -514,9 +514,9 @@ std::size_t block::count_operation(Func&& func) const {
   });
 }
 
-}  // namespace math::ir
+}  // namespace wf::ir
 
-namespace math {
+namespace wf {
 
 // Hashes the operation and all the arguments of a value.
 // This deliberately ignores the name of the value. Two different values w/ identical operations
@@ -537,26 +537,26 @@ struct hash_struct<ir::value_ptr> {
   }
 };
 
-}  // namespace math
+}  // namespace wf
 
 // Formatter for value
 template <>
-struct fmt::formatter<math::ir::value, char> {
+struct fmt::formatter<wf::ir::value, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::ir::value& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::ir::value& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x.name());
   }
 };
 
 // Formatter for pointer to value
 template <>
-struct fmt::formatter<math::ir::value_ptr, char> {
+struct fmt::formatter<wf::ir::value_ptr, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::ir::value_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::ir::value_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x->name());
   }
 };

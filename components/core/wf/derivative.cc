@@ -8,9 +8,9 @@
 #include "wf/matrix_expression.h"
 #include "wf_runtime/span.h"
 
-namespace math {
+namespace wf {
 
-using namespace math::custom_literals;
+using namespace wf::custom_literals;
 
 // Visitor that checks if an expression is a function of `target`.
 // Returns true if `target` appears as a sub-expression in anything we visit.
@@ -246,4 +246,4 @@ MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<con
                             static_cast<index_t>(vars.size()), std::move(result));
 }
 
-}  // namespace math
+}  // namespace wf

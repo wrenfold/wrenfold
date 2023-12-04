@@ -9,7 +9,7 @@
 #include "wf/plain_formatter.h"
 #include "wf_runtime/span.h"
 
-namespace math {
+namespace wf {
 
 MatrixExpr::MatrixExpr(matrix&& content)
     : matrix_(std::make_shared<const matrix>(std::move(content))) {}
@@ -85,7 +85,7 @@ MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
         cols());
   }
   const auto& m = as_matrix();
-  return math::jacobian(m.data(), vars);
+  return wf::jacobian(m.data(), vars);
 }
 
 MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars) const {
@@ -98,7 +98,7 @@ MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars) const {
 }
 
 MatrixExpr MatrixExpr::distribute() const {
-  return MatrixExpr{as_matrix().map_children(&math::distribute)};
+  return MatrixExpr{as_matrix().map_children(&wf::distribute)};
 }
 
 MatrixExpr MatrixExpr::subs(const Expr& target, const Expr& replacement) const {
@@ -111,9 +111,7 @@ MatrixExpr MatrixExpr::collect(absl::Span<const Expr> terms) const {
       as_matrix().map_children([&terms](const Expr& x) { return collect_many(x, terms); })};
 }
 
-MatrixExpr MatrixExpr::eval() const {
-  return MatrixExpr{as_matrix().map_children(&math::evaluate)};
-}
+MatrixExpr MatrixExpr::eval() const { return MatrixExpr{as_matrix().map_children(&wf::evaluate)}; }
 
 namespace matrix_operator_overloads {
 
@@ -141,4 +139,4 @@ MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
 }
 
 }  // namespace matrix_operator_overloads
-}  // namespace math
+}  // namespace wf

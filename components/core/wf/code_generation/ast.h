@@ -9,12 +9,12 @@
 #include "wf/enumerations.h"
 #include "wf/hashing.h"
 
-namespace math {
+namespace wf {
 class flat_ir;
 class output_ir;
-}  // namespace math
+}  // namespace wf
 
-namespace math::ast {
+namespace wf::ast {
 
 // Represent a scalar argument type (float, int, etc).
 class scalar_type {
@@ -312,8 +312,7 @@ struct special_constant {
 };
 
 // Create AST from the IR:
-std::vector<ast::variant> create_ast(const math::output_ir& ir,
-                                     const function_signature& signature);
+std::vector<ast::variant> create_ast(const wf::output_ir& ir, const function_signature& signature);
 
 // method definitions:
 
@@ -328,4 +327,4 @@ inline construct_return_value::construct_return_value(ast::argument_type type,
 inline declaration::declaration(std::string name, code_numeric_type type, variant_ptr value)
     : name(std::move(name)), type(type), value(std::move(value)) {}
 
-}  // namespace math::ast
+}  // namespace wf::ast

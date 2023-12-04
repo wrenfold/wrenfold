@@ -17,9 +17,9 @@ using namespace py::literals;
 
 // We make this type opaque and wrap it manually below.
 // This allows us to avoid problems from variant not being default constructible.
-PYBIND11_MAKE_OPAQUE(std::vector<math::ast::variant>)
+PYBIND11_MAKE_OPAQUE(std::vector<wf::ast::variant>)
 
-namespace math {
+namespace wf {
 
 // Pybind11 requires that std::variant be default-constructible.
 // We have to allow monostate to achieve this.
@@ -315,4 +315,4 @@ void wrap_codegen_operations(py::module_& m) {
       py::doc("Generate Rust code from the given function signature and expressions."));
 }
 
-}  // namespace math
+}  // namespace wf

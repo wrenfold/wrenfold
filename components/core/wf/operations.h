@@ -4,7 +4,7 @@
 #include "wf/absl_imports.h"
 #include "wf/enumerations.h"
 
-namespace math {
+namespace wf {
 class Expr;
 class MatrixExpr;
 
@@ -61,4 +61,4 @@ std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x);
 // Returns `NumberSet::unknown` if the set cannot be determined.
 number_set determine_numeric_set(const Expr& x);
 
-}  // namespace math
+}  // namespace wf

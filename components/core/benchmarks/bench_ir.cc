@@ -8,7 +8,7 @@
 #include "wf/output_annotations.h"
 #include "wf/type_annotations.h"
 
-namespace math {
+namespace wf {
 using namespace matrix_operator_overloads;
 namespace ta = type_annotations;
 
@@ -66,6 +66,6 @@ static void BM_ConvertIrLowComplexity(benchmark::State& state) {
 
 BENCHMARK(BM_ConvertIrLowComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
 
-}  // namespace math
+}  // namespace wf
 
 BENCHMARK_MAIN();

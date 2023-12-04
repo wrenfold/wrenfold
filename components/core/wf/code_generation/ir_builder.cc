@@ -12,7 +12,7 @@
 #include "wf/hashing.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 namespace ir {
 
 void block::replace_descendant(ir::block_ptr target, ir::block_ptr replacement) {
@@ -1045,7 +1045,7 @@ class ir_converter {
   std::unordered_set<ir::value_ptr> visited{};
 };
 
-output_ir::output_ir(math::flat_ir&& input) {
+output_ir::output_ir(wf::flat_ir&& input) {
   // Take ownership of the values in `input`.
   values_.assign(std::make_move_iterator(input.values_.begin()),
                  std::make_move_iterator(input.values_.end()));
@@ -1170,15 +1170,15 @@ ir::block_ptr find_merge_point(const ir::block_ptr left, const ir::block_ptr rig
   throw assertion_error("All branches should have a merge point");
 }
 
-}  // namespace math
+}  // namespace wf
 
 // Formatter for pointer to block
 template <>
-struct fmt::formatter<math::ir::block_ptr, char> {
+struct fmt::formatter<wf::ir::block_ptr, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::ir::block_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::ir::block_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "block_{}", x->name);
   }
 };

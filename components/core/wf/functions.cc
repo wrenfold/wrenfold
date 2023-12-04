@@ -5,8 +5,8 @@
 #include "wf/integer_utils.h"
 #include "wf/matrix_expression.h"
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
 template <typename Callable>
 std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
@@ -427,4 +427,4 @@ Expr cast_int_from_bool(const Expr& bool_expression) {
   return std::move(*result);
 }
 
-}  // namespace math
+}  // namespace wf

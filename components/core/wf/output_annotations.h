@@ -2,7 +2,7 @@
 #include <string>
 #include <type_traits>
 
-namespace math {
+namespace wf {
 
 // Denote a captured result from a function that should be mapped to an output argument.
 // Stores the symbolic expression, a variable name, and whether the output should be optional.
@@ -111,4 +111,4 @@ struct return_value_index<std::tuple<Ts...>> {
   static constexpr std::ptrdiff_t value = detail::return_value_index_recursive<0, Ts...>();
 };
 
-}  // namespace math
+}  // namespace wf

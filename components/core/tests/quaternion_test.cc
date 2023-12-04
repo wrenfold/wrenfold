@@ -10,9 +10,9 @@
 #include "wf_test_support/numerical_jacobian.h"
 #include "wf_test_support/test_macros.h"
 
-namespace math {
-using namespace math::custom_literals;
-using namespace math::matrix_operator_overloads;
+namespace wf {
+using namespace wf::custom_literals;
+using namespace wf::matrix_operator_overloads;
 
 TEST(QuaternionTest, TestConstructor) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
@@ -665,4 +665,4 @@ TEST(QuaternionTest, TestJacobianOfSO3) {
   }
 }
 
-}  // namespace math
+}  // namespace wf

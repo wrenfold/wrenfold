@@ -3,7 +3,7 @@
 
 #include "wf/constants.h"
 
-namespace math {
+namespace wf {
 
 // Defined here to resolve a circular import issue for now.
 Expr integer_constant::create(value_type x) {
@@ -17,4 +17,4 @@ Expr integer_constant::create(value_type x) {
   return make_expr<integer_constant>(x);
 }
 
-}  // namespace math
+}  // namespace wf

@@ -7,7 +7,7 @@
 #include "wf/function_evaluator.h"
 #include "wf/type_annotations.h"
 
-namespace math {
+namespace wf {
 
 template <typename CodeGenerator, typename Func, typename... Args>
 void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
@@ -39,4 +39,4 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   fmt::print("Generated {}: {:.4} seconds\n", name, static_cast<double>(elapsed) / 1.0e6);
 }
 
-}  // namespace math
+}  // namespace wf

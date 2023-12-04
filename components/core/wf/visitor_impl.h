@@ -8,7 +8,7 @@
 // All expression definitions need to be available to static_cast.
 #include "wf/expressions/all_expressions.h"
 
-namespace math {
+namespace wf {
 
 // Accepts a visitor struct or lambda and applies it to the provided expression.
 // The return type will be deduced from the visitor itself.
@@ -90,4 +90,4 @@ auto visit_binary(const Expr& u, const Expr& v, VisitorType&& handler) {
   });
 }
 
-}  // namespace math
+}  // namespace wf

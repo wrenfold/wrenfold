@@ -3,7 +3,7 @@
 #include "wf/expression.h"
 #include "wf/expressions/numeric_expressions.h"
 
-namespace math {
+namespace wf {
 
 // Power operation: base**exponent
 class power {
@@ -70,4 +70,4 @@ struct hash_struct<power> {
   }
 };
 
-}  // namespace math
+}  // namespace wf

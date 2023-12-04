@@ -9,7 +9,7 @@
 #include "wf/matrix_functions.h"
 #include "wf_test_support/test_macros.h"
 
-namespace math {
+namespace wf {
 using namespace custom_literals;
 using namespace matrix_operator_overloads;
 
@@ -491,4 +491,4 @@ TEST(MatrixOperationsTest, TestDeterminant) {
   ASSERT_IDENTICAL(3714, determinant(M7));
 }
 
-}  // namespace math
+}  // namespace wf

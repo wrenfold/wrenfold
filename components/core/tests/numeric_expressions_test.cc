@@ -4,15 +4,15 @@
 
 #include "wf_test_support/test_macros.h"
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 
-std::ostream& operator<<(std::ostream& stream, const math::integer_constant& i) {
+std::ostream& operator<<(std::ostream& stream, const wf::integer_constant& i) {
   stream << fmt::format("Integer({})", i.get_value());
   return stream;
 }
 
-std::ostream& operator<<(std::ostream& stream, const math::rational_constant& r) {
+std::ostream& operator<<(std::ostream& stream, const wf::rational_constant& r) {
   stream << fmt::format("Rational({} / {})", r.numerator(), r.denominator());
   return stream;
 }
@@ -137,4 +137,4 @@ TEST(NumericExpressionsTest, TestModPiRational) {
   }
 }
 
-}  // namespace math
+}  // namespace wf

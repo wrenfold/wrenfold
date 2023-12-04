@@ -7,8 +7,8 @@
 
 #include <bitset>
 
-namespace math {
-using namespace math::custom_literals;
+namespace wf {
+using namespace wf::custom_literals;
 namespace ta = type_annotations;
 
 std::ostream& operator<<(std::ostream& s, const flat_ir& b) {
@@ -503,4 +503,4 @@ TEST(IrTest, TestBuiltInFunctions) {
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
 }
 
-}  // namespace math
+}  // namespace wf

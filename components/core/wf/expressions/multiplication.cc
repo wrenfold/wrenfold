@@ -8,7 +8,7 @@
 #include "wf/integer_utils.h"
 #include "wf/visitor_impl.h"
 
-namespace math {
+namespace wf {
 
 inline Expr maybe_new_mul(multiplication::container_type&& terms) {
   if (terms.empty()) {
@@ -333,4 +333,4 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
   return result;
 }
 
-}  // namespace math
+}  // namespace wf

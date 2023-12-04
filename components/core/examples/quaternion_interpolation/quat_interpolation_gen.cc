@@ -8,7 +8,7 @@
 #include "wf_test_support/code_gen_helpers.h"
 
 int main() {
-  using namespace math;
+  using namespace wf;
   std::string code =
       "// Machine generated code.\n#include <cmath>\n\n#include <wf_runtime/span.h>\n\n";
 

@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 
-namespace math {
+namespace wf {
 
 // A simple range type to allow forward-iterating over a sequence of integers as though
 // they were a container. Only intended to contain primitive integers.
@@ -58,4 +58,4 @@ static_assert(*(++make_range(0, 5).begin()) == 1);
 static_assert(*(++(++make_range(0, 5).begin())) == 2);
 static_assert(*((++make_range(2, 5).begin())++) == 3);
 
-}  // namespace math
+}  // namespace wf

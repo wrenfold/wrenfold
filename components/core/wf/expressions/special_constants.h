@@ -3,7 +3,7 @@
 #include "wf/constants.h"
 #include "wf/expression_impl.h"
 
-namespace math {
+namespace wf {
 
 // A symbolic constant, like pi or euler's number.
 class symbolic_constant {
@@ -89,15 +89,15 @@ struct hash_struct<undefined> {
   }
 };
 
-}  // namespace math
+}  // namespace wf
 
 // Formatter for printing in assertions.
 template <>
-struct fmt::formatter<math::symbolic_constant, char> {
+struct fmt::formatter<wf::symbolic_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::symbolic_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "{}", math::string_from_symbolic_constant(x.name()));
+  auto format(const wf::symbolic_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "{}", wf::string_from_symbolic_constant(x.name()));
   }
 };

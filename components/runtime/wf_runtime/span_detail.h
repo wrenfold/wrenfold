@@ -3,7 +3,7 @@
 #include <tuple>
 #include <type_traits>
 
-namespace math {
+namespace wf {
 
 // Represent a compile-time constant dimension or stride value.
 template <std::size_t D>
@@ -255,4 +255,4 @@ struct void_type {
 };
 
 }  // namespace detail
-}  // namespace math
+}  // namespace wf

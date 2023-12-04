@@ -4,7 +4,7 @@
 #include "wf/expression.h"
 #include "wf/fmt_imports.h"
 
-namespace math {
+namespace wf {
 
 // Benchmark adding repeated symbols.
 static void BM_ScalarAddition(benchmark::State& state) {
@@ -46,6 +46,6 @@ static void BM_ScalarMultiplication(benchmark::State& state) {
 }
 BENCHMARK(BM_ScalarMultiplication)->Iterations(2000)->Unit(benchmark::kMillisecond);
 
-}  // namespace math
+}  // namespace wf
 
 BENCHMARK_MAIN();

@@ -9,7 +9,7 @@
 #include "wf/template_utils.h"
 #include "wf/type_annotations.h"
 
-namespace math {
+namespace wf {
 namespace detail {
 
 template <typename T>
@@ -222,4 +222,4 @@ auto invoke_with_output_capture(Callable&& callable, std::index_sequence<Indices
 }
 
 }  // namespace detail
-}  // namespace math
+}  // namespace wf
