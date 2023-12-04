@@ -25,9 +25,9 @@ class expression_concept {
   // Check if the underlying derived type is one of `... Ts`.
   template <typename... Ts>
   constexpr bool is_type() const noexcept {
-    static_assert((type_list_contains_type_v<Ts, ExpressionTypeList> && ...),
+    static_assert((type_list_contains_type_v<Ts, expression_type_list> && ...),
                   "Ts is not a valid expression type");
-    return ((index_of_type_v<Ts, ExpressionTypeList> == type_index_) || ...);
+    return ((index_of_type_v<Ts, expression_type_list> == type_index_) || ...);
   }
 
   // Retrieve the hash of the expression.

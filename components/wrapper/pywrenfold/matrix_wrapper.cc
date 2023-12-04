@@ -20,9 +20,9 @@ using namespace py::literals;
 namespace math {
 
 // Stores slice indices and provides a method for mapping from flat indices to sparse ones.
-struct Slice {
+struct slice {
  public:
-  explicit Slice(const index_t len, const py::slice& slice) {
+  explicit slice(const index_t len, const py::slice& slice) {
     if (!slice.compute(static_cast<py::ssize_t>(len), &start_, &stop_, &step_, &length_)) {
       throw py::error_already_set();
     }
@@ -44,17 +44,17 @@ struct Slice {
 };
 
 // Iterator over rows of a matrix expression.
-struct RowIterator {
-  static RowIterator Begin(const MatrixExpr& m) { return RowIterator(m, 0); }
-  static RowIterator End(const MatrixExpr& m) { return RowIterator(m, m.rows()); }
+struct row_iterator {
+  static row_iterator Begin(const MatrixExpr& m) { return row_iterator(m, 0); }
+  static row_iterator End(const MatrixExpr& m) { return row_iterator(m, m.rows()); }
 
   // Iterators only match if the underlying matrix expression is the same instance.
-  bool operator==(const RowIterator& other) const {
+  bool operator==(const row_iterator& other) const {
     return parent_.has_same_address(other.parent_) && row_ == other.row_;
   }
 
   // Pre-increment. We don't need post-increment for pybind.
-  RowIterator& operator++() {
+  row_iterator& operator++() {
     row_++;
     return *this;
   }
@@ -73,7 +73,7 @@ struct RowIterator {
   math::MatrixExpr parent_;
   math::index_t row_;
 
-  RowIterator(MatrixExpr parent, index_t row) : parent_(std::move(parent)), row_(row) {}
+  row_iterator(MatrixExpr parent, index_t row) : parent_(std::move(parent)), row_(row) {}
 };
 
 // Access a particular row and column (with support for negative indexing).
@@ -93,8 +93,8 @@ std::variant<Expr, MatrixExpr> matrix_get_row(const MatrixExpr& self, const inde
 }
 
 // Return a sub-block by slicing just rows.
-MatrixExpr matrix_get_row_slice(const MatrixExpr& self, py::slice slice) {
-  const Slice slice_index{self.rows(), slice};
+MatrixExpr matrix_get_row_slice(const MatrixExpr& self, py::slice slc) {
+  const slice slice_index{self.rows(), slc};
 
   std::vector<Expr> elements;
   elements.reserve(static_cast<std::size_t>(slice_index.length() * self.cols()));
@@ -112,8 +112,8 @@ MatrixExpr matrix_get_row_slice(const MatrixExpr& self, py::slice slice) {
 MatrixExpr matrix_get_row_and_col_slice(const MatrixExpr& self,
                                         const std::tuple<py::slice, py::slice>& slices) {
   const auto [row_slice, col_slice] = slices;
-  const Slice row_index{self.rows(), row_slice};
-  const Slice col_index{self.cols(), col_slice};
+  const slice row_index{self.rows(), row_slice};
+  const slice col_index{self.cols(), col_slice};
   const std::size_t num_elements =
       static_cast<std::size_t>(row_index.length()) * static_cast<std::size_t>(col_index.length());
 
@@ -134,7 +134,7 @@ MatrixExpr matrix_get_row_index_and_col_slice(
     const MatrixExpr& self, const std::tuple<index_t, py::slice>& row_and_col_slice) {
   const auto [row, col_slice] = row_and_col_slice;
   const index_t wrapped_row = row < 0 ? self.rows() - row : row;
-  const Slice col_index{self.cols(), col_slice};
+  const slice col_index{self.cols(), col_slice};
 
   std::vector<Expr> elements;
   elements.reserve(static_cast<std::size_t>(col_index.length()));
@@ -149,7 +149,7 @@ MatrixExpr matrix_get_row_slice_and_col_index(
     const MatrixExpr& self, const std::tuple<py::slice, index_t>& row_slice_and_col) {
   const auto [row_slice, col] = row_slice_and_col;
   const index_t wrapped_col = col < 0 ? self.cols() - col : col;
-  const Slice row_index{self.rows(), row_slice};
+  const slice row_index{self.rows(), row_slice};
 
   std::vector<Expr> elements;
   elements.reserve(static_cast<std::size_t>(row_index.length()));
@@ -352,7 +352,7 @@ void wrap_matrix_operations(py::module_& m) {
       .def("__len__", &MatrixExpr::rows, "Number of rows in the matrix.")
       .def("__iter__",  //  We don't need keep_alive since MatrixExpr does that for us.
            [](const MatrixExpr& expr) {
-             return py::make_iterator(RowIterator::Begin(expr), RowIterator::End(expr));
+             return py::make_iterator(row_iterator::Begin(expr), row_iterator::End(expr));
            })
       .def("unary_map", &unary_map_matrix, py::arg("func"), "Perform element-wise map operation.")
       // Convert to list

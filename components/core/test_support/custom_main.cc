@@ -3,7 +3,7 @@
 // https://stackoverflow.com/questions/45575863/how-to-print-utf-8-strings-to-stdcout-on-windows
 #if defined(_WIN32) || defined(WIN32)
 #include <Windows.h>
-class StringBuf : public std::stringbuf {
+class string_buf : public std::stringbuf {
  public:
   int sync() override {
     // Copy string contents to stdout, and reset the buffer:
@@ -21,8 +21,8 @@ int main(int argc, char** argv) {
   SetConsoleOutputCP(CP_UTF8);
   // Disable buffering of stdout:
   setvbuf(stdout, nullptr, _IONBF, 0);
-  // Replace stdout buffer w/ StringBuf:
-  StringBuf buf;
+  // Replace stdout buffer w/ string_buf:
+  string_buf buf;
   std::cout.rdbuf(&buf);
 #endif
   testing::InitGoogleTest(&argc, argv);

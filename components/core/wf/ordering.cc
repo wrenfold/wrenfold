@@ -120,7 +120,8 @@ static constexpr auto get_type_order_indices(type_list<Ts...>) {
                 conditional, cast_bool, derivative, undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
-  static_assert(type_list_size<order_of_types>::value == type_list_size<ExpressionTypeList>::value);
+  static_assert(type_list_size<order_of_types>::value ==
+                type_list_size<expression_type_list>::value);
 
   return std::array<std::size_t, sizeof...(Ts)>{index_of_type_v<Ts, order_of_types>...};
 }
@@ -128,7 +129,7 @@ static constexpr auto get_type_order_indices(type_list<Ts...>) {
 relative_order expression_order(const Expr& a, const Expr& b) {
   // An array where element [i] is the position of the type with index `i` within
   // our preferred canonical ordering.
-  static constexpr auto order = get_type_order_indices(ExpressionTypeList{});
+  static constexpr auto order = get_type_order_indices(expression_type_list{});
 
   const auto index_a = order[a.type_index()];
   const auto index_b = order[b.type_index()];

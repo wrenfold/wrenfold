@@ -38,7 +38,8 @@ struct output_key {
 };
 
 // Convert `ExpressionUsage` to a string.
-inline constexpr std::string_view string_from_expression_usage(const expression_usage usage) {
+inline constexpr std::string_view string_from_expression_usage(
+    const expression_usage usage) noexcept {
   switch (usage) {
     case expression_usage::return_value:
       return "return_value";

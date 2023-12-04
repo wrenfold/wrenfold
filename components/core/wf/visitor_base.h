@@ -14,7 +14,7 @@ class expression_concept;
 using expression_concept_const_ptr = std::shared_ptr<const class expression_concept>;
 
 // clang-format off
-using ExpressionTypeList = type_list<
+using expression_type_list = type_list<
     class addition,
     class cast_bool,
     class conditional,

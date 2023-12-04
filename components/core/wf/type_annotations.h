@@ -22,6 +22,9 @@ struct arg {
 
 namespace type_annotations {
 
+// A wrapper around `MatrixExpr` with statically declared dimensions.
+// This is so that we can write functions in C++, and have the argument dimensions accessible at
+// compile time.
 template <index_t Rows, index_t Cols>
 struct static_matrix {
   // Allow implicit construction from MatrixExpr.

@@ -10,9 +10,10 @@ namespace math {
 
 // Convert the IR operations back to expressions.
 // This is supported so we can do round-trip tests.
-struct ExprFromIrVisitor {
-  explicit ExprFromIrVisitor(const std::unordered_map<ir::value_ptr, Expr>& value_to_expression,
-                             std::unordered_map<std::string, bool>&& output_arg_exists)
+struct expression_from_ir_visitor {
+  explicit expression_from_ir_visitor(
+      const std::unordered_map<ir::value_ptr, Expr>& value_to_expression,
+      std::unordered_map<std::string, bool>&& output_arg_exists)
       : value_to_expression_(value_to_expression),
         output_arg_exists_(std::move(output_arg_exists)) {}
 
@@ -148,7 +149,7 @@ create_output_expression_map(ir::block_ptr starting_block,
   std::unordered_map<output_key, std::vector<Expr>, hash_struct<output_key>> output_map{};
   output_map.reserve(5);
 
-  const ExprFromIrVisitor visitor{value_to_expression, std::move(output_arg_exists)};
+  const expression_from_ir_visitor visitor{value_to_expression, std::move(output_arg_exists)};
   while (!queue.empty()) {
     // de-queue the next block
     const ir::block_ptr block = queue.front();

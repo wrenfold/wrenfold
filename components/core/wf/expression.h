@@ -46,11 +46,6 @@ class Expr {
     return impl_->is_type<Ts...>();
   }
 
-  // Useful for debugging sometimes: get the underlying address as void*.
-  [[maybe_unused]] const void* get_address() const noexcept {
-    return static_cast<const void*>(impl_.get());
-  }
-
   // Get the underlying type name as a string.
   std::string_view type_name() const { return impl_->type_name(); }
 

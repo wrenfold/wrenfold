@@ -16,7 +16,6 @@ template <typename VisitorType>
 auto visit(const Expr& expr, VisitorType&& visitor) {
   // Deduce the return type by invoking the operator() w/ the different expression types.
   // TODO: For now we allow one single ReturnType. We could allow returning std::variant<>.
-  // using ReturnType = call_operator_return_types_t<VisitorType, ExpressionTypeList>;
   if (expr.is_type<addition>()) {
     return visitor(cast_unchecked<addition>(expr));
   } else if (expr.is_type<cast_bool>()) {
@@ -63,9 +62,7 @@ auto visit_with_expr(const Expr& expr, VisitorType&& visitor) {
 
     // Make sure this is not ambiguous:
     static_assert(
-        (has_binary_call_operator_v<VisitorType, T, Expr> ||
-         has_call_operator_v<VisitorType, T>)&&!(has_binary_call_operator_v<VisitorType, T, Expr> &&
-                                                 has_call_operator_v<VisitorType, T>),
+        has_binary_call_operator_v<VisitorType, T, Expr> != has_call_operator_v<VisitorType, T>,
         "Visitor must support either unary or binary operator(), but not both.");
 
     if constexpr (has_binary_call_operator_v<VisitorType, T, Expr>) {
