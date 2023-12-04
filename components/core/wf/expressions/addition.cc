@@ -40,11 +40,11 @@ struct addition_visitor {
     }
   }
 
-  void operator()(const Integer& i) {
-    parts.rational_term = parts.rational_term + static_cast<Rational>(i);
+  void operator()(const integer_constant& i) {
+    parts.rational_term = parts.rational_term + static_cast<rational_constant>(i);
   }
-  void operator()(const Rational& r) { parts.rational_term = parts.rational_term + r; }
-  void operator()(const Float& f) {
+  void operator()(const rational_constant& r) { parts.rational_term = parts.rational_term + r; }
+  void operator()(const float_constant& f) {
     if (!parts.float_term.has_value()) {
       parts.float_term = f;
     } else {
@@ -54,7 +54,8 @@ struct addition_visitor {
 
   constexpr void operator()(const Infinity&) noexcept { ++parts.num_infinities; }
 
-  using excluded_types = type_list<addition, Integer, Rational, Float, Infinity>;
+  using excluded_types =
+      type_list<addition, integer_constant, rational_constant, float_constant, Infinity>;
 
   template <typename T, typename = enable_if_does_not_contain_type_t<T, excluded_types>>
   void operator()(const T&, const Expr& input_expression) {
@@ -118,12 +119,12 @@ Expr addition_parts::create_addition() const {
   // If we didn't add infinity, now consider float/rational.
   if (args.empty()) {
     if (float_term.has_value()) {
-      const Float promoted_rational = static_cast<Float>(rational_term);
-      args.push_back(make_expr<Float>(float_term.value() + promoted_rational));
+      const float_constant promoted_rational = static_cast<float_constant>(rational_term);
+      args.push_back(make_expr<float_constant>(float_term.value() + promoted_rational));
     } else if (rational_term.is_zero()) {
       // Don't insert a useless zero in the add.
     } else {
-      args.push_back(Rational::create(rational_term));
+      args.push_back(rational_constant::create(rational_term));
     }
   }
 

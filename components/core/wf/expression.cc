@@ -14,10 +14,10 @@ Expr Expr::from_float(const double x) {
   if (x == 0) {
     return constants::zero;
   }
-  return Float::create(x);
+  return float_constant::create(x);
 }
 
-Expr Expr::from_int(const std::int64_t x) { return Integer::create(x); }
+Expr Expr::from_int(const std::int64_t x) { return integer_constant::create(x); }
 
 std::string Expr::to_string() const {
   plain_formatter formatter{};
@@ -76,7 +76,7 @@ struct PrecedenceVisitor {
       return precedence::addition;
     } else if constexpr (std::is_same_v<Power, T>) {
       return precedence::power;
-    } else if constexpr (std::is_same_v<Rational, T>) {
+    } else if constexpr (std::is_same_v<rational_constant, T>) {
       return precedence::multiplication;
     } else if constexpr (std::is_same_v<Relational, T>) {
       return precedence::relational;

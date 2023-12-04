@@ -15,16 +15,19 @@ struct PowerNumerics {
   std::optional<Expr> operator()(const A& a, const B& b) {
     if constexpr (is_float_and_numeric_v<A, B>) {
       return apply_float_and_numeric(a, b);
-    } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Integer, B>) {
+    } else if constexpr (std::is_same_v<integer_constant, A> &&
+                         std::is_same_v<integer_constant, B>) {
       return apply_int_and_int(a, b);
-    } else if constexpr (std::is_same_v<Rational, A> && std::is_same_v<Integer, B>) {
+    } else if constexpr (std::is_same_v<rational_constant, A> &&
+                         std::is_same_v<integer_constant, B>) {
       return apply_rational_and_int(a, b);
-    } else if constexpr (std::is_same_v<Integer, A> && std::is_same_v<Rational, B>) {
+    } else if constexpr (std::is_same_v<integer_constant, A> &&
+                         std::is_same_v<rational_constant, B>) {
       return apply_int_and_rational(a, b);
     } else if constexpr (std::is_same_v<Infinity, A> &&
-                         type_list_contains_type_v<B, Integer, Rational>) {
-      return apply_infinity_and_rational(a, static_cast<Rational>(b));
-    } else if constexpr (std::is_same_v<Infinity, A> && std::is_same_v<B, Float>) {
+                         type_list_contains_type_v<B, integer_constant, rational_constant>) {
+      return apply_infinity_and_rational(a, static_cast<rational_constant>(b));
+    } else if constexpr (std::is_same_v<Infinity, A> && std::is_same_v<B, float_constant>) {
       return apply_infinity_and_float(a, b);
     } else if constexpr (std::is_same_v<Undefined, A> || std::is_same_v<Undefined, B>) {
       return constants::undefined;
@@ -40,31 +43,31 @@ struct PowerNumerics {
     if (a.is_zero() && b.is_negative()) {
       return constants::complex_infinity;
     }
-    const auto result =
-        std::pow(static_cast<Float>(a).get_value(), static_cast<Float>(b).get_value());
-    return make_expr<Float>(result);
+    const auto result = std::pow(static_cast<float_constant>(a).get_value(),
+                                 static_cast<float_constant>(b).get_value());
+    return make_expr<float_constant>(result);
   }
 
   // If both operands are integers:
-  Expr apply_int_and_int(const Integer& a, const Integer& b) {
+  Expr apply_int_and_int(const integer_constant& a, const integer_constant& b) {
     if (b.get_value() < 0) {
       if (a.is_zero()) {
         // 1 / (0)^b --> complex infinity
         return constants::complex_infinity;
       }
       // Convert a -> (1/a), then take the power:
-      return apply_rational_and_int(Rational{1, a.get_value()}, -b);
+      return apply_rational_and_int(rational_constant{1, a.get_value()}, -b);
     }
     if (a.is_zero() && b.is_zero()) {
       return constants::undefined;
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(a.get_value(), b.get_value());
-    return Integer::create(pow);
+    return integer_constant::create(pow);
   }
 
   // If the left operand is a rational and right operand is integer:
-  Expr apply_rational_and_int(const Rational& a, const Integer& b) {
+  Expr apply_rational_and_int(const rational_constant& a, const integer_constant& b) {
     const auto exponent = b.get_value();
     if (a.is_zero() && exponent < 0) {
       return constants::complex_infinity;
@@ -75,15 +78,15 @@ struct PowerNumerics {
     const auto n = integer_power(a.numerator(), std::abs(exponent));
     const auto d = integer_power(a.denominator(), std::abs(exponent));
     if (exponent >= 0) {
-      return Rational::create(n, d);
+      return rational_constant::create(n, d);
     } else {
       // Flip the rational:
-      return Rational::create(d, n);
+      return rational_constant::create(d, n);
     }
   }
 
   // If the left operand is integer, and the right is rational:
-  Expr apply_int_and_rational(const Integer& a, const Rational& b) {
+  Expr apply_int_and_rational(const integer_constant& a, const rational_constant& b) {
     WF_ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
     if (a.get_value() == 1) {
       return constants::one;
@@ -115,10 +118,11 @@ struct PowerNumerics {
     // positive example:
     //    2 ^ (18/7) --> 4 * 2 ^ (4/7)
     // See https://arxiv.org/pdf/1302.2169.pdf for examples of canonical forms.
-    Rational rational_coeff{1, 1};
+    rational_constant rational_coeff{1, 1};
     for (const prime_factor& f : factors) {
       // Multiply the power by the rational to get the exponent applied to this prime factor:
-      const Rational actual_exp = b * static_cast<Rational>(Integer{f.exponent});
+      const rational_constant actual_exp =
+          b * static_cast<rational_constant>(integer_constant{f.exponent});
       WF_ASSERT_GREATER(f.exponent, 0);  //  Exponents must be >= 1 in this context.
 
       // Factorize the exponent: x^(int_part + frac_part) --> x^int_part * x^frac_part
@@ -128,22 +132,22 @@ struct PowerNumerics {
       // Apply the integer part to the rational coefficient:
       if (integer_part.get_value() >= 0) {
         rational_coeff =
-            rational_coeff * Rational{integer_power(f.base, integer_part.get_value()), 1};
+            rational_coeff * rational_constant{integer_power(f.base, integer_part.get_value()), 1};
       } else {
         rational_coeff =
-            rational_coeff * Rational{1, integer_power(f.base, -integer_part.get_value())};
+            rational_coeff * rational_constant{1, integer_power(f.base, -integer_part.get_value())};
       }
 
       // There is still the business of the fractional part to deal with:
       if (fractional_part.numerator() != 0) {
-        Expr base = Integer::create(f.base);
-        Expr exponent = Rational::create(fractional_part);
+        Expr base = integer_constant::create(f.base);
+        Expr exponent = rational_constant::create(fractional_part);
         operands.push_back(make_expr<Power>(std::move(base), std::move(exponent)));
       }
     }
 
     if (!rational_coeff.is_one()) {
-      operands.push_back(Rational::create(rational_coeff));
+      operands.push_back(rational_constant::create(rational_coeff));
     }
     if (operands.size() == 1) {
       return operands.front();
@@ -151,7 +155,7 @@ struct PowerNumerics {
     return multiplication::from_operands(operands);
   }
 
-  Expr apply_infinity_and_rational(const Infinity&, const Rational& r) const {
+  Expr apply_infinity_and_rational(const Infinity&, const rational_constant& r) const {
     if (r.numerator() > 0) {
       return constants::complex_infinity;
     } else if (r.numerator() < 0) {
@@ -162,7 +166,7 @@ struct PowerNumerics {
     }
   }
 
-  Expr apply_infinity_and_float(const Infinity&, const Float& f) const {
+  Expr apply_infinity_and_float(const Infinity&, const float_constant& f) const {
     if (f.get_value() > 0) {
       return constants::complex_infinity;
     } else if (f.get_value() < 0) {
@@ -175,9 +179,10 @@ struct PowerNumerics {
 };
 
 static bool magnitude_less_than_one(const Expr& value) {
-  if (const Rational* r = cast_ptr<Rational>(value); r != nullptr && r->is_proper()) {
+  if (const rational_constant* r = cast_ptr<rational_constant>(value);
+      r != nullptr && r->is_proper()) {
     return true;
-  } else if (const Float* f = cast_ptr<Float>(value);
+  } else if (const float_constant* f = cast_ptr<float_constant>(value);
              f != nullptr && std::abs(f->get_value()) < 1.0) {
     return true;
   }
@@ -202,7 +207,7 @@ static bool can_multiply_exponents(const Power& base_pow, const Expr& outer_exp)
   if (magnitude_less_than_one(inner_exp)) {
     return true;
   }
-  if (outer_exp.is_type<Integer>()) {
+  if (outer_exp.is_type<integer_constant>()) {
     return true;
   }
   const number_set base_set = determine_numeric_set(base_pow.base());

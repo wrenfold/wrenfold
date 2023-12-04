@@ -61,13 +61,15 @@ inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
   Eigen::MatrixXd result{m_eval.rows(), m_eval.cols()};
   for (index_t i = 0; i < result.rows(); ++i) {
     for (index_t j = 0; j < result.cols(); ++j) {
-      if (const Float* as_flt = cast_ptr<Float>(m_eval(i, j)); as_flt != nullptr) {
+      if (const float_constant* as_flt = cast_ptr<float_constant>(m_eval(i, j));
+          as_flt != nullptr) {
         result(i, j) = as_flt->get_value();
-      } else if (const Integer* as_int = cast_ptr<Integer>(m_eval(i, j)); as_int != nullptr) {
-        result(i, j) = static_cast<Float>(*as_int).get_value();
-      } else if (const Rational* as_rational = cast_ptr<Rational>(m_eval(i, j));
+      } else if (const integer_constant* as_int = cast_ptr<integer_constant>(m_eval(i, j));
+                 as_int != nullptr) {
+        result(i, j) = static_cast<float_constant>(*as_int).get_value();
+      } else if (const rational_constant* as_rational = cast_ptr<rational_constant>(m_eval(i, j));
                  as_rational != nullptr) {
-        result(i, j) = static_cast<Float>(*as_rational).get_value();
+        result(i, j) = static_cast<float_constant>(*as_rational).get_value();
       } else {
         throw type_error("Cannot coerce value to float: {}", m_eval(i, j));
       }

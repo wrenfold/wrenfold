@@ -11,126 +11,129 @@
 
 namespace math {
 
-class Integer;
-class Float;
-class Rational;
+class integer_constant;
+class float_constant;
+class rational_constant;
 
 // An integral constant.
-class Integer {
+class integer_constant {
  public:
   static constexpr std::string_view name_str = "Integer";
   static constexpr bool is_leaf_node = true;
 
-  using IntegralType = int64_t;
+  using value_type = std::int64_t;
 
   // Construct from number.
-  explicit constexpr Integer(IntegralType val) noexcept : val_(val) {}
+  explicit constexpr integer_constant(value_type val) noexcept : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool is_identical_to(const Integer& other) const noexcept { return val_ == other.val_; }
+  constexpr bool is_identical_to(const integer_constant& other) const noexcept {
+    return val_ == other.val_;
+  }
 
   // Access numeric value.
-  constexpr IntegralType get_value() const noexcept { return val_; }
+  constexpr value_type get_value() const noexcept { return val_; }
 
   // True if this integer is zero.
-  constexpr bool is_zero() const noexcept { return val_ == static_cast<IntegralType>(0); }
+  constexpr bool is_zero() const noexcept { return val_ == static_cast<value_type>(0); }
 
   // True if this integer is greater than zero.
-  constexpr bool is_positive() const noexcept { return val_ > static_cast<IntegralType>(0); }
+  constexpr bool is_positive() const noexcept { return val_ > static_cast<value_type>(0); }
 
   // True if this integer is less than zero.
-  constexpr bool is_negative() const noexcept { return val_ < static_cast<IntegralType>(0); }
+  constexpr bool is_negative() const noexcept { return val_ < static_cast<value_type>(0); }
 
   // True if this integer is even. (Zero is even).
   constexpr bool is_even() const noexcept { return !static_cast<bool>(val_ & 1); }
 
   // Cast to integer:
-  constexpr explicit operator Float() const;
+  constexpr explicit operator float_constant() const;
 
   // Negate:
-  Integer operator-() const { return Integer{-val_}; }
+  integer_constant operator-() const { return integer_constant{-val_}; }
 
   // Get absolute value.
-  Integer abs() const { return Integer{std::abs(val_)}; }
+  integer_constant abs() const { return integer_constant{std::abs(val_)}; }
 
   // Create an integer expression.
-  static Expr create(IntegralType x);
-  static Expr create(const Integer& x) { return create(x.get_value()); }
+  static Expr create(value_type x);
+  static Expr create(const integer_constant& x) { return create(x.get_value()); }
 
  private:
-  IntegralType val_;
+  value_type val_;
 };
 
 // A rational value (in form numerator / denominator).
-class Rational {
+class rational_constant {
  public:
   static constexpr std::string_view name_str = "Rational";
   static constexpr bool is_leaf_node = true;
 
-  using IntegralType = Integer::IntegralType;
+  using value_type = integer_constant::value_type;
 
   // Construct a rational. Conversion to canonical form is automatic.
-  constexpr Rational(IntegralType n, IntegralType d) : Rational(create_pair(n, d)) {}
+  constexpr rational_constant(value_type n, value_type d) : rational_constant(create_pair(n, d)) {}
 
   // Construct a rational from an integer value.
-  explicit constexpr Rational(const Integer& integer) : n_(integer.get_value()), d_(1) {}
+  explicit constexpr rational_constant(const integer_constant& integer) noexcept
+      : n_(integer.get_value()), d_(1) {}
 
-  constexpr bool is_identical_to(const Rational& other) const noexcept {
+  constexpr bool is_identical_to(const rational_constant& other) const noexcept {
     return n_ == other.n_ && d_ == other.d_;
   }
 
   // Access numerator and denominator.
-  constexpr IntegralType numerator() const noexcept { return n_; }
-  constexpr IntegralType denominator() const noexcept { return d_; }
+  constexpr value_type numerator() const noexcept { return n_; }
+  constexpr value_type denominator() const noexcept { return d_; }
 
   // Cast to float.
-  explicit operator Float() const;
+  explicit operator float_constant() const;
 
   // True if numerator equals denominator.
   constexpr bool is_one() const noexcept { return n_ == d_; }
 
   // True if numerator is zero.
-  constexpr bool is_zero() const noexcept { return n_ == static_cast<IntegralType>(0); }
+  constexpr bool is_zero() const noexcept { return n_ == static_cast<value_type>(0); }
 
   // True if positive (numerator is > 0).
-  constexpr bool is_positive() const noexcept { return n_ > static_cast<IntegralType>(0); }
+  constexpr bool is_positive() const noexcept { return n_ > static_cast<value_type>(0); }
 
   // True if negative (only the numerator may be < 0).
-  constexpr bool is_negative() const noexcept { return n_ < static_cast<IntegralType>(0); }
+  constexpr bool is_negative() const noexcept { return n_ < static_cast<value_type>(0); }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
-  constexpr std::optional<Integer> try_convert_to_integer() const noexcept {
+  constexpr std::optional<integer_constant> try_convert_to_integer() const noexcept {
     if (n_ % d_ == 0) {
-      return {Integer(n_ / d_)};
+      return {integer_constant(n_ / d_)};
     }
     return {};
   }
 
   // Normalize a rational into a whole integer part, and a rational whose absolute value is less
   // than one.
-  constexpr std::pair<Integer, Rational> normalized() const {
-    return std::make_pair(Integer{n_ / d_}, Rational{n_ % d_, d_});
+  constexpr std::pair<integer_constant, rational_constant> normalized() const noexcept {
+    return std::make_pair(integer_constant{n_ / d_}, rational_constant{n_ % d_, d_});
   }
 
   // True if the absolute value of the fraction is less than one.
   bool is_proper() const noexcept { return std::abs(n_) < d_; }
 
   // Create a rational expression and simplify if possible.
-  static Expr create(Rational r) {
+  static Expr create(rational_constant r) {
     if (auto as_int = r.try_convert_to_integer(); as_int) {
-      return Integer::create(as_int->get_value());
+      return integer_constant::create(as_int->get_value());
     }
-    return make_expr<Rational>(r);
+    return make_expr<rational_constant>(r);
   }
 
   // Create a rational expression and simplify if possible.
-  static Expr create(IntegralType n, IntegralType d) { return create(Rational{n, d}); }
+  static Expr create(value_type n, value_type d) { return create(rational_constant{n, d}); }
 
  private:
-  constexpr std::pair<IntegralType, IntegralType> create_pair(IntegralType n, IntegralType d) {
+  constexpr std::pair<value_type, value_type> create_pair(value_type n, value_type d) noexcept {
     // Find the largest common denominator and reduce:
-    const IntegralType gcd = std::gcd(n, d);
+    const value_type gcd = std::gcd(n, d);
     n = n / gcd;
     d = d / gcd;
     if (d < 0) {
@@ -143,172 +146,178 @@ class Rational {
   }
 
   // Private constructor to allow direct initialization.
-  explicit constexpr Rational(std::pair<IntegralType, IntegralType> pair)
+  explicit constexpr rational_constant(std::pair<value_type, value_type> pair)
       : n_(pair.first), d_(pair.second) {}
 
-  IntegralType n_;
-  IntegralType d_;
+  value_type n_;
+  value_type d_;
 };
 
 // A floating point constant.
-class Float {
+class float_constant {
  public:
   static constexpr std::string_view name_str = "Float";
   static constexpr bool is_leaf_node = true;
 
-  using FloatType = double;
+  using value_type = double;
 
   // Construct from float value.
-  explicit constexpr Float(FloatType val) noexcept : val_(val) {}
+  explicit constexpr float_constant(value_type val) noexcept : val_(val) {}
 
   // Check if numerical constants are completely identical.
-  constexpr bool is_identical_to(const Float& other) const noexcept { return val_ == other.val_; }
+  constexpr bool is_identical_to(const float_constant& other) const noexcept {
+    return val_ == other.val_;
+  }
 
   // Access numeric value.
-  constexpr FloatType get_value() const noexcept { return val_; }
+  constexpr value_type get_value() const noexcept { return val_; }
 
   // Is this float identical to zero?
-  constexpr bool is_zero() const noexcept { return val_ == static_cast<FloatType>(0); }
+  constexpr bool is_zero() const noexcept { return val_ == static_cast<value_type>(0); }
 
   // True if the float is negative.
-  constexpr bool is_positive() const noexcept { return val_ > static_cast<FloatType>(0); }
+  constexpr bool is_positive() const noexcept { return val_ > static_cast<value_type>(0); }
 
   // True if the float is negative.
-  constexpr bool is_negative() const noexcept { return val_ < static_cast<FloatType>(0); }
+  constexpr bool is_negative() const noexcept { return val_ < static_cast<value_type>(0); }
 
   // Get absolute value.
-  Float abs() const { return Float{std::abs(val_)}; }
+  float_constant abs() const noexcept { return float_constant{std::abs(val_)}; }
 
   // Create floating point expression.
-  static Expr create(Float f) { return make_expr<Float>(f); }
-  static Expr create(FloatType f) {
+  static Expr create(float_constant f) { return make_expr<float_constant>(f); }
+  static Expr create(value_type f) {
     WF_ASSERT(std::isfinite(f), "Float values must be finite: {}", f);
-    return create(Float{f});
+    return create(float_constant{f});
   }
 
  private:
-  FloatType val_;
+  value_type val_;
 };
 
 // Operations on integers:
-inline constexpr auto operator*(const Integer& a, const Integer& b) {
-  return Integer{a.get_value() * b.get_value()};
+inline constexpr auto operator*(const integer_constant& a, const integer_constant& b) {
+  return integer_constant{a.get_value() * b.get_value()};
 }
-inline constexpr auto operator+(const Integer& a, const Integer& b) {
-  return Integer{a.get_value() + b.get_value()};
+inline constexpr auto operator+(const integer_constant& a, const integer_constant& b) {
+  return integer_constant{a.get_value() + b.get_value()};
 }
-inline constexpr bool operator<(const Integer& a, const Integer& b) {
+inline constexpr bool operator<(const integer_constant& a, const integer_constant& b) {
   return a.get_value() < b.get_value();
 }
-inline constexpr bool operator==(const Integer& a, const Integer& b) {
+inline constexpr bool operator==(const integer_constant& a, const integer_constant& b) {
   return a.get_value() == b.get_value();
 }
 
-inline constexpr Integer::operator Float() const {
-  return Float{static_cast<Float::FloatType>(val_)};
+inline constexpr integer_constant::operator float_constant() const {
+  return float_constant{static_cast<float_constant::value_type>(val_)};
 }
 
 // Hashing of integers. Like std::hash, just pass the value through.
 template <>
-struct hash_struct<Integer::IntegralType> {
-  std::size_t operator()(Integer::IntegralType value) const {
-    return std::hash<Integer::IntegralType>{}(value);
+struct hash_struct<integer_constant::value_type> {
+  std::size_t operator()(integer_constant::value_type value) const {
+    return std::hash<integer_constant::value_type>{}(value);
   }
 };
 template <>
-struct hash_struct<Integer> {
-  std::size_t operator()(const Integer& value) const {
-    return hash_struct<Integer::IntegralType>{}(value.get_value());
+struct hash_struct<integer_constant> {
+  std::size_t operator()(const integer_constant& value) const {
+    return hash_struct<integer_constant::value_type>{}(value.get_value());
   }
 };
 
 // Operations on rationals:
-inline constexpr auto operator*(const Rational& a, const Rational& b) {
-  return Rational{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
+inline constexpr auto operator*(const rational_constant& a, const rational_constant& b) {
+  return rational_constant{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
 }
-inline constexpr auto operator/(const Rational& a, const Rational& b) {
-  return Rational{a.numerator() * b.denominator(), a.denominator() * b.numerator()};
+inline constexpr auto operator/(const rational_constant& a, const rational_constant& b) {
+  return rational_constant{a.numerator() * b.denominator(), a.denominator() * b.numerator()};
 }
-inline constexpr auto operator+(const Rational& a, const Rational& b) {
+inline constexpr auto operator+(const rational_constant& a, const rational_constant& b) {
   // Create common denominator and create a new rational:
-  return Rational{a.numerator() * b.denominator() + b.numerator() * a.denominator(),
-                  a.denominator() * b.denominator()};
+  return rational_constant{a.numerator() * b.denominator() + b.numerator() * a.denominator(),
+                           a.denominator() * b.denominator()};
 }
-inline constexpr auto operator-(const Rational& a, const Rational& b) {
-  return Rational{a.numerator() * b.denominator() - b.numerator() * a.denominator(),
-                  a.denominator() * b.denominator()};
+inline constexpr auto operator-(const rational_constant& a, const rational_constant& b) {
+  return rational_constant{a.numerator() * b.denominator() - b.numerator() * a.denominator(),
+                           a.denominator() * b.denominator()};
 }
-inline constexpr auto operator%(const Rational& a, const Rational& b) {
+inline constexpr auto operator%(const rational_constant& a, const rational_constant& b) {
   // Divide a/b, then determine the remainder after dropping the integer part.
-  const Rational quotient = a / b;
-  return Rational{quotient.numerator() % quotient.denominator(), quotient.denominator()};
+  const rational_constant quotient = a / b;
+  return rational_constant{quotient.numerator() % quotient.denominator(), quotient.denominator()};
 }
 
-inline constexpr bool operator<(const Rational& a, const Rational& b) {
+inline constexpr bool operator<(const rational_constant& a, const rational_constant& b) {
   // TODO: Watch for overflow.
   return a.numerator() * b.denominator() < b.numerator() * a.denominator();
 }
-inline constexpr bool operator>(const Rational& a, const Rational& b) {
+inline constexpr bool operator>(const rational_constant& a, const rational_constant& b) {
   return a.numerator() * b.denominator() > b.numerator() * a.denominator();
 }
-inline constexpr bool operator==(const Rational& a, const Rational& b) {
+inline constexpr bool operator==(const rational_constant& a, const rational_constant& b) {
   // Constructor ensures we reduce to common denominator, so we can compare directly.
   return a.numerator() == b.numerator() && a.denominator() == b.denominator();
 }
-inline constexpr bool operator!=(const Rational& a, const Rational& b) { return !operator==(a, b); }
+inline constexpr bool operator!=(const rational_constant& a, const rational_constant& b) {
+  return !operator==(a, b);
+}
 
-inline Rational::operator Float() const {
+inline rational_constant::operator float_constant() const {
   // TODO: Look up if there is a more accurate way of doing this.
-  return Float{static_cast<Float::FloatType>(n_) / static_cast<Float::FloatType>(d_)};
+  return float_constant{static_cast<float_constant::value_type>(n_) /
+                        static_cast<float_constant::value_type>(d_)};
 }
 
 // Hashing of rationals.
 template <>
-struct hash_struct<Rational> {
-  std::size_t operator()(const Rational& r) const {
+struct hash_struct<rational_constant> {
+  std::size_t operator()(const rational_constant& r) const {
     return hash_args(0, r.numerator(), r.denominator());
   }
 };
 
 // Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
 // coefficient between (-1, 1] is returned.
-inline constexpr Rational mod_pi_rational(const Rational& r) {
+inline constexpr rational_constant mod_pi_rational(const rational_constant& r) noexcept {
   // Split into integer and rational parts:
   const auto [integer_part_unwrapped, fractional_part] = r.normalized();
   // Wrap the integer part into (-2, 2).
   const int64_t integer_part = integer_part_unwrapped.get_value() % 2;
   // Now we want to convert into range (-1, 1]:
   if (integer_part == 1) {
-    return fractional_part.is_zero() ? Rational{1, 1} : fractional_part - Rational{1, 1};
+    return fractional_part.is_zero() ? rational_constant{1, 1}
+                                     : fractional_part - rational_constant{1, 1};
   } else if (integer_part == -1) {
-    return Rational{1, 1} + fractional_part;
+    return rational_constant{1, 1} + fractional_part;
   }
   return fractional_part;
 }
 
 // Operations on floats:
-inline constexpr auto operator*(const Float& a, const Float& b) {
-  return Float{a.get_value() * b.get_value()};
+inline constexpr auto operator*(const float_constant& a, const float_constant& b) {
+  return float_constant{a.get_value() * b.get_value()};
 }
-inline constexpr auto operator+(const Float& a, const Float& b) {
-  return Float{a.get_value() + b.get_value()};
+inline constexpr auto operator+(const float_constant& a, const float_constant& b) {
+  return float_constant{a.get_value() + b.get_value()};
 }
-inline constexpr bool operator<(const Float& a, const Float& b) {
+inline constexpr bool operator<(const float_constant& a, const float_constant& b) {
   return a.get_value() < b.get_value();
 }
-inline constexpr bool operator==(const Float& a, const Float& b) {
+inline constexpr bool operator==(const float_constant& a, const float_constant& b) {
   return a.get_value() == b.get_value();
 }
-inline constexpr bool operator!=(const Float& a, const Float& b) {
+inline constexpr bool operator!=(const float_constant& a, const float_constant& b) {
   return a.get_value() != b.get_value();
 }
 
 // Hashing of floats.
 template <>
-struct hash_struct<Float> {
+struct hash_struct<float_constant> {
   // Can't be constexpr, because std::hash is not constexpr.
-  std::size_t operator()(const Float& f) const {
-    return std::hash<Float::FloatType>{}(f.get_value());
+  std::size_t operator()(const float_constant& f) const {
+    return std::hash<float_constant::value_type>{}(f.get_value());
   }
 };
 
@@ -316,45 +325,47 @@ struct hash_struct<Float> {
 // This is so we can promote integers/rationals -> float when they are combined with floats.
 template <typename A, typename B>
 constexpr bool is_float_and_numeric_v =
-    (std::is_same_v<A, Float> && type_list_contains_type_v<B, Integer, Rational>) ||
-    (std::is_same_v<B, Float> && type_list_contains_type_v<A, Integer, Rational>) ||
-    (std::is_same_v<A, Float> && std::is_same_v<B, Float>);
+    (std::is_same_v<A, float_constant> &&
+     type_list_contains_type_v<B, integer_constant, rational_constant>) ||
+    (std::is_same_v<B, float_constant> &&
+     type_list_contains_type_v<A, integer_constant, rational_constant>) ||
+    (std::is_same_v<A, float_constant> && std::is_same_v<B, float_constant>);
 
-static_assert(is_float_and_numeric_v<Float, Float>);
-static_assert(is_float_and_numeric_v<Float, Integer>);
-static_assert(is_float_and_numeric_v<Rational, Float>);
-static_assert(!is_float_and_numeric_v<Integer, Integer>);
-static_assert(!is_float_and_numeric_v<Integer, Rational>);
+static_assert(is_float_and_numeric_v<float_constant, float_constant>);
+static_assert(is_float_and_numeric_v<float_constant, integer_constant>);
+static_assert(is_float_and_numeric_v<rational_constant, float_constant>);
+static_assert(!is_float_and_numeric_v<integer_constant, integer_constant>);
+static_assert(!is_float_and_numeric_v<integer_constant, rational_constant>);
 
 }  // namespace math
 
 // Formatters
 template <>
-struct fmt::formatter<math::Integer, char> {
+struct fmt::formatter<math::integer_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::Integer& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::integer_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x.get_value());
   }
 };
 
 template <>
-struct fmt::formatter<math::Rational, char> {
+struct fmt::formatter<math::rational_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::Rational& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::rational_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "({} / {})", x.numerator(), x.denominator());
   }
 };
 
 template <>
-struct fmt::formatter<math::Float, char> {
+struct fmt::formatter<math::float_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const math::Float& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const math::float_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x.get_value());
   }
 };

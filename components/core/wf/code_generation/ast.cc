@@ -263,7 +263,9 @@ struct ast_from_ir {
   bool should_inline_constant(const ir::value_ptr val) const {
     return overloaded_visit(
         val->value_op(),
-        [](const ir::load& load) { return load.is_type<Integer, Float, Constant>(); },
+        [](const ir::load& load) {
+          return load.is_type<integer_constant, float_constant, Constant>();
+        },
         [&](const ir::cast&) { return should_inline_constant(val->first_operand()); },
         [](auto&&) constexpr { return false; });
   }
@@ -346,12 +348,12 @@ struct ast_from_ir {
           using T = std::decay_t<decltype(inner)>;
           if constexpr (std::is_same_v<T, Constant>) {
             return ast::special_constant{inner.name()};
-          } else if constexpr (std::is_same_v<T, Integer>) {
+          } else if constexpr (std::is_same_v<T, integer_constant>) {
             return ast::integer_literal{inner.get_value()};
-          } else if constexpr (std::is_same_v<T, Float>) {
-            return ast::float_literal{static_cast<Float>(inner).get_value()};
-          } else if constexpr (std::is_same_v<T, Rational>) {
-            return ast::float_literal{static_cast<Float>(inner).get_value()};
+          } else if constexpr (std::is_same_v<T, float_constant>) {
+            return ast::float_literal{static_cast<float_constant>(inner).get_value()};
+          } else if constexpr (std::is_same_v<T, rational_constant>) {
+            return ast::float_literal{static_cast<float_constant>(inner).get_value()};
           } else if constexpr (std::is_same_v<T, Variable>) {
             // inspect inner type of the variable
             return std::visit(*this, inner.identifier());

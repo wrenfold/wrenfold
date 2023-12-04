@@ -67,7 +67,7 @@ class multiplication {
     // We leave the integer/rational/float part in front.
     // TODO: Add a BinaryMul where the first term is always int/rational/float.
     const auto begin = std::find_if(terms_.begin(), terms_.end(), [](const Expr& term) {
-      return !term.is_type<Integer, Rational, Float>();
+      return !term.is_type<integer_constant, rational_constant, float_constant>();
     });
     std::sort(begin, terms_.end(), [](const Expr& a, const Expr& b) {
       if (a.get_hash() < b.get_hash()) {
@@ -110,9 +110,9 @@ struct MultiplicationParts {
   explicit MultiplicationParts(const multiplication& mul, bool factorize_integers);
 
   // Rational coefficient.
-  Rational rational_coeff{1, 1};
+  rational_constant rational_coeff{1, 1};
   // Floating point coefficient:
-  std::optional<Float> float_coeff{};
+  std::optional<float_constant> float_coeff{};
   // Map from base to exponent.
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> terms{};
   // Number of infinities.
@@ -138,8 +138,8 @@ struct MultiplicationFormattingInfo {
   };
 
   bool is_negative{false};
-  std::vector<std::variant<Integer, Float, BaseExp>> numerator;
-  std::vector<std::variant<Integer, Float, BaseExp>> denominator;
+  std::vector<std::variant<integer_constant, float_constant, BaseExp>> numerator;
+  std::vector<std::variant<integer_constant, float_constant, BaseExp>> denominator;
 };
 
 // Create `MultiplicationFormattingInfo` from a multiplication.

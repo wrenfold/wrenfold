@@ -120,9 +120,9 @@ struct collect_visitor {
   Expr operator()(const Constant&, const Expr& arg) const { return arg; }
   Expr operator()(const derivative& diff, const Expr&) { return recurse(diff); }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
-  Expr operator()(const Integer&, const Expr& arg) const { return arg; }
-  Expr operator()(const Float&, const Expr& arg) const { return arg; }
-  Expr operator()(const Rational&, const Expr& arg) const { return arg; }
+  Expr operator()(const integer_constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const float_constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const rational_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation) { return recurse(relation); }
   Expr operator()(const Undefined&) const { return constants::undefined; }
   Expr operator()(const Variable&, const Expr& arg) const { return arg; }
@@ -136,7 +136,7 @@ Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
     return arg;
   }
   for (const Expr& term : terms) {
-    if (term.is_type<Integer, Float, Rational>()) {
+    if (term.is_type<integer_constant, float_constant, rational_constant>()) {
       throw type_error("Arguments to collect cannot be numeric values. Term = {}", term);
     }
   }

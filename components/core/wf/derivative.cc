@@ -178,8 +178,8 @@ Expr derivative_visitor::operator()(const function& func) {
 }
 
 Expr derivative_visitor::operator()(const Infinity&) const { return constants::zero; }
-Expr derivative_visitor::operator()(const Integer&) const { return constants::zero; }
-Expr derivative_visitor::operator()(const Float&) const { return constants::zero; }
+Expr derivative_visitor::operator()(const integer_constant&) const { return constants::zero; }
+Expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
 Expr derivative_visitor::operator()(const Power& pow) {
   const Expr& a = pow.base();
   const Expr& b = pow.exponent();
@@ -191,7 +191,7 @@ Expr derivative_visitor::operator()(const Power& pow) {
   return b * Power::create(a, b - constants::one) * a_diff + Power::create(a, b) * log(a) * b_diff;
 }
 
-Expr derivative_visitor::operator()(const Rational&) const { return constants::zero; }
+Expr derivative_visitor::operator()(const rational_constant&) const { return constants::zero; }
 
 Expr derivative_visitor::operator()(const Relational&, const Expr& rel_expr) const {
   // Cannot differentiate relationals, so insert an abstract expression.

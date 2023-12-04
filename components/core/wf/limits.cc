@@ -147,19 +147,19 @@ class limit_visitor {
   }
 
   struct integral_powers {
-    std::vector<Integer> powers{};
+    std::vector<integer_constant> powers{};
 
     bool are_all_identical_up_to_sign() const {
       WF_ASSERT(!powers.empty());
       const auto first = powers.begin();
       return std::all_of(std::next(first), powers.end(),
-                         [&](const Integer& i) { return first->abs() == i.abs(); });
+                         [&](const integer_constant& i) { return first->abs() == i.abs(); });
     }
 
     std::tuple<int, int> determine_signs() const {
       int num_positive = 0;
       int num_negative = 0;
-      for (const Integer i : powers) {
+      for (const integer_constant i : powers) {
         if (i.get_value() >= 0) {
           ++num_positive;
         } else {
@@ -171,7 +171,7 @@ class limit_visitor {
 
     bool are_all_one() const {
       return std::all_of(powers.begin(), powers.end(),
-                         [&](const Integer& i) { return i.get_value() == 1; });
+                         [&](const integer_constant& i) { return i.get_value() == 1; });
     }
   };
 
@@ -180,7 +180,7 @@ class limit_visitor {
     integral_powers result{};
     for (const Expr& expr : mul) {
       auto [base, exp] = as_base_and_exp(expr);
-      if (const Integer* i = cast_ptr<Integer>(exp); i != nullptr) {
+      if (const integer_constant* i = cast_ptr<integer_constant>(exp); i != nullptr) {
         result.powers.push_back(*i);
       } else {
         return std::nullopt;
@@ -199,7 +199,7 @@ class limit_visitor {
     if (std::optional<integral_powers> integral_exponents = extract_integer_exponents(mul);
         integral_exponents.has_value() && integral_exponents->are_all_identical_up_to_sign() &&
         !integral_exponents->are_all_one()) {
-      const Integer int_power = integral_exponents->powers.front().abs();
+      const integer_constant int_power = integral_exponents->powers.front().abs();
       const auto [num_positive, num_negative] = integral_exponents->determine_signs();
 
       std::vector<Expr> terms{};
@@ -410,7 +410,8 @@ class limit_visitor {
       } else {
         if (is_numeric_or_constant(exp_sub) && is_negative_number(exp_sub)) {
           return constants::zero;  // (-∞)^u where u < 0
-        } else if (const Integer* exp_int = cast_ptr<Integer>(exp_sub); exp_int != nullptr) {
+        } else if (const integer_constant* exp_int = cast_ptr<integer_constant>(exp_sub);
+                   exp_int != nullptr) {
           WF_ASSERT(!exp_int->is_zero() && !exp_int->is_negative(), "value = {}", *exp_int);
           if (exp_int->is_even()) {
             return positive_inf_;
@@ -468,9 +469,9 @@ class limit_visitor {
   }
 
   std::optional<Expr> operator()(const Infinity&, const Expr& expr) const { return expr; }
-  std::optional<Expr> operator()(const Integer&, const Expr& expr) { return expr; }
-  std::optional<Expr> operator()(const Float&, const Expr& expr) { return expr; }
-  std::optional<Expr> operator()(const Rational&, const Expr& expr) { return expr; }
+  std::optional<Expr> operator()(const integer_constant&, const Expr& expr) { return expr; }
+  std::optional<Expr> operator()(const float_constant&, const Expr& expr) { return expr; }
+  std::optional<Expr> operator()(const rational_constant&, const Expr& expr) { return expr; }
 
   std::optional<Expr> operator()(const Power& pow) {
     return process_power(pow.base(), pow.exponent());

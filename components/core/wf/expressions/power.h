@@ -50,15 +50,16 @@ std::pair<Expr, Expr> as_base_and_exp(const Expr& expr);
 // Convert a rational exponent to the whole integer part and the remainder.
 // If the exponent is negative, we add to the whole integer part so that the rational part
 // can be positive (i.e. we eliminate "absurd" rationals).
-inline constexpr std::pair<Integer, Rational> factorize_rational_exponent(const Rational& r) {
-  const Integer integer_part{r.numerator() / r.denominator()};
-  const Rational fractional_part_signed{r.numerator() % r.denominator(), r.denominator()};
+inline constexpr std::pair<integer_constant, rational_constant> factorize_rational_exponent(
+    const rational_constant& r) {
+  const integer_constant integer_part{r.numerator() / r.denominator()};
+  const rational_constant fractional_part_signed{r.numerator() % r.denominator(), r.denominator()};
   if (r.numerator() >= 0) {
     return std::make_pair(integer_part, fractional_part_signed);
   } else {
     // If negative, we subtract one from the integer part and make the rational part positive:
-    return std::make_pair(Integer{integer_part.get_value() - 1},
-                          fractional_part_signed + Rational{1, 1});
+    return std::make_pair(integer_constant{integer_part.get_value() - 1},
+                          fractional_part_signed + rational_constant{1, 1});
   }
 }
 

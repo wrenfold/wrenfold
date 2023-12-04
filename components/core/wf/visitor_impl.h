@@ -27,20 +27,20 @@ auto visit(const Expr& expr, VisitorType&& visitor) {
     return visitor(cast_unchecked<Constant>(expr));
   } else if (expr.is_type<derivative>()) {
     return visitor(cast_unchecked<derivative>(expr));
-  } else if (expr.is_type<Float>()) {
-    return visitor(cast_unchecked<Float>(expr));
+  } else if (expr.is_type<float_constant>()) {
+    return visitor(cast_unchecked<float_constant>(expr));
   } else if (expr.is_type<function>()) {
     return visitor(cast_unchecked<function>(expr));
   } else if (expr.is_type<Infinity>()) {
     return visitor(cast_unchecked<Infinity>(expr));
-  } else if (expr.is_type<Integer>()) {
-    return visitor(cast_unchecked<Integer>(expr));
+  } else if (expr.is_type<integer_constant>()) {
+    return visitor(cast_unchecked<integer_constant>(expr));
   } else if (expr.is_type<multiplication>()) {
     return visitor(cast_unchecked<multiplication>(expr));
   } else if (expr.is_type<Power>()) {
     return visitor(cast_unchecked<Power>(expr));
-  } else if (expr.is_type<Rational>()) {
-    return visitor(cast_unchecked<Rational>(expr));
+  } else if (expr.is_type<rational_constant>()) {
+    return visitor(cast_unchecked<rational_constant>(expr));
   } else if (expr.is_type<Relational>()) {
     return visitor(cast_unchecked<Relational>(expr));
   } else if (expr.is_type<Undefined>()) {

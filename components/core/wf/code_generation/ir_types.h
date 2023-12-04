@@ -156,7 +156,8 @@ class jump_condition {
 // value arguments, but has an expression.
 class load {
  public:
-  using storage_type = std::variant<Constant, Integer, Float, Rational, Variable>;
+  using storage_type =
+      std::variant<Constant, integer_constant, float_constant, rational_constant, Variable>;
 
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 0; }

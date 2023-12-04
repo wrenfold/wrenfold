@@ -419,11 +419,11 @@ class ir_form_visitor {
     throw type_error("Cannot generate code for complex infinity.");
   }
 
-  ir::value_ptr operator()(const Integer& i) {
+  ir::value_ptr operator()(const integer_constant& i) {
     return push_operation(ir::load{i}, code_numeric_type::integral);
   }
 
-  ir::value_ptr operator()(const Float& f) {
+  ir::value_ptr operator()(const float_constant& f) {
     return push_operation(ir::load{f}, code_numeric_type::floating_point);
   }
 
@@ -471,7 +471,8 @@ class ir_form_visitor {
     }
 
     constexpr int max_integer_mul_exponent = 16;
-    if (const Integer* exp_int = cast_ptr<Integer>(power.exponent()); exp_int != nullptr) {
+    if (const integer_constant* exp_int = cast_ptr<integer_constant>(power.exponent());
+        exp_int != nullptr) {
       WF_ASSERT_GREATER_OR_EQ(exp_int->get_value(), 0, "Negative exponents were handled above");
       // Maximum exponent below which we rewrite `pow` as a series of multiplications.
       // Have not experimented with this cutoff much, but on GCC94 and Clang17, using a series of
@@ -483,7 +484,8 @@ class ir_form_visitor {
         return push_operation(ir::call_std_function{std_math_function::powi},
                               code_numeric_type::floating_point, base, apply(power.exponent()));
       }
-    } else if (const Rational* exp_rational = cast_ptr<Rational>(power.exponent());
+    } else if (const rational_constant* exp_rational =
+                   cast_ptr<rational_constant>(power.exponent());
                exp_rational != nullptr) {
       WF_ASSERT_GREATER_OR_EQ(exp_rational->numerator(), 0, "rational = {}", *exp_rational);
       // If the denominator is 1/2 and the exponent is small, it is faster to do power
@@ -504,7 +506,7 @@ class ir_form_visitor {
                           maybe_cast(exponent, code_numeric_type::floating_point));
   }
 
-  ir::value_ptr operator()(const Rational& r) {
+  ir::value_ptr operator()(const rational_constant& r) {
     return push_operation(ir::load{r}, code_numeric_type::floating_point);
   }
 

@@ -155,7 +155,7 @@ struct substitute_mul_visitor
 
     // Determine the maximum number of times we can divide the exponent of the target
     // into the input multiplication.
-    std::optional<Integer> max_valid_integer_exponent{};
+    std::optional<integer_constant> max_valid_integer_exponent{};
     for (const auto& [base, exponent] : target_parts.terms) {
       auto it = input_parts.terms.find(base);
       if (it == input_parts.terms.end()) {
@@ -164,7 +164,8 @@ struct substitute_mul_visitor
 
       // See how many times we can divide term into the target expression
       const Expr multiple = it->second / exponent;
-      if (const Integer* const as_int = cast_ptr<Integer>(multiple); as_int != nullptr) {
+      if (const integer_constant* const as_int = cast_ptr<integer_constant>(multiple);
+          as_int != nullptr) {
         // We do `abs` here so that doing a substitution like:
         // 1 / (x*x*y*y*y) replacing [x*y -> w] produces 1 / (w*w*y)
         // Instead of producing (if we used the sign): x / w^3
@@ -174,7 +175,7 @@ struct substitute_mul_visitor
             as_int->abs() < max_valid_integer_exponent.value().abs()) {
           max_valid_integer_exponent = *as_int;
         }
-      } else if (const Rational* const as_rational = cast_ptr<Rational>(multiple);
+      } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, _] = as_rational->normalized();
         // Same rationale for `abs` as above for integers:
@@ -189,7 +190,7 @@ struct substitute_mul_visitor
     }
 
     // Deduct the replaced expression from the input:
-    const Integer max_valid_exponent = max_valid_integer_exponent.value();
+    const integer_constant max_valid_exponent = max_valid_integer_exponent.value();
     for (const auto& [base, exponent] : target_parts.terms) {
       auto it = input_parts.terms.find(base);
       WF_ASSERT(it != input_parts.terms.end());
@@ -197,7 +198,7 @@ struct substitute_mul_visitor
     }
 
     // Insert the replacement
-    const auto replacement_exp = Integer::create(max_valid_exponent);
+    const auto replacement_exp = integer_constant::create(max_valid_exponent);
     const auto [it, was_inserted] = input_parts.terms.emplace(replacement, replacement_exp);
     if (!was_inserted) {
       it->second = it->second + replacement_exp;
@@ -242,14 +243,15 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
       if (it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
         const Expr ratio = it->second / target_exp_coeff;
-        if (const Integer* const as_int = cast_ptr<Integer>(ratio); as_int != nullptr) {
+        if (const integer_constant* const as_int = cast_ptr<integer_constant>(ratio);
+            as_int != nullptr) {
           // It divides evenly. This case handles things like:
           // x**(3*y + 5) replacing [x**y -> w] producing w**3 * x**5
           parts.terms.erase(it);
           // Put the exponent back together and swap in the replacement:
           Expr new_exponent = parts.create_addition();
           return Power::create(replacement, ratio) * Power::create(candidate_base, new_exponent);
-        } else if (const Rational* const as_rational = cast_ptr<Rational>(ratio);
+        } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(ratio);
                    as_rational != nullptr) {
           const auto [int_part, _] = as_rational->normalized();
           if (int_part.is_zero()) {
@@ -269,9 +271,10 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
       // See if the exponent is an integer multiple of the target exponent.
       // TODO: De-duplicate this block with the equivalent section in the addition above.
       const Expr multiple = candidate.exponent() / target_exponent;
-      if (const Integer* const as_int = cast_ptr<Integer>(multiple); as_int != nullptr) {
+      if (const integer_constant* const as_int = cast_ptr<integer_constant>(multiple);
+          as_int != nullptr) {
         return Power::create(replacement, multiple);
-      } else if (const Rational* const as_rational = cast_ptr<Rational>(multiple);
+      } else if (const rational_constant* const as_rational = cast_ptr<rational_constant>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, frac_remainder] = as_rational->normalized();
         if (int_part.is_zero()) {
@@ -279,7 +282,8 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
           return input_expression;
         }
         return Power::create(replacement, int_part.get_value()) *
-               Power::create(candidate_base, target_exponent * Rational::create(frac_remainder));
+               Power::create(candidate_base,
+                             target_exponent * rational_constant::create(frac_remainder));
       }
     }
 
@@ -308,7 +312,8 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
   return visit(target, [&](const auto& target_concrete) -> Expr {
     using T = std::decay_t<decltype(target_concrete)>;
     // Don't allow the target type to be a numeric literal:
-    using disallowed_types = type_list<Integer, Float, Rational, Constant>;
+    using disallowed_types =
+        type_list<integer_constant, float_constant, rational_constant, Constant>;
     if constexpr (type_list_contains_type_v<T, disallowed_types>) {
       throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {

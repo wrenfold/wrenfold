@@ -26,10 +26,10 @@ class derivative_visitor {
   Expr operator()(const multiplication& mul);
   Expr operator()(const function& func);
   Expr operator()(const Infinity&) const;
-  Expr operator()(const Integer&) const;
-  Expr operator()(const Float&) const;
+  Expr operator()(const integer_constant&) const;
+  Expr operator()(const float_constant&) const;
   Expr operator()(const Power& pow);
-  Expr operator()(const Rational&) const;
+  Expr operator()(const rational_constant&) const;
   Expr operator()(const Relational&, const Expr& rel_expr) const;
   Expr operator()(const Undefined&) const;
   Expr operator()(const Variable& var) const;

@@ -138,8 +138,12 @@ class determine_set_visitor {
     return number_set::real;
   }
 
-  constexpr number_set operator()(const Integer& i) const noexcept { return handle_numeric(i); }
-  constexpr number_set operator()(const Float& f) const noexcept { return handle_numeric(f); }
+  constexpr number_set operator()(const integer_constant& i) const noexcept {
+    return handle_numeric(i);
+  }
+  constexpr number_set operator()(const float_constant& f) const noexcept {
+    return handle_numeric(f);
+  }
 
   number_set operator()(const Power& pow) const {
     number_set base = determine_numeric_set(pow.base());
@@ -155,7 +159,7 @@ class determine_set_visitor {
     }
 
     if (is_real_set(base)) {
-      if (const Integer* exp_int = cast_ptr<Integer>(pow.exponent());
+      if (const integer_constant* exp_int = cast_ptr<integer_constant>(pow.exponent());
           exp_int != nullptr && exp_int->is_even()) {
         return contains_zero(base) ? number_set::real_non_negative : number_set::real_positive;
       }
@@ -168,7 +172,9 @@ class determine_set_visitor {
     return number_set::unknown;
   }
 
-  constexpr number_set operator()(const Rational& r) const noexcept { return handle_numeric(r); }
+  constexpr number_set operator()(const rational_constant& r) const noexcept {
+    return handle_numeric(r);
+  }
 
   // Relational is always 0 or 1, so it must be non-negative.
   constexpr number_set operator()(const Relational&) const noexcept {

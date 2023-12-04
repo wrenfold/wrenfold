@@ -12,13 +12,13 @@ class plain_formatter {
   void operator()(const conditional& conditional);
   void operator()(const Constant& constant);
   void operator()(const derivative& derivative);
-  void operator()(const Float& num);
+  void operator()(const float_constant& num);
   void operator()(const Infinity&);
-  void operator()(const Integer& num);
+  void operator()(const integer_constant& num);
   void operator()(const class matrix& mat);
   void operator()(const multiplication& mul);
   void operator()(const Power& pow);
-  void operator()(const Rational& rational);
+  void operator()(const rational_constant& rational);
   void operator()(const Relational& relational);
   void operator()(const function& func);
   void operator()(const Undefined&);

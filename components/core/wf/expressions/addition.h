@@ -91,10 +91,10 @@ struct addition_parts {
   explicit addition_parts(const addition& add);
 
   // Rational coefficient.
-  Rational rational_term{0, 1};
+  rational_constant rational_term{0, 1};
 
   // Floating point coefficient:
-  std::optional<Float> float_term{};
+  std::optional<float_constant> float_term{};
 
   // Map from multiplicand to coefficient.
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> terms{};

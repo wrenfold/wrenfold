@@ -14,7 +14,8 @@ namespace math {
 struct is_numeric_visitor {
   template <typename T>
   bool operator()(const T& arg) const {
-    if constexpr (type_list_contains_type_v<T, Float, Integer, Rational>) {
+    if constexpr (type_list_contains_type_v<T, float_constant, integer_constant,
+                                            rational_constant>) {
       return true;
     } else if constexpr (std::is_same_v<T, Power>) {
       return is_numeric(arg.base()) && is_numeric(arg.exponent());
@@ -29,9 +30,9 @@ inline bool is_numeric(const Expr& expr) { return visit(expr, is_numeric_visitor
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
 struct is_negative_number_visitor {
-  constexpr bool operator()(const Integer& i) const noexcept { return i.is_negative(); }
-  constexpr bool operator()(const Float& f) const noexcept { return f.is_negative(); }
-  constexpr bool operator()(const Rational& r) const noexcept { return r.is_negative(); }
+  constexpr bool operator()(const integer_constant& i) const noexcept { return i.is_negative(); }
+  constexpr bool operator()(const float_constant& f) const noexcept { return f.is_negative(); }
+  constexpr bool operator()(const rational_constant& r) const noexcept { return r.is_negative(); }
 
   template <typename T>
   constexpr bool operator()(const T&) const noexcept {

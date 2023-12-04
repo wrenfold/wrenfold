@@ -6,7 +6,7 @@
 namespace math {
 
 // Defined here to resolve a circular import issue for now.
-Expr Integer::create(IntegralType x) {
+Expr integer_constant::create(value_type x) {
   if (x == 0) {
     return constants::zero;
   } else if (x == 1) {
@@ -14,7 +14,7 @@ Expr Integer::create(IntegralType x) {
   } else if (x == -1) {
     return constants::negative_one;
   }
-  return make_expr<Integer>(x);
+  return make_expr<integer_constant>(x);
 }
 
 }  // namespace math

@@ -10,10 +10,11 @@ namespace math {
 
 struct CompareNumerics {
   // Int and rational can be compared:
-  template <typename A, typename B, typename = enable_if_contains_type_t<A, Integer, Rational>,
-            typename = enable_if_contains_type_t<B, Integer, Rational>>
+  template <typename A, typename B,
+            typename = enable_if_contains_type_t<A, integer_constant, rational_constant>,
+            typename = enable_if_contains_type_t<B, integer_constant, rational_constant>>
   bool operator()(const A& a, const B& b) const {
-    return static_cast<Rational>(a) < static_cast<Rational>(b);
+    return static_cast<rational_constant>(a) < static_cast<rational_constant>(b);
   }
 
   static double float_from_constant(const Constant& c) {
@@ -25,12 +26,12 @@ struct CompareNumerics {
     return value;
   }
 
-  bool operator()(const Integer& a, const Constant& b) const {
+  bool operator()(const integer_constant& a, const Constant& b) const {
     // This must have a value since float will not be nan.
     return compare_int_float(a.get_value(), float_from_constant(b)).value() ==
            relative_order::less_than;
   }
-  bool operator()(const Constant& a, const Integer& b) const {
+  bool operator()(const Constant& a, const integer_constant& b) const {
     return compare_int_float(b.get_value(), float_from_constant(a)).value() ==
            relative_order::greater_than;
   }
@@ -41,16 +42,16 @@ struct CompareNumerics {
     return float_from_constant(a) < float_from_constant(b);
   }
 
-  bool operator()(const Float& a, const Float& b) const { return a < b; }
+  bool operator()(const float_constant& a, const float_constant& b) const { return a < b; }
 
   // Integer and float:
-  bool operator()(const Integer& a, const Float& b) const {
+  bool operator()(const integer_constant& a, const float_constant& b) const {
     const auto result = compare_int_float(a.get_value(), b.get_value());
     WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == relative_order::less_than;
   }
 
-  bool operator()(const Float& a, const Integer& b) const {
+  bool operator()(const float_constant& a, const integer_constant& b) const {
     const auto result = compare_int_float(b.get_value(), a.get_value());
     WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == relative_order::greater_than;

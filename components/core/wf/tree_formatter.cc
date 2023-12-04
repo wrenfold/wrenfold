@@ -117,11 +117,11 @@ struct tree_formatter {
 
   void operator()(const Infinity&) { append_name("{}", Infinity::name_str); }
 
-  void operator()(const Integer& neg) { append_name("Integer ({})", neg.get_value()); }
+  void operator()(const integer_constant& neg) { append_name("Integer ({})", neg.get_value()); }
 
-  void operator()(const Float& neg) { append_name("Float ({})", neg.get_value()); }
+  void operator()(const float_constant& neg) { append_name("Float ({})", neg.get_value()); }
 
-  void operator()(const Rational& rational) {
+  void operator()(const rational_constant& rational) {
     append_name("Rational ({} / {})", rational.numerator(), rational.denominator());
   }
 

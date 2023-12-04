@@ -10,14 +10,14 @@ using namespace math::custom_literals;
 
 template <typename Callable>
 std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
-  if (const Float* const f = cast_ptr<Float>(arg); f != nullptr) {
+  if (const float_constant* const f = cast_ptr<float_constant>(arg); f != nullptr) {
     const auto value = f->get_value();
     const auto result = method(value);
     if (result == value) {
       // Don't allocate if no change occurred.
       return arg;
     } else {
-      return Float::create(static_cast<Float::FloatType>(result));
+      return float_constant::create(static_cast<float_constant::value_type>(result));
     }
   }
   return {};
@@ -47,11 +47,11 @@ Expr log(const Expr& x) {
 
 Expr pow(const Expr& x, const Expr& y) { return Power::create(x, y); }
 
-std::optional<Rational> try_cast_to_rational(const Expr& expr) {
-  if (const Rational* const r = cast_ptr<Rational>(expr); r != nullptr) {
+std::optional<rational_constant> try_cast_to_rational(const Expr& expr) {
+  if (const rational_constant* const r = cast_ptr<rational_constant>(expr); r != nullptr) {
     return *r;
-  } else if (const Integer* const i = cast_ptr<Integer>(expr); i != nullptr) {
-    return static_cast<Rational>(*i);
+  } else if (const integer_constant* const i = cast_ptr<integer_constant>(expr); i != nullptr) {
+    return static_cast<rational_constant>(*i);
   }
   return {};
 }
@@ -60,18 +60,18 @@ std::optional<Rational> try_cast_to_rational(const Expr& expr) {
 Expr cos(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
   if (is_pi(multiplicand)) {
-    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
-      const Rational r_mod_pi = mod_pi_rational(*r);
+    if (const std::optional<rational_constant> r = try_cast_to_rational(coeff); r.has_value()) {
+      const rational_constant r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
       if (r_mod_pi.is_zero()) {
         return constants::one;
       } else if (r_mod_pi.is_one()) {
         return constants::negative_one;
-      } else if (r_mod_pi == Rational{1, 2} || r_mod_pi == Rational{-1, 2}) {
+      } else if (r_mod_pi == rational_constant{1, 2} || r_mod_pi == rational_constant{-1, 2}) {
         return constants::zero;
       }
       return make_expr<function>(built_in_function::cos,
-                                 Rational::create(r_mod_pi) * constants::pi);
+                                 rational_constant::create(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(coeff)) {
     return constants::one;
@@ -97,18 +97,18 @@ Expr cos(const Expr& arg) {
 Expr sin(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
   if (is_pi(multiplicand)) {
-    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
-      const Rational r_mod_pi = mod_pi_rational(*r);
+    if (const std::optional<rational_constant> r = try_cast_to_rational(coeff); r.has_value()) {
+      const rational_constant r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
       if (r_mod_pi.is_zero() || r_mod_pi.is_one()) {
         return constants::zero;
-      } else if (r_mod_pi == Rational{1, 2}) {
+      } else if (r_mod_pi == rational_constant{1, 2}) {
         return constants::one;
-      } else if (r_mod_pi == Rational{-1, 2}) {
+      } else if (r_mod_pi == rational_constant{-1, 2}) {
         return constants::negative_one;
       }
       return make_expr<function>(built_in_function::sin,
-                                 Rational::create(r_mod_pi) * constants::pi);
+                                 rational_constant::create(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(arg)) {
     return constants::zero;
@@ -126,11 +126,11 @@ Expr sin(const Expr& arg) {
   return make_expr<function>(built_in_function::sin, arg);
 }
 
-inline Rational convert_to_tan_range(const Rational& r) {
-  const Rational one{1, 1};
-  if (r > Rational{1, 2}) {
+inline rational_constant convert_to_tan_range(const rational_constant& r) {
+  const rational_constant one{1, 1};
+  if (r > rational_constant{1, 2}) {
     return r - one;
-  } else if (r < Rational{-1, 2}) {
+  } else if (r < rational_constant{-1, 2}) {
     return one + r;
   }
   return r;
@@ -144,18 +144,19 @@ inline Expr pi_over_two() {
 Expr tan(const Expr& arg) {
   const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
   if (is_pi(multiplicand)) {
-    if (const std::optional<Rational> r = try_cast_to_rational(coeff); r.has_value()) {
+    if (const std::optional<rational_constant> r = try_cast_to_rational(coeff); r.has_value()) {
       // Map into [-pi/2, pi/2]:
-      const Rational r_mod_half_pi = convert_to_tan_range(mod_pi_rational(*r));
+      const rational_constant r_mod_half_pi = convert_to_tan_range(mod_pi_rational(*r));
       // Do some very basic simplification:
       if (r_mod_half_pi.is_zero()) {
         return constants::zero;
-      } else if (r_mod_half_pi == Rational{1, 2} || r_mod_half_pi == Rational{-1, 2}) {
+      } else if (r_mod_half_pi == rational_constant{1, 2} ||
+                 r_mod_half_pi == rational_constant{-1, 2}) {
         // Complex infinity.
         return constants::complex_infinity;
       }
       return make_expr<function>(built_in_function::tan,
-                                 Rational::create(r_mod_half_pi) * pi_over_two());
+                                 rational_constant::create(r_mod_half_pi) * pi_over_two());
     }
   } else if (is_zero(arg)) {
     return constants::zero;
@@ -225,11 +226,11 @@ Expr atan(const Expr& arg) {
 
 // Support some very basic simplifications for numerical inputs.
 struct atan2_visitor {
-  std::optional<Expr> operator()(const Float& y, const Float& x) const {
-    return Float::create(std::atan2(y.get_value(), x.get_value()));
+  std::optional<Expr> operator()(const float_constant& y, const float_constant& x) const {
+    return float_constant::create(std::atan2(y.get_value(), x.get_value()));
   }
 
-  std::optional<Expr> operator()(const Integer& y, const Integer& x) const {
+  std::optional<Expr> operator()(const integer_constant& y, const integer_constant& x) const {
     static const Expr pi_over_two = constants::pi / 2;
     static const Expr neg_pi_over_two = -pi_over_two;
 
@@ -283,13 +284,13 @@ Expr abs(const Expr& arg) {
     // abs(abs(x)) --> abs(x)
     return arg;
   }
-  if (const std::optional<Rational> r = try_cast_to_rational(arg); r.has_value()) {
+  if (const std::optional<rational_constant> r = try_cast_to_rational(arg); r.has_value()) {
     // If the inner argument is a negative integer or rational, just flip it.
     if (r->numerator() >= 0) {
       WF_ASSERT_GREATER(r->denominator(), 0);
       return arg;
     }
-    return Rational::create(-r->numerator(), r->denominator());
+    return rational_constant::create(-r->numerator(), r->denominator());
   }
   // Evaluate floats immediately:
   if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::abs(x); });
@@ -322,9 +323,13 @@ struct signum_visitor {
   }
 
   // Expr constructor will convert to `One` or `negative_one` constants for us
-  std::optional<Expr> operator()(const Integer& i) const { return Expr{sign(i.get_value())}; }
-  std::optional<Expr> operator()(const Rational& r) const { return Expr{sign(r.numerator())}; }
-  std::optional<Expr> operator()(const Float& f) const {
+  std::optional<Expr> operator()(const integer_constant& i) const {
+    return Expr{sign(i.get_value())};
+  }
+  std::optional<Expr> operator()(const rational_constant& r) const {
+    return Expr{sign(r.numerator())};
+  }
+  std::optional<Expr> operator()(const float_constant& f) const {
     WF_ASSERT(!std::isnan(f.get_value()));
     return Expr{sign(f.get_value())};
   }
@@ -346,8 +351,9 @@ struct signum_visitor {
   std::optional<Expr> operator()(const Undefined&) const { return constants::undefined; }
 
   // Handle all other cases.
-  template <typename T, typename = enable_if_does_not_contain_type_t<T, Integer, Rational, Float,
-                                                                     Constant, function, Undefined>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<
+                            T, integer_constant, rational_constant, float_constant, Constant,
+                            function, Undefined>>
   std::optional<Expr> operator()(const T&) const {
     return std::nullopt;
   }

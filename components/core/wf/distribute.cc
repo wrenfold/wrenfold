@@ -87,9 +87,9 @@ struct distribute_visitor {
     return diff.map_children(&distribute);
   }
   Expr operator()(const Infinity&, const Expr& arg) const { return arg; }
-  Expr operator()(const Integer&, const Expr& arg) const { return arg; }
-  Expr operator()(const Float&, const Expr& arg) const { return arg; }
-  Expr operator()(const Rational&, const Expr& arg) const { return arg; }
+  Expr operator()(const integer_constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const float_constant&, const Expr& arg) const { return arg; }
+  Expr operator()(const rational_constant&, const Expr& arg) const { return arg; }
   Expr operator()(const Relational& relation, const Expr&) const {
     return relation.map_children(&distribute);
   }

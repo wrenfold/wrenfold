@@ -16,12 +16,12 @@ Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
   }
 }
 
-Expr evaluate_visitor::operator()(const Integer& x) const {
-  return Float::create(static_cast<Float>(x));
+Expr evaluate_visitor::operator()(const integer_constant& x) const {
+  return float_constant::create(static_cast<float_constant>(x));
 }
 
-Expr evaluate_visitor::operator()(const Rational& x) const {
-  return Float::create(static_cast<Float>(x));
+Expr evaluate_visitor::operator()(const rational_constant& x) const {
+  return float_constant::create(static_cast<float_constant>(x));
 }
 
 Expr evaluate_visitor::operator()(const Constant& c) const {
@@ -29,7 +29,7 @@ Expr evaluate_visitor::operator()(const Constant& c) const {
   const double value = double_from_symbolic_constant(c_enum);
   WF_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
             string_from_symbolic_constant(c_enum));
-  return Float::create(value);
+  return float_constant::create(value);
 }
 
 Expr evaluate_visitor::apply(const Expr& input) {

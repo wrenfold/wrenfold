@@ -96,11 +96,11 @@ void plain_formatter::operator()(const Infinity&) {
   fmt::format_to(std::back_inserter(output_), "zoo");
 }
 
-void plain_formatter::operator()(const Integer& expr) {
+void plain_formatter::operator()(const integer_constant& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
-void plain_formatter::operator()(const Float& expr) {
+void plain_formatter::operator()(const float_constant& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
 }
 
@@ -165,20 +165,21 @@ void plain_formatter::operator()(const multiplication& expr) {
     output_ += "-";
   }
 
-  const auto format_element = [this](const std::variant<Integer, Float, BaseExp>& element) {
-    if (std::holds_alternative<Integer>(element)) {
-      this->operator()(std::get<Integer>(element));
-    } else if (std::holds_alternative<Float>(element)) {
-      this->operator()(std::get<Float>(element));
-    } else {
-      const BaseExp& pow = std::get<BaseExp>(element);
-      if (is_one(pow.exponent)) {
-        this->format_precedence(precedence::multiplication, pow.base);
-      } else {
-        this->format_power(pow.base, pow.exponent);
-      }
-    }
-  };
+  const auto format_element =
+      [this](const std::variant<integer_constant, float_constant, BaseExp>& element) {
+        if (std::holds_alternative<integer_constant>(element)) {
+          this->operator()(std::get<integer_constant>(element));
+        } else if (std::holds_alternative<float_constant>(element)) {
+          this->operator()(std::get<float_constant>(element));
+        } else {
+          const BaseExp& pow = std::get<BaseExp>(element);
+          if (is_one(pow.exponent)) {
+            this->format_precedence(precedence::multiplication, pow.base);
+          } else {
+            this->format_power(pow.base, pow.exponent);
+          }
+        }
+      };
 
   format_element(info.numerator.front());
   for (std::size_t i = 1; i < info.numerator.size(); ++i) {
@@ -219,7 +220,7 @@ void plain_formatter::operator()(const function& func) {
 
 void plain_formatter::operator()(const Power& expr) { format_power(expr.base(), expr.exponent()); }
 
-void plain_formatter::operator()(const Rational& expr) {
+void plain_formatter::operator()(const rational_constant& expr) {
   fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());
 }
 
