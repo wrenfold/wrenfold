@@ -44,7 +44,7 @@ testing::AssertionResult expect_eigen_near(const std::string_view name_a,
       if (std::abs(delta) > tolerance || std::isnan(delta)) {
         return testing::AssertionFailure() << fmt::format(
                    "Matrix equality {} == {} failed because:\n"
-                   "{}({}, {}) - {}({}, {}) = {} > {}\n"
+                   "({})({}, {}) - ({})({}, {}) = {} > {}\n"
                    "Where {} evaluates to:\n{}\nAnd {} evaluates to:\n{}\n"
                    "And {} evaluates to: {}\n",
                    name_a, name_b, name_a, i, j, name_b, i, j, delta, tolerance, name_a, a, name_b,
@@ -81,25 +81,6 @@ inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
 // Convert Quaternion to Vector4, ordered [w,x,y,z] (scalar first).
 inline Eigen::Vector4d eigen_wxyz_vec_from_quaternion(const Eigen::Quaterniond& q) {
   return (Eigen::Vector4d() << q.w(), q.x(), q.y(), q.z()).finished();
-}
-
-// Local coordinates implemented with Eigen.
-// Computes log(a^-1 * b)
-template <typename Scalar>
-Eigen::Vector<Scalar, 3> local_coordinates(const Eigen::Quaternion<Scalar>& a,
-                                           const Eigen::Quaternion<Scalar>& b) {
-  const Eigen::AngleAxis<Scalar> w_ab{a.inverse() * b};
-  return w_ab.angle() * w_ab.axis();
-}
-
-// Retract implement with Eigen quaternions.
-// Right multiply the tangent perturbation `w`: q * exp(w)
-template <typename Scalar, typename Derived>
-Eigen::Quaternion<Scalar> retract(const Eigen::Quaternion<Scalar>& q,
-                                  const Eigen::MatrixBase<Derived>& w) {
-  const Eigen::Vector<Scalar, 3> w_eval = w.eval();
-  return q *
-         Eigen::Quaternion<Scalar>{Eigen::AngleAxis<Scalar>{w_eval.norm(), w_eval.normalized()}};
 }
 
 }  // namespace wf

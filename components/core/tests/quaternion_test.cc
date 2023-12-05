@@ -656,7 +656,8 @@ TEST(QuaternionTest, TestJacobianOfSO3) {
     const Eigen::Matrix3d J_numerical =
         numerical_jacobian(Eigen::Vector3d::Zero(), [&](const auto& dw) {
           // evaluate exp(w + dw)
-          const auto q_perturb = retract(Eigen::Quaterniond::Identity(), (axis * angle) + dw);
+          const auto q_perturb = manifold<Eigen::Quaterniond>::retract(
+              Eigen::Quaterniond::Identity(), (axis * angle) + dw);
           // evaluate log(exp(w + dw) * q^T)
           const Eigen::AngleAxisd aa{q_perturb * q.conjugate()};
           return (aa.angle() * aa.axis()).eval();

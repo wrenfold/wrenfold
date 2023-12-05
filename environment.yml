@@ -1,0 +1,11 @@
+name: build-env
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.8
+  - cmake >= 3.19
+  - ninja
+  - mypy
+  - numpy
