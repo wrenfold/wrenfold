@@ -1,0 +1,86 @@
+name: ci-windows
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - '*'
+
+  schedule:
+    - cron: '0 0 * * *'
+
+env:
+  CACHE_NUMBER: 0
+  env_name: build-env
+  prefix: C:\Users\runneradmin\miniconda3\envs\build-env
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        build_type: [RelWithDebInfo]
+        os: [windows-2019, windows-2022]
+        arch: [amd64]
+
+    name: ${{ matrix.os }}-${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: pwsh # Run on powershell.
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: true
+
+      - name: Setup mambaforge
+        uses: conda-incubator/setup-miniconda@11b562958363ec5770fef326fe8ef0366f8cbf8a # v3.0.1
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          activate-environment: ${{ env.env_name }}
+          use-mamba: true
+
+      - name: Set cache data
+        shell: bash
+        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.prefix }}
+          key: ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+        id: cache
+
+      - name: Update environment
+        run: mamba env update -n ${{ env.env_name }} -f environment.yml
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Dump conda environment
+        run: |
+          conda info
+          conda list
+          conda config --show-sources
+          conda config --show
+
+      # Add MSVC to the command line:
+      - name: Enable developer command prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Create build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build-${{matrix.build_type}}
+
+      - name: Configure
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: |
+          cmake $env:GITHUB_WORKSPACE -DCMAKE_C_COMPILER="cl.exe" -DCMAKE_CXX_COMPILER="cl.exe" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -Wno-deprecated -G Ninja
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: |
+          $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          cmake --build . --config ${{matrix.build_type}} --parallel $threads
+
+      - name: Test
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: ctest --output-on-failure
