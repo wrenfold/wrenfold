@@ -9,7 +9,7 @@ namespace wf {
 // Generate rust code.
 class rust_code_generator {
  public:
-  std::string generate_code(const ast::function_signature& signature,
+  std::string generate_code(const function_signature& signature,
                             const std::vector<ast::variant>& body) const;
 
   // Create a fmt_view that can be passed to code_formatter. All args will be
@@ -73,7 +73,7 @@ class rust_code_generator {
   }
 
  private:
-  void format_signature(code_formatter& formatter, const ast::function_signature& signature) const;
+  void format_signature(code_formatter& formatter, const function_signature& signature) const;
 };
 
 }  // namespace wf

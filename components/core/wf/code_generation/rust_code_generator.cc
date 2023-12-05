@@ -4,7 +4,7 @@
 
 namespace wf {
 
-std::string rust_code_generator::generate_code(const ast::function_signature& signature,
+std::string rust_code_generator::generate_code(const function_signature& signature,
                                                const std::vector<ast::variant>& body) const {
   code_formatter result{};
   format_signature(result, signature);
@@ -26,22 +26,22 @@ constexpr std::string_view type_string_from_numeric_type(code_numeric_type type)
   throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
 }
 
-constexpr std::string_view type_string_from_numeric_type(const ast::scalar_type& scalar) {
+constexpr std::string_view type_string_from_numeric_type(scalar_type scalar) {
   return type_string_from_numeric_type(scalar.numeric_type());
 }
 
-constexpr std::string_view span_type_from_direction(ast::argument_direction direction) {
+constexpr std::string_view span_type_from_direction(argument_direction direction) {
   switch (direction) {
-    case ast::argument_direction::input:
+    case argument_direction::input:
       return "Span2D";
-    case ast::argument_direction::output:
-    case ast::argument_direction::optional_output:
+    case argument_direction::output:
+    case argument_direction::optional_output:
       return "OutputSpan2D";
   }
   return "<NOT A VALID ENUM VALUE>";
 }
 
-static std::vector<std::string_view> get_attributes(const ast::function_signature& signature) {
+static std::vector<std::string_view> get_attributes(const function_signature& signature) {
   std::vector<std::string_view> result{};
 
   // TODO: Properly checking for snake case would require doing upper/lower case comparison with
@@ -51,25 +51,24 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   result.push_back("non_snake_case");
 
   // Check if # of args exceeds clippy warning.
-  if (signature.arguments.size() >= 7) {
+  if (signature.num_arguments() >= 7) {
     result.push_back("clippy::too_many_arguments");
   }
   return result;
 }
 
 void rust_code_generator::format_signature(wf::code_formatter& formatter,
-                                           const ast::function_signature& signature) const {
+                                           const function_signature& signature) const {
   formatter.format("#[inline]\n");
 
   const auto attributes = get_attributes(signature);
   if (!attributes.empty()) {
     formatter.format("#[allow({})]\n", fmt::join(attributes, ", "));
   }
-  formatter.format("pub fn {}{}", signature.function_name,
-                   signature.has_matrix_arguments() ? "<" : "");
+  formatter.format("pub fn {}{}", signature.name(), signature.has_matrix_arguments() ? "<" : "");
 
   std::size_t counter = 0;
-  for (const auto& arg : signature.arguments) {
+  for (const auto& arg : signature.arguments()) {
     if (arg->is_matrix()) {
       formatter.format("T{}, ", counter++);
     }
@@ -78,7 +77,7 @@ void rust_code_generator::format_signature(wf::code_formatter& formatter,
   formatter.format("{}(", signature.has_matrix_arguments() ? ">" : "");
 
   counter = 0;
-  for (const auto& arg : signature.arguments) {
+  for (const auto& arg : signature.arguments()) {
     formatter.format("{}: ", arg->name());
 
     std::string output_type;
@@ -90,31 +89,35 @@ void rust_code_generator::format_signature(wf::code_formatter& formatter,
     }
 
     switch (arg->direction()) {
-      case ast::argument_direction::input:
+      case argument_direction::input:
         formatter.format("{}{}, ", arg->is_matrix() ? "&" : "", output_type);
         break;
-      case ast::argument_direction::output:
+      case argument_direction::output:
         formatter.format("&mut {}, ", output_type);
         break;
-      case ast::argument_direction::optional_output:
+      case argument_direction::optional_output:
         formatter.format("Option<&mut {}>, ", output_type);
         break;
     }
   }
 
-  if (!signature.return_value) {
+  if (!signature.has_return_value()) {
     formatter.format(")\n");
   } else {
-    const auto& scalar = std::get<ast::scalar_type>(*signature.return_value);
-    formatter.format(") -> {}\n", type_string_from_numeric_type(scalar));
+    const auto return_type = *signature.return_value_type();
+    if (const scalar_type* s = std::get_if<scalar_type>(&return_type); s != nullptr) {
+      formatter.format(") -> {}\n", type_string_from_numeric_type(*s));
+    } else {
+      throw type_error("Return values must be scalars.");
+    }
   }
 
   if (signature.has_matrix_arguments()) {
     formatter.with_indentation(2, "where\n", "", [&] {
       std::size_t counter = 0;
-      for (const auto& arg : signature.arguments) {
+      for (const auto& arg : signature.arguments()) {
         if (arg->is_matrix()) {
-          const ast::matrix_type mat = std::get<ast::matrix_type>(arg->type());
+          const matrix_type mat = std::get<matrix_type>(arg->type());
           formatter.format("T{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
                            span_type_from_direction(arg->direction()), mat.rows(), mat.cols(),
                            type_string_from_numeric_type(code_numeric_type::floating_point));
@@ -131,10 +134,10 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::add& 
 void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::assign_output_argument& assignment) const {
   const auto& dest_name = assignment.arg->name();
-  const ast::argument_type& type = assignment.arg->type();
+  const argument_type& type = assignment.arg->type();
 
-  if (std::holds_alternative<ast::matrix_type>(type)) {
-    const ast::matrix_type mat = std::get<ast::matrix_type>(type);
+  if (std::holds_alternative<matrix_type>(type)) {
+    const matrix_type mat = std::get<matrix_type>(type);
     auto range = make_range<std::size_t>(0, assignment.values.size());
     formatter.join(
         [&](code_formatter& fmt, std::size_t i) {
@@ -145,7 +148,7 @@ void rust_code_generator::operator()(code_formatter& formatter,
   } else {
     // Otherwise it is a scalar, so just assign it:
     WF_ASSERT_EQUAL(1, assignment.values.size());
-    formatter.format("*{} = {};", dest_name, assignment.values.front());
+    formatter.format("*{} = {};", dest_name, make_view(assignment.values.front()));
   }
 }
 
@@ -226,7 +229,7 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::compa
 
 void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::construct_return_value& x) const {
-  WF_ASSERT(std::holds_alternative<ast::scalar_type>(x.type), "We cannot return matrices");
+  WF_ASSERT(std::holds_alternative<scalar_type>(x.type), "We cannot return matrices");
   WF_ASSERT_EQUAL(1, x.args.size());
   formatter.format("{}", make_view(x.args[0]));
 }
@@ -247,7 +250,7 @@ void rust_code_generator::operator()(wf::code_formatter& formatter, const ast::d
 void rust_code_generator::operator()(code_formatter& formatter, const ast::input_value& x) const {
   WF_ASSERT(x.arg);
   if (x.arg->is_matrix()) {
-    const ast::matrix_type mat = std::get<ast::matrix_type>(x.arg->type());
+    const matrix_type mat = std::get<matrix_type>(x.arg->type());
     const auto [r, c] = mat.compute_indices(x.element);
     formatter.format("{}.get({}, {})", x.arg->name(), r, c);
   } else {

@@ -503,8 +503,8 @@ std::size_t block::count_operation(Func&& func) const {
   return std::count_if(operations.begin(), operations.end(), [&func](ir::value_ptr v) -> bool {
     return std::visit(
         [&func](const auto& op) -> bool {
-          using argument_type = std::decay_t<decltype(op)>;
-          if constexpr (has_call_operator_v<Func, argument_type>) {
+          using arg_type = std::decay_t<decltype(op)>;
+          if constexpr (has_call_operator_v<Func, arg_type>) {
             return func(op);
           } else {
             return false;
