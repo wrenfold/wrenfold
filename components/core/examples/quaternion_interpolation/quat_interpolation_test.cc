@@ -21,7 +21,8 @@ using Eigen::Vector3d;
 template <typename Scalar>
 Eigen::Quaternion<Scalar> quat_interp(const Eigen::Quaternion<Scalar>& a,
                                       const Eigen::Quaternion<Scalar>& b, const Scalar alpha) {
-  return retract(a, (local_coordinates(a, b) * alpha).eval());
+  return manifold<Quaterniond>::retract(
+      a, (manifold<Quaterniond>::local_coordinates(a, b) * alpha).eval());
 }
 
 // Test the quaternion interpolation result numerically.
@@ -49,10 +50,12 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
 
   // compute derivatives numerically
   const Matrix3d D0_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
-    return local_coordinates(quat_interp(q0, q1, 0.25), quat_interp(retract(q0, w), q1, 0.25));
+    return manifold<Quaterniond>::local_coordinates(
+        quat_interp(q0, q1, 0.25), quat_interp(manifold<Quaterniond>::retract(q0, w), q1, 0.25));
   });
   const Matrix3d D1_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
-    return local_coordinates(quat_interp(q0, q1, 0.25), quat_interp(q0, retract(q1, w), 0.25));
+    return manifold<Quaterniond>::local_coordinates(
+        quat_interp(q0, q1, 0.25), quat_interp(q0, manifold<Quaterniond>::retract(q1, w), 0.25));
   });
 
   EXPECT_EIGEN_NEAR(D0_num, D0_gen, 1.0e-12);
