@@ -5,11 +5,10 @@ This is an example of a relatively simple factor one might implement for a rotat
 averaging optimization.
 """
 from wrenfold.type_annotations import RealScalar, Vector4
-from wrenfold.code_generation import codegen_function
+from wrenfold import code_generation
 from wrenfold.code_generation import OutputArg
 
 from wrenfold.geometry import Quaternion
-from wrenfold.code_generation import generate_cpp
 
 
 def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
@@ -31,25 +30,12 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
     ]
 
 
-CODE_TEMPLATE = \
-"""// Machine generated code.
-#include <cmath>
-#include <wf_runtime/span.h>
-
-namespace {namespace} {{
-
-{code}
-
-}} // namespace {namespace}
-"""
-
-
 def main():
-    signature, ast = codegen_function(rotation_error)
-    code = generate_cpp(signature=signature, ast=ast)
-    code = CODE_TEMPLATE.format(code=code, namespace="gen")
+    descriptions = [code_generation.create_function_description(rotation_error)]
+    definitions = code_generation.transpile(descriptions=descriptions)
+    code = code_generation.generate_cpp(definitions=definitions)
     with open('generated.h', 'w') as handle:
-        handle.write(code)
+        handle.write(code_generation.apply_cpp_preamble(code, namespace="gen"))
         handle.flush()
 
 

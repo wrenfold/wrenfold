@@ -133,10 +133,14 @@ struct function_signature {
 };
 
 // Store the signature of a function we will generate, plus all the captured output expressions.
-// This type is mostly intended for use from the python wrapper.
+// This type is a symbolic function description, which is then "transpiled" into an actual AST that
+// can be written out as actual code.
 // TODO: Use this in build_function_description?
 struct function_description {
  public:
+  // Stored in a shared ptr so that we can pass with no copies to and from python.
+  using shared_ptr = std::shared_ptr<function_description>;
+
   // Construct with the name of the function.
   explicit function_description(std::string name) noexcept : signature_{std::move(name)} {}
 

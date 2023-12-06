@@ -10,7 +10,8 @@ import unittest
 
 from wrenfold import sym
 from wrenfold.type_annotations import RealScalar, Vector2
-from wrenfold.code_generation import codegen_function, generate_cpp, generate_rust, ReturnValue, OutputArg
+from wrenfold.code_generation import ReturnValue, OutputArg
+from wrenfold import code_generation
 
 from test_base import MathTestBase
 
@@ -42,20 +43,15 @@ def func3(x: Vector2, y: Vector2, z: RealScalar):
 
 class CodeGenerationWrapperTest(MathTestBase):
 
-    def test_code_generation_1(self):
-        signature, ast = codegen_function(func1)
-        generate_cpp(signature, ast)
-        generate_rust(signature, ast)
-
-    def test_code_generation_2(self):
-        signature, ast = codegen_function(func2)
-        generate_cpp(signature, ast)
-        generate_rust(signature, ast)
-
-    def test_code_generation_3(self):
-        signature, ast = codegen_function(func3)
-        generate_cpp(signature, ast)
-        generate_rust(signature, ast)
+    def test_code_generation(self):
+        descriptions = [
+            code_generation.create_function_description(func1),
+            code_generation.create_function_description(func2),
+            code_generation.create_function_description(func3),
+        ]
+        definitions = code_generation.transpile(descriptions=descriptions, parallelize=False)
+        code_generation.generate_cpp(definitions=definitions)
+        code_generation.generate_rust(definitions=definitions)
 
 
 if __name__ == '__main__':
