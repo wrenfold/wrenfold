@@ -1,6 +1,4 @@
 // Copyright 2023 Gareth Cross
-#include <execution>
-
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -91,22 +89,17 @@ void wrap_codegen_operations(py::module_& m) {
 
   m.def(
       "transpile",
-      [](const std::vector<function_description::shared_ptr>& descriptions, bool parallelize) {
-        std::vector<function_definition::shared_ptr> outputs;
-        outputs.resize(descriptions.size());
-        const auto lambda = [](const function_description::shared_ptr& ptr) {
-          WF_ASSERT(ptr);
-          return transpile_to_function_definition(*ptr);
-        };
-        if (parallelize) {
-          std::transform(std::execution::par, descriptions.begin(), descriptions.end(),
-                         outputs.begin(), lambda);
-        } else {
-          std::transform(descriptions.begin(), descriptions.end(), outputs.begin(), lambda);
-        }
+      [](const std::vector<function_description::shared_ptr>& descriptions) {
+        // TODO: Allow this to run in parallel.
+        std::vector<function_definition::shared_ptr> outputs(descriptions.size());
+        std::transform(descriptions.begin(), descriptions.end(), outputs.begin(),
+                       [](const function_description::shared_ptr& ptr) {
+                         WF_ASSERT(ptr);
+                         return transpile_to_function_definition(*ptr);
+                       });
         return outputs;
       },
-      py::arg("descriptions"), py::arg("parallelize") = true,
+      py::arg("descriptions"),
       py::doc("Generate function definitions in AST form, given symbolic function descriptions."),
       py::return_value_policy::take_ownership);
 

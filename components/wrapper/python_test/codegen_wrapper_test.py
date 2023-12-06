@@ -49,7 +49,7 @@ class CodeGenerationWrapperTest(MathTestBase):
             code_generation.create_function_description(func2),
             code_generation.create_function_description(func3),
         ]
-        definitions = code_generation.transpile(descriptions=descriptions, parallelize=False)
+        definitions = code_generation.transpile(descriptions=descriptions)
         code_generation.generate_cpp(definitions=definitions)
         code_generation.generate_rust(definitions=definitions)
 

@@ -31,9 +31,9 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
 
 
 def main():
-    descriptions = [code_generation.create_function_description(rotation_error)]
-    definitions = code_generation.transpile(descriptions=descriptions)
-    code = code_generation.generate_cpp(definitions=definitions)
+    description = code_generation.create_function_description(rotation_error)
+    definitions = code_generation.transpile(description=description)
+    code = code_generation.generate_cpp(definitions=[definitions])
     with open('generated.h', 'w') as handle:
         handle.write(code_generation.apply_cpp_preamble(code, namespace="gen"))
         handle.flush()
