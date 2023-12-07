@@ -282,6 +282,10 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::multi
   formatter.format("{} * {}", make_view(x.left), make_view(x.right));
 }
 
+void rust_code_generator::operator()(wf::code_formatter& formatter, const ast::negate& x) const {
+  formatter.format("-{}", make_view(x.arg));
+}
+
 void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::optional_output_branch& x) const {
   formatter.format("if let Some({}) = {} ", x.arg->name(), x.arg->name());

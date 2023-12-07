@@ -57,6 +57,8 @@ class rust_code_generator {
 
   void operator()(code_formatter& formatter, const ast::multiply& x) const;
 
+  void operator()(code_formatter& formatter, const ast::negate& x) const;
+
   void operator()(code_formatter& formatter, const ast::optional_output_branch& x) const;
 
   // Accept ast::variant and delegate formatting of the stored type to our derived class.

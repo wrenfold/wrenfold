@@ -106,6 +106,10 @@ struct expression_from_ir_visitor {
         load.variant());
   }
 
+  Expr operator()(const ir::neg&, const std::vector<ir::value_ptr>& args) const {
+    return -map_value(args.front());
+  }
+
   Expr operator()(const ir::phi&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT_EQUAL(2, args.size());
 

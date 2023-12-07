@@ -267,6 +267,10 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::multip
   formatter.format("{} * {}", make_view(x.left), make_view(x.right));
 }
 
+void cpp_code_generator::operator()(code_formatter& formatter, const ast::negate& x) const {
+  formatter.format("-{}", make_view(x.arg));
+}
+
 void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::optional_output_branch& x) const {
   formatter.format("if (static_cast<bool>({}{})) ", x.arg->is_matrix() ? "_" : "", x.arg->name());

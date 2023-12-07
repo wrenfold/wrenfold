@@ -42,8 +42,14 @@ class flat_ir {
     return block_->count_operation(std::forward<Func>(func));
   }
 
+  // Count instances of operations of type `T`.
+  template <typename T>
+  std::size_t count_operation() const {
+    return count_operation([](const T&) constexpr { return true; });
+  }
+
   // Count invocations of the specified function.
-  std::size_t count_functions(std_math_function enum_value) const noexcept {
+  std::size_t count_function(std_math_function enum_value) const noexcept {
     return count_operation(
         [&](const ir::call_std_function& func) { return func.name() == enum_value; });
   }
@@ -101,6 +107,12 @@ class output_ir {
                            [&func](std::size_t total, const ir::block::unique_ptr& blk) {
                              return total + blk->count_operation(func);
                            });
+  }
+
+  // Count instances of operations of type `T`.
+  template <typename T>
+  std::size_t count_operation() const {
+    return count_operation([](const T&) constexpr { return true; });
   }
 
   // Count instances of a function call.
