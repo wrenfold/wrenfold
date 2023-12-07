@@ -3,8 +3,10 @@ add_library(
   ${LIBRARY_NAME} STATIC
   wf/absl_imports.h
   wf/assertions.h
-  wf/code_generation/ast.cc
+  wf/code_generation/ast_conversion.h
+  wf/code_generation/ast_conversion.cc
   wf/code_generation/ast.h
+  wf/code_generation/ast.cc
   wf/code_generation/ast_formatters.h
   wf/code_generation/code_formatter.h
   wf/code_generation/cpp_code_generator.cc

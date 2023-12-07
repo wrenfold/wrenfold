@@ -3,7 +3,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "wf/code_generation/ast.h"
+#include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/cpp_code_generator.h"
 #include "wf/code_generation/expression_group.h"
@@ -17,8 +17,7 @@ using namespace py::literals;
 
 // We make this type opaque and wrap it manually below.
 // This allows us to avoid problems from variant not being default constructible.
-using ast_variant_vector = std::vector<wf::ast::variant>;
-PYBIND11_MAKE_OPAQUE(ast_variant_vector)
+PYBIND11_MAKE_OPAQUE(wf::ast::variant_vector)
 
 namespace wf {
 
@@ -27,25 +26,6 @@ static std::string format_ast_repr(const T& x) {
   return fmt::format("{}", x);
 }
 
-// Pair together a function signature with the body in ast form.
-class function_definition {
- public:
-  using shared_ptr = std::shared_ptr<function_definition>;
-
-  function_definition(function_signature signature, ast_variant_vector ast)
-      : signature_(std::move(signature)), ast_(std::move(ast)) {}
-
-  // Access the signature.
-  constexpr const function_signature& signature() const noexcept { return signature_; }
-
-  // Access the ast.
-  constexpr const ast_variant_vector& ast() const noexcept { return ast_; }
-
- private:
-  function_signature signature_;
-  ast_variant_vector ast_;
-};
-
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
 function_definition::shared_ptr transpile_to_function_definition(
@@ -53,8 +33,8 @@ function_definition::shared_ptr transpile_to_function_definition(
   flat_ir ir{description.output_expressions()};
   ir.eliminate_duplicates();
   output_ir output_ir{std::move(ir)};
-  auto ast = ast::create_ast(output_ir, description.signature());
-  return std::make_shared<function_definition>(description.signature(), std::move(ast));
+  function_definition definition = ast::create_ast(output_ir, description.signature());
+  return std::make_shared<function_definition>(std::move(definition));
 }
 
 // TODO: Put this somewhere common and share with the C++ tests.
@@ -74,12 +54,12 @@ std::string emit_code(const std::vector<function_definition::shared_ptr>& defini
 
 void wrap_codegen_operations(py::module_& m) {
   // Stored as shared-ptr to avoid copies.
-  py::class_<ast_variant_vector, std::shared_ptr<ast_variant_vector>>(m, "AstVector")
+  py::class_<ast::variant_vector, std::shared_ptr<ast::variant_vector>>(m, "AstVector")
       .def("__repr__",
-           [](const ast_variant_vector& vec) {
+           [](const ast::variant_vector& vec) {
              return fmt::format("AstVector({} elements)", vec.size());
            })
-      .def("__len__", [](const ast_variant_vector& vec) { return vec.size(); })
+      .def("__len__", [](const ast::variant_vector& vec) { return vec.size(); })
       .def(
           "__iter__",
           [](const std::vector<ast::variant>& vec) {

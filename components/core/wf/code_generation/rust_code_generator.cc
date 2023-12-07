@@ -221,6 +221,13 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::cast&
                    type_string_from_numeric_type(x.destination_type));
 }
 
+void rust_code_generator::operator()(code_formatter& formatter, const ast::comment& x) const {
+  const std::vector<std::string> lines = x.split_lines();
+  for (const auto& line : lines) {
+    formatter.format("// {}\n", line);
+  }
+}
+
 void rust_code_generator::operator()(code_formatter& formatter, const ast::compare& x) const {
   // TODO: Parens are sometimes superfluous.
   formatter.format("({}) {} ({})", make_view(x.left), string_from_relational_operation(x.operation),

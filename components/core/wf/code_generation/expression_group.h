@@ -64,7 +64,7 @@ inline constexpr std::string_view string_from_expression_usage(
   return "<NOT A VALID ENUM VALUE>";
 }
 
-// Hash `OutputKey` type.
+// Hash `output_key` type.
 template <>
 struct hash_struct<output_key> {
   std::size_t operator()(const output_key& k) const {
