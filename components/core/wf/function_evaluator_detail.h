@@ -3,6 +3,7 @@
 
 #include "wf/code_generation/ast.h"
 #include "wf/code_generation/expression_group.h"
+#include "wf/code_generation/function_description.h"
 #include "wf/constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/output_annotations.h"
@@ -87,30 +88,29 @@ struct record_output;
 
 template <typename T>
 struct record_output<return_value<T>> {
-  void operator()(ast::function_signature& desc, const return_value<T>& output) const {
+  void operator()(function_signature& desc, const return_value<T>& output) const {
     // This is a return value.
     if constexpr (std::is_same_v<Expr, T>) {
-      desc.return_value = ast::scalar_type(code_numeric_type::floating_point);
+      desc.set_return_value_type(scalar_type(code_numeric_type::floating_point));
     } else {
       const MatrixExpr& mat = output.value();
-      desc.return_value = ast::matrix_type(mat.rows(), mat.cols());
+      desc.set_return_value_type(matrix_type(mat.rows(), mat.cols()));
     }
   }
 };
 
 template <typename T>
 struct record_output<output_arg<T>> {
-  void operator()(ast::function_signature& desc, const output_arg<T>& output) const {
+  void operator()(function_signature& desc, const output_arg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
-      desc.add_argument(output.name(), ast::scalar_type(code_numeric_type::floating_point),
-                        output.is_optional() ? ast::argument_direction::optional_output
-                                             : ast::argument_direction::output);
+      desc.add_argument(
+          output.name(), scalar_type(code_numeric_type::floating_point),
+          output.is_optional() ? argument_direction::optional_output : argument_direction::output);
     } else {
       // todo: static assert this is StaticMatrix
-      desc.add_argument(output.name(),
-                        ast::matrix_type(output.value().rows(), output.value().cols()),
-                        output.is_optional() ? ast::argument_direction::optional_output
-                                             : ast::argument_direction::output);
+      desc.add_argument(
+          output.name(), matrix_type(output.value().rows(), output.value().cols()),
+          output.is_optional() ? argument_direction::optional_output : argument_direction::output);
     }
   }
 };
@@ -120,21 +120,21 @@ struct record_input_argument;
 
 template <>
 struct record_input_argument<Expr> {
-  void operator()(ast::function_signature& desc, const arg& arg) const {
-    desc.add_argument(arg.name(), ast::scalar_type(code_numeric_type::floating_point),
-                      ast::argument_direction::input);
+  void operator()(function_signature& desc, const arg& arg) const {
+    desc.add_argument(arg.name(), scalar_type(code_numeric_type::floating_point),
+                      argument_direction::input);
   }
 };
 
 template <index_t Rows, index_t Cols>
 struct record_input_argument<type_annotations::static_matrix<Rows, Cols>> {
-  void operator()(ast::function_signature& desc, const arg& arg) const {
-    desc.add_argument(arg.name(), ast::matrix_type(Rows, Cols), ast::argument_direction::input);
+  void operator()(function_signature& desc, const arg& arg) const {
+    desc.add_argument(arg.name(), matrix_type(Rows, Cols), argument_direction::input);
   }
 };
 
 template <typename ArgList, std::size_t... Indices, std::size_t N>
-void record_input_args(ast::function_signature& desc, const std::array<arg, N>& args,
+void record_input_args(function_signature& desc, const std::array<arg, N>& args,
                        std::index_sequence<Indices...>) {
   (record_input_argument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(desc,
                                                                                 args[Indices]),

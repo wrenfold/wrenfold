@@ -8,21 +8,6 @@ namespace wf::ast {
 //
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::scalar_type& s) {
-  return fmt::format_to(it, "ScalarType<{}>", string_from_code_numeric_type(s.numeric_type()));
-}
-
-template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::matrix_type& m) {
-  return fmt::format_to(it, "MatrixType<{}, {}>", m.rows(), m.cols());
-}
-
-template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::argument_type& t) {
-  return std::visit([it = std::move(it)](const auto& x) { return format_ast(it, x); }, t);
-}
-
-template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::variable_ref& v) {
   return fmt::format_to(it, "{}", v.name);
 }
@@ -137,16 +122,18 @@ struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<wf::ast::varia
 
 // Support fmt printing of types convertible to `ast::Type`
 template <typename T>
-struct fmt::formatter<T,
-                      std::enable_if_t<std::is_constructible_v<wf::ast::argument_type, T>, char>> {
+struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<wf::argument_type, T>, char>> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename Arg, typename FormatContext>
   auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
-    if constexpr (std::is_same_v<wf::ast::argument_type, Arg>) {
-      return std::visit([&](const auto& x) { return wf::ast::format_ast(ctx.out(), x); }, m);
-    } else {
-      return format_ast(ctx.out(), m);
+    if constexpr (std::is_same_v<wf::argument_type, Arg>) {
+      return std::visit([&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, m);
+    } else if constexpr (std::is_same_v<wf::scalar_type, Arg>) {
+      return fmt::format_to(ctx.out(), "ScalarType<{}>",
+                            string_from_code_numeric_type(m.numeric_type()));
+    } else {  // std::is_same_v<wf::matrix_type, Arg>
+      return fmt::format_to(ctx.out(), "MatrixType<{}, {}>", m.rows(), m.cols());
     }
   }
 };

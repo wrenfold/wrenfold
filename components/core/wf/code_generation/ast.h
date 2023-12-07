@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "wf/assertions.h"
+#include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
 #include "wf/hashing.h"
 
@@ -15,111 +16,6 @@ class output_ir;
 }  // namespace wf
 
 namespace wf::ast {
-
-// Represent a scalar argument type (float, int, etc).
-class scalar_type {
- public:
-  explicit constexpr scalar_type(code_numeric_type numeric_type) noexcept
-      : numeric_type_(numeric_type) {}
-
-  constexpr code_numeric_type numeric_type() const noexcept { return numeric_type_; }
-
- private:
-  code_numeric_type numeric_type_;
-};
-
-// Represent a matrix argument type. The dimensions are known at generation time.
-class matrix_type {
- public:
-  constexpr matrix_type(index_t rows, index_t cols) noexcept : rows_(rows), cols_(cols) {}
-
-  constexpr index_t rows() const noexcept { return rows_; }
-  constexpr index_t cols() const noexcept { return cols_; }
-
-  // Convert to [row, col] indices (assuming row major order).
-  std::pair<index_t, index_t> compute_indices(std::size_t element) const {
-    WF_ASSERT_LESS(element, static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_));
-    return std::make_pair(static_cast<index_t>(element) / cols_,
-                          static_cast<index_t>(element) % cols_);
-  }
-
- private:
-  index_t rows_;
-  index_t cols_;
-};
-
-// TODO: Add ability to add custom type.
-using argument_type = std::variant<scalar_type, matrix_type>;
-
-// Specify how an argument is used (input, output).
-enum class argument_direction {
-  input,
-  output,
-  optional_output,
-};
-
-// Store an argument to a function.
-class argument {
- public:
-  using shared_ptr = std::shared_ptr<const argument>;
-
-  argument(const std::string_view name, ast::argument_type type, argument_direction direction)
-      : name_(name), type_(std::move(type)), direction_(direction) {}
-
-  // Name of the argument.
-  constexpr const std::string& name() const noexcept { return name_; }
-
-  // Type of the argument.
-  constexpr const ast::argument_type& type() const noexcept { return type_; }
-
-  // Is the argument type a matrix.
-  constexpr bool is_matrix() const noexcept {
-    return std::holds_alternative<ast::matrix_type>(type_);
-  }
-
-  // Is this argument optional? Presently only output arguments may be optional.
-  constexpr bool is_optional() const noexcept {
-    return direction_ == argument_direction::optional_output;
-  }
-
-  // Argument direction.
-  constexpr argument_direction direction() const noexcept { return direction_; }
-
- private:
-  std::string name_;
-  ast::argument_type type_;
-  argument_direction direction_;
-};
-
-// Describe a function signature.
-// Stores a name, and type+name information for all the arguments.
-struct function_signature {
- public:
-  explicit function_signature(std::string name) noexcept : function_name(std::move(name)) {}
-
-  template <typename... Args>
-  void add_argument(Args&&... args) {
-    arguments.push_back(std::make_shared<const ast::argument>(std::forward<Args>(args)...));
-  }
-
-  // Find an argument by name.
-  const std::shared_ptr<const ast::argument>& get_argument(const std::string_view str) const {
-    auto it = std::find_if(arguments.begin(), arguments.end(),
-                           [&](const auto& arg) { return arg->name() == str; });
-    WF_ASSERT(it != arguments.end(), "Argument does not exist: {}", str);
-    return *it;
-  }
-
-  // Are any of the arguments to this function a matrix?
-  bool has_matrix_arguments() const noexcept {
-    return std::any_of(arguments.begin(), arguments.end(),
-                       [](const auto& arg) { return arg->is_matrix(); });
-  }
-
-  std::string function_name;
-  std::vector<std::shared_ptr<const ast::argument>> arguments{};
-  std::optional<ast::argument_type> return_value;
-};
 
 // clang-format off
 using variant = std::variant<
@@ -227,10 +123,10 @@ struct compare {
 
 // Construct a type from the provided arguments.
 struct construct_return_value {
-  ast::argument_type type;
+  argument_type type;
   std::vector<variant> args;
 
-  construct_return_value(ast::argument_type, std::vector<variant>&& args);
+  construct_return_value(argument_type, std::vector<variant>&& args);
 };
 
 // Declare a new variable and optionally assign it a value.
@@ -313,18 +209,5 @@ struct special_constant {
 
 // Create AST from the IR:
 std::vector<ast::variant> create_ast(const wf::output_ir& ir, const function_signature& signature);
-
-// method definitions:
-
-inline function_definition::function_definition(function_signature signature,
-                                                std::vector<ast::variant> body)
-    : signature(std::move(signature)), body(std::move(body)) {}
-
-inline construct_return_value::construct_return_value(ast::argument_type type,
-                                                      std::vector<ast::variant>&& args)
-    : type(type), args(std::move(args)) {}
-
-inline declaration::declaration(std::string name, code_numeric_type type, variant_ptr value)
-    : name(std::move(name)), type(type), value(std::move(value)) {}
 
 }  // namespace wf::ast

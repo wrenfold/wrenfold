@@ -3,14 +3,16 @@ add_library(
   ${LIBRARY_NAME} STATIC
   wf/absl_imports.h
   wf/assertions.h
-  wf/code_generation/ast_formatters.h
   wf/code_generation/ast.cc
   wf/code_generation/ast.h
+  wf/code_generation/ast_formatters.h
   wf/code_generation/code_formatter.h
   wf/code_generation/cpp_code_generator.cc
   wf/code_generation/cpp_code_generator.h
   wf/code_generation/expr_from_ir.cc
   wf/code_generation/expression_group.h
+  wf/code_generation/function_description.cc
+  wf/code_generation/function_description.h
   wf/code_generation/ir_builder.cc
   wf/code_generation/ir_builder.h
   wf/code_generation/ir_types.h
@@ -26,10 +28,10 @@ add_library(
   wf/enumerations.h
   wf/error_types.h
   wf/evaluate.cc
-  wf/expression_concept.h
-  wf/expression_impl.h
   wf/expression.cc
   wf/expression.h
+  wf/expression_concept.h
+  wf/expression_impl.h
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h
@@ -52,8 +54,8 @@ add_library(
   wf/expressions/variable.cc
   wf/expressions/variable.h
   wf/fmt_imports.h
-  wf/function_evaluator_detail.h
   wf/function_evaluator.h
+  wf/function_evaluator_detail.h
   wf/functions.cc
   wf/functions.h
   wf/geometry/quaternion.cc

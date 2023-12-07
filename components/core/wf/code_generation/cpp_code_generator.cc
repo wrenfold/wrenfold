@@ -7,31 +7,31 @@ namespace wf {
 
 static constexpr std::string_view utility_namespace = "wf";
 
-std::string cpp_code_generator::generate_code(const ast::function_signature& signature,
+std::string cpp_code_generator::generate_code(const function_signature& signature,
                                               const std::vector<ast::variant>& body) const {
   code_formatter result;
   format_signature(result, signature);
   result.with_indentation(2, "{\n", "\n}", [&] {
     // Convert input args to spans:
     std::size_t counter = 0;
-    for (const auto& arg : signature.arguments) {
+    for (const auto& arg : signature.arguments()) {
       if (arg->is_matrix()) {
-        const ast::matrix_type& mat = std::get<ast::matrix_type>(arg->type());
+        const matrix_type& mat = std::get<matrix_type>(arg->type());
 
         // Generate matrix conversion logic.
         // TODO: Support dynamic sizes here too.
         result.format("auto _{} = ", arg->name());
         const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
         switch (arg->direction()) {
-          case ast::argument_direction::input:
+          case argument_direction::input:
             result.format("{}::make_input_span<{}>({});\n", utility_namespace, dims_type,
                           arg->name());
             break;
-          case ast::argument_direction::output:
+          case argument_direction::output:
             result.format("{}::make_output_span<{}>({});\n", utility_namespace, dims_type,
                           arg->name());
             break;
-          case ast::argument_direction::optional_output:
+          case argument_direction::optional_output:
             result.format("{}::make_optional_output_span<{}>({});\n", utility_namespace, dims_type,
                           arg->name());
             break;
@@ -65,15 +65,11 @@ constexpr static std::string_view cpp_string_from_numeric_cast_type(
 }
 
 void cpp_code_generator::format_signature(code_formatter& formatter,
-                                          const ast::function_signature& signature) const {
+                                          const function_signature& signature) const {
   formatter.format("template <typename Scalar");
-  const bool has_matrix_args =
-      std::any_of(signature.arguments.begin(), signature.arguments.end(),
-                  [](const std::shared_ptr<const ast::argument>& arg) { return arg->is_matrix(); });
-
-  if (has_matrix_args) {
+  if (signature.has_matrix_arguments()) {
     std::size_t counter = 0;
-    for (const std::shared_ptr<const ast::argument>& arg : signature.arguments) {
+    for (const std::shared_ptr<const argument>& arg : signature.arguments()) {
       if (arg->is_matrix()) {
         formatter.format(", typename T{}", counter);
         ++counter;
@@ -82,29 +78,29 @@ void cpp_code_generator::format_signature(code_formatter& formatter,
   }
   formatter.format(">\n");
 
-  if (signature.return_value) {
-    if (!std::holds_alternative<ast::scalar_type>(*signature.return_value)) {
+  if (signature.has_return_value()) {
+    if (!std::holds_alternative<scalar_type>(*signature.return_value_type())) {
       // TODO: To support returning matrices in C++ we need more than just a `span` type.
       throw type_error("Only scalars can be returned.");
     } else {
-      formatter.format("auto {}(", signature.function_name);
+      formatter.format("auto {}(", signature.name());
     }
   } else {
-    formatter.format("void {}(", signature.function_name);
+    formatter.format("void {}(", signature.name());
   }
 
   std::size_t counter = 0;
-  auto arg_printer = [&counter](code_formatter& formatter, const ast::argument::shared_ptr& arg) {
+  auto arg_printer = [&counter](code_formatter& formatter, const argument::shared_ptr& arg) {
     if (arg->is_matrix()) {
-      if (arg->direction() == ast::argument_direction::input) {
+      if (arg->direction() == argument_direction::input) {
         formatter.format("const T{}&", counter);
       } else {
         formatter.format("T{}&&", counter);
       }
       ++counter;
     } else {
-      const code_numeric_type numeric_type = std::get<ast::scalar_type>(arg->type()).numeric_type();
-      if (arg->direction() == ast::argument_direction::input) {
+      const code_numeric_type numeric_type = std::get<scalar_type>(arg->type()).numeric_type();
+      if (arg->direction() == argument_direction::input) {
         formatter.format("const {}", cpp_string_from_numeric_cast_type(numeric_type));
       } else {
         // Output reference for now.
@@ -115,7 +111,7 @@ void cpp_code_generator::format_signature(code_formatter& formatter,
     formatter.format(" {}", arg->name());
   };
 
-  formatter.join(std::move(arg_printer), ", ", signature.arguments);
+  formatter.join(std::move(arg_printer), ", ", signature.arguments());
   formatter.format(")\n");
 }
 
@@ -126,13 +122,12 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::add& x
 void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::assign_output_argument& assignment) const {
   const auto& dest_name = assignment.arg->name();
-  const ast::argument_type& type = assignment.arg->type();
+  const argument_type& type = assignment.arg->type();
 
-  if (std::holds_alternative<ast::matrix_type>(type)) {
-    const ast::matrix_type mat = std::get<ast::matrix_type>(type);
+  if (std::holds_alternative<matrix_type>(type)) {
+    const matrix_type mat = std::get<matrix_type>(type);
     auto range = make_range<std::size_t>(0, assignment.values.size());
 
-    // TODO: If there is a unit dimension, use the [] operator?
     formatter.join(
         [&](code_formatter& fmt, std::size_t i) {
           const auto [row, col] = mat.compute_indices(i);
@@ -144,7 +139,7 @@ void cpp_code_generator::operator()(code_formatter& formatter,
   } else {
     // Otherwise it is a scalar, so just assign it:
     WF_ASSERT_EQUAL(1, assignment.values.size());
-    formatter.format("{} = {};", dest_name, assignment.values.front());
+    formatter.format("{} = {};", dest_name, make_view(assignment.values.front()));
   }
 }
 
@@ -219,7 +214,7 @@ void cpp_code_generator::operator()(code_formatter& formatter, const ast::branch
 
 void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::construct_return_value& x) const {
-  WF_ASSERT(std::holds_alternative<ast::scalar_type>(x.type), "We cannot return matrices");
+  WF_ASSERT(std::holds_alternative<scalar_type>(x.type), "We cannot return matrices");
   WF_ASSERT_EQUAL(1, x.args.size());
   formatter.format("return {};", make_view(x.args[0]));
 }
@@ -259,10 +254,10 @@ void cpp_code_generator::operator()(code_formatter& formatter,
 
 void cpp_code_generator::operator()(code_formatter& formatter, const ast::input_value& x) const {
   WF_ASSERT(x.arg);
-  if (std::holds_alternative<ast::scalar_type>(x.arg->type())) {
+  if (std::holds_alternative<scalar_type>(x.arg->type())) {
     formatter.format(x.arg->name());
   } else {
-    const ast::matrix_type& mat = std::get<ast::matrix_type>(x.arg->type());
+    const matrix_type& mat = std::get<matrix_type>(x.arg->type());
     const auto [r, c] = mat.compute_indices(x.element);
     formatter.format("_{}({}, {})", x.arg->name(), r, c);
   }

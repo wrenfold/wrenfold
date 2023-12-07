@@ -12,9 +12,8 @@ In practice, there is a larger space of design choices you could make. For insta
 import typing as T
 
 from wrenfold.type_annotations import RealScalar, Vector4, Vector3
-from wrenfold.code_generation import codegen_function
+from wrenfold import code_generation
 from wrenfold.code_generation import OutputArg
-from wrenfold.code_generation import generate_cpp
 
 from wrenfold.geometry import Quaternion, left_jacobian_of_so3
 from wrenfold import sym
@@ -299,34 +298,16 @@ def integration_test_sequence(t: RealScalar):
     ]
 
 
-CODE_TEMPLATE = \
-"""// Machine generated code.
-#include <cmath>
-#include <wf_runtime/span.h>
-
-namespace {namespace} {{
-
-{code}
-
-}} // namespace {namespace}
-"""
-
-
 def main():
-    signature, ast = codegen_function(integrate_imu)
-    code = generate_cpp(signature=signature, ast=ast)
-    code += '\n\n'
-
-    signature, ast = codegen_function(unweighted_imu_preintegration_error)
-    code += generate_cpp(signature=signature, ast=ast)
-    code += '\n\n'
-
-    signature, ast = codegen_function(integration_test_sequence)
-    code += generate_cpp(signature=signature, ast=ast)
-
-    code = CODE_TEMPLATE.format(code=code, namespace="gen")
+    descriptions = [
+        code_generation.create_function_description(integrate_imu),
+        code_generation.create_function_description(unweighted_imu_preintegration_error),
+        code_generation.create_function_description(integration_test_sequence)
+    ]
+    definitions = code_generation.transpile(descriptions=descriptions)
+    code = code_generation.generate_cpp(definitions=definitions)
     with open('generated.h', 'w') as handle:
-        handle.write(code)
+        handle.write(code_generation.apply_cpp_preamble(code, namespace="gen"))
         handle.flush()
 
 

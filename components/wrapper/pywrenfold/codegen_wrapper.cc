@@ -17,55 +17,69 @@ using namespace py::literals;
 
 // We make this type opaque and wrap it manually below.
 // This allows us to avoid problems from variant not being default constructible.
-PYBIND11_MAKE_OPAQUE(std::vector<wf::ast::variant>)
+using ast_variant_vector = std::vector<wf::ast::variant>;
+PYBIND11_MAKE_OPAQUE(ast_variant_vector)
 
 namespace wf {
 
-// Pybind11 requires that std::variant be default-constructible.
-// We have to allow monostate to achieve this.
-static ast::argument_type type_from_default_constructible_variant(
-    const std::variant<std::monostate, ast::scalar_type, ast::matrix_type>& variant) {
-  return std::visit(
-      [](const auto& element) -> ast::argument_type {
-        using T = std::decay_t<decltype(element)>;
-        if constexpr (std::is_same_v<T, std::monostate>) {
-          throw type_error("`type` cannot be None");
-        } else {
-          return element;
-        }
-      },
-      variant);
-}
-
 template <class T>
-static std::string format_ast(const T& x) {
+static std::string format_ast_repr(const T& x) {
   return fmt::format("{}", x);
 }
 
-void wrap_codegen_operations(py::module_& m) {
-  m.def(
-      "create_function_argument",
-      [](std::size_t index) { return variable::create_function_argument(index, 0); },
-      py::arg("index"));
-  m.def(
-      "create_matrix_function_argument",
-      [](std::size_t index, index_t rows, index_t cols) {
-        std::vector<Expr> expressions{};
-        expressions.reserve(static_cast<std::size_t>(rows * cols));
-        for (std::size_t i = 0; i < rows * cols; ++i) {
-          expressions.push_back(variable::create_function_argument(index, i));
-        }
-        return MatrixExpr::create(rows, cols, std::move(expressions));
-      },
-      py::arg("index"), py::arg("rows"), py::arg("cols"));
+// Pair together a function signature with the body in ast form.
+class function_definition {
+ public:
+  using shared_ptr = std::shared_ptr<function_definition>;
 
+  function_definition(function_signature signature, ast_variant_vector ast)
+      : signature_(std::move(signature)), ast_(std::move(ast)) {}
+
+  // Access the signature.
+  constexpr const function_signature& signature() const noexcept { return signature_; }
+
+  // Access the ast.
+  constexpr const ast_variant_vector& ast() const noexcept { return ast_; }
+
+ private:
+  function_signature signature_;
+  ast_variant_vector ast_;
+};
+
+// Accept the mathematical function description, and "transpile" it into AST that can be emitted
+// in another language.
+function_definition::shared_ptr transpile_to_function_definition(
+    const function_description& description) {
+  flat_ir ir{description.output_expressions()};
+  ir.eliminate_duplicates();
+  output_ir output_ir{std::move(ir)};
+  auto ast = ast::create_ast(output_ir, description.signature());
+  return std::make_shared<function_definition>(description.signature(), std::move(ast));
+}
+
+// TODO: Put this somewhere common and share with the C++ tests.
+template <typename Generator>
+std::string emit_code(const std::vector<function_definition::shared_ptr>& definitions) {
+  if (definitions.empty()) {
+    return "";
+  }
+  auto it = definitions.begin();
+  std::string output = Generator{}.generate_code((*it)->signature(), (*it)->ast());
+  for (++it; it != definitions.end(); ++it) {
+    output.append("\n\n");
+    output += Generator{}.generate_code((*it)->signature(), (*it)->ast());
+  }
+  return output;
+}
+
+void wrap_codegen_operations(py::module_& m) {
   // Stored as shared-ptr to avoid copies.
-  py::class_<std::vector<ast::variant>, std::shared_ptr<std::vector<ast::variant>>>(m, "AstVector")
+  py::class_<ast_variant_vector, std::shared_ptr<ast_variant_vector>>(m, "AstVector")
       .def("__repr__",
-           [](const std::vector<ast::variant>& vec) {
+           [](const ast_variant_vector& vec) {
              return fmt::format("AstVector({} elements)", vec.size());
            })
-      .def("__len__", [](const std::vector<ast::variant>& vec) { return vec.size(); })
+      .def("__len__", [](const ast_variant_vector& vec) { return vec.size(); })
       .def(
           "__iter__",
           [](const std::vector<ast::variant>& vec) {
@@ -74,16 +88,30 @@ void wrap_codegen_operations(py::module_& m) {
           py::keep_alive<0, 1>());
 
   m.def(
-      "generate_func",
-      [](const ast::function_signature& signature,
-         const std::vector<expression_group>& expressions) {
-        flat_ir ir{expressions};
-        ir.eliminate_duplicates();
-        output_ir output_ir{std::move(ir)};
-        return ast::create_ast(output_ir, signature);
+      "transpile",
+      [](const std::vector<function_description::shared_ptr>& descriptions) {
+        // TODO: Allow this to run in parallel.
+        std::vector<function_definition::shared_ptr> outputs(descriptions.size());
+        std::transform(descriptions.begin(), descriptions.end(), outputs.begin(),
+                       [](const function_description::shared_ptr& ptr) {
+                         WF_ASSERT(ptr);
+                         return transpile_to_function_definition(*ptr);
+                       });
+        return outputs;
       },
-      py::arg("signature"), py::arg("expressions"),
-      py::doc("Generate function body AST from signature and output expressions."),
+      py::arg("descriptions"),
+      py::doc("Generate function definitions in AST form, given symbolic function descriptions."),
+      py::return_value_policy::take_ownership);
+
+  m.def(
+      "transpile",
+      [](const function_description::shared_ptr& description) {
+        WF_ASSERT(description);
+        return transpile_to_function_definition(*description);
+      },
+      py::arg("description"),
+      py::doc(
+          "Generate a function definition in AST form, given the symbolic function description."),
       py::return_value_policy::take_ownership);
 
   py::enum_<expression_usage>(m, "ExpressionUsage")
@@ -131,70 +159,104 @@ void wrap_codegen_operations(py::module_& m) {
       .value("LessThanOrEqual", relational_operation::less_than_or_equal)
       .value("Equal", relational_operation::equal);
 
-  py::enum_<ast::argument_direction>(m, "ArgumentDirection")
-      .value("Input", ast::argument_direction::input)
-      .value("Output", ast::argument_direction::output)
-      .value("OptionalOutput", ast::argument_direction::optional_output);
+  py::enum_<argument_direction>(m, "ArgumentDirection")
+      .value("Input", argument_direction::input)
+      .value("Output", argument_direction::output)
+      .value("OptionalOutput", argument_direction::optional_output);
 
-  py::class_<ast::scalar_type>(m, "ScalarType")
+  py::class_<scalar_type>(m, "ScalarType")
       .def(py::init<code_numeric_type>())
-      .def_property_readonly("numeric_type", &ast::scalar_type::numeric_type)
-      .def("__repr__", &format_ast<ast::scalar_type>);
+      .def_property_readonly("numeric_type", &scalar_type::numeric_type)
+      .def("__repr__", [](scalar_type self) { return fmt::format("{}", self); });
 
-  py::class_<ast::matrix_type>(m, "MatrixType")
+  py::class_<matrix_type>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
-      .def_property_readonly("num_rows", &ast::matrix_type::rows)
-      .def_property_readonly("num_cols", &ast::matrix_type::cols)
-      .def("compute_indices", &ast::matrix_type::compute_indices)
-      .def("__repr__", &format_ast<ast::matrix_type>);
+      .def_property_readonly("num_rows", &matrix_type::rows)
+      .def_property_readonly("num_cols", &matrix_type::cols)
+      .def("compute_indices", &matrix_type::compute_indices)
+      .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
 
   py::class_<ast::variable_ref>(m, "VariableRef")
       .def_property_readonly("name", [](const ast::variable_ref& v) { return v.name; })
-      .def("__repr__", &format_ast<ast::variable_ref>);
+      .def("__repr__", &format_ast_repr<ast::variable_ref>);
 
-  py::class_<ast::function_signature>(m, "FunctionSignature")
+  py::class_<function_signature>(m, "FunctionSignature")
+      .def_property_readonly("name", &function_signature::name)
+      .def("__repr__", [](const function_signature& s) {
+        return fmt::format("FunctionSignature('{}', {} args)", s.name(), s.num_arguments());
+      });
+
+  py::class_<function_description, function_description::shared_ptr>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
-      .def_property_readonly("name",
-                             [](const ast::function_signature& s) { return s.function_name; })
+      .def_property_readonly("name", &function_description::name)
       .def("__repr__",
-           [](const ast::function_signature& s) {
-             return fmt::format("FunctionSignature('{}', {} args)", s.function_name,
-                                s.arguments.size());
+           [](const function_description& s) {
+             return fmt::format("FunctionDescription('{}', {} args)", s.name(),
+                                s.signature().num_arguments());
            })
       .def(
-          "add_argument",
-          [](ast::function_signature& self, const std::string_view name,
-             const std::variant<std::monostate, ast::scalar_type, ast::matrix_type>& type,
-             ast::argument_direction direction) {
-            return self.add_argument(name, type_from_default_constructible_variant(type),
-                                     direction);
+          "add_input_argument",
+          [](function_description& self, const std::string_view name, scalar_type type) {
+            return self.add_input_argument(name, type);
           },
-          py::arg("name"), py::arg("type"), py::arg("direction"))
+          py::arg("name"), py::arg("type"),
+          py::doc("Add a scalar input argument. Returns placeholder value to pass to the python "
+                  "function."))
       .def(
-          "set_return_type",
-          [](ast::function_signature& self,
-             const std::variant<std::monostate, ast::scalar_type, ast::matrix_type>& type) {
-            self.return_value = type_from_default_constructible_variant(type);
+          "add_input_argument",
+          [](function_description& self, const std::string_view name, matrix_type type) {
+            return self.add_input_argument(name, type);
+          },
+          py::arg("name"), py::arg("type"),
+          py::doc("Add a matrix input argument. Returns placeholder value to pass to the python "
+                  "function."))
+      .def(
+          "add_output_argument",
+          [](function_description& self, const std::string_view name, bool is_optional,
+             const Expr& value) {
+            self.add_output_argument(name, scalar_type(code_numeric_type::floating_point),
+                                     is_optional, {value});
+          },
+          py::arg("name"), py::arg("is_optional"), py::arg("value"))
+      .def(
+          "add_output_argument",
+          [](function_description& self, const std::string_view name, bool is_optional,
+             const MatrixExpr& value) {
+            self.add_output_argument(name, matrix_type(value.rows(), value.cols()), is_optional,
+                                     value.to_vector());
+          },
+          py::arg("name"), py::arg("is_optional"), py::arg("value"))
+      .def(
+          "set_return_value",
+          [](function_description& self, const Expr& value) {
+            self.set_return_value(scalar_type(code_numeric_type::floating_point), {value});
           },
           py::arg("type"))
-      .def_property_readonly("return_type",
-                             [](const ast::function_signature& self) { return self.return_value; })
-      .def_property_readonly("arguments",
-                             [](const ast::function_signature& self) { return self.arguments; });
+      .def(
+          "set_return_value",
+          [](function_description& self, const MatrixExpr& value) {
+            self.set_return_value(matrix_type(value.rows(), value.cols()), value.to_vector());
+          },
+          py::arg("type"));
 
   // Use std::shared_ptr to store argument, since this is what ast::function_signature uses.
   // If we don't do this, we might free something incorrectly when accessing arguments.
-  py::class_<ast::argument, std::shared_ptr<ast::argument>>(m, "Argument")
-      .def_property_readonly("name", &ast::argument::name)
-      .def_property_readonly("type", &ast::argument::type)
-      .def_property_readonly("is_optional", &ast::argument::is_optional)
+  py::class_<argument, std::shared_ptr<argument>>(m, "Argument")
+      .def_property_readonly("name", &argument::name)
+      .def_property_readonly("type", &argument::type)
+      .def_property_readonly("is_optional", &argument::is_optional)
       .def("__repr__",
-           [](const ast::argument& self) { return fmt::format("Argument('{}')", self.name()); });
+           [](const argument& self) { return fmt::format("Argument('{}')", self.name()); });
+
+  // TODO: Wrap methods on this so it can be used from python?
+  py::class_<function_definition, std::shared_ptr<function_definition>>(m, "FunctionDefinition")
+      .def_property_readonly("name",
+                             [](const function_definition& def) { return def.signature().name(); });
 
   py::class_<ast::add>(m, "Add")
       .def_property_readonly("left", [](const ast::add& x) { return *x.left; })
       .def_property_readonly("right", [](const ast::add& x) { return *x.right; })
-      .def("__repr__", &format_ast<ast::add>);
+      .def("__repr__", &format_ast_repr<ast::add>);
 
   py::class_<ast::assign_temporary>(m, "AssignTemporary")
       .def_property_readonly("left", [](const ast::assign_temporary& x) { return x.left; })
@@ -203,7 +265,7 @@ void wrap_codegen_operations(py::module_& m) {
                                WF_ASSERT(x.right);
                                return *x.right;
                              })
-      .def("__repr__", &format_ast<ast::assign_temporary>);
+      .def("__repr__", &format_ast_repr<ast::assign_temporary>);
 
   py::class_<ast::assign_output_argument>(m, "AssignOutputArgument")
       .def_property_readonly("argument",
@@ -213,18 +275,18 @@ void wrap_codegen_operations(py::module_& m) {
                              })
       .def_property_readonly("values",
                              [](const ast::assign_output_argument& x) { return x.values; })
-      .def("__repr__", &format_ast<ast::assign_output_argument>);
+      .def("__repr__", &format_ast_repr<ast::assign_output_argument>);
 
   py::class_<ast::branch>(m, "Branch")
       .def_property_readonly("condition", [](const ast::branch& c) { return *c.condition; })
       .def_property_readonly("if_branch", [](const ast::branch& c) { return c.if_branch; })
       .def_property_readonly("else_branch", [](const ast::branch& c) { return c.else_branch; })
-      .def("__repr__", &format_ast<ast::branch>);
+      .def("__repr__", &format_ast_repr<ast::branch>);
 
   py::class_<ast::call>(m, "Call")
       .def_property_readonly("function", [](const ast::call& c) { return c.function; })
       .def_property_readonly("args", [](const ast::call& c) { return c.args; })
-      .def("__repr__", &format_ast<ast::call>);
+      .def("__repr__", &format_ast_repr<ast::call>);
 
   py::class_<ast::cast>(m, "Cast")
       .def_property_readonly("destination_type",
@@ -234,7 +296,7 @@ void wrap_codegen_operations(py::module_& m) {
                                WF_ASSERT(c.arg);
                                return *c.arg;
                              })
-      .def("__repr__", &format_ast<ast::cast>);
+      .def("__repr__", &format_ast_repr<ast::cast>);
 
   py::class_<ast::compare>(m, "Compare")
       .def_property_readonly("left",
@@ -248,12 +310,12 @@ void wrap_codegen_operations(py::module_& m) {
                                return *c.right;
                              })
       .def_property_readonly("operation", [](const ast::compare& c) { return c.operation; })
-      .def("__repr__", &format_ast<ast::compare>);
+      .def("__repr__", &format_ast_repr<ast::compare>);
 
   py::class_<ast::construct_return_value>(m, "ConstructReturnValue")
       .def_property_readonly("type", [](const ast::construct_return_value& c) { return c.type; })
       .def_property_readonly("args", [](const ast::construct_return_value& c) { return c.args; })
-      .def("__repr__", &format_ast<ast::construct_return_value>);
+      .def("__repr__", &format_ast_repr<ast::construct_return_value>);
 
   py::class_<ast::declaration>(m, "Declaration")
       .def_property_readonly("name", [](const ast::declaration& d) { return d.name; })
@@ -266,20 +328,20 @@ void wrap_codegen_operations(py::module_& m) {
                                  return std::nullopt;
                                }
                              })
-      .def("__repr__", &format_ast<ast::declaration>);
+      .def("__repr__", &format_ast_repr<ast::declaration>);
 
   py::class_<ast::float_literal>(m, "FloatConstant")
       .def_property_readonly("value", [](const ast::float_literal& f) { return f.value; })
-      .def("__repr__", &format_ast<ast::float_literal>);
+      .def("__repr__", &format_ast_repr<ast::float_literal>);
 
   py::class_<ast::input_value>(m, "InputValue")
       .def_property_readonly("argument", [](const ast::input_value& v) { return v.arg; })
       .def_property_readonly("element", [](const ast::input_value& v) { return v.element; })
-      .def("__repr__", &format_ast<ast::input_value>);
+      .def("__repr__", &format_ast_repr<ast::input_value>);
 
   py::class_<ast::integer_literal>(m, "IntegerConstant")
       .def_property_readonly("value", [](const ast::integer_literal& i) { return i.value; })
-      .def("__repr__", &format_ast<ast::integer_literal>);
+      .def("__repr__", &format_ast_repr<ast::integer_literal>);
 
   py::class_<ast::multiply>(m, "Multiply")
       .def_property_readonly("left",
@@ -292,27 +354,18 @@ void wrap_codegen_operations(py::module_& m) {
                                WF_ASSERT(x.right);
                                return *x.right;
                              })
-      .def("__repr__", &format_ast<ast::multiply>);
+      .def("__repr__", &format_ast_repr<ast::multiply>);
 
   py::class_<ast::optional_output_branch>(m, "OptionalOutputBranch")
       .def_property_readonly("argument", [](const ast::optional_output_branch& b) { return b.arg; })
       .def_property_readonly("statements",
                              [](const ast::optional_output_branch& b) { return b.statements; })
-      .def("__repr__", &format_ast<ast::optional_output_branch>);
+      .def("__repr__", &format_ast_repr<ast::optional_output_branch>);
 
-  m.def(
-      "generate_cpp",
-      [](const ast::function_signature& signature, const std::vector<ast::variant>& ast)
-          -> std::string { return cpp_code_generator{}.generate_code(signature, ast); },
-      "signature"_a, "ast"_a,
-      py::doc("Generate C++ code from the given function signature and expressions."));
-
-  m.def(
-      "generate_rust",
-      [](const ast::function_signature& signature, const std::vector<ast::variant>& ast)
-          -> std::string { return rust_code_generator{}.generate_code(signature, ast); },
-      "signature"_a, "ast"_a,
-      py::doc("Generate Rust code from the given function signature and expressions."));
+  m.def("generate_cpp", &emit_code<cpp_code_generator>, "definitions"_a,
+        py::doc("Generate C++ code from the given function definitions."));
+  m.def("generate_rust", &emit_code<rust_code_generator>, "definitions"_a,
+        py::doc("Generate Rust code from the given function definitions."));
 }
 
 }  // namespace wf

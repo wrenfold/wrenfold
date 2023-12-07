@@ -15,7 +15,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   const auto start = std::chrono::steady_clock::now();
   auto tuple =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
-  const ast::function_signature& signature = std::get<0>(tuple);
+  const function_signature& signature = std::get<0>(tuple);
   const std::vector<expression_group>& expressions = std::get<1>(tuple);
 
   flat_ir ir{expressions};

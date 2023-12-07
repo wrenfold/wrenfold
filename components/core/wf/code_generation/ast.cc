@@ -9,6 +9,17 @@
 #include "wf/visitor_impl.h"
 
 namespace wf {
+namespace ast {
+function_definition::function_definition(function_signature signature,
+                                         std::vector<ast::variant> body)
+    : signature(std::move(signature)), body(std::move(body)) {}
+
+construct_return_value::construct_return_value(argument_type type, std::vector<ast::variant>&& args)
+    : type(type), args(std::move(args)) {}
+
+declaration::declaration(std::string name, code_numeric_type type, variant_ptr value)
+    : name(std::move(name)), type(type), value(std::move(value)) {}
+}  // namespace ast
 
 // Given a starting value `v`, find any downstream conditionals values that equal this value.
 inline void find_conditional_output_values(const ir::value_ptr v, const bool top_level_invocation,
@@ -31,7 +42,7 @@ inline void find_conditional_output_values(const ir::value_ptr v, const bool top
 // convert our basic control-flow-graph to a limited syntax tree that can be emitted in different
 // languages.
 struct ast_from_ir {
-  ast_from_ir(std::size_t value_width, const ast::function_signature& signature)
+  ast_from_ir(std::size_t value_width, const function_signature& signature)
       : value_width_(value_width), signature_(signature) {}
 
   std::vector<ast::variant> create_function(ir::block_ptr block) {
@@ -68,11 +79,13 @@ struct ast_from_ir {
 
       if (key.usage == expression_usage::return_value) {
         WF_ASSERT(block->descendants.empty(), "Must be the final block");
-        emplace_operation<ast::construct_return_value>(signature_.return_value.value(),
+        WF_ASSERT(signature_.has_return_value());
+        emplace_operation<ast::construct_return_value>(*signature_.return_value_type(),
                                                        std::move(args));
       } else {
-        emplace_operation<ast::assign_output_argument>(signature_.get_argument(key.name),
-                                                       std::move(args));
+        auto arg = signature_.argument_by_name(key.name);
+        WF_ASSERT(arg, "Argument missing from signature: {}", key.name);
+        emplace_operation<ast::assign_output_argument>(std::move(*arg), std::move(args));
       }
     }
   }
@@ -220,7 +233,9 @@ struct ast_from_ir {
         const ir::output_required& oreq = condition->as_type<ir::output_required>();
 
         // Create an optional-output assignment block
-        emplace_operation<ast::optional_output_branch>(signature_.get_argument(oreq.name()),
+        auto arg_optional = signature_.argument_by_name(oreq.name());
+        WF_ASSERT(arg_optional, "Missing argument: {}", oreq.name());
+        emplace_operation<ast::optional_output_branch>(std::move(*arg_optional),
                                                        std::move(operations_true));
       } else {
         // Fill out operations in the else branch:
@@ -335,7 +350,7 @@ struct ast_from_ir {
 
   ast::variant operator()(const function_argument_variable& a) const {
     const auto element_index = static_cast<index_t>(a.element_index());
-    return ast::input_value{signature_.arguments.at(a.arg_index()), element_index};
+    return ast::input_value{signature_.argument_by_index(a.arg_index()), element_index};
   }
 
   ast::variant operator()(const unique_variable& u) const {
@@ -364,7 +379,7 @@ struct ast_from_ir {
 
  private:
   std::size_t value_width_;
-  const ast::function_signature& signature_;
+  const function_signature& signature_;
 
   // Operations accrued in the current block.
   std::vector<ast::variant> operations_;
