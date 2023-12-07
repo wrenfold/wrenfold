@@ -31,6 +31,8 @@ class rust_code_generator {
 
   void operator()(code_formatter& formatter, const ast::cast& x) const;
 
+  void operator()(code_formatter& formatter, const ast::comment& x) const;
+
   void operator()(code_formatter& formatter, const ast::compare& x) const;
 
   void operator()(code_formatter& formatter, const ast::construct_return_value& x) const;

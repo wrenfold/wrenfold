@@ -47,6 +47,11 @@ auto format_ast(Iterator it, const wf::ast::cast& c) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::comment& c) {
+  return fmt::format_to(it, "Comment({} characters)", c.content.size());
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::compare& c) {
   return fmt::format_to(it, "Compare({} {} {})", *c.left,
                         string_from_relational_operation(c.operation), *c.right);

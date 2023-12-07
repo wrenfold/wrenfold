@@ -2,6 +2,7 @@
 #pragma once
 #include <chrono>
 
+#include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/ir_builder.h"
 #include "wf/fmt_imports.h"
 #include "wf/function_evaluator.h"
@@ -29,9 +30,9 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
 #endif
 
   // Generate syntax tree:
-  std::vector<ast::variant> body = ast::create_ast(output_ir, signature);
+  const function_definition definition = ast::create_ast(output_ir, signature);
 
-  const std::string code = generator.generate_code(signature, body);
+  const std::string code = generator.generate_code(definition.signature(), definition.ast());
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);
 
   const auto end = std::chrono::steady_clock::now();

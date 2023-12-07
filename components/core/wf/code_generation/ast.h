@@ -25,6 +25,7 @@ using variant = std::variant<
     struct branch,
     struct call,
     struct cast,
+    struct comment,
     struct compare,
     struct construct_return_value,
     struct declaration,
@@ -39,6 +40,8 @@ using variant = std::variant<
     struct variable_ref
     >;
 // clang-format on
+
+using variant_vector = std::vector<variant>;
 
 // This is a shared_ptr so that we can copy AST members.
 // Copying is desirable to satisfy the pybind11 wrapper.
@@ -113,6 +116,15 @@ struct cast {
 
   cast(code_numeric_type destination_type, code_numeric_type source_type, const variant_ptr& arg)
       : destination_type(destination_type), source_type(source_type), arg(arg) {}
+};
+
+// A comment.
+struct comment {
+  std::string content;
+
+  // Split the string by line breaks.
+  // Trailing newlines are stripped from each returned string.
+  std::vector<std::string> split_lines() const;
 };
 
 // A relational comparison.
@@ -207,8 +219,5 @@ struct optional_output_branch {
 struct special_constant {
   symbolic_constant_enum value;
 };
-
-// Create AST from the IR:
-std::vector<ast::variant> create_ast(const wf::output_ir& ir, const function_signature& signature);
 
 }  // namespace wf::ast
