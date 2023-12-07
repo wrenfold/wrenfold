@@ -448,8 +448,13 @@ class ir_form_visitor {
     return result.value();
   }
 
-  ir::value_ptr operator()(const multiplication& mul) {
-    // Extract constants here? Empirically it appears to introduce more expressions, not fewer.
+  ir::value_ptr operator()(const multiplication& mul, const Expr& mul_abstract) {
+    const auto [coeff, multiplicand] = as_coeff_and_mul(mul_abstract);
+    if (is_negative_one(coeff)) {
+      // If the coefficient out front is -1, compute the multiplied expression and then negate it.
+      const ir::value_ptr multiplicand_value = apply(multiplicand);
+      return push_operation(ir::neg{}, multiplicand_value->numeric_type(), multiplicand_value);
+    }
     return convert_addition_or_multiplication(mul);
   }
 

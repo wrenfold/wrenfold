@@ -93,6 +93,11 @@ auto format_ast(Iterator it, const wf::ast::multiply& m) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::negate& n) {
+  return fmt::format_to(it, "Negate({})", *n.arg);
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::optional_output_branch& m) {
   return fmt::format_to(it, "OptionalOutputBranch({}, <{} statements>)", m.arg->name(),
                         m.statements.size());

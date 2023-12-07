@@ -33,6 +33,7 @@ using variant = std::variant<
     struct input_value,
     struct integer_literal,
     struct multiply,
+    struct negate,
     struct optional_output_branch,
     struct special_constant,
     struct variable_ref
@@ -139,7 +140,8 @@ struct declaration {
   // If a value is assigned, then the result can be presumed to be constant.
   variant_ptr value{};
 
-  declaration(std::string name, code_numeric_type type, variant_ptr value);
+  declaration(std::string name, code_numeric_type type, variant_ptr value)
+      : name(std::move(name)), type(type), value(std::move(value)) {}
 
   // Construct w/ no rhs.
   declaration(std::string name, code_numeric_type type) : name(std::move(name)), type(type) {}
@@ -156,14 +158,6 @@ struct divide {
 // Use a floating-point constant in the output code.
 struct float_literal {
   double value;
-};
-
-// Signature and body of a function.
-struct function_definition {
-  function_signature signature;
-  std::vector<ast::variant> body;
-
-  function_definition(function_signature signature, std::vector<ast::variant> body);
 };
 
 // Access an input argument at a specific index.
@@ -183,6 +177,13 @@ struct multiply {
   variant_ptr right;
 
   multiply(variant_ptr left, variant_ptr right) : left(std::move(left)), right(std::move(right)) {}
+};
+
+// Negate an operand.
+struct negate {
+  variant_ptr arg;
+
+  explicit negate(variant_ptr arg) noexcept : arg(std::move(arg)) {}
 };
 
 // A one-sided branch that assigns to an optional output, after checking for its existence.

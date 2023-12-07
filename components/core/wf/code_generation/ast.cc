@@ -10,15 +10,8 @@
 
 namespace wf {
 namespace ast {
-function_definition::function_definition(function_signature signature,
-                                         std::vector<ast::variant> body)
-    : signature(std::move(signature)), body(std::move(body)) {}
-
 construct_return_value::construct_return_value(argument_type type, std::vector<ast::variant>&& args)
     : type(type), args(std::move(args)) {}
-
-declaration::declaration(std::string name, code_numeric_type type, variant_ptr value)
-    : name(std::move(name)), type(type), value(std::move(value)) {}
 }  // namespace ast
 
 // Given a starting value `v`, find any downstream conditionals values that equal this value.
@@ -344,6 +337,10 @@ struct ast_from_ir {
 
   ast::variant operator()(const ir::value& val, const ir::mul&) {
     return ast::multiply{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
+  }
+
+  ast::variant operator()(const ir::value& val, const ir::neg&) {
+    return ast::negate{make_operation_argument_ptr(val[0])};
   }
 
   ast::variant operator()(const named_variable& v) const { return ast::variable_ref{v.name()}; }

@@ -207,6 +207,16 @@ class mul {
   constexpr bool is_same(const mul&) const noexcept { return true; }
 };
 
+// Negate the operand.
+class neg {
+ public:
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 1; }
+  constexpr std::string_view to_string() const noexcept { return "neg"; };
+  constexpr std::size_t hash_seed() const noexcept { return 0; }
+  constexpr bool is_same(const neg&) const noexcept { return true; }
+};
+
 // Evaluates to true if the specified output index is required.
 class output_required {
  public:
@@ -260,7 +270,7 @@ class save {
 
 // Different operations are represented by a variant.
 using operation = std::variant<add, call_std_function, cast, compare, cond, copy, div,
-                               jump_condition, load, mul, output_required, phi, save>;
+                               jump_condition, load, mul, neg, output_required, phi, save>;
 
 // A block of operations:
 class block {
