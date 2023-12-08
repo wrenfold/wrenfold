@@ -1,0 +1,1 @@
+add_py_code_generation_test(py_bspline bspline.py py_bspline_test.cc)

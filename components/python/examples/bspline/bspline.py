@@ -1,0 +1,142 @@
+import typing as T
+
+from wrenfold.type_annotations import RealScalar
+from wrenfold import code_generation
+from wrenfold.code_generation import OutputArg
+from wrenfold import sym
+
+# A function that accepts (x, i, k) and returns the b-spline interpolation weight.
+# `i` is the index of the basis function.
+# `k` is the order.
+WeightFunction = T.Callable[[sym.Expr, int, int], sym.Expr]
+
+
+def B(x: sym.Expr, i: int, k: int, degree_zero: T.Sequence[sym.Expr],
+      weight: WeightFunction) -> sym.Expr:
+    """
+    Construct b-spline basis function `i` of order `k + 1` using the De-Boor recursive
+    relation.
+    """
+    assert i >= 0, f'i = {i}'
+    assert k >= 0, f'k = {k}'
+    if k == 0:
+        assert i < len(
+            degree_zero), f'Insufficient degree-zero bases. i = {i}, len = {len(degree_zero)}'
+        # B(i, 0)
+        return degree_zero[i]
+
+    result = weight(x, i, k) * B(x=x, i=i, k=k - 1, degree_zero=degree_zero, weight=weight) + \
+        (1 - weight(x, i + 1, k)) * B(x=x, i=i + 1, k=k - 1, degree_zero=degree_zero, weight=weight)
+
+    return result
+
+
+def fixed_knot_weights(x: sym.Expr, i: int, k: int, knots: T.Sequence[T.Union[sym.Expr,
+                                                                              float]]) -> sym.Expr:
+    """
+    Linear interpolation weight function. The knots are assumed to be known at code-generation time,
+    and must be arranged in non-decreasing order.
+    """
+    if knots[i] == knots[i + k]:
+        # Knots will be repeated at both ends to deal with endpoints.
+        return sym.zero
+    return (x - knots[i]) / (knots[i + k] - knots[i])
+
+
+def plot_bases(functions: T.List[sym.Expr], x: sym.Expr):
+    # Local imports since these are not actually required to run the script at build time.
+    import matplotlib.pyplot as plt
+    import numpy as np
+    plt.figure()
+    for i, b_func in enumerate(functions):
+        x_vals = np.linspace(0.0, 1.0, 1000)
+        y_vals = [b_func.subs(x, x_val).eval() for x_val in x_vals]
+        plt.plot(x_vals, y_vals, label=f'{i}')
+
+    plt.grid()
+    plt.legend()
+    plt.show()
+
+
+def create_bspline_functions(order: int) -> T.List[code_generation.codegen.FunctionDescription]:
+    assert order >= 2, f'order = {order}'
+
+    # Number of knots, not considering the repeated endpoints.
+    n = (order + 1) + (order - 1)
+
+    # Number of knots, including repetitions.
+    number_of_knots = n + 2 * (order - 1)
+
+    # Construct uniformly spaced knots, and pad on the right and left.
+    interval_width = 1 / sym.integer(n - 1)
+    knots = [interval_width * i for i in range(0, n)]
+    knots = [sym.zero] * (order - 1) + knots + [sym.one] * (order - 1)
+
+    def weight_func(arg, i, k):
+        return fixed_knot_weights(x=arg, i=i, k=k, knots=knots)
+
+    # Define the zero order bases as symbolic variables for now.
+    degree_zero_bases = sym.symbols(f'b_{i}_0' for i in range(0, number_of_knots - 1))
+
+    # Variable for the argument to the spline.
+    x = sym.symbols("x")
+
+    # The basis functions of our specified order:
+    bases: T.List[sym.Expr] = []
+    for i in range(0, n - 1):
+        b_func = B(x=x, i=i, k=order - 1, degree_zero=degree_zero_bases, weight=weight_func)
+        b_func = b_func.distribute()
+        b_func = b_func.collect(degree_zero_bases)
+        bases.append(b_func)
+
+    descriptions: T.List[code_generation.codegen.FunctionDescription] = []
+    for i in range(0, order):
+        # Create a one-hot vector where the i'th zero-order basis is one, and all other zero.
+        # Then we subsitute these into the order `order` bases, in order to see which polynomial
+        # segments are active between the i'th knot, and the i'th + 1 knot.
+        values = [sym.zero] * len(degree_zero_bases)
+        values[i + (order - 1)] = sym.one  # Add order - 1 to skip the repeated knots.
+        key_and_value = list(zip(degree_zero_bases, values))
+
+        relevant_bases: T.List[sym.Expr] = []
+        for b in bases:
+            b_sub = b.subs_variables(key_and_value)
+            if not b_sub.is_identical_to(sym.zero):
+                relevant_bases.append(b_sub)
+
+        assert len(
+            relevant_bases) == order, f'Should be {order} active zero-order bases in every interval'
+
+        # Now we create a funtion that evalutes the relevant bases.
+        def bspline(arg: RealScalar):
+            # Scale and translate the argument to be with respect to the polynomials we defined.
+            interval_start = i * interval_width
+            scaled_sub_pairs = [(x, arg * interval_width + interval_start)]
+            b_subbed = sym.vector(*[b.subs_variables(scaled_sub_pairs) for b in relevant_bases])
+            b_dot = b_subbed.diff(arg)
+            b_ddot = b_dot.diff(arg)
+            return [
+                OutputArg(b_subbed, "b"),
+                OutputArg(b_dot, "b_dot", is_optional=True),
+                OutputArg(b_ddot, "b_ddot", is_optional=True)
+            ]
+
+        desc = code_generation.create_function_description(
+            func=bspline, name=f'bspline_order{order}_interval_{i}')
+        descriptions.append(desc)
+
+    return descriptions
+
+
+def main():
+    descriptions = create_bspline_functions(order=4)
+    descriptions += create_bspline_functions(order=7)
+    definitions = code_generation.transpile(descriptions=descriptions)
+    code = code_generation.generate_cpp(definitions=definitions)
+    with open('generated.h', 'w') as handle:
+        handle.write(code_generation.apply_cpp_preamble(code, namespace="gen"))
+        handle.flush()
+
+
+if __name__ == '__main__':
+    main()
