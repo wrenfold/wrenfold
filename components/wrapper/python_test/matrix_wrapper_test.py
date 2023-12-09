@@ -96,6 +96,13 @@ class MatrixWrapperTest(MathTestBase):
         m = sym.matrix([[x * x, -y + 3, x * z], [-2, sym.pi, 5]])
         self.assertEqual('[[x ** 2, 3 - y, x * z],\n [    -2,    pi,     5]]', repr(m))
 
+    def test_bool_conversion(self):
+        """Test that we cannot cast to bool."""
+        x, y, z = sym.symbols('x, y, z')
+        m = sym.matrix([[x * y, -2], [z, sym.pi]])
+        self.assertRaises(sym.TypeError, lambda: bool(m))
+        self.assertRaises(sym.TypeError, lambda: 1 if m else 0)
+
     def test_special_matrices(self):
         """Test convenience constructors for specific matrices."""
         eye = sym.eye(3)
