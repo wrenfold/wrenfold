@@ -31,6 +31,18 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.symbols('c'), result[1][0])
         self.assertIdentical(sym.symbols('d'), result[1][1])
 
+    def test_numeric_constructors(self):
+        """Test explicit construction of Expr from numeric types."""
+        self.assertIdentical(sym.zero, sym.integer(0))
+        self.assertIdentical(sym.one, sym.integer(1))
+        self.assertIdentical(-42, sym.integer(-42))
+        self.assertIdentical(1.231, sym.float(1.231))
+        self.assertIdentical(9.81, sym.float(9.81))
+        # Cannot invoke with values that exceed range of 64-bit signed int.
+        # Python stores these values internally, but we can't convert them for now:
+        self.assertRaises(TypeError, lambda: sym.integer(9223372036854775807 + 1))
+        self.assertRaises(TypeError, lambda: sym.integer(-9223372036854775808 - 1))
+
     def test_repr(self):
         """Test __repr__ method."""
         x, y, z = sym.symbols('x, y, z')
@@ -180,6 +192,18 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(1, (x / z).subs(z, x))
         self.assertIdentical(z ** 2 * x, (x ** 3 * y ** 2).subs(x * y, z))
         self.assertIdentical(2 * z, (x + 2 * z - (y * 3) / 2).subs(x - (y * 3) / 2, 0))
+
+    def test_subs_variables(self):
+        """Test calling subs_variables() on expressions."""
+        x, y, z = sym.symbols('x, y, z')
+        self.assertIdentical(2.5, x.subs_variables([(x, 2.5)]))
+        self.assertIdentical(x, x.subs_variables([(x, x)]))
+        self.assertIdentical(sym.cos(y + 1), sym.cos(x).subs_variables([(x, y + 1)]))
+        self.assertIdentical(z * (sym.cos(x * 2) + 3) + sym.log(sym.cos(x * 2)),
+                             (z * x + sym.log(x - 3)).subs_variables([(x, sym.cos(x * 2) + 3)]))
+        self.assertIdentical(
+            sym.sin(z - 3) * sym.abs(z), (sym.sin(y - 3) * x).subs_variables([(y, z),
+                                                                              (x, sym.abs(z))]))
 
     def test_collect(self):
         """Test calling collect() on expressions."""
