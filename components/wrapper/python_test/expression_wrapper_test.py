@@ -47,6 +47,16 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
         self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x))
 
+    def test_bool_conversion(self):
+        """Test that only true and false can be converted to bool."""
+        x, y, z = sym.symbols('x, y, z')
+        self.assertRaises(sym.TypeError, lambda: bool(x + 2))
+        self.assertRaises(sym.TypeError, lambda: bool(2.0 / z))
+        self.assertRaises(sym.TypeError, lambda: 1 if sym.cos(y * z) + x else 0)
+        self.assertTrue(bool(sym.true))
+        self.assertFalse(bool(sym.false))
+        self.assertEqual(2.0, 2.0 if sym.true else 0.0)
+
     def test_basic_scalar_operations(self):
         """Test wrappers for addition, multiplication, subtraction, negation."""
         p, q = sym.symbols('p, q')

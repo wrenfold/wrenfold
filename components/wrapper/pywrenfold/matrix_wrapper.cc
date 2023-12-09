@@ -384,7 +384,10 @@ void wrap_matrix_operations(py::module_& m) {
            static_cast<MatrixExpr (*)(const Expr&, const MatrixExpr&)>(
                &matrix_operator_overloads::operator*),
            py::is_operator())
-      .def("__neg__", &MatrixExpr::operator-, "Element-wise negation of the matrix.");
+      .def("__neg__", &MatrixExpr::operator-, "Element-wise negation of the matrix.")
+      // Prohibit conversion to bool.
+      .def("__bool__",
+           [](const MatrixExpr&) { throw type_error("MatrixExpr cannot be coerced to boolean."); });
 
   // Matrix constructors:
   m.def("identity", &make_identity, "rows"_a, "Create identity matrix.");

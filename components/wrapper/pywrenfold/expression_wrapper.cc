@@ -12,13 +12,13 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
-#include "wf/plain_formatter.h"
 
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
 using namespace py::literals;
-using namespace wf;
+
+namespace wf {
 
 // Create symbols from CSV list of names.
 inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_view csv) {
@@ -65,7 +65,20 @@ std::variant<Expr, py::list> create_symbols_from_str_or_iterable(
                     std::move(arg));
 }
 
-namespace wf {
+bool convert_expr_to_bool(const Expr& self) {
+  if (const symbolic_constant* c = cast_ptr<symbolic_constant>(self); c != nullptr) {
+    if (c->name() == symbolic_constant_enum::boolean_true) {
+      return true;
+    } else if (c->name() == symbolic_constant_enum::boolean_false) {
+      return false;
+    }
+  }
+  throw type_error(
+      "Expression of type `{}` cannot be coerced to boolean. Only expressions sym.true and "
+      "sym.false can be evaluated for truthiness.",
+      self.type_name());
+}
+
 // Defined in matrix_wrapper.cc
 void wrap_matrix_operations(py::module_& m);
 
@@ -77,6 +90,8 @@ void wrap_geometry_operations(py::module_& m);
 }  // namespace wf
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
+  using namespace wf;
+
   // Primary expression type:
   py::class_<Expr>(m, "Expr")
       // Implicit construction from numerics:
@@ -138,7 +153,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(double() >= py::self)
       .def(double() < py::self)
       .def(double() <= py::self)
-      .def(double() == py::self);
+      .def(double() == py::self)
+      // Override conversion to boolean, so we don't coerce non-boolean expressions.
+      .def("__bool__", &convert_expr_to_bool, py::doc("Coerce expression to bool."));
 
   py::implicitly_convertible<std::int64_t, Expr>();
   py::implicitly_convertible<double, Expr>();
