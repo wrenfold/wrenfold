@@ -100,6 +100,8 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
 CPP_PREAMBLE_TEMPLATE = \
 """// Machine generated code.
 #include <cmath>
+#include <cstdint>
+
 #include <wf_runtime/span.h>
 
 namespace {namespace} {{
