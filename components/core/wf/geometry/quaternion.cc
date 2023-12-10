@@ -172,13 +172,14 @@ quaternion quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
-MatrixExpr quaternion::jacobian(const wf::MatrixExpr& vars) const {
+MatrixExpr quaternion::jacobian(const wf::MatrixExpr& vars,
+                                non_differentiable_behavior behavior) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());
   }
   const auto& m = vars.as_matrix();
-  return jacobian(m.data());
+  return jacobian(m.data(), behavior);
 }
 
 MatrixExpr quaternion::right_retract_derivative() const {

@@ -42,15 +42,19 @@ class MatrixExpr {
 
   // Differentiate with respect to a single variable. Reps defines how many derivatives to take.
   // The returned matrix is the element-wise derivative.
-  MatrixExpr diff(const Expr& var, int reps = 1) const;
+  MatrixExpr diff(
+      const Expr& var, int reps = 1,
+      non_differentiable_behavior behavior = non_differentiable_behavior::constant) const;
 
   // Differentiate a vector with respect to another vector, producing a Jacobian.
   // If the input is an [N,1] vector and `vars` has M expressions, the result will be an NxM matrix.
   // Throws if `this` is not a column vector.
-  MatrixExpr jacobian(absl::Span<const Expr> vars) const;
+  MatrixExpr jacobian(absl::Span<const Expr> vars, non_differentiable_behavior behavior =
+                                                       non_differentiable_behavior::constant) const;
 
   // Version of `jacobian` that accepts `MatrixExpr` directly.
-  MatrixExpr jacobian(const MatrixExpr& vars) const;
+  MatrixExpr jacobian(const MatrixExpr& vars, non_differentiable_behavior behavior =
+                                                  non_differentiable_behavior::constant) const;
 
   // Distribute terms in this expression.
   MatrixExpr distribute() const;

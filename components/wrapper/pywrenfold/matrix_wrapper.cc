@@ -298,17 +298,30 @@ void wrap_matrix_operations(py::module_& m) {
           "other"_a, "Test if two matrix expressions have identical expression trees.")
       .def_property_readonly("type_name", &MatrixExpr::type_name)
       // Operations:
-      .def("diff", &MatrixExpr::diff, "var"_a, py::arg("order") = 1,
-           "Differentiate the expression with respect to the specified variable.")
+      .def(
+          "diff",
+          [](const MatrixExpr& self, const Expr& var, int order, bool use_abstract) {
+            return self.diff(var, order,
+                             use_abstract ? non_differentiable_behavior::abstract
+                                          : non_differentiable_behavior::constant);
+          },
+          "var"_a, py::arg("order") = 1, py::arg("use_abstract") = false,
+          "Differentiate the expression with respect to the specified variable.")
       .def(
           "jacobian",
-          [](const MatrixExpr& self, const MatrixExpr& vars) { return self.jacobian(vars); },
-          "vars"_a,
+          [](const MatrixExpr& self, const MatrixExpr& vars, bool use_abstract) {
+            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
+                                                    : non_differentiable_behavior::constant);
+          },
+          "vars"_a, py::arg("use_abstract") = false,
           "Compute the jacobian of a vector-valued function with respect to vector of arguments.")
       .def(
           "jacobian",
-          [](const MatrixExpr& self, const std::vector<Expr>& vars) { return self.jacobian(vars); },
-          "vars"_a,
+          [](const MatrixExpr& self, const std::vector<Expr>& vars, bool use_abstract) {
+            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
+                                                    : non_differentiable_behavior::constant);
+          },
+          "vars"_a, py::arg("use_abstract") = false,
           "Compute the jacobian of a vector-valued function with respect to a list of arguments.")
       .def("distribute", &MatrixExpr::distribute, "Expand products of additions and subtractions.")
       .def("subs", &MatrixExpr::subs, py::arg("target"), py::arg("substitute"),

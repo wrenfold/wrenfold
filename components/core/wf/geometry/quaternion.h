@@ -142,16 +142,24 @@ class quaternion {
 
   // Compute 4xN jacobian of this quaternion with respect to the `N` input variables `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
-  MatrixExpr jacobian(absl::Span<const Expr> vars) const { return wf::jacobian(wxyz(), vars); }
+  MatrixExpr jacobian(
+      absl::Span<const Expr> vars,
+      non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
+    return wf::jacobian(wxyz(), vars, behavior);
+  }
 
   // Compute the 4xN jacobian of this quaternion with respect to the `Nx1` column vector `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
-  MatrixExpr jacobian(const MatrixExpr& vars) const;
+  MatrixExpr jacobian(const MatrixExpr& vars, non_differentiable_behavior behavior =
+                                                  non_differentiable_behavior::constant) const;
 
   // Compute the 4x4 jacobian of this quaternion with respect to the variables in quaternion `vars`.
   // The rows and columns of the output jacobian are ordered in the storage order of the quaternion:
   // [w,x,y,z].
-  MatrixExpr jacobian(const quaternion& vars) const { return jacobian(vars.wxyz()); }
+  MatrixExpr jacobian(const quaternion& vars, non_differentiable_behavior behavior =
+                                                  non_differentiable_behavior::constant) const {
+    return jacobian(vars.wxyz(), behavior);
+  }
 
   // Compute the 4x3 tangent-space derivative of this quaternion with respect to a right-multiplied
   // perturbation. This is the derivative:

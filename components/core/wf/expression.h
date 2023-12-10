@@ -69,7 +69,10 @@ class Expr {
   Expr operator-() const;
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
-  Expr diff(const Expr& var, int reps = 1) const { return wf::diff(*this, var, reps); }
+  Expr diff(const Expr& var, int reps = 1,
+            non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
+    return wf::diff(*this, var, reps, behavior);
+  }
 
   // Distribute terms in this expression.
   Expr distribute() const { return wf::distribute(*this); }

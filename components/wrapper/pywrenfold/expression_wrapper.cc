@@ -107,8 +107,15 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
           "other"_a, "Test if two expressions have identical expression trees.")
       .def_property_readonly("type_name", &Expr::type_name)
       // Operations:
-      .def("diff", &Expr::diff, "var"_a, py::arg("order") = 1,
-           "Differentiate the expression with respect to the specified variable.")
+      .def(
+          "diff",
+          [](const Expr& self, const Expr& var, int order, bool use_abstract) {
+            return self.diff(var, order,
+                             use_abstract ? non_differentiable_behavior::abstract
+                                          : non_differentiable_behavior::constant);
+          },
+          "var"_a, py::arg("order") = 1, py::arg("use_abstract") = false,
+          "Differentiate the expression with respect to the specified variable.")
       .def("distribute", &Expr::distribute, "Expand products of additions and subtractions.")
       .def("subs", &Expr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
@@ -195,6 +202,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("true") = constants::boolean_true;
   m.attr("false") = constants::boolean_false;
 
+  // TODO: This is unused - can probably be removed unless we want to expose the `function` type
+  // in python.
   // Function enums.
   py::enum_<built_in_function>(m, "BuiltInFunction")
       .value("Cos", built_in_function::cos)

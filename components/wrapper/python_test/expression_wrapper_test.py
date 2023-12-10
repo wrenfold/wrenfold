@@ -45,7 +45,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('atan2(y, x)', sym.atan2(y, x))
         self.assertReprEqual('abs(x)', sym.abs(x))
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
-        self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x))
+        self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x, use_abstract=True))
 
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""
