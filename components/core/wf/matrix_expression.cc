@@ -67,8 +67,8 @@ MatrixExpr MatrixExpr::operator-() const {
   return matrix_operator_overloads::operator*(*this, constants::negative_one);
 }
 
-MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
-  derivative_visitor visitor{var};
+MatrixExpr MatrixExpr::diff(const Expr& var, int reps, non_differentiable_behavior behavior) const {
+  derivative_visitor visitor{var, behavior};
   return MatrixExpr{as_matrix().map_children([&visitor, reps](const Expr& x) {
     Expr result = x;
     for (int i = 0; i < reps; ++i) {
@@ -78,23 +78,25 @@ MatrixExpr MatrixExpr::diff(const Expr& var, int reps) const {
   })};
 }
 
-MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars) const {
+MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars,
+                                non_differentiable_behavior behavior) const {
   if (cols() != 1) {
     throw dimension_error(
         "Jacobian can only be computed on column-vectors. Received dimensions: [{}, {}]", rows(),
         cols());
   }
   const auto& m = as_matrix();
-  return wf::jacobian(m.data(), vars);
+  return wf::jacobian(m.data(), vars, behavior);
 }
 
-MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars) const {
+MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars,
+                                non_differentiable_behavior behavior) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());
   }
   const auto& m = vars.as_matrix();
-  return jacobian(m.data());  //  Call span version.
+  return jacobian(m.data(), behavior);  //  Call span version.
 }
 
 MatrixExpr MatrixExpr::distribute() const {

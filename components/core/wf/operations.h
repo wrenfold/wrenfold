@@ -1,4 +1,5 @@
 // Copyright 2023 Gareth Cross
+#pragma once
 #include <optional>
 
 #include "wf/absl_imports.h"
@@ -21,13 +22,27 @@ Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, E
 MatrixExpr substitute_variables(const MatrixExpr& input,
                                 absl::Span<const std::tuple<Expr, Expr>> pairs);
 
+// Govern behavior of the derivative visitor when we encounter non-differentiable functions.
+// An example would be the round(x) function, which has derivatives:
+//  - 0 for integer `x`.
+//  - undefined everywhere else.
+enum class non_differentiable_behavior {
+  // Replace the derivative of non-differentiable functions with a suitable constant.
+  // This is not strictly correct mathematically, but is more computationally useful in most cases.
+  constant,
+  // Insert abstract `derivative` expressions to represent something we don't know how to
+  // differentiate: df(x)/dx --> derivative(f(x), x, 1)
+  abstract,
+};
+
 // Take the derivative of `function` wrt `var`. The derivative is taken `reps` times.
 // Implemented in derivative.cc
-Expr diff(const Expr& function, const Expr& var, const int reps);
+Expr diff(const Expr& function, const Expr& var, int reps, non_differentiable_behavior behavior);
 
 // Compute the jacobian of the vector `functions` wrt the variables in `vars`.
 // If `functions` has length `N` and `vars` length `M`, the result will be NxM.
-MatrixExpr jacobian(absl::Span<const Expr> functions, absl::Span<const Expr> vars);
+MatrixExpr jacobian(absl::Span<const Expr> functions, absl::Span<const Expr> vars,
+                    non_differentiable_behavior behavior);
 
 // Distribute over multiplications in the input expression.
 // Expands terms like: (a + b) * (c * d) --> a*c + a*d + b*c + b*d

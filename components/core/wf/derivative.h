@@ -6,14 +6,13 @@
 #include "wf/hashing.h"
 
 namespace wf {
-class variable;  //  Fwd declare.
 
 // Visitor that takes the derivative of an input expression.
 class derivative_visitor {
  public:
   // Construct w/ const reference to the variable to differentiate wrt to.
   // Must remain in scope for the duration of evaluation.
-  explicit derivative_visitor(const Expr& argument);
+  derivative_visitor(const Expr& argument, non_differentiable_behavior behavior);
 
   // Apply this visitor to the specified expression.
   Expr apply(const Expr& expression);
@@ -35,10 +34,11 @@ class derivative_visitor {
   Expr operator()(const variable& var) const;
 
  private:
-  Expr cached_visit(const Expr& expr);
-
   // Argument we differentiate with respect to.
   const Expr& argument_;
+
+  // See `non_differentiable_behavior` - how we handle non-differentiable functions.
+  non_differentiable_behavior non_diff_behavior_;
 
   // Cache of f(x) --> df(x)/dx.
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_;

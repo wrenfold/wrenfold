@@ -145,8 +145,10 @@ TEST(PlainFormatterTest, TestMatrix) {
 
 TEST(PlainFormatterTest, TestDerivativeExpression) {
   const Expr a{"a"};
-  ASSERT_STR_EQ("Derivative(signum(a), a)", signum(a).diff(a));
-  ASSERT_STR_EQ("Derivative(signum(a), a, 2)", signum(a).diff(a, 2));
+  ASSERT_STR_EQ("Derivative(signum(a), a)",
+                signum(a).diff(a, 1, non_differentiable_behavior::abstract));
+  ASSERT_STR_EQ("Derivative(signum(a), a, 2)",
+                signum(a).diff(a, 2, non_differentiable_behavior::abstract));
 }
 
 TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", constants::complex_infinity); }

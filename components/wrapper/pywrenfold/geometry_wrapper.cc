@@ -160,18 +160,27 @@ void wrap_geometry_operations(py::module_& m) {
                   py::doc("Convert from a rotation matrix via Calley's method."))
       .def(
           "jacobian",
-          [](const quaternion& self, const MatrixExpr& vars) { return self.jacobian(vars); },
-          py::arg("vars"),
+          [](const quaternion& self, const MatrixExpr& vars, bool use_abstract) {
+            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
+                                                    : non_differentiable_behavior::constant);
+          },
+          py::arg("vars"), py::arg("use_abstract") = false,
           py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
       .def(
           "jacobian",
-          [](const quaternion& self, const std::vector<Expr>& vars) { return self.jacobian(vars); },
-          py::arg("vars"),
+          [](const quaternion& self, const std::vector<Expr>& vars, bool use_abstract) {
+            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
+                                                    : non_differentiable_behavior::constant);
+          },
+          py::arg("vars"), py::arg("use_abstract") = false,
           py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
       .def(
           "jacobian",
-          [](const quaternion& self, const quaternion& vars) { return self.jacobian(vars); },
-          py::arg("vars"),
+          [](const quaternion& self, const quaternion& vars, bool use_abstract) {
+            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
+                                                    : non_differentiable_behavior::constant);
+          },
+          py::arg("vars"), py::arg("use_abstract") = false,
           py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables in "
                   "another quaternion."))
       .def("right_retract_derivative", &quaternion::right_retract_derivative,

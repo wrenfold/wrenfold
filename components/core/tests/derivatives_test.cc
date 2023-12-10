@@ -139,8 +139,14 @@ TEST(DerivativesTest, TestAbs) {
 TEST(DerivativesTest, TestSignum) {
   const auto [x, y] = make_symbols("x", "y");
   ASSERT_IDENTICAL(0, signum(x).diff(y));
-  ASSERT_IDENTICAL(derivative::create(signum(2 * x), x, 1), signum(x * 2).diff(x));
-  ASSERT_IDENTICAL(derivative::create(signum(x), x, 2), signum(x).diff(x, 2));
+
+  ASSERT_IDENTICAL(0, signum(x).diff(x, 1));
+  ASSERT_IDENTICAL(0, signum(x * x - y).diff(x, 1));
+
+  ASSERT_IDENTICAL(derivative::create(signum(2 * x), x, 1),
+                   signum(x * 2).diff(x, 1, non_differentiable_behavior::abstract));
+  ASSERT_IDENTICAL(derivative::create(signum(x), x, 2),
+                   signum(x).diff(x, 2, non_differentiable_behavior::abstract));
 }
 
 TEST(DerivativesTest, TestMaxMin) {
@@ -169,8 +175,12 @@ TEST(DerivativesTest, TestMatrix) {
 TEST(DerivativesTest, TestRelational) {
   // Cannot diff a relational:
   const auto [x, y] = make_symbols("x", "y");
-  ASSERT_IDENTICAL(derivative::create(x < y, x, 1), (x < y).diff(x));
-  ASSERT_IDENTICAL(derivative::create(x == y, x, 1), (x == y).diff(x));
+  ASSERT_IDENTICAL(0, (x < y).diff(x));
+  ASSERT_IDENTICAL(0, (x == y).diff(x));
+  ASSERT_IDENTICAL(derivative::create(x < y, x, 1),
+                   (x < y).diff(x, 1, non_differentiable_behavior::abstract));
+  ASSERT_IDENTICAL(derivative::create(x == y, x, 1),
+                   (x == y).diff(x, 1, non_differentiable_behavior::abstract));
 }
 
 TEST(DerivativesTest, TestCastBool) {

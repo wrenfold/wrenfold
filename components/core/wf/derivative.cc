@@ -33,7 +33,8 @@ struct is_function_of_visitor {
   const T& target_;
 };
 
-derivative_visitor::derivative_visitor(const Expr& argument) : argument_(argument) {
+derivative_visitor::derivative_visitor(const Expr& argument, non_differentiable_behavior behavior)
+    : argument_(argument), non_diff_behavior_(behavior) {
   if (!argument.is_type<variable>()) {
     throw type_error(
         "Argument to diff must be of type variable. Received expression "
@@ -43,22 +44,18 @@ derivative_visitor::derivative_visitor(const Expr& argument) : argument_(argumen
 }
 
 Expr derivative_visitor::apply(const Expr& expression) {
-  return visit_with_expr(expression, *this);
-}
-
-Expr derivative_visitor::cached_visit(const Expr& expr) {
-  auto it = cache_.find(expr);
+  auto it = cache_.find(expression);
   if (it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit_with_expr(expr, *this);
-  auto [it_inserted, _] = cache_.emplace(expr, std::move(result));
+  Expr result = visit_with_expr(expression, *this);
+  auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
   return it_inserted->second;
 }
 
 // Differentiate every argument to make a new sum.
 Expr derivative_visitor::operator()(const addition& add) {
-  return add.map_children([this](const Expr& expr) { return cached_visit(expr); });
+  return add.map_children([this](const Expr& expr) { return apply(expr); });
 }
 
 Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) {
@@ -69,7 +66,7 @@ Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) {
 //  the variable wrt we are differentiating), we should insert the dirac delta function.
 //  That said, this is more useful practically in most cases.
 Expr derivative_visitor::operator()(const conditional& cond) {
-  return where(cond.condition(), cached_visit(cond.if_branch()), cached_visit(cond.else_branch()));
+  return where(cond.condition(), apply(cond.if_branch()), apply(cond.else_branch()));
 }
 
 Expr derivative_visitor::operator()(const symbolic_constant&) const { return constants::zero; }
@@ -101,7 +98,7 @@ Expr derivative_visitor::operator()(const multiplication& mul) {
     mul_terms.reserve(mul.size());
     for (std::size_t j = 0; j < mul.size(); ++j) {
       if (j == i) {
-        mul_terms.push_back(cached_visit(mul[j]));
+        mul_terms.push_back(apply(mul[j]));
       } else {
         mul_terms.push_back(mul[j]);
       }
@@ -118,7 +115,7 @@ Expr derivative_visitor::operator()(const function& func) {
   // Differentiate the arguments:
   function::container_type d_args{};
   std::transform(func.begin(), func.end(), std::back_inserter(d_args),
-                 [this](const Expr& arg) { return cached_visit(arg); });
+                 [this](const Expr& arg) { return apply(arg); });
 
   const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
   if (all_derivatives_zero) {
@@ -126,7 +123,6 @@ Expr derivative_visitor::operator()(const function& func) {
     return constants::zero;
   }
 
-  // TODO: Make global constants for 2, one half, etc...
   static const Expr one_half = 1_s / 2;
   static const Expr negative_one_half = -1_s / 2;
 
@@ -160,16 +156,20 @@ Expr derivative_visitor::operator()(const function& func) {
     case built_in_function::signum: {
       // signum(f(x)) --> d[heaviside(f(x)) - heaviside(-f(x))]/dx = 2 * dirac(f(x)) * f'(x)
       // However, we don't have dirac - so we leave this abstract.
-      return derivative::create(signum(args[0]), argument_, 1);
+      if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
+        return derivative::create(signum(args[0]), argument_, 1);
+      } else {
+        return constants::zero;
+      }
     }
     case built_in_function::arctan2: {
-      const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
-      const Expr y_diff = visit_with_expr(args[0], *this);
-      const Expr x_diff = visit_with_expr(args[1], *this);
+      const Expr& y_diff = d_args[0];
+      const Expr& x_diff = d_args[1];
       if (is_zero(y_diff) && is_zero(x_diff)) {
         return constants::zero;
       }
       // atan2(y(u), x(u))/du = -y/(y^2 + x^2) * x'(u) + x/(y^2 + x^2) * y'(u)
+      const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
       return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
     }
   }
@@ -183,8 +183,8 @@ Expr derivative_visitor::operator()(const float_constant&) const { return consta
 Expr derivative_visitor::operator()(const power& pow) {
   const Expr& a = pow.base();
   const Expr& b = pow.exponent();
-  const Expr a_diff = cached_visit(a);
-  const Expr b_diff = cached_visit(b);
+  const Expr a_diff = apply(a);
+  const Expr b_diff = apply(b);
   if (is_zero(a_diff) && is_zero(b_diff)) {
     return constants::zero;
   }
@@ -194,8 +194,12 @@ Expr derivative_visitor::operator()(const power& pow) {
 Expr derivative_visitor::operator()(const rational_constant&) const { return constants::zero; }
 
 Expr derivative_visitor::operator()(const relational&, const Expr& rel_expr) const {
-  // Cannot differentiate relationals, so insert an abstract expression.
-  return derivative::create(rel_expr, argument_, 1);
+  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
+    // Cannot differentiate relationals, so insert an abstract expression.
+    return derivative::create(rel_expr, argument_, 1);
+  } else {
+    return constants::zero;
+  }
 }
 
 Expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
@@ -208,17 +212,19 @@ Expr derivative_visitor::operator()(const variable& var) const {
   return constants::zero;
 }
 
-Expr diff(const Expr& function, const Expr& var, const int reps) {
+Expr diff(const Expr& function, const Expr& var, const int reps,
+          const non_differentiable_behavior behavior) {
   WF_ASSERT_GREATER_OR_EQ(reps, 0);
-  derivative_visitor visitor{var};
+  derivative_visitor visitor{var, behavior};
   Expr result = function;
   for (int i = 0; i < reps; ++i) {
-    result = visit_with_expr(result, visitor);
+    result = visitor.apply(result);
   }
   return result;
 }
 
-MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<const Expr> vars) {
+MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<const Expr> vars,
+                    const non_differentiable_behavior behavior) {
   if (functions.empty()) {
     throw type_error("Need at least one function to differentiate.");
   }
@@ -236,7 +242,7 @@ MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<con
 
   for (std::size_t col = 0; col < vars.size(); ++col) {
     // We cache derivative expressions, so that every row reuses the same cache:
-    derivative_visitor diff_visitor{vars[col]};
+    derivative_visitor diff_visitor{vars[col], behavior};
     for (std::size_t row = 0; row < functions.size(); ++row) {
       result_span(row, col) = diff_visitor.apply(functions[row]);
     }
