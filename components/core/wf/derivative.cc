@@ -59,7 +59,11 @@ Expr derivative_visitor::operator()(const addition& add) {
 }
 
 Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) {
-  return derivative::create(expr, argument_, 1);
+  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
+    return derivative::create(expr, argument_, 1);
+  } else {
+    return constants::zero;
+  }
 }
 
 // TODO: This is not strictly correct. If the condition is a function of `x` (where x is the

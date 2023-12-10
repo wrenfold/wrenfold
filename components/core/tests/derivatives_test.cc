@@ -186,11 +186,16 @@ TEST(DerivativesTest, TestRelational) {
 TEST(DerivativesTest, TestCastBool) {
   const auto [x, y] = make_symbols("x", "y");
 
+  ASSERT_IDENTICAL(0, cast_int_from_bool(x < y).diff(x));
+  ASSERT_IDENTICAL(0, cast_int_from_bool(x < y).diff(x).diff(y));
+
   // Check that this produces a `derivative` expression:
   ASSERT_IDENTICAL(derivative::create(cast_int_from_bool(x < y), x, 1),
-                   cast_int_from_bool(x < y).diff(x));
+                   cast_int_from_bool(x < y).diff(x, 1, non_differentiable_behavior::abstract));
   ASSERT_IDENTICAL(derivative::create(derivative::create(cast_int_from_bool(x < y), x, 1), y, 1),
-                   cast_int_from_bool(x < y).diff(x).diff(y));
+                   cast_int_from_bool(x < y)
+                       .diff(x, 1, non_differentiable_behavior::abstract)
+                       .diff(y, 1, non_differentiable_behavior::abstract));
 }
 
 TEST(DerivativesTest, TestDerivativeExpression) {
