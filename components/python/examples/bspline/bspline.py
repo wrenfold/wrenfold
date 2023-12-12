@@ -1,4 +1,5 @@
 import typing as T
+import time
 
 from wrenfold.type_annotations import RealScalar
 from wrenfold import code_generation
@@ -108,18 +109,19 @@ def create_bspline_functions(order: int) -> T.List[code_generation.codegen.Funct
             relevant_bases) == order, f'Should be {order} active zero-order bases in every interval'
 
         # Now we create a funtion that evalutes the relevant bases.
-        def bspline(arg: RealScalar):
+        def bspline(arg: RealScalar, arg_scale: RealScalar):
             # Scale and translate the argument to be with respect to the polynomials we defined.
             interval_start = i * interval_width
             scaled_sub_pairs = [(x, arg * interval_width + interval_start)]
             b_subbed = sym.vector(*[b.subs_variables(scaled_sub_pairs) for b in relevant_bases])
-            b_dot = b_subbed.diff(arg)
-            b_ddot = b_dot.diff(arg)
-            return [
-                OutputArg(b_subbed, "b"),
-                OutputArg(b_dot, "b_dot", is_optional=True),
-                OutputArg(b_ddot, "b_ddot", is_optional=True)
-            ]
+
+            # Output the function, plus (order - 2) derivatives that are continuous.
+            # The last non-zero derivative is discontinuous.
+            columns = [b_subbed]
+            for n in range(0, order - 2):
+                columns.append(columns[n].diff(arg) * arg_scale)
+
+            return [OutputArg(expression=sym.hstack(columns), name="b")]
 
         desc = code_generation.create_function_description(
             func=bspline, name=f'bspline_order{order}_interval_{i}')
