@@ -79,6 +79,11 @@ bool convert_expr_to_bool(const Expr& self) {
       self.type_name());
 }
 
+Expr substitute_variables_wrapper(const Expr& self,
+                                  const std::vector<std::tuple<Expr, Expr>>& pairs) {
+  return self.substitute_variables(pairs);
+}
+
 // Defined in matrix_wrapper.cc
 void wrap_matrix_operations(py::module_& m);
 
@@ -119,6 +124,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def("distribute", &Expr::distribute, "Expand products of additions and subtractions.")
       .def("subs", &Expr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
+      .def("subs_variables", &substitute_variables_wrapper, py::arg("pairs"),
+           "Substitute a list of variable expressions.")
       .def("eval", &try_convert_to_numeric, "Evaluate into float expression.")
       .def(
           "collect", [](const Expr& self, const Expr& term) { return self.collect(term); },
@@ -173,6 +180,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def(
       "integer", [](std::int64_t value) { return Expr{value}; }, "value"_a,
       "Create an integer expression.");
+  m.def(
+      "float", [](double value) { return Expr{value}; }, "value"_a, "Create a float expression.");
 
   // Built-in functions:
   m.def("log", &wf::log, "arg"_a, "Natural log.");
