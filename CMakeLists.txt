@@ -38,5 +38,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
        -Wno-unused-but-set-parameter)
 endif()
 
+# Find cargo so we can enable optional rust targets:
+find_program(CARGO_PATH cargo)
+if(DEFINED CARGO_PATH)
+  message(STATUS "cargo path: ${CARGO_PATH}")
+  if(NOT DEFINED SKBUILD_PROJECT_NAME)
+    set(ENABLE_RUST_TARGETS_DEFAULT ON)
+  endif()
+else()
+  set(ENABLE_RUST_TARGETS_DEFAULT OFF)
+endif()
+option(ENABLE_RUST_TARGETS "Enable building and testing rust targets."
+       ${ENABLE_RUST_TARGETS_DEFAULT})
+
 # Add libraries
 add_subdirectory(components)

@@ -34,11 +34,23 @@ add_custom_test(limits_test.cc)
 
 add_code_generation_test(
   cpp_generation
-  GENERATE_SOURCE_FILES
+  GENERATOR_SOURCE_FILES
   cpp_generation_gen.cc
   test_expressions.h
-  EVAL_SOURCE_FILES
+  EVALUATOR_SOURCE_FILES
   cpp_generation_test.cc
   test_expressions.h)
 
-add_rust_generation_test(rust_generation rust_generation_gen.cc)
+if(${ENABLE_RUST_TARGETS})
+  add_rust_generation_test(
+    NAME
+    rust_generation
+    GENERATOR_SOURCE_FILES
+    rust_generation_gen.cc
+    test_expressions.h
+    CRATE_NAME
+    rust_generation_test
+    CRATE_SOURCES
+    rust_generation_test/src/lib.rs
+    rust_generation_test/src/gen.rs)
+endif()

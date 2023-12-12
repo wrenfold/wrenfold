@@ -2,19 +2,17 @@
 # `xxx_generate` target generates a header named `generated.h`, and then the
 # `xxx_evaluate` target includes the generated code and runs tests.
 function(add_code_generation_test NAME)
-  # Parse args to get the `TEST_GENERATE_SOURCE_FILES` and
-  # `TEST_EVAL_SOURCE_FILES`.
   set(options "")
   set(oneValueArgs "")
-  set(multiValueArgs GENERATE_SOURCE_FILES EVAL_SOURCE_FILES)
-  cmake_parse_arguments(TEST "${options}" "${oneValueArgs}" "${multiValueArgs}"
+  set(multiValueArgs GENERATOR_SOURCE_FILES EVALUATOR_SOURCE_FILES)
+  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
                         ${ARGN})
 
   # First create a target that generates the code:
   set(generate_target ${NAME}_generate)
   set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
 
-  add_executable(${generate_target} ${TEST_GENERATE_SOURCE_FILES})
+  add_executable(${generate_target} ${ARGS_GENERATOR_SOURCE_FILES})
   target_link_libraries(${generate_target} ${PROJECT_PREFIX}-test-support)
   target_include_directories(${generate_target} PRIVATE ${TEST_OUTPUT_DIR})
 
@@ -34,7 +32,8 @@ function(add_code_generation_test NAME)
   set(evaluate_target ${NAME}_test)
   add_executable(
     ${evaluate_target}
-    ${TEST_EVAL_SOURCE_FILES} $<TARGET_OBJECTS:${PROJECT_PREFIX}-custom-main>
+    ${ARGS_EVALUATOR_SOURCE_FILES}
+    $<TARGET_OBJECTS:${PROJECT_PREFIX}-custom-main>
     "${TEST_OUTPUT_DIR}/generated.h")
 
   target_link_libraries(${evaluate_target} ${PROJECT_PREFIX}-runtime
@@ -124,13 +123,60 @@ function(add_python_test PYTHON_SOURCE_FILE)
   message(STATUS "Added python test: ${TEST_NAME}")
 endfunction()
 
-# Function to define a test that generates in C++ and then runs Rust tests.
-function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
-  # First create a target that generates the code:
-  set(generate_target ${NAME}_generate)
-  set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
+function(add_rust_test)
+  set(options "")
+  set(oneValueArgs NAME CRATE_NAME CODE_GENERATION_FILE)
+  set(multiValueArgs CRATE_SOURCES)
+  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
+                        ${ARGN})
 
-  add_executable(${generate_target} ${GENERATION_SOURCE_FILE})
+  if(NOT DEFINED CARGO_PATH)
+    message(FATAL_ERROR "Failed to find cargo.")
+  endif()
+
+  set(CRATE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_CRATE_NAME}")
+
+  # Add a target to do the cargo build:
+  set(CARGO_ENV_VARIABLES
+      "CODE_GENERATION_FILE=${ARGS_CODE_GENERATION_FILE}" "CARGO_CMD=test"
+      "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/target")
+
+  set(CARGO_ARGS --color always)
+  if("${CMAKE_BUILD_TYPE}" STREQUAL "Release" OR "${CMAKE_BUILD_TYPE}" STREQUAL
+                                                 "RelWithDebInfo")
+    list(APPEND CARGO_ARGS --release)
+  endif()
+
+  add_custom_target(
+    ${ARGS_NAME}_build ALL
+    COMMAND ${CMAKE_COMMAND} -E env ${CARGO_ENV_VARIABLES} ${CARGO_PATH} test
+            ${CARGO_ARGS} --no-run
+    WORKING_DIRECTORY ${CRATE_ROOT}
+    COMMENT "Cargo build for test ${ARGS_NAME}"
+    DEPENDS ${ARGS_CODE_GENERATION_FILE} ${ARGS_CRATE_SOURCES}
+            "${CRATE_ROOT}/Cargo.toml")
+
+  # Add a target to run the test
+  add_test(
+    NAME ${ARGS_NAME}
+    COMMAND ${CMAKE_COMMAND} -E env ${CARGO_ENV_VARIABLES} ${CARGO_PATH} test
+            ${CARGO_ARGS}
+    WORKING_DIRECTORY ${CRATE_ROOT})
+endfunction()
+
+# Function to define a test that generates in C++ and then runs Rust tests.
+function(add_rust_generation_test)
+  set(options "")
+  set(oneValueArgs NAME CRATE_NAME)
+  set(multiValueArgs CRATE_SOURCES GENERATOR_SOURCE_FILES)
+  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
+                        ${ARGN})
+
+  # First create a target that generates the code:
+  set(generate_target "${ARGS_NAME}_generate")
+  set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${ARGS_NAME}")
+
+  add_executable(${generate_target} ${ARGS_GENERATOR_SOURCE_FILES})
   target_link_libraries(${generate_target} ${LIBRARY_NAME}
                         ${PROJECT_PREFIX}-test-support)
   target_compile_options(${generate_target} PRIVATE ${SHARED_WARNING_FLAGS})
@@ -140,31 +186,17 @@ function(add_rust_generation_test NAME GENERATION_SOURCE_FILE)
     OUTPUT "${TEST_OUTPUT_DIR}/generated.rs"
     COMMAND
       "$<TARGET_FILE_DIR:${generate_target}>/$<TARGET_FILE_NAME:${generate_target}>"
-    WORKING_DIRECTORY "${TEST_OUTPUT_DIR}"
-    COMMENT "Run code-generation for test ${NAME}"
+    WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    COMMENT "Run code-generation for test ${ARGS_NAME}"
     DEPENDS ${generate_target})
 
-  # Path to the crate that implements the rust tests
-  set(RUST_DIR "${CMAKE_SOURCE_DIR}/components/rust")
-  set(TEST_CRATE_ROOT "${RUST_DIR}/rust-codegen-tests")
-
-  set(RUST_SOURCES "${TEST_CRATE_ROOT}/Cargo.toml"
-                   "${TEST_CRATE_ROOT}/src/lib.rs")
-
-  # Find cargo
-  find_program(CARGO_PATH cargo)
-  if(DEFINED CARGO_PATH)
-    message(STATUS "cargo path: ${CARGO_PATH}")
-    # Add a target to do the cargo build:
-    add_custom_target(
-      ${NAME}_test
-      COMMAND
-        ${CMAKE_COMMAND} -E env
-        "CODE_GENERATION_FILE=${TEST_OUTPUT_DIR}/generated.rs"
-        "CARGO_TARGET_DIR=${TEST_OUTPUT_DIR}/target" ${CARGO_PATH} test --
-        --test-threads 1
-      WORKING_DIRECTORY ${TEST_CRATE_ROOT}
-      COMMENT "Cargo build for test ${NAME}"
-      DEPENDS "${TEST_OUTPUT_DIR}/generated.rs" ${RUST_SOURCES})
-  endif()
+  add_rust_test(
+    NAME
+    ${ARGS_NAME}_test
+    CRATE_NAME
+    ${ARGS_CRATE_NAME}
+    CODE_GENERATION_FILE
+    "${TEST_OUTPUT_DIR}/generated.rs"
+    CRATE_SOURCES
+    ${ARGS_CRATE_SOURCES})
 endfunction()
