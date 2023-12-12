@@ -1,6 +1,6 @@
 # Add library:
 add_library(
-  ${LIBRARY_NAME} STATIC
+  wf-core STATIC
   wf/absl_imports.h
   wf/assertions.h
   wf/code_generation/ast_conversion.h
@@ -84,10 +84,10 @@ add_library(
   wf/visitor_impl.h)
 
 # Turn on C++17
-target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_17)
+target_compile_features(wf-core PUBLIC cxx_std_17)
 
 # Set -fPIC since we will need to build shared libraries for python.
-set_target_properties(${LIBRARY_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(wf-core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(MSVC)
   set(LIB_COMPILATION_FLAGS_PRIVATE /bigobj /EHs)
@@ -101,28 +101,28 @@ endif()
 list(APPEND LIB_COMPILATION_FLAGS_PRIVATE ${SHARED_WARNING_FLAGS})
 message(STATUS "Warning flags set to: ${SHARED_WARNING_FLAGS}")
 
-target_compile_options(${LIBRARY_NAME} PRIVATE ${LIB_COMPILATION_FLAGS_PRIVATE})
-target_compile_options(${LIBRARY_NAME} PUBLIC ${LIB_COMPILATION_FLAGS_PUBLIC})
-target_link_libraries(${LIBRARY_NAME} ${PROJECT_PREFIX}-runtime
-                      fmt::fmt-header-only absl::inlined_vector absl::span)
+target_compile_options(wf-core PRIVATE ${LIB_COMPILATION_FLAGS_PRIVATE})
+target_compile_options(wf-core PUBLIC ${LIB_COMPILATION_FLAGS_PUBLIC})
+target_link_libraries(wf-core wf-runtime fmt::fmt-header-only
+                      absl::inlined_vector absl::span)
 if(WIN32)
-  target_compile_definitions(${LIBRARY_NAME} PUBLIC -D_USE_MATH_DEFINES)
+  target_compile_definitions(wf-core PUBLIC -D_USE_MATH_DEFINES)
 endif()
 
 target_include_directories(
-  ${LIBRARY_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-                         $<INSTALL_INTERFACE:include>)
+  wf-core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                 $<INSTALL_INTERFACE:include>)
 
 # Setup install target
 install(
-  TARGETS ${LIBRARY_NAME}
-  EXPORT ${LIBRARY_NAME}
+  TARGETS wf-core
+  EXPORT wf-core
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   INCLUDES
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBRARY_NAME}")
+  PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wf-core")
 
 # Add tests and benchmarks, if not building from scikit-build-core
 if(NOT DEFINED SKBUILD_PROJECT_NAME)

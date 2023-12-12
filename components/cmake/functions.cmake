@@ -13,7 +13,7 @@ function(add_code_generation_test NAME)
   set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
 
   add_executable(${generate_target} ${ARGS_GENERATOR_SOURCE_FILES})
-  target_link_libraries(${generate_target} ${PROJECT_PREFIX}-test-support)
+  target_link_libraries(${generate_target} wf-test-support)
   target_include_directories(${generate_target} PRIVATE ${TEST_OUTPUT_DIR})
 
   # Add a target that runs the generation:
@@ -25,6 +25,8 @@ function(add_code_generation_test NAME)
     COMMENT "Run code-generation for test ${NAME}"
     DEPENDS ${generate_target})
 
+  # A custom target for running the code-generation. This is so the user can
+  # explicitly run this target from the command line.
   add_custom_target(${generate_target}_run
                     DEPENDS "${TEST_OUTPUT_DIR}/generated.h")
 
@@ -32,16 +34,12 @@ function(add_code_generation_test NAME)
   set(evaluate_target ${NAME}_test)
   add_executable(
     ${evaluate_target}
-    ${ARGS_EVALUATOR_SOURCE_FILES}
-    $<TARGET_OBJECTS:${PROJECT_PREFIX}-custom-main>
+    ${ARGS_EVALUATOR_SOURCE_FILES} $<TARGET_OBJECTS:wf-custom-main>
     "${TEST_OUTPUT_DIR}/generated.h")
 
-  target_link_libraries(${evaluate_target} ${PROJECT_PREFIX}-runtime
-                        ${PROJECT_PREFIX}-test-support eigen gtest)
+  target_link_libraries(${evaluate_target} wf-runtime wf-test-support eigen
+                        gtest)
   target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})
-
-  # The evaluation target must depend on running the code-generation
-  add_dependencies(${evaluate_target} ${generate_target}_run)
 
   # Create test case from the evaluation target:
   add_test(${evaluate_target} ${evaluate_target})
@@ -77,18 +75,17 @@ function(add_py_code_generation_test NAME GENERATION_SOURCE_FILE
       ${Python_EXECUTABLE} -B ${PYTHON_SOURCE_FILE}
     WORKING_DIRECTORY "${TEST_OUTPUT_DIR}"
     COMMENT "Run python code-generation for test ${NAME}"
-    DEPENDS ${LIBRARY_NAME} ${PROJECT_PREFIX}_wrapper ${PYTHON_SOURCE_FILE})
+    DEPENDS wf-core wf_wrapper ${PYTHON_SOURCE_FILE})
 
   add_custom_target(${generate_target} DEPENDS ${TEST_OUTPUT_PATH})
 
   # Then create a target that evaluates the result:
   set(evaluate_target ${NAME}_test)
   add_executable(
-    ${evaluate_target}
-    ${TEST_SOURCE_FILE} $<TARGET_OBJECTS:${PROJECT_PREFIX}-custom-main>
-    ${TEST_OUTPUT_PATH})
-  target_link_libraries(${evaluate_target} ${PROJECT_PREFIX}-runtime
-                        ${PROJECT_PREFIX}-test-support eigen gtest)
+    ${evaluate_target} ${TEST_SOURCE_FILE} $<TARGET_OBJECTS:wf-custom-main>
+                       ${TEST_OUTPUT_PATH})
+  target_link_libraries(${evaluate_target} wf-runtime wf-test-support eigen
+                        gtest)
   target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})
 
   # The evaluation target must depend on running the code-generation
@@ -177,8 +174,7 @@ function(add_rust_generation_test)
   set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${ARGS_NAME}")
 
   add_executable(${generate_target} ${ARGS_GENERATOR_SOURCE_FILES})
-  target_link_libraries(${generate_target} ${LIBRARY_NAME}
-                        ${PROJECT_PREFIX}-test-support)
+  target_link_libraries(${generate_target} wf-core wf-test-support)
   target_compile_options(${generate_target} PRIVATE ${SHARED_WARNING_FLAGS})
 
   # Add a target that runs the generation:

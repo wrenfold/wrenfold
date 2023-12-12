@@ -20,9 +20,6 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 # Add third party code
 add_subdirectory(dependencies)
 
-set(PROJECT_PREFIX wf)
-set(LIBRARY_NAME ${PROJECT_PREFIX}-core)
-
 # Some shared warning flags:
 if(MSVC)
   # We turn off C4702 (unreachable code) because constexpr blocks trigger it

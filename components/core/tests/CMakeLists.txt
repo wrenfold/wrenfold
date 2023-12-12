@@ -5,11 +5,10 @@ function(add_custom_test SOURCE_FILE)
 
   # add executable for the test:
   message(STATUS "Adding test: ${TEST_NAME}")
-  add_executable(${TEST_NAME} ${SOURCE_FILE}
-                              $<TARGET_OBJECTS:${PROJECT_PREFIX}-custom-main>)
+  add_executable(${TEST_NAME} ${SOURCE_FILE} $<TARGET_OBJECTS:wf-custom-main>)
 
-  target_link_libraries(${TEST_NAME} ${PROJECT_PREFIX}-test-support)
-  target_link_libraries(${TEST_NAME} ${PROJECT_PREFIX}-runtime gtest eigen
+  target_link_libraries(${TEST_NAME} wf-test-support)
+  target_link_libraries(${TEST_NAME} wf-runtime gtest eigen
                         fmt::fmt-header-only)
   target_compile_options(${TEST_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
 
