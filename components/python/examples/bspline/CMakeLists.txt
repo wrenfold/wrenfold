@@ -8,7 +8,7 @@ add_py_code_generator(
   cpp)
 
 add_cpp_test(bspline_cpp_test GENERATOR_TARGET py_bspline_generate_cpp
-             SOURCE_FILES py_bspline_test.cc)
+             SOURCE_FILES py_bspline_test.cc bspline_numerical.h)
 
 add_py_code_generator(
   py_bspline_generate_rust

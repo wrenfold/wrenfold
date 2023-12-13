@@ -5,6 +5,8 @@
 #define MATH_SPAN_EIGEN_SUPPORT
 #include "wf_runtime/span_eigen.h"
 
+#include "bspline_numerical.h"
+
 #include "generated.h"
 
 namespace wf {
@@ -132,7 +134,11 @@ TEST(PyBSplineTest, TestBSplineCoeffsOrder4) {
     const double x = static_cast<double>(i) / static_cast<double>(num_samples - 1);
 
     Eigen::Matrix<double, 4, 3> evaluated{};
-    eval_bspline_coefficients_order4(x, num_knots, evaluated);
+    const std::size_t b_index_0 = eval_bspline_coefficients_order4(x, num_knots, evaluated);
+
+    for (int j = 0; j < 4; ++j) {
+      ASSERT_NEAR(bspline_numerical(4, num_knots)(x, b_index_0 + j), evaluated(j, 0), 1.0e-12);
+    }
 
     // Sum of b-spline coefficients must one:
     ASSERT_NEAR(1.0, evaluated.col(0).sum(), 1.0e-12)
@@ -192,7 +198,11 @@ TEST(PyBSplineTest, TestBSplineCoeffsOrder7) {
     const double x = static_cast<double>(i) / static_cast<double>(num_samples - 1);
 
     Eigen::Matrix<double, 7, 6> evaluated{};
-    eval_bspline_coefficients_order7(x, num_knots, evaluated);
+    const std::size_t b_index_0 = eval_bspline_coefficients_order7(x, num_knots, evaluated);
+
+    for (std::size_t j = 0; j < 7; ++j) {
+      ASSERT_NEAR(bspline_numerical(7, num_knots)(x, b_index_0 + j), evaluated(j, 0), 1.0e-10);
+    }
 
     // Sum of b-spline coefficients must one:
     ASSERT_NEAR(1.0, evaluated.col(0).sum(), 1.0e-10)
