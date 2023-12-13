@@ -35,7 +35,7 @@ int main() {
 
   code += "} // namespace gen";
 
-  std::ofstream output{"generated.h"};
+  std::ofstream output{GENERATOR_OUTPUT_FILE};
   output << code;
   output.flush();
   return 0;

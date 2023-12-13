@@ -17,7 +17,7 @@ function(add_wrapper_module)
   pybind11_add_module(${MODULE_NAME} ${MODULE_SOURCES})
 
   # Depend on the static library
-  target_link_libraries(${MODULE_NAME} PRIVATE ${LIBRARY_NAME})
+  target_link_libraries(${MODULE_NAME} PRIVATE wf-core)
   target_compile_options(${MODULE_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
   target_compile_definitions(${MODULE_NAME}
                              PRIVATE PY_MODULE_NAME=${MODULE_NAME})
@@ -101,7 +101,7 @@ endfunction()
 
 add_wrapper_module(
   NAME
-  "${PROJECT_PREFIX}_wrapper"
+  "wf_wrapper"
   SOURCES
   expression_wrapper.cc
   matrix_wrapper.cc

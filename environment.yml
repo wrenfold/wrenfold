@@ -5,7 +5,8 @@ channels:
 
 dependencies:
   - python=3.8
-  - cmake >= 3.19
+  - cmake >= 3.20
   - ninja
   - mypy
   - numpy
+  - argh

@@ -1,44 +1,40 @@
-# Add a single test.
-function(add_custom_test SOURCE_FILE)
-  # get just the filename w/o extension
+# Add a single-file test with the name derived from the CC File.
+function(add_single_file_test SOURCE_FILE)
   get_filename_component(TEST_NAME ${SOURCE_FILE} NAME_WE)
-
-  # add executable for the test:
-  message(STATUS "Adding test: ${TEST_NAME}")
-  add_executable(${TEST_NAME} ${SOURCE_FILE}
-                              $<TARGET_OBJECTS:${PROJECT_PREFIX}-custom-main>)
-
-  target_link_libraries(${TEST_NAME} ${PROJECT_PREFIX}-test-support)
-  target_link_libraries(${TEST_NAME} ${PROJECT_PREFIX}-runtime gtest eigen
-                        fmt::fmt-header-only)
-  target_compile_options(${TEST_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
-
-  if(NOT MSVC)
-    target_compile_options(${TEST_NAME} PRIVATE -Wno-unused-comparison)
-  endif()
-
-  add_test(${TEST_NAME} ${TEST_NAME})
+  add_cpp_test(${TEST_NAME} SOURCE_FILES ${SOURCE_FILE})
 endfunction()
 
-add_custom_test(plain_formatter_test.cc)
-add_custom_test(scalar_operations_test.cc)
-add_custom_test(derivatives_test.cc)
-add_custom_test(integer_utils_test.cc)
-add_custom_test(numeric_expressions_test.cc)
-add_custom_test(functions_test.cc)
-add_custom_test(matrix_operations_test.cc)
-add_custom_test(ir_builder_test.cc)
-add_custom_test(substitute_test.cc)
-add_custom_test(quaternion_test.cc)
-add_custom_test(limits_test.cc)
+add_single_file_test(plain_formatter_test.cc)
+add_single_file_test(scalar_operations_test.cc)
+add_single_file_test(derivatives_test.cc)
+add_single_file_test(integer_utils_test.cc)
+add_single_file_test(numeric_expressions_test.cc)
+add_single_file_test(functions_test.cc)
+add_single_file_test(matrix_operations_test.cc)
+add_single_file_test(ir_builder_test.cc)
+add_single_file_test(substitute_test.cc)
+add_single_file_test(quaternion_test.cc)
+add_single_file_test(limits_test.cc)
 
-add_code_generation_test(
-  cpp_generation
-  GENERATE_SOURCE_FILES
-  cpp_generation_gen.cc
-  test_expressions.h
-  EVAL_SOURCE_FILES
-  cpp_generation_test.cc
-  test_expressions.h)
+add_compiled_code_generator(
+  cpp_generation_generate OUTPUT_FILE_NAME "generated.h" SOURCE_FILES
+  cpp_generation_gen.cc test_expressions.h)
 
-add_rust_generation_test(rust_generation rust_generation_gen.cc)
+add_cpp_test(cpp_generation_test SOURCE_FILES cpp_generation_test.cc
+             test_expressions.h GENERATOR_TARGET cpp_generation_generate)
+
+if(${ENABLE_RUST_TARGETS})
+  add_compiled_code_generator(
+    rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
+    rust_generation_gen.cc test_expressions.h)
+
+  add_rust_test(
+    rust_generation_test
+    GENERATOR_TARGET
+    rust_generation_generate
+    CRATE_NAME
+    rust_generation_test
+    CRATE_SOURCES
+    rust_generation_test/src/lib.rs
+    rust_generation_test/src/gen.rs)
+endif()

@@ -20,9 +20,6 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 # Add third party code
 add_subdirectory(dependencies)
 
-set(PROJECT_PREFIX wf)
-set(LIBRARY_NAME ${PROJECT_PREFIX}-core)
-
 # Some shared warning flags:
 if(MSVC)
   # We turn off C4702 (unreachable code) because constexpr blocks trigger it
@@ -37,6 +34,19 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   list(APPEND SHARED_WARNING_FLAGS -Wno-unused-parameter
        -Wno-unused-but-set-parameter)
 endif()
+
+# Find cargo so we can enable optional rust targets:
+find_program(CARGO_PATH cargo)
+if(DEFINED CARGO_PATH)
+  message(STATUS "cargo path: ${CARGO_PATH}")
+  if(NOT DEFINED SKBUILD_PROJECT_NAME)
+    set(ENABLE_RUST_TARGETS_DEFAULT ON)
+  endif()
+else()
+  set(ENABLE_RUST_TARGETS_DEFAULT OFF)
+endif()
+option(ENABLE_RUST_TARGETS "Enable building and testing rust targets."
+       ${ENABLE_RUST_TARGETS_DEFAULT})
 
 # Add libraries
 add_subdirectory(components)

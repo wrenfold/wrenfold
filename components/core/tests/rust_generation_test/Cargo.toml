@@ -1,11 +1,11 @@
 [package]
-name = "rust-codegen-tests"
+name = "rust_generation_test"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [dependencies]
-wrenfold-traits = { path = "../wrenfold-traits", version = "0.0.1", features = ["nalgebra"] }
+wrenfold-traits = { path = "../../../rust/wrenfold-traits", version = "0.0.1", features = ["nalgebra"] }
 nalgebra = { version = "0.32.3" }
 
 [dev-dependencies]

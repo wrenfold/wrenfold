@@ -15,18 +15,19 @@ git submodule update --init --recursive
 ### Setting up a development environment
 
 The following tools are required to build from source:
-- cmake >= 3.19
+- cmake >= 3.20
 - ninja (other build systems are not explicitly tested at this time)
 - python >= 3.8
 - mypy (required for [stubgen](https://mypy.readthedocs.io/en/stable/stubgen.html))
 
 Additionally, to build and run tests you will need:
+- argh
 - numpy
 - The rust compiler toolchain (`cargo` and `rustc`)
 
 The following command will configure a `conda` environment suitable for building:
 ```bash
-conda create -n wf_test python=3.8 cmake ninja mypy numpy
+conda create -n wf_test python=3.8 cmake ninja mypy numpy argh
 conda activate wf_test
 ```
 

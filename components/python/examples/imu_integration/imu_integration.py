@@ -9,6 +9,7 @@ In practice, there is a larger space of design choices you could make. For insta
 - Incorporating rotational effects of the earth.
 - Higher-order numerical integration schemes.
 """
+import argh
 import typing as T
 
 from wrenfold.type_annotations import RealScalar, Vector4, Vector3
@@ -298,7 +299,7 @@ def integration_test_sequence(t: RealScalar):
     ]
 
 
-def main():
+def main(output: str):
     descriptions = [
         code_generation.create_function_description(integrate_imu),
         code_generation.create_function_description(unweighted_imu_preintegration_error),
@@ -306,10 +307,13 @@ def main():
     ]
     definitions = code_generation.transpile(descriptions=descriptions)
     code = code_generation.generate_cpp(definitions=definitions)
-    with open('generated.h', 'w') as handle:
-        handle.write(code_generation.apply_cpp_preamble(code, namespace="gen"))
-        handle.flush()
+    code = code_generation.apply_cpp_preamble(code, namespace="gen")
+
+    if output is not None:
+        code_generation.mkdir_and_write_file(code=code, path=output)
+    else:
+        print(code)
 
 
 if __name__ == '__main__':
-    main()
+    argh.dispatch_command(main)
