@@ -1,3 +1,4 @@
 add_subdirectory(bspline)
 add_subdirectory(imu_integration)
+add_subdirectory(quaternion_interpolation)
 add_subdirectory(rotation_error)
