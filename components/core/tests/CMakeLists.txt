@@ -26,7 +26,6 @@ add_code_generation_test(
   test_expressions.h)
 
 if(${ENABLE_RUST_TARGETS})
-
   add_compiled_code_generator(
     rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
     rust_generation_gen.cc test_expressions.h)

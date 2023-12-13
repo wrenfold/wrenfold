@@ -14,6 +14,9 @@ function(add_compiled_code_generator NAME)
                         ${ARGN})
 
   set(generate_target ${NAME})
+  if(${ARGS_OUTPUT_FILE_NAME} STREQUAL "")
+    message(FATAL_ERROR "Must specify the OUTPUT_FILE_NAME argument.")
+  endif()
   set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
   set(GENERATOR_OUTPUT_FILE "${GENERATOR_OUTPUT_DIR}/${ARGS_OUTPUT_FILE_NAME}")
 
@@ -113,54 +116,52 @@ function(add_code_generation_test NAME)
                GENERATOR_TARGET ${generate_target})
 endfunction()
 
-# Define a code-generation test that performs the code generation step in
-# python, then runs a C++ unit test.
-function(add_py_code_generation_test NAME GENERATION_SOURCE_FILE
-         TEST_SOURCE_FILE)
-  # First create a target that generates the code:
-  set(generate_target ${NAME}_generate)
-  set(TEST_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
-  set(TEST_OUTPUT_PATH "${TEST_OUTPUT_DIR}/generated.h")
-
-  if(WIN32)
-    set(PATH_SEP ";")
-  else()
-    set(PATH_SEP ":")
-  endif()
+# Add a code-generator defined in python.
+function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
+  set(options "")
+  set(oneValueArgs OUTPUT_FILE_NAME)
+  set(multiValueArgs SOURCE_FILES)
+  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
+                        ${ARGN})
 
   if(NOT DEFINED Python_EXECUTABLE)
     message(FATAL_ERROR "The Python executable could not be located.")
   endif()
 
-  # Add a target that runs the generation:
-  set(PYTHON_SOURCE_FILE
-      "${CMAKE_CURRENT_SOURCE_DIR}/${GENERATION_SOURCE_FILE}")
+  if(WIN32)
+    set(PATH_SEP "\;")
+  else()
+    set(PATH_SEP ":")
+  endif()
+
+  # Add a custom command that runs the generation:
+  if(${ARGS_OUTPUT_FILE_NAME} STREQUAL "")
+    message(FATAL_ERROR "Must specify the OUTPUT_FILE_NAME argument.")
+  endif()
+  set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
+  set(GENERATOR_OUTPUT_FILE "${GENERATOR_OUTPUT_DIR}/${ARGS_OUTPUT_FILE_NAME}")
+
+  set(COMMAND_ENV_VARIABLES "")
+  list(
+    APPEND
+    COMMAND_ENV_VARIABLES
+    "PYTHONPATH=\"${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python\""
+  )
+
   add_custom_command(
-    OUTPUT ${TEST_OUTPUT_PATH}
+    OUTPUT ${GENERATOR_OUTPUT_FILE}
     COMMAND
-      ${CMAKE_COMMAND} -E env
-      "PYTHONPATH=${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python"
-      ${Python_EXECUTABLE} -B ${PYTHON_SOURCE_FILE}
-    WORKING_DIRECTORY "${TEST_OUTPUT_DIR}"
-    COMMENT "Run python code-generation for test ${NAME}"
-    DEPENDS wf-core wf_wrapper ${PYTHON_SOURCE_FILE})
+      ${CMAKE_COMMAND} -E env ${COMMAND_ENV_VARIABLES} ${Python_EXECUTABLE} -B
+      "${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_SCRIPT_FILE}"
+      "${GENERATOR_OUTPUT_FILE}"
+    WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
+    COMMENT "Run python code-generator: ${NAME}"
+    DEPENDS wf-core wf_wrapper ${MAIN_SCRIPT_FILE} ${SOURCE_FILES})
 
-  add_custom_target(${generate_target} DEPENDS ${TEST_OUTPUT_PATH})
-
-  # Then create a target that evaluates the result:
-  set(evaluate_target ${NAME}_test)
-  add_executable(
-    ${evaluate_target} ${TEST_SOURCE_FILE} $<TARGET_OBJECTS:wf-custom-main>
-                       ${TEST_OUTPUT_PATH})
-  target_link_libraries(${evaluate_target} wf-runtime wf-test-support eigen
-                        gtest)
-  target_include_directories(${evaluate_target} PRIVATE ${TEST_OUTPUT_DIR})
-
-  # The evaluation target must depend on running the code-generation
-  add_dependencies(${evaluate_target} ${generate_target})
-
-  # Create test case from the evaluation target:
-  add_test(${evaluate_target} ${evaluate_target})
+  # Create a target we can attach the output source file to as a property.
+  add_custom_target(${NAME} DEPENDS ${GENERATOR_OUTPUT_FILE})
+  set_target_properties(${NAME} PROPERTIES GENERATED_SOURCE_FILE
+                                           ${GENERATOR_OUTPUT_FILE})
 endfunction()
 
 # Define a new python test.
@@ -235,7 +236,7 @@ function(add_rust_test NAME)
     COMMAND ${CMAKE_COMMAND} -E env ${CARGO_ENV_VARIABLES} ${CARGO_PATH} test
             ${CARGO_ARGS} --no-run
     WORKING_DIRECTORY ${CRATE_ROOT}
-    COMMENT "Cargo build for test ${ARGS_NAME}"
+    COMMENT "Cargo build for: ${NAME}"
     DEPENDS ${GENERATOR_TARGET} ${GENERATOR_OUTPUT} ${ARGS_CRATE_SOURCES}
             "${CRATE_ROOT}/Cargo.toml")
 

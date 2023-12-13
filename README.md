@@ -21,12 +21,13 @@ The following tools are required to build from source:
 - mypy (required for [stubgen](https://mypy.readthedocs.io/en/stable/stubgen.html))
 
 Additionally, to build and run tests you will need:
+- argh
 - numpy
 - The rust compiler toolchain (`cargo` and `rustc`)
 
 The following command will configure a `conda` environment suitable for building:
 ```bash
-conda create -n wf_test python=3.8 cmake ninja mypy numpy
+conda create -n wf_test python=3.8 cmake ninja mypy numpy argh
 conda activate wf_test
 ```
 

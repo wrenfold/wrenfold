@@ -1,2 +1,5 @@
-add_py_code_generation_test(py_rotation_error rotation_error.py
-                            py_rotation_error_test.cc)
+add_py_code_generator(py_rotation_error_generate rotation_error.py
+                      OUTPUT_FILE_NAME generated.h)
+
+add_cpp_test(py_rotation_error_test GENERATOR_TARGET py_rotation_error_generate
+             SOURCE_FILES py_rotation_error_test.cc)
