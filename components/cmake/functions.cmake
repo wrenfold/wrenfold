@@ -17,8 +17,13 @@ function(add_compiled_code_generator NAME)
   if(${ARGS_OUTPUT_FILE_NAME} STREQUAL "")
     message(FATAL_ERROR "Must specify the OUTPUT_FILE_NAME argument.")
   endif()
-  set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
+  set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}_gen")
   set(GENERATOR_OUTPUT_FILE "${GENERATOR_OUTPUT_DIR}/${ARGS_OUTPUT_FILE_NAME}")
+
+  # Make output directory.
+  add_custom_target(
+    ${generate_target}_mkdir COMMAND ${CMAKE_COMMAND} -E make_directory
+                                     ${GENERATOR_OUTPUT_DIR})
 
   # Add an executable target with the provided source files.
   add_executable(${generate_target} ${ARGS_SOURCE_FILES})
@@ -27,6 +32,7 @@ function(add_compiled_code_generator NAME)
     ${generate_target}
     PRIVATE "-DGENERATOR_OUTPUT_FILE=\"${GENERATOR_OUTPUT_FILE}\"")
   target_compile_options(${generate_target} PRIVATE ${SHARED_WARNING_FLAGS})
+  add_dependencies(${generate_target} ${generate_target}_mkdir)
 
   # Record the output file as a custom property on the target:
   set_target_properties(${generate_target} PROPERTIES GENERATED_SOURCE_FILE
@@ -119,7 +125,7 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   if(${ARGS_OUTPUT_FILE_NAME} STREQUAL "")
     message(FATAL_ERROR "Must specify the OUTPUT_FILE_NAME argument.")
   endif()
-  set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}")
+  set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}_gen")
   set(GENERATOR_OUTPUT_FILE "${GENERATOR_OUTPUT_DIR}/${ARGS_OUTPUT_FILE_NAME}")
 
   set(COMMAND_ENV_VARIABLES "")

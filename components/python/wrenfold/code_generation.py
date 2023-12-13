@@ -1,6 +1,7 @@
 """Utility functions to support code-generation."""
 import dataclasses
 import inspect
+import pathlib
 import typing as T
 
 from . import sym
@@ -112,5 +113,25 @@ namespace {namespace} {{
 def apply_cpp_preamble(code: str, namespace: str) -> str:
     """
     Wrap C++ code in a preamble that includes the necessary headers.
+    :param code: Output C++ code.
+    :param namespace: Namespace to put generated code in.
+    :return: Formatted string.
     """
     return CPP_PREAMBLE_TEMPLATE.format(code=code, namespace=namespace)
+
+
+def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]):
+    """
+    Write `code` to the specified path. Create intermediate directories as required.
+
+    :param code: File contents.
+    :param path: The output path.
+    :return: None
+    """
+    if isinstance(path, str):
+        path = pathlib.Path(path)
+    if not path.parent.exists():
+        path.parent.mkdir(parents=True)
+    with open(path, 'w') as handle:
+        handle.write(code)
+        handle.flush()

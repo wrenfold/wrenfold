@@ -40,9 +40,7 @@ def main(output: str):
     code = code_generation.apply_cpp_preamble(code, namespace="gen")
 
     if output is not None:
-        with open(output, 'w') as handle:
-            handle.write(code)
-            handle.flush()
+        code_generation.mkdir_and_write_file(code=code, path=output)
     else:
         print(code)
 
