@@ -184,6 +184,11 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(x, sym.where(0 < sym.Expr(1), x, y))
         self.assertIdentical(y - 3, sym.where(sym.pi >= sym.euler, y - 3, x * 5))
 
+    def test_cast_bool_to_int(self):
+        """Test converting boolean values to integer."""
+        self.assertIdentical(1, sym.cast_int_from_bool(sym.one < 10.2))
+        self.assertIdentical(0, sym.cast_int_from_bool(sym.one == sym.zero))
+
     def test_subs(self):
         """Test calling subs() on expressions."""
         x, y, z = sym.symbols('x, y, z')

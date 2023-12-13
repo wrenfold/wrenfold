@@ -202,6 +202,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def("where", static_cast<Expr (*)(const Expr&, const Expr&, const Expr&)>(&wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
+  m.def("cast_int_from_bool", &wf::cast_int_from_bool, "arg"_a,
+        "Convert a boolean expression to an integer.");
+
   // Special constants:
   m.attr("euler") = constants::euler;
   m.attr("zoo") = constants::complex_infinity;
