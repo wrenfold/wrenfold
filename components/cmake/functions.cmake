@@ -94,11 +94,14 @@ function(add_cpp_test NAME)
   add_test(${NAME} ${NAME})
 endfunction()
 
-# Add a code-generator defined in python.
+# Add a code-generator defined in python. OUTPUT_FILE_NAME: Name of the
+# generated source file to write. SOURCE_FILES: Additional python files to track
+# as dependencies. SCRIPT_ARGUMENTS: Additional args to pass to the python
+# script.
 function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   set(options "")
   set(oneValueArgs OUTPUT_FILE_NAME)
-  set(multiValueArgs SOURCE_FILES)
+  set(multiValueArgs SOURCE_FILES SCRIPT_ARGUMENTS)
   cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
                         ${ARGN})
 
@@ -130,7 +133,7 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
     OUTPUT ${GENERATOR_OUTPUT_FILE}
     COMMAND
       ${CMAKE_COMMAND} -E env ${COMMAND_ENV_VARIABLES} ${Python_EXECUTABLE} -B
-      "${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_SCRIPT_FILE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_SCRIPT_FILE}" ${ARGS_SCRIPT_ARGUMENTS}
       "${GENERATOR_OUTPUT_FILE}"
     WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
     COMMENT "Run python code-generator: ${NAME}"
