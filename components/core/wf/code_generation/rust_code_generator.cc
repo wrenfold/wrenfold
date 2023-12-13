@@ -49,6 +49,7 @@ static std::vector<std::string_view> get_attributes(const function_signature& si
   //  do this correctly. Maybe possible with wstring_convert, but that is deprecated and allegedly
   //  leaks memory on Windows.
   result.push_back("non_snake_case");
+  result.push_back("dead_code");
 
   // Check if # of args exceeds clippy warning.
   if (signature.num_arguments() >= 7) {

@@ -1,5 +1,8 @@
+"""
+Example of generating b-splines functions.
+"""
+import argh
 import typing as T
-import time
 
 from wrenfold.type_annotations import RealScalar
 from wrenfold import code_generation
@@ -118,8 +121,8 @@ def create_bspline_functions(order: int) -> T.List[code_generation.codegen.Funct
             # Output the function, plus (order - 2) derivatives that are continuous.
             # The last non-zero derivative is discontinuous.
             columns = [b_subbed]
-            for n in range(0, order - 2):
-                columns.append(columns[n].diff(arg) * arg_scale)
+            for _ in range(0, order - 2):
+                columns.append(columns[-1].diff(arg) * arg_scale)
 
             return [OutputArg(expression=sym.hstack(columns), name="b")]
 
@@ -130,15 +133,19 @@ def create_bspline_functions(order: int) -> T.List[code_generation.codegen.Funct
     return descriptions
 
 
-def main():
+@argh.arg("--language", default=None, choices=["cpp", "rust"], help="Target language.")
+def main(output: str, *, language: str):
     descriptions = create_bspline_functions(order=4)
     descriptions += create_bspline_functions(order=7)
     definitions = code_generation.transpile(descriptions=descriptions)
-    code = code_generation.generate_cpp(definitions=definitions)
-    with open('generated.h', 'w') as handle:
-        handle.write(code_generation.apply_cpp_preamble(code, namespace="gen"))
-        handle.flush()
+    if language == "cpp":
+        code = code_generation.generate_cpp(definitions=definitions)
+        code = code_generation.apply_cpp_preamble(code, namespace="gen")
+        code_generation.mkdir_and_write_file(code=code, path=output)
+    elif language == "rust":
+        code = code_generation.generate_rust(definitions=definitions)
+        code_generation.mkdir_and_write_file(code=code, path=output)
 
 
 if __name__ == '__main__':
-    main()
+    argh.dispatch_command(main)
