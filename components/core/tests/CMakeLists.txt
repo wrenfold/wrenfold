@@ -26,12 +26,15 @@ add_code_generation_test(
   test_expressions.h)
 
 if(${ENABLE_RUST_TARGETS})
-  add_rust_generation_test(
-    NAME
-    rust_generation
-    GENERATOR_SOURCE_FILES
-    rust_generation_gen.cc
-    test_expressions.h
+
+  add_compiled_code_generator(
+    rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
+    rust_generation_gen.cc test_expressions.h)
+
+  add_rust_test(
+    rust_generation_test
+    GENERATOR_TARGET
+    rust_generation_generate
     CRATE_NAME
     rust_generation_test
     CRATE_SOURCES

@@ -28,7 +28,7 @@ int main() {
   generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", arg("x"), arg("y"));
   generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", arg("w"));
 
-  std::ofstream output{"generated.rs"};
+  std::ofstream output{GENERATOR_OUTPUT_FILE};
   output << code;
   output.flush();
   return 0;
