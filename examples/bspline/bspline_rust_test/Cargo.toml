@@ -1,5 +1,5 @@
 [package]
-name = "rust_generation_test"
+name = "bspline_rust_test"
 version = "0.1.0"
 edition = "2021"
 publish = false

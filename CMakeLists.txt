@@ -20,6 +20,9 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 # Add third party code
 add_subdirectory(dependencies)
 
+# Add our custom functions.
+include(cmake/functions.cmake)
+
 # Some shared warning flags:
 if(MSVC)
   # We turn off C4702 (unreachable code) because constexpr blocks trigger it
@@ -50,3 +53,8 @@ option(ENABLE_RUST_TARGETS "Enable building and testing rust targets."
 
 # Add libraries
 add_subdirectory(components)
+
+# Add examples:
+if(NOT DEFINED SKBUILD_PROJECT_NAME)
+  add_subdirectory(examples)
+endif()
