@@ -16,14 +16,12 @@ add_single_file_test(substitute_test.cc)
 add_single_file_test(quaternion_test.cc)
 add_single_file_test(limits_test.cc)
 
-add_code_generation_test(
-  cpp_generation
-  GENERATOR_SOURCE_FILES
-  cpp_generation_gen.cc
-  test_expressions.h
-  EVALUATOR_SOURCE_FILES
-  cpp_generation_test.cc
-  test_expressions.h)
+add_compiled_code_generator(
+  cpp_generation_generate OUTPUT_FILE_NAME "generated.h" SOURCE_FILES
+  cpp_generation_gen.cc test_expressions.h)
+
+add_cpp_test(cpp_generation_test SOURCE_FILES cpp_generation_test.cc
+             test_expressions.h GENERATOR_TARGET cpp_generation_generate)
 
 if(${ENABLE_RUST_TARGETS})
   add_compiled_code_generator(

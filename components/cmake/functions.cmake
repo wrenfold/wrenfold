@@ -94,28 +94,6 @@ function(add_cpp_test NAME)
   add_test(${NAME} ${NAME})
 endfunction()
 
-# Define a code-generation test. Each test consists of two stages: First the
-# `xxx_generate` target generates a header named `generated.h`, and then the
-# `xxx_evaluate` target includes the generated code and runs tests.
-# GENERATOR_SOURCE_FILES: Source files of the generator. EVALUATOR_SOURCE_FILES:
-# Source files of the evaluator.
-function(add_code_generation_test NAME)
-  set(options "")
-  set(oneValueArgs "")
-  set(multiValueArgs GENERATOR_SOURCE_FILES EVALUATOR_SOURCE_FILES)
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
-                        ${ARGN})
-
-  # First create a target that generates the code:
-  set(generate_target ${NAME}_generate)
-  add_compiled_code_generator(${generate_target} OUTPUT_FILE_NAME "generated.h"
-                              SOURCE_FILES ${ARGS_GENERATOR_SOURCE_FILES})
-
-  set(evaluate_target ${NAME}_test)
-  add_cpp_test(${evaluate_target} SOURCE_FILES ${ARGS_EVALUATOR_SOURCE_FILES}
-               GENERATOR_TARGET ${generate_target})
-endfunction()
-
 # Add a code-generator defined in python.
 function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   set(options "")
