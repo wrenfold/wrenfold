@@ -222,6 +222,15 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(x ** 2 * (y + 2) + x * (y ** 2 * sym.pi + y * (5 - sym.log(z))),
                              f.collect([x, y]))
 
+    def test_eval(self):
+        """Test calling eval() on an expression."""
+        x, y = sym.symbols('x, y')
+        self.assertIdentical(x, x.eval())
+        self.assertIdentical(x + 2.0, (x + y).subs(y, 2).eval())
+        self.assertEqual(5.3, sym.float(5.3).eval())
+        self.assertAlmostEqual(
+            4.3 / 2.71582, (x / y).subs(x, 4.3).subs(y, 2.71582).eval(), places=15)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
