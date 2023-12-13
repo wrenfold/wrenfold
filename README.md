@@ -15,7 +15,7 @@ git submodule update --init --recursive
 ### Setting up a development environment
 
 The following tools are required to build from source:
-- cmake >= 3.19
+- cmake >= 3.20
 - ninja (other build systems are not explicitly tested at this time)
 - python >= 3.8
 - mypy (required for [stubgen](https://mypy.readthedocs.io/en/stable/stubgen.html))

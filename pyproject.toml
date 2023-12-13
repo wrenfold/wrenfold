@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "scikit-build-core>=0.2.2",
-    "cmake>=3.19",
+    "cmake>=3.20",
     "mypy",
 ]
 build-backend = "scikit_build_core.build"
@@ -18,13 +18,13 @@ license = { text = "MIT" }
 readme = "README.md"
 
 [tool.scikit-build]
-cmake.minimum-version = "3.19"
+cmake.minimum-version = "3.20"
 cmake.args = ["-G", "Ninja", "-Wno-deprecated"]
 cmake.verbose = true
 cmake.build-type = "RelWithDebInfo"
 
 ninja.minimum-version = "1.5"
-ninja.make-fallback = true
+ninja.make-fallback = false
 
 logging.level = "WARNING"
 
