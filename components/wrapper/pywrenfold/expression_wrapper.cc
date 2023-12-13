@@ -84,6 +84,11 @@ Expr substitute_variables_wrapper(const Expr& self,
   return self.substitute_variables(pairs);
 }
 
+auto eval_wrapper(const Expr& self) {
+  Expr evaluated = self.eval();
+  return try_convert_to_numeric(evaluated);
+}
+
 // Defined in matrix_wrapper.cc
 void wrap_matrix_operations(py::module_& m);
 
@@ -126,7 +131,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
            "Replace the `target` expression with `substitute` in the expression tree.")
       .def("subs_variables", &substitute_variables_wrapper, py::arg("pairs"),
            "Substitute a list of variable expressions.")
-      .def("eval", &try_convert_to_numeric, "Evaluate into float expression.")
+      .def("eval", &eval_wrapper, "Evaluate into floating point expression.")
       .def(
           "collect", [](const Expr& self, const Expr& term) { return self.collect(term); },
           "term"_a, "Collect powers of the provided expression.")
