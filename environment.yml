@@ -9,3 +9,4 @@ dependencies:
   - ninja
   - mypy
   - numpy
+  - argh
