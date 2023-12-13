@@ -26,4 +26,5 @@ add_rust_test(
   GENERATOR_TARGET
   py_bspline_generate_rust
   CRATE_SOURCES
-  bspline_rust_test/src/lib.rs)
+  bspline_rust_test/src/lib.rs
+  bspline_rust_test/src/numerical.rs)

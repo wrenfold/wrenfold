@@ -1,5 +1,7 @@
 use nalgebra as na;
 
+mod numerical;
+
 mod gen {
     // CMake exports `CODE_GENERATION_FILE` when building this target.
     include!(concat!(env!("CODE_GENERATION_FILE")));
@@ -184,12 +186,22 @@ fn test_bspline_order4() {
         epsilon = 1.0e-12
     );
 
-    // Check that b-spline coefficients sum to one.
     const NUM_SAMPLES: usize = 1000;
     for x in (0..NUM_SAMPLES).map(|i| i as f64 / (NUM_SAMPLES as f64 - 1.0)) {
         let mut coefficients = na::SMatrix::zeros();
-        eval_bspline_coefficients_order4(x, num_knots, &mut coefficients);
+        let index = eval_bspline_coefficients_order4(x, num_knots, &mut coefficients);
+
+        // Check that b-spline coefficients sum to one.
         approx::assert_abs_diff_eq!(1.0, coefficients.column(0).sum(), epsilon = 1.0e-12);
+
+        // Test against numerical implementation:
+        for j in 0..4 {
+            approx::assert_abs_diff_eq!(
+                numerical::BSplineNumerical::new(4, num_knots).eval(x, index + j),
+                coefficients[(j, 0)],
+                epsilon = 1.0e-12,
+            );
+        }
     }
 }
 
@@ -200,7 +212,15 @@ fn test_bspline_order7() {
     const NUM_SAMPLES: usize = 1000;
     for x in (0..NUM_SAMPLES).map(|i| i as f64 / (NUM_SAMPLES as f64 - 1.0)) {
         let mut coefficients = na::SMatrix::zeros();
-        eval_bspline_coefficients_order7(x, num_knots, &mut coefficients);
+        let index = eval_bspline_coefficients_order7(x, num_knots, &mut coefficients);
         approx::assert_abs_diff_eq!(1.0, coefficients.column(0).sum(), epsilon = 1.0e-10);
+
+        for j in 0..7 {
+            approx::assert_abs_diff_eq!(
+                numerical::BSplineNumerical::new(7, num_knots).eval(x, index + j),
+                coefficients[(j, 0)],
+                epsilon = 1.0e-10,
+            );
+        }
     }
 }

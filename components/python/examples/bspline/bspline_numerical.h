@@ -28,7 +28,7 @@ class bspline_numerical {
     } else if (i > num_extended_knots() - order_ - 1) {
       return 1.0;
     }
-    return (i - order_ + 1) * knot_spacing();
+    return ((i + 1) - order_) * knot_spacing();
   }
 
   // Linear interpolation function.
@@ -42,10 +42,10 @@ class bspline_numerical {
   // Evaluate the Cox De Boor recurrence relation.
   constexpr double cox_de_boor(double x, std::size_t i, std::size_t k) noexcept {
     if (k == 0) {
-      if (knot_value(i) == knot_value(i + 1)) {
-        return 0.0;
-      }
-      if (knot_value(i) <= x && x <= knot_value(i + 1)) {
+      const std::size_t last_non_repeated_knot = num_knots_ + (order_ - 1) - 1;
+      const bool upper_bound =
+          x < knot_value(i + 1) || (i + 1 == last_non_repeated_knot && x == knot_value(i + 1));
+      if (knot_value(i) <= x && upper_bound) {
         return 1.0;
       } else {
         return 0.0;
