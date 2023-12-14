@@ -237,6 +237,19 @@ class MatrixWrapperTest(MathTestBase):
             sym.matrix([m[0, :].transpose(), m[1, :].transpose(), m[2, :].transpose()]),
             sym.vec(m_t))
 
+    def test_reshape(self):
+        """Test calling reshape on a matrix."""
+        x, y, z, a, b, c = sym.symbols('x, y, z, a, b, c')
+        self.assertIdentical(
+            sym.matrix([[x, y, z], [a, b, c]]),
+            sym.matrix([x, y, z, a, b, c]).reshape(2, 3))
+        self.assertIdentical(
+            sym.matrix([[x, y], [z, a], [b, c]]),
+            sym.matrix([x, y, z, a, b, c]).reshape((3, 2)))
+        self.assertRaises(sym.DimensionError, lambda: sym.eye(2).reshape(4, 5))
+        self.assertRaises(sym.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
+        self.assertRaises(sym.DimensionError, lambda: sym.eye(4).reshape(2, -8))
+
     def test_matrix_operations(self):
         """Check that add/mul/sub operations are wrapped."""
         m0 = sym.matrix_of_symbols('x', 4, 3)

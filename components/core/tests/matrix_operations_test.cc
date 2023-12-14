@@ -115,6 +115,20 @@ TEST(MatrixOperationsTest, TestTranspose) {
   ASSERT_IDENTICAL(m, m.transposed().transposed());
 }
 
+TEST(MatrixOperationsTest, TestReshape) {
+  const auto [a, b, c] = make_symbols("a", "b", "c");
+  const MatrixExpr m = make_matrix(2, 4, a * 2, -b, cos(c), 5, c / a, 8 * a, b * c, c / 2);
+
+  const MatrixExpr m_reshape = m.reshape(4, 2);
+  ASSERT_EQ(4, m_reshape.rows());
+  ASSERT_EQ(2, m_reshape.cols());
+
+  const auto old_contents = m.to_vector();
+  const auto new_contents = m_reshape.to_vector();
+  ASSERT_TRUE(std::equal(old_contents.begin(), old_contents.end(), new_contents.begin(),
+                         new_contents.end(), is_identical_struct<Expr>{}));
+}
+
 TEST(MatrixOperationsTest, TestVec) {
   const Expr a{"a"};
   const Expr b{"b"};
