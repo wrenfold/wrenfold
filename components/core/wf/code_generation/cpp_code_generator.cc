@@ -58,8 +58,6 @@ constexpr static std::string_view cpp_string_from_numeric_cast_type(
       return "std::int64_t";
     case code_numeric_type::floating_point:
       return "Scalar";
-    case code_numeric_type::complex:
-      return "std::complex<Scalar>";
   }
   return "<INVALID ENUM VALUE>";
 }

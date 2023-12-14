@@ -20,8 +20,6 @@ constexpr std::string_view type_string_from_numeric_type(code_numeric_type type)
       return "i64";
     case code_numeric_type::floating_point:
       return "f64";
-    case code_numeric_type::complex:
-      throw type_error("No complex number type yet in Rust");
   }
   throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
 }

@@ -131,8 +131,7 @@ void wrap_codegen_operations(py::module_& m) {
   py::enum_<code_numeric_type>(m, "NumericType")
       .value("Bool", code_numeric_type::boolean)
       .value("Integer", code_numeric_type::integral)
-      .value("Real", code_numeric_type::floating_point)
-      .value("Complex", code_numeric_type::complex);
+      .value("Real", code_numeric_type::floating_point);
 
   py::enum_<relational_operation>(m, "RelationalOperation")
       .value("LessThan", relational_operation::less_than)
