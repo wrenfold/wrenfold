@@ -184,6 +184,24 @@ auto format_ast(Iterator it, const wf::ast::return_object& r) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::read_input_scalar& r) {
+  return fmt::format_to(it, "{}", r.arg->name());
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::read_input_matrix& r) {
+  return fmt::format_to(it, "{}[{}, {}]", r.arg->name(), r.row, r.col);
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::read_input_struct& r) {
+  if (r.access_sequence.empty()) {
+    return fmt::format_to(it, "{}", r.arg->name());
+  }
+  return fmt::format_to(it, "{}.{}", r.arg->name(), fmt::join(r.access_sequence, "."));
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::special_constant& c) {
   return fmt::format_to(it, "({})", string_from_symbolic_constant(c.value));
 }
@@ -229,5 +247,23 @@ struct fmt::formatter<wf::type_variant, char> {
   template <typename Arg, typename FormatContext>
   auto format(const Arg& v, FormatContext& ctx) const -> decltype(ctx.out()) {
     return std::visit([&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, v);
+  }
+};
+
+// Support fmt printing of types convertible to `access_variant`
+template <typename T>
+struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<wf::access_variant, T>, char>> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename Arg, typename FormatContext>
+  auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
+    if constexpr (std::is_same_v<wf::access_variant, Arg>) {
+      return std::visit([&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, m);
+    } else if constexpr (std::is_same_v<wf::matrix_access, Arg>) {
+      const auto [row, col] = m.indices();
+      return fmt::format_to(ctx.out(), "[{}, {}]", row, col);
+    } else {  // is_same_v<wf::field_access, Arg>
+      return fmt::format_to(ctx.out(), "{}", m.field_name());
+    }
   }
 };
