@@ -93,6 +93,8 @@ std::string rust_code_generator::operator()(const ast::function_signature& signa
   if (const auto attributes = get_attributes(signature); !attributes.empty()) {
     fmt::format_to(std::back_inserter(result), "#[allow({})]\n", fmt::join(attributes, ", "));
   }
+  return result;
+}
 
   // Print the function name, then the list of generic parameters.
   fmt::format_to(std::back_inserter(result), "pub fn {}<", signature.name());
