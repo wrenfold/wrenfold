@@ -48,8 +48,6 @@ class cpp_code_generator {
     formatter.format(x.name);
   }
 
-  void operator()(code_formatter& formatter, const ast::input_value& x) const;
-
   void operator()(code_formatter& formatter, const ast::integer_literal& x) const {
     formatter.format("{}", x.value);
   }
@@ -59,6 +57,12 @@ class cpp_code_generator {
   void operator()(code_formatter& formatter, const ast::negate& x) const;
 
   void operator()(code_formatter& formatter, const ast::optional_output_branch& x) const;
+
+  void operator()(code_formatter& formatter, const ast::read_input_scalar& x) const;
+
+  void operator()(code_formatter& formatter, const ast::read_input_matrix& x) const;
+
+  void operator()(code_formatter& formatter, const ast::read_input_struct& x) const;
 
   // Accept ast::variant and delegate formatting of the stored type to our derived class.
   // Using enable_if here to prevent implicit conversion to the variant type.

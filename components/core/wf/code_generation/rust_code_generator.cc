@@ -134,20 +134,23 @@ void rust_code_generator::operator()(code_formatter& formatter,
   const auto& dest_name = assignment.arg->name();
   const type_variant& type = assignment.arg->type();
 
-  if (std::holds_alternative<matrix_type>(type)) {
-    const matrix_type mat = std::get<matrix_type>(type);
-    auto range = make_range<std::size_t>(0, assignment.values.size());
-    formatter.join(
-        [&](code_formatter& fmt, std::size_t i) {
-          const auto [row, col] = mat.compute_indices(i);
-          fmt.format("{}.set({}, {}, {});", dest_name, row, col, make_view(assignment.values[i]));
-        },
-        "\n", range);
-  } else {
-    // Otherwise it is a scalar, so just assign it:
-    WF_ASSERT_EQUAL(1, assignment.values.size());
-    formatter.format("*{} = {};", dest_name, make_view(assignment.values.front()));
-  }
+  overloaded_visit(
+      type,
+      [&](matrix_type mat) {
+        auto range = make_range<std::size_t>(0, assignment.values.size());
+        formatter.join(
+            [&](code_formatter& fmt, std::size_t i) {
+              const auto [row, col] = mat.compute_indices(i);
+              fmt.format("{}.set({}, {}, {});", dest_name, row, col,
+                         make_view(assignment.values[i]));
+            },
+            "\n", range);
+      },
+      [&](scalar_type) {
+        WF_ASSERT_EQUAL(1, assignment.values.size());
+        formatter.format("*{} = {};", dest_name, make_view(assignment.values.front()));
+      },
+      [&](const custom_type::const_shared_ptr&) { throw type_error("TODO: Implement me"); });
 }
 
 void rust_code_generator::operator()(code_formatter& formatter,
@@ -252,17 +255,6 @@ void rust_code_generator::operator()(wf::code_formatter& formatter, const ast::d
   formatter.format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::input_value& x) const {
-  WF_ASSERT(x.arg);
-  if (x.arg->is_matrix()) {
-    const matrix_type mat = std::get<matrix_type>(x.arg->type());
-    const auto [r, c] = mat.compute_indices(x.element);
-    formatter.format("{}.get({}, {})", x.arg->name(), r, c);
-  } else {
-    formatter.format(x.arg->name());
-  }
-}
-
 static constexpr std::string_view rust_string_for_symbolic_constant(
     const symbolic_constant_enum value) noexcept {
   switch (value) {
@@ -295,6 +287,29 @@ void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::optional_output_branch& x) const {
   formatter.format("if let Some({}) = {} ", x.arg->name(), x.arg->name());
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
+}
+
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::read_input_scalar& x) const {
+  WF_ASSERT(x.arg);
+  formatter.format(x.arg->name());
+}
+
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::read_input_matrix& x) const {
+  WF_ASSERT(x.arg);
+  formatter.format("{}.get({}, {})", x.arg->name(), x.row, x.col);
+}
+
+void rust_code_generator::operator()(code_formatter& formatter,
+                                     const ast::read_input_struct& x) const {
+  WF_ASSERT(x.arg);
+  formatter.format("{}", x.arg->name());
+  for (const access_variant& access : x.access_sequence) {
+    overloaded_visit(
+        access, [&](const field_access& f) { formatter.format(".{}", f.field_name()); },
+        [&](const matrix_access& m) { formatter.format("[({}, {})]", m.row(), m.col()); });
+  }
 }
 
 }  // namespace wf

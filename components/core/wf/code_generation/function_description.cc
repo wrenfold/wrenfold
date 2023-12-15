@@ -55,6 +55,7 @@ struct create_custom_type_inputs {
 
   void operator()(const custom_type::const_shared_ptr& c, const std::size_t arg_index,
                   std::vector<Expr>& output) const {
+    WF_ASSERT(c);
     // Append every field on this type, and recurse as well into child custom types.
     for (const custom_type::field& field : c->fields()) {
       std::visit([&](const auto& child) { operator()(child, arg_index, output); }, field.type());

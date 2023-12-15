@@ -373,11 +373,6 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("value", [](const ast::float_literal& f) { return f.value; })
       .def("__repr__", &format_ast_repr<ast::float_literal>);
 
-  py::class_<ast::input_value>(m, "InputValue")
-      .def_property_readonly("argument", [](const ast::input_value& v) { return v.arg; })
-      .def_property_readonly("element", [](const ast::input_value& v) { return v.element; })
-      .def("__repr__", &format_ast_repr<ast::input_value>);
-
   py::class_<ast::integer_literal>(m, "IntegerConstant")
       .def_property_readonly("value", [](const ast::integer_literal& i) { return i.value; })
       .def("__repr__", &format_ast_repr<ast::integer_literal>);
@@ -396,10 +391,55 @@ void wrap_codegen_operations(py::module_& m) {
       .def("__repr__", &format_ast_repr<ast::multiply>);
 
   py::class_<ast::optional_output_branch>(m, "OptionalOutputBranch")
-      .def_property_readonly("argument", [](const ast::optional_output_branch& b) { return b.arg; })
-      .def_property_readonly("statements",
-                             [](const ast::optional_output_branch& b) { return b.statements; })
+      .def_property_readonly("argument",
+                             [](const ast::optional_output_branch& self) { return self.arg; })
+      .def_property_readonly(
+          "statements", [](const ast::optional_output_branch& self) { return self.statements; })
       .def("__repr__", &format_ast_repr<ast::optional_output_branch>);
+
+  py::class_<ast::read_input_scalar>(m, "ReadInputScalar")
+      .def_property_readonly("argument",
+                             [](const ast::read_input_scalar& self) { return self.arg; })
+      .def("__repr__", &format_ast_repr<ast::read_input_scalar>);
+
+  py::class_<ast::read_input_matrix>(m, "ReadInputMatrix")
+      .def_property_readonly("argument",
+                             [](const ast::read_input_matrix& self) { return self.arg; })
+      .def_property_readonly("row", [](const ast::read_input_matrix& self) { return self.row; })
+      .def_property_readonly("col", [](const ast::read_input_matrix& self) { return self.col; })
+      .def("__repr__", &format_ast_repr<ast::read_input_matrix>);
+
+  py::class_<ast::read_input_struct>(m, "ReadInputStruct")
+      .def_property_readonly("argument",
+                             [](const ast::read_input_struct& self) { return self.arg; })
+      .def_property_readonly(
+          "access_sequence",
+          [](const ast::read_input_struct& self) { return self.access_sequence; })
+      .def("__repr__", &format_ast_repr<ast::read_input_struct>);
+
+  py::class_<field_access>(m, "FieldAccess")
+      .def_property_readonly(
+          "type",
+          [](const field_access& self) {
+            // Unfortunate, but for pybind11 we need to cast away const here.
+            return std::const_pointer_cast<custom_type>(self.type());
+          },
+          py::doc("The type of the struct we are accessing."))
+      .def_property_readonly("field_name", &field_access::field_name,
+                             py::doc("Name of the field being accessed."))
+      .def_property_readonly(
+          "field_type",
+          [](const field_access& self) {
+            const custom_type::field* field = self.type()->field_by_name(self.field_name());
+            WF_ASSERT(field != nullptr, "Missing field: {}", self.field_name());
+            return field->type();
+          },
+          py::doc("The type of the field being accessed."));
+
+  py::class_<matrix_access>(m, "MatrixAccess")
+      .def_property_readonly("indices", &matrix_access::indices, py::doc("Access "))
+      .def_property_readonly("row", &matrix_access::row, py::doc("Row index."))
+      .def_property_readonly("col", &matrix_access::col, py::doc("Col index."));
 
   m.def("generate_cpp", &emit_code<cpp_code_generator>, "definitions"_a,
         py::doc("Generate C++ code from the given function definitions."));

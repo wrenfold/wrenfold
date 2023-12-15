@@ -38,7 +38,7 @@ class matrix_type {
   constexpr std::size_t size() const noexcept { return static_cast<std::size_t>(rows_ * cols_); }
 
   // Convert flat index to [row, col] indices (assuming row major order).
-  std::pair<index_t, index_t> compute_indices(std::size_t element) const {
+  std::tuple<index_t, index_t> compute_indices(std::size_t element) const {
     WF_ASSERT_LESS(element, size());
     return std::make_pair(static_cast<index_t>(element) / cols_,
                           static_cast<index_t>(element) % cols_);
@@ -78,7 +78,7 @@ class custom_type {
   custom_type(std::string name, std::vector<field> fields);
 
   // Access a field by name. May return nullptr if the field does not exist.
-  const field* field_by_name(std::string_view name) noexcept;
+  const field* field_by_name(std::string_view name) const noexcept;
 
   // Name of the type.
   constexpr const std::string& name() const noexcept { return name_; }
@@ -97,5 +97,53 @@ class custom_type {
   // the same as the fields on the python type.
   std::vector<field> fields_;
 };
+
+// Represent the operation of reading a field on a custom type.
+class field_access {
+ public:
+  // Construct with strong ptr of the custom type we are accessing. Asserts that `type` is non-null.
+  field_access(custom_type::const_shared_ptr type, std::string name);
+
+  // The underlying type we are accessing a member on.
+  constexpr const custom_type::const_shared_ptr& type() const noexcept { return type_; }
+
+  // Underlying field name.
+  constexpr const std::string& field_name() const noexcept { return field_name_; }
+
+ private:
+  custom_type::const_shared_ptr type_;
+  std::string field_name_;
+};
+
+// Represent the operation of reading from a matrix nested within a custom user-specified type.
+class matrix_access {
+ public:
+  constexpr matrix_access(matrix_type type, std::size_t element_index) noexcept
+      : type_(type), element_index_(element_index) {}
+
+  // Type of matrix we are reading from.
+  constexpr const matrix_type& type() const noexcept { return type_; }
+
+  // Return row and column indices used to access the matrix.
+  std::tuple<index_t, index_t> indices() const { return type_.compute_indices(element_index_); }
+
+  // Return row index.
+  index_t row() const { return std::get<0>(type_.compute_indices(element_index_)); }
+
+  // Return col index.
+  index_t col() const { return std::get<1>(type_.compute_indices(element_index_)); }
+
+ private:
+  matrix_type type_;
+  std::size_t element_index_;
+};
+
+using access_variant = std::variant<field_access, matrix_access>;
+
+// Given a flat index, determine the sequence of accessors required to find the appropriate element
+// in an aggregate custom type. Performs a linear traversal of the object hierarchy until we reach
+// the index'th element, recording every read required.
+std::vector<access_variant> determine_access_sequence(
+    const custom_type::const_shared_ptr& top_level_type, std::size_t index);
 
 }  // namespace wf

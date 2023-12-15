@@ -16,8 +16,8 @@ U = T.TypeVar("U")
 AstVariantAnnotation = T.Union[codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArgument,
                                codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
                                codegen.ConstructReturnValue, codegen.Declaration,
-                               codegen.FloatConstant, codegen.InputValue, codegen.IntegerConstant,
-                               codegen.Multiply, codegen.OptionalOutputBranch, codegen.VariableRef,]
+                               codegen.FloatConstant, codegen.IntegerConstant, codegen.Multiply,
+                               codegen.OptionalOutputBranch, codegen.VariableRef,]
 
 
 @dataclasses.dataclass

@@ -31,12 +31,14 @@ using variant = std::variant<
     struct declaration,
     struct divide,
     struct float_literal,
-    struct input_value,
     struct integer_literal,
     struct multiply,
     struct negate,
     struct optional_output_branch,
     struct special_constant,
+    struct read_input_scalar,
+    struct read_input_matrix,
+    struct read_input_struct,
     struct variable_ref
     >;
 // clang-format on
@@ -172,12 +174,6 @@ struct float_literal {
   double value;
 };
 
-// Access an input argument at a specific index.
-struct input_value {
-  std::shared_ptr<const argument> arg;
-  index_t element;
-};
-
 // Use an integer constant in the output code.
 struct integer_literal {
   std::int64_t value;
@@ -218,6 +214,25 @@ struct optional_output_branch {
 // Use a symbolic constant in the output code.
 struct special_constant {
   symbolic_constant_enum value;
+};
+
+// Access a scalar input argument.
+struct read_input_scalar {
+  std::shared_ptr<const argument> arg;
+};
+
+// Access a single element from a matrix (2D span) input argument.
+struct read_input_matrix {
+  std::shared_ptr<const argument> arg;
+  index_t row;
+  index_t col;
+};
+
+// Access a single scalar member from a custom input type.
+struct read_input_struct {
+  std::shared_ptr<const argument> arg;
+  // Sequence of nested accessors required to obtain the relevant member.
+  std::vector<access_variant> access_sequence{};
 };
 
 }  // namespace wf::ast

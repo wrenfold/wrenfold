@@ -77,34 +77,45 @@ void cpp_code_generator::format_signature(code_formatter& formatter,
   formatter.format(">\n");
 
   if (signature.has_return_value()) {
-    if (!std::holds_alternative<scalar_type>(*signature.return_value_type())) {
-      // TODO: To support returning matrices in C++ we need more than just a `span` type.
-      throw type_error("Only scalars can be returned.");
-    } else {
-      formatter.format("auto {}(", signature.name());
-    }
+    const auto& ret_type = *signature.return_value_type();
+    overloaded_visit(
+        ret_type, [&](scalar_type) { formatter.format("auto"); },
+        [&](matrix_type) {
+          throw type_error(
+              "Matrices cannot be directly returned in C++ (since they are passed as spans).");
+        },
+        [&](const custom_type::const_shared_ptr&) {
+          throw type_error("TODO: Implement this branch.");
+        });
   } else {
-    formatter.format("void {}(", signature.name());
+    formatter.format("void");
   }
+  formatter.format(" {}(", signature.name());
 
   std::size_t counter = 0;
   auto arg_printer = [&counter](code_formatter& formatter, const argument::shared_ptr& arg) {
-    if (arg->is_matrix()) {
-      if (arg->direction() == argument_direction::input) {
-        formatter.format("const T{}&", counter);
-      } else {
-        formatter.format("T{}&&", counter);
-      }
-      ++counter;
-    } else {
-      const code_numeric_type numeric_type = std::get<scalar_type>(arg->type()).numeric_type();
-      if (arg->direction() == argument_direction::input) {
-        formatter.format("const {}", cpp_string_from_numeric_cast_type(numeric_type));
-      } else {
-        // Output reference for now.
-        formatter.format("{}&", cpp_string_from_numeric_cast_type(numeric_type));
-      }
-    }
+    overloaded_visit(
+        arg->type(),
+        [&](scalar_type s) {
+          if (arg->direction() == argument_direction::input) {
+            formatter.format("const {}", cpp_string_from_numeric_cast_type(s.numeric_type()));
+          } else {
+            // Output reference for now.
+            formatter.format("{}&", cpp_string_from_numeric_cast_type(s.numeric_type()));
+          }
+        },
+        [&](matrix_type) {
+          if (arg->direction() == argument_direction::input) {
+            formatter.format("const T{}&", counter);
+          } else {
+            formatter.format("T{}&&", counter);
+          }
+          ++counter;
+        },
+        [&](const custom_type::const_shared_ptr custom) {
+          // TODO: This needs to invoke a custom child class the user provides!
+          formatter.format("{}", custom->name());
+        });
 
     formatter.format(" {}", arg->name());
   };
@@ -122,23 +133,24 @@ void cpp_code_generator::operator()(code_formatter& formatter,
   const auto& dest_name = assignment.arg->name();
   const type_variant& type = assignment.arg->type();
 
-  if (std::holds_alternative<matrix_type>(type)) {
-    const matrix_type mat = std::get<matrix_type>(type);
-    auto range = make_range<std::size_t>(0, assignment.values.size());
-
-    formatter.join(
-        [&](code_formatter& fmt, std::size_t i) {
-          const auto [row, col] = mat.compute_indices(i);
-          fmt.format("{}{}({}, {}) = {};", assignment.arg->is_matrix() ? "_" : "", dest_name, row,
-                     col, make_view(assignment.values[i]));
-        },
-        "\n", range);
-
-  } else {
-    // Otherwise it is a scalar, so just assign it:
-    WF_ASSERT_EQUAL(1, assignment.values.size());
-    formatter.format("{} = {};", dest_name, make_view(assignment.values.front()));
-  }
+  overloaded_visit(
+      type,
+      [&](matrix_type mat) {
+        auto range = make_range(static_cast<std::size_t>(0), assignment.values.size());
+        formatter.join(
+            [&](code_formatter& fmt, std::size_t i) {
+              const auto [row, col] = mat.compute_indices(i);
+              fmt.format("_{}({}, {}) = {};", dest_name, row, col, make_view(assignment.values[i]));
+            },
+            "\n", range);
+      },
+      [&](scalar_type) {
+        WF_ASSERT_EQUAL(1, assignment.values.size());
+        formatter.format("{} = {};", dest_name, make_view(assignment.values.front()));
+      },
+      [&](const custom_type::const_shared_ptr&) {
+        throw type_error("TODO: Implement this branch");
+      });
 }
 
 void cpp_code_generator::operator()(code_formatter& formatter,
@@ -257,17 +269,6 @@ void cpp_code_generator::operator()(code_formatter& formatter,
   formatter.format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::input_value& x) const {
-  WF_ASSERT(x.arg);
-  if (std::holds_alternative<scalar_type>(x.arg->type())) {
-    formatter.format(x.arg->name());
-  } else {
-    const matrix_type& mat = std::get<matrix_type>(x.arg->type());
-    const auto [r, c] = mat.compute_indices(x.element);
-    formatter.format("_{}({}, {})", x.arg->name(), r, c);
-  }
-}
-
 void cpp_code_generator::operator()(code_formatter& formatter, const ast::multiply& x) const {
   formatter.format("{} * {}", make_view(x.left), make_view(x.right));
 }
@@ -280,6 +281,29 @@ void cpp_code_generator::operator()(code_formatter& formatter,
                                     const ast::optional_output_branch& x) const {
   formatter.format("if (static_cast<bool>({}{})) ", x.arg->is_matrix() ? "_" : "", x.arg->name());
   formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
+}
+
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::read_input_scalar& x) const {
+  WF_ASSERT(x.arg);
+  formatter.format(x.arg->name());
+}
+
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::read_input_matrix& x) const {
+  WF_ASSERT(x.arg);
+  formatter.format("_{}({}, {})", x.arg->name(), x.row, x.col);
+}
+
+void cpp_code_generator::operator()(code_formatter& formatter,
+                                    const ast::read_input_struct& x) const {
+  WF_ASSERT(x.arg);
+  formatter.format("{}", x.arg->name());
+  for (const access_variant& access : x.access_sequence) {
+    overloaded_visit(
+        access, [&](const field_access& f) { formatter.format(".{}", f.field_name()); },
+        [&](const matrix_access& m) { formatter.format("({}, {})", m.row(), m.col()); });
+  }
 }
 
 }  // namespace wf
