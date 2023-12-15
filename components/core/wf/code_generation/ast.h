@@ -136,10 +136,10 @@ struct compare {
 
 // Construct a type from the provided arguments.
 struct construct_return_value {
-  argument_type type;
+  type_variant type;
   std::vector<variant> args;
 
-  construct_return_value(argument_type, std::vector<variant>&& args);
+  construct_return_value(type_variant, std::vector<variant>&& args) noexcept;
 };
 
 // Declare a new variable and optionally assign it a value.

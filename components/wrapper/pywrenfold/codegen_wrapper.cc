@@ -9,6 +9,7 @@
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/ir_builder.h"
 #include "wf/code_generation/rust_code_generator.h"
+#include "wf/code_generation/types.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
 
@@ -50,6 +51,33 @@ std::string emit_code(const std::vector<function_definition::shared_ptr>& defini
     output += Generator{}.generate_code((*it)->signature(), (*it)->ast());
   }
   return output;
+}
+
+// Unfortunately for pybind this needs to be non-const shared ptr. Internally we save it as const.
+using custom_type_shared_ptr = std::shared_ptr<custom_type>;
+using field_type = std::variant<scalar_type, matrix_type, custom_type_shared_ptr>;
+
+std::shared_ptr<custom_type> init_custom_type(
+    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields) {
+  std::vector<custom_type::field> fields_converted{};
+  fields_converted.reserve(fields.size());
+  std::transform(
+      fields.begin(), fields.end(), std::back_inserter(fields_converted), [](const auto& tup) {
+        // We can't use a variant in the tuple, since it can't be default constructed. Instead we
+        // check for different types manually here.
+        const auto& [field_name, type_obj] = tup;
+        if (py::isinstance<scalar_type>(type_obj)) {
+          return custom_type::field(std::string{field_name}, py::cast<scalar_type>(type_obj));
+        } else if (py::isinstance<matrix_type>(type_obj)) {
+          return custom_type::field(std::string{field_name}, py::cast<matrix_type>(type_obj));
+        } else if (py::isinstance<custom_type_shared_ptr>(type_obj)) {
+          return custom_type::field(std::string{field_name},
+                                    py::cast<custom_type_shared_ptr>(type_obj));
+        } else {
+          throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
+        }
+      });
+  return std::make_shared<custom_type>(std::move(name), std::move(fields_converted));
 }
 
 void wrap_codegen_operations(py::module_& m) {
@@ -155,9 +183,13 @@ void wrap_codegen_operations(py::module_& m) {
       .def("compute_indices", &matrix_type::compute_indices)
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
 
-  py::class_<ast::variable_ref>(m, "VariableRef")
-      .def_property_readonly("name", [](const ast::variable_ref& v) { return v.name; })
-      .def("__repr__", &format_ast_repr<ast::variable_ref>);
+  py::class_<custom_type, std::shared_ptr<custom_type>>(m, "CustomType")
+      .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"),
+           py::doc("Construct custom type from fields."))
+      .def_property_readonly("name", &custom_type::name)
+      .def("__repr__", [](const custom_type& custom) {
+        return fmt::format("CustomType('{}', {} fields)", custom.name(), custom.size());
+      });
 
   py::class_<function_signature>(m, "FunctionSignature")
       .def_property_readonly("name", &function_signature::name)
@@ -190,6 +222,12 @@ void wrap_codegen_operations(py::module_& m) {
           py::doc("Add a matrix input argument. Returns placeholder value to pass to the python "
                   "function."))
       .def(
+          "add_input_argument",
+          [](function_description& self, const std::string_view name,
+             const custom_type::shared_ptr& type) { return self.add_input_argument(name, type); },
+          py::arg("name"), py::arg("type"),
+          py::doc("Add an input argument with a custom user-specified type."))
+      .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, bool is_optional,
              const Expr& value) {
@@ -206,17 +244,32 @@ void wrap_codegen_operations(py::module_& m) {
           },
           py::arg("name"), py::arg("is_optional"), py::arg("value"))
       .def(
+          "add_output_argument",
+          [](function_description& self, const std::string_view name, bool is_optional,
+             const custom_type::shared_ptr& custom_type, std::vector<Expr> expressions) {
+            self.add_output_argument(name, custom_type, is_optional, std::move(expressions));
+          },
+          py::arg("name"), py::arg("is_optional"), py::arg("custom_type"), py::arg("expressions"),
+          py::doc("Record an output argument of custom type."))
+      .def(
           "set_return_value",
           [](function_description& self, const Expr& value) {
             self.set_return_value(scalar_type(code_numeric_type::floating_point), {value});
           },
-          py::arg("type"))
+          py::arg("value"))
       .def(
           "set_return_value",
           [](function_description& self, const MatrixExpr& value) {
             self.set_return_value(matrix_type(value.rows(), value.cols()), value.to_vector());
           },
-          py::arg("type"));
+          py::arg("value"))
+      .def(
+          "set_return_value",
+          [](function_description& self, const custom_type::shared_ptr& custom_type,
+             std::vector<Expr> expressions) {
+            self.set_return_value(custom_type, std::move(expressions));
+          },
+          py::arg("custom_type"), py::arg("expressions"));
 
   // Use std::shared_ptr to store argument, since this is what ast::function_signature uses.
   // If we don't do this, we might free something incorrectly when accessing arguments.
@@ -231,6 +284,13 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<function_definition, std::shared_ptr<function_definition>>(m, "FunctionDefinition")
       .def_property_readonly("name",
                              [](const function_definition& def) { return def.signature().name(); });
+
+  // AST types are below:
+  // --------------------
+
+  py::class_<ast::variable_ref>(m, "VariableRef")
+      .def_property_readonly("name", [](const ast::variable_ref& v) { return v.name; })
+      .def("__repr__", &format_ast_repr<ast::variable_ref>);
 
   py::class_<ast::add>(m, "Add")
       .def_property_readonly("left", [](const ast::add& x) { return *x.left; })

@@ -132,7 +132,7 @@ void rust_code_generator::operator()(code_formatter& formatter, const ast::add& 
 void rust_code_generator::operator()(code_formatter& formatter,
                                      const ast::assign_output_argument& assignment) const {
   const auto& dest_name = assignment.arg->name();
-  const argument_type& type = assignment.arg->type();
+  const type_variant& type = assignment.arg->type();
 
   if (std::holds_alternative<matrix_type>(type)) {
     const matrix_type mat = std::get<matrix_type>(type);

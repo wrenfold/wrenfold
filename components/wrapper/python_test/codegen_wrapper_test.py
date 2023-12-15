@@ -7,6 +7,7 @@ test just evaluates that we can call the wrapper methods without crashing.
 In future when I add back python code-generation we can import some outputs directly and invoke them.
 """
 import unittest
+import dataclasses
 
 from wrenfold import sym
 from wrenfold.type_annotations import RealScalar, Vector2
@@ -41,17 +42,34 @@ def func3(x: Vector2, y: Vector2, z: RealScalar):
     ]
 
 
+@dataclasses.dataclass
+class Point2d:
+    """A custom type."""
+    x: RealScalar
+    y: RealScalar
+
+
+def rotate_point(angle: RealScalar, p: Point2d):
+    R = sym.matrix([[sym.cos(angle), -sym.sin(angle)], [sym.sin(angle), sym.cos(angle)]])
+    p_rotated = R * sym.vector(p.x, p.y)
+    p_out = Point2d(*p_rotated)
+    return [ReturnValue(p_out)]
+
+
 class CodeGenerationWrapperTest(MathTestBase):
 
     def test_code_generation(self):
-        descriptions = [
-            code_generation.create_function_description(func1),
-            code_generation.create_function_description(func2),
-            code_generation.create_function_description(func3),
-        ]
-        definitions = code_generation.transpile(descriptions=descriptions)
-        code_generation.generate_cpp(definitions=definitions)
-        code_generation.generate_rust(definitions=definitions)
+        import ipdb
+        with ipdb.launch_ipdb_on_exception():
+            descriptions = [
+                code_generation.create_function_description(func1),
+                code_generation.create_function_description(func2),
+                code_generation.create_function_description(func3),
+                code_generation.create_function_description(rotate_point),
+            ]
+            definitions = code_generation.transpile(descriptions=descriptions)
+            code_generation.generate_cpp(definitions=definitions)
+            code_generation.generate_rust(definitions=definitions)
 
 
 if __name__ == '__main__':

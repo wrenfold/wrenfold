@@ -6,8 +6,9 @@
 
 namespace wf::ast {
 
-construct_return_value::construct_return_value(argument_type type, std::vector<ast::variant>&& args)
-    : type(type), args(std::move(args)) {}
+construct_return_value::construct_return_value(type_variant type,
+                                               std::vector<ast::variant>&& args) noexcept
+    : type(std::move(type)), args(std::move(args)) {}
 
 std::vector<std::string> comment::split_lines() const {
   // Remove windows carriage return.

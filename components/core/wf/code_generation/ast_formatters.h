@@ -132,18 +132,20 @@ struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<wf::ast::varia
 
 // Support fmt printing of types convertible to `ast::Type`
 template <typename T>
-struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<wf::argument_type, T>, char>> {
+struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<wf::type_variant, T>, char>> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename Arg, typename FormatContext>
   auto format(const Arg& m, FormatContext& ctx) const -> decltype(ctx.out()) {
-    if constexpr (std::is_same_v<wf::argument_type, Arg>) {
+    if constexpr (std::is_same_v<wf::type_variant, Arg>) {
       return std::visit([&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, m);
     } else if constexpr (std::is_same_v<wf::scalar_type, Arg>) {
       return fmt::format_to(ctx.out(), "ScalarType<{}>",
                             string_from_code_numeric_type(m.numeric_type()));
-    } else {  // std::is_same_v<wf::matrix_type, Arg>
+    } else if constexpr (std::is_same_v<wf::matrix_type, Arg>) {
       return fmt::format_to(ctx.out(), "MatrixType<{}, {}>", m.rows(), m.cols());
+    } else {  // is_same_v<wf::custom_type::const_shared_ptr, Arg>
+      return fmt::format_to(ctx.out(), "CustomType('{}')", m->name());
     }
   }
 };
