@@ -1,15 +1,15 @@
 #include "wf/code_generation/rust_code_generator.h"
 
 #include "wf/code_generation/ast_formatters.h"
+#include "wf/index_range.h"
 
 namespace wf {
 
 std::string rust_code_generator::generate_code(const function_signature& signature,
                                                const std::vector<ast::variant>& body) const {
-  code_formatter result{};
-  format_signature(result, signature);
-  result.with_indentation(2, "{\n", "\n}", [&] { result.join(*this, "\n", body); });
-  return result.get_output();
+  std::string result = format_signature(signature);
+  join_and_indent(result, 2, "{\n", "\n}", "\n", body, *this);
+  return result;
 }
 
 constexpr std::string_view type_string_from_numeric_type(code_numeric_type type) {
@@ -55,118 +55,131 @@ static std::vector<std::string_view> get_attributes(const function_signature& si
   return result;
 }
 
-void rust_code_generator::format_signature(wf::code_formatter& formatter,
-                                           const function_signature& signature) const {
-  formatter.format("#[inline]\n");
-
-  const auto attributes = get_attributes(signature);
-  if (!attributes.empty()) {
-    formatter.format("#[allow({})]\n", fmt::join(attributes, ", "));
-  }
-  formatter.format("pub fn {}{}", signature.name(), signature.has_matrix_arguments() ? "<" : "");
-
+// Assign indices to arguments that need generics declared. (Just matrices for now).
+// Returns new vector with _only_ the args that need generics.
+static auto assign_labels_to_generic_args(const std::vector<argument::shared_ptr>& args) {
+  std::vector<std::tuple<std::string, argument::shared_ptr>> result;
+  result.reserve(args.size());
   std::size_t counter = 0;
-  for (const auto& arg : signature.arguments()) {
+  for (const auto& arg : args) {
     if (arg->is_matrix()) {
-      formatter.format("T{}, ", counter++);
+      result.emplace_back(fmt::format("T{}", counter), arg);
+      ++counter;
     }
   }
+  return result;
+}
 
-  formatter.format("{}(", signature.has_matrix_arguments() ? ">" : "");
+std::string rust_code_generator::format_signature(const function_signature& signature) const {
+  std::string result = "#[inline]\n";
+  if (const auto attributes = get_attributes(signature); !attributes.empty()) {
+    fmt::format_to(std::back_inserter(result), "#[allow({})]\n", fmt::join(attributes, ", "));
+  }
 
-  counter = 0;
-  for (const auto& arg : signature.arguments()) {
-    formatter.format("{}: ", arg->name());
+  // Assign generic naames to arguments that require them:
+  const auto generic_args = assign_labels_to_generic_args(signature.arguments());
 
-    std::string output_type;
-    if (arg->is_matrix()) {
-      output_type = fmt::format("T{}", counter);
-      ++counter;
-    } else {
-      output_type = "f64";
+  // Print the function name, then the list of generic parameters.
+  fmt::format_to(std::back_inserter(result), "pub fn {}", signature.name());
+  if (!generic_args.empty()) {
+    result.append("<");
+    for (const auto& [generic, _] : generic_args) {
+      fmt::format_to(std::back_inserter(result), "{}, ", generic);
     }
+    result.append(">");
+  }
+
+  result.append("(");
+  for (const auto& arg : signature.arguments()) {
+    fmt::format_to(std::back_inserter(result), "{}: ", arg->name());
+
+    // Check if this arg has a generic label:
+    const auto generic_it =
+        std::find_if(generic_args.begin(), generic_args.end(),
+                     [&](const auto& pair) { return std::get<1>(pair) == arg; });
+    const std::string output_type =
+        generic_it != generic_args.end() ? std::get<0>(*generic_it) : "f64";
 
     switch (arg->direction()) {
       case argument_direction::input:
-        formatter.format("{}{}, ", arg->is_matrix() ? "&" : "", output_type);
+        fmt::format_to(std::back_inserter(result), "{}{}, ", arg->is_matrix() ? "&" : "",
+                       output_type);
         break;
       case argument_direction::output:
-        formatter.format("&mut {}, ", output_type);
+        fmt::format_to(std::back_inserter(result), "&mut {}, ", output_type);
         break;
       case argument_direction::optional_output:
-        formatter.format("Option<&mut {}>, ", output_type);
+        fmt::format_to(std::back_inserter(result), "Option<&mut {}>, ", output_type);
         break;
     }
   }
 
   if (!signature.has_return_value()) {
-    formatter.format(")\n");
+    result.append(")\n");
   } else {
     const auto return_type = *signature.return_value_type();
     if (const scalar_type* s = std::get_if<scalar_type>(&return_type); s != nullptr) {
-      formatter.format(") -> {}\n", type_string_from_numeric_type(*s));
+      fmt::format_to(std::back_inserter(result), ") -> {}\n", type_string_from_numeric_type(*s));
     } else {
       throw type_error("Return values must be scalars.");
     }
   }
 
-  if (signature.has_matrix_arguments()) {
-    formatter.with_indentation(2, "where\n", "", [&] {
-      std::size_t counter = 0;
-      for (const auto& arg : signature.arguments()) {
-        if (arg->is_matrix()) {
-          const matrix_type mat = std::get<matrix_type>(arg->type());
-          formatter.format("T{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,\n", counter++,
-                           span_type_from_direction(arg->direction()), mat.rows(), mat.cols(),
-                           type_string_from_numeric_type(code_numeric_type::floating_point));
-        }
-      }
+  if (!generic_args.empty()) {
+    join_and_indent(result, 2, "where\n", "\n", "\n", generic_args, [](const auto& label_and_arg) {
+      const auto& [label, arg] = label_and_arg;
+      const matrix_type* mat = std::get_if<matrix_type>(&arg->type());
+      WF_ASSERT(mat != nullptr);
+      return fmt::format("{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,", label,
+                         span_type_from_direction(arg->direction()), mat->rows(), mat->cols(),
+                         type_string_from_numeric_type(code_numeric_type::floating_point));
     });
   }
+  return result;
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::add& x) const {
-  formatter.format("{} + {}", make_view(x.left), make_view(x.right));
+std::string rust_code_generator::operator()(const ast::add& x) const {
+  return fmt::format("{} + {}", make_view(x.left), make_view(x.right));
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::assign_output_argument& assignment) const {
+std::string rust_code_generator::operator()(const ast::assign_output_argument& assignment) const {
   const auto& dest_name = assignment.arg->name();
   const type_variant& type = assignment.arg->type();
 
-  overloaded_visit(
+  return overloaded_visit(
       type,
       [&](matrix_type mat) {
-        auto range = make_range<std::size_t>(0, assignment.values.size());
-        formatter.join(
-            [&](code_formatter& fmt, std::size_t i) {
+        const auto range = make_range<std::size_t>(0, assignment.values.size());
+        return join(
+            [&](std::size_t i) {
               const auto [row, col] = mat.compute_indices(i);
-              fmt.format("{}.set({}, {}, {});", dest_name, row, col,
-                         make_view(assignment.values[i]));
+              return fmt::format("{}.set({}, {}, {});", dest_name, row, col,
+                                 make_view(assignment.values[i]));
             },
             "\n", range);
       },
       [&](scalar_type) {
         WF_ASSERT_EQUAL(1, assignment.values.size());
-        formatter.format("*{} = {};", dest_name, make_view(assignment.values.front()));
+        return fmt::format("*{} = {};", dest_name, make_view(assignment.values.front()));
       },
-      [&](const custom_type::const_shared_ptr&) { throw type_error("TODO: Implement me"); });
+      [&](const custom_type::const_shared_ptr&) -> std::string {
+        throw type_error("TODO: Implement me");
+      });
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::assign_temporary& x) const {
-  formatter.format("{} = {};", x.left, make_view(x.right));
+std::string rust_code_generator::operator()(const ast::assign_temporary& x) const {
+  return fmt::format("{} = {};", x.left, make_view(x.right));
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::branch& x) const {
+std::string rust_code_generator::operator()(const ast::branch& x) const {
   WF_ASSERT(x.condition);
-  formatter.format("if {} ", make_view(x.condition));
-  formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.if_branch); });
-
+  std::string result{};
+  fmt::format_to(std::back_inserter(result), "if {}", make_view(x.condition));
+  join_and_indent(result, 2, "{\n", "\n}", "\n", x.if_branch, *this);
   if (!x.else_branch.empty()) {
-    formatter.with_indentation(2, " else {\n", "\n}",
-                               [&] { formatter.join(*this, "\n", x.else_branch); });
+    join_and_indent(result, 2, " else {\n", "\n}", "\n", x.else_branch, *this);
   }
+  return result;
 }
 
 static constexpr std::string_view rust_string_for_std_function(
@@ -204,55 +217,56 @@ static constexpr std::string_view rust_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::call& x) const {
+std::string rust_code_generator::operator()(const ast::call& x) const {
   // We have to override signum specially here, because the built-in rust signum does not return 0.
   if (x.function == std_math_function::signum) {
     // TODO: should be an integer expression:
-    formatter.format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
-                     make_view(x.args[0]));
+    return fmt::format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
+                       make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", rust_string_for_std_function(x.function),
-                     make_join_view(*this, ", ", x.args));
+    const std::string args = join(*this, ", ", x.args);
+    return fmt::format("{}({})", rust_string_for_std_function(x.function), args);
   }
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::cast& x) const {
+std::string rust_code_generator::operator()(const ast::cast& x) const {
   // TODO: Parens are sometimes superfluous here.
-  formatter.format("({}) as {}", make_view(x.arg),
-                   type_string_from_numeric_type(x.destination_type));
+  return fmt::format("({}) as {}", make_view(x.arg),
+                     type_string_from_numeric_type(x.destination_type));
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::comment& x) const {
+std::string rust_code_generator::operator()(const ast::comment& x) const {
   const std::vector<std::string> lines = x.split_lines();
+  std::string result{};
   for (const auto& line : lines) {
-    formatter.format("// {}\n", line);
+    fmt::format_to(std::back_inserter(result), "// {}\n", line);
   }
+  return result;
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::compare& x) const {
+std::string rust_code_generator::operator()(const ast::compare& x) const {
   // TODO: Parens are sometimes superfluous.
-  formatter.format("({}) {} ({})", make_view(x.left), string_from_relational_operation(x.operation),
-                   make_view(x.right));
+  return fmt::format("({}) {} ({})", make_view(x.left),
+                     string_from_relational_operation(x.operation), make_view(x.right));
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::construct_return_value& x) const {
+std::string rust_code_generator::operator()(const ast::construct_return_value& x) const {
   WF_ASSERT(std::holds_alternative<scalar_type>(x.type), "We cannot return matrices");
   WF_ASSERT_EQUAL(1, x.args.size());
-  formatter.format("{}", make_view(x.args[0]));
+  return fmt::format("{}", make_view(x.args[0]));
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::declaration& x) const {
+std::string rust_code_generator::operator()(const ast::declaration& x) const {
   if (!x.value) {
-    formatter.format("let {}: {};", x.name, type_string_from_numeric_type(x.type));
+    return fmt::format("let {}: {};", x.name, type_string_from_numeric_type(x.type));
   } else {
-    formatter.format("let {}: {} = {};", x.name, type_string_from_numeric_type(x.type),
-                     make_view(x.value));
+    return fmt::format("let {}: {} = {};", x.name, type_string_from_numeric_type(x.type),
+                       make_view(x.value));
   }
 }
 
-void rust_code_generator::operator()(wf::code_formatter& formatter, const ast::divide& x) const {
-  formatter.format("{} / {}", make_view(x.left), make_view(x.right));
+std::string rust_code_generator::operator()(const ast::divide& x) const {
+  return fmt::format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
 static constexpr std::string_view rust_string_for_symbolic_constant(
@@ -270,46 +284,49 @@ static constexpr std::string_view rust_string_for_symbolic_constant(
   return "<INVALID ENUM VALUE>";
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::special_constant& x) const {
-  formatter.format("{}", rust_string_for_symbolic_constant(x.value));
+std::string rust_code_generator::operator()(const ast::special_constant& x) const {
+  return std::string{rust_string_for_symbolic_constant(x.value)};
 }
 
-void rust_code_generator::operator()(code_formatter& formatter, const ast::multiply& x) const {
-  formatter.format("{} * {}", make_view(x.left), make_view(x.right));
+std::string rust_code_generator::operator()(const ast::multiply& x) const {
+  return fmt::format("{} * {}", make_view(x.left), make_view(x.right));
 }
 
-void rust_code_generator::operator()(wf::code_formatter& formatter, const ast::negate& x) const {
-  formatter.format("-{}", make_view(x.arg));
+std::string rust_code_generator::operator()(const ast::negate& x) const {
+  return fmt::format("-{}", make_view(x.arg));
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::optional_output_branch& x) const {
-  formatter.format("if let Some({}) = {} ", x.arg->name(), x.arg->name());
-  formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
+std::string rust_code_generator::operator()(const ast::optional_output_branch& x) const {
+  std::string result{};
+  fmt::format_to(std::back_inserter(result), "if let Some({}) = {} ", x.arg->name(), x.arg->name());
+  join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
+  return result;
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::read_input_scalar& x) const {
+std::string rust_code_generator::operator()(const ast::read_input_scalar& x) const {
   WF_ASSERT(x.arg);
-  formatter.format(x.arg->name());
+  return x.arg->name();
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::read_input_matrix& x) const {
+std::string rust_code_generator::operator()(const ast::read_input_matrix& x) const {
   WF_ASSERT(x.arg);
-  formatter.format("{}.get({}, {})", x.arg->name(), x.row, x.col);
+  return fmt::format("{}.get({}, {})", x.arg->name(), x.row, x.col);
 }
 
-void rust_code_generator::operator()(code_formatter& formatter,
-                                     const ast::read_input_struct& x) const {
+std::string rust_code_generator::operator()(const ast::read_input_struct& x) const {
   WF_ASSERT(x.arg);
-  formatter.format("{}", x.arg->name());
+  std::string result = x.arg->name();
   for (const access_variant& access : x.access_sequence) {
     overloaded_visit(
-        access, [&](const field_access& f) { formatter.format(".{}", f.field_name()); },
-        [&](const matrix_access& m) { formatter.format("[({}, {})]", m.row(), m.col()); });
+        access,
+        [&](const field_access& f) {
+          fmt::format_to(std::back_inserter(result), ".{}", f.field_name());
+        },
+        [&](const matrix_access& m) {
+          fmt::format_to(std::back_inserter(result), "[({}, {})]", m.row(), m.col());
+        });
   }
+  return result;
 }
 
 }  // namespace wf

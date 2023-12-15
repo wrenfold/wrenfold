@@ -53,17 +53,16 @@ std::string emit_code(const std::vector<function_definition::shared_ptr>& defini
   return output;
 }
 
-// Unfortunately for pybind this needs to be non-const shared ptr. Internally we save it as const.
-using custom_type_shared_ptr = std::shared_ptr<custom_type>;
-using field_type = std::variant<scalar_type, matrix_type, custom_type_shared_ptr>;
-
 std::shared_ptr<custom_type> init_custom_type(
     std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields) {
+  // Unfortunately for pybind this needs to be non-const shared ptr. Internally we save it as const.
+  using custom_type_shared_ptr = std::shared_ptr<custom_type>;
+
   std::vector<custom_type::field> fields_converted{};
   fields_converted.reserve(fields.size());
   std::transform(
       fields.begin(), fields.end(), std::back_inserter(fields_converted), [](const auto& tup) {
-        // We can't use a variant in the tuple, since it can't be default constructed. Instead we
+        // We can't use a variant in the tuple, since it can't be default constructed. Instead, we
         // check for different types manually here.
         const auto& [field_name, type_obj] = tup;
         if (py::isinstance<scalar_type>(type_obj)) {

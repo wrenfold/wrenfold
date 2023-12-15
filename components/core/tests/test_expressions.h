@@ -4,6 +4,7 @@
 #include "wf/functions.h"
 #include "wf/geometry/quaternion.h"
 #include "wf/matrix_functions.h"
+#include "wf/output_annotations.h"
 #include "wf/type_annotations.h"
 
 // Some symbolic functions we use in unit tests.

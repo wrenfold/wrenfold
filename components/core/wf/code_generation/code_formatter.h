@@ -1,80 +1,13 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/code_generation/ir_builder.h"
-#include "wf/index_range.h"
+#include <string>
+
+#include "wf/fmt_imports.h"
 
 namespace wf {
 
 template <typename Formatter, typename T>
 struct fmt_view;
-
-template <typename Formatter, typename Container>
-struct fmt_join_view;
-
-class code_formatter {
- public:
-  code_formatter() = default;
-
-  // Format into internal string buffer.
-  template <typename... Args>
-  void format(const std::string_view fmt, Args&&... args) {
-    if constexpr (sizeof...(args) > 0) {
-      fmt::format_to(std::back_inserter(output_), fmt, std::forward<Args>(args)...);
-    } else {
-      output_.append(fmt);
-    }
-  }
-
-  // Join using the provided formatter and separator.
-  template <typename Formatter, typename Container>
-  void join(Formatter&& formatter, const std::string_view separator, const Container& container) {
-    auto it = container.begin();
-    if (it == container.end()) {
-      return;
-    }
-    formatter(*this, *it);
-    for (++it; it != container.end(); ++it) {
-      format(separator);
-      formatter(*this, *it);
-    }
-  }
-
-  // Invoke the user-provided callable. Any content added in the scope of the
-  // callable will be intended by `indent` spaces and wrapped in `open` and `close`.
-  template <typename Callable>
-  void with_indentation(const int indent, const std::string_view open, const std::string_view close,
-                        Callable&& callable) {
-    WF_ASSERT_GREATER_OR_EQ(indent, 0);
-    // Move output_ -> appended
-    std::string appended{};
-    std::swap(output_, appended);
-    format(open);
-    callable();
-    // Restore appended -> output_
-    std::swap(appended, output_);
-    // Copy appended into output_, adding indentation as required
-    append_with_indentation(appended, indent);
-    format(close);
-  }
-
-  const std::string& get_output() const { return output_; }
-
- private:
-  void append_with_indentation(const std::string& appended, const int indentation) {
-    for (auto it = appended.begin(); it != appended.end(); ++it) {
-      output_.push_back(*it);
-      if (*it == '\n' && std::next(it) != appended.end()) {
-        for (int i = 0; i < indentation; ++i) {
-          output_.push_back(' ');
-        }
-      }
-    }
-  }
-
-  // TODO: gcc/clang/msvc all allow ~24 bytes for small string. Could potentially
-  // replace this w/ a custom type if we want more than that.
-  std::string output_{};
-};
 
 namespace detail {
 
@@ -99,14 +32,48 @@ struct fmt_view<Formatter, std::tuple<Args...>> {
   std::tuple<Args...> tuple;
 };
 
-template <typename Formatter, typename Container>
-struct fmt_join_view {
-  Formatter formatter;
-  Container container;  //  Container, which may be a const lvalue reference.
-  std::string_view separator;
-};
-
 }  // namespace detail
+
+// Join using the provided formatter and separator.
+template <typename Formatter, typename Container>
+std::string join(Formatter&& formatter, const std::string_view separator,
+                 const Container& container) {
+  auto it = container.begin();
+  if (it == container.end()) {
+    return "";
+  }
+  std::string result{};
+  result += formatter(*it);
+  for (++it; it != container.end(); ++it) {
+    result.append(separator);
+    result += formatter(*it);
+  }
+  return result;
+}
+
+// Indent a string and prefix/suffix it with open and closing brackets.
+template <typename Formatter, typename Container>
+void join_and_indent(std::string& output, const std::size_t indendation,
+                     const std::string_view open, const std::string_view close,
+                     const std::string_view separator, const Container& container,
+                     Formatter&& formatter) {
+  output.append(open);
+  const std::string joined = join(formatter, separator, container);
+
+  output.reserve(output.size() + joined.size());
+
+  // Indent the first line:
+  output.insert(output.end(), indendation, ' ');
+
+  for (auto char_it = joined.begin(); char_it != joined.end(); ++char_it) {
+    output.push_back(*char_it);
+    // Every instance of a newline should have indentation (as long as the string is not ending).
+    if (*char_it == '\n' && std::next(char_it) != joined.end()) {
+      output.insert(output.end(), indendation, ' ');
+    }
+  }
+  output.append(close);
+}
 
 // Wrap an argument to fmt::formatter, such that the underlying argument will be
 // formatted by calling back into an object of type `Formatter`.
@@ -118,16 +85,6 @@ auto make_fmt_view(Formatter&& formatter, Args&&... args) {
       std::forward<Args>(args)...};
   return detail::fmt_view<detail::convert_rvalue_ref_to_value_t<decltype(formatter)>,
                           decltype(tup)>{std::forward<Formatter>(formatter), std::move(tup)};
-}
-
-template <typename Formatter, typename Container>
-auto make_join_view(Formatter&& formatter, const std::string_view separator,
-                    Container&& container) {
-  // Determine if args are r-values or l-values, and move them if appropriate.
-  // The resulting JoinView will store either values or const references.
-  return detail::fmt_join_view<detail::convert_rvalue_ref_to_value_t<decltype(formatter)>,
-                               detail::convert_rvalue_ref_to_value_t<decltype(container)>>{
-      std::forward<Formatter>(formatter), std::forward<Container>(container), separator};
 }
 
 }  // namespace wf
@@ -142,31 +99,12 @@ struct fmt::formatter<wf::detail::fmt_view<Formatter, std::tuple<Args...>>> {
   template <typename FormatContext>
   auto format(const wf::detail::fmt_view<Formatter, std::tuple<Args...>>& view,
               FormatContext& ctx) const -> decltype(ctx.out()) {
-    wf::code_formatter nested_formatter{};
-
     // Invoke the user provided method w/ the nested formatter:
-    std::apply(
-        [&view, &nested_formatter](auto&&... args) {
-          return view.formatter(nested_formatter, std::forward<decltype(args)>(args)...);
-        },
+    const auto result = std::apply(
+        [&view](auto&&... args) { return view.formatter(std::forward<decltype(args)>(args)...); },
         view.tuple);
 
     // Append the result
-    const auto& result = nested_formatter.get_output();
-    return std::copy(result.begin(), result.end(), ctx.out());
-  }
-};
-
-template <typename Formatter, typename Container>
-struct fmt::formatter<wf::detail::fmt_join_view<Formatter, Container>> {
-  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(const wf::detail::fmt_join_view<Formatter, Container>& view, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
-    wf::code_formatter nested_formatter{};
-    nested_formatter.join(view.formatter, view.separator, view.container);
-    const auto& result = nested_formatter.get_output();
     return std::copy(result.begin(), result.end(), ctx.out());
   }
 };

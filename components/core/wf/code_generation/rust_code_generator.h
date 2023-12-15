@@ -1,8 +1,8 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/code_generation/code_formatter.h"
-
 #include "wf/assertions.h"
+#include "wf/code_generation/ast.h"
+#include "wf/code_generation/code_formatter.h"
 
 namespace wf {
 
@@ -19,69 +19,67 @@ class rust_code_generator {
     return ::wf::make_fmt_view(*this, std::forward<Args>(args)...);
   }
 
-  void operator()(code_formatter& formatter, const ast::add& x) const;
+  std::string operator()(const ast::add& x) const;
 
-  void operator()(code_formatter& formatter, const ast::assign_output_argument& x) const;
+  std::string operator()(const ast::assign_output_argument& x) const;
 
-  void operator()(code_formatter& formatter, const ast::assign_temporary& x) const;
+  std::string operator()(const ast::assign_temporary& x) const;
 
-  void operator()(code_formatter& formatter, const ast::branch& x) const;
+  std::string operator()(const ast::branch& x) const;
 
-  void operator()(code_formatter& formatter, const ast::call& x) const;
+  std::string operator()(const ast::call& x) const;
 
-  void operator()(code_formatter& formatter, const ast::cast& x) const;
+  std::string operator()(const ast::cast& x) const;
 
-  void operator()(code_formatter& formatter, const ast::comment& x) const;
+  std::string operator()(const ast::comment& x) const;
 
-  void operator()(code_formatter& formatter, const ast::compare& x) const;
+  std::string operator()(const ast::compare& x) const;
 
-  void operator()(code_formatter& formatter, const ast::construct_return_value& x) const;
+  std::string operator()(const ast::construct_return_value& x) const;
 
-  void operator()(code_formatter& formatter, const ast::declaration& x) const;
+  std::string operator()(const ast::declaration& x) const;
 
-  void operator()(code_formatter& formatter, const ast::divide& x) const;
+  std::string operator()(const ast::divide& x) const;
 
-  void operator()(code_formatter& formatter, const ast::float_literal& x) const {
-    formatter.format("{}f64", x.value);
+  std::string operator()(const ast::float_literal& x) const {
+    return fmt::format("{}f64", x.value);
   }
 
-  void operator()(code_formatter& formatter, const ast::special_constant& x) const;
+  std::string operator()(const ast::special_constant& x) const;
 
-  void operator()(code_formatter& formatter, const ast::variable_ref& x) const {
-    formatter.format(x.name);
+  std::string operator()(const ast::variable_ref& x) const { return x.name; }
+
+  std::string operator()(const ast::integer_literal& x) const {
+    return fmt::format("{}i64", x.value);
   }
 
-  void operator()(code_formatter& formatter, const ast::integer_literal& x) const {
-    formatter.format("{}i64", x.value);
-  }
+  std::string operator()(const ast::multiply& x) const;
 
-  void operator()(code_formatter& formatter, const ast::multiply& x) const;
+  std::string operator()(const ast::negate& x) const;
 
-  void operator()(code_formatter& formatter, const ast::negate& x) const;
+  std::string operator()(const ast::optional_output_branch& x) const;
 
-  void operator()(code_formatter& formatter, const ast::optional_output_branch& x) const;
+  std::string operator()(const ast::read_input_scalar& x) const;
 
-  void operator()(code_formatter& formatter, const ast::read_input_scalar& x) const;
+  std::string operator()(const ast::read_input_matrix& x) const;
 
-  void operator()(code_formatter& formatter, const ast::read_input_matrix& x) const;
-
-  void operator()(code_formatter& formatter, const ast::read_input_struct& x) const;
+  std::string operator()(const ast::read_input_struct& x) const;
 
   // Accept ast::variant and delegate formatting of the stored type to our derived class.
   // Using enable_if here to prevent implicit conversion to the variant type.
-  template <typename T, typename = std::enable_if_t<std::is_same_v<T, ast::variant>>>
-  void operator()(code_formatter& formatter, const T& var) const {
-    std::visit([&](const auto& x) { return operator()(formatter, x); }, var);
+  template <typename T, typename = enable_if_same_t<T, ast::variant>>
+  std::string operator()(const T& var) const {
+    return std::visit(*this, var);
   }
 
   // Accept ast::variant_ptr
-  void operator()(code_formatter& formatter, const ast::variant_ptr& var) const {
+  std::string operator()(const ast::variant_ptr& var) const {
     WF_ASSERT(var);
-    operator()(formatter, *var);
+    return std::visit(*this, *var);
   }
 
  private:
-  void format_signature(code_formatter& formatter, const function_signature& signature) const;
+  std::string format_signature(const function_signature& signature) const;
 };
 
 }  // namespace wf

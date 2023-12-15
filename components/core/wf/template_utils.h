@@ -48,6 +48,10 @@ struct function_traits<Ret (*)(Args...)> {
   using args_list_element_t = typename std::tuple_element<i, std::tuple<Args...>>::type;
 };
 
+// Enable if to check that two types are the same.
+template <typename A, typename B>
+using enable_if_same_t = std::enable_if_t<std::is_same_v<A, B>>;
+
 // Template to check if the `operator()` method is implemented.
 template <typename T, typename, typename = void>
 constexpr bool has_call_operator_v = false;
@@ -198,6 +202,12 @@ template <typename T>
 constexpr bool is_tuple_v = false;
 template <typename... Ts>
 constexpr bool is_tuple_v<std::tuple<Ts...>> = true;
+
+// True if the type is an optional.
+template <typename T>
+constexpr bool is_optional_v = false;
+template <typename T>
+constexpr bool is_optional_v<std::optional<T>> = true;
 
 namespace detail {
 template <class... Ts>
