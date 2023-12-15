@@ -66,6 +66,33 @@ auto wrap_ast_type(py::module_& m) {
       });
 }
 
+// Unfortunately for pybind this needs to be non-const shared ptr. Internally we save it as const.
+using custom_type_shared_ptr = std::shared_ptr<custom_type>;
+using field_type = std::variant<scalar_type, matrix_type, custom_type_shared_ptr>;
+
+std::shared_ptr<custom_type> init_custom_type(
+    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields) {
+  std::vector<custom_type::field> fields_converted{};
+  fields_converted.reserve(fields.size());
+  std::transform(
+      fields.begin(), fields.end(), std::back_inserter(fields_converted), [](const auto& tup) {
+        // We can't use a variant in the tuple, since it can't be default constructed. Instead we
+        // check for different types manually here.
+        const auto& [field_name, type_obj] = tup;
+        if (py::isinstance<scalar_type>(type_obj)) {
+          return custom_type::field(std::string{field_name}, py::cast<scalar_type>(type_obj));
+        } else if (py::isinstance<matrix_type>(type_obj)) {
+          return custom_type::field(std::string{field_name}, py::cast<matrix_type>(type_obj));
+        } else if (py::isinstance<custom_type_shared_ptr>(type_obj)) {
+          return custom_type::field(std::string{field_name},
+                                    py::cast<custom_type_shared_ptr>(type_obj));
+        } else {
+          throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
+        }
+      });
+  return std::make_shared<custom_type>(std::move(name), std::move(fields_converted));
+}
+
 void wrap_codegen_operations(py::module_& m) {
   // Variant vector is wrapped as an opaque type so we don't have to deal
   // with the variant not being default constructible.
