@@ -106,7 +106,7 @@ struct call {
   std::vector<variant> args;
 
   template <typename... Args>
-  explicit call(std_math_function function, Args&&... inputs)
+  explicit call(const std_math_function function, Args&&... inputs)
       : function(function), args{std::forward<Args>(inputs)...} {}
 };
 

@@ -257,6 +257,14 @@ std::string cpp_code_generator::operator()(const ast::divide& x) const {
   return fmt::format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
+std::string cpp_code_generator::operator()(const ast::float_literal& x) const {
+  return fmt::format("static_cast<Scalar>({})", x.value);
+}
+
+std::string cpp_code_generator::operator()(const ast::integer_literal& x) const {
+  return fmt::format("{}", x.value);
+}
+
 static constexpr std::string_view cpp_string_for_symbolic_constant(
     const symbolic_constant_enum value) noexcept {
   switch (value) {
@@ -270,10 +278,6 @@ static constexpr std::string_view cpp_string_for_symbolic_constant(
       return "false";
   }
   return "<INVALID ENUM VALUE>";
-}
-
-std::string cpp_code_generator::operator()(const ast::special_constant& x) const {
-  return fmt::format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
 }
 
 std::string cpp_code_generator::operator()(const ast::multiply& x) const {
@@ -290,6 +294,10 @@ std::string cpp_code_generator::operator()(const ast::optional_output_branch& x)
                  x.arg->is_matrix() ? "_" : "", x.arg->name());
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
   return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::special_constant& x) const {
+  return fmt::format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
 }
 
 std::string cpp_code_generator::operator()(const ast::read_input_scalar& x) const {
@@ -316,6 +324,12 @@ std::string cpp_code_generator::operator()(const ast::read_input_struct& x) cons
         });
   }
   return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
+
+std::string cpp_code_generator::apply(const ast::variant& var) const {
+  return std::visit(*this, var);
 }
 
 }  // namespace wf

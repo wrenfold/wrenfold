@@ -54,7 +54,8 @@ std::string emit_code(const std::vector<function_definition::shared_ptr>& defini
 }
 
 std::shared_ptr<custom_type> init_custom_type(
-    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields) {
+    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields,
+    py::type python_type) {
   // Unfortunately for pybind this needs to be non-const shared ptr. Internally we save it as const.
   using custom_type_shared_ptr = std::shared_ptr<custom_type>;
 
@@ -76,7 +77,8 @@ std::shared_ptr<custom_type> init_custom_type(
           throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
         }
       });
-  return std::make_shared<custom_type>(std::move(name), std::move(fields_converted));
+  return std::make_shared<custom_type>(std::move(name), std::move(fields_converted),
+                                       std::any{std::move(python_type)});
 }
 
 void wrap_codegen_operations(py::module_& m) {
@@ -92,7 +94,16 @@ void wrap_codegen_operations(py::module_& m) {
           [](const std::vector<ast::variant>& vec) {
             return py::make_iterator(vec.begin(), vec.end());
           },
-          py::keep_alive<0, 1>());
+          py::keep_alive<0, 1>())
+      .def(
+          "__getitem__",
+          [](const std::vector<ast::variant>& vec, const std::size_t index) {
+            if (index >= vec.size()) {
+              throw dimension_error("Index `{}` exceeds vector length `{}`.", index, vec.size());
+            }
+            return vec[index];
+          },
+          py::arg("index"), py::doc("Array access operator."));
 
   m.def(
       "transpile",
@@ -182,12 +193,27 @@ void wrap_codegen_operations(py::module_& m) {
       .def("compute_indices", &matrix_type::compute_indices)
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
 
-  py::class_<custom_type, std::shared_ptr<custom_type>>(m, "CustomType")
-      .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"),
+  py::class_<custom_type, custom_type::shared_ptr>(m, "CustomType")
+      .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"), py::arg("python_type"),
            py::doc("Construct custom type from fields."))
       .def_property_readonly("name", &custom_type::name)
-      .def("__repr__", [](const custom_type& custom) {
-        return fmt::format("CustomType('{}', {} fields)", custom.name(), custom.size());
+      .def_property_readonly("fields", &custom_type::fields, py::doc("Access fields on this type."))
+      .def_property_readonly(
+          "python_type",
+          [](const custom_type& self) -> std::variant<py::none, py::type> {
+            if (self.python_type().has_value()) {
+              return std::any_cast<py::type>(self.python_type());
+            }
+            return py::none();
+          },
+          py::doc("Get the underlying python type."))
+      .def("__repr__", [](const custom_type& self) {
+        const py::object python_type = self.python_type().has_value()
+                                           ? std::any_cast<py::type>(self.python_type())
+                                           : py::none();
+        const py::str repr = py::repr(python_type);
+        return fmt::format("CustomType('{}', {} fields, {})", self.name(), self.size(),
+                           py::cast<std::string_view>(repr));
       });
 
   py::class_<function_signature>(m, "FunctionSignature")
@@ -287,10 +313,6 @@ void wrap_codegen_operations(py::module_& m) {
   // AST types are below:
   // --------------------
 
-  py::class_<ast::variable_ref>(m, "VariableRef")
-      .def_property_readonly("name", [](const ast::variable_ref& v) { return v.name; })
-      .def("__repr__", &format_ast_repr<ast::variable_ref>);
-
   py::class_<ast::add>(m, "Add")
       .def_property_readonly("left", [](const ast::add& x) { return *x.left; })
       .def_property_readonly("right", [](const ast::add& x) { return *x.right; })
@@ -336,6 +358,11 @@ void wrap_codegen_operations(py::module_& m) {
                              })
       .def("__repr__", &format_ast_repr<ast::cast>);
 
+  py::class_<ast::comment>(m, "Comment")
+      .def_property_readonly("content", [](const ast::comment& c) { return c.content; })
+      .def("split_lines", &ast::comment::split_lines,
+           py::doc("Split comment by newlines and return a list of strings, one per line."));
+
   py::class_<ast::compare>(m, "Compare")
       .def_property_readonly("left",
                              [](const ast::compare& c) {
@@ -368,11 +395,22 @@ void wrap_codegen_operations(py::module_& m) {
                              })
       .def("__repr__", &format_ast_repr<ast::declaration>);
 
-  py::class_<ast::float_literal>(m, "FloatConstant")
+  py::class_<ast::divide>(m, "Divide")
+      .def_property_readonly("left",
+                             [](const ast::divide& x) {
+                               WF_ASSERT(x.left);
+                               return *x.left;
+                             })
+      .def_property_readonly("right", [](const ast::divide& x) {
+        WF_ASSERT(x.right);
+        return *x.right;
+      });
+
+  py::class_<ast::float_literal>(m, "FloatLiteral")
       .def_property_readonly("value", [](const ast::float_literal& f) { return f.value; })
       .def("__repr__", &format_ast_repr<ast::float_literal>);
 
-  py::class_<ast::integer_literal>(m, "IntegerConstant")
+  py::class_<ast::integer_literal>(m, "IntegerLiteral")
       .def_property_readonly("value", [](const ast::integer_literal& i) { return i.value; })
       .def("__repr__", &format_ast_repr<ast::integer_literal>);
 
@@ -388,6 +426,11 @@ void wrap_codegen_operations(py::module_& m) {
                                return *x.right;
                              })
       .def("__repr__", &format_ast_repr<ast::multiply>);
+
+  py::class_<ast::negate>(m, "Negate").def_property_readonly("arg", [](const ast::negate& x) {
+    WF_ASSERT(x.arg);
+    return *x.arg;
+  });
 
   py::class_<ast::optional_output_branch>(m, "OptionalOutputBranch")
       .def_property_readonly("argument",
@@ -416,6 +459,15 @@ void wrap_codegen_operations(py::module_& m) {
           [](const ast::read_input_struct& self) { return self.access_sequence; })
       .def("__repr__", &format_ast_repr<ast::read_input_struct>);
 
+  py::class_<ast::special_constant>(m, "SpecialConstant")
+      .def_property_readonly(
+          "value", [](const ast::special_constant& c) { return c.value; },
+          py::doc("Enum indicating the value of the constant"));
+
+  py::class_<ast::variable_ref>(m, "VariableRef")
+      .def_property_readonly("name", [](const ast::variable_ref& v) { return v.name; })
+      .def("__repr__", &format_ast_repr<ast::variable_ref>);
+
   py::class_<field_access>(m, "FieldAccess")
       .def_property_readonly(
           "type",
@@ -433,12 +485,18 @@ void wrap_codegen_operations(py::module_& m) {
             WF_ASSERT(field != nullptr, "Missing field: {}", self.field_name());
             return field->type();
           },
-          py::doc("The type of the field being accessed."));
+          py::doc("The type of the field being accessed."))
+      .def("__repr__", [](const field_access& self) {
+        return fmt::format("FieldAccess({})", self.field_name());
+      });
 
   py::class_<matrix_access>(m, "MatrixAccess")
       .def_property_readonly("indices", &matrix_access::indices, py::doc("Access "))
       .def_property_readonly("row", &matrix_access::row, py::doc("Row index."))
-      .def_property_readonly("col", &matrix_access::col, py::doc("Col index."));
+      .def_property_readonly("col", &matrix_access::col, py::doc("Col index."))
+      .def("__repr__", [](const matrix_access& self) {
+        return fmt::format("MatrixAccess({}, {})", self.row(), self.col());
+      });
 
   m.def("generate_cpp", &emit_code<cpp_code_generator>, "definitions"_a,
         py::doc("Generate C++ code from the given function definitions."));

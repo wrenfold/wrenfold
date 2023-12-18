@@ -1,6 +1,8 @@
 // Benchmark of creating IR for some modest expressions.
 #include <benchmark/benchmark.h>
 
+#include "wf/code_generation/ast_conversion.h"
+#include "wf/code_generation/cpp_code_generator.h"
 #include "wf/code_generation/ir_builder.h"
 #include "wf/expression.h"
 #include "wf/function_evaluator.h"
@@ -65,6 +67,24 @@ static void BM_ConvertIrLowComplexity(benchmark::State& state) {
 }
 
 BENCHMARK(BM_ConvertIrLowComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
+
+static void BM_GenerateCpp(benchmark::State& state) {
+  auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
+                                          arg("q0"), arg("q1"), arg("alpha"));
+  const std::vector<expression_group>& expressions = std::get<1>(tuple);
+
+  flat_ir flat_ir{expressions};
+  flat_ir.eliminate_duplicates();
+  const output_ir output_ir{std::move(flat_ir)};
+
+  for (auto _ : state) {
+    function_definition definition = ast::create_ast(output_ir, std::get<0>(tuple));
+    std::string code = cpp_code_generator{}.generate_code(definition.signature(), definition.ast());
+    benchmark::DoNotOptimize(code);
+  }
+}
+
+BENCHMARK(BM_GenerateCpp)->Iterations(200)->Unit(benchmark::kMillisecond);
 
 }  // namespace wf
 

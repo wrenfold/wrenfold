@@ -1,6 +1,8 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include <any>
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -75,7 +77,7 @@ class custom_type {
   };
 
   // Construct with fields. Asserts that all fields have unique names.
-  custom_type(std::string name, std::vector<field> fields);
+  custom_type(std::string name, std::vector<field> fields, std::any python_type);
 
   // Access a field by name. May return nullptr if the field does not exist.
   const field* field_by_name(std::string_view name) const noexcept;
@@ -85,6 +87,9 @@ class custom_type {
 
   // Access all fields.
   constexpr const auto& fields() const noexcept { return fields_; }
+
+  // py::type (or empty) for types that are defined in python.
+  constexpr const auto& python_type() const noexcept { return python_type_; }
 
   // Number of fields.
   std::size_t size() const noexcept { return fields_.size(); }
@@ -96,6 +101,10 @@ class custom_type {
   // All the fields in the type. If this type was defined in python, this vector should be ordered
   // the same as the fields on the python type.
   std::vector<field> fields_;
+
+  // An opaque strong reference to the `py::type` that represents this type in python.
+  // We hold this as std::any so that pybind11 is not an explicit dependency here.
+  std::any python_type_{};
 };
 
 // Represent the operation of reading a field on a custom type.

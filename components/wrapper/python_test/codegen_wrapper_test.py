@@ -58,6 +58,31 @@ def rotate_point(angle: RealScalar, p: Point2d):
 
 class CodeGenerationWrapperTest(MathTestBase):
 
+    @staticmethod
+    def custom_cos_formatter(formatter: code_generation.Formatter,
+                             x: code_generation.codegen.Call) -> str:
+        """Override the generation of std::cos and replace it with custom::cos."""
+        if x.function == code_generation.codegen.StdMathFunction.Cos:
+            return formatter.format('custom::cos({})', x.args[0])
+        return formatter.format('{}', x)
+
+    @staticmethod
+    def custom_type_access_formatter(formatter: code_generation.Formatter,
+                                     x: code_generation.codegen.ReadInputStruct) -> str:
+        """Customize access to struct Point2D."""
+        if x.argument.type.python_type is Point2d:
+            result = x.argument.name
+            for seq in x.access_sequence:
+                if isinstance(seq, code_generation.codegen.FieldAccess):
+                    result += f".{seq.field_name}"
+                elif isinstance(seq, code_generation.codegen.MatrixAccess):
+                    result += f"({seq.row}, {seq.col})"
+                else:
+                    raise TypeError("Unexpected type")
+            return result
+
+        return formatter.format('{}', x)
+
     def test_code_generation(self):
         descriptions = [
             code_generation.create_function_description(func1),
@@ -66,9 +91,16 @@ class CodeGenerationWrapperTest(MathTestBase):
             code_generation.create_function_description(rotate_point),
         ]
         definitions = code_generation.transpile(descriptions=descriptions)
-        code = code_generation.generate_cpp(definitions=definitions)
-        print(code + '\n')
-        code = code_generation.generate_rust(definitions=definitions)
+
+        overrides = {
+            code_generation.codegen.Call: self.custom_cos_formatter,
+            code_generation.codegen.ReadInputStruct: self.custom_type_access_formatter,
+        }
+
+        code = code_generation.generate_code(
+            language="cpp", definitions=definitions, overrides=overrides, join=True)
+        code = code_generation.generate_code(
+            language="rust", definitions=definitions, overrides=overrides, join=True)
         print(code)
 
 

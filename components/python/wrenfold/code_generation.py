@@ -3,6 +3,7 @@ import dataclasses
 import inspect
 import itertools
 import pathlib
+import string
 import typing as T
 
 from . import sym
@@ -13,11 +14,8 @@ from pywrenfold.wf_wrapper.codegen import transpile, generate_cpp, generate_rust
 
 U = T.TypeVar("U")
 
-AstVariantAnnotation = T.Union[codegen.Add, codegen.AssignTemporary, codegen.AssignOutputArgument,
-                               codegen.Branch, codegen.Call, codegen.Cast, codegen.Compare,
-                               codegen.ConstructReturnValue, codegen.Declaration,
-                               codegen.FloatConstant, codegen.IntegerConstant, codegen.Multiply,
-                               codegen.OptionalOutputBranch, codegen.VariableRef,]
+# The different wrapped generator types.
+GeneratorTypes = T.Union[codegen.CppGenerator, codegen.RustGenerator]
 
 
 @dataclasses.dataclass
@@ -80,7 +78,8 @@ def convert_dataclass_type(dataclass_type: T.Type,
             python_type=field.type, cached_custom_types=cached_custom_types)
         fields_converted.append((field.name, field_type))
 
-    return codegen.CustomType(name=dataclass_type.__name__, fields=fields_converted)
+    return codegen.CustomType(
+        name=dataclass_type.__name__, fields=fields_converted, python_type=dataclass_type)
 
 
 def _get_matrix_shape(matrix_type: T.Type) -> T.Tuple[int, int]:
@@ -233,6 +232,108 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
             raise TypeError(f"Returned values must be: {ReturnValueOrOutputArg}, got: {type(val)}")
 
     return description
+
+
+class Formatter(string.Formatter):
+    """
+    Custom string formatter that automatically delegates formatting of ast types to
+    a pybind11 wrapped code-generator.
+    """
+
+    # yapf: disable
+    AST_TYPES = (
+        codegen.Add,
+        codegen.AssignTemporary,
+        codegen.AssignOutputArgument,
+        codegen.Branch,
+        codegen.Call,
+        codegen.Cast,
+        codegen.Comment,
+        codegen.Compare,
+        codegen.ConstructReturnValue,
+        codegen.Declaration,
+        codegen.Divide,
+        codegen.FloatLiteral,
+        codegen.IntegerLiteral,
+        codegen.Multiply,
+        codegen.Negate,
+        codegen.OptionalOutputBranch,
+        codegen.SpecialConstant,
+        codegen.ReadInputScalar,
+        codegen.ReadInputMatrix,
+        codegen.ReadInputStruct,
+        codegen.VariableRef
+    )
+    # yapf: enable
+
+    def __init__(self, wrapped_generator: GeneratorTypes) -> None:
+        super().__init__()
+        self._wrapped_generator: GeneratorTypes = wrapped_generator
+
+    def format_field(self, value: T.Any, format_spec: str) -> str:
+        if isinstance(value, self.AST_TYPES):
+            # For ast types we delegate back to the wrapped C++ code generator.
+            return self._wrapped_generator.apply(value)
+        return super().format_field(value, format_spec)
+
+
+OverrideDict = T.Dict[T.Type, T.Callable[[Formatter, T.Any], str]]
+
+
+def generate_code(language: str,
+                  definitions: T.List[codegen.FunctionDefinition],
+                  overrides: T.Optional[OverrideDict] = None,
+                  join: bool = False) -> T.Union[T.List[str], str]:
+    """
+    Given function definitions in abstract syntax format, generate compilable code in
+    a target language. The caller may optionally provide formatting overrides to customize
+    how specific AST elements are emitted.
+
+    :param definitions: A list of `FunctionDefinition` objects to be generated. These are
+    produced by the `transpile` method.
+
+    :param overrides: A dictionary mapping from one of the AST types to a python method
+    that specifies how formatting should occur. For example:
+
+    >>> def my_custom_formatter(formatter: Formatter, element: codegen.Call) -> str:
+    >>>     # Override the generation of the cosine function to call custom_math::cos.
+    >>>     if element.function == codegen.StdMathFunction.Cos:
+    >>>         return formatter.format('custom_math::cos({})', element.args[0])
+    >>>     # If not `cos`, just delegate to the default implementation.
+    >>>     return formatter.format('{}', eleement)
+    >>>
+    >>> overrides = {codegen.Call: my_custom_formatter} # <-- Pass this to generate_code.
+    """
+    if overrides is None:
+        overrides = dict()
+
+    if language == "cpp":
+        generator = codegen.CppGenerator()
+    elif language == "rust":
+        generator = codegen.RustGenerator()
+    else:
+        raise KeyError(f"Invalid language selection: {language}")
+
+    formatter = Formatter(wrapped_generator=generator)
+    try:
+        for t, method in overrides.items():
+            assert isinstance(t, type), f"Dictionary keys must be types. Received: {t}"
+            # Use default-value syntax to capture `method` by value:
+            generator.register_handler(t=t, function=lambda x, func=method: func(formatter, x))
+
+        # Now that custom handlers are installed, we can actually generate the code
+        strings = [generator.generate(definition=d) for d in definitions]
+        if join:
+            return '\n\n'.join(strings)
+        return strings
+    finally:
+        # TODO: I don't love this requirement, but we need to be sure that there are no
+        # circular references between python <-> C++ that might prevent garbage collection.
+        # We explicitly tell the C++ wrapper to discard references to python functions, and
+        # make sure to do so whenever leaving the scope of `generate_code`. I haven't yet
+        # found an implicit way to do this without making some questionable assumptions
+        # about lifetime of objects. It feels safer to be explicit about this.
+        generator.clear_handlers()
 
 
 CPP_PREAMBLE_TEMPLATE = \

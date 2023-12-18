@@ -34,8 +34,8 @@ static void assert_field_names_are_unique(const std::vector<custom_type::field>&
   }
 }
 
-custom_type::custom_type(std::string name, std::vector<field> fields)
-    : name_(std::move(name)), fields_(std::move(fields)) {
+custom_type::custom_type(std::string name, std::vector<field> fields, std::any python_type)
+    : name_(std::move(name)), fields_(std::move(fields)), python_type_(std::move(python_type)) {
   WF_ASSERT(!name_.empty(), "Field name cannot be empty");
   assert_field_names_are_unique(fields_);
 }
@@ -87,9 +87,9 @@ struct build_access_sequence {
     WF_ASSERT(c);
     // Append every field on this type, and recurse as well into child custom types.
     for (const custom_type::field& field : c->fields()) {
-      const bool found = std::visit(
-          [&](const auto& child) { return operator()(child, index, output); }, field.type());
-      if (found) {
+      if (const bool found = std::visit(
+              [&](const auto& child) { return operator()(child, index, output); }, field.type());
+          found) {
         WF_ASSERT_EQUAL(0, index);
         output.emplace_back(field_access{c, field.name()});
         return true;

@@ -269,6 +269,14 @@ std::string rust_code_generator::operator()(const ast::divide& x) const {
   return fmt::format("{} / {}", make_view(x.left), make_view(x.right));
 }
 
+std::string rust_code_generator::operator()(const ast::float_literal& x) const {
+  return fmt::format("{}f64", x.value);
+}
+
+std::string rust_code_generator::operator()(const ast::integer_literal& x) const {
+  return fmt::format("{}i64", x.value);
+}
+
 static constexpr std::string_view rust_string_for_symbolic_constant(
     const symbolic_constant_enum value) noexcept {
   switch (value) {
@@ -282,10 +290,6 @@ static constexpr std::string_view rust_string_for_symbolic_constant(
       return "false";
   }
   return "<INVALID ENUM VALUE>";
-}
-
-std::string rust_code_generator::operator()(const ast::special_constant& x) const {
-  return std::string{rust_string_for_symbolic_constant(x.value)};
 }
 
 std::string rust_code_generator::operator()(const ast::multiply& x) const {
@@ -327,6 +331,16 @@ std::string rust_code_generator::operator()(const ast::read_input_struct& x) con
         });
   }
   return result;
+}
+
+std::string rust_code_generator::operator()(const ast::special_constant& x) const {
+  return std::string{rust_string_for_symbolic_constant(x.value)};
+}
+
+std::string rust_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
+
+std::string rust_code_generator::apply(const ast::variant& var) const {
+  return std::visit(*this, var);
 }
 
 }  // namespace wf

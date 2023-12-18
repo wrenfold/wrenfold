@@ -253,4 +253,5 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
   wrap_codegen_operations(m_codegen);
+  wrap_code_formatting_operations(m_codegen);
 }  // PYBIND11_MODULE

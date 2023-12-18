@@ -13,4 +13,4 @@ endfunction()
 # Add all of our benchmarks:
 add_benchmark(bench_add_mul.cc)
 add_benchmark(bench_jacobian.cc)
-add_benchmark(bench_ir.cc)
+add_benchmark(bench_code_generation.cc)
