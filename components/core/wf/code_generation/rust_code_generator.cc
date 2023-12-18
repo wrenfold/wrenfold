@@ -346,4 +346,14 @@ std::string rust_code_generator::operator()(const ast::special_constant& x) cons
 
 std::string rust_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
 
+std::string rust_code_generator::operator()(const ast::special_constant& x) const {
+  return std::string{rust_string_for_symbolic_constant(x.value)};
+}
+
+std::string rust_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
+
+std::string rust_code_generator::apply(const ast::variant& var) const {
+  return std::visit(*this, var);
+}
+
 }  // namespace wf

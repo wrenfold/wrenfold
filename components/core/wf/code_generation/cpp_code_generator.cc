@@ -349,4 +349,10 @@ std::string cpp_code_generator::operator()(const ast::special_constant& x) const
 
 std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
 
+std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
+
+std::string cpp_code_generator::apply(const ast::variant& var) const {
+  return std::visit(*this, var);
+}
+
 }  // namespace wf

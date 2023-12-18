@@ -185,20 +185,21 @@ auto format_ast(Iterator it, const wf::ast::return_object& r) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::read_input_scalar& r) {
-  return fmt::format_to(it, "{}", r.arg->name());
+  return fmt::format_to(it, "ReadInputScalar({})", r.arg->name());
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::read_input_matrix& r) {
-  return fmt::format_to(it, "{}[{}, {}]", r.arg->name(), r.row, r.col);
+  return fmt::format_to(it, "ReadInputMatrix({}[{}, {}])", r.arg->name(), r.row, r.col);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::read_input_struct& r) {
   if (r.access_sequence.empty()) {
-    return fmt::format_to(it, "{}", r.arg->name());
+    return fmt::format_to(it, "ReadInputStruct({})", r.arg->name());
   }
-  return fmt::format_to(it, "{}.{}", r.arg->name(), fmt::join(r.access_sequence, "."));
+  return fmt::format_to(it, "ReadInputStruct({}.{})", r.arg->name(),
+                        fmt::join(r.access_sequence, "."));
 }
 
 template <typename Iterator>

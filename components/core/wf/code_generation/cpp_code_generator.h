@@ -72,11 +72,16 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::variable_ref& x) const;
 
+  std::string operator()(const ast::variable_ref& x) const;
+
+  // We need a virtual method so that this behavior can be overriden on the python side.
+  virtual std::string apply(const ast::variant& var) const;
+
   // Accept ast::variant and delegate formatting of the stored type to our derived class.
   // Using enable_if here to prevent implicit conversion to the variant type.
   template <typename T, typename = enable_if_same_t<T, ast::variant>>
   auto operator()(const T& var) const {
-    return std::visit(*this, var);
+    return apply(var);
   }
 
   // Accept ast::variant_ptr
