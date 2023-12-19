@@ -327,14 +327,14 @@ std::string rust_code_generator::operator()(const ast::optional_output_branch& x
   return result;
 }
 
-std::string rust_code_generator::operator()(const ast::read_input_scalar& x) const {
-  WF_ASSERT(x.arg);
-  return x.arg->name();
-}
-
 std::string rust_code_generator::operator()(const ast::read_input_matrix& x) const {
   WF_ASSERT(x.arg);
   return fmt::format("{}.get({}, {})", x.arg->name(), x.row, x.col);
+}
+
+std::string rust_code_generator::operator()(const ast::read_input_scalar& x) const {
+  WF_ASSERT(x.arg);
+  return x.arg->name();
 }
 
 std::string rust_code_generator::operator()(const ast::read_input_struct& x) const {
@@ -362,9 +362,5 @@ std::string rust_code_generator::operator()(const ast::special_constant& x) cons
 }
 
 std::string rust_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
-
-std::string rust_code_generator::apply(const ast::variant& var) const {
-  return std::visit(*this, var);
-}
 
 }  // namespace wf

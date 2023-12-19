@@ -42,11 +42,9 @@ std::string cpp_code_generator::generate_code(const function_signature& signatur
       }
       return arg_result;
     });
-  }
-
-  if (signature.has_matrix_arguments()) {
     result.append("\n");
   }
+
   join_and_indent(result, 2, "", "\n}", "\n", body, *this);
   return result;
 }
@@ -142,7 +140,7 @@ std::string cpp_code_generator::operator()(const ast::assign_output_argument& as
 
   return overloaded_visit(
       type,
-      [&](matrix_type mat) {
+      [&](const matrix_type mat) {
         const auto range = make_range(static_cast<std::size_t>(0), assignment.values.size());
         return join(
             [&](std::size_t i) {
@@ -309,14 +307,14 @@ std::string cpp_code_generator::operator()(const ast::optional_output_branch& x)
   return result;
 }
 
-std::string cpp_code_generator::operator()(const ast::read_input_scalar& x) const {
-  WF_ASSERT(x.arg);
-  return x.arg->name();
-}
-
 std::string cpp_code_generator::operator()(const ast::read_input_matrix& x) const {
   WF_ASSERT(x.arg);
   return fmt::format("_{}({}, {})", x.arg->name(), x.row, x.col);
+}
+
+std::string cpp_code_generator::operator()(const ast::read_input_scalar& x) const {
+  WF_ASSERT(x.arg);
+  return x.arg->name();
 }
 
 std::string cpp_code_generator::operator()(const ast::read_input_struct& x) const {
@@ -344,9 +342,5 @@ std::string cpp_code_generator::operator()(const ast::special_constant& x) const
 }
 
 std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
-
-std::string cpp_code_generator::apply(const ast::variant& var) const {
-  return std::visit(*this, var);
-}
 
 }  // namespace wf

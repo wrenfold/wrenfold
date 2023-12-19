@@ -12,7 +12,7 @@ import typing as T
 
 from wrenfold.type_annotations import RealScalar
 from wrenfold import code_generation
-from wrenfold.code_generation import OutputArg
+from wrenfold.code_generation import OutputArg, CppGenerator, RustGenerator
 from wrenfold import sym
 
 
@@ -156,11 +156,11 @@ def main(output: str, *, language: str):
     descriptions += create_bspline_functions(order=7)
     definitions = code_generation.transpile(descriptions=descriptions)
     if language == "cpp":
-        code = code_generation.generate_cpp(definitions=definitions)
+        code = CppGenerator().generate(definitions=definitions)
         code = code_generation.apply_cpp_preamble(code, namespace="gen")
         code_generation.mkdir_and_write_file(code=code, path=output)
     elif language == "rust":
-        code = code_generation.generate_rust(definitions=definitions)
+        code = RustGenerator().generate(definitions=definitions)
         code_generation.mkdir_and_write_file(code=code, path=output)
 
 

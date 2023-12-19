@@ -9,7 +9,7 @@ import typing as T
 
 from wrenfold.type_annotations import RealScalar, Vector4
 from wrenfold import code_generation
-from wrenfold.code_generation import OutputArg
+from wrenfold.code_generation import OutputArg, CppGenerator
 
 from wrenfold.geometry import Quaternion
 
@@ -35,8 +35,8 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
 
 def main(output: str):
     description = code_generation.create_function_description(rotation_error)
-    definitions = code_generation.transpile(description=description)
-    code = code_generation.generate_cpp(definitions=[definitions])
+    definition = code_generation.transpile(description=description)
+    code = CppGenerator().generate(definition=definition)
     code = code_generation.apply_cpp_preamble(code, namespace="gen")
 
     if output is not None:

@@ -15,117 +15,72 @@ using namespace py::literals;
 
 namespace wf {
 
-// Search all the types [T, Ts...] to see if one of them matches `type`.
-// If `T` matches `type`, we return its type_index. Otherwise, we continue the search.
-template <typename T, typename... Ts>
-std::optional<std::type_index> match_ast_type(const py::type& type) {
-  if (const py::type candidate = py::type::of<T>(); type.is(candidate)) {
-    return std::type_index{typeid(T)};
+// Define the override method in the trampoline class:
+// https://pybind11.readthedocs.io/en/stable/advanced/classes.html
+#define IMPL_VIRTUAL_OPERATOR(Base, T)                                                       \
+  virtual std::string operator()(const T& arg) const override {                              \
+    static const std::string method_name = fmt::format("format_{}", T::snake_case_name_str); \
+    PYBIND11_OVERRIDE_NAME(std::string, Base, method_name.c_str(), operator(), arg);         \
   }
-  if constexpr (sizeof...(Ts) > 0) {
-    return match_ast_type<Ts...>(type);
-  } else {
-    return std::nullopt;
-  }
-}
 
-// Unpack the variadic std::variant template and invoke `match_ast_type`.
-template <typename T>
-struct match_ast_type_struct;
-template <typename... Ts>
-struct match_ast_type_struct<std::variant<Ts...>> {
-  auto operator()(const py::type& type) const { return match_ast_type<Ts...>(type); }
-};
-
-// Wrap a C++ generator class, and allow overriding formatting logic of specific types from
-// python. We maintain a mapping from std::type_index --> std::function, where the std::function is
-// a callable object that pybind11 gave us. The type_index corresponds to one of the members of
-// ast::variant. Whenever we format an element of syntax, we check if a pyhon-defined override has
-// been specified for that particular type. If it has, we delegate to the user python code -
-// otherwise the C++ implemenetation is invoked. Because we have overriden `Generator::apply`, any
-// formatting calls made by the base class can be intercepted. This does unfortunately mean that
-// C++ can call into python, which calls into C++, etc...
-template <typename Generator>
-class wrapped_generator : public Generator {
+// A trampoline class that inherits from a C++ code-generator, and allows pybind11 to check for
+// derived implementations in python.
+template <typename Base>
+class generator_trampoline : public Base {
  public:
-  using handler_type = std::function<std::string(py::object)>;
+  using Base::Base;
 
-  // Construct base type with the provided arguments.
-  template <typename... Args>
-  explicit wrapped_generator(Args&&... args) : Generator(std::forward<Args>(args)...) {}
-
-  // Register a handler for a particular type.
-  void register_handler(const py::type& type, const handler_type& function) {
-    // Determine which member of ast::variant is being overriden here.
-    if (const std::optional<std::type_index> type_index =
-            match_ast_type_struct<ast::variant>{}(type);
-        type_index.has_value()) {
-      if (auto [it, was_inserted] = custom_handlers_.emplace(*type_index, function);
-          !was_inserted) {
-        it->second = function;
-      }
-    } else {
-      const py::str repr = py::repr(type);
-      throw type_error("Provided type `{}` is not a valid ast type.",
-                       py::cast<std::string_view>(repr));
-    }
-  }
-
-  // Discard all handlers.
-  // This is done explicitly to make sure pybind doesn't hold any strong references
-  void clear_handlers() { custom_handlers_.clear(); }
-
-  // Override the C++ implementation, and call the user-provided custom handler.
-  std::string apply(const ast::variant& var) const final {
-    if (custom_handlers_.empty()) {
-      return std::visit(static_cast<const Generator&>(*this), var);
-    }
-    return std::visit(
-        [&](const auto& x) -> std::string {
-          using T = std::decay_t<decltype(x)>;
-          if (const auto it = custom_handlers_.find(typeid(T)); it != custom_handlers_.end()) {
-            // Delegate to python formatter.
-            // Doing a copy here feels a bit wasteful, but it is difficult to reason about what the
-            // user callback might do with the provided object. Note that the default policy of
-            // py::cast is to create a weak reference:
-            //  https://github.com/pybind/pybind11/issues/287#issuecomment-233373721
-            return it->second(py::cast(x, py::return_value_policy::copy));
-          } else {
-            // Call the base class implementation directly.
-            return static_cast<const Generator&>(*this)(x);
-          }
-        },
-        var);
-  }
-
-  // Given a function definition, return the generated code as a string.
-  std::string generate(const function_definition::shared_ptr& definition) const {
-    WF_ASSERT(definition);
-    return Generator::generate_code(definition->signature(), definition->ast());
-  }
-
- private:
-  std::unordered_map<std::type_index, handler_type> custom_handlers_;
+  // Try as I might, I can't find a way around this ugly macro.
+  // We can't iterate at compile time over the types, and using the multiple-base class trick
+  // appears to cause UB with pybind11.
+  IMPL_VIRTUAL_OPERATOR(Base, ast::add)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::assign_output_argument)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::assign_temporary)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::branch)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::call)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::cast)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::comment)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::compare)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::construct_matrix)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::construct_custom_type)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::declaration)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::divide)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::float_literal)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::integer_literal)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::multiply)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::negate)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::optional_output_branch)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::read_input_matrix)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::read_input_scalar)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::read_input_struct)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::return_value)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::special_constant)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::variable_ref)
 };
 
 // This struct expands over all the types in `ast::variant` and exposes operator() for
 // all of them via pybind11.
 template <typename T = ast::variant>
-struct register_ast_operators_struct;
+struct register_operators_struct;
 template <typename... Ts>
-struct register_ast_operators_struct<std::variant<Ts...>> {
+struct register_operators_struct<std::variant<Ts...>> {
   template <typename T, typename PyClass>
   static void register_operator(PyClass& klass) {
-    // TODO: Get a pretty type name here.
     // Static const so that we are certain pybind11 isn't taking an invalid weak reference here.
-    static const std::string format = fmt::format("Format ast type `{}`.", typeid(T).name());
-    // Expose operator() on the generator type under the name `apply`.
-    // Note that we call the concrete non-virtual implementation here, which cannot immediately
-    // recurse back into python.
+    static const std::string method = fmt::format("format_{}", T::snake_case_name_str);
+    static const std::string doc = fmt::format("Format ast type `{}`.", T::snake_case_name_str);
+    // Expose operator() on the generator.
+    // underlying_type will be cpp_code_generator, rust_code_generator, etc...
     using underlying_type = typename PyClass::type;
-    const auto ptr =
-        static_cast<std::string (underlying_type::*)(const T&) const>(&underlying_type::operator());
-    klass.def("apply", ptr, py::arg("a"), py::doc(format.c_str()));
+    klass.def(
+        method.c_str(),
+        [](const underlying_type& self, const T& arg) -> std::string { return self(arg); },
+        py::arg("a"), py::doc(doc.c_str()));
+    // We also register under an overloaded name:
+    klass.def(
+        "format",
+        [](const underlying_type& self, const T& arg) -> std::string { return self(arg); },
+        py::arg("a"), py::doc(doc.c_str()));
   }
 
   template <typename PyClass>
@@ -135,28 +90,71 @@ struct register_ast_operators_struct<std::variant<Ts...>> {
   }
 };
 
+// Generate multiple definitions.
+template <typename Generator>
+std::string generate_multiple(const Generator& generator,
+                              const std::vector<function_definition::shared_ptr>& definitions) {
+  if (definitions.empty()) {
+    return "";
+  }
+  auto it = definitions.begin();
+  std::string output = generator.generate_code((*it)->signature(), (*it)->ast());
+  for (++it; it != definitions.end(); ++it) {
+    output.append("\n\n");
+    output += generator.generate_code((*it)->signature(), (*it)->ast());
+  }
+  return output;
+}
+
 // Wrap generator of type `T`.
 template <typename T, typename... CtorArgs>
 static auto wrap_code_generator(py::module_& m, const std::string_view name) {
-  using wrapped_generator = wrapped_generator<T>;
-  py::class_ gen =
-      py::class_<wrapped_generator>(m, name.data())
+  py::class_ klass =
+      py::class_<T, generator_trampoline<T>>(m, name.data())
           .def(py::init<CtorArgs...>())
-          .def("register_handler", &wrapped_generator::register_handler, py::arg("t"),
-               py::arg("function"), py::doc("Register a custom handler for a particular ast type."))
-          .def("clear_handlers", &wrapped_generator::clear_handlers,
-               py::doc("Destroy strong references to python lambdas/functions by removing all "
-                       "handlers."))
-          .def("generate", &wrapped_generator::generate, py::arg("definition"),
-               py::doc("Generate code for the provided definition."));
+          .def(
+              "generate",
+              [](const T& self, const function_definition::shared_ptr& definition) {
+                WF_ASSERT(definition);
+                return self.generate_code(definition->signature(), definition->ast());
+              },
+              py::arg("definition"), py::doc("Generate code for the provided definition."))
+          .def("generate", &generate_multiple<T>, py::arg("definitions"),
+               py::doc("Generate code for multiple definitions."));
   // Wrap all the operator() methods.
-  register_ast_operators_struct{}(gen);
-  return gen;
+  register_operators_struct{}(klass);
+  return klass;
 }
+
+// Search all the types [T, Ts...] to see if one of them matches `type`.
+// If `T` matches `type`, we return its type_index. Otherwise, we continue the search.
+// TODO: Cache this result.
+template <typename T, typename... Ts>
+bool is_formattable_type(const py::type& type) {
+  if (const py::type candidate = py::type::of<T>(); type.is(candidate)) {
+    return true;
+  }
+  if constexpr (sizeof...(Ts) > 0) {
+    return is_formattable_type<Ts...>(type);
+  } else {
+    return false;
+  }
+}
+// Unpack the variadic std::variant template and invoke `is_formattable_type`.
+template <typename T>
+struct is_formattable_type_struct;
+template <typename... Ts>
+struct is_formattable_type_struct<std::variant<Ts...>> {
+  auto operator()(const py::type& type) const { return is_formattable_type<Ts...>(type); }
+};
 
 void wrap_code_formatting_operations(py::module_& m) {
   wrap_code_generator<cpp_code_generator>(m, "CppGenerator");
   wrap_code_generator<rust_code_generator>(m, "RustGenerator");
+  m.def(
+      "is_formattable_type",
+      [](const py::type& type) { return is_formattable_type_struct<ast::variant>{}(type); },
+      py::arg("t"), py::doc("Check if the provided type is formattable with a code generator."));
 }
 
 }  // namespace wf

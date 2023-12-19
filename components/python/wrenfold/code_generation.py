@@ -10,12 +10,12 @@ from . import sym
 
 # Import the C++ code-generation module into this file.
 from pywrenfold.wf_wrapper import codegen
-from pywrenfold.wf_wrapper.codegen import transpile, generate_cpp, generate_rust
+from pywrenfold.wf_wrapper.codegen import transpile, CppGenerator, RustGenerator
 
 U = T.TypeVar("U")
 
 # The different wrapped generator types.
-GeneratorTypes = T.Union[codegen.CppGenerator, codegen.RustGenerator]
+GeneratorTypes = T.Union[CppGenerator, RustGenerator]
 
 
 @dataclasses.dataclass
@@ -169,7 +169,7 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
     >>>
     >>> description = create_function_description(func=foo)
     >>> definition = transpile(description=description)
-    >>> code = generate_cpp(definitions=[definition])
+    >>> code = CppGenerator.generate(definitions=definition)
 
     TODO: Add support saving and emitting the docstring.
 
@@ -240,100 +240,14 @@ class Formatter(string.Formatter):
     a pybind11 wrapped code-generator.
     """
 
-    # yapf: disable
-    AST_TYPES = (
-        codegen.Add,
-        codegen.AssignTemporary,
-        codegen.AssignOutputArgument,
-        codegen.Branch,
-        codegen.Call,
-        codegen.Cast,
-        codegen.Comment,
-        codegen.Compare,
-        codegen.ConstructReturnValue,
-        codegen.Declaration,
-        codegen.Divide,
-        codegen.FloatLiteral,
-        codegen.IntegerLiteral,
-        codegen.Multiply,
-        codegen.Negate,
-        codegen.OptionalOutputBranch,
-        codegen.SpecialConstant,
-        codegen.ReadInputScalar,
-        codegen.ReadInputMatrix,
-        codegen.ReadInputStruct,
-        codegen.VariableRef
-    )
-    # yapf: enable
-
-    def __init__(self, wrapped_generator: GeneratorTypes) -> None:
+    def __init__(self, generator: GeneratorTypes) -> None:
         super().__init__()
-        self._wrapped_generator: GeneratorTypes = wrapped_generator
+        self._generator: GeneratorTypes = generator
 
     def format_field(self, value: T.Any, format_spec: str) -> str:
-        if isinstance(value, self.AST_TYPES):
-            # For ast types we delegate back to the wrapped C++ code generator.
-            return self._wrapped_generator.apply(value)
+        if codegen.is_formattable_type(type(value)):
+            return self._generator.format(value)
         return super().format_field(value, format_spec)
-
-
-OverrideDict = T.Dict[T.Type, T.Callable[[Formatter, T.Any], str]]
-
-
-def generate_code(language: str,
-                  definitions: T.List[codegen.FunctionDefinition],
-                  overrides: T.Optional[OverrideDict] = None,
-                  join: bool = False) -> T.Union[T.List[str], str]:
-    """
-    Given function definitions in abstract syntax format, generate compilable code in
-    a target language. The caller may optionally provide formatting overrides to customize
-    how specific AST elements are emitted.
-
-    :param definitions: A list of `FunctionDefinition` objects to be generated. These are
-    produced by the `transpile` method.
-
-    :param overrides: A dictionary mapping from one of the AST types to a python method
-    that specifies how formatting should occur. For example:
-
-    >>> def my_custom_formatter(formatter: Formatter, element: codegen.Call) -> str:
-    >>>     # Override the generation of the cosine function to call custom_math::cos.
-    >>>     if element.function == codegen.StdMathFunction.Cos:
-    >>>         return formatter.format('custom_math::cos({})', element.args[0])
-    >>>     # If not `cos`, just delegate to the default implementation.
-    >>>     return formatter.format('{}', eleement)
-    >>>
-    >>> overrides = {codegen.Call: my_custom_formatter} # <-- Pass this to generate_code.
-    """
-    if overrides is None:
-        overrides = dict()
-
-    if language == "cpp":
-        generator = codegen.CppGenerator()
-    elif language == "rust":
-        generator = codegen.RustGenerator()
-    else:
-        raise KeyError(f"Invalid language selection: {language}")
-
-    formatter = Formatter(wrapped_generator=generator)
-    try:
-        for t, method in overrides.items():
-            assert isinstance(t, type), f"Dictionary keys must be types. Received: {t}"
-            # Use default-value syntax to capture `method` by value:
-            generator.register_handler(t=t, function=lambda x, func=method: func(formatter, x))
-
-        # Now that custom handlers are installed, we can actually generate the code
-        strings = [generator.generate(definition=d) for d in definitions]
-        if join:
-            return '\n\n'.join(strings)
-        return strings
-    finally:
-        # TODO: I don't love this requirement, but we need to be sure that there are no
-        # circular references between python <-> C++ that might prevent garbage collection.
-        # We explicitly tell the C++ wrapper to discard references to python functions, and
-        # make sure to do so whenever leaving the scope of `generate_code`. I haven't yet
-        # found an implicit way to do this without making some questionable assumptions
-        # about lifetime of objects. It feels safer to be explicit about this.
-        generator.clear_handlers()
 
 
 CPP_PREAMBLE_TEMPLATE = \
@@ -352,13 +266,15 @@ namespace {namespace} {{
 """
 
 
-def apply_cpp_preamble(code: str, namespace: str) -> str:
+def apply_cpp_preamble(code: T.Union[str, T.Sequence[str]], namespace: str) -> str:
     """
     Wrap C++ code in a preamble that includes the necessary headers.
-    :param code: Output C++ code.
+    :param code: Output C++ code, either as a string of sequence of strings.
     :param namespace: Namespace to put generated code in.
     :return: Formatted string.
     """
+    if not isinstance(code, str):
+        code = '\n\n'.join(code)
     return CPP_PREAMBLE_TEMPLATE.format(code=code, namespace=namespace)
 
 

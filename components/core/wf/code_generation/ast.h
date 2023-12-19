@@ -46,6 +46,8 @@ using variant_ptr = std::shared_ptr<const variant>;
 
 // Add two values together.
 struct add {
+  static constexpr std::string_view snake_case_name_str = "add";
+
   variant_ptr left;
   variant_ptr right;
 
@@ -54,6 +56,8 @@ struct add {
 
 // Assign a value to a temporary variable.
 struct assign_temporary {
+  static constexpr std::string_view snake_case_name_str = "assign_temporary";
+
   std::string left;
   variant_ptr right;
 
@@ -67,12 +71,16 @@ struct assign_temporary {
 
 // Assign values to an output argument. All output values are written in one operation.
 struct assign_output_argument {
+  static constexpr std::string_view snake_case_name_str = "assign_output_argument";
+
   std::shared_ptr<const argument> arg;
   std::vector<variant> values;
 };
 
 // An if/else statement.
 struct branch {
+  static constexpr std::string_view snake_case_name_str = "branch";
+
   // Condition of the if statement.
   variant_ptr condition;
   // Statements if the condition is true:
@@ -89,6 +97,8 @@ struct branch {
 
 // Call a standard library function.
 struct call {
+  static constexpr std::string_view snake_case_name_str = "call";
+
   std_math_function function;
   std::vector<variant> args;
 
@@ -99,6 +109,8 @@ struct call {
 
 // Cast a scalar from one numeric type to another.
 struct cast {
+  static constexpr std::string_view snake_case_name_str = "cast";
+
   code_numeric_type destination_type;
   code_numeric_type source_type;
   variant_ptr arg;
@@ -109,6 +121,8 @@ struct cast {
 
 // A comment.
 struct comment {
+  static constexpr std::string_view snake_case_name_str = "comment";
+
   std::string content;
 
   // Split the string by line breaks.
@@ -118,6 +132,8 @@ struct comment {
 
 // A relational comparison.
 struct compare {
+  static constexpr std::string_view snake_case_name_str = "compare";
+
   relational_operation operation{};
   variant_ptr left;
   variant_ptr right;
@@ -125,6 +141,8 @@ struct compare {
 
 // Construct a custom type.
 struct construct_custom_type {
+  static constexpr std::string_view snake_case_name_str = "construct_custom_type";
+
   // The type being constructed.
   custom_type::const_shared_ptr type;
   // Vector of [field, ast] pairs that describe how to fill the fields of the output type.
@@ -134,12 +152,16 @@ struct construct_custom_type {
 
 // Construct a matrix type from arguments.
 struct construct_matrix {
+  static constexpr std::string_view snake_case_name_str = "construct_matrix";
+
   matrix_type type;
   std::vector<variant> args;
 };
 
 // Declare a new variable and optionally assign it a value.
 struct declaration {
+  static constexpr std::string_view snake_case_name_str = "declaration";
+
   // Name for the value being declared
   std::string name;
   // Type of the value:
@@ -157,6 +179,8 @@ struct declaration {
 
 // Divide first operand by second operand.
 struct divide {
+  static constexpr std::string_view snake_case_name_str = "divide";
+
   variant_ptr left;
   variant_ptr right;
 
@@ -165,16 +189,22 @@ struct divide {
 
 // Use a floating-point constant in the output code.
 struct float_literal {
+  static constexpr std::string_view snake_case_name_str = "float_literal";
+
   double value;
 };
 
 // Use an integer constant in the output code.
 struct integer_literal {
+  static constexpr std::string_view snake_case_name_str = "integer_literal";
+
   std::int64_t value;
 };
 
 // Multiply two operands together.
 struct multiply {
+  static constexpr std::string_view snake_case_name_str = "multiply";
+
   variant_ptr left;
   variant_ptr right;
 
@@ -183,6 +213,8 @@ struct multiply {
 
 // Negate an operand.
 struct negate {
+  static constexpr std::string_view snake_case_name_str = "negate";
+
   variant_ptr arg;
 
   explicit negate(variant_ptr arg) noexcept : arg(std::move(arg)) {}
@@ -194,6 +226,8 @@ struct negate {
 //    ... statements ...
 //  }
 struct optional_output_branch {
+  static constexpr std::string_view snake_case_name_str = "optional_output_branch";
+
   // The argument this output corresponds to.
   std::shared_ptr<const argument> arg;
 
@@ -207,16 +241,22 @@ struct optional_output_branch {
 
 // Use a symbolic constant in the output code.
 struct special_constant {
+  static constexpr std::string_view snake_case_name_str = "special_constant";
+
   symbolic_constant_enum value;
 };
 
 // Access a scalar input argument.
 struct read_input_scalar {
+  static constexpr std::string_view snake_case_name_str = "read_input_scalar";
+
   std::shared_ptr<const argument> arg;
 };
 
 // Access a single element from a matrix (2D span) input argument.
 struct read_input_matrix {
+  static constexpr std::string_view snake_case_name_str = "read_input_matrix";
+
   std::shared_ptr<const argument> arg;
   index_t row;
   index_t col;
@@ -224,6 +264,8 @@ struct read_input_matrix {
 
 // Access a single scalar member from a custom input type.
 struct read_input_struct {
+  static constexpr std::string_view snake_case_name_str = "read_input_struct";
+
   std::shared_ptr<const argument> arg;
   // Sequence of nested accessors required to obtain the relevant member.
   std::vector<access_variant> access_sequence{};
@@ -231,11 +273,15 @@ struct read_input_struct {
 
 // A return statement.
 struct return_value {
+  static constexpr std::string_view snake_case_name_str = "return_value";
+
   variant_ptr value;
 };
 
 // Usage of a variable.
 struct variable_ref {
+  static constexpr std::string_view snake_case_name_str = "variable_ref";
+
   // Name of the variable.
   std::string name;
 };

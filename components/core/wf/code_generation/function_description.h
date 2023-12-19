@@ -50,7 +50,7 @@ class argument {
 
 // Describe a function signature.
 // Stores a name, and type+name information for all the arguments.
-struct function_signature {
+class function_signature {
  public:
   explicit function_signature(std::string name) noexcept : name_(std::move(name)) {}
 
@@ -100,7 +100,7 @@ struct function_signature {
 // This type is a symbolic function description, which is then "transpiled" into an actual AST that
 // can be written out as actual code.
 // TODO: Use this in build_function_description?
-struct function_description {
+class function_description {
  public:
   // Stored in a shared ptr so that we can pass with no copies to and from python.
   using shared_ptr = std::shared_ptr<function_description>;

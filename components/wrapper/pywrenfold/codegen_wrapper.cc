@@ -38,21 +38,6 @@ function_definition::shared_ptr transpile_to_function_definition(
   return std::make_shared<function_definition>(std::move(definition));
 }
 
-// TODO: Put this somewhere common and share with the C++ tests.
-template <typename Generator>
-std::string emit_code(const std::vector<function_definition::shared_ptr>& definitions) {
-  if (definitions.empty()) {
-    return "";
-  }
-  auto it = definitions.begin();
-  std::string output = Generator{}.generate_code((*it)->signature(), (*it)->ast());
-  for (++it; it != definitions.end(); ++it) {
-    output.append("\n\n");
-    output += Generator{}.generate_code((*it)->signature(), (*it)->ast());
-  }
-  return output;
-}
-
 std::shared_ptr<custom_type> init_custom_type(
     std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields,
     py::type python_type) {
@@ -447,17 +432,17 @@ void wrap_codegen_operations(py::module_& m) {
           "statements", [](const ast::optional_output_branch& self) { return self.statements; })
       .def("__repr__", &format_ast_repr<ast::optional_output_branch>);
 
-  py::class_<ast::read_input_scalar>(m, "ReadInputScalar")
-      .def_property_readonly("argument",
-                             [](const ast::read_input_scalar& self) { return self.arg; })
-      .def("__repr__", &format_ast_repr<ast::read_input_scalar>);
-
   py::class_<ast::read_input_matrix>(m, "ReadInputMatrix")
       .def_property_readonly("argument",
                              [](const ast::read_input_matrix& self) { return self.arg; })
       .def_property_readonly("row", [](const ast::read_input_matrix& self) { return self.row; })
       .def_property_readonly("col", [](const ast::read_input_matrix& self) { return self.col; })
       .def("__repr__", &format_ast_repr<ast::read_input_matrix>);
+
+  py::class_<ast::read_input_scalar>(m, "ReadInputScalar")
+      .def_property_readonly("argument",
+                             [](const ast::read_input_scalar& self) { return self.arg; })
+      .def("__repr__", &format_ast_repr<ast::read_input_scalar>);
 
   py::class_<ast::read_input_struct>(m, "ReadInputStruct")
       .def_property_readonly("argument",
@@ -466,6 +451,11 @@ void wrap_codegen_operations(py::module_& m) {
           "access_sequence",
           [](const ast::read_input_struct& self) { return self.access_sequence; })
       .def("__repr__", &format_ast_repr<ast::read_input_struct>);
+
+  py::class_<ast::return_value>(m, "ReturnValue")
+      .def_property_readonly(
+          "value", [](const ast::return_value& c) { return c.value; },
+          py::doc("Value or object being returned."));
 
   py::class_<ast::special_constant>(m, "SpecialConstant")
       .def_property_readonly(
@@ -505,11 +495,6 @@ void wrap_codegen_operations(py::module_& m) {
       .def("__repr__", [](const matrix_access& self) {
         return fmt::format("MatrixAccess({}, {})", self.row(), self.col());
       });
-
-  m.def("generate_cpp", &emit_code<cpp_code_generator>, "definitions"_a,
-        py::doc("Generate C++ code from the given function definitions."));
-  m.def("generate_rust", &emit_code<rust_code_generator>, "definitions"_a,
-        py::doc("Generate Rust code from the given function definitions."));
 }
 
 }  // namespace wf

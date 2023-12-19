@@ -52,6 +52,10 @@ struct function_traits<Ret (*)(Args...)> {
 template <typename A, typename B>
 using enable_if_same_t = std::enable_if_t<std::is_same_v<A, B>>;
 
+// Enable if to check that two types are not the same.
+template <typename A, typename B>
+using enable_if_not_same_t = std::enable_if_t<!std::is_same_v<A, B>>;
+
 // Template to check if the `operator()` method is implemented.
 template <typename T, typename, typename = void>
 constexpr bool has_call_operator_v = false;

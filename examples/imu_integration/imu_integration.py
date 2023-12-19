@@ -14,7 +14,7 @@ import typing as T
 
 from wrenfold.type_annotations import RealScalar, Vector4, Vector3
 from wrenfold import code_generation
-from wrenfold.code_generation import OutputArg
+from wrenfold.code_generation import OutputArg, CppGenerator
 
 from wrenfold.geometry import Quaternion, left_jacobian_of_so3
 from wrenfold import sym
@@ -306,7 +306,7 @@ def main(output: str):
         code_generation.create_function_description(integration_test_sequence)
     ]
     definitions = code_generation.transpile(descriptions=descriptions)
-    code = code_generation.generate_cpp(definitions=definitions)
+    code = CppGenerator().generate(definitions=definitions)
     code = code_generation.apply_cpp_preamble(code, namespace="gen")
 
     if output is not None:
