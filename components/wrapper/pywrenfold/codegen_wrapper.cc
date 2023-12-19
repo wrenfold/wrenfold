@@ -66,32 +66,28 @@ auto wrap_ast_type(py::module_& m) {
       });
 }
 
-std::shared_ptr<custom_type> init_custom_type(
-    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields,
-    py::type python_type) {
-  // Unfortunately for pybind this needs to be non-const shared ptr. Internally we save it as const.
-  using custom_type_shared_ptr = std::shared_ptr<custom_type>;
-
-  std::vector<custom_type::field> fields_converted{};
+custom_type init_custom_type(std::string name,
+                             const std::vector<std::tuple<std::string_view, py::object>>& fields,
+                             py::type python_type) {
+  std::vector<field> fields_converted{};
   fields_converted.reserve(fields.size());
-  std::transform(
-      fields.begin(), fields.end(), std::back_inserter(fields_converted), [](const auto& tup) {
-        // We can't use a variant in the tuple, since it can't be default constructed. Instead, we
-        // check for different types manually here.
-        const auto& [field_name, type_obj] = tup;
-        if (py::isinstance<scalar_type>(type_obj)) {
-          return custom_type::field(std::string{field_name}, py::cast<scalar_type>(type_obj));
-        } else if (py::isinstance<matrix_type>(type_obj)) {
-          return custom_type::field(std::string{field_name}, py::cast<matrix_type>(type_obj));
-        } else if (py::isinstance<custom_type_shared_ptr>(type_obj)) {
-          return custom_type::field(std::string{field_name},
-                                    py::cast<custom_type_shared_ptr>(type_obj));
-        } else {
-          throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
-        }
-      });
-  return std::make_shared<custom_type>(std::move(name), std::move(fields_converted),
-                                       std::any{std::move(python_type)});
+  std::transform(fields.begin(), fields.end(), std::back_inserter(fields_converted),
+                 [](const auto& tup) {
+                   // We can't use a variant in the tuple, since it can't be default constructed.
+                   // Instead, we check for different types manually here.
+                   const auto& [field_name, type_obj] = tup;
+                   if (py::isinstance<scalar_type>(type_obj)) {
+                     return field(std::string{field_name}, py::cast<scalar_type>(type_obj));
+                   } else if (py::isinstance<matrix_type>(type_obj)) {
+                     return field(std::string{field_name}, py::cast<matrix_type>(type_obj));
+                   } else if (py::isinstance<custom_type>(type_obj)) {
+                     return field(std::string{field_name}, py::cast<custom_type>(type_obj));
+                   } else {
+                     throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
+                   }
+                 });
+  return custom_type(std::move(name), std::move(fields_converted),
+                     std::any{std::move(python_type)});
 }
 
 void wrap_codegen_operations(py::module_& m) {

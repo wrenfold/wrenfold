@@ -75,7 +75,7 @@ class custom_type {
   const auto& underlying_type() const noexcept { return impl_->underlying_type; }
 
   // py::type (or empty) for types that are defined in python.
-  constexpr const auto& python_type() const noexcept { return python_type_; }
+  const auto& python_type() const noexcept { return impl_->python_type; }
 
   // Number of fields.
   std::size_t size() const noexcept { return impl_->fields.size(); }
