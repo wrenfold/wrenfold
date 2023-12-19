@@ -118,11 +118,20 @@ std::string rust_code_generator::format_signature(const function_signature& sign
     result.append(")\n");
   } else {
     const auto return_type = *signature.return_value_type();
-    if (const scalar_type* s = std::get_if<scalar_type>(&return_type); s != nullptr) {
-      fmt::format_to(std::back_inserter(result), ") -> {}\n", type_string_from_numeric_type(*s));
-    } else {
-      throw type_error("Return values must be scalars.");
-    }
+    overloaded_visit(
+        return_type,
+        [&](scalar_type scalar) {
+          fmt::format_to(std::back_inserter(result), ") -> {}\n",
+                         type_string_from_numeric_type(scalar));
+        },
+        [&](matrix_type) {
+          throw type_error(
+              "Matrices cannot be directly returned in C++ (since they are passed as spans).");
+        },
+        [&](const custom_type::const_shared_ptr& custom_type) {
+          // TODO: This needs to be overridable from python.
+          fmt::format_to(std::back_inserter(result), ") -> {}\n", custom_type->name());
+        });
   }
 
   if (!generic_args.empty()) {
@@ -250,10 +259,21 @@ std::string rust_code_generator::operator()(const ast::compare& x) const {
                      string_from_relational_operation(x.operation), make_view(x.right));
 }
 
-std::string rust_code_generator::operator()(const ast::construct_return_value& x) const {
-  WF_ASSERT(std::holds_alternative<scalar_type>(x.type), "We cannot return matrices");
-  WF_ASSERT_EQUAL(1, x.args.size());
-  return fmt::format("{}", make_view(x.args[0]));
+std::string rust_code_generator::operator()(const ast::construct_matrix&) const {
+  throw type_error(
+      "The default Rust code-generator treats all matrices as spant traits. We cannot construct "
+      "one directly. You likely want to implement an override for the the ConstructMatrix ast "
+      "type.");
+}
+
+std::string rust_code_generator::operator()(const ast::construct_custom_type& x) const {
+  const std::string opener = fmt::format("{} {{\n", x.type->name());
+  std::string output{};
+  join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
+    const auto& [field_name, val] = field_val;
+    return fmt::format("{}: {}", field_name, make_view(val));
+  });
+  return output;
 }
 
 std::string rust_code_generator::operator()(const ast::declaration& x) const {
@@ -331,6 +351,10 @@ std::string rust_code_generator::operator()(const ast::read_input_struct& x) con
         });
   }
   return result;
+}
+
+std::string rust_code_generator::operator()(const ast::return_value& x) const {
+  return operator()(x.value);
 }
 
 std::string rust_code_generator::operator()(const ast::special_constant& x) const {

@@ -52,8 +52,8 @@ class Point2d:
 def rotate_point(angle: RealScalar, p: Point2d):
     R = sym.matrix([[sym.cos(angle), -sym.sin(angle)], [sym.sin(angle), sym.cos(angle)]])
     p_rotated = R * sym.vector(p.x, p.y)
-    # p_out = Point2d(*p_rotated)
-    return [OutputArg(p_rotated, name="p_rotated")]
+    p_out = Point2d(*p_rotated)
+    return [OutputArg(p_out, name="p_rotated")]
 
 
 class CodeGenerationWrapperTest(MathTestBase):
@@ -97,8 +97,8 @@ class CodeGenerationWrapperTest(MathTestBase):
             code_generation.codegen.ReadInputStruct: self.custom_type_access_formatter,
         }
 
-        code = code_generation.generate_code(
-            language="cpp", definitions=definitions, overrides=overrides, join=True)
+        # code = code_generation.generate_code(
+        #     language="cpp", definitions=definitions, overrides=overrides, join=True)
         code = code_generation.generate_code(
             language="rust", definitions=definitions, overrides=overrides, join=True)
         print(code)

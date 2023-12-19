@@ -30,7 +30,9 @@ class rust_code_generator {
 
   std::string operator()(const ast::compare& x) const;
 
-  std::string operator()(const ast::construct_return_value& x) const;
+  std::string operator()(const ast::construct_matrix& x) const;
+
+  std::string operator()(const ast::construct_custom_type& x) const;
 
   std::string operator()(const ast::declaration& x) const;
 
@@ -51,6 +53,8 @@ class rust_code_generator {
   std::string operator()(const ast::read_input_matrix& x) const;
 
   std::string operator()(const ast::read_input_struct& x) const;
+
+  std::string operator()(const ast::return_value& x) const;
 
   std::string operator()(const ast::special_constant& x) const;
 

@@ -86,8 +86,9 @@ std::string cpp_code_generator::format_signature(const function_signature& signa
           throw type_error(
               "Matrices cannot be directly returned in C++ (since they are passed as spans).");
         },
-        [&](const custom_type::const_shared_ptr&) {
-          throw type_error("TODO: Implement this branch.");
+        [&](const custom_type::const_shared_ptr& custom_type) {
+          // TODO: This needs to be overridable from python.
+          result.append(custom_type->name());
         });
   } else {
     result.append("void");
@@ -238,10 +239,22 @@ std::string cpp_code_generator::operator()(const ast::compare& x) const {
                      make_view(x.right));
 }
 
-std::string cpp_code_generator::operator()(const ast::construct_return_value& x) const {
-  WF_ASSERT(std::holds_alternative<scalar_type>(x.type), "We cannot return matrices");
-  WF_ASSERT_EQUAL(1, x.args.size());
-  return fmt::format("return {};", make_view(x.args[0]));
+std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
+  throw type_error(
+      "The default C++ code-generator treats all matrices as spans. We cannot construct one "
+      "directly. You likely want to implement an override for the the ConstructMatrix ast type.");
+}
+
+// Really we don't know how the user wants their types constructed, but we can take an educated
+// guess. Customization is possible from python via overrides.
+std::string cpp_code_generator::operator()(const ast::construct_custom_type& x) const {
+  const std::string opener = fmt::format("{}{{\n", x.type->name());
+  std::string output{};
+  join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
+    const auto& [field_name, val] = field_val;
+    return operator()(val) + fmt::format(" // {}", field_name);
+  });
+  return output;
 }
 
 std::string cpp_code_generator::operator()(const ast::declaration& x) const {
@@ -296,10 +309,6 @@ std::string cpp_code_generator::operator()(const ast::optional_output_branch& x)
   return result;
 }
 
-std::string cpp_code_generator::operator()(const ast::special_constant& x) const {
-  return fmt::format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
-}
-
 std::string cpp_code_generator::operator()(const ast::read_input_scalar& x) const {
   WF_ASSERT(x.arg);
   return x.arg->name();
@@ -324,6 +333,14 @@ std::string cpp_code_generator::operator()(const ast::read_input_struct& x) cons
         });
   }
   return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::return_value& x) const {
+  return fmt::format("return {};", make_view(x.value));
+}
+
+std::string cpp_code_generator::operator()(const ast::special_constant& x) const {
+  return fmt::format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
 }
 
 std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }

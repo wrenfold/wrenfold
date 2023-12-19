@@ -377,10 +377,18 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("operation", [](const ast::compare& c) { return c.operation; })
       .def("__repr__", &format_ast_repr<ast::compare>);
 
-  py::class_<ast::construct_return_value>(m, "ConstructReturnValue")
-      .def_property_readonly("type", [](const ast::construct_return_value& c) { return c.type; })
-      .def_property_readonly("args", [](const ast::construct_return_value& c) { return c.args; })
-      .def("__repr__", &format_ast_repr<ast::construct_return_value>);
+  py::class_<ast::construct_matrix>(m, "ConstructReturnValue")
+      .def_property_readonly("type", [](const ast::construct_matrix& c) { return c.type; })
+      .def_property_readonly("args", [](const ast::construct_matrix& c) { return c.args; })
+      .def("__repr__", &format_ast_repr<ast::construct_matrix>);
+
+  py::class_<ast::construct_custom_type>(m, "ConstructCustomType")
+      .def_property_readonly("type",
+                             [](const ast::construct_custom_type& self) { return self.type; })
+      .def_property_readonly(
+          "field_values",
+          [](const ast::construct_custom_type& self) -> const auto& { return self.field_values; })
+      .def("__repr__", &format_ast_repr<ast::construct_custom_type>);
 
   py::class_<ast::declaration>(m, "Declaration")
       .def_property_readonly("name", [](const ast::declaration& d) { return d.name; })

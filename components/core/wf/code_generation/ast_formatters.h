@@ -56,8 +56,13 @@ auto format_ast(Iterator it, const wf::ast::compare& c) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::construct_return_value& c) {
-  return fmt::format_to(it, "ConstructReturnValue({}, {})", c.type, fmt::join(c.args, ", "));
+auto format_ast(Iterator it, const wf::ast::construct_matrix& c) {
+  return fmt::format_to(it, "ConstructMatrix({}, {})", c.type, fmt::join(c.args, ", "));
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::construct_custom_type& c) {
+  return fmt::format_to(it, "ConstructCustomType({}, {} fields)", c.type, c.field_values.size());
 }
 
 template <typename Iterator>
@@ -118,6 +123,11 @@ auto format_ast(Iterator it, const wf::ast::read_input_struct& r) {
   }
   return fmt::format_to(it, "ReadInputStruct({}.{})", r.arg->name(),
                         fmt::join(r.access_sequence, "."));
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::return_value& r) {
+  return fmt::format_to(it, "ReturnValue({})", *r.value);
 }
 
 template <typename Iterator>

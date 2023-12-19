@@ -3,6 +3,7 @@
 
 #include <unordered_set>
 
+#include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ir_builder.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/expressions/numeric_expressions.h"
@@ -36,7 +37,7 @@ namespace wf::ast {
 inline void find_conditional_output_values(const ir::value_ptr v, const bool top_level_invocation,
                                            std::vector<ir::value_ptr>& outputs) {
   bool all_phi_consumers = true;
-  for (ir::value_ptr consumer : v->consumers()) {
+  for (const ir::value_ptr consumer : v->consumers()) {
     if (consumer->is_phi()) {
       // A phi function might just be an input to another phi function, so we need to recurse here.
       find_conditional_output_values(consumer, false, outputs);
@@ -48,6 +49,50 @@ inline void find_conditional_output_values(const ir::value_ptr v, const bool top
     outputs.push_back(v);
   }
 }
+
+// Given all the values that are required to build a given output, make the syntax to construct
+// that object. For structs, we need to recurse and build each member.
+struct construct_output_variant {
+  // Scalar doesn't have a constructor, just return the input directly and step forward by one
+  // value.
+  template <typename Iterator>
+  ast::variant operator()(const scalar_type&, Iterator& input_it, const Iterator end) {
+    WF_ASSERT(input_it != end);
+    ast::variant result = *input_it;
+    ++input_it;
+    return result;
+  }
+
+  // Matrices we just group the next `row * col` elements into `construct_matrix` element.
+  template <typename Iterator>
+  ast::variant operator()(const matrix_type& mat, Iterator& input_it, const Iterator end) {
+    const auto mat_size = static_cast<std::ptrdiff_t>(mat.size());
+    WF_ASSERT_GREATER_OR_EQ(std::distance(input_it, end), mat_size);
+    std::vector<ast::variant> matrix_args{};
+    matrix_args.reserve(mat.size());
+    const auto start = input_it;
+    std::advance(input_it, mat_size);
+    std::copy(start, input_it, std::back_inserter(matrix_args));
+    return ast::construct_matrix{mat, std::move(matrix_args)};
+  }
+
+  // For custom types, recurse and consume however many values are required for each individual
+  // field.
+  template <typename Iterator>
+  ast::variant operator()(const custom_type::const_shared_ptr& type, Iterator& input_it,
+                          const Iterator end) {
+    // Recursively convert every field in the custom type.
+    std::vector<std::tuple<std::string, ast::variant>> fields_out{};
+    fields_out.reserve(type->size());
+    for (const custom_type::field& field : type->fields()) {
+      ast::variant field_var = std::visit(
+          [&](const auto& child) -> ast::variant { return operator()(child, input_it, end); },
+          field.type());
+      fields_out.emplace_back(field.name(), std::move(field_var));
+    }
+    return ast::construct_custom_type{type, std::move(fields_out)};
+  }
+};
 
 // Object that iterates over operations in IR blocks, and visits each operation. We recursively
 // convert our basic control-flow-graph to a limited syntax tree that can be emitted in different
@@ -96,8 +141,14 @@ struct ast_from_ir {
       if (key.usage == expression_usage::return_value) {
         WF_ASSERT(block->descendants.empty(), "Must be the final block");
         WF_ASSERT(signature_.has_return_value());
-        emplace_operation<ast::construct_return_value>(*signature_.return_value_type(),
-                                                       std::move(args));
+        ast::variant var = std::visit(
+            [this, &args](const auto& type) {
+              auto begin_it = std::make_move_iterator(args.begin());
+              return construct_output_variant{}(type, begin_it,
+                                                std::make_move_iterator(args.end()));
+            },
+            *signature_.return_value_type());
+        emplace_operation<ast::return_value>(std::make_shared<ast::variant>(std::move(var)));
       } else {
         auto arg = signature_.argument_by_name(key.name);
         WF_ASSERT(arg, "Argument missing from signature: {}", key.name);

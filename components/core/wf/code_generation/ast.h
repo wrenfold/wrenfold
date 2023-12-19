@@ -5,15 +5,8 @@
 #include <variant>
 #include <vector>
 
-#include "wf/assertions.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
-#include "wf/hashing.h"
-
-namespace wf {
-class flat_ir;
-class output_ir;
-}  // namespace wf
 
 namespace wf::ast {
 
@@ -27,7 +20,8 @@ using variant = std::variant<
     struct cast,
     struct comment,
     struct compare,
-    struct construct_return_value,
+    struct construct_custom_type,
+    struct construct_matrix,
     struct declaration,
     struct divide,
     struct float_literal,
@@ -39,6 +33,7 @@ using variant = std::variant<
     struct read_input_scalar,
     struct read_input_matrix,
     struct read_input_struct,
+    struct return_value,
     struct variable_ref
     >;
 // clang-format on
@@ -48,14 +43,6 @@ using variant_vector = std::vector<variant>;
 // This is a shared_ptr so that we can copy AST members.
 // Copying is desirable to satisfy the pybind11 wrapper.
 using variant_ptr = std::shared_ptr<const variant>;
-
-// Usage of a variable.
-struct variable_ref {
-  // Name of the variable.
-  std::string name;
-
-  explicit variable_ref(std::string name) : name(std::move(name)) {}
-};
 
 // Add two values together.
 struct add {
@@ -136,12 +123,19 @@ struct compare {
   variant_ptr right;
 };
 
-// Construct a type from the provided arguments.
-struct construct_return_value {
-  type_variant type;
-  std::vector<variant> args;
+// Construct a custom type.
+struct construct_custom_type {
+  // The type being constructed.
+  custom_type::const_shared_ptr type;
+  // Vector of [field, ast] pairs that describe how to fill the fields of the output type.
+  // Fields will be in the same order as in `type`.
+  std::vector<std::tuple<std::string, ast::variant>> field_values;
+};
 
-  construct_return_value(type_variant, std::vector<variant>&& args) noexcept;
+// Construct a matrix type from arguments.
+struct construct_matrix {
+  matrix_type type;
+  std::vector<variant> args;
 };
 
 // Declare a new variable and optionally assign it a value.
@@ -233,6 +227,17 @@ struct read_input_struct {
   std::shared_ptr<const argument> arg;
   // Sequence of nested accessors required to obtain the relevant member.
   std::vector<access_variant> access_sequence{};
+};
+
+// A return statement.
+struct return_value {
+  variant_ptr value;
+};
+
+// Usage of a variable.
+struct variable_ref {
+  // Name of the variable.
+  std::string name;
 };
 
 }  // namespace wf::ast
