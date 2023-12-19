@@ -72,6 +72,10 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::variable_ref& x) const;
 
+  std::string operator()(const ast::return_value& x) const;
+
+  std::string operator()(const ast::special_constant& x) const;
+
   std::string operator()(const ast::variable_ref& x) const;
 
   // We need a virtual method so that this behavior can be overriden on the python side.

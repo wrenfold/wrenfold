@@ -7,6 +7,11 @@ class flat_ir;
 class output_ir;
 }  // namespace wf
 
+namespace wf {
+class flat_ir;
+class output_ir;
+}  // namespace wf
+
 namespace wf::ast {
 
 // Create function_definition from the intermediate representation:

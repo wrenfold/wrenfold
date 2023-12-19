@@ -349,6 +349,14 @@ std::string cpp_code_generator::operator()(const ast::special_constant& x) const
 
 std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
 
+std::string cpp_code_generator::operator()(const ast::return_value& x) const {
+  return fmt::format("return {};", make_view(x.value));
+}
+
+std::string cpp_code_generator::operator()(const ast::special_constant& x) const {
+  return fmt::format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
+}
+
 std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
 
 std::string cpp_code_generator::apply(const ast::variant& var) const {

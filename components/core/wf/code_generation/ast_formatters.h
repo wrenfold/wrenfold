@@ -203,6 +203,11 @@ auto format_ast(Iterator it, const wf::ast::read_input_struct& r) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::return_value& r) {
+  return fmt::format_to(it, "ReturnValue({})", *r.value);
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::special_constant& c) {
   return fmt::format_to(it, "({})", string_from_symbolic_constant(c.value));
 }
