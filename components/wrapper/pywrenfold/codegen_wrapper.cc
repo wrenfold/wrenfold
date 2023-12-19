@@ -239,7 +239,7 @@ void wrap_codegen_operations(py::module_& m) {
           py::doc("Add an input argument with a custom user-specified type."))
       .def(
           "add_output_argument",
-          [](function_description& self, const std::string_view name, bool is_optional,
+          [](function_description& self, const std::string_view name, const bool is_optional,
              const Expr& value) {
             self.add_output_argument(name, scalar_type(code_numeric_type::floating_point),
                                      is_optional, {value});
@@ -247,7 +247,7 @@ void wrap_codegen_operations(py::module_& m) {
           py::arg("name"), py::arg("is_optional"), py::arg("value"))
       .def(
           "add_output_argument",
-          [](function_description& self, const std::string_view name, bool is_optional,
+          [](function_description& self, const std::string_view name, const bool is_optional,
              const MatrixExpr& value) {
             self.add_output_argument(name, matrix_type(value.rows(), value.cols()), is_optional,
                                      value.to_vector());
@@ -255,7 +255,7 @@ void wrap_codegen_operations(py::module_& m) {
           py::arg("name"), py::arg("is_optional"), py::arg("value"))
       .def(
           "add_output_argument",
-          [](function_description& self, const std::string_view name, bool is_optional,
+          [](function_description& self, const std::string_view name, const bool is_optional,
              const custom_type::shared_ptr& custom_type, std::vector<Expr> expressions) {
             self.add_output_argument(name, custom_type, is_optional, std::move(expressions));
           },
@@ -281,9 +281,7 @@ void wrap_codegen_operations(py::module_& m) {
           },
           py::arg("custom_type"), py::arg("expressions"));
 
-  // Use std::shared_ptr to store argument, since this is what ast::function_signature uses.
-  // If we don't do this, we might free something incorrectly when accessing arguments.
-  py::class_<argument, std::shared_ptr<argument>>(m, "Argument")
+  py::class_<argument>(m, "Argument")
       .def_property_readonly("name", &argument::name)
       .def_property_readonly("type", &argument::type)
       .def_property_readonly("is_optional", &argument::is_optional)
@@ -313,11 +311,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def("__repr__", &format_ast_repr<ast::assign_temporary>);
 
   py::class_<ast::assign_output_argument>(m, "AssignOutputArgument")
-      .def_property_readonly("argument",
-                             [](const ast::assign_output_argument& x) {
-                               WF_ASSERT(x.arg);
-                               return *x.arg;
-                             })
+      .def_property_readonly("argument", [](const ast::assign_output_argument& x) { return x.arg; })
       .def_property_readonly("values",
                              [](const ast::assign_output_argument& x) { return x.values; })
       .def("__repr__", &format_ast_repr<ast::assign_output_argument>);

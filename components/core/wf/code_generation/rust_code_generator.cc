@@ -57,12 +57,12 @@ static std::vector<std::string_view> get_attributes(const function_signature& si
 
 // Assign indices to arguments that need generics declared. (Just matrices for now).
 // Returns new vector with _only_ the args that need generics.
-static auto assign_labels_to_generic_args(const std::vector<argument::shared_ptr>& args) {
-  std::vector<std::tuple<std::string, argument::shared_ptr>> result;
+static auto assign_labels_to_generic_args(const std::vector<argument>& args) {
+  std::vector<std::tuple<std::string, argument>> result;
   result.reserve(args.size());
   std::size_t counter = 0;
-  for (const auto& arg : args) {
-    if (arg->is_matrix()) {
+  for (const argument& arg : args) {
+    if (arg.is_matrix()) {
       result.emplace_back(fmt::format("T{}", counter), arg);
       ++counter;
     }
@@ -91,18 +91,18 @@ std::string rust_code_generator::format_signature(const function_signature& sign
 
   result.append("(");
   for (const auto& arg : signature.arguments()) {
-    fmt::format_to(std::back_inserter(result), "{}: ", arg->name());
+    fmt::format_to(std::back_inserter(result), "{}: ", arg.name());
 
     // Check if this arg has a generic label:
     const auto generic_it =
         std::find_if(generic_args.begin(), generic_args.end(),
-                     [&](const auto& pair) { return std::get<1>(pair) == arg; });
+                     [&](const auto& pair) { return std::get<1>(pair).name() == arg.name(); });
     const std::string output_type =
         generic_it != generic_args.end() ? std::get<0>(*generic_it) : "f64";
 
-    switch (arg->direction()) {
+    switch (arg.direction()) {
       case argument_direction::input:
-        fmt::format_to(std::back_inserter(result), "{}{}, ", arg->is_matrix() ? "&" : "",
+        fmt::format_to(std::back_inserter(result), "{}{}, ", arg.is_matrix() ? "&" : "",
                        output_type);
         break;
       case argument_direction::output:
@@ -137,10 +137,10 @@ std::string rust_code_generator::format_signature(const function_signature& sign
   if (!generic_args.empty()) {
     join_and_indent(result, 2, "where\n", "\n", "\n", generic_args, [](const auto& label_and_arg) {
       const auto& [label, arg] = label_and_arg;
-      const matrix_type* mat = std::get_if<matrix_type>(&arg->type());
+      const matrix_type* mat = std::get_if<matrix_type>(&arg.type());
       WF_ASSERT(mat != nullptr);
       return fmt::format("{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,", label,
-                         span_type_from_direction(arg->direction()), mat->rows(), mat->cols(),
+                         span_type_from_direction(arg.direction()), mat->rows(), mat->cols(),
                          type_string_from_numeric_type(code_numeric_type::floating_point));
     });
   }
@@ -152,8 +152,8 @@ std::string rust_code_generator::operator()(const ast::add& x) const {
 }
 
 std::string rust_code_generator::operator()(const ast::assign_output_argument& assignment) const {
-  const auto& dest_name = assignment.arg->name();
-  const type_variant& type = assignment.arg->type();
+  const auto& dest_name = assignment.arg.name();
+  const type_variant& type = assignment.arg.type();
 
   return overloaded_visit(
       type,
@@ -322,24 +322,21 @@ std::string rust_code_generator::operator()(const ast::negate& x) const {
 
 std::string rust_code_generator::operator()(const ast::optional_output_branch& x) const {
   std::string result{};
-  fmt::format_to(std::back_inserter(result), "if let Some({}) = {} ", x.arg->name(), x.arg->name());
+  fmt::format_to(std::back_inserter(result), "if let Some({}) = {} ", x.arg.name(), x.arg.name());
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
   return result;
 }
 
 std::string rust_code_generator::operator()(const ast::read_input_matrix& x) const {
-  WF_ASSERT(x.arg);
-  return fmt::format("{}.get({}, {})", x.arg->name(), x.row, x.col);
+  return fmt::format("{}.get({}, {})", x.arg.name(), x.row, x.col);
 }
 
 std::string rust_code_generator::operator()(const ast::read_input_scalar& x) const {
-  WF_ASSERT(x.arg);
-  return x.arg->name();
+  return x.arg.name();
 }
 
 std::string rust_code_generator::operator()(const ast::read_input_struct& x) const {
-  WF_ASSERT(x.arg);
-  std::string result = x.arg->name();
+  std::string result = x.arg.name();
   for (const access_variant& access : x.access_sequence) {
     overloaded_visit(
         access,

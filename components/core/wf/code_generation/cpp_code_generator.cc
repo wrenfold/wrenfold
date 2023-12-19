@@ -13,31 +13,31 @@ std::string cpp_code_generator::generate_code(const function_signature& signatur
   std::string result = format_signature(signature);
   result.append("\n{\n");
 
-  std::vector<argument::shared_ptr> matrix_args{};
+  std::vector<argument> matrix_args{};
   std::copy_if(signature.arguments().begin(), signature.arguments().end(),
-               std::back_inserter(matrix_args), [](const auto& arg) { return arg->is_matrix(); });
+               std::back_inserter(matrix_args), [](const auto& arg) { return arg.is_matrix(); });
 
   if (!matrix_args.empty()) {
-    join_and_indent(result, 2, "", "\n", "\n", matrix_args, [](const argument::shared_ptr& arg) {
-      const matrix_type& mat = std::get<matrix_type>(arg->type());
+    join_and_indent(result, 2, "", "\n", "\n", matrix_args, [](const argument& arg) {
+      const matrix_type& mat = std::get<matrix_type>(arg.type());
 
       // Generate matrix conversion logic.
       std::string arg_result;
-      fmt::format_to(std::back_inserter(arg_result), "auto _{} = ", arg->name());
+      fmt::format_to(std::back_inserter(arg_result), "auto _{} = ", arg.name());
 
       const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
-      switch (arg->direction()) {
+      switch (arg.direction()) {
         case argument_direction::input:
           fmt::format_to(std::back_inserter(arg_result), "{}::make_input_span<{}>({});",
-                         utility_namespace, dims_type, arg->name());
+                         utility_namespace, dims_type, arg.name());
           break;
         case argument_direction::output:
           fmt::format_to(std::back_inserter(arg_result), "{}::make_output_span<{}>({});",
-                         utility_namespace, dims_type, arg->name());
+                         utility_namespace, dims_type, arg.name());
           break;
         case argument_direction::optional_output:
           fmt::format_to(std::back_inserter(arg_result), "{}::make_optional_output_span<{}>({});",
-                         utility_namespace, dims_type, arg->name());
+                         utility_namespace, dims_type, arg.name());
           break;
       }
       return arg_result;
@@ -67,8 +67,8 @@ std::string cpp_code_generator::format_signature(const function_signature& signa
 
   if (signature.has_matrix_arguments()) {
     std::size_t counter = 0;
-    for (const std::shared_ptr<const argument>& arg : signature.arguments()) {
-      if (arg->is_matrix()) {
+    for (const argument& arg : signature.arguments()) {
+      if (arg.is_matrix()) {
         fmt::format_to(std::back_inserter(result), ", typename T{}", counter);
         ++counter;
       }
@@ -94,12 +94,12 @@ std::string cpp_code_generator::format_signature(const function_signature& signa
   fmt::format_to(std::back_inserter(result), " {}(", signature.name());
 
   std::size_t counter = 0;
-  auto arg_printer = [&counter](const argument::shared_ptr& arg) {
+  auto arg_printer = [&counter](const argument& arg) {
     std::string arg_result{};
     overloaded_visit(
-        arg->type(),
+        arg.type(),
         [&](scalar_type s) {
-          if (arg->direction() == argument_direction::input) {
+          if (arg.direction() == argument_direction::input) {
             fmt::format_to(std::back_inserter(arg_result), "const {}",
                            cpp_string_from_numeric_cast_type(s.numeric_type()));
           } else {
@@ -110,7 +110,7 @@ std::string cpp_code_generator::format_signature(const function_signature& signa
         },
         [&](matrix_type) {
           const auto count = counter++;
-          if (arg->direction() == argument_direction::input) {
+          if (arg.direction() == argument_direction::input) {
             fmt::format_to(std::back_inserter(arg_result), "const T{}&", count);
           } else {
             fmt::format_to(std::back_inserter(arg_result), "T{}&&", count);
@@ -121,7 +121,7 @@ std::string cpp_code_generator::format_signature(const function_signature& signa
           arg_result.append(custom->name());
         });
 
-    fmt::format_to(std::back_inserter(arg_result), " {}", arg->name());
+    fmt::format_to(std::back_inserter(arg_result), " {}", arg.name());
     return arg_result;
   };
 
@@ -135,8 +135,8 @@ std::string cpp_code_generator::operator()(const ast::add& x) const {
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_output_argument& assignment) const {
-  const auto& dest_name = assignment.arg->name();
-  const type_variant& type = assignment.arg->type();
+  const auto& dest_name = assignment.arg.name();
+  const type_variant& type = assignment.arg.type();
 
   return overloaded_visit(
       type,
@@ -302,24 +302,21 @@ std::string cpp_code_generator::operator()(const ast::negate& x) const {
 std::string cpp_code_generator::operator()(const ast::optional_output_branch& x) const {
   std::string result{};
   fmt::format_to(std::back_inserter(result), "if (static_cast<bool>({}{})) ",
-                 x.arg->is_matrix() ? "_" : "", x.arg->name());
+                 x.arg.is_matrix() ? "_" : "", x.arg.name());
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
   return result;
 }
 
 std::string cpp_code_generator::operator()(const ast::read_input_matrix& x) const {
-  WF_ASSERT(x.arg);
-  return fmt::format("_{}({}, {})", x.arg->name(), x.row, x.col);
+  return fmt::format("_{}({}, {})", x.arg.name(), x.row, x.col);
 }
 
 std::string cpp_code_generator::operator()(const ast::read_input_scalar& x) const {
-  WF_ASSERT(x.arg);
-  return x.arg->name();
+  return x.arg.name();
 }
 
 std::string cpp_code_generator::operator()(const ast::read_input_struct& x) const {
-  WF_ASSERT(x.arg);
-  std::string result = x.arg->name();
+  std::string result = x.arg.name();
   for (const access_variant& access : x.access_sequence) {
     overloaded_visit(
         access,

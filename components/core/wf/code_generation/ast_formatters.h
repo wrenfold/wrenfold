@@ -17,7 +17,7 @@ auto format_ast(Iterator it, const wf::ast::add& v) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::assign_output_argument& v) {
-  return fmt::format_to(it, "AssignOutputArgument({} = {})", v.arg->name(),
+  return fmt::format_to(it, "AssignOutputArgument({} = {})", v.arg.name(),
                         fmt::join(v.values, ", "));
 }
 
@@ -102,26 +102,26 @@ auto format_ast(Iterator it, const wf::ast::negate& n) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::optional_output_branch& m) {
-  return fmt::format_to(it, "OptionalOutputBranch({}, <{} statements>)", m.arg->name(),
+  return fmt::format_to(it, "OptionalOutputBranch({}, <{} statements>)", m.arg.name(),
                         m.statements.size());
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::read_input_scalar& r) {
-  return fmt::format_to(it, "ReadInputScalar({})", r.arg->name());
+  return fmt::format_to(it, "ReadInputScalar({})", r.arg.name());
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::read_input_matrix& r) {
-  return fmt::format_to(it, "ReadInputMatrix({}[{}, {}])", r.arg->name(), r.row, r.col);
+  return fmt::format_to(it, "ReadInputMatrix({}[{}, {}])", r.arg.name(), r.row, r.col);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::read_input_struct& r) {
   if (r.access_sequence.empty()) {
-    return fmt::format_to(it, "ReadInputStruct({})", r.arg->name());
+    return fmt::format_to(it, "ReadInputStruct({})", r.arg.name());
   }
-  return fmt::format_to(it, "ReadInputStruct({}.{})", r.arg->name(),
+  return fmt::format_to(it, "ReadInputStruct({}.{})", r.arg.name(),
                         fmt::join(r.access_sequence, "."));
 }
 

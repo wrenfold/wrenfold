@@ -20,32 +20,35 @@ enum class argument_direction {
 // Store an argument to a function.
 class argument {
  public:
-  using shared_ptr = std::shared_ptr<const argument>;
-
   argument(const std::string_view name, type_variant type, argument_direction direction)
-      : name_(name), type_(std::move(type)), direction_(direction) {}
+      : impl_(std::make_shared<const impl>(impl{std::string(name), std::move(type), direction})) {}
 
   // Name of the argument.
-  constexpr const std::string& name() const noexcept { return name_; }
+  const std::string& name() const noexcept { return impl_->name; }
 
   // Type of the argument.
-  constexpr const type_variant& type() const noexcept { return type_; }
+  const type_variant& type() const noexcept { return impl_->type; }
 
   // Is the argument type a matrix.
-  constexpr bool is_matrix() const noexcept { return std::holds_alternative<matrix_type>(type_); }
+  bool is_matrix() const noexcept { return std::holds_alternative<matrix_type>(impl_->type); }
 
   // Is this argument optional? Presently only output arguments may be optional.
-  constexpr bool is_optional() const noexcept {
-    return direction_ == argument_direction::optional_output;
+  bool is_optional() const noexcept {
+    return impl_->direction == argument_direction::optional_output;
   }
 
   // Argument direction.
-  constexpr argument_direction direction() const noexcept { return direction_; }
+  argument_direction direction() const noexcept { return impl_->direction; }
 
  private:
-  std::string name_;
-  type_variant type_;
-  argument_direction direction_;
+  // We share arguments in multiple places, and return them into python.
+  // For that reason we place the implementation in a shared_ptr to const.
+  struct impl {
+    std::string name;
+    type_variant type;
+    argument_direction direction;
+  };
+  std::shared_ptr<const impl> impl_;
 };
 
 // Describe a function signature.
@@ -64,10 +67,10 @@ class function_signature {
   void add_argument(std::string_view name, type_variant type, argument_direction direction);
 
   // Find an argument by name.
-  std::optional<std::shared_ptr<const argument>> argument_by_name(std::string_view str) const;
+  std::optional<argument> argument_by_name(std::string_view str) const;
 
   // Get an argument by index.
-  const std::shared_ptr<const argument>& argument_by_index(std::size_t index) const {
+  const argument& argument_by_index(std::size_t index) const {
     WF_ASSERT_LESS(index, num_arguments());
     return arguments_[index];
   }
@@ -92,7 +95,7 @@ class function_signature {
 
  private:
   std::string name_;
-  std::vector<std::shared_ptr<const argument>> arguments_{};
+  std::vector<argument> arguments_{};
   std::optional<type_variant> return_value_type_{};
 };
 

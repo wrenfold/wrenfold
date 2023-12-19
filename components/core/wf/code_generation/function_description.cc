@@ -8,16 +8,15 @@ namespace wf {
 
 void function_signature::add_argument(const std::string_view name, type_variant type,
                                       argument_direction direction) {
-  auto it = std::find_if(arguments_.begin(), arguments_.end(),
-                         [&name](const auto& arg) { return arg->name() == name; });
-  WF_ASSERT(it == arguments_.end(), "Argument with name `{}` already exists.", name);
-  arguments_.push_back(std::make_shared<const argument>(name, std::move(type), direction));
+  WF_ASSERT(!std::any_of(arguments_.begin(), arguments_.end(),
+                         [&name](const argument& arg) { return arg.name() == name; }),
+            "Argument with name `{}` already exists.", name);
+  arguments_.emplace_back(name, std::move(type), direction);
 }
 
-std::optional<std::shared_ptr<const argument>> function_signature::argument_by_name(
-    std::string_view str) const {
+std::optional<argument> function_signature::argument_by_name(std::string_view str) const {
   auto it = std::find_if(arguments_.begin(), arguments_.end(),
-                         [&str](const auto& arg) { return arg->name() == str; });
+                         [&str](const auto& arg) { return arg.name() == str; });
   if (it == arguments_.end()) {
     return std::nullopt;
   }
@@ -26,7 +25,7 @@ std::optional<std::shared_ptr<const argument>> function_signature::argument_by_n
 
 bool function_signature::has_matrix_arguments() const noexcept {
   return std::any_of(arguments_.begin(), arguments_.end(),
-                     [](const auto& arg) { return arg->is_matrix(); });
+                     [](const argument& arg) { return arg.is_matrix(); });
 }
 
 void function_signature::set_return_value_type(type_variant type) {

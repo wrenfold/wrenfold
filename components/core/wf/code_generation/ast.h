@@ -63,17 +63,13 @@ struct assign_temporary {
 
   assign_temporary(std::string left, variant_ptr right)
       : left(std::move(left)), right(std::move(right)) {}
-
-  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::variant, T>>>
-  assign_temporary(std::string left, T&& arg)
-      : left(left), right(std::make_shared<const ast::variant>(std::forward<T>(arg))) {}
 };
 
 // Assign values to an output argument. All output values are written in one operation.
 struct assign_output_argument {
   static constexpr std::string_view snake_case_name_str = "assign_output_argument";
 
-  std::shared_ptr<const argument> arg;
+  argument arg;
   std::vector<variant> values;
 };
 
@@ -229,13 +225,12 @@ struct optional_output_branch {
   static constexpr std::string_view snake_case_name_str = "optional_output_branch";
 
   // The argument this output corresponds to.
-  std::shared_ptr<const argument> arg;
+  argument arg;
 
   // Statements in the if-branch.
   std::vector<variant> statements;
 
-  explicit optional_output_branch(std::shared_ptr<const argument> arg,
-                                  std::vector<variant>&& statements)
+  explicit optional_output_branch(argument arg, std::vector<variant>&& statements) noexcept
       : arg(std::move(arg)), statements(std::move(statements)) {}
 };
 
@@ -249,15 +244,14 @@ struct special_constant {
 // Access a scalar input argument.
 struct read_input_scalar {
   static constexpr std::string_view snake_case_name_str = "read_input_scalar";
-
-  std::shared_ptr<const argument> arg;
+  argument arg;
 };
 
 // Access a single element from a matrix (2D span) input argument.
 struct read_input_matrix {
   static constexpr std::string_view snake_case_name_str = "read_input_matrix";
 
-  std::shared_ptr<const argument> arg;
+  argument arg;
   index_t row;
   index_t col;
 };
@@ -266,7 +260,9 @@ struct read_input_matrix {
 struct read_input_struct {
   static constexpr std::string_view snake_case_name_str = "read_input_struct";
 
-  std::shared_ptr<const argument> arg;
+  // Argument we are reading from.
+  argument arg;
+
   // Sequence of nested accessors required to obtain the relevant member.
   std::vector<access_variant> access_sequence{};
 };

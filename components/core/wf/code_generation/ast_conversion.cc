@@ -151,7 +151,7 @@ struct ast_from_ir {
         emplace_operation<ast::return_value>(std::make_shared<ast::variant>(std::move(var)));
       } else {
         auto arg = signature_.argument_by_name(key.name);
-        WF_ASSERT(arg, "Argument missing from signature: {}", key.name);
+        WF_ASSERT(arg.has_value(), "Argument missing from signature: {}", key.name);
         emplace_operation<ast::assign_output_argument>(std::move(*arg), std::move(args));
       }
     }
@@ -430,27 +430,26 @@ struct ast_from_ir {
 
   ast::variant operator()(const named_variable& v) const { return ast::variable_ref{v.name()}; }
 
-  ast::variant operator()(const scalar_type&, const argument::shared_ptr& arg, std::size_t) const {
+  ast::variant operator()(const scalar_type&, const argument& arg, std::size_t) const {
     return ast::read_input_scalar{arg};
   }
 
-  ast::variant operator()(const matrix_type& m, const argument::shared_ptr& arg,
+  ast::variant operator()(const matrix_type& m, const argument& arg,
                           std::size_t element_index) const {
     const auto [row, col] = m.compute_indices(element_index);
     return ast::read_input_matrix{arg, row, col};
   }
 
-  ast::variant operator()(const custom_type::const_shared_ptr& c, const argument::shared_ptr& arg,
+  ast::variant operator()(const custom_type::const_shared_ptr& c, const argument& arg,
                           std::size_t element_index) const {
     auto access_sequence = determine_access_sequence(c, element_index);
     return ast::read_input_struct{arg, std::move(access_sequence)};
   }
 
   ast::variant operator()(const function_argument_variable& a) const {
-    const argument::shared_ptr& arg = signature_.argument_by_index(a.arg_index());
-    WF_ASSERT(arg);
+    const argument& arg = signature_.argument_by_index(a.arg_index());
     return std::visit([&](const auto& type) { return operator()(type, arg, a.element_index()); },
-                      arg->type());
+                      arg.type());
   }
 
   ast::variant operator()(const unique_variable& u) const {
