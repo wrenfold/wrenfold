@@ -71,21 +71,20 @@ class CustomCppGenerator(code_generation.CppGenerator):
 
 class CodeGenerationWrapperTest(MathTestBase):
 
-    @staticmethod
-    def custom_cos_formatter(formatter: code_generation.Formatter,
-                             x: code_generation.codegen.Call) -> str:
-        """Override the generation of std::cos and replace it with custom::cos."""
-        if x.function == code_generation.codegen.StdMathFunction.Cos:
-            return formatter.format('custom::cos({})', x.args[0])
-        return formatter.format('{}', x)
+    def __init__(self) -> None:
+        super().__init__()
+        self.fmt = code_generation.Formatter(generator=self)
 
-    @staticmethod
-    def custom_type_access_formatter(formatter: code_generation.Formatter,
-                                     x: code_generation.codegen.ReadInputStruct) -> str:
+    def format_call(self, a: code_generation.codegen.Call) -> str:
+        if a.function == code_generation.codegen.StdMathFunction.Cos:
+            return self.fmt.format('custom::cos({})', a.args[0])
+        return super().format_call(a)
+
+    def format_read_input_struct(self, a: code_generation.codegen.ReadInputStruct) -> str:
         """Customize access to struct Point2D."""
-        if x.argument.type.python_type is Point2d:
-            result = x.argument.name
-            for seq in x.access_sequence:
+        if a.argument.type.python_type is Point2d:
+            result = a.argument.name
+            for seq in a.access_sequence:
                 if isinstance(seq, code_generation.codegen.FieldAccess):
                     result += f".{seq.field_name}"
                 elif isinstance(seq, code_generation.codegen.MatrixAccess):
@@ -94,7 +93,10 @@ class CodeGenerationWrapperTest(MathTestBase):
                     raise TypeError("Unexpected type")
             return result
 
-        return formatter.format('{}', x)
+        return super().format_read_input_struct(a)
+
+
+class CodeGenerationWrapperTest(MathTestBase):
 
     def test_code_generation(self):
         descriptions = [
