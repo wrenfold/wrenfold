@@ -1,4 +1,5 @@
 // Copyright 2023 Gareth Cross
+#pragma once
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 

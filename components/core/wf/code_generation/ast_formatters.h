@@ -166,8 +166,8 @@ struct fmt::formatter<T, std::enable_if_t<std::is_constructible_v<wf::type_varia
                             string_from_code_numeric_type(m.numeric_type()));
     } else if constexpr (std::is_same_v<wf::matrix_type, Arg>) {
       return fmt::format_to(ctx.out(), "MatrixType<{}, {}>", m.rows(), m.cols());
-    } else {  // is_same_v<wf::custom_type::const_shared_ptr, Arg>
-      return fmt::format_to(ctx.out(), "CustomType('{}')", m->name());
+    } else {  // is_same_v<wf::custom_type, Arg>
+      return fmt::format_to(ctx.out(), "CustomType('{}')", m.name());
     }
   }
 };

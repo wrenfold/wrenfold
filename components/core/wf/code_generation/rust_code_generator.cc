@@ -128,9 +128,9 @@ std::string rust_code_generator::format_signature(const function_signature& sign
           throw type_error(
               "Matrices cannot be directly returned in C++ (since they are passed as spans).");
         },
-        [&](const custom_type::const_shared_ptr& custom_type) {
+        [&](const custom_type& custom_type) {
           // TODO: This needs to be overridable from python.
-          fmt::format_to(std::back_inserter(result), ") -> {}\n", custom_type->name());
+          fmt::format_to(std::back_inserter(result), ") -> {}\n", custom_type.name());
         });
   }
 
@@ -171,9 +171,7 @@ std::string rust_code_generator::operator()(const ast::assign_output_argument& a
         WF_ASSERT_EQUAL(1, assignment.values.size());
         return fmt::format("*{} = {};", dest_name, make_view(assignment.values.front()));
       },
-      [&](const custom_type::const_shared_ptr&) -> std::string {
-        throw type_error("TODO: Implement me");
-      });
+      [&](const custom_type&) -> std::string { throw type_error("TODO: Implement me"); });
 }
 
 std::string rust_code_generator::operator()(const ast::assign_temporary& x) const {
@@ -267,7 +265,7 @@ std::string rust_code_generator::operator()(const ast::construct_matrix&) const 
 }
 
 std::string rust_code_generator::operator()(const ast::construct_custom_type& x) const {
-  const std::string opener = fmt::format("{} {{\n", x.type->name());
+  const std::string opener = fmt::format("{} {{\n", x.type.name());
   std::string output{};
   join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
     const auto& [field_name, val] = field_val;

@@ -79,12 +79,11 @@ struct construct_output_variant {
   // For custom types, recurse and consume however many values are required for each individual
   // field.
   template <typename Iterator>
-  ast::variant operator()(const custom_type::const_shared_ptr& type, Iterator& input_it,
-                          const Iterator end) {
+  ast::variant operator()(const custom_type& type, Iterator& input_it, const Iterator end) {
     // Recursively convert every field in the custom type.
     std::vector<std::tuple<std::string, ast::variant>> fields_out{};
-    fields_out.reserve(type->size());
-    for (const custom_type::field& field : type->fields()) {
+    fields_out.reserve(type.size());
+    for (const field& field : type.fields()) {
       ast::variant field_var = std::visit(
           [&](const auto& child) -> ast::variant { return operator()(child, input_it, end); },
           field.type());
@@ -440,8 +439,8 @@ struct ast_from_ir {
     return ast::read_input_matrix{arg, row, col};
   }
 
-  ast::variant operator()(const custom_type::const_shared_ptr& c, const argument& arg,
-                          std::size_t element_index) const {
+  ast::variant operator()(const custom_type& c, const argument& arg,
+                          const std::size_t element_index) const {
     auto access_sequence = determine_access_sequence(c, element_index);
     return ast::read_input_struct{arg, std::move(access_sequence)};
   }

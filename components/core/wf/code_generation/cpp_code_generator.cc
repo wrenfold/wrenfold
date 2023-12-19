@@ -84,9 +84,9 @@ std::string cpp_code_generator::format_signature(const function_signature& signa
           throw type_error(
               "Matrices cannot be directly returned in C++ (since they are passed as spans).");
         },
-        [&](const custom_type::const_shared_ptr& custom_type) {
+        [&](const custom_type& custom_type) {
           // TODO: This needs to be overridable from python.
-          result.append(custom_type->name());
+          result.append(custom_type.name());
         });
   } else {
     result.append("void");
@@ -116,9 +116,9 @@ std::string cpp_code_generator::format_signature(const function_signature& signa
             fmt::format_to(std::back_inserter(arg_result), "T{}&&", count);
           }
         },
-        [&](const custom_type::const_shared_ptr& custom) {
+        [&](const custom_type& custom) {
           // TODO: This needs to invoke a custom child class the user provides!
-          arg_result.append(custom->name());
+          arg_result.append(custom.name());
         });
 
     fmt::format_to(std::back_inserter(arg_result), " {}", arg.name());
@@ -154,9 +154,7 @@ std::string cpp_code_generator::operator()(const ast::assign_output_argument& as
         WF_ASSERT_EQUAL(1, assignment.values.size());
         return fmt::format("{} = {};", dest_name, make_view(assignment.values.front()));
       },
-      [&](const custom_type::const_shared_ptr&) -> std::string {
-        throw type_error("TODO: Implement this branch");
-      });
+      [&](const custom_type&) -> std::string { throw type_error("TODO: Implement this branch"); });
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_temporary& x) const {
@@ -246,7 +244,7 @@ std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
 // Really we don't know how the user wants their types constructed, but we can take an educated
 // guess. Customization is possible from python via overrides.
 std::string cpp_code_generator::operator()(const ast::construct_custom_type& x) const {
-  const std::string opener = fmt::format("{}{{\n", x.type->name());
+  const std::string opener = fmt::format("{}{{\n", x.type.name());
   std::string output{};
   join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
     const auto& [field_name, val] = field_val;

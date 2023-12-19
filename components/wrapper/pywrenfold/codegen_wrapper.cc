@@ -38,32 +38,28 @@ function_definition::shared_ptr transpile_to_function_definition(
   return std::make_shared<function_definition>(std::move(definition));
 }
 
-std::shared_ptr<custom_type> init_custom_type(
-    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& fields,
-    py::type python_type) {
-  // Unfortunately for pybind this needs to be non-const shared ptr. Internally we save it as const.
-  using custom_type_shared_ptr = std::shared_ptr<custom_type>;
-
-  std::vector<custom_type::field> fields_converted{};
+custom_type init_custom_type(std::string name,
+                             const std::vector<std::tuple<std::string_view, py::object>>& fields,
+                             py::type python_type) {
+  std::vector<field> fields_converted{};
   fields_converted.reserve(fields.size());
-  std::transform(
-      fields.begin(), fields.end(), std::back_inserter(fields_converted), [](const auto& tup) {
-        // We can't use a variant in the tuple, since it can't be default constructed. Instead, we
-        // check for different types manually here.
-        const auto& [field_name, type_obj] = tup;
-        if (py::isinstance<scalar_type>(type_obj)) {
-          return custom_type::field(std::string{field_name}, py::cast<scalar_type>(type_obj));
-        } else if (py::isinstance<matrix_type>(type_obj)) {
-          return custom_type::field(std::string{field_name}, py::cast<matrix_type>(type_obj));
-        } else if (py::isinstance<custom_type_shared_ptr>(type_obj)) {
-          return custom_type::field(std::string{field_name},
-                                    py::cast<custom_type_shared_ptr>(type_obj));
-        } else {
-          throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
-        }
-      });
-  return std::make_shared<custom_type>(std::move(name), std::move(fields_converted),
-                                       std::any{std::move(python_type)});
+  std::transform(fields.begin(), fields.end(), std::back_inserter(fields_converted),
+                 [](const auto& tup) {
+                   // We can't use a variant in the tuple, since it can't be default constructed.
+                   // Instead, we check for different types manually here.
+                   const auto& [field_name, type_obj] = tup;
+                   if (py::isinstance<scalar_type>(type_obj)) {
+                     return field(std::string{field_name}, py::cast<scalar_type>(type_obj));
+                   } else if (py::isinstance<matrix_type>(type_obj)) {
+                     return field(std::string{field_name}, py::cast<matrix_type>(type_obj));
+                   } else if (py::isinstance<custom_type>(type_obj)) {
+                     return field(std::string{field_name}, py::cast<custom_type>(type_obj));
+                   } else {
+                     throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
+                   }
+                 });
+  return custom_type(std::move(name), std::move(fields_converted),
+                     std::any{std::move(python_type)});
 }
 
 void wrap_codegen_operations(py::module_& m) {
@@ -178,7 +174,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def("compute_indices", &matrix_type::compute_indices)
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
 
-  py::class_<custom_type, custom_type::shared_ptr>(m, "CustomType")
+  py::class_<custom_type>(m, "CustomType")
       .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"), py::arg("python_type"),
            py::doc("Construct custom type from fields."))
       .def_property_readonly("name", &custom_type::name)
@@ -233,8 +229,9 @@ void wrap_codegen_operations(py::module_& m) {
                   "function."))
       .def(
           "add_input_argument",
-          [](function_description& self, const std::string_view name,
-             const custom_type::shared_ptr& type) { return self.add_input_argument(name, type); },
+          [](function_description& self, const std::string_view name, const custom_type& type) {
+            return self.add_input_argument(name, type);
+          },
           py::arg("name"), py::arg("type"),
           py::doc("Add an input argument with a custom user-specified type."))
       .def(
@@ -256,7 +253,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
-             const custom_type::shared_ptr& custom_type, std::vector<Expr> expressions) {
+             const custom_type& custom_type, std::vector<Expr> expressions) {
             self.add_output_argument(name, custom_type, is_optional, std::move(expressions));
           },
           py::arg("name"), py::arg("is_optional"), py::arg("custom_type"), py::arg("expressions"),
@@ -275,7 +272,7 @@ void wrap_codegen_operations(py::module_& m) {
           py::arg("value"))
       .def(
           "set_return_value",
-          [](function_description& self, const custom_type::shared_ptr& custom_type,
+          [](function_description& self, const custom_type& custom_type,
              std::vector<Expr> expressions) {
             self.set_return_value(custom_type, std::move(expressions));
           },
@@ -462,18 +459,14 @@ void wrap_codegen_operations(py::module_& m) {
 
   py::class_<field_access>(m, "FieldAccess")
       .def_property_readonly(
-          "type",
-          [](const field_access& self) {
-            // Unfortunate, but for pybind11 we need to cast away const here.
-            return std::const_pointer_cast<custom_type>(self.type());
-          },
+          "type", [](const field_access& self) { return self.type(); },
           py::doc("The type of the struct we are accessing."))
       .def_property_readonly("field_name", &field_access::field_name,
                              py::doc("Name of the field being accessed."))
       .def_property_readonly(
           "field_type",
           [](const field_access& self) {
-            const custom_type::field* field = self.type()->field_by_name(self.field_name());
+            const field* field = self.type().field_by_name(self.field_name());
             WF_ASSERT(field != nullptr, "Missing field: {}", self.field_name());
             return field->type();
           },

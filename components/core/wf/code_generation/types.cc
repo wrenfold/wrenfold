@@ -9,24 +9,19 @@
 
 namespace wf {
 
-custom_type::field::field(std::string name, type_variant type)
-    : name_(std::move(name)), type_(std::move(type)) {
+field::field(std::string name, type_variant type) : name_(std::move(name)), type_(std::move(type)) {
   WF_ASSERT(!name_.empty(), "Field names may not be empty strings");
-  if (std::holds_alternative<custom_type::const_shared_ptr>(type_)) {
-    WF_ASSERT(std::get<custom_type::const_shared_ptr>(type_),
-              "Type of a field may not be null. Field name: {}", name_);
-  }
 }
 
 // Check that all provided field names are unique.
-static void assert_field_names_are_unique(const std::vector<custom_type::field>& fields) {
+static void assert_field_names_are_unique(const std::vector<field>& fields) {
   if (fields.empty()) {
     return;
   }
   absl::InlinedVector<std::string_view, 8> names{};
   names.reserve(fields.size());
   std::transform(fields.begin(), fields.end(), std::back_inserter(names),
-                 [](const auto& f) -> std::string_view { return f.name(); });
+                 [](const field& f) -> std::string_view { return f.name(); });
   std::sort(names.begin(), names.end());
 
   for (auto it = names.begin(); std::next(it) != names.end(); ++it) {
@@ -35,25 +30,24 @@ static void assert_field_names_are_unique(const std::vector<custom_type::field>&
 }
 
 custom_type::custom_type(std::string name, std::vector<field> fields, std::any python_type)
-    : name_(std::move(name)), fields_(std::move(fields)), python_type_(std::move(python_type)) {
-  WF_ASSERT(!name_.empty(), "Field name cannot be empty");
-  assert_field_names_are_unique(fields_);
+    : impl_(std::make_shared<const impl>(
+          impl{std::move(name), std::move(fields), std::move(python_type)})) {
+  assert_field_names_are_unique(impl_->fields);
 }
 
 // TODO: Define a nullable_ptr and use it here?
-const custom_type::field* custom_type::field_by_name(std::string_view name) const noexcept {
+const field* custom_type::field_by_name(std::string_view name) const noexcept {
   // fields_ will typically be pretty small, so just do a linear search:
-  auto it = std::find_if(fields_.begin(), fields_.end(),
+  auto it = std::find_if(impl_->fields.begin(), impl_->fields.end(),
                          [&name](const field& f) { return f.name() == name; });
-  if (it == fields_.end()) {
+  if (it == impl_->fields.end()) {
     return nullptr;
   }
   return &(*it);
 }
 
-field_access::field_access(custom_type::const_shared_ptr type, std::string name)
+field_access::field_access(custom_type type, std::string name)
     : type_(std::move(type)), field_name_(std::move(name)) {
-  WF_ASSERT(type_, "Type pointer cannot be empty");
   WF_ASSERT(!field_name_.empty(), "Field name cannot be empty");
 }
 
@@ -82,11 +76,10 @@ struct build_access_sequence {
     }
   }
 
-  bool operator()(const custom_type::const_shared_ptr& c, std::size_t& index,
+  bool operator()(const custom_type& c, std::size_t& index,
                   std::vector<access_variant>& output) const {
-    WF_ASSERT(c);
     // Append every field on this type, and recurse as well into child custom types.
-    for (const custom_type::field& field : c->fields()) {
+    for (const field& field : c.fields()) {
       if (const bool found = std::visit(
               [&](const auto& child) { return operator()(child, index, output); }, field.type());
           found) {
@@ -101,12 +94,12 @@ struct build_access_sequence {
 
 // TODO: This traversal isn't necessarily blazingly efficient, since it amounts to a linear
 //  search for every member access. That said, custom types are somewhat unlikely to be very deep.
-std::vector<access_variant> determine_access_sequence(
-    const custom_type::const_shared_ptr& top_level_type, std::size_t index) {
+std::vector<access_variant> determine_access_sequence(const custom_type& top_level_type,
+                                                      std::size_t index) {
   std::vector<access_variant> sequence{};
   const bool found_member = build_access_sequence{}(top_level_type, index, sequence);
   WF_ASSERT(found_member, "Member index {} not valid for custom type `{}`", index,
-            top_level_type->name());
+            top_level_type.name());
   // This was recorded bottom to top, so flip it.
   std::reverse(sequence.begin(), sequence.end());
   return sequence;

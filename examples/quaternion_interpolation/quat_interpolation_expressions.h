@@ -1,4 +1,5 @@
 // Copyright 2023 Gareth Cross
+#pragma once
 #include "wf/geometry/quaternion.h"
 #include "wf/output_annotations.h"
 #include "wf/type_annotations.h"

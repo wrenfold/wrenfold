@@ -140,7 +140,7 @@ struct construct_custom_type {
   static constexpr std::string_view snake_case_name_str = "construct_custom_type";
 
   // The type being constructed.
-  custom_type::const_shared_ptr type;
+  custom_type type;
   // Vector of [field, ast] pairs that describe how to fill the fields of the output type.
   // Fields will be in the same order as in `type`.
   std::vector<std::tuple<std::string, ast::variant>> field_values;
@@ -240,6 +240,29 @@ struct special_constant {
 
   symbolic_constant_enum value;
 };
+
+// A return type annotation in a function signature.
+// The formatting of a type depends on the context in which it is used, which is why we bother to
+// wrap type_variant in this object.
+struct return_type_annotation {
+  static constexpr std::string_view snake_case_name_str = "return_type_annotation";
+
+  // The underlying type in the annotation, if the return type is non-void.
+  std::optional<type_variant> type;
+};
+
+// struct function_signature {
+//   static constexpr std::string_view snake_case_name_str = "function_signature";
+//
+//   // The return type of the function.
+//   return_type_annotation return_type{};
+//
+//   // The name of the function.
+//   std::string name{};
+//
+//   // Arguments to the function.
+//   std::vector<argument> arguments{};
+// };
 
 // Access a scalar input argument.
 struct read_input_scalar {

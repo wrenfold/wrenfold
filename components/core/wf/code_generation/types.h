@@ -12,10 +12,6 @@
 
 namespace wf {
 
-// Variant over possible types that can appear in generated code.
-using type_variant =
-    std::variant<class scalar_type, class matrix_type, std::shared_ptr<const class custom_type>>;
-
 // Represent a scalar argument type (float, int, etc).
 class scalar_type {
  public:
@@ -42,8 +38,8 @@ class matrix_type {
   // Convert flat index to [row, col] indices (assuming row major order).
   std::tuple<index_t, index_t> compute_indices(std::size_t element) const {
     WF_ASSERT_LESS(element, size());
-    return std::make_pair(static_cast<index_t>(element) / cols_,
-                          static_cast<index_t>(element) % cols_);
+    return std::make_tuple(static_cast<index_t>(element) / cols_,
+                           static_cast<index_t>(element) % cols_);
   }
 
  private:
@@ -54,73 +50,76 @@ class matrix_type {
 // A user-defined type that we support as an input/output to functions.
 class custom_type {
  public:
-  // Shared pointer to const. Once a type is assembled, it is immutable.
-  using const_shared_ptr = std::shared_ptr<const custom_type>;
-
-  // Unfortunately, plain non-const shared_ptr is still required for interacting with python.
-  using shared_ptr = std::shared_ptr<custom_type>;
-
-  // A field on a custom type.
-  class field {
-   public:
-    // Construct with name and type. Asserts that type is non-empty.
-    field(std::string name_in, type_variant type_in);
-
-    constexpr const std::string& name() const noexcept { return name_; }
-    constexpr const type_variant& type() const noexcept { return type_; }
-
-   private:
-    // Name of the field (these must be unique).
-    std::string name_;
-    // The type of the field.
-    type_variant type_;
-  };
-
   // Construct with fields. Asserts that all fields have unique names.
-  custom_type(std::string name, std::vector<field> fields, std::any python_type);
+  custom_type(std::string name, std::vector<class field> fields, std::any python_type);
 
   // Access a field by name. May return nullptr if the field does not exist.
   const field* field_by_name(std::string_view name) const noexcept;
 
   // Name of the type.
-  constexpr const std::string& name() const noexcept { return name_; }
+  const std::string& name() const noexcept { return impl_->name; }
 
   // Access all fields.
-  constexpr const auto& fields() const noexcept { return fields_; }
+  const auto& fields() const noexcept { return impl_->fields; }
 
   // py::type (or empty) for types that are defined in python.
-  constexpr const auto& python_type() const noexcept { return python_type_; }
+  const auto& python_type() const noexcept { return impl_->python_type; }
 
   // Number of fields.
-  std::size_t size() const noexcept { return fields_.size(); }
+  std::size_t size() const noexcept { return impl_->fields.size(); }
 
  private:
-  // Name of the type.
+  struct impl {
+    // Name of the type.
+    std::string name;
+    // All the fields in the type. If this type was defined in python, this vector should be ordered
+    // the same as the fields on the python type.
+    std::vector<field> fields;
+    // An opaque strong reference to the `py::type` that represents this type in python.
+    // We hold this as std::any so that pybind11 is not an explicit dependency here.
+    std::any python_type;
+  };
+
+  // This object is saved in multiple places, and returned into python.
+  std::shared_ptr<const impl> impl_;
+};
+
+// Variant over possible types that can appear in generated code.
+using type_variant = std::variant<scalar_type, matrix_type, custom_type>;
+
+// A field on a custom type.
+// We need to define this here so that the definition of custom_type is visible for type_variant.
+// We can still use field above in `custom_type` because std::vector does not require the type
+// be visible (as of c++17): https://stackoverflow.com/questions/56975491/
+class field {
+ public:
+  // Construct with name and type. Asserts that type is non-empty.
+  field(std::string name_in, type_variant type_in);
+
+  constexpr const std::string& name() const noexcept { return name_; }
+  constexpr const auto& type() const noexcept { return type_; }
+
+ private:
+  // Name of the field (these must be unique).
   std::string name_;
-
-  // All the fields in the type. If this type was defined in python, this vector should be ordered
-  // the same as the fields on the python type.
-  std::vector<field> fields_;
-
-  // An opaque strong reference to the `py::type` that represents this type in python.
-  // We hold this as std::any so that pybind11 is not an explicit dependency here.
-  std::any python_type_{};
+  // The type of the field.
+  std::variant<scalar_type, matrix_type, custom_type> type_;
 };
 
 // Represent the operation of reading a field on a custom type.
 class field_access {
  public:
   // Construct with strong ptr of the custom type we are accessing. Asserts that `type` is non-null.
-  field_access(custom_type::const_shared_ptr type, std::string name);
+  field_access(custom_type type, std::string name);
 
   // The underlying type we are accessing a member on.
-  constexpr const custom_type::const_shared_ptr& type() const noexcept { return type_; }
+  constexpr const custom_type& type() const noexcept { return type_; }
 
   // Underlying field name.
   constexpr const std::string& field_name() const noexcept { return field_name_; }
 
  private:
-  custom_type::const_shared_ptr type_;
+  custom_type type_;
   std::string field_name_;
 };
 
@@ -152,7 +151,7 @@ using access_variant = std::variant<field_access, matrix_access>;
 // Given a flat index, determine the sequence of accessors required to find the appropriate element
 // in an aggregate custom type. Performs a linear traversal of the object hierarchy until we reach
 // the index'th element, recording every read required.
-std::vector<access_variant> determine_access_sequence(
-    const custom_type::const_shared_ptr& top_level_type, std::size_t index);
+std::vector<access_variant> determine_access_sequence(const custom_type& top_level_type,
+                                                      std::size_t index);
 
 }  // namespace wf

@@ -52,11 +52,10 @@ struct create_custom_type_inputs {
     append(arg_index, m.size(), output);
   }
 
-  void operator()(const custom_type::const_shared_ptr& c, const std::size_t arg_index,
+  void operator()(const custom_type& c, const std::size_t arg_index,
                   std::vector<Expr>& output) const {
-    WF_ASSERT(c);
     // Append every field on this type, and recurse as well into child custom types.
-    for (const custom_type::field& field : c->fields()) {
+    for (const field& field : c.fields()) {
       std::visit([&](const auto& child) { operator()(child, arg_index, output); }, field.type());
     }
   }
@@ -74,11 +73,10 @@ std::variant<Expr, MatrixExpr, std::vector<Expr>> function_description::add_inpu
     create_custom_type_inputs{}(*m, arg_index, expressions);
     return MatrixExpr::create(m->rows(), m->cols(), std::move(expressions));
   } else {
-    WF_ASSERT(std::holds_alternative<custom_type::const_shared_ptr>(type));
+    WF_ASSERT(std::holds_alternative<custom_type>(type));
     // Traverse the type and instantiate expressions:
     std::vector<Expr> expressions{};
-    create_custom_type_inputs{}(std::get<custom_type::const_shared_ptr>(type), arg_index,
-                                expressions);
+    create_custom_type_inputs{}(std::get<custom_type>(type), arg_index, expressions);
     return expressions;
   }
 }
