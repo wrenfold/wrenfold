@@ -124,11 +124,23 @@ using append_front_to_type_list_t = typename append_front_to_type_list<T, List>:
 
 // Get the head of a type list.
 template <typename T>
-struct head_of_type_list {};
+struct head_of_type_list;
 template <typename Head, typename... Ts>
 struct head_of_type_list<type_list<Head, Ts...>> {
   using type = Head;
 };
+template <typename T>
+using head_of_type_list_t = typename head_of_type_list<T>::type;
+
+// Concatenate two type lists together into one.
+template <typename, typename>
+struct concatenate_type_lists;
+template <typename... As, typename... Bs>
+struct concatenate_type_lists<type_list<As...>, type_list<Bs...>> {
+  using type = type_list<As..., Bs...>;
+};
+template <typename A, typename B>
+using concatenate_type_lists_t = typename concatenate_type_lists<A, B>::type;
 
 // Get the index of a type in a type list.
 template <typename T, typename U = void, typename... Types>
@@ -191,7 +203,7 @@ struct call_operator_return_types<Callable, type_list<Ts...>> {
   // Build the list of possible turn types.
   using list = call_operator_return_types_t<Callable, Ts...>;
   // Get the first one (TODO: Check they all match!)
-  using type = typename head_of_type_list<list>::type;
+  using type = head_of_type_list_t<list>;
 };
 
 // Select `Indices` elements from a tuple. Returns a new tuple with just those elements.

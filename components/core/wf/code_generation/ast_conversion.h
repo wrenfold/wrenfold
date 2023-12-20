@@ -1,6 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/code_generation/function_definition.h"
+#include "wf/code_generation/ast.h"
 
 namespace wf {
 class flat_ir;

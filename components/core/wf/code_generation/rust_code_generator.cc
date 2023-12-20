@@ -51,12 +51,19 @@ std::string rust_code_generator::operator()(const argument& arg) const {
   fmt::format_to(std::back_inserter(result), "{}: ", arg.name());
 
   // Use generic type for spans:
-  const std::string output_type =
-      arg.is_matrix() ? fmt::format("T{}", arg.index()) : std::string{"f64"};
+  const std::string output_type = overloaded_visit(
+      arg.type(),
+      [](const scalar_type s) -> std::string {
+        return std::string(rust_string_from_numeric_type(s));
+      },
+      [&](matrix_type) { return fmt::format("T{}", arg.index()); },
+      [](const custom_type& c) { return c.name(); });
 
+  const bool pass_input_by_borrow = arg.is_matrix() || arg.is_custom_type();
   switch (arg.direction()) {
     case argument_direction::input:
-      fmt::format_to(std::back_inserter(result), "{}{}", arg.is_matrix() ? "&" : "", output_type);
+      fmt::format_to(std::back_inserter(result), "{}{}", pass_input_by_borrow ? "&" : "",
+                     output_type);
       break;
     case argument_direction::output:
       fmt::format_to(std::back_inserter(result), "&mut {}", output_type);

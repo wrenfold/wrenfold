@@ -8,8 +8,6 @@
 #include "wf/code_generation/cpp_code_generator.h"
 #include "wf/code_generation/rust_code_generator.h"
 
-#include <wf/code_generation/function_definition.h>
-
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -33,6 +31,7 @@ class generator_trampoline : public Base {
   // Try as I might, I can't find a way around this ugly macro.
   // We can't iterate at compile time over the types, and using the multiple-base class trick
   // appears to cause UB with pybind11.
+  IMPL_VIRTUAL_OPERATOR(Base, argument)
   IMPL_VIRTUAL_OPERATOR(Base, ast::add)
   IMPL_VIRTUAL_OPERATOR(Base, ast::assign_output_argument)
   IMPL_VIRTUAL_OPERATOR(Base, ast::assign_temporary)
@@ -46,6 +45,8 @@ class generator_trampoline : public Base {
   IMPL_VIRTUAL_OPERATOR(Base, ast::declaration)
   IMPL_VIRTUAL_OPERATOR(Base, ast::divide)
   IMPL_VIRTUAL_OPERATOR(Base, ast::float_literal)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::function_definition)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::function_signature2)
   IMPL_VIRTUAL_OPERATOR(Base, ast::integer_literal)
   IMPL_VIRTUAL_OPERATOR(Base, ast::multiply)
   IMPL_VIRTUAL_OPERATOR(Base, ast::negate)
@@ -53,17 +54,34 @@ class generator_trampoline : public Base {
   IMPL_VIRTUAL_OPERATOR(Base, ast::read_input_matrix)
   IMPL_VIRTUAL_OPERATOR(Base, ast::read_input_scalar)
   IMPL_VIRTUAL_OPERATOR(Base, ast::read_input_struct)
+  IMPL_VIRTUAL_OPERATOR(Base, ast::return_type_annotation)
   IMPL_VIRTUAL_OPERATOR(Base, ast::return_value)
   IMPL_VIRTUAL_OPERATOR(Base, ast::special_constant)
   IMPL_VIRTUAL_OPERATOR(Base, ast::variable_ref)
 };
 
+// Convert std::variant to type list.
+template <typename T>
+struct type_list_from_variant;
+template <typename T>
+using type_list_from_variant_t = typename type_list_from_variant<T>::type;
+template <typename... Ts>
+struct type_list_from_variant<std::variant<Ts...>> {
+  using type = type_list<Ts...>;
+};
+
+// Create a combined type list of all types that can be overriden
+using all_wrapped_ast_types =
+    concatenate_type_lists_t<type_list_from_variant_t<ast::variant>,
+                             type_list<argument, ast::function_definition, ast::function_signature2,
+                                       ast::return_type_annotation>>;
+
 // This struct expands over all the types in `ast::variant` and exposes operator() for
 // all of them via pybind11.
-template <typename T = ast::variant>
+template <typename T = all_wrapped_ast_types>
 struct register_operators_struct;
 template <typename... Ts>
-struct register_operators_struct<std::variant<Ts...>> {
+struct register_operators_struct<type_list<Ts...>> {
   template <typename T, typename PyClass>
   static void register_operator(PyClass& klass) {
     // Static const so that we are certain pybind11 isn't taking an invalid weak reference here.
@@ -75,12 +93,12 @@ struct register_operators_struct<std::variant<Ts...>> {
     klass.def(
         method.c_str(),
         [](const underlying_type& self, const T& arg) -> std::string { return self(arg); },
-        py::arg("a"), py::doc(doc.c_str()));
+        py::arg("element"), py::doc(doc.c_str()));
     // We also register under an overloaded name:
     klass.def(
         "format",
         [](const underlying_type& self, const T& arg) -> std::string { return self(arg); },
-        py::arg("a"), py::doc(doc.c_str()));
+        py::arg("element"), py::doc(doc.c_str()));
   }
 
   template <typename PyClass>
@@ -127,7 +145,7 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
 
 // Search all the types [T, Ts...] to see if one of them matches `type`.
 // If `T` matches `type`, we return its type_index. Otherwise, we continue the search.
-// TODO: Cache this result.
+// TODO: Cache this result instead of doing linear search.
 template <typename T, typename... Ts>
 bool is_formattable_type(const py::type& type) {
   if (const py::type candidate = py::type::of<T>(); type.is(candidate)) {
@@ -140,10 +158,10 @@ bool is_formattable_type(const py::type& type) {
   }
 }
 // Unpack the variadic std::variant template and invoke `is_formattable_type`.
-template <typename T>
+template <typename T = all_wrapped_ast_types>
 struct is_formattable_type_struct;
 template <typename... Ts>
-struct is_formattable_type_struct<std::variant<Ts...>> {
+struct is_formattable_type_struct<type_list<Ts...>> {
   auto operator()(const py::type& type) const { return is_formattable_type<Ts...>(type); }
 };
 
@@ -152,8 +170,8 @@ void wrap_code_formatting_operations(py::module_& m) {
   wrap_code_generator<rust_code_generator>(m, "RustGenerator");
   m.def(
       "is_formattable_type",
-      [](const py::type& type) { return is_formattable_type_struct<ast::variant>{}(type); },
-      py::arg("t"), py::doc("Check if the provided type is formattable with a code generator."));
+      [](const py::type& type) { return is_formattable_type_struct<>{}(type); }, py::arg("t"),
+      py::doc("Check if the provided type is formattable with a code generator."));
 }
 
 }  // namespace wf

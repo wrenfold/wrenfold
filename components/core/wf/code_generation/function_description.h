@@ -20,6 +20,8 @@ enum class argument_direction {
 // Store an argument to a function.
 class argument {
  public:
+  static constexpr std::string_view snake_case_name_str = "argument";
+
   argument(const std::string_view name, type_variant type, argument_direction direction,
            const std::size_t index)
       : impl_(std::make_shared<const impl>(
@@ -33,6 +35,9 @@ class argument {
 
   // Is the argument type a matrix.
   bool is_matrix() const noexcept { return std::holds_alternative<matrix_type>(impl_->type); }
+
+  // Is the argument type a custom user-specified struct.
+  bool is_custom_type() const noexcept { return std::holds_alternative<custom_type>(impl_->type); }
 
   // Is this argument optional? Presently only output arguments may be optional.
   bool is_optional() const noexcept {

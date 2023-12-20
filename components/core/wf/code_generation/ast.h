@@ -332,6 +332,8 @@ struct function_signature2 {
 // Signature and function body.
 class function_definition {
  public:
+  static constexpr std::string_view snake_case_name_str = "function_definition";
+
   function_definition(function_signature2 signature, std::vector<ast::variant> body)
       : impl_(std::make_shared<const impl>(impl{std::move(signature), std::move(body)})) {}
 

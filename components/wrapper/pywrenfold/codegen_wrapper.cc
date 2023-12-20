@@ -196,6 +196,13 @@ void wrap_codegen_operations(py::module_& m) {
                            py::cast<std::string_view>(repr));
       });
 
+  py::class_<field>(m, "Field")
+      .def_property_readonly("name", &field::name)
+      .def_property_readonly("type", &field::type)
+      .def("__repr__", [](const field& self) {
+        return fmt::format("Field({}: {})", self.name(), self.type());
+      });
+
   py::class_<function_signature>(m, "FunctionSignature")
       .def_property_readonly("name", &function_signature::name)
       .def("__repr__", [](const function_signature& s) {
@@ -280,9 +287,11 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<argument>(m, "Argument")
       .def_property_readonly("name", &argument::name)
       .def_property_readonly("type", &argument::type)
+      .def_property_readonly("direction", &argument::direction)
       .def_property_readonly("is_optional", &argument::is_optional)
-      .def("__repr__",
-           [](const argument& self) { return fmt::format("Argument('{}')", self.name()); });
+      .def("__repr__", [](const argument& self) {
+        return fmt::format("Argument({}: {})", self.name(), self.type());
+      });
 
   // AST types are below:
   // --------------------
