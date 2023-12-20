@@ -8,13 +8,55 @@ namespace wf {
 
 static constexpr std::string_view utility_namespace = "wf";
 
-std::string cpp_code_generator::generate_code(const function_signature& signature,
-                                              const std::vector<ast::variant>& body) const {
-  std::string result = format_signature(signature);
+constexpr static std::string_view cpp_string_from_numeric_cast_type(
+    const code_numeric_type destination_type) noexcept {
+  switch (destination_type) {
+    case code_numeric_type::boolean:
+      return "bool";
+    case code_numeric_type::integral:
+      return "std::int64_t";
+    case code_numeric_type::floating_point:
+      return "Scalar";
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
+constexpr static std::string_view cpp_string_from_numeric_cast_type(
+    const scalar_type& destination_type) noexcept {
+  return cpp_string_from_numeric_cast_type(destination_type.numeric_type());
+}
+
+std::string cpp_code_generator::operator()(const argument& arg) const {
+  std::string result{};
+  overloaded_visit(
+      arg.type(),
+      [&](const scalar_type s) {
+        if (arg.direction() == argument_direction::input) {
+          fmt::format_to(std::back_inserter(result), "const {}",
+                         cpp_string_from_numeric_cast_type(s));
+        } else {
+          fmt::format_to(std::back_inserter(result), "{}&", cpp_string_from_numeric_cast_type(s));
+        }
+      },
+      [&](matrix_type) {
+        if (arg.direction() == argument_direction::input) {
+          fmt::format_to(std::back_inserter(result), "const T{}&", arg.index());
+        } else {
+          fmt::format_to(std::back_inserter(result), "T{}&&", arg.index());
+        }
+      },
+      [&](const custom_type& custom) { result.append(custom.name()); });
+
+  fmt::format_to(std::back_inserter(result), " {}", arg.name());
+  return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::function_definition& definition) const {
+  std::string result = operator()(definition.signature());
   result.append("\n{\n");
 
   std::vector<argument> matrix_args{};
-  std::copy_if(signature.arguments().begin(), signature.arguments().end(),
+  std::copy_if(definition.signature().arguments.begin(), definition.signature().arguments.end(),
                std::back_inserter(matrix_args), [](const auto& arg) { return arg.is_matrix(); });
 
   if (!matrix_args.empty()) {
@@ -45,89 +87,44 @@ std::string cpp_code_generator::generate_code(const function_signature& signatur
     result.append("\n");
   }
 
-  join_and_indent(result, 2, "", "\n}", "\n", body, *this);
+  join_and_indent(result, 2, "", "\n}", "\n", definition.body(), *this);
   return result;
 }
 
-constexpr static std::string_view cpp_string_from_numeric_cast_type(
-    const code_numeric_type destination_type) noexcept {
-  switch (destination_type) {
-    case code_numeric_type::boolean:
-      return "bool";
-    case code_numeric_type::integral:
-      return "std::int64_t";
-    case code_numeric_type::floating_point:
-      return "Scalar";
-  }
-  return "<INVALID ENUM VALUE>";
-}
-
-std::string cpp_code_generator::format_signature(const function_signature& signature) const {
+std::string cpp_code_generator::operator()(const ast::function_signature2& signature) const {
+  // Template parameter list:
   std::string result = "template <typename Scalar";
-
   if (signature.has_matrix_arguments()) {
-    std::size_t counter = 0;
-    for (const argument& arg : signature.arguments()) {
+    for (const argument& arg : signature.arguments) {
       if (arg.is_matrix()) {
-        fmt::format_to(std::back_inserter(result), ", typename T{}", counter);
-        ++counter;
+        fmt::format_to(std::back_inserter(result), ", typename T{}", arg.index());
       }
     }
   }
   result.append(">\n");
 
-  if (signature.has_return_value()) {
-    const auto& ret_type = *signature.return_value_type();
-    overloaded_visit(
-        ret_type, [&](scalar_type) { result.append("auto"); },
-        [&](matrix_type) {
-          throw type_error(
-              "Matrices cannot be directly returned in C++ (since they are passed as spans).");
-        },
-        [&](const custom_type& custom_type) {
-          // TODO: This needs to be overridable from python.
-          result.append(custom_type.name());
-        });
-  } else {
-    result.append("void");
-  }
-  fmt::format_to(std::back_inserter(result), " {}(", signature.name());
-
-  std::size_t counter = 0;
-  auto arg_printer = [&counter](const argument& arg) {
-    std::string arg_result{};
-    overloaded_visit(
-        arg.type(),
-        [&](scalar_type s) {
-          if (arg.direction() == argument_direction::input) {
-            fmt::format_to(std::back_inserter(arg_result), "const {}",
-                           cpp_string_from_numeric_cast_type(s.numeric_type()));
-          } else {
-            // Output reference for now.
-            fmt::format_to(std::back_inserter(arg_result), "{}&",
-                           cpp_string_from_numeric_cast_type(s.numeric_type()));
-          }
-        },
-        [&](matrix_type) {
-          const auto count = counter++;
-          if (arg.direction() == argument_direction::input) {
-            fmt::format_to(std::back_inserter(arg_result), "const T{}&", count);
-          } else {
-            fmt::format_to(std::back_inserter(arg_result), "T{}&&", count);
-          }
-        },
-        [&](const custom_type& custom) {
-          // TODO: This needs to invoke a custom child class the user provides!
-          arg_result.append(custom.name());
-        });
-
-    fmt::format_to(std::back_inserter(arg_result), " {}", arg.name());
-    return arg_result;
-  };
-
-  result += join(std::move(arg_printer), ", ", signature.arguments());
+  // Return type and name:
+  fmt::format_to(std::back_inserter(result), "{} {}(", make_view(signature.return_type),
+                 signature.name);
+  result += join(*this, ", ", signature.arguments);
   result.append(")");
   return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::return_type_annotation& x) const {
+  if (x.type) {
+    return overloaded_visit(
+        x.type.value(), [&](scalar_type) { return std::string{"Scalar"}; },
+        [&](matrix_type) -> std::string {
+          throw type_error(
+              "The default C++ code-generator treats all matrices as spans. We cannot return one "
+              "directly. You likely want to implement an override for the {} ast type.",
+              ast::return_type_annotation::snake_case_name_str);
+        },
+        [&](const custom_type& custom_type) { return custom_type.name(); });
+  } else {
+    return "void";
+  }
 }
 
 std::string cpp_code_generator::operator()(const ast::add& x) const {
@@ -238,7 +235,8 @@ std::string cpp_code_generator::operator()(const ast::compare& x) const {
 std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
   throw type_error(
       "The default C++ code-generator treats all matrices as spans. We cannot construct one "
-      "directly. You likely want to implement an override for the the ConstructMatrix ast type.");
+      "directly. You likely want to implement an override for the the {} ast type.",
+      ast::construct_matrix::snake_case_name_str);
 }
 
 // Really we don't know how the user wants their types constructed, but we can take an educated

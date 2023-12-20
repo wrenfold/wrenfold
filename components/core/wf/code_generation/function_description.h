@@ -20,8 +20,10 @@ enum class argument_direction {
 // Store an argument to a function.
 class argument {
  public:
-  argument(const std::string_view name, type_variant type, argument_direction direction)
-      : impl_(std::make_shared<const impl>(impl{std::string(name), std::move(type), direction})) {}
+  argument(const std::string_view name, type_variant type, argument_direction direction,
+           const std::size_t index)
+      : impl_(std::make_shared<const impl>(
+            impl{std::string(name), std::move(type), direction, index})) {}
 
   // Name of the argument.
   const std::string& name() const noexcept { return impl_->name; }
@@ -40,6 +42,9 @@ class argument {
   // Argument direction.
   argument_direction direction() const noexcept { return impl_->direction; }
 
+  // Position of this argument in the argument list.
+  std::size_t index() const noexcept { return impl_->index; }
+
  private:
   // We share arguments in multiple places, and return them into python.
   // For that reason we place the implementation in a shared_ptr to const.
@@ -47,6 +52,7 @@ class argument {
     std::string name;
     type_variant type;
     argument_direction direction;
+    std::size_t index;
   };
   std::shared_ptr<const impl> impl_;
 };

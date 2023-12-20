@@ -241,29 +241,6 @@ struct special_constant {
   symbolic_constant_enum value;
 };
 
-// A return type annotation in a function signature.
-// The formatting of a type depends on the context in which it is used, which is why we bother to
-// wrap type_variant in this object.
-struct return_type_annotation {
-  static constexpr std::string_view snake_case_name_str = "return_type_annotation";
-
-  // The underlying type in the annotation, if the return type is non-void.
-  std::optional<type_variant> type;
-};
-
-// struct function_signature {
-//   static constexpr std::string_view snake_case_name_str = "function_signature";
-//
-//   // The return type of the function.
-//   return_type_annotation return_type{};
-//
-//   // The name of the function.
-//   std::string name{};
-//
-//   // Arguments to the function.
-//   std::vector<argument> arguments{};
-// };
-
 // Access a scalar input argument.
 struct read_input_scalar {
   static constexpr std::string_view snake_case_name_str = "read_input_scalar";
@@ -303,6 +280,75 @@ struct variable_ref {
 
   // Name of the variable.
   std::string name;
+};
+
+// Types that are not part of the ast::variant, because they appear only in specific places in the
+// output:
+
+// A return type annotation in a function signature.
+// The formatting of a type depends on the context in which it is used, which is why we bother to
+// wrap type_variant in this object.
+struct return_type_annotation {
+  static constexpr std::string_view snake_case_name_str = "return_type_annotation";
+
+  // The underlying type in the annotation, if the return type is non-void.
+  std::optional<type_variant> type;
+};
+
+// TODO: Delete the other function_signature type and just use this one.
+struct function_signature2 {
+  static constexpr std::string_view snake_case_name_str = "function_signature";
+
+  // The return type of the function.
+  return_type_annotation return_type{};
+
+  // The name of the function.
+  std::string name{};
+
+  // Arguments to the function.
+  std::vector<argument> arguments{};
+
+  function_signature2(std::optional<type_variant> return_type, std::string name,
+                      std::vector<argument> arguments)
+      : return_type{std::move(return_type)},
+        name(std::move(name)),
+        arguments(std::move(arguments)) {}
+
+  bool has_matrix_arguments() const noexcept {
+    return std::any_of(arguments.begin(), arguments.end(),
+                       [](const argument& x) { return x.is_matrix(); });
+  }
+
+  // Get all the matrix arguments.
+  std::vector<argument> matrix_args() const {
+    std::vector<argument> result{};
+    result.reserve(arguments.size());
+    std::copy_if(arguments.begin(), arguments.end(), std::back_inserter(result),
+                 [](const argument& a) { return a.is_matrix(); });
+    return result;
+  }
+};
+
+// Signature and function body.
+class function_definition {
+ public:
+  function_definition(function_signature2 signature, std::vector<ast::variant> body)
+      : impl_(std::make_shared<const impl>(impl{std::move(signature), std::move(body)})) {}
+
+  // Signature of the function.
+  const function_signature2& signature() const noexcept { return impl_->signature; }
+
+  // Operations within the function body.
+  const std::vector<ast::variant>& body() const noexcept { return impl_->body; }
+
+ private:
+  struct impl {
+    // Signature of the function: float foo(float x, ...)
+    function_signature2 signature;
+    // Body of the function as a vector of statements.
+    std::vector<ast::variant> body;
+  };
+  std::shared_ptr<const impl> impl_;
 };
 
 }  // namespace wf::ast

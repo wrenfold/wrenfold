@@ -103,7 +103,7 @@ class field {
   // Name of the field (these must be unique).
   std::string name_;
   // The type of the field.
-  std::variant<scalar_type, matrix_type, custom_type> type_;
+  type_variant type_;
 };
 
 // Represent the operation of reading a field on a custom type.

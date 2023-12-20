@@ -78,8 +78,8 @@ static void BM_GenerateCpp(benchmark::State& state) {
   const output_ir output_ir{std::move(flat_ir)};
 
   for (auto _ : state) {
-    function_definition definition = ast::create_ast(output_ir, std::get<0>(tuple));
-    std::string code = cpp_code_generator{}.generate_code(definition.signature(), definition.ast());
+    ast::function_definition definition = ast::create_ast(output_ir, std::get<0>(tuple));
+    std::string code = std::invoke(cpp_code_generator{}, definition);
     benchmark::DoNotOptimize(code);
   }
 }

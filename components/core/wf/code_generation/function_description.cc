@@ -11,7 +11,7 @@ void function_signature::add_argument(const std::string_view name, type_variant 
   WF_ASSERT(!std::any_of(arguments_.begin(), arguments_.end(),
                          [&name](const argument& arg) { return arg.name() == name; }),
             "Argument with name `{}` already exists.", name);
-  arguments_.emplace_back(name, std::move(type), direction);
+  arguments_.emplace_back(name, std::move(type), direction, arguments_.size());
 }
 
 std::optional<argument> function_signature::argument_by_name(std::string_view str) const {

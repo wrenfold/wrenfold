@@ -93,15 +93,15 @@ struct register_operators_struct<std::variant<Ts...>> {
 // Generate multiple definitions.
 template <typename Generator>
 std::string generate_multiple(const Generator& generator,
-                              const std::vector<function_definition::shared_ptr>& definitions) {
+                              const std::vector<ast::function_definition>& definitions) {
   if (definitions.empty()) {
     return "";
   }
   auto it = definitions.begin();
-  std::string output = generator.generate_code((*it)->signature(), (*it)->ast());
+  std::string output = std::invoke(generator, *it);
   for (++it; it != definitions.end(); ++it) {
     output.append("\n\n");
-    output += generator.generate_code((*it)->signature(), (*it)->ast());
+    output += std::invoke(generator, *it);
   }
   return output;
 }
@@ -114,9 +114,8 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
           .def(py::init<CtorArgs...>())
           .def(
               "generate",
-              [](const T& self, const function_definition::shared_ptr& definition) {
-                WF_ASSERT(definition);
-                return self.generate_code(definition->signature(), definition->ast());
+              [](const T& self, const ast::function_definition& definition) {
+                return std::invoke(self, definition);
               },
               py::arg("definition"), py::doc("Generate code for the provided definition."))
           .def("generate", &generate_multiple<T>, py::arg("definitions"),

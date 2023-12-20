@@ -532,7 +532,10 @@ struct ast_from_ir {
 function_definition create_ast(const wf::output_ir& ir, const function_signature& signature) {
   ast_from_ir builder(ir.value_print_width(), signature);
   variant_vector ast = builder.convert_function(ir.first_block());
-  return function_definition{signature, std::move(ast)};
+
+  function_signature2 signature_out{signature.return_value_type(), signature.name(),
+                                    signature.arguments()};
+  return function_definition{std::move(signature_out), std::move(ast)};
 }
 
 }  // namespace wf::ast

@@ -5,14 +5,7 @@
 
 namespace wf {
 
-std::string rust_code_generator::generate_code(const function_signature& signature,
-                                               const std::vector<ast::variant>& body) const {
-  std::string result = format_signature(signature);
-  join_and_indent(result, 2, "{\n", "\n}", "\n", body, *this);
-  return result;
-}
-
-constexpr std::string_view type_string_from_numeric_type(code_numeric_type type) {
+constexpr std::string_view rust_string_from_numeric_type(code_numeric_type type) {
   switch (type) {
     case code_numeric_type::boolean:
       return "bool";
@@ -24,8 +17,8 @@ constexpr std::string_view type_string_from_numeric_type(code_numeric_type type)
   throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
 }
 
-constexpr std::string_view type_string_from_numeric_type(scalar_type scalar) {
-  return type_string_from_numeric_type(scalar.numeric_type());
+constexpr std::string_view rust_string_from_numeric_type(scalar_type scalar) {
+  return rust_string_from_numeric_type(scalar.numeric_type());
 }
 
 constexpr std::string_view span_type_from_direction(argument_direction direction) {
@@ -39,112 +32,96 @@ constexpr std::string_view span_type_from_direction(argument_direction direction
   return "<NOT A VALID ENUM VALUE>";
 }
 
-static std::vector<std::string_view> get_attributes(const function_signature& signature) {
+static std::vector<std::string_view> get_attributes(const ast::function_signature2& signature) {
   std::vector<std::string_view> result{};
-
   // TODO: Properly checking for snake case would require doing upper/lower case comparison with
   //  unicode support. Would need to add a dependency on ICU or some other external library to
   //  do this correctly. Maybe possible with wstring_convert, but that is deprecated and allegedly
   //  leaks memory on Windows.
   result.push_back("non_snake_case");
-
   // Check if # of args exceeds clippy warning.
-  if (signature.num_arguments() >= 7) {
+  if (signature.arguments.size() >= 7) {
     result.push_back("clippy::too_many_arguments");
   }
   return result;
 }
 
-// Assign indices to arguments that need generics declared. (Just matrices for now).
-// Returns new vector with _only_ the args that need generics.
-static auto assign_labels_to_generic_args(const std::vector<argument>& args) {
-  std::vector<std::tuple<std::string, argument>> result;
-  result.reserve(args.size());
-  std::size_t counter = 0;
-  for (const argument& arg : args) {
-    if (arg.is_matrix()) {
-      result.emplace_back(fmt::format("T{}", counter), arg);
-      ++counter;
-    }
+std::string rust_code_generator::operator()(const argument& arg) const {
+  std::string result;
+  fmt::format_to(std::back_inserter(result), "{}: ", arg.name());
+
+  // Use generic type for spans:
+  const std::string output_type =
+      arg.is_matrix() ? fmt::format("T{}", arg.index()) : std::string{"f64"};
+
+  switch (arg.direction()) {
+    case argument_direction::input:
+      fmt::format_to(std::back_inserter(result), "{}{}", arg.is_matrix() ? "&" : "", output_type);
+      break;
+    case argument_direction::output:
+      fmt::format_to(std::back_inserter(result), "&mut {}", output_type);
+      break;
+    case argument_direction::optional_output:
+      fmt::format_to(std::back_inserter(result), "Option<&mut {}>", output_type);
+      break;
   }
   return result;
 }
 
-std::string rust_code_generator::format_signature(const function_signature& signature) const {
+std::string rust_code_generator::operator()(const ast::function_definition& definition) const {
+  std::string result = operator()(definition.signature());
+  join_and_indent(result, 2, "{\n", "\n}", "\n", definition.body(), *this);
+  return result;
+}
+
+std::string rust_code_generator::operator()(const ast::function_signature2& signature) const {
   std::string result = "#[inline]\n";
   if (const auto attributes = get_attributes(signature); !attributes.empty()) {
     fmt::format_to(std::back_inserter(result), "#[allow({})]\n", fmt::join(attributes, ", "));
   }
 
-  // Assign generic naames to arguments that require them:
-  const auto generic_args = assign_labels_to_generic_args(signature.arguments());
-
   // Print the function name, then the list of generic parameters.
-  fmt::format_to(std::back_inserter(result), "pub fn {}", signature.name());
-  if (!generic_args.empty()) {
-    result.append("<");
-    for (const auto& [generic, _] : generic_args) {
-      fmt::format_to(std::back_inserter(result), "{}, ", generic);
-    }
-    result.append(">");
-  }
-
-  result.append("(");
-  for (const auto& arg : signature.arguments()) {
-    fmt::format_to(std::back_inserter(result), "{}: ", arg.name());
-
-    // Check if this arg has a generic label:
-    const auto generic_it =
-        std::find_if(generic_args.begin(), generic_args.end(),
-                     [&](const auto& pair) { return std::get<1>(pair).name() == arg.name(); });
-    const std::string output_type =
-        generic_it != generic_args.end() ? std::get<0>(*generic_it) : "f64";
-
-    switch (arg.direction()) {
-      case argument_direction::input:
-        fmt::format_to(std::back_inserter(result), "{}{}, ", arg.is_matrix() ? "&" : "",
-                       output_type);
-        break;
-      case argument_direction::output:
-        fmt::format_to(std::back_inserter(result), "&mut {}, ", output_type);
-        break;
-      case argument_direction::optional_output:
-        fmt::format_to(std::back_inserter(result), "Option<&mut {}>, ", output_type);
-        break;
+  fmt::format_to(std::back_inserter(result), "pub fn {}<", signature.name);
+  for (const argument& arg : signature.arguments) {
+    if (arg.is_matrix()) {
+      fmt::format_to(std::back_inserter(result), "T{}, ", arg.index());
     }
   }
+  result.append(">(");
+  join_to(result, ", ", signature.arguments, *this);
 
-  if (!signature.has_return_value()) {
-    result.append(")\n");
-  } else {
-    const auto return_type = *signature.return_value_type();
-    overloaded_visit(
-        return_type,
-        [&](scalar_type scalar) {
-          fmt::format_to(std::back_inserter(result), ") -> {}\n",
-                         type_string_from_numeric_type(scalar));
-        },
-        [&](matrix_type) {
-          throw type_error(
-              "Matrices cannot be directly returned in C++ (since they are passed as spans).");
-        },
-        [&](const custom_type& custom_type) {
-          // TODO: This needs to be overridable from python.
-          fmt::format_to(std::back_inserter(result), ") -> {}\n", custom_type.name());
-        });
-  }
+  // Return value:
+  fmt::format_to(std::back_inserter(result), ") -> {}\n", make_view(signature.return_type));
 
-  if (!generic_args.empty()) {
-    join_and_indent(result, 2, "where\n", "\n", "\n", generic_args, [](const auto& label_and_arg) {
-      const auto& [label, arg] = label_and_arg;
+  // Constraints on matrix arguments:
+  if (const std::vector<argument> matrix_args = signature.matrix_args(); !matrix_args.empty()) {
+    join_and_indent(result, 2, "where\n", "\n", "\n", matrix_args, [](const argument& arg) {
       const matrix_type* mat = std::get_if<matrix_type>(&arg.type());
       WF_ASSERT(mat != nullptr);
-      return fmt::format("{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,", label,
+      return fmt::format("T{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,", arg.index(),
                          span_type_from_direction(arg.direction()), mat->rows(), mat->cols(),
-                         type_string_from_numeric_type(code_numeric_type::floating_point));
+                         rust_string_from_numeric_type(code_numeric_type::floating_point));
     });
   }
   return result;
+}
+
+std::string rust_code_generator::operator()(const ast::return_type_annotation& x) const {
+  if (!x.type) {
+    return "()";
+  }
+  return overloaded_visit(
+      x.type.value(),
+      [&](const scalar_type scalar) -> std::string {
+        return std::string{rust_string_from_numeric_type(scalar)};
+      },
+      [&](matrix_type) -> std::string {
+        throw type_error(
+            "The default Rust code-generator treats all matrices as spans. We cannot return one "
+            "directly. You likely want to implement an override for the {} ast type.",
+            ast::return_type_annotation::snake_case_name_str);
+      },
+      [&](const custom_type& custom_type) { return custom_type.name(); });
 }
 
 std::string rust_code_generator::operator()(const ast::add& x) const {
@@ -239,7 +216,7 @@ std::string rust_code_generator::operator()(const ast::call& x) const {
 std::string rust_code_generator::operator()(const ast::cast& x) const {
   // TODO: Parens are sometimes superfluous here.
   return fmt::format("({}) as {}", make_view(x.arg),
-                     type_string_from_numeric_type(x.destination_type));
+                     rust_string_from_numeric_type(x.destination_type));
 }
 
 std::string rust_code_generator::operator()(const ast::comment& x) const {
@@ -276,9 +253,9 @@ std::string rust_code_generator::operator()(const ast::construct_custom_type& x)
 
 std::string rust_code_generator::operator()(const ast::declaration& x) const {
   if (!x.value) {
-    return fmt::format("let {}: {};", x.name, type_string_from_numeric_type(x.type));
+    return fmt::format("let {}: {};", x.name, rust_string_from_numeric_type(x.type));
   } else {
-    return fmt::format("let {}: {} = {};", x.name, type_string_from_numeric_type(x.type),
+    return fmt::format("let {}: {} = {};", x.name, rust_string_from_numeric_type(x.type),
                        make_view(x.value));
   }
 }

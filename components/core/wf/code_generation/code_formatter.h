@@ -35,6 +35,22 @@ struct fmt_view<Formatter, std::tuple<Args...>> {
 }  // namespace detail
 
 // Join using the provided formatter and separator.
+// Results are appended to `output`.
+template <typename Container, typename Formatter>
+void join_to(std::string& output, const std::string_view separator, const Container& container,
+             Formatter&& formatter) {
+  auto it = container.begin();
+  if (it == container.end()) {
+    return;
+  }
+  output += formatter(*it);
+  for (++it; it != container.end(); ++it) {
+    output.append(separator);
+    output += formatter(*it);
+  }
+}
+
+// Join using the provided formatter and separator.
 template <typename Formatter, typename Container>
 std::string join(Formatter&& formatter, const std::string_view separator,
                  const Container& container) {

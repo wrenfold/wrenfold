@@ -11,8 +11,15 @@ class rust_code_generator {
  public:
   virtual ~rust_code_generator() = default;
 
-  std::string generate_code(const function_signature& signature,
-                            const std::vector<ast::variant>& body) const;
+  virtual std::string operator()(const argument& arg) const;
+
+  virtual std::string operator()(const ast::function_definition& definition) const;
+
+  virtual std::string operator()(const ast::function_signature2& signature) const;
+
+  virtual std::string operator()(const ast::return_type_annotation& x) const;
+
+  // Types from the ast::variant:
 
   virtual std::string operator()(const ast::add& x) const;
 
@@ -80,8 +87,6 @@ class rust_code_generator {
   auto make_view(Args&&... args) const {
     return ::wf::make_fmt_view(*this, std::forward<Args>(args)...);
   }
-
-  std::string format_signature(const function_signature& signature) const;
 };
 
 }  // namespace wf

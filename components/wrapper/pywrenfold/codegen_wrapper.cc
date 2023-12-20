@@ -29,13 +29,11 @@ static std::string format_ast_repr(const T& x) {
 
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
-function_definition::shared_ptr transpile_to_function_definition(
-    const function_description& description) {
+ast::function_definition transpile_to_function_definition(const function_description& description) {
   flat_ir ir{description.output_expressions()};
   ir.eliminate_duplicates();
   const output_ir output_ir{std::move(ir)};
-  function_definition definition = ast::create_ast(output_ir, description.signature());
-  return std::make_shared<function_definition>(std::move(definition));
+  return ast::create_ast(output_ir, description.signature());
 }
 
 custom_type init_custom_type(std::string name,
@@ -90,8 +88,9 @@ void wrap_codegen_operations(py::module_& m) {
       "transpile",
       [](const std::vector<function_description::shared_ptr>& descriptions) {
         // TODO: Allow this to run in parallel.
-        std::vector<function_definition::shared_ptr> outputs(descriptions.size());
-        std::transform(descriptions.begin(), descriptions.end(), outputs.begin(),
+        std::vector<ast::function_definition> outputs;
+        outputs.reserve(descriptions.size());
+        std::transform(descriptions.begin(), descriptions.end(), std::back_inserter(outputs),
                        [](const function_description::shared_ptr& ptr) {
                          WF_ASSERT(ptr);
                          return transpile_to_function_definition(*ptr);
@@ -285,11 +284,6 @@ void wrap_codegen_operations(py::module_& m) {
       .def("__repr__",
            [](const argument& self) { return fmt::format("Argument('{}')", self.name()); });
 
-  // TODO: Wrap methods on this so it can be used from python?
-  py::class_<function_definition, std::shared_ptr<function_definition>>(m, "FunctionDefinition")
-      .def_property_readonly("name",
-                             [](const function_definition& def) { return def.signature().name(); });
-
   // AST types are below:
   // --------------------
 
@@ -456,6 +450,19 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<ast::variable_ref>(m, "VariableRef")
       .def_property_readonly("name", [](const ast::variable_ref& v) { return v.name; })
       .def("__repr__", &format_ast_repr<ast::variable_ref>);
+
+  // Types that are not part of the ast::variant
+  py::class_<ast::function_definition>(m, "FunctionDefinition")
+      .def_property_readonly("signature", &ast::function_definition::signature)
+      .def_property_readonly("body",  // TODO: Don't copy this on return.
+                             &ast::function_definition::body);
+
+  py::class_<ast::function_signature2>(m, "FunctionSignature2")
+      .def_property_readonly("return_type",
+                             [](const ast::function_signature2& self) { return self.return_type; })
+      .def_property_readonly("name", [](const ast::function_signature2& self) { return self.name; })
+      .def_property_readonly("arguments",
+                             [](const ast::function_signature2& self) { return self.arguments; });
 
   py::class_<field_access>(m, "FieldAccess")
       .def_property_readonly(
