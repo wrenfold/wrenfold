@@ -18,4 +18,21 @@ std::vector<std::string> comment::split_lines() const {
   return lines;
 }
 
+std::vector<argument> function_signature2::matrix_args() const {
+  std::vector<argument> result{};
+  result.reserve(arguments_.size());
+  std::copy_if(arguments_.begin(), arguments_.end(), std::back_inserter(result),
+               [](const argument& a) { return a.is_matrix(); });
+  return result;
+}
+
+std::optional<argument> function_signature2::argument_by_name(std::string_view str) const {
+  auto it = std::find_if(arguments_.begin(), arguments_.end(),
+                         [&str](const argument& arg) { return arg.name() == str; });
+  if (it == arguments_.end()) {
+    return std::nullopt;
+  }
+  return *it;
+}
+
 }  // namespace wf::ast

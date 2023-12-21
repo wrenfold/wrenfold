@@ -40,7 +40,7 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   //  leaks memory on Windows.
   result.push_back("non_snake_case");
   // Check if # of args exceeds clippy warning.
-  if (signature.arguments.size() >= 7) {
+  if (signature.num_arguments() >= 7) {
     result.push_back("clippy::too_many_arguments");
   }
   return result;
@@ -88,17 +88,17 @@ std::string rust_code_generator::operator()(const ast::function_signature2& sign
   }
 
   // Print the function name, then the list of generic parameters.
-  fmt::format_to(std::back_inserter(result), "pub fn {}<", signature.name);
-  for (const argument& arg : signature.arguments) {
+  fmt::format_to(std::back_inserter(result), "pub fn {}<", signature.name());
+  for (const argument& arg : signature.arguments()) {
     if (arg.is_matrix()) {
       fmt::format_to(std::back_inserter(result), "T{}, ", arg.index());
     }
   }
   result.append(">(");
-  join_to(result, ", ", signature.arguments, *this);
+  join_to(result, ", ", signature.arguments(), *this);
 
   // Return value:
-  fmt::format_to(std::back_inserter(result), ") -> {}\n", make_view(signature.return_type));
+  fmt::format_to(std::back_inserter(result), ") -> {}\n", make_view(signature.return_annotation()));
 
   // Constraints on matrix arguments:
   if (const std::vector<argument> matrix_args = signature.matrix_args(); !matrix_args.empty()) {

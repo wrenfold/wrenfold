@@ -56,7 +56,7 @@ std::string cpp_code_generator::operator()(const ast::function_definition& defin
   result.append("\n{\n");
 
   std::vector<argument> matrix_args{};
-  std::copy_if(definition.signature().arguments.begin(), definition.signature().arguments.end(),
+  std::copy_if(definition.signature().arguments().begin(), definition.signature().arguments().end(),
                std::back_inserter(matrix_args), [](const auto& arg) { return arg.is_matrix(); });
 
   if (!matrix_args.empty()) {
@@ -95,7 +95,7 @@ std::string cpp_code_generator::operator()(const ast::function_signature2& signa
   // Template parameter list:
   std::string result = "template <typename Scalar";
   if (signature.has_matrix_arguments()) {
-    for (const argument& arg : signature.arguments) {
+    for (const argument& arg : signature.arguments()) {
       if (arg.is_matrix()) {
         fmt::format_to(std::back_inserter(result), ", typename T{}", arg.index());
       }
@@ -104,9 +104,9 @@ std::string cpp_code_generator::operator()(const ast::function_signature2& signa
   result.append(">\n");
 
   // Return type and name:
-  fmt::format_to(std::back_inserter(result), "{} {}(", make_view(signature.return_type),
-                 signature.name);
-  result += join(*this, ", ", signature.arguments);
+  fmt::format_to(std::back_inserter(result), "{} {}(", make_view(signature.return_annotation()),
+                 signature.name());
+  result += join(*this, ", ", signature.arguments());
   result.append(")");
   return result;
 }

@@ -295,38 +295,62 @@ struct return_type_annotation {
   std::optional<type_variant> type;
 };
 
-// TODO: Delete the other function_signature type and just use this one.
+// Describe a function signature.
+// Stores a name, and type+name information for all the arguments.
 struct function_signature2 {
   static constexpr std::string_view snake_case_name_str = "function_signature";
 
-  // The return type of the function.
-  return_type_annotation return_type{};
-
-  // The name of the function.
-  std::string name{};
-
-  // Arguments to the function.
-  std::vector<argument> arguments{};
-
-  function_signature2(std::optional<type_variant> return_type, std::string name,
+  function_signature2(std::string name, std::optional<type_variant> return_type,
                       std::vector<argument> arguments)
-      : return_type{std::move(return_type)},
-        name(std::move(name)),
-        arguments(std::move(arguments)) {}
+      : name_(std::move(name)),
+        return_type_{std::move(return_type)},
+        arguments_(std::move(arguments)) {}
 
+  // Name of the function.
+  constexpr const std::string& name() const noexcept { return name_; }
+
+  // Number of arguments (both input and output).
+  std::size_t num_arguments() const noexcept { return arguments_.size(); }
+
+  // Access all arguments.
+  constexpr const auto& arguments() const noexcept { return arguments_; }
+
+  // Return type annotation.
+  constexpr const return_type_annotation& return_annotation() const noexcept {
+    return return_type_;
+  }
+
+  constexpr const std::optional<type_variant>& return_type() const noexcept {
+    return return_type_.type;
+  }
+
+  // Find an argument by name.
+  std::optional<argument> argument_by_name(std::string_view str) const;
+
+  // Get an argument by index.
+  const argument& argument_by_index(std::size_t index) const {
+    WF_ASSERT_LESS(index, num_arguments());
+    return arguments_[index];
+  }
+
+  // True if any of the arguments is a matrix.
   bool has_matrix_arguments() const noexcept {
-    return std::any_of(arguments.begin(), arguments.end(),
+    return std::any_of(arguments_.begin(), arguments_.end(),
                        [](const argument& x) { return x.is_matrix(); });
   }
 
   // Get all the matrix arguments.
-  std::vector<argument> matrix_args() const {
-    std::vector<argument> result{};
-    result.reserve(arguments.size());
-    std::copy_if(arguments.begin(), arguments.end(), std::back_inserter(result),
-                 [](const argument& a) { return a.is_matrix(); });
-    return result;
-  }
+  std::vector<argument> matrix_args() const;
+
+ private:
+  // The name of the function.
+  std::string name_{};
+
+  // The return type of the function.
+  return_type_annotation return_type_{};
+
+  // Arguments to the function.
+  std::vector<argument> arguments_{};
 };
 
 // Signature and function body.

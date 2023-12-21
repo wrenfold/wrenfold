@@ -31,7 +31,7 @@ ast::function_definition transpile_to_function_definition(const function_descrip
   flat_ir ir{description.output_expressions()};
   ir.eliminate_duplicates();
   const output_ir output_ir{std::move(ir)};
-  return ast::create_ast(output_ir, description.signature());
+  return ast::create_ast(output_ir, description);
 }
 
 // Define pythong constructof for `custom_type`.
@@ -187,19 +187,13 @@ void wrap_codegen_operations(py::module_& m) {
         return fmt::format("Field({}: {})", self.name(), self.type());
       });
 
-  py::class_<function_signature>(m, "FunctionSignature")
-      .def_property_readonly("name", &function_signature::name)
-      .def("__repr__", [](const function_signature& s) {
-        return fmt::format("FunctionSignature('{}', {} args)", s.name(), s.num_arguments());
-      });
-
   py::class_<function_description, function_description::shared_ptr>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
       .def_property_readonly("name", &function_description::name)
       .def("__repr__",
            [](const function_description& s) {
              return fmt::format("FunctionDescription('{}', {} args)", s.name(),
-                                s.signature().num_arguments());
+                                s.arguments().size());
            })
       .def(
           "add_input_argument",
@@ -451,11 +445,9 @@ void wrap_codegen_operations(py::module_& m) {
                              &ast::function_definition::body);
 
   py::class_<ast::function_signature2>(m, "FunctionSignature2")
-      .def_property_readonly("return_type",
-                             [](const ast::function_signature2& self) { return self.return_type; })
-      .def_property_readonly("name", [](const ast::function_signature2& self) { return self.name; })
-      .def_property_readonly("arguments",
-                             [](const ast::function_signature2& self) { return self.arguments; });
+      .def_property_readonly("return_annotation", &ast::function_signature2::return_annotation)
+      .def_property_readonly("name", &ast::function_signature2::name)
+      .def_property_readonly("arguments", &ast::function_signature2::arguments);
 
   py::class_<field_access>(m, "FieldAccess")
       .def_property_readonly(

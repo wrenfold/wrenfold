@@ -52,11 +52,13 @@ inline void find_conditional_output_values(const ir::value_ptr v, const bool top
 
 // Given all the values that are required to build a given output, make the syntax to construct
 // that object. For structs, we need to recurse and build each member.
+template <typename Iterator>
 struct construct_output_variant {
+  construct_output_variant(Iterator begin, Iterator end) : input_it(begin), end(end) {}
+
   // Scalar doesn't have a constructor, just return the input directly and step forward by one
   // value.
-  template <typename Iterator>
-  ast::variant operator()(const scalar_type&, Iterator& input_it, const Iterator end) {
+  ast::variant operator()(const scalar_type&) {
     WF_ASSERT(input_it != end);
     ast::variant result = *input_it;
     ++input_it;
@@ -64,8 +66,7 @@ struct construct_output_variant {
   }
 
   // Matrices we just group the next `row * col` elements into `construct_matrix` element.
-  template <typename Iterator>
-  ast::variant operator()(const matrix_type& mat, Iterator& input_it, const Iterator end) {
+  ast::variant operator()(const matrix_type& mat) {
     const auto mat_size = static_cast<std::ptrdiff_t>(mat.size());
     WF_ASSERT_GREATER_OR_EQ(std::distance(input_it, end), mat_size);
     std::vector<ast::variant> matrix_args{};
@@ -78,29 +79,30 @@ struct construct_output_variant {
 
   // For custom types, recurse and consume however many values are required for each individual
   // field.
-  template <typename Iterator>
-  ast::variant operator()(const custom_type& type, Iterator& input_it, const Iterator end) {
+  ast::variant operator()(const custom_type& type) {
     // Recursively convert every field in the custom type.
     std::vector<std::tuple<std::string, ast::variant>> fields_out{};
     fields_out.reserve(type.size());
     for (const field& field : type.fields()) {
-      ast::variant field_var = std::visit(
-          [&](const auto& child) -> ast::variant { return operator()(child, input_it, end); },
-          field.type());
+      ast::variant field_var = std::visit(*this, field.type());
       fields_out.emplace_back(field.name(), std::move(field_var));
     }
     return ast::construct_custom_type{type, std::move(fields_out)};
   }
+
+  Iterator input_it;
+  const Iterator end;
 };
 
 // Object that iterates over operations in IR blocks, and visits each operation. We recursively
 // convert our basic control-flow-graph to a limited syntax tree that can be emitted in different
 // languages.
 struct ast_from_ir {
-  ast_from_ir(std::size_t value_width, const function_signature& signature)
-      : value_width_(value_width), signature_(signature) {}
+  ast_from_ir(const std::size_t value_width, const function_description& description)
+      : value_width_(value_width),
+        signature_{description.name(), description.return_value_type(), description.arguments()} {}
 
-  std::vector<ast::variant> convert_function(ir::block_ptr block) {
+  ast::function_definition convert_function(const ir::block_ptr block) {
     process_block(block);
 
     std::vector<ast::variant> result;
@@ -109,7 +111,7 @@ struct ast_from_ir {
     std::copy(std::make_move_iterator(operations_.begin()),
               std::make_move_iterator(operations_.end()), std::back_inserter(result));
     operations_.clear();
-    return result;
+    return ast::function_definition(std::move(signature_), std::move(result));
   }
 
   // Sort and move all the provided assignments into `operations_`.
@@ -139,14 +141,11 @@ struct ast_from_ir {
 
       if (key.usage == expression_usage::return_value) {
         WF_ASSERT(block->descendants.empty(), "Must be the final block");
-        WF_ASSERT(signature_.has_return_value());
-        ast::variant var = std::visit(
-            [this, &args](const auto& type) {
-              auto begin_it = std::make_move_iterator(args.begin());
-              return construct_output_variant{}(type, begin_it,
-                                                std::make_move_iterator(args.end()));
-            },
-            *signature_.return_value_type());
+        WF_ASSERT(signature_.return_type().has_value(), "Return type must be specified");
+        ast::variant var =
+            std::visit(construct_output_variant{std::make_move_iterator(args.begin()),
+                                                std::make_move_iterator(args.end())},
+                       *signature_.return_type());
         emplace_operation<ast::return_value>(std::make_shared<ast::variant>(std::move(var)));
       } else {
         auto arg = signature_.argument_by_name(key.name);
@@ -467,7 +466,7 @@ struct ast_from_ir {
             return ast::float_literal{static_cast<float_constant>(inner).get_value()};
           } else if constexpr (std::is_same_v<T, rational_constant>) {
             return ast::float_literal{static_cast<float_constant>(inner).get_value()};
-          } else if constexpr (std::is_same_v<T, variable>) {
+          } else {  // std::is_same_v<T, variable>
             // inspect inner type of the variable
             return std::visit(*this, inner.identifier());
           }
@@ -516,7 +515,7 @@ struct ast_from_ir {
 
  private:
   std::size_t value_width_;
-  const function_signature& signature_;
+  function_signature2 signature_;
 
   // Operations accrued in the current block.
   std::vector<ast::variant> operations_;
@@ -529,13 +528,9 @@ struct ast_from_ir {
       operation_counts_{};
 };
 
-function_definition create_ast(const wf::output_ir& ir, const function_signature& signature) {
-  ast_from_ir builder(ir.value_print_width(), signature);
-  variant_vector ast = builder.convert_function(ir.first_block());
-
-  function_signature2 signature_out{signature.return_value_type(), signature.name(),
-                                    signature.arguments()};
-  return function_definition{std::move(signature_out), std::move(ast)};
+function_definition create_ast(const wf::output_ir& ir, const function_description& description) {
+  ast_from_ir converter{ir.value_print_width(), description};
+  return converter.convert_function(ir.first_block());
 }
 
 }  // namespace wf::ast

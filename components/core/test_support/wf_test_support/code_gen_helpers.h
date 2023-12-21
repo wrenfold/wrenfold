@@ -10,14 +10,11 @@ namespace wf {
 template <typename CodeGenerator, typename Func, typename... Args>
 void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
                    const std::string_view name, Args&&... args) {
-  auto tuple =
+  const function_description description =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
-  const function_signature& signature = std::get<0>(tuple);
-  const std::vector<expression_group>& expressions = std::get<1>(tuple);
 
-  flat_ir ir{expressions};
+  flat_ir ir{description.output_expressions()};
   ir.eliminate_duplicates();
-
   const output_ir output_ir{std::move(ir)};
 #if 0
   fmt::print("IR ({}, {} operations):\n{}\n", name, output_ir.num_operations(),
@@ -26,8 +23,9 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
 #endif
 
   // Generate syntax tree:
-  const ast::function_definition definition = ast::create_ast(output_ir, signature);
+  const ast::function_definition definition = ast::create_ast(output_ir, description);
 
+  // Convert to output code:
   const std::string code = std::invoke(generator, definition);
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);
 }

@@ -4,7 +4,6 @@
 #include "wf/code_generation/ast.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/function_description.h"
-#include "wf/constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/output_annotations.h"
 #include "wf/template_utils.h"
@@ -14,103 +13,31 @@ namespace wf {
 namespace detail {
 
 template <typename T>
-struct copy_output_expressions;
-
-template <>
-struct copy_output_expressions<Expr> {
-  void operator()(const Expr& val, std::vector<Expr>& outputs) const { outputs.push_back(val); }
-};
-
-template <>
-struct copy_output_expressions<MatrixExpr> {
-  void operator()(const MatrixExpr& val, std::vector<Expr>& outputs) const {
-    outputs.reserve(val.size());
-    for (index_t row = 0; row < val.rows(); ++row) {
-      for (index_t col = 0; col < val.cols(); ++col) {
-        outputs.push_back(val(row, col));
-      }
-    }
-  }
-};
-
-template <index_t Rows, index_t Cols>
-struct copy_output_expressions<type_annotations::static_matrix<Rows, Cols>> {
-  void operator()(const type_annotations::static_matrix<Rows, Cols>& val,
-                  std::vector<Expr>& outputs) const {
-    copy_output_expressions<MatrixExpr>{}.operator()(val, outputs);
-  }
-};
-
-template <typename T>
-expression_group create_expression_group(const T& tuple_element) {
-  std::vector<Expr> expressions;
-
-  // TInner is the inner type of `return_value` or `output_arg`.
-  using TInner = std::decay_t<decltype(tuple_element.value())>;
-  copy_output_expressions<TInner>{}(tuple_element.value(), expressions);
-
-  if constexpr (is_return_value<T>::value) {
-    output_key key{expression_usage::return_value, ""};
-    return expression_group(std::move(expressions), std::move(key));
-  } else {
-    const output_arg<TInner>& as_output_arg = tuple_element;
-    output_key key{as_output_arg.is_optional() ? expression_usage::optional_output_argument
-                                               : expression_usage::output_argument,
-                   as_output_arg.name()};
-    return expression_group(std::move(expressions), std::move(key));
-  }
-}
-
-template <typename... Ts, std::size_t... Indices>
-void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
-                                       std::vector<expression_group>& groups,
-                                       std::index_sequence<Indices...>) {
-  static_assert(std::conjunction_v<is_output_arg_or_return_value<Ts>...>,
-                "All returned elements of the tuple must be explicitly marked as `return_value` or "
-                "`output_arg`.");
-  static_assert(count_return_values_v<Ts...> <= 1, "Only one return value is allowed.");
-  groups.reserve(sizeof...(Ts));
-  // Comma operator ensures the order of evaluation here will be left -> right.
-  (groups.push_back(create_expression_group(std::get<Indices>(output_tuple))), ...);
-}
-
-// Create an index sequence, so we can invoke `copy_output_expression_from_tuple` over all the
-// elements of the tuple.
-template <typename... Ts>
-void copy_output_expression_from_tuple(const std::tuple<Ts...>& output_tuple,
-                                       std::vector<expression_group>& groups) {
-  copy_output_expression_from_tuple(output_tuple, groups,
-                                    std::make_index_sequence<sizeof...(Ts)>());
-}
-
-template <typename T>
 struct record_output;
 
 template <typename T>
 struct record_output<return_value<T>> {
-  void operator()(function_signature& desc, const return_value<T>& output) const {
-    // This is a return value.
+  void operator()(function_description& desc, const return_value<T>& output) const {
+    // This is a return value, which may be either a scalar or a matrix:
     if constexpr (std::is_same_v<Expr, T>) {
-      desc.set_return_value_type(scalar_type(code_numeric_type::floating_point));
+      desc.set_return_value(scalar_type{code_numeric_type::floating_point}, {output.value()});
     } else {
       const MatrixExpr& mat = output.value();
-      desc.set_return_value_type(matrix_type(mat.rows(), mat.cols()));
+      desc.set_return_value(matrix_type{mat.rows(), mat.cols()}, mat.to_vector());
     }
   }
 };
 
 template <typename T>
 struct record_output<output_arg<T>> {
-  void operator()(function_signature& desc, const output_arg<T>& output) const {
+  void operator()(function_description& desc, const output_arg<T>& output) const {
     if constexpr (std::is_same_v<Expr, T>) {
-      desc.add_argument(
-          output.name(), scalar_type(code_numeric_type::floating_point),
-          output.is_optional() ? argument_direction::optional_output : argument_direction::output);
+      desc.add_output_argument(output.name(), scalar_type{code_numeric_type::floating_point},
+                               output.is_optional(), {output.value()});
     } else {
-      // todo: static assert this is StaticMatrix
-      desc.add_argument(
-          output.name(), matrix_type(output.value().rows(), output.value().cols()),
-          output.is_optional() ? argument_direction::optional_output : argument_direction::output);
+      const MatrixExpr& mat = output.value();
+      desc.add_output_argument(output.name(), matrix_type{mat.rows(), mat.cols()},
+                               output.is_optional(), mat.to_vector());
     }
   }
 };
@@ -120,24 +47,24 @@ struct record_input_argument;
 
 template <>
 struct record_input_argument<Expr> {
-  void operator()(function_signature& desc, const arg& arg) const {
-    desc.add_argument(arg.name(), scalar_type(code_numeric_type::floating_point),
-                      argument_direction::input);
+  void operator()(function_description& desc, const arg& arg) const {
+    desc.add_input_argument(arg.name(), scalar_type(code_numeric_type::floating_point));
   }
 };
 
 template <index_t Rows, index_t Cols>
 struct record_input_argument<type_annotations::static_matrix<Rows, Cols>> {
-  void operator()(function_signature& desc, const arg& arg) const {
-    desc.add_argument(arg.name(), matrix_type(Rows, Cols), argument_direction::input);
+  void operator()(function_description& desc, const arg& arg) const {
+    desc.add_input_argument(arg.name(), matrix_type(Rows, Cols));
   }
 };
 
-template <typename ArgList, std::size_t... Indices, std::size_t N>
-void record_input_args(function_signature& desc, const std::array<arg, N>& args,
+// Expand over `Indices` and record every inpu
+template <typename ArgList, std::size_t... Indices>
+void record_input_args(function_description& desc, const std::vector<arg>& args,
                        std::index_sequence<Indices...>) {
   (record_input_argument<std::decay_t<type_list_element_t<Indices, ArgList>>>{}(desc,
-                                                                                args[Indices]),
+                                                                                args.at(Indices)),
    ...);
 }
 

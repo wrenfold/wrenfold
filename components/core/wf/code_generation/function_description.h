@@ -3,7 +3,6 @@
 #include <variant>
 #include <vector>
 
-#include "wf/assertions.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/types.h"
 #include "wf/matrix_expression.h"
@@ -62,71 +61,27 @@ class argument {
   std::shared_ptr<const impl> impl_;
 };
 
-// Describe a function signature.
-// Stores a name, and type+name information for all the arguments.
-class function_signature {
- public:
-  explicit function_signature(std::string name) noexcept : name_(std::move(name)) {}
-
-  // Name of the function.
-  constexpr const std::string& name() const noexcept { return name_; }
-
-  // Number of arguments (both input and output).
-  std::size_t num_arguments() const noexcept { return arguments_.size(); }
-
-  // Push back a new argument.
-  void add_argument(std::string_view name, type_variant type, argument_direction direction);
-
-  // Find an argument by name.
-  std::optional<argument> argument_by_name(std::string_view str) const;
-
-  // Get an argument by index.
-  const argument& argument_by_index(std::size_t index) const {
-    WF_ASSERT_LESS(index, num_arguments());
-    return arguments_[index];
-  }
-
-  // Access all arguments.
-  constexpr const auto& arguments() const noexcept { return arguments_; }
-
-  // Are any of the arguments to this function a matrix?
-  bool has_matrix_arguments() const noexcept;
-
-  // Get the type of the return value, if there is one.
-  // If the function has no return value, this will be null.
-  constexpr const std::optional<type_variant>& return_value_type() const noexcept {
-    return return_value_type_;
-  }
-
-  // True if the return value type has been set.
-  constexpr bool has_return_value() const noexcept { return return_value_type_.has_value(); }
-
-  // Set the return value type.
-  void set_return_value_type(type_variant type);
-
- private:
-  std::string name_;
-  std::vector<argument> arguments_{};
-  std::optional<type_variant> return_value_type_{};
-};
-
 // Store the signature of a function we will generate, plus all the captured output expressions.
 // This type is a symbolic function description, which is then "transpiled" into an actual AST that
 // can be written out as actual code.
-// TODO: Use this in build_function_description?
 class function_description {
  public:
   // Stored in a shared ptr so that we can pass with no copies to and from python.
   using shared_ptr = std::shared_ptr<function_description>;
 
   // Construct with the name of the function.
-  explicit function_description(std::string name) noexcept : signature_{std::move(name)} {}
+  explicit function_description(std::string name) noexcept : name_{std::move(name)} {}
 
   // Get function name.
-  constexpr const std::string& name() const noexcept { return signature_.name(); }
+  constexpr const std::string& name() const noexcept { return name_; }
 
-  // Get the function signature.
-  constexpr const function_signature& signature() const noexcept { return signature_; }
+  // Get the function arguments.
+  constexpr const std::vector<argument>& arguments() const noexcept { return arguments_; }
+
+  // Get the return type.
+  constexpr const std::optional<type_variant>& return_value_type() const noexcept {
+    return return_value_type_;
+  }
 
   // Get the vector of all output expressions, grouped by argument.
   constexpr const std::vector<expression_group>& output_expressions() const noexcept {
@@ -149,8 +104,13 @@ class function_description {
   void set_return_value(type_variant type, std::vector<Expr> expressions);
 
  private:
-  function_signature signature_;
-  std::vector<expression_group> output_expressions_;
+  const argument& add_argument(std::string_view name, type_variant type,
+                               argument_direction direction);
+
+  std::string name_;
+  std::vector<argument> arguments_{};
+  std::optional<type_variant> return_value_type_{};
+  std::vector<expression_group> output_expressions_{};
 };
 
 }  // namespace wf

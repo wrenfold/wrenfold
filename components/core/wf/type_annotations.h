@@ -8,13 +8,10 @@ namespace wf {
 // Store information about an argument to a function.
 // User specifies this as an argument to `build_function_description`.
 struct arg {
-  // This needs to be default constructible for use in std::array.
-  arg() = default;
-
   // Construct with string name of the argument.
   explicit arg(const std::string_view name) : name_(name) {}
 
-  constexpr const std::string& name() const { return name_; }
+  constexpr const std::string& name() const noexcept { return name_; }
 
  private:
   std::string name_;

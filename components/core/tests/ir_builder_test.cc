@@ -23,12 +23,11 @@ std::ostream& operator<<(std::ostream& s, const output_ir& b) {
 // Given a lambda or function pointer, create the IR for the expressions it generates.
 template <typename Func, typename... Args>
 auto create_ir(Func&& func, const std::string_view name, Args&&... args) {
-  auto tuple =
+  const function_description description =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
-  std::vector<expression_group>& expressions = std::get<1>(tuple);
-  flat_ir flat_ir{expressions};
+  flat_ir flat_ir{description.output_expressions()};
   flat_ir.eliminate_duplicates();
-  return std::make_tuple(std::move(expressions), std::move(flat_ir));
+  return std::make_tuple(description.output_expressions(), std::move(flat_ir));
 }
 
 // Generate permutations that represent whether optional arguments are present or not.

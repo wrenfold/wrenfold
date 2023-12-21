@@ -37,12 +37,11 @@ auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<
 
 // Benchmark interpolation between two quaternions and then computing the jacobian.
 static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
-  auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
-                                          arg("q0"), arg("q1"), arg("alpha"));
-  const std::vector<expression_group>& expressions = std::get<1>(tuple);
+  const function_description description = build_function_description(
+      &quaternion_interpolation, "quaternion_interpolation", arg("q0"), arg("q1"), arg("alpha"));
 
   for (auto _ : state) {
-    flat_ir flat_ir{expressions};
+    flat_ir flat_ir{description.output_expressions()};
     flat_ir.eliminate_duplicates();
     benchmark::DoNotOptimize(flat_ir);
   }
@@ -51,13 +50,12 @@ static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
 BENCHMARK(BM_CreateFlatIrLowComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
 
 static void BM_ConvertIrLowComplexity(benchmark::State& state) {
-  auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
-                                          arg("q0"), arg("q1"), arg("alpha"));
-  const std::vector<expression_group>& expressions = std::get<1>(tuple);
+  const function_description description = build_function_description(
+      &quaternion_interpolation, "quaternion_interpolation", arg("q0"), arg("q1"), arg("alpha"));
 
   for (auto _ : state) {
     state.PauseTiming();
-    flat_ir flat_ir{expressions};
+    flat_ir flat_ir{description.output_expressions()};
     flat_ir.eliminate_duplicates();
     state.ResumeTiming();
     // Convert to the non-flat IR.
@@ -69,16 +67,15 @@ static void BM_ConvertIrLowComplexity(benchmark::State& state) {
 BENCHMARK(BM_ConvertIrLowComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
 
 static void BM_GenerateCpp(benchmark::State& state) {
-  auto tuple = build_function_description(&quaternion_interpolation, "quaternion_interpolation",
-                                          arg("q0"), arg("q1"), arg("alpha"));
-  const std::vector<expression_group>& expressions = std::get<1>(tuple);
+  const function_description description = build_function_description(
+      &quaternion_interpolation, "quaternion_interpolation", arg("q0"), arg("q1"), arg("alpha"));
 
-  flat_ir flat_ir{expressions};
+  flat_ir flat_ir{description.output_expressions()};
   flat_ir.eliminate_duplicates();
   const output_ir output_ir{std::move(flat_ir)};
 
   for (auto _ : state) {
-    ast::function_definition definition = ast::create_ast(output_ir, std::get<0>(tuple));
+    ast::function_definition definition = ast::create_ast(output_ir, description);
     std::string code = std::invoke(cpp_code_generator{}, definition);
     benchmark::DoNotOptimize(code);
   }
