@@ -85,31 +85,22 @@ void wrap_codegen_operations(py::module_& m) {
 
   m.def(
       "transpile",
-      [](const std::vector<function_description::shared_ptr>& descriptions) {
+      [](const std::vector<function_description>& descriptions) {
         // TODO: Allow this to run in parallel.
         std::vector<ast::function_definition> outputs;
         outputs.reserve(descriptions.size());
         std::transform(descriptions.begin(), descriptions.end(), std::back_inserter(outputs),
-                       [](const function_description::shared_ptr& ptr) {
-                         WF_ASSERT(ptr);
-                         return transpile_to_function_definition(*ptr);
-                       });
+                       &transpile_to_function_definition);
         return outputs;
       },
       py::arg("descriptions"),
       py::doc("Generate function definitions in AST form, given symbolic function descriptions."),
       py::return_value_policy::take_ownership);
 
-  m.def(
-      "transpile",
-      [](const function_description::shared_ptr& description) {
-        WF_ASSERT(description);
-        return transpile_to_function_definition(*description);
-      },
-      py::arg("description"),
-      py::doc(
-          "Generate a function definition in AST form, given the symbolic function description."),
-      py::return_value_policy::take_ownership);
+  m.def("transpile", &transpile_to_function_definition, py::arg("description"),
+        py::doc(
+            "Generate a function definition in AST form, given the symbolic function description."),
+        py::return_value_policy::take_ownership);
 
   py::enum_<std_math_function>(m, "StdMathFunction")
       .value("Cos", std_math_function::cos)
@@ -187,13 +178,13 @@ void wrap_codegen_operations(py::module_& m) {
         return fmt::format("Field({}: {})", self.name(), self.type());
       });
 
-  py::class_<function_description, function_description::shared_ptr>(m, "FunctionDescription")
+  py::class_<function_description>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
       .def_property_readonly("name", &function_description::name)
       .def("__repr__",
-           [](const function_description& s) {
-             return fmt::format("FunctionDescription('{}', {} args)", s.name(),
-                                s.arguments().size());
+           [](const function_description& self) {
+             return fmt::format("FunctionDescription('{}', {} args)", self.name(),
+                                self.arguments().size());
            })
       .def(
           "add_input_argument",

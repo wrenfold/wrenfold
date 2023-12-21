@@ -66,26 +66,23 @@ class argument {
 // can be written out as actual code.
 class function_description {
  public:
-  // Stored in a shared ptr so that we can pass with no copies to and from python.
-  using shared_ptr = std::shared_ptr<function_description>;
-
   // Construct with the name of the function.
-  explicit function_description(std::string name) noexcept : name_{std::move(name)} {}
+  explicit function_description(std::string name) noexcept;
 
   // Get function name.
-  constexpr const std::string& name() const noexcept { return name_; }
+  const std::string& name() const noexcept { return impl_->name; }
 
   // Get the function arguments.
-  constexpr const std::vector<argument>& arguments() const noexcept { return arguments_; }
+  const std::vector<argument>& arguments() const noexcept { return impl_->arguments; }
 
   // Get the return type.
-  constexpr const std::optional<type_variant>& return_value_type() const noexcept {
-    return return_value_type_;
+  const std::optional<type_variant>& return_value_type() const noexcept {
+    return impl_->return_value_type;
   }
 
   // Get the vector of all output expressions, grouped by argument.
-  constexpr const std::vector<expression_group>& output_expressions() const noexcept {
-    return output_expressions_;
+  const std::vector<expression_group>& output_expressions() const noexcept {
+    return impl_->output_expressions;
   }
 
   // Add an input argument to the function.
@@ -107,10 +104,17 @@ class function_description {
   const argument& add_argument(std::string_view name, type_variant type,
                                argument_direction direction);
 
-  std::string name_;
-  std::vector<argument> arguments_{};
-  std::optional<type_variant> return_value_type_{};
-  std::vector<expression_group> output_expressions_{};
+  struct impl {
+    std::string name;
+    std::vector<argument> arguments{};
+    std::optional<type_variant> return_value_type{};
+    std::vector<expression_group> output_expressions{};
+
+    explicit impl(std::string&& name) noexcept : name(std::move(name)) {}
+  };
+
+  // Shared pointer so we can share this in python with no copies.
+  std::shared_ptr<impl> impl_;
 };
 
 }  // namespace wf

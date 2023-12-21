@@ -35,6 +35,9 @@ struct create_custom_type_inputs {
   }
 };
 
+function_description::function_description(std::string name) noexcept
+    : impl_(std::make_shared<impl>(std::move(name))) {}
+
 std::variant<Expr, MatrixExpr, std::vector<Expr>> function_description::add_input_argument(
     const std::string_view name, type_variant type) {
   const argument& arg = add_argument(name, std::move(type), argument_direction::input);
@@ -58,31 +61,35 @@ std::variant<Expr, MatrixExpr, std::vector<Expr>> function_description::add_inpu
       });
 }
 
-void function_description::add_output_argument(std::string_view name, type_variant type,
-                                               bool is_optional, std::vector<Expr> expressions) {
+void function_description::add_output_argument(const std::string_view name, type_variant type,
+                                               const bool is_optional,
+                                               std::vector<Expr> expressions) {
   add_argument(name, std::move(type),
                is_optional ? argument_direction::optional_output : argument_direction::output);
 
   output_key key{
       is_optional ? expression_usage::optional_output_argument : expression_usage::output_argument,
       name};
-  output_expressions_.emplace_back(std::move(expressions), std::move(key));
+  impl_->output_expressions.emplace_back(std::move(expressions), std::move(key));
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 void function_description::set_return_value(type_variant type, std::vector<Expr> expressions) {
-  WF_ASSERT(!return_value_type_.has_value(), "Return value on function `{}` already set.", name_);
-  return_value_type_ = std::move(type);
-  output_expressions_.emplace_back(std::move(expressions),
-                                   output_key{expression_usage::return_value, ""});
+  WF_ASSERT(!impl_->return_value_type.has_value(), "Return value on function `{}` already set.",
+            name());
+  impl_->return_value_type = std::move(type);
+  impl_->output_expressions.emplace_back(std::move(expressions),
+                                         output_key{expression_usage::return_value, ""});
 }
 
-const argument& function_description::add_argument(std::string_view name, type_variant type,
-                                                   argument_direction direction) {
-  WF_ASSERT(!std::any_of(arguments_.begin(), arguments_.end(),
+// ReSharper disable once CppMemberFunctionMayBeConst
+const argument& function_description::add_argument(const std::string_view name, type_variant type,
+                                                   const argument_direction direction) {
+  WF_ASSERT(!std::any_of(impl_->arguments.begin(), impl_->arguments.end(),
                          [&name](const argument& arg) { return arg.name() == name; }),
             "Argument with name `{}` already exists.", name);
-  arguments_.emplace_back(name, std::move(type), direction, arguments_.size());
-  return arguments_.back();
+  impl_->arguments.emplace_back(name, std::move(type), direction, impl_->arguments.size());
+  return impl_->arguments.back();
 }
 
 }  // namespace wf
