@@ -5,8 +5,6 @@
 
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/ast_formatters.h"
-#include "wf/code_generation/cpp_code_generator.h"
-#include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/ir_builder.h"
 #include "wf/code_generation/rust_code_generator.h"
 #include "wf/code_generation/types.h"
@@ -36,6 +34,7 @@ ast::function_definition transpile_to_function_definition(const function_descrip
   return ast::create_ast(output_ir, description.signature());
 }
 
+// Define pythong constructof for `custom_type`.
 custom_type init_custom_type(std::string name,
                              const std::vector<std::tuple<std::string_view, py::object>>& fields,
                              py::type python_type) {
@@ -62,7 +61,7 @@ custom_type init_custom_type(std::string name,
 
 void wrap_codegen_operations(py::module_& m) {
   // Stored as shared-ptr to avoid copies.
-  py::class_<ast::variant_vector, std::shared_ptr<ast::variant_vector>>(m, "AstVector")
+  py::class_<ast::variant_vector>(m, "AstVector")
       .def("__repr__",
            [](const ast::variant_vector& vec) {
              return fmt::format("AstVector({} elements)", vec.size());
@@ -111,21 +110,6 @@ void wrap_codegen_operations(py::module_& m) {
       py::doc(
           "Generate a function definition in AST form, given the symbolic function description."),
       py::return_value_policy::take_ownership);
-
-  py::enum_<expression_usage>(m, "ExpressionUsage")
-      .value("OptionalOutputArgument", expression_usage::optional_output_argument)
-      .value("OutputArgument", expression_usage::output_argument)
-      .value("ReturnValue", expression_usage::return_value);
-
-  py::class_<output_key>(m, "OutputKey")
-      .def(py::init<expression_usage, std::string_view>(), py::arg("usage"), py::arg("name"));
-
-  py::class_<expression_group>(m, "ExpressionGroup")
-      .def(py::init<std::vector<Expr>, output_key>(), py::arg("expressions"), py::arg("output_key"))
-      .def(py::init([](const MatrixExpr& m, output_key key) {
-             return expression_group(m.to_vector(), key);
-           }),
-           py::arg("expressions"), py::arg("output_key"));
 
   py::enum_<std_math_function>(m, "StdMathFunction")
       .value("Cos", std_math_function::cos)
