@@ -40,7 +40,7 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   //  leaks memory on Windows.
   result.push_back("non_snake_case");
   // Check if # of args exceeds clippy warning.
-  if (signature.arguments.size() >= 7) {
+  if (signature.num_arguments() >= 7) {
     result.push_back("clippy::too_many_arguments");
   }
   // We can fix these two, but until we do let's disable them.

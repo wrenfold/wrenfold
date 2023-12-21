@@ -49,4 +49,13 @@ const argument& function_description::add_argument(const std::string_view name, 
   return impl_->arguments.back();
 }
 
+const argument& function_description::add_argument(std::string_view name, type_variant type,
+                                                   argument_direction direction) {
+  WF_ASSERT(!std::any_of(arguments_.begin(), arguments_.end(),
+                         [&name](const argument& arg) { return arg.name() == name; }),
+            "Argument with name `{}` already exists.", name);
+  arguments_.emplace_back(name, std::move(type), direction, arguments_.size());
+  return arguments_.back();
+}
+
 }  // namespace wf
