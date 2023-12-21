@@ -66,6 +66,7 @@ auto wrap_ast_type(py::module_& m) {
       });
 }
 
+// Define pythong constructof for `custom_type`.
 custom_type init_custom_type(std::string name,
                              const std::vector<std::tuple<std::string_view, py::object>>& fields,
                              py::type python_type) {
