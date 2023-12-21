@@ -6,6 +6,9 @@ namespace wf {
 function_description::function_description(std::string name) noexcept
     : impl_(std::make_shared<impl>(std::move(name))) {}
 
+function_description::function_description(std::string name) noexcept
+    : impl_(std::make_shared<impl>(std::move(name))) {}
+
 std::variant<Expr, MatrixExpr, std::vector<Expr>> function_description::add_input_argument(
     const std::string_view name, type_variant type) {
   const argument& arg = add_argument(name, std::move(type), argument_direction::input);
@@ -49,13 +52,14 @@ const argument& function_description::add_argument(const std::string_view name, 
   return impl_->arguments.back();
 }
 
-const argument& function_description::add_argument(std::string_view name, type_variant type,
-                                                   argument_direction direction) {
-  WF_ASSERT(!std::any_of(arguments_.begin(), arguments_.end(),
+// ReSharper disable once CppMemberFunctionMayBeConst
+const argument& function_description::add_argument(const std::string_view name, type_variant type,
+                                                   const argument_direction direction) {
+  WF_ASSERT(!std::any_of(impl_->arguments.begin(), impl_->arguments.end(),
                          [&name](const argument& arg) { return arg.name() == name; }),
             "Argument with name `{}` already exists.", name);
-  arguments_.emplace_back(name, std::move(type), direction, arguments_.size());
-  return arguments_.back();
+  impl_->arguments.emplace_back(name, std::move(type), direction, impl_->arguments.size());
+  return impl_->arguments.back();
 }
 
 }  // namespace wf
