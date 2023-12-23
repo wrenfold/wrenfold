@@ -15,6 +15,8 @@ namespace wf {
 // Represent a scalar argument type (float, int, etc).
 class scalar_type {
  public:
+  static constexpr std::string_view snake_case_name_str = "scalar_type";
+
   explicit constexpr scalar_type(code_numeric_type numeric_type) noexcept
       : numeric_type_(numeric_type) {}
 
@@ -28,6 +30,8 @@ class scalar_type {
 // Represent a matrix argument type. The dimensions are known at generation time.
 class matrix_type {
  public:
+  static constexpr std::string_view snake_case_name_str = "matrix_type";
+
   constexpr matrix_type(index_t rows, index_t cols) noexcept : rows_(rows), cols_(cols) {}
 
   constexpr index_t rows() const noexcept { return rows_; }
@@ -50,11 +54,13 @@ class matrix_type {
 // A user-defined type that we support as an input/output to functions.
 class custom_type {
  public:
+  static constexpr std::string_view snake_case_name_str = "custom_type";
+
   // Construct with fields. Asserts that all fields have unique names.
-  custom_type(std::string name, std::vector<class field> fields, std::any python_type);
+  custom_type(std::string name, std::vector<class struct_field> fields, std::any python_type);
 
   // Access a field by name. May return nullptr if the field does not exist.
-  const field* field_by_name(std::string_view name) const noexcept;
+  const struct_field* field_by_name(std::string_view name) const noexcept;
 
   // Name of the type.
   const std::string& name() const noexcept { return impl_->name; }
@@ -74,7 +80,7 @@ class custom_type {
     std::string name;
     // All the fields in the type. If this type was defined in python, this vector should be ordered
     // the same as the fields on the python type.
-    std::vector<field> fields;
+    std::vector<struct_field> fields;
     // An opaque strong reference to the `py::type` that represents this type in python.
     // We hold this as std::any so that pybind11 is not an explicit dependency here.
     std::any python_type;
@@ -91,10 +97,10 @@ using type_variant = std::variant<scalar_type, matrix_type, custom_type>;
 // We need to define this here so that the definition of custom_type is visible for type_variant.
 // We can still use field above in `custom_type` because std::vector does not require the type
 // be visible (as of c++17): https://stackoverflow.com/questions/56975491/
-class field {
+class struct_field {
  public:
   // Construct with name and type. Asserts that type is non-empty.
-  field(std::string name_in, type_variant type_in);
+  struct_field(std::string name_in, type_variant type_in);
 
   constexpr const std::string& name() const noexcept { return name_; }
   constexpr const auto& type() const noexcept { return type_; }
@@ -126,7 +132,7 @@ class field_access {
 // Represent the operation of reading from a matrix nested within a custom user-specified type.
 class matrix_access {
  public:
-  constexpr matrix_access(matrix_type type, std::size_t element_index) noexcept
+  constexpr matrix_access(const matrix_type type, const std::size_t element_index) noexcept
       : type_(type), element_index_(element_index) {}
 
   // Type of matrix we are reading from.
@@ -136,10 +142,10 @@ class matrix_access {
   std::tuple<index_t, index_t> indices() const { return type_.compute_indices(element_index_); }
 
   // Return row index.
-  index_t row() const { return std::get<0>(type_.compute_indices(element_index_)); }
+  index_t row() const { return std::get<0>(indices()); }
 
   // Return col index.
-  index_t col() const { return std::get<1>(type_.compute_indices(element_index_)); }
+  index_t col() const { return std::get<1>(indices()); }
 
  private:
   matrix_type type_;

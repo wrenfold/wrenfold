@@ -83,7 +83,7 @@ struct construct_output_variant {
     // Recursively convert every field in the custom type.
     std::vector<std::tuple<std::string, ast::variant>> fields_out{};
     fields_out.reserve(type.size());
-    for (const field& field : type.fields()) {
+    for (const struct_field& field : type.fields()) {
       ast::variant field_var = std::visit(*this, field.type());
       fields_out.emplace_back(field.name(), std::move(field_var));
     }
@@ -429,19 +429,39 @@ struct ast_from_ir {
   ast::variant operator()(const named_variable& v) const { return ast::variable_ref{v.name()}; }
 
   ast::variant operator()(const scalar_type&, const argument& arg, std::size_t) const {
-    return ast::read_input_scalar{arg};
+    return ast::get_argument{arg};
   }
 
   ast::variant operator()(const matrix_type& m, const argument& arg,
-                          std::size_t element_index) const {
+                          const std::size_t element_index) const {
     const auto [row, col] = m.compute_indices(element_index);
-    return ast::read_input_matrix{arg, row, col};
+    return ast::get_matrix_element{std::make_shared<ast::variant>(ast::get_argument{arg}), row,
+                                   col};
   }
 
   ast::variant operator()(const custom_type& c, const argument& arg,
                           const std::size_t element_index) const {
-    auto access_sequence = determine_access_sequence(c, element_index);
-    return ast::read_input_struct{arg, std::move(access_sequence)};
+    const auto access_sequence = determine_access_sequence(c, element_index);
+
+    ast::get_argument get_arg{arg};
+    if (access_sequence.empty()) {
+      return get_arg;
+    }
+
+    ast::variant prev = std::move(get_arg);
+    for (const access_variant& access : access_sequence) {
+      overloaded_visit(
+          access,
+          [&](const matrix_access& m) {
+            prev = ast::get_matrix_element{std::make_shared<ast::variant>(std::move(prev)), m.row(),
+                                           m.col()};
+          },
+          [&](const field_access& f) {
+            prev = ast::get_field{std::make_shared<ast::variant>(std::move(prev)), f.type(),
+                                  f.field_name()};
+          });
+    }
+    return prev;
   }
 
   ast::variant operator()(const function_argument_variable& a) const {
@@ -515,7 +535,7 @@ struct ast_from_ir {
 
  private:
   std::size_t value_width_;
-  function_signature2 signature_;
+  function_signature signature_;
 
   // Operations accrued in the current block.
   std::vector<ast::variant> operations_;

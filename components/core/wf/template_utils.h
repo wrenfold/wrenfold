@@ -49,12 +49,12 @@ struct function_traits<Ret (*)(Args...)> {
 };
 
 // Enable if to check that two types are the same.
-template <typename A, typename B>
-using enable_if_same_t = std::enable_if_t<std::is_same_v<A, B>>;
+template <typename A, typename B, typename Type = void>
+using enable_if_same_t = std::enable_if_t<std::is_same_v<A, B>, Type>;
 
 // Enable if to check that two types are not the same.
-template <typename A, typename B>
-using enable_if_not_same_t = std::enable_if_t<!std::is_same_v<A, B>>;
+template <typename A, typename B, typename Type = void>
+using enable_if_not_same_t = std::enable_if_t<!std::is_same_v<A, B>, Type>;
 
 // Template to check if the `operator()` method is implemented.
 template <typename T, typename, typename = void>
@@ -170,6 +170,15 @@ struct type_list_element<0, type_list<T, Ts...>> {
 };
 template <std::size_t N, typename List>
 using type_list_element_t = typename type_list_element<N, List>::type;
+
+template <typename T>
+struct type_list_from_variant;
+template <typename T>
+using type_list_from_variant_t = typename type_list_from_variant<T>::type;
+template <typename... Ts>
+struct type_list_from_variant<std::variant<Ts...>> {
+  using type = type_list<Ts...>;
+};
 
 // This template iterates over a type_list and creates a new type_list of return types that occur
 // when `Callable` is invoked with each type in the input type list. Duplicates may occur.

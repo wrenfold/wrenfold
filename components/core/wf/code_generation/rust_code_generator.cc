@@ -32,7 +32,7 @@ constexpr std::string_view span_type_from_direction(argument_direction direction
   return "<NOT A VALID ENUM VALUE>";
 }
 
-static std::vector<std::string_view> get_attributes(const ast::function_signature2& signature) {
+static std::vector<std::string_view> get_attributes(const ast::function_signature& signature) {
   std::vector<std::string_view> result{};
   // TODO: Properly checking for snake case would require doing upper/lower case comparison with
   //  unicode support. Would need to add a dependency on ICU or some other external library to
@@ -57,7 +57,7 @@ std::string rust_code_generator::operator()(const argument& arg) const {
         return std::string(rust_string_from_numeric_type(s));
       },
       [&](matrix_type) { return fmt::format("T{}", arg.index()); },
-      [](const custom_type& c) { return c.name(); });
+      [this](const custom_type& c) { return operator()(c); });
 
   const bool pass_input_by_borrow = arg.is_matrix() || arg.is_custom_type();
   switch (arg.direction()) {
@@ -75,13 +75,17 @@ std::string rust_code_generator::operator()(const argument& arg) const {
   return result;
 }
 
+std::string rust_code_generator::operator()(const custom_type& custom) const {
+  return custom.name();
+}
+
 std::string rust_code_generator::operator()(const ast::function_definition& definition) const {
   std::string result = operator()(definition.signature());
   join_and_indent(result, 2, "{\n", "\n}", "\n", definition.body(), *this);
   return result;
 }
 
-std::string rust_code_generator::operator()(const ast::function_signature2& signature) const {
+std::string rust_code_generator::operator()(const ast::function_signature& signature) const {
   std::string result = "#[inline]\n";
   if (const auto attributes = get_attributes(signature); !attributes.empty()) {
     fmt::format_to(std::back_inserter(result), "#[allow({})]\n", fmt::join(attributes, ", "));
@@ -128,7 +132,7 @@ std::string rust_code_generator::operator()(const ast::return_type_annotation& x
             "directly. You likely want to implement an override for the {} ast type.",
             ast::return_type_annotation::snake_case_name_str);
       },
-      [&](const custom_type& custom_type) { return custom_type.name(); });
+      [&](const custom_type& custom_type) { return operator()(custom_type); });
 }
 
 std::string rust_code_generator::operator()(const ast::add& x) const {
@@ -249,7 +253,7 @@ std::string rust_code_generator::operator()(const ast::construct_matrix&) const 
 }
 
 std::string rust_code_generator::operator()(const ast::construct_custom_type& x) const {
-  const std::string opener = fmt::format("{} {{\n", x.type.name());
+  const std::string opener = fmt::format("{} {{\n", make_view(x.type));
   std::string output{};
   join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
     const auto& [field_name, val] = field_val;
@@ -273,6 +277,24 @@ std::string rust_code_generator::operator()(const ast::divide& x) const {
 
 std::string rust_code_generator::operator()(const ast::float_literal& x) const {
   return fmt::format("{}f64", x.value);
+}
+
+std::string rust_code_generator::operator()(const ast::get_argument& x) const {
+  return x.arg.name();
+}
+
+std::string rust_code_generator::operator()(const ast::get_field& x) const {
+  return fmt::format("{}.{}", make_view(x.arg), x.field);
+}
+
+std::string rust_code_generator::operator()(const ast::get_matrix_element& x) const {
+  if (std::holds_alternative<ast::get_argument>(*x.arg)) {
+    // This will be a span trait.
+    return fmt::format("{}.get({}, {})", make_view(x.arg), x.row, x.col);
+  } else {
+    // Otherwise, take a guess at what the matrix type will prefer.
+    return fmt::format("{}[({}, {})]", make_view(x.arg), x.row, x.col);
+  }
 }
 
 std::string rust_code_generator::operator()(const ast::integer_literal& x) const {
@@ -306,29 +328,6 @@ std::string rust_code_generator::operator()(const ast::optional_output_branch& x
   std::string result{};
   fmt::format_to(std::back_inserter(result), "if let Some({}) = {} ", x.arg.name(), x.arg.name());
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
-  return result;
-}
-
-std::string rust_code_generator::operator()(const ast::read_input_matrix& x) const {
-  return fmt::format("{}.get({}, {})", x.arg.name(), x.row, x.col);
-}
-
-std::string rust_code_generator::operator()(const ast::read_input_scalar& x) const {
-  return x.arg.name();
-}
-
-std::string rust_code_generator::operator()(const ast::read_input_struct& x) const {
-  std::string result = x.arg.name();
-  for (const access_variant& access : x.access_sequence) {
-    overloaded_visit(
-        access,
-        [&](const field_access& f) {
-          fmt::format_to(std::back_inserter(result), ".{}", f.field_name());
-        },
-        [&](const matrix_access& m) {
-          fmt::format_to(std::back_inserter(result), "[({}, {})]", m.row(), m.col());
-        });
-  }
   return result;
 }
 

@@ -66,31 +66,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
     def format_call(self, element: code_generation.codegen.Call) -> str:
         if element.function == code_generation.codegen.StdMathFunction.Cos:
             return self.fmt.format('custom::cos({})', element.args[0])
-        return super().format_call(element)
-
-    def format_read_input_struct(self, element: code_generation.codegen.ReadInputStruct) -> str:
-        """Customize access to struct Point2D."""
-        if element.argument.type.python_type is Point2d:
-            result = element.argument.name
-            for seq in element.access_sequence:
-                if isinstance(seq, code_generation.codegen.FieldAccess):
-                    result += f".{seq.field_name}"
-                elif isinstance(seq, code_generation.codegen.MatrixAccess):
-                    result += f"({seq.row}, {seq.col})"
-                else:
-                    raise TypeError("Unexpected type")
-            return result
-
-        return super().format_read_input_struct(element)
-
-    def format_argument(self, element: code_generation.codegen.Argument) -> str:
-        """Customize formatting of Point2D argument."""
-        if isinstance(element.type, code_generation.codegen.CustomType):
-            if element.type.python_type is Point2d:
-                if element.direction == code_generation.codegen.ArgumentDirection.Input:
-                    return f'const {element.type.name}& {element.name}'
-
-        return super().format_argument(element)
+        return self.super_format(element)
 
 
 class CodeGenerationWrapperTest(MathTestBase):

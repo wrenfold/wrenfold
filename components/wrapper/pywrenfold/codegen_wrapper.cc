@@ -20,11 +20,6 @@ PYBIND11_MAKE_OPAQUE(wf::ast::variant_vector)
 
 namespace wf {
 
-template <class T>
-static std::string format_ast_repr(const T& x) {
-  return fmt::format("{}", x);
-}
-
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
 ast::function_definition transpile_to_function_definition(const function_description& description) {
@@ -38,7 +33,7 @@ ast::function_definition transpile_to_function_definition(const function_descrip
 custom_type init_custom_type(std::string name,
                              const std::vector<std::tuple<std::string_view, py::object>>& fields,
                              py::type python_type) {
-  std::vector<field> fields_converted{};
+  std::vector<struct_field> fields_converted{};
   fields_converted.reserve(fields.size());
   std::transform(fields.begin(), fields.end(), std::back_inserter(fields_converted),
                  [](const auto& tup) {
@@ -46,11 +41,11 @@ custom_type init_custom_type(std::string name,
                    // Instead, we check for different types manually here.
                    const auto& [field_name, type_obj] = tup;
                    if (py::isinstance<scalar_type>(type_obj)) {
-                     return field(std::string{field_name}, py::cast<scalar_type>(type_obj));
+                     return struct_field(std::string{field_name}, py::cast<scalar_type>(type_obj));
                    } else if (py::isinstance<matrix_type>(type_obj)) {
-                     return field(std::string{field_name}, py::cast<matrix_type>(type_obj));
+                     return struct_field(std::string{field_name}, py::cast<matrix_type>(type_obj));
                    } else if (py::isinstance<custom_type>(type_obj)) {
-                     return field(std::string{field_name}, py::cast<custom_type>(type_obj));
+                     return struct_field(std::string{field_name}, py::cast<custom_type>(type_obj));
                    } else {
                      throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
                    }
@@ -59,8 +54,21 @@ custom_type init_custom_type(std::string name,
                      std::any{std::move(python_type)});
 }
 
+// Construct class_ wrapper for an AST type. Name is derived automatically.
+template <typename T>
+auto wrap_ast_type(py::module_& m) {
+  return py::class_<T>(m, ast::camel_case_name<T>())
+      .def("__repr__", [](const T& obj) -> std::string {
+        // Handled by the formatters in ast_formatters.h
+        static_assert(ast::is_formattable<T>::value,
+                      "The specified type is missing a format_ast(...) method");
+        return fmt::format("{}", obj);
+      });
+}
+
 void wrap_codegen_operations(py::module_& m) {
-  // Stored as shared-ptr to avoid copies.
+  // Variant vector is wrapped as an opaque type so we don't have to deal
+  // with the variant not being default constructible.
   py::class_<ast::variant_vector>(m, "AstVector")
       .def("__repr__",
            [](const ast::variant_vector& vec) {
@@ -171,13 +179,6 @@ void wrap_codegen_operations(py::module_& m) {
                            py::cast<std::string_view>(repr));
       });
 
-  py::class_<field>(m, "Field")
-      .def_property_readonly("name", &field::name)
-      .def_property_readonly("type", &field::type)
-      .def("__repr__", [](const field& self) {
-        return fmt::format("Field({}: {})", self.name(), self.type());
-      });
-
   py::class_<function_description>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
       .def_property_readonly("name", &function_description::name)
@@ -265,53 +266,45 @@ void wrap_codegen_operations(py::module_& m) {
   // AST types are below:
   // --------------------
 
-  py::class_<ast::add>(m, "Add")
+  wrap_ast_type<ast::add>(m)
       .def_property_readonly("left", [](const ast::add& x) { return *x.left; })
-      .def_property_readonly("right", [](const ast::add& x) { return *x.right; })
-      .def("__repr__", &format_ast_repr<ast::add>);
+      .def_property_readonly("right", [](const ast::add& x) { return *x.right; });
 
-  py::class_<ast::assign_temporary>(m, "AssignTemporary")
+  wrap_ast_type<ast::assign_temporary>(m)
       .def_property_readonly("left", [](const ast::assign_temporary& x) { return x.left; })
-      .def_property_readonly("right",
-                             [](const ast::assign_temporary& x) {
-                               WF_ASSERT(x.right);
-                               return *x.right;
-                             })
-      .def("__repr__", &format_ast_repr<ast::assign_temporary>);
+      .def_property_readonly("right", [](const ast::assign_temporary& x) {
+        WF_ASSERT(x.right);
+        return *x.right;
+      });
 
-  py::class_<ast::assign_output_argument>(m, "AssignOutputArgument")
+  wrap_ast_type<ast::assign_output_argument>(m)
       .def_property_readonly("argument", [](const ast::assign_output_argument& x) { return x.arg; })
       .def_property_readonly("values",
-                             [](const ast::assign_output_argument& x) { return x.values; })
-      .def("__repr__", &format_ast_repr<ast::assign_output_argument>);
+                             [](const ast::assign_output_argument& x) { return x.values; });
 
-  py::class_<ast::branch>(m, "Branch")
+  wrap_ast_type<ast::branch>(m)
       .def_property_readonly("condition", [](const ast::branch& c) { return *c.condition; })
       .def_property_readonly("if_branch", [](const ast::branch& c) { return c.if_branch; })
-      .def_property_readonly("else_branch", [](const ast::branch& c) { return c.else_branch; })
-      .def("__repr__", &format_ast_repr<ast::branch>);
+      .def_property_readonly("else_branch", [](const ast::branch& c) { return c.else_branch; });
 
-  py::class_<ast::call>(m, "Call")
+  wrap_ast_type<ast::call>(m)
       .def_property_readonly("function", [](const ast::call& c) { return c.function; })
-      .def_property_readonly("args", [](const ast::call& c) { return c.args; })
-      .def("__repr__", &format_ast_repr<ast::call>);
+      .def_property_readonly("args", [](const ast::call& c) { return c.args; });
 
-  py::class_<ast::cast>(m, "Cast")
+  wrap_ast_type<ast::cast>(m)
       .def_property_readonly("destination_type",
                              [](const ast::cast& c) { return c.destination_type; })
-      .def_property_readonly("arg",
-                             [](const ast::cast& c) {
-                               WF_ASSERT(c.arg);
-                               return *c.arg;
-                             })
-      .def("__repr__", &format_ast_repr<ast::cast>);
+      .def_property_readonly("arg", [](const ast::cast& c) {
+        WF_ASSERT(c.arg);
+        return *c.arg;
+      });
 
-  py::class_<ast::comment>(m, "Comment")
+  wrap_ast_type<ast::comment>(m)
       .def_property_readonly("content", [](const ast::comment& c) { return c.content; })
       .def("split_lines", &ast::comment::split_lines,
            py::doc("Split comment by newlines and return a list of strings, one per line."));
 
-  py::class_<ast::compare>(m, "Compare")
+  wrap_ast_type<ast::compare>(m)
       .def_property_readonly("left",
                              [](const ast::compare& c) {
                                WF_ASSERT(c.left);
@@ -322,36 +315,31 @@ void wrap_codegen_operations(py::module_& m) {
                                WF_ASSERT(c.right);
                                return *c.right;
                              })
-      .def_property_readonly("operation", [](const ast::compare& c) { return c.operation; })
-      .def("__repr__", &format_ast_repr<ast::compare>);
+      .def_property_readonly("operation", [](const ast::compare& c) { return c.operation; });
 
-  py::class_<ast::construct_matrix>(m, "ConstructReturnValue")
+  wrap_ast_type<ast::construct_matrix>(m)
       .def_property_readonly("type", [](const ast::construct_matrix& c) { return c.type; })
-      .def_property_readonly("args", [](const ast::construct_matrix& c) { return c.args; })
-      .def("__repr__", &format_ast_repr<ast::construct_matrix>);
+      .def_property_readonly("args", [](const ast::construct_matrix& c) { return c.args; });
 
-  py::class_<ast::construct_custom_type>(m, "ConstructCustomType")
+  wrap_ast_type<ast::construct_custom_type>(m)
       .def_property_readonly("type",
                              [](const ast::construct_custom_type& self) { return self.type; })
       .def_property_readonly(
           "field_values",
-          [](const ast::construct_custom_type& self) -> const auto& { return self.field_values; })
-      .def("__repr__", &format_ast_repr<ast::construct_custom_type>);
+          [](const ast::construct_custom_type& self) -> const auto& { return self.field_values; });
 
-  py::class_<ast::declaration>(m, "Declaration")
+  wrap_ast_type<ast::declaration>(m)
       .def_property_readonly("name", [](const ast::declaration& d) { return d.name; })
       .def_property_readonly("type", [](const ast::declaration& d) { return d.type; })
-      .def_property_readonly("value",
-                             [](const ast::declaration& d) -> std::optional<ast::variant> {
-                               if (d.value) {
-                                 return *d.value;
-                               } else {
-                                 return std::nullopt;
-                               }
-                             })
-      .def("__repr__", &format_ast_repr<ast::declaration>);
+      .def_property_readonly("value", [](const ast::declaration& d) -> std::optional<ast::variant> {
+        if (d.value) {
+          return *d.value;
+        } else {
+          return std::nullopt;
+        }
+      });
 
-  py::class_<ast::divide>(m, "Divide")
+  wrap_ast_type<ast::divide>(m)
       .def_property_readonly("left",
                              [](const ast::divide& x) {
                                WF_ASSERT(x.left);
@@ -362,109 +350,71 @@ void wrap_codegen_operations(py::module_& m) {
         return *x.right;
       });
 
-  py::class_<ast::float_literal>(m, "FloatLiteral")
-      .def_property_readonly("value", [](const ast::float_literal& f) { return f.value; })
-      .def("__repr__", &format_ast_repr<ast::float_literal>);
+  wrap_ast_type<ast::float_literal>(m).def_property_readonly(
+      "value", [](const ast::float_literal& f) { return f.value; });
 
-  py::class_<ast::integer_literal>(m, "IntegerLiteral")
-      .def_property_readonly("value", [](const ast::integer_literal& i) { return i.value; })
-      .def("__repr__", &format_ast_repr<ast::integer_literal>);
+  wrap_ast_type<ast::get_argument>(m).def_property_readonly(
+      "argument", [](const ast::get_argument& self) { return self.arg; });
 
-  py::class_<ast::multiply>(m, "Multiply")
+  wrap_ast_type<ast::get_field>(m)
+      .def_property_readonly("arg", [](const ast::get_field& self) { return *self.arg; })
+      .def_property_readonly("struct_type", [](const ast::get_field& self) { return self.type; })
+      .def_property_readonly("field_name", [](const ast::get_field& self) { return self.field; });
+
+  wrap_ast_type<ast::get_matrix_element>(m)
+      .def_property_readonly("arg", [](const ast::get_matrix_element& self) { return *self.arg; })
+      .def_property_readonly("row", [](const ast::get_matrix_element& self) { return self.row; })
+      .def_property_readonly("col", [](const ast::get_matrix_element& self) { return self.col; });
+
+  wrap_ast_type<ast::integer_literal>(m).def_property_readonly(
+      "value", [](const ast::integer_literal& i) { return i.value; });
+
+  wrap_ast_type<ast::multiply>(m)
       .def_property_readonly("left",
                              [](const ast::multiply& x) {
                                WF_ASSERT(x.left);
                                return *x.left;
                              })
-      .def_property_readonly("right",
-                             [](const ast::multiply& x) {
-                               WF_ASSERT(x.right);
-                               return *x.right;
-                             })
-      .def("__repr__", &format_ast_repr<ast::multiply>);
+      .def_property_readonly("right", [](const ast::multiply& x) {
+        WF_ASSERT(x.right);
+        return *x.right;
+      });
 
-  py::class_<ast::negate>(m, "Negate").def_property_readonly("arg", [](const ast::negate& x) {
+  wrap_ast_type<ast::negate>(m).def_property_readonly("arg", [](const ast::negate& x) {
     WF_ASSERT(x.arg);
     return *x.arg;
   });
 
-  py::class_<ast::optional_output_branch>(m, "OptionalOutputBranch")
+  wrap_ast_type<ast::optional_output_branch>(m)
       .def_property_readonly("argument",
                              [](const ast::optional_output_branch& self) { return self.arg; })
       .def_property_readonly(
-          "statements", [](const ast::optional_output_branch& self) { return self.statements; })
-      .def("__repr__", &format_ast_repr<ast::optional_output_branch>);
+          "statements", [](const ast::optional_output_branch& self) { return self.statements; });
 
-  py::class_<ast::read_input_matrix>(m, "ReadInputMatrix")
-      .def_property_readonly("argument",
-                             [](const ast::read_input_matrix& self) { return self.arg; })
-      .def_property_readonly("row", [](const ast::read_input_matrix& self) { return self.row; })
-      .def_property_readonly("col", [](const ast::read_input_matrix& self) { return self.col; })
-      .def("__repr__", &format_ast_repr<ast::read_input_matrix>);
+  wrap_ast_type<ast::return_value>(m).def_property_readonly(
+      "value", [](const ast::return_value& c) { return c.value; },
+      py::doc("Value or object being returned."));
 
-  py::class_<ast::read_input_scalar>(m, "ReadInputScalar")
-      .def_property_readonly("argument",
-                             [](const ast::read_input_scalar& self) { return self.arg; })
-      .def("__repr__", &format_ast_repr<ast::read_input_scalar>);
+  wrap_ast_type<ast::special_constant>(m).def_property_readonly(
+      "value", [](const ast::special_constant& c) { return c.value; },
+      py::doc("Enum indicating the value of the constant"));
 
-  py::class_<ast::read_input_struct>(m, "ReadInputStruct")
-      .def_property_readonly("argument",
-                             [](const ast::read_input_struct& self) { return self.arg; })
-      .def_property_readonly(
-          "access_sequence",
-          [](const ast::read_input_struct& self) { return self.access_sequence; })
-      .def("__repr__", &format_ast_repr<ast::read_input_struct>);
-
-  py::class_<ast::return_value>(m, "ReturnValue")
-      .def_property_readonly(
-          "value", [](const ast::return_value& c) { return c.value; },
-          py::doc("Value or object being returned."));
-
-  py::class_<ast::special_constant>(m, "SpecialConstant")
-      .def_property_readonly(
-          "value", [](const ast::special_constant& c) { return c.value; },
-          py::doc("Enum indicating the value of the constant"));
-
-  py::class_<ast::variable_ref>(m, "VariableRef")
-      .def_property_readonly("name", [](const ast::variable_ref& v) { return v.name; })
-      .def("__repr__", &format_ast_repr<ast::variable_ref>);
+  wrap_ast_type<ast::variable_ref>(m).def_property_readonly(
+      "name", [](const ast::variable_ref& v) { return v.name; });
 
   // Types that are not part of the ast::variant
-  py::class_<ast::function_definition>(m, "FunctionDefinition")
+  wrap_ast_type<ast::function_definition>(m)
       .def_property_readonly("signature", &ast::function_definition::signature)
       .def_property_readonly("body",  // TODO: Don't copy this on return.
                              &ast::function_definition::body);
 
-  py::class_<ast::function_signature2>(m, "FunctionSignature2")
-      .def_property_readonly("return_annotation", &ast::function_signature2::return_annotation)
-      .def_property_readonly("name", &ast::function_signature2::name)
-      .def_property_readonly("arguments", &ast::function_signature2::arguments);
+  wrap_ast_type<ast::function_signature>(m)
+      .def_property_readonly("return_annotation", &ast::function_signature::return_annotation)
+      .def_property_readonly("name", &ast::function_signature::name)
+      .def_property_readonly("arguments", &ast::function_signature::arguments);
 
-  py::class_<field_access>(m, "FieldAccess")
-      .def_property_readonly(
-          "type", [](const field_access& self) { return self.type(); },
-          py::doc("The type of the struct we are accessing."))
-      .def_property_readonly("field_name", &field_access::field_name,
-                             py::doc("Name of the field being accessed."))
-      .def_property_readonly(
-          "field_type",
-          [](const field_access& self) {
-            const field* field = self.type().field_by_name(self.field_name());
-            WF_ASSERT(field != nullptr, "Missing field: {}", self.field_name());
-            return field->type();
-          },
-          py::doc("The type of the field being accessed."))
-      .def("__repr__", [](const field_access& self) {
-        return fmt::format("FieldAccess({})", self.field_name());
-      });
-
-  py::class_<matrix_access>(m, "MatrixAccess")
-      .def_property_readonly("indices", &matrix_access::indices, py::doc("Access "))
-      .def_property_readonly("row", &matrix_access::row, py::doc("Row index."))
-      .def_property_readonly("col", &matrix_access::col, py::doc("Col index."))
-      .def("__repr__", [](const matrix_access& self) {
-        return fmt::format("MatrixAccess({}, {})", self.row(), self.col());
-      });
+  wrap_ast_type<ast::return_type_annotation>(m).def_property_readonly(
+      "type", [](const ast::return_type_annotation& ret) { return ret.type; });
 }
 
 }  // namespace wf

@@ -29,7 +29,7 @@ struct create_custom_type_inputs {
   void operator()(const custom_type& c, const std::size_t arg_index,
                   std::vector<Expr>& output) const {
     // Append every field on this type, and recurse as well into child custom types.
-    for (const field& field : c.fields()) {
+    for (const struct_field& field : c.fields()) {
       std::visit([&](const auto& child) { operator()(child, arg_index, output); }, field.type());
     }
   }

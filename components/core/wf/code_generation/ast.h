@@ -25,14 +25,14 @@ using variant = std::variant<
     struct declaration,
     struct divide,
     struct float_literal,
+    struct get_argument,
+    struct get_field,
+    struct get_matrix_element,
     struct integer_literal,
     struct multiply,
     struct negate,
     struct optional_output_branch,
     struct special_constant,
-    struct read_input_scalar,
-    struct read_input_matrix,
-    struct read_input_struct,
     struct return_value,
     struct variable_ref
     >;
@@ -190,6 +190,33 @@ struct float_literal {
   double value;
 };
 
+// Refer to an input argument.
+struct get_argument {
+  static constexpr std::string_view snake_case_name_str = "get_argument";
+  argument arg;
+};
+
+// Access a field on a struct.
+struct get_field {
+  static constexpr std::string_view snake_case_name_str = "get_field";
+  // Expression for the struct we are accessing.
+  variant_ptr arg;
+  // Type being accessed.
+  custom_type type;
+  // Name of the field being accessed
+  std::string field;
+};
+
+// Access a matrix element.
+struct get_matrix_element {
+  static constexpr std::string_view snake_case_name_str = "get_matrix_element";
+  // Expression for the matrix we are accessing.
+  variant_ptr arg;
+  // Row and column.
+  index_t row;
+  index_t col;
+};
+
 // Use an integer constant in the output code.
 struct integer_literal {
   static constexpr std::string_view snake_case_name_str = "integer_literal";
@@ -241,32 +268,6 @@ struct special_constant {
   symbolic_constant_enum value;
 };
 
-// Access a scalar input argument.
-struct read_input_scalar {
-  static constexpr std::string_view snake_case_name_str = "read_input_scalar";
-  argument arg;
-};
-
-// Access a single element from a matrix (2D span) input argument.
-struct read_input_matrix {
-  static constexpr std::string_view snake_case_name_str = "read_input_matrix";
-
-  argument arg;
-  index_t row;
-  index_t col;
-};
-
-// Access a single scalar member from a custom input type.
-struct read_input_struct {
-  static constexpr std::string_view snake_case_name_str = "read_input_struct";
-
-  // Argument we are reading from.
-  argument arg;
-
-  // Sequence of nested accessors required to obtain the relevant member.
-  std::vector<access_variant> access_sequence{};
-};
-
 // A return statement.
 struct return_value {
   static constexpr std::string_view snake_case_name_str = "return_value";
@@ -297,11 +298,11 @@ struct return_type_annotation {
 
 // Describe a function signature.
 // Stores a name, and type+name information for all the arguments.
-struct function_signature2 {
+struct function_signature {
   static constexpr std::string_view snake_case_name_str = "function_signature";
 
-  function_signature2(std::string name, std::optional<type_variant> return_type,
-                      std::vector<argument> arguments)
+  function_signature(std::string name, std::optional<type_variant> return_type,
+                     std::vector<argument> arguments)
       : name_(std::move(name)),
         return_type_{std::move(return_type)},
         arguments_(std::move(arguments)) {}
@@ -358,11 +359,11 @@ class function_definition {
  public:
   static constexpr std::string_view snake_case_name_str = "function_definition";
 
-  function_definition(function_signature2 signature, std::vector<ast::variant> body)
+  function_definition(function_signature signature, std::vector<ast::variant> body)
       : impl_(std::make_shared<const impl>(impl{std::move(signature), std::move(body)})) {}
 
   // Signature of the function.
-  const function_signature2& signature() const noexcept { return impl_->signature; }
+  const function_signature& signature() const noexcept { return impl_->signature; }
 
   // Operations within the function body.
   const std::vector<ast::variant>& body() const noexcept { return impl_->body; }
@@ -370,11 +371,25 @@ class function_definition {
  private:
   struct impl {
     // Signature of the function: float foo(float x, ...)
-    function_signature2 signature;
+    function_signature signature;
     // Body of the function as a vector of statements.
     std::vector<ast::variant> body;
   };
   std::shared_ptr<const impl> impl_;
 };
+
+// Types that don't appear in ast::variant, but which must be exposed via our python wrapper so that
+// the user can override their formatting.
+// clang-format off
+using extra_ast_types = type_list<
+  argument,
+  custom_type,
+  function_definition,
+  function_signature,
+  return_type_annotation
+>;
+// clang-format on
+using all_ast_types =
+    concatenate_type_lists_t<type_list_from_variant_t<ast::variant>, extra_ast_types>;
 
 }  // namespace wf::ast

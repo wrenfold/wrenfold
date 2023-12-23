@@ -34,8 +34,11 @@ std::string cpp_code_generator::operator()(const argument& arg) const {
         if (arg.direction() == argument_direction::input) {
           fmt::format_to(std::back_inserter(result), "const {}",
                          cpp_string_from_numeric_cast_type(s));
-        } else {
+        } else if (arg.direction() == argument_direction::output) {
           fmt::format_to(std::back_inserter(result), "{}&", cpp_string_from_numeric_cast_type(s));
+        } else {
+          // TODO: Fix the output type here to be a span.
+          fmt::format_to(std::back_inserter(result), "{}*", cpp_string_from_numeric_cast_type(s));
         }
       },
       [&](matrix_type) {
@@ -45,10 +48,22 @@ std::string cpp_code_generator::operator()(const argument& arg) const {
           fmt::format_to(std::back_inserter(result), "T{}&&", arg.index());
         }
       },
-      [&](const custom_type& custom) { result.append(custom.name()); });
+      [&](const custom_type& custom) {
+        if (arg.direction() == argument_direction::input) {
+          fmt::format_to(std::back_inserter(result), "const {}&", make_view(custom));
+        } else if (arg.direction() == argument_direction::output) {
+          fmt::format_to(std::back_inserter(result), "{}&", make_view(custom));
+        } else if (arg.direction() == argument_direction::optional_output) {
+          fmt::format_to(std::back_inserter(result), "{}*", make_view(custom));
+        }
+      });
 
   fmt::format_to(std::back_inserter(result), " {}", arg.name());
   return result;
+}
+
+std::string cpp_code_generator::operator()(const custom_type& custom) const {
+  return custom.name();
 }
 
 std::string cpp_code_generator::operator()(const ast::function_definition& definition) const {
@@ -91,7 +106,7 @@ std::string cpp_code_generator::operator()(const ast::function_definition& defin
   return result;
 }
 
-std::string cpp_code_generator::operator()(const ast::function_signature2& signature) const {
+std::string cpp_code_generator::operator()(const ast::function_signature& signature) const {
   // Template parameter list:
   std::string result = "template <typename Scalar";
   if (signature.has_matrix_arguments()) {
@@ -121,7 +136,7 @@ std::string cpp_code_generator::operator()(const ast::return_type_annotation& x)
               "directly. You likely want to implement an override for the {} ast type.",
               ast::return_type_annotation::snake_case_name_str);
         },
-        [&](const custom_type& custom_type) { return custom_type.name(); });
+        [this](const custom_type& custom_type) { return operator()(custom_type); });
   } else {
     return "void";
   }
@@ -242,7 +257,7 @@ std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
 // Really we don't know how the user wants their types constructed, but we can take an educated
 // guess. Customization is possible from python via overrides.
 std::string cpp_code_generator::operator()(const ast::construct_custom_type& x) const {
-  const std::string opener = fmt::format("{}{{\n", x.type.name());
+  const std::string opener = fmt::format("{}{{\n", make_view(x.type));
   std::string output{};
   join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
     const auto& [field_name, val] = field_val;
@@ -266,6 +281,23 @@ std::string cpp_code_generator::operator()(const ast::divide& x) const {
 
 std::string cpp_code_generator::operator()(const ast::float_literal& x) const {
   return fmt::format("static_cast<Scalar>({})", x.value);
+}
+
+std::string cpp_code_generator::operator()(const ast::get_argument& x) const {
+  if (x.arg.is_matrix()) {
+    // Access the span indirection we created.
+    return fmt::format("_{}", x.arg.name());
+  } else {
+    return x.arg.name();
+  }
+}
+
+std::string cpp_code_generator::operator()(const ast::get_field& x) const {
+  return fmt::format("{}.{}", make_view(x.arg), x.field);
+}
+
+std::string cpp_code_generator::operator()(const ast::get_matrix_element& x) const {
+  return fmt::format("{}({}, {})", make_view(x.arg), x.row, x.col);
 }
 
 std::string cpp_code_generator::operator()(const ast::integer_literal& x) const {
@@ -300,29 +332,6 @@ std::string cpp_code_generator::operator()(const ast::optional_output_branch& x)
   fmt::format_to(std::back_inserter(result), "if (static_cast<bool>({}{})) ",
                  x.arg.is_matrix() ? "_" : "", x.arg.name());
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
-  return result;
-}
-
-std::string cpp_code_generator::operator()(const ast::read_input_matrix& x) const {
-  return fmt::format("_{}({}, {})", x.arg.name(), x.row, x.col);
-}
-
-std::string cpp_code_generator::operator()(const ast::read_input_scalar& x) const {
-  return x.arg.name();
-}
-
-std::string cpp_code_generator::operator()(const ast::read_input_struct& x) const {
-  std::string result = x.arg.name();
-  for (const access_variant& access : x.access_sequence) {
-    overloaded_visit(
-        access,
-        [&](const field_access& f) {
-          fmt::format_to(std::back_inserter(result), ".{}", f.field_name());
-        },
-        [&](const matrix_access& m) {
-          fmt::format_to(std::back_inserter(result), "({}, {})", m.row(), m.col());
-        });
-  }
   return result;
 }
 

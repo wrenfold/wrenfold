@@ -14,9 +14,6 @@ from pywrenfold.wf_wrapper.codegen import transpile, CppGenerator, RustGenerator
 
 U = T.TypeVar("U")
 
-# The different wrapped generator types.
-GeneratorTypes = T.Union[CppGenerator, RustGenerator]
-
 
 @dataclasses.dataclass
 class ReturnValue:
@@ -40,6 +37,9 @@ CodegenFuncInvocationResult = T.Union[sym.Expr, sym.MatrixExpr, T.Iterable[Retur
 
 # Refer to possible types we put in the generated code.
 CodegenType = T.Union[codegen.ScalarType, codegen.MatrixType, codegen.CustomType]
+
+# The different wrapped generator types.
+GeneratorTypes = T.Union[CppGenerator, RustGenerator]
 
 
 def convert_to_internal_type(python_type: T.Type,

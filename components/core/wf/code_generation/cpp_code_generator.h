@@ -10,11 +10,13 @@ class cpp_code_generator {
  public:
   virtual ~cpp_code_generator() = default;
 
-  virtual std::string operator()(const argument& argument) const;
+  virtual std::string operator()(const argument& arg) const;
+
+  virtual std::string operator()(const custom_type& custom) const;
 
   virtual std::string operator()(const ast::function_definition& definition) const;
 
-  virtual std::string operator()(const ast::function_signature2& signature) const;
+  virtual std::string operator()(const ast::function_signature& signature) const;
 
   virtual std::string operator()(const ast::return_type_annotation& x) const;
 
@@ -46,6 +48,12 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::float_literal& x) const;
 
+  virtual std::string operator()(const ast::get_argument& x) const;
+
+  virtual std::string operator()(const ast::get_field& x) const;
+
+  virtual std::string operator()(const ast::get_matrix_element& x) const;
+
   virtual std::string operator()(const ast::integer_literal& x) const;
 
   virtual std::string operator()(const ast::multiply& x) const;
@@ -53,12 +61,6 @@ class cpp_code_generator {
   virtual std::string operator()(const ast::negate& x) const;
 
   virtual std::string operator()(const ast::optional_output_branch& x) const;
-
-  virtual std::string operator()(const ast::read_input_matrix& x) const;
-
-  virtual std::string operator()(const ast::read_input_scalar& x) const;
-
-  virtual std::string operator()(const ast::read_input_struct& x) const;
 
   virtual std::string operator()(const ast::return_value& x) const;
 
