@@ -210,22 +210,6 @@ class wrapped_generator
   };
 };
 
-// Convert std::variant to type list.
-template <typename T>
-struct type_list_from_variant;
-template <typename T>
-using type_list_from_variant_t = typename type_list_from_variant<T>::type;
-template <typename... Ts>
-struct type_list_from_variant<std::variant<Ts...>> {
-  using type = type_list<Ts...>;
-};
-
-// Create a combined type list of all types that can be overriden
-using all_wrapped_ast_types =
-    concatenate_type_lists_t<type_list_from_variant_t<ast::variant>,
-                             type_list<argument, ast::function_definition, ast::function_signature2,
-                                       ast::return_type_annotation>>;
-
 // This struct expands over all the types in `ast::variant` and exposes operator() for
 // all of them via pybind11.
 template <typename T = ast::all_ast_types>

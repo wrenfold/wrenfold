@@ -78,17 +78,29 @@ custom_type init_custom_type(std::string name,
                    // Instead, we check for different types manually here.
                    const auto& [field_name, type_obj] = tup;
                    if (py::isinstance<scalar_type>(type_obj)) {
-                     return field(std::string{field_name}, py::cast<scalar_type>(type_obj));
+                     return struct_field(std::string{field_name}, py::cast<scalar_type>(type_obj));
                    } else if (py::isinstance<matrix_type>(type_obj)) {
-                     return field(std::string{field_name}, py::cast<matrix_type>(type_obj));
+                     return struct_field(std::string{field_name}, py::cast<matrix_type>(type_obj));
                    } else if (py::isinstance<custom_type>(type_obj)) {
-                     return field(std::string{field_name}, py::cast<custom_type>(type_obj));
+                     return struct_field(std::string{field_name}, py::cast<custom_type>(type_obj));
                    } else {
                      throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
                    }
                  });
   return custom_type(std::move(name), std::move(fields_converted),
                      std::any{std::move(python_type)});
+}
+
+// Construct class_ wrapper for an AST type. Name is derived automatically.
+template <typename T>
+auto wrap_ast_type(py::module_& m) {
+  return py::class_<T>(m, ast::camel_case_name<T>())
+      .def("__repr__", [](const T& obj) -> std::string {
+        // Handled by the formatters in ast_formatters.h
+        static_assert(ast::is_formattable<T>::value,
+                      "The specified type is missing a format_ast(...) method");
+        return fmt::format("{}", obj);
+      });
 }
 
 void wrap_codegen_operations(py::module_& m) {

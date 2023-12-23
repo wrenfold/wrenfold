@@ -57,8 +57,8 @@ template <typename A, typename B, typename Type = void>
 using enable_if_not_same_t = std::enable_if_t<!std::is_same_v<A, B>, Type>;
 
 // Enable if to check that two types are not the same.
-template <typename A, typename B>
-using enable_if_not_same_t = std::enable_if_t<!std::is_same_v<A, B>>;
+template <typename A, typename B, typename Type = void>
+using enable_if_not_same_t = std::enable_if_t<!std::is_same_v<A, B>, Type>;
 
 // Template to check if the `operator()` method is implemented.
 template <typename T, typename, typename = void>
