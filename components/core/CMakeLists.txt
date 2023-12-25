@@ -13,6 +13,8 @@ add_library(
   wf/code_generation/cpp_code_generator.h
   wf/code_generation/types.cc
   wf/code_generation/types.h
+  wf/code_generation/type_registry.cc
+  wf/code_generation/type_registry.h
   wf/code_generation/expr_from_ir.cc
   wf/code_generation/expression_group.h
   wf/code_generation/function_description.cc
@@ -58,8 +60,8 @@ add_library(
   wf/expressions/variable.cc
   wf/expressions/variable.h
   wf/fmt_imports.h
-  wf/function_evaluator.h
-  wf/function_evaluator_detail.h
+  wf/code_generation/function_evaluator.h
+  wf/code_generation/function_evaluator_detail.h
   wf/functions.cc
   wf/functions.h
   wf/geometry/quaternion.cc

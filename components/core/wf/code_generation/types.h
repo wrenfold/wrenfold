@@ -10,6 +10,8 @@
 #include "wf/assertions.h"
 #include "wf/enumerations.h"
 
+#include <typeindex>
+
 namespace wf {
 
 // Represent a scalar argument type (float, int, etc).
@@ -57,7 +59,7 @@ class custom_type {
   static constexpr std::string_view snake_case_name_str = "custom_type";
 
   // Construct with fields. Asserts that all fields have unique names.
-  custom_type(std::string name, std::vector<class struct_field> fields, std::any python_type);
+  custom_type(std::string name, std::vector<class struct_field> fields, std::any python_type = {});
 
   // Access a field by name. May return nullptr if the field does not exist.
   const struct_field* field_by_name(std::string_view name) const noexcept;
@@ -68,11 +70,22 @@ class custom_type {
   // Access all fields.
   const auto& fields() const noexcept { return impl_->fields; }
 
-  // py::type (or empty) for types that are defined in python.
-  const auto& python_type() const noexcept { return impl_->python_type; }
+  // For python types, the py::type.
+  // For native C++ types, a wrapped std::type_index.
+  const auto& underlying_type() const noexcept { return impl_->underlying_type; }
 
   // Number of fields.
   std::size_t size() const noexcept { return impl_->fields.size(); }
+
+  // Check if the underlying native type is `T`.
+  template <typename T>
+  bool is_native_type() const noexcept {
+    if (const std::type_index* type_index = std::any_cast<std::type_index>(&impl_->underlying_type);
+        type_index != nullptr) {
+      return *type_index == typeid(T);
+    }
+    return false;
+  }
 
  private:
   struct impl {
@@ -83,7 +96,9 @@ class custom_type {
     std::vector<struct_field> fields;
     // An opaque strong reference to the `py::type` that represents this type in python.
     // We hold this as std::any so that pybind11 is not an explicit dependency here.
-    std::any python_type;
+    // For native C++ types, this is a std::type_index corresponding to the type.
+    // Could make this a variant, but having std::any in a variant seems redundant.
+    std::any underlying_type;
   };
 
   // This object is saved in multiple places, and returned into python.
@@ -93,6 +108,43 @@ class custom_type {
 // Variant over possible types that can appear in generated code.
 using type_variant = std::variant<scalar_type, matrix_type, custom_type>;
 
+// Stores a type-erased object that can set/get the C++ member variable corresponding to a given
+// field. This applies only to custom types that are defined in C++. The native field accessor is
+// used to unpack or pack a flat vector of symbolic variables into and out of a C++ struct.
+class native_field_accessor {
+ public:
+  // Our 'concept' type can't expose any useful members, because it would need to use types
+  // that we are trying to erase here. We just need a virtual base to downcast elsewhere.
+  class concept {
+   public:
+    virtual ~concept() = default;
+  };
+
+  template <typename T>
+  using enable_if_implements_concept_v = std::enable_if_t<std::is_base_of_v<concept, T>>;
+
+  // Construct with an object that inherits from `concept`.
+  template <typename T, typename = enable_if_implements_concept_v<T>>
+  explicit native_field_accessor(T&& arg)
+      : impl_(std::make_shared<const T>(std::forward<T>(arg))) {}
+
+  // Construct empty.
+  native_field_accessor() noexcept = default;
+
+  // Unchecked downcast to type `U`.
+  template <typename U>
+  const U& as() const {
+    WF_ASSERT(impl_);
+    return static_cast<const U&>(*impl_.get());
+  }
+
+  operator bool() const noexcept { return static_cast<bool>(impl_); }  // NOLINT
+
+ private:
+  // shared_ptr because field is copied by the python wrapper.
+  std::shared_ptr<const concept> impl_{};
+};
+
 // A field on a custom type.
 // We need to define this here so that the definition of custom_type is visible for type_variant.
 // We can still use field above in `custom_type` because std::vector does not require the type
@@ -100,16 +152,23 @@ using type_variant = std::variant<scalar_type, matrix_type, custom_type>;
 class struct_field {
  public:
   // Construct with name and type. Asserts that type is non-empty.
-  struct_field(std::string name_in, type_variant type_in);
+  struct_field(std::string name, type_variant type);
+
+  // Construct with name, type, and setter/getter.
+  struct_field(std::string name, type_variant type, native_field_accessor accessor);
 
   constexpr const std::string& name() const noexcept { return name_; }
   constexpr const auto& type() const noexcept { return type_; }
+  constexpr const auto& native_accessor() const noexcept { return native_accessor_; }
 
  private:
   // Name of the field (these must be unique).
   std::string name_;
   // The type of the field.
   type_variant type_;
+  // Object that can get/set the field on the corresponding C++ type.
+  // This value is empty for python types.
+  native_field_accessor native_accessor_;
 };
 
 // Represent the operation of reading a field on a custom type.

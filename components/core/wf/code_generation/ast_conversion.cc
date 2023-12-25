@@ -53,8 +53,8 @@ inline void find_conditional_output_values(const ir::value_ptr v, const bool top
 // Given all the values that are required to build a given output, make the syntax to construct
 // that object. For structs, we need to recurse and build each member.
 template <typename Iterator>
-struct construct_output_variant {
-  construct_output_variant(Iterator begin, Iterator end) : input_it(begin), end(end) {}
+struct create_custom_type_constructor {
+  create_custom_type_constructor(Iterator begin, Iterator end) : input_it(begin), end(end) {}
 
   // Scalar doesn't have a constructor, just return the input directly and step forward by one
   // value.
@@ -66,7 +66,7 @@ struct construct_output_variant {
   }
 
   // Matrices we just group the next `row * col` elements into `construct_matrix` element.
-  ast::variant operator()(const matrix_type& mat) {
+  auto operator()(const matrix_type& mat) {
     const auto mat_size = static_cast<std::ptrdiff_t>(mat.size());
     WF_ASSERT_GREATER_OR_EQ(std::distance(input_it, end), mat_size);
     std::vector<ast::variant> matrix_args{};
@@ -79,20 +79,27 @@ struct construct_output_variant {
 
   // For custom types, recurse and consume however many values are required for each individual
   // field.
-  ast::variant operator()(const custom_type& type) {
+  auto operator()(const custom_type& type) {
     // Recursively convert every field in the custom type.
     std::vector<std::tuple<std::string, ast::variant>> fields_out{};
     fields_out.reserve(type.size());
     for (const struct_field& field : type.fields()) {
-      ast::variant field_var = std::visit(*this, field.type());
+      ast::variant field_var =
+          std::visit([this](const auto& t) -> ast::variant { return operator()(t); }, field.type());
       fields_out.emplace_back(field.name(), std::move(field_var));
     }
     return ast::construct_custom_type{type, std::move(fields_out)};
   }
 
+ private:
   Iterator input_it;
   const Iterator end;
 };
+
+static auto make_custom_type_constructor(std::vector<ast::variant>& args) {
+  return create_custom_type_constructor{std::make_move_iterator(args.begin()),
+                                        std::make_move_iterator(args.end())};
+}
 
 // Object that iterates over operations in IR blocks, and visits each operation. We recursively
 // convert our basic control-flow-graph to a limited syntax tree that can be emitted in different
@@ -142,15 +149,31 @@ struct ast_from_ir {
       if (key.usage == expression_usage::return_value) {
         WF_ASSERT(block->descendants.empty(), "Must be the final block");
         WF_ASSERT(signature_.return_type().has_value(), "Return type must be specified");
-        ast::variant var =
-            std::visit(construct_output_variant{std::make_move_iterator(args.begin()),
-                                                std::make_move_iterator(args.end())},
-                       *signature_.return_type());
-        emplace_operation<ast::return_value>(std::make_shared<ast::variant>(std::move(var)));
+        ast::variant var = std::visit(
+            [&](const auto& t) -> ast::variant { return make_custom_type_constructor(args)(t); },
+            *signature_.return_type());
+        emplace_operation<ast::return_object>(std::make_shared<ast::variant>(std::move(var)));
       } else {
         auto arg = signature_.argument_by_name(key.name);
         WF_ASSERT(arg.has_value(), "Argument missing from signature: {}", key.name);
-        emplace_operation<ast::assign_output_argument>(std::move(*arg), std::move(args));
+
+        overloaded_visit(
+            arg->type(),
+            [&](scalar_type) {
+              // TODO: Make variant_ptr a proper type so we can put the pointer allocation
+              // internally.
+              WF_ASSERT_EQUAL(1, args.size(), "");
+              emplace_operation<ast::assign_output_scalar>(
+                  *arg, std::make_shared<ast::variant>(std::move(args[0])));
+            },
+            [&](const matrix_type& mat) {
+              emplace_operation<ast::assign_output_matrix>(*arg,
+                                                           construct_matrix{mat, std::move(args)});
+            },
+            [&](const custom_type& custom) {
+              construct_custom_type ctor = make_custom_type_constructor(args)(custom);
+              emplace_operation<ast::assign_output_struct>(*arg, std::move(ctor));
+            });
       }
     }
   }
@@ -169,8 +192,8 @@ struct ast_from_ir {
   //      v00 = sin(x);
   //    }
   //  }
-  void push_back_conditional_output_declarations(ir::block_ptr block) {
-    for (ir::value_ptr value : block->operations) {
+  void push_back_conditional_output_declarations(const ir::block_ptr block) {
+    for (const ir::value_ptr value : block->operations) {
       if (value->is_phi()) {
         const bool no_declaration =
             value->all_consumers_satisfy([](ir::value_ptr v) { return v->is_phi(); });
@@ -183,13 +206,15 @@ struct ast_from_ir {
     }
   }
 
-  void process_block(ir::block_ptr block) {
-    WF_ASSERT(!block->is_empty());
+  void process_block(const ir::block_ptr block) {
     if (non_traversable_blocks_.count(block)) {
       // Don't recurse too far - we are waiting on one of the ancestors of this block to get
       // processed.
       return;
     }
+    WF_ASSERT(block->has_no_descendents() || !block->is_empty(),
+              "Only the terminal block may be empty. block->name: {}", block->name);
+
     operations_.reserve(operations_.capacity() + block->operations.size());
 
     std::vector<ast::assign_temporary> phi_assignments{};

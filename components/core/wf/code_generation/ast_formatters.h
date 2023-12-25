@@ -40,8 +40,18 @@ auto format_ast(Iterator it, const wf::ast::add& v) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::assign_output_argument& v) {
-  return fmt::format_to(it, "({} = {})", v.arg.name(), fmt::join(v.values, ", "));
+auto format_ast(Iterator it, const wf::ast::assign_output_matrix& v) {
+  return fmt::format_to(it, "({} = <{} values>)", v.arg.name(), v.value->args.size());
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::assign_output_scalar& v) {
+  return fmt::format_to(it, "({} = {})", v.arg.name(), *v.value);
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::assign_output_struct& v) {
+  return fmt::format_to(it, "({} = {})", v.arg.name(), *v.value);
 }
 
 template <typename Iterator>
@@ -163,7 +173,7 @@ auto format_ast(Iterator it, const wf::ast::return_type_annotation& r) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::return_value& r) {
+auto format_ast(Iterator it, const wf::ast::return_object& r) {
   return fmt::format_to(it, "({})", *r.value);
 }
 

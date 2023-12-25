@@ -32,7 +32,7 @@ template <typename Ta, typename Tb>
 testing::AssertionResult expect_eigen_near(const std::string_view name_a,
                                            const std::string_view name_b,
                                            const std::string_view name_tol, const Ta& a,
-                                           const Tb& b, double tolerance) {
+                                           const Tb& b, const double tolerance) {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {
     return testing::AssertionFailure()
            << fmt::format("Dimensions of {} [{}, {}] and {} [{}, {}] do not match.", name_a,
@@ -40,15 +40,16 @@ testing::AssertionResult expect_eigen_near(const std::string_view name_a,
   }
   for (int i = 0; i < a.rows(); ++i) {
     for (int j = 0; j < a.cols(); ++j) {
-      const double delta = a(i, j) - b(i, j);
-      if (std::abs(delta) > tolerance || std::isnan(delta)) {
+      if (const double delta = a(i, j) - b(i, j);
+          std::abs(delta) > tolerance || std::isnan(delta)) {
         return testing::AssertionFailure() << fmt::format(
-                   "Matrix equality {} == {} failed because:\n"
-                   "({})({}, {}) - ({})({}, {}) = {} > {}\n"
-                   "Where {} evaluates to:\n{}\nAnd {} evaluates to:\n{}\n"
-                   "And {} evaluates to: {}\n",
-                   name_a, name_b, name_a, i, j, name_b, i, j, delta, tolerance, name_a, a, name_b,
-                   b, name_tol, tolerance);
+                   "Matrix equality {a} == {b} failed because:\n"
+                   "({a})({i}, {j}) - ({b})({i}, {j}) = {delta} > {tol}\n"
+                   "Where {a} evaluates to:\n{a_eval}\nAnd {b} evaluates to:\n{b_eval}\n"
+                   "And {name_tol} evaluates to: {tol}\n",
+                   fmt::arg("a", name_a), fmt::arg("b", name_b), fmt::arg("i", i), fmt::arg("j", j),
+                   fmt::arg("a_eval", a), fmt::arg("b_eval", b), fmt::arg("name_tol", name_tol),
+                   fmt::arg("tol", tolerance), fmt::arg("delta", delta));
       }
     }
   }

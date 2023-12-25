@@ -223,11 +223,14 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
             if dataclasses.is_dataclass(val.expression):
                 custom_type = convert_to_internal_type(
                     python_type=type(val.expression), cached_custom_types=cached_types)
-                description.set_return_value(
+                description.add_output_argument(
+                    name=val.name,
+                    is_optional=val.is_optional,
                     custom_type=custom_type,
                     expressions=map_expressions_out_of_custom_type(instance=val.expression))
             else:
-                description.add_output_argument(val.name, val.is_optional, val.expression)
+                description.add_output_argument(
+                    name=val.name, is_optional=val.is_optional, value=val.expression)
         else:
             raise TypeError(f"Returned values must be: {ReturnValueOrOutputArg}, got: {type(val)}")
 

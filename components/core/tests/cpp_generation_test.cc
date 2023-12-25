@@ -10,6 +10,21 @@
 #define MATH_SPAN_EIGEN_SUPPORT
 #include "wf_runtime/span_eigen.h"
 
+// Declare custom numeric types before importing the generated code:
+namespace wf::numeric {
+struct Point2d {
+  double x;
+  double y;
+
+  Eigen::Vector2d to_vector() const { return {x, y}; }
+};
+
+struct Circle {
+  Point2d center;
+  double radius;
+};
+}  // namespace wf::numeric
+
 #include "generated.h"
 
 namespace wf {
@@ -150,9 +165,6 @@ TEST(CppGenerationTest, TestNestedConditionals2) {
 TEST(CppGenerationTest, TestAtan2WithDerivatives) {
   auto evaluator = create_evaluator(&atan2_with_derivatives);
 
-  double D_y_num, D_x_num;
-  double D_y_gen, D_x_gen;
-
   // clang-format off
   const std::vector<std::tuple<double, double, double>> test_cases = {
       {0.0, 1.0, 0.0},
@@ -167,6 +179,9 @@ TEST(CppGenerationTest, TestAtan2WithDerivatives) {
   // clang-format on
 
   for (auto [y, x, solution] : test_cases) {
+    double D_y_num, D_x_num;
+    double D_y_gen, D_x_gen;
+
     EXPECT_EQ(evaluator(y, x, D_y_num, D_x_num),
               gen::atan2_with_derivatives(y, x, D_y_gen, D_x_gen));
     EXPECT_EQ(solution, gen::atan2_with_derivatives(y, x, D_y_gen, D_x_gen));
@@ -205,5 +220,72 @@ TEST(CppGenerationTest, TestCreateRotationMatrix) {
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }
+
+// Test that we can generate and call a function that has only optional outputs.
+TEST(CppGenerationTest, TestNoRequiredOutputs) {
+  auto evaluator = create_evaluator(&no_required_outputs);
+
+  constexpr double x = 2.187;
+  double out1_num, out2_num;
+  evaluator(x, out1_num, out2_num);
+
+  double out1_gen, out2_gen;
+  constexpr double* null = nullptr;  //  TODO: Use spans, not pointers.
+  gen::no_required_outputs(x, &out1_gen, null);
+  gen::no_required_outputs(x, null, &out2_gen);
+
+  EXPECT_NEAR(out1_num, out1_gen, 1.0e-15);
+  EXPECT_NEAR(out2_num, out2_gen, 1.0e-15);
+}
+
+// Convert to/from symbolic::Point2d --> numeric::Point2d.
+template <>
+struct custom_type_native_converter<symbolic::Point2d> {
+  using native_type = numeric::Point2d;
+
+  numeric::Point2d operator()(const symbolic::Point2d& p) const {
+    return numeric::Point2d{cast_checked<float_constant>(p.x).get_value(),
+                            cast_checked<float_constant>(p.y).get_value()};
+  }
+
+  symbolic::Point2d operator()(const numeric::Point2d& p) const {
+    return symbolic::Point2d{p.x, p.y};
+  }
+};
+
+// Check that we can accept and return a custom type.
+TEST(CppGenerationTest, TestCustomType1) {
+  auto evaluator = create_evaluator(&custom_type_1);
+
+  EXPECT_EIGEN_NEAR(evaluator({0.0, 0.0}).to_vector(),
+                    gen::custom_type_1<double>({0.0, 0.0}).to_vector(), 1.0e-15);
+  EXPECT_EIGEN_NEAR(evaluator({-0.5, 2.1}).to_vector(),
+                    gen::custom_type_1<double>({-0.5, 2.1}).to_vector(), 1.0e-15);
+  EXPECT_EIGEN_NEAR(evaluator({10.8, -7.88}).to_vector(),
+                    gen::custom_type_1<double>({10.8, -7.88}).to_vector(), 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestCustomType2) {
+  auto evaluator = create_evaluator(&custom_type_2);
+
+  numeric::Point2d p_num, p_gen;
+  Eigen::Matrix2d D_num, D_gen;
+  evaluator(-0.5, 1.717, p_num, D_num);
+  gen::custom_type_2(-0.5, 1.717, &p_gen, D_gen);
+  EXPECT_EIGEN_NEAR(p_num.to_vector(), p_gen.to_vector(), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
+  evaluator(0.04, 5.0, p_num, D_num);
+  gen::custom_type_2(0.04, 5.0, &p_gen, D_gen);
+  EXPECT_EIGEN_NEAR(p_num.to_vector(), p_gen.to_vector(), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
+  evaluator(1.232, 0.02, p_num, D_num);
+  gen::custom_type_2(1.232, 0.02, &p_gen, D_gen);
+  EXPECT_EIGEN_NEAR(p_num.to_vector(), p_gen.to_vector(), 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestNestedCustomType1) {}
 
 }  // namespace wf

@@ -10,7 +10,10 @@
 namespace wf {
 
 struct_field::struct_field(std::string name, type_variant type)
-    : name_(std::move(name)), type_(std::move(type)) {
+    : struct_field(std::move(name), std::move(type), {}) {}
+
+struct_field::struct_field(std::string name, type_variant type, native_field_accessor accessor)
+    : name_(std::move(name)), type_(std::move(type)), native_accessor_(std::move(accessor)) {
   WF_ASSERT(!name_.empty(), "Field names may not be empty strings");
 }
 
@@ -84,7 +87,6 @@ struct build_access_sequence {
       if (const bool found = std::visit(
               [&](const auto& child) { return operator()(child, index, output); }, field.type());
           found) {
-        WF_ASSERT_EQUAL(0, index);
         output.emplace_back(field_access{c, field.name()});
         return true;
       }

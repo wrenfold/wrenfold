@@ -146,27 +146,31 @@ std::string cpp_code_generator::operator()(const ast::add& x) const {
   return fmt::format("{} + {}", make_view(x.left), make_view(x.right));
 }
 
-std::string cpp_code_generator::operator()(const ast::assign_output_argument& assignment) const {
-  const auto& dest_name = assignment.arg.name();
-  const type_variant& type = assignment.arg.type();
+std::string cpp_code_generator::operator()(const ast::assign_output_matrix& x) const {
+  const auto range = make_range(static_cast<std::size_t>(0), x.value->type.size());
+  return join(
+      [&](const std::size_t i) {
+        const auto [row, col] = x.value->type.compute_indices(i);
+        return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col,
+                           make_view(x.value->args[i]));
+      },
+      "\n", range);
+}
 
-  return overloaded_visit(
-      type,
-      [&](const matrix_type mat) {
-        const auto range = make_range(static_cast<std::size_t>(0), assignment.values.size());
-        return join(
-            [&](std::size_t i) {
-              const auto [row, col] = mat.compute_indices(i);
-              return fmt::format("_{}({}, {}) = {};", dest_name, row, col,
-                                 make_view(assignment.values[i]));
-            },
-            "\n", range);
-      },
-      [&](scalar_type) {
-        WF_ASSERT_EQUAL(1, assignment.values.size());
-        return fmt::format("{} = {};", dest_name, make_view(assignment.values.front()));
-      },
-      [&](const custom_type&) -> std::string { throw type_error("TODO: Implement this branch"); });
+std::string cpp_code_generator::operator()(const ast::assign_output_scalar& x) const {
+  if (x.arg.is_optional()) {
+    return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
+  } else {
+    return fmt::format("{} = {};", x.arg.name(), make_view(x.value));
+  }
+}
+
+std::string cpp_code_generator::operator()(const ast::assign_output_struct& x) const {
+  if (x.arg.is_optional()) {
+    return fmt::format("*{} = {};", x.arg.name(), make_view(*x.value));
+  } else {
+    return fmt::format("{} = {};", x.arg.name(), make_view(*x.value));
+  }
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_temporary& x) const {
@@ -260,8 +264,8 @@ std::string cpp_code_generator::operator()(const ast::construct_custom_type& x) 
   const std::string opener = fmt::format("{}{{\n", make_view(x.type));
   std::string output{};
   join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
-    const auto& [field_name, val] = field_val;
-    return operator()(val) + fmt::format(" // {}", field_name);
+    const auto& [_, val] = field_val;
+    return operator()(val);
   });
   return output;
 }
@@ -335,7 +339,7 @@ std::string cpp_code_generator::operator()(const ast::optional_output_branch& x)
   return result;
 }
 
-std::string cpp_code_generator::operator()(const ast::return_value& x) const {
+std::string cpp_code_generator::operator()(const ast::return_object& x) const {
   return fmt::format("return {};", make_view(x.value));
 }
 

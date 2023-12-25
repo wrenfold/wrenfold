@@ -34,10 +34,15 @@ struct static_matrix {
   constexpr index_t cols() const noexcept { return Cols; }
 
   template <typename... Args>
-  static std::enable_if_t<std::conjunction_v<std::is_constructible<Expr, Args>...>, static_matrix>
-  create(Args&&... args) {
-    static_assert(sizeof...(args) == Rows * Cols);
-    return static_matrix(make_matrix(Rows, Cols, std::forward<Args>(args)...));
+  using enable_if_convertible_to_expr =
+      std::enable_if_t<std::conjunction_v<std::is_constructible<Expr, Args>...>>;
+
+  // Construct from a row-major orderd list of elements.
+  template <typename... Args, typename = enable_if_convertible_to_expr<Args...>>
+  explicit static_matrix(Args&&... args)
+      : static_matrix(make_matrix(Rows, Cols, std::forward<Args>(args)...)) {
+    static_assert(sizeof...(args) == Rows * Cols,
+                  "Wrong # of elements passed to matrix constructor.");
   }
 
   const Expr& operator()(index_t row, index_t col) const { return expr_(row, col); }
@@ -67,6 +72,14 @@ struct static_matrix {
  private:
   MatrixExpr expr_;
 };
+
+// Evaluates to true if `T` is a static_matrix type annotation.
+template <typename>
+struct is_static_matrix : std::false_type {};
+template <index_t Rows, index_t Cols>
+struct is_static_matrix<static_matrix<Rows, Cols>> : std::true_type {};
+template <typename T>
+constexpr bool is_static_matrix_v = is_static_matrix<T>::value;
 
 }  // namespace type_annotations
 }  // namespace wf

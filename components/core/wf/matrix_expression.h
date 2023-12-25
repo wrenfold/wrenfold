@@ -20,6 +20,12 @@ class MatrixExpr {
   // Static constructor: Create a dense matrix of expressions.
   static MatrixExpr create(index_t rows, index_t cols, std::vector<Expr> args);
 
+  // Create from a pair of iterators.
+  template <typename Iterator>
+  static MatrixExpr create(index_t rows, index_t cols, Iterator begin, Iterator end) {
+    return create(rows, cols, std::vector<Expr>{begin, end});
+  }
+
   // Test if the two expressions are identical.
   bool is_identical_to(const MatrixExpr& other) const;
 

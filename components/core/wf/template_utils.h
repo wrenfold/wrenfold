@@ -62,8 +62,9 @@ constexpr bool has_call_operator_v = false;
 
 // Specialization that is activated when the Apply method exists:
 template <typename T, typename Argument>
-constexpr bool has_call_operator_v<
-    T, Argument, decltype(std::declval<T>()(std::declval<const Argument>()), void())> = true;
+constexpr bool has_call_operator_v<T, Argument,
+                                   decltype(std::declval<T>()(std::declval<Argument>()), void())> =
+    true;
 
 // Template to check if the `operator()` method is implemented for two types.
 template <typename T, typename, typename, typename = void>
@@ -73,8 +74,8 @@ constexpr bool has_binary_call_operator_v = false;
 template <typename T, typename Argument1, typename Argument2>
 constexpr bool has_binary_call_operator_v<
     T, Argument1, Argument2,
-    decltype(std::declval<T>()(std::declval<const Argument1>(), std::declval<const Argument2>()),
-             void())> = true;
+    decltype(std::declval<T>()(std::declval<Argument1>(), std::declval<Argument2>()), void())> =
+    true;
 
 // Size of type list.
 template <typename T>
@@ -145,7 +146,7 @@ using concatenate_type_lists_t = typename concatenate_type_lists<A, B>::type;
 // Get the index of a type in a type list.
 template <typename T, typename U = void, typename... Types>
 constexpr std::size_t index_of_type_helper() {
-  return std::is_same<T, U>::value ? 0 : 1 + index_of_type_helper<T, Types...>();
+  return std::is_same_v<T, U> ? 0 : 1 + index_of_type_helper<T, Types...>();
 }
 template <typename T, typename List>
 struct index_of_type;
@@ -159,7 +160,6 @@ constexpr std::size_t index_of_type_v = index_of_type<T, List>::value;
 // Get the N'th element of a type list.
 template <std::size_t N, typename... Ts>
 struct type_list_element;
-
 template <std::size_t N, typename T, typename... Ts>
 struct type_list_element<N, type_list<T, Ts...>> {
   using type = typename type_list_element<N - 1, type_list<Ts...>>::type;
@@ -180,46 +180,78 @@ struct type_list_from_variant<std::variant<Ts...>> {
   using type = type_list<Ts...>;
 };
 
-// This template iterates over a type_list and creates a new type_list of return types that occur
-// when `Callable` is invoked with each type in the input type list. Duplicates may occur.
-template <typename Callable, typename...>
-struct call_operator_return_types;
-template <typename Callable, typename... Ts>
-using call_operator_return_types_t = typename call_operator_return_types<Callable, Ts...>::type;
-
-template <typename Callable>
-struct call_operator_return_types<Callable> {
-  using type = type_list<>;  //  This is the end of the recursion.
+template <typename T>
+struct type_list_from_tuple;
+template <typename T>
+using type_list_from_tuple_t = typename type_list_from_tuple<T>::type;
+template <typename... Ts>
+struct type_list_from_tuple<std::tuple<Ts...>> {
+  using type = type_list<Ts...>;
 };
 
-template <typename Callable, typename Head, typename... Tail>
-struct call_operator_return_types<Callable, Head, Tail...> {
-  // Check if the callable accepts this type, and determine the invoke result.
-  using candidate_type =
-      typename std::conditional_t<has_call_operator_v<Callable, Head>,
-                                  std::invoke_result_t<Callable, Head>, std::nullptr_t>;
-
-  // Don't append nullptr_t, this is the signal for an invocation that isn't valid (no operator()).
-  using type = typename std::conditional_t<
-      !std::is_same_v<candidate_type, std::nullptr_t>,
-      append_front_to_type_list_t<candidate_type, call_operator_return_types_t<Callable, Tail...>>,
-      call_operator_return_types_t<Callable, Tail...>>;
+// Perform a map on a type list, and produce a new type list.
+template <template <typename...> typename Map, typename T>
+struct type_list_map;
+template <template <typename...> typename Map, typename... Ts>
+struct type_list_map<Map, type_list<Ts...>> {
+  using type = type_list<Map<Ts>...>;
 };
+template <template <typename...> typename Map, typename T>
+using type_list_map_t = typename type_list_map<Map, T>::type;
 
-// Specialization that accepts a type-list.
-template <typename Callable, typename... Ts>
-struct call_operator_return_types<Callable, type_list<Ts...>> {
-  // Build the list of possible turn types.
-  using list = call_operator_return_types_t<Callable, Ts...>;
-  // Get the first one (TODO: Check they all match!)
-  using type = head_of_type_list_t<list>;
+namespace detail {
+template <template <typename...> class Filter>
+constexpr auto type_list_filter_(type_list<>) -> type_list<>;
+
+template <template <typename...> class Filter, typename T, typename... Ts>
+constexpr auto type_list_filter_(type_list<T, Ts...>) {
+  using remainder = decltype(type_list_filter_<Filter>(type_list<Ts...>{}));
+  if constexpr (Filter<T>::value) {
+    return append_front_to_type_list_t<T, remainder>{};
+  } else {
+    return remainder{};
+  }
+}
+}  // namespace detail
+
+template <template <typename...> class Filter, typename T>
+struct type_list_filter;
+template <template <typename...> class Filter, typename... Ts>
+struct type_list_filter<Filter, type_list<Ts...>> {
+  using type = decltype(detail::type_list_filter_<Filter>(type_list<Ts...>{}));
 };
+template <template <typename...> typename Filter, typename T>
+using type_list_filter_t = typename type_list_filter<Filter, T>::type;
 
-// Select `Indices` elements from a tuple. Returns a new tuple with just those elements.
-template <typename Tuple, std::size_t... Indices>
-auto select_from_tuple(Tuple&& tuple, std::index_sequence<Indices...>) {
-  return std::tuple<std::tuple_element_t<Indices, std::remove_reference_t<Tuple>>...>(
-      std::get<Indices>(std::forward<Tuple>(tuple))...);
+// See `filter_type_sequence`.
+template <template <typename...> class Predicate, std::size_t... S, std::size_t I, std::size_t... R,
+          typename T, typename... Ts>
+constexpr auto filter_type_sequence(type_list<T, Ts...>, std::index_sequence<S...>,
+                                    std::index_sequence<I, R...>) {
+  static_assert(sizeof...(Ts) == sizeof...(R));
+  if constexpr (sizeof...(R) > 0) {
+    if constexpr (Predicate<T>::value) {
+      return filter_type_sequence<Predicate>(type_list<Ts...>{}, std::index_sequence<S..., I>{},
+                                             std::index_sequence<R...>{});
+    } else {
+      return filter_type_sequence<Predicate>(type_list<Ts...>{}, std::index_sequence<S...>{},
+                                             std::index_sequence<R...>{});
+    }
+  } else {
+    if constexpr (Predicate<T>::value) {
+      return std::index_sequence<S..., I>{};
+    } else {
+      return std::index_sequence<S...>{};
+    }
+  }
+}
+
+// Filter a type list with the given predicate template. Returns an std::index_sequence that
+// includes indices of the selected types form the original list.
+template <template <typename...> class Predicate, typename... Ts>
+constexpr auto filter_type_sequence(type_list<Ts...> list) {
+  return filter_type_sequence<Predicate>(list, std::index_sequence<>{},
+                                         std::make_index_sequence<sizeof...(Ts)>());
 }
 
 // True if the type is a tuple.
@@ -256,6 +288,79 @@ auto make_overloaded(Funcs&&... funcs) {
 template <typename... Funcs, typename Variant>
 auto overloaded_visit(Variant&& var, Funcs&&... funcs) {
   return std::visit(make_overloaded(std::forward<Funcs>(funcs)...), std::forward<Variant>(var));
+}
+
+namespace detail {
+
+// True if all types are void.
+template <typename... Ts>
+constexpr bool all_void_v = std::conjunction_v<std::is_same<void, Ts>...>;
+
+// True if any type is void.
+template <typename... Ts>
+constexpr bool any_void_v = std::disjunction_v<std::is_same<void, Ts>...>;
+
+template <typename F, std::size_t... I>
+auto index_seq_for(F&& f, std::index_sequence<I...>) {
+  // Either every invocation returns void, or none of them return void.
+  static_assert(all_void_v<std::invoke_result_t<F, std::integral_constant<std::size_t, I>>...> ||
+                    !any_void_v<std::invoke_result_t<F, std::integral_constant<std::size_t, I>>...>,
+                "Cannot place void type into a tuple.");
+
+  if constexpr (all_void_v<std::invoke_result_t<F, std::integral_constant<std::size_t, I>>...>) {
+    // All return types are void.
+    (std::invoke(std::forward<F>(f), std::integral_constant<std::size_t, I>{}), ...);
+  } else {
+    // Not all return types are void, return a tuple.
+    // Use initializer list syntax to ensure order of execution is left to right.
+    return std::tuple<std::invoke_result_t<F, std::integral_constant<std::size_t, I>>...>{
+        std::invoke(std::forward<F>(f), std::integral_constant<std::size_t, I>{})...};
+  }
+}
+
+template <bool Enumerate, typename F, typename... Tuples, std::size_t... I>
+auto zip_tuples_impl(F&& f, std::index_sequence<I...> seq, Tuples&&... tuples) {
+  if constexpr (sizeof...(I) > 0) {
+    return index_seq_for(
+        [&f, &tuples...](auto integral_constant) {
+          constexpr std::size_t index = integral_constant();  // std::integral_constant::operator()
+          if constexpr (Enumerate) {
+            return std::invoke(f, integral_constant,
+                               std::get<index>(std::forward<Tuples>(tuples))...);
+          } else {
+            return std::invoke(f, std::get<index>(std::forward<Tuples>(tuples))...);
+          }
+        },
+        seq);
+  } else {
+    // Return empty tuple when all input tuples are empty.
+    // Suppress unused variable warnings:
+    ((void)tuples, ...);
+    return std::tuple<>{};
+  }
+}
+
+}  // namespace detail
+
+// Zip together `N` tuples and invoke the provided callable on each element of the zip.
+// The smallest tuple determines the highest iterated element. If the callable returns non-void,
+// a new tuple will be returned containing the returned values.
+template <typename F, typename... Tuples>
+auto zip_tuples(F&& f, Tuples&&... tuples) {
+  constexpr std::size_t min_len = std::min({std::tuple_size_v<std::decay_t<Tuples>>...});
+  constexpr bool enumerate = false;
+  return detail::zip_tuples_impl<enumerate>(std::forward<F>(f), std::make_index_sequence<min_len>(),
+                                            std::forward<Tuples>(tuples)...);
+}
+
+// Same as `zip_tuples`, but the first argument to the callable will be an integer_constant
+// indicating which element of the tuple is being iterated.
+template <typename F, typename... Tuples>
+auto zip_enumerate_tuples(F&& f, Tuples&&... tuples) {
+  constexpr std::size_t min_len = std::min({std::tuple_size_v<std::decay_t<Tuples>>...});
+  constexpr bool enumerate = true;
+  return detail::zip_tuples_impl<enumerate>(std::forward<F>(f), std::make_index_sequence<min_len>(),
+                                            std::forward<Tuples>(tuples)...);
 }
 
 }  // namespace wf

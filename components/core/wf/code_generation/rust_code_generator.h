@@ -25,7 +25,11 @@ class rust_code_generator {
 
   virtual std::string operator()(const ast::add& x) const;
 
-  virtual std::string operator()(const ast::assign_output_argument& x) const;
+  virtual std::string operator()(const ast::assign_output_matrix& x) const;
+
+  virtual std::string operator()(const ast::assign_output_scalar& x) const;
+
+  virtual std::string operator()(const ast::assign_output_struct& x) const;
 
   virtual std::string operator()(const ast::assign_temporary& x) const;
 
@@ -63,7 +67,7 @@ class rust_code_generator {
 
   virtual std::string operator()(const ast::optional_output_branch& x) const;
 
-  virtual std::string operator()(const ast::return_value& x) const;
+  virtual std::string operator()(const ast::return_object& x) const;
 
   virtual std::string operator()(const ast::special_constant& x) const;
 

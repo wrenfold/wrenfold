@@ -1,9 +1,9 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include "wf/code_generation/ast_conversion.h"
+#include "wf/code_generation/function_evaluator.h"
 #include "wf/code_generation/ir_builder.h"
 #include "wf/fmt_imports.h"
-#include "wf/function_evaluator.h"
 
 namespace wf {
 
@@ -26,7 +26,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   const ast::function_definition definition = ast::create_ast(output_ir, description);
 
   // Convert to output code:
-  const std::string code = std::invoke(generator, definition);
+  const std::string code = generator(definition);
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);
 }
 

@@ -139,27 +139,31 @@ std::string rust_code_generator::operator()(const ast::add& x) const {
   return fmt::format("{} + {}", make_view(x.left), make_view(x.right));
 }
 
-std::string rust_code_generator::operator()(const ast::assign_output_argument& assignment) const {
-  const auto& dest_name = assignment.arg.name();
-  const type_variant& type = assignment.arg.type();
+std::string rust_code_generator::operator()(const ast::assign_output_matrix& x) const {
+  const auto range = make_range(static_cast<std::size_t>(0), x.value->type.size());
+  return join(
+      [&](const std::size_t i) {
+        const auto [row, col] = x.value->type.compute_indices(i);
+        return fmt::format("{}.set({}, {}, {})", x.arg.name(), row, col,
+                           make_view(x.value->args[i]));
+      },
+      "\n", range);
+}
 
-  return overloaded_visit(
-      type,
-      [&](matrix_type mat) {
-        const auto range = make_range<std::size_t>(0, assignment.values.size());
-        return join(
-            [&](std::size_t i) {
-              const auto [row, col] = mat.compute_indices(i);
-              return fmt::format("{}.set({}, {}, {});", dest_name, row, col,
-                                 make_view(assignment.values[i]));
-            },
-            "\n", range);
-      },
-      [&](scalar_type) {
-        WF_ASSERT_EQUAL(1, assignment.values.size());
-        return fmt::format("*{} = {};", dest_name, make_view(assignment.values.front()));
-      },
-      [&](const custom_type&) -> std::string { throw type_error("TODO: Implement me"); });
+std::string rust_code_generator::operator()(const ast::assign_output_scalar& x) const {
+  if (x.arg.is_optional()) {
+    return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
+  } else {
+    return fmt::format("{} = {};", x.arg.name(), make_view(x.value));
+  }
+}
+
+std::string rust_code_generator::operator()(const ast::assign_output_struct& x) const {
+  if (x.arg.is_optional()) {
+    return fmt::format("*{} = {};", x.arg.name(), make_view(*x.value));
+  } else {
+    return fmt::format("{} = {};", x.arg.name(), make_view(*x.value));
+  }
 }
 
 std::string rust_code_generator::operator()(const ast::assign_temporary& x) const {
@@ -331,7 +335,7 @@ std::string rust_code_generator::operator()(const ast::optional_output_branch& x
   return result;
 }
 
-std::string rust_code_generator::operator()(const ast::return_value& x) const {
+std::string rust_code_generator::operator()(const ast::return_object& x) const {
   return operator()(x.value);
 }
 

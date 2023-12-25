@@ -164,15 +164,15 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly(
           "python_type",
           [](const custom_type& self) -> std::variant<py::none, py::type> {
-            if (self.python_type().has_value()) {
-              return std::any_cast<py::type>(self.python_type());
+            if (self.underlying_type().has_value()) {
+              return std::any_cast<py::type>(self.underlying_type());
             }
             return py::none();
           },
           py::doc("Get the underlying python type."))
       .def("__repr__", [](const custom_type& self) {
-        const py::object python_type = self.python_type().has_value()
-                                           ? std::any_cast<py::type>(self.python_type())
+        const py::object python_type = self.underlying_type().has_value()
+                                           ? std::any_cast<py::type>(self.underlying_type())
                                            : py::none();
         const py::str repr = py::repr(python_type);
         return fmt::format("CustomType('{}', {} fields, {})", self.name(), self.size(),
@@ -391,8 +391,8 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly(
           "statements", [](const ast::optional_output_branch& self) { return self.statements; });
 
-  wrap_ast_type<ast::return_value>(m).def_property_readonly(
-      "value", [](const ast::return_value& c) { return c.value; },
+  wrap_ast_type<ast::return_object>(m).def_property_readonly(
+      "value", [](const ast::return_object& c) { return c.value; },
       py::doc("Value or object being returned."));
 
   wrap_ast_type<ast::special_constant>(m).def_property_readonly(

@@ -4,10 +4,12 @@
 #include <vector>
 
 #include "wf/code_generation/expression_group.h"
+#include "wf/code_generation/type_registry.h"
 #include "wf/code_generation/types.h"
 #include "wf/matrix_expression.h"
 
 namespace wf {
+class variable_creator;  //  Fwd declare.
 
 // Specify how an argument is used (input, output).
 enum class argument_direction {
@@ -99,6 +101,20 @@ class function_description {
   // Set the return value. Only one return value is presently supported, so this may only be invoked
   // once.
   void set_return_value(type_variant type, std::vector<Expr> expressions);
+
+  // Add a `return_value` to this signature.
+  template <typename Value, typename Type>
+  void add_output_value(const return_value<Value>& value, Type type) {
+    std::vector<Expr> expressions = detail::extract_function_output(type, value.value());
+    set_return_value(std::move(type), std::move(expressions));
+  }
+
+  // Add an `output_arg` output to this function.
+  template <typename Value, typename Type>
+  void add_output_value(const output_arg<Value>& value, Type type) {
+    std::vector<Expr> expressions = detail::extract_function_output(type, value.value());
+    add_output_argument(value.name(), std::move(type), value.is_optional(), std::move(expressions));
+  }
 
  private:
   const argument& add_argument(std::string_view name, type_variant type,

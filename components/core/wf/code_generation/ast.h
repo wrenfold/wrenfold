@@ -14,7 +14,9 @@ namespace wf::ast {
 using variant = std::variant<
     struct add,
     struct assign_temporary,
-    struct assign_output_argument,
+    struct assign_output_matrix,
+    struct assign_output_scalar,
+    struct assign_output_struct,
     struct branch,
     struct call,
     struct cast,
@@ -33,7 +35,7 @@ using variant = std::variant<
     struct negate,
     struct optional_output_branch,
     struct special_constant,
-    struct return_value,
+    struct return_object,
     struct variable_ref
     >;
 // clang-format on
@@ -65,12 +67,29 @@ struct assign_temporary {
       : left(std::move(left)), right(std::move(right)) {}
 };
 
-// Assign values to an output argument. All output values are written in one operation.
-struct assign_output_argument {
-  static constexpr std::string_view snake_case_name_str = "assign_output_argument";
-
+// Assign to an output argument of matrix type.
+struct assign_output_matrix {
+  static constexpr std::string_view snake_case_name_str = "assign_output_matrix";
   argument arg;
-  std::vector<variant> values;
+  std::unique_ptr<const construct_matrix> value;
+
+  assign_output_matrix(argument arg, construct_matrix&& value);
+};
+
+// Assign to an output scalar argument.
+struct assign_output_scalar {
+  static constexpr std::string_view snake_case_name_str = "assign_output_scalar";
+  argument arg;
+  variant_ptr value;
+};
+
+// Assign to an output argument that is a custom struct.
+struct assign_output_struct {
+  static constexpr std::string_view snake_case_name_str = "assign_output_struct";
+  argument arg;
+  std::unique_ptr<const construct_custom_type> value;
+
+  assign_output_struct(argument arg, construct_custom_type&& value);
 };
 
 // An if/else statement.
@@ -269,8 +288,8 @@ struct special_constant {
 };
 
 // A return statement.
-struct return_value {
-  static constexpr std::string_view snake_case_name_str = "return_value";
+struct return_object {
+  static constexpr std::string_view snake_case_name_str = "return_object";
 
   variant_ptr value;
 };

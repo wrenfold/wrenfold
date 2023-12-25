@@ -2,163 +2,204 @@
 #pragma once
 #include <Eigen/Core>
 
+#include "wf/code_generation/function_evaluator_detail.h"
 #include "wf/evaluate.h"
 #include "wf/expression.h"
-#include "wf/function_evaluator_detail.h"
 #include "wf/substitute.h"
 #include "wf/type_annotations.h"
 #include "wf/visitor_impl.h"
 
-// Utilities for evaluating symbolic functions into numeric values (like double,
-// or Eigen::Matrix). This is for unit testing code-generated methods against
-// numeric evaluation of the symbolic graph.
+// Utilities for evaluating symbolic functions into numeric values (like double, or Eigen::Matrix).
+// This is for unit testing code-generated methods against numeric evaluation of the symbolic graph.
 namespace wf {
 namespace ta = type_annotations;
 
 namespace detail {
-template <typename T>
+template <typename T, typename = void>
 struct convert_arg_type;
-template <typename T>
+template <typename T, typename = void>
 struct convert_output_arg_type;
-template <typename T>
+template <typename T, typename = void>
 using convert_arg_type_t = typename convert_arg_type<T>::type;
-template <typename T>
+template <typename T, typename = void>
 using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
 }  // namespace detail
 
 // The numeric function evaluator operates in two steps:
 // 1. Replace `variable` expression with float values.
 // 2. Collapse all other numeric values into floats.
-struct NumericFunctionEvaluator {
+struct numeric_function_evaluator {
   substitute_variables_visitor substitute{};
   evaluate_visitor evaluate{};
 };
 
-template <typename T>
-struct apply_numeric_evaluator_impl;
+template <typename T, typename = void>
+struct compute_function_output_struct;
 
-template <typename T>
-auto apply_numeric_evaluator(NumericFunctionEvaluator& evaluator, const T& input) {
-  return apply_numeric_evaluator_impl<T>{}(evaluator, input);
+template <typename T, typename TypeAlias>
+auto compute_function_output(numeric_function_evaluator& evaluator, const T& input,
+                             const TypeAlias& type) {
+  static_assert(std::is_constructible_v<type_variant, TypeAlias>,
+                "TypeAlias should be something we can convert to type_variant.");
+  return compute_function_output_struct<T>{}(evaluator, input, type);
 }
 
 template <>
-struct apply_numeric_evaluator_impl<Expr> {
-  double operator()(NumericFunctionEvaluator& evaluator, const Expr& input) const {
+struct compute_function_output_struct<Expr> {
+  double operator()(numeric_function_evaluator& evaluator, const Expr& input,
+                    const scalar_type&) const {
     const Expr subs = evaluator.substitute.apply(input);
     const Expr evaluated = evaluator.evaluate.apply(subs);
     if (const float_constant* f = cast_ptr<float_constant>(evaluated); f != nullptr) {
       return f->get_value();
     } else {
-      throw type_error("Expression should be a floating point value or integer. Got type {}: {}",
+      throw type_error("Expression should be a floating point value. Got type {}: {}",
                        subs.type_name(), subs);
     }
   }
 };
 
-template <>
-struct apply_numeric_evaluator_impl<MatrixExpr> {
-  Eigen::MatrixXd operator()(NumericFunctionEvaluator& evaluator, const MatrixExpr& input) const {
-    Eigen::MatrixXd output{input.rows(), input.cols()};
-    for (index_t i = 0; i < input.rows(); ++i) {
-      for (index_t j = 0; j < input.cols(); ++j) {
-        output(i, j) = apply_numeric_evaluator(evaluator, input(i, j));
-      }
-    }
-    return output;
-  }
-};
-
 template <index_t Rows, index_t Cols>
-struct apply_numeric_evaluator_impl<ta::static_matrix<Rows, Cols>> {
-  Eigen::Matrix<double, Rows, Cols> operator()(NumericFunctionEvaluator& evaluator,
-                                               const MatrixExpr& input) const {
+struct compute_function_output_struct<ta::static_matrix<Rows, Cols>> {
+  Eigen::Matrix<double, Rows, Cols> operator()(numeric_function_evaluator& evaluator,
+                                               const MatrixExpr& input, const matrix_type&) const {
     WF_ASSERT_EQUAL(input.rows(), Rows);
     WF_ASSERT_EQUAL(input.cols(), Cols);
     Eigen::Matrix<double, Rows, Cols> output;
     for (index_t i = 0; i < Rows; ++i) {
       for (index_t j = 0; j < Cols; ++j) {
-        output(i, j) = apply_numeric_evaluator(evaluator, input(i, j));
+        // TODO: Get the scalar type from `matrix_type`.
+        output(i, j) = compute_function_output(evaluator, input(i, j),
+                                               scalar_type(code_numeric_type::floating_point));
       }
     }
     return output;
   }
 };
 
-template <std::size_t Index, typename NumericArgType>
-struct collect_function_input_impl;
+// Support conversion of symbolic custom struct `T` back the native type.
+template <typename T>
+struct compute_function_output_struct<T,
+                                      enable_if_implements_native_from_symbolic_conversion_t<T>> {
+  using native_type = typename custom_type_native_converter<T>::native_type;
 
-template <std::size_t Index>
-struct collect_function_input_impl<Index, double> {
-  void operator()(substitute_variables_visitor& output, const double arg) const {
-    variable var{function_argument_variable(Index, 0), number_set::real};
-    output.add_substitution(std::move(var), float_constant::create(arg));
+  native_type operator()(numeric_function_evaluator& evaluator, const T& input,
+                         const annotated_custom_type<T>& type) const {
+    // Get the symbolic outputs for this type.
+    std::vector<Expr> symbolic_outputs;
+    type.copy_output_expressions(input, symbolic_outputs);
+    // Turn them into float expressions:
+    for (Expr& expr : symbolic_outputs) {
+      expr = evaluator.evaluate.apply(evaluator.substitute.apply(expr));
+      if (!expr.is_type<float_constant>()) {
+        throw type_error("Expression should be a floating point value. Got type `{}`: {}",
+                         expr.type_name(), expr);
+      }
+    }
+    // Put them back the symbolic type:
+    auto [numeric_input, _] = type.initialize_from_expressions(absl::Span<Expr>{symbolic_outputs});
+    // Call the user provided converter:
+    return custom_type_native_converter<T>{}(numeric_input);
   }
 };
 
-template <std::size_t Index, int Rows, int Cols>
-struct collect_function_input_impl<Index, Eigen::Matrix<double, Rows, Cols>> {
-  void operator()(substitute_variables_visitor& output,
-                  const Eigen::Matrix<double, Rows, Cols>& arg) const {
-    static_assert(Rows > 0);
-    static_assert(Cols > 0);
+template <typename SymbolicArgType, typename = void>
+struct collect_function_input;
+
+template <typename T>
+using enable_if_floating_point_t = std::enable_if_t<std::is_floating_point_v<T>>;
+
+// Convert floats/doubles to single variable expression.
+template <>
+struct collect_function_input<Expr> {
+  template <typename U, typename = enable_if_floating_point_t<U>>
+  void operator()(substitute_variables_visitor& output, const std::size_t arg_index, const U arg,
+                  const scalar_type&) const {
+    const auto a = static_cast<float_constant::value_type>(arg);
+    output.add_substitution(variable{function_argument_variable(arg_index, 0), number_set::real},
+                            float_constant::create(a));
+  }
+};
+
+// Convert eigen matrices to MatrixExpr.
+template <index_t Rows, index_t Cols>
+struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
+  static_assert(Rows > 0);
+  static_assert(Cols > 0);
+
+  template <typename U, typename = enable_if_floating_point_t<U>>
+  void operator()(substitute_variables_visitor& output, const std::size_t arg_index,
+                  const Eigen::Matrix<U, Rows, Cols>& arg, const matrix_type&) const {
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
-        variable var{function_argument_variable(Index, element), number_set::real};
-        output.add_substitution(std::move(var), float_constant::create(arg(i, j)));
+        const auto a_ij = static_cast<float_constant::value_type>(arg(i, j));
+        output.add_substitution(
+            variable{function_argument_variable(arg_index, element), number_set::real},
+            float_constant::create(a_ij));
       }
     }
   }
 };
 
-template <std::size_t Index, typename NumericArgType>
-void collect_function_input(substitute_variables_visitor& output,
-                            const NumericArgType& numeric_arg) {
-  collect_function_input_impl<Index, NumericArgType>{}(output, numeric_arg);
-}
+// Convert custom type `T`.
+template <typename T>
+struct collect_function_input<T, enable_if_implements_symbolic_from_native_conversion_t<T>> {
+  using native_type = typename custom_type_native_converter<T>::native_type;
 
-template <std::size_t... Indices, typename... NumericArgs>
-void collect_function_inputs(substitute_variables_visitor& output, std::index_sequence<Indices...>,
-                             NumericArgs&&... args) {
-  static_assert(sizeof...(Indices) <= sizeof...(NumericArgs));
-#ifndef __GNUG__
-  ([]() constexpr { static_assert(Indices <= sizeof...(NumericArgs)); }(), ...);
-#endif
-  // Access args specified by `Indices` and call `collect_function_input` on all of them.
-  (collect_function_input<Indices>(output, std::get<Indices>(std::forward_as_tuple(args...))), ...);
-}
+  void operator()(substitute_variables_visitor& output, const std::size_t arg_index,
+                  const native_type& arg, const annotated_custom_type<T>& type) const {
+    // Convert to the symbolic type, then extract the values into a flat vector:
+    const T& symbolic_arg = custom_type_native_converter<T>{}(arg);
+    std::vector<Expr> numeric_expressions = detail::extract_function_output(type, symbolic_arg);
+    // Configure the substitutions:
+    for (std::size_t i = 0; i < numeric_expressions.size(); ++i) {
+      output.add_substitution(variable{function_argument_variable(arg_index, i), number_set::real},
+                              std::move(numeric_expressions[i]));
+    }
+  }
+};
 
-template <typename ArgList, typename OutputTuple, std::size_t... InputIndices,
-          std::size_t... OutputIndices>
-auto create_evaluator_with_output_expressions(
-    OutputTuple&& output_expressions, std::index_sequence<InputIndices...> input_seq,
-    std::index_sequence<OutputIndices...> output_arg_seq) {
-  return [output_expressions = std::move(output_expressions), input_seq, output_arg_seq](
+template <typename OutputTuple, typename... ArgSymbolicTypes, typename... ArgTypeAliases,
+          typename... OutputTypes, std::size_t... OutputArgIndices,
+          std::size_t... ReturnValueIndices>
+auto create_evaluator_with_output_expressions(type_list<ArgSymbolicTypes...>,
+                                              std::tuple<ArgTypeAliases...> input_arg_types,
+                                              OutputTuple&& output_expressions,
+                                              std::tuple<OutputTypes...> output_types,
+                                              std::index_sequence<OutputArgIndices...>,
+                                              std::index_sequence<ReturnValueIndices...>) {
+  return [output_expressions = std::move(output_expressions),
+          input_arg_types = std::move(input_arg_types), output_types = std::move(output_types)](
              // Convert input arguments to const references:
-             const detail::convert_arg_type_t<type_list_element_t<InputIndices, ArgList>>&... args,
+             const detail::convert_arg_type_t<ArgSymbolicTypes>&... args,
              // Convert output expression types to non-const references:
              detail::convert_output_arg_type_t<
-                 std::tuple_element_t<OutputIndices, OutputTuple>>&... output_args) {
+                 std::tuple_element_t<OutputArgIndices, OutputTuple>>&... output_args) {
     // Copy all the input arguments into the evaluator:
-    NumericFunctionEvaluator evaluator{};
-    collect_function_inputs(evaluator.substitute, input_seq, args...);
-
-    // Create a tuple of non-const references to output arguments of this lambda, and write to it
-    // by doing substitution with the NumericFunctionEvaluator:
-    std::forward_as_tuple(output_args...) = std::apply(
-        [&evaluator](const auto&... output_expression) {
-          // Call .value() to convert from output_arg<> to the underlying expression.
-          return std::make_tuple(apply_numeric_evaluator(evaluator, output_expression.value())...);
+    numeric_function_evaluator evaluator{};
+    zip_enumerate_tuples(
+        [&evaluator](auto index, const auto& numeric_arg, const auto& arg_type) {
+          using symbolic_arg_type = type_list_element_t<index(), type_list<ArgSymbolicTypes...>>;
+          collect_function_input<symbolic_arg_type>{}(evaluator.substitute, index(), numeric_arg,
+                                                      arg_type);
         },
-        select_from_tuple(output_expressions, output_arg_seq));
+        std::make_tuple(std::cref(args)...), input_arg_types);
 
-    // Now we need to deal w/ the return value:
-    constexpr std::ptrdiff_t return_val_index = return_value_index<OutputTuple>::value;
-    if constexpr (return_val_index >= 0) {
-      // This function also has a return value that we need to fill out:
-      return apply_numeric_evaluator(evaluator,
-                                     std::get<return_val_index>(output_expressions).value());
+    std::tuple evaluated_outputs = zip_tuples(
+        [&evaluator](const auto& output_value, const auto& type) {
+          // Call .value() to convert from output_arg<> to the underlying expression.
+          return compute_function_output(evaluator, output_value.value(), type);
+        },
+        output_expressions, output_types);
+
+    std::tie(output_args...) =
+        std::forward_as_tuple(std::get<OutputArgIndices>(std::move(evaluated_outputs))...);
+
+    if constexpr (sizeof...(ReturnValueIndices) == 1) {
+      return std::get<ReturnValueIndices...>(std::move(evaluated_outputs));
+    } else if constexpr (sizeof...(ReturnValueIndices) > 1) {
+      return std::make_tuple(std::get<ReturnValueIndices>(std::move(evaluated_outputs))...);
     }
   };
 }
@@ -169,18 +210,29 @@ auto create_evaluator_with_output_expressions(
 // numeric types.
 template <typename ReturnType, typename... Args>
 auto create_evaluator(ReturnType (*func)(Args... args)) {
-  using arg_type_list = type_list<std::decay_t<Args>...>;
+  // Scrape the the types of the input arguments:
+  custom_type_registry registry{};
+  std::tuple arg_types = detail::record_arg_types(registry, type_list<Args...>{});
 
   // Evaluate the function symbolically.
   // We don't substitute numerical values directly, because the function may wish to do symbolic
   // operations internally (like diff, subs, etc.). Instead, build symbolic expressions for every
   // output, and then substitute into those.
-  std::tuple output_expressions = detail::invoke_with_output_capture<arg_type_list>(
-      func, std::make_index_sequence<sizeof...(Args)>());
+  std::tuple output_expressions = detail::invoke_with_symbolic_inputs(func, arg_types);
 
-  constexpr auto output_indices = detail::select_output_arg_indices(output_expressions);
-  return create_evaluator_with_output_expressions<arg_type_list>(
-      std::move(output_expressions), std::make_index_sequence<sizeof...(Args)>(), output_indices);
+  // Scrape the types of the output expressions:
+  using output_symbolic_types = type_list_from_tuple_t<decltype(output_expressions)>;
+  std::tuple output_types = detail::record_arg_types(registry, output_symbolic_types{});
+
+  // Determine the indices of output arguments in `output_expressions`.
+  // This index_sequence will filter out any return values.
+  constexpr auto output_arg_indices = filter_type_sequence<is_output_arg>(output_symbolic_types{});
+  constexpr auto return_value_indices =
+      filter_type_sequence<is_return_value>(output_symbolic_types{});
+
+  return create_evaluator_with_output_expressions(
+      type_list<std::decay_t<Args>...>{}, std::move(arg_types), std::move(output_expressions),
+      std::move(output_types), output_arg_indices, return_value_indices);
 }
 
 namespace detail {
@@ -195,6 +247,11 @@ struct convert_arg_type<ta::static_matrix<Rows, Cols>> {
 };
 
 template <typename T>
+struct convert_arg_type<T, enable_if_implements_native_from_symbolic_conversion_t<T>> {
+  using type = typename custom_type_native_converter<T>::native_type;
+};
+
+template <typename T>
 struct convert_output_arg_type<output_arg<T>> {
   using type = typename convert_output_arg_type<T>::type;
 };
@@ -206,5 +263,10 @@ template <index_t Rows, index_t Cols>
 struct convert_output_arg_type<ta::static_matrix<Rows, Cols>> {
   using type = Eigen::Matrix<double, Rows, Cols>;
 };
+template <typename T>
+struct convert_output_arg_type<T, enable_if_implements_native_from_symbolic_conversion_t<T>> {
+  using type = typename custom_type_native_converter<T>::native_type;
+};
+
 }  // namespace detail
 }  // namespace wf

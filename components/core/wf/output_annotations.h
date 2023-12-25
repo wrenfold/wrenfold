@@ -9,6 +9,8 @@ namespace wf {
 template <typename T>
 class output_arg {
  public:
+  using value_type = T;
+
   template <typename U>
   using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
 
@@ -50,6 +52,8 @@ constexpr auto optional_output_arg(std::string_view name, T&& value) {
 template <typename T>
 class return_value {
  public:
+  using value_type = T;
+
   template <typename U>
   using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
 
@@ -73,18 +77,17 @@ template <class T>
 return_value(T&& value) -> return_value<std::decay_t<T>>;
 
 template <typename T>
-struct is_output_arg : public std::false_type {};
+struct is_output_arg : std::false_type {};
 template <typename T>
-struct is_output_arg<output_arg<T>> : public std::true_type {};
+struct is_output_arg<output_arg<T>> : std::true_type {};
 
 template <typename T>
-struct is_return_value : public std::false_type {};
+struct is_return_value : std::false_type {};
 template <typename T>
-struct is_return_value<return_value<T>> : public std::true_type {};
+struct is_return_value<return_value<T>> : std::true_type {};
 
 template <typename T>
-struct is_output_arg_or_return_value
-    : public std::disjunction<is_output_arg<T>, is_return_value<T>> {};
+struct is_output_arg_or_return_value : std::disjunction<is_output_arg<T>, is_return_value<T>> {};
 
 // Count the number of instances of `return_value` in a type pack.
 template <typename... Ts>
