@@ -1,10 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
+    "components/core/tests/rust_generation_test",
+    "components/rust/wrenfold-test-utils",
     "examples/bspline/bspline_rust_test",
     "examples/custom_types/custom_types_rust_test",
-    "components/core/tests/rust_generation_test",
-    "components/rust/wrenfold-test-utils"
+    "examples/motion_planning/motion_planning_test",
 ]
 
 [workspace.dependencies]
@@ -14,3 +15,4 @@ wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.0.1",
 # External crates used for tests.
 nalgebra = { version = "0.32.3" }
 approx = { version = "0.5.1" }
+serde = { version = "1.0" }

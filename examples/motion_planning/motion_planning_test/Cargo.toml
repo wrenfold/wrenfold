@@ -1,0 +1,19 @@
+[package]
+name = "motion_planning"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wrenfold-traits = { workspace = true }
+nalgebra = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+argmin = { version = "0.8" }
+argmin-math = { version = "0.3", features = [
+  "ndarray_latest-serde",
+  "nalgebra_latest-serde",
+] }
+ndarray = { version = "0.15.0", features = ["blas"] }
+blas-src = { version = "0.8", features = ["openblas"] }
+openblas-src = { version = "0.10", features = ["cblas", "system"] }

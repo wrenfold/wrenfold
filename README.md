@@ -84,7 +84,6 @@ Known issues and limitations:
 - Input and output types of generated functions must be floating point values. This limitation is actually pretty straightforward to resolve, but some plumbing of type information is required.
 - Numeric integer operations are unsafe. Integer overflow will silently occur if you multiply sufficiently large values.
 - There is no mechanism for including docstrings on generated methods yet.
-- `MatrixExpr` objects are read-only. You can access `[row, col]` elements and slices, but not write to them.
 - The `subs` operation is relatively slow at the moment, compared to other operations. There is some low hanging fruit here that can be leveraged to improve this.
 - Relationals like `<` or `==` can be used to create boolean expressions, but we currently lack logical boolean operators `&&` and `||`.
 - The type of expressions has limited visibility in python. You can inspect the `type_name` field to access the underlying type as a string, but not much more than that.
