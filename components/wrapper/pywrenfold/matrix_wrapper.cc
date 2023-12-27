@@ -159,6 +159,83 @@ MatrixExpr matrix_get_row_slice_and_col_index(
   return MatrixExpr::create(row_index.length(), 1, std::move(elements));
 }
 
+// Access a particular row and column (with support for negative indexing).
+void matrix_set_row_and_col(MatrixExpr& self, const std::tuple<index_t, index_t>& row_col,
+                            const Expr& other) {
+  auto [row, col] = row_col;
+  self.set(row < 0 ? (self.rows() + row) : row, col < 0 ? (self.cols() + col) : col, other);
+}
+
+// Return variant because this could be a single expression, or a matrix expression.
+void matrix_set_row(MatrixExpr& self, const index_t row, MatrixExpr& other) {
+  self.set_block(row < 0 ? (self.rows() + row) : row, 0, 1, self.cols(), other);
+}
+
+// Return a sub-block by slicing just rows.
+void matrix_set_row_slice(MatrixExpr& self, py::slice slc, MatrixExpr& other) {
+  const slice slice_index{self.rows(), slc};
+
+  std::vector<Expr> elements;
+  elements.reserve(static_cast<std::size_t>(slice_index.length() * self.cols()));
+
+  // Step over sliced rows and pull out all columns:
+  for (index_t i = 0; i < slice_index.length(); ++i) {
+    for (index_t j = 0; j < self.cols(); ++j) {
+      self.set(slice_index.map_index(i), j, other(i, j));
+    }
+  }
+}
+
+// Return a sub-block by slicing both rows and cols.
+void matrix_set_row_and_col_slice(MatrixExpr& self, const std::tuple<py::slice, py::slice>& slices,
+                                  MatrixExpr& other) {
+  const auto [row_slice, col_slice] = slices;
+  const slice row_index{self.rows(), row_slice};
+  const slice col_index{self.cols(), col_slice};
+  const std::size_t num_elements =
+      static_cast<std::size_t>(row_index.length()) * static_cast<std::size_t>(col_index.length());
+
+  std::vector<Expr> elements;
+  elements.reserve(num_elements);
+
+  // Step over sliced rows and pull out all columns:
+  for (index_t i = 0; i < row_index.length(); ++i) {
+    for (index_t j = 0; j < col_index.length(); ++j) {
+      self.set(row_index.map_index(i), col_index.map_index(j), other(i, j));
+    }
+  }
+}
+
+// Return a given row index, and slice along columns.
+void matrix_set_row_index_and_col_slice(MatrixExpr& self,
+                                        const std::tuple<index_t, py::slice>& row_and_col_slice,
+                                        MatrixExpr& other) {
+  const auto [row, col_slice] = row_and_col_slice;
+  const index_t wrapped_row = row < 0 ? self.rows() - row : row;
+  const slice col_index{self.cols(), col_slice};
+
+  std::vector<Expr> elements;
+  elements.reserve(static_cast<std::size_t>(col_index.length()));
+  for (index_t j = 0; j < col_index.length(); ++j) {
+    self.set(wrapped_row, col_index.map_index(j), other(0, j));
+  }
+}
+
+// Return a given row slice, and pick a particular index of column.
+void matrix_set_row_slice_and_col_index(MatrixExpr& self,
+                                        const std::tuple<py::slice, index_t>& row_slice_and_col,
+                                        MatrixExpr& other) {
+  const auto [row_slice, col] = row_slice_and_col;
+  const index_t wrapped_col = col < 0 ? self.cols() - col : col;
+  const slice row_index{self.rows(), row_slice};
+
+  std::vector<Expr> elements;
+  elements.reserve(static_cast<std::size_t>(row_index.length()));
+  for (index_t i = 0; i < row_index.length(); ++i) {
+    self.set(row_index.map_index(i), wrapped_col, other(i, 0));
+  }
+}
+
 // Convert a container of Expr objects to a column vector.
 template <typename Container>
 MatrixExpr column_vector_from_container(const Container& inputs) {
@@ -367,6 +444,18 @@ void wrap_matrix_operations(py::module_& m) {
            "Slice a specific row.")
       .def("__getitem__", &matrix_get_row_slice_and_col_index, py::arg("row_slice_and_col"),
            "Slice a specific column.")
+      .def("__setitem__", &matrix_set_row, py::arg("row"), py::arg("other"),
+           "Set a row from the matrix.")
+      .def("__setitem__", &matrix_set_row_and_col, py::arg("row_col"), py::arg("other"),
+           "Set a row and column from the matrix.")
+      .def("__setitem__", &matrix_set_row_slice, py::arg("slice"), py::arg("other"),
+           "Set a slice along rows.")
+      .def("__setitem__", &matrix_set_row_and_col_slice, py::arg("slices"), py::arg("other"),
+           "Set a slice along rows and cols.")
+      .def("__setitem__", &matrix_set_row_index_and_col_slice, py::arg("row_and_col_slice"),
+           py::arg("other"), "Set a slice on a specific row.")
+      .def("__setitem__", &matrix_set_row_slice_and_col_index, py::arg("row_slice_and_col"),
+           py::arg("other"), "Set a slice on a specific column.")
       // Support conversion to numpy.
       .def("__array__", &numpy_from_matrix, "Convert to numpy array.")
       // Iterable:
@@ -392,6 +481,7 @@ void wrap_matrix_operations(py::module_& m) {
       .def("transpose", &MatrixExpr::transposed, "Transpose the matrix.")
       .def_property_readonly("T", &MatrixExpr::transposed, "Transpose the matrix.")
       .def("squared_norm", &MatrixExpr::squared_norm, "Get the squared L2 norm of the matrix.")
+      .def("norm", &MatrixExpr::norm, "Get the L2 norm of the matrix.")
       .def("det", &determinant, "Compute determinant of the matrix.")
       // Operators:
       .def("__add__",

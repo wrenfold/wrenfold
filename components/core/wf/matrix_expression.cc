@@ -11,8 +11,7 @@
 
 namespace wf {
 
-MatrixExpr::MatrixExpr(matrix&& content)
-    : matrix_(std::make_shared<const matrix>(std::move(content))) {}
+MatrixExpr::MatrixExpr(matrix&& content) : matrix_(std::make_shared<matrix>(std::move(content))) {}
 
 MatrixExpr MatrixExpr::create(index_t rows, index_t cols, std::vector<Expr> args) {
   return MatrixExpr{matrix{rows, cols, std::move(args)}};
@@ -42,9 +41,18 @@ const Expr& MatrixExpr::operator[](index_t i) const { return as_matrix()[i]; }
 
 const Expr& MatrixExpr::operator()(index_t i, index_t j) const { return as_matrix()(i, j); }
 
+void MatrixExpr::set(index_t i, index_t j, const Expr& value) {
+  as_matrix_mut().set_unchecked(i, j, value);
+}
+
 MatrixExpr MatrixExpr::get_block(index_t row, index_t col, index_t nrows, index_t ncols) const {
   matrix result = as_matrix().get_block(row, col, nrows, ncols);
   return MatrixExpr{std::move(result)};
+}
+
+void MatrixExpr::set_block(index_t row, index_t col, index_t nrows, index_t ncols,
+                           const MatrixExpr& block) {
+  as_matrix_mut().set_block(row, col, nrows, ncols, block.as_matrix());
 }
 
 MatrixExpr MatrixExpr::transposed() const { return MatrixExpr{as_matrix().transposed()}; }
@@ -70,6 +78,8 @@ Expr MatrixExpr::squared_norm() const {
   }
   return addition::from_operands(operands);
 }
+
+Expr MatrixExpr::norm() const { return sqrt(squared_norm()); }
 
 const matrix& MatrixExpr::as_matrix() const { return *matrix_.get(); }
 
