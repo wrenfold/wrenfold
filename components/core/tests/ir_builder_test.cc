@@ -32,7 +32,7 @@ auto create_ir(Func&& func, const std::string_view name, Args&&... args) {
 }
 
 // Generate permutations that represent whether optional arguments are present or not.
-struct optional_arg_permutations {
+class optional_arg_permutations {
  public:
   static constexpr std::size_t MaxOptionalArgs = 32;
 
@@ -128,6 +128,15 @@ TEST(IrTest, TestNumericConstant2) {
   ASSERT_EQ(3, ir.count_operation<ir::load>()) << ir;
   check_expressions(expected_expressions, ir);
   check_expressions(expected_expressions, output_ir{std::move(ir)});
+}
+
+TEST(IrTest, TestNoDuplicatedCasts) {
+  // Create flat IR but don't eliminate duplicates. Double check that only two casts
+  // are inserted (one for 0, and one for 1).
+  const auto tuple = build_function_description([]() { return make_identity(4); }, "func");
+  const flat_ir ir{std::get<1>(tuple)};
+  ASSERT_EQ(2, ir.count_operation<ir::cast>()) << ir;
+  ASSERT_EQ(2, ir.count_operation<ir::load>()) << ir;
 }
 
 TEST(IrTest, TestScalarExpressions1) {
