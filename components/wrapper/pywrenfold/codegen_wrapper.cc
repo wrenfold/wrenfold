@@ -32,7 +32,7 @@ function_definition::shared_ptr transpile_to_function_definition(
     const function_description& description) {
   flat_ir ir{description.output_expressions()};
   ir.eliminate_duplicates();
-  output_ir output_ir{std::move(ir)};
+  const output_ir output_ir{std::move(ir)};
   function_definition definition = ast::create_ast(output_ir, description.signature());
   return std::make_shared<function_definition>(std::move(definition));
 }
