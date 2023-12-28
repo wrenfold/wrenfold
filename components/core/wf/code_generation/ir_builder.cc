@@ -272,7 +272,15 @@ class ir_form_visitor {
 
   ir::value_ptr maybe_cast(ir::value_ptr input, code_numeric_type output_type) {
     if (input->numeric_type() != output_type) {
-      return push_operation(ir::cast{output_type}, output_type, input);
+      if (const auto it = cached_casts_.find(std::make_tuple(input, output_type));
+          it != cached_casts_.end()) {
+        return it->second;
+      } else {
+        // Insert a new cast and cache it:
+        ir::value_ptr cast = push_operation(ir::cast{output_type}, output_type, input);
+        cached_casts_.emplace(std::make_tuple(input, output_type), cast);
+        return cast;
+      }
     } else {
       return input;
     }
@@ -493,6 +501,7 @@ class ir_form_visitor {
                    cast_ptr<rational_constant>(power.exponent());
                exp_rational != nullptr) {
       WF_ASSERT_GREATER_OR_EQ(exp_rational->numerator(), 0, "rational = {}", *exp_rational);
+
       // If the denominator is 1/2 and the exponent is small, it is faster to do power
       // exponentiation followed by sqrt. This is not the case for cbrt, where pow() is the same
       // approximate performance.
@@ -540,7 +549,7 @@ class ir_form_visitor {
 
   // Check if a value has been computed. If not, convert it and return the result.
   ir::value_ptr apply(const Expr& expr) {
-    if (auto it = computed_values_.find(expr); it != computed_values_.end()) {
+    if (const auto it = computed_values_.find(expr); it != computed_values_.end()) {
       return it->second;
     }
     ir::value_ptr val = visit_with_expr(expr, *this);
@@ -548,11 +557,42 @@ class ir_form_visitor {
     return val;
   }
 
+  // Compute the value for the specified expression. If required, cast it to the desired output
+  // type.
+  ir::value_ptr apply_output_value(const Expr& expr, const code_numeric_type desired_output_type) {
+    return maybe_cast(apply(expr), desired_output_type);
+  }
+
  private:
   flat_ir& builder_;
 
+  // Map of expression -> IR value. We catch duplicates as we create the IR code, which greatly
+  // speeds up manipulation of the code later.
   std::unordered_map<Expr, ir::value_ptr, hash_struct<Expr>, is_identical_struct<Expr>>
       computed_values_;
+
+  // Hash tuple of [value, type]
+  struct hash_value_and_type {
+    std::size_t operator()(const std::tuple<ir::value_ptr, code_numeric_type>& pair) const {
+      const auto [value, type] = pair;
+      return hash_combine(value->name(), static_cast<std::size_t>(type));
+    }
+  };
+
+  // Test tuple of [value, type] for equality.
+  struct value_and_type_eq {
+    bool operator()(const std::tuple<ir::value_ptr, code_numeric_type>& a,
+                    const std::tuple<ir::value_ptr, code_numeric_type>& b) const {
+      return std::get<0>(a)->name() == std::get<0>(b)->name() && std::get<1>(a) == std::get<1>(b);
+    }
+  };
+
+  // We maintain a separate cache of casts. Casts don't appear in the math tree, so we cannot
+  // store them in as `Expr` in the computed_values_ map. This is a mapping from [value, type] to
+  // the cast (if it exists already).
+  std::unordered_map<std::tuple<ir::value_ptr, code_numeric_type>, ir::value_ptr,
+                     hash_value_and_type, value_and_type_eq>
+      cached_casts_;
 
   const operation_term_counts counts_;
 };
@@ -572,14 +612,10 @@ flat_ir::flat_ir(const std::vector<expression_group>& groups)
     group_values.reserve(group.expressions.size());
     std::transform(group.expressions.begin(), group.expressions.end(),
                    std::back_inserter(group_values), [&](const Expr& expr) {
-                     ir::value_ptr output = visitor.apply(expr);
-                     if (output->numeric_type() != code_numeric_type::floating_point) {
-                       // TODO: Allow returning other types - derive the numeric type from the
-                       // group.
-                       output = create_operation(values_, get_block(),
-                                                 ir::cast{code_numeric_type::floating_point},
-                                                 code_numeric_type::floating_point, output);
-                     }
+                     // TODO: Allow returning other types - derive the numeric type from the
+                     // group.
+                     ir::value_ptr output =
+                         visitor.apply_output_value(expr, code_numeric_type::floating_point);
                      return output;
                    });
 
@@ -678,7 +714,7 @@ void flat_ir::eliminate_duplicates() {
 
 void flat_ir::strip_unused_values() {
   // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
-  ir::block_ptr block{block_};
+  const ir::block_ptr block{block_};
   std::reverse(block->operations.begin(), block->operations.end());
   const auto new_end =
       std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::value_ptr v) {
