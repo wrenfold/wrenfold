@@ -89,6 +89,9 @@ class MatrixExpr {
   // Transpose the matrix.
   [[nodiscard]] MatrixExpr transposed() const;
 
+  // Reshape the matrix (returns a copy).
+  [[nodiscard]] MatrixExpr reshape(index_t nrows, index_t ncols) const;
+
   // Get the squared norm of the matrix.
   Expr squared_norm() const;
 

@@ -49,6 +49,18 @@ MatrixExpr MatrixExpr::get_block(index_t row, index_t col, index_t nrows, index_
 
 MatrixExpr MatrixExpr::transposed() const { return MatrixExpr{as_matrix().transposed()}; }
 
+MatrixExpr MatrixExpr::reshape(index_t nrows, index_t ncols) const {
+  if (nrows < 0 || ncols < 0) {
+    throw dimension_error("Dimensions must be non-negative. Received [{}, {}]", nrows, ncols);
+  }
+  if (static_cast<std::size_t>(nrows * ncols) != size()) {
+    throw dimension_error(
+        "Reshaped dimensions [{} x {} = {}] does not match number of input elements [{} x {} = {}]",
+        nrows, ncols, nrows * ncols, rows(), cols(), size());
+  }
+  return MatrixExpr::create(nrows, ncols, to_vector());
+}
+
 Expr MatrixExpr::squared_norm() const {
   const matrix& m = as_matrix();
   std::vector<Expr> operands{};

@@ -368,6 +368,15 @@ void wrap_matrix_operations(py::module_& m) {
              return py::make_iterator(row_iterator::begin(expr), row_iterator::end(expr));
            })
       .def("unary_map", &unary_map_matrix, py::arg("func"), "Perform element-wise map operation.")
+      .def("reshape", &MatrixExpr::reshape, py::arg("rows"), py::arg("cols"),
+           "Reshape a matrix while preserving the number of elements. Returns a copy.")
+      .def(
+          "reshape",
+          [](const MatrixExpr& self, std::tuple<index_t, index_t> row_and_col) {
+            return self.reshape(std::get<0>(row_and_col), std::get<1>(row_and_col));
+          },
+          py::arg("shape"),
+          py::doc("Reshape a matrix while preserving the number of elements. Returns a copy."))
       // Convert to list
       .def("to_list", &list_from_matrix, "Convert to list of lists.")
       .def("transpose", &MatrixExpr::transposed, "Transpose the matrix.")
