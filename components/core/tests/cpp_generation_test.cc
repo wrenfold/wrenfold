@@ -22,6 +22,8 @@ struct Point2d {
 struct Circle {
   Point2d center;
   double radius;
+
+  Eigen::Vector3d to_vector() const { return {center.x, center.y, radius}; }
 };
 }  // namespace wf::numeric
 
@@ -286,6 +288,36 @@ TEST(CppGenerationTest, TestCustomType2) {
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }
 
-TEST(CppGenerationTest, TestNestedCustomType1) {}
+// Convert to/from symbolic::Circle --> numeric::Circle.
+template <>
+struct custom_type_native_converter<symbolic::Circle> {
+  using native_type = numeric::Circle;
+
+  numeric::Circle operator()(const symbolic::Circle& p) const {
+    return numeric::Circle{numeric::Point2d{cast_checked<float_constant>(p.center.x).get_value(),
+                                            cast_checked<float_constant>(p.center.y).get_value()},
+                           cast_checked<float_constant>(p.radius).get_value()};
+  }
+
+  symbolic::Circle operator()(const numeric::Circle& p) const {
+    return symbolic::Circle{symbolic::Point2d{p.center.x, p.center.y}, p.radius};
+  }
+};
+
+TEST(CppGenerationTest, TestNestedCustomType1) {
+  auto evaluator = create_evaluator(&nested_custom_type_1);
+
+  constexpr numeric::Circle c1{numeric::Point2d{-0.5, 0.8}, 3.51};
+  ASSERT_EIGEN_NEAR(evaluator(c1, {-0.25, 1.2}).to_vector(),
+                    gen::nested_custom_type_1<double>(c1, {-0.25, 1.2}).to_vector(), 1.0e-15);
+  ASSERT_EIGEN_NEAR(evaluator(c1, {-9.2, -12.0}).to_vector(),
+                    gen::nested_custom_type_1<double>(c1, {-9.2, -12.0}).to_vector(), 1.0e-15);
+
+  constexpr numeric::Circle c2{numeric::Point2d{10.0, 0.5}, 2.2};
+  ASSERT_EIGEN_NEAR(evaluator(c2, {10.1, 0.0}).to_vector(),
+                    gen::nested_custom_type_1<double>(c2, {10.1, 0.0}).to_vector(), 1.0e-15);
+  ASSERT_EIGEN_NEAR(evaluator(c2, {-13.0, 4.0}).to_vector(),
+                    gen::nested_custom_type_1<double>(c2, {-13.0, 4.0}).to_vector(), 1.0e-15);
+}
 
 }  // namespace wf

@@ -19,9 +19,9 @@ template <typename T, typename = void>
 struct convert_arg_type;
 template <typename T, typename = void>
 struct convert_output_arg_type;
-template <typename T, typename = void>
+template <typename T>
 using convert_arg_type_t = typename convert_arg_type<T>::type;
-template <typename T, typename = void>
+template <typename T>
 using convert_output_arg_type_t = typename convert_output_arg_type<T>::type;
 }  // namespace detail
 

@@ -7,10 +7,10 @@
 namespace wf::ast {
 
 assign_output_matrix::assign_output_matrix(argument arg, construct_matrix&& value)
-    : arg(std::move(arg)), value(std::make_unique<construct_matrix>(std::move(value))) {}
+    : arg(std::move(arg)), value(std::make_shared<construct_matrix>(std::move(value))) {}
 
 assign_output_struct::assign_output_struct(argument arg, construct_custom_type&& value)
-    : arg(std::move(arg)), value(std::make_unique<construct_custom_type>(std::move(value))) {}
+    : arg(std::move(arg)), value(std::make_shared<construct_custom_type>(std::move(value))) {}
 
 std::vector<std::string> comment::split_lines() const {
   // Remove windows carriage return.

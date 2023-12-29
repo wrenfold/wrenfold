@@ -277,10 +277,17 @@ void wrap_codegen_operations(py::module_& m) {
         return *x.right;
       });
 
-  wrap_ast_type<ast::assign_output_argument>(m)
-      .def_property_readonly("argument", [](const ast::assign_output_argument& x) { return x.arg; })
-      .def_property_readonly("values",
-                             [](const ast::assign_output_argument& x) { return x.values; });
+  wrap_ast_type<ast::assign_output_matrix>(m)
+      .def_property_readonly("arg", [](const ast::assign_output_matrix& x) { return x.arg; })
+      .def_property_readonly("value", [](const ast::assign_output_matrix& x) { return *x.value; });
+
+  wrap_ast_type<ast::assign_output_scalar>(m)
+      .def_property_readonly("arg", [](const ast::assign_output_scalar& x) { return x.arg; })
+      .def_property_readonly("value", [](const ast::assign_output_scalar& x) { return *x.value; });
+
+  wrap_ast_type<ast::assign_output_struct>(m)
+      .def_property_readonly("arg", [](const ast::assign_output_struct& x) { return x.arg; })
+      .def_property_readonly("value", [](const ast::assign_output_struct& x) { return *x.value; });
 
   wrap_ast_type<ast::branch>(m)
       .def_property_readonly("condition", [](const ast::branch& c) { return *c.condition; })

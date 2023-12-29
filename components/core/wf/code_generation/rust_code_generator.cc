@@ -144,18 +144,14 @@ std::string rust_code_generator::operator()(const ast::assign_output_matrix& x) 
   return join(
       [&](const std::size_t i) {
         const auto [row, col] = x.value->type.compute_indices(i);
-        return fmt::format("{}.set({}, {}, {})", x.arg.name(), row, col,
+        return fmt::format("{}.set({}, {}, {});", x.arg.name(), row, col,
                            make_view(x.value->args[i]));
       },
       "\n", range);
 }
 
 std::string rust_code_generator::operator()(const ast::assign_output_scalar& x) const {
-  if (x.arg.is_optional()) {
-    return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
-  } else {
-    return fmt::format("{} = {};", x.arg.name(), make_view(x.value));
-  }
+  return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
 }
 
 std::string rust_code_generator::operator()(const ast::assign_output_struct& x) const {
@@ -173,7 +169,7 @@ std::string rust_code_generator::operator()(const ast::assign_temporary& x) cons
 std::string rust_code_generator::operator()(const ast::branch& x) const {
   WF_ASSERT(x.condition);
   std::string result{};
-  fmt::format_to(std::back_inserter(result), "if {}", make_view(x.condition));
+  fmt::format_to(std::back_inserter(result), "if {} ", make_view(x.condition));
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.if_branch, *this);
   if (!x.else_branch.empty()) {
     join_and_indent(result, 2, " else {\n", "\n}", "\n", x.else_branch, *this);

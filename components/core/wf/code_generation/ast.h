@@ -71,7 +71,7 @@ struct assign_temporary {
 struct assign_output_matrix {
   static constexpr std::string_view snake_case_name_str = "assign_output_matrix";
   argument arg;
-  std::unique_ptr<const construct_matrix> value;
+  std::shared_ptr<const construct_matrix> value;
 
   assign_output_matrix(argument arg, construct_matrix&& value);
 };
@@ -87,7 +87,7 @@ struct assign_output_scalar {
 struct assign_output_struct {
   static constexpr std::string_view snake_case_name_str = "assign_output_struct";
   argument arg;
-  std::unique_ptr<const construct_custom_type> value;
+  std::shared_ptr<const construct_custom_type> value;
 
   assign_output_struct(argument arg, construct_custom_type&& value);
 };
