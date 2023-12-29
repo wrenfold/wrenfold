@@ -1,7 +1,6 @@
 """Utility functions to support code-generation."""
 import dataclasses
 import inspect
-import itertools
 import pathlib
 import string
 import typing as T
