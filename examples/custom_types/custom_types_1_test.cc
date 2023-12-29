@@ -5,26 +5,34 @@
 #define MATH_SPAN_EIGEN_SUPPORT
 #include "wf_runtime/span_eigen.h"
 
+using Eigen::Quaterniond;
+using Eigen::Vector3d;
+
 // Define our custom types before including the generated file.
 namespace geo {
 
-// A very simple point type.
-struct Point2D {
+// A simple point struct.
+struct Point3d {
   double x;
   double y;
+  double z;
+
+  Vector3d to_vector() const noexcept { return {x, y, z}; }
 };
 
-// A very simple 2D pose. In actual practice you might want to represent orientation with a phasor.
-class Pose2D {
+// A simple 3D pose. We implement accessors and constructors for this type, to demonstrate that the
+// code generator can be cutomized to use these.
+class Pose3d {
  public:
-  constexpr Pose2D(double angle, Point2D position) : angle_(angle), position_(position) {}
+  Pose3d(const Quaterniond& rotation, const Vector3d& translation) noexcept
+      : rotation_(rotation), translation_(translation) {}
 
-  constexpr double angle() const { return angle_; }
-  constexpr const Point2D& position() const { return position_; }
+  constexpr const Quaterniond& rotation() const noexcept { return rotation_; }
+  constexpr const Vector3d& translation() const noexcept { return translation_; }
 
  private:
-  double angle_;
-  Point2D position_;
+  Quaterniond rotation_;
+  Vector3d translation_;
 };
 }  // namespace geo
 
@@ -32,68 +40,114 @@ class Pose2D {
 
 namespace wf {
 
+// Implement manifold testing trait for our custom structs. This is to facilitate comparison to
+// numerical derivatives.
 template <>
-struct manifold<geo::Point2D> {
-  static constexpr int dimension = 2;
-  using scalar_type = double;
-
-  static Eigen::Vector2d local_coordinates(const geo::Point2D& a, const geo::Point2D& b) noexcept {
-    return {b.x - a.x, b.y - a.y};
-  }
-
-  template <typename Derived>
-  static geo::Point2D retract(const geo::Point2D& x,
-                              const Eigen::MatrixBase<Derived>& dx) noexcept {
-    const Eigen::Vector<double, 2> dx_eval = dx.eval();
-    return geo::Point2D{x.x + dx_eval.x(), x.y + dx_eval.y()};
-  }
-};
-
-template <>
-struct manifold<geo::Pose2D> {
+struct manifold<geo::Point3d> {
   static constexpr int dimension = 3;
   using scalar_type = double;
 
-  static Eigen::Vector3d local_coordinates(const geo::Pose2D& a, const geo::Pose2D& b) noexcept {
-    return (Eigen::Vector3d() << b.angle() - a.angle(),
-            manifold<geo::Point2D>::local_coordinates(a.position(), b.position()))
+  static Eigen::Vector3d local_coordinates(const geo::Point3d& a, const geo::Point3d& b) noexcept {
+    return b.to_vector() - a.to_vector();
+  }
+
+  template <typename Derived>
+  static geo::Point3d retract(const geo::Point3d& p,
+                              const Eigen::MatrixBase<Derived>& dp) noexcept {
+    const Eigen::Vector<double, 3> dp_eval = dp.eval();
+    return geo::Point3d{p.x + dp_eval.x(), p.y + dp_eval.y(), p.z + dp_eval.z()};
+  }
+};
+
+// Pose3d uses product of SO(3) and R(3) as the tangent space.
+template <>
+struct manifold<geo::Pose3d> {
+  static constexpr int dimension = 6;
+  using scalar_type = double;
+
+  static Eigen::Vector<double, 6> local_coordinates(const geo::Pose3d& a,
+                                                    const geo::Pose3d& b) noexcept {
+    return (Eigen::Vector<double, 6>()
+                << manifold<Quaterniond>::local_coordinates(a.rotation(), b.rotation()),
+            manifold<Vector3d>::local_coordinates(a.translation(), b.translation()))
         .finished();
   }
 
   template <typename Derived>
-  static geo::Pose2D retract(const geo::Pose2D& x, const Eigen::MatrixBase<Derived>& dx) noexcept {
-    const Eigen::Vector<double, 3> dx_eval = dx.eval();
-    return geo::Pose2D{x.angle() + dx_eval[0],
-                       manifold<geo::Point2D>::retract(x.position(), dx_eval.tail<2>())};
+  static geo::Pose3d retract(const geo::Pose3d& x, const Eigen::MatrixBase<Derived>& dx) noexcept {
+    const Eigen::Vector<double, 6> dx_eval = dx.eval();
+    return geo::Pose3d(manifold<Quaterniond>::retract(x.rotation(), dx_eval.head<3>()),
+                       manifold<Vector3d>::retract(x.translation(), dx_eval.tail<3>()));
   }
 };
 
-TEST(CustomTypes1Test, TestTransformPoint) {
-  constexpr geo::Pose2D world_T_body{-0.431, {-0.8, 1.4}};
-  constexpr geo::Point2D p_body{0.35, -0.6};
-  Eigen::Matrix<double, 2, 3> D_pose_gen;
-  Eigen::Matrix<double, 2, 2> D_pt_gen;
-  const auto [p_world_x, p_world_y] =
-      gen::transform_point<double>(world_T_body, p_body, D_pose_gen, D_pt_gen);
-
-  // Compare to manual computation of the transform:
-  const double c = std::cos(world_T_body.angle());
-  const double s = std::sin(world_T_body.angle());
-  EXPECT_NEAR(c * p_body.x - s * p_body.y + world_T_body.position().x, p_world_x, 1.0e-15);
-  EXPECT_NEAR(s * p_body.x + c * p_body.y + world_T_body.position().y, p_world_y, 1.0e-15);
-
-  // Check derivatives numerically.
-  const auto D_pose_num = numerical_jacobian(world_T_body, [&](geo::Pose2D w_T_b) {
-    return gen::transform_point<double>(w_T_b, p_body, nullptr, nullptr);
-  });
-  EXPECT_EIGEN_NEAR(D_pose_num, D_pose_gen, 1.0e-12);
-
-  const auto D_pt_num = numerical_jacobian(p_body, [&](geo::Point2D p_b) {
-    return gen::transform_point<double>(world_T_body, p_b, nullptr, nullptr);
-  });
-  EXPECT_EIGEN_NEAR(D_pt_num, D_pt_gen, 1.0e-12);
+Quaterniond rodrigues(const Eigen::Vector3d& w) {
+  return manifold<Quaterniond>::retract(Quaterniond::Identity(), w);
 }
 
-TEST(CustomTypes1Test, TestComposePoses) {}
+// Some made up test poses:
+std::vector<geo::Pose3d> get_test_poses() {
+  return {
+      geo::Pose3d(Quaterniond::Identity(), Vector3d::Identity()),
+      geo::Pose3d(rodrigues({-0.01, 0.03, -0.05}), Vector3d::Identity()),
+      geo::Pose3d(rodrigues({-0.5, 0.355, 0.7061}), {-0.8, 1.4, -2.13}),
+      geo::Pose3d(rodrigues({0.253, -0.84, 0.123}), {10.1, -8.2, 5.3}),
+  };
+}
+
+TEST(CustomTypes1Test, TestTransformPoint) {
+  constexpr geo::Point3d p_body{0.35, -0.6, 0.173};
+
+  for (const geo::Pose3d& world_T_body : get_test_poses()) {
+    Eigen::Matrix<double, 3, 6> D_pose_gen;
+    Eigen::Matrix<double, 3, 3> D_pt_gen;
+    const geo::Point3d p_world =
+        gen::transform_point<double>(world_T_body, p_body, D_pose_gen, D_pt_gen);
+
+    // Compare to manually written transformation:
+    EXPECT_EIGEN_NEAR(world_T_body.rotation().toRotationMatrix() * p_body.to_vector() +
+                          world_T_body.translation(),
+                      p_world.to_vector(), 1.0e-14);
+
+    // Check derivatives numerically:
+    const auto D_pose_num = numerical_jacobian(world_T_body, [&](const geo::Pose3d& w_T_b) {
+      return gen::transform_point<double>(w_T_b, p_body, nullptr, nullptr);
+    });
+    EXPECT_EIGEN_NEAR(D_pose_num, D_pose_gen, 1.0e-12);
+
+    const auto D_pt_num = numerical_jacobian(p_body, [&](const geo::Point3d& p_b) {
+      return gen::transform_point<double>(world_T_body, p_b, nullptr, nullptr);
+    });
+    EXPECT_EIGEN_NEAR(D_pt_num, D_pt_gen, 1.0e-12);
+  }
+}
+
+TEST(CustomTypes1Test, TestComposePoses) {
+  for (const geo::Pose3d& a_T_b : get_test_poses()) {
+    for (const geo::Pose3d& b_T_c : get_test_poses()) {
+      Eigen::Matrix<double, 6, 6> D_first;
+      Eigen::Matrix<double, 6, 6> D_second;
+
+      // Compare to manual composition:
+      const geo::Pose3d a_T_c = gen::compose_poses<double>(a_T_b, b_T_c, D_first, D_second);
+      EXPECT_EIGEN_NEAR((a_T_b.rotation() * b_T_c.rotation()).toRotationMatrix(),
+                        a_T_c.rotation().toRotationMatrix(), 1.0e-15);
+      EXPECT_EIGEN_NEAR(
+          a_T_b.rotation().toRotationMatrix() * b_T_c.translation() + a_T_b.translation(),
+          a_T_c.translation(), 1.0e-14);
+
+      // Compute numerical jacobians and compare:
+      const auto D_first_num = numerical_jacobian(a_T_b, [&](const geo::Pose3d& a_T_b) {
+        return gen::compose_poses<double>(a_T_b, b_T_c, nullptr, nullptr);
+      });
+      EXPECT_EIGEN_NEAR(D_first_num, D_first, 1.0e-12);
+
+      const auto D_second_num = numerical_jacobian(b_T_c, [&](const geo::Pose3d& b_T_c) {
+        return gen::compose_poses<double>(a_T_b, b_T_c, nullptr, nullptr);
+      });
+      EXPECT_EIGEN_NEAR(D_second_num, D_second, 1.0e-12);
+    }
+  }
+}
 
 }  // namespace wf

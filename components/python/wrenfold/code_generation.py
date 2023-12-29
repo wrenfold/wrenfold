@@ -1,7 +1,6 @@
 """Utility functions to support code-generation."""
 import dataclasses
 import inspect
-import itertools
 import pathlib
 import string
 import typing as T
@@ -146,7 +145,7 @@ def map_expressions_out_of_custom_type(instance: T.Any) -> T.List[sym.Expr]:
         if issubclass(field.type, sym.Expr):
             expressions.append(value)
         elif issubclass(field.type, sym.MatrixExpr):
-            expressions.extend(itertools.chain.from_iterable(value))
+            expressions.extend(value.to_flat_list())
         elif dataclasses.is_dataclass(field.type):
             expressions += map_expressions_out_of_custom_type(instance=value)
         else:

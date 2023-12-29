@@ -270,6 +270,14 @@ py::list list_from_matrix(const MatrixExpr& self) {
   return rows;
 }
 
+py::list flat_list_from_matrix(const MatrixExpr& self) {
+  py::list output{};
+  for (const Expr& element : self.as_matrix()) {
+    output.append(element);
+  }
+  return output;
+}
+
 // Convert matrix to numpy array.
 py::array numpy_from_matrix(const MatrixExpr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
@@ -379,6 +387,8 @@ void wrap_matrix_operations(py::module_& m) {
           py::doc("Reshape a matrix while preserving the number of elements. Returns a copy."))
       // Convert to list
       .def("to_list", &list_from_matrix, "Convert to list of lists.")
+      .def("to_flat_list", &flat_list_from_matrix,
+           py::doc("Convert to a flat list assembled in row major order."))
       .def("transpose", &MatrixExpr::transposed, "Transpose the matrix.")
       .def_property_readonly("T", &MatrixExpr::transposed, "Transpose the matrix.")
       .def("squared_norm", &MatrixExpr::squared_norm, "Get the squared L2 norm of the matrix.")
@@ -444,6 +454,18 @@ void wrap_matrix_operations(py::module_& m) {
   m.def("where",
         static_cast<MatrixExpr (*)(const Expr&, const MatrixExpr&, const MatrixExpr&)>(&wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
+
+  // Jacobian of a list of expressions wrt another list of expressions.
+  m.def(
+      "jacobian",
+      [](const std::vector<Expr>& functions, const std::vector<Expr>& arguments,
+         const bool use_abstract) {
+        return jacobian({functions}, {arguments},
+                        use_abstract ? non_differentiable_behavior::abstract
+                                     : non_differentiable_behavior::constant);
+      },
+      "functions"_a, "arguments"_a, py::arg("use_abstract") = false,
+      py::doc("Compute the NxM jacobian of `N` functions with respect to `M` arguments."));
 }
 
 }  // namespace wf
