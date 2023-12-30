@@ -163,6 +163,9 @@ struct construct_custom_type {
   // Vector of [field, ast] pairs that describe how to fill the fields of the output type.
   // Fields will be in the same order as in `type`.
   std::vector<std::tuple<std::string, ast::variant>> field_values;
+
+  // Get a field by name (or nullptr if the field does not exist).
+  const ast::variant* get_field_by_name(std::string_view name) const;
 };
 
 // Construct a matrix type from arguments.

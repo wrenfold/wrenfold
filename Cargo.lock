@@ -33,6 +33,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "374d28ec25809ee0e23827c2ab573d729e293f281dfe393500e7ad618baa61c6"
 
 [[package]]
+name = "custom_types_rust_test"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "nalgebra",
+ "wrenfold-test-utils",
+ "wrenfold-traits",
+]
+
+[[package]]
 name = "matrixmultiply"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -200,6 +210,14 @@ checksum = "c68938b57b33da363195412cfc5fc37c9ed49aa9cfe2156fde64b8d2c9498242"
 dependencies = [
  "bytemuck",
  "safe_arch",
+]
+
+[[package]]
+name = "wrenfold-test-utils"
+version = "0.0.1"
+dependencies = [
+ "approx",
+ "nalgebra",
 ]
 
 [[package]]

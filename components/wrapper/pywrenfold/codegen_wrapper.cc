@@ -333,7 +333,17 @@ void wrap_codegen_operations(py::module_& m) {
                              [](const ast::construct_custom_type& self) { return self.type; })
       .def_property_readonly(
           "field_values",
-          [](const ast::construct_custom_type& self) -> const auto& { return self.field_values; });
+          [](const ast::construct_custom_type& self) -> const auto& { return self.field_values; })
+      .def(
+          "get_field_value",
+          [](const ast::construct_custom_type& self,
+             const std::string_view name) -> std::optional<ast::variant> {
+            if (const ast::variant* v = self.get_field_by_name(name); v != nullptr) {
+              return *v;
+            }
+            return std::nullopt;
+          },
+          py::arg("name"), py::doc("Lookup field value by name"));
 
   wrap_ast_type<ast::declaration>(m)
       .def_property_readonly("name", [](const ast::declaration& d) { return d.name; })

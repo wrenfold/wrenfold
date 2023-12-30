@@ -43,6 +43,9 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   if (signature.num_arguments() >= 7) {
     result.push_back("clippy::too_many_arguments");
   }
+  // We can fix these two, but until we do let's disable them.
+  result.push_back("clippy::unused_unit");
+  result.push_back("clippy::collapsible_else_if");
   return result;
 }
 
@@ -247,7 +250,7 @@ std::string rust_code_generator::operator()(const ast::compare& x) const {
 
 std::string rust_code_generator::operator()(const ast::construct_matrix&) const {
   throw type_error(
-      "The default Rust code-generator treats all matrices as spant traits. We cannot construct "
+      "The default Rust code-generator treats all matrices as span traits. We cannot construct "
       "one directly. You likely want to implement an override for the the ConstructMatrix ast "
       "type.");
 }

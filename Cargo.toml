@@ -2,10 +2,13 @@
 resolver = "2"
 members = [
     "examples/bspline/bspline_rust_test",
-    "components/core/tests/rust_generation_test"
+    "examples/custom_types/custom_types_rust_test",
+    "components/core/tests/rust_generation_test",
+    "components/rust/wrenfold-test-utils"
 ]
 
 [workspace.dependencies]
+wrenfold-test-utils = { path = "components/rust/wrenfold-test-utils", version = "0.0.1" }
 wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.0.1", features = ["nalgebra"] }
 
 # External crates used for tests.

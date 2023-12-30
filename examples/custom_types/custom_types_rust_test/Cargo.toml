@@ -1,0 +1,13 @@
+[package]
+name = "custom_types_rust_test"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+wrenfold-test-utils = { workspace = true }
+wrenfold-traits = { workspace = true }
+nalgebra = { workspace = true }
+
+[dev-dependencies]
+approx = { workspace = true }

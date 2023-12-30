@@ -26,7 +26,7 @@ auto format_ast(Iterator it, const wf::matrix_type& m) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::custom_type& c) {
-  return fmt::format_to(it, "('{}', <{} fields>)", c.name(), c.size());
+  return fmt::format_to(it, "('{}')", c.name());
 }
 
 template <typename Iterator>
@@ -89,7 +89,11 @@ auto format_ast(Iterator it, const wf::ast::compare& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::construct_matrix& c) {
-  return fmt::format_to(it, "({}, {})", c.type, fmt::join(c.args, ", "));
+  if (c.args.size() <= 4) {
+    return fmt::format_to(it, "({}, {})", c.type, fmt::join(c.args, ", "));
+  } else {
+    return fmt::format_to(it, "({}, <{} values>)", c.type, c.args.size());
+  }
 }
 
 template <typename Iterator>
