@@ -66,9 +66,10 @@ struct create_custom_type_constructor {
   }
 
   // Matrices we just group the next `row * col` elements into `construct_matrix` element.
-  auto operator()(const matrix_type& mat) {
+  ast::construct_matrix operator()(const matrix_type& mat) {
     const auto mat_size = static_cast<std::ptrdiff_t>(mat.size());
     WF_ASSERT_GREATER_OR_EQ(std::distance(input_it, end), mat_size);
+
     std::vector<ast::variant> matrix_args{};
     matrix_args.reserve(mat.size());
     const auto start = input_it;
@@ -79,7 +80,7 @@ struct create_custom_type_constructor {
 
   // For custom types, recurse and consume however many values are required for each individual
   // field.
-  auto operator()(const custom_type& type) {
+  ast::construct_custom_type operator()(const custom_type& type) {
     // Recursively convert every field in the custom type.
     std::vector<std::tuple<std::string, ast::variant>> fields_out{};
     fields_out.reserve(type.size());

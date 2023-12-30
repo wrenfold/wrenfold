@@ -196,13 +196,13 @@ struct is_formattable<T, decltype(format_ast(std::declval<std::back_insert_itera
                                              std::declval<const T>()),
                                   void())> : std::true_type {};
 template <typename T, typename Type>
-using enable_if_is_formattable = std::enable_if_t<is_formattable<T>::value, Type>;
+using enable_if_is_formattable_t = std::enable_if_t<is_formattable<T>::value, Type>;
 
 }  // namespace wf::ast
 
 // Support fmt printing of types that implement format_to.
 template <typename T>
-struct fmt::formatter<T, wf::ast::enable_if_is_formattable<T, char>> {
+struct fmt::formatter<T, wf::ast::enable_if_is_formattable_t<T, char>> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename Arg, typename FormatContext>
