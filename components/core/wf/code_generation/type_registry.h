@@ -159,28 +159,6 @@ struct annotated_custom_type {
   operator type_variant() const noexcept { return type; }  // NOLINT
 };
 
-// Trait we implement to allow conversion of symbolic custom types to native ones.
-template <typename T, typename = void>
-struct custom_type_native_converter;
-
-// Enable if numeric type can be converted to symbolic type `T`.
-// This is to switch the conversion `custom_type_native_converter<T>::native_type` --> `T`.
-template <typename T, typename Type = void>
-using enable_if_implements_symbolic_from_native_conversion_t = std::enable_if_t<
-    std::is_same_v<
-        std::invoke_result_t<custom_type_native_converter<T>,
-                             const typename custom_type_native_converter<T>::native_type&>,
-        T>,
-    Type>;
-
-// Enable if symbolic type `T` can be converted to a numeric type.
-// This is to switch the conversion `T` --> `custom_type_native_converter<T>::native_type`.
-template <typename T, typename Type = void>
-using enable_if_implements_native_from_symbolic_conversion_t =
-    std::enable_if_t<std::is_same_v<std::invoke_result_t<custom_type_native_converter<T>, const T&>,
-                                    typename custom_type_native_converter<T>::native_type>,
-                     Type>;
-
 namespace detail {
 
 template <>

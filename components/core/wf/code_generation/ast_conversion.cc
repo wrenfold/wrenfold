@@ -84,8 +84,8 @@ struct create_custom_type_constructor {
     std::vector<std::tuple<std::string, ast::variant>> fields_out{};
     fields_out.reserve(type.size());
     for (const struct_field& field : type.fields()) {
-      ast::variant field_var =
-          std::visit([this](const auto& t) -> ast::variant { return operator()(t); }, field.type());
+      ast::variant field_var = std::visit(
+          [this](const auto& t) -> ast::variant { return this->operator()(t); }, field.type());
       fields_out.emplace_back(field.name(), std::move(field_var));
     }
     return ast::construct_custom_type{type, std::move(fields_out)};
