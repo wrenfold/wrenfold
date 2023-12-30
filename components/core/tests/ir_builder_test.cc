@@ -132,8 +132,9 @@ TEST(IrTest, TestNumericConstant2) {
 TEST(IrTest, TestNoDuplicatedCasts) {
   // Create flat IR but don't eliminate duplicates. Double check that only two casts
   // are inserted (one for 0, and one for 1).
-  const auto tuple = build_function_description([]() { return make_identity(4); }, "func");
-  const flat_ir ir{std::get<1>(tuple)};
+  const auto tuple = build_function_description(
+      []() -> ta::static_matrix<4, 4> { return make_identity(4); }, "func");
+  const flat_ir ir{tuple.output_expressions()};
   ASSERT_EQ(2, ir.count_operation<ir::cast>()) << ir;
   ASSERT_EQ(2, ir.count_operation<ir::load>()) << ir;
 }
