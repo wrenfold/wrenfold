@@ -517,7 +517,7 @@ std::size_t block::count_operation(Func&& func) const {
     return std::visit(
         [&func](const auto& op) -> bool {
           using arg_type = std::decay_t<decltype(op)>;
-          if constexpr (has_call_operator_v<Func, const arg_type>) {
+          if constexpr (has_call_operator_v<Func, const arg_type&>) {
             return func(op);
           } else {
             return false;

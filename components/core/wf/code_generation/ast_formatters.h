@@ -9,9 +9,11 @@ namespace wf::ast {
 // Return null terminated string with camel case name for one of the AST types.
 // Returns const-char so it can be passed to pybind11.
 template <typename T>
-constexpr const char* camel_case_name() noexcept {
-  static constexpr std::array array = camel_case_from_snake_case<64>(T::snake_case_name_str);
-  return array.data();
+const char* camel_case_name() noexcept {
+  // We can't make this array static constexpr w/ gcc (but it works on msvc).
+  constexpr std::array array = camel_case_from_snake_case<64>(T::snake_case_name_str);
+  static const std::string str{array.data()};
+  return str.c_str();
 }
 
 template <typename Iterator>

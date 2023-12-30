@@ -96,9 +96,6 @@ class wrapped_generator
   explicit wrapped_generator(CtorArgs&&... args)
       : Base(std::forward<CtorArgs>(args)...),
         // These value of these args don't matter, because Base(...) is invoked only once.
-        // The types do need to match though in order to compile, since override_base
-        // must appear to invoke the Base constructor correctly, and Base is not
-        // default constructible.
         override_base(std::forward<CtorArgs>(args)...) {
     recursions_.fill(0);
   }
@@ -135,7 +132,7 @@ class wrapped_generator
   template <typename T>
   std::string invoke_with_guard(const T& element) const {
     recursion_guard guard{recursions_, element};
-    return std::invoke(*this, element);
+    return static_cast<const Base*>(this)->operator()(element);
   }
 
  private:
@@ -263,10 +260,10 @@ std::string generate_multiple(const Generator& generator,
     return "";
   }
   auto it = definitions.begin();
-  std::string output = std::invoke(generator, *it);
+  std::string output = generator(*it);
   for (++it; it != definitions.end(); ++it) {
     output.append("\n\n");
-    output += std::invoke(generator, *it);
+    output += generator(*it);
   }
   return output;
 }
@@ -280,11 +277,16 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
           .def(
               "generate",
               [](const wrapped_generator<T>& self, const ast::function_definition& definition) {
-                return std::invoke(self, definition);
+                return static_cast<const T&>(self)(definition);
               },
               py::arg("definition"), py::doc("Generate code for the provided definition."))
-          .def("generate", &generate_multiple<wrapped_generator<T>>, py::arg("definitions"),
-               py::doc("Generate code for multiple definitions."));
+          .def(
+              "generate",
+              [](const wrapped_generator<T>& self,
+                 const std::vector<ast::function_definition>& definitions) {
+                return generate_multiple(static_cast<const T&>(self), definitions);
+              },
+              py::arg("definitions"), py::doc("Generate code for multiple definitions."));
   // Wrap all the operator() methods.
   register_operators_struct{}(klass);
   return klass;

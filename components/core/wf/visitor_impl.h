@@ -61,8 +61,8 @@ auto visit_with_expr(const Expr& expr, VisitorType&& visitor) {
     using T = std::decay_t<decltype(x)>;
 
     // Make sure this is not ambiguous:
-    static_assert(has_binary_call_operator_v<VisitorType, const T, const Expr> !=
-                      has_call_operator_v<VisitorType, const T>,
+    static_assert(has_binary_call_operator_v<VisitorType, const T&, const Expr&> !=
+                      has_call_operator_v<VisitorType, const T&>,
                   "Visitor must support either unary or binary operator(), but not both.");
 
     if constexpr (has_binary_call_operator_v<VisitorType, const T, const Expr>) {

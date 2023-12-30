@@ -16,7 +16,6 @@ constexpr auto camel_case_from_snake_case(const std::string_view str) noexcept {
     return c;
   };
 
-  static_assert(N > 0);
   std::array<char, N> result{static_cast<char>(0)};
   auto it = str.cbegin();
   if (it == str.cend()) {

@@ -335,6 +335,8 @@ auto zip_tuples_impl(F&& f, std::index_sequence<I...> seq, Tuples&&... tuples) {
   } else {
     // Return empty tuple when all input tuples are empty.
     // Suppress unused variable warnings:
+    (void)f;
+    (void)seq;
     ((void)tuples, ...);
     return std::tuple<>{};
   }

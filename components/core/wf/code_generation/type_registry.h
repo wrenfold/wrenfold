@@ -13,18 +13,6 @@ namespace wf {
 template <typename T, typename = void>
 struct custom_type_registrant;
 
-namespace detail {
-
-// The purpose of record_type is to convert from actual C++ types to our runtime representations.
-// For example, Expr -> scalar_type, MatrixExpr -> matrix_type.
-// We use this to scrape a c++ function signature and record type information for code-generation.
-template <typename T, typename = void>
-struct record_type;
-
-template <typename T>
-class custom_type_mapper;
-}  // namespace detail
-
 // Store a mapping from `std::type_index` to `custom_type` object. Used to map from native C++ types
 // to their `custom_type` description, which is used for code-generation.
 class custom_type_registry {
@@ -40,8 +28,8 @@ class custom_type_registry {
 
   // Insert `custom_type` corresponding to native type `T`.
   template <typename T>
-  void insert(custom_type type) {
-    const auto [it, was_inserted] = types_.emplace(typeid(T), std::move(type));
+  void insert(const custom_type& type) {
+    const auto [it, was_inserted] = types_.emplace(typeid(T), type);
     WF_ASSERT(was_inserted, "Attemped to insert duplicate type description for type `{}` (T = {})",
               type.name(), typeid(T).name());
   }
@@ -82,6 +70,14 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
   FieldType StructType::*member_ptr_;
   U member_type_;
 };
+
+namespace detail {
+// The purpose of record_type is to convert from actual C++ types to our runtime representations.
+// For example, Expr -> scalar_type, MatrixExpr -> matrix_type.
+// We use this to scrape a c++ function signature and record type information for code-generation.
+template <typename T, typename = void>
+struct record_type;
+}  // namespace detail
 
 // Helper used to construct `custom_type` object for type `T`. The user is expect to specialize
 // `custom_type_registrant<T>`. `custom_type_registrant<T>::operator()` should return an instance
@@ -130,7 +126,7 @@ class custom_type_builder {
 // Evaluates to true if there is a specialization of custom_type_registrant for the type T.
 template <typename T>
 constexpr bool implements_custom_type_registrant_v =
-    has_call_operator_v<custom_type_registrant<T>, custom_type_registry>;
+    has_call_operator_v<custom_type_registrant<T>, custom_type_registry&>;
 
 // `custom_type` wrapped with a template that marks which C++ type it corresponds to.
 template <typename T>
@@ -139,7 +135,7 @@ struct annotated_custom_type {
 
   custom_type type;
 
-  // Create type `T` by initializing all registered members of `T` with function arguments.
+  // Create type `T` by initializing all registered members of `T` with expressions.
   // The trimmed span (after consuming the right # of values from the front) is returned.
   std::tuple<T, absl::Span<Expr>> initialize_from_expressions(absl::Span<Expr> expressions) const {
     T result{};
@@ -167,7 +163,7 @@ struct annotated_custom_type {
 template <typename T, typename = void>
 struct custom_type_native_converter;
 
-// Enable if symbolic native type can be converted to symbolic type `T`.
+// Enable if numeric type can be converted to symbolic type `T`.
 // This is to switch the conversion `custom_type_native_converter<T>::native_type` --> `T`.
 template <typename T, typename Type = void>
 using enable_if_implements_symbolic_from_native_conversion_t = std::enable_if_t<
@@ -177,7 +173,7 @@ using enable_if_implements_symbolic_from_native_conversion_t = std::enable_if_t<
         T>,
     Type>;
 
-// Enable if symbolic type `T` can be converted to a native type.
+// Enable if symbolic type `T` can be converted to a numeric type.
 // This is to switch the conversion `T` --> `custom_type_native_converter<T>::native_type`.
 template <typename T, typename Type = void>
 using enable_if_implements_native_from_symbolic_conversion_t =
@@ -267,7 +263,7 @@ std::vector<Expr> extract_function_output(const annotated_custom_type<T>& custom
 template <typename T>
 template <typename P>
 custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T::*member_ptr) {
-  static_assert(has_call_operator_v<detail::record_type<P>, custom_type_registry>,
+  static_assert(has_call_operator_v<detail::record_type<P>, custom_type_registry&>,
                 "The specified type is not something we understand. Maybe you need to implement "
                 "custom_type_registrant.");
   WF_ASSERT(member_ptr != nullptr);

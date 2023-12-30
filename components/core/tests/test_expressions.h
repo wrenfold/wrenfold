@@ -107,6 +107,24 @@ struct Circle {
 };
 }  // namespace symbolic
 
+template <>
+struct custom_type_registrant<symbolic::Point2d> {
+  custom_type_builder<symbolic::Point2d> operator()(custom_type_registry& registry) const {
+    return custom_type_builder<symbolic::Point2d>(registry, "Point2d")
+        .add_field("x", &symbolic::Point2d::x)
+        .add_field("y", &symbolic::Point2d::y);
+  }
+};
+
+template <>
+struct custom_type_registrant<symbolic::Circle> {
+  auto operator()(custom_type_registry& registry) const {
+    return custom_type_builder<symbolic::Circle>(registry, "Circle")
+        .add_field("center", &symbolic::Circle::center)
+        .add_field("radius", &symbolic::Circle::radius);
+  }
+};
+
 // A method that accepts a custom point.
 inline symbolic::Point2d custom_type_1(const symbolic::Point2d& p) {
   const Expr norm = sqrt(p.x * p.x + p.y * p.y);
@@ -130,23 +148,5 @@ inline auto nested_custom_type_1(symbolic::Circle a, symbolic::Point2d b) {
   result.center = a.center;
   return result;
 }
-
-template <>
-struct custom_type_registrant<symbolic::Point2d> {
-  auto operator()(custom_type_registry& registry) const {
-    return custom_type_builder<symbolic::Point2d>(registry, "Point2d")
-        .add_field("x", &symbolic::Point2d::x)
-        .add_field("y", &symbolic::Point2d::y);
-  }
-};
-
-template <>
-struct custom_type_registrant<symbolic::Circle> {
-  auto operator()(custom_type_registry& registry) const {
-    return custom_type_builder<symbolic::Circle>(registry, "Circle")
-        .add_field("center", &symbolic::Circle::center)
-        .add_field("radius", &symbolic::Circle::radius);
-  }
-};
 
 }  // namespace wf

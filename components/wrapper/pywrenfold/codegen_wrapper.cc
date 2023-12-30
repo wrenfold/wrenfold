@@ -171,9 +171,10 @@ void wrap_codegen_operations(py::module_& m) {
           },
           py::doc("Get the underlying python type."))
       .def("__repr__", [](const custom_type& self) {
-        const py::object python_type = self.underlying_type().has_value()
-                                           ? std::any_cast<py::type>(self.underlying_type())
-                                           : py::none();
+        const py::object python_type =
+            self.underlying_type().has_value()
+                ? py::object(std::any_cast<py::type>(self.underlying_type()))
+                : py::none();
         const py::str repr = py::repr(python_type);
         return fmt::format("CustomType('{}', {} fields, {})", self.name(), self.size(),
                            py::cast<std::string_view>(repr));
