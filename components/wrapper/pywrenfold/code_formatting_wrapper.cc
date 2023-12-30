@@ -190,7 +190,7 @@ class wrapped_generator
 
   // Because we know the ast tree is not very deep, we can catch infinite recursions by counting
   // recursions and throwing when we pass a relatively low threshold. This type increases the count
-  // on construction, and descreases it on desctruction.
+  // on construction, and descreases it on destruction.
   class recursion_guard {
    public:
     template <typename T>

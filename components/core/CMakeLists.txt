@@ -3,27 +3,28 @@ add_library(
   wf-core STATIC
   wf/absl_imports.h
   wf/assertions.h
-  wf/code_generation/ast_conversion.h
-  wf/code_generation/ast_conversion.cc
-  wf/code_generation/ast.h
   wf/code_generation/ast.cc
+  wf/code_generation/ast.h
+  wf/code_generation/ast_conversion.cc
+  wf/code_generation/ast_conversion.h
   wf/code_generation/ast_formatters.h
   wf/code_generation/code_formatter.h
   wf/code_generation/cpp_code_generator.cc
   wf/code_generation/cpp_code_generator.h
-  wf/code_generation/types.cc
-  wf/code_generation/types.h
-  wf/code_generation/type_registry.cc
-  wf/code_generation/type_registry.h
   wf/code_generation/expr_from_ir.cc
   wf/code_generation/expression_group.h
   wf/code_generation/function_description.cc
   wf/code_generation/function_description.h
+  wf/code_generation/function_evaluator.h
   wf/code_generation/ir_builder.cc
   wf/code_generation/ir_builder.h
   wf/code_generation/ir_types.h
   wf/code_generation/rust_code_generator.cc
   wf/code_generation/rust_code_generator.h
+  wf/code_generation/type_registry.cc
+  wf/code_generation/type_registry.h
+  wf/code_generation/types.cc
+  wf/code_generation/types.h
   wf/collect.cc
   wf/common_visitors.h
   wf/constants.cc
@@ -60,8 +61,6 @@ add_library(
   wf/expressions/variable.cc
   wf/expressions/variable.h
   wf/fmt_imports.h
-  wf/code_generation/function_evaluator.h
-  wf/code_generation/function_evaluator_detail.h
   wf/functions.cc
   wf/functions.h
   wf/geometry/quaternion.cc

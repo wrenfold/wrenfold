@@ -2,7 +2,7 @@
 #pragma once
 #include <Eigen/Core>
 
-#include "wf/code_generation/function_evaluator_detail.h"
+#include "wf/code_generation/function_evaluator.h"
 #include "wf/evaluate.h"
 #include "wf/expression.h"
 #include "wf/substitute.h"
@@ -33,6 +33,7 @@ struct numeric_function_evaluator {
   evaluate_visitor evaluate{};
 };
 
+// We implement this trait
 template <typename T, typename = void>
 struct compute_function_output_struct;
 
