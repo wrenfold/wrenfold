@@ -34,7 +34,11 @@ constexpr bool is_comparable_to_nullptr_v = is_comparable_to_nullptr<T>::value;
 
 }  // namespace detail
 
-// `non_null` wraps a pointer-like object `T` and checks on construction that it is not null.
+// `non_null` wraps a pointer-like object `T` and checks on construction that it is not null. `T`
+// could be a bare-pointer, or a shared_ptr or unique_ptr.
+//
+// This implementation is based on the GSL implementation, with some alterations - for example we do
+// not allow implicit cast to the underlying type `T`.
 template <typename T>
 class non_null {
  public:
@@ -44,22 +48,25 @@ class non_null {
   using enable_if_convertible_t = std::enable_if_t<std::is_convertible_v<U, T>>;
 
   // Construct from type `U` that is convertible to `T`.
+  // We check `ptr` for nullity, hence this constructor is always noexcept(false).
   template <typename U, typename = enable_if_convertible_t<U>>
   constexpr non_null(U&& ptr) noexcept(false) : ptr_(std::forward<U>(ptr)) {  // NOLINT
-    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null.");
+    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null. T = {}, U = {}", typeid(T).name(),
+              typeid(U).name());
   }
 
   // Construct from type `T`.
+  // We check `ptr` for nullity, hence this constructor is always noexcept(false).
   template <typename = std::enable_if_t<!std::is_same_v<std::nullptr_t, T>>>
   constexpr non_null(T ptr) noexcept(false) : ptr_(std::move(ptr)) {  // NOLINT
-    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null.");
+    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null. T = {}", typeid(T).name());
   }
 
   // Construct from a other `non_null` type that is convertible.
   // We don't check here, because the constructor of `non_null<U>` already checked.
   template <typename U, typename = enable_if_convertible_t<U>>
   constexpr non_null(const non_null<U>& ptr) noexcept(
-      std::is_nothrow_move_constructible_v<T>)  // NOLINT
+      std::is_nothrow_copy_constructible_v<T>)  // NOLINT
       : ptr_(ptr.get()) {}
 
   // Copy and move constructors.
@@ -88,9 +95,12 @@ class non_null {
   constexpr decltype(auto) operator*() const noexcept { return *get(); }
 
   // Check underlying ptr is null. This can happen if we moved the underlying pointer out.
-  constexpr operator bool() const noexcept { return ptr_ != nullptr; }
+  constexpr operator bool() const noexcept { return ptr_ != nullptr; }  //  NOLINT
 
  private:
+  template <typename U>
+  friend class non_null;
+
   T ptr_;
 };
 

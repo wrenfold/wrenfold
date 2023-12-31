@@ -5,9 +5,9 @@
 #include <variant>
 #include <vector>
 
+#include "wf/checked_pointers.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
-#include "wf/non_null_ptr.h"
 
 namespace wf::ast {
 

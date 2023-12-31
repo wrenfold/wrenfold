@@ -3,6 +3,7 @@ add_library(
   wf-core STATIC
   wf/absl_imports.h
   wf/assertions.h
+  wf/checked_pointers.h
   wf/code_generation/ast.cc
   wf/code_generation/ast.h
   wf/code_generation/ast_conversion.cc
@@ -72,7 +73,6 @@ add_library(
   wf/matrix_expression.h
   wf/matrix_functions.cc
   wf/matrix_functions.h
-  wf/non_null_ptr.h
   wf/number_set.cc
   wf/operations.h
   wf/ordering.cc
