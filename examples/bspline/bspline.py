@@ -7,7 +7,7 @@ first two knots [x0, x1]. The second function covers the interval between second
 knots [x1, x2] - and so on. These functions generalize to any number of knots because
 all the other intervals are translations or flips of the first `k`.
 """
-import argh
+import argparse
 import typing as T
 
 from wrenfold.type_annotations import RealScalar
@@ -150,19 +150,26 @@ def create_bspline_functions(order: int) -> T.List[code_generation.codegen.Funct
     return descriptions
 
 
-@argh.arg("--language", default=None, choices=["cpp", "rust"], help="Target language.")
-def main(output: str, *, language: str):
+def main(args: argparse.Namespace):
     descriptions = create_bspline_functions(order=4)
     descriptions += create_bspline_functions(order=7)
     definitions = code_generation.transpile(descriptions=descriptions)
-    if language == "cpp":
+    if args.language == "cpp":
         code = CppGenerator().generate(definitions=definitions)
         code = code_generation.apply_cpp_preamble(code, namespace="gen")
-        code_generation.mkdir_and_write_file(code=code, path=output)
-    elif language == "rust":
+        code_generation.mkdir_and_write_file(code=code, path=args.output)
+    elif args.language == "rust":
         code = RustGenerator().generate(definitions=definitions)
-        code_generation.mkdir_and_write_file(code=code, path=output)
+        code_generation.mkdir_and_write_file(code=code, path=args.output)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--language", type=str, choices=["cpp", "rust"], required=True, help="Target language.")
+    parser.add_argument("output", type=str, help="Output path")
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    argh.dispatch_command(main)
+    main(parse_args())
