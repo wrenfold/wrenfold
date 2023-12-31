@@ -337,8 +337,10 @@ struct ast_from_ir {
         std::vector<ast::variant> operations_false = process_nested_block(block->descendants[1]);
 
         // Create a conditional
-        emplace_operation<ast::branch>(make_variable_ref(last_op->first_operand()),
-                                       std::move(operations_true), std::move(operations_false));
+        auto condition_var =
+            std::make_shared<ast::variant>(make_variable_ref(last_op->first_operand()));
+        emplace_operation<ast::branch>(std::move(condition_var), std::move(operations_true),
+                                       std::move(operations_false));
       }
 
       non_traversable_blocks_.erase(merge_point);
@@ -461,8 +463,8 @@ struct ast_from_ir {
   ast::variant operator()(const matrix_type& m, const argument& arg,
                           const std::size_t element_index) const {
     const auto [row, col] = m.compute_indices(element_index);
-    return ast::get_matrix_element{std::make_shared<ast::variant>(ast::get_argument{arg}), row,
-                                   col};
+
+    return ast::get_matrix_element{ast::make_shared_variant<ast::get_argument>(arg), row, col};
   }
 
   ast::variant operator()(const custom_type& c, const argument& arg,

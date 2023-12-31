@@ -15,23 +15,12 @@ using value_or_reference_return_t =
 // True if converting T to `value_or_reference_return_t<T>` is noexcept.
 template <typename T>
 constexpr bool is_nothrow_convertible_to_value_or_ref_v =
-    noexcept(detail::value_or_reference_return_t<T>{std::declval<T&>()});
+    noexcept(detail::value_or_reference_return_t<T>{std::declval<T&&>()});
 
 // True if casting `T` to bool is noexcept.
 template <typename T>
 constexpr bool is_nothrow_castable_to_bool_v =
     noexcept(static_cast<bool>(std::declval<const T&>()));
-
-// True if `T` can be compared to nullptr.
-template <typename T, typename = void>
-struct is_comparable_to_nullptr : std::false_type {};
-template <typename T>
-struct is_comparable_to_nullptr<
-    T, std::enable_if_t<std::is_convertible_v<decltype(std::declval<T>() != nullptr), bool>>>
-    : std::true_type {};
-template <typename T>
-constexpr bool is_comparable_to_nullptr_v = is_comparable_to_nullptr<T>::value;
-
 }  // namespace detail
 
 // `non_null` wraps a pointer-like object `T` and checks on construction that it is not null. `T`
@@ -49,15 +38,14 @@ class non_null {
   // We check `ptr` for nullity, hence this constructor is always noexcept(false).
   template <typename U, typename = enable_if_convertible_t<U>>
   constexpr non_null(U&& ptr) noexcept(false) : ptr_(std::forward<U>(ptr)) {  // NOLINT
-    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null. T = {}, U = {}", typeid(T).name(),
-              typeid(U).name());
+    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null");
   }
 
   // Construct from type `T`.
   // We check `ptr` for nullity, hence this constructor is always noexcept(false).
   template <typename = std::enable_if_t<!std::is_same_v<std::nullptr_t, T>>>
   constexpr non_null(T ptr) noexcept(false) : ptr_(std::move(ptr)) {  // NOLINT
-    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null. T = {}", typeid(T).name());
+    WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null");
   }
 
   // Construct from a other `non_null` type that is convertible.

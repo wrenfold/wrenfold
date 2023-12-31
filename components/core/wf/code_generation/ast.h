@@ -62,8 +62,7 @@ struct assign_temporary {
   std::string left;
   non_null<variant_ptr> right;
 
-  assign_temporary(std::string left, variant_ptr right)
-      : left(std::move(left)), right(std::move(right)) {}
+  assign_temporary(std::string left, variant_ptr right);
 };
 
 // Assign to an output argument of matrix type.
@@ -101,12 +100,6 @@ struct branch {
   std::vector<variant> if_branch;
   // Statements if the condition is false:
   std::vector<variant> else_branch;
-
-  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::variant, T>>>
-  branch(T&& arg, std::vector<variant>&& if_branch, std::vector<variant>&& else_branch)
-      : condition{std::make_shared<const ast::variant>(std::forward<T>(arg))},
-        if_branch(std::move(if_branch)),
-        else_branch(std::move(else_branch)) {}
 };
 
 // Call a standard library function.
@@ -115,10 +108,6 @@ struct call {
 
   std_math_function function;
   std::vector<variant> args;
-
-  template <typename... Args>
-  explicit call(const std_math_function function, Args&&... inputs)
-      : function(function), args{std::forward<Args>(inputs)...} {}
 };
 
 // Cast a scalar from one numeric type to another.
@@ -128,9 +117,6 @@ struct cast {
   code_numeric_type destination_type;
   code_numeric_type source_type;
   non_null<variant_ptr> arg;
-
-  cast(code_numeric_type destination_type, code_numeric_type source_type, variant_ptr arg)
-      : destination_type(destination_type), source_type(source_type), arg(std::move(arg)) {}
 };
 
 // A comment.
@@ -187,11 +173,10 @@ struct declaration {
   // If a value is assigned, then the result can be presumed to be constant.
   maybe_null<variant_ptr> value{nullptr};
 
-  declaration(std::string name, code_numeric_type type, variant_ptr value)
-      : name(std::move(name)), type(type), value(std::move(value)) {}
+  declaration(std::string name, code_numeric_type type, variant_ptr value);
 
   // Construct w/ no rhs.
-  declaration(std::string name, code_numeric_type type) : name(std::move(name)), type(type) {}
+  declaration(std::string name, code_numeric_type type);
 };
 
 // Divide first operand by second operand.
@@ -271,9 +256,6 @@ struct optional_output_branch {
 
   // Statements in the if-branch.
   std::vector<variant> statements;
-
-  explicit optional_output_branch(argument arg, std::vector<variant>&& statements) noexcept
-      : arg(std::move(arg)), statements(std::move(statements)) {}
 };
 
 // Use a symbolic constant in the output code.
@@ -406,5 +388,11 @@ using extra_ast_types = type_list<
 // clang-format on
 using all_ast_types =
     concatenate_type_lists_t<type_list_from_variant_t<ast::variant>, extra_ast_types>;
+
+// Make a shared-ptr to ast::variant.
+template <typename T, typename... Args>
+ast::variant_ptr make_shared_variant(Args&&... args) {
+  return std::make_shared<const ast::variant>(T{std::forward<Args>(args)...});
+}
 
 }  // namespace wf::ast
