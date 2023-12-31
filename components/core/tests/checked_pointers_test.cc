@@ -1,40 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "wf/non_null_ptr.h"
+#include "wf/checked_pointers.h"
 
 namespace wf {
-
-struct foo {};
-
-TEST(MaybeNullTest, TestNullConstruction) {
-  maybe_null<foo*> empty{nullptr};
-  ASSERT_FALSE(empty);
-  ASSERT_FALSE(empty.has_value());
-  ASSERT_EQ(nullptr, empty.get_unchecked());
-
-  // Should throw when accessed.
-  ASSERT_THROW(empty.get(), wf::assertion_error);
-  ASSERT_THROW(*empty, wf::assertion_error);
-  ASSERT_THROW(empty.operator->(), wf::assertion_error);
-
-  static_assert(!std::is_default_constructible_v<maybe_null<foo*>>);
-  static_assert(std::is_same_v<foo*, decltype(empty.get_unchecked())>);
-  static_assert(std::is_same_v<foo*, decltype(empty.get())>);
-  static_assert(noexcept(empty.get_unchecked()));
-  static_assert(!noexcept(empty.get()));
-  static_assert(!noexcept(empty.operator*()));
-  static_assert(!noexcept(empty.operator->()));
-
-  // Gheck that we get the right types for const pointers:
-  maybe_null<const foo*> empty_const{nullptr};
-  ASSERT_FALSE(empty_const);
-  ASSERT_FALSE(empty_const.has_value());
-  static_assert(std::is_same_v<const foo*, decltype(empty_const.get_unchecked())>);
-  static_assert(std::is_same_v<const foo*, decltype(empty_const.get())>);
-
-  // Const and non-const should be comparable:
-  ASSERT_EQ(empty, empty_const);
-}
 
 // For testing constructors, we make a fake "smart ptr" type that counts copies and moves.
 struct counter_ptr {
@@ -89,6 +57,9 @@ struct counter_ptr {
 
   constexpr decltype(auto) operator*() const noexcept { return *c_; }
 
+  // Define this for `non_null`:
+  constexpr bool operator!=(std::nullptr_t) const noexcept { return c_ != nullptr; }
+
  private:
   counters* c_{nullptr};
 };
@@ -98,6 +69,114 @@ static_assert(!std::is_trivially_move_assignable_v<counter_ptr> &&
               !std::is_trivially_copyable_v<counter_ptr> &&
               std::is_nothrow_move_constructible_v<counter_ptr> &&
               std::is_nothrow_copy_constructible_v<counter_ptr>);
+
+struct foo {};
+
+TEST(NonNullTest, TestNullConstruction) {
+  foo* bad_ptr = nullptr;
+  const auto create_null = [&] { non_null<foo*> thing(bad_ptr); };
+  const auto create_const_null = [&] { non_null<const foo*> thing(bad_ptr); };
+  ASSERT_THROW(create_null(), wf::assertion_error);
+  ASSERT_THROW(create_const_null(), wf::assertion_error);
+  static_assert(!noexcept(non_null<foo*>(bad_ptr)));
+  static_assert(!noexcept(non_null<const foo*>(bad_ptr)));
+
+  static_assert(std::is_same_v<foo*, decltype(std::declval<non_null<foo*>>().get())>);
+  static_assert(std::is_same_v<const foo*, decltype(std::declval<non_null<const foo*>>().get())>);
+}
+
+// Check that constructors copy + move appropriately.
+TEST(NonNullTest, TestConstructors) {
+  counter_ptr::counters count{};
+
+  // Construct from underlying ptr:
+  non_null<counter_ptr> n{&count};
+  ASSERT_TRUE(n);
+  ASSERT_NE(n, nullptr);
+  ASSERT_NE(nullptr, n);
+  ASSERT_EQ(n, n);
+  ASSERT_EQ(&count, std::addressof(*n));
+  ASSERT_EQ(0, count.num_copies);
+  ASSERT_EQ(0, count.num_moves);
+
+  // Return by reference for non-trivially copyable type:
+  static_assert(std::is_same_v<const counter_ptr&, decltype(n.get())>);
+  static_assert(std::is_same_v<const counter_ptr&, decltype(n.operator->())>);
+  static_assert(std::is_same_v<counter_ptr::counters&, decltype(n.operator*())>);
+  static_assert(std::is_nothrow_copy_constructible_v<decltype(n)>);
+  static_assert(std::is_nothrow_copy_assignable_v<decltype(n)>);
+  static_assert(std::is_nothrow_move_constructible_v<decltype(n)>);
+  static_assert(std::is_nothrow_move_assignable_v<decltype(n)>);
+
+  // Copy:
+  non_null n2{n};
+  ASSERT_TRUE(n2);
+  ASSERT_EQ(&count, std::addressof(*n2));
+  ASSERT_EQ(1, count.num_copies);
+  ASSERT_EQ(0, count.num_moves);
+
+  // Move:
+  non_null n3{std::move(n2)};
+  ASSERT_FALSE(n2);  //  n2 is empty
+  ASSERT_TRUE(n3);
+  ASSERT_NE(n2, n3);
+  ASSERT_EQ(&count, std::addressof(*n3));
+  ASSERT_EQ(n3, n);
+  ASSERT_EQ(1, count.num_copies);
+  ASSERT_EQ(1, count.num_moves);
+
+  // Copy-into-const
+  non_null<const counter_ptr> n4{n3};
+  ASSERT_TRUE(n4);
+  ASSERT_EQ(n3, n4);
+  ASSERT_EQ(&count, std::addressof(*n4));
+  ASSERT_EQ(2, count.num_copies);
+  ASSERT_EQ(2, count.num_moves);  //  Moved by copy-constructor.
+
+  // Move-into const
+  non_null<const counter_ptr> n5{std::move(n3)};
+  ASSERT_FALSE(n3);  //  n3 is empty.
+  ASSERT_TRUE(n5);
+  ASSERT_EQ(n, n5);
+  ASSERT_EQ(2, count.num_copies);
+  ASSERT_EQ(4, count.num_moves);  //  Moved twice by converting constructor.
+}
+
+TEST(NonNullTest, TestHash) {
+  int x = 0;
+  non_null<int*> ptr{&x};
+  ASSERT_EQ(std::hash<int*>{}(&x), std::hash<non_null<int*>>{}(ptr));
+}
+
+TEST(MaybeNullTest, TestNullConstruction) {
+  maybe_null<foo*> empty{nullptr};
+  ASSERT_FALSE(empty);
+  ASSERT_FALSE(empty.has_value());
+  ASSERT_EQ(nullptr, empty.get_unchecked());
+
+  // Should throw when accessed.
+  ASSERT_THROW(empty.get(), wf::assertion_error);
+  ASSERT_THROW(*empty, wf::assertion_error);
+  ASSERT_THROW(empty.operator->(), wf::assertion_error);
+
+  static_assert(!std::is_default_constructible_v<maybe_null<foo*>>);
+  static_assert(std::is_same_v<foo*, decltype(empty.get_unchecked())>);
+  static_assert(std::is_same_v<foo*, decltype(empty.get())>);
+  static_assert(noexcept(empty.get_unchecked()));
+  static_assert(!noexcept(empty.get()));
+  static_assert(!noexcept(empty.operator*()));
+  static_assert(!noexcept(empty.operator->()));
+
+  // Gheck that we get the right types for const pointers:
+  maybe_null<const foo*> empty_const{nullptr};
+  ASSERT_FALSE(empty_const);
+  ASSERT_FALSE(empty_const.has_value());
+  static_assert(std::is_same_v<const foo*, decltype(empty_const.get_unchecked())>);
+  static_assert(std::is_same_v<const foo*, decltype(empty_const.get())>);
+
+  // Const and non-const should be comparable:
+  ASSERT_EQ(empty, empty_const);
+}
 
 TEST(MaybeNullTest, TestConstructors) {
   counter_ptr::counters count{};
