@@ -4,7 +4,7 @@ Example: Tangent-space delta between two quaternions, with tangent-space jacobia
 This is an example of a relatively simple factor one might implement for a rotation
 averaging optimization.
 """
-import argh
+import argparse
 import typing as T
 
 from wrenfold.type_annotations import RealScalar, Vector4
@@ -33,17 +33,19 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
     ]
 
 
-def main(output: str):
+def main(args: argparse.Namespace):
     description = code_generation.create_function_description(rotation_error)
     definition = code_generation.transpile(description=description)
     code = CppGenerator().generate(definition=definition)
     code = code_generation.apply_cpp_preamble(code, namespace="gen")
+    code_generation.mkdir_and_write_file(code=code, path=args.output)
 
-    if output is not None:
-        code_generation.mkdir_and_write_file(code=code, path=output)
-    else:
-        print(code)
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("output", type=str, help="Output path")
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    argh.dispatch_command(main)
+    main(parse_args())

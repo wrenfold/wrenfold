@@ -9,7 +9,7 @@ their members.
 This example is meant to illustrate how a modest amount of customization can allow wrenfold to
 interface with types in an existing codebase.
 """
-import argh
+import argparse
 import dataclasses
 import typing as T
 
@@ -264,22 +264,28 @@ class CustomRustGenerator(RustGenerator):
         return self.super_format(element)
 
 
-@argh.arg("--language", default=None, choices=["cpp", "rust"], help="Target language.")
-def main(output: str, *, language: str):
+def main(args: argparse.Namespace):
     descriptions = [
         code_generation.create_function_description(func=transform_point, name='transform_point'),
         code_generation.create_function_description(func=compose_poses, name='compose_poses')
     ]
 
     definitions = code_generation.transpile(descriptions=descriptions)
-    if language == "cpp":
+    if args.language == "cpp":
         code = CustomCppGenerator().generate(definitions=definitions)
         code = code_generation.apply_cpp_preamble(code, namespace="gen")
-        code_generation.mkdir_and_write_file(code=code, path=output)
-    elif language == "rust":
+        code_generation.mkdir_and_write_file(code=code, path=args.output)
+    elif args.language == "rust":
         code = CustomRustGenerator().generate(definitions=definitions)
-        code_generation.mkdir_and_write_file(code=code, path=output)
+        code_generation.mkdir_and_write_file(code=code, path=args.output)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--language", type=str, choices=["cpp", "rust"], help="Target language.")
+    parser.add_argument("output", type=str, help="Output path")
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    argh.dispatch_command(main)
+    main(parse_args())
