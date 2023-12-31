@@ -4,11 +4,11 @@
 #include <variant>
 #include <vector>
 
+#include "wf/checked_pointers.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/hashing.h"
-#include "wf/non_null_ptr.h"
 #include "wf/template_utils.h"
 
 // Define types for a very simple "intermediate representation" we can use to simplify
@@ -17,8 +17,8 @@ namespace wf::ir {
 
 class value;
 class block;
-using value_ptr = non_null_ptr<ir::value>;
-using block_ptr = non_null_ptr<ir::block>;
+using value_ptr = non_null<ir::value*>;
+using block_ptr = non_null<ir::block*>;
 
 // Add together two operands.
 class add {

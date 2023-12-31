@@ -5,6 +5,7 @@
 #include <variant>
 #include <vector>
 
+#include "wf/checked_pointers.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
 
@@ -50,10 +51,8 @@ using variant_ptr = std::shared_ptr<const variant>;
 struct add {
   static constexpr std::string_view snake_case_name_str = "add";
 
-  variant_ptr left;
-  variant_ptr right;
-
-  add(variant_ptr left, variant_ptr right) : left(std::move(left)), right(std::move(right)) {}
+  non_null<variant_ptr> left;
+  non_null<variant_ptr> right;
 };
 
 // Assign a value to a temporary variable.
@@ -61,17 +60,16 @@ struct assign_temporary {
   static constexpr std::string_view snake_case_name_str = "assign_temporary";
 
   std::string left;
-  variant_ptr right;
+  non_null<variant_ptr> right;
 
-  assign_temporary(std::string left, variant_ptr right)
-      : left(std::move(left)), right(std::move(right)) {}
+  assign_temporary(std::string left, variant_ptr right);
 };
 
 // Assign to an output argument of matrix type.
 struct assign_output_matrix {
   static constexpr std::string_view snake_case_name_str = "assign_output_matrix";
   argument arg;
-  std::shared_ptr<const construct_matrix> value;
+  non_null<std::shared_ptr<const construct_matrix>> value;
 
   assign_output_matrix(argument arg, construct_matrix&& value);
 };
@@ -80,14 +78,14 @@ struct assign_output_matrix {
 struct assign_output_scalar {
   static constexpr std::string_view snake_case_name_str = "assign_output_scalar";
   argument arg;
-  variant_ptr value;
+  non_null<variant_ptr> value;
 };
 
 // Assign to an output argument that is a custom struct.
 struct assign_output_struct {
   static constexpr std::string_view snake_case_name_str = "assign_output_struct";
   argument arg;
-  std::shared_ptr<const construct_custom_type> value;
+  non_null<std::shared_ptr<const construct_custom_type>> value;
 
   assign_output_struct(argument arg, construct_custom_type&& value);
 };
@@ -97,17 +95,11 @@ struct branch {
   static constexpr std::string_view snake_case_name_str = "branch";
 
   // Condition of the if statement.
-  variant_ptr condition;
+  non_null<variant_ptr> condition;
   // Statements if the condition is true:
   std::vector<variant> if_branch;
   // Statements if the condition is false:
   std::vector<variant> else_branch;
-
-  template <typename T, typename = std::enable_if_t<std::is_constructible_v<ast::variant, T>>>
-  branch(T&& arg, std::vector<variant>&& if_branch, std::vector<variant>&& else_branch)
-      : condition{std::make_shared<const ast::variant>(std::forward<T>(arg))},
-        if_branch(std::move(if_branch)),
-        else_branch(std::move(else_branch)) {}
 };
 
 // Call a standard library function.
@@ -116,10 +108,6 @@ struct call {
 
   std_math_function function;
   std::vector<variant> args;
-
-  template <typename... Args>
-  explicit call(const std_math_function function, Args&&... inputs)
-      : function(function), args{std::forward<Args>(inputs)...} {}
 };
 
 // Cast a scalar from one numeric type to another.
@@ -128,10 +116,7 @@ struct cast {
 
   code_numeric_type destination_type;
   code_numeric_type source_type;
-  variant_ptr arg;
-
-  cast(code_numeric_type destination_type, code_numeric_type source_type, const variant_ptr& arg)
-      : destination_type(destination_type), source_type(source_type), arg(arg) {}
+  non_null<variant_ptr> arg;
 };
 
 // A comment.
@@ -150,8 +135,8 @@ struct compare {
   static constexpr std::string_view snake_case_name_str = "compare";
 
   relational_operation operation{};
-  variant_ptr left;
-  variant_ptr right;
+  non_null<variant_ptr> left;
+  non_null<variant_ptr> right;
 };
 
 // Construct a custom type.
@@ -165,7 +150,7 @@ struct construct_custom_type {
   std::vector<std::tuple<std::string, ast::variant>> field_values;
 
   // Get a field by name (or nullptr if the field does not exist).
-  const ast::variant* get_field_by_name(std::string_view name) const;
+  maybe_null<const ast::variant*> get_field_by_name(std::string_view name) const;
 };
 
 // Construct a matrix type from arguments.
@@ -186,23 +171,20 @@ struct declaration {
   code_numeric_type type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
-  variant_ptr value{};
+  maybe_null<variant_ptr> value{nullptr};
 
-  declaration(std::string name, code_numeric_type type, variant_ptr value)
-      : name(std::move(name)), type(type), value(std::move(value)) {}
+  declaration(std::string name, code_numeric_type type, variant_ptr value);
 
   // Construct w/ no rhs.
-  declaration(std::string name, code_numeric_type type) : name(std::move(name)), type(type) {}
+  declaration(std::string name, code_numeric_type type);
 };
 
 // Divide first operand by second operand.
 struct divide {
   static constexpr std::string_view snake_case_name_str = "divide";
 
-  variant_ptr left;
-  variant_ptr right;
-
-  divide(variant_ptr left, variant_ptr right) : left(std::move(left)), right(std::move(right)) {}
+  non_null<variant_ptr> left;
+  non_null<variant_ptr> right;
 };
 
 // Use a floating-point constant in the output code.
@@ -222,7 +204,7 @@ struct get_argument {
 struct get_field {
   static constexpr std::string_view snake_case_name_str = "get_field";
   // Expression for the struct we are accessing.
-  variant_ptr arg;
+  non_null<variant_ptr> arg;
   // Type being accessed.
   custom_type type;
   // Name of the field being accessed
@@ -233,7 +215,7 @@ struct get_field {
 struct get_matrix_element {
   static constexpr std::string_view snake_case_name_str = "get_matrix_element";
   // Expression for the matrix we are accessing.
-  variant_ptr arg;
+  non_null<variant_ptr> arg;
   // Row and column.
   index_t row;
   index_t col;
@@ -250,19 +232,15 @@ struct integer_literal {
 struct multiply {
   static constexpr std::string_view snake_case_name_str = "multiply";
 
-  variant_ptr left;
-  variant_ptr right;
-
-  multiply(variant_ptr left, variant_ptr right) : left(std::move(left)), right(std::move(right)) {}
+  non_null<variant_ptr> left;
+  non_null<variant_ptr> right;
 };
 
 // Negate an operand.
 struct negate {
   static constexpr std::string_view snake_case_name_str = "negate";
 
-  variant_ptr arg;
-
-  explicit negate(variant_ptr arg) noexcept : arg(std::move(arg)) {}
+  non_null<variant_ptr> arg;
 };
 
 // A one-sided branch that assigns to an optional output, after checking for its existence.
@@ -278,9 +256,6 @@ struct optional_output_branch {
 
   // Statements in the if-branch.
   std::vector<variant> statements;
-
-  explicit optional_output_branch(argument arg, std::vector<variant>&& statements) noexcept
-      : arg(std::move(arg)), statements(std::move(statements)) {}
 };
 
 // Use a symbolic constant in the output code.
@@ -294,7 +269,7 @@ struct special_constant {
 struct return_object {
   static constexpr std::string_view snake_case_name_str = "return_object";
 
-  variant_ptr value;
+  non_null<variant_ptr> value;
 };
 
 // Usage of a variable.
@@ -397,7 +372,7 @@ class function_definition {
     // Body of the function as a vector of statements.
     std::vector<ast::variant> body;
   };
-  std::shared_ptr<const impl> impl_;
+  non_null<std::shared_ptr<const impl>> impl_;
 };
 
 // Types that don't appear in ast::variant, but which must be exposed via our python wrapper so that
@@ -413,5 +388,11 @@ using extra_ast_types = type_list<
 // clang-format on
 using all_ast_types =
     concatenate_type_lists_t<type_list_from_variant_t<ast::variant>, extra_ast_types>;
+
+// Make a shared-ptr to ast::variant.
+template <typename T, typename... Args>
+ast::variant_ptr make_shared_variant(Args&&... args) {
+  return std::make_shared<const ast::variant>(T{std::forward<Args>(args)...});
+}
 
 }  // namespace wf::ast

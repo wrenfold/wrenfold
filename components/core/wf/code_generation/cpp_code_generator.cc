@@ -275,7 +275,7 @@ std::string cpp_code_generator::operator()(const ast::declaration& x) const {
     return fmt::format("{} {};", cpp_string_from_numeric_cast_type(x.type), x.name);
   } else {
     return fmt::format("const {} {} = {};", cpp_string_from_numeric_cast_type(x.type), x.name,
-                       make_view(x.value));
+                       make_view(*x.value));
   }
 }
 

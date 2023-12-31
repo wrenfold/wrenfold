@@ -55,7 +55,7 @@ class flat_ir {
   }
 
   // Get the single block of operations.
-  ir::block_ptr get_block() const { return ir::block_ptr{block_}; }
+  ir::block_ptr get_block() const { return ir::block_ptr{block_.get()}; }
 
  protected:
   // Remove any values without consumers (that are not endpoints like Save).
@@ -97,7 +97,7 @@ class output_ir {
         std::find_if(blocks_.begin(), blocks_.end(),
                      [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); });
     WF_ASSERT(it != blocks_.end(), "Must be an entry block");
-    return ir::block_ptr{*it};
+    return ir::block_ptr{it->get()};
   }
 
   // Count instances of operations matching predicate `Func`.
