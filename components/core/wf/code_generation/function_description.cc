@@ -1,73 +1,52 @@
 // Copyright 2023 Gareth Cross
 #include "wf/code_generation/function_description.h"
 
-#include "wf/expressions/variable.h"
-
 namespace wf {
 
-void function_signature::add_argument(const std::string_view name, argument_type type,
-                                      argument_direction direction) {
-  auto it = std::find_if(arguments_.begin(), arguments_.end(),
-                         [&name](const auto& arg) { return arg->name() == name; });
-  WF_ASSERT(it == arguments_.end(), "Argument with name `{}` already exists.", name);
-  arguments_.push_back(std::make_shared<const argument>(name, std::move(type), direction));
+function_description::function_description(std::string name) noexcept
+    : impl_(std::make_shared<impl>(std::move(name))) {}
+
+std::variant<Expr, MatrixExpr, std::vector<Expr>> function_description::add_input_argument(
+    const std::string_view name, type_variant type) {
+  const argument& arg = add_argument(name, std::move(type), argument_direction::input);
+
+  using return_type = std::variant<Expr, MatrixExpr, std::vector<Expr>>;
+  return std::visit(
+      [&](const auto& type_concrete) -> return_type {
+        return detail::create_function_input(type_concrete, arg.index());
+      },
+      arg.type());
 }
 
-std::optional<std::shared_ptr<const argument>> function_signature::argument_by_name(
-    std::string_view str) const {
-  auto it = std::find_if(arguments_.begin(), arguments_.end(),
-                         [&str](const auto& arg) { return arg->name() == str; });
-  if (it == arguments_.end()) {
-    return std::nullopt;
-  }
-  return *it;
-}
-
-bool function_signature::has_matrix_arguments() const noexcept {
-  return std::any_of(arguments_.begin(), arguments_.end(),
-                     [](const auto& arg) { return arg->is_matrix(); });
-}
-
-void function_signature::set_return_value_type(argument_type type) {
-  return_value_type_ = std::move(type);
-}
-
-std::variant<Expr, MatrixExpr> function_description::add_input_argument(std::string_view name,
-                                                                        argument_type type) {
-  const std::size_t arg_index = signature_.num_arguments();
-  signature_.add_argument(name, type, argument_direction::input);
-  if (const scalar_type* s = std::get_if<scalar_type>(&type); s != nullptr) {
-    return variable::create_function_argument(arg_index, 0);
-  } else {
-    const matrix_type* m = std::get_if<matrix_type>(&type);
-    WF_ASSERT(m);
-
-    std::vector<Expr> expressions{};
-    expressions.reserve(m->size());
-    for (std::size_t i = 0; i < m->size(); ++i) {
-      expressions.push_back(variable::create_function_argument(arg_index, i));
-    }
-    return MatrixExpr::create(m->rows(), m->cols(), std::move(expressions));
-  }
-}
-
-void function_description::add_output_argument(std::string_view name, argument_type type,
-                                               bool is_optional, std::vector<Expr> expressions) {
-  signature_.add_argument(
-      name, type, is_optional ? argument_direction::optional_output : argument_direction::output);
+void function_description::add_output_argument(const std::string_view name, type_variant type,
+                                               const bool is_optional,
+                                               std::vector<Expr> expressions) {
+  add_argument(name, std::move(type),
+               is_optional ? argument_direction::optional_output : argument_direction::output);
 
   output_key key{
       is_optional ? expression_usage::optional_output_argument : expression_usage::output_argument,
       name};
-  output_expressions_.emplace_back(std::move(expressions), std::move(key));
+  impl_->output_expressions.emplace_back(std::move(expressions), std::move(key));
 }
 
-void function_description::set_return_value(argument_type type, std::vector<Expr> expressions) {
-  WF_ASSERT(!signature_.has_return_value(), "Return value on function `{}` already set.",
-            signature_.name());
-  signature_.set_return_value_type(type);
-  output_expressions_.emplace_back(std::move(expressions),
-                                   output_key{expression_usage::return_value, ""});
+// ReSharper disable once CppMemberFunctionMayBeConst
+void function_description::set_return_value(type_variant type, std::vector<Expr> expressions) {
+  WF_ASSERT(!impl_->return_value_type.has_value(), "Return value on function `{}` already set.",
+            name());
+  impl_->return_value_type = std::move(type);
+  impl_->output_expressions.emplace_back(std::move(expressions),
+                                         output_key{expression_usage::return_value, ""});
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+const argument& function_description::add_argument(const std::string_view name, type_variant type,
+                                                   const argument_direction direction) {
+  WF_ASSERT(!std::any_of(impl_->arguments.begin(), impl_->arguments.end(),
+                         [&name](const argument& arg) { return arg.name() == name; }),
+            "Argument with name `{}` already exists.", name);
+  impl_->arguments.emplace_back(name, std::move(type), direction, impl_->arguments.size());
+  return impl_->arguments.back();
 }
 
 }  // namespace wf

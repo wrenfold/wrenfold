@@ -7,6 +7,7 @@ test just evaluates that we can call the wrapper methods without crashing.
 In future when I add back python code-generation we can import some outputs directly and invoke them.
 """
 import unittest
+import dataclasses
 
 from wrenfold import sym
 from wrenfold.type_annotations import RealScalar, Vector2
@@ -41,6 +42,33 @@ def func3(x: Vector2, y: Vector2, z: RealScalar):
     ]
 
 
+@dataclasses.dataclass
+class Point2d:
+    """A custom type."""
+    x: RealScalar
+    y: RealScalar
+
+
+def rotate_point(angle: RealScalar, p: Point2d):
+    R = sym.matrix([[sym.cos(angle), -sym.sin(angle)], [sym.sin(angle), sym.cos(angle)]])
+    p_rotated = R * sym.vector(p.x, p.y)
+    p_out = Point2d(*p_rotated)
+    return [OutputArg(p_out, name="p_rotated")]
+
+
+class CustomCppGenerator(code_generation.CppGenerator):
+    """Customize C++ generation."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.fmt = code_generation.Formatter(generator=self)
+
+    def format_call(self, element: code_generation.codegen.Call) -> str:
+        if element.function == code_generation.codegen.StdMathFunction.Cos:
+            return self.fmt.format('custom::cos({})', element.args[0])
+        return self.super_format(element)
+
+
 class CodeGenerationWrapperTest(MathTestBase):
 
     def test_code_generation(self):
@@ -48,10 +76,15 @@ class CodeGenerationWrapperTest(MathTestBase):
             code_generation.create_function_description(func1),
             code_generation.create_function_description(func2),
             code_generation.create_function_description(func3),
+            code_generation.create_function_description(rotate_point),
         ]
         definitions = code_generation.transpile(descriptions=descriptions)
-        code_generation.generate_cpp(definitions=definitions)
-        code_generation.generate_rust(definitions=definitions)
+
+        generator = CustomCppGenerator()
+        print(generator.generate(definitions))
+
+        generator = code_generation.RustGenerator()
+        print(generator.generate(definitions))
 
 
 if __name__ == '__main__':

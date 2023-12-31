@@ -1,86 +1,97 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include "wf/code_generation/ast.h"
 #include "wf/code_generation/code_formatter.h"
 
 namespace wf {
 
+// Generate C++ code.
 class cpp_code_generator {
  public:
-  std::string generate_code(const function_signature& signature,
-                            const std::vector<ast::variant>& body) const;
+  virtual ~cpp_code_generator() = default;
 
-  // Create a fmt_view that can be passed to code_formatter. All args will be
-  // forwarded back to the operator on this class that matches them.
+  virtual std::string operator()(const argument& arg) const;
+
+  virtual std::string operator()(const custom_type& custom) const;
+
+  virtual std::string operator()(const ast::function_definition& definition) const;
+
+  virtual std::string operator()(const ast::function_signature& signature) const;
+
+  virtual std::string operator()(const ast::return_type_annotation& x) const;
+
+  // Types from the ast::variant:
+
+  virtual std::string operator()(const ast::add& x) const;
+
+  virtual std::string operator()(const ast::assign_output_matrix& x) const;
+
+  virtual std::string operator()(const ast::assign_output_scalar& x) const;
+
+  virtual std::string operator()(const ast::assign_output_struct& x) const;
+
+  virtual std::string operator()(const ast::assign_temporary& x) const;
+
+  virtual std::string operator()(const ast::branch& x) const;
+
+  virtual std::string operator()(const ast::call& x) const;
+
+  virtual std::string operator()(const ast::cast& x) const;
+
+  virtual std::string operator()(const ast::comment& x) const;
+
+  virtual std::string operator()(const ast::compare& x) const;
+
+  virtual std::string operator()(const ast::construct_matrix& x) const;
+
+  virtual std::string operator()(const ast::construct_custom_type& x) const;
+
+  virtual std::string operator()(const ast::declaration& x) const;
+
+  virtual std::string operator()(const ast::divide& x) const;
+
+  virtual std::string operator()(const ast::float_literal& x) const;
+
+  virtual std::string operator()(const ast::get_argument& x) const;
+
+  virtual std::string operator()(const ast::get_field& x) const;
+
+  virtual std::string operator()(const ast::get_matrix_element& x) const;
+
+  virtual std::string operator()(const ast::integer_literal& x) const;
+
+  virtual std::string operator()(const ast::multiply& x) const;
+
+  virtual std::string operator()(const ast::negate& x) const;
+
+  virtual std::string operator()(const ast::optional_output_branch& x) const;
+
+  virtual std::string operator()(const ast::return_object& x) const;
+
+  virtual std::string operator()(const ast::special_constant& x) const;
+
+  virtual std::string operator()(const ast::variable_ref& x) const;
+
+  // Accept ast::variant and delegate formatting of the stored type to our derived class.
+  // Using enable_if here to prevent implicit conversion to the variant type.
+  template <typename T, typename = enable_if_same_t<T, ast::variant>>
+  auto operator()(const T& var) const {
+    return std::visit(*this, var);
+  }
+
+  // Accept ast::variant_ptr
+  auto operator()(const ast::variant_ptr& var) const {
+    WF_ASSERT(var, "variant_ptr cannot be empty.");
+    return std::visit(*this, *var);
+  }
+
+ protected:
+  // Create a fmt_view. All args will be forwarded back to the operator on this class that matches
+  // them.
   template <typename... Args>
   auto make_view(Args&&... args) const {
     return ::wf::make_fmt_view(*this, std::forward<Args>(args)...);
   }
-
-  void operator()(code_formatter& formatter, const ast::add& x) const;
-
-  void operator()(code_formatter& formatter, const ast::assign_output_argument& x) const;
-
-  void operator()(code_formatter& formatter, const ast::assign_temporary& x) const;
-
-  void operator()(code_formatter& formatter, const ast::branch& x) const;
-
-  void operator()(code_formatter& formatter, const ast::call& x) const;
-
-  void operator()(code_formatter& formatter, const ast::cast& x) const;
-
-  void operator()(code_formatter& formatter, const ast::comment& x) const;
-
-  void operator()(code_formatter& formatter, const ast::compare& x) const;
-
-  void operator()(code_formatter& formatter, const ast::construct_return_value& x) const;
-
-  void operator()(code_formatter& formatter, const ast::declaration& x) const;
-
-  void operator()(code_formatter& formatter, const ast::divide& x) const;
-
-  void operator()(code_formatter& formatter, const ast::float_literal& x) const {
-    formatter.format("static_cast<Scalar>({})", x.value);
-  }
-
-  void operator()(code_formatter& formatter, const ast::special_constant& x) const;
-
-  void operator()(code_formatter& formatter, const ast::variable_ref& x) const {
-    formatter.format(x.name);
-  }
-
-  void operator()(code_formatter& formatter, const ast::input_value& x) const;
-
-  void operator()(code_formatter& formatter, const ast::integer_literal& x) const {
-    formatter.format("{}", x.value);
-  }
-
-  void operator()(code_formatter& formatter, const ast::multiply& x) const;
-
-  void operator()(code_formatter& formatter, const ast::negate& x) const;
-
-  void operator()(code_formatter& formatter, const ast::optional_output_branch& x) const;
-
-  // Accept ast::variant and delegate formatting of the stored type to our derived class.
-  // Using enable_if here to prevent implicit conversion to the variant type.
-  template <typename T, typename = std::enable_if_t<std::is_same_v<T, ast::variant>>>
-  void operator()(code_formatter& formatter, const T& var) const {
-    std::visit([&](const auto& x) { return operator()(formatter, x); }, var);
-  }
-
-  // Accept ast::variant_ptr
-  void operator()(code_formatter& formatter, const ast::variant_ptr& var) const {
-    WF_ASSERT(var);
-    operator()(formatter, *var);
-  }
-
-  // Format ptr to argument.
-  void operator()(code_formatter& formatter, const std::shared_ptr<const argument>& var) const {
-    WF_ASSERT(var);
-    formatter.format(var->name());
-  }
-
- protected:
-  void format_signature(code_formatter& formatter, const function_signature& signature) const;
 };
 
 }  // namespace wf

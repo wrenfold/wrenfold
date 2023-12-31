@@ -2,52 +2,11 @@
 #include "wf/code_generation/cpp_code_generator.h"
 
 #include "wf/code_generation/ast_formatters.h"
+#include "wf/index_range.h"
 
 namespace wf {
 
 static constexpr std::string_view utility_namespace = "wf";
-
-std::string cpp_code_generator::generate_code(const function_signature& signature,
-                                              const std::vector<ast::variant>& body) const {
-  code_formatter result;
-  format_signature(result, signature);
-  result.with_indentation(2, "{\n", "\n}", [&] {
-    // Convert input args to spans:
-    std::size_t counter = 0;
-    for (const auto& arg : signature.arguments()) {
-      if (arg->is_matrix()) {
-        const matrix_type& mat = std::get<matrix_type>(arg->type());
-
-        // Generate matrix conversion logic.
-        // TODO: Support dynamic sizes here too.
-        result.format("auto _{} = ", arg->name());
-        const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
-        switch (arg->direction()) {
-          case argument_direction::input:
-            result.format("{}::make_input_span<{}>({});\n", utility_namespace, dims_type,
-                          arg->name());
-            break;
-          case argument_direction::output:
-            result.format("{}::make_output_span<{}>({});\n", utility_namespace, dims_type,
-                          arg->name());
-            break;
-          case argument_direction::optional_output:
-            result.format("{}::make_optional_output_span<{}>({});\n", utility_namespace, dims_type,
-                          arg->name());
-            break;
-        }
-        ++counter;
-      }
-    }
-
-    if (counter > 0) {
-      result.format("\n");
-    }
-
-    result.join(*this, "\n", body);
-  });
-  return result.get_output();
-}
 
 constexpr static std::string_view cpp_string_from_numeric_cast_type(
     const code_numeric_type destination_type) noexcept {
@@ -58,94 +17,164 @@ constexpr static std::string_view cpp_string_from_numeric_cast_type(
       return "std::int64_t";
     case code_numeric_type::floating_point:
       return "Scalar";
-    case code_numeric_type::complex:
-      return "std::complex<Scalar>";
   }
   return "<INVALID ENUM VALUE>";
 }
 
-void cpp_code_generator::format_signature(code_formatter& formatter,
-                                          const function_signature& signature) const {
-  formatter.format("template <typename Scalar");
+constexpr static std::string_view cpp_string_from_numeric_cast_type(
+    const scalar_type& destination_type) noexcept {
+  return cpp_string_from_numeric_cast_type(destination_type.numeric_type());
+}
+
+std::string cpp_code_generator::operator()(const argument& arg) const {
+  std::string result{};
+  overloaded_visit(
+      arg.type(),
+      [&](const scalar_type s) {
+        if (arg.direction() == argument_direction::input) {
+          fmt::format_to(std::back_inserter(result), "const {}",
+                         cpp_string_from_numeric_cast_type(s));
+        } else if (arg.direction() == argument_direction::output) {
+          fmt::format_to(std::back_inserter(result), "{}&", cpp_string_from_numeric_cast_type(s));
+        } else {
+          // TODO: Fix the output type here to be a span.
+          fmt::format_to(std::back_inserter(result), "{}*", cpp_string_from_numeric_cast_type(s));
+        }
+      },
+      [&](matrix_type) {
+        if (arg.direction() == argument_direction::input) {
+          fmt::format_to(std::back_inserter(result), "const T{}&", arg.index());
+        } else {
+          fmt::format_to(std::back_inserter(result), "T{}&&", arg.index());
+        }
+      },
+      [&](const custom_type& custom) {
+        if (arg.direction() == argument_direction::input) {
+          fmt::format_to(std::back_inserter(result), "const {}&", make_view(custom));
+        } else if (arg.direction() == argument_direction::output) {
+          fmt::format_to(std::back_inserter(result), "{}&", make_view(custom));
+        } else if (arg.direction() == argument_direction::optional_output) {
+          fmt::format_to(std::back_inserter(result), "{}*", make_view(custom));
+        }
+      });
+
+  fmt::format_to(std::back_inserter(result), " {}", arg.name());
+  return result;
+}
+
+std::string cpp_code_generator::operator()(const custom_type& custom) const {
+  return custom.name();
+}
+
+std::string cpp_code_generator::operator()(const ast::function_definition& definition) const {
+  std::string result = operator()(definition.signature());
+  result.append("\n{\n");
+
+  std::vector<argument> matrix_args{};
+  std::copy_if(definition.signature().arguments().begin(), definition.signature().arguments().end(),
+               std::back_inserter(matrix_args), [](const auto& arg) { return arg.is_matrix(); });
+
+  if (!matrix_args.empty()) {
+    join_and_indent(result, 2, "", "\n", "\n", matrix_args, [](const argument& arg) {
+      const matrix_type& mat = std::get<matrix_type>(arg.type());
+
+      // Generate matrix conversion logic.
+      std::string arg_result;
+      fmt::format_to(std::back_inserter(arg_result), "auto _{} = ", arg.name());
+
+      const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
+      switch (arg.direction()) {
+        case argument_direction::input:
+          fmt::format_to(std::back_inserter(arg_result), "{}::make_input_span<{}>({});",
+                         utility_namespace, dims_type, arg.name());
+          break;
+        case argument_direction::output:
+          fmt::format_to(std::back_inserter(arg_result), "{}::make_output_span<{}>({});",
+                         utility_namespace, dims_type, arg.name());
+          break;
+        case argument_direction::optional_output:
+          fmt::format_to(std::back_inserter(arg_result), "{}::make_optional_output_span<{}>({});",
+                         utility_namespace, dims_type, arg.name());
+          break;
+      }
+      return arg_result;
+    });
+    result.append("\n");
+  }
+
+  join_and_indent(result, 2, "", "\n}", "\n", definition.body(), *this);
+  return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::function_signature& signature) const {
+  // Template parameter list:
+  std::string result = "template <typename Scalar";
   if (signature.has_matrix_arguments()) {
-    std::size_t counter = 0;
-    for (const std::shared_ptr<const argument>& arg : signature.arguments()) {
-      if (arg->is_matrix()) {
-        formatter.format(", typename T{}", counter);
-        ++counter;
+    for (const argument& arg : signature.arguments()) {
+      if (arg.is_matrix()) {
+        fmt::format_to(std::back_inserter(result), ", typename T{}", arg.index());
       }
     }
   }
-  formatter.format(">\n");
+  result.append(">\n");
 
-  if (signature.has_return_value()) {
-    if (!std::holds_alternative<scalar_type>(*signature.return_value_type())) {
-      // TODO: To support returning matrices in C++ we need more than just a `span` type.
-      throw type_error("Only scalars can be returned.");
-    } else {
-      formatter.format("auto {}(", signature.name());
-    }
-  } else {
-    formatter.format("void {}(", signature.name());
-  }
-
-  std::size_t counter = 0;
-  auto arg_printer = [&counter](code_formatter& formatter, const argument::shared_ptr& arg) {
-    if (arg->is_matrix()) {
-      if (arg->direction() == argument_direction::input) {
-        formatter.format("const T{}&", counter);
-      } else {
-        formatter.format("T{}&&", counter);
-      }
-      ++counter;
-    } else {
-      const code_numeric_type numeric_type = std::get<scalar_type>(arg->type()).numeric_type();
-      if (arg->direction() == argument_direction::input) {
-        formatter.format("const {}", cpp_string_from_numeric_cast_type(numeric_type));
-      } else {
-        // Output reference for now.
-        formatter.format("{}&", cpp_string_from_numeric_cast_type(numeric_type));
-      }
-    }
-
-    formatter.format(" {}", arg->name());
-  };
-
-  formatter.join(std::move(arg_printer), ", ", signature.arguments());
-  formatter.format(")\n");
+  // Return type and name:
+  fmt::format_to(std::back_inserter(result), "{} {}(", make_view(signature.return_annotation()),
+                 signature.name());
+  result += join(*this, ", ", signature.arguments());
+  result.append(")");
+  return result;
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::add& x) const {
-  formatter.format("{} + {}", make_view(x.left), make_view(x.right));
-}
-
-void cpp_code_generator::operator()(code_formatter& formatter,
-                                    const ast::assign_output_argument& assignment) const {
-  const auto& dest_name = assignment.arg->name();
-  const argument_type& type = assignment.arg->type();
-
-  if (std::holds_alternative<matrix_type>(type)) {
-    const matrix_type mat = std::get<matrix_type>(type);
-    auto range = make_range<std::size_t>(0, assignment.values.size());
-
-    formatter.join(
-        [&](code_formatter& fmt, std::size_t i) {
-          const auto [row, col] = mat.compute_indices(i);
-          fmt.format("{}{}({}, {}) = {};", assignment.arg->is_matrix() ? "_" : "", dest_name, row,
-                     col, make_view(assignment.values[i]));
+std::string cpp_code_generator::operator()(const ast::return_type_annotation& x) const {
+  if (x.type) {
+    return overloaded_visit(
+        x.type.value(), [&](scalar_type) { return std::string{"Scalar"}; },
+        [&](matrix_type) -> std::string {
+          throw type_error(
+              "The default C++ code-generator treats all matrices as spans. We cannot return one "
+              "directly. You likely want to implement an override for the {} ast type.",
+              ast::return_type_annotation::snake_case_name_str);
         },
-        "\n", range);
-
+        [this](const custom_type& custom_type) { return operator()(custom_type); });
   } else {
-    // Otherwise it is a scalar, so just assign it:
-    WF_ASSERT_EQUAL(1, assignment.values.size());
-    formatter.format("{} = {};", dest_name, make_view(assignment.values.front()));
+    return "void";
   }
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter,
-                                    const ast::assign_temporary& x) const {
-  formatter.format("{} = {};", x.left, make_view(x.right));
+std::string cpp_code_generator::operator()(const ast::add& x) const {
+  return fmt::format("{} + {}", make_view(x.left), make_view(x.right));
+}
+
+std::string cpp_code_generator::operator()(const ast::assign_output_matrix& x) const {
+  const auto range = make_range(static_cast<std::size_t>(0), x.value->type.size());
+  return join(
+      [&](const std::size_t i) {
+        const auto [row, col] = x.value->type.compute_indices(i);
+        return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col,
+                           make_view(x.value->args[i]));
+      },
+      "\n", range);
+}
+
+std::string cpp_code_generator::operator()(const ast::assign_output_scalar& x) const {
+  if (x.arg.is_optional()) {
+    return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
+  } else {
+    return fmt::format("{} = {};", x.arg.name(), make_view(x.value));
+  }
+}
+
+std::string cpp_code_generator::operator()(const ast::assign_output_struct& x) const {
+  if (x.arg.is_optional()) {
+    return fmt::format("*{} = {};", x.arg.name(), make_view(*x.value));
+  } else {
+    return fmt::format("{} = {};", x.arg.name(), make_view(*x.value));
+  }
+}
+
+std::string cpp_code_generator::operator()(const ast::assign_temporary& x) const {
+  return fmt::format("{} = {};", x.left, make_view(x.right));
 }
 
 static constexpr std::string_view cpp_string_for_std_function(
@@ -180,63 +209,103 @@ static constexpr std::string_view cpp_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::call& x) const {
+std::string cpp_code_generator::operator()(const ast::branch& x) const {
+  std::string result{};
+  fmt::format_to(std::back_inserter(result), "if ({}) ", make_view(x.condition));
+  join_and_indent(result, 2, "{\n", "\n}", "\n", x.if_branch, *this);
+  if (!x.else_branch.empty()) {
+    join_and_indent(result, 2, " else {\n", "\n}", "\n", x.else_branch, *this);
+  }
+  return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::call& x) const {
   if (x.function == std_math_function::signum) {
     // We need to special-case signum because it doesn't exist as a free-standing function.
     // TODO: This should be an int expression.
-    formatter.format(
+    return fmt::format(
         "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
         make_view(x.args[0]), make_view(x.args[0]));
   } else {
-    formatter.format("{}({})", cpp_string_for_std_function(x.function),
-                     make_join_view(*this, ", ", x.args));
+    const auto args = join(*this, ", ", x.args);
+    return fmt::format("{}({})", cpp_string_for_std_function(x.function), args);
   }
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::cast& x) const {
-  formatter.format("static_cast<{}>({})", cpp_string_from_numeric_cast_type(x.destination_type),
-                   make_view(x.arg));
+std::string cpp_code_generator::operator()(const ast::cast& x) const {
+  return fmt::format("static_cast<{}>({})", cpp_string_from_numeric_cast_type(x.destination_type),
+                     make_view(x.arg));
 }
 
-void cpp_code_generator::operator()(wf::code_formatter& formatter, const ast::comment& x) const {
+std::string cpp_code_generator::operator()(const ast::comment& x) const {
   const std::vector<std::string> lines = x.split_lines();
+  std::string result{};
   for (const auto& line : lines) {
-    formatter.format("// {}\n", line);
+    fmt::format_to(std::back_inserter(result), "// {}\n", line);
   }
+  return result;
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::compare& x) const {
-  formatter.format("{} {} {}", make_view(x.left), string_from_relational_operation(x.operation),
-                   make_view(x.right));
+std::string cpp_code_generator::operator()(const ast::compare& x) const {
+  return fmt::format("{} {} {}", make_view(x.left), string_from_relational_operation(x.operation),
+                     make_view(x.right));
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::branch& x) const {
-  formatter.format("if ({}) ", make_view(x.condition));
-  formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.if_branch); });
-  if (!x.else_branch.empty()) {
-    formatter.with_indentation(2, " else {\n", "\n}",
-                               [&] { formatter.join(*this, "\n", x.else_branch); });
-  }
+std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
+  throw type_error(
+      "The default C++ code-generator treats all matrices as spans. We cannot construct one "
+      "directly. You likely want to implement an override for the the {} ast type.",
+      ast::construct_matrix::snake_case_name_str);
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter,
-                                    const ast::construct_return_value& x) const {
-  WF_ASSERT(std::holds_alternative<scalar_type>(x.type), "We cannot return matrices");
-  WF_ASSERT_EQUAL(1, x.args.size());
-  formatter.format("return {};", make_view(x.args[0]));
+// Really we don't know how the user wants their types constructed, but we can take an educated
+// guess. Customization is possible from python via overrides.
+std::string cpp_code_generator::operator()(const ast::construct_custom_type& x) const {
+  const std::string opener = fmt::format("{}{{\n", make_view(x.type));
+  std::string output{};
+  join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
+    const auto& [_, val] = field_val;
+    return operator()(val);
+  });
+  return output;
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::declaration& x) const {
+std::string cpp_code_generator::operator()(const ast::declaration& x) const {
   if (!x.value) {
-    formatter.format("{} {};", cpp_string_from_numeric_cast_type(x.type), x.name);
+    return fmt::format("{} {};", cpp_string_from_numeric_cast_type(x.type), x.name);
   } else {
-    formatter.format("const {} {} = {};", cpp_string_from_numeric_cast_type(x.type), x.name,
-                     make_view(x.value));
+    return fmt::format("const {} {} = {};", cpp_string_from_numeric_cast_type(x.type), x.name,
+                       make_view(x.value));
   }
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::divide& x) const {
-  formatter.format("{} / {}", make_view(x.left), make_view(x.right));
+std::string cpp_code_generator::operator()(const ast::divide& x) const {
+  return fmt::format("{} / {}", make_view(x.left), make_view(x.right));
+}
+
+std::string cpp_code_generator::operator()(const ast::float_literal& x) const {
+  return fmt::format("static_cast<Scalar>({})", x.value);
+}
+
+std::string cpp_code_generator::operator()(const ast::get_argument& x) const {
+  if (x.arg.is_matrix()) {
+    // Access the span indirection we created.
+    return fmt::format("_{}", x.arg.name());
+  } else {
+    return x.arg.name();
+  }
+}
+
+std::string cpp_code_generator::operator()(const ast::get_field& x) const {
+  return fmt::format("{}.{}", make_view(x.arg), x.field);
+}
+
+std::string cpp_code_generator::operator()(const ast::get_matrix_element& x) const {
+  return fmt::format("{}({}, {})", make_view(x.arg), x.row, x.col);
+}
+
+std::string cpp_code_generator::operator()(const ast::integer_literal& x) const {
+  return fmt::format("{}", x.value);
 }
 
 static constexpr std::string_view cpp_string_for_symbolic_constant(
@@ -254,34 +323,30 @@ static constexpr std::string_view cpp_string_for_symbolic_constant(
   return "<INVALID ENUM VALUE>";
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter,
-                                    const ast::special_constant& x) const {
-  formatter.format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
+std::string cpp_code_generator::operator()(const ast::multiply& x) const {
+  return fmt::format("{} * {}", make_view(x.left), make_view(x.right));
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::input_value& x) const {
-  WF_ASSERT(x.arg);
-  if (std::holds_alternative<scalar_type>(x.arg->type())) {
-    formatter.format(x.arg->name());
-  } else {
-    const matrix_type& mat = std::get<matrix_type>(x.arg->type());
-    const auto [r, c] = mat.compute_indices(x.element);
-    formatter.format("_{}({}, {})", x.arg->name(), r, c);
-  }
+std::string cpp_code_generator::operator()(const ast::negate& x) const {
+  return fmt::format("-{}", make_view(x.arg));
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::multiply& x) const {
-  formatter.format("{} * {}", make_view(x.left), make_view(x.right));
+std::string cpp_code_generator::operator()(const ast::optional_output_branch& x) const {
+  std::string result{};
+  fmt::format_to(std::back_inserter(result), "if (static_cast<bool>({}{})) ",
+                 x.arg.is_matrix() ? "_" : "", x.arg.name());
+  join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
+  return result;
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter, const ast::negate& x) const {
-  formatter.format("-{}", make_view(x.arg));
+std::string cpp_code_generator::operator()(const ast::return_object& x) const {
+  return fmt::format("return {};", make_view(x.value));
 }
 
-void cpp_code_generator::operator()(code_formatter& formatter,
-                                    const ast::optional_output_branch& x) const {
-  formatter.format("if (static_cast<bool>({}{})) ", x.arg->is_matrix() ? "_" : "", x.arg->name());
-  formatter.with_indentation(2, "{\n", "\n}", [&] { formatter.join(*this, "\n", x.statements); });
+std::string cpp_code_generator::operator()(const ast::special_constant& x) const {
+  return fmt::format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
 }
+
+std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
 
 }  // namespace wf

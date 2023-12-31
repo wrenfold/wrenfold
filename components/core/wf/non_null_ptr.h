@@ -1,4 +1,5 @@
 // Copyright 2023 Gareth Cross
+#pragma once
 #include <system_error>  // for std::hash
 
 #include "wf/assertions.h"

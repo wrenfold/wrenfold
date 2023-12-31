@@ -61,11 +61,11 @@ auto visit_with_expr(const Expr& expr, VisitorType&& visitor) {
     using T = std::decay_t<decltype(x)>;
 
     // Make sure this is not ambiguous:
-    static_assert(
-        has_binary_call_operator_v<VisitorType, T, Expr> != has_call_operator_v<VisitorType, T>,
-        "Visitor must support either unary or binary operator(), but not both.");
+    static_assert(has_binary_call_operator_v<VisitorType, const T&, const Expr&> !=
+                      has_call_operator_v<VisitorType, const T&>,
+                  "Visitor must support either unary or binary operator(), but not both.");
 
-    if constexpr (has_binary_call_operator_v<VisitorType, T, Expr>) {
+    if constexpr (has_binary_call_operator_v<VisitorType, const T, const Expr>) {
       return visitor(x, expr);
     } else {
       return visitor(x);
@@ -83,7 +83,7 @@ auto visit_binary(const Expr& u, const Expr& v, VisitorType&& handler) {
       using TypeU = std::decay_t<decltype(typed_u)>;
       using TypeV = std::decay_t<decltype(typed_v)>;
       static_assert(!std::is_const_v<decltype(handler)>);
-      static_assert(has_binary_call_operator_v<std::decay_t<VisitorType>, TypeU, TypeV>,
+      static_assert(has_binary_call_operator_v<std::decay_t<VisitorType>, const TypeU, const TypeV>,
                     "Binary visitor fails to implement a required operator() method.");
       return handler(typed_u, typed_v);
     });

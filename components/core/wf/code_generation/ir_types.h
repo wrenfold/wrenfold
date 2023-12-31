@@ -301,6 +301,9 @@ class block {
   // True if this block has no ancestors (typically only true for the starting block).
   bool has_no_ancestors() const noexcept { return ancestors.empty(); }
 
+  // True if this block has no descendents.
+  bool has_no_descendents() const noexcept { return descendants.empty(); }
+
   // Replace descendant `target` w/ `replacement`.
   void replace_descendant(ir::block_ptr target, ir::block_ptr replacement);
 
@@ -514,7 +517,7 @@ std::size_t block::count_operation(Func&& func) const {
     return std::visit(
         [&func](const auto& op) -> bool {
           using arg_type = std::decay_t<decltype(op)>;
-          if constexpr (has_call_operator_v<Func, arg_type>) {
+          if constexpr (has_call_operator_v<Func, const arg_type&>) {
             return func(op);
           } else {
             return false;

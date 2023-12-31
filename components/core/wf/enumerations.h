@@ -69,7 +69,6 @@ enum class code_numeric_type {
   boolean,
   integral,
   floating_point,
-  complex,
 };
 
 // A tri-state value.
@@ -208,8 +207,6 @@ constexpr std::string_view string_from_code_numeric_type(const code_numeric_type
       return "integral";
     case code_numeric_type::floating_point:
       return "floating_point";
-    case code_numeric_type::complex:
-      return "complex";
   }
   return "<NOT A VALID ENUM VALUE>";
 }

@@ -3,18 +3,35 @@
 #include <fstream>
 
 #include "wf/code_generation/cpp_code_generator.h"
+#include "wf_test_support/code_gen_helpers.h"
 
 #include "test_expressions.h"
-#include "wf_test_support/code_gen_helpers.h"
+
+class custom_cpp_code_generator final : public wf::cpp_code_generator {
+ public:
+  using cpp_code_generator::cpp_code_generator;
+  using cpp_code_generator::operator();
+
+  std::string operator()(const wf::custom_type& custom) const override {
+    if (custom.is_native_type<wf::symbolic::Point2d>()) {
+      return "wf::numeric::Point2d";
+    }
+    if (custom.is_native_type<wf::symbolic::Circle>()) {
+      return "wf::numeric::Circle";
+    }
+    return cpp_code_generator::operator()(custom);
+  }
+};
 
 int main() {
   using namespace wf;
   std::string code =
-      "// Machine generated code.\n#include <cmath>\n\n#include <wf_runtime/span.h>\n\n";
+      "// Machine generated code.\n#pragma once\n#include <cmath>\n\n#include "
+      "<wf_runtime/span.h>\n\n";
 
   code += "namespace gen {\n\n";
 
-  cpp_code_generator gen{};
+  custom_cpp_code_generator gen{};
   generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", "x", "y", "z");
   generate_func(
       gen, code,
@@ -32,6 +49,10 @@ int main() {
   generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", arg("x"), arg("y"));
   generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", arg("w"));
   generate_func(gen, code, &rotation_vector_from_matrix, "rotation_vector_from_matrix", arg("R"));
+  generate_func(gen, code, &no_required_outputs, "no_required_outputs", arg("x"));
+  generate_func(gen, code, &custom_type_1, "custom_type_1", arg("p"));
+  generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
+  generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
 
   code += "} // namespace gen";
 

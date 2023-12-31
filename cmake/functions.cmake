@@ -50,6 +50,8 @@ function(add_compiled_code_generator NAME)
     WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
     COMMENT "Run code-generator: ${NAME}"
     DEPENDS ${generate_target})
+  set_source_files_properties(${GENERATOR_OUTPUT_FILE} PROPERTIES GENERATED
+                                                                  TRUE)
 
   # A custom target for running the code-generation. This is so the user can
   # explicitly run this target from the command line.
@@ -148,6 +150,9 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
     WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
     COMMENT "Run python code-generator: ${NAME}"
     DEPENDS wf-core wf_wrapper ${MAIN_SCRIPT_FILE} ${SOURCE_FILES})
+
+  set_source_files_properties(${GENERATOR_OUTPUT_FILE} PROPERTIES GENERATED
+                                                                  TRUE)
 
   # Create a target we can attach the output source file to as a property.
   add_custom_target(${NAME} DEPENDS ${GENERATOR_OUTPUT_FILE})

@@ -3,48 +3,13 @@
 #include <variant>
 #include <vector>
 
-#include "wf/assertions.h"
 #include "wf/code_generation/expression_group.h"
+#include "wf/code_generation/type_registry.h"
+#include "wf/code_generation/types.h"
 #include "wf/matrix_expression.h"
 
 namespace wf {
-
-// Represent a scalar argument type (float, int, etc).
-class scalar_type {
- public:
-  explicit constexpr scalar_type(code_numeric_type numeric_type) noexcept
-      : numeric_type_(numeric_type) {}
-
-  constexpr code_numeric_type numeric_type() const noexcept { return numeric_type_; }
-
- private:
-  code_numeric_type numeric_type_;
-};
-
-// Represent a matrix argument type. The dimensions are known at generation time.
-class matrix_type {
- public:
-  constexpr matrix_type(index_t rows, index_t cols) noexcept : rows_(rows), cols_(cols) {}
-
-  constexpr index_t rows() const noexcept { return rows_; }
-  constexpr index_t cols() const noexcept { return cols_; }
-
-  constexpr std::size_t size() const noexcept { return static_cast<std::size_t>(rows_ * cols_); }
-
-  // Convert to [row, col] indices (assuming row major order).
-  std::pair<index_t, index_t> compute_indices(std::size_t element) const {
-    WF_ASSERT_LESS(element, size());
-    return std::make_pair(static_cast<index_t>(element) / cols_,
-                          static_cast<index_t>(element) % cols_);
-  }
-
- private:
-  index_t rows_;
-  index_t cols_;
-};
-
-// TODO: Add ability to add custom type.
-using argument_type = std::variant<scalar_type, matrix_type>;
+class variable_creator;  //  Fwd declare.
 
 // Specify how an argument is used (input, output).
 enum class argument_direction {
@@ -56,119 +21,116 @@ enum class argument_direction {
 // Store an argument to a function.
 class argument {
  public:
-  using shared_ptr = std::shared_ptr<const argument>;
+  static constexpr std::string_view snake_case_name_str = "argument";
 
-  argument(const std::string_view name, argument_type type, argument_direction direction)
-      : name_(name), type_(std::move(type)), direction_(direction) {}
+  argument(const std::string_view name, type_variant type, argument_direction direction,
+           const std::size_t index)
+      : impl_(std::make_shared<const impl>(
+            impl{std::string(name), std::move(type), direction, index})) {}
 
   // Name of the argument.
-  constexpr const std::string& name() const noexcept { return name_; }
+  const std::string& name() const noexcept { return impl_->name; }
 
   // Type of the argument.
-  constexpr const argument_type& type() const noexcept { return type_; }
+  const type_variant& type() const noexcept { return impl_->type; }
 
   // Is the argument type a matrix.
-  constexpr bool is_matrix() const noexcept { return std::holds_alternative<matrix_type>(type_); }
+  bool is_matrix() const noexcept { return std::holds_alternative<matrix_type>(impl_->type); }
+
+  // Is the argument type a custom user-specified struct.
+  bool is_custom_type() const noexcept { return std::holds_alternative<custom_type>(impl_->type); }
 
   // Is this argument optional? Presently only output arguments may be optional.
-  constexpr bool is_optional() const noexcept {
-    return direction_ == argument_direction::optional_output;
+  bool is_optional() const noexcept {
+    return impl_->direction == argument_direction::optional_output;
   }
 
   // Argument direction.
-  constexpr argument_direction direction() const noexcept { return direction_; }
+  argument_direction direction() const noexcept { return impl_->direction; }
+
+  // Position of this argument in the argument list.
+  std::size_t index() const noexcept { return impl_->index; }
 
  private:
-  std::string name_;
-  argument_type type_;
-  argument_direction direction_;
-};
-
-// Describe a function signature.
-// Stores a name, and type+name information for all the arguments.
-struct function_signature {
- public:
-  explicit function_signature(std::string name) noexcept : name_(std::move(name)) {}
-
-  // Name of the function.
-  constexpr const std::string& name() const noexcept { return name_; }
-
-  // Number of arguments (both input and output).
-  std::size_t num_arguments() const noexcept { return arguments_.size(); }
-
-  // Push back a new argument.
-  void add_argument(std::string_view name, argument_type type, argument_direction direction);
-
-  // Find an argument by name.
-  std::optional<std::shared_ptr<const argument>> argument_by_name(std::string_view str) const;
-
-  // Get an argument by index.
-  const std::shared_ptr<const argument>& argument_by_index(std::size_t index) const {
-    WF_ASSERT_LESS(index, num_arguments());
-    return arguments_[index];
-  }
-
-  // Access all arguments.
-  constexpr const auto& arguments() const noexcept { return arguments_; }
-
-  // Are any of the arguments to this function a matrix?
-  bool has_matrix_arguments() const noexcept;
-
-  // Get the type of the return value, if there is one.
-  // If the function has no return value, this will be null.
-  constexpr const std::optional<argument_type>& return_value_type() const noexcept {
-    return return_value_type_;
-  }
-
-  // True if the return value type has been set.
-  constexpr bool has_return_value() const noexcept { return return_value_type_.has_value(); }
-
-  // Set the return value type.
-  void set_return_value_type(argument_type type);
-
- private:
-  std::string name_;
-  std::vector<std::shared_ptr<const argument>> arguments_{};
-  std::optional<argument_type> return_value_type_{};
+  // We share arguments in multiple places, and return them into python.
+  // For that reason we place the implementation in a shared_ptr to const.
+  struct impl {
+    std::string name;
+    type_variant type;
+    argument_direction direction;
+    std::size_t index;
+  };
+  std::shared_ptr<const impl> impl_;
 };
 
 // Store the signature of a function we will generate, plus all the captured output expressions.
 // This type is a symbolic function description, which is then "transpiled" into an actual AST that
 // can be written out as actual code.
-// TODO: Use this in build_function_description?
-struct function_description {
+class function_description {
  public:
-  // Stored in a shared ptr so that we can pass with no copies to and from python.
-  using shared_ptr = std::shared_ptr<function_description>;
-
   // Construct with the name of the function.
-  explicit function_description(std::string name) noexcept : signature_{std::move(name)} {}
+  explicit function_description(std::string name) noexcept;
 
   // Get function name.
-  constexpr const std::string& name() const noexcept { return signature_.name(); }
+  const std::string& name() const noexcept { return impl_->name; }
 
-  // Get the function signature.
-  constexpr const function_signature& signature() const noexcept { return signature_; }
+  // Get the function arguments.
+  const std::vector<argument>& arguments() const noexcept { return impl_->arguments; }
+
+  // Get the return type.
+  const std::optional<type_variant>& return_value_type() const noexcept {
+    return impl_->return_value_type;
+  }
 
   // Get the vector of all output expressions, grouped by argument.
-  constexpr const std::vector<expression_group>& output_expressions() const noexcept {
-    return output_expressions_;
+  const std::vector<expression_group>& output_expressions() const noexcept {
+    return impl_->output_expressions;
   }
 
   // Add an input argument to the function.
   // Returns the argument that the python side should pass to the user method.
-  std::variant<Expr, MatrixExpr> add_input_argument(std::string_view name, argument_type type);
+  // For custom types, we return a vector of expressions and the python side must map these to
+  // fields on the user's custom type.
+  std::variant<Expr, MatrixExpr, std::vector<Expr>> add_input_argument(std::string_view name,
+                                                                       type_variant type);
 
   // Record an output.
-  void add_output_argument(std::string_view name, argument_type type, bool is_optional,
+  void add_output_argument(std::string_view name, type_variant type, bool is_optional,
                            std::vector<Expr> expressions);
 
-  // Set the return value.
-  void set_return_value(argument_type type, std::vector<Expr> expressions);
+  // Set the return value. Only one return value is presently supported, so this may only be invoked
+  // once.
+  void set_return_value(type_variant type, std::vector<Expr> expressions);
+
+  // Add a `return_value` to this signature.
+  template <typename Value, typename Type>
+  void add_output_value(const return_value<Value>& value, Type type) {
+    std::vector<Expr> expressions = detail::extract_function_output(type, value.value());
+    set_return_value(std::move(type), std::move(expressions));
+  }
+
+  // Add an `output_arg` output to this function.
+  template <typename Value, typename Type>
+  void add_output_value(const output_arg<Value>& value, Type type) {
+    std::vector<Expr> expressions = detail::extract_function_output(type, value.value());
+    add_output_argument(value.name(), std::move(type), value.is_optional(), std::move(expressions));
+  }
 
  private:
-  function_signature signature_;
-  std::vector<expression_group> output_expressions_;
+  const argument& add_argument(std::string_view name, type_variant type,
+                               argument_direction direction);
+
+  struct impl {
+    std::string name;
+    std::vector<argument> arguments{};
+    std::optional<type_variant> return_value_type{};
+    std::vector<expression_group> output_expressions{};
+
+    explicit impl(std::string&& name) noexcept : name(std::move(name)) {}
+  };
+
+  // Shared pointer so we can share this in python with no copies.
+  std::shared_ptr<impl> impl_;
 };
 
 }  // namespace wf

@@ -95,6 +95,9 @@ void wrap_matrix_operations(py::module_& m);
 // Defined in codegen_wrapper.cc
 void wrap_codegen_operations(py::module_& m);
 
+// Defined in code_formatting_wrapper.cc
+void wrap_code_formatting_operations(py::module_& m);
+
 // Defined in geometry_wrapper.cc
 void wrap_geometry_operations(py::module_& m);
 }  // namespace wf
@@ -250,4 +253,5 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
   wrap_codegen_operations(m_codegen);
+  wrap_code_formatting_operations(m_codegen);
 }  // PYBIND11_MODULE

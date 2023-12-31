@@ -3,6 +3,7 @@
 
 #include <unordered_set>
 
+#include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ir_builder.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/expressions/numeric_expressions.h"
@@ -36,7 +37,7 @@ namespace wf::ast {
 inline void find_conditional_output_values(const ir::value_ptr v, const bool top_level_invocation,
                                            std::vector<ir::value_ptr>& outputs) {
   bool all_phi_consumers = true;
-  for (ir::value_ptr consumer : v->consumers()) {
+  for (const ir::value_ptr consumer : v->consumers()) {
     if (consumer->is_phi()) {
       // A phi function might just be an input to another phi function, so we need to recurse here.
       find_conditional_output_values(consumer, false, outputs);
@@ -49,14 +50,67 @@ inline void find_conditional_output_values(const ir::value_ptr v, const bool top
   }
 }
 
+// Given all the values that are required to build a given output, make the syntax to construct
+// that object. For structs, we need to recurse and build each member.
+template <typename Iterator>
+struct create_custom_type_constructor {
+  create_custom_type_constructor(Iterator begin, Iterator end) : input_it(begin), end(end) {}
+
+  // Scalar doesn't have a constructor, just return the input directly and step forward by one
+  // value.
+  ast::variant operator()(const scalar_type&) {
+    WF_ASSERT(input_it != end);
+    ast::variant result = *input_it;
+    ++input_it;
+    return result;
+  }
+
+  // Matrices we just group the next `row * col` elements into `construct_matrix` element.
+  ast::construct_matrix operator()(const matrix_type& mat) {
+    const auto mat_size = static_cast<std::ptrdiff_t>(mat.size());
+    WF_ASSERT_GREATER_OR_EQ(std::distance(input_it, end), mat_size);
+
+    std::vector<ast::variant> matrix_args{};
+    matrix_args.reserve(mat.size());
+    const auto start = input_it;
+    std::advance(input_it, mat_size);
+    std::copy(start, input_it, std::back_inserter(matrix_args));
+    return ast::construct_matrix{mat, std::move(matrix_args)};
+  }
+
+  // For custom types, recurse and consume however many values are required for each individual
+  // field.
+  ast::construct_custom_type operator()(const custom_type& type) {
+    // Recursively convert every field in the custom type.
+    std::vector<std::tuple<std::string, ast::variant>> fields_out{};
+    fields_out.reserve(type.size());
+    for (const struct_field& field : type.fields()) {
+      ast::variant field_var = std::visit(
+          [this](const auto& t) -> ast::variant { return this->operator()(t); }, field.type());
+      fields_out.emplace_back(field.name(), std::move(field_var));
+    }
+    return ast::construct_custom_type{type, std::move(fields_out)};
+  }
+
+ private:
+  Iterator input_it;
+  const Iterator end;
+};
+
+static auto make_custom_type_constructor(std::vector<ast::variant>& args) {
+  return create_custom_type_constructor{std::make_move_iterator(args.begin()),
+                                        std::make_move_iterator(args.end())};
+}
+
 // Object that iterates over operations in IR blocks, and visits each operation. We recursively
 // convert our basic control-flow-graph to a limited syntax tree that can be emitted in different
 // languages.
 struct ast_from_ir {
-  ast_from_ir(std::size_t value_width, const function_signature& signature)
-      : value_width_(value_width), signature_(signature) {}
+  ast_from_ir(const std::size_t value_width, const function_description& description)
+      : value_width_(value_width),
+        signature_{description.name(), description.return_value_type(), description.arguments()} {}
 
-  std::vector<ast::variant> convert_function(ir::block_ptr block) {
+  ast::function_definition convert_function(const ir::block_ptr block) {
     process_block(block);
 
     std::vector<ast::variant> result;
@@ -65,7 +119,7 @@ struct ast_from_ir {
     std::copy(std::make_move_iterator(operations_.begin()),
               std::make_move_iterator(operations_.end()), std::back_inserter(result));
     operations_.clear();
-    return result;
+    return ast::function_definition(std::move(signature_), std::move(result));
   }
 
   // Sort and move all the provided assignments into `operations_`.
@@ -95,13 +149,32 @@ struct ast_from_ir {
 
       if (key.usage == expression_usage::return_value) {
         WF_ASSERT(block->descendants.empty(), "Must be the final block");
-        WF_ASSERT(signature_.has_return_value());
-        emplace_operation<ast::construct_return_value>(*signature_.return_value_type(),
-                                                       std::move(args));
+        WF_ASSERT(signature_.return_type().has_value(), "Return type must be specified");
+        ast::variant var = std::visit(
+            [&](const auto& t) -> ast::variant { return make_custom_type_constructor(args)(t); },
+            *signature_.return_type());
+        emplace_operation<ast::return_object>(std::make_shared<ast::variant>(std::move(var)));
       } else {
         auto arg = signature_.argument_by_name(key.name);
-        WF_ASSERT(arg, "Argument missing from signature: {}", key.name);
-        emplace_operation<ast::assign_output_argument>(std::move(*arg), std::move(args));
+        WF_ASSERT(arg.has_value(), "Argument missing from signature: {}", key.name);
+
+        overloaded_visit(
+            arg->type(),
+            [&](scalar_type) {
+              // TODO: Make variant_ptr a proper type so we can put the pointer allocation
+              // internally.
+              WF_ASSERT_EQUAL(1, args.size(), "");
+              emplace_operation<ast::assign_output_scalar>(
+                  *arg, std::make_shared<ast::variant>(std::move(args[0])));
+            },
+            [&](const matrix_type& mat) {
+              emplace_operation<ast::assign_output_matrix>(*arg,
+                                                           construct_matrix{mat, std::move(args)});
+            },
+            [&](const custom_type& custom) {
+              construct_custom_type ctor = make_custom_type_constructor(args)(custom);
+              emplace_operation<ast::assign_output_struct>(*arg, std::move(ctor));
+            });
       }
     }
   }
@@ -120,8 +193,8 @@ struct ast_from_ir {
   //      v00 = sin(x);
   //    }
   //  }
-  void push_back_conditional_output_declarations(ir::block_ptr block) {
-    for (ir::value_ptr value : block->operations) {
+  void push_back_conditional_output_declarations(const ir::block_ptr block) {
+    for (const ir::value_ptr value : block->operations) {
       if (value->is_phi()) {
         const bool no_declaration =
             value->all_consumers_satisfy([](ir::value_ptr v) { return v->is_phi(); });
@@ -134,13 +207,15 @@ struct ast_from_ir {
     }
   }
 
-  void process_block(ir::block_ptr block) {
-    WF_ASSERT(!block->is_empty());
+  void process_block(const ir::block_ptr block) {
     if (non_traversable_blocks_.count(block)) {
       // Don't recurse too far - we are waiting on one of the ancestors of this block to get
       // processed.
       return;
     }
+    WF_ASSERT(block->has_no_descendents() || !block->is_empty(),
+              "Only the terminal block may be empty. block->name: {}", block->name);
+
     operations_.reserve(operations_.capacity() + block->operations.size());
 
     std::vector<ast::assign_temporary> phi_assignments{};
@@ -379,9 +454,46 @@ struct ast_from_ir {
 
   ast::variant operator()(const named_variable& v) const { return ast::variable_ref{v.name()}; }
 
+  ast::variant operator()(const scalar_type&, const argument& arg, std::size_t) const {
+    return ast::get_argument{arg};
+  }
+
+  ast::variant operator()(const matrix_type& m, const argument& arg,
+                          const std::size_t element_index) const {
+    const auto [row, col] = m.compute_indices(element_index);
+    return ast::get_matrix_element{std::make_shared<ast::variant>(ast::get_argument{arg}), row,
+                                   col};
+  }
+
+  ast::variant operator()(const custom_type& c, const argument& arg,
+                          const std::size_t element_index) const {
+    const auto access_sequence = determine_access_sequence(c, element_index);
+
+    ast::get_argument get_arg{arg};
+    if (access_sequence.empty()) {
+      return get_arg;
+    }
+
+    ast::variant prev = std::move(get_arg);
+    for (const access_variant& access : access_sequence) {
+      overloaded_visit(
+          access,
+          [&](const matrix_access& m) {
+            prev = ast::get_matrix_element{std::make_shared<ast::variant>(std::move(prev)), m.row(),
+                                           m.col()};
+          },
+          [&](const field_access& f) {
+            prev = ast::get_field{std::make_shared<ast::variant>(std::move(prev)), f.type(),
+                                  f.field_name()};
+          });
+    }
+    return prev;
+  }
+
   ast::variant operator()(const function_argument_variable& a) const {
-    const auto element_index = static_cast<index_t>(a.element_index());
-    return ast::input_value{signature_.argument_by_index(a.arg_index()), element_index};
+    const argument& arg = signature_.argument_by_index(a.arg_index());
+    return std::visit([&](const auto& type) { return operator()(type, arg, a.element_index()); },
+                      arg.type());
   }
 
   ast::variant operator()(const unique_variable& u) const {
@@ -400,7 +512,7 @@ struct ast_from_ir {
             return ast::float_literal{static_cast<float_constant>(inner).get_value()};
           } else if constexpr (std::is_same_v<T, rational_constant>) {
             return ast::float_literal{static_cast<float_constant>(inner).get_value()};
-          } else if constexpr (std::is_same_v<T, variable>) {
+          } else {  // std::is_same_v<T, variable>
             // inspect inner type of the variable
             return std::visit(*this, inner.identifier());
           }
@@ -449,7 +561,7 @@ struct ast_from_ir {
 
  private:
   std::size_t value_width_;
-  const function_signature& signature_;
+  function_signature signature_;
 
   // Operations accrued in the current block.
   std::vector<ast::variant> operations_;
@@ -462,10 +574,9 @@ struct ast_from_ir {
       operation_counts_{};
 };
 
-function_definition create_ast(const wf::output_ir& ir, const function_signature& signature) {
-  ast_from_ir builder(ir.value_print_width(), signature);
-  variant_vector ast = builder.convert_function(ir.first_block());
-  return function_definition{signature, std::move(ast)};
+function_definition create_ast(const wf::output_ir& ir, const function_description& description) {
+  ast_from_ir converter{ir.value_print_width(), description};
+  return converter.convert_function(ir.first_block());
 }
 
 }  // namespace wf::ast

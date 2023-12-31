@@ -15,7 +15,6 @@ pub trait OutputSpan1D<const D0: usize> {
     fn set(&mut self, i: usize, val: Self::ValueType);
 }
 
-
 pub trait Span2D<const D0: usize, const D1: usize> {
     type ValueType;
 

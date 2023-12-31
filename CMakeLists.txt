@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.20)
 project(
   wrenfold-codegen
   VERSION 0.1
@@ -36,6 +36,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   # Disable unused parameter warning (triggered by if constexpr)
   list(APPEND SHARED_WARNING_FLAGS -Wno-unused-parameter
        -Wno-unused-but-set-parameter)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
+                                             "AppleClang")
+  # Disable unused local typedef on Clang:
+  list(APPEND SHARED_WARNING_FLAGS -Wno-unused-local-typedef)
 endif()
 
 # Find cargo so we can enable optional rust targets:
