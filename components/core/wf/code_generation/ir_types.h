@@ -17,8 +17,8 @@ namespace wf::ir {
 
 class value;
 class block;
-using value_ptr = non_null_ptr<ir::value>;
-using block_ptr = non_null_ptr<ir::block>;
+using value_ptr = non_null<ir::value*>;
+using block_ptr = non_null<ir::block*>;
 
 // Add together two operands.
 class add {
