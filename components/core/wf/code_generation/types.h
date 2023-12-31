@@ -2,12 +2,12 @@
 #pragma once
 #include <any>
 #include <memory>
-#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 
 #include "wf/assertions.h"
+#include "wf/checked_pointers.h"
 #include "wf/enumerations.h"
 
 #include <typeindex>
@@ -102,7 +102,7 @@ class custom_type {
   };
 
   // This object is saved in multiple places, and returned into python.
-  std::shared_ptr<const impl> impl_;
+  non_null<std::shared_ptr<const impl>> impl_;
 };
 
 // Variant over possible types that can appear in generated code.
@@ -134,7 +134,6 @@ class native_field_accessor {
   // Unchecked downcast to type `U`.
   template <typename U>
   const U& as() const {
-    WF_ASSERT(impl_);
     return static_cast<const U&>(*impl_.get());
   }
 
@@ -142,7 +141,7 @@ class native_field_accessor {
 
  private:
   // shared_ptr because field is copied by the python wrapper.
-  std::shared_ptr<const concept> impl_{};
+  maybe_null<std::shared_ptr<const concept>> impl_{nullptr};
 };
 
 // A field on a custom type.

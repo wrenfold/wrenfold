@@ -3,6 +3,7 @@
 #include <variant>
 #include <vector>
 
+#include "wf/checked_pointers.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/type_registry.h"
 #include "wf/code_generation/types.h"
@@ -60,7 +61,7 @@ class argument {
     argument_direction direction;
     std::size_t index;
   };
-  std::shared_ptr<const impl> impl_;
+  non_null<std::shared_ptr<const impl>> impl_;
 };
 
 // Store the signature of a function we will generate, plus all the captured output expressions.
@@ -130,7 +131,7 @@ class function_description {
   };
 
   // Shared pointer so we can share this in python with no copies.
-  std::shared_ptr<impl> impl_;
+  non_null<std::shared_ptr<impl>> impl_;
 };
 
 }  // namespace wf

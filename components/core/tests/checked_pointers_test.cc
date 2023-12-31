@@ -83,6 +83,9 @@ TEST(NonNullTest, TestNullConstruction) {
 
   static_assert(std::is_same_v<foo*, decltype(std::declval<non_null<foo*>>().get())>);
   static_assert(std::is_same_v<const foo*, decltype(std::declval<non_null<const foo*>>().get())>);
+
+  static_assert(!std::is_default_constructible_v<non_null<foo>>);
+  static_assert(!std::is_default_constructible_v<non_null<const foo>>);
 }
 
 // Check that constructors copy + move appropriately.
@@ -107,6 +110,8 @@ TEST(NonNullTest, TestConstructors) {
   static_assert(std::is_nothrow_copy_assignable_v<decltype(n)>);
   static_assert(std::is_nothrow_move_constructible_v<decltype(n)>);
   static_assert(std::is_nothrow_move_assignable_v<decltype(n)>);
+  static_assert(!std::is_default_constructible_v<non_null<counter_ptr>>);
+  static_assert(!std::is_default_constructible_v<non_null<const counter_ptr>>);
 
   // Copy:
   non_null n2{n};

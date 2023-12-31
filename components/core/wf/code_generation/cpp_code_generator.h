@@ -79,11 +79,8 @@ class cpp_code_generator {
     return std::visit(*this, var);
   }
 
-  // Accept ast::variant_ptr
-  auto operator()(const ast::variant_ptr& var) const {
-    WF_ASSERT(var, "variant_ptr cannot be empty.");
-    return std::visit(*this, *var);
-  }
+  // Accept non_null<ast::variant_ptr>
+  auto operator()(const non_null<ast::variant_ptr>& var) const { return std::visit(*this, *var); }
 
  protected:
   // Create a fmt_view. All args will be forwarded back to the operator on this class that matches
