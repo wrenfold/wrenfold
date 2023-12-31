@@ -86,7 +86,8 @@ void value::add_consumer(const ir::value_ptr v) {
 }
 
 void value::remove_consumer(ir::value* const v) {
-  auto it = std::find(consumers_.begin(), consumers_.end(), v);
+  auto it = std::find_if(consumers_.begin(), consumers_.end(),
+                         [&](const auto& c) { return c.get() == v; });
   if (it != consumers_.end()) {
     // Might have already been removed, if we were an operand twice.
     consumers_.erase(it);
@@ -714,7 +715,7 @@ void flat_ir::eliminate_duplicates() {
 
 void flat_ir::strip_unused_values() {
   // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
-  const ir::block_ptr block{block_};
+  const ir::block_ptr block{block_.get()};
   std::reverse(block->operations.begin(), block->operations.end());
   const auto new_end =
       std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::value_ptr v) {
@@ -750,7 +751,7 @@ template <typename Container, typename OutputIterator>
 static void reverse_copy_save_value_ptrs(const Container& container, expression_usage usage,
                                          OutputIterator output_iterator) {
   for (auto it = container.rbegin(); it != container.rend(); ++it) {
-    const ir::value_ptr val{*it};
+    const ir::value_ptr val{it->get()};
     if (const ir::save* save = std::get_if<ir::save>(&val->value_op()); save != nullptr) {
       if (save->key().usage == usage) {
         *output_iterator = val;
@@ -1115,7 +1116,7 @@ std::string output_ir::to_string() const {
   const std::size_t left_column_width = fmt::formatted_size("  v{:0>{}} <- ", 0, width);
 
   for (const std::unique_ptr<ir::block>& block : blocks_) {
-    fmt::format_to(std::back_inserter(output), "{}:", ir::block_ptr{block});
+    fmt::format_to(std::back_inserter(output), "{}:", ir::block_ptr{block.get()});
     output += "\n";
 
     for (const ir::value_ptr& code : block->operations) {
@@ -1170,7 +1171,7 @@ std::size_t output_ir::num_conditionals() const {
 ir::block_ptr output_ir::create_block() {
   ir::block::unique_ptr block = std::make_unique<ir::block>(blocks_.size());
   blocks_.push_back(std::move(block));
-  return ir::block_ptr(blocks_.back());
+  return ir::block_ptr(blocks_.back().get());
 }
 
 // We traverse either upwards or downwards, recursively coloring nodes until we find a node
