@@ -42,8 +42,6 @@ constexpr bool is_comparable_to_nullptr_v = is_comparable_to_nullptr<T>::value;
 template <typename T>
 class non_null {
  public:
-  static_assert(detail::is_comparable_to_nullptr_v<T>, "T must be comparable to nullptr.");
-
   template <typename U>
   using enable_if_convertible_t = std::enable_if_t<std::is_convertible_v<U, T>>;
 
