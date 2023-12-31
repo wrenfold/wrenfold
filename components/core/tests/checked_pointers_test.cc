@@ -287,6 +287,9 @@ TEST(MaybeNullTest, TestWithSharedPtr) {
   static_assert(std::is_nothrow_move_constructible_v<decltype(m)>);
   static_assert(std::is_nothrow_move_assignable_v<decltype(m)>);
 
+  // Non-const --> const should be nothrow for shared_ptr
+  static_assert(std::is_nothrow_constructible_v<decltype(m), maybe_null<std::shared_ptr<int>>>);
+
   // Copy it:
   maybe_null m2 = m;
   ASSERT_TRUE(m2);

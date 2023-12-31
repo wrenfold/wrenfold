@@ -56,11 +56,10 @@ class non_null {
       : ptr_(ptr.get()) {}
 
   // Copy and move constructors.
-  non_null(const non_null& other) noexcept(std::is_nothrow_copy_constructible_v<T>) = default;
-  non_null& operator=(const non_null& other) noexcept(std::is_nothrow_copy_assignable_v<T>) =
-      default;
-  non_null(non_null&& other) noexcept(std::is_nothrow_move_constructible_v<T>) = default;
-  non_null& operator=(non_null&& other) noexcept(std::is_nothrow_move_assignable_v<T>) = default;
+  non_null(const non_null& other) = default;
+  non_null& operator=(const non_null& other) = default;
+  non_null(non_null&& other) = default;
+  non_null& operator=(non_null&& other) = default;
 
   // Move construct non-const to const:
   template <typename U, typename = std::enable_if_t<std::is_same_v<T, const U>>>
@@ -147,20 +146,19 @@ class maybe_null {
 
   // Construct from a other `maybe_null` type that is convertible.
   template <typename U, typename = enable_if_convertible_t<U>>
-  constexpr maybe_null(const maybe_null<U>& ptr) noexcept(std::is_nothrow_move_constructible_v<T>)
+  constexpr maybe_null(const maybe_null<U>& ptr) noexcept(
+      std::is_nothrow_constructible_v<T, decltype(ptr.get())>)
       : maybe_null(ptr.get()) {}
 
   // Construct empty/null.
   constexpr maybe_null(std::nullptr_t) noexcept(std::is_nothrow_constructible_v<T, std::nullptr_t>)
       : ptr_(nullptr) {}
 
-  maybe_null(const maybe_null& other) noexcept(std::is_nothrow_copy_constructible_v<T>) = default;
-  maybe_null& operator=(const maybe_null& other) noexcept(std::is_nothrow_copy_assignable_v<T>) =
-      default;
+  maybe_null(const maybe_null& other) = default;
+  maybe_null& operator=(const maybe_null& other) = default;
 
-  maybe_null(maybe_null&& other) noexcept(std::is_nothrow_move_constructible_v<T>) = default;
-  maybe_null& operator=(maybe_null&& other) noexcept(std::is_nothrow_move_assignable_v<T>) =
-      default;
+  maybe_null(maybe_null&& other) = default;
+  maybe_null& operator=(maybe_null&& other) = default;
 
   // Move construct non-const to const:
   template <typename U, typename = std::enable_if_t<std::is_same_v<T, const U>>>
