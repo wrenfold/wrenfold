@@ -24,8 +24,8 @@ std::vector<std::string> comment::split_lines() const {
   return lines;
 }
 
-// TODO: Introduce an optional-reference type for this kind of patter.
-const ast::variant* construct_custom_type::get_field_by_name(std::string_view name) const {
+maybe_null<const ast::variant*> construct_custom_type::get_field_by_name(
+    std::string_view name) const {
   const auto it = std::find_if(field_values.begin(), field_values.end(),
                                [&](const auto& tuple) { return std::get<0>(tuple) == name; });
   if (it == field_values.end()) {
