@@ -7,6 +7,7 @@
 
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
+#include "wf/non_null_ptr.h"
 
 namespace wf::ast {
 
@@ -165,7 +166,7 @@ struct construct_custom_type {
   std::vector<std::tuple<std::string, ast::variant>> field_values;
 
   // Get a field by name (or nullptr if the field does not exist).
-  const ast::variant* get_field_by_name(std::string_view name) const;
+  maybe_null<const ast::variant*> get_field_by_name(std::string_view name) const;
 };
 
 // Construct a matrix type from arguments.
@@ -186,7 +187,7 @@ struct declaration {
   code_numeric_type type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
-  variant_ptr value{};
+  maybe_null<variant_ptr> value{nullptr};
 
   declaration(std::string name, code_numeric_type type, variant_ptr value)
       : name(std::move(name)), type(type), value(std::move(value)) {}

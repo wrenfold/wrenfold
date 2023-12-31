@@ -272,7 +272,7 @@ std::string rust_code_generator::operator()(const ast::declaration& x) const {
     return fmt::format("let {}: {};", x.name, rust_string_from_numeric_type(x.type));
   } else {
     return fmt::format("let {}: {} = {};", x.name, rust_string_from_numeric_type(x.type),
-                       make_view(x.value));
+                       make_view(*x.value));
   }
 }
 

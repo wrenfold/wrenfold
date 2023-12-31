@@ -376,7 +376,7 @@ void wrap_codegen_operations(py::module_& m) {
           "get_field_value",
           [](const ast::construct_custom_type& self,
              const std::string_view name) -> std::optional<ast::variant> {
-            if (const ast::variant* v = self.get_field_by_name(name); v != nullptr) {
+            if (const auto v = self.get_field_by_name(name); v.has_value()) {
               return *v;
             }
             return std::nullopt;
