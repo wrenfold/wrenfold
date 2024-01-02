@@ -14,8 +14,7 @@ namespace wf {
 struct is_numeric_visitor {
   template <typename T>
   bool operator()(const T& arg) const {
-    if constexpr (type_list_contains_type_v<T, float_constant, integer_constant,
-                                            rational_constant>) {
+    if constexpr (type_list_contains_v<T, float_constant, integer_constant, rational_constant>) {
       return true;
     } else if constexpr (std::is_same_v<T, power>) {
       return is_numeric(arg.base()) && is_numeric(arg.exponent());

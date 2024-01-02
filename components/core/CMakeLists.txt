@@ -79,10 +79,12 @@ add_library(
   wf/output_annotations.h
   wf/plain_formatter.cc
   wf/plain_formatter.h
+  wf/polymorphic.h
   wf/substitute.cc
   wf/template_utils.h
   wf/tree_formatter.cc
   wf/type_annotations.h
+  wf/type_list.h
   wf/visitor_base.h
   wf/visitor_impl.h)
 

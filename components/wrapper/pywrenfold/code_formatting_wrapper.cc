@@ -192,7 +192,7 @@ class wrapped_generator
    public:
     template <typename T>
     explicit recursion_guard(recursion_counters& counters, const T&)
-        : counter_(counters[index_of_type_v<T, ast::all_ast_types>]) {
+        : counter_(counters[type_list_index_v<T, ast::all_ast_types>]) {
       if (constexpr std::int32_t max_recursions = 32; counter_ + 1 == max_recursions) {
         throw std::runtime_error(
             fmt::format("Recursed {} times while formatting type `{}`. It is possible that a "

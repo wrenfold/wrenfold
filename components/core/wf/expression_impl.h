@@ -16,7 +16,7 @@ class expression_implementation final : public expression_concept {
   // Construct w/ concrete inner type.
   explicit expression_implementation(ExpressionType&& impl)
       : expression_concept(compute_hash(impl),
-                           index_of_type_v<ExpressionType, expression_type_list>),
+                           type_list_index_v<ExpressionType, expression_type_list>),
         implementation_(std::move(impl)) {}
 
   // Cast to the concrete expression type. type.
@@ -42,7 +42,7 @@ class expression_implementation final : public expression_concept {
  protected:
   // Compute the hash of the underlying expression, and hash it again w/ the index of the type.
   static std::size_t compute_hash(const ExpressionType& impl) {
-    return hash_combine(index_of_type<ExpressionType, expression_type_list>::value,
+    return hash_combine(type_list_index<ExpressionType, expression_type_list>::value,
                         hash_struct<ExpressionType>{}(impl));
   }
 

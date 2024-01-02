@@ -123,7 +123,7 @@ static constexpr auto get_type_order_indices(type_list<Ts...>) {
   static_assert(type_list_size<order_of_types>::value ==
                 type_list_size<expression_type_list>::value);
 
-  return std::array<std::size_t, sizeof...(Ts)>{index_of_type_v<Ts, order_of_types>...};
+  return std::array<std::size_t, sizeof...(Ts)>{type_list_index_v<Ts, order_of_types>...};
 }
 
 relative_order expression_order(const Expr& a, const Expr& b) {

@@ -326,9 +326,9 @@ struct hash_struct<float_constant> {
 template <typename A, typename B>
 constexpr bool is_float_and_numeric_v =
     (std::is_same_v<A, float_constant> &&
-     type_list_contains_type_v<B, integer_constant, rational_constant>) ||
+     type_list_contains_v<B, integer_constant, rational_constant>) ||
     (std::is_same_v<B, float_constant> &&
-     type_list_contains_type_v<A, integer_constant, rational_constant>) ||
+     type_list_contains_v<A, integer_constant, rational_constant>) ||
     (std::is_same_v<A, float_constant> && std::is_same_v<B, float_constant>);
 
 static_assert(is_float_and_numeric_v<float_constant, float_constant>);

@@ -25,7 +25,7 @@ struct PowerNumerics {
                          std::is_same_v<rational_constant, B>) {
       return apply_int_and_rational(a, b);
     } else if constexpr (std::is_same_v<complex_infinity, A> &&
-                         type_list_contains_type_v<B, integer_constant, rational_constant>) {
+                         type_list_contains_v<B, integer_constant, rational_constant>) {
       return apply_infinity_and_rational(a, static_cast<rational_constant>(b));
     } else if constexpr (std::is_same_v<complex_infinity, A> && std::is_same_v<B, float_constant>) {
       return apply_infinity_and_float(a, b);
