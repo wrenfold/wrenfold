@@ -7,7 +7,6 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"
-#include "wf/visitor_impl.h"
 
 namespace wf {
 

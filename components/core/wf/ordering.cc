@@ -1,6 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include "wf/expression.h"
 #include "wf/expressions/all_expressions.h"
+#include "wf/visitor_impl.h"
 
 namespace wf {
 
@@ -112,6 +113,15 @@ struct order_visitor {
   }
 };
 
+template <typename T>
+struct expression_storage_value_type;
+template <typename T>
+struct expression_storage_value_type<expression_storage<T>> {
+  using type = typename expression_storage<T>::value_type;
+};
+template <typename T>
+using expression_storage_value_type_t = typename expression_storage_value_type<T>::type;
+
 template <typename... Ts>
 static constexpr auto get_type_order_indices(type_list<Ts...>) {
   using order_of_types =
@@ -120,8 +130,7 @@ static constexpr auto get_type_order_indices(type_list<Ts...>) {
                 conditional, cast_bool, derivative, undefined>;
 
   // Every type in the approved type list must appear here, or we get a compile error:
-  static_assert(type_list_size<order_of_types>::value ==
-                type_list_size<expression_type_list>::value);
+  static_assert(type_list_size<order_of_types>::value == sizeof...(Ts));
 
   return std::array<std::size_t, sizeof...(Ts)>{type_list_index_v<Ts, order_of_types>...};
 }
@@ -129,7 +138,8 @@ static constexpr auto get_type_order_indices(type_list<Ts...>) {
 relative_order expression_order(const Expr& a, const Expr& b) {
   // An array where element [i] is the position of the type with index `i` within
   // our preferred canonical ordering.
-  static constexpr auto order = get_type_order_indices(expression_type_list{});
+  using all_types = type_list_map_t<expression_storage_value_type_t, Expr::storage_type::all_types>;
+  static constexpr auto order = get_type_order_indices(all_types{});
 
   const auto index_a = order[a.type_index()];
   const auto index_b = order[b.type_index()];

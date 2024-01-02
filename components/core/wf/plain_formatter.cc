@@ -5,8 +5,8 @@
 
 #include "wf/assertions.h"
 #include "wf/common_visitors.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/fmt_imports.h"
+#include "wf/visitor_impl.h"
 
 namespace wf {
 

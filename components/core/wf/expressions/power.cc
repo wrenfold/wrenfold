@@ -63,7 +63,7 @@ struct PowerNumerics {
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(a.get_value(), b.get_value());
-    return integer_constant::create(pow);
+    return Expr(pow);
   }
 
   // If the left operand is a rational and right operand is integer:
@@ -78,10 +78,10 @@ struct PowerNumerics {
     const auto n = integer_power(a.numerator(), std::abs(exponent));
     const auto d = integer_power(a.denominator(), std::abs(exponent));
     if (exponent >= 0) {
-      return rational_constant::create(n, d);
+      return Expr(rational_constant{n, d});
     } else {
       // Flip the rational:
-      return rational_constant::create(d, n);
+      return Expr(rational_constant{d, n});
     }
   }
 
@@ -140,14 +140,14 @@ struct PowerNumerics {
 
       // There is still the business of the fractional part to deal with:
       if (fractional_part.numerator() != 0) {
-        Expr base = integer_constant::create(f.base);
-        Expr exponent = rational_constant::create(fractional_part);
+        Expr base = Expr(f.base);
+        Expr exponent = Expr(fractional_part);
         operands.push_back(make_expr<power>(std::move(base), std::move(exponent)));
       }
     }
 
     if (!rational_coeff.is_one()) {
-      operands.push_back(rational_constant::create(rational_coeff));
+      operands.push_back(Expr(rational_coeff));
     }
     if (operands.size() == 1) {
       return operands.front();

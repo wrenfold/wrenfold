@@ -17,7 +17,7 @@ std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
       // Don't allocate if no change occurred.
       return arg;
     } else {
-      return float_constant::create(static_cast<float_constant::value_type>(result));
+      return Expr(static_cast<float_constant::value_type>(result));
     }
   }
   return {};
@@ -70,8 +70,7 @@ Expr cos(const Expr& arg) {
       } else if (r_mod_pi == rational_constant{1, 2} || r_mod_pi == rational_constant{-1, 2}) {
         return constants::zero;
       }
-      return make_expr<function>(built_in_function::cos,
-                                 rational_constant::create(r_mod_pi) * constants::pi);
+      return make_expr<function>(built_in_function::cos, Expr(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(coeff)) {
     return constants::one;
@@ -107,8 +106,7 @@ Expr sin(const Expr& arg) {
       } else if (r_mod_pi == rational_constant{-1, 2}) {
         return constants::negative_one;
       }
-      return make_expr<function>(built_in_function::sin,
-                                 rational_constant::create(r_mod_pi) * constants::pi);
+      return make_expr<function>(built_in_function::sin, Expr(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(arg)) {
     return constants::zero;
@@ -155,8 +153,7 @@ Expr tan(const Expr& arg) {
         // Complex infinity.
         return constants::complex_infinity;
       }
-      return make_expr<function>(built_in_function::tan,
-                                 rational_constant::create(r_mod_half_pi) * pi_over_two());
+      return make_expr<function>(built_in_function::tan, Expr(r_mod_half_pi) * pi_over_two());
     }
   } else if (is_zero(arg)) {
     return constants::zero;
@@ -227,7 +224,7 @@ Expr atan(const Expr& arg) {
 // Support some very basic simplifications for numerical inputs.
 struct atan2_visitor {
   std::optional<Expr> operator()(const float_constant& y, const float_constant& x) const {
-    return float_constant::create(std::atan2(y.get_value(), x.get_value()));
+    return Expr(std::atan2(y.get_value(), x.get_value()));
   }
 
   std::optional<Expr> operator()(const integer_constant& y, const integer_constant& x) const {
@@ -265,6 +262,9 @@ struct atan2_visitor {
 };
 
 Expr atan2(const Expr& y, const Expr& x) {
+  // fmt::print("atan2({}, {})\n", y, x);
+  // fmt::print("{}\n", y.to_expression_tree_string());
+  // fmt::print("{}\n", x.to_expression_tree_string());
   std::optional<Expr> maybe_simplified = visit_binary(y, x, atan2_visitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
@@ -290,7 +290,7 @@ Expr abs(const Expr& arg) {
       WF_ASSERT_GREATER(r->denominator(), 0);
       return arg;
     }
-    return rational_constant::create(-r->numerator(), r->denominator());
+    return Expr(rational_constant{-r->numerator(), r->denominator()});
   }
   // Evaluate floats immediately:
   if (std::optional<Expr> result = operate_on_float(arg, [](double x) { return std::abs(x); });

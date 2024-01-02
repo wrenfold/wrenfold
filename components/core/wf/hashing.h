@@ -1,8 +1,9 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include <array>
+#include <string_view>
 
-#include "wf/expression.h"
+// #include "wf/expression.h"
 
 namespace wf {
 
@@ -50,14 +51,9 @@ std::size_t hash_args(std::size_t seed, const Ts&... expressions) {
   return seed;
 }
 
-template <>
-struct hash_struct<Expr> {
-  std::size_t operator()(const Expr& expr) const { return expr.get_hash(); }
-};
-
 // Shorthand for invoking `hash_struct<T>` on an object.
 template <typename T>
-std::size_t hash(const T& object) noexcept(std::is_nothrow_invocable_v<hash_struct<T>, const T>) {
+std::size_t hash(const T& object) noexcept(std::is_nothrow_invocable_v<hash_struct<T>, const T&>) {
   return hash_struct<T>{}(object);
 }
 

@@ -66,8 +66,8 @@ struct multiply_visitor {
 
   void insert_integer_factors(const std::vector<prime_factor>& factors, bool positive) {
     for (const prime_factor& factor : factors) {
-      Expr base = integer_constant::create(factor.base);
-      Expr exponent = integer_constant::create(factor.exponent);
+      Expr base = Expr(factor.base);
+      Expr exponent = Expr(factor.exponent);
       const auto [it, was_inserted] = builder.terms.emplace(std::move(base), exponent);
       if (!was_inserted) {
         if (positive) {
@@ -169,7 +169,7 @@ void multiplication_parts::normalize_coefficients() {
       }
 
       // We changed the exponent on this term, so update it.
-      it->second = rational_constant::create(fractional_part);
+      it->second = Expr(fractional_part);
     }
   }
 
@@ -207,7 +207,7 @@ Expr multiplication_parts::create_multiplication() const {
     } else if (rational_coeff.is_one()) {
       // Don't insert a useless one in the multiplication.
     } else {
-      args.push_back(rational_constant::create(rational_coeff));
+      args.push_back(Expr(rational_coeff));
     }
   }
 

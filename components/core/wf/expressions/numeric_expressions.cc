@@ -6,15 +6,15 @@
 namespace wf {
 
 // Defined here to resolve a circular import issue for now.
-Expr integer_constant::create(value_type x) {
-  if (x == 0) {
-    return constants::zero;
-  } else if (x == 1) {
-    return constants::one;
-  } else if (x == -1) {
-    return constants::negative_one;
-  }
-  return make_expr<integer_constant>(x);
-}
+// Expr Expr(value_type x) {
+//   if (x == 0) {
+//     return constants::zero;
+//   } else if (x == 1) {
+//     return constants::one;
+//   } else if (x == -1) {
+//     return constants::negative_one;
+//   }
+//   return make_expr<integer_constant>(x);
+// }
 
 }  // namespace wf

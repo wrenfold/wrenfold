@@ -52,17 +52,21 @@ class expression_implementation final : public expression_concept {
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>
 Expr make_expr(Args&&... args) {
-  return Expr{std::make_shared<const expression_implementation<T>>(T{std::forward<Args>(args)...})};
+  // return Expr{std::make_shared<const
+  // expression_implementation<T>>(T{std::forward<Args>(args)...})};
+  return Expr{T{std::forward<Args>(args)...}};
 }
 
 // Cast expression to const pointer of the specified type.
 // Returned pointer is valid in scope only as long as the argument `x` survives.
 template <typename T>
 const T* cast_ptr(const Expr& x) {
-  if (x.impl_->is_type<T>()) {
-    const T& concrete =
-        static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
-    return &concrete;
+  if (x.is_type<T>()) {
+    const expression_storage<T>& concrete = x.impl_.cast_unchecked<expression_storage<T>>();
+    return &concrete.contents;
+    // const T& concrete =
+    //     static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
+    // return &concrete;
   } else {
     return nullptr;
   }
@@ -72,8 +76,10 @@ const T* cast_ptr(const Expr& x) {
 // invalid.
 template <typename T>
 const T& cast_checked(const Expr& x) {
-  if (x.impl_->is_type<T>()) {
-    return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
+  if (x.is_type<T>()) {
+    const expression_storage<T>& concrete = x.impl_.cast_unchecked<expression_storage<T>>();
+    return concrete.contents;
+    // return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
   } else {
     throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::name_str);
   }
@@ -82,7 +88,9 @@ const T& cast_checked(const Expr& x) {
 // Cast expression with no checking. UB will occur if the wrong type is accessed.
 template <typename T>
 const T& cast_unchecked(const Expr& x) {
-  return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
+  const expression_storage<T>& concrete = x.impl_.cast_unchecked<expression_storage<T>>();
+  // return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
+  return concrete.contents;
 }
 
 }  // namespace wf

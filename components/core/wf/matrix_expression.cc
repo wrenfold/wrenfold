@@ -3,8 +3,7 @@
 
 #include "wf/constants.h"
 #include "wf/derivative.h"
-#include "wf/expressions/addition.h"
-#include "wf/expressions/matrix.h"
+#include "wf/expressions/all_expressions.h"
 #include "wf/functions.h"
 #include "wf/plain_formatter.h"
 #include "wf_runtime/span.h"

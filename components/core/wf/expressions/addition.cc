@@ -7,7 +7,7 @@
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
-#include "wf/hashing.h"
+#include "wf/visitor_impl.h"
 
 namespace wf {
 
@@ -124,7 +124,7 @@ Expr addition_parts::create_addition() const {
     } else if (rational_term.is_zero()) {
       // Don't insert a useless zero in the add.
     } else {
-      args.push_back(rational_constant::create(rational_term));
+      args.push_back(Expr(rational_term));
     }
   }
 

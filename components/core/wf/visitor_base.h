@@ -31,6 +31,28 @@ using expression_type_list = type_list<
     class undefined,
     class variable
     >;
+
+
+using trivial_type_list = type_list<
+    class float_constant,
+    class integer_constant,
+    class rational_constant
+    >;
+
+using non_trivial_type_list = type_list<
+    class addition,
+class cast_bool,
+class conditional,
+class symbolic_constant,
+class derivative,
+class function,
+class complex_infinity,
+class multiplication,
+class power,
+class relational,
+class undefined,
+class variable
+    >;
 // clang-format on
 
 }  // namespace wf

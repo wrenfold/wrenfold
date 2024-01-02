@@ -4,9 +4,7 @@
 
 #include "wf/assertions.h"
 #include "wf/error_types.h"
-#include "wf/expression_concept.h"
 #include "wf/expression_impl.h"
-#include "wf/visitor_impl.h"
 
 namespace wf {
 
