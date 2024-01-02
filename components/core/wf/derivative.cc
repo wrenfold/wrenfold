@@ -19,13 +19,18 @@ template <typename T>
 struct is_function_of_visitor {
   explicit is_function_of_visitor(const T& target) : target_(target) {}
 
+  bool operator()(const MatrixExpr& mat) const {
+    const matrix& m = mat.as_matrix();
+    return std::any_of(m.begin(), m.end(), [this](const Expr& x) { return visit(x, *this); });
+  }
+
   template <typename U>
-  bool operator()(const U& x) {
+  bool operator()(const U& x) const {
     if constexpr (std::is_same_v<U, T>) {
       return target_.is_identical_to(x);
     } else if constexpr (!U::is_leaf_node) {
       return std::any_of(x.begin(), x.end(),
-                         [this](const Expr& expr) { return visit(expr, *this); });
+                         [this](const auto& expr) { return visit(expr, *this); });
     } else {
       return false;
     }
@@ -59,7 +64,15 @@ Expr derivative_visitor::operator()(const addition& add) {
   return add.map_children([this](const Expr& expr) { return apply(expr); });
 }
 
-Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) {
+Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) const {
+  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
+    return derivative::create(expr, argument_, 1);
+  } else {
+    return constants::zero;
+  }
+}
+
+Expr derivative_visitor::operator()(const compound_expression_element&, const Expr& expr) const {
   if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
     return derivative::create(expr, argument_, 1);
   } else {
@@ -80,9 +93,9 @@ Expr derivative_visitor::operator()(const symbolic_constant&) const { return con
 Expr derivative_visitor::operator()(const derivative& derivative,
                                     const Expr& derivative_abstract) const {
   const variable& argument = cast_unchecked<variable>(argument_);
-  const bool is_relevant =
-      visit(derivative.differentiand(), is_function_of_visitor<variable>{argument});
-  if (!is_relevant) {
+  if (const bool is_relevant =
+          visit(derivative.differentiand(), is_function_of_visitor<variable>{argument});
+      !is_relevant) {
     return constants::zero;
   }
   return derivative::create(derivative_abstract, argument_, 1);

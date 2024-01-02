@@ -3,6 +3,18 @@
 
 namespace wf {
 
+std::size_t hash_struct<argument>::operator()(const argument& arg) const noexcept {
+  std::size_t hash = hash_string_fnv(arg.name());
+  hash = hash_args(hash, arg.type());
+  hash = hash_combine(hash, static_cast<std::size_t>(arg.direction()));
+  return hash_combine(hash, arg.index());
+}
+
+bool is_identical_struct<argument>::operator()(const argument& a, const argument& b) const {
+  return a.name() == b.name() && are_identical(a.type(), b.type()) &&
+         are_identical(a.direction(), b.direction()) && are_identical(a.index(), b.index());
+}
+
 function_description::function_description(std::string name) noexcept
     : impl_(std::make_shared<impl>(std::move(name))) {}
 

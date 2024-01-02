@@ -110,7 +110,7 @@ Expr relational::create(relational_operation operation, Expr left, Expr right) {
   }
   if (operation == relational_operation::equal) {
     // We put equality operations into a canonical order.
-    if (expression_order(left, right) != relative_order::less_than) {
+    if (determine_order(left, right) != relative_order::less_than) {
       std::swap(left, right);
     }
   }

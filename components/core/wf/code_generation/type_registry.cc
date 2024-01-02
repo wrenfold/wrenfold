@@ -4,50 +4,26 @@
 
 namespace wf::detail {
 
-struct create_custom_type_inputs {
-  static void append(const std::size_t arg_index, const std::size_t num_to_append,
-                     std::vector<Expr>& output) {
-    const std::size_t start_index = output.size();
-    output.reserve(start_index + num_to_append);
-    for (const std::size_t element : make_range(start_index, start_index + num_to_append)) {
-      output.push_back(variable::create_function_argument(arg_index, element));
-    }
-  }
-
-  void operator()(const scalar_type&, const std::size_t arg_index,
-                  std::vector<Expr>& output) const {
-    append(arg_index, 1, output);
-  }
-
-  void operator()(const matrix_type& m, const std::size_t arg_index,
-                  std::vector<Expr>& output) const {
-    append(arg_index, m.size(), output);
-  }
-
-  void operator()(const custom_type& c, const std::size_t arg_index,
-                  std::vector<Expr>& output) const {
-    // Append every field on this type, and recurse as well into child custom types.
-    for (const struct_field& field : c.fields()) {
-      std::visit([&](const auto& child) { operator()(child, arg_index, output); }, field.type());
-    }
-  }
-};
-
 // TODO: Pass the numeric type information here.
 Expr create_function_input(const scalar_type&, const std::size_t arg_index) {
   return variable::create_function_argument(arg_index, 0);
 }
 
-MatrixExpr create_function_input(const matrix_type& mat, const std::size_t arg_index) {
+static std::vector<Expr> create_function_args(const std::size_t arg_index, const std::size_t size) {
   std::vector<Expr> expressions{};
-  create_custom_type_inputs{}(mat, arg_index, expressions);
-  return MatrixExpr::create(mat.rows(), mat.cols(), std::move(expressions));
+  expressions.reserve(size);
+  for (const std::size_t index : make_range(size)) {
+    expressions.push_back(variable::create_function_argument(arg_index, index));
+  }
+  return expressions;
 }
 
-std::vector<Expr> create_function_input(const custom_type& custom, std::size_t arg_index) {
-  std::vector<Expr> expressions{};
-  create_custom_type_inputs{}(custom, arg_index, expressions);
-  return expressions;
+MatrixExpr create_function_input(const matrix_type& mat, const std::size_t arg_index) {
+  return MatrixExpr::create(mat.rows(), mat.cols(), create_function_args(arg_index, mat.size()));
+}
+
+std::vector<Expr> create_function_input(const custom_type& custom, const std::size_t arg_index) {
+  return create_function_args(arg_index, custom.total_size());
 }
 
 // TODO: The numeric type information needs to be propagate to the IR here.

@@ -9,14 +9,17 @@ namespace wf {
 // Visitor for collecting terms.
 // Can transform x^2*y + x^2*pi + -x * 5 - cos(z) * x --> x^2 * (y + pi) + x * (-5 - cos(z))
 struct collect_visitor {
-  explicit collect_visitor(absl::Span<const Expr> terms) : collected_terms_(terms) {}
+  explicit collect_visitor(const absl::Span<const Expr> terms) : collected_terms_(terms) {}
+
+  Expr operator()(const Expr& x) { return visit(x, *this); }
+  compound_expr operator()(const compound_expr& x) { return map_compound_expressions(x, *this); }
 
   template <typename T>
-  Expr recurse(const T& op) {
-    return op.map_children([this](const Expr& x) { return visit_with_expr(x, *this); });
+  auto recurse(const T& op) {
+    return op.map_children(*this);
   }
 
-  Expr collect_addition_terms(addition::container_type&& container) {
+  Expr collect_addition_terms(addition::container_type&& container) const {
     // iterate over the terms we want to search for:
     const Expr& collected_term = collected_terms_.front();
 
@@ -102,7 +105,7 @@ struct collect_visitor {
     return addition::from_operands(container);  //  TODO: should be a move
   }
 
-  Expr operator()(const addition& add, const Expr&) {
+  Expr operator()(const addition& add) {
     // transform all children of the addition:
     addition::container_type children{};
     children.reserve(add.size());
@@ -110,6 +113,8 @@ struct collect_visitor {
                    [this](const Expr& x) { return visit_with_expr(x, *this); });
     return collect_addition_terms(std::move(children));
   }
+
+  Expr operator()(const compound_expression_element& el) { return el.map_children(*this); }
 
   Expr operator()(const multiplication& mul, const Expr&) { return recurse(mul); }
   Expr operator()(const function& f) { return recurse(f); }

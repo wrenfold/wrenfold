@@ -19,6 +19,7 @@ enum class precedence : int {
 
 // Describe the relative order of two expressions (a, b)
 // This is for operations like sorting, not for expressing mathematical relations.
+// Can eventually replace this with spaceship operator in C++20.
 enum class relative_order : int {
   // a < b
   less_than = -1,

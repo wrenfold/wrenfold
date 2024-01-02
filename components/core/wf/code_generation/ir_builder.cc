@@ -245,11 +245,15 @@ struct mul_add_count_visitor {
         }
       }
 
-      // Recurse:
-      for (const Expr& child : concrete) {
-        if (!visited.count(child)) {
-          visited.insert(child);
-          visit(child, *this);
+      if constexpr (std::is_same_v<T, compound_expression_element>) {
+        throw type_error("TODO: Handle this!");
+      } else {
+        // Recurse:
+        for (const Expr& child : concrete) {
+          if (!visited.count(child)) {
+            visited.insert(child);
+            visit(child, *this);
+          }
         }
       }
     }
@@ -353,6 +357,10 @@ class ir_form_visitor {
   ir::value_ptr operator()(const cast_bool& cast) {
     const ir::value_ptr arg = apply(cast.arg());
     return push_operation(ir::cast{code_numeric_type::integral}, code_numeric_type::integral, arg);
+  }
+
+  ir::value_ptr operator()(const compound_expression_element&) {
+    throw type_error("Implement me!");
   }
 
   ir::value_ptr operator()(const conditional& cond) {

@@ -86,6 +86,12 @@ constexpr bool is_optional_v = false;
 template <typename T>
 constexpr bool is_optional_v<std::optional<T>> = true;
 
+// True if the type is a variant.
+template <typename T>
+constexpr bool is_variant_v = false;
+template <typename... Ts>
+constexpr bool is_variant_v<std::variant<Ts...>> = true;
+
 namespace detail {
 template <class... Ts>
 struct overloaded_struct : Ts... {

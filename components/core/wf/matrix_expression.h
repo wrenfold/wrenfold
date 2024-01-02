@@ -7,6 +7,15 @@
 
 namespace wf {
 
+struct matrix_meta_type {};
+
+template <>
+struct type_list_trait<matrix_meta_type> {
+  // All the matrix-valued expressions.
+  // using types = type_list<
+  //   class matrix_
+};
+
 // Matrix type that stores a dense block of expressions. For context, this was originally
 // part of the `Expr` type hierarchy. However, this proved to be a mistake because the rules for
 // matrices are sufficiently different from scalars. For now, it is just a wrapper around a shared
@@ -123,6 +132,24 @@ class MatrixExpr {
 
 static_assert(std::is_move_assignable_v<MatrixExpr> && std::is_move_constructible_v<MatrixExpr>,
               "Should be movable");
+
+// Hash matrix.
+template <>
+struct hash_struct<MatrixExpr> {
+  std::size_t operator()(const MatrixExpr& mat) const;
+};
+
+// Relative order of matrices (first by dimensions, then by lexicographical order).
+template <>
+struct order_struct<MatrixExpr> {
+  relative_order operator()(const MatrixExpr& a, const MatrixExpr& b) const;
+};
+
+// Are two matrices identical.
+template <>
+struct is_identical_struct<MatrixExpr> {
+  bool operator()(const MatrixExpr& a, const MatrixExpr& b) const { return a.is_identical_to(b); }
+};
 
 // Math operators:
 namespace matrix_operator_overloads {

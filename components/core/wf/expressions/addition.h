@@ -21,9 +21,9 @@ class addition {
     WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     // Place into a deterministic (but otherwise mostly arbitrary) order.
     std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
-      if (a.get_hash() < b.get_hash()) {
+      if (a.hash() < b.hash()) {
         return true;
-      } else if (a.get_hash() > b.get_hash()) {
+      } else if (a.hash() > b.hash()) {
         return false;
       } else {
         // There could be a collision, so we fall back to a slow path here.

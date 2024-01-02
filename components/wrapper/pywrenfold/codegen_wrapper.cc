@@ -29,6 +29,25 @@ ast::function_definition transpile_to_function_definition(const function_descrip
   return ast::create_ast(output_ir, description);
 }
 
+// Implement the abstract `erased_pytype::concept` interface.
+class pytype_wrapper final : public erased_pytype::concept {
+ public:
+  explicit pytype_wrapper(py::type type) noexcept(std::is_nothrow_move_constructible_v<py::type>)
+      : type_(std::move(type)) {}
+
+  bool is_identical_to(const erased_pytype::concept& other) const override {
+    // Cast is safe because there is only one implementation of `erased_pytype`.
+    return type_.is(static_cast<const pytype_wrapper&>(other).type_);
+  }
+
+  std::size_t hash() const override { return py::hash(type_); }
+
+  constexpr const py::type& type() const noexcept { return type_; }
+
+ private:
+  py::type type_;
+};
+
 // Define pythong constructof for `custom_type`.
 custom_type init_custom_type(std::string name,
                              const std::vector<std::tuple<std::string_view, py::object>>& fields,
@@ -50,8 +69,9 @@ custom_type init_custom_type(std::string name,
                      throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
                    }
                  });
+
   return custom_type(std::move(name), std::move(fields_converted),
-                     std::any{std::move(python_type)});
+                     erased_pytype(std::in_place_type_t<pytype_wrapper>{}, std::move(python_type)));
 }
 
 // Construct class_ wrapper for an AST type. Name is derived automatically.
@@ -164,17 +184,17 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly(
           "python_type",
           [](const custom_type& self) -> std::variant<py::none, py::type> {
-            if (self.underlying_type().has_value()) {
-              return std::any_cast<py::type>(self.underlying_type());
+            if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
+              return pytype->as<pytype_wrapper>().type();
             }
             return py::none();
           },
           py::doc("Get the underlying python type."))
       .def("__repr__", [](const custom_type& self) {
-        const py::object python_type =
-            self.underlying_type().has_value()
-                ? py::object(std::any_cast<py::type>(self.underlying_type()))
-                : py::none();
+        py::object python_type = py::none();
+        if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
+          python_type = pytype->as<pytype_wrapper>().type();
+        }
         const py::str repr = py::repr(python_type);
         return fmt::format("CustomType('{}', {} fields, {})", self.name(), self.size(),
                            py::cast<std::string_view>(repr));

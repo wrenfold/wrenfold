@@ -268,7 +268,7 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
     const auto abe = as_base_and_exp(a);
     const auto bbe = as_base_and_exp(b);
-    return expression_order(abe.first, bbe.first) == relative_order::less_than;
+    return order_struct<Expr>{}(abe.first, bbe.first) == relative_order::less_than;
   });
 
   std::size_t sign_count = 0;

@@ -144,7 +144,7 @@ struct annotated_custom_type {
       expressions =
           field.native_accessor().as<native_field_accessor_typed<T>>().set(result, expressions);
     }
-    return std::make_tuple(result, expressions);
+    return std::make_tuple(std::move(result), expressions);
   }
 
   // Copy all fields from object of type `T` into vector `output`.
@@ -226,7 +226,7 @@ T create_function_input(const annotated_custom_type<T>& custom, std::size_t arg_
 std::vector<Expr> extract_function_output(const scalar_type& scalar, const Expr& value);
 
 // Copy output from matrix expression into a vector.
-std::vector<Expr> extract_function_output(const matrix_type& scalar, const MatrixExpr& value);
+std::vector<Expr> extract_function_output(const matrix_type& mat, const MatrixExpr& value);
 
 // Copy output from a custom struct into a vector.
 template <typename T>

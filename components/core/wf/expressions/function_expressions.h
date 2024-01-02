@@ -2,6 +2,7 @@
 #pragma once
 #include "wf/absl_imports.h"
 #include "wf/assertions.h"
+#include "wf/code_generation/custom_function.h"
 #include "wf/constants.h"
 #include "wf/functions.h"
 #include "wf/hashing.h"

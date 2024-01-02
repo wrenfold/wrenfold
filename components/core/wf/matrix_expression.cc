@@ -136,6 +136,21 @@ MatrixExpr MatrixExpr::collect(absl::Span<const Expr> terms) const {
 
 MatrixExpr MatrixExpr::eval() const { return MatrixExpr{as_matrix().map_children(&wf::evaluate)}; }
 
+std::size_t hash_struct<MatrixExpr>::operator()(const MatrixExpr& mat) const {
+  return wf::hash(mat.as_matrix());
+}
+
+relative_order order_struct<MatrixExpr>::operator()(const MatrixExpr& a,
+                                                    const MatrixExpr& b) const {
+  const matrix& am = a.as_matrix();
+  const matrix& bm = b.as_matrix();
+  if (const relative_order order = order_by_comparison(am.dimensions(), bm.dimensions());
+      order != relative_order::equal) {
+    return order;
+  }
+  return determine_order(am.data(), bm.data());
+}
+
 namespace matrix_operator_overloads {
 
 MatrixExpr operator+(const MatrixExpr& a, const MatrixExpr& b) {

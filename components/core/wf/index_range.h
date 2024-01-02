@@ -54,6 +54,11 @@ constexpr auto make_range(T start, T stop) noexcept {
   return index_range<T>{start, stop};
 }
 
+template <typename T>
+constexpr auto make_range(T stop) noexcept {
+  return index_range<T>{static_cast<T>(0), stop};
+}
+
 static_assert(*(++make_range(0, 5).begin()) == 1);
 static_assert(*(++(++make_range(0, 5).begin())) == 2);
 static_assert(*((++make_range(2, 5).begin())++) == 3);

@@ -80,11 +80,16 @@ class matrix {
   constexpr index_t rows() const noexcept { return rows_; }
   constexpr index_t cols() const noexcept { return cols_; }
 
+  // Dimensions as tuple.
+  constexpr std::tuple<index_t, index_t> dimensions() const noexcept {
+    return std::make_tuple(rows_, cols_);
+  }
+
   // Total size (product of elements).
   std::size_t size() const noexcept { return data_.size(); }
 
   // Access elements.
-  const std::vector<Expr>& data() const { return data_; }
+  constexpr const std::vector<Expr>& data() const noexcept { return data_; }
 
   // Iterators:
   auto begin() const noexcept { return data_.begin(); }

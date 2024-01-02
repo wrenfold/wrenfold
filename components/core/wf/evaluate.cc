@@ -12,7 +12,7 @@ Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
   } else if constexpr (T::is_leaf_node) {
     return input;
   } else {
-    return input_typed.map_children([this](const Expr& expr) { return apply(expr); });
+    return input_typed.map_children(*this);
   }
 }
 
@@ -32,16 +32,24 @@ Expr evaluate_visitor::operator()(const symbolic_constant& c) const {
   return Expr(value);
 }
 
-Expr evaluate_visitor::apply(const Expr& input) {
-  auto it = cache_.find(input);
-  if (it != cache_.end()) {
+Expr evaluate_visitor::operator()(const Expr& input) {
+  if (auto it = cache_.find(input); it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit_with_expr(input, *this);
+  Expr result = visit(input, *this);
   cache_.emplace(input, result);
   return result;
 }
 
-Expr evaluate(const Expr& arg) { return evaluate_visitor{}.apply(arg); }
+compound_expr evaluate_visitor::operator()(const compound_expr& input) {
+  if (auto it = compound_cache_.find(input); it != compound_cache_.end()) {
+    return it->second;
+  }
+  compound_expr result = map_compound_expressions(input, *this);
+  compound_cache_.emplace(input, result);
+  return result;
+}
+
+Expr evaluate(const Expr& arg) { return evaluate_visitor{}(arg); }
 
 }  // namespace wf

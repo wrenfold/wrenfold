@@ -55,6 +55,28 @@ class determine_set_visitor {
     return number_set::real_non_negative;
   }
 
+  number_set operator()(const compound_expression_element& el) const {
+    auto overloads = make_overloaded(
+        [&](const custom_function_invocation& invocation) -> number_set {
+          return overloaded_visit(
+              invocation.function().return_type(),
+              [](const scalar_type) constexpr { return number_set::real; },
+              [](const matrix_type) constexpr { return number_set::real; },
+              [&](const custom_type&) constexpr -> number_set {
+                // TODO: When integer is added, we should reason about that here.
+                return number_set::real;
+              });
+        },
+        [](const custom_type_argument&) -> number_set {
+          // TODO: Reason about real vs integer.
+          return number_set::real;
+        },
+        [&](const custom_type_construction& construct) {
+          return visit(construct.at(el.index()), *this);
+        });
+    return visit(el.provenance(), overloads);
+  }
+
   number_set operator()(const conditional& cond) const {
     number_set left = determine_numeric_set(cond.if_branch());
     number_set right = determine_numeric_set(cond.else_branch());
@@ -74,7 +96,7 @@ class determine_set_visitor {
     return handle_add_or_mul(mul, &combine_sets_mul);
   }
 
-  number_set operator()(const function& func) {
+  number_set operator()(const function& func) const {
     absl::InlinedVector<number_set, 4> args{};
     std::transform(func.begin(), func.end(), std::back_inserter(args), &determine_numeric_set);
     WF_ASSERT_GREATER_OR_EQ(args.size(), 1);

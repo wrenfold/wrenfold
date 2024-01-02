@@ -3,6 +3,7 @@
 #include "wf/expressions/addition.h"
 #include "wf/expressions/casts.h"
 #include "wf/expressions/conditional.h"
+#include "wf/expressions/custom_function_invocation.h"
 #include "wf/expressions/derivative_expression.h"
 #include "wf/expressions/function_expressions.h"
 #include "wf/expressions/matrix.h"

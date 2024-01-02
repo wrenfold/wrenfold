@@ -38,12 +38,6 @@ Expr Expr::from_int(const std::int64_t x) {
   }
   return make_expr<integer_constant>(x);
 }
-std::string_view Expr::type_name() const {
-  return impl_.visit([](const auto& v) noexcept -> std::string_view {
-    using T = std::decay_t<decltype(v)>;
-    return T::name_str;
-  });
-}
 
 std::string Expr::to_string() const {
   plain_formatter formatter{};

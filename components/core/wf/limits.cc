@@ -32,8 +32,7 @@ class limit_visitor {
 
   // Check the cache, and if no value exists, visit with this:
   std::optional<Expr> visit(const Expr& expr) {
-    auto it = cache_.find(expr);
-    if (it != cache_.end()) {
+    if (const auto it = cache_.find(expr); it != cache_.end()) {
       return it->second;
     }
     std::optional<Expr> result = visit_with_expr(expr, *this);
@@ -91,6 +90,9 @@ class limit_visitor {
     return addition::from_operands(terms);
   }
 
+  // Unsupported.
+  std::optional<Expr> operator()(const compound_expression_element&) const { return std::nullopt; }
+
   std::optional<Expr> operator()(const cast_bool& cast) {
     std::optional<Expr> arg = visit(cast.arg());
     if (!arg) {
@@ -99,7 +101,7 @@ class limit_visitor {
     return cast_int_from_bool(*arg);
   }
 
-  std::optional<Expr> operator()(const conditional&) {
+  std::optional<Expr> operator()(const conditional&) const {
     // We don't support limits of conditionals yet.
     return std::nullopt;
   }

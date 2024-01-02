@@ -6,6 +6,8 @@
 
 #include "wf/absl_imports.h"
 #include "wf/assertions.h"
+#include "wf/ordering.h"
+#include "wf/template_utils.h"
 
 namespace wf {
 
@@ -33,9 +35,26 @@ static void assert_field_names_are_unique(const std::vector<struct_field>& field
   }
 }
 
-custom_type::custom_type(std::string name, std::vector<struct_field> fields, std::any python_type)
-    : impl_(std::make_shared<const impl>(
-          impl{std::move(name), std::move(fields), std::move(python_type)})) {
+struct hash_underlying_type {
+  std::size_t operator()(const std::type_index t) const noexcept { return t.hash_code(); }
+  std::size_t operator()(const erased_pytype& p) const { return p.hash(); }
+  std::size_t operator()(const custom_type::underlying_type_variant& var) const {
+    return hash_combine(var.index(), std::visit(*this, var));
+  }
+};
+
+std::shared_ptr<const custom_type::impl> custom_type::create_impl(
+    std::string name, std::vector<struct_field> fields, underlying_type_variant underlying_type) {
+  impl result{std::move(name), std::move(fields), std::move(underlying_type), 0};
+  result.hash = hash_string_fnv(result.name);
+  result.hash = hash_all(result.hash, result.fields);
+  result.hash = hash_combine(result.hash, hash_underlying_type{}(result.underying_type));
+  return std::make_shared<impl>(std::move(result));
+}
+
+custom_type::custom_type(std::string name, std::vector<struct_field> fields,
+                         underlying_type_variant underlying_type)
+    : impl_{create_impl(std::move(name), std::move(fields), std::move(underlying_type))} {
   assert_field_names_are_unique(impl_->fields);
 }
 
@@ -48,6 +67,75 @@ const struct_field* custom_type::field_by_name(std::string_view name) const noex
     return nullptr;
   }
   return &(*it);
+}
+
+struct count_custom_type_size {
+  constexpr std::size_t operator()(const scalar_type&) const noexcept { return 1; }
+  constexpr std::size_t operator()(const matrix_type& m) const noexcept { return m.size(); }
+
+  std::size_t operator()(const custom_type& c) const noexcept {
+    // Append every field on this type, and recurse as well into child custom types.
+    std::size_t total = 0;
+    for (const struct_field& field : c.fields()) {
+      total += std::visit(*this, field.type());
+    }
+    return total;
+  }
+};
+
+std::size_t custom_type::total_size() const noexcept { return count_custom_type_size{}(*this); }
+
+struct find_field_type {
+  explicit find_field_type(const std::size_t index) noexcept : index_(index) {}
+
+  std::optional<code_numeric_type> operator()(const scalar_type s) const noexcept {
+    return s.numeric_type();
+  }
+  std::optional<code_numeric_type> operator()(const matrix_type&) const noexcept {
+    return code_numeric_type::floating_point;
+  }
+
+  std::optional<code_numeric_type> operator()(const custom_type& c) {
+    for (const struct_field& field : c.fields()) {
+      if (index_ == 0) {
+        return std::visit(*this, field.type());
+      }
+      index_--;
+    }
+    return std::nullopt;
+  }
+
+ private:
+  std::size_t index_;
+};
+
+code_numeric_type custom_type::find_field_numeric_type(const std::size_t index) const {
+  const std::optional<code_numeric_type> result = find_field_type{index}(*this);
+  WF_ASSERT(result.has_value(), "Invalid index into flattened struct. Index: {}, Type: `{}`", index,
+            name());
+  return *result;
+}
+
+bool is_identical_struct<custom_type>::operator()(const custom_type& a,
+                                                  const custom_type& b) const noexcept {
+  if (a.has_same_address(b)) {
+    return true;
+  }
+  if (a.name() != b.name() || a.size() != b.size() || !all_identical(a.fields(), b.fields())) {
+    return false;
+  }
+  if (a.underlying_type().index() != b.underlying_type().index()) {
+    return false;
+  }
+  return overloaded_visit(
+      a.underlying_type(),
+      [&](const std::type_index a_index) {
+        return a_index == std::get<std::type_index>(b.underlying_type());
+      },
+      [&](const erased_pytype& a_pytype) {
+        const auto& b_pytype = std::get<erased_pytype>(b.underlying_type());
+        return a_pytype.is_identical_to(b_pytype);
+      });
 }
 
 field_access::field_access(custom_type type, std::string name)

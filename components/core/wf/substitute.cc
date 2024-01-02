@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include "wf/expressions/all_expressions.h"
-#include "wf/hashing.h"
 #include "wf/matrix_expression.h"
 #include "wf/substitute.h"
 #include "wf/visit.h"
@@ -23,6 +22,16 @@ struct substitute_visitor_base {
  public:
   explicit substitute_visitor_base(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
+
+  Expr operator()(const Expr& expr) { return visit(expr, *this); }
+
+  MatrixExpr operator()(const MatrixExpr& expr) {
+    return MatrixExpr{expr.as_matrix().map_children(*this)};
+  }
+
+  compound_expr operator()(const compound_expr& expr) {
+    return map_compound_expressions(expr, *this);
+  }
 
   // The argument is neither an addition nor a multiplication:
   template <typename Arg>
@@ -45,11 +54,7 @@ struct substitute_visitor_base {
             return partial_sub;
           } else {
             // This type does have children, so apply to all of them:
-            Derived& as_derived = static_cast<Derived&>(*this);
-            return arg.map_children([&as_derived](const Expr& child) -> Expr {
-              return visit(child,
-                           [&as_derived, &child](const auto& x) { return as_derived(x, child); });
-            });
+            return arg.map_children(static_cast<Derived&>(*this));
           }
         });
       }
@@ -59,10 +64,7 @@ struct substitute_visitor_base {
       return input_expression;
     } else {
       // Otherwise we substitute in every child:
-      Derived& as_derived = static_cast<Derived&>(*this);
-      return other.map_children([&](const Expr& child) {
-        return visit(child, [&](const auto& x) { return as_derived(x, child); });
-      });
+      return other.map_children(static_cast<Derived&>(*this));
     }
   }
 
@@ -337,18 +339,17 @@ static substitute_variables_visitor create_subs_visitor(
 }
 
 Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, Expr>> pairs) {
-  return create_subs_visitor(pairs).apply(input);
+  return create_subs_visitor(pairs)(input);
 }
 
 MatrixExpr substitute_variables(const MatrixExpr& input,
-                                absl::Span<const std::tuple<Expr, Expr>> pairs) {
+                                const absl::Span<const std::tuple<Expr, Expr>> pairs) {
   substitute_variables_visitor visitor = create_subs_visitor(pairs);
   const matrix& m = input.as_matrix();
 
   std::vector<Expr> replaced{};
   replaced.reserve(m.size());
-  std::transform(m.begin(), m.end(), std::back_inserter(replaced),
-                 [&visitor](const Expr& x) { return visitor.apply(x); });
+  std::transform(m.begin(), m.end(), std::back_inserter(replaced), std::move(visitor));
   return MatrixExpr::create(m.rows(), m.cols(), std::move(replaced));
 }
 
@@ -365,14 +366,21 @@ void substitute_variables_visitor::add_substitution(variable variable, Expr repl
             variable.to_string());
 }
 
-Expr substitute_variables_visitor::apply(const Expr& expression) {
-  auto it = cache_.find(expression);
-  if (it != cache_.end()) {
+Expr substitute_variables_visitor::operator()(const Expr& expression) {
+  if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit_with_expr(expression, *this);
+  Expr result = visit(expression, *this);
   const auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
   return it_inserted->second;
+}
+
+MatrixExpr substitute_variables_visitor::operator()(const MatrixExpr& expression) {
+  return MatrixExpr{expression.as_matrix().map_children(*this)};
+}
+
+compound_expr substitute_variables_visitor::operator()(const compound_expr& expression) {
+  return map_compound_expressions(expression, *this);
 }
 
 template <typename T>
@@ -389,7 +397,7 @@ Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abs
   } else if constexpr (T::is_leaf_node) {
     return abstract;
   } else {
-    return concrete.map_children([this](const Expr& expr) { return apply(expr); });
+    return concrete.map_children(*this);
   }
 }
 

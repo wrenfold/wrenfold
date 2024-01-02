@@ -64,6 +64,16 @@ class argument {
   non_null<std::shared_ptr<const impl>> impl_;
 };
 
+template <>
+struct hash_struct<argument> {
+  std::size_t operator()(const argument& arg) const noexcept;
+};
+
+template <>
+struct is_identical_struct<argument> {
+  bool operator()(const argument& a, const argument& b) const;
+};
+
 // Store the signature of a function we will generate, plus all the captured output expressions.
 // This type is a symbolic function description, which is then "transpiled" into an actual AST that
 // can be written out as actual code.

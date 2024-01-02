@@ -74,8 +74,8 @@ template <>
 struct compute_function_output_struct<Expr> {
   double operator()(numeric_function_evaluator& evaluator, const Expr& input,
                     const scalar_type&) const {
-    const Expr subs = evaluator.substitute.apply(input);
-    const Expr evaluated = evaluator.evaluate.apply(subs);
+    const Expr subs = evaluator.substitute(input);
+    const Expr evaluated = evaluator.evaluate(subs);
     if (const float_constant* f = cast_ptr<float_constant>(evaluated); f != nullptr) {
       return f->get_value();
     } else {
@@ -116,7 +116,7 @@ struct compute_function_output_struct<T,
     type.copy_output_expressions(input, symbolic_outputs);
     // Turn them into float expressions:
     for (Expr& expr : symbolic_outputs) {
-      expr = evaluator.evaluate.apply(evaluator.substitute.apply(expr));
+      expr = evaluator.evaluate(evaluator.substitute(expr));
       if (!expr.is_type<float_constant>()) {
         throw type_error("Expression should be a floating point value. Got type `{}`: {}",
                          expr.type_name(), expr);

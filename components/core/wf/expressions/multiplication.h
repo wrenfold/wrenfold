@@ -77,9 +77,9 @@ class multiplication {
       return !term.is_type<integer_constant, rational_constant, float_constant>();
     });
     std::sort(begin, terms_.end(), [](const Expr& a, const Expr& b) {
-      if (a.get_hash() < b.get_hash()) {
+      if (a.hash() < b.hash()) {
         return true;
-      } else if (a.get_hash() > b.get_hash()) {
+      } else if (a.hash() > b.hash()) {
         return false;
       } else {
         return expression_order_struct{}(a, b);

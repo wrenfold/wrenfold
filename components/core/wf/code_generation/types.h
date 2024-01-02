@@ -9,6 +9,7 @@
 #include "wf/assertions.h"
 #include "wf/checked_pointers.h"
 #include "wf/enumerations.h"
+#include "wf/hashing.h"
 
 #include <typeindex>
 
@@ -19,7 +20,7 @@ class scalar_type {
  public:
   static constexpr std::string_view snake_case_name_str = "scalar_type";
 
-  explicit constexpr scalar_type(code_numeric_type numeric_type) noexcept
+  explicit constexpr scalar_type(const code_numeric_type numeric_type) noexcept
       : numeric_type_(numeric_type) {}
 
   // The underlying numeric type.
@@ -27,6 +28,20 @@ class scalar_type {
 
  private:
   code_numeric_type numeric_type_;
+};
+
+template <>
+struct hash_struct<scalar_type> {
+  constexpr std::size_t operator()(const scalar_type s) const noexcept {
+    return static_cast<std::size_t>(s.numeric_type());
+  }
+};
+
+template <>
+struct is_identical_struct<scalar_type> {
+  constexpr bool operator()(const scalar_type a, const scalar_type b) const noexcept {
+    return a.numeric_type() == b.numeric_type();
+  }
 };
 
 // Represent a matrix argument type. The dimensions are known at generation time.
@@ -38,6 +53,10 @@ class matrix_type {
 
   constexpr index_t rows() const noexcept { return rows_; }
   constexpr index_t cols() const noexcept { return cols_; }
+
+  constexpr std::tuple<index_t, index_t> dimensions() const noexcept {
+    return std::make_tuple(rows_, cols_);
+  }
 
   constexpr std::size_t size() const noexcept { return static_cast<std::size_t>(rows_ * cols_); }
 
@@ -53,16 +72,68 @@ class matrix_type {
   index_t cols_;
 };
 
+template <>
+struct hash_struct<matrix_type> {
+  constexpr std::size_t operator()(const matrix_type& m) const noexcept {
+    return hash_combine(static_cast<std::size_t>(m.rows()), static_cast<std::size_t>(m.cols()));
+  }
+};
+
+template <>
+struct is_identical_struct<matrix_type> {
+  constexpr bool operator()(const matrix_type& a, const matrix_type& b) const noexcept {
+    return a.dimensions() == b.dimensions();
+  }
+};
+
+// Wrapper around py::type (we implement this in the wrapper module).
+// Holds something that implements `concept` and stores a py::type.
+class erased_pytype {
+ public:
+  class concept {
+   public:
+    virtual ~concept() = default;
+    virtual bool is_identical_to(const concept& other) const = 0;
+    virtual std::size_t hash() const = 0;
+  };
+
+  template <typename T, typename... Args,
+            typename = std::enable_if_t<std::is_base_of_v<concept, T>>>
+  explicit erased_pytype(std::in_place_type_t<T>, Args&&... args)
+      : impl_(std::make_unique<T>(std::forward<Args>(args)...)) {}
+
+  bool is_identical_to(const erased_pytype& other) const {
+    return impl_->is_identical_to(*other.impl_.get());
+  }
+
+  std::size_t hash() const { return impl_->hash(); }
+
+  // Unchecked cast.
+  template <typename T>
+  const T& as() const noexcept {
+    return static_cast<const T&>(*impl_.get());
+  }
+
+ private:
+  non_null<std::unique_ptr<const concept>> impl_;
+};
+
 // A user-defined type that we support as an input/output to functions.
 class custom_type {
  public:
   static constexpr std::string_view snake_case_name_str = "custom_type";
 
+  using underlying_type_variant = std::variant<std::type_index, erased_pytype>;
+
   // Construct with fields. Asserts that all fields have unique names.
-  custom_type(std::string name, std::vector<class struct_field> fields, std::any python_type = {});
+  custom_type(std::string name, std::vector<class struct_field> fields,
+              underlying_type_variant underlying_type);
 
   // Access a field by name. May return nullptr if the field does not exist.
   const struct_field* field_by_name(std::string_view name) const noexcept;
+
+  // Check if underlying address matches.
+  bool has_same_address(const custom_type& other) const noexcept { return impl_ == other.impl_; }
 
   // Name of the type.
   const std::string& name() const noexcept { return impl_->name; }
@@ -70,17 +141,30 @@ class custom_type {
   // Access all fields.
   const auto& fields() const noexcept { return impl_->fields; }
 
-  // For python types, the py::type.
-  // For native C++ types, a wrapped std::type_index.
-  const auto& underlying_type() const noexcept { return impl_->underlying_type; }
+  // Access the underlying type variant.
+  const auto& underlying_type() const noexcept { return impl_->underying_type; }
+
+  // Hash of this object.
+  std::size_t hash() const noexcept { return impl_->hash; }
+
+  // Access the erased py::type.
+  maybe_null<const erased_pytype*> underying_pytype() const noexcept {
+    return std::get_if<erased_pytype>(&impl_->underying_type);
+  }
 
   // Number of fields.
   std::size_t size() const noexcept { return impl_->fields.size(); }
 
-  // Check if the underlying native type is `T`.
+  // The total size (including all sub-structs).
+  std::size_t total_size() const noexcept;
+
+  // Determine the type of the specific scalar field.
+  code_numeric_type find_field_numeric_type(std::size_t index) const;
+
+  // Check if the underlying native type is C++ type `T`.
   template <typename T>
   bool is_native_type() const noexcept {
-    if (const std::type_index* type_index = std::any_cast<std::type_index>(&impl_->underlying_type);
+    if (const std::type_index* type_index = std::get_if<std::type_index>(&impl_->underying_type);
         type_index != nullptr) {
       return *type_index == typeid(T);
     }
@@ -94,19 +178,37 @@ class custom_type {
     // All the fields in the type. If this type was defined in python, this vector should be ordered
     // the same as the fields on the python type.
     std::vector<struct_field> fields;
-    // An opaque strong reference to the `py::type` that represents this type in python.
-    // We hold this as std::any so that pybind11 is not an explicit dependency here.
-    // For native C++ types, this is a std::type_index corresponding to the type.
-    // Could make this a variant, but having std::any in a variant seems redundant.
-    std::any underlying_type;
+    // Either the type_index of the C++ type, or a unique pointer to an object that stores
+    // a strong reference to the `py::type` that represents this type in python.
+    underlying_type_variant underying_type;
+    // Cached hash of this object.
+    std::size_t hash;
   };
+
+  static std::shared_ptr<const impl> create_impl(std::string name, std::vector<struct_field> fields,
+                                                 underlying_type_variant underlying_type);
 
   // This object is saved in multiple places, and returned into python.
   non_null<std::shared_ptr<const impl>> impl_;
 };
 
+template <>
+struct hash_struct<custom_type> {
+  std::size_t operator()(const custom_type& c) const noexcept { return c.hash(); }
+};
+
+template <>
+struct is_identical_struct<custom_type> {
+  bool operator()(const custom_type& a, const custom_type& b) const noexcept;
+};
+
 // Variant over possible types that can appear in generated code.
 using type_variant = std::variant<scalar_type, matrix_type, custom_type>;
+
+template <>
+struct hash_struct<type_variant> : hash_variant<type_variant> {};
+template <>
+struct is_identical_struct<type_variant> : is_identical_variant<type_variant> {};
 
 // Stores a type-erased object that can set/get the C++ member variable corresponding to a given
 // field. This applies only to custom types that are defined in C++. The native field accessor is
@@ -169,6 +271,27 @@ class struct_field {
   // This value is empty for python types.
   native_field_accessor native_accessor_;
 };
+
+template <>
+struct hash_struct<struct_field> {
+  std::size_t operator()(const struct_field& field) const noexcept {
+    return hash_combine(hash_string_fnv(field.name()), hash(field.type()));
+  }
+};
+
+template <>
+struct is_identical_struct<struct_field> {
+  bool operator()(const struct_field& a, const struct_field& b) const noexcept {
+    return a.name() == b.name() && is_identical_struct<type_variant>{}(a.type(), b.type());
+  }
+};
+
+// template <>
+// struct order_struct<struct_field> {
+//   relative_order operator()(const struct_field& a, const struct_field& b) const noexcept {
+//     return order_by(a.name(), b.name()).and_then_by(a.type(), b.type());
+//   }
+// };
 
 // Represent the operation of reading a field on a custom type.
 class field_access {
