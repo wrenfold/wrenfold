@@ -5,7 +5,7 @@
 #include "wf/expressions/all_expressions.h"
 #include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 

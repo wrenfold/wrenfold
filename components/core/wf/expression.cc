@@ -4,7 +4,7 @@
 #include "wf/constants.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/plain_formatter.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 
@@ -38,14 +38,6 @@ Expr Expr::from_int(const std::int64_t x) {
   }
   return make_expr<integer_constant>(x);
 }
-
-bool Expr::is_identical_to_internal(const Expr& other) const {
-  return impl_.visit([&](const auto& v) -> bool {
-    using T = std::decay_t<decltype(v)>;
-    return v.is_identical_to(other.impl_.cast_unchecked<T>());
-  });
-}
-
 std::string_view Expr::type_name() const {
   return impl_.visit([](const auto& v) noexcept -> std::string_view {
     using T = std::decay_t<decltype(v)>;

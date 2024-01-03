@@ -94,10 +94,12 @@ class expression_variant {
    public:
     virtual ~concept_base() = default;
 
-    concept_base(std::size_t index, std::size_t hash) noexcept : hash_(hash), index_(index) {}
+    concept_base(const std::size_t index, const std::size_t hash) noexcept
+        : hash_(hash), index_(index) {}
 
-    //  Hash is initialized later in this version of the constructor.
-    explicit concept_base(std::size_t index) noexcept : index_(index) {}
+    // Hash is initialized later in this version of the constructor.
+    // ReSharper disable once CppPossiblyUninitializedMember
+    explicit concept_base(const std::size_t index) noexcept : index_(index) {}
 
     constexpr std::size_t index() const noexcept { return index_; }
     constexpr std::size_t hash() const noexcept { return hash_; }

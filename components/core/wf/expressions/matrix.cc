@@ -3,7 +3,7 @@
 
 #include "wf/expressions/addition.h"
 #include "wf/matrix_functions.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 

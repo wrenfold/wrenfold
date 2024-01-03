@@ -7,7 +7,7 @@
 #include "wf/hashing.h"
 #include "wf/matrix_expression.h"
 #include "wf/substitute.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)

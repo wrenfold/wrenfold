@@ -5,7 +5,7 @@
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/power.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 // This file is intended to contain common utility visitors.
 namespace wf {

@@ -3,8 +3,6 @@
 #include <array>
 #include <string_view>
 
-// #include "wf/expression.h"
-
 namespace wf {
 
 // Hash object T. Specializations are implemented elsewhere.

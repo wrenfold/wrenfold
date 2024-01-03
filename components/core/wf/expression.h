@@ -98,7 +98,7 @@ class Expr {
   // Get the hash of the expression.
   std::size_t get_hash() const noexcept { return impl_.hash(); }
 
-  // Access underlying implementation.
+  // Access underlying expression variant.
   constexpr const storage_type& impl() const noexcept { return impl_; }
 
   // Convert to string.
@@ -151,9 +151,6 @@ class Expr {
 
   // Construct from integer.
   static Expr from_int(std::int64_t x);
-
-  // True if this is identical to the provided expression.
-  bool is_identical_to_internal(const Expr& other) const;
 
   // TODO: Use checked casts here + safe numeric type.
   template <typename T>
