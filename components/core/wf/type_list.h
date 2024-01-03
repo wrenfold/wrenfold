@@ -57,16 +57,6 @@ struct type_list_push_front<T, type_list<Args...>> {
 template <typename T, typename List>
 using type_list_push_front_t = typename type_list_push_front<T, List>::type;
 
-// Helper to append a type to the back of a type list.
-template <typename, typename>
-struct type_list_push_back;
-template <typename T, typename... Args>
-struct type_list_push_back<T, type_list<Args...>> {
-  using type = type_list<Args..., T>;
-};
-template <typename T, typename List>
-using type_list_push_back_t = typename type_list_push_back<T, List>::type;
-
 // Get the front/head of a type list.
 template <typename T>
 struct type_list_front;
@@ -134,16 +124,6 @@ template <typename... Ts>
 struct type_list_from_tuple<std::tuple<Ts...>> {
   using type = type_list<Ts...>;
 };
-
-// Convert a type list to an aligned union.
-template <typename T>
-struct aligned_union_from_type_list;
-template <typename... Ts>
-struct aligned_union_from_type_list<type_list<Ts...>> {
-  using type = std::aligned_union_t<0, Ts...>;
-};
-template <typename T>
-using aligned_union_from_type_list_t = typename aligned_union_from_type_list<T>::type;
 
 // Perform a map on a type list, and produce a new type list.
 template <template <typename...> typename Map, typename T>
