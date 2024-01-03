@@ -1,7 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
 #include "wf/expression.h"
-#include "wf/visitor_base.h"
 
 namespace wf {
 

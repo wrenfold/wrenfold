@@ -1,6 +1,5 @@
 #include <Eigen/Geometry>
 
-#include "wf/expression_impl.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/functions.h"
 #include "wf/geometry/quaternion.h"

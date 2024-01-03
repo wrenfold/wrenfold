@@ -1,9 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/assertions.h"
 #include "wf/expression.h"
 #include "wf/template_utils.h"
-#include "wf/visitor_base.h"
 
 // All expression definitions need to be available to static_cast.
 #include "wf/expressions/all_expressions.h"
@@ -12,43 +10,10 @@ namespace wf {
 
 // Accepts a visitor struct or lambda and applies it to the provided expression.
 // The return type will be deduced from the visitor itself.
-template <typename VisitorType>
-auto visit(const Expr& expr, VisitorType&& visitor) {
-  // Deduce the return type by invoking the operator() w/ the different expression types.
-  // TODO: For now we allow one single ReturnType. We could allow returning std::variant<>.
-  if (expr.is_type<addition>()) {
-    return visitor(cast_unchecked<addition>(expr));
-  } else if (expr.is_type<cast_bool>()) {
-    return visitor(cast_unchecked<cast_bool>(expr));
-  } else if (expr.is_type<conditional>()) {
-    return visitor(cast_unchecked<conditional>(expr));
-  } else if (expr.is_type<symbolic_constant>()) {
-    return visitor(cast_unchecked<symbolic_constant>(expr));
-  } else if (expr.is_type<derivative>()) {
-    return visitor(cast_unchecked<derivative>(expr));
-  } else if (expr.is_type<float_constant>()) {
-    return visitor(cast_unchecked<float_constant>(expr));
-  } else if (expr.is_type<function>()) {
-    return visitor(cast_unchecked<function>(expr));
-  } else if (expr.is_type<complex_infinity>()) {
-    return visitor(cast_unchecked<complex_infinity>(expr));
-  } else if (expr.is_type<integer_constant>()) {
-    return visitor(cast_unchecked<integer_constant>(expr));
-  } else if (expr.is_type<multiplication>()) {
-    return visitor(cast_unchecked<multiplication>(expr));
-  } else if (expr.is_type<power>()) {
-    return visitor(cast_unchecked<power>(expr));
-  } else if (expr.is_type<rational_constant>()) {
-    return visitor(cast_unchecked<rational_constant>(expr));
-  } else if (expr.is_type<relational>()) {
-    return visitor(cast_unchecked<relational>(expr));
-  } else if (expr.is_type<undefined>()) {
-    return visitor(cast_unchecked<undefined>(expr));
-  } else {
-    WF_ASSERT(expr.is_type<variable>(), "Neglected to implement if-else switch for type: {}",
-              expr.type_name());
-    return visitor(cast_unchecked<variable>(expr));
-  }
+template <typename F>
+auto visit(const Expr& expr, F&& visitor) noexcept(
+    is_nothrow_invokable_visitor_v<decltype(visitor), Expr::storage_type::types>) {
+  return expr.impl().visit(std::forward<F>(visitor));
 }
 
 // Version of `visit` that accepts visitors that can re-use the input expression.

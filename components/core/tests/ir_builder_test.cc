@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #include "wf/code_generation/ir_builder.h"
+#include "wf/constants.h"
 #include "wf/functions.h"
 #include "wf/type_annotations.h"
 

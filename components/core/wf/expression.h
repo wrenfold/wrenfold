@@ -4,67 +4,69 @@
 #include <ostream>
 #include <string>
 
-#include "wf/expression_concept.h"
+#include "wf/expression_variant.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/fmt_imports.h"
 #include "wf/hashing.h"
 #include "wf/operations.h"
-#include "wf/polymorphic.h"
 
 namespace wf {
 
-struct scalar_meta {};
+// Empty type that we use to specify a list of types for `expression_variant`.
+struct scalar_meta_type {};
 
 template <>
-struct poly_meta<scalar_meta> {
-  using trivial_types = trivial_type_list;
-  using non_trivial_types = non_trivial_type_list;
+struct type_list_trait<scalar_meta_type> {
+  // All the scalar-valued expressions.
+  // clang-format off
+  using types = type_list<
+    class addition,
+    class cast_bool,
+    class conditional,
+    class symbolic_constant,
+    class derivative,
+    class float_constant,
+    class function,
+    class complex_infinity,
+    class integer_constant,
+    class multiplication,
+    class power,
+    class rational_constant,
+    class relational,
+    class undefined,
+    class variable
+    >;
+  // clang-format on
 };
 
-/**
- * Wrapper around a pointer to an abstract expression. Defined so you can easily write chains of
- * operations without dealing with pointers at all.
- */
+// An abstract scalar-valued expression.
 class Expr {
  public:
-  // template <typename T>
-  // struct is_not_trivially_copyable {
-  //   static constexpr bool value = !std::is_trivially_copyable_v<T>;
-  // };
-  //
-  // using trivial_types =
-  //     type_list_map_t<expression_storage,
-  //                     type_list_filter_t<std::is_trivially_copyable, expression_type_list>>;
-  // using non_trivial_types =
-  //     type_list_map_t<expression_storage,
-  //                     type_list_filter_t<is_not_trivially_copyable, expression_type_list>>;
-
-  using storage_type = polymorphic<scalar_meta>;
-
- public:
-  // Constructors.
-  // explicit Expr(expression_concept_const_ptr&& impl) : impl_(std::move(impl)) {}
-  // explicit Expr(const expression_concept_const_ptr& impl) : impl_(impl) {}
+  using storage_type = expression_variant<scalar_meta_type>;
 
   // Construct variable with name and specific numeric set:
   explicit Expr(std::string_view name, number_set set = number_set::unknown);
 
+  // Enable if the type `T` is a numeric type that we allow to be implicitly converted to `Expr`.
+  template <typename T>
+  using enable_if_supports_implicit_conversion =
+      std::enable_if_t<(std::is_integral_v<T> && !std::is_same_v<T, bool>) ||
+                       std::is_floating_point_v<T>>;
+
   // Implicit construction from integers and floats.
   // enable_if argument is a trick we use until c++20 and constraints.
-  template <typename T,
-            typename = std::enable_if_t<(std::is_integral_v<T> && !std::is_same_v<T, bool>) ||
-                                        std::is_floating_point_v<T>>>
+  template <typename T, typename = enable_if_supports_implicit_conversion<T>>
   Expr(T v) : Expr(construct_implicit(v)) {}
 
   // Construct from anything that can be fed into `storage_type`.
-  template <typename T,
-            typename = std::enable_if_t<std::is_constructible_v<storage_type, std::decay_t<T>>>>
-  Expr(T&& arg) : impl_(std::forward<T>(arg)) {}
+  template <typename T, typename = storage_type::enable_if_is_constructible_t<T>>
+  explicit Expr(T&& arg) noexcept(std::is_nothrow_constructible_v<storage_type, decltype(arg)>)
+      : impl_(std::forward<T>(arg)) {}
 
   // Construct from rational.
   explicit Expr(rational_constant r);
 
-  // Construct from internal variant.
+  // Construct from expression variant.
   explicit Expr(storage_type contents) noexcept : impl_(std::move(contents)) {}
 
   // Test if the two expressions have the same underlying address.
@@ -73,11 +75,11 @@ class Expr {
   }
 
   // Test if the two expressions are identical.
-  bool is_identical_to(const Expr& other) const noexcept {
+  bool is_identical_to(const Expr& other) const {
     if (has_same_address(other)) {
       return true;
     }
-    return is_identical_to_internal(other);
+    return impl_.index() == other.impl_.index() && is_identical_to_internal(other);
   }
 
   // Check if the underlying expression is one of the specified types.
@@ -90,13 +92,13 @@ class Expr {
   std::string_view type_name() const;
 
   // Return the unique index of the underlying type.
-  std::size_t type_index() const noexcept { return impl_.index(); }
-
-  // Whether this expression is a leaf node in the expression tree.
-  bool is_leaf() const;
+  constexpr std::size_t type_index() const noexcept { return impl_.index(); }
 
   // Get the hash of the expression.
   constexpr std::size_t get_hash() const noexcept { return impl_.hash(); }
+
+  // Access underlying implementation.
+  constexpr const storage_type& impl() const noexcept { return impl_; }
 
   // Convert to string.
   std::string to_string() const;
@@ -141,18 +143,8 @@ class Expr {
   Expr eval() const { return wf::evaluate(*this); }
 
  protected:
-  // [[nodiscard]] const expression_concept_const_ptr& Impl() const { return impl_; }
-
   friend class MatrixExpr;
 
-  template <typename T>
-  friend const T* cast_ptr(const Expr&);
-  template <typename T>
-  friend const T& cast_checked(const Expr&);
-  template <typename T>
-  friend const T& cast_unchecked(const Expr& x);
-
- private:
   // Construct constant from float.
   static Expr from_float(double x);
 
@@ -160,14 +152,13 @@ class Expr {
   static Expr from_int(std::int64_t x);
 
   // True if this is identical to the provided expression.
-  bool is_identical_to_internal(const Expr& other) const noexcept;
+  bool is_identical_to_internal(const Expr& other) const;
 
   // TODO: Use checked casts here + safe numeric type.
   template <typename T>
   static Expr construct_implicit(T v) {
     static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
     if constexpr (std::is_integral_v<T>) {
-      static_assert(!std::is_same_v<T, bool>);
       return from_int(static_cast<std::int64_t>(v));
     } else {
       return from_float(static_cast<double>(v));
@@ -243,6 +234,43 @@ struct hash_struct<Expr> {
 
 // Make a unique variable symbol.
 Expr make_unique_variable_symbol(number_set set);
+
+// Create an `Expr` with underlying type `T` and constructor args `Args`.
+template <typename T, typename... Args>
+Expr make_expr(Args&&... args) {
+  return Expr{T{std::forward<Args>(args)...}};
+}
+
+// Cast expression to const pointer of the specified type.
+// Returned pointer is valid in scope only as long as the argument `x` survives.
+template <typename T>
+const T* cast_ptr(const Expr& x) {
+  if (x.is_type<T>()) {
+    const T& concrete = x.impl().cast_unchecked<T>();
+    return &concrete;
+  } else {
+    return nullptr;
+  }
+}
+
+// Cast expression to const reference of the specified type. TypeError is thrown if the cast is
+// invalid.
+template <typename T>
+const T& cast_checked(const Expr& x) {
+  if (x.is_type<T>()) {
+    const T& concrete = x.impl().cast_unchecked<T>();
+    return concrete;
+  } else {
+    throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::name_str);
+  }
+}
+
+// Cast expression with no checking. UB will occur if the wrong type is accessed.
+template <typename T>
+const T& cast_unchecked(const Expr& x) {
+  const T& concrete = x.impl().cast_unchecked<T>();
+  return concrete;
+}
 
 }  // namespace wf
 

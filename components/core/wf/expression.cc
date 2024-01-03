@@ -16,7 +16,6 @@ static Expr simplify_rational(rational_constant r) {
     return Expr(as_int->get_value());
   }
   return Expr{Expr::storage_type(rational_constant(r))};
-  // return Expr{}  make_expr<rational_constant>(r);
 }
 
 Expr::Expr(const rational_constant r) : Expr(simplify_rational(r)) {}
@@ -40,10 +39,7 @@ Expr Expr::from_int(const std::int64_t x) {
   return make_expr<integer_constant>(x);
 }
 
-bool Expr::is_identical_to_internal(const Expr& other) const noexcept {
-  if (impl_.index() != other.impl_.index()) {
-    return false;
-  }
+bool Expr::is_identical_to_internal(const Expr& other) const {
   return impl_.visit([&](const auto& v) -> bool {
     using T = std::decay_t<decltype(v)>;
     return v.is_identical_to(other.impl_.cast_unchecked<T>());
@@ -51,16 +47,9 @@ bool Expr::is_identical_to_internal(const Expr& other) const noexcept {
 }
 
 std::string_view Expr::type_name() const {
-  return impl_.visit([](const auto& v) -> std::string_view {
+  return impl_.visit([](const auto& v) noexcept -> std::string_view {
     using T = std::decay_t<decltype(v)>;
     return T::name_str;
-  });
-}
-
-bool Expr::is_leaf() const {
-  return impl_.visit([](const auto& v) -> bool {
-    using T = std::decay_t<decltype(v)>;
-    return T::is_leaf_node;
   });
 }
 

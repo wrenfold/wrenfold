@@ -5,8 +5,6 @@
 #include <optional>
 
 #include "wf/assertions.h"
-// #include "wf/expression_concept.h"
-// #include "wf/expression_impl.h"
 #include "wf/hashing.h"
 #include "wf/type_list.h"
 
@@ -55,10 +53,6 @@ class integer_constant {
 
   // Get absolute value.
   integer_constant abs() const { return integer_constant{std::abs(val_)}; }
-
-  // Create an integer expression.
-  // static Expr create(value_type x);
-  // static Expr create(const integer_constant& x) { return create(x.get_value()); }
 
  private:
   value_type val_;
@@ -120,17 +114,6 @@ class rational_constant {
   // True if the absolute value of the fraction is less than one.
   bool is_proper() const noexcept { return std::abs(n_) < d_; }
 
-  // Create a rational expression and simplify if possible.
-  // static Expr create(rational_constant r) {
-  //   if (auto as_int = r.try_convert_to_integer(); as_int) {
-  //     return Expr(as_int->get_value());
-  //   }
-  //   return make_expr<rational_constant>(r);
-  // }
-
-  // Create a rational expression and simplify if possible.
-  // static Expr create(value_type n, value_type d) { return create(rational_constant{n, d}); }
-
  private:
   constexpr std::pair<value_type, value_type> create_pair(value_type n, value_type d) noexcept {
     // Find the largest common denominator and reduce:
@@ -184,13 +167,6 @@ class float_constant {
 
   // Get absolute value.
   float_constant abs() const noexcept { return float_constant{std::abs(val_)}; }
-
-  // Create floating point expression.
-  // static Expr create(float_constant f) { return make_expr<float_constant>(f); }
-  // static Expr create(value_type f) {
-  //   WF_ASSERT(std::isfinite(f), "Float values must be finite: {}", f);
-  //   return create(float_constant{f});
-  // }
 
  private:
   value_type val_;

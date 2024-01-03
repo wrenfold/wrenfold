@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #include "wf/assertions.h"
-#include "wf/expression_impl.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/visitor_impl.h"
 
