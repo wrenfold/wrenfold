@@ -25,6 +25,13 @@ class multiplication {
     sort_terms();
   }
 
+  // Construct from a pair of multiplied terms.
+  explicit multiplication(Expr a, Expr b) {
+    terms_.push_back(std::move(a));
+    terms_.push_back(std::move(b));
+    sort_terms();
+  }
+
   // Access specific argument.
   const Expr& operator[](const std::size_t i) const { return terms_[i]; }
 

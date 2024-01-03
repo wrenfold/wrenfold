@@ -137,8 +137,7 @@ Expr addition_parts::create_addition() const {
                               !pair.second.is_type<multiplication>()) {
                      // We can skip calling FromOperands here because we know the first element in
                      // the pair is the non-numeric value and the second is the numeric coefficient.
-                     multiplication::container_type mul_terms = {pair.second, pair.first};
-                     return make_expr<multiplication>(std::move(mul_terms));
+                     return make_expr<multiplication>(pair.second, pair.first);
                    }
                    return multiplication::from_operands({pair.first, pair.second});
                  });
