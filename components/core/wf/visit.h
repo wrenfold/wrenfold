@@ -12,7 +12,7 @@ namespace wf {
 // The return type will be deduced from the visitor itself.
 template <typename F>
 auto visit(const Expr& expr, F&& visitor) noexcept(
-    is_nothrow_invokable_visitor_v<decltype(visitor), Expr::storage_type::types>) {
+    is_nothrow_invocable_visitor_v<decltype(visitor), Expr::storage_type::types>) {
   return expr.impl().visit(std::forward<F>(visitor));
 }
 

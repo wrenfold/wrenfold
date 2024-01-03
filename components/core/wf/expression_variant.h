@@ -12,12 +12,12 @@ struct type_list_trait;
 
 // Evaluate to true if visitor `F` can be nothrow invoked on all the possible contained types.
 template <typename F, typename T>
-struct is_nothrow_invokable_visitor;
+struct is_nothrow_invocable_visitor;
 template <typename F, typename... Ts>
-struct is_nothrow_invokable_visitor<F, type_list<Ts...>>
+struct is_nothrow_invocable_visitor<F, type_list<Ts...>>
     : std::conjunction<std::is_nothrow_invocable<F, const Ts&...>> {};
 template <typename F, typename List>
-constexpr bool is_nothrow_invokable_visitor_v = is_nothrow_invokable_visitor<F, List>::value;
+constexpr bool is_nothrow_invocable_visitor_v = is_nothrow_invocable_visitor<F, List>::value;
 
 // Stores one of `N` possible expression types in a shared_ptr, along with an index indicating which
 // underlying expression is stored. To avoid bloating the class signature in the debugger and in
@@ -77,7 +77,7 @@ class expression_variant {
   // Visit the stored value with the provided visitor object.
   // The visitor will be passed a const reference.
   template <typename F>
-  auto visit(F&& f) const noexcept(is_nothrow_invokable_visitor_v<decltype(f), types>) {
+  auto visit(F&& f) const noexcept(is_nothrow_invocable_visitor_v<decltype(f), types>) {
     return visit_impl<0>(std::forward<F>(f));
   }
 
@@ -168,7 +168,7 @@ class expression_variant {
   // If index `I` matches the internal index, call function `f` on it - otherwise recurse to the
   // next index.
   template <std::size_t I, typename F>
-  auto visit_impl(F&& f) const noexcept(is_nothrow_invokable_visitor_v<decltype(f), types>) {
+  auto visit_impl(F&& f) const noexcept(is_nothrow_invocable_visitor_v<decltype(f), types>) {
     if (index() == I) {
       return f(cast_to_index<I>());
     } else if constexpr (I < type_list_size_v<types> - 1) {
