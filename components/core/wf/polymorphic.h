@@ -1,5 +1,6 @@
 // Copyright 2024 Gareth Cross
 #pragma once
+#include "wf/hashing.h"
 #include "wf/type_list.h"
 
 #include <limits>
@@ -31,7 +32,8 @@ class polymorphic {
   // Copy or move construct from an instance of type `T`.
   template <typename T, typename = enable_if_type_in_list_t<T, all_types>>
   polymorphic(T&& value) noexcept(std::is_nothrow_constructible_v<std::decay_t<T>, decltype(value)>)
-      : index_{type_list_index_v<std::decay_t<T>, all_types>} {
+      : index_{type_list_index_v<std::decay_t<T>, all_types>},
+        hash_(wf::hash_combine(type_list_index_v<std::decay_t<T>, all_types>, wf::hash(value))) {
     using decayed_type = std::decay_t<T>;  //  remove const and ref
     if constexpr (type_list_contains_v<decayed_type, trivial_types>) {
       new (&data_) decayed_type(std::forward<T>(value));
@@ -74,6 +76,9 @@ class polymorphic {
 
   // Return index indicating which type is stored.
   constexpr std::size_t index() const noexcept { return index_; }
+
+  // Return the hash value.
+  constexpr std::size_t hash() const noexcept { return hash_; }
 
   // True if this is stack allocated trivial object.
   constexpr bool is_stack_allocated() const noexcept { return index_ < num_trivial_types; }
@@ -183,6 +188,7 @@ class polymorphic {
   // Copy from another instance.
   void copy_from(const polymorphic& source) noexcept {
     index_ = source.index_;
+    hash_ = source.hash_;
     if (is_stack_allocated()) {
       std::memcpy(&data_, &source.data_, sizeof(data_));
     } else if (has_value()) {
@@ -193,6 +199,7 @@ class polymorphic {
   // Move from antother instance.
   void move_from(polymorphic&& source) noexcept {
     index_ = source.index_;
+    hash_ = source.hash_;
     source.index_ = valueless_index;  //  Mark as moved-from.
     if (is_stack_allocated()) {
       std::memcpy(&data_, &source.data_, sizeof(data_));
@@ -232,6 +239,7 @@ class polymorphic {
 
   // Index of the type
   std::size_t index_;
+  std::size_t hash_;
   aligned_union_from_type_list_t<storage_type_list> data_;
 };
 

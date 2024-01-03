@@ -112,15 +112,15 @@ struct order_visitor {
     return relative_order::equal;  //  they are equal
   }
 };
-
-template <typename T>
-struct expression_storage_value_type;
-template <typename T>
-struct expression_storage_value_type<expression_storage<T>> {
-  using type = typename expression_storage<T>::value_type;
-};
-template <typename T>
-using expression_storage_value_type_t = typename expression_storage_value_type<T>::type;
+//
+// template <typename T>
+// struct expression_storage_value_type;
+// template <typename T>
+// struct expression_storage_value_type<expression_storage<T>> {
+//   using type = typename expression_storage<T>::value_type;
+// };
+// template <typename T>
+// using expression_storage_value_type_t = typename expression_storage_value_type<T>::type;
 
 template <typename... Ts>
 static constexpr auto get_type_order_indices(type_list<Ts...>) {
@@ -138,7 +138,7 @@ static constexpr auto get_type_order_indices(type_list<Ts...>) {
 relative_order expression_order(const Expr& a, const Expr& b) {
   // An array where element [i] is the position of the type with index `i` within
   // our preferred canonical ordering.
-  using all_types = type_list_map_t<expression_storage_value_type_t, Expr::storage_type::all_types>;
+  using all_types = Expr::storage_type::all_types;
   static constexpr auto order = get_type_order_indices(all_types{});
 
   const auto index_a = order[a.type_index()];

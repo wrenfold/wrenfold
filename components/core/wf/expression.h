@@ -13,25 +13,12 @@
 
 namespace wf {
 
-template <typename T>
-struct expression_storage {
-  using value_type = T;
-
-  template <typename U>
-  explicit expression_storage(U&& u)
-      : hash(wf::hash_combine(type_list_index_v<T, expression_type_list>, wf::hash(u))),
-        contents{std::forward<U>(u)} {}
-
-  std::size_t hash;
-  T contents;
-};
-
 struct scalar_meta {};
 
 template <>
 struct poly_meta<scalar_meta> {
-  using trivial_types = type_list_map_t<expression_storage, trivial_type_list>;
-  using non_trivial_types = type_list_map_t<expression_storage, non_trivial_type_list>;
+  using trivial_types = trivial_type_list;
+  using non_trivial_types = non_trivial_type_list;
 };
 
 /**
@@ -70,9 +57,9 @@ class Expr {
   Expr(T v) : Expr(construct_implicit(v)) {}
 
   // Construct from anything that can be fed into `storage_type`.
-  template <typename T, typename = std::enable_if_t<std::is_constructible_v<
-                            storage_type, expression_storage<std::decay_t<T>>>>>
-  Expr(T&& arg) : impl_(expression_storage<std::decay_t<T>>(std::forward<T>(arg))) {}
+  template <typename T,
+            typename = std::enable_if_t<std::is_constructible_v<storage_type, std::decay_t<T>>>>
+  Expr(T&& arg) : impl_(std::forward<T>(arg)) {}
 
   // Construct from rational.
   explicit Expr(rational_constant r);
@@ -96,7 +83,7 @@ class Expr {
   // Check if the underlying expression is one of the specified types.
   template <typename... Ts>
   bool is_type() const noexcept {
-    return impl_.is_type<expression_storage<Ts>...>();
+    return impl_.is_type<Ts...>();
   }
 
   // Get the underlying type name as a string.
@@ -109,7 +96,7 @@ class Expr {
   bool is_leaf() const;
 
   // Get the hash of the expression.
-  std::size_t get_hash() const;
+  constexpr std::size_t get_hash() const noexcept { return impl_.hash(); }
 
   // Convert to string.
   std::string to_string() const;

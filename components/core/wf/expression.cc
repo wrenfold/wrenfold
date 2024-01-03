@@ -15,7 +15,7 @@ static Expr simplify_rational(rational_constant r) {
   if (const auto as_int = r.try_convert_to_integer(); as_int.has_value()) {
     return Expr(as_int->get_value());
   }
-  return Expr{Expr::storage_type(expression_storage<rational_constant>(r))};
+  return Expr{Expr::storage_type(rational_constant(r))};
   // return Expr{}  make_expr<rational_constant>(r);
 }
 
@@ -46,28 +46,22 @@ bool Expr::is_identical_to_internal(const Expr& other) const noexcept {
   }
   return impl_.visit([&](const auto& v) -> bool {
     using T = std::decay_t<decltype(v)>;
-    const T& other_casted = other.impl_.cast_unchecked<T>();
-    return v.contents.is_identical_to(other_casted.contents);
+    return v.is_identical_to(other.impl_.cast_unchecked<T>());
   });
 }
 
 std::string_view Expr::type_name() const {
   return impl_.visit([](const auto& v) -> std::string_view {
     using T = std::decay_t<decltype(v)>;
-    using value_type = typename T::value_type;
-    return value_type::name_str;
+    return T::name_str;
   });
 }
 
 bool Expr::is_leaf() const {
   return impl_.visit([](const auto& v) -> bool {
     using T = std::decay_t<decltype(v)>;
-    return T::value_type::is_leaf_node;
+    return T::is_leaf_node;
   });
-}
-
-std::size_t Expr::get_hash() const {
-  return impl_.visit([](const auto& v) -> std::size_t { return v.hash; });
 }
 
 std::string Expr::to_string() const {

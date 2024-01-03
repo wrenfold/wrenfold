@@ -62,8 +62,8 @@ Expr make_expr(Args&&... args) {
 template <typename T>
 const T* cast_ptr(const Expr& x) {
   if (x.is_type<T>()) {
-    const expression_storage<T>& concrete = x.impl_.cast_unchecked<expression_storage<T>>();
-    return &concrete.contents;
+    const T& concrete = x.impl_.cast_unchecked<T>();
+    return &concrete;
     // const T& concrete =
     //     static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
     // return &concrete;
@@ -77,8 +77,8 @@ const T* cast_ptr(const Expr& x) {
 template <typename T>
 const T& cast_checked(const Expr& x) {
   if (x.is_type<T>()) {
-    const expression_storage<T>& concrete = x.impl_.cast_unchecked<expression_storage<T>>();
-    return concrete.contents;
+    const T& concrete = x.impl_.cast_unchecked<T>();
+    return concrete;
     // return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
   } else {
     throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::name_str);
@@ -88,9 +88,9 @@ const T& cast_checked(const Expr& x) {
 // Cast expression with no checking. UB will occur if the wrong type is accessed.
 template <typename T>
 const T& cast_unchecked(const Expr& x) {
-  const expression_storage<T>& concrete = x.impl_.cast_unchecked<expression_storage<T>>();
+  const T& concrete = x.impl_.cast_unchecked<T>();
   // return static_cast<const expression_implementation<T>*>(x.impl_.get())->get_implementation();
-  return concrete.contents;
+  return concrete;
 }
 
 }  // namespace wf

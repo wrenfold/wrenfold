@@ -198,9 +198,6 @@ struct substitute_mul_visitor
       it->second = it->second - (exponent * max_valid_exponent.get_value());
     }
 
-    static_assert(
-        std::is_constructible_v<Expr::storage_type, expression_storage<integer_constant>>);
-
     // Insert the replacement
     const Expr replacement_exp(max_valid_exponent);
     if (const auto [it, was_inserted] = input_parts.terms.emplace(replacement, replacement_exp);
