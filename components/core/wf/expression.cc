@@ -9,13 +9,13 @@
 namespace wf {
 
 Expr::Expr(const std::string_view name, const number_set set)
-    : Expr(make_expr<variable>(named_variable(name), set)) {}
+    : Expr(std::in_place_type_t<variable>{}, named_variable(name), set) {}
 
 static Expr simplify_rational(rational_constant r) {
   if (const auto as_int = r.try_convert_to_integer(); as_int.has_value()) {
     return Expr(as_int->get_value());
   }
-  return Expr{Expr::storage_type(rational_constant(r))};
+  return Expr(std::in_place_type_t<rational_constant>{}, r);
 }
 
 Expr::Expr(const rational_constant r) : Expr(simplify_rational(r)) {}

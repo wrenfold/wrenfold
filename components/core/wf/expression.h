@@ -63,6 +63,12 @@ class Expr {
   explicit Expr(T&& arg) noexcept(std::is_nothrow_constructible_v<storage_type, decltype(arg)>)
       : impl_(std::forward<T>(arg)) {}
 
+  // In-place construction:
+  template <typename T, typename... Args, typename = storage_type::enable_if_is_constructible_t<T>>
+  explicit Expr(std::in_place_type_t<T>, Args&&... args) noexcept(
+      std::is_nothrow_constructible_v<storage_type, std::in_place_type_t<T>, decltype(args)...>)
+      : impl_(std::in_place_type_t<T>{}, std::forward<Args>(args)...) {}
+
   // Construct from rational.
   explicit Expr(rational_constant r);
 
@@ -75,12 +81,7 @@ class Expr {
   }
 
   // Test if the two expressions are identical.
-  bool is_identical_to(const Expr& other) const {
-    if (has_same_address(other)) {
-      return true;
-    }
-    return impl_.is_identical_to(other.impl_);
-  }
+  bool is_identical_to(const Expr& other) const { return impl_.is_identical_to(other.impl_); }
 
   // Check if the underlying expression is one of the specified types.
   template <typename... Ts>
@@ -160,7 +161,7 @@ class Expr {
     static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
     if constexpr (std::is_integral_v<T>) {
       return from_int(static_cast<std::int64_t>(v));
-    } else {
+    } else if constexpr (std::is_floating_point_v<T>) {
       return from_float(static_cast<double>(v));
     }
   }
@@ -238,7 +239,7 @@ Expr make_unique_variable_symbol(number_set set);
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>
 Expr make_expr(Args&&... args) {
-  return Expr{T{std::forward<Args>(args)...}};
+  return Expr{std::in_place_type_t<T>{}, std::forward<Args>(args)...};
 }
 
 // Cast expression to const pointer of the specified type.

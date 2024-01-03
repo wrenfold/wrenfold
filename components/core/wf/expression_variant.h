@@ -38,6 +38,12 @@ class expression_variant {
       std::is_nothrow_constructible_v<U, decltype(value)>)
       : ptr_(std::make_shared<model<U>>(std::forward<T>(value))) {}
 
+  // In-place construct type `T` from `Args`.
+  template <typename T, typename... Args, typename = enable_if_is_constructible_t<T>>
+  explicit expression_variant(std::in_place_type_t<T>, Args&&... args) noexcept(
+      std::is_nothrow_constructible_v<T, decltype(args)...>)
+      : ptr_(std::make_shared<model<T>>(std::in_place_t{}, std::forward<Args>(args)...)) {}
+
   // Return index indicating which type is stored.
   std::size_t index() const noexcept { return ptr_->index(); }
 
@@ -59,6 +65,12 @@ class expression_variant {
 
   // Check if two expression variants contain identical expressions.
   bool is_identical_to(const expression_variant& other) const {
+    if (ptr_.get() == other.ptr_.get()) {
+      return true;
+    }
+    if (index() != other.index()) {
+      return false;
+    }
     return ptr_->is_identical_to(*other.ptr_);
   }
 
@@ -84,12 +96,15 @@ class expression_variant {
 
     concept_base(std::size_t index, std::size_t hash) noexcept : hash_(hash), index_(index) {}
 
+    //  Hash is initialized later in this version of the constructor.
+    explicit concept_base(std::size_t index) noexcept : index_(index) {}
+
     constexpr std::size_t index() const noexcept { return index_; }
     constexpr std::size_t hash() const noexcept { return hash_; }
 
     virtual bool is_identical_to(const concept_base& other) const = 0;
 
-   private:
+   protected:
     std::size_t hash_;
     std::size_t index_;
   };
@@ -109,13 +124,20 @@ class expression_variant {
         : concept_base(type_index, wf::hash_combine(type_index, wf::hash(contents))),
           contents_(std::move(contents)) {}
 
+    // In-place construction.
+    template <typename... Args>
+    explicit model(std::in_place_t, Args&&... args) noexcept(
+        std::is_nothrow_constructible_v<value_type, decltype(args)...>)
+        : concept_base(type_index), contents_(std::forward<Args>(args)...) {
+      // Need to first construct `T`, then the hash can be initialized here:
+      concept_base::hash_ = wf::hash_combine(type_index, wf::hash(contents_));
+    }
+
     constexpr const value_type& contents() const noexcept { return contents_; }
     constexpr value_type& constents() noexcept { return contents_; }
 
     bool is_identical_to(const concept_base& other) const override final {
-      if (concept_base::index() != other.index()) {
-        return false;
-      }
+      // Unchecked cast, this was checked in expression_variant::is_identical_to
       return contents_.is_identical_to(static_cast<const model&>(other).contents_);
     }
 
@@ -127,7 +149,7 @@ class expression_variant {
 
   // Cast to const-reference of type `T`.
   template <typename T>
-  __attribute__((always_inline)) const T& cast_to_type() const noexcept {
+  const T& cast_to_type() const noexcept {
     const expression_variant::model<T>* model =
         static_cast<const expression_variant::model<T>*>(ptr_.get());
     return model->contents();
@@ -144,8 +166,7 @@ class expression_variant {
   // If index `I` matches the internal index, call function `f` on it - otherwise recurse to the
   // next index.
   template <std::size_t I, typename F>
-  __attribute__((always_inline)) auto visit_impl(F&& f) const
-      noexcept(is_nothrow_invokable_visitor_v<decltype(f), types>) {
+  auto visit_impl(F&& f) const noexcept(is_nothrow_invokable_visitor_v<decltype(f), types>) {
     if (index() == I) {
       return f(cast_to_index<I>());
     } else if constexpr (I < type_list_size_v<types> - 1) {
