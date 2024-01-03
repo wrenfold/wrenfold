@@ -262,9 +262,6 @@ struct atan2_visitor {
 };
 
 Expr atan2(const Expr& y, const Expr& x) {
-  // fmt::print("atan2({}, {})\n", y, x);
-  // fmt::print("{}\n", y.to_expression_tree_string());
-  // fmt::print("{}\n", x.to_expression_tree_string());
   std::optional<Expr> maybe_simplified = visit_binary(y, x, atan2_visitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);

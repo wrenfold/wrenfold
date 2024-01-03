@@ -79,7 +79,7 @@ class Expr {
     if (has_same_address(other)) {
       return true;
     }
-    return impl_.index() == other.impl_.index() && is_identical_to_internal(other);
+    return impl_.is_identical_to(other.impl_);
   }
 
   // Check if the underlying expression is one of the specified types.
@@ -92,10 +92,10 @@ class Expr {
   std::string_view type_name() const;
 
   // Return the unique index of the underlying type.
-  constexpr std::size_t type_index() const noexcept { return impl_.index(); }
+  std::size_t type_index() const noexcept { return impl_.index(); }
 
   // Get the hash of the expression.
-  constexpr std::size_t get_hash() const noexcept { return impl_.hash(); }
+  std::size_t get_hash() const noexcept { return impl_.hash(); }
 
   // Access underlying implementation.
   constexpr const storage_type& impl() const noexcept { return impl_; }

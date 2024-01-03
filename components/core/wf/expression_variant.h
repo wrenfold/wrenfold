@@ -36,28 +36,31 @@ class expression_variant {
   template <typename T, typename U = std::decay_t<T>, typename = enable_if_is_constructible_t<T>>
   explicit expression_variant(T&& value) noexcept(
       std::is_nothrow_constructible_v<U, decltype(value)>)
-      : index_{type_list_index_v<U, types>},
-        hash_(wf::hash_combine(index_, wf::hash(value))),
-        ptr_(std::make_shared<model<U>>(std::forward<T>(value))) {}
+      : ptr_(std::make_shared<model<U>>(std::forward<T>(value))) {}
 
   // Return index indicating which type is stored.
-  constexpr std::size_t index() const noexcept { return index_; }
+  std::size_t index() const noexcept { return ptr_->index(); }
 
   // Return the hash value.
-  constexpr std::size_t hash() const noexcept { return hash_; }
+  std::size_t hash() const noexcept { return ptr_->hash(); }
 
   // False if the object has been moved-from (valueless).
   bool has_value() const noexcept { return static_cast<bool>(ptr_); }
 
   // Check if the underlying derived type is one of `Ts...`.
   template <typename... Ts>
-  constexpr bool is_type() const noexcept {
+  bool is_type() const noexcept {
     static_assert((type_list_contains_v<Ts, types> && ...), "T is not a valid expression type");
-    return ((type_list_index_v<Ts, types> == index_) || ...);
+    return ((type_list_index_v<Ts, types> == index()) || ...);
   }
 
   // Return the address of the underlying value.
   const void* get_address() const noexcept { return static_cast<const void*>(ptr_.get()); }
+
+  // Check if two expression variants contain identical expressions.
+  bool is_identical_to(const expression_variant& other) const {
+    return ptr_->is_identical_to(*other.ptr_);
+  }
 
   // Visit the stored value with the provided visitor object.
   // The visitor will be passed a const reference.
@@ -78,6 +81,17 @@ class expression_variant {
   class concept_base {
    public:
     virtual ~concept_base() = default;
+
+    concept_base(std::size_t index, std::size_t hash) noexcept : hash_(hash), index_(index) {}
+
+    constexpr std::size_t index() const noexcept { return index_; }
+    constexpr std::size_t hash() const noexcept { return hash_; }
+
+    virtual bool is_identical_to(const concept_base& other) const = 0;
+
+   private:
+    std::size_t hash_;
+    std::size_t index_;
   };
 
   // Concrete storage of the underlying value of type `T`.
@@ -88,12 +102,22 @@ class expression_variant {
                   "Should be a plain type with no qualification");
     using value_type = T;
 
+    static constexpr std::size_t type_index = type_list_index_v<T, expression_variant::types>;
+
     // Copy/move construct.
     explicit model(value_type contents) noexcept(std::is_nothrow_move_constructible_v<value_type>)
-        : contents_(std::move(contents)) {}
+        : concept_base(type_index, wf::hash_combine(type_index, wf::hash(contents))),
+          contents_(std::move(contents)) {}
 
     constexpr const value_type& contents() const noexcept { return contents_; }
     constexpr value_type& constents() noexcept { return contents_; }
+
+    bool is_identical_to(const concept_base& other) const override final {
+      if (concept_base::index() != other.index()) {
+        return false;
+      }
+      return contents_.is_identical_to(static_cast<const model&>(other).contents_);
+    }
 
    private:
     value_type contents_;
@@ -103,7 +127,7 @@ class expression_variant {
 
   // Cast to const-reference of type `T`.
   template <typename T>
-  const T& cast_to_type() const noexcept {
+  __attribute__((always_inline)) const T& cast_to_type() const noexcept {
     const expression_variant::model<T>* model =
         static_cast<const expression_variant::model<T>*>(ptr_.get());
     return model->contents();
@@ -120,8 +144,9 @@ class expression_variant {
   // If index `I` matches the internal index, call function `f` on it - otherwise recurse to the
   // next index.
   template <std::size_t I, typename F>
-  auto visit_impl(F&& f) const noexcept(is_nothrow_invokable_visitor_v<decltype(f), types>) {
-    if (index_ == I) {
+  __attribute__((always_inline)) auto visit_impl(F&& f) const
+      noexcept(is_nothrow_invokable_visitor_v<decltype(f), types>) {
+    if (index() == I) {
       return f(cast_to_index<I>());
     } else if constexpr (I < type_list_size_v<types> - 1) {
       return visit_impl<I + 1>(std::forward<F>(f));
@@ -131,8 +156,6 @@ class expression_variant {
   }
 
   // Index + hash of the type.
-  std::size_t index_;
-  std::size_t hash_;
   concept_shared_ptr ptr_;
 };
 
