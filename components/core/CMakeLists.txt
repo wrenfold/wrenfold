@@ -38,8 +38,7 @@ add_library(
   wf/evaluate.cc
   wf/expression.cc
   wf/expression.h
-  wf/expression_concept.h
-  wf/expression_impl.h
+  wf/expression_variant.h
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h
@@ -52,7 +51,6 @@ add_library(
   wf/expressions/matrix.h
   wf/expressions/multiplication.cc
   wf/expressions/multiplication.h
-  wf/expressions/numeric_expressions.cc
   wf/expressions/numeric_expressions.h
   wf/expressions/power.cc
   wf/expressions/power.h
@@ -83,8 +81,8 @@ add_library(
   wf/template_utils.h
   wf/tree_formatter.cc
   wf/type_annotations.h
-  wf/visitor_base.h
-  wf/visitor_impl.h)
+  wf/type_list.h
+  wf/visit.h)
 
 # Turn on C++17
 target_compile_features(wf-core PUBLIC cxx_std_17)

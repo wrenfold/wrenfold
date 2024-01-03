@@ -6,7 +6,7 @@
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/integer_utils.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 
@@ -25,7 +25,7 @@ struct PowerNumerics {
                          std::is_same_v<rational_constant, B>) {
       return apply_int_and_rational(a, b);
     } else if constexpr (std::is_same_v<complex_infinity, A> &&
-                         type_list_contains_type_v<B, integer_constant, rational_constant>) {
+                         type_list_contains_v<B, integer_constant, rational_constant>) {
       return apply_infinity_and_rational(a, static_cast<rational_constant>(b));
     } else if constexpr (std::is_same_v<complex_infinity, A> && std::is_same_v<B, float_constant>) {
       return apply_infinity_and_float(a, b);
@@ -63,7 +63,7 @@ struct PowerNumerics {
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(a.get_value(), b.get_value());
-    return integer_constant::create(pow);
+    return Expr(pow);
   }
 
   // If the left operand is a rational and right operand is integer:
@@ -78,10 +78,10 @@ struct PowerNumerics {
     const auto n = integer_power(a.numerator(), std::abs(exponent));
     const auto d = integer_power(a.denominator(), std::abs(exponent));
     if (exponent >= 0) {
-      return rational_constant::create(n, d);
+      return Expr(rational_constant{n, d});
     } else {
       // Flip the rational:
-      return rational_constant::create(d, n);
+      return Expr(rational_constant{d, n});
     }
   }
 
@@ -140,14 +140,14 @@ struct PowerNumerics {
 
       // There is still the business of the fractional part to deal with:
       if (fractional_part.numerator() != 0) {
-        Expr base = integer_constant::create(f.base);
-        Expr exponent = rational_constant::create(fractional_part);
+        Expr base = Expr(f.base);
+        Expr exponent = Expr(fractional_part);
         operands.push_back(make_expr<power>(std::move(base), std::move(exponent)));
       }
     }
 
     if (!rational_coeff.is_one()) {
-      operands.push_back(rational_constant::create(rational_coeff));
+      operands.push_back(Expr(rational_coeff));
     }
     if (operands.size() == 1) {
       return operands.front();

@@ -16,6 +16,7 @@ add_single_file_test(ir_builder_test.cc)
 add_single_file_test(substitute_test.cc)
 add_single_file_test(quaternion_test.cc)
 add_single_file_test(limits_test.cc)
+add_single_file_test(type_list_test.cc)
 
 add_compiled_code_generator(
   cpp_generation_generate OUTPUT_FILE_NAME "generated.h" SOURCE_FILES

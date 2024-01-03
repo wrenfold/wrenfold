@@ -7,6 +7,7 @@
 #include "wf/hashing.h"
 #include "wf/matrix_expression.h"
 #include "wf/substitute.h"
+#include "wf/visit.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -198,9 +199,9 @@ struct substitute_mul_visitor
     }
 
     // Insert the replacement
-    const auto replacement_exp = integer_constant::create(max_valid_exponent);
-    const auto [it, was_inserted] = input_parts.terms.emplace(replacement, replacement_exp);
-    if (!was_inserted) {
+    const Expr replacement_exp(max_valid_exponent);
+    if (const auto [it, was_inserted] = input_parts.terms.emplace(replacement, replacement_exp);
+        !was_inserted) {
       it->second = it->second + replacement_exp;
     }
 
@@ -282,8 +283,7 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
           return input_expression;
         }
         return power::create(replacement, int_part.get_value()) *
-               power::create(candidate_base,
-                             target_exponent * rational_constant::create(frac_remainder));
+               power::create(candidate_base, target_exponent * Expr(frac_remainder));
       }
     }
 
@@ -314,7 +314,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
     // Don't allow the target type to be a numeric literal:
     using disallowed_types =
         type_list<integer_constant, float_constant, rational_constant, symbolic_constant>;
-    if constexpr (type_list_contains_type_v<T, disallowed_types>) {
+    if constexpr (type_list_contains_v<T, disallowed_types>) {
       throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {
       using visitor_type = typename sub_visitor_type<T>::type;

@@ -5,6 +5,7 @@
 #include "wf/code_generation/types.h"
 #include "wf/expressions/matrix.h"
 #include "wf/output_annotations.h"
+#include "wf/template_utils.h"
 #include "wf/type_annotations.h"
 
 namespace wf {

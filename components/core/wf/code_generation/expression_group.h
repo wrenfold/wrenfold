@@ -4,6 +4,7 @@
 #include <string_view>
 #include <vector>
 
+#include "wf/expression.h"
 #include "wf/hashing.h"
 
 namespace wf {

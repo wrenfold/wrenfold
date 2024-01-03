@@ -3,7 +3,6 @@
 
 #include "wf/functions.h"
 #include "wf/hashing.h"
-#include "wf/visitor_impl.h"
 
 namespace wf {
 

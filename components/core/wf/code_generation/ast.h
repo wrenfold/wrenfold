@@ -387,7 +387,7 @@ using extra_ast_types = type_list<
 >;
 // clang-format on
 using all_ast_types =
-    concatenate_type_lists_t<type_list_from_variant_t<ast::variant>, extra_ast_types>;
+    type_list_concatenate_t<type_list_from_variant_t<ast::variant>, extra_ast_types>;
 
 // Make a shared-ptr to ast::variant.
 template <typename T, typename... Args>

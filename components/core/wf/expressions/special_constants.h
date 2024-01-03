@@ -1,7 +1,7 @@
 // Copyright 2022 Gareth Cross
 #pragma once
-#include "wf/constants.h"
-#include "wf/expression_impl.h"
+#include "wf/enumerations.h"
+#include "wf/hashing.h"
 
 namespace wf {
 

@@ -7,7 +7,7 @@
 #include "wf/expression.h"
 #include "wf/substitute.h"
 #include "wf/type_annotations.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 // Utilities for evaluating symbolic functions into numeric values (like double, or Eigen::Matrix).
 // This is for unit testing code-generated methods against numeric evaluation of the symbolic graph.
@@ -143,7 +143,7 @@ struct collect_function_input<Expr> {
                   const scalar_type&) const {
     const auto a = static_cast<float_constant::value_type>(arg);
     output.add_substitution(variable{function_argument_variable(arg_index, 0), number_set::real},
-                            float_constant::create(a));
+                            make_expr<float_constant>(a));
   }
 };
 
@@ -161,8 +161,7 @@ struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
         const auto a_ij = static_cast<float_constant::value_type>(arg(i, j));
         output.add_substitution(
-            variable{function_argument_variable(arg_index, element), number_set::real},
-            float_constant::create(a_ij));
+            variable{function_argument_variable(arg_index, element), number_set::real}, Expr(a_ij));
       }
     }
   }

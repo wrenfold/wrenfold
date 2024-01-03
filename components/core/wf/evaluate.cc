@@ -1,13 +1,13 @@
 // Copyright 2023 Gareth Cross
 #include "wf/evaluate.h"
 #include "wf/expression.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 
 template <typename T, typename>
 Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
-  if constexpr (type_list_contains_type_v<T, derivative, complex_infinity>) {
+  if constexpr (type_list_contains_v<T, derivative, complex_infinity>) {
     throw type_error("Cannot call eval on expression of type: {}", T::name_str);
   } else if constexpr (T::is_leaf_node) {
     return input;
@@ -17,11 +17,11 @@ Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
 }
 
 Expr evaluate_visitor::operator()(const integer_constant& x) const {
-  return float_constant::create(static_cast<float_constant>(x));
+  return Expr(static_cast<float_constant>(x));
 }
 
 Expr evaluate_visitor::operator()(const rational_constant& x) const {
-  return float_constant::create(static_cast<float_constant>(x));
+  return Expr(static_cast<float_constant>(x));
 }
 
 Expr evaluate_visitor::operator()(const symbolic_constant& c) const {
@@ -29,7 +29,7 @@ Expr evaluate_visitor::operator()(const symbolic_constant& c) const {
   const double value = double_from_symbolic_constant(c_enum);
   WF_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
             string_from_symbolic_constant(c_enum));
-  return float_constant::create(value);
+  return Expr(value);
 }
 
 Expr evaluate_visitor::apply(const Expr& input) {

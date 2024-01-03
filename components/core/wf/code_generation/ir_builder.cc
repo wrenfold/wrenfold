@@ -10,7 +10,7 @@
 #include "wf/common_visitors.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/hashing.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 namespace ir {

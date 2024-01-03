@@ -2,6 +2,7 @@
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/index_range.h"
+#include "wf/template_utils.h"
 
 namespace wf {
 

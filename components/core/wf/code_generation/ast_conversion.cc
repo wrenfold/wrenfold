@@ -361,7 +361,7 @@ struct ast_from_ir {
           using T = std::decay_t<decltype(op)>;
           using excluded_types =
               type_list<ir::jump_condition, ir::save, ir::cond, ir::phi, ir::output_required>;
-          if constexpr (type_list_contains_type_v<T, excluded_types>) {
+          if constexpr (type_list_contains_v<T, excluded_types>) {
             throw type_error("Type cannot be converted to AST: {}", typeid(T).name());
           } else {
             return operator()(*value, op);

@@ -1,7 +1,5 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/expression_concept.h"
-#include "wf/expression_impl.h"
 #include "wf/plain_formatter.h"
 
 namespace wf {

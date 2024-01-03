@@ -1,9 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/expression.h"
-#include "wf/expression_impl.h"
-
 #include "wf/assertions.h"
+#include "wf/expression.h"
 
 namespace wf {
 

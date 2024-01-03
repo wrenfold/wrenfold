@@ -2,7 +2,7 @@
 #include "wf/enumerations.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/operations.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 

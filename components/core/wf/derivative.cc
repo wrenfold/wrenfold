@@ -6,6 +6,7 @@
 #include "wf/error_types.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
+#include "wf/visit.h"
 #include "wf_runtime/span.h"
 
 namespace wf {

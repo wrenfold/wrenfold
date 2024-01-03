@@ -4,7 +4,7 @@
 #include "wf/constants.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
-#include "wf/visitor_impl.h"
+#include "wf/visit.h"
 
 namespace wf {
 

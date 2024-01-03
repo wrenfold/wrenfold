@@ -2,7 +2,6 @@
 #pragma once
 #include "wf/constants.h"
 #include "wf/expression.h"
-#include "wf/expression_impl.h"
 
 namespace wf {
 

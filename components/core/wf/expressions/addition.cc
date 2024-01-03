@@ -7,7 +7,7 @@
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
-#include "wf/hashing.h"
+#include "wf/visit.h"
 
 namespace wf {
 
@@ -124,7 +124,7 @@ Expr addition_parts::create_addition() const {
     } else if (rational_term.is_zero()) {
       // Don't insert a useless zero in the add.
     } else {
-      args.push_back(rational_constant::create(rational_term));
+      args.push_back(Expr(rational_term));
     }
   }
 
@@ -137,8 +137,7 @@ Expr addition_parts::create_addition() const {
                               !pair.second.is_type<multiplication>()) {
                      // We can skip calling FromOperands here because we know the first element in
                      // the pair is the non-numeric value and the second is the numeric coefficient.
-                     multiplication::container_type mul_terms = {pair.second, pair.first};
-                     return make_expr<multiplication>(std::move(mul_terms));
+                     return make_expr<multiplication>(pair.second, pair.first);
                    }
                    return multiplication::from_operands({pair.first, pair.second});
                  });
