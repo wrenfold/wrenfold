@@ -235,14 +235,15 @@ Expr make_unique_variable_symbol(number_set set);
 
 // Create an `Expr` with underlying type `T` and constructor args `Args`.
 template <typename T, typename... Args>
-Expr make_expr(Args&&... args) {
+Expr make_expr(Args&&... args) noexcept(noexcept(Expr{std::in_place_type_t<T>{},
+                                                      std::forward<Args>(args)...})) {
   return Expr{std::in_place_type_t<T>{}, std::forward<Args>(args)...};
 }
 
 // Cast expression to const pointer of the specified type.
 // Returned pointer is valid in scope only as long as the argument `x` survives.
 template <typename T>
-const T* cast_ptr(const Expr& x) {
+const T* cast_ptr(const Expr& x) noexcept {
   if (x.is_type<T>()) {
     const T& concrete = x.impl().cast_unchecked<T>();
     return &concrete;
@@ -265,7 +266,7 @@ const T& cast_checked(const Expr& x) {
 
 // Cast expression with no checking. UB will occur if the wrong type is accessed.
 template <typename T>
-const T& cast_unchecked(const Expr& x) {
+const T& cast_unchecked(const Expr& x) noexcept {
   const T& concrete = x.impl().cast_unchecked<T>();
   return concrete;
 }
