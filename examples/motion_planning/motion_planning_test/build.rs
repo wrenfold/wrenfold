@@ -4,6 +4,9 @@ fn main() {
         "macos" => {
             println!("cargo:rustc-link-lib=framework=Accelerate");
         }
+        "linux" => {
+            println!("cargo:rustc-link-arg=-lopenblas");
+        }
         _ => {}
     }
 }

@@ -17,6 +17,11 @@ find_package(
 message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
 message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 
+# Find optional PkgConfig. This is to build certain tests+examples.
+if(NOT DEFINED SKBUILD_PROJECT_NAME)
+  find_package(PkgConfig)
+endif()
+
 # Add third party code
 add_subdirectory(dependencies)
 
