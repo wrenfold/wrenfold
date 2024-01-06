@@ -23,6 +23,7 @@ The following tools are required to build from source:
 Additionally, to build and run tests you will need:
 - numpy
 - The rust compiler toolchain (`cargo` and `rustc`)
+- On linux: `pkg-config`, `openblas`, and `openssl`
 
 The following command will configure a `conda` environment suitable for building:
 ```bash
