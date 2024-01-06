@@ -1,5 +1,6 @@
 add_subdirectory(bspline)
 add_subdirectory(custom_types)
 add_subdirectory(imu_integration)
+add_subdirectory(motion_planning)
 add_subdirectory(quaternion_interpolation)
 add_subdirectory(rotation_error)

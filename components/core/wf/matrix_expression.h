@@ -89,8 +89,13 @@ class MatrixExpr {
   // Access row `i` and column `j`.
   const Expr& operator()(index_t i, index_t j) const;
 
+  void set(index_t i, index_t j, const Expr& value);
+
   // Get a block of rows [start, start + length).
   MatrixExpr get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
+
+  // Set a block of rows [start, start + length).
+  void set_block(index_t row, index_t col, index_t nrows, index_t ncols, const MatrixExpr& block);
 
   // Transpose the matrix.
   [[nodiscard]] MatrixExpr transposed() const;
@@ -101,14 +106,19 @@ class MatrixExpr {
   // Get the squared norm of the matrix.
   Expr squared_norm() const;
 
+  // Get the norm of the matrix.
+  Expr norm() const;
+
   // Static cast to underlying matrix type.
   const matrix& as_matrix() const;
+
+  matrix& as_matrix_mut() { return *matrix_.get(); }
 
   // Convert to vector of expressions.
   std::vector<Expr> to_vector() const;
 
  private:
-  std::shared_ptr<const matrix> matrix_;
+  std::shared_ptr<matrix> matrix_;
 };
 
 static_assert(std::is_move_assignable_v<MatrixExpr> && std::is_move_constructible_v<MatrixExpr>,

@@ -21,6 +21,22 @@ matrix matrix::get_block(const index_t row, const index_t col, const index_t nro
   return matrix(nrows, ncols, std::move(data));
 }
 
+void matrix::set_block(const index_t row, const index_t col, const index_t nrows,
+                       const index_t ncols, const matrix& block) {
+  if (row < 0 || row + nrows > rows_ || col < 0 || col + ncols > cols_) {
+    throw dimension_error(
+        "Block [position: ({}, {}), size: ({}, {})] is out of bounds for matrix of shape ({}, {})",
+        row, col, nrows, ncols, rows_, cols_);
+  }
+  if (block.rows() != nrows || block.cols() != ncols) {
+    throw dimension_error("Block shape ({}, {}) does not match requested shape ({}, {})",
+                          block.rows(), block.cols(), nrows, ncols);
+  }
+  iter_matrix(nrows, ncols, [&](index_t i, index_t j) {
+    set_unchecked(i + row, j + col, block.get_unchecked(i, j));
+  });
+}
+
 matrix matrix::transposed() const {
   std::vector<Expr> output{};
   output.reserve(size());

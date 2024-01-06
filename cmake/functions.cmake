@@ -194,7 +194,7 @@ endfunction()
 function(add_rust_test NAME)
   set(options "")
   set(oneValueArgs CRATE_NAME GENERATOR_TARGET)
-  set(multiValueArgs CRATE_SOURCES)
+  set(multiValueArgs CRATE_SOURCES ENV_VARIABLES CARGO_BUILD_ARGS)
   cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
                         ${ARGN})
 
@@ -219,10 +219,19 @@ function(add_rust_test NAME)
       "CODE_GENERATION_FILE=${GENERATOR_OUTPUT}" "CARGO_CMD=test"
       "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/target")
 
+  # Add external env variables
+  if(DEFINED ARGS_ENV_VARIABLES)
+    list(APPEND CARGO_ENV_VARIABLES ${ARGS_ENV_VARIABLES})
+  endif()
+
   set(CARGO_ARGS --color always)
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Release" OR "${CMAKE_BUILD_TYPE}" STREQUAL
                                                  "RelWithDebInfo")
     list(APPEND CARGO_ARGS --release)
+  endif()
+
+  if(NOT DEFINED ARGS_CARGO_BUILD_ARGS)
+    set(ARGS_CARGO_BUILD_ARGS "")
   endif()
 
   # Add target to build the test without running.
@@ -230,7 +239,7 @@ function(add_rust_test NAME)
   add_custom_target(
     ${NAME}_build ALL
     COMMAND ${CMAKE_COMMAND} -E env ${CARGO_ENV_VARIABLES} ${CARGO_PATH} test
-            ${CARGO_ARGS} --no-run
+            ${CARGO_ARGS} --no-run ${ARGS_CARGO_BUILD_ARGS}
     WORKING_DIRECTORY ${CRATE_ROOT}
     COMMENT "Cargo build for: ${NAME}"
     DEPENDS ${GENERATOR_TARGET} ${GENERATOR_OUTPUT} ${ARGS_CRATE_SOURCES}

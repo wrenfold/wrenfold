@@ -45,11 +45,13 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ env.prefix }}
-          key: ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+          key: ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ hashFiles('test-environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
         id: cache
 
       - name: Update environment
-        run: mamba env update -n ${{ env.env_name }} -f environment.yml
+        run: |
+          mamba env update -n ${{ env.env_name }} -f environment.yml
+          mamba env update -n ${{ env.env_name }} --file test-environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Dump conda environment
