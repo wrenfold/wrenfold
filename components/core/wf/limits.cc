@@ -35,7 +35,7 @@ class limit_visitor {
     if (const auto it = cache_.find(expr); it != cache_.end()) {
       return it->second;
     }
-    std::optional<Expr> result = visit_with_expr(expr, *this);
+    std::optional<Expr> result = wf::visit(expr, *this);
     cache_.emplace(expr, result);
     return result;
   }

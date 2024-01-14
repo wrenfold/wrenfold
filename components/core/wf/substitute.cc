@@ -320,7 +320,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
       throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {
       using visitor_type = typename sub_visitor_type<T>::type;
-      return visit_with_expr(input, visitor_type{target_concrete, replacement});
+      return visit(input, visitor_type{target_concrete, replacement});
     }
   });
 }

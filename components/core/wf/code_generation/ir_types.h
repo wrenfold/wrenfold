@@ -5,11 +5,12 @@
 #include <vector>
 
 #include "wf/checked_pointers.h"
+#include "wf/code_generation/types.h"
+#include "wf/expressions/custom_function_invocation.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/hashing.h"
-#include "wf/template_utils.h"
 
 // Define types for a very simple "intermediate representation" we can use to simplify
 // and reduce the tree of mathematical operations.
@@ -54,6 +55,30 @@ class cast {
   code_numeric_type destination_type_;
 };
 
+// Call a custom user-provided function.
+class call_custom_function {
+ public:
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return -1; }
+  constexpr static std::string_view to_string() noexcept { return "call"; }
+  std::size_t hash_seed() const noexcept { return function_.hash(); }
+  bool is_same(const call_custom_function& other) const noexcept {
+    return are_identical(function_, other.function_);
+  }
+
+  explicit call_custom_function(custom_function function) noexcept
+      : function_(std::move(function)) {}
+
+  // The user-specified external we are calling.
+  constexpr const custom_function& function() const noexcept { return function_; }
+
+  // Return type of the external function.
+  const type_variant& return_type() const noexcept { return function_.return_type(); }
+
+ private:
+  custom_function function_;
+};
+
 // A call to a built-in mathematical function like sin, cos, log, etc.
 class call_std_function {
  public:
@@ -67,7 +92,7 @@ class call_std_function {
     return name_ == other.name_;
   }
 
-  explicit constexpr call_std_function(std_math_function name) noexcept : name_(name) {}
+  explicit constexpr call_std_function(const std_math_function name) noexcept : name_(name) {}
 
   constexpr std_math_function name() const noexcept { return name_; }
 
@@ -120,6 +145,31 @@ class cond {
   constexpr bool is_same(const cond&) const noexcept { return true; }
 };
 
+// Construct an aggregate type.
+class construct {
+ public:
+  using variant_type = std::variant<matrix_type, custom_type>;
+
+  constexpr static int num_value_operands() noexcept { return -1; }
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr std::string_view to_string() const noexcept { return "new"; }
+  std::size_t hash_seed() const noexcept {
+    struct hash_type : hash_variant<variant_type> {};
+    return hash_type{}(type_);
+  }
+  bool is_same(const construct& other) const noexcept {
+    struct is_identical : is_identical_variant<variant_type> {};
+    return is_identical{}(type_, other.type_);
+  }
+
+  constexpr const auto& type() const noexcept { return type_; }
+
+  explicit construct(variant_type type) noexcept : type_(std::move(type)) {}
+
+ private:
+  variant_type type_;
+};
+
 // Copy the operand.
 class copy {
  public:
@@ -140,6 +190,24 @@ class div {
   constexpr bool is_same(const div&) const noexcept { return true; }
 };
 
+// Get the n't element from a matrix or compound expression.
+class get {
+ public:
+  constexpr static bool is_commutative() noexcept { return false; }
+  constexpr static int num_value_operands() noexcept { return 1; }
+  constexpr std::string_view to_string() const noexcept { return "get"; }
+  constexpr std::size_t hash_seed() const noexcept { return index_; }
+  constexpr bool is_same(const get& other) const noexcept { return index_ == other.index_; }
+
+  explicit constexpr get(const std::size_t index) noexcept : index_(index) {}
+
+  // The element to access.
+  constexpr std::size_t index() const noexcept { return index_; }
+
+ private:
+  std::size_t index_;
+};
+
 // This objects acts as a sink to indicate that a value will be used in the output code
 // to adjust control flow. The single operand is a boolean value that will ultimately
 // determine which path an if-else statement takes.
@@ -157,27 +225,21 @@ class jump_condition {
 class load {
  public:
   using storage_type = std::variant<symbolic_constant, integer_constant, float_constant,
-                                    rational_constant, variable>;
+                                    rational_constant, variable, custom_type_argument>;
 
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 0; }
   constexpr std::string_view to_string() const noexcept { return "load"; }
 
   std::size_t hash_seed() const {
-    return std::visit([](const auto& contents) { return hash(contents); }, variant_);
+    struct hasher : hash_variant<storage_type> {};
+    return hasher{}(variant_);
   }
 
   //  Check if the underlying variants contain identical expressions.
   bool is_same(const load& other) const {
-    return std::visit(
-        [](const auto& a, const auto& b) {
-          if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
-            return a.is_identical_to(b);
-          } else {
-            return false;
-          }
-        },
-        variant_, other.variant_);
+    struct is_identical : is_identical_variant<storage_type> {};
+    return is_identical{}(variant_, other.variant_);
   }
 
   // Returns true if variant contains one of the types `Ts...`
@@ -269,8 +331,9 @@ class save {
 };
 
 // Different operations are represented by a variant.
-using operation = std::variant<add, call_std_function, cast, compare, cond, copy, div,
-                               jump_condition, load, mul, neg, output_required, phi, save>;
+using operation =
+    std::variant<add, call_custom_function, call_std_function, cast, compare, cond, copy, construct,
+                 div, get, jump_condition, load, mul, neg, output_required, phi, save>;
 
 // A block of operations:
 class block {
@@ -321,6 +384,9 @@ class block {
   std::size_t count_operation(Func&& func) const;
 };
 
+// Used to indicate values that have no type.
+struct void_type {};
+
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
 // Values may be used as operands to other operations.
@@ -328,16 +394,17 @@ class value {
  public:
   using unique_ptr = std::unique_ptr<value>;
   using operands_container = std::vector<ir::value_ptr>;
+  using types = std::variant<void_type, scalar_type, matrix_type, custom_type>;
 
   // Construct:
   template <typename OpType>
-  value(uint32_t name, ir::block_ptr parent, OpType&& operation,
-        std::optional<code_numeric_type> numeric_type, operands_container&& operands)
+  value(const uint32_t name, const ir::block_ptr parent, OpType&& operation, types type,
+        operands_container&& operands)
       : name_(name),
         parent_(parent),
         op_(std::forward<OpType>(operation)),
         operands_(std::move(operands)),
-        numeric_type_(numeric_type) {
+        type_(std::move(type)) {
     notify_operands();
     if constexpr (OpType::is_commutative()) {
       // Sort operands for commutative operations so everything is a canonical order.
@@ -353,9 +420,8 @@ class value {
 
   // Construct with input values specified as variadic arg list.
   template <typename Op, typename... Args, typename = enable_if_convertible_to_value_ptr<Args...>>
-  value(uint32_t name, ir::block_ptr parent, Op&& operation,
-        std::optional<code_numeric_type> numeric_type, Args... args)
-      : value(name, parent, std::forward<Op>(operation), numeric_type,
+  value(uint32_t name, ir::block_ptr parent, Op&& operation, types type, Args... args)
+      : value(name, parent, std::forward<Op>(operation), std::move(type),
               operands_container{args...}) {}
 
   // Access underlying integer.
@@ -393,7 +459,7 @@ class value {
 
   // Change the underlying operation that computes this value.
   template <typename OpType, typename... Args>
-  void set_value_op(OpType&& op, std::optional<code_numeric_type> numeric_type, Args... args) {
+  void set_value_op(OpType&& op, types type, Args... args) {
     // Notify existing operands we no longer reference them
     for (const value_ptr& operand : operands_) {
       operand->remove_consumer(this);
@@ -401,7 +467,7 @@ class value {
     // Record new operands:
     operands_.clear();
     (operands_.push_back(args), ...);
-    numeric_type_ = numeric_type;
+    type_ = std::move(type);
     op_ = std::forward<OpType>(op);
     notify_operands();
     if constexpr (OpType::is_commutative()) {
@@ -461,10 +527,24 @@ class value {
     return consumers_.empty() && !is_type<ir::save>() && !is_type<ir::jump_condition>();
   }
 
-  // Access the underlying numeric type.
+  // Access the type variant.
+  constexpr const auto& type() const noexcept { return type_; }
+
+  // True if the type of the expression is scalar.
+  bool is_scalar_type() const noexcept { return std::holds_alternative<scalar_type>(type_); }
+
+  // Get the concrete type of the value if it matches `T`, otherwise nullptr.
+  template <typename T>
+  maybe_null<const T*> get_type_if() const noexcept {
+    return std::get_if<T>(&type_);
+  }
+
+  // Access the scalar numeric type. Invalid if `type_` is not a scalar_type.
   code_numeric_type numeric_type() const {
-    WF_ASSERT(numeric_type_.has_value());
-    return *numeric_type_;
+    const scalar_type* scalar = std::get_if<scalar_type>(&type_);
+    WF_ASSERT(scalar != nullptr, "Value is not scalar-valued: {}, index = {}", name(),
+              type_.index());
+    return scalar->numeric_type();
   }
 
  protected:
@@ -505,8 +585,8 @@ class value {
   // Downstream values that consume this one:
   std::vector<value_ptr> consumers_;
 
-  // The cached numeric type of this operation. Optional because some operations lack a type.
-  std::optional<code_numeric_type> numeric_type_;
+  // The cached numeric type of this operation.
+  types type_;
 };
 
 // Count instances of operation of type `T`.
@@ -517,7 +597,7 @@ std::size_t block::count_operation(Func&& func) const {
     return std::visit(
         [&func](const auto& op) -> bool {
           using arg_type = std::decay_t<decltype(op)>;
-          if constexpr (has_call_operator_v<Func, const arg_type&>) {
+          if constexpr (std::is_invocable_v<Func, const arg_type&>) {
             return func(op);
           } else {
             return false;
@@ -529,13 +609,11 @@ std::size_t block::count_operation(Func&& func) const {
 
 }  // namespace wf::ir
 
-namespace wf {
-
 // Hashes the operation and all the arguments of a value.
 // This deliberately ignores the name of the value. Two different values w/ identical operations
 // should produce the same hash.
 template <>
-struct hash_struct<ir::value_ptr> {
+struct wf::hash_struct<wf::ir::value_ptr> {
   std::size_t operator()(const ir::value_ptr& val) const {
     // Seed the hash w/ the index in the variant, which accounts for the type of the op.
     std::size_t seed = val->value_op().index();
@@ -549,8 +627,6 @@ struct hash_struct<ir::value_ptr> {
     return seed;
   }
 };
-
-}  // namespace wf
 
 // Formatter for value
 template <>

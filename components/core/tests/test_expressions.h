@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include "wf/code_generation/declare_custom_function.h"
 #include "wf/code_generation/type_registry.h"
 #include "wf/expression.h"
 #include "wf/functions.h"
@@ -9,6 +10,7 @@
 #include "wf/type_annotations.h"
 
 // Some symbolic functions we use in unit tests.
+// ReSharper disable CppPassValueParameterByConstReference
 namespace wf {
 
 namespace ta = type_annotations;
@@ -95,35 +97,35 @@ inline auto no_required_outputs(Expr x) {
 
 namespace symbolic {
 // A simple custom type.
-struct Point2d {
+struct Point2d : custom_type_base<Point2d> {
   Expr x{0};
   Expr y{0};
-};
 
-// Custom type with nested type.
-struct Circle {
-  Point2d center{};
-  Expr radius{0};
-};
-}  // namespace symbolic
+  Point2d() = default;
+  Point2d(Expr x, Expr y) : x(std::move(x)), y(std::move(y)) {}
 
-template <>
-struct custom_type_registrant<symbolic::Point2d> {
-  custom_type_builder<symbolic::Point2d> operator()(custom_type_registry& registry) const {
+  static auto register_type(custom_type_registry& registry) {
     return custom_type_builder<symbolic::Point2d>(registry, "Point2d")
         .add_field("x", &symbolic::Point2d::x)
         .add_field("y", &symbolic::Point2d::y);
   }
 };
 
-template <>
-struct custom_type_registrant<symbolic::Circle> {
-  auto operator()(custom_type_registry& registry) const {
+// Custom type with nested type.
+struct Circle : custom_type_base<Circle> {
+  Point2d center{};
+  Expr radius{0};
+
+  Circle() = default;
+  Circle(Point2d center, Expr radius) : center(std::move(center)), radius(std::move(radius)) {}
+
+  static auto register_type(custom_type_registry& registry) {
     return custom_type_builder<symbolic::Circle>(registry, "Circle")
         .add_field("center", &symbolic::Circle::center)
         .add_field("radius", &symbolic::Circle::radius);
   }
 };
+}  // namespace symbolic
 
 // A method that accepts a custom point.
 inline symbolic::Point2d custom_type_1(const symbolic::Point2d& p) {
@@ -147,6 +149,19 @@ inline auto nested_custom_type_1(symbolic::Circle a, symbolic::Point2d b) {
   result.radius = where(d <= a.radius, a.radius, d);
   result.center = a.center;
   return result;
+}
+
+// Declare a custom function.
+struct external_function_1
+    : declare_custom_function<external_function_1, Expr, type_list<Expr, Expr>> {
+  static constexpr std::string_view name() noexcept { return "external_function_1"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+// Invoke a user declared custom function that returns a scalar.
+inline auto custom_function_call_1(Expr x, Expr y) {
+  const Expr f = external_function_1::call(x * 2, y - 5);
+  return f * x;
 }
 
 }  // namespace wf

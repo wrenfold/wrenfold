@@ -105,6 +105,6 @@ struct distribute_visitor {
   Expr operator()(const variable&, const Expr& arg) const { return arg; }
 };
 
-Expr distribute(const Expr& arg) { return visit_with_expr(arg, distribute_visitor{}); }
+Expr distribute(const Expr& arg) { return visit(arg, distribute_visitor{}); }
 
 }  // namespace wf

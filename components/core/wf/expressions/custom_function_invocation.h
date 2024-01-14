@@ -5,14 +5,14 @@
 
 namespace wf {
 
-//
+// Denote an instance of a custom type passed as an input argument to a genreated function.
 class custom_type_argument {
  public:
   static constexpr std::string_view name_str = "CustomTypeArgument";
   static constexpr bool is_leaf_node = true;
 
-  custom_type_argument(custom_type type, const std::size_t arg_index, std::string name) noexcept
-      : type_(std::move(type)), arg_index_(arg_index), name_(std::move(name)) {}
+  custom_type_argument(custom_type type, const std::size_t arg_index) noexcept
+      : type_(std::move(type)), arg_index_(arg_index) {}
 
   // The custom type.
   const custom_type& type() const noexcept { return type_; }
@@ -20,24 +20,22 @@ class custom_type_argument {
   // Which argument was this type passed as?
   constexpr std::size_t arg_index() const noexcept { return arg_index_; }
 
-  // Name of the argument (used for printing).
-  constexpr const std::string& name() const noexcept { return name_; }
-
-  constexpr bool is_identical_to(const custom_type_argument& other) const noexcept {
-    return arg_index_ == other.arg_index_ && name_ == other.name_ &&
-           are_identical(type_, other.type_);
-  }
-
  private:
   custom_type type_;
   std::size_t arg_index_;
-  std::string name_;
 };
 
 template <>
 struct hash_struct<custom_type_argument> {
   std::size_t operator()(const custom_type_argument& c) const noexcept {
-    return hash_args(c.arg_index(), c.name(), c.type());
+    return hash_args(c.arg_index(), c.type());
+  }
+};
+
+template <>
+struct is_identical_struct<custom_type_argument> {
+  bool operator()(const custom_type_argument& a, const custom_type_argument& b) const noexcept {
+    return a.arg_index() == b.arg_index() && are_identical(a.type(), b.type());
   }
 };
 
@@ -46,7 +44,6 @@ struct order_struct<custom_type_argument> {
   relative_order operator()(const custom_type_argument& a,
                             const custom_type_argument& b) const noexcept {
     return order_by(a.type().name(), b.type().name())
-        .and_then_by(a.name(), b.name())
         .and_then_by_comparison(a.arg_index(), b.arg_index());
   }
 };
@@ -76,6 +73,9 @@ class custom_function_invocation {
 
   // The arguments to the function.
   const container_type& args() const noexcept { return args_; }
+
+  // Number of arguments.
+  std::size_t size() const noexcept { return args_.size(); }
 
   // Iterators over argument.
   auto begin() const noexcept { return args_.begin(); }
@@ -125,8 +125,7 @@ class custom_type_construction {
   static constexpr bool is_leaf_node = false;
   using container_type = std::vector<Expr>;
 
-  custom_type_construction(custom_type type, std::vector<Expr> args) noexcept
-      : type_(std::move(type)), args_(std::move(args)) {}
+  custom_type_construction(custom_type type, std::vector<Expr> args);
 
   // The type being constructed.
   constexpr const custom_type& type() const noexcept { return type_; }
@@ -205,9 +204,12 @@ class compound_expression_element {
 
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    return Expr(std::in_place_type_t<compound_expression_element>{}, operation(provenance_),
-                index_);
+    return create(operation(provenance_), index_);
   }
+
+  // Create a reference to an element of a compound expression. This will simplify if the compound
+  // expression is a constructor.
+  static Expr create(compound_expr provenance, std::size_t index);
 
  private:
   compound_expr provenance_;

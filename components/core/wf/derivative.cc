@@ -54,7 +54,7 @@ Expr derivative_visitor::apply(const Expr& expression) {
   if (it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit_with_expr(expression, *this);
+  Expr result = visit(expression, *this);
   auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
   return it_inserted->second;
 }

@@ -53,6 +53,7 @@ int main() {
   generate_func(gen, code, &custom_type_1, "custom_type_1", arg("p"));
   generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
   generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
+  generate_func(gen, code, &custom_function_call_1, "custom_function_call_1", arg("x"), arg("y"));
 
   code += "} // namespace gen";
 

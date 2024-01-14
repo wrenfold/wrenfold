@@ -1,5 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include "wf/code_generation/ir_builder.h"
+#include "wf/code_generation/declare_custom_function.h"
+#include "wf/code_generation/function_evaluator.h"
 #include "wf/constants.h"
 #include "wf/functions.h"
 #include "wf/type_annotations.h"
@@ -97,7 +99,7 @@ void check_output_expressions(const std::vector<expression_group>& expected_expr
 
 void check_expressions(const std::vector<expression_group>& expected_expressions,
                        const flat_ir& ir) {
-  auto output_expressions = create_output_expression_map(ir.get_block(), {});
+  const auto output_expressions = create_output_expression_map(ir.get_block(), {});
   check_output_expressions(expected_expressions, output_expressions, ir);
 }
 
@@ -118,6 +120,8 @@ TEST(IrTest, TestNumericConstant1) {
   check_expressions(expected_expressions, ir);
   check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
+
+// ReSharper disable CppPassValueParameterByConstReference
 
 TEST(IrTest, TestNumericConstant2) {
   auto [expected_expressions, ir] = create_ir(
@@ -528,6 +532,138 @@ TEST(IrTest, TestBuiltInFunctions) {
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(27, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
+}
+
+// Make a custom function that accepts two arguments (one scalar, one matrix).
+class custom_func_1
+    : public declare_custom_function<custom_func_1, Expr,
+                                     type_list<Expr, type_annotations::static_matrix<2, 2>>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_1"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestCustomFunction1) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        auto m = make_matrix(2, 2, x - 2 * y, log(x), -x * y, y / 4 + cos(x));
+        return custom_func_1::call(cos(x) * y, m) + 5;
+      },
+      "func", arg("x"), arg("y"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_custom_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_custom_function>());
+}
+
+// Make a custom function that returns a matrix.
+class custom_func_2
+    : public declare_custom_function<custom_func_2, type_annotations::static_matrix<2, 4>,
+                                     type_list<Expr, Expr>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_2"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestCustomFunction2) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        using namespace matrix_operator_overloads;
+        const MatrixExpr m = custom_func_2::call(x + 2, y / 3);
+        return ta::static_matrix<2, 4>(
+            m + make_matrix(2, 4, x * y, cos(y), 0, -2, -5 * x - sin(y), 1, 0, x * y));
+      },
+      "func", arg("x"), arg("y"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_custom_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_custom_function>());
+}
+
+// A custom type used to support tests below.
+struct point_2d : custom_type_base<point_2d> {
+  Expr x{0};
+  Expr y{0};
+
+  point_2d() = default;
+  point_2d(Expr x, Expr y) : x(std::move(x)), y(std::move(y)) {}
+
+  static auto register_type(custom_type_registry& registry) {
+    return custom_type_builder<point_2d>(registry, "point_2d")
+        .add_field("x", &point_2d::x)
+        .add_field("y", &point_2d::y);
+  }
+};
+
+// Make a custom function that returns a custom type.
+class custom_func_3
+    : public declare_custom_function<custom_func_3, point_2d, type_list<Expr, Expr>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_3"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestCustomFunction3) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        const point_2d p = custom_func_3::call(x + y * 5, cos(y));
+        point_2d p2{p.x - 2 * x, p.y / y};
+        return std::make_tuple(return_value(p), optional_output_arg("p2", p2));
+      },
+      "func", arg("x"), arg("y"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_custom_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_custom_function>());
+}
+
+// Make a custom function that accepts a custom type as a parameter.
+class custom_func_4
+    : public declare_custom_function<custom_func_4, point_2d, type_list<point_2d, Expr>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_4"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestCustomFunction4) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y, Expr z) {
+        const point_2d p = custom_func_4::call(point_2d(x * 3, y / 2), z + constants::pi / 2);
+        return sqrt(pow(p.x, 2) + pow(p.y, 2));
+      },
+      "func", arg("x"), arg("y"), arg("z"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_custom_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_custom_function>());
+}
+
+// Accept a custom type as an argument, and pass it to a custom function.
+TEST(IrTest, TestCustomFunction5) {
+  auto [expected_expressions, ir] =
+      create_ir([](point_2d p1, Expr w) { return custom_func_4::call(p1, w * p1.x - 22); }, "func",
+                arg("p1"), arg("w"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_custom_function>()) << ir;
+
+  fmt::print("{}\n", ir.to_string());
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_custom_function>());
 }
 
 }  // namespace wf

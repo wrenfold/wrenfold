@@ -14,11 +14,6 @@ class symbolic_constant {
   // Construct with name.
   explicit constexpr symbolic_constant(symbolic_constant_enum name) noexcept : name_(name) {}
 
-  // Check if symbolic constants are the same.
-  constexpr bool is_identical_to(const symbolic_constant& other) const noexcept {
-    return name_ == other.name_;
-  }
-
   // Access name.
   constexpr symbolic_constant_enum name() const noexcept { return name_; }
 
@@ -70,6 +65,13 @@ template <>
 struct hash_struct<symbolic_constant> {
   constexpr std::size_t operator()(const symbolic_constant& c) const noexcept {
     return static_cast<std::size_t>(c.name());
+  }
+};
+
+template <>
+struct is_identical_struct<symbolic_constant> {
+  constexpr bool operator()(const symbolic_constant& a, const symbolic_constant& b) const noexcept {
+    return a.name() == b.name();
   }
 };
 

@@ -28,12 +28,29 @@ class custom_function {
   // The return type.
   const type_variant& return_type() const noexcept { return impl_->return_type; }
 
+  // Get the return type as the specific type `T`, or assert.
+  template <typename T>
+  const T& return_type_as() const {
+    const T* x = std::get_if<T>(&return_type());
+    WF_ASSERT(x != nullptr, "Return type is not `{}`", typeid(T).name());
+    return *x;
+  }
+
   // The hash.
   std::size_t hash() const noexcept { return impl_->hash; }
 
   // Check if addresses of two functions are the same.
   bool has_same_address(const custom_function& other) const noexcept {
     return impl_ == other.impl_;
+  }
+
+  // For functions defined in C++, check if this custom_function identically matches the description
+  // produced by the object of type `T`. (T is a subclass of `declare_custom_function`).
+  // We treat functions with identical names and argument types as identical.
+  template <typename T>
+  bool is_function() const {
+    const auto [description, _] = T::get_description_and_arg_types();
+    return are_identical(*this, description);
   }
 
  private:

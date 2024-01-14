@@ -190,17 +190,24 @@ inline constexpr integer_constant::operator float_constant() const {
   return float_constant{static_cast<float_constant::value_type>(val_)};
 }
 
-// Hashing of integers. Like std::hash, just pass the value through.
+// Hashing of integers.
 template <>
 struct hash_struct<integer_constant::value_type> {
-  std::size_t operator()(integer_constant::value_type value) const {
+  std::size_t operator()(const integer_constant::value_type value) const noexcept {
     return std::hash<integer_constant::value_type>{}(value);
   }
 };
 template <>
 struct hash_struct<integer_constant> {
-  std::size_t operator()(const integer_constant& value) const {
-    return hash_struct<integer_constant::value_type>{}(value.get_value());
+  std::size_t operator()(const integer_constant value) const noexcept {
+    return std::hash<integer_constant::value_type>{}(value.get_value());
+  }
+};
+
+template <>
+struct is_identical_struct<integer_constant> {
+  constexpr bool operator()(const integer_constant a, const integer_constant b) const noexcept {
+    return a.get_value() == b.get_value();
   }
 };
 
@@ -255,6 +262,13 @@ struct hash_struct<rational_constant> {
   }
 };
 
+template <>
+struct is_identical_struct<rational_constant> {
+  constexpr bool operator()(const rational_constant& a, const rational_constant& b) const noexcept {
+    return a.numerator() == b.numerator() && a.denominator() == b.denominator();
+  }
+};
+
 // Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
 // coefficient between (-1, 1] is returned.
 inline constexpr rational_constant mod_pi_rational(const rational_constant& r) noexcept {
@@ -295,6 +309,13 @@ struct hash_struct<float_constant> {
   // Can't be constexpr, because std::hash is not constexpr.
   std::size_t operator()(const float_constant& f) const {
     return std::hash<float_constant::value_type>{}(f.get_value());
+  }
+};
+
+template <>
+struct is_identical_struct<float_constant> {
+  constexpr bool operator()(const float_constant a, const float_constant b) const noexcept {
+    return a.get_value() == b.get_value();
   }
 };
 

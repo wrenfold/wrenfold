@@ -1,7 +1,6 @@
 #include "plain_formatter.h"
 
 #include <algorithm>
-#include <optional>
 
 #include "wf/assertions.h"
 #include "wf/common_visitors.h"
@@ -100,7 +99,7 @@ void plain_formatter::operator()(const compound_expression_element& el) {
             },
             [&](const custom_type_argument& arg) {
               // Name followed by the access sequence:
-              output_ += arg.name();
+              operator()(arg);
               format_access_sequence(arg.type());
             },
             [&](const custom_type_construction& construction) {
@@ -122,7 +121,9 @@ void plain_formatter::operator()(const custom_function_invocation& invocation) {
   output_ += ")";
 }
 
-void plain_formatter::operator()(const custom_type_argument& arg) { output_ += arg.name(); }
+void plain_formatter::operator()(const custom_type_argument& arg) {
+  fmt::format_to(std::back_inserter(output_), "$arg({})", arg.arg_index());
+}
 
 void plain_formatter::operator()(const custom_type_construction& construct) {
   fmt::format_to(std::back_inserter(output_), "{}(<{} expressions>)", construct.type().name(),
@@ -217,12 +218,12 @@ void plain_formatter::operator()(const matrix& mat) {
   output_ += "]";
 }
 
-void plain_formatter::operator()(const multiplication& expr) {
-  WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
+void plain_formatter::operator()(const multiplication& mul) {
+  WF_ASSERT_GREATER_OR_EQ(mul.size(), 2);
   using base_exp = multiplication_format_parts::base_exp;
 
   // Break multiplication up into numerator and denominator:
-  const multiplication_format_parts info = get_formatting_info(expr);
+  const multiplication_format_parts info = get_formatting_info(mul);
 
   if (info.is_negative) {
     output_ += "-";
@@ -281,21 +282,22 @@ void plain_formatter::operator()(const function& func) {
   output_ += ")";
 }
 
-void plain_formatter::operator()(const power& expr) { format_power(expr.base(), expr.exponent()); }
+void plain_formatter::operator()(const power& pow) { format_power(pow.base(), pow.exponent()); }
 
-void plain_formatter::operator()(const rational_constant& expr) {
-  fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());
+void plain_formatter::operator()(const rational_constant& rational) {
+  fmt::format_to(std::back_inserter(output_), "{} / {}", rational.numerator(),
+                 rational.denominator());
 }
 
-void plain_formatter::operator()(const relational& expr) {
-  format_precedence(precedence::relational, expr.left());
-  fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
-  format_precedence(precedence::relational, expr.right());
+void plain_formatter::operator()(const relational& relational) {
+  format_precedence(precedence::relational, relational.left());
+  fmt::format_to(std::back_inserter(output_), " {} ", relational.operation_string());
+  format_precedence(precedence::relational, relational.right());
 }
 
 void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
 
-void plain_formatter::operator()(const variable& expr) { output_.append(expr.to_string()); }
+void plain_formatter::operator()(const variable& var) { output_.append(var.to_string()); }
 
 void plain_formatter::format_precedence(const precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {

@@ -1,4 +1,6 @@
 #pragma once
+#include "wf/compound_expression.h"
+
 #include <typeindex>
 #include <unordered_map>
 
@@ -47,13 +49,14 @@ class native_field_accessor_typed : public native_field_accessor::concept {
   // Set underlying member by consuming expressions from `input`.
   // A new truncated span with remaining elements is returned. It is assumed that expressions in
   // `input` can be moved.
-  virtual absl::Span<Expr> set(T& object, absl::Span<Expr> input) const = 0;
+  virtual absl::Span<const Expr> set(T& object, absl::Span<const Expr> input) const = 0;
 
   // Copy underlying member into `output` vector.
   virtual void get(const T& object, std::vector<Expr>& output) const = 0;
 };
 
 // Implement `native_field_accessor_typed` by using a member-variable pointer.
+// `U` is one of the type descriptors like scalar_type, custom_type, etc.
 template <typename StructType, typename FieldType, typename U>
 class native_field_accessor_member_ptr final : public native_field_accessor_typed<StructType> {
  public:
@@ -64,7 +67,7 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
                                             U member_type) noexcept
       : member_ptr_(member_ptr), member_type_(std::move(member_type)) {}
 
-  absl::Span<Expr> set(StructType& object, absl::Span<Expr> input) const override;
+  absl::Span<const Expr> set(StructType& object, absl::Span<const Expr> input) const override;
   void get(const StructType& object, std::vector<Expr>& output) const override;
 
  private:
@@ -124,10 +127,64 @@ class custom_type_builder {
   std::vector<struct_field> fields_;
 };
 
-// Evaluates to true if there is a specialization of custom_type_registrant for the type T.
+template <typename Derived>
+struct custom_type_base {
+ public:
+  // Set the provenence of this custom type.
+  void set_provenance(const compound_expr& provenance) noexcept { provenance_ = provenance; }
+
+  // The provonance allows us to track where a custom type is produced. It can be used to indicate
+  // if this object was an input argument, or the result of a custom function invocation.
+  constexpr const auto& provenance() const noexcept { return provenance_; }
+
+  // The derived type should implement `register_type`.
+  static custom_type_builder<Derived> register_type(custom_type_registry& registry) {
+    return Derived::register_type(registry);
+  }
+
+ private:
+  std::optional<compound_expr> provenance_{};
+};
+
+namespace detail {
+constexpr auto inherits_custom_type_base_(...) -> std::false_type;
+template <typename Derived>
+constexpr auto inherits_custom_type_base_(const custom_type_base<Derived>&) -> std::true_type;
+
 template <typename T>
-constexpr bool implements_custom_type_registrant_v =
-    has_call_operator_v<custom_type_registrant<T>, custom_type_registry&>;
+using inherits_custom_type_base =
+    decltype(detail::inherits_custom_type_base_(std::declval<const T>()));
+template <typename T>
+constexpr bool inherits_custom_type_base_v = inherits_custom_type_base<T>::value;
+
+template <typename T, typename U = void>
+using enable_if_inherits_custom_type_base_t =
+    std::enable_if_t<inherits_custom_type_base_v<std::decay_t<T>>, U>;
+
+}  // namespace detail
+
+// Create type `T` by initializing all registered members of `T` with expressions.
+// The trimmed span (after consuming the right # of values from the front) is returned.
+template <typename T>
+std::tuple<T, absl::Span<const Expr>> custom_type_from_expressions(
+    const custom_type& type, absl::Span<const Expr> expressions) {
+  T result{};
+  for (const struct_field& field : type.fields()) {
+    expressions =
+        field.native_accessor().as<native_field_accessor_typed<T>>().set(result, expressions);
+  }
+  return std::make_tuple(std::move(result), expressions);
+}
+
+// Copy all fields from object of type `T` into vector `output`.
+template <typename T>
+void copy_expressions_from_custom_type(const T& object, const custom_type& type,
+                                       std::vector<Expr>& output) {
+  output.reserve(output.size() + type.size());
+  for (const struct_field& field : type.fields()) {
+    field.native_accessor().as<native_field_accessor_typed<T>>().get(object, output);
+  }
+}
 
 // `custom_type` wrapped with a template that marks which C++ type it corresponds to.
 template <typename T>
@@ -138,22 +195,18 @@ struct annotated_custom_type {
 
   // Create type `T` by initializing all registered members of `T` with expressions.
   // The trimmed span (after consuming the right # of values from the front) is returned.
-  std::tuple<T, absl::Span<Expr>> initialize_from_expressions(absl::Span<Expr> expressions) const {
-    T result{};
-    for (const struct_field& field : type.fields()) {
-      expressions =
-          field.native_accessor().as<native_field_accessor_typed<T>>().set(result, expressions);
-    }
-    return std::make_tuple(std::move(result), expressions);
+  std::tuple<T, absl::Span<const Expr>> initialize_from_expressions(
+      const absl::Span<const Expr> expressions) const {
+    return custom_type_from_expressions<T>(type, expressions);
   }
 
   // Copy all fields from object of type `T` into vector `output`.
   void copy_output_expressions(const T& object, std::vector<Expr>& output) const {
-    output.reserve(output.size() + type.size());
-    for (const struct_field& field : type.fields()) {
-      field.native_accessor().as<native_field_accessor_typed<T>>().get(object, output);
-    }
+    copy_expressions_from_custom_type(object, type, output);
   }
+
+  // Access inner `custom_type` object.
+  constexpr const custom_type& inner() const noexcept { return type; }
 
   // Allow implicit cast so we can construct type_variant from this.
   // ReSharper disable once CppNonExplicitConversionOperator
@@ -176,7 +229,7 @@ struct record_type<type_annotations::static_matrix<Rows, Cols>> {
 
 // For custom types, we check add each type to the type registry.
 template <typename T>
-struct record_type<T, std::enable_if_t<implements_custom_type_registrant_v<T>>> {
+struct record_type<T, enable_if_inherits_custom_type_base_t<T>> {
   annotated_custom_type<T> operator()(custom_type_registry& registry) const {
     // Check if this type has already been registered:
     if (std::optional<custom_type> existing_type = registry.find_type<T>();
@@ -184,7 +237,7 @@ struct record_type<T, std::enable_if_t<implements_custom_type_registrant_v<T>>> 
       return annotated_custom_type<T>{std::move(*existing_type)};
     }
     // The registrant should return `custom_type_builder<T>`:
-    custom_type type = custom_type_registrant<T>{}(registry).finalize();
+    custom_type type = T::register_type(registry).finalize();
     return annotated_custom_type<T>{std::move(type)};
   }
 };
@@ -216,9 +269,13 @@ std::vector<Expr> create_function_input(const custom_type& custom, std::size_t a
 
 // Fill a custom type `T` with symbolic variable expressions.
 template <typename T>
-T create_function_input(const annotated_custom_type<T>& custom, std::size_t arg_index) {
-  std::vector<Expr> expressions = create_function_input(custom.type, arg_index);
-  auto [instance, _] = custom.initialize_from_expressions(absl::Span<Expr>{expressions});
+T create_function_input(const annotated_custom_type<T>& custom, const std::size_t arg_index) {
+  static_assert(detail::inherits_custom_type_base_v<T>, "Type must inherit from custom_type_base");
+  compound_expr provenance = create_custom_type_argument(custom.inner(), arg_index);
+  const std::vector<Expr> expressions =
+      create_expression_elements(provenance, custom.inner().total_size());
+  auto [instance, _] = custom.initialize_from_expressions(absl::Span<const Expr>{expressions});
+  instance.set_provenance(std::move(provenance));
   return instance;
 }
 
@@ -242,9 +299,9 @@ std::vector<Expr> extract_function_output(const annotated_custom_type<T>& custom
 template <typename T>
 template <typename P>
 custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T::*member_ptr) {
-  static_assert(has_call_operator_v<detail::record_type<P>, custom_type_registry&>,
-                "The specified type is not something we understand. Maybe you need to implement "
-                "custom_type_registrant.");
+  static_assert(std::is_invocable_v<detail::record_type<P>, custom_type_registry&>,
+                "The specified type is not something we understand. Maybe you need to inherit "
+                "from custom_type_base.");
   WF_ASSERT(member_ptr != nullptr);
 
   // Convert the type `P` to something we can place inside `type_variant`.
@@ -262,16 +319,16 @@ custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T:
 }
 
 template <typename StructType, typename FieldType, typename U>
-absl::Span<Expr> native_field_accessor_member_ptr<StructType, FieldType, U>::set(
-    StructType& object, absl::Span<Expr> input) const {
+absl::Span<const Expr> native_field_accessor_member_ptr<StructType, FieldType, U>::set(
+    StructType& object, absl::Span<const Expr> input) const {
   if constexpr (std::is_same_v<U, scalar_type>) {
     WF_ASSERT(!input.empty());
-    object.*member_ptr_ = std::move(input.front());
+    object.*member_ptr_ = input.front();
     return input.subspan(1);
   } else if constexpr (std::is_same_v<U, matrix_type>) {
     const matrix_type& mat = member_type_;
     WF_ASSERT_GREATER_OR_EQ(input.size(), mat.size());
-    const auto begin = std::make_move_iterator(input.begin());
+    const auto begin = input.begin();
     object.*member_ptr_ = MatrixExpr::create(mat.rows(), mat.cols(), begin, begin + mat.size());
     return input.subspan(mat.size());
   } else {

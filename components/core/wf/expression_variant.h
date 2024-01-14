@@ -69,10 +69,7 @@ class expression_variant {
     if (ptr_.get() == other.ptr_.get()) {
       return true;
     }
-    if (index() != other.index()) {
-      return false;
-    }
-    return ptr_->is_identical_to(*other.ptr_);
+    return index() == other.index() && ptr_->is_identical_to(*other.ptr_);
   }
 
   std::string_view type_name() const noexcept { return ptr_->type_name(); }
@@ -145,8 +142,13 @@ class expression_variant {
     constexpr value_type& contents() noexcept { return contents_; }
 
     bool is_identical_to(const concept_base& other) const override {
-      // Unchecked cast, this was checked in expression_variant::is_identical_to
-      return contents_.is_identical_to(static_cast<const model&>(other).contents_);
+      if constexpr (std::is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
+        // TODO: Switch all types to this path (implement the trait).
+        return is_identical_struct<T>{}(contents_, static_cast<const model&>(other).contents_);
+      } else {
+        // Unchecked cast, this was checked in expression_variant::is_identical_to
+        return contents_.is_identical_to(static_cast<const model&>(other).contents_);
+      }
     }
 
     std::string_view type_name() const noexcept override { return T::name_str; }
@@ -196,6 +198,7 @@ template <typename Derived, typename Meta>
 class expression_base {
  public:
   using storage_type = expression_variant<Meta>;
+  using types = typename storage_type::types;
 
   // Enable if `storage_type` support construction from type `T`.
   template <typename T>

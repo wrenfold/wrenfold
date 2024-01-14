@@ -31,6 +31,7 @@ add_library(
   wf/code_generation/types.h
   wf/collect.cc
   wf/common_visitors.h
+  wf/compound_expression.cc
   wf/compound_expression.h
   wf/constants.cc
   wf/constants.h

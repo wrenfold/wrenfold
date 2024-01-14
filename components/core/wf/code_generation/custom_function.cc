@@ -7,7 +7,7 @@ std::shared_ptr<const custom_function::impl> custom_function::impl::create(
   impl result{std::move(name), std::move(arguments), std::move(return_type), 0};
   result.hash = hash_string_fnv(result.name);
   result.hash = hash_all(result.hash, result.arguments);
-  result.hash = hash_args(result.hash, return_type);
+  result.hash = hash_args(result.hash, result.return_type);
   return std::make_shared<impl>(std::move(result));
 }
 

@@ -1,8 +1,8 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <any>
 #include <memory>
 #include <string>
+#include <typeindex>
 #include <variant>
 #include <vector>
 
@@ -10,8 +10,6 @@
 #include "wf/checked_pointers.h"
 #include "wf/enumerations.h"
 #include "wf/hashing.h"
-
-#include <typeindex>
 
 namespace wf {
 
@@ -285,13 +283,6 @@ struct is_identical_struct<struct_field> {
     return a.name() == b.name() && is_identical_struct<type_variant>{}(a.type(), b.type());
   }
 };
-
-// template <>
-// struct order_struct<struct_field> {
-//   relative_order operator()(const struct_field& a, const struct_field& b) const noexcept {
-//     return order_by(a.name(), b.name()).and_then_by(a.type(), b.type());
-//   }
-// };
 
 // Represent the operation of reading a field on a custom type.
 class field_access {

@@ -110,7 +110,7 @@ struct collect_visitor {
     addition::container_type children{};
     children.reserve(add.size());
     std::transform(add.begin(), add.end(), std::back_inserter(children),
-                   [this](const Expr& x) { return visit_with_expr(x, *this); });
+                   [this](const Expr& x) { return visit(x, *this); });
     return collect_addition_terms(std::move(children));
   }
 
@@ -144,7 +144,7 @@ Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
       throw type_error("Arguments to collect cannot be numeric values. Term = {}", term);
     }
   }
-  return visit_with_expr(arg, collect_visitor{terms});
+  return visit(arg, collect_visitor{terms});
 }
 
 Expr collect(const Expr& arg, const Expr& term) { return collect_many(arg, {term}); }

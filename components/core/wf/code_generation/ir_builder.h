@@ -5,7 +5,6 @@
 
 #include "wf/assertions.h"
 #include "wf/code_generation/expression_group.h"
-#include "wf/code_generation/function_evaluator.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/enumerations.h"
 #include "wf/expression.h"
