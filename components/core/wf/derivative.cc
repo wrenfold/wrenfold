@@ -178,8 +178,7 @@ Expr derivative_visitor::operator()(const function& func) {
       return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
     }
   }
-  WF_ASSERT(false, "Invalid unary function: {}", func.function_name());
-  return constants::zero;
+  WF_ASSERT_ALWAYS("Invalid unary function: {}", func.function_name());
 }
 
 Expr derivative_visitor::operator()(const complex_infinity&) const { return constants::zero; }

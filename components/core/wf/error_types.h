@@ -8,7 +8,7 @@
 namespace wf {
 
 // Base type for errors.
-struct exception_base : public std::exception {
+struct exception_base : std::exception {
   // Construct with moved message.
   explicit exception_base(std::string&& message) noexcept : message_(std::move(message)) {}
 
@@ -23,29 +23,27 @@ struct exception_base : public std::exception {
   // Implement std::exception
   const char* what() const noexcept override { return message_.c_str(); }
 
-  virtual ~exception_base() = default;
-
  private:
   std::string message_;
 };
 
 // Thrown when assertions fire.
-struct assertion_error : public exception_base {
+struct assertion_error final : exception_base {
   using exception_base::exception_base;
 };
 
 // Throw when an invalid type conversion occurs.
-struct type_error : public exception_base {
+struct type_error final : exception_base {
   using exception_base::exception_base;
 };
 
 // Thrown when accessing invalid matrix dimensions.
-struct dimension_error : public exception_base {
+struct dimension_error final : exception_base {
   using exception_base::exception_base;
 };
 
 // Thrown when function is provided with input outside its domain.
-struct domain_error : public exception_base {
+struct domain_error final : exception_base {
   using exception_base::exception_base;
 };
 
