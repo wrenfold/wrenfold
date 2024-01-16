@@ -99,8 +99,7 @@ inline Expr function::create(built_in_function name, function::container_type&& 
     case built_in_function::arctan2:
       return atan2(container[0], container[1]);
   }
-  WF_ASSERT(false, "Invalid function name: {}", string_from_built_in_function(name));
-  return constants::zero;  //  Unreachable.
+  WF_ASSERT_ALWAYS("Invalid function name: {}", string_from_built_in_function(name));
 }
 
 }  // namespace wf
