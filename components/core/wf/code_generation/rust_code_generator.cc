@@ -217,7 +217,17 @@ static constexpr std::string_view rust_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
-std::string rust_code_generator::operator()(const ast::call& x) const {
+std::string rust_code_generator::operator()(const ast::call_custom_function& x) const {
+  const std::string args = join(*this, ", ", x.args);
+  if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
+      s->numeric_type() == code_numeric_type::floating_point) {
+    return fmt::format("{}({}) as f64", x.function.name(), args);
+  } else {
+    return fmt::format("{}({})", x.function.name(), args);
+  }
+}
+
+std::string rust_code_generator::operator()(const ast::call_std_function& x) const {
   // We have to override signum specially here, because the built-in rust signum does not return 0.
   if (x.function == std_math_function::signum) {
     // TODO: should be an integer expression:

@@ -12,6 +12,13 @@ class custom_cpp_code_generator final : public wf::cpp_code_generator {
   using cpp_code_generator::cpp_code_generator;
   using cpp_code_generator::operator();
 
+  std::string operator()(const wf::ast::call_custom_function& func) const override {
+    if (func.function.is_function<wf::external_function_1>()) {
+      return fmt::format("test::external_function_1({})", wf::join(*this, ", ", func.args));
+    }
+    return cpp_code_generator::operator()(func);
+  }
+
   std::string operator()(const wf::custom_type& custom) const override {
     if (custom.is_native_type<wf::symbolic::Point2d>()) {
       return "wf::numeric::Point2d";

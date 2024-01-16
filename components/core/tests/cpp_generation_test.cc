@@ -27,6 +27,13 @@ struct Circle {
 };
 }  // namespace wf::numeric
 
+namespace test {
+template <typename Scalar>
+Scalar external_function_1(Scalar a, Scalar b) {
+  return a * b;
+}
+}  // namespace test
+
 #include "generated.h"
 
 namespace wf {

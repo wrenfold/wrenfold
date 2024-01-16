@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "wf/checked_pointers.h"
+#include "wf/code_generation/custom_function.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
 
@@ -19,7 +20,8 @@ using variant = std::variant<
     struct assign_output_scalar,
     struct assign_output_struct,
     struct branch,
-    struct call,
+    struct call_custom_function,
+    struct call_std_function,
     struct cast,
     struct comment,
     struct compare,
@@ -102,9 +104,17 @@ struct branch {
   std::vector<variant> else_branch;
 };
 
-// Call a standard library function.
-struct call {
-  static constexpr std::string_view snake_case_name_str = "call";
+// Call a custom function.
+struct call_custom_function {
+  static constexpr std::string_view snake_case_name_str = "call_custom_function";
+
+  custom_function function;
+  std::vector<variant> args;
+};
+
+// Call a standard math function.
+struct call_std_function {
+  static constexpr std::string_view snake_case_name_str = "call_std_function";
 
   std_math_function function;
   std::vector<variant> args;

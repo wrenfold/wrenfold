@@ -200,6 +200,13 @@ void wrap_codegen_operations(py::module_& m) {
                            py::cast<std::string_view>(repr));
       });
 
+  py::class_<custom_function>(m, "CustomFunction")
+      .def_property_readonly("name", &custom_function::name)
+      .def_property_readonly("arguments", &custom_function::arguments)
+      .def_property_readonly("num_arguments", &custom_function::num_arguments)
+      .def_property_readonly("return_type", &custom_function::return_type)
+      .def("__eq__", &are_identical<custom_function>, py::is_operator());
+
   py::class_<function_description>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
       .def_property_readonly("name", &function_description::name)
@@ -315,9 +322,14 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("if_branch", [](const ast::branch& c) { return c.if_branch; })
       .def_property_readonly("else_branch", [](const ast::branch& c) { return c.else_branch; });
 
-  wrap_ast_type<ast::call>(m)
-      .def_property_readonly("function", [](const ast::call& c) { return c.function; })
-      .def_property_readonly("args", [](const ast::call& c) { return c.args; });
+  wrap_ast_type<ast::call_custom_function>(m)
+      .def_property_readonly("function",
+                             [](const ast::call_custom_function& c) { return c.function; })
+      .def_property_readonly("args", [](const ast::call_custom_function& c) { return c.args; });
+
+  wrap_ast_type<ast::call_std_function>(m)
+      .def_property_readonly("function", [](const ast::call_std_function& c) { return c.function; })
+      .def_property_readonly("args", [](const ast::call_std_function& c) { return c.args; });
 
   wrap_ast_type<ast::cast>(m)
       .def_property_readonly("destination_type",

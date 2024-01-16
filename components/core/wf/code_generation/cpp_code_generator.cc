@@ -220,7 +220,17 @@ std::string cpp_code_generator::operator()(const ast::branch& x) const {
   return result;
 }
 
-std::string cpp_code_generator::operator()(const ast::call& x) const {
+std::string cpp_code_generator::operator()(const ast::call_custom_function& x) const {
+  const std::string args = join(*this, ", ", x.args);
+  if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
+      s->numeric_type() == code_numeric_type::floating_point) {
+    return fmt::format("static_cast<Scalar>({}({}))", x.function.name(), args);
+  } else {
+    return fmt::format("{}({})", x.function.name(), args);
+  }
+}
+
+std::string cpp_code_generator::operator()(const ast::call_std_function& x) const {
   if (x.function == std_math_function::signum) {
     // We need to special-case signum because it doesn't exist as a free-standing function.
     // TODO: This should be an int expression.
@@ -228,7 +238,7 @@ std::string cpp_code_generator::operator()(const ast::call& x) const {
         "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
         make_view(x.args[0]), make_view(x.args[0]));
   } else {
-    const auto args = join(*this, ", ", x.args);
+    const std::string args = join(*this, ", ", x.args);
     return fmt::format("{}({})", cpp_string_for_std_function(x.function), args);
   }
 }

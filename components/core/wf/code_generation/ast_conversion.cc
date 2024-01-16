@@ -411,7 +411,13 @@ struct ast_from_ir {
 
   ast::variant operator()(const ir::value& val, const ir::call_custom_function& call) {
     WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
-    throw type_error("TODO: Implement me");
+
+    std::vector<ast::variant> transformed_args{};
+    transformed_args.reserve(val.num_operands());
+    for (const ir::value_ptr arg : val.operands()) {
+      transformed_args.push_back(make_operation_argument(arg));
+    }
+    return ast::call_custom_function{call.function(), std::move(transformed_args)};
   }
 
   ast::variant operator()(const ir::value& val, const ir::call_std_function& func) {
@@ -422,7 +428,7 @@ struct ast_from_ir {
     for (const ir::value_ptr arg : val.operands()) {
       transformed_args.push_back(make_operation_argument(arg));
     }
-    return ast::call{func.name(), std::move(transformed_args)};
+    return ast::call_std_function{func.name(), std::move(transformed_args)};
   }
 
   ast::variant operator()(const ir::value& val, const ir::cast& cast) {

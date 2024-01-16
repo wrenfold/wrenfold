@@ -36,6 +36,11 @@ class custom_function {
     return *x;
   }
 
+  // Is the return value a scalar?
+  bool is_scalar_valued() const noexcept {
+    return std::holds_alternative<scalar_type>(impl_->return_type);
+  }
+
   // The hash.
   std::size_t hash() const noexcept { return impl_->hash; }
 
