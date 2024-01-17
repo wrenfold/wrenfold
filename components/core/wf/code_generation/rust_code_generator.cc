@@ -1,5 +1,6 @@
 #include "wf/code_generation/rust_code_generator.h"
 
+#include "fmt/chrono.h"
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/index_range.h"
 #include "wf/template_utils.h"
@@ -278,12 +279,30 @@ std::string rust_code_generator::operator()(const ast::construct_custom_type& x)
 }
 
 std::string rust_code_generator::operator()(const ast::declaration& x) const {
-  if (!x.value) {
-    return fmt::format("let {}: {};", x.name, rust_string_from_numeric_type(x.type));
+  std::string output;
+  fmt::format_to(std::back_inserter(output), "let {}: {}", x.name, operator()(x.type));
+  if (x.value) {
+    fmt::format_to(std::back_inserter(output), " = {};", make_view(*x.value));
   } else {
-    return fmt::format("let {}: {} = {};", x.name, rust_string_from_numeric_type(x.type),
-                       make_view(*x.value));
+    output.append(";");
   }
+  return output;
+}
+
+std::string rust_code_generator::operator()(const ast::declaration_type_annotation& x) const {
+  return overloaded_visit(
+      x.type,
+      [](const scalar_type s) -> std::string {
+        return std::string(rust_string_from_numeric_type(s));
+      },
+      [](const matrix_type&) -> std::string {
+        throw type_error(
+            "The default Rust code-generator treats all matrices as span traits. We cannot "
+            "construct one directly. You likely want to implement an override for the the `{}` ast "
+            "type.",
+            ast::declaration_type_annotation::snake_case_name_str);
+      },
+      [](const custom_type& c) -> std::string { return c.name(); });
 }
 
 std::string rust_code_generator::operator()(const ast::divide& x) const {

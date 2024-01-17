@@ -151,17 +151,68 @@ inline auto nested_custom_type_1(symbolic::Circle a, symbolic::Point2d b) {
   return result;
 }
 
-// Declare a custom function.
+// Declare an external function.
 struct external_function_1
     : declare_custom_function<external_function_1, Expr, type_list<Expr, Expr>> {
   static constexpr std::string_view name() noexcept { return "external_function_1"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
 };
 
-// Invoke a user declared custom function that returns a scalar.
 inline auto custom_function_call_1(Expr x, Expr y) {
   const Expr f = external_function_1::call(x * 2, y - 5);
   return f * x;
+}
+
+// An external function that accepts a matrix argument.
+struct external_function_2
+    : declare_custom_function<external_function_2, Expr, type_list<ta::static_matrix<2, 3>>> {
+  static constexpr std::string_view name() noexcept { return "external_function_2"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0"); }
+};
+
+inline auto custom_function_call_2(ta::static_matrix<2, 1> u, ta::static_matrix<2, 1> v) {
+  // clang-format off
+  const MatrixExpr m = make_matrix(2, 3,
+    u[0] - 2.0, pow(u[1], 2), 1,
+    v[0], pow(v[1] + 1.0, 2), 1);
+  // clang-format on
+  return external_function_2::call(m);
+}
+
+// An external function that returns a matrix.
+struct external_function_3
+    : declare_custom_function<external_function_3, ta::static_matrix<2, 2>,
+                              type_list<ta::static_matrix<2, 1>, ta::static_matrix<2, 1>>> {
+  static constexpr std::string_view name() noexcept { return "external_function_3"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+inline auto custom_function_call_3(Expr x, ta::static_matrix<2, 1> v) {
+  return external_function_3::call(make_vector(x, pow(x, 2)), v);
+}
+
+// An external function that accepts and returns custom types.
+struct external_function_4 : declare_custom_function<external_function_4, symbolic::Point2d,
+                                                     type_list<symbolic::Point2d>> {
+  static constexpr std::string_view name() noexcept { return "external_function_4"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("p"); }
+};
+
+inline auto custom_function_call_4(Expr a, Expr b) {
+  const symbolic::Point2d p = external_function_4::call(symbolic::Point2d{a - b, b * 2});
+  return where(abs(p.x) > abs(p.y), p.x, p.y);
+}
+
+// A external function that accepts a nested custom type.
+struct external_function_5
+    : declare_custom_function<external_function_5, Expr,
+                              type_list<symbolic::Circle, symbolic::Circle>> {
+  static constexpr std::string_view name() noexcept { return "external_function_5"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("c", "p"); }
+};
+
+inline auto custom_function_call_5(symbolic::Circle c, Expr x, Expr y) {
+  return 2 * external_function_5::call(c, symbolic::Circle{symbolic::Point2d{x, y}, 1.0}) - 1;
 }
 
 }  // namespace wf

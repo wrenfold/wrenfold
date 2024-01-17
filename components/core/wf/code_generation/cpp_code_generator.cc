@@ -9,7 +9,7 @@ namespace wf {
 
 static constexpr std::string_view utility_namespace = "wf";
 
-constexpr static std::string_view cpp_string_from_numeric_cast_type(
+constexpr static std::string_view cpp_string_from_numeric_type(
     const code_numeric_type destination_type) noexcept {
   switch (destination_type) {
     case code_numeric_type::boolean:
@@ -22,9 +22,9 @@ constexpr static std::string_view cpp_string_from_numeric_cast_type(
   return "<INVALID ENUM VALUE>";
 }
 
-constexpr static std::string_view cpp_string_from_numeric_cast_type(
+constexpr static std::string_view cpp_string_from_numeric_type(
     const scalar_type& destination_type) noexcept {
-  return cpp_string_from_numeric_cast_type(destination_type.numeric_type());
+  return cpp_string_from_numeric_type(destination_type.numeric_type());
 }
 
 std::string cpp_code_generator::operator()(const argument& arg) const {
@@ -33,13 +33,12 @@ std::string cpp_code_generator::operator()(const argument& arg) const {
       arg.type(),
       [&](const scalar_type s) {
         if (arg.direction() == argument_direction::input) {
-          fmt::format_to(std::back_inserter(result), "const {}",
-                         cpp_string_from_numeric_cast_type(s));
+          fmt::format_to(std::back_inserter(result), "const {}", cpp_string_from_numeric_type(s));
         } else if (arg.direction() == argument_direction::output) {
-          fmt::format_to(std::back_inserter(result), "{}&", cpp_string_from_numeric_cast_type(s));
+          fmt::format_to(std::back_inserter(result), "{}&", cpp_string_from_numeric_type(s));
         } else {
           // TODO: Fix the output type here to be a span.
-          fmt::format_to(std::back_inserter(result), "{}*", cpp_string_from_numeric_cast_type(s));
+          fmt::format_to(std::back_inserter(result), "{}*", cpp_string_from_numeric_type(s));
         }
       },
       [&](matrix_type) {
@@ -223,7 +222,7 @@ std::string cpp_code_generator::operator()(const ast::branch& x) const {
 std::string cpp_code_generator::operator()(const ast::call_custom_function& x) const {
   const std::string args = join(*this, ", ", x.args);
   if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
-      s->numeric_type() == code_numeric_type::floating_point) {
+      static_cast<bool>(s) && s->numeric_type() == code_numeric_type::floating_point) {
     return fmt::format("static_cast<Scalar>({}({}))", x.function.name(), args);
   } else {
     return fmt::format("{}({})", x.function.name(), args);
@@ -244,7 +243,7 @@ std::string cpp_code_generator::operator()(const ast::call_std_function& x) cons
 }
 
 std::string cpp_code_generator::operator()(const ast::cast& x) const {
-  return fmt::format("static_cast<{}>({})", cpp_string_from_numeric_cast_type(x.destination_type),
+  return fmt::format("static_cast<{}>({})", cpp_string_from_numeric_type(x.destination_type),
                      make_view(x.arg));
 }
 
@@ -265,7 +264,7 @@ std::string cpp_code_generator::operator()(const ast::compare& x) const {
 std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
   throw type_error(
       "The default C++ code-generator treats all matrices as spans. We cannot construct one "
-      "directly. You likely want to implement an override for the the {} ast type.",
+      "directly. You likely want to implement an override for the the `{}` ast type.",
       ast::construct_matrix::snake_case_name_str);
 }
 
@@ -282,12 +281,36 @@ std::string cpp_code_generator::operator()(const ast::construct_custom_type& x) 
 }
 
 std::string cpp_code_generator::operator()(const ast::declaration& x) const {
-  if (!x.value) {
-    return fmt::format("{} {};", cpp_string_from_numeric_cast_type(x.type), x.name);
-  } else {
-    return fmt::format("const {} {} = {};", cpp_string_from_numeric_cast_type(x.type), x.name,
-                       make_view(*x.value));
+  std::string output;
+  if (x.value) {
+    output.append("const ");
   }
+  output += operator()(x.type);  //  Delegate for the type itself.
+  if (x.value) {
+    fmt::format_to(std::back_inserter(output), " {} = {};", x.name, make_view(*x.value));
+  } else {
+    fmt::format_to(std::back_inserter(output), " {};", x.name);
+  }
+  return output;
+}
+
+std::string cpp_code_generator::operator()(const ast::declaration_type_annotation& x) const {
+  return overloaded_visit(
+      x.type,
+      [](const scalar_type s) -> std::string {
+        return std::string(cpp_string_from_numeric_type(s));
+      },
+      [](const matrix_type&) -> std::string {
+        throw type_error(
+            "The default C++ code-generator treats all matrices as spans. We cannot construct one "
+            "directly. You likely want to implement an override for the the `{}` ast type.",
+            ast::declaration_type_annotation::snake_case_name_str);
+      },
+      [](const custom_type& c) -> std::string {
+        // TODO: Should be const-ref if we have an rhs - that way we avoid copies when calling
+        //  an external function.
+        return c.name();
+      });
 }
 
 std::string cpp_code_generator::operator()(const ast::divide& x) const {

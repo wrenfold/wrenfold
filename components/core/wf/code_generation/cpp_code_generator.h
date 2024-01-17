@@ -50,6 +50,8 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::declaration& x) const;
 
+  virtual std::string operator()(const ast::declaration_type_annotation& x) const;
+
   virtual std::string operator()(const ast::divide& x) const;
 
   virtual std::string operator()(const ast::float_literal& x) const;

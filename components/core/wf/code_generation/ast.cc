@@ -37,11 +37,13 @@ maybe_null<const ast::variant*> construct_custom_type::get_field_by_name(
   return &std::get<1>(*it);
 }
 
-declaration::declaration(std::string name, code_numeric_type type, variant_ptr value)
-    : name(std::move(name)), type(type), value(std::move(value)) {}
+declaration::declaration(std::string name, type_variant type, variant_ptr value)
+    : name(std::move(name)),
+      type(declaration_type_annotation{std::move(type)}),
+      value(std::move(value)) {}
 
-declaration::declaration(std::string name, code_numeric_type type)
-    : name(std::move(name)), type(type) {}
+declaration::declaration(std::string name, type_variant type)
+    : name(std::move(name)), type(declaration_type_annotation{std::move(type)}) {}
 
 std::vector<argument> function_signature::matrix_args() const {
   std::vector<argument> result{};

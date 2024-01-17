@@ -121,6 +121,20 @@ void value::remove() {
   operands_.clear();
 }
 
+type_variant value::non_void_type() const {
+  return std::visit(
+      [&](const auto& t) -> type_variant {
+        using T = std::decay_t<decltype(t)>;
+        if constexpr (std::is_same_v<T, ir::void_type>) {
+          WF_ASSERT_ALWAYS("Attempted to coerce void-typed value: {}, op index = {}, operands = {}",
+                           name(), op_.index(), fmt::join(operands_, ", "));
+        } else {
+          return t;
+        }
+      },
+      type());
+}
+
 void value::maybe_sort_operands() {
   const bool commutative = std::visit([](const auto& op) { return op.is_commutative(); }, op_);
   if (commutative) {

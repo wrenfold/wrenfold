@@ -547,6 +547,9 @@ class value {
     return scalar->numeric_type();
   }
 
+  // Get the type as `type_variant`. Throws if the type is void.
+  type_variant non_void_type() const;
+
  protected:
   // If the underlying operation is commutative, sort the operands by name.
   void maybe_sort_operands();

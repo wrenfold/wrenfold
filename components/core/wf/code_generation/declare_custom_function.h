@@ -1,7 +1,6 @@
 #pragma once
 #include "wf/code_generation/custom_function.h"
 #include "wf/expressions/custom_function_invocation.h"
-#include "wf/index_range.h"
 
 namespace wf {
 
@@ -63,13 +62,14 @@ class declare_custom_function {
     // We consctruct different expression types, depending on what the custom function returns:
     if constexpr (std::is_same_v<ReturnType, Expr>) {
       // Get single element from the compound expression:
-      return Expr{std::in_place_type_t<compound_expression_element>{}, std::move(invocation), 0};
+      return ReturnType{
+          Expr{std::in_place_type_t<compound_expression_element>{}, std::move(invocation), 0}};
     } else if constexpr (std::is_same_v<ReturnType, MatrixExpr> ||
                          type_annotations::is_static_matrix_v<ReturnType>) {
       // Return a matrix built of compound expression elements:
       const matrix_type& mat = description.return_type_as<matrix_type>();
-      return MatrixExpr::create(mat.rows(), mat.cols(),
-                                create_expression_elements(invocation, mat.size()));
+      return ReturnType{MatrixExpr::create(mat.rows(), mat.cols(),
+                                           create_expression_elements(invocation, mat.size()))};
     } else if constexpr (detail::inherits_custom_type_base_v<ReturnType>) {
       const custom_type& type = description.return_type_as<custom_type>();
       const std::vector<Expr> elements = create_expression_elements(invocation, type.total_size());

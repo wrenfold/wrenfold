@@ -111,10 +111,9 @@ auto format_ast(Iterator it, const wf::ast::construct_custom_type& c) {
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::declaration& d) {
   if (d.value) {
-    return fmt::format_to(it, "({}: {} = {})", d.name, string_from_code_numeric_type(d.type),
-                          *d.value);
+    return fmt::format_to(it, "({}: {} = {})", d.name, d.type.type, *d.value);
   } else {
-    return fmt::format_to(it, "({}: {})", d.name, string_from_code_numeric_type(d.type));
+    return fmt::format_to(it, "({}: {})", d.name, d.type.type);
   }
 }
 

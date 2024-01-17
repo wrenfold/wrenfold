@@ -189,13 +189,14 @@ struct ast_from_ir {
   void push_back_conditional_output_declarations(const ir::block_ptr block) {
     for (const ir::value_ptr value : block->operations) {
       if (value->is_phi()) {
-        const bool no_declaration =
-            value->all_consumers_satisfy([](ir::value_ptr v) { return v->is_phi(); });
-        if (no_declaration) {
+        if (const bool no_declaration =
+                value->all_consumers_satisfy([](const ir::value_ptr v) { return v->is_phi(); });
+            no_declaration) {
           continue;
         }
-        // We should declare this variable prior to entering the branch:
-        emplace_operation<ast::declaration>(format_variable_name(value), value->numeric_type());
+        // We should declare this variable prior to entering the branch.
+        // We need to cast the type here to handle the void type.
+        emplace_operation<ast::declaration>(format_variable_name(value), value->non_void_type());
       }
     }
   }
@@ -243,7 +244,7 @@ struct ast_from_ir {
         ast::variant_ptr rhs = computed_value;
         if (needs_declaration) {
           // We are going to declare a temporary for this value:
-          emplace_operation<ast::declaration>(format_variable_name(value), value->numeric_type(),
+          emplace_operation<ast::declaration>(format_variable_name(value), value->non_void_type(),
                                               computed_value);
           rhs = std::make_shared<const ast::variant>(make_variable_ref(value));
         }
@@ -409,26 +410,24 @@ struct ast_from_ir {
     return ast::add{make_operation_argument_ptr(val[0]), make_operation_argument_ptr(val[1])};
   }
 
-  ast::variant operator()(const ir::value& val, const ir::call_custom_function& call) {
-    WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
-
+  std::vector<ast::variant> transform_operands(const ir::value& val) {
     std::vector<ast::variant> transformed_args{};
     transformed_args.reserve(val.num_operands());
     for (const ir::value_ptr arg : val.operands()) {
       transformed_args.push_back(make_operation_argument(arg));
     }
-    return ast::call_custom_function{call.function(), std::move(transformed_args)};
+    return transformed_args;
+  }
+
+  ast::variant operator()(const ir::value& val, const ir::call_custom_function& call) {
+    WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
+    operation_counts_[operation_count_label::call]++;
+    return ast::call_custom_function{call.function(), transform_operands(val)};
   }
 
   ast::variant operator()(const ir::value& val, const ir::call_std_function& func) {
     operation_counts_[operation_count_label::call]++;
-
-    std::vector<ast::variant> transformed_args{};
-    transformed_args.reserve(val.num_operands());
-    for (const ir::value_ptr arg : val.operands()) {
-      transformed_args.push_back(make_operation_argument(arg));
-    }
-    return ast::call_std_function{func.name(), std::move(transformed_args)};
+    return ast::call_std_function{func.name(), transform_operands(val)};
   }
 
   ast::variant operator()(const ir::value& val, const ir::cast& cast) {
