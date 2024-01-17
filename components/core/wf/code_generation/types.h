@@ -156,9 +156,6 @@ class custom_type {
   // The total size (including all sub-structs).
   std::size_t total_size() const noexcept;
 
-  // Determine the type of the specific scalar field.
-  code_numeric_type find_field_numeric_type(std::size_t index) const;
-
   // Check if the underlying native type is C++ type `T`.
   template <typename T>
   bool is_native_type() const noexcept {
@@ -283,6 +280,45 @@ struct is_identical_struct<struct_field> {
     return a.name() == b.name() && is_identical_struct<type_variant>{}(a.type(), b.type());
   }
 };
+
+namespace detail {
+// Supporting struct for `iterate_custom_type_fields`.
+template <typename F>
+struct iterate_custom_type_fields_struct {
+  explicit iterate_custom_type_fields_struct(const F& f) noexcept : f_(f) {}
+
+  void operator()(const custom_type& c) {
+    for (const struct_field& field : c.fields()) {
+      if constexpr (std::is_invocable_v<F, const custom_type&, std::size_t>) {
+        f_(c, index());
+      }
+      std::visit(*this, field.type());
+    }
+  }
+
+  void operator()(const scalar_type s) {
+    f_(s, index());
+    ++index_;
+  }
+
+  void operator()(const matrix_type& m) {
+    f_(m, index());
+    index_ += m.size();
+  }
+
+ private:
+  constexpr std::size_t index() const noexcept { return index_; }
+
+  const F& f_;
+  std::size_t index_{0};
+};
+}  // namespace detail
+
+// Iterate over the fields of a custom type with the provided lambda.
+template <typename F>
+void iterate_custom_type_fields(const custom_type& type, F&& f) {
+  detail::iterate_custom_type_fields_struct<std::decay_t<F>>{f}(type);
+}
 
 // Represent the operation of reading a field on a custom type.
 class field_access {

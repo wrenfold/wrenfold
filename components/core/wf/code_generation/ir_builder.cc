@@ -475,11 +475,8 @@ class ir_form_visitor {
     const custom_function& f = invoke.function();
 
     // Generate values for every argument:
-    ir::value::operands_container operands{};
-    operands.reserve(f.num_arguments());
-    for (const auto& arg : invoke) {
-      operands.push_back(std::visit(*this, arg));
-    }
+    ir::value::operands_container operands = transform_map<ir::value::operands_container>(
+        invoke, [this](const auto& arg) { return std::visit(*this, arg); });
 
     // Visit the return type so we can convert it:
     return std::visit(
@@ -492,9 +489,20 @@ class ir_form_visitor {
   ir::value_ptr operator()(const custom_type_construction& construct) {
     ir::value::operands_container operands{};
     operands.reserve(construct.size());
-    for (const auto& arg : construct) {
-      operands.push_back(operator()(arg));
-    }
+
+    iterate_custom_type_fields(
+        construct.type(),
+        make_overloaded(
+            [&](const scalar_type s, const std::size_t index) {
+              operands.push_back(maybe_cast(operator()(construct.at(index)), s.numeric_type()));
+            },
+            [&](const matrix_type& m, const std::size_t index) {
+              for (std::size_t i = 0; i < m.size(); ++i) {
+                operands.push_back(maybe_cast(operator()(construct.at(index + i)),
+                                              code_numeric_type::floating_point));
+              }
+            }));
+
     return push_operation(ir::construct{construct.type()}, construct.type(), std::move(operands));
   }
 
@@ -549,14 +557,11 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const function& func) {
-    ir::value::operands_container args;
-    args.reserve(func.size());
-    std::transform(func.begin(), func.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return operator()(expr); });
     const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
     // TODO: Special case for `abs` and `signum` here.
     return push_operation(ir::call_std_function{enum_value}, code_numeric_type::floating_point,
-                          std::move(args));
+                          transform_map<ir::value::operands_container>(
+                              func, [this](const Expr& expr) { return this->operator()(expr); }));
   }
 
   ir::value_ptr operator()(const complex_infinity&) const {
@@ -572,13 +577,11 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const MatrixExpr& m) {
-    ir::value::operands_container operands{};
-    operands.reserve(m.size());
-    for (const auto& arg : m.as_matrix()) {
-      operands.push_back(operator()(arg));
-    }
-    return push_operation(ir::construct(matrix_type{m.rows(), m.cols()}),
-                          matrix_type{m.rows(), m.cols()}, std::move(operands));
+    return push_operation(
+        ir::construct(matrix_type{m.rows(), m.cols()}), matrix_type{m.rows(), m.cols()},
+        transform_map<ir::value::operands_container>(m.as_matrix(), [this](const Expr& arg) {
+          return maybe_cast(this->operator()(arg), code_numeric_type::floating_point);
+        }));
   }
 
   // Apply exponentiation by squaring to implement a power of an integer.

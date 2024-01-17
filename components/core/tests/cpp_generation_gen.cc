@@ -68,15 +68,10 @@ int main() {
   code += "namespace gen {\n\n";
 
   custom_cpp_code_generator gen{};
-  generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", "x", "y", "z");
-  generate_func(
-      gen, code,
-      [](Expr theta, ta::static_matrix<2, 1> v) {
-        auto [v_rot, v_rot_D_theta] = vector_rotation_2d(theta, v);
-        return std::make_tuple(v_rot.to_output_arg("v_rot"), std::move(v_rot_D_theta));
-      },
-      "vector_rotation_2d", "theta", "v");
-  generate_func(gen, code, &vector_norm_3d, "vector_norm_3d", "v");
+  generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", arg("x"), arg("y"),
+                arg("z"));
+  generate_func(gen, code, &vector_rotation_2d, "vector_rotation_2d", arg("theta"), arg("v"));
+  generate_func(gen, code, &vector_norm_3d, "vector_norm_3d", arg("v"));
   generate_func(gen, code, &heaviside, "heaviside", arg("x"));
   generate_func(gen, code, &exclusive_or, "exclusive_or", arg("x"), arg("y"));
   generate_func(gen, code, &signum_and_abs, "signum_and_abs", arg("x"));
@@ -90,7 +85,7 @@ int main() {
   generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
   generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
   generate_func(gen, code, &custom_function_call_1, "custom_function_call_1", arg("x"), arg("y"));
-  generate_func(gen, code, &custom_function_call_2, "custom_function_call_2", arg("x"), arg("v"));
+  generate_func(gen, code, &custom_function_call_2, "custom_function_call_2", arg("u"), arg("v"));
   generate_func(gen, code, &custom_function_call_3, "custom_function_call_3", arg("x"), arg("v"));
   generate_func(gen, code, &custom_function_call_4, "custom_function_call_4", arg("a"), arg("b"));
   generate_func(gen, code, &custom_function_call_5, "custom_function_call_5", arg("c"), arg("x"),

@@ -25,7 +25,7 @@ inline auto vector_rotation_2d(Expr theta, ta::static_matrix<2, 1> v) {
   MatrixExpr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
   ta::static_matrix<2, 1> v_rot{R * v};
   ta::static_matrix<2, 1> v_dot_D_theta{v_rot.inner().diff(theta)};
-  return std::make_tuple(return_value(v_rot), optional_output_arg("D_theta", v_dot_D_theta));
+  return std::make_tuple(output_arg("v_rot", v_rot), optional_output_arg("D_theta", v_dot_D_theta));
 }
 
 // Norm of a 3D vector + the 1x3 derivative.

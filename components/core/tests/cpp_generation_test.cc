@@ -30,6 +30,7 @@ struct Circle {
 // These functions don't perform amy meaningful task, they just exist so we can call them from
 // generated code to test external function support.
 namespace test {
+
 template <typename Scalar>
 Scalar external_function_1(Scalar a, Scalar b) {
   return a * b;
@@ -72,30 +73,34 @@ TEST(CppGenerationTest, TestVectorRotation2D) {
   auto evaluator = create_evaluator(&vector_rotation_2d);
 
   for (double angle = -2.0 * M_PI; angle < 2.0 * M_PI; angle += 0.2) {
-    Eigen::Vector2d D_angle_eval;
-
+    Eigen::Vector2d v_rot_num, D_angle_num;
     Eigen::Vector2d v_rot_gen, D_angle_gen;
+    evaluator(angle, Eigen::Vector2d(-6.5, 7.2), v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{-6.5, 7.2}, v_rot_gen, D_angle_gen);
-    EXPECT_EIGEN_NEAR(evaluator(angle, {-6.5, 7.2}, D_angle_eval), v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
 
     // should still work without the optional arg
+    evaluator(angle, {-5.5, 12.0}, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{-5.5, 12.0}, v_rot_gen, nullptr);
-    EXPECT_EIGEN_NEAR(evaluator(angle, {-5.5, 12.0}, D_angle_eval), v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
 
     // Pass a map to the data:
-    const std::array<double, 2> input_v = {7.123, -4.001};
+    constexpr std::array<double, 2> input_v = {7.123, -4.001};
     const Eigen::Map<const Eigen::Vector2d> input_v_map(input_v.data());
 
+    evaluator(angle, input_v_map, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, input_v_map, v_rot_gen, D_angle_gen);
-    EXPECT_EIGEN_NEAR(evaluator(angle, input_v_map, D_angle_eval), v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
 
     // pass a map for the output:
+    evaluator(angle, {2.0, 3.0}, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{2.0, 3.0}, v_rot_gen,
                             Eigen::Map<Eigen::Vector2d>(D_angle_gen.data()));
-    EXPECT_EIGEN_NEAR(evaluator(angle, {2.0, 3.0}, D_angle_eval), v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
   }
 }
 

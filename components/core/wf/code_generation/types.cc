@@ -85,37 +85,6 @@ struct count_custom_type_size {
 
 std::size_t custom_type::total_size() const noexcept { return count_custom_type_size{}(*this); }
 
-struct find_field_type {
-  explicit find_field_type(const std::size_t index) noexcept : index_(index) {}
-
-  std::optional<code_numeric_type> operator()(const scalar_type s) const noexcept {
-    return s.numeric_type();
-  }
-  std::optional<code_numeric_type> operator()(const matrix_type&) const noexcept {
-    return code_numeric_type::floating_point;
-  }
-
-  std::optional<code_numeric_type> operator()(const custom_type& c) {
-    for (const struct_field& field : c.fields()) {
-      if (index_ == 0) {
-        return std::visit(*this, field.type());
-      }
-      index_--;
-    }
-    return std::nullopt;
-  }
-
- private:
-  std::size_t index_;
-};
-
-code_numeric_type custom_type::find_field_numeric_type(const std::size_t index) const {
-  const std::optional<code_numeric_type> result = find_field_type{index}(*this);
-  WF_ASSERT(result.has_value(), "Invalid index into flattened struct. Index: {}, Type: `{}`", index,
-            name());
-  return *result;
-}
-
 bool is_identical_struct<custom_type>::operator()(const custom_type& a,
                                                   const custom_type& b) const noexcept {
   if (a.has_same_address(b)) {

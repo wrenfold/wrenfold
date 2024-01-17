@@ -219,13 +219,25 @@ static constexpr std::string_view rust_string_for_std_function(
 }
 
 std::string rust_code_generator::operator()(const ast::call_custom_function& x) const {
-  const std::string args = join(*this, ", ", x.args);
+  WF_ASSERT_EQUAL(x.args.size(), x.function.num_arguments());
+  std::size_t index = 0;
+  std::string result = x.function.name();
+  result.append("(");
+  join_to(result, ", ", x.args, [&](const ast::variant& v) {
+    std::string arg_str = operator()(v);
+    if (const argument& arg = x.function.arguments()[index++];
+        arg.is_custom_type() || arg.is_matrix()) {
+      // Borrow non-scalar arguments:
+      arg_str.insert(0, "&");
+    }
+    return arg_str;
+  });
+  result.append(")");
   if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
-      s->numeric_type() == code_numeric_type::floating_point) {
-    return fmt::format("{}({}) as f64", x.function.name(), args);
-  } else {
-    return fmt::format("{}({})", x.function.name(), args);
+      static_cast<bool>(s) && s->numeric_type() == code_numeric_type::floating_point) {
+    result.append(" as f64");
   }
+  return result;
 }
 
 std::string rust_code_generator::operator()(const ast::call_std_function& x) const {
