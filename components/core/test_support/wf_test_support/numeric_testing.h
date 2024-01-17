@@ -174,22 +174,30 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
 
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index,
                   const native_type& arg, const annotated_custom_type<T>& type) const {
-    // Convert to the symbolic type, then extract the values into a flat vector:
-    const T& symbolic_arg = custom_type_native_converter<T>{}(arg);
-    std::vector<Expr> numeric_expressions = detail::extract_function_output(type, symbolic_arg);
+    static_assert(detail::inherits_custom_type_base_v<T>,
+                  "Type must be derived from custom_type_base");
+    // Convert to the symbolic type (with numeric values), then extract the values into a flat
+    // vector:
+    const T symbolic_arg_with_numeric_values = custom_type_native_converter<T>{}(arg);
+    std::vector<Expr> numeric_expressions =
+        detail::extract_function_output(type, symbolic_arg_with_numeric_values);
     // Configure the substitutions:
+    const compound_expr provenance = create_custom_type_argument(type.inner(), arg_index);
     for (std::size_t i = 0; i < numeric_expressions.size(); ++i) {
-      output.add_substitution(variable{function_argument_variable(arg_index, i), number_set::real},
+      output.add_substitution(compound_expression_element{provenance, i},
                               std::move(numeric_expressions[i]));
     }
   }
 };
 
-template <typename OutputTuple, typename... ArgSymbolicTypes, typename... ArgTypeAliases,
+// `ArgSymbolicTypes` are the custom user-defined types that contain symblic expressions.
+// `ArgTypeAliases` are type descriptors like scalar_type, custom_type, etc.
+// `OutputTypes` are also type descriptors.
+template <typename OutputTuple, typename... ArgSymbolicTypes, typename... ArgTypes,
           typename... OutputTypes, std::size_t... OutputArgIndices,
           std::size_t... ReturnValueIndices>
 auto create_evaluator_with_output_expressions(type_list<ArgSymbolicTypes...>,
-                                              std::tuple<ArgTypeAliases...> input_arg_types,
+                                              std::tuple<ArgTypes...> input_arg_types,
                                               OutputTuple&& output_expressions,
                                               std::tuple<OutputTypes...> output_types,
                                               std::index_sequence<OutputArgIndices...>,

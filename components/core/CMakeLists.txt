@@ -2,6 +2,7 @@
 add_library(
   wf-core STATIC
   wf/absl_imports.h
+  wf/algorithm_utils.h
   wf/assertions.h
   wf/checked_pointers.h
   wf/code_generation/ast.cc

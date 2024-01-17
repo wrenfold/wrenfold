@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "wf/absl_imports.h"
+#include "wf/algorithm_utils.h"
 #include "wf/constants.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
@@ -59,10 +60,8 @@ class addition {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    container_type transformed{};
-    transformed.reserve(size());
-    std::transform(begin(), end(), std::back_inserter(transformed),
-                   std::forward<Operation>(operation));
+    const container_type transformed =
+        transform_map<container_type>(terms_, std::forward<Operation>(operation));
     return addition::from_operands(transformed);
   }
 

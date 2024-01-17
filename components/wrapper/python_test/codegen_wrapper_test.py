@@ -63,7 +63,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
         super().__init__()
         self.fmt = code_generation.Formatter(generator=self)
 
-    def format_call(self, element: code_generation.codegen.Call) -> str:
+    def format_call_std_function(self, element: code_generation.codegen.CallStdFunction) -> str:
         if element.function == code_generation.codegen.StdMathFunction.Cos:
             return self.fmt.format('custom::cos({})', element.args[0])
         return self.super_format(element)

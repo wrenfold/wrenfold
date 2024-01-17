@@ -2,6 +2,7 @@
 #pragma once
 #include <vector>
 
+#include "wf/algorithm_utils.h"
 #include "wf/assertions.h"
 #include "wf/error_types.h"
 #include "wf/expression.h"
@@ -14,9 +15,10 @@ class matrix {
  public:
   static constexpr std::string_view name_str = "Matrix";
   static constexpr bool is_leaf_node = false;
+  using container_type = std::vector<Expr>;
 
   // Construct from data vector.
-  matrix(index_t rows, index_t cols, std::vector<Expr> data)
+  matrix(index_t rows, index_t cols, container_type data)
       : rows_(rows), cols_(cols), data_(std::move(data)) {
     if (data_.size() != static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_)) {
       throw dimension_error("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
@@ -41,11 +43,8 @@ class matrix {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   matrix map_children(Operation&& operation) const {
-    std::vector<Expr> transformed;
-    transformed.reserve(size());
-    std::transform(data_.begin(), data_.end(), std::back_inserter(transformed),
-                   std::forward<Operation>(operation));
-    return {rows(), cols(), std::move(transformed)};
+    return {rows(), cols(),
+            transform_map<container_type>(data_, std::forward<Operation>(operation))};
   }
 
   // Access element in a vector. Only valid if `cols` or `rows` is 1.
@@ -103,7 +102,7 @@ class matrix {
  private:
   index_t rows_;
   index_t cols_;
-  std::vector<Expr> data_;  //  TODO: Small vector up to size 4x4.
+  container_type data_;  //  TODO: Small vector up to size 4x4.
 };
 
 static_assert(std::is_move_constructible_v<matrix> && std::is_move_assignable_v<matrix>);

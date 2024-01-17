@@ -315,11 +315,8 @@ MatrixExpr matrix_from_iterable(py::iterable rows) {
 
 // Perform element-wise map operation on a matrix.
 MatrixExpr unary_map_matrix(const MatrixExpr& self, const std::function<Expr(Expr)>& func) {
-  std::vector<Expr> result{};
-  result.reserve(self.size());
-  const auto& m = self.as_matrix();
-  std::transform(m.begin(), m.end(), std::back_inserter(result), func);
-  return MatrixExpr::create(self.rows(), self.cols(), std::move(result));
+  return MatrixExpr::create(self.rows(), self.cols(),
+                            transform_map<std::vector<Expr>>(self.as_matrix(), func));
 }
 
 // Convert `MatrixExpr` to a nested list.

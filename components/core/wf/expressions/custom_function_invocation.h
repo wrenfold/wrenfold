@@ -1,5 +1,6 @@
 // Copyright 2024 Gareth Cross
 #pragma once
+#include "wf/algorithm_utils.h"
 #include "wf/code_generation/custom_function.h"
 #include "wf/compound_expression.h"
 
@@ -86,10 +87,8 @@ class custom_function_invocation {
 
   template <typename F>
   compound_expr map_children(F&& f) const {
-    container_type args_out{};
-    args_out.reserve(args_.size());
-    std::transform(begin(), end(), std::back_inserter(args_out),
-                   [&f](const captured_argument& arg) -> captured_argument { return f(arg); });
+    container_type args_out = transform_map<container_type>(
+        args_, [&f](const captured_argument& arg) -> captured_argument { return f(arg); });
     return compound_expr(std::in_place_type_t<custom_function_invocation>{}, function_,
                          std::move(args_out));
   }
@@ -151,11 +150,8 @@ class custom_type_construction {
 
   template <typename F>
   compound_expr map_children(F&& f) const {
-    container_type args_out{};
-    args_out.reserve(args_.size());
-    std::transform(begin(), end(), std::back_inserter(args_out), std::forward<F>(f));
     return compound_expr(std::in_place_type_t<custom_type_construction>{}, type_,
-                         std::move(args_out));
+                         transform_map<container_type>(args_, std::forward<F>(f)));
   }
 
  private:
@@ -195,7 +191,7 @@ class compound_expression_element {
   constexpr std::size_t index() const noexcept { return index_; }
 
   bool is_identical_to(const compound_expression_element& other) const {
-    return index_ == other.index_ && provenance_.is_identical_to(other.provenance_);
+    return are_identical(*this, other);  //  TODO: Delete after converting everything to trait.
   }
 
   // Iterators for iterating over our single expression.
@@ -218,8 +214,16 @@ class compound_expression_element {
 
 template <>
 struct hash_struct<compound_expression_element> {
-  std::size_t operator()(const compound_expression_element& func) const {
+  std::size_t operator()(const compound_expression_element& func) const noexcept {
     return hash_args(func.index(), func.provenance());
+  }
+};
+
+template <>
+struct is_identical_struct<compound_expression_element> {
+  bool operator()(const compound_expression_element& a,
+                  const compound_expression_element& b) const {
+    return a.index() == b.index() && are_identical(a.provenance(), b.provenance());
   }
 };
 

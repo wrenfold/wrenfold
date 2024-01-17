@@ -354,16 +354,31 @@ MatrixExpr substitute_variables(const MatrixExpr& input,
 }
 
 void substitute_variables_visitor::add_substitution(const Expr& target, Expr replacement) {
-  const variable& var = cast_checked<variable>(target);
-  add_substitution(var, std::move(replacement));
+  if (target.is_type<variable>()) {
+    add_substitution(cast_unchecked<variable>(target), std::move(replacement));
+  } else if (target.is_type<compound_expression_element>()) {
+    add_substitution(cast_unchecked<compound_expression_element>(target), std::move(replacement));
+  } else {
+    throw type_error(
+        "Only expressions of type `{}` and `{}` may be used with substitute_variables_visitor.",
+        variable::name_str, compound_expression_element::name_str);
+  }
 }
 
 void substitute_variables_visitor::add_substitution(variable variable, Expr replacement) {
   cache_.clear();  //  No longer valid when new expressions are added.
-  const auto [_, was_inserted] =
-      substitutions_.emplace(std::move(variable), std::move(replacement));
+  const auto [it, was_inserted] =
+      variable_substitutions_.emplace(std::move(variable), std::move(replacement));
   WF_ASSERT(was_inserted, "Variable already exists in the substitution list: {}",
-            variable.to_string());
+            it->first.to_string());
+}
+
+void substitute_variables_visitor::add_substitution(compound_expression_element element,
+                                                    Expr replacement) {
+  cache_.clear();  //  No longer valid when new expressions are added.
+  const auto [it, was_inserted] =
+      element_substitutions_.emplace(std::move(element), std::move(replacement));
+  WF_ASSERT(was_inserted, "Element already exists in the substitution list: {}", it->first.index());
 }
 
 Expr substitute_variables_visitor::operator()(const Expr& expression) {
@@ -386,19 +401,18 @@ compound_expr substitute_variables_visitor::operator()(const compound_expr& expr
 template <typename T>
 Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abstract) {
   if constexpr (std::is_same_v<T, variable>) {
-    // Is this a variable we care about substituting?
-    const variable& v = concrete;
-    const auto it = substitutions_.find(v);
-    if (it != substitutions_.end()) {
+    if (const auto it = variable_substitutions_.find(concrete);
+        it != variable_substitutions_.end()) {
       return it->second;
-    } else {
-      return abstract;
     }
-  } else if constexpr (T::is_leaf_node) {
-    return abstract;
-  } else {
+  } else if constexpr (std::is_same_v<T, compound_expression_element>) {
+    if (const auto it = element_substitutions_.find(concrete); it != element_substitutions_.end()) {
+      return it->second;
+    }
+  } else if constexpr (!T::is_leaf_node) {
     return concrete.map_children(*this);
   }
+  return abstract;
 }
 
 }  // namespace wf
