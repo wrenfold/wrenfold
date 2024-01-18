@@ -90,6 +90,7 @@ int main() {
   generate_func(gen, code, &custom_function_call_4, "custom_function_call_4", arg("a"), arg("b"));
   generate_func(gen, code, &custom_function_call_5, "custom_function_call_5", arg("c"), arg("x"),
                 arg("y"));
+  generate_func(gen, code, &custom_function_call_6, "custom_function_call_6", arg("x"), arg("y"));
 
   code += "} // namespace gen";
 

@@ -442,3 +442,22 @@ fn test_custom_function_call_5() {
         epsilon = 1.0e-15
     );
 }
+
+#[test]
+fn test_custom_function_call_6() {
+    assert_abs_diff_eq!(
+        na::vector![3.0, -5.0],
+        gen::custom_function_call_6(1.0, -0.5).to_vector(),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        na::vector![146.25, 2.5],
+        gen::custom_function_call_6(5.0, 3.25).to_vector(),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        na::vector![623.4375, -14.5],
+        gen::custom_function_call_6(-3.5, 4.75).to_vector(),
+        epsilon = 1.0e-15
+    );
+}

@@ -135,6 +135,7 @@ class custom_type_construction {
   // Number of arguments to the constructor.
   std::size_t size() const noexcept { return args_.size(); }
 
+  // Get the specified argument.
   const Expr& at(const std::size_t index) const {
     WF_ASSERT_LESS(index, size());
     return args_[index];

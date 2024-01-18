@@ -215,4 +215,13 @@ inline auto custom_function_call_5(symbolic::Circle c, Expr x, Expr y) {
   return 2 * external_function_5::call(c, symbolic::Circle{symbolic::Point2d{x, y}, 1.0}) - 1;
 }
 
+// Pass the result of one custom function to another. Fill the first one in a conditional.
+inline auto custom_function_call_6(Expr x, Expr y) {
+  Expr a = where(abs(x) > abs(y), x, y);
+  Expr b = where(abs(x) > abs(y), y * 2, x * 3);
+  symbolic::Point2d p1{a, b};
+  symbolic::Point2d p2 = external_function_4::call(p1);
+  return external_function_4::call(p2);
+}
+
 }  // namespace wf

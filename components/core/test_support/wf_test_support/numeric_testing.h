@@ -191,7 +191,7 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
 };
 
 // `ArgSymbolicTypes` are the custom user-defined types that contain symblic expressions.
-// `ArgTypeAliases` are type descriptors like scalar_type, custom_type, etc.
+// `ArgTypes` are type descriptors like scalar_type, custom_type, etc.
 // `OutputTypes` are also type descriptors.
 template <typename OutputTuple, typename... ArgSymbolicTypes, typename... ArgTypes,
           typename... OutputTypes, std::size_t... OutputArgIndices,

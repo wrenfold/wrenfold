@@ -405,4 +405,15 @@ TEST(CppGenerationTest, TestCustomFunctionCall5) {
   ASSERT_EQ(-1.0, gen::custom_function_call_5({{-5.0, -1.0}, 6.0}, 4.0, 2.0));
 }
 
+TEST(CppGenerationTest, TestCustomFunctionCall6) {
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(3.0, -5.0), gen::custom_function_call_6(1.0, -0.5).to_vector(),
+                    1.0e-15);
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(146.25, 2.5),
+                    gen::custom_function_call_6(5.0, 3.25).to_vector(), 1.0e-15);
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(0.0, -4.0), gen::custom_function_call_6(0.0, 2.0).to_vector(),
+                    1.0e-15);
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(623.4375, -14.5),
+                    gen::custom_function_call_6(-3.5, 4.75).to_vector(), 1.0e-15);
+}
+
 }  // namespace wf
