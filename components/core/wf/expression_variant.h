@@ -180,7 +180,7 @@ class expression_variant {
   auto visit_impl(F&& f) const noexcept(is_nothrow_invocable_visitor_v<decltype(f), types>) {
     if (index() == I) {
       return f(cast_to_index<I>());
-    } else if constexpr (I < type_list_size_v<types> - 1) {
+    } else if constexpr (I + 1 < type_list_size_v<types>) {
       return visit_impl<I + 1>(std::forward<F>(f));
     } else {
       return f(cast_to_index<type_list_size_v<types> - 1>());

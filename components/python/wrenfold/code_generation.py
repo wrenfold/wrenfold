@@ -47,7 +47,7 @@ def convert_to_internal_type(python_type: T.Type,
     Convert a python type to the internal C++ representation.
     """
     if issubclass(python_type, sym.Expr):
-        return codegen.ScalarType(codegen.NumericType.Real)
+        return codegen.ScalarType(codegen.NumericType.Float)
     elif issubclass(python_type, sym.MatrixExpr):
         shape = _get_matrix_shape(matrix_type=python_type)
         return codegen.MatrixType(*shape)

@@ -48,30 +48,110 @@ class pytype_wrapper final : public erased_pytype::concept {
   py::type type_;
 };
 
-// Define pythong constructof for `custom_type`.
+namespace detail {
+
+template <typename... Ts>
+std::array<std::string, sizeof...(Ts)> get_py_type_names(type_list<Ts...>) {
+  return {static_cast<std::string>(py::repr(py::type::of<Ts>()))...};
+}
+
+template <typename V, std::size_t I>
+V variant_from_pyobject(const py::handle& object) {
+  using list = type_list_from_variant_t<V>;
+  using type = type_list_element_t<I, list>;
+  if (py::isinstance<type>(object)) {
+    return py::cast<type>(object);
+  } else if constexpr (I + 1 < type_list_size_v<list>) {
+    return variant_from_pyobject<V, I + 1>(object);
+  } else {
+    static const auto types = detail::get_py_type_names(list{});
+    throw type_error("Object of type `{}` is not one of the permitted types: {}",
+                     static_cast<std::string>(py::repr(py::type::of(object))),
+                     fmt::join(types, ", "));
+  }
+}
+}  // namespace detail
+
+// Try to cast py::object to the specified variant.
+template <typename V>
+V variant_from_pyobject(const py::handle& object) {
+  return detail::variant_from_pyobject<V, 0>(object);
+}
+
+// Define python constructor for `custom_type`.
 custom_type init_custom_type(std::string name,
                              const std::vector<std::tuple<std::string_view, py::object>>& fields,
                              py::type python_type) {
   std::vector<struct_field> fields_converted{};
   fields_converted.reserve(fields.size());
-  std::transform(fields.begin(), fields.end(), std::back_inserter(fields_converted),
-                 [](const auto& tup) {
-                   // We can't use a variant in the tuple, since it can't be default constructed.
-                   // Instead, we check for different types manually here.
-                   const auto& [field_name, type_obj] = tup;
-                   if (py::isinstance<scalar_type>(type_obj)) {
-                     return struct_field(std::string{field_name}, py::cast<scalar_type>(type_obj));
-                   } else if (py::isinstance<matrix_type>(type_obj)) {
-                     return struct_field(std::string{field_name}, py::cast<matrix_type>(type_obj));
-                   } else if (py::isinstance<custom_type>(type_obj)) {
-                     return struct_field(std::string{field_name}, py::cast<custom_type>(type_obj));
-                   } else {
-                     throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
-                   }
-                 });
+  std::transform(
+      fields.begin(), fields.end(), std::back_inserter(fields_converted), [](const auto& tup) {
+        // We can't use a variant in the tuple, since it can't be default constructed.
+        // Instead, we check for different types manually here.
+        const auto& [field_name, type_obj] = tup;
+        return struct_field(std::string{field_name}, variant_from_pyobject<type_variant>(type_obj));
+      });
 
   return custom_type(std::move(name), std::move(fields_converted),
                      erased_pytype(std::in_place_type_t<pytype_wrapper>{}, std::move(python_type)));
+}
+
+// Construct `custom_function`. We define this custom constructor to convert py::object to
+// type_variant (which is not default constructible).
+custom_function init_external_function(
+    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& arguments,
+    const py::object& return_type) {
+  std::size_t index = 0;
+  auto args = transform_map<std::vector<argument>>(
+      arguments, [&](const std::tuple<std::string_view, py::object>& name_and_type) {
+        return argument(std::get<0>(name_and_type),
+                        variant_from_pyobject<type_variant>(std::get<1>(name_and_type)),
+                        argument_direction::input, index++);
+      });
+  return custom_function(std::move(name), std::move(args),
+                         variant_from_pyobject<type_variant>(return_type));
+}
+
+// Create expressions that represent the result of invoking an external function.
+any_expression call_external_function(const custom_function& self, const py::args& args,
+                                      const py::kwargs& kwargs) {
+  if (args.size() + kwargs.size() != self.num_arguments()) {
+    throw invalid_argument_error(
+        "Wrong number of arguments for external function `{}`. Received: {}, expected: {}",
+        self.name(), args.size() + kwargs.size(), self.num_arguments());
+  }
+
+  // Process everything in `args` first.
+  auto captured_args = transform_map<custom_function_invocation::container_type>(
+      args, &variant_from_pyobject<any_expression>);
+
+  std::vector<std::tuple<std::size_t, any_expression>> kwargs_converted{};
+  kwargs_converted.reserve(kwargs.size());
+  for (const auto [key, value] : kwargs) {
+    const auto arg_name = static_cast<std::string>(py::cast<py::str>(key));
+
+    if (const std::optional<std::size_t> index = self.arg_position(arg_name); !index.has_value()) {
+      throw invalid_argument_error("Invalid kwarg `{}` specified for external function `{}`.",
+                                   arg_name, self.name());
+    } else if (*index < args.size()) {
+      // This kwarg tramples on a positional arg:
+      throw invalid_argument_error(
+          "Received both posititional and kwarg for argument `{}` to external function `{}`.",
+          arg_name, self.name());
+    } else {
+      kwargs_converted.emplace_back(*index, variant_from_pyobject<any_expression>(value));
+    }
+  }
+
+  // Place kwargs into positional order, and append to capture args list:
+  std::sort(kwargs_converted.begin(), kwargs_converted.end(),
+            [](const auto& a, const auto& b) { return std::get<0>(a) < std::get<0>(b); });
+  std::transform(std::make_move_iterator(kwargs_converted.begin()),
+                 std::make_move_iterator(kwargs_converted.end()), std::back_inserter(captured_args),
+                 [](auto&& pair) { return std::get<1>(pair); });
+
+  // Now we need to check the types and create expression result:
+  return self.create_invocation(std::move(captured_args));
 }
 
 // Construct class_ wrapper for an AST type. Name is derived automatically.
@@ -152,7 +232,7 @@ void wrap_codegen_operations(py::module_& m) {
   py::enum_<code_numeric_type>(m, "NumericType")
       .value("Bool", code_numeric_type::boolean)
       .value("Integer", code_numeric_type::integral)
-      .value("Real", code_numeric_type::floating_point);
+      .value("Float", code_numeric_type::floating_point);
 
   py::enum_<relational_operation>(m, "RelationalOperation")
       .value("LessThan", relational_operation::less_than)
@@ -201,11 +281,23 @@ void wrap_codegen_operations(py::module_& m) {
       });
 
   py::class_<custom_function>(m, "CustomFunction")
+      .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
+           py::arg("return_type"))
       .def_property_readonly("name", &custom_function::name)
       .def_property_readonly("arguments", &custom_function::arguments)
       .def_property_readonly("num_arguments", &custom_function::num_arguments)
       .def_property_readonly("return_type", &custom_function::return_type)
-      .def("__eq__", &are_identical<custom_function>, py::is_operator());
+      .def("__eq__", &are_identical<custom_function>, py::is_operator(),
+           py::doc("Check if two instances refer to the same underlying function."))
+      .def("__call__", &call_external_function,
+           py::doc("Call external function and create return expression."))
+      .def("__repr__", [](const custom_function& self) {
+        const auto args = transform_map<std::vector<std::string>>(
+            self.arguments(),
+            [](const argument& arg) { return fmt::format("{}: {}", arg.name(), arg.type()); });
+        return fmt::format("CustomFunction({}({}) -> {})", self.name(), fmt::join(args, ", "),
+                           self.return_type());
+      });
 
   py::class_<function_description>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
@@ -253,7 +345,8 @@ void wrap_codegen_operations(py::module_& m) {
             self.add_output_argument(name, matrix_type(value.rows(), value.cols()), is_optional,
                                      value.to_vector());
           },
-          py::arg("name"), py::arg("is_optional"), py::arg("value"))
+          py::arg("name"), py::arg("is_optional"), py::arg("value"),
+          py::doc("Record an output argument of matrix type."))
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,

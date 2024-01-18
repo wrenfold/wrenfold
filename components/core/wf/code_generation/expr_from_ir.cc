@@ -92,7 +92,7 @@ struct expression_from_ir_visitor {
     args_converted.reserve(args.size());
     for (const ir::value_ptr val : args) {
       args_converted.push_back(
-          std::visit([](const auto& x) -> captured_argument { return x; }, map_value(val).inner()));
+          std::visit([](const auto& x) -> any_expression { return x; }, map_value(val).inner()));
     }
 
     compound_expr invocation{std::in_place_type_t<custom_function_invocation>{}, func.function(),

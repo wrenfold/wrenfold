@@ -17,4 +17,19 @@ ContainerOut transform_map(const ContainerIn& in,
   return result;
 }
 
+// Transform a vector-like container and return another container. Passes iteration index to the
+// callable object.
+template <typename ContainerOut, typename ContainerIn, typename F>
+ContainerOut transform_enumerate_map(const ContainerIn& in, F&& f) noexcept(
+    std::is_nothrow_invocable_v<F, std::size_t, decltype(*in.begin())>) {
+  ContainerOut result{};
+  result.reserve(in.size());
+  std::size_t index = 0;
+  for (const auto& element : in) {
+    result.push_back(f(index, element));
+    ++index;
+  }
+  return result;
+}
+
 }  // namespace wf

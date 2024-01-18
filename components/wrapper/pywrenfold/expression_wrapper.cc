@@ -222,27 +222,10 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("true") = constants::boolean_true;
   m.attr("false") = constants::boolean_false;
 
-  // TODO: This is unused - can probably be removed unless we want to expose the `function` type
-  // in python.
-  // Function enums.
-  py::enum_<built_in_function>(m, "BuiltInFunction")
-      .value("Cos", built_in_function::cos)
-      .value("Sin", built_in_function::sin)
-      .value("Tan", built_in_function::tan)
-      .value("ArcCos", built_in_function::arccos)
-      .value("ArcSin", built_in_function::arcsin)
-      .value("ArcTan", built_in_function::arctan)
-      .value("Log", built_in_function::ln)
-      .value("Abs", built_in_function::abs)
-      .value("Signum", built_in_function::signum)
-      .value("Arctan2", built_in_function::arctan2)
-      .def(
-          "to_string", [](built_in_function name) { return string_from_built_in_function(name); },
-          py::doc("Convert to string."));
-
   // Exceptions:
   py::register_exception<assertion_error>(m, "AssertionError");
   py::register_exception<dimension_error>(m, "DimensionError");
+  py::register_exception<domain_error>(m, "DomainError");
   py::register_exception<type_error>(m, "TypeError");
 
   // Include other wrappers in this module:

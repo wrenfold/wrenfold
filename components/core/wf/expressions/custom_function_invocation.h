@@ -49,23 +49,13 @@ struct order_struct<custom_type_argument> {
   }
 };
 
-// A captured argument may be: a scalar, a matrix, or a compound expression.
-using captured_argument = std::variant<Expr, MatrixExpr, compound_expr>;
-
-template <>
-struct hash_struct<captured_argument> : hash_variant<captured_argument> {};
-template <>
-struct is_identical_struct<captured_argument> : is_identical_variant<captured_argument> {};
-template <>
-struct order_struct<captured_argument> : order_variant<captured_argument> {};
-
 // An invocation of a custom user-defined function.
 class custom_function_invocation {
  public:
   static constexpr std::string_view name_str = "CustomFunctionInvocation";
   static constexpr bool is_leaf_node = false;
 
-  using container_type = std::vector<captured_argument>;
+  using container_type = std::vector<any_expression>;
 
   custom_function_invocation(custom_function func, container_type args);
 
@@ -88,7 +78,7 @@ class custom_function_invocation {
   template <typename F>
   compound_expr map_children(F&& f) const {
     container_type args_out = transform_map<container_type>(
-        args_, [&f](const captured_argument& arg) -> captured_argument { return f(arg); });
+        args_, [&f](const any_expression& arg) -> any_expression { return f(arg); });
     return compound_expr(std::in_place_type_t<custom_function_invocation>{}, function_,
                          std::move(args_out));
   }

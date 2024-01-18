@@ -3,6 +3,11 @@
 
 namespace wf {
 
+argument::argument(const std::string_view name, type_variant type, argument_direction direction,
+                   const std::size_t index)
+    : impl_(std::make_shared<const impl>(
+          impl{std::string(name), std::move(type), direction, index})) {}
+
 std::size_t hash_struct<argument>::operator()(const argument& arg) const noexcept {
   std::size_t hash = hash_string_fnv(arg.name());
   hash = hash_args(hash, arg.type());

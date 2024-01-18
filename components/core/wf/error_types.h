@@ -47,4 +47,9 @@ struct domain_error final : exception_base {
   using exception_base::exception_base;
 };
 
+// Thrown when an invalid argument is specified.
+struct invalid_argument_error final : exception_base {
+  using exception_base::exception_base;
+};
+
 }  // namespace wf

@@ -7,6 +7,17 @@
 
 namespace wf {
 
+// Variant of possible expression types.
+// TODO: This should be declared somewhere more general.
+using any_expression = std::variant<Expr, MatrixExpr, compound_expr>;
+
+template <>
+struct hash_struct<any_expression> : hash_variant<any_expression> {};
+template <>
+struct is_identical_struct<any_expression> : is_identical_variant<any_expression> {};
+template <>
+struct order_struct<any_expression> : order_variant<any_expression> {};
+
 // A user-defined function. Custom functions are opaque to the library - we know their signature,
 // but nothing about the internal operation. The user is responsible for mapping this object to some
 // function in their code-base. For now all user-defined functions are assumed to be pure - in other
@@ -24,6 +35,15 @@ class custom_function {
 
   // Expected number of arguments.
   std::size_t num_arguments() const noexcept { return impl_->arguments.size(); }
+
+  // Find the index for a given argument.
+  std::optional<std::size_t> arg_position(std::string_view name) const;
+
+  // Get the argument at the specified position.
+  const argument& argument_at(std::size_t position) const {
+    WF_ASSERT_LESS(position, num_arguments());
+    return impl_->arguments[position];
+  }
 
   // The return type.
   const type_variant& return_type() const noexcept { return impl_->return_type; }
@@ -49,14 +69,9 @@ class custom_function {
     return impl_ == other.impl_;
   }
 
-  // For functions defined in C++, check if this custom_function identically matches the description
-  // produced by the object of type `T`. (T is a subclass of `declare_custom_function`).
-  // We treat functions with identical names and argument types as identical.
-  template <typename T>
-  bool is_function() const {
-    const auto [description, _] = T::get_description_and_arg_types();
-    return are_identical(*this, description);
-  }
+  // Create an invocation of this function.
+  // The arguments are type-checked aginst the provided expressions.
+  any_expression create_invocation(std::vector<any_expression> args) const;
 
  private:
   struct impl {

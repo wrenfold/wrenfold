@@ -24,10 +24,8 @@ class argument {
  public:
   static constexpr std::string_view snake_case_name_str = "argument";
 
-  argument(const std::string_view name, type_variant type, argument_direction direction,
-           const std::size_t index)
-      : impl_(std::make_shared<const impl>(
-            impl{std::string(name), std::move(type), direction, index})) {}
+  argument(std::string_view name, type_variant type, argument_direction direction,
+           std::size_t index);
 
   // Name of the argument.
   const std::string& name() const noexcept { return impl_->name; }

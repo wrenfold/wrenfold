@@ -56,27 +56,23 @@ class declare_custom_function {
         },
         std::forward_as_tuple(std::move(args)...), std::get<1>(description_and_arg_types));
 
-    compound_expr invocation{std::in_place_type_t<custom_function_invocation>{}, description,
-                             std::move(captured_args)};
+    auto invoke_result = description.create_invocation(std::move(captured_args));
 
-    // We consctruct different expression types, depending on what the custom function returns:
+    // We construct different expression types, depending on what the custom function returns:
     if constexpr (std::is_same_v<ReturnType, Expr>) {
       // Get single element from the compound expression:
-      return ReturnType{
-          Expr{std::in_place_type_t<compound_expression_element>{}, std::move(invocation), 0}};
+      return ReturnType{std::get<Expr>(invoke_result)};
     } else if constexpr (std::is_same_v<ReturnType, MatrixExpr> ||
                          type_annotations::is_static_matrix_v<ReturnType>) {
-      // Return a matrix built of compound expression elements:
-      const matrix_type& mat = description.return_type_as<matrix_type>();
-      return ReturnType{MatrixExpr::create(mat.rows(), mat.cols(),
-                                           create_expression_elements(invocation, mat.size()))};
+      return ReturnType{std::get<MatrixExpr>(invoke_result)};
     } else if constexpr (detail::inherits_custom_type_base_v<ReturnType>) {
       const custom_type& type = description.return_type_as<custom_type>();
-      const std::vector<Expr> elements = create_expression_elements(invocation, type.total_size());
+      const std::vector<Expr> elements =
+          create_expression_elements(std::get<compound_expr>(invoke_result), type.total_size());
       auto [return_value, _] =
           custom_type_from_expressions<ReturnType>(type, absl::Span<const Expr>{elements});
       // Record provenance of this object for use in downstream function invocations.
-      return_value.set_provenance(std::move(invocation));
+      return_value.set_provenance(std::get<compound_expr>(invoke_result));
       return return_value;
     } else {
       WF_ASSERT_ALWAYS("Unsupported return type: {}", typeid(ReturnType).name());

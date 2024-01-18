@@ -12,6 +12,9 @@
 #include "wf/hashing.h"
 #include "wf/visit.h"
 
+// TODO: Move the type_variant printer.
+#include "wf/code_generation/ast_formatters.h"
+
 namespace wf {
 namespace ir {
 
@@ -471,12 +474,29 @@ class ir_form_visitor {
                           maybe_cast(else_branch, promoted_type));
   }
 
+  ir::value_ptr check_type_and_cast(const type_variant& expected_type, const ir::value_ptr val) {
+    return std::visit(
+        [&](const auto& expected, const auto& actual) -> ir::value_ptr {
+          if constexpr (!std::is_same_v<decltype(expected), decltype(actual)>) {
+            WF_ASSERT_ALWAYS("Mismatched argument types. Expected: {}, Actual: {}", expected,
+                             actual);
+          } else if constexpr (std::is_same_v<decltype(expected), const scalar_type&>) {
+            return maybe_cast(val, expected.numeric_type());
+          }
+          return val;
+        },
+        expected_type, val->type());
+  }
+
   ir::value_ptr operator()(const custom_function_invocation& invoke) {
     const custom_function& f = invoke.function();
 
-    // Generate values for every argument:
-    ir::value::operands_container operands = transform_map<ir::value::operands_container>(
-        invoke, [this](const auto& arg) { return std::visit(*this, arg); });
+    // Generate values for every argument. Insert casts for scalars if required.
+    auto operands = transform_enumerate_map<ir::value::operands_container>(
+        invoke, [&](const std::size_t index, const auto& arg) {
+          const ir::value_ptr val = std::visit(*this, arg);
+          return check_type_and_cast(f.argument_at(index).type(), val);
+        });
 
     // Visit the return type so we can convert it:
     return std::visit(
@@ -493,10 +513,10 @@ class ir_form_visitor {
     iterate_custom_type_fields(
         construct.type(),
         make_overloaded(
-            [&](const scalar_type s, const std::size_t index) {
+            [&](const std::size_t index, const scalar_type s) {
               operands.push_back(maybe_cast(operator()(construct.at(index)), s.numeric_type()));
             },
-            [&](const matrix_type& m, const std::size_t index) {
+            [&](const std::size_t index, const matrix_type& m) {
               for (std::size_t i = 0; i < m.size(); ++i) {
                 operands.push_back(maybe_cast(operator()(construct.at(index + i)),
                                               code_numeric_type::floating_point));

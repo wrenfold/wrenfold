@@ -67,16 +67,16 @@ template <typename F>
 compound_expr map_compound_expressions(const compound_expr& expr, F&& f) {
   return visit(expr, make_overloaded(
                          [&](const custom_function_invocation& invocation) {
-                           return invocation.map_children([&](const captured_argument& arg) {
+                           return invocation.map_children([&](const any_expression& arg) {
                              // TODO: Make `MatrixExpr` derived from `expression_base`, and call
                              //  visit(...) here.
                              return overloaded_visit(
-                                 arg, [&](const Expr& x) -> captured_argument { return f(x); },
-                                 [&](const MatrixExpr& x) -> captured_argument {
+                                 arg, [&](const Expr& x) -> any_expression { return f(x); },
+                                 [&](const MatrixExpr& x) -> any_expression {
                                    matrix m = x.as_matrix().map_children(std::forward<F>(f));
                                    return MatrixExpr(std::move(m));
                                  },
-                                 [&](const compound_expr& x) -> captured_argument { return f(x); });
+                                 [&](const compound_expr& x) -> any_expression { return f(x); });
                            });
                          },
                          [&](const custom_type_argument&) { return expr; },

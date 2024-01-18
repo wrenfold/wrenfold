@@ -652,3 +652,25 @@ struct fmt::formatter<wf::ir::value_ptr, char> {
     return fmt::format_to(ctx.out(), "{}", x->name());
   }
 };
+
+// Formatter for void_type:
+template <>
+struct fmt::formatter<wf::ir::void_type, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(wf::ir::void_type, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "void");
+  }
+};
+
+// Formatter for value types:
+template <>
+struct fmt::formatter<wf::ir::value::types, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const wf::ir::value::types& x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return std::visit([&](const auto& y) { return fmt::format_to(ctx.out(), "{}", y); }, x);
+  }
+};

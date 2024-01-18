@@ -289,20 +289,20 @@ struct iterate_custom_type_fields_struct {
 
   void operator()(const custom_type& c) {
     for (const struct_field& field : c.fields()) {
-      if constexpr (std::is_invocable_v<F, const custom_type&, std::size_t>) {
-        f_(c, index());
+      if constexpr (std::is_invocable_v<F, std::size_t, const custom_type&>) {
+        f_(index(), c);
       }
       std::visit(*this, field.type());
     }
   }
 
   void operator()(const scalar_type s) {
-    f_(s, index());
+    f_(index(), s);
     ++index_;
   }
 
   void operator()(const matrix_type& m) {
-    f_(m, index());
+    f_(index(), m);
     index_ += m.size();
   }
 
