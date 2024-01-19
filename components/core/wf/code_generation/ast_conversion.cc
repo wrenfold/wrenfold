@@ -419,10 +419,10 @@ struct ast_from_ir {
     return transformed_args;
   }
 
-  ast::variant operator()(const ir::value& val, const ir::call_custom_function& call) {
+  ast::variant operator()(const ir::value& val, const ir::call_external_function& call) {
     WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
     operation_counts_[operation_count_label::call]++;
-    return ast::call_custom_function{call.function(), transform_operands(val)};
+    return ast::call_external_function{call.function(), transform_operands(val)};
   }
 
   ast::variant operator()(const ir::value& val, const ir::call_std_function& func) {

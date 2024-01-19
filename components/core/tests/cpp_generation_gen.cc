@@ -14,7 +14,7 @@ class custom_cpp_code_generator final : public cpp_code_generator {
   using cpp_code_generator::cpp_code_generator;
   using cpp_code_generator::operator();
 
-  std::string operator()(const ast::call_custom_function& func) const override {
+  std::string operator()(const ast::call_external_function& func) const override {
     return fmt::format("test::{}({})", func.function.name(), join(*this, ", ", func.args));
   }
 
@@ -84,13 +84,18 @@ int main() {
   generate_func(gen, code, &custom_type_1, "custom_type_1", arg("p"));
   generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
   generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
-  generate_func(gen, code, &custom_function_call_1, "custom_function_call_1", arg("x"), arg("y"));
-  generate_func(gen, code, &custom_function_call_2, "custom_function_call_2", arg("u"), arg("v"));
-  generate_func(gen, code, &custom_function_call_3, "custom_function_call_3", arg("x"), arg("v"));
-  generate_func(gen, code, &custom_function_call_4, "custom_function_call_4", arg("a"), arg("b"));
-  generate_func(gen, code, &custom_function_call_5, "custom_function_call_5", arg("c"), arg("x"),
+  generate_func(gen, code, &external_function_call_1, "external_function_call_1", arg("x"),
                 arg("y"));
-  generate_func(gen, code, &custom_function_call_6, "custom_function_call_6", arg("x"), arg("y"));
+  generate_func(gen, code, &external_function_call_2, "external_function_call_2", arg("u"),
+                arg("v"));
+  generate_func(gen, code, &external_function_call_3, "external_function_call_3", arg("x"),
+                arg("v"));
+  generate_func(gen, code, &external_function_call_4, "external_function_call_4", arg("a"),
+                arg("b"));
+  generate_func(gen, code, &external_function_call_5, "external_function_call_5", arg("c"),
+                arg("x"), arg("y"));
+  generate_func(gen, code, &external_function_call_6, "external_function_call_6", arg("x"),
+                arg("y"));
 
   code += "} // namespace gen";
 

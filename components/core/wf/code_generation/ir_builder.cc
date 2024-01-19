@@ -174,9 +174,9 @@ struct format_op_args_struct {
 };
 
 template <>
-struct format_op_args_struct<ir::call_custom_function> {
+struct format_op_args_struct<ir::call_external_function> {
   template <typename Container>
-  void operator()(std::string& output, const ir::call_custom_function& func,
+  void operator()(std::string& output, const ir::call_external_function& func,
                   const Container& operands, const std::size_t width) {
     output += func.function().name();
     if (!operands.empty()) {
@@ -489,7 +489,7 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const custom_function_invocation& invoke) {
-    const custom_function& f = invoke.function();
+    const external_function& f = invoke.function();
 
     // Generate values for every argument. Insert casts for scalars if required.
     auto operands = transform_enumerate_map<ir::value::operands_container>(
@@ -501,7 +501,7 @@ class ir_form_visitor {
     // Visit the return type so we can convert it:
     return std::visit(
         [&](const auto& return_type) {
-          return push_operation(ir::call_custom_function{f}, return_type, std::move(operands));
+          return push_operation(ir::call_external_function{f}, return_type, std::move(operands));
         },
         f.return_type());
   }

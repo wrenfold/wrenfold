@@ -1,10 +1,11 @@
+// Copyright 2023 Gareth Cross
 #include "wf/expressions/custom_function_invocation.h"
 
 #include "wf/visit.h"
 
 namespace wf {
 
-custom_function_invocation::custom_function_invocation(custom_function func, container_type args)
+custom_function_invocation::custom_function_invocation(external_function func, container_type args)
     : function_(std::move(func)), args_(std::move(args)) {
   WF_ASSERT_EQUAL(
       function_.num_arguments(), args_.size(),
@@ -80,14 +81,6 @@ compound_expr custom_type_construction::create(custom_type type, container_type 
   }
   return compound_expr{std::in_place_type_t<custom_type_construction>{}, std::move(type),
                        std::move(args)};
-}
-
-Expr compound_expression_element::create(compound_expr provenance, const std::size_t index) {
-  if (const custom_type_construction* construct = cast_ptr<custom_type_construction>(provenance);
-      construct != nullptr) {
-    return construct->at(index);
-  }
-  return Expr(std::in_place_type_t<compound_expression_element>{}, std::move(provenance), index);
 }
 
 }  // namespace wf

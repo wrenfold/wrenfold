@@ -3,8 +3,8 @@
 #include "wf/absl_imports.h"
 #include "wf/algorithm_utils.h"
 #include "wf/assertions.h"
-#include "wf/code_generation/custom_function.h"
 #include "wf/constants.h"
+#include "wf/external_function.h"
 #include "wf/functions.h"
 #include "wf/hashing.h"
 

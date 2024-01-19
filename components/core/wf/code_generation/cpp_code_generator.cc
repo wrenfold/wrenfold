@@ -219,7 +219,7 @@ std::string cpp_code_generator::operator()(const ast::branch& x) const {
   return result;
 }
 
-std::string cpp_code_generator::operator()(const ast::call_custom_function& x) const {
+std::string cpp_code_generator::operator()(const ast::call_external_function& x) const {
   const std::string args = join(*this, ", ", x.args);
   if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
       static_cast<bool>(s) && s->numeric_type() == code_numeric_type::floating_point) {

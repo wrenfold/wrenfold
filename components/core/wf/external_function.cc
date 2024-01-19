@@ -1,11 +1,12 @@
-#include "wf/code_generation/custom_function.h"
+// Copyright 2024 Gareth Cross
+#include "wf/external_function.h"
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/visit.h"
 
 namespace wf {
 
-std::shared_ptr<const custom_function::impl> custom_function::impl::create(
+std::shared_ptr<const external_function::impl> external_function::impl::create(
     std::string name, std::vector<argument> arguments, type_variant return_type) {
   impl result{std::move(name), std::move(arguments), std::move(return_type), 0};
   result.hash = hash_string_fnv(result.name);
@@ -27,14 +28,14 @@ static void assert_argument_names_are_unique(const std::vector<argument>& args) 
   }
 }
 
-custom_function::custom_function(std::string name, std::vector<argument> arguments,
-                                 type_variant return_type)
+external_function::external_function(std::string name, std::vector<argument> arguments,
+                                     type_variant return_type)
     : impl_(impl::create(std::move(name), std::move(arguments), std::move(return_type))) {
   // Check that argument names are unique:
   assert_argument_names_are_unique(impl_->arguments);
 }
 
-std::optional<std::size_t> custom_function::arg_position(const std::string_view name) const {
+std::optional<std::size_t> external_function::arg_position(const std::string_view name) const {
   if (const auto it = std::find_if(impl_->arguments.begin(), impl_->arguments.end(),
                                    [&](const argument& arg) { return arg.name() == name; });
       it != impl_->arguments.end()) {
@@ -64,7 +65,7 @@ bool types_match(const A& a, const B& b) {
   }
 }
 
-any_expression custom_function::create_invocation(std::vector<any_expression> args) const {
+any_expression external_function::create_invocation(std::vector<any_expression> args) const {
   WF_ASSERT_EQUAL(num_arguments(), args.size(), "Wrong number of arguments for function `{}`.",
                   name());
 
@@ -111,8 +112,8 @@ any_expression custom_function::create_invocation(std::vector<any_expression> ar
       [&](const custom_type&) -> any_expression { return std::move(invocation); });
 }
 
-bool is_identical_struct<custom_function>::operator()(const custom_function& a,
-                                                      const custom_function& b) const noexcept {
+bool is_identical_struct<external_function>::operator()(const external_function& a,
+                                                        const external_function& b) const noexcept {
   if (a.has_same_address(b)) {
     return true;
   }

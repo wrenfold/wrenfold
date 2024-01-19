@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "wf/checked_pointers.h"
-#include "wf/code_generation/custom_function.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
+#include "wf/external_function.h"
 
 namespace wf::ast {
 
@@ -20,7 +20,7 @@ using variant = std::variant<
     struct assign_output_scalar,
     struct assign_output_struct,
     struct branch,
-    struct call_custom_function,
+    struct call_external_function,
     struct call_std_function,
     struct cast,
     struct comment,
@@ -104,11 +104,11 @@ struct branch {
   std::vector<variant> else_branch;
 };
 
-// Call a custom function.
-struct call_custom_function {
-  static constexpr std::string_view snake_case_name_str = "call_custom_function";
+// Call an external function.
+struct call_external_function {
+  static constexpr std::string_view snake_case_name_str = "call_external_function";
 
-  custom_function function;
+  external_function function;
   std::vector<variant> args;
 };
 

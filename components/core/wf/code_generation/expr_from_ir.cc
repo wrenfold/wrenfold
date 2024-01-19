@@ -86,7 +86,7 @@ struct expression_from_ir_visitor {
     throw assertion_error("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
-  expr_variant operator()(const ir::call_custom_function& func,
+  expr_variant operator()(const ir::call_external_function& func,
                           const std::vector<ir::value_ptr>& args) const {
     custom_function_invocation::container_type args_converted{};
     args_converted.reserve(args.size());

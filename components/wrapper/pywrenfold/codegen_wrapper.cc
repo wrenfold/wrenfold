@@ -68,9 +68,9 @@ custom_type init_custom_type(std::string name,
                      erased_pytype(std::in_place_type_t<pytype_wrapper>{}, std::move(python_type)));
 }
 
-// Construct `custom_function`. We define this custom constructor to convert py::object to
+// Construct `external_function`. We define this custom constructor to convert py::object to
 // type_variant (which is not default constructible).
-custom_function init_external_function(
+external_function init_external_function(
     std::string name, const std::vector<std::tuple<std::string_view, py::object>>& arguments,
     const py::object& return_type) {
   std::size_t index = 0;
@@ -80,12 +80,12 @@ custom_function init_external_function(
                         variant_from_pyobject<type_variant>(std::get<1>(name_and_type)),
                         argument_direction::input, index++);
       });
-  return custom_function(std::move(name), std::move(args),
-                         variant_from_pyobject<type_variant>(return_type));
+  return external_function(std::move(name), std::move(args),
+                           variant_from_pyobject<type_variant>(return_type));
 }
 
 // Create expressions that represent the result of invoking an external function.
-any_expression call_external_function(const custom_function& self, const py::list& args) {
+any_expression call_external_function(const external_function& self, const py::list& args) {
   // Get expressions out of args:
   auto captured_args = transform_map<custom_function_invocation::container_type>(
       args, &variant_from_pyobject<any_expression>);
@@ -222,18 +222,18 @@ void wrap_codegen_operations(py::module_& m) {
                            py::cast<std::string_view>(repr));
       });
 
-  wrap_class<custom_function>(m, "CustomFunction")
+  wrap_class<external_function>(m, "ExternalFunction")
       .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
            py::arg("return_type"))
-      .def_property_readonly("name", &custom_function::name)
-      .def_property_readonly("arguments", &custom_function::arguments)
-      .def_property_readonly("num_arguments", &custom_function::num_arguments)
-      .def("arg_position", &custom_function::arg_position, py::arg("arg"),
+      .def_property_readonly("name", &external_function::name)
+      .def_property_readonly("arguments", &external_function::arguments)
+      .def_property_readonly("num_arguments", &external_function::num_arguments)
+      .def("arg_position", &external_function::arg_position, py::arg("arg"),
            py::doc("Find the position of the argument with the specified name."))
-      .def_property_readonly("return_type", &custom_function::return_type)
+      .def_property_readonly("return_type", &external_function::return_type)
       .def("__call__", &call_external_function, py::arg("args"),
            py::doc("Call external function and create return expression."))
-      .def("__repr__", [](const custom_function& self) {
+      .def("__repr__", [](const external_function& self) {
         const auto args = transform_map<std::vector<std::string>>(
             self.arguments(),
             [](const argument& arg) { return fmt::format("{}: {}", arg.name(), arg.type()); });
@@ -356,10 +356,10 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("if_branch", [](const ast::branch& c) { return c.if_branch; })
       .def_property_readonly("else_branch", [](const ast::branch& c) { return c.else_branch; });
 
-  wrap_ast_type<ast::call_custom_function>(m)
+  wrap_ast_type<ast::call_external_function>(m)
       .def_property_readonly("function",
-                             [](const ast::call_custom_function& c) { return c.function; })
-      .def_property_readonly("args", [](const ast::call_custom_function& c) { return c.args; });
+                             [](const ast::call_external_function& c) { return c.function; })
+      .def_property_readonly("args", [](const ast::call_external_function& c) { return c.args; });
 
   wrap_ast_type<ast::call_std_function>(m)
       .def_property_readonly("function", [](const ast::call_std_function& c) { return c.function; })

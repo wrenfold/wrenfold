@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross
 #pragma once
 #include <memory>
 #include <vector>
@@ -18,13 +19,13 @@ struct is_identical_struct<any_expression> : is_identical_variant<any_expression
 template <>
 struct order_struct<any_expression> : order_variant<any_expression> {};
 
-// A user-defined function. Custom functions are opaque to the library - we know their signature,
+// A user-defined function. External functions are opaque to the library - we know their signature,
 // but nothing about the internal operation. The user is responsible for mapping this object to some
-// function in their code-base. For now all user-defined functions are assumed to be pure - in other
+// function in their code base. For now all user-defined functions are assumed to be pure - in other
 // words they do not produce side-effects.
-class custom_function {
+class external_function {
  public:
-  custom_function(std::string name, std::vector<argument> arguments, type_variant return_type);
+  external_function(std::string name, std::vector<argument> arguments, type_variant return_type);
 
   // Name of the function. This does not necessarily match the name in the generated code (which the
   // user is free to override as they see fit in the code-generator).
@@ -65,7 +66,7 @@ class custom_function {
   std::size_t hash() const noexcept { return impl_->hash; }
 
   // Check if addresses of two functions are the same.
-  bool has_same_address(const custom_function& other) const noexcept {
+  bool has_same_address(const external_function& other) const noexcept {
     return impl_ == other.impl_;
   }
 
@@ -83,7 +84,7 @@ class custom_function {
     std::vector<argument> arguments;
     // Function return type, which may not be void (at this time).
     type_variant return_type;
-    // Cached hash for the custom function.
+    // Cached hash for the external function.
     std::size_t hash;
 
     static std::shared_ptr<const impl> create(std::string name, std::vector<argument> arguments,
@@ -93,13 +94,13 @@ class custom_function {
 };
 
 template <>
-struct hash_struct<custom_function> {
-  std::size_t operator()(const custom_function& f) const noexcept { return f.hash(); }
+struct hash_struct<external_function> {
+  std::size_t operator()(const external_function& f) const noexcept { return f.hash(); }
 };
 
 template <>
-struct is_identical_struct<custom_function> {
-  bool operator()(const custom_function& a, const custom_function& b) const noexcept;
+struct is_identical_struct<external_function> {
+  bool operator()(const external_function& a, const external_function& b) const noexcept;
 };
 
 }  // namespace wf

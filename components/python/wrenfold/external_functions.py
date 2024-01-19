@@ -14,8 +14,8 @@ class ExternalFunc:
     Callable object that represents a user-declared external function.
     """
 
-    def __init__(self, wrapped_func: codegen.CustomFunction) -> None:
-        self._inner: codegen.CustomFunction = wrapped_func
+    def __init__(self, wrapped_func: codegen.ExternalFunction) -> None:
+        self._inner: codegen.ExternalFunction = wrapped_func
 
     def __repr__(self) -> str:
         return repr(self._inner)
@@ -84,14 +84,14 @@ def declare_external_function(
         python_type=return_type, cached_custom_types=type_cache)
 
     # Create c++ object that will represent this external function.
-    wrapper_func = codegen.CustomFunction(
+    wrapper_func = codegen.ExternalFunction(
         name=name, arguments=converted_args, return_type=converted_return_type)
 
     # Next we make a python wrapper it that will handle mapping of data in/out of custom types.
     return ExternalFunc(wrapped_func=wrapper_func)
 
 
-def _combine_args(func: codegen.CustomFunction, args: T.Sequence[T.Any],
+def _combine_args(func: codegen.ExternalFunction, args: T.Sequence[T.Any],
                   kwargs: T.Dict[str, T.Any]) -> T.List[T.Any]:
     """
     Combine args and kwargs into one ordered list.
@@ -114,7 +114,7 @@ def _combine_args(func: codegen.CustomFunction, args: T.Sequence[T.Any],
     return list(args) + [v for (_, v) in sorted(index_and_value, key=lambda pair: pair[0])]
 
 
-def _invoke_external_function(func: codegen.CustomFunction, *args, **kwargs):
+def _invoke_external_function(func: codegen.ExternalFunction, *args, **kwargs):
     """
     Call `wrapper_func` with the provided arguments.
     """

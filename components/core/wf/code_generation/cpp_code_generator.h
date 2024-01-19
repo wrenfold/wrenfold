@@ -34,7 +34,7 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::branch& x) const;
 
-  virtual std::string operator()(const ast::call_custom_function& x) const;
+  virtual std::string operator()(const ast::call_external_function& x) const;
 
   virtual std::string operator()(const ast::call_std_function& x) const;
 

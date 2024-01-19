@@ -2,6 +2,7 @@
 #pragma once
 #include "wf/expressions/addition.h"
 #include "wf/expressions/casts.h"
+#include "wf/expressions/compound_expression_element.h"
 #include "wf/expressions/conditional.h"
 #include "wf/expressions/custom_function_invocation.h"
 #include "wf/expressions/derivative_expression.h"

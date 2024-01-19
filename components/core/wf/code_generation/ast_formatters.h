@@ -68,7 +68,7 @@ auto format_ast(Iterator it, const wf::ast::branch& d) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::call_custom_function& c) {
+auto format_ast(Iterator it, const wf::ast::call_external_function& c) {
   return fmt::format_to(it, "({}, {})", c.function.name(), fmt::join(c.args, ", "));
 }
 

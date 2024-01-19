@@ -218,7 +218,7 @@ static constexpr std::string_view rust_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
-std::string rust_code_generator::operator()(const ast::call_custom_function& x) const {
+std::string rust_code_generator::operator()(const ast::call_external_function& x) const {
   WF_ASSERT_EQUAL(x.args.size(), x.function.num_arguments());
   std::size_t index = 0;
   std::string result = x.function.name();

@@ -1,6 +1,6 @@
 #pragma once
-#include "wf/code_generation/custom_function.h"
 #include "wf/expressions/custom_function_invocation.h"
+#include "wf/external_function.h"
 
 namespace wf {
 
@@ -17,7 +17,7 @@ class implement_call<Derived, type_list<Ts...>> {
 
 // Base type to declare external user-defined functions in C++.
 template <typename Derived, typename ReturnType, typename ArgTypes>
-class declare_custom_function {
+class declare_external_function {
  public:
   static_assert(!std::is_same_v<void, ReturnType>, "Return type cannot be void.");
 
@@ -27,7 +27,7 @@ class declare_custom_function {
 
     // On first incovation, we build a runtime description of the function.
     const auto& description_and_arg_types = get_description_and_arg_types();
-    const custom_function& description = std::get<0>(description_and_arg_types);
+    const external_function& description = std::get<0>(description_and_arg_types);
 
     // Convert all the args to something we can store in `custom_function_invocation`.
     custom_function_invocation::container_type captured_args{};
@@ -51,7 +51,7 @@ class declare_custom_function {
 
     auto invoke_result = description.create_invocation(std::move(captured_args));
 
-    // We construct different expression types, depending on what the custom function returns:
+    // We construct different expression types, depending on what the external function returns:
     if constexpr (std::is_same_v<ReturnType, Expr>) {
       // Get single element from the compound expression:
       return ReturnType{std::get<Expr>(invoke_result)};
@@ -103,9 +103,9 @@ class declare_custom_function {
     // Record the return type (we allow only one for now, but we could support tuples):
     auto [return_type] = detail::record_arg_types(registry, type_list<ReturnType>{});
 
-    // Return the description of the custom function:
+    // Return the description of the external function:
     return std::make_tuple(
-        custom_function(std::string{Derived::name()}, std::move(arguments), return_type),
+        external_function(std::string{Derived::name()}, std::move(arguments), return_type),
         std::move(arg_types));
   }
 };

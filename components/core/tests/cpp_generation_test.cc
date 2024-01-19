@@ -356,64 +356,66 @@ TEST(CppGenerationTest, TestNestedCustomType1) {
                     gen::nested_custom_type_1<double>(c2, {-13.0, 4.0}).to_vector(), 1.0e-15);
 }
 
-TEST(CppGenerationTest, TestCustomFunctionCall1) {
-  // We can't create an evaluator for expressions with custom functions, so just check against
+TEST(CppGenerationTest, TestExternalFunctionCall1) {
+  // We can't create an evaluator for expressions with external functions, so just check against
   // numerical values.
-  ASSERT_NEAR(-126.0, gen::custom_function_call_1(3.0, -2.0), 1.0e-15);
-  ASSERT_NEAR(-1000.0, gen::custom_function_call_1(10.0, 0.0), 1.0e-15);
-  ASSERT_NEAR(-0.5625, gen::custom_function_call_1(-0.25, 0.5), 1.0e-15);
-  ASSERT_NEAR(0.0, gen::custom_function_call_1(0.0, 1.3), 1.0e-15);
-  ASSERT_NEAR(0.0, gen::custom_function_call_1(1.1, 5.0), 1.0e-15);
+  ASSERT_NEAR(-126.0, gen::external_function_call_1(3.0, -2.0), 1.0e-15);
+  ASSERT_NEAR(-1000.0, gen::external_function_call_1(10.0, 0.0), 1.0e-15);
+  ASSERT_NEAR(-0.5625, gen::external_function_call_1(-0.25, 0.5), 1.0e-15);
+  ASSERT_NEAR(0.0, gen::external_function_call_1(0.0, 1.3), 1.0e-15);
+  ASSERT_NEAR(0.0, gen::external_function_call_1(1.1, 5.0), 1.0e-15);
 }
 
-TEST(CppGenerationTest, TestCustomFunctionCall2) {
+TEST(CppGenerationTest, TestExternalFunctionCall2) {
   ASSERT_NEAR(
       3.0,
-      gen::custom_function_call_2<double>(Eigen::Vector2d{1.0, -0.5}, Eigen::Vector2d{2.0, 3.0}),
+      gen::external_function_call_2<double>(Eigen::Vector2d{1.0, -0.5}, Eigen::Vector2d{2.0, 3.0}),
       1.0e-15);
   ASSERT_NEAR(
       55.56,
-      gen::custom_function_call_2<double>(Eigen::Vector2d{10.0, 2.0}, Eigen::Vector2d{-2.0, 3.2}),
+      gen::external_function_call_2<double>(Eigen::Vector2d{10.0, 2.0}, Eigen::Vector2d{-2.0, 3.2}),
       1.0e-15);
   ASSERT_NEAR(
       5.6,
-      gen::custom_function_call_2<double>(Eigen::Vector2d{0.0, 1.2}, Eigen::Vector2d{-2.3, -1.0}),
+      gen::external_function_call_2<double>(Eigen::Vector2d{0.0, 1.2}, Eigen::Vector2d{-2.3, -1.0}),
       1.0e-15);
 }
 
-TEST(CppGenerationTest, TestCustomFunctionCall3) {
+TEST(CppGenerationTest, TestExternalFunctionCall3) {
   ASSERT_EIGEN_NEAR(Eigen::Matrix2d::Zero(),
-                    gen::custom_function_call_3<double>(0.0, Eigen::Vector2d{-1.0, 1.0}), 1.0e-15);
-  ASSERT_EIGEN_NEAR((Eigen::Matrix2d() << 2.0, 3.0, 2.0, 3.0).finished(),
-                    gen::custom_function_call_3<double>(1.0, Eigen::Vector2d{2.0, 3.0}), 1.0e-15);
-  ASSERT_EIGEN_NEAR((Eigen::Matrix2d() << -1.5, 7.5, -4.5, 22.5).finished(),
-                    gen::custom_function_call_3<double>(3.0, Eigen::Vector2d{-0.5, 2.5}), 1.0e-15);
-}
-
-TEST(CppGenerationTest, TestCustomFunctionCall4) {
-  ASSERT_NEAR(-2.0, gen::custom_function_call_4(0.0, 0.0), 1.0e-15);
-  ASSERT_NEAR(32.0, gen::custom_function_call_4(10.0, 2.0), 1.0e-15);
-  ASSERT_NEAR(-416.0, gen::custom_function_call_4(-3.0, 13.0), 1.0e-15);
-  ASSERT_NEAR(-12.5, gen::custom_function_call_4(0.0, 2.5), 1.0e-15);
-}
-
-TEST(CppGenerationTest, TestCustomFunctionCall5) {
-  ASSERT_EQ(1.0, gen::custom_function_call_5({{0.0, 0.0}, 2.0}, 0.0, 0.0));
-  ASSERT_EQ(1.0, gen::custom_function_call_5({{-1.0, 2.0}, 4.0}, 0.5, -0.25));
-  ASSERT_EQ(1.0, gen::custom_function_call_5({{2.5, 0.5}, 0.1}, 2.75, 0.0));
-  ASSERT_EQ(-1.0, gen::custom_function_call_5({{3.0, 0.0}, 2.0}, -1.0, 0.0));
-  ASSERT_EQ(-1.0, gen::custom_function_call_5({{-5.0, -1.0}, 6.0}, 4.0, 2.0));
-}
-
-TEST(CppGenerationTest, TestCustomFunctionCall6) {
-  ASSERT_EIGEN_NEAR(Eigen::Vector2d(3.0, -5.0), gen::custom_function_call_6(1.0, -0.5).to_vector(),
+                    gen::external_function_call_3<double>(0.0, Eigen::Vector2d{-1.0, 1.0}),
                     1.0e-15);
+  ASSERT_EIGEN_NEAR((Eigen::Matrix2d() << 2.0, 3.0, 2.0, 3.0).finished(),
+                    gen::external_function_call_3<double>(1.0, Eigen::Vector2d{2.0, 3.0}), 1.0e-15);
+  ASSERT_EIGEN_NEAR((Eigen::Matrix2d() << -1.5, 7.5, -4.5, 22.5).finished(),
+                    gen::external_function_call_3<double>(3.0, Eigen::Vector2d{-0.5, 2.5}),
+                    1.0e-15);
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall4) {
+  ASSERT_NEAR(-2.0, gen::external_function_call_4(0.0, 0.0), 1.0e-15);
+  ASSERT_NEAR(32.0, gen::external_function_call_4(10.0, 2.0), 1.0e-15);
+  ASSERT_NEAR(-416.0, gen::external_function_call_4(-3.0, 13.0), 1.0e-15);
+  ASSERT_NEAR(-12.5, gen::external_function_call_4(0.0, 2.5), 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall5) {
+  ASSERT_EQ(1.0, gen::external_function_call_5({{0.0, 0.0}, 2.0}, 0.0, 0.0));
+  ASSERT_EQ(1.0, gen::external_function_call_5({{-1.0, 2.0}, 4.0}, 0.5, -0.25));
+  ASSERT_EQ(1.0, gen::external_function_call_5({{2.5, 0.5}, 0.1}, 2.75, 0.0));
+  ASSERT_EQ(-1.0, gen::external_function_call_5({{3.0, 0.0}, 2.0}, -1.0, 0.0));
+  ASSERT_EQ(-1.0, gen::external_function_call_5({{-5.0, -1.0}, 6.0}, 4.0, 2.0));
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall6) {
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(3.0, -5.0),
+                    gen::external_function_call_6(1.0, -0.5).to_vector(), 1.0e-15);
   ASSERT_EIGEN_NEAR(Eigen::Vector2d(146.25, 2.5),
-                    gen::custom_function_call_6(5.0, 3.25).to_vector(), 1.0e-15);
-  ASSERT_EIGEN_NEAR(Eigen::Vector2d(0.0, -4.0), gen::custom_function_call_6(0.0, 2.0).to_vector(),
+                    gen::external_function_call_6(5.0, 3.25).to_vector(), 1.0e-15);
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(0.0, -4.0), gen::external_function_call_6(0.0, 2.0).to_vector(),
                     1.0e-15);
   ASSERT_EIGEN_NEAR(Eigen::Vector2d(623.4375, -14.5),
-                    gen::custom_function_call_6(-3.5, 4.75).to_vector(), 1.0e-15);
+                    gen::external_function_call_6(-3.5, 4.75).to_vector(), 1.0e-15);
 }
 
 }  // namespace wf

@@ -13,9 +13,7 @@ add_library(
   wf/code_generation/code_formatter.h
   wf/code_generation/cpp_code_generator.cc
   wf/code_generation/cpp_code_generator.h
-  wf/code_generation/custom_function.cc
-  wf/code_generation/custom_function.h
-  wf/code_generation/declare_custom_function.h
+  wf/code_generation/declare_external_function.h
   wf/code_generation/expr_from_ir.cc
   wf/code_generation/expression_group.h
   wf/code_generation/function_description.cc
@@ -48,6 +46,8 @@ add_library(
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h
+  wf/expressions/compound_expression_element.cc
+  wf/expressions/compound_expression_element.h
   wf/expressions/conditional.cc
   wf/expressions/conditional.h
   wf/expressions/custom_function_invocation.cc
@@ -67,6 +67,8 @@ add_library(
   wf/expressions/special_constants.h
   wf/expressions/variable.cc
   wf/expressions/variable.h
+  wf/external_function.cc
+  wf/external_function.h
   wf/fmt_imports.h
   wf/functions.cc
   wf/functions.h

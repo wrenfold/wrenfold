@@ -56,27 +56,27 @@ class cast {
 };
 
 // Call a custom user-provided function.
-class call_custom_function {
+class call_external_function {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return -1; }
   constexpr static std::string_view to_string() noexcept { return "call"; }
   std::size_t hash_seed() const noexcept { return function_.hash(); }
-  bool is_same(const call_custom_function& other) const noexcept {
+  bool is_same(const call_external_function& other) const noexcept {
     return are_identical(function_, other.function_);
   }
 
-  explicit call_custom_function(custom_function function) noexcept
+  explicit call_external_function(external_function function) noexcept
       : function_(std::move(function)) {}
 
   // The user-specified external we are calling.
-  constexpr const custom_function& function() const noexcept { return function_; }
+  constexpr const external_function& function() const noexcept { return function_; }
 
   // Return type of the external function.
   const type_variant& return_type() const noexcept { return function_.return_type(); }
 
  private:
-  custom_function function_;
+  external_function function_;
 };
 
 // A call to a built-in mathematical function like sin, cos, log, etc.
@@ -332,8 +332,8 @@ class save {
 
 // Different operations are represented by a variant.
 using operation =
-    std::variant<add, call_custom_function, call_std_function, cast, compare, cond, copy, construct,
-                 div, get, jump_condition, load, mul, neg, output_required, phi, save>;
+    std::variant<add, call_external_function, call_std_function, cast, compare, cond, copy,
+                 construct, div, get, jump_condition, load, mul, neg, output_required, phi, save>;
 
 // A block of operations:
 class block {
