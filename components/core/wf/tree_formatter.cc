@@ -91,8 +91,8 @@ struct tree_formatter {
     visit_right(el.provenance());
   }
 
-  void operator()(const custom_function_invocation& invocation) {
-    append_name("{} (function = `{}`):", custom_function_invocation::name_str,
+  void operator()(const external_function_invocation& invocation) {
+    append_name("{} (function = `{}`):", external_function_invocation::name_str,
                 invocation.function().name());
     visit_all(invocation.args());
   }

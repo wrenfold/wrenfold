@@ -66,7 +66,7 @@ auto visit_binary(const U& u, const V& v, VisitorType&& handler) {
 template <typename F>
 compound_expr map_compound_expressions(const compound_expr& expr, F&& f) {
   return visit(expr, make_overloaded(
-                         [&](const custom_function_invocation& invocation) {
+                         [&](const external_function_invocation& invocation) {
                            return invocation.map_children([&](const any_expression& arg) {
                              // TODO: Make `MatrixExpr` derived from `expression_base`, and call
                              //  visit(...) here.

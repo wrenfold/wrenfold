@@ -50,10 +50,12 @@ add_library(
   wf/expressions/compound_expression_element.h
   wf/expressions/conditional.cc
   wf/expressions/conditional.h
-  wf/expressions/custom_function_invocation.cc
-  wf/expressions/custom_function_invocation.h
+  wf/expressions/custom_type_expressions.cc
+  wf/expressions/custom_type_expressions.h
   wf/expressions/derivative_expression.cc
   wf/expressions/derivative_expression.h
+  wf/expressions/external_function_invocation.cc
+  wf/expressions/external_function_invocation.h
   wf/expressions/function_expressions.h
   wf/expressions/matrix.cc
   wf/expressions/matrix.h

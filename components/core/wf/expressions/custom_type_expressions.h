@@ -1,8 +1,9 @@
 // Copyright 2024 Gareth Cross
 #pragma once
-#include "wf/algorithm_utils.h"
+#include "wf/code_generation/types.h"
 #include "wf/compound_expression.h"
-#include "wf/external_function.h"
+#include "wf/hashing.h"
+#include "wf/ordering.h"
 
 namespace wf {
 
@@ -49,64 +50,6 @@ struct order_struct<custom_type_argument> {
   }
 };
 
-// An invocation of a custom user-defined function.
-class custom_function_invocation {
- public:
-  static constexpr std::string_view name_str = "CustomFunctionInvocation";
-  static constexpr bool is_leaf_node = false;
-
-  using container_type = std::vector<any_expression>;
-
-  custom_function_invocation(external_function func, container_type args);
-
-  // The custom function being called.
-  const external_function& function() const noexcept { return function_; }
-
-  // The arguments to the function.
-  const container_type& args() const noexcept { return args_; }
-
-  // Number of arguments.
-  std::size_t size() const noexcept { return args_.size(); }
-
-  // Iterators over argument.
-  auto begin() const noexcept { return args_.begin(); }
-  auto end() const noexcept { return args_.end(); }
-
-  // Function type and argument must match.
-  bool is_identical_to(const custom_function_invocation& other) const;
-
-  template <typename F>
-  compound_expr map_children(F&& f) const {
-    container_type args_out = transform_map<container_type>(
-        args_, [&f](const any_expression& arg) -> any_expression { return f(arg); });
-    return compound_expr(std::in_place_type_t<custom_function_invocation>{}, function_,
-                         std::move(args_out));
-  }
-
- private:
-  external_function function_;
-  container_type args_;
-};
-
-template <>
-struct hash_struct<custom_function_invocation> {
-  std::size_t operator()(const custom_function_invocation& func) const {
-    return hash_all(func.function().hash(), func.args());
-  }
-};
-
-// To order function invocations, we need to be able to order types. This is tricky to do completely
-// unambiguously because we can't meaningfully order python types. Two types could easily have the
-// same name and members. We can do "best effort" by sorting by function name, and then by the
-// argument content.
-template <>
-struct order_struct<custom_function_invocation> {
-  relative_order operator()(const custom_function_invocation& a,
-                            const custom_function_invocation& b) const {
-    return order_by(a.function().name(), b.function().name()).and_then_by(a.args(), b.args());
-  }
-};
-
 // An instance of a custom type constructed from user-defined expressions.
 class custom_type_construction {
  public:
@@ -145,7 +88,7 @@ class custom_type_construction {
   }
 
   // Try to create a `custom_type_construction` expression. The expression may simplify to
-  // `custom_function_invocation` or `custom_type_argument` in some cases.
+  // `external_function_invocation` or `custom_type_argument` in some cases.
   static compound_expr create(custom_type type, container_type args);
 
  private:

@@ -87,8 +87,8 @@ external_function init_external_function(
 // Create expressions that represent the result of invoking an external function.
 any_expression call_external_function(const external_function& self, const py::list& args) {
   // Get expressions out of args:
-  auto captured_args = transform_map<custom_function_invocation::container_type>(
-      args, &variant_from_pyobject<any_expression>);
+  auto captured_args =
+      transform_map<std::vector<any_expression>>(args, &variant_from_pyobject<any_expression>);
   // Now we need to check the types and create expression result:
   return self.create_invocation(std::move(captured_args));
 }

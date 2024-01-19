@@ -85,7 +85,7 @@ void plain_formatter::operator()(const compound_expression_element& el) {
 
   visit(el.provenance(),
         make_overloaded(
-            [&](const custom_function_invocation& invocation) {
+            [&](const external_function_invocation& invocation) {
               // Format the function call:
               this->operator()(invocation);
               overloaded_visit(
@@ -108,7 +108,7 @@ void plain_formatter::operator()(const compound_expression_element& el) {
 }
 
 // TODO: We need to do something smarter when formatting matrix args to functions.
-void plain_formatter::operator()(const custom_function_invocation& invocation) {
+void plain_formatter::operator()(const external_function_invocation& invocation) {
   fmt::format_to(std::back_inserter(output_), "{}(", invocation.function().name());
   auto it = invocation.begin();
   if (it != invocation.end()) {

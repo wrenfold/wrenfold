@@ -1,5 +1,6 @@
 #pragma once
-#include "wf/expressions/custom_function_invocation.h"
+#include "wf/expressions/custom_type_expressions.h"
+#include "wf/expressions/external_function_invocation.h"
 #include "wf/external_function.h"
 
 namespace wf {
@@ -16,6 +17,7 @@ class implement_call<Derived, type_list<Ts...>> {
 }  // namespace detail
 
 // Base type to declare external user-defined functions in C++.
+// This is mostly defined as a convenience for implementing unit tests.
 template <typename Derived, typename ReturnType, typename ArgTypes>
 class declare_external_function {
  public:
@@ -29,8 +31,8 @@ class declare_external_function {
     const auto& description_and_arg_types = get_description_and_arg_types();
     const external_function& description = std::get<0>(description_and_arg_types);
 
-    // Convert all the args to something we can store in `custom_function_invocation`.
-    custom_function_invocation::container_type captured_args{};
+    // Convert all the args to something we can store in `external_function_invocation`.
+    external_function_invocation::container_type captured_args{};
     captured_args.reserve(sizeof...(args));
     zip_tuples(
         [&captured_args](auto arg, const auto& arg_type) {

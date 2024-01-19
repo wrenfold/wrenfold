@@ -304,7 +304,7 @@ struct mul_add_count_visitor {
 
   void operator()(const compound_expr& x) {
     auto visitor = make_overloaded(
-        [this](const custom_function_invocation& invoke) {
+        [this](const external_function_invocation& invoke) {
           for (const auto& arg : invoke) {
             std::visit(*this, arg);
           }
@@ -488,7 +488,7 @@ class ir_form_visitor {
         expected_type, val->type());
   }
 
-  ir::value_ptr operator()(const custom_function_invocation& invoke) {
+  ir::value_ptr operator()(const external_function_invocation& invoke) {
     const external_function& f = invoke.function();
 
     // Generate values for every argument. Insert casts for scalars if required.

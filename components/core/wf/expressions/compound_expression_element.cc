@@ -1,7 +1,8 @@
 // Copyright 2023 Gareth Cross
 #include "wf/expressions/compound_expression_element.h"
 
-#include "wf/expressions/custom_function_invocation.h"
+#include "wf/expressions/custom_type_expressions.h"
+#include "wf/expressions/external_function_invocation.h"
 
 namespace wf {
 

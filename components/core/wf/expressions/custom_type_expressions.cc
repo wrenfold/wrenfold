@@ -1,21 +1,9 @@
-// Copyright 2023 Gareth Cross
-#include "wf/expressions/custom_function_invocation.h"
+// Copyright 2024 Gareth Cross
+#include "wf/expressions/custom_type_expressions.h"
 
 #include "wf/visit.h"
 
 namespace wf {
-
-custom_function_invocation::custom_function_invocation(external_function func, container_type args)
-    : function_(std::move(func)), args_(std::move(args)) {
-  WF_ASSERT_EQUAL(
-      function_.num_arguments(), args_.size(),
-      "Mismatch in # of args between function spec and provided argument list. Function: {}",
-      function_.name());
-}
-
-bool custom_function_invocation::is_identical_to(const custom_function_invocation& other) const {
-  return are_identical(function_, other.function_) && all_identical(args_, other.args_);
-}
 
 custom_type_construction::custom_type_construction(custom_type type, std::vector<Expr> args)
     : type_(std::move(type)), args_(std::move(args)) {
@@ -30,7 +18,7 @@ custom_type_construction::custom_type_construction(custom_type type, std::vector
 static maybe_null<const custom_type*> maybe_get_custom_type(const compound_expr& expr) {
   return visit(
       expr, make_overloaded(
-                [](const custom_function_invocation& invocation) -> const custom_type* {
+                [](const external_function_invocation& invocation) -> const custom_type* {
                   return std::get_if<custom_type>(&invocation.function().return_type());
                 },
                 [](const custom_type_argument& arg) -> const custom_type* { return &arg.type(); },

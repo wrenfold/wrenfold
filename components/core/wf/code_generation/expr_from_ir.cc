@@ -88,14 +88,14 @@ struct expression_from_ir_visitor {
 
   expr_variant operator()(const ir::call_external_function& func,
                           const std::vector<ir::value_ptr>& args) const {
-    custom_function_invocation::container_type args_converted{};
+    external_function_invocation::container_type args_converted{};
     args_converted.reserve(args.size());
     for (const ir::value_ptr val : args) {
       args_converted.push_back(
           std::visit([](const auto& x) -> any_expression { return x; }, map_value(val).inner()));
     }
 
-    compound_expr invocation{std::in_place_type_t<custom_function_invocation>{}, func.function(),
+    compound_expr invocation{std::in_place_type_t<external_function_invocation>{}, func.function(),
                              std::move(args_converted)};
 
     if (std::holds_alternative<scalar_type>(func.return_type())) {

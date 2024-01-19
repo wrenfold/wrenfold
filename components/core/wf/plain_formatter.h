@@ -1,6 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
-#include "expressions/custom_function_invocation.h"
+#include "wf/compound_expression.h"
 #include "wf/expression.h"
 
 namespace wf {
@@ -14,7 +14,7 @@ class plain_formatter {
   void operator()(const addition& add);
   void operator()(const cast_bool& cast);
   void operator()(const compound_expression_element& el);
-  void operator()(const custom_function_invocation& invocation);
+  void operator()(const external_function_invocation& invocation);
   void operator()(const custom_type_argument& arg);
   void operator()(const custom_type_construction& construct);
   void operator()(const conditional& conditional);
@@ -23,7 +23,7 @@ class plain_formatter {
   void operator()(const float_constant& num);
   void operator()(const complex_infinity&);
   void operator()(const integer_constant& num);
-  void operator()(const matrix& mat);
+  void operator()(const class matrix& mat);
   void operator()(const multiplication& mul);
   void operator()(const power& pow);
   void operator()(const rational_constant& rational);

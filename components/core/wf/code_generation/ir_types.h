@@ -6,10 +6,11 @@
 
 #include "wf/checked_pointers.h"
 #include "wf/code_generation/types.h"
-#include "wf/expressions/custom_function_invocation.h"
+#include "wf/expressions/custom_type_expressions.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
+#include "wf/external_function.h"
 #include "wf/hashing.h"
 
 // Define types for a very simple "intermediate representation" we can use to simplify
