@@ -38,7 +38,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         self.assertIdentical(func(sym.integer(2)), func(2))
         self.assertIdentical(func(sym.float(1.132)), func(1.132))
 
-        # Specifying too many or to few args should be an exception...
+        # Specifying too many or too few args should be an exception...
         self.assertRaises(RuntimeError, lambda: func())
         self.assertRaises(RuntimeError, lambda: func(x, y))
         self.assertRaises(RuntimeError, lambda: func(x, foo=y))

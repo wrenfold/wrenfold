@@ -90,7 +90,7 @@ bool is_identical_struct<custom_type>::operator()(const custom_type& a,
   if (a.has_same_address(b)) {
     return true;
   }
-  if (a.name() != b.name() || a.size() != b.size() || !all_identical(a.fields(), b.fields())) {
+  if (a.name() != b.name() || !all_identical(a.fields(), b.fields())) {
     return false;
   }
   if (a.underlying_type().index() != b.underlying_type().index()) {

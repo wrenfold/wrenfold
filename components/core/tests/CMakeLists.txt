@@ -4,6 +4,7 @@ function(add_single_file_test SOURCE_FILE)
   add_cpp_test(${TEST_NAME} SOURCE_FILES ${SOURCE_FILE})
 endfunction()
 
+add_single_file_test(algorithm_utils_test.cc)
 add_single_file_test(checked_pointers_test.cc)
 add_single_file_test(plain_formatter_test.cc)
 add_single_file_test(scalar_operations_test.cc)

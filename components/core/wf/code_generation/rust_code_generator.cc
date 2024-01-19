@@ -1,6 +1,5 @@
 #include "wf/code_generation/rust_code_generator.h"
 
-#include "fmt/chrono.h"
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/index_range.h"
 #include "wf/template_utils.h"

@@ -658,10 +658,12 @@ TEST(IrTest, TestExternalFunction5) {
 
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
+  ASSERT_EQ(0, ir.count_operation<ir::construct>()) << ir;  //  p1 passed directly.
 
   const output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
+  ASSERT_EQ(0, output_ir.count_operation<ir::construct>()) << ir;
 }
 
 class custom_func_5
@@ -685,10 +687,12 @@ TEST(IrTest, TestExternalFunction6) {
 
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(3, ir.count_operation<ir::call_external_function>()) << ir;
+  ASSERT_EQ(1, ir.count_operation<ir::construct>()) << ir;  //  Only matrix is constructed.
 
   const output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(3, output_ir.count_operation<ir::call_external_function>());
+  ASSERT_EQ(1, output_ir.count_operation<ir::construct>()) << ir;  //  Only matrix is constructed.
 }
 
 }  // namespace wf
