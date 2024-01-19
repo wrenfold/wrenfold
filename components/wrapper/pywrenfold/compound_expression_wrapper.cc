@@ -15,7 +15,7 @@ void wrap_compound_expression(py::module_& m) {
   py::class_<compound_expr>(m, "CompoundExpr")
       .def("is_identical_to", &are_identical<compound_expr>, py::arg("other"),
            py::doc("Check if two compound expressions are strictly identical."))
-      .def("type_name", &compound_expr::type_name)
+      .def_property_readonly("type_name", &compound_expr::type_name)
       .def("__repr__", &compound_expr::to_string)
       .def("__hash__", &hash<compound_expr>)
       .def("__eq__", &are_identical<compound_expr>, py::is_operator(),

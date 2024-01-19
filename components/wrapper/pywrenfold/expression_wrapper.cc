@@ -105,6 +105,7 @@ void wrap_compound_expression(py::module_& m);
 void wrap_geometry_operations(py::module_& m);
 }  // namespace wf
 
+// ReSharper disable CppIdenticalOperandsInBinaryExpression
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
 

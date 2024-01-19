@@ -15,18 +15,34 @@ class ExternalFunc:
     """
 
     def __init__(self, wrapped_func: codegen.CustomFunction) -> None:
-        self._wrapped: codegen.CustomFunction = wrapped_func
+        self._inner: codegen.CustomFunction = wrapped_func
 
     def __repr__(self) -> str:
-        return repr(self._wrapped)
+        return repr(self._inner)
 
     def __call__(self, *args, **kwargs) -> T.Any:
-        """Generate expressions to represent an invocation of the external function."""
-        return _invoke_external_function(self._wrapped, *args, **kwargs)
+        """
+        Generate expressions to represent an invocation of the external function.
+        """
+        return _invoke_external_function(self._inner, *args, **kwargs)
+
+    @property
+    def name(self) -> str:
+        return self._inner.name
 
     @property
     def num_arguments(self) -> int:
-        return self._wrapped.num_arguments
+        return self._inner.num_arguments
+
+    @property
+    def return_type(self) -> T.Union[codegen.ScalarType, codegen.MatrixType, codegen.CustomType]:
+        return self._inner.return_type
+
+    def __hash__(self) -> int:
+        return hash(self._inner)
+
+    def __eq__(self, other: 'ExternalFunc') -> bool:
+        return self._inner == other._inner
 
 
 def declare_external_function(
@@ -35,8 +51,8 @@ def declare_external_function(
     return_type: T.Type,
 ) -> ExternalFunc:
     """
-    Declare an external function. External functions are implemented outside of the code generation
-    framework by the user. They can be invoked on symbolic expressions, and their returned values
+    Declare an external function. External functions are implemented by the user outside of the code
+    generation framework. They can be invoked on symbolic expressions, and their returned values
     can be utilized as part of further symbolic expressions.
 
     At code-generation time, the user can override the `format_custom_function_call` formatter to
@@ -44,16 +60,15 @@ def declare_external_function(
     need to match the actual function name in the target language, since this mapping is implemented
     by the the code-generator.
 
-    By necessity, wrenfold must assume that external funtions are pure (without side effects). Any two
-    identical calls (ie. having the same function and argument lists) are assumed to be interchangeable,
-    and will be de-duplicated during transpilation.
+    By necessity, wrenfold must assume that external functions are pure (without side effects). Any
+    two identical calls (ie. having the same function and argument lists) are assumed to be
+    interchangeable, and will be de-duplicated during transpilation.
 
     :param name: String name for the function.
     :arguments: Iterable of (name, type) pairs that define the argument list.
 
-    :return_type: A function, the signature of which is determined by `arguments` and `return_type`. When
-    invoked, the function creates an expression that represents a call to the external function. This
-    expression can used like most other symbolic expressions.
+    :return_type: An ExternalFunc object that can be invoked via the __call__ operator. The args to
+    __call__ should have types matching `arguments`.
     """
     type_cache: T.Dict[T.Type, custom_types.CodegenType] = dict()
 
@@ -82,9 +97,8 @@ def _combine_args(func: codegen.CustomFunction, args: T.Sequence[T.Any],
     Combine args and kwargs into one ordered list.
     """
     if len(args) + len(kwargs) != func.num_arguments:
-        raise RuntimeError(
-            f"Too many arguments passed to function `{func.name}`. Expected: {func.num_arguments}, Actual: {len(args) + len(kwargs)}"
-        )
+        raise RuntimeError(f"Incorrect number of arguments passed to function `{func.name}`. " +
+                           f"Expected: {func.num_arguments}, Actual: {len(args) + len(kwargs)}")
 
     index_and_value: T.List[T.Tuple[int, T.Any]] = []
     for (key, value) in kwargs.items():
@@ -121,18 +135,18 @@ def _invoke_external_function(func: codegen.CustomFunction, *args, **kwargs):
 
         if not isinstance(arg_type, codegen.CustomType):
             raise TypeError(
-                f"Argument `{arg_name}` of function `{func.name}` should be of type {arg_type}, but we received type {type(arg)}."
-            )
+                f"Argument `{arg_name}` of function `{func.name}` should be of type {arg_type}, " +
+                f"but we received type {type(arg)}.")
 
         # Check that the type of `arg` matches the type we constructed our `custom_type` with:
         if type(arg) is not arg_type.python_type:
-            raise TypeError(
-                f"Argument `{arg_name}` of function `{func.name}` should be of type {arg_type.python_type}, but we received {type(arg)}"
-            )
+            raise TypeError(f"Argument `{arg_name}` of function `{func.name}` should be of type " +
+                            f"{arg_type.python_type}, but we received {type(arg)}")
 
         if isinstance(arg, custom_types.Opaque):
             assert arg_type.total_size == 0, "Custom type should not have any members"
-            # An opaque type handed to us by the user, it may be a function input or the result of an external call:
+            # An opaque type handed to us by the user, it may be a function input or the result of
+            # an external call:
             if arg._provenance is None:
                 raise RuntimeError(
                     f"Opaque argument {arg_name} to function {func.name} has unclear provenance.")

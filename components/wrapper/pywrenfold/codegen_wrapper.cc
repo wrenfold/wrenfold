@@ -11,6 +11,8 @@
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
 
+#include "wrapper_utils.h"
+
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -48,36 +50,6 @@ class pytype_wrapper final : public erased_pytype::concept {
   py::type type_;
 };
 
-namespace detail {
-
-template <typename... Ts>
-std::array<std::string, sizeof...(Ts)> get_py_type_names(type_list<Ts...>) {
-  return {static_cast<std::string>(py::repr(py::type::of<Ts>()))...};
-}
-
-template <typename V, std::size_t I>
-V variant_from_pyobject(const py::handle& object) {
-  using list = type_list_from_variant_t<V>;
-  using type = type_list_element_t<I, list>;
-  if (py::isinstance<type>(object)) {
-    return py::cast<type>(object);
-  } else if constexpr (I + 1 < type_list_size_v<list>) {
-    return variant_from_pyobject<V, I + 1>(object);
-  } else {
-    static const auto types = detail::get_py_type_names(list{});
-    throw type_error("Object of type `{}` is not one of the permitted types: {}",
-                     static_cast<std::string>(py::repr(py::type::of(object))),
-                     fmt::join(types, ", "));
-  }
-}
-}  // namespace detail
-
-// Try to cast py::object to the specified variant.
-template <typename V>
-V variant_from_pyobject(const py::handle& object) {
-  return detail::variant_from_pyobject<V, 0>(object);
-}
-
 // Define python constructor for `custom_type`.
 custom_type init_custom_type(std::string name,
                              const std::vector<std::tuple<std::string_view, py::object>>& fields,
@@ -113,7 +85,7 @@ custom_function init_external_function(
 }
 
 // Create expressions that represent the result of invoking an external function.
-any_expression call_external_function(const custom_function& self, const py::sequence& args) {
+any_expression call_external_function(const custom_function& self, const py::list& args) {
   // Get expressions out of args:
   auto captured_args = transform_map<custom_function_invocation::container_type>(
       args, &variant_from_pyobject<any_expression>);
@@ -211,19 +183,19 @@ void wrap_codegen_operations(py::module_& m) {
       .value("Output", argument_direction::output)
       .value("OptionalOutput", argument_direction::optional_output);
 
-  py::class_<scalar_type>(m, "ScalarType")
+  wrap_class<scalar_type>(m, "ScalarType")
       .def(py::init<code_numeric_type>(), py::arg("numeric_type"))
       .def_property_readonly("numeric_type", &scalar_type::numeric_type)
       .def("__repr__", [](scalar_type self) { return fmt::format("{}", self); });
 
-  py::class_<matrix_type>(m, "MatrixType")
+  wrap_class<matrix_type>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
       .def_property_readonly("num_rows", &matrix_type::rows)
       .def_property_readonly("num_cols", &matrix_type::cols)
       .def("compute_indices", &matrix_type::compute_indices)
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
 
-  py::class_<custom_type>(m, "CustomType")
+  wrap_class<custom_type>(m, "CustomType")
       .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"), py::arg("python_type"),
            py::doc("Construct custom type from fields."))
       .def_property_readonly("name", &custom_type::name)
@@ -250,7 +222,7 @@ void wrap_codegen_operations(py::module_& m) {
                            py::cast<std::string_view>(repr));
       });
 
-  py::class_<custom_function>(m, "CustomFunction")
+  wrap_class<custom_function>(m, "CustomFunction")
       .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
            py::arg("return_type"))
       .def_property_readonly("name", &custom_function::name)
@@ -259,17 +231,13 @@ void wrap_codegen_operations(py::module_& m) {
       .def("arg_position", &custom_function::arg_position, py::arg("arg"),
            py::doc("Find the position of the argument with the specified name."))
       .def_property_readonly("return_type", &custom_function::return_type)
-      .def("__eq__", &are_identical<custom_function>, py::is_operator(),
-           py::doc("Check if two instances refer to the same underlying function."))
-      .def("__hash__", &hash<custom_function>)
-      .def("__call__", &call_external_function,
+      .def("__call__", &call_external_function, py::arg("args"),
            py::doc("Call external function and create return expression."))
       .def("__repr__", [](const custom_function& self) {
         const auto args = transform_map<std::vector<std::string>>(
             self.arguments(),
             [](const argument& arg) { return fmt::format("{}: {}", arg.name(), arg.type()); });
-        return fmt::format("CustomFunction({}({}) -> {})", self.name(), fmt::join(args, ", "),
-                           self.return_type());
+        return fmt::format("{}({}) -> {}", self.name(), fmt::join(args, ", "), self.return_type());
       });
 
   py::class_<function_description>(m, "FunctionDescription")

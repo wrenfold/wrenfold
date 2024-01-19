@@ -20,7 +20,8 @@ class Opaque:
     into and out of external functions.
 
     The user can inherit from this type to create their own opaque types. You should not construct
-    such types directly - instead they are intended to be used as type annotations on symbolic functions.
+    such types directly - instead they are intended to be used as type annotations on symbolic
+    functions.
     """
 
     def __init__(self, provenance: T.Optional[sym.CompoundExpr] = None) -> None:
@@ -62,9 +63,8 @@ def create_custom_type(python_type: T.Type,
             fields_converted.append((field.name, field_type))
 
         if len(fields_converted) == 0:
-            raise TypeError(
-                f"Dataclass types need to have at least one expression member. Offending type: {repr(python_type)}"
-            )
+            raise TypeError("Dataclass types need to have at least one expression member. " +
+                            f"Offending type: {repr(python_type)}")
 
     return codegen.CustomType(
         name=python_type.__name__, fields=fields_converted, python_type=python_type)
@@ -96,7 +96,8 @@ def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
     constructor_kwargs = dict()
     for field in dataclasses.fields(custom_type):
         if not expressions:
-            # This shouldn't ever happen, the C++ side has allocated enough expressions based on fields.
+            # This shouldn't ever happen, the C++ side has allocated enough expressions based on
+            # the number and type of fields.
             raise RuntimeError("Ran out of expressions while building custom type")
 
         if issubclass(field.type, sym.Expr):
