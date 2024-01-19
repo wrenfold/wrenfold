@@ -10,6 +10,7 @@
 #include "wf/checked_pointers.h"
 #include "wf/enumerations.h"
 #include "wf/hashing.h"
+#include "wf/traits.h"
 
 namespace wf {
 
@@ -289,7 +290,7 @@ struct iterate_custom_type_fields_struct {
 
   void operator()(const custom_type& c) {
     for (const struct_field& field : c.fields()) {
-      if constexpr (std::is_invocable_v<F, std::size_t, const custom_type&>) {
+      if constexpr (is_invocable_v<F, std::size_t, const custom_type&>) {
         f_(index(), c);
       }
       std::visit(*this, field.type());

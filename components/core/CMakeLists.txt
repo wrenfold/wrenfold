@@ -88,6 +88,7 @@ add_library(
   wf/plain_formatter.h
   wf/substitute.cc
   wf/template_utils.h
+  wf/traits.h
   wf/tree_formatter.cc
   wf/type_annotations.h
   wf/type_list.h

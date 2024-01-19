@@ -44,7 +44,7 @@ class custom_type_registry {
 // True if the type `T` implements custom_type_registrant<T>.
 template <typename T>
 constexpr bool implements_custom_type_registrant_v =
-    std::is_invocable_v<custom_type_registrant<T>, custom_type_registry&>;
+    is_invocable_v<custom_type_registrant<T>, custom_type_registry&>;
 
 template <typename T, typename U = void>
 using enable_if_implements_custom_type_registrant_t =
@@ -271,7 +271,7 @@ std::vector<Expr> extract_function_output(const annotated_custom_type<T>& custom
 template <typename T>
 template <typename P>
 custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T::*member_ptr) {
-  static_assert(std::is_invocable_v<detail::record_type<P>, custom_type_registry&>,
+  static_assert(is_invocable_v<detail::record_type<P>, custom_type_registry&>,
                 "The specified type is not something we understand. Maybe you need to implement "
                 "from custom_type_registrant<T>.");
   WF_ASSERT(member_ptr != nullptr);

@@ -185,7 +185,7 @@ class compound_expression_element {
   constexpr std::size_t index() const noexcept { return index_; }
 
   bool is_identical_to(const compound_expression_element& other) const {
-    return are_identical(*this, other);  //  TODO: Delete after converting everything to trait.
+    return index() == other.index() && are_identical(provenance_, other.provenance_);
   }
 
   // Iterators for iterating over our single expression.
@@ -217,7 +217,7 @@ template <>
 struct is_identical_struct<compound_expression_element> {
   bool operator()(const compound_expression_element& a,
                   const compound_expression_element& b) const {
-    return a.index() == b.index() && are_identical(a.provenance(), b.provenance());
+    return a.is_identical_to(b);
   }
 };
 

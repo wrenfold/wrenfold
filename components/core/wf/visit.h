@@ -16,12 +16,12 @@ auto visit(const expression_base<D, M>& expr, F&& visitor) {
     using T = std::decay_t<decltype(contents)>;
 
     // Make sure this is not ambiguous:
-    static_assert(std::is_invocable_v<F, const T&, const D&> || std::is_invocable_v<F, const T&>,
+    static_assert(is_invocable_v<F, const T&, const D&> || is_invocable_v<F, const T&>,
                   "Visitor must support at least one version of operator().");
-    static_assert(std::is_invocable_v<F, const T&, const D&> != std::is_invocable_v<F, const T&>,
+    static_assert(is_invocable_v<F, const T&, const D&> != is_invocable_v<F, const T&>,
                   "Visitor must support either unary or binary operator(), but not both.");
 
-    if constexpr (std::is_invocable_v<F, const T&, const D&>) {
+    if constexpr (is_invocable_v<F, const T&, const D&>) {
       return visitor(contents, expr.as_derived());
     } else {
       return visitor(contents);
@@ -55,7 +55,7 @@ auto visit_binary(const U& u, const V& v, VisitorType&& handler) {
       // Check if we can visit
       using TypeU = std::decay_t<decltype(typed_u)>;
       using TypeV = std::decay_t<decltype(typed_v)>;
-      static_assert(std::is_invocable_v<VisitorType, const TypeU&, const TypeV&>,
+      static_assert(is_invocable_v<VisitorType, const TypeU&, const TypeV&>,
                     "Binary visitor fails to implement a required operator() method.");
       return handler(typed_u, typed_v);
     });

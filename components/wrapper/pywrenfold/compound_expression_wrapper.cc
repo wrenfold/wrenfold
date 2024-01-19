@@ -1,6 +1,7 @@
 // Copyright 2024 Gareth Cross
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "wf/code_generation/types.h"  //  required for definition of custom_type
 #include "wf/compound_expression.h"
@@ -12,7 +13,7 @@ namespace wf {
 
 void wrap_compound_expression(py::module_& m) {
   py::class_<compound_expr>(m, "CompoundExpr")
-      .def("is_identical_to", &are_identical<compound_expr>,
+      .def("is_identical_to", &are_identical<compound_expr>, py::arg("other"),
            py::doc("Check if two compound expressions are strictly identical."))
       .def("type_name", &compound_expr::type_name)
       .def("__repr__", &compound_expr::to_string)

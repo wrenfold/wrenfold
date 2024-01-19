@@ -4,6 +4,7 @@
 
 #include "wf/error_types.h"
 #include "wf/hashing.h"
+#include "wf/traits.h"
 #include "wf/type_list.h"
 
 namespace wf {
@@ -142,7 +143,7 @@ class expression_variant {
     constexpr value_type& contents() noexcept { return contents_; }
 
     bool is_identical_to(const concept_base& other) const override {
-      if constexpr (std::is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
+      if constexpr (is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
         // TODO: Switch all types to this path (implement the trait).
         return is_identical_struct<T>{}(contents_, static_cast<const model&>(other).contents_);
       } else {

@@ -158,5 +158,6 @@ def _invoke_external_function(func: codegen.CustomFunction, *args, **kwargs):
         # This is a dataclass type, fill it with expressions:
         expressions = create_compound_expression_elements(
             provenance=result, num=returned_custom_type.total_size)
-        return custom_types.map_expressions_into_custom_type(
+        result, _ = custom_types.map_expressions_into_custom_type(
             expressions=expressions, custom_type=returned_custom_type.python_type)
+        return result

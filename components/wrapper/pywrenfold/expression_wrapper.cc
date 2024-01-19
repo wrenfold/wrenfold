@@ -121,7 +121,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
           "is_identical_to",
           [](const Expr& self, const Expr& other) { return self.is_identical_to(other); },
           "other"_a, "Test if two expressions have identical expression trees.")
-      .def_property_readonly("type_name", &Expr::type_name)
+      .def_property_readonly("type_name", [](const Expr& self) { return self.type_name(); })
       // Operations:
       .def(
           "diff",

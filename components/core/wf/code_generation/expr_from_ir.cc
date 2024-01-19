@@ -102,7 +102,7 @@ struct expression_from_ir_visitor {
       return compound_expression_element::create(std::move(invocation), 0);
     } else {
       // There will be a specific ir value that does the element access.
-      return std::move(invocation);
+      return invocation;
     }
   }
 
@@ -162,7 +162,7 @@ struct expression_from_ir_visitor {
   }
 
   Expr operator()(const ir::get& get, const std::vector<ir::value_ptr>& args) const {
-    compound_expr provenance = map_value(args.front());
+    compound_expr provenance = static_cast<compound_expr>(map_value(args.front()));
     return Expr{std::in_place_type_t<compound_expression_element>{}, std::move(provenance),
                 get.index()};
   }
@@ -208,7 +208,7 @@ struct expression_from_ir_visitor {
   }
 
   Expr map_scalar_value(const ir::value_ptr value) const {
-    return map_value(value);  // implicit cast
+    return static_cast<Expr>(map_value(value));  // implicit cast
   }
 
   template <typename T>
