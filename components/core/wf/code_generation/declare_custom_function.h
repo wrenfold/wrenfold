@@ -38,18 +38,11 @@ class declare_custom_function {
           if constexpr (std::is_same_v<T, Expr> || std::is_same_v<T, MatrixExpr> ||
                         type_annotations::is_static_matrix_v<T>) {
             captured_args.emplace_back(std::move(arg));
-          } else if constexpr (detail::inherits_custom_type_base_v<T>) {
-            if (const std::optional<compound_expr>& provenance = arg.provenance();
-                provenance.has_value()) {
-              // This custom object already has a provenance expression.
-              captured_args.push_back(*provenance);
-            } else {
-              // This was directly constructed - capture all the expressions on the custom type.
-              std::vector<Expr> struct_expressions = detail::extract_function_output(arg_type, arg);
-              captured_args.emplace_back(std::in_place_type_t<compound_expr>{},
-                                         std::in_place_type_t<custom_type_construction>{},
-                                         arg_type.inner(), std::move(struct_expressions));
-            }
+          } else if constexpr (implements_custom_type_registrant_v<T>) {
+            // This was directly constructed - capture all the expressions on the custom type.
+            auto compound = custom_type_construction::create(
+                arg_type.inner(), detail::extract_function_output(arg_type, arg));
+            captured_args.push_back(std::move(compound));
           } else {
             WF_ASSERT_ALWAYS("Unsupported argument type: {}", typeid(T).name());
           }
@@ -65,14 +58,12 @@ class declare_custom_function {
     } else if constexpr (std::is_same_v<ReturnType, MatrixExpr> ||
                          type_annotations::is_static_matrix_v<ReturnType>) {
       return ReturnType{std::get<MatrixExpr>(invoke_result)};
-    } else if constexpr (detail::inherits_custom_type_base_v<ReturnType>) {
+    } else if constexpr (implements_custom_type_registrant_v<ReturnType>) {
       const custom_type& type = description.return_type_as<custom_type>();
       const std::vector<Expr> elements =
           create_expression_elements(std::get<compound_expr>(invoke_result), type.total_size());
       auto [return_value, _] =
           custom_type_from_expressions<ReturnType>(type, absl::Span<const Expr>{elements});
-      // Record provenance of this object for use in downstream function invocations.
-      return_value.set_provenance(std::get<compound_expr>(invoke_result));
       return return_value;
     } else {
       WF_ASSERT_ALWAYS("Unsupported return type: {}", typeid(ReturnType).name());

@@ -98,6 +98,9 @@ void wrap_codegen_operations(py::module_& m);
 // Defined in code_formatting_wrapper.cc
 void wrap_code_formatting_operations(py::module_& m);
 
+// Defined in compound_expression_wrapper.cc
+void wrap_compound_expression(py::module_& m);
+
 // Defined in geometry_wrapper.cc
 void wrap_geometry_operations(py::module_& m);
 }  // namespace wf
@@ -150,7 +153,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(py::self * py::self)
       .def(py::self / py::self)
       .def(-py::self)
-      .def("__pow__", &wf::pow)
+      .def("__pow__", &wf::pow, py::is_operator())
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
@@ -226,10 +229,12 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   py::register_exception<assertion_error>(m, "AssertionError");
   py::register_exception<dimension_error>(m, "DimensionError");
   py::register_exception<domain_error>(m, "DomainError");
+  py::register_exception<invalid_argument_error>(m, "InvalidArgumentError");
   py::register_exception<type_error>(m, "TypeError");
 
   // Include other wrappers in this module:
   wrap_matrix_operations(m);
+  wrap_compound_expression(m);
 
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);

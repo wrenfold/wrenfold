@@ -41,6 +41,15 @@ class custom_type_registry {
   std::unordered_map<std::type_index, custom_type> types_;
 };
 
+// True if the type `T` implements custom_type_registrant<T>.
+template <typename T>
+constexpr bool implements_custom_type_registrant_v =
+    std::is_invocable_v<custom_type_registrant<T>, custom_type_registry&>;
+
+template <typename T, typename U = void>
+using enable_if_implements_custom_type_registrant_t =
+    std::enable_if_t<implements_custom_type_registrant_v<T>, U>;
+
 // Support setting and getting an anonymized field on type `T`.
 // The type and name of the underlying member is erased (it is implemented in the derived class).
 template <typename T>
@@ -127,42 +136,6 @@ class custom_type_builder {
   std::vector<struct_field> fields_;
 };
 
-template <typename Derived>
-struct custom_type_base {
- public:
-  // Set the provenence of this custom type.
-  void set_provenance(const compound_expr& provenance) noexcept { provenance_ = provenance; }
-
-  // The provonance allows us to track where a custom type is produced. It can be used to indicate
-  // if this object was an input argument, or the result of a custom function invocation.
-  constexpr const auto& provenance() const noexcept { return provenance_; }
-
-  // The derived type should implement `register_type`.
-  static custom_type_builder<Derived> register_type(custom_type_registry& registry) {
-    return Derived::register_type(registry);
-  }
-
- private:
-  std::optional<compound_expr> provenance_{};
-};
-
-namespace detail {
-constexpr auto inherits_custom_type_base_(...) -> std::false_type;
-template <typename Derived>
-constexpr auto inherits_custom_type_base_(const custom_type_base<Derived>&) -> std::true_type;
-
-template <typename T>
-using inherits_custom_type_base =
-    decltype(detail::inherits_custom_type_base_(std::declval<const T>()));
-template <typename T>
-constexpr bool inherits_custom_type_base_v = inherits_custom_type_base<T>::value;
-
-template <typename T, typename U = void>
-using enable_if_inherits_custom_type_base_t =
-    std::enable_if_t<inherits_custom_type_base_v<std::decay_t<T>>, U>;
-
-}  // namespace detail
-
 // Create type `T` by initializing all registered members of `T` with expressions.
 // The trimmed span (after consuming the right # of values from the front) is returned.
 template <typename T>
@@ -229,7 +202,7 @@ struct record_type<type_annotations::static_matrix<Rows, Cols>> {
 
 // For custom types, we check add each type to the type registry.
 template <typename T>
-struct record_type<T, enable_if_inherits_custom_type_base_t<T>> {
+struct record_type<T, enable_if_implements_custom_type_registrant_t<T>> {
   annotated_custom_type<T> operator()(custom_type_registry& registry) const {
     // Check if this type has already been registered:
     if (std::optional<custom_type> existing_type = registry.find_type<T>();
@@ -237,14 +210,14 @@ struct record_type<T, enable_if_inherits_custom_type_base_t<T>> {
       return annotated_custom_type<T>{std::move(*existing_type)};
     }
     // The registrant should return `custom_type_builder<T>`:
-    custom_type type = T::register_type(registry).finalize();
+    custom_type type = custom_type_registrant<T>{}(registry).finalize();
     return annotated_custom_type<T>{std::move(type)};
   }
 };
 
 // Specialization so we can opreate on return_value + output_arg.
 template <typename T>
-struct record_type<T, std::enable_if_t<is_output_arg_or_return_value<T>::value>> {
+struct record_type<T, std::enable_if_t<is_output_arg_or_return_value_v<T>>> {
   auto operator()(custom_type_registry& registry) const {
     return record_type<typename T::value_type>{}(registry);
   }
@@ -270,12 +243,11 @@ std::vector<Expr> create_function_input(const custom_type& custom, std::size_t a
 // Fill a custom type `T` with symbolic variable expressions.
 template <typename T>
 T create_function_input(const annotated_custom_type<T>& custom, const std::size_t arg_index) {
-  static_assert(detail::inherits_custom_type_base_v<T>, "Type must inherit from custom_type_base");
-  compound_expr provenance = create_custom_type_argument(custom.inner(), arg_index);
-  const std::vector<Expr> expressions =
-      create_expression_elements(provenance, custom.inner().total_size());
+  static_assert(implements_custom_type_registrant_v<T>,
+                "Type must implement custom_type_registrant");
+  const std::vector<Expr> expressions = create_expression_elements(
+      create_custom_type_argument(custom.inner(), arg_index), custom.inner().total_size());
   auto [instance, _] = custom.initialize_from_expressions(absl::Span<const Expr>{expressions});
-  instance.set_provenance(std::move(provenance));
   return instance;
 }
 
@@ -300,8 +272,8 @@ template <typename T>
 template <typename P>
 custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T::*member_ptr) {
   static_assert(std::is_invocable_v<detail::record_type<P>, custom_type_registry&>,
-                "The specified type is not something we understand. Maybe you need to inherit "
-                "from custom_type_base.");
+                "The specified type is not something we understand. Maybe you need to implement "
+                "from custom_type_registrant<T>.");
   WF_ASSERT(member_ptr != nullptr);
 
   // Convert the type `P` to something we can place inside `type_variant`.

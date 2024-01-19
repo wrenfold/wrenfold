@@ -174,8 +174,8 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
 
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index,
                   const native_type& arg, const annotated_custom_type<T>& type) const {
-    static_assert(detail::inherits_custom_type_base_v<T>,
-                  "Type must be derived from custom_type_base");
+    static_assert(implements_custom_type_registrant_v<T>,
+                  "Type must implement custom_type_registrant<T>");
     // Convert to the symbolic type (with numeric values), then extract the values into a flat
     // vector:
     const T symbolic_arg_with_numeric_values = custom_type_native_converter<T>{}(arg);

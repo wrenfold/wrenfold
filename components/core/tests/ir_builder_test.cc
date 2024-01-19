@@ -587,15 +587,15 @@ TEST(IrTest, TestCustomFunction2) {
 }
 
 // A custom type used to support tests below.
-struct point_2d : custom_type_base<point_2d> {
+struct point_2d {
   Expr x{0};
   Expr y{0};
+};
 
-  point_2d() = default;
-  point_2d(Expr x, Expr y) : x(std::move(x)), y(std::move(y)) {}
-
-  static auto register_type(custom_type_registry& registry) {
-    return custom_type_builder<point_2d>(registry, "point_2d")
+template <>
+struct custom_type_registrant<point_2d> {
+  auto operator()(custom_type_registry& registry) const {
+    return custom_type_builder<point_2d>(registry, "Point2d")
         .add_field("x", &point_2d::x)
         .add_field("y", &point_2d::y);
   }
@@ -637,7 +637,7 @@ class custom_func_4
 TEST(IrTest, TestCustomFunction4) {
   auto [expected_expressions, ir] = create_ir(
       [](Expr x, Expr y, Expr z) {
-        const point_2d p = custom_func_4::call(point_2d(x * 3, y / 2), z + constants::pi / 2);
+        const point_2d p = custom_func_4::call(point_2d{x * 3, y / 2}, z + constants::pi / 2);
         return sqrt(pow(p.x, 2) + pow(p.y, 2));
       },
       "func", arg("x"), arg("y"), arg("z"));

@@ -141,9 +141,12 @@ class custom_type_construction {
 
   template <typename F>
   compound_expr map_children(F&& f) const {
-    return compound_expr(std::in_place_type_t<custom_type_construction>{}, type_,
-                         transform_map<container_type>(args_, std::forward<F>(f)));
+    return create(type_, transform_map<container_type>(args_, std::forward<F>(f)));
   }
+
+  // Try to create a `custom_type_construction` expression. The expression may simplify to
+  // `custom_function_invocation` or `custom_type_argument` in some cases.
+  static compound_expr create(custom_type type, container_type args);
 
  private:
   custom_type type_;

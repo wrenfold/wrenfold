@@ -23,6 +23,9 @@ struct type_list_trait<compound_meta_type> {
 class compound_expr final : public expression_base<compound_expr, compound_meta_type> {
  public:
   using expression_base::expression_base;
+
+  // Convert to human-readable string.
+  std::string to_string() const;
 };
 
 template <>
@@ -37,5 +40,9 @@ std::vector<Expr> create_expression_elements(const compound_expr& provenance, st
 
 // Create compound expression with type `custom_type_argument` using the provided type and argument.
 compound_expr create_custom_type_argument(const class custom_type& type, std::size_t arg_index);
+
+// Create compound expression with type `custom_type_construction`.
+compound_expr create_custom_type_construction(const custom_type& type,
+                                              std::vector<Expr> expressions);
 
 }  // namespace wf

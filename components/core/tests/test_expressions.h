@@ -97,35 +97,36 @@ inline auto no_required_outputs(Expr x) {
 
 namespace symbolic {
 // A simple custom type.
-struct Point2d : custom_type_base<Point2d> {
+struct Point2d {
   Expr x{0};
   Expr y{0};
+};
 
-  Point2d() = default;
-  Point2d(Expr x, Expr y) : x(std::move(x)), y(std::move(y)) {}
+// Custom type with nested type.
+struct Circle {
+  Point2d center{};
+  Expr radius{0};
+};
 
-  static auto register_type(custom_type_registry& registry) {
+}  // namespace symbolic
+
+template <>
+struct custom_type_registrant<symbolic::Point2d> {
+  custom_type_builder<symbolic::Point2d> operator()(custom_type_registry& registry) const {
     return custom_type_builder<symbolic::Point2d>(registry, "Point2d")
         .add_field("x", &symbolic::Point2d::x)
         .add_field("y", &symbolic::Point2d::y);
   }
 };
 
-// Custom type with nested type.
-struct Circle : custom_type_base<Circle> {
-  Point2d center{};
-  Expr radius{0};
-
-  Circle() = default;
-  Circle(Point2d center, Expr radius) : center(std::move(center)), radius(std::move(radius)) {}
-
-  static auto register_type(custom_type_registry& registry) {
+template <>
+struct custom_type_registrant<symbolic::Circle> {
+  auto operator()(custom_type_registry& registry) const {
     return custom_type_builder<symbolic::Circle>(registry, "Circle")
         .add_field("center", &symbolic::Circle::center)
         .add_field("radius", &symbolic::Circle::radius);
   }
 };
-}  // namespace symbolic
 
 // A method that accepts a custom point.
 inline symbolic::Point2d custom_type_1(const symbolic::Point2d& p) {

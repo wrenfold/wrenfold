@@ -145,8 +145,7 @@ struct expression_from_ir_visitor {
           return MatrixExpr::create(mat.rows(), mat.cols(), std::move(args_converted));
         },
         [&](const custom_type& custom) -> expr_variant {
-          return compound_expr(std::in_place_type_t<custom_type_construction>(), custom,
-                               std::move(args_converted));
+          return custom_type_construction::create(custom, std::move(args_converted));
         });
   }
 

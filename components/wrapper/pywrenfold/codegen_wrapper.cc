@@ -113,43 +113,10 @@ custom_function init_external_function(
 }
 
 // Create expressions that represent the result of invoking an external function.
-any_expression call_external_function(const custom_function& self, const py::args& args,
-                                      const py::kwargs& kwargs) {
-  if (args.size() + kwargs.size() != self.num_arguments()) {
-    throw invalid_argument_error(
-        "Wrong number of arguments for external function `{}`. Received: {}, expected: {}",
-        self.name(), args.size() + kwargs.size(), self.num_arguments());
-  }
-
-  // Process everything in `args` first.
+any_expression call_external_function(const custom_function& self, const py::sequence& args) {
+  // Get expressions out of args:
   auto captured_args = transform_map<custom_function_invocation::container_type>(
       args, &variant_from_pyobject<any_expression>);
-
-  std::vector<std::tuple<std::size_t, any_expression>> kwargs_converted{};
-  kwargs_converted.reserve(kwargs.size());
-  for (const auto [key, value] : kwargs) {
-    const auto arg_name = static_cast<std::string>(py::cast<py::str>(key));
-
-    if (const std::optional<std::size_t> index = self.arg_position(arg_name); !index.has_value()) {
-      throw invalid_argument_error("Invalid kwarg `{}` specified for external function `{}`.",
-                                   arg_name, self.name());
-    } else if (*index < args.size()) {
-      // This kwarg tramples on a positional arg:
-      throw invalid_argument_error(
-          "Received both posititional and kwarg for argument `{}` to external function `{}`.",
-          arg_name, self.name());
-    } else {
-      kwargs_converted.emplace_back(*index, variant_from_pyobject<any_expression>(value));
-    }
-  }
-
-  // Place kwargs into positional order, and append to capture args list:
-  std::sort(kwargs_converted.begin(), kwargs_converted.end(),
-            [](const auto& a, const auto& b) { return std::get<0>(a) < std::get<0>(b); });
-  std::transform(std::make_move_iterator(kwargs_converted.begin()),
-                 std::make_move_iterator(kwargs_converted.end()), std::back_inserter(captured_args),
-                 [](auto&& pair) { return std::get<1>(pair); });
-
   // Now we need to check the types and create expression result:
   return self.create_invocation(std::move(captured_args));
 }
@@ -245,7 +212,7 @@ void wrap_codegen_operations(py::module_& m) {
       .value("OptionalOutput", argument_direction::optional_output);
 
   py::class_<scalar_type>(m, "ScalarType")
-      .def(py::init<code_numeric_type>())
+      .def(py::init<code_numeric_type>(), py::arg("numeric_type"))
       .def_property_readonly("numeric_type", &scalar_type::numeric_type)
       .def("__repr__", [](scalar_type self) { return fmt::format("{}", self); });
 
@@ -261,6 +228,9 @@ void wrap_codegen_operations(py::module_& m) {
            py::doc("Construct custom type from fields."))
       .def_property_readonly("name", &custom_type::name)
       .def_property_readonly("fields", &custom_type::fields, py::doc("Access fields on this type."))
+      .def_property_readonly(
+          "total_size", &custom_type::total_size,
+          py::doc("Total # of scalar expressions in the custom type and its children."))
       .def_property_readonly(
           "python_type",
           [](const custom_type& self) -> std::variant<py::none, py::type> {
@@ -286,9 +256,12 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("name", &custom_function::name)
       .def_property_readonly("arguments", &custom_function::arguments)
       .def_property_readonly("num_arguments", &custom_function::num_arguments)
+      .def("arg_position", &custom_function::arg_position, py::arg("arg"),
+           py::doc("Find the position of the argument with the specified name."))
       .def_property_readonly("return_type", &custom_function::return_type)
       .def("__eq__", &are_identical<custom_function>, py::is_operator(),
            py::doc("Check if two instances refer to the same underlying function."))
+      .def("__hash__", &hash<custom_function>)
       .def("__call__", &call_external_function,
            py::doc("Call external function and create return expression."))
       .def("__repr__", [](const custom_function& self) {

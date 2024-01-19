@@ -107,6 +107,7 @@ add_wrapper_module(
   matrix_wrapper.cc
   codegen_wrapper.cc
   code_formatting_wrapper.cc
+  compound_expression_wrapper.cc
   geometry_wrapper.cc
   wrapper_utils.h
   SUB_MODULE_NAMES
