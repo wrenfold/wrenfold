@@ -6,3 +6,4 @@ dependencies:
   - pkg-config
   - openblas
   - openssl
+  - compilers=1.7.0
