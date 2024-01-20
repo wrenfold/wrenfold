@@ -1,5 +1,6 @@
 // Copyright 2024 Gareth Cross
 #pragma once
+#include "wf/algorithm_utils.h"
 #include "wf/code_generation/types.h"
 #include "wf/compound_expression.h"
 #include "wf/hashing.h"

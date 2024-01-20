@@ -1,7 +1,7 @@
 //! Tests on generated rust code. We validate that it compiles and yields reasonable
 //! numerical results. It would be nice if we could just call the generated rust code
-//! from gtest on the C++ side. Maybe we could generate C-abi wrapper functions and
-//! those?
+//! from gtest on the C++ side. Maybe we could generate C-api wrapper functions and
+//! call those?
 #![allow(non_snake_case)]
 
 #[cfg(test)]

@@ -114,14 +114,14 @@ void check_expressions(const std::vector<expression_group>& expected_expressions
   }
 }
 
+// ReSharper disable CppPassValueParameterByConstReference
+
 TEST(IrTest, TestNumericConstant1) {
   auto [expected_expressions, ir] = create_ir([]() { return 6_s; }, "func");
   ASSERT_EQ(1, ir.count_operation<ir::load>()) << ir;
   check_expressions(expected_expressions, ir);
   check_expressions(expected_expressions, output_ir{std::move(ir)});
 }
-
-// ReSharper disable CppPassValueParameterByConstReference
 
 TEST(IrTest, TestNumericConstant2) {
   auto [expected_expressions, ir] = create_ir(

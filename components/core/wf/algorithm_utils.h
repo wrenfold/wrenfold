@@ -1,6 +1,7 @@
 // Copyright 2024 Gareth Cross
 #pragma once
 #include <type_traits>
+#include <utility>
 
 // Utility header for <algorithm>-like things.
 namespace wf {

@@ -1,5 +1,6 @@
 // Copyright 2024 Gareth Cross
 #pragma once
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -25,8 +26,9 @@ constexpr bool implements_order_struct_v = implements_order_struct<T>::value;
 
 // True if ordering `T` is noexcept.
 template <typename T>
-constexpr bool is_nothrow_orderable_v =
-    std::is_nothrow_invocable_v<order_struct<T>, const T&, const T&>;
+struct is_nothrow_orderable : std::is_nothrow_invocable<order_struct<T>, const T&, const T&> {};
+template <typename T>
+constexpr bool is_nothrow_orderable_v = is_nothrow_orderable<T>::value;
 
 // Determine relative ordering between two objects of type `T`.
 template <typename T>
@@ -86,7 +88,7 @@ struct order_struct<T, std::enable_if_t<std::is_integral_v<T>>> {
 template <>
 struct order_struct<std::string> {
   relative_order operator()(const std::string& a, const std::string& b) const noexcept {
-    return wf::lexicographical_order(a, b, order_struct<char>{});
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<char>{});
   }
 };
 
@@ -94,7 +96,7 @@ struct order_struct<std::string> {
 template <typename T>
 struct order_struct<std::vector<T>> {
   relative_order operator()(const std::vector<T>& a, const std::vector<T>& b) const
-      noexcept(std::is_nothrow_invocable_v<order_struct<T>, const T&>) {
+      noexcept(is_nothrow_orderable_v<T>) {
     return wf::lexicographical_order(a, b, order_struct<T>{});
   }
 };
@@ -105,7 +107,7 @@ struct order_variant;
 template <typename... Ts>
 struct order_variant<std::variant<Ts...>> {
   relative_order operator()(const std::variant<Ts...>& a, const std::variant<Ts...>& b) const
-      noexcept(std::conjunction_v<std::is_nothrow_invocable<order_struct<Ts>, const Ts&>...>) {
+      noexcept(std::conjunction_v<is_nothrow_orderable<Ts>...>) {
     if (a.index() < b.index()) {
       return relative_order::less_than;
     } else if (a.index() > b.index()) {
