@@ -151,7 +151,7 @@ template <>
 struct hash_struct<matrix> {
   std::size_t operator()(const matrix& m) const {
     const std::size_t seed =
-        hash_combine(std::hash<std::size_t>{}(m.rows()), std::hash<std::size_t>{}(m.cols()));
+        hash_combine(static_cast<std::size_t>(m.rows()), static_cast<std::size_t>(m.cols()));
     return hash_all(seed, m.begin(), m.end());
   }
 };

@@ -194,13 +194,17 @@ inline constexpr integer_constant::operator float_constant() const {
 template <>
 struct hash_struct<integer_constant::value_type> {
   std::size_t operator()(const integer_constant::value_type value) const noexcept {
-    return std::hash<integer_constant::value_type>{}(value);
+    // Don't have bit_cast, so memcpy into size_t to avoid UB.
+    static_assert(sizeof(integer_constant::value_type) == sizeof(std::size_t));
+    std::size_t hash;
+    std::memcpy(&hash, static_cast<const void*>(&value), sizeof(value));
+    return hash;
   }
 };
 template <>
 struct hash_struct<integer_constant> {
   std::size_t operator()(const integer_constant value) const noexcept {
-    return std::hash<integer_constant::value_type>{}(value.get_value());
+    return hash(value.get_value());
   }
 };
 
@@ -258,7 +262,7 @@ inline rational_constant::operator float_constant() const {
 template <>
 struct hash_struct<rational_constant> {
   std::size_t operator()(const rational_constant& r) const {
-    return hash_args(0, r.numerator(), r.denominator());
+    return hash_combine(hash(r.numerator()), hash(r.denominator()));
   }
 };
 
@@ -306,9 +310,12 @@ inline constexpr bool operator!=(const float_constant& a, const float_constant& 
 // Hashing of floats.
 template <>
 struct hash_struct<float_constant> {
-  // Can't be constexpr, because std::hash is not constexpr.
   std::size_t operator()(const float_constant& f) const {
-    return std::hash<float_constant::value_type>{}(f.get_value());
+    static_assert(sizeof(float_constant::value_type) == sizeof(std::size_t));
+    std::size_t hash;
+    const auto value = f.get_value();
+    std::memcpy(&hash, static_cast<const void*>(&value), sizeof(value));
+    return hash;
   }
 };
 
