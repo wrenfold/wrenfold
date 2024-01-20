@@ -116,6 +116,13 @@ TEST(SubstituteTest, TestMultiplications) {
   ASSERT_IDENTICAL(pow(y, 2), (x * w * y).subs(x * w, y));
   ASSERT_IDENTICAL(pow(x, 2) * y, (x * w * z * y).subs(w * z, x));
 
+  // Test expressions that feature negative powers of integers:
+  ASSERT_IDENTICAL(x / 5, (y / 25).subs(y / 5, x));
+  ASSERT_IDENTICAL(z / 105, (cos(x) * y / 1155).subs(cos(x) * y / 11, z));
+  ASSERT_IDENTICAL(sin(z) / 3, (w * x / 3).subs(w * x, sin(z)));
+  ASSERT_IDENTICAL(pow(x, 2) * 35 / (y * 143),
+                   ((pow(x, 3) * sin(z) * 105) / 2431).subs(x * sin(z) * 3 / 17, 1 / y));
+
   // Substitute higher powers:
   ASSERT_IDENTICAL(1, (x * x * x * y * y * z).subs(x * x * x, 1 / (y * y * z)));
   ASSERT_IDENTICAL(pow(z, 3) / pow(y, 2), (x * x * x * x * z).subs(x * x, z / y));
