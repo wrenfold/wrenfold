@@ -362,13 +362,13 @@ TEST(IrTest, TestConditionals5) {
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(54, ir.num_operations()) << ir;
+  ASSERT_EQ(55, ir.num_operations()) << ir;
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
-  ASSERT_EQ(56, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(57, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
 }
 
