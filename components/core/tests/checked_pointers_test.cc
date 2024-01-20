@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross
 #include <gtest/gtest.h>
 
 #include "wf/checked_pointers.h"

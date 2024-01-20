@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross
 #include "wf/functions.h"
 #include "wf/constants.h"
 #include "wf/expressions/function_expressions.h"

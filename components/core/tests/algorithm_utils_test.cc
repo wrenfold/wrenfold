@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross
 #include <deque>
 #include <list>
 #include <vector>
