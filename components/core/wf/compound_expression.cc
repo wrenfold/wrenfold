@@ -18,7 +18,7 @@ std::vector<Expr> create_expression_elements(const compound_expr& provenance,
   std::vector<Expr> elements{};
   elements.reserve(num);
   for (const std::size_t index : make_range(num)) {
-    elements.emplace_back(std::in_place_type_t<compound_expression_element>{}, provenance, index);
+    elements.emplace_back(compound_expression_element::create(provenance, index));
   }
   return elements;
 }

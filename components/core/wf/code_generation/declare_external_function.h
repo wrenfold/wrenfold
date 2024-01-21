@@ -40,6 +40,8 @@ class declare_external_function {
           if constexpr (std::is_same_v<T, Expr> || std::is_same_v<T, MatrixExpr> ||
                         type_annotations::is_static_matrix_v<T>) {
             captured_args.emplace_back(std::move(arg));
+          } else if constexpr (std::is_constructible_v<Expr, T>) {
+            captured_args.emplace_back(Expr{arg});
           } else if constexpr (implements_custom_type_registrant_v<T>) {
             // This was directly constructed - capture all the expressions on the custom type.
             auto compound = custom_type_construction::create(

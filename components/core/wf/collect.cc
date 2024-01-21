@@ -135,7 +135,7 @@ struct collect_visitor {
   absl::Span<const Expr> collected_terms_;
 };
 
-Expr collect_many(const Expr& arg, absl::Span<const Expr> terms) {
+Expr collect_many(const Expr& arg, const absl::Span<const Expr> terms) {
   if (terms.empty()) {
     return arg;
   }

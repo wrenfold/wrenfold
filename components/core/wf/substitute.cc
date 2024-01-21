@@ -329,8 +329,9 @@ static substitute_variables_visitor create_subs_visitor(
     const absl::Span<const std::tuple<Expr, Expr>> pairs) {
   substitute_variables_visitor visitor{};
   for (const auto& [target, replacement] : pairs) {
-    if (!target.is_type<variable>()) {
-      throw type_error("Input needs to be type Variable, received type `{}`: {}",
+    if (!target.is_type<variable, compound_expression_element>()) {
+      throw type_error("Input needs to be type `{}` or `{}`, received type `{}`: {}",
+                       variable::name_str, compound_expression_element::name_str,
                        target.type_name(), target);
     }
     visitor.add_substitution(target, replacement);
@@ -408,6 +409,8 @@ Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abs
   } else if constexpr (std::is_same_v<T, compound_expression_element>) {
     if (const auto it = element_substitutions_.find(concrete); it != element_substitutions_.end()) {
       return it->second;
+    } else {
+      return concrete.map_children(*this);
     }
   } else if constexpr (!T::is_leaf_node) {
     return concrete.map_children(*this);

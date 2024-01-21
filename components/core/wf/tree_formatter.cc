@@ -1,6 +1,7 @@
 // Copyright 2022 Gareth Cross
 #include <vector>
 
+#include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/fmt_imports.h"
@@ -221,6 +222,12 @@ std::string Expr::to_expression_tree_string() const {
 std::string MatrixExpr::to_expression_tree_string() const {
   tree_formatter formatter{};
   formatter(as_matrix());
+  return formatter.take_output();
+}
+
+std::string compound_expr::to_expression_tree_string() const {
+  tree_formatter formatter{};
+  visit(*this, formatter);
   return formatter.take_output();
 }
 

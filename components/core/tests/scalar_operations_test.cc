@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross
 #include "wf/constants.h"
 #include "wf/expressions/addition.h"
 #include "wf/expressions/conditional.h"

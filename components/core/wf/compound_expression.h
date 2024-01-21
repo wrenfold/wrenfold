@@ -26,6 +26,9 @@ class compound_expr final : public expression_base<compound_expr, compound_meta_
 
   // Convert to human-readable string.
   std::string to_string() const;
+
+  // Convert to expression tree string.
+  std::string to_expression_tree_string() const;
 };
 
 template <>
