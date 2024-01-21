@@ -4,6 +4,8 @@ add_library(
   INTERFACE
   wrenfold/__init__.py
   wrenfold/code_generation.py
+  wrenfold/custom_types.py
+  wrenfold/external_functions.py
   wrenfold/geometry.py
   wrenfold/sym.py
   wrenfold/type_annotations.py)
