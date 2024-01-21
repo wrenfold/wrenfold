@@ -64,17 +64,13 @@ template <bool FactorizeIntegers>
 struct multiply_visitor {
   explicit multiply_visitor(multiplication_parts& builder) : builder(builder) {}
 
-  void insert_integer_factors(const std::vector<prime_factor>& factors, bool positive) {
+  void insert_integer_factors(const std::vector<prime_factor>& factors, const bool positive) const {
     for (const prime_factor& factor : factors) {
-      Expr base = Expr(factor.base);
-      Expr exponent = Expr(factor.exponent);
-      const auto [it, was_inserted] = builder.terms.emplace(std::move(base), exponent);
-      if (!was_inserted) {
-        if (positive) {
-          it->second = it->second + exponent;
-        } else {
-          it->second = it->second - exponent;
-        }
+      Expr base{factor.base};
+      Expr exponent{positive ? factor.exponent : -factor.exponent};
+      if (const auto [it, was_inserted] = builder.terms.emplace(std::move(base), exponent);
+          !was_inserted) {
+        it->second = it->second + exponent;
       }
     }
   }
