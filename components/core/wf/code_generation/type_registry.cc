@@ -22,11 +22,6 @@ MatrixExpr create_function_input(const matrix_type& mat, const std::size_t arg_i
   return MatrixExpr::create(mat.rows(), mat.cols(), create_function_args(arg_index, mat.size()));
 }
 
-std::vector<Expr> create_function_input(const custom_type& custom, const std::size_t arg_index) {
-  const compound_expr provenance = create_custom_type_argument(custom, arg_index);
-  return create_expression_elements(provenance, custom.total_size());
-}
-
 // TODO: The numeric type information needs to be propagate to the IR here.
 std::vector<Expr> extract_function_output(const scalar_type&, const Expr& value) {
   return std::vector(1, value);

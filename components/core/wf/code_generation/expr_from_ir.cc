@@ -1,10 +1,11 @@
 // Copyright 2023 Gareth Cross
+#include <deque>
+#include <unordered_set>
+
 #include "wf/code_generation/ir_builder.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/expressions/all_expressions.h"
-
-#include <deque>
-#include <unordered_set>
+#include "wf/template_utils.h"
 
 namespace wf {
 

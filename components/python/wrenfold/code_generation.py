@@ -75,12 +75,17 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
         arg_type = custom_types.convert_to_internal_type(
             python_type=annotated_type, cached_custom_types=cached_types)
 
-        arg_elements = description.add_input_argument(arg_name, arg_type)
+        input_expression = description.add_input_argument(arg_name, arg_type)
         if isinstance(arg_type, codegen.CustomType):
-            kwargs[arg_name], _ = custom_types.map_expressions_into_custom_type(
-                expressions=arg_elements, custom_type=annotated_type)
+            if issubclass(annotated_type, custom_types.Opaque):
+                kwargs[arg_name] = annotated_type(provenance=input_expression)
+            else:
+                arg_elements = sym.create_compound_expression_elements(
+                    provenance=input_expression, num=arg_type.total_size)
+                kwargs[arg_name], _ = custom_types.map_expressions_into_custom_type(
+                    expressions=arg_elements, custom_type=annotated_type)
         else:
-            kwargs[arg_name] = arg_elements
+            kwargs[arg_name] = input_expression
 
     # run the function
     result_expressions: CodegenFuncInvocationResult = func(**kwargs)

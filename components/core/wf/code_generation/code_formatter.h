@@ -50,6 +50,14 @@ void join_to(std::string& output, const std::string_view separator, const Contai
   }
 }
 
+// Join, but with an iteration index included in the arguments to `formatter`.
+template <typename Container, typename Formatter>
+void join_enumerate_to(std::string& output, const std::string_view separator,
+                       const Container& container, Formatter&& formatter) {
+  std::size_t index = 0;
+  join_to(output, separator, container, [&](const auto& arg) { return formatter(index++, arg); });
+}
+
 // Join using the provided formatter and separator.
 template <typename Formatter, typename Container>
 std::string join(Formatter&& formatter, const std::string_view separator,

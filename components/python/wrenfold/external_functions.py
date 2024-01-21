@@ -41,8 +41,13 @@ class ExternalFunc:
     def __hash__(self) -> int:
         return hash(self._inner)
 
-    def __eq__(self, other: 'ExternalFunc') -> bool:
-        return self._inner == other._inner
+    def __eq__(self, other: T.Union['ExternalFunc', codegen.ExternalFunction]) -> bool:
+        if isinstance(other, ExternalFunc):
+            return self._inner == other._inner
+        elif isinstance(other, codegen.ExternalFunction):
+            return self._inner == other
+        else:
+            return False
 
 
 def declare_external_function(

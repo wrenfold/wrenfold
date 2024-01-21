@@ -217,14 +217,23 @@ static constexpr std::string_view rust_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
+static bool is_get_argument_custom_type(const ast::variant& var) {
+  if (const ast::get_argument* get = std::get_if<ast::get_argument>(&var); get != nullptr) {
+    return get->arg.is_custom_type();
+  }
+  return false;
+}
+
 std::string rust_code_generator::operator()(const ast::call_external_function& x) const {
   WF_ASSERT_EQUAL(x.args.size(), x.function.num_arguments());
-  std::size_t index = 0;
   std::string result = x.function.name();
   result.append("(");
-  join_to(result, ", ", x.args, [&](const ast::variant& v) {
+  join_enumerate_to(result, ", ", x.args, [&](const std::size_t index, const ast::variant& v) {
     std::string arg_str = operator()(v);
-    if (const argument& arg = x.function.arguments()[index++];
+    if (is_get_argument_custom_type(v)) {
+      return arg_str;
+    }
+    if (const argument& arg = x.function.argument_at(index);
         arg.is_custom_type() || arg.is_matrix()) {
       // Borrow non-scalar arguments:
       arg_str.insert(0, "&");

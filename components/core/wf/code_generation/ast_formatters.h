@@ -118,6 +118,11 @@ auto format_ast(Iterator it, const wf::ast::declaration& d) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::declaration_type_annotation& d) {
+  return fmt::format_to(it, "({})", d.type);
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::divide& d) {
   return fmt::format_to(it, "({}, {})", *d.left, *d.right);
 }

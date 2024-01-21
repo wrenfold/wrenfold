@@ -2,6 +2,7 @@
 #include "wf/expressions/custom_type_expressions.h"
 #include "wf/expressions/external_function_invocation.h"
 #include "wf/external_function.h"
+#include "wf/template_utils.h"
 
 namespace wf {
 
@@ -27,7 +28,7 @@ class declare_external_function {
   static auto call(Args... args) {
     static_assert(sizeof...(args) == type_list_size_v<ArgTypes>, "Wrong number of arguments");
 
-    // On first incovation, we build a runtime description of the function.
+    // On first invocation, we build a runtime description of the function.
     const auto& description_and_arg_types = get_description_and_arg_types();
     const external_function& description = std::get<0>(description_and_arg_types);
 

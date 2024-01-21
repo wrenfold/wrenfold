@@ -13,6 +13,8 @@ from wrenfold import sym
 from wrenfold.type_annotations import RealScalar, Vector2
 from wrenfold.code_generation import ReturnValue, OutputArg
 from wrenfold import code_generation
+from wrenfold import custom_types
+from wrenfold import external_functions
 
 from test_base import MathTestBase
 
@@ -56,6 +58,20 @@ def rotate_point(angle: RealScalar, p: Point2d):
     return [OutputArg(p_out, name="p_rotated")]
 
 
+class OpaqueType(custom_types.Opaque):
+    """An external type we will pass to our test external function."""
+
+
+external_func = external_functions.declare_external_function(
+    "external_func", arguments=[('foo', OpaqueType), ('bar', sym.Expr)], return_type=sym.Expr)
+
+
+def opaque_type_func(u: OpaqueType, x: sym.Expr, y: sym.Expr):
+    """Use an opaque type as an argument to a generated function."""
+    f = external_func(u, x * y + 3)
+    return f + sym.cos(x * y)
+
+
 class CustomCppGenerator(code_generation.CppGenerator):
     """Customize C++ generation."""
 
@@ -68,6 +84,13 @@ class CustomCppGenerator(code_generation.CppGenerator):
             return self.fmt.format('custom::cos({})', element.args[0])
         return self.super_format(element)
 
+    def format_call_external_function(self,
+                                      element: code_generation.codegen.CallExternalFunction) -> str:
+        if external_func == element.function:
+            args = ', '.join(self.format(x) for x in element.args)
+            return self.fmt.format('custom::{}({})', element.function.name, args)
+        return self.super_format(element)
+
 
 class CodeGenerationWrapperTest(MathTestBase):
 
@@ -77,6 +100,7 @@ class CodeGenerationWrapperTest(MathTestBase):
             code_generation.create_function_description(func2),
             code_generation.create_function_description(func3),
             code_generation.create_function_description(rotate_point),
+            code_generation.create_function_description(opaque_type_func),
         ]
         definitions = code_generation.transpile(descriptions=descriptions)
 

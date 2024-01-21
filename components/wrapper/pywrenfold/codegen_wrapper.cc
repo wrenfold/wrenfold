@@ -423,6 +423,9 @@ void wrap_codegen_operations(py::module_& m) {
         }
       });
 
+  wrap_ast_type<ast::declaration_type_annotation>(m).def_property_readonly(
+      "type", [](const ast::declaration_type_annotation& d) { return d.type; });
+
   wrap_ast_type<ast::divide>(m)
       .def_property_readonly("left",
                              [](const ast::divide& x) {

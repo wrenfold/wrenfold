@@ -7,7 +7,6 @@
 #include "wf/code_generation/types.h"
 #include "wf/expressions/matrix.h"
 #include "wf/output_annotations.h"
-#include "wf/template_utils.h"
 #include "wf/type_annotations.h"
 
 namespace wf {
@@ -238,7 +237,9 @@ Expr create_function_input(const scalar_type& scalar, std::size_t arg_index);
 MatrixExpr create_function_input(const matrix_type& mat, std::size_t arg_index);
 
 // Determine the size of a custom type, and create enough variables to fill it.
-std::vector<Expr> create_function_input(const custom_type& custom, std::size_t arg_index);
+inline compound_expr create_function_input(const custom_type& custom, const std::size_t arg_index) {
+  return create_custom_type_argument(custom, arg_index);
+}
 
 // Fill a custom type `T` with symbolic variable expressions.
 template <typename T>

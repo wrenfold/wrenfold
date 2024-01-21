@@ -9,6 +9,7 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
+#include "wf/template_utils.h"
 
 namespace wf {
 
