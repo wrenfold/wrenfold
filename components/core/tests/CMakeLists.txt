@@ -27,9 +27,32 @@ add_compiled_code_generator(
 add_cpp_test(cpp_generation_test SOURCE_FILES cpp_generation_test.cc
              test_expressions.h GENERATOR_TARGET cpp_generation_generate)
 
+add_py_code_generator(
+  cpp_generation_generate_2
+  generation_test_2.py
+  OUTPUT_FILE_NAME
+  generated.h
+  SCRIPT_ARGUMENTS
+  --language
+  cpp)
+
+add_cpp_test(cpp_generation_test_2 SOURCE_FILES cpp_generation_test_2.cc
+             GENERATOR_TARGET cpp_generation_generate_2)
+
+# Rust tests
 add_compiled_code_generator(
   rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
   rust_generation_gen.cc test_expressions.h)
-
 copy_generated_file(GENERATOR_TARGET rust_generation_generate DESTINATION_DIR
                     rust_generation_test/src TARGET_GROUP wf_rust_generation)
+
+add_py_code_generator(
+  rust_generation_generate_2
+  generation_test_2.py
+  OUTPUT_FILE_NAME
+  generated.rs
+  SCRIPT_ARGUMENTS
+  --language
+  rust)
+copy_generated_file(GENERATOR_TARGET rust_generation_generate_2 DESTINATION_DIR
+                    rust_generation_test_2/src TARGET_GROUP wf_rust_generation)

@@ -7,15 +7,6 @@
 
 namespace wf {
 
-struct matrix_meta_type {};
-
-template <>
-struct type_list_trait<matrix_meta_type> {
-  // All the matrix-valued expressions.
-  // using types = type_list<
-  //   class matrix_
-};
-
 // Matrix type that stores a dense block of expressions. For context, this was originally
 // part of the `Expr` type hierarchy. However, this proved to be a mistake because the rules for
 // matrices are sufficiently different from scalars. For now, it is just a wrapper around a shared

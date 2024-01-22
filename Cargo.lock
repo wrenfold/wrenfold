@@ -551,6 +551,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust_generation_test_2"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "nalgebra",
+ "wrenfold-traits",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
