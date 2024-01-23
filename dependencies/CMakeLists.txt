@@ -36,8 +36,14 @@ add_google_benchmark()
 # Add abseil-cpp
 function(add_abseil)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+  # wf-core builds with c++17
+  # https://github.com/abseil/abseil-cpp/blob/master/CMake/README.md
+  set(CMAKE_CXX_STANDARD 17)
   set(ABSL_USE_EXTERNAL_GOOGLETEST
       ON
+      CACHE BOOL "" FORCE)
+  set(ABSL_BUILD_TESTING
+      OFF
       CACHE BOOL "" FORCE)
   set(ABSL_ENABLE_INSTALL
       OFF
@@ -45,7 +51,7 @@ function(add_abseil)
   set(ABSL_PROPAGATE_CXX_STD
       ON
       CACHE BOOL "" FORCE)
-  add_subdirectory(abseil-cpp)
+  add_subdirectory(abseil-cpp EXCLUDE_FROM_ALL)
 endfunction()
 add_abseil()
 
