@@ -1,6 +1,8 @@
 // Copyright 2023 Gareth Cross
 #include "span_test_assertions.h"
 
+static_assert(__cplusplus == 201402L, "This test should be compiled with C++14");
+
 namespace wf {
 
 // Equality operator for spans of the same type.

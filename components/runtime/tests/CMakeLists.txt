@@ -3,6 +3,18 @@ add_executable(span_test span_test.cc)
 target_link_libraries(span_test gtest_main)
 target_link_libraries(span_test wf-runtime eigen fmt::fmt-header-only)
 target_compile_features(span_test PRIVATE cxx_std_14)
+
+# `cxx_std_14` does not force specification of -std=c++14 on gcc, so manually
+# specify it here. This is to minimize cases of accidentally using features that
+# are not actually supported.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(span_test PRIVATE -std=c++14)
+elseif(MSVC)
+  target_compile_options(span_test PRIVATE /Zc:__cplusplus)
+endif()
 target_compile_options(span_test PRIVATE ${SHARED_WARNING_FLAGS})
+
+# Enable support for Eigen --> span conversion so we can test it.
 target_compile_definitions(span_test PRIVATE -DMATH_SPAN_EIGEN_SUPPORT)
+
 add_test(span_test span_test)
