@@ -2,7 +2,7 @@ use argmin::core::{CostFunction, Error, Gradient, Hessian};
 use nalgebra as na;
 use ndarray::{Array1, Array2};
 
-use crate::gen;
+use crate::generated as gen;
 
 /// Weights for the cost functions
 #[derive(Clone)]

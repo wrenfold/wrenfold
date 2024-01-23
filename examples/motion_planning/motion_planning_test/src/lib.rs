@@ -1,6 +1,6 @@
-#[allow(unused_variables)]
-pub mod gen;
+#![cfg(not(target_os = "windows"))]
 
+pub mod generated;
 pub mod problem;
 
 pub use problem::{ProblemInfo, Weights};

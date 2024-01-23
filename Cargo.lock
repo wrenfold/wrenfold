@@ -309,7 +309,9 @@ dependencies = [
  "argmin-math",
  "nalgebra",
  "ndarray",
+ "pkg-config",
  "serde",
+ "wrenfold-cmake-build",
  "wrenfold-traits",
 ]
 
@@ -435,6 +437,12 @@ name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2900ede94e305130c13ddd391e0ab7cbaeb783945ae07a279c268cb05109c6cb"
 
 [[package]]
 name = "powerfmt"
@@ -800,6 +808,10 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "wrenfold-cmake-build"
+version = "0.0.1"
 
 [[package]]
 name = "wrenfold-test-utils"

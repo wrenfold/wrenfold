@@ -15,3 +15,7 @@ argmin-math = { version = "0.3", features = [
   "nalgebra_latest-serde",
 ] }
 ndarray = { version = "0.15.0" }
+
+[build-dependencies]
+wrenfold-cmake-build = { workspace = true }
+pkg-config = { workspace = true }

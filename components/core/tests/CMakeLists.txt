@@ -25,18 +25,9 @@ add_compiled_code_generator(
 add_cpp_test(cpp_generation_test SOURCE_FILES cpp_generation_test.cc
              test_expressions.h GENERATOR_TARGET cpp_generation_generate)
 
-if(${ENABLE_RUST_TARGETS})
-  add_compiled_code_generator(
-    rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
-    rust_generation_gen.cc test_expressions.h)
+add_compiled_code_generator(
+  rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
+  rust_generation_gen.cc test_expressions.h)
 
-  add_rust_test(
-    rust_generation_test
-    GENERATOR_TARGET
-    rust_generation_generate
-    CRATE_NAME
-    rust_generation_test
-    CRATE_SOURCES
-    rust_generation_test/src/lib.rs
-    rust_generation_test/src/gen.rs)
-endif()
+copy_generated_file(GENERATOR_TARGET rust_generation_generate DESTINATION_DIR
+                    rust_generation_test/src TARGET_GROUP wf_rust_generation)

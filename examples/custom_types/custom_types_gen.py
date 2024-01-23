@@ -239,7 +239,7 @@ class CustomRustGenerator(RustGenerator):
     def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
         """Place our custom types into the `geo` namespace."""
         if element.python_type in [Point3d, Pose3d]:
-            return f'geo::{element.name}'
+            return f'crate::geo::{element.name}'
         elif element.python_type is EigenQuaternion:
             return f'nalgebra::UnitQuaternion::<f64>'
         return self.super_format(element)
@@ -255,7 +255,7 @@ class CustomRustGenerator(RustGenerator):
         if element.type.python_type is Pose3d:
             r = self.format(element.get_field_value("rotation"))
             t = self.format(element.get_field_value("translation"))
-            return f'geo::Pose3d::new(\n  {r},\n  {t}\n)'
+            return f'crate::geo::Pose3d::new(\n  {r},\n  {t}\n)'
         elif element.type.python_type is EigenQuaternion:
             # Order for nalgebra is [w, x, y, z]
             arg_dict = {k: v for (k, v) in element.field_values}
@@ -274,10 +274,13 @@ def main(args: argparse.Namespace):
     if args.language == "cpp":
         code = CustomCppGenerator().generate(definitions=definitions)
         code = code_generation.apply_cpp_preamble(code, namespace="gen")
-        code_generation.mkdir_and_write_file(code=code, path=args.output)
     elif args.language == "rust":
         code = CustomRustGenerator().generate(definitions=definitions)
-        code_generation.mkdir_and_write_file(code=code, path=args.output)
+        code = code_generation.apply_rust_preamble(code)
+    else:
+        raise RuntimeError("Invalid language selection")
+
+    code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

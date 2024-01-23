@@ -280,6 +280,25 @@ def apply_cpp_preamble(code: T.Union[str, T.Sequence[str]], namespace: str) -> s
     return CPP_PREAMBLE_TEMPLATE.format(code=code, namespace=namespace)
 
 
+RUST_PREAMBLE_TEMPLATE = \
+"""//! Machine generated code.
+#![rustfmt::skip]
+
+{code}
+"""
+
+
+def apply_rust_preamble(code: T.Union[str, T.Sequence[str]]) -> str:
+    """
+    Wrap Rust code with a preamble that disables formatting.
+    :param code: Output Rust code, either as a string of sequence of strings.
+    :return: Formatted string.
+    """
+    if not isinstance(code, str):
+        code = '\n\n'.join(code)
+    return RUST_PREAMBLE_TEMPLATE.format(code=code)
+
+
 def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]):
     """
     Write `code` to the specified path. Create intermediate directories as required.
