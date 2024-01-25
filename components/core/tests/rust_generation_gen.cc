@@ -67,8 +67,10 @@ int main() {
   generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
   generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
 
-  std::ofstream output{GENERATOR_OUTPUT_FILE};
-  output << code;
+  // Write in binary to stop windows from turning LF into CRLF.
+  std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
+  output.write(code.data(), code.size());
   output.flush();
+  WF_ASSERT(output.good());
   return 0;
 }
