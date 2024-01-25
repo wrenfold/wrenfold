@@ -1,0 +1,7 @@
+# This file specifies additional dependencies required to build on windows.
+channels:
+  - conda-forge
+
+dependencies:
+  - pkg-config
+  - openblas
