@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "components/core/tests/rust_generation_test",
-    "components/rust/wrenfold-cmake-build",
     "components/rust/wrenfold-test-utils",
     "examples/bspline/bspline_rust_test",
     "examples/custom_types/custom_types_rust_test",
@@ -10,7 +9,6 @@ members = [
 ]
 
 [workspace.dependencies]
-wrenfold-cmake-build = { path = "components/rust/wrenfold-cmake-build", version = "0.0.1" }
 wrenfold-test-utils = { path = "components/rust/wrenfold-test-utils", version = "0.0.1" }
 wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.0.1", features = ["nalgebra"] }
 
