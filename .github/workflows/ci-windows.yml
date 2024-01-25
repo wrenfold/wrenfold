@@ -89,8 +89,8 @@ jobs:
 
       - name: Cargo test
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
-        run: cargo test --tests --release --color=always --target-dir cargo
+        run: cargo test --tests --release --color=always --target-dir cargo --manifest-path $GITHUB_WORKSPACE/Cargo.toml
 
       - name: Cargo clippy
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
-        run: cargo clippy --all --target-dir cargo -- -D warnings
+        run: cargo clippy --all --color=always --target-dir cargo --manifest-path $GITHUB_WORKSPACE/Cargo.toml -- -D warnings
