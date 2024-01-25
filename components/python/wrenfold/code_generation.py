@@ -282,7 +282,7 @@ def apply_cpp_preamble(code: T.Union[str, T.Sequence[str]], namespace: str) -> s
 
 RUST_PREAMBLE_TEMPLATE = \
 """//! Machine generated code.
-#![rustfmt::skip]
+#![cfg_attr(rustfmt, rustfmt_skip)]
 
 {code}
 """

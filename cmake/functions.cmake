@@ -137,6 +137,12 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
       "PYTHONPATH=\"${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python\""
   )
 
+  # Create a list of python sources we depend on. This way, touching python code
+  # will cause generation to run again.
+  get_target_property(PYTHON_SOURCE_DIR wf_python SOURCE_DIR)
+  get_target_property(PYTHON_LIB_SOURCES wf_python SOURCES)
+  list(TRANSFORM PYTHON_LIB_SOURCES PREPEND "${PYTHON_SOURCE_DIR}/")
+
   add_custom_command(
     OUTPUT ${GENERATOR_OUTPUT_FILE}
     COMMAND
@@ -145,7 +151,8 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
       "${GENERATOR_OUTPUT_FILE}" ${ARGS_SCRIPT_ARGUMENTS}
     WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
     COMMENT "Run python code-generator: ${NAME}"
-    DEPENDS wf-core wf_wrapper ${MAIN_SCRIPT_FILE} ${SOURCE_FILES})
+    DEPENDS wf-core wf_wrapper wf_python ${MAIN_SCRIPT_FILE} ${SOURCE_FILES}
+            ${PYTHON_LIB_SOURCES})
 
   set_source_files_properties(${GENERATOR_OUTPUT_FILE} PROPERTIES GENERATED
                                                                   TRUE)

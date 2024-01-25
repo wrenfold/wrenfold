@@ -43,7 +43,7 @@ class custom_rust_code_generator final : public wf::rust_code_generator {
 
 int main() {
   using namespace wf;
-  std::string code = "//! Machine generated code.\n#![rustfmt::skip]\n\n";
+  std::string code = "//! Machine generated code.\n#![cfg_attr(rustfmt, rustfmt_skip)]\n\n";
 
   custom_rust_code_generator gen{};
   generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", "x", "y", "z");

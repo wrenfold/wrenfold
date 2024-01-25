@@ -1,5 +1,5 @@
 //! Machine generated code.
-#![rustfmt::skip]
+#![cfg_attr(rustfmt, rustfmt_skip)]
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if)]
