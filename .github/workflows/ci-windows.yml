@@ -83,6 +83,14 @@ jobs:
           $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
           cmake --build . --config ${{matrix.build_type}} --parallel $threads
 
-      - name: Test
+      - name: Run CTest
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
         run: ctest --output-on-failure
+
+      - name: Cargo test
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: cargo test --tests --release --color=always --target-dir cargo
+
+      - name: Cargo clippy
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: cargo clippy --all --target-dir cargo -- -D warnings
