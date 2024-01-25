@@ -23,11 +23,11 @@ The following tools are required to build from source:
 Additionally, to build and run tests you will need:
 - numpy
 - The rust compiler toolchain (`cargo` and `rustc`)
-- On linux: `pkg-config`, `openblas`, and `openssl`
+- On linux+windows: `pkg-config` and `openblas`
 
 The following command will configure a `conda` environment suitable for building:
 ```bash
-conda create -n wf_test python=3.8 cmake ninja mypy numpy
+conda create -n wf_test python=3.8 cmake ninja mypy numpy pkg-config openblas
 conda activate wf_test
 ```
 
@@ -40,10 +40,16 @@ cd <path to wrenfold repo>
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -Wno-deprecated -G Ninja
-cmake --build . --config RelWithDebInfo -j12
+cmake --build .
 ```
 
-Tests can then be run from the build directory by executing `ctest`. If you would like to manually invoke a single python test, configure the python path as follows:
+This will build the wrenfold library and C++ tests. The C++ and python tests are executed via `ctest`. Rust tests must be compiled and run separately after the cmake build step:
+```bash
+cargo test --tests --release
+```
+Cargo does not presently invoke `cmake --build` if code-generators are stale. To force rust code to be re-generated, run `cmake --build --target wf_rust_generation`.
+
+If you would like to manually invoke a single python test, configure the python path as follows:
 ```bash
 export REPO_ROOT=$(pwd)
 export PYTHONPATH="$REPO_ROOT/components/python:$REPO_ROOT/build/components/wrapper"
