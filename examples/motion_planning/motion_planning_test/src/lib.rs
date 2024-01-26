@@ -1,5 +1,3 @@
-#![cfg(not(target_os = "windows"))]
-
 pub mod generated;
 pub mod problem;
 
