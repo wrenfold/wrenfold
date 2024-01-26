@@ -157,10 +157,13 @@ def main(args: argparse.Namespace):
     if args.language == "cpp":
         code = CppGenerator().generate(definitions=definitions)
         code = code_generation.apply_cpp_preamble(code, namespace="gen")
-        code_generation.mkdir_and_write_file(code=code, path=args.output)
     elif args.language == "rust":
         code = RustGenerator().generate(definitions=definitions)
-        code_generation.mkdir_and_write_file(code=code, path=args.output)
+        code = code_generation.apply_rust_preamble(code)
+    else:
+        raise RuntimeError("Invalid language selection")
+
+    code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

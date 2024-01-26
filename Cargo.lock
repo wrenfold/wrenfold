@@ -309,6 +309,7 @@ dependencies = [
  "argmin-math",
  "nalgebra",
  "ndarray",
+ "pkg-config",
  "serde",
  "wrenfold-traits",
 ]
@@ -435,6 +436,12 @@ name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2900ede94e305130c13ddd391e0ab7cbaeb783945ae07a279c268cb05109c6cb"
 
 [[package]]
 name = "powerfmt"

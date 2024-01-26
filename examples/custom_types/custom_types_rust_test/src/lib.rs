@@ -1,7 +1,7 @@
 //! Test generated custom types.
 
 #[cfg(test)]
-mod gen;
+mod generated;
 
 #[cfg(test)]
 pub mod geo;
@@ -12,7 +12,7 @@ mod tests {
 
     use wrenfold_test_utils::{numerical_jacobian, Manifold};
 
-    use crate::gen;
+    use super::generated as gen;
     use crate::geo::{Point3d, Pose3d};
 
     impl Manifold<f64, 3> for Point3d {

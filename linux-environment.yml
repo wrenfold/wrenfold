@@ -1,4 +1,4 @@
-# This file specifies additional dependencies required to build tests+examples.
+# This file specifies additional dependencies required to build on linux.
 channels:
   - conda-forge
 

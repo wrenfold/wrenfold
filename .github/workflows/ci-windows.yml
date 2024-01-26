@@ -47,11 +47,13 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ env.prefix }}
-          key: ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+          key: ${{ matrix.os }}-conda-${{ hashFiles('environment.yml') }}-${{ hashFiles('windows-environment.yml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
         id: cache
 
       - name: Update environment
-        run: mamba env update -n ${{ env.env_name }} -f environment.yml
+        run: |
+          mamba env update -n ${{ env.env_name }} -f environment.yml
+          mamba env update -n ${{ env.env_name }} --file windows-environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Dump conda environment
@@ -81,6 +83,18 @@ jobs:
           $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
           cmake --build . --config ${{matrix.build_type}} --parallel $threads
 
-      - name: Test
+      - name: Run CTest
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
         run: ctest --output-on-failure
+
+      - name: Dump rustc version
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: rustc --version
+
+      - name: Cargo test
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: cargo test --tests --release --color=always --target-dir cargo --manifest-path $env:GITHUB_WORKSPACE\Cargo.toml
+
+      - name: Cargo clippy
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: cargo clippy --all --color=always --target-dir cargo --manifest-path $env:GITHUB_WORKSPACE\Cargo.toml -- -D warnings

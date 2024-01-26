@@ -17,11 +17,6 @@ find_package(
 message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
 message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 
-# Find optional PkgConfig. This is to build certain tests+examples.
-if(NOT DEFINED SKBUILD_PROJECT_NAME)
-  find_package(PkgConfig)
-endif()
-
 # Add third party code
 add_subdirectory(dependencies)
 
@@ -49,18 +44,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
   list(APPEND SHARED_WARNING_FLAGS -Wno-unused-local-typedef)
 endif()
 
-# Find cargo so we can enable optional rust targets:
-find_program(CARGO_PATH cargo)
-if(DEFINED CARGO_PATH)
-  message(STATUS "cargo path: ${CARGO_PATH}")
-  if(NOT DEFINED SKBUILD_PROJECT_NAME)
-    set(ENABLE_RUST_TARGETS_DEFAULT ON)
-  endif()
-else()
-  set(ENABLE_RUST_TARGETS_DEFAULT OFF)
-endif()
-option(ENABLE_RUST_TARGETS "Enable building and testing rust targets."
-       ${ENABLE_RUST_TARGETS_DEFAULT})
+# We make a custom target that groups together all the rust code-generation.
+add_custom_target(wf_rust_generation ALL)
 
 # Add libraries
 add_subdirectory(components)

@@ -14,10 +14,10 @@ class custom_rust_code_generator final : public wf::rust_code_generator {
 
   std::string operator()(const wf::custom_type& custom) const override {
     if (custom.is_native_type<wf::symbolic::Point2d>()) {
-      return "types::Point2d";
+      return "crate::types::Point2d";
     }
     if (custom.is_native_type<wf::symbolic::Circle>()) {
-      return "types::Circle";
+      return "crate::types::Circle";
     }
     return rust_code_generator::operator()(custom);
   }
@@ -43,7 +43,7 @@ class custom_rust_code_generator final : public wf::rust_code_generator {
 
 int main() {
   using namespace wf;
-  std::string code = "// Machine generated code.\n\n";
+  std::string code = "//! Machine generated code.\n#![cfg_attr(rustfmt, rustfmt_skip)]\n\n";
 
   custom_rust_code_generator gen{};
   generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", "x", "y", "z");
@@ -67,8 +67,10 @@ int main() {
   generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
   generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
 
-  std::ofstream output{GENERATOR_OUTPUT_FILE};
-  output << code;
+  // Write in binary to stop windows from turning LF into CRLF.
+  std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
+  output.write(code.data(), code.size());
   output.flush();
+  WF_ASSERT(output.good());
   return 0;
 }

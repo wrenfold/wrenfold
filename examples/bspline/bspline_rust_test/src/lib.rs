@@ -1,13 +1,9 @@
 use nalgebra as na;
 
+mod generated;
 mod numerical;
 
-mod gen {
-    // CMake exports `CODE_GENERATION_FILE` when building this target.
-    include!(concat!(env!("CODE_GENERATION_FILE")));
-}
-
-use gen::{
+use generated::{
     bspline_order4_interval_0, bspline_order4_interval_1, bspline_order4_interval_2,
     bspline_order4_interval_3, bspline_order7_interval_0, bspline_order7_interval_1,
     bspline_order7_interval_2, bspline_order7_interval_3, bspline_order7_interval_4,

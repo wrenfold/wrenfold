@@ -19,12 +19,5 @@ add_py_code_generator(
   --language
   rust)
 
-add_rust_test(
-  bspline_rust_test
-  CRATE_NAME
-  bspline_rust_test
-  GENERATOR_TARGET
-  py_bspline_generate_rust
-  CRATE_SOURCES
-  bspline_rust_test/src/lib.rs
-  bspline_rust_test/src/numerical.rs)
+copy_generated_file(GENERATOR_TARGET py_bspline_generate_rust DESTINATION_DIR
+                    bspline_rust_test/src TARGET_GROUP wf_rust_generation)

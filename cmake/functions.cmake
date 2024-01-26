@@ -133,13 +133,15 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   endif()
   set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}_gen")
   set(GENERATOR_OUTPUT_FILE "${GENERATOR_OUTPUT_DIR}/${ARGS_OUTPUT_FILE_NAME}")
-
-  set(COMMAND_ENV_VARIABLES "")
-  list(
-    APPEND
-    COMMAND_ENV_VARIABLES
-    "PYTHONPATH=\"${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python\""
+  set(COMMAND_ENV_VARIABLES
+      "PYTHONPATH=\"${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python\""
   )
+
+  # Create a list of python sources we depend on. This way, touching python code
+  # will cause generation to run again.
+  get_target_property(PYTHON_SOURCE_DIR wf_python SOURCE_DIR)
+  get_target_property(PYTHON_LIB_SOURCES wf_python SOURCES)
+  list(TRANSFORM PYTHON_LIB_SOURCES PREPEND "${PYTHON_SOURCE_DIR}/")
 
   add_custom_command(
     OUTPUT ${GENERATOR_OUTPUT_FILE}
@@ -149,7 +151,8 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
       "${GENERATOR_OUTPUT_FILE}" ${ARGS_SCRIPT_ARGUMENTS}
     WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
     COMMENT "Run python code-generator: ${NAME}"
-    DEPENDS wf-core wf_wrapper ${MAIN_SCRIPT_FILE} ${SOURCE_FILES})
+    DEPENDS wf-core wf_wrapper wf_python ${MAIN_SCRIPT_FILE} ${SOURCE_FILES}
+            ${PYTHON_LIB_SOURCES})
 
   set_source_files_properties(${GENERATOR_OUTPUT_FILE} PROPERTIES GENERATED
                                                                   TRUE)
@@ -158,6 +161,43 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   add_custom_target(${NAME} DEPENDS ${GENERATOR_OUTPUT_FILE})
   set_target_properties(${NAME} PROPERTIES GENERATED_SOURCE_FILE
                                            ${GENERATOR_OUTPUT_FILE})
+endfunction()
+
+# Add a build-step for copying generated files to the source tree (for rust
+# tests).
+function(copy_generated_file)
+  set(options "")
+  set(oneValueArgs GENERATOR_TARGET DESTINATION_DIR TARGET_GROUP)
+  set(multiValueArgs "")
+  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
+                        ${ARGN})
+  if(NOT DEFINED ARGS_GENERATOR_TARGET
+     OR NOT DEFINED ARGS_DESTINATION_DIR
+     OR NOT DEFINED ARGS_TARGET_GROUP)
+    message(
+      FATAL_ERROR
+        "The GENERATOR_TARGET, DESTINATION_DIR, and TARGET_GROUP arguments are required."
+    )
+  endif()
+
+  # Get the generated file:
+  get_target_property(GENERATOR_OUTPUT ${ARGS_GENERATOR_TARGET}
+                      GENERATED_SOURCE_FILE)
+  get_filename_component(GENERATED_FILE_NAME ${GENERATOR_OUTPUT} NAME)
+
+  # Create the path to the destination file:
+  set(DESTINATION_FILE_PATH
+      "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_DESTINATION_DIR}/${GENERATED_FILE_NAME}"
+  )
+  add_custom_target(
+    ${ARGS_GENERATOR_TARGET}_copy_generated
+    DEPENDS ${ARGS_GENERATOR_TARGET} ${GENERATOR_OUTPUT}
+    BYPRODUCTS ${DESTINATION_FILE_PATH}
+    COMMAND ${CMAKE_COMMAND} -E copy ${GENERATOR_OUTPUT}
+            ${DESTINATION_FILE_PATH}
+    COMMENT "Copy generated source file for generator: ${ARGS_GENERATOR_TARGET}"
+  )
+  add_dependencies(${ARGS_TARGET_GROUP} ${ARGS_GENERATOR_TARGET}_copy_generated)
 endfunction()
 
 # Define a new python test.
@@ -183,72 +223,4 @@ function(add_python_test PYTHON_SOURCE_FILE)
       "PYTHONPATH=${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python"
       ${Python_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE})
   message(STATUS "Added python test: ${TEST_NAME}")
-endfunction()
-
-# Add a unit test written in Rust. Rust tests are implemented in individual
-# crates, which we build from CMake. This method adds a target to ALL to trigger
-# building of the crate, then it adds a call to `cargo test` to the ctest step.
-# CRATE_NAME: Name of the crate in the current source directory.
-# GENERATOR_TARGET: Optional name of the target that code-generates rust code.
-# CRATE_SOURCES: Source files in the crate.
-function(add_rust_test NAME)
-  set(options "")
-  set(oneValueArgs CRATE_NAME GENERATOR_TARGET)
-  set(multiValueArgs CRATE_SOURCES ENV_VARIABLES CARGO_BUILD_ARGS)
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
-                        ${ARGN})
-
-  if(NOT DEFINED CARGO_PATH)
-    message(FATAL_ERROR "Failed to find cargo.")
-  endif()
-
-  # Get the output file from the code-generation step, if it was specified.
-  set(GENERATOR_OUTPUT "")
-  if(NOT ${ARGS_GENERATOR_TARGET} STREQUAL "")
-    get_target_property(GENERATOR_OUTPUT ${ARGS_GENERATOR_TARGET}
-                        GENERATED_SOURCE_FILE)
-    message(
-      STATUS
-        "Adding rust test: ${NAME} (uses generator ${ARGS_GENERATOR_TARGET})")
-  else()
-    message(STATUS "Adding rust test: ${NAME}")
-  endif()
-
-  # Add a target to do the cargo build:
-  set(CARGO_ENV_VARIABLES
-      "CODE_GENERATION_FILE=${GENERATOR_OUTPUT}" "CARGO_CMD=test"
-      "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/target")
-
-  # Add external env variables
-  if(DEFINED ARGS_ENV_VARIABLES)
-    list(APPEND CARGO_ENV_VARIABLES ${ARGS_ENV_VARIABLES})
-  endif()
-
-  set(CARGO_ARGS --color always)
-  if("${CMAKE_BUILD_TYPE}" STREQUAL "Release" OR "${CMAKE_BUILD_TYPE}" STREQUAL
-                                                 "RelWithDebInfo")
-    list(APPEND CARGO_ARGS --release)
-  endif()
-
-  if(NOT DEFINED ARGS_CARGO_BUILD_ARGS)
-    set(ARGS_CARGO_BUILD_ARGS "")
-  endif()
-
-  # Add target to build the test without running.
-  set(CRATE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_CRATE_NAME}")
-  add_custom_target(
-    ${NAME}_build ALL
-    COMMAND ${CMAKE_COMMAND} -E env ${CARGO_ENV_VARIABLES} ${CARGO_PATH} test
-            ${CARGO_ARGS} --no-run ${ARGS_CARGO_BUILD_ARGS}
-    WORKING_DIRECTORY ${CRATE_ROOT}
-    COMMENT "Cargo build for: ${NAME}"
-    DEPENDS ${GENERATOR_TARGET} ${GENERATOR_OUTPUT} ${ARGS_CRATE_SOURCES}
-            "${CRATE_ROOT}/Cargo.toml" "${CMAKE_SOURCE_DIR}/Cargo.toml")
-
-  # Add a target to run the test
-  add_test(
-    NAME ${NAME}
-    COMMAND ${CMAKE_COMMAND} -E env ${CARGO_ENV_VARIABLES} ${CARGO_PATH} test
-            ${CARGO_ARGS}
-    WORKING_DIRECTORY ${CRATE_ROOT})
 endfunction()

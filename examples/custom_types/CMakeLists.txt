@@ -19,11 +19,6 @@ add_py_code_generator(
   --language
   rust)
 
-add_rust_test(
-  custom_types_rust_test
-  CRATE_NAME
-  custom_types_rust_test
-  GENERATOR_TARGET
-  py_custom_types_generate_rust
-  CRATE_SOURCES
-  custom_types_rust_test/src/lib.rs)
+copy_generated_file(
+  GENERATOR_TARGET py_custom_types_generate_rust DESTINATION_DIR
+  custom_types_rust_test/src TARGET_GROUP wf_rust_generation)

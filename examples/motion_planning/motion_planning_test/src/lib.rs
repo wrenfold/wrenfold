@@ -1,6 +1,4 @@
-#[allow(unused_variables)]
-pub mod gen;
-
+pub mod generated;
 pub mod problem;
 
 pub use problem::{ProblemInfo, Weights};

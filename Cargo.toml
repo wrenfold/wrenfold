@@ -16,3 +16,4 @@ wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.0.1",
 nalgebra = { version = "0.32.3" }
 approx = { version = "0.5.1" }
 serde = { version = "1.0" }
+pkg-config = { version = "0.3.29" }
