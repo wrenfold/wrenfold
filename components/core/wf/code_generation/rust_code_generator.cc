@@ -44,9 +44,10 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   if (signature.num_arguments() >= 7) {
     result.push_back("clippy::too_many_arguments");
   }
-  // We can fix these two, but until we do let's disable them.
+  // We can fix these three, but until we do let's disable them.
   result.push_back("clippy::unused_unit");
   result.push_back("clippy::collapsible_else_if");
+  result.push_back("unused_variables");
   return result;
 }
 

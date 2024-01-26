@@ -87,6 +87,10 @@ jobs:
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
         run: ctest --output-on-failure
 
+      - name: Dump rustc version
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: rustc --version
+
       - name: Cargo test
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
         run: cargo test --tests --release --color=always --target-dir cargo --manifest-path $GITHUB_WORKSPACE/Cargo.toml
