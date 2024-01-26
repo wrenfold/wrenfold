@@ -292,27 +292,27 @@ fn test_nested_custom_type_1() {
 fn test_external_function_call_1() {
     assert_abs_diff_eq!(
         -126.0,
-        gen::external_function_call_1(3.0, -2.0),
+        generated::external_function_call_1(3.0, -2.0),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         -1000.0,
-        gen::external_function_call_1(10.0, 0.0),
+        generated::external_function_call_1(10.0, 0.0),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         -0.5625,
-        gen::external_function_call_1(-0.25, 0.5),
+        generated::external_function_call_1(-0.25, 0.5),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         0.0,
-        gen::external_function_call_1(0.0, 1.3),
+        generated::external_function_call_1(0.0, 1.3),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         0.0,
-        gen::external_function_call_1(1.1, 5.0),
+        generated::external_function_call_1(1.1, 5.0),
         epsilon = 1.0e-15
     );
 }
@@ -321,17 +321,17 @@ fn test_external_function_call_1() {
 fn test_external_function_call_2() {
     assert_abs_diff_eq!(
         3.0,
-        gen::external_function_call_2(&na::vector![1.0, -0.5], &na::vector![2.0, 3.0]),
+        generated::external_function_call_2(&na::vector![1.0, -0.5], &na::vector![2.0, 3.0]),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         55.56,
-        gen::external_function_call_2(&na::vector![10.0, 2.0], &na::vector![-2.0, 3.2]),
+        generated::external_function_call_2(&na::vector![10.0, 2.0], &na::vector![-2.0, 3.2]),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         5.6,
-        gen::external_function_call_2(&na::vector![0.0, 1.2], &na::vector![-2.3, -1.0]),
+        generated::external_function_call_2(&na::vector![0.0, 1.2], &na::vector![-2.3, -1.0]),
         epsilon = 1.0e-15
     );
 }
@@ -340,17 +340,17 @@ fn test_external_function_call_2() {
 fn test_external_function_call_3() {
     assert_abs_diff_eq!(
         na::Matrix2::zeros(),
-        gen::external_function_call_3(0.0, &na::vector![-1.0, 1.0]),
+        generated::external_function_call_3(0.0, &na::vector![-1.0, 1.0]),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         na::Matrix2::new(2.0, 3.0, 2.0, 3.0),
-        gen::external_function_call_3(1.0, &na::vector![2.0, 3.0]),
+        generated::external_function_call_3(1.0, &na::vector![2.0, 3.0]),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         na::Matrix2::new(-1.5, 7.5, -4.5, 22.5),
-        gen::external_function_call_3(3.0, &na::vector![-0.5, 2.5]),
+        generated::external_function_call_3(3.0, &na::vector![-0.5, 2.5]),
         epsilon = 1.0e-15
     );
 }
@@ -359,22 +359,22 @@ fn test_external_function_call_3() {
 fn test_external_function_call_4() {
     assert_abs_diff_eq!(
         -2.0,
-        gen::external_function_call_4(0.0, 0.0),
+        generated::external_function_call_4(0.0, 0.0),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         32.0,
-        gen::external_function_call_4(10.0, 2.0),
+        generated::external_function_call_4(10.0, 2.0),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         -416.0,
-        gen::external_function_call_4(-3.0, 13.0),
+        generated::external_function_call_4(-3.0, 13.0),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         -12.5,
-        gen::external_function_call_4(0.0, 2.5),
+        generated::external_function_call_4(0.0, 2.5),
         epsilon = 1.0e-15
     );
 }
@@ -383,7 +383,7 @@ fn test_external_function_call_4() {
 fn test_external_function_call_5() {
     assert_abs_diff_eq!(
         1.0,
-        gen::external_function_call_5(
+        generated::external_function_call_5(
             &types::Circle {
                 center: types::Point2d::new(0.0, 0.0),
                 radius: 2.0
@@ -395,7 +395,7 @@ fn test_external_function_call_5() {
     );
     assert_abs_diff_eq!(
         1.0,
-        gen::external_function_call_5(
+        generated::external_function_call_5(
             &types::Circle {
                 center: types::Point2d::new(-1.0, 2.0),
                 radius: 4.0
@@ -407,7 +407,7 @@ fn test_external_function_call_5() {
     );
     assert_abs_diff_eq!(
         1.0,
-        gen::external_function_call_5(
+        generated::external_function_call_5(
             &types::Circle {
                 center: types::Point2d::new(2.5, 0.5),
                 radius: 0.1
@@ -419,7 +419,7 @@ fn test_external_function_call_5() {
     );
     assert_abs_diff_eq!(
         -1.0,
-        gen::external_function_call_5(
+        generated::external_function_call_5(
             &types::Circle {
                 center: types::Point2d::new(3.0, 0.0),
                 radius: 2.0
@@ -431,7 +431,7 @@ fn test_external_function_call_5() {
     );
     assert_abs_diff_eq!(
         -1.0,
-        gen::external_function_call_5(
+        generated::external_function_call_5(
             &types::Circle {
                 center: types::Point2d::new(-5.0, -1.0),
                 radius: 6.0
@@ -447,17 +447,17 @@ fn test_external_function_call_5() {
 fn test_external_function_call_6() {
     assert_abs_diff_eq!(
         na::vector![3.0, -5.0],
-        gen::external_function_call_6(1.0, -0.5).to_vector(),
+        generated::external_function_call_6(1.0, -0.5).to_vector(),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         na::vector![146.25, 2.5],
-        gen::external_function_call_6(5.0, 3.25).to_vector(),
+        generated::external_function_call_6(5.0, 3.25).to_vector(),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         na::vector![623.4375, -14.5],
-        gen::external_function_call_6(-3.5, 4.75).to_vector(),
+        generated::external_function_call_6(-3.5, 4.75).to_vector(),
         epsilon = 1.0e-15
     );
 }

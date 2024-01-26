@@ -2,6 +2,9 @@
 #![allow(non_snake_case)]
 
 #[cfg(test)]
+mod generated;
+
+#[cfg(test)]
 pub mod types {
     #[derive(Debug)]
     pub struct StructType {
@@ -39,11 +42,6 @@ pub mod external {
     }
 }
 
-#[cfg(test)]
-pub mod gen {
-    include!(concat!(env!("CODE_GENERATION_FILE")));
-}
-
 /// Test that we can call our external function that takes an opaque types (vector of custom structs).
 #[test]
 fn test_lookup_and_compute_inner_product() {
@@ -61,19 +59,19 @@ fn test_lookup_and_compute_inner_product() {
     assert_abs_diff_eq!(
         external::interpolate_access(&test_vector, 0.0)
             .dot(&external::interpolate_access(&test_vector, 19.0)),
-        gen::lookup_and_compute_inner_product(&test_vector, 0.0, 19.0),
+        generated::lookup_and_compute_inner_product(&test_vector, 0.0, 19.0),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         external::interpolate_access(&test_vector, 7.2)
             .dot(&external::interpolate_access(&test_vector, 0.23)),
-        gen::lookup_and_compute_inner_product(&test_vector, 7.2, 0.23),
+        generated::lookup_and_compute_inner_product(&test_vector, 7.2, 0.23),
         epsilon = 1.0e-15
     );
     assert_abs_diff_eq!(
         external::interpolate_access(&test_vector, 16.0)
             .dot(&external::interpolate_access(&test_vector, 5.98)),
-        gen::lookup_and_compute_inner_product(&test_vector, 16.0, 5.98),
+        generated::lookup_and_compute_inner_product(&test_vector, 16.0, 5.98),
         epsilon = 1.0e-15
     );
 }

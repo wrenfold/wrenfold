@@ -118,6 +118,7 @@ def main(args: argparse.Namespace):
         code = code_generation.apply_cpp_preamble(code=code, namespace="gen")
     else:
         code = CustomRustGenerator().generate(definitions=definitions)
+        code = code_generation.apply_rust_preamble(code=code)
 
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 
