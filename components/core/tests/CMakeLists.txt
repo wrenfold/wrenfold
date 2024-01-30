@@ -4,18 +4,20 @@ function(add_single_file_test SOURCE_FILE)
   add_cpp_test(${TEST_NAME} SOURCE_FILES ${SOURCE_FILE})
 endfunction()
 
+add_single_file_test(algorithm_utils_test.cc)
 add_single_file_test(checked_pointers_test.cc)
-add_single_file_test(plain_formatter_test.cc)
-add_single_file_test(scalar_operations_test.cc)
+add_single_file_test(compound_expressions_test.cc)
 add_single_file_test(derivatives_test.cc)
-add_single_file_test(integer_utils_test.cc)
-add_single_file_test(numeric_expressions_test.cc)
 add_single_file_test(functions_test.cc)
-add_single_file_test(matrix_operations_test.cc)
+add_single_file_test(integer_utils_test.cc)
 add_single_file_test(ir_builder_test.cc)
-add_single_file_test(substitute_test.cc)
-add_single_file_test(quaternion_test.cc)
 add_single_file_test(limits_test.cc)
+add_single_file_test(matrix_operations_test.cc)
+add_single_file_test(numeric_expressions_test.cc)
+add_single_file_test(plain_formatter_test.cc)
+add_single_file_test(quaternion_test.cc)
+add_single_file_test(scalar_operations_test.cc)
+add_single_file_test(substitute_test.cc)
 add_single_file_test(type_list_test.cc)
 
 add_compiled_code_generator(
@@ -25,9 +27,32 @@ add_compiled_code_generator(
 add_cpp_test(cpp_generation_test SOURCE_FILES cpp_generation_test.cc
              test_expressions.h GENERATOR_TARGET cpp_generation_generate)
 
+add_py_code_generator(
+  cpp_generation_generate_2
+  generation_test_2.py
+  OUTPUT_FILE_NAME
+  generated.h
+  SCRIPT_ARGUMENTS
+  --language
+  cpp)
+
+add_cpp_test(cpp_generation_test_2 SOURCE_FILES cpp_generation_test_2.cc
+             GENERATOR_TARGET cpp_generation_generate_2)
+
+# Rust tests
 add_compiled_code_generator(
   rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
   rust_generation_gen.cc test_expressions.h)
-
 copy_generated_file(GENERATOR_TARGET rust_generation_generate DESTINATION_DIR
                     rust_generation_test/src TARGET_GROUP wf_rust_generation)
+
+add_py_code_generator(
+  rust_generation_generate_2
+  generation_test_2.py
+  OUTPUT_FILE_NAME
+  generated.rs
+  SCRIPT_ARGUMENTS
+  --language
+  rust)
+copy_generated_file(GENERATOR_TARGET rust_generation_generate_2 DESTINATION_DIR
+                    rust_generation_test_2/src TARGET_GROUP wf_rust_generation)

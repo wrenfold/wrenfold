@@ -213,6 +213,14 @@ constexpr auto operator!=(const maybe_null<T>& lhs,
   return lhs.get_unchecked() != rhs.get_unchecked();
 }
 
+// True if the specified type is a maybe_null or non_null.
+template <typename T>
+struct is_checked_pointer : std::false_type {};
+template <typename T>
+struct is_checked_pointer<maybe_null<T>> : std::true_type {};
+template <typename T>
+struct is_checked_pointer<non_null<T>> : std::true_type {};
+
 }  // namespace wf
 
 // Specialization of std::hash for non_null

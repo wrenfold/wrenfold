@@ -35,8 +35,7 @@ class cast_bool {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    Expr transformed = operation(arg_.front());
-    return cast_int_from_bool(transformed);
+    return cast_int_from_bool(operation(arg_.front()));
   }
 
  private:

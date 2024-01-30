@@ -1,4 +1,6 @@
 // Copyright 2023 Gareth Cross
+#include "wf/ordering.h"
+
 #include "wf/expression.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/visit.h"
@@ -9,7 +11,12 @@ namespace wf {
 struct order_visitor {
   template <typename T>
   relative_order operator()(const T& a, const T& b) const {
-    return compare(a, b);
+    if constexpr (implements_order_struct_v<T>) {
+      return order_struct<T>{}(a, b);
+    } else {
+      // TODO: Move all definitions to be beside their respective types.
+      return compare(a, b);
+    }
   }
 
   // This visitor applies to any two members of `OrderOfTypes` that are _not_ the same type.
@@ -26,11 +33,11 @@ struct order_visitor {
   }
 
   relative_order compare(const cast_bool& a, const cast_bool& b) const {
-    return expression_order(a.arg(), b.arg());
+    return order_struct<Expr>{}(a.arg(), b.arg());
   }
 
   relative_order compare(const conditional& a, const conditional& b) const {
-    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
   }
 
   constexpr relative_order compare(const complex_infinity&,
@@ -39,7 +46,7 @@ struct order_visitor {
   }
 
   relative_order compare(const addition& a, const addition& b) const {
-    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
   }
 
   relative_order compare(const derivative& a, const derivative& b) const {
@@ -48,15 +55,15 @@ struct order_visitor {
     } else if (a.order() > b.order()) {
       return relative_order::greater_than;
     }
-    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
   }
 
   relative_order compare(const multiplication& a, const multiplication& b) const {
-    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
   }
 
   relative_order compare(const power& a, const power& b) const {
-    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
   }
 
   relative_order compare(const function& a, const function& b) const {
@@ -67,7 +74,7 @@ struct order_visitor {
     } else if (name_comp < 0) {
       return relative_order::less_than;
     }
-    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    return lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
   }
 
   relative_order compare(const relational& a, const relational& b) const {
@@ -76,7 +83,7 @@ struct order_visitor {
     } else if (a.operation() > b.operation()) {
       return relative_order::greater_than;
     }
-    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    return lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
   }
 
   constexpr relative_order compare(const undefined&, const undefined&) const noexcept {
@@ -91,46 +98,33 @@ struct order_visitor {
     }
     return relative_order::greater_than;
   }
-
-  // Order two sequences lexicographically.
-  template <typename Iterator>
-  static relative_order lexicographical_compare(Iterator begin_a, Iterator end_a, Iterator begin_b,
-                                                Iterator end_b) {
-    for (; begin_a != end_a && begin_b != end_b; ++begin_a, ++begin_b) {
-      const relative_order result = expression_order(*begin_a, *begin_b);
-      if (result == relative_order::less_than) {
-        return relative_order::less_than;
-      } else if (result == relative_order::greater_than) {
-        return relative_order::greater_than;
-      }
-    }
-    if (begin_a == end_a && begin_b != end_b) {
-      return relative_order::less_than;  // `a` is shorter:
-    } else if (begin_a != end_a && begin_b == end_b) {
-      return relative_order::greater_than;  // `b` is shorter
-    }
-    return relative_order::equal;  //  they are equal
-  }
 };
 
-template <typename... Ts>
-static constexpr auto get_type_order_indices(type_list<Ts...>) {
+template <typename... AllTypes, typename... OrderedTypes>
+static constexpr auto get_type_order_indices(type_list<AllTypes...>,
+                                             type_list<OrderedTypes...>) noexcept {
+  using all_types_list = type_list<AllTypes...>;
+  using ordered_list = type_list<OrderedTypes...>;
+
+  // The lists should contain the same elements, just in a different order:
+  static_assert(sizeof...(AllTypes) == sizeof...(OrderedTypes));
+  static_assert(std::conjunction_v<type_list_contains<OrderedTypes, all_types_list>...>,
+                "A type in OrderedTypes is not present in AllTypes.");
+  static_assert(std::conjunction_v<type_list_contains<AllTypes, ordered_list>...>,
+                "A type in AllTypes is not present in OrderedTypes.");
+
+  // Return array mapping from [index in expression_variant] --> [index in ordered list].
+  return std::array<uint16_t, sizeof...(AllTypes)>{
+      static_cast<uint16_t>(type_list_index_v<AllTypes, ordered_list>)...};
+}
+
+relative_order order_struct<Expr>::operator()(const Expr& a, const Expr& b) const {
   using order_of_types =
       type_list<float_constant, integer_constant, rational_constant, symbolic_constant,
                 complex_infinity, variable, multiplication, addition, power, function, relational,
-                conditional, cast_bool, derivative, undefined>;
-
-  // Every type in the approved type list must appear here, or we get a compile error:
-  static_assert(type_list_size<order_of_types>::value == sizeof...(Ts));
-
-  return std::array<std::size_t, sizeof...(Ts)>{type_list_index_v<Ts, order_of_types>...};
-}
-
-relative_order expression_order(const Expr& a, const Expr& b) {
-  // An array where element [i] is the position of the type with index `i` within
-  // our preferred canonical ordering.
-  using all_types = Expr::storage_type::types;
-  static constexpr auto order = get_type_order_indices(all_types{});
+                conditional, cast_bool, compound_expression_element, derivative, undefined>;
+  static constexpr auto order =
+      get_type_order_indices(Expr::storage_type::types{}, order_of_types{});
 
   const auto index_a = order[a.type_index()];
   const auto index_b = order[b.type_index()];
@@ -145,6 +139,19 @@ relative_order expression_order(const Expr& a, const Expr& b) {
     using Ta = std::decay_t<decltype(a_typed)>;
     const auto& b_typed = cast_unchecked<Ta>(b);
     return order_visitor{}(a_typed, b_typed);
+  });
+}
+
+relative_order order_struct<compound_expr>::operator()(const compound_expr& a,
+                                                       const compound_expr& b) const {
+  if (a.type_index() < b.type_index()) {
+    return relative_order::less_than;
+  } else if (a.type_index() > b.type_index()) {
+    return relative_order::greater_than;
+  }
+  return visit(a, [&b](const auto& a_typed) -> relative_order {
+    using Ta = std::decay_t<decltype(a_typed)>;
+    return order_visitor{}(a_typed, cast_unchecked<Ta>(b));
   });
 }
 

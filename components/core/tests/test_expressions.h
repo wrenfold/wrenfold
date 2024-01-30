@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include "wf/code_generation/declare_external_function.h"
 #include "wf/code_generation/type_registry.h"
 #include "wf/expression.h"
 #include "wf/functions.h"
@@ -9,6 +10,7 @@
 #include "wf/type_annotations.h"
 
 // Some symbolic functions we use in unit tests.
+// ReSharper disable CppPassValueParameterByConstReference
 namespace wf {
 
 namespace ta = type_annotations;
@@ -23,7 +25,7 @@ inline auto vector_rotation_2d(Expr theta, ta::static_matrix<2, 1> v) {
   MatrixExpr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
   ta::static_matrix<2, 1> v_rot{R * v};
   ta::static_matrix<2, 1> v_dot_D_theta{v_rot.inner().diff(theta)};
-  return std::make_tuple(return_value(v_rot), optional_output_arg("D_theta", v_dot_D_theta));
+  return std::make_tuple(output_arg("v_rot", v_rot), optional_output_arg("D_theta", v_dot_D_theta));
 }
 
 // Norm of a 3D vector + the 1x3 derivative.
@@ -105,6 +107,7 @@ struct Circle {
   Point2d center{};
   Expr radius{0};
 };
+
 }  // namespace symbolic
 
 template <>
@@ -147,6 +150,79 @@ inline auto nested_custom_type_1(symbolic::Circle a, symbolic::Point2d b) {
   result.radius = where(d <= a.radius, a.radius, d);
   result.center = a.center;
   return result;
+}
+
+// Declare an external function.
+struct external_function_1
+    : declare_external_function<external_function_1, Expr, type_list<Expr, Expr>> {
+  static constexpr std::string_view name() noexcept { return "external_function_1"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+inline auto external_function_call_1(Expr x, Expr y) {
+  const Expr f = external_function_1::call(x * 2, y - 5);
+  return f * x;
+}
+
+// An external function that accepts a matrix argument.
+struct external_function_2
+    : declare_external_function<external_function_2, Expr, type_list<ta::static_matrix<2, 3>>> {
+  static constexpr std::string_view name() noexcept { return "external_function_2"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0"); }
+};
+
+inline auto external_function_call_2(ta::static_matrix<2, 1> u, ta::static_matrix<2, 1> v) {
+  // clang-format off
+  const MatrixExpr m = make_matrix(2, 3,
+    u[0] - 2.0, pow(u[1], 2), 1,
+    v[0], pow(v[1] + 1.0, 2), 1);
+  // clang-format on
+  return external_function_2::call(m);
+}
+
+// An external function that returns a matrix.
+struct external_function_3
+    : declare_external_function<external_function_3, ta::static_matrix<2, 2>,
+                                type_list<ta::static_matrix<2, 1>, ta::static_matrix<2, 1>>> {
+  static constexpr std::string_view name() noexcept { return "external_function_3"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+inline auto external_function_call_3(Expr x, ta::static_matrix<2, 1> v) {
+  return external_function_3::call(make_vector(x, pow(x, 2)), v);
+}
+
+// An external function that accepts and returns custom types.
+struct external_function_4 : declare_external_function<external_function_4, symbolic::Point2d,
+                                                       type_list<symbolic::Point2d>> {
+  static constexpr std::string_view name() noexcept { return "external_function_4"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("p"); }
+};
+
+inline auto external_function_call_4(Expr a, Expr b) {
+  const symbolic::Point2d p = external_function_4::call(symbolic::Point2d{a - b, b * 2});
+  return where(abs(p.x) > abs(p.y), p.x, p.y);
+}
+
+// A external function that accepts a nested custom type.
+struct external_function_5
+    : declare_external_function<external_function_5, Expr,
+                                type_list<symbolic::Circle, symbolic::Circle>> {
+  static constexpr std::string_view name() noexcept { return "external_function_5"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("c", "p"); }
+};
+
+inline auto external_function_call_5(symbolic::Circle c, Expr x, Expr y) {
+  return 2 * external_function_5::call(c, symbolic::Circle{symbolic::Point2d{x, y}, 1.0}) - 1;
+}
+
+// Pass the result of one external function to another. Fill the first one in a conditional.
+inline auto external_function_call_6(Expr x, Expr y) {
+  Expr a = where(abs(x) > abs(y), x, y);
+  Expr b = where(abs(x) > abs(y), y * 2, x * 3);
+  symbolic::Point2d p1{a, b};
+  symbolic::Point2d p2 = external_function_4::call(p1);
+  return external_function_4::call(p2);
 }
 
 }  // namespace wf

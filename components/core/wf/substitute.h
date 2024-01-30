@@ -2,6 +2,7 @@
 #pragma once
 #include "wf/absl_imports.h"
 #include "wf/expression.h"
+#include "wf/expressions/compound_expression_element.h"
 #include "wf/expressions/variable.h"
 #include "wf/hashing.h"
 
@@ -17,18 +18,27 @@ class substitute_variables_visitor {
   void add_substitution(const Expr& target, Expr replacement);
 
   // Add a new substitution to the list we will apply.
-  // Version that accepts `Variable` directly.
+  // Version that accepts `variable` directly.
   void add_substitution(variable variable, Expr replacement);
 
+  // Add a new substitution to the list we will apply.
+  // Version that accepts `compound_expression_element` directly.
+  void add_substitution(compound_expression_element element, Expr replacement);
+
   // Apply the substitute variable visitor. The cache is checked first.
-  Expr apply(const Expr& expression);
+  Expr operator()(const Expr& expression);
+  MatrixExpr operator()(const MatrixExpr& expression);
+  compound_expr operator()(const compound_expr& expression);
 
   template <typename T>
   Expr operator()(const T& concrete, const Expr& abstract);
 
  private:
   std::unordered_map<variable, Expr, hash_struct<variable>, is_identical_struct<variable>>
-      substitutions_;
+      variable_substitutions_;
+  std::unordered_map<compound_expression_element, Expr, hash_struct<compound_expression_element>,
+                     is_identical_struct<compound_expression_element>>
+      element_substitutions_;
   std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_{};
 };
 

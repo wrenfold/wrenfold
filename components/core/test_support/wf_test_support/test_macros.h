@@ -1,6 +1,7 @@
 #pragma once
 #include <gtest/gtest.h>
 
+#include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
@@ -45,6 +46,10 @@ struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, E
 template <>
 struct convert_assertion_argument<MatrixExpr> {
   MatrixExpr operator()(const MatrixExpr& arg) const { return arg; }
+};
+template <>
+struct convert_assertion_argument<compound_expr> {
+  compound_expr operator()(const compound_expr& arg) const { return arg; }
 };
 
 // Test is_identical_to

@@ -98,10 +98,14 @@ void wrap_codegen_operations(py::module_& m);
 // Defined in code_formatting_wrapper.cc
 void wrap_code_formatting_operations(py::module_& m);
 
+// Defined in compound_expression_wrapper.cc
+void wrap_compound_expression(py::module_& m);
+
 // Defined in geometry_wrapper.cc
 void wrap_geometry_operations(py::module_& m);
 }  // namespace wf
 
+// ReSharper disable CppIdenticalOperandsInBinaryExpression
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
 
@@ -118,7 +122,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
           "is_identical_to",
           [](const Expr& self, const Expr& other) { return self.is_identical_to(other); },
           "other"_a, "Test if two expressions have identical expression trees.")
-      .def_property_readonly("type_name", &Expr::type_name)
+      .def_property_readonly("type_name", [](const Expr& self) { return self.type_name(); })
       // Operations:
       .def(
           "diff",
@@ -150,7 +154,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(py::self * py::self)
       .def(py::self / py::self)
       .def(-py::self)
-      .def("__pow__", &wf::pow)
+      .def("__pow__", &wf::pow, py::is_operator())
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
@@ -222,31 +226,16 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("true") = constants::boolean_true;
   m.attr("false") = constants::boolean_false;
 
-  // TODO: This is unused - can probably be removed unless we want to expose the `function` type
-  // in python.
-  // Function enums.
-  py::enum_<built_in_function>(m, "BuiltInFunction")
-      .value("Cos", built_in_function::cos)
-      .value("Sin", built_in_function::sin)
-      .value("Tan", built_in_function::tan)
-      .value("ArcCos", built_in_function::arccos)
-      .value("ArcSin", built_in_function::arcsin)
-      .value("ArcTan", built_in_function::arctan)
-      .value("Log", built_in_function::ln)
-      .value("Abs", built_in_function::abs)
-      .value("Signum", built_in_function::signum)
-      .value("Arctan2", built_in_function::arctan2)
-      .def(
-          "to_string", [](built_in_function name) { return string_from_built_in_function(name); },
-          py::doc("Convert to string."));
-
   // Exceptions:
   py::register_exception<assertion_error>(m, "AssertionError");
   py::register_exception<dimension_error>(m, "DimensionError");
+  py::register_exception<domain_error>(m, "DomainError");
+  py::register_exception<invalid_argument_error>(m, "InvalidArgumentError");
   py::register_exception<type_error>(m, "TypeError");
 
   // Include other wrappers in this module:
   wrap_matrix_operations(m);
+  wrap_compound_expression(m);
 
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);

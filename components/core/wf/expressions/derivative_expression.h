@@ -50,7 +50,7 @@ class derivative {
   }
 
   // Create a new derivative expression.
-  static Expr create(Expr differentiand, Expr arg, int order);
+  static Expr create(Expr function, Expr arg, int order);
 
  private:
   std::array<Expr, 2> children_;

@@ -357,7 +357,7 @@ struct signum_visitor {
 };
 
 Expr signum(const Expr& arg) {
-  std::optional<Expr> maybe_simplified = visit_with_expr(arg, signum_visitor{});
+  std::optional<Expr> maybe_simplified = visit(arg, signum_visitor{});
   if (maybe_simplified) {
     return std::move(*maybe_simplified);
   }
@@ -416,7 +416,7 @@ struct bool_cast_visitor {
 };
 
 Expr cast_int_from_bool(const Expr& bool_expression) {
-  std::optional<Expr> result = visit_with_expr(bool_expression, bool_cast_visitor{});
+  std::optional<Expr> result = visit(bool_expression, bool_cast_visitor{});
   if (!result) {
     throw type_error("Expression of type `{}` is not a boolean arg: {}",
                      bool_expression.type_name(), bool_expression);

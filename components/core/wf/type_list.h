@@ -107,6 +107,7 @@ struct type_list_element<0, type_list<T, Ts...>> {
 template <std::size_t N, typename List>
 using type_list_element_t = typename type_list_element<N, List>::type;
 
+// Create a type_list from all the types in a variant.
 template <typename T>
 struct type_list_from_variant;
 template <typename T>
@@ -116,6 +117,7 @@ struct type_list_from_variant<std::variant<Ts...>> {
   using type = type_list<Ts...>;
 };
 
+// Create a type_list from all the types in a tuple.
 template <typename T>
 struct type_list_from_tuple;
 template <typename T>

@@ -1,5 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include "wf/compound_expression.h"
 #include "wf/expression.h"
 
 namespace wf {
@@ -7,8 +8,15 @@ namespace wf {
 // Simple plain-text formatter.
 class plain_formatter {
  public:
+  void operator()(const Expr& x);
+  void operator()(const MatrixExpr& x);
+
   void operator()(const addition& add);
   void operator()(const cast_bool& cast);
+  void operator()(const compound_expression_element& el);
+  void operator()(const external_function_invocation& invocation);
+  void operator()(const custom_type_argument& arg);
+  void operator()(const custom_type_construction& construct);
   void operator()(const conditional& conditional);
   void operator()(const symbolic_constant& constant);
   void operator()(const derivative& derivative);

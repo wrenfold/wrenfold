@@ -146,4 +146,9 @@ struct hash_struct<variable> {
   }
 };
 
+template <>
+struct is_identical_struct<variable> {
+  bool operator()(const variable& a, const variable& b) const { return a.is_identical_to(b); }
+};
+
 }  // namespace wf

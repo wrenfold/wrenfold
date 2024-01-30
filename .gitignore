@@ -47,3 +47,6 @@ cmake-*/
 # PYTHON
 virtualenv/
 __pycache__/
+
+# RUST
+target/

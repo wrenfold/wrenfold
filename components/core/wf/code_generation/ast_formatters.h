@@ -11,7 +11,10 @@ namespace wf::ast {
 template <typename T>
 const char* camel_case_name() noexcept {
   // We can't make this array static constexpr w/ gcc (but it works on msvc).
-  constexpr std::array array = camel_case_from_snake_case<64>(T::snake_case_name_str);
+  constexpr std::size_t max_string_length = 64;
+  static_assert(T::snake_case_name_str.size() < max_string_length);
+  constexpr std::array<char, max_string_length> array =
+      camel_case_from_snake_case<max_string_length>(T::snake_case_name_str);
   static const std::string str{array.data()};
   return str.c_str();
 }
@@ -68,7 +71,12 @@ auto format_ast(Iterator it, const wf::ast::branch& d) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::call& c) {
+auto format_ast(Iterator it, const wf::ast::call_external_function& c) {
+  return fmt::format_to(it, "({}, {})", c.function.name(), fmt::join(c.args, ", "));
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::call_std_function& c) {
   return fmt::format_to(it, "({}, {})", string_from_standard_library_function(c.function),
                         fmt::join(c.args, ", "));
 }
@@ -106,11 +114,15 @@ auto format_ast(Iterator it, const wf::ast::construct_custom_type& c) {
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::declaration& d) {
   if (d.value) {
-    return fmt::format_to(it, "({}: {} = {})", d.name, string_from_code_numeric_type(d.type),
-                          *d.value);
+    return fmt::format_to(it, "({}: {} = {})", d.name, d.type.type, *d.value);
   } else {
-    return fmt::format_to(it, "({}: {})", d.name, string_from_code_numeric_type(d.type));
+    return fmt::format_to(it, "({}: {})", d.name, d.type.type);
   }
+}
+
+template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::declaration_type_annotation& d) {
+  return fmt::format_to(it, "({})", d.type);
 }
 
 template <typename Iterator>

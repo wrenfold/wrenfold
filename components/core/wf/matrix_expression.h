@@ -124,6 +124,24 @@ class MatrixExpr {
 static_assert(std::is_move_assignable_v<MatrixExpr> && std::is_move_constructible_v<MatrixExpr>,
               "Should be movable");
 
+// Hash matrix.
+template <>
+struct hash_struct<MatrixExpr> {
+  std::size_t operator()(const MatrixExpr& mat) const;
+};
+
+// Relative order of matrices (first by dimensions, then by lexicographical order).
+template <>
+struct order_struct<MatrixExpr> {
+  relative_order operator()(const MatrixExpr& a, const MatrixExpr& b) const;
+};
+
+// Are two matrices identical.
+template <>
+struct is_identical_struct<MatrixExpr> {
+  bool operator()(const MatrixExpr& a, const MatrixExpr& b) const { return a.is_identical_to(b); }
+};
+
 // Math operators:
 namespace matrix_operator_overloads {
 

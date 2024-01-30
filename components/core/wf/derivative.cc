@@ -17,15 +17,24 @@ using namespace wf::custom_literals;
 // Returns true if `target` appears as a sub-expression in anything we visit.
 template <typename T>
 struct is_function_of_visitor {
-  explicit is_function_of_visitor(const T& target) : target_(target) {}
+  explicit is_function_of_visitor(const T& target) noexcept : target_(target) {}
+
+  bool operator()(const MatrixExpr& mat) const {
+    const matrix& m = mat.as_matrix();
+    return std::any_of(m.begin(), m.end(), [this](const Expr& x) { return visit(x, *this); });
+  }
 
   template <typename U>
-  bool operator()(const U& x) {
+  bool operator()(const U& x) const {
     if constexpr (std::is_same_v<U, T>) {
-      return target_.is_identical_to(x);
+      if constexpr (is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
+        return are_identical(target_, x);
+      } else {
+        return target_.is_identical_to(x);
+      }
     } else if constexpr (!U::is_leaf_node) {
       return std::any_of(x.begin(), x.end(),
-                         [this](const Expr& expr) { return visit(expr, *this); });
+                         [this](const auto& expr) { return visit(expr, *this); });
     } else {
       return false;
     }
@@ -34,22 +43,22 @@ struct is_function_of_visitor {
   const T& target_;
 };
 
-derivative_visitor::derivative_visitor(const Expr& argument, non_differentiable_behavior behavior)
+derivative_visitor::derivative_visitor(const Expr& argument,
+                                       const non_differentiable_behavior behavior)
     : argument_(argument), non_diff_behavior_(behavior) {
-  if (!argument.is_type<variable>()) {
+  if (!argument.is_type<variable, compound_expression_element>()) {
     throw type_error(
-        "Argument to diff must be of type variable. Received expression "
+        "Argument to diff must be of type `{}` or `{}`. Received expression "
         "of type: {}",
-        argument.type_name());
+        variable::name_str, compound_expression_element::name_str, argument.type_name());
   }
 }
 
 Expr derivative_visitor::apply(const Expr& expression) {
-  auto it = cache_.find(expression);
-  if (it != cache_.end()) {
+  if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit_with_expr(expression, *this);
+  Expr result = visit(expression, *this);
   auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
   return it_inserted->second;
 }
@@ -59,7 +68,19 @@ Expr derivative_visitor::operator()(const addition& add) {
   return add.map_children([this](const Expr& expr) { return apply(expr); });
 }
 
-Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) {
+Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) const {
+  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
+    return derivative::create(expr, argument_, 1);
+  } else {
+    return constants::zero;
+  }
+}
+
+Expr derivative_visitor::operator()(const compound_expression_element& el, const Expr& expr) const {
+  if (const compound_expression_element* arg = cast_ptr<compound_expression_element>(argument_);
+      arg != nullptr && are_identical(*arg, el)) {
+    return constants::one;
+  }
   if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
     return derivative::create(expr, argument_, 1);
   } else {
@@ -79,13 +100,20 @@ Expr derivative_visitor::operator()(const symbolic_constant&) const { return con
 // Derivative of an abstract derivative expression.
 Expr derivative_visitor::operator()(const derivative& derivative,
                                     const Expr& derivative_abstract) const {
-  const variable& argument = cast_unchecked<variable>(argument_);
-  const bool is_relevant =
-      visit(derivative.differentiand(), is_function_of_visitor<variable>{argument});
-  if (!is_relevant) {
-    return constants::zero;
-  }
-  return derivative::create(derivative_abstract, argument_, 1);
+  return visit(argument_, [&](const auto& arg) -> Expr {
+    using T = std::decay_t<decltype(arg)>;
+    if constexpr (type_list_contains_v<T, variable, compound_expression_element>) {
+      if (const bool is_relevant =
+              visit(derivative.differentiand(), is_function_of_visitor<T>{arg});
+          !is_relevant) {
+        return constants::zero;
+      }
+      return derivative::create(derivative_abstract, argument_, 1);
+    } else {
+      WF_ASSERT_ALWAYS("Can only take derivatives wrt `{}` and `{}` expressions.",
+                       variable::name_str, compound_expression_element::name_str);
+    }
+  });
 }
 
 // Do product expansion over all terms in the multiplication:
@@ -209,8 +237,8 @@ Expr derivative_visitor::operator()(const relational&, const Expr& rel_expr) con
 Expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
 Expr derivative_visitor::operator()(const variable& var) const {
-  const variable& argument = cast_unchecked<variable>(argument_);
-  if (var.is_identical_to(argument)) {
+  if (const variable* arg = cast_ptr<variable>(argument_);
+      arg != nullptr && arg->is_identical_to(var)) {
     return constants::one;
   }
   return constants::zero;

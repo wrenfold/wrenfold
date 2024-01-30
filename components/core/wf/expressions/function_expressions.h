@@ -1,8 +1,10 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include "wf/absl_imports.h"
+#include "wf/algorithm_utils.h"
 #include "wf/assertions.h"
 #include "wf/constants.h"
+#include "wf/external_function.h"
 #include "wf/functions.h"
 #include "wf/hashing.h"
 
@@ -53,13 +55,9 @@ class function {
   }
 
   // Implement ExpressionImpl::Map
-  template <typename Operation>
-  Expr map_children(Operation&& operation) const {
-    container_type transformed{};
-    transformed.reserve(args_.size());
-    std::transform(begin(), end(), std::back_inserter(transformed),
-                   std::forward<Operation>(operation));
-    return function::create(func_, std::move(transformed));
+  template <typename F>
+  Expr map_children(F&& f) const {
+    return function::create(func_, transform_map<container_type>(args_, std::forward<F>(f)));
   }
 
  protected:

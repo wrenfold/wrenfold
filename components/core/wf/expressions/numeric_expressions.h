@@ -190,17 +190,28 @@ inline constexpr integer_constant::operator float_constant() const {
   return float_constant{static_cast<float_constant::value_type>(val_)};
 }
 
-// Hashing of integers. Like std::hash, just pass the value through.
+// Hashing of integers.
 template <>
 struct hash_struct<integer_constant::value_type> {
-  std::size_t operator()(integer_constant::value_type value) const {
-    return std::hash<integer_constant::value_type>{}(value);
+  std::size_t operator()(const integer_constant::value_type value) const noexcept {
+    // Don't have bit_cast, so memcpy into size_t to avoid UB.
+    static_assert(sizeof(integer_constant::value_type) == sizeof(std::size_t));
+    std::size_t hash;
+    std::memcpy(&hash, static_cast<const void*>(&value), sizeof(value));
+    return hash;
   }
 };
 template <>
 struct hash_struct<integer_constant> {
-  std::size_t operator()(const integer_constant& value) const {
-    return hash_struct<integer_constant::value_type>{}(value.get_value());
+  std::size_t operator()(const integer_constant value) const noexcept {
+    return hash(value.get_value());
+  }
+};
+
+template <>
+struct is_identical_struct<integer_constant> {
+  constexpr bool operator()(const integer_constant a, const integer_constant b) const noexcept {
+    return a.get_value() == b.get_value();
   }
 };
 
@@ -251,7 +262,14 @@ inline rational_constant::operator float_constant() const {
 template <>
 struct hash_struct<rational_constant> {
   std::size_t operator()(const rational_constant& r) const {
-    return hash_args(0, r.numerator(), r.denominator());
+    return hash_combine(hash(r.numerator()), hash(r.denominator()));
+  }
+};
+
+template <>
+struct is_identical_struct<rational_constant> {
+  constexpr bool operator()(const rational_constant& a, const rational_constant& b) const noexcept {
+    return a.numerator() == b.numerator() && a.denominator() == b.denominator();
   }
 };
 
@@ -292,9 +310,19 @@ inline constexpr bool operator!=(const float_constant& a, const float_constant& 
 // Hashing of floats.
 template <>
 struct hash_struct<float_constant> {
-  // Can't be constexpr, because std::hash is not constexpr.
   std::size_t operator()(const float_constant& f) const {
-    return std::hash<float_constant::value_type>{}(f.get_value());
+    static_assert(sizeof(float_constant::value_type) == sizeof(std::size_t));
+    std::size_t hash;
+    const auto value = f.get_value();
+    std::memcpy(&hash, static_cast<const void*>(&value), sizeof(value));
+    return hash;
+  }
+};
+
+template <>
+struct is_identical_struct<float_constant> {
+  constexpr bool operator()(const float_constant a, const float_constant b) const noexcept {
+    return a.get_value() == b.get_value();
   }
 };
 

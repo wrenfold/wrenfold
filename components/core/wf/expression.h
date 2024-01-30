@@ -7,8 +7,8 @@
 #include "wf/expression_variant.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/fmt_imports.h"
-#include "wf/hashing.h"
 #include "wf/operations.h"
+#include "wf/ordering.h"
 
 namespace wf {
 
@@ -22,6 +22,7 @@ struct type_list_trait<scalar_meta_type> {
   using types = type_list<
     class addition,
     class cast_bool,
+    class compound_expression_element,
     class conditional,
     class symbolic_constant,
     class derivative,
@@ -40,9 +41,9 @@ struct type_list_trait<scalar_meta_type> {
 };
 
 // An abstract scalar-valued expression.
-class Expr {
+class Expr final : public expression_base<Expr, scalar_meta_type> {
  public:
-  using storage_type = expression_variant<scalar_meta_type>;
+  using expression_base::expression_base;
 
   // Construct variable with name and specific numeric set:
   explicit Expr(std::string_view name, number_set set = number_set::unknown);
@@ -58,48 +59,8 @@ class Expr {
   template <typename T, typename = enable_if_supports_implicit_conversion<T>>
   Expr(T v) : Expr(construct_implicit(v)) {}
 
-  // Construct from anything that can be fed into `storage_type`.
-  template <typename T, typename = storage_type::enable_if_is_constructible_t<T>>
-  explicit Expr(T&& arg) noexcept(std::is_nothrow_constructible_v<storage_type, decltype(arg)>)
-      : impl_(std::forward<T>(arg)) {}
-
-  // In-place construction:
-  template <typename T, typename... Args, typename = storage_type::enable_if_is_constructible_t<T>>
-  explicit Expr(std::in_place_type_t<T>, Args&&... args) noexcept(
-      std::is_nothrow_constructible_v<storage_type, std::in_place_type_t<T>, decltype(args)...>)
-      : impl_(std::in_place_type_t<T>{}, std::forward<Args>(args)...) {}
-
   // Construct from rational.
   explicit Expr(rational_constant r);
-
-  // Construct from expression variant.
-  explicit Expr(storage_type contents) noexcept : impl_(std::move(contents)) {}
-
-  // Test if the two expressions have the same underlying address.
-  bool has_same_address(const Expr& other) const noexcept {
-    return impl_.get_address() == other.impl_.get_address();
-  }
-
-  // Test if the two expressions are identical.
-  bool is_identical_to(const Expr& other) const { return impl_.is_identical_to(other.impl_); }
-
-  // Check if the underlying expression is one of the specified types.
-  template <typename... Ts>
-  bool is_type() const noexcept {
-    return impl_.is_type<Ts...>();
-  }
-
-  // Get the underlying type name as a string.
-  std::string_view type_name() const;
-
-  // Return the unique index of the underlying type.
-  std::size_t type_index() const noexcept { return impl_.index(); }
-
-  // Get the hash of the expression.
-  std::size_t get_hash() const noexcept { return impl_.hash(); }
-
-  // Access underlying expression variant.
-  constexpr const storage_type& impl() const noexcept { return impl_; }
 
   // Convert to string.
   std::string to_string() const;
@@ -162,8 +123,6 @@ class Expr {
       return from_float(static_cast<double>(v));
     }
   }
-
-  storage_type impl_;
 };
 
 static_assert(std::is_nothrow_move_constructible_v<Expr> && std::is_nothrow_move_assignable_v<Expr>,
@@ -188,27 +147,24 @@ Expr operator<=(const Expr& a, const Expr& b);
 Expr operator>=(const Expr& a, const Expr& b);
 Expr operator==(const Expr& a, const Expr& b);
 
-// Determine relative order of two expressions (for sorting).
-// Can be used to sort expressions into a canonical order, for instance to sort them.
-// Implemented in ordering.cc
-relative_order expression_order(const Expr& a, const Expr& b);
+// Determine relative order of two expressions.
+// This is not a mathematical ordering - rather it is a canonical ordering we impose on expressions.
+template <>
+struct order_struct<Expr> {
+  // Implemented in ordering.cc
+  relative_order operator()(const Expr& a, const Expr& b) const;
+};
 
 // Predicate for sorting expressions.
 struct expression_order_struct {
   bool operator()(const Expr& a, const Expr& b) const {
-    return expression_order(a, b) == relative_order::less_than;
+    return determine_order(a, b) == relative_order::less_than;
   }
 };
 
 // Get operation precedence (order of operations).
 // Implemented in expression.cc
 precedence get_precedence(const Expr& expr);
-
-// Check for strict equality. For use in template parameter lists for maps and sets.
-template <typename T>
-struct is_identical_struct {
-  bool operator()(const T& a, const T& b) const { return a.is_identical_to(b); }
-};
 
 // Custom literal suffix support.
 namespace custom_literals {
@@ -223,12 +179,6 @@ auto make_symbols(Args&&... args) {
                 "Argument types must be coercible to string_view");
   return std::make_tuple(Expr{std::forward<Args>(args)}...);
 }
-
-// Support hashing of Expr
-template <>
-struct hash_struct<Expr> {
-  std::size_t operator()(const Expr& x) const noexcept { return x.get_hash(); }
-};
 
 // Make a unique variable symbol.
 Expr make_unique_variable_symbol(number_set set);

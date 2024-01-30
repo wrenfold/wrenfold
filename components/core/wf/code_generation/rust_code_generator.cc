@@ -217,7 +217,38 @@ static constexpr std::string_view rust_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
-std::string rust_code_generator::operator()(const ast::call& x) const {
+static bool is_get_argument_custom_type(const ast::variant& var) {
+  if (const ast::get_argument* get = std::get_if<ast::get_argument>(&var); get != nullptr) {
+    return get->arg.is_custom_type();
+  }
+  return false;
+}
+
+std::string rust_code_generator::operator()(const ast::call_external_function& x) const {
+  WF_ASSERT_EQUAL(x.args.size(), x.function.num_arguments());
+  std::string result = x.function.name();
+  result.append("(");
+  join_enumerate_to(result, ", ", x.args, [&](const std::size_t index, const ast::variant& v) {
+    std::string arg_str = operator()(v);
+    if (is_get_argument_custom_type(v)) {
+      return arg_str;
+    }
+    if (const argument& arg = x.function.argument_at(index);
+        arg.is_custom_type() || arg.is_matrix()) {
+      // Borrow non-scalar arguments:
+      arg_str.insert(0, "&");
+    }
+    return arg_str;
+  });
+  result.append(")");
+  if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
+      static_cast<bool>(s) && s->numeric_type() == code_numeric_type::floating_point) {
+    result.append(" as f64");
+  }
+  return result;
+}
+
+std::string rust_code_generator::operator()(const ast::call_std_function& x) const {
   // We have to override signum specially here, because the built-in rust signum does not return 0.
   if (x.function == std_math_function::signum) {
     // TODO: should be an integer expression:
@@ -268,12 +299,30 @@ std::string rust_code_generator::operator()(const ast::construct_custom_type& x)
 }
 
 std::string rust_code_generator::operator()(const ast::declaration& x) const {
-  if (!x.value) {
-    return fmt::format("let {}: {};", x.name, rust_string_from_numeric_type(x.type));
+  std::string output;
+  fmt::format_to(std::back_inserter(output), "let {}: {}", x.name, operator()(x.type));
+  if (x.value) {
+    fmt::format_to(std::back_inserter(output), " = {};", make_view(*x.value));
   } else {
-    return fmt::format("let {}: {} = {};", x.name, rust_string_from_numeric_type(x.type),
-                       make_view(*x.value));
+    output.append(";");
   }
+  return output;
+}
+
+std::string rust_code_generator::operator()(const ast::declaration_type_annotation& x) const {
+  return overloaded_visit(
+      x.type,
+      [](const scalar_type s) -> std::string {
+        return std::string(rust_string_from_numeric_type(s));
+      },
+      [](const matrix_type&) -> std::string {
+        throw type_error(
+            "The default Rust code-generator treats all matrices as span traits. We cannot "
+            "construct one directly. You likely want to implement an override for the the `{}` ast "
+            "type.",
+            ast::declaration_type_annotation::snake_case_name_str);
+      },
+      [](const custom_type& c) -> std::string { return c.name(); });
 }
 
 std::string rust_code_generator::operator()(const ast::divide& x) const {

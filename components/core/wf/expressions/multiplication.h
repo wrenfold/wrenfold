@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "wf/absl_imports.h"
+#include "wf/algorithm_utils.h"
 #include "wf/constants.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
@@ -59,10 +60,8 @@ class multiplication {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    container_type transformed{};
-    transformed.reserve(size());
-    std::transform(begin(), end(), std::back_inserter(transformed),
-                   std::forward<Operation>(operation));
+    const container_type transformed =
+        transform_map<container_type>(terms_, std::forward<Operation>(operation));
     return multiplication::from_operands(transformed);
   }
 
@@ -77,9 +76,9 @@ class multiplication {
       return !term.is_type<integer_constant, rational_constant, float_constant>();
     });
     std::sort(begin, terms_.end(), [](const Expr& a, const Expr& b) {
-      if (a.get_hash() < b.get_hash()) {
+      if (a.hash() < b.hash()) {
         return true;
-      } else if (a.get_hash() > b.get_hash()) {
+      } else if (a.hash() > b.hash()) {
         return false;
       } else {
         return expression_order_struct{}(a, b);

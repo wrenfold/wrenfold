@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross
 #include "wf/constants.h"
 #include "wf/error_types.h"
 #include "wf/expressions/derivative_expression.h"

@@ -8,6 +8,7 @@
 #include "wf/checked_pointers.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
+#include "wf/external_function.h"
 
 namespace wf::ast {
 
@@ -19,7 +20,8 @@ using variant = std::variant<
     struct assign_output_scalar,
     struct assign_output_struct,
     struct branch,
-    struct call,
+    struct call_external_function,
+    struct call_std_function,
     struct cast,
     struct comment,
     struct compare,
@@ -102,9 +104,17 @@ struct branch {
   std::vector<variant> else_branch;
 };
 
-// Call a standard library function.
-struct call {
-  static constexpr std::string_view snake_case_name_str = "call";
+// Call an external function.
+struct call_external_function {
+  static constexpr std::string_view snake_case_name_str = "call_external_function";
+
+  external_function function;
+  std::vector<variant> args;
+};
+
+// Call a standard math function.
+struct call_std_function {
+  static constexpr std::string_view snake_case_name_str = "call_std_function";
 
   std_math_function function;
   std::vector<variant> args;
@@ -161,6 +171,12 @@ struct construct_matrix {
   std::vector<variant> args;
 };
 
+// A type annotation as part of a declaration.
+struct declaration_type_annotation {
+  static constexpr std::string_view snake_case_name_str = "declaration_type_annotation";
+  type_variant type;
+};
+
 // Declare a new variable and optionally assign it a value.
 struct declaration {
   static constexpr std::string_view snake_case_name_str = "declaration";
@@ -168,15 +184,15 @@ struct declaration {
   // Name for the value being declared
   std::string name;
   // Type of the value:
-  code_numeric_type type;
+  declaration_type_annotation type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
   maybe_null<variant_ptr> value{nullptr};
 
-  declaration(std::string name, code_numeric_type type, variant_ptr value);
+  declaration(std::string name, type_variant type, variant_ptr value);
 
   // Construct w/ no rhs.
-  declaration(std::string name, code_numeric_type type);
+  declaration(std::string name, type_variant type);
 };
 
 // Divide first operand by second operand.
@@ -381,6 +397,7 @@ class function_definition {
 using extra_ast_types = type_list<
   argument,
   custom_type,
+  declaration_type_annotation,
   function_definition,
   function_signature,
   return_type_annotation

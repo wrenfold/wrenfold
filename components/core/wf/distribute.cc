@@ -10,7 +10,15 @@ namespace wf {
 // Visitor for distributing terms in multiplications:
 // (a + b) * (x + y) = a*x + a*y + b*x + b*y
 struct distribute_visitor {
-  Expr operator()(const addition& add, const Expr&) const { return add.map_children(&distribute); }
+  Expr operator()(const Expr& x) const { return visit(x, *this); }
+
+  compound_expr operator()(const compound_expr& x) const {
+    return map_compound_expressions(x, *this);
+  }
+
+  Expr operator()(const addition& add) const { return add.map_children(&distribute); }
+
+  Expr operator()(const compound_expression_element& el) const { return el.map_children(*this); }
 
   Expr operator()(const multiplication& mul, const Expr&) const {
     // First distribute all the children of the multiplication:
@@ -97,6 +105,6 @@ struct distribute_visitor {
   Expr operator()(const variable&, const Expr& arg) const { return arg; }
 };
 
-Expr distribute(const Expr& arg) { return visit_with_expr(arg, distribute_visitor{}); }
+Expr distribute(const Expr& arg) { return visit(arg, distribute_visitor{}); }
 
 }  // namespace wf

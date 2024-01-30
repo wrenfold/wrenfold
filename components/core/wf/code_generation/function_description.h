@@ -24,10 +24,8 @@ class argument {
  public:
   static constexpr std::string_view snake_case_name_str = "argument";
 
-  argument(const std::string_view name, type_variant type, argument_direction direction,
-           const std::size_t index)
-      : impl_(std::make_shared<const impl>(
-            impl{std::string(name), std::move(type), direction, index})) {}
+  argument(std::string_view name, type_variant type, argument_direction direction,
+           std::size_t index);
 
   // Name of the argument.
   const std::string& name() const noexcept { return impl_->name; }
@@ -64,6 +62,16 @@ class argument {
   non_null<std::shared_ptr<const impl>> impl_;
 };
 
+template <>
+struct hash_struct<argument> {
+  std::size_t operator()(const argument& arg) const noexcept;
+};
+
+template <>
+struct is_identical_struct<argument> {
+  bool operator()(const argument& a, const argument& b) const;
+};
+
 // Store the signature of a function we will generate, plus all the captured output expressions.
 // This type is a symbolic function description, which is then "transpiled" into an actual AST that
 // can be written out as actual code.
@@ -92,8 +100,8 @@ class function_description {
   // Returns the argument that the python side should pass to the user method.
   // For custom types, we return a vector of expressions and the python side must map these to
   // fields on the user's custom type.
-  std::variant<Expr, MatrixExpr, std::vector<Expr>> add_input_argument(std::string_view name,
-                                                                       type_variant type);
+  std::variant<Expr, MatrixExpr, compound_expr> add_input_argument(std::string_view name,
+                                                                   type_variant type);
 
   // Record an output.
   void add_output_argument(std::string_view name, type_variant type, bool is_optional,

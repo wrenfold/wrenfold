@@ -1,7 +1,6 @@
 #include "plain_formatter.h"
 
 #include <algorithm>
-#include <optional>
 
 #include "wf/assertions.h"
 #include "wf/common_visitors.h"
@@ -9,6 +8,9 @@
 #include "wf/visit.h"
 
 namespace wf {
+
+void plain_formatter::operator()(const Expr& x) { return visit(x, *this); }
+void plain_formatter::operator()(const MatrixExpr& x) { operator()(x.as_matrix()); }
 
 void plain_formatter::operator()(const addition& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
@@ -20,7 +22,7 @@ void plain_formatter::operator()(const addition& expr) {
                  [](const Expr& x) { return as_coeff_and_mul(x); });
 
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-    return expression_order(a.second, b.second) == relative_order::less_than;
+    return determine_order(a.second, b.second) == relative_order::less_than;
   });
 
   for (std::size_t i = 0; i < terms.size(); ++i) {
@@ -64,6 +66,68 @@ void plain_formatter::operator()(const cast_bool& cast) {
   output_ += "cast(";
   visit(cast.arg(), *this);
   output_ += ")";
+}
+
+void plain_formatter::operator()(const compound_expression_element& el) {
+  const auto format_access_sequence = [this, &el](const custom_type& custom) {
+    const std::vector<access_variant> sequence = determine_access_sequence(custom, el.index());
+    for (const auto& v : sequence) {
+      overloaded_visit(
+          v,
+          [&](const field_access& f) {
+            fmt::format_to(std::back_inserter(output_), ".{}", f.field_name());
+          },
+          [&](const matrix_access& m) {
+            fmt::format_to(std::back_inserter(output_), "[{}, {}]", m.row(), m.col());
+          });
+    }
+  };
+
+  visit(el.provenance(),
+        make_overloaded(
+            [&](const external_function_invocation& invocation) {
+              // Format the function call:
+              this->operator()(invocation);
+              overloaded_visit(
+                  invocation.function().return_type(), [](const scalar_type) constexpr {},
+                  [&](const matrix_type& mat) {
+                    // Access matrix element:
+                    const auto [row, col] = mat.compute_indices(el.index());
+                    fmt::format_to(std::back_inserter(output_), "[{}, {}]", row, col);
+                  },
+                  format_access_sequence);
+            },
+            [&](const custom_type_argument& arg) {
+              // Name followed by the access sequence:
+              operator()(arg);
+              format_access_sequence(arg.type());
+            },
+            [&](const custom_type_construction& construction) {
+              visit(construction.at(el.index()), *this);
+            }));
+}
+
+// TODO: We need to do something smarter when formatting matrix args to functions.
+void plain_formatter::operator()(const external_function_invocation& invocation) {
+  fmt::format_to(std::back_inserter(output_), "{}(", invocation.function().name());
+  auto it = invocation.begin();
+  if (it != invocation.end()) {
+    visit(*it, *this);
+  }
+  for (++it; it != invocation.end(); ++it) {
+    output_ += ", ";
+    visit(*it, *this);
+  }
+  output_ += ")";
+}
+
+void plain_formatter::operator()(const custom_type_argument& arg) {
+  fmt::format_to(std::back_inserter(output_), "$arg({})", arg.arg_index());
+}
+
+void plain_formatter::operator()(const custom_type_construction& construct) {
+  fmt::format_to(std::back_inserter(output_), "{}(<{} expressions>)", construct.type().name(),
+                 construct.size());
 }
 
 void plain_formatter::operator()(const conditional& conditional) {
@@ -154,12 +218,12 @@ void plain_formatter::operator()(const matrix& mat) {
   output_ += "]";
 }
 
-void plain_formatter::operator()(const multiplication& expr) {
-  WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
+void plain_formatter::operator()(const multiplication& mul) {
+  WF_ASSERT_GREATER_OR_EQ(mul.size(), 2);
   using base_exp = multiplication_format_parts::base_exp;
 
   // Break multiplication up into numerator and denominator:
-  const multiplication_format_parts info = get_formatting_info(expr);
+  const multiplication_format_parts info = get_formatting_info(mul);
 
   if (info.is_negative) {
     output_ += "-";
@@ -218,21 +282,22 @@ void plain_formatter::operator()(const function& func) {
   output_ += ")";
 }
 
-void plain_formatter::operator()(const power& expr) { format_power(expr.base(), expr.exponent()); }
+void plain_formatter::operator()(const power& pow) { format_power(pow.base(), pow.exponent()); }
 
-void plain_formatter::operator()(const rational_constant& expr) {
-  fmt::format_to(std::back_inserter(output_), "{} / {}", expr.numerator(), expr.denominator());
+void plain_formatter::operator()(const rational_constant& rational) {
+  fmt::format_to(std::back_inserter(output_), "{} / {}", rational.numerator(),
+                 rational.denominator());
 }
 
-void plain_formatter::operator()(const relational& expr) {
-  format_precedence(precedence::relational, expr.left());
-  fmt::format_to(std::back_inserter(output_), " {} ", expr.operation_string());
-  format_precedence(precedence::relational, expr.right());
+void plain_formatter::operator()(const relational& relational) {
+  format_precedence(precedence::relational, relational.left());
+  fmt::format_to(std::back_inserter(output_), " {} ", relational.operation_string());
+  format_precedence(precedence::relational, relational.right());
 }
 
 void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
 
-void plain_formatter::operator()(const variable& expr) { output_.append(expr.to_string()); }
+void plain_formatter::operator()(const variable& var) { output_.append(var.to_string()); }
 
 void plain_formatter::format_precedence(const precedence parent, const Expr& expr) {
   if (get_precedence(expr) <= parent) {

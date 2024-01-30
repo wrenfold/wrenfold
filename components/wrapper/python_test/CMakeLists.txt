@@ -1,4 +1,5 @@
-add_python_test(expression_wrapper_test.py)
-add_python_test(matrix_wrapper_test.py)
-add_python_test(geometry_wrapper_test.py)
 add_python_test(codegen_wrapper_test.py)
+add_python_test(expression_wrapper_test.py)
+add_python_test(external_function_wrapper_test.py)
+add_python_test(geometry_wrapper_test.py)
+add_python_test(matrix_wrapper_test.py)

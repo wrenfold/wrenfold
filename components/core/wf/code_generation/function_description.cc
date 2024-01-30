@@ -3,14 +3,31 @@
 
 namespace wf {
 
+argument::argument(const std::string_view name, type_variant type, argument_direction direction,
+                   const std::size_t index)
+    : impl_(std::make_shared<const impl>(
+          impl{std::string(name), std::move(type), direction, index})) {}
+
+std::size_t hash_struct<argument>::operator()(const argument& arg) const noexcept {
+  std::size_t hash = hash_string_fnv(arg.name());
+  hash = hash_args(hash, arg.type());
+  hash = hash_combine(hash, static_cast<std::size_t>(arg.direction()));
+  return hash_combine(hash, arg.index());
+}
+
+bool is_identical_struct<argument>::operator()(const argument& a, const argument& b) const {
+  return a.name() == b.name() && are_identical(a.type(), b.type()) &&
+         are_identical(a.direction(), b.direction()) && are_identical(a.index(), b.index());
+}
+
 function_description::function_description(std::string name) noexcept
     : impl_(std::make_shared<impl>(std::move(name))) {}
 
-std::variant<Expr, MatrixExpr, std::vector<Expr>> function_description::add_input_argument(
+std::variant<Expr, MatrixExpr, compound_expr> function_description::add_input_argument(
     const std::string_view name, type_variant type) {
   const argument& arg = add_argument(name, std::move(type), argument_direction::input);
 
-  using return_type = std::variant<Expr, MatrixExpr, std::vector<Expr>>;
+  using return_type = std::variant<Expr, MatrixExpr, compound_expr>;
   return std::visit(
       [&](const auto& type_concrete) -> return_type {
         return detail::create_function_input(type_concrete, arg.index());

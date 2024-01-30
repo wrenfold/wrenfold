@@ -11,6 +11,8 @@
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
 
+#include "wrapper_utils.h"
+
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -29,29 +31,66 @@ ast::function_definition transpile_to_function_definition(const function_descrip
   return ast::create_ast(output_ir, description);
 }
 
-// Define pythong constructof for `custom_type`.
+// Implement the abstract `erased_pytype::concept` interface.
+class pytype_wrapper final : public erased_pytype::concept {
+ public:
+  explicit pytype_wrapper(py::type type) noexcept(std::is_nothrow_move_constructible_v<py::type>)
+      : type_(std::move(type)) {}
+
+  bool is_identical_to(const erased_pytype::concept& other) const override {
+    // Cast is safe because there is only one implementation of `erased_pytype`.
+    return type_.is(static_cast<const pytype_wrapper&>(other).type_);
+  }
+
+  std::size_t hash() const override { return py::hash(type_); }
+
+  constexpr const py::type& type() const noexcept { return type_; }
+
+ private:
+  py::type type_;
+};
+
+// Define python constructor for `custom_type`.
 custom_type init_custom_type(std::string name,
                              const std::vector<std::tuple<std::string_view, py::object>>& fields,
                              py::type python_type) {
   std::vector<struct_field> fields_converted{};
   fields_converted.reserve(fields.size());
-  std::transform(fields.begin(), fields.end(), std::back_inserter(fields_converted),
-                 [](const auto& tup) {
-                   // We can't use a variant in the tuple, since it can't be default constructed.
-                   // Instead, we check for different types manually here.
-                   const auto& [field_name, type_obj] = tup;
-                   if (py::isinstance<scalar_type>(type_obj)) {
-                     return struct_field(std::string{field_name}, py::cast<scalar_type>(type_obj));
-                   } else if (py::isinstance<matrix_type>(type_obj)) {
-                     return struct_field(std::string{field_name}, py::cast<matrix_type>(type_obj));
-                   } else if (py::isinstance<custom_type>(type_obj)) {
-                     return struct_field(std::string{field_name}, py::cast<custom_type>(type_obj));
-                   } else {
-                     throw type_error("Field type must be ScalarType, MatrixType, or CustomType.");
-                   }
-                 });
+  std::transform(
+      fields.begin(), fields.end(), std::back_inserter(fields_converted), [](const auto& tup) {
+        // We can't use a variant in the tuple, since it can't be default constructed.
+        // Instead, we check for different types manually here.
+        const auto& [field_name, type_obj] = tup;
+        return struct_field(std::string{field_name}, variant_from_pyobject<type_variant>(type_obj));
+      });
+
   return custom_type(std::move(name), std::move(fields_converted),
-                     std::any{std::move(python_type)});
+                     erased_pytype(std::in_place_type_t<pytype_wrapper>{}, std::move(python_type)));
+}
+
+// Construct `external_function`. We define this custom constructor to convert py::object to
+// type_variant (which is not default constructible).
+external_function init_external_function(
+    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& arguments,
+    const py::object& return_type) {
+  std::size_t index = 0;
+  auto args = transform_map<std::vector<argument>>(
+      arguments, [&](const std::tuple<std::string_view, py::object>& name_and_type) {
+        return argument(std::get<0>(name_and_type),
+                        variant_from_pyobject<type_variant>(std::get<1>(name_and_type)),
+                        argument_direction::input, index++);
+      });
+  return external_function(std::move(name), std::move(args),
+                           variant_from_pyobject<type_variant>(return_type));
+}
+
+// Create expressions that represent the result of invoking an external function.
+any_expression call_external_function(const external_function& self, const py::list& args) {
+  // Get expressions out of args:
+  auto captured_args =
+      transform_map<std::vector<any_expression>>(args, &variant_from_pyobject<any_expression>);
+  // Now we need to check the types and create expression result:
+  return self.create_invocation(std::move(captured_args));
 }
 
 // Construct class_ wrapper for an AST type. Name is derived automatically.
@@ -132,7 +171,7 @@ void wrap_codegen_operations(py::module_& m) {
   py::enum_<code_numeric_type>(m, "NumericType")
       .value("Bool", code_numeric_type::boolean)
       .value("Integer", code_numeric_type::integral)
-      .value("Real", code_numeric_type::floating_point);
+      .value("Float", code_numeric_type::floating_point);
 
   py::enum_<relational_operation>(m, "RelationalOperation")
       .value("LessThan", relational_operation::less_than)
@@ -144,40 +183,61 @@ void wrap_codegen_operations(py::module_& m) {
       .value("Output", argument_direction::output)
       .value("OptionalOutput", argument_direction::optional_output);
 
-  py::class_<scalar_type>(m, "ScalarType")
-      .def(py::init<code_numeric_type>())
+  wrap_class<scalar_type>(m, "ScalarType")
+      .def(py::init<code_numeric_type>(), py::arg("numeric_type"))
       .def_property_readonly("numeric_type", &scalar_type::numeric_type)
       .def("__repr__", [](scalar_type self) { return fmt::format("{}", self); });
 
-  py::class_<matrix_type>(m, "MatrixType")
+  wrap_class<matrix_type>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
       .def_property_readonly("num_rows", &matrix_type::rows)
       .def_property_readonly("num_cols", &matrix_type::cols)
       .def("compute_indices", &matrix_type::compute_indices)
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
 
-  py::class_<custom_type>(m, "CustomType")
+  wrap_class<custom_type>(m, "CustomType")
       .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"), py::arg("python_type"),
            py::doc("Construct custom type from fields."))
       .def_property_readonly("name", &custom_type::name)
       .def_property_readonly("fields", &custom_type::fields, py::doc("Access fields on this type."))
       .def_property_readonly(
+          "total_size", &custom_type::total_size,
+          py::doc("Total # of scalar expressions in the custom type and its children."))
+      .def_property_readonly(
           "python_type",
           [](const custom_type& self) -> std::variant<py::none, py::type> {
-            if (self.underlying_type().has_value()) {
-              return std::any_cast<py::type>(self.underlying_type());
+            if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
+              return pytype->as<pytype_wrapper>().type();
             }
             return py::none();
           },
           py::doc("Get the underlying python type."))
       .def("__repr__", [](const custom_type& self) {
-        const py::object python_type =
-            self.underlying_type().has_value()
-                ? py::object(std::any_cast<py::type>(self.underlying_type()))
-                : py::none();
+        py::object python_type = py::none();
+        if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
+          python_type = pytype->as<pytype_wrapper>().type();
+        }
         const py::str repr = py::repr(python_type);
         return fmt::format("CustomType('{}', {} fields, {})", self.name(), self.size(),
                            py::cast<std::string_view>(repr));
+      });
+
+  wrap_class<external_function>(m, "ExternalFunction")
+      .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
+           py::arg("return_type"))
+      .def_property_readonly("name", &external_function::name)
+      .def_property_readonly("arguments", &external_function::arguments)
+      .def_property_readonly("num_arguments", &external_function::num_arguments)
+      .def("arg_position", &external_function::arg_position, py::arg("arg"),
+           py::doc("Find the position of the argument with the specified name."))
+      .def_property_readonly("return_type", &external_function::return_type)
+      .def("__call__", &call_external_function, py::arg("args"),
+           py::doc("Call external function and create return expression."))
+      .def("__repr__", [](const external_function& self) {
+        const auto args = transform_map<std::vector<std::string>>(
+            self.arguments(),
+            [](const argument& arg) { return fmt::format("{}: {}", arg.name(), arg.type()); });
+        return fmt::format("{}({}) -> {}", self.name(), fmt::join(args, ", "), self.return_type());
       });
 
   py::class_<function_description>(m, "FunctionDescription")
@@ -226,7 +286,8 @@ void wrap_codegen_operations(py::module_& m) {
             self.add_output_argument(name, matrix_type(value.rows(), value.cols()), is_optional,
                                      value.to_vector());
           },
-          py::arg("name"), py::arg("is_optional"), py::arg("value"))
+          py::arg("name"), py::arg("is_optional"), py::arg("value"),
+          py::doc("Record an output argument of matrix type."))
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
@@ -295,9 +356,14 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("if_branch", [](const ast::branch& c) { return c.if_branch; })
       .def_property_readonly("else_branch", [](const ast::branch& c) { return c.else_branch; });
 
-  wrap_ast_type<ast::call>(m)
-      .def_property_readonly("function", [](const ast::call& c) { return c.function; })
-      .def_property_readonly("args", [](const ast::call& c) { return c.args; });
+  wrap_ast_type<ast::call_external_function>(m)
+      .def_property_readonly("function",
+                             [](const ast::call_external_function& c) { return c.function; })
+      .def_property_readonly("args", [](const ast::call_external_function& c) { return c.args; });
+
+  wrap_ast_type<ast::call_std_function>(m)
+      .def_property_readonly("function", [](const ast::call_std_function& c) { return c.function; })
+      .def_property_readonly("args", [](const ast::call_std_function& c) { return c.args; });
 
   wrap_ast_type<ast::cast>(m)
       .def_property_readonly("destination_type",
@@ -356,6 +422,9 @@ void wrap_codegen_operations(py::module_& m) {
           return std::nullopt;
         }
       });
+
+  wrap_ast_type<ast::declaration_type_annotation>(m).def_property_readonly(
+      "type", [](const ast::declaration_type_annotation& d) { return d.type; });
 
   wrap_ast_type<ast::divide>(m)
       .def_property_readonly("left",

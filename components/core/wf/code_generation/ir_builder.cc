@@ -12,6 +12,9 @@
 #include "wf/hashing.h"
 #include "wf/visit.h"
 
+// TODO: Move the type_variant printer.
+#include "wf/code_generation/ast_formatters.h"
+
 namespace wf {
 namespace ir {
 
@@ -121,6 +124,20 @@ void value::remove() {
   operands_.clear();
 }
 
+type_variant value::non_void_type() const {
+  return std::visit(
+      [&](const auto& t) -> type_variant {
+        using T = std::decay_t<decltype(t)>;
+        if constexpr (std::is_same_v<T, ir::void_type>) {
+          WF_ASSERT_ALWAYS("Attempted to coerce void-typed value: {}, op index = {}, operands = {}",
+                           name(), op_.index(), fmt::join(operands_, ", "));
+        } else {
+          return t;
+        }
+      },
+      type());
+}
+
 void value::maybe_sort_operands() {
   const bool commutative = std::visit([](const auto& op) { return op.is_commutative(); }, op_);
   if (commutative) {
@@ -135,18 +152,66 @@ void value::notify_operands() {
   }
 }
 
+template <typename Container>
+static void format_operands(std::string& output, const Container& operands,
+                            const std::size_t width) {
+  for (auto it = operands.begin(); it != operands.end(); ++it) {
+    const ir::value_ptr& val = *it;
+    fmt::format_to(std::back_inserter(output), "v{:0>{}}", val->name(), width);
+    if (std::next(it) != operands.end()) {
+      output += ", ";
+    }
+  }
+}
+
 template <typename T>
 struct format_op_args_struct {
   template <typename Container>
   void operator()(std::string& output, const T&, const Container& operands,
                   const std::size_t width) {
-    for (auto it = operands.begin(); it != operands.end(); ++it) {
-      const ir::value_ptr& val = *it;
-      fmt::format_to(std::back_inserter(output), "v{:0>{}}", val->name(), width);
-      if (std::next(it) != operands.end()) {
-        output += ", ";
-      }
+    format_operands(output, operands, width);
+  }
+};
+
+template <>
+struct format_op_args_struct<ir::call_external_function> {
+  template <typename Container>
+  void operator()(std::string& output, const ir::call_external_function& func,
+                  const Container& operands, const std::size_t width) {
+    output += func.function().name();
+    if (!operands.empty()) {
+      output += ", ";
+      format_operands(output, operands, width);
     }
+  }
+};
+
+template <>
+struct format_op_args_struct<ir::construct> {
+  void operator()(std::string& output, const matrix_type& m) const {
+    fmt::format_to(std::back_inserter(output), "matrix<{}, {}>", m.rows(), m.cols());
+  }
+
+  void operator()(std::string& output, const custom_type& c) const { output += c.name(); }
+
+  template <typename Container>
+  void operator()(std::string& output, const ir::construct& construct, const Container& operands,
+                  const std::size_t width) {
+    std::visit([&](const auto& type) { operator()(output, type); }, construct.type());
+    if (!operands.empty()) {
+      output += ", ";
+      format_operands(output, operands, width);
+    }
+  }
+};
+
+template <>
+struct format_op_args_struct<ir::get> {
+  template <typename Container>
+  void operator()(std::string& output, const ir::get& get, const Container& operands,
+                  const std::size_t width) {
+    format_operands(output, operands, width);
+    fmt::format_to(std::back_inserter(output), ", {}", get.index());
   }
 };
 
@@ -184,13 +249,12 @@ void format_op_args(std::string& output, const ir::operation& op, const Containe
 
 template <typename OpType, typename... Args>
 static ir::value_ptr create_operation(std::vector<ir::value::unique_ptr>& values,
-                                      ir::block_ptr block, OpType&& op,
-                                      std::optional<code_numeric_type> numeric_type,
+                                      ir::block_ptr block, OpType&& op, ir::value::types type,
                                       Args&&... args) {
   // Create a new value:
   const uint32_t name = values.empty() ? 0 : (values.back()->name() + 1);
   std::unique_ptr<ir::value> value = std::make_unique<ir::value>(
-      name, block, std::forward<OpType>(op), numeric_type, std::forward<Args>(args)...);
+      name, block, std::forward<OpType>(op), std::move(type), std::forward<Args>(args)...);
   // Insert int the provided block:
   block->operations.emplace_back(value.get());
   // This is owned by the `values` vector:
@@ -231,6 +295,29 @@ struct mul_add_count_visitor {
     }
   }
 
+  void operator()(const Expr& x) { return visit(x, *this); }
+  void operator()(const MatrixExpr& m) {
+    for (const Expr& x : m.as_matrix()) {
+      visit(x, *this);
+    }
+  }
+
+  void operator()(const compound_expr& x) {
+    auto visitor = make_overloaded(
+        [this](const external_function_invocation& invoke) {
+          for (const auto& arg : invoke) {
+            std::visit(*this, arg);
+          }
+        },
+        [this](const custom_type_construction& construct) {
+          for (const auto& arg : construct) {
+            operator()(arg);
+          }
+        },
+        [](const custom_type_argument&) constexpr {});
+    return visit(x, visitor);
+  }
+
   template <typename T>
   void operator()(const T& concrete) {
     if constexpr (!T::is_leaf_node) {
@@ -245,11 +332,15 @@ struct mul_add_count_visitor {
         }
       }
 
-      // Recurse:
-      for (const Expr& child : concrete) {
-        if (!visited.count(child)) {
-          visited.insert(child);
-          visit(child, *this);
+      if constexpr (std::is_same_v<T, compound_expression_element>) {
+        operator()(concrete.provenance());
+      } else {
+        // Recurse:
+        for (const Expr& child : concrete) {
+          if (!visited.count(child)) {
+            visited.insert(child);
+            visit(child, *this);
+          }
         }
       }
     }
@@ -318,7 +409,7 @@ class ir_form_visitor {
     std::vector<ir::value_ptr> args;
     args.reserve(op.size());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return apply(expr); });
+                   [this](const Expr& expr) { return operator()(expr); });
 
     code_numeric_type promoted_type = code_numeric_type::integral;
     for (ir::value_ptr v : args) {
@@ -344,27 +435,99 @@ class ir_form_visitor {
     const Expr negative_add = -add_abstract;
     if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
       const auto promoted_type = std::max(it->second->numeric_type(), code_numeric_type::integral);
-      const ir::value_ptr negative_one = maybe_cast(apply(constants::negative_one), promoted_type);
+      const ir::value_ptr negative_one =
+          maybe_cast(operator()(constants::negative_one), promoted_type);
       return push_operation(ir::mul{}, promoted_type, it->second, negative_one);
     }
     return convert_addition_or_multiplication(add);
   }
 
   ir::value_ptr operator()(const cast_bool& cast) {
-    const ir::value_ptr arg = apply(cast.arg());
+    const ir::value_ptr arg = operator()(cast.arg());
     return push_operation(ir::cast{code_numeric_type::integral}, code_numeric_type::integral, arg);
   }
 
+  ir::value_ptr operator()(const compound_expression_element& el) {
+    const ir::value_ptr compound_val = operator()(el.provenance());
+    return overloaded_visit(
+        compound_val->type(),
+        [&](ir::void_type) -> ir::value_ptr {
+          WF_ASSERT_ALWAYS("Compount expression cannot have void type. name = {}, index = {}",
+                           compound_val->name(), el.index());
+        },
+        [&](scalar_type) { return compound_val; },
+        [&](const auto&) {
+          return push_operation(ir::get{el.index()}, code_numeric_type::floating_point,
+                                compound_val);
+        });
+  }
+
   ir::value_ptr operator()(const conditional& cond) {
-    const ir::value_ptr condition = apply(cond.condition());
-    const ir::value_ptr if_branch = apply(cond.if_branch());
-    const ir::value_ptr else_branch = apply(cond.else_branch());
+    const ir::value_ptr condition = operator()(cond.condition());
+    const ir::value_ptr if_branch = operator()(cond.if_branch());
+    const ir::value_ptr else_branch = operator()(cond.else_branch());
 
     const code_numeric_type promoted_type =
         std::max(if_branch->numeric_type(), else_branch->numeric_type());
     return push_operation(ir::cond{}, promoted_type, condition,
                           maybe_cast(if_branch, promoted_type),
                           maybe_cast(else_branch, promoted_type));
+  }
+
+  ir::value_ptr check_type_and_cast(const type_variant& expected_type, const ir::value_ptr val) {
+    return std::visit(
+        [&](const auto& expected, const auto& actual) -> ir::value_ptr {
+          if constexpr (!std::is_same_v<decltype(expected), decltype(actual)>) {
+            WF_ASSERT_ALWAYS("Mismatched argument types. Expected: {}, Actual: {}", expected,
+                             actual);
+          } else if constexpr (std::is_same_v<decltype(expected), const scalar_type&>) {
+            return maybe_cast(val, expected.numeric_type());
+          }
+          return val;
+        },
+        expected_type, val->type());
+  }
+
+  ir::value_ptr operator()(const external_function_invocation& invoke) {
+    const external_function& f = invoke.function();
+
+    // Generate values for every argument. Insert casts for scalars if required.
+    auto operands = transform_enumerate_map<ir::value::operands_container>(
+        invoke, [&](const std::size_t index, const auto& arg) {
+          const ir::value_ptr val = std::visit(*this, arg);
+          return check_type_and_cast(f.argument_at(index).type(), val);
+        });
+
+    // Visit the return type so we can convert it:
+    return std::visit(
+        [&](const auto& return_type) {
+          return push_operation(ir::call_external_function{f}, return_type, std::move(operands));
+        },
+        f.return_type());
+  }
+
+  ir::value_ptr operator()(const custom_type_construction& construct) {
+    ir::value::operands_container operands{};
+    operands.reserve(construct.size());
+
+    iterate_custom_type_fields(
+        construct.type(),
+        make_overloaded(
+            [&](const std::size_t index, const scalar_type s) {
+              operands.push_back(maybe_cast(operator()(construct.at(index)), s.numeric_type()));
+            },
+            [&](const std::size_t index, const matrix_type& m) {
+              for (std::size_t i = 0; i < m.size(); ++i) {
+                operands.push_back(maybe_cast(operator()(construct.at(index + i)),
+                                              code_numeric_type::floating_point));
+              }
+            }));
+
+    return push_operation(ir::construct{construct.type()}, construct.type(), std::move(operands));
+  }
+
+  ir::value_ptr operator()(const custom_type_argument& arg) {
+    return push_operation(ir::load{arg}, arg.type());
   }
 
   static code_numeric_type numeric_type_from_constant(const symbolic_constant& c) {
@@ -383,7 +546,7 @@ class ir_form_visitor {
     return push_operation(ir::load{c}, numeric_type_from_constant(c));
   }
 
-  ir::value_ptr operator()(const derivative&) {
+  ir::value_ptr operator()(const derivative&) const {
     throw type_error("Cannot generate code for expressions containing `{}`.", derivative::name_str);
   }
 
@@ -414,14 +577,11 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const function& func) {
-    ir::value::operands_container args;
-    args.reserve(func.size());
-    std::transform(func.begin(), func.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return apply(expr); });
     const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
     // TODO: Special case for `abs` and `signum` here.
     return push_operation(ir::call_std_function{enum_value}, code_numeric_type::floating_point,
-                          std::move(args));
+                          transform_map<ir::value::operands_container>(
+                              func, [this](const Expr& expr) { return this->operator()(expr); }));
   }
 
   ir::value_ptr operator()(const complex_infinity&) const {
@@ -436,10 +596,18 @@ class ir_form_visitor {
     return push_operation(ir::load{f}, code_numeric_type::floating_point);
   }
 
+  ir::value_ptr operator()(const MatrixExpr& m) {
+    return push_operation(
+        ir::construct(matrix_type{m.rows(), m.cols()}), matrix_type{m.rows(), m.cols()},
+        transform_map<ir::value::operands_container>(m.as_matrix(), [this](const Expr& arg) {
+          return maybe_cast(this->operator()(arg), code_numeric_type::floating_point);
+        }));
+  }
+
   // Apply exponentiation by squaring to implement a power of an integer.
   ir::value_ptr exponentiate_by_squaring(ir::value_ptr base, uint64_t exponent) {
     if (exponent == 0) {
-      return apply(constants::one);
+      return operator()(constants::one);
     }
     // TODO: Somewhat lazy way of handling the first iteration - use an empty optional.
     std::optional<ir::value_ptr> result{};
@@ -461,24 +629,25 @@ class ir_form_visitor {
     const auto [coeff, multiplicand] = as_coeff_and_mul(mul_abstract);
     if (is_negative_one(coeff)) {
       // If the coefficient out front is -1, compute the multiplied expression and then negate it.
-      const ir::value_ptr multiplicand_value = apply(multiplicand);
+      const ir::value_ptr multiplicand_value = operator()(multiplicand);
       return push_operation(ir::neg{}, multiplicand_value->numeric_type(), multiplicand_value);
     }
     return convert_addition_or_multiplication(mul);
   }
 
   ir::value_ptr operator()(const power& power) {
-    const ir::value_ptr base = maybe_cast(apply(power.base()), code_numeric_type::floating_point);
+    const ir::value_ptr base =
+        maybe_cast(operator()(power.base()), code_numeric_type::floating_point);
 
     // Check if this exponent has a negative coefficient on it:
     const auto [exp_coefficient, exp_mul] = as_coeff_and_mul(power.exponent());
     if (is_negative_number(exp_coefficient)) {
       // Construct the reciprocal version of this power.
       const Expr reciprocal = pow(power.base(), -power.exponent());
-      const ir::value_ptr reciprocal_value = apply(reciprocal);
+      const ir::value_ptr reciprocal_value = operator()(reciprocal);
 
       // Write the power as: 1 / pow(base, -exponent)
-      const ir::value_ptr one = apply(constants::one);
+      const ir::value_ptr one = operator()(constants::one);
       constexpr code_numeric_type promoted_type = code_numeric_type::floating_point;
       return push_operation(ir::div{}, promoted_type, maybe_cast(one, promoted_type),
                             maybe_cast(reciprocal_value, promoted_type));
@@ -496,7 +665,8 @@ class ir_form_visitor {
       } else {
         // Just call power variant with integer exponent:
         return push_operation(ir::call_std_function{std_math_function::powi},
-                              code_numeric_type::floating_point, base, apply(power.exponent()));
+                              code_numeric_type::floating_point,
+                              base, operator()(power.exponent()));
       }
     } else if (const rational_constant* exp_rational =
                    cast_ptr<rational_constant>(power.exponent());
@@ -515,7 +685,7 @@ class ir_form_visitor {
     }
 
     // TODO: Support (int ** int) powers?
-    const ir::value_ptr exponent = apply(power.exponent());
+    const ir::value_ptr exponent = operator()(power.exponent());
     return push_operation(ir::call_std_function{std_math_function::powf},
                           code_numeric_type::floating_point, base,
                           maybe_cast(exponent, code_numeric_type::floating_point));
@@ -526,8 +696,8 @@ class ir_form_visitor {
   }
 
   ir::value_ptr operator()(const relational& relational) {
-    ir::value_ptr left = apply(relational.left());
-    ir::value_ptr right = apply(relational.right());
+    ir::value_ptr left = operator()(relational.left());
+    ir::value_ptr right = operator()(relational.right());
     code_numeric_type promoted_type = std::max(left->numeric_type(), right->numeric_type());
     return push_operation(ir::compare{relational.operation()}, code_numeric_type::boolean,
                           maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
@@ -541,27 +711,41 @@ class ir_form_visitor {
     return push_operation(ir::load{var}, code_numeric_type::floating_point);
   }
 
-  template <typename OpType, typename... Args>
-  ir::value_ptr push_operation(OpType&& op, std::optional<code_numeric_type> numeric_type,
-                               Args&&... args) {
-    return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
-                            numeric_type, std::forward<Args>(args)...);
+  template <typename OpType, typename Type, typename... Args>
+  ir::value_ptr push_operation(OpType&& op, Type type, Args&&... args) {
+    if constexpr (std::is_same_v<Type, code_numeric_type>) {
+      return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
+                              scalar_type(type), std::forward<Args>(args)...);
+    } else {
+      return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
+                              std::move(type), std::forward<Args>(args)...);
+    }
   }
 
   // Check if a value has been computed. If not, convert it and return the result.
-  ir::value_ptr apply(const Expr& expr) {
+  ir::value_ptr operator()(const Expr& expr) {
     if (const auto it = computed_values_.find(expr); it != computed_values_.end()) {
       return it->second;
     }
-    ir::value_ptr val = visit_with_expr(expr, *this);
+    ir::value_ptr val = visit(expr, *this);
     computed_values_.emplace(expr, val);
+    return val;
+  }
+
+  ir::value_ptr operator()(const compound_expr& expr) {
+    if (const auto it = computed_compound_values_.find(expr);
+        it != computed_compound_values_.end()) {
+      return it->second;
+    }
+    ir::value_ptr val = visit(expr, *this);
+    computed_compound_values_.emplace(expr, val);
     return val;
   }
 
   // Compute the value for the specified expression. If required, cast it to the desired output
   // type.
   ir::value_ptr apply_output_value(const Expr& expr, const code_numeric_type desired_output_type) {
-    return maybe_cast(apply(expr), desired_output_type);
+    return maybe_cast(operator()(expr), desired_output_type);
   }
 
  private:
@@ -571,6 +755,11 @@ class ir_form_visitor {
   // speeds up manipulation of the code later.
   std::unordered_map<Expr, ir::value_ptr, hash_struct<Expr>, is_identical_struct<Expr>>
       computed_values_;
+
+  // Map for compound values.
+  std::unordered_map<compound_expr, ir::value_ptr, hash_struct<compound_expr>,
+                     is_identical_struct<compound_expr>>
+      computed_compound_values_;
 
   // Hash tuple of [value, type]
   struct hash_value_and_type {
@@ -621,7 +810,7 @@ flat_ir::flat_ir(const std::vector<expression_group>& groups)
                    });
 
     // Then create a sink to consume these values, the `save` operation is the sink:
-    create_operation(values_, get_block(), ir::save{group.key}, std::nullopt,
+    create_operation(values_, get_block(), ir::save{group.key}, ir::void_type{},
                      std::move(group_values));
   }
 }
@@ -637,20 +826,24 @@ inline constexpr std::size_t compute_print_width(std::size_t num_assignments) {
 std::string flat_ir::to_string() const {
   const std::size_t width = value_print_width();
   std::string output{};
+  std::string line{};
 
   for (const ir::value_ptr& code : block_->operations) {
     // Print the value name:
-    fmt::format_to(std::back_inserter(output), "  v{:0>{}} <- ", code->name(), width);
+    fmt::format_to(std::back_inserter(line), "  v{:0>{}} <- ", code->name(), width);
 
     // Print the instruction name:
-    constexpr int operation_width = 4;
-    fmt::format_to(std::back_inserter(output), "{:>{}} ",
+    constexpr int operation_name_width = 4;
+    fmt::format_to(std::back_inserter(line), "{:>{}} ",
                    std::visit([](const auto& op) { return op.to_string(); }, code->value_op()),
-                   operation_width);
-    format_op_args(output, code->value_op(), code->operands(), width);
-    output += "\n";
-  }
+                   operation_name_width);
 
+    format_op_args(line, code->value_op(), code->operands(), width);
+
+    output.append(line);
+    output.append("\n");
+    line.clear();
+  }
   if (!output.empty()) {
     output.pop_back();
   }
@@ -690,15 +883,14 @@ using value_table =
     std::unordered_set<ir::value_ptr, hash_struct<ir::value_ptr>, value_equality_struct>;
 
 // Eliminate duplicates in `block`, using existing values stored in `table`.
-inline void local_value_numbering(ir::block_ptr block, value_table& table) {
+inline void local_value_numbering(const ir::block_ptr block, value_table& table) {
   for (const ir::value_ptr& code : block->operations) {
     // Then see if this operation already exists in the map:
-    auto [it, was_inserted] = table.insert(code);
-    if (!was_inserted) {
+    if (auto [it, was_inserted] = table.insert(code); !was_inserted) {
       // Propagate the copy:
       if (code->is_consumed_by_phi()) {
         // If this value feeds a phi function, we need to keep it, but turn it into a copy:
-        code->set_value_op(ir::copy{}, (*it)->numeric_type(), *it);
+        code->set_value_op(ir::copy{}, (*it)->type(), *it);
       } else {
         code->replace_with(*it);
       }
@@ -811,11 +1003,11 @@ class ir_converter {
       const ir::block_ptr jump_block = output.create_block();
 
       // Operation that evaluates whether this argument is required:
-      const ir::value_ptr jump_condition =
-          create_operation(output.values_, jump_block, ir::output_required{key.name}, std::nullopt);
+      const ir::value_ptr jump_condition = create_operation(
+          output.values_, jump_block, ir::output_required{key.name}, ir::void_type{});
 
       // Either we go into `left_block` and compute the arg outputs, or we skip to `next_block`:
-      create_operation(output.values_, jump_block, ir::jump_condition{}, std::nullopt,
+      create_operation(output.values_, jump_block, ir::jump_condition{}, ir::void_type{},
                        jump_condition);
       jump_block->add_descendant(left_block_exit);
       jump_block->add_descendant(next_block);
@@ -956,14 +1148,12 @@ class ir_converter {
       // Turn conditionals into phi functions. We insert copies in the left and right blocks so that
       // arguments to the phi functions are computed on the branched code path, even if the
       // computation is just a copy. These copies can be eliminated later, in some cases.
-      const ir::value_ptr copy_left =
-          create_operation(output.values_, left_block_tail, ir::copy{},
-                           v->operator[](1)->numeric_type(), v->operator[](1));
-      const ir::value_ptr copy_right =
-          create_operation(output.values_, right_block_tail, ir::copy{},
-                           v->operator[](2)->numeric_type(), v->operator[](2));
+      const ir::value_ptr copy_left = create_operation(output.values_, left_block_tail, ir::copy{},
+                                                       v->operator[](1)->type(), v->operator[](1));
+      const ir::value_ptr copy_right = create_operation(
+          output.values_, right_block_tail, ir::copy{}, v->operator[](2)->type(), v->operator[](2));
 
-      v->set_value_op(ir::phi{}, copy_left->numeric_type(), copy_left, copy_right);
+      v->set_value_op(ir::phi{}, copy_left->type(), copy_left, copy_right);
       v->set_parent(output_block);
       visited.insert(v);
       visited.insert(copy_left);
@@ -983,8 +1173,8 @@ class ir_converter {
     right_block_tail->add_descendant(output_block);
 
     const ir::block_ptr jump_block = output.create_block();
-    const ir::value_ptr jump_condition =
-        create_operation(output.values_, jump_block, ir::jump_condition{}, std::nullopt, condition);
+    const ir::value_ptr jump_condition = create_operation(
+        output.values_, jump_block, ir::jump_condition{}, ir::void_type{}, condition);
     visited.insert(jump_condition);
 
     jump_block->add_descendant(left_block_tail);

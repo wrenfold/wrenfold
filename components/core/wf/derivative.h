@@ -18,7 +18,8 @@ class derivative_visitor {
   Expr apply(const Expr& expression);
 
   Expr operator()(const addition& add);
-  Expr operator()(const cast_bool&, const Expr& expr);
+  Expr operator()(const cast_bool&, const Expr& expr) const;
+  Expr operator()(const compound_expression_element&, const Expr& expr) const;
   Expr operator()(const conditional& cond);
   Expr operator()(const symbolic_constant&) const;
   Expr operator()(const derivative& derivative, const Expr& derivative_abstract) const;

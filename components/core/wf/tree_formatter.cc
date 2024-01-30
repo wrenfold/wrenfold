@@ -1,6 +1,7 @@
 // Copyright 2022 Gareth Cross
 #include <vector>
 
+#include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/fmt_imports.h"
@@ -45,17 +46,32 @@ struct tree_formatter {
     output_ += "\n";
   }
 
-  void visit_left(const Expr& expr) {
+  template <typename T>
+  void visit_left(const T& expr) {
     indentations_.push_back(true);
     visit(expr, *this);
     indentations_.pop_back();
   }
 
-  void visit_right(const Expr& expr) {
+  template <typename T>
+  void visit_right(const T& expr) {
     indentations_.push_back(false);
     visit(expr, *this);
     indentations_.pop_back();
   }
+
+  template <typename Container>
+  void visit_all(const Container& container) {
+    auto it = container.begin();
+    for (; std::next(it) != container.end(); ++it) {
+      visit_left(*it);
+    }
+    visit_right(*it);
+  }
+
+  void operator()(const Expr& x) { visit(x, *this); }
+
+  void operator()(const MatrixExpr& m) { operator()(m.as_matrix()); }
 
   void operator()(const addition& op) {
     absl::InlinedVector<Expr, 16> terms;
@@ -64,15 +80,32 @@ struct tree_formatter {
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       auto acm = as_coeff_and_mul(a);
       auto bcm = as_coeff_and_mul(b);
-      return expression_order(acm.second, bcm.second) == relative_order::less_than;
+      return determine_order(acm.second, bcm.second) == relative_order::less_than;
     });
 
     append_name("Addition:");
-    auto it = terms.begin();
-    for (; std::next(it) != terms.end(); ++it) {
-      visit_left(*it);
-    }
-    visit_right(*it);
+    visit_all(terms);
+  }
+
+  void operator()(const compound_expression_element& el) {
+    append_name("{} (index = {}):", compound_expression_element::name_str, el.index());
+    visit_right(el.provenance());
+  }
+
+  void operator()(const external_function_invocation& invocation) {
+    append_name("{} (function = `{}`):", external_function_invocation::name_str,
+                invocation.function().name());
+    visit_all(invocation.args());
+  }
+
+  void operator()(const custom_type_argument& arg) {
+    append_name("{} (type = {}, index = {})", custom_type_argument::name_str, arg.type().name(),
+                arg.arg_index());
+  }
+
+  void operator()(const custom_type_construction& construct) {
+    append_name("{} (type = {}):", custom_type_construction::name_str, construct.type().name());
+    visit_all(construct.args());
   }
 
   void operator()(const derivative& diff) {
@@ -88,7 +121,7 @@ struct tree_formatter {
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
       const auto abe = as_base_and_exp(a);
       const auto bbe = as_base_and_exp(b);
-      return expression_order(abe.first, bbe.first) == relative_order::less_than;
+      return determine_order(abe.first, bbe.first) == relative_order::less_than;
     });
 
     append_name("Multiplication:");
@@ -189,6 +222,12 @@ std::string Expr::to_expression_tree_string() const {
 std::string MatrixExpr::to_expression_tree_string() const {
   tree_formatter formatter{};
   formatter(as_matrix());
+  return formatter.take_output();
+}
+
+std::string compound_expr::to_expression_tree_string() const {
+  tree_formatter formatter{};
+  visit(*this, formatter);
   return formatter.take_output();
 }
 

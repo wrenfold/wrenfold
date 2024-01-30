@@ -19,6 +19,7 @@ enum class precedence : int {
 
 // Describe the relative order of two expressions (a, b)
 // This is for operations like sorting, not for expressing mathematical relations.
+// Can eventually replace this with spaceship operator in C++20.
 enum class relative_order : int {
   // a < b
   less_than = -1,
@@ -96,7 +97,7 @@ enum class number_set : uint8_t {
 };
 
 // List of mathematical functions typically found in your standard library.
-// This seems like a duplicate of `BuiltInFunction` at first, but they differ
+// This seems like a duplicate of `built_in_function` at first, but they differ
 // in that this list contains additional specialized cases. In the math
 // expression tree powi, powf, and sqrt are all just instances of `power`.
 enum class std_math_function {

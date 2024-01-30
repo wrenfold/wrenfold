@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include "wf/expressions/all_expressions.h"
-#include "wf/hashing.h"
 #include "wf/matrix_expression.h"
 #include "wf/substitute.h"
 #include "wf/visit.h"
@@ -23,6 +22,16 @@ struct substitute_visitor_base {
  public:
   explicit substitute_visitor_base(const TargetExpressionType& target, const Expr& replacement)
       : target(target), replacement(replacement) {}
+
+  Expr operator()(const Expr& expr) { return visit(expr, *this); }
+
+  MatrixExpr operator()(const MatrixExpr& expr) {
+    return MatrixExpr{expr.as_matrix().map_children(*this)};
+  }
+
+  compound_expr operator()(const compound_expr& expr) {
+    return map_compound_expressions(expr, *this);
+  }
 
   // The argument is neither an addition nor a multiplication:
   template <typename Arg>
@@ -45,11 +54,7 @@ struct substitute_visitor_base {
             return partial_sub;
           } else {
             // This type does have children, so apply to all of them:
-            Derived& as_derived = static_cast<Derived&>(*this);
-            return arg.map_children([&as_derived](const Expr& child) -> Expr {
-              return visit(child,
-                           [&as_derived, &child](const auto& x) { return as_derived(x, child); });
-            });
+            return arg.map_children(static_cast<Derived&>(*this));
           }
         });
       }
@@ -59,10 +64,7 @@ struct substitute_visitor_base {
       return input_expression;
     } else {
       // Otherwise we substitute in every child:
-      Derived& as_derived = static_cast<Derived&>(*this);
-      return other.map_children([&](const Expr& child) {
-        return visit(child, [&](const auto& x) { return as_derived(x, child); });
-      });
+      return other.map_children(static_cast<Derived&>(*this));
     }
   }
 
@@ -318,7 +320,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
       throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {
       using visitor_type = typename sub_visitor_type<T>::type;
-      return visit_with_expr(input, visitor_type{target_concrete, replacement});
+      return visit(input, visitor_type{target_concrete, replacement});
     }
   });
 }
@@ -327,8 +329,9 @@ static substitute_variables_visitor create_subs_visitor(
     const absl::Span<const std::tuple<Expr, Expr>> pairs) {
   substitute_variables_visitor visitor{};
   for (const auto& [target, replacement] : pairs) {
-    if (!target.is_type<variable>()) {
-      throw type_error("Input needs to be type Variable, received type `{}`: {}",
+    if (!target.is_type<variable, compound_expression_element>()) {
+      throw type_error("Input needs to be type `{}` or `{}`, received type `{}`: {}",
+                       variable::name_str, compound_expression_element::name_str,
                        target.type_name(), target);
     }
     visitor.add_substitution(target, replacement);
@@ -337,60 +340,82 @@ static substitute_variables_visitor create_subs_visitor(
 }
 
 Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, Expr>> pairs) {
-  return create_subs_visitor(pairs).apply(input);
+  return create_subs_visitor(pairs)(input);
 }
 
 MatrixExpr substitute_variables(const MatrixExpr& input,
-                                absl::Span<const std::tuple<Expr, Expr>> pairs) {
+                                const absl::Span<const std::tuple<Expr, Expr>> pairs) {
   substitute_variables_visitor visitor = create_subs_visitor(pairs);
   const matrix& m = input.as_matrix();
 
   std::vector<Expr> replaced{};
   replaced.reserve(m.size());
-  std::transform(m.begin(), m.end(), std::back_inserter(replaced),
-                 [&visitor](const Expr& x) { return visitor.apply(x); });
+  std::transform(m.begin(), m.end(), std::back_inserter(replaced), std::move(visitor));
   return MatrixExpr::create(m.rows(), m.cols(), std::move(replaced));
 }
 
 void substitute_variables_visitor::add_substitution(const Expr& target, Expr replacement) {
-  const variable& var = cast_checked<variable>(target);
-  add_substitution(var, std::move(replacement));
+  if (target.is_type<variable>()) {
+    add_substitution(cast_unchecked<variable>(target), std::move(replacement));
+  } else if (target.is_type<compound_expression_element>()) {
+    add_substitution(cast_unchecked<compound_expression_element>(target), std::move(replacement));
+  } else {
+    throw type_error(
+        "Only expressions of type `{}` and `{}` may be used with substitute_variables_visitor.",
+        variable::name_str, compound_expression_element::name_str);
+  }
 }
 
 void substitute_variables_visitor::add_substitution(variable variable, Expr replacement) {
   cache_.clear();  //  No longer valid when new expressions are added.
-  const auto [_, was_inserted] =
-      substitutions_.emplace(std::move(variable), std::move(replacement));
+  const auto [it, was_inserted] =
+      variable_substitutions_.emplace(std::move(variable), std::move(replacement));
   WF_ASSERT(was_inserted, "Variable already exists in the substitution list: {}",
-            variable.to_string());
+            it->first.to_string());
 }
 
-Expr substitute_variables_visitor::apply(const Expr& expression) {
-  auto it = cache_.find(expression);
-  if (it != cache_.end()) {
+void substitute_variables_visitor::add_substitution(compound_expression_element element,
+                                                    Expr replacement) {
+  cache_.clear();  //  No longer valid when new expressions are added.
+  const auto [it, was_inserted] =
+      element_substitutions_.emplace(std::move(element), std::move(replacement));
+  WF_ASSERT(was_inserted, "Element already exists in the substitution list: {}", it->first.index());
+}
+
+Expr substitute_variables_visitor::operator()(const Expr& expression) {
+  if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit_with_expr(expression, *this);
+  Expr result = visit(expression, *this);
   const auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
   return it_inserted->second;
+}
+
+MatrixExpr substitute_variables_visitor::operator()(const MatrixExpr& expression) {
+  return MatrixExpr{expression.as_matrix().map_children(*this)};
+}
+
+compound_expr substitute_variables_visitor::operator()(const compound_expr& expression) {
+  return map_compound_expressions(expression, *this);
 }
 
 template <typename T>
 Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abstract) {
   if constexpr (std::is_same_v<T, variable>) {
-    // Is this a variable we care about substituting?
-    const variable& v = concrete;
-    const auto it = substitutions_.find(v);
-    if (it != substitutions_.end()) {
+    if (const auto it = variable_substitutions_.find(concrete);
+        it != variable_substitutions_.end()) {
+      return it->second;
+    }
+  } else if constexpr (std::is_same_v<T, compound_expression_element>) {
+    if (const auto it = element_substitutions_.find(concrete); it != element_substitutions_.end()) {
       return it->second;
     } else {
-      return abstract;
+      return concrete.map_children(*this);
     }
-  } else if constexpr (T::is_leaf_node) {
-    return abstract;
-  } else {
-    return concrete.map_children([this](const Expr& expr) { return apply(expr); });
+  } else if constexpr (!T::is_leaf_node) {
+    return concrete.map_children(*this);
   }
+  return abstract;
 }
 
 }  // namespace wf

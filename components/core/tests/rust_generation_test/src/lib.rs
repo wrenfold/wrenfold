@@ -1,5 +1,7 @@
 //! Tests on generated rust code. We validate that it compiles and yields reasonable
-//! numerical results.
+//! numerical results. It would be nice if we could just call the generated rust code
+//! from gtest on the C++ side. Maybe we could generate C-api wrapper functions and
+//! call those?
 #![allow(non_snake_case)]
 
 #[cfg(test)]
@@ -13,6 +15,39 @@ pub mod types;
 use approx::assert_abs_diff_eq;
 #[cfg(test)]
 use nalgebra as na;
+
+/// External functions used to test invocation of user-provided functions.
+/// These aren't that meaningful, functionally - we just test that we can call them.
+#[cfg(test)]
+pub mod external_functions {
+    use super::{na, types};
+
+    pub fn external_function_1(a: f64, b: f64) -> f64 {
+        a * b
+    }
+
+    pub fn external_function_2(m: &na::SMatrix<f64, 2, 3>) -> f64 {
+        m.row(0).dot(&m.row(1))
+    }
+
+    pub fn external_function_3(a: &na::Vector2<f64>, b: &na::Vector2<f64>) -> na::Matrix2<f64> {
+        a * b.transpose()
+    }
+
+    pub fn external_function_4(p: &types::Point2d) -> types::Point2d {
+        types::Point2d::new(p.x() * p.y(), p.y() - 2.0)
+    }
+
+    pub fn external_function_5(a: &types::Circle, b: &types::Circle) -> f64 {
+        let d = (a.center.x() - b.center.x()).powi(2) + (a.center.y() - b.center.y()).powi(2);
+        let d = d.sqrt();
+        if d < a.radius + b.radius {
+            1.0
+        } else {
+            0.0
+        }
+    }
+}
 
 #[test]
 fn test_simple_multiply_add() {
@@ -111,6 +146,8 @@ fn test_signum_and_abs() {
     assert_eq!(12.1, abs);
 }
 
+// TODO: Nest values are copy-pasta from the C++ test, which compares to numerical
+// evaluation of the expression graph.
 #[test]
 fn test_nested_conditionals_1() {
     assert_eq!(
@@ -247,6 +284,180 @@ fn test_nested_custom_type_1() {
         }
         .to_vector(),
         c1_out.to_vector(),
+        epsilon = 1.0e-15
+    );
+}
+
+#[test]
+fn test_external_function_call_1() {
+    assert_abs_diff_eq!(
+        -126.0,
+        generated::external_function_call_1(3.0, -2.0),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        -1000.0,
+        generated::external_function_call_1(10.0, 0.0),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        -0.5625,
+        generated::external_function_call_1(-0.25, 0.5),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        0.0,
+        generated::external_function_call_1(0.0, 1.3),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        0.0,
+        generated::external_function_call_1(1.1, 5.0),
+        epsilon = 1.0e-15
+    );
+}
+
+#[test]
+fn test_external_function_call_2() {
+    assert_abs_diff_eq!(
+        3.0,
+        generated::external_function_call_2(&na::vector![1.0, -0.5], &na::vector![2.0, 3.0]),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        55.56,
+        generated::external_function_call_2(&na::vector![10.0, 2.0], &na::vector![-2.0, 3.2]),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        5.6,
+        generated::external_function_call_2(&na::vector![0.0, 1.2], &na::vector![-2.3, -1.0]),
+        epsilon = 1.0e-15
+    );
+}
+
+#[test]
+fn test_external_function_call_3() {
+    assert_abs_diff_eq!(
+        na::Matrix2::zeros(),
+        generated::external_function_call_3(0.0, &na::vector![-1.0, 1.0]),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        na::Matrix2::new(2.0, 3.0, 2.0, 3.0),
+        generated::external_function_call_3(1.0, &na::vector![2.0, 3.0]),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        na::Matrix2::new(-1.5, 7.5, -4.5, 22.5),
+        generated::external_function_call_3(3.0, &na::vector![-0.5, 2.5]),
+        epsilon = 1.0e-15
+    );
+}
+
+#[test]
+fn test_external_function_call_4() {
+    assert_abs_diff_eq!(
+        -2.0,
+        generated::external_function_call_4(0.0, 0.0),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        32.0,
+        generated::external_function_call_4(10.0, 2.0),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        -416.0,
+        generated::external_function_call_4(-3.0, 13.0),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        -12.5,
+        generated::external_function_call_4(0.0, 2.5),
+        epsilon = 1.0e-15
+    );
+}
+
+#[test]
+fn test_external_function_call_5() {
+    assert_abs_diff_eq!(
+        1.0,
+        generated::external_function_call_5(
+            &types::Circle {
+                center: types::Point2d::new(0.0, 0.0),
+                radius: 2.0
+            },
+            0.0,
+            0.0
+        ),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        1.0,
+        generated::external_function_call_5(
+            &types::Circle {
+                center: types::Point2d::new(-1.0, 2.0),
+                radius: 4.0
+            },
+            0.5,
+            -0.25
+        ),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        1.0,
+        generated::external_function_call_5(
+            &types::Circle {
+                center: types::Point2d::new(2.5, 0.5),
+                radius: 0.1
+            },
+            2.75,
+            0.0
+        ),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        -1.0,
+        generated::external_function_call_5(
+            &types::Circle {
+                center: types::Point2d::new(3.0, 0.0),
+                radius: 2.0
+            },
+            -1.0,
+            0.0
+        ),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        -1.0,
+        generated::external_function_call_5(
+            &types::Circle {
+                center: types::Point2d::new(-5.0, -1.0),
+                radius: 6.0
+            },
+            4.0,
+            2.0,
+        ),
+        epsilon = 1.0e-15
+    );
+}
+
+#[test]
+fn test_external_function_call_6() {
+    assert_abs_diff_eq!(
+        na::vector![3.0, -5.0],
+        generated::external_function_call_6(1.0, -0.5).to_vector(),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        na::vector![146.25, 2.5],
+        generated::external_function_call_6(5.0, 3.25).to_vector(),
+        epsilon = 1.0e-15
+    );
+    assert_abs_diff_eq!(
+        na::vector![623.4375, -14.5],
+        generated::external_function_call_6(-3.5, 4.75).to_vector(),
         epsilon = 1.0e-15
     );
 }

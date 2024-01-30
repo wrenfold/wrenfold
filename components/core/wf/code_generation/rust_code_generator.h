@@ -35,7 +35,9 @@ class rust_code_generator {
 
   virtual std::string operator()(const ast::branch& x) const;
 
-  virtual std::string operator()(const ast::call& x) const;
+  virtual std::string operator()(const ast::call_external_function& x) const;
+
+  virtual std::string operator()(const ast::call_std_function& x) const;
 
   virtual std::string operator()(const ast::cast& x) const;
 
@@ -48,6 +50,8 @@ class rust_code_generator {
   virtual std::string operator()(const ast::construct_custom_type& x) const;
 
   virtual std::string operator()(const ast::declaration& x) const;
+
+  virtual std::string operator()(const ast::declaration_type_annotation& x) const;
 
   virtual std::string operator()(const ast::divide& x) const;
 

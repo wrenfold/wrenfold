@@ -1,5 +1,7 @@
 // Copyright 2023 Gareth Cross
 #include "wf/code_generation/ir_builder.h"
+#include "wf/code_generation/declare_external_function.h"
+#include "wf/code_generation/function_evaluator.h"
 #include "wf/constants.h"
 #include "wf/functions.h"
 #include "wf/type_annotations.h"
@@ -97,7 +99,7 @@ void check_output_expressions(const std::vector<expression_group>& expected_expr
 
 void check_expressions(const std::vector<expression_group>& expected_expressions,
                        const flat_ir& ir) {
-  auto output_expressions = create_output_expression_map(ir.get_block(), {});
+  const auto output_expressions = create_output_expression_map(ir.get_block(), {});
   check_output_expressions(expected_expressions, output_expressions, ir);
 }
 
@@ -111,6 +113,8 @@ void check_expressions(const std::vector<expression_group>& expected_expressions
     check_output_expressions(expected_expressions, output_expressions, ir);
   }
 }
+
+// ReSharper disable CppPassValueParameterByConstReference
 
 TEST(IrTest, TestNumericConstant1) {
   auto [expected_expressions, ir] = create_ir([]() { return 6_s; }, "func");
@@ -358,13 +362,13 @@ TEST(IrTest, TestConditionals5) {
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(54, ir.num_operations()) << ir;
+  ASSERT_EQ(55, ir.num_operations()) << ir;
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   output_ir output_ir{std::move(ir)};
   check_expressions(expected_expressions, output_ir);
-  ASSERT_EQ(56, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(57, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
 }
 
@@ -528,6 +532,167 @@ TEST(IrTest, TestBuiltInFunctions) {
   check_expressions(expected_expressions, output_ir);
   ASSERT_EQ(27, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
+}
+
+// Make a external function that accepts two arguments (one scalar, one matrix).
+class custom_func_1
+    : public declare_external_function<custom_func_1, Expr,
+                                       type_list<Expr, type_annotations::static_matrix<2, 2>>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_1"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestExternalFunction1) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        auto m = make_matrix(2, 2, x - 2 * y, log(x), -x * y, y / 4 + cos(x));
+        return custom_func_1::call(cos(x) * y, m) + 5;
+      },
+      "func", arg("x"), arg("y"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
+}
+
+// Make a external function that returns a matrix.
+class custom_func_2
+    : public declare_external_function<custom_func_2, type_annotations::static_matrix<2, 4>,
+                                       type_list<Expr, Expr>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_2"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestExternalFunction2) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        using namespace matrix_operator_overloads;
+        const MatrixExpr m = custom_func_2::call(x + 2, y / 3);
+        return ta::static_matrix<2, 4>(
+            m + make_matrix(2, 4, x * y, cos(y), 0, -2, -5 * x - sin(y), 1, 0, x * y));
+      },
+      "func", arg("x"), arg("y"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
+}
+
+// A custom type used to support tests below.
+struct point_2d {
+  Expr x{0};
+  Expr y{0};
+};
+
+template <>
+struct custom_type_registrant<point_2d> {
+  auto operator()(custom_type_registry& registry) const {
+    return custom_type_builder<point_2d>(registry, "Point2d")
+        .add_field("x", &point_2d::x)
+        .add_field("y", &point_2d::y);
+  }
+};
+
+// Make a external function that returns a custom type.
+class custom_func_3
+    : public declare_external_function<custom_func_3, point_2d, type_list<Expr, Expr>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_3"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestExternalFunction3) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y) {
+        const point_2d p = custom_func_3::call(x + y * 5, cos(y));
+        point_2d p2{p.x - 2 * x, p.y / y};
+        return std::make_tuple(return_value(p), optional_output_arg("p2", p2));
+      },
+      "func", arg("x"), arg("y"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
+}
+
+// Make a external function that accepts a custom type as a parameter.
+class custom_func_4
+    : public declare_external_function<custom_func_4, point_2d, type_list<point_2d, Expr>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_4"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
+};
+
+TEST(IrTest, TestExternalFunction4) {
+  auto [expected_expressions, ir] = create_ir(
+      [](Expr x, Expr y, Expr z) {
+        const point_2d p = custom_func_4::call(point_2d{x * 3, y / 2}, z + constants::pi / 2);
+        return sqrt(pow(p.x, 2) + pow(p.y, 2));
+      },
+      "func", arg("x"), arg("y"), arg("z"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
+}
+
+// Accept a custom type as an argument, and pass it to a external function.
+TEST(IrTest, TestExternalFunction5) {
+  auto [expected_expressions, ir] =
+      create_ir([](point_2d p1, Expr w) { return custom_func_4::call(p1, w * p1.x - 22); }, "func",
+                arg("p1"), arg("w"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
+  ASSERT_EQ(0, ir.count_operation<ir::construct>()) << ir;  //  p1 passed directly.
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
+  ASSERT_EQ(0, output_ir.count_operation<ir::construct>()) << ir;
+}
+
+class custom_func_5
+    : public declare_external_function<custom_func_5, point_2d, type_list<point_2d>> {
+ public:
+  static constexpr std::string_view name() noexcept { return "custom_func_5"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("arg0"); }
+};
+
+// Call one external function and pass the result to another.
+TEST(IrTest, TestExternalFunction6) {
+  auto [expected_expressions, ir] = create_ir(
+      [](point_2d p, Expr w) {
+        const point_2d p2 = custom_func_5::call(p);
+        const point_2d p3 = custom_func_4::call(p2, p.x * w + 5);
+        const Expr f = custom_func_1::call(w, make_matrix(2, 2, p2.x, p2.y, p3.x, p3.y));
+        const point_2d p4{p3.y / w + f, p3.y + w * cos(p3.x)};
+        return p4;
+      },
+      "func", arg("p"), arg("w"));
+
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(3, ir.count_operation<ir::call_external_function>()) << ir;
+  ASSERT_EQ(1, ir.count_operation<ir::construct>()) << ir;  //  Only matrix is constructed.
+
+  const output_ir output_ir{std::move(ir)};
+  check_expressions(expected_expressions, output_ir);
+  ASSERT_EQ(3, output_ir.count_operation<ir::call_external_function>());
+  ASSERT_EQ(1, output_ir.count_operation<ir::construct>()) << ir;  //  Only matrix is constructed.
 }
 
 }  // namespace wf

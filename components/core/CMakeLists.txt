@@ -2,6 +2,7 @@
 add_library(
   wf-core STATIC
   wf/absl_imports.h
+  wf/algorithm_utils.h
   wf/assertions.h
   wf/checked_pointers.h
   wf/code_generation/ast.cc
@@ -12,6 +13,7 @@ add_library(
   wf/code_generation/code_formatter.h
   wf/code_generation/cpp_code_generator.cc
   wf/code_generation/cpp_code_generator.h
+  wf/code_generation/declare_external_function.h
   wf/code_generation/expr_from_ir.cc
   wf/code_generation/expression_group.h
   wf/code_generation/function_description.cc
@@ -28,6 +30,8 @@ add_library(
   wf/code_generation/types.h
   wf/collect.cc
   wf/common_visitors.h
+  wf/compound_expression.cc
+  wf/compound_expression.h
   wf/constants.cc
   wf/constants.h
   wf/derivative.cc
@@ -42,10 +46,16 @@ add_library(
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h
+  wf/expressions/compound_expression_element.cc
+  wf/expressions/compound_expression_element.h
   wf/expressions/conditional.cc
   wf/expressions/conditional.h
+  wf/expressions/custom_type_expressions.cc
+  wf/expressions/custom_type_expressions.h
   wf/expressions/derivative_expression.cc
   wf/expressions/derivative_expression.h
+  wf/expressions/external_function_invocation.cc
+  wf/expressions/external_function_invocation.h
   wf/expressions/function_expressions.h
   wf/expressions/matrix.cc
   wf/expressions/matrix.h
@@ -59,6 +69,8 @@ add_library(
   wf/expressions/special_constants.h
   wf/expressions/variable.cc
   wf/expressions/variable.h
+  wf/external_function.cc
+  wf/external_function.h
   wf/fmt_imports.h
   wf/functions.cc
   wf/functions.h
@@ -74,11 +86,13 @@ add_library(
   wf/number_set.cc
   wf/operations.h
   wf/ordering.cc
+  wf/ordering.h
   wf/output_annotations.h
   wf/plain_formatter.cc
   wf/plain_formatter.h
   wf/substitute.cc
   wf/template_utils.h
+  wf/traits.h
   wf/tree_formatter.cc
   wf/type_annotations.h
   wf/type_list.h

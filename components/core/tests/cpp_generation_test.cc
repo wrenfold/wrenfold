@@ -27,6 +27,38 @@ struct Circle {
 };
 }  // namespace wf::numeric
 
+// These functions don't perform amy meaningful task, they just exist so we can call them from
+// generated code to test external function support.
+namespace test {
+
+template <typename Scalar>
+Scalar external_function_1(Scalar a, Scalar b) {
+  return a * b;
+}
+
+template <typename Scalar>
+Scalar external_function_2(const Eigen::Matrix<Scalar, 2, 3>& m) {
+  return m.template topRows<1>().dot(m.template bottomRows<1>());
+}
+
+template <typename Scalar>
+Eigen::Matrix<Scalar, 2, 2> external_function_3(const Eigen::Matrix<Scalar, 2, 1>& a,
+                                                const Eigen::Matrix<Scalar, 2, 1>& b) {
+  return a * b.transpose();
+}
+
+wf::numeric::Point2d external_function_4(const wf::numeric::Point2d p) {
+  return {p.x * p.y, p.y - 2.0};
+}
+
+double external_function_5(const wf::numeric::Circle& a, const wf::numeric::Circle& b) {
+  const double distance =
+      std::sqrt(std::pow(a.center.x - b.center.x, 2.0) + std::pow(a.center.y - b.center.y, 2.0));
+  return distance < a.radius + b.radius ? 1.0 : 0.0;
+}
+
+}  // namespace test
+
 #include "generated.h"
 
 namespace wf {
@@ -41,30 +73,34 @@ TEST(CppGenerationTest, TestVectorRotation2D) {
   auto evaluator = create_evaluator(&vector_rotation_2d);
 
   for (double angle = -2.0 * M_PI; angle < 2.0 * M_PI; angle += 0.2) {
-    Eigen::Vector2d D_angle_eval;
-
+    Eigen::Vector2d v_rot_num, D_angle_num;
     Eigen::Vector2d v_rot_gen, D_angle_gen;
+    evaluator(angle, Eigen::Vector2d(-6.5, 7.2), v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{-6.5, 7.2}, v_rot_gen, D_angle_gen);
-    EXPECT_EIGEN_NEAR(evaluator(angle, {-6.5, 7.2}, D_angle_eval), v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
 
     // should still work without the optional arg
+    evaluator(angle, {-5.5, 12.0}, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{-5.5, 12.0}, v_rot_gen, nullptr);
-    EXPECT_EIGEN_NEAR(evaluator(angle, {-5.5, 12.0}, D_angle_eval), v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
 
     // Pass a map to the data:
-    const std::array<double, 2> input_v = {7.123, -4.001};
+    constexpr std::array<double, 2> input_v = {7.123, -4.001};
     const Eigen::Map<const Eigen::Vector2d> input_v_map(input_v.data());
 
+    evaluator(angle, input_v_map, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, input_v_map, v_rot_gen, D_angle_gen);
-    EXPECT_EIGEN_NEAR(evaluator(angle, input_v_map, D_angle_eval), v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
 
     // pass a map for the output:
+    evaluator(angle, {2.0, 3.0}, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{2.0, 3.0}, v_rot_gen,
                             Eigen::Map<Eigen::Vector2d>(D_angle_gen.data()));
-    EXPECT_EIGEN_NEAR(evaluator(angle, {2.0, 3.0}, D_angle_eval), v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_eval, D_angle_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
   }
 }
 
@@ -318,6 +354,68 @@ TEST(CppGenerationTest, TestNestedCustomType1) {
                     gen::nested_custom_type_1<double>(c2, {10.1, 0.0}).to_vector(), 1.0e-15);
   ASSERT_EIGEN_NEAR(evaluator(c2, {-13.0, 4.0}).to_vector(),
                     gen::nested_custom_type_1<double>(c2, {-13.0, 4.0}).to_vector(), 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall1) {
+  // We can't create an evaluator for expressions with external functions, so just check against
+  // numerical values.
+  ASSERT_NEAR(-126.0, gen::external_function_call_1(3.0, -2.0), 1.0e-15);
+  ASSERT_NEAR(-1000.0, gen::external_function_call_1(10.0, 0.0), 1.0e-15);
+  ASSERT_NEAR(-0.5625, gen::external_function_call_1(-0.25, 0.5), 1.0e-15);
+  ASSERT_NEAR(0.0, gen::external_function_call_1(0.0, 1.3), 1.0e-15);
+  ASSERT_NEAR(0.0, gen::external_function_call_1(1.1, 5.0), 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall2) {
+  ASSERT_NEAR(
+      3.0,
+      gen::external_function_call_2<double>(Eigen::Vector2d{1.0, -0.5}, Eigen::Vector2d{2.0, 3.0}),
+      1.0e-15);
+  ASSERT_NEAR(
+      55.56,
+      gen::external_function_call_2<double>(Eigen::Vector2d{10.0, 2.0}, Eigen::Vector2d{-2.0, 3.2}),
+      1.0e-15);
+  ASSERT_NEAR(
+      5.6,
+      gen::external_function_call_2<double>(Eigen::Vector2d{0.0, 1.2}, Eigen::Vector2d{-2.3, -1.0}),
+      1.0e-15);
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall3) {
+  ASSERT_EIGEN_NEAR(Eigen::Matrix2d::Zero(),
+                    gen::external_function_call_3<double>(0.0, Eigen::Vector2d{-1.0, 1.0}),
+                    1.0e-15);
+  ASSERT_EIGEN_NEAR((Eigen::Matrix2d() << 2.0, 3.0, 2.0, 3.0).finished(),
+                    gen::external_function_call_3<double>(1.0, Eigen::Vector2d{2.0, 3.0}), 1.0e-15);
+  ASSERT_EIGEN_NEAR((Eigen::Matrix2d() << -1.5, 7.5, -4.5, 22.5).finished(),
+                    gen::external_function_call_3<double>(3.0, Eigen::Vector2d{-0.5, 2.5}),
+                    1.0e-15);
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall4) {
+  ASSERT_NEAR(-2.0, gen::external_function_call_4(0.0, 0.0), 1.0e-15);
+  ASSERT_NEAR(32.0, gen::external_function_call_4(10.0, 2.0), 1.0e-15);
+  ASSERT_NEAR(-416.0, gen::external_function_call_4(-3.0, 13.0), 1.0e-15);
+  ASSERT_NEAR(-12.5, gen::external_function_call_4(0.0, 2.5), 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall5) {
+  ASSERT_EQ(1.0, gen::external_function_call_5({{0.0, 0.0}, 2.0}, 0.0, 0.0));
+  ASSERT_EQ(1.0, gen::external_function_call_5({{-1.0, 2.0}, 4.0}, 0.5, -0.25));
+  ASSERT_EQ(1.0, gen::external_function_call_5({{2.5, 0.5}, 0.1}, 2.75, 0.0));
+  ASSERT_EQ(-1.0, gen::external_function_call_5({{3.0, 0.0}, 2.0}, -1.0, 0.0));
+  ASSERT_EQ(-1.0, gen::external_function_call_5({{-5.0, -1.0}, 6.0}, 4.0, 2.0));
+}
+
+TEST(CppGenerationTest, TestExternalFunctionCall6) {
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(3.0, -5.0),
+                    gen::external_function_call_6(1.0, -0.5).to_vector(), 1.0e-15);
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(146.25, 2.5),
+                    gen::external_function_call_6(5.0, 3.25).to_vector(), 1.0e-15);
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(0.0, -4.0), gen::external_function_call_6(0.0, 2.0).to_vector(),
+                    1.0e-15);
+  ASSERT_EIGEN_NEAR(Eigen::Vector2d(623.4375, -14.5),
+                    gen::external_function_call_6(-3.5, 4.75).to_vector(), 1.0e-15);
 }
 
 }  // namespace wf

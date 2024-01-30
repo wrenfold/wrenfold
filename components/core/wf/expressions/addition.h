@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "wf/absl_imports.h"
+#include "wf/algorithm_utils.h"
 #include "wf/constants.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
@@ -21,9 +22,9 @@ class addition {
     WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     // Place into a deterministic (but otherwise mostly arbitrary) order.
     std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
-      if (a.get_hash() < b.get_hash()) {
+      if (a.hash() < b.hash()) {
         return true;
-      } else if (a.get_hash() > b.get_hash()) {
+      } else if (a.hash() > b.hash()) {
         return false;
       } else {
         // There could be a collision, so we fall back to a slow path here.
@@ -59,10 +60,8 @@ class addition {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   Expr map_children(Operation&& operation) const {
-    container_type transformed{};
-    transformed.reserve(size());
-    std::transform(begin(), end(), std::back_inserter(transformed),
-                   std::forward<Operation>(operation));
+    const container_type transformed =
+        transform_map<container_type>(terms_, std::forward<Operation>(operation));
     return addition::from_operands(transformed);
   }
 
