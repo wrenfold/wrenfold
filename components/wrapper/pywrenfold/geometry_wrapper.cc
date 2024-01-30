@@ -132,15 +132,15 @@ void wrap_geometry_operations(py::module_& m) {
           py::doc("Create a quaternion from angle-axis parameters. Vector v must be a "
                   "unit vector, or the result does not represent a rotation. Angle is specified in "
                   "radians."))
-      .def_static(
-          "from_rotation_vector",
-          static_cast<quaternion (*)(const Expr&, const Expr&, const Expr&, std::optional<Expr>)>(
-              &quaternion::from_rotation_vector),
-          "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
-          py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
-                  "of radians."))
       .def_static("from_rotation_vector",
-                  static_cast<quaternion (*)(const matrix_expr&, std::optional<Expr>)>(
+                  static_cast<quaternion (*)(const Expr&, const Expr&, const Expr&,
+                                             const std::optional<Expr>&)>(
+                      &quaternion::from_rotation_vector),
+                  "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
+                  py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
+                          "of radians."))
+      .def_static("from_rotation_vector",
+                  static_cast<quaternion (*)(const matrix_expr&, const std::optional<Expr>&)>(
                       &quaternion::from_rotation_vector),
                   "v"_a, py::arg("epsilon"),
                   py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "

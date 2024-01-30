@@ -104,11 +104,11 @@ class quaternion {
   // Construct quaternion from a rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
   static quaternion from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
-                                         std::optional<Expr> epsilon);
+                                         const std::optional<Expr>& epsilon);
 
   // Construct quaternion from a rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  static quaternion from_rotation_vector(const matrix_expr& v, std::optional<Expr> epsilon);
+  static quaternion from_rotation_vector(const matrix_expr& v, const std::optional<Expr>& epsilon);
 
   // Convenience method for X-axis rotation. Angle is in radians.
   static quaternion from_x_angle(const Expr& angle) {
@@ -143,8 +143,8 @@ class quaternion {
   // Compute 4xN jacobian of this quaternion with respect to the `N` input variables `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
   matrix_expr jacobian(
-      absl::Span<const Expr> vars,
-      non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
+      const absl::Span<const Expr> vars,
+      const non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
     return wf::jacobian(wxyz(), vars, behavior);
   }
 

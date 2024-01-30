@@ -25,9 +25,14 @@ Eigen::Quaternion<Scalar> quat_interp(const Eigen::Quaternion<Scalar>& a,
       a, (manifold<Quaterniond>::local_coordinates(a, b) * alpha).eval());
 }
 
+auto quat_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec,
+                        Expr alpha) {
+  return quaternion_interpolation(q0_vec, q1_vec, alpha, 1.0e-16);
+};
+
 // Test the quaternion interpolation result numerically.
 TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
-  auto evaluator = create_evaluator(&wf::quaternion_interpolation);
+  auto evaluator = create_evaluator(&quat_interpolation);
 
   const Quaterniond q0 = Quaterniond{AngleAxisd(M_PI / 3, Vector3d::UnitX())} *
                          Quaterniond{AngleAxisd(M_PI / 6, Vector3d::UnitZ())};

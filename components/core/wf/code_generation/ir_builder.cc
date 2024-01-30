@@ -433,7 +433,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const addition& add, const Expr& add_abstract) {
     // For additions, first check if the negated version has already been cached:
     const Expr negative_add = -add_abstract;
-    if (auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
+    if (const auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
       const auto promoted_type = std::max(it->second->numeric_type(), code_numeric_type::integral);
       const ir::value_ptr negative_one =
           maybe_cast(operator()(constants::negative_one), promoted_type);

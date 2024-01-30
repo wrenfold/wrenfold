@@ -12,14 +12,14 @@ class output_arg {
   using value_type = T;
 
   template <typename U>
-  using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
+  using enable_if_constructible_t = std::enable_if_t<std::is_constructible_v<T, U>>;
 
-  template <typename U, typename = enable_if_decayed_type_matches_t<U>>
-  constexpr output_arg(std::string_view name, U&& u)
+  template <typename U, typename = enable_if_constructible_t<U>>
+  constexpr output_arg(const std::string_view name, U&& u)
       : value_(std::forward<U>(u)), name_(name), is_optional_(false) {}
 
-  template <typename U, typename = enable_if_decayed_type_matches_t<U>>
-  constexpr output_arg(std::string_view name, U&& u, bool is_optional)
+  template <typename U, typename = enable_if_constructible_t<U>>
+  constexpr output_arg(const std::string_view name, U&& u, const bool is_optional)
       : value_(std::forward<U>(u)), name_(name), is_optional_(is_optional) {}
 
   // Access the output value. Typically, an `Expr` or `matrix_expr`, etc.
@@ -55,9 +55,9 @@ class return_value {
   using value_type = T;
 
   template <typename U>
-  using enable_if_decayed_type_matches_t = std::enable_if_t<std::is_same_v<T, std::decay_t<U>>>;
+  using enable_if_constructible_t = std::enable_if_t<std::is_constructible_v<T, U>>;
 
-  template <typename U, typename = enable_if_decayed_type_matches_t<U>>
+  template <typename U, typename = enable_if_constructible_t<U>>
   explicit return_value(U&& value) : value_(std::forward<U>(value)) {}
 
   // Access the output value. Typically, an `Expr` or `matrix_expr`, etc.
