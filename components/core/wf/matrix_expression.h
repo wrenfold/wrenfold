@@ -144,15 +144,11 @@ struct is_identical_struct<matrix_expr> {
 };
 
 // Math operators:
-namespace matrix_operator_overloads {
-
 matrix_expr operator+(const matrix_expr& a, const matrix_expr& b);
 matrix_expr operator-(const matrix_expr& a, const matrix_expr& b);
 matrix_expr operator*(const matrix_expr& a, const matrix_expr& b);
 matrix_expr operator*(const matrix_expr& a, const Expr& b);
 inline matrix_expr operator*(const Expr& a, const matrix_expr& b) { return b * a; }
-
-}  // namespace matrix_operator_overloads
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const matrix_expr& x) {

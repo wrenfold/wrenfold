@@ -11,7 +11,6 @@
 
 namespace wf {
 using namespace wf::custom_literals;
-using namespace wf::matrix_operator_overloads;
 
 TEST(QuaternionTest, TestConstructor) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");

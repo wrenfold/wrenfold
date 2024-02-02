@@ -251,7 +251,6 @@ quaternion operator*(const quaternion& a, const quaternion& b) {
 // A bit odd to put this here, since it technically doesn't have that much to do with
 // quaternions. But it is a useful expression when dealing with rotations.
 matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<Expr> epsilon) {
-  using namespace matrix_operator_overloads;
   if (w.rows() != 3 || w.cols() != 1) {
     throw dimension_error("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
                           w.cols());

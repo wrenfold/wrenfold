@@ -470,26 +470,19 @@ void wrap_matrix_operations(py::module_& m) {
       .def("det", &determinant, "Compute determinant of the matrix.")
       // Operators:
       .def("__add__",
-           static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(
-               &matrix_operator_overloads::operator+),
+           static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(&operator+),
            py::is_operator())
       .def("__sub__",
-           static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(
-               &matrix_operator_overloads::operator-),
+           static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(&operator-),
            py::is_operator())
       .def("__mul__",
-           static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(
-               &matrix_operator_overloads::operator*),
+           static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(&operator*),
            py::is_operator())
       // Right-multiply by scalar:
-      .def("__mul__",
-           static_cast<matrix_expr (*)(const matrix_expr&, const Expr&)>(
-               &matrix_operator_overloads::operator*),
+      .def("__mul__", static_cast<matrix_expr (*)(const matrix_expr&, const Expr&)>(&operator*),
            py::is_operator())
       // Left multiply by scalar:
-      .def("__rmul__",
-           static_cast<matrix_expr (*)(const Expr&, const matrix_expr&)>(
-               &matrix_operator_overloads::operator*),
+      .def("__rmul__", static_cast<matrix_expr (*)(const Expr&, const matrix_expr&)>(&operator*),
            py::is_operator())
       .def("__neg__", &matrix_expr::operator-, "Element-wise negation of the matrix.")
       // Prohibit conversion to bool.

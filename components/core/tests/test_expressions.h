@@ -21,7 +21,6 @@ inline Expr simple_multiply_add(Expr x, Expr y, Expr z) { return x * y + z; }
 // Rotate a 2D vector by an angle. Output the vector, and its derivative with respect
 // to the angle.
 inline auto vector_rotation_2d(Expr theta, ta::static_matrix<2, 1> v) {
-  using namespace matrix_operator_overloads;
   matrix_expr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
   ta::static_matrix<2, 1> v_rot{R * v};
   ta::static_matrix<2, 1> v_dot_D_theta{v_rot.inner().diff(theta)};

@@ -12,8 +12,6 @@ namespace wf {
 // Outputs the interpolated quaternion, as well as the tangent space derivatives.
 auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec,
                               Expr alpha) {
-  using namespace matrix_operator_overloads;
-
   const quaternion q0 = quaternion::from_vector_xyzw(q0_vec);
   const quaternion q1 = quaternion::from_vector_xyzw(q1_vec);
   const matrix_expr q_delta_tangent = (q0.conjugate() * q1).to_rotation_vector(1.0e-16);
