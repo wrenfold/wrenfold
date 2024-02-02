@@ -282,7 +282,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
-             const MatrixExpr& value) {
+             const matrix_expr& value) {
             self.add_output_argument(name, matrix_type(value.rows(), value.cols()), is_optional,
                                      value.to_vector());
           },
@@ -304,7 +304,7 @@ void wrap_codegen_operations(py::module_& m) {
           py::arg("value"))
       .def(
           "set_return_value",
-          [](function_description& self, const MatrixExpr& value) {
+          [](function_description& self, const matrix_expr& value) {
             self.set_return_value(matrix_type(value.rows(), value.cols()), value.to_vector());
           },
           py::arg("value"))

@@ -37,7 +37,7 @@ class castable_variant {
 // Convert the IR operations back to expressions.
 // This is supported so we can do round-trip tests.
 struct expression_from_ir_visitor {
-  using expr_variant = castable_variant<Expr, MatrixExpr, compound_expr>;
+  using expr_variant = castable_variant<Expr, matrix_expr, compound_expr>;
 
   explicit expression_from_ir_visitor(std::unordered_map<std::string, bool>&& output_arg_exists)
       : output_arg_exists_(std::move(output_arg_exists)) {
@@ -143,7 +143,7 @@ struct expression_from_ir_visitor {
     return overloaded_visit(
         construct.type(),
         [&](const matrix_type& mat) -> expr_variant {
-          return MatrixExpr::create(mat.rows(), mat.cols(), std::move(args_converted));
+          return matrix_expr::create(mat.rows(), mat.cols(), std::move(args_converted));
         },
         [&](const custom_type& custom) -> expr_variant {
           return custom_type_construction::create(custom, std::move(args_converted));

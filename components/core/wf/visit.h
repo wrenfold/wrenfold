@@ -39,7 +39,7 @@ auto visit(const Var& variant, F&& visitor) {
         if constexpr (inherits_expression_base_v<T>) {
           return visit(x, std::forward<F>(visitor));
         } else {
-          // TODO: Fallback path for MatrixExpr - maybe temporary?
+          // TODO: Fallback path for matrix_expr - maybe temporary?
           return visitor(x);
         }
       },
@@ -68,13 +68,13 @@ compound_expr map_compound_expressions(const compound_expr& expr, F&& f) {
   return visit(expr, make_overloaded(
                          [&](const external_function_invocation& invocation) {
                            return invocation.map_children([&](const any_expression& arg) {
-                             // TODO: Make `MatrixExpr` derived from `expression_base`, and call
+                             // TODO: Make `matrix_expr` derived from `expression_base`, and call
                              //  visit(...) here.
                              return overloaded_visit(
                                  arg, [&](const Expr& x) -> any_expression { return f(x); },
-                                 [&](const MatrixExpr& x) -> any_expression {
+                                 [&](const matrix_expr& x) -> any_expression {
                                    matrix m = x.as_matrix().map_children(std::forward<F>(f));
-                                   return MatrixExpr(std::move(m));
+                                   return matrix_expr(std::move(m));
                                  },
                                  [&](const compound_expr& x) -> any_expression { return f(x); });
                            });

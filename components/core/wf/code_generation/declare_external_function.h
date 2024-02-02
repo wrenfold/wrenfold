@@ -38,7 +38,7 @@ class declare_external_function {
     zip_tuples(
         [&captured_args](auto arg, const auto& arg_type) {
           using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, Expr> || std::is_same_v<T, MatrixExpr> ||
+          if constexpr (std::is_same_v<T, Expr> || std::is_same_v<T, matrix_expr> ||
                         type_annotations::is_static_matrix_v<T>) {
             captured_args.emplace_back(std::move(arg));
           } else if constexpr (std::is_constructible_v<Expr, T>) {
@@ -60,9 +60,9 @@ class declare_external_function {
     if constexpr (std::is_same_v<ReturnType, Expr>) {
       // Get single element from the compound expression:
       return ReturnType{std::get<Expr>(invoke_result)};
-    } else if constexpr (std::is_same_v<ReturnType, MatrixExpr> ||
+    } else if constexpr (std::is_same_v<ReturnType, matrix_expr> ||
                          type_annotations::is_static_matrix_v<ReturnType>) {
-      return ReturnType{std::get<MatrixExpr>(invoke_result)};
+      return ReturnType{std::get<matrix_expr>(invoke_result)};
     } else if constexpr (implements_custom_type_registrant_v<ReturnType>) {
       const custom_type& type = description.return_type_as<custom_type>();
       const std::vector<Expr> elements =

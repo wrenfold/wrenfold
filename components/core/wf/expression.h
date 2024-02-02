@@ -105,7 +105,7 @@ class Expr final : public expression_base<Expr, scalar_meta_type> {
   Expr eval() const { return wf::evaluate(*this); }
 
  protected:
-  friend class MatrixExpr;
+  friend class matrix_expr;
 
   // Construct constant from float.
   static Expr from_float(double x);

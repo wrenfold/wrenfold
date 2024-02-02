@@ -18,8 +18,8 @@ static std::vector<Expr> create_function_args(const std::size_t arg_index, const
   return expressions;
 }
 
-MatrixExpr create_function_input(const matrix_type& mat, const std::size_t arg_index) {
-  return MatrixExpr::create(mat.rows(), mat.cols(), create_function_args(arg_index, mat.size()));
+matrix_expr create_function_input(const matrix_type& mat, const std::size_t arg_index) {
+  return matrix_expr::create(mat.rows(), mat.cols(), create_function_args(arg_index, mat.size()));
 }
 
 // TODO: The numeric type information needs to be propagate to the IR here.
@@ -27,7 +27,7 @@ std::vector<Expr> extract_function_output(const scalar_type&, const Expr& value)
   return std::vector(1, value);
 }
 
-std::vector<Expr> extract_function_output(const matrix_type&, const MatrixExpr& value) {
+std::vector<Expr> extract_function_output(const matrix_type&, const matrix_expr& value) {
   return value.to_vector();
 }
 

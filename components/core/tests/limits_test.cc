@@ -267,10 +267,10 @@ TEST(LimitsTest, TestMatrixLimitsQuaternion) {
   ASSERT_IDENTICAL(make_vector(1, 0, 0, 0), limit(Q_subbed.to_vector_wxyz(), t).value());
 
   // Take the derivative wrt the rotation vector params:
-  const MatrixExpr Q_diff_subbed =
+  const matrix_expr Q_diff_subbed =
       Q.to_vector_wxyz().jacobian({x0, y0, z0}).subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
 
-  const MatrixExpr Q_diff_subbed_expected =
+  const matrix_expr Q_diff_subbed_expected =
       make_matrix(4, 3, 0, 0, 0, 1 / 2_s, 0, 0, 0, 1 / 2_s, 0, 0, 0, 1 / 2_s);
   ASSERT_IDENTICAL(Q_diff_subbed_expected, limit(Q_diff_subbed, t).value());
 }
@@ -282,19 +282,19 @@ TEST(LimitsTest, TestMatrixLimitsRotation) {
   const Expr t{"t", number_set::real_non_negative};
 
   const quaternion Q = quaternion::from_rotation_vector(x0, y0, z0, std::nullopt);
-  const MatrixExpr R = Q.to_rotation_matrix();
+  const matrix_expr R = Q.to_rotation_matrix();
 
-  const MatrixExpr R_subbed = R.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
+  const matrix_expr R_subbed = R.subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
   ASSERT_IDENTICAL(make_identity(3), limit(R_subbed, t).value());
 
   // Do the derivative of the rotation elements wrt the rotation vector:
-  const MatrixExpr R_diff =
+  const matrix_expr R_diff =
       vectorize_matrix(R).jacobian({x0, y0, z0}).subs(x0, x * t).subs(y0, y * t).subs(z0, z * t);
 
   // clang-format off
   // Section 10.3.1.1 of "A tutorial on SE(3) transformation parameterizations
   //   and on-manifold optimization", J.L. Blanco
-  const MatrixExpr R_diff_expected = make_matrix(9, 3,
+  const matrix_expr R_diff_expected = make_matrix(9, 3,
                                                  0,  0,  0,
                                                  0,  0,  1,
                                                  0, -1,  0,
@@ -313,16 +313,16 @@ TEST(LimitsTest, TestMatrixLimitsQuaternionToVector) {
   const Expr t{"t", number_set::real_non_negative};
 
   // Take the limit as the quaternion approaches identity:
-  const MatrixExpr J = quaternion{w, x, y, z}
-                           .to_rotation_vector(std::nullopt)
-                           .jacobian({w, x, y, z})
-                           .subs(w, 1 - w * t)
-                           .subs(x, x * t)
-                           .subs(y, y * t)
-                           .subs(z, z * t)
-                           .collect({t});
+  const matrix_expr J = quaternion{w, x, y, z}
+                            .to_rotation_vector(std::nullopt)
+                            .jacobian({w, x, y, z})
+                            .subs(w, 1 - w * t)
+                            .subs(x, x * t)
+                            .subs(y, y * t)
+                            .subs(z, z * t)
+                            .collect({t});
 
-  const std::optional<MatrixExpr> J_lim = limit(J, t);
+  const std::optional<matrix_expr> J_lim = limit(J, t);
   ASSERT_TRUE(J_lim.has_value());
   ASSERT_IDENTICAL(make_matrix(3, 4, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2), *J_lim);
 }
@@ -331,8 +331,8 @@ TEST(LimitsTest, TestJacobianSo3) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
   const Expr t{"t", number_set::real_non_negative};
   // Should converge to identify as norm of `w` goes to zero:
-  const MatrixExpr J = left_jacobian_of_so3(make_vector(x * t, y * t, z * t), std::nullopt);
-  const std::optional<MatrixExpr> J_lim = limit(J, t);
+  const matrix_expr J = left_jacobian_of_so3(make_vector(x * t, y * t, z * t), std::nullopt);
+  const std::optional<matrix_expr> J_lim = limit(J, t);
   ASSERT_TRUE(J_lim.has_value());
   ASSERT_IDENTICAL(make_identity(3), *J_lim);
 }

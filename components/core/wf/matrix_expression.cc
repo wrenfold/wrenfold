@@ -10,53 +10,54 @@
 
 namespace wf {
 
-MatrixExpr::MatrixExpr(matrix&& content) : matrix_(std::make_shared<matrix>(std::move(content))) {}
+matrix_expr::matrix_expr(matrix&& content)
+    : matrix_(std::make_shared<matrix>(std::move(content))) {}
 
-MatrixExpr MatrixExpr::create(index_t rows, index_t cols, std::vector<Expr> args) {
-  return MatrixExpr{matrix{rows, cols, std::move(args)}};
+matrix_expr matrix_expr::create(index_t rows, index_t cols, std::vector<Expr> args) {
+  return matrix_expr{matrix{rows, cols, std::move(args)}};
 }
 
 // For now, a lot of these methods just forward to the `Matrix` type. In the future,
 // we may have different matrix types.
 
 // Test if the two expressions are identical.
-bool MatrixExpr::is_identical_to(const MatrixExpr& other) const {
+bool matrix_expr::is_identical_to(const matrix_expr& other) const {
   return as_matrix().is_identical_to(other.as_matrix());
 }
 
-std::string_view MatrixExpr::type_name() const { return matrix::name_str; }
+std::string_view matrix_expr::type_name() const { return matrix::name_str; }
 
-std::string MatrixExpr::to_string() const {
+std::string matrix_expr::to_string() const {
   plain_formatter formatter{};
   formatter(as_matrix());
   return formatter.take_output();
 }
 
-index_t MatrixExpr::rows() const { return as_matrix().rows(); }
+index_t matrix_expr::rows() const { return as_matrix().rows(); }
 
-index_t MatrixExpr::cols() const { return as_matrix().cols(); }
+index_t matrix_expr::cols() const { return as_matrix().cols(); }
 
-const Expr& MatrixExpr::operator[](index_t i) const { return as_matrix()[i]; }
+const Expr& matrix_expr::operator[](index_t i) const { return as_matrix()[i]; }
 
-const Expr& MatrixExpr::operator()(index_t i, index_t j) const { return as_matrix()(i, j); }
+const Expr& matrix_expr::operator()(index_t i, index_t j) const { return as_matrix()(i, j); }
 
-void MatrixExpr::set(index_t i, index_t j, const Expr& value) {
+void matrix_expr::set(index_t i, index_t j, const Expr& value) {
   as_matrix_mut().set_unchecked(i, j, value);
 }
 
-MatrixExpr MatrixExpr::get_block(index_t row, index_t col, index_t nrows, index_t ncols) const {
+matrix_expr matrix_expr::get_block(index_t row, index_t col, index_t nrows, index_t ncols) const {
   matrix result = as_matrix().get_block(row, col, nrows, ncols);
-  return MatrixExpr{std::move(result)};
+  return matrix_expr{std::move(result)};
 }
 
-void MatrixExpr::set_block(index_t row, index_t col, index_t nrows, index_t ncols,
-                           const MatrixExpr& block) {
+void matrix_expr::set_block(index_t row, index_t col, index_t nrows, index_t ncols,
+                            const matrix_expr& block) {
   as_matrix_mut().set_block(row, col, nrows, ncols, block.as_matrix());
 }
 
-MatrixExpr MatrixExpr::transposed() const { return MatrixExpr{as_matrix().transposed()}; }
+matrix_expr matrix_expr::transposed() const { return matrix_expr{as_matrix().transposed()}; }
 
-MatrixExpr MatrixExpr::reshape(index_t nrows, index_t ncols) const {
+matrix_expr matrix_expr::reshape(index_t nrows, index_t ncols) const {
   if (nrows < 0 || ncols < 0) {
     throw dimension_error("Dimensions must be non-negative. Received [{}, {}]", nrows, ncols);
   }
@@ -65,10 +66,10 @@ MatrixExpr MatrixExpr::reshape(index_t nrows, index_t ncols) const {
         "Reshaped dimensions [{} x {} = {}] does not match number of input elements [{} x {} = {}]",
         nrows, ncols, nrows * ncols, rows(), cols(), size());
   }
-  return MatrixExpr::create(nrows, ncols, to_vector());
+  return matrix_expr::create(nrows, ncols, to_vector());
 }
 
-Expr MatrixExpr::squared_norm() const {
+Expr matrix_expr::squared_norm() const {
   const matrix& m = as_matrix();
   std::vector<Expr> operands{};
   operands.reserve(m.size());
@@ -78,19 +79,20 @@ Expr MatrixExpr::squared_norm() const {
   return addition::from_operands(operands);
 }
 
-Expr MatrixExpr::norm() const { return sqrt(squared_norm()); }
+Expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
-const matrix& MatrixExpr::as_matrix() const { return *matrix_.get(); }
+const matrix& matrix_expr::as_matrix() const { return *matrix_.get(); }
 
-std::vector<Expr> MatrixExpr::to_vector() const { return as_matrix().data(); }
+std::vector<Expr> matrix_expr::to_vector() const { return as_matrix().data(); }
 
-MatrixExpr MatrixExpr::operator-() const {
+matrix_expr matrix_expr::operator-() const {
   return matrix_operator_overloads::operator*(*this, constants::negative_one);
 }
 
-MatrixExpr MatrixExpr::diff(const Expr& var, int reps, non_differentiable_behavior behavior) const {
+matrix_expr matrix_expr::diff(const Expr& var, int reps,
+                              non_differentiable_behavior behavior) const {
   derivative_visitor visitor{var, behavior};
-  return MatrixExpr{as_matrix().map_children([&visitor, reps](const Expr& x) {
+  return matrix_expr{as_matrix().map_children([&visitor, reps](const Expr& x) {
     Expr result = x;
     for (int i = 0; i < reps; ++i) {
       result = visitor.apply(result);
@@ -99,8 +101,8 @@ MatrixExpr MatrixExpr::diff(const Expr& var, int reps, non_differentiable_behavi
   })};
 }
 
-MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars,
-                                non_differentiable_behavior behavior) const {
+matrix_expr matrix_expr::jacobian(const absl::Span<const Expr> vars,
+                                  non_differentiable_behavior behavior) const {
   if (cols() != 1) {
     throw dimension_error(
         "Jacobian can only be computed on column-vectors. Received dimensions: [{}, {}]", rows(),
@@ -110,8 +112,8 @@ MatrixExpr MatrixExpr::jacobian(const absl::Span<const Expr> vars,
   return wf::jacobian(m.data(), vars, behavior);
 }
 
-MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars,
-                                non_differentiable_behavior behavior) const {
+matrix_expr matrix_expr::jacobian(const matrix_expr& vars,
+                                  non_differentiable_behavior behavior) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());
@@ -120,28 +122,30 @@ MatrixExpr MatrixExpr::jacobian(const MatrixExpr& vars,
   return jacobian(m.data(), behavior);  //  Call span version.
 }
 
-MatrixExpr MatrixExpr::distribute() const {
-  return MatrixExpr{as_matrix().map_children(&wf::distribute)};
+matrix_expr matrix_expr::distribute() const {
+  return matrix_expr{as_matrix().map_children(&wf::distribute)};
 }
 
-MatrixExpr MatrixExpr::subs(const Expr& target, const Expr& replacement) const {
-  return MatrixExpr{
+matrix_expr matrix_expr::subs(const Expr& target, const Expr& replacement) const {
+  return matrix_expr{
       as_matrix().map_children([&](const Expr& x) { return x.subs(target, replacement); })};
 }
 
-MatrixExpr MatrixExpr::collect(absl::Span<const Expr> terms) const {
-  return MatrixExpr{
+matrix_expr matrix_expr::collect(absl::Span<const Expr> terms) const {
+  return matrix_expr{
       as_matrix().map_children([&terms](const Expr& x) { return collect_many(x, terms); })};
 }
 
-MatrixExpr MatrixExpr::eval() const { return MatrixExpr{as_matrix().map_children(&wf::evaluate)}; }
+matrix_expr matrix_expr::eval() const {
+  return matrix_expr{as_matrix().map_children(&wf::evaluate)};
+}
 
-std::size_t hash_struct<MatrixExpr>::operator()(const MatrixExpr& mat) const {
+std::size_t hash_struct<matrix_expr>::operator()(const matrix_expr& mat) const {
   return wf::hash(mat.as_matrix());
 }
 
-relative_order order_struct<MatrixExpr>::operator()(const MatrixExpr& a,
-                                                    const MatrixExpr& b) const {
+relative_order order_struct<matrix_expr>::operator()(const matrix_expr& a,
+                                                     const matrix_expr& b) const {
   const matrix& am = a.as_matrix();
   const matrix& bm = b.as_matrix();
   if (const relative_order order = order_by_comparison(am.dimensions(), bm.dimensions());
@@ -153,19 +157,19 @@ relative_order order_struct<MatrixExpr>::operator()(const MatrixExpr& a,
 
 namespace matrix_operator_overloads {
 
-MatrixExpr operator+(const MatrixExpr& a, const MatrixExpr& b) {
-  return MatrixExpr{a.as_matrix() + b.as_matrix()};
+matrix_expr operator+(const matrix_expr& a, const matrix_expr& b) {
+  return matrix_expr{a.as_matrix() + b.as_matrix()};
 }
 
-MatrixExpr operator-(const MatrixExpr& a, const MatrixExpr& b) {
-  return MatrixExpr{a.as_matrix() - b.as_matrix()};
+matrix_expr operator-(const matrix_expr& a, const matrix_expr& b) {
+  return matrix_expr{a.as_matrix() - b.as_matrix()};
 }
 
-MatrixExpr operator*(const MatrixExpr& a, const MatrixExpr& b) {
-  return MatrixExpr{a.as_matrix() * b.as_matrix()};
+matrix_expr operator*(const matrix_expr& a, const matrix_expr& b) {
+  return matrix_expr{a.as_matrix() * b.as_matrix()};
 }
 
-MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
+matrix_expr operator*(const matrix_expr& a, const Expr& b) {
   const matrix& a_mat = a.as_matrix();
 
   std::vector<Expr> data{};
@@ -173,7 +177,7 @@ MatrixExpr operator*(const MatrixExpr& a, const Expr& b) {
   std::transform(a_mat.begin(), a_mat.end(), std::back_inserter(data),
                  [&b](const Expr& a_expr) { return a_expr * b; });
 
-  return MatrixExpr{matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
+  return matrix_expr{matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
 }
 
 }  // namespace matrix_operator_overloads

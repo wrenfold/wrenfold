@@ -21,7 +21,7 @@ class quaternion {
   quaternion() : quaternion(constants::one, constants::zero, constants::zero, constants::zero) {}
 
   // Construct from a vector ordered `wxyz`.
-  static quaternion from_vector_wxyz(const MatrixExpr& q) {
+  static quaternion from_vector_wxyz(const matrix_expr& q) {
     if (q.rows() != 4 || q.cols() != 1) {
       throw dimension_error("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
                             q.cols());
@@ -30,7 +30,7 @@ class quaternion {
   }
 
   // Construct from a vector ordered `xyzw` (scalar last).
-  static quaternion from_vector_xyzw(const MatrixExpr& q) {
+  static quaternion from_vector_xyzw(const matrix_expr& q) {
     if (q.rows() != 4 || q.cols() != 1) {
       throw dimension_error("Quaternion storage must be 4x1. Received [{} x {}]", q.rows(),
                             q.cols());
@@ -57,10 +57,10 @@ class quaternion {
   }
 
   // Convert to a column vector in [w,x,y,z] order.
-  MatrixExpr to_vector_wxyz() const;
+  matrix_expr to_vector_wxyz() const;
 
   // Convert to a column vector in [x,y,z,w] order.
-  MatrixExpr to_vector_xyzw() const;
+  matrix_expr to_vector_xyzw() const;
 
   // Create a new quaternion by substituting.
   quaternion subs(const Expr& target, const Expr& replacement) const;
@@ -90,7 +90,7 @@ class quaternion {
 
   // Convert a unit-norm to a rotation matrix. If the input does not have unit norm, the
   // result will not be a valid member of SO(3).
-  MatrixExpr to_rotation_matrix() const;
+  matrix_expr to_rotation_matrix() const;
 
   // Construct quaternion from axis and angle.
   // It is expected that [vx, vy, vz] form a unit vector. Angle is in radians.
@@ -99,7 +99,7 @@ class quaternion {
 
   // Construct quaternion from axis and angle. It is expected that `v` has unit norm.
   // Angle is in radians.
-  static quaternion from_angle_axis(const Expr& angle, const MatrixExpr& v);
+  static quaternion from_angle_axis(const Expr& angle, const matrix_expr& v);
 
   // Construct quaternion from a rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
@@ -108,7 +108,7 @@ class quaternion {
 
   // Construct quaternion from a rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  static quaternion from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon);
+  static quaternion from_rotation_vector(const matrix_expr& v, std::optional<Expr> epsilon);
 
   // Convenience method for X-axis rotation. Angle is in radians.
   static quaternion from_x_angle(const Expr& angle) {
@@ -128,21 +128,21 @@ class quaternion {
   // Convert to axis-angle representation.
   // Angle is converted into the range [0, pi]. If the norm of the vector component falls below
   // `epsilon`, the rotation cannot be recovered, and we return a zero angle.
-  std::tuple<Expr, MatrixExpr> to_angle_axis(std::optional<Expr> epsilon) const;
+  std::tuple<Expr, matrix_expr> to_angle_axis(std::optional<Expr> epsilon) const;
 
   // Convert quaternion to a Rodrigues rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  MatrixExpr to_rotation_vector(std::optional<Expr> epsilon) const;
+  matrix_expr to_rotation_vector(std::optional<Expr> epsilon) const;
 
   // Construct a quaternion from a rotation matrix using Caley's method.
   // If `R` is not a member of SO(3), the behavior is undefined. See:
   // Section 3.5 of: "A survey on the Computation of Quaternions from Rotation Matrices"
   // By S. Sarabandi and F. Thomas
-  static quaternion from_rotation_matrix(const MatrixExpr& R_in);
+  static quaternion from_rotation_matrix(const matrix_expr& R_in);
 
   // Compute 4xN jacobian of this quaternion with respect to the `N` input variables `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
-  MatrixExpr jacobian(
+  matrix_expr jacobian(
       absl::Span<const Expr> vars,
       non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
     return wf::jacobian(wxyz(), vars, behavior);
@@ -150,14 +150,14 @@ class quaternion {
 
   // Compute the 4xN jacobian of this quaternion with respect to the `Nx1` column vector `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
-  MatrixExpr jacobian(const MatrixExpr& vars, non_differentiable_behavior behavior =
-                                                  non_differentiable_behavior::constant) const;
+  matrix_expr jacobian(const matrix_expr& vars, non_differentiable_behavior behavior =
+                                                    non_differentiable_behavior::constant) const;
 
   // Compute the 4x4 jacobian of this quaternion with respect to the variables in quaternion `vars`.
   // The rows and columns of the output jacobian are ordered in the storage order of the quaternion:
   // [w,x,y,z].
-  MatrixExpr jacobian(const quaternion& vars, non_differentiable_behavior behavior =
-                                                  non_differentiable_behavior::constant) const {
+  matrix_expr jacobian(const quaternion& vars, non_differentiable_behavior behavior =
+                                                   non_differentiable_behavior::constant) const {
     return jacobian(vars.wxyz(), behavior);
   }
 
@@ -168,7 +168,7 @@ class quaternion {
   //
   // Where `Q` is this quaternion, and `w` is an infinitesimal rotation vector, retracted on the
   // right side of Q. It is assumed that `Q` has unit norm, otherwise the result is undefined.
-  MatrixExpr right_retract_derivative() const;
+  matrix_expr right_retract_derivative() const;
 
   // Compute the 3x4 tangent-space derivative of the operation:
   //
@@ -176,7 +176,7 @@ class quaternion {
   //
   // Where `Q` is this (unit norm) quaternion, and Q^T denotes the conjugation operation. dQ is an
   // infinitesimal additive perturbation to the quaternion.
-  MatrixExpr right_local_coordinates_derivative() const;
+  matrix_expr right_local_coordinates_derivative() const;
 
  private:
   // Quaternion elements in order [w, x, y, z].
@@ -197,6 +197,6 @@ quaternion operator*(const quaternion& a, const quaternion& b);
 // You can obtain the right jacobian of SO(3) by transposing this quantity.
 //
 // When the norm of `w` falls below `epsilon`, the small angle approximation is used.
-MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon);
+matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<Expr> epsilon);
 
 }  // namespace wf

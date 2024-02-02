@@ -89,7 +89,7 @@ auto invoke_with_symbolic_inputs(Callable&& callable, const std::tuple<ArgTypes.
 
   if constexpr (is_tuple_v<return_type>) {
     return return_expr;
-  } else if constexpr (is_return_value<return_type>::value) {
+  } else if constexpr (is_output_arg_or_return_value_v<return_type>) {
     return std::make_tuple(std::move(return_expr));
   } else {
     return std::make_tuple(return_value(std::move(return_expr)));

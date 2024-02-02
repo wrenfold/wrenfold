@@ -16,7 +16,7 @@ auto quaternion_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<
 
   const quaternion q0 = quaternion::from_vector_xyzw(q0_vec);
   const quaternion q1 = quaternion::from_vector_xyzw(q1_vec);
-  const MatrixExpr q_delta_tangent = (q0.conjugate() * q1).to_rotation_vector(1.0e-16);
+  const matrix_expr q_delta_tangent = (q0.conjugate() * q1).to_rotation_vector(1.0e-16);
   const quaternion q_interp =
       q0 * quaternion::from_rotation_vector(q_delta_tangent * alpha, 1.0e-16);
 

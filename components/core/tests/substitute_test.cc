@@ -164,7 +164,7 @@ TEST(SubstituteTest, TestMultiplications) {
 
 TEST(SubstituteTest, TestMatrix) {
   const auto [a, b, c] = make_symbols("a", "b", "c");
-  const MatrixExpr m0 = make_vector(a + b, c + sin(b), 22 + c);
+  const matrix_expr m0 = make_vector(a + b, c + sin(b), 22 + c);
   ASSERT_IDENTICAL(make_vector(a - log(c), c - sin(log(c)), 22 + c), m0.subs(b, -log(c)));
 }
 

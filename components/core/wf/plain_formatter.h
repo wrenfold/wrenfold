@@ -9,7 +9,7 @@ namespace wf {
 class plain_formatter {
  public:
   void operator()(const Expr& x);
-  void operator()(const MatrixExpr& x);
+  void operator()(const matrix_expr& x);
 
   void operator()(const addition& add);
   void operator()(const cast_bool& cast);

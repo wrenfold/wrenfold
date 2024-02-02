@@ -22,7 +22,7 @@ class output_arg {
   constexpr output_arg(std::string_view name, U&& u, bool is_optional)
       : value_(std::forward<U>(u)), name_(name), is_optional_(is_optional) {}
 
-  // Access the output value. Typically, an `Expr` or `MatrixExpr`, etc.
+  // Access the output value. Typically, an `Expr` or `matrix_expr`, etc.
   constexpr const T& value() const { return value_; }
 
   // Name of the argument.
@@ -60,7 +60,7 @@ class return_value {
   template <typename U, typename = enable_if_decayed_type_matches_t<U>>
   explicit return_value(U&& value) : value_(std::forward<U>(value)) {}
 
-  // Access the output value. Typically, an `Expr` or `MatrixExpr`, etc.
+  // Access the output value. Typically, an `Expr` or `matrix_expr`, etc.
   constexpr const T& value() const { return value_; }
 
   // Convert to `output_arg`.

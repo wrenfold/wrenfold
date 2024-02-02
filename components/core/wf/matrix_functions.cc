@@ -13,16 +13,16 @@
 namespace wf {
 
 template <typename Callable>
-MatrixExpr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& callable) {
+matrix_expr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& callable) {
   std::vector<Expr> data;
   data.reserve(static_cast<std::size_t>(rows * cols));
   iter_matrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
     data.push_back(callable(i, j));
   });
-  return MatrixExpr::create(rows, cols, std::move(data));
+  return matrix_expr::create(rows, cols, std::move(data));
 }
 
-MatrixExpr make_matrix_of_symbols(const std::string_view prefix, index_t rows, index_t cols) {
+matrix_expr make_matrix_of_symbols(const std::string_view prefix, index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
     throw dimension_error("Cannot construct symbolic matrix with shape: ({}, {})", rows, cols);
   }
@@ -32,17 +32,17 @@ MatrixExpr make_matrix_of_symbols(const std::string_view prefix, index_t rows, i
   });
 }
 
-MatrixExpr make_zeros(index_t rows, index_t cols) {
+matrix_expr make_zeros(index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
     throw dimension_error("Cannot construct zero matrix with shape: ({}, {})", rows, cols);
   }
   // Eventually we might have a symbolic zero matrix, and this won't be required.
   std::vector<Expr> data(static_cast<std::size_t>(rows * cols), constants::zero);
-  return MatrixExpr::create(rows, cols, std::move(data));
+  return matrix_expr::create(rows, cols, std::move(data));
 }
 
 // Create an identity matrix.
-MatrixExpr make_identity(index_t rows) {
+matrix_expr make_identity(index_t rows) {
   if (rows <= 0) {
     throw dimension_error("Cannot construct identity matrix with dimension: {}", rows);
   }
@@ -50,7 +50,7 @@ MatrixExpr make_identity(index_t rows) {
       rows, rows, [&](index_t i, index_t j) { return i == j ? constants::one : constants::zero; });
 }
 
-MatrixExpr vectorize_matrix(const MatrixExpr& m) {
+matrix_expr vectorize_matrix(const matrix_expr& m) {
   std::vector<Expr> flattened;
   const auto flat_size = m.rows() * m.cols();
   flattened.reserve(static_cast<std::size_t>(flat_size));
@@ -60,11 +60,11 @@ MatrixExpr vectorize_matrix(const MatrixExpr& m) {
       flattened.push_back(m(i, j));
     }
   }
-  return MatrixExpr::create(flat_size, 1, std::move(flattened));
+  return matrix_expr::create(flat_size, 1, std::move(flattened));
 }
 
-static MatrixExpr stack(const absl::Span<const MatrixExpr> values, index_t num_rows,
-                        index_t num_cols) {
+static matrix_expr stack(const absl::Span<const matrix_expr> values, index_t num_rows,
+                         index_t num_cols) {
   std::vector<Expr> result{};
   result.resize(static_cast<std::size_t>(num_rows * num_cols), constants::zero);
 
@@ -80,7 +80,7 @@ static MatrixExpr stack(const absl::Span<const MatrixExpr> values, index_t num_r
   // Maybe not the fastest way of doing this iteration in some cases...
   index_t row_offset = 0;
   index_t col_offset = 0;
-  for (const MatrixExpr& m : values) {
+  for (const matrix_expr& m : values) {
     const matrix& m_concrete = m.as_matrix();
     for (index_t i = 0; i < m_concrete.rows(); ++i) {
       for (index_t j = 0; j < m_concrete.cols(); ++j) {
@@ -90,10 +90,10 @@ static MatrixExpr stack(const absl::Span<const MatrixExpr> values, index_t num_r
     row_offset += m_concrete.rows() * static_cast<index_t>(increment_rows);
     col_offset += m_concrete.cols() * static_cast<index_t>(increment_cols);
   }
-  return MatrixExpr::create(num_rows, num_cols, std::move(result));
+  return matrix_expr::create(num_rows, num_cols, std::move(result));
 }
 
-MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
+matrix_expr hstack(const absl::Span<const matrix_expr> values) {
   if (values.empty()) {
     throw dimension_error("Need at least one matrix to stack.");
   }
@@ -101,7 +101,7 @@ MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
   const index_t num_rows = values[0].rows();
 
   index_t total_cols = 0;
-  for (const MatrixExpr& m : values) {
+  for (const matrix_expr& m : values) {
     total_cols += m.cols();
     if (m.rows() != num_rows) {
       throw dimension_error(
@@ -114,7 +114,7 @@ MatrixExpr hstack(const absl::Span<const MatrixExpr> values) {
   return stack(values, num_rows, total_cols);
 }
 
-MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
+matrix_expr vstack(const absl::Span<const matrix_expr> values) {
   if (values.empty()) {
     throw dimension_error("Need at least one matrix to stack.");
   }
@@ -122,7 +122,7 @@ MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
   const index_t num_cols = values[0].cols();
 
   index_t total_rows = 0;
-  for (const MatrixExpr& m : values) {
+  for (const matrix_expr& m : values) {
     total_rows += m.rows();
     if (m.cols() != num_cols) {
       throw dimension_error(
@@ -134,13 +134,13 @@ MatrixExpr vstack(const absl::Span<const MatrixExpr> values) {
   return stack(values, total_rows, num_cols);
 }
 
-MatrixExpr diagonal_stack(const absl::Span<const MatrixExpr> values) {
+matrix_expr diagonal_stack(const absl::Span<const matrix_expr> values) {
   if (values.empty()) {
     throw dimension_error("Need at least one matrix to stack.");
   }
   index_t total_rows = 0;
   index_t total_cols = 0;
-  for (const MatrixExpr& m : values) {
+  for (const matrix_expr& m : values) {
     total_rows += m.rows();
     total_cols += m.cols();
   }
@@ -398,7 +398,7 @@ factorize_full_piv_lu_internal(const matrix& A) {
   }
 }
 
-static MatrixExpr create_matrix_from_permutations(const permutation_matrix& P) {
+static matrix_expr create_matrix_from_permutations(const permutation_matrix& P) {
   std::vector<Expr> data(P.rows() * P.rows(), constants::zero);
   auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
                         make_value_pack(P.rows(), constant<1>{}));
@@ -406,12 +406,12 @@ static MatrixExpr create_matrix_from_permutations(const permutation_matrix& P) {
   for (index_t row = 0; row < P.rows(); ++row) {
     span(row, P.PermutedRow(row)) = constants::one;
   }
-  return MatrixExpr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),
-                            std::move(data));
+  return matrix_expr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),
+                             std::move(data));
 }
 
-std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu(
-    const MatrixExpr& A_in) {
+std::tuple<matrix_expr, matrix_expr, matrix_expr, matrix_expr> factorize_full_piv_lu(
+    const matrix_expr& A_in) {
   auto results = factorize_full_piv_lu_internal(A_in.as_matrix());
 
   const auto& P = std::get<0>(results);
@@ -420,12 +420,12 @@ std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr> factorize_full_piv_lu
   auto L = std::move(std::get<1>(results));
   auto U = std::move(std::get<2>(results));
 
-  // Convert to MatrixExpr:
-  return std::make_tuple(create_matrix_from_permutations(P), MatrixExpr{std::move(L)},
-                         MatrixExpr{std::move(U)}, create_matrix_from_permutations(Q));
+  // Convert to matrix_expr:
+  return std::make_tuple(create_matrix_from_permutations(P), matrix_expr{std::move(L)},
+                         matrix_expr{std::move(U)}, create_matrix_from_permutations(Q));
 }
 
-Expr determinant(const MatrixExpr& m) {
+Expr determinant(const matrix_expr& m) {
   const matrix& mat = m.as_matrix();
   if (mat.rows() != mat.cols()) {
     throw dimension_error(

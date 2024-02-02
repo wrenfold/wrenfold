@@ -44,8 +44,8 @@ struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, E
   Expr operator()(const T& arg) const { return static_cast<Expr>(arg); }
 };
 template <>
-struct convert_assertion_argument<MatrixExpr> {
-  MatrixExpr operator()(const MatrixExpr& arg) const { return arg; }
+struct convert_assertion_argument<matrix_expr> {
+  matrix_expr operator()(const matrix_expr& arg) const { return arg; }
 };
 template <>
 struct convert_assertion_argument<compound_expr> {

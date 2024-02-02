@@ -22,7 +22,7 @@ inline Expr simple_multiply_add(Expr x, Expr y, Expr z) { return x * y + z; }
 // to the angle.
 inline auto vector_rotation_2d(Expr theta, ta::static_matrix<2, 1> v) {
   using namespace matrix_operator_overloads;
-  MatrixExpr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
+  matrix_expr R = make_matrix(2, 2, cos(theta), -sin(theta), sin(theta), cos(theta));
   ta::static_matrix<2, 1> v_rot{R * v};
   ta::static_matrix<2, 1> v_dot_D_theta{v_rot.inner().diff(theta)};
   return std::make_tuple(output_arg("v_rot", v_rot), optional_output_arg("D_theta", v_dot_D_theta));
@@ -76,8 +76,8 @@ inline auto nested_conditionals_2(Expr x, Expr y) {
 // Create a rotation matrix from a Rodrigues vector, and the 9x3 Jacobian of the rotation matrix
 // elements with respect to the vector.
 inline auto create_rotation_matrix(ta::static_matrix<3, 1> w) {
-  MatrixExpr R = quaternion::from_rotation_vector(w.inner(), 1.0e-16).to_rotation_matrix();
-  MatrixExpr R_diff = vectorize_matrix(R).jacobian(w);
+  matrix_expr R = quaternion::from_rotation_vector(w.inner(), 1.0e-16).to_rotation_matrix();
+  matrix_expr R_diff = vectorize_matrix(R).jacobian(w);
   return std::make_tuple(output_arg("R", ta::static_matrix<3, 3>{R}),
                          optional_output_arg("R_D_w", ta::static_matrix<9, 3>{R_diff}));
 }
@@ -173,7 +173,7 @@ struct external_function_2
 
 inline auto external_function_call_2(ta::static_matrix<2, 1> u, ta::static_matrix<2, 1> v) {
   // clang-format off
-  const MatrixExpr m = make_matrix(2, 3,
+  const matrix_expr m = make_matrix(2, 3,
     u[0] - 2.0, pow(u[1], 2), 1,
     v[0], pow(v[1] + 1.0, 2), 1);
   // clang-format on

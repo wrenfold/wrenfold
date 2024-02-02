@@ -19,13 +19,13 @@ struct arg {
 
 namespace type_annotations {
 
-// A wrapper around `MatrixExpr` with statically declared dimensions.
+// A wrapper around `matrix_expr` with statically declared dimensions.
 // This is so that we can write functions in C++, and have the argument dimensions accessible at
 // compile time.
 template <index_t Rows, index_t Cols>
 struct static_matrix {
-  // Allow implicit construction from MatrixExpr.
-  static_matrix(MatrixExpr expr) : expr_(std::move(expr)) {  // NOLINT(google-explicit-constructor)
+  // Allow implicit construction from matrix_expr.
+  static_matrix(matrix_expr expr) : expr_(std::move(expr)) {  // NOLINT(google-explicit-constructor)
     WF_ASSERT_EQUAL(Rows, expr_.rows());
     WF_ASSERT_EQUAL(Cols, expr_.cols());
   }
@@ -50,19 +50,19 @@ struct static_matrix {
   // Access vector element.
   const Expr& operator[](index_t element) const { return expr_[element]; }
 
-  // Assign from MatrixExpr
-  static_matrix& operator=(const MatrixExpr& other) {
+  // Assign from matrix_expr
+  static_matrix& operator=(const matrix_expr& other) {
     WF_ASSERT_EQUAL(Rows, other.rows());
     WF_ASSERT_EQUAL(Cols, other.cols());
     expr_ = other;
     return *this;
   }
 
-  // Explicit cast to MatrixExpr.
-  constexpr const MatrixExpr& inner() const noexcept { return expr_; }
+  // Explicit cast to matrix_expr.
+  constexpr const matrix_expr& inner() const noexcept { return expr_; }
 
-  // Implicit cast to MatrixExpr.
-  constexpr operator const MatrixExpr&() const noexcept { return expr_; }  // NOLINT
+  // Implicit cast to matrix_expr.
+  constexpr operator const matrix_expr&() const noexcept { return expr_; }  // NOLINT
 
   // Transpose:
   [[nodiscard]] static_matrix<Cols, Rows> transposed() const {
@@ -70,7 +70,7 @@ struct static_matrix {
   }
 
  private:
-  MatrixExpr expr_;
+  matrix_expr expr_;
 };
 
 // Evaluates to true if `T` is a static_matrix type annotation.

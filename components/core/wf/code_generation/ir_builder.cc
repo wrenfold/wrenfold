@@ -296,7 +296,7 @@ struct mul_add_count_visitor {
   }
 
   void operator()(const Expr& x) { return visit(x, *this); }
-  void operator()(const MatrixExpr& m) {
+  void operator()(const matrix_expr& m) {
     for (const Expr& x : m.as_matrix()) {
       visit(x, *this);
     }
@@ -596,7 +596,7 @@ class ir_form_visitor {
     return push_operation(ir::load{f}, code_numeric_type::floating_point);
   }
 
-  ir::value_ptr operator()(const MatrixExpr& m) {
+  ir::value_ptr operator()(const matrix_expr& m) {
     return push_operation(
         ir::construct(matrix_type{m.rows(), m.cols()}), matrix_type{m.rows(), m.cols()},
         transform_map<ir::value::operands_container>(m.as_matrix(), [this](const Expr& arg) {

@@ -91,7 +91,7 @@ TEST(QuaternionTest, TestMultiply) {
 
   // Compare to matrix multiplication:
   // clang-format off
-  const MatrixExpr q1_mat =
+  const matrix_expr q1_mat =
       make_matrix(4, 4,
                     w, -x, -y, -z,
                     x,  w, -z,  y,
@@ -101,7 +101,7 @@ TEST(QuaternionTest, TestMultiply) {
   ASSERT_IDENTICAL(q1_mat * q2.to_vector_wxyz(), (q1 * q2).to_vector_wxyz());
 
   // clang-format off
-  const MatrixExpr q2_mat =
+  const matrix_expr q2_mat =
       make_matrix(4, 4,
                    a, -b, -c, -d,
                    b,  a, -d,  c,
@@ -168,8 +168,8 @@ TEST(QuaternionTest, TestToRotationMatrix) {
   auto v = make_vector(a, b, c);
 
   const quaternion q_v_q_conj = q * quaternion(0, a, b, c) * q.conjugate();
-  const MatrixExpr R_v_expected = make_vector(q_v_q_conj.x(), q_v_q_conj.y(), q_v_q_conj.z());
-  const MatrixExpr R_v = q.to_rotation_matrix() * v;
+  const matrix_expr R_v_expected = make_vector(q_v_q_conj.x(), q_v_q_conj.y(), q_v_q_conj.z());
+  const matrix_expr R_v = q.to_rotation_matrix() * v;
 
   // If we did everything correctly, there should be no difference between these.
   // We need to provide a small hint, and enforce that |q|^2 = 1
@@ -200,25 +200,25 @@ TEST(QuaternionTest, TestFromAxisAngle) {
                           .subs(pow(cos(half_angle), 2) + pow(sin(half_angle), 2), 1));
 
   // V should be unmodified by the rotation matrix
-  const MatrixExpr v_rot = q.to_rotation_matrix() * make_vector(vx, vy, vz);
+  const matrix_expr v_rot = q.to_rotation_matrix() * make_vector(vx, vy, vz);
   ASSERT_IDENTICAL(make_vector(vx, vy, vz), v_rot.distribute());
 
   // Compare to Rodrigues formula:
   // We need a couple of trig identities to do this:
   //  cos(theta/2)*sin(theta/2) --> sin(theta) / 2
   //  sin(theta/2)**2 --> (1 - cos(theta)) / 2
-  const MatrixExpr R = q.to_rotation_matrix()
-                           .subs(cos(half_angle) * sin(half_angle), sin(angle) / 2)
-                           .subs(sin(half_angle) * sin(half_angle), (1 - cos(angle)) / 2)
-                           .distribute();
+  const matrix_expr R = q.to_rotation_matrix()
+                            .subs(cos(half_angle) * sin(half_angle), sin(angle) / 2)
+                            .subs(sin(half_angle) * sin(half_angle), (1 - cos(angle)) / 2)
+                            .distribute();
 
   // clang-format off
-  const MatrixExpr K = make_matrix(3, 3,
+  const matrix_expr K = make_matrix(3, 3,
                                      0, -vz, vy,
                                      vz, 0, -vx,
                                     -vy, vx, 0);
   // clang-format on
-  const MatrixExpr R_rodrigues = make_identity(3) + K * sin(angle) + (1 - cos(angle)) * K * K;
+  const matrix_expr R_rodrigues = make_identity(3) + K * sin(angle) + (1 - cos(angle)) * K * K;
   ASSERT_IDENTICAL(R_rodrigues.distribute(), R);
 
   // check that this throws if we pass invalid arguments:
@@ -338,7 +338,7 @@ TEST(QuaternionTest, TestAngleConversions) {
   auto [angle] = make_symbols("theta");
   const Expr half_angle = angle / 2;
   // clang-format off
-  const MatrixExpr R_x =
+  const matrix_expr R_x =
       make_matrix(3, 3,
                    1, 0, 0,
                    0, cos(angle), -sin(angle),
@@ -351,7 +351,7 @@ TEST(QuaternionTest, TestAngleConversions) {
                             .distribute());
 
   // clang-format off
-  const MatrixExpr R_y =
+  const matrix_expr R_y =
       make_matrix(3, 3,
                    cos(angle), 0, sin(angle),
                    0, 1, 0,
@@ -364,7 +364,7 @@ TEST(QuaternionTest, TestAngleConversions) {
                             .distribute());
 
   // clang-format off
-  const MatrixExpr R_z =
+  const matrix_expr R_z =
       make_matrix(3, 3,
                    cos(angle), -sin(angle), 0,
                    sin(angle), cos(angle), 0,
@@ -419,7 +419,7 @@ TEST(QuaternionTest, TestToAxisAngle) {
 TEST(QuaternionTest, TestToRotationVector) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
   const quaternion Q = quaternion::from_rotation_vector(x, y, z, std::nullopt);
-  const MatrixExpr w = Q.to_rotation_vector(std::nullopt);
+  const matrix_expr w = Q.to_rotation_vector(std::nullopt);
 
   // We sub this in for the angle (the norm of [x, y, z]).
   const Expr a{"a", number_set::real_non_negative};
@@ -430,13 +430,13 @@ TEST(QuaternionTest, TestToRotationVector) {
 
   // Simplify the round-trip conversion.
   const Expr vector_norm = sqrt(x * x + y * y + z * z);
-  const MatrixExpr w_simplified = w.subs(vector_norm, a)
-                                      .subs(sin(a / 2), s)
-                                      .subs(cos(a / 2), c)
-                                      .collect({s, a})
-                                      .subs(vector_norm, a)
-                                      .subs(pow(pow(s, 2), 1_s / 2), abs(s))
-                                      .subs(s / abs(s), signum(s));
+  const matrix_expr w_simplified = w.subs(vector_norm, a)
+                                       .subs(sin(a / 2), s)
+                                       .subs(cos(a / 2), c)
+                                       .collect({s, a})
+                                       .subs(vector_norm, a)
+                                       .subs(pow(pow(s, 2), 1_s / 2), abs(s))
+                                       .subs(s / abs(s), signum(s));
 
   // We can't simplify this completely w/o some trig-simp functionality. We can get close though:
   // Since atan2(|s|, c) --> |a/2|, we have 2 * |a/2| * signum(a) / a, which is 1.
@@ -536,7 +536,7 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   for (auto [angle_num, axis_num] : generate_angle_axis_test_pairs(num_vectors, num_angles)) {
     const Eigen::Quaterniond q_num{Eigen::AngleAxisd(angle_num, axis_num)};
 
-    const MatrixExpr R =
+    const matrix_expr R =
         quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.to_rotation_matrix();
     const quaternion q = quaternion::from_rotation_matrix(R);
 
@@ -562,7 +562,7 @@ TEST(QuaternionTest, TestJacobian) {
 
   // swap the order around:
   const auto vars = make_vector(y, x, angle);
-  const MatrixExpr J = Q.jacobian(vars);
+  const matrix_expr J = Q.jacobian(vars);
   ASSERT_EQ(4, J.rows());
   ASSERT_EQ(3, J.cols());
 
@@ -588,7 +588,7 @@ TEST(QuaternionTest, TestRightRetractDerivative) {
         },
         0.001);
 
-    const MatrixExpr J_analytical =
+    const matrix_expr J_analytical =
         J.subs(w, q_num.w()).subs(x, q_num.x()).subs(y, q_num.y()).subs(z, q_num.z());
     EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_analytical), 1.0e-12);
   }
@@ -611,7 +611,7 @@ TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
         },
         0.001);
 
-    const MatrixExpr J_analytical =
+    const matrix_expr J_analytical =
         J.subs(w, q_num.w()).subs(x, q_num.x()).subs(y, q_num.y()).subs(z, q_num.z());
     EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_analytical), 1.0e-12);
   }
@@ -627,7 +627,7 @@ TEST(QuaternionTest, TestJacobianOfSO3) {
     const auto axis = std::get<1>(pair);
 
     // clang-format off
-    const MatrixExpr J_sub = substitute_variables(J_expr,
+    const matrix_expr J_sub = substitute_variables(J_expr,
                                                   {
                                                       std::make_tuple(theta, angle),
                                                       std::make_tuple(x, axis[0]),

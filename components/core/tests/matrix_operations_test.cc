@@ -19,7 +19,7 @@ TEST(MatrixOperationsTest, TestConstruct) {
   const Expr z{"z"};
 
   // Construct vector:
-  const MatrixExpr v = make_vector(x, 4, y + z);
+  const matrix_expr v = make_vector(x, 4, y + z);
   ASSERT_EQ(v.rows(), 3);
   ASSERT_EQ(v.cols(), 1);
   ASSERT_IDENTICAL(x, v[0]);
@@ -38,7 +38,7 @@ TEST(MatrixOperationsTest, TestConstruct) {
 
   // Construct matrix:
   // clang-format off
-  const MatrixExpr m = make_matrix(2, 3,
+  const matrix_expr m = make_matrix(2, 3,
                                     x + y, 0, 5 - z,
                                     z * y, x, 2 / x);
   // clang-format on
@@ -66,7 +66,7 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   const Expr b{"b"};
   const Expr c{"c"};
   // clang-format off
-  const MatrixExpr m1 = make_matrix(3, 2,
+  const matrix_expr m1 = make_matrix(3, 2,
                                      x, a,
                                      y, b,
                                      z, c);
@@ -79,7 +79,7 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   ASSERT_IDENTICAL(make_matrix(2, 2, y, b, z, c), m1.get_block(1, 0, 2, 2));
 
   // clang-format off
-  const MatrixExpr m2 = make_matrix(3, 4,
+  const matrix_expr m2 = make_matrix(3, 4,
                                      x, constants::pi, 2, x - z,
                                      3.0, -5, y, pow(z, 2),
                                      2 * z, constants::euler, -1, sin(x));
@@ -100,11 +100,11 @@ TEST(MatrixOperationsTest, TestTranspose) {
   const Expr b{"b"};
   const Expr c{"c"};
   // clang-format off
-  const MatrixExpr m = make_matrix(2, 5,
+  const matrix_expr m = make_matrix(2, 5,
                                     cos(a), sin(b), -1, constants::pi * 3, 0.0,
                                     tan(c), c*a, 4, 5.0, a);
   // clang-format on
-  const MatrixExpr m_t = m.transposed();
+  const matrix_expr m_t = m.transposed();
   ASSERT_EQ(5, m_t.rows());
   ASSERT_EQ(2, m_t.cols());
   for (int i = 0; i < m_t.rows(); ++i) {
@@ -117,9 +117,9 @@ TEST(MatrixOperationsTest, TestTranspose) {
 
 TEST(MatrixOperationsTest, TestReshape) {
   const auto [a, b, c] = make_symbols("a", "b", "c");
-  const MatrixExpr m = make_matrix(2, 4, a * 2, -b, cos(c), 5, c / a, 8 * a, b * c, c / 2);
+  const matrix_expr m = make_matrix(2, 4, a * 2, -b, cos(c), 5, c / a, 8 * a, b * c, c / 2);
 
-  const MatrixExpr m_reshape = m.reshape(4, 2);
+  const matrix_expr m_reshape = m.reshape(4, 2);
   ASSERT_EQ(4, m_reshape.rows());
   ASSERT_EQ(2, m_reshape.cols());
 
@@ -193,7 +193,7 @@ TEST(MatrixOperationsTest, TestAddition) {
   ASSERT_THROW(make_vector(a, b) + make_row_vector(c, d), dimension_error);
   ASSERT_THROW(make_vector(a, b) + make_matrix(2, 2, c, d, 2, -3_s / 5), dimension_error);
 
-  const MatrixExpr m = make_matrix(2, 2, a, b, c, d);
+  const matrix_expr m = make_matrix(2, 2, a, b, c, d);
   ASSERT_IDENTICAL(m, m + make_zeros(2, 2));
   ASSERT_IDENTICAL(make_matrix(2, 2, a + 1, b, c, d + 1), m + make_identity(2));
   ASSERT_IDENTICAL(make_matrix(2, 2, 2 * a, b + c, c + b, d + d), m + m.transposed());
@@ -270,8 +270,8 @@ TEST(MatrixOperationsTest, TestJacobian) {
 }
 
 void check_full_piv_lu_solution(
-    const MatrixExpr& A_in,
-    const std::tuple<MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr>& solution) {
+    const matrix_expr& A_in,
+    const std::tuple<matrix_expr, matrix_expr, matrix_expr, matrix_expr>& solution) {
   auto [P, L, U, Q] = solution;
 
   // print verbosely
@@ -306,11 +306,11 @@ void check_full_piv_lu_solution(
     }
   }
 
-  const MatrixExpr A_out{P * L * U * Q};
+  const matrix_expr A_out{P * L * U * Q};
   ASSERT_IDENTICAL(A_in, A_out) << fmt::format("P = {}\nL={}\nU={}\nQ={}\n", P, L, U, Q);
 }
 
-MatrixExpr check_permutation_matrix(absl::Span<const int> permutation) {
+matrix_expr check_permutation_matrix(absl::Span<const int> permutation) {
   std::vector<Expr> elements(permutation.size() * permutation.size(), constants::zero);
 
   for (std::size_t row = 0; row < permutation.size(); ++row) {
@@ -318,7 +318,7 @@ MatrixExpr check_permutation_matrix(absl::Span<const int> permutation) {
     elements[row * permutation.size() + static_cast<std::size_t>(col_index)] = constants::one;
   }
   const auto dim = static_cast<index_t>(permutation.size());
-  return MatrixExpr::create(dim, dim, std::move(elements));
+  return matrix_expr::create(dim, dim, std::move(elements));
 }
 
 const auto& get_four_element_permutations() {
@@ -337,37 +337,39 @@ TEST(MatrixOperationsTest, TestFactorizeLU1) {
 
   // dimension 2:
   for (std::size_t i = 0; i < 2; ++i) {
-    MatrixExpr A = check_permutation_matrix(absl::Span<const int>(permutations_4[i]).subspan(0, 2));
+    matrix_expr A =
+        check_permutation_matrix(absl::Span<const int>(permutations_4[i]).subspan(0, 2));
     check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   // dimension 3:
   for (std::size_t i = 0; i < 3; ++i) {
-    MatrixExpr A = check_permutation_matrix(absl::Span<const int>(permutations_4[i]).subspan(0, 3));
+    matrix_expr A =
+        check_permutation_matrix(absl::Span<const int>(permutations_4[i]).subspan(0, 3));
     check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   // dimension 4:
   for (std::size_t i = 0; i < permutations_4.size(); ++i) {
-    MatrixExpr A = check_permutation_matrix(absl::Span<const int>(permutations_4[i]));
+    matrix_expr A = check_permutation_matrix(absl::Span<const int>(permutations_4[i]));
     check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   // fully symbolic matrices:
-  MatrixExpr A2 = make_matrix_of_symbols("x", 2, 2);
+  matrix_expr A2 = make_matrix_of_symbols("x", 2, 2);
   check_full_piv_lu_solution(A2, factorize_full_piv_lu(A2));
 
-  MatrixExpr A3 = make_matrix_of_symbols("x", 3, 3);
+  matrix_expr A3 = make_matrix_of_symbols("x", 3, 3);
   check_full_piv_lu_solution(A3, factorize_full_piv_lu(A3));
 
-  MatrixExpr A4 = make_matrix_of_symbols("x", 4, 4);
+  matrix_expr A4 = make_matrix_of_symbols("x", 4, 4);
   check_full_piv_lu_solution(A4, factorize_full_piv_lu(A4));
 
   // zeros:
-  MatrixExpr Z2 = make_zeros(2, 2);
+  matrix_expr Z2 = make_zeros(2, 2);
   check_full_piv_lu_solution(Z2, factorize_full_piv_lu(Z2));
 
-  MatrixExpr Z3 = make_zeros(3, 3);
+  matrix_expr Z3 = make_zeros(3, 3);
   check_full_piv_lu_solution(Z3, factorize_full_piv_lu(Z3));
 }
 
@@ -378,29 +380,29 @@ TEST(MatrixOperationsTest, TestFactorizeLU2) {
   };
 
   for (const auto& [row, col] : dims) {
-    MatrixExpr A = make_matrix_of_symbols("x", row, col);
+    matrix_expr A = make_matrix_of_symbols("x", row, col);
     check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
   for (const auto& [col, row] : dims) {
     // Transposed version:
-    MatrixExpr A = make_matrix_of_symbols("x", row, col);
+    matrix_expr A = make_matrix_of_symbols("x", row, col);
     check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
   }
 
-  MatrixExpr Z24 = make_zeros(2, 4);
+  matrix_expr Z24 = make_zeros(2, 4);
   check_full_piv_lu_solution(Z24, factorize_full_piv_lu(Z24));
 
-  MatrixExpr Z42 = make_zeros(4, 2);
+  matrix_expr Z42 = make_zeros(4, 2);
   check_full_piv_lu_solution(Z42, factorize_full_piv_lu(Z42));
 
-  MatrixExpr Z53 = make_zeros(5, 3);
+  matrix_expr Z53 = make_zeros(5, 3);
   check_full_piv_lu_solution(Z53, factorize_full_piv_lu(Z53));
 }
 
 TEST(MatrixOperationsTest, TestFactorizeLU3) {
   // Some singular matrices that require full pivot:
-  MatrixExpr A = make_matrix(3, 3, 0, 0, 0, 0, 0, "x", 0, 0, 0);
+  matrix_expr A = make_matrix(3, 3, 0, 0, 0, 0, 0, "x", 0, 0, 0);
   check_full_piv_lu_solution(A, factorize_full_piv_lu(A));
 
   A = make_matrix(4, 4, 0, 0, 0, 0, 0, "y", 0, 0, 0, 0, 0, 0, 0, 0, 0, -5);
@@ -426,7 +428,7 @@ TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
       for (int j = 0; j < rows * cols; ++j) {
         data.emplace_back(distribution(engine));
       }
-      MatrixExpr M = MatrixExpr::create(rows, cols, std::move(data));
+      matrix_expr M = matrix_expr::create(rows, cols, std::move(data));
       check_full_piv_lu_solution(M, factorize_full_piv_lu(M));
     }
   }

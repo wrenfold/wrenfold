@@ -71,7 +71,7 @@ struct tree_formatter {
 
   void operator()(const Expr& x) { visit(x, *this); }
 
-  void operator()(const MatrixExpr& m) { operator()(m.as_matrix()); }
+  void operator()(const matrix_expr& m) { operator()(m.as_matrix()); }
 
   void operator()(const addition& op) {
     absl::InlinedVector<Expr, 16> terms;
@@ -219,7 +219,7 @@ std::string Expr::to_expression_tree_string() const {
   return formatter.take_output();
 }
 
-std::string MatrixExpr::to_expression_tree_string() const {
+std::string matrix_expr::to_expression_tree_string() const {
   tree_formatter formatter{};
   formatter(as_matrix());
   return formatter.take_output();
