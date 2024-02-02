@@ -374,7 +374,7 @@ Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false) {
   return conditional::create(condition, if_true, if_false);
 }
 
-MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixExpr& if_false) {
+matrix_expr where(const Expr& condition, const matrix_expr& if_true, const matrix_expr& if_false) {
   const matrix& mat_true = if_true.as_matrix();
   const matrix& mat_false = if_false.as_matrix();
 
@@ -392,7 +392,7 @@ MatrixExpr where(const Expr& condition, const MatrixExpr& if_true, const MatrixE
   std::transform(mat_true.begin(), mat_true.end(), mat_false.begin(),
                  std::back_inserter(conditionals),
                  [&](const Expr& a, const Expr& b) { return where(condition, a, b); });
-  return MatrixExpr::create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
+  return matrix_expr::create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
 }
 
 struct bool_cast_visitor {

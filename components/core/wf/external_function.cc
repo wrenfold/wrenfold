@@ -77,7 +77,7 @@ any_expression external_function::create_invocation(std::vector<any_expression> 
           // TODO: Check numeric type here.
           return scalar_type(code_numeric_type::floating_point);
         },
-        [&](const MatrixExpr& matrix) -> type_variant {
+        [&](const matrix_expr& matrix) -> type_variant {
           return matrix_type(matrix.rows(), matrix.cols());
         },
         [&](const compound_expr& expr) { return get_compound_type(expr); });
@@ -106,8 +106,8 @@ any_expression external_function::create_invocation(std::vector<any_expression> 
         return Expr(std::in_place_type_t<compound_expression_element>{}, std::move(invocation), 0);
       },
       [&](const matrix_type& mat) -> any_expression {
-        return MatrixExpr::create(mat.rows(), mat.cols(),
-                                  create_expression_elements(invocation, mat.size()));
+        return matrix_expr::create(mat.rows(), mat.cols(),
+                                   create_expression_elements(invocation, mat.size()));
       },
       [&](const custom_type&) -> any_expression { return std::move(invocation); });
 }

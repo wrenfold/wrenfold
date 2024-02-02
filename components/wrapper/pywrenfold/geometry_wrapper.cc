@@ -126,7 +126,8 @@ void wrap_geometry_operations(py::module_& m) {
               "radians."))
       .def_static(
           "from_angle_axis",
-          static_cast<quaternion (*)(const Expr&, const MatrixExpr&)>(&quaternion::from_angle_axis),
+          static_cast<quaternion (*)(const Expr&, const matrix_expr&)>(
+              &quaternion::from_angle_axis),
           "angle"_a, "v"_a,
           py::doc("Create a quaternion from angle-axis parameters. Vector v must be a "
                   "unit vector, or the result does not represent a rotation. Angle is specified in "
@@ -139,7 +140,7 @@ void wrap_geometry_operations(py::module_& m) {
           py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
                   "of radians."))
       .def_static("from_rotation_vector",
-                  static_cast<quaternion (*)(const MatrixExpr&, std::optional<Expr>)>(
+                  static_cast<quaternion (*)(const matrix_expr&, std::optional<Expr>)>(
                       &quaternion::from_rotation_vector),
                   "v"_a, py::arg("epsilon"),
                   py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
@@ -160,7 +161,7 @@ void wrap_geometry_operations(py::module_& m) {
                   py::doc("Convert from a rotation matrix via Calley's method."))
       .def(
           "jacobian",
-          [](const quaternion& self, const MatrixExpr& vars, bool use_abstract) {
+          [](const quaternion& self, const matrix_expr& vars, bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },

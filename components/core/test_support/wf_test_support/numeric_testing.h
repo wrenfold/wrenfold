@@ -88,7 +88,7 @@ struct compute_function_output_struct<Expr> {
 template <index_t Rows, index_t Cols>
 struct compute_function_output_struct<ta::static_matrix<Rows, Cols>> {
   Eigen::Matrix<double, Rows, Cols> operator()(numeric_function_evaluator& evaluator,
-                                               const MatrixExpr& input, const matrix_type&) const {
+                                               const matrix_expr& input, const matrix_type&) const {
     WF_ASSERT_EQUAL(input.rows(), Rows);
     WF_ASSERT_EQUAL(input.cols(), Cols);
     Eigen::Matrix<double, Rows, Cols> output;
@@ -147,7 +147,7 @@ struct collect_function_input<Expr> {
   }
 };
 
-// Convert eigen matrices to MatrixExpr.
+// Convert eigen matrices to matrix_expr.
 template <index_t Rows, index_t Cols>
 struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
   static_assert(Rows > 0);

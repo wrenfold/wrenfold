@@ -458,7 +458,7 @@ TEST(IrTest, TestMatrixExpressions2) {
         for (int i = 0; i < 16; ++i) {
           expressions.push_back(where(x > 0, pow(y, i), pow(z, 16 - z)));
         }
-        return ta::static_matrix<4, 4>{MatrixExpr::create(4, 4, std::move(expressions))};
+        return ta::static_matrix<4, 4>{matrix_expr::create(4, 4, std::move(expressions))};
       },
       "func", arg("x"), arg("y"), arg("z"));
 
@@ -572,7 +572,7 @@ TEST(IrTest, TestExternalFunction2) {
   auto [expected_expressions, ir] = create_ir(
       [](Expr x, Expr y) {
         using namespace matrix_operator_overloads;
-        const MatrixExpr m = custom_func_2::call(x + 2, y / 3);
+        const matrix_expr m = custom_func_2::call(x + 2, y / 3);
         return ta::static_matrix<2, 4>(
             m + make_matrix(2, 4, x * y, cos(y), 0, -2, -5 * x - sin(y), 1, 0, x * y));
       },

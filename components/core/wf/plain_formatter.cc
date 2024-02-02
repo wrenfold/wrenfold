@@ -10,7 +10,7 @@
 namespace wf {
 
 void plain_formatter::operator()(const Expr& x) { return visit(x, *this); }
-void plain_formatter::operator()(const MatrixExpr& x) { operator()(x.as_matrix()); }
+void plain_formatter::operator()(const matrix_expr& x) { operator()(x.as_matrix()); }
 
 void plain_formatter::operator()(const addition& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);

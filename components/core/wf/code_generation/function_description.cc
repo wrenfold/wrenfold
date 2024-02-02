@@ -23,11 +23,11 @@ bool is_identical_struct<argument>::operator()(const argument& a, const argument
 function_description::function_description(std::string name) noexcept
     : impl_(std::make_shared<impl>(std::move(name))) {}
 
-std::variant<Expr, MatrixExpr, compound_expr> function_description::add_input_argument(
+std::variant<Expr, matrix_expr, compound_expr> function_description::add_input_argument(
     const std::string_view name, type_variant type) {
   const argument& arg = add_argument(name, std::move(type), argument_direction::input);
 
-  using return_type = std::variant<Expr, MatrixExpr, compound_expr>;
+  using return_type = std::variant<Expr, matrix_expr, compound_expr>;
   return std::visit(
       [&](const auto& type_concrete) -> return_type {
         return detail::create_function_input(type_concrete, arg.index());

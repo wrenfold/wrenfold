@@ -27,7 +27,7 @@ class substitute_variables_visitor {
 
   // Apply the substitute variable visitor. The cache is checked first.
   Expr operator()(const Expr& expression);
-  MatrixExpr operator()(const MatrixExpr& expression);
+  matrix_expr operator()(const matrix_expr& expression);
   compound_expr operator()(const compound_expr& expression);
 
   template <typename T>

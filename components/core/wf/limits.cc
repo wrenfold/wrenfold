@@ -537,7 +537,7 @@ std::optional<Expr> limit(const Expr& f_of_x, const Expr& x) {
   return limit_visitor{x}.visit_no_inf(f_of_x);
 }
 
-std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
+std::optional<matrix_expr> limit(const matrix_expr& f_of_x, const Expr& x) {
   if (!x.is_type<variable>()) {
     throw type_error(
         "Limit argument `x` must be a variable. Encountered expression of type `{}`: {}",
@@ -556,7 +556,7 @@ std::optional<MatrixExpr> limit(const MatrixExpr& f_of_x, const Expr& x) {
       values.push_back(std::move(*f_lim));
     }
   }
-  return MatrixExpr::create(f_of_x.rows(), f_of_x.cols(), std::move(values));
+  return matrix_expr::create(f_of_x.rows(), f_of_x.cols(), std::move(values));
 }
 
 }  // namespace wf

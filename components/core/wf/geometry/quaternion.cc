@@ -13,9 +13,9 @@ quaternion quaternion::from_name_prefix(const std::string_view name) {
   return {std::move(w), std::move(x), std::move(y), std::move(z)};
 }
 
-MatrixExpr quaternion::to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
+matrix_expr quaternion::to_vector_wxyz() const { return make_vector(w(), x(), y(), z()); }
 
-MatrixExpr quaternion::to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
+matrix_expr quaternion::to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
 
 quaternion quaternion::subs(const Expr& target, const Expr& replacement) const {
   return quaternion(w().subs(target, replacement), x().subs(target, replacement),
@@ -28,7 +28,7 @@ Expr quaternion::squared_norm() const {
 
 Expr quaternion::norm() const { return sqrt(squared_norm()); }
 
-MatrixExpr quaternion::to_rotation_matrix() const {
+matrix_expr quaternion::to_rotation_matrix() const {
   const Expr x2 = x() * 2;
   const Expr y2 = y() * 2;
   const Expr z2 = z() * 2;
@@ -57,7 +57,7 @@ quaternion quaternion::from_angle_axis(const Expr& angle, const Expr& vx, const 
   return {cos(half_angle), vx * sin_angle, vy * sin_angle, vz * sin_angle};
 }
 
-quaternion quaternion::from_angle_axis(const Expr& angle, const MatrixExpr& v) {
+quaternion quaternion::from_angle_axis(const Expr& angle, const matrix_expr& v) {
   if (v.rows() != 3 || v.cols() != 1) {
     throw dimension_error("Axis vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
@@ -90,7 +90,7 @@ quaternion quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, cons
   }
 }
 
-quaternion quaternion::from_rotation_vector(const MatrixExpr& v, std::optional<Expr> epsilon) {
+quaternion quaternion::from_rotation_vector(const matrix_expr& v, std::optional<Expr> epsilon) {
   if (v.rows() != 3 || v.cols() != 1) {
     throw dimension_error("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
@@ -98,7 +98,7 @@ quaternion quaternion::from_rotation_vector(const MatrixExpr& v, std::optional<E
 }
 
 // TODO: This should use the small angle approximation.
-std::tuple<Expr, MatrixExpr> quaternion::to_angle_axis(std::optional<Expr> epsilon) const {
+std::tuple<Expr, matrix_expr> quaternion::to_angle_axis(std::optional<Expr> epsilon) const {
   // We want to recover angle and axis from:
   // [cos(angle/2), vx * sin(angle/2), vy * sin(angle/2), vz * sin(angle/2)]
   // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
@@ -114,7 +114,7 @@ std::tuple<Expr, MatrixExpr> quaternion::to_angle_axis(std::optional<Expr> epsil
   Expr angle = atan2(vector_norm, abs(w())) * 2;
   const Expr flipped_norm = where(w() < 0, -vector_norm, vector_norm);
 
-  MatrixExpr normalized_vector =
+  matrix_expr normalized_vector =
       make_vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm);
   if (epsilon) {
     return std::make_tuple(where(vector_norm > *epsilon, angle, constants::zero),
@@ -124,7 +124,7 @@ std::tuple<Expr, MatrixExpr> quaternion::to_angle_axis(std::optional<Expr> epsil
   }
 }
 
-MatrixExpr quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
+matrix_expr quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
   // The vector part norm is equal to sin(angle / 2)
   const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
   const Expr half_angle = atan2(vector_norm, w());
@@ -141,7 +141,7 @@ MatrixExpr quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
   }
 }
 
-quaternion quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
+quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
   if (R_in.rows() != 3 || R_in.cols() != 3) {
     throw dimension_error("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
                           R_in.cols());
@@ -172,8 +172,8 @@ quaternion quaternion::from_rotation_matrix(const MatrixExpr& R_in) {
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
-MatrixExpr quaternion::jacobian(const wf::MatrixExpr& vars,
-                                non_differentiable_behavior behavior) const {
+matrix_expr quaternion::jacobian(const wf::matrix_expr& vars,
+                                 non_differentiable_behavior behavior) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());
@@ -182,12 +182,12 @@ MatrixExpr quaternion::jacobian(const wf::MatrixExpr& vars,
   return jacobian(m.data(), behavior);
 }
 
-MatrixExpr quaternion::right_retract_derivative() const {
+matrix_expr quaternion::right_retract_derivative() const {
   // Compute the expression `J` once, and substitute into it on subsequent calls:
   static const quaternion q_sub{
       make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real),
       make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real)};
-  static const auto J = std::invoke([&]() -> MatrixExpr {
+  static const auto J = std::invoke([&]() -> matrix_expr {
     const auto vx = make_unique_variable_symbol(number_set::real);
     const auto vy = make_unique_variable_symbol(number_set::real);
     const auto vz = make_unique_variable_symbol(number_set::real);
@@ -212,11 +212,11 @@ MatrixExpr quaternion::right_retract_derivative() const {
                                  });
 }
 
-MatrixExpr quaternion::right_local_coordinates_derivative() const {
+matrix_expr quaternion::right_local_coordinates_derivative() const {
   static const quaternion q_sub{
       make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real),
       make_unique_variable_symbol(number_set::real), make_unique_variable_symbol(number_set::real)};
-  static const auto J = std::invoke([&]() -> MatrixExpr {
+  static const auto J = std::invoke([&]() -> matrix_expr {
     const auto dw = make_unique_variable_symbol(number_set::real);
     const auto dx = make_unique_variable_symbol(number_set::real);
     const auto dy = make_unique_variable_symbol(number_set::real);
@@ -250,7 +250,7 @@ quaternion operator*(const quaternion& a, const quaternion& b) {
 
 // A bit odd to put this here, since it technically doesn't have that much to do with
 // quaternions. But it is a useful expression when dealing with rotations.
-MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon) {
+matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<Expr> epsilon) {
   using namespace matrix_operator_overloads;
   if (w.rows() != 3 || w.cols() != 1) {
     throw dimension_error("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
@@ -270,7 +270,7 @@ MatrixExpr left_jacobian_of_so3(const MatrixExpr& w, std::optional<Expr> epsilon
   static const Expr c1_small_angle = constants::one / 6;  // lim[angle -> 0] c1
 
   // clang-format off
-  const MatrixExpr skew_v = make_matrix(3, 3,
+  const matrix_expr skew_v = make_matrix(3, 3,
                                           0, -vz,  vy,
                                          vz,   0, -vx,
                                         -vy,  vx,   0);

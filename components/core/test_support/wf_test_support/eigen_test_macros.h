@@ -57,8 +57,8 @@ testing::AssertionResult expect_eigen_near(const std::string_view name_a,
 }
 
 // Construct an eigen matrix from a matrix expr by evaluating and converting to floats.
-inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const MatrixExpr& m) {
-  MatrixExpr m_eval = m.eval();
+inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const matrix_expr& m) {
+  matrix_expr m_eval = m.eval();
   Eigen::MatrixXd result{m_eval.rows(), m_eval.cols()};
   for (index_t i = 0; i < result.rows(); ++i) {
     for (index_t j = 0; j < result.cols(); ++j) {

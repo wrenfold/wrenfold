@@ -85,7 +85,7 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
 
 namespace detail {
 // The purpose of record_type is to convert from actual C++ types to our runtime representations.
-// For example, Expr -> scalar_type, MatrixExpr -> matrix_type.
+// For example, Expr -> scalar_type, matrix_expr -> matrix_type.
 // We use this to scrape a c++ function signature and record type information for code-generation.
 template <typename T, typename = void>
 struct record_type;
@@ -234,7 +234,7 @@ auto record_arg_types(custom_type_registry& registry, type_list<Ts...>) {
 Expr create_function_input(const scalar_type& scalar, std::size_t arg_index);
 
 // Create matrix input required to evalute a symbolic function.
-MatrixExpr create_function_input(const matrix_type& mat, std::size_t arg_index);
+matrix_expr create_function_input(const matrix_type& mat, std::size_t arg_index);
 
 // Determine the size of a custom type, and create enough variables to fill it.
 inline compound_expr create_function_input(const custom_type& custom, const std::size_t arg_index) {
@@ -256,7 +256,7 @@ T create_function_input(const annotated_custom_type<T>& custom, const std::size_
 std::vector<Expr> extract_function_output(const scalar_type& scalar, const Expr& value);
 
 // Copy output from matrix expression into a vector.
-std::vector<Expr> extract_function_output(const matrix_type& mat, const MatrixExpr& value);
+std::vector<Expr> extract_function_output(const matrix_type& mat, const matrix_expr& value);
 
 // Copy output from a custom struct into a vector.
 template <typename T>
@@ -302,7 +302,7 @@ absl::Span<const Expr> native_field_accessor_member_ptr<StructType, FieldType, U
     const matrix_type& mat = member_type_;
     WF_ASSERT_GREATER_OR_EQ(input.size(), mat.size());
     const auto begin = input.begin();
-    object.*member_ptr_ = MatrixExpr::create(mat.rows(), mat.cols(), begin, begin + mat.size());
+    object.*member_ptr_ = matrix_expr::create(mat.rows(), mat.cols(), begin, begin + mat.size());
     return input.subspan(mat.size());
   } else {
     auto [instance, output_span] = member_type_.initialize_from_expressions(input);
@@ -317,7 +317,7 @@ void native_field_accessor_member_ptr<StructType, FieldType, U>::get(
   if constexpr (std::is_same_v<U, scalar_type>) {
     output.push_back(object.*member_ptr_);
   } else if constexpr (std::is_same_v<U, matrix_type>) {
-    const matrix& mat = static_cast<const MatrixExpr&>(object.*member_ptr_).as_matrix();
+    const matrix& mat = static_cast<const matrix_expr&>(object.*member_ptr_).as_matrix();
     output.insert(output.end(), mat.begin(), mat.end());
   } else {
     // annotated_custom_type

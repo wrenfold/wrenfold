@@ -19,7 +19,7 @@ template <typename T>
 struct is_function_of_visitor {
   explicit is_function_of_visitor(const T& target) noexcept : target_(target) {}
 
-  bool operator()(const MatrixExpr& mat) const {
+  bool operator()(const matrix_expr& mat) const {
     const matrix& m = mat.as_matrix();
     return std::any_of(m.begin(), m.end(), [this](const Expr& x) { return visit(x, *this); });
   }
@@ -255,8 +255,8 @@ Expr diff(const Expr& function, const Expr& var, const int reps,
   return result;
 }
 
-MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<const Expr> vars,
-                    const non_differentiable_behavior behavior) {
+matrix_expr jacobian(const absl::Span<const Expr> functions, const absl::Span<const Expr> vars,
+                     const non_differentiable_behavior behavior) {
   if (functions.empty()) {
     throw type_error("Need at least one function to differentiate.");
   }
@@ -280,8 +280,8 @@ MatrixExpr jacobian(const absl::Span<const Expr> functions, const absl::Span<con
     }
   }
 
-  return MatrixExpr::create(static_cast<index_t>(functions.size()),
-                            static_cast<index_t>(vars.size()), std::move(result));
+  return matrix_expr::create(static_cast<index_t>(functions.size()),
+                             static_cast<index_t>(vars.size()), std::move(result));
 }
 
 }  // namespace wf
