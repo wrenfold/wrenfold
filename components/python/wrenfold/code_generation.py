@@ -200,6 +200,7 @@ def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]):
         path = pathlib.Path(path)
     if not path.parent.exists():
         path.parent.mkdir(parents=True)
-    with open(path, 'w') as handle:
-        handle.write(code)
+    with open(path, 'wb') as handle:
+        # Encode to UTF8 and write binary so we get \n and not \r\n
+        handle.write(code.encode('utf-8'))
         handle.flush()
