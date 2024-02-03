@@ -434,7 +434,6 @@ TEST(IrTest, TestMatrixExpressions1) {
   // Create a matrix output:
   auto [expected_expressions, ir] = create_ir(
       [](Expr x, const ta::static_matrix<2, 1>& v) {
-        using namespace matrix_operator_overloads;
         ta::static_matrix<2, 2> m = v * v.transposed() * x;
         return m;
       },
@@ -478,7 +477,6 @@ TEST(IrTest, TestMatrixExpressions3) {
   auto [expected_expressions, ir] = create_ir(
       [](const ta::static_matrix<2, 1>& v, const ta::static_matrix<3, 3>& u,
          const ta::static_matrix<3, 1>& t) {
-        using namespace matrix_operator_overloads;
         auto I3 = make_identity(3);
         auto zeros = make_zeros(2, 3);
         ta::static_matrix<2, 3> f = where(v[0] - t[1] > 0, v * t.transposed() * (u - I3), zeros);
@@ -571,7 +569,6 @@ class custom_func_2
 TEST(IrTest, TestExternalFunction2) {
   auto [expected_expressions, ir] = create_ir(
       [](Expr x, Expr y) {
-        using namespace matrix_operator_overloads;
         const matrix_expr m = custom_func_2::call(x + 2, y / 3);
         return ta::static_matrix<2, 4>(
             m + make_matrix(2, 4, x * y, cos(y), 0, -2, -5 * x - sin(y), 1, 0, x * y));

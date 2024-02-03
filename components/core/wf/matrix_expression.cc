@@ -29,7 +29,7 @@ std::string_view matrix_expr::type_name() const { return matrix::name_str; }
 
 std::string matrix_expr::to_string() const {
   plain_formatter formatter{};
-  formatter(as_matrix());
+  formatter(*this);
   return formatter.take_output();
 }
 
@@ -85,9 +85,7 @@ const matrix& matrix_expr::as_matrix() const { return *matrix_.get(); }
 
 std::vector<Expr> matrix_expr::to_vector() const { return as_matrix().data(); }
 
-matrix_expr matrix_expr::operator-() const {
-  return matrix_operator_overloads::operator*(*this, constants::negative_one);
-}
+matrix_expr matrix_expr::operator-() const { return operator*(*this, constants::negative_one); }
 
 matrix_expr matrix_expr::diff(const Expr& var, int reps,
                               non_differentiable_behavior behavior) const {
@@ -155,8 +153,6 @@ relative_order order_struct<matrix_expr>::operator()(const matrix_expr& a,
   return determine_order(am.data(), bm.data());
 }
 
-namespace matrix_operator_overloads {
-
 matrix_expr operator+(const matrix_expr& a, const matrix_expr& b) {
   return matrix_expr{a.as_matrix() + b.as_matrix()};
 }
@@ -180,5 +176,4 @@ matrix_expr operator*(const matrix_expr& a, const Expr& b) {
   return matrix_expr{matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
 }
 
-}  // namespace matrix_operator_overloads
 }  // namespace wf

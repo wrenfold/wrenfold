@@ -11,7 +11,6 @@
 
 namespace wf {
 using namespace custom_literals;
-using namespace matrix_operator_overloads;
 
 TEST(MatrixOperationsTest, TestConstruct) {
   const Expr x{"x"};
