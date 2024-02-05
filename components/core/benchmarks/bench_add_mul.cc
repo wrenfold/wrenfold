@@ -11,13 +11,13 @@ static void BM_ScalarAddition(benchmark::State& state) {
   constexpr int num_terms = 100;
   constexpr int num_symbols = 10;
 
-  std::vector<Expr> symbols;
+  std::vector<scalar_expr> symbols;
   for (int i = 0; i < num_symbols; ++i) {
     symbols.emplace_back(fmt::format("x{:02}", i));
   }
 
   for (auto _ : state) {
-    Expr output = 0;
+    scalar_expr output = 0;
     for (int i = 0; i < num_terms; ++i) {
       output = output + symbols[i % num_symbols];
     }
@@ -31,13 +31,13 @@ static void BM_ScalarMultiplication(benchmark::State& state) {
   constexpr int num_terms = 100;
   constexpr int num_symbols = 10;
 
-  std::vector<Expr> symbols;
+  std::vector<scalar_expr> symbols;
   for (int i = 0; i < num_symbols; ++i) {
     symbols.emplace_back(fmt::format("x{:02}", i));
   }
 
   for (auto _ : state) {
-    Expr output = 1;
+    scalar_expr output = 1;
     for (int i = 0; i < num_terms; ++i) {
       output = output * symbols[i % num_symbols];
     }

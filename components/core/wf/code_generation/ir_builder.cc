@@ -265,8 +265,8 @@ static ir::value_ptr create_operation(std::vector<ir::value::unique_ptr>& values
 struct operation_term_counts {
   // The key in this table is a sub-expression (a term) in a multiplication or addition.
   // The value is the # of times that term appears in a unique addition or multiplication sequence.
-  using count_container =
-      std::unordered_map<Expr, std::size_t, hash_struct<Expr>, is_identical_struct<Expr>>;
+  using count_container = std::unordered_map<scalar_expr, std::size_t, hash_struct<scalar_expr>,
+                                             is_identical_struct<scalar_expr>>;
 
   count_container muls;
   count_container adds;
@@ -280,7 +280,8 @@ struct mul_add_count_visitor {
   operation_term_counts::count_container muls{};
 
   // Track which nodes we have already visited, so that we do not double count repeated operations.
-  std::unordered_set<Expr, hash_struct<Expr>, is_identical_struct<Expr>> visited;
+  std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
+      visited;
 
   mul_add_count_visitor() {
     adds.reserve(100);
@@ -290,14 +291,14 @@ struct mul_add_count_visitor {
 
   // Visit every expression in the provided expression group.
   void count_group_expressions(const expression_group& group) {
-    for (const Expr& expr : group.expressions) {
+    for (const scalar_expr& expr : group.expressions) {
       visit(expr, *this);
     }
   }
 
-  void operator()(const Expr& x) { return visit(x, *this); }
+  void operator()(const scalar_expr& x) { return visit(x, *this); }
   void operator()(const matrix_expr& m) {
-    for (const Expr& x : m.as_matrix()) {
+    for (const scalar_expr& x : m.as_matrix()) {
       visit(x, *this);
     }
   }
@@ -323,11 +324,11 @@ struct mul_add_count_visitor {
     if constexpr (!T::is_leaf_node) {
       // If this is an add or a mul, record the incoming edges to children.
       if constexpr (std::is_same_v<T, addition>) {
-        for (const Expr& child : concrete) {
+        for (const scalar_expr& child : concrete) {
           adds[child]++;
         }
       } else if constexpr (std::is_same_v<T, multiplication>) {
-        for (const Expr& child : concrete) {
+        for (const scalar_expr& child : concrete) {
           muls[child]++;
         }
       }
@@ -336,7 +337,7 @@ struct mul_add_count_visitor {
         operator()(concrete.provenance());
       } else {
         // Recurse:
-        for (const Expr& child : concrete) {
+        for (const scalar_expr& child : concrete) {
           if (!visited.count(child)) {
             visited.insert(child);
             visit(child, *this);
@@ -392,24 +393,25 @@ class ir_form_visitor {
   ir::value_ptr convert_addition_or_multiplication(const T& op) {
     // Sort first by frequency of occurrence, then in ambiguous cases by expression order:
     multiplication::container_type expressions{op.begin(), op.end()};
-    std::sort(expressions.begin(), expressions.end(), [&](const Expr& a, const Expr& b) {
-      const operation_term_counts::count_container& count_table = get_count_table<T>();
-      const std::size_t count_a = count_table.at(a);
-      const std::size_t count_b = count_table.at(b);
-      if (count_a > count_b) {
-        return true;
-      } else if (count_a < count_b) {
-        return false;
-      } else {
-        return expression_order_struct{}(a, b);
-      }
-    });
+    std::sort(expressions.begin(), expressions.end(),
+              [&](const scalar_expr& a, const scalar_expr& b) {
+                const operation_term_counts::count_container& count_table = get_count_table<T>();
+                const std::size_t count_a = count_table.at(a);
+                const std::size_t count_b = count_table.at(b);
+                if (count_a > count_b) {
+                  return true;
+                } else if (count_a < count_b) {
+                  return false;
+                } else {
+                  return expression_order_struct{}(a, b);
+                }
+              });
 
     // first recursively transform all the inputs
     std::vector<ir::value_ptr> args;
     args.reserve(op.size());
     std::transform(expressions.begin(), expressions.end(), std::back_inserter(args),
-                   [this](const Expr& expr) { return operator()(expr); });
+                   [this](const scalar_expr& expr) { return operator()(expr); });
 
     code_numeric_type promoted_type = code_numeric_type::integral;
     for (ir::value_ptr v : args) {
@@ -430,9 +432,9 @@ class ir_form_visitor {
     return prev_result;
   }
 
-  ir::value_ptr operator()(const addition& add, const Expr& add_abstract) {
+  ir::value_ptr operator()(const addition& add, const scalar_expr& add_abstract) {
     // For additions, first check if the negated version has already been cached:
-    const Expr negative_add = -add_abstract;
+    const scalar_expr negative_add = -add_abstract;
     if (const auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
       const auto promoted_type = std::max(it->second->numeric_type(), code_numeric_type::integral);
       const ir::value_ptr negative_one =
@@ -579,9 +581,10 @@ class ir_form_visitor {
   ir::value_ptr operator()(const function& func) {
     const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
     // TODO: Special case for `abs` and `signum` here.
-    return push_operation(ir::call_std_function{enum_value}, code_numeric_type::floating_point,
-                          transform_map<ir::value::operands_container>(
-                              func, [this](const Expr& expr) { return this->operator()(expr); }));
+    return push_operation(
+        ir::call_std_function{enum_value}, code_numeric_type::floating_point,
+        transform_map<ir::value::operands_container>(
+            func, [this](const scalar_expr& expr) { return this->operator()(expr); }));
   }
 
   ir::value_ptr operator()(const complex_infinity&) const {
@@ -599,7 +602,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const matrix_expr& m) {
     return push_operation(
         ir::construct(matrix_type{m.rows(), m.cols()}), matrix_type{m.rows(), m.cols()},
-        transform_map<ir::value::operands_container>(m.as_matrix(), [this](const Expr& arg) {
+        transform_map<ir::value::operands_container>(m.as_matrix(), [this](const scalar_expr& arg) {
           return maybe_cast(this->operator()(arg), code_numeric_type::floating_point);
         }));
   }
@@ -625,7 +628,7 @@ class ir_form_visitor {
     return result.value();
   }
 
-  ir::value_ptr operator()(const multiplication& mul, const Expr& mul_abstract) {
+  ir::value_ptr operator()(const multiplication& mul, const scalar_expr& mul_abstract) {
     const auto [coeff, multiplicand] = as_coeff_and_mul(mul_abstract);
     if (is_negative_one(coeff)) {
       // If the coefficient out front is -1, compute the multiplied expression and then negate it.
@@ -643,7 +646,7 @@ class ir_form_visitor {
     const auto [exp_coefficient, exp_mul] = as_coeff_and_mul(power.exponent());
     if (is_negative_number(exp_coefficient)) {
       // Construct the reciprocal version of this power.
-      const Expr reciprocal = pow(power.base(), -power.exponent());
+      const scalar_expr reciprocal = pow(power.base(), -power.exponent());
       const ir::value_ptr reciprocal_value = operator()(reciprocal);
 
       // Write the power as: 1 / pow(base, -exponent)
@@ -723,7 +726,7 @@ class ir_form_visitor {
   }
 
   // Check if a value has been computed. If not, convert it and return the result.
-  ir::value_ptr operator()(const Expr& expr) {
+  ir::value_ptr operator()(const scalar_expr& expr) {
     if (const auto it = computed_values_.find(expr); it != computed_values_.end()) {
       return it->second;
     }
@@ -744,7 +747,8 @@ class ir_form_visitor {
 
   // Compute the value for the specified expression. If required, cast it to the desired output
   // type.
-  ir::value_ptr apply_output_value(const Expr& expr, const code_numeric_type desired_output_type) {
+  ir::value_ptr apply_output_value(const scalar_expr& expr,
+                                   const code_numeric_type desired_output_type) {
     return maybe_cast(operator()(expr), desired_output_type);
   }
 
@@ -753,7 +757,8 @@ class ir_form_visitor {
 
   // Map of expression -> IR value. We catch duplicates as we create the IR code, which greatly
   // speeds up manipulation of the code later.
-  std::unordered_map<Expr, ir::value_ptr, hash_struct<Expr>, is_identical_struct<Expr>>
+  std::unordered_map<scalar_expr, ir::value_ptr, hash_struct<scalar_expr>,
+                     is_identical_struct<scalar_expr>>
       computed_values_;
 
   // Map for compound values.
@@ -778,8 +783,8 @@ class ir_form_visitor {
   };
 
   // We maintain a separate cache of casts. Casts don't appear in the math tree, so we cannot
-  // store them in as `Expr` in the computed_values_ map. This is a mapping from [value, type] to
-  // the cast (if it exists already).
+  // store them in as `scalar_expr` in the computed_values_ map. This is a mapping from [value,
+  // type] to the cast (if it exists already).
   std::unordered_map<std::tuple<ir::value_ptr, code_numeric_type>, ir::value_ptr,
                      hash_value_and_type, value_and_type_eq>
       cached_casts_;
@@ -801,7 +806,7 @@ flat_ir::flat_ir(const std::vector<expression_group>& groups)
     ir::value::operands_container group_values{};
     group_values.reserve(group.expressions.size());
     std::transform(group.expressions.begin(), group.expressions.end(),
-                   std::back_inserter(group_values), [&](const Expr& expr) {
+                   std::back_inserter(group_values), [&](const scalar_expr& expr) {
                      // TODO: Allow returning other types - derive the numeric type from the
                      // group.
                      ir::value_ptr output =

@@ -5,7 +5,8 @@
 
 namespace wf {
 
-Expr conditional::create(wf::Expr condition, wf::Expr if_branch, wf::Expr else_branch) {
+scalar_expr conditional::create(wf::scalar_expr condition, wf::scalar_expr if_branch,
+                                wf::scalar_expr else_branch) {
   if (condition.is_identical_to(constants::boolean_true)) {
     return if_branch;
   } else if (condition.is_identical_to(constants::boolean_false)) {

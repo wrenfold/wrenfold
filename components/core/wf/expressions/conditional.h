@@ -10,12 +10,12 @@ class conditional {
   static constexpr std::string_view name_str = "Conditional";
   static constexpr bool is_leaf_node = false;
 
-  conditional(Expr condition, Expr if_branch, Expr else_branch)
+  conditional(scalar_expr condition, scalar_expr if_branch, scalar_expr else_branch)
       : children_{std::move(condition), std::move(if_branch), std::move(else_branch)} {}
 
   bool is_identical_to(const conditional& other) const {
     return std::equal(children_.begin(), children_.end(), other.children_.begin(),
-                      is_identical_struct<Expr>{});
+                      is_identical_struct<scalar_expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
@@ -26,8 +26,8 @@ class conditional {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr map_children(Operation&& operation) const {
-    Expr cond = operation(condition());
+  scalar_expr map_children(Operation&& operation) const {
+    scalar_expr cond = operation(condition());
     if (cond.is_identical_to(constants::boolean_true)) {
       return operation(if_branch());
     } else if (cond.is_identical_to(constants::boolean_false)) {
@@ -37,17 +37,17 @@ class conditional {
   }
 
   // Create a new conditional.
-  static Expr create(Expr condition, Expr if_branch, Expr else_branch);
+  static scalar_expr create(scalar_expr condition, scalar_expr if_branch, scalar_expr else_branch);
 
-  constexpr const Expr& condition() const noexcept { return children_[0]; }
-  constexpr const Expr& if_branch() const noexcept { return children_[1]; }
-  constexpr const Expr& else_branch() const noexcept { return children_[2]; }
+  constexpr const scalar_expr& condition() const noexcept { return children_[0]; }
+  constexpr const scalar_expr& if_branch() const noexcept { return children_[1]; }
+  constexpr const scalar_expr& else_branch() const noexcept { return children_[2]; }
 
   constexpr auto begin() const noexcept { return children_.begin(); }
   constexpr auto end() const noexcept { return children_.end(); }
 
  protected:
-  std::array<Expr, 3> children_;
+  std::array<scalar_expr, 3> children_;
 };
 
 template <>

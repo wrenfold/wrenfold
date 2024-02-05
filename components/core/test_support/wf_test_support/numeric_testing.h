@@ -71,11 +71,11 @@ auto compute_function_output(numeric_function_evaluator& evaluator, const T& inp
 }
 
 template <>
-struct compute_function_output_struct<Expr> {
-  double operator()(numeric_function_evaluator& evaluator, const Expr& input,
+struct compute_function_output_struct<scalar_expr> {
+  double operator()(numeric_function_evaluator& evaluator, const scalar_expr& input,
                     const scalar_type&) const {
-    const Expr subs = evaluator.substitute(input);
-    const Expr evaluated = evaluator.evaluate(subs);
+    const scalar_expr subs = evaluator.substitute(input);
+    const scalar_expr evaluated = evaluator.evaluate(subs);
     if (const float_constant* f = cast_ptr<const float_constant>(evaluated); f != nullptr) {
       return f->get_value();
     } else {
@@ -112,10 +112,10 @@ struct compute_function_output_struct<T,
   native_type operator()(numeric_function_evaluator& evaluator, const T& input,
                          const annotated_custom_type<T>& type) const {
     // Get the symbolic outputs for this type.
-    std::vector<Expr> symbolic_outputs;
+    std::vector<scalar_expr> symbolic_outputs;
     type.copy_output_expressions(input, symbolic_outputs);
     // Turn them into float expressions:
-    for (Expr& expr : symbolic_outputs) {
+    for (scalar_expr& expr : symbolic_outputs) {
       expr = evaluator.evaluate(evaluator.substitute(expr));
       if (!expr.is_type<float_constant>()) {
         throw type_error("Expression should be a floating point value. Got type `{}`: {}",
@@ -123,7 +123,8 @@ struct compute_function_output_struct<T,
       }
     }
     // Put them back the symbolic type:
-    auto [numeric_input, _] = type.initialize_from_expressions(absl::Span<Expr>{symbolic_outputs});
+    auto [numeric_input, _] =
+        type.initialize_from_expressions(absl::Span<scalar_expr>{symbolic_outputs});
     // Call the user provided converter:
     return custom_type_native_converter<T>{}(numeric_input);
   }
@@ -137,7 +138,7 @@ using enable_if_floating_point_t = std::enable_if_t<std::is_floating_point_v<T>>
 
 // Convert floats/doubles to single variable expression.
 template <>
-struct collect_function_input<Expr> {
+struct collect_function_input<scalar_expr> {
   template <typename U, typename = enable_if_floating_point_t<U>>
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index, const U arg,
                   const scalar_type&) const {
@@ -161,7 +162,8 @@ struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
         const auto a_ij = static_cast<float_constant::value_type>(arg(i, j));
         output.add_substitution(
-            variable{function_argument_variable(arg_index, element), number_set::real}, Expr(a_ij));
+            variable{function_argument_variable(arg_index, element), number_set::real},
+            scalar_expr(a_ij));
       }
     }
   }
@@ -179,7 +181,7 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
     // Convert to the symbolic type (with numeric values), then extract the values into a flat
     // vector:
     const T symbolic_arg_with_numeric_values = custom_type_native_converter<T>{}(arg);
-    std::vector<Expr> numeric_expressions =
+    std::vector<scalar_expr> numeric_expressions =
         detail::extract_function_output(type, symbolic_arg_with_numeric_values);
     // Configure the substitutions:
     const compound_expr provenance = create_custom_type_argument(type.inner(), arg_index);
@@ -239,8 +241,8 @@ auto create_evaluator_with_output_expressions(type_list<ArgSymbolicTypes...>,
 
 // Given a function pointer to a symbolic function, create a lambda that accepts numeric types
 // like double and Eigen::Matrix<double, ...>. The lambda converts the numeric arguments to the
-// equivalent `Expr` type, and invokes the symbolic function. The results are converted back to
-// numeric types.
+// equivalent `scalar_expr` type, and invokes the symbolic function. The results are converted back
+// to numeric types.
 template <typename ReturnType, typename... Args>
 auto create_evaluator(ReturnType (*func)(Args... args)) {
   // Scrape the the types of the input arguments:
@@ -270,7 +272,7 @@ auto create_evaluator(ReturnType (*func)(Args... args)) {
 
 namespace detail {
 template <>
-struct convert_arg_type<Expr> {
+struct convert_arg_type<scalar_expr> {
   using type = double;
 };
 
@@ -289,7 +291,7 @@ struct convert_output_arg_type<output_arg<T>> {
   using type = typename convert_output_arg_type<T>::type;
 };
 template <>
-struct convert_output_arg_type<Expr> {
+struct convert_output_arg_type<scalar_expr> {
   using type = double;
 };
 template <index_t Rows, index_t Cols>

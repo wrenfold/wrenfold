@@ -9,17 +9,17 @@
 
 namespace wf {
 
-void plain_formatter::operator()(const Expr& x) { return visit(x, *this); }
+void plain_formatter::operator()(const scalar_expr& x) { return visit(x, *this); }
 void plain_formatter::operator()(const matrix_expr& x) { operator()(x.as_matrix()); }
 
 void plain_formatter::operator()(const addition& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
 
   // Sort into canonical order:
-  absl::InlinedVector<std::pair<Expr, Expr>, 16> terms;
+  absl::InlinedVector<std::pair<scalar_expr, scalar_expr>, 16> terms;
   terms.reserve(expr.size());
   std::transform(expr.begin(), expr.end(), std::back_inserter(terms),
-                 [](const Expr& x) { return as_coeff_and_mul(x); });
+                 [](const scalar_expr& x) { return as_coeff_and_mul(x); });
 
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
     return determine_order(a.second, b.second) == relative_order::less_than;
@@ -183,7 +183,7 @@ void plain_formatter::operator()(const matrix& mat) {
   elements.resize(mat.size());
 
   // Format all the child elements up front. That way we can do alignment:
-  std::transform(mat.begin(), mat.end(), elements.begin(), [](const Expr& expr) {
+  std::transform(mat.begin(), mat.end(), elements.begin(), [](const scalar_expr& expr) {
     plain_formatter child_formatter{};
     visit(expr, child_formatter);
     return child_formatter.output_;
@@ -299,7 +299,7 @@ void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
 
 void plain_formatter::operator()(const variable& var) { output_.append(var.to_string()); }
 
-void plain_formatter::format_precedence(const precedence parent, const Expr& expr) {
+void plain_formatter::format_precedence(const precedence parent, const scalar_expr& expr) {
   if (get_precedence(expr) <= parent) {
     output_ += "(";
     visit(expr, *this);
@@ -309,7 +309,7 @@ void plain_formatter::format_precedence(const precedence parent, const Expr& exp
   }
 }
 
-void plain_formatter::format_power(const Expr& base, const Expr& exponent) {
+void plain_formatter::format_power(const scalar_expr& base, const scalar_expr& exponent) {
   format_precedence(precedence::power, base);
   output_ += " ** ";
   format_precedence(precedence::power, exponent);

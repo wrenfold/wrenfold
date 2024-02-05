@@ -12,10 +12,10 @@ class cast_bool {
   static constexpr std::string_view name_str = "CastBool";
   static constexpr bool is_leaf_node = false;
 
-  explicit cast_bool(Expr arg) noexcept(std::is_nothrow_move_constructible_v<Expr>)
+  explicit cast_bool(scalar_expr arg) noexcept(std::is_nothrow_move_constructible_v<scalar_expr>)
       : arg_{std::move(arg)} {}
 
-  constexpr const Expr& arg() const noexcept { return arg_[0]; }
+  constexpr const scalar_expr& arg() const noexcept { return arg_[0]; }
 
   // Iterators
   constexpr auto begin() const noexcept { return arg_.begin(); }
@@ -34,12 +34,12 @@ class cast_bool {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr map_children(Operation&& operation) const {
+  scalar_expr map_children(Operation&& operation) const {
     return cast_int_from_bool(operation(arg_.front()));
   }
 
  private:
-  std::array<Expr, 1> arg_;
+  std::array<scalar_expr, 1> arg_;
 };
 
 template <>

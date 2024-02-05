@@ -38,11 +38,11 @@ class declare_external_function {
     zip_tuples(
         [&captured_args](auto arg, const auto& arg_type) {
           using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, Expr> || std::is_same_v<T, matrix_expr> ||
+          if constexpr (std::is_same_v<T, scalar_expr> || std::is_same_v<T, matrix_expr> ||
                         type_annotations::is_static_matrix_v<T>) {
             captured_args.emplace_back(std::move(arg));
-          } else if constexpr (std::is_constructible_v<Expr, T>) {
-            captured_args.emplace_back(Expr{arg});
+          } else if constexpr (std::is_constructible_v<scalar_expr, T>) {
+            captured_args.emplace_back(scalar_expr{arg});
           } else if constexpr (implements_custom_type_registrant_v<T>) {
             // This was directly constructed - capture all the expressions on the custom type.
             auto compound = custom_type_construction::create(
@@ -57,18 +57,18 @@ class declare_external_function {
     auto invoke_result = description.create_invocation(std::move(captured_args));
 
     // We construct different expression types, depending on what the external function returns:
-    if constexpr (std::is_same_v<ReturnType, Expr>) {
+    if constexpr (std::is_same_v<ReturnType, scalar_expr>) {
       // Get single element from the compound expression:
-      return ReturnType{std::get<Expr>(invoke_result)};
+      return ReturnType{std::get<scalar_expr>(invoke_result)};
     } else if constexpr (std::is_same_v<ReturnType, matrix_expr> ||
                          type_annotations::is_static_matrix_v<ReturnType>) {
       return ReturnType{std::get<matrix_expr>(invoke_result)};
     } else if constexpr (implements_custom_type_registrant_v<ReturnType>) {
       const custom_type& type = description.return_type_as<custom_type>();
-      const std::vector<Expr> elements =
+      const std::vector<scalar_expr> elements =
           create_expression_elements(std::get<compound_expr>(invoke_result), type.total_size());
       auto [return_value, _] =
-          custom_type_from_expressions<ReturnType>(type, absl::Span<const Expr>{elements});
+          custom_type_from_expressions<ReturnType>(type, absl::Span<const scalar_expr>{elements});
       return return_value;
     } else {
       WF_ASSERT_ALWAYS("Unsupported return type: {}", typeid(ReturnType).name());

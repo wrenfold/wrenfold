@@ -29,7 +29,7 @@ py::class_<T> wrap_class(py::module_& m, const std::string_view name) {
   return klass;
 }
 
-// Iterate over a container and transform every element into `Expr`.
+// Iterate over a container and transform every element into `scalar_expr`.
 template <typename Container, typename Output>
 std::size_t cast_to_expr(const Container& inputs, Output& output) {
   // len_hint will get the length if possible, otherwise return 0.
@@ -43,13 +43,14 @@ std::size_t cast_to_expr(const Container& inputs, Output& output) {
   std::transform(inputs.begin(), inputs.end(), std::back_inserter(output),
                  [&](const py::handle& handle) {
                    ++count;
-                   return py::cast<Expr>(handle);
+                   return py::cast<scalar_expr>(handle);
                  });
   return count;
 }
 
-// Try converting `x` to an int or float, otherwise just return Expr.
-inline std::variant<std::int64_t, double, Expr> try_convert_to_numeric(const Expr& x) {
+// Try converting `x` to an int or float, otherwise just return scalar_expr.
+inline std::variant<std::int64_t, double, scalar_expr> try_convert_to_numeric(
+    const scalar_expr& x) {
   if (const float_constant* f = cast_ptr<const float_constant>(x); f != nullptr) {
     return f->get_value();
   } else if (const integer_constant* i = cast_ptr<const integer_constant>(x); i != nullptr) {

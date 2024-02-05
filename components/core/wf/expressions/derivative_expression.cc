@@ -5,7 +5,7 @@
 
 namespace wf {
 
-Expr derivative::create(Expr function, Expr arg, int order) {
+scalar_expr derivative::create(scalar_expr function, scalar_expr arg, int order) {
   WF_ASSERT_GREATER_OR_EQ(order, 1, "Order of the derivative must >= 1");
 
   if (!arg.is_type<variable>()) {

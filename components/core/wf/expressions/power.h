@@ -11,7 +11,7 @@ class power {
   static constexpr std::string_view name_str = "Power";
   static constexpr bool is_leaf_node = false;
 
-  power(Expr base, Expr exponent) : children_{std::move(base), std::move(exponent)} {}
+  power(scalar_expr base, scalar_expr exponent) : children_{std::move(base), std::move(exponent)} {}
 
   // Base and exponent must match.
   bool is_identical_to(const power& other) const {
@@ -26,26 +26,26 @@ class power {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr map_children(Operation&& operation) const {
+  scalar_expr map_children(Operation&& operation) const {
     return power::create(operation(base()), operation(exponent()));
   }
 
   // Create a new power.
   // Will apply rules to simplify automatically.
-  static Expr create(Expr a, Expr b);
+  static scalar_expr create(scalar_expr a, scalar_expr b);
 
-  constexpr const Expr& base() const noexcept { return children_[0]; }
-  constexpr const Expr& exponent() const noexcept { return children_[1]; }
+  constexpr const scalar_expr& base() const noexcept { return children_[0]; }
+  constexpr const scalar_expr& exponent() const noexcept { return children_[1]; }
 
   constexpr auto begin() const noexcept { return children_.begin(); }
   constexpr auto end() const noexcept { return children_.end(); }
 
  protected:
-  std::array<Expr, 2> children_;
+  std::array<scalar_expr, 2> children_;
 };
 
 // Convert an expression to a base/exponent pair.
-std::pair<Expr, Expr> as_base_and_exp(const Expr& expr);
+std::pair<scalar_expr, scalar_expr> as_base_and_exp(const scalar_expr& expr);
 
 // Convert a rational exponent to the whole integer part and the remainder.
 // If the exponent is negative, we add to the whole integer part so that the rational part

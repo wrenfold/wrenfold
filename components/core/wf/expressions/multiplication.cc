@@ -10,7 +10,7 @@
 
 namespace wf {
 
-inline Expr maybe_new_mul(multiplication::container_type&& terms) {
+inline scalar_expr maybe_new_mul(multiplication::container_type&& terms) {
   if (terms.empty()) {
     return constants::one;
   } else if (terms.size() == 1) {
@@ -20,16 +20,17 @@ inline Expr maybe_new_mul(multiplication::container_type&& terms) {
   }
 }
 
-static inline Expr multiply_into_addition(const addition& add, const Expr& numerical_constant) {
+static inline scalar_expr multiply_into_addition(const addition& add,
+                                                 const scalar_expr& numerical_constant) {
   addition::container_type add_args{};
   add_args.reserve(add.size());
   std::transform(
       add.begin(), add.end(), std::back_inserter(add_args),
-      [&numerical_constant](const Expr& add_term) { return add_term * numerical_constant; });
+      [&numerical_constant](const scalar_expr& add_term) { return add_term * numerical_constant; });
   return addition::from_operands(add_args);  // TODO: make this a move!
 }
 
-Expr multiplication::from_operands(absl::Span<const Expr> args) {
+scalar_expr multiplication::from_operands(absl::Span<const scalar_expr> args) {
   WF_ASSERT(!args.empty());
   if (args.size() < 2) {
     return args.front();
@@ -53,7 +54,7 @@ Expr multiplication::from_operands(absl::Span<const Expr> args) {
 
   // Now canonicalize the arguments:
   multiplication_parts builder{args.size()};
-  for (const Expr& term : args) {
+  for (const scalar_expr& term : args) {
     builder.multiply_term(term);
   }
   builder.normalize_coefficients();
@@ -66,8 +67,8 @@ struct multiply_visitor {
 
   void insert_integer_factors(const std::vector<prime_factor>& factors, const bool positive) const {
     for (const prime_factor& factor : factors) {
-      Expr base{factor.base};
-      Expr exponent{positive ? factor.exponent : -factor.exponent};
+      scalar_expr base{factor.base};
+      scalar_expr exponent{positive ? factor.exponent : -factor.exponent};
       if (const auto [it, was_inserted] = builder.terms.emplace(std::move(base), exponent);
           !was_inserted) {
         it->second = it->second + exponent;
@@ -76,9 +77,9 @@ struct multiply_visitor {
   }
 
   template <typename T>
-  void operator()(const T& arg, const Expr& input_expression) {
+  void operator()(const T& arg, const scalar_expr& input_expression) {
     if constexpr (std::is_same_v<T, multiplication>) {
-      for (const Expr& expr : arg) {
+      for (const scalar_expr& expr : arg) {
         // Recursively add multiplications:
         visit(expr, [this, &expr](const auto& x) { this->operator()(x, expr); });
       }
@@ -129,13 +130,13 @@ struct multiply_visitor {
 
 multiplication_parts::multiplication_parts(const multiplication& mul, bool factorize_integers)
     : multiplication_parts(mul.size()) {
-  for (const Expr& expr : mul) {
+  for (const scalar_expr& expr : mul) {
     multiply_term(expr, factorize_integers);
   }
   normalize_coefficients();
 }
 
-void multiplication_parts::multiply_term(const Expr& arg, bool factorize_integers) {
+void multiplication_parts::multiply_term(const scalar_expr& arg, bool factorize_integers) {
   if (factorize_integers) {
     multiply_visitor<true> visitor{*this};
     visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
@@ -165,7 +166,7 @@ void multiplication_parts::normalize_coefficients() {
       }
 
       // We changed the exponent on this term, so update it.
-      it->second = Expr(fractional_part);
+      it->second = scalar_expr(fractional_part);
     }
   }
 
@@ -179,7 +180,7 @@ void multiplication_parts::normalize_coefficients() {
   }
 }
 
-Expr multiplication_parts::create_multiplication() const {
+scalar_expr multiplication_parts::create_multiplication() const {
   multiplication::container_type args{};
 
   // TODO: Would be good to front-load this logic so we can early exit before building the map.
@@ -203,7 +204,7 @@ Expr multiplication_parts::create_multiplication() const {
     } else if (rational_coeff.is_one()) {
       // Don't insert a useless one in the multiplication.
     } else {
-      args.push_back(Expr(rational_coeff));
+      args.push_back(scalar_expr(rational_coeff));
     }
   }
 
@@ -219,10 +220,11 @@ Expr multiplication_parts::create_multiplication() const {
 }
 
 // For multiplications, we need to break the expression up.
-std::pair<Expr, Expr> split_multiplication(const multiplication& mul, const Expr& mul_abstract) {
+std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplication& mul,
+                                                         const scalar_expr& mul_abstract) {
   multiplication::container_type numerics{};
   multiplication::container_type remainder{};
-  for (const Expr& expr : mul) {
+  for (const scalar_expr& expr : mul) {
     if (is_numeric(expr)) {
       numerics.push_back(expr);
     } else {
@@ -238,8 +240,8 @@ std::pair<Expr, Expr> split_multiplication(const multiplication& mul, const Expr
   return std::make_pair(std::move(coeff), std::move(multiplicand));
 }
 
-std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr) {
-  return visit(expr, [&expr](const auto& x) -> std::pair<Expr, Expr> {
+std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr) {
+  return visit(expr, [&expr](const auto& x) -> std::pair<scalar_expr, scalar_expr> {
     using T = std::decay_t<decltype(x)>;
     if constexpr (type_list_contains_v<T, integer_constant, rational_constant, float_constant>) {
       // Numerical values are always the coefficient:
@@ -264,15 +266,15 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
   multiplication_format_parts result{};
 
   // Sort into canonical order:
-  absl::InlinedVector<Expr, 16> terms{mul.begin(), mul.end()};
+  absl::InlinedVector<scalar_expr, 16> terms{mul.begin(), mul.end()};
   std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
     const auto abe = as_base_and_exp(a);
     const auto bbe = as_base_and_exp(b);
-    return order_struct<Expr>{}(abe.first, bbe.first) == relative_order::less_than;
+    return order_struct<scalar_expr>{}(abe.first, bbe.first) == relative_order::less_than;
   });
 
   std::size_t sign_count = 0;
-  for (const Expr& expr : terms) {
+  for (const scalar_expr& expr : terms) {
     // Extract rationals:
     if (const rational_constant* const rational = cast_ptr<const rational_constant>(expr);
         rational != nullptr) {

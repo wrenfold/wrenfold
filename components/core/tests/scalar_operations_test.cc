@@ -13,10 +13,10 @@ namespace wf {
 using namespace wf::custom_literals;
 
 TEST(ScalarOperationsTest, TestAddition) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr w{"w"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
   ASSERT_TRUE((x + y).is_type<addition>());
   ASSERT_IDENTICAL(x + y, x + y);
   ASSERT_IDENTICAL(x + y, y + x);
@@ -72,9 +72,9 @@ TEST(ScalarOperationsTest, TestAdditionUndefined) {
 }
 
 TEST(ScalarOperationsTest, TestMultiplication) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
   ASSERT_TRUE((x * y).is_type<multiplication>());
   ASSERT_IDENTICAL(x * y, x * y);
   ASSERT_EQ("Multiplication", (x * y).type_name());
@@ -167,7 +167,7 @@ TEST(ScalarOperationsTest, TestMultiplicationUndefined) {
 }
 
 TEST(ScalarOperationsTest, TestNegation) {
-  const Expr x{"x"};
+  const scalar_expr x{"x"};
   ASSERT_IDENTICAL(-x, -x);
   ASSERT_TRUE((-x).is_type<multiplication>());
   ASSERT_IDENTICAL(-(-x), x);
@@ -175,9 +175,9 @@ TEST(ScalarOperationsTest, TestNegation) {
 }
 
 TEST(ScalarOperationsTest, TestDivision) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
   ASSERT_IDENTICAL(x / y, x / y);
   ASSERT_TRUE((x / y).is_type<multiplication>());
   ASSERT_NOT_IDENTICAL(y / x, x / y);
@@ -202,9 +202,9 @@ TEST(ScalarOperationsTest, TestDivision) {
 }
 
 TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
 
   ASSERT_IDENTICAL(constants::zero, as_coeff_and_mul(0).first);
   ASSERT_IDENTICAL(constants::one, as_coeff_and_mul(0).second);
@@ -232,9 +232,9 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
 
 TEST(ScalarOperationsTest, TestPower) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const Expr w{"w", number_set::real_non_negative};
-  const Expr u{"u", number_set::real_positive};
-  const Expr v{"v", number_set::real};
+  const scalar_expr w{"w", number_set::real_non_negative};
+  const scalar_expr u{"u", number_set::real_positive};
+  const scalar_expr v{"v", number_set::real};
 
   ASSERT_IDENTICAL(pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
@@ -264,9 +264,9 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));
 
   // Floats...
-  ASSERT_IDENTICAL(Expr{std::pow(2.0, 4.5)}, pow(2, 4.5));
-  ASSERT_IDENTICAL(Expr{std::pow(1.122, 6.0)}, pow(1.122, 6));
-  ASSERT_IDENTICAL(Expr{std::pow(6.7, -0.5)}, pow(6.7, -0.5));
+  ASSERT_IDENTICAL(scalar_expr{std::pow(2.0, 4.5)}, pow(2, 4.5));
+  ASSERT_IDENTICAL(scalar_expr{std::pow(1.122, 6.0)}, pow(1.122, 6));
+  ASSERT_IDENTICAL(scalar_expr{std::pow(6.7, -0.5)}, pow(6.7, -0.5));
 
   // Rational powers of integers:
   ASSERT_IDENTICAL(0, pow(0, 6_s / 11));
@@ -324,7 +324,7 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y), 1 / 4_s));
 
   // Simplifications when the inner value is non-negative:
-  for (const Expr& s : {w, u}) {
+  for (const scalar_expr& s : {w, u}) {
     ASSERT_IDENTICAL(s, pow(pow(s, 2), 1 / 2_s));
     ASSERT_IDENTICAL(s, pow(pow(s, 3), 1 / 3_s));
     ASSERT_IDENTICAL(pow(s, 12 / 7_s), pow(pow(s, 2), 6 / 7_s));
@@ -482,20 +482,20 @@ TEST(ScalarOperationsTest, TestConditional) {
   ASSERT_IDENTICAL(abs(x) + z * 5, where(x - y < z, abs(x) + z * 5, abs(x) + z * 5));
 
   // Nested conditionals don't simplify:
-  const Expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
+  const scalar_expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
   ASSERT_IDENTICAL(cast_checked<const conditional>(nested).if_branch(),
                    where(x < 0, cos(x), sin(x)));
   ASSERT_IDENTICAL(cast_checked<const conditional>(nested).else_branch(), log(z));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
-  const Expr p{"p"};
-  const Expr q{"q"};
-  const Expr v{"v"};
+  const scalar_expr w{"w"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
+  const scalar_expr p{"p"};
+  const scalar_expr q{"q"};
+  const scalar_expr v{"v"};
   ASSERT_IDENTICAL(x, x.distribute());
   ASSERT_IDENTICAL(x + y, (x + y).distribute());
   ASSERT_IDENTICAL(6 + 3 * x, (3 * (x + 2)).distribute());
@@ -644,8 +644,8 @@ TEST(ScalarOperationsTest, TestCollectMany) {
 
   // Generate a polynomial in four variables:
   // Use std::function, so that we can recurse this lambda.
-  std::function<Expr(absl::Span<const Expr>)> make_poly;
-  make_poly = [&make_poly](absl::Span<const Expr> vars) -> Expr {
+  std::function<scalar_expr(absl::Span<const scalar_expr>)> make_poly;
+  make_poly = [&make_poly](absl::Span<const scalar_expr> vars) -> scalar_expr {
     if (vars.size() == 1) {
       return pow(vars[0], 2) + vars[0] + 1;
     } else {
@@ -659,15 +659,16 @@ TEST(ScalarOperationsTest, TestCollectMany) {
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsVariables) {
-  ASSERT_EQ(number_set::unknown, determine_numeric_set(Expr{"x"}));
-  ASSERT_EQ(number_set::real, determine_numeric_set(Expr{"x", number_set::real}));
-  ASSERT_EQ(number_set::complex, determine_numeric_set(Expr{"x", number_set::complex}));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(scalar_expr{"x"}));
+  ASSERT_EQ(number_set::real, determine_numeric_set(scalar_expr{"x", number_set::real}));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(scalar_expr{"x", number_set::complex}));
 
   // Identical must consider the numeric set of the variable.
-  ASSERT_IDENTICAL(Expr("x"), Expr("x", number_set::unknown));
-  ASSERT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::real));
-  ASSERT_NOT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::complex));
-  ASSERT_NOT_IDENTICAL(Expr("x", number_set::real), Expr("x", number_set::real_non_negative));
+  ASSERT_IDENTICAL(scalar_expr("x"), scalar_expr("x", number_set::unknown));
+  ASSERT_IDENTICAL(scalar_expr("x", number_set::real), scalar_expr("x", number_set::real));
+  ASSERT_NOT_IDENTICAL(scalar_expr("x", number_set::real), scalar_expr("x", number_set::complex));
+  ASSERT_NOT_IDENTICAL(scalar_expr("x", number_set::real),
+                       scalar_expr("x", number_set::real_non_negative));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsNumericalValues) {
@@ -743,11 +744,11 @@ TEST(ScalarOperationsTest, TestNumericSetsAddMul) {
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsPow) {
-  const Expr real = make_unique_variable_symbol(number_set::real);
-  const Expr real_non_negative = make_unique_variable_symbol(number_set::real_non_negative);
-  const Expr real_positive = make_unique_variable_symbol(number_set::real_positive);
-  const Expr complex{"z", number_set::complex};
-  const Expr unknown{"v", number_set::unknown};
+  const scalar_expr real = make_unique_variable_symbol(number_set::real);
+  const scalar_expr real_non_negative = make_unique_variable_symbol(number_set::real_non_negative);
+  const scalar_expr real_positive = make_unique_variable_symbol(number_set::real_positive);
+  const scalar_expr complex{"z", number_set::complex};
+  const scalar_expr unknown{"v", number_set::unknown};
 
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(real * real));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real, 4)));
@@ -781,10 +782,10 @@ TEST(ScalarOperationsTest, TestNumericSetsPow) {
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
-  const Expr real{"x", number_set::real};
-  const Expr real_non_negative{"y", number_set::real_non_negative};
-  const Expr real_positive{"w", number_set::real_positive};
-  const Expr complex{"z", number_set::complex};
+  const scalar_expr real{"x", number_set::real};
+  const scalar_expr real_non_negative{"y", number_set::real_non_negative};
+  const scalar_expr real_positive{"w", number_set::real_positive};
+  const scalar_expr complex{"z", number_set::complex};
 
   ASSERT_EQ(number_set::real, determine_numeric_set(cos(real)));
   ASSERT_EQ(number_set::real, determine_numeric_set(sin(real)));
@@ -827,10 +828,10 @@ TEST(ScalarOperationsTest, TestNumericSetsSpecialValues) {
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsConditional) {
-  const Expr real{"x", number_set::real};
-  const Expr real_non_negative{"y", number_set::real_non_negative};
-  const Expr real_positive{"w", number_set::real_positive};
-  const Expr complex{"z", number_set::complex};
+  const scalar_expr real{"x", number_set::real};
+  const scalar_expr real_non_negative{"y", number_set::real_non_negative};
+  const scalar_expr real_positive{"w", number_set::real_positive};
+  const scalar_expr complex{"z", number_set::complex};
 
   ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(real > 0));  //  TODO: Should be boolean.

@@ -2,58 +2,60 @@
 #pragma once
 #include "wf/expression.h"
 
-// User facing math functions that operate on `Expr` go in this file.
+// User facing math functions that operate on `scalar_expr` go in this file.
 namespace wf {
 
 // Natural log.
-Expr log(const Expr& arg);
+scalar_expr log(const scalar_expr& arg);
 
 // Power.
-Expr pow(const Expr& b, const Expr& e);
+scalar_expr pow(const scalar_expr& b, const scalar_expr& e);
 
 // Cosine.
-Expr cos(const Expr& arg);
+scalar_expr cos(const scalar_expr& arg);
 
 // Sine.
-Expr sin(const Expr& arg);
+scalar_expr sin(const scalar_expr& arg);
 
 // Tangent.
-Expr tan(const Expr& arg);
+scalar_expr tan(const scalar_expr& arg);
 
 // Inverse cosine.
-Expr acos(const Expr& arg);
+scalar_expr acos(const scalar_expr& arg);
 
 // Inverse sine.
-Expr asin(const Expr& arg);
+scalar_expr asin(const scalar_expr& arg);
 
 // Inverse tangent.
-Expr atan(const Expr& arg);
+scalar_expr atan(const scalar_expr& arg);
 
 // 2-argument inverse tangent.
-Expr atan2(const Expr& y, const Expr& x);
+scalar_expr atan2(const scalar_expr& y, const scalar_expr& x);
 
 // Square root.
-Expr sqrt(const Expr& arg);
+scalar_expr sqrt(const scalar_expr& arg);
 
 // Absolute value function.
-Expr abs(const Expr& arg);
+scalar_expr abs(const scalar_expr& arg);
 
 // Signum function.
-Expr signum(const Expr& arg);
+scalar_expr signum(const scalar_expr& arg);
 
 // Maximum of two values. Equivalent to: (a < b) ? b : a
-Expr max(const Expr& a, const Expr& b);
+scalar_expr max(const scalar_expr& a, const scalar_expr& b);
 
 // Minimum of two values. Equivalent to: (b < a) ? b : a
-Expr min(const Expr& a, const Expr& b);
+scalar_expr min(const scalar_expr& a, const scalar_expr& b);
 
 // Conditional/ternary expression.
-Expr where(const Expr& condition, const Expr& if_true, const Expr& if_false);
+scalar_expr where(const scalar_expr& condition, const scalar_expr& if_true,
+                  const scalar_expr& if_false);
 
 // Conditional over a matrix w/ scalar condition.
-matrix_expr where(const Expr& condition, const matrix_expr& if_true, const matrix_expr& if_false);
+matrix_expr where(const scalar_expr& condition, const matrix_expr& if_true,
+                  const matrix_expr& if_false);
 
 // Cast the provided expression from a boolean to an integer.
-Expr cast_int_from_bool(const Expr& bool_expression);
+scalar_expr cast_int_from_bool(const scalar_expr& bool_expression);
 
 }  // namespace wf

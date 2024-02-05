@@ -10,7 +10,7 @@ namespace wf {
 static void BM_QuaternionInterpolateJacobian(benchmark::State& state) {
   const quaternion q0 = quaternion::from_name_prefix("q0");
   const quaternion q1 = quaternion::from_name_prefix("q1");
-  const Expr alpha{"alpha"};
+  const scalar_expr alpha{"alpha"};
   const matrix_expr q_delta_tangent = (q0.conjugate() * q1).to_rotation_vector(1.0e-16);
   const quaternion q_interp =
       q0 * quaternion::from_rotation_vector(q_delta_tangent * alpha, 1.0e-16);

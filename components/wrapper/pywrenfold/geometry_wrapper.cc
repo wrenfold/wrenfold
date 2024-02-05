@@ -18,7 +18,7 @@ namespace wf {
 
 // Get four elements from an iterable, throw if there are not four.
 static auto components_from_iterable(const py::iterable& iterable) {
-  absl::InlinedVector<Expr, 4> values;
+  absl::InlinedVector<scalar_expr, 4> values;
   cast_to_expr(iterable, values);
   if (values.size() != 4) {
     throw dimension_error("Expected 4 values but {} were provided.", values.size());
@@ -46,8 +46,8 @@ static py::array eval_quaternion(const quaternion& q) {
 
 void wrap_geometry_operations(py::module_& m) {
   py::class_<quaternion>(m, "Quaternion")
-      .def(py::init<Expr, Expr, Expr, Expr>(), "w"_a, "x"_a, "y"_a, "z"_a,
-           py::doc("Construct from wxyz elements."))
+      .def(py::init<scalar_expr, scalar_expr, scalar_expr, scalar_expr>(), "w"_a, "x"_a, "y"_a,
+           "z"_a, py::doc("Construct from wxyz elements."))
       .def(py::init<>(), py::doc("Construct as identity."))
       .def_static(
           "with_name",
@@ -117,8 +117,8 @@ void wrap_geometry_operations(py::module_& m) {
       // TODO: Stubs are wrong for these, see: https://github.com/python/mypy/pull/14934
       .def_static(
           "from_angle_axis",
-          static_cast<quaternion (*)(const Expr&, const Expr&, const Expr&, const Expr&)>(
-              &quaternion::from_angle_axis),
+          static_cast<quaternion (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&,
+                                     const scalar_expr&)>(&quaternion::from_angle_axis),
           "angle"_a, "vx"_a, "vy"_a, "vz"_a,
           py::doc(
               "Create a quaternion from angle-axis parameters. Parameters [vx, vy, vz] must be a "
@@ -126,25 +126,27 @@ void wrap_geometry_operations(py::module_& m) {
               "radians."))
       .def_static(
           "from_angle_axis",
-          static_cast<quaternion (*)(const Expr&, const matrix_expr&)>(
+          static_cast<quaternion (*)(const scalar_expr&, const matrix_expr&)>(
               &quaternion::from_angle_axis),
           "angle"_a, "v"_a,
           py::doc("Create a quaternion from angle-axis parameters. Vector v must be a "
                   "unit vector, or the result does not represent a rotation. Angle is specified in "
                   "radians."))
-      .def_static("from_rotation_vector",
-                  static_cast<quaternion (*)(const Expr&, const Expr&, const Expr&,
-                                             const std::optional<Expr>&)>(
-                      &quaternion::from_rotation_vector),
-                  "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
-                  py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
-                          "of radians."))
-      .def_static("from_rotation_vector",
-                  static_cast<quaternion (*)(const matrix_expr&, const std::optional<Expr>&)>(
-                      &quaternion::from_rotation_vector),
-                  "v"_a, py::arg("epsilon"),
-                  py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
-                          "of radians."))
+      .def_static(
+          "from_rotation_vector",
+          static_cast<quaternion (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&,
+                                     const std::optional<scalar_expr>&)>(
+              &quaternion::from_rotation_vector),
+          "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
+          py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
+                  "of radians."))
+      .def_static(
+          "from_rotation_vector",
+          static_cast<quaternion (*)(const matrix_expr&, const std::optional<scalar_expr>&)>(
+              &quaternion::from_rotation_vector),
+          "v"_a, py::arg("epsilon"),
+          py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
+                  "of radians."))
       .def_static("from_x_angle", &quaternion::from_x_angle, "angle"_a,
                   py::doc("Construct a rotation about the x-axis. Angle is in radians."))
       .def_static("from_y_angle", &quaternion::from_y_angle, "angle"_a,
@@ -169,7 +171,7 @@ void wrap_geometry_operations(py::module_& m) {
           py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
       .def(
           "jacobian",
-          [](const quaternion& self, const std::vector<Expr>& vars, bool use_abstract) {
+          [](const quaternion& self, const std::vector<scalar_expr>& vars, bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },

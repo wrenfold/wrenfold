@@ -12,7 +12,7 @@ namespace wf {
 using namespace wf::custom_literals;
 
 TEST(DerivativesTest, TestConstants) {
-  const Expr x{"x"};
+  const scalar_expr x{"x"};
   ASSERT_IDENTICAL(constants::zero, (5_s).diff(x));
   ASSERT_IDENTICAL(constants::zero, (22.5_s).diff(x, 4));
   ASSERT_IDENTICAL(constants::zero, constants::pi.diff(x));
@@ -23,9 +23,9 @@ TEST(DerivativesTest, TestConstants) {
 }
 
 TEST(DerivativesTest, TestAdditionAndSubtraction) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr w{"w"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_IDENTICAL(constants::zero, (x + y).diff(w));
   ASSERT_IDENTICAL(constants::zero, (x - y).diff(w, 2));
   ASSERT_IDENTICAL(constants::one, (x + y).diff(y));
@@ -36,9 +36,9 @@ TEST(DerivativesTest, TestAdditionAndSubtraction) {
 }
 
 TEST(DerivativesTest, TestMultiplication) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr w{"w"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_IDENTICAL(0, (x * y).diff(w));
   ASSERT_IDENTICAL(y, (x * y).diff(x));
   ASSERT_IDENTICAL(x, (x * y).diff(y));
@@ -59,9 +59,9 @@ TEST(DerivativesTest, TestMultiplication) {
 }
 
 TEST(DerivativesTest, TestPower) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr w{"w"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_IDENTICAL(constants::zero, pow(x, y).diff(w));
 
   ASSERT_IDENTICAL(y * pow(x, y - 1), pow(x, y).diff(x));
@@ -73,14 +73,14 @@ TEST(DerivativesTest, TestPower) {
   ASSERT_IDENTICAL(pow(y, w) * pow(log(y), 3), pow(y, w).diff(w, 3));
   ASSERT_IDENTICAL(pow(x, x) * log(x) + pow(x, x), pow(x, x).diff(x));
 
-  const Expr coeff = (5 / 7_s) * pow(2, (5 / 7_s) * x) * pow(x, (5 / 7_s) * x);
+  const scalar_expr coeff = (5 / 7_s) * pow(2, (5 / 7_s) * x) * pow(x, (5 / 7_s) * x);
   ASSERT_IDENTICAL((coeff * (1 + log(2) + log(x))).distribute(),
                    pow(x * 2, x * 5 / 7_s).diff(x).distribute());
 }
 
 TEST(DerivativesTest, TestLog) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_IDENTICAL(1 / x, log(x).diff(x));
   ASSERT_IDENTICAL(0, log(x).diff(y));
   ASSERT_IDENTICAL(1 / y, log(x * y).diff(y));
@@ -88,8 +88,8 @@ TEST(DerivativesTest, TestLog) {
 }
 
 TEST(DerivativesTest, TestTrig) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_IDENTICAL(cos(x), sin(x).diff(x));
   ASSERT_IDENTICAL(-sin(x), cos(x).diff(x));
   ASSERT_IDENTICAL(-cos(y) * cos(cos(sin(y))) * sin(sin(y)), sin(cos(sin(y))).diff(y));
@@ -100,8 +100,8 @@ TEST(DerivativesTest, TestTrig) {
 }
 
 TEST(DerivativesTest, TestInverseTrig) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
 
   ASSERT_IDENTICAL(constants::zero, acos(5).diff(x));
   ASSERT_IDENTICAL(-1 / sqrt(1 - x * x), acos(x).diff(x));
@@ -117,9 +117,9 @@ TEST(DerivativesTest, TestInverseTrig) {
 }
 
 TEST(DerivativesTest, TestAtan2) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
   ASSERT_IDENTICAL(0, atan2(y, x).diff(z));
   ASSERT_IDENTICAL(x / (x * x + y * y), atan2(y, x).diff(y));
   ASSERT_IDENTICAL(-y / (x * x + y * y), atan2(y, x).diff(x));
@@ -130,8 +130,8 @@ TEST(DerivativesTest, TestAtan2) {
 }
 
 TEST(DerivativesTest, TestAbs) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_IDENTICAL(0, abs(x).diff(y));
   ASSERT_IDENTICAL(y / abs(y), abs(y).diff(y));
   ASSERT_IDENTICAL(cos(x) * sin(x) / abs(sin(x)), abs(sin(x)).diff(x));
@@ -164,9 +164,9 @@ TEST(DerivativesTest, TestMaxMin) {
 
 TEST(DerivativesTest, TestMatrix) {
   // Matrix derivative should do element-wise differentiation.
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
   ASSERT_IDENTICAL(make_vector(0, 0, 0), make_vector(x, y, 1).diff(z));
   ASSERT_IDENTICAL(make_vector(0, 1, 0), make_vector(x, y, z).diff(y));
   ASSERT_IDENTICAL(make_vector(cos(y), 2 * x, -z / pow(x, 2)),

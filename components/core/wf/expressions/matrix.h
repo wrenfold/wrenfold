@@ -15,7 +15,7 @@ class matrix {
  public:
   static constexpr std::string_view name_str = "Matrix";
   static constexpr bool is_leaf_node = false;
-  using container_type = std::vector<Expr>;
+  using container_type = std::vector<scalar_expr>;
 
   // Construct from data vector.
   matrix(index_t rows, index_t cols, container_type data)
@@ -31,7 +31,8 @@ class matrix {
   // All elements must match.
   bool is_identical_to(const matrix& other) const {
     return rows_ == other.rows_ && cols_ == other.cols_ &&
-           std::equal(data_.begin(), data_.end(), other.data_.begin(), is_identical_struct<Expr>{});
+           std::equal(data_.begin(), data_.end(), other.data_.begin(),
+                      is_identical_struct<scalar_expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
@@ -48,21 +49,21 @@ class matrix {
   }
 
   // Access element in a vector. Only valid if `cols` or `rows` is 1.
-  const Expr& operator[](index_t i) const;
+  const scalar_expr& operator[](index_t i) const;
 
   // Access element in a matrix.
-  const Expr& operator()(index_t i, index_t j) const;
+  const scalar_expr& operator()(index_t i, index_t j) const;
 
   // Get with no bounds checking.
-  const Expr& get_unchecked(index_t i, index_t j) const noexcept {
+  const scalar_expr& get_unchecked(index_t i, index_t j) const noexcept {
     return data_[compute_index(i, j)];
   }
 
   // Non-const accessor with no bounds checking.
-  Expr& get_unchecked(index_t i, index_t j) noexcept { return data_[compute_index(i, j)]; }
+  scalar_expr& get_unchecked(index_t i, index_t j) noexcept { return data_[compute_index(i, j)]; }
 
   // Set with no bounds checking.
-  void set_unchecked(index_t i, index_t j, const Expr& value) noexcept {
+  void set_unchecked(index_t i, index_t j, const scalar_expr& value) noexcept {
     data_[compute_index(i, j)] = value;
   }
 
@@ -88,7 +89,7 @@ class matrix {
   std::size_t size() const noexcept { return data_.size(); }
 
   // Access elements.
-  constexpr const std::vector<Expr>& data() const noexcept { return data_; }
+  constexpr const std::vector<scalar_expr>& data() const noexcept { return data_; }
 
   // Iterators:
   auto begin() const noexcept { return data_.begin(); }
@@ -107,7 +108,7 @@ class matrix {
 
 static_assert(std::is_move_constructible_v<matrix> && std::is_move_assignable_v<matrix>);
 
-inline const Expr& matrix::operator[](index_t i) const {
+inline const scalar_expr& matrix::operator[](index_t i) const {
   if (rows_ != 1 && cols_ != 1) {
     throw dimension_error(
         "Array-style accessor is only valid on vectors. Matrix has dimensions ({}, {}).", rows_,
@@ -119,7 +120,7 @@ inline const Expr& matrix::operator[](index_t i) const {
   return data_[static_cast<std::size_t>(i)];
 }
 
-inline const Expr& matrix::operator()(index_t i, index_t j) const {
+inline const scalar_expr& matrix::operator()(index_t i, index_t j) const {
   if (i >= rows_ || i < 0 || j >= cols_ || j < 0) {
     throw dimension_error("Index ({}, {}) is out of bounds for matrix of size ({}, {})", i, j,
                           rows_, cols_);

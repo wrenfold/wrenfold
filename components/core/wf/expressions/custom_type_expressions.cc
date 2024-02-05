@@ -5,7 +5,7 @@
 
 namespace wf {
 
-custom_type_construction::custom_type_construction(custom_type type, std::vector<Expr> args)
+custom_type_construction::custom_type_construction(custom_type type, std::vector<scalar_expr> args)
     : type_(std::move(type)), args_(std::move(args)) {
   WF_ASSERT_EQUAL(
       type_.total_size(), args_.size(),

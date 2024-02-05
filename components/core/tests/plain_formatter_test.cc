@@ -9,9 +9,9 @@ namespace wf {
 using namespace wf::custom_literals;
 
 TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr w{"w"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_STR_EQ("w + x + y", x + y + w);
   ASSERT_STR_EQ("2 + x", x + 2);
   ASSERT_STR_EQ("-10 + y", y - 10);
@@ -27,10 +27,10 @@ TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
 }
 
 TEST(PlainFormatterTest, TestMultiplication) {
-  const Expr w{"w"};
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr w{"w"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
   ASSERT_STR_EQ("x * y", x * y);
   ASSERT_STR_EQ("x * y * z", x * z * y);
   ASSERT_STR_EQ("z * (x + y)", (x + y) * z);
@@ -73,9 +73,9 @@ TEST(PlainFormatterTest, TestMultiplication) {
 }
 
 TEST(PlainFormatterTest, TestPower) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
   ASSERT_STR_EQ("x ** y", pow(x, y));
   ASSERT_STR_EQ("8", pow(2, 3));
   ASSERT_STR_EQ("(x + y) ** z", pow(x + y, z));
@@ -114,8 +114,8 @@ TEST(PlainFormatterTest, TestConditionals) {
 }
 
 TEST(PlainFormatterTest, TestBuiltInFunctions) {
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_STR_EQ("ln(x)", log(x));
   ASSERT_STR_EQ("ln(x * y)", log(x * y));
   ASSERT_STR_EQ("-x * ln(x / y)", -x * log(x / y));
@@ -132,10 +132,10 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
 }
 
 TEST(PlainFormatterTest, TestMatrix) {
-  const Expr a{"a"};
-  const Expr b{"b"};
-  const Expr c{"c"};
-  const Expr d{"d"};
+  const scalar_expr a{"a"};
+  const scalar_expr b{"b"};
+  const scalar_expr c{"c"};
+  const scalar_expr d{"d"};
   ASSERT_STR_EQ("[[a, b],\n [c, d]]", make_matrix(2, 2, a, b, c, d));
   ASSERT_STR_EQ("[[2 * a, b - c],\n [    c, 3 * d]]", make_matrix(2, 2, a * 2, b - c, c, d * 3));
   ASSERT_STR_EQ("[[a],\n [b],\n [c]]", make_vector(a, b, c));
@@ -144,7 +144,7 @@ TEST(PlainFormatterTest, TestMatrix) {
 }
 
 TEST(PlainFormatterTest, TestDerivativeExpression) {
-  const Expr a{"a"};
+  const scalar_expr a{"a"};
   ASSERT_STR_EQ("Derivative(signum(a), a)",
                 signum(a).diff(a, 1, non_differentiable_behavior::abstract));
   ASSERT_STR_EQ("Derivative(signum(a), a, 2)",

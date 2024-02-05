@@ -24,7 +24,7 @@ struct is_numeric_visitor {
   }
 };
 
-inline bool is_numeric(const Expr& expr) { return visit(expr, is_numeric_visitor{}); }
+inline bool is_numeric(const scalar_expr& expr) { return visit(expr, is_numeric_visitor{}); }
 
 // Visitor that identifies negative numeric constants, or products of numeric constants that will be
 // negative.
@@ -40,7 +40,7 @@ struct is_negative_number_visitor {
 
   // Multiplications can be negative-like, if the product of all the constant terms is negative.
   bool operator()(const multiplication& m) const {
-    const std::size_t count = std::count_if(m.begin(), m.end(), [](const Expr& expr) {
+    const std::size_t count = std::count_if(m.begin(), m.end(), [](const scalar_expr& expr) {
       return visit(expr, is_negative_number_visitor{});
     });
     // odd = negative, even = positive
@@ -49,7 +49,7 @@ struct is_negative_number_visitor {
 };
 
 // TODO: This probably deserves a better name, since it doesn't just check for numbers.
-inline bool is_negative_number(const Expr& expr) {
+inline bool is_negative_number(const scalar_expr& expr) {
   return visit(expr, is_negative_number_visitor{});
 }
 

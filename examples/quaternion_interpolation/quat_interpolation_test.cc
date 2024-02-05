@@ -26,7 +26,7 @@ Eigen::Quaternion<Scalar> quat_interp(const Eigen::Quaternion<Scalar>& a,
 }
 
 auto quat_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec,
-                        Expr alpha) {
+                        scalar_expr alpha) {
   return quaternion_interpolation(q0_vec, q1_vec, alpha, 1.0e-16);
 };
 

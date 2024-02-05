@@ -18,7 +18,7 @@ class multiplication {
  public:
   static constexpr std::string_view name_str = "Multiplication";
   static constexpr bool is_leaf_node = false;
-  using container_type = absl::InlinedVector<Expr, 16>;
+  using container_type = absl::InlinedVector<scalar_expr, 16>;
 
   // Move-construct.
   explicit multiplication(container_type&& terms) : terms_(std::move(terms)) {
@@ -27,14 +27,14 @@ class multiplication {
   }
 
   // Construct from a pair of multiplied terms.
-  explicit multiplication(Expr a, Expr b) {
+  explicit multiplication(scalar_expr a, scalar_expr b) {
     terms_.push_back(std::move(a));
     terms_.push_back(std::move(b));
     sort_terms();
   }
 
   // Access specific argument.
-  const Expr& operator[](const std::size_t i) const { return terms_[i]; }
+  const scalar_expr& operator[](const std::size_t i) const { return terms_[i]; }
 
   // Number of arguments.
   std::size_t size() const noexcept { return terms_.size(); }
@@ -48,7 +48,7 @@ class multiplication {
     if (size() != other.size()) {
       return false;
     }
-    return std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
+    return std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
@@ -59,23 +59,23 @@ class multiplication {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr map_children(Operation&& operation) const {
+  scalar_expr map_children(Operation&& operation) const {
     const container_type transformed =
         transform_map<container_type>(terms_, std::forward<Operation>(operation));
     return multiplication::from_operands(transformed);
   }
 
   // Construct from a span of operands. Result is automatically simplified.
-  static Expr from_operands(absl::Span<const Expr> span);
+  static scalar_expr from_operands(absl::Span<const scalar_expr> span);
 
  private:
   void sort_terms() {
     // We leave the integer/rational/float part in front.
     // TODO: Add a BinaryMul where the first term is always int/rational/float.
-    const auto begin = std::find_if(terms_.begin(), terms_.end(), [](const Expr& term) {
+    const auto begin = std::find_if(terms_.begin(), terms_.end(), [](const scalar_expr& term) {
       return !term.is_type<integer_constant, rational_constant, float_constant>();
     });
-    std::sort(begin, terms_.end(), [](const Expr& a, const Expr& b) {
+    std::sort(begin, terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
       if (a.hash() < b.hash()) {
         return true;
       } else if (a.hash() > b.hash()) {
@@ -99,13 +99,14 @@ struct hash_struct<multiplication> {
 // Split a multiplication up into numerical values and non-numerical expressions.
 // Returns [coefficient, multiplicand] where the coefficient is the numerical part.
 // If there are no numerical terms, the coefficient will be one.
-std::pair<Expr, Expr> split_multiplication(const multiplication& mul, const Expr& mul_abstract);
+std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplication& mul,
+                                                         const scalar_expr& mul_abstract);
 
 // Convert an expression into a coefficient and a multiplicand. This operation checks if
 // expr is a multiplication. If it is, we extract all numeric constants and return them
 // as the first value. The remaining terms form a new multiplication, which is returned as
 // the second value.
-std::pair<Expr, Expr> as_coeff_and_mul(const Expr& expr);
+std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr);
 
 // Helper object used to execute multiplications.
 struct multiplication_parts {
@@ -120,18 +121,20 @@ struct multiplication_parts {
   // Floating point coefficient:
   std::optional<float_constant> float_coeff{};
   // Map from base to exponent.
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> terms{};
+  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                     is_identical_struct<scalar_expr>>
+      terms{};
   // Number of infinities.
   std::size_t num_infinities{0};
 
   // Update the internal product by multiplying on `arg`.
-  void multiply_term(const Expr& arg, bool factorize_integers = false);
+  void multiply_term(const scalar_expr& arg, bool factorize_integers = false);
 
   // Nuke any terms w/ a zero exponent and normalize powers of integers.
   void normalize_coefficients();
 
   // Create the resulting multiplication.
-  Expr create_multiplication() const;
+  scalar_expr create_multiplication() const;
 };
 
 // A decomposition of `Multiplication` that is more convenient for printing.
@@ -139,8 +142,8 @@ struct multiplication_parts {
 // once.
 struct multiplication_format_parts {
   struct base_exp {
-    Expr base;
-    Expr exponent;
+    scalar_expr base;
+    scalar_expr exponent;
   };
 
   bool is_negative{false};

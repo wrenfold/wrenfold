@@ -197,8 +197,8 @@ TEST(QuaternionTest, TestFromAxisAngle) {
 
   // Show that the norm is one.
   // TODO: Have the trig simplification cos^2(x) + sin^2(x) = 1 be automatic.
-  const Expr half_angle = angle / 2;
-  const Expr q_norm_2 = collect(q.squared_norm(), sin(half_angle));
+  const scalar_expr half_angle = angle / 2;
+  const scalar_expr q_norm_2 = collect(q.squared_norm(), sin(half_angle));
   ASSERT_IDENTICAL(1, q_norm_2.subs(vx * vx + vy * vy + vz * vz, 1)
                           .subs(pow(cos(half_angle), 2) + pow(sin(half_angle), 2), 1));
 
@@ -287,8 +287,8 @@ auto get_angle_axis_test_pairs() {
 
 TEST(QuaternionTest, FromRotationVector) {
   auto [vx, vy, vz] = make_symbols("vx", "vy", "vz");
-  const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
-  const Expr half_angle = angle / 2;
+  const scalar_expr angle = sqrt(vx * vx + vy * vy + vz * vz);
+  const scalar_expr half_angle = angle / 2;
   const quaternion q_no_conditional = quaternion::from_rotation_vector(vx, vy, vz, std::nullopt);
   ASSERT_IDENTICAL(q_no_conditional.w(), cos(angle / 2));
   ASSERT_IDENTICAL(q_no_conditional.x(), vx * sin(angle / 2) / angle);
@@ -339,7 +339,7 @@ TEST(QuaternionTest, FromRotationVector) {
 
 TEST(QuaternionTest, TestAngleConversions) {
   auto [angle] = make_symbols("theta");
-  const Expr half_angle = angle / 2;
+  const scalar_expr half_angle = angle / 2;
   // clang-format off
   const matrix_expr R_x =
       make_matrix(3, 3,
@@ -425,14 +425,14 @@ TEST(QuaternionTest, TestToRotationVector) {
   const matrix_expr w = Q.to_rotation_vector(std::nullopt);
 
   // We sub this in for the angle (the norm of [x, y, z]).
-  const Expr a{"a", number_set::real_non_negative};
+  const scalar_expr a{"a", number_set::real_non_negative};
 
   // Sin and cosine of the half-angle:
-  const Expr s{"s", number_set::real};
-  const Expr c{"c", number_set::real};
+  const scalar_expr s{"s", number_set::real};
+  const scalar_expr c{"c", number_set::real};
 
   // Simplify the round-trip conversion.
-  const Expr vector_norm = sqrt(x * x + y * y + z * z);
+  const scalar_expr vector_norm = sqrt(x * x + y * y + z * z);
   const matrix_expr w_simplified = w.subs(vector_norm, a)
                                        .subs(sin(a / 2), s)
                                        .subs(cos(a / 2), c)
@@ -527,7 +527,7 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   //  S(4) -> SO(3) -> S(4)
   //  For now I'll just test this numerically.
 
-  auto cast_to_float = [](const Expr& expr) -> double {
+  auto cast_to_float = [](const scalar_expr& expr) -> double {
     if (expr.is_type<float_constant>()) {
       return cast_checked<const float_constant>(expr).get_value();
     }

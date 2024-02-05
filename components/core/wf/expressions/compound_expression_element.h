@@ -29,13 +29,13 @@ class compound_expression_element {
   constexpr auto end() const noexcept { return begin() + 1; }
 
   template <typename Operation>
-  Expr map_children(Operation&& operation) const {
+  scalar_expr map_children(Operation&& operation) const {
     return create(operation(provenance_), index_);
   }
 
   // Create a reference to an element of a compound expression. This will simplify if the compound
   // expression is a constructor.
-  static Expr create(compound_expr provenance, std::size_t index);
+  static scalar_expr create(compound_expr provenance, std::size_t index);
 
  private:
   compound_expr provenance_;

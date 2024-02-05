@@ -17,30 +17,30 @@ matrix_expr quaternion::to_vector_wxyz() const { return make_vector(w(), x(), y(
 
 matrix_expr quaternion::to_vector_xyzw() const { return make_vector(x(), y(), z(), w()); }
 
-quaternion quaternion::subs(const Expr& target, const Expr& replacement) const {
+quaternion quaternion::subs(const scalar_expr& target, const scalar_expr& replacement) const {
   return quaternion(w().subs(target, replacement), x().subs(target, replacement),
                     y().subs(target, replacement), z().subs(target, replacement));
 }
 
-Expr quaternion::squared_norm() const {
+scalar_expr quaternion::squared_norm() const {
   return wxyz_[0] * wxyz_[0] + wxyz_[1] * wxyz_[1] + wxyz_[2] * wxyz_[2] + wxyz_[3] * wxyz_[3];
 }
 
-Expr quaternion::norm() const { return sqrt(squared_norm()); }
+scalar_expr quaternion::norm() const { return sqrt(squared_norm()); }
 
 matrix_expr quaternion::to_rotation_matrix() const {
-  const Expr x2 = x() * 2;
-  const Expr y2 = y() * 2;
-  const Expr z2 = z() * 2;
-  const Expr wx2 = x2 * w();
-  const Expr wy2 = y2 * w();
-  const Expr wz2 = z2 * w();
-  const Expr xx2 = x2 * x();
-  const Expr xy2 = y2 * x();
-  const Expr xz2 = z2 * x();
-  const Expr yy2 = y2 * y();
-  const Expr yz2 = z2 * y();
-  const Expr zz2 = z2 * z();
+  const scalar_expr x2 = x() * 2;
+  const scalar_expr y2 = y() * 2;
+  const scalar_expr z2 = z() * 2;
+  const scalar_expr wx2 = x2 * w();
+  const scalar_expr wy2 = y2 * w();
+  const scalar_expr wz2 = z2 * w();
+  const scalar_expr xx2 = x2 * x();
+  const scalar_expr xy2 = y2 * x();
+  const scalar_expr xz2 = z2 * x();
+  const scalar_expr yy2 = y2 * y();
+  const scalar_expr yz2 = z2 * y();
+  const scalar_expr zz2 = z2 * z();
   // clang-format off
     return make_matrix(3, 3,
                         1 - yy2 - zz2,      xy2 - wz2,      xz2 + wy2,
@@ -50,30 +50,31 @@ matrix_expr quaternion::to_rotation_matrix() const {
   // clang-format on
 }
 
-quaternion quaternion::from_angle_axis(const Expr& angle, const Expr& vx, const Expr& vy,
-                                       const Expr& vz) {
-  Expr half_angle = angle / 2;
-  Expr sin_angle = sin(half_angle);
+quaternion quaternion::from_angle_axis(const scalar_expr& angle, const scalar_expr& vx,
+                                       const scalar_expr& vy, const scalar_expr& vz) {
+  scalar_expr half_angle = angle / 2;
+  scalar_expr sin_angle = sin(half_angle);
   return {cos(half_angle), vx * sin_angle, vy * sin_angle, vz * sin_angle};
 }
 
-quaternion quaternion::from_angle_axis(const Expr& angle, const matrix_expr& v) {
+quaternion quaternion::from_angle_axis(const scalar_expr& angle, const matrix_expr& v) {
   if (v.rows() != 3 || v.cols() != 1) {
     throw dimension_error("Axis vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
   return from_angle_axis(angle, v[0], v[1], v[2]);
 }
 
-quaternion quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
-                                            const std::optional<Expr>& epsilon) {
-  const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
-  const Expr half_angle = angle / 2;
-  const Expr sinc_half_angle = sin(half_angle) / angle;
+quaternion quaternion::from_rotation_vector(const scalar_expr& vx, const scalar_expr& vy,
+                                            const scalar_expr& vz,
+                                            const std::optional<scalar_expr>& epsilon) {
+  const scalar_expr angle = sqrt(vx * vx + vy * vy + vz * vz);
+  const scalar_expr half_angle = angle / 2;
+  const scalar_expr sinc_half_angle = sin(half_angle) / angle;
   if (epsilon) {
     // When angle <= epsilon, we use the first order taylor series expansion of this method,
     // linearized about v = [0, 0, 0]. The series is projected back onto the unit norm quaternion.
     const quaternion q_small_angle = quaternion{1, vx / 2, vy / 2, vz / 2}.normalized();
-    const Expr condition = angle > *epsilon;
+    const scalar_expr condition = angle > *epsilon;
     return {
         where(condition, cos(half_angle), q_small_angle.w()),
         where(condition, vx * sinc_half_angle, q_small_angle.x()),
@@ -91,7 +92,7 @@ quaternion quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, cons
 }
 
 quaternion quaternion::from_rotation_vector(const matrix_expr& v,
-                                            const std::optional<Expr>& epsilon) {
+                                            const std::optional<scalar_expr>& epsilon) {
   if (v.rows() != 3 || v.cols() != 1) {
     throw dimension_error("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
@@ -99,11 +100,12 @@ quaternion quaternion::from_rotation_vector(const matrix_expr& v,
 }
 
 // TODO: This should use the small angle approximation.
-std::tuple<Expr, matrix_expr> quaternion::to_angle_axis(std::optional<Expr> epsilon) const {
+std::tuple<scalar_expr, matrix_expr> quaternion::to_angle_axis(
+    std::optional<scalar_expr> epsilon) const {
   // We want to recover angle and axis from:
   // [cos(angle/2), vx * sin(angle/2), vy * sin(angle/2), vz * sin(angle/2)]
   // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
-  const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
+  const scalar_expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
 
   static const auto unit_x = make_vector(constants::one, constants::zero, constants::zero);
   if (is_zero(vector_norm)) {
@@ -112,8 +114,8 @@ std::tuple<Expr, matrix_expr> quaternion::to_angle_axis(std::optional<Expr> epsi
   }
 
   // Compute half-angle in range [0, pi/2] --> times 2 --> [0, pi]
-  Expr angle = atan2(vector_norm, abs(w())) * 2;
-  const Expr flipped_norm = where(w() < 0, -vector_norm, vector_norm);
+  scalar_expr angle = atan2(vector_norm, abs(w())) * 2;
+  const scalar_expr flipped_norm = where(w() < 0, -vector_norm, vector_norm);
 
   matrix_expr normalized_vector =
       make_vector(x() / flipped_norm, y() / flipped_norm, z() / flipped_norm);
@@ -125,16 +127,16 @@ std::tuple<Expr, matrix_expr> quaternion::to_angle_axis(std::optional<Expr> epsi
   }
 }
 
-matrix_expr quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
+matrix_expr quaternion::to_rotation_vector(std::optional<scalar_expr> epsilon) const {
   // The vector part norm is equal to sin(angle / 2)
-  const Expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
-  const Expr half_angle = atan2(vector_norm, w());
-  const Expr angle_over_norm = (half_angle * 2) / vector_norm;
+  const scalar_expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
+  const scalar_expr half_angle = atan2(vector_norm, w());
+  const scalar_expr angle_over_norm = (half_angle * 2) / vector_norm;
 
   if (epsilon) {
     // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
     // It is linearized about q = identity.
-    const Expr condition = vector_norm > *epsilon;
+    const scalar_expr condition = vector_norm > *epsilon;
     return make_vector(where(condition, angle_over_norm * x(), 2 * x()),
                        where(condition, angle_over_norm * y(), 2 * y()),
                        where(condition, angle_over_norm * z(), 2 * z()));
@@ -150,27 +152,27 @@ quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
   }
   const matrix& R = R_in.as_matrix();
   // clang-format off
-  Expr a = pow(R(0, 0) + R(1, 1) + R(2, 2) + 1, 2) +
+  scalar_expr a = pow(R(0, 0) + R(1, 1) + R(2, 2) + 1, 2) +
            pow(R(2, 1) - R(1, 2), 2) +
            pow(R(0, 2) - R(2, 0), 2) +
            pow(R(1, 0) - R(0, 1), 2);
-  Expr b = pow(R(2, 1) - R(1, 2), 2) +
+  scalar_expr b = pow(R(2, 1) - R(1, 2), 2) +
            pow(R(0, 0) - R(1, 1) - R(2, 2) + 1, 2) +
            pow(R(1, 0) + R(0, 1), 2) +
            pow(R(2, 0) + R(0, 2), 2);
-  Expr c = pow(R(0, 2) - R(2, 0), 2) +
+  scalar_expr c = pow(R(0, 2) - R(2, 0), 2) +
            pow(R(1, 0) + R(0, 1), 2) +
            pow(R(1, 1) - R(0, 0) - R(2, 2) + 1, 2) +
            pow(R(2, 1) + R(1, 2), 2);
-  Expr d = pow(R(1, 0) - R(0, 1), 2) +
+  scalar_expr d = pow(R(1, 0) - R(0, 1), 2) +
            pow(R(2, 0) + R(0, 2), 2) +
            pow(R(2, 1) + R(1, 2), 2) +
            pow(R(2, 2) - R(0, 0) - R(1, 1) + 1, 2);
   // clang-format on
   // We implement a signum without zeros:
-  const Expr sign_21 = 1 - 2 * cast_int_from_bool(R(2, 1) - R(1, 2) < 0);
-  const Expr sign_02 = 1 - 2 * cast_int_from_bool(R(0, 2) - R(2, 0) < 0);
-  const Expr sign_10 = 1 - 2 * cast_int_from_bool(R(1, 0) - R(0, 1) < 0);
+  const scalar_expr sign_21 = 1 - 2 * cast_int_from_bool(R(2, 1) - R(1, 2) < 0);
+  const scalar_expr sign_02 = 1 - 2 * cast_int_from_bool(R(0, 2) - R(2, 0) < 0);
+  const scalar_expr sign_10 = 1 - 2 * cast_int_from_bool(R(1, 0) - R(0, 1) < 0);
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
@@ -252,23 +254,23 @@ quaternion operator*(const quaternion& a, const quaternion& b) {
 
 // A bit odd to put this here, since it technically doesn't have that much to do with
 // quaternions. But it is a useful expression when dealing with rotations.
-matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<Expr> epsilon) {
+matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<scalar_expr> epsilon) {
   if (w.rows() != 3 || w.cols() != 1) {
     throw dimension_error("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
                           w.cols());
   }
   const matrix& m = w.as_matrix();
-  const Expr& vx = m[0];
-  const Expr& vy = m[1];
-  const Expr& vz = m[2];
-  const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
+  const scalar_expr& vx = m[0];
+  const scalar_expr& vy = m[1];
+  const scalar_expr& vz = m[2];
+  const scalar_expr angle = sqrt(vx * vx + vy * vy + vz * vz);
 
   // Coefficients of the converged power series.
   // You can obtain these by integrating the exponential map of SO(3).
-  const Expr c0 = (1 - cos(angle)) / pow(angle, 2);
-  const Expr c1 = (angle - sin(angle)) / pow(angle, 3);
-  static const Expr c0_small_angle = constants::one / 2;  // lim[angle -> 0] c0
-  static const Expr c1_small_angle = constants::one / 6;  // lim[angle -> 0] c1
+  const scalar_expr c0 = (1 - cos(angle)) / pow(angle, 2);
+  const scalar_expr c1 = (angle - sin(angle)) / pow(angle, 3);
+  static const scalar_expr c0_small_angle = constants::one / 2;  // lim[angle -> 0] c0
+  static const scalar_expr c1_small_angle = constants::one / 6;  // lim[angle -> 0] c1
 
   // clang-format off
   const matrix_expr skew_v = make_matrix(3, 3,
@@ -279,7 +281,7 @@ matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<Expr> epsil
   static const auto I3 = make_identity(3);
 
   if (epsilon) {
-    const Expr condition = angle > *epsilon;
+    const scalar_expr condition = angle > *epsilon;
     return I3 + skew_v * where(condition, c0, c0_small_angle) +
            (skew_v * skew_v) * where(condition, c1, c1_small_angle);
   } else {

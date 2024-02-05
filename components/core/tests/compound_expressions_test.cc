@@ -19,8 +19,8 @@ annotated_custom_type<T> create_type_description() {
 }
 
 struct test_type {
-  Expr x{0};
-  Expr y{0};
+  scalar_expr x{0};
+  scalar_expr y{0};
   ta::static_matrix<2, 1> v{0, 0};
 };
 
@@ -34,18 +34,19 @@ struct custom_type_registrant<test_type> {
   }
 };
 
-struct test_func_1 : declare_external_function<test_func_1, test_type, type_list<Expr, Expr>> {
+struct test_func_1
+    : declare_external_function<test_func_1, test_type, type_list<scalar_expr, scalar_expr>> {
   static constexpr std::string_view name() noexcept { return "test_func_1"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
 };
 
-struct test_func_2 : declare_external_function<test_func_2, Expr, type_list<test_type>> {
+struct test_func_2 : declare_external_function<test_func_2, scalar_expr, type_list<test_type>> {
   static constexpr std::string_view name() noexcept { return "test_func_2"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0"); }
 };
 
 struct test_func_3
-    : declare_external_function<test_func_3, Expr, type_list<ta::static_matrix<2, 1>>> {
+    : declare_external_function<test_func_3, scalar_expr, type_list<ta::static_matrix<2, 1>>> {
   static constexpr std::string_view name() noexcept { return "test_func_3"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0"); }
 };
@@ -58,7 +59,7 @@ TEST(CompoundExpressionTest, TestElementSimplifyIndirection) {
   const compound_expr construct = create_custom_type_construction(type.inner(), {x, y, a, b});
 
   // Crete elements from the compound expression:
-  const std::vector<Expr> elements =
+  const std::vector<scalar_expr> elements =
       create_expression_elements(construct, type.inner().total_size());
   ASSERT_EQ(4, elements.size());
 
@@ -75,7 +76,8 @@ TEST(CompoundExpressionTest, TestConstructSimplifyIndirection) {
 
   // Create a custom type argument:
   const compound_expr arg = create_custom_type_argument(type.inner(), 3);
-  const std::vector<Expr> arg_elements = create_expression_elements(arg, type.inner().total_size());
+  const std::vector<scalar_expr> arg_elements =
+      create_expression_elements(arg, type.inner().total_size());
   ASSERT_EQ(4, arg_elements.size());
 
   // Constructing a new compound expression should just point back to the original arg expression:
@@ -95,7 +97,7 @@ TEST(CompoundExpressionTest, TestInvokeSimplifyIndirection) {
       std::get<compound_expr>(external_func.create_invocation({a, b}));
 
   // Check if we got the expected elements in our `test_type` object:
-  const std::vector<Expr> expected_invocation_elements =
+  const std::vector<scalar_expr> expected_invocation_elements =
       create_expression_elements(expected_invocation, type.inner().total_size());
   ASSERT_IDENTICAL(expected_invocation_elements[0], invocation_result.x);
   ASSERT_IDENTICAL(expected_invocation_elements[1], invocation_result.y);
@@ -112,7 +114,7 @@ TEST(CompoundExpressionTest, TestSubstitute) {
   const auto [a, b, c, d] = make_symbols("a", "b", "c", "d");
 
   const test_type f1 = test_func_1::call(a * b / 3, cos(c) - d * 2);
-  const Expr f2 = test_func_2::call(f1);
+  const scalar_expr f2 = test_func_2::call(f1);
 
   // Try substituting through f2:
   ASSERT_IDENTICAL(test_func_2::call(test_func_1::call(sin(d) / 3, cos(c) - d * 2)),
@@ -122,7 +124,7 @@ TEST(CompoundExpressionTest, TestSubstitute) {
   // Add another layer of indirection (through custom_type_construction):
   const ta::static_matrix<2, 1> v{0, d / 22};
   const test_type f3{f2, a * pow(b, 2) - sin(d), v};
-  const Expr f4 = test_func_2::call(f3);
+  const scalar_expr f4 = test_func_2::call(f3);
 
   ASSERT_IDENTICAL(test_func_2::call(test_type{f2.subs(a * b, 3), b * 3 - sin(d), v}),
                    f4.subs(a * b, 3));
@@ -139,7 +141,7 @@ TEST(CompoundExpressionTest, TestDerivative) {
   const auto [a, b, c, d] = make_symbols("a", "b", "c", "d");
 
   const test_type f1 = test_func_1::call(pow(a, 2) * pow(b, 3), sin(c * d));
-  const Expr f2 = test_func_2::call(f1);
+  const scalar_expr f2 = test_func_2::call(f1);
 
   ASSERT_IDENTICAL(0, f2.diff(a));  //  Can't differentiate through external calls.
   ASSERT_IDENTICAL(derivative::create(f2, a, 1),
@@ -156,13 +158,13 @@ TEST(CompoundExpressionTest, TestEvaluate) {
   const auto [a, b] = make_symbols("a", "b");
 
   const test_type f1 = test_func_1::call(a / 3, b * cos(b));
-  const Expr f2 = test_func_2::call(f1);
+  const scalar_expr f2 = test_func_2::call(f1);
 
   // Test that we can substitute and evaluate the args of external calls:
   ASSERT_IDENTICAL(test_func_2::call(test_func_1::call(M_E / 3.0, (M_PI / 4.0) / std::sqrt(2.0))),
                    f2.subs(a, constants::euler).subs(b, constants::pi / 4).eval());
 
-  const Expr f3 = test_func_3::call(make_matrix(2, 1, a, b));
+  const scalar_expr f3 = test_func_3::call(make_matrix(2, 1, a, b));
   ASSERT_IDENTICAL(test_func_3::call(make_matrix(2, 1, M_E, M_PI)),
                    f3.subs(a, constants::euler).subs(b, constants::pi).eval());
 }
@@ -172,12 +174,12 @@ TEST(CompoundExpressionTest, TestCollectAndDistribute) {
 
   const test_type f1 =
       test_func_1::call(a * (b + 1) + a * (pow(b, 2) - b), cos(a * b - a * log(b)));
-  const Expr f2 = test_func_2::call(f1);
+  const scalar_expr f2 = test_func_2::call(f1);
 
   ASSERT_IDENTICAL(test_func_2::call(test_func_1::call(a * (b * b + 1), cos(a * (b - log(b))))),
                    f2.collect(a));
 
-  const Expr f3 = test_func_3::call(
+  const scalar_expr f3 = test_func_3::call(
       make_matrix(2, 1, a * b + a * log(b) - a, pow(a, 2) * cos(b) + pow(a, 2) * b));
   ASSERT_IDENTICAL(test_func_3::call(make_matrix(2, 1, a * (b + log(b) - 1), a * a * (cos(b) + b))),
                    f3.collect(a));

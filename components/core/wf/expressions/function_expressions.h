@@ -15,14 +15,14 @@ class function {
  public:
   static constexpr std::string_view name_str = "Function";
   static constexpr bool is_leaf_node = false;
-  using container_type = absl::InlinedVector<Expr, 2>;
+  using container_type = absl::InlinedVector<scalar_expr, 2>;
 
   template <typename... Args>
   function(built_in_function func, Args&&... args)
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
-  static Expr create(built_in_function name, container_type&& container);
+  static scalar_expr create(built_in_function name, container_type&& container);
 
   // Get the function name.
   constexpr built_in_function enum_value() const noexcept { return func_; }
@@ -45,7 +45,7 @@ class function {
   // Function type and argument must match.
   bool is_identical_to(const function& other) const {
     return func_ == other.func_ && args_.size() == other.args_.size() &&
-           std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
+           std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
@@ -56,7 +56,7 @@ class function {
 
   // Implement ExpressionImpl::Map
   template <typename F>
-  Expr map_children(F&& f) const {
+  scalar_expr map_children(F&& f) const {
     return function::create(func_, transform_map<container_type>(args_, std::forward<F>(f)));
   }
 
@@ -74,7 +74,7 @@ struct hash_struct<function> {
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic because each type of function has simplifications it applies.
-inline Expr function::create(built_in_function name, function::container_type&& container) {
+inline scalar_expr function::create(built_in_function name, function::container_type&& container) {
   switch (name) {
     case built_in_function::cos:
       return cos(container.front());

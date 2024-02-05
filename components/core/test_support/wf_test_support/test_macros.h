@@ -39,9 +39,9 @@ testing::AssertionResult format_failed_result(const std::string_view description
 template <typename T, typename = void>
 struct convert_assertion_argument;
 template <typename T>
-struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, Expr>>> {
+struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, scalar_expr>>> {
   // This overload will get selected for numeric literals.
-  Expr operator()(const T& arg) const { return static_cast<Expr>(arg); }
+  scalar_expr operator()(const T& arg) const { return static_cast<scalar_expr>(arg); }
 };
 template <>
 struct convert_assertion_argument<matrix_expr> {

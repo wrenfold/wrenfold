@@ -73,7 +73,7 @@ any_expression external_function::create_invocation(std::vector<any_expression> 
     // Determine what type we were passed:
     const type_variant passed_type = overloaded_visit(
         args[i],
-        [&](const Expr&) -> type_variant {
+        [&](const scalar_expr&) -> type_variant {
           // TODO: Check numeric type here.
           return scalar_type(code_numeric_type::floating_point);
         },
@@ -103,7 +103,8 @@ any_expression external_function::create_invocation(std::vector<any_expression> 
   return overloaded_visit(
       return_type(),
       [&](const scalar_type) -> any_expression {
-        return Expr(std::in_place_type_t<compound_expression_element>{}, std::move(invocation), 0);
+        return scalar_expr(std::in_place_type_t<compound_expression_element>{},
+                           std::move(invocation), 0);
       },
       [&](const matrix_type& mat) -> any_expression {
         return matrix_expr::create(mat.rows(), mat.cols(),

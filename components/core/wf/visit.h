@@ -67,7 +67,7 @@ compound_expr map_compound_expressions(const compound_expr& expr, F&& f) {
                              // TODO: Make `matrix_expr` derived from `expression_base`, and call
                              //  visit(...) here.
                              return overloaded_visit(
-                                 arg, [&](const Expr& x) -> any_expression { return f(x); },
+                                 arg, [&](const scalar_expr& x) -> any_expression { return f(x); },
                                  [&](const matrix_expr& x) -> any_expression {
                                    matrix m = x.as_matrix().map_children(std::forward<F>(f));
                                    return matrix_expr(std::move(m));

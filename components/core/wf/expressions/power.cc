@@ -12,7 +12,7 @@ namespace wf {
 
 struct PowerNumerics {
   template <typename A, typename B>
-  std::optional<Expr> operator()(const A& a, const B& b) {
+  std::optional<scalar_expr> operator()(const A& a, const B& b) {
     if constexpr (is_float_and_numeric_v<A, B>) {
       return apply_float_and_numeric(a, b);
     } else if constexpr (std::is_same_v<integer_constant, A> &&
@@ -38,8 +38,8 @@ struct PowerNumerics {
 
   // If either operand is a float, coerce the other to float:
   template <typename A, typename B>
-  std::enable_if_t<is_float_and_numeric_v<A, B>, Expr> apply_float_and_numeric(const A& a,
-                                                                               const B& b) {
+  std::enable_if_t<is_float_and_numeric_v<A, B>, scalar_expr> apply_float_and_numeric(const A& a,
+                                                                                      const B& b) {
     if (a.is_zero() && b.is_negative()) {
       return constants::complex_infinity;
     }
@@ -49,7 +49,7 @@ struct PowerNumerics {
   }
 
   // If both operands are integers:
-  Expr apply_int_and_int(const integer_constant& a, const integer_constant& b) {
+  scalar_expr apply_int_and_int(const integer_constant& a, const integer_constant& b) {
     if (b.get_value() < 0) {
       if (a.is_zero()) {
         // 1 / (0)^b --> complex infinity
@@ -63,11 +63,11 @@ struct PowerNumerics {
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(a.get_value(), b.get_value());
-    return Expr(pow);
+    return scalar_expr(pow);
   }
 
   // If the left operand is a rational and right operand is integer:
-  Expr apply_rational_and_int(const rational_constant& a, const integer_constant& b) {
+  scalar_expr apply_rational_and_int(const rational_constant& a, const integer_constant& b) {
     const auto exponent = b.get_value();
     if (a.is_zero() && exponent < 0) {
       return constants::complex_infinity;
@@ -78,15 +78,15 @@ struct PowerNumerics {
     const auto n = integer_power(a.numerator(), std::abs(exponent));
     const auto d = integer_power(a.denominator(), std::abs(exponent));
     if (exponent >= 0) {
-      return Expr(rational_constant{n, d});
+      return scalar_expr(rational_constant{n, d});
     } else {
       // Flip the rational:
-      return Expr(rational_constant{d, n});
+      return scalar_expr(rational_constant{d, n});
     }
   }
 
   // If the left operand is integer, and the right is rational:
-  Expr apply_int_and_rational(const integer_constant& a, const rational_constant& b) {
+  scalar_expr apply_int_and_rational(const integer_constant& a, const rational_constant& b) {
     WF_ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
     if (a.get_value() == 1) {
       return constants::one;
@@ -108,7 +108,7 @@ struct PowerNumerics {
               "Factors should be sorted");
 
     // Next we will create expressions.
-    std::vector<Expr> operands{};
+    std::vector<scalar_expr> operands{};
     operands.reserve(factors.size() + 1);
 
     // Iterate over factors and put them into canonical form:
@@ -140,14 +140,14 @@ struct PowerNumerics {
 
       // There is still the business of the fractional part to deal with:
       if (fractional_part.numerator() != 0) {
-        Expr base = Expr(f.base);
-        Expr exponent = Expr(fractional_part);
+        scalar_expr base = scalar_expr(f.base);
+        scalar_expr exponent = scalar_expr(fractional_part);
         operands.push_back(make_expr<power>(std::move(base), std::move(exponent)));
       }
     }
 
     if (!rational_coeff.is_one()) {
-      operands.push_back(Expr(rational_coeff));
+      operands.push_back(scalar_expr(rational_coeff));
     }
     if (operands.size() == 1) {
       return operands.front();
@@ -155,7 +155,8 @@ struct PowerNumerics {
     return multiplication::from_operands(operands);
   }
 
-  Expr apply_infinity_and_rational(const complex_infinity&, const rational_constant& r) const {
+  scalar_expr apply_infinity_and_rational(const complex_infinity&,
+                                          const rational_constant& r) const {
     if (r.numerator() > 0) {
       return constants::complex_infinity;
     } else if (r.numerator() < 0) {
@@ -166,7 +167,7 @@ struct PowerNumerics {
     }
   }
 
-  Expr apply_infinity_and_float(const complex_infinity&, const float_constant& f) const {
+  scalar_expr apply_infinity_and_float(const complex_infinity&, const float_constant& f) const {
     if (f.get_value() > 0) {
       return constants::complex_infinity;
     } else if (f.get_value() < 0) {
@@ -178,7 +179,7 @@ struct PowerNumerics {
   }
 };
 
-static bool magnitude_less_than_one(const Expr& value) {
+static bool magnitude_less_than_one(const scalar_expr& value) {
   if (const rational_constant* r = cast_ptr<const rational_constant>(value);
       r != nullptr && r->is_proper()) {
     return true;
@@ -194,7 +195,7 @@ static bool magnitude_less_than_one(const Expr& value) {
 //    (x^2)^0.5
 //    (x^2)^z --> x^(2*z) (incorrect, z could be 1/2 or 0.5)
 //    (x^y)^(1/4) --> x^(y/4) (incorrect, y could be 4)
-static bool can_multiply_exponents(const power& base_pow, const Expr& outer_exp) {
+static bool can_multiply_exponents(const power& base_pow, const scalar_expr& outer_exp) {
   // If the inner power is a rational:
   // For example, it is valid to do (inner exponent is proper):
   //  (x**(1/4))**y  --> x**(y/4)
@@ -203,7 +204,7 @@ static bool can_multiply_exponents(const power& base_pow, const Expr& outer_exp)
   // Unless:
   //  - `y` is an integer
   //  - `x` is real and non-negative
-  const Expr& inner_exp = base_pow.exponent();
+  const scalar_expr& inner_exp = base_pow.exponent();
   if (magnitude_less_than_one(inner_exp)) {
     return true;
   }
@@ -217,9 +218,9 @@ static bool can_multiply_exponents(const power& base_pow, const Expr& outer_exp)
   return false;
 }
 
-Expr power::create(Expr a, Expr b) {
+scalar_expr power::create(scalar_expr a, scalar_expr b) {
   // Check for numeric quantities.
-  std::optional<Expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
+  std::optional<scalar_expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
   if (numeric_pow) {
     return *numeric_pow;
   }
@@ -254,9 +255,9 @@ Expr power::create(Expr a, Expr b) {
   // In this case, we convert to a multiplication of powers:
   // TODO: Should we only do this distribution for integer powers?
   if (const multiplication* const mul = cast_ptr<const multiplication>(a); mul != nullptr) {
-    std::vector<Expr> args;
+    std::vector<scalar_expr> args;
     args.reserve(mul->size());
-    for (const Expr& arg : *mul) {
+    for (const scalar_expr& arg : *mul) {
       args.push_back(power::create(arg, b));
     }
     return multiplication::from_operands(args);
@@ -264,7 +265,7 @@ Expr power::create(Expr a, Expr b) {
   return make_expr<power>(std::move(a), std::move(b));
 }
 
-std::pair<Expr, Expr> as_base_and_exp(const Expr& expr) {
+std::pair<scalar_expr, scalar_expr> as_base_and_exp(const scalar_expr& expr) {
   if (const power* pow = cast_ptr<const power>(expr); pow != nullptr) {
     // Return as base/exponent pair.
     return std::make_pair(pow->base(), pow->exponent());

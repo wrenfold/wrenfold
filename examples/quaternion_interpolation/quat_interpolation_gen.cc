@@ -17,26 +17,26 @@ int main() {
   cpp_code_generator gen{};
   generate_func(
       gen, code,
-      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, Expr alpha) {
+      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, scalar_expr alpha) {
         return quaternion_interpolation(q0_vec, q1_vec, alpha, 1.0e-16);
       },
       "quaternion_interpolation", "q0", "q1", "alpha");
   generate_func(
       gen, code,
-      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, Expr alpha) {
+      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, scalar_expr alpha) {
         return quaternion_interpolation(q0_vec, q1_vec, alpha, std::nullopt);
       },
       "quaternion_interpolation_no_conditional", "q0", "q1", "alpha");
 
   generate_func(
       gen, code,
-      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, Expr alpha) {
+      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, scalar_expr alpha) {
         return std::get<0>(quaternion_interpolation(q0_vec, q1_vec, alpha, 1.0e-16));
       },
       "quaternion_interpolation_no_diff", "q0", "q1", "alpha");
   generate_func(
       gen, code,
-      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, Expr alpha) {
+      [](ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec, scalar_expr alpha) {
         return std::get<0>(quaternion_interpolation(q0_vec, q1_vec, alpha, std::nullopt));
       },
       "quaternion_interpolation_no_conditional_no_diff", "q0", "q1", "alpha");

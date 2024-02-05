@@ -15,13 +15,13 @@ class addition {
  public:
   static constexpr std::string_view name_str = "Addition";
   static constexpr bool is_leaf_node = false;
-  using container_type = absl::InlinedVector<Expr, 16>;
+  using container_type = absl::InlinedVector<scalar_expr, 16>;
 
   // Move-construct.
   explicit addition(container_type&& terms) : terms_(std::move(terms)) {
     WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     // Place into a deterministic (but otherwise mostly arbitrary) order.
-    std::sort(terms_.begin(), terms_.end(), [](const Expr& a, const Expr& b) {
+    std::sort(terms_.begin(), terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
       if (a.hash() < b.hash()) {
         return true;
       } else if (a.hash() > b.hash()) {
@@ -34,7 +34,7 @@ class addition {
   }
 
   // Access specific argument.
-  const Expr& operator[](const std::size_t i) const { return terms_[i]; }
+  const scalar_expr& operator[](const std::size_t i) const { return terms_[i]; }
 
   // Number of arguments.
   std::size_t size() const noexcept { return terms_.size(); }
@@ -48,7 +48,7 @@ class addition {
     if (size() != other.size()) {
       return false;
     }
-    return std::equal(begin(), end(), other.begin(), is_identical_struct<Expr>{});
+    return std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
   }
 
   // Implement ExpressionImpl::Iterate
@@ -59,7 +59,7 @@ class addition {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr map_children(Operation&& operation) const {
+  scalar_expr map_children(Operation&& operation) const {
     const container_type transformed =
         transform_map<container_type>(terms_, std::forward<Operation>(operation));
     return addition::from_operands(transformed);
@@ -67,7 +67,7 @@ class addition {
 
   // Construct from a span of operands.
   // The result is automatically simplified, and may not be an addition.
-  static Expr from_operands(absl::Span<const Expr> span);
+  static scalar_expr from_operands(absl::Span<const scalar_expr> span);
 
  private:
   container_type terms_;
@@ -95,19 +95,21 @@ struct addition_parts {
   std::optional<float_constant> float_term{};
 
   // Map from multiplicand to coefficient.
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> terms{};
+  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                     is_identical_struct<scalar_expr>>
+      terms{};
 
   // Number of infinities.
   std::size_t num_infinities{0};
 
   // Update the internal representation by adding `arg`.
-  void add_terms(const Expr& arg);
+  void add_terms(const scalar_expr& arg);
 
   // Nuke any terms w/ a zero coefficient.
   void normalize_coefficients();
 
   // Create the resulting addition.
-  Expr create_addition() const;
+  scalar_expr create_addition() const;
 };
 
 }  // namespace wf

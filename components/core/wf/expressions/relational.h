@@ -10,7 +10,7 @@ class relational {
   static constexpr std::string_view name_str = "Relational";
   static constexpr bool is_leaf_node = false;
 
-  relational(relational_operation operation, Expr left, Expr right)
+  relational(relational_operation operation, scalar_expr left, scalar_expr right)
       : operation_(operation), children_{std::move(left), std::move(right)} {}
 
   // Base and exponent must match.
@@ -27,16 +27,16 @@ class relational {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  Expr map_children(Operation&& operation) const {
+  scalar_expr map_children(Operation&& operation) const {
     return relational::create(operation_, operation(left()), operation(right()));
   }
 
   // Create a relational operation.
-  static Expr create(relational_operation operation, Expr left, Expr right);
+  static scalar_expr create(relational_operation operation, scalar_expr left, scalar_expr right);
 
   constexpr relational_operation operation() const noexcept { return operation_; }
-  constexpr const Expr& left() const noexcept { return children_[0]; }
-  constexpr const Expr& right() const noexcept { return children_[1]; }
+  constexpr const scalar_expr& left() const noexcept { return children_[0]; }
+  constexpr const scalar_expr& right() const noexcept { return children_[1]; }
 
   constexpr std::string_view operation_string() const noexcept {
     return string_from_relational_operation(operation_);
@@ -47,7 +47,7 @@ class relational {
 
  protected:
   relational_operation operation_;
-  std::array<Expr, 2> children_;
+  std::array<scalar_expr, 2> children_;
 };
 
 template <>
