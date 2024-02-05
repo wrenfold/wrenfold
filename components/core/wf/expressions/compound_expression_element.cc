@@ -7,7 +7,8 @@
 namespace wf {
 
 Expr compound_expression_element::create(compound_expr provenance, const std::size_t index) {
-  if (const custom_type_construction* construct = cast_ptr<custom_type_construction>(provenance);
+  if (const custom_type_construction* construct =
+          cast_ptr<const custom_type_construction>(provenance);
       construct != nullptr) {
     return construct->at(index);
   }

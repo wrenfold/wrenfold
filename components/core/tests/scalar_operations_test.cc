@@ -192,8 +192,8 @@ TEST(ScalarOperationsTest, TestDivision) {
   // Cancellation of powers:
   ASSERT_TRUE(pow(x, 3).is_type<power>());
   ASSERT_TRUE(pow(x, 2).is_type<power>());
-  ASSERT_TRUE(
-      cast_ptr<power>(pow(x, 3))->base().is_identical_to(cast_ptr<power>(pow(x, 2))->base()));
+  ASSERT_TRUE(cast_ptr<const power>(pow(x, 3))->base().is_identical_to(
+      cast_ptr<const power>(pow(x, 2))->base()));
 
   ASSERT_IDENTICAL(x, pow(x, 3) / pow(x, 2));
   ASSERT_IDENTICAL(constants::one, pow(x, 3) / (x * x * x));
@@ -311,8 +311,8 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_NOT_IDENTICAL(x, pow(pow(x, 4), 1 / 4_s));
   ASSERT_NOT_IDENTICAL(pow(x, -2), pow(pow(x, 14), -1 / 7_s));
   ASSERT_NOT_IDENTICAL(pow(x, 2 * z), pow(pow(x, 2), z));
-  ASSERT_TRUE(cast_checked<power>(pow(pow(x, 1.52), 2.0)).base().is_type<power>());
-  ASSERT_TRUE(cast_checked<power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<power>());
+  ASSERT_TRUE(cast_checked<const power>(pow(pow(x, 1.52), 2.0)).base().is_type<power>());
+  ASSERT_TRUE(cast_checked<const power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<power>());
 
   // Inner power is -1
   ASSERT_NOT_IDENTICAL(pow(x, -1 / 2_s), sqrt(1 / x));
@@ -483,8 +483,9 @@ TEST(ScalarOperationsTest, TestConditional) {
 
   // Nested conditionals don't simplify:
   const Expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
-  ASSERT_IDENTICAL(cast_checked<conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
-  ASSERT_IDENTICAL(cast_checked<conditional>(nested).else_branch(), log(z));
+  ASSERT_IDENTICAL(cast_checked<const conditional>(nested).if_branch(),
+                   where(x < 0, cos(x), sin(x)));
+  ASSERT_IDENTICAL(cast_checked<const conditional>(nested).else_branch(), log(z));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {

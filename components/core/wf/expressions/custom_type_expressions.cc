@@ -37,7 +37,8 @@ static std::optional<compound_expr> maybe_get_existing_compound_expr(
   }
 
   // Get the first element, which we use to get the inner compound expression type.
-  const compound_expression_element* first_element = cast_ptr<compound_expression_element>(args[0]);
+  const compound_expression_element* first_element =
+      cast_ptr<const compound_expression_element>(args[0]);
   if (!first_element || first_element->index() != 0) {
     return std::nullopt;
   }
@@ -51,7 +52,7 @@ static std::optional<compound_expr> maybe_get_existing_compound_expr(
 
   // Now check if (in aggregate) the vector of expressions is just a copy of `provenance`.
   for (std::size_t i = 1; i < args.size(); ++i) {
-    if (const auto* element = cast_ptr<compound_expression_element>(args[i]);
+    if (const auto* element = cast_ptr<const compound_expression_element>(args[i]);
         element == nullptr || element->index() != i ||
         element->provenance().hash() != provenance.hash() ||
         !are_identical(element->provenance(), provenance)) {

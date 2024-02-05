@@ -179,10 +179,10 @@ struct PowerNumerics {
 };
 
 static bool magnitude_less_than_one(const Expr& value) {
-  if (const rational_constant* r = cast_ptr<rational_constant>(value);
+  if (const rational_constant* r = cast_ptr<const rational_constant>(value);
       r != nullptr && r->is_proper()) {
     return true;
-  } else if (const float_constant* f = cast_ptr<float_constant>(value);
+  } else if (const float_constant* f = cast_ptr<const float_constant>(value);
              f != nullptr && std::abs(f->get_value()) < 1.0) {
     return true;
   }
@@ -230,7 +230,7 @@ Expr power::create(Expr a, Expr b) {
   }
 
   // Check if the base is itself a power:
-  if (const power* a_pow = cast_ptr<power>(a); a_pow != nullptr) {
+  if (const power* a_pow = cast_ptr<const power>(a); a_pow != nullptr) {
     if (can_multiply_exponents(*a_pow, b)) {
       return power::create(a_pow->base(), a_pow->exponent() * b);
     }
@@ -253,7 +253,7 @@ Expr power::create(Expr a, Expr b) {
   // Check if the base is a multiplication.
   // In this case, we convert to a multiplication of powers:
   // TODO: Should we only do this distribution for integer powers?
-  if (const multiplication* const mul = cast_ptr<multiplication>(a); mul != nullptr) {
+  if (const multiplication* const mul = cast_ptr<const multiplication>(a); mul != nullptr) {
     std::vector<Expr> args;
     args.reserve(mul->size());
     for (const Expr& arg : *mul) {
@@ -265,7 +265,7 @@ Expr power::create(Expr a, Expr b) {
 }
 
 std::pair<Expr, Expr> as_base_and_exp(const Expr& expr) {
-  if (const power* pow = cast_ptr<power>(expr); pow != nullptr) {
+  if (const power* pow = cast_ptr<const power>(expr); pow != nullptr) {
     // Return as base/exponent pair.
     return std::make_pair(pow->base(), pow->exponent());
   }

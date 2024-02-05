@@ -20,7 +20,7 @@ class limit_visitor {
   // 0+ is the value of `x` at the limit.
   explicit limit_visitor(const Expr& x)
       : x_(x),
-        x_typed_(cast_checked<variable>(x_)),
+        x_typed_(cast_checked<const variable>(x_)),
         positive_inf_{positive_inf_placeholder()},
         negative_inf_{negative_inf_placeholder()} {
     if (x_typed_.set() != number_set::real_non_negative) {
@@ -182,7 +182,7 @@ class limit_visitor {
     integral_powers result{};
     for (const Expr& expr : mul) {
       auto [base, exp] = as_base_and_exp(expr);
-      if (const integer_constant* i = cast_ptr<integer_constant>(exp); i != nullptr) {
+      if (const integer_constant* i = cast_ptr<const integer_constant>(exp); i != nullptr) {
         result.powers.push_back(*i);
       } else {
         return std::nullopt;
@@ -383,7 +383,7 @@ class limit_visitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return power::create(constants::euler, std::move(*exponent));
+      return power::create(constants::euler, *std::move(exponent));
     } else if (is_one(base_sub) && is_inf(exp_sub)) {
       // 1 ^ ∞ is an indeterminate form
       // lim[x->c] f(x)^g(x) = e ^ (lim[x->c] log(f(x)) * g(x))
@@ -392,7 +392,7 @@ class limit_visitor {
       if (!exponent) {
         return std::nullopt;
       }
-      return power::create(constants::euler, std::move(*exponent));
+      return power::create(constants::euler, *std::move(exponent));
     } else if (is_zero(base_sub)) {
       // base is zero, exponent is either function or a (+/-) constant
       if (is_numeric_or_constant(exp_sub)) {
@@ -412,7 +412,7 @@ class limit_visitor {
       } else {
         if (is_numeric_or_constant(exp_sub) && is_negative_number(exp_sub)) {
           return constants::zero;  // (-∞)^u where u < 0
-        } else if (const integer_constant* exp_int = cast_ptr<integer_constant>(exp_sub);
+        } else if (const integer_constant* exp_int = cast_ptr<const integer_constant>(exp_sub);
                    exp_int != nullptr) {
           WF_ASSERT(!exp_int->is_zero() && !exp_int->is_negative(), "value = {}", *exp_int);
           if (exp_int->is_even()) {

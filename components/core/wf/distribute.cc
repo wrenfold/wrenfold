@@ -31,7 +31,7 @@ struct distribute_visitor {
     const std::size_t total_terms = std::accumulate(
         children.begin(), children.end(), static_cast<std::size_t>(1lu),
         [](std::size_t total, const Expr& expr) {
-          if (const addition* const add = cast_ptr<addition>(expr); add != nullptr) {
+          if (const addition* const add = cast_ptr<const addition>(expr); add != nullptr) {
             total *= add->size();
           }
           return total;
@@ -52,7 +52,7 @@ struct distribute_visitor {
 
     std::size_t step = total_terms;
     for (const Expr& expr : children) {
-      if (const addition* add = cast_ptr<addition>(expr); add != nullptr) {
+      if (const addition* add = cast_ptr<const addition>(expr); add != nullptr) {
         // For additions, first update the step by dividing by the size of this addition:
         WF_ASSERT_EQUAL(0, step % add->size());
         WF_ASSERT_GREATER_OR_EQ(step / add->size(), 1);

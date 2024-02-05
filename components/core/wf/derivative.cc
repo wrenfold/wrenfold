@@ -77,7 +77,8 @@ Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) const {
 }
 
 Expr derivative_visitor::operator()(const compound_expression_element& el, const Expr& expr) const {
-  if (const compound_expression_element* arg = cast_ptr<compound_expression_element>(argument_);
+  if (const compound_expression_element* arg =
+          cast_ptr<const compound_expression_element>(argument_);
       arg != nullptr && are_identical(*arg, el)) {
     return constants::one;
   }
@@ -237,7 +238,7 @@ Expr derivative_visitor::operator()(const relational&, const Expr& rel_expr) con
 Expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
 Expr derivative_visitor::operator()(const variable& var) const {
-  if (const variable* arg = cast_ptr<variable>(argument_);
+  if (const variable* arg = cast_ptr<const variable>(argument_);
       arg != nullptr && arg->is_identical_to(var)) {
     return constants::one;
   }

@@ -10,7 +10,7 @@ using namespace wf::custom_literals;
 
 template <typename Callable>
 std::optional<Expr> operate_on_float(const Expr& arg, Callable&& method) {
-  if (const float_constant* const f = cast_ptr<float_constant>(arg); f != nullptr) {
+  if (const float_constant* const f = cast_ptr<const float_constant>(arg); f != nullptr) {
     const auto value = f->get_value();
     const auto result = method(value);
     if (result == value) {
@@ -48,9 +48,10 @@ Expr log(const Expr& x) {
 Expr pow(const Expr& x, const Expr& y) { return power::create(x, y); }
 
 std::optional<rational_constant> try_cast_to_rational(const Expr& expr) {
-  if (const rational_constant* const r = cast_ptr<rational_constant>(expr); r != nullptr) {
+  if (const rational_constant* const r = cast_ptr<const rational_constant>(expr); r != nullptr) {
     return *r;
-  } else if (const integer_constant* const i = cast_ptr<integer_constant>(expr); i != nullptr) {
+  } else if (const integer_constant* const i = cast_ptr<const integer_constant>(expr);
+             i != nullptr) {
     return static_cast<rational_constant>(*i);
   }
   return {};
@@ -276,7 +277,7 @@ Expr sqrt(const Expr& arg) {
 }
 
 Expr abs(const Expr& arg) {
-  if (const function* func = cast_ptr<function>(arg);
+  if (const function* func = cast_ptr<const function>(arg);
       func != nullptr && func->enum_value() == built_in_function::abs) {
     // abs(abs(x)) --> abs(x)
     return arg;
@@ -294,7 +295,8 @@ Expr abs(const Expr& arg) {
       result.has_value()) {
     return *result;
   }
-  if (const symbolic_constant* constant = cast_ptr<symbolic_constant>(arg); constant != nullptr) {
+  if (const symbolic_constant* constant = cast_ptr<const symbolic_constant>(arg);
+      constant != nullptr) {
     const auto as_double = double_from_symbolic_constant(constant->name());
     if (compare_int_float(0, as_double).value() != relative_order::greater_than) {
       // Constant that is already positive.
