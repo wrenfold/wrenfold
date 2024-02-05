@@ -65,7 +65,7 @@ quaternion quaternion::from_angle_axis(const Expr& angle, const matrix_expr& v) 
 }
 
 quaternion quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
-                                            const std::optional<Expr> epsilon) {
+                                            const std::optional<Expr>& epsilon) {
   const Expr angle = sqrt(vx * vx + vy * vy + vz * vz);
   const Expr half_angle = angle / 2;
   const Expr sinc_half_angle = sin(half_angle) / angle;
@@ -90,11 +90,12 @@ quaternion quaternion::from_rotation_vector(const Expr& vx, const Expr& vy, cons
   }
 }
 
-quaternion quaternion::from_rotation_vector(const matrix_expr& v, std::optional<Expr> epsilon) {
+quaternion quaternion::from_rotation_vector(const matrix_expr& v,
+                                            const std::optional<Expr>& epsilon) {
   if (v.rows() != 3 || v.cols() != 1) {
     throw dimension_error("Rotation vector must be 3x1. Received: [{}, {}]", v.rows(), v.cols());
   }
-  return from_rotation_vector(v[0], v[1], v[2], std::move(epsilon));
+  return from_rotation_vector(v[0], v[1], v[2], epsilon);
 }
 
 // TODO: This should use the small angle approximation.
@@ -133,9 +134,10 @@ matrix_expr quaternion::to_rotation_vector(std::optional<Expr> epsilon) const {
   if (epsilon) {
     // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
     // It is linearized about q = identity.
-    return make_vector(where(vector_norm > *epsilon, angle_over_norm * x(), 2 * x()),
-                       where(vector_norm > *epsilon, angle_over_norm * y(), 2 * y()),
-                       where(vector_norm > *epsilon, angle_over_norm * z(), 2 * z()));
+    const Expr condition = vector_norm > *epsilon;
+    return make_vector(where(condition, angle_over_norm * x(), 2 * x()),
+                       where(condition, angle_over_norm * y(), 2 * y()),
+                       where(condition, angle_over_norm * z(), 2 * z()));
   } else {
     return make_vector(angle_over_norm * x(), angle_over_norm * y(), angle_over_norm * z());
   }

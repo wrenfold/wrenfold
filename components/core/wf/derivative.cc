@@ -270,7 +270,7 @@ matrix_expr jacobian(const absl::Span<const Expr> functions, const absl::Span<co
   // Crate row-major span over `result`:
   const auto output_dims = make_value_pack(functions.size(), vars.size());
   const auto output_strides = make_value_pack(vars.size(), constant<1>{});
-  auto result_span = make_span(result.data(), output_dims, output_strides);
+  const auto result_span = make_span(result.data(), output_dims, output_strides);
 
   for (std::size_t col = 0; col < vars.size(); ++col) {
     // We cache derivative expressions, so that every row reuses the same cache:
