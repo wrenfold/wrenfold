@@ -11,9 +11,9 @@ template <>
 struct type_list_trait<compound_meta_type> {
   // clang-format off
   using types = type_list<
-    class external_function_invocation,
-    class custom_type_argument,
-    class custom_type_construction
+    const class external_function_invocation,
+    const class custom_type_argument,
+    const class custom_type_construction
   >;
   // clang-format on
 };

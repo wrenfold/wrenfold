@@ -2,40 +2,39 @@
 #pragma once
 #include <vector>
 
-#include "absl_imports.h"
-#include "expression.h"
+#include "wf/absl_imports.h"
+#include "wf/expression.h"
+#include "wf/expression_variant.h"
 
 namespace wf {
 
-// Matrix type that stores a dense block of expressions. For context, this was originally
-// part of the `Expr` type hierarchy. However, this proved to be a mistake because the rules for
-// matrices are sufficiently different from scalars. For now, it is just a wrapper around a shared
-// ptr to `matrix`. In future a symbolic matrix expression might exist, and then this will be more
-// like the `Expr` type.
-class matrix_expr {
+// For now, we only have one expression type for `matrix`. That said, there are runtime
+// optimizations that are easier to implement if we have an abstract matrix multiplication
+// expression. So we'll generalize this to be an expression type, and add more expressions
+// in a follow-up PR.
+struct matrix_meta_type {};
+template <>
+struct type_list_trait<matrix_meta_type> {
+  // clang-format off
+  using types = type_list<
+    class matrix
+  >;
+  // clang-format on
+};
+
+// A matrix expression is an abstract expression of a 2D matrix.
+class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> {
  public:
-  // Construct w/ matrix content.
-  explicit matrix_expr(class matrix&& content);
+  using expression_base::expression_base;
 
   // Static constructor: Create a dense matrix of expressions.
   static matrix_expr create(index_t rows, index_t cols, std::vector<Expr> args);
 
   // Create from a pair of iterators.
   template <typename Iterator>
-  static matrix_expr create(index_t rows, index_t cols, Iterator begin, Iterator end) {
+  static matrix_expr create(const index_t rows, const index_t cols, Iterator begin, Iterator end) {
     return create(rows, cols, std::vector<Expr>{begin, end});
   }
-
-  // Test if the two expressions are identical.
-  bool is_identical_to(const matrix_expr& other) const;
-
-  // Test if the two expressions have the same underlying address.
-  bool has_same_address(const matrix_expr& other) const {
-    return matrix_.get() == other.matrix_.get();
-  }
-
-  // Get the underlying type name as a string.
-  std::string_view type_name() const;
 
   // Convert to string.
   std::string to_string() const;
@@ -90,6 +89,7 @@ class matrix_expr {
   // Access row `i` and column `j`.
   const Expr& operator()(index_t i, index_t j) const;
 
+  // Set row `i` and column `j` (only valid on dense matrix expression).
   void set(index_t i, index_t j, const Expr& value);
 
   // Get a block of rows [start, start + length).
@@ -110,37 +110,20 @@ class matrix_expr {
   // Get the norm of the matrix.
   Expr norm() const;
 
-  // Static cast to underlying matrix type.
+  // Cast to underlying matrix type.
   const matrix& as_matrix() const;
 
-  matrix& as_matrix_mut() { return *matrix_.get(); }
+  // Cast to mutable underlying matrix type.
+  matrix& as_matrix_mut();
 
-  // Convert to vector of expressions.
+  // Convert to vector of expressions, in row-major order.
   std::vector<Expr> to_vector() const;
-
- private:
-  std::shared_ptr<matrix> matrix_;
-};
-
-static_assert(std::is_move_assignable_v<matrix_expr> && std::is_move_constructible_v<matrix_expr>,
-              "Should be movable");
-
-// Hash matrix.
-template <>
-struct hash_struct<matrix_expr> {
-  std::size_t operator()(const matrix_expr& mat) const;
 };
 
 // Relative order of matrices (first by dimensions, then by lexicographical order).
 template <>
 struct order_struct<matrix_expr> {
   relative_order operator()(const matrix_expr& a, const matrix_expr& b) const;
-};
-
-// Are two matrices identical.
-template <>
-struct is_identical_struct<matrix_expr> {
-  bool operator()(const matrix_expr& a, const matrix_expr& b) const { return a.is_identical_to(b); }
 };
 
 // Math operators:

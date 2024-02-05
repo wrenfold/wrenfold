@@ -20,22 +20,22 @@ struct type_list_trait<scalar_meta_type> {
   // All the scalar-valued expressions.
   // clang-format off
   using types = type_list<
-    class addition,
-    class cast_bool,
-    class compound_expression_element,
-    class conditional,
-    class symbolic_constant,
-    class derivative,
-    class float_constant,
-    class function,
-    class complex_infinity,
-    class integer_constant,
-    class multiplication,
-    class power,
-    class rational_constant,
-    class relational,
-    class undefined,
-    class variable
+    const class addition,
+    const class cast_bool,
+    const class compound_expression_element,
+    const class conditional,
+    const class symbolic_constant,
+    const class derivative,
+    const class float_constant,
+    const class function,
+    const class complex_infinity,
+    const class integer_constant,
+    const class multiplication,
+    const class power,
+    const class rational_constant,
+    const class relational,
+    const class undefined,
+    const class variable
     >;
   // clang-format on
 };
@@ -188,37 +188,6 @@ template <typename T, typename... Args>
 Expr make_expr(Args&&... args) noexcept(noexcept(Expr{std::in_place_type_t<T>{},
                                                       std::forward<Args>(args)...})) {
   return Expr{std::in_place_type_t<T>{}, std::forward<Args>(args)...};
-}
-
-// Cast expression to const pointer of the specified type.
-// Returned pointer is valid in scope only as long as the argument `x` survives.
-template <typename T>
-const T* cast_ptr(const Expr& x) noexcept {
-  if (x.is_type<T>()) {
-    const T& concrete = x.impl().cast_unchecked<T>();
-    return &concrete;
-  } else {
-    return nullptr;
-  }
-}
-
-// Cast expression to const reference of the specified type. TypeError is thrown if the cast is
-// invalid.
-template <typename T>
-const T& cast_checked(const Expr& x) {
-  if (x.is_type<T>()) {
-    const T& concrete = x.impl().cast_unchecked<T>();
-    return concrete;
-  } else {
-    throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::name_str);
-  }
-}
-
-// Cast expression with no checking. UB will occur if the wrong type is accessed.
-template <typename T>
-const T& cast_unchecked(const Expr& x) noexcept {
-  const T& concrete = x.impl().cast_unchecked<T>();
-  return concrete;
 }
 
 }  // namespace wf

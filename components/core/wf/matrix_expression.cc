@@ -1,31 +1,22 @@
 // Copyright 2023 Gareth Cross
 #include "wf/matrix_expression.h"
 
+#include "wf_runtime/span.h"
+
 #include "wf/constants.h"
 #include "wf/derivative.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/functions.h"
 #include "wf/plain_formatter.h"
-#include "wf_runtime/span.h"
 
 namespace wf {
 
-matrix_expr::matrix_expr(matrix&& content)
-    : matrix_(std::make_shared<matrix>(std::move(content))) {}
+static_assert(std::is_move_assignable_v<matrix_expr> && std::is_move_constructible_v<matrix_expr>,
+              "Should be movable");
 
 matrix_expr matrix_expr::create(index_t rows, index_t cols, std::vector<Expr> args) {
-  return matrix_expr{matrix{rows, cols, std::move(args)}};
+  return matrix_expr{std::in_place_type_t<matrix>{}, rows, cols, std::move(args)};
 }
-
-// For now, a lot of these methods just forward to the `Matrix` type. In the future,
-// we may have different matrix types.
-
-// Test if the two expressions are identical.
-bool matrix_expr::is_identical_to(const matrix_expr& other) const {
-  return as_matrix().is_identical_to(other.as_matrix());
-}
-
-std::string_view matrix_expr::type_name() const { return matrix::name_str; }
 
 std::string matrix_expr::to_string() const {
   plain_formatter formatter{};
@@ -81,14 +72,19 @@ Expr matrix_expr::squared_norm() const {
 
 Expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
-const matrix& matrix_expr::as_matrix() const { return *matrix_.get(); }
+const matrix& matrix_expr::as_matrix() const { return cast_unchecked<matrix>(*this); }
+
+matrix& matrix_expr::as_matrix_mut() {
+  // TODO: Don't const-cast, make cast_unchecked do the right thing automatically.
+  return const_cast<matrix&>(cast_unchecked<matrix>(*this));
+}
 
 std::vector<Expr> matrix_expr::to_vector() const { return as_matrix().data(); }
 
 matrix_expr matrix_expr::operator-() const { return operator*(*this, constants::negative_one); }
 
-matrix_expr matrix_expr::diff(const Expr& var, int reps,
-                              non_differentiable_behavior behavior) const {
+matrix_expr matrix_expr::diff(const Expr& var, const int reps,
+                              const non_differentiable_behavior behavior) const {
   derivative_visitor visitor{var, behavior};
   return matrix_expr{as_matrix().map_children([&visitor, reps](const Expr& x) {
     Expr result = x;
@@ -100,7 +96,7 @@ matrix_expr matrix_expr::diff(const Expr& var, int reps,
 }
 
 matrix_expr matrix_expr::jacobian(const absl::Span<const Expr> vars,
-                                  non_differentiable_behavior behavior) const {
+                                  const non_differentiable_behavior behavior) const {
   if (cols() != 1) {
     throw dimension_error(
         "Jacobian can only be computed on column-vectors. Received dimensions: [{}, {}]", rows(),
@@ -111,7 +107,7 @@ matrix_expr matrix_expr::jacobian(const absl::Span<const Expr> vars,
 }
 
 matrix_expr matrix_expr::jacobian(const matrix_expr& vars,
-                                  non_differentiable_behavior behavior) const {
+                                  const non_differentiable_behavior behavior) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());
@@ -136,10 +132,6 @@ matrix_expr matrix_expr::collect(absl::Span<const Expr> terms) const {
 
 matrix_expr matrix_expr::eval() const {
   return matrix_expr{as_matrix().map_children(&wf::evaluate)};
-}
-
-std::size_t hash_struct<matrix_expr>::operator()(const matrix_expr& mat) const {
-  return wf::hash(mat.as_matrix());
 }
 
 relative_order order_struct<matrix_expr>::operator()(const matrix_expr& a,

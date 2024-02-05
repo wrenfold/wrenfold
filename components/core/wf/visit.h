@@ -36,12 +36,8 @@ auto visit(const Var& variant, F&& visitor) {
   return std::visit(
       [&visitor](const auto& x) {
         using T = std::decay_t<decltype(x)>;
-        if constexpr (inherits_expression_base_v<T>) {
-          return visit(x, std::forward<F>(visitor));
-        } else {
-          // TODO: Fallback path for matrix_expr - maybe temporary?
-          return visitor(x);
-        }
+        static_assert(inherits_expression_base_v<T>);
+        return visit(x, std::forward<F>(visitor));
       },
       variant);
 }

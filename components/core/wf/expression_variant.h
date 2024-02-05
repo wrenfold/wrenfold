@@ -12,6 +12,10 @@ namespace wf {
 template <typename T>
 struct type_list_trait;
 
+// Forward declare.
+template <typename Derived, typename Meta>
+class expression_base;
+
 // Evaluate to true if visitor `F` can be nothrow invoked on all the possible contained types.
 template <typename F, typename T>
 struct is_nothrow_invocable_visitor;
@@ -28,7 +32,8 @@ constexpr bool is_nothrow_invocable_visitor_v = is_nothrow_invocable_visitor<F, 
 template <typename Meta>
 class expression_variant {
  public:
-  using types = typename type_list_trait<Meta>::types;
+  using qualified_types = typename type_list_trait<Meta>::types;
+  using types = type_list_map_t<std::remove_const_t, qualified_types>;
 
   // Check if the decayed type `T` is in our list of supported types.
   template <typename T>
@@ -80,13 +85,6 @@ class expression_variant {
   template <typename F>
   auto visit(F&& f) const noexcept(is_nothrow_invocable_visitor_v<decltype(f), types>) {
     return visit_impl<0>(std::forward<F>(f));
-  }
-
-  // Do an unchecked cast to type `T`. If the specified type is incorrect, UB will occur.
-  template <typename T>
-  const T& cast_unchecked() const noexcept {
-    static_assert(type_list_contains_v<T, types>, "Not a valid type to cast to.");
-    return cast_to_type<T>();
   }
 
  protected:
@@ -188,7 +186,12 @@ class expression_variant {
     }
   }
 
-  // Index + hash of the type.
+  // Allow access to `cast_to_type` in cast_unchecked.
+  template <typename T, typename D, typename M>
+  friend const T& cast_unchecked(const expression_base<D, M>& x) noexcept;
+  // template <typename T, typename D, typename M>
+  // friend T& cast_unchecked(expression_base<D, M>& x) noexcept;
+
   concept_shared_ptr ptr_;
 };
 
@@ -199,6 +202,7 @@ template <typename Derived, typename Meta>
 class expression_base {
  public:
   using storage_type = expression_variant<Meta>;
+  using qualified_types = typename storage_type::qualified_types;
   using types = typename storage_type::types;
 
   // Enable if `storage_type` support construction from type `T`.
@@ -288,13 +292,21 @@ struct is_identical_struct<T, enable_if_inherits_expression_base_t<T>> {
   bool operator()(const T& a, const T& b) const { return a.is_identical_to(b); }
 };
 
+// Cast expression with no checking. UB will occur if the wrong type is accessed.
+template <typename T, typename D, typename M>
+const T& cast_unchecked(const expression_base<D, M>& x) noexcept {
+  static_assert(type_list_contains_v<std::remove_const_t<T>, typename expression_base<D, M>::types>,
+                "Not a valid type to cast to.");
+  return x.impl().template cast_to_type<T>();
+}
+
 // Cast expression to const pointer of the specified type.
 // Returned pointer is valid in scope only as long as the argument `x` survives.
 template <typename T, typename D, typename M>
 const T* cast_ptr(const expression_base<D, M>& x) noexcept {
-  if (x.template is_type<T>()) {
-    const T& concrete = x.impl().template cast_unchecked<T>();
-    return &concrete;
+  using unqualified_type = std::remove_const_t<T>;
+  if (x.template is_type<unqualified_type>()) {
+    return &cast_unchecked<T>(x);
   } else {
     return nullptr;
   }
@@ -305,17 +317,10 @@ const T* cast_ptr(const expression_base<D, M>& x) noexcept {
 template <typename T, typename D, typename M>
 const T& cast_checked(const expression_base<D, M>& x) {
   if (x.template is_type<T>()) {
-    const T& concrete = x.impl().template cast_unchecked<T>();
-    return concrete;
+    return cast_unchecked<T>(x);
   } else {
     throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::name_str);
   }
-}
-
-// Cast expression with no checking. UB will occur if the wrong type is accessed.
-template <typename T, typename D, typename M>
-const T& cast_unchecked(const expression_base<D, M>& x) noexcept {
-  return x.impl().template cast_unchecked<T>();
 }
 
 }  // namespace wf
