@@ -72,12 +72,9 @@ Expr matrix_expr::squared_norm() const {
 
 Expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
-const matrix& matrix_expr::as_matrix() const { return cast_unchecked<matrix>(*this); }
+const matrix& matrix_expr::as_matrix() const { return cast_unchecked<const matrix>(*this); }
 
-matrix& matrix_expr::as_matrix_mut() {
-  // TODO: Don't const-cast, make cast_unchecked do the right thing automatically.
-  return const_cast<matrix&>(cast_unchecked<matrix>(*this));
-}
+matrix& matrix_expr::as_matrix_mut() { return cast_unchecked<matrix>(*this); }
 
 std::vector<Expr> matrix_expr::to_vector() const { return as_matrix().data(); }
 

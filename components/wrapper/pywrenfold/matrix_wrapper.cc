@@ -366,7 +366,7 @@ void wrap_matrix_operations(py::module_& m) {
             return self.is_identical_to(other);
           },
           "other"_a, "Test if two matrix expressions have identical expression trees.")
-      .def_property_readonly("type_name", &matrix_expr::type_name)
+      .def_property_readonly("type_name", [](const matrix_expr& self) { return self.type_name(); })
       // Operations:
       .def(
           "diff",

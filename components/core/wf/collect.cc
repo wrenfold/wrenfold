@@ -32,7 +32,7 @@ struct collect_visitor {
         exponents_to_mul{};
 
     const auto new_end = std::remove_if(container.begin(), container.end(), [&](const Expr& child) {
-      if (const multiplication* mul = cast_ptr<multiplication>(child); mul != nullptr) {
+      if (const multiplication* mul = cast_ptr<const multiplication>(child); mul != nullptr) {
         // Look for relevant terms:
         std::optional<Expr> exponent;
         const auto it = std::find_if(mul->begin(), mul->end(), [&](const Expr& mul_term) {

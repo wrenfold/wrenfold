@@ -183,7 +183,7 @@ class determine_set_visitor {
     }
 
     if (is_real_set(base)) {
-      if (const integer_constant* exp_int = cast_ptr<integer_constant>(pow.exponent());
+      if (const integer_constant* exp_int = cast_ptr<const integer_constant>(pow.exponent());
           exp_int != nullptr && exp_int->is_even()) {
         return contains_zero(base) ? number_set::real_non_negative : number_set::real_positive;
       }

@@ -66,7 +66,7 @@ std::variant<Expr, py::list> create_symbols_from_str_or_iterable(
 }
 
 bool convert_expr_to_bool(const Expr& self) {
-  if (const symbolic_constant* c = cast_ptr<symbolic_constant>(self); c != nullptr) {
+  if (const symbolic_constant* c = cast_ptr<const symbolic_constant>(self); c != nullptr) {
     if (c->name() == symbolic_constant_enum::boolean_true) {
       return true;
     } else if (c->name() == symbolic_constant_enum::boolean_false) {

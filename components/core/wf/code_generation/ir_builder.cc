@@ -654,7 +654,7 @@ class ir_form_visitor {
     }
 
     constexpr int max_integer_mul_exponent = 16;
-    if (const integer_constant* exp_int = cast_ptr<integer_constant>(power.exponent());
+    if (const integer_constant* exp_int = cast_ptr<const integer_constant>(power.exponent());
         exp_int != nullptr) {
       WF_ASSERT_GREATER_OR_EQ(exp_int->get_value(), 0, "Negative exponents were handled above");
       // Maximum exponent below which we rewrite `pow` as a series of multiplications.
@@ -669,7 +669,7 @@ class ir_form_visitor {
                               base, operator()(power.exponent()));
       }
     } else if (const rational_constant* exp_rational =
-                   cast_ptr<rational_constant>(power.exponent());
+                   cast_ptr<const rational_constant>(power.exponent());
                exp_rational != nullptr) {
       WF_ASSERT_GREATER_OR_EQ(exp_rational->numerator(), 0, "rational = {}", *exp_rational);
 

@@ -137,7 +137,7 @@ relative_order order_struct<Expr>::operator()(const Expr& a, const Expr& b) cons
   // Otherwise we have the same type:
   return visit(a, [&b](const auto& a_typed) -> relative_order {
     using Ta = std::decay_t<decltype(a_typed)>;
-    const auto& b_typed = cast_unchecked<Ta>(b);
+    const auto& b_typed = cast_unchecked<const Ta>(b);
     return order_visitor{}(a_typed, b_typed);
   });
 }
@@ -151,7 +151,7 @@ relative_order order_struct<compound_expr>::operator()(const compound_expr& a,
   }
   return visit(a, [&b](const auto& a_typed) -> relative_order {
     using Ta = std::decay_t<decltype(a_typed)>;
-    return order_visitor{}(a_typed, cast_unchecked<Ta>(b));
+    return order_visitor{}(a_typed, cast_unchecked<const Ta>(b));
   });
 }
 

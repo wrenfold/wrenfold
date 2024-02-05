@@ -50,9 +50,9 @@ std::size_t cast_to_expr(const Container& inputs, Output& output) {
 
 // Try converting `x` to an int or float, otherwise just return Expr.
 inline std::variant<std::int64_t, double, Expr> try_convert_to_numeric(const Expr& x) {
-  if (const float_constant* f = cast_ptr<float_constant>(x); f != nullptr) {
+  if (const float_constant* f = cast_ptr<const float_constant>(x); f != nullptr) {
     return f->get_value();
-  } else if (const integer_constant* i = cast_ptr<integer_constant>(x); i != nullptr) {
+  } else if (const integer_constant* i = cast_ptr<const integer_constant>(x); i != nullptr) {
     return i->get_value();
   } else {
     return x;

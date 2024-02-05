@@ -63,8 +63,9 @@ class expression_variant {
   // Check if the underlying derived type is one of `Ts...`.
   template <typename... Ts>
   bool is_type() const noexcept {
-    static_assert((type_list_contains_v<Ts, types> && ...), "T is not a valid expression type");
-    return ((type_list_index_v<Ts, types> == index()) || ...);
+    static_assert((type_list_contains_v<std::remove_const_t<Ts>, types> && ...),
+                  "T is not a valid expression type");
+    return ((type_list_index_v<std::remove_const_t<Ts>, types> == index()) || ...);
   }
 
   // Return the address of the underlying value.
@@ -156,21 +157,37 @@ class expression_variant {
     value_type contents_;
   };
 
-  using concept_shared_ptr = std::shared_ptr<concept_base>;
-
   // Cast to const-reference of type `T`.
   template <typename T>
-  const T& cast_to_type() const noexcept {
-    const expression_variant::model<T>* model =
-        static_cast<const expression_variant::model<T>*>(ptr_.get());
+  const auto& cast_to_type() const noexcept {
+    static_assert(std::is_const_v<T>, "const expression_variant can only be casted to const type.");
+    using unqualified_type = std::remove_const_t<T>;
+    const expression_variant::model<unqualified_type>* model =
+        static_cast<const expression_variant::model<unqualified_type>*>(ptr_.get());
     return model->contents();
+  }
+
+  // Cast to either const-reference or non-const reference of type T.
+  // The const-ness of the resulting reference is determined by the const-ness of T.
+  template <typename T>
+  decltype(auto) cast_to_type() noexcept {
+    if constexpr (std::is_const_v<T>) {
+      // Call the version above that handles const-access to const-self.
+      return const_cast<const expression_variant*>(this)->cast_to_type<T>();
+    } else {
+      // Return non-const reference.
+      static_assert(type_list_contains_v<T, qualified_types>,
+                    "The specified type does not allow cast to non-const.");
+      expression_variant::model<T>* model = static_cast<expression_variant::model<T>*>(ptr_.get());
+      return model->contents();
+    }
   }
 
   // Cast to const-reference of the type at index `I` in list `types`.
   template <std::size_t I>
   const auto& cast_to_index() const noexcept {
     static_assert(I < type_list_size_v<types>, "Index exceeds number of types");
-    return cast_to_type<type_list_element_t<I, types>>();
+    return cast_to_type<const type_list_element_t<I, types>>();
   }
 
   // If index `I` matches the internal index, call function `f` on it - otherwise recurse to the
@@ -188,11 +205,11 @@ class expression_variant {
 
   // Allow access to `cast_to_type` in cast_unchecked.
   template <typename T, typename D, typename M>
-  friend const T& cast_unchecked(const expression_base<D, M>& x) noexcept;
-  // template <typename T, typename D, typename M>
-  // friend T& cast_unchecked(expression_base<D, M>& x) noexcept;
+  friend const auto& cast_unchecked(const expression_base<D, M>& x) noexcept;
+  template <typename T, typename D, typename M>
+  friend decltype(auto) cast_unchecked(expression_base<D, M>& x) noexcept;
 
-  concept_shared_ptr ptr_;
+  std::shared_ptr<concept_base> ptr_;
 };
 
 // Categories of expressions (scalar, matrix, etc) should inherit from this type with their
@@ -260,6 +277,15 @@ class expression_base {
   constexpr Derived& as_derived() noexcept { return static_cast<Derived&>(*this); }
 
  protected:
+  // Non-const access to underlying expression_variant.
+  constexpr storage_type& impl() noexcept { return impl_; }
+
+  template <typename T, typename D, typename M>
+  friend const auto& cast_unchecked(const expression_base<D, M>& x) noexcept;
+
+  template <typename T, typename D, typename M>
+  friend decltype(auto) cast_unchecked(expression_base<D, M>& x) noexcept;
+
   storage_type impl_;
 };
 
@@ -294,7 +320,15 @@ struct is_identical_struct<T, enable_if_inherits_expression_base_t<T>> {
 
 // Cast expression with no checking. UB will occur if the wrong type is accessed.
 template <typename T, typename D, typename M>
-const T& cast_unchecked(const expression_base<D, M>& x) noexcept {
+const auto& cast_unchecked(const expression_base<D, M>& x) noexcept {
+  static_assert(type_list_contains_v<std::remove_const_t<T>, typename expression_base<D, M>::types>,
+                "Not a valid type to cast to.");
+  return x.impl().template cast_to_type<T>();
+}
+
+// Cast expression with no checking. UB will occur if the wrong type is accessed.
+template <typename T, typename D, typename M>
+decltype(auto) cast_unchecked(expression_base<D, M>& x) noexcept {
   static_assert(type_list_contains_v<std::remove_const_t<T>, typename expression_base<D, M>::types>,
                 "Not a valid type to cast to.");
   return x.impl().template cast_to_type<T>();
@@ -304,8 +338,7 @@ const T& cast_unchecked(const expression_base<D, M>& x) noexcept {
 // Returned pointer is valid in scope only as long as the argument `x` survives.
 template <typename T, typename D, typename M>
 const T* cast_ptr(const expression_base<D, M>& x) noexcept {
-  using unqualified_type = std::remove_const_t<T>;
-  if (x.template is_type<unqualified_type>()) {
+  if (x.template is_type<T>()) {
     return &cast_unchecked<T>(x);
   } else {
     return nullptr;

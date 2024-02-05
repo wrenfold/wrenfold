@@ -76,7 +76,7 @@ struct compute_function_output_struct<Expr> {
                     const scalar_type&) const {
     const Expr subs = evaluator.substitute(input);
     const Expr evaluated = evaluator.evaluate(subs);
-    if (const float_constant* f = cast_ptr<float_constant>(evaluated); f != nullptr) {
+    if (const float_constant* f = cast_ptr<const float_constant>(evaluated); f != nullptr) {
       return f->get_value();
     } else {
       throw type_error("Expression should be a floating point value. Got type {}: {}",
