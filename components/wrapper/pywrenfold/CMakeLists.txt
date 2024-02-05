@@ -59,7 +59,7 @@ function(add_wrapper_module)
 
   # Add a command to generate stubs
   # https://mypy.readthedocs.io/en/stable/stubgen.html
-  if(DEFINED STUBGEN_PATH)
+  if(DEFINED STUBGEN_PATH AND NOT STUBGEN_PATH STREQUAL "STUBGEN_PATH-NOTFOUND")
     message(STATUS "Will generate stubs for: ${MODULE_NAME}")
     add_custom_command(
       OUTPUT ${STUB_OUTPUT_PATHS}
