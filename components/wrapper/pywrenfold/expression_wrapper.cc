@@ -21,7 +21,7 @@ using namespace py::literals;
 namespace wf {
 
 // Create symbols from CSV list of names.
-inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_view csv) {
+inline std::variant<scalar_expr, py::list> create_symbols_from_str(const std::string_view csv) {
   py::list variables{};
   std::string name{};
   for (const char c : csv) {
@@ -40,14 +40,14 @@ inline std::variant<Expr, py::list> create_symbols_from_str(const std::string_vi
     variables.append(std::move(var));
   }
   if (variables.size() == 1) {
-    return variables[0].cast<Expr>();
+    return variables[0].cast<scalar_expr>();
   }
   return variables;
 }
 
 // Traverse the provided iterable, inspecting elements. If the inner element is a
 // string, then parse it into symbols. If the inner element is an iterable, recurse on it.
-inline std::variant<Expr, py::list> create_symbols_from_str(const py::iterable& iterable) {
+inline std::variant<scalar_expr, py::list> create_symbols_from_str(const py::iterable& iterable) {
   py::list result{};
   for (const py::handle& handle : iterable) {
     // Each element of the iterable could be a string, or a nested iterable:
@@ -59,13 +59,13 @@ inline std::variant<Expr, py::list> create_symbols_from_str(const py::iterable& 
   return result;
 }
 
-std::variant<Expr, py::list> create_symbols_from_str_or_iterable(
+std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
     std::variant<std::string_view, py::iterable> arg) {
   return std::visit([](const auto& input) { return create_symbols_from_str(input); },
                     std::move(arg));
 }
 
-bool convert_expr_to_bool(const Expr& self) {
+bool convert_expr_to_bool(const scalar_expr& self) {
   if (const symbolic_constant* c = cast_ptr<const symbolic_constant>(self); c != nullptr) {
     if (c->name() == symbolic_constant_enum::boolean_true) {
       return true;
@@ -79,13 +79,13 @@ bool convert_expr_to_bool(const Expr& self) {
       self.type_name());
 }
 
-Expr substitute_variables_wrapper(const Expr& self,
-                                  const std::vector<std::tuple<Expr, Expr>>& pairs) {
+scalar_expr substitute_variables_wrapper(
+    const scalar_expr& self, const std::vector<std::tuple<scalar_expr, scalar_expr>>& pairs) {
   return self.substitute_variables(pairs);
 }
 
-auto eval_wrapper(const Expr& self) {
-  Expr evaluated = self.eval();
+auto eval_wrapper(const scalar_expr& self) {
+  scalar_expr evaluated = self.eval();
   return try_convert_to_numeric(evaluated);
 }
 
@@ -110,41 +110,44 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
 
   // Primary expression type:
-  py::class_<Expr>(m, "Expr")
+  py::class_<scalar_expr>(m, "Expr")
       // Implicit construction from numerics:
       .def(py::init<std::int64_t>())
       .def(py::init<double>())
       // String conversion:
-      .def("__repr__", &Expr::to_string)
-      .def("expression_tree_str", &Expr::to_expression_tree_string,
+      .def("__repr__", &scalar_expr::to_string)
+      .def("expression_tree_str", &scalar_expr::to_expression_tree_string,
            "Retrieve the expression tree as a pretty-printed string.")
       .def(
           "is_identical_to",
-          [](const Expr& self, const Expr& other) { return self.is_identical_to(other); },
+          [](const scalar_expr& self, const scalar_expr& other) {
+            return self.is_identical_to(other);
+          },
           "other"_a, "Test if two expressions have identical expression trees.")
-      .def_property_readonly("type_name", [](const Expr& self) { return self.type_name(); })
+      .def_property_readonly("type_name", [](const scalar_expr& self) { return self.type_name(); })
       // Operations:
       .def(
           "diff",
-          [](const Expr& self, const Expr& var, int order, bool use_abstract) {
+          [](const scalar_expr& self, const scalar_expr& var, int order, bool use_abstract) {
             return self.diff(var, order,
                              use_abstract ? non_differentiable_behavior::abstract
                                           : non_differentiable_behavior::constant);
           },
           "var"_a, py::arg("order") = 1, py::arg("use_abstract") = false,
           "Differentiate the expression with respect to the specified variable.")
-      .def("distribute", &Expr::distribute, "Expand products of additions and subtractions.")
-      .def("subs", &Expr::subs, py::arg("target"), py::arg("substitute"),
+      .def("distribute", &scalar_expr::distribute, "Expand products of additions and subtractions.")
+      .def("subs", &scalar_expr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
       .def("subs_variables", &substitute_variables_wrapper, py::arg("pairs"),
            "Substitute a list of variable expressions.")
       .def("eval", &eval_wrapper, "Evaluate into floating point expression.")
       .def(
-          "collect", [](const Expr& self, const Expr& term) { return self.collect(term); },
+          "collect",
+          [](const scalar_expr& self, const scalar_expr& term) { return self.collect(term); },
           "term"_a, "Collect powers of the provided expression.")
       .def(
           "collect",
-          [](const Expr& self, const std::vector<Expr>& terms) {
+          [](const scalar_expr& self, const std::vector<scalar_expr>& terms) {
             return wf::collect_many(self, terms);
           },
           "terms"_a, "Collect powers of the provided expressions.")
@@ -183,17 +186,18 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       // Override conversion to boolean, so we don't coerce non-boolean expressions.
       .def("__bool__", &convert_expr_to_bool, py::doc("Coerce expression to bool."));
 
-  py::implicitly_convertible<std::int64_t, Expr>();
-  py::implicitly_convertible<double, Expr>();
+  py::implicitly_convertible<std::int64_t, scalar_expr>();
+  py::implicitly_convertible<double, scalar_expr>();
 
   // Methods for declaring expressions:
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("arg"),
         "Create variables from a string or an iterable of strings.");
   m.def(
-      "integer", [](std::int64_t value) { return Expr{value}; }, "value"_a,
+      "integer", [](std::int64_t value) { return scalar_expr{value}; }, "value"_a,
       "Create an integer expression.");
   m.def(
-      "float", [](double value) { return Expr{value}; }, "value"_a, "Create a float expression.");
+      "float", [](double value) { return scalar_expr{value}; }, "value"_a,
+      "Create a float expression.");
 
   // Built-in functions:
   m.def("log", &wf::log, "arg"_a, "Natural log.");
@@ -211,7 +215,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   m.def("max", &wf::max, "a"_a, "b"_a, "Maximum of two scalar values.");
   m.def("min", &wf::min, "a"_a, "b"_a, "Minimum of two scalar values.");
-  m.def("where", static_cast<Expr (*)(const Expr&, const Expr&, const Expr&)>(&wf::where),
+  m.def("where",
+        static_cast<scalar_expr (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&)>(
+            &wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
   m.def("cast_int_from_bool", &wf::cast_int_from_bool, "arg"_a,

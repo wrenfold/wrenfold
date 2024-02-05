@@ -8,7 +8,7 @@ namespace wf {
 // Simple plain-text formatter.
 class plain_formatter {
  public:
-  void operator()(const Expr& x);
+  void operator()(const scalar_expr& x);
   void operator()(const matrix_expr& x);
 
   void operator()(const addition& add);
@@ -37,10 +37,10 @@ class plain_formatter {
 
  private:
   // Wrap `expr` in braces if the precedence is <= the parent.
-  void format_precedence(precedence parent, const Expr& expr);
+  void format_precedence(precedence parent, const scalar_expr& expr);
 
   // Format power operation with the appropriate operator.
-  void format_power(const Expr& Base, const Expr& Exponent);
+  void format_power(const scalar_expr& Base, const scalar_expr& Exponent);
 
   std::string output_{};
 };

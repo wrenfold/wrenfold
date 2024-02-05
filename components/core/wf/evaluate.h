@@ -14,20 +14,22 @@ class evaluate_visitor {
  public:
   template <typename T, typename = enable_if_does_not_contain_type_t<
                             T, integer_constant, rational_constant, symbolic_constant>>
-  Expr operator()(const T& input_typed, const Expr& input);
+  scalar_expr operator()(const T& input_typed, const scalar_expr& input);
 
-  Expr operator()(const integer_constant& x) const;
-  Expr operator()(const rational_constant& x) const;
-  Expr operator()(const symbolic_constant& x) const;
+  scalar_expr operator()(const integer_constant& x) const;
+  scalar_expr operator()(const rational_constant& x) const;
+  scalar_expr operator()(const symbolic_constant& x) const;
 
   // Visit and cache the result.
-  Expr operator()(const Expr& input);
+  scalar_expr operator()(const scalar_expr& input);
   compound_expr operator()(const compound_expr& expr);
 
  private:
   // Cached evaluated values:
   // TODO: Introduce a cache type that can accept any expression type.
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_;
+  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                     is_identical_struct<scalar_expr>>
+      cache_;
   std::unordered_map<compound_expr, compound_expr, hash_struct<compound_expr>,
                      is_identical_struct<compound_expr>>
       compound_cache_;

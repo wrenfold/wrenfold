@@ -35,7 +35,7 @@ struct static_matrix {
 
   template <typename... Args>
   using enable_if_convertible_to_expr =
-      std::enable_if_t<std::conjunction_v<std::is_constructible<Expr, Args>...>>;
+      std::enable_if_t<std::conjunction_v<std::is_constructible<scalar_expr, Args>...>>;
 
   // Construct from a row-major orderd list of elements.
   template <typename... Args, typename = enable_if_convertible_to_expr<Args...>>
@@ -45,10 +45,10 @@ struct static_matrix {
                   "Wrong # of elements passed to matrix constructor.");
   }
 
-  const Expr& operator()(index_t row, index_t col) const { return expr_(row, col); }
+  const scalar_expr& operator()(index_t row, index_t col) const { return expr_(row, col); }
 
   // Access vector element.
-  const Expr& operator[](index_t element) const { return expr_[element]; }
+  const scalar_expr& operator[](index_t element) const { return expr_[element]; }
 
   // Assign from matrix_expr
   static_matrix& operator=(const matrix_expr& other) {

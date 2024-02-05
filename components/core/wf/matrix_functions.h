@@ -9,19 +9,19 @@ namespace wf {
 // Create a column vector from the arguments.
 template <typename... Ts>
 static matrix_expr make_vector(Ts&&... args) {
-  return matrix_expr::create(sizeof...(Ts), 1, {Expr{std::forward<Ts>(args)}...});
+  return matrix_expr::create(sizeof...(Ts), 1, {scalar_expr{std::forward<Ts>(args)}...});
 }
 
 // Create a row vector from the arguments.
 template <typename... Ts>
 static matrix_expr make_row_vector(Ts&&... args) {
-  return matrix_expr::create(1, sizeof...(Ts), {Expr{std::forward<Ts>(args)}...});
+  return matrix_expr::create(1, sizeof...(Ts), {scalar_expr{std::forward<Ts>(args)}...});
 }
 
 // Create a matrix from the arguments (args specified in row-major order).
 template <typename... Ts>
 static matrix_expr make_matrix(index_t rows, index_t cols, Ts&&... args) {
-  return matrix_expr::create(rows, cols, {Expr{std::forward<Ts>(args)}...});
+  return matrix_expr::create(rows, cols, {scalar_expr{std::forward<Ts>(args)}...});
 }
 
 // Create a matrix of symbols.
@@ -53,6 +53,6 @@ std::tuple<matrix_expr, matrix_expr, matrix_expr, matrix_expr> factorize_full_pi
     const matrix_expr& A);
 
 // Compute determinant of a matrix. Only valid for square matrices.
-Expr determinant(const matrix_expr& m);
+scalar_expr determinant(const matrix_expr& m);
 
 }  // namespace wf

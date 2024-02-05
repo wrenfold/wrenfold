@@ -76,7 +76,7 @@ class optional_arg_permutations {
 
 template <typename T>
 void check_output_expressions(const std::vector<expression_group>& expected_expressions,
-                              const std::unordered_map<output_key, std::vector<Expr>,
+                              const std::unordered_map<output_key, std::vector<scalar_expr>,
                                                        hash_struct<output_key>>& output_expressions,
                               const T& ir) {
   for (const expression_group& group : expected_expressions) {
@@ -146,9 +146,9 @@ TEST(IrTest, TestNoDuplicatedCasts) {
 
 TEST(IrTest, TestScalarExpressions1) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
-        Expr a = x * y;
-        Expr b = x + y;
+      [](scalar_expr x, scalar_expr y) {
+        scalar_expr a = x * y;
+        scalar_expr b = x + y;
         return std::make_tuple(return_value(x * y), output_arg("a", a), output_arg("b", b));
       },
       "func", arg("x"), arg("y"));
@@ -167,9 +167,9 @@ TEST(IrTest, TestScalarExpressions1) {
 TEST(IrTest, TestScalarExpressions2) {
   // Create an optional output:
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
-        Expr f = x * y * sin(z * x) + 5;
-        Expr g = cos(z * x) * x * y - log(y - z * 2.1) * 3;
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
+        scalar_expr f = x * y * sin(z * x) + 5;
+        scalar_expr g = cos(z * x) * x * y - log(y - z * 2.1) * 3;
         return std::make_tuple(output_arg("f", f), optional_output_arg("g", g));
       },
       "func", arg("x"), arg("y"), arg("z"));
@@ -193,8 +193,8 @@ TEST(IrTest, TestScalarExpressions2) {
 TEST(IrTest, TestScalarExpressions3) {
   // y * z should get combined in the output, since it appears more:
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
-        Expr f = (x * y * z) + (y * z) - sin(y * z) * (y * z) + log(x * z) + cos(x * y);
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
+        scalar_expr f = (x * y * z) + (y * z) - sin(y * z) * (y * z) + log(x * z) + cos(x * y);
         return f;
       },
       "func", arg("x"), arg("y"), arg("z"));
@@ -212,9 +212,9 @@ TEST(IrTest, TestScalarExpressions3) {
 
 TEST(IrTest, TestScalarExpressions4) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
         // Chain together a few operations (this doesn't reduce at all).
-        Expr f = constants::one;
+        scalar_expr f = constants::one;
         for (int i = 0; i < 20; ++i) {
           if (i & 1) {
             f = (f + x) * y;
@@ -236,7 +236,7 @@ TEST(IrTest, TestScalarExpressions4) {
 // Test that powers can be converted into multiplications.
 TEST(IrTest, TestPowerConversion1) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x) {
+      [](scalar_expr x) {
         return 0.13 * pow(x, 2) + 1.2 * pow(x, 3) - 5.0 * pow(x, 4) + 0.9 * pow(x, 5) -
                7 * pow(x, 6);
       },
@@ -254,8 +254,8 @@ TEST(IrTest, TestPowerConversion1) {
 // Test that powers of square roots are convert into sqrt operations.
 TEST(IrTest, TestPowerConversion2) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
-        Expr c = x * x + y * y;
+      [](scalar_expr x, scalar_expr y) {
+        scalar_expr c = x * x + y * y;
         return pow(c, 1_s / 2) + 1 / pow(c, 5_s / 2) + pow(c, 3_s / 2);
       },
       "func", arg("x"), arg("y"));
@@ -274,7 +274,7 @@ TEST(IrTest, TestPowerConversion2) {
 
 TEST(IrTest, TestConditionals1) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x) {
+      [](scalar_expr x) {
         // heaviside step function:
         return where(x > 0, 1, 0);
       },
@@ -292,9 +292,9 @@ TEST(IrTest, TestConditionals1) {
 
 TEST(IrTest, TestConditionals2) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
+      [](scalar_expr x, scalar_expr y) {
         // use the condition in one of the branches:
-        Expr condition = x > y;
+        scalar_expr condition = x > y;
         return where(condition, condition * 2, cos(y - 2));
       },
       "func", arg("x"), arg("y"));
@@ -311,7 +311,7 @@ TEST(IrTest, TestConditionals2) {
 
 TEST(IrTest, TestConditionals3) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
+      [](scalar_expr x, scalar_expr y) {
         // exclusive or
         return where(x > 0, where(y > 0, 0, 1), where(y > 0, 1, 0));
       },
@@ -330,10 +330,10 @@ TEST(IrTest, TestConditionals3) {
 TEST(IrTest, TestConditionals4) {
   // Nested conditionals:
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
-        Expr p = where(x > 0, cos(x), sin(z));
-        Expr q = where(y < -5, -log(p), tan(x + y));
-        Expr l = where(pow(z, 2) < y, q, q - p);
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
+        scalar_expr p = where(x > 0, cos(x), sin(z));
+        scalar_expr q = where(y < -5, -log(p), tan(x + y));
+        scalar_expr l = where(pow(z, 2) < y, q, q - p);
         return l * 2;
       },
       "func", arg("x"), arg("y"), arg("z"));
@@ -351,12 +351,12 @@ TEST(IrTest, TestConditionals4) {
 TEST(IrTest, TestConditionals5) {
   // Optional outputs and conditionals:
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
-        Expr p = where(x > y, cos(x) * sin(z) - sin(x) * cos(z) * 2, log(z - x) * 23);
-        Expr q = where(pow(z, y) < x, p * p, -cos(p) + x);
-        Expr f = q;
-        Expr g = q.diff(x);
-        Expr h = q.diff(x, 2);
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
+        scalar_expr p = where(x > y, cos(x) * sin(z) - sin(x) * cos(z) * 2, log(z - x) * 23);
+        scalar_expr q = where(pow(z, y) < x, p * p, -cos(p) + x);
+        scalar_expr f = q;
+        scalar_expr g = q.diff(x);
+        scalar_expr h = q.diff(x, 2);
         return std::make_tuple(return_value(f), optional_output_arg("g", g),
                                optional_output_arg("h", h));
       },
@@ -375,8 +375,8 @@ TEST(IrTest, TestConditionals5) {
 TEST(IrTest, TestConditionals6) {
   // Create nested conditionals several layers deep:
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z, Expr w) {
-        Expr f = where(x > 0, x, 1 - x);
+      [](scalar_expr x, scalar_expr y, scalar_expr z, scalar_expr w) {
+        scalar_expr f = where(x > 0, x, 1 - x);
         f = where(y > 0, f * y, f * (1 - y));
         f = where(z > 0, f * z, f * (1 - z));
         return where(w > 0, f * w, f * (1 - w));
@@ -396,7 +396,8 @@ TEST(IrTest, TestConditionals6) {
 TEST(IrTest, TestConditionals7) {
   // Nested conditionals with identical conditions:
   auto [expected_expressions, ir] =
-      create_ir([](Expr x, Expr y, Expr z) { return where(x > 0, where(x > 0, y, z), 10 * z - y); },
+      create_ir([](scalar_expr x, scalar_expr y,
+                   scalar_expr z) { return where(x > 0, where(x > 0, y, z), 10 * z - y); },
                 "func", arg("x"), arg("y"), arg("z"));
 
   ASSERT_EQ(8, ir.num_operations()) << ir;
@@ -412,10 +413,10 @@ TEST(IrTest, TestConditionals7) {
 TEST(IrTest, TestConditionals8) {
   // Nested conditionals (values of inner conditionals used for outer ones).
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
-        Expr c0 = where(y > 0, cos(x * y), cos(x) + 2);
-        Expr c1 = where(x > 0, log(abs(y)), atan2(y, x) * 3);
-        Expr c2 = where(x - y > 0, c0 * 3 - sqrt(abs(c0)), pow(abs(c1), 1.0 / 3.0) / 5);
+      [](scalar_expr x, scalar_expr y) {
+        scalar_expr c0 = where(y > 0, cos(x * y), cos(x) + 2);
+        scalar_expr c1 = where(x > 0, log(abs(y)), atan2(y, x) * 3);
+        scalar_expr c2 = where(x - y > 0, c0 * 3 - sqrt(abs(c0)), pow(abs(c1), 1.0 / 3.0) / 5);
         return c2;
       },
       "func", arg("x"), arg("y"));
@@ -433,7 +434,7 @@ TEST(IrTest, TestConditionals8) {
 TEST(IrTest, TestMatrixExpressions1) {
   // Create a matrix output:
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, const ta::static_matrix<2, 1>& v) {
+      [](scalar_expr x, const ta::static_matrix<2, 1>& v) {
         ta::static_matrix<2, 2> m = v * v.transposed() * x;
         return m;
       },
@@ -452,8 +453,8 @@ TEST(IrTest, TestMatrixExpressions1) {
 TEST(IrTest, TestMatrixExpressions2) {
   // Construct a matrix w/ a repeated conditional:
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
-        std::vector<Expr> expressions{};
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
+        std::vector<scalar_expr> expressions{};
         for (int i = 0; i < 16; ++i) {
           expressions.push_back(where(x > 0, pow(y, i), pow(z, 16 - z)));
         }
@@ -502,9 +503,9 @@ TEST(IrTest, TestMatrixExpressions3) {
 TEST(IrTest, TestBuiltInFunctions) {
   // create expressions that use all the built-in functions
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
-        Expr g = acos(x - log(y) * pow(x, 1.231) + pow(z, 22));
-        Expr h = asin(2.0 * tan(y) - abs(z));
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
+        scalar_expr g = acos(x - log(y) * pow(x, 1.231) + pow(z, 22));
+        scalar_expr h = asin(2.0 * tan(y) - abs(z));
         return atan2(abs(g) + cos(y) + signum(h), -sin(y) + sqrt(z) - signum(x));
       },
       "func", arg("x"), arg("y"), arg("z"));
@@ -533,9 +534,9 @@ TEST(IrTest, TestBuiltInFunctions) {
 }
 
 // Make a external function that accepts two arguments (one scalar, one matrix).
-class custom_func_1
-    : public declare_external_function<custom_func_1, Expr,
-                                       type_list<Expr, type_annotations::static_matrix<2, 2>>> {
+class custom_func_1 : public declare_external_function<
+                          custom_func_1, scalar_expr,
+                          type_list<scalar_expr, type_annotations::static_matrix<2, 2>>> {
  public:
   static constexpr std::string_view name() noexcept { return "custom_func_1"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
@@ -543,7 +544,7 @@ class custom_func_1
 
 TEST(IrTest, TestExternalFunction1) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
+      [](scalar_expr x, scalar_expr y) {
         auto m = make_matrix(2, 2, x - 2 * y, log(x), -x * y, y / 4 + cos(x));
         return custom_func_1::call(cos(x) * y, m) + 5;
       },
@@ -560,7 +561,7 @@ TEST(IrTest, TestExternalFunction1) {
 // Make a external function that returns a matrix.
 class custom_func_2
     : public declare_external_function<custom_func_2, type_annotations::static_matrix<2, 4>,
-                                       type_list<Expr, Expr>> {
+                                       type_list<scalar_expr, scalar_expr>> {
  public:
   static constexpr std::string_view name() noexcept { return "custom_func_2"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
@@ -568,7 +569,7 @@ class custom_func_2
 
 TEST(IrTest, TestExternalFunction2) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
+      [](scalar_expr x, scalar_expr y) {
         const matrix_expr m = custom_func_2::call(x + 2, y / 3);
         return ta::static_matrix<2, 4>(
             m + make_matrix(2, 4, x * y, cos(y), 0, -2, -5 * x - sin(y), 1, 0, x * y));
@@ -585,8 +586,8 @@ TEST(IrTest, TestExternalFunction2) {
 
 // A custom type used to support tests below.
 struct point_2d {
-  Expr x{0};
-  Expr y{0};
+  scalar_expr x{0};
+  scalar_expr y{0};
 };
 
 template <>
@@ -599,8 +600,8 @@ struct custom_type_registrant<point_2d> {
 };
 
 // Make a external function that returns a custom type.
-class custom_func_3
-    : public declare_external_function<custom_func_3, point_2d, type_list<Expr, Expr>> {
+class custom_func_3 : public declare_external_function<custom_func_3, point_2d,
+                                                       type_list<scalar_expr, scalar_expr>> {
  public:
   static constexpr std::string_view name() noexcept { return "custom_func_3"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
@@ -608,7 +609,7 @@ class custom_func_3
 
 TEST(IrTest, TestExternalFunction3) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y) {
+      [](scalar_expr x, scalar_expr y) {
         const point_2d p = custom_func_3::call(x + y * 5, cos(y));
         point_2d p2{p.x - 2 * x, p.y / y};
         return std::make_tuple(return_value(p), optional_output_arg("p2", p2));
@@ -625,7 +626,7 @@ TEST(IrTest, TestExternalFunction3) {
 
 // Make a external function that accepts a custom type as a parameter.
 class custom_func_4
-    : public declare_external_function<custom_func_4, point_2d, type_list<point_2d, Expr>> {
+    : public declare_external_function<custom_func_4, point_2d, type_list<point_2d, scalar_expr>> {
  public:
   static constexpr std::string_view name() noexcept { return "custom_func_4"; }
   static constexpr auto arg_names() noexcept { return std::make_tuple("arg0", "arg1"); }
@@ -633,7 +634,7 @@ class custom_func_4
 
 TEST(IrTest, TestExternalFunction4) {
   auto [expected_expressions, ir] = create_ir(
-      [](Expr x, Expr y, Expr z) {
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
         const point_2d p = custom_func_4::call(point_2d{x * 3, y / 2}, z + constants::pi / 2);
         return sqrt(pow(p.x, 2) + pow(p.y, 2));
       },
@@ -650,8 +651,8 @@ TEST(IrTest, TestExternalFunction4) {
 // Accept a custom type as an argument, and pass it to a external function.
 TEST(IrTest, TestExternalFunction5) {
   auto [expected_expressions, ir] =
-      create_ir([](point_2d p1, Expr w) { return custom_func_4::call(p1, w * p1.x - 22); }, "func",
-                arg("p1"), arg("w"));
+      create_ir([](point_2d p1, scalar_expr w) { return custom_func_4::call(p1, w * p1.x - 22); },
+                "func", arg("p1"), arg("w"));
 
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
@@ -673,10 +674,10 @@ class custom_func_5
 // Call one external function and pass the result to another.
 TEST(IrTest, TestExternalFunction6) {
   auto [expected_expressions, ir] = create_ir(
-      [](point_2d p, Expr w) {
+      [](point_2d p, scalar_expr w) {
         const point_2d p2 = custom_func_5::call(p);
         const point_2d p3 = custom_func_4::call(p2, p.x * w + 5);
-        const Expr f = custom_func_1::call(w, make_matrix(2, 2, p2.x, p2.y, p3.x, p3.y));
+        const scalar_expr f = custom_func_1::call(w, make_matrix(2, 2, p2.x, p2.y, p3.x, p3.y));
         const point_2d p4{p3.y / w + f, p3.y + w * cos(p3.x)};
         return p4;
       },

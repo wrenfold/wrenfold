@@ -13,9 +13,9 @@ std::string compound_expr::to_string() const {
   return formatter.take_output();
 }
 
-std::vector<Expr> create_expression_elements(const compound_expr& provenance,
-                                             const std::size_t num) {
-  std::vector<Expr> elements{};
+std::vector<scalar_expr> create_expression_elements(const compound_expr& provenance,
+                                                    const std::size_t num) {
+  std::vector<scalar_expr> elements{};
   elements.reserve(num);
   for (const std::size_t index : make_range(num)) {
     elements.emplace_back(compound_expression_element::create(provenance, index));
@@ -28,7 +28,7 @@ compound_expr create_custom_type_argument(const custom_type& type, const std::si
 }
 
 compound_expr create_custom_type_construction(const custom_type& type,
-                                              std::vector<Expr> expressions) {
+                                              std::vector<scalar_expr> expressions) {
   return custom_type_construction::create(type, std::move(expressions));
 }
 

@@ -14,7 +14,7 @@ namespace wf {
 static_assert(std::is_move_assignable_v<matrix_expr> && std::is_move_constructible_v<matrix_expr>,
               "Should be movable");
 
-matrix_expr matrix_expr::create(index_t rows, index_t cols, std::vector<Expr> args) {
+matrix_expr matrix_expr::create(index_t rows, index_t cols, std::vector<scalar_expr> args) {
   return matrix_expr{std::in_place_type_t<matrix>{}, rows, cols, std::move(args)};
 }
 
@@ -28,11 +28,11 @@ index_t matrix_expr::rows() const { return as_matrix().rows(); }
 
 index_t matrix_expr::cols() const { return as_matrix().cols(); }
 
-const Expr& matrix_expr::operator[](index_t i) const { return as_matrix()[i]; }
+const scalar_expr& matrix_expr::operator[](index_t i) const { return as_matrix()[i]; }
 
-const Expr& matrix_expr::operator()(index_t i, index_t j) const { return as_matrix()(i, j); }
+const scalar_expr& matrix_expr::operator()(index_t i, index_t j) const { return as_matrix()(i, j); }
 
-void matrix_expr::set(index_t i, index_t j, const Expr& value) {
+void matrix_expr::set(index_t i, index_t j, const scalar_expr& value) {
   as_matrix_mut().set_unchecked(i, j, value);
 }
 
@@ -60,9 +60,9 @@ matrix_expr matrix_expr::reshape(index_t nrows, index_t ncols) const {
   return matrix_expr::create(nrows, ncols, to_vector());
 }
 
-Expr matrix_expr::squared_norm() const {
+scalar_expr matrix_expr::squared_norm() const {
   const matrix& m = as_matrix();
-  std::vector<Expr> operands{};
+  std::vector<scalar_expr> operands{};
   operands.reserve(m.size());
   for (const auto& x : m) {
     operands.push_back(pow(x, 2));
@@ -70,21 +70,21 @@ Expr matrix_expr::squared_norm() const {
   return addition::from_operands(operands);
 }
 
-Expr matrix_expr::norm() const { return sqrt(squared_norm()); }
+scalar_expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
 const matrix& matrix_expr::as_matrix() const { return cast_unchecked<const matrix>(*this); }
 
 matrix& matrix_expr::as_matrix_mut() { return cast_unchecked<matrix>(*this); }
 
-std::vector<Expr> matrix_expr::to_vector() const { return as_matrix().data(); }
+std::vector<scalar_expr> matrix_expr::to_vector() const { return as_matrix().data(); }
 
 matrix_expr matrix_expr::operator-() const { return operator*(*this, constants::negative_one); }
 
-matrix_expr matrix_expr::diff(const Expr& var, const int reps,
+matrix_expr matrix_expr::diff(const scalar_expr& var, const int reps,
                               const non_differentiable_behavior behavior) const {
   derivative_visitor visitor{var, behavior};
-  return matrix_expr{as_matrix().map_children([&visitor, reps](const Expr& x) {
-    Expr result = x;
+  return matrix_expr{as_matrix().map_children([&visitor, reps](const scalar_expr& x) {
+    scalar_expr result = x;
     for (int i = 0; i < reps; ++i) {
       result = visitor.apply(result);
     }
@@ -92,7 +92,7 @@ matrix_expr matrix_expr::diff(const Expr& var, const int reps,
   })};
 }
 
-matrix_expr matrix_expr::jacobian(const absl::Span<const Expr> vars,
+matrix_expr matrix_expr::jacobian(const absl::Span<const scalar_expr> vars,
                                   const non_differentiable_behavior behavior) const {
   if (cols() != 1) {
     throw dimension_error(
@@ -117,14 +117,14 @@ matrix_expr matrix_expr::distribute() const {
   return matrix_expr{as_matrix().map_children(&wf::distribute)};
 }
 
-matrix_expr matrix_expr::subs(const Expr& target, const Expr& replacement) const {
+matrix_expr matrix_expr::subs(const scalar_expr& target, const scalar_expr& replacement) const {
   return matrix_expr{
-      as_matrix().map_children([&](const Expr& x) { return x.subs(target, replacement); })};
+      as_matrix().map_children([&](const scalar_expr& x) { return x.subs(target, replacement); })};
 }
 
-matrix_expr matrix_expr::collect(absl::Span<const Expr> terms) const {
+matrix_expr matrix_expr::collect(absl::Span<const scalar_expr> terms) const {
   return matrix_expr{
-      as_matrix().map_children([&terms](const Expr& x) { return collect_many(x, terms); })};
+      as_matrix().map_children([&terms](const scalar_expr& x) { return collect_many(x, terms); })};
 }
 
 matrix_expr matrix_expr::eval() const {
@@ -154,13 +154,13 @@ matrix_expr operator*(const matrix_expr& a, const matrix_expr& b) {
   return matrix_expr{a.as_matrix() * b.as_matrix()};
 }
 
-matrix_expr operator*(const matrix_expr& a, const Expr& b) {
+matrix_expr operator*(const matrix_expr& a, const scalar_expr& b) {
   const matrix& a_mat = a.as_matrix();
 
-  std::vector<Expr> data{};
+  std::vector<scalar_expr> data{};
   data.reserve(a_mat.size());
   std::transform(a_mat.begin(), a_mat.end(), std::back_inserter(data),
-                 [&b](const Expr& a_expr) { return a_expr * b; });
+                 [&b](const scalar_expr& a_expr) { return a_expr * b; });
 
   return matrix_expr{matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
 }

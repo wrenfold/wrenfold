@@ -37,22 +37,23 @@ class castable_variant {
 // Convert the IR operations back to expressions.
 // This is supported so we can do round-trip tests.
 struct expression_from_ir_visitor {
-  using expr_variant = castable_variant<Expr, matrix_expr, compound_expr>;
+  using expr_variant = castable_variant<scalar_expr, matrix_expr, compound_expr>;
 
   explicit expression_from_ir_visitor(std::unordered_map<std::string, bool>&& output_arg_exists)
       : output_arg_exists_(std::move(output_arg_exists)) {
     value_to_expression_.reserve(200);
   }
 
-  Expr operator()(const ir::add&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::add&, const std::vector<ir::value_ptr>& args) const {
     return map_scalar_value(args[0]) + map_scalar_value(args[1]);
   }
 
-  Expr operator()(const ir::mul&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::mul&, const std::vector<ir::value_ptr>& args) const {
     return map_scalar_value(args[0]) * map_scalar_value(args[1]);
   }
 
-  Expr operator()(const ir::output_required& output, const std::vector<ir::value_ptr>&) const {
+  scalar_expr operator()(const ir::output_required& output,
+                         const std::vector<ir::value_ptr>&) const {
     return output_arg_exists_.at(output.name()) ? constants::boolean_true
                                                 : constants::boolean_false;
   }
@@ -107,7 +108,8 @@ struct expression_from_ir_visitor {
     }
   }
 
-  Expr operator()(const ir::call_std_function& func, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::call_std_function& func,
+                         const std::vector<ir::value_ptr>& args) const {
     function::container_type container{};
     std::transform(args.begin(), args.end(), std::back_inserter(container),
                    [this](ir::value_ptr v) { return map_scalar_value(v); });
@@ -115,7 +117,7 @@ struct expression_from_ir_visitor {
     if (func.name() == std_math_function::powi || func.name() == std_math_function::powf) {
       return pow(container[0], container[1]);
     } else if (func.name() == std_math_function::sqrt) {
-      static const Expr one_half = constants::one / 2;
+      static const scalar_expr one_half = constants::one / 2;
       return pow(container[0], one_half);
     } else {
       return function::create(built_in_function_from_standard_library_function(func.name()),
@@ -123,19 +125,19 @@ struct expression_from_ir_visitor {
     }
   }
 
-  Expr operator()(const ir::cast&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::cast&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT(!args.empty());
     return map_scalar_value(args[0]);
   }
 
-  Expr operator()(const ir::compare& cmp, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::compare& cmp, const std::vector<ir::value_ptr>& args) const {
     return relational::create(cmp.operation(), map_scalar_value(args[0]),
                               map_scalar_value(args[1]));
   }
 
   expr_variant operator()(const ir::construct& construct,
                           const std::vector<ir::value_ptr>& args) const {
-    std::vector<Expr> args_converted{};
+    std::vector<scalar_expr> args_converted{};
     args_converted.reserve(args.size());
     for (const ir::value_ptr arg : args) {
       args_converted.push_back(map_scalar_value(arg));
@@ -150,30 +152,30 @@ struct expression_from_ir_visitor {
         });
   }
 
-  Expr operator()(const ir::cond&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::cond&, const std::vector<ir::value_ptr>& args) const {
     return where(map_scalar_value(args[0]), map_scalar_value(args[1]), map_scalar_value(args[2]));
   }
 
-  Expr operator()(const ir::copy&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::copy&, const std::vector<ir::value_ptr>& args) const {
     return map_scalar_value(args[0]);
   }
 
-  Expr operator()(const ir::div&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::div&, const std::vector<ir::value_ptr>& args) const {
     return map_scalar_value(args[0]) / map_scalar_value(args[1]);
   }
 
-  Expr operator()(const ir::get& get, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::get& get, const std::vector<ir::value_ptr>& args) const {
     compound_expr provenance = static_cast<compound_expr>(map_value(args.front()));
-    return Expr{std::in_place_type_t<compound_expression_element>{}, std::move(provenance),
-                get.index()};
+    return scalar_expr{std::in_place_type_t<compound_expression_element>{}, std::move(provenance),
+                       get.index()};
   }
 
   expr_variant operator()(const ir::load& load, const std::vector<ir::value_ptr>&) const {
     return std::visit(
         [](const auto& expression) -> expr_variant {
           using T = std::decay_t<decltype(expression)>;
-          if constexpr (type_list_contains_v<T, Expr::types>) {
-            return Expr{expression};
+          if constexpr (type_list_contains_v<T, scalar_expr::types>) {
+            return scalar_expr{expression};
           } else {
             return compound_expr{expression};
           }
@@ -181,11 +183,11 @@ struct expression_from_ir_visitor {
         load.variant());
   }
 
-  Expr operator()(const ir::neg&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::neg&, const std::vector<ir::value_ptr>& args) const {
     return -map_scalar_value(args.front());
   }
 
-  Expr operator()(const ir::phi&, const std::vector<ir::value_ptr>& args) const {
+  scalar_expr operator()(const ir::phi&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT_EQUAL(2, args.size());
 
     // We find to find the condition for this jump:
@@ -208,8 +210,8 @@ struct expression_from_ir_visitor {
     return arg_it->second;
   }
 
-  Expr map_scalar_value(const ir::value_ptr value) const {
-    return static_cast<Expr>(map_value(value));  // implicit cast
+  scalar_expr map_scalar_value(const ir::value_ptr value) const {
+    return static_cast<scalar_expr>(map_value(value));  // implicit cast
   }
 
   template <typename T>
@@ -221,7 +223,7 @@ struct expression_from_ir_visitor {
   const std::unordered_map<std::string, bool> output_arg_exists_;
 };
 
-std::unordered_map<output_key, std::vector<Expr>, hash_struct<output_key>>
+std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
 create_output_expression_map(const ir::block_ptr starting_block,
                              std::unordered_map<std::string, bool>&& output_arg_exists) {
   // Set of all visited blocks:
@@ -232,7 +234,7 @@ create_output_expression_map(const ir::block_ptr starting_block,
   queue.emplace_back(starting_block);
 
   // Map from key to ordered output expressions:
-  std::unordered_map<output_key, std::vector<Expr>, hash_struct<output_key>> output_map{};
+  std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>> output_map{};
   output_map.reserve(5);
 
   expression_from_ir_visitor visitor{std::move(output_arg_exists)};
@@ -253,7 +255,7 @@ create_output_expression_map(const ir::block_ptr starting_block,
           code->value_op(), [](const ir::jump_condition&) constexpr {},
           [&](const ir::save& save) {
             // Get all the output expressions for this output:
-            std::vector<Expr> output_expressions{};
+            std::vector<scalar_expr> output_expressions{};
             output_expressions.reserve(code->num_operands());
             for (const ir::value_ptr operand : code->operands()) {
               output_expressions.push_back(visitor.map_scalar_value(operand));

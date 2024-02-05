@@ -56,9 +56,9 @@ class custom_type_construction {
  public:
   static constexpr std::string_view name_str = "CustomTypeConstruction";
   static constexpr bool is_leaf_node = false;
-  using container_type = std::vector<Expr>;
+  using container_type = std::vector<scalar_expr>;
 
-  custom_type_construction(custom_type type, std::vector<Expr> args);
+  custom_type_construction(custom_type type, std::vector<scalar_expr> args);
 
   // The type being constructed.
   constexpr const custom_type& type() const noexcept { return type_; }
@@ -70,7 +70,7 @@ class custom_type_construction {
   std::size_t size() const noexcept { return args_.size(); }
 
   // Get the specified argument.
-  const Expr& at(const std::size_t index) const {
+  const scalar_expr& at(const std::size_t index) const {
     WF_ASSERT_LESS(index, size());
     return args_[index];
   }

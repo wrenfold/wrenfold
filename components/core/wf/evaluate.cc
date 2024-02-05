@@ -6,7 +6,7 @@
 namespace wf {
 
 template <typename T, typename>
-Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
+scalar_expr evaluate_visitor::operator()(const T& input_typed, const scalar_expr& input) {
   if constexpr (type_list_contains_v<T, derivative, complex_infinity>) {
     throw type_error("Cannot call eval on expression of type: {}", T::name_str);
   } else if constexpr (T::is_leaf_node) {
@@ -16,27 +16,27 @@ Expr evaluate_visitor::operator()(const T& input_typed, const Expr& input) {
   }
 }
 
-Expr evaluate_visitor::operator()(const integer_constant& x) const {
-  return Expr(static_cast<float_constant>(x));
+scalar_expr evaluate_visitor::operator()(const integer_constant& x) const {
+  return scalar_expr(static_cast<float_constant>(x));
 }
 
-Expr evaluate_visitor::operator()(const rational_constant& x) const {
-  return Expr(static_cast<float_constant>(x));
+scalar_expr evaluate_visitor::operator()(const rational_constant& x) const {
+  return scalar_expr(static_cast<float_constant>(x));
 }
 
-Expr evaluate_visitor::operator()(const symbolic_constant& c) const {
+scalar_expr evaluate_visitor::operator()(const symbolic_constant& c) const {
   const auto c_enum = c.name();
   const double value = double_from_symbolic_constant(c_enum);
   WF_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
             string_from_symbolic_constant(c_enum));
-  return Expr(value);
+  return scalar_expr(value);
 }
 
-Expr evaluate_visitor::operator()(const Expr& input) {
+scalar_expr evaluate_visitor::operator()(const scalar_expr& input) {
   if (auto it = cache_.find(input); it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit(input, *this);
+  scalar_expr result = visit(input, *this);
   cache_.emplace(input, result);
   return result;
 }
@@ -50,6 +50,6 @@ compound_expr evaluate_visitor::operator()(const compound_expr& input) {
   return result;
 }
 
-Expr evaluate(const Expr& arg) { return evaluate_visitor{}(arg); }
+scalar_expr evaluate(const scalar_expr& arg) { return evaluate_visitor{}(arg); }
 
 }  // namespace wf

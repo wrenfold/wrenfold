@@ -14,7 +14,7 @@ matrix matrix::get_block(const index_t row, const index_t col, const index_t nro
         "Block [position: ({}, {}), size: ({}, {})] is out of bounds for matrix of shape ({}, {})",
         row, col, nrows, ncols, rows_, cols_);
   }
-  std::vector<Expr> data;
+  std::vector<scalar_expr> data;
   data.reserve(nrows * ncols);
   iter_matrix(nrows, ncols,
               [&](index_t i, index_t j) { data.push_back(get_unchecked(i + row, j + col)); });
@@ -38,7 +38,7 @@ void matrix::set_block(const index_t row, const index_t col, const index_t nrows
 }
 
 matrix matrix::transposed() const {
-  std::vector<Expr> output{};
+  std::vector<scalar_expr> output{};
   output.reserve(size());
   const index_t output_rows = cols();
   const index_t output_cols = rows();
@@ -57,15 +57,15 @@ matrix operator*(const matrix& a, const matrix& b) {
   const index_t output_rows = a.rows();
   const index_t output_cols = b.cols();
 
-  std::vector<Expr> output;
+  std::vector<scalar_expr> output;
   output.reserve(output_rows * output_cols);
 
-  std::vector<Expr> addition_args;
+  std::vector<scalar_expr> addition_args;
   iter_matrix(output_rows, output_cols, [&](index_t i, index_t j) {
     // Multiply row times column:
     addition_args.clear();
     for (index_t k = 0; k < a.cols(); ++k) {
-      Expr prod = a(i, k) * b(k, j);
+      scalar_expr prod = a(i, k) * b(k, j);
       if (!is_zero(prod)) {
         addition_args.push_back(std::move(prod));
       }
@@ -84,7 +84,7 @@ matrix operator+(const matrix& a, const matrix& b) {
     throw dimension_error("dimension mismatch in matrix addition: ({}, {}) + ({}, {}).", a.rows(),
                           a.cols(), b.rows(), b.cols());
   }
-  std::vector<Expr> output;
+  std::vector<scalar_expr> output;
   output.reserve(a.size());
   iter_matrix(a.rows(), a.cols(),
               [&](index_t i, index_t j) { output.push_back(a(i, j) + b(i, j)); });
@@ -97,7 +97,7 @@ matrix operator-(const matrix& a, const matrix& b) {
     throw dimension_error("dimension mismatch in matrix subtraction: ({}, {}) - ({}, {}).",
                           a.rows(), a.cols(), b.rows(), b.cols());
   }
-  std::vector<Expr> output;
+  std::vector<scalar_expr> output;
   output.reserve(a.size());
   iter_matrix(a.rows(), a.cols(),
               [&](index_t i, index_t j) { output.push_back(a(i, j) - b(i, j)); });

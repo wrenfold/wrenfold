@@ -69,12 +69,12 @@ struct tree_formatter {
     visit_right(*it);
   }
 
-  void operator()(const Expr& x) { visit(x, *this); }
+  void operator()(const scalar_expr& x) { visit(x, *this); }
 
   void operator()(const matrix_expr& m) { operator()(m.as_matrix()); }
 
   void operator()(const addition& op) {
-    absl::InlinedVector<Expr, 16> terms;
+    absl::InlinedVector<scalar_expr, 16> terms;
     terms.reserve(op.size());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
@@ -115,7 +115,7 @@ struct tree_formatter {
   }
 
   void operator()(const multiplication& op) {
-    absl::InlinedVector<Expr, 16> terms;
+    absl::InlinedVector<scalar_expr, 16> terms;
     terms.reserve(op.size());
     std::copy(op.begin(), op.end(), std::back_inserter(terms));
     std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
@@ -213,7 +213,7 @@ struct tree_formatter {
   std::string output_;
 };
 
-std::string Expr::to_expression_tree_string() const {
+std::string scalar_expr::to_expression_tree_string() const {
   tree_formatter formatter{};
   visit(*this, formatter);
   return formatter.take_output();

@@ -213,6 +213,6 @@ class determine_set_visitor {
   constexpr number_set operator()(const variable& var) const noexcept { return var.set(); }
 };
 
-number_set determine_numeric_set(const Expr& x) { return visit(x, determine_set_visitor{}); }
+number_set determine_numeric_set(const scalar_expr& x) { return visit(x, determine_set_visitor{}); }
 
 }  // namespace wf

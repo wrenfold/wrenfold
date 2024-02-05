@@ -60,7 +60,7 @@ struct row_iterator {
   }
 
   // De-reference. Behaves like doing `m[row]`.
-  std::variant<Expr, matrix_expr> operator*() const {
+  std::variant<scalar_expr, matrix_expr> operator*() const {
     if (parent_.cols() == 1) {
       return parent_[row_];
     } else {
@@ -77,13 +77,14 @@ struct row_iterator {
 };
 
 // Access a particular row and column (with support for negative indexing).
-Expr matrix_get_row_and_col(const matrix_expr& self, const std::tuple<index_t, index_t>& row_col) {
+scalar_expr matrix_get_row_and_col(const matrix_expr& self,
+                                   const std::tuple<index_t, index_t>& row_col) {
   auto [row, col] = row_col;
   return self(row < 0 ? (self.rows() + row) : row, col < 0 ? (self.cols() + col) : col);
 }
 
 // Return variant because this could be a single expression, or a matrix expression.
-std::variant<Expr, matrix_expr> matrix_get_row(const matrix_expr& self, const index_t row) {
+std::variant<scalar_expr, matrix_expr> matrix_get_row(const matrix_expr& self, const index_t row) {
   if (self.cols() == 1) {
     // Vectors convert to scalar automatically (don't form 1x1 matrix).
     return self[row < 0 ? (self.rows() + row) : row];
@@ -96,7 +97,7 @@ std::variant<Expr, matrix_expr> matrix_get_row(const matrix_expr& self, const in
 matrix_expr matrix_get_row_slice(const matrix_expr& self, py::slice slc) {
   const slice slice_index{self.rows(), slc};
 
-  std::vector<Expr> elements;
+  std::vector<scalar_expr> elements;
   elements.reserve(static_cast<std::size_t>(slice_index.length() * self.cols()));
 
   // Step over sliced rows and pull out all columns:
@@ -117,7 +118,7 @@ matrix_expr matrix_get_row_and_col_slice(const matrix_expr& self,
   const std::size_t num_elements =
       static_cast<std::size_t>(row_index.length()) * static_cast<std::size_t>(col_index.length());
 
-  std::vector<Expr> elements;
+  std::vector<scalar_expr> elements;
   elements.reserve(num_elements);
 
   // Step over sliced rows and pull out all columns:
@@ -136,7 +137,7 @@ matrix_expr matrix_get_row_index_and_col_slice(
   const index_t wrapped_row = row < 0 ? self.rows() - row : row;
   const slice col_index{self.cols(), col_slice};
 
-  std::vector<Expr> elements;
+  std::vector<scalar_expr> elements;
   elements.reserve(static_cast<std::size_t>(col_index.length()));
   for (index_t j = 0; j < col_index.length(); ++j) {
     elements.push_back(self(wrapped_row, col_index.map_index(j)));
@@ -151,7 +152,7 @@ matrix_expr matrix_get_row_slice_and_col_index(
   const index_t wrapped_col = col < 0 ? self.cols() - col : col;
   const slice row_index{self.rows(), row_slice};
 
-  std::vector<Expr> elements;
+  std::vector<scalar_expr> elements;
   elements.reserve(static_cast<std::size_t>(row_index.length()));
   for (index_t i = 0; i < row_index.length(); ++i) {
     elements.push_back(self(row_index.map_index(i), wrapped_col));
@@ -161,7 +162,7 @@ matrix_expr matrix_get_row_slice_and_col_index(
 
 // Set a particular row and column (with support for negative indexing).
 void matrix_set_row_and_col(matrix_expr& self, const std::tuple<index_t, index_t>& row_col,
-                            const Expr& other) {
+                            const scalar_expr& other) {
   auto [row, col] = row_col;
   self.set(row < 0 ? (self.rows() + row) : row, col < 0 ? (self.cols() + col) : col, other);
 }
@@ -224,10 +225,10 @@ void matrix_set_row_slice_and_col_index(matrix_expr& self,
   }
 }
 
-// Convert a container of Expr objects to a column vector.
+// Convert a container of scalar_expr objects to a column vector.
 template <typename Container>
 matrix_expr column_vector_from_container(const Container& inputs) {
-  std::vector<Expr> converted;
+  std::vector<scalar_expr> converted;
   cast_to_expr(inputs, converted);
   if (converted.empty()) {
     throw dimension_error("Cannot construct empty vector.");
@@ -236,10 +237,10 @@ matrix_expr column_vector_from_container(const Container& inputs) {
   return matrix_expr::create(rows, 1, std::move(converted));
 }
 
-// Convert a container of Expr objects to a row vector.
+// Convert a container of scalar_expr objects to a row vector.
 template <typename Container>
 matrix_expr row_vector_from_container(const Container& inputs) {
-  std::vector<Expr> converted;
+  std::vector<scalar_expr> converted;
   cast_to_expr(inputs, converted);
   if (converted.empty()) {
     throw dimension_error("Cannot construct empty row vector.");
@@ -248,7 +249,7 @@ matrix_expr row_vector_from_container(const Container& inputs) {
   return matrix_expr::create(1, cols, std::move(converted));
 }
 
-inline std::size_t extract_iterable_rows(const py::handle& row, std::vector<Expr>& output) {
+inline std::size_t extract_iterable_rows(const py::handle& row, std::vector<scalar_expr>& output) {
   if (py::isinstance<matrix_expr>(row)) {
     const matrix_expr as_matrix = py::cast<matrix_expr>(row);
     // If the "row" is a matrix, we stack them vertically:
@@ -263,7 +264,7 @@ inline std::size_t extract_iterable_rows(const py::handle& row, std::vector<Expr
 
 // Vertically stack a bunch of iterable objects into one big matrix.
 inline matrix_expr stack_iterables(const std::vector<py::object>& rows) {
-  std::vector<Expr> converted{};
+  std::vector<scalar_expr> converted{};
 
   // Transform the first row to get the # of columns.
   auto it = rows.begin();
@@ -314,9 +315,10 @@ matrix_expr matrix_from_iterable(py::iterable rows) {
 }
 
 // Perform element-wise map operation on a matrix.
-matrix_expr unary_map_matrix(const matrix_expr& self, const std::function<Expr(Expr)>& func) {
+matrix_expr unary_map_matrix(const matrix_expr& self,
+                             const std::function<scalar_expr(scalar_expr)>& func) {
   return matrix_expr::create(self.rows(), self.cols(),
-                             transform_map<std::vector<Expr>>(self.as_matrix(), func));
+                             transform_map<std::vector<scalar_expr>>(self.as_matrix(), func));
 }
 
 // Convert `matrix_expr` to a nested list.
@@ -334,7 +336,7 @@ py::list list_from_matrix(const matrix_expr& self) {
 
 py::list flat_list_from_matrix(const matrix_expr& self) {
   py::list output{};
-  for (const Expr& element : self.as_matrix()) {
+  for (const scalar_expr& element : self.as_matrix()) {
     output.append(element);
   }
   return output;
@@ -343,7 +345,7 @@ py::list flat_list_from_matrix(const matrix_expr& self) {
 // Convert matrix to numpy array.
 py::array numpy_from_matrix(const matrix_expr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
-  for (const Expr& expr : self.as_matrix()) {
+  for (const scalar_expr& expr : self.as_matrix()) {
     list.append(try_convert_to_numeric(expr));
   }
   auto array = py::array(list);
@@ -356,7 +358,7 @@ py::array numpy_from_matrix(const matrix_expr& self) {
 void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
   py::class_<matrix_expr>(m, "MatrixExpr")
-      // Expr inherited properties:
+      // scalar_expr inherited properties:
       .def("__repr__", &matrix_expr::to_string)
       .def("expression_tree_str", &matrix_expr::to_expression_tree_string,
            "Retrieve the expression tree as a pretty-printed string.")
@@ -370,7 +372,7 @@ void wrap_matrix_operations(py::module_& m) {
       // Operations:
       .def(
           "diff",
-          [](const matrix_expr& self, const Expr& var, int order, bool use_abstract) {
+          [](const matrix_expr& self, const scalar_expr& var, int order, bool use_abstract) {
             return self.diff(var, order,
                              use_abstract ? non_differentiable_behavior::abstract
                                           : non_differentiable_behavior::constant);
@@ -387,7 +389,7 @@ void wrap_matrix_operations(py::module_& m) {
           "Compute the jacobian of a vector-valued function with respect to vector of arguments.")
       .def(
           "jacobian",
-          [](const matrix_expr& self, const std::vector<Expr>& vars, bool use_abstract) {
+          [](const matrix_expr& self, const std::vector<scalar_expr>& vars, bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },
@@ -404,11 +406,14 @@ void wrap_matrix_operations(py::module_& m) {
           },
           "Evaluate into float expression.")
       .def(
-          "collect", [](const matrix_expr& self, const Expr& var) { return self.collect({var}); },
+          "collect",
+          [](const matrix_expr& self, const scalar_expr& var) { return self.collect({var}); },
           "var"_a, "Collect powers of the provided expression.")
       .def(
           "collect",
-          [](const matrix_expr& self, const std::vector<Expr>& vars) { return self.collect(vars); },
+          [](const matrix_expr& self, const std::vector<scalar_expr>& vars) {
+            return self.collect(vars);
+          },
           "var"_a, "Collect powers of the provided expressions.")
       // Matrix specific properties:
       .def_property_readonly(
@@ -479,10 +484,12 @@ void wrap_matrix_operations(py::module_& m) {
            static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(&operator*),
            py::is_operator())
       // Right-multiply by scalar:
-      .def("__mul__", static_cast<matrix_expr (*)(const matrix_expr&, const Expr&)>(&operator*),
+      .def("__mul__",
+           static_cast<matrix_expr (*)(const matrix_expr&, const scalar_expr&)>(&operator*),
            py::is_operator())
       // Left multiply by scalar:
-      .def("__rmul__", static_cast<matrix_expr (*)(const Expr&, const matrix_expr&)>(&operator*),
+      .def("__rmul__",
+           static_cast<matrix_expr (*)(const scalar_expr&, const matrix_expr&)>(&operator*),
            py::is_operator())
       .def("__neg__", &matrix_expr::operator-, "Element-wise negation of the matrix.")
       // Prohibit conversion to bool.
@@ -520,15 +527,15 @@ void wrap_matrix_operations(py::module_& m) {
         "Factorize a matrix using fully-pivoting LU decomposition.");
 
   // Version of where() for matrices
-  m.def(
-      "where",
-      static_cast<matrix_expr (*)(const Expr&, const matrix_expr&, const matrix_expr&)>(&wf::where),
-      "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
+  m.def("where",
+        static_cast<matrix_expr (*)(const scalar_expr&, const matrix_expr&, const matrix_expr&)>(
+            &wf::where),
+        "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
 
   // Jacobian of a list of expressions wrt another list of expressions.
   m.def(
       "jacobian",
-      [](const std::vector<Expr>& functions, const std::vector<Expr>& arguments,
+      [](const std::vector<scalar_expr>& functions, const std::vector<scalar_expr>& arguments,
          const bool use_abstract) {
         return jacobian({functions}, {arguments},
                         use_abstract ? non_differentiable_behavior::abstract

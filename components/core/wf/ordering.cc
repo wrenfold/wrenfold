@@ -33,11 +33,12 @@ struct order_visitor {
   }
 
   relative_order compare(const cast_bool& a, const cast_bool& b) const {
-    return order_struct<Expr>{}(a.arg(), b.arg());
+    return order_struct<scalar_expr>{}(a.arg(), b.arg());
   }
 
   relative_order compare(const conditional& a, const conditional& b) const {
-    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(),
+                                     order_struct<scalar_expr>{});
   }
 
   constexpr relative_order compare(const complex_infinity&,
@@ -46,7 +47,8 @@ struct order_visitor {
   }
 
   relative_order compare(const addition& a, const addition& b) const {
-    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(),
+                                     order_struct<scalar_expr>{});
   }
 
   relative_order compare(const derivative& a, const derivative& b) const {
@@ -55,15 +57,18 @@ struct order_visitor {
     } else if (a.order() > b.order()) {
       return relative_order::greater_than;
     }
-    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(),
+                                     order_struct<scalar_expr>{});
   }
 
   relative_order compare(const multiplication& a, const multiplication& b) const {
-    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(),
+                                     order_struct<scalar_expr>{});
   }
 
   relative_order compare(const power& a, const power& b) const {
-    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
+    return wf::lexicographical_order(a.begin(), a.end(), b.begin(), b.end(),
+                                     order_struct<scalar_expr>{});
   }
 
   relative_order compare(const function& a, const function& b) const {
@@ -74,7 +79,8 @@ struct order_visitor {
     } else if (name_comp < 0) {
       return relative_order::less_than;
     }
-    return lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
+    return lexicographical_order(a.begin(), a.end(), b.begin(), b.end(),
+                                 order_struct<scalar_expr>{});
   }
 
   relative_order compare(const relational& a, const relational& b) const {
@@ -83,7 +89,8 @@ struct order_visitor {
     } else if (a.operation() > b.operation()) {
       return relative_order::greater_than;
     }
-    return lexicographical_order(a.begin(), a.end(), b.begin(), b.end(), order_struct<Expr>{});
+    return lexicographical_order(a.begin(), a.end(), b.begin(), b.end(),
+                                 order_struct<scalar_expr>{});
   }
 
   constexpr relative_order compare(const undefined&, const undefined&) const noexcept {
@@ -118,13 +125,14 @@ static constexpr auto get_type_order_indices(type_list<AllTypes...>,
       static_cast<uint16_t>(type_list_index_v<AllTypes, ordered_list>)...};
 }
 
-relative_order order_struct<Expr>::operator()(const Expr& a, const Expr& b) const {
+relative_order order_struct<scalar_expr>::operator()(const scalar_expr& a,
+                                                     const scalar_expr& b) const {
   using order_of_types =
       type_list<float_constant, integer_constant, rational_constant, symbolic_constant,
                 complex_infinity, variable, multiplication, addition, power, function, relational,
                 conditional, cast_bool, compound_expression_element, derivative, undefined>;
   static constexpr auto order =
-      get_type_order_indices(Expr::storage_type::types{}, order_of_types{});
+      get_type_order_indices(scalar_expr::storage_type::types{}, order_of_types{});
 
   const auto index_a = order[a.type_index()];
   const auto index_b = order[b.type_index()];

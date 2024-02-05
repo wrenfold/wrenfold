@@ -28,12 +28,12 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   using expression_base::expression_base;
 
   // Static constructor: Create a dense matrix of expressions.
-  static matrix_expr create(index_t rows, index_t cols, std::vector<Expr> args);
+  static matrix_expr create(index_t rows, index_t cols, std::vector<scalar_expr> args);
 
   // Create from a pair of iterators.
   template <typename Iterator>
   static matrix_expr create(const index_t rows, const index_t cols, Iterator begin, Iterator end) {
-    return create(rows, cols, std::vector<Expr>{begin, end});
+    return create(rows, cols, std::vector<scalar_expr>{begin, end});
   }
 
   // Convert to string.
@@ -48,14 +48,14 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   // Differentiate with respect to a single variable. Reps defines how many derivatives to take.
   // The returned matrix is the element-wise derivative.
   matrix_expr diff(
-      const Expr& var, int reps = 1,
+      const scalar_expr& var, int reps = 1,
       non_differentiable_behavior behavior = non_differentiable_behavior::constant) const;
 
   // Differentiate a vector with respect to another vector, producing a Jacobian.
   // If the input is an [N,1] vector and `vars` has M expressions, the result will be an NxM matrix.
   // Throws if `this` is not a column vector.
   matrix_expr jacobian(
-      absl::Span<const Expr> vars,
+      absl::Span<const scalar_expr> vars,
       non_differentiable_behavior behavior = non_differentiable_behavior::constant) const;
 
   // Version of `jacobian` that accepts `matrix_expr` directly.
@@ -66,10 +66,10 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   matrix_expr distribute() const;
 
   // Create a new expression by recursively substituting `replacement` for `target`.
-  matrix_expr subs(const Expr& target, const Expr& replacement) const;
+  matrix_expr subs(const scalar_expr& target, const scalar_expr& replacement) const;
 
   // Collect terms in every element of this matrix.
-  matrix_expr collect(absl::Span<const Expr> terms) const;
+  matrix_expr collect(absl::Span<const scalar_expr> terms) const;
 
   // Evaluate to matrix of floats.
   matrix_expr eval() const;
@@ -84,13 +84,13 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   std::size_t size() const { return static_cast<std::size_t>(rows() * cols()); }
 
   // For vectors or row-vectors only. Access element `i`.
-  const Expr& operator[](index_t i) const;
+  const scalar_expr& operator[](index_t i) const;
 
   // Access row `i` and column `j`.
-  const Expr& operator()(index_t i, index_t j) const;
+  const scalar_expr& operator()(index_t i, index_t j) const;
 
   // Set row `i` and column `j` (only valid on dense matrix expression).
-  void set(index_t i, index_t j, const Expr& value);
+  void set(index_t i, index_t j, const scalar_expr& value);
 
   // Get a block of rows [start, start + length).
   matrix_expr get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
@@ -105,10 +105,10 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   [[nodiscard]] matrix_expr reshape(index_t nrows, index_t ncols) const;
 
   // Get the squared norm of the matrix.
-  Expr squared_norm() const;
+  scalar_expr squared_norm() const;
 
   // Get the norm of the matrix.
-  Expr norm() const;
+  scalar_expr norm() const;
 
   // Cast to underlying matrix type.
   const matrix& as_matrix() const;
@@ -117,7 +117,7 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   matrix& as_matrix_mut();
 
   // Convert to vector of expressions, in row-major order.
-  std::vector<Expr> to_vector() const;
+  std::vector<scalar_expr> to_vector() const;
 };
 
 // Relative order of matrices (first by dimensions, then by lexicographical order).
@@ -130,8 +130,8 @@ struct order_struct<matrix_expr> {
 matrix_expr operator+(const matrix_expr& a, const matrix_expr& b);
 matrix_expr operator-(const matrix_expr& a, const matrix_expr& b);
 matrix_expr operator*(const matrix_expr& a, const matrix_expr& b);
-matrix_expr operator*(const matrix_expr& a, const Expr& b);
-inline matrix_expr operator*(const Expr& a, const matrix_expr& b) { return b * a; }
+matrix_expr operator*(const matrix_expr& a, const scalar_expr& b);
+inline matrix_expr operator*(const scalar_expr& a, const matrix_expr& b) { return b * a; }
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const matrix_expr& x) {

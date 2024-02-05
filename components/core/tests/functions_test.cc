@@ -26,23 +26,23 @@ TEST(FunctionsTest, TestCosine) {
   ASSERT_IDENTICAL(constants::one, cos(0_s));
   for (int i = -15; i < 15; ++i) {
     // Even and odd multiples of pi.
-    ASSERT_IDENTICAL(constants::one, cos(Expr(i * 2) * constants::pi));
-    ASSERT_IDENTICAL(constants::negative_one, cos(Expr(i * 2 + 1) * constants::pi));
+    ASSERT_IDENTICAL(constants::one, cos(scalar_expr(i * 2) * constants::pi));
+    ASSERT_IDENTICAL(constants::negative_one, cos(scalar_expr(i * 2 + 1) * constants::pi));
   }
 
   ASSERT_IDENTICAL(constants::zero, cos(constants::pi / 2_s));
   ASSERT_IDENTICAL(constants::zero, cos(-constants::pi / 2_s));
   for (int i = -15; i < 15; ++i) {
     // Multiples of pi/2
-    ASSERT_IDENTICAL(constants::zero, cos(constants::pi / 2_s + Expr(i) * constants::pi));
+    ASSERT_IDENTICAL(constants::zero, cos(constants::pi / 2_s + scalar_expr(i) * constants::pi));
   }
 
   // Modulo:
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(cos(constants::pi * 3_s / 5_s),
-                     cos(constants::pi * 3_s / 5_s + Expr(2 * i) * constants::pi));
+                     cos(constants::pi * 3_s / 5_s + scalar_expr(2 * i) * constants::pi));
     ASSERT_IDENTICAL(cos(constants::pi * -2_s / 7_s),
-                     cos(constants::pi * -2_s / 7_s + Expr(2 * i) * constants::pi));
+                     cos(constants::pi * -2_s / 7_s + scalar_expr(2 * i) * constants::pi));
   }
 
   // Sign adjustment
@@ -52,7 +52,7 @@ TEST(FunctionsTest, TestCosine) {
 
   // Evaluation on floats:
   for (double v : {-0.51, 0.78, 1.8, -2.1}) {
-    ASSERT_IDENTICAL(Expr(std::cos(v)), cos(v));
+    ASSERT_IDENTICAL(scalar_expr(std::cos(v)), cos(v));
   }
 
   ASSERT_IDENTICAL(constants::undefined, cos(constants::complex_infinity));
@@ -67,24 +67,24 @@ TEST(FunctionsTest, TestSine) {
 
   ASSERT_IDENTICAL(constants::zero, sin(0_s));
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(constants::zero, sin(Expr(i * 2) * constants::pi));
-    ASSERT_IDENTICAL(constants::zero, sin(Expr(i * 2 + 1) * constants::pi));
+    ASSERT_IDENTICAL(constants::zero, sin(scalar_expr(i * 2) * constants::pi));
+    ASSERT_IDENTICAL(constants::zero, sin(scalar_expr(i * 2 + 1) * constants::pi));
   }
 
   ASSERT_IDENTICAL(constants::one, sin(constants::pi / 2_s));
   ASSERT_IDENTICAL(constants::negative_one, sin(-constants::pi / 2_s));
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(constants::one, sin(constants::pi / 2_s + Expr(i * 2) * constants::pi));
+    ASSERT_IDENTICAL(constants::one, sin(constants::pi / 2_s + scalar_expr(i * 2) * constants::pi));
     ASSERT_IDENTICAL(constants::negative_one,
-                     sin(-constants::pi / 2_s + Expr(i * 2) * constants::pi));
+                     sin(-constants::pi / 2_s + scalar_expr(i * 2) * constants::pi));
   }
 
   // Modulo:
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(sin(constants::pi * 2_s / 11_s),
-                     sin(constants::pi * 2_s / 11_s + Expr(2 * i) * constants::pi));
+                     sin(constants::pi * 2_s / 11_s + scalar_expr(2 * i) * constants::pi));
     ASSERT_IDENTICAL(sin(constants::pi * -6_s / 13_s),
-                     sin(constants::pi * -6_s / 13_s + Expr(2 * i) * constants::pi));
+                     sin(constants::pi * -6_s / 13_s + scalar_expr(2 * i) * constants::pi));
   }
 
   ASSERT_IDENTICAL(-sin(x), sin(-x));
@@ -92,7 +92,7 @@ TEST(FunctionsTest, TestSine) {
   ASSERT_IDENTICAL(-sin(3_s / 5_s), sin(-3_s / 5_s));
 
   for (double v : {6.0, 0.112, -0.65, 0.22}) {
-    ASSERT_IDENTICAL(Expr(std::sin(v)), sin(v));
+    ASSERT_IDENTICAL(scalar_expr(std::sin(v)), sin(v));
   }
 
   ASSERT_IDENTICAL(constants::undefined, sin(constants::complex_infinity));
@@ -107,27 +107,28 @@ TEST(FunctionsTest, TestTan) {
 
   // Zero at multiples of pi.
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(constants::zero, tan(Expr(i) * constants::pi));
+    ASSERT_IDENTICAL(constants::zero, tan(scalar_expr(i) * constants::pi));
   }
 
   // complex_infinity at odd multiples of pi/2:
   for (int i = -15; i < 15; ++i) {
-    ASSERT_IDENTICAL(constants::complex_infinity, tan(Expr(i * 2 + 1) * constants::pi / 2_s));
+    ASSERT_IDENTICAL(constants::complex_infinity,
+                     tan(scalar_expr(i * 2 + 1) * constants::pi / 2_s));
   }
 
   // Modulo pi:
   for (int i = -15; i < 15; ++i) {
     ASSERT_IDENTICAL(tan(constants::pi * 4_s / 11_s),
-                     tan(constants::pi * 4_s / 11_s + Expr(i) * constants::pi));
+                     tan(constants::pi * 4_s / 11_s + scalar_expr(i) * constants::pi));
     ASSERT_IDENTICAL(tan(constants::pi * -3_s / 13_s),
-                     tan(constants::pi * -3_s / 13_s + Expr(i) * constants::pi));
+                     tan(constants::pi * -3_s / 13_s + scalar_expr(i) * constants::pi));
   }
 
   ASSERT_IDENTICAL(-tan(x), tan(-x));
   ASSERT_IDENTICAL(-tan(x * y), tan(-x * y));
 
   for (double v : {-4.0, -0.132, 1.6, 6.8}) {
-    ASSERT_IDENTICAL(Expr(std::tan(v)), tan(v));
+    ASSERT_IDENTICAL(scalar_expr(std::tan(v)), tan(v));
   }
 
   ASSERT_IDENTICAL(constants::undefined, tan(constants::complex_infinity));

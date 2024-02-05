@@ -100,28 +100,28 @@ class function_description {
   // Returns the argument that the python side should pass to the user method.
   // For custom types, we return a vector of expressions and the python side must map these to
   // fields on the user's custom type.
-  std::variant<Expr, matrix_expr, compound_expr> add_input_argument(std::string_view name,
-                                                                    type_variant type);
+  std::variant<scalar_expr, matrix_expr, compound_expr> add_input_argument(std::string_view name,
+                                                                           type_variant type);
 
   // Record an output.
   void add_output_argument(std::string_view name, type_variant type, bool is_optional,
-                           std::vector<Expr> expressions);
+                           std::vector<scalar_expr> expressions);
 
   // Set the return value. Only one return value is presently supported, so this may only be invoked
   // once.
-  void set_return_value(type_variant type, std::vector<Expr> expressions);
+  void set_return_value(type_variant type, std::vector<scalar_expr> expressions);
 
   // Add a `return_value` to this signature.
   template <typename Value, typename Type>
   void add_output_value(const return_value<Value>& value, Type type) {
-    std::vector<Expr> expressions = detail::extract_function_output(type, value.value());
+    std::vector<scalar_expr> expressions = detail::extract_function_output(type, value.value());
     set_return_value(std::move(type), std::move(expressions));
   }
 
   // Add an `output_arg` output to this function.
   template <typename Value, typename Type>
   void add_output_value(const output_arg<Value>& value, Type type) {
-    std::vector<Expr> expressions = detail::extract_function_output(type, value.value());
+    std::vector<scalar_expr> expressions = detail::extract_function_output(type, value.value());
     add_output_argument(value.name(), std::move(type), value.is_optional(), std::move(expressions));
   }
 

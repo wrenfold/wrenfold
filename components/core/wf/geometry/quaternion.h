@@ -14,7 +14,7 @@ class quaternion {
  public:
   // Initialize with elements in order [w, x, y, z].
   // No normalization occurs by default.
-  quaternion(Expr w, Expr x, Expr y, Expr z)
+  quaternion(scalar_expr w, scalar_expr x, scalar_expr y, scalar_expr z)
       : wxyz_{std::move(w), std::move(x), std::move(y), std::move(z)} {}
 
   // Default initialize to identity (w = 1, xyz = 0).
@@ -43,17 +43,18 @@ class quaternion {
   static quaternion from_name_prefix(std::string_view name);
 
   // Access components:
-  constexpr const Expr& w() const noexcept { return wxyz_[0]; }
-  constexpr const Expr& x() const noexcept { return wxyz_[1]; }
-  constexpr const Expr& y() const noexcept { return wxyz_[2]; }
-  constexpr const Expr& z() const noexcept { return wxyz_[3]; }
+  constexpr const scalar_expr& w() const noexcept { return wxyz_[0]; }
+  constexpr const scalar_expr& x() const noexcept { return wxyz_[1]; }
+  constexpr const scalar_expr& y() const noexcept { return wxyz_[2]; }
+  constexpr const scalar_expr& z() const noexcept { return wxyz_[3]; }
 
   // Access coeff array as wxyz array.
-  constexpr const std::array<Expr, 4>& wxyz() const noexcept { return wxyz_; }
+  constexpr const std::array<scalar_expr, 4>& wxyz() const noexcept { return wxyz_; }
 
   // True if all sub-expressions in the quaternion are identical to those in the argument.
   bool is_identical_to(const quaternion& other) const {
-    return std::equal(wxyz_.begin(), wxyz_.end(), other.wxyz_.begin(), is_identical_struct<Expr>{});
+    return std::equal(wxyz_.begin(), wxyz_.end(), other.wxyz_.begin(),
+                      is_identical_struct<scalar_expr>{});
   }
 
   // Convert to a column vector in [w,x,y,z] order.
@@ -63,17 +64,17 @@ class quaternion {
   matrix_expr to_vector_xyzw() const;
 
   // Create a new quaternion by substituting.
-  quaternion subs(const Expr& target, const Expr& replacement) const;
+  quaternion subs(const scalar_expr& target, const scalar_expr& replacement) const;
 
   // The squared L2 norm of the quaternion elements.
-  Expr squared_norm() const;
+  scalar_expr squared_norm() const;
 
   // The norm of the quaternion.
-  Expr norm() const;
+  scalar_expr norm() const;
 
   // Return a copy of this quaternion that has been normalized.
   [[nodiscard]] quaternion normalized() const {
-    const Expr n = norm();
+    const scalar_expr n = norm();
     return {w() / n, x() / n, y() / n, z() / n};
   }
 
@@ -83,8 +84,8 @@ class quaternion {
 
   // Invert the quaternion by conjugating and normalizing.
   [[nodiscard]] quaternion inverse() const {
-    const Expr n = norm();
-    const Expr negative_norm = -n;
+    const scalar_expr n = norm();
+    const scalar_expr negative_norm = -n;
     return {w() / n, x() / negative_norm, y() / negative_norm, z() / negative_norm};
   }
 
@@ -94,45 +95,47 @@ class quaternion {
 
   // Construct quaternion from axis and angle.
   // It is expected that [vx, vy, vz] form a unit vector. Angle is in radians.
-  static quaternion from_angle_axis(const Expr& angle, const Expr& vx, const Expr& vy,
-                                    const Expr& vz);
+  static quaternion from_angle_axis(const scalar_expr& angle, const scalar_expr& vx,
+                                    const scalar_expr& vy, const scalar_expr& vz);
 
   // Construct quaternion from axis and angle. It is expected that `v` has unit norm.
   // Angle is in radians.
-  static quaternion from_angle_axis(const Expr& angle, const matrix_expr& v);
+  static quaternion from_angle_axis(const scalar_expr& angle, const matrix_expr& v);
 
   // Construct quaternion from a rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  static quaternion from_rotation_vector(const Expr& vx, const Expr& vy, const Expr& vz,
-                                         const std::optional<Expr>& epsilon);
+  static quaternion from_rotation_vector(const scalar_expr& vx, const scalar_expr& vy,
+                                         const scalar_expr& vz,
+                                         const std::optional<scalar_expr>& epsilon);
 
   // Construct quaternion from a rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  static quaternion from_rotation_vector(const matrix_expr& v, const std::optional<Expr>& epsilon);
+  static quaternion from_rotation_vector(const matrix_expr& v,
+                                         const std::optional<scalar_expr>& epsilon);
 
   // Convenience method for X-axis rotation. Angle is in radians.
-  static quaternion from_x_angle(const Expr& angle) {
+  static quaternion from_x_angle(const scalar_expr& angle) {
     return from_angle_axis(angle, constants::one, constants::zero, constants::zero);
   }
 
   // Convenience method for Y-axis rotation. Angle is in radians.
-  static quaternion from_y_angle(const Expr& angle) {
+  static quaternion from_y_angle(const scalar_expr& angle) {
     return from_angle_axis(angle, constants::zero, constants::one, constants::zero);
   }
 
   // Convenience method for Z-axis rotation. Angle is in radians.
-  static quaternion from_z_angle(const Expr& angle) {
+  static quaternion from_z_angle(const scalar_expr& angle) {
     return from_angle_axis(angle, constants::zero, constants::zero, constants::one);
   }
 
   // Convert to axis-angle representation.
   // Angle is converted into the range [0, pi]. If the norm of the vector component falls below
   // `epsilon`, the rotation cannot be recovered, and we return a zero angle.
-  std::tuple<Expr, matrix_expr> to_angle_axis(std::optional<Expr> epsilon) const;
+  std::tuple<scalar_expr, matrix_expr> to_angle_axis(std::optional<scalar_expr> epsilon) const;
 
   // Convert quaternion to a Rodrigues rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  matrix_expr to_rotation_vector(std::optional<Expr> epsilon) const;
+  matrix_expr to_rotation_vector(std::optional<scalar_expr> epsilon) const;
 
   // Construct a quaternion from a rotation matrix using Caley's method.
   // If `R` is not a member of SO(3), the behavior is undefined. See:
@@ -143,7 +146,7 @@ class quaternion {
   // Compute 4xN jacobian of this quaternion with respect to the `N` input variables `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
   matrix_expr jacobian(
-      const absl::Span<const Expr> vars,
+      const absl::Span<const scalar_expr> vars,
       const non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
     return wf::jacobian(wxyz(), vars, behavior);
   }
@@ -180,7 +183,7 @@ class quaternion {
 
  private:
   // Quaternion elements in order [w, x, y, z].
-  std::array<Expr, 4> wxyz_;
+  std::array<scalar_expr, 4> wxyz_;
 };
 
 // Multiply two quaternions together.
@@ -197,6 +200,6 @@ quaternion operator*(const quaternion& a, const quaternion& b);
 // You can obtain the right jacobian of SO(3) by transposing this quantity.
 //
 // When the norm of `w` falls below `epsilon`, the small angle approximation is used.
-matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<Expr> epsilon);
+matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<scalar_expr> epsilon);
 
 }  // namespace wf

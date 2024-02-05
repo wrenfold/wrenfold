@@ -11,7 +11,7 @@
 
 namespace wf {
 
-Expr addition::from_operands(absl::Span<const Expr> args) {
+scalar_expr addition::from_operands(absl::Span<const scalar_expr> args) {
   WF_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
   if (args.size() < 2) {
     return args.front();
@@ -23,7 +23,7 @@ Expr addition::from_operands(absl::Span<const Expr> args) {
 
   // TODO: extract common denominator?
   addition_parts parts{args.size()};
-  for (const Expr& arg : args) {
+  for (const scalar_expr& arg : args) {
     parts.add_terms(arg);
   }
   parts.normalize_coefficients();
@@ -34,7 +34,7 @@ struct addition_visitor {
   explicit addition_visitor(addition_parts& parts) : parts(parts) {}
 
   void operator()(const addition& arg) {
-    for (const Expr& expr : arg) {
+    for (const scalar_expr& expr : arg) {
       // Recursively add additions:
       visit(expr, *this);
     }
@@ -58,13 +58,13 @@ struct addition_visitor {
       type_list<addition, integer_constant, rational_constant, float_constant, complex_infinity>;
 
   template <typename T, typename = enable_if_does_not_contain_type_t<T, excluded_types>>
-  void operator()(const T&, const Expr& input_expression) {
+  void operator()(const T&, const scalar_expr& input_expression) {
     // Everything else: Just add to the coeff
     auto [coeff, mul] = as_coeff_and_mul(input_expression);
 
     if (mul.is_type<addition>()) {
       // This is probably not great for performance, but shouldn't be _that_ common.
-      const Expr distributed = input_expression.distribute();
+      const scalar_expr distributed = input_expression.distribute();
       operator()(cast_checked<const addition>(distributed));
       return;
     }
@@ -79,13 +79,13 @@ struct addition_visitor {
 };
 
 addition_parts::addition_parts(const addition& add) : addition_parts(add.size()) {
-  for (const Expr& expr : add) {
+  for (const scalar_expr& expr : add) {
     add_terms(expr);
   }
   normalize_coefficients();
 }
 
-void addition_parts::add_terms(const Expr& arg) {
+void addition_parts::add_terms(const scalar_expr& arg) {
   if (is_zero(arg)) {
     return;
   }
@@ -105,7 +105,7 @@ void addition_parts::normalize_coefficients() {
   }
 }
 
-Expr addition_parts::create_addition() const {
+scalar_expr addition_parts::create_addition() const {
   addition::container_type args{};
 
   // handle infinities in the input
@@ -124,13 +124,13 @@ Expr addition_parts::create_addition() const {
     } else if (rational_term.is_zero()) {
       // Don't insert a useless zero in the add.
     } else {
-      args.push_back(Expr(rational_term));
+      args.push_back(scalar_expr(rational_term));
     }
   }
 
   args.reserve(args.size() + terms.size());
   std::transform(terms.begin(), terms.end(), std::back_inserter(args),
-                 [](const std::pair<Expr, Expr>& pair) {
+                 [](const std::pair<scalar_expr, scalar_expr>& pair) {
                    if (is_one(pair.second)) {
                      return pair.first;
                    } else if (!pair.first.is_type<multiplication>() &&

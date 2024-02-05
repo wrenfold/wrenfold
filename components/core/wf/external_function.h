@@ -10,7 +10,7 @@ namespace wf {
 
 // Variant of possible expression types.
 // TODO: This should be declared somewhere more general.
-using any_expression = std::variant<Expr, matrix_expr, compound_expr>;
+using any_expression = std::variant<scalar_expr, matrix_expr, compound_expr>;
 
 template <>
 struct hash_struct<any_expression> : hash_variant<any_expression> {};

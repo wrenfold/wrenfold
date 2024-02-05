@@ -95,7 +95,8 @@ struct RelationalSimplification {
   relational_operation operation_;
 };
 
-Expr relational::create(relational_operation operation, Expr left, Expr right) {
+scalar_expr relational::create(relational_operation operation, scalar_expr left,
+                               scalar_expr right) {
   if (is_complex_infinity(left) || is_complex_infinity(right) || is_undefined(left) ||
       is_undefined(right)) {
     throw type_error("Cannot construct relational with types: {} {} {}", left.type_name(),

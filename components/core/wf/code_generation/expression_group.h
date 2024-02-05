@@ -42,12 +42,12 @@ struct output_key {
 // we want to code-generate.
 struct expression_group {
   // All the expressions in this group.
-  std::vector<Expr> expressions;
+  std::vector<scalar_expr> expressions;
 
   // Key describing how these expressions are used in a function we intend to code generate.
   output_key key;
 
-  expression_group(std::vector<Expr> expressions, output_key key) noexcept
+  expression_group(std::vector<scalar_expr> expressions, output_key key) noexcept
       : expressions(std::move(expressions)), key(std::move(key)) {}
 };
 

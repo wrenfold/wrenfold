@@ -20,10 +20,11 @@ namespace wf {
 template <typename Derived, typename TargetExpressionType>
 struct substitute_visitor_base {
  public:
-  explicit substitute_visitor_base(const TargetExpressionType& target, const Expr& replacement)
+  explicit substitute_visitor_base(const TargetExpressionType& target,
+                                   const scalar_expr& replacement)
       : target(target), replacement(replacement) {}
 
-  Expr operator()(const Expr& expr) { return visit(expr, *this); }
+  scalar_expr operator()(const scalar_expr& expr) { return visit(expr, *this); }
 
   matrix_expr operator()(const matrix_expr& expr) {
     return matrix_expr{expr.as_matrix().map_children(*this)};
@@ -35,7 +36,7 @@ struct substitute_visitor_base {
 
   // The argument is neither an addition nor a multiplication:
   template <typename Arg>
-  Expr operator()(const Arg& other, const Expr& input_expression) {
+  scalar_expr operator()(const Arg& other, const scalar_expr& input_expression) {
     if constexpr (std::is_same_v<TargetExpressionType, Arg>) {
       if (target.is_identical_to(other)) {
         // Exact match, so replace it:
@@ -43,7 +44,8 @@ struct substitute_visitor_base {
       }
       if constexpr (Derived::performs_partial_substitution) {
         // The derived type supports looking for partial matches, so try that:
-        Expr partial_sub = static_cast<Derived&>(*this).attempt_partial(input_expression, other);
+        scalar_expr partial_sub =
+            static_cast<Derived&>(*this).attempt_partial(input_expression, other);
 
         // Irrespective of whether that succeeded, one of the children may still contain the
         // expression we are searching for as well:
@@ -70,7 +72,7 @@ struct substitute_visitor_base {
 
  protected:
   const TargetExpressionType& target;
-  const Expr& replacement;
+  const scalar_expr& replacement;
 };
 
 template <typename Target>
@@ -87,10 +89,10 @@ struct substitute_add_visitor : public substitute_visitor_base<substitute_add_vi
  public:
   constexpr static bool performs_partial_substitution = true;
 
-  substitute_add_visitor(const addition& target, const Expr& replacement)
+  substitute_add_visitor(const addition& target, const scalar_expr& replacement)
       : substitute_visitor_base(target, replacement), target_parts(target) {}
 
-  Expr attempt_partial(const Expr& input_expression, const addition& candidate) {
+  scalar_expr attempt_partial(const scalar_expr& input_expression, const addition& candidate) {
     // Create map representation for the input:
     addition_parts input_parts{candidate};
 
@@ -136,10 +138,11 @@ struct substitute_mul_visitor
  public:
   constexpr static bool performs_partial_substitution = true;
 
-  substitute_mul_visitor(const multiplication& target, const Expr& replacement)
+  substitute_mul_visitor(const multiplication& target, const scalar_expr& replacement)
       : substitute_visitor_base(target, replacement), target_parts(target, true) {}
 
-  Expr attempt_partial(const Expr& input_expression, const multiplication& candidate) {
+  scalar_expr attempt_partial(const scalar_expr& input_expression,
+                              const multiplication& candidate) {
     // Take this multiplication and break it into constituent parts.
     // TODO: Should we just store multiplications pre-factored in this format?
     multiplication_parts input_parts{candidate, true};
@@ -166,7 +169,7 @@ struct substitute_mul_visitor
       }
 
       // See how many times we can divide term into the target expression
-      const Expr multiple = it->second / exponent;
+      const scalar_expr multiple = it->second / exponent;
       if (const integer_constant* const as_int = cast_ptr<const integer_constant>(multiple);
           as_int != nullptr) {
         // We do `abs` here so that doing a substitution like:
@@ -202,7 +205,7 @@ struct substitute_mul_visitor
     }
 
     // Insert the replacement
-    const Expr replacement_exp(max_valid_exponent);
+    const scalar_expr replacement_exp(max_valid_exponent);
     if (const auto [it, was_inserted] = input_parts.terms.emplace(replacement, replacement_exp);
         !was_inserted) {
       it->second = it->second + replacement_exp;
@@ -223,13 +226,13 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
  public:
   constexpr static bool performs_partial_substitution = true;
 
-  substitute_pow_visitor(const power& target, const Expr& replacement)
+  substitute_pow_visitor(const power& target, const scalar_expr& replacement)
       : substitute_visitor_base(target, replacement) {}
 
-  Expr attempt_partial(const Expr& input_expression, const power& candidate) {
-    const Expr& target_base = target.base();
-    const Expr& target_exponent = target.exponent();
-    const Expr& candidate_base = candidate.base();
+  scalar_expr attempt_partial(const scalar_expr& input_expression, const power& candidate) {
+    const scalar_expr& target_base = target.base();
+    const scalar_expr& target_exponent = target.exponent();
+    const scalar_expr& candidate_base = candidate.base();
 
     // If the bases don't match, there can't be a valid substitution:
     if (!target_base.is_identical_to(candidate_base)) {
@@ -246,14 +249,14 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
       auto it = parts.terms.find(target_exp_mul);
       if (it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
-        const Expr ratio = it->second / target_exp_coeff;
+        const scalar_expr ratio = it->second / target_exp_coeff;
         if (const integer_constant* const as_int = cast_ptr<const integer_constant>(ratio);
             as_int != nullptr) {
           // It divides evenly. This case handles things like:
           // x**(3*y + 5) replacing [x**y -> w] producing w**3 * x**5
           parts.terms.erase(it);
           // Put the exponent back together and swap in the replacement:
-          Expr new_exponent = parts.create_addition();
+          scalar_expr new_exponent = parts.create_addition();
           return power::create(replacement, ratio) * power::create(candidate_base, new_exponent);
         } else if (const rational_constant* const as_rational =
                        cast_ptr<const rational_constant>(ratio);
@@ -267,7 +270,7 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
           // For example, this would handle the replacement:
           // x**(4/3*y + z) replacing [x**y -> w] producing w * x**(1/3y + z)
           it->second = it->second - target_exp_coeff * int_part.get_value();
-          Expr new_exponent = parts.create_addition();
+          scalar_expr new_exponent = parts.create_addition();
           return power::create(replacement, int_part.get_value()) *
                  power::create(candidate_base, new_exponent);
         }
@@ -275,7 +278,7 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
     } else {
       // See if the exponent is an integer multiple of the target exponent.
       // TODO: De-duplicate this block with the equivalent section in the addition above.
-      const Expr multiple = candidate.exponent() / target_exponent;
+      const scalar_expr multiple = candidate.exponent() / target_exponent;
       if (const integer_constant* const as_int = cast_ptr<const integer_constant>(multiple);
           as_int != nullptr) {
         return power::create(replacement, multiple);
@@ -288,7 +291,7 @@ struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_vi
           return input_expression;
         }
         return power::create(replacement, int_part.get_value()) *
-               power::create(candidate_base, target_exponent * Expr(frac_remainder));
+               power::create(candidate_base, target_exponent * scalar_expr(frac_remainder));
       }
     }
 
@@ -313,8 +316,9 @@ struct sub_visitor_type<power> {
   using type = substitute_pow_visitor;
 };
 
-Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) {
-  return visit(target, [&](const auto& target_concrete) -> Expr {
+scalar_expr substitute(const scalar_expr& input, const scalar_expr& target,
+                       const scalar_expr& replacement) {
+  return visit(target, [&](const auto& target_concrete) -> scalar_expr {
     using T = std::decay_t<decltype(target_concrete)>;
     // Don't allow the target type to be a numeric literal:
     using disallowed_types =
@@ -329,7 +333,7 @@ Expr substitute(const Expr& input, const Expr& target, const Expr& replacement) 
 }
 
 static substitute_variables_visitor create_subs_visitor(
-    const absl::Span<const std::tuple<Expr, Expr>> pairs) {
+    const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) {
   substitute_variables_visitor visitor{};
   for (const auto& [target, replacement] : pairs) {
     if (!target.is_type<variable, compound_expression_element>()) {
@@ -342,22 +346,24 @@ static substitute_variables_visitor create_subs_visitor(
   return visitor;
 }
 
-Expr substitute_variables(const Expr& input, absl::Span<const std::tuple<Expr, Expr>> pairs) {
+scalar_expr substitute_variables(const scalar_expr& input,
+                                 absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) {
   return create_subs_visitor(pairs)(input);
 }
 
-matrix_expr substitute_variables(const matrix_expr& input,
-                                 const absl::Span<const std::tuple<Expr, Expr>> pairs) {
+matrix_expr substitute_variables(
+    const matrix_expr& input, const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) {
   substitute_variables_visitor visitor = create_subs_visitor(pairs);
   const matrix& m = input.as_matrix();
 
-  std::vector<Expr> replaced{};
+  std::vector<scalar_expr> replaced{};
   replaced.reserve(m.size());
   std::transform(m.begin(), m.end(), std::back_inserter(replaced), std::move(visitor));
   return matrix_expr::create(m.rows(), m.cols(), std::move(replaced));
 }
 
-void substitute_variables_visitor::add_substitution(const Expr& target, Expr replacement) {
+void substitute_variables_visitor::add_substitution(const scalar_expr& target,
+                                                    scalar_expr replacement) {
   if (target.is_type<variable>()) {
     add_substitution(cast_unchecked<const variable>(target), std::move(replacement));
   } else if (target.is_type<compound_expression_element>()) {
@@ -370,7 +376,7 @@ void substitute_variables_visitor::add_substitution(const Expr& target, Expr rep
   }
 }
 
-void substitute_variables_visitor::add_substitution(variable variable, Expr replacement) {
+void substitute_variables_visitor::add_substitution(variable variable, scalar_expr replacement) {
   cache_.clear();  //  No longer valid when new expressions are added.
   const auto [it, was_inserted] =
       variable_substitutions_.emplace(std::move(variable), std::move(replacement));
@@ -379,18 +385,18 @@ void substitute_variables_visitor::add_substitution(variable variable, Expr repl
 }
 
 void substitute_variables_visitor::add_substitution(compound_expression_element element,
-                                                    Expr replacement) {
+                                                    scalar_expr replacement) {
   cache_.clear();  //  No longer valid when new expressions are added.
   const auto [it, was_inserted] =
       element_substitutions_.emplace(std::move(element), std::move(replacement));
   WF_ASSERT(was_inserted, "Element already exists in the substitution list: {}", it->first.index());
 }
 
-Expr substitute_variables_visitor::operator()(const Expr& expression) {
+scalar_expr substitute_variables_visitor::operator()(const scalar_expr& expression) {
   if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit(expression, *this);
+  scalar_expr result = visit(expression, *this);
   const auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
   return it_inserted->second;
 }
@@ -404,7 +410,8 @@ compound_expr substitute_variables_visitor::operator()(const compound_expr& expr
 }
 
 template <typename T>
-Expr substitute_variables_visitor::operator()(const T& concrete, const Expr& abstract) {
+scalar_expr substitute_variables_visitor::operator()(const T& concrete,
+                                                     const scalar_expr& abstract) {
   if constexpr (std::is_same_v<T, variable>) {
     if (const auto it = variable_substitutions_.find(concrete);
         it != variable_substitutions_.end()) {

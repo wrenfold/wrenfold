@@ -274,7 +274,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
-             const Expr& value) {
+             const scalar_expr& value) {
             self.add_output_argument(name, scalar_type(code_numeric_type::floating_point),
                                      is_optional, {value});
           },
@@ -291,14 +291,14 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
-             const custom_type& custom_type, std::vector<Expr> expressions) {
+             const custom_type& custom_type, std::vector<scalar_expr> expressions) {
             self.add_output_argument(name, custom_type, is_optional, std::move(expressions));
           },
           py::arg("name"), py::arg("is_optional"), py::arg("custom_type"), py::arg("expressions"),
           py::doc("Record an output argument of custom type."))
       .def(
           "set_return_value",
-          [](function_description& self, const Expr& value) {
+          [](function_description& self, const scalar_expr& value) {
             self.set_return_value(scalar_type(code_numeric_type::floating_point), {value});
           },
           py::arg("value"))
@@ -311,7 +311,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "set_return_value",
           [](function_description& self, const custom_type& custom_type,
-             std::vector<Expr> expressions) {
+             std::vector<scalar_expr> expressions) {
             self.set_return_value(custom_type, std::move(expressions));
           },
           py::arg("custom_type"), py::arg("expressions"));

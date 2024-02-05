@@ -13,9 +13,9 @@ namespace wf {
 using namespace custom_literals;
 
 TEST(MatrixOperationsTest, TestConstruct) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
 
   // Construct vector:
   const matrix_expr v = make_vector(x, 4, y + z);
@@ -58,12 +58,12 @@ TEST(MatrixOperationsTest, TestConstruct) {
 }
 
 TEST(MatrixOperationsTest, TestGetBlock) {
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
-  const Expr a{"a"};
-  const Expr b{"b"};
-  const Expr c{"c"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
+  const scalar_expr a{"a"};
+  const scalar_expr b{"b"};
+  const scalar_expr c{"c"};
   // clang-format off
   const matrix_expr m1 = make_matrix(3, 2,
                                      x, a,
@@ -95,9 +95,9 @@ TEST(MatrixOperationsTest, TestGetBlock) {
 }
 
 TEST(MatrixOperationsTest, TestTranspose) {
-  const Expr a{"a"};
-  const Expr b{"b"};
-  const Expr c{"c"};
+  const scalar_expr a{"a"};
+  const scalar_expr b{"b"};
+  const scalar_expr c{"c"};
   // clang-format off
   const matrix_expr m = make_matrix(2, 5,
                                     cos(a), sin(b), -1, constants::pi * 3, 0.0,
@@ -125,16 +125,16 @@ TEST(MatrixOperationsTest, TestReshape) {
   const auto old_contents = m.to_vector();
   const auto new_contents = m_reshape.to_vector();
   ASSERT_TRUE(std::equal(old_contents.begin(), old_contents.end(), new_contents.begin(),
-                         new_contents.end(), is_identical_struct<Expr>{}));
+                         new_contents.end(), is_identical_struct<scalar_expr>{}));
 }
 
 TEST(MatrixOperationsTest, TestVec) {
-  const Expr a{"a"};
-  const Expr b{"b"};
-  const Expr c{"c"};
-  const Expr d{"d"};
-  const Expr x{"x"};
-  const Expr y{"y"};
+  const scalar_expr a{"a"};
+  const scalar_expr b{"b"};
+  const scalar_expr c{"c"};
+  const scalar_expr d{"d"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
   ASSERT_IDENTICAL(make_vector(a, b, c), vectorize_matrix(make_row_vector(a, b, c)));
   ASSERT_IDENTICAL(make_vector(a, c, b, d, x, y),
                    vectorize_matrix(make_matrix(2, 3, a, b, x, c, d, y)));
@@ -178,10 +178,10 @@ TEST(MatrixOperationsTest, TestStack) {
 }
 
 TEST(MatrixOperationsTest, TestAddition) {
-  const Expr a{"a"};
-  const Expr b{"b"};
-  const Expr c{"c"};
-  const Expr d{"d"};
+  const scalar_expr a{"a"};
+  const scalar_expr b{"b"};
+  const scalar_expr c{"c"};
+  const scalar_expr d{"d"};
   ASSERT_IDENTICAL(make_vector(a + c, b - d, b * 2 + 5),
                    make_vector(a, -d, b) + make_vector(c, b, b + 5));
   ASSERT_IDENTICAL(make_vector(0, 0, 0), make_vector(a, b, c) + make_vector(-a, -b, -c));
@@ -200,14 +200,14 @@ TEST(MatrixOperationsTest, TestAddition) {
 }
 
 TEST(MatrixOperationsTest, TestMultiplication) {
-  const Expr a{"a"};
-  const Expr b{"b"};
-  const Expr c{"c"};
-  const Expr d{"d"};
-  const Expr x{"x"};
-  const Expr y{"y"};
-  const Expr z{"z"};
-  const Expr w{"w"};
+  const scalar_expr a{"a"};
+  const scalar_expr b{"b"};
+  const scalar_expr c{"c"};
+  const scalar_expr d{"d"};
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y"};
+  const scalar_expr z{"z"};
+  const scalar_expr w{"w"};
 
   ASSERT_IDENTICAL(make_identity(4), make_identity(4) * make_identity(4));
   ASSERT_IDENTICAL(make_vector(a, b, c, d), make_identity(4) * make_vector(a, b, c, d));
@@ -310,7 +310,7 @@ void check_full_piv_lu_solution(
 }
 
 matrix_expr check_permutation_matrix(absl::Span<const int> permutation) {
-  std::vector<Expr> elements(permutation.size() * permutation.size(), constants::zero);
+  std::vector<scalar_expr> elements(permutation.size() * permutation.size(), constants::zero);
 
   for (std::size_t row = 0; row < permutation.size(); ++row) {
     const int col_index = permutation[row];
@@ -422,7 +422,7 @@ TEST(MatrixOperationsTest, TestFactorizeRandomLU) {
   for (const auto& [rows, cols] : dims) {
     constexpr int num_trials = 25;
     for (int i = 0; i < num_trials; ++i) {
-      std::vector<Expr> data{};
+      std::vector<scalar_expr> data{};
       data.reserve(rows * cols);
       for (int j = 0; j < rows * cols; ++j) {
         data.emplace_back(distribution(engine));

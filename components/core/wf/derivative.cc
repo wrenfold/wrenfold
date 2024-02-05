@@ -21,7 +21,8 @@ struct is_function_of_visitor {
 
   bool operator()(const matrix_expr& mat) const {
     const matrix& m = mat.as_matrix();
-    return std::any_of(m.begin(), m.end(), [this](const Expr& x) { return visit(x, *this); });
+    return std::any_of(m.begin(), m.end(),
+                       [this](const scalar_expr& x) { return visit(x, *this); });
   }
 
   template <typename U>
@@ -43,7 +44,7 @@ struct is_function_of_visitor {
   const T& target_;
 };
 
-derivative_visitor::derivative_visitor(const Expr& argument,
+derivative_visitor::derivative_visitor(const scalar_expr& argument,
                                        const non_differentiable_behavior behavior)
     : argument_(argument), non_diff_behavior_(behavior) {
   if (!argument.is_type<variable, compound_expression_element>()) {
@@ -54,21 +55,21 @@ derivative_visitor::derivative_visitor(const Expr& argument,
   }
 }
 
-Expr derivative_visitor::apply(const Expr& expression) {
+scalar_expr derivative_visitor::apply(const scalar_expr& expression) {
   if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
   }
-  Expr result = visit(expression, *this);
+  scalar_expr result = visit(expression, *this);
   auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
   return it_inserted->second;
 }
 
 // Differentiate every argument to make a new sum.
-Expr derivative_visitor::operator()(const addition& add) {
-  return add.map_children([this](const Expr& expr) { return apply(expr); });
+scalar_expr derivative_visitor::operator()(const addition& add) {
+  return add.map_children([this](const scalar_expr& expr) { return apply(expr); });
 }
 
-Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) const {
+scalar_expr derivative_visitor::operator()(const cast_bool&, const scalar_expr& expr) const {
   if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
     return derivative::create(expr, argument_, 1);
   } else {
@@ -76,7 +77,8 @@ Expr derivative_visitor::operator()(const cast_bool&, const Expr& expr) const {
   }
 }
 
-Expr derivative_visitor::operator()(const compound_expression_element& el, const Expr& expr) const {
+scalar_expr derivative_visitor::operator()(const compound_expression_element& el,
+                                           const scalar_expr& expr) const {
   if (const compound_expression_element* arg =
           cast_ptr<const compound_expression_element>(argument_);
       arg != nullptr && are_identical(*arg, el)) {
@@ -92,16 +94,18 @@ Expr derivative_visitor::operator()(const compound_expression_element& el, const
 // TODO: This is not strictly correct. If the condition is a function of `x` (where x is the
 //  the variable wrt we are differentiating), we should insert the dirac delta function.
 //  That said, this is more useful practically in most cases.
-Expr derivative_visitor::operator()(const conditional& cond) {
+scalar_expr derivative_visitor::operator()(const conditional& cond) {
   return where(cond.condition(), apply(cond.if_branch()), apply(cond.else_branch()));
 }
 
-Expr derivative_visitor::operator()(const symbolic_constant&) const { return constants::zero; }
+scalar_expr derivative_visitor::operator()(const symbolic_constant&) const {
+  return constants::zero;
+}
 
 // Derivative of an abstract derivative expression.
-Expr derivative_visitor::operator()(const derivative& derivative,
-                                    const Expr& derivative_abstract) const {
-  return visit(argument_, [&](const auto& arg) -> Expr {
+scalar_expr derivative_visitor::operator()(const derivative& derivative,
+                                           const scalar_expr& derivative_abstract) const {
+  return visit(argument_, [&](const auto& arg) -> scalar_expr {
     using T = std::decay_t<decltype(arg)>;
     if constexpr (type_list_contains_v<T, variable, compound_expression_element>) {
       if (const bool is_relevant =
@@ -122,13 +126,13 @@ Expr derivative_visitor::operator()(const derivative& derivative,
 // a' * b + a * b'
 // a * b * c
 // a' * b * c + a * b' * c + a * b * c'
-Expr derivative_visitor::operator()(const multiplication& mul) {
-  std::vector<Expr> add_terms;  //  TODO: Small vector.
+scalar_expr derivative_visitor::operator()(const multiplication& mul) {
+  std::vector<scalar_expr> add_terms;  //  TODO: Small vector.
   add_terms.reserve(mul.size());
 
   // Differentiate wrt every argument:
   for (std::size_t i = 0; i < mul.size(); ++i) {
-    std::vector<Expr> mul_terms;
+    std::vector<scalar_expr> mul_terms;
     mul_terms.reserve(mul.size());
     for (std::size_t j = 0; j < mul.size(); ++j) {
       if (j == i) {
@@ -145,11 +149,11 @@ Expr derivative_visitor::operator()(const multiplication& mul) {
 }
 
 // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
-Expr derivative_visitor::operator()(const function& func) {
+scalar_expr derivative_visitor::operator()(const function& func) {
   // Differentiate the arguments:
   function::container_type d_args{};
   std::transform(func.begin(), func.end(), std::back_inserter(d_args),
-                 [this](const Expr& arg) { return apply(arg); });
+                 [this](const scalar_expr& arg) { return apply(arg); });
 
   const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
   if (all_derivatives_zero) {
@@ -157,8 +161,8 @@ Expr derivative_visitor::operator()(const function& func) {
     return constants::zero;
   }
 
-  static const Expr one_half = 1_s / 2;
-  static const Expr negative_one_half = -1_s / 2;
+  static const scalar_expr one_half = 1_s / 2;
+  static const scalar_expr negative_one_half = -1_s / 2;
 
   const auto& args = func.args();
   switch (func.enum_value()) {
@@ -197,36 +201,42 @@ Expr derivative_visitor::operator()(const function& func) {
       }
     }
     case built_in_function::arctan2: {
-      const Expr& y_diff = d_args[0];
-      const Expr& x_diff = d_args[1];
+      const scalar_expr& y_diff = d_args[0];
+      const scalar_expr& x_diff = d_args[1];
       if (is_zero(y_diff) && is_zero(x_diff)) {
         return constants::zero;
       }
       // atan2(y(u), x(u))/du = -y/(y^2 + x^2) * x'(u) + x/(y^2 + x^2) * y'(u)
-      const Expr sum_squared = args[0] * args[0] + args[1] * args[1];
+      const scalar_expr sum_squared = args[0] * args[0] + args[1] * args[1];
       return -(args[0] * x_diff) / sum_squared + (args[1] * y_diff) / sum_squared;
     }
   }
   WF_ASSERT_ALWAYS("Invalid unary function: {}", func.function_name());
 }
 
-Expr derivative_visitor::operator()(const complex_infinity&) const { return constants::zero; }
-Expr derivative_visitor::operator()(const integer_constant&) const { return constants::zero; }
-Expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
-Expr derivative_visitor::operator()(const power& pow) {
-  const Expr& a = pow.base();
-  const Expr& b = pow.exponent();
-  const Expr a_diff = apply(a);
-  const Expr b_diff = apply(b);
+scalar_expr derivative_visitor::operator()(const complex_infinity&) const {
+  return constants::zero;
+}
+scalar_expr derivative_visitor::operator()(const integer_constant&) const {
+  return constants::zero;
+}
+scalar_expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
+scalar_expr derivative_visitor::operator()(const power& pow) {
+  const scalar_expr& a = pow.base();
+  const scalar_expr& b = pow.exponent();
+  const scalar_expr a_diff = apply(a);
+  const scalar_expr b_diff = apply(b);
   if (is_zero(a_diff) && is_zero(b_diff)) {
     return constants::zero;
   }
   return b * power::create(a, b - constants::one) * a_diff + power::create(a, b) * log(a) * b_diff;
 }
 
-Expr derivative_visitor::operator()(const rational_constant&) const { return constants::zero; }
+scalar_expr derivative_visitor::operator()(const rational_constant&) const {
+  return constants::zero;
+}
 
-Expr derivative_visitor::operator()(const relational&, const Expr& rel_expr) const {
+scalar_expr derivative_visitor::operator()(const relational&, const scalar_expr& rel_expr) const {
   if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
     // Cannot differentiate relationals, so insert an abstract expression.
     return derivative::create(rel_expr, argument_, 1);
@@ -235,9 +245,9 @@ Expr derivative_visitor::operator()(const relational&, const Expr& rel_expr) con
   }
 }
 
-Expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
+scalar_expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
-Expr derivative_visitor::operator()(const variable& var) const {
+scalar_expr derivative_visitor::operator()(const variable& var) const {
   if (const variable* arg = cast_ptr<const variable>(argument_);
       arg != nullptr && arg->is_identical_to(var)) {
     return constants::one;
@@ -245,18 +255,19 @@ Expr derivative_visitor::operator()(const variable& var) const {
   return constants::zero;
 }
 
-Expr diff(const Expr& function, const Expr& var, const int reps,
-          const non_differentiable_behavior behavior) {
+scalar_expr diff(const scalar_expr& function, const scalar_expr& var, const int reps,
+                 const non_differentiable_behavior behavior) {
   WF_ASSERT_GREATER_OR_EQ(reps, 0);
   derivative_visitor visitor{var, behavior};
-  Expr result = function;
+  scalar_expr result = function;
   for (int i = 0; i < reps; ++i) {
     result = visitor.apply(result);
   }
   return result;
 }
 
-matrix_expr jacobian(const absl::Span<const Expr> functions, const absl::Span<const Expr> vars,
+matrix_expr jacobian(const absl::Span<const scalar_expr> functions,
+                     const absl::Span<const scalar_expr> vars,
                      const non_differentiable_behavior behavior) {
   if (functions.empty()) {
     throw type_error("Need at least one function to differentiate.");
@@ -265,7 +276,7 @@ matrix_expr jacobian(const absl::Span<const Expr> functions, const absl::Span<co
     throw type_error("Need at least one variable to differentiate with respect to.");
   }
 
-  std::vector<Expr> result{};
+  std::vector<scalar_expr> result{};
   result.resize(functions.size() * vars.size(), constants::zero);
 
   // Crate row-major span over `result`:

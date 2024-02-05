@@ -14,7 +14,7 @@ namespace wf {
 
 template <typename Callable>
 matrix_expr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& callable) {
-  std::vector<Expr> data;
+  std::vector<scalar_expr> data;
   data.reserve(static_cast<std::size_t>(rows * cols));
   iter_matrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
     data.push_back(callable(i, j));
@@ -37,7 +37,7 @@ matrix_expr make_zeros(index_t rows, index_t cols) {
     throw dimension_error("Cannot construct zero matrix with shape: ({}, {})", rows, cols);
   }
   // Eventually we might have a symbolic zero matrix, and this won't be required.
-  std::vector<Expr> data(static_cast<std::size_t>(rows * cols), constants::zero);
+  std::vector<scalar_expr> data(static_cast<std::size_t>(rows * cols), constants::zero);
   return matrix_expr::create(rows, cols, std::move(data));
 }
 
@@ -51,7 +51,7 @@ matrix_expr make_identity(index_t rows) {
 }
 
 matrix_expr vectorize_matrix(const matrix_expr& m) {
-  std::vector<Expr> flattened;
+  std::vector<scalar_expr> flattened;
   const auto flat_size = m.rows() * m.cols();
   flattened.reserve(static_cast<std::size_t>(flat_size));
   // Iterate over columns first, transposing the underlying data:
@@ -65,7 +65,7 @@ matrix_expr vectorize_matrix(const matrix_expr& m) {
 
 static matrix_expr stack(const absl::Span<const matrix_expr> values, index_t num_rows,
                          index_t num_cols) {
-  std::vector<Expr> result{};
+  std::vector<scalar_expr> result{};
   result.resize(static_cast<std::size_t>(num_rows * num_cols), constants::zero);
 
   constexpr constant<1> col_stride{};
@@ -223,13 +223,13 @@ struct permutation_matrix {
 };
 
 using dynamic_row_major_span =
-    span<Expr, value_pack<dynamic, dynamic>, value_pack<dynamic, constant<1>>>;
+    span<scalar_expr, value_pack<dynamic, dynamic>, value_pack<dynamic, constant<1>>>;
 
 static inline std::optional<std::tuple<std::size_t, std::size_t>> find_pivot(
     dynamic_row_major_span U) {
   for (std::size_t p_row = 0; p_row < U.rows(); ++p_row) {
     for (std::size_t p_col = 0; p_col < U.cols(); ++p_col) {
-      const Expr& el = U(p_row, p_col);
+      const scalar_expr& el = U(p_row, p_col);
       if (!is_zero(el)) {
         // We can't really know for sure this isn't zero, since it is symbolic. But we can avoid
         // things that are analytically zero.
@@ -291,7 +291,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   }
 
   // now modify the bottom-right sub-matrix:
-  const Expr pivot = U(0, 0);
+  const scalar_expr pivot = U(0, 0);
 
   auto L_inner =
       L.block(make_constant_value_pack<1, 1>(), make_value_pack(L.rows() - 1, L.cols() - 1));
@@ -321,7 +321,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   }
 
   // Copy r_t so we can permute it:
-  std::vector<Expr> r_t_copied;
+  std::vector<scalar_expr> r_t_copied;
   r_t_copied.reserve(r_t.cols());
   for (std::size_t j = 0; j < r_t.cols(); ++j) {
     r_t_copied.push_back(r_t(0, j));
@@ -361,7 +361,7 @@ factorize_full_piv_lu_internal(const matrix& A) {
 
     // Then we need to normalize the diagonal of L
     for (index_t col = 0; col < L_out.cols(); ++col) {
-      Expr v = L_out.get_unchecked(col, col);
+      scalar_expr v = L_out.get_unchecked(col, col);
       L_out.get_unchecked(col, col) = constants::one;
 
       if (!is_zero(v)) {
@@ -378,11 +378,12 @@ factorize_full_piv_lu_internal(const matrix& A) {
     return std::make_tuple(Q.transposed(), std::move(L_out), std::move(U_out), P.transposed());
   } else {
     // We copy A and then use this as storage for the output `U`.
-    std::vector<Expr> U_storage{A.begin(), A.end()};
+    std::vector<scalar_expr> U_storage{A.begin(), A.end()};
     auto U_span = make_span(U_storage.data(), make_value_pack(A.rows(), A.cols()),
                             make_value_pack(A.cols(), constant<1>{}));
 
-    std::vector<Expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()), constants::zero);
+    std::vector<scalar_expr> L_storage(static_cast<std::size_t>(A.rows() * A.rows()),
+                                       constants::zero);
     auto L_span = make_span(L_storage.data(), make_value_pack(A.rows(), A.rows()),
                             make_value_pack(A.rows(), constant<1>{}));
 
@@ -399,7 +400,7 @@ factorize_full_piv_lu_internal(const matrix& A) {
 }
 
 static matrix_expr create_matrix_from_permutations(const permutation_matrix& P) {
-  std::vector<Expr> data(P.rows() * P.rows(), constants::zero);
+  std::vector<scalar_expr> data(P.rows() * P.rows(), constants::zero);
   auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
                         make_value_pack(P.rows(), constant<1>{}));
 
@@ -425,7 +426,7 @@ std::tuple<matrix_expr, matrix_expr, matrix_expr, matrix_expr> factorize_full_pi
                          matrix_expr{std::move(U)}, create_matrix_from_permutations(Q));
 }
 
-Expr determinant(const matrix_expr& m) {
+scalar_expr determinant(const matrix_expr& m) {
   const matrix& mat = m.as_matrix();
   if (mat.rows() != mat.cols()) {
     throw dimension_error(
@@ -457,7 +458,7 @@ Expr determinant(const matrix_expr& m) {
   const auto& Q = std::get<3>(factorization);
 
   // The product of the diagonal is the product of eigenvalues, which equals the determinant:
-  Expr prod = P.determinant() * Q.determinant();
+  scalar_expr prod = P.determinant() * Q.determinant();
   for (index_t i = 0; i < U.rows(); ++i) {
     prod = prod * U.get_unchecked(i, i);
   }

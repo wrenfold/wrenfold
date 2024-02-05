@@ -57,10 +57,11 @@ class native_field_accessor_typed : public native_field_accessor::concept {
   // Set underlying member by consuming expressions from `input`.
   // A new truncated span with remaining elements is returned. It is assumed that expressions in
   // `input` can be moved.
-  virtual absl::Span<const Expr> set(T& object, absl::Span<const Expr> input) const = 0;
+  virtual absl::Span<const scalar_expr> set(T& object,
+                                            absl::Span<const scalar_expr> input) const = 0;
 
   // Copy underlying member into `output` vector.
-  virtual void get(const T& object, std::vector<Expr>& output) const = 0;
+  virtual void get(const T& object, std::vector<scalar_expr>& output) const = 0;
 };
 
 // Implement `native_field_accessor_typed` by using a member-variable pointer.
@@ -75,8 +76,9 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
                                             U member_type) noexcept
       : member_ptr_(member_ptr), member_type_(std::move(member_type)) {}
 
-  absl::Span<const Expr> set(StructType& object, absl::Span<const Expr> input) const override;
-  void get(const StructType& object, std::vector<Expr>& output) const override;
+  absl::Span<const scalar_expr> set(StructType& object,
+                                    absl::Span<const scalar_expr> input) const override;
+  void get(const StructType& object, std::vector<scalar_expr>& output) const override;
 
  private:
   FieldType StructType::*member_ptr_;
@@ -85,7 +87,7 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
 
 namespace detail {
 // The purpose of record_type is to convert from actual C++ types to our runtime representations.
-// For example, Expr -> scalar_type, matrix_expr -> matrix_type.
+// For example, scalar_expr -> scalar_type, matrix_expr -> matrix_type.
 // We use this to scrape a c++ function signature and record type information for code-generation.
 template <typename T, typename = void>
 struct record_type;
@@ -97,8 +99,8 @@ struct record_type;
 //
 // Example:
 //  struct Foo {
-//    Expr x;
-//    Expr y;
+//    scalar_expr x;
+//    scalar_expr y;
 //  };
 //
 //  struct custom_type_registrant<Foo> {
@@ -138,8 +140,8 @@ class custom_type_builder {
 // Create type `T` by initializing all registered members of `T` with expressions.
 // The trimmed span (after consuming the right # of values from the front) is returned.
 template <typename T>
-std::tuple<T, absl::Span<const Expr>> custom_type_from_expressions(
-    const custom_type& type, absl::Span<const Expr> expressions) {
+std::tuple<T, absl::Span<const scalar_expr>> custom_type_from_expressions(
+    const custom_type& type, absl::Span<const scalar_expr> expressions) {
   T result{};
   for (const struct_field& field : type.fields()) {
     expressions =
@@ -151,7 +153,7 @@ std::tuple<T, absl::Span<const Expr>> custom_type_from_expressions(
 // Copy all fields from object of type `T` into vector `output`.
 template <typename T>
 void copy_expressions_from_custom_type(const T& object, const custom_type& type,
-                                       std::vector<Expr>& output) {
+                                       std::vector<scalar_expr>& output) {
   output.reserve(output.size() + type.size());
   for (const struct_field& field : type.fields()) {
     field.native_accessor().as<native_field_accessor_typed<T>>().get(object, output);
@@ -167,13 +169,13 @@ struct annotated_custom_type {
 
   // Create type `T` by initializing all registered members of `T` with expressions.
   // The trimmed span (after consuming the right # of values from the front) is returned.
-  std::tuple<T, absl::Span<const Expr>> initialize_from_expressions(
-      const absl::Span<const Expr> expressions) const {
+  std::tuple<T, absl::Span<const scalar_expr>> initialize_from_expressions(
+      const absl::Span<const scalar_expr> expressions) const {
     return custom_type_from_expressions<T>(type, expressions);
   }
 
   // Copy all fields from object of type `T` into vector `output`.
-  void copy_output_expressions(const T& object, std::vector<Expr>& output) const {
+  void copy_output_expressions(const T& object, std::vector<scalar_expr>& output) const {
     copy_expressions_from_custom_type(object, type, output);
   }
 
@@ -188,7 +190,7 @@ struct annotated_custom_type {
 namespace detail {
 
 template <>
-struct record_type<Expr> {
+struct record_type<scalar_expr> {
   scalar_type operator()(const custom_type_registry&) const {
     return scalar_type(code_numeric_type::floating_point);
   }
@@ -231,7 +233,7 @@ auto record_arg_types(custom_type_registry& registry, type_list<Ts...>) {
 }
 
 // Create scalar input required to evalute a symbolic function.
-Expr create_function_input(const scalar_type& scalar, std::size_t arg_index);
+scalar_expr create_function_input(const scalar_type& scalar, std::size_t arg_index);
 
 // Create matrix input required to evalute a symbolic function.
 matrix_expr create_function_input(const matrix_type& mat, std::size_t arg_index);
@@ -246,23 +248,25 @@ template <typename T>
 T create_function_input(const annotated_custom_type<T>& custom, const std::size_t arg_index) {
   static_assert(implements_custom_type_registrant_v<T>,
                 "Type must implement custom_type_registrant");
-  const std::vector<Expr> expressions = create_expression_elements(
+  const std::vector<scalar_expr> expressions = create_expression_elements(
       create_custom_type_argument(custom.inner(), arg_index), custom.inner().total_size());
-  auto [instance, _] = custom.initialize_from_expressions(absl::Span<const Expr>{expressions});
+  auto [instance, _] =
+      custom.initialize_from_expressions(absl::Span<const scalar_expr>{expressions});
   return instance;
 }
 
 // Copy output from scalar expression into a vector.
-std::vector<Expr> extract_function_output(const scalar_type& scalar, const Expr& value);
+std::vector<scalar_expr> extract_function_output(const scalar_type& scalar,
+                                                 const scalar_expr& value);
 
 // Copy output from matrix expression into a vector.
-std::vector<Expr> extract_function_output(const matrix_type& mat, const matrix_expr& value);
+std::vector<scalar_expr> extract_function_output(const matrix_type& mat, const matrix_expr& value);
 
 // Copy output from a custom struct into a vector.
 template <typename T>
-std::vector<Expr> extract_function_output(const annotated_custom_type<T>& custom,
-                                          const T& instance) {
-  std::vector<Expr> result;
+std::vector<scalar_expr> extract_function_output(const annotated_custom_type<T>& custom,
+                                                 const T& instance) {
+  std::vector<scalar_expr> result;
   custom.copy_output_expressions(instance, result);
   return result;
 }
@@ -292,8 +296,8 @@ custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T:
 }
 
 template <typename StructType, typename FieldType, typename U>
-absl::Span<const Expr> native_field_accessor_member_ptr<StructType, FieldType, U>::set(
-    StructType& object, absl::Span<const Expr> input) const {
+absl::Span<const scalar_expr> native_field_accessor_member_ptr<StructType, FieldType, U>::set(
+    StructType& object, absl::Span<const scalar_expr> input) const {
   if constexpr (std::is_same_v<U, scalar_type>) {
     WF_ASSERT(!input.empty());
     object.*member_ptr_ = input.front();
@@ -313,7 +317,7 @@ absl::Span<const Expr> native_field_accessor_member_ptr<StructType, FieldType, U
 
 template <typename StructType, typename FieldType, typename U>
 void native_field_accessor_member_ptr<StructType, FieldType, U>::get(
-    const StructType& object, std::vector<Expr>& output) const {
+    const StructType& object, std::vector<scalar_expr>& output) const {
   if constexpr (std::is_same_v<U, scalar_type>) {
     output.push_back(object.*member_ptr_);
   } else if constexpr (std::is_same_v<U, matrix_type>) {

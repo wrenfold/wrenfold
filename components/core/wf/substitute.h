@@ -15,31 +15,34 @@ class substitute_variables_visitor {
 
   // Add a new substitution to the list we will apply.
   // This should be called before visiting any expressions.
-  void add_substitution(const Expr& target, Expr replacement);
+  void add_substitution(const scalar_expr& target, scalar_expr replacement);
 
   // Add a new substitution to the list we will apply.
   // Version that accepts `variable` directly.
-  void add_substitution(variable variable, Expr replacement);
+  void add_substitution(variable variable, scalar_expr replacement);
 
   // Add a new substitution to the list we will apply.
   // Version that accepts `compound_expression_element` directly.
-  void add_substitution(compound_expression_element element, Expr replacement);
+  void add_substitution(compound_expression_element element, scalar_expr replacement);
 
   // Apply the substitute variable visitor. The cache is checked first.
-  Expr operator()(const Expr& expression);
+  scalar_expr operator()(const scalar_expr& expression);
   matrix_expr operator()(const matrix_expr& expression);
   compound_expr operator()(const compound_expr& expression);
 
   template <typename T>
-  Expr operator()(const T& concrete, const Expr& abstract);
+  scalar_expr operator()(const T& concrete, const scalar_expr& abstract);
 
  private:
-  std::unordered_map<variable, Expr, hash_struct<variable>, is_identical_struct<variable>>
+  std::unordered_map<variable, scalar_expr, hash_struct<variable>, is_identical_struct<variable>>
       variable_substitutions_;
-  std::unordered_map<compound_expression_element, Expr, hash_struct<compound_expression_element>,
+  std::unordered_map<compound_expression_element, scalar_expr,
+                     hash_struct<compound_expression_element>,
                      is_identical_struct<compound_expression_element>>
       element_substitutions_;
-  std::unordered_map<Expr, Expr, hash_struct<Expr>, is_identical_struct<Expr>> cache_{};
+  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                     is_identical_struct<scalar_expr>>
+      cache_{};
 };
 
 }  // namespace wf
