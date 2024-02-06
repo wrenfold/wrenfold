@@ -21,7 +21,9 @@ struct operation_term_counts {
 };
 
 // Visitor for converting an expression tree into intermediate representation.
-// This visitor accepts expression types, and returns IR values.
+// This visitor accepts expression types, and returns IR values. While doing the conversion, we look
+// for opportunities to optimize. For the most part, this consists of identifying duplicate
+// expressions and computing them only once in the IR representation.
 class ir_form_visitor {
  public:
   // Construct with output graph.
