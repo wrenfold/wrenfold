@@ -47,8 +47,7 @@ ir_control_flow_converter::ir_control_flow_converter(control_flow_graph&& input)
   input_block_ = std::move(input.blocks_.front());
   input.blocks_.clear();
 
-  // Discard all references the input block has to values, since we are going to reassign them.
-  input_block_->operations.clear();
+  // input_block_ will be destroyed on destruction of this object, which occurs after convert().
 }
 
 control_flow_graph ir_control_flow_converter::convert() && {
@@ -65,7 +64,7 @@ control_flow_graph ir_control_flow_converter::convert() && {
 
   // Traverse optional outputs:
   for (const ir::value_ptr v : optional_outputs) {
-    const ir::save& save = v->as_type<ir::save>();
+    const ir::save& save = v->as_op<ir::save>();
     const output_key& key = save.key();
     WF_ASSERT(key.usage == expression_usage::optional_output_argument, "Usage: {}",
               string_from_expression_usage(key.usage));
@@ -139,11 +138,11 @@ static bool parent_is_on_all_paths_through_block(const ir::block_ptr test_block,
   if (test_block == parent_block) {
     return true;
   }
-  return !test_block->ancestors.empty() &&
-         std::all_of(test_block->ancestors.begin(), test_block->ancestors.end(),
-                     [&](const ir::block_ptr b) {
-                       return parent_is_on_all_paths_through_block(b, parent_block);
-                     });
+  const auto& ancestors = test_block->ancestors();
+  return !ancestors.empty() &&
+         std::all_of(ancestors.begin(), ancestors.end(), [&](const ir::block_ptr b) {
+           return parent_is_on_all_paths_through_block(b, parent_block);
+         });
 }
 
 std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
@@ -172,15 +171,16 @@ std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
     // if `output_block` is on all paths through the downstream consumer blocks. This check
     // ensures we don't write the computation of a value into a scope that isn't visible by all
     // other scopes that need this value.
-    const bool is_valid_to_insert = top->all_consumers_satisfy([&](const ir::value_ptr consumer) {
-      return parent_is_on_all_paths_through_block(consumer->parent(), output_block);
-    });
-    if (!is_valid_to_insert) {
+    if (const bool is_valid_to_insert =
+            top->all_consumers_satisfy([&](const ir::value_ptr consumer) {
+              return parent_is_on_all_paths_through_block(consumer->parent(), output_block);
+            });
+        !is_valid_to_insert) {
       deferred.push_back(top);
       continue;
     }
 
-    if (top->is_type<ir::cond>()) {
+    if (top->is_op<ir::cond>()) {
       // Defer conditionals to be processed together later:
       queued_conditionals.push_back(top);
       continue;
@@ -194,8 +194,7 @@ std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
   }
 
   // Flip things back when inserting into the actual block operations:
-  output_block->operations.insert(output_block->operations.begin(), output_reversed.rbegin(),
-                                  output_reversed.rend());
+  output_block->insert_front(output_reversed.rbegin(), output_reversed.rend());
   return queued_conditionals;
 }
 
@@ -275,7 +274,7 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
     const ir::value_ptr copy_right = create_operation(values_, right_block_tail, ir::copy{},
                                                       v->operator[](2)->type(), v->operator[](2));
 
-    v->set_value_op(ir::phi{}, copy_left->type(), copy_left, copy_right);
+    v->set_operation(ir::phi{}, copy_left->type(), copy_left, copy_right);
     v->set_parent(output_block);
     visited_.insert(v);
     visited_.insert(copy_left);
@@ -285,11 +284,10 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
   }
 
   // Insert the phi functions at the top of the block:
-  output_block->operations.insert(output_block->operations.begin(), grouped_conditionals.rbegin(),
-                                  grouped_conditionals.rend());
+  output_block->insert_front(grouped_conditionals.rbegin(), grouped_conditionals.rend());
 
   // Save the ancestor vector before modifying it by creating jumps:
-  const std::vector<ir::block_ptr> previous_ancestors = output_block->ancestors;
+  const std::vector<ir::block_ptr> previous_ancestors = output_block->ancestors();
 
   left_block_tail->add_descendant(output_block);
   right_block_tail->add_descendant(output_block);
@@ -305,7 +303,7 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
   // Any blocks that jumped to `output_block` should now jump to `jump_block` instead:
   for (const ir::block_ptr ancestor : previous_ancestors) {
     // If this block is our ancestor, it must contain a jump at the end:
-    WF_ASSERT(!ancestor->operations.empty() && !ancestor->descendants.empty(),
+    WF_ASSERT(!ancestor->is_empty() && !ancestor->has_no_descendents(),
               "block cannot be empty, must contain a jump");
     ancestor->replace_descendant(output_block, jump_block);
   }
@@ -331,19 +329,15 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
 // ReSharper disable once CppMemberFunctionMayBeConst
 void ir_control_flow_converter::eliminate_useless_copies() {
   for (const auto& block : blocks_) {
-    const auto new_end =
-        std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::value_ptr v) {
-          // A copy is useless if we are duplicating a value in our current block:
-          const bool should_eliminate =
-              v->is_type<ir::copy>() && v->first_operand()->parent() == v->parent();
-          if (should_eliminate) {
-            v->replace_with(v->first_operand());
-            v->remove();
-            return true;
-          }
-          return false;
-        });
-    block->operations.erase(new_end, block->operations.end());
+    block->remove_operation_if([&](const ir::value_ptr v) {
+      // A copy is useless if we are duplicating a value in our current block:
+      if (v->is_op<ir::copy>() && v->first_operand()->parent() == v->parent()) {
+        v->replace_with(v->first_operand());
+        v->remove();
+        return true;
+      }
+      return false;
+    });
   }
 }
 

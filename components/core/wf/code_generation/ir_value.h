@@ -23,32 +23,16 @@ class value {
   using types = std::variant<void_type, scalar_type, matrix_type, custom_type>;
 
   // Construct:
-  template <typename OpType>
+  template <typename OpType, typename... Operands>
   value(const uint32_t name, const ir::block_ptr parent, OpType&& operation, types type,
-        operands_container&& operands)
+        Operands&&... operands)
       : name_(name),
         parent_(parent),
         op_(std::forward<OpType>(operation)),
-        operands_(std::move(operands)),
+        operands_{std::forward<Operands>(operands)...},
         type_(std::move(type)) {
-    notify_operands();
-    if constexpr (OpType::is_commutative()) {
-      // Sort operands for commutative operations so everything is a canonical order.
-      sort_operands();
-    }
-    check_num_operands<OpType>();
+    post_init_steps<OpType>();
   }
-
-  // Enable if `Args` are all types that are convertible to value_ptr.
-  template <typename... Args>
-  using enable_if_convertible_to_value_ptr =
-      std::enable_if_t<std::conjunction_v<std::is_convertible<Args, value_ptr>...>>;
-
-  // Construct with input values specified as variadic arg list.
-  template <typename Op, typename... Args, typename = enable_if_convertible_to_value_ptr<Args...>>
-  value(uint32_t name, ir::block_ptr parent, Op&& operation, types type, Args... args)
-      : value(name, parent, std::forward<Op>(operation), std::move(type),
-              operands_container{args...}) {}
 
   // Access underlying integer.
   constexpr uint32_t name() const noexcept { return name_; }
@@ -62,20 +46,20 @@ class value {
   // Access underlying operation
   constexpr const operation& value_op() const noexcept { return op_; }
 
-  // True if the underlying operation is `T`.
-  template <typename T>
-  constexpr bool is_type() const noexcept {
-    return std::holds_alternative<T>(op_);
+  // True if the underlying operation is one of `Ts`.
+  template <typename... Ts>
+  constexpr bool is_op() const noexcept {
+    return (std::holds_alternative<Ts>(op_) || ...);
   }
 
   // Cast the operation to the specified type.
   template <typename T>
-  const T& as_type() const {
+  constexpr const T& as_op() const {
     return std::get<T>(op_);
   }
 
   // True if this is a phi function.
-  constexpr bool is_phi() const noexcept { return is_type<ir::phi>(); }
+  constexpr bool is_phi() const noexcept { return is_op<ir::phi>(); }
 
   // True if any values that consume this one are phi functions.
   bool is_consumed_by_phi() const noexcept;
@@ -83,23 +67,18 @@ class value {
   // Replace an operand to this instruction with another.
   void replace_operand(value_ptr old, value_ptr replacement);
 
-  // Change the underlying operation that computes this value.
+  // Change the underlying operation that computes this value, as well as the arguments to that
+  // operation.
   template <typename OpType, typename... Args>
-  void set_value_op(OpType&& op, types type, Args... args) {
-    // Notify existing operands we no longer reference them
+  void set_operation(OpType&& op, types type, Args&&... args) {
+    // Disconnect from the current vector of operands:
     for (const value_ptr& operand : operands_) {
       operand->remove_consumer(this);
     }
-    // Record new operands:
-    operands_.clear();
-    (operands_.push_back(args), ...);
+    operands_ = {std::forward<Args>(args)...};
     type_ = std::move(type);
     op_ = std::forward<OpType>(op);
-    notify_operands();
-    if constexpr (OpType::is_commutative()) {
-      sort_operands();
-    }
-    check_num_operands<OpType>();
+    post_init_steps<OpType>();
   }
 
   // Add `v` to the list of consumers of this value.
@@ -150,7 +129,7 @@ class value {
 
   // True if there are no consumers of this value.
   bool is_unused() const noexcept {
-    return consumers_.empty() && !is_type<ir::save>() && !is_type<ir::jump_condition>();
+    return consumers_.empty() && !is_op<ir::save>() && !is_op<ir::jump_condition>();
   }
 
   // Access the type variant.
@@ -177,6 +156,19 @@ class value {
   type_variant non_void_type() const;
 
  protected:
+  template <typename OpType>
+  void post_init_steps() {
+    notify_operands();
+    if constexpr (OpType::is_commutative()) {
+      // Sort operands for commutative operations so everything is a canonical order.
+      sort_operands();
+    }
+    if constexpr (constexpr int expected_num_args = OpType::num_value_operands();
+                  expected_num_args >= 0) {
+      WF_ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
+    }
+  }
+
   // If the underlying operation is commutative, sort the operands by name.
   void maybe_sort_operands();
 
@@ -184,14 +176,6 @@ class value {
   void sort_operands() {
     std::sort(operands_.begin(), operands_.end(),
               [](const value_ptr& a, const value_ptr& b) { return a->name() < b->name(); });
-  }
-
-  template <typename OpType>
-  void check_num_operands() {
-    if constexpr (constexpr int expected_num_args = OpType::num_value_operands();
-                  expected_num_args >= 0) {
-      WF_ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
-    }
   }
 
   // Add `this` as a consumer of its own operands.

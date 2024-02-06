@@ -66,9 +66,6 @@ class control_flow_graph {
                      std::vector<ir::value::unique_ptr> values)
       : blocks_(std::move(blocks)), values_(std::move(values)) {}
 
-  // Remove any values without consumers (that are not endpoints like `ir::save`).
-  void strip_unused_values();
-
   // Owns all the blocks.
   std::vector<ir::block::unique_ptr> blocks_;
 
