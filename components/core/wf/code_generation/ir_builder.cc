@@ -1216,58 +1216,9 @@ std::size_t output_ir::num_conditionals() const {
 }
 
 ir::block_ptr output_ir::create_block() {
-  ir::block::unique_ptr block = std::make_unique<ir::block>(blocks_.size());
+  auto block = std::make_unique<ir::block>(blocks_.size());
   blocks_.push_back(std::move(block));
   return ir::block_ptr(blocks_.back().get());
 }
 
-// We traverse either upwards or downwards, recursively coloring nodes until we find a node
-// that has already been colored - that is the intersection point. There might be more efficient
-// ways to implement this, but we are doing relatively small searches.
-ir::block_ptr find_merge_point(const ir::block_ptr left, const ir::block_ptr right,
-                               const search_direction direction) {
-  // queue with [node, color]
-  std::deque<std::pair<ir::block_ptr, bool>> queue;
-  queue.emplace_back(left, true);
-  queue.emplace_back(right, false);
-
-  std::unordered_map<ir::block_ptr, bool> visited;
-  visited.reserve(20);
-
-  while (!queue.empty()) {
-    const auto top = queue.front();
-    const auto b = std::get<0>(top);
-    const auto color = std::get<1>(top);
-    queue.pop_front();
-
-    const auto [it, was_inserted] = visited.emplace(b, color);
-    if (!was_inserted && it->second != color) {
-      // Already visited by a different color, we found the intersection point:
-      return b;
-    }
-    if (direction == search_direction::downwards) {
-      for (ir::block_ptr child : b->descendants) {
-        queue.emplace_back(child, color);
-      }
-    } else {
-      for (ir::block_ptr ancestor : b->ancestors) {
-        queue.emplace_back(ancestor, color);
-      }
-    }
-  }
-
-  throw assertion_error("All branches should have a merge point");
-}
-
 }  // namespace wf
-
-// Formatter for pointer to block
-template <>
-struct fmt::formatter<wf::ir::block_ptr, char> {
-  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(const wf::ir::block_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "block_{}", x->name);
-  }
-};

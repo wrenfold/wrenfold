@@ -306,7 +306,7 @@ struct ast_from_ir {
 
       // Figure out where this if-else statement will terminate:
       const ir::block_ptr merge_point = find_merge_point(
-          block->descendants[0], block->descendants[1], search_direction::downwards);
+          block->descendants[0], block->descendants[1], ir::search_direction::downwards);
       non_traversable_blocks_.insert(merge_point);
 
       // Declare any variables that will be written in both the if and else blocks:

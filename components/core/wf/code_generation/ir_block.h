@@ -57,6 +57,18 @@ class block {
   std::size_t count_operation(Func&& func) const;
 };
 
+// Argument to `find_merge_point`.
+enum class search_direction {
+  // Search descendents.
+  downwards,
+  // Search ancestors (reverse order of execution).
+  upwards
+};
+
+// Find the block where control flow merges after branching into left/right.
+// Depending on the value of `direction`, we search either anscestors or descendents.
+ir::block_ptr find_merge_point(ir::block_ptr left, ir::block_ptr right, search_direction direction);
+
 // Count instances of operation of type `T`.
 // Defined here so that we can use methods on `value`.
 template <typename Func>
@@ -77,3 +89,14 @@ std::size_t block::count_operation(Func&& func) const {
 }
 
 }  // namespace wf::ir
+
+// Formatter for pointer to block
+template <>
+struct fmt::formatter<wf::ir::block_ptr, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const wf::ir::block_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "block_{}", x->name);
+  }
+};

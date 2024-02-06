@@ -49,7 +49,7 @@ class flat_ir {
   }
 
   // Count invocations of the specified function.
-  std::size_t count_function(std_math_function enum_value) const noexcept {
+  std::size_t count_function(const std_math_function enum_value) const noexcept {
     return count_operation(
         [&](const ir::call_std_function& func) { return func.name() == enum_value; });
   }
@@ -132,12 +132,6 @@ class output_ir {
 
   friend class ir_converter;
 };
-
-// Argument to FindMergePoints
-enum class search_direction { downwards, upwards };
-
-// Find the block where control flow merges after branching into left/right.
-ir::block_ptr find_merge_point(ir::block_ptr left, ir::block_ptr right, search_direction direction);
 
 // Re-create `scalar_expr` tree from the IR representation. For use in round-trip unit tests.
 std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
