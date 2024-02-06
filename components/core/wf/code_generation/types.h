@@ -370,3 +370,49 @@ std::vector<access_variant> determine_access_sequence(const custom_type& top_lev
                                                       std::size_t index);
 
 }  // namespace wf
+
+// Formatting for scalar_type.
+template <>
+struct fmt::formatter<wf::scalar_type, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const wf::scalar_type& s, FormatContext& ctx) const -> decltype(ctx.out()) {
+    const auto view = wf::string_from_code_numeric_type(s.numeric_type());
+    return std::copy(view.begin(), view.end(), ctx.out());
+  }
+};
+
+// Formatting for matrix_type.
+template <>
+struct fmt::formatter<wf::matrix_type, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const wf::matrix_type& m, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "matrix_type<{}, {}>", m.rows(), m.cols());
+  }
+};
+
+// Formatting for custom_type.
+template <>
+struct fmt::formatter<wf::custom_type, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const wf::custom_type& c, FormatContext& ctx) const -> decltype(ctx.out()) {
+    const auto& name = c.name();
+    return std::copy(name.begin(), name.end(), ctx.out());
+  }
+};
+
+// Formatting for type_variant.
+template <>
+struct fmt::formatter<wf::type_variant, char> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+  template <typename Arg, typename FormatContext>
+  auto format(const Arg& v, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return std::visit([&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, v);
+  }
+};

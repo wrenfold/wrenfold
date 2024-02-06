@@ -188,8 +188,8 @@ class value {
 
   template <typename OpType>
   void check_num_operands() {
-    constexpr int expected_num_args = OpType::num_value_operands();
-    if constexpr (expected_num_args >= 0) {
+    if constexpr (constexpr int expected_num_args = OpType::num_value_operands();
+                  expected_num_args >= 0) {
       WF_ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
     }
   }

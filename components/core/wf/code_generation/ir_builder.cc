@@ -12,9 +12,6 @@
 #include "wf/hashing.h"
 #include "wf/visit.h"
 
-// TODO: Move the type_variant printer.
-#include "wf/code_generation/ast_formatters.h"
-
 namespace wf {
 namespace ir {
 
