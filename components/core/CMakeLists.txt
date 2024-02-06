@@ -11,17 +11,26 @@ add_library(
   wf/code_generation/ast_conversion.h
   wf/code_generation/ast_formatters.h
   wf/code_generation/code_formatter.h
+  wf/code_generation/control_flow_graph.cc
+  wf/code_generation/control_flow_graph.h
   wf/code_generation/cpp_code_generator.cc
   wf/code_generation/cpp_code_generator.h
   wf/code_generation/declare_external_function.h
   wf/code_generation/expr_from_ir.cc
+  wf/code_generation/expr_from_ir.h
   wf/code_generation/expression_group.h
   wf/code_generation/function_description.cc
   wf/code_generation/function_description.h
   wf/code_generation/function_evaluator.h
-  wf/code_generation/ir_builder.cc
-  wf/code_generation/ir_builder.h
+  wf/code_generation/ir_block.cc
+  wf/code_generation/ir_block.h
+  wf/code_generation/ir_control_flow_converter.cc
+  wf/code_generation/ir_control_flow_converter.h
+  wf/code_generation/ir_form_visitor.cc
+  wf/code_generation/ir_form_visitor.h
   wf/code_generation/ir_types.h
+  wf/code_generation/ir_value.cc
+  wf/code_generation/ir_value.h
   wf/code_generation/rust_code_generator.cc
   wf/code_generation/rust_code_generator.h
   wf/code_generation/type_registry.cc

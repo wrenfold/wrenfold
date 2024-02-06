@@ -20,21 +20,6 @@ const char* camel_case_name() noexcept {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::scalar_type& s) {
-  return fmt::format_to(it, "<{}>", string_from_code_numeric_type(s.numeric_type()));
-}
-
-template <typename Iterator>
-auto format_ast(Iterator it, const wf::matrix_type& m) {
-  return fmt::format_to(it, "<{}, {}>", m.rows(), m.cols());
-}
-
-template <typename Iterator>
-auto format_ast(Iterator it, const wf::custom_type& c) {
-  return fmt::format_to(it, "('{}')", c.name());
-}
-
-template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::variable_ref& v) {
   return fmt::format_to(it, "({})", v.name);
 }
@@ -226,16 +211,6 @@ struct fmt::formatter<T, wf::ast::enable_if_is_formattable_t<T, char>> {
 
 template <>
 struct fmt::formatter<wf::ast::variant, char> {
-  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
-
-  template <typename Arg, typename FormatContext>
-  auto format(const Arg& v, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return std::visit([&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, v);
-  }
-};
-
-template <>
-struct fmt::formatter<wf::type_variant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename Arg, typename FormatContext>

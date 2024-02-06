@@ -4,8 +4,8 @@
 #include <unordered_set>
 
 #include "wf/code_generation/ast_formatters.h"
-#include "wf/code_generation/ir_builder.h"
-#include "wf/code_generation/ir_types.h"
+#include "wf/code_generation/control_flow_graph.h"
+#include "wf/code_generation/ir_block.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
@@ -306,7 +306,7 @@ struct ast_from_ir {
 
       // Figure out where this if-else statement will terminate:
       const ir::block_ptr merge_point = find_merge_point(
-          block->descendants[0], block->descendants[1], search_direction::downwards);
+          block->descendants[0], block->descendants[1], ir::search_direction::downwards);
       non_traversable_blocks_.insert(merge_point);
 
       // Declare any variables that will be written in both the if and else blocks:
@@ -610,7 +610,8 @@ struct ast_from_ir {
       operation_counts_{};
 };
 
-function_definition create_ast(const wf::output_ir& ir, const function_description& description) {
+function_definition create_ast(const wf::control_flow_graph& ir,
+                               const function_description& description) {
   ast_from_ir converter{ir.value_print_width(), description};
   return converter.convert_function(ir.first_block());
 }

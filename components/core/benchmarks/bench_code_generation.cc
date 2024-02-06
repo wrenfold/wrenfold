@@ -2,9 +2,9 @@
 #include <benchmark/benchmark.h>
 
 #include "wf/code_generation/ast_conversion.h"
+#include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/cpp_code_generator.h"
 #include "wf/code_generation/function_evaluator.h"
-#include "wf/code_generation/ir_builder.h"
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
 #include "wf/output_annotations.h"
@@ -38,8 +38,7 @@ static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
       &quaternion_interpolation, "quaternion_interpolation", arg("q0"), arg("q1"), arg("alpha"));
 
   for (auto _ : state) {
-    flat_ir flat_ir{description.output_expressions()};
-    flat_ir.eliminate_duplicates();
+    control_flow_graph flat_ir{description.output_expressions()};
     benchmark::DoNotOptimize(flat_ir);
   }
 }
@@ -52,11 +51,10 @@ static void BM_ConvertIrLowComplexity(benchmark::State& state) {
 
   for (auto _ : state) {
     state.PauseTiming();
-    flat_ir flat_ir{description.output_expressions()};
-    flat_ir.eliminate_duplicates();
+    control_flow_graph flat_ir{description.output_expressions()};
     state.ResumeTiming();
     // Convert to the non-flat IR.
-    output_ir output_ir{std::move(flat_ir)};
+    control_flow_graph output_ir = std::move(flat_ir).convert_conditionals_to_control_flow();
     benchmark::DoNotOptimize(output_ir);
   }
 }
@@ -67,9 +65,8 @@ static void BM_GenerateCpp(benchmark::State& state) {
   const function_description description = build_function_description(
       &quaternion_interpolation, "quaternion_interpolation", arg("q0"), arg("q1"), arg("alpha"));
 
-  flat_ir flat_ir{description.output_expressions()};
-  flat_ir.eliminate_duplicates();
-  const output_ir output_ir{std::move(flat_ir)};
+  const control_flow_graph output_ir =
+      control_flow_graph{description.output_expressions()}.convert_conditionals_to_control_flow();
 
   for (auto _ : state) {
     ast::function_definition definition = ast::create_ast(output_ir, description);
