@@ -57,6 +57,22 @@ class block {
   std::size_t count_operation(Func&& func) const;
 };
 
+// Create an `ir::value` in the specified block using operation `OpType`.
+template <typename OpType, typename... Args>
+ir::value_ptr create_operation(std::vector<ir::value::unique_ptr>& values,
+                               const ir::block_ptr block, OpType&& op, ir::value::types type,
+                               Args&&... args) {
+  // Create a new value:
+  const uint32_t name = values.empty() ? 0 : values.back()->name() + 1;
+  std::unique_ptr<ir::value> value = std::make_unique<ir::value>(
+      name, block, std::forward<OpType>(op), std::move(type), std::forward<Args>(args)...);
+  // Insert int the provided block:
+  block->operations.emplace_back(value.get());
+  // This is owned by the `values` vector:
+  values.push_back(std::move(value));
+  return block->operations.back();
+}
+
 // Argument to `find_merge_point`.
 enum class search_direction {
   // Search descendents.

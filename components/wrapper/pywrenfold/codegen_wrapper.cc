@@ -5,7 +5,7 @@
 
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/ast_formatters.h"
-#include "wf/code_generation/ir_builder.h"
+#include "wf/code_generation/flat_ir.h"
 #include "wf/code_generation/rust_code_generator.h"
 #include "wf/code_generation/types.h"
 #include "wf/expression.h"

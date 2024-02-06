@@ -1,18 +1,13 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <unordered_map>
 #include <vector>
 
-#include "wf/assertions.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/enumerations.h"
-#include "wf/expression.h"
-#include "wf/hashing.h"
 
 namespace wf {
-class ir_form_visitor;
 
 // Object for creating and manipulating our simple intermediate representation.
 class flat_ir {
@@ -132,10 +127,5 @@ class output_ir {
 
   friend class ir_converter;
 };
-
-// Re-create `scalar_expr` tree from the IR representation. For use in round-trip unit tests.
-std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
-create_output_expression_map(ir::block_ptr starting_block,
-                             std::unordered_map<std::string, bool>&& output_arg_exists);
 
 }  // namespace wf

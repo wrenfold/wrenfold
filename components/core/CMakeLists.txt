@@ -15,14 +15,17 @@ add_library(
   wf/code_generation/cpp_code_generator.h
   wf/code_generation/declare_external_function.h
   wf/code_generation/expr_from_ir.cc
+  wf/code_generation/expr_from_ir.h
   wf/code_generation/expression_group.h
+  wf/code_generation/flat_ir.cc
+  wf/code_generation/flat_ir.h
   wf/code_generation/function_description.cc
   wf/code_generation/function_description.h
   wf/code_generation/function_evaluator.h
   wf/code_generation/ir_block.cc
   wf/code_generation/ir_block.h
-  wf/code_generation/ir_builder.cc
-  wf/code_generation/ir_builder.h
+  wf/code_generation/ir_form_visitor.cc
+  wf/code_generation/ir_form_visitor.h
   wf/code_generation/ir_types.h
   wf/code_generation/ir_value.cc
   wf/code_generation/ir_value.h

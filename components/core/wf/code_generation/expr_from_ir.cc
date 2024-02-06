@@ -1,8 +1,10 @@
 // Copyright 2023 Gareth Cross
+#include "wf/code_generation/expr_from_ir.h"
+
 #include <deque>
 #include <unordered_set>
 
-#include "wf/code_generation/ir_builder.h"
+#include "wf/code_generation/flat_ir.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/template_utils.h"
@@ -225,7 +227,7 @@ struct expression_from_ir_visitor {
 
 std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
 create_output_expression_map(const ir::block_ptr starting_block,
-                             std::unordered_map<std::string, bool>&& output_arg_exists) {
+                             std::unordered_map<std::string, bool> output_arg_exists) {
   // Set of all visited blocks:
   std::unordered_set<ir::block_ptr> completed;
 
