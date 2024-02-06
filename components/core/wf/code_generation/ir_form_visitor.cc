@@ -347,7 +347,7 @@ ir::value_ptr ir_form_visitor::convert_addition_or_multiplication(const T& op) {
   const std::vector<ir::value_ptr> args = transform_map<std::vector>(expressions, *this);
 
   code_numeric_type promoted_type = code_numeric_type::integral;
-  for (ir::value_ptr v : args) {
+  for (const ir::value_ptr v : args) {
     promoted_type = std::max(promoted_type, v->numeric_type());
   }
 

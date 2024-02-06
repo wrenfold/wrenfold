@@ -12,6 +12,8 @@ class block;
 class value;
 using block_ptr = non_null<ir::block*>;
 using value_ptr = non_null<ir::value*>;
+using const_block_ptr = non_null<const ir::block*>;
+using const_value_ptr = non_null<const ir::value*>;
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
