@@ -4,7 +4,7 @@
 #include <deque>
 #include <unordered_set>
 
-#include "wf/code_generation/flat_ir.h"
+#include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/template_utils.h"

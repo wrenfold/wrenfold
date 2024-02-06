@@ -9,6 +9,8 @@
 
 namespace wf {
 
+// Store interemediate representation values and blocks. The blocks are arranged in a graph
+// that describes the control flow in a code-generation function.
 class control_flow_graph {
  public:
   // Construct from a set of output expressions.

@@ -1,6 +1,6 @@
 // Copyright 2024 Gareth Cross
 #pragma once
-#include "wf/code_generation/flat_ir.h"
+#include "wf/code_generation/control_flow_graph.h"
 
 #include <deque>
 #include <unordered_set>

@@ -4,7 +4,7 @@
 #include <unordered_set>
 
 #include "wf/code_generation/ast_formatters.h"
-#include "wf/code_generation/flat_ir.h"
+#include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"

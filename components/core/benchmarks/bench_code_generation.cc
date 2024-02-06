@@ -2,8 +2,8 @@
 #include <benchmark/benchmark.h>
 
 #include "wf/code_generation/ast_conversion.h"
+#include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/cpp_code_generator.h"
-#include "wf/code_generation/flat_ir.h"
 #include "wf/code_generation/function_evaluator.h"
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"

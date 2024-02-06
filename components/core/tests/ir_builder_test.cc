@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
+#include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/declare_external_function.h"
 #include "wf/code_generation/expr_from_ir.h"
-#include "wf/code_generation/flat_ir.h"
 #include "wf/code_generation/function_evaluator.h"
 #include "wf/constants.h"
 #include "wf/functions.h"

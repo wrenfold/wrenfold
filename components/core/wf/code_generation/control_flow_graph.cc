@@ -1,5 +1,5 @@
 // Copyright 2023 Gareth Cross
-#include "wf/code_generation/flat_ir.h"
+#include "wf/code_generation/control_flow_graph.h"
 
 #include <algorithm>
 #include <deque>

@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "wf/code_generation/flat_ir.h"
+#include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/expression.h"
 
