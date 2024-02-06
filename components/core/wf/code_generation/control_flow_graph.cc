@@ -129,15 +129,15 @@ using value_table =
 
 // Eliminate duplicates in `block`, using existing values stored in `table`.
 inline void local_value_numbering(const ir::block_ptr block, value_table& table) {
-  for (const ir::value_ptr& code : block->operations) {
+  for (const ir::value_ptr val : block->operations) {
     // Then see if this operation already exists in the map:
-    if (auto [it, was_inserted] = table.insert(code); !was_inserted) {
+    if (auto [it, was_inserted] = table.insert(val); !was_inserted) {
       // Propagate the copy:
-      if (code->is_consumed_by_phi()) {
+      if (val->is_consumed_by_phi()) {
         // If this value feeds a phi function, we need to keep it, but turn it into a copy:
-        code->set_value_op(ir::copy{}, (*it)->type(), *it);
+        val->set_operation(ir::copy{}, (*it)->type(), *it);
       } else {
-        code->replace_with(*it);
+        val->replace_with(*it);
       }
     }
   }
@@ -260,8 +260,8 @@ std::size_t control_flow_graph::num_operations() const {
       [](const std::size_t total, const ir::block::unique_ptr& b) {
         return total +
                std::count_if(b->operations.begin(), b->operations.end(), [](const ir::value_ptr v) {
-                 return !v->is_type<ir::jump_condition>() && !v->is_type<ir::save>() &&
-                        !v->is_type<ir::load>() && !v->is_type<ir::copy>();
+                 return !v->is_op<ir::jump_condition>() && !v->is_op<ir::save>() &&
+                        !v->is_op<ir::load>() && !v->is_op<ir::copy>();
                });
       });
 }
@@ -271,8 +271,8 @@ std::size_t control_flow_graph::num_conditionals() const {
                          [](const std::size_t total, const ir::block::unique_ptr& b) {
                            return total + std::count_if(b->operations.begin(), b->operations.end(),
                                                         [](const ir::value_ptr v) {
-                                                          return v->is_type<ir::jump_condition>() ||
-                                                                 v->is_type<ir::cond>();
+                                                          return v->is_op<ir::jump_condition>() ||
+                                                                 v->is_op<ir::cond>();
                                                         });
                          });
 }

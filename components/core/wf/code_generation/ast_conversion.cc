@@ -138,10 +138,10 @@ struct ast_from_ir {
   // either return values, or writing to output arguments (and add them to operations_).
   void push_back_outputs(const ir::block_ptr block) {
     for (const ir::value_ptr value : block->operations) {
-      if (!value->is_type<ir::save>()) {
+      if (!value->is_op<ir::save>()) {
         continue;
       }
-      const ir::save& save = value->as_type<ir::save>();
+      const ir::save& save = value->as_op<ir::save>();
       const output_key& key = save.key();
       type_constructor constructor = create_type_constructor(value->operands());
 
@@ -217,12 +217,12 @@ struct ast_from_ir {
     phi_assignments.reserve(block->operations.size());
 
     for (const ir::value_ptr value : block->operations) {
-      if (value->is_type<ir::save>()) {
+      if (value->is_op<ir::save>()) {
         // Defer output values to the end of the block.
       } else if (value->is_phi()) {
         // Phi is not a real operation, we just use it to determine when branches should write to
         // variables declared before the if-else.
-      } else if (value->is_type<ir::jump_condition>() || value->is_type<ir::output_required>()) {
+      } else if (value->is_op<ir::jump_condition>() || value->is_op<ir::output_required>()) {
         // These are placeholders and have no representation in the output code.
       } else {
         // Create the computation of the value:
@@ -292,12 +292,12 @@ struct ast_from_ir {
     }
 
     if (const ir::value_ptr last_op = block->operations.back();
-        !last_op->is_type<ir::jump_condition>()) {
+        !last_op->is_op<ir::jump_condition>()) {
       // just keep appending:
       WF_ASSERT_EQUAL(1, block->descendants.size());
       process_block(block->descendants.front());
     } else {
-      WF_ASSERT(last_op->is_type<ir::jump_condition>());
+      WF_ASSERT(last_op->is_op<ir::jump_condition>());
       WF_ASSERT_EQUAL(2, block->descendants.size());
 
       // This over-counts a bit, since nested branches don't all run. We are just counting
@@ -319,8 +319,8 @@ struct ast_from_ir {
       // an if-branch. The other is for conditional logic in computations (where both if and
       // else branches are required).
       if (const ir::value_ptr condition = last_op->first_operand();
-          condition->is_type<ir::output_required>()) {
-        const ir::output_required& oreq = condition->as_type<ir::output_required>();
+          condition->is_op<ir::output_required>()) {
+        const ir::output_required& oreq = condition->as_op<ir::output_required>();
 
         // Create an optional-output assignment block
         auto arg_optional = signature_.argument_by_name(oreq.name());

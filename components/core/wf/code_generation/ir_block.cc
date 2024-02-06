@@ -9,7 +9,7 @@ void block::replace_descendant(ir::block_ptr target, ir::block_ptr replacement) 
   WF_ASSERT_NOT_EQUAL(target, replacement);
 
   if (!operations.empty()) {
-    if (const ir::value_ptr jump_val = operations.back(); jump_val->is_type<ir::jump_condition>()) {
+    if (const ir::value_ptr jump_val = operations.back(); jump_val->is_op<ir::jump_condition>()) {
       WF_ASSERT_EQUAL(2, descendants.size());
     } else {
       WF_ASSERT_GREATER_OR_EQ(1, descendants.size());

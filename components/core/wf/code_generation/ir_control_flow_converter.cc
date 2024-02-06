@@ -65,7 +65,7 @@ control_flow_graph ir_control_flow_converter::convert() && {
 
   // Traverse optional outputs:
   for (const ir::value_ptr v : optional_outputs) {
-    const ir::save& save = v->as_type<ir::save>();
+    const ir::save& save = v->as_op<ir::save>();
     const output_key& key = save.key();
     WF_ASSERT(key.usage == expression_usage::optional_output_argument, "Usage: {}",
               string_from_expression_usage(key.usage));
@@ -180,7 +180,7 @@ std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
       continue;
     }
 
-    if (top->is_type<ir::cond>()) {
+    if (top->is_op<ir::cond>()) {
       // Defer conditionals to be processed together later:
       queued_conditionals.push_back(top);
       continue;
@@ -275,7 +275,7 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
     const ir::value_ptr copy_right = create_operation(values_, right_block_tail, ir::copy{},
                                                       v->operator[](2)->type(), v->operator[](2));
 
-    v->set_value_op(ir::phi{}, copy_left->type(), copy_left, copy_right);
+    v->set_operation(ir::phi{}, copy_left->type(), copy_left, copy_right);
     v->set_parent(output_block);
     visited_.insert(v);
     visited_.insert(copy_left);
@@ -335,7 +335,7 @@ void ir_control_flow_converter::eliminate_useless_copies() {
         std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::value_ptr v) {
           // A copy is useless if we are duplicating a value in our current block:
           const bool should_eliminate =
-              v->is_type<ir::copy>() && v->first_operand()->parent() == v->parent();
+              v->is_op<ir::copy>() && v->first_operand()->parent() == v->parent();
           if (should_eliminate) {
             v->replace_with(v->first_operand());
             v->remove();

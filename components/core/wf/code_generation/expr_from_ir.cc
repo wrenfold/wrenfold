@@ -200,7 +200,7 @@ struct expression_from_ir_visitor {
     WF_ASSERT(!jump_block->is_empty());
 
     const ir::value_ptr jump_val = jump_block->operations.back();
-    WF_ASSERT(jump_val->is_type<ir::jump_condition>());
+    WF_ASSERT(jump_val->is_op<ir::jump_condition>());
 
     return where(map_scalar_value(jump_val->first_operand()), map_scalar_value(args[0]),
                  map_scalar_value(args[1]));
