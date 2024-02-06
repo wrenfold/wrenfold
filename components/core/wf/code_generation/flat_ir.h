@@ -74,7 +74,7 @@ class control_flow_graph {
   std::vector<ir::value::unique_ptr> values_;
 
   friend class ir_form_visitor;
-  friend class ir_converter;
+  friend class ir_control_flow_converter;
 };
 
 }  // namespace wf

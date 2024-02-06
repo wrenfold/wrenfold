@@ -24,6 +24,8 @@ add_library(
   wf/code_generation/function_evaluator.h
   wf/code_generation/ir_block.cc
   wf/code_generation/ir_block.h
+  wf/code_generation/ir_control_flow_converter.cc
+  wf/code_generation/ir_control_flow_converter.h
   wf/code_generation/ir_form_visitor.cc
   wf/code_generation/ir_form_visitor.h
   wf/code_generation/ir_types.h
