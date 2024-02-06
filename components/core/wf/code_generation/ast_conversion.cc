@@ -12,10 +12,11 @@
 namespace wf::ast {
 
 // Given a starting value `v`, find any downstream conditionals values that equal this value.
-inline void find_conditional_output_values(const ir::value_ptr v, const bool top_level_invocation,
-                                           std::vector<ir::value_ptr>& outputs) {
+inline void find_conditional_output_values(const ir::const_value_ptr v,
+                                           const bool top_level_invocation,
+                                           std::vector<ir::const_value_ptr>& outputs) {
   bool all_phi_consumers = true;
-  for (const ir::value_ptr consumer : v->consumers()) {
+  for (const ir::const_value_ptr consumer : v->consumers()) {
     if (consumer->is_phi()) {
       // A phi function might just be an input to another phi function, so we need to recurse here.
       find_conditional_output_values(consumer, false, outputs);
@@ -73,7 +74,7 @@ struct type_constructor {
   std::size_t index_;
 };
 
-ast::function_definition ast_form_visitor::convert_function(const ir::block_ptr block) {
+ast::function_definition ast_form_visitor::convert_function(const ir::const_block_ptr block) {
   process_block(block);
 
   std::vector<ast::variant> result;
@@ -94,8 +95,8 @@ void ast_form_visitor::push_back_conditional_assignments(
   assignments.clear();
 }
 
-void ast_form_visitor::push_back_output_operations(const ir::block_ptr block) {
-  for (const ir::value_ptr value : block->operations()) {
+void ast_form_visitor::push_back_output_operations(const ir::const_block_ptr block) {
+  for (const ir::const_value_ptr value : block->operations()) {
     if (!value->is_op<ir::save>()) {
       continue;
     }
@@ -145,11 +146,11 @@ void ast_form_visitor::push_back_output_operations(const ir::block_ptr block) {
 //      v00 = sin(x);
 //    }
 //  }
-void ast_form_visitor::push_back_conditional_output_declarations(const ir::block_ptr block) {
-  for (const ir::value_ptr value : block->operations()) {
+void ast_form_visitor::push_back_conditional_output_declarations(const ir::const_block_ptr block) {
+  for (const ir::const_value_ptr value : block->operations()) {
     if (value->is_phi()) {
       if (const bool no_declaration =
-              value->all_consumers_satisfy([](const ir::value_ptr v) { return v->is_phi(); });
+              value->all_consumers_satisfy([](const ir::const_value_ptr v) { return v->is_phi(); });
           no_declaration) {
         continue;
       }
@@ -162,7 +163,7 @@ void ast_form_visitor::push_back_conditional_output_declarations(const ir::block
 
 // Return true if the specified value should be written in-line instead of declared as a variable.
 // At present, only constants and casts of constants do not receive variable declarations.
-static bool should_inline_constant(const ir::value_ptr val) {
+static bool should_inline_constant(const ir::const_value_ptr val) {
   return overloaded_visit(
       val->value_op(),
       [](const ir::load& load) {
@@ -173,7 +174,7 @@ static bool should_inline_constant(const ir::value_ptr val) {
       [](auto&&) constexpr { return false; });
 }
 
-void ast_form_visitor::process_block(const ir::block_ptr block) {
+void ast_form_visitor::process_block(const ir::const_block_ptr block) {
   if (non_traversable_blocks_.count(block)) {
     // Don't recurse too far - we are waiting on one of the ancestors of this block to get
     // processed.
@@ -187,7 +188,7 @@ void ast_form_visitor::process_block(const ir::block_ptr block) {
   std::vector<ast::assign_temporary> phi_assignments{};
   phi_assignments.reserve(block->size());
 
-  for (const ir::value_ptr value : block->operations()) {
+  for (const ir::const_value_ptr value : block->operations()) {
     if (value->is_op<ir::save>()) {
       // Defer output values to the end of the block.
     } else if (value->is_phi()) {
@@ -200,12 +201,12 @@ void ast_form_visitor::process_block(const ir::block_ptr block) {
       const auto computed_value = std::make_shared<const ast::variant>(visit_value(value));
 
       // Find any downstream phi values that are equal to this value:
-      std::vector<ir::value_ptr> phi_consumers{};
+      std::vector<ir::const_value_ptr> phi_consumers{};
       find_conditional_output_values(value, true, phi_consumers);
 
       // Does this value have any consumers that are not the outputs of conditional branches?
       const bool any_none_phi_consumers =
-          !value->all_consumers_satisfy([](ir::value_ptr c) { return c->is_phi(); });
+          !value->all_consumers_satisfy([](const ir::const_value_ptr c) { return c->is_phi(); });
 
       // If we have a single non-phi consumer, or more than one phi consumer, we declare a
       // variable.
@@ -221,7 +222,7 @@ void ast_form_visitor::process_block(const ir::block_ptr block) {
       }
 
       // Here we write assignments to every conditional output that contains this value:
-      for (const ir::value_ptr consumer : phi_consumers) {
+      for (const ir::const_value_ptr consumer : phi_consumers) {
         phi_assignments.emplace_back(format_variable_name(consumer), rhs);
       }
     }
@@ -237,7 +238,7 @@ void ast_form_visitor::process_block(const ir::block_ptr block) {
   handle_control_flow(block);
 }
 
-std::vector<ast::variant> ast_form_visitor::process_nested_block(const ir::block_ptr block) {
+std::vector<ast::variant> ast_form_visitor::process_nested_block(const ir::const_block_ptr block) {
   // Move aside operations of the current block temporarily:
   std::vector<ast::variant> operations_stashed = std::move(operations_);
   operations_.clear();
@@ -253,14 +254,14 @@ std::vector<ast::variant> ast_form_visitor::process_nested_block(const ir::block
 
 // Determine if the provided block terminates in conditional control flow. If it does, we need to
 // branch both left and right to compute the contents of the if-else statement.
-void ast_form_visitor::handle_control_flow(const ir::block_ptr block) {
+void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
   const auto& descendants = block->descendants();
   if (descendants.empty()) {
     // This is the terminal block - nothing to do.
     return;
   }
 
-  if (const ir::value_ptr last_op = block->last_operation();
+  if (const ir::const_value_ptr last_op = block->last_operation();
       !last_op->is_op<ir::jump_condition>()) {
     // just keep appending:
     WF_ASSERT_EQUAL(1, descendants.size());
@@ -273,7 +274,7 @@ void ast_form_visitor::handle_control_flow(const ir::block_ptr block) {
     operation_counts_[operation_count_label::branch]++;
 
     // Figure out where this if-else statement will terminate:
-    const ir::block_ptr merge_point =
+    const ir::const_block_ptr merge_point =
         find_merge_point(descendants[0], descendants[1], ir::search_direction::downwards);
     non_traversable_blocks_.insert(merge_point);
 
@@ -286,7 +287,7 @@ void ast_form_visitor::handle_control_flow(const ir::block_ptr block) {
     // We have two kinds of branches. One for optionally-computed outputs, which only has
     // an if-branch. The other is for conditional logic in computations (where both if and
     // else branches are required).
-    if (const ir::value_ptr condition = last_op->first_operand();
+    if (const ir::const_value_ptr condition = last_op->first_operand();
         condition->is_op<ir::output_required>()) {
       const ir::output_required& oreq = condition->as_op<ir::output_required>();
 
@@ -327,21 +328,21 @@ ast::variant ast_form_visitor::visit_value(const ir::value& value) {
       value.value_op());
 }
 
-ast::variant ast_form_visitor::visit_operation_argument(const ir::value_ptr value) {
+ast::variant ast_form_visitor::visit_operation_argument(const ir::const_value_ptr value) {
   if (should_inline_constant(value)) {
     return visit_value(value);
   }
   return make_variable_ref(value);
 }
 
-ast::variant_ptr ast_form_visitor::visit_operation_argument_ptr(const ir::value_ptr val) {
+ast::variant_ptr ast_form_visitor::visit_operation_argument_ptr(const ir::const_value_ptr val) {
   return std::make_shared<const ast::variant>(visit_operation_argument(val));
 }
 
 std::vector<ast::variant> ast_form_visitor::transform_operands(const ir::value& val) {
   std::vector<ast::variant> transformed_args{};
   transformed_args.reserve(val.num_operands());
-  for (const ir::value_ptr arg : val.operands()) {
+  for (const ir::const_value_ptr arg : val.operands()) {
     transformed_args.push_back(visit_operation_argument(arg));
   }
   return transformed_args;
@@ -425,7 +426,7 @@ ast::variant ast_form_visitor::operator()(const ir::value&, const ir::load& load
           return ast::float_literal{static_cast<float_constant>(inner).get_value()};
         } else if constexpr (std::is_same_v<T, variable>) {
           // inspect inner type of the variable
-          return std::visit([this](const auto& var_type) { return operator()(var_type); },
+          return std::visit([this](const auto& var_type) { return this->operator()(var_type); },
                             inner.identifier());
         } else if constexpr (std::is_same_v<T, custom_type_argument>) {
           return ast::get_argument{signature_.argument_by_index(inner.arg_index())};

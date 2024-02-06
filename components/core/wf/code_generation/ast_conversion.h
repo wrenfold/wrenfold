@@ -24,8 +24,8 @@ enum class operation_count_label {
 };
 
 template <>
-struct wf::hash_struct<wf::operation_count_label> {
-  constexpr std::size_t operator()(wf::operation_count_label enum_value) const noexcept {
+struct hash_struct<operation_count_label> {
+  constexpr std::size_t operator()(operation_count_label enum_value) const noexcept {
     return static_cast<std::size_t>(enum_value);
   }
 };
@@ -44,7 +44,7 @@ class ast_form_visitor {
         signature_{description.name(), description.return_value_type(), description.arguments()} {}
 
   // Convert a function, starting from `block`.
-  ast::function_definition convert_function(ir::block_ptr block);
+  ast::function_definition convert_function(ir::const_block_ptr block);
 
  private:
   // Sort and move all the provided assignments into `operations_`.
@@ -52,42 +52,42 @@ class ast_form_visitor {
 
   // Traverse the block and identify all the `ir::save` operations. Create ast objets that represent
   // these, either by making return values or by writing to output arguments.
-  void push_back_output_operations(ir::block_ptr block);
+  void push_back_output_operations(ir::const_block_ptr block);
 
   // Insert declarations for temporary values used as the outputs of conditional branches.
-  void push_back_conditional_output_declarations(ir::block_ptr block);
+  void push_back_conditional_output_declarations(ir::const_block_ptr block);
 
   // Process all the operations in the given block, appending their equivalent ast types to
   // `operations_`. Returse into any blocks that are jumped-to from this one.
-  void process_block(ir::block_ptr block);
+  void process_block(ir::const_block_ptr block);
 
   // Stash the current set of operations, and process a child block.
   // We return the nested block's operations (and pop our stash before returning).
-  std::vector<ast::variant> process_nested_block(ir::block_ptr block);
+  std::vector<ast::variant> process_nested_block(ir::const_block_ptr block);
 
   // At the end of `block`, check if we need to inject an if-else statement to handle conditional
   // control flow.
-  void handle_control_flow(ir::block_ptr block);
+  void handle_control_flow(ir::const_block_ptr block);
 
   // Convert the value integer to the formatted variable name that will appear in code.
-  std::string format_variable_name(const ir::value_ptr val) const {
+  std::string format_variable_name(const ir::const_value_ptr val) const {
     return fmt::format("v{:0>{}}", val->name(), value_width_);
   }
 
   // Visit the operation type on `value`, and delegate to the appropriate method on self.
   ast::variant visit_value(const ir::value& value);
-  ast::variant visit_value(const ir::value_ptr value) { return visit_value(*value); }
+  ast::variant visit_value(const ir::const_value_ptr value) { return visit_value(*value); }
 
   // Create a `variable_ref` object with the name of the variable used to store `value`.
-  ast::variable_ref make_variable_ref(const ir::value_ptr value) const {
+  ast::variable_ref make_variable_ref(const ir::const_value_ptr value) const {
     return ast::variable_ref{format_variable_name(value)};
   }
 
   // Check if the provided value is going to be placed in-line. If so, we just directly return
   // the converted `value`. If not, we assume a variable will be declared elsewhere and instead
   // return a reference to that.
-  ast::variant visit_operation_argument(ir::value_ptr value);
-  ast::variant_ptr visit_operation_argument_ptr(ir::value_ptr val);
+  ast::variant visit_operation_argument(ir::const_value_ptr value);
+  ast::variant_ptr visit_operation_argument_ptr(ir::const_value_ptr val);
 
   // Convert all operands to `val` into equivlent ast types.
   std::vector<ast::variant> transform_operands(const ir::value& val);
@@ -134,7 +134,7 @@ class ast_form_visitor {
   std::vector<ast::variant> operations_;
 
   // Blocks we can't process yet (pending processing of all their ancestors).
-  std::unordered_set<ir::block_ptr> non_traversable_blocks_;
+  std::unordered_set<ir::const_block_ptr> non_traversable_blocks_;
 
   // Operation counts
   std::unordered_map<operation_count_label, std::size_t, hash_struct<operation_count_label>>
