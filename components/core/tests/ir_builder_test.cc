@@ -15,12 +15,8 @@ namespace wf {
 using namespace wf::custom_literals;
 namespace ta = type_annotations;
 
-std::ostream& operator<<(std::ostream& s, const flat_ir& b) {
-  s << "Flat IR:\n" << b.to_string();
-  return s;
-}
-std::ostream& operator<<(std::ostream& s, const output_ir& b) {
-  s << "Output IR:\n" << b.to_string();
+std::ostream& operator<<(std::ostream& s, const control_flow_graph& cfg) {
+  s << cfg.to_string();
   return s;
 }
 
@@ -29,8 +25,7 @@ template <typename Func, typename... Args>
 auto create_ir(Func&& func, const std::string_view name, Args&&... args) {
   const function_description description =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
-  flat_ir flat_ir{description.output_expressions()};
-  flat_ir.eliminate_duplicates();
+  control_flow_graph flat_ir{description.output_expressions()};
   return std::make_tuple(description.output_expressions(), std::move(flat_ir));
 }
 
@@ -99,13 +94,13 @@ void check_output_expressions(const std::vector<expression_group>& expected_expr
 }
 
 void check_expressions(const std::vector<expression_group>& expected_expressions,
-                       const flat_ir& ir) {
-  const auto output_expressions = create_output_expression_map(ir.get_block(), {});
+                       const control_flow_graph& ir) {
+  const auto output_expressions = create_output_expression_map(ir.first_block(), {});
   check_output_expressions(expected_expressions, output_expressions, ir);
 }
 
-void check_expressions(const std::vector<expression_group>& expected_expressions,
-                       const output_ir& ir) {
+void check_expressions_with_output_permutations(
+    const std::vector<expression_group>& expected_expressions, const control_flow_graph& ir) {
   const optional_arg_permutations permutations{expected_expressions};
   for (std::size_t i = 0; i < permutations.num_permutations(); ++i) {
     // test permutation `i`:
@@ -121,7 +116,8 @@ TEST(IrTest, TestNumericConstant1) {
   auto [expected_expressions, ir] = create_ir([]() { return 6_s; }, "func");
   ASSERT_EQ(1, ir.count_operation<ir::load>()) << ir;
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, output_ir{std::move(ir)});
+  check_expressions_with_output_permutations(expected_expressions,
+                                             std::move(ir).convert_conditionals_to_control_flow());
 }
 
 TEST(IrTest, TestNumericConstant2) {
@@ -132,7 +128,8 @@ TEST(IrTest, TestNumericConstant2) {
       "func");
   ASSERT_EQ(3, ir.count_operation<ir::load>()) << ir;
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, output_ir{std::move(ir)});
+  check_expressions_with_output_permutations(expected_expressions,
+                                             std::move(ir).convert_conditionals_to_control_flow());
 }
 
 TEST(IrTest, TestNoDuplicatedCasts) {
@@ -140,7 +137,7 @@ TEST(IrTest, TestNoDuplicatedCasts) {
   // are inserted (one for 0, and one for 1).
   const auto tuple = build_function_description(
       []() -> ta::static_matrix<4, 4> { return make_identity(4); }, "func");
-  const flat_ir ir{tuple.output_expressions()};
+  const control_flow_graph ir{tuple.output_expressions()};
   ASSERT_EQ(2, ir.count_operation<ir::cast>()) << ir;
   ASSERT_EQ(2, ir.count_operation<ir::load>()) << ir;
 }
@@ -158,11 +155,11 @@ TEST(IrTest, TestScalarExpressions1) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
+  control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(1, output_ir.count_operation<ir::mul>()) << output_ir;
   ASSERT_EQ(1, output_ir.count_operation<ir::add>()) << output_ir;
   ASSERT_EQ(1, output_ir.num_blocks()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestScalarExpressions2) {
@@ -184,11 +181,11 @@ TEST(IrTest, TestScalarExpressions2) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(15, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   ASSERT_EQ(3, output_ir.num_blocks()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestScalarExpressions3) {
@@ -208,7 +205,8 @@ TEST(IrTest, TestScalarExpressions3) {
   ASSERT_EQ(1, ir.count_function(std_math_function::log)) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, output_ir{std::move(ir)});
+  check_expressions_with_output_permutations(expected_expressions,
+                                             std::move(ir).convert_conditionals_to_control_flow());
 }
 
 TEST(IrTest, TestScalarExpressions4) {
@@ -231,7 +229,8 @@ TEST(IrTest, TestScalarExpressions4) {
   ASSERT_EQ(1, ir.count_operation<ir::neg>()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, output_ir{std::move(ir)});
+  check_expressions_with_output_permutations(expected_expressions,
+                                             std::move(ir).convert_conditionals_to_control_flow());
 }
 
 // Test that powers can be converted into multiplications.
@@ -249,7 +248,8 @@ TEST(IrTest, TestPowerConversion1) {
   ASSERT_EQ(0, ir.count_function(std_math_function::powf)) << ir;
   ASSERT_EQ(0, ir.count_function(std_math_function::powi)) << ir;
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, output_ir{std::move(ir)});
+  check_expressions_with_output_permutations(expected_expressions,
+                                             std::move(ir).convert_conditionals_to_control_flow());
 }
 
 // Test that powers of square roots are convert into sqrt operations.
@@ -270,7 +270,8 @@ TEST(IrTest, TestPowerConversion2) {
   ASSERT_EQ(1, ir.count_function(std_math_function::sqrt)) << ir;
 
   check_expressions(expected_expressions, ir);
-  check_expressions(expected_expressions, output_ir{std::move(ir)});
+  check_expressions_with_output_permutations(expected_expressions,
+                                             std::move(ir).convert_conditionals_to_control_flow());
 }
 
 TEST(IrTest, TestConditionals1) {
@@ -285,10 +286,10 @@ TEST(IrTest, TestConditionals1) {
   ASSERT_EQ(1, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(4, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestConditionals2) {
@@ -304,10 +305,10 @@ TEST(IrTest, TestConditionals2) {
   ASSERT_EQ(1, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(8, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestConditionals3) {
@@ -322,10 +323,10 @@ TEST(IrTest, TestConditionals3) {
   ASSERT_EQ(3, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(7, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestConditionals4) {
@@ -343,10 +344,10 @@ TEST(IrTest, TestConditionals4) {
   ASSERT_EQ(3, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(19, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestConditionals5) {
@@ -367,10 +368,10 @@ TEST(IrTest, TestConditionals5) {
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(57, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestConditionals6) {
@@ -388,10 +389,10 @@ TEST(IrTest, TestConditionals6) {
   ASSERT_EQ(4, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(24, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(4, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestConditionals7) {
@@ -405,10 +406,10 @@ TEST(IrTest, TestConditionals7) {
   ASSERT_EQ(2, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(8, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(2, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestConditionals8) {
@@ -426,10 +427,10 @@ TEST(IrTest, TestConditionals8) {
   ASSERT_EQ(3, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(27, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestMatrixExpressions1) {
@@ -445,10 +446,10 @@ TEST(IrTest, TestMatrixExpressions1) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(6, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestMatrixExpressions2) {
@@ -468,10 +469,10 @@ TEST(IrTest, TestMatrixExpressions2) {
   check_expressions(expected_expressions, ir);
 
   // Conditionals should get reduced:
-  output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(37, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
-  check_expressions(expected_expressions, output_ir);
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestMatrixExpressions3) {
@@ -495,10 +496,10 @@ TEST(IrTest, TestMatrixExpressions3) {
   ASSERT_EQ(15, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(116, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 TEST(IrTest, TestBuiltInFunctions) {
@@ -528,10 +529,10 @@ TEST(IrTest, TestBuiltInFunctions) {
   EXPECT_EQ(1, ir.count_function(std_math_function::powf));
   check_expressions(expected_expressions, ir);
 
-  output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(27, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
 // Make a external function that accepts two arguments (one scalar, one matrix).
@@ -554,8 +555,8 @@ TEST(IrTest, TestExternalFunction1) {
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
 
-  const output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
   ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
 }
 
@@ -580,8 +581,8 @@ TEST(IrTest, TestExternalFunction2) {
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
 
-  const output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
   ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
 }
 
@@ -620,8 +621,8 @@ TEST(IrTest, TestExternalFunction3) {
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
 
-  const output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
   ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
 }
 
@@ -644,8 +645,8 @@ TEST(IrTest, TestExternalFunction4) {
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
 
-  const output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
   ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
 }
 
@@ -659,8 +660,8 @@ TEST(IrTest, TestExternalFunction5) {
   ASSERT_EQ(1, ir.count_operation<ir::call_external_function>()) << ir;
   ASSERT_EQ(0, ir.count_operation<ir::construct>()) << ir;  //  p1 passed directly.
 
-  const output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
   ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
   ASSERT_EQ(0, output_ir.count_operation<ir::construct>()) << ir;
 }
@@ -688,8 +689,8 @@ TEST(IrTest, TestExternalFunction6) {
   ASSERT_EQ(3, ir.count_operation<ir::call_external_function>()) << ir;
   ASSERT_EQ(1, ir.count_operation<ir::construct>()) << ir;  //  Only matrix is constructed.
 
-  const output_ir output_ir{std::move(ir)};
-  check_expressions(expected_expressions, output_ir);
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
   ASSERT_EQ(3, output_ir.count_operation<ir::call_external_function>());
   ASSERT_EQ(1, output_ir.count_operation<ir::construct>()) << ir;  //  Only matrix is constructed.
 }

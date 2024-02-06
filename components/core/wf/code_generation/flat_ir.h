@@ -9,67 +9,19 @@
 
 namespace wf {
 
-// Object for creating and manipulating our simple intermediate representation.
-class flat_ir {
+class control_flow_graph {
  public:
   // Construct from a set of output expressions.
-  explicit flat_ir(const std::vector<expression_group>& expressions);
+  explicit control_flow_graph(const std::vector<expression_group>& groups);
 
-  // Format IR for every value.
-  std::string to_string() const;
-
-  // Size of value numbers when printed (# digits).
-  std::size_t value_print_width() const;
+  // Consume `this` and convert to a control flow graph that contains jumps.
+  // This converts the graph from one with `cond` operations to one with multiple blocks and jump
+  // operations.
+  control_flow_graph convert_conditionals_to_control_flow() &&;
 
   // Eliminate duplicate operations. Most are eliminated during the conversion from expressions
-  // to the IR.
+  // to the IR, but the conversion process can introduce a few new duplicates.
   void eliminate_duplicates();
-
-  // Number of operations:
-  std::size_t num_operations() const;
-
-  // Number of conditional statements.
-  std::size_t num_conditionals() const;
-
-  // Count instances of operations matching predicate `Func`.
-  template <typename Func>
-  std::size_t count_operation(Func&& func) const {
-    return block_->count_operation(std::forward<Func>(func));
-  }
-
-  // Count instances of operations of type `T`.
-  template <typename T>
-  std::size_t count_operation() const {
-    return count_operation([](const T&) constexpr { return true; });
-  }
-
-  // Count invocations of the specified function.
-  std::size_t count_function(const std_math_function enum_value) const noexcept {
-    return count_operation(
-        [&](const ir::call_std_function& func) { return func.name() == enum_value; });
-  }
-
-  // Get the single block of operations.
-  ir::block_ptr get_block() const { return ir::block_ptr{block_.get()}; }
-
- protected:
-  // Remove any values without consumers (that are not endpoints like Save).
-  void strip_unused_values();
-
-  // Single flat block:
-  ir::block::unique_ptr block_;
-
-  // Owns all the instructions.
-  std::vector<ir::value::unique_ptr> values_;
-
-  friend class ir_form_visitor;
-  friend class output_ir;
-};
-
-class output_ir {
- public:
-  // Construct from `flat_ir` (which is cleared in the process).
-  explicit output_ir(flat_ir&& input);
 
   // Format IR for every value.
   std::string to_string() const;
@@ -83,17 +35,11 @@ class output_ir {
   // Number of operations:
   std::size_t num_conditionals() const;
 
-  // NUmber of blocks.
+  // Number of blocks.
   std::size_t num_blocks() const { return blocks_.size(); }
 
   // Get the first block (start of execution).
-  ir::block_ptr first_block() const {
-    const auto it =
-        std::find_if(blocks_.begin(), blocks_.end(),
-                     [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); });
-    WF_ASSERT(it != blocks_.end(), "Must be an entry block");
-    return ir::block_ptr{it->get()};
-  }
+  ir::block_ptr first_block() const;
 
   // Count instances of operations matching predicate `Func`.
   template <typename Func>
@@ -111,13 +57,15 @@ class output_ir {
   }
 
   // Count instances of a function call.
-  std::size_t count_function(std_math_function enum_value) const noexcept {
-    return count_operation([&](ir::call_std_function func) { return func.name() == enum_value; });
-  }
+  std::size_t count_function(std_math_function enum_value) const noexcept;
 
  private:
-  // Allocate a new block
-  ir::block_ptr create_block();
+  control_flow_graph(std::vector<ir::block::unique_ptr> blocks,
+                     std::vector<ir::value::unique_ptr> values)
+      : blocks_(std::move(blocks)), values_(std::move(values)) {}
+
+  // Remove any values without consumers (that are not endpoints like `ir::save`).
+  void strip_unused_values();
 
   // Owns all the blocks.
   std::vector<ir::block::unique_ptr> blocks_;
@@ -125,6 +73,7 @@ class output_ir {
   // Owns all the instructions
   std::vector<ir::value::unique_ptr> values_;
 
+  friend class ir_form_visitor;
   friend class ir_converter;
 };
 

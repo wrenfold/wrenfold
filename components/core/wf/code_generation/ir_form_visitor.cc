@@ -6,6 +6,13 @@
 
 namespace wf {
 
+ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph, operation_term_counts counts)
+    : output_graph_(output_graph),
+      output_block_(output_graph.first_block()),
+      counts_(std::move(counts)) {
+  WF_ASSERT_EQUAL(1, output_graph.num_blocks(), "Output graph should only have one block.");
+}
+
 ir::value_ptr ir_form_visitor::operator()(const addition& add, const scalar_expr& add_abstract) {
   // For additions, first check if the negated version has already been cached:
   const scalar_expr negative_add = -add_abstract;
@@ -309,10 +316,10 @@ ir::value_ptr ir_form_visitor::operator()(const scalar_expr& expr) {
 template <typename OpType, typename Type, typename... Args>
 ir::value_ptr ir_form_visitor::push_operation(OpType&& op, Type type, Args&&... args) {
   if constexpr (std::is_same_v<Type, code_numeric_type>) {
-    return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
+    return create_operation(output_graph_.values_, output_block_, std::forward<OpType>(op),
                             scalar_type(type), std::forward<Args>(args)...);
   } else {
-    return create_operation(builder_.values_, builder_.get_block(), std::forward<OpType>(op),
+    return create_operation(output_graph_.values_, output_block_, std::forward<OpType>(op),
                             std::move(type), std::forward<Args>(args)...);
   }
 }
@@ -447,7 +454,7 @@ void mul_add_count_visitor::operator()(const T& concrete) {
   }
 }
 
-operation_term_counts mul_add_count_visitor::take_counts() {
+operation_term_counts mul_add_count_visitor::take_counts() && {
   operation_term_counts counts{};
   counts.muls = std::move(muls_);
   counts.adds = std::move(adds_);

@@ -111,72 +111,12 @@ void format_op_args(std::string& output, const ir::operation& op, const Containe
 
 }  // namespace ir
 
-flat_ir::flat_ir(const std::vector<expression_group>& groups)
-    : block_(std::make_unique<ir::block>(0)) {
-  // First pass where we count occurrences of some sub-expressions:
-  mul_add_count_visitor count_visitor{};
-  for (const expression_group& group : groups) {
-    count_visitor.count_group_expressions(group);
-  }
-
-  ir_form_visitor visitor{*this, count_visitor.take_counts()};
-  for (const expression_group& group : groups) {
-    // Transform expressions into Values
-    ir::value::operands_container group_values{};
-    group_values.reserve(group.expressions.size());
-    std::transform(group.expressions.begin(), group.expressions.end(),
-                   std::back_inserter(group_values), [&](const scalar_expr& expr) {
-                     // TODO: Allow returning other types - derive the numeric type from the
-                     // group.
-                     ir::value_ptr output =
-                         visitor.apply_output_value(expr, code_numeric_type::floating_point);
-                     return output;
-                   });
-
-    // Then create a sink to consume these values, the `save` operation is the sink:
-    create_operation(values_, get_block(), ir::save{group.key}, ir::void_type{},
-                     std::move(group_values));
-  }
-}
-
-inline constexpr std::size_t compute_print_width(std::size_t num_assignments) {
+constexpr std::size_t compute_print_width(std::size_t num_assignments) {
   std::size_t width = 1;
   for (; num_assignments > 0; ++width) {
     num_assignments /= 10;
   }
   return width;
-}
-
-std::string flat_ir::to_string() const {
-  const std::size_t width = value_print_width();
-  std::string output{};
-  std::string line{};
-
-  for (const ir::value_ptr& code : block_->operations) {
-    // Print the value name:
-    fmt::format_to(std::back_inserter(line), "  v{:0>{}} <- ", code->name(), width);
-
-    // Print the instruction name:
-    constexpr int operation_name_width = 4;
-    fmt::format_to(std::back_inserter(line), "{:>{}} ",
-                   std::visit([](const auto& op) { return op.to_string(); }, code->value_op()),
-                   operation_name_width);
-
-    format_op_args(line, code->value_op(), code->operands(), width);
-
-    output.append(line);
-    output.append("\n");
-    line.clear();
-  }
-  if (!output.empty()) {
-    output.pop_back();
-  }
-  return output;
-}
-
-std::size_t flat_ir::value_print_width() const {
-  const uint32_t highest_value_name = values_.empty() ? 0 : values_.back()->name();
-  return compute_print_width(highest_value_name);
 }
 
 // Test two values for equality. The operation must be the same type, and the operands must be
@@ -211,29 +151,6 @@ inline void local_value_numbering(const ir::block_ptr block, value_table& table)
   }
 }
 
-void flat_ir::eliminate_duplicates() {
-  value_table table{};
-  table.reserve(values_.size());
-  local_value_numbering(get_block(), table);
-  strip_unused_values();
-}
-
-void flat_ir::strip_unused_values() {
-  // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
-  const ir::block_ptr block{block_.get()};
-  std::reverse(block->operations.begin(), block->operations.end());
-  const auto new_end =
-      std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::value_ptr v) {
-        if (v->is_unused()) {
-          v->remove();
-          return true;
-        }
-        return false;
-      });
-  block->operations.erase(new_end, block->operations.end());
-  std::reverse(block->operations.begin(), block->operations.end());
-}
-
 inline bool is_countable_operation(ir::value_ptr v) {
   return !v->is_type<ir::jump_condition>() && !v->is_type<ir::save>() && !v->is_type<ir::load>() &&
          !v->is_type<ir::copy>();
@@ -241,15 +158,6 @@ inline bool is_countable_operation(ir::value_ptr v) {
 
 inline bool is_conditional(ir::value_ptr v) {
   return v->is_type<ir::jump_condition>() || v->is_type<ir::cond>();
-}
-
-std::size_t flat_ir::num_operations() const {
-  return std::count_if(block_->operations.begin(), block_->operations.end(),
-                       &is_countable_operation);
-}
-
-std::size_t flat_ir::num_conditionals() const {
-  return std::count_if(block_->operations.begin(), block_->operations.end(), &is_conditional);
 }
 
 template <typename Container, typename OutputIterator>
@@ -289,15 +197,14 @@ static auto get_reverse_ordered_output_values(
 
 class ir_converter {
  public:
-  void convert() {
+  control_flow_graph convert() && {
     // Conversion will modify `output.values_`, so shallow-copy the outputs first:
-    auto [required_outputs_queue, optional_outputs] =
-        get_reverse_ordered_output_values(output.values_);
+    auto [required_outputs_queue, optional_outputs] = get_reverse_ordered_output_values(values_);
 
     // Insert computations for required output values:
     std::vector<ir::value_ptr> deferred_values{};
     ir::block_ptr next_block =
-        process(std::move(required_outputs_queue), output.create_block(), deferred_values);
+        process(std::move(required_outputs_queue), create_block(), deferred_values);
 
     // Should be nothing deferred yet:
     WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
@@ -309,19 +216,18 @@ class ir_converter {
       WF_ASSERT(key.usage == expression_usage::optional_output_argument, "Usage: {}",
                 string_from_expression_usage(key.usage));
 
-      const ir::block_ptr left_block_exit = output.create_block();
+      const ir::block_ptr left_block_exit = create_block();
       left_block_exit->add_descendant(next_block);
 
       // Insert block to evaluate if this output is required:
-      const ir::block_ptr jump_block = output.create_block();
+      const ir::block_ptr jump_block = create_block();
 
       // Operation that evaluates whether this argument is required:
-      const ir::value_ptr jump_condition = create_operation(
-          output.values_, jump_block, ir::output_required{key.name}, ir::void_type{});
+      const ir::value_ptr jump_condition =
+          create_operation(values_, jump_block, ir::output_required{key.name}, ir::void_type{});
 
       // Either we go into `left_block` and compute the arg outputs, or we skip to `next_block`:
-      create_operation(output.values_, jump_block, ir::jump_condition{}, ir::void_type{},
-                       jump_condition);
+      create_operation(values_, jump_block, ir::jump_condition{}, ir::void_type{}, jump_condition);
       jump_block->add_descendant(left_block_exit);
       jump_block->add_descendant(next_block);
 
@@ -345,16 +251,21 @@ class ir_converter {
     // There should only be one start block:
     WF_ASSERT_EQUAL(
         1,
-        std::count_if(output.blocks_.begin(), output.blocks_.end(),
+        std::count_if(blocks_.begin(), blocks_.end(),
                       [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); }),
         "Must be only one entry block");
 
     // The process above sometimes introduces pointless copies, which we remove now:
     eliminate_useless_copies();
+
+    // Some of the input values may no longer be required, so nuke those.
+    discard_unused_input_values();
+
+    return control_flow_graph{std::move(blocks_), std::move(values_)};
   }
 
   // True if node `v` has been visited.
-  bool is_visited(ir::value_ptr v) const { return visited.count(v) > 0; }
+  bool is_visited(ir::value_ptr v) const { return visited_.count(v) > 0; }
 
   // True if all downstream consumers of `v` have been visited.
   bool all_consumers_visited(ir::value_ptr val) const {
@@ -362,7 +273,7 @@ class ir_converter {
   }
 
   // Queue any operands of `v` whose consumers have all been visited.
-  void queue_operands(std::deque<ir::value_ptr>& queue, ir::value_ptr v) const {
+  void queue_operands(std::deque<ir::value_ptr>& queue, const ir::value_ptr v) const {
     for (ir::value_ptr val : v->operands()) {
       if (!is_visited(val) && all_consumers_visited(val)) {
         queue.push_back(val);
@@ -426,7 +337,7 @@ class ir_converter {
       // Put it into the output, then queue its operands.
       top->set_parent(output_block);
       output_reversed.push_back(top);
-      visited.insert(top);
+      visited_.insert(top);
       queue_operands(queue, top);
     }
 
@@ -452,8 +363,8 @@ class ir_converter {
                        [](ir::value_ptr a, ir::value_ptr b) { return a->name() > b->name(); }),
         "Should be sorted: {}", fmt::join(grouped_conditionals, ","));
 
-    const ir::block_ptr left_block_tail = output.create_block();
-    const ir::block_ptr right_block_tail = output.create_block();
+    const ir::block_ptr left_block_tail = create_block();
+    const ir::block_ptr right_block_tail = create_block();
 
     std::deque<ir::value_ptr> queue_left{};
     std::deque<ir::value_ptr> queue_right{};
@@ -461,16 +372,16 @@ class ir_converter {
       // Turn conditionals into phi functions. We insert copies in the left and right blocks so that
       // arguments to the phi functions are computed on the branched code path, even if the
       // computation is just a copy. These copies can be eliminated later, in some cases.
-      const ir::value_ptr copy_left = create_operation(output.values_, left_block_tail, ir::copy{},
+      const ir::value_ptr copy_left = create_operation(values_, left_block_tail, ir::copy{},
                                                        v->operator[](1)->type(), v->operator[](1));
-      const ir::value_ptr copy_right = create_operation(
-          output.values_, right_block_tail, ir::copy{}, v->operator[](2)->type(), v->operator[](2));
+      const ir::value_ptr copy_right = create_operation(values_, right_block_tail, ir::copy{},
+                                                        v->operator[](2)->type(), v->operator[](2));
 
       v->set_value_op(ir::phi{}, copy_left->type(), copy_left, copy_right);
       v->set_parent(output_block);
-      visited.insert(v);
-      visited.insert(copy_left);
-      visited.insert(copy_right);
+      visited_.insert(v);
+      visited_.insert(copy_left);
+      visited_.insert(copy_right);
       queue_operands(queue_left, copy_left);
       queue_operands(queue_right, copy_right);
     }
@@ -485,16 +396,16 @@ class ir_converter {
     left_block_tail->add_descendant(output_block);
     right_block_tail->add_descendant(output_block);
 
-    const ir::block_ptr jump_block = output.create_block();
-    const ir::value_ptr jump_condition = create_operation(
-        output.values_, jump_block, ir::jump_condition{}, ir::void_type{}, condition);
-    visited.insert(jump_condition);
+    const ir::block_ptr jump_block = create_block();
+    const ir::value_ptr jump_condition =
+        create_operation(values_, jump_block, ir::jump_condition{}, ir::void_type{}, condition);
+    visited_.insert(jump_condition);
 
     jump_block->add_descendant(left_block_tail);
     jump_block->add_descendant(right_block_tail);
 
     // Any blocks that jumped to `output_block` should now jump to `jump_block` instead:
-    for (ir::block_ptr ancestor : previous_ancestors) {
+    for (const ir::block_ptr ancestor : previous_ancestors) {
       // If this block is our ancestor, it must contain a jump at the end:
       WF_ASSERT(!ancestor->operations.empty() && !ancestor->descendants.empty(),
                 "block cannot be empty, must contain a jump");
@@ -520,8 +431,8 @@ class ir_converter {
   // In the process of converting, we inserted copies to satisfy the phi functions.
   // In some cases, these copies are just duplicating values computed in the same scope.
   void eliminate_useless_copies() {
-    for (const auto& block : output.blocks_) {
-      auto new_end =
+    for (const auto& block : blocks_) {
+      const auto new_end =
           std::remove_if(block->operations.begin(), block->operations.end(), [&](ir::value_ptr v) {
             // A copy is useless if we are duplicating a value in our current block:
             const bool should_eliminate =
@@ -582,36 +493,104 @@ class ir_converter {
     return std::make_tuple(condition, std::move(grouped_conditionals));
   }
 
-  explicit ir_converter(output_ir& output) : output(output) {
-    visited.reserve(output.values_.size());
+  explicit ir_converter(control_flow_graph&& input) : values_(std::move(input.values_)) {
+    visited_.reserve(values_.size());
+
+    WF_ASSERT_EQUAL(1, input.blocks_.size(),
+                    "Unconverted control flow graph should have only one block.");
+    input_block_ = std::move(input.blocks_.front());
+    input.blocks_.clear();
+
+    // Discard all references the input block has to values, since we are going to reassign them.
+    input_block_->operations.clear();
   }
 
-  output_ir& output;
-  std::unordered_set<ir::value_ptr> visited{};
+ private:
+  // Clean up anything that is not referenced in the output:
+  void discard_unused_input_values() {
+    values_.erase(std::remove_if(values_.begin(), values_.end(),
+                                 [this](const ir::value::unique_ptr& v) {
+                                   if (v->parent().get() == input_block_.get()) {
+                                     WF_ASSERT_EQUAL(0, v->num_consumers(), "v = {}", v->name());
+                                     return true;
+                                   }
+                                   return false;
+                                 }),
+                  values_.end());
+  }
+
+  // Allocate a new block.
+  ir::block_ptr create_block() {
+    auto block = std::make_unique<ir::block>(blocks_.size());
+    blocks_.push_back(std::move(block));
+    return ir::block_ptr(blocks_.back().get());
+  }
+
+  std::vector<ir::value::unique_ptr> values_;
+  std::vector<ir::block::unique_ptr> blocks_{};
+  std::unordered_set<ir::value_ptr> visited_{};
+  ir::block::unique_ptr input_block_;
 };
 
-output_ir::output_ir(wf::flat_ir&& input) {
-  // Take ownership of the values in `input`.
-  values_.assign(std::make_move_iterator(input.values_.begin()),
-                 std::make_move_iterator(input.values_.end()));
-  input.values_.clear();
-  input.block_->operations.clear();
+control_flow_graph::control_flow_graph(const std::vector<expression_group>& groups) {
+  blocks_.push_back(std::make_unique<ir::block>(0));
 
-  ir_converter(*this).convert();
+  // First pass where we count occurrences of some sub-expressions:
+  mul_add_count_visitor count_visitor{};
+  for (const expression_group& group : groups) {
+    count_visitor.count_group_expressions(group);
+  }
 
-  // Clean up anything that is not referenced in the output:
-  values_.erase(std::remove_if(values_.begin(), values_.end(),
-                               [&input](const ir::value::unique_ptr& v) {
-                                 if (v->parent() == input.get_block()) {
-                                   WF_ASSERT_EQUAL(0, v->num_consumers(), "v = {}", v->name());
-                                   return true;
-                                 }
-                                 return false;
-                               }),
-                values_.end());
+  ir_form_visitor visitor{*this, std::move(count_visitor).take_counts()};
+  for (const expression_group& group : groups) {
+    // Transform expressions into Values
+    ir::value::operands_container group_values{};
+    group_values.reserve(group.expressions.size());
+    std::transform(group.expressions.begin(), group.expressions.end(),
+                   std::back_inserter(group_values), [&](const scalar_expr& expr) {
+                     // TODO: Allow returning other types - derive the numeric type from the
+                     // group.
+                     const ir::value_ptr output =
+                         visitor.apply_output_value(expr, code_numeric_type::floating_point);
+                     return output;
+                   });
+
+    // Then create a sink to consume these values, the `save` operation is the sink:
+    create_operation(values_, first_block(), ir::save{group.key}, ir::void_type{},
+                     std::move(group_values));
+  }
+
+  eliminate_duplicates();
 }
 
-std::string output_ir::to_string() const {
+control_flow_graph control_flow_graph::convert_conditionals_to_control_flow() && {
+  return ir_converter{std::move(*this)}.convert();
+}
+
+void control_flow_graph::eliminate_duplicates() {
+  value_table table{};
+  table.reserve(values_.size());
+  local_value_numbering(first_block(), table);
+  strip_unused_values();
+}
+
+void control_flow_graph::strip_unused_values() {
+  // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
+  const ir::block_ptr block = first_block();
+  std::reverse(block->operations.begin(), block->operations.end());
+  const auto new_end = std::remove_if(block->operations.begin(), block->operations.end(),
+                                      [&](const ir::value_ptr v) {
+                                        if (v->is_unused()) {
+                                          v->remove();
+                                          return true;
+                                        }
+                                        return false;
+                                      });
+  block->operations.erase(new_end, block->operations.end());
+  std::reverse(block->operations.begin(), block->operations.end());
+}
+
+std::string control_flow_graph::to_string() const {
   const std::size_t width = value_print_width();
   std::string output{};
 
@@ -650,31 +629,38 @@ std::string output_ir::to_string() const {
   return output;
 }
 
-std::size_t output_ir::value_print_width() const {
+std::size_t control_flow_graph::value_print_width() const {
   const uint32_t highest_value_name = values_.empty() ? 0 : values_.back()->name();
   return compute_print_width(highest_value_name);
 }
 
-std::size_t output_ir::num_operations() const {
+std::size_t control_flow_graph::num_operations() const {
   return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
-                         [](std::size_t total, const ir::block::unique_ptr& b) {
+                         [](const std::size_t total, const ir::block::unique_ptr& b) {
                            return total + std::count_if(b->operations.begin(), b->operations.end(),
                                                         &is_countable_operation);
                          });
 }
 
-std::size_t output_ir::num_conditionals() const {
+std::size_t control_flow_graph::num_conditionals() const {
   return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
-                         [](std::size_t total, const ir::block::unique_ptr& b) {
+                         [](const std::size_t total, const ir::block::unique_ptr& b) {
                            return total + std::count_if(b->operations.begin(), b->operations.end(),
                                                         &is_conditional);
                          });
 }
 
-ir::block_ptr output_ir::create_block() {
-  auto block = std::make_unique<ir::block>(blocks_.size());
-  blocks_.push_back(std::move(block));
-  return ir::block_ptr(blocks_.back().get());
+ir::block_ptr control_flow_graph::first_block() const {
+  const auto it =
+      std::find_if(blocks_.begin(), blocks_.end(),
+                   [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); });
+  WF_ASSERT(it != blocks_.end(), "There must be an entry block");
+  return ir::block_ptr{it->get()};
+}
+
+std::size_t control_flow_graph::count_function(const std_math_function enum_value) const noexcept {
+  return count_operation(
+      [&](const ir::call_std_function func) { return func.name() == enum_value; });
 }
 
 }  // namespace wf

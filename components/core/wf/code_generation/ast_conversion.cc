@@ -610,7 +610,8 @@ struct ast_from_ir {
       operation_counts_{};
 };
 
-function_definition create_ast(const wf::output_ir& ir, const function_description& description) {
+function_definition create_ast(const wf::control_flow_graph& ir,
+                               const function_description& description) {
   ast_from_ir converter{ir.value_print_width(), description};
   return converter.convert_function(ir.first_block());
 }

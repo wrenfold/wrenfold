@@ -13,9 +13,8 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   const function_description description =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
 
-  flat_ir ir{description.output_expressions()};
-  ir.eliminate_duplicates();
-  const output_ir output_ir{std::move(ir)};
+  const control_flow_graph output_ir =
+      control_flow_graph{description.output_expressions()}.convert_conditionals_to_control_flow();
 #if 0
   fmt::print("IR ({}, {} operations):\n{}\n", name, output_ir.num_operations(),
              output_ir.to_string());

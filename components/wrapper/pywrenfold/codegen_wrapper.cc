@@ -25,10 +25,9 @@ namespace wf {
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
 ast::function_definition transpile_to_function_definition(const function_description& description) {
-  flat_ir ir{description.output_expressions()};
-  ir.eliminate_duplicates();
-  const output_ir output_ir{std::move(ir)};
-  return ast::create_ast(output_ir, description);
+  const control_flow_graph cfg =
+      control_flow_graph{description.output_expressions()}.convert_conditionals_to_control_flow();
+  return ast::create_ast(cfg, description);
 }
 
 // Implement the abstract `erased_pytype::concept` interface.

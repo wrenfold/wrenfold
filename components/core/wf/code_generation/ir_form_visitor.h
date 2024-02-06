@@ -8,6 +8,7 @@
 #include "wf/expression.h"
 
 namespace wf {
+class control_flow_graph;  // Forward declare.
 
 struct operation_term_counts {
   // The key in this table is a sub-expression (a term) in a multiplication or addition.
@@ -23,8 +24,8 @@ struct operation_term_counts {
 // This visitor accepts expression types, and returns IR values.
 class ir_form_visitor {
  public:
-  explicit ir_form_visitor(flat_ir& builder, operation_term_counts counts)
-      : builder_(builder), counts_(std::move(counts)) {}
+  // Construct with output graph.
+  ir_form_visitor(control_flow_graph& output_graph, operation_term_counts counts);
 
   ir::value_ptr operator()(const addition& add, const scalar_expr& add_abstract);
   ir::value_ptr operator()(const cast_bool& cast);
@@ -72,7 +73,9 @@ class ir_form_visitor {
   // Apply exponentiation by squaring to implement a power of an integer.
   ir::value_ptr exponentiate_by_squaring(ir::value_ptr base, uint64_t exponent);
 
-  flat_ir& builder_;
+  // The IR we are writing to as we convert.
+  control_flow_graph& output_graph_;
+  ir::block_ptr output_block_;
 
   // Map of expression -> IR value. We catch duplicates as we create the IR code, which greatly
   // speeds up manipulation of the code later.
@@ -129,7 +132,7 @@ struct mul_add_count_visitor {
 
   // Return final counts of how many times each term appears in a unique addition
   // or multiplication.
-  operation_term_counts take_counts();
+  operation_term_counts take_counts() &&;
 
  private:
   // A map of all expressions that appear as terms in an addition or multiplication.
