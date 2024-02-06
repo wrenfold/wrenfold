@@ -731,18 +731,7 @@ std::size_t flat_ir::value_print_width() const {
 // must match.
 struct value_equality_struct {
   bool operator()(const ir::value_ptr& a, const ir::value_ptr& b) const {
-    const bool ops_match = std::visit(
-        [&](const auto& a, const auto& b) -> bool {
-          using A = std::decay_t<decltype(a)>;
-          using B = std::decay_t<decltype(b)>;
-          if constexpr (std::is_same_v<A, B>) {
-            return a.is_same(b);
-          } else {
-            return false;
-          }
-        },
-        a->value_op(), b->value_op());
-    if (!ops_match) {
+    if (const bool ops_match = are_identical(a->value_op(), b->value_op()); !ops_match) {
       return false;
     }
     return a->operands_match(b);

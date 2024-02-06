@@ -225,15 +225,11 @@ class value {
 // should produce the same hash.
 template <>
 struct wf::hash_struct<wf::ir::value_ptr> {
-  std::size_t operator()(const ir::value_ptr& val) const {
-    // Seed the hash w/ the index in the variant, which accounts for the type of the op.
-    std::size_t seed = val->value_op().index();
-    // Then some operations w/ members need to reason about the hash of those members:
-    seed = hash_combine(
-        seed, std::visit([&](const auto& op) { return op.hash_seed(); }, val->value_op()));
+  std::size_t operator()(const ir::value_ptr& val) const noexcept {
+    // First hash the operation, then all all the operands.
+    std::size_t seed = wf::hash(val->value_op());
     for (const ir::value_ptr& operand : val->operands()) {
-      const uint32_t val_name = operand->name();
-      seed = hash_combine(seed, static_cast<std::size_t>(val_name));
+      seed = hash_combine(seed, operand->name());
     }
     return seed;
   }

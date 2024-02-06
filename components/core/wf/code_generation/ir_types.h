@@ -19,9 +19,9 @@ class add {
  public:
   constexpr static bool is_commutative() noexcept { return true; }
   constexpr static int num_value_operands() noexcept { return 2; }
-  constexpr std::string_view to_string() const noexcept { return "add"; }
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const add&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "add"; }
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr bool is_identical_to(const add&) const noexcept { return true; }
 };
 
 // Cast the operand to the specified destination type.
@@ -29,16 +29,16 @@ class cast {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
-  constexpr std::string_view to_string() const noexcept { return "cast"; }
-  constexpr std::size_t hash_seed() const noexcept {
+  constexpr static std::string_view to_string() noexcept { return "cast"; }
+  constexpr std::size_t hash() const noexcept {
     return static_cast<std::size_t>(destination_type_);
   }
-  constexpr bool is_same(const cast& other) const noexcept {
+  constexpr bool is_identical_to(const cast& other) const noexcept {
     return destination_type_ == other.destination_type_;
   }
 
   // Construct w/ destination type.
-  constexpr explicit cast(code_numeric_type destination) noexcept
+  constexpr explicit cast(const code_numeric_type destination) noexcept
       : destination_type_(destination) {}
 
   // Access the target type we are casting to.
@@ -54,8 +54,8 @@ class call_external_function {
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return -1; }
   constexpr static std::string_view to_string() noexcept { return "call"; }
-  std::size_t hash_seed() const noexcept { return function_.hash(); }
-  bool is_same(const call_external_function& other) const noexcept {
+  std::size_t hash() const noexcept { return function_.hash(); }
+  bool is_identical_to(const call_external_function& other) const noexcept {
     return are_identical(function_, other.function_);
   }
 
@@ -80,8 +80,8 @@ class call_std_function {
   constexpr std::string_view to_string() const noexcept {
     return string_from_standard_library_function(name_);
   }
-  constexpr std::size_t hash_seed() const noexcept { return static_cast<std::size_t>(name_); }
-  constexpr bool is_same(const call_std_function& other) const noexcept {
+  constexpr std::size_t hash() const noexcept { return static_cast<std::size_t>(name_); }
+  constexpr bool is_identical_to(const call_std_function& other) const noexcept {
     return name_ == other.name_;
   }
 
@@ -111,8 +111,8 @@ class compare {
     return "<NOT A VALID ENUM VALUE>";
   }
 
-  constexpr std::size_t hash_seed() const noexcept { return static_cast<std::size_t>(operation_); }
-  constexpr bool is_same(const compare& comp) const noexcept {
+  constexpr std::size_t hash() const noexcept { return static_cast<std::size_t>(operation_); }
+  constexpr bool is_identical_to(const compare& comp) const noexcept {
     return operation_ == comp.operation_;
   }
 
@@ -133,9 +133,9 @@ class cond {
  public:
   constexpr static int num_value_operands() noexcept { return 3; }
   constexpr static bool is_commutative() noexcept { return false; }
-  constexpr std::string_view to_string() const noexcept { return "cond"; }
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const cond&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "cond"; }
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr bool is_identical_to(const cond&) const noexcept { return true; }
 };
 
 // Construct an aggregate type.
@@ -145,14 +145,11 @@ class construct {
 
   constexpr static int num_value_operands() noexcept { return -1; }
   constexpr static bool is_commutative() noexcept { return false; }
-  constexpr std::string_view to_string() const noexcept { return "new"; }
-  std::size_t hash_seed() const noexcept {
-    struct hash_type : hash_variant<variant_type> {};
-    return hash_type{}(type_);
-  }
-  bool is_same(const construct& other) const noexcept {
-    struct is_identical : is_identical_variant<variant_type> {};
-    return is_identical{}(type_, other.type_);
+  constexpr static std::string_view to_string() noexcept { return "new"; }
+
+  std::size_t hash() const noexcept { return hash_variant<variant_type>{}(type_); }
+  bool is_identical_to(const construct& other) const noexcept {
+    return is_identical_variant<variant_type>{}(type_, other.type_);
   }
 
   constexpr const auto& type() const noexcept { return type_; }
@@ -168,9 +165,9 @@ class copy {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
-  constexpr std::string_view to_string() const noexcept { return "copy"; }
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const copy&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "copy"; }
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr bool is_identical_to(const copy&) const noexcept { return true; }
 };
 
 // Divide first operand by the second one.
@@ -178,9 +175,9 @@ class div {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 2; }
-  constexpr std::string_view to_string() const noexcept { return "div"; }
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const div&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "div"; }
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr bool is_identical_to(const div&) const noexcept { return true; }
 };
 
 // Get the n't element from a matrix or compound expression.
@@ -188,9 +185,9 @@ class get {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
-  constexpr std::string_view to_string() const noexcept { return "get"; }
-  constexpr std::size_t hash_seed() const noexcept { return index_; }
-  constexpr bool is_same(const get& other) const noexcept { return index_ == other.index_; }
+  constexpr static std::string_view to_string() noexcept { return "get"; }
+  constexpr std::size_t hash() const noexcept { return index_; }
+  constexpr bool is_identical_to(const get& other) const noexcept { return index_ == other.index_; }
 
   explicit constexpr get(const std::size_t index) noexcept : index_(index) {}
 
@@ -208,9 +205,9 @@ class jump_condition {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
-  constexpr std::string_view to_string() const noexcept { return "jcnd"; }
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const jump_condition&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "jcnd"; }
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr bool is_identical_to(const jump_condition&) const noexcept { return true; }
 };
 
 // A source to insert input values (either constants or function arguments) into the IR. Has no
@@ -222,17 +219,13 @@ class load {
 
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 0; }
-  constexpr std::string_view to_string() const noexcept { return "load"; }
+  constexpr static std::string_view to_string() noexcept { return "load"; }
 
-  std::size_t hash_seed() const {
-    struct hasher : hash_variant<storage_type> {};
-    return hasher{}(variant_);
-  }
+  std::size_t hash() const noexcept { return hash_variant<storage_type>{}(variant_); }
 
   //  Check if the underlying variants contain identical expressions.
-  bool is_same(const load& other) const {
-    struct is_identical : is_identical_variant<storage_type> {};
-    return is_identical{}(variant_, other.variant_);
+  bool is_identical_to(const load& other) const {
+    return is_identical_variant<storage_type>{}(variant_, other.variant_);
   }
 
   // Returns true if variant contains one of the types `Ts...`
@@ -257,9 +250,9 @@ class mul {
  public:
   constexpr static bool is_commutative() noexcept { return true; }
   constexpr static int num_value_operands() noexcept { return 2; }
-  constexpr std::string_view to_string() const noexcept { return "mul"; }
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const mul&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "mul"; }
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr bool is_identical_to(const mul&) const noexcept { return true; }
 };
 
 // Negate the operand.
@@ -267,9 +260,9 @@ class neg {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 1; }
-  constexpr std::string_view to_string() const noexcept { return "neg"; };
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const neg&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "neg"; };
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr bool is_identical_to(const neg&) const noexcept { return true; }
 };
 
 // Evaluates to true if the specified output index is required.
@@ -277,9 +270,9 @@ class output_required {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 0; }
-  constexpr std::string_view to_string() const noexcept { return "oreq"; }
-  std::size_t hash_seed() const noexcept { return hash_string_fnv(name_); }
-  bool is_same(const output_required& other) const noexcept { return name_ == other.name_; }
+  constexpr static std::string_view to_string() noexcept { return "oreq"; }
+  std::size_t hash() const noexcept { return hash_string_fnv(name_); }
+  bool is_identical_to(const output_required& other) const noexcept { return name_ == other.name_; }
 
   // Construct with string name of the relevant optional output argument.
   explicit output_required(std::string name) : name_(std::move(name)) {}
@@ -296,9 +289,9 @@ class phi {
  public:
   constexpr static int num_value_operands() noexcept { return 2; }
   constexpr static bool is_commutative() noexcept { return false; }
-  constexpr std::string_view to_string() const noexcept { return "phi"; }
-  constexpr std::size_t hash_seed() const noexcept { return 0; }
-  constexpr bool is_same(const phi&) const noexcept { return true; }
+  constexpr static std::string_view to_string() noexcept { return "phi"; }
+  constexpr static std::size_t hash() noexcept { return 0; }
+  constexpr static bool is_identical_to(const phi&) noexcept { return true; }
 };
 
 // A sink used to indicate that a value is consumed by the output (for example in a return type or
@@ -309,9 +302,10 @@ class save {
   constexpr static int num_value_operands() noexcept {
     return -1;  //  Dynamic
   }
-  constexpr std::string_view to_string() const noexcept { return "save"; }
-  std::size_t hash_seed() const { return hash_struct<output_key>{}(key_); }
-  bool is_same(const save& other) const noexcept { return key_ == other.key_; }
+  constexpr static std::string_view to_string() noexcept { return "save"; }
+
+  std::size_t hash() const noexcept { return hash_struct<output_key>{}(key_); }
+  bool is_identical_to(const save& other) const noexcept { return key_ == other.key_; }
 
   // Construct with key.
   explicit save(output_key key) noexcept : key_(std::move(key)) {}
@@ -332,6 +326,41 @@ using operation =
 struct void_type {};
 
 }  // namespace wf::ir
+
+// Trait implementations for hashing and testing equality.
+namespace wf {
+namespace detail {
+template <typename T, typename Variant>
+struct enable_if_member_of_variant;
+template <typename T, typename... Ts>
+struct enable_if_member_of_variant<T, std::variant<Ts...>>
+    : std::enable_if<type_list_contains_v<T, type_list<Ts...>>> {};
+template <typename T, typename Variant>
+using enable_if_member_of_variant_t = typename enable_if_member_of_variant<T, Variant>::type;
+}  // namespace detail
+
+// We allow the definitions of hash+identity test logic to live on the struct definition, and
+// invoke those methods here in the trait implementation. The rational is that it is easier for
+// the implementation to live beside the member declarations.
+template <typename T>
+struct hash_struct<T, detail::enable_if_member_of_variant_t<T, ir::operation>> {
+  std::size_t operator()(const T& thing) const noexcept { return thing.hash(); }
+};
+
+template <typename T>
+struct is_identical_struct<T, detail::enable_if_member_of_variant_t<T, ir::operation>> {
+  bool operator()(const T& a, const T& b) const noexcept { return a.is_identical_to(b); }
+};
+
+// Hashing of ir::operation.
+template <>
+struct hash_struct<ir::operation> : hash_variant<ir::operation> {};
+
+// Identity test of ir::operation.
+template <>
+struct is_identical_struct<ir::operation> : is_identical_variant<ir::operation> {};
+
+}  // namespace wf
 
 // Formatter for void_type:
 template <>
