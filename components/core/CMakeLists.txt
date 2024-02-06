@@ -19,9 +19,13 @@ add_library(
   wf/code_generation/function_description.cc
   wf/code_generation/function_description.h
   wf/code_generation/function_evaluator.h
+  wf/code_generation/ir_block.cc
+  wf/code_generation/ir_block.h
   wf/code_generation/ir_builder.cc
   wf/code_generation/ir_builder.h
   wf/code_generation/ir_types.h
+  wf/code_generation/ir_value.cc
+  wf/code_generation/ir_value.h
   wf/code_generation/rust_code_generator.cc
   wf/code_generation/rust_code_generator.h
   wf/code_generation/type_registry.cc
