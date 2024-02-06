@@ -197,9 +197,7 @@ struct expression_from_ir_visitor {
                                                       ir::search_direction::upwards);
 
     // Determine the condition:
-    WF_ASSERT(!jump_block->is_empty());
-
-    const ir::value_ptr jump_val = jump_block->operations.back();
+    const ir::value_ptr jump_val = jump_block->last_operation();
     WF_ASSERT(jump_val->is_op<ir::jump_condition>());
 
     return where(map_scalar_value(jump_val->first_operand()), map_scalar_value(args[0]),
@@ -250,7 +248,7 @@ create_output_expression_map(const ir::block_ptr starting_block,
     }
     completed.insert(block);
 
-    for (const ir::value_ptr& code : block->operations) {
+    for (const ir::value_ptr& code : block->operations()) {
       // Visit the operation, and convert it to an expression.
       // We don't do anything w/ jumps - they do not actually translate to an output value directly.
       overloaded_visit(
@@ -268,8 +266,9 @@ create_output_expression_map(const ir::block_ptr starting_block,
     }
 
     // If all the ancestors of a block are done, we can queue it:
-    for (const ir::block_ptr b : block->descendants) {
-      const bool valid = std::all_of(b->ancestors.begin(), b->ancestors.end(),
+    for (const ir::block_ptr b : block->descendants()) {
+      const auto& b_ancestors = b->ancestors();
+      const bool valid = std::all_of(b_ancestors.begin(), b_ancestors.end(),
                                      [&](auto blk) { return completed.count(blk) > 0; });
       if (valid) {
         queue.push_back(b);

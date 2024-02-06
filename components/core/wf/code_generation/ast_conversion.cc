@@ -137,7 +137,7 @@ struct ast_from_ir {
   // Given all the `ir::save` operations for a block, create the AST objects that represent
   // either return values, or writing to output arguments (and add them to operations_).
   void push_back_outputs(const ir::block_ptr block) {
-    for (const ir::value_ptr value : block->operations) {
+    for (const ir::value_ptr value : block->operations()) {
       if (!value->is_op<ir::save>()) {
         continue;
       }
@@ -146,7 +146,7 @@ struct ast_from_ir {
       type_constructor constructor = create_type_constructor(value->operands());
 
       if (key.usage == expression_usage::return_value) {
-        WF_ASSERT(block->descendants.empty(), "Must be the final block");
+        WF_ASSERT(block->has_no_descendents(), "Must be the final block");
         WF_ASSERT(signature_.return_type().has_value(), "Return type must be specified");
         ast::variant var = std::visit([&](const auto& x) -> ast::variant { return constructor(x); },
                                       *signature_.return_type());
@@ -188,7 +188,7 @@ struct ast_from_ir {
   //    }
   //  }
   void push_back_conditional_output_declarations(const ir::block_ptr block) {
-    for (const ir::value_ptr value : block->operations) {
+    for (const ir::value_ptr value : block->operations()) {
       if (value->is_phi()) {
         if (const bool no_declaration =
                 value->all_consumers_satisfy([](const ir::value_ptr v) { return v->is_phi(); });
@@ -209,14 +209,14 @@ struct ast_from_ir {
       return;
     }
     WF_ASSERT(block->has_no_descendents() || !block->is_empty(),
-              "Only the terminal block may be empty. block->name: {}", block->name);
+              "Only the terminal block may be empty. block->name(): {}", block->name());
 
-    operations_.reserve(operations_.capacity() + block->operations.size());
+    operations_.reserve(operations_.capacity() + block->size());
 
     std::vector<ast::assign_temporary> phi_assignments{};
-    phi_assignments.reserve(block->operations.size());
+    phi_assignments.reserve(block->size());
 
-    for (const ir::value_ptr value : block->operations) {
+    for (const ir::value_ptr value : block->operations()) {
       if (value->is_op<ir::save>()) {
         // Defer output values to the end of the block.
       } else if (value->is_phi()) {
@@ -286,34 +286,37 @@ struct ast_from_ir {
   // Determine if the provided block terminates in conditional control flow. If it does, we need to
   // branch both left and right to compute the contents of the if-else statement.
   void handle_control_flow(const ir::block_ptr block) {
-    if (block->descendants.empty()) {
+    const auto& descendents = block->descendants();
+    if (descendents.empty()) {
       // This is the terminal block - nothing to do.
       return;
     }
 
-    if (const ir::value_ptr last_op = block->operations.back();
+    if (const ir::value_ptr last_op = block->last_operation();
         !last_op->is_op<ir::jump_condition>()) {
       // just keep appending:
-      WF_ASSERT_EQUAL(1, block->descendants.size());
-      process_block(block->descendants.front());
+      WF_ASSERT_EQUAL(1, descendents.size());
+      process_block(descendents.front());
     } else {
       WF_ASSERT(last_op->is_op<ir::jump_condition>());
-      WF_ASSERT_EQUAL(2, block->descendants.size());
 
       // This over-counts a bit, since nested branches don't all run. We are just counting
       // if-statements, basically.
       operation_counts_[operation_count_label::branch]++;
 
       // Figure out where this if-else statement will terminate:
-      const ir::block_ptr merge_point = find_merge_point(
-          block->descendants[0], block->descendants[1], ir::search_direction::downwards);
+      const auto& descendants = block->descendants();
+      WF_ASSERT_EQUAL(2, descendants.size());
+
+      const ir::block_ptr merge_point =
+          find_merge_point(descendants[0], descendants[1], ir::search_direction::downwards);
       non_traversable_blocks_.insert(merge_point);
 
       // Declare any variables that will be written in both the if and else blocks:
       push_back_conditional_output_declarations(merge_point);
 
       // Descend into both branches:
-      std::vector<ast::variant> operations_true = process_nested_block(block->descendants[0]);
+      std::vector<ast::variant> operations_true = process_nested_block(descendants[0]);
 
       // We have two kinds of branches. One for optionally-computed outputs, which only has
       // an if-branch. The other is for conditional logic in computations (where both if and
@@ -329,7 +332,7 @@ struct ast_from_ir {
                                                        std::move(operations_true));
       } else {
         // Fill out operations in the else branch:
-        std::vector<ast::variant> operations_false = process_nested_block(block->descendants[1]);
+        std::vector<ast::variant> operations_false = process_nested_block(descendants[1]);
 
         // Create a conditional
         auto condition_var =

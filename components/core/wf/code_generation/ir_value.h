@@ -46,10 +46,10 @@ class value {
   // Access underlying operation
   constexpr const operation& value_op() const noexcept { return op_; }
 
-  // True if the underlying operation is `T`.
-  template <typename T>
+  // True if the underlying operation is one of `Ts`.
+  template <typename... Ts>
   constexpr bool is_op() const noexcept {
-    return std::holds_alternative<T>(op_);
+    return (std::holds_alternative<Ts>(op_) || ...);
   }
 
   // Cast the operation to the specified type.

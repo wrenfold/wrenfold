@@ -129,7 +129,7 @@ using value_table =
 
 // Eliminate duplicates in `block`, using existing values stored in `table`.
 inline void local_value_numbering(const ir::block_ptr block, value_table& table) {
-  for (const ir::value_ptr val : block->operations) {
+  for (const ir::value_ptr val : block->operations()) {
     // Then see if this operation already exists in the map:
     if (auto [it, was_inserted] = table.insert(val); !was_inserted) {
       // Propagate the copy:
@@ -178,28 +178,21 @@ control_flow_graph control_flow_graph::convert_conditionals_to_control_flow() &&
   return ir_control_flow_converter{std::move(*this)}.convert();
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 void control_flow_graph::eliminate_duplicates() {
   value_table table{};
   table.reserve(values_.size());
   local_value_numbering(first_block(), table);
-  strip_unused_values();
-}
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-void control_flow_graph::strip_unused_values() {
-  // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
-  const ir::block_ptr block = first_block();
-  std::reverse(block->operations.begin(), block->operations.end());
-  const auto new_end = std::remove_if(block->operations.begin(), block->operations.end(),
-                                      [&](const ir::value_ptr v) {
-                                        if (v->is_unused()) {
-                                          v->remove();
-                                          return true;
-                                        }
-                                        return false;
-                                      });
-  block->operations.erase(new_end, block->operations.end());
-  std::reverse(block->operations.begin(), block->operations.end());
+  // Remove anything that does not have a consumer.
+  // We do this in reverse order so that eliminating one useless value can eliminate its inputs.
+  first_block()->reverse_remove_operation_if([&](const ir::value_ptr v) {
+    if (v->is_unused()) {
+      v->remove();
+      return true;
+    }
+    return false;
+  });
 }
 
 std::string control_flow_graph::to_string() const {
@@ -213,7 +206,7 @@ std::string control_flow_graph::to_string() const {
     fmt::format_to(std::back_inserter(output), "{}:", ir::block_ptr{block.get()});
     output += "\n";
 
-    for (const ir::value_ptr& code : block->operations) {
+    for (const ir::value_ptr& code : block->operations()) {
       // Print the value name:
       if (code->num_consumers() > 0) {
         fmt::format_to(std::back_inserter(output), "  v{:0>{}} <- ", code->name(), width);
@@ -230,9 +223,10 @@ std::string control_flow_graph::to_string() const {
       output += "\n";
     }
 
-    if (!block->descendants.empty()) {
+    if (!block->has_no_descendents()) {
       output.append(left_column_width, ' ');
-      fmt::format_to(std::back_inserter(output), "jump {}\n", fmt::join(block->descendants, ", "));
+      fmt::format_to(std::back_inserter(output), "jump {}\n",
+                     fmt::join(block->descendants(), ", "));
     }
   }
   if (!output.empty()) {
@@ -255,25 +249,20 @@ std::size_t control_flow_graph::value_print_width() const {
 }
 
 std::size_t control_flow_graph::num_operations() const {
-  return std::accumulate(
-      blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
-      [](const std::size_t total, const ir::block::unique_ptr& b) {
-        return total +
-               std::count_if(b->operations.begin(), b->operations.end(), [](const ir::value_ptr v) {
-                 return !v->is_op<ir::jump_condition>() && !v->is_op<ir::save>() &&
-                        !v->is_op<ir::load>() && !v->is_op<ir::copy>();
-               });
-      });
+  return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
+                         [](const std::size_t total, const ir::block::unique_ptr& b) {
+                           return total + b->count_operation([](const ir::value_ptr v) {
+                             return !v->is_op<ir::jump_condition, ir::save, ir::load, ir::copy>();
+                           });
+                         });
 }
 
 std::size_t control_flow_graph::num_conditionals() const {
   return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
                          [](const std::size_t total, const ir::block::unique_ptr& b) {
-                           return total + std::count_if(b->operations.begin(), b->operations.end(),
-                                                        [](const ir::value_ptr v) {
-                                                          return v->is_op<ir::jump_condition>() ||
-                                                                 v->is_op<ir::cond>();
-                                                        });
+                           return total + b->count_operation([](const ir::value_ptr v) {
+                             return v->is_op<ir::jump_condition, ir::cond>();
+                           });
                          });
 }
 
