@@ -32,14 +32,14 @@ inline void find_conditional_output_values(const ir::const_value_ptr v,
 // Given all the values that are required to build a given output, make the syntax to construct
 // that object. For structs, we need to recurse and build each member.
 struct type_constructor {
-  explicit type_constructor(std::vector<ast::variant> contents) noexcept
+  explicit type_constructor(std::vector<ast::ast_element> contents) noexcept
       : contents_(std::move(contents)), index_(0) {}
 
   // Scalar doesn't have a constructor, just return the input directly and step forward by one
   // value.
-  ast::variant operator()(const scalar_type&) {
+  ast::ast_element operator()(const scalar_type&) {
     WF_ASSERT_LESS(index_, contents_.size());
-    ast::variant result = std::move(contents_[index_]);
+    ast::ast_element result = std::move(contents_[index_]);
     ++index_;
     return result;
   }
@@ -48,7 +48,7 @@ struct type_constructor {
   ast::construct_matrix operator()(const matrix_type& mat) {
     WF_ASSERT_LESS_OR_EQ(index_ + mat.size(), contents_.size());
 
-    std::vector<ast::variant> matrix_args{};
+    std::vector<ast::ast_element> matrix_args{};
     matrix_args.reserve(mat.size());
     std::copy_n(std::make_move_iterator(contents_.begin()) + index_, mat.size(),
                 std::back_inserter(matrix_args));
@@ -59,25 +59,25 @@ struct type_constructor {
   // field.
   ast::construct_custom_type operator()(const custom_type& type) {
     // Recursively convert every field in the custom type.
-    std::vector<std::tuple<std::string, ast::variant>> fields_out{};
+    std::vector<std::tuple<std::string, ast::ast_element>> fields_out{};
     fields_out.reserve(type.size());
     for (const struct_field& field : type.fields()) {
-      ast::variant field_var = std::visit(
-          [this](const auto& t) -> ast::variant { return this->operator()(t); }, field.type());
+      ast::ast_element field_var = std::visit(
+          [this](const auto& t) { return ast::ast_element(this->operator()(t)); }, field.type());
       fields_out.emplace_back(field.name(), std::move(field_var));
     }
     return ast::construct_custom_type{type, std::move(fields_out)};
   }
 
  private:
-  std::vector<ast::variant> contents_;
+  std::vector<ast::ast_element> contents_;
   std::size_t index_;
 };
 
 ast::function_definition ast_form_visitor::convert_function(const ir::const_block_ptr block) {
   process_block(block);
 
-  std::vector<ast::variant> result;
+  std::vector<ast::ast_element> result;
   result.reserve(operations_.size() + 1);
   result.push_back(format_operation_count_comment());
   std::copy(std::make_move_iterator(operations_.begin()),
@@ -90,8 +90,9 @@ void ast_form_visitor::push_back_conditional_assignments(
     std::vector<ast::assign_temporary>&& assignments) {
   std::sort(assignments.begin(), assignments.end(),
             [](const auto& a, const auto& b) { return a.left < b.left; });
-  std::copy(std::make_move_iterator(assignments.begin()),
-            std::make_move_iterator(assignments.end()), std::back_inserter(operations_));
+  std::transform(std::make_move_iterator(assignments.begin()),
+                 std::make_move_iterator(assignments.end()), std::back_inserter(operations_),
+                 [](ast::assign_temporary temp) { return ast::ast_element{std::move(temp)}; });
   assignments.clear();
 }
 
@@ -107,9 +108,10 @@ void ast_form_visitor::push_back_output_operations(const ir::const_block_ptr blo
     if (key.usage == expression_usage::return_value) {
       WF_ASSERT(block->has_no_descendents(), "Must be the final block");
       WF_ASSERT(signature_.return_type().has_value(), "Return type must be specified");
-      ast::variant var = std::visit([&](const auto& x) -> ast::variant { return constructor(x); },
-                                    *signature_.return_type());
-      emplace_operation<ast::return_object>(std::make_shared<ast::variant>(std::move(var)));
+      ast::ast_element var =
+          std::visit([&](const auto& x) { return ast::ast_element(constructor(x)); },
+                     *signature_.return_type());
+      emplace_operation<ast::return_object>(std::move(var));
     } else {
       auto arg = signature_.argument_by_name(key.name);
       WF_ASSERT(arg.has_value(), "Argument missing from signature: {}", key.name);
@@ -119,8 +121,7 @@ void ast_form_visitor::push_back_output_operations(const ir::const_block_ptr blo
           [&](const scalar_type scalar) {
             // TODO: Make variant_ptr a proper type so we can put the pointer allocation
             // internally.
-            emplace_operation<ast::assign_output_scalar>(
-                *arg, std::make_shared<ast::variant>(constructor(scalar)));
+            emplace_operation<ast::assign_output_scalar>(*arg, constructor(scalar));
           },
           [&](const matrix_type& mat) {
             emplace_operation<ast::assign_output_matrix>(*arg, constructor(mat));
@@ -197,9 +198,6 @@ void ast_form_visitor::process_block(const ir::const_block_ptr block) {
     } else if (value->is_op<ir::jump_condition>() || value->is_op<ir::output_required>()) {
       // These are placeholders and have no representation in the output code.
     } else {
-      // Create the computation of the value:
-      const auto computed_value = std::make_shared<const ast::variant>(visit_value(value));
-
       // Find any downstream phi values that are equal to this value:
       std::vector<ir::const_value_ptr> phi_consumers{};
       find_conditional_output_values(value, true, phi_consumers);
@@ -213,12 +211,13 @@ void ast_form_visitor::process_block(const ir::const_block_ptr block) {
       const bool needs_declaration =
           !should_inline_constant(value) && (any_none_phi_consumers || phi_consumers.size() > 1);
 
-      ast::variant_ptr rhs = computed_value;
+      ast::ast_element rhs{visit_value(value)};
       if (needs_declaration) {
         // We are going to declare a temporary for this value:
         emplace_operation<ast::declaration>(format_variable_name(value), value->non_void_type(),
-                                            computed_value);
-        rhs = std::make_shared<const ast::variant>(make_variable_ref(value));
+                                            std::move(rhs));
+        rhs = ast::ast_element{std::in_place_type_t<ast::variable_ref>{},
+                               format_variable_name(value)};
       }
 
       // Here we write assignments to every conditional output that contains this value:
@@ -238,9 +237,10 @@ void ast_form_visitor::process_block(const ir::const_block_ptr block) {
   handle_control_flow(block);
 }
 
-std::vector<ast::variant> ast_form_visitor::process_nested_block(const ir::const_block_ptr block) {
+std::vector<ast::ast_element> ast_form_visitor::process_nested_block(
+    const ir::const_block_ptr block) {
   // Move aside operations of the current block temporarily:
-  std::vector<ast::variant> operations_stashed = std::move(operations_);
+  std::vector<ast::ast_element> operations_stashed = std::move(operations_);
   operations_.clear();
 
   // Process the block, writing to operations_ in the process.
@@ -282,7 +282,7 @@ void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
     push_back_conditional_output_declarations(merge_point);
 
     // Descend into both branches:
-    std::vector<ast::variant> operations_true = process_nested_block(descendants[0]);
+    std::vector<ast::ast_element> operations_true = process_nested_block(descendants[0]);
 
     // We have two kinds of branches. One for optionally-computed outputs, which only has
     // an if-branch. The other is for conditional logic in computations (where both if and
@@ -298,11 +298,11 @@ void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
                                                      std::move(operations_true));
     } else {
       // Fill out operations in the else branch:
-      std::vector<ast::variant> operations_false = process_nested_block(descendants[1]);
+      std::vector<ast::ast_element> operations_false = process_nested_block(descendants[1]);
 
       // Create a conditional
-      auto condition_var =
-          std::make_shared<ast::variant>(make_variable_ref(last_op->first_operand()));
+      ast::ast_element condition_var{std::in_place_type_t<ast::variable_ref>{},
+                                     format_variable_name(last_op->first_operand())};
       emplace_operation<ast::branch>(std::move(condition_var), std::move(operations_true),
                                      std::move(operations_false));
     }
@@ -312,9 +312,9 @@ void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
   }
 }
 
-ast::variant ast_form_visitor::visit_value(const ir::value& value) {
+ast::ast_element ast_form_visitor::visit_value(const ir::value& value) {
   return std::visit(
-      [this, &value](const auto& op) -> ast::variant {
+      [this, &value](const auto& op) -> ast::ast_element {
         // These types are placeholders, and don't directly appear in the ast output:
         using T = std::decay_t<decltype(op)>;
         using excluded_types =
@@ -328,19 +328,15 @@ ast::variant ast_form_visitor::visit_value(const ir::value& value) {
       value.value_op());
 }
 
-ast::variant ast_form_visitor::visit_operation_argument(const ir::const_value_ptr value) {
+ast::ast_element ast_form_visitor::visit_operation_argument(const ir::const_value_ptr value) {
   if (should_inline_constant(value)) {
     return visit_value(value);
   }
-  return make_variable_ref(value);
+  return ast::ast_element{make_variable_ref(value)};
 }
 
-ast::variant_ptr ast_form_visitor::visit_operation_argument_ptr(const ir::const_value_ptr val) {
-  return std::make_shared<const ast::variant>(visit_operation_argument(val));
-}
-
-std::vector<ast::variant> ast_form_visitor::transform_operands(const ir::value& val) {
-  std::vector<ast::variant> transformed_args{};
+std::vector<ast::ast_element> ast_form_visitor::transform_operands(const ir::value& val) {
+  std::vector<ast::ast_element> transformed_args{};
   transformed_args.reserve(val.num_operands());
   for (const ir::const_value_ptr arg : val.operands()) {
     transformed_args.push_back(visit_operation_argument(arg));
@@ -348,148 +344,163 @@ std::vector<ast::variant> ast_form_visitor::transform_operands(const ir::value& 
   return transformed_args;
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::add&) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::add&) {
   operation_counts_[operation_count_label::add]++;
-  return ast::add{visit_operation_argument_ptr(val[0]), visit_operation_argument_ptr(val[1])};
+  return ast::ast_element{std::in_place_type_t<ast::add>{}, visit_operation_argument(val[0]),
+                          visit_operation_argument(val[1])};
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val,
-                                          const ir::call_external_function& call) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val,
+                                              const ir::call_external_function& call) {
   WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
   operation_counts_[operation_count_label::call]++;
-  return ast::call_external_function{call.function(), transform_operands(val)};
+  return ast::ast_element{std::in_place_type_t<ast::call_external_function>{}, call.function(),
+                          transform_operands(val)};
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::call_std_function& func) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val,
+                                              const ir::call_std_function& func) {
   operation_counts_[operation_count_label::call]++;
-  return ast::call_std_function{func.name(), transform_operands(val)};
+  return ast::ast_element{std::in_place_type_t<ast::call_std_function>{}, func.name(),
+                          transform_operands(val)};
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::cast& cast) {
-  return ast::cast{cast.destination_type(), val[0]->numeric_type(),
-                   visit_operation_argument_ptr(val[0])};
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::cast& cast) {
+  return ast::ast_element{std::in_place_type_t<ast::cast>{}, cast.destination_type(),
+                          val[0]->numeric_type(), visit_operation_argument(val[0])};
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::compare& compare) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::compare& compare) {
   operation_counts_[operation_count_label::compare]++;
-  return ast::compare{compare.operation(), visit_operation_argument_ptr(val[0]),
-                      visit_operation_argument_ptr(val[1])};
+  return ast::ast_element{std::in_place_type_t<ast::compare>{}, compare.operation(),
+                          visit_operation_argument(val[0]), visit_operation_argument(val[1])};
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::construct& construct) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val,
+                                              const ir::construct& construct) {
   type_constructor constructor{transform_operands(val)};
-  return std::visit([&](const auto& x) -> ast::variant { return constructor(x); },
+  return std::visit([&](const auto& x) { return ast::ast_element(constructor(x)); },
                     construct.type());
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::copy&) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::copy&) {
   return visit_operation_argument(val.first_operand());
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::div&) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::div&) {
   operation_counts_[operation_count_label::divide]++;
-  return ast::divide{visit_operation_argument_ptr(val[0]), visit_operation_argument_ptr(val[1])};
+  return ast::ast_element{std::in_place_type_t<ast::divide>{}, visit_operation_argument(val[0]),
+                          visit_operation_argument(val[1])};
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::get& get) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::get& get) {
   return overloaded_visit(
       val[0]->type(),
-      [&](ir::void_type) -> ast::variant {
+      [&](ir::void_type) -> ast::ast_element {
         WF_ASSERT_ALWAYS("Object cannot be void type. value = {}, index = {}", val.name(),
                          get.index());
       },
-      [&](const scalar_type) -> ast::variant {
+      [&](const scalar_type) -> ast::ast_element {
         WF_ASSERT_EQUAL(0, get.index());
         return visit_value(val[0]);
       },
-      [&](const matrix_type& mat) -> ast::variant {
+      [&](const matrix_type& mat) -> ast::ast_element {
         WF_ASSERT_LESS(get.index(), mat.size());
         const auto [row, col] = mat.compute_indices(get.index());
-        return ast::get_matrix_element{visit_operation_argument_ptr(val[0]), row, col};
+        return ast::ast_element{std::in_place_type_t<ast::get_matrix_element>{},
+                                visit_operation_argument(val[0]), row, col};
       },
-      [&](const custom_type& custom) -> ast::variant {
+      [&](const custom_type& custom) -> ast::ast_element {
         return make_field_access_sequence(visit_operation_argument(val[0]), custom, get.index());
       });
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value&, const ir::load& load) {
+ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& load) {
   return visit(
-      [this](const auto& inner) -> ast::variant {
+      [this](const auto& inner) -> ast::ast_element {
         using T = std::decay_t<decltype(inner)>;
         if constexpr (std::is_same_v<T, symbolic_constant>) {
-          return ast::special_constant{inner.name()};
+          return ast::ast_element{std::in_place_type_t<ast::special_constant>{}, inner.name()};
         } else if constexpr (std::is_same_v<T, integer_constant>) {
-          return ast::integer_literal{inner.get_value()};
+          return ast::ast_element{std::in_place_type_t<ast::integer_literal>{}, inner.get_value()};
         } else if constexpr (std::is_same_v<T, float_constant>) {
-          return ast::float_literal{static_cast<float_constant>(inner).get_value()};
+          return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
+                                  static_cast<float_constant>(inner).get_value()};
         } else if constexpr (std::is_same_v<T, rational_constant>) {
-          return ast::float_literal{static_cast<float_constant>(inner).get_value()};
+          return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
+                                  static_cast<float_constant>(inner).get_value()};
         } else if constexpr (std::is_same_v<T, variable>) {
           // inspect inner type of the variable
           return std::visit([this](const auto& var_type) { return this->operator()(var_type); },
                             inner.identifier());
         } else if constexpr (std::is_same_v<T, custom_type_argument>) {
-          return ast::get_argument{signature_.argument_by_index(inner.arg_index())};
+          return ast::ast_element{std::in_place_type_t<ast::get_argument>{},
+                                  signature_.argument_by_index(inner.arg_index())};
         }
       },
       load.variant());
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
   operation_counts_[operation_count_label::multiply]++;
-  return ast::multiply{visit_operation_argument_ptr(val[0]), visit_operation_argument_ptr(val[1])};
+  return ast::ast_element{std::in_place_type_t<ast::multiply>{}, visit_operation_argument(val[0]),
+                          visit_operation_argument(val[1])};
 }
 
-ast::variant ast_form_visitor::operator()(const ir::value& val, const ir::neg&) {
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::neg&) {
   operation_counts_[operation_count_label::negate]++;
-  return ast::negate{visit_operation_argument_ptr(val[0])};
+  return ast::ast_element{std::in_place_type_t<ast::negate>{}, visit_operation_argument(val[0])};
 }
 
-ast::variant ast_form_visitor::operator()(const scalar_type&, const argument& arg,
-                                          std::size_t element_index) const {
+ast::ast_element ast_form_visitor::operator()(const scalar_type&, const argument& arg,
+                                              std::size_t element_index) const {
   WF_ASSERT_EQUAL(0, element_index);
-  return ast::get_argument{arg};
+  return ast::ast_element{std::in_place_type_t<ast::get_argument>{}, arg};
 }
 
-ast::variant ast_form_visitor::operator()(const matrix_type& m, const argument& arg,
-                                          const std::size_t element_index) const {
+ast::ast_element ast_form_visitor::operator()(const matrix_type& m, const argument& arg,
+                                              const std::size_t element_index) const {
   const auto [row, col] = m.compute_indices(element_index);
-  return ast::get_matrix_element{ast::make_shared_variant<ast::get_argument>(arg), row, col};
+  return ast::ast_element{std::in_place_type_t<ast::get_matrix_element>{},
+                          ast::ast_element{std::in_place_type_t<ast::get_argument>{}, arg}, row,
+                          col};
 }
 
-ast::variant ast_form_visitor::operator()(const custom_type& c, const argument& arg,
-                                          const std::size_t element_index) const {
+ast::ast_element ast_form_visitor::operator()(const custom_type& c, const argument& arg,
+                                              const std::size_t element_index) const {
   ast::get_argument get_arg{arg};
-  return make_field_access_sequence(ast::get_argument{arg}, c, element_index);
+  return make_field_access_sequence(
+      ast::ast_element{std::in_place_type_t<ast::get_argument>{}, arg}, c, element_index);
 }
 
-ast::variant ast_form_visitor::operator()(const named_variable& v) const {
-  return ast::variable_ref{v.name()};
+ast::ast_element ast_form_visitor::operator()(const named_variable& v) const {
+  return ast::ast_element{std::in_place_type_t<ast::variable_ref>{}, v.name()};
 }
 
-ast::variant ast_form_visitor::operator()(const function_argument_variable& a) const {
+ast::ast_element ast_form_visitor::operator()(const function_argument_variable& a) const {
   const argument& arg = signature_.argument_by_index(a.arg_index());
   return std::visit([&](const auto& type) { return operator()(type, arg, a.element_index()); },
                     arg.type());
 }
 
-ast::variant ast_form_visitor::operator()(const unique_variable& u) const {
+ast::ast_element ast_form_visitor::operator()(const unique_variable& u) const {
   throw type_error("Cannot convert unique_variable to ast: {}", u.index());
 }
 
-ast::variant ast_form_visitor::make_field_access_sequence(ast::variant prev, const custom_type& c,
-                                                          const std::size_t element_index) {
+ast::ast_element ast_form_visitor::make_field_access_sequence(ast::ast_element prev,
+                                                              const custom_type& c,
+                                                              const std::size_t element_index) {
   const auto access_sequence = determine_access_sequence(c, element_index);
   for (const access_variant& access : access_sequence) {
     overloaded_visit(
         access,
         [&](const matrix_access& m) {
-          prev = ast::get_matrix_element{std::make_shared<ast::variant>(std::move(prev)), m.row(),
-                                         m.col()};
+          prev = ast::ast_element{std::in_place_type_t<ast::get_matrix_element>{}, std::move(prev),
+                                  m.row(), m.col()};
         },
         [&](const field_access& f) {
-          prev = ast::get_field{std::make_shared<ast::variant>(std::move(prev)), f.type(),
-                                f.field_name()};
+          prev = ast::ast_element{std::in_place_type_t<ast::get_field>{}, std::move(prev), f.type(),
+                                  f.field_name()};
         });
   }
   return prev;
@@ -516,7 +527,7 @@ static constexpr std::string_view string_from_operation_count_label(
   return "<NOT A VALID ENUM VALUE>";
 }
 
-ast::variant ast_form_visitor::format_operation_count_comment() const {
+ast::ast_element ast_form_visitor::format_operation_count_comment() const {
   // Sort counts into order of the label itself:
   std::vector<std::pair<operation_count_label, std::size_t>> counts{operation_counts_.begin(),
                                                                     operation_counts_.end()};
@@ -531,7 +542,7 @@ ast::variant ast_form_visitor::format_operation_count_comment() const {
     total += count;
   }
   fmt::format_to(std::back_inserter(comment), "total: {}", total);
-  return ast::comment{std::move(comment)};
+  return ast::ast_element{std::in_place_type_t<ast::comment>{}, std::move(comment)};
 }
 
 function_definition create_ast(const wf::control_flow_graph& ir,

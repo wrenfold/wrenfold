@@ -208,7 +208,7 @@ struct record_type<T, enable_if_implements_custom_type_registrant_t<T>> {
     // Check if this type has already been registered:
     if (std::optional<custom_type> existing_type = registry.find_type<T>();
         existing_type.has_value()) {
-      return annotated_custom_type<T>{std::move(*existing_type)};
+      return annotated_custom_type<T>{*std::move(existing_type)};
     }
     // The registrant should return `custom_type_builder<T>`:
     custom_type type = custom_type_registrant<T>{}(registry).finalize();

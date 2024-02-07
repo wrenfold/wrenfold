@@ -76,15 +76,8 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::variable_ref& x) const;
 
-  // Accept ast::variant and delegate formatting of the stored type to our derived class.
-  // Using enable_if here to prevent implicit conversion to the variant type.
-  template <typename T, typename = enable_if_same_t<T, ast::variant>>
-  auto operator()(const T& var) const {
-    return std::visit(*this, var);
-  }
-
-  // Accept non_null<ast::variant_ptr>
-  auto operator()(const non_null<ast::variant_ptr>& var) const { return std::visit(*this, *var); }
+  // Accept `ast_element`.
+  std::string operator()(const ast::ast_element& element) const;
 
  protected:
   // Create a fmt_view. All args will be forwarded back to the operator on this class that matches

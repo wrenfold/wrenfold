@@ -2,6 +2,7 @@
 #include "wf/code_generation/cpp_code_generator.h"
 
 #include "wf/code_generation/ast_formatters.h"
+#include "wf/code_generation/ast_visitor.h"
 #include "wf/index_range.h"
 #include "wf/template_utils.h"
 
@@ -147,12 +148,11 @@ std::string cpp_code_generator::operator()(const ast::add& x) const {
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_output_matrix& x) const {
-  const auto range = make_range(static_cast<std::size_t>(0), x.value->type.size());
+  const auto range = make_range(static_cast<std::size_t>(0), x.value.type.size());
   return join(
       [&](const std::size_t i) {
-        const auto [row, col] = x.value->type.compute_indices(i);
-        return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col,
-                           make_view(x.value->args[i]));
+        const auto [row, col] = x.value.type.compute_indices(i);
+        return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col, make_view(x.value.args[i]));
       },
       "\n", range);
 }
@@ -167,9 +167,9 @@ std::string cpp_code_generator::operator()(const ast::assign_output_scalar& x) c
 
 std::string cpp_code_generator::operator()(const ast::assign_output_struct& x) const {
   if (x.arg.is_optional()) {
-    return fmt::format("*{} = {};", x.arg.name(), make_view(*x.value));
+    return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
   } else {
-    return fmt::format("{} = {};", x.arg.name(), make_view(*x.value));
+    return fmt::format("{} = {};", x.arg.name(), make_view(x.value));
   }
 }
 
@@ -382,5 +382,9 @@ std::string cpp_code_generator::operator()(const ast::special_constant& x) const
 }
 
 std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
+
+std::string cpp_code_generator::operator()(const ast::ast_element& element) const {
+  return ast::visit(element, *this);
+}
 
 }  // namespace wf

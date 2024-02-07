@@ -2,59 +2,22 @@
 #pragma once
 #include <memory>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include "wf/checked_pointers.h"
+#include "wf/code_generation/ast_element.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
 #include "wf/external_function.h"
 
 namespace wf::ast {
 
-// clang-format off
-using variant = std::variant<
-    struct add,
-    struct assign_temporary,
-    struct assign_output_matrix,
-    struct assign_output_scalar,
-    struct assign_output_struct,
-    struct branch,
-    struct call_external_function,
-    struct call_std_function,
-    struct cast,
-    struct comment,
-    struct compare,
-    struct construct_custom_type,
-    struct construct_matrix,
-    struct declaration,
-    struct divide,
-    struct float_literal,
-    struct get_argument,
-    struct get_field,
-    struct get_matrix_element,
-    struct integer_literal,
-    struct multiply,
-    struct negate,
-    struct optional_output_branch,
-    struct special_constant,
-    struct return_object,
-    struct variable_ref
-    >;
-// clang-format on
-
-using variant_vector = std::vector<variant>;
-
-// This is a shared_ptr so that we can copy AST members.
-// Copying is desirable to satisfy the pybind11 wrapper.
-using variant_ptr = std::shared_ptr<const variant>;
-
 // Add two values together.
 struct add {
   static constexpr std::string_view snake_case_name_str = "add";
 
-  non_null<variant_ptr> left;
-  non_null<variant_ptr> right;
+  ast_element left;
+  ast_element right;
 };
 
 // Assign a value to a temporary variable.
@@ -62,34 +25,17 @@ struct assign_temporary {
   static constexpr std::string_view snake_case_name_str = "assign_temporary";
 
   std::string left;
-  non_null<variant_ptr> right;
+  ast_element right;
 
-  assign_temporary(std::string left, variant_ptr right);
-};
-
-// Assign to an output argument of matrix type.
-struct assign_output_matrix {
-  static constexpr std::string_view snake_case_name_str = "assign_output_matrix";
-  argument arg;
-  non_null<std::shared_ptr<const construct_matrix>> value;
-
-  assign_output_matrix(argument arg, construct_matrix&& value);
+  assign_temporary(std::string left, ast_element right)
+      : left{std::move(left)}, right{std::move(right)} {}
 };
 
 // Assign to an output scalar argument.
 struct assign_output_scalar {
   static constexpr std::string_view snake_case_name_str = "assign_output_scalar";
   argument arg;
-  non_null<variant_ptr> value;
-};
-
-// Assign to an output argument that is a custom struct.
-struct assign_output_struct {
-  static constexpr std::string_view snake_case_name_str = "assign_output_struct";
-  argument arg;
-  non_null<std::shared_ptr<const construct_custom_type>> value;
-
-  assign_output_struct(argument arg, construct_custom_type&& value);
+  ast_element value;
 };
 
 // An if/else statement.
@@ -97,11 +43,11 @@ struct branch {
   static constexpr std::string_view snake_case_name_str = "branch";
 
   // Condition of the if statement.
-  non_null<variant_ptr> condition;
+  ast_element condition;
   // Statements if the condition is true:
-  std::vector<variant> if_branch;
+  std::vector<ast_element> if_branch;
   // Statements if the condition is false:
-  std::vector<variant> else_branch;
+  std::vector<ast_element> else_branch;
 };
 
 // Call an external function.
@@ -109,7 +55,7 @@ struct call_external_function {
   static constexpr std::string_view snake_case_name_str = "call_external_function";
 
   external_function function;
-  std::vector<variant> args;
+  std::vector<ast_element> args;
 };
 
 // Call a standard math function.
@@ -117,7 +63,7 @@ struct call_std_function {
   static constexpr std::string_view snake_case_name_str = "call_std_function";
 
   std_math_function function;
-  std::vector<variant> args;
+  std::vector<ast_element> args;
 };
 
 // Cast a scalar from one numeric type to another.
@@ -126,7 +72,7 @@ struct cast {
 
   code_numeric_type destination_type;
   code_numeric_type source_type;
-  non_null<variant_ptr> arg;
+  ast_element arg;
 };
 
 // A comment.
@@ -145,8 +91,8 @@ struct compare {
   static constexpr std::string_view snake_case_name_str = "compare";
 
   relational_operation operation{};
-  non_null<variant_ptr> left;
-  non_null<variant_ptr> right;
+  ast_element left;
+  ast_element right;
 };
 
 // Construct a custom type.
@@ -155,12 +101,13 @@ struct construct_custom_type {
 
   // The type being constructed.
   custom_type type;
+
   // Vector of [field, ast] pairs that describe how to fill the fields of the output type.
   // Fields will be in the same order as in `type`.
-  std::vector<std::tuple<std::string, ast::variant>> field_values;
+  std::vector<std::tuple<std::string, ast_element>> field_values;
 
   // Get a field by name (or nullptr if the field does not exist).
-  maybe_null<const ast::variant*> get_field_by_name(std::string_view name) const;
+  maybe_null<const ast_element*> get_field_by_name(std::string_view name) const;
 };
 
 // Construct a matrix type from arguments.
@@ -168,7 +115,7 @@ struct construct_matrix {
   static constexpr std::string_view snake_case_name_str = "construct_matrix";
 
   matrix_type type;
-  std::vector<variant> args;
+  std::vector<ast_element> args;
 };
 
 // A type annotation as part of a declaration.
@@ -187,20 +134,24 @@ struct declaration {
   declaration_type_annotation type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
-  maybe_null<variant_ptr> value{nullptr};
+  std::optional<ast_element> value{std::nullopt};
 
-  declaration(std::string name, type_variant type, variant_ptr value);
+  declaration(std::string name, type_variant type, ast_element value)
+      : name(std::move(name)),
+        type(declaration_type_annotation{std::move(type)}),
+        value(std::move(value)) {}
 
   // Construct w/ no rhs.
-  declaration(std::string name, type_variant type);
+  declaration(std::string name, type_variant type)
+      : name(std::move(name)), type(declaration_type_annotation{std::move(type)}) {}
 };
 
 // Divide first operand by second operand.
 struct divide {
   static constexpr std::string_view snake_case_name_str = "divide";
 
-  non_null<variant_ptr> left;
-  non_null<variant_ptr> right;
+  ast_element left;
+  ast_element right;
 };
 
 // Use a floating-point constant in the output code.
@@ -220,7 +171,7 @@ struct get_argument {
 struct get_field {
   static constexpr std::string_view snake_case_name_str = "get_field";
   // Expression for the struct we are accessing.
-  non_null<variant_ptr> arg;
+  ast_element arg;
   // Type being accessed.
   custom_type type;
   // Name of the field being accessed
@@ -231,7 +182,7 @@ struct get_field {
 struct get_matrix_element {
   static constexpr std::string_view snake_case_name_str = "get_matrix_element";
   // Expression for the matrix we are accessing.
-  non_null<variant_ptr> arg;
+  ast_element arg;
   // Row and column.
   index_t row;
   index_t col;
@@ -248,15 +199,14 @@ struct integer_literal {
 struct multiply {
   static constexpr std::string_view snake_case_name_str = "multiply";
 
-  non_null<variant_ptr> left;
-  non_null<variant_ptr> right;
+  ast_element left;
+  ast_element right;
 };
 
 // Negate an operand.
 struct negate {
   static constexpr std::string_view snake_case_name_str = "negate";
-
-  non_null<variant_ptr> arg;
+  ast_element arg;
 };
 
 // A one-sided branch that assigns to an optional output, after checking for its existence.
@@ -271,7 +221,7 @@ struct optional_output_branch {
   argument arg;
 
   // Statements in the if-branch.
-  std::vector<variant> statements;
+  std::vector<ast_element> statements;
 };
 
 // Use a symbolic constant in the output code.
@@ -284,8 +234,7 @@ struct special_constant {
 // A return statement.
 struct return_object {
   static constexpr std::string_view snake_case_name_str = "return_object";
-
-  non_null<variant_ptr> value;
+  ast_element value;
 };
 
 // Usage of a variable.
@@ -294,6 +243,22 @@ struct variable_ref {
 
   // Name of the variable.
   std::string name;
+};
+
+// Assign to an output argument of matrix type.
+// Out of alphabetical order, but needs the definition of `construct_matrix` to be visible.
+struct assign_output_matrix {
+  static constexpr std::string_view snake_case_name_str = "assign_output_matrix";
+  argument arg;
+  construct_matrix value;
+};
+
+// Assign to an output argument that is a custom struct.
+// Out of alphabetical order, but needs the definition of `construct_custom_type` to be visible.
+struct assign_output_struct {
+  static constexpr std::string_view snake_case_name_str = "assign_output_struct";
+  argument arg;
+  construct_custom_type value;
 };
 
 // Types that are not part of the ast::variant, because they appear only in specific places in the
@@ -372,21 +337,21 @@ class function_definition {
  public:
   static constexpr std::string_view snake_case_name_str = "function_definition";
 
-  function_definition(function_signature signature, std::vector<ast::variant> body)
+  function_definition(function_signature signature, std::vector<ast::ast_element> body)
       : impl_(std::make_shared<const impl>(impl{std::move(signature), std::move(body)})) {}
 
   // Signature of the function.
   const function_signature& signature() const noexcept { return impl_->signature; }
 
   // Operations within the function body.
-  const std::vector<ast::variant>& body() const noexcept { return impl_->body; }
+  const std::vector<ast::ast_element>& body() const noexcept { return impl_->body; }
 
  private:
   struct impl {
     // Signature of the function: float foo(float x, ...)
     function_signature signature;
     // Body of the function as a vector of statements.
-    std::vector<ast::variant> body;
+    std::vector<ast::ast_element> body;
   };
   non_null<std::shared_ptr<const impl>> impl_;
 };
@@ -403,13 +368,6 @@ using extra_ast_types = type_list<
   return_type_annotation
 >;
 // clang-format on
-using all_ast_types =
-    type_list_concatenate_t<type_list_from_variant_t<ast::variant>, extra_ast_types>;
-
-// Make a shared-ptr to ast::variant.
-template <typename T, typename... Args>
-ast::variant_ptr make_shared_variant(Args&&... args) {
-  return std::make_shared<const ast::variant>(T{std::forward<Args>(args)...});
-}
+using all_ast_types = type_list_concatenate_t<ast_element_types, extra_ast_types>;
 
 }  // namespace wf::ast

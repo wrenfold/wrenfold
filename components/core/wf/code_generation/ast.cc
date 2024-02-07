@@ -6,15 +6,6 @@
 
 namespace wf::ast {
 
-assign_output_matrix::assign_output_matrix(argument arg, construct_matrix&& value)
-    : arg(std::move(arg)), value(std::make_shared<construct_matrix>(std::move(value))) {}
-
-assign_output_struct::assign_output_struct(argument arg, construct_custom_type&& value)
-    : arg(std::move(arg)), value(std::make_shared<construct_custom_type>(std::move(value))) {}
-
-assign_temporary::assign_temporary(std::string left, variant_ptr right)
-    : left(std::move(left)), right(std::move(right)) {}
-
 std::vector<std::string> comment::split_lines() const {
   // Remove windows carriage return.
   const std::string content_no_cr = std::regex_replace(content, std::regex("\r\n"), "\n");
@@ -27,7 +18,7 @@ std::vector<std::string> comment::split_lines() const {
   return lines;
 }
 
-maybe_null<const ast::variant*> construct_custom_type::get_field_by_name(
+maybe_null<const ast_element*> construct_custom_type::get_field_by_name(
     std::string_view name) const {
   const auto it = std::find_if(field_values.begin(), field_values.end(),
                                [&](const auto& tuple) { return std::get<0>(tuple) == name; });
@@ -36,14 +27,6 @@ maybe_null<const ast::variant*> construct_custom_type::get_field_by_name(
   }
   return &std::get<1>(*it);
 }
-
-declaration::declaration(std::string name, type_variant type, variant_ptr value)
-    : name(std::move(name)),
-      type(declaration_type_annotation{std::move(type)}),
-      value(std::move(value)) {}
-
-declaration::declaration(std::string name, type_variant type)
-    : name(std::move(name)), type(declaration_type_annotation{std::move(type)}) {}
 
 std::vector<argument> function_signature::matrix_args() const {
   std::vector<argument> result{};
