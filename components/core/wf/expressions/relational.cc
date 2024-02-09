@@ -2,9 +2,9 @@
 #include "wf/expressions/relational.h"
 
 #include "wf/constants.h"
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
-#include "wf/visit.h"
 
 namespace wf {
 

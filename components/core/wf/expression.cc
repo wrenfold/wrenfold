@@ -2,9 +2,9 @@
 
 #include "wf/assertions.h"
 #include "wf/constants.h"
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/plain_formatter.h"
-#include "wf/visit.h"
 
 namespace wf {
 

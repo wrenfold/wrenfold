@@ -2,7 +2,7 @@
 #include "wf/external_function.h"
 
 #include "wf/code_generation/ast_formatters.h"
-#include "wf/visit.h"
+#include "wf/expression_visitor.h"
 
 namespace wf {
 

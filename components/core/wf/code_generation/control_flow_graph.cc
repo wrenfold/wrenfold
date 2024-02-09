@@ -9,9 +9,9 @@
 #include "wf/code_generation/ir_control_flow_converter.h"
 #include "wf/code_generation/ir_form_visitor.h"
 #include "wf/common_visitors.h"
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/hashing.h"
-#include "wf/visit.h"
 
 namespace wf {
 namespace ir {

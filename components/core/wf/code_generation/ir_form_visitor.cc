@@ -2,7 +2,7 @@
 #include "wf/code_generation/ir_form_visitor.h"
 
 #include "wf/common_visitors.h"
-#include "wf/visit.h"
+#include "wf/expression_visitor.h"
 
 namespace wf {
 

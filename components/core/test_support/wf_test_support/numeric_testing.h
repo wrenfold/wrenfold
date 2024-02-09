@@ -5,9 +5,9 @@
 #include "wf/code_generation/function_evaluator.h"
 #include "wf/evaluate.h"
 #include "wf/expression.h"
+#include "wf/expression_visitor.h"
 #include "wf/substitute.h"
 #include "wf/type_annotations.h"
-#include "wf/visit.h"
 
 // Utilities for evaluating symbolic functions into numeric values (like double, or Eigen::Matrix).
 // This is for unit testing code-generated methods against numeric evaluation of the symbolic graph.

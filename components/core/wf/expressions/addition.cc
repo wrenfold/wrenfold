@@ -3,11 +3,11 @@
 
 #include <algorithm>
 
+#include "wf/expression_visitor.h"
 #include "wf/expressions/matrix.h"
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
-#include "wf/visit.h"
 
 namespace wf {
 

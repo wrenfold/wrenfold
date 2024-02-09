@@ -3,10 +3,10 @@
 
 #include <unordered_map>
 
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
 #include "wf/substitute.h"
-#include "wf/visit.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)

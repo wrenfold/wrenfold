@@ -1,9 +1,9 @@
 // Copyright 2023 Gareth Cross
 #include "wf/expressions/matrix.h"
 
+#include "wf/expression_visitor.h"
 #include "wf/expressions/addition.h"
 #include "wf/matrix_functions.h"
-#include "wf/visit.h"
 
 namespace wf {
 

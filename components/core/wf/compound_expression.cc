@@ -1,9 +1,9 @@
 // Copyright 2024 Gareth Cross
 #include "wf/compound_expression.h"
 
+#include "wf/expression_visitor.h"
 #include "wf/index_range.h"
 #include "wf/plain_formatter.h"
-#include "wf/visit.h"
 
 namespace wf {
 

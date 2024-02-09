@@ -1,5 +1,7 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include <functional>  //  std::invoke
+
 #include "wf/traits.h"
 
 namespace wf {
