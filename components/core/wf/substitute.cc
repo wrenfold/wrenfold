@@ -19,7 +19,6 @@ namespace wf {
 // TargetExpressionType is the concrete type of the expression we are replacing.
 template <typename Derived, typename TargetExpressionType>
 struct substitute_visitor_base {
- public:
   explicit substitute_visitor_base(const TargetExpressionType& target,
                                    const scalar_expr& replacement)
       : target(target), replacement(replacement) {}
@@ -38,7 +37,7 @@ struct substitute_visitor_base {
   template <typename Arg>
   scalar_expr operator()(const Arg& other, const scalar_expr& input_expression) {
     if constexpr (std::is_same_v<TargetExpressionType, Arg>) {
-      if (target.is_identical_to(other)) {
+      if (are_identical(target, other)) {
         // Exact match, so replace it:
         return replacement;
       }
@@ -76,7 +75,7 @@ struct substitute_visitor_base {
 };
 
 template <typename Target>
-struct substitute_visitor : public substitute_visitor_base<substitute_visitor<Target>, Target> {
+struct substitute_visitor : substitute_visitor_base<substitute_visitor<Target>, Target> {
   // Standard substitute visitor does not allow partial matching.
   constexpr static bool performs_partial_substitution = false;
 
@@ -85,8 +84,7 @@ struct substitute_visitor : public substitute_visitor_base<substitute_visitor<Ta
 };
 
 // Specialization to allow partial substitution in additions.
-struct substitute_add_visitor : public substitute_visitor_base<substitute_add_visitor, addition> {
- public:
+struct substitute_add_visitor : substitute_visitor_base<substitute_add_visitor, addition> {
   constexpr static bool performs_partial_substitution = true;
 
   substitute_add_visitor(const addition& target, const scalar_expr& replacement)
@@ -133,9 +131,7 @@ struct substitute_add_visitor : public substitute_visitor_base<substitute_add_vi
 // Specialization for doing partial substitution in multiplications.
 // This allows replacing parts of a product, for example:
 //  Replace `x * y` in `x**3 * y**2 * 5` with `z` to obtain `x * z**2 * 5`.
-struct substitute_mul_visitor
-    : public substitute_visitor_base<substitute_mul_visitor, multiplication> {
- public:
+struct substitute_mul_visitor : substitute_visitor_base<substitute_mul_visitor, multiplication> {
   constexpr static bool performs_partial_substitution = true;
 
   substitute_mul_visitor(const multiplication& target, const scalar_expr& replacement)

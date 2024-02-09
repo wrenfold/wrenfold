@@ -90,6 +90,14 @@ struct hash_struct<multiplication> {
   }
 };
 
+template <>
+struct is_identical_struct<multiplication> {
+  bool operator()(const multiplication& a, const multiplication& b) const {
+    return a.size() == b.size() &&
+           std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
+  }
+};
+
 // Split a multiplication up into numerical values and non-numerical expressions.
 // Returns [coefficient, multiplicand] where the coefficient is the numerical part.
 // If there are no numerical terms, the coefficient will be one.

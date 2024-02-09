@@ -21,11 +21,6 @@ class cast_bool {
   constexpr auto begin() const noexcept { return arg_.begin(); }
   constexpr auto end() const noexcept { return arg_.end(); }
 
-  // Function type and argument must match.
-  bool is_identical_to(const cast_bool& other) const {
-    return arg_[0].is_identical_to(other.arg_[0]);
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
@@ -39,6 +34,13 @@ class cast_bool {
 template <>
 struct hash_struct<cast_bool> {
   std::size_t operator()(const cast_bool& cast) const { return hash(cast.arg()); }
+};
+
+template <>
+struct is_identical_struct<cast_bool> {
+  bool operator()(const cast_bool& a, const cast_bool& b) const {
+    return are_identical(a.arg(), b.arg());
+  }
 };
 
 }  // namespace wf

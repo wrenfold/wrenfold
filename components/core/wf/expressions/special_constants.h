@@ -12,7 +12,7 @@ class symbolic_constant {
   static constexpr bool is_leaf_node = true;
 
   // Construct with name.
-  explicit constexpr symbolic_constant(symbolic_constant_enum name) noexcept : name_(name) {}
+  explicit constexpr symbolic_constant(const symbolic_constant_enum name) noexcept : name_(name) {}
 
   // Access name.
   constexpr symbolic_constant_enum name() const noexcept { return name_; }
@@ -26,9 +26,6 @@ class complex_infinity {
  public:
   static constexpr std::string_view name_str = "ComplexInfinity";
   static constexpr bool is_leaf_node = true;
-
-  constexpr complex_infinity() noexcept = default;
-  constexpr bool is_identical_to(const complex_infinity&) const noexcept { return true; }
 };
 
 // Result of invalid expressions.
@@ -36,9 +33,6 @@ class undefined {
  public:
   static constexpr std::string_view name_str = "Undefined";
   static constexpr bool is_leaf_node = true;
-
-  undefined() noexcept = default;
-  constexpr bool is_identical_to(const undefined&) const noexcept { return true; }
 };
 
 // Convert `symbolic_constant_enum` to a floating point double.
@@ -84,6 +78,13 @@ struct hash_struct<complex_infinity> {
 };
 
 template <>
+struct is_identical_struct<complex_infinity> {
+  constexpr bool operator()(const complex_infinity&, const complex_infinity&) const noexcept {
+    return true;
+  }
+};
+
+template <>
 struct hash_struct<undefined> {
   constexpr std::size_t operator()(const undefined&) const noexcept {
     constexpr auto undef_hash = hash_string_fnv("undef");
@@ -91,9 +92,14 @@ struct hash_struct<undefined> {
   }
 };
 
+template <>
+struct is_identical_struct<undefined> {
+  constexpr bool operator()(const undefined&, const undefined&) const noexcept { return true; }
+};
+
 }  // namespace wf
 
-// Formatter for printing in assertions.
+// Formatter for printing symbolic_constant.
 template <>
 struct fmt::formatter<wf::symbolic_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }

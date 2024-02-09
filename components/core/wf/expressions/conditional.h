@@ -13,11 +13,6 @@ class conditional {
   conditional(scalar_expr condition, scalar_expr if_branch, scalar_expr else_branch)
       : children_{std::move(condition), std::move(if_branch), std::move(else_branch)} {}
 
-  bool is_identical_to(const conditional& other) const {
-    return std::equal(children_.begin(), children_.end(), other.children_.begin(),
-                      is_identical_struct<scalar_expr>{});
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
@@ -48,6 +43,13 @@ template <>
 struct hash_struct<conditional> {
   std::size_t operator()(const conditional& c) const {
     return hash_args(0, c.condition(), c.if_branch(), c.else_branch());
+  }
+};
+
+template <>
+struct is_identical_struct<conditional> {
+  bool operator()(const conditional& a, const conditional& b) const {
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(), is_identical_struct<scalar_expr>{});
   }
 };
 

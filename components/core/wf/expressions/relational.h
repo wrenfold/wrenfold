@@ -10,14 +10,8 @@ class relational {
   static constexpr std::string_view name_str = "Relational";
   static constexpr bool is_leaf_node = false;
 
-  relational(relational_operation operation, scalar_expr left, scalar_expr right)
+  relational(const relational_operation operation, scalar_expr left, scalar_expr right) noexcept
       : operation_(operation), children_{std::move(left), std::move(right)} {}
-
-  // Base and exponent must match.
-  bool is_identical_to(const relational& other) const {
-    return operation_ == other.operation_ && left().is_identical_to(other.left()) &&
-           right().is_identical_to(other.right());
-  }
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
@@ -48,6 +42,14 @@ template <>
 struct hash_struct<relational> {
   std::size_t operator()(const relational& rel) const {
     return hash_args(static_cast<std::size_t>(rel.operation()), rel.left(), rel.right());
+  }
+};
+
+template <>
+struct is_identical_struct<relational> {
+  std::size_t operator()(const relational& a, const relational& b) const {
+    return a.operation() == b.operation() && are_identical(a.left(), b.left()) &&
+           are_identical(a.right(), b.right());
   }
 };
 

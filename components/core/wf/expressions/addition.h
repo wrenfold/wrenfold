@@ -43,14 +43,6 @@ class addition {
   container_type::const_iterator begin() const noexcept { return terms_.begin(); }
   container_type::const_iterator end() const noexcept { return terms_.end(); }
 
-  // All terms must be identical.
-  bool is_identical_to(const addition& other) const {
-    if (size() != other.size()) {
-      return false;
-    }
-    return std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
@@ -70,6 +62,14 @@ class addition {
 template <>
 struct hash_struct<addition> {
   std::size_t operator()(const addition& add) const { return hash_all(0, add.begin(), add.end()); }
+};
+
+template <>
+struct is_identical_struct<addition> {
+  bool operator()(const addition& a, const addition& b) const {
+    return a.size() == b.size() &&
+           std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
+  }
 };
 
 // Helper object used to manipulate additions.

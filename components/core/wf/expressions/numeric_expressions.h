@@ -201,6 +201,7 @@ struct hash_struct<integer_constant::value_type> {
     return hash;
   }
 };
+
 template <>
 struct hash_struct<integer_constant> {
   std::size_t operator()(const integer_constant value) const noexcept {
@@ -278,10 +279,8 @@ struct is_identical_struct<rational_constant> {
 inline constexpr rational_constant mod_pi_rational(const rational_constant& r) noexcept {
   // Split into integer and rational parts:
   const auto [integer_part_unwrapped, fractional_part] = r.normalized();
-  // Wrap the integer part into (-2, 2).
-  const int64_t integer_part = integer_part_unwrapped.get_value() % 2;
-  // Now we want to convert into range (-1, 1]:
-  if (integer_part == 1) {
+  // Wrap the integer part into (-2, 2), then convert into range (-1, 1]:
+  if (const int64_t integer_part = integer_part_unwrapped.get_value() % 2; integer_part == 1) {
     return fractional_part.is_zero() ? rational_constant{1, 1}
                                      : fractional_part - rational_constant{1, 1};
   } else if (integer_part == -1) {

@@ -11,12 +11,8 @@ class power {
   static constexpr std::string_view name_str = "Power";
   static constexpr bool is_leaf_node = false;
 
-  power(scalar_expr base, scalar_expr exponent) : children_{std::move(base), std::move(exponent)} {}
-
-  // Base and exponent must match.
-  bool is_identical_to(const power& other) const {
-    return base().is_identical_to(other.base()) && exponent().is_identical_to(other.exponent());
-  }
+  power(scalar_expr base, scalar_expr exponent) noexcept
+      : children_{std::move(base), std::move(exponent)} {}
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
@@ -61,6 +57,13 @@ template <>
 struct hash_struct<power> {
   std::size_t operator()(const power& pow) const {
     return hash_args(0, pow.base(), pow.exponent());
+  }
+};
+
+template <>
+struct is_identical_struct<power> {
+  std::size_t operator()(const power& a, const power& b) const {
+    return are_identical(a.base(), b.base()) && are_identical(a.exponent(), b.exponent());
   }
 };
 

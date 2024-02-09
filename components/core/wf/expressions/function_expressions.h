@@ -18,7 +18,7 @@ class function {
   using container_type = absl::InlinedVector<scalar_expr, 2>;
 
   template <typename... Args>
-  function(built_in_function func, Args&&... args)
+  explicit function(const built_in_function func, Args&&... args)
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
@@ -42,12 +42,6 @@ class function {
   auto begin() const noexcept { return args_.begin(); }
   auto end() const noexcept { return args_.end(); }
 
-  // Function type and argument must match.
-  bool is_identical_to(const function& other) const {
-    return func_ == other.func_ && args_.size() == other.args_.size() &&
-           std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
-  }
-
   // Implement ExpressionImpl::Map
   template <typename F>
   scalar_expr map_children(F&& f) const {
@@ -66,9 +60,18 @@ struct hash_struct<function> {
   }
 };
 
+template <>
+struct is_identical_struct<function> {
+  bool operator()(const function& a, const function& b) const {
+    return a.function_name() == b.function_name() && a.size() == b.size() &&
+           std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
+  }
+};
+
 // Call the appropriate creation method for the specified enum value.
-// We need this logic because each type of function has simplifications it applies.
-inline scalar_expr function::create(built_in_function name, function::container_type&& container) {
+// We need this logic to support `map_children`.
+inline scalar_expr function::create(const built_in_function name,
+                                    function::container_type&& container) {
   switch (name) {
     case built_in_function::cos:
       return cos(container.front());

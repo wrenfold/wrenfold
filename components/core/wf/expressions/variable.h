@@ -119,14 +119,36 @@ struct hash_struct<named_variable> {
 };
 
 template <>
+struct is_identical_struct<named_variable> {
+  bool operator()(const named_variable& a, const named_variable& b) const noexcept {
+    return a.name() == b.name();
+  }
+};
+
+template <>
 struct hash_struct<unique_variable> {
   constexpr std::size_t operator()(const unique_variable& v) const noexcept { return v.index(); }
+};
+
+template <>
+struct is_identical_struct<unique_variable> {
+  constexpr bool operator()(const unique_variable& a, const unique_variable& b) const noexcept {
+    return a.index() == b.index();
+  }
 };
 
 template <>
 struct hash_struct<function_argument_variable> {
   constexpr std::size_t operator()(const function_argument_variable& v) const noexcept {
     return hash_combine(v.arg_index(), v.element_index());
+  }
+};
+
+template <>
+struct is_identical_struct<function_argument_variable> {
+  constexpr bool operator()(const function_argument_variable& a,
+                            const function_argument_variable& b) const noexcept {
+    return a.arg_index() == b.arg_index() && a.element_index() == b.element_index();
   }
 };
 
@@ -148,7 +170,10 @@ struct hash_struct<variable> {
 
 template <>
 struct is_identical_struct<variable> {
-  bool operator()(const variable& a, const variable& b) const { return a.is_identical_to(b); }
+  bool operator()(const variable& a, const variable& b) const {
+    // Comparing identifiers will use the std::variant::operator==.
+    return a.identifier() == b.identifier() && a.set() == b.set();
+  }
 };
 
 }  // namespace wf

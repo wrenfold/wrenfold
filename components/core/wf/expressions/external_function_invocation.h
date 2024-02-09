@@ -29,9 +29,6 @@ class external_function_invocation {
   auto begin() const noexcept { return args_.begin(); }
   auto end() const noexcept { return args_.end(); }
 
-  // Function type and argument must match.
-  bool is_identical_to(const external_function_invocation& other) const;
-
   template <typename F>
   compound_expr map_children(F&& f) const {
     container_type args_out = transform_map<container_type>(
@@ -50,6 +47,12 @@ struct hash_struct<external_function_invocation> {
   std::size_t operator()(const external_function_invocation& func) const {
     return hash_all(func.function().hash(), func.args());
   }
+};
+
+template <>
+struct is_identical_struct<external_function_invocation> {
+  bool operator()(const external_function_invocation& a,
+                  const external_function_invocation& b) const;
 };
 
 // To order function invocations, we need to be able to order types. This is tricky to do completely

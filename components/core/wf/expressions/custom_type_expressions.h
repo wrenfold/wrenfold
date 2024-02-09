@@ -75,10 +75,6 @@ class custom_type_construction {
     return args_[index];
   }
 
-  bool is_identical_to(const custom_type_construction& other) const {
-    return are_identical(type_, other.type_) && all_identical(args_, other.args_);
-  }
-
   // Iterators over expressions that make up the custom type.
   auto begin() const noexcept { return args_.begin(); }
   auto end() const noexcept { return args_.end(); }
@@ -101,6 +97,13 @@ template <>
 struct hash_struct<custom_type_construction> {
   std::size_t operator()(const custom_type_construction& construction) const {
     return hash_all(construction.type().hash(), construction.args());
+  }
+};
+
+template <>
+struct is_identical_struct<custom_type_construction> {
+  bool operator()(const custom_type_construction& a, const custom_type_construction& b) const {
+    return are_identical(a.type(), b.type()) && are_identical(a.args(), b.args());
   }
 };
 
