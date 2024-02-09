@@ -35,12 +35,6 @@ class matrix {
                       is_identical_struct<scalar_expr>{});
   }
 
-  // Implement ExpressionImpl::Iterate
-  template <typename Operation>
-  void for_each(Operation&& operation) const {
-    std::for_each(data_.begin(), data_.end(), std::forward<Operation>(operation));
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   matrix map_children(Operation&& operation) const {
