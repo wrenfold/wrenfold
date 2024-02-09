@@ -5,6 +5,7 @@
 
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/ast_formatters.h"
+#include "wf/code_generation/ast_visitor.h"
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/rust_code_generator.h"
 #include "wf/code_generation/types.h"
@@ -16,9 +17,11 @@
 namespace py = pybind11;
 using namespace py::literals;
 
-// We make this type opaque and wrap it manually below.
-// This allows us to avoid problems from variant not being default constructible.
-PYBIND11_MAKE_OPAQUE(wf::ast::variant_vector)
+// We make this type opaque and wrap it manually below. That way we can cast elements to their
+// underlying type in the `next()` impl, and attach lifetime of iterators to the vector using
+// py::keep_alive.
+using ast_element_vector = std::vector<wf::ast::ast_element>;
+PYBIND11_MAKE_OPAQUE(ast_element_vector)
 
 namespace wf {
 
@@ -104,30 +107,72 @@ auto wrap_ast_type(py::module_& m) {
       });
 }
 
+// Cast to `ast::variant` so we can return this into python.
+// We cast with `reference` policy, which is going to create a weak reference to `x`.
+py::object to_inner(const ast::ast_element& element) {
+  return wf::ast::visit(element, [](const auto& x) -> py::object {
+    return py::cast(x, py::return_value_policy::reference);
+  });
+}
+
+// Create a lambda that accepts `StructType` and retrieves `member`, then invokes `to_inner` to
+// convert that member to a handle.
+template <typename StructType>
+auto to_inner_accessor(ast::ast_element StructType::*member) {
+  return [member](const StructType& self) { return to_inner(self.*member); };
+}
+
+// Iterator that converts vector elements to their inner type.
+class ast_vector_iterator {
+ public:
+  static ast_vector_iterator begin(const ast_element_vector& vec) noexcept {
+    return ast_vector_iterator(vec.begin());
+  }
+  static ast_vector_iterator end(const ast_element_vector& vec) noexcept {
+    return ast_vector_iterator(vec.end());
+  }
+
+  bool operator==(const ast_vector_iterator& other) const noexcept { return it_ == other.it_; }
+
+  // Pre-increment.
+  auto& operator++() noexcept {
+    ++it_;
+    return *this;
+  }
+
+  py::object operator*() const { return to_inner(*it_); }
+
+ private:
+  explicit ast_vector_iterator(ast_element_vector::const_iterator it) noexcept : it_(it) {}
+
+  ast_element_vector::const_iterator it_;
+};
+
 void wrap_codegen_operations(py::module_& m) {
   // Variant vector is wrapped as an opaque type so we don't have to deal
   // with the variant not being default constructible.
-  py::class_<ast::variant_vector>(m, "AstVector")
+  py::class_<ast_element_vector>(m, "AstVector")
       .def("__repr__",
-           [](const ast::variant_vector& vec) {
+           [](const ast_element_vector& vec) {
              return fmt::format("AstVector({} elements)", vec.size());
            })
-      .def("__len__", [](const ast::variant_vector& vec) { return vec.size(); })
+      .def("__len__", [](const ast_element_vector& vec) { return vec.size(); })
       .def(
           "__iter__",
-          [](const std::vector<ast::variant>& vec) {
-            return py::make_iterator(vec.begin(), vec.end());
+          [](const ast_element_vector& vec) {
+            return py::make_iterator(ast_vector_iterator::begin(vec),
+                                     ast_vector_iterator::end(vec));
           },
           py::keep_alive<0, 1>())
       .def(
           "__getitem__",
-          [](const std::vector<ast::variant>& vec, const std::size_t index) {
+          [](const ast_element_vector& vec, const std::size_t index) {
             if (index >= vec.size()) {
               throw dimension_error("Index `{}` exceeds vector length `{}`.", index, vec.size());
             }
-            return vec[index];
+            return to_inner(vec[index]);
           },
-          py::arg("index"), py::doc("Array access operator."));
+          py::arg("index"), py::doc("Array access operator."), py::keep_alive<0, 1>());
 
   m.def(
       "transpile",
@@ -164,7 +209,7 @@ void wrap_codegen_operations(py::module_& m) {
       .value("Powf", std_math_function::powf)
       .def(
           "to_string",
-          [](std_math_function name) { return string_from_standard_library_function(name); },
+          [](const std_math_function name) { return string_from_standard_library_function(name); },
           py::doc("Convert to string."));
 
   py::enum_<code_numeric_type>(m, "NumericType")
@@ -193,6 +238,10 @@ void wrap_codegen_operations(py::module_& m) {
       .def_property_readonly("num_cols", &matrix_type::cols)
       .def("compute_indices", &matrix_type::compute_indices)
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
+
+  wrap_class<struct_field>(m, "StructField")
+      .def_property_readonly("name", &struct_field::name)
+      .def_property_readonly("type", &struct_field::type);
 
   wrap_class<custom_type>(m, "CustomType")
       .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"), py::arg("python_type"),
@@ -328,49 +377,58 @@ void wrap_codegen_operations(py::module_& m) {
   // --------------------
 
   wrap_ast_type<ast::add>(m)
-      .def_property_readonly("left", [](const ast::add& x) { return *x.left; })
-      .def_property_readonly("right", [](const ast::add& x) { return *x.right; });
+      .def_property_readonly("left", to_inner_accessor(&ast::add::left), py::keep_alive<0, 1>())
+      .def_property_readonly("right", to_inner_accessor(&ast::add::right), py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::assign_temporary>(m)
       .def_property_readonly("left", [](const ast::assign_temporary& x) { return x.left; })
-      .def_property_readonly("right", [](const ast::assign_temporary& x) {
-        WF_ASSERT(x.right);
-        return *x.right;
-      });
+      .def_property_readonly("right", to_inner_accessor(&ast::assign_temporary::right),
+                             py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::assign_output_matrix>(m)
       .def_property_readonly("arg", [](const ast::assign_output_matrix& x) { return x.arg; })
-      .def_property_readonly("value", [](const ast::assign_output_matrix& x) { return *x.value; });
+      .def_property_readonly(
+          "value", [](const ast::assign_output_matrix& x) -> const auto& { return x.value; },
+          py::return_value_policy::reference_internal);
 
   wrap_ast_type<ast::assign_output_scalar>(m)
       .def_property_readonly("arg", [](const ast::assign_output_scalar& x) { return x.arg; })
-      .def_property_readonly("value", [](const ast::assign_output_scalar& x) { return *x.value; });
+      .def_property_readonly("value", to_inner_accessor(&ast::assign_output_scalar::value),
+                             py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::assign_output_struct>(m)
       .def_property_readonly("arg", [](const ast::assign_output_struct& x) { return x.arg; })
-      .def_property_readonly("value", [](const ast::assign_output_struct& x) { return *x.value; });
+      .def_property_readonly(
+          "value", [](const ast::assign_output_struct& x) -> const auto& { return x.value; },
+          py::return_value_policy::reference_internal);
 
   wrap_ast_type<ast::branch>(m)
-      .def_property_readonly("condition", [](const ast::branch& c) { return *c.condition; })
-      .def_property_readonly("if_branch", [](const ast::branch& c) { return c.if_branch; })
-      .def_property_readonly("else_branch", [](const ast::branch& c) { return c.else_branch; });
+      .def_property_readonly("condition", to_inner_accessor(&ast::branch::condition),
+                             py::keep_alive<0, 1>())
+      .def_property_readonly(
+          "if_branch", [](const ast::branch& c) -> const auto& { return c.if_branch; },
+          py::return_value_policy::reference_internal)
+      .def_property_readonly(
+          "else_branch", [](const ast::branch& c) -> const auto& { return c.else_branch; },
+          py::return_value_policy::reference_internal);
 
   wrap_ast_type<ast::call_external_function>(m)
       .def_property_readonly("function",
                              [](const ast::call_external_function& c) { return c.function; })
-      .def_property_readonly("args", [](const ast::call_external_function& c) { return c.args; });
+      .def_property_readonly(
+          "args", [](const ast::call_external_function& c) -> const auto& { return c.args; },
+          py::return_value_policy::reference_internal);
 
   wrap_ast_type<ast::call_std_function>(m)
       .def_property_readonly("function", [](const ast::call_std_function& c) { return c.function; })
-      .def_property_readonly("args", [](const ast::call_std_function& c) { return c.args; });
+      .def_property_readonly(
+          "args", [](const ast::call_std_function& c) -> const auto& { return c.args; },
+          py::return_value_policy::reference_internal);
 
   wrap_ast_type<ast::cast>(m)
       .def_property_readonly("destination_type",
                              [](const ast::cast& c) { return c.destination_type; })
-      .def_property_readonly("arg", [](const ast::cast& c) {
-        WF_ASSERT(c.arg);
-        return *c.arg;
-      });
+      .def_property_readonly("arg", to_inner_accessor(&ast::cast::arg), py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::comment>(m)
       .def_property_readonly("content", [](const ast::comment& c) { return c.content; })
@@ -378,63 +436,50 @@ void wrap_codegen_operations(py::module_& m) {
            py::doc("Split comment by newlines and return a list of strings, one per line."));
 
   wrap_ast_type<ast::compare>(m)
-      .def_property_readonly("left",
-                             [](const ast::compare& c) {
-                               WF_ASSERT(c.left);
-                               return *c.left;
-                             })
-      .def_property_readonly("right",
-                             [](const ast::compare& c) {
-                               WF_ASSERT(c.right);
-                               return *c.right;
-                             })
+      .def_property_readonly("left", to_inner_accessor(&ast::compare::left), py::keep_alive<0, 1>())
+      .def_property_readonly("right", to_inner_accessor(&ast::compare::right),
+                             py::keep_alive<0, 1>())
       .def_property_readonly("operation", [](const ast::compare& c) { return c.operation; });
 
   wrap_ast_type<ast::construct_matrix>(m)
       .def_property_readonly("type", [](const ast::construct_matrix& c) { return c.type; })
-      .def_property_readonly("args", [](const ast::construct_matrix& c) { return c.args; });
+      .def_property_readonly(
+          "args", [](const ast::construct_matrix& c) -> const auto& { return c.args; },
+          py::return_value_policy::reference_internal);
 
   wrap_ast_type<ast::construct_custom_type>(m)
       .def_property_readonly("type",
                              [](const ast::construct_custom_type& self) { return self.type; })
-      .def_property_readonly(
-          "field_values",
-          [](const ast::construct_custom_type& self) -> const auto& { return self.field_values; })
       .def(
           "get_field_value",
-          [](const ast::construct_custom_type& self,
-             const std::string_view name) -> std::optional<ast::variant> {
+          [](const ast::construct_custom_type& self, const std::string_view name) -> py::object {
             if (const auto v = self.get_field_by_name(name); v.has_value()) {
-              return *v;
+              return to_inner(*v);
             }
-            return std::nullopt;
+            return py::none();
           },
-          py::arg("name"), py::doc("Lookup field value by name"));
+          py::arg("name"), py::doc("Lookup field value by name"), py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::declaration>(m)
       .def_property_readonly("name", [](const ast::declaration& d) { return d.name; })
       .def_property_readonly("type", [](const ast::declaration& d) { return d.type; })
-      .def_property_readonly("value", [](const ast::declaration& d) -> std::optional<ast::variant> {
-        if (d.value) {
-          return *d.value;
-        } else {
-          return std::nullopt;
-        }
-      });
+      .def_property_readonly(
+          "value",
+          [](const ast::declaration& d) -> py::object {
+            if (d.value) {
+              return to_inner(*d.value);
+            }
+            return py::none();
+          },
+          py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::declaration_type_annotation>(m).def_property_readonly(
       "type", [](const ast::declaration_type_annotation& d) { return d.type; });
 
   wrap_ast_type<ast::divide>(m)
-      .def_property_readonly("left",
-                             [](const ast::divide& x) {
-                               WF_ASSERT(x.left);
-                               return *x.left;
-                             })
-      .def_property_readonly("right", [](const ast::divide& x) {
-        WF_ASSERT(x.right);
-        return *x.right;
-      });
+      .def_property_readonly("left", to_inner_accessor(&ast::divide::left), py::keep_alive<0, 1>())
+      .def_property_readonly("right", to_inner_accessor(&ast::divide::right),
+                             py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::float_literal>(m).def_property_readonly(
       "value", [](const ast::float_literal& f) { return f.value; });
@@ -443,12 +488,13 @@ void wrap_codegen_operations(py::module_& m) {
       "argument", [](const ast::get_argument& self) { return self.arg; });
 
   wrap_ast_type<ast::get_field>(m)
-      .def_property_readonly("arg", [](const ast::get_field& self) { return *self.arg; })
+      .def_property_readonly("arg", to_inner_accessor(&ast::get_field::arg), py::keep_alive<0, 1>())
       .def_property_readonly("struct_type", [](const ast::get_field& self) { return self.type; })
       .def_property_readonly("field_name", [](const ast::get_field& self) { return self.field; });
 
   wrap_ast_type<ast::get_matrix_element>(m)
-      .def_property_readonly("arg", [](const ast::get_matrix_element& self) { return *self.arg; })
+      .def_property_readonly("arg", to_inner_accessor(&ast::get_matrix_element::arg),
+                             py::keep_alive<0, 1>())
       .def_property_readonly("row", [](const ast::get_matrix_element& self) { return self.row; })
       .def_property_readonly("col", [](const ast::get_matrix_element& self) { return self.col; });
 
@@ -456,20 +502,13 @@ void wrap_codegen_operations(py::module_& m) {
       "value", [](const ast::integer_literal& i) { return i.value; });
 
   wrap_ast_type<ast::multiply>(m)
-      .def_property_readonly("left",
-                             [](const ast::multiply& x) {
-                               WF_ASSERT(x.left);
-                               return *x.left;
-                             })
-      .def_property_readonly("right", [](const ast::multiply& x) {
-        WF_ASSERT(x.right);
-        return *x.right;
-      });
+      .def_property_readonly("left", to_inner_accessor(&ast::multiply::left),
+                             py::keep_alive<0, 1>())
+      .def_property_readonly("right", to_inner_accessor(&ast::multiply::right),
+                             py::keep_alive<0, 1>());
 
-  wrap_ast_type<ast::negate>(m).def_property_readonly("arg", [](const ast::negate& x) {
-    WF_ASSERT(x.arg);
-    return *x.arg;
-  });
+  wrap_ast_type<ast::negate>(m).def_property_readonly("arg", to_inner_accessor(&ast::negate::arg),
+                                                      py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::optional_output_branch>(m)
       .def_property_readonly("argument",
@@ -478,8 +517,8 @@ void wrap_codegen_operations(py::module_& m) {
           "statements", [](const ast::optional_output_branch& self) { return self.statements; });
 
   wrap_ast_type<ast::return_object>(m).def_property_readonly(
-      "value", [](const ast::return_object& c) { return c.value; },
-      py::doc("Value or object being returned."));
+      "value", to_inner_accessor(&ast::return_object::value),
+      py::doc("Value or object being returned."), py::keep_alive<0, 1>());
 
   wrap_ast_type<ast::special_constant>(m).def_property_readonly(
       "value", [](const ast::special_constant& c) { return c.value; },

@@ -1,5 +1,6 @@
 #pragma once
 #include "wf/code_generation/ast.h"
+#include "wf/code_generation/ast_visitor.h"
 #include "wf/code_generation/string_util.h"
 
 // Formatters for the ast types. These are defined primarily so that we can implement repr() in
@@ -26,32 +27,32 @@ auto format_ast(Iterator it, const wf::ast::variable_ref& v) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::add& v) {
-  return fmt::format_to(it, "({}, {})", *v.left, *v.right);
+  return fmt::format_to(it, "({}, {})", v.left, v.right);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::assign_output_matrix& v) {
-  return fmt::format_to(it, "({} = <{} values>)", v.arg.name(), v.value->args.size());
+  return fmt::format_to(it, "({} = <{} values>)", v.arg.name(), v.value.args.size());
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::assign_output_scalar& v) {
-  return fmt::format_to(it, "({} = {})", v.arg.name(), *v.value);
+  return fmt::format_to(it, "({} = {})", v.arg.name(), v.value);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::assign_output_struct& v) {
-  return fmt::format_to(it, "({} = {})", v.arg.name(), *v.value);
+  return fmt::format_to(it, "({} = {})", v.arg.name(), v.value);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::assign_temporary& v) {
-  return fmt::format_to(it, "({} = {})", v.left, *v.right);
+  return fmt::format_to(it, "({} = {})", v.left, v.right);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::branch& d) {
-  return fmt::format_to(it, "(if {} {{ {} statements }} else {{ {} statements }})", *d.condition,
+  return fmt::format_to(it, "(if {} {{ {} statements }} else {{ {} statements }})", d.condition,
                         d.if_branch.size(), d.else_branch.size());
 }
 
@@ -68,7 +69,7 @@ auto format_ast(Iterator it, const wf::ast::call_std_function& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::cast& c) {
-  return fmt::format_to(it, "({}, {})", string_from_code_numeric_type(c.destination_type), *c.arg);
+  return fmt::format_to(it, "({}, {})", string_from_code_numeric_type(c.destination_type), c.arg);
 }
 
 template <typename Iterator>
@@ -78,8 +79,8 @@ auto format_ast(Iterator it, const wf::ast::comment& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::compare& c) {
-  return fmt::format_to(it, "({} {} {})", *c.left, string_from_relational_operation(c.operation),
-                        *c.right);
+  return fmt::format_to(it, "({} {} {})", c.left, string_from_relational_operation(c.operation),
+                        c.right);
 }
 
 template <typename Iterator>
@@ -112,7 +113,7 @@ auto format_ast(Iterator it, const wf::ast::declaration_type_annotation& d) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::divide& d) {
-  return fmt::format_to(it, "({}, {})", *d.left, *d.right);
+  return fmt::format_to(it, "({}, {})", d.left, d.right);
 }
 
 template <typename Iterator>
@@ -138,12 +139,12 @@ auto format_ast(Iterator it, const wf::ast::get_argument& r) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::get_field& r) {
-  return fmt::format_to(it, "({}, {})", *r.arg, r.field);
+  return fmt::format_to(it, "({}, {})", r.arg, r.field);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::get_matrix_element& r) {
-  return fmt::format_to(it, "({}, [{}, {}])", *r.arg, r.row, r.col);
+  return fmt::format_to(it, "({}, [{}, {}])", r.arg, r.row, r.col);
 }
 
 template <typename Iterator>
@@ -153,12 +154,12 @@ auto format_ast(Iterator it, const wf::ast::integer_literal& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::multiply& m) {
-  return fmt::format_to(it, "({}, {})", *m.left, *m.right);
+  return fmt::format_to(it, "({}, {})", m.left, m.right);
 }
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::negate& n) {
-  return fmt::format_to(it, "({})", *n.arg);
+  return fmt::format_to(it, "({})", n.arg);
 }
 
 template <typename Iterator>
@@ -177,7 +178,7 @@ auto format_ast(Iterator it, const wf::ast::return_type_annotation& r) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::return_object& r) {
-  return fmt::format_to(it, "({})", *r.value);
+  return fmt::format_to(it, "({})", r.value);
 }
 
 template <typename Iterator>
@@ -210,11 +211,11 @@ struct fmt::formatter<T, wf::ast::enable_if_is_formattable_t<T, char>> {
 };
 
 template <>
-struct fmt::formatter<wf::ast::variant, char> {
+struct fmt::formatter<wf::ast::ast_element, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
-  template <typename Arg, typename FormatContext>
-  auto format(const Arg& v, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return std::visit([&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, v);
+  template <typename FormatContext>
+  auto format(const wf::ast::ast_element& el, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return wf::ast::visit(el, [&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); });
   }
 };

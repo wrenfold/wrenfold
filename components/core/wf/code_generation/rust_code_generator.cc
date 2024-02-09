@@ -1,6 +1,7 @@
 #include "wf/code_generation/rust_code_generator.h"
 
 #include "wf/code_generation/ast_formatters.h"
+#include "wf/code_generation/ast_visitor.h"
 #include "wf/index_range.h"
 #include "wf/template_utils.h"
 
@@ -145,12 +146,12 @@ std::string rust_code_generator::operator()(const ast::add& x) const {
 }
 
 std::string rust_code_generator::operator()(const ast::assign_output_matrix& x) const {
-  const auto range = make_range(static_cast<std::size_t>(0), x.value->type.size());
+  const auto range = make_range(static_cast<std::size_t>(0), x.value.type.size());
   return join(
       [&](const std::size_t i) {
-        const auto [row, col] = x.value->type.compute_indices(i);
+        const auto [row, col] = x.value.type.compute_indices(i);
         return fmt::format("{}.set({}, {}, {});", x.arg.name(), row, col,
-                           make_view(x.value->args[i]));
+                           make_view(x.value.args[i]));
       },
       "\n", range);
 }
@@ -161,9 +162,9 @@ std::string rust_code_generator::operator()(const ast::assign_output_scalar& x) 
 
 std::string rust_code_generator::operator()(const ast::assign_output_struct& x) const {
   if (x.arg.is_optional()) {
-    return fmt::format("*{} = {};", x.arg.name(), make_view(*x.value));
+    return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
   } else {
-    return fmt::format("{} = {};", x.arg.name(), make_view(*x.value));
+    return fmt::format("{} = {};", x.arg.name(), make_view(x.value));
   }
 }
 
@@ -172,7 +173,6 @@ std::string rust_code_generator::operator()(const ast::assign_temporary& x) cons
 }
 
 std::string rust_code_generator::operator()(const ast::branch& x) const {
-  WF_ASSERT(x.condition);
   std::string result{};
   fmt::format_to(std::back_inserter(result), "if {} ", make_view(x.condition));
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.if_branch, *this);
@@ -217,8 +217,8 @@ static constexpr std::string_view rust_string_for_std_function(
   return "<INVALID ENUM VALUE>";
 }
 
-static bool is_get_argument_custom_type(const ast::variant& var) {
-  if (const ast::get_argument* get = std::get_if<ast::get_argument>(&var); get != nullptr) {
+static bool is_get_argument_custom_type(const ast::ast_element& var) {
+  if (const auto get = ast::get_if<ast::get_argument>(var); get.has_value()) {
     return get->arg.is_custom_type();
   }
   return false;
@@ -228,7 +228,7 @@ std::string rust_code_generator::operator()(const ast::call_external_function& x
   WF_ASSERT_EQUAL(x.args.size(), x.function.num_arguments());
   std::string result = x.function.name();
   result.append("(");
-  join_enumerate_to(result, ", ", x.args, [&](const std::size_t index, const ast::variant& v) {
+  join_enumerate_to(result, ", ", x.args, [&](const std::size_t index, const ast::ast_element& v) {
     std::string arg_str = operator()(v);
     if (is_get_argument_custom_type(v)) {
       return arg_str;
@@ -342,7 +342,7 @@ std::string rust_code_generator::operator()(const ast::get_field& x) const {
 }
 
 std::string rust_code_generator::operator()(const ast::get_matrix_element& x) const {
-  if (std::holds_alternative<ast::get_argument>(*x.arg)) {
+  if (ast::get_if<ast::get_argument>(x.arg)) {
     // This will be a span trait.
     return fmt::format("{}.get({}, {})", make_view(x.arg), x.row, x.col);
   } else {
@@ -394,5 +394,9 @@ std::string rust_code_generator::operator()(const ast::special_constant& x) cons
 }
 
 std::string rust_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }
+
+std::string rust_code_generator::operator()(const ast::ast_element& element) const {
+  return visit(element, *this);
+}
 
 }  // namespace wf

@@ -63,7 +63,7 @@ class ast_form_visitor {
 
   // Stash the current set of operations, and process a child block.
   // We return the nested block's operations (and pop our stash before returning).
-  std::vector<ast::variant> process_nested_block(ir::const_block_ptr block);
+  std::vector<ast::ast_element> process_nested_block(ir::const_block_ptr block);
 
   // At the end of `block`, check if we need to inject an if-else statement to handle conditional
   // control flow.
@@ -75,8 +75,8 @@ class ast_form_visitor {
   }
 
   // Visit the operation type on `value`, and delegate to the appropriate method on self.
-  ast::variant visit_value(const ir::value& value);
-  ast::variant visit_value(const ir::const_value_ptr value) { return visit_value(*value); }
+  ast::ast_element visit_value(const ir::value& value);
+  ast::ast_element visit_value(const ir::const_value_ptr value) { return visit_value(*value); }
 
   // Create a `variable_ref` object with the name of the variable used to store `value`.
   ast::variable_ref make_variable_ref(const ir::const_value_ptr value) const {
@@ -86,52 +86,50 @@ class ast_form_visitor {
   // Check if the provided value is going to be placed in-line. If so, we just directly return
   // the converted `value`. If not, we assume a variable will be declared elsewhere and instead
   // return a reference to that.
-  ast::variant visit_operation_argument(ir::const_value_ptr value);
-  ast::variant_ptr visit_operation_argument_ptr(ir::const_value_ptr val);
+  ast::ast_element visit_operation_argument(ir::const_value_ptr value);
 
   // Convert all operands to `val` into equivlent ast types.
-  std::vector<ast::variant> transform_operands(const ir::value& val);
+  std::vector<ast::ast_element> transform_operands(const ir::value& val);
 
   // Push back operation of type `T` into `operations_`.
   template <typename T, typename... Args>
   void emplace_operation(Args&&... args) {
-    operations_.emplace_back(T{std::forward<Args>(args)...});
+    operations_.emplace_back(std::in_place_type_t<T>{}, std::forward<Args>(args)...);
   }
 
-  ast::variant operator()(const ir::value& val, const ir::add&);
-  ast::variant operator()(const ir::value& val, const ir::call_external_function& call);
-  ast::variant operator()(const ir::value& val, const ir::call_std_function& func);
-  ast::variant operator()(const ir::value& val, const ir::cast& cast);
-  ast::variant operator()(const ir::value& val, const ir::compare& compare);
-  ast::variant operator()(const ir::value& val, const ir::construct& construct);
-  ast::variant operator()(const ir::value& val, const ir::copy&);
-  ast::variant operator()(const ir::value& val, const ir::div&);
-  ast::variant operator()(const ir::value& val, const ir::get& get);
-  ast::variant operator()(const ir::value& val, const ir::load& load);
-  ast::variant operator()(const ir::value& val, const ir::mul&);
-  ast::variant operator()(const ir::value& val, const ir::neg&);
+  ast::ast_element operator()(const ir::value& val, const ir::add&);
+  ast::ast_element operator()(const ir::value& val, const ir::call_external_function& call);
+  ast::ast_element operator()(const ir::value& val, const ir::call_std_function& func);
+  ast::ast_element operator()(const ir::value& val, const ir::cast& cast);
+  ast::ast_element operator()(const ir::value& val, const ir::compare& compare);
+  ast::ast_element operator()(const ir::value& val, const ir::construct& construct);
+  ast::ast_element operator()(const ir::value& val, const ir::copy&);
+  ast::ast_element operator()(const ir::value& val, const ir::div&);
+  ast::ast_element operator()(const ir::value& val, const ir::get& get);
+  ast::ast_element operator()(const ir::value& val, const ir::load& load);
+  ast::ast_element operator()(const ir::value& val, const ir::mul&);
+  ast::ast_element operator()(const ir::value& val, const ir::neg&);
+  ast::ast_element operator()(const scalar_type&, const argument& arg,
+                              std::size_t element_index) const;
+  ast::ast_element operator()(const matrix_type& m, const argument& arg,
+                              std::size_t element_index) const;
+  ast::ast_element operator()(const custom_type& c, const argument& arg,
+                              std::size_t element_index) const;
+  ast::ast_element operator()(const named_variable& v) const;
+  ast::ast_element operator()(const function_argument_variable& a) const;
+  ast::ast_element operator()(const unique_variable& u) const;
 
-  ast::variant operator()(const scalar_type&, const argument& arg, std::size_t element_index) const;
-  ast::variant operator()(const matrix_type& m, const argument& arg,
-                          std::size_t element_index) const;
-  ast::variant operator()(const custom_type& c, const argument& arg,
-                          std::size_t element_index) const;
-
-  ast::variant operator()(const named_variable& v) const;
-  ast::variant operator()(const function_argument_variable& a) const;
-  ast::variant operator()(const unique_variable& u) const;
-
-  static ast::variant make_field_access_sequence(ast::variant prev, const custom_type& c,
-                                                 std::size_t element_index);
+  static ast::ast_element make_field_access_sequence(ast::ast_element prev, const custom_type& c,
+                                                     std::size_t element_index);
 
   // Format a comment describing the total number of operations in each category.
-  ast::variant format_operation_count_comment() const;
+  ast::ast_element format_operation_count_comment() const;
 
   std::size_t value_width_;
   function_signature signature_;
 
   // Operations accrued in the current block.
-  std::vector<ast::variant> operations_;
+  std::vector<ast::ast_element> operations_;
 
   // Blocks we can't process yet (pending processing of all their ancestors).
   std::unordered_set<ir::const_block_ptr> non_traversable_blocks_;

@@ -9,6 +9,7 @@ add_library(
   wf/code_generation/ast.h
   wf/code_generation/ast_conversion.cc
   wf/code_generation/ast_conversion.h
+  wf/code_generation/ast_element.h
   wf/code_generation/ast_formatters.h
   wf/code_generation/code_formatter.h
   wf/code_generation/control_flow_graph.cc
