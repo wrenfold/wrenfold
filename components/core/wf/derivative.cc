@@ -28,11 +28,7 @@ struct is_function_of_visitor {
   template <typename U>
   bool operator()(const U& x) const {
     if constexpr (std::is_same_v<U, T>) {
-      if constexpr (is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
-        return are_identical(target_, x);
-      } else {
-        return target_.is_identical_to(x);
-      }
+      return are_identical(target_, x);
     } else if constexpr (!U::is_leaf_node) {
       return std::any_of(x.begin(), x.end(),
                          [this](const auto& expr) { return visit(expr, *this); });

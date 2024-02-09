@@ -7,7 +7,6 @@
 #include "wf/assertions.h"
 #include "wf/hashing.h"
 #include "wf/ordering.h"
-#include "wf/type_list.h"
 
 namespace wf {
 
@@ -24,12 +23,7 @@ class integer_constant {
   using value_type = std::int64_t;
 
   // Construct from number.
-  explicit constexpr integer_constant(value_type val) noexcept : val_(val) {}
-
-  // Check if numerical constants are completely identical.
-  constexpr bool is_identical_to(const integer_constant& other) const noexcept {
-    return val_ == other.val_;
-  }
+  explicit constexpr integer_constant(const value_type val) noexcept : val_(val) {}
 
   // Access numeric value.
   constexpr value_type get_value() const noexcept { return val_; }
@@ -68,15 +62,12 @@ class rational_constant {
   using value_type = integer_constant::value_type;
 
   // Construct a rational. Conversion to canonical form is automatic.
-  constexpr rational_constant(value_type n, value_type d) : rational_constant(create_pair(n, d)) {}
+  constexpr rational_constant(const value_type n, const value_type d)
+      : rational_constant(create_pair(n, d)) {}
 
   // Construct a rational from an integer value.
   explicit constexpr rational_constant(const integer_constant& integer) noexcept
       : n_(integer.get_value()), d_(1) {}
-
-  constexpr bool is_identical_to(const rational_constant& other) const noexcept {
-    return n_ == other.n_ && d_ == other.d_;
-  }
 
   // Access numerator and denominator.
   constexpr value_type numerator() const noexcept { return n_; }
@@ -147,12 +138,7 @@ class float_constant {
   using value_type = double;
 
   // Construct from float value.
-  explicit constexpr float_constant(value_type val) noexcept : val_(val) {}
-
-  // Check if numerical constants are completely identical.
-  constexpr bool is_identical_to(const float_constant& other) const noexcept {
-    return val_ == other.val_;
-  }
+  explicit constexpr float_constant(const value_type val) noexcept : val_(val) {}
 
   // Access numeric value.
   constexpr value_type get_value() const noexcept { return val_; }
