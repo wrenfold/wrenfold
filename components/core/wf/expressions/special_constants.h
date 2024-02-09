@@ -36,7 +36,7 @@ class undefined {
 };
 
 // Convert `symbolic_constant_enum` to a floating point double.
-constexpr double double_from_symbolic_constant(symbolic_constant_enum constant) noexcept {
+constexpr double double_from_symbolic_constant(const symbolic_constant_enum constant) noexcept {
   switch (constant) {
     case symbolic_constant_enum::euler:
       return M_E;
@@ -70,6 +70,14 @@ struct is_identical_struct<symbolic_constant> {
 };
 
 template <>
+struct order_struct<symbolic_constant> {
+  constexpr relative_order operator()(const symbolic_constant& a,
+                                      const symbolic_constant& b) const noexcept {
+    return order_by_comparison(a, b);
+  }
+};
+
+template <>
 struct hash_struct<complex_infinity> {
   constexpr std::size_t operator()(const complex_infinity&) const noexcept {
     constexpr auto inf_hash = hash_string_fnv("inf");
@@ -85,6 +93,14 @@ struct is_identical_struct<complex_infinity> {
 };
 
 template <>
+struct order_struct<complex_infinity> {
+  constexpr relative_order operator()(const complex_infinity&,
+                                      const complex_infinity&) const noexcept {
+    return relative_order::equal;
+  }
+};
+
+template <>
 struct hash_struct<undefined> {
   constexpr std::size_t operator()(const undefined&) const noexcept {
     constexpr auto undef_hash = hash_string_fnv("undef");
@@ -95,6 +111,13 @@ struct hash_struct<undefined> {
 template <>
 struct is_identical_struct<undefined> {
   constexpr bool operator()(const undefined&, const undefined&) const noexcept { return true; }
+};
+
+template <>
+struct order_struct<undefined> {
+  constexpr relative_order operator()(const undefined&, const undefined&) const noexcept {
+    return relative_order::equal;
+  }
 };
 
 }  // namespace wf

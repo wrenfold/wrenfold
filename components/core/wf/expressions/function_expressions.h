@@ -2,10 +2,7 @@
 #pragma once
 #include "wf/absl_imports.h"
 #include "wf/algorithm_utils.h"
-#include "wf/assertions.h"
-#include "wf/constants.h"
 #include "wf/external_function.h"
-#include "wf/functions.h"
 #include "wf/hashing.h"
 
 namespace wf {
@@ -22,7 +19,7 @@ class function {
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
-  static scalar_expr create(built_in_function name, container_type&& container);
+  static scalar_expr create(built_in_function name, absl::Span<const scalar_expr> args);
 
   // Get the function name.
   constexpr built_in_function enum_value() const noexcept { return func_; }
@@ -68,33 +65,17 @@ struct is_identical_struct<function> {
   }
 };
 
-// Call the appropriate creation method for the specified enum value.
-// We need this logic to support `map_children`.
-inline scalar_expr function::create(const built_in_function name,
-                                    function::container_type&& container) {
-  switch (name) {
-    case built_in_function::cos:
-      return cos(container.front());
-    case built_in_function::sin:
-      return sin(container.front());
-    case built_in_function::tan:
-      return tan(container.front());
-    case built_in_function::arccos:
-      return acos(container.front());
-    case built_in_function::arcsin:
-      return asin(container.front());
-    case built_in_function::arctan:
-      return atan(container.front());
-    case built_in_function::ln:
-      return log(container.front());
-    case built_in_function::abs:
-      return abs(container.front());
-    case built_in_function::signum:
-      return signum(container.front());
-    case built_in_function::arctan2:
-      return atan2(container[0], container[1]);
+template <>
+struct order_struct<function> {
+  relative_order operator()(const function& a, const function& b) const {
+    // First compare by name:
+    if (const int name_comp = a.function_name().compare(b.function_name()); name_comp > 0) {
+      return relative_order::greater_than;
+    } else if (name_comp < 0) {
+      return relative_order::less_than;
+    }
+    return lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
-  WF_ASSERT_ALWAYS("Invalid function name: {}", string_from_built_in_function(name));
-}
+};
 
 }  // namespace wf

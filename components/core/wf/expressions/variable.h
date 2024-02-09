@@ -52,7 +52,7 @@ class unique_variable {
 // A variable w/ a user-provided name.
 class named_variable {
  public:
-  explicit named_variable(std::string_view name) : name_{name} {}
+  explicit named_variable(const std::string_view name) : name_{name} {}
 
   bool operator<(const named_variable& other) const noexcept { return name_ < other.name_; }
   bool operator==(const named_variable& other) const noexcept { return name_ == other.name_; }
@@ -82,13 +82,8 @@ class variable {
       : identifier_{named_variable(std::move(name))}, set_(number_set::real) {}
 
   variable(identifier_type identifier,
-           number_set set) noexcept(std::is_nothrow_move_constructible_v<identifier_type>)
+           const number_set set) noexcept(std::is_nothrow_move_constructible_v<identifier_type>)
       : identifier_(std::move(identifier)), set_(set) {}
-
-  // Check if two variables are the same.
-  bool is_identical_to(const variable& other) const {
-    return identifier_ == other.identifier_ && set_ == other.set_;
-  }
 
   // Access the variant of different variable representations.
   constexpr const auto& identifier() const noexcept { return identifier_; }
@@ -161,10 +156,8 @@ struct hash_struct<number_set> {
 
 template <>
 struct hash_struct<variable> {
-  std::size_t operator()(const variable& v) const {
-    std::size_t seed = v.identifier().index();
-    seed = hash_combine(seed, std::visit([](const auto& x) { return hash(x); }, v.identifier()));
-    return hash_args(seed, v.set());
+  std::size_t operator()(const variable& v) const noexcept {
+    return hash_args(hash_variant<variable::identifier_type>{}(v.identifier()), v.set());
   }
 };
 
@@ -173,6 +166,19 @@ struct is_identical_struct<variable> {
   bool operator()(const variable& a, const variable& b) const {
     // Comparing identifiers will use the std::variant::operator==.
     return a.identifier() == b.identifier() && a.set() == b.set();
+  }
+};
+
+template <>
+struct order_struct<variable> {
+  relative_order operator()(const variable& a, const variable& b) const {
+    // Invoking std::variant::operator<
+    if (a.identifier() < b.identifier()) {
+      return relative_order::less_than;
+    } else if (are_identical(a, b)) {
+      return relative_order::equal;
+    }
+    return relative_order::greater_than;
   }
 };
 

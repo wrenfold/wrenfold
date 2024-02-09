@@ -53,4 +53,11 @@ struct is_identical_struct<conditional> {
   }
 };
 
+template <>
+struct order_struct<conditional> {
+  relative_order operator()(const conditional& a, const conditional& b) const {
+    return wf::lexicographical_order(a, b, order_struct<scalar_expr>{});
+  }
+};
+
 }  // namespace wf

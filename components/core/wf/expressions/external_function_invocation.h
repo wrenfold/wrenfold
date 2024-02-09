@@ -44,7 +44,7 @@ class external_function_invocation {
 
 template <>
 struct hash_struct<external_function_invocation> {
-  std::size_t operator()(const external_function_invocation& func) const {
+  std::size_t operator()(const external_function_invocation& func) const noexcept {
     return hash_all(func.function().hash(), func.args());
   }
 };

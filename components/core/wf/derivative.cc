@@ -249,7 +249,7 @@ scalar_expr derivative_visitor::operator()(const undefined&) const { return cons
 
 scalar_expr derivative_visitor::operator()(const variable& var) const {
   if (const variable* arg = cast_ptr<const variable>(argument_);
-      arg != nullptr && arg->is_identical_to(var)) {
+      arg != nullptr && are_identical(*arg, var)) {
     return constants::one;
   }
   return constants::zero;

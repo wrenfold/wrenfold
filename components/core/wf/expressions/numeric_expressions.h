@@ -6,6 +6,7 @@
 
 #include "wf/assertions.h"
 #include "wf/hashing.h"
+#include "wf/ordering.h"
 #include "wf/type_list.h"
 
 namespace wf {
@@ -216,6 +217,14 @@ struct is_identical_struct<integer_constant> {
   }
 };
 
+template <>
+struct order_struct<integer_constant> {
+  constexpr relative_order operator()(const integer_constant a,
+                                      const integer_constant b) const noexcept {
+    return order_by_comparison(a, b);
+  }
+};
+
 // Operations on rationals:
 inline constexpr auto operator*(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
@@ -274,6 +283,14 @@ struct is_identical_struct<rational_constant> {
   }
 };
 
+template <>
+struct order_struct<rational_constant> {
+  constexpr relative_order operator()(const rational_constant& a,
+                                      const rational_constant& b) const noexcept {
+    return order_by_comparison(a, b);
+  }
+};
+
 // Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
 // coefficient between (-1, 1] is returned.
 inline constexpr rational_constant mod_pi_rational(const rational_constant& r) noexcept {
@@ -325,21 +342,12 @@ struct is_identical_struct<float_constant> {
   }
 };
 
-// Will evaluate to true if A or B (or both) is a float, w/ the other being Integer or Rational.
-// This is so we can promote integers/rationals -> float when they are combined with floats.
-template <typename A, typename B>
-constexpr bool is_float_and_numeric_v =
-    (std::is_same_v<A, float_constant> &&
-     type_list_contains_v<B, integer_constant, rational_constant>) ||
-    (std::is_same_v<B, float_constant> &&
-     type_list_contains_v<A, integer_constant, rational_constant>) ||
-    (std::is_same_v<A, float_constant> && std::is_same_v<B, float_constant>);
-
-static_assert(is_float_and_numeric_v<float_constant, float_constant>);
-static_assert(is_float_and_numeric_v<float_constant, integer_constant>);
-static_assert(is_float_and_numeric_v<rational_constant, float_constant>);
-static_assert(!is_float_and_numeric_v<integer_constant, integer_constant>);
-static_assert(!is_float_and_numeric_v<integer_constant, rational_constant>);
+template <>
+struct order_struct<float_constant> {
+  relative_order operator()(const float_constant& a, const float_constant& b) const {
+    return order_by_comparison(a, b);
+  }
+};
 
 }  // namespace wf
 

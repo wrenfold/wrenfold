@@ -10,6 +10,22 @@
 
 namespace wf {
 
+// Will evaluate to true if A or B (or both) is a float, w/ the other being Integer or Rational.
+// This is so we can promote integers/rationals -> float when they are combined with floats.
+template <typename A, typename B>
+constexpr bool is_float_and_numeric_v =
+    (std::is_same_v<A, float_constant> &&
+     type_list_contains_v<B, integer_constant, rational_constant>) ||
+    (std::is_same_v<B, float_constant> &&
+     type_list_contains_v<A, integer_constant, rational_constant>) ||
+    (std::is_same_v<A, float_constant> && std::is_same_v<B, float_constant>);
+
+static_assert(is_float_and_numeric_v<float_constant, float_constant>);
+static_assert(is_float_and_numeric_v<float_constant, integer_constant>);
+static_assert(is_float_and_numeric_v<rational_constant, float_constant>);
+static_assert(!is_float_and_numeric_v<integer_constant, integer_constant>);
+static_assert(!is_float_and_numeric_v<integer_constant, rational_constant>);
+
 struct PowerNumerics {
   template <typename A, typename B>
   std::optional<scalar_expr> operator()(const A& a, const B& b) {

@@ -67,6 +67,7 @@ add_library(
   wf/expressions/derivative_expression.h
   wf/expressions/external_function_invocation.cc
   wf/expressions/external_function_invocation.h
+  wf/expressions/function_expressions.cc
   wf/expressions/function_expressions.h
   wf/expressions/matrix.cc
   wf/expressions/matrix.h

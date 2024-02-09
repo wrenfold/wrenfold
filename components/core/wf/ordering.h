@@ -16,13 +16,12 @@ struct order_struct;
 
 // True if type `T` implements `order_struct<T>`.
 template <typename T, typename = void>
-struct implements_order_struct : std::false_type {};
+struct is_orderable : std::false_type {};
 template <typename T>
-struct implements_order_struct<
-    T, std::enable_if_t<is_invocable_v<order_struct<T>, const T&, const T&>>>
+struct is_orderable<T, std::enable_if_t<is_invocable_v<order_struct<T>, const T&, const T&>>>
     : std::is_same<std::invoke_result_t<order_struct<T>, const T&, const T&>, relative_order> {};
 template <typename T>
-constexpr bool implements_order_struct_v = implements_order_struct<T>::value;
+constexpr bool is_orderable_v = is_orderable<T>::value;
 
 // True if ordering `T` is noexcept.
 template <typename T>

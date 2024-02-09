@@ -43,4 +43,11 @@ struct is_identical_struct<cast_bool> {
   }
 };
 
+template <>
+struct order_struct<cast_bool> {
+  relative_order operator()(const cast_bool& a, const cast_bool& b) const {
+    return order_by(a.arg(), b.arg());
+  }
+};
+
 }  // namespace wf

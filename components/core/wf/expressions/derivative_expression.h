@@ -47,7 +47,7 @@ class derivative {
 
 template <>
 struct hash_struct<derivative> {
-  std::size_t operator()(const derivative& func) const {
+  std::size_t operator()(const derivative& func) const noexcept {
     return hash_args(static_cast<std::size_t>(func.order()), func.differentiand(), func.argument());
   }
 };
@@ -57,6 +57,18 @@ struct is_identical_struct<derivative> {
   bool operator()(const derivative& a, const derivative& b) const {
     return a.order() == b.order() &&
            std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
+  }
+};
+
+template <>
+struct order_struct<derivative> {
+  relative_order operator()(const derivative& a, const derivative& b) const {
+    if (a.order() < b.order()) {
+      return relative_order::less_than;
+    } else if (a.order() > b.order()) {
+      return relative_order::greater_than;
+    }
+    return wf::lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
 };
 

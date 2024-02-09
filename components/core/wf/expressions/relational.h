@@ -53,4 +53,16 @@ struct is_identical_struct<relational> {
   }
 };
 
+template <>
+struct order_struct<relational> {
+  relative_order operator()(const relational& a, const relational& b) const {
+    if (a.operation() < b.operation()) {
+      return relative_order::less_than;
+    } else if (a.operation() > b.operation()) {
+      return relative_order::greater_than;
+    }
+    return lexicographical_order(a, b, order_struct<scalar_expr>{});
+  }
+};
+
 }  // namespace wf

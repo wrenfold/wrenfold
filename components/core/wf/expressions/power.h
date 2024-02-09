@@ -55,7 +55,7 @@ inline constexpr std::pair<integer_constant, rational_constant> factorize_ration
 
 template <>
 struct hash_struct<power> {
-  std::size_t operator()(const power& pow) const {
+  std::size_t operator()(const power& pow) const noexcept {
     return hash_args(0, pow.base(), pow.exponent());
   }
 };
@@ -64,6 +64,13 @@ template <>
 struct is_identical_struct<power> {
   std::size_t operator()(const power& a, const power& b) const {
     return are_identical(a.base(), b.base()) && are_identical(a.exponent(), b.exponent());
+  }
+};
+
+template <>
+struct order_struct<power> {
+  relative_order operator()(const power& a, const power& b) const {
+    return wf::lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
 };
 

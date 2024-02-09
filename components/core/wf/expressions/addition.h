@@ -72,6 +72,13 @@ struct is_identical_struct<addition> {
   }
 };
 
+template <>
+struct order_struct<addition> {
+  relative_order operator()(const addition& a, const addition& b) const {
+    return wf::lexicographical_order(a, b, order_struct<scalar_expr>{});
+  }
+};
+
 // Helper object used to manipulate additions.
 struct addition_parts {
   addition_parts() = default;
