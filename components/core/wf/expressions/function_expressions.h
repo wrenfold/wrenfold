@@ -48,12 +48,6 @@ class function {
            std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
   }
 
-  // Implement ExpressionImpl::Iterate
-  template <typename Operation>
-  void for_each(Operation&& operation) const {
-    std::for_each(begin(), end(), std::forward<Operation>(operation));
-  }
-
   // Implement ExpressionImpl::Map
   template <typename F>
   scalar_expr map_children(F&& f) const {

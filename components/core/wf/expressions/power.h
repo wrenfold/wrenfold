@@ -18,12 +18,6 @@ class power {
     return base().is_identical_to(other.base()) && exponent().is_identical_to(other.exponent());
   }
 
-  // Implement ExpressionImpl::Iterate
-  template <typename Operation>
-  void for_each(Operation&& operation) const {
-    std::for_each(children_.begin(), children_.end(), std::forward<Operation>(operation));
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {

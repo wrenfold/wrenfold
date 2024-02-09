@@ -26,12 +26,6 @@ class cast_bool {
     return arg_[0].is_identical_to(other.arg_[0]);
   }
 
-  // Implement ExpressionImpl::Iterate
-  template <typename Operation>
-  void for_each(Operation&& operation) const {
-    std::for_each(begin(), end(), std::forward<Operation>(operation));
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
