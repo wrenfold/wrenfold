@@ -67,8 +67,7 @@ struct collect_visitor {
             }
             return true;
           } else {
-            auto [base, exp] = as_base_and_exp(child);
-            if (base.is_identical_to(collected_term)) {
+            if (auto [base, exp] = as_base_and_exp(child); base.is_identical_to(collected_term)) {
               // This term is standalone in the sum, so just push one
               exponents_to_mul[exp].push_back(constants::one);
               return true;

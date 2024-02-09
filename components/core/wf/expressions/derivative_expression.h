@@ -31,12 +31,6 @@ class derivative {
   constexpr auto begin() const noexcept { return children_.begin(); }
   constexpr auto end() const noexcept { return children_.end(); }
 
-  // All arguments must match.
-  bool is_identical_to(const derivative& other) const {
-    return order_ == other.order_ &&
-           std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
@@ -53,8 +47,28 @@ class derivative {
 
 template <>
 struct hash_struct<derivative> {
-  std::size_t operator()(const derivative& func) const {
+  std::size_t operator()(const derivative& func) const noexcept {
     return hash_args(static_cast<std::size_t>(func.order()), func.differentiand(), func.argument());
+  }
+};
+
+template <>
+struct is_identical_struct<derivative> {
+  bool operator()(const derivative& a, const derivative& b) const {
+    return a.order() == b.order() &&
+           std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
+  }
+};
+
+template <>
+struct order_struct<derivative> {
+  relative_order operator()(const derivative& a, const derivative& b) const {
+    if (a.order() < b.order()) {
+      return relative_order::less_than;
+    } else if (a.order() > b.order()) {
+      return relative_order::greater_than;
+    }
+    return wf::lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
 };
 

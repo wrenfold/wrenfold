@@ -52,7 +52,7 @@ class unique_variable {
 // A variable w/ a user-provided name.
 class named_variable {
  public:
-  explicit named_variable(std::string_view name) : name_{name} {}
+  explicit named_variable(const std::string_view name) : name_{name} {}
 
   bool operator<(const named_variable& other) const noexcept { return name_ < other.name_; }
   bool operator==(const named_variable& other) const noexcept { return name_ == other.name_; }
@@ -82,13 +82,8 @@ class variable {
       : identifier_{named_variable(std::move(name))}, set_(number_set::real) {}
 
   variable(identifier_type identifier,
-           number_set set) noexcept(std::is_nothrow_move_constructible_v<identifier_type>)
+           const number_set set) noexcept(std::is_nothrow_move_constructible_v<identifier_type>)
       : identifier_(std::move(identifier)), set_(set) {}
-
-  // Check if two variables are the same.
-  bool is_identical_to(const variable& other) const {
-    return identifier_ == other.identifier_ && set_ == other.set_;
-  }
 
   // Access the variant of different variable representations.
   constexpr const auto& identifier() const noexcept { return identifier_; }
@@ -119,14 +114,36 @@ struct hash_struct<named_variable> {
 };
 
 template <>
+struct is_identical_struct<named_variable> {
+  bool operator()(const named_variable& a, const named_variable& b) const noexcept {
+    return a.name() == b.name();
+  }
+};
+
+template <>
 struct hash_struct<unique_variable> {
   constexpr std::size_t operator()(const unique_variable& v) const noexcept { return v.index(); }
+};
+
+template <>
+struct is_identical_struct<unique_variable> {
+  constexpr bool operator()(const unique_variable& a, const unique_variable& b) const noexcept {
+    return a.index() == b.index();
+  }
 };
 
 template <>
 struct hash_struct<function_argument_variable> {
   constexpr std::size_t operator()(const function_argument_variable& v) const noexcept {
     return hash_combine(v.arg_index(), v.element_index());
+  }
+};
+
+template <>
+struct is_identical_struct<function_argument_variable> {
+  constexpr bool operator()(const function_argument_variable& a,
+                            const function_argument_variable& b) const noexcept {
+    return a.arg_index() == b.arg_index() && a.element_index() == b.element_index();
   }
 };
 
@@ -139,16 +156,30 @@ struct hash_struct<number_set> {
 
 template <>
 struct hash_struct<variable> {
-  std::size_t operator()(const variable& v) const {
-    std::size_t seed = v.identifier().index();
-    seed = hash_combine(seed, std::visit([](const auto& x) { return hash(x); }, v.identifier()));
-    return hash_args(seed, v.set());
+  std::size_t operator()(const variable& v) const noexcept {
+    return hash_args(hash_variant<variable::identifier_type>{}(v.identifier()), v.set());
   }
 };
 
 template <>
 struct is_identical_struct<variable> {
-  bool operator()(const variable& a, const variable& b) const { return a.is_identical_to(b); }
+  bool operator()(const variable& a, const variable& b) const {
+    // Comparing identifiers will use the std::variant::operator==.
+    return a.identifier() == b.identifier() && a.set() == b.set();
+  }
+};
+
+template <>
+struct order_struct<variable> {
+  relative_order operator()(const variable& a, const variable& b) const {
+    // Invoking std::variant::operator<
+    if (a.identifier() < b.identifier()) {
+      return relative_order::less_than;
+    } else if (are_identical(a, b)) {
+      return relative_order::equal;
+    }
+    return relative_order::greater_than;
+  }
 };
 
 }  // namespace wf

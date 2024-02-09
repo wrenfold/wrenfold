@@ -133,14 +133,10 @@ class expression_variant {
     constexpr const value_type& contents() const noexcept { return contents_; }
     constexpr value_type& contents() noexcept { return contents_; }
 
+    // Use the `is_identical_struct` trait to compare contents.
+    // We know the cast is safe because expression_variant already checked the index.
     bool is_identical_to(const concept_base& other) const override {
-      if constexpr (is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
-        // TODO: Switch all types to this path (implement the trait).
-        return is_identical_struct<T>{}(contents_, static_cast<const model&>(other).contents_);
-      } else {
-        // Unchecked cast, this was checked in expression_variant::is_identical_to
-        return contents_.is_identical_to(static_cast<const model&>(other).contents_);
-      }
+      return is_identical_struct<T>{}(contents_, static_cast<const model&>(other).contents_);
     }
 
     std::string_view type_name() const noexcept override { return T::name_str; }

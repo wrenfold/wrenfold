@@ -509,7 +509,7 @@ class limit_visitor {
   std::optional<scalar_expr> operator()(const undefined&) const { return constants::undefined; }
 
   std::optional<scalar_expr> operator()(const variable& var, const scalar_expr& expr) const {
-    if (x_typed_.is_identical_to(var)) {
+    if (are_identical(x_typed_, var)) {
       return constants::zero;  //  TODO: Support any value here.
     }
     return expr;

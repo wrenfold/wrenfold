@@ -85,8 +85,23 @@ class multiplication {
 
 template <>
 struct hash_struct<multiplication> {
-  std::size_t operator()(const multiplication& mul) const {
+  std::size_t operator()(const multiplication& mul) const noexcept {
     return hash_all(0, mul.begin(), mul.end());
+  }
+};
+
+template <>
+struct is_identical_struct<multiplication> {
+  bool operator()(const multiplication& a, const multiplication& b) const {
+    return a.size() == b.size() &&
+           std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
+  }
+};
+
+template <>
+struct order_struct<multiplication> {
+  relative_order operator()(const multiplication& a, const multiplication& b) const {
+    return lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
 };
 

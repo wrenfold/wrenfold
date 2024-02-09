@@ -16,23 +16,16 @@ struct order_struct;
 
 // True if type `T` implements `order_struct<T>`.
 template <typename T, typename = void>
-struct implements_order_struct : std::false_type {};
+struct is_orderable : std::false_type {};
 template <typename T>
-struct implements_order_struct<
-    T, std::enable_if_t<is_invocable_v<order_struct<T>, const T&, const T&>>>
+struct is_orderable<T, std::enable_if_t<is_invocable_v<order_struct<T>, const T&, const T&>>>
     : std::is_same<std::invoke_result_t<order_struct<T>, const T&, const T&>, relative_order> {};
 template <typename T>
-constexpr bool implements_order_struct_v = implements_order_struct<T>::value;
-
-// True if ordering `T` is noexcept.
-template <typename T>
-struct is_nothrow_orderable : std::is_nothrow_invocable<order_struct<T>, const T&, const T&> {};
-template <typename T>
-constexpr bool is_nothrow_orderable_v = is_nothrow_orderable<T>::value;
+constexpr bool is_orderable_v = is_orderable<T>::value;
 
 // Determine relative ordering between two objects of type `T`.
 template <typename T>
-relative_order determine_order(const T& a, const T& b) noexcept(is_nothrow_orderable_v<T>) {
+relative_order determine_order(const T& a, const T& b) {
   return order_struct<T>{}(a, b);
 }
 
@@ -95,8 +88,7 @@ struct order_struct<std::string> {
 // Compute `relative_order` for std::vector. (Lexicographical order by elements).
 template <typename T>
 struct order_struct<std::vector<T>> {
-  relative_order operator()(const std::vector<T>& a, const std::vector<T>& b) const
-      noexcept(is_nothrow_orderable_v<T>) {
+  relative_order operator()(const std::vector<T>& a, const std::vector<T>& b) const {
     return wf::lexicographical_order(a, b, order_struct<T>{});
   }
 };
@@ -106,8 +98,7 @@ template <typename T>
 struct order_variant;
 template <typename... Ts>
 struct order_variant<std::variant<Ts...>> {
-  relative_order operator()(const std::variant<Ts...>& a, const std::variant<Ts...>& b) const
-      noexcept(std::conjunction_v<is_nothrow_orderable<Ts>...>) {
+  relative_order operator()(const std::variant<Ts...>& a, const std::variant<Ts...>& b) const {
     if (a.index() < b.index()) {
       return relative_order::less_than;
     } else if (a.index() > b.index()) {
@@ -134,25 +125,19 @@ class comparison_chain {
   // Implicit cast to `relative_order` so we can return this directly from functions.
   constexpr operator relative_order() const noexcept { return previous_; }  // NOLINT
 
-  // Add another comparison to the chain.
+  // Add another comparison to the chain. If `T` implements order_struct we use that, otherwise
+  // we fall back to trying to use `<` operator.
   template <typename T>
-  comparison_chain and_then_by(const T& a, const T& b) const noexcept(is_nothrow_orderable_v<T>) {
+  constexpr comparison_chain and_then_by(const T& a, const T& b) const {
     if (previous_ != relative_order::equal) {
       // Only add to the chain if we haven't already determined the order.
       return comparison_chain(previous_);
     }
-    return comparison_chain(determine_order(a, b));
-  }
-
-  // Add another comparison for type `T` that uses the `<` operator.
-  // TODO: We could switch between order_struct<> and `<` automatically.
-  template <typename T>
-  comparison_chain and_then_by_comparison(const T& a, const T& b) const
-      noexcept(noexcept(order_by_comparison(a, b))) {
-    if (previous_ != relative_order::equal) {
-      return comparison_chain(previous_);
+    if constexpr (is_orderable_v<T>) {
+      return comparison_chain(determine_order(a, b));
+    } else {
+      return comparison_chain(order_by_comparison(a, b));
     }
-    return comparison_chain(order_by_comparison(a, b));
   }
 
  private:
@@ -164,8 +149,12 @@ class comparison_chain {
 // Start a comparison chain by constructing `comparison_chain`. `a` and `b` are the
 // first comparison of the chain.
 template <typename T>
-auto order_by(const T& a, const T& b) noexcept(is_nothrow_orderable_v<T>) {
-  return detail::comparison_chain(determine_order(a, b));
+auto order_by(const T& a, const T& b) {
+  if constexpr (is_orderable_v<T>) {
+    return detail::comparison_chain(determine_order(a, b));
+  } else {
+    return detail::comparison_chain(order_by_comparison(a, b));
+  }
 }
 
 }  // namespace wf

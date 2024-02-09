@@ -28,13 +28,6 @@ class matrix {
     WF_ASSERT_GREATER_OR_EQ(cols_, 0);
   }
 
-  // All elements must match.
-  bool is_identical_to(const matrix& other) const {
-    return rows_ == other.rows_ && cols_ == other.cols_ &&
-           std::equal(data_.begin(), data_.end(), other.data_.begin(),
-                      is_identical_struct<scalar_expr>{});
-  }
-
   // Implement ExpressionImpl::Map
   template <typename Operation>
   matrix map_children(Operation&& operation) const {
@@ -134,7 +127,7 @@ matrix operator-(const matrix& a, const matrix& b);
 // Iterate over a matrix and run `callable` on each element. The purpose of this method is
 // to have one place (or fewer places) where the traversal order (row-major) is specified.
 template <typename Callable>
-inline void iter_matrix(index_t rows, index_t cols, Callable&& callable) {
+void iter_matrix(index_t rows, index_t cols, Callable&& callable) {
   for (index_t i = 0; i < rows; ++i) {
     for (index_t j = 0; j < cols; ++j) {
       callable(i, j);
@@ -144,10 +137,29 @@ inline void iter_matrix(index_t rows, index_t cols, Callable&& callable) {
 
 template <>
 struct hash_struct<matrix> {
-  std::size_t operator()(const matrix& m) const {
+  std::size_t operator()(const matrix& m) const noexcept {
     const std::size_t seed =
         hash_combine(static_cast<std::size_t>(m.rows()), static_cast<std::size_t>(m.cols()));
     return hash_all(seed, m.begin(), m.end());
+  }
+};
+
+template <>
+struct is_identical_struct<matrix> {
+  bool operator()(const matrix& a, const matrix& b) const {
+    return a.rows() == b.rows() && a.cols() == b.cols() &&
+           std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
+  }
+};
+
+template <>
+struct order_struct<matrix> {
+  relative_order operator()(const matrix& a, const matrix& b) const {
+    if (const relative_order order = order_by_comparison(a.dimensions(), b.dimensions());
+        order != relative_order::equal) {
+      return order;
+    }
+    return lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
 };
 

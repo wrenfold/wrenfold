@@ -12,7 +12,7 @@ class symbolic_constant {
   static constexpr bool is_leaf_node = true;
 
   // Construct with name.
-  explicit constexpr symbolic_constant(symbolic_constant_enum name) noexcept : name_(name) {}
+  explicit constexpr symbolic_constant(const symbolic_constant_enum name) noexcept : name_(name) {}
 
   // Access name.
   constexpr symbolic_constant_enum name() const noexcept { return name_; }
@@ -26,9 +26,6 @@ class complex_infinity {
  public:
   static constexpr std::string_view name_str = "ComplexInfinity";
   static constexpr bool is_leaf_node = true;
-
-  constexpr complex_infinity() noexcept = default;
-  constexpr bool is_identical_to(const complex_infinity&) const noexcept { return true; }
 };
 
 // Result of invalid expressions.
@@ -36,13 +33,10 @@ class undefined {
  public:
   static constexpr std::string_view name_str = "Undefined";
   static constexpr bool is_leaf_node = true;
-
-  undefined() noexcept = default;
-  constexpr bool is_identical_to(const undefined&) const noexcept { return true; }
 };
 
 // Convert `symbolic_constant_enum` to a floating point double.
-constexpr double double_from_symbolic_constant(symbolic_constant_enum constant) noexcept {
+constexpr double double_from_symbolic_constant(const symbolic_constant_enum constant) noexcept {
   switch (constant) {
     case symbolic_constant_enum::euler:
       return M_E;
@@ -76,10 +70,33 @@ struct is_identical_struct<symbolic_constant> {
 };
 
 template <>
+struct order_struct<symbolic_constant> {
+  constexpr relative_order operator()(const symbolic_constant& a,
+                                      const symbolic_constant& b) const noexcept {
+    return order_by_comparison(a, b);
+  }
+};
+
+template <>
 struct hash_struct<complex_infinity> {
   constexpr std::size_t operator()(const complex_infinity&) const noexcept {
     constexpr auto inf_hash = hash_string_fnv("inf");
     return inf_hash;
+  }
+};
+
+template <>
+struct is_identical_struct<complex_infinity> {
+  constexpr bool operator()(const complex_infinity&, const complex_infinity&) const noexcept {
+    return true;
+  }
+};
+
+template <>
+struct order_struct<complex_infinity> {
+  constexpr relative_order operator()(const complex_infinity&,
+                                      const complex_infinity&) const noexcept {
+    return relative_order::equal;
   }
 };
 
@@ -91,9 +108,21 @@ struct hash_struct<undefined> {
   }
 };
 
+template <>
+struct is_identical_struct<undefined> {
+  constexpr bool operator()(const undefined&, const undefined&) const noexcept { return true; }
+};
+
+template <>
+struct order_struct<undefined> {
+  constexpr relative_order operator()(const undefined&, const undefined&) const noexcept {
+    return relative_order::equal;
+  }
+};
+
 }  // namespace wf
 
-// Formatter for printing in assertions.
+// Formatter for printing symbolic_constant.
 template <>
 struct fmt::formatter<wf::symbolic_constant, char> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }

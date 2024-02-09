@@ -23,9 +23,9 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_EQ(a.denominator(), 4);
   ASSERT_FALSE(a.is_zero());
   ASSERT_FALSE(a.is_one());
-  ASSERT_TRUE(a.is_identical_to({1, 4}));
-  ASSERT_TRUE(a.is_identical_to({10, 40}));
-  ASSERT_FALSE(a.is_identical_to({1, 3}));
+  ASSERT_TRUE(are_identical(a, {1, 4}));
+  ASSERT_TRUE(are_identical(a, {10, 40}));
+  ASSERT_FALSE(are_identical(a, {1, 3}));
   ASSERT_FALSE(a.try_convert_to_integer());
   ASSERT_EQ(a, rational_constant(16, 64));
   ASSERT_EQ(0.25, static_cast<float_constant>(a).get_value());

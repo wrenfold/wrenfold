@@ -192,8 +192,8 @@ TEST(ScalarOperationsTest, TestDivision) {
   // Cancellation of powers:
   ASSERT_TRUE(pow(x, 3).is_type<power>());
   ASSERT_TRUE(pow(x, 2).is_type<power>());
-  ASSERT_TRUE(cast_ptr<const power>(pow(x, 3))->base().is_identical_to(
-      cast_ptr<const power>(pow(x, 2))->base()));
+  ASSERT_IDENTICAL(cast_ptr<const power>(pow(x, 3))->base(),
+                   cast_ptr<const power>(pow(x, 2))->base());
 
   ASSERT_IDENTICAL(x, pow(x, 3) / pow(x, 2));
   ASSERT_IDENTICAL(constants::one, pow(x, 3) / (x * x * x));

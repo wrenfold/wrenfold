@@ -19,7 +19,6 @@ namespace wf {
 // TargetExpressionType is the concrete type of the expression we are replacing.
 template <typename Derived, typename TargetExpressionType>
 struct substitute_visitor_base {
- public:
   explicit substitute_visitor_base(const TargetExpressionType& target,
                                    const scalar_expr& replacement)
       : target(target), replacement(replacement) {}
@@ -38,7 +37,7 @@ struct substitute_visitor_base {
   template <typename Arg>
   scalar_expr operator()(const Arg& other, const scalar_expr& input_expression) {
     if constexpr (std::is_same_v<TargetExpressionType, Arg>) {
-      if (target.is_identical_to(other)) {
+      if (are_identical(target, other)) {
         // Exact match, so replace it:
         return replacement;
       }
@@ -76,7 +75,7 @@ struct substitute_visitor_base {
 };
 
 template <typename Target>
-struct substitute_visitor : public substitute_visitor_base<substitute_visitor<Target>, Target> {
+struct substitute_visitor : substitute_visitor_base<substitute_visitor<Target>, Target> {
   // Standard substitute visitor does not allow partial matching.
   constexpr static bool performs_partial_substitution = false;
 
@@ -85,20 +84,20 @@ struct substitute_visitor : public substitute_visitor_base<substitute_visitor<Ta
 };
 
 // Specialization to allow partial substitution in additions.
-struct substitute_add_visitor : public substitute_visitor_base<substitute_add_visitor, addition> {
- public:
+struct substitute_add_visitor : substitute_visitor_base<substitute_add_visitor, addition> {
   constexpr static bool performs_partial_substitution = true;
 
   substitute_add_visitor(const addition& target, const scalar_expr& replacement)
       : substitute_visitor_base(target, replacement), target_parts(target) {}
 
-  scalar_expr attempt_partial(const scalar_expr& input_expression, const addition& candidate) {
+  scalar_expr attempt_partial(const scalar_expr& input_expression,
+                              const addition& candidate) const {
     // Create map representation for the input:
     addition_parts input_parts{candidate};
 
     if (target_parts.float_term.has_value()) {
       if (!input_parts.float_term ||
-          !input_parts.float_term->is_identical_to(*target_parts.float_term)) {
+          !are_identical(*input_parts.float_term, *target_parts.float_term)) {
         // Don't allow substitutions that perform float operations.
         return input_expression;
       } else {
@@ -133,23 +132,21 @@ struct substitute_add_visitor : public substitute_visitor_base<substitute_add_vi
 // Specialization for doing partial substitution in multiplications.
 // This allows replacing parts of a product, for example:
 //  Replace `x * y` in `x**3 * y**2 * 5` with `z` to obtain `x * z**2 * 5`.
-struct substitute_mul_visitor
-    : public substitute_visitor_base<substitute_mul_visitor, multiplication> {
- public:
+struct substitute_mul_visitor : substitute_visitor_base<substitute_mul_visitor, multiplication> {
   constexpr static bool performs_partial_substitution = true;
 
   substitute_mul_visitor(const multiplication& target, const scalar_expr& replacement)
       : substitute_visitor_base(target, replacement), target_parts(target, true) {}
 
   scalar_expr attempt_partial(const scalar_expr& input_expression,
-                              const multiplication& candidate) {
+                              const multiplication& candidate) const {
     // Take this multiplication and break it into constituent parts.
     // TODO: Should we just store multiplications pre-factored in this format?
     multiplication_parts input_parts{candidate, true};
 
     if (target_parts.float_coeff.has_value()) {
       if (!input_parts.float_coeff ||
-          !input_parts.float_coeff->is_identical_to(*target_parts.float_coeff)) {
+          !are_identical(*input_parts.float_coeff, *target_parts.float_coeff)) {
         // Don't allow substitutions that perform float operations.
         // (Unless the float coefficients match exactly, then we allow it.)
         return input_expression;
@@ -222,14 +219,13 @@ struct substitute_mul_visitor
 // Specialization for power so we can match.
 // There is a lot of overlap w/ the substitute_mul_visitor - since any power is just a
 // multiplication w/ one term. These can probably be unified somehow.
-struct substitute_pow_visitor : public substitute_visitor_base<substitute_pow_visitor, power> {
- public:
+struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, power> {
   constexpr static bool performs_partial_substitution = true;
 
   substitute_pow_visitor(const power& target, const scalar_expr& replacement)
       : substitute_visitor_base(target, replacement) {}
 
-  scalar_expr attempt_partial(const scalar_expr& input_expression, const power& candidate) {
+  scalar_expr attempt_partial(const scalar_expr& input_expression, const power& candidate) const {
     const scalar_expr& target_base = target.base();
     const scalar_expr& target_exponent = target.exponent();
     const scalar_expr& candidate_base = candidate.base();
