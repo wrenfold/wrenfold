@@ -57,7 +57,7 @@ template <>
 struct order_struct<compound_expression_element> {
   relative_order operator()(const compound_expression_element& a,
                             const compound_expression_element& b) const {
-    return order_by(a.provenance(), b.provenance()).and_then_by_comparison(a.index(), b.index());
+    return order_by(a.provenance(), b.provenance()).and_then_by(a.index(), b.index());
   }
 };
 

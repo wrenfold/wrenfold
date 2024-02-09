@@ -46,8 +46,7 @@ template <>
 struct order_struct<custom_type_argument> {
   relative_order operator()(const custom_type_argument& a,
                             const custom_type_argument& b) const noexcept {
-    return order_by(a.type().name(), b.type().name())
-        .and_then_by_comparison(a.arg_index(), b.arg_index());
+    return order_by(a.type().name(), b.type().name()).and_then_by(a.arg_index(), b.arg_index());
   }
 };
 
