@@ -1,8 +1,8 @@
 // Copyright 2023 Gareth Cross
 #include "wf/enumerations.h"
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/operations.h"
-#include "wf/visit.h"
 
 namespace wf {
 

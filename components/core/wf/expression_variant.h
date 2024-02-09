@@ -13,17 +13,16 @@ template <typename T>
 struct type_list_trait;
 
 // Forward declare.
+template <typename Meta>
+class expression_variant;
 template <typename Derived, typename Meta>
 class expression_base;
 
-// Evaluate to true if visitor `F` can be nothrow invoked on all the possible contained types.
-template <typename F, typename T>
-struct is_nothrow_invocable_visitor;
-template <typename F, typename... Ts>
-struct is_nothrow_invocable_visitor<F, type_list<Ts...>>
-    : std::conjunction<std::is_nothrow_invocable<F, const Ts&...>> {};
-template <typename F, typename List>
-constexpr bool is_nothrow_invocable_visitor_v = is_nothrow_invocable_visitor<F, List>::value;
+namespace detail {
+// Forward declare.
+template <std::size_t I, typename Meta>
+const auto& cast_to_index(const expression_variant<Meta>& v) noexcept;
+}  // namespace detail
 
 // Stores one of `N` possible expression types in a shared_ptr, along with an index indicating which
 // underlying expression is stored. To avoid bloating the class signature in the debugger and in
@@ -81,13 +80,6 @@ class expression_variant {
 
   std::string_view type_name() const noexcept { return ptr_->type_name(); }
 
-  // Visit the stored value with the provided visitor object.
-  // The visitor will be passed a const reference.
-  template <typename F>
-  auto visit(F&& f) const noexcept(is_nothrow_invocable_visitor_v<decltype(f), types>) {
-    return visit_impl<0>(std::forward<F>(f));
-  }
-
  protected:
   // Base-type we place in a shared_ptr.
   class concept_base {
@@ -95,7 +87,7 @@ class expression_variant {
     virtual ~concept_base() = default;
 
     concept_base(const std::size_t index, const std::size_t hash) noexcept
-        : hash_(hash), index_(index) {}
+        : index_(index), hash_(hash) {}
 
     // Hash is initialized later in this version of the constructor.
     // ReSharper disable once CppPossiblyUninitializedMember
@@ -110,8 +102,8 @@ class expression_variant {
     virtual std::string_view type_name() const noexcept = 0;
 
    protected:
-    std::size_t hash_;
     std::size_t index_;
+    std::size_t hash_;
   };
 
   // Concrete storage of the underlying value of type `T`.
@@ -183,34 +175,26 @@ class expression_variant {
     }
   }
 
-  // Cast to const-reference of the type at index `I` in list `types`.
-  template <std::size_t I>
-  const auto& cast_to_index() const noexcept {
-    static_assert(I < type_list_size_v<types>, "Index exceeds number of types");
-    return cast_to_type<const type_list_element_t<I, types>>();
-  }
-
-  // If index `I` matches the internal index, call function `f` on it - otherwise recurse to the
-  // next index.
-  template <std::size_t I, typename F>
-  auto visit_impl(F&& f) const noexcept(is_nothrow_invocable_visitor_v<decltype(f), types>) {
-    if (index() == I) {
-      return f(cast_to_index<I>());
-    } else if constexpr (I + 1 < type_list_size_v<types>) {
-      return visit_impl<I + 1>(std::forward<F>(f));
-    } else {
-      return f(cast_to_index<type_list_size_v<types> - 1>());
-    }
-  }
-
   // Allow access to `cast_to_type` in cast_unchecked.
   template <typename T, typename D, typename M>
   friend const auto& cast_unchecked(const expression_base<D, M>& x) noexcept;
   template <typename T, typename D, typename M>
   friend decltype(auto) cast_unchecked(expression_base<D, M>& x) noexcept;
+  template <std::size_t I, typename M>
+  friend const auto& wf::detail::cast_to_index(const expression_variant<M>& v) noexcept;
 
   std::shared_ptr<concept_base> ptr_;
 };
+
+namespace detail {
+// Cast to const-reference of the type at index `I` in list `types`.
+template <std::size_t I, typename Meta>
+const auto& cast_to_index(const expression_variant<Meta>& v) noexcept {
+  using types = typename expression_variant<Meta>::types;
+  static_assert(I < type_list_size_v<types>, "Index exceeds number of types");
+  return v.template cast_to_type<const type_list_element_t<I, types>>();
+}
+}  // namespace detail
 
 // Categories of expressions (scalar, matrix, etc) should inherit from this type with their
 // specified type list. This class provides some convenience constructors and methods, as well as

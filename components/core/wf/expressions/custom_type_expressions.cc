@@ -1,7 +1,7 @@
 // Copyright 2024 Gareth Cross
 #include "wf/expressions/custom_type_expressions.h"
 
-#include "wf/visit.h"
+#include "wf/expression_visitor.h"
 
 namespace wf {
 

@@ -53,6 +53,7 @@ add_library(
   wf/expression.cc
   wf/expression.h
   wf/expression_variant.h
+  wf/expression_visitor.h
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h

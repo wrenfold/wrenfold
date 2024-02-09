@@ -3,10 +3,10 @@
 
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
-#include "wf/visit.h"
 
 namespace wf {
 

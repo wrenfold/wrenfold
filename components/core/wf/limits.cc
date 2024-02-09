@@ -2,10 +2,10 @@
 #include <algorithm>
 
 #include "wf/common_visitors.h"
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
 #include "wf/operations.h"
-#include "wf/visit.h"
 
 namespace wf {
 using namespace wf::custom_literals;
