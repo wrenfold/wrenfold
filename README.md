@@ -1,11 +1,11 @@
 
 # wrenfold
 
-`wrenfold` is a framework for converting mathematical expressions (written in python) into generated code in compiled languages (C++, Rust). It is inspired by frameworks like [symforce](https://github.com/symforce-org/symforce), while aiming to support a wider variety of expressions and delivering improved code-generation execution times.
+`wrenfold` is a framework for converting symbolic mathematical expressions (written in python) into generated code in compiled languages (C++, Rust). It is inspired by frameworks like [symforce](https://github.com/symforce-org/symforce), while aiming to support a wider variety of expressions and delivering improved code-generation execution times. wrenfold is written in C++, and exposes a python API via pybind11.
 
 ## Cloning and building
 
-Clone the repository the submodules in the dependencies directory:
+Clone the repository and the submodules in the dependencies directory:
 ```bash
 git clone https://github.com/gareth-cross/wrenfold.git
 cd wrenfold
@@ -22,13 +22,18 @@ The following tools are required to build from source:
 
 Additionally, to build and run tests you will need:
 - numpy
-- The rust compiler toolchain (`cargo` and `rustc`)
-- On linux+windows: `pkg-config` and `openblas`
+- The rust compiler toolchain (`cargo` and `rustc`): [Installation](https://rustup.rs) link.
+- On linux+windows: `pkg-config` and `openblas`.
 
 The following command will configure a `conda` environment suitable for building:
 ```bash
-conda create -n wf_test python=3.8 cmake ninja mypy numpy pkg-config openblas
-conda activate wf_test
+conda create -n wf python=3.8 cmake ninja mypy numpy pkg-config openblas
+conda activate wf
+```
+
+On linux, I recommend adding the `compilers` package as well:
+```
+conda install compilers=1.7.0
 ```
 
 ### Building for development
@@ -49,7 +54,9 @@ cargo test --tests --release
 ```
 Cargo does not presently invoke `cmake --build` if code-generators are stale. To force rust code to be re-generated, run `cmake --build --target wf_rust_generation`.
 
-If you would like to manually invoke a single python test, configure the python path as follows:
+### Configuring the python path for development
+
+If you would like to iterate on python examples or tests, you will need to configure the python path to point to the wrenfold repository:
 ```bash
 export REPO_ROOT=$(pwd)
 export PYTHONPATH="$REPO_ROOT/components/python:$REPO_ROOT/build/components/wrapper"
@@ -81,11 +88,13 @@ Then test that wrenfold can be imported:
 ### Tested configurations
 
 So far I have tested the following build environments:
-- Windows 11 with MSVC 2022 version `14.37.32822`
+- Windows 11 with MSVC 2022 version `19.36`
 - OSX Ventura (arm64) with Apple clang 15.0.0
-- Ubuntu 20.04 with gcc 9.4
+- Ubuntu 20.04/22.04 with gcc 12.3
 
 ## Roadmap
+
+There is a brief short-term roadmap on [the wiki](https://github.com/gareth-cross/wrenfold/wiki/Short-term-roadmap).
 
 Known issues and limitations:
 - Input and output types of generated functions must be floating point values. This limitation is actually pretty straightforward to resolve, but some plumbing of type information is required.
@@ -97,11 +106,3 @@ Known issues and limitations:
 - Printing methods to strings (via `repr` for example) tends to produce a wall of impenetrable text, particularly for matrix types. Ideally these strings would be truncated automatically.
 - Conversion from Eigen to span does not type-check adequately. You can pass an integer matrix to an argument that expects floating point.
 - Certain built-in functions are missing, such as `floor`, `ceil`, `round`, and `mod`. (And all the hyperbolic trig functions).
-- There is no mechanism for adding a user-specified built-in function.
-
-There are also some high-priority features that I would like to get done fairly soon:
-- Add more examples covering different use cases.
-- Conversion of expressions to and from sympy.
-- Customization of code-generation from python. Right now code is emitted in C++, but it would be convenient to be able to customize formatting of individual AST elements.
-- Add boolean logic operators.
-- Investigate automatic vectorization of floating point operations.
