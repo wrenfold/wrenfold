@@ -209,7 +209,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def("asin", &wf::asin, "arg"_a, "Arc-sine function.");
   m.def("atan", &wf::atan, "arg"_a, "Arc-tangent function.");
   m.def("sqrt", &wf::sqrt, "arg"_a, "Square-root function.");
-  m.def("abs", &wf::abs, "arg"_a, "Absolute value function.");
+  m.def("abs", static_cast<scalar_expr (*)(const scalar_expr&)>(&wf::abs), "arg"_a,
+        "Absolute value function.");
   m.def("signum", &wf::signum, "arg"_a, "Signum/sign function.");
   m.def("atan2", &wf::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
 
@@ -233,6 +234,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("false") = constants::boolean_false;
 
   // Exceptions:
+  py::register_exception<arithmetic_error>(m, "ArithmeticError");
   py::register_exception<assertion_error>(m, "AssertionError");
   py::register_exception<dimension_error>(m, "DimensionError");
   py::register_exception<domain_error>(m, "DomainError");

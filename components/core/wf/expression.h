@@ -52,11 +52,9 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
   // `scalar_expr`.
   template <typename T>
   using enable_if_supports_implicit_conversion =
-      std::enable_if_t<(std::is_integral_v<T> && !std::is_same_v<T, bool>) ||
-                       std::is_floating_point_v<T>>;
+      std::enable_if_t<std::is_constructible_v<checked_int, T> || std::is_floating_point_v<T>>;
 
   // Implicit construction from integers and floats.
-  // enable_if argument is a trick we use until c++20 and constraints.
   template <typename T, typename = enable_if_supports_implicit_conversion<T>>
   scalar_expr(T v) : scalar_expr(construct_implicit(v)) {}
 
@@ -114,14 +112,13 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
   static scalar_expr from_float(double x);
 
   // Construct from integer.
-  static scalar_expr from_int(std::int64_t x);
+  static scalar_expr from_int(checked_int x);
 
   // TODO: Use checked casts here + safe numeric type.
   template <typename T>
   static scalar_expr construct_implicit(T v) {
-    static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
-    if constexpr (std::is_integral_v<T>) {
-      return from_int(static_cast<std::int64_t>(v));
+    if constexpr (std::is_constructible_v<checked_int, T>) {
+      return from_int(static_cast<checked_int>(v));
     } else if constexpr (std::is_floating_point_v<T>) {
       return from_float(static_cast<double>(v));
     }
@@ -172,8 +169,10 @@ precedence get_precedence(const scalar_expr& expr);
 
 // Custom literal suffix support.
 namespace custom_literals {
-inline scalar_expr operator"" _s(unsigned long long int arg) { return scalar_expr{arg}; }
-inline scalar_expr operator"" _s(long double arg) { return scalar_expr{arg}; }
+inline scalar_expr operator"" _s(const unsigned long long int arg) {
+  return scalar_expr{checked_int::from_unsigned_long_long(arg)};
+}
+inline scalar_expr operator"" _s(const long double arg) { return scalar_expr{arg}; }
 }  // namespace custom_literals
 
 // Create a tuple of `scalar_expr` from string arguments.

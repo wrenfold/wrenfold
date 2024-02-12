@@ -106,13 +106,14 @@ constexpr bool operator>=(checked_int a, checked_int b) noexcept { return a.valu
 
 // Multiplication:
 // b > 0, and a * b > MAX or a * b < MIN ---> (a > MAX/b || a < MIN/b)
-// b < 0, and a * b < MIN, or a * b > MAX ---> (a > MIN/b || a < MAX/b)
+// b == -1, and a == MIN
+// b < -1, and a * b > MAX or a * b < MIN ---> (a < MAX/b || a > MIN/b)
 constexpr checked_int operator*(checked_int a, checked_int b) {
   constexpr auto max = checked_int::max().value();
   constexpr auto min = checked_int::min().value();
-  const bool cond_1 = b > 0 && (a > max / b.value() || a < min / b.value());
-  const bool cond_2 = b < 0 && (a < max / b.value() || a > min / b.value());
-  if (cond_1 || cond_2) {
+  if (const auto bv = b.value(); (b > 0 && (a > max / bv || a < min / bv)) ||
+                                 (b == -1 && a == min) ||
+                                 (b < -1 && (a < max / bv || a > min / bv))) {
     throw arithmetic_error("Multiplication {} * {} produces integer overflow.", a, b);
   }
   return a.value() * b.value();
@@ -144,9 +145,9 @@ constexpr checked_int operator%(checked_int a, checked_int b) {
 // b > 0, and a + b > MAX ---> a > MAX - b
 // b < 0 and a + b < MIN ---> a < MIN - b
 constexpr checked_int operator+(checked_int a, checked_int b) {
-  const bool cond_1 = b > 0 && a > checked_int::max().value() - b.value();
-  const bool cond_2 = b < 0 && a < checked_int::min().value() - b.value();
-  if (cond_1 || cond_2) {
+  constexpr auto max = checked_int::max().value();
+  constexpr auto min = checked_int::min().value();
+  if ((b > 0 && a > max - b.value()) || (b < 0 && a < min - b.value())) {
     throw arithmetic_error("Addition {} + {} produces integer overflow.", a, b);
   }
   return a.value() + b.value();
@@ -156,9 +157,9 @@ constexpr checked_int operator+(checked_int a, checked_int b) {
 // b > 0, and a - b < MIN ---> a < MIN + b
 // b < 0, and a - b > MAX ---> a > MAX + b
 constexpr checked_int operator-(checked_int a, checked_int b) {
-  const bool cond_1 = b > 0 && a < checked_int::min().value() + b.value();
-  const bool cond_2 = b < 0 && a > checked_int::max().value() + b.value();
-  if (cond_1 || cond_2) {
+  constexpr auto max = checked_int::max().value();
+  constexpr auto min = checked_int::min().value();
+  if ((b > 0 && a < min + b.value()) || (b < 0 && a > max + b.value())) {
     throw arithmetic_error("Subtraction {} - {} produces integer overflow.", a, b);
   }
   return a.value() - b.value();
@@ -182,7 +183,8 @@ constexpr checked_int& checked_int::operator-=(const checked_int rhs) {
 }
 
 // Absolute value.
-constexpr checked_int abs(const checked_int x) {
+template <typename T, typename = std::enable_if_t<std::is_same_v<checked_int, T>>>
+constexpr checked_int abs(const T x) {
   if (x < 0) {
     return -x;
   }

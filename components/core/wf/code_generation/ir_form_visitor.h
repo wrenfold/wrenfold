@@ -73,7 +73,7 @@ class ir_form_visitor {
   constexpr const operation_term_counts::count_container& get_count_table() const noexcept;
 
   // Apply exponentiation by squaring to implement a power of an integer.
-  ir::value_ptr exponentiate_by_squaring(ir::value_ptr base, uint64_t exponent);
+  ir::value_ptr exponentiate_by_squaring(ir::value_ptr base, std::size_t exponent);
 
   // The IR we are writing to as we convert.
   control_flow_graph& output_graph_;

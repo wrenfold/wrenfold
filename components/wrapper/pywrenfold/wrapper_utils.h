@@ -54,7 +54,7 @@ inline std::variant<std::int64_t, double, scalar_expr> try_convert_to_numeric(
   if (const float_constant* f = cast_ptr<const float_constant>(x); f != nullptr) {
     return f->get_value();
   } else if (const integer_constant* i = cast_ptr<const integer_constant>(x); i != nullptr) {
-    return i->get_value();
+    return static_cast<std::int64_t>(i->get_value());
   } else {
     return x;
   }

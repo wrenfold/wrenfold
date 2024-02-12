@@ -278,8 +278,7 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
     // Extract rationals:
     if (const rational_constant* const rational = cast_ptr<const rational_constant>(expr);
         rational != nullptr) {
-      const auto abs_num = std::abs(rational->numerator());
-      if (abs_num != 1) {
+      if (const auto abs_num = abs(rational->numerator()); abs_num != 1) {
         // Don't put redundant ones into the numerator for rationals of the form 1/n.
         result.numerator.emplace_back(integer_constant{abs_num});
       }

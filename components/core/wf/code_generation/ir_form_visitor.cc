@@ -174,7 +174,7 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul,
 }
 
 // Apply exponentiation by squaring to implement a power of an integer.
-ir::value_ptr ir_form_visitor::exponentiate_by_squaring(ir::value_ptr base, uint64_t exponent) {
+ir::value_ptr ir_form_visitor::exponentiate_by_squaring(ir::value_ptr base, std::size_t exponent) {
   if (exponent == 0) {
     return operator()(constants::one);
   }
@@ -220,7 +220,7 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
     // Have not experimented with this cutoff much, but on GCC94 and Clang17, using a series of
     // multiplications is still faster even past x^32.
     if (exp_int->get_value() <= max_integer_mul_exponent) {
-      return exponentiate_by_squaring(base, static_cast<uint64_t>(exp_int->get_value()));
+      return exponentiate_by_squaring(base, static_cast<std::uint64_t>(exp_int->get_value()));
     } else {
       // Just call power variant with integer exponent:
       return push_operation(ir::call_std_function{std_math_function::powi},
@@ -237,7 +237,7 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
     if (exp_rational->denominator() == 2 && exp_rational->numerator() <= max_integer_mul_exponent) {
       const ir::value_ptr sqrt = push_operation(ir::call_std_function{std_math_function::sqrt},
                                                 code_numeric_type::floating_point, base);
-      return exponentiate_by_squaring(sqrt, static_cast<uint64_t>(exp_rational->numerator()));
+      return exponentiate_by_squaring(sqrt, static_cast<std::uint64_t>(exp_rational->numerator()));
     }
   }
 

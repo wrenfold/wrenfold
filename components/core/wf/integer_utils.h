@@ -3,13 +3,14 @@
 #include <optional>
 #include <vector>
 
+#include "wf/checked_int.h"
 #include "wf/enumerations.h"
 
 namespace wf {
 
 // Perform the wheel factorization algorithm. Finds a prime number that factorizes `n_in`.
 // I haven't optimized this much, but in benchmarks it beats trial division.
-inline constexpr int64_t wheel_factorization(const int64_t n_in) noexcept {
+constexpr int64_t wheel_factorization(const int64_t n_in) noexcept {
   if (n_in % 2 == 0) {
     return 2;
   } else if (n_in % 3 == 0) {
@@ -34,15 +35,15 @@ inline constexpr int64_t wheel_factorization(const int64_t n_in) noexcept {
 
 // Result of `compute_prime_factors`.
 struct prime_factor {
-  int64_t base;
-  int64_t exponent;
+  checked_int base;
+  checked_int exponent;
 };
 
 // Compute the prime factors of `n_in`. TODO: Use small vector here.
-inline std::vector<prime_factor> compute_prime_factors(const int64_t n_in) {
+inline std::vector<prime_factor> compute_prime_factors(const checked_int n_in) {
   std::vector<prime_factor> result;
   result.reserve(10);
-  int64_t x = n_in;
+  checked_int x = n_in;
   if (x == 0) {
     return result;
   } else if (x < 0) {
@@ -50,7 +51,7 @@ inline std::vector<prime_factor> compute_prime_factors(const int64_t n_in) {
     x = -x;
   }
   while (x != 1) {
-    const int64_t factor = wheel_factorization(x);
+    const int64_t factor = wheel_factorization(static_cast<std::int64_t>(x));
     if (!result.empty() && result.back().base == factor) {
       // This is a repeated factor.
       result.back().exponent += 1;
@@ -63,9 +64,8 @@ inline std::vector<prime_factor> compute_prime_factors(const int64_t n_in) {
 }
 
 // Integer power function.
-// TODO: Check for overflow.
-constexpr int64_t integer_power(int64_t base, int64_t exp) {
-  int64_t result = 1;
+constexpr checked_int integer_power(checked_int base, std::uint64_t exp) {
+  checked_int result = 1;
   for (;;) {
     if (exp & 1) {
       result *= base;
@@ -77,6 +77,12 @@ constexpr int64_t integer_power(int64_t base, int64_t exp) {
     base *= base;
   }
   return result;
+}
+
+// Integer power with `checked_int` exponent. Sign of `exp` is checked and domain_error will be
+// thrown.
+constexpr checked_int integer_power(const checked_int base, const checked_int exp) {
+  return integer_power(base, static_cast<std::uint64_t>(exp));
 }
 
 // Compare integral and floating point value.

@@ -71,7 +71,7 @@ TEST(CheckedIntTest, TestNegation) {
   ASSERT_EQ(checked_int::max(), -(checked_int::min() + 1));
   ASSERT_THROW(-checked_int::min(), arithmetic_error);
 
-  ASSERT_EQ(1, abs(-1));
+  ASSERT_EQ(1, abs(-1_chk));
   ASSERT_EQ(checked_int::max(), abs(checked_int::min() + 1));
   ASSERT_THROW(abs(-checked_int::min()), arithmetic_error);
 }
@@ -82,6 +82,8 @@ TEST(CheckedIntTest, TestMultiplication) {
   ASSERT_EQ(0_chk, -33 * 0_chk);
   ASSERT_EQ(28_chk, 7_chk * 4);
   ASSERT_EQ(-81_chk, 9_chk * -9);
+  ASSERT_EQ(-1, 1_chk * -1);
+  ASSERT_EQ(-78, 78_chk * -1);
   ASSERT_EQ(checked_int::min(), checked_int::min() * 1);
   ASSERT_EQ(checked_int::max(), checked_int::max() * 1);
 
@@ -112,13 +114,15 @@ TEST(CheckedIntTest, TestMultiplication) {
 
   // Some cases that overflow:
   ASSERT_THROW(checked_int::max() * 2, arithmetic_error);
+  ASSERT_THROW(checked_int::min() * -1, arithmetic_error);
+
   for (int i = 2; i <= 10; ++i) {
     ASSERT_THROW((checked_int::max() / i + 1) * i, arithmetic_error);
   }
   ASSERT_THROW(14197294936951_chk * 649658, arithmetic_error);
   ASSERT_THROW(14197294936952 * 649657_chk, arithmetic_error);
   ASSERT_THROW(2 * 4611686018427387904_chk, arithmetic_error);  //  2^63
-  ASSERT_THROW(4294967296_chk * 2147483648, arithmetic_error);
+  ASSERT_THROW(4294967296_chk * 2147483648_chk, arithmetic_error);
 
   // On the negative side:
   ASSERT_THROW(checked_int::min() * 2, arithmetic_error);

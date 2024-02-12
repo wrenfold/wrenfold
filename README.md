@@ -98,7 +98,6 @@ There is a brief short-term roadmap on [the wiki](https://github.com/gareth-cros
 
 Known issues and limitations:
 - Input and output types of generated functions must be floating point values. This limitation is actually pretty straightforward to resolve, but some plumbing of type information is required.
-- Numeric integer operations are unsafe. Integer overflow will silently occur if you multiply sufficiently large values.
 - There is no mechanism for including docstrings on generated methods yet.
 - The `subs` operation is relatively slow at the moment, compared to other operations. There is some low hanging fruit here that can be leveraged to improve this.
 - Relationals like `<` or `==` can be used to create boolean expressions, but we currently lack logical boolean operators `&&` and `||`.
