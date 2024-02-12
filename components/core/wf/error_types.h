@@ -37,6 +37,11 @@ struct type_error final : exception_base {
   using exception_base::exception_base;
 };
 
+// Throw on invalid numeric arithmetic.
+struct arithmetic_error final : exception_base {
+  using exception_base::exception_base;
+};
+
 // Thrown when accessing invalid matrix dimensions.
 struct dimension_error final : exception_base {
   using exception_base::exception_base;
