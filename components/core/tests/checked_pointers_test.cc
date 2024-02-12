@@ -20,13 +20,13 @@ struct counter_ptr {
   // Must be convertible to bool for maybe_null ptr to work.
   constexpr operator bool() const noexcept { return static_cast<bool>(c_); }
 
-  explicit counter_ptr(const counter_ptr& other) noexcept : c_(other.c_) {
+  counter_ptr(const counter_ptr& other) noexcept : c_(other.c_) {
     if (c_) {
       ++c_->num_copies;
     }
   }
 
-  explicit counter_ptr(counter_ptr&& other) noexcept {
+  counter_ptr(counter_ptr&& other) noexcept {
     std::swap(c_, other.c_);
     if (c_) {
       ++c_->num_moves;
@@ -107,22 +107,24 @@ TEST(NonNullTest, TestConstructors) {
   static_assert(std::is_same_v<const counter_ptr&, decltype(n.get())>);
   static_assert(std::is_same_v<const counter_ptr&, decltype(n.operator->())>);
   static_assert(std::is_same_v<counter_ptr::counters&, decltype(n.operator*())>);
+
   static_assert(std::is_nothrow_copy_constructible_v<decltype(n)>);
   static_assert(std::is_nothrow_copy_assignable_v<decltype(n)>);
   static_assert(std::is_nothrow_move_constructible_v<decltype(n)>);
   static_assert(std::is_nothrow_move_assignable_v<decltype(n)>);
+
   static_assert(!std::is_default_constructible_v<non_null<counter_ptr>>);
   static_assert(!std::is_default_constructible_v<non_null<const counter_ptr>>);
 
   // Copy:
-  non_null n2{n};
+  non_null<counter_ptr> n2{n};
   ASSERT_TRUE(n2);
   ASSERT_EQ(&count, std::addressof(*n2));
   ASSERT_EQ(1, count.num_copies);
   ASSERT_EQ(0, count.num_moves);
 
   // Move:
-  non_null n3{std::move(n2)};
+  non_null<counter_ptr> n3{std::move(n2)};
   ASSERT_FALSE(n2);  //  n2 is empty
   ASSERT_TRUE(n3);
   ASSERT_NE(n2, n3);
@@ -224,7 +226,7 @@ TEST(MaybeNullTest, TestConstructors) {
   ASSERT_EQ(0, count.num_moves);
 
   // Move construct:
-  maybe_null m4{std::move(m)};
+  maybe_null<counter_ptr> m4{std::move(m)};
   ASSERT_TRUE(m4);
   ASSERT_FALSE(m);  //  `m` is now empty
   ASSERT_EQ(&count, &m4.operator*());

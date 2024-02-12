@@ -32,7 +32,8 @@ template <typename T>
 class non_null {
  public:
   template <typename U>
-  using enable_if_convertible_t = std::enable_if_t<std::is_convertible_v<U, T>>;
+  using enable_if_convertible_t =
+      std::enable_if_t<!std::is_same_v<U, T> && std::is_convertible_v<U, T>>;
 
   // Construct from type `U` that is convertible to `T`.
   // We check `ptr` for nullity, hence this constructor is always noexcept(false).
@@ -43,7 +44,6 @@ class non_null {
 
   // Construct from type `T`.
   // We check `ptr` for nullity, hence this constructor is always noexcept(false).
-  template <typename = std::enable_if_t<!std::is_same_v<std::nullptr_t, T>>>
   constexpr non_null(T ptr) noexcept(false) : ptr_(std::move(ptr)) {  // NOLINT
     WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null");
   }
@@ -51,20 +51,14 @@ class non_null {
   // Construct from a other `non_null` type that is convertible.
   // We don't check here, because the constructor of `non_null<U>` already checked.
   template <typename U, typename = enable_if_convertible_t<U>>
-  constexpr non_null(const non_null<U>& ptr) noexcept(
-      std::is_nothrow_copy_constructible_v<T>)  // NOLINT
-      : ptr_(ptr.get()) {}
+  constexpr non_null(non_null<U> ptr) noexcept(std::is_nothrow_constructible_v<T, U&&>)  // NOLINT
+      : ptr_(std::move(ptr).get_rvalue()) {}
 
   // Copy and move constructors.
   non_null(const non_null& other) = default;
   non_null& operator=(const non_null& other) = default;
   non_null(non_null&& other) = default;
   non_null& operator=(non_null&& other) = default;
-
-  // Move construct non-const to const:
-  template <typename U, typename = std::enable_if_t<std::is_same_v<T, const U>>>
-  constexpr non_null(non_null<U> other) noexcept(std::is_nothrow_move_constructible_v<T>)  // NOLINT
-      : ptr_(std::move(other.ptr_)) {}
 
   // nullptr constructor is explicitly deleted.
   [[maybe_unused]] non_null(std::nullptr_t) = delete;
@@ -83,6 +77,9 @@ class non_null {
   constexpr operator bool() const noexcept { return ptr_ != nullptr; }  //  NOLINT
 
  private:
+  // Get r-value reference.
+  constexpr decltype(auto) get_rvalue() && { return std::move(ptr_); }
+
   template <typename U>
   friend class non_null;
 
@@ -132,7 +129,8 @@ class maybe_null {
   static_assert(std::is_constructible_v<T, std::nullptr_t>, "T must be constructible from nullptr");
 
   template <typename U>
-  using enable_if_convertible_t = std::enable_if_t<std::is_convertible_v<U, T>>;
+  using enable_if_convertible_t =
+      std::enable_if_t<!std::is_same_v<T, U> && std::is_convertible_v<U, T>>;
 
   // Construct from type `U` that is convertible to `T`.
   template <typename U, typename = enable_if_convertible_t<U>>
@@ -140,15 +138,13 @@ class maybe_null {
       : ptr_(std::forward<U>(ptr)) {}
 
   // Construct from type `T`.
-  template <typename = std::enable_if_t<!std::is_same_v<std::nullptr_t, T>>>
   constexpr maybe_null(T ptr) noexcept(std::is_nothrow_move_constructible_v<T>)
       : ptr_(std::move(ptr)) {}
 
   // Construct from a other `maybe_null` type that is convertible.
   template <typename U, typename = enable_if_convertible_t<U>>
-  constexpr maybe_null(const maybe_null<U>& ptr) noexcept(
-      std::is_nothrow_constructible_v<T, decltype(ptr.get())>)
-      : maybe_null(ptr.get()) {}
+  constexpr maybe_null(maybe_null<U> ptr) noexcept(std::is_nothrow_constructible_v<T, U&&>)
+      : ptr_(std::move(ptr).get_rvalue()) {}
 
   // Construct empty/null.
   constexpr maybe_null(std::nullptr_t) noexcept(std::is_nothrow_constructible_v<T, std::nullptr_t>)
@@ -159,11 +155,6 @@ class maybe_null {
 
   maybe_null(maybe_null&& other) = default;
   maybe_null& operator=(maybe_null&& other) = default;
-
-  // Move construct non-const to const:
-  template <typename U, typename = std::enable_if_t<std::is_same_v<T, const U>>>
-  constexpr maybe_null(maybe_null<U> other) noexcept(std::is_nothrow_move_constructible_v<T>)
-      : ptr_(std::move(other.ptr_)) {}
 
   // Check truthiness.
   constexpr operator bool() const noexcept(detail::is_nothrow_castable_to_bool_v<T>) {  //  NOLINT
@@ -195,6 +186,8 @@ class maybe_null {
  private:
   template <typename U>
   friend class maybe_null;
+
+  constexpr decltype(auto) get_rvalue() && { return std::move(ptr_); }
 
   T ptr_;
 };
