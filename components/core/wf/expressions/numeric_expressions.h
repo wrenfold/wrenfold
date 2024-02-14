@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "wf/assertions.h"
+#include "wf/checked_int.h"
 #include "wf/hashing.h"
 #include "wf/ordering.h"
 
@@ -20,7 +21,7 @@ class integer_constant {
   static constexpr std::string_view name_str = "Integer";
   static constexpr bool is_leaf_node = true;
 
-  using value_type = std::int64_t;
+  using value_type = checked_int;
 
   // Construct from number.
   explicit constexpr integer_constant(const value_type val) noexcept : val_(val) {}
@@ -29,16 +30,16 @@ class integer_constant {
   constexpr value_type get_value() const noexcept { return val_; }
 
   // True if this integer is zero.
-  constexpr bool is_zero() const noexcept { return val_ == static_cast<value_type>(0); }
+  constexpr bool is_zero() const noexcept { return val_ == 0; }
 
   // True if this integer is greater than zero.
-  constexpr bool is_positive() const noexcept { return val_ > static_cast<value_type>(0); }
+  constexpr bool is_positive() const noexcept { return val_ > 0; }
 
   // True if this integer is less than zero.
-  constexpr bool is_negative() const noexcept { return val_ < static_cast<value_type>(0); }
+  constexpr bool is_negative() const noexcept { return val_ < 0; }
 
   // True if this integer is even. (Zero is even).
-  constexpr bool is_even() const noexcept { return !static_cast<bool>(val_ & 1); }
+  constexpr bool is_even() const noexcept { return !static_cast<bool>(val_.value() & 1); }
 
   // Cast to integer:
   constexpr explicit operator float_constant() const;
@@ -47,7 +48,7 @@ class integer_constant {
   integer_constant operator-() const { return integer_constant{-val_}; }
 
   // Get absolute value.
-  integer_constant abs() const { return integer_constant{std::abs(val_)}; }
+  integer_constant abs() const { return integer_constant{wf::abs(val_)}; }
 
  private:
   value_type val_;
@@ -59,7 +60,7 @@ class rational_constant {
   static constexpr std::string_view name_str = "Rational";
   static constexpr bool is_leaf_node = true;
 
-  using value_type = integer_constant::value_type;
+  using value_type = checked_int;
 
   // Construct a rational. Conversion to canonical form is automatic.
   constexpr rational_constant(const value_type n, const value_type d)
@@ -80,13 +81,13 @@ class rational_constant {
   constexpr bool is_one() const noexcept { return n_ == d_; }
 
   // True if numerator is zero.
-  constexpr bool is_zero() const noexcept { return n_ == static_cast<value_type>(0); }
+  constexpr bool is_zero() const noexcept { return n_ == 0; }
 
   // True if positive (numerator is > 0).
-  constexpr bool is_positive() const noexcept { return n_ > static_cast<value_type>(0); }
+  constexpr bool is_positive() const noexcept { return n_ > 0; }
 
   // True if negative (only the numerator may be < 0).
-  constexpr bool is_negative() const noexcept { return n_ < static_cast<value_type>(0); }
+  constexpr bool is_negative() const noexcept { return n_ < 0; }
 
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
@@ -104,12 +105,13 @@ class rational_constant {
   }
 
   // True if the absolute value of the fraction is less than one.
-  bool is_proper() const noexcept { return std::abs(n_) < d_; }
+  bool is_proper() const noexcept { return abs(n_) < d_; }
 
  private:
-  constexpr std::pair<value_type, value_type> create_pair(value_type n, value_type d) noexcept {
+  static constexpr std::pair<value_type, value_type> create_pair(value_type n,
+                                                                 value_type d) noexcept {
     // Find the largest common denominator and reduce:
-    const value_type gcd = std::gcd(n, d);
+    const auto gcd = std::gcd(n.value(), d.value());
     n = n / gcd;
     d = d / gcd;
     if (d < 0) {
@@ -122,7 +124,7 @@ class rational_constant {
   }
 
   // Private constructor to allow direct initialization.
-  explicit constexpr rational_constant(std::pair<value_type, value_type> pair)
+  explicit constexpr rational_constant(const std::pair<value_type, value_type>& pair) noexcept
       : n_(pair.first), d_(pair.second) {}
 
   value_type n_;
@@ -160,35 +162,24 @@ class float_constant {
 };
 
 // Operations on integers:
-inline constexpr auto operator*(const integer_constant& a, const integer_constant& b) {
+constexpr auto operator*(const integer_constant& a, const integer_constant& b) {
   return integer_constant{a.get_value() * b.get_value()};
 }
-inline constexpr auto operator+(const integer_constant& a, const integer_constant& b) {
+constexpr auto operator+(const integer_constant& a, const integer_constant& b) {
   return integer_constant{a.get_value() + b.get_value()};
 }
-inline constexpr bool operator<(const integer_constant& a, const integer_constant& b) {
+constexpr bool operator<(const integer_constant& a, const integer_constant& b) {
   return a.get_value() < b.get_value();
 }
-inline constexpr bool operator==(const integer_constant& a, const integer_constant& b) {
+constexpr bool operator==(const integer_constant& a, const integer_constant& b) {
   return a.get_value() == b.get_value();
 }
 
-inline constexpr integer_constant::operator float_constant() const {
+constexpr integer_constant::operator float_constant() const {
   return float_constant{static_cast<float_constant::value_type>(val_)};
 }
 
 // Hashing of integers.
-template <>
-struct hash_struct<integer_constant::value_type> {
-  std::size_t operator()(const integer_constant::value_type value) const noexcept {
-    // Don't have bit_cast, so memcpy into size_t to avoid UB.
-    static_assert(sizeof(integer_constant::value_type) == sizeof(std::size_t));
-    std::size_t hash;
-    std::memcpy(&hash, static_cast<const void*>(&value), sizeof(value));
-    return hash;
-  }
-};
-
 template <>
 struct hash_struct<integer_constant> {
   std::size_t operator()(const integer_constant value) const noexcept {
@@ -212,39 +203,44 @@ struct order_struct<integer_constant> {
 };
 
 // Operations on rationals:
-inline constexpr auto operator*(const rational_constant& a, const rational_constant& b) {
+constexpr auto operator*(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
 }
-inline constexpr auto operator/(const rational_constant& a, const rational_constant& b) {
+constexpr auto operator/(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.denominator(), a.denominator() * b.numerator()};
 }
-inline constexpr auto operator+(const rational_constant& a, const rational_constant& b) {
+
+constexpr auto operator+(const rational_constant& a, const rational_constant& b) {
   // Create common denominator and create a new rational:
   return rational_constant{a.numerator() * b.denominator() + b.numerator() * a.denominator(),
                            a.denominator() * b.denominator()};
 }
-inline constexpr auto operator-(const rational_constant& a, const rational_constant& b) {
+
+constexpr auto operator-(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.denominator() - b.numerator() * a.denominator(),
                            a.denominator() * b.denominator()};
 }
-inline constexpr auto operator%(const rational_constant& a, const rational_constant& b) {
+
+constexpr auto operator%(const rational_constant& a, const rational_constant& b) {
   // Divide a/b, then determine the remainder after dropping the integer part.
   const rational_constant quotient = a / b;
   return rational_constant{quotient.numerator() % quotient.denominator(), quotient.denominator()};
 }
 
-inline constexpr bool operator<(const rational_constant& a, const rational_constant& b) {
-  // TODO: Watch for overflow.
+constexpr bool operator<(const rational_constant& a, const rational_constant& b) {
   return a.numerator() * b.denominator() < b.numerator() * a.denominator();
 }
-inline constexpr bool operator>(const rational_constant& a, const rational_constant& b) {
+
+constexpr bool operator>(const rational_constant& a, const rational_constant& b) {
   return a.numerator() * b.denominator() > b.numerator() * a.denominator();
 }
-inline constexpr bool operator==(const rational_constant& a, const rational_constant& b) {
+
+constexpr bool operator==(const rational_constant& a, const rational_constant& b) {
   // Constructor ensures we reduce to common denominator, so we can compare directly.
   return a.numerator() == b.numerator() && a.denominator() == b.denominator();
 }
-inline constexpr bool operator!=(const rational_constant& a, const rational_constant& b) {
+
+constexpr bool operator!=(const rational_constant& a, const rational_constant& b) {
   return !operator==(a, b);
 }
 
@@ -279,11 +275,11 @@ struct order_struct<rational_constant> {
 
 // Wrap an angle specified as a rational multiple of pi into the range (-pi, pi]. A new rational
 // coefficient between (-1, 1] is returned.
-inline constexpr rational_constant mod_pi_rational(const rational_constant& r) noexcept {
+constexpr rational_constant mod_pi_rational(const rational_constant& r) {
   // Split into integer and rational parts:
   const auto [integer_part_unwrapped, fractional_part] = r.normalized();
   // Wrap the integer part into (-2, 2), then convert into range (-1, 1]:
-  if (const int64_t integer_part = integer_part_unwrapped.get_value() % 2; integer_part == 1) {
+  if (const checked_int integer_part = integer_part_unwrapped.get_value() % 2; integer_part == 1) {
     return fractional_part.is_zero() ? rational_constant{1, 1}
                                      : fractional_part - rational_constant{1, 1};
   } else if (integer_part == -1) {
@@ -293,19 +289,23 @@ inline constexpr rational_constant mod_pi_rational(const rational_constant& r) n
 }
 
 // Operations on floats:
-inline constexpr auto operator*(const float_constant& a, const float_constant& b) {
+constexpr auto operator*(const float_constant& a, const float_constant& b) {
   return float_constant{a.get_value() * b.get_value()};
 }
-inline constexpr auto operator+(const float_constant& a, const float_constant& b) {
+
+constexpr auto operator+(const float_constant& a, const float_constant& b) {
   return float_constant{a.get_value() + b.get_value()};
 }
-inline constexpr bool operator<(const float_constant& a, const float_constant& b) {
+
+constexpr bool operator<(const float_constant& a, const float_constant& b) {
   return a.get_value() < b.get_value();
 }
-inline constexpr bool operator==(const float_constant& a, const float_constant& b) {
+
+constexpr bool operator==(const float_constant& a, const float_constant& b) {
   return a.get_value() == b.get_value();
 }
-inline constexpr bool operator!=(const float_constant& a, const float_constant& b) {
+
+constexpr bool operator!=(const float_constant& a, const float_constant& b) {
   return a.get_value() != b.get_value();
 }
 
@@ -313,10 +313,10 @@ inline constexpr bool operator!=(const float_constant& a, const float_constant& 
 template <>
 struct hash_struct<float_constant> {
   std::size_t operator()(const float_constant& f) const {
-    static_assert(sizeof(float_constant::value_type) == sizeof(std::size_t));
+    static_assert(std::is_trivially_copyable_v<float_constant> &&
+                  sizeof(float_constant) == sizeof(std::size_t));
     std::size_t hash;
-    const auto value = f.get_value();
-    std::memcpy(&hash, static_cast<const void*>(&value), sizeof(value));
+    std::memcpy(&hash, static_cast<const void*>(&f), sizeof(f));
     return hash;
   }
 };

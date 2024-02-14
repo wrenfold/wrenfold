@@ -13,7 +13,7 @@ scalar_expr::scalar_expr(const std::string_view name, const number_set set)
 
 static scalar_expr simplify_rational(rational_constant r) {
   if (const auto as_int = r.try_convert_to_integer(); as_int.has_value()) {
-    return scalar_expr(as_int->get_value());
+    return scalar_expr(*as_int);
   }
   return scalar_expr(std::in_place_type_t<rational_constant>{}, r);
 }
@@ -28,7 +28,7 @@ scalar_expr scalar_expr::from_float(const double x) {
   return make_expr<float_constant>(x);
 }
 
-scalar_expr scalar_expr::from_int(const std::int64_t x) {
+scalar_expr scalar_expr::from_int(const checked_int x) {
   if (x == 0) {
     return constants::zero;
   } else if (x == 1) {

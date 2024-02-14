@@ -165,6 +165,9 @@ class ExpressionWrapperTest(MathTestBase):
             sym.where(x > 0, 5 * sym.cos(5 * x), 0),
             sym.where(x > 0, sym.sin(5 * x), y + 5).diff(x))
 
+        # Diffing a polynomial too many times can trigger arithmetic error (factorial overflow)
+        self.assertRaises(sym.ArithmeticError, lambda: (x ** 100).diff(x, 20))
+
     def test_relational(self):
         """Test creating relational expressions."""
         x, y, z = sym.symbols('x, y, z')
@@ -230,6 +233,23 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual(5.3, sym.float(5.3).eval())
         self.assertAlmostEqual(
             4.3 / 2.71582, (x / y).subs(x, 4.3).subs(y, 2.71582).eval(), places=15)
+        self.assertEqual(3923, sym.integer(3923).eval())
+        self.assertEqual(123, (sym.integer(100) + x).subs(x, 23).eval())
+
+    def test_integer_exceptions(self):
+        """
+        Test that arithmetic exceptions propagate into python. Actual logic tested in checked_int_test.cc,
+        here we just test that exceptions are passed into python correctly.
+        """
+        i64_max = 9223372036854775807
+        i64_min = -9223372036854775808
+        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_max) * 2)
+        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) * 2)
+        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) * -1)
+        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) / -1)
+        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_max) + 1)
+        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) - 1)
+        self.assertRaises(sym.ArithmeticError, lambda: -sym.integer(i64_min))
 
 
 if __name__ == '__main__':

@@ -28,11 +28,11 @@ struct CompareNumerics {
 
   bool operator()(const integer_constant& a, const symbolic_constant& b) const {
     // This must have a value since float will not be nan.
-    return compare_int_float(a.get_value(), float_from_constant(b)).value() ==
+    return compare_int_float(a.get_value().value(), float_from_constant(b)).value() ==
            relative_order::less_than;
   }
   bool operator()(const symbolic_constant& a, const integer_constant& b) const {
-    return compare_int_float(b.get_value(), float_from_constant(a)).value() ==
+    return compare_int_float(b.get_value().value(), float_from_constant(a)).value() ==
            relative_order::greater_than;
   }
 
@@ -46,13 +46,13 @@ struct CompareNumerics {
 
   // Integer and float:
   bool operator()(const integer_constant& a, const float_constant& b) const {
-    const auto result = compare_int_float(a.get_value(), b.get_value());
+    const auto result = compare_int_float(a.get_value().value(), b.get_value());
     WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == relative_order::less_than;
   }
 
   bool operator()(const float_constant& a, const integer_constant& b) const {
-    const auto result = compare_int_float(b.get_value(), a.get_value());
+    const auto result = compare_int_float(b.get_value().value(), a.get_value());
     WF_ASSERT(result.has_value(), "Invalid float value: {}", b);
     return result.value() == relative_order::greater_than;
   }

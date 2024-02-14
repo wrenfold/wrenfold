@@ -56,15 +56,15 @@ TEST(IntegerUtils, TestComputePrimeFactors) {
     const std::vector<prime_factor> result = compute_prime_factors(i);
     ASSERT_TRUE(std::is_sorted(result.begin(), result.end(), prime_factors_order{}));
     // Check that the factors multiply out to the input number.
-    const int64_t product = std::accumulate(result.begin(), result.end(), 1l,
-                                            [](int64_t product, const prime_factor& f) {
-                                              return product * integer_power(f.base, f.exponent);
-                                            });
+    const checked_int product = std::accumulate(
+        result.begin(), result.end(), 1_chk, [](checked_int product, const prime_factor& f) {
+          return product * integer_power(f.base, f.exponent);
+        });
     ASSERT_EQ(product, i);
     // Check that all the factors are prime:
     for (const prime_factor factor : result) {
       ASSERT_TRUE((factor.base == -1 && factor.exponent == 1) ||
-                  trial_division_is_prime(factor.base))
+                  trial_division_is_prime(factor.base.value()))
           << fmt::format("i = {}, factors = [{}]\n", i, fmt::join(result, ", "));
     }
   }
@@ -211,7 +211,7 @@ TEST(IntegerUtils, TestCompareIntFloat) {
 
   for (const int sign : {-1, 1}) {
     for (const int exp : make_range(0, 16)) {
-      const int value = std::pow(10, exp) * sign;
+      const int value = static_cast<int>(std::pow(10, exp)) * sign;
       if (exp <= 6) {
         EXPECT_EQ(relative_order::greater_than, compare_int_float(value, next_down<float>(value)));
         EXPECT_EQ(relative_order::equal, compare_int_float(value, static_cast<float>(value)));

@@ -65,7 +65,7 @@ struct PowerNumerics {
   }
 
   // If both operands are integers:
-  scalar_expr apply_int_and_int(const integer_constant& a, const integer_constant& b) {
+  static scalar_expr apply_int_and_int(const integer_constant& a, const integer_constant& b) {
     if (b.get_value() < 0) {
       if (a.is_zero()) {
         // 1 / (0)^b --> complex infinity
@@ -83,7 +83,7 @@ struct PowerNumerics {
   }
 
   // If the left operand is a rational and right operand is integer:
-  scalar_expr apply_rational_and_int(const rational_constant& a, const integer_constant& b) {
+  static scalar_expr apply_rational_and_int(const rational_constant& a, const integer_constant& b) {
     const auto exponent = b.get_value();
     if (a.is_zero() && exponent < 0) {
       return constants::complex_infinity;
@@ -91,8 +91,9 @@ struct PowerNumerics {
     if (a.is_zero() && b.is_zero()) {
       return constants::undefined;
     }
-    const auto n = integer_power(a.numerator(), std::abs(exponent));
-    const auto d = integer_power(a.denominator(), std::abs(exponent));
+    const auto abs_exponent = static_cast<std::uint64_t>(abs(exponent));
+    const auto n = integer_power(a.numerator(), abs_exponent);
+    const auto d = integer_power(a.denominator(), abs_exponent);
     if (exponent >= 0) {
       return scalar_expr(rational_constant{n, d});
     } else {
@@ -102,7 +103,7 @@ struct PowerNumerics {
   }
 
   // If the left operand is integer, and the right is rational:
-  scalar_expr apply_int_and_rational(const integer_constant& a, const rational_constant& b) {
+  static scalar_expr apply_int_and_rational(const integer_constant& a, const rational_constant& b) {
     WF_ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
     if (a.get_value() == 1) {
       return constants::one;
