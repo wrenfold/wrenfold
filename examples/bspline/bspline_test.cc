@@ -24,7 +24,8 @@ struct basis_index {
 
 // Find the index of the first basis function that influences points at position `x`.
 // Points sampled at `x` will be a function of the bases [i, i + order).
-basis_index compute_basis_index(const double x, const std::size_t num_knots) {
+basis_index compute_basis_index(const double x, const std::size_t order,
+                                const std::size_t num_knots) {
   WF_ASSERT_GREATER_OR_EQ(x, 0.0);
   WF_ASSERT_LESS_OR_EQ(x, 1.0);
 
@@ -43,7 +44,7 @@ basis_index compute_basis_index(const double x, const std::size_t num_knots) {
   const double interval_start = static_cast<double>(i) * knot_spacing;
 
   // Shift and scale into [0, 1].
-  const double scale_factor = 1.0 / knot_spacing;
+  const double scale_factor = static_cast<double>(num_intervals) / static_cast<double>(order - 1);
   const double x_normalized = (x - interval_start) * scale_factor;
 
   return basis_index{i, x_normalized, scale_factor};
@@ -69,27 +70,43 @@ constexpr bool compile_time_for(F&& func) {
 // over the interval that contains `x`. Row `i` refers to the i'th control point. Column `j` refers
 // to the j'th derivative. We return the index of the first control point required to evaluate the
 // spline at `x`.
-template <typename MiddleInterval, typename... EndpointIntervals>
+template <typename... Polynomials>
 std::size_t eval_bspline_coefficients(
     const double x, const std::size_t num_knots,
-    Eigen::Matrix<double, sizeof...(EndpointIntervals) + 1, sizeof...(EndpointIntervals)>&
-        output_coefficients,
-    MiddleInterval&& middle_interval, EndpointIntervals&&... intervals) {
-  constexpr std::size_t spline_order = sizeof...(intervals) + 1;
+    Eigen::Matrix<double, sizeof...(Polynomials), sizeof...(Polynomials) - 1>& output_coefficients,
+    Polynomials&&... polynomials) {
+  constexpr std::size_t spline_order = sizeof...(polynomials);
   WF_ASSERT_GREATER(num_knots, spline_order, "Number of knots must exceed spline order");
 
   const std::size_t num_intervals = num_knots - 1;
-  const basis_index bi = compute_basis_index(x, num_knots);
+  const basis_index bi = compute_basis_index(x, spline_order, num_knots);
 
-  // Put the interval evaluators into a tuple so we can access them with a compile time index
+  // Put the polynomial evaluators into a tuple so we can access them with a compile time index
   // in the loop below.
-  const auto callables = std::make_tuple(std::forward<EndpointIntervals>(intervals)...);
+  // const auto callables = std::make_tuple(std::forward<Polynomials>(polynomials)...);
+
+  using function_ptr_type = std::decay_t<type_list_front_t<type_list<Polynomials...>>>;
+  const std::array<function_ptr_type, spline_order> callables{polynomials...};
+
+  for (std::size_t i = 0; i < spline_order; ++i) {
+    const std::size_t shifted_i = i + bi.index;
+    if (shifted_i < spline_order) {
+
+    }
+  }
+
+  if (bi.index < spline_order - 1) {
+  } else if (bi.index > num_knots - spline_order - 2) {
+  }
 
   // We iterate over integers [0, spline_order - 1). Each time the lambda is called, it is invoked
   // with an integral constant denoting the loop iteration. If the loop iteration matches our
   // sought-after index `i`, we get the appropriate function from `lambdas` and call it.
   const bool endpoint_interval =
       compile_time_for<spline_order - 1>([&](const auto integral_constant) {
+        if constexpr (integral_constant() == spline_order) {
+        } else {
+        }
         if (constexpr std::size_t idx = integral_constant(); bi.index == idx) {
           std::get<idx>(callables)(bi.x_normalized, bi.scale_factor, output_coefficients);
           return true;

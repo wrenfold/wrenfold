@@ -9,6 +9,7 @@ all the other intervals are translations or flips of the first `k`.
 """
 import argparse
 import typing as T
+import collections
 
 from wrenfold.type_annotations import RealScalar
 from wrenfold import code_generation
@@ -21,7 +22,7 @@ def weight(x: sym.Expr, i: int, k: int, knots: T.Sequence[sym.Expr]) -> sym.Expr
     Linear interpolation weight function. The knots are assumed to be known at code-generation time,
     and must be arranged in non-decreasing order.
     """
-    if knots[i] == knots[i + k]:
+    if knots[i].is_identical_to(knots[i + k]):
         # Knots will be repeated at both ends to deal with endpoints.
         return sym.zero
     return (x - knots[i]) / (knots[i + k] - knots[i])
@@ -93,92 +94,7 @@ def create_cumulative_bases(number_of_knots: int, order: int, bases: T.Sequence[
     return cumulative_bases
 
 
-def create_bspline_function_descriptions(
-    x: sym.Expr, number_of_non_repeated_knots: int, order: int, bases: T.Sequence[sym.Expr],
-    degree_zero_bases: T.Sequence[sym.Expr], is_cumulative: bool
-) -> T.Tuple[T.List[code_generation.codegen.FunctionDescription], T.List[sym.MatrixExpr]]:
-    """
-    Convert order `order` b-spline basis functions into a series of functions that can be
-    code-generated. Each output function covers an interval between two knots in the final
-    spline. We only generate the first `order - 1` intervals, because the rest are all scaled or
-    shifted repetitions of the first few.
-
-    We iterate over the `number_of_non_repeated_knots - 1` intervals, and in each one set the
-    relevant degree-zero basis funtion to 1, and all others to zero. This determines the set of
-    polynomial segments required to evaluate the b-spline in that interval. We concatenate these
-    (and their derivatives) into a single generated function for that interval.
-
-    :param x: Variable in which the bases are defined.
-    :param number_of_non_repeated_knots: The number of non-repeated knots over [0, 1].
-    :param order: The order of the spline.
-    :param bases: The symbolically defined basis functions of order `order`.
-    :param degree_zero_bases: Variables that represent the degree zero bases.
-    :param is_cumulative: If true, assume the output is cumulative.
-    """
-
-    descriptions: T.List[code_generation.codegen.FunctionDescription] = []
-    interval_functions: T.List[sym.MatrixExpr] = []
-
-    # The width of each interval:
-    interval_width = 1 / sym.integer(number_of_non_repeated_knots - 1)
-
-    # Overate over the `n - 1` intervals that cover [0, 1]:
-    for i in range(0, number_of_non_repeated_knots - 1):
-        # Create a one-hot vector where the i'th zero-order basis is one, and all other zero.
-        # Then we substitute these into the order `order` bases, in order to see which polynomial
-        # segments are active between the i'th knot, and the i'th + 1 knot.
-        values = [sym.zero] * len(degree_zero_bases)
-        values[i + (order - 1)] = sym.one  # Add order - 1 to skip the repeated knots.
-        key_and_value = list(zip(degree_zero_bases, values))
-
-        relevant_bases: T.List[sym.Expr] = []
-        for b in bases:
-            b_sub = b.subs_variables(key_and_value)
-            if not b_sub.is_identical_to(sym.zero):
-                relevant_bases.append(b_sub)
-
-        # For cumulative, we take only the last `order - 1` bases (since the rest are analytically one).
-        if is_cumulative:
-            relevant_bases = relevant_bases[-(order - 1):]
-        else:
-            assert len(relevant_bases
-                      ) == order, f'Should be {order} active zero-order bases in every interval'
-
-        # Stack all the functions into a vector for plotting later:
-        interval_functions.append(sym.vector(*relevant_bases))
-
-        if i >= order:
-            # We only generate the first `order` functions. The rest are all mirrors or
-            # translations of these first few.
-            continue
-
-        # Now we create a function that evaluates the relevant bases.
-        def bspline(arg: RealScalar, arg_scale: RealScalar):
-            # Scale and translate the argument to be with respect to the polynomials we defined.
-            interval_start = i * interval_width
-            scaled_sub_pairs = [(x, arg * interval_width + interval_start)]
-            b_subbed = sym.vector(*[b.subs_variables(scaled_sub_pairs) for b in relevant_bases])
-
-            # Output the function, plus (order - 2) derivatives that are continuous.
-            # The last non-zero derivative is discontinuous.
-            columns = [b_subbed]
-            for _ in range(0, order - 2):
-                columns.append(columns[-1].diff(arg) * arg_scale)
-
-            return [OutputArg(expression=sym.hstack(columns), name="b")]
-
-        if is_cumulative:
-            name = f'bspline_cumulative_order{order}_interval_{i}'
-        else:
-            name = f'bspline_order{order}_interval_{i}'
-        desc = code_generation.create_function_description(func=bspline, name=name)
-        descriptions.append(desc)
-
-    return descriptions, interval_functions
-
-
-def plot_bases(intervals: T.List[sym.MatrixExpr], x: sym.Expr, interval_width: sym.Expr,
-               knots: T.Sequence[float]):
+def plot_polynomials(polynomials: T.List[sym.Expr], x: sym.Expr, order: int, num_knots: int):
     """
     Plot the symbolic polynomial segments.
     """
@@ -188,24 +104,139 @@ def plot_bases(intervals: T.List[sym.MatrixExpr], x: sym.Expr, interval_width: s
 
     cmap = plt.colormaps.get_cmap('hsv')
 
+    # Determine the width of intervals for the fundamental basis functions:
+    # order = len(polynomials)
+    base_interval_width = 1.0 / order
+
+    assert num_knots > order, f"order = {order}, num_knots = {num_knots}"
+
+    # Width of the intervals that we'll plot:
+    num_intervals = num_knots - 1
+    scaled_interval_width = 1.0 / num_intervals
+    scale_factor = base_interval_width / scaled_interval_width
+
+    # Total # of basis polynomials
+    total_num_bases = num_intervals + order - 1
+
+    computed_polys = collections.defaultdict(list)
+    for x_val in np.linspace(0.0, 1.0, 1000):
+        # Determine interval x belongs in:
+        interval = min(int(np.floor(x_val * num_intervals)), num_intervals - 1)
+
+        # Evaluate the relevant polynomials
+        for i in range(0, order):
+            shifted_i = i + interval
+
+            # Determine which polynomial we need from the original set of fundamental bases:
+            if shifted_i < order - 1:
+                poly_index = shifted_i
+            elif shifted_i < num_intervals:
+                poly_index = order - 1
+            else:
+                poly_index = order - (num_intervals - shifted_i)
+
+            poly_source_origin = max(0, shifted_i - order + 1) * scaled_interval_width
+            poly_dest_origin = max(0, poly_index - order + 1) * base_interval_width
+
+            # Scale and shift into the range of the target polynomial:
+            scaled_x = (x_val - poly_source_origin) * scale_factor + poly_dest_origin
+
+            y_val = polynomials[poly_index].subs_variables([(x, scaled_x)]).eval()
+            computed_polys[shifted_i].append((x_val, y_val))
+
     plt.figure()
-    interval_width_float = interval_width.eval()
-    for i, interval_polynomials in enumerate(intervals):
-        x_vals = np.linspace(0.0, 1.0, 100) * interval_width_float + (interval_width_float * i)
-        y_vals = []
-        for x_val in x_vals:
-            pair = [(x, x_val)]
-            y_vals.append([b.subs_variables(pair).eval() for b in interval_polynomials])
+    plt.title(f"Order {order}")
 
-        alpha = (i + 0.5) / float(len(intervals))
-        plt.plot(x_vals, np.array(y_vals), label=f'Interval {i}', color=cmap(alpha))
+    for i, poly_vals in computed_polys.items():
+        poly_vals = np.array(poly_vals)
+        alpha = (i + 0.5) / float(total_num_bases)
+        plt.plot(poly_vals[:, 0], poly_vals[:, 1], label=f'Function {i}', color=cmap(alpha))
 
-    for k in knots:
+    for k in np.linspace(0.0, 1.0, num_knots):
         plt.axvline(x=k, linestyle=':', color='black')
 
     plt.grid()
     plt.legend()
     plt.show()
+
+
+def create_piecewise_polynomials(x: sym.Expr, order: int, bases: T.Sequence[sym.Expr],
+                                 degree_zero_bases: T.Sequence[sym.Expr],
+                                 is_cumulative: bool) -> T.List[sym.Expr]:
+    """
+    Convert order `order` b-spline basis functions into `order` piecewise polynomials. The resulting
+    expressions are piecewise functions over the interval `x` = [0, 1].
+
+    :param x: Variable in which the bases are defined.
+    :param order: The order of the spline.
+    :param bases: The symbolically defined basis functions of order `order`.
+    :param degree_zero_bases: Variables that represent the degree zero bases.
+    """
+
+    # Symbolic expression that indicates which interval of the bspline the sample
+    # point `x` is located, between [0, order - 1].
+    x_interval = sym.min(sym.floor(x * order), order - 1)
+
+    polynomials: T.List[sym.Expr] = []
+    for i in range(0, order + (order - 1)):
+        # Create the segments that make up each piecewise polynomial. Each of these segments is a
+        # polynomial that is active between two knots, and zero everywhere else.
+        interval_expressions: T.List[sym.Expr] = []
+        for j in range(0, order):
+            # one hot vector where the j'th zero order basis is active:
+            values = [sym.zero] * len(degree_zero_bases)
+            values[j + (order - 1)] = sym.one
+            key_and_value = list(zip(degree_zero_bases, values))
+            interval_expressions.append(bases[i].subs_variables(key_and_value))
+
+        # Cumulative spline is 1 after its relevant interval:
+        terminal_value = sym.integer(1 if is_cumulative else 0)
+        piecewise_poly = terminal_value
+
+        for interval_index, poly_piece in zip(range(0, order), interval_expressions):
+            # If the piece is 0 or 1 on this interval, we don't need another branch for it:
+            if poly_piece == terminal_value:
+                continue
+            piecewise_poly = sym.where(
+                sym.equals(x_interval, interval_index), poly_piece, piecewise_poly)
+
+        polynomials.append(piecewise_poly)
+
+    return polynomials
+
+
+def create_polynomial_functions(
+        x: sym.Expr, polynomials: T.Sequence[sym.Expr], order: int,
+        is_cumulative: bool) -> T.List[code_generation.codegen.FunctionDescription]:
+    """
+    Convert the output of `create_basis_polynomials` into function code-generated functions
+    that evaluate the polynomials, and their first `order - 2` derivatives.
+
+    :param x: Variable in which the normalized bases are defined.
+    :param order: The order of the spline.
+    :param polynomials: The result of `create_basis_polynomials`.
+    :param is_cumulative: If true, assume the output is cumulative.
+    """
+    descriptions: T.List[code_generation.codegen.FunctionDescription] = []
+    for i in range(0, len(polynomials)):
+
+        def bspline(arg: RealScalar, arg_scale: RealScalar):
+            # Output the function, plus (order - 2) derivatives that are continuous.
+            # The last non-zero derivative is discontinuous.
+            rows = [polynomials[i].subs(x, arg)]
+            for _ in range(0, order - 2):
+                rows.append(rows[-1].diff(arg) * arg_scale)
+
+            return [OutputArg(expression=sym.vector(*rows), name=f"b_{i}")]
+
+        if is_cumulative:
+            name = f'bspline_cumulative_order{order}_poly_{i}'
+        else:
+            name = f'bspline_order{order}_poly_{i}'
+        desc = code_generation.create_function_description(func=bspline, name=name)
+        descriptions.append(desc)
+
+    return descriptions
 
 
 def create_bspline_functions(order: int,
@@ -217,8 +248,7 @@ def create_bspline_functions(order: int,
     assert order >= 2, f'order = {order}'
 
     # Number of knots, not considering the repeated endpoints.
-    # We pad by `order - 1` so that the last interval we generate is bordered on either side by cardinal bases.
-    n = (order + 1) + (order - 1)
+    n = order + 1
 
     # Number of knots, including repetitions.
     number_of_knots = n + 2 * (order - 1)
@@ -242,45 +272,36 @@ def create_bspline_functions(order: int,
     cumulative_bases = create_cumulative_bases(
         number_of_knots=len(knots), order=order, bases=bases, degree_zero_bases=degree_zero_bases)
 
-    # Create function descriptions for the ordinary b-splines.
-    descriptions, interval_functions = create_bspline_function_descriptions(
-        x=x,
-        order=order,
-        number_of_non_repeated_knots=n,
-        bases=bases,
-        degree_zero_bases=degree_zero_bases,
-        is_cumulative=False)
+    # Convert the basis functions into piecewise continuous polynomials:
+    polynomials = create_piecewise_polynomials(
+        x=x, order=order, bases=bases, degree_zero_bases=degree_zero_bases, is_cumulative=False)
 
-    # Now create functions for cumulative b-splines...
-    cumulative_descriptions, interval_cumulative_functions = create_bspline_function_descriptions(
+    cumulative_polynomials = create_piecewise_polynomials(
         x=x,
         order=order,
-        number_of_non_repeated_knots=n,
         bases=cumulative_bases,
         degree_zero_bases=degree_zero_bases,
         is_cumulative=True)
 
-    descriptions.extend(cumulative_descriptions)
+    # Create function descriptions that we can code-generate.
+    descriptions = create_polynomial_functions(
+        x=x, polynomials=polynomials, order=order, is_cumulative=False)
+    descriptions += create_polynomial_functions(
+        x=x, polynomials=cumulative_polynomials, order=order, is_cumulative=True)
 
     # Set to true to visualize the polynomial pieces we are code-generating.
     if visualize:
-        plot_bases(
-            intervals=interval_functions,
-            x=x,
-            interval_width=interval_width,
-            knots=[k.eval() for k in knots])
-        plot_bases(
-            intervals=interval_cumulative_functions,
-            x=x,
-            interval_width=interval_width,
-            knots=[k.eval() for k in knots])
+        plot_polynomials(polynomials=polynomials, x=x, order=order, num_knots=order + 1)
+        plot_polynomials(polynomials=cumulative_polynomials, x=x, order=order, num_knots=order + 1)
 
     return descriptions
 
 
 def main(args: argparse.Namespace):
-    descriptions = create_bspline_functions(order=4, visualize=args.visualize)
-    descriptions += create_bspline_functions(order=7, visualize=args.visualize)
+    descriptions = []
+    for order in range(3, 8):
+        descriptions += create_bspline_functions(order=order, visualize=args.visualize)
+
     definitions = code_generation.transpile(descriptions=descriptions)
     if args.language == "cpp":
         code = CppGenerator().generate(definitions=definitions)

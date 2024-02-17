@@ -5,12 +5,7 @@ mod generated;
 
 mod numerical;
 
-use generated::{
-    bspline_order4_interval_0, bspline_order4_interval_1, bspline_order4_interval_2,
-    bspline_order4_interval_3, bspline_order7_interval_0, bspline_order7_interval_1,
-    bspline_order7_interval_2, bspline_order7_interval_3, bspline_order7_interval_4,
-    bspline_order7_interval_5, bspline_order7_interval_6,
-};
+use generated::*;
 
 /// Declare a method named `func_name` that evaluates a b-spline of order `order`.
 /// The caller is expected to pass a series of tuples indicating the generated methods to call
@@ -81,12 +76,32 @@ fn swap_rows<const ROWS: usize, const COLS: usize>(m: &mut na::SMatrix<f64, ROWS
 
 // Define evaluator for 4-th order b-spline.
 declare_bspline_method!(
+    eval_bspline_coefficients_order3,
+    3,
+    (0, bspline_order3_interval_0),
+    (1, bspline_order3_interval_1),
+    bspline_order3_interval_2,
+);
+
+// Define evaluator for 4-th order b-spline.
+declare_bspline_method!(
     eval_bspline_coefficients_order4,
     4,
     (0, bspline_order4_interval_0),
     (1, bspline_order4_interval_1),
     (2, bspline_order4_interval_2),
     bspline_order4_interval_3,
+);
+
+// Define evaluator for 4-th order b-spline.
+declare_bspline_method!(
+    eval_bspline_coefficients_order5,
+    5,
+    (0, bspline_order5_interval_0),
+    (1, bspline_order5_interval_1),
+    (2, bspline_order5_interval_2),
+    (3, bspline_order5_interval_3),
+    bspline_order5_interval_4,
 );
 
 // Define evaluator for 7-th order b-spline.
