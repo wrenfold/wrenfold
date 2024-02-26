@@ -43,6 +43,9 @@ class addition {
   container_type::const_iterator begin() const noexcept { return terms_.begin(); }
   container_type::const_iterator end() const noexcept { return terms_.end(); }
 
+  // Get span over terms.
+  absl::Span<const scalar_expr> as_span() const noexcept { return {terms_}; }
+
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {

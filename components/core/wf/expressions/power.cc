@@ -157,8 +157,8 @@ struct PowerNumerics {
 
       // There is still the business of the fractional part to deal with:
       if (fractional_part.numerator() != 0) {
-        scalar_expr base = scalar_expr(f.base);
-        scalar_expr exponent = scalar_expr(fractional_part);
+        scalar_expr base(f.base);
+        scalar_expr exponent(fractional_part);
         operands.push_back(make_expr<power>(std::move(base), std::move(exponent)));
       }
     }
@@ -221,15 +221,14 @@ static bool can_multiply_exponents(const power& base_pow, const scalar_expr& out
   // Unless:
   //  - `y` is an integer
   //  - `x` is real and non-negative
-  const scalar_expr& inner_exp = base_pow.exponent();
-  if (magnitude_less_than_one(inner_exp)) {
+  if (const scalar_expr& inner_exp = base_pow.exponent(); magnitude_less_than_one(inner_exp)) {
     return true;
   }
   if (outer_exp.is_type<integer_constant>()) {
     return true;
   }
-  const number_set base_set = determine_numeric_set(base_pow.base());
-  if (base_set == number_set::real_non_negative || base_set == number_set::real_positive) {
+  if (const number_set base_set = determine_numeric_set(base_pow.base());
+      base_set == number_set::real_non_negative || base_set == number_set::real_positive) {
     return true;
   }
   return false;
@@ -237,9 +236,9 @@ static bool can_multiply_exponents(const power& base_pow, const scalar_expr& out
 
 scalar_expr power::create(scalar_expr a, scalar_expr b) {
   // Check for numeric quantities.
-  std::optional<scalar_expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
-  if (numeric_pow) {
-    return *numeric_pow;
+  if (std::optional<scalar_expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
+      numeric_pow.has_value()) {
+    return *std::move(numeric_pow);
   }
 
   if ((is_one(a) || is_negative_one(a)) && is_complex_infinity(b)) {

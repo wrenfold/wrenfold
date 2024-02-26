@@ -151,8 +151,8 @@ scalar_expr derivative_visitor::operator()(const function& func) {
   std::transform(func.begin(), func.end(), std::back_inserter(d_args),
                  [this](const scalar_expr& arg) { return apply(arg); });
 
-  const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
-  if (all_derivatives_zero) {
+  if (const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
+      all_derivatives_zero) {
     // If zero, we don't need to do any further operations.
     return constants::zero;
   }

@@ -48,6 +48,7 @@ add_library(
   wf/derivative.cc
   wf/derivative.h
   wf/distribute.cc
+  wf/distribute.h
   wf/enumerations.h
   wf/error_types.h
   wf/evaluate.cc
