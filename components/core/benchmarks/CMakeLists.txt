@@ -12,5 +12,6 @@ endfunction()
 
 # Add all of our benchmarks:
 add_benchmark(bench_add_mul.cc)
-add_benchmark(bench_jacobian.cc)
 add_benchmark(bench_code_generation.cc)
+add_benchmark(bench_distribute.cc)
+add_benchmark(bench_jacobian.cc)
