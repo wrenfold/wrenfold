@@ -32,7 +32,7 @@ class bspline_numerical {
   }
 
   // Linear interpolation function.
-  constexpr double weight(double x, std::size_t i, std::size_t k) noexcept {
+  constexpr double weight(double x, std::size_t i, std::size_t k) const noexcept {
     if (knot_value(i) == knot_value(i + k)) {
       return 0.0;
     }
@@ -40,7 +40,7 @@ class bspline_numerical {
   }
 
   // Evaluate the Cox De Boor recurrence relation.
-  constexpr double cox_de_boor(double x, std::size_t i, std::size_t k) noexcept {
+  constexpr double cox_de_boor(double x, std::size_t i, std::size_t k) const noexcept {
     if (k == 0) {
       const std::size_t last_non_repeated_knot = num_knots_ + (order_ - 1) - 1;
       const bool upper_bound =
@@ -56,8 +56,17 @@ class bspline_numerical {
   }
 
   // Evaluate the i'th basis function at position `x`.
-  constexpr double operator()(double x, std::size_t i) noexcept {
+  constexpr double operator()(double x, std::size_t i) const noexcept {
     return cox_de_boor(x, i, order_ - 1);
+  }
+
+  // Evaluate a cumulative version of the b-spline at position `x`.
+  constexpr double cumulative(double x, std::size_t i) const noexcept {
+    double sum = 0.0;
+    for (std::size_t s = i; s < num_extended_knots() - order_; ++s) {
+      sum += operator()(x, s);
+    }
+    return sum;
   }
 
  private:

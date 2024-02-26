@@ -67,7 +67,6 @@ ir::value_ptr ir_form_visitor::operator()(const custom_type_construction& constr
   ir::value::operands_container operands{};
   operands.reserve(construct.size());
 
-  // TODO: This needs a handler for nested custom types, I think?
   iterate_custom_type_fields(
       construct.type(),
       make_overloaded(

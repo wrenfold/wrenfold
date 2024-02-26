@@ -1,6 +1,8 @@
 use nalgebra as na;
 
+#[allow(unused)]
 mod generated;
+
 mod numerical;
 
 use generated::{
