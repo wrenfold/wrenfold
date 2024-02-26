@@ -5,6 +5,7 @@
 
 #include "wf/constants.h"
 #include "wf/derivative.h"
+#include "wf/distribute.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/functions.h"
 #include "wf/plain_formatter.h"
@@ -114,7 +115,7 @@ matrix_expr matrix_expr::jacobian(const matrix_expr& vars,
 }
 
 matrix_expr matrix_expr::distribute() const {
-  return matrix_expr{as_matrix().map_children(&wf::distribute)};
+  return matrix_expr{as_matrix().map_children(distribute_visitor{})};
 }
 
 matrix_expr matrix_expr::subs(const scalar_expr& target, const scalar_expr& replacement) const {

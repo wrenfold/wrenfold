@@ -1,4 +1,6 @@
-// Copyright 2023 Gareth Cross
+// Copyright 2024 Gareth Cross
+#include "wf/distribute.h"
+
 #include <algorithm>
 
 #include "wf/assertions.h"
@@ -7,108 +9,147 @@
 
 namespace wf {
 
-// Visitor for distributing terms in multiplications:
-// (a + b) * (x + y) = a*x + a*y + b*x + b*y
-struct distribute_visitor {
-  scalar_expr operator()(const scalar_expr& x) const { return visit(x, *this); }
-
-  compound_expr operator()(const compound_expr& x) const {
-    return map_compound_expressions(x, *this);
+// TODO: cache compound_expr as well.
+scalar_expr distribute_visitor::operator()(const scalar_expr& x) {
+  if (const auto it = cache_.find(x); it != cache_.end()) {
+    return it->second;
   }
+  scalar_expr distributed = visit(x, *this);
+  cache_.emplace(x, distributed);
+  return distributed;
+}
 
-  scalar_expr operator()(const addition& add) const { return add.map_children(&distribute); }
+compound_expr distribute_visitor::operator()(const compound_expr& x) {
+  return map_compound_expressions(x, *this);
+}
 
-  scalar_expr operator()(const compound_expression_element& el) const {
-    return el.map_children(*this);
-  }
+scalar_expr distribute_visitor::operator()(const addition& add) { return add.map_children(*this); }
+scalar_expr distribute_visitor::operator()(const cast_bool& cast) {
+  return cast.map_children(*this);
+}
+scalar_expr distribute_visitor::operator()(const compound_expression_element& el) {
+  return el.map_children(*this);
+}
+scalar_expr distribute_visitor::operator()(const complex_infinity&, const scalar_expr& arg) const {
+  return arg;
+}
+scalar_expr distribute_visitor::operator()(const conditional& conditional) {
+  return conditional.map_children(*this);
+}
+scalar_expr distribute_visitor::operator()(const derivative& diff) {
+  return diff.map_children(*this);
+}
+scalar_expr distribute_visitor::operator()(const integer_constant&, const scalar_expr& arg) const {
+  return arg;
+}
+scalar_expr distribute_visitor::operator()(const float_constant&, const scalar_expr& arg) const {
+  return arg;
+}
+scalar_expr distribute_visitor::operator()(const function& f) { return f.map_children(*this); }
 
-  scalar_expr operator()(const multiplication& mul, const scalar_expr&) const {
-    // First distribute all the children of the multiplication:
-    std::vector<scalar_expr> children{};
-    children.reserve(mul.size());
-    std::transform(mul.begin(), mul.end(), std::back_inserter(children),
-                   [](const scalar_expr& expr) { return distribute(expr); });
+scalar_expr distribute_visitor::operator()(const multiplication& mul) {
+  return distribute_multiplied_terms(mul);
+}
 
-    // Are any of the child expressions additions?
-    const std::size_t total_terms = std::accumulate(
-        children.begin(), children.end(), static_cast<std::size_t>(1lu),
-        [](std::size_t total, const scalar_expr& expr) {
-          if (const addition* const add = cast_ptr<const addition>(expr); add != nullptr) {
-            total *= add->size();
-          }
-          return total;
-        });
+scalar_expr distribute_visitor::operator()(const power& pow) {
+  scalar_expr b = operator()(pow.base());
+  scalar_expr e = operator()(pow.exponent());
 
-    // If the total terms is > 1, we have an addition to distribute over.
-    const bool contains_additions = total_terms > 1;
-    if (!contains_additions) {
-      // If there are no additions, just create a new multiplication:
-      // TODO: If there are no additions, and no children were altered, we could avoid this step.
-      return multiplication::from_operands(children);
-    }
+  // If the base is an addition, we should expand the power.
+  if (b.is_type<addition>()) {
+    if (const integer_constant* exp_int = cast_ptr<const integer_constant>(e); exp_int != nullptr) {
+      const checked_int abs_exp = abs(exp_int->get_value());
 
-    // Otherwise, we need to expand all the terms. This multiplication will become an addition of
-    // multiplications. For each addition, we need to distribute its terms over the remaining
-    // values. TODO: Make each of these a small vector of scalar_expr, then convert them to
-    // multiplication.
-    std::vector<scalar_expr> output_terms(total_terms, constants::one);
+      scalar_expr distributed = distribute_power(std::move(b), static_cast<std::uint64_t>(abs_exp));
+      if (exp_int->is_positive()) {
+        return distributed;
+      } else if (exp_int->is_negative()) {
+        return power::create(std::move(distributed), constants::negative_one);
+      }
+    } else if (const rational_constant* exp_rational = cast_ptr<const rational_constant>(e);
+               exp_rational != nullptr && exp_rational->denominator() == 2 &&
+               abs(exp_rational->numerator()) > 1) {
+      // This can be interpreted as integer power of sqrt(...).
+      // We take sqrt() of the inner expression, then distribute it to the power of the numerator.
+      const checked_int abs_exp = abs(exp_rational->numerator());
 
-    std::size_t step = total_terms;
-    for (const scalar_expr& expr : children) {
-      if (const addition* add = cast_ptr<const addition>(expr); add != nullptr) {
-        // For additions, first update the step by dividing by the size of this addition:
-        WF_ASSERT_EQUAL(0, step % add->size());
-        WF_ASSERT_GREATER_OR_EQ(step / add->size(), 1);
-        step /= add->size();
-        // Now multiply terms in the addition:
-        for (std::size_t out = 0; out < total_terms;) {
-          for (const scalar_expr& term : *add) {
-            for (std::size_t rep = 0; rep < step; ++rep, ++out) {
-              output_terms[out] = output_terms[out] * term;
-            }
-          }
-        }
-      } else {
-        // Not an addition, multiply by everything:
-        for (scalar_expr& output : output_terms) {
-          output = output * expr;
-        }
+      scalar_expr distributed = distribute_power(sqrt(b), static_cast<std::uint64_t>(abs_exp));
+      if (exp_rational->is_positive()) {
+        return distributed;
+      } else if (exp_rational->is_negative()) {
+        return power::create(std::move(distributed), constants::negative_one);
       }
     }
+  }
+  return power::create(std::move(b), std::move(e));
+}
 
-    return addition::from_operands(output_terms);
-  }
+scalar_expr distribute_visitor::operator()(const rational_constant&, const scalar_expr& arg) const {
+  return arg;
+}
+scalar_expr distribute_visitor::operator()(const relational& relation) {
+  return relation.map_children(*this);
+}
+scalar_expr distribute_visitor::operator()(const symbolic_constant&, const scalar_expr& arg) const {
+  return arg;
+}
+scalar_expr distribute_visitor::operator()(const undefined&) const { return constants::undefined; }
+scalar_expr distribute_visitor::operator()(const variable&, const scalar_expr& arg) const {
+  return arg;
+}
 
-  scalar_expr operator()(const function& f, const scalar_expr&) const {
-    return f.map_children(&distribute);
+scalar_expr distribute_visitor::distribute_power(scalar_expr base, std::size_t power) {
+  WF_ASSERT_GREATER(power, 0);
+  scalar_expr result = constants::one;
+  for (;;) {
+    if (power & 1) {
+      result = distribute_multiplied_terms(result, base);
+    }
+    power /= 2;
+    if (power == 0) {
+      break;
+    }
+    base = distribute_multiplied_terms(base, base);
   }
+  return result;
+}
 
-  scalar_expr operator()(const power& pow, const scalar_expr&) const {
-    // TODO: If base is an addition, and exponent an integer, we should distribute.
-    const scalar_expr& a = pow.base();
-    const scalar_expr& b = pow.exponent();
-    return power::create(distribute(a), distribute(b));
+// Create a span from input expression `x`. If `x` is an addition, the span will be over the terms
+// of the addition. Otherwise it will be a single length span containing just `x`.
+static absl::Span<const scalar_expr> expression_as_span(const scalar_expr& x) noexcept {
+  if (const addition* add = cast_ptr<const addition>(x); add != nullptr) {
+    return add->as_span();
+  } else {
+    return {&x, 1};
   }
+}
 
-  scalar_expr operator()(const cast_bool& cast) const { return cast.map_children(&distribute); }
-  scalar_expr operator()(const conditional& conditional, const scalar_expr&) const {
-    return conditional.map_children(&distribute);
-  }
+scalar_expr distribute_visitor::distribute_multiplied_terms(const scalar_expr& a,
+                                                            const scalar_expr& b) {
+  const auto span_a = expression_as_span(a);
+  const auto span_b = expression_as_span(b);
 
-  scalar_expr operator()(const symbolic_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const derivative& diff, const scalar_expr&) const {
-    return diff.map_children(&distribute);
+  std::vector<scalar_expr> output_terms{};
+  output_terms.reserve(span_a.size() * span_b.size());
+  for (const scalar_expr& x : span_a) {
+    for (const scalar_expr& y : span_b) {
+      output_terms.push_back(x * y);
+    }
   }
-  scalar_expr operator()(const complex_infinity&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const integer_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const float_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const rational_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const relational& relation, const scalar_expr&) const {
-    return relation.map_children(&distribute);
+  return addition::from_operands(output_terms);
+}
+
+template <typename Container>
+scalar_expr distribute_visitor::distribute_multiplied_terms(const Container& multiplied_terms) {
+  WF_ASSERT_GREATER_OR_EQ(multiplied_terms.size(), 1);
+  std::vector<scalar_expr> output_terms = transform_map<std::vector>(multiplied_terms, *this);
+  while (output_terms.size() > 1) {
+    scalar_expr top = std::move(output_terms.back());
+    output_terms.pop_back();
+    output_terms.back() = distribute_multiplied_terms(output_terms.back(), top);
   }
-  scalar_expr operator()(const undefined&) const { return constants::undefined; }
-  scalar_expr operator()(const variable&, const scalar_expr& arg) const { return arg; }
-};
+  return output_terms.front();
+}
 
 scalar_expr distribute(const scalar_expr& arg) { return visit(arg, distribute_visitor{}); }
 

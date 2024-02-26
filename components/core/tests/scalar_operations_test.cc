@@ -489,13 +489,8 @@ TEST(ScalarOperationsTest, TestConditional) {
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {
-  const scalar_expr w{"w"};
-  const scalar_expr x{"x"};
-  const scalar_expr y{"y"};
-  const scalar_expr z{"z"};
-  const scalar_expr p{"p"};
-  const scalar_expr q{"q"};
-  const scalar_expr v{"v"};
+  const auto [w, x, y, z, p, q, v] = make_symbols("w", "x", "y", "z", "p", "q", "v");
+
   ASSERT_IDENTICAL(x, x.distribute());
   ASSERT_IDENTICAL(x + y, (x + y).distribute());
   ASSERT_IDENTICAL(6 + 3 * x, (3 * (x + 2)).distribute());
@@ -514,9 +509,61 @@ TEST(ScalarOperationsTest, TestDistribute) {
   ASSERT_IDENTICAL((2 * p * q * w * x) - (2_s * p * q * w * y) + (p * v * w * x) - (p * v * w * y),
                    (w * (x - y) * (p * (v + q * 2_s))).distribute());
 
+  // Distribute powers:
+  ASSERT_IDENTICAL(1 + 2 * x + pow(x, 2), pow(1 + x, 2).distribute());
+  ASSERT_IDENTICAL(pow(x, 3) - 4 * pow(x, 2) / 3 + 16 * x / 27 - 64_s / 729,
+                   pow(x - 4_s / 9, 3).distribute());
+  ASSERT_IDENTICAL(sin(pow(x, 2) * pow(y, 4) + 4 * pow(x, 2) * pow(y, 3) +
+                       6 * pow(x, 2) * pow(y, 2) + 4 * pow(x, 2) * y + pow(x, 2) -
+                       6 * x * pow(y, 4) - 24 * x * pow(y, 3) - 36 * x * pow(y, 2) - 24 * x * y -
+                       6 * x + 9 * pow(y, 4) + 36 * pow(y, 3) + 54 * pow(y, 2) + 36 * y + 9),
+                   sin(pow(x - 3, 2) * pow(y + 1, 4)).distribute());
+
+  // Negative integer powers:
+  ASSERT_IDENTICAL(pow(x * x - 4 * x / 3 + 4_s / 9, -1), pow(2_s / 3 - x, -2).distribute());
+
+  // Rational powers that contain sqrt:
+  ASSERT_IDENTICAL(-x * sqrt(4 - x) + 4 * sqrt(4 - x), pow(4 - x, 3_s / 2).distribute());
+  ASSERT_IDENTICAL(-pow(x, 3) * sqrt(1 - x * x * x) + sqrt(1 - x * x * x),
+                   pow(1 - x * x * x, 3_s / 2).distribute());
+  ASSERT_IDENTICAL(
+      pow(x, 6) * sqrt(x * x / 3 - x + 4) / 27 - pow(x, 5) * sqrt(x * x / 3 - x + 4) / 3 +
+          7 * pow(x, 4) * sqrt(x * x / 3 - x + 4) / 3 - 9 * pow(x, 3) * sqrt(x * x / 3 - x + 4) +
+          28 * x * x * sqrt(x * x / 3 - x + 4) - 48 * x * sqrt(x * x / 3 - x + 4) +
+          64 * sqrt(x * x / 3 - x + 4),
+      pow(4 - x + x * x / 3, 7_s / 2).distribute());
+
+  // Expression where distribution of two factors produces an existing factor:
+  ASSERT_IDENTICAL(pow(x, 4) - 2 * pow(x, 2) + 1,
+                   ((1 - x) * (1 + x) * (1 - pow(x, 2))).distribute());
+  ASSERT_IDENTICAL(-pow(x, 4) - pow(x, 3) * sqrt(pow(x, 2) + 4 * x - 1) - 6 * pow(x, 3) -
+                       2 * pow(x, 2) * sqrt(pow(x, 2) + 4 * x - 1) - 6 * pow(x, 2) +
+                       9 * x * sqrt(pow(x, 2) + 4 * x - 1) + 6 * x -
+                       2 * sqrt(pow(x, 2) + 4 * x - 1) - 1,
+                   ((2 - sqrt(pow(x, 2) + 4 * x - 1)) * (x + sqrt(pow(x, 2) + 4 * x - 1)) *
+                    (pow(x, 2) + 4 * x - 1))
+                       .distribute());
+
+  // This case doesn't work yet, because we don't group terms under equivalent exponents.
+  // If we did: sqrt(f) * sqrt(g) --> sqrt(f * g), we can then expand under the sqrt(...).
+#if 0
+  ASSERT_IDENTICAL(
+      x * x - 6 * x + 2_s / 3,
+      (sqrt((x - 3 - 5 * sqrt(3) / 3) * (x - 3 + 5 * sqrt(3) / 3)) * sqrt(x * x - 6 * x + 2_s / 3))
+          .distribute());
+#endif
+
+  // Negative rational powers:
+  ASSERT_IDENTICAL(
+      1 / (pow(x, 6) * sqrt(x * x / 3 - x + 4) / 27 - pow(x, 5) * sqrt(x * x / 3 - x + 4) / 3 +
+           7 * pow(x, 4) * sqrt(x * x / 3 - x + 4) / 3 - 9 * pow(x, 3) * sqrt(x * x / 3 - x + 4) +
+           28 * x * x * sqrt(x * x / 3 - x + 4) - 48 * x * sqrt(x * x / 3 - x + 4) +
+           64 * sqrt(x * x / 3 - x + 4)),
+      pow(4 - x + x * x / 3, -7_s / 2).distribute());
+
   // Distribute through relational:
   ASSERT_IDENTICAL(-8 + 2 * x + pow(x, 2) < q * x + q * y - v * x - v * y,
-                   (((x + y) * (q - v)) > (x - 2) * (x + 4)).distribute());
+                   ((x + y) * (q - v) > (x - 2) * (x + 4)).distribute());
   ASSERT_IDENTICAL(x * y + 2 * y == sin(p), ((x + 2) * y == sin(p)).distribute());
 }
 
@@ -586,13 +633,13 @@ TEST(ScalarOperationsTest, TestCollect) {
   ASSERT_IDENTICAL(pow(cos(x), 2) * (y - 12) + cos(x) * (sin(cos(x) * (4 - log(z))) - tan(z)),
                    collect(f4, cos(x)));
 
-  // A power of a sum: 1 / (x**2 + y**2)
+  // A power of a sum: 1 / (pow(x, 2) + pow(y, 2))
   // Currently this only works if the sum appears as one cohesive term in a multiplication.
   auto denominator = pow(x, 2) + pow(y, 2);
   auto f5 = x / denominator - y / denominator;
   ASSERT_IDENTICAL((x - y) / denominator, collect(f5, denominator));
 
-  // Try with: 1 / sqrt(x**2 + y**2)
+  // Try with: 1 / sqrt(pow(x, 2) + pow(y, 2))
   auto f6 = x / sqrt(denominator) - 5 * y / sqrt(denominator);
   ASSERT_IDENTICAL((x - 5 * y) / sqrt(denominator), collect(f6, denominator));
 }
