@@ -16,7 +16,8 @@ std::string generate_test_expressions(Generator gen) {
   generate_func(gen, code, &vector_norm_3d, "vector_norm_3d", arg("v"));
   generate_func(gen, code, &heaviside, "heaviside", arg("x"));
   generate_func(gen, code, &exclusive_or, "exclusive_or", arg("x"), arg("y"));
-  generate_func(gen, code, &signum_and_abs, "signum_and_abs", arg("x"));
+  generate_func(gen, code, &signum_test, "signum_test", arg("x"));
+  generate_func(gen, code, &abs_test, "abs_test", arg("x"));
   generate_func(gen, code, &floor_test, "floor_test", arg("x"));
   generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", arg("y"), arg("x"));
   generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", arg("x"), arg("y"));

@@ -142,16 +142,27 @@ pub fn exclusive_or<>(x: f64, y: f64) -> f64
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
-pub fn signum_and_abs<>(x: f64, abs: &mut f64) -> f64
+pub fn signum_test<>(x: f64) -> f64
 {
   // Operation counts:
-  // call: 2
-  // total: 2
+  // call: 1
+  // total: 1
   
   let v00: f64 = x;
-  let v03: f64 = f64::abs(v00);
   let v01: f64 = ((0.0f64 < v00) as i64 - (v00 < 0.0f64) as i64) as f64;
-  *abs = v03;
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+pub fn abs_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = f64::abs(v00);
   v01
 }
 
