@@ -29,6 +29,8 @@ scalar_expr function::create(const built_in_function name,
       return abs(args.front());
     case built_in_function::signum:
       return signum(args.front());
+    case built_in_function::floor:
+      return floor(args.front());
     case built_in_function::arctan2:
       return atan2(args[0], args[1]);
   }

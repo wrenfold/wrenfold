@@ -454,11 +454,10 @@ class limit_visitor {
   std::optional<scalar_expr> operator()(const function& func) {
     function::container_type args{};
     for (const scalar_expr& arg : func) {
-      std::optional<scalar_expr> arg_limit = visit(arg);
-      if (!arg_limit) {
+      if (std::optional<scalar_expr> arg_limit = visit(arg); !arg_limit) {
         return std::nullopt;
       } else {
-        args.push_back(std::move(*arg_limit));
+        args.push_back(*std::move(arg_limit));
       }
     }
 

@@ -51,6 +51,9 @@ inline auto signum_and_abs(scalar_expr x) {
   return std::make_tuple(return_value(signum(x)), output_arg("abs", abs(x)));
 }
 
+// Test generation of call to floor.
+inline auto floor_test(scalar_expr x) { return floor(x); }
+
 // Arc-tangent w/ derivatives.
 inline auto atan2_with_derivatives(scalar_expr y, scalar_expr x) {
   scalar_expr f = atan2(y, x);

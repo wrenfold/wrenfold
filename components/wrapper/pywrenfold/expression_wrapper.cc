@@ -212,6 +212,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def("abs", static_cast<scalar_expr (*)(const scalar_expr&)>(&wf::abs), "arg"_a,
         "Absolute value function.");
   m.def("signum", &wf::signum, "arg"_a, "Signum/sign function.");
+  m.def("floor", &wf::floor, "arg"_a, "Floor function.");
   m.def("atan2", &wf::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
 
   m.def("max", &wf::max, "a"_a, "b"_a, "Maximum of two scalar values.");

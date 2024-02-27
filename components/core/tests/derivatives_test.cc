@@ -150,6 +150,14 @@ TEST(DerivativesTest, TestSignum) {
                    signum(x).diff(x, 2, non_differentiable_behavior::abstract));
 }
 
+TEST(DerivativesTest, TestFloor) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(0, floor(x).diff(y));
+  ASSERT_IDENTICAL(0, floor(x).diff(x));
+  ASSERT_IDENTICAL(derivative::create(floor(x + y), x, 2),
+                   floor(x + y).diff(x, 2, non_differentiable_behavior::abstract));
+}
+
 TEST(DerivativesTest, TestMaxMin) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
 

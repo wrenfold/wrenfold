@@ -204,6 +204,7 @@ void wrap_codegen_operations(py::module_& m) {
       .value("Sqrt", std_math_function::sqrt)
       .value("Abs", std_math_function::abs)
       .value("Signum", std_math_function::signum)
+      .value("Floor", std_math_function::floor)
       .value("Arctan2", std_math_function::atan2)
       .value("Powi", std_math_function::powi)
       .value("Powf", std_math_function::powf)

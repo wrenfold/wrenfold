@@ -3,7 +3,7 @@
 
 #include "wf/code_generation/rust_code_generator.h"
 
-#include "test_expressions.h"
+#include "test_expressions_codegen.h"
 #include "wf_test_support/code_gen_helpers.h"
 
 namespace wf {
@@ -75,35 +75,8 @@ class custom_rust_code_generator final : public rust_code_generator {
 
 int main() {
   using namespace wf;
-  std::string code = "//! Machine generated code.\n#![cfg_attr(rustfmt, rustfmt_skip)]\n\n";
-
-  custom_rust_code_generator gen{};
-  generate_func(gen, code, &simple_multiply_add, "simple_multiply_add", "x", "y", "z");
-  generate_func(gen, code, &vector_rotation_2d, "vector_rotation_2d", arg("theta"), arg("v"));
-  generate_func(gen, code, &vector_norm_3d, "vector_norm_3d", "v");
-  generate_func(gen, code, &heaviside, "heaviside", arg("x"));
-  generate_func(gen, code, &exclusive_or, "exclusive_or", arg("x"), arg("y"));
-  generate_func(gen, code, &signum_and_abs, "signum_and_abs", arg("x"));
-  generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", arg("y"), arg("x"));
-  generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", arg("x"), arg("y"));
-  generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", arg("x"), arg("y"));
-  generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", arg("w"));
-  generate_func(gen, code, &no_required_outputs, "no_required_outputs", arg("x"));
-  generate_func(gen, code, &custom_type_1, "custom_type_1", arg("p"));
-  generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
-  generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
-  generate_func(gen, code, &external_function_call_1, "external_function_call_1", arg("x"),
-                arg("y"));
-  generate_func(gen, code, &external_function_call_2, "external_function_call_2", arg("x"),
-                arg("v"));
-  generate_func(gen, code, &external_function_call_3, "external_function_call_3", arg("x"),
-                arg("v"));
-  generate_func(gen, code, &external_function_call_4, "external_function_call_4", arg("a"),
-                arg("b"));
-  generate_func(gen, code, &external_function_call_5, "external_function_call_5", arg("c"),
-                arg("x"), arg("y"));
-  generate_func(gen, code, &external_function_call_6, "external_function_call_6", arg("x"),
-                arg("y"));
+  const std::string code = "//! Machine generated code.\n#![cfg_attr(rustfmt, rustfmt_skip)]\n\n" +
+                           generate_test_expressions(custom_rust_code_generator{});
 
   // Write in binary to stop windows from turning LF into CRLF.
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};

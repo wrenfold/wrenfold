@@ -167,6 +167,15 @@ TEST(CppGenerationTest, TestSignumAndAbs) {
   EXPECT_EQ(800.0, abs_gen);
 }
 
+TEST(CppGenerationTest, TestFloor) {
+  EXPECT_EQ(0.0, gen::floor_test(0.0));
+  EXPECT_EQ(0.0, gen::floor_test(0.123));
+  EXPECT_EQ(1.0, gen::floor_test(1.9999999));
+  EXPECT_EQ(3.0, gen::floor_test(3.14));
+  EXPECT_EQ(-1.0, gen::floor_test(-0.01));
+  EXPECT_EQ(-2.0, gen::floor_test(-1.25));
+}
+
 TEST(CppGenerationTest, TestNestedConditionals1) {
   auto evaluator = create_evaluator(&nested_conditionals_1);
   // Exercise all the different control paths.

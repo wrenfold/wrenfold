@@ -41,6 +41,9 @@ scalar_expr abs(const scalar_expr& arg);
 // Signum function.
 scalar_expr signum(const scalar_expr& arg);
 
+// Floor to integer.
+scalar_expr floor(const scalar_expr& arg);
+
 // Maximum of two values. Equivalent to: (a < b) ? b : a
 scalar_expr max(const scalar_expr& a, const scalar_expr& b);
 

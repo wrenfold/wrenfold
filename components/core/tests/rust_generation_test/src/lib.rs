@@ -146,6 +146,21 @@ fn test_signum_and_abs() {
     assert_eq!(12.1, abs);
 }
 
+#[test]
+fn test_floor() {
+    assert_eq!(0.0, generated::floor_test(0.0));
+    assert_eq!(1.0, generated::floor_test(1.0));
+    assert_eq!(-1.0, generated::floor_test(-1.0));
+
+    assert_eq!(0.0, generated::floor_test(0.1312));
+    assert_eq!(1.0, generated::floor_test(1.76));
+    assert_eq!(4.0, generated::floor_test(4.99999));
+
+    assert_eq!(-1.0, generated::floor_test(-0.5123));
+    assert_eq!(-2.0, generated::floor_test(-1.874));
+    assert_eq!(-5.0, generated::floor_test(-4.00001));
+}
+
 // TODO: Nest values are copy-pasta from the C++ test, which compares to numerical
 // evaluation of the expression graph.
 #[test]

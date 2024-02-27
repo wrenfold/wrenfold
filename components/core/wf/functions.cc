@@ -37,9 +37,10 @@ scalar_expr log(const scalar_expr& x) {
   if (is_complex_infinity(x) || is_undefined(x)) {
     return constants::undefined;  //  log(z-∞) is ∞, but we can't represent that.
   }
-  if (std::optional<scalar_expr> f = operate_on_float(x, [](double x) { return std::log(x); });
+  if (std::optional<scalar_expr> f =
+          operate_on_float(x, static_cast<double (*)(double)>(&std::log));
       f.has_value()) {
-    return std::move(*f);
+    return *std::move(f);
   }
   // TODO: Check for negative values.
   return make_expr<function>(built_in_function::ln, x);
@@ -84,9 +85,9 @@ scalar_expr cos(const scalar_expr& arg) {
 
   // For floats, evaluate immediately:
   if (std::optional<scalar_expr> result =
-          operate_on_float(arg, [](double x) { return std::cos(x); });
+          operate_on_float(arg, static_cast<double (*)(double x)>(&std::cos));
       result.has_value()) {
-    return *result;
+    return *std::move(result);
   }
   if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
     return constants::undefined;
@@ -117,9 +118,9 @@ scalar_expr sin(const scalar_expr& arg) {
     return -sin(-arg);
   }
   if (std::optional<scalar_expr> result =
-          operate_on_float(arg, [](double x) { return std::sin(x); });
+          operate_on_float(arg, static_cast<double (*)(double x)>(&std::sin));
       result.has_value()) {
-    return *result;
+    return *std::move(result);
   }
   if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
     return constants::undefined;
@@ -166,9 +167,9 @@ scalar_expr tan(const scalar_expr& arg) {
     return -tan(-arg);
   }
   if (std::optional<scalar_expr> result =
-          operate_on_float(arg, [](double x) { return std::tan(x); });
+          operate_on_float(arg, static_cast<double (*)(double x)>(&std::tan));
       result.has_value()) {
-    return *result;
+    return *std::move(result);
   }
   if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
     return constants::undefined;
@@ -268,9 +269,8 @@ struct atan2_visitor {
 };
 
 scalar_expr atan2(const scalar_expr& y, const scalar_expr& x) {
-  std::optional<scalar_expr> maybe_simplified = visit_binary(y, x, atan2_visitor{});
-  if (maybe_simplified) {
-    return std::move(*maybe_simplified);
+  if (std::optional<scalar_expr> maybe_simplified = visit_binary(y, x, atan2_visitor{})) {
+    return *std::move(maybe_simplified);
   }
   // TODO: Implement simplifications for atan2.
   return make_expr<function>(built_in_function::arctan2, y, x);
@@ -297,14 +297,14 @@ scalar_expr abs(const scalar_expr& arg) {
   }
   // Evaluate floats immediately:
   if (std::optional<scalar_expr> result =
-          operate_on_float(arg, [](double x) { return std::abs(x); });
+          operate_on_float(arg, static_cast<double (*)(double x)>(&std::abs));
       result.has_value()) {
-    return *result;
+    return *std::move(result);
   }
   if (const symbolic_constant* constant = cast_ptr<const symbolic_constant>(arg);
       constant != nullptr) {
-    const auto as_double = double_from_symbolic_constant(constant->name());
-    if (compare_int_float(0, as_double).value() != relative_order::greater_than) {
+    if (const auto as_double = double_from_symbolic_constant(constant->name());
+        compare_int_float(0, as_double).value() != relative_order::greater_than) {
       // Constant that is already positive.
       return arg;
     }
@@ -335,7 +335,7 @@ struct signum_visitor {
     return scalar_expr{sign(r.numerator())};
   }
   std::optional<scalar_expr> operator()(const float_constant& f) const {
-    WF_ASSERT(!std::isnan(f.get_value()));
+    WF_ASSERT(!f.is_nan());
     return scalar_expr{sign(f.get_value())};
   }
 
@@ -365,11 +365,65 @@ struct signum_visitor {
 };
 
 scalar_expr signum(const scalar_expr& arg) {
-  std::optional<scalar_expr> maybe_simplified = visit(arg, signum_visitor{});
-  if (maybe_simplified) {
-    return std::move(*maybe_simplified);
+  if (std::optional<scalar_expr> maybe_simplified = visit(arg, signum_visitor{});
+      maybe_simplified.has_value()) {
+    return *std::move(maybe_simplified);
   }
   return make_expr<function>(built_in_function::signum, arg);
+}
+
+struct floor_visitor {
+  std::optional<scalar_expr> operator()(const integer_constant&, const scalar_expr& arg) const {
+    return arg;
+  }
+
+  std::optional<scalar_expr> operator()(const rational_constant& r) const {
+    const auto [int_part, _] = r.normalized();
+    if (r.is_negative()) {
+      // Round down (away from zero) for negative values:
+      return scalar_expr{int_part.get_value() - 1};
+    }
+    return scalar_expr{int_part.get_value()};
+  }
+
+  std::optional<scalar_expr> operator()(const float_constant& f) const {
+    WF_ASSERT(!f.is_nan());
+    const auto floored = std::floor(f.get_value());
+    return scalar_expr{static_cast<std::int64_t>(floored)};
+  }
+
+  std::optional<scalar_expr> operator()(const function& func, const scalar_expr& arg) const {
+    // If the argument is already an integer, floor does nothing:
+    if (func.enum_value() == built_in_function::floor) {
+      return arg;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<scalar_expr> operator()(const symbolic_constant& c) const {
+    const auto cf = double_from_symbolic_constant(c.name());
+    return scalar_expr{static_cast<std::int64_t>(std::floor(cf))};
+  }
+
+  std::optional<scalar_expr> operator()(const complex_infinity&) const {
+    return constants::complex_infinity;
+  }
+  std::optional<scalar_expr> operator()(const undefined&) const { return constants::undefined; }
+
+  template <typename T, typename = enable_if_does_not_contain_type_t<
+                            T, integer_constant, rational_constant, float_constant, function,
+                            symbolic_constant, complex_infinity, undefined>>
+  std::optional<scalar_expr> operator()(const T&) const noexcept {
+    return std::nullopt;
+  }
+};
+
+scalar_expr floor(const scalar_expr& arg) {
+  if (std::optional<scalar_expr> maybe_simplified = visit(arg, floor_visitor{});
+      maybe_simplified.has_value()) {
+    return *std::move(maybe_simplified);
+  }
+  return scalar_expr{std::in_place_type_t<function>{}, built_in_function::floor, arg};
 }
 
 // Max and min are implemented as conditionals. That way:
@@ -431,7 +485,7 @@ scalar_expr cast_int_from_bool(const scalar_expr& bool_expression) {
     throw type_error("Expression of type `{}` is not a boolean arg: {}",
                      bool_expression.type_name(), bool_expression);
   }
-  return std::move(*result);
+  return *std::move(result);
 }
 
 }  // namespace wf

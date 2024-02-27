@@ -157,6 +157,9 @@ class float_constant {
   // Get absolute value.
   float_constant abs() const noexcept { return float_constant{std::abs(val_)}; }
 
+  // True if the underlying float is NaN.
+  bool is_nan() const noexcept { return std::isnan(val_); }
+
  private:
   value_type val_;
 };

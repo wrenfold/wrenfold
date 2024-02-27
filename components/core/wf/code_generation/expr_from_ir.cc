@@ -61,7 +61,7 @@ struct expression_from_ir_visitor {
   }
 
   static constexpr built_in_function built_in_function_from_standard_library_function(
-      std_math_function func) {
+      const std_math_function func) {
     switch (func) {
       case std_math_function::cos:
         return built_in_function::cos;
@@ -81,23 +81,24 @@ struct expression_from_ir_visitor {
         return built_in_function::abs;
       case std_math_function::signum:
         return built_in_function::signum;
+      case std_math_function::floor:
+        return built_in_function::floor;
       case std_math_function::atan2:
         return built_in_function::arctan2;
       default:
         // Other cases handled by the assertion below.
         break;
     }
-    throw assertion_error("Invalid enum value: {}", string_from_standard_library_function(func));
+    WF_ASSERT_ALWAYS("Invalid enum value: {}", string_from_standard_library_function(func));
   }
 
   expr_variant operator()(const ir::call_external_function& func,
                           const std::vector<ir::value_ptr>& args) const {
-    external_function_invocation::container_type args_converted{};
-    args_converted.reserve(args.size());
-    for (const ir::value_ptr val : args) {
-      args_converted.push_back(
-          std::visit([](const auto& x) -> any_expression { return x; }, map_value(val).inner()));
-    }
+    auto args_converted = transform_map<external_function_invocation::container_type>(
+        args, [this](const ir::value_ptr val) {
+          return std::visit([](const auto& x) -> any_expression { return x; },
+                            map_value(val).inner());
+        });
 
     compound_expr invocation{std::in_place_type_t<external_function_invocation>{}, func.function(),
                              std::move(args_converted)};
@@ -112,9 +113,8 @@ struct expression_from_ir_visitor {
 
   scalar_expr operator()(const ir::call_std_function& func,
                          const std::vector<ir::value_ptr>& args) const {
-    function::container_type container{};
-    std::transform(args.begin(), args.end(), std::back_inserter(container),
-                   [this](ir::value_ptr v) { return map_scalar_value(v); });
+    auto container = transform_map<function::container_type>(
+        args, [this](const ir::value_ptr v) { return map_scalar_value(v); });
 
     if (func.name() == std_math_function::powi || func.name() == std_math_function::powf) {
       return pow(container[0], container[1]);

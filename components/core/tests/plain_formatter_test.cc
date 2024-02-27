@@ -129,6 +129,7 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
   ASSERT_STR_EQ("abs(x)", abs(x));
   ASSERT_STR_EQ("abs(1 + x - sin(y))", abs(x + 1 - sin(y)));
   ASSERT_STR_EQ("signum(3 * y)", signum(3 * y));
+  ASSERT_STR_EQ("floor(x / y)", floor(x / y));
 }
 
 TEST(PlainFormatterTest, TestMatrix) {
