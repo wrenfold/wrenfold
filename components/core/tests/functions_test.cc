@@ -244,6 +244,42 @@ TEST(FunctionsTest, TestSignum) {
   ASSERT_IDENTICAL(constants::undefined, signum(constants::undefined));
 }
 
+TEST(FunctionsTest, TestFloor) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_IDENTICAL(floor(x), floor(x));
+  ASSERT_NOT_IDENTICAL(floor(x), floor(y));
+
+  // operation on integers
+  ASSERT_IDENTICAL(0, floor(0_s));
+  ASSERT_IDENTICAL(13, floor(13_s));
+  ASSERT_IDENTICAL(-28, floor(-28_s));
+
+  // rationals
+  ASSERT_IDENTICAL(0, floor(7_s / 9));
+  ASSERT_IDENTICAL(1, floor(3_s / 2));
+  ASSERT_IDENTICAL(5, floor(23_s / 4));
+  ASSERT_IDENTICAL(-16, floor(-78_s / 5));
+  ASSERT_IDENTICAL(-8, floor(-103_s / 13));
+  ASSERT_IDENTICAL(-1, floor(-1_s / 3));
+
+  // floats
+  ASSERT_IDENTICAL(0, floor(0.0_s));
+  ASSERT_IDENTICAL(1, floor(1.0_s));
+  ASSERT_IDENTICAL(3, floor(3.9999_s));
+  ASSERT_IDENTICAL(-1, floor(-1.0_s));
+  ASSERT_IDENTICAL(-2, floor(-1.01_s));
+
+  // special constants
+  ASSERT_IDENTICAL(2, floor(constants::euler));
+  ASSERT_IDENTICAL(3, floor(constants::pi));
+  ASSERT_IDENTICAL(constants::undefined, floor(constants::undefined));
+  ASSERT_IDENTICAL(constants::complex_infinity, floor(constants::complex_infinity));
+
+  // Simplify nested call:
+  ASSERT_IDENTICAL(floor(x), floor(floor(x)));
+}
+
 TEST(FunctionTest, TestMinMax) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_NOT_IDENTICAL(max(x, y), max(y, x));  //  order matters

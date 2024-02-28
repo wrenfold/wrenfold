@@ -196,6 +196,14 @@ scalar_expr derivative_visitor::operator()(const function& func) {
         return constants::zero;
       }
     }
+    case built_in_function::floor: {
+      // Derivative of floor(x) is 0 for integers, and indeterminate everywhere else.
+      if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
+        return derivative::create(floor(args[0]), argument_, 1);
+      } else {
+        return constants::zero;
+      }
+    }
     case built_in_function::arctan2: {
       const scalar_expr& y_diff = d_args[0];
       const scalar_expr& x_diff = d_args[1];

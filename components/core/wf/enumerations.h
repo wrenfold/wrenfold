@@ -42,6 +42,7 @@ enum class built_in_function {
   ln,
   abs,
   signum,
+  floor,
   // Binary functions
   arctan2,
 };
@@ -97,9 +98,9 @@ enum class number_set : uint8_t {
 };
 
 // List of mathematical functions typically found in your standard library.
-// This seems like a duplicate of `built_in_function` at first, but they differ
-// in that this list contains additional specialized cases. In the math
-// expression tree powi, powf, and sqrt are all just instances of `power`.
+// This seems like a duplicate of `built_in_function` at first, but they differ in that this list
+// contains additional specialized cases. In the math expression tree powi, powf, and sqrt are all
+// just instances of `power`.
 enum class std_math_function {
   cos,
   sin,
@@ -111,6 +112,7 @@ enum class std_math_function {
   sqrt,
   abs,
   signum,
+  floor,
   atan2,
   // Integral exponent power.
   powi,
@@ -161,6 +163,8 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
       return "abs";
     case built_in_function::signum:
       return "signum";
+    case built_in_function::floor:
+      return "floor";
     case built_in_function::arctan2:
       return "atan2";
     default:
@@ -253,6 +257,8 @@ constexpr inline std::string_view string_from_standard_library_function(
       return "abs";
     case std_math_function::signum:
       return "sign";
+    case std_math_function::floor:
+      return "floor";
     case std_math_function::atan2:
       return "atan2";
     case std_math_function::powi:

@@ -139,6 +139,13 @@ class determine_set_visitor {
         }
         return number_set::unknown;
       }
+      case built_in_function::floor: {
+        if (args[0] == number_set::real_positive) {
+          // floor(x) where x > 0 could be 0, so floor(x) >= 0
+          return number_set::real_non_negative;
+        }
+        return args[0];
+      }
       case built_in_function::arctan2:
         // Can always be undefined.
         return number_set::unknown;

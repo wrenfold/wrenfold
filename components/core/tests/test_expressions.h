@@ -46,10 +46,14 @@ inline scalar_expr exclusive_or(scalar_expr x, scalar_expr y) {
   return where(cond_x, where(cond_y, 0, 1), where(cond_y, 1, 0));
 }
 
-// Test generation of signum and abs.
-inline auto signum_and_abs(scalar_expr x) {
-  return std::make_tuple(return_value(signum(x)), output_arg("abs", abs(x)));
-}
+// Test generation of signum.
+inline auto signum_test(scalar_expr x) { return signum(x); }
+
+// Test generation of abs.
+inline auto abs_test(scalar_expr x) { return abs(x); }
+
+// Test generation of call to floor.
+inline auto floor_test(scalar_expr x) { return floor(x); }
 
 // Arc-tangent w/ derivatives.
 inline auto atan2_with_derivatives(scalar_expr y, scalar_expr x) {

@@ -508,11 +508,11 @@ TEST(IrTest, TestBuiltInFunctions) {
       [](scalar_expr x, scalar_expr y, scalar_expr z) {
         scalar_expr g = acos(x - log(y) * pow(x, 1.231) + pow(z, 22));
         scalar_expr h = asin(2.0 * tan(y) - abs(z));
-        return atan2(abs(g) + cos(y) + signum(h), -sin(y) + sqrt(z) - signum(x));
+        return atan2(abs(g) + cos(y) + signum(h) * floor(h), -sin(y) + sqrt(z) - signum(x));
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(27, ir.num_operations()) << ir;
+  ASSERT_EQ(29, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   ASSERT_EQ(4, ir.count_operation<ir::neg>());
   EXPECT_EQ(1, ir.count_function(std_math_function::cos));
@@ -524,13 +524,14 @@ TEST(IrTest, TestBuiltInFunctions) {
   EXPECT_EQ(1, ir.count_function(std_math_function::sqrt));
   EXPECT_EQ(2, ir.count_function(std_math_function::abs));
   EXPECT_EQ(2, ir.count_function(std_math_function::signum));
+  EXPECT_EQ(1, ir.count_function(std_math_function::floor));
   EXPECT_EQ(1, ir.count_function(std_math_function::atan2));
   EXPECT_EQ(1, ir.count_function(std_math_function::powi));
   EXPECT_EQ(1, ir.count_function(std_math_function::powf));
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(27, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(29, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }

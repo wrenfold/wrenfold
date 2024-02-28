@@ -205,6 +205,8 @@ static constexpr std::string_view rust_string_for_std_function(
       return "f64::abs";
     case std_math_function::signum:
       return "f64::signum";
+    case std_math_function::floor:
+      return "f64::floor";
     case std_math_function::atan2:
       return "f64::atan2";
     case std_math_function::powi:

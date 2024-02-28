@@ -22,8 +22,13 @@ add_single_file_test(substitute_test.cc)
 add_single_file_test(type_list_test.cc)
 
 add_compiled_code_generator(
-  cpp_generation_generate OUTPUT_FILE_NAME "generated.h" SOURCE_FILES
-  cpp_generation_gen.cc test_expressions.h)
+  cpp_generation_generate
+  OUTPUT_FILE_NAME
+  "generated.h"
+  SOURCE_FILES
+  cpp_generation_gen.cc
+  test_expressions.h
+  test_expressions_codegen.h)
 
 add_cpp_test(cpp_generation_test SOURCE_FILES cpp_generation_test.cc
              test_expressions.h GENERATOR_TARGET cpp_generation_generate)
@@ -42,8 +47,13 @@ add_cpp_test(cpp_generation_test_2 SOURCE_FILES cpp_generation_test_2.cc
 
 # Rust tests
 add_compiled_code_generator(
-  rust_generation_generate OUTPUT_FILE_NAME "generated.rs" SOURCE_FILES
-  rust_generation_gen.cc test_expressions.h)
+  rust_generation_generate
+  OUTPUT_FILE_NAME
+  "generated.rs"
+  SOURCE_FILES
+  rust_generation_gen.cc
+  test_expressions.h
+  test_expressions_codegen.h)
 copy_generated_file(GENERATOR_TARGET rust_generation_generate DESTINATION_DIR
                     rust_generation_test/src TARGET_GROUP wf_rust_generation)
 

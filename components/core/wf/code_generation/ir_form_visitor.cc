@@ -143,6 +143,8 @@ static constexpr std_math_function std_math_function_from_built_in(const built_i
       return std_math_function::abs;
     case built_in_function::signum:
       return std_math_function::signum;
+    case built_in_function::floor:
+      return std_math_function::floor;
     case built_in_function::arctan2:
       return std_math_function::atan2;
   }

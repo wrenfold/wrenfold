@@ -128,6 +128,14 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(1, sym.signum(sym.true))
         self.assertNotIdentical(sym.signum(x), sym.signum(y))
 
+    def test_floor(self):
+        """Test calling floor."""
+        x = sym.symbols("x")
+        self.assertIdentical(0, sym.floor(0))
+        self.assertIdentical(7, sym.floor(7.12312))
+        self.assertIdentical(-3, sym.floor(-sym.integer(5) / 2))
+        self.assertIdentical(sym.floor(x), sym.floor(sym.floor(x)))
+
     def test_distribute(self):
         """Test calling distribute on scalar expressions."""
         a, b, c, d, e, f = sym.symbols('a, b, c, d, e, f')

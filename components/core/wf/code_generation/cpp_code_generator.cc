@@ -198,6 +198,8 @@ static constexpr std::string_view cpp_string_for_std_function(
       return "std::sqrt";
     case std_math_function::abs:
       return "std::abs";
+    case std_math_function::floor:
+      return "std::floor";
     case std_math_function::atan2:
       return "std::atan2";
     case std_math_function::powi:

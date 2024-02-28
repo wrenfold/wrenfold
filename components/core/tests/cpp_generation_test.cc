@@ -136,35 +136,46 @@ TEST(CppGenerationTest, TestExclusiveOr) {
   EXPECT_EQ(1.0, gen::exclusive_or(std::nextafter(0.0, -inf), std::nextafter(0.0, inf)));
 }
 
-// We use this test to check that abs() is generated correctly.
-TEST(CppGenerationTest, TestSignumAndAbs) {
-  auto evaluator = create_evaluator(&signum_and_abs);
+TEST(CppGenerationTest, TestSignum) {
+  auto evaluator = create_evaluator(&signum_test);
 
-  double abs_num, abs_gen;
-  EXPECT_EQ(evaluator(0.0, abs_num), gen::signum_and_abs(0.0, abs_gen));
-  EXPECT_EQ(abs_num, abs_gen);
+  EXPECT_EQ(evaluator(0.0), gen::signum_test(0.0));
+  EXPECT_EQ(0.0, gen::signum_test(0.0));
+  EXPECT_EQ(0.0, gen::signum_test(-0.0));
 
-  EXPECT_EQ(0.0, gen::signum_and_abs(0.0, abs_gen));
-  EXPECT_EQ(0.0, abs_gen);
-  EXPECT_EQ(0.0, gen::signum_and_abs(-0.0, abs_gen));
-  EXPECT_EQ(0.0, abs_gen);
+  EXPECT_EQ(evaluator(1.0e-16), gen::signum_test(1.0e-16));
+  EXPECT_EQ(1.0, gen::signum_test(1.0e-16));
 
-  EXPECT_EQ(evaluator(1.0e-16, abs_num), gen::signum_and_abs(1.0e-16, abs_gen));
-  EXPECT_EQ(abs_num, abs_gen);
+  EXPECT_EQ(evaluator(-1.0e-16), gen::signum_test(-1.0e-16));
+  EXPECT_EQ(-1.0, gen::signum_test(-1.0e-16));
 
-  EXPECT_EQ(1.0, gen::signum_and_abs(1.0e-16, abs_gen));
-  EXPECT_EQ(1.0e-16, abs_gen);
+  EXPECT_EQ(1.0, gen::signum_test(2.3));
+  EXPECT_EQ(-1.0, gen::signum_test(-800.0));
+}
 
-  EXPECT_EQ(evaluator(-1.0e-16, abs_num), gen::signum_and_abs(-1.0e-16, abs_gen));
-  EXPECT_EQ(abs_num, abs_gen);
-  EXPECT_EQ(-1.0, gen::signum_and_abs(-1.0e-16, abs_gen));
-  EXPECT_EQ(1.0e-16, abs_gen);
+TEST(CppGenerationTest, TestAbs) {
+  auto evaluator = create_evaluator(&abs_test);
 
-  EXPECT_EQ(1.0, gen::signum_and_abs(2.3, abs_gen));
-  EXPECT_EQ(2.3, abs_gen);
+  EXPECT_EQ(evaluator(0.0), gen::abs_test(0.0));
+  EXPECT_EQ(0.0, gen::abs_test(0.0));
 
-  EXPECT_EQ(-1.0, gen::signum_and_abs(-800.0, abs_gen));
-  EXPECT_EQ(800.0, abs_gen);
+  EXPECT_EQ(evaluator(1.0e-16), gen::abs_test(1.0e-16));
+  EXPECT_EQ(1.0e-16, gen::abs_test(1.0e-16));
+
+  EXPECT_EQ(evaluator(-1.0e-16), gen::abs_test(-1.0e-16));
+  EXPECT_EQ(1.0e-16, gen::abs_test(-1.0e-16));
+
+  EXPECT_EQ(2.3, gen::abs_test(2.3));
+  EXPECT_EQ(800.0, gen::abs_test(-800.0));
+}
+
+TEST(CppGenerationTest, TestFloor) {
+  EXPECT_EQ(0.0, gen::floor_test(0.0));
+  EXPECT_EQ(0.0, gen::floor_test(0.123));
+  EXPECT_EQ(1.0, gen::floor_test(1.9999999));
+  EXPECT_EQ(3.0, gen::floor_test(3.14));
+  EXPECT_EQ(-1.0, gen::floor_test(-0.01));
+  EXPECT_EQ(-2.0, gen::floor_test(-1.25));
 }
 
 TEST(CppGenerationTest, TestNestedConditionals1) {

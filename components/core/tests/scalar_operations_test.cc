@@ -863,6 +863,11 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::real, determine_numeric_set(signum(real)));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(signum(real_non_negative)));
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(signum(real_positive)));
+
+  ASSERT_EQ(number_set::real, determine_numeric_set(floor(real)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(floor(real_non_negative)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(floor(real_positive)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(floor(complex)));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsSpecialValues) {
