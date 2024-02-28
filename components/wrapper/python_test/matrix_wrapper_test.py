@@ -1,5 +1,8 @@
 """
 Test of matrix-specific functionality.
+
+These tests are here to make sure that wrapped methods behave as expected, and that we
+don't accidentally remove any. Algorithmic tests are in C++.
 """
 import numpy as np
 import typing as T
@@ -95,6 +98,24 @@ class MatrixWrapperTest(MathTestBase):
             sym.DimensionError,
             lambda: sym.matrix([(a, sym.pi, sym.euler), (x, 5, z, b)]),
         )
+
+    def test_is_identical_to(self):
+        """Test that __eq__ is defined, and implements is_identical_to."""
+        u = sym.vector(10, -3, 5)
+        v = sym.vector(0, 27, 91)
+        self.assertTrue(u == u)
+        self.assertFalse(u == v)
+
+    def test_hash(self):
+        """Test calling __hash__ on matrix expressions."""
+        x, y, z = sym.symbols("x, y, z")
+        v = sym.vector(x * 1, -y, z + 2)
+        u = sym.vector(x * y, sym.cos(x), 0)
+        self.assertNotEqual(hash(v), hash(u))  # Not likely.
+        # Use matrix expressions as keys in a dict:
+        storage = {v: 1939, u: 1984}
+        self.assertEqual(1939, storage[v])
+        self.assertEqual(1984, storage[u])
 
     def test_matrix_repr(self):
         """Test matrix __repr__."""

@@ -357,17 +357,11 @@ py::array numpy_from_matrix(const matrix_expr& self) {
 
 void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
-  py::class_<matrix_expr>(m, "MatrixExpr")
+  wrap_class<matrix_expr>(m, "MatrixExpr")
       // scalar_expr inherited properties:
       .def("__repr__", &matrix_expr::to_string)
       .def("expression_tree_str", &matrix_expr::to_expression_tree_string,
            "Retrieve the expression tree as a pretty-printed string.")
-      .def(
-          "is_identical_to",
-          [](const matrix_expr& self, const matrix_expr& other) {
-            return self.is_identical_to(other);
-          },
-          "other"_a, "Test if two matrix expressions have identical expression trees.")
       .def_property_readonly("type_name", [](const matrix_expr& self) { return self.type_name(); })
       // Operations:
       .def(

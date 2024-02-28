@@ -110,7 +110,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
 
   // Primary expression type:
-  py::class_<scalar_expr>(m, "Expr")
+  wrap_class<scalar_expr>(m, "Expr")
       // Implicit construction from numerics:
       .def(py::init<std::int64_t>())
       .def(py::init<double>())
@@ -118,12 +118,6 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def("__repr__", &scalar_expr::to_string)
       .def("expression_tree_str", &scalar_expr::to_expression_tree_string,
            "Retrieve the expression tree as a pretty-printed string.")
-      .def(
-          "is_identical_to",
-          [](const scalar_expr& self, const scalar_expr& other) {
-            return self.is_identical_to(other);
-          },
-          "other"_a, "Test if two expressions have identical expression trees.")
       .def_property_readonly("type_name", [](const scalar_expr& self) { return self.type_name(); })
       // Operations:
       .def(
@@ -162,7 +156,6 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(py::self >= py::self)
       .def(py::self < py::self)
       .def(py::self <= py::self)
-      .def(py::self == py::self)
       // Operators involving integers (int on left side):
       .def(std::int64_t() + py::self)
       .def(std::int64_t() - py::self)
@@ -172,7 +165,6 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(std::int64_t() >= py::self)
       .def(std::int64_t() < py::self)
       .def(std::int64_t() <= py::self)
-      .def(std::int64_t() == py::self)
       // Operators involving doubles (double on left side):
       .def(double() + py::self)
       .def(double() - py::self)
@@ -182,7 +174,6 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(double() >= py::self)
       .def(double() < py::self)
       .def(double() <= py::self)
-      .def(double() == py::self)
       // Override conversion to boolean, so we don't coerce non-boolean expressions.
       .def("__bool__", &convert_expr_to_bool, py::doc("Coerce expression to bool."));
 
@@ -221,6 +212,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
         static_cast<scalar_expr (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&)>(
             &wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
+
+  m.def("equals", static_cast<scalar_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator==),
+        "a"_a, "b"_a, py::doc("Boolean expression that is true when both operands are equal."));
 
   m.def("cast_int_from_bool", &wf::cast_int_from_bool, "arg"_a,
         "Convert a boolean expression to an integer.");
