@@ -1,7 +1,8 @@
 """
-Python tests for the wrapper. Most of the algorithmic testing resides in C++/gtest.
+Python tests for the wrapper itself. Most of the algorithmic testing resides in C++/gtest.
 
-These tests are here to make sure the wrapper works.
+These tests are here to make sure that wrapped methods behave as expected, and that we
+don't accidentally remove any.
 """
 import unittest
 
@@ -31,6 +32,29 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.symbols('c'), result[1][0])
         self.assertIdentical(sym.symbols('d'), result[1][1])
 
+    def test_is_identical_to(self):
+        """Test calling is_identical_to and __eq__."""
+        x, y = sym.symbols("x, y")
+        self.assertTrue(x.is_identical_to(x))
+        self.assertFalse(x.is_identical_to(y))
+        # __eq__ operator is just an alias of is_identical_to
+        self.assertTrue(x == x)
+        self.assertFalse(x == y)
+        self.assertTrue(sym.integer(5) == 5)
+        self.assertFalse(sym.integer(5) == y * x)
+        self.assertTrue(sym.float(1.0) == 1.0)
+        self.assertFalse(sym.float(0.1) == 3.14)
+
+    def test_hash(self):
+        """Test we can call __hash__ on scalar expressions."""
+        x, y = sym.symbols("x, y")
+        self.assertEqual(hash(x), hash(x))
+        self.assertNotEqual(hash(x), hash(y))  # Not impossible, but very unlikely.
+        # use expressions as keys in a dict:
+        storage = {x: 10, y: -13}
+        self.assertEqual(10, storage[x])
+        self.assertEqual(-13, storage[y])
+
     def test_numeric_constructors(self):
         """Test explicit construction of Expr from numeric types."""
         self.assertIdentical(sym.zero, sym.integer(0))
@@ -58,6 +82,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('abs(x)', sym.abs(x))
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
         self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x, use_abstract=True))
+        self.assertReprEqual('x == z', sym.equals(x, z))
 
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""
@@ -182,10 +207,11 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(x < y, y > x)
         self.assertIdentical(z > 0, 0 < z)
         self.assertIdentical(x >= 0.0, 0.0 <= x)
-        self.assertIdentical(x == y, y == x)
-        self.assertNotIdentical(x == z, x == y)
         self.assertIdentical(sym.true, sym.Expr(1) > 0)
         self.assertIdentical(sym.true, sym.pi > sym.euler)
+        # We use sym.equals to make == relationals:
+        self.assertIdentical(sym.equals(x, 1), sym.equals(1, x))
+        self.assertNotIdentical(sym.equals(x, y), sym.equals(2, x * y))
 
     def test_conditionals(self):
         """Test creating conditional logic."""
@@ -198,7 +224,7 @@ class ExpressionWrapperTest(MathTestBase):
     def test_cast_bool_to_int(self):
         """Test converting boolean values to integer."""
         self.assertIdentical(1, sym.cast_int_from_bool(sym.one < 10.2))
-        self.assertIdentical(0, sym.cast_int_from_bool(sym.one == sym.zero))
+        self.assertIdentical(0, sym.cast_int_from_bool(sym.equals(sym.one, sym.zero)))
 
     def test_subs(self):
         """Test calling subs() on expressions."""

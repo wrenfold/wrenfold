@@ -5,6 +5,7 @@
 
 #include "wf/code_generation/types.h"  //  Required for definition of custom_type.
 #include "wf/compound_expression.h"
+#include "wrapper_utils.h"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -12,16 +13,10 @@ using namespace py::literals;
 namespace wf {
 
 void wrap_compound_expression(py::module_& m) {
-  py::class_<compound_expr>(m, "CompoundExpr")
-      .def("is_identical_to", &are_identical<compound_expr>, py::arg("other"),
-           py::doc("Check if two compound expressions are strictly identical."))
+  wrap_class<compound_expr>(m, "CompoundExpr")
       .def_property_readonly("type_name",
                              [](const compound_expr& self) { return self.type_name(); })
       .def("__repr__", &compound_expr::to_string)
-      .def("__hash__", &hash<compound_expr>)
-      .def("__eq__", &are_identical<compound_expr>, py::is_operator(),
-           py::doc("Check if two compound expressions are strictly identical. This is not "
-                   "mathematical equivalence."))
       .def("__bool__", [](const compound_expr&) {
         throw type_error("CompoundExpr cannot be coerced to boolean.");
       });
