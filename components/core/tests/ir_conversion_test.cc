@@ -512,7 +512,7 @@ TEST(IrTest, TestBuiltInFunctions) {
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(29, ir.num_operations()) << ir;
+  ASSERT_EQ(31, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   ASSERT_EQ(4, ir.count_operation<ir::neg>());
   EXPECT_EQ(1, ir.count_function(std_math_function::cos));
@@ -531,7 +531,7 @@ TEST(IrTest, TestBuiltInFunctions) {
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(29, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(31, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }

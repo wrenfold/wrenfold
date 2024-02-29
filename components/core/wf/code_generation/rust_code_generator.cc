@@ -182,43 +182,6 @@ std::string rust_code_generator::operator()(const ast::branch& x) const {
   return result;
 }
 
-static constexpr std::string_view rust_string_for_std_function(
-    const std_math_function name) noexcept {
-  switch (name) {
-    case std_math_function::cos:
-      return "f64::cos";
-    case std_math_function::sin:
-      return "f64::sin";
-    case std_math_function::tan:
-      return "f64::tan";
-    case std_math_function::acos:
-      return "f64::acos";
-    case std_math_function::asin:
-      return "f64::asin";
-    case std_math_function::atan:
-      return "f64::atan";
-    case std_math_function::log:
-      return "f64::ln";
-    case std_math_function::sqrt:
-      return "f64::sqrt";
-    case std_math_function::abs:
-      return "f64::abs";
-    case std_math_function::signum:
-      return "f64::signum";
-    case std_math_function::floor:
-      return "f64::floor";
-    case std_math_function::atan2:
-      return "f64::atan2";
-    case std_math_function::powi:
-      return "f64::powi";
-    case std_math_function::powf:
-      return "f64::powf";
-    default:
-      break;
-  }
-  return "<INVALID ENUM VALUE>";
-}
-
 static bool is_get_argument_custom_type(const ast::ast_element& var) {
   if (const auto get = ast::get_if<ast::get_argument>(var); get.has_value()) {
     return get->arg.is_custom_type();
@@ -251,15 +214,34 @@ std::string rust_code_generator::operator()(const ast::call_external_function& x
 }
 
 std::string rust_code_generator::operator()(const ast::call_std_function& x) const {
-  // We have to override signum specially here, because the built-in rust signum does not return 0.
-  if (x.function == std_math_function::signum) {
-    // TODO: should be an integer expression:
-    return fmt::format("((0.0f64 < {}) as i64 - ({} < 0.0f64) as i64) as f64", make_view(x.args[0]),
-                       make_view(x.args[0]));
-  } else {
-    const std::string args = join(*this, ", ", x.args);
-    return fmt::format("{}({})", rust_string_for_std_function(x.function), args);
+  switch (x.function) {
+    case std_math_function::cos:
+    case std_math_function::sin:
+    case std_math_function::tan:
+    case std_math_function::acos:
+    case std_math_function::asin:
+    case std_math_function::atan:
+    case std_math_function::sqrt:
+    case std_math_function::abs:
+      return fmt::format("({}).{}()", make_view(x[0]),
+                         string_from_standard_library_function(x.function));
+    case std_math_function::log:
+      return fmt::format("({}).ln()", make_view(x[0]));
+    case std_math_function::signum:
+      return fmt::format("(0.0f64 < {arg}) as i64 - ({arg} < 0.0f64) as i64",
+                         fmt::arg("arg", make_view(x[0])));
+    case std_math_function::floor:
+      return fmt::format("({}).floor() as i64", make_view(x[0]));
+    case std_math_function::atan2:
+    case std_math_function::powi:
+    case std_math_function::powf:
+      return fmt::format("({}).{}({})", make_view(x[0]),
+                         string_from_standard_library_function(x.function), make_view(x[1]));
+    default:
+      break;
   }
+  WF_ASSERT_ALWAYS("Unsupported standard library function: {}",
+                   string_from_standard_library_function(x.function));
 }
 
 std::string rust_code_generator::operator()(const ast::cast& x) const {

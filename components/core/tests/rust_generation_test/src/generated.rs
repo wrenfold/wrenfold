@@ -35,9 +35,9 @@ where
   // total: 11
   
   let v001: f64 = theta;
-  let v002: f64 = f64::sin(v001);
+  let v002: f64 = (v001).sin();
   let v000: f64 = v.get(1, 0);
-  let v006: f64 = f64::cos(v001);
+  let v006: f64 = (v001).cos();
   let v005: f64 = v.get(0, 0);
   let v003: f64 = v000 * v002;
   let v010: f64 = v000 * v006;
@@ -77,7 +77,7 @@ where
   let v006: f64 = v001 + v003;
   let v005: f64 = v004 * v004;
   let v007: f64 = v005 + v006;
-  let v008: f64 = f64::sqrt(v007);
+  let v008: f64 = (v007).sqrt();
   let v012: f64 = (1i64) as f64 / v008;
   let v015: f64 = v004 * v012;
   let v014: f64 = v002 * v012;
@@ -149,8 +149,9 @@ pub fn signum_test<>(x: f64) -> f64
   // total: 1
   
   let v00: f64 = x;
-  let v01: f64 = ((0.0f64 < v00) as i64 - (v00 < 0.0f64) as i64) as f64;
-  v01
+  let v01: i64 = (0.0f64 < v00) as i64 - (v00 < 0.0f64) as i64;
+  let v02: f64 = (v01) as f64;
+  v02
 }
 
 #[inline]
@@ -162,7 +163,7 @@ pub fn abs_test<>(x: f64) -> f64
   // total: 1
   
   let v00: f64 = x;
-  let v01: f64 = f64::abs(v00);
+  let v01: f64 = (v00).abs();
   v01
 }
 
@@ -175,8 +176,9 @@ pub fn floor_test<>(x: f64) -> f64
   // total: 1
   
   let v00: f64 = x;
-  let v01: f64 = f64::floor(v00);
-  v01
+  let v01: i64 = (v00).floor() as i64;
+  let v02: f64 = (v01) as f64;
+  v02
 }
 
 #[inline]
@@ -200,7 +202,7 @@ pub fn atan2_with_derivatives<>(y: f64, x: f64, D_y: &mut f64, D_x: &mut f64) ->
   let v012: f64 = v000 * v009;
   let v010: f64 = v001 * v009;
   let v013: f64 = -v012;
-  let v002: f64 = f64::atan2(v000, v001);
+  let v002: f64 = (v000).atan2(v001);
   *D_y = v010;
   *D_x = v013;
   v002
@@ -221,8 +223,8 @@ pub fn nested_conditionals_1<>(x: f64, y: f64) -> f64
   
   let v002: f64 = x;
   let v000: f64 = y;
-  let v003: f64 = f64::abs(v002);
-  let v001: f64 = f64::abs(v000);
+  let v003: f64 = (v002).abs();
+  let v001: f64 = (v000).abs();
   let v004: bool = (v001) < (v003);
   let v032: f64;
   if v004 {
@@ -230,13 +232,13 @@ pub fn nested_conditionals_1<>(x: f64, y: f64) -> f64
     let v014: f64;
     if v007 {
       let v008: f64 = v000 * v002;
-      v014 = f64::cos(v008);
+      v014 = (v008).cos();
     } else {
-      let v011: f64 = f64::cos(v002);
+      let v011: f64 = (v002).cos();
       v014 = v011 + (2i64) as f64;
     }
-    let v015: f64 = f64::abs(v014);
-    let v016: f64 = f64::sqrt(v015);
+    let v015: f64 = (v014).abs();
+    let v016: f64 = (v015).sqrt();
     let v020: f64 = v014 * (3i64) as f64;
     let v017: f64 = -v016;
     v032 = v017 + v020;
@@ -244,13 +246,13 @@ pub fn nested_conditionals_1<>(x: f64, y: f64) -> f64
     let v023: bool = ((0i64) as f64) < (v002);
     let v027: f64;
     if v023 {
-      v027 = f64::ln(v001);
+      v027 = (v001).ln();
     } else {
-      let v025: f64 = f64::atan2(v000, v002);
+      let v025: f64 = (v000).atan2(v002);
       v027 = (3i64) as f64 * v025;
     }
-    let v028: f64 = f64::abs(v027);
-    let v030: f64 = f64::powf(v028, 0.3333333333333333f64);
+    let v028: f64 = (v027).abs();
+    let v030: f64 = (v028).powf(0.3333333333333333f64);
     let v022: f64 = 0.2f64;
     v032 = v022 * v030;
   }
@@ -273,8 +275,8 @@ pub fn nested_conditionals_2<>(x: f64, y: f64) -> f64
   
   let v002: f64 = x;
   let v000: f64 = y;
-  let v003: f64 = f64::abs(v002);
-  let v001: f64 = f64::abs(v000);
+  let v003: f64 = (v002).abs();
+  let v001: f64 = (v000).abs();
   let v010: f64 = v000 * v002;
   let v004: bool = (v001) < (v003);
   let v043: f64;
@@ -284,18 +286,18 @@ pub fn nested_conditionals_2<>(x: f64, y: f64) -> f64
       let v008: bool = ((0i64) as f64) < (v000);
       if v008 {
         let v011: f64 = std::f64::consts::PI * v010;
-        v043 = f64::cos(v011);
+        v043 = (v011).cos();
       } else {
         let v019: f64 = (1i64) as f64 / v000;
         let v021: f64 = v019 * (22i64) as f64;
-        let v022: f64 = f64::sin(v021);
+        let v022: f64 = (v021).sin();
         let v015: f64 = v002 * (-3i64) as f64;
         v043 = v015 + v022;
       }
     } else {
       let v030: f64 = v002 * 0.1f64;
       let v028: f64 = v000 * 0.4f64;
-      let v031: f64 = f64::atan2(v028, v030);
+      let v031: f64 = (v028).atan2(v030);
       let v033: f64 = v031 * (19i64) as f64;
       let v025: f64 = -v000;
       v043 = v025 + v033;
@@ -303,8 +305,8 @@ pub fn nested_conditionals_2<>(x: f64, y: f64) -> f64
   } else {
     let v038: f64 = v002 * (2i64) as f64;
     let v040: f64 = v010 + v038;
-    let v041: f64 = f64::abs(v040);
-    v043 = f64::sqrt(v041);
+    let v041: f64 = (v040).abs();
+    v043 = (v041).sqrt();
   }
   v043
 }
@@ -340,13 +342,13 @@ where
   let v0024: f64 = (1i64) as f64 + v0021;
   let v0022: f64 = v0006 * v0020;
   let v0013: f64 = 0.5f64;
-  let v0011: f64 = f64::sqrt(v0010);
+  let v0011: f64 = (v0010).sqrt();
   let v0025: f64 = v0022 + v0024;
   let v0023: f64 = v0008 * v0020;
   let v0014: f64 = v0011 * v0013;
   let v0026: f64 = v0023 + v0025;
-  let v0015: f64 = f64::sin(v0014);
-  let v0027: f64 = f64::sqrt(v0026);
+  let v0015: f64 = (v0014).sin();
+  let v0027: f64 = (v0026).sqrt();
   let v0018: f64 = v0005 * v0015;
   let v0017: f64 = (1i64) as f64 / v0011;
   let v0035: f64 = v0007 * v0015;
@@ -357,7 +359,7 @@ where
   let v0019: f64 = v0017 * v0018;
   let v0036: f64 = v0017 * v0035;
   let v0046: f64 = v0017 * v0045;
-  let v0053: f64 = f64::cos(v0014);
+  let v0053: f64 = (v0014).cos();
   let v0012: bool = (1e-16f64) < (v0011);
   let v0031: f64;
   let v0039: f64;
@@ -746,11 +748,11 @@ where
   let v0079: f64 = v0039 + v0060;
   let v0078: f64 = v0076 * v0077;
   let v0080: f64 = v0078 + v0079;
-  let v0081: f64 = f64::sqrt(v0080);
+  let v0081: f64 = (v0080).sqrt();
   let v0083: f64 = 0.5f64;
-  let v0096: f64 = f64::sqrt(v0028);
-  let v0104: f64 = f64::sqrt(v0052);
-  let v0112: f64 = f64::sqrt(v0070);
+  let v0096: f64 = (v0028).sqrt();
+  let v0104: f64 = (v0052).sqrt();
+  let v0112: f64 = (v0070).sqrt();
   let v0082: bool = (1e-16f64) < (v0081);
   let v0103: f64;
   let v0111: f64;
@@ -762,12 +764,12 @@ where
     let v0091: f64 = v0014 + v0090;
     let v0089: f64 = v0088 * v0088;
     let v0092: f64 = v0089 + v0091;
-    let v0093: f64 = f64::sqrt(v0092);
+    let v0093: f64 = (v0092).sqrt();
     let v0085: f64 = 0.25f64;
     let v0084: f64 = (1i64) as f64 / v0081;
     let v0094: f64 = v0085 * v0093;
     let v0097: f64 = v0083 * v0084;
-    let v0095: f64 = f64::atan2(v0081, v0094);
+    let v0095: f64 = (v0081).atan2(v0094);
     let v0098: f64 = v0095 * v0097;
     let v0099: f64 = v0036 * v0098;
     let v0107: f64 = v0057 * v0098;
@@ -801,12 +803,12 @@ pub fn no_required_outputs<>(x: f64, out1: Option<&mut f64>, out2: Option<&mut f
   
   let v001: f64 = x;
   if let Some(out1) = out1 {
-    let v002: f64 = f64::cos(v001);
+    let v002: f64 = (v001).cos();
     let v004: f64 = v002 + (2i64) as f64;
     *out1 = v004;
   }
   if let Some(out2) = out2 {
-    let v006: f64 = f64::abs(v001);
+    let v006: f64 = (v001).abs();
     let v007: f64 = (2i64) as f64 * v006;
     *out2 = v007;
   }
@@ -830,7 +832,7 @@ pub fn custom_type_1<>(p: &crate::types::Point2d) -> crate::types::Point2d
   let v005: f64 = v004 * v004;
   let v003: f64 = v002 * v002;
   let v006: f64 = v003 + v005;
-  let v007: f64 = f64::sqrt(v006);
+  let v007: f64 = (v006).sqrt();
   let v009: bool = ((0i64) as f64) < (v007);
   let v014: f64;
   let v016: f64;
@@ -859,9 +861,9 @@ where
   // total: 7
   
   let v001: f64 = theta;
-  let v004: f64 = f64::sin(v001);
+  let v004: f64 = (v001).sin();
   let v000: f64 = radius;
-  let v002: f64 = f64::cos(v001);
+  let v002: f64 = (v001).cos();
   let v005: f64 = v000 * v004;
   let v003: f64 = v000 * v002;
   if let Some(out) = out {
@@ -901,7 +903,7 @@ pub fn nested_custom_type_1<>(c: &crate::types::Circle, p: &crate::types::Point2
   let v007: f64 = v006 * v006;
   let v012: f64 = v007 + v011;
   let v014: f64 = c.radius;
-  let v013: f64 = f64::sqrt(v012);
+  let v013: f64 = (v012).sqrt();
   let v015: bool = (v013) <= (v014);
   let v016: f64;
   if v015 {
@@ -1007,8 +1009,8 @@ pub fn external_function_call_4<>(a: f64, b: f64) -> f64
   let v008: crate::types::Point2d = crate::external_functions::external_function_4(&v007);
   let v011: f64 = v008.x();
   let v009: f64 = v008.y();
-  let v012: f64 = f64::abs(v011);
-  let v010: f64 = f64::abs(v009);
+  let v012: f64 = (v011).abs();
+  let v010: f64 = (v009).abs();
   let v013: bool = (v010) < (v012);
   let v014: f64;
   if v013 {
@@ -1054,8 +1056,8 @@ pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
   
   let v002: f64 = x;
   let v000: f64 = y;
-  let v003: f64 = f64::abs(v002);
-  let v001: f64 = f64::abs(v000);
+  let v003: f64 = (v002).abs();
+  let v001: f64 = (v000).abs();
   let v004: bool = (v001) < (v003);
   let v005: f64;
   let v012: f64;

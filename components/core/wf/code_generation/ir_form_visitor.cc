@@ -151,13 +151,37 @@ static constexpr std_math_function std_math_function_from_built_in(const built_i
   WF_ASSERT_ALWAYS("Invalid enum value: {}", string_from_built_in_function(name));
 }
 
+// Determine the return type of a call to a built in math function.
+// For some functions, this is determined by the input type. For most functions it is just a
+// floating point scalar.
+static code_numeric_type std_function_output_type(const std_math_function func,
+                                                  const ir::value::operands_container& args) {
+  switch (func) {
+    case std_math_function::abs: {
+      WF_ASSERT_EQUAL(1, args.size());
+      return args[0]->numeric_type();
+    }
+    case std_math_function::floor:
+    case std_math_function::signum: {
+      // TODO: signum/sign could adopt the type of its argument, but we need to either add another
+      //  enum value or pass type information explicitly to the ast. I'm not sure which to do yet
+      //  so I am deferring this decision.
+      return code_numeric_type::integral;
+    }
+    default:
+      break;
+  }
+  return code_numeric_type::floating_point;
+}
+
 ir::value_ptr ir_form_visitor::operator()(const function& func) {
   const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
-  // TODO: Special case for `abs` and `signum` here.
-  return push_operation(
-      ir::call_std_function{enum_value}, code_numeric_type::floating_point,
-      transform_map<ir::value::operands_container>(
-          func, [this](const scalar_expr& expr) { return this->operator()(expr); }));
+
+  // Convert args to values:
+  auto args = transform_map<ir::value::operands_container>(func, *this);
+
+  const code_numeric_type numeric_type = std_function_output_type(enum_value, args);
+  return push_operation(ir::call_std_function{enum_value}, numeric_type, std::move(args));
 }
 
 ir::value_ptr ir_form_visitor::operator()(const integer_constant& i) {
@@ -179,7 +203,6 @@ ir::value_ptr ir_form_visitor::exponentiate_by_squaring(ir::value_ptr base, std:
   if (exponent == 0) {
     return operator()(constants::one);
   }
-  // TODO: Somewhat lazy way of handling the first iteration - use an empty optional.
   std::optional<ir::value_ptr> result{};
   for (;;) {
     if (exponent & 1) {

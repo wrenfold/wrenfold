@@ -177,40 +177,6 @@ std::string cpp_code_generator::operator()(const ast::assign_temporary& x) const
   return fmt::format("{} = {};", x.left, make_view(x.right));
 }
 
-static constexpr std::string_view cpp_string_for_std_function(
-    const std_math_function name) noexcept {
-  switch (name) {
-    case std_math_function::cos:
-      return "std::cos";
-    case std_math_function::sin:
-      return "std::sin";
-    case std_math_function::tan:
-      return "std::tan";
-    case std_math_function::acos:
-      return "std::acos";
-    case std_math_function::asin:
-      return "std::asin";
-    case std_math_function::atan:
-      return "std::atan";
-    case std_math_function::log:
-      return "std::log";
-    case std_math_function::sqrt:
-      return "std::sqrt";
-    case std_math_function::abs:
-      return "std::abs";
-    case std_math_function::floor:
-      return "std::floor";
-    case std_math_function::atan2:
-      return "std::atan2";
-    case std_math_function::powi:
-    case std_math_function::powf:
-      return "std::pow";
-    default:
-      break;
-  }
-  return "<INVALID ENUM VALUE>";
-}
-
 std::string cpp_code_generator::operator()(const ast::branch& x) const {
   std::string result{};
   fmt::format_to(std::back_inserter(result), "if ({}) ", make_view(x.condition));
@@ -232,16 +198,36 @@ std::string cpp_code_generator::operator()(const ast::call_external_function& x)
 }
 
 std::string cpp_code_generator::operator()(const ast::call_std_function& x) const {
-  if (x.function == std_math_function::signum) {
-    // We need to special-case signum because it doesn't exist as a free-standing function.
-    // TODO: This should be an int expression.
-    return fmt::format(
-        "static_cast<Scalar>(static_cast<Scalar>(0) < {}) - ({} < static_cast<Scalar>(0))",
-        make_view(x.args[0]), make_view(x.args[0]));
-  } else {
-    const std::string args = join(*this, ", ", x.args);
-    return fmt::format("{}({})", cpp_string_for_std_function(x.function), args);
+  switch (x.function) {
+    case std_math_function::cos:
+    case std_math_function::sin:
+    case std_math_function::tan:
+    case std_math_function::acos:
+    case std_math_function::asin:
+    case std_math_function::atan:
+    case std_math_function::log:
+    case std_math_function::sqrt:
+    case std_math_function::abs:
+      return fmt::format("std::{}({})", string_from_standard_library_function(x.function),
+                         make_view(x[0]));
+    case std_math_function::signum:
+      // TODO: Casts should be different, depending on type of first arg.
+      return fmt::format("(static_cast<Scalar>(0) < {arg}) - ({arg} < static_cast<Scalar>(0))",
+                         fmt::arg("arg", make_view(x[0])));
+    case std_math_function::floor:
+      return fmt::format("static_cast<{}>(std::floor({}))",
+                         cpp_string_from_numeric_type(code_numeric_type::integral),
+                         make_view(x[0]));
+    case std_math_function::atan2:
+      return fmt::format("std::atan2({}, {})", make_view(x[0]), make_view(x[1]));
+    case std_math_function::powi:
+    case std_math_function::powf:
+      return fmt::format("std::pow({}, {})", make_view(x[0]), make_view(x[1]));
+    default:
+      break;
   }
+  WF_ASSERT_ALWAYS("Unhandled standard math function: {}",
+                   string_from_standard_library_function(x.function));
 }
 
 std::string cpp_code_generator::operator()(const ast::cast& x) const {
