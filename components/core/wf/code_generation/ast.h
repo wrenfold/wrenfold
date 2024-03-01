@@ -64,6 +64,12 @@ struct call_std_function {
 
   std_math_function function;
   std::vector<ast_element> args;
+
+  // Access args with bounds checking.
+  const ast_element& operator[](std::size_t i) const {
+    WF_ASSERT_LESS(i, args.size());
+    return args[i];
+  }
 };
 
 // Cast a scalar from one numeric type to another.

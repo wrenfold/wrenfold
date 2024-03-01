@@ -121,7 +121,7 @@ enum class std_math_function {
 };
 
 // True if the set is real numbers, or a constrained subset of the real numbers.
-constexpr inline bool is_real_set(number_set set) noexcept {
+constexpr bool is_real_set(number_set set) noexcept {
   if (set == number_set::real || set == number_set::real_non_negative ||
       set == number_set::real_positive) {
     return true;
@@ -188,8 +188,8 @@ constexpr std::string_view string_from_relational_operation(
 }
 
 // Convert symbolic constant enum to string constant.
-inline constexpr std::string_view string_from_symbolic_constant(
-    symbolic_constant_enum value) noexcept {
+constexpr std::string_view string_from_symbolic_constant(
+    const symbolic_constant_enum value) noexcept {
   switch (value) {
     case symbolic_constant_enum::euler:
       return "e";
@@ -217,7 +217,7 @@ constexpr std::string_view string_from_code_numeric_type(const code_numeric_type
 }
 
 // Convert `number_set` to string.
-constexpr inline std::string_view string_from_number_set(const number_set set) noexcept {
+constexpr std::string_view string_from_number_set(const number_set set) noexcept {
   switch (set) {
     case number_set::real_positive:
       return "real_positive";
@@ -234,8 +234,8 @@ constexpr inline std::string_view string_from_number_set(const number_set set) n
 }
 
 // Convert `std_math_function` to string.
-constexpr inline std::string_view string_from_standard_library_function(
-    std_math_function name) noexcept {
+constexpr std::string_view string_from_standard_library_function(
+    const std_math_function name) noexcept {
   switch (name) {
     case std_math_function::cos:
       return "cos";
@@ -256,7 +256,7 @@ constexpr inline std::string_view string_from_standard_library_function(
     case std_math_function::abs:
       return "abs";
     case std_math_function::signum:
-      return "sign";
+      return "signum";
     case std_math_function::floor:
       return "floor";
     case std_math_function::atan2:
