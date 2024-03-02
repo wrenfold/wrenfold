@@ -105,7 +105,6 @@ def plot_polynomials(polynomials: T.List[sym.Expr], x: sym.Expr, order: int, num
     cmap = plt.colormaps.get_cmap('hsv')
 
     # Determine the width of intervals for the fundamental basis functions:
-    # order = len(polynomials)
     base_interval_width = 1.0 / order
 
     assert num_knots > order, f"order = {order}, num_knots = {num_knots}"

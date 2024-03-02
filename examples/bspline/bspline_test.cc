@@ -1,3 +1,6 @@
+// Copyright 2024 Gareth Cross
+#include "wf/visit.h"
+
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numerical_jacobian.h"
 #include "wf_test_support/test_macros.h"
@@ -7,25 +10,18 @@
 
 #include "bspline_numerical.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4100)  //  Disable unused parameter.
+#endif
 #include "generated.h"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace wf {
 
-struct basis_index {
-  // Index into the knots of the _first_ relevant control point for the sampled interval.
-  // For an order `k` spline, you would need points [i, i + 1, ..., i + k - 1]
-  std::size_t index;
-  // Normalized value of `x`.
-  double x_normalized;
-  // The scale factor used to convert `x` into `x_normalized`, which we use later to scale
-  // derivatives correctly.
-  double scale_factor;
-};
-
-// Find the index of the first basis function that influences points at position `x`.
-// Points sampled at `x` will be a function of the bases [i, i + order).
-basis_index compute_basis_index(const double x, const std::size_t order,
-                                const std::size_t num_knots) {
+std::size_t compute_basis_index(const double x, const std::size_t num_knots) {
   WF_ASSERT_GREATER_OR_EQ(x, 0.0);
   WF_ASSERT_LESS_OR_EQ(x, 1.0);
 
@@ -37,167 +33,87 @@ basis_index compute_basis_index(const double x, const std::size_t order,
 
   // min() here because the last interval is inclusive on the right side.
   const double x_interval = std::floor(x * static_cast<double>(num_intervals));
-  const std::size_t i = std::min(static_cast<std::size_t>(x_interval), num_intervals - 1);
-
-  // Compute the start of the interval that `x` falls in:
-  const double knot_spacing = 1.0 / static_cast<double>(num_intervals);
-  const double interval_start = static_cast<double>(i) * knot_spacing;
-
-  // Shift and scale into [0, 1].
-  const double scale_factor = static_cast<double>(num_intervals) / static_cast<double>(order - 1);
-  const double x_normalized = (x - interval_start) * scale_factor;
-
-  return basis_index{i, x_normalized, scale_factor};
+  const std::size_t interval = std::min(static_cast<std::size_t>(x_interval), num_intervals - 1);
+  return interval;
 }
 
-// Supporting method for `eval_bspline_coefficients`. We use it to generate an if-else
-// sequence that checks the spline index:
-//  if (i == 0) { ... }
-//  else if (i == N - 1) { ... }
-//  else if (i == 1) {... }
-//  else if (i == N - 2) { ... }, etc...
-template <typename F, std::size_t... Indices>
-constexpr bool compile_time_for(F&& func, std::index_sequence<Indices...>) {
-  return (func(std::integral_constant<std::size_t, Indices>{}) || ...);
+// Given an index `interval` (between [0, num_intervals]), convert it the index into the basis
+// functions of an order `order` bspline.
+constexpr std::size_t determine_poly_index(const std::size_t interval,
+                                           const std::size_t num_intervals,
+                                           const std::size_t order) noexcept {
+  if (interval < order - 1) {
+    return interval;
+  } else if (interval < num_intervals) {
+    return order - 1;
+  } else {
+    return order - (num_intervals - interval);
+  }
 }
-template <std::size_t Num, typename F>
-constexpr bool compile_time_for(F&& func) {
-  return compile_time_for(std::forward<F>(func), std::make_index_sequence<Num>());
-}
+
+// A macro that takes a function, and creates a lambda that forwards any number of arguments.
+// This is so we can pass generic methods to `eval_bspline_coefficients` without turning them into
+// concrete function pointers.
+#define MAKE_LAMBDA(func) [](auto&&... args) { return func(std::forward<decltype(args)>(args)...); }
 
 // Compute b-spline coefficients at position `x`.
 // For an order K spline, we compute a [K x (K-1)] matrix where the rows are the spline coefficients
 // over the interval that contains `x`. Row `i` refers to the i'th control point. Column `j` refers
 // to the j'th derivative. We return the index of the first control point required to evaluate the
 // spline at `x`.
-template <typename... Polynomials>
-std::size_t eval_bspline_coefficients(
-    const double x, const std::size_t num_knots,
-    Eigen::Matrix<double, sizeof...(Polynomials), sizeof...(Polynomials) - 1>& output_coefficients,
-    Polynomials&&... polynomials) {
-  constexpr std::size_t spline_order = sizeof...(polynomials);
-  WF_ASSERT_GREATER(num_knots, spline_order, "Number of knots must exceed spline order");
+template <std::size_t Order, typename... Polynomials>
+std::size_t eval_bspline_coefficients(const double x, const std::size_t num_knots,
+                                      Eigen::Matrix<double, Order, Order - 1>& output_coefficients,
+                                      Polynomials&&... polynomials) {
+  WF_ASSERT_GREATER(num_knots, Order, "Number of knots must exceed spline order");
+  const std::size_t interval = compute_basis_index(x, num_knots);
 
   const std::size_t num_intervals = num_knots - 1;
-  const basis_index bi = compute_basis_index(x, spline_order, num_knots);
+  const double knot_spacing = 1.0 / static_cast<double>(num_intervals);
+  constexpr double base_knot_spacing = 1.0 / static_cast<double>(Order);
+  const double scale_factor = base_knot_spacing / knot_spacing;
 
-  // Put the polynomial evaluators into a tuple so we can access them with a compile time index
-  // in the loop below.
-  // const auto callables = std::make_tuple(std::forward<Polynomials>(polynomials)...);
+  const auto polynomial_tuple = std::make_tuple(std::forward<Polynomials>(polynomials)...);
 
-  using function_ptr_type = std::decay_t<type_list_front_t<type_list<Polynomials...>>>;
-  const std::array<function_ptr_type, spline_order> callables{polynomials...};
+  for (std::size_t i = 0; i < Order; ++i) {
+    const std::size_t shifted_i = i + interval;
+    const std::size_t polynomial_index = determine_poly_index(shifted_i, num_intervals, Order);
 
-  for (std::size_t i = 0; i < spline_order; ++i) {
-    const std::size_t shifted_i = i + bi.index;
-    if (shifted_i < spline_order) {
+    // Scale and shift `x` to be in the appropriate domain for basis function `polynomial_index`.
+    const double source_origin =
+        static_cast<double>(std::max<int>(0, static_cast<int>(shifted_i) - Order + 1)) *
+        knot_spacing;
+    const double dest_origin =
+        static_cast<double>(std::max<int>(0, static_cast<int>(polynomial_index) - Order + 1)) *
+        base_knot_spacing;
+    const double scaled_x = (x - source_origin) * scale_factor + dest_origin;
 
-    }
+    // Invoke the appropriate basis polynomial.
+    // TODO: No idea if this is a performant pattern or not. It allows me to avoid converting
+    //  `polynomials` into an array of function pointers (I don't know how to decay then to a
+    //  single consistent type). Instead we create `sizeof...(Polynomials)` switch cases. This means
+    //  we can leave the types of `polynomials` ambiguous until the callsite. For the purpose of
+    //  this example it is probably fine. In actual practice, I would probably prefer to avoid the
+    //  complexity induced by supporting splines of variable order.
+    detail::visit_switch<sizeof...(Polynomials)>(polynomial_index, [&](const auto n) {
+      std::get<n()>(polynomial_tuple)(scaled_x, scale_factor,
+                                      output_coefficients.row(i).transpose());
+    });
   }
 
-  if (bi.index < spline_order - 1) {
-  } else if (bi.index > num_knots - spline_order - 2) {
-  }
-
-  // We iterate over integers [0, spline_order - 1). Each time the lambda is called, it is invoked
-  // with an integral constant denoting the loop iteration. If the loop iteration matches our
-  // sought-after index `i`, we get the appropriate function from `lambdas` and call it.
-  const bool endpoint_interval =
-      compile_time_for<spline_order - 1>([&](const auto integral_constant) {
-        if constexpr (integral_constant() == spline_order) {
-        } else {
-        }
-        if (constexpr std::size_t idx = integral_constant(); bi.index == idx) {
-          std::get<idx>(callables)(bi.x_normalized, bi.scale_factor, output_coefficients);
-          return true;
-        } else if (bi.index == num_intervals - 1 - idx) {
-          // We take an interval from the start of the spline, and flip it horizontally.
-          std::get<idx>(callables)(1.0 - bi.x_normalized, -bi.scale_factor, output_coefficients);
-          // Flip the order of rows (reversing the order of control points coefficients).
-          output_coefficients.colwise().reverseInPlace();
-          return true;
-        }
-        return false;
-      });
-
-  // If no iteration above found it, then this must be one of the repeated central intervals.
-  // All of these are repitions of each other, so we can call `middle_interval` for all of them.
-  if (!endpoint_interval) {
-    middle_interval(bi.x_normalized, bi.scale_factor, output_coefficients);
-  }
-  return bi.index;
-}
-
-// Cumulative version of `eval_bspline_coefficients`.
-// Unlike the former, this method only outputs a [(K-1) x (K-1)] matrix. This is because the
-// b-spline coefficient on the first relevant control point is always 1 (and the derivatives are
-// always zero). So we omit the first row in the output.
-template <typename MiddleInterval, typename... EndpointIntervals>
-std::size_t eval_bspline_cumulative_coefficients(
-    const double x, const std::size_t num_knots,
-    Eigen::Matrix<double, sizeof...(EndpointIntervals), sizeof...(EndpointIntervals)>&
-        output_coefficients,
-    MiddleInterval&& middle_interval, EndpointIntervals&&... intervals) {
-  constexpr std::size_t spline_order = sizeof...(intervals) + 1;
-  WF_ASSERT_GREATER(num_knots, spline_order, "Number of knots must exceed spline order");
-
-  const std::size_t num_intervals = num_knots - 1;
-  const basis_index bi = compute_basis_index(x, num_knots);
-  const auto callables = std::make_tuple(std::forward<EndpointIntervals>(intervals)...);
-
-  const bool endpoint_interval =
-      compile_time_for<spline_order - 1>([&](const auto integral_constant) {
-        if (constexpr std::size_t idx = integral_constant(); bi.index == idx) {
-          std::get<idx>(callables)(bi.x_normalized, bi.scale_factor, output_coefficients);
-          return true;
-        } else if (bi.index == num_intervals - 1 - idx) {
-          // We take an interval from the start of the spline, and flip it horizontally.
-          std::get<idx>(callables)(1.0 - bi.x_normalized, -bi.scale_factor, output_coefficients);
-          output_coefficients.colwise().reverseInPlace();
-
-          // We also need to invert the positional part of the spline:
-          output_coefficients.col(0).array() = 1.0 - output_coefficients.col(0).array();
-          output_coefficients.template rightCols<sizeof...(EndpointIntervals) - 1>() *= -1.0;
-          return true;
-        }
-        return false;
-      });
-
-  // If no iteration above found it, then this must be one of the repeated central intervals.
-  // All of these are repitions of each other, so we can call `middle_interval` for all of them.
-  if (!endpoint_interval) {
-    middle_interval(bi.x_normalized, bi.scale_factor, output_coefficients);
-  }
-  return bi.index;
+  return interval;
 }
 
 TEST(BSplineTest, TestBSplineCoeffsOrder4) {
-  constexpr std::size_t num_knots = 11;
-  constexpr double interval_scale = 1.0 / static_cast<double>(num_knots - 1);
-
-  // Ensure we have continuity at the knots:
-  Eigen::Matrix<double, 4, 3> b_prev, b_next;
-  gen::bspline_order4_interval_0(1.0, interval_scale, b_prev);
-  gen::bspline_order4_interval_1(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(3).eval(), b_next.topRows(3).eval(), 1.0e-12);
-
-  gen::bspline_order4_interval_1(1.0, interval_scale, b_prev);
-  gen::bspline_order4_interval_2(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(3).eval(), b_next.topRows(3).eval(), 1.0e-12);
-
-  gen::bspline_order4_interval_2(1.0, interval_scale, b_prev);
-  gen::bspline_order4_interval_3(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(3).eval(), b_next.topRows(3).eval(), 1.0e-12);
-
   const auto eval4 = [&](auto&&... args) {
-    return eval_bspline_coefficients(
-        std::forward<decltype(args)>(args)...,
-        gen::bspline_order4_interval_3<double, Eigen::Matrix<double, 4, 3>&>,
-        gen::bspline_order4_interval_0<double, Eigen::Matrix<double, 4, 3>&>,
-        gen::bspline_order4_interval_1<double, Eigen::Matrix<double, 4, 3>&>,
-        gen::bspline_order4_interval_2<double, Eigen::Matrix<double, 4, 3>&>);
+    return eval_bspline_coefficients<4>(
+        std::forward<decltype(args)>(args)..., MAKE_LAMBDA(gen::bspline_order4_poly_0),
+        MAKE_LAMBDA(gen::bspline_order4_poly_1), MAKE_LAMBDA(gen::bspline_order4_poly_2),
+        MAKE_LAMBDA(gen::bspline_order4_poly_3), MAKE_LAMBDA(gen::bspline_order4_poly_4),
+        MAKE_LAMBDA(gen::bspline_order4_poly_5), MAKE_LAMBDA(gen::bspline_order4_poly_6));
   };
 
+  constexpr std::size_t num_knots = 11;
   constexpr std::size_t num_samples = 1000;
   for (std::size_t i = 0; i < num_samples; ++i) {
     const double x = static_cast<double>(i) / static_cast<double>(num_samples - 1);
@@ -216,7 +132,7 @@ TEST(BSplineTest, TestBSplineCoeffsOrder4) {
 
   // Check derivative numerically:
   for (std::size_t interval = 0; interval < num_knots - 1; ++interval) {
-    const double x = (static_cast<double>(interval) + 0.5) * interval_scale;
+    const double x = (static_cast<double>(interval) + 0.5) / static_cast<double>(num_knots - 1);
 
     Eigen::Matrix<double, 4, 3> evaluated{};
     eval4(x, num_knots, evaluated);
@@ -234,38 +150,38 @@ TEST(BSplineTest, TestBSplineCoeffsOrder4) {
 
   // Check the cumulative version:
   const auto eval4_cumulative = [&](auto&&... args) {
-    return eval_bspline_cumulative_coefficients(
-        std::forward<decltype(args)>(args)...,
-        gen::bspline_cumulative_order4_interval_3<double, Eigen::Matrix<double, 3, 3>&>,
-        gen::bspline_cumulative_order4_interval_0<double, Eigen::Matrix<double, 3, 3>&>,
-        gen::bspline_cumulative_order4_interval_1<double, Eigen::Matrix<double, 3, 3>&>,
-        gen::bspline_cumulative_order4_interval_2<double, Eigen::Matrix<double, 3, 3>&>);
+    return eval_bspline_coefficients<4>(std::forward<decltype(args)>(args)...,
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order4_poly_0),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order4_poly_1),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order4_poly_2),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order4_poly_3),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order4_poly_4),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order4_poly_5),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order4_poly_6));
   };
 
   for (std::size_t i = 0; i < num_samples; ++i) {
     const double x = static_cast<double>(i) / static_cast<double>(num_samples - 1);
 
-    Eigen::Matrix<double, 3, 3> evaluated{};
+    Eigen::Matrix<double, 4, 3> evaluated{};
     const std::size_t b_index_0 = eval4_cumulative(x, num_knots, evaluated);
 
-    // Compare the position term to the numerical implementation:
-    // Start at j = 1 because the first coefficient is always 1.
-    for (int j = 1; j < 4; ++j) {
-      ASSERT_NEAR(bspline_numerical(4, num_knots).cumulative(x, b_index_0 + j), evaluated(j - 1, 0),
+    for (int j = 0; j < 4; ++j) {
+      ASSERT_NEAR(bspline_numerical(4, num_knots).cumulative(x, b_index_0 + j), evaluated(j, 0),
                   1.0e-12);
     }
   }
 
   // Check derivative:
   for (std::size_t interval = 0; interval < num_knots - 1; ++interval) {
-    const double x = (static_cast<double>(interval) + 0.5) * interval_scale;
+    const double x = (static_cast<double>(interval) + 0.5) / static_cast<double>(num_knots - 1);
 
-    Eigen::Matrix<double, 3, 3> evaluated{};
+    Eigen::Matrix<double, 4, 3> evaluated{};
     eval4_cumulative(x, num_knots, evaluated);
 
     for (int d = 1; d < evaluated.cols(); ++d) {
-      const Eigen::Vector3d D_numerical = numerical_derivative(0.001, [&](const double dx) {
-        Eigen::Matrix<double, 3, 3> out{};
+      const Eigen::Vector4d D_numerical = numerical_derivative(0.001, [&](const double dx) {
+        Eigen::Matrix<double, 4, 3> out{};
         eval4_cumulative(x + dx, num_knots, out);
         return out.col(d - 1).eval();
       });
@@ -275,74 +191,48 @@ TEST(BSplineTest, TestBSplineCoeffsOrder4) {
   }
 }
 
-TEST(BSplineTest, TestBSplineCoeffsOrder7) {
-  constexpr std::size_t num_knots = 11;
-  constexpr double interval_scale = 1.0 / static_cast<double>(num_knots - 1);
-
-  Eigen::Matrix<double, 7, 6> b_prev, b_next;
-  gen::bspline_order7_interval_0(1.0, interval_scale, b_prev);
-  gen::bspline_order7_interval_1(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(6).eval(), b_next.topRows(6).eval(), 1.0e-12);
-
-  gen::bspline_order7_interval_1(1.0, interval_scale, b_prev);
-  gen::bspline_order7_interval_2(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(6).eval(), b_next.topRows(6).eval(), 1.0e-12);
-
-  gen::bspline_order7_interval_2(1.0, interval_scale, b_prev);
-  gen::bspline_order7_interval_3(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(6).eval(), b_next.topRows(6).eval(), 1.0e-12);
-
-  gen::bspline_order7_interval_3(1.0, interval_scale, b_prev);
-  gen::bspline_order7_interval_4(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(6).eval(), b_next.topRows(6).eval(), 1.0e-12);
-
-  gen::bspline_order7_interval_4(1.0, interval_scale, b_prev);
-  gen::bspline_order7_interval_5(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(6).eval(), b_next.topRows(6).eval(), 1.0e-10);
-
-  gen::bspline_order7_interval_5(1.0, interval_scale, b_prev);
-  gen::bspline_order7_interval_6(0.0, interval_scale, b_next);
-  ASSERT_EIGEN_NEAR(b_prev.bottomRows(6).eval(), b_next.topRows(6).eval(), 1.0e-10);
-
-  const auto eval7 = [&](auto&&... args) {
-    return eval_bspline_coefficients(
-        std::forward<decltype(args)>(args)...,
-        gen::bspline_order7_interval_6<double, Eigen::Matrix<double, 7, 6>&>,
-        gen::bspline_order7_interval_0<double, Eigen::Matrix<double, 7, 6>&>,
-        gen::bspline_order7_interval_1<double, Eigen::Matrix<double, 7, 6>&>,
-        gen::bspline_order7_interval_2<double, Eigen::Matrix<double, 7, 6>&>,
-        gen::bspline_order7_interval_3<double, Eigen::Matrix<double, 7, 6>&>,
-        gen::bspline_order7_interval_4<double, Eigen::Matrix<double, 7, 6>&>,
-        gen::bspline_order7_interval_5<double, Eigen::Matrix<double, 7, 6>&>);
+TEST(BSplineTest, TestBSplineCoeffsOrder6) {
+  // TODO: Having to pass the flipped basis polynomials for the right side of the interval is a bit
+  //  cumbersome and makes this invocation look a little ridiculous. We could improve this by simply
+  //  mirroring the polynomials from the left side of the interval.
+  const auto eval6 = [&](auto&&... args) {
+    return eval_bspline_coefficients<6>(
+        std::forward<decltype(args)>(args)..., MAKE_LAMBDA(gen::bspline_order6_poly_0),
+        MAKE_LAMBDA(gen::bspline_order6_poly_1), MAKE_LAMBDA(gen::bspline_order6_poly_2),
+        MAKE_LAMBDA(gen::bspline_order6_poly_3), MAKE_LAMBDA(gen::bspline_order6_poly_4),
+        MAKE_LAMBDA(gen::bspline_order6_poly_5), MAKE_LAMBDA(gen::bspline_order6_poly_6),
+        MAKE_LAMBDA(gen::bspline_order6_poly_7), MAKE_LAMBDA(gen::bspline_order6_poly_8),
+        MAKE_LAMBDA(gen::bspline_order6_poly_9), MAKE_LAMBDA(gen::bspline_order6_poly_10));
   };
 
   constexpr std::size_t num_samples = 1000;
+  constexpr std::size_t num_knots = 12;
   for (std::size_t i = 0; i < num_samples; ++i) {
     const double x = static_cast<double>(i) / static_cast<double>(num_samples - 1);
 
-    Eigen::Matrix<double, 7, 6> evaluated{};
-    const std::size_t b_index_0 = eval7(x, num_knots, evaluated);
+    Eigen::Matrix<double, 6, 5> evaluated{};
+    const std::size_t b_index_0 = eval6(x, num_knots, evaluated);
 
-    for (std::size_t j = 0; j < 7; ++j) {
-      ASSERT_NEAR(bspline_numerical(7, num_knots)(x, b_index_0 + j), evaluated(j, 0), 1.0e-10);
+    for (std::size_t j = 0; j < 6; ++j) {
+      ASSERT_NEAR(bspline_numerical(6, num_knots)(x, b_index_0 + j), evaluated(j, 0), 1.0e-9);
     }
 
     // Sum of b-spline coefficients must one:
-    ASSERT_NEAR(1.0, evaluated.col(0).sum(), 1.0e-10)
+    ASSERT_NEAR(1.0, evaluated.col(0).sum(), 1.0e-9)
         << fmt::format("evaluated: {}", evaluated.transpose());
   }
 
   for (std::size_t interval = 0; interval < num_knots - 1; ++interval) {
-    const double x = (static_cast<double>(interval) + 0.5) * interval_scale;
+    const double x = (static_cast<double>(interval) + 0.5) / static_cast<double>(num_knots - 1);
 
-    Eigen::Matrix<double, 7, 6> evaluated{};
-    eval7(x, num_knots, evaluated);
+    Eigen::Matrix<double, 6, 5> evaluated{};
+    eval6(x, num_knots, evaluated);
 
     for (int d = 1; d < evaluated.cols(); ++d) {
-      const Eigen::Matrix<double, 7, 1> D_numerical =
+      const Eigen::Matrix<double, 6, 1> D_numerical =
           numerical_derivative(0.001, [&](const double dx) {
-            Eigen::Matrix<double, 7, 6> out{};
-            eval7(x + dx, num_knots, out);
+            Eigen::Matrix<double, 6, 5> out{};
+            eval6(x + dx, num_knots, out);
             return out.col(d - 1).eval();
           });
 
@@ -352,43 +242,45 @@ TEST(BSplineTest, TestBSplineCoeffsOrder7) {
     }
   }
 
-  const auto eval7_cumulative = [&](auto&&... args) {
-    return eval_bspline_cumulative_coefficients(
-        std::forward<decltype(args)>(args)...,
-        gen::bspline_cumulative_order7_interval_6<double, Eigen::Matrix<double, 6, 6>&>,
-        gen::bspline_cumulative_order7_interval_0<double, Eigen::Matrix<double, 6, 6>&>,
-        gen::bspline_cumulative_order7_interval_1<double, Eigen::Matrix<double, 6, 6>&>,
-        gen::bspline_cumulative_order7_interval_2<double, Eigen::Matrix<double, 6, 6>&>,
-        gen::bspline_cumulative_order7_interval_3<double, Eigen::Matrix<double, 6, 6>&>,
-        gen::bspline_cumulative_order7_interval_4<double, Eigen::Matrix<double, 6, 6>&>,
-        gen::bspline_cumulative_order7_interval_5<double, Eigen::Matrix<double, 6, 6>&>);
+  const auto eval6_cumulative = [&](auto&&... args) {
+    return eval_bspline_coefficients<6>(std::forward<decltype(args)>(args)...,
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_0),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_1),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_2),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_3),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_4),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_5),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_6),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_7),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_8),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_9),
+                                        MAKE_LAMBDA(gen::bspline_cumulative_order6_poly_10));
   };
 
   for (std::size_t i = 0; i < num_samples; ++i) {
     const double x = static_cast<double>(i) / static_cast<double>(num_samples - 1);
 
-    Eigen::Matrix<double, 6, 6> evaluated{};
-    const std::size_t b_index_0 = eval7_cumulative(x, num_knots, evaluated);
+    Eigen::Matrix<double, 6, 5> evaluated{};
+    const std::size_t b_index_0 = eval6_cumulative(x, num_knots, evaluated);
 
     // Compare the position term to the numerical implementation:
-    // Start at j = 1 because the first coefficient is always 1.
-    for (int j = 1; j < 7; ++j) {
-      ASSERT_NEAR(bspline_numerical(7, num_knots).cumulative(x, b_index_0 + j), evaluated(j - 1, 0),
-                  1.0e-11);
+    for (int j = 0; j < 6; ++j) {
+      ASSERT_NEAR(bspline_numerical(6, num_knots).cumulative(x, b_index_0 + j), evaluated(j, 0),
+                  1.0e-9);
     }
   }
 
   // Check derivative:
   for (std::size_t interval = 0; interval < num_knots - 1; ++interval) {
-    const double x = (static_cast<double>(interval) + 0.5) * interval_scale;
+    const double x = (static_cast<double>(interval) + 0.5) / static_cast<double>(num_knots - 1);
 
-    Eigen::Matrix<double, 6, 6> evaluated{};
-    eval7_cumulative(x, num_knots, evaluated);
+    Eigen::Matrix<double, 6, 5> evaluated{};
+    eval6_cumulative(x, num_knots, evaluated);
 
     for (int d = 1; d < evaluated.cols(); ++d) {
       const auto D_numerical = numerical_derivative(0.001, [&](const double dx) {
-        Eigen::Matrix<double, 6, 6> out{};
-        eval7_cumulative(x + dx, num_knots, out);
+        Eigen::Matrix<double, 6, 5> out{};
+        eval6_cumulative(x + dx, num_knots, out);
         return out.col(d - 1).eval();
       });
       ASSERT_EIGEN_NEAR(D_numerical, evaluated.col(d).eval(), 1.0e-6)
