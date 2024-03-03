@@ -10,3 +10,4 @@ nalgebra = { workspace = true }
 
 [dev-dependencies]
 approx = { workspace = true }
+wrenfold-test-utils = { workspace = true }

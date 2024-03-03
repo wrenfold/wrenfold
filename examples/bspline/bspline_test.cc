@@ -90,17 +90,15 @@ std::size_t eval_bspline_coefficients(const double x, const std::size_t num_knot
 
     // Invoke the appropriate basis polynomial.
     // TODO: No idea if this is a performant pattern or not. It allows me to avoid converting
-    //  `polynomials` into an array of function pointers (I don't know how to decay then to a
+    //  `polynomials` into an array of function pointers (I don't know how to decay them to a
     //  single consistent type). Instead we create `sizeof...(Polynomials)` switch cases. This means
     //  we can leave the types of `polynomials` ambiguous until the callsite. For the purpose of
     //  this example it is probably fine. In actual practice, I would probably prefer to avoid the
     //  complexity induced by supporting splines of variable order.
     detail::visit_switch<sizeof...(Polynomials)>(polynomial_index, [&](const auto n) {
-      std::get<n()>(polynomial_tuple)(scaled_x, scale_factor,
-                                      output_coefficients.row(i).transpose());
+      std::get<n()>(polynomial_tuple)(scaled_x, scale_factor, output_coefficients.row(i));
     });
   }
-
   return interval;
 }
 

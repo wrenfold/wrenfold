@@ -226,7 +226,7 @@ def create_polynomial_functions(
             for _ in range(0, order - 2):
                 rows.append(rows[-1].diff(arg) * arg_scale)
 
-            return [OutputArg(expression=sym.vector(*rows), name=f"b_{i}")]
+            return [OutputArg(expression=sym.vector(*rows).transpose(), name=f"b_{i}")]
 
         if is_cumulative:
             name = f'bspline_cumulative_order{order}_poly_{i}'
@@ -298,7 +298,7 @@ def create_bspline_functions(order: int,
 
 def main(args: argparse.Namespace):
     descriptions = []
-    for order in range(3, 8):
+    for order in [3, 4, 5, 6]:
         descriptions += create_bspline_functions(order=order, visualize=args.visualize)
 
     definitions = code_generation.transpile(descriptions=descriptions)

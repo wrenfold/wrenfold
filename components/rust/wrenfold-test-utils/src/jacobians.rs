@@ -1,3 +1,4 @@
+//! Copyright 2024 Gareth Cross
 //! Utilities for computing numerical jacobians.
 
 use nalgebra as na;
@@ -23,6 +24,17 @@ where
 
     fn local_coordinates(&self, other: &Self) -> na::SVector<T, D> {
         other - self
+    }
+}
+
+/// Implement `Manifold` for scalars.
+impl Manifold<f64, 1> for f64 {
+    fn retract(&self, dx: &na::SVector<f64, 1>) -> Self {
+        *self + dx[0]
+    }
+
+    fn local_coordinates(&self, other: &Self) -> na::SVector<f64, 1> {
+        na::Vector1::new(*other - *self)
     }
 }
 

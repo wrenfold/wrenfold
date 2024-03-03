@@ -111,6 +111,7 @@ version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
  "nalgebra",
+ "wrenfold-test-utils",
  "wrenfold-traits",
 ]
 

@@ -4,6 +4,7 @@ members = [
     "components/core/tests/rust_generation_test",
     "components/core/tests/rust_generation_test_2",
     "components/rust/wrenfold-test-utils",
+    "components/rust/wrenfold-traits",
     "examples/bspline/bspline_rust_test",
     "examples/custom_types/custom_types_rust_test",
     "examples/motion_planning/motion_planning_test",

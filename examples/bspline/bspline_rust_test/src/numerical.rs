@@ -1,3 +1,4 @@
+//! Copyright 2024 Gareth Cross
 #![cfg(test)]
 
 /// Numerical implementation we compare the generated polynomials to.

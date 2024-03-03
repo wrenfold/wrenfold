@@ -2,7 +2,7 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn simple_multiply_add<>(x: f64, y: f64, z: f64) -> f64
 {
   // Operation counts:
@@ -19,7 +19,7 @@ pub fn simple_multiply_add<>(x: f64, y: f64, z: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn vector_rotation_2d<T1, T2, T3, >(theta: f64, v: &T1, v_rot: &mut T2, D_theta: Option<&mut T3>) -> ()
 where
   T1: wrenfold_traits::Span2D<2, 1, ValueType = f64>,
@@ -56,7 +56,7 @@ where
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn vector_norm_3d<T0, T1, >(v: &T0, D_v: &mut T1) -> f64
 where
   T0: wrenfold_traits::Span2D<3, 1, ValueType = f64>,
@@ -89,7 +89,7 @@ where
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn heaviside<>(x: f64) -> f64
 {
   // Operation counts:
@@ -110,7 +110,7 @@ pub fn heaviside<>(x: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn exclusive_or<>(x: f64, y: f64) -> f64
 {
   // Operation counts:
@@ -141,7 +141,7 @@ pub fn exclusive_or<>(x: f64, y: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn signum_test<>(x: f64) -> f64
 {
   // Operation counts:
@@ -155,7 +155,7 @@ pub fn signum_test<>(x: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn abs_test<>(x: f64) -> f64
 {
   // Operation counts:
@@ -168,7 +168,7 @@ pub fn abs_test<>(x: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn floor_test<>(x: f64) -> f64
 {
   // Operation counts:
@@ -182,7 +182,7 @@ pub fn floor_test<>(x: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn atan2_with_derivatives<>(y: f64, x: f64, D_y: &mut f64, D_x: &mut f64) -> f64
 {
   // Operation counts:
@@ -209,7 +209,7 @@ pub fn atan2_with_derivatives<>(y: f64, x: f64, D_y: &mut f64, D_x: &mut f64) ->
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn nested_conditionals_1<>(x: f64, y: f64) -> f64
 {
   // Operation counts:
@@ -260,7 +260,7 @@ pub fn nested_conditionals_1<>(x: f64, y: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn nested_conditionals_2<>(x: f64, y: f64) -> f64
 {
   // Operation counts:
@@ -312,7 +312,7 @@ pub fn nested_conditionals_2<>(x: f64, y: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn create_rotation_matrix<T0, T1, T2, >(w: &T0, R: &mut T1, R_D_w: Option<&mut T2>) -> ()
 where
   T0: wrenfold_traits::Span2D<3, 1, ValueType = f64>,
@@ -657,7 +657,7 @@ where
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn rotation_vector_from_matrix<T0, T1, >(R: &T0, w: &mut T1) -> ()
 where
   T0: wrenfold_traits::Span2D<3, 3, ValueType = f64>,
@@ -791,7 +791,7 @@ where
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn no_required_outputs<>(x: f64, out1: Option<&mut f64>, out2: Option<&mut f64>) -> ()
 {
   // Operation counts:
@@ -815,7 +815,7 @@ pub fn no_required_outputs<>(x: f64, out1: Option<&mut f64>, out2: Option<&mut f
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn custom_type_1<>(p: &crate::types::Point2d) -> crate::types::Point2d
 {
   // Operation counts:
@@ -848,7 +848,7 @@ pub fn custom_type_1<>(p: &crate::types::Point2d) -> crate::types::Point2d
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn custom_type_2<T3, >(theta: f64, radius: f64, out: Option<&mut crate::types::Point2d>, D_inputs: Option<&mut T3>) -> ()
 where
   T3: wrenfold_traits::OutputSpan2D<2, 2, ValueType = f64>,
@@ -879,7 +879,7 @@ where
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn nested_custom_type_1<>(c: &crate::types::Circle, p: &crate::types::Point2d) -> crate::types::Circle
 {
   // Operation counts:
@@ -918,7 +918,7 @@ pub fn nested_custom_type_1<>(c: &crate::types::Circle, p: &crate::types::Point2
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn external_function_call_1<>(x: f64, y: f64) -> f64
 {
   // Operation counts:
@@ -937,7 +937,7 @@ pub fn external_function_call_1<>(x: f64, y: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn external_function_call_2<T0, T1, >(u: &T0, v: &T1) -> f64
 where
   T0: wrenfold_traits::Span2D<2, 1, ValueType = f64>,
@@ -963,7 +963,7 @@ where
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn external_function_call_3<T1, >(x: f64, v: &T1) -> nalgebra::SMatrix<f64, 2, 2>
 where
   T1: wrenfold_traits::Span2D<2, 1, ValueType = f64>,
@@ -988,7 +988,7 @@ where
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn external_function_call_4<>(a: f64, b: f64) -> f64
 {
   // Operation counts:
@@ -1022,7 +1022,7 @@ pub fn external_function_call_4<>(a: f64, b: f64) -> f64
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn external_function_call_5<>(c: &crate::types::Circle, x: f64, y: f64) -> f64
 {
   // Operation counts:
@@ -1044,7 +1044,7 @@ pub fn external_function_call_5<>(c: &crate::types::Circle, x: f64, y: f64) -> f
 }
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, unused_variables)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
 {
   // Operation counts:
