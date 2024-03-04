@@ -59,7 +59,7 @@ macro_rules! declare_bspline_method {
     };
 }
 
-/// Map argument x from [0, 1] to the index of the 0'th order basis interval.
+/// Map argument x from [0, 1] to the index of the corresponding interval between two knots.
 /// If there are `n` knots, there are n - 1 intervals.
 #[inline(always)]
 fn compute_basis_index(x: f64, num_knots: usize) -> usize {
@@ -73,7 +73,9 @@ fn compute_basis_index(x: f64, num_knots: usize) -> usize {
 }
 
 /// Given an index `interval` (between [0, num_intervals]), convert it the index into the basis
-/// functions of an order `order` bspline.
+/// functions of an order `order` bspline. Because we support a variable number of knots, we tile
+/// the central b-spline basis function over the knots specified at runtime. This function maps
+/// from the "tiled" indices to the indices of the minimum set of basis polynomials.
 #[inline(always)]
 fn determine_poly_index(interval: usize, num_intervals: usize, order: usize) -> usize {
     if interval < order - 1 {
@@ -195,6 +197,7 @@ declare_bspline_method!(
     (10, bspline_cumulative_order6_poly_10),
 );
 
+/// Test order `ORDER` b-spline function.
 #[cfg(test)]
 fn test_bspline_generic<const ORDER: usize, const ORDER_MINUS_ONE: usize, F>(
     num_knots: usize,

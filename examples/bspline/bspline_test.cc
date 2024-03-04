@@ -21,6 +21,7 @@
 
 namespace wf {
 
+// Map argument x from [0, 1] to the index of the corresponding interval between two knots.
 std::size_t compute_basis_index(const double x, const std::size_t num_knots) {
   WF_ASSERT_GREATER_OR_EQ(x, 0.0);
   WF_ASSERT_LESS_OR_EQ(x, 1.0);
@@ -38,7 +39,9 @@ std::size_t compute_basis_index(const double x, const std::size_t num_knots) {
 }
 
 // Given an index `interval` (between [0, num_intervals]), convert it the index into the basis
-// functions of an order `order` bspline.
+// functions of an order `order` bspline. Because we support a variable number of knots, we tile
+// the central b-spline basis function over the # of knots specified at runtime. This function maps
+// from the "tiled" indices to the indices of the minimum set of basis polynomials.
 constexpr std::size_t determine_poly_index(const std::size_t interval,
                                            const std::size_t num_intervals,
                                            const std::size_t order) noexcept {

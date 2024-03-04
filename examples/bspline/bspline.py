@@ -1,11 +1,17 @@
 """
 Example of generating b-splines functions.
 
-For an order `k` b-spline, this script generates k unique functions. Each function
-covers one interval of the spline. The first function covers the interval between the
-first two knots [x0, x1]. The second function covers the interval between second two
-knots [x1, x2] - and so on. These functions generalize to any number of knots because
-all the other intervals are translations or flips of the first `k`.
+For an order `k` b-spline, this script generates the `2*(k - 1)` unique piecewise polynomials
+required to evaluate the b-spline. Technically, some of the generated polynomials are mirror-images
+of each other - with a bit of work we could eliminate them.
+
+This method of generating the b-splines yields a set of reusable polynomials that we can repeat
+along the x-axis to create a spline with an arbitrary number of knots. However, it does induce some
+additional complexity that may not suit every use case.
+
+To build the piecewise polynomials, we first construct the order `k` basis functions via the
+cox-de-boor formula. Then the polynomial segments for each sub-interval between uniformly spaced
+knots are combined into piecewise continuous (to derivative k - 1) polynomials.
 """
 import argparse
 import typing as T
@@ -94,71 +100,6 @@ def create_cumulative_bases(number_of_knots: int, order: int, bases: T.Sequence[
     return cumulative_bases
 
 
-def plot_polynomials(polynomials: T.List[sym.Expr], x: sym.Expr, order: int, num_knots: int):
-    """
-    Plot the symbolic polynomial segments.
-    """
-    # Local imports since these are not actually required to run the script at build time.
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    cmap = plt.colormaps.get_cmap('hsv')
-
-    # Determine the width of intervals for the fundamental basis functions:
-    base_interval_width = 1.0 / order
-
-    assert num_knots > order, f"order = {order}, num_knots = {num_knots}"
-
-    # Width of the intervals that we'll plot:
-    num_intervals = num_knots - 1
-    scaled_interval_width = 1.0 / num_intervals
-    scale_factor = base_interval_width / scaled_interval_width
-
-    # Total # of basis polynomials
-    total_num_bases = num_intervals + order - 1
-
-    computed_polys = collections.defaultdict(list)
-    for x_val in np.linspace(0.0, 1.0, 1000):
-        # Determine interval x belongs in:
-        interval = min(int(np.floor(x_val * num_intervals)), num_intervals - 1)
-
-        # Evaluate the relevant polynomials
-        for i in range(0, order):
-            shifted_i = i + interval
-
-            # Determine which polynomial we need from the original set of fundamental bases:
-            if shifted_i < order - 1:
-                poly_index = shifted_i
-            elif shifted_i < num_intervals:
-                poly_index = order - 1
-            else:
-                poly_index = order - (num_intervals - shifted_i)
-
-            poly_source_origin = max(0, shifted_i - order + 1) * scaled_interval_width
-            poly_dest_origin = max(0, poly_index - order + 1) * base_interval_width
-
-            # Scale and shift into the range of the target polynomial:
-            scaled_x = (x_val - poly_source_origin) * scale_factor + poly_dest_origin
-
-            y_val = polynomials[poly_index].subs_variables([(x, scaled_x)]).eval()
-            computed_polys[shifted_i].append((x_val, y_val))
-
-    plt.figure()
-    plt.title(f"Order {order}")
-
-    for i, poly_vals in computed_polys.items():
-        poly_vals = np.array(poly_vals)
-        alpha = (i + 0.5) / float(total_num_bases)
-        plt.plot(poly_vals[:, 0], poly_vals[:, 1], label=f'Function {i}', color=cmap(alpha))
-
-    for k in np.linspace(0.0, 1.0, num_knots):
-        plt.axvline(x=k, linestyle=':', color='black')
-
-    plt.grid()
-    plt.legend()
-    plt.show()
-
-
 def create_piecewise_polynomials(x: sym.Expr, order: int, bases: T.Sequence[sym.Expr],
                                  degree_zero_bases: T.Sequence[sym.Expr],
                                  is_cumulative: bool) -> T.List[sym.Expr]:
@@ -236,6 +177,71 @@ def create_polynomial_functions(
         descriptions.append(desc)
 
     return descriptions
+
+
+def plot_polynomials(polynomials: T.List[sym.Expr], x: sym.Expr, order: int, num_knots: int):
+    """
+    Plot the symbolic polynomial segments.
+    """
+    # Local imports since these are not actually required to run the script at build time.
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    cmap = plt.colormaps.get_cmap('hsv')
+
+    # Determine the width of intervals for the fundamental basis functions:
+    base_interval_width = 1.0 / order
+
+    assert num_knots > order, f"order = {order}, num_knots = {num_knots}"
+
+    # Width of the intervals that we'll plot:
+    num_intervals = num_knots - 1
+    scaled_interval_width = 1.0 / num_intervals
+    scale_factor = base_interval_width / scaled_interval_width
+
+    # Total # of basis polynomials
+    total_num_bases = num_intervals + order - 1
+
+    computed_polys = collections.defaultdict(list)
+    for x_val in np.linspace(0.0, 1.0, 1000):
+        # Determine interval x belongs in:
+        interval = min(int(np.floor(x_val * num_intervals)), num_intervals - 1)
+
+        # Evaluate the relevant polynomials
+        for i in range(0, order):
+            shifted_i = i + interval
+
+            # Determine which polynomial we need from the original set of fundamental bases:
+            if shifted_i < order - 1:
+                poly_index = shifted_i
+            elif shifted_i < num_intervals:
+                poly_index = order - 1
+            else:
+                poly_index = order - (num_intervals - shifted_i)
+
+            poly_source_origin = max(0, shifted_i - order + 1) * scaled_interval_width
+            poly_dest_origin = max(0, poly_index - order + 1) * base_interval_width
+
+            # Scale and shift into the range of the target polynomial:
+            scaled_x = (x_val - poly_source_origin) * scale_factor + poly_dest_origin
+
+            y_val = polynomials[poly_index].subs_variables([(x, scaled_x)]).eval()
+            computed_polys[shifted_i].append((x_val, y_val))
+
+    plt.figure()
+    plt.title(f"Order {order}")
+
+    for i, poly_vals in computed_polys.items():
+        poly_vals = np.array(poly_vals)
+        alpha = (i + 0.5) / float(total_num_bases)
+        plt.plot(poly_vals[:, 0], poly_vals[:, 1], label=f'Function {i}', color=cmap(alpha))
+
+    for k in np.linspace(0.0, 1.0, num_knots):
+        plt.axvline(x=k, linestyle=':', color='black')
+
+    plt.grid()
+    plt.legend()
+    plt.show()
 
 
 def create_bspline_functions(order: int,
