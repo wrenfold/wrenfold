@@ -1,28 +1,25 @@
 [package]
 name = "bspline_demo"
 version.workspace = true
-edition = "2021"
-publish = false
-description = "Web app to visualize b-splines."
+edition.workspace = true
 license.workspace = true
-
-[lib]
-crate-type = ["cdylib"]
+publish = false
+description = "App to visualize generated b-spline functions."
 
 [features]
-default = ["wgpu"]
+default = ["glow"]
 
-# Turn on egui wgpu, and enable the wgpu dependency.
-wgpu = ["eframe/wgpu", "dep:wgpu"]
+glow = ["eframe/glow"]
+wayland = ["eframe/wayland"]
 
 [dependencies]
 bspline_rust_test = { workspace = true }
+wrenfold-traits = { workspace = true }
 
 # External dependencies.
+arrayvec = { version = "0.7.4 "}
 colorgrad = { version = "0.6.2", default-features = false  }
-eframe = { version = "0.26", default-features = false, features = [
-  "web_screen_reader",
-] }
+eframe = { version = "0.26", default-features = false }
 egui = { version = "0.26", features = [
   "callstack",
   "default",
@@ -33,6 +30,3 @@ egui_extras = { version = "0.26", features = ["default", "image"] }
 egui_plot = { version = "0.26", features = ["default"] }
 log = { version = "0.4", features = ["std"] }
 nalgebra = { workspace = true }
-wasm-bindgen = { version = "0.2" }
-wasm-bindgen-futures = "0.4"
-wgpu = { workspace = "0.19", default-features = false, features = ["webgl"], optional = true }

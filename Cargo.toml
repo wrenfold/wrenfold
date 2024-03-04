@@ -2,6 +2,7 @@
 resolver = "2"
 package.version = "0.0.1"
 package.license = "MIT"
+package.edition = "2021"
 members = [
     "components/core/tests/rust_generation_test_2",
     "components/core/tests/rust_generation_test",

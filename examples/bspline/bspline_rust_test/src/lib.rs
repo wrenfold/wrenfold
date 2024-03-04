@@ -143,10 +143,63 @@ declare_bspline_method!(
     (10, bspline_order6_poly_10),
 );
 
+declare_bspline_method!(
+    eval_cumulative_bspline_coefficients_order3,
+    3,
+    (0, bspline_cumulative_order3_poly_0),
+    (1, bspline_cumulative_order3_poly_1),
+    (2, bspline_cumulative_order3_poly_2),
+    (3, bspline_cumulative_order3_poly_3),
+    (4, bspline_cumulative_order3_poly_4),
+);
+
+declare_bspline_method!(
+    eval_cumulative_bspline_coefficients_order4,
+    4,
+    (0, bspline_cumulative_order4_poly_0),
+    (1, bspline_cumulative_order4_poly_1),
+    (2, bspline_cumulative_order4_poly_2),
+    (3, bspline_cumulative_order4_poly_3),
+    (4, bspline_cumulative_order4_poly_4),
+    (5, bspline_cumulative_order4_poly_5),
+    (6, bspline_cumulative_order4_poly_6),
+);
+
+declare_bspline_method!(
+    eval_cumulative_bspline_coefficients_order5,
+    5,
+    (0, bspline_cumulative_order5_poly_0),
+    (1, bspline_cumulative_order5_poly_1),
+    (2, bspline_cumulative_order5_poly_2),
+    (3, bspline_cumulative_order5_poly_3),
+    (4, bspline_cumulative_order5_poly_4),
+    (5, bspline_cumulative_order5_poly_5),
+    (6, bspline_cumulative_order5_poly_6),
+    (7, bspline_cumulative_order5_poly_7),
+    (8, bspline_cumulative_order5_poly_8),
+);
+
+declare_bspline_method!(
+    eval_cumulative_bspline_coefficients_order6,
+    6,
+    (0, bspline_cumulative_order6_poly_0),
+    (1, bspline_cumulative_order6_poly_1),
+    (2, bspline_cumulative_order6_poly_2),
+    (3, bspline_cumulative_order6_poly_3),
+    (4, bspline_cumulative_order6_poly_4),
+    (5, bspline_cumulative_order6_poly_5),
+    (6, bspline_cumulative_order6_poly_6),
+    (7, bspline_cumulative_order6_poly_7),
+    (8, bspline_cumulative_order6_poly_8),
+    (9, bspline_cumulative_order6_poly_9),
+    (10, bspline_cumulative_order6_poly_10),
+);
+
 #[cfg(test)]
 fn test_bspline_generic<const ORDER: usize, const ORDER_MINUS_ONE: usize, F>(
     num_knots: usize,
     func: F,
+    cumulative: bool,
     tol: f64,
     deriv_tol: f64,
 ) where
@@ -157,16 +210,27 @@ fn test_bspline_generic<const ORDER: usize, const ORDER_MINUS_ONE: usize, F>(
         let mut coefficients = na::SMatrix::zeros();
         let index = func(x, num_knots, &mut coefficients);
 
-        // Check that b-spline coefficients sum to one.
-        approx::assert_abs_diff_eq!(1.0, coefficients.column(0).sum(), epsilon = tol);
+        if !cumulative {
+            // Check that b-spline coefficients sum to one.
+            approx::assert_abs_diff_eq!(1.0, coefficients.column(0).sum(), epsilon = tol);
 
-        // Test against numerical implementation:
-        for j in 0..ORDER {
-            approx::assert_abs_diff_eq!(
-                numerical::BSplineNumerical::new(ORDER, num_knots).eval(x, index + j),
-                coefficients[(j, 0)],
-                epsilon = tol,
-            );
+            // Test against numerical implementation:
+            for j in 0..ORDER {
+                approx::assert_abs_diff_eq!(
+                    numerical::BSplineNumerical::new(ORDER, num_knots).eval(x, index + j),
+                    coefficients[(j, 0)],
+                    epsilon = tol,
+                );
+            }
+        } else {
+            for j in 0..ORDER {
+                approx::assert_abs_diff_eq!(
+                    numerical::BSplineNumerical::new(ORDER, num_knots)
+                        .eval_cumulative(x, index + j),
+                    coefficients[(j, 0)],
+                    epsilon = tol,
+                );
+            }
         }
     }
 
@@ -198,26 +262,82 @@ fn test_bspline_generic<const ORDER: usize, const ORDER_MINUS_ONE: usize, F>(
 
 #[test]
 fn test_bspline_order3() {
-    test_bspline_generic(4, eval_bspline_coefficients_order3, 1.0e-12, 1.0e-9);
-    test_bspline_generic(7, eval_bspline_coefficients_order3, 1.0e-12, 1.0e-9);
+    test_bspline_generic(4, eval_bspline_coefficients_order3, false, 1.0e-12, 1.0e-9);
+    test_bspline_generic(7, eval_bspline_coefficients_order3, false, 1.0e-12, 1.0e-9);
+    test_bspline_generic(
+        4,
+        eval_cumulative_bspline_coefficients_order3,
+        true,
+        1.0e-12,
+        1.0e-9,
+    );
+    test_bspline_generic(
+        8,
+        eval_cumulative_bspline_coefficients_order3,
+        true,
+        1.0e-12,
+        1.0e-9,
+    );
 }
 
 #[test]
 fn test_bspline_order4() {
-    test_bspline_generic(5, eval_bspline_coefficients_order4, 1.0e-12, 1.0e-9);
-    test_bspline_generic(8, eval_bspline_coefficients_order4, 1.0e-12, 1.0e-9);
+    test_bspline_generic(5, eval_bspline_coefficients_order4, false, 1.0e-12, 1.0e-9);
+    test_bspline_generic(8, eval_bspline_coefficients_order4, false, 1.0e-12, 1.0e-9);
+    test_bspline_generic(
+        5,
+        eval_cumulative_bspline_coefficients_order4,
+        true,
+        1.0e-12,
+        1.0e-9,
+    );
+    test_bspline_generic(
+        9,
+        eval_cumulative_bspline_coefficients_order4,
+        true,
+        1.0e-12,
+        1.0e-9,
+    );
 }
 
 #[test]
 fn test_bspline_order5() {
-    test_bspline_generic(6, eval_bspline_coefficients_order5, 1.0e-9, 1.0e-6);
-    test_bspline_generic(13, eval_bspline_coefficients_order5, 1.0e-9, 1.0e-6);
+    test_bspline_generic(6, eval_bspline_coefficients_order5, false, 1.0e-9, 1.0e-6);
+    test_bspline_generic(13, eval_bspline_coefficients_order5, false, 1.0e-9, 1.0e-6);
+    test_bspline_generic(
+        6,
+        eval_cumulative_bspline_coefficients_order5,
+        true,
+        1.0e-9,
+        1.0e-6,
+    );
+    test_bspline_generic(
+        7,
+        eval_cumulative_bspline_coefficients_order5,
+        true,
+        1.0e-9,
+        1.0e-6,
+    );
 }
 
 #[test]
 fn test_bspline_order6() {
-    test_bspline_generic(7, eval_bspline_coefficients_order6, 1.0e-9, 1.0e-6);
-    test_bspline_generic(16, eval_bspline_coefficients_order6, 1.0e-9, 1.0e-6);
+    test_bspline_generic(7, eval_bspline_coefficients_order6, false, 1.0e-9, 1.0e-6);
+    test_bspline_generic(16, eval_bspline_coefficients_order6, false, 1.0e-9, 1.0e-6);
+    test_bspline_generic(
+        7,
+        eval_cumulative_bspline_coefficients_order6,
+        true,
+        1.0e-9,
+        1.0e-6,
+    );
+    test_bspline_generic(
+        9,
+        eval_cumulative_bspline_coefficients_order6,
+        true,
+        1.0e-9,
+        1.0e-6,
+    );
 }
 
 /// Do a simple curve fitting problem with a 4th-order b-spline.
