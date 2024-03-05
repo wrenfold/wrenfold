@@ -39,7 +39,7 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   // Convert to string.
   std::string to_string() const;
 
-  // Defined in tree_formatter.cc
+  // Format to graphical tree representation.
   std::string to_expression_tree_string() const;
 
   // Negation operator.

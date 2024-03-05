@@ -65,7 +65,6 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
   std::string to_string() const;
 
   // Convert to string of the expression tree.
-  // Defined in tree_formatter.cc
   std::string to_expression_tree_string() const;
 
   // Negation operator.

@@ -5,6 +5,7 @@
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/plain_formatter.h"
+#include "wf/tree_formatter.h"
 
 namespace wf {
 
@@ -41,7 +42,13 @@ scalar_expr scalar_expr::from_int(const checked_int x) {
 
 std::string scalar_expr::to_string() const {
   plain_formatter formatter{};
-  visit(*this, formatter);
+  formatter(*this);
+  return formatter.take_output();
+}
+
+std::string scalar_expr::to_expression_tree_string() const {
+  tree_formatter_visitor formatter{};
+  formatter(*this);
   return formatter.take_output();
 }
 

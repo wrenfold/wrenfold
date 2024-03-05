@@ -43,13 +43,8 @@ class multiplication {
   container_type::const_iterator begin() const noexcept { return terms_.begin(); }
   container_type::const_iterator end() const noexcept { return terms_.end(); }
 
-  // All terms must be identical.
-  bool is_identical_to(const multiplication& other) const {
-    if (size() != other.size()) {
-      return false;
-    }
-    return std::equal(begin(), end(), other.begin(), is_identical_struct<scalar_expr>{});
-  }
+  // Get terms in the multiplication, sorted into canonical order.
+  std::vector<scalar_expr> sorted_terms() const;
 
   // Implement ExpressionImpl::Map
   template <typename Operation>

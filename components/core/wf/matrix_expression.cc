@@ -1,14 +1,14 @@
 // Copyright 2023 Gareth Cross
 #include "wf/matrix_expression.h"
 
-#include "wf_runtime/span.h"
-
 #include "wf/constants.h"
 #include "wf/derivative.h"
 #include "wf/distribute.h"
+#include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/functions.h"
 #include "wf/plain_formatter.h"
+#include "wf/tree_formatter.h"
 
 namespace wf {
 
@@ -21,6 +21,12 @@ matrix_expr matrix_expr::create(index_t rows, index_t cols, std::vector<scalar_e
 
 std::string matrix_expr::to_string() const {
   plain_formatter formatter{};
+  formatter(*this);
+  return formatter.take_output();
+}
+
+std::string matrix_expr::to_expression_tree_string() const {
+  tree_formatter_visitor formatter{};
   formatter(*this);
   return formatter.take_output();
 }
