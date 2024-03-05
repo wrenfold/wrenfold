@@ -1,4 +1,5 @@
 #pragma once
+#include "wf/boolean_expression.h"
 #include "wf/expression.h"
 
 namespace wf {
@@ -10,9 +11,10 @@ class constants {
   static const scalar_expr euler;
   static const scalar_expr negative_one;
   static const scalar_expr complex_infinity;
-  static const scalar_expr boolean_true;
-  static const scalar_expr boolean_false;
   static const scalar_expr undefined;
+
+  static const boolean_expr boolean_true;
+  static const boolean_expr boolean_false;
 };
 
 inline bool is_zero(const scalar_expr& expr) { return expr.is_identical_to(constants::zero); }

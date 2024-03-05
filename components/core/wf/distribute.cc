@@ -23,8 +23,16 @@ compound_expr distribute_visitor::operator()(const compound_expr& x) {
   return map_compound_expressions(x, *this);
 }
 
+boolean_expr distribute_visitor::operator()(const boolean_expr& x) { return visit(x, *this); }
+
 scalar_expr distribute_visitor::operator()(const addition& add) { return add.map_children(*this); }
-scalar_expr distribute_visitor::operator()(const cast_bool& cast) {
+
+boolean_expr distribute_visitor::operator()(const boolean_constant&,
+                                            const boolean_expr& arg) const {
+  return arg;
+}
+
+scalar_expr distribute_visitor::operator()(const iverson_bracket& cast) {
   return cast.map_children(*this);
 }
 scalar_expr distribute_visitor::operator()(const compound_expression_element& el) {
@@ -87,9 +95,11 @@ scalar_expr distribute_visitor::operator()(const power& pow) {
 scalar_expr distribute_visitor::operator()(const rational_constant&, const scalar_expr& arg) const {
   return arg;
 }
-scalar_expr distribute_visitor::operator()(const relational& relation) {
+
+boolean_expr distribute_visitor::operator()(const relational& relation) {
   return relation.map_children(*this);
 }
+
 scalar_expr distribute_visitor::operator()(const symbolic_constant&, const scalar_expr& arg) const {
   return arg;
 }

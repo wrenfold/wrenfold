@@ -38,6 +38,12 @@ struct assign_output_scalar {
   ast_element value;
 };
 
+// A boolean litera: 'true' or 'false'.
+struct boolean_literal {
+  static constexpr std::string_view snake_case_name_str = "boolean_literal";
+  bool value;
+};
+
 // An if/else statement.
 struct branch {
   static constexpr std::string_view snake_case_name_str = "branch";

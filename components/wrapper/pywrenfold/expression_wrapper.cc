@@ -65,20 +65,6 @@ std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
                     std::move(arg));
 }
 
-bool convert_expr_to_bool(const scalar_expr& self) {
-  if (const symbolic_constant* c = cast_ptr<const symbolic_constant>(self); c != nullptr) {
-    if (c->name() == symbolic_constant_enum::boolean_true) {
-      return true;
-    } else if (c->name() == symbolic_constant_enum::boolean_false) {
-      return false;
-    }
-  }
-  throw type_error(
-      "Expression of type `{}` cannot be coerced to boolean. Only expressions sym.true and "
-      "sym.false can be evaluated for truthiness.",
-      self.type_name());
-}
-
 scalar_expr substitute_variables_wrapper(
     const scalar_expr& self, const std::vector<std::tuple<scalar_expr, scalar_expr>>& pairs) {
   return self.substitute_variables(pairs);
@@ -100,6 +86,9 @@ void wrap_code_formatting_operations(py::module_& m);
 
 // Defined in compound_expression_wrapper.cc
 void wrap_compound_expression(py::module_& m);
+
+// Defined in boolean_expression_wrapper.cc
+void wrap_boolean_expression(py::module_& m);
 
 // Defined in geometry_wrapper.cc
 void wrap_geometry_operations(py::module_& m);
@@ -175,7 +164,15 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(double() < py::self)
       .def(double() <= py::self)
       // Override conversion to boolean, so we don't coerce non-boolean expressions.
-      .def("__bool__", &convert_expr_to_bool, py::doc("Coerce expression to bool."));
+      .def(
+          "__bool__",
+          [](const scalar_expr& self) {
+            throw type_error(
+                "Expression of type `{}` cannot be coerced to boolean. Only expressions sym.true "
+                "and sym.false can be evaluated for truthiness.",
+                self.type_name());
+          },
+          py::doc("Coerce expression to bool."));
 
   py::implicitly_convertible<std::int64_t, scalar_expr>();
   py::implicitly_convertible<double, scalar_expr>();
@@ -184,10 +181,10 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("arg"),
         "Create variables from a string or an iterable of strings.");
   m.def(
-      "integer", [](std::int64_t value) { return scalar_expr{value}; }, "value"_a,
+      "integer", [](const std::int64_t value) { return scalar_expr{value}; }, "value"_a,
       "Create an integer expression.");
   m.def(
-      "float", [](double value) { return scalar_expr{value}; }, "value"_a,
+      "float", [](const double value) { return scalar_expr{value}; }, "value"_a,
       "Create a float expression.");
 
   // Built-in functions:
@@ -209,15 +206,16 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def("max", &wf::max, "a"_a, "b"_a, "Maximum of two scalar values.");
   m.def("min", &wf::min, "a"_a, "b"_a, "Minimum of two scalar values.");
   m.def("where",
-        static_cast<scalar_expr (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&)>(
+        static_cast<scalar_expr (*)(const boolean_expr&, const scalar_expr&, const scalar_expr&)>(
             &wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
-  m.def("equals", static_cast<scalar_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator==),
-        "a"_a, "b"_a, py::doc("Boolean expression that is true when both operands are equal."));
+  m.def("equals",
+        static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator==), "a"_a,
+        "b"_a, py::doc("Boolean expression that is true when both operands are equal."));
 
-  m.def("cast_int_from_bool", &wf::cast_int_from_bool, "arg"_a,
-        "Convert a boolean expression to an integer.");
+  m.def("iverson", &wf::iverson, "arg"_a,
+        "Convert a boolean expression to an integer via the iverson bracket.");
 
   // Special constants:
   m.attr("euler") = constants::euler;
@@ -225,8 +223,6 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("one") = constants::one;
   m.attr("pi") = constants::pi;
   m.attr("zero") = constants::zero;
-  m.attr("true") = constants::boolean_true;
-  m.attr("false") = constants::boolean_false;
 
   // Exceptions:
   py::register_exception<arithmetic_error>(m, "ArithmeticError");
@@ -239,6 +235,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   // Include other wrappers in this module:
   wrap_matrix_operations(m);
   wrap_compound_expression(m);
+  wrap_boolean_expression(m);
 
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);

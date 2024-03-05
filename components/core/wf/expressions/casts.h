@@ -1,21 +1,19 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-
 #include "wf/functions.h"
 #include "wf/hashing.h"
 
 namespace wf {
 
 // Cast a boolean value to an integer numerical value.
-class cast_bool {
+class iverson_bracket {
  public:
-  static constexpr std::string_view name_str = "CastBool";
+  static constexpr std::string_view name_str = "IversonBracket";
   static constexpr bool is_leaf_node = false;
 
-  explicit cast_bool(scalar_expr arg) noexcept(std::is_nothrow_move_constructible_v<scalar_expr>)
-      : arg_{std::move(arg)} {}
+  explicit iverson_bracket(boolean_expr arg) noexcept : arg_{std::move(arg)} {}
 
-  constexpr const scalar_expr& arg() const noexcept { return arg_[0]; }
+  constexpr const boolean_expr& arg() const noexcept { return arg_[0]; }
 
   // Iterators
   constexpr auto begin() const noexcept { return arg_.begin(); }
@@ -24,28 +22,28 @@ class cast_bool {
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
-    return cast_int_from_bool(operation(arg_.front()));
+    return iverson(operation(arg_.front()));
   }
 
  private:
-  std::array<scalar_expr, 1> arg_;
+  std::array<boolean_expr, 1> arg_;
 };
 
 template <>
-struct hash_struct<cast_bool> {
-  std::size_t operator()(const cast_bool& cast) const { return hash(cast.arg()); }
+struct hash_struct<iverson_bracket> {
+  std::size_t operator()(const iverson_bracket& cast) const { return hash(cast.arg()); }
 };
 
 template <>
-struct is_identical_struct<cast_bool> {
-  bool operator()(const cast_bool& a, const cast_bool& b) const {
+struct is_identical_struct<iverson_bracket> {
+  bool operator()(const iverson_bracket& a, const iverson_bracket& b) const {
     return are_identical(a.arg(), b.arg());
   }
 };
 
 template <>
-struct order_struct<cast_bool> {
-  relative_order operator()(const cast_bool& a, const cast_bool& b) const {
+struct order_struct<iverson_bracket> {
+  relative_order operator()(const iverson_bracket& a, const iverson_bracket& b) const {
     return order_by(a.arg(), b.arg());
   }
 };

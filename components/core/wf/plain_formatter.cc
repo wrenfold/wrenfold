@@ -9,8 +9,9 @@
 
 namespace wf {
 
-void plain_formatter::operator()(const scalar_expr& x) { return visit(x, *this); }
-void plain_formatter::operator()(const matrix_expr& x) { operator()(x.as_matrix()); }
+void plain_formatter::operator()(const scalar_expr& x) { visit(x, *this); }
+void plain_formatter::operator()(const matrix_expr& x) { visit(x, *this); }
+void plain_formatter::operator()(const boolean_expr& x) { visit(x, *this); }
 
 void plain_formatter::operator()(const addition& expr) {
   WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
@@ -62,10 +63,13 @@ void plain_formatter::operator()(const addition& expr) {
   }
 }
 
-void plain_formatter::operator()(const cast_bool& cast) {
-  output_ += "cast(";
-  visit(cast.arg(), *this);
-  output_ += ")";
+void plain_formatter::operator()(const boolean_constant& b) {
+  if (b) {
+    // Capitalized for consistency with python.
+    output_ += "True";
+  } else {
+    output_ += "False";
+  }
 }
 
 void plain_formatter::operator()(const compound_expression_element& el) {
@@ -162,6 +166,12 @@ void plain_formatter::operator()(const complex_infinity&) {
 
 void plain_formatter::operator()(const integer_constant& expr) {
   fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
+}
+
+void plain_formatter::operator()(const iverson_bracket& bracket) {
+  output_ += "iverson(";
+  visit(bracket.arg(), *this);
+  output_ += ")";
 }
 
 void plain_formatter::operator()(const float_constant& expr) {

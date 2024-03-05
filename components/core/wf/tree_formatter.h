@@ -1,5 +1,7 @@
 // Copyright 2024 Gareth Cross
 #pragma once
+#include "expressions/special_constants.h"
+
 #include <vector>
 
 #include "wf/compound_expression.h"
@@ -14,9 +16,10 @@ class tree_formatter_visitor {
   void operator()(const scalar_expr& x);
   void operator()(const matrix_expr& m);
   void operator()(const compound_expr& c);
+  void operator()(const boolean_expr& b);
 
   void operator()(const addition& add);
-  void operator()(const cast_bool& cast);
+  void operator()(const boolean_constant& b);
   void operator()(const complex_infinity&);
   void operator()(const compound_expression_element& el);
   void operator()(const conditional& conditional);
@@ -27,6 +30,7 @@ class tree_formatter_visitor {
   void operator()(const float_constant& f);
   void operator()(const function& func);
   void operator()(const integer_constant& i);
+  void operator()(const iverson_bracket& bracket);
   void operator()(const matrix& mat);
   void operator()(const multiplication& op);
   void operator()(const power& pow);

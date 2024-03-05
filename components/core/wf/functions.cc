@@ -432,12 +432,12 @@ scalar_expr floor(const scalar_expr& arg) {
 scalar_expr max(const scalar_expr& a, const scalar_expr& b) { return where(a < b, b, a); }
 scalar_expr min(const scalar_expr& a, const scalar_expr& b) { return where(b < a, b, a); }
 
-scalar_expr where(const scalar_expr& condition, const scalar_expr& if_true,
+scalar_expr where(const boolean_expr& condition, const scalar_expr& if_true,
                   const scalar_expr& if_false) {
   return conditional::create(condition, if_true, if_false);
 }
 
-matrix_expr where(const scalar_expr& condition, const matrix_expr& if_true,
+matrix_expr where(const boolean_expr& condition, const matrix_expr& if_true,
                   const matrix_expr& if_false) {
   const matrix& mat_true = if_true.as_matrix();
   const matrix& mat_false = if_false.as_matrix();
@@ -459,33 +459,16 @@ matrix_expr where(const scalar_expr& condition, const matrix_expr& if_true,
   return matrix_expr::create(mat_true.rows(), mat_true.cols(), std::move(conditionals));
 }
 
-struct bool_cast_visitor {
-  std::optional<scalar_expr> operator()(const symbolic_constant& c) const {
-    if (c.name() == symbolic_constant_enum::boolean_true) {
+scalar_expr iverson(const boolean_expr& bool_expression) {
+  if (const boolean_constant* constant = cast_ptr<const boolean_constant>(bool_expression);
+      constant != nullptr) {
+    if (constant->value()) {
       return constants::one;
-    } else if (c.name() == symbolic_constant_enum::boolean_false) {
+    } else {
       return constants::zero;
     }
-    return std::nullopt;
   }
-
-  std::optional<scalar_expr> operator()(const relational&, const scalar_expr& arg) const {
-    return make_expr<cast_bool>(arg);
-  }
-
-  template <typename T, typename = enable_if_does_not_contain_type_t<T, relational>>
-  std::optional<scalar_expr> operator()(const T&) const noexcept {
-    return std::nullopt;
-  }
-};
-
-scalar_expr cast_int_from_bool(const scalar_expr& bool_expression) {
-  std::optional<scalar_expr> result = visit(bool_expression, bool_cast_visitor{});
-  if (!result) {
-    throw type_error("Expression of type `{}` is not a boolean arg: {}",
-                     bool_expression.type_name(), bool_expression);
-  }
-  return *std::move(result);
+  return scalar_expr{std::in_place_type_t<iverson_bracket>{}, bool_expression};
 }
 
 }  // namespace wf

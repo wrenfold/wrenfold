@@ -62,8 +62,6 @@ enum class relational_operation {
 enum class symbolic_constant_enum {
   euler,
   pi,
-  boolean_true,
-  boolean_false,
 };
 
 // Types of numeric values (at code-generation time).
@@ -195,10 +193,6 @@ constexpr std::string_view string_from_symbolic_constant(
       return "e";
     case symbolic_constant_enum::pi:
       return "pi";
-    case symbolic_constant_enum::boolean_true:
-      return "true";
-    case symbolic_constant_enum::boolean_false:
-      return "false";
   }
   return "<INVALID ENUM VALUE>";
 }

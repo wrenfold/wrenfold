@@ -51,6 +51,11 @@ auto format_ast(Iterator it, const wf::ast::assign_temporary& v) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::boolean_literal& b) {
+  return fmt::format_to(it, "({})", b.value ? "true" : "false");
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::branch& d) {
   return fmt::format_to(it, "(if {} {{ {} statements }} else {{ {} statements }})", d.condition,
                         d.if_branch.size(), d.else_branch.size());

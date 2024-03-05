@@ -18,7 +18,6 @@ class derivative_visitor {
   scalar_expr apply(const scalar_expr& expression);
 
   scalar_expr operator()(const addition& add);
-  scalar_expr operator()(const cast_bool&, const scalar_expr& expr) const;
   scalar_expr operator()(const compound_expression_element&, const scalar_expr& expr) const;
   scalar_expr operator()(const conditional& cond);
   scalar_expr operator()(const symbolic_constant&) const;
@@ -28,6 +27,7 @@ class derivative_visitor {
   scalar_expr operator()(const function& func);
   scalar_expr operator()(const complex_infinity&) const;
   scalar_expr operator()(const integer_constant&) const;
+  scalar_expr operator()(const iverson_bracket&, const scalar_expr& arg) const;
   scalar_expr operator()(const float_constant&) const;
   scalar_expr operator()(const power& pow);
   scalar_expr operator()(const rational_constant&) const;

@@ -17,15 +17,15 @@ namespace wf {
 void tree_formatter_visitor::operator()(const scalar_expr& x) { visit(x, *this); }
 void tree_formatter_visitor::operator()(const matrix_expr& m) { visit(m, *this); }
 void tree_formatter_visitor::operator()(const compound_expr& c) { visit(c, *this); }
+void tree_formatter_visitor::operator()(const boolean_expr& b) { visit(b, *this); }
 
 void tree_formatter_visitor::operator()(const addition& add) {
   format_append("{}:", addition::name_str);
   visit_all(add.sorted_terms());
 }
 
-void tree_formatter_visitor::operator()(const cast_bool& cast) {
-  format_append("{}:", cast_bool::name_str);
-  visit_right(cast.arg());
+void tree_formatter_visitor::operator()(const boolean_constant& b) {
+  format_append("{} ({})", boolean_constant::name_str, b.value() ? "true" : "false");
 }
 
 void tree_formatter_visitor::operator()(const complex_infinity&) {
@@ -39,7 +39,9 @@ void tree_formatter_visitor::operator()(const compound_expression_element& el) {
 
 void tree_formatter_visitor::operator()(const conditional& conditional) {
   format_append("{}:", conditional::name_str);
-  visit_all(conditional);
+  visit_left(conditional.condition());
+  visit_left(conditional.if_branch());
+  visit_right(conditional.else_branch());
 }
 
 void tree_formatter_visitor::operator()(const custom_type_argument& arg) {
@@ -74,6 +76,11 @@ void tree_formatter_visitor::operator()(const function& func) {
 
 void tree_formatter_visitor::operator()(const integer_constant& i) {
   format_append("{} ({})", integer_constant::name_str, i.get_value());
+}
+
+void tree_formatter_visitor::operator()(const iverson_bracket& bracket) {
+  format_append("{}:", iverson_bracket::name_str);
+  visit_all(bracket);
 }
 
 void tree_formatter_visitor::operator()(const matrix& mat) {

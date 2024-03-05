@@ -1,7 +1,9 @@
 // Copyright 2022 Gareth Cross
 #pragma once
 #include "wf/enumerations.h"
+#include "wf/fmt_imports.h"
 #include "wf/hashing.h"
+#include "wf/ordering.h"
 
 namespace wf {
 
@@ -21,6 +23,22 @@ class symbolic_constant {
   symbolic_constant_enum name_;
 };
 
+// Convert `symbolic_constant_enum` to a floating point double.
+constexpr double double_from_symbolic_constant(const symbolic_constant_enum constant) noexcept {
+  switch (constant) {
+    case symbolic_constant_enum::euler:
+      return M_E;
+    case symbolic_constant_enum::pi:
+      return M_PI;
+  }
+  return std::numeric_limits<double>::quiet_NaN();
+}
+
+// Order constants by their enum values.
+constexpr bool operator<(const symbolic_constant& a, const symbolic_constant& b) noexcept {
+  return a.name() < b.name();
+}
+
 // Complex infinity (the north-pole of the riemann sphere).
 class complex_infinity {
  public:
@@ -35,25 +53,24 @@ class undefined {
   static constexpr bool is_leaf_node = true;
 };
 
-// Convert `symbolic_constant_enum` to a floating point double.
-constexpr double double_from_symbolic_constant(const symbolic_constant_enum constant) noexcept {
-  switch (constant) {
-    case symbolic_constant_enum::euler:
-      return M_E;
-    case symbolic_constant_enum::pi:
-      return M_PI;
-    case symbolic_constant_enum::boolean_true:
-      return 1.0;
-    case symbolic_constant_enum::boolean_false:
-      return 0.0;
-  }
-  return std::numeric_limits<double>::quiet_NaN();
-}
+// A boolean constant (true or false).
+class boolean_constant {
+ public:
+  static constexpr std::string_view name_str = "BooleanConstant";
+  static constexpr bool is_leaf_node = true;
 
-// Order constants by their enum values.
-inline constexpr bool operator<(const symbolic_constant& a, const symbolic_constant& b) noexcept {
-  return a.name() < b.name();
-}
+  // Construct with true or false.
+  explicit constexpr boolean_constant(const bool value) noexcept : value_(value) {}
+
+  // Access value.
+  constexpr bool value() const noexcept { return value_; }
+
+  // Implicit cast to bool.
+  operator bool() const noexcept { return value_; }
+
+ private:
+  bool value_;
+};
 
 template <>
 struct hash_struct<symbolic_constant> {
@@ -117,6 +134,28 @@ template <>
 struct order_struct<undefined> {
   constexpr relative_order operator()(const undefined&, const undefined&) const noexcept {
     return relative_order::equal;
+  }
+};
+
+template <>
+struct hash_struct<boolean_constant> {
+  constexpr std::size_t operator()(const boolean_constant& c) const noexcept {
+    return static_cast<std::size_t>(c.value());
+  }
+};
+
+template <>
+struct is_identical_struct<boolean_constant> {
+  constexpr bool operator()(const boolean_constant& a, const boolean_constant& b) const noexcept {
+    return a.value() == b.value();
+  }
+};
+
+template <>
+struct order_struct<boolean_constant> {
+  constexpr relative_order operator()(const boolean_constant& a,
+                                      const boolean_constant& b) const noexcept {
+    return order_by_comparison(a.value(), b.value());
   }
 };
 

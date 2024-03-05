@@ -74,7 +74,7 @@ quaternion quaternion::from_rotation_vector(const scalar_expr& vx, const scalar_
     // When angle <= epsilon, we use the first order taylor series expansion of this method,
     // linearized about v = [0, 0, 0]. The series is projected back onto the unit norm quaternion.
     const quaternion q_small_angle = quaternion{1, vx / 2, vy / 2, vz / 2}.normalized();
-    const scalar_expr condition = angle > *epsilon;
+    const boolean_expr condition = angle > *epsilon;
     return {
         where(condition, cos(half_angle), q_small_angle.w()),
         where(condition, vx * sinc_half_angle, q_small_angle.x()),
@@ -136,7 +136,7 @@ matrix_expr quaternion::to_rotation_vector(std::optional<scalar_expr> epsilon) c
   if (epsilon) {
     // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
     // It is linearized about q = identity.
-    const scalar_expr condition = vector_norm > *epsilon;
+    const boolean_expr condition = vector_norm > *epsilon;
     return make_vector(where(condition, angle_over_norm * x(), 2 * x()),
                        where(condition, angle_over_norm * y(), 2 * y()),
                        where(condition, angle_over_norm * z(), 2 * z()));
@@ -170,9 +170,9 @@ quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
            pow(R(2, 2) - R(0, 0) - R(1, 1) + 1, 2);
   // clang-format on
   // We implement a signum without zeros:
-  const scalar_expr sign_21 = 1 - 2 * cast_int_from_bool(R(2, 1) - R(1, 2) < 0);
-  const scalar_expr sign_02 = 1 - 2 * cast_int_from_bool(R(0, 2) - R(2, 0) < 0);
-  const scalar_expr sign_10 = 1 - 2 * cast_int_from_bool(R(1, 0) - R(0, 1) < 0);
+  const scalar_expr sign_21 = 1 - 2 * iverson(R(2, 1) - R(1, 2) < 0);
+  const scalar_expr sign_02 = 1 - 2 * iverson(R(0, 2) - R(2, 0) < 0);
+  const scalar_expr sign_10 = 1 - 2 * iverson(R(1, 0) - R(0, 1) < 0);
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
 }
 
@@ -281,7 +281,7 @@ matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<scalar_expr
   static const auto I3 = make_identity(3);
 
   if (epsilon) {
-    const scalar_expr condition = angle > *epsilon;
+    const boolean_expr condition = angle > *epsilon;
     return I3 + skew_v * where(condition, c0, c0_small_angle) +
            (skew_v * skew_v) * where(condition, c1, c1_small_angle);
   } else {

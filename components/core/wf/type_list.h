@@ -127,6 +127,16 @@ struct type_list_from_tuple<std::tuple<Ts...>> {
   using type = type_list<Ts...>;
 };
 
+// Create a tuple from a type list.
+template <typename T>
+struct tuple_from_type_list;
+template <typename T>
+using tuple_from_type_list_t = typename tuple_from_type_list<T>::type;
+template <typename... Ts>
+struct tuple_from_type_list<type_list<Ts...>> {
+  using type = std::tuple<Ts...>;
+};
+
 // Perform a map on a type list, and produce a new type list.
 template <template <typename...> typename Map, typename T>
 struct type_list_map;

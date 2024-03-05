@@ -77,6 +77,9 @@ any_expression external_function::create_invocation(std::vector<any_expression> 
           // TODO: Check numeric type here.
           return scalar_type(code_numeric_type::floating_point);
         },
+        [&](const boolean_expr&) -> type_variant {
+          return scalar_type(code_numeric_type::boolean);
+        },
         [&](const matrix_expr& matrix) -> type_variant {
           return matrix_type(matrix.rows(), matrix.cols());
         },

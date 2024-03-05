@@ -19,19 +19,23 @@ template <typename T>
 struct is_function_of_visitor {
   explicit is_function_of_visitor(const T& target) noexcept : target_(target) {}
 
-  bool operator()(const matrix_expr& mat) const {
-    const matrix& m = mat.as_matrix();
-    return std::any_of(m.begin(), m.end(),
-                       [this](const scalar_expr& x) { return visit(x, *this); });
-  }
+  bool operator()(const scalar_expr& expr) const { return visit(expr, *this); }
+  bool operator()(const boolean_expr& expr) const { return visit(expr, *this); }
+  bool operator()(const matrix_expr& expr) const { return visit(expr, *this); }
 
   template <typename U>
   bool operator()(const U& x) const {
     if constexpr (std::is_same_v<U, T>) {
       return are_identical(target_, x);
     } else if constexpr (!U::is_leaf_node) {
-      return std::any_of(x.begin(), x.end(),
-                         [this](const auto& expr) { return visit(expr, *this); });
+      if constexpr (std::is_same_v<conditional, U>) {
+        // TODO: A generic method of iterating over mixed-type expressions like `conditional`.
+        return operator()(x.condition()) || operator()(x.if_branch()) ||
+                                            operator()(x.else_branch());
+      } else {
+        return std::any_of(x.begin(), x.end(),
+                           [this](const auto& expr) { return visit(expr, *this); });
+      }
     } else {
       return false;
     }
@@ -65,14 +69,6 @@ scalar_expr derivative_visitor::operator()(const addition& add) {
   return add.map_children([this](const scalar_expr& expr) { return apply(expr); });
 }
 
-scalar_expr derivative_visitor::operator()(const cast_bool&, const scalar_expr& expr) const {
-  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
-    return derivative::create(expr, argument_, 1);
-  } else {
-    return constants::zero;
-  }
-}
-
 scalar_expr derivative_visitor::operator()(const compound_expression_element& el,
                                            const scalar_expr& expr) const {
   if (const compound_expression_element* arg =
@@ -104,8 +100,7 @@ scalar_expr derivative_visitor::operator()(const derivative& derivative,
   return visit(argument_, [&](const auto& arg) -> scalar_expr {
     using T = std::decay_t<decltype(arg)>;
     if constexpr (type_list_contains_v<T, variable, compound_expression_element>) {
-      if (const bool is_relevant =
-              visit(derivative.differentiand(), is_function_of_visitor<T>{arg});
+      if (const bool is_relevant = is_function_of_visitor<T>{arg}(derivative.differentiand());
           !is_relevant) {
         return constants::zero;
       }
@@ -224,6 +219,15 @@ scalar_expr derivative_visitor::operator()(const complex_infinity&) const {
 scalar_expr derivative_visitor::operator()(const integer_constant&) const {
   return constants::zero;
 }
+
+scalar_expr derivative_visitor::operator()(const iverson_bracket&, const scalar_expr& arg) const {
+  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
+    return derivative::create(arg, argument_, 1);
+  } else {
+    return constants::zero;
+  }
+}
+
 scalar_expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
 scalar_expr derivative_visitor::operator()(const power& pow) {
   const scalar_expr& a = pow.base();

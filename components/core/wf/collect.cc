@@ -13,6 +13,7 @@ struct collect_visitor {
 
   scalar_expr operator()(const scalar_expr& x) { return visit(x, *this); }
   compound_expr operator()(const compound_expr& x) { return map_compound_expressions(x, *this); }
+  boolean_expr operator()(const boolean_expr& x) { return visit(x, *this); }
 
   template <typename T>
   auto recurse(const T& op) {
@@ -117,12 +118,12 @@ struct collect_visitor {
     return collect_addition_terms(std::move(children));
   }
 
+  boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) { return arg; }
   scalar_expr operator()(const compound_expression_element& el) { return el.map_children(*this); }
-
   scalar_expr operator()(const multiplication& mul, const scalar_expr&) { return recurse(mul); }
   scalar_expr operator()(const function& f) { return recurse(f); }
   scalar_expr operator()(const power& pow) { return recurse(pow); }
-  scalar_expr operator()(const cast_bool& cast) { return recurse(cast); }
+  scalar_expr operator()(const iverson_bracket& cast) { return recurse(cast); }
   scalar_expr operator()(const conditional& conditional) { return recurse(conditional); }
   scalar_expr operator()(const symbolic_constant&, const scalar_expr& arg) const { return arg; }
   scalar_expr operator()(const derivative& diff, const scalar_expr&) { return recurse(diff); }
@@ -130,7 +131,7 @@ struct collect_visitor {
   scalar_expr operator()(const integer_constant&, const scalar_expr& arg) const { return arg; }
   scalar_expr operator()(const float_constant&, const scalar_expr& arg) const { return arg; }
   scalar_expr operator()(const rational_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const relational& relation) { return recurse(relation); }
+  boolean_expr operator()(const relational& relation) { return recurse(relation); }
   scalar_expr operator()(const undefined&) const { return constants::undefined; }
   scalar_expr operator()(const variable&, const scalar_expr& arg) const { return arg; }
 

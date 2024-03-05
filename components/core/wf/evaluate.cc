@@ -5,8 +5,8 @@
 
 namespace wf {
 
-template <typename T, typename>
-scalar_expr evaluate_visitor::operator()(const T& input_typed, const scalar_expr& input) {
+template <typename T, typename X, typename>
+X evaluate_visitor::operator()(const T& input_typed, const X& input) {
   if constexpr (type_list_contains_v<T, derivative, complex_infinity>) {
     throw type_error("Cannot call eval on expression of type: {}", T::name_str);
   } else if constexpr (T::is_leaf_node) {
@@ -49,6 +49,8 @@ compound_expr evaluate_visitor::operator()(const compound_expr& input) {
   compound_cache_.emplace(input, result);
   return result;
 }
+
+boolean_expr evaluate_visitor::operator()(const boolean_expr& input) { return visit(input, *this); }
 
 scalar_expr evaluate(const scalar_expr& arg) { return evaluate_visitor{}(arg); }
 
