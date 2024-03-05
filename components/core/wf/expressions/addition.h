@@ -46,6 +46,9 @@ class addition {
   // Get span over terms.
   absl::Span<const scalar_expr> as_span() const noexcept { return {terms_}; }
 
+  // Get terms in the addition, sorted into canonical order.
+  std::vector<scalar_expr> sorted_terms() const;
+
   // Implement ExpressionImpl::Map
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
@@ -56,7 +59,7 @@ class addition {
 
   // Construct from a span of operands.
   // The result is automatically simplified, and may not be an addition.
-  static scalar_expr from_operands(absl::Span<const scalar_expr> span);
+  static scalar_expr from_operands(absl::Span<const scalar_expr> args);
 
  private:
   container_type terms_;

@@ -6,12 +6,12 @@ add_library(
   wf/assertions.h
   wf/checked_int.h
   wf/checked_pointers.h
+  wf/code_generation/ast.cc
+  wf/code_generation/ast.h
   wf/code_generation/ast_conversion.cc
   wf/code_generation/ast_conversion.h
   wf/code_generation/ast_element.h
   wf/code_generation/ast_formatters.h
-  wf/code_generation/ast.cc
-  wf/code_generation/ast.h
   wf/code_generation/code_formatter.h
   wf/code_generation/control_flow_graph.cc
   wf/code_generation/control_flow_graph.h
@@ -52,10 +52,10 @@ add_library(
   wf/enumerations.h
   wf/error_types.h
   wf/evaluate.cc
-  wf/expression_variant.h
-  wf/expression_visitor.h
   wf/expression.cc
   wf/expression.h
+  wf/expression_variant.h
+  wf/expression_visitor.h
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h
@@ -108,6 +108,7 @@ add_library(
   wf/template_utils.h
   wf/traits.h
   wf/tree_formatter.cc
+  wf/tree_formatter.h
   wf/type_annotations.h
   wf/type_list.h
   wf/visit.h)

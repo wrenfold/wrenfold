@@ -11,7 +11,13 @@
 
 namespace wf {
 
-scalar_expr addition::from_operands(absl::Span<const scalar_expr> args) {
+std::vector<scalar_expr> addition::sorted_terms() const {
+  std::vector<scalar_expr> result{terms_.begin(), terms_.end()};
+  std::sort(result.begin(), result.end(), wf::expression_order_struct{});
+  return result;
+}
+
+scalar_expr addition::from_operands(const absl::Span<const scalar_expr> args) {
   WF_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
   if (args.size() < 2) {
     return args.front();

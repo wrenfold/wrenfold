@@ -30,6 +30,12 @@ static inline scalar_expr multiply_into_addition(const addition& add,
   return addition::from_operands(add_args);  // TODO: make this a move!
 }
 
+std::vector<scalar_expr> multiplication::sorted_terms() const {
+  std::vector<scalar_expr> result{begin(), end()};
+  std::sort(result.begin(), result.end(), expression_order_struct{});
+  return result;
+}
+
 scalar_expr multiplication::from_operands(absl::Span<const scalar_expr> args) {
   WF_ASSERT(!args.empty());
   if (args.size() < 2) {

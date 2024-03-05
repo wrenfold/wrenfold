@@ -4,12 +4,19 @@
 #include "wf/expression_visitor.h"
 #include "wf/index_range.h"
 #include "wf/plain_formatter.h"
+#include "wf/tree_formatter.h"
 
 namespace wf {
 
 std::string compound_expr::to_string() const {
   plain_formatter formatter{};
   visit(*this, formatter);
+  return formatter.take_output();
+}
+
+std::string compound_expr::to_expression_tree_string() const {
+  tree_formatter_visitor formatter{};
+  formatter(*this);
   return formatter.take_output();
 }
 
