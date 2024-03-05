@@ -28,9 +28,10 @@ pub trait OutputSpan2D<const D0: usize, const D1: usize> {
 }
 
 #[cfg(feature = "nalgebra")]
-impl<T, const D0: usize> Span1D<D0> for na::OMatrix<T, na::Const<D0>, na::Const<1>>
+impl<T, S, const D0: usize> Span1D<D0> for na::Matrix<T, na::Const<D0>, na::Const<1>, S>
 where
     T: na::Scalar + Copy,
+    S: na::RawStorage<T, na::Const<D0>, na::Const<1>>,
 {
     type ValueType = T;
 
@@ -41,9 +42,10 @@ where
 }
 
 #[cfg(feature = "nalgebra")]
-impl<T, const D0: usize> OutputSpan1D<D0> for na::OMatrix<T, na::Const<D0>, na::Const<1>>
+impl<T, S, const D0: usize> OutputSpan1D<D0> for na::Matrix<T, na::Const<D0>, na::Const<1>, S>
 where
     T: na::Scalar + Copy,
+    S: na::RawStorageMut<T, na::Const<D0>, na::Const<1>>,
 {
     type ValueType = T;
 
@@ -54,10 +56,11 @@ where
 }
 
 #[cfg(feature = "nalgebra")]
-impl<T, const D0: usize, const D1: usize> Span2D<D0, D1>
-    for na::OMatrix<T, na::Const<D0>, na::Const<D1>>
+impl<T, S, const D0: usize, const D1: usize> Span2D<D0, D1>
+    for na::Matrix<T, na::Const<D0>, na::Const<D1>, S>
 where
     T: na::Scalar + Copy,
+    S: na::RawStorage<T, na::Const<D0>, na::Const<D1>>,
 {
     type ValueType = T;
 
@@ -68,10 +71,11 @@ where
 }
 
 #[cfg(feature = "nalgebra")]
-impl<T, const D0: usize, const D1: usize> OutputSpan2D<D0, D1>
-    for na::OMatrix<T, na::Const<D0>, na::Const<D1>>
+impl<T, S, const D0: usize, const D1: usize> OutputSpan2D<D0, D1>
+    for na::Matrix<T, na::Const<D0>, na::Const<D1>, S>
 where
     T: na::Scalar + Copy,
+    S: na::RawStorageMut<T, na::Const<D0>, na::Const<D1>>,
 {
     type ValueType = T;
 

@@ -1,3 +1,4 @@
+//! Copyright 2024 Gareth Cross
 #![cfg(test)]
 
 /// Numerical implementation we compare the generated polynomials to.
@@ -58,7 +59,16 @@ impl BSplineNumerical {
         }
     }
 
+    /// Evaluate b-spline polynomial `i` at value x (in [0, 1]).
     pub fn eval(&self, x: f64, i: usize) -> f64 {
         self.cox_de_boor(x, i, self.order - 1)
+    }
+
+    /// Evaluate cumulative b-spline polynomial `i` at value `x`.
+    pub fn eval_cumulative(&self, x: f64, i: usize) -> f64 {
+        (i..(self.num_extended_knots() - self.order))
+            .into_iter()
+            .map(|s| self.eval(x, s))
+            .sum()
     }
 }

@@ -13,6 +13,7 @@ pub mod types;
 
 #[cfg(test)]
 use approx::assert_abs_diff_eq;
+
 #[cfg(test)]
 use nalgebra as na;
 
@@ -100,6 +101,21 @@ fn test_vector_rotation_2d() {
     assert_abs_diff_eq!(
         na::Rotation2::new(-1.9).transform_vector(&v),
         v_rot,
+        epsilon = 1.0e-15
+    );
+
+    // Test passing a column-view for input and output args:
+    let vs = na::Matrix2::new(1.0, -2.51, 0.123, 0.0);
+    let mut vs_rot = na::Matrix2::zeros();
+    generated::vector_rotation_2d(
+        0.56,
+        &vs.fixed_columns::<1>(0),
+        &mut vs_rot.fixed_columns_mut::<1>(0),
+        None::<&mut na::Vector2<f64>>,
+    );
+    assert_abs_diff_eq!(
+        na::Rotation2::new(0.56).transform_vector(&vs.fixed_columns::<1>(0).into_owned()),
+        vs_rot.fixed_columns::<1>(0).into_owned(),
         epsilon = 1.0e-15
     );
 }
