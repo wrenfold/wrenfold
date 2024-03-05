@@ -13,10 +13,15 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4100)  //  Disable unused parameter.
+#elif defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
 #include "generated.h"
 #ifdef _MSC_VER
 #pragma warning(pop)
+#elif defined(__clang__)
+#pragma clang diagnostic pop
 #endif
 
 namespace wf {
