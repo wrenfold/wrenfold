@@ -90,13 +90,13 @@ matrix_expr matrix_expr::operator-() const { return operator*(*this, constants::
 matrix_expr matrix_expr::diff(const scalar_expr& var, const int reps,
                               const non_differentiable_behavior behavior) const {
   derivative_visitor visitor{var, behavior};
-  return matrix_expr{as_matrix().map_children([&visitor, reps](const scalar_expr& x) {
+  return map_matrix_expression(*this, [&visitor, reps](const scalar_expr& x) {
     scalar_expr result = x;
     for (int i = 0; i < reps; ++i) {
       result = visitor.apply(result);
     }
     return result;
-  })};
+  });
 }
 
 matrix_expr matrix_expr::jacobian(const absl::Span<const scalar_expr> vars,
@@ -121,22 +121,20 @@ matrix_expr matrix_expr::jacobian(const matrix_expr& vars,
 }
 
 matrix_expr matrix_expr::distribute() const {
-  return matrix_expr{as_matrix().map_children(distribute_visitor{})};
+  return map_matrix_expression(*this, distribute_visitor{});
 }
 
 matrix_expr matrix_expr::subs(const scalar_expr& target, const scalar_expr& replacement) const {
-  return matrix_expr{
-      as_matrix().map_children([&](const scalar_expr& x) { return x.subs(target, replacement); })};
+  return map_matrix_expression(*this,
+                               [&](const scalar_expr& x) { return x.subs(target, replacement); });
 }
 
-matrix_expr matrix_expr::collect(absl::Span<const scalar_expr> terms) const {
-  return matrix_expr{
-      as_matrix().map_children([&terms](const scalar_expr& x) { return collect_many(x, terms); })};
+matrix_expr matrix_expr::collect(const absl::Span<const scalar_expr> terms) const {
+  return map_matrix_expression(*this,
+                               [&terms](const scalar_expr& x) { return collect_many(x, terms); });
 }
 
-matrix_expr matrix_expr::eval() const {
-  return matrix_expr{as_matrix().map_children(&wf::evaluate)};
-}
+matrix_expr matrix_expr::eval() const { return map_matrix_expression(*this, &wf::evaluate); }
 
 relative_order order_struct<matrix_expr>::operator()(const matrix_expr& a,
                                                      const matrix_expr& b) const {
@@ -163,13 +161,9 @@ matrix_expr operator*(const matrix_expr& a, const matrix_expr& b) {
 
 matrix_expr operator*(const matrix_expr& a, const scalar_expr& b) {
   const matrix& a_mat = a.as_matrix();
-
-  std::vector<scalar_expr> data{};
-  data.reserve(a_mat.size());
-  std::transform(a_mat.begin(), a_mat.end(), std::back_inserter(data),
-                 [&b](const scalar_expr& a_expr) { return a_expr * b; });
-
-  return matrix_expr{matrix(a_mat.rows(), a_mat.cols(), std::move(data))};
+  auto data = transform_map<matrix::container_type>(
+      a_mat.data(), [&b](const scalar_expr& a_expr) { return a_expr * b; });
+  return matrix_expr{std::in_place_type_t<matrix>{}, a_mat.rows(), a_mat.cols(), std::move(data)};
 }
 
 }  // namespace wf

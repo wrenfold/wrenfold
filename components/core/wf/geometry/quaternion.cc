@@ -177,7 +177,7 @@ quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
 }
 
 matrix_expr quaternion::jacobian(const wf::matrix_expr& vars,
-                                 non_differentiable_behavior behavior) const {
+                                 const non_differentiable_behavior behavior) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
     throw dimension_error("Variables must be a row or column vector. Received dimensions: [{}, {}]",
                           vars.rows(), vars.cols());

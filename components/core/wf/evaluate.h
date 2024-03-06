@@ -1,11 +1,11 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-
 #include <unordered_map>
 
-#include "compound_expression.h"
+#include "wf/compound_expression.h"
 #include "wf/expression.h"
-#include "wf/hashing.h"
+#include "wf/expression_cache.h"
+#include "wf/matrix_expression.h"
 
 namespace wf {
 
@@ -25,16 +25,10 @@ class evaluate_visitor {
   scalar_expr operator()(const scalar_expr& input);
   compound_expr operator()(const compound_expr& input);
   boolean_expr operator()(const boolean_expr& input);
+  matrix_expr operator()(const matrix_expr& input);
 
  private:
-  // Cached evaluated values:
-  // TODO: Introduce a cache type that can accept any expression type.
-  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
-                     is_identical_struct<scalar_expr>>
-      cache_;
-  std::unordered_map<compound_expr, compound_expr, hash_struct<compound_expr>,
-                     is_identical_struct<compound_expr>>
-      compound_cache_;
+  wf::expression_cache<> cache_;
 };
 
 }  // namespace wf

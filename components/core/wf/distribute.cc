@@ -9,21 +9,23 @@
 
 namespace wf {
 
-// TODO: cache compound_expr as well.
-scalar_expr distribute_visitor::operator()(const scalar_expr& x) {
-  if (const auto it = cache_.find(x); it != cache_.end()) {
-    return it->second;
-  }
-  scalar_expr distributed = visit(x, *this);
-  cache_.emplace(x, distributed);
-  return distributed;
+scalar_expr distribute_visitor::operator()(const scalar_expr& input) {
+  return cache_.get_or_insert(input, [this](const scalar_expr& x) { return visit(x, *this); });
 }
 
-compound_expr distribute_visitor::operator()(const compound_expr& x) {
-  return map_compound_expressions(x, *this);
+compound_expr distribute_visitor::operator()(const compound_expr& input) {
+  return cache_.get_or_insert(
+      input, [this](const compound_expr& x) { return map_compound_expressions(x, *this); });
 }
 
-boolean_expr distribute_visitor::operator()(const boolean_expr& x) { return visit(x, *this); }
+boolean_expr distribute_visitor::operator()(const boolean_expr& input) {
+  return cache_.get_or_insert(input, [this](const boolean_expr& x) { return visit(x, *this); });
+}
+
+matrix_expr distribute_visitor::operator()(const matrix_expr& input) {
+  return cache_.get_or_insert(
+      input, [this](const matrix_expr& m) { return map_matrix_expression(m, *this); });
+}
 
 scalar_expr distribute_visitor::operator()(const addition& add) { return add.map_children(*this); }
 

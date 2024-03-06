@@ -3,6 +3,8 @@
 #include <tuple>
 #include <unordered_map>
 
+#include "wf/boolean_expression.h"
+#include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
 
@@ -37,9 +39,7 @@ class expression_cache {
   using tuple_type = tuple_from_type_list_t<type_list_map_t<map_type_t, expression_type_list>>;
 
  public:
-  expression_cache() {
-    std::apply([](auto&... map) { (map.reserve(50), ...); }, storage_);
-  }
+  expression_cache() { std::get<0>(storage_).reserve(50); }
 
   // Look-up `expression` in the cache. Return it if it exists, otherwise compute and insert a value
   // by calling lambda `f`.
