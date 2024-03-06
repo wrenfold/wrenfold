@@ -430,6 +430,8 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
         } else if constexpr (std::is_same_v<T, rational_constant>) {
           return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
                                   static_cast<float_constant>(inner).get_value()};
+        } else if constexpr (std::is_same_v<T, boolean_constant>) {
+          return ast::ast_element{std::in_place_type_t<ast::boolean_literal>{}, inner.value()};
         } else if constexpr (std::is_same_v<T, variable>) {
           // inspect inner type of the variable
           return std::visit([this](const auto& var_type) { return this->operator()(var_type); },

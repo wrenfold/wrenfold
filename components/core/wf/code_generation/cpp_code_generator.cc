@@ -177,6 +177,10 @@ std::string cpp_code_generator::operator()(const ast::assign_temporary& x) const
   return fmt::format("{} = {};", x.left, make_view(x.right));
 }
 
+std::string cpp_code_generator::operator()(const ast::boolean_literal& x) const {
+  return x.value ? "true" : "false";
+}
+
 std::string cpp_code_generator::operator()(const ast::branch& x) const {
   std::string result{};
   fmt::format_to(std::back_inserter(result), "if ({}) ", make_view(x.condition));
@@ -337,10 +341,6 @@ static constexpr std::string_view cpp_string_for_symbolic_constant(
       return "M_E";
     case symbolic_constant_enum::pi:
       return "M_PI";
-    case symbolic_constant_enum::boolean_true:
-      return "true";
-    case symbolic_constant_enum::boolean_false:
-      return "false";
   }
   return "<INVALID ENUM VALUE>";
 }

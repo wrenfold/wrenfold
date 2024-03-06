@@ -299,8 +299,6 @@ TEST(FunctionTest, TestMinMax) {
 
   ASSERT_IDENTICAL(0, min(1, 0));
   ASSERT_IDENTICAL(1.4123, min(1.4123, 10));
-  ASSERT_IDENTICAL(constants::boolean_false,
-                   min(constants::boolean_false, constants::boolean_true));
   ASSERT_IDENTICAL(-10, min(-10, constants::euler));
 
   ASSERT_IDENTICAL(x, max(x, x));

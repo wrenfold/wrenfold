@@ -4,6 +4,7 @@
 #include <ostream>
 #include <string>
 
+#include "wf/boolean_expression.h"
 #include "wf/expression_variant.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/fmt_imports.h"
@@ -21,7 +22,7 @@ struct type_list_trait<scalar_meta_type> {
   // clang-format off
   using types = type_list<
     const class addition,
-    const class cast_bool,
+    const class iverson_bracket,
     const class compound_expression_element,
     const class conditional,
     const class symbolic_constant,
@@ -33,7 +34,6 @@ struct type_list_trait<scalar_meta_type> {
     const class multiplication,
     const class power,
     const class rational_constant,
-    const class relational,
     const class undefined,
     const class variable
     >;
@@ -72,8 +72,8 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
   scalar_expr diff(
-      const scalar_expr& var, int reps = 1,
-      non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
+      const scalar_expr& var, const int reps = 1,
+      const non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
     return wf::diff(*this, var, reps, behavior);
   }
 
@@ -87,7 +87,7 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
 
   // Create a new expression by recursively replacing [variable, replacement] pairs.
   scalar_expr substitute_variables(
-      absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) const {
+      const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) const {
     return wf::substitute_variables(*this, pairs);
   }
 
@@ -124,10 +124,6 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
   }
 };
 
-static_assert(std::is_nothrow_move_constructible_v<scalar_expr> &&
-                  std::is_nothrow_move_assignable_v<scalar_expr>,
-              "Should be movable");
-
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const scalar_expr& x) {
   stream << x.to_string();
@@ -140,14 +136,14 @@ scalar_expr operator-(const scalar_expr& a, const scalar_expr& b);
 scalar_expr operator*(const scalar_expr& a, const scalar_expr& b);
 scalar_expr operator/(const scalar_expr& a, const scalar_expr& b);
 
-// Comparison operators. These create relational expressions, rather than directly returning bool.
-scalar_expr operator<(const scalar_expr& a, const scalar_expr& b);
-scalar_expr operator>(const scalar_expr& a, const scalar_expr& b);
-scalar_expr operator<=(const scalar_expr& a, const scalar_expr& b);
-scalar_expr operator>=(const scalar_expr& a, const scalar_expr& b);
-scalar_expr operator==(const scalar_expr& a, const scalar_expr& b);
+// Comparison operators. These create relational expressions.
+boolean_expr operator<(const scalar_expr& a, const scalar_expr& b);
+boolean_expr operator>(const scalar_expr& a, const scalar_expr& b);
+boolean_expr operator<=(const scalar_expr& a, const scalar_expr& b);
+boolean_expr operator>=(const scalar_expr& a, const scalar_expr& b);
+boolean_expr operator==(const scalar_expr& a, const scalar_expr& b);
 
-// Determine relative order of two expressions.
+// Determine relative order of two scalar expressions.
 // This is not a mathematical ordering - rather it is a canonical ordering we impose on expressions.
 template <>
 struct order_struct<scalar_expr> {
@@ -194,7 +190,7 @@ scalar_expr make_expr(Args&&... args) noexcept(noexcept(scalar_expr{std::in_plac
 
 }  // namespace wf
 
-// libfmt support:
+// libfmt support for scalar_expr.
 template <>
 struct fmt::formatter<wf::scalar_expr> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }

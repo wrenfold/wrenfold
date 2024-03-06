@@ -14,9 +14,11 @@ class distribute_visitor {
  public:
   scalar_expr operator()(const scalar_expr& x);
   compound_expr operator()(const compound_expr& x);
+  boolean_expr operator()(const boolean_expr& x);
 
   scalar_expr operator()(const addition& add);
-  scalar_expr operator()(const cast_bool& cast);
+  boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) const;
+  scalar_expr operator()(const iverson_bracket& cast);
   scalar_expr operator()(const compound_expression_element& el);
   scalar_expr operator()(const complex_infinity&, const scalar_expr& arg) const;
   scalar_expr operator()(const conditional& conditional);
@@ -27,7 +29,7 @@ class distribute_visitor {
   scalar_expr operator()(const multiplication& mul);
   scalar_expr operator()(const power& pow);
   scalar_expr operator()(const rational_constant&, const scalar_expr& arg) const;
-  scalar_expr operator()(const relational& relation);
+  boolean_expr operator()(const relational& relation);
   scalar_expr operator()(const symbolic_constant&, const scalar_expr& arg) const;
   scalar_expr operator()(const undefined&) const;
   scalar_expr operator()(const variable&, const scalar_expr& arg) const;

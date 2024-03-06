@@ -24,6 +24,7 @@ struct substitute_visitor_base {
       : target(target), replacement(replacement) {}
 
   scalar_expr operator()(const scalar_expr& expr) { return visit(expr, *this); }
+  boolean_expr operator()(const boolean_expr& expr) { return visit(expr, *this); }
 
   matrix_expr operator()(const matrix_expr& expr) {
     return matrix_expr{expr.as_matrix().map_children(*this)};
@@ -34,8 +35,9 @@ struct substitute_visitor_base {
   }
 
   // The argument is neither an addition nor a multiplication:
-  template <typename Arg>
-  scalar_expr operator()(const Arg& other, const scalar_expr& input_expression) {
+  // `X` can be scalar_expr or boolean_expr.
+  template <typename Arg, typename X>
+  X operator()(const Arg& other, const X& input_expression) {
     if constexpr (std::is_same_v<TargetExpressionType, Arg>) {
       if (are_identical(target, other)) {
         // Exact match, so replace it:
@@ -312,13 +314,13 @@ struct sub_visitor_type<power> {
   using type = substitute_pow_visitor;
 };
 
-scalar_expr substitute(const scalar_expr& input, const scalar_expr& target,
-                       const scalar_expr& replacement) {
-  return visit(target, [&](const auto& target_concrete) -> scalar_expr {
+template <typename X>
+X substitute_impl(const X& input, const scalar_expr& target, const scalar_expr& replacement) {
+  return visit(target, [&](const auto& target_concrete) -> X {
     using T = std::decay_t<decltype(target_concrete)>;
     // Don't allow the target type to be a numeric literal:
     using disallowed_types =
-        type_list<integer_constant, float_constant, rational_constant, symbolic_constant>;
+        type_list<integer_constant, float_constant, rational_constant, boolean_constant>;
     if constexpr (type_list_contains_v<T, disallowed_types>) {
       throw type_error("Cannot perform a substitution with target type: {}", T::name_str);
     } else {
@@ -326,6 +328,16 @@ scalar_expr substitute(const scalar_expr& input, const scalar_expr& target,
       return visit(input, visitor_type{target_concrete, replacement});
     }
   });
+}
+
+scalar_expr substitute(const scalar_expr& input, const scalar_expr& target,
+                       const scalar_expr& replacement) {
+  return substitute_impl(input, target, replacement);
+}
+
+boolean_expr substitute(const boolean_expr& input, const scalar_expr& target,
+                        const scalar_expr& replacement) {
+  return substitute_impl(input, target, replacement);
 }
 
 static substitute_variables_visitor create_subs_visitor(
@@ -405,9 +417,12 @@ compound_expr substitute_variables_visitor::operator()(const compound_expr& expr
   return map_compound_expressions(expression, *this);
 }
 
-template <typename T>
-scalar_expr substitute_variables_visitor::operator()(const T& concrete,
-                                                     const scalar_expr& abstract) {
+boolean_expr substitute_variables_visitor::operator()(const boolean_expr& expression) {
+  return visit(expression, *this);
+}
+
+template <typename T, typename X>
+X substitute_variables_visitor::operator()(const T& concrete, const X& abstract) {
   if constexpr (std::is_same_v<T, variable>) {
     if (const auto it = variable_substitutions_.find(concrete);
         it != variable_substitutions_.end()) {

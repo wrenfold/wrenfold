@@ -12,17 +12,19 @@ namespace wf {
 // Convert expressions to `float_constant` values.
 class evaluate_visitor {
  public:
-  template <typename T, typename = enable_if_does_not_contain_type_t<
-                            T, integer_constant, rational_constant, symbolic_constant>>
-  scalar_expr operator()(const T& input_typed, const scalar_expr& input);
+  template <typename T, typename X,
+            typename = enable_if_does_not_contain_type_t<T, integer_constant, rational_constant,
+                                                         symbolic_constant>>
+  X operator()(const T& input_typed, const X& input);
 
   scalar_expr operator()(const integer_constant& x) const;
   scalar_expr operator()(const rational_constant& x) const;
-  scalar_expr operator()(const symbolic_constant& x) const;
+  scalar_expr operator()(const symbolic_constant& c) const;
 
   // Visit and cache the result.
   scalar_expr operator()(const scalar_expr& input);
-  compound_expr operator()(const compound_expr& expr);
+  compound_expr operator()(const compound_expr& input);
+  boolean_expr operator()(const boolean_expr& input);
 
  private:
   // Cached evaluated values:

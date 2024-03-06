@@ -95,16 +95,17 @@ struct RelationalSimplification {
   relational_operation operation_;
 };
 
-scalar_expr relational::create(relational_operation operation, scalar_expr left,
-                               scalar_expr right) {
+boolean_expr relational::create(relational_operation operation, scalar_expr left,
+                                scalar_expr right) {
   if (is_complex_infinity(left) || is_complex_infinity(right) || is_undefined(left) ||
       is_undefined(right)) {
     throw type_error("Cannot construct relational with types: {} {} {}", left.type_name(),
                      string_from_relational_operation(operation), right.type_name());
   }
+
   // See if this relational automatically simplifies to a boolean constant:
-  const tri_state simplified = visit_binary(left, right, RelationalSimplification{operation});
-  if (simplified == tri_state::True) {
+  if (const tri_state simplified = visit_binary(left, right, RelationalSimplification{operation});
+      simplified == tri_state::True) {
     return constants::boolean_true;
   } else if (simplified == tri_state::False) {
     return constants::boolean_false;
@@ -115,7 +116,8 @@ scalar_expr relational::create(relational_operation operation, scalar_expr left,
       std::swap(left, right);
     }
   }
-  return make_expr<relational>(operation, std::move(left), std::move(right));
+  return boolean_expr(std::in_place_type_t<relational>{}, operation, std::move(left),
+                      std::move(right));
 }
 
 }  // namespace wf

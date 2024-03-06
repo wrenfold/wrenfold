@@ -403,6 +403,9 @@ void wrap_codegen_operations(py::module_& m) {
           "value", [](const ast::assign_output_struct& x) -> const auto& { return x.value; },
           py::return_value_policy::reference_internal);
 
+  wrap_ast_type<ast::boolean_literal>(m).def_property_readonly(
+      "value", [](const ast::boolean_literal& b) { return b.value; });
+
   wrap_ast_type<ast::branch>(m)
       .def_property_readonly("condition", to_inner_accessor(&ast::branch::condition),
                              py::keep_alive<0, 1>())

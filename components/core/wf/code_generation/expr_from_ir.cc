@@ -39,7 +39,7 @@ class castable_variant {
 // Convert the IR operations back to expressions.
 // This is supported so we can do round-trip tests.
 struct expression_from_ir_visitor {
-  using expr_variant = castable_variant<scalar_expr, matrix_expr, compound_expr>;
+  using expr_variant = castable_variant<scalar_expr, matrix_expr, compound_expr, boolean_expr>;
 
   explicit expression_from_ir_visitor(std::unordered_map<std::string, bool>&& output_arg_exists)
       : output_arg_exists_(std::move(output_arg_exists)) {
@@ -54,8 +54,8 @@ struct expression_from_ir_visitor {
     return map_scalar_value(args[0]) * map_scalar_value(args[1]);
   }
 
-  scalar_expr operator()(const ir::output_required& output,
-                         const std::vector<ir::value_ptr>&) const {
+  boolean_expr operator()(const ir::output_required& output,
+                          const std::vector<ir::value_ptr>&) const {
     return output_arg_exists_.at(output.name()) ? constants::boolean_true
                                                 : constants::boolean_false;
   }
@@ -129,10 +129,14 @@ struct expression_from_ir_visitor {
 
   scalar_expr operator()(const ir::cast&, const std::vector<ir::value_ptr>& args) const {
     WF_ASSERT(!args.empty());
-    return map_scalar_value(args[0]);
+    if (args[0]->numeric_type() == code_numeric_type::boolean) {
+      return iverson(map_value(args[0]));
+    } else {
+      return map_scalar_value(args[0]);
+    }
   }
 
-  scalar_expr operator()(const ir::compare& cmp, const std::vector<ir::value_ptr>& args) const {
+  boolean_expr operator()(const ir::compare& cmp, const std::vector<ir::value_ptr>& args) const {
     return relational::create(cmp.operation(), map_scalar_value(args[0]),
                               map_scalar_value(args[1]));
   }
@@ -155,7 +159,7 @@ struct expression_from_ir_visitor {
   }
 
   scalar_expr operator()(const ir::cond&, const std::vector<ir::value_ptr>& args) const {
-    return where(map_scalar_value(args[0]), map_scalar_value(args[1]), map_scalar_value(args[2]));
+    return where(map_value(args[0]), map_scalar_value(args[1]), map_scalar_value(args[2]));
   }
 
   scalar_expr operator()(const ir::copy&, const std::vector<ir::value_ptr>& args) const {
@@ -178,6 +182,8 @@ struct expression_from_ir_visitor {
           using T = std::decay_t<decltype(expression)>;
           if constexpr (type_list_contains_v<T, scalar_expr::types>) {
             return scalar_expr{expression};
+          } else if constexpr (type_list_contains_v<T, boolean_expr::types>) {
+            return boolean_expr{expression};
           } else {
             return compound_expr{expression};
           }
@@ -200,7 +206,7 @@ struct expression_from_ir_visitor {
     const ir::value_ptr jump_val = jump_block->last_operation();
     WF_ASSERT(jump_val->is_op<ir::jump_condition>());
 
-    return where(map_scalar_value(jump_val->first_operand()), map_scalar_value(args[0]),
+    return where(map_value(jump_val->first_operand()), map_scalar_value(args[0]),
                  map_scalar_value(args[1]));
   }
 

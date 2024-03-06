@@ -4,6 +4,8 @@ add_library(
   wf/absl_imports.h
   wf/algorithm_utils.h
   wf/assertions.h
+  wf/boolean_expression.cc
+  wf/boolean_expression.h
   wf/checked_int.h
   wf/checked_pointers.h
   wf/code_generation/ast.cc
@@ -54,6 +56,7 @@ add_library(
   wf/evaluate.cc
   wf/expression.cc
   wf/expression.h
+  wf/expression_cache.h
   wf/expression_variant.h
   wf/expression_visitor.h
   wf/expressions/addition.cc

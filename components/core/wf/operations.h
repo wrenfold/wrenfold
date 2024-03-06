@@ -8,11 +8,14 @@
 namespace wf {
 class scalar_expr;
 class matrix_expr;
+class boolean_expr;
 
 // Replace instances of `target` w/ `replacement` in the input expression tree `input`.
 // Implemented in substitute.cc
 scalar_expr substitute(const scalar_expr& input, const scalar_expr& target,
                        const scalar_expr& replacement);
+boolean_expr substitute(const boolean_expr& input, const scalar_expr& target,
+                        const scalar_expr& replacement);
 
 // Replace all the [target, replacement] pairs in the input expression tree `input`.
 // Every `target` must be a variable.

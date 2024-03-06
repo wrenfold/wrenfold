@@ -6,6 +6,7 @@
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/expression.h"
+#include "wf/expression_cache.h"
 
 namespace wf {
 class control_flow_graph;  // Forward declare.
@@ -30,7 +31,7 @@ class ir_form_visitor {
   ir_form_visitor(control_flow_graph& output_graph, operation_term_counts counts);
 
   ir::value_ptr operator()(const addition& add, const scalar_expr& add_abstract);
-  ir::value_ptr operator()(const cast_bool& cast);
+  ir::value_ptr operator()(const boolean_constant& b);
   ir::value_ptr operator()(const complex_infinity&) const;
   ir::value_ptr operator()(const compound_expression_element& el);
   ir::value_ptr operator()(const conditional& cond);
@@ -41,6 +42,8 @@ class ir_form_visitor {
   ir::value_ptr operator()(const float_constant& f);
   ir::value_ptr operator()(const function& func);
   ir::value_ptr operator()(const integer_constant& i);
+  ir::value_ptr operator()(const iverson_bracket& bracket);
+  ir::value_ptr operator()(const matrix& mat);
   ir::value_ptr operator()(const multiplication& mul, const scalar_expr& mul_abstract);
   ir::value_ptr operator()(const power& power);
   ir::value_ptr operator()(const rational_constant& r);
@@ -50,8 +53,9 @@ class ir_form_visitor {
   ir::value_ptr operator()(const variable& var);
 
   ir::value_ptr operator()(const compound_expr& expr);
-  ir::value_ptr operator()(const matrix_expr& m);
+  ir::value_ptr operator()(const matrix_expr& expr);
   ir::value_ptr operator()(const scalar_expr& expr);
+  ir::value_ptr operator()(const boolean_expr& expr);
 
   // Compute the value for the specified expression. If required, cast it to the output type.
   ir::value_ptr apply_output_value(const scalar_expr& expr,
@@ -81,14 +85,7 @@ class ir_form_visitor {
 
   // Map of expression -> IR value. We catch duplicates as we create the IR code, which greatly
   // speeds up manipulation of the code later.
-  std::unordered_map<scalar_expr, ir::value_ptr, hash_struct<scalar_expr>,
-                     is_identical_struct<scalar_expr>>
-      computed_values_;
-
-  // Cache map for compound values.
-  std::unordered_map<compound_expr, ir::value_ptr, hash_struct<compound_expr>,
-                     is_identical_struct<compound_expr>>
-      computed_compound_values_;
+  wf::expression_cache<ir::value_ptr> cache_;
 
   // Hash tuple of [value, type]
   struct hash_value_and_type {
@@ -128,6 +125,7 @@ struct mul_add_count_visitor {
   void operator()(const compound_expr& x);
   void operator()(const scalar_expr& x);
   void operator()(const matrix_expr& m);
+  void operator()(const boolean_expr& b);
 
   template <typename T>
   void operator()(const T& concrete);
@@ -143,8 +141,7 @@ struct mul_add_count_visitor {
   operation_term_counts::count_container muls_{};
 
   // Track which nodes we have already visited, so that we do not double count repeated operations.
-  std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
-      visited_;
+  wf::expression_cache<bool> visited_;
 };
 
 }  // namespace wf

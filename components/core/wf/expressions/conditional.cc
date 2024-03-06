@@ -5,8 +5,8 @@
 
 namespace wf {
 
-scalar_expr conditional::create(wf::scalar_expr condition, wf::scalar_expr if_branch,
-                                wf::scalar_expr else_branch) {
+scalar_expr conditional::create(boolean_expr condition, scalar_expr if_branch,
+                                scalar_expr else_branch) {
   if (condition.is_identical_to(constants::boolean_true)) {
     return if_branch;
   } else if (condition.is_identical_to(constants::boolean_false)) {
@@ -15,7 +15,8 @@ scalar_expr conditional::create(wf::scalar_expr condition, wf::scalar_expr if_br
     // If and else are the same anyway, so ignore the condition.
     return if_branch;
   }
-  return make_expr<conditional>(std::move(condition), std::move(if_branch), std::move(else_branch));
+  return scalar_expr(std::in_place_type_t<conditional>{}, std::move(condition),
+                     std::move(if_branch), std::move(else_branch));
 }
 
 }  // namespace wf

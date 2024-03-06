@@ -75,23 +75,23 @@ scalar_expr operator/(const scalar_expr& a, const scalar_expr& b) {
   return multiplication::from_operands({a, one_over_b});
 }
 
-scalar_expr operator<(const scalar_expr& a, const scalar_expr& b) {
+boolean_expr operator<(const scalar_expr& a, const scalar_expr& b) {
   return relational::create(relational_operation::less_than, a, b);
 }
 
-scalar_expr operator>(const scalar_expr& a, const scalar_expr& b) {
+boolean_expr operator>(const scalar_expr& a, const scalar_expr& b) {
   return relational::create(relational_operation::less_than, b, a);
 }
 
-scalar_expr operator<=(const scalar_expr& a, const scalar_expr& b) {
+boolean_expr operator<=(const scalar_expr& a, const scalar_expr& b) {
   return relational::create(relational_operation::less_than_or_equal, a, b);
 }
 
-scalar_expr operator>=(const scalar_expr& a, const scalar_expr& b) {
+boolean_expr operator>=(const scalar_expr& a, const scalar_expr& b) {
   return relational::create(relational_operation::less_than_or_equal, b, a);
 }
 
-scalar_expr operator==(const scalar_expr& a, const scalar_expr& b) {
+boolean_expr operator==(const scalar_expr& a, const scalar_expr& b) {
   return relational::create(relational_operation::equal, a, b);
 }
 

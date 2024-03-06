@@ -21,6 +21,7 @@ using ast_element_types = type_list<
     struct assign_output_matrix,
     struct assign_output_scalar,
     struct assign_output_struct,
+    struct boolean_literal,
     struct branch,
     struct call_external_function,
     struct call_std_function,

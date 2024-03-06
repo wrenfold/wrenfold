@@ -29,9 +29,10 @@ class substitute_variables_visitor {
   scalar_expr operator()(const scalar_expr& expression);
   matrix_expr operator()(const matrix_expr& expression);
   compound_expr operator()(const compound_expr& expression);
+  boolean_expr operator()(const boolean_expr& expression);
 
-  template <typename T>
-  scalar_expr operator()(const T& concrete, const scalar_expr& abstract);
+  template <typename T, typename X>
+  X operator()(const T& concrete, const X& abstract);
 
  private:
   std::unordered_map<variable, scalar_expr, hash_struct<variable>, is_identical_struct<variable>>

@@ -51,14 +51,15 @@ scalar_expr max(const scalar_expr& a, const scalar_expr& b);
 scalar_expr min(const scalar_expr& a, const scalar_expr& b);
 
 // Conditional/ternary expression.
-scalar_expr where(const scalar_expr& condition, const scalar_expr& if_true,
+scalar_expr where(const boolean_expr& condition, const scalar_expr& if_true,
                   const scalar_expr& if_false);
 
 // Conditional over a matrix w/ scalar condition.
-matrix_expr where(const scalar_expr& condition, const matrix_expr& if_true,
+matrix_expr where(const boolean_expr& condition, const matrix_expr& if_true,
                   const matrix_expr& if_false);
 
-// Cast the provided expression from a boolean to an integer.
-scalar_expr cast_int_from_bool(const scalar_expr& bool_expression);
+// Iverson bracket: Cast the provided expression from a boolean to an integer.
+// Evaluates to 1 if bool_expression is true, and 0 if bool_expression is false.
+scalar_expr iverson(const boolean_expr& bool_expression);
 
 }  // namespace wf

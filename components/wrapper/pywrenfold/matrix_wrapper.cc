@@ -522,7 +522,7 @@ void wrap_matrix_operations(py::module_& m) {
 
   // Version of where() for matrices
   m.def("where",
-        static_cast<matrix_expr (*)(const scalar_expr&, const matrix_expr&, const matrix_expr&)>(
+        static_cast<matrix_expr (*)(const boolean_expr&, const matrix_expr&, const matrix_expr&)>(
             &wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
 

@@ -12,6 +12,10 @@
 namespace wf {
 using namespace wf::custom_literals;
 
+static_assert(std::is_nothrow_move_constructible_v<scalar_expr> &&
+                  std::is_nothrow_move_assignable_v<scalar_expr>,
+              "Should be movable");
+
 TEST(ScalarOperationsTest, TestAddition) {
   const scalar_expr w{"w"};
   const scalar_expr x{"x"};
@@ -427,16 +431,8 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_IDENTICAL(constants::boolean_true, constants::pi > constants::euler);
   ASSERT_IDENTICAL(constants::boolean_true, constants::euler == constants::euler);
   ASSERT_IDENTICAL(constants::boolean_false, constants::euler >= constants::pi);
-  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_true > constants::pi);
-  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_true == constants::boolean_true);
-  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_true == constants::boolean_false);
-  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_false < constants::boolean_true);
 
   // Constant to integer comparison is simplified
-  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_true > 0);
-  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_true == 0);
-  ASSERT_IDENTICAL(constants::boolean_false, constants::boolean_false < 0);
-  ASSERT_IDENTICAL(constants::boolean_true, constants::boolean_false == 0);
   ASSERT_IDENTICAL(constants::boolean_true, constants::pi > 3);
   ASSERT_IDENTICAL(constants::boolean_true, constants::pi >= 3);
   ASSERT_IDENTICAL(constants::boolean_false, constants::pi > 4);
@@ -456,17 +452,12 @@ TEST(ScalarOperationsTest, TestRelationals) {
 TEST(ScalarOperationsTest, TestCastBool) {
   const auto [x, y] = make_symbols("x", "y");
 
-  ASSERT_TRUE(cast_int_from_bool(x < y).is_type<cast_bool>());
-  ASSERT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x < y));
-  ASSERT_NOT_IDENTICAL(cast_int_from_bool(x < y), cast_int_from_bool(x == y));
+  ASSERT_TRUE(iverson(x < y).is_type<iverson_bracket>());
+  ASSERT_IDENTICAL(iverson(x < y), iverson(x < y));
+  ASSERT_NOT_IDENTICAL(iverson(x < y), iverson(x == y));
 
-  ASSERT_IDENTICAL(1, cast_int_from_bool(constants::boolean_true));
-  ASSERT_IDENTICAL(0, cast_int_from_bool(constants::boolean_false));
-
-  ASSERT_THROW(cast_int_from_bool(1.02), type_error);
-  ASSERT_THROW(cast_int_from_bool(x + y), type_error);
-  ASSERT_THROW(cast_int_from_bool(x * y), type_error);
-  ASSERT_THROW(cast_int_from_bool(sin(x)), type_error);
+  ASSERT_IDENTICAL(1, iverson(constants::boolean_true));
+  ASSERT_IDENTICAL(0, iverson(constants::boolean_false));
 }
 
 TEST(ScalarOperationsTest, TestConditional) {
@@ -562,9 +553,9 @@ TEST(ScalarOperationsTest, TestDistribute) {
       pow(4 - x + x * x / 3, -7_s / 2).distribute());
 
   // Distribute through relational:
-  ASSERT_IDENTICAL(-8 + 2 * x + pow(x, 2) < q * x + q * y - v * x - v * y,
-                   ((x + y) * (q - v) > (x - 2) * (x + 4)).distribute());
-  ASSERT_IDENTICAL(x * y + 2 * y == sin(p), ((x + 2) * y == sin(p)).distribute());
+  ASSERT_IDENTICAL(iverson(-8 + 2 * x + pow(x, 2) < q * x + q * y - v * x - v * y),
+                   iverson((x + y) * (q - v) > (x - 2) * (x + 4)).distribute());
+  ASSERT_IDENTICAL(iverson(x * y + 2 * y == sin(p)), iverson((x + 2) * y == sin(p)).distribute());
 }
 
 TEST(ScalarOperationsTest, TestCollect) {
@@ -873,8 +864,6 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
 TEST(ScalarOperationsTest, TestNumericSetsSpecialValues) {
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::euler));
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::pi));
-  ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::boolean_true));
-  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(constants::boolean_false));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::complex_infinity));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::undefined));
 }
@@ -886,7 +875,7 @@ TEST(ScalarOperationsTest, TestNumericSetsConditional) {
   const scalar_expr complex{"z", number_set::complex};
 
   ASSERT_EQ(number_set::real_non_negative,
-            determine_numeric_set(real > 0));  //  TODO: Should be boolean.
+            determine_numeric_set(iverson(real > 0)));  //  TODO: Should be boolean.
   ASSERT_EQ(number_set::real, determine_numeric_set(where(real > 0, real, real_non_negative)));
   ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(where(real > 0, real_positive, real_non_negative)));

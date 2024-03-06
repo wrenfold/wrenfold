@@ -51,7 +51,7 @@ class determine_set_visitor {
     return handle_add_or_mul(add, &combine_sets_add);
   }
 
-  constexpr number_set operator()(const cast_bool&) const noexcept {
+  constexpr number_set operator()(const iverson_bracket&) const noexcept {
     return number_set::real_non_negative;
   }
 
@@ -83,10 +83,7 @@ class determine_set_visitor {
     return std::max(left, right);
   }
 
-  constexpr number_set operator()(const symbolic_constant& c) const noexcept {
-    if (c.name() == symbolic_constant_enum::boolean_false) {
-      return number_set::real_non_negative;
-    }
+  constexpr number_set operator()(const symbolic_constant&) const noexcept {
     return number_set::real_positive;
   }
 

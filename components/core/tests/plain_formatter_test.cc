@@ -1,5 +1,4 @@
 #include "wf/constants.h"
-#include "wf/fmt_imports.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 
@@ -100,8 +99,8 @@ TEST(PlainFormatterTest, TestRelationals) {
   // Test precedence:
   ASSERT_STR_EQ("x * y < 5", x * y < 5);
   ASSERT_STR_EQ("sin(y) < 2 * x + z", z + 2 * x > sin(y));
-  ASSERT_STR_EQ("x < (z < y)", x < (z < y));
-  ASSERT_STR_EQ("x < (y <= z)", x < (z >= y));
+  ASSERT_STR_EQ("x < iverson(z < y)", x < iverson(z < y));
+  ASSERT_STR_EQ("x < iverson(y <= z)", x < iverson(z >= y));
 }
 
 TEST(PlainFormatterTest, TestConditionals) {
@@ -155,5 +154,15 @@ TEST(PlainFormatterTest, TestDerivativeExpression) {
 TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", constants::complex_infinity); }
 
 TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", constants::undefined); }
+
+TEST(PlainFormatterTest, TestScalarConstants) {
+  ASSERT_STR_EQ("pi", constants::pi);
+  ASSERT_STR_EQ("e", constants::euler);
+}
+
+TEST(PlainFormatterTest, TestBooleanConstants) {
+  ASSERT_STR_EQ("True", constants::boolean_true);
+  ASSERT_STR_EQ("False", constants::boolean_false);
+}
 
 }  // namespace wf

@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #pragma once
+#include "wf/boolean_expression.h"
 #include "wf/expression.h"
 
 namespace wf {
@@ -15,12 +16,12 @@ class relational {
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  scalar_expr map_children(Operation&& operation) const {
+  boolean_expr map_children(Operation&& operation) const {
     return relational::create(operation_, operation(left()), operation(right()));
   }
 
   // Create a relational operation.
-  static scalar_expr create(relational_operation operation, scalar_expr left, scalar_expr right);
+  static boolean_expr create(relational_operation operation, scalar_expr left, scalar_expr right);
 
   constexpr relational_operation operation() const noexcept { return operation_; }
   constexpr const scalar_expr& left() const noexcept { return children_[0]; }

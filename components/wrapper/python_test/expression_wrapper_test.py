@@ -62,10 +62,17 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(-42, sym.integer(-42))
         self.assertIdentical(1.231, sym.float(1.231))
         self.assertIdentical(9.81, sym.float(9.81))
+
         # Cannot invoke with values that exceed range of 64-bit signed int.
         # Python stores these values internally, but we can't convert them for now:
         self.assertRaises(TypeError, lambda: sym.integer(9223372036854775807 + 1))
         self.assertRaises(TypeError, lambda: sym.integer(-9223372036854775808 - 1))
+
+        # Disallow constructing BooleanExpr from numeric literals:
+        self.assertRaises(TypeError, lambda: sym.BooleanExpr(1))
+        self.assertRaises(TypeError, lambda: sym.BooleanExpr(-0.231))
+        self.assertRaises(TypeError, lambda: sym.BooleanExpr(True))
+        self.assertRaises(TypeError, lambda: sym.BooleanExpr(False))
 
     def test_repr(self):
         """Test __repr__ method."""
@@ -83,6 +90,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
         self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x, use_abstract=True))
         self.assertReprEqual('x == z', sym.equals(x, z))
+        self.assertReprEqual('iverson(z < x)', sym.iverson(x > z))
 
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""
@@ -90,9 +98,12 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertRaises(sym.TypeError, lambda: bool(x + 2))
         self.assertRaises(sym.TypeError, lambda: bool(2.0 / z))
         self.assertRaises(sym.TypeError, lambda: 1 if sym.cos(y * z) + x else 0)
+        self.assertRaises(sym.TypeError, lambda: bool(x < y))
         self.assertTrue(bool(sym.true))
         self.assertFalse(bool(sym.false))
         self.assertEqual(2.0, 2.0 if sym.true else 0.0)
+        self.assertTrue(0 < sym.integer(5))
+        self.assertFalse(22 == sym.pi)
 
     def test_basic_scalar_operations(self):
         """Test wrappers for addition, multiplication, subtraction, negation."""
@@ -150,8 +161,8 @@ class ExpressionWrapperTest(MathTestBase):
         x, y = sym.symbols("x, y")
         self.assertIdentical(1, sym.signum(3))
         self.assertIdentical(-1, sym.signum(-5.22))
-        self.assertIdentical(1, sym.signum(sym.true))
         self.assertNotIdentical(sym.signum(x), sym.signum(y))
+        self.assertRaises(TypeError, lambda: sym.signum(sym.true))
 
     def test_floor(self):
         """Test calling floor."""
@@ -221,10 +232,10 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(x, sym.where(0 < sym.Expr(1), x, y))
         self.assertIdentical(y - 3, sym.where(sym.pi >= sym.euler, y - 3, x * 5))
 
-    def test_cast_bool_to_int(self):
+    def test_iverson(self):
         """Test converting boolean values to integer."""
-        self.assertIdentical(1, sym.cast_int_from_bool(sym.one < 10.2))
-        self.assertIdentical(0, sym.cast_int_from_bool(sym.equals(sym.one, sym.zero)))
+        self.assertIdentical(1, sym.iverson(sym.one < 10.2))
+        self.assertIdentical(0, sym.iverson(sym.equals(sym.one, sym.zero)))
 
     def test_subs(self):
         """Test calling subs() on expressions."""

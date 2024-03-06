@@ -16,18 +16,19 @@ ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph, operation_ter
 ir::value_ptr ir_form_visitor::operator()(const addition& add, const scalar_expr& add_abstract) {
   // For additions, first check if the negated version has already been cached:
   const scalar_expr negative_add = -add_abstract;
-  if (const auto it = computed_values_.find(negative_add); it != computed_values_.end()) {
-    const auto promoted_type = std::max(it->second->numeric_type(), code_numeric_type::integral);
+  if (const std::optional<ir::value_ptr> maybe_cached = cache_.find(negative_add);
+      maybe_cached.has_value()) {
+    const auto promoted_type =
+        std::max(maybe_cached.value()->numeric_type(), code_numeric_type::integral);
     const ir::value_ptr negative_one =
         maybe_cast(operator()(constants::negative_one), promoted_type);
-    return push_operation(ir::mul{}, promoted_type, it->second, negative_one);
+    return push_operation(ir::mul{}, promoted_type, *maybe_cached, negative_one);
   }
   return convert_addition_or_multiplication(add);
 }
 
-ir::value_ptr ir_form_visitor::operator()(const cast_bool& cast) {
-  const ir::value_ptr arg = operator()(cast.arg());
-  return push_operation(ir::cast{code_numeric_type::integral}, code_numeric_type::integral, arg);
+ir::value_ptr ir_form_visitor::operator()(const boolean_constant& b) {
+  return push_operation(ir::load{b}, code_numeric_type::boolean);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const complex_infinity&) const {
@@ -52,7 +53,6 @@ ir::value_ptr ir_form_visitor::operator()(const conditional& cond) {
   const ir::value_ptr condition = operator()(cond.condition());
   const ir::value_ptr if_branch = operator()(cond.if_branch());
   const ir::value_ptr else_branch = operator()(cond.else_branch());
-
   const code_numeric_type promoted_type =
       std::max(if_branch->numeric_type(), else_branch->numeric_type());
   return push_operation(ir::cond{}, promoted_type, condition, maybe_cast(if_branch, promoted_type),
@@ -188,6 +188,20 @@ ir::value_ptr ir_form_visitor::operator()(const integer_constant& i) {
   return push_operation(ir::load{i}, code_numeric_type::integral);
 }
 
+ir::value_ptr ir_form_visitor::operator()(const iverson_bracket& bracket) {
+  const ir::value_ptr arg = operator()(bracket.arg());
+  return push_operation(ir::cast{code_numeric_type::integral}, code_numeric_type::integral, arg);
+}
+
+ir::value_ptr ir_form_visitor::operator()(const matrix& mat) {
+  const matrix_type mat_type{mat.rows(), mat.cols()};
+  return push_operation(
+      ir::construct(mat_type), mat_type,
+      transform_map<ir::value::operands_container>(mat, [this](const scalar_expr& arg) {
+        return maybe_cast(this->operator()(arg), code_numeric_type::floating_point);
+      }));
+}
+
 ir::value_ptr ir_form_visitor::operator()(const multiplication& mul,
                                           const scalar_expr& mul_abstract) {
   if (const auto [coeff, multiplicand] = as_coeff_and_mul(mul_abstract); is_negative_one(coeff)) {
@@ -284,20 +298,8 @@ ir::value_ptr ir_form_visitor::operator()(const relational& relational) {
                         maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
 }
 
-static code_numeric_type numeric_type_from_constant(const symbolic_constant& c) {
-  switch (c.name()) {
-    case symbolic_constant_enum::euler:
-    case symbolic_constant_enum::pi:
-      return code_numeric_type::floating_point;
-    case symbolic_constant_enum::boolean_true:
-    case symbolic_constant_enum::boolean_false:
-      return code_numeric_type::boolean;
-  }
-  WF_ASSERT_ALWAYS("Unhandled symbolic constant: {}", string_from_symbolic_constant(c.name()));
-}
-
-ir::value_ptr ir_form_visitor::operator()(const symbolic_constant& c) {
-  return push_operation(ir::load{c}, numeric_type_from_constant(c));
+ir::value_ptr ir_form_visitor::operator()(const symbolic_constant& constant) {
+  return push_operation(ir::load{constant}, code_numeric_type::floating_point);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
@@ -309,32 +311,19 @@ ir::value_ptr ir_form_visitor::operator()(const variable& var) {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const compound_expr& expr) {
-  if (const auto it = computed_compound_values_.find(expr); it != computed_compound_values_.end()) {
-    return it->second;
-  }
-  ir::value_ptr val = visit(expr, *this);
-  computed_compound_values_.emplace(expr, val);
-  return val;
+  return cache_.get_or_insert(expr, [this](const compound_expr& x) { return visit(x, *this); });
 }
 
-ir::value_ptr ir_form_visitor::operator()(const matrix_expr& m) {
-  WF_ASSERT(m.is_type<matrix>(), "TODO: Generalize when we add more matrix expressions.");
-  const matrix_type mat_type{m.rows(), m.cols()};
-  return push_operation(
-      ir::construct(mat_type), mat_type,
-      transform_map<ir::value::operands_container>(m.as_matrix(), [this](const scalar_expr& arg) {
-        return maybe_cast(this->operator()(arg), code_numeric_type::floating_point);
-      }));
+ir::value_ptr ir_form_visitor::operator()(const matrix_expr& expr) {
+  return cache_.get_or_insert(expr, [this](const matrix_expr& x) { return visit(x, *this); });
 }
 
-// Check if a value has been computed. If not, convert it and return the result.
 ir::value_ptr ir_form_visitor::operator()(const scalar_expr& expr) {
-  if (const auto it = computed_values_.find(expr); it != computed_values_.end()) {
-    return it->second;
-  }
-  ir::value_ptr val = visit(expr, *this);
-  computed_values_.emplace(expr, val);
-  return val;
+  return cache_.get_or_insert(expr, [this](const scalar_expr& x) { return visit(x, *this); });
+}
+
+ir::value_ptr ir_form_visitor::operator()(const boolean_expr& expr) {
+  return cache_.get_or_insert(expr, [this](const boolean_expr& x) { return visit(x, *this); });
 }
 
 template <typename OpType, typename Type, typename... Args>
@@ -418,7 +407,6 @@ constexpr const operation_term_counts::count_container& ir_form_visitor::get_cou
 mul_add_count_visitor::mul_add_count_visitor() {
   adds_.reserve(100);
   muls_.reserve(100);
-  visited_.reserve(100);
 }
 
 void mul_add_count_visitor::count_group_expressions(const expression_group& group) {
@@ -433,6 +421,7 @@ void mul_add_count_visitor::operator()(const matrix_expr& m) {
     visit(x, *this);
   }
 }
+void mul_add_count_visitor::operator()(const boolean_expr& b) { return visit(b, *this); }
 
 void mul_add_count_visitor::operator()(const compound_expr& x) {
   auto visitor = make_overloaded(
@@ -467,11 +456,19 @@ void mul_add_count_visitor::operator()(const T& concrete) {
     if constexpr (std::is_same_v<T, compound_expression_element>) {
       operator()(concrete.provenance());
     } else {
+      auto visit_with_this = [this](const auto& x) {
+        visit(x, *this);
+        return true;
+      };
+
       // Recurse:
-      for (const scalar_expr& child : concrete) {
-        if (!visited_.count(child)) {
-          visited_.insert(child);
-          visit(child, *this);
+      if constexpr (std::is_same_v<T, conditional>) {
+        visited_.get_or_insert(concrete.condition(), visit_with_this);
+        visited_.get_or_insert(concrete.if_branch(), visit_with_this);
+        visited_.get_or_insert(concrete.else_branch(), visit_with_this);
+      } else {
+        for (const auto& child : concrete) {
+          visited_.get_or_insert(child, visit_with_this);
         }
       }
     }

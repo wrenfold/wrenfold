@@ -184,25 +184,25 @@ TEST(DerivativesTest, TestMatrix) {
 TEST(DerivativesTest, TestRelational) {
   // Cannot diff a relational:
   const auto [x, y] = make_symbols("x", "y");
-  ASSERT_IDENTICAL(0, (x < y).diff(x));
-  ASSERT_IDENTICAL(0, (x == y).diff(x));
-  ASSERT_IDENTICAL(derivative::create(x < y, x, 1),
-                   (x < y).diff(x, 1, non_differentiable_behavior::abstract));
-  ASSERT_IDENTICAL(derivative::create(x == y, x, 1),
-                   (x == y).diff(x, 1, non_differentiable_behavior::abstract));
+  ASSERT_IDENTICAL(0, iverson(x < y).diff(x));
+  ASSERT_IDENTICAL(0, iverson(x == y).diff(x));
+  ASSERT_IDENTICAL(derivative::create(iverson(x < y), x, 1),
+                   iverson(x < y).diff(x, 1, non_differentiable_behavior::abstract));
+  ASSERT_IDENTICAL(derivative::create(iverson(x == y), x, 1),
+                   iverson(x == y).diff(x, 1, non_differentiable_behavior::abstract));
 }
 
-TEST(DerivativesTest, TestCastBool) {
+TEST(DerivativesTest, TestIversonBracket) {
   const auto [x, y] = make_symbols("x", "y");
 
-  ASSERT_IDENTICAL(0, cast_int_from_bool(x < y).diff(x));
-  ASSERT_IDENTICAL(0, cast_int_from_bool(x < y).diff(x).diff(y));
+  ASSERT_IDENTICAL(0, iverson(x < y).diff(x));
+  ASSERT_IDENTICAL(0, iverson(x < y).diff(x).diff(y));
 
   // Check that this produces a `derivative` expression:
-  ASSERT_IDENTICAL(derivative::create(cast_int_from_bool(x < y), x, 1),
-                   cast_int_from_bool(x < y).diff(x, 1, non_differentiable_behavior::abstract));
-  ASSERT_IDENTICAL(derivative::create(derivative::create(cast_int_from_bool(x < y), x, 1), y, 1),
-                   cast_int_from_bool(x < y)
+  ASSERT_IDENTICAL(derivative::create(iverson(x < y), x, 1),
+                   iverson(x < y).diff(x, 1, non_differentiable_behavior::abstract));
+  ASSERT_IDENTICAL(derivative::create(derivative::create(iverson(x < y), x, 1), y, 1),
+                   iverson(x < y)
                        .diff(x, 1, non_differentiable_behavior::abstract)
                        .diff(y, 1, non_differentiable_behavior::abstract));
 }

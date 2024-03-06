@@ -96,12 +96,8 @@ class limit_visitor {
     return std::nullopt;
   }
 
-  std::optional<scalar_expr> operator()(const cast_bool& cast) {
-    std::optional<scalar_expr> arg = visit(cast.arg());
-    if (!arg) {
-      return std::nullopt;
-    }
-    return cast_int_from_bool(*arg);
+  std::optional<scalar_expr> operator()(const iverson_bracket&) const {
+    throw type_error("Not handled.");
   }
 
   std::optional<scalar_expr> operator()(const conditional&) const {
@@ -376,8 +372,6 @@ class limit_visitor {
       return std::nullopt;
     }
 
-    WF_ASSERT(!exp_sub.is_identical_to(constants::boolean_false));
-
     if (is_zero(exp_sub) && (is_inf(base_sub) || is_zero(base_sub))) {
       // 0 ^ 0 is an indeterminate form, and ∞ ^ 0
       // lim[x->c] f(x)^g(x) = e ^ (lim[x->c] g(x) * log(f(x)))
@@ -492,17 +486,8 @@ class limit_visitor {
     return process_power(pow.base(), pow.exponent());
   }
 
-  std::optional<scalar_expr> operator()(const relational& rel, const scalar_expr&) {
-    // For relationals, we do a substitution:
-    std::optional<scalar_expr> left = visit(rel.left());
-    if (!left) {
-      return std::nullopt;
-    }
-    std::optional<scalar_expr> right = visit(rel.right());
-    if (!right) {
-      return std::nullopt;
-    }
-    return relational::create(rel.operation(), std::move(*left), std::move(*right));
+  std::optional<scalar_expr> operator()(const relational&, const scalar_expr&) {
+    throw type_error("Unhandled!");
   }
 
   std::optional<scalar_expr> operator()(const undefined&) const { return constants::undefined; }

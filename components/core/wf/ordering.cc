@@ -29,8 +29,8 @@ relative_order order_struct<scalar_expr>::operator()(const scalar_expr& a,
                                                      const scalar_expr& b) const {
   using order_of_types =
       type_list<float_constant, integer_constant, rational_constant, symbolic_constant,
-                complex_infinity, variable, multiplication, addition, power, function, relational,
-                conditional, cast_bool, compound_expression_element, derivative, undefined>;
+                complex_infinity, variable, multiplication, addition, power, function, conditional,
+                iverson_bracket, compound_expression_element, derivative, undefined>;
   static constexpr auto order =
       get_type_order_indices(scalar_expr::storage_type::types{}, order_of_types{});
 
@@ -54,6 +54,20 @@ relative_order order_struct<scalar_expr>::operator()(const scalar_expr& a,
 
 relative_order order_struct<compound_expr>::operator()(const compound_expr& a,
                                                        const compound_expr& b) const {
+  if (a.type_index() < b.type_index()) {
+    return relative_order::less_than;
+  } else if (a.type_index() > b.type_index()) {
+    return relative_order::greater_than;
+  }
+  return visit(a, [&b](const auto& a_typed) -> relative_order {
+    using Ta = std::decay_t<decltype(a_typed)>;
+    static_assert(is_orderable_v<Ta>, "Type does not implement order_struct.");
+    return order_struct<Ta>{}(a_typed, cast_unchecked<const Ta>(b));
+  });
+}
+
+relative_order order_struct<boolean_expr>::operator()(const boolean_expr& a,
+                                                      const boolean_expr& b) const {
   if (a.type_index() < b.type_index()) {
     return relative_order::less_than;
   } else if (a.type_index() > b.type_index()) {

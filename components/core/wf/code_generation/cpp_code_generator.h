@@ -32,6 +32,8 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::assign_temporary& x) const;
 
+  virtual std::string operator()(const ast::boolean_literal& x) const;
+
   virtual std::string operator()(const ast::branch& x) const;
 
   virtual std::string operator()(const ast::call_external_function& x) const;

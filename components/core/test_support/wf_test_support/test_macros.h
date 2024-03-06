@@ -43,6 +43,10 @@ struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, s
   // This overload will get selected for numeric literals.
   scalar_expr operator()(const T& arg) const { return static_cast<scalar_expr>(arg); }
 };
+template <typename T>
+struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, boolean_expr>>> {
+  boolean_expr operator()(const T& arg) const { return static_cast<boolean_expr>(arg); }
+};
 template <>
 struct convert_assertion_argument<matrix_expr> {
   matrix_expr operator()(const matrix_expr& arg) const { return arg; }

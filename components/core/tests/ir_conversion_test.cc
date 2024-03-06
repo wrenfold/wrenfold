@@ -296,8 +296,8 @@ TEST(IrTest, TestConditionals2) {
   auto [expected_expressions, ir] = create_ir(
       [](scalar_expr x, scalar_expr y) {
         // use the condition in one of the branches:
-        scalar_expr condition = x > y;
-        return where(condition, condition * 2, cos(y - 2));
+        boolean_expr condition = x > y;
+        return where(condition, iverson(condition) * 2, cos(y - 2));
       },
       "func", arg("x"), arg("y"));
 
@@ -364,12 +364,12 @@ TEST(IrTest, TestConditionals5) {
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(55, ir.num_operations()) << ir;
+  ASSERT_EQ(54, ir.num_operations()) << ir;
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(57, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(56, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }

@@ -41,8 +41,8 @@ inline scalar_expr heaviside(scalar_expr x) { return where(x >= 0, 1, 0); }
 
 // Exclusive or on the conditions x > 0 and y > 0 (a simple nested conditional).
 inline scalar_expr exclusive_or(scalar_expr x, scalar_expr y) {
-  scalar_expr cond_x = x > 0;
-  scalar_expr cond_y = y > 0;
+  boolean_expr cond_x = x > 0;
+  boolean_expr cond_y = y > 0;
   return where(cond_x, where(cond_y, 0, 1), where(cond_y, 1, 0));
 }
 
