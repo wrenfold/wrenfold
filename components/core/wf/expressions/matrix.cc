@@ -1,11 +1,21 @@
 // Copyright 2023 Gareth Cross
 #include "wf/expressions/matrix.h"
 
+#include "wf/assertions.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/addition.h"
-#include "wf/matrix_functions.h"
 
 namespace wf {
+
+matrix::matrix(const index_t rows, const index_t cols, container_type data)
+    : rows_(rows), cols_(cols), data_(std::move(data)) {
+  if (data_.size() != static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_)) {
+    throw dimension_error("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
+                          data_.size(), rows_, cols_);
+  }
+  WF_ASSERT_GREATER_OR_EQ(rows_, 0);
+  WF_ASSERT_GREATER_OR_EQ(cols_, 0);
+}
 
 matrix matrix::get_block(const index_t row, const index_t col, const index_t nrows,
                          const index_t ncols) const {

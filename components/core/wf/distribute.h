@@ -1,9 +1,6 @@
 // Copyright 2024 Gareth Cross
 #pragma once
-#include <unordered_map>
-
-#include "wf/compound_expression.h"
-#include "wf/expression.h"
+#include "wf/expression_cache.h"
 
 namespace wf {
 
@@ -12,9 +9,10 @@ namespace wf {
 // (a + b)^2 = a^2 + 2*a*b + b^2
 class distribute_visitor {
  public:
-  scalar_expr operator()(const scalar_expr& x);
-  compound_expr operator()(const compound_expr& x);
-  boolean_expr operator()(const boolean_expr& x);
+  scalar_expr operator()(const scalar_expr& input);
+  compound_expr operator()(const compound_expr& input);
+  boolean_expr operator()(const boolean_expr& input);
+  matrix_expr operator()(const matrix_expr& input);
 
   scalar_expr operator()(const addition& add);
   boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) const;
@@ -44,9 +42,7 @@ class distribute_visitor {
   template <typename Container>
   scalar_expr distribute_multiplied_terms(const Container& multiplied_terms);
 
-  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
-                     is_identical_struct<scalar_expr>>
-      cache_;
+  wf::expression_cache<> cache_;
 };
 
 }  // namespace wf

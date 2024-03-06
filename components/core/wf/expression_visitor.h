@@ -72,22 +72,24 @@ auto visit_binary(const U& u, const V& v, VisitorType&& handler) {
   });
 }
 
-// TODO: Document.
+// Expand a matrix expression, and apply `f` to every `scalar_expr` it contains.
+template <typename F>
+matrix_expr map_matrix_expression(const matrix_expr& expr, F&& f) {
+  return visit(expr, [&](const auto& mat) { return mat.map_children(std::forward<F>(f)); });
+}
+
+// Expand a compound expression, and visit all the sub-expressions that make it up with the provided
+// object `f`. Type `F` will be invoked with expression types like `scalar_expr`, `boolean_expr`,
+// etc.
 template <typename F>
 compound_expr map_compound_expressions(const compound_expr& expr, F&& f) {
   return visit(expr, make_overloaded(
                          [&](const external_function_invocation& invocation) {
                            return invocation.map_children([&](const any_expression& arg) {
-                             // TODO: Make `matrix_expr` derived from `expression_base`, and call
-                             //  visit(...) here.
-                             return overloaded_visit(
-                                 arg, [&](const scalar_expr& x) -> any_expression { return f(x); },
-                                 [&](const boolean_expr& x) -> any_expression { return f(x); },
-                                 [&](const matrix_expr& x) -> any_expression {
-                                   matrix m = x.as_matrix().map_children(std::forward<F>(f));
-                                   return matrix_expr(std::move(m));
-                                 },
-                                 [&](const compound_expr& x) -> any_expression { return f(x); });
+                             // Visit the `any_expression` variant. `f()` is invoked with all
+                             // thep possible expression types.
+                             return std::visit(
+                                 [&f](const auto& x) -> any_expression { return f(x); }, arg);
                            });
                          },
                          [&](const custom_type_argument&) { return expr; },

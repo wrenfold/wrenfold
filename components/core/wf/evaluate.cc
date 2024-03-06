@@ -26,31 +26,26 @@ scalar_expr evaluate_visitor::operator()(const rational_constant& x) const {
 
 scalar_expr evaluate_visitor::operator()(const symbolic_constant& c) const {
   const auto c_enum = c.name();
-  const double value = double_from_symbolic_constant(c_enum);
-  WF_ASSERT(!std::isnan(value), "Invalid symbolic constant: {}",
-            string_from_symbolic_constant(c_enum));
-  return scalar_expr(value);
+  return scalar_expr{double_from_symbolic_constant(c_enum)};
 }
 
 scalar_expr evaluate_visitor::operator()(const scalar_expr& input) {
-  if (auto it = cache_.find(input); it != cache_.end()) {
-    return it->second;
-  }
-  scalar_expr result = visit(input, *this);
-  cache_.emplace(input, result);
-  return result;
+  return cache_.get_or_insert(input, [this](const scalar_expr& x) { return visit(x, *this); });
 }
 
 compound_expr evaluate_visitor::operator()(const compound_expr& input) {
-  if (auto it = compound_cache_.find(input); it != compound_cache_.end()) {
-    return it->second;
-  }
-  compound_expr result = map_compound_expressions(input, *this);
-  compound_cache_.emplace(input, result);
-  return result;
+  return cache_.get_or_insert(
+      input, [this](const compound_expr& x) { return map_compound_expressions(x, *this); });
 }
 
-boolean_expr evaluate_visitor::operator()(const boolean_expr& input) { return visit(input, *this); }
+boolean_expr evaluate_visitor::operator()(const boolean_expr& input) {
+  return cache_.get_or_insert(input, [this](const auto& x) { return visit(x, *this); });
+}
+
+matrix_expr evaluate_visitor::operator()(const matrix_expr& input) {
+  return cache_.get_or_insert(
+      input, [this](const matrix_expr& x) { return map_matrix_expression(x, *this); });
+}
 
 scalar_expr evaluate(const scalar_expr& arg) { return evaluate_visitor{}(arg); }
 

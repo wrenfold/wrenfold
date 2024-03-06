@@ -14,6 +14,7 @@ struct collect_visitor {
   scalar_expr operator()(const scalar_expr& x) { return visit(x, *this); }
   compound_expr operator()(const compound_expr& x) { return map_compound_expressions(x, *this); }
   boolean_expr operator()(const boolean_expr& x) { return visit(x, *this); }
+  matrix_expr operator()(const matrix_expr& x) { return map_matrix_expression(x, *this); }
 
   template <typename T>
   auto recurse(const T& op) {
@@ -40,8 +41,8 @@ struct collect_visitor {
             std::optional<scalar_expr> exponent;
             const auto it =
                 std::find_if(mul->begin(), mul->end(), [&](const scalar_expr& mul_term) {
-                  auto [base, exp] = as_base_and_exp(mul_term);
-                  if (base.is_identical_to(collected_term)) {
+                  if (auto [base, exp] = as_base_and_exp(mul_term);
+                      base.is_identical_to(collected_term)) {
                     // found the base we want
                     exponent = std::move(exp);
                     return true;
@@ -118,7 +119,7 @@ struct collect_visitor {
     return collect_addition_terms(std::move(children));
   }
 
-  boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) { return arg; }
+  boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) const { return arg; }
   scalar_expr operator()(const compound_expression_element& el) { return el.map_children(*this); }
   scalar_expr operator()(const multiplication& mul, const scalar_expr&) { return recurse(mul); }
   scalar_expr operator()(const function& f) { return recurse(f); }

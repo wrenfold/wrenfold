@@ -3,9 +3,8 @@
 #include <vector>
 
 #include "wf/algorithm_utils.h"
-#include "wf/assertions.h"
 #include "wf/error_types.h"
-#include "wf/expression.h"
+#include "wf/matrix_expression.h"
 
 namespace wf {
 
@@ -18,21 +17,13 @@ class matrix {
   using container_type = std::vector<scalar_expr>;
 
   // Construct from data vector.
-  matrix(index_t rows, index_t cols, container_type data)
-      : rows_(rows), cols_(cols), data_(std::move(data)) {
-    if (data_.size() != static_cast<std::size_t>(rows_) * static_cast<std::size_t>(cols_)) {
-      throw dimension_error("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
-                            data_.size(), rows_, cols_);
-    }
-    WF_ASSERT_GREATER_OR_EQ(rows_, 0);
-    WF_ASSERT_GREATER_OR_EQ(cols_, 0);
-  }
+  matrix(index_t rows, index_t cols, container_type data);
 
   // Implement ExpressionImpl::Map
   template <typename Operation>
-  matrix map_children(Operation&& operation) const {
-    return {rows(), cols(),
-            transform_map<container_type>(data_, std::forward<Operation>(operation))};
+  matrix_expr map_children(Operation&& operation) const {
+    return matrix_expr{std::in_place_type_t<matrix>{}, rows(), cols(),
+                       transform_map<container_type>(data_, std::forward<Operation>(operation))};
   }
 
   // Access element in a vector. Only valid if `cols` or `rows` is 1.

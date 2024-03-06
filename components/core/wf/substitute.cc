@@ -26,9 +26,7 @@ struct substitute_visitor_base {
   scalar_expr operator()(const scalar_expr& expr) { return visit(expr, *this); }
   boolean_expr operator()(const boolean_expr& expr) { return visit(expr, *this); }
 
-  matrix_expr operator()(const matrix_expr& expr) {
-    return matrix_expr{expr.as_matrix().map_children(*this)};
-  }
+  matrix_expr operator()(const matrix_expr& expr) { return map_matrix_expression(expr, *this); }
 
   compound_expr operator()(const compound_expr& expr) {
     return map_compound_expressions(expr, *this);
@@ -361,13 +359,7 @@ scalar_expr substitute_variables(const scalar_expr& input,
 
 matrix_expr substitute_variables(
     const matrix_expr& input, const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) {
-  substitute_variables_visitor visitor = create_subs_visitor(pairs);
-  const matrix& m = input.as_matrix();
-
-  std::vector<scalar_expr> replaced{};
-  replaced.reserve(m.size());
-  std::transform(m.begin(), m.end(), std::back_inserter(replaced), std::move(visitor));
-  return matrix_expr::create(m.rows(), m.cols(), std::move(replaced));
+  return map_matrix_expression(input, create_subs_visitor(pairs));
 }
 
 void substitute_variables_visitor::add_substitution(const scalar_expr& target,
@@ -410,7 +402,7 @@ scalar_expr substitute_variables_visitor::operator()(const scalar_expr& expressi
 }
 
 matrix_expr substitute_variables_visitor::operator()(const matrix_expr& expression) {
-  return matrix_expr{expression.as_matrix().map_children(*this)};
+  return map_matrix_expression(expression, *this);
 }
 
 compound_expr substitute_variables_visitor::operator()(const compound_expr& expression) {
