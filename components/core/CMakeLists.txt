@@ -95,7 +95,6 @@ add_library(
   wf/hashing.h
   wf/index_range.h
   wf/integer_utils.h
-  wf/limits.cc
   wf/matrix_expression.cc
   wf/matrix_expression.h
   wf/matrix_functions.cc

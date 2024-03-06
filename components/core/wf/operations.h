@@ -67,17 +67,6 @@ scalar_expr collect(const scalar_expr& arg, const scalar_expr& term);
 // Implemented in evaluate.cc
 scalar_expr evaluate(const scalar_expr& arg);
 
-// Take the limit of `f_of_x` as `x` goes to 0 from the right.
-// The expression `x` must be a variable.
-// Implemented in limit.cc
-// This feature is considered unstable.
-std::optional<scalar_expr> limit(const scalar_expr& f_of_x, const scalar_expr& x);
-
-// Take the limit of matrix-valued function `f_of_x` as `x` goes to 0 from the right.
-// The expression `x` must be a variable.
-// This feature is considered unstable.
-std::optional<matrix_expr> limit(const matrix_expr& f_of_x, const scalar_expr& x);
-
 // Determine what set of numbers an expression belongs to.
 // Returns `NumberSet::unknown` if the set cannot be determined.
 number_set determine_numeric_set(const scalar_expr& x);
