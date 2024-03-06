@@ -216,6 +216,9 @@ scalar_expr derivative_visitor::operator()(const function& func) {
 scalar_expr derivative_visitor::operator()(const complex_infinity&) const {
   return constants::zero;
 }
+
+scalar_expr derivative_visitor::operator()(const imaginary_unit&) const { return constants::zero; }
+
 scalar_expr derivative_visitor::operator()(const integer_constant&) const {
   return constants::zero;
 }

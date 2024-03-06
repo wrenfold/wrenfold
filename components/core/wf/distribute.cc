@@ -40,8 +40,8 @@ scalar_expr distribute_visitor::operator()(const iverson_bracket& cast) {
 scalar_expr distribute_visitor::operator()(const compound_expression_element& el) {
   return el.map_children(*this);
 }
-scalar_expr distribute_visitor::operator()(const complex_infinity&, const scalar_expr& arg) const {
-  return arg;
+scalar_expr distribute_visitor::operator()(const complex_infinity&) const {
+  return constants::complex_infinity;
 }
 scalar_expr distribute_visitor::operator()(const conditional& conditional) {
   return conditional.map_children(*this);
@@ -49,9 +49,15 @@ scalar_expr distribute_visitor::operator()(const conditional& conditional) {
 scalar_expr distribute_visitor::operator()(const derivative& diff) {
   return diff.map_children(*this);
 }
+
+scalar_expr distribute_visitor::operator()(const imaginary_unit&) const {
+  return constants::imaginary_unit;
+}
+
 scalar_expr distribute_visitor::operator()(const integer_constant&, const scalar_expr& arg) const {
   return arg;
 }
+
 scalar_expr distribute_visitor::operator()(const float_constant&, const scalar_expr& arg) const {
   return arg;
 }

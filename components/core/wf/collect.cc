@@ -128,7 +128,8 @@ struct collect_visitor {
   scalar_expr operator()(const conditional& conditional) { return recurse(conditional); }
   scalar_expr operator()(const symbolic_constant&, const scalar_expr& arg) const { return arg; }
   scalar_expr operator()(const derivative& diff, const scalar_expr&) { return recurse(diff); }
-  scalar_expr operator()(const complex_infinity&, const scalar_expr& arg) const { return arg; }
+  scalar_expr operator()(const complex_infinity&) const { return constants::complex_infinity; }
+  scalar_expr operator()(const imaginary_unit&) const { return constants::imaginary_unit; }
   scalar_expr operator()(const integer_constant&, const scalar_expr& arg) const { return arg; }
   scalar_expr operator()(const float_constant&, const scalar_expr& arg) const { return arg; }
   scalar_expr operator()(const rational_constant&, const scalar_expr& arg) const { return arg; }

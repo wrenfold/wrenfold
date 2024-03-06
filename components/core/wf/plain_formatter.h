@@ -1,5 +1,6 @@
 // Copyright 2022 Gareth Cross
 #pragma once
+#include "expressions/special_constants.h"
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
 
@@ -23,6 +24,7 @@ class plain_formatter {
   void operator()(const derivative& derivative);
   void operator()(const float_constant& num);
   void operator()(const complex_infinity&);
+  void operator()(const imaginary_unit&);
   void operator()(const integer_constant& num);
   void operator()(const iverson_bracket& bracket);
   void operator()(const class matrix& mat);

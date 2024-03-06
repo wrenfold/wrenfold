@@ -22,7 +22,6 @@ struct type_list_trait<scalar_meta_type> {
   // clang-format off
   using types = type_list<
     const class addition,
-    const class iverson_bracket,
     const class compound_expression_element,
     const class conditional,
     const class symbolic_constant,
@@ -30,7 +29,9 @@ struct type_list_trait<scalar_meta_type> {
     const class float_constant,
     const class function,
     const class complex_infinity,
+    const class imaginary_unit,
     const class integer_constant,
+    const class iverson_bracket,
     const class multiplication,
     const class power,
     const class rational_constant,

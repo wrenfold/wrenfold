@@ -1,5 +1,6 @@
 // Copyright 2024 Gareth Cross
 #pragma once
+#include "expressions/special_constants.h"
 #include "wf/expression_cache.h"
 
 namespace wf {
@@ -16,12 +17,13 @@ class distribute_visitor {
 
   scalar_expr operator()(const addition& add);
   boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) const;
-  scalar_expr operator()(const iverson_bracket& cast);
   scalar_expr operator()(const compound_expression_element& el);
-  scalar_expr operator()(const complex_infinity&, const scalar_expr& arg) const;
+  scalar_expr operator()(const complex_infinity&) const;
   scalar_expr operator()(const conditional& conditional);
   scalar_expr operator()(const derivative& diff);
+  scalar_expr operator()(const imaginary_unit&) const;
   scalar_expr operator()(const integer_constant&, const scalar_expr& arg) const;
+  scalar_expr operator()(const iverson_bracket& cast);
   scalar_expr operator()(const float_constant&, const scalar_expr& arg) const;
   scalar_expr operator()(const function& f);
   scalar_expr operator()(const multiplication& mul);

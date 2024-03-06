@@ -144,8 +144,8 @@ void plain_formatter::operator()(const conditional& conditional) {
   output_ += ")";
 }
 
-void plain_formatter::operator()(const symbolic_constant& expr) {
-  output_ += string_from_symbolic_constant(expr.name());
+void plain_formatter::operator()(const symbolic_constant& constant) {
+  output_ += string_from_symbolic_constant(constant.name());
 }
 
 void plain_formatter::operator()(const derivative& derivative) {
@@ -164,8 +164,10 @@ void plain_formatter::operator()(const complex_infinity&) {
   fmt::format_to(std::back_inserter(output_), "zoo");
 }
 
-void plain_formatter::operator()(const integer_constant& expr) {
-  fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
+void plain_formatter::operator()(const imaginary_unit&) { output_ += "i"; }
+
+void plain_formatter::operator()(const integer_constant& num) {
+  fmt::format_to(std::back_inserter(output_), "{}", num.get_value());
 }
 
 void plain_formatter::operator()(const iverson_bracket& bracket) {
@@ -174,8 +176,8 @@ void plain_formatter::operator()(const iverson_bracket& bracket) {
   output_ += ")";
 }
 
-void plain_formatter::operator()(const float_constant& expr) {
-  fmt::format_to(std::back_inserter(output_), "{}", expr.get_value());
+void plain_formatter::operator()(const float_constant& num) {
+  fmt::format_to(std::back_inserter(output_), "{}", num.get_value());
 }
 
 void plain_formatter::operator()(const matrix& mat) {

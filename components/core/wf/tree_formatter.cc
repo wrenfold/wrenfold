@@ -74,6 +74,10 @@ void tree_formatter_visitor::operator()(const function& func) {
   visit_all(func);
 }
 
+void tree_formatter_visitor::operator()(const imaginary_unit&) {
+  format_append("{}", imaginary_unit::name_str);
+}
+
 void tree_formatter_visitor::operator()(const integer_constant& i) {
   format_append("{} ({})", integer_constant::name_str, i.get_value());
 }

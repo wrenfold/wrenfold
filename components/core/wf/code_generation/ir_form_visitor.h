@@ -41,6 +41,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const derivative&) const;
   ir::value_ptr operator()(const float_constant& f);
   ir::value_ptr operator()(const function& func);
+  ir::value_ptr operator()(const imaginary_unit&) const;
   ir::value_ptr operator()(const integer_constant& i);
   ir::value_ptr operator()(const iverson_bracket& bracket);
   ir::value_ptr operator()(const matrix& mat);

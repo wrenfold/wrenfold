@@ -184,6 +184,11 @@ ir::value_ptr ir_form_visitor::operator()(const function& func) {
   return push_operation(ir::call_std_function{enum_value}, numeric_type, std::move(args));
 }
 
+ir::value_ptr ir_form_visitor::operator()(const imaginary_unit&) const {
+  throw type_error("Cannot generate code for expressions containing `{}`.",
+                   imaginary_unit::name_str);
+}
+
 ir::value_ptr ir_form_visitor::operator()(const integer_constant& i) {
   return push_operation(ir::load{i}, code_numeric_type::integral);
 }

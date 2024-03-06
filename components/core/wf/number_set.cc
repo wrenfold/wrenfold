@@ -78,8 +78,8 @@ class determine_set_visitor {
   }
 
   number_set operator()(const conditional& cond) const {
-    number_set left = determine_numeric_set(cond.if_branch());
-    number_set right = determine_numeric_set(cond.else_branch());
+    const number_set left = determine_numeric_set(cond.if_branch());
+    const number_set right = determine_numeric_set(cond.else_branch());
     return std::max(left, right);
   }
 
@@ -166,6 +166,10 @@ class determine_set_visitor {
     return number_set::real;
   }
 
+  constexpr number_set operator()(const imaginary_unit&) const noexcept {
+    return number_set::complex;
+  }
+
   constexpr number_set operator()(const integer_constant& i) const noexcept {
     return handle_numeric(i);
   }
@@ -174,8 +178,8 @@ class determine_set_visitor {
   }
 
   number_set operator()(const power& pow) const {
-    number_set base = determine_numeric_set(pow.base());
-    number_set exp = determine_numeric_set(pow.exponent());
+    const number_set base = determine_numeric_set(pow.base());
+    const number_set exp = determine_numeric_set(pow.exponent());
     if (base == number_set::complex || exp == number_set::complex || base == number_set::unknown ||
         exp == number_set::unknown) {
       return number_set::unknown;
