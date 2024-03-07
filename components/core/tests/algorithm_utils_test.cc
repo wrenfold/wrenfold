@@ -43,4 +43,12 @@ TEST(AlgoritmUtilsTest, TestTransformEnumerateMap) {
   ASSERT_EQ(std::list<std::string>({"0_-1", "1_3", "2_-2", "3_5"}), values_out_2);
 }
 
+TEST(AlgorithmUtilsTest, TestAnyOf) {
+  const std::vector<int> values = {1, 3, 5};
+  ASSERT_TRUE(any_of(values, [](int x) { return x == 5; }));
+  ASSERT_TRUE(any_of(values, [](int x) { return x > 0; }));
+  ASSERT_FALSE(any_of(values, [](int x) { return x < 0; }));
+  ASSERT_FALSE(any_of(std::vector<int>(), [](int x) { return x > 0; }));
+}
+
 }  // namespace wf
