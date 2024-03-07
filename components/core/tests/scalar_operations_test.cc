@@ -139,6 +139,21 @@ TEST(ScalarOperationsTest, TestMultiplication) {
                    sin(x) * sin(x) / log(z * y));
 }
 
+TEST(ScalarOperationsTest, TestMultiplicationImaginaryUnit) {
+  // Test multiplications involving `i`:
+  const auto [x, y] = make_symbols("x", "y");
+  const auto i = constants::imaginary_unit;
+  ASSERT_IDENTICAL(-1, i * i);
+  ASSERT_IDENTICAL(-i, i * i * i);
+  ASSERT_IDENTICAL(2, i * 2 / i);
+  ASSERT_IDENTICAL(-2, i * 2 * i);
+  ASSERT_IDENTICAL(-12 * i, i * 3 * i * 4 * i);
+  ASSERT_IDENTICAL(5_s / 6, (5 * i) / (6 * i));
+  ASSERT_IDENTICAL(x * 2 * i / y, (x * i) / (y * i) * (2 * i));
+  ASSERT_IDENTICAL(-1, sqrt(i) * sqrt(i) * i);
+  ASSERT_IDENTICAL(22 * sqrt(i), 22 * pow(i, -1_s / 2) * pow(i, -3));
+}
+
 TEST(ScalarOperationsTest, TestMultiplicationInfinities) {
   auto [x, y] = make_symbols("x", "y");
   const auto z_inf = constants::complex_infinity;

@@ -20,8 +20,8 @@ inline scalar_expr maybe_new_mul(multiplication::container_type&& terms) {
   }
 }
 
-static inline scalar_expr multiply_into_addition(const addition& add,
-                                                 const scalar_expr& numerical_constant) {
+static scalar_expr multiply_into_addition(const addition& add,
+                                          const scalar_expr& numerical_constant) {
   addition::container_type add_args{};
   add_args.reserve(add.size());
   std::transform(
@@ -36,7 +36,7 @@ std::vector<scalar_expr> multiplication::sorted_terms() const {
   return result;
 }
 
-scalar_expr multiplication::from_operands(absl::Span<const scalar_expr> args) {
+scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> args) {
   WF_ASSERT(!args.empty());
   if (args.size() < 2) {
     return args.front();
@@ -190,39 +190,64 @@ scalar_expr multiplication_parts::create_multiplication() const {
   multiplication::container_type args{};
 
   // TODO: Would be good to front-load this logic so we can early exit before building the map.
-  const bool has_zero_coeff =
-      rational_coeff.is_zero() || (float_coeff.has_value() && float_coeff->is_zero());
-  if (num_infinities > 0 && has_zero_coeff) {
+  if (num_infinities > 0 && has_zero_numeric_coefficient()) {
     // Indeterminate: ∞ * 0, applies to any kind of infinity
     return constants::undefined;
   } else if (num_infinities > 0) {
     // z∞ * z∞ -> z∞
     args.push_back(constants::complex_infinity);
-  } else if (has_zero_coeff) {
+  } else if (has_zero_numeric_coefficient()) {
     return constants::zero;
   }
 
+  // Depending on the presence of imaginary unit `i`, we may need to negate this before adding it
+  // to the product:
+  rational_constant rational_term = rational_coeff;
+
+  if (const auto imaginary_exp = terms.find(constants::imaginary_unit);
+      imaginary_exp != terms.end()) {
+    // Delegate to pow(), which may invoke `power_imaginary_visitor` to simplify this to a constant:
+    const scalar_expr maybe_imaginary_coeff = pow(constants::imaginary_unit, imaginary_exp->second);
+    auto [coeff, mul] = as_coeff_and_mul(maybe_imaginary_coeff);
+    if (is_negative_one(coeff)) {
+      // If imaginary powers produced (-1), just multiply it onto the rational term.
+      rational_term = rational_term * integer_constant{-1};
+    }
+    if (!is_one(mul)) {
+      // We still need the imaginary unit:
+      args.push_back(std::move(mul));
+    }
+  }
+
   // Consider any other numerical terms, if we didn't add infinity in.
-  if (args.empty()) {
+  if (!num_infinities) {
     if (float_coeff.has_value()) {
-      const float_constant promoted_rational = static_cast<float_constant>(rational_coeff);
-      args.push_back(make_expr<float_constant>(float_coeff.value() * promoted_rational));
-    } else if (rational_coeff.is_one()) {
+      const float_constant promoted_rational = static_cast<float_constant>(rational_term);
+      args.emplace_back(std::in_place_type_t<float_constant>(),
+                        float_coeff.value() * promoted_rational);
+    } else if (rational_term.is_one()) {
       // Don't insert a useless one in the multiplication.
     } else {
-      args.push_back(scalar_expr(rational_coeff));
+      args.push_back(scalar_expr(rational_term));
     }
   }
 
   // Convert into a vector of powers, and sort into canonical order:
-  std::transform(terms.begin(), terms.end(), std::back_inserter(args),
-                 [](const auto& pair) { return power::create(pair.first, pair.second); });
+  for (const auto& [base, exp] : terms) {
+    if (!is_i(base)) {  //  `i` is handled above
+      args.push_back(power::create(base, exp));
+    }
+  }
 
-  if (std::any_of(args.begin(), args.end(), &is_undefined)) {
+  if (any_of(args, &is_undefined)) {
     return constants::undefined;
   }
 
   return maybe_new_mul(std::move(args));
+}
+
+bool multiplication_parts::has_zero_numeric_coefficient() const {
+  return rational_coeff.is_zero() || (float_coeff.has_value() && float_coeff->is_zero());
 }
 
 // For multiplications, we need to break the expression up.
@@ -253,12 +278,17 @@ std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr) {
       // Numerical values are always the coefficient:
       return std::make_pair(expr, constants::one);
     } else if constexpr (std::is_same_v<T, multiplication>) {
-      // Handle multiplication. We do a faster path for a common case (binary mul where first
-      // element is numeric).
-      const multiplication& mul = x;
-      if (mul.size() == 2 &&
-          mul[0].is_type<integer_constant, rational_constant, float_constant>()) {
-        return std::make_pair(mul[0], mul[1]);
+      // Handle multiplication. We do a faster path for a common case:
+      if (const multiplication& mul = x; mul.size() == 2) {
+        const bool first_is_numeric =
+            mul[0].is_type<integer_constant, rational_constant, float_constant>();
+        const bool second_is_numeric =
+            mul[1].is_type<integer_constant, rational_constant, float_constant>();
+        if (first_is_numeric && !second_is_numeric) {
+          return std::make_pair(mul[0], mul[1]);
+        } else if (!first_is_numeric && second_is_numeric) {
+          return std::make_pair(mul[1], mul[0]);
+        }
       }
       return split_multiplication(x, expr);
     } else {

@@ -212,6 +212,9 @@ struct order_struct<integer_constant> {
 constexpr auto operator*(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
 }
+constexpr auto operator*(const rational_constant& a, const integer_constant& b) {
+  return rational_constant{a.numerator() * b.get_value(), a.denominator()};
+}
 constexpr auto operator/(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.denominator(), a.denominator() * b.numerator()};
 }

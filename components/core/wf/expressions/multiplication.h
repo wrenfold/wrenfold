@@ -27,9 +27,7 @@ class multiplication {
   }
 
   // Construct from a pair of multiplied terms.
-  explicit multiplication(scalar_expr a, scalar_expr b) {
-    terms_.push_back(std::move(a));
-    terms_.push_back(std::move(b));
+  explicit multiplication(scalar_expr a, scalar_expr b) : terms_{std::move(a), std::move(b)} {
     sort_terms();
   }
 
@@ -55,22 +53,17 @@ class multiplication {
   }
 
   // Construct from a span of operands. Result is automatically simplified.
-  static scalar_expr from_operands(absl::Span<const scalar_expr> span);
+  static scalar_expr from_operands(absl::Span<const scalar_expr> args);
 
  private:
   void sort_terms() {
-    // We leave the integer/rational/float part in front.
-    // TODO: Add a BinaryMul where the first term is always int/rational/float.
-    const auto begin = std::find_if(terms_.begin(), terms_.end(), [](const scalar_expr& term) {
-      return !term.is_type<integer_constant, rational_constant, float_constant>();
-    });
-    std::sort(begin, terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
+    std::sort(terms_.begin(), terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
       if (a.hash() < b.hash()) {
         return true;
       } else if (a.hash() > b.hash()) {
         return false;
       } else {
-        return expression_order_struct{}(a, b);
+        return determine_order(a, b) == relative_order::less_than;
       }
     });
   }
@@ -122,12 +115,15 @@ struct multiplication_parts {
 
   // Rational coefficient.
   rational_constant rational_coeff{1, 1};
+
   // Floating point coefficient:
   std::optional<float_constant> float_coeff{};
+
   // Map from base to exponent.
   std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
                      is_identical_struct<scalar_expr>>
       terms{};
+
   // Number of infinities.
   std::size_t num_infinities{0};
 
@@ -139,6 +135,9 @@ struct multiplication_parts {
 
   // Create the resulting multiplication.
   scalar_expr create_multiplication() const;
+
+  // True if the multiplication includes a numeric coefficient of zero.
+  bool has_zero_numeric_coefficient() const;
 };
 
 // A decomposition of `Multiplication` that is more convenient for printing.
