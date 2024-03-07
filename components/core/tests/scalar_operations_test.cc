@@ -341,10 +341,73 @@ TEST(ScalarOperationsTest, TestPower) {
   ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), pow(x * y, 2));
   ASSERT_IDENTICAL(pow(x, z) * pow(y, z), pow(x * y, z));
   ASSERT_IDENTICAL(pow(x, 3_s / 8 * z) * pow(y, 3_s / 8 * z), pow(x * y, 3_s / 8 * z));
+}
 
-  // TODO: This should produce `i` = sqrt(-1)
-  ASSERT_IDENTICAL(sqrt(-1) * sqrt(2) * sqrt(x), pow(-2 * x, 1_s / 2));
-  ASSERT_IDENTICAL(sqrt(-1) * 3 * sqrt(x), pow(-9 * x, 1_s / 2));
+// Test powers that produce the imaginary constant.
+TEST(ScalarOperationsTest, TestPowerImaginaryUnit) {
+  const auto [x] = make_symbols("x");
+  const auto& i = constants::imaginary_unit;
+
+  // Powers of `i`:
+  ASSERT_IDENTICAL(1, pow(i, 0));
+  ASSERT_IDENTICAL(i, pow(i, 1));
+  ASSERT_IDENTICAL(-1, pow(i, 2));
+  ASSERT_IDENTICAL(-i, pow(i, 3));
+  ASSERT_IDENTICAL(1, pow(i, 4));
+  ASSERT_IDENTICAL(i, pow(i, 5));
+  ASSERT_IDENTICAL(-1, pow(i, 6));
+  ASSERT_IDENTICAL(-i, pow(i, -1));
+  ASSERT_IDENTICAL(-1, pow(i, -2));
+  ASSERT_IDENTICAL(i, pow(i, -3));
+  ASSERT_IDENTICAL(1, pow(i, -4));
+  ASSERT_IDENTICAL(-i, pow(i, -5));
+  ASSERT_IDENTICAL(-1, i * i);
+
+  // Rational powers of `i`:
+  ASSERT_TRUE(pow(i, 1_s / 2).is_type<power>());
+  ASSERT_IDENTICAL(-sqrt(i), pow(i, 5_s / 2));
+  ASSERT_IDENTICAL(-pow(i, 3_s / 2), pow(i, 7_s / 2));
+  ASSERT_IDENTICAL(sqrt(i), pow(i, 9_s / 2));
+  ASSERT_IDENTICAL(sqrt(i), pow(i, 9_s / 2));
+  ASSERT_IDENTICAL(pow(i, 3_s / 2), pow(i, 11_s / 2));
+  ASSERT_IDENTICAL(-sqrt(i), pow(i, 13_s / 2));
+
+  ASSERT_IDENTICAL(pow(i, 3_s / 2), pow(i, -5_s / 2));
+  ASSERT_IDENTICAL(sqrt(i), pow(i, -7_s / 2));
+  ASSERT_IDENTICAL(-pow(i, 3_s / 2), pow(i, -9_s / 2));
+  ASSERT_IDENTICAL(-sqrt(i), pow(i, -11_s / 2));
+  ASSERT_IDENTICAL(pow(i, 3_s / 2), pow(i, -13_s / 2));
+
+  ASSERT_IDENTICAL(-pow(i, 1_s / 3), pow(i, 7_s / 3));
+  ASSERT_IDENTICAL(-pow(i, 2_s / 3), pow(i, 8_s / 3));
+  ASSERT_IDENTICAL(-pow(i, 5_s / 3), pow(i, 11_s / 3));
+  ASSERT_IDENTICAL(pow(i, 1_s / 3), pow(i, 13_s / 3));
+  ASSERT_IDENTICAL(pow(i, 2_s / 3), pow(i, 14_s / 3));
+
+  ASSERT_IDENTICAL(pow(i, 5_s / 3), pow(i, -7_s / 3));
+  ASSERT_IDENTICAL(pow(i, 4_s / 3), pow(i, -8_s / 3));
+  ASSERT_IDENTICAL(pow(i, 1_s / 3), pow(i, -11_s / 3));
+  ASSERT_IDENTICAL(-pow(i, 5_s / 3), pow(i, -13_s / 3));
+  ASSERT_IDENTICAL(-pow(i, 4_s / 3), pow(i, -14_s / 3));
+
+  // Expressions that produce `i`:
+  ASSERT_IDENTICAL(i, sqrt(-1_s));
+  ASSERT_IDENTICAL(-i, pow(-1, 3_s / 2));
+  ASSERT_IDENTICAL(i, pow(-1, 5_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, 7_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, -1_s / 2));
+  ASSERT_IDENTICAL(i, pow(-1, -3_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, -5_s / 2));
+  ASSERT_IDENTICAL(i, pow(-1, -7_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, -9_s / 2));
+
+  ASSERT_IDENTICAL(i * sqrt(21), sqrt(-21));
+#if 0
+  // TODO: Fix this case, need to add handling of rational^rational
+  ASSERT_IDENTICAL(i * sqrt(3_s / 5), sqrt(-3_s / 5));
+#endif
+  ASSERT_IDENTICAL(i * sqrt(2) * sqrt(x), pow(-2 * x, 1_s / 2));
+  ASSERT_IDENTICAL(i * 2 * pow(x, 1_s / 4), pow(-4 * sqrt(x), 1_s / 2));
 }
 
 TEST(ScalarOperationsTest, TestPowerInfinities) {

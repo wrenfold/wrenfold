@@ -1,6 +1,5 @@
 // Copyright 2024 Gareth Cross
 #pragma once
-#include "expressions/special_constants.h"
 #include "wf/expression_cache.h"
 
 namespace wf {

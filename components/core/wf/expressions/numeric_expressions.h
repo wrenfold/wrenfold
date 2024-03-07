@@ -168,6 +168,9 @@ class float_constant {
 constexpr auto operator*(const integer_constant& a, const integer_constant& b) {
   return integer_constant{a.get_value() * b.get_value()};
 }
+constexpr auto operator/(const integer_constant& a, const integer_constant& b) {
+  return integer_constant{a.get_value() / b.get_value()};
+}
 constexpr auto operator+(const integer_constant& a, const integer_constant& b) {
   return integer_constant{a.get_value() + b.get_value()};
 }
