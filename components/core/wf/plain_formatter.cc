@@ -164,7 +164,8 @@ void plain_formatter::operator()(const complex_infinity&) {
   fmt::format_to(std::back_inserter(output_), "zoo");
 }
 
-void plain_formatter::operator()(const imaginary_unit&) { output_ += "i"; }
+// Capitalized for consistency with sympy.
+void plain_formatter::operator()(const imaginary_unit&) { output_ += "I"; }
 
 void plain_formatter::operator()(const integer_constant& num) {
   fmt::format_to(std::back_inserter(output_), "{}", num.get_value());

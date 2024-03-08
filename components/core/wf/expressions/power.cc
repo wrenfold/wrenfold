@@ -396,7 +396,7 @@ scalar_expr power::create(scalar_expr a, scalar_expr b) {
         *mul, [&b](const scalar_expr& arg) { return power::create(arg, b); });
     return multiplication::from_operands(args);
   }
-  return scalar_expr{std::in_place_type_t<power>{}, std::move(a), std::move(b)};
+  return make_expr<power>(std::move(a), std::move(b));
 }
 
 std::pair<scalar_expr, scalar_expr> as_base_and_exp(const scalar_expr& expr) {

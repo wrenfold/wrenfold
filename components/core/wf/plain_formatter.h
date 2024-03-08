@@ -1,8 +1,8 @@
 // Copyright 2022 Gareth Cross
 #pragma once
-#include "expressions/special_constants.h"
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
+#include "wf/expressions/special_constants.h"
 
 namespace wf {
 

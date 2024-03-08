@@ -80,8 +80,4 @@ matrix_expr where(const boolean_expr& condition, const matrix_expr& if_true,
 // Evaluates to 1 if bool_expression is true, and 0 if bool_expression is false.
 scalar_expr iverson(const boolean_expr& bool_expression);
 
-// Get the real and imaginary parts of an expression.
-// Implemented in real_imaginary.cc
-std::tuple<scalar_expr, scalar_expr> real_imag(const scalar_expr& arg);
-
 }  // namespace wf
