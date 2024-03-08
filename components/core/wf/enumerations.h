@@ -39,6 +39,12 @@ enum class built_in_function {
   arccos,
   arcsin,
   arctan,
+  cosh,
+  sinh,
+  tanh,
+  arccosh,
+  arcsinh,
+  arctanh,
   ln,
   abs,
   signum,
@@ -155,6 +161,18 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
       return "asin";
     case built_in_function::arctan:
       return "atan";
+    case built_in_function::cosh:
+      return "cosh";
+    case built_in_function::sinh:
+      return "sinh";
+    case built_in_function::tanh:
+      return "tanh";
+    case built_in_function::arccosh:
+      return "acosh";
+    case built_in_function::arcsinh:
+      return "asinh";
+    case built_in_function::arctanh:
+      return "atanh";
     case built_in_function::ln:
       return "ln";
     case built_in_function::abs:

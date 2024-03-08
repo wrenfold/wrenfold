@@ -16,6 +16,16 @@ static_assert(std::is_nothrow_move_constructible_v<scalar_expr> &&
                   std::is_nothrow_move_assignable_v<scalar_expr>,
               "Should be movable");
 
+TEST(ScalarOperationsTest, TestNumericConstructors) {
+  ASSERT_IDENTICAL(constants::one, scalar_expr{1});
+  ASSERT_IDENTICAL(constants::zero, scalar_expr{0.0});
+  ASSERT_IDENTICAL(constants::undefined, scalar_expr{std::numeric_limits<double>::quiet_NaN()});
+  ASSERT_IDENTICAL(constants::complex_infinity,
+                   scalar_expr{std::numeric_limits<double>::infinity()});
+  ASSERT_IDENTICAL(constants::complex_infinity,
+                   scalar_expr{-std::numeric_limits<double>::infinity()});
+}
+
 TEST(ScalarOperationsTest, TestAddition) {
   const scalar_expr w{"w"};
   const scalar_expr x{"x"};

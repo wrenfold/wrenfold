@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include <memory>
-#include <ostream>
+#include <ostream>  // operator<<
 #include <string>
 
 #include "wf/boolean_expression.h"
@@ -61,6 +61,9 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
 
   // Construct from rational.
   explicit scalar_expr(rational_constant r);
+
+  // Static constructor: Conversion from complex float: a + i*b
+  static scalar_expr from_complex(double a, double b);
 
   // Convert to string.
   std::string to_string() const;

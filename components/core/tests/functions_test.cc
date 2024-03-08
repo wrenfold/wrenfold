@@ -15,6 +15,12 @@ TEST(FunctionsTest, TestLog) {
   ASSERT_NOT_IDENTICAL(log(x), log(y));
   ASSERT_IDENTICAL(constants::one, log(constants::euler));
   ASSERT_IDENTICAL(constants::zero, log(1_s));
+
+  ASSERT_IDENTICAL(std::log(2.4345), log(2.4345_s));
+  ASSERT_IDENTICAL(std::log(0.411), log(0.411_s));
+  ASSERT_IDENTICAL(std::log(std::complex<double>(-0.8)), log(-0.8_s));
+  ASSERT_IDENTICAL(std::log(std::complex<double>(1.2, 9.8)),
+                   log(scalar_expr::from_complex(1.2, 9.8)));
 }
 
 TEST(FunctionsTest, TestCosine) {
@@ -51,12 +57,15 @@ TEST(FunctionsTest, TestCosine) {
   ASSERT_IDENTICAL(cos(3_s), cos(-3_s));
 
   // Evaluation on floats:
-  for (double v : {-0.51, 0.78, 1.8, -2.1}) {
+  for (const double v : {-0.51, 0.78, 1.8, -2.1}) {
     ASSERT_IDENTICAL(scalar_expr(std::cos(v)), cos(v));
   }
 
   ASSERT_IDENTICAL(constants::undefined, cos(constants::complex_infinity));
   ASSERT_IDENTICAL(constants::undefined, cos(constants::undefined));
+
+  ASSERT_IDENTICAL(cosh(x), cos(x * constants::imaginary_unit));
+  ASSERT_IDENTICAL(cosh(1), cos(constants::imaginary_unit));
 }
 
 TEST(FunctionsTest, TestSine) {
@@ -97,6 +106,9 @@ TEST(FunctionsTest, TestSine) {
 
   ASSERT_IDENTICAL(constants::undefined, sin(constants::complex_infinity));
   ASSERT_IDENTICAL(constants::undefined, sin(constants::undefined));
+
+  ASSERT_IDENTICAL(sinh(x) * constants::imaginary_unit, sin(x * constants::imaginary_unit));
+  ASSERT_IDENTICAL(sinh(1) * constants::imaginary_unit, sin(constants::imaginary_unit));
 }
 
 TEST(FunctionsTest, TestTan) {
@@ -133,6 +145,9 @@ TEST(FunctionsTest, TestTan) {
 
   ASSERT_IDENTICAL(constants::undefined, tan(constants::complex_infinity));
   ASSERT_IDENTICAL(constants::undefined, tan(constants::undefined));
+
+  ASSERT_IDENTICAL(tanh(x) * constants::imaginary_unit, tan(x * constants::imaginary_unit));
+  ASSERT_IDENTICAL(tanh(1) * constants::imaginary_unit, tan(constants::imaginary_unit));
 }
 
 TEST(FunctionsTest, TestArccos) {
@@ -144,6 +159,10 @@ TEST(FunctionsTest, TestArccos) {
   ASSERT_IDENTICAL(constants::zero, acos(1_s));
   ASSERT_IDENTICAL(constants::pi, acos(-1_s));
   ASSERT_IDENTICAL(constants::pi / 2_s, acos(constants::zero));
+
+  ASSERT_IDENTICAL(std::acos(std::complex<double>(0.67)), acos(0.67));
+  ASSERT_IDENTICAL(std::acos(std::complex<double>{-0.4, 0.78}),
+                   acos(scalar_expr::from_complex(-0.4, 0.78)));
 
   ASSERT_IDENTICAL(constants::undefined, acos(constants::undefined));
   ASSERT_IDENTICAL(constants::undefined, acos(constants::complex_infinity));
@@ -161,6 +180,10 @@ TEST(FunctionsTest, TestArcsin) {
   ASSERT_IDENTICAL(constants::pi / 2_s, asin(1_s));
   ASSERT_IDENTICAL(-constants::pi / 2_s, asin(-1_s));
 
+  ASSERT_IDENTICAL(std::asin(std::complex<double>(0.67)), asin(0.67));
+  ASSERT_IDENTICAL(std::asin(std::complex<double>{-0.4, 0.78}),
+                   asin(scalar_expr::from_complex(-0.4, 0.78)));
+
   ASSERT_IDENTICAL(constants::undefined, asin(constants::undefined));
   ASSERT_IDENTICAL(constants::undefined, asin(constants::complex_infinity));
 }
@@ -176,8 +199,137 @@ TEST(FunctionsTest, TestArctan) {
   ASSERT_IDENTICAL(constants::pi / 4_s, atan(1_s));
   ASSERT_IDENTICAL(-constants::pi / 4_s, atan(-1_s));
 
+  ASSERT_IDENTICAL(std::atan(std::complex<double>(0.67)), atan(0.67));
+  ASSERT_IDENTICAL(std::atan(std::complex<double>{-0.4, 0.78}),
+                   atan(scalar_expr::from_complex(-0.4, 0.78)));
+
   ASSERT_IDENTICAL(constants::undefined, atan(constants::undefined));
   ASSERT_IDENTICAL(constants::undefined, atan(constants::complex_infinity));
+}
+
+TEST(FunctionsTest, TestCosh) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_NOT_IDENTICAL(cosh(x), cosh(y));
+  ASSERT_IDENTICAL(1, cosh(0));
+  ASSERT_IDENTICAL(std::cosh(std::complex<double>(1.321)), cosh(1.321));
+  ASSERT_IDENTICAL(std::cosh(std::complex<double>(1.2, -1.4)),
+                   cosh(scalar_expr::from_complex(1.2, -1.4)));
+
+  ASSERT_IDENTICAL(cosh(x), cosh(-x));
+  ASSERT_IDENTICAL(cosh(78 / y), cosh(-78 / y));
+
+  // conversion of cosh -> cos
+  ASSERT_IDENTICAL(cos(x), cosh(x * constants::imaginary_unit));
+  ASSERT_IDENTICAL(cos(22 * y), cosh(22 * y * constants::imaginary_unit));
+  ASSERT_IDENTICAL(cos(1), cosh(constants::imaginary_unit));
+
+  ASSERT_IDENTICAL(constants::undefined, cosh(constants::undefined));
+  ASSERT_IDENTICAL(constants::undefined, cosh(constants::complex_infinity));
+
+  ASSERT_IDENTICAL(x, cosh(acosh(x)));
+  ASSERT_IDENTICAL(x * y, cosh(acosh(x * y)));
+}
+
+TEST(FunctionsTest, TestSinh) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_NOT_IDENTICAL(sinh(x), sinh(y));
+  ASSERT_IDENTICAL(0, sinh(0));
+  ASSERT_IDENTICAL(std::sinh(std::complex<double>(-0.3231)), sinh(-0.3231));
+  ASSERT_IDENTICAL(std::sinh(std::complex<double>(1.2, -1.4)),
+                   sinh(scalar_expr::from_complex(1.2, -1.4)));
+
+  ASSERT_IDENTICAL(-sinh(x), sinh(-x));
+  ASSERT_IDENTICAL(-sinh(constants::pi * 33 * y / x), sinh(-constants::pi * 33 * y / x));
+
+  // conversion of sinh -> sin
+  ASSERT_IDENTICAL(constants::imaginary_unit * sin(x), sinh(x * constants::imaginary_unit));
+  ASSERT_IDENTICAL(constants::imaginary_unit * -sin(5 * y),
+                   sinh(y * -constants::imaginary_unit * 5));
+  ASSERT_IDENTICAL(constants::imaginary_unit * sin(1), sinh(constants::imaginary_unit));
+
+  ASSERT_IDENTICAL(constants::undefined, sinh(constants::undefined));
+  ASSERT_IDENTICAL(constants::undefined, sinh(constants::complex_infinity));
+
+  ASSERT_IDENTICAL(x, sinh(asinh(x)));
+  ASSERT_IDENTICAL(x * y, sinh(asinh(x * y)));
+}
+
+TEST(FunctionsTest, TestTanh) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_NOT_IDENTICAL(tanh(x), tanh(y));
+  ASSERT_IDENTICAL(0, tanh(0));
+  ASSERT_IDENTICAL(std::tanh(std::complex<double>(9.23)), tanh(9.23));
+  ASSERT_IDENTICAL(std::tanh(std::complex<double>(0.52, -0.78)),
+                   tanh(scalar_expr::from_complex(0.52, -0.78)));
+
+  ASSERT_IDENTICAL(-tanh(x), tanh(-x));
+  ASSERT_IDENTICAL(-tanh(x * y * 3_s / 2), tanh(-x * y * 3_s / 2));
+
+  ASSERT_IDENTICAL(constants::imaginary_unit * tan(x), tanh(x * constants::imaginary_unit));
+  ASSERT_IDENTICAL(constants::imaginary_unit * -tan(x * y),
+                   tanh(x * constants::imaginary_unit * -y));
+  ASSERT_IDENTICAL(constants::imaginary_unit * tan(1), tanh(constants::imaginary_unit));
+
+  ASSERT_IDENTICAL(constants::undefined, tanh(constants::undefined));
+  ASSERT_IDENTICAL(constants::undefined, tanh(constants::complex_infinity));
+
+  ASSERT_IDENTICAL(x, tanh(atanh(x)));
+  ASSERT_IDENTICAL(x * y, tanh(atanh(x * y)));
+}
+
+TEST(FunctionsTest, TestArccosh) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_NOT_IDENTICAL(acosh(x), acosh(y));
+  ASSERT_TRUE(acosh(3).is_type<function>());  //  Does not simplify.
+
+  ASSERT_IDENTICAL(constants::pi * constants::imaginary_unit / 2, acosh(0));
+
+  // Check that we call the complex version of acosh()
+  ASSERT_IDENTICAL(std::acosh(std::complex<double>(1.23123)), acosh(1.23123_s));
+  ASSERT_IDENTICAL(std::acosh(std::complex<double>(1.0)), acosh(1.0_s));
+  ASSERT_IDENTICAL(std::acosh(std::complex<double>(0.8508)), acosh(0.8508_s));
+  ASSERT_IDENTICAL(std::acosh(std::complex<double>(-0.645)), acosh(-0.645_s));
+
+  ASSERT_IDENTICAL(constants::undefined, acosh(constants::undefined));
+  ASSERT_IDENTICAL(constants::undefined, acosh(constants::complex_infinity));
+}
+
+TEST(FunctionsTest, TestArcsinh) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_NOT_IDENTICAL(asinh(x), asinh(y));
+  ASSERT_TRUE(asinh(2).is_type<function>());
+
+  ASSERT_IDENTICAL(0, asinh(0));
+
+  ASSERT_IDENTICAL(std::asinh(std::complex<double>(0.76)), asinh(0.76_s));
+  ASSERT_IDENTICAL(std::asinh(std::complex<double>(0.0)), asinh(0.0_s));
+  ASSERT_IDENTICAL(std::asinh(std::complex<double>(0.115)), asinh(0.115));
+  ASSERT_IDENTICAL(std::asinh(std::complex<double>(-1.8)), asinh(-1.8_s));
+
+  ASSERT_IDENTICAL(constants::undefined, asinh(constants::undefined));
+  ASSERT_IDENTICAL(constants::undefined, asinh(constants::complex_infinity));
+}
+
+TEST(FunctionsTest, TestArctanh) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_NOT_IDENTICAL(atanh(x), atanh(y));
+  ASSERT_TRUE(atanh(2).is_type<function>());
+
+  ASSERT_IDENTICAL(0, atanh(0));
+
+  ASSERT_IDENTICAL(std::atanh(std::complex<double>(0.45)), atanh(0.45_s));
+  ASSERT_IDENTICAL(std::atanh(std::complex<double>(-0.23)), atanh(-0.23_s));
+  ASSERT_IDENTICAL(std::atanh(std::complex<double>(1.254)), atanh(1.254));
+  ASSERT_IDENTICAL(std::atanh(std::complex<double>(-1.78)), atanh(-1.78_s));
+
+  ASSERT_IDENTICAL(constants::undefined, atanh(constants::undefined));
+  ASSERT_IDENTICAL(constants::undefined, atanh(constants::complex_infinity));
 }
 
 TEST(FunctionsTest, TestArctan2) {
@@ -216,7 +368,12 @@ TEST(FunctionsTest, TestAbs) {
   ASSERT_IDENTICAL(3, abs(3));
   ASSERT_IDENTICAL(7, abs(-7));
   ASSERT_IDENTICAL(3 / 2_s, abs(-3 / 2_s));
+
   ASSERT_IDENTICAL(0.1, abs(-0.1));
+  ASSERT_IDENTICAL(std::abs(std::complex<double>(-0.8)), abs(-0.8_s));
+  ASSERT_IDENTICAL(std::abs(std::complex<double>(1.2, 9.8)),
+                   abs(scalar_expr::from_complex(1.2, 9.8)));
+
   ASSERT_IDENTICAL(constants::pi, abs(constants::pi));
   ASSERT_IDENTICAL(constants::undefined, abs(constants::complex_infinity));
   ASSERT_IDENTICAL(constants::undefined, abs(constants::undefined));

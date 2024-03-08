@@ -1,5 +1,6 @@
 #pragma once
 #include <gtest/gtest.h>
+#include <complex>
 
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
@@ -42,6 +43,13 @@ template <typename T>
 struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, scalar_expr>>> {
   // This overload will get selected for numeric literals.
   scalar_expr operator()(const T& arg) const { return static_cast<scalar_expr>(arg); }
+};
+// Allow implicit conversion from std::complex<double> in unit tests.
+template <>
+struct convert_assertion_argument<std::complex<double>> {
+  scalar_expr operator()(const std::complex<double>& arg) const {
+    return scalar_expr::from_complex(arg.real(), arg.imag());
+  }
 };
 template <typename T>
 struct convert_assertion_argument<T, std::enable_if_t<std::is_convertible_v<T, boolean_expr>>> {
