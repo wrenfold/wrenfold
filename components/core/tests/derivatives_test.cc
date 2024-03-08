@@ -13,8 +13,8 @@ using namespace wf::custom_literals;
 
 TEST(DerivativesTest, TestConstants) {
   const scalar_expr x{"x"};
-  ASSERT_IDENTICAL(constants::zero, 5_s.diff(x));
-  ASSERT_IDENTICAL(constants::zero, 22.5_s.diff(x, 4));
+  ASSERT_IDENTICAL(constants::zero, (5_s).diff(x));
+  ASSERT_IDENTICAL(constants::zero, (22.5_s).diff(x, 4));
   ASSERT_IDENTICAL(constants::zero, constants::pi.diff(x));
   ASSERT_IDENTICAL(constants::zero, constants::euler.diff(x));
   ASSERT_IDENTICAL(constants::zero, constants::complex_infinity.diff(x));

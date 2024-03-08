@@ -18,7 +18,10 @@ static_assert(std::is_nothrow_move_constructible_v<scalar_expr> &&
 
 TEST(ScalarOperationsTest, TestNumericConstructors) {
   ASSERT_IDENTICAL(constants::one, scalar_expr{1});
-  ASSERT_IDENTICAL(constants::zero, scalar_expr{0.0});
+
+  ASSERT_TRUE(scalar_expr{1.0}.is_type<float_constant>());
+  ASSERT_TRUE(scalar_expr{0.0}.is_type<float_constant>());
+
   ASSERT_IDENTICAL(constants::undefined, scalar_expr{std::numeric_limits<double>::quiet_NaN()});
   ASSERT_IDENTICAL(constants::complex_infinity,
                    scalar_expr{std::numeric_limits<double>::infinity()});
@@ -924,7 +927,7 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::unknown, determine_numeric_set(tan(complex)));
 
   // inverse trig not implement
-  for (const auto val : {real, real_non_negative, real_non_negative, complex}) {
+  for (const auto& val : {real, real_non_negative, real_non_negative, complex}) {
     ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(val)));
     ASSERT_EQ(number_set::unknown, determine_numeric_set(asin(val)));
     ASSERT_EQ(number_set::unknown, determine_numeric_set(atan(val)));
@@ -951,7 +954,7 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(tanh(real_positive)));
 
   // inverse hyperbolic trig not implemented:
-  for (const auto val : {real, real_non_negative, real_non_negative, complex}) {
+  for (const auto& val : {real, real_non_negative, real_non_negative, complex}) {
     ASSERT_EQ(number_set::unknown, determine_numeric_set(acosh(val)));
     ASSERT_EQ(number_set::unknown, determine_numeric_set(asinh(val)));
     ASSERT_EQ(number_set::unknown, determine_numeric_set(atanh(val)));

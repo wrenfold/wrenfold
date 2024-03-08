@@ -26,9 +26,7 @@ scalar_expr scalar_expr::from_complex(const double a, const double b) {
 }
 
 scalar_expr scalar_expr::from_float(const double x) {
-  if (x == 0) {
-    return constants::zero;
-  } else if (std::isnan(x)) {
+  if (std::isnan(x)) {
     return constants::undefined;
   } else if (std::isinf(x)) {
     // Not exactly true, since floating point is closer to the affine extension

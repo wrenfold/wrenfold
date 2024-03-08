@@ -294,6 +294,8 @@ class ExpressionWrapperTest(MathTestBase):
             4.3 / 2.71582, (x / y).subs(x, 4.3).subs(y, 2.71582).eval(), places=15)
         self.assertEqual(3923, sym.integer(3923).eval())
         self.assertEqual(123, (sym.integer(100) + x).subs(x, 23).eval())
+        self.assertEqual(complex(1, 2), (1 + sym.I * 2).eval())
+        self.assertEqual(complex(0.23, 0.5), (x + sym.I * y).subs(x, 0.23).subs(y, 0.5).eval())
 
     def test_integer_exceptions(self):
         """

@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #define PYBIND11_DETAILED_ERROR_MESSAGES
+#include <pybind11/complex.h>
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
@@ -8,7 +9,7 @@
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
 #include "wf/matrix_expression.h"
-
+#include "wf/numerical_casts.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -37,10 +38,10 @@ static py::list list_from_quaternion(const quaternion& q) {
 
 static py::array eval_quaternion(const quaternion& q) {
   py::list list{};  // TODO: Avoid copy into list.
-  list.append(try_convert_to_numeric(q.w().eval()));
-  list.append(try_convert_to_numeric(q.x().eval()));
-  list.append(try_convert_to_numeric(q.y().eval()));
-  list.append(try_convert_to_numeric(q.z().eval()));
+  list.append(maybe_numerical_cast(q.w().eval()));
+  list.append(maybe_numerical_cast(q.x().eval()));
+  list.append(maybe_numerical_cast(q.y().eval()));
+  list.append(maybe_numerical_cast(q.z().eval()));
   return py::array(list);
 }
 

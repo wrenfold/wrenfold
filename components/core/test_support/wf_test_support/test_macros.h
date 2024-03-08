@@ -6,13 +6,19 @@
 #include "wf/expression.h"
 #include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
+#include "wf/numerical_casts.h"
 
 namespace wf {
 
+// Compare expressions using `is_identical_to`.
 #define ASSERT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(identical_test_helper, val1, val2)
 #define ASSERT_NOT_IDENTICAL(val1, val2) ASSERT_PRED_FORMAT2(not_identical_test_helper, val1, val2)
 
+// Convert `val2` to a string and compare to string literal `val1`.
 #define ASSERT_STR_EQ(val1, val2) ASSERT_PRED_FORMAT2(string_equal_test_helper, val1, val2)
+
+// Test std::complex values for near equality.
+#define ASSERT_COMPLEX_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(wf::expect_complex_near, a, b, tol)
 
 template <typename A, typename B>
 testing::AssertionResult format_failed_result(const std::string_view description,
@@ -106,7 +112,7 @@ testing::AssertionResult not_identical_test_helper(const std::string_view name_a
 inline std::string escape_newlines(const std::string_view input) {
   std::string output;
   output.reserve(input.size());
-  for (char c : input) {
+  for (const char c : input) {
     if (c == '\n') {
       output += "\\n";
     } else {
@@ -131,8 +137,47 @@ testing::AssertionResult string_equal_test_helper(const std::string_view,
              b.to_expression_tree_string());
 }
 
+// Compare complex numbers under the L1 norm.
+inline testing::AssertionResult expect_complex_near(
+    const std::string_view name_a, const std::string_view name_b, const std::string_view name_tol,
+    const std::complex<double> a, const std::complex<double> b, const double tolerance) {
+  if (const std::complex<double> delta = a - b;
+      std::abs(delta.real()) > tolerance || std::abs(delta.imag()) > tolerance ||
+      std::isnan(delta.real()) || std::isnan(delta.imag())) {
+    return testing::AssertionFailure() << fmt::format(
+               "std::complex comparison {a} == {b} failed because:\n"
+               "{a} = ({a_real}, {a_imag}) and,\n{b} = ({b_real}, {b_imag})\n"
+               "The diference between them is {a} - {b} = ({delta_real}, {delta_imag}).\n"
+               "And {name_tol} evaluates to: {tol}.\n",
+               fmt::arg("a", name_a), fmt::arg("b", name_b), fmt::arg("a_real", a.real()),
+               fmt::arg("a_imag", a.imag()), fmt::arg("b_real", b.real()),
+               fmt::arg("b_imag", b.imag()), fmt::arg("delta_real", delta.real()),
+               fmt::arg("delta_imag", delta.imag()), fmt::arg("name_tol", name_tol),
+               fmt::arg("tol", tolerance));
+  }
+  return testing::AssertionSuccess();
+}
+inline testing::AssertionResult expect_complex_near(const std::string_view name_a,
+                                                    const std::string_view name_b,
+                                                    const std::string_view name_tol,
+                                                    const std::complex<double> a,
+                                                    const scalar_expr& b, const double tolerance) {
+  if (const std::optional<std::complex<double>> b_complex = complex_cast(b);
+      b_complex.has_value()) {
+    return expect_complex_near(name_a, name_b, name_tol, a, *b_complex, tolerance);
+  } else {
+    const std::string b_tree = b.to_expression_tree_string();
+    return testing::AssertionFailure() << fmt::format(
+               "std::complex comparison {a} == {b} failed because:\n"
+               "{b} is of type {b_type}, which could not be coerced to std::complex.\n"
+               "The expression tree of {b} is:\n{b_tree}\n",
+               fmt::arg("a", name_a), fmt::arg("b", name_b), fmt::arg("b_type", b.type_name()),
+               fmt::arg("b_tree", b_tree.c_str()));
+  }
+}
+
 // ostream operator for `NumericSet`.
-std::ostream& operator<<(std::ostream& s, number_set set) {
+inline std::ostream& operator<<(std::ostream& s, const number_set set) {
   s << string_from_number_set(set);
   return s;
 }

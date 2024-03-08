@@ -6,68 +6,19 @@
 #include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
 #include "wf/matrix_expression.h"
+#include "wf/numerical_casts.h"
 
 namespace wf {
 using namespace wf::custom_literals;
 
-using complex_double = std::complex<double>;
-
 // Cast provided function to: f(complex_double) -> complex_double
-#define CAST_COMPLEX_FUNC(func) static_cast<complex_double (*)(const complex_double& x)>(&func)
-
-struct convert_to_complex_visitor {
-  template <typename T, typename = enable_if_does_not_contain_type_t<
-                            T, float_constant, addition, multiplication, imaginary_unit>>
-  std::optional<complex_double> operator()(const T&) const noexcept {
-    return std::nullopt;
-  }
-
-  std::optional<complex_double> operator()(const addition& add) const noexcept {
-    if (add.size() != 2) {
-      // We only care about additions of the form: a + i*b
-      return std::nullopt;
-    }
-    // This is a bit over-general in that it will also match things like a + b or a*i + b*i,
-    // where a & b are floats. That should be fine in this context though.
-    if (const std::optional<complex_double> maybe_left = visit(add[0], *this);
-        maybe_left.has_value()) {
-      if (const std::optional<complex_double> maybe_right = visit(add[1], *this);
-          maybe_right.has_value()) {
-        return *maybe_left + *maybe_right;
-      }
-    }
-    return std::nullopt;
-  }
-
-  std::optional<complex_double> operator()(const float_constant f) const noexcept {
-    return complex_double{f.get_value(), 0.0};
-  }
-
-  std::optional<complex_double> operator()(const imaginary_unit) const noexcept {
-    return complex_double{0.0, 1.0};
-  }
-
-  std::optional<complex_double> operator()(const multiplication& mul,
-                                           const scalar_expr& mul_abstract) const noexcept {
-    if (mul.size() != 2) {
-      // We only care about multiplications of the form: v * i
-      return std::nullopt;
-    }
-    // TODO: Should not need the abstract value to do this.
-    const auto [coeff, maybe_i] = as_coeff_and_mul(mul_abstract);
-    if (const float_constant* f = cast_ptr<const float_constant>(coeff);
-        f != nullptr && is_i(maybe_i)) {
-      return complex_double{0.0, f->get_value()};
-    }
-    return std::nullopt;
-  }
-};
+#define CAST_COMPLEX_FUNC(func) \
+  static_cast<std::complex<double> (*)(const std::complex<double>& x)>(&func)
 
 template <typename Callable>
 std::optional<scalar_expr> operate_on_float(const scalar_expr& arg, Callable&& method) {
-  if (const std::optional<complex_double> f = visit(arg, convert_to_complex_visitor{});
-      f.has_value()) {
-    const complex_double result = method(*f);
+  if (const auto c = complex_cast(arg); c.has_value()) {
+    const std::complex<double> result = method(*c);
     if (result.imag() == 0.0) {
       return scalar_expr(result.real());
     }
@@ -518,9 +469,9 @@ scalar_expr abs(const scalar_expr& arg) {
   // Evaluate floats immediately:
   if (std::optional<scalar_expr> result =
           operate_on_float(arg,
-                           [](const complex_double& c) {
+                           [](const std::complex<double>& c) {
                              // operate_on_float will simplify this...
-                             return complex_double{std::abs(c), 0.0};
+                             return std::complex<double>{std::abs(c), 0.0};
                            });
       result.has_value()) {
     return *std::move(result);

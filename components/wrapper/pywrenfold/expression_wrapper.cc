@@ -3,6 +3,7 @@
 #include <vector>
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES
+#include <pybind11/complex.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -12,6 +13,7 @@
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
+#include "wf/numerical_casts.h"
 
 #include "wrapper_utils.h"
 
@@ -70,10 +72,7 @@ scalar_expr substitute_variables_wrapper(
   return self.substitute_variables(pairs);
 }
 
-auto eval_wrapper(const scalar_expr& self) {
-  scalar_expr evaluated = self.eval();
-  return try_convert_to_numeric(evaluated);
-}
+auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
 
 // Defined in matrix_wrapper.cc
 void wrap_matrix_operations(py::module_& m);
