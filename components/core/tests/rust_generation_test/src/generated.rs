@@ -183,6 +183,84 @@ pub fn floor_test<>(x: f64) -> f64
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn cosh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).cosh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn sinh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).sinh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn tanh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).tanh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn acosh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).acosh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn asinh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).asinh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn atanh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).atanh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn atan2_with_derivatives<>(y: f64, x: f64, D_y: &mut f64, D_x: &mut f64) -> f64
 {
   // Operation counts:

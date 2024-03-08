@@ -175,6 +175,17 @@ fn test_floor() {
     assert_eq!(-5.0, generated::floor_test(-4.00001));
 }
 
+/// Test that hyperbolic trig functions generated correctly.
+#[test]
+fn test_hyperbolic_trig_functions() {
+    assert_eq!(f64::cosh(1.6), generated::cosh_test(1.6));
+    assert_eq!(f64::sinh(-1.3), generated::sinh_test(-1.3));
+    assert_eq!(f64::tanh(0.22), generated::tanh_test(0.22));
+    assert_eq!(f64::acosh(2.1), generated::acosh_test(2.1));
+    assert_eq!(f64::asinh(-5.2), generated::asinh_test(-5.2));
+    assert_eq!(f64::atanh(0.42), generated::atanh_test(0.42));
+}
+
 // TODO: Nest values are copy-pasta from the C++ test, which compares to numerical
 // evaluation of the expression graph.
 #[test]

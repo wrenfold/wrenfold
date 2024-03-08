@@ -112,6 +112,12 @@ enum class std_math_function {
   acos,
   asin,
   atan,
+  cosh,
+  sinh,
+  tanh,
+  acosh,
+  asinh,
+  atanh,
   log,
   sqrt,
   abs,
@@ -125,7 +131,7 @@ enum class std_math_function {
 };
 
 // True if the set is real numbers, or a constrained subset of the real numbers.
-constexpr bool is_real_set(number_set set) noexcept {
+constexpr bool is_real_set(const number_set set) noexcept {
   if (set == number_set::real || set == number_set::real_non_negative ||
       set == number_set::real_positive) {
     return true;
@@ -261,6 +267,18 @@ constexpr std::string_view string_from_standard_library_function(
       return "asin";
     case std_math_function::atan:
       return "atan";
+    case std_math_function::cosh:
+      return "cosh";
+    case std_math_function::sinh:
+      return "sinh";
+    case std_math_function::tanh:
+      return "tanh";
+    case std_math_function::acosh:
+      return "acosh";
+    case std_math_function::asinh:
+      return "asinh";
+    case std_math_function::atanh:
+      return "atanh";
     case std_math_function::log:
       return "log";
     case std_math_function::sqrt:

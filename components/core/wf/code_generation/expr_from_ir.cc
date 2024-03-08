@@ -85,6 +85,21 @@ struct expression_from_ir_visitor {
         return built_in_function::floor;
       case std_math_function::atan2:
         return built_in_function::arctan2;
+      case std_math_function::cosh:
+        return built_in_function::cosh;
+      case std_math_function::sinh:
+        return built_in_function::sinh;
+      case std_math_function::tanh:
+        return built_in_function::tanh;
+      case std_math_function::acosh:
+        return built_in_function::arccosh;
+      case std_math_function::asinh:
+        return built_in_function::arcsinh;
+      case std_math_function::atanh:
+        return built_in_function::arctanh;
+      case std_math_function::sqrt:
+      case std_math_function::powi:
+      case std_math_function::powf:
       default:
         // Other cases handled by the assertion below.
         break;
