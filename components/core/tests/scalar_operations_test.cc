@@ -923,10 +923,39 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::unknown, determine_numeric_set(tan(real)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(tan(complex)));
 
-  // not implemented
+  // inverse trig not implement
+  for (const auto val : {real, real_non_negative, real_non_negative, complex}) {
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(val)));
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(asin(val)));
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(atan(val)));
+  }
+
   ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real_non_negative)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(complex)));
+
+  // hyperbolic functions:
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(cosh(complex)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(cosh(real)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(cosh(real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(cosh(real_positive)));
+
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(sinh(complex)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(sinh(real)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(sinh(real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(sinh(real_positive)));
+
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(tanh(complex)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(tanh(real)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(tanh(real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(tanh(real_positive)));
+
+  // inverse hyperbolic trig not implemented:
+  for (const auto val : {real, real_non_negative, real_non_negative, complex}) {
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(acosh(val)));
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(asinh(val)));
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(atanh(val)));
+  }
 
   // not implemented
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real)));
@@ -954,6 +983,7 @@ TEST(ScalarOperationsTest, TestNumericSetsSpecialValues) {
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(constants::pi));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::complex_infinity));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(constants::undefined));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(constants::imaginary_unit));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsConditional) {

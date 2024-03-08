@@ -117,6 +117,25 @@ class determine_set_visitor {
       case built_in_function::arcsin:
       case built_in_function::arctan:
         return number_set::unknown;  //  TODO: implement inverse trig functions.
+      case built_in_function::cosh: {
+        if (is_real_set(args[0])) {
+          // cosh(x) >= 1 for real x
+          return number_set::real_positive;
+        }
+        return number_set::unknown;
+      }
+      case built_in_function::sinh:
+      case built_in_function::tanh: {
+        if (is_real_set(args[0])) {
+          // sinh(x) and tanh(x) are odd on the real number line.
+          return args[0];
+        }
+        return number_set::unknown;
+      }
+      case built_in_function::arccosh:
+      case built_in_function::arcsinh:
+      case built_in_function::arctanh:
+        return number_set::unknown;
       case built_in_function::ln: {
         if (args[0] == number_set::real_positive) {
           return number_set::real_positive;
