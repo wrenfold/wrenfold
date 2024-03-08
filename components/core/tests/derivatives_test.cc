@@ -13,13 +13,15 @@ using namespace wf::custom_literals;
 
 TEST(DerivativesTest, TestConstants) {
   const scalar_expr x{"x"};
-  ASSERT_IDENTICAL(constants::zero, (5_s).diff(x));
-  ASSERT_IDENTICAL(constants::zero, (22.5_s).diff(x, 4));
+  ASSERT_IDENTICAL(constants::zero, 5_s.diff(x));
+  ASSERT_IDENTICAL(constants::zero, 22.5_s.diff(x, 4));
   ASSERT_IDENTICAL(constants::zero, constants::pi.diff(x));
   ASSERT_IDENTICAL(constants::zero, constants::euler.diff(x));
   ASSERT_IDENTICAL(constants::zero, constants::complex_infinity.diff(x));
+  ASSERT_IDENTICAL(constants::zero, constants::imaginary_unit.diff(x));
   ASSERT_THROW(x.diff(5), type_error);
   ASSERT_THROW(x.diff(constants::pi), type_error);
+  ASSERT_THROW(x.diff(constants::imaginary_unit), type_error);
 }
 
 TEST(DerivativesTest, TestAdditionAndSubtraction) {
@@ -114,6 +116,36 @@ TEST(DerivativesTest, TestInverseTrig) {
   ASSERT_IDENTICAL(constants::zero, atan(constants::euler).diff(y));
   ASSERT_IDENTICAL(1_s / (x * x + 1), atan(x).diff(x));
   ASSERT_IDENTICAL(3_s * (x * x) / (pow(x, 6) + 1), atan(pow(x, 3)).diff(x));
+}
+
+TEST(DerivativesTest, TestHyperbolicTrig) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(0, cosh(x).diff(y));
+  ASSERT_IDENTICAL(sinh(x), cosh(x).diff(x));
+  ASSERT_IDENTICAL(sinh(x * y) * y, cosh(x * y).diff(x));
+
+  ASSERT_IDENTICAL(0, sinh(x).diff(y));
+  ASSERT_IDENTICAL(cosh(x), sinh(x).diff(x));
+  ASSERT_IDENTICAL(cosh(x * y) * y, sinh(x * y).diff(x));
+
+  ASSERT_IDENTICAL(0, tanh(x).diff(y));
+  ASSERT_IDENTICAL(1 - tanh(x) * tanh(x), tanh(x).diff(x));
+  ASSERT_IDENTICAL((1 - tanh(x * y) * tanh(x * y)) * y, tanh(x * y).diff(x));
+}
+
+TEST(DerivativesTest, TestInverseHyperbolicTrig) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(0, acosh(x).diff(y));
+  ASSERT_IDENTICAL(1 / sqrt(x - 1) * 1 / sqrt(x + 1), acosh(x).diff(x));
+  ASSERT_IDENTICAL(y / sqrt(y * x - 1) * 1 / sqrt(y * x + 1), acosh(x * y).diff(x));
+
+  ASSERT_IDENTICAL(0, asinh(x).diff(y));
+  ASSERT_IDENTICAL(1 / sqrt(x * x + 1), asinh(x).diff(x));
+  ASSERT_IDENTICAL(y / sqrt(x * x * y * y + 1), asinh(x * y).diff(x));
+
+  ASSERT_IDENTICAL(0, atanh(x).diff(y));
+  ASSERT_IDENTICAL(1 / (1 - x * x), atanh(x).diff(x));
+  ASSERT_IDENTICAL(y / (1 - x * x * y * y), atanh(x * y).diff(x));
 }
 
 TEST(DerivativesTest, TestAtan2) {

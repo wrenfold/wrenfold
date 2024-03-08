@@ -26,7 +26,7 @@ class derivative_visitor {
   scalar_expr operator()(const derivative& derivative,
                          const scalar_expr& derivative_abstract) const;
   scalar_expr operator()(const multiplication& mul);
-  scalar_expr operator()(const function& func);
+  scalar_expr operator()(const function& func, const scalar_expr& func_abstract);
   scalar_expr operator()(const complex_infinity&) const;
   scalar_expr operator()(const imaginary_unit&) const;
   scalar_expr operator()(const integer_constant&) const;

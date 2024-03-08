@@ -140,11 +140,10 @@ scalar_expr derivative_visitor::operator()(const multiplication& mul) {
 }
 
 // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
-scalar_expr derivative_visitor::operator()(const function& func) {
+scalar_expr derivative_visitor::operator()(const function& func, const scalar_expr& func_abstract) {
   // Differentiate the arguments:
-  function::container_type d_args{};
-  std::transform(func.begin(), func.end(), std::back_inserter(d_args),
-                 [this](const scalar_expr& arg) { return apply(arg); });
+  function::container_type d_args = transform_map<function::container_type>(
+      func, [this](const scalar_expr& arg) { return apply(arg); });
 
   if (const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
       all_derivatives_zero) {
@@ -175,6 +174,27 @@ scalar_expr derivative_visitor::operator()(const function& func) {
     case built_in_function::arctan:
       // atan(f(x)) --> f'(x) / (f(x)^2 + 1)
       return d_args[0] / (pow(args[0], 2) + constants::one);
+    case built_in_function::cosh:
+      // cosh(f(x) --> sinh(f(x)) * f'(x)
+      return d_args[0] * sinh(args[0]);
+    case built_in_function::sinh:
+      // sinh(f(x)) --> cosh(f(x)) * f'(x)
+      return d_args[0] * cosh(args[0]);
+    case built_in_function::tanh:
+      // tanh(f(x)) --> (1 - tanh(f(x)**2) * f'(x) (or  1/cosh^2(f(x)) * f'(x))
+      return (1 - pow(func_abstract, 2)) * d_args[0];
+    case built_in_function::arccosh: {
+      // cosh(f(x)) --> 1 / sqrt(f(x)**2 - 1) * 1 / sqrt(f(x)**2 + 1) * f'(x)
+      return pow(sqrt(args[0] + 1) * sqrt(args[0] - 1), constants::negative_one) * d_args[0];
+    }
+    case built_in_function::arcsinh: {
+      // sinh(f(x)) --> 1 / sqrt(f(x)**2 + 1) * f'(x)
+      return pow(pow(args[0], 2) + 1, negative_one_half) * d_args[0];
+    }
+    case built_in_function::arctanh: {
+      // atanh(f(x)) --> 1 / (1 - f(x)**2) * f'(x)
+      return pow(1 - pow(args[0], 2), constants::negative_one) * d_args[0];
+    }
     case built_in_function::ln:
       // log(f(x)) --> 1/f(x) * f'(x)
       return power::create(args[0], constants::negative_one) * d_args[0];
