@@ -49,6 +49,8 @@ enum class built_in_function {
   abs,
   signum,
   floor,
+  re,
+  im,
   // Binary functions
   arctan2,
 };
@@ -187,6 +189,10 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
       return "signum";
     case built_in_function::floor:
       return "floor";
+    case built_in_function::re:
+      return "re";
+    case built_in_function::im:
+      return "im";
     case built_in_function::arctan2:
       return "atan2";
     default:

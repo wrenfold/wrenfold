@@ -108,6 +108,8 @@ add_library(
   wf/output_annotations.h
   wf/plain_formatter.cc
   wf/plain_formatter.h
+  wf/real_imaginary.cc
+  wf/real_imaginary.h
   wf/substitute.cc
   wf/template_utils.h
   wf/traits.h
