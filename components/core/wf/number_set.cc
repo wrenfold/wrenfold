@@ -78,8 +78,8 @@ class determine_set_visitor {
   }
 
   number_set operator()(const conditional& cond) const {
-    number_set left = determine_numeric_set(cond.if_branch());
-    number_set right = determine_numeric_set(cond.else_branch());
+    const number_set left = determine_numeric_set(cond.if_branch());
+    const number_set right = determine_numeric_set(cond.else_branch());
     return std::max(left, right);
   }
 
@@ -117,6 +117,25 @@ class determine_set_visitor {
       case built_in_function::arcsin:
       case built_in_function::arctan:
         return number_set::unknown;  //  TODO: implement inverse trig functions.
+      case built_in_function::cosh: {
+        if (is_real_set(args[0])) {
+          // cosh(x) >= 1 for real x
+          return number_set::real_positive;
+        }
+        return number_set::unknown;
+      }
+      case built_in_function::sinh:
+      case built_in_function::tanh: {
+        if (is_real_set(args[0])) {
+          // sinh(x) and tanh(x) are odd on the real number line.
+          return args[0];
+        }
+        return number_set::unknown;
+      }
+      case built_in_function::arccosh:
+      case built_in_function::arcsinh:
+      case built_in_function::arctanh:
+        return number_set::unknown;
       case built_in_function::ln: {
         if (args[0] == number_set::real_positive) {
           return number_set::real_positive;
@@ -166,6 +185,10 @@ class determine_set_visitor {
     return number_set::real;
   }
 
+  constexpr number_set operator()(const imaginary_unit&) const noexcept {
+    return number_set::complex;
+  }
+
   constexpr number_set operator()(const integer_constant& i) const noexcept {
     return handle_numeric(i);
   }
@@ -174,8 +197,8 @@ class determine_set_visitor {
   }
 
   number_set operator()(const power& pow) const {
-    number_set base = determine_numeric_set(pow.base());
-    number_set exp = determine_numeric_set(pow.exponent());
+    const number_set base = determine_numeric_set(pow.base());
+    const number_set exp = determine_numeric_set(pow.exponent());
     if (base == number_set::complex || exp == number_set::complex || base == number_set::unknown ||
         exp == number_set::unknown) {
       return number_set::unknown;

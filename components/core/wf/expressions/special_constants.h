@@ -53,6 +53,13 @@ class undefined {
   static constexpr bool is_leaf_node = true;
 };
 
+// The imaginary constant `i`.
+class imaginary_unit {
+ public:
+  static constexpr std::string_view name_str = "ImaginaryUnit";
+  static constexpr bool is_leaf_node = true;
+};
+
 // A boolean constant (true or false).
 class boolean_constant {
  public:
@@ -133,6 +140,28 @@ struct is_identical_struct<undefined> {
 template <>
 struct order_struct<undefined> {
   constexpr relative_order operator()(const undefined&, const undefined&) const noexcept {
+    return relative_order::equal;
+  }
+};
+
+template <>
+struct hash_struct<imaginary_unit> {
+  constexpr std::size_t operator()(const imaginary_unit&) const noexcept {
+    constexpr auto i_hash = hash_string_fnv("i");
+    return i_hash;
+  }
+};
+
+template <>
+struct is_identical_struct<imaginary_unit> {
+  constexpr bool operator()(const imaginary_unit&, const imaginary_unit&) const noexcept {
+    return true;
+  }
+};
+
+template <>
+struct order_struct<imaginary_unit> {
+  constexpr relative_order operator()(const imaginary_unit&, const imaginary_unit&) const noexcept {
     return relative_order::equal;
   }
 };

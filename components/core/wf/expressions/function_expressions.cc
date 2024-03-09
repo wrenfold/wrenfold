@@ -23,6 +23,18 @@ scalar_expr function::create(const built_in_function name,
       return asin(args.front());
     case built_in_function::arctan:
       return atan(args.front());
+    case built_in_function::cosh:
+      return cosh(args.front());
+    case built_in_function::sinh:
+      return sinh(args.front());
+    case built_in_function::tanh:
+      return tanh(args.front());
+    case built_in_function::arccosh:
+      return acosh(args.front());
+    case built_in_function::arcsinh:
+      return asinh(args.front());
+    case built_in_function::arctanh:
+      return atanh(args.front());
     case built_in_function::ln:
       return log(args.front());
     case built_in_function::abs:

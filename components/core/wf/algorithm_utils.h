@@ -59,4 +59,16 @@ auto transform_enumerate_map(const ContainerIn& in, F&& f) {
   return transform_enumerate_map<ContainerOut<output_type>>(in, std::forward<F>(f));
 }
 
+// True if any element of the container matches the predicate. False if no element matches, or if
+// the container is empty.
+template <typename Container, typename Predicate>
+bool any_of(const Container& container, Predicate&& p) {
+  for (const auto& element : container) {
+    if (p(element)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace wf

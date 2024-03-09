@@ -178,6 +178,16 @@ TEST(CppGenerationTest, TestFloor) {
   EXPECT_EQ(-2.0, gen::floor_test(-1.25));
 }
 
+// Test that the generated functions call the STL equivalents.
+TEST(CppGenerationTest, TestHyperbolicTrigFunctions) {
+  EXPECT_EQ(std::cosh(1.6), gen::cosh_test(1.6));
+  EXPECT_EQ(std::sinh(-1.3), gen::sinh_test(-1.3));
+  EXPECT_EQ(std::tanh(0.22), gen::tanh_test(0.22));
+  EXPECT_EQ(std::acosh(2.1), gen::acosh_test(2.1));
+  EXPECT_EQ(std::asinh(-5.2), gen::asinh_test(-5.2));
+  EXPECT_EQ(std::atanh(0.42), gen::atanh_test(0.42));
+}
+
 TEST(CppGenerationTest, TestNestedConditionals1) {
   auto evaluator = create_evaluator(&nested_conditionals_1);
   // Exercise all the different control paths.

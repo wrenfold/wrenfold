@@ -227,6 +227,12 @@ std::string rust_code_generator::operator()(const ast::call_std_function& x) con
     case std_math_function::asin:
     case std_math_function::atan:
     case std_math_function::sqrt:
+    case std_math_function::cosh:
+    case std_math_function::sinh:
+    case std_math_function::tanh:
+    case std_math_function::acosh:
+    case std_math_function::asinh:
+    case std_math_function::atanh:
     case std_math_function::abs:
       return fmt::format("({}).{}()", make_view(x[0]),
                          string_from_standard_library_function(x.function));

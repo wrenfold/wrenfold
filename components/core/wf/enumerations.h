@@ -39,6 +39,12 @@ enum class built_in_function {
   arccos,
   arcsin,
   arctan,
+  cosh,
+  sinh,
+  tanh,
+  arccosh,
+  arcsinh,
+  arctanh,
   ln,
   abs,
   signum,
@@ -106,6 +112,12 @@ enum class std_math_function {
   acos,
   asin,
   atan,
+  cosh,
+  sinh,
+  tanh,
+  acosh,
+  asinh,
+  atanh,
   log,
   sqrt,
   abs,
@@ -119,7 +131,7 @@ enum class std_math_function {
 };
 
 // True if the set is real numbers, or a constrained subset of the real numbers.
-constexpr bool is_real_set(number_set set) noexcept {
+constexpr bool is_real_set(const number_set set) noexcept {
   if (set == number_set::real || set == number_set::real_non_negative ||
       set == number_set::real_positive) {
     return true;
@@ -155,6 +167,18 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
       return "asin";
     case built_in_function::arctan:
       return "atan";
+    case built_in_function::cosh:
+      return "cosh";
+    case built_in_function::sinh:
+      return "sinh";
+    case built_in_function::tanh:
+      return "tanh";
+    case built_in_function::arccosh:
+      return "acosh";
+    case built_in_function::arcsinh:
+      return "asinh";
+    case built_in_function::arctanh:
+      return "atanh";
     case built_in_function::ln:
       return "ln";
     case built_in_function::abs:
@@ -243,6 +267,18 @@ constexpr std::string_view string_from_standard_library_function(
       return "asin";
     case std_math_function::atan:
       return "atan";
+    case std_math_function::cosh:
+      return "cosh";
+    case std_math_function::sinh:
+      return "sinh";
+    case std_math_function::tanh:
+      return "tanh";
+    case std_math_function::acosh:
+      return "acosh";
+    case std_math_function::asinh:
+      return "asinh";
+    case std_math_function::atanh:
+      return "atanh";
     case std_math_function::log:
       return "log";
     case std_math_function::sqrt:

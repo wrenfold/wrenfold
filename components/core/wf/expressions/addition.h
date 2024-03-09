@@ -34,7 +34,10 @@ class addition {
   }
 
   // Access specific argument.
-  const scalar_expr& operator[](const std::size_t i) const { return terms_[i]; }
+  const scalar_expr& operator[](const std::size_t i) const {
+    WF_ASSERT_LESS(i, terms_.size());
+    return terms_[i];
+  }
 
   // Number of arguments.
   std::size_t size() const noexcept { return terms_.size(); }

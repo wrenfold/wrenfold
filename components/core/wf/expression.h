@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include <memory>
-#include <ostream>
+#include <ostream>  // operator<<
 #include <string>
 
 #include "wf/boolean_expression.h"
@@ -22,7 +22,6 @@ struct type_list_trait<scalar_meta_type> {
   // clang-format off
   using types = type_list<
     const class addition,
-    const class iverson_bracket,
     const class compound_expression_element,
     const class conditional,
     const class symbolic_constant,
@@ -30,7 +29,9 @@ struct type_list_trait<scalar_meta_type> {
     const class float_constant,
     const class function,
     const class complex_infinity,
+    const class imaginary_unit,
     const class integer_constant,
+    const class iverson_bracket,
     const class multiplication,
     const class power,
     const class rational_constant,
@@ -60,6 +61,9 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
 
   // Construct from rational.
   explicit scalar_expr(rational_constant r);
+
+  // Static constructor: Conversion from complex float: a + i*b
+  static scalar_expr from_complex(double a, double b);
 
   // Convert to string.
   std::string to_string() const;

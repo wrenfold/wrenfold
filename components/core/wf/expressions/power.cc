@@ -26,7 +26,7 @@ static_assert(is_float_and_numeric_v<rational_constant, float_constant>);
 static_assert(!is_float_and_numeric_v<integer_constant, integer_constant>);
 static_assert(!is_float_and_numeric_v<integer_constant, rational_constant>);
 
-struct PowerNumerics {
+struct power_numerics_visitor {
   template <typename A, typename B>
   std::optional<scalar_expr> operator()(const A& a, const B& b) {
     if constexpr (is_float_and_numeric_v<A, B>) {
@@ -107,7 +107,7 @@ struct PowerNumerics {
     WF_ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
     if (a.get_value() == 1) {
       return constants::one;
-    } else if (a.get_value() == 0) {
+    } else if (a.is_zero()) {
       if (b.is_zero()) {
         // 0^0 --> undefined
         return constants::undefined;
@@ -118,8 +118,8 @@ struct PowerNumerics {
       }
     }
 
-    // Factorize the integer into primes:
-    const std::vector<prime_factor> factors = compute_prime_factors(a.get_value());
+    // Factorize the integer exponent (positive part only) into primes:
+    const std::vector<prime_factor> factors = compute_prime_factors(abs(a.get_value()));
     WF_ASSERT(std::is_sorted(factors.begin(), factors.end(),
                              [](const auto& x, const auto& y) { return x.base < y.base; }),
               "Factors should be sorted");
@@ -145,6 +145,7 @@ struct PowerNumerics {
       // Factorize the exponent: x^(int_part + frac_part) --> x^int_part * x^frac_part
       // Both of these should have the same sign as actual_exp.
       const auto [integer_part, fractional_part] = factorize_rational_exponent(actual_exp);
+      WF_ASSERT(!fractional_part.is_negative(), "fractional_part = {}", fractional_part);
 
       // Apply the integer part to the rational coefficient:
       if (integer_part.get_value() >= 0) {
@@ -159,7 +160,22 @@ struct PowerNumerics {
       if (fractional_part.numerator() != 0) {
         scalar_expr base(f.base);
         scalar_expr exponent(fractional_part);
-        operands.push_back(make_expr<power>(std::move(base), std::move(exponent)));
+        operands.emplace_back(std::in_place_type_t<power>(), std::move(base), std::move(exponent));
+      }
+    }
+
+    // If a is negative, we add another factor (-1) here:
+    if (a.is_negative()) {
+      const auto [integer_part, fractional_part] = factorize_rational_exponent(b);
+      if (!integer_part.is_even()) {
+        operands.emplace_back(constants::negative_one);
+      }
+      if (fractional_part == rational_constant{1, 2}) {
+        // (-1)**(1/2) --> i
+        operands.push_back(constants::imaginary_unit);
+      } else {
+        operands.emplace_back(std::in_place_type_t<power>(), constants::negative_one,
+                              scalar_expr(fractional_part));
       }
     }
 
@@ -172,8 +188,8 @@ struct PowerNumerics {
     return multiplication::from_operands(operands);
   }
 
-  scalar_expr apply_infinity_and_rational(const complex_infinity&,
-                                          const rational_constant& r) const {
+  static scalar_expr apply_infinity_and_rational(const complex_infinity&,
+                                                 const rational_constant& r) {
     if (r.numerator() > 0) {
       return constants::complex_infinity;
     } else if (r.numerator() < 0) {
@@ -184,7 +200,7 @@ struct PowerNumerics {
     }
   }
 
-  scalar_expr apply_infinity_and_float(const complex_infinity&, const float_constant& f) const {
+  static scalar_expr apply_infinity_and_float(const complex_infinity&, const float_constant& f) {
     if (f.get_value() > 0) {
       return constants::complex_infinity;
     } else if (f.get_value() < 0) {
@@ -192,6 +208,104 @@ struct PowerNumerics {
     } else {
       // infinity ^ 0.0
       return constants::undefined;
+    }
+  }
+};
+
+// Result of `imaginary_unit_power`.
+enum class imaginary_unit_power_result {
+  // Result is +1
+  one,
+  // Result is -1
+  negative_one,
+  // Result is `i`
+  i,
+  // Result is -i
+  negative_i,
+};
+
+// Determine the result of i**n where `n` is an integer and `i` is the imaginary unit.
+constexpr imaginary_unit_power_result imaginary_unit_power(const integer_constant exp) noexcept {
+  // There might be a simpler way to write this logic, this is my first pass at it.
+  const integer_constant exp_over_two = exp / integer_constant{2};
+  if (exp.is_even()) {
+    return exp_over_two.is_even() ? imaginary_unit_power_result::one
+                                  : imaginary_unit_power_result::negative_one;
+  } else if (exp.is_positive()) {
+    if (exp_over_two.is_even()) {
+      return imaginary_unit_power_result::i;
+    } else {
+      return imaginary_unit_power_result::negative_i;
+    }
+  } else {
+    // exp is negative and odd
+    if (exp_over_two.is_even()) {
+      return imaginary_unit_power_result::negative_i;
+    } else {
+      return imaginary_unit_power_result::i;
+    }
+  }
+}
+
+// Visitor to handle i**integer or i**rational.
+struct power_imaginary_visitor {
+  template <typename T,
+            typename = enable_if_does_not_contain_type_t<T, integer_constant, rational_constant>>
+  std::optional<scalar_expr> operator()(const T&) const noexcept {
+    return std::nullopt;
+  }
+
+  std::optional<scalar_expr> operator()(const integer_constant exp) const {
+    switch (imaginary_unit_power(exp)) {
+      case imaginary_unit_power_result::one:
+        return constants::one;
+      case imaginary_unit_power_result::negative_one:
+        return constants::negative_one;
+      case imaginary_unit_power_result::i:
+        return constants::imaginary_unit;
+      case imaginary_unit_power_result::negative_i:
+      default: {
+        // We explicitly call multiplication constructor here because we don't want go through
+        // operator* and accidentically recurse back into the pow(...) logic.
+        static const auto negative_i =
+            make_expr<multiplication>(constants::negative_one, constants::imaginary_unit);
+        return negative_i;
+      }
+    }
+  }
+
+  std::optional<scalar_expr> operator()(const rational_constant& exp,
+                                        const scalar_expr& exp_abstract) const {
+    const auto [integer_part, fractional_part] = factorize_rational_exponent(exp);
+    WF_ASSERT(!fractional_part.is_negative(), "fractional_part = {}", fractional_part);
+
+    switch (imaginary_unit_power(integer_part)) {
+      case imaginary_unit_power_result::one:
+        // i**fractional_part
+        return make_expr<power>(constants::imaginary_unit, scalar_expr{fractional_part});
+      case imaginary_unit_power_result::negative_one:
+        // -1 * i**fractional_part
+        return make_expr<multiplication>(
+            constants::negative_one,
+            make_expr<power>(constants::imaginary_unit, scalar_expr{fractional_part}));
+      case imaginary_unit_power_result::i: {
+        // i**(fractional_part + 1)
+        if (integer_part.get_value() == 1) {
+          // No need to re-construct the rational exponent:
+          return make_expr<power>(constants::imaginary_unit, exp_abstract);
+        } else {
+          return make_expr<power>(constants::imaginary_unit,
+                                  scalar_expr{fractional_part + rational_constant(1, 1)});
+        }
+      }
+      case imaginary_unit_power_result::negative_i:
+      default: {
+        // -1 * i**(fractional_part + 1)
+        return make_expr<multiplication>(
+            constants::negative_one,
+            make_expr<power>(constants::imaginary_unit,
+                             scalar_expr{fractional_part + rational_constant(1, 1)}));
+      }
     }
   }
 };
@@ -236,7 +350,7 @@ static bool can_multiply_exponents(const power& base_pow, const scalar_expr& out
 
 scalar_expr power::create(scalar_expr a, scalar_expr b) {
   // Check for numeric quantities.
-  if (std::optional<scalar_expr> numeric_pow = visit_binary(a, b, PowerNumerics{});
+  if (std::optional<scalar_expr> numeric_pow = visit_binary(a, b, power_numerics_visitor{});
       numeric_pow.has_value()) {
     return *std::move(numeric_pow);
   }
@@ -244,6 +358,13 @@ scalar_expr power::create(scalar_expr a, scalar_expr b) {
   if ((is_one(a) || is_negative_one(a)) && is_complex_infinity(b)) {
     // 1^∞ (for any type of infinity) is undefined
     return constants::undefined;
+  }
+
+  if (is_i(a)) {
+    if (std::optional<scalar_expr> imaginary_pow = visit(b, power_imaginary_visitor{});
+        imaginary_pow.has_value()) {
+      return *std::move(imaginary_pow);
+    }
   }
 
   // Check if the base is itself a power:
@@ -271,11 +392,8 @@ scalar_expr power::create(scalar_expr a, scalar_expr b) {
   // In this case, we convert to a multiplication of powers:
   // TODO: Should we only do this distribution for integer powers?
   if (const multiplication* const mul = cast_ptr<const multiplication>(a); mul != nullptr) {
-    std::vector<scalar_expr> args;
-    args.reserve(mul->size());
-    for (const scalar_expr& arg : *mul) {
-      args.push_back(power::create(arg, b));
-    }
+    auto args = transform_map<std::vector>(
+        *mul, [&b](const scalar_expr& arg) { return power::create(arg, b); });
     return multiplication::from_operands(args);
   }
   return make_expr<power>(std::move(a), std::move(b));

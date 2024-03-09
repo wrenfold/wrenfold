@@ -8,12 +8,12 @@ add_library(
   wf/boolean_expression.h
   wf/checked_int.h
   wf/checked_pointers.h
-  wf/code_generation/ast.cc
-  wf/code_generation/ast.h
   wf/code_generation/ast_conversion.cc
   wf/code_generation/ast_conversion.h
   wf/code_generation/ast_element.h
   wf/code_generation/ast_formatters.h
+  wf/code_generation/ast.cc
+  wf/code_generation/ast.h
   wf/code_generation/code_formatter.h
   wf/code_generation/control_flow_graph.cc
   wf/code_generation/control_flow_graph.h
@@ -54,11 +54,11 @@ add_library(
   wf/enumerations.h
   wf/error_types.h
   wf/evaluate.cc
-  wf/expression.cc
-  wf/expression.h
   wf/expression_cache.h
   wf/expression_variant.h
   wf/expression_visitor.h
+  wf/expression.cc
+  wf/expression.h
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h
@@ -100,6 +100,8 @@ add_library(
   wf/matrix_functions.cc
   wf/matrix_functions.h
   wf/number_set.cc
+  wf/numerical_casts.cc
+  wf/numerical_casts.h
   wf/operations.h
   wf/ordering.cc
   wf/ordering.h

@@ -40,7 +40,7 @@ std::pair<scalar_expr, scalar_expr> as_base_and_exp(const scalar_expr& expr);
 // Convert a rational exponent to the whole integer part and the remainder.
 // If the exponent is negative, we add to the whole integer part so that the rational part
 // can be positive (i.e. we eliminate "absurd" rationals).
-inline constexpr std::pair<integer_constant, rational_constant> factorize_rational_exponent(
+constexpr std::pair<integer_constant, rational_constant> factorize_rational_exponent(
     const rational_constant& r) {
   const integer_constant integer_part{r.numerator() / r.denominator()};
   const rational_constant fractional_part_signed{r.numerator() % r.denominator(), r.denominator()};

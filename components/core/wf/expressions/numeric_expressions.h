@@ -168,6 +168,9 @@ class float_constant {
 constexpr auto operator*(const integer_constant& a, const integer_constant& b) {
   return integer_constant{a.get_value() * b.get_value()};
 }
+constexpr auto operator/(const integer_constant& a, const integer_constant& b) {
+  return integer_constant{a.get_value() / b.get_value()};
+}
 constexpr auto operator+(const integer_constant& a, const integer_constant& b) {
   return integer_constant{a.get_value() + b.get_value()};
 }
@@ -208,6 +211,9 @@ struct order_struct<integer_constant> {
 // Operations on rationals:
 constexpr auto operator*(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
+}
+constexpr auto operator*(const rational_constant& a, const integer_constant& b) {
+  return rational_constant{a.numerator() * b.get_value(), a.denominator()};
 }
 constexpr auto operator/(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.denominator(), a.denominator() * b.numerator()};

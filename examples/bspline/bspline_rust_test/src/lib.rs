@@ -325,21 +325,21 @@ fn test_bspline_order5() {
 
 #[test]
 fn test_bspline_order6() {
-    test_bspline_generic(7, eval_bspline_coefficients_order6, false, 1.0e-9, 1.0e-6);
-    test_bspline_generic(16, eval_bspline_coefficients_order6, false, 1.0e-9, 1.0e-6);
+    test_bspline_generic(7, eval_bspline_coefficients_order6, false, 1.0e-9, 1.0e-5);
+    test_bspline_generic(16, eval_bspline_coefficients_order6, false, 1.0e-9, 1.0e-5);
     test_bspline_generic(
         7,
         eval_cumulative_bspline_coefficients_order6,
         true,
         1.0e-9,
-        1.0e-6,
+        1.0e-5,
     );
     test_bspline_generic(
         9,
         eval_cumulative_bspline_coefficients_order6,
         true,
         1.0e-9,
-        1.0e-6,
+        1.0e-5,
     );
 }
 

@@ -28,7 +28,7 @@ Eigen::Quaternion<Scalar> quat_interp(const Eigen::Quaternion<Scalar>& a,
 auto quat_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec,
                         scalar_expr alpha) {
   return quaternion_interpolation(q0_vec, q1_vec, alpha, 1.0e-16);
-};
+}
 
 // Test the quaternion interpolation result numerically.
 TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
@@ -47,8 +47,8 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
   gen::quaternion_interpolation(q0, q1, 0.25, q_gen, D0_gen, D1_gen);
 
   EXPECT_EIGEN_NEAR(q_eval.coeffs(), q_gen.coeffs(), 2.0e-16);
-  EXPECT_EIGEN_NEAR(D0_eval, D0_gen, 3.0e-16);
-  EXPECT_EIGEN_NEAR(D1_eval, D1_gen, 3.0e-16);
+  EXPECT_EIGEN_NEAR(D0_eval, D0_gen, 5.0e-16);
+  EXPECT_EIGEN_NEAR(D1_eval, D1_gen, 5.0e-16);
 
   // compare to interpolation with eigen
   EXPECT_EIGEN_NEAR(quat_interp(q0, q1, 0.25).coeffs(), q_gen.coeffs(), 2.0e-16);

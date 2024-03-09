@@ -19,6 +19,12 @@ std::string generate_test_expressions(Generator gen) {
   generate_func(gen, code, &signum_test, "signum_test", arg("x"));
   generate_func(gen, code, &abs_test, "abs_test", arg("x"));
   generate_func(gen, code, &floor_test, "floor_test", arg("x"));
+  generate_func(gen, code, &cosh_test, "cosh_test", arg("x"));
+  generate_func(gen, code, &sinh_test, "sinh_test", arg("x"));
+  generate_func(gen, code, &tanh_test, "tanh_test", arg("x"));
+  generate_func(gen, code, &acosh_test, "acosh_test", arg("x"));
+  generate_func(gen, code, &asinh_test, "asinh_test", arg("x"));
+  generate_func(gen, code, &atanh_test, "atanh_test", arg("x"));
   generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", arg("y"), arg("x"));
   generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", arg("x"), arg("y"));
   generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", arg("x"), arg("y"));

@@ -21,11 +21,21 @@ static scalar_expr simplify_rational(rational_constant r) {
 
 scalar_expr::scalar_expr(const rational_constant r) : scalar_expr(simplify_rational(r)) {}
 
+scalar_expr scalar_expr::from_complex(const double a, const double b) {
+  return scalar_expr(a) + scalar_expr(b) * constants::imaginary_unit;
+}
+
 scalar_expr scalar_expr::from_float(const double x) {
-  if (x == 0) {
-    return constants::zero;
+  if (std::isnan(x)) {
+    return constants::undefined;
+  } else if (std::isinf(x)) {
+    // Not exactly true, since floating point is closer to the affine extension
+    // of the real numbers. But we don't have +/- real infinity.
+    return constants::complex_infinity;
   }
-  WF_ASSERT(std::isfinite(x), "Float values must be finite: {}", x);
+  if (!std::isfinite(x)) {
+    throw wf::domain_error("Floating point values must be finite: {}", x);
+  }
   return make_expr<float_constant>(x);
 }
 

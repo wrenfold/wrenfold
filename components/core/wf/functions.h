@@ -29,6 +29,24 @@ scalar_expr asin(const scalar_expr& arg);
 // Inverse tangent.
 scalar_expr atan(const scalar_expr& arg);
 
+// Hyperbolic cosine.
+scalar_expr cosh(const scalar_expr& arg);
+
+// Hyperbolic sine.
+scalar_expr sinh(const scalar_expr& arg);
+
+// Hyperbolic tangent.
+scalar_expr tanh(const scalar_expr& arg);
+
+// Inverse hyperbolic cosine.
+scalar_expr acosh(const scalar_expr& arg);
+
+// Inverse hyperbolic sine.
+scalar_expr asinh(const scalar_expr& arg);
+
+// Inverse hyperbolic tangent.
+scalar_expr atanh(const scalar_expr& arg);
+
 // 2-argument inverse tangent.
 scalar_expr atan2(const scalar_expr& y, const scalar_expr& x);
 

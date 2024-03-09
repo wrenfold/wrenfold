@@ -137,6 +137,18 @@ static constexpr std_math_function std_math_function_from_built_in(const built_i
       return std_math_function::asin;
     case built_in_function::arctan:
       return std_math_function::atan;
+    case built_in_function::cosh:
+      return std_math_function::cosh;
+    case built_in_function::sinh:
+      return std_math_function::sinh;
+    case built_in_function::tanh:
+      return std_math_function::tanh;
+    case built_in_function::arccosh:
+      return std_math_function::acosh;
+    case built_in_function::arcsinh:
+      return std_math_function::asinh;
+    case built_in_function::arctanh:
+      return std_math_function::atanh;
     case built_in_function::ln:
       return std_math_function::log;
     case built_in_function::abs:
@@ -182,6 +194,11 @@ ir::value_ptr ir_form_visitor::operator()(const function& func) {
 
   const code_numeric_type numeric_type = std_function_output_type(enum_value, args);
   return push_operation(ir::call_std_function{enum_value}, numeric_type, std::move(args));
+}
+
+ir::value_ptr ir_form_visitor::operator()(const imaginary_unit&) const {
+  throw type_error("Cannot generate code for expressions containing `{}`.",
+                   imaginary_unit::name_str);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const integer_constant& i) {

@@ -23,6 +23,7 @@ TEST(PlainFormatterTest, TestAdditionAndSubtraction) {
   ASSERT_STR_EQ("x - y", x - y);
   ASSERT_STR_EQ("5 / 6 - x + y", -x + y + 5 / 6_s);
   ASSERT_STR_EQ("-w - x + y", -w + -x + y);
+  ASSERT_STR_EQ("x + I * y", x + constants::imaginary_unit * y);
 }
 
 TEST(PlainFormatterTest, TestMultiplication) {
@@ -86,6 +87,7 @@ TEST(PlainFormatterTest, TestPower) {
   ASSERT_STR_EQ("(x ** (-x + y)) ** (x ** (-3 * z / 7))", pow(pow(x, y - x), pow(x, 3 * z / -7_s)));
   ASSERT_STR_EQ("-5 ** (2 / 3) * 7 ** (2 / 3) + x - y * z",
                 pow(5 * 7, 2 / 3_s) * constants::negative_one + x - y * z);
+  ASSERT_STR_EQ("-I ** (3 / 2)", pow(constants::imaginary_unit, 7_s / 2));
 }
 
 TEST(PlainFormatterTest, TestRelationals) {
@@ -129,6 +131,12 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
   ASSERT_STR_EQ("abs(1 + x - sin(y))", abs(x + 1 - sin(y)));
   ASSERT_STR_EQ("signum(3 * y)", signum(3 * y));
   ASSERT_STR_EQ("floor(x / y)", floor(x / y));
+  ASSERT_STR_EQ("cosh(x + y)", cosh(x + y));
+  ASSERT_STR_EQ("sinh(5 * x)", sinh(5 * x));
+  ASSERT_STR_EQ("tanh(x / y)", tanh(x / y));
+  ASSERT_STR_EQ("acosh(x + y)", acosh(x + y));
+  ASSERT_STR_EQ("asinh(5 * x)", asinh(5 * x));
+  ASSERT_STR_EQ("atanh(x / y)", atanh(x / y));
 }
 
 TEST(PlainFormatterTest, TestMatrix) {
@@ -158,6 +166,7 @@ TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", constants::undefi
 TEST(PlainFormatterTest, TestScalarConstants) {
   ASSERT_STR_EQ("pi", constants::pi);
   ASSERT_STR_EQ("e", constants::euler);
+  ASSERT_STR_EQ("I", constants::imaginary_unit);
 }
 
 TEST(PlainFormatterTest, TestBooleanConstants) {

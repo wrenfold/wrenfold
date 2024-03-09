@@ -1,54 +1,74 @@
 #include "wf/functions.h"
 
+#include <complex>
+
 #include "wf/common_visitors.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
 #include "wf/matrix_expression.h"
+#include "wf/numerical_casts.h"
 
 namespace wf {
 using namespace wf::custom_literals;
 
+// Cast provided function to: f(complex_double) -> complex_double
+#define CAST_COMPLEX_FUNC(func) \
+  static_cast<std::complex<double> (*)(const std::complex<double>& x)>(&func)
+
 template <typename Callable>
 std::optional<scalar_expr> operate_on_float(const scalar_expr& arg, Callable&& method) {
-  if (const float_constant* const f = cast_ptr<const float_constant>(arg); f != nullptr) {
-    const auto value = f->get_value();
-    const auto result = method(value);
-    if (result == value) {
-      // Don't allocate if no change occurred.
-      return arg;
-    } else {
-      return scalar_expr(static_cast<float_constant::value_type>(result));
+  if (const auto c = complex_cast(arg); c.has_value()) {
+    const std::complex<double> result = method(*c);
+    if (result.imag() == 0.0) {
+      return scalar_expr(result.real());
     }
+    return scalar_expr::from_complex(result.real(), result.imag());
   }
-  return {};
+  return std::nullopt;
 }
 
-scalar_expr log(const scalar_expr& x) {
-  if (x.is_identical_to(constants::euler)) {
+scalar_expr log(const scalar_expr& arg) {
+  if (arg.is_identical_to(constants::euler)) {
     return constants::one;
   }
-  if (is_one(x)) {
+  if (is_one(arg)) {
     return constants::zero;
   }
-  if (is_zero(x)) {
+  if (is_zero(arg)) {
     // log(0) does not exist. In the context of limits, it can be -∞ (but not otherwise).
     return constants::undefined;
   }
-  if (is_complex_infinity(x) || is_undefined(x)) {
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;  //  log(z-∞) is ∞, but we can't represent that.
   }
-  if (std::optional<scalar_expr> f =
-          operate_on_float(x, static_cast<double (*)(double)>(&std::log));
+  if (std::optional<scalar_expr> f = operate_on_float(arg, CAST_COMPLEX_FUNC(std::log));
       f.has_value()) {
     return *std::move(f);
   }
   // TODO: Check for negative values.
-  return make_expr<function>(built_in_function::ln, x);
+  return make_expr<function>(built_in_function::ln, arg);
 }
 
 scalar_expr pow(const scalar_expr& x, const scalar_expr& y) { return power::create(x, y); }
 
-std::optional<rational_constant> try_cast_to_rational(const scalar_expr& expr) {
+// If `arg` is `i`, or `i*x`, we apply the replacement function.
+// This is used to swap cos(x*i) --> cosh(x), for example.
+template <typename Replacement>
+static std::optional<scalar_expr> maybe_swap_hyberbolic_trig(const scalar_expr& arg,
+                                                             Replacement replacement) {
+  if (is_i(arg)) {
+    return replacement(constants::one);
+  } else if (const multiplication* mul = cast_ptr<const multiplication>(arg);
+             mul != nullptr && any_of(*mul, &is_i)) {
+    // The `any_of` check assumes we've placed multiplications into canonical form, which currently
+    // is always true.
+    return replacement(arg / constants::imaginary_unit);
+  }
+  // The replacement doesn't apply:
+  return std::nullopt;
+}
+
+static std::optional<rational_constant> try_cast_to_rational(const scalar_expr& expr) {
   if (const rational_constant* const r = cast_ptr<const rational_constant>(expr); r != nullptr) {
     return *r;
   } else if (const integer_constant* const i = cast_ptr<const integer_constant>(expr);
@@ -60,8 +80,12 @@ std::optional<rational_constant> try_cast_to_rational(const scalar_expr& expr) {
 
 // TODO: Support common multiples of pi/3, pi/4, pi/6, etc.
 scalar_expr cos(const scalar_expr& arg) {
-  const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
-  if (is_pi(multiplicand)) {
+  // cos(i*x) --> cosh(x)
+  if (auto hyp = maybe_swap_hyberbolic_trig(arg, &wf::cosh); hyp.has_value()) {
+    return *std::move(hyp);
+  }
+
+  if (const auto [coeff, multiplicand] = as_coeff_and_mul(arg); is_pi(multiplicand)) {
     if (const std::optional<rational_constant> r = try_cast_to_rational(coeff); r.has_value()) {
       const rational_constant r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
@@ -84,12 +108,11 @@ scalar_expr cos(const scalar_expr& arg) {
   }
 
   // For floats, evaluate immediately:
-  if (std::optional<scalar_expr> result =
-          operate_on_float(arg, static_cast<double (*)(double x)>(&std::cos));
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::cos));
       result.has_value()) {
     return *std::move(result);
   }
-  if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
   // TODO: Check for phase offsets.
@@ -97,8 +120,14 @@ scalar_expr cos(const scalar_expr& arg) {
 }
 
 scalar_expr sin(const scalar_expr& arg) {
-  const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
-  if (is_pi(multiplicand)) {
+  // sin(i*x) --> sinh(x)
+  if (auto hyp = maybe_swap_hyberbolic_trig(
+          arg, [](const scalar_expr& x) { return constants::imaginary_unit * sinh(x); });
+      hyp.has_value()) {
+    return *std::move(hyp);
+  }
+
+  if (const auto [coeff, multiplicand] = as_coeff_and_mul(arg); is_pi(multiplicand)) {
     if (const std::optional<rational_constant> r = try_cast_to_rational(coeff); r.has_value()) {
       const rational_constant r_mod_pi = mod_pi_rational(*r);
       // Do some very basic simplification:
@@ -117,8 +146,7 @@ scalar_expr sin(const scalar_expr& arg) {
   if (is_negative_number(arg)) {
     return -sin(-arg);
   }
-  if (std::optional<scalar_expr> result =
-          operate_on_float(arg, static_cast<double (*)(double x)>(&std::sin));
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::sin));
       result.has_value()) {
     return *std::move(result);
   }
@@ -144,8 +172,14 @@ inline scalar_expr pi_over_two() {
 }
 
 scalar_expr tan(const scalar_expr& arg) {
-  const auto [coeff, multiplicand] = as_coeff_and_mul(arg);
-  if (is_pi(multiplicand)) {
+  // tan(i*x) --> i*tanh(x)
+  if (auto hyp = maybe_swap_hyberbolic_trig(
+          arg, [](const scalar_expr& x) { return constants::imaginary_unit * tanh(x); });
+      hyp.has_value()) {
+    return *std::move(hyp);
+  }
+
+  if (const auto [coeff, multiplicand] = as_coeff_and_mul(arg); is_pi(multiplicand)) {
     if (const std::optional<rational_constant> r = try_cast_to_rational(coeff); r.has_value()) {
       // Map into [-pi/2, pi/2]:
       const rational_constant r_mod_half_pi = convert_to_tan_range(mod_pi_rational(*r));
@@ -166,18 +200,16 @@ scalar_expr tan(const scalar_expr& arg) {
   if (is_negative_number(arg)) {
     return -tan(-arg);
   }
-  if (std::optional<scalar_expr> result =
-          operate_on_float(arg, static_cast<double (*)(double x)>(&std::tan));
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::tan));
       result.has_value()) {
     return *std::move(result);
   }
-  if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
   return make_expr<function>(built_in_function::tan, arg);
 }
 
-// TODO: Support inverting trig operations when the interval is specified, ie. acos(cos(x)) -> x
 // TODO: Support some common numerical values, ie. acos(1 / sqrt(2)) -> pi/4
 scalar_expr acos(const scalar_expr& arg) {
   if (is_zero(arg)) {
@@ -188,6 +220,10 @@ scalar_expr acos(const scalar_expr& arg) {
     return constants::pi;
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return constants::undefined;
+  }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::acos));
+      result.has_value()) {
+    return *std::move(result);
   }
   return make_expr<function>(built_in_function::arccos, arg);
 }
@@ -203,6 +239,10 @@ scalar_expr asin(const scalar_expr& arg) {
     return -asin(-arg);
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return constants::undefined;
+  }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::asin));
+      result.has_value()) {
+    return *std::move(result);
   }
   return make_expr<function>(built_in_function::arcsin, arg);
 }
@@ -224,7 +264,138 @@ scalar_expr atan(const scalar_expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return constants::undefined;
   }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::atan));
+      result.has_value()) {
+    return *std::move(result);
+  }
   return make_expr<function>(built_in_function::arctan, arg);
+}
+
+scalar_expr cosh(const scalar_expr& arg) {
+  // cosh(x*i) --> cos(x)
+  if (auto result = maybe_swap_hyberbolic_trig(arg, &wf::cos); result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_zero(arg)) {
+    return constants::one;
+  }
+  if (is_negative_number(arg)) {
+    return cosh(-arg);
+  }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::cosh));
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return constants::undefined;
+  }
+  if (const function* func = cast_ptr<const function>(arg);
+      func != nullptr && func->enum_value() == built_in_function::arccosh) {
+    // cosh(acosh(x)) --> x
+    return func->args().front();
+  }
+  return make_expr<function>(built_in_function::cosh, arg);
+}
+
+scalar_expr sinh(const scalar_expr& arg) {
+  // sinh(x*i) --> i*sin(x)
+  if (auto result = maybe_swap_hyberbolic_trig(
+          arg, [](const scalar_expr& x) { return constants::imaginary_unit * sin(x); });
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_zero(arg)) {
+    return constants::zero;
+  }
+  if (is_negative_number(arg)) {
+    // sinh(-x) --> -sinh(x)
+    return -sinh(-arg);
+  }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::sinh));
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return constants::undefined;
+  }
+  if (const function* func = cast_ptr<const function>(arg);
+      func != nullptr && func->enum_value() == built_in_function::arcsinh) {
+    // sinh(asinh(x)) --> x
+    return func->args().front();
+  }
+  return make_expr<function>(built_in_function::sinh, arg);
+}
+
+scalar_expr tanh(const scalar_expr& arg) {
+  // tanh(x*i) --> i*tan(x)
+  if (auto result = maybe_swap_hyberbolic_trig(
+          arg, [](const scalar_expr& x) { return constants::imaginary_unit * tan(x); });
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_zero(arg)) {
+    return constants::zero;
+  }
+  if (is_negative_number(arg)) {
+    return -tanh(-arg);
+  }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::tanh));
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return constants::undefined;
+  }
+  if (const function* func = cast_ptr<const function>(arg);
+      func != nullptr && func->enum_value() == built_in_function::arctanh) {
+    // tanh(atanh(x)) --> x
+    return func->args().front();
+  }
+  return make_expr<function>(built_in_function::tanh, arg);
+}
+
+// TODO: Add handling of integer arguments.
+scalar_expr acosh(const scalar_expr& arg) {
+  if (is_zero(arg)) {
+    return constants::imaginary_unit * constants::pi / 2;
+  }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::acosh));
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return constants::undefined;
+  }
+  return make_expr<function>(built_in_function::arccosh, arg);
+}
+
+scalar_expr asinh(const scalar_expr& arg) {
+  if (is_zero(arg)) {
+    return constants::zero;
+  }
+  // asinh is valid for real numbers between (-inf, inf)
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::asinh));
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return constants::undefined;
+  }
+  return make_expr<function>(built_in_function::arcsinh, arg);
+}
+
+scalar_expr atanh(const scalar_expr& arg) {
+  if (is_zero(arg)) {
+    return constants::zero;
+  }
+  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::atanh));
+      result.has_value()) {
+    return *std::move(result);
+  }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return constants::undefined;
+  }
+  return make_expr<function>(built_in_function::arctanh, arg);
 }
 
 // Support some very basic simplifications for numerical inputs.
@@ -297,7 +468,11 @@ scalar_expr abs(const scalar_expr& arg) {
   }
   // Evaluate floats immediately:
   if (std::optional<scalar_expr> result =
-          operate_on_float(arg, static_cast<double (*)(double x)>(&std::abs));
+          operate_on_float(arg,
+                           [](const std::complex<double>& c) {
+                             // operate_on_float will simplify this...
+                             return std::complex<double>{std::abs(c), 0.0};
+                           });
       result.has_value()) {
     return *std::move(result);
   }
@@ -335,7 +510,9 @@ struct signum_visitor {
     return scalar_expr{sign(r.numerator())};
   }
   std::optional<scalar_expr> operator()(const float_constant& f) const {
-    WF_ASSERT(!f.is_nan());
+    if (f.is_nan()) {
+      return std::nullopt;
+    }
     return scalar_expr{sign(f.get_value())};
   }
 
@@ -387,7 +564,9 @@ struct floor_visitor {
   }
 
   std::optional<scalar_expr> operator()(const float_constant& f) const {
-    WF_ASSERT(!f.is_nan());
+    if (f.is_nan()) {
+      return std::nullopt;
+    }
     const auto floored = std::floor(f.get_value());
     return scalar_expr{static_cast<std::int64_t>(floored)};
   }
@@ -468,7 +647,7 @@ scalar_expr iverson(const boolean_expr& bool_expression) {
       return constants::zero;
     }
   }
-  return scalar_expr{std::in_place_type_t<iverson_bracket>{}, bool_expression};
+  return make_expr<iverson_bracket>(bool_expression);
 }
 
 }  // namespace wf

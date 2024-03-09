@@ -48,18 +48,6 @@ std::size_t cast_to_expr(const Container& inputs, Output& output) {
   return count;
 }
 
-// Try converting `x` to an int or float, otherwise just return scalar_expr.
-inline std::variant<std::int64_t, double, scalar_expr> try_convert_to_numeric(
-    const scalar_expr& x) {
-  if (const float_constant* f = cast_ptr<const float_constant>(x); f != nullptr) {
-    return f->get_value();
-  } else if (const integer_constant* i = cast_ptr<const integer_constant>(x); i != nullptr) {
-    return static_cast<std::int64_t>(i->get_value());
-  } else {
-    return x;
-  }
-}
-
 namespace detail {
 
 template <typename... Ts>

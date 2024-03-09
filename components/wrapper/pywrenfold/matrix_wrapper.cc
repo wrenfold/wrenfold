@@ -1,5 +1,6 @@
 // Copyright 2023 Gareth Cross
 #define PYBIND11_DETAILED_ERROR_MESSAGES
+#include <pybind11/complex.h>
 #include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
@@ -11,6 +12,7 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
+#include "wf/numerical_casts.h"
 
 #include "wrapper_utils.h"
 
@@ -73,7 +75,7 @@ struct row_iterator {
   matrix_expr parent_;
   index_t row_;
 
-  row_iterator(matrix_expr parent, index_t row) : parent_(std::move(parent)), row_(row) {}
+  row_iterator(matrix_expr parent, const index_t row) : parent_(std::move(parent)), row_(row) {}
 };
 
 // Access a particular row and column (with support for negative indexing).
@@ -346,7 +348,7 @@ py::list flat_list_from_matrix(const matrix_expr& self) {
 py::array numpy_from_matrix(const matrix_expr& self) {
   auto list = py::list();  // TODO: Don't copy into list.
   for (const scalar_expr& expr : self.as_matrix()) {
-    list.append(try_convert_to_numeric(expr));
+    list.append(maybe_numerical_cast(expr));
   }
   auto array = py::array(list);
   const std::array<std::size_t, 2> new_shape{static_cast<std::size_t>(self.rows()),

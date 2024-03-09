@@ -124,7 +124,7 @@ struct compute_function_output_struct<T,
     }
     // Put them back the symbolic type:
     auto [numeric_input, _] =
-        type.initialize_from_expressions(absl::Span<scalar_expr>{symbolic_outputs});
+        type.initialize_from_expressions(absl::Span<const scalar_expr>{symbolic_outputs});
     // Call the user provided converter:
     return custom_type_native_converter<T>{}(numeric_input);
   }

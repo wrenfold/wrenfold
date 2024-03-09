@@ -209,6 +209,12 @@ std::string cpp_code_generator::operator()(const ast::call_std_function& x) cons
     case std_math_function::acos:
     case std_math_function::asin:
     case std_math_function::atan:
+    case std_math_function::cosh:
+    case std_math_function::sinh:
+    case std_math_function::tanh:
+    case std_math_function::acosh:
+    case std_math_function::asinh:
+    case std_math_function::atanh:
     case std_math_function::log:
     case std_math_function::sqrt:
     case std_math_function::abs:

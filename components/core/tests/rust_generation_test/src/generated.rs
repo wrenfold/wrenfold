@@ -35,17 +35,17 @@ where
   // total: 11
   
   let v001: f64 = theta;
-  let v002: f64 = (v001).sin();
-  let v000: f64 = v.get(1, 0);
-  let v006: f64 = (v001).cos();
-  let v005: f64 = v.get(0, 0);
+  let v005: f64 = (v001).sin();
+  let v004: f64 = v.get(1, 0);
+  let v002: f64 = (v001).cos();
+  let v000: f64 = v.get(0, 0);
+  let v006: f64 = v004 * v005;
+  let v010: f64 = v002 * v004;
+  let v009: f64 = v000 * v005;
+  let v007: f64 = -v006;
   let v003: f64 = v000 * v002;
-  let v010: f64 = v000 * v006;
-  let v009: f64 = v002 * v005;
-  let v007: f64 = v005 * v006;
-  let v004: f64 = -v003;
   let v011: f64 = v009 + v010;
-  let v008: f64 = v004 + v007;
+  let v008: f64 = v003 + v007;
   if let Some(D_theta) = D_theta {
     let v015: f64 = v011 * (-1i64) as f64;
     D_theta.set(0, 0, v015);
@@ -183,6 +183,84 @@ pub fn floor_test<>(x: f64) -> f64
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn cosh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).cosh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn sinh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).sinh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn tanh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).tanh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn acosh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).acosh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn asinh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).asinh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn atanh_test<>(x: f64) -> f64
+{
+  // Operation counts:
+  // call: 1
+  // total: 1
+  
+  let v00: f64 = x;
+  let v01: f64 = (v00).atanh();
+  v01
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn atan2_with_derivatives<>(y: f64, x: f64, D_y: &mut f64, D_x: &mut f64) -> f64
 {
   // Operation counts:
@@ -295,12 +373,12 @@ pub fn nested_conditionals_2<>(x: f64, y: f64) -> f64
         v043 = v015 + v022;
       }
     } else {
-      let v030: f64 = v002 * 0.1f64;
-      let v028: f64 = v000 * 0.4f64;
-      let v031: f64 = (v028).atan2(v030);
-      let v033: f64 = v031 * (19i64) as f64;
-      let v025: f64 = -v000;
-      v043 = v025 + v033;
+      let v029: f64 = v002 * 0.1f64;
+      let v027: f64 = v000 * 0.4f64;
+      let v030: f64 = (v027).atan2(v029);
+      let v033: f64 = -v000;
+      let v032: f64 = v030 * (19i64) as f64;
+      v043 = v032 + v033;
     }
   } else {
     let v038: f64 = v002 * (2i64) as f64;
@@ -320,14 +398,14 @@ where
   T2: wrenfold_traits::OutputSpan2D<9, 3, ValueType = f64>,
 {
   // Operation counts:
-  // add: 88
+  // add: 82
   // branch: 3
   // call: 4
   // compare: 1
   // divide: 5
   // multiply: 151
   // negate: 6
-  // total: 258
+  // total: 252
   
   let v0005: f64 = w.get(1, 0);
   let v0003: f64 = w.get(0, 0);
@@ -377,8 +455,8 @@ where
     v0049 = v0028 * v0047;
     v0054 = v0028;
   }
-  let v0060: f64 = v0031 * (2i64) as f64;
   let v0063: f64 = v0039 * (2i64) as f64;
+  let v0060: f64 = v0031 * (2i64) as f64;
   let v0051: f64 = v0049 * (2i64) as f64;
   let v0072: f64 = (-2i64) as f64 * v0049;
   let v0055: f64 = (-2i64) as f64 * v0039;
@@ -394,46 +472,46 @@ where
     let v0218: f64;
     let v0233: f64;
     if v0012 {
-      let v0086: f64 = v0011 * v0011;
-      let v0087: f64 = v0011 * v0086;
-      let v0088: f64 = (1i64) as f64 / v0087;
-      let v0128: f64 = v0015 * v0088;
-      let v0093: f64 = (1i64) as f64 / v0010;
-      let v0095: f64 = v0005 * v0047;
-      let v0090: f64 = v0005 * v0045;
-      let v0116: f64 = v0007 * v0047;
-      let v0112: f64 = v0007 * v0045;
-      let v0129: f64 = v0006 * v0128;
-      let v0131: f64 = v0013 * v0093;
-      let v0148: f64 = v0007 * v0029;
-      let v0144: f64 = v0007 * v0018;
-      let v0160: f64 = v0008 * v0128;
-      let v0177: f64 = v0004 * v0128;
+      let v0091: f64 = v0011 * v0011;
+      let v0085: f64 = (1i64) as f64 / v0010;
+      let v0092: f64 = v0011 * v0091;
+      let v0128: f64 = v0013 * v0085;
+      let v0093: f64 = (1i64) as f64 / v0092;
+      let v0095: f64 = v0005 * v0045;
+      let v0087: f64 = v0005 * v0047;
+      let v0116: f64 = v0007 * v0045;
+      let v0112: f64 = v0007 * v0047;
+      let v0129: f64 = v0053 * v0128;
+      let v0131: f64 = v0015 * v0093;
+      let v0148: f64 = v0007 * v0018;
+      let v0144: f64 = v0007 * v0029;
       let v0096: f64 = v0093 * v0095;
-      let v0091: f64 = v0088 * v0090;
+      let v0088: f64 = v0085 * v0087;
       let v0117: f64 = v0093 * v0116;
-      let v0113: f64 = v0088 * v0112;
-      let v0130: f64 = -v0129;
+      let v0113: f64 = v0085 * v0112;
+      let v0130: f64 = v0006 * v0129;
       let v0127: f64 = v0015 * v0017;
-      let v0132: f64 = v0053 * v0131;
+      let v0132: f64 = v0006 * v0131;
       let v0149: f64 = v0093 * v0148;
-      let v0145: f64 = v0088 * v0144;
-      let v0161: f64 = -v0160;
-      let v0178: f64 = -v0177;
-      let v0097: f64 = v0053 * v0096;
-      let v0092: f64 = -v0091;
-      let v0118: f64 = v0053 * v0117;
-      let v0114: f64 = -v0113;
+      let v0145: f64 = v0085 * v0144;
+      let v0161: f64 = v0008 * v0129;
+      let v0163: f64 = v0008 * v0131;
+      let v0178: f64 = v0004 * v0129;
+      let v0180: f64 = v0004 * v0131;
+      let v0097: f64 = -v0096;
+      let v0089: f64 = v0053 * v0088;
+      let v0118: f64 = -v0117;
+      let v0114: f64 = v0053 * v0113;
       let v0134: f64 = v0127 + v0130;
-      let v0133: f64 = v0006 * v0132;
-      let v0150: f64 = v0053 * v0149;
-      let v0146: f64 = -v0145;
+      let v0133: f64 = -v0132;
+      let v0150: f64 = -v0149;
+      let v0146: f64 = v0053 * v0145;
       let v0165: f64 = v0127 + v0161;
-      let v0164: f64 = v0008 * v0132;
+      let v0164: f64 = -v0163;
       let v0182: f64 = v0127 + v0178;
-      let v0181: f64 = v0004 * v0132;
+      let v0181: f64 = -v0180;
       let v0194: f64 = -0.5f64;
-      v0107 = v0092 + v0097;
+      v0107 = v0089 + v0097;
       v0123 = v0114 + v0118;
       v0140 = v0133 + v0134;
       v0155 = v0146 + v0150;
@@ -472,70 +550,64 @@ where
       v0218 = v0198 * v0216;
       v0233 = v0198 * v0231;
     }
-    let v0241: f64 = (-2i64) as f64 * v0054;
+    let v0321: f64 = v0063 * v0155;
     let v0319: f64 = v0060 * v0170;
-    let v0273: f64 = v0123 * v0241;
+    let v0245: f64 = (-2i64) as f64 * v0054;
+    let v0310: f64 = v0060 * v0155;
     let v0308: f64 = v0063 * v0140;
-    let v0242: f64 = v0107 * v0241;
     let v0253: f64 = v0063 * v0107;
     let v0225: f64 = v0060 * v0123;
-    let v0266: f64 = v0063 * v0123;
-    let v0264: f64 = v0051 * v0170;
+    let v0264: f64 = v0063 * v0123;
+    let v0262: f64 = v0051 * v0170;
     let v0192: f64 = (2i64) as f64 * v0054;
     let v0227: f64 = v0051 * v0155;
-    let v0246: f64 = v0051 * v0123;
-    let v0244: f64 = v0063 * v0187;
-    let v0321: f64 = v0063 * v0155;
-    let v0310: f64 = v0060 * v0155;
-    let v0262: f64 = v0155 * v0241;
-    let v0208: f64 = v0051 * v0140;
-    let v0189: f64 = v0060 * v0187;
+    let v0244: f64 = v0051 * v0123;
+    let v0242: f64 = v0063 * v0187;
     let v0210: f64 = v0060 * v0107;
+    let v0208: f64 = v0051 * v0140;
     let v0191: f64 = v0051 * v0107;
+    let v0189: f64 = v0060 * v0187;
     let v0291: f64 = v0049 * (-4i64) as f64;
     let v0109: f64 = v0031 * (-4i64) as f64;
-    let v0358: f64 = v0273 + v0319;
-    let v0353: f64 = v0242 + v0308;
+    let v0324: f64 = v0319 + v0321;
+    let v0273: f64 = v0123 * v0245;
+    let v0315: f64 = v0308 + v0310;
+    let v0246: f64 = v0107 * v0245;
     let v0345: f64 = v0072 * v0201;
     let v0304: f64 = v0225 + v0253;
-    let v0341: f64 = v0264 + v0266;
+    let v0269: f64 = v0262 + v0264;
     let v0212: f64 = v0155 * v0192;
     let v0333: f64 = v0060 * v0218;
     let v0258: f64 = v0227 + v0253;
-    let v0329: f64 = v0244 + v0246;
     let v0312: f64 = v0107 * v0192;
-    let v0324: f64 = v0319 + v0321;
+    let v0249: f64 = v0242 + v0244;
     let v0193: f64 = v0123 * v0192;
-    let v0315: f64 = v0308 + v0310;
     let v0301: f64 = v0051 * v0201;
     let v0124: f64 = v0039 * (-4i64) as f64;
     let v0285: f64 = v0055 * v0233;
     let v0238: f64 = v0225 + v0227;
-    let v0281: f64 = v0208 + v0262;
-    let v0276: f64 = v0189 + v0273;
-    let v0269: f64 = v0262 + v0264;
-    let v0255: f64 = v0075 * v0218;
-    let v0249: f64 = v0242 + v0244;
-    let v0235: f64 = v0063 * v0233;
+    let v0266: f64 = v0155 * v0245;
     let v0221: f64 = v0208 + v0210;
     let v0204: f64 = v0189 + v0191;
+    let v0255: f64 = v0075 * v0218;
+    let v0235: f64 = v0063 * v0233;
     let v0298: f64 = v0123 * v0291;
     let v0174: f64 = v0109 * v0155;
     let v0295: f64 = v0107 * v0291;
     let v0142: f64 = v0109 * v0140;
     let v0292: f64 = v0187 * v0291;
     let v0110: f64 = v0107 * v0109;
-    let v0359: f64 = v0321 + v0358;
+    let v0359: f64 = v0273 + v0324;
     let v0357: f64 = v0072 * v0233;
-    let v0354: f64 = v0310 + v0353;
+    let v0354: f64 = v0246 + v0315;
     let v0352: f64 = v0072 * v0218;
     let v0349: f64 = v0304 + v0345;
-    let v0347: f64 = v0187 * v0241;
-    let v0342: f64 = v0212 + v0341;
+    let v0347: f64 = v0187 * v0245;
+    let v0342: f64 = v0212 + v0269;
     let v0340: f64 = v0060 * v0233;
     let v0337: f64 = v0258 + v0333;
     let v0335: f64 = v0140 * v0192;
-    let v0330: f64 = v0312 + v0329;
+    let v0330: f64 = v0249 + v0312;
     let v0328: f64 = v0060 * v0201;
     let v0325: f64 = v0193 + v0324;
     let v0323: f64 = v0051 * v0233;
@@ -547,15 +619,15 @@ where
     let v0157: f64 = v0124 * v0155;
     let v0125: f64 = v0123 * v0124;
     let v0289: f64 = v0238 + v0285;
-    let v0287: f64 = v0170 * v0241;
-    let v0282: f64 = v0210 + v0281;
+    let v0287: f64 = v0170 * v0245;
+    let v0282: f64 = v0221 + v0266;
     let v0280: f64 = v0055 * v0218;
-    let v0277: f64 = v0191 + v0276;
+    let v0277: f64 = v0204 + v0273;
     let v0275: f64 = v0055 * v0201;
     let v0270: f64 = v0266 + v0269;
     let v0268: f64 = v0075 * v0233;
     let v0259: f64 = v0255 + v0258;
-    let v0257: f64 = v0140 * v0241;
+    let v0257: f64 = v0140 * v0245;
     let v0250: f64 = v0246 + v0249;
     let v0248: f64 = v0075 * v0201;
     let v0239: f64 = v0235 + v0238;
@@ -673,66 +745,66 @@ where
   // negate: 6
   // total: 89
   
-  let v0007: f64 = R.get(2, 0);
-  let v0011: f64 = R.get(1, 2);
-  let v0040: f64 = -v0007;
-  let v0006: f64 = R.get(0, 2);
-  let v0012: f64 = -v0011;
-  let v0010: f64 = R.get(2, 1);
   let v0003: f64 = R.get(0, 1);
+  let v0007: f64 = R.get(2, 0);
+  let v0042: f64 = -v0003;
   let v0002: f64 = R.get(1, 0);
-  let v0017: f64 = R.get(1, 1);
-  let v0016: f64 = R.get(0, 0);
-  let v0041: f64 = v0006 + v0040;
-  let v0013: f64 = v0010 + v0012;
-  let v0061: f64 = -v0003;
-  let v0004: f64 = v0002 + v0003;
-  let v0046: f64 = v0017 + (1i64) as f64;
-  let v0045: f64 = -v0016;
+  let v0008: f64 = -v0007;
+  let v0006: f64 = R.get(0, 2);
+  let v0012: f64 = R.get(1, 2);
   let v0019: f64 = R.get(2, 2);
-  let v0053: bool = (v0041) < ((0i64) as f64);
-  let v0008: f64 = v0006 + v0007;
-  let v0022: f64 = v0016 + (1i64) as f64;
+  let v0017: f64 = R.get(0, 0);
+  let v0043: f64 = v0002 + v0042;
+  let v0016: f64 = R.get(1, 1);
+  let v0009: f64 = v0006 + v0008;
+  let v0061: f64 = -v0012;
+  let v0011: f64 = R.get(2, 1);
+  let v0040: f64 = v0006 + v0007;
+  let v0046: f64 = v0019 + (1i64) as f64;
   let v0018: f64 = -v0017;
-  let v0032: bool = (v0013) < ((0i64) as f64);
-  let v0062: f64 = v0002 + v0061;
-  let v0042: f64 = v0041 * v0041;
-  let v0005: f64 = v0004 * v0004;
-  let v0043: f64 = v0010 + v0011;
-  let v0047: f64 = v0045 + v0046;
-  let v0020: f64 = -v0019;
-  let v0054: i64 = (v0053) as i64;
-  let v0009: f64 = v0008 * v0008;
-  let v0023: f64 = v0018 + v0022;
-  let v0033: i64 = (v0032) as i64;
-  let v0064: f64 = v0019 + (1i64) as f64;
-  let v0071: bool = (v0062) < ((0i64) as f64);
-  let v0050: f64 = v0005 + v0042;
+  let v0053: bool = (v0043) < ((0i64) as f64);
+  let v0004: f64 = v0002 + v0003;
+  let v0022: f64 = v0016 + (1i64) as f64;
+  let v0032: bool = (v0009) < ((0i64) as f64);
+  let v0062: f64 = v0011 + v0061;
   let v0044: f64 = v0043 * v0043;
-  let v0048: f64 = v0020 + v0047;
-  let v0055: i64 = -2i64 * v0054;
-  let v0026: f64 = v0005 + v0009;
+  let v0041: f64 = v0040 * v0040;
+  let v0013: f64 = v0011 + v0012;
+  let v0047: f64 = v0018 + v0046;
+  let v0045: f64 = -v0016;
+  let v0054: i64 = (v0053) as i64;
+  let v0010: f64 = v0009 * v0009;
+  let v0005: f64 = v0004 * v0004;
+  let v0023: f64 = v0018 + v0022;
+  let v0020: f64 = -v0019;
+  let v0033: i64 = (v0032) as i64;
+  let v0064: f64 = v0017 + (1i64) as f64;
+  let v0071: bool = (v0062) < ((0i64) as f64);
+  let v0050: f64 = v0041 + v0044;
   let v0014: f64 = v0013 * v0013;
+  let v0048: f64 = v0045 + v0047;
+  let v0055: i64 = -2i64 * v0054;
+  let v0026: f64 = v0005 + v0010;
   let v0024: f64 = v0020 + v0023;
   let v0034: i64 = -2i64 * v0033;
-  let v0063: f64 = v0062 * v0062;
   let v0065: f64 = v0045 + v0064;
   let v0072: i64 = (v0071) as i64;
-  let v0051: f64 = v0044 + v0050;
+  let v0051: f64 = v0014 + v0050;
   let v0049: f64 = v0048 * v0048;
   let v0056: i64 = 1i64 + v0055;
   let v0027: f64 = v0014 + v0026;
   let v0025: f64 = v0024 * v0024;
   let v0035: i64 = 1i64 + v0034;
-  let v0068: f64 = v0009 + v0063;
-  let v0066: f64 = v0018 + v0065;
+  let v0068: f64 = v0005 + v0041;
+  let v0063: f64 = v0062 * v0062;
+  let v0066: f64 = v0020 + v0065;
   let v0073: i64 = -2i64 * v0072;
   let v0052: f64 = v0049 + v0051;
   let v0001: f64 = 0.0625f64;
   let v0057: f64 = (v0056) as f64;
   let v0028: f64 = v0025 + v0027;
   let v0036: f64 = (v0035) as f64;
-  let v0069: f64 = v0044 + v0068;
+  let v0069: f64 = v0063 + v0068;
   let v0067: f64 = v0066 * v0066;
   let v0074: i64 = 1i64 + v0073;
   let v0059: f64 = v0001 * v0052;
@@ -750,18 +822,18 @@ where
   let v0080: f64 = v0078 + v0079;
   let v0081: f64 = (v0080).sqrt();
   let v0083: f64 = 0.5f64;
-  let v0096: f64 = (v0028).sqrt();
-  let v0104: f64 = (v0052).sqrt();
-  let v0112: f64 = (v0070).sqrt();
+  let v0096: f64 = (v0070).sqrt();
+  let v0104: f64 = (v0028).sqrt();
+  let v0112: f64 = (v0052).sqrt();
   let v0082: bool = (1e-16f64) < (v0081);
   let v0103: f64;
   let v0111: f64;
   let v0119: f64;
   if v0082 {
-    let v0087: f64 = v0017 + v0022;
-    let v0090: f64 = v0042 + v0063;
+    let v0087: f64 = v0016 + v0064;
+    let v0090: f64 = v0010 + v0044;
     let v0088: f64 = v0019 + v0087;
-    let v0091: f64 = v0014 + v0090;
+    let v0091: f64 = v0063 + v0090;
     let v0089: f64 = v0088 * v0088;
     let v0092: f64 = v0089 + v0091;
     let v0093: f64 = (v0092).sqrt();
@@ -771,16 +843,16 @@ where
     let v0097: f64 = v0083 * v0084;
     let v0095: f64 = (v0081).atan2(v0094);
     let v0098: f64 = v0095 * v0097;
-    let v0099: f64 = v0036 * v0098;
-    let v0107: f64 = v0057 * v0098;
-    let v0115: f64 = v0075 * v0098;
+    let v0099: f64 = v0075 * v0098;
+    let v0107: f64 = v0036 * v0098;
+    let v0115: f64 = v0057 * v0098;
     v0103 = v0096 * v0099;
     v0111 = v0104 * v0107;
     v0119 = v0112 * v0115;
   } else {
-    let v0101: f64 = v0036 * v0083;
-    let v0109: f64 = v0057 * v0083;
-    let v0117: f64 = v0075 * v0083;
+    let v0101: f64 = v0075 * v0083;
+    let v0109: f64 = v0036 * v0083;
+    let v0117: f64 = v0057 * v0083;
     v0103 = v0096 * v0101;
     v0111 = v0104 * v0109;
     v0119 = v0112 * v0117;

@@ -12,6 +12,7 @@ class constants {
   static const scalar_expr negative_one;
   static const scalar_expr complex_infinity;
   static const scalar_expr undefined;
+  static const scalar_expr imaginary_unit;
 
   static const boolean_expr boolean_true;
   static const boolean_expr boolean_false;
@@ -33,6 +34,10 @@ inline bool is_complex_infinity(const scalar_expr& expr) {
 
 inline bool is_undefined(const scalar_expr& expr) {
   return expr.is_identical_to(constants::undefined);
+}
+
+inline bool is_i(const scalar_expr& expr) {
+  return expr.is_identical_to(constants::imaginary_unit);
 }
 
 inline bool is_numeric_or_constant(const scalar_expr& expr) {

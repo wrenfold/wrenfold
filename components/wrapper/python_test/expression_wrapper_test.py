@@ -82,6 +82,8 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('x * z ** 3', z * z * z * x)
         self.assertReprEqual('5 * z / x ** 2', 5.0 * z / (x * x))
         self.assertReprEqual('cos(x) * sin(z)', sym.cos(x) * sym.sin(z))
+        self.assertReprEqual('cosh(x) * sinh(z)', sym.cosh(x) * sym.sinh(z))
+        self.assertReprEqual('2 + tanh(z)', 2 + sym.tanh(z))
         self.assertReprEqual('x ** (1 / 2)', sym.sqrt(x))
         self.assertReprEqual('3 ** (1 / 2) * 7 ** (1 / 2) * x ** (1 / 2) * (z ** -1) ** (1 / 2)',
                              sym.sqrt(21 * x / z))
@@ -91,6 +93,8 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x, use_abstract=True))
         self.assertReprEqual('x == z', sym.equals(x, z))
         self.assertReprEqual('iverson(z < x)', sym.iverson(x > z))
+        self.assertReprEqual('I', sym.I)
+        self.assertReprEqual('2 + 5 * I', 2 + 5 * sym.I)
 
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""
@@ -149,6 +153,16 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertIdentical(sym.pi / 2, sym.atan2(1, 0))
         self.assertIdentical(sym.pi / 4, sym.atan2(1, 1))
+
+    def test_hyperbolic_trig_functions(self):
+        """Test that we can call hyperbolic trig functions."""
+        x = sym.symbols("x")
+        self.assertIdentical(sym.cos(x), sym.cosh(x * sym.I))
+        self.assertIdentical(sym.sin(x) * sym.I, sym.sinh(x * sym.I))
+        self.assertIdentical(sym.tan(x) * sym.I, sym.tanh(x * sym.I))
+        self.assertIdentical(x, sym.cosh(sym.acosh(x)))
+        self.assertIdentical(x, sym.sinh(sym.asinh(x)))
+        self.assertIdentical(x, sym.tanh(sym.atanh(x)))
 
     def test_abs(self):
         """Test calling abs."""
@@ -280,6 +294,8 @@ class ExpressionWrapperTest(MathTestBase):
             4.3 / 2.71582, (x / y).subs(x, 4.3).subs(y, 2.71582).eval(), places=15)
         self.assertEqual(3923, sym.integer(3923).eval())
         self.assertEqual(123, (sym.integer(100) + x).subs(x, 23).eval())
+        self.assertEqual(complex(1, 2), (1 + sym.I * 2).eval())
+        self.assertEqual(complex(0.23, 0.5), (x + sym.I * y).subs(x, 0.23).subs(y, 0.5).eval())
 
     def test_integer_exceptions(self):
         """

@@ -3,6 +3,7 @@
 #include <vector>
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES
+#include <pybind11/complex.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -12,6 +13,7 @@
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
+#include "wf/numerical_casts.h"
 
 #include "wrapper_utils.h"
 
@@ -70,10 +72,7 @@ scalar_expr substitute_variables_wrapper(
   return self.substitute_variables(pairs);
 }
 
-auto eval_wrapper(const scalar_expr& self) {
-  scalar_expr evaluated = self.eval();
-  return try_convert_to_numeric(evaluated);
-}
+auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
 
 // Defined in matrix_wrapper.cc
 void wrap_matrix_operations(py::module_& m);
@@ -196,6 +195,12 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def("acos", &wf::acos, "arg"_a, "Arc-cosine function.");
   m.def("asin", &wf::asin, "arg"_a, "Arc-sine function.");
   m.def("atan", &wf::atan, "arg"_a, "Arc-tangent function.");
+  m.def("cosh", &wf::cosh, "arg"_a, "Hyperbolic cosine function.");
+  m.def("sinh", &wf::sinh, "arg"_a, "Hyperbolic sine function.");
+  m.def("tanh", &wf::tanh, "arg"_a, "Hyperbolic tan function.");
+  m.def("acosh", &wf::acosh, "arg"_a, "Hyperbolic arc-cosine function.");
+  m.def("asinh", &wf::asinh, "arg"_a, "Hyperbolic arc-sine function.");
+  m.def("atanh", &wf::atanh, "arg"_a, "Hyperbolic arc-tangent function.");
   m.def("sqrt", &wf::sqrt, "arg"_a, "Square-root function.");
   m.def("abs", static_cast<scalar_expr (*)(const scalar_expr&)>(&wf::abs), "arg"_a,
         "Absolute value function.");
@@ -223,6 +228,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("one") = constants::one;
   m.attr("pi") = constants::pi;
   m.attr("zero") = constants::zero;
+  m.attr("imaginary_unit") = constants::imaginary_unit;
+  m.attr("I") = constants::imaginary_unit;
 
   // Exceptions:
   py::register_exception<arithmetic_error>(m, "ArithmeticError");

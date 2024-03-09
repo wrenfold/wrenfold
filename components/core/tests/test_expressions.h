@@ -55,6 +55,14 @@ inline auto abs_test(scalar_expr x) { return abs(x); }
 // Test generation of call to floor.
 inline auto floor_test(scalar_expr x) { return floor(x); }
 
+// Test generation of hyperbolic trig functions.
+inline auto cosh_test(scalar_expr x) { return cosh(x); }
+inline auto sinh_test(scalar_expr x) { return sinh(x); }
+inline auto tanh_test(scalar_expr x) { return tanh(x); }
+inline auto acosh_test(scalar_expr x) { return acosh(x); }
+inline auto asinh_test(scalar_expr x) { return asinh(x); }
+inline auto atanh_test(scalar_expr x) { return atanh(x); }
+
 // Arc-tangent w/ derivatives.
 inline auto atan2_with_derivatives(scalar_expr y, scalar_expr x) {
   scalar_expr f = atan2(y, x);

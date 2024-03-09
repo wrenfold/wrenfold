@@ -507,19 +507,27 @@ TEST(IrTest, TestBuiltInFunctions) {
   auto [expected_expressions, ir] = create_ir(
       [](scalar_expr x, scalar_expr y, scalar_expr z) {
         scalar_expr g = acos(x - log(y) * pow(x, 1.231) + pow(z, 22));
-        scalar_expr h = asin(2.0 * tan(y) - abs(z));
-        return atan2(abs(g) + cos(y) + signum(h) * floor(h), -sin(y) + sqrt(z) - signum(x));
+        scalar_expr h = asin(2.0 * tan(y) - abs(z) + atan(x));
+        scalar_expr f = cosh(x) * sinh(y) / tanh(z) + acosh(y * x) - asinh(2 * y) + atanh(-x);
+        return atan2(abs(g) + cos(y) + signum(h) * floor(h), -sin(y) + sqrt(z) - signum(x) + f);
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(31, ir.num_operations()) << ir;
+  ASSERT_EQ(52, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
-  ASSERT_EQ(4, ir.count_operation<ir::neg>());
+  ASSERT_EQ(6, ir.count_operation<ir::neg>());
   EXPECT_EQ(1, ir.count_function(std_math_function::cos));
   EXPECT_EQ(1, ir.count_function(std_math_function::sin));
   EXPECT_EQ(1, ir.count_function(std_math_function::tan));
   EXPECT_EQ(1, ir.count_function(std_math_function::acos));
   EXPECT_EQ(1, ir.count_function(std_math_function::asin));
+  EXPECT_EQ(1, ir.count_function(std_math_function::atan));
+  EXPECT_EQ(1, ir.count_function(std_math_function::cosh));
+  EXPECT_EQ(1, ir.count_function(std_math_function::sinh));
+  EXPECT_EQ(1, ir.count_function(std_math_function::tanh));
+  EXPECT_EQ(1, ir.count_function(std_math_function::acosh));
+  EXPECT_EQ(1, ir.count_function(std_math_function::asinh));
+  EXPECT_EQ(1, ir.count_function(std_math_function::atanh));
   EXPECT_EQ(1, ir.count_function(std_math_function::log));
   EXPECT_EQ(1, ir.count_function(std_math_function::sqrt));
   EXPECT_EQ(2, ir.count_function(std_math_function::abs));
@@ -531,7 +539,7 @@ TEST(IrTest, TestBuiltInFunctions) {
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(31, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(52, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
