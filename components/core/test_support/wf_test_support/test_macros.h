@@ -176,9 +176,15 @@ inline testing::AssertionResult expect_complex_near(const std::string_view name_
   }
 }
 
-// ostream operator for `NumericSet`.
+// ostream operator for `number_set`.
 inline std::ostream& operator<<(std::ostream& s, const number_set set) {
   s << string_from_number_set(set);
+  return s;
+}
+
+// ostream operator for `precedence`
+inline std::ostream& operator<<(std::ostream& s, const precedence p) {
+  s << string_from_precedence(p);
   return s;
 }
 

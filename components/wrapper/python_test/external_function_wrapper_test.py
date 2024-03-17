@@ -123,7 +123,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         g = func_2(w=y * x, q=f)
         self.assertIsInstance(g, sym.Expr)
         self.assertEqual("CompoundExpressionElement", g.type_name)
-        self.assertEqual("func_2(func_1(x + 2 * y ** -1), x * y)", repr(g))
+        self.assertEqual("func_2(func_1(x + 2 * y ** (-1)), x * y)", repr(g))
 
     def test_comparisons(self):
         """Check that we can test external functions for equality."""

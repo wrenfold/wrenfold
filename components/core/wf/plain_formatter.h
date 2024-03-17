@@ -44,7 +44,7 @@ class plain_formatter {
   void format_precedence(precedence parent, const scalar_expr& expr);
 
   // Format power operation with the appropriate operator.
-  void format_power(const scalar_expr& Base, const scalar_expr& Exponent);
+  void format_power(const scalar_expr& base, const scalar_expr& exponent);
 
   std::string output_{};
 };

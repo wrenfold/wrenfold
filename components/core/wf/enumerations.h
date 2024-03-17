@@ -152,6 +152,23 @@ constexpr std::string_view string_from_relative_order(const relative_order order
   return "<NOT A VALID ENUM VALUE>";
 }
 
+// Convert `precedence` to string view.
+constexpr std::string_view string_from_precedence(const precedence p) noexcept {
+  switch (p) {
+    case precedence::relational:
+      return "relational";
+    case precedence::addition:
+      return "addition";
+    case precedence::multiplication:
+      return "multiplication";
+    case precedence::power:
+      return "power";
+    case precedence::none:
+      return "none";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
+
 // Convert unary function enum to string.
 constexpr std::string_view string_from_built_in_function(const built_in_function name) noexcept {
   switch (name) {

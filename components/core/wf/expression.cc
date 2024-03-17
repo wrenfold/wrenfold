@@ -108,7 +108,7 @@ boolean_expr operator==(const scalar_expr& a, const scalar_expr& b) {
 // Visitor to determine mathematical precedence.
 struct precedence_visitor {
   template <typename T>
-  constexpr precedence operator()(const T&) const noexcept {
+  constexpr precedence operator()(const T& value) const noexcept {
     if constexpr (std::is_same_v<multiplication, T>) {
       return precedence::multiplication;
     } else if constexpr (std::is_same_v<addition, T>) {
@@ -119,6 +119,9 @@ struct precedence_visitor {
       return precedence::multiplication;
     } else if constexpr (std::is_same_v<relational, T>) {
       return precedence::relational;
+    } else if constexpr (type_list_contains_v<T, integer_constant, rational_constant,
+                                              float_constant>) {
+      return value.is_negative() ? precedence::multiplication : precedence::none;
     } else {
       return precedence::none;
     }

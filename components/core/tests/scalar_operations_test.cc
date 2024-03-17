@@ -35,11 +35,14 @@ TEST(ScalarOperationsTest, TestAddition) {
   const scalar_expr y{"y"};
   const scalar_expr z{"z"};
   ASSERT_TRUE((x + y).is_type<addition>());
+  ASSERT_TRUE((x - y).is_type<addition>());
   ASSERT_IDENTICAL(x + y, x + y);
   ASSERT_IDENTICAL(x + y, y + x);
   ASSERT_NOT_IDENTICAL(x + w, x + y);
   ASSERT_NOT_IDENTICAL(x - w, z + y);
   ASSERT_EQ("Addition", (x + y).type_name());
+  ASSERT_EQ(precedence::addition, get_precedence(x + y));
+  ASSERT_EQ(precedence::addition, get_precedence(x - y));
 
   // Canonicalization of order:
   ASSERT_IDENTICAL(w + x + y, y + x + w);
@@ -95,6 +98,7 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_TRUE((x * y).is_type<multiplication>());
   ASSERT_IDENTICAL(x * y, x * y);
   ASSERT_EQ("Multiplication", (x * y).type_name());
+  ASSERT_EQ(precedence::multiplication, get_precedence(x * y));
 
   // Canonicalization of order for a simple case:
   ASSERT_IDENTICAL(y * x, x * y);
@@ -212,6 +216,7 @@ TEST(ScalarOperationsTest, TestDivision) {
   const scalar_expr z{"z"};
   ASSERT_IDENTICAL(x / y, x / y);
   ASSERT_TRUE((x / y).is_type<multiplication>());
+  ASSERT_EQ(precedence::multiplication, get_precedence(x / y));
   ASSERT_NOT_IDENTICAL(y / x, x / y);
   ASSERT_IDENTICAL(x / y / z, (x / y) / z);
   ASSERT_IDENTICAL(constants::zero, 0 / x);
