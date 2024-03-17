@@ -73,9 +73,8 @@ TEST(PlainFormatterTest, TestMultiplication) {
 }
 
 TEST(PlainFormatterTest, TestPower) {
-  const scalar_expr x{"x"};
-  const scalar_expr y{"y"};
-  const scalar_expr z{"z"};
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+
   ASSERT_STR_EQ("x ** y", pow(x, y));
   ASSERT_STR_EQ("8", pow(2, 3));
   ASSERT_STR_EQ("(x + y) ** z", pow(x + y, z));
@@ -88,6 +87,11 @@ TEST(PlainFormatterTest, TestPower) {
   ASSERT_STR_EQ("-5 ** (2 / 3) * 7 ** (2 / 3) + x - y * z",
                 pow(5 * 7, 2 / 3_s) * constants::negative_one + x - y * z);
   ASSERT_STR_EQ("-I ** (3 / 2)", pow(constants::imaginary_unit, 7_s / 2));
+
+  // Make sure we add brackets when the base is a negative number:
+  ASSERT_STR_EQ("(-3) ** x", pow(-3, x));
+  ASSERT_STR_EQ("(-3.12) ** x", pow(-3.12, x));
+  ASSERT_STR_EQ("(-4 / 5) ** x", pow(-4_s / 5, x));
 }
 
 TEST(PlainFormatterTest, TestRelationals) {

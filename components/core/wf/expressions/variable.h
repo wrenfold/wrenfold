@@ -95,7 +95,8 @@ class variable {
   std::string to_string() const;
 
   // Create a function argument expression.
-  static scalar_expr create_function_argument(std::size_t arg_index, std::size_t element_index) {
+  static scalar_expr create_function_argument(const std::size_t arg_index,
+                                              const std::size_t element_index) {
     // TODO: Support creating function arguments that are not real.
     return make_expr<variable>(function_argument_variable(arg_index, element_index),
                                number_set::real);
