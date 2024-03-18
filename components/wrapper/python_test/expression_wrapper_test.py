@@ -109,30 +109,32 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertFalse(22 == sym.pi)
 
     def test_basic_scalar_operations(self):
-        """Test wrappers for addition, multiplication, subtraction, negation."""
+        """Test wrappers for addition, multiplication, subtraction, negation, and power."""
         p, q = sym.symbols('p, q')
 
         self.assertIsInstance(p + p, sym.Expr)
         self.assertIdentical(2 * p, p + p)
         self.assertIdentical(p, p + 0)
         self.assertEqual('Addition', (p + q).type_name)
-        self.assertEqual('Multiplication', (p + p).type_name)
         self.assertIdentical(p + p, p + p + p - p)
+        self.assertNotIdentical(q + 5.0, q + 5)
         self.assertNotIdentical(p + p, p - q)
         self.assertNotIdentical(q - 5, q + 5)
 
         self.assertIdentical(p * q, q * p)
-        self.assertIdentical(sym.pow(q, 2), q * q)
         self.assertEqual('Multiplication', (p * q).type_name)
-        self.assertEqual('Power', (q * q).type_name)
         self.assertIdentical(q * q * q / (p * p), sym.pow(q, 3) / sym.pow(p, 2))
-        self.assertIdentical(p / q, sym.pow(q / p, -1))
-        self.assertNotIdentical(q + 5.0, q + 5)
-        self.assertIdentical(2.0 * p, p * 6.0 / 3.0)
+        self.assertIdentical(2.0 * p, (p * 6.0) / 3.0)
         self.assertIdentical(q, -(-q))
         self.assertIdentical(-q, -(-(-q)))
 
+        self.assertEqual('Power', (q * q).type_name)
+        self.assertIdentical(sym.pow(q, 2), q * q)
         self.assertIdentical(sym.pow(p, q), p ** q)
+        self.assertIdentical(sym.pow(2, q), 2 ** q)
+        self.assertIdentical(sym.pow(p, 5), p ** 5)
+        self.assertIdentical(sym.pow(p, 0.231), p ** 0.231)
+        self.assertIdentical(p / q, sym.pow(q / p, -1))
 
     def test_trig_functions(self):
         """Test that we can call trig functions."""

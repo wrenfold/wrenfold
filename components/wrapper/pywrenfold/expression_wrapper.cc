@@ -140,6 +140,10 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       .def(py::self / py::self)
       .def(-py::self)
       .def("__pow__", &wf::pow, py::is_operator())
+      .def(
+          "__rpow__",
+          [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
+          py::is_operator())
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
