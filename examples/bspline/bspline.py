@@ -138,7 +138,7 @@ def create_piecewise_polynomials(x: sym.Expr, order: int, bases: T.Sequence[sym.
             if poly_piece == terminal_value:
                 continue
             piecewise_poly = sym.where(
-                sym.equals(x_interval, interval_index), poly_piece, piecewise_poly)
+                sym.eq(x_interval, interval_index), poly_piece, piecewise_poly)
 
         polynomials.append(piecewise_poly)
 

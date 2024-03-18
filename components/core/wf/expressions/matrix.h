@@ -33,15 +33,17 @@ class matrix {
   const scalar_expr& operator()(index_t i, index_t j) const;
 
   // Get with no bounds checking.
-  const scalar_expr& get_unchecked(index_t i, index_t j) const noexcept {
+  const scalar_expr& get_unchecked(const index_t i, const index_t j) const noexcept {
     return data_[compute_index(i, j)];
   }
 
   // Non-const accessor with no bounds checking.
-  scalar_expr& get_unchecked(index_t i, index_t j) noexcept { return data_[compute_index(i, j)]; }
+  scalar_expr& get_unchecked(const index_t i, const index_t j) noexcept {
+    return data_[compute_index(i, j)];
+  }
 
   // Set with no bounds checking.
-  void set_unchecked(index_t i, index_t j, const scalar_expr& value) noexcept {
+  void set_unchecked(const index_t i, const index_t j, const scalar_expr& value) noexcept {
     data_[compute_index(i, j)] = value;
   }
 

@@ -32,6 +32,15 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.symbols('c'), result[1][0])
         self.assertIdentical(sym.symbols('d'), result[1][1])
 
+        # apply assumptions:
+        self.assertNotIdentical(x, sym.symbols("x", real=True))
+        self.assertNotIdentical(
+            sym.symbols("x", real=True, nonnegative=True),
+            sym.symbols("x", real=True, positive=True))
+
+        self.assertRaises(sym.InvalidArgumentError,
+                          lambda: sym.symbols("z", real=True, complex=True))
+
     def test_is_identical_to(self):
         """Test calling is_identical_to and __eq__."""
         x, y = sym.symbols("x, y")
@@ -62,6 +71,11 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(-42, sym.integer(-42))
         self.assertIdentical(1.231, sym.float(1.231))
         self.assertIdentical(9.81, sym.float(9.81))
+        self.assertIdentical(sym.nan, sym.float(float("nan")))
+        self.assertIdentical(sym.zoo, sym.float(float("inf")))
+        self.assertIdentical(sym.one / 2, sym.rational(1, 2))
+        self.assertIdentical(sym.integer(-5) / 7, sym.rational(-5, 7))
+        self.assertIdentical(sym.integer(1) / 3, sym.rational(2, 6))
 
         # Cannot invoke with values that exceed range of 64-bit signed int.
         # Python stores these values internally, but we can't convert them for now:
@@ -91,7 +105,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('abs(x)', sym.abs(x))
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
         self.assertReprEqual('Derivative(sign(x), x)', sym.sign(x).diff(x, use_abstract=True))
-        self.assertReprEqual('x == z', sym.equals(x, z))
+        self.assertReprEqual('x == z', sym.eq(x, z))
         self.assertReprEqual('iverson(z < x)', sym.iverson(x > z))
         self.assertReprEqual('I', sym.I)
         self.assertReprEqual('2 + 5*I', 2 + 5 * sym.I)
@@ -236,9 +250,9 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(x >= 0.0, 0.0 <= x)
         self.assertIdentical(sym.true, sym.Expr(1) > 0)
         self.assertIdentical(sym.true, sym.pi > sym.E)
-        # We use sym.equals to make == relationals:
-        self.assertIdentical(sym.equals(x, 1), sym.equals(1, x))
-        self.assertNotIdentical(sym.equals(x, y), sym.equals(2, x * y))
+        # We use sym.eq to make == relationals:
+        self.assertIdentical(sym.eq(x, 1), sym.eq(1, x))
+        self.assertNotIdentical(sym.eq(x, y), sym.eq(2, x * y))
 
     def test_conditionals(self):
         """Test creating conditional logic."""
@@ -251,7 +265,7 @@ class ExpressionWrapperTest(MathTestBase):
     def test_iverson(self):
         """Test converting boolean values to integer."""
         self.assertIdentical(1, sym.iverson(sym.one < 10.2))
-        self.assertIdentical(0, sym.iverson(sym.equals(sym.one, sym.zero)))
+        self.assertIdentical(0, sym.iverson(sym.eq(sym.one, sym.zero)))
 
     def test_subs(self):
         """Test calling subs() on expressions."""

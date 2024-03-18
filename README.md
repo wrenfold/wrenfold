@@ -22,12 +22,13 @@ The following tools are required to build from source:
 
 Additionally, to build and run tests you will need:
 - numpy
+- [sympy](https://www.sympy.org/)
 - The rust compiler toolchain (`cargo` and `rustc`): [Installation](https://rustup.rs) link.
 - On linux+windows: `pkg-config` and `openblas`.
 
-The following command will configure a `conda` environment suitable for building:
+The following command will configure a `conda` environment suitable for building+testing:
 ```bash
-conda create -n wf python=3.8 cmake ninja mypy numpy pkg-config openblas
+conda create -n wf python=3.8 cmake ninja mypy numpy sympy pkg-config openblas
 conda activate wf
 ```
 

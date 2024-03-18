@@ -23,14 +23,14 @@ using namespace py::literals;
 namespace wf {
 
 // Create symbols from CSV list of names.
-inline std::variant<scalar_expr, py::list> create_symbols_from_str(const std::string_view csv) {
+static std::variant<scalar_expr, py::list> create_symbols_from_str(const std::string_view csv,
+                                                                   const number_set set) {
   py::list variables{};
   std::string name{};
   for (const char c : csv) {
     if (std::isspace(c) || c == ',') {
       if (!name.empty()) {
-        auto var = make_expr<variable>(std::move(name));
-        variables.append(std::move(var));
+        variables.append(make_expr<variable>(std::move(name), set));
         name = std::string();
       }
       continue;
@@ -38,8 +38,7 @@ inline std::variant<scalar_expr, py::list> create_symbols_from_str(const std::st
     name += c;
   }
   if (!name.empty()) {
-    auto var = make_expr<variable>(std::move(name));
-    variables.append(std::move(var));
+    variables.append(make_expr<variable>(std::move(name), set));
   }
   if (variables.size() == 1) {
     return variables[0].cast<scalar_expr>();
@@ -49,22 +48,48 @@ inline std::variant<scalar_expr, py::list> create_symbols_from_str(const std::st
 
 // Traverse the provided iterable, inspecting elements. If the inner element is a
 // string, then parse it into symbols. If the inner element is an iterable, recurse on it.
-inline std::variant<scalar_expr, py::list> create_symbols_from_str(const py::iterable& iterable) {
+static std::variant<scalar_expr, py::list> create_symbols_from_str(const py::iterable& iterable,
+                                                                   const number_set set) {
   py::list result{};
   for (const py::handle& handle : iterable) {
     // Each element of the iterable could be a string, or a nested iterable:
-    auto casted = py::cast<std::variant<std::string_view, py::iterable>>(handle);
-    auto symbols = std::visit([](const auto& input) { return create_symbols_from_str(input); },
-                              std::move(casted));
+    auto symbols =
+        std::visit([set](const auto& input) { return create_symbols_from_str(input, set); },
+                   py::cast<std::variant<std::string_view, py::iterable>>(handle));
     result.append(std::move(symbols));
   }
   return result;
 }
 
+// Convert optional boolean arguments into `number_set`.
+inline number_set determine_set_from_flags(const bool real, const bool positive,
+                                           const bool nonnegative, const bool complex) {
+  if (const bool is_real = real || positive || nonnegative; is_real && complex) {
+    throw invalid_argument_error("Symbols cannot be both real and complex.");
+  }
+  if (positive) {
+    return number_set::real_positive;
+  } else if (nonnegative) {
+    return number_set::real_non_negative;
+  } else if (real) {
+    return number_set::real;
+  } else if (complex) {
+    return number_set::complex;
+  }
+  return number_set::unknown;
+}
+
+// To imitate sympy, we support a list of bool flags to specify assumptions.
+// We check for incompatible arrangements in this functions.
 std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
-    std::variant<std::string_view, py::iterable> arg) {
-  return std::visit([](const auto& input) { return create_symbols_from_str(input); },
-                    std::move(arg));
+    const std::variant<std::string_view, py::iterable>& arg, const bool real, const bool positive,
+    const bool nonnegative, const bool complex) {
+  return std::visit(
+      [&](const auto& input) {
+        return create_symbols_from_str(
+            input, determine_set_from_flags(real, positive, nonnegative, complex));
+      },
+      arg);
 }
 
 scalar_expr substitute_variables_wrapper(
@@ -91,6 +116,9 @@ void wrap_boolean_expression(py::module_& m);
 
 // Defined in geometry_wrapper.cc
 void wrap_geometry_operations(py::module_& m);
+
+// Defined in sympy_conversion.cc
+void wrap_sympy_conversion(py::module_& m);
 }  // namespace wf
 
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
@@ -181,7 +209,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   py::implicitly_convertible<double, scalar_expr>();
 
   // Methods for declaring expressions:
-  m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("arg"),
+  m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("arg"), py::arg("real") = false,
+        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
         "Create variables from a string or an iterable of strings.");
   m.def(
       "integer", [](const std::int64_t value) { return scalar_expr{value}; }, "value"_a,
@@ -189,6 +218,12 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def(
       "float", [](const double value) { return scalar_expr{value}; }, "value"_a,
       "Create a float expression.");
+  m.def(
+      "rational",
+      [](const std::int64_t n, const std::int64_t d) {
+        return scalar_expr{rational_constant{n, d}};
+      },
+      py::arg("n"), py::arg("d"), py::doc("Create a rational expression."));
 
   // Built-in functions:
   m.def("log", &wf::log, "arg"_a, "Natural log.");
@@ -219,21 +254,30 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
             &wf::where),
         "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
 
-  m.def("equals",
-        static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator==), "a"_a,
-        "b"_a, py::doc("Boolean expression that is true when both operands are equal."));
+  // Relational operations:
+  m.def("lt", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator<),
+        "a"_a, "b"_a, py::doc("Operator <"));
+  m.def("le", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator<=),
+        "a"_a, "b"_a, py::doc("Operator <="));
+  m.def("gt", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator>),
+        "a"_a, "b"_a, py::doc("Operator >"));
+  m.def("ge", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator>=),
+        "a"_a, "b"_a, py::doc("Operator >="));
+  m.def("eq", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator==),
+        "a"_a, "b"_a, py::doc("Boolean expression that is true when both operands are equal."));
 
   m.def("iverson", &wf::iverson, "arg"_a,
         "Convert a boolean expression to an integer via the iverson bracket.");
 
   // Special constants:
   m.attr("E") = constants::euler;
+  m.attr("pi") = constants::pi;
   m.attr("zoo") = constants::complex_infinity;
   m.attr("one") = constants::one;
-  m.attr("pi") = constants::pi;
   m.attr("zero") = constants::zero;
   m.attr("imaginary_unit") = constants::imaginary_unit;
   m.attr("I") = constants::imaginary_unit;
+  m.attr("nan") = constants::undefined;
 
   // Exceptions:
   py::register_exception<arithmetic_error>(m, "ArithmeticError");
@@ -247,6 +291,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   wrap_matrix_operations(m);
   wrap_compound_expression(m);
   wrap_boolean_expression(m);
+  wrap_sympy_conversion(m);
 
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);
