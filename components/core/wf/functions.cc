@@ -49,8 +49,6 @@ scalar_expr log(const scalar_expr& arg) {
   return make_expr<function>(built_in_function::ln, arg);
 }
 
-scalar_expr pow(const scalar_expr& x, const scalar_expr& y) { return power::create(x, y); }
-
 // If `arg` is `i`, or `i*x`, we apply the replacement function.
 // This is used to swap cos(x*i) --> cosh(x), for example.
 template <typename Replacement>

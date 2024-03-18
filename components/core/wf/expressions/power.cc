@@ -27,25 +27,24 @@ static_assert(!is_float_and_numeric_v<integer_constant, integer_constant>);
 static_assert(!is_float_and_numeric_v<integer_constant, rational_constant>);
 
 struct power_numerics_visitor {
-  template <typename A, typename B>
-  std::optional<scalar_expr> operator()(const A& a, const B& b) {
-    if constexpr (is_float_and_numeric_v<A, B>) {
-      return apply_float_and_numeric(a, b);
-    } else if constexpr (std::is_same_v<integer_constant, A> &&
-                         std::is_same_v<integer_constant, B>) {
-      return apply_int_and_int(a, b);
-    } else if constexpr (std::is_same_v<rational_constant, A> &&
-                         std::is_same_v<integer_constant, B>) {
-      return apply_rational_and_int(a, b);
-    } else if constexpr (std::is_same_v<integer_constant, A> &&
-                         std::is_same_v<rational_constant, B>) {
-      return apply_int_and_rational(a, b);
-    } else if constexpr (std::is_same_v<complex_infinity, A> &&
-                         type_list_contains_v<B, integer_constant, rational_constant>) {
-      return apply_infinity_and_rational(a, static_cast<rational_constant>(b));
-    } else if constexpr (std::is_same_v<complex_infinity, A> && std::is_same_v<B, float_constant>) {
-      return apply_infinity_and_float(a, b);
-    } else if constexpr (std::is_same_v<undefined, A> || std::is_same_v<undefined, B>) {
+  template <typename Base, typename Exp>
+  std::optional<scalar_expr> operator()(const Base& base, const Exp& exp) {
+    if constexpr (is_float_and_numeric_v<Base, Exp>) {
+      return apply_float_and_numeric(base, exp);
+    } else if constexpr (std::is_same_v<integer_constant, Base> &&
+                         std::is_same_v<integer_constant, Exp>) {
+      return apply_int_and_int(base, exp);
+    } else if constexpr (std::is_same_v<rational_constant, Base> &&
+                         std::is_same_v<integer_constant, Exp>) {
+      return apply_rational_and_int(base, exp);
+    } else if constexpr (std::is_same_v<integer_constant, Base> &&
+                         std::is_same_v<rational_constant, Exp>) {
+      return apply_int_and_rational(base, exp);
+    } else if constexpr (std::is_same_v<complex_infinity, Base> &&
+                         type_list_contains_v<Exp, integer_constant, rational_constant,
+                                              float_constant>) {
+      return apply_infinity_and_numeric_constant(base, exp);
+    } else if constexpr (std::is_same_v<undefined, Base> || std::is_same_v<undefined, Exp>) {
       return constants::undefined;
     } else {
       return std::nullopt;
@@ -53,47 +52,48 @@ struct power_numerics_visitor {
   }
 
   // If either operand is a float, coerce the other to float:
-  template <typename A, typename B>
-  std::enable_if_t<is_float_and_numeric_v<A, B>, scalar_expr> apply_float_and_numeric(const A& a,
-                                                                                      const B& b) {
-    if (a.is_zero() && b.is_negative()) {
+  template <typename Base, typename Exp>
+  std::enable_if_t<is_float_and_numeric_v<Base, Exp>, scalar_expr> apply_float_and_numeric(
+      const Base& base, const Exp& exp) {
+    if (base.is_zero() && exp.is_negative()) {
       return constants::complex_infinity;
     }
-    const auto result = std::pow(static_cast<float_constant>(a).get_value(),
-                                 static_cast<float_constant>(b).get_value());
+    const auto result = std::pow(static_cast<float_constant>(base).get_value(),
+                                 static_cast<float_constant>(exp).get_value());
     return make_expr<float_constant>(result);
   }
 
   // If both operands are integers:
-  static scalar_expr apply_int_and_int(const integer_constant& a, const integer_constant& b) {
-    if (b.get_value() < 0) {
-      if (a.is_zero()) {
+  static scalar_expr apply_int_and_int(const integer_constant& base, const integer_constant& exp) {
+    if (exp.get_value() < 0) {
+      if (base.is_zero()) {
         // 1 / (0)^b --> complex infinity
         return constants::complex_infinity;
       }
       // Convert a -> (1/a), then take the power:
-      return apply_rational_and_int(rational_constant{1, a.get_value()}, -b);
+      return apply_rational_and_int(rational_constant{1, base.get_value()}, -exp);
     }
-    if (a.is_zero() && b.is_zero()) {
+    if (base.is_zero() && exp.is_zero()) {
       return constants::undefined;
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
-    const auto pow = integer_power(a.get_value(), b.get_value());
-    return scalar_expr(pow);
+    const auto pow = integer_power(base.get_value(), exp.get_value());
+    return {pow};
   }
 
   // If the left operand is a rational and right operand is integer:
-  static scalar_expr apply_rational_and_int(const rational_constant& a, const integer_constant& b) {
-    const auto exponent = b.get_value();
-    if (a.is_zero() && exponent < 0) {
+  static scalar_expr apply_rational_and_int(const rational_constant& base,
+                                            const integer_constant& exp) {
+    const auto exponent = exp.get_value();
+    if (base.is_zero() && exponent < 0) {
       return constants::complex_infinity;
     }
-    if (a.is_zero() && b.is_zero()) {
+    if (base.is_zero() && exp.is_zero()) {
       return constants::undefined;
     }
     const auto abs_exponent = static_cast<std::uint64_t>(abs(exponent));
-    const auto n = integer_power(a.numerator(), abs_exponent);
-    const auto d = integer_power(a.denominator(), abs_exponent);
+    const auto n = integer_power(base.numerator(), abs_exponent);
+    const auto d = integer_power(base.denominator(), abs_exponent);
     if (exponent >= 0) {
       return scalar_expr(rational_constant{n, d});
     } else {
@@ -102,16 +102,23 @@ struct power_numerics_visitor {
     }
   }
 
+  // A power of the form base**exponent, where both values are integers.
+  struct int_base_and_exponent {
+    checked_int base{0};
+    checked_int exponent{0};
+  };
+
   // If the left operand is integer, and the right is rational:
-  static scalar_expr apply_int_and_rational(const integer_constant& a, const rational_constant& b) {
-    WF_ASSERT_GREATER(b.denominator(), 0, "Rational must have positive denominator");
-    if (a.get_value() == 1) {
+  static scalar_expr apply_int_and_rational(const integer_constant& base,
+                                            const rational_constant& exp) {
+    WF_ASSERT_GREATER(exp.denominator(), 0, "Rational must have positive denominator");
+    if (base.get_value() == 1) {
       return constants::one;
-    } else if (a.is_zero()) {
-      if (b.is_zero()) {
+    } else if (base.is_zero()) {
+      if (exp.is_zero()) {
         // 0^0 --> undefined
         return constants::undefined;
-      } else if (b.is_negative()) {
+      } else if (exp.is_negative()) {
         return constants::complex_infinity;
       } else {
         return constants::zero;
@@ -119,14 +126,11 @@ struct power_numerics_visitor {
     }
 
     // Factorize the integer exponent (positive part only) into primes:
-    const std::vector<prime_factor> factors = compute_prime_factors(abs(a.get_value()));
-    WF_ASSERT(std::is_sorted(factors.begin(), factors.end(),
-                             [](const auto& x, const auto& y) { return x.base < y.base; }),
-              "Factors should be sorted");
+    const std::vector<prime_factor> factors = compute_prime_factors(abs(base.get_value()));
 
-    // Next we will create expressions.
-    std::vector<scalar_expr> operands{};
-    operands.reserve(factors.size() + 1);
+    // This is a map from exponent denominator to an integer base and exponent.
+    // So, for example, n**(p/q) becomes entry: {q: [base: n, exponent: p]}
+    std::unordered_map<checked_int, int_base_and_exponent, hash_struct<checked_int>> exp_to_base{};
 
     // Iterate over factors and put them into canonical form:
     // negative example:
@@ -135,78 +139,96 @@ struct power_numerics_visitor {
     // positive example:
     //    2 ^ (18/7) --> 4 * 2 ^ (4/7)
     // See https://arxiv.org/pdf/1302.2169.pdf for examples of canonical forms.
+    //
+    // In this implementation, we group terms in the resulting product by the _denominator_ of their
+    // exponent. So 2**(1/7) * 3**(2/7) will be converted to: (2 * 3**2)**(1/7)
+    // We bring out any integer parts and multiply them into `rational_coeff`, and all exponents are
+    // made into positive rationals.
     rational_constant rational_coeff{1, 1};
-    for (const prime_factor& f : factors) {
-      // Multiply the power by the rational to get the exponent applied to this prime factor:
+    for (const prime_factor& factor : factors) {
+      // Multiply the power by the rational to get the exponent applied to this prime factor.
+      // Primes may be repeated, so `f.exponent` is not necessarily one.
       const rational_constant actual_exp =
-          b * static_cast<rational_constant>(integer_constant{f.exponent});
-      WF_ASSERT_GREATER(f.exponent, 0);  //  Exponents must be >= 1 in this context.
+          exp * static_cast<rational_constant>(integer_constant{factor.exponent});
 
       // Factorize the exponent: x^(int_part + frac_part) --> x^int_part * x^frac_part
-      // Both of these should have the same sign as actual_exp.
+      // Fractional part will never be negative (we add to the integer part to make this the case).
       const auto [integer_part, fractional_part] = factorize_rational_exponent(actual_exp);
-      WF_ASSERT(!fractional_part.is_negative(), "fractional_part = {}", fractional_part);
+      WF_ASSERT(!fractional_part.is_negative() &&
+                    (fractional_part.is_zero() || !fractional_part.is_integer()),
+                "fractional_part = {}", fractional_part);
 
       // Apply the integer part to the rational coefficient:
       if (integer_part.get_value() >= 0) {
-        rational_coeff =
-            rational_coeff * rational_constant{integer_power(f.base, integer_part.get_value()), 1};
+        rational_coeff = rational_coeff *
+                         rational_constant{integer_power(factor.base, integer_part.get_value()), 1};
       } else {
         rational_coeff =
-            rational_coeff * rational_constant{1, integer_power(f.base, -integer_part.get_value())};
+            rational_coeff *
+            rational_constant{1, integer_power(factor.base, -integer_part.get_value())};
       }
 
-      // There is still the business of the fractional part to deal with:
-      if (fractional_part.numerator() != 0) {
-        scalar_expr base(f.base);
-        scalar_expr exponent(fractional_part);
-        operands.emplace_back(std::in_place_type_t<power>(), std::move(base), std::move(exponent));
+      if (!fractional_part.is_zero()) {
+        if (const auto [it, was_inserted] = exp_to_base.emplace(
+                fractional_part.denominator(),
+                int_base_and_exponent{factor.base, fractional_part.numerator()});
+            !was_inserted) {
+          // Find the greatest common divistor of both numerators, and make that the
+          // new numerator.
+          const checked_int shared_numerator =
+              gcd(it->second.exponent, fractional_part.numerator());
+          it->second.base =
+              integer_power(it->second.base, it->second.exponent / shared_numerator) *
+              integer_power(factor.base, fractional_part.numerator() / shared_numerator);
+          it->second.exponent = shared_numerator;
+        }
       }
     }
 
+    std::vector<scalar_expr> operands{};
+    operands.reserve(exp_to_base.size() + 2);
+
     // If a is negative, we add another factor (-1) here:
-    if (a.is_negative()) {
-      const auto [integer_part, fractional_part] = factorize_rational_exponent(b);
+    if (base.is_negative()) {
+      const auto [integer_part, fractional_part] = factorize_rational_exponent(exp);
       if (!integer_part.is_even()) {
-        operands.emplace_back(constants::negative_one);
+        rational_coeff = rational_coeff * integer_constant{-1};
       }
       if (fractional_part == rational_constant{1, 2}) {
         // (-1)**(1/2) --> i
         operands.push_back(constants::imaginary_unit);
-      } else {
-        operands.emplace_back(std::in_place_type_t<power>(), constants::negative_one,
-                              scalar_expr(fractional_part));
+      } else if (!fractional_part.is_zero()) {
+        // If there is already a term where the exponent is `fractional_part`, put the -1 in there.
+        // Otherwise create a new separate term for it.
+        if (const auto it = exp_to_base.find(fractional_part.denominator());
+            it != exp_to_base.end() && it->second.exponent == fractional_part.numerator()) {
+          it->second.base *= -1;
+        } else {
+          operands.emplace_back(std::in_place_type_t<power>(), constants::negative_one,
+                                scalar_expr(fractional_part));
+        }
       }
     }
 
-    if (!rational_coeff.is_one()) {
-      operands.push_back(scalar_expr(rational_coeff));
+    for (const auto [exponent_denominator, base_and_exp] : exp_to_base) {
+      operands.emplace_back(
+          std::in_place_type_t<power>(), scalar_expr(base_and_exp.base),
+          scalar_expr(rational_constant{base_and_exp.exponent, exponent_denominator}));
     }
-    if (operands.size() == 1) {
-      return operands.front();
+    if (!rational_coeff.is_one()) {
+      operands.emplace_back(rational_coeff);
     }
     return multiplication::from_operands(operands);
   }
 
-  static scalar_expr apply_infinity_and_rational(const complex_infinity&,
-                                                 const rational_constant& r) {
-    if (r.numerator() > 0) {
+  template <typename T>
+  static scalar_expr apply_infinity_and_numeric_constant(const complex_infinity&, const T& exp) {
+    if (exp.is_positive()) {
       return constants::complex_infinity;
-    } else if (r.numerator() < 0) {
+    } else if (exp.is_negative()) {
       return constants::zero;
     } else {
       // infinity ^ 0
-      return constants::undefined;
-    }
-  }
-
-  static scalar_expr apply_infinity_and_float(const complex_infinity&, const float_constant& f) {
-    if (f.get_value() > 0) {
-      return constants::complex_infinity;
-    } else if (f.get_value() < 0) {
-      return constants::zero;
-    } else {
-      // infinity ^ 0.0
       return constants::undefined;
     }
   }
@@ -348,55 +370,92 @@ static bool can_multiply_exponents(const power& base_pow, const scalar_expr& out
   return false;
 }
 
-scalar_expr power::create(scalar_expr a, scalar_expr b) {
+// Split `mul` into non-negative terms and the rest. Apply distribution of rational exponent to
+// all the non-negative terms.
+static std::optional<scalar_expr> maybe_distribute_rational_exponent(const multiplication& mul,
+                                                                     const scalar_expr& exp) {
+  std::vector<scalar_expr> non_negative_terms, remaining_terms;
+  non_negative_terms.reserve(mul.size());
+  remaining_terms.reserve(mul.size());
+
+  for (const scalar_expr& term : mul) {
+    if (const auto set = determine_numeric_set(term);
+        set == number_set::real_non_negative || set == number_set::real_positive) {
+      non_negative_terms.push_back(pow(term, exp));
+    } else {
+      remaining_terms.push_back(term);
+    }
+  }
+
+  if (non_negative_terms.empty()) {
+    return std::nullopt;
+  } else if (remaining_terms.empty()) {
+    return multiplication::from_operands(non_negative_terms);
+  } else {
+    return multiplication::from_operands(non_negative_terms) *
+           pow(multiplication::from_operands(remaining_terms), exp);
+  }
+}
+
+scalar_expr power::create(scalar_expr base, scalar_expr exp) {
   // Check for numeric quantities.
-  if (std::optional<scalar_expr> numeric_pow = visit_binary(a, b, power_numerics_visitor{});
+  if (std::optional<scalar_expr> numeric_pow = visit_binary(base, exp, power_numerics_visitor{});
       numeric_pow.has_value()) {
     return *std::move(numeric_pow);
   }
 
-  if ((is_one(a) || is_negative_one(a)) && is_complex_infinity(b)) {
+  if ((is_one(base) || is_negative_one(base)) && is_complex_infinity(exp)) {
     // 1^∞ (for any type of infinity) is undefined
     return constants::undefined;
   }
 
-  if (is_i(a)) {
-    if (std::optional<scalar_expr> imaginary_pow = visit(b, power_imaginary_visitor{});
+  // The base is the imaginary constant.
+  if (is_i(base)) {
+    if (std::optional<scalar_expr> imaginary_pow = visit(exp, power_imaginary_visitor{});
         imaginary_pow.has_value()) {
       return *std::move(imaginary_pow);
     }
   }
 
   // Check if the base is itself a power:
-  if (const power* a_pow = cast_ptr<const power>(a); a_pow != nullptr) {
-    if (can_multiply_exponents(*a_pow, b)) {
-      return power::create(a_pow->base(), a_pow->exponent() * b);
+  if (const power* a_pow = cast_ptr<const power>(base); a_pow != nullptr) {
+    if (can_multiply_exponents(*a_pow, exp)) {
+      return power::create(a_pow->base(), a_pow->exponent() * exp);
     }
   }
 
   // Check for zeroes:
-  if (is_zero(a)) {
-    if (is_complex_infinity(b)) {
+  if (is_zero(base)) {
+    if (is_complex_infinity(exp)) {
       return constants::undefined;
     }
     // TODO: Check for `b > 0`, then 0**b --> 0
-  } else if (is_zero(b)) {
+  } else if (is_zero(exp)) {
     // x^0 -> 1
     return constants::one;
-  } else if (is_one(b)) {
+  } else if (is_one(exp)) {
     // x^1 -> x
-    return a;
+    return base;
   }
 
-  // Check if the base is a multiplication.
-  // In this case, we convert to a multiplication of powers:
-  // TODO: Should we only do this distribution for integer powers?
-  if (const multiplication* const mul = cast_ptr<const multiplication>(a); mul != nullptr) {
-    auto args = transform_map<std::vector>(
-        *mul, [&b](const scalar_expr& arg) { return power::create(arg, b); });
-    return multiplication::from_operands(args);
+  // Check if the base is a multiplication and the exponent is an integer.
+  // In this case, we convert to a multiplication of powers.
+  if (const multiplication* const mul = cast_ptr<const multiplication>(base); mul != nullptr) {
+    if (exp.is_type<integer_constant>()) {
+      const auto args = transform_map<std::vector>(
+          *mul, [&exp](const scalar_expr& arg) { return power::create(arg, exp); });
+      return multiplication::from_operands(args);
+    } else if (exp.is_type<rational_constant>()) {
+      if (auto result = maybe_distribute_rational_exponent(*mul, exp); result.has_value()) {
+        return *std::move(result);
+      }
+    }
   }
-  return make_expr<power>(std::move(a), std::move(b));
+  return make_expr<power>(std::move(base), std::move(exp));
+}
+
+scalar_expr pow(scalar_expr base, scalar_expr exp) {
+  return power::create(std::move(base), std::move(exp));
 }
 
 std::pair<scalar_expr, scalar_expr> as_base_and_exp(const scalar_expr& expr) {

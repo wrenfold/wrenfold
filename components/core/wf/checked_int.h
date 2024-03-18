@@ -191,6 +191,12 @@ constexpr checked_int abs(const T x) {
   return x;
 }
 
+// Greatest common divisor via std::gcd.
+// Throw if conversion from negative to positive would exceed range of numeric type.
+constexpr checked_int gcd(const checked_int a, const checked_int b) {
+  return std::gcd(abs(a).value(), abs(b).value());
+}
+
 // Hashing of integers.
 template <>
 struct hash_struct<checked_int> {

@@ -242,8 +242,7 @@ struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, 
 
       // Break into parts:
       addition_parts parts{*add_exp};
-      auto it = parts.terms.find(target_exp_mul);
-      if (it != parts.terms.end()) {
+      if (auto it = parts.terms.find(target_exp_mul); it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
         const scalar_expr ratio = it->second / target_exp_coeff;
         if (const integer_constant* const as_int = cast_ptr<const integer_constant>(ratio);

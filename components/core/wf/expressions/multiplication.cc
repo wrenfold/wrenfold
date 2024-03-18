@@ -42,7 +42,7 @@ scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> ar
     return args.front();
   }
 
-  if (std::any_of(args.begin(), args.end(), &is_undefined)) {
+  if (any_of(args, &is_undefined)) {
     return constants::undefined;
   }
 
@@ -222,9 +222,8 @@ scalar_expr multiplication_parts::create_multiplication() const {
   // Consider any other numerical terms, if we didn't add infinity in.
   if (!num_infinities) {
     if (float_coeff.has_value()) {
-      const float_constant promoted_rational = static_cast<float_constant>(rational_term);
       args.emplace_back(std::in_place_type_t<float_constant>(),
-                        float_coeff.value() * promoted_rational);
+                        float_coeff.value() * static_cast<float_constant>(rational_term));
     } else if (rational_term.is_one()) {
       // Don't insert a useless one in the multiplication.
     } else {

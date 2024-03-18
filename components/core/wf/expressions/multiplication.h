@@ -108,7 +108,7 @@ std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr);
 // Helper object used to execute multiplications.
 struct multiplication_parts {
   multiplication_parts() = default;
-  explicit multiplication_parts(std::size_t capacity) { terms.reserve(capacity); }
+  explicit multiplication_parts(const std::size_t capacity) { terms.reserve(capacity); }
 
   // Construct from existing multiplication.
   explicit multiplication_parts(const multiplication& mul, bool factorize_integers);

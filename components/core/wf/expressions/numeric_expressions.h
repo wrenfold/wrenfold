@@ -67,7 +67,7 @@ class rational_constant {
       : rational_constant(create_pair(n, d)) {}
 
   // Construct a rational from an integer value.
-  explicit constexpr rational_constant(const integer_constant& integer) noexcept
+  explicit constexpr rational_constant(const integer_constant integer) noexcept
       : n_(integer.get_value()), d_(1) {}
 
   // Access numerator and denominator.
@@ -89,10 +89,13 @@ class rational_constant {
   // True if negative (only the numerator may be < 0).
   constexpr bool is_negative() const noexcept { return n_ < 0; }
 
+  // True if the rational is actually an integer in disguise.
+  constexpr bool is_integer() const noexcept { return n_ % d_ == 0; }
+
   // Try converting the rational to an integer. If the numerator and denominator divide
   // evenly, returns a valid optional.
   constexpr std::optional<integer_constant> try_convert_to_integer() const noexcept {
-    if (n_ % d_ == 0) {
+    if (is_integer()) {
       return {integer_constant(n_ / d_)};
     }
     return {};

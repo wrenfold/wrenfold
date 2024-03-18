@@ -252,15 +252,17 @@ scalar_expr derivative_visitor::operator()(const iverson_bracket&, const scalar_
 }
 
 scalar_expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
+
 scalar_expr derivative_visitor::operator()(const power& pow) {
-  const scalar_expr& a = pow.base();
-  const scalar_expr& b = pow.exponent();
-  const scalar_expr a_diff = apply(a);
-  const scalar_expr b_diff = apply(b);
-  if (is_zero(a_diff) && is_zero(b_diff)) {
+  const scalar_expr& base = pow.base();
+  const scalar_expr& exp = pow.exponent();
+  const scalar_expr base_diff = apply(base);
+  const scalar_expr exp_diff = apply(exp);
+  if (is_zero(base_diff) && is_zero(exp_diff)) {
     return constants::zero;
   }
-  return b * power::create(a, b - constants::one) * a_diff + power::create(a, b) * log(a) * b_diff;
+  return exp * power::create(base, exp - constants::one) * base_diff +
+         power::create(base, exp) * log(base) * exp_diff;
 }
 
 scalar_expr derivative_visitor::operator()(const rational_constant&) const {
