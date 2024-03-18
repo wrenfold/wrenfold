@@ -326,6 +326,9 @@ TEST(ScalarOperationsTest, TestPowerDistribution) {
 
   // Allow distribution with rationals when terms are non-negative:
   ASSERT_IDENTICAL(abs(v) * make_pow(y, 1_s / 2), sqrt(abs(v) * abs(v) * y));
+  ASSERT_IDENTICAL(w * 3 * make_pow(y, 1_s / 2), sqrt(w * w * y * 9));
+  ASSERT_IDENTICAL(u * pow(0.5, 1_s / 4) * make_pow(y, 1_s / 4),
+                   pow(u * u * u * u * y * 0.5, 1_s / 4));
   ASSERT_IDENTICAL(sqrt(5) * make_pow(y, 1_s / 2), sqrt(5 * y));
   ASSERT_IDENTICAL(sqrt(w) * sqrt(u) * sqrt(x), sqrt(w * u * x));
   ASSERT_IDENTICAL(sqrt(w) * sqrt(u) * sqrt(-x), sqrt(w * u * -x));

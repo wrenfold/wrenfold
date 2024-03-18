@@ -78,7 +78,7 @@ struct power_numerics_visitor {
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
     const auto pow = integer_power(base.get_value(), exp.get_value());
-    return scalar_expr(pow);
+    return {pow};
   }
 
   // If the left operand is a rational and right operand is integer:
@@ -102,6 +102,7 @@ struct power_numerics_visitor {
     }
   }
 
+  // A power of the form base**exponent, where both values are integers.
   struct int_base_and_exponent {
     checked_int base{0};
     checked_int exponent{0};
@@ -373,7 +374,7 @@ static bool can_multiply_exponents(const power& base_pow, const scalar_expr& out
 // all the non-negative terms.
 static std::optional<scalar_expr> maybe_distribute_rational_exponent(const multiplication& mul,
                                                                      const scalar_expr& exp) {
-  std::vector<scalar_expr> non_negative_terms, remaining_terms{};
+  std::vector<scalar_expr> non_negative_terms, remaining_terms;
   non_negative_terms.reserve(mul.size());
   remaining_terms.reserve(mul.size());
 
@@ -392,7 +393,7 @@ static std::optional<scalar_expr> maybe_distribute_rational_exponent(const multi
     return multiplication::from_operands(non_negative_terms);
   } else {
     return multiplication::from_operands(non_negative_terms) *
-           pow(multiplication::from_operands(remaining_terms), std::move(exp));
+           pow(multiplication::from_operands(remaining_terms), exp);
   }
 }
 
