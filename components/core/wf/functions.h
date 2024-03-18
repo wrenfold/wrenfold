@@ -8,8 +8,8 @@ namespace wf {
 // Natural log.
 scalar_expr log(const scalar_expr& arg);
 
-// Power.
-scalar_expr pow(const scalar_expr& b, const scalar_expr& e);
+// Power. Implemented in `power.cc`.
+scalar_expr pow(scalar_expr base, scalar_expr exp);
 
 // Cosine.
 scalar_expr cos(const scalar_expr& arg);

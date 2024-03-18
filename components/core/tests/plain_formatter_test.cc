@@ -79,13 +79,13 @@ TEST(PlainFormatterTest, TestPower) {
   ASSERT_STR_EQ("8", pow(2, 3));
   ASSERT_STR_EQ("(x + y) ** z", pow(x + y, z));
   ASSERT_STR_EQ("x ** (-y + z)", pow(x, z - y));
-  ASSERT_STR_EQ("x ** z * y ** z", pow(y * x, z));
-  ASSERT_STR_EQ("x ** (z / y) * y ** (z / y)", pow(y * x, z / y));
+  ASSERT_STR_EQ("(x * y) ** z", pow(y * x, z));
+  ASSERT_STR_EQ("(x * y) ** (z / y)", pow(y * x, z / y));
   ASSERT_STR_EQ("(-y + x * y) ** (x + y + z)", pow(y * x - y, z + y + x));
   ASSERT_STR_EQ("y ** (x ** z)", pow(y, pow(x, z)));
   ASSERT_STR_EQ("(x ** (-x + y)) ** (x ** (-3 * z / 7))", pow(pow(x, y - x), pow(x, 3 * z / -7_s)));
-  ASSERT_STR_EQ("-5 ** (2 / 3) * 7 ** (2 / 3) + x - y * z",
-                pow(5 * 7, 2 / 3_s) * constants::negative_one + x - y * z);
+  ASSERT_STR_EQ("x - y * z - 35 ** (2 / 3)",
+                pow(35, 2 / 3_s) * constants::negative_one + x - y * z);
   ASSERT_STR_EQ("-I ** (3 / 2)", pow(constants::imaginary_unit, 7_s / 2));
 
   // Make sure we add brackets when the base is a negative number:

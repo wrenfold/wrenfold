@@ -85,8 +85,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('cosh(x) * sinh(z)', sym.cosh(x) * sym.sinh(z))
         self.assertReprEqual('2 + tanh(z)', 2 + sym.tanh(z))
         self.assertReprEqual('x ** (1 / 2)', sym.sqrt(x))
-        self.assertReprEqual('3 ** (1 / 2) * 7 ** (1 / 2) * x ** (1 / 2) * (z ** (-1)) ** (1 / 2)',
-                             sym.sqrt(21 * x / z))
+        self.assertReprEqual('21 ** (1 / 2) * (x / z) ** (1 / 2)', sym.sqrt(21 * x / z))
         self.assertReprEqual('atan2(y, x)', sym.atan2(y, x))
         self.assertReprEqual('abs(x)', sym.abs(x))
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))

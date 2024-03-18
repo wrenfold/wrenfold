@@ -2,7 +2,7 @@
 Test of matrix-specific functionality.
 
 These tests are here to make sure that wrapped methods behave as expected, and that we
-don't accidentally remove any. Algorithmic tests are in C++.
+don't accidentally remove any wrappers. Algorithmic tests are in C++.
 """
 import numpy as np
 import typing as T

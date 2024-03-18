@@ -74,10 +74,9 @@ TEST(DerivativesTest, TestPower) {
   ASSERT_IDENTICAL(pow(y, w) * pow(log(y), 2), pow(y, w).diff(w, 2));
   ASSERT_IDENTICAL(pow(y, w) * pow(log(y), 3), pow(y, w).diff(w, 3));
   ASSERT_IDENTICAL(pow(x, x) * log(x) + pow(x, x), pow(x, x).diff(x));
-
-  const scalar_expr coeff = (5 / 7_s) * pow(2, (5 / 7_s) * x) * pow(x, (5 / 7_s) * x);
-  ASSERT_IDENTICAL((coeff * (1 + log(2) + log(x))).distribute(),
-                   pow(x * 2, x * 5 / 7_s).diff(x).distribute());
+  ASSERT_IDENTICAL(
+      sin(x) * pow(cos(x), sin(x) - 1) * -sin(x) + pow(cos(x), sin(x)) * log(cos(x)) * cos(x),
+      pow(cos(x), sin(x)).diff(x));
 }
 
 TEST(DerivativesTest, TestLog) {

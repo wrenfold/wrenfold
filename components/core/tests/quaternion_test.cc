@@ -420,7 +420,9 @@ TEST(QuaternionTest, TestToAxisAngle) {
 }
 
 TEST(QuaternionTest, TestToRotationVector) {
-  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const scalar_expr x{"x", number_set::real};
+  const scalar_expr y{"y", number_set::real};
+  const scalar_expr z{"z", number_set::real};
   const quaternion Q = quaternion::from_rotation_vector(x, y, z, std::nullopt);
   const matrix_expr w = Q.to_rotation_vector(std::nullopt);
 

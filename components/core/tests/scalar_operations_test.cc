@@ -16,6 +16,18 @@ static_assert(std::is_nothrow_move_constructible_v<scalar_expr> &&
                   std::is_nothrow_move_assignable_v<scalar_expr>,
               "Should be movable");
 
+// Make power (no simplifications allowed).
+template <typename... Args>
+auto make_pow(Args&&... args) {
+  return make_expr<power>(std::forward<Args>(args)...);
+}
+
+// Make multiplication.
+template <typename... Args>
+auto make_mul(Args&&... args) {
+  return make_expr<multiplication>(multiplication::container_type{std::forward<Args>(args)...});
+}
+
 TEST(ScalarOperationsTest, TestNumericConstructors) {
   ASSERT_IDENTICAL(constants::one, scalar_expr{1});
 
@@ -96,7 +108,8 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   const scalar_expr y{"y"};
   const scalar_expr z{"z"};
   ASSERT_TRUE((x * y).is_type<multiplication>());
-  ASSERT_IDENTICAL(x * y, x * y);
+  ASSERT_IDENTICAL(make_mul(x, y), x * y);
+  ASSERT_IDENTICAL(make_mul(x, y, z), x * y * z);
   ASSERT_EQ("Multiplication", (x * y).type_name());
   ASSERT_EQ(precedence::multiplication, get_precedence(x * y));
 
@@ -135,10 +148,9 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), x * y * x * y);
   ASSERT_IDENTICAL(1, pow(x, 2) * pow(x, -2));
   ASSERT_IDENTICAL(x * pow(y, 2) * pow(log(z), 3), log(z) * y * x * log(z) * y * log(z));
-  ASSERT_IDENTICAL(x * pow(3, 2 / 3_s) * pow(11, 2 / 3_s) / 33,
-                   pow(33, -2 / 3_s) * pow(33, 1 / 3_s) * x);
+  ASSERT_IDENTICAL(x * make_pow(33, 2_s / 3) / 33, pow(33, -2 / 3_s) * pow(33, 1 / 3_s) * x);
   ASSERT_IDENTICAL(x, sqrt(x) * sqrt(x));
-  ASSERT_IDENTICAL(pow(x, 3 / 2_s), sqrt(x) * sqrt(x) * sqrt(x));
+  ASSERT_IDENTICAL(make_pow(x, 3 / 2_s), sqrt(x) * sqrt(x) * sqrt(x));
 
   // Normalization of powers of integers:
   ASSERT_IDENTICAL(2 * pow(2, 1 / 7_s), pow(2, 3 / 7_s) * pow(2, 5 / 7_s));
@@ -204,7 +216,7 @@ TEST(ScalarOperationsTest, TestMultiplicationUndefined) {
 
 TEST(ScalarOperationsTest, TestNegation) {
   const scalar_expr x{"x"};
-  ASSERT_IDENTICAL(-x, -x);
+  ASSERT_IDENTICAL(make_mul(-1, x), -x);
   ASSERT_TRUE((-x).is_type<multiplication>());
   ASSERT_IDENTICAL(-(-x), x);
   ASSERT_IDENTICAL(-(-(-x)), -x);
@@ -214,7 +226,7 @@ TEST(ScalarOperationsTest, TestDivision) {
   const scalar_expr x{"x"};
   const scalar_expr y{"y"};
   const scalar_expr z{"z"};
-  ASSERT_IDENTICAL(x / y, x / y);
+  ASSERT_IDENTICAL(make_mul(x, make_pow(y, -1)), x / y);
   ASSERT_TRUE((x / y).is_type<multiplication>());
   ASSERT_EQ(precedence::multiplication, get_precedence(x / y));
   ASSERT_NOT_IDENTICAL(y / x, x / y);
@@ -269,96 +281,125 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
 
 TEST(ScalarOperationsTest, TestPower) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
-  const scalar_expr w{"w", number_set::real_non_negative};
-  const scalar_expr u{"u", number_set::real_positive};
-  const scalar_expr v{"v", number_set::real};
 
-  ASSERT_IDENTICAL(pow(x, y), pow(x, y));
+  ASSERT_IDENTICAL(make_pow(x, y), pow(x, y));
   ASSERT_NOT_IDENTICAL(pow(x, y), pow(y, x));
   ASSERT_IDENTICAL(as_base_and_exp(pow(x, y)).first, x);
   ASSERT_IDENTICAL(as_base_and_exp(pow(x, y)).second, y);
   ASSERT_EQ("Power", pow(x, y).type_name());
+  ASSERT_EQ(precedence::power, get_precedence(pow(x, y)));
 
   // Powers don't get combined automatically (for variable exponents):
   ASSERT_IDENTICAL(as_base_and_exp(pow(pow(x, y), z)).first, pow(x, y));
   ASSERT_IDENTICAL(as_base_and_exp(pow(pow(x, y), z)).second, z);
 
-  // Powers of expressions to constants:
+  // Raised to power 0 or 1:
   ASSERT_IDENTICAL(1, pow(x * y, 0));
   ASSERT_IDENTICAL(x + y, pow(x + y, 1));
 
   // Should not get simplified, because we can't make assumptions about y+z.
-  ASSERT_NOT_IDENTICAL(0, pow(0, y + z));
+  ASSERT_IDENTICAL(make_pow(0, y + z), pow(0, y + z));
+}
 
-  // Numeric simplification rules:
-  ASSERT_IDENTICAL(1, pow(1, 1));
-  ASSERT_IDENTICAL(8, pow(2, 3));
-  ASSERT_IDENTICAL(-243_s, pow(-3, 5));
-  ASSERT_IDENTICAL(0, pow(0, 10));
-  ASSERT_IDENTICAL(1 / 8_s, pow(2, -3));
-  ASSERT_IDENTICAL(25 / 64_s, pow(5 / 8_s, 2));
-  ASSERT_IDENTICAL(343 / 729_s, pow(9 / 7_s, -3));
-  ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));
+TEST(ScalarOperationsTest, TestPowerDistribution) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const scalar_expr w{"w", number_set::real_non_negative};
+  const scalar_expr u{"u", number_set::real_positive};
+  const scalar_expr v{"v", number_set::real};
+  const scalar_expr a{"a", number_set::real};
+  const scalar_expr b{"b", number_set::real};
+  const scalar_expr c{"c", number_set::real};
 
-  // Floats...
-  ASSERT_IDENTICAL(scalar_expr{std::pow(2.0, 4.5)}, pow(2, 4.5));
-  ASSERT_IDENTICAL(scalar_expr{std::pow(1.122, 6.0)}, pow(1.122, 6));
-  ASSERT_IDENTICAL(scalar_expr{std::pow(6.7, -0.5)}, pow(6.7, -0.5));
+  // Distribute over integer powers:
+  ASSERT_IDENTICAL(pow(3, 2) * pow(x, 2), pow(3 * x, 2));
+  ASSERT_IDENTICAL(pow(x, 3) * pow(y, 3) * pow(z, 3), pow(x * y * z, 3));
+  ASSERT_IDENTICAL(pow(x, -2) * pow(z, -2), pow(x * z, -2));
+  ASSERT_IDENTICAL(pow(constants::pi, 4) * pow(sin(z), 4), pow(constants::pi * sin(z), 4));
 
-  // Rational powers of integers:
-  ASSERT_IDENTICAL(0, pow(0, 6_s / 11));
-  ASSERT_IDENTICAL(1, pow(1, 7_s / 9));
-  ASSERT_IDENTICAL(1, pow(1, -3_s / 22));
-  ASSERT_IDENTICAL(pow(3, 3 / 4_s), pow(3, 3 / 4_s));
-  ASSERT_IDENTICAL(3 * pow(3, 1 / 3_s), pow(3, 4 / 3_s));
-  ASSERT_IDENTICAL(3 * pow(3, 1 / 3_s), pow(9, 2 / 3_s));
-  ASSERT_IDENTICAL(pow(7, 7 / 9_s) * pow(3, 7 / 9_s) * pow(2, 7 / 9_s), pow(42, 7 / 9_s));
-  ASSERT_IDENTICAL(5929 * pow(7, 1 / 8_s) * pow(11, 1 / 8_s), pow(77, 17 / 8_s));
+  // Do not distribute over non-integer powers:
+  ASSERT_IDENTICAL(x, pow(sqrt(x), 2));
+  ASSERT_IDENTICAL(make_pow(3 * z, x), pow(3 * z, x));
+  ASSERT_IDENTICAL(make_pow(x * z, 2_s / 3), pow(x * z, 2_s / 3));
+  ASSERT_IDENTICAL(make_pow(x * z, -0.276_s), pow(x * z, -0.276));
+  ASSERT_IDENTICAL(make_pow(x * z, sin(z)), pow(x * z, sin(z)));
+  ASSERT_IDENTICAL(make_pow(x * z, -constants::pi), pow(x * z, -constants::pi));
 
-  // Negative rational powers:
-  ASSERT_IDENTICAL(pow(2, -4 / 5_s), pow(2, -4 / 5_s));
-  ASSERT_IDENTICAL((1 / 2_s) * pow(2, -2 / 5_s), pow(2, -7 / 5_s));
-  ASSERT_IDENTICAL((1 / 5_s) * pow(5, -1 / 11_s), pow(5, -12 / 11_s));
-  ASSERT_IDENTICAL((1 / 8281_s) * pow(7, 2 / 3_s) * pow(13, 2 / 3_s), pow(91, -4 / 3_s));
+  // Allow distribution with rationals when terms are non-negative:
+  ASSERT_IDENTICAL(abs(v) * make_pow(y, 1_s / 2), sqrt(abs(v) * abs(v) * y));
+  ASSERT_IDENTICAL(sqrt(5) * make_pow(y, 1_s / 2), sqrt(5 * y));
+  ASSERT_IDENTICAL(sqrt(w) * sqrt(u) * sqrt(x), sqrt(w * u * x));
+  ASSERT_IDENTICAL(sqrt(w) * sqrt(u) * sqrt(-x), sqrt(w * u * -x));
+  ASSERT_IDENTICAL(pow(2, 3_s / 5) * pow(w, 3_s / 5) * pow(x * y, 3_s / 5),
+                   pow(w * x * y * 2, 3_s / 5));
 
-  // Outer power is an integer:
-  ASSERT_IDENTICAL(pow(x, y * 2), pow(pow(x, y), 2));
-  ASSERT_IDENTICAL(pow(x, y * 27), pow(pow(x, y * 3), 9));
-  ASSERT_IDENTICAL(pow(x, 35_s / 6), pow(pow(x, 7 / 6_s), 5));
-  ASSERT_IDENTICAL(pow(x, 5.01 * 4), pow(pow(x, 5.01), 4));
-  ASSERT_IDENTICAL(pow(x, 3 * y + 3 * z), pow(pow(x, y + z), 3));
-  ASSERT_IDENTICAL(pow(x, -y), 1 / pow(x, y));
+  ASSERT_IDENTICAL(sqrt(a * a + b * b + c * c) * sqrt(pow(v, -2)),
+                   pow((a * a + b * b + c * c) / (v * v), 1_s / 2));
+}
 
-  // Inner exponent is a proper rational:
-  ASSERT_IDENTICAL(pow(x, 2 / 5_s), pow(pow(x, 1 / 5_s), 2));
-  ASSERT_IDENTICAL(pow(x, 6 / 55_s), pow(pow(x, 2 / 11_s), 3_s / 5));
-  ASSERT_IDENTICAL(pow(x, 3 / 4_s * z), pow(pow(x, 3 / 4_s), z));
-  ASSERT_IDENTICAL(pow(x, -1 / 2_s), 1 / sqrt(x));
-  ASSERT_IDENTICAL(pow(x, z / 3 + 2 / 3_s), pow(pow(x, 1 / 3_s), z + 2));
+// Test combining powers when outer exponent is an integer.
+TEST(ScalarOperationsTest, TestPowerCombinationInt) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+
+  ASSERT_IDENTICAL(make_pow(x, y * 2), pow(pow(x, y), 2));
+  ASSERT_IDENTICAL(make_pow(x, y * 27), pow(pow(x, y * 3), 9));
+  ASSERT_IDENTICAL(make_pow(x, 35_s / 6), pow(pow(x, 7 / 6_s), 5));
+  ASSERT_IDENTICAL(make_pow(x, 5.01 * 4), pow(pow(x, 5.01), 4));
+  ASSERT_IDENTICAL(make_pow(x, 3 * y + 3 * z), pow(pow(x, y + z), 3));
+  ASSERT_IDENTICAL(make_pow(x, -y), 1 / pow(x, y));
+}
+
+// Inner exponent is a proper rational:
+TEST(ScalarOperationsTest, TestPowerProperRational) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+
+  ASSERT_IDENTICAL(make_pow(x, 2 / 5_s), pow(pow(x, 1 / 5_s), 2));
+  ASSERT_IDENTICAL(make_pow(x, 6 / 55_s), pow(pow(x, 2 / 11_s), 3_s / 5));
+  ASSERT_IDENTICAL(make_pow(x, 3 / 4_s * z), pow(pow(x, 3 / 4_s), z));
+  ASSERT_IDENTICAL(make_pow(x, -1 / 2_s), 1 / sqrt(x));
+  ASSERT_IDENTICAL(make_pow(x, z / 3 + 2 / 3_s), pow(pow(x, 1 / 3_s), z + 2));
+}
+
+TEST(ScalarOperationsTest, TestPowerCombinationFloat) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
 
   // Inner exponent is a float <= 1:
-  ASSERT_IDENTICAL(pow(x, 0.25), pow(pow(x, 1 / 2_s), 0.5));
-  ASSERT_IDENTICAL(pow(x, 3.0), pow(pow(x, 1.0), 3));
-  ASSERT_IDENTICAL(pow(x, -0.3412 * 4), pow(pow(x, -0.3412), 4));
-  ASSERT_IDENTICAL(pow(x, 0.42 * y), pow(pow(x, 0.42), y));
-  ASSERT_IDENTICAL(pow(x, 0.77 * z - 0.77 * 4), pow(pow(x, 0.77), z - 4));
+  ASSERT_IDENTICAL(make_pow(x, 0.25), pow(pow(x, 1 / 2_s), 0.5));
+  ASSERT_IDENTICAL(make_pow(x, 3.0), pow(pow(x, 1.0), 3));
+  ASSERT_IDENTICAL(make_pow(x, -0.3412 * 4), pow(pow(x, -0.3412), 4));
+  ASSERT_IDENTICAL(make_pow(x, 0.42 * y), pow(pow(x, 0.42), y));
+  ASSERT_IDENTICAL(make_pow(x, 0.77 * z - 0.77 * 4), pow(pow(x, 0.77), z - 4));
 
   // Cannot simplify if the inner power is >= 1
-  ASSERT_NOT_IDENTICAL(x, pow(pow(x, 2), 1 / 2_s));
-  ASSERT_NOT_IDENTICAL(x, pow(pow(x, 4), 1 / 4_s));
-  ASSERT_NOT_IDENTICAL(pow(x, -2), pow(pow(x, 14), -1 / 7_s));
-  ASSERT_NOT_IDENTICAL(pow(x, 2 * z), pow(pow(x, 2), z));
-  ASSERT_TRUE(cast_checked<const power>(pow(pow(x, 1.52), 2.0)).base().is_type<power>());
-  ASSERT_TRUE(cast_checked<const power>(pow(pow(x, -1.01), 5 / 7_s)).base().is_type<power>());
+  ASSERT_IDENTICAL(make_pow(make_pow(x, 2), 1 / 2_s), pow(pow(x, 2), 1 / 2_s));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, 4), 1 / 4_s), pow(pow(x, 4), 1 / 4_s));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, 14), -1 / 7_s), pow(pow(x, 14), -1 / 7_s));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, 2), z), pow(pow(x, 2), z));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, 1.52), 2.0), pow(pow(x, 1.52), 2.0));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, -1.01), 5 / 7_s), pow(pow(x, -1.01), 5 / 7_s));
+}
 
-  // Inner power is -1
-  ASSERT_NOT_IDENTICAL(pow(x, -1 / 2_s), sqrt(1 / x));
-  ASSERT_NOT_IDENTICAL(pow(x, 1 / 2_s) * pow(z, -1 / 2_s), sqrt(x / z));
+// Inner power is negative
+TEST(ScalarOperationsTest, TestPowerCombinationNegativeInnerPower) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(make_pow(make_pow(x, -1), 1 / 2_s), sqrt(1 / x));
+  ASSERT_IDENTICAL(make_pow(make_mul(x, make_pow(y, -1)), 1 / 2_s), sqrt(x / y));
+  ASSERT_IDENTICAL(make_pow(make_pow(y, -3), 1_s / 5), pow(1 / pow(y, 3), 1_s / 5));
+}
+
+TEST(ScalarOperationsTest, TestPowerCombinationNonConstant) {
+  const auto [x, y] = make_symbols("x", "y");
 
   // Cannot simplify if the inner exponent is not a constant:
-  ASSERT_NOT_IDENTICAL(pow(x, y / 14_s), pow(pow(x, y * 2 / 7_s), 1 / 2_s));
-  ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y / 2), 1 / 2_s));
-  ASSERT_NOT_IDENTICAL(pow(x, y / 4), pow(pow(x, y), 1 / 4_s));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, y * 2 / 7_s), 1 / 2_s), pow(pow(x, y * 2 / 7_s), 1 / 2_s));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, y / 2), 1 / 2_s), pow(pow(x, y / 2), 1 / 2_s));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, y), 1 / 4_s), pow(pow(x, y), 1 / 4_s));
+}
+
+TEST(ScalarOperationsTest, TestPowerCombinationInnerNonNegative) {
+  const auto [x] = make_symbols("x");
+  const scalar_expr w{"w", number_set::real_non_negative};
+  const scalar_expr u{"u", number_set::real_positive};
+  const scalar_expr v{"v", number_set::real};
 
   // Simplifications when the inner value is non-negative:
   for (const scalar_expr& s : {w, u}) {
@@ -369,11 +410,149 @@ TEST(ScalarOperationsTest, TestPower) {
   }
   ASSERT_IDENTICAL(pow(abs(v), 5 * x / 3), pow(pow(abs(v), 5 / 3_s), x));
   ASSERT_IDENTICAL(abs(v), pow(pow(abs(v), 2), 1_s / 2));
+}
 
-  // Powers of multiplications:
-  ASSERT_IDENTICAL(pow(x, 2) * pow(y, 2), pow(x * y, 2));
-  ASSERT_IDENTICAL(pow(x, z) * pow(y, z), pow(x * y, z));
-  ASSERT_IDENTICAL(pow(x, 3_s / 8 * z) * pow(y, 3_s / 8 * z), pow(x * y, 3_s / 8 * z));
+// Test: int**int
+TEST(ScalarOperationsTest, TestPowerIntToInt) {
+  ASSERT_IDENTICAL(1, pow(1, 1));
+  ASSERT_IDENTICAL(8, pow(2, 3));
+  ASSERT_IDENTICAL(-243_s, pow(-3, 5));
+  ASSERT_IDENTICAL(0, pow(0, 10));
+  ASSERT_IDENTICAL(1, pow(-5, 0));
+  ASSERT_IDENTICAL(1 / 8_s, pow(2, -3));
+  ASSERT_IDENTICAL(1 / 5_s, pow(5, -1));
+  ASSERT_IDENTICAL(constants::complex_infinity, pow(0, -1));
+  ASSERT_IDENTICAL(constants::complex_infinity, pow(0, -2));
+  ASSERT_IDENTICAL(constants::undefined, pow(0, 0));
+}
+
+// Test: rational**int
+TEST(ScalarOperationsTest, TestPowerRationalToInt) {
+  ASSERT_IDENTICAL(25 / 64_s, pow(5 / 8_s, 2));
+  ASSERT_IDENTICAL(343 / 729_s, pow(9 / 7_s, -3));
+  ASSERT_IDENTICAL(1, pow(-2_s / 3, 0));
+}
+
+// Test: float**numerical or numerical**float
+TEST(ScalarOperationsTest, TestPowerFloats) {
+  // If either quantity is a float, a floating point pow is performed.
+  ASSERT_IDENTICAL(std::pow(2.0, 4.5), pow(2, 4.5));
+  ASSERT_IDENTICAL(std::pow(-3.0, 5.0), pow(-3.0, 5));
+  ASSERT_IDENTICAL(std::pow(1.122, 6.0), pow(1.122, 6));
+  ASSERT_IDENTICAL(std::pow(6.7, -0.5), pow(6.7, -0.5));
+  ASSERT_IDENTICAL(0.0, pow(0, 1.3));
+  ASSERT_IDENTICAL(1.0, pow(1.5, 0));
+  ASSERT_IDENTICAL(std::pow(0.5, 3.4), pow(1_s / 2, 3.4));
+  ASSERT_IDENTICAL(std::pow(2.2, 0.75), pow(2.2, 3_s / 4));
+  ASSERT_IDENTICAL(constants::complex_infinity, pow(0.0, -1));
+}
+
+// Test: int**rational
+TEST(ScalarOperationsTest, TestPowerIntToRational) {
+  const auto& i = constants::imaginary_unit;
+
+  ASSERT_IDENTICAL(0, pow(0, 6_s / 11));
+  ASSERT_IDENTICAL(1, pow(1, 7_s / 9));
+  ASSERT_IDENTICAL(1, pow(1, -3_s / 22));
+  ASSERT_IDENTICAL(3, as_base_and_exp(pow(3, 3 / 4_s)).first);
+  ASSERT_IDENTICAL(3 * pow(3, 1 / 3_s), pow(3, 4 / 3_s));
+  ASSERT_IDENTICAL(3 * pow(3, 1 / 3_s), pow(9, 2 / 3_s));
+  ASSERT_IDENTICAL(make_pow(42, 7_s / 9), pow(42, 7 / 9_s));
+  ASSERT_IDENTICAL(make_pow(-42, 7_s / 9), pow(-42, 7 / 9_s));
+  ASSERT_IDENTICAL(177147 * make_pow(3, 1_s / 4), pow(243, 9_s / 4));
+  ASSERT_IDENTICAL(177147 * make_pow(-3, 1_s / 4), pow(-243, 9_s / 4));
+
+  // Positive rational powers that involve factorization:
+  ASSERT_IDENTICAL(make_pow(77, 1_s / 8), pow(77, 1 / 8_s));
+  ASSERT_IDENTICAL(make_pow(77, 3_s / 8), pow(77, 3 / 8_s));
+  ASSERT_IDENTICAL(5929 * make_pow(77, 1_s / 8), pow(77, 17 / 8_s));
+
+  ASSERT_IDENTICAL(2 * sqrt(3) * make_pow(5, 1_s / 6), pow(8640, 1_s / 6));
+  ASSERT_IDENTICAL(288 * sqrt(3) * make_pow(5, 5_s / 6), pow(8640, 5_s / 6));
+  ASSERT_IDENTICAL(17280 * sqrt(3) * make_pow(5, 1_s / 6), pow(8640, 7_s / 6));
+
+  ASSERT_IDENTICAL(make_pow(735, 1_s / 5), pow(735, 1_s / 5));
+  ASSERT_IDENTICAL(make_pow(-735, 1_s / 5), pow(-735, 1_s / 5));
+  ASSERT_IDENTICAL(7 * make_pow(-1, 4_s / 5) * make_pow(17364375, 1_s / 5), pow(-735, 4_s / 5));
+  ASSERT_IDENTICAL(-735 * make_pow(-735, 1_s / 5), pow(-735, 6_s / 5));
+  ASSERT_IDENTICAL(540225 * make_pow(-735, 1_s / 5), pow(-735, 11_s / 5));
+
+  ASSERT_IDENTICAL(sqrt(11_s) * make_pow(5, 1_s / 6) * make_pow(1183, 1_s / 3),
+                   pow(5 * pow(7_s, 2) * pow(11_s, 3) * pow(13_s, 4), 1_s / 6));
+  ASSERT_IDENTICAL(sqrt(11_s) * make_pow(-5, 1_s / 6) * make_pow(1183, 1_s / 3),
+                   pow(-5 * pow(7_s, 2) * pow(11_s, 3) * pow(13_s, 4), 1_s / 6));
+
+  ASSERT_IDENTICAL(2 * sqrt(3) * make_pow(84035, 1_s / 6),
+                   pow(pow(3, 3) * 5 * pow(7, 5) * 64, 1_s / 6));
+  ASSERT_IDENTICAL(2 * sqrt(3) * make_pow(-84035, 1_s / 6),
+                   pow(pow(3, 3) * 5 * pow(-7, 5) * 64, 1_s / 6));
+
+  ASSERT_IDENTICAL(make_pow(18, 2_s / 9), pow(pow(3_s, 4) * 4, 1_s / 9));
+  ASSERT_IDENTICAL(12 * make_pow(6, 2_s / 9), pow(pow(3, 11_s) * pow(4, 10_s), 1_s / 9));
+  ASSERT_IDENTICAL(12 * make_pow(-1, 1_s / 9) * make_pow(6, 2_s / 9),
+                   pow(-pow(3, 11_s) * pow(4, 10_s), 1_s / 9));
+
+  // Negative rational powers:
+  ASSERT_IDENTICAL(pow(2, -4 / 5_s), pow(2, -4 / 5_s));
+  ASSERT_IDENTICAL(pow(2, -2 / 5_s) / 2, pow(2, -7 / 5_s));
+  ASSERT_IDENTICAL(pow(5, -1 / 11_s) / 5, pow(5, -12 / 11_s));
+  ASSERT_IDENTICAL(make_pow(91, 2 / 3_s) / 8281, pow(91, -4 / 3_s));
+
+  ASSERT_IDENTICAL(sqrt(3) * make_pow(5, 5_s / 6) / 30, pow(8640, -1_s / 6));
+  ASSERT_IDENTICAL(sqrt(3) * make_pow(5, 1_s / 6) / 4320, pow(8640, -5_s / 6));
+  ASSERT_IDENTICAL(sqrt(3) * make_pow(5, 1_s / 6) / 37324800, pow(8640, -11_s / 6));
+
+  ASSERT_IDENTICAL(make_pow(17364375, 1_s / 5) / 105, pow(735, -1_s / 5));
+  ASSERT_IDENTICAL(-make_pow(-1, 4_s / 5) * make_pow(17364375, 1_s / 5) / 105, pow(-735, -1_s / 5));
+  ASSERT_IDENTICAL(-make_pow(-735, 1_s / 5) / 735, pow(-735, -4_s / 5));
+  ASSERT_IDENTICAL(make_pow(-1, 4_s / 5) * make_pow(17364375, 1_s / 5) / 77175,
+                   pow(-735, -6_s / 5));
+  ASSERT_IDENTICAL(-make_pow(-1, 4_s / 5) * make_pow(17364375, 1_s / 5) / 56723625,
+                   pow(-735, -11_s / 5));
+  ASSERT_IDENTICAL(-make_pow(-1, 3_s / 5) * make_pow(23625, 1_s / 5) / 56723625,
+                   pow(-735, -12_s / 5));
+
+  ASSERT_IDENTICAL(sqrt(11_s) * make_pow(5, 5_s / 6) * make_pow(637, 1_s / 3) / 5005,
+                   pow(5 * pow(7_s, 2) * pow(11_s, 3) * pow(13_s, 4), -1_s / 6));
+  ASSERT_IDENTICAL(sqrt(11_s) * make_pow(5, 1_s / 6) * make_pow(1183, 1_s / 3) / 9313599295,
+                   pow(5 * pow(7_s, 2) * pow(11_s, 3) * pow(13_s, 4), -5_s / 6));
+  ASSERT_IDENTICAL(sqrt(11_s) * make_pow(5, 5_s / 6) * make_pow(637, 1_s / 3) / 46614564471475,
+                   pow(5 * pow(7_s, 2) * pow(11_s, 3) * pow(13_s, 4), -7_s / 6));
+
+  // -1 raised to the power of n/2:
+  ASSERT_IDENTICAL(i, sqrt(-1_s));
+  ASSERT_IDENTICAL(-i, pow(-1, 3_s / 2));
+  ASSERT_IDENTICAL(i, pow(-1, 5_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, 7_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, -1_s / 2));
+  ASSERT_IDENTICAL(i, pow(-1, -3_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, -5_s / 2));
+  ASSERT_IDENTICAL(i, pow(-1, -7_s / 2));
+  ASSERT_IDENTICAL(-i, pow(-1, -9_s / 2));
+
+  // Negative integer raised to the power of n/2:
+  ASSERT_IDENTICAL(sqrt(2) * i, sqrt(-2));
+  ASSERT_IDENTICAL(-2 * sqrt(2) * i, pow(-2, 3_s / 2));
+  ASSERT_IDENTICAL(4 * sqrt(2) * i, pow(-2, 5_s / 2));
+  ASSERT_IDENTICAL(sqrt(2) * i / 4, pow(-2, -3_s / 2));
+  ASSERT_IDENTICAL(-sqrt(2) * i / 8, pow(-2, -5_s / 2));
+
+  ASSERT_IDENTICAL(-24 * sqrt(3) * i, pow(-12, 3_s / 2));
+  ASSERT_IDENTICAL(288 * sqrt(3) * i, pow(-12, 5_s / 2));
+  ASSERT_IDENTICAL(sqrt(3) * i / 72, pow(-12, -3_s / 2));
+  ASSERT_IDENTICAL(-sqrt(3) * i / 864, pow(-12, -5_s / 2));
+  ASSERT_IDENTICAL(-120 * sqrt(15) * i, pow(-60, 3_s / 2));
+  ASSERT_IDENTICAL(25920000 * sqrt(15) * i, pow(-60, 9_s / 2));
+  ASSERT_IDENTICAL(sqrt(15) * i / 1800, pow(-60, -3_s / 2));
+  ASSERT_IDENTICAL(-sqrt(15) * i / 388800000, pow(-60, -9_s / 2));
+
+  // -1 raised to the power of of a non-n/2 rational:
+  ASSERT_IDENTICAL(make_pow(-1, 1_s / 3), pow(-1, 1_s / 3));
+  ASSERT_IDENTICAL(make_pow(-1, 2_s / 5), pow(-1, 2_s / 5));
+  ASSERT_IDENTICAL(-make_pow(-1, 1_s / 5), pow(-1, 6_s / 5));
+
+  // 0 raised to power of a negative rational
+  ASSERT_IDENTICAL(constants::complex_infinity, pow(0, -2_s / 3));
 }
 
 // Test powers that produce the imaginary constant.
@@ -397,7 +576,7 @@ TEST(ScalarOperationsTest, TestPowerImaginaryUnit) {
   ASSERT_IDENTICAL(-1, i * i);
 
   // Rational powers of `i`:
-  ASSERT_TRUE(pow(i, 1_s / 2).is_type<power>());
+  ASSERT_IDENTICAL(make_pow(i, 1_s / 2), pow(i, 1_s / 2));
   ASSERT_IDENTICAL(-sqrt(i), pow(i, 5_s / 2));
   ASSERT_IDENTICAL(-pow(i, 3_s / 2), pow(i, 7_s / 2));
   ASSERT_IDENTICAL(sqrt(i), pow(i, 9_s / 2));
@@ -423,24 +602,7 @@ TEST(ScalarOperationsTest, TestPowerImaginaryUnit) {
   ASSERT_IDENTICAL(-pow(i, 5_s / 3), pow(i, -13_s / 3));
   ASSERT_IDENTICAL(-pow(i, 4_s / 3), pow(i, -14_s / 3));
 
-  // Expressions that produce `i`:
-  ASSERT_IDENTICAL(i, sqrt(-1_s));
-  ASSERT_IDENTICAL(-i, pow(-1, 3_s / 2));
-  ASSERT_IDENTICAL(i, pow(-1, 5_s / 2));
-  ASSERT_IDENTICAL(-i, pow(-1, 7_s / 2));
-  ASSERT_IDENTICAL(-i, pow(-1, -1_s / 2));
-  ASSERT_IDENTICAL(i, pow(-1, -3_s / 2));
-  ASSERT_IDENTICAL(-i, pow(-1, -5_s / 2));
-  ASSERT_IDENTICAL(i, pow(-1, -7_s / 2));
-  ASSERT_IDENTICAL(-i, pow(-1, -9_s / 2));
-
   ASSERT_IDENTICAL(i * sqrt(21), sqrt(-21));
-#if 0
-  // TODO: Fix this case, need to add handling of rational^rational
-  ASSERT_IDENTICAL(i * sqrt(3_s / 5), sqrt(-3_s / 5));
-#endif
-  ASSERT_IDENTICAL(i * sqrt(2) * sqrt(x), pow(-2 * x, 1_s / 2));
-  ASSERT_IDENTICAL(i * 2 * pow(x, 1_s / 4), pow(-4 * sqrt(x), 1_s / 2));
 }
 
 TEST(ScalarOperationsTest, TestPowerInfinities) {
@@ -545,7 +707,7 @@ TEST(ScalarOperationsTest, TestRelationals) {
   ASSERT_THROW(3_s / 5 == constants::undefined, type_error);
 }
 
-TEST(ScalarOperationsTest, TestCastBool) {
+TEST(ScalarOperationsTest, TestIverson) {
   const auto [x, y] = make_symbols("x", "y");
 
   ASSERT_TRUE(iverson(x < y).is_type<iverson_bracket>());

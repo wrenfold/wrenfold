@@ -22,7 +22,7 @@ class power {
 
   // Create a new power.
   // Will apply rules to simplify automatically.
-  static scalar_expr create(scalar_expr a, scalar_expr b);
+  static scalar_expr create(scalar_expr base, scalar_expr exp);
 
   constexpr const scalar_expr& base() const noexcept { return children_[0]; }
   constexpr const scalar_expr& exponent() const noexcept { return children_[1]; }
@@ -44,7 +44,7 @@ constexpr std::pair<integer_constant, rational_constant> factorize_rational_expo
     const rational_constant& r) {
   const integer_constant integer_part{r.numerator() / r.denominator()};
   const rational_constant fractional_part_signed{r.numerator() % r.denominator(), r.denominator()};
-  if (r.numerator() >= 0) {
+  if (r.numerator() >= 0 || fractional_part_signed.is_zero()) {
     return std::make_pair(integer_part, fractional_part_signed);
   } else {
     // If negative, we subtract one from the integer part and make the rational part positive:
