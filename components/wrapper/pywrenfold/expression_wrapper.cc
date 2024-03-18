@@ -208,7 +208,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.def("sqrt", &wf::sqrt, "arg"_a, "Square-root function.");
   m.def("abs", static_cast<scalar_expr (*)(const scalar_expr&)>(&wf::abs), "arg"_a,
         "Absolute value function.");
-  m.def("signum", &wf::signum, "arg"_a, "Signum/sign function.");
+  m.def("sign", &wf::signum, "arg"_a, "Signum/sign function.");
   m.def("floor", &wf::floor, "arg"_a, "Floor function.");
   m.def("atan2", &wf::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
 
@@ -227,7 +227,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
         "Convert a boolean expression to an integer via the iverson bracket.");
 
   // Special constants:
-  m.attr("euler") = constants::euler;
+  m.attr("E") = constants::euler;
   m.attr("zoo") = constants::complex_infinity;
   m.attr("one") = constants::one;
   m.attr("pi") = constants::pi;

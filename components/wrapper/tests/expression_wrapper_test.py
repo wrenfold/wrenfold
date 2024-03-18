@@ -90,7 +90,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('atan2(y, x)', sym.atan2(y, x))
         self.assertReprEqual('abs(x)', sym.abs(x))
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
-        self.assertReprEqual('Derivative(signum(x), x)', sym.signum(x).diff(x, use_abstract=True))
+        self.assertReprEqual('Derivative(sign(x), x)', sym.sign(x).diff(x, use_abstract=True))
         self.assertReprEqual('x == z', sym.equals(x, z))
         self.assertReprEqual('iverson(z < x)', sym.iverson(x > z))
         self.assertReprEqual('I', sym.I)
@@ -175,10 +175,10 @@ class ExpressionWrapperTest(MathTestBase):
     def test_signum(self):
         """Test calling signum."""
         x, y = sym.symbols("x, y")
-        self.assertIdentical(1, sym.signum(3))
-        self.assertIdentical(-1, sym.signum(-5.22))
-        self.assertNotIdentical(sym.signum(x), sym.signum(y))
-        self.assertRaises(TypeError, lambda: sym.signum(sym.true))
+        self.assertIdentical(1, sym.sign(3))
+        self.assertIdentical(-1, sym.sign(-5.22))
+        self.assertNotIdentical(sym.sign(x), sym.sign(y))
+        self.assertRaises(TypeError, lambda: sym.sign(sym.true))
 
     def test_floor(self):
         """Test calling floor."""
@@ -235,7 +235,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(z > 0, 0 < z)
         self.assertIdentical(x >= 0.0, 0.0 <= x)
         self.assertIdentical(sym.true, sym.Expr(1) > 0)
-        self.assertIdentical(sym.true, sym.pi > sym.euler)
+        self.assertIdentical(sym.true, sym.pi > sym.E)
         # We use sym.equals to make == relationals:
         self.assertIdentical(sym.equals(x, 1), sym.equals(1, x))
         self.assertNotIdentical(sym.equals(x, y), sym.equals(2, x * y))
@@ -246,7 +246,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.where(x < y, y, x), sym.max(x, y))
         self.assertIdentical(sym.where(y < x, y, x), sym.min(x, y))
         self.assertIdentical(x, sym.where(0 < sym.Expr(1), x, y))
-        self.assertIdentical(y - 3, sym.where(sym.pi >= sym.euler, y - 3, x * 5))
+        self.assertIdentical(y - 3, sym.where(sym.pi >= sym.E, y - 3, x * 5))
 
     def test_iverson(self):
         """Test converting boolean values to integer."""

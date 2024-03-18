@@ -137,7 +137,7 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
   ASSERT_STR_EQ("atan2(y + cos(x), 6 - y)", atan2(y + cos(x), 6 - y));
   ASSERT_STR_EQ("abs(x)", abs(x));
   ASSERT_STR_EQ("abs(1 + x - sin(y))", abs(x + 1 - sin(y)));
-  ASSERT_STR_EQ("signum(3*y)", signum(3 * y));
+  ASSERT_STR_EQ("sign(3*y)", signum(3 * y));
   ASSERT_STR_EQ("floor(x/y)", floor(x / y));
   ASSERT_STR_EQ("cosh(x + y)", cosh(x + y));
   ASSERT_STR_EQ("sinh(5*x)", sinh(5 * x));
@@ -158,9 +158,9 @@ TEST(PlainFormatterTest, TestMatrix) {
 
 TEST(PlainFormatterTest, TestDerivativeExpression) {
   const scalar_expr a{"a"};
-  ASSERT_STR_EQ("Derivative(signum(a), a)",
+  ASSERT_STR_EQ("Derivative(sign(a), a)",
                 signum(a).diff(a, 1, non_differentiable_behavior::abstract));
-  ASSERT_STR_EQ("Derivative(signum(a), a, 2)",
+  ASSERT_STR_EQ("Derivative(sign(a), a, 2)",
                 signum(a).diff(a, 2, non_differentiable_behavior::abstract));
 }
 
