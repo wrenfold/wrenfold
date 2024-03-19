@@ -398,7 +398,7 @@ scalar_expr atanh(const scalar_expr& arg) {
 // Support some very basic simplifications for numerical inputs.
 struct atan2_visitor {
   std::optional<scalar_expr> operator()(const float_constant& y, const float_constant& x) const {
-    return scalar_expr(std::atan2(y.get_value(), x.get_value()));
+    return scalar_expr(std::atan2(y.value(), x.value()));
   }
 
   std::optional<scalar_expr> operator()(const integer_constant& y,
@@ -406,22 +406,22 @@ struct atan2_visitor {
     static const scalar_expr pi_over_two = constants::pi / 2;
     static const scalar_expr neg_pi_over_two = -pi_over_two;
 
-    if (y.get_value() == 0 && x.get_value() == 1) {
+    if (y.value() == 0 && x.value() == 1) {
       return constants::zero;
-    } else if (y.get_value() == 1 && x.get_value() == 0) {
+    } else if (y.value() == 1 && x.value() == 0) {
       return pi_over_two;
-    } else if (y.get_value() == 0 && x.get_value() == -1) {
+    } else if (y.value() == 0 && x.value() == -1) {
       return constants::pi;
-    } else if (y.get_value() == -1 && x.get_value() == 0) {
+    } else if (y.value() == -1 && x.value() == 0) {
       return neg_pi_over_two;
-    } else if (y.abs() == x.abs() && x.get_value() != 0) {
+    } else if (y.abs() == x.abs() && x.value() != 0) {
       static const std::array<scalar_expr, 4> quadrant_solutions = {
           constants::pi / 4,
           3 * constants::pi / 4,
           -constants::pi / 4,
           -3 * constants::pi / 4,
       };
-      return quadrant_solutions[(y.get_value() < 0) * 2 + (x.get_value() < 0)];
+      return quadrant_solutions[(y.value() < 0) * 2 + (x.value() < 0)];
     }
     return std::nullopt;
   }
@@ -501,7 +501,7 @@ struct signum_visitor {
 
   // scalar_expr constructor will convert to `One` or `negative_one` constants for us
   std::optional<scalar_expr> operator()(const integer_constant& i) const {
-    return scalar_expr{sign(i.get_value())};
+    return scalar_expr{sign(i.value())};
   }
   std::optional<scalar_expr> operator()(const rational_constant& r) const {
     return scalar_expr{sign(r.numerator())};
@@ -510,7 +510,7 @@ struct signum_visitor {
     if (f.is_nan()) {
       return std::nullopt;
     }
-    return scalar_expr{sign(f.get_value())};
+    return scalar_expr{sign(f.value())};
   }
 
   std::optional<scalar_expr> operator()(const symbolic_constant& c) const {
@@ -555,16 +555,16 @@ struct floor_visitor {
     const auto [int_part, _] = r.normalized();
     if (r.is_negative()) {
       // Round down (away from zero) for negative values:
-      return scalar_expr{int_part.get_value() - 1};
+      return scalar_expr{int_part.value() - 1};
     }
-    return scalar_expr{int_part.get_value()};
+    return scalar_expr{int_part.value()};
   }
 
   std::optional<scalar_expr> operator()(const float_constant& f) const {
     if (f.is_nan()) {
       return std::nullopt;
     }
-    const auto floored = std::floor(f.get_value());
+    const auto floored = std::floor(f.value());
     return scalar_expr{static_cast<std::int64_t>(floored)};
   }
 

@@ -129,10 +129,10 @@ TEST(QuaternionTest, TestMultiply) {
                                 .subs(q2.y(), q2_num.y())
                                 .subs(q2.z(), q2_num.z());
   // Won't match exactly due to floating point order:
-  ASSERT_NEAR((q1_num * q2_num).w(), get<const float_constant>(result.w()).get_value(), 1.0e-15);
-  ASSERT_NEAR((q1_num * q2_num).x(), get<const float_constant>(result.x()).get_value(), 1.0e-15);
-  ASSERT_NEAR((q1_num * q2_num).y(), get<const float_constant>(result.y()).get_value(), 1.0e-15);
-  ASSERT_NEAR((q1_num * q2_num).z(), get<const float_constant>(result.z()).get_value(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).w(), get<const float_constant>(result.w()).value(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).x(), get<const float_constant>(result.x()).value(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).y(), get<const float_constant>(result.y()).value(), 1.0e-15);
+  ASSERT_NEAR((q1_num * q2_num).z(), get<const float_constant>(result.z()).value(), 1.0e-15);
 }
 
 TEST(QuaternionTest, TestInverse) {
@@ -401,7 +401,7 @@ TEST(QuaternionTest, TestToAxisAngle) {
                                               .subs(y, axis_num.y())
                                               .subs(z, axis_num.z())
                                               .eval())
-                    .get_value(),
+                    .value(),
                 1.0e-15)
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
 
@@ -527,9 +527,9 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
 
   auto cast_to_float = [](const scalar_expr& expr) -> double {
     if (expr.is_type<float_constant>()) {
-      return get<const float_constant>(expr).get_value();
+      return get<const float_constant>(expr).value();
     }
-    return static_cast<double>(get<const integer_constant>(expr).get_value());
+    return static_cast<double>(get<const integer_constant>(expr).value());
   };
 
   constexpr int num_vectors = 75;

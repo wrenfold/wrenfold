@@ -120,12 +120,12 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
   // Construct from integer.
   static scalar_expr from_int(checked_int x);
 
-  // TODO: Use checked casts here + safe numeric type.
   template <typename T>
   static scalar_expr construct_implicit(T v) {
+    static_assert(std::is_constructible_v<checked_int, T> || std::is_floating_point_v<T>);
     if constexpr (std::is_constructible_v<checked_int, T>) {
       return from_int(static_cast<checked_int>(v));
-    } else if constexpr (std::is_floating_point_v<T>) {
+    } else {
       return from_float(static_cast<double>(v));
     }
   }

@@ -99,7 +99,7 @@ struct multiply_visitor {
     } else if constexpr (std::is_same_v<T, integer_constant>) {
       if constexpr (FactorizeIntegers) {
         // Factorize integers into primes:
-        const auto factors = compute_prime_factors(arg.get_value());
+        const auto factors = compute_prime_factors(arg.value());
         insert_integer_factors(factors, true);
       } else {
         // Promote integers to rationals and multiply them onto `rational_coeff`.
@@ -161,14 +161,12 @@ void multiplication_parts::normalize_coefficients() {
     if (base && exponent) {
       const auto [integer_part, fractional_part] = factorize_rational_exponent(*exponent);
       // Update the rational coefficient:
-      if (integer_part.get_value() >= 0) {
+      if (integer_part >= 0) {
         rational_coeff =
-            rational_coeff *
-            rational_constant{integer_power(base->get_value(), integer_part.get_value()), 1};
+            rational_coeff * rational_constant{integer_power(base->value(), integer_part), 1};
       } else {
         rational_coeff =
-            rational_coeff *
-            rational_constant{1, integer_power(base->get_value(), -integer_part.get_value())};
+            rational_coeff * rational_constant{1, integer_power(base->value(), -integer_part)};
       }
 
       // We changed the exponent on this term, so update it.
@@ -211,7 +209,7 @@ scalar_expr multiplication_parts::create_multiplication() const {
     auto [coeff, mul] = as_coeff_and_mul(maybe_imaginary_coeff);
     if (is_negative_one(coeff)) {
       // If imaginary powers produced (-1), just multiply it onto the rational term.
-      rational_term = rational_term * integer_constant{-1};
+      rational_term = rational_term * -1;
     }
     if (!is_one(mul)) {
       // We still need the imaginary unit:
@@ -325,15 +323,15 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
       }
     } else if (const integer_constant* const integer = get_if<const integer_constant>(expr);
                integer != nullptr) {
-      if (integer->get_value() != 1 && integer->get_value() != -1) {
+      if (integer->value() != 1 && integer->value() != -1) {
         result.numerator.emplace_back(integer->abs());
       }
-      if (integer->get_value() < 0) {
+      if (integer->value() < 0) {
         ++sign_count;
       }
     } else if (const float_constant* const f = get_if<const float_constant>(expr); f != nullptr) {
       result.numerator.emplace_back(f->abs());
-      if (f->get_value() < 0) {
+      if (f->value() < 0) {
         ++sign_count;
       }
     } else {

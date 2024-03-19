@@ -270,12 +270,12 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
   constexpr int max_integer_mul_exponent = 16;
   if (const integer_constant* exp_int = get_if<const integer_constant>(power.exponent());
       exp_int != nullptr) {
-    WF_ASSERT_GREATER_OR_EQ(exp_int->get_value(), 0, "Negative exponents were handled above");
+    WF_ASSERT_GREATER_OR_EQ(exp_int->value(), 0, "Negative exponents were handled above");
     // Maximum exponent below which we rewrite `pow` as a series of multiplications.
     // Have not experimented with this cutoff much, but on GCC94 and Clang17, using a series of
     // multiplications is still faster even past x^32.
-    if (exp_int->get_value() <= max_integer_mul_exponent) {
-      return exponentiate_by_squaring(base, static_cast<std::uint64_t>(exp_int->get_value()));
+    if (exp_int->value() <= max_integer_mul_exponent) {
+      return exponentiate_by_squaring(base, static_cast<std::uint64_t>(exp_int->value()));
     } else {
       // Just call power variant with integer exponent:
       return push_operation(ir::call_std_function{std_math_function::powi},

@@ -1,7 +1,5 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <unordered_map>
-
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/expression_cache.h"

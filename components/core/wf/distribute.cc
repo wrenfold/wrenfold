@@ -74,7 +74,7 @@ scalar_expr distribute_visitor::operator()(const power& pow) {
   // If the base is an addition, we should expand the power.
   if (b.is_type<addition>()) {
     if (const integer_constant* exp_int = get_if<const integer_constant>(e); exp_int != nullptr) {
-      const checked_int abs_exp = abs(exp_int->get_value());
+      const checked_int abs_exp = abs(exp_int->value());
 
       scalar_expr distributed = distribute_power(std::move(b), static_cast<std::uint64_t>(abs_exp));
       if (exp_int->is_positive()) {

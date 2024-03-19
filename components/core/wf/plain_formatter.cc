@@ -172,7 +172,7 @@ void plain_formatter::operator()(const complex_infinity&) {
 void plain_formatter::operator()(const imaginary_unit&) { output_ += "I"; }
 
 void plain_formatter::operator()(const integer_constant& num) {
-  fmt::format_to(std::back_inserter(output_), "{}", num.get_value());
+  fmt::format_to(std::back_inserter(output_), "{}", num.value());
 }
 
 void plain_formatter::operator()(const iverson_bracket& bracket) {
@@ -182,7 +182,7 @@ void plain_formatter::operator()(const iverson_bracket& bracket) {
 }
 
 void plain_formatter::operator()(const float_constant& num) {
-  fmt::format_to(std::back_inserter(output_), "{}", num.get_value());
+  fmt::format_to(std::back_inserter(output_), "{}", num.value());
 }
 
 void plain_formatter::operator()(const matrix& mat) {

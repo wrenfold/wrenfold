@@ -69,7 +69,7 @@ void tree_formatter_visitor::operator()(const external_function_invocation& invo
 }
 
 void tree_formatter_visitor::operator()(const float_constant& f) {
-  format_append("{} ({})", float_constant::name_str, f.get_value());
+  format_append("{} ({})", float_constant::name_str, f.value());
 }
 
 void tree_formatter_visitor::operator()(const function& func) {
@@ -82,7 +82,7 @@ void tree_formatter_visitor::operator()(const imaginary_unit&) {
 }
 
 void tree_formatter_visitor::operator()(const integer_constant& i) {
-  format_append("{} ({})", integer_constant::name_str, i.get_value());
+  format_append("{} ({})", integer_constant::name_str, i.value());
 }
 
 void tree_formatter_visitor::operator()(const iverson_bracket& bracket) {

@@ -4,7 +4,6 @@
 
 #include "wf/error_types.h"
 #include "wf/hashing.h"
-#include "wf/traits.h"
 #include "wf/type_list.h"
 
 namespace wf {

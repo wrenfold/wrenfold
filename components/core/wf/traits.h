@@ -10,7 +10,7 @@ namespace wf {
 // Struct for getting argument types and return types from a function pointer or lambda.
 // This specialization is for lambdas.
 template <typename T>
-struct function_traits : public function_traits<decltype(&T::operator())> {};
+struct function_traits : function_traits<decltype(&T::operator())> {};
 
 // This specialization is for member functions (like operator() on a lambda).
 template <typename ClassType, typename Ret, typename... Args>
@@ -25,7 +25,7 @@ struct function_traits<Ret (ClassType::*)(Args...) const> {
 
   // Get the i'th argument type.
   template <std::size_t i>
-  using args_list_element_t = typename std::tuple_element<i, std::tuple<Args...>>::type;
+  using args_list_element_t = std::tuple_element_t<i, std::tuple<Args...>>;
 };
 
 // This specialization is for general function pointers.
@@ -41,7 +41,7 @@ struct function_traits<Ret (*)(Args...)> {
 
   // Get the i'th argument type.
   template <std::size_t i>
-  using args_list_element_t = typename std::tuple_element<i, std::tuple<Args...>>::type;
+  using args_list_element_t = std::tuple_element_t<i, std::tuple<Args...>>;
 };
 
 // Enable if to check that two types are the same.

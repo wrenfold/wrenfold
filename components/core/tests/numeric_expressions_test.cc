@@ -11,7 +11,7 @@ namespace wf {
 using namespace wf::custom_literals;
 
 std::ostream& operator<<(std::ostream& stream, const wf::integer_constant& i) {
-  stream << fmt::format("Integer({})", i.get_value());
+  stream << fmt::format("Integer({})", i.value());
   return stream;
 }
 
@@ -31,7 +31,7 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_FALSE(are_identical(a, {1, 3}));
   ASSERT_FALSE(a.try_convert_to_integer());
   ASSERT_EQ(a, rational_constant(16, 64));
-  ASSERT_EQ(0.25, static_cast<float_constant>(a).get_value());
+  ASSERT_EQ(0.25, static_cast<float_constant>(a).value());
 
   const rational_constant b{30, 10};
   ASSERT_TRUE(b.try_convert_to_integer());
