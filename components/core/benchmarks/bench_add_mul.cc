@@ -2,7 +2,10 @@
 #include <benchmark/benchmark.h>
 
 #include "wf/expression.h"
-#include "wf/fmt_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

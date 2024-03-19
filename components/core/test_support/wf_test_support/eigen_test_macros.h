@@ -5,8 +5,11 @@
 #include <Eigen/Geometry>
 
 #include "wf/expressions/numeric_expressions.h"
-#include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 #define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(wf::expect_eigen_near, a, b, tol)
 #define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(wf::expect_eigen_near, a, b, tol)

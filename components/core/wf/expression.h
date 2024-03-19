@@ -7,9 +7,12 @@
 #include "wf/boolean_expression.h"
 #include "wf/expression_variant.h"
 #include "wf/expressions/numeric_expressions.h"
-#include "wf/fmt_imports.h"
 #include "wf/operations.h"
 #include "wf/ordering.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

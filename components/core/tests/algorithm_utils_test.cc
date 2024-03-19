@@ -7,7 +7,11 @@
 
 #include "wf/absl_imports.h"
 #include "wf/algorithm_utils.h"
-#include "wf/fmt_imports.h"
+#include "wf/third_party_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 // Tests for functions in `algorithm_utils`.
 namespace wf {
