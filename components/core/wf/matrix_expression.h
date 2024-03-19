@@ -89,14 +89,8 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   // Access row `i` and column `j`.
   const scalar_expr& operator()(index_t i, index_t j) const;
 
-  // Set row `i` and column `j` (only valid on dense matrix expression).
-  void set(index_t i, index_t j, const scalar_expr& value);
-
   // Get a block of rows [start, start + length).
   matrix_expr get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
-
-  // Set a block of rows [start, start + length).
-  void set_block(index_t row, index_t col, index_t nrows, index_t ncols, const matrix_expr& block);
 
   // Transpose the matrix.
   [[nodiscard]] matrix_expr transposed() const;
@@ -112,9 +106,6 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
 
   // Cast to underlying matrix type.
   const matrix& as_matrix() const;
-
-  // Cast to mutable underlying matrix type.
-  matrix& as_matrix_mut();
 
   // Convert to vector of expressions, in row-major order.
   std::vector<scalar_expr> to_vector() const;

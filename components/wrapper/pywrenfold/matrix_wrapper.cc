@@ -34,7 +34,7 @@ struct slice {
   constexpr index_t length() const noexcept { return static_cast<index_t>(length_); }
 
   // Convert flat index to modified index.
-  constexpr index_t map_index(index_t i) const noexcept {
+  constexpr index_t map_index(const index_t i) const noexcept {
     return static_cast<index_t>(start_ + i * step_);
   }
 
@@ -96,11 +96,12 @@ std::variant<scalar_expr, matrix_expr> matrix_get_row(const matrix_expr& self, c
 }
 
 // Return a sub-block by slicing just rows.
-matrix_expr matrix_get_row_slice(const matrix_expr& self, py::slice slc) {
+matrix_expr matrix_get_row_slice(const matrix_expr& self, const py::slice& slc) {
   const slice slice_index{self.rows(), slc};
 
   std::vector<scalar_expr> elements;
-  elements.reserve(static_cast<std::size_t>(slice_index.length() * self.cols()));
+  elements.reserve(static_cast<std::size_t>(slice_index.length()) *
+                   static_cast<std::size_t>(self.cols()));
 
   // Step over sliced rows and pull out all columns:
   for (index_t i = 0; i < slice_index.length(); ++i) {
@@ -160,71 +161,6 @@ matrix_expr matrix_get_row_slice_and_col_index(
     elements.push_back(self(row_index.map_index(i), wrapped_col));
   }
   return matrix_expr::create(row_index.length(), 1, std::move(elements));
-}
-
-// Set a particular row and column (with support for negative indexing).
-void matrix_set_row_and_col(matrix_expr& self, const std::tuple<index_t, index_t>& row_col,
-                            const scalar_expr& other) {
-  auto [row, col] = row_col;
-  self.set(row < 0 ? (self.rows() + row) : row, col < 0 ? (self.cols() + col) : col, other);
-}
-
-// Set an entire row.
-void matrix_set_row(matrix_expr& self, const index_t row, const matrix_expr& other) {
-  self.set_block(row < 0 ? (self.rows() + row) : row, 0, 1, self.cols(), other);
-}
-
-// Set a sub-block by slicing just rows.
-void matrix_set_row_slice(matrix_expr& self, py::slice slc, const matrix_expr& other) {
-  const slice slice_index{self.rows(), slc};
-
-  // Step over sliced rows and pull out all columns:
-  for (index_t i = 0; i < slice_index.length(); ++i) {
-    for (index_t j = 0; j < self.cols(); ++j) {
-      self.set(slice_index.map_index(i), j, other(i, j));
-    }
-  }
-}
-
-// Set a sub-block by slicing both rows and cols.
-void matrix_set_row_and_col_slice(matrix_expr& self, const std::tuple<py::slice, py::slice>& slices,
-                                  const matrix_expr& other) {
-  const auto [row_slice, col_slice] = slices;
-  const slice row_index{self.rows(), row_slice};
-  const slice col_index{self.cols(), col_slice};
-
-  // Step over sliced rows and pull out all columns:
-  for (index_t i = 0; i < row_index.length(); ++i) {
-    for (index_t j = 0; j < col_index.length(); ++j) {
-      self.set(row_index.map_index(i), col_index.map_index(j), other(i, j));
-    }
-  }
-}
-
-// Set a given row index, and slice along columns.
-void matrix_set_row_index_and_col_slice(matrix_expr& self,
-                                        const std::tuple<index_t, py::slice>& row_and_col_slice,
-                                        const matrix_expr& other) {
-  const auto [row, col_slice] = row_and_col_slice;
-  const index_t wrapped_row = row < 0 ? self.rows() - row : row;
-  const slice col_index{self.cols(), col_slice};
-
-  for (index_t j = 0; j < col_index.length(); ++j) {
-    self.set(wrapped_row, col_index.map_index(j), other(0, j));
-  }
-}
-
-// Set a given row slice, and pick a particular index of column.
-void matrix_set_row_slice_and_col_index(matrix_expr& self,
-                                        const std::tuple<py::slice, index_t>& row_slice_and_col,
-                                        const matrix_expr& other) {
-  const auto [row_slice, col] = row_slice_and_col;
-  const index_t wrapped_col = col < 0 ? self.cols() - col : col;
-  const slice row_index{self.rows(), row_slice};
-
-  for (index_t i = 0; i < row_index.length(); ++i) {
-    self.set(row_index.map_index(i), wrapped_col, other(i, 0));
-  }
 }
 
 // Convert a container of scalar_expr objects to a column vector.
@@ -368,7 +304,8 @@ void wrap_matrix_operations(py::module_& m) {
       // Operations:
       .def(
           "diff",
-          [](const matrix_expr& self, const scalar_expr& var, int order, bool use_abstract) {
+          [](const matrix_expr& self, const scalar_expr& var, const int order,
+             const bool use_abstract) {
             return self.diff(var, order,
                              use_abstract ? non_differentiable_behavior::abstract
                                           : non_differentiable_behavior::constant);
@@ -377,7 +314,7 @@ void wrap_matrix_operations(py::module_& m) {
           "Differentiate the expression with respect to the specified variable.")
       .def(
           "jacobian",
-          [](const matrix_expr& self, const matrix_expr& vars, bool use_abstract) {
+          [](const matrix_expr& self, const matrix_expr& vars, const bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },
@@ -385,7 +322,8 @@ void wrap_matrix_operations(py::module_& m) {
           "Compute the jacobian of a vector-valued function with respect to vector of arguments.")
       .def(
           "jacobian",
-          [](const matrix_expr& self, const std::vector<scalar_expr>& vars, bool use_abstract) {
+          [](const matrix_expr& self, const std::vector<scalar_expr>& vars,
+             const bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },
@@ -397,7 +335,7 @@ void wrap_matrix_operations(py::module_& m) {
       .def(
           "eval",
           [](const matrix_expr& self) {
-            matrix_expr eval = self.eval();
+            const matrix_expr eval = self.eval();
             return numpy_from_matrix(eval);
           },
           "Evaluate into float expression.")
@@ -413,11 +351,11 @@ void wrap_matrix_operations(py::module_& m) {
           "var"_a, "Collect powers of the provided expressions.")
       // Matrix specific properties:
       .def_property_readonly(
-          "shape", [](const matrix_expr& m) { return py::make_tuple(m.rows(), m.cols()); },
+          "shape", [](const matrix_expr& self) { return py::make_tuple(self.rows(), self.cols()); },
           "Shape of the matrix in (row, col) format.")
       .def_property_readonly("size", &matrix_expr::size, "Total number of elements.")
       .def_property_readonly(
-          "is_empty", [](const matrix_expr& m) { return m.rows() == 0 || m.cols() == 0; },
+          "is_empty", [](const matrix_expr& self) { return self.rows() == 0 || self.cols() == 0; },
           "Is the matrix empty (either zero rows or cols).")
       // Slicing:
       .def("__getitem__", &matrix_get_row, py::arg("row"), "Retrieve a row from the matrix.")
@@ -430,18 +368,6 @@ void wrap_matrix_operations(py::module_& m) {
            "Slice a specific row.")
       .def("__getitem__", &matrix_get_row_slice_and_col_index, py::arg("row_slice_and_col"),
            "Slice a specific column.")
-      .def("__setitem__", &matrix_set_row, py::arg("row"), py::arg("other"),
-           "Set a row from the matrix.")
-      .def("__setitem__", &matrix_set_row_and_col, py::arg("row_col"), py::arg("other"),
-           "Set a row and column from the matrix.")
-      .def("__setitem__", &matrix_set_row_slice, py::arg("slice"), py::arg("other"),
-           "Set a slice along rows.")
-      .def("__setitem__", &matrix_set_row_and_col_slice, py::arg("slices"), py::arg("other"),
-           "Set a slice along rows and cols.")
-      .def("__setitem__", &matrix_set_row_index_and_col_slice, py::arg("row_and_col_slice"),
-           py::arg("other"), "Set a slice on a specific row.")
-      .def("__setitem__", &matrix_set_row_slice_and_col_index, py::arg("row_slice_and_col"),
-           py::arg("other"), "Set a slice on a specific column.")
       // Support conversion to numpy.
       .def("__array__", &numpy_from_matrix, "Convert to numpy array.")
       // Iterable:
@@ -455,7 +381,7 @@ void wrap_matrix_operations(py::module_& m) {
            "Reshape a matrix while preserving the number of elements. Returns a copy.")
       .def(
           "reshape",
-          [](const matrix_expr& self, std::tuple<index_t, index_t> row_and_col) {
+          [](const matrix_expr& self, const std::tuple<index_t, index_t>& row_and_col) {
             return self.reshape(std::get<0>(row_and_col), std::get<1>(row_and_col));
           },
           py::arg("shape"),

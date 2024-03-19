@@ -35,22 +35,16 @@ index_t matrix_expr::rows() const { return as_matrix().rows(); }
 
 index_t matrix_expr::cols() const { return as_matrix().cols(); }
 
-const scalar_expr& matrix_expr::operator[](index_t i) const { return as_matrix()[i]; }
+const scalar_expr& matrix_expr::operator[](const index_t i) const { return as_matrix()[i]; }
 
-const scalar_expr& matrix_expr::operator()(index_t i, index_t j) const { return as_matrix()(i, j); }
-
-void matrix_expr::set(index_t i, index_t j, const scalar_expr& value) {
-  as_matrix_mut().set_unchecked(i, j, value);
+const scalar_expr& matrix_expr::operator()(const index_t i, const index_t j) const {
+  return as_matrix()(i, j);
 }
 
-matrix_expr matrix_expr::get_block(index_t row, index_t col, index_t nrows, index_t ncols) const {
+matrix_expr matrix_expr::get_block(const index_t row, const index_t col, const index_t nrows,
+                                   const index_t ncols) const {
   matrix result = as_matrix().get_block(row, col, nrows, ncols);
   return matrix_expr{std::move(result)};
-}
-
-void matrix_expr::set_block(index_t row, index_t col, index_t nrows, index_t ncols,
-                            const matrix_expr& block) {
-  as_matrix_mut().set_block(row, col, nrows, ncols, block.as_matrix());
 }
 
 matrix_expr matrix_expr::transposed() const { return matrix_expr{as_matrix().transposed()}; }
@@ -59,12 +53,12 @@ matrix_expr matrix_expr::reshape(index_t nrows, index_t ncols) const {
   if (nrows < 0 || ncols < 0) {
     throw dimension_error("Dimensions must be non-negative. Received [{}, {}]", nrows, ncols);
   }
-  if (static_cast<std::size_t>(nrows * ncols) != size()) {
+  if (static_cast<std::size_t>(nrows) * static_cast<std::size_t>(ncols) != size()) {
     throw dimension_error(
         "Reshaped dimensions [{} x {} = {}] does not match number of input elements [{} x {} = {}]",
         nrows, ncols, nrows * ncols, rows(), cols(), size());
   }
-  return matrix_expr::create(nrows, ncols, to_vector());
+  return create(nrows, ncols, to_vector());
 }
 
 scalar_expr matrix_expr::squared_norm() const {
@@ -80,8 +74,6 @@ scalar_expr matrix_expr::squared_norm() const {
 scalar_expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
 const matrix& matrix_expr::as_matrix() const { return cast_unchecked<const matrix>(*this); }
-
-matrix& matrix_expr::as_matrix_mut() { return cast_unchecked<matrix>(*this); }
 
 std::vector<scalar_expr> matrix_expr::to_vector() const { return as_matrix().data(); }
 

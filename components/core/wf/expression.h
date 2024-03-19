@@ -21,22 +21,22 @@ struct type_list_trait<scalar_meta_type> {
   // All the scalar-valued expressions.
   // clang-format off
   using types = type_list<
-    const class addition,
-    const class compound_expression_element,
-    const class conditional,
-    const class symbolic_constant,
-    const class derivative,
-    const class float_constant,
-    const class function,
-    const class complex_infinity,
-    const class imaginary_unit,
-    const class integer_constant,
-    const class iverson_bracket,
-    const class multiplication,
-    const class power,
-    const class rational_constant,
-    const class undefined,
-    const class variable
+    class addition,
+    class compound_expression_element,
+    class conditional,
+    class symbolic_constant,
+    class derivative,
+    class float_constant,
+    class function,
+    class complex_infinity,
+    class imaginary_unit,
+    class integer_constant,
+    class iverson_bracket,
+    class multiplication,
+    class power,
+    class rational_constant,
+    class undefined,
+    class variable
     >;
   // clang-format on
 };
