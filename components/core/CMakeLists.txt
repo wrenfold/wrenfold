@@ -1,7 +1,6 @@
 # Add library:
 add_library(
   wf-core STATIC
-  wf/absl_imports.h
   wf/algorithm_utils.h
   wf/assertions.h
   wf/boolean_expression.cc

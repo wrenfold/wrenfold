@@ -1,9 +1,12 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/absl_imports.h"
 #include "wf/algorithm_utils.h"
 #include "wf/external_function.h"
 #include "wf/hashing.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

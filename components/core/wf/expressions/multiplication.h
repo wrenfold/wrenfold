@@ -4,12 +4,15 @@
 #include <variant>
 #include <vector>
 
-#include "wf/absl_imports.h"
 #include "wf/algorithm_utils.h"
 #include "wf/constants.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

@@ -12,6 +12,10 @@
 #include "wf/numerical_casts.h"
 #include "wrapper_utils.h"
 
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
+
 namespace py = pybind11;
 using namespace py::literals;
 

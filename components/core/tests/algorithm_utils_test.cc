@@ -5,11 +5,11 @@
 
 #include <gtest/gtest.h>
 
-#include "wf/absl_imports.h"
 #include "wf/algorithm_utils.h"
 #include "wf/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
 #include <fmt/core.h>
 WF_END_THIRD_PARTY_INCLUDES
 
