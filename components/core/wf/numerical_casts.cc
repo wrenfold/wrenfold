@@ -32,7 +32,7 @@ struct convert_to_complex_visitor {
   }
 
   std::optional<complex_double> operator()(const float_constant f) const noexcept {
-    return complex_double{f.get_value(), 0.0};
+    return complex_double{f.value(), 0.0};
   }
 
   std::optional<complex_double> operator()(const imaginary_unit) const noexcept {
@@ -49,7 +49,7 @@ struct convert_to_complex_visitor {
     const auto [coeff, maybe_i] = as_coeff_and_mul(mul_abstract);
     if (const float_constant* f = get_if<const float_constant>(coeff);
         f != nullptr && is_i(maybe_i)) {
-      return complex_double{0.0, f->get_value()};
+      return complex_double{0.0, f->value()};
     }
     return std::nullopt;
   }
@@ -60,9 +60,9 @@ struct convert_to_complex_visitor {
 std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerical_cast(
     const scalar_expr& expr) {
   if (const float_constant* f = get_if<const float_constant>(expr); f != nullptr) {
-    return f->get_value();
+    return f->value();
   } else if (const integer_constant* i = get_if<const integer_constant>(expr); i != nullptr) {
-    return static_cast<std::int64_t>(i->get_value());
+    return static_cast<std::int64_t>(i->value());
   } else if (const auto result = complex_cast(expr); result.has_value()) {
     return *result;
   }

@@ -198,7 +198,7 @@ struct substitute_mul_visitor : substitute_visitor_base<substitute_mul_visitor, 
     for (const auto& [base, exponent] : target_parts.terms) {
       auto it = input_parts.terms.find(base);
       WF_ASSERT(it != input_parts.terms.end());
-      it->second = it->second - (exponent * max_valid_exponent.get_value());
+      it->second = it->second - (exponent * max_valid_exponent.value());
     }
 
     // Insert the replacement
@@ -264,9 +264,9 @@ struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, 
           // Subtract the integer part from the exponent.
           // For example, this would handle the replacement:
           // x**(4/3*y + z) replacing [x**y -> w] producing w * x**(1/3y + z)
-          it->second = it->second - target_exp_coeff * int_part.get_value();
+          it->second = it->second - target_exp_coeff * int_part.value();
           scalar_expr new_exponent = parts.create_addition();
-          return power::create(replacement, int_part.get_value()) *
+          return power::create(replacement, int_part.value()) *
                  power::create(candidate_base, new_exponent);
         }
       }
@@ -285,7 +285,7 @@ struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, 
           // Can't do a full division
           return input_expression;
         }
-        return power::create(replacement, int_part.get_value()) *
+        return power::create(replacement, int_part.value()) *
                power::create(candidate_base, target_exponent * scalar_expr(frac_remainder));
       }
     }

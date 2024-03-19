@@ -423,13 +423,13 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
           return ast::ast_element{std::in_place_type_t<ast::special_constant>{}, inner.name()};
         } else if constexpr (std::is_same_v<T, integer_constant>) {
           return ast::ast_element{std::in_place_type_t<ast::integer_literal>{},
-                                  static_cast<std::int64_t>(inner.get_value())};
+                                  static_cast<std::int64_t>(inner.value())};
         } else if constexpr (std::is_same_v<T, float_constant>) {
           return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
-                                  static_cast<float_constant>(inner).get_value()};
+                                  static_cast<float_constant>(inner).value()};
         } else if constexpr (std::is_same_v<T, rational_constant>) {
           return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
-                                  static_cast<float_constant>(inner).get_value()};
+                                  static_cast<float_constant>(inner).value()};
         } else if constexpr (std::is_same_v<T, boolean_constant>) {
           return ast::ast_element{std::in_place_type_t<ast::boolean_literal>{}, inner.value()};
         } else if constexpr (std::is_same_v<T, variable>) {

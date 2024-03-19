@@ -87,6 +87,8 @@ class checked_int final {
     return {static_cast<value_type>(arg)};
   }
 
+  constexpr bool is_even() const noexcept { return !static_cast<bool>(value_ & 1); }
+
  private:
   value_type value_;
 };

@@ -303,8 +303,8 @@ struct custom_type_native_converter<symbolic::Point2d> {
   using native_type = numeric::Point2d;
 
   numeric::Point2d operator()(const symbolic::Point2d& p) const {
-    return numeric::Point2d{get<const float_constant>(p.x).get_value(),
-                            get<const float_constant>(p.y).get_value()};
+    return numeric::Point2d{get<const float_constant>(p.x).value(),
+                            get<const float_constant>(p.y).value()};
   }
 
   symbolic::Point2d operator()(const numeric::Point2d& p) const {
@@ -351,9 +351,9 @@ struct custom_type_native_converter<symbolic::Circle> {
   using native_type = numeric::Circle;
 
   numeric::Circle operator()(const symbolic::Circle& p) const {
-    return numeric::Circle{numeric::Point2d{get<const float_constant>(p.center.x).get_value(),
-                                            get<const float_constant>(p.center.y).get_value()},
-                           get<const float_constant>(p.radius).get_value()};
+    return numeric::Circle{numeric::Point2d{get<const float_constant>(p.center.x).value(),
+                                            get<const float_constant>(p.center.y).value()},
+                           get<const float_constant>(p.radius).value()};
   }
 
   symbolic::Circle operator()(const numeric::Circle& p) const {

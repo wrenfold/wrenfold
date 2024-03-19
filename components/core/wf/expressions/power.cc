@@ -58,33 +58,33 @@ struct power_numerics_visitor {
     if (base.is_zero() && exp.is_negative()) {
       return constants::complex_infinity;
     }
-    const auto result = std::pow(static_cast<float_constant>(base).get_value(),
-                                 static_cast<float_constant>(exp).get_value());
+    const auto result = std::pow(static_cast<float_constant>(base).value(),
+                                 static_cast<float_constant>(exp).value());
     return make_expr<float_constant>(result);
   }
 
   // If both operands are integers:
   static scalar_expr apply_int_and_int(const integer_constant& base, const integer_constant& exp) {
-    if (exp.get_value() < 0) {
+    if (exp.value() < 0) {
       if (base.is_zero()) {
         // 1 / (0)^b --> complex infinity
         return constants::complex_infinity;
       }
       // Convert a -> (1/a), then take the power:
-      return apply_rational_and_int(rational_constant{1, base.get_value()}, -exp);
+      return apply_rational_and_int(rational_constant{1, base.value()}, -exp);
     }
     if (base.is_zero() && exp.is_zero()) {
       return constants::undefined;
     }
     // For everything else, resort to calling Pow(...), b is > 0 here:
-    const auto pow = integer_power(base.get_value(), exp.get_value());
+    const auto pow = integer_power(base.value(), exp.value());
     return {pow};
   }
 
   // If the left operand is a rational and right operand is integer:
   static scalar_expr apply_rational_and_int(const rational_constant& base,
                                             const integer_constant& exp) {
-    const auto exponent = exp.get_value();
+    const auto exponent = exp.value();
     if (base.is_zero() && exponent < 0) {
       return constants::complex_infinity;
     }
@@ -112,7 +112,7 @@ struct power_numerics_visitor {
   static scalar_expr apply_int_and_rational(const integer_constant& base,
                                             const rational_constant& exp) {
     WF_ASSERT_GREATER(exp.denominator(), 0, "Rational must have positive denominator");
-    if (base.get_value() == 1) {
+    if (base.value() == 1) {
       return constants::one;
     } else if (base.is_zero()) {
       if (exp.is_zero()) {
@@ -126,7 +126,7 @@ struct power_numerics_visitor {
     }
 
     // Factorize the integer exponent (positive part only) into primes:
-    const std::vector<prime_factor> factors = compute_prime_factors(abs(base.get_value()));
+    const std::vector<prime_factor> factors = compute_prime_factors(abs(base.value()));
 
     // This is a map from exponent denominator to an integer base and exponent.
     // So, for example, n**(p/q) becomes entry: {q: [base: n, exponent: p]}
@@ -159,13 +159,12 @@ struct power_numerics_visitor {
                 "fractional_part = {}", fractional_part);
 
       // Apply the integer part to the rational coefficient:
-      if (integer_part.get_value() >= 0) {
-        rational_coeff = rational_coeff *
-                         rational_constant{integer_power(factor.base, integer_part.get_value()), 1};
+      if (integer_part >= 0) {
+        rational_coeff =
+            rational_coeff * rational_constant{integer_power(factor.base, integer_part), 1};
       } else {
         rational_coeff =
-            rational_coeff *
-            rational_constant{1, integer_power(factor.base, -integer_part.get_value())};
+            rational_coeff * rational_constant{1, integer_power(factor.base, -integer_part)};
       }
 
       if (!fractional_part.is_zero()) {
@@ -192,7 +191,7 @@ struct power_numerics_visitor {
     if (base.is_negative()) {
       const auto [integer_part, fractional_part] = factorize_rational_exponent(exp);
       if (!integer_part.is_even()) {
-        rational_coeff = rational_coeff * integer_constant{-1};
+        rational_coeff = rational_coeff * -1;
       }
       if (fractional_part == rational_constant{1, 2}) {
         // (-1)**(1/2) --> i
@@ -249,7 +248,7 @@ enum class imaginary_unit_power_result {
 // Determine the result of i**n where `n` is an integer and `i` is the imaginary unit.
 constexpr imaginary_unit_power_result imaginary_unit_power(const integer_constant exp) noexcept {
   // There might be a simpler way to write this logic, this is my first pass at it.
-  const integer_constant exp_over_two = exp / integer_constant{2};
+  const integer_constant exp_over_two{exp.value() / 2};
   if (exp.is_even()) {
     return exp_over_two.is_even() ? imaginary_unit_power_result::one
                                   : imaginary_unit_power_result::negative_one;
@@ -301,7 +300,7 @@ struct power_imaginary_visitor {
     const auto [integer_part, fractional_part] = factorize_rational_exponent(exp);
     WF_ASSERT(!fractional_part.is_negative(), "fractional_part = {}", fractional_part);
 
-    switch (imaginary_unit_power(integer_part)) {
+    switch (imaginary_unit_power(integer_constant{integer_part})) {
       case imaginary_unit_power_result::one:
         // i**fractional_part
         return make_expr<power>(constants::imaginary_unit, scalar_expr{fractional_part});
@@ -312,7 +311,7 @@ struct power_imaginary_visitor {
             make_expr<power>(constants::imaginary_unit, scalar_expr{fractional_part}));
       case imaginary_unit_power_result::i: {
         // i**(fractional_part + 1)
-        if (integer_part.get_value() == 1) {
+        if (integer_part == 1) {
           // No need to re-construct the rational exponent:
           return make_expr<power>(constants::imaginary_unit, exp_abstract);
         } else {
@@ -337,7 +336,7 @@ static bool magnitude_less_than_one(const scalar_expr& value) {
       r != nullptr && r->is_proper()) {
     return true;
   } else if (const float_constant* f = get_if<const float_constant>(value);
-             f != nullptr && std::abs(f->get_value()) < 1.0) {
+             f != nullptr && std::abs(f->value()) < 1.0) {
     return true;
   }
   return false;

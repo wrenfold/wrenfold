@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "wf/algorithm_utils.h"
-#include "wf/constants.h"
+#include "wf/expression.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"

@@ -67,14 +67,14 @@ inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const matrix_expr& m) {
     for (index_t j = 0; j < result.cols(); ++j) {
       if (const float_constant* as_flt = get_if<const float_constant>(m_eval(i, j));
           as_flt != nullptr) {
-        result(i, j) = as_flt->get_value();
+        result(i, j) = as_flt->value();
       } else if (const integer_constant* as_int = get_if<const integer_constant>(m_eval(i, j));
                  as_int != nullptr) {
-        result(i, j) = static_cast<float_constant>(*as_int).get_value();
+        result(i, j) = static_cast<float_constant>(*as_int).value();
       } else if (const rational_constant* as_rational =
                      get_if<const rational_constant>(m_eval(i, j));
                  as_rational != nullptr) {
-        result(i, j) = static_cast<float_constant>(*as_rational).get_value();
+        result(i, j) = static_cast<float_constant>(*as_rational).value();
       } else {
         throw type_error("Cannot coerce value to float: {}", m_eval(i, j));
       }

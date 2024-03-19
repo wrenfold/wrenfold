@@ -65,6 +65,14 @@ TEST(CheckedIntTest, TestCompare) {
   ASSERT_GE(32_chk, 31);
 }
 
+TEST(CheckedIntTest, TestIsEven) {
+  ASSERT_TRUE(checked_int(0).is_even());
+  ASSERT_TRUE(checked_int(2).is_even());
+  ASSERT_TRUE(checked_int(-4).is_even());
+  ASSERT_FALSE(checked_int(1).is_even());
+  ASSERT_FALSE(checked_int(-3).is_even());
+}
+
 TEST(CheckedIntTest, TestNegation) {
   ASSERT_EQ(0_chk, -0_chk);
   ASSERT_EQ(-1_chk, -checked_int(1));

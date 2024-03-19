@@ -27,7 +27,7 @@ class integer_constant {
   explicit constexpr integer_constant(const value_type val) noexcept : val_(val) {}
 
   // Access numeric value.
-  constexpr value_type get_value() const noexcept { return val_; }
+  constexpr value_type value() const noexcept { return val_; }
 
   // True if this integer is zero.
   constexpr bool is_zero() const noexcept { return val_ == 0; }
@@ -39,7 +39,7 @@ class integer_constant {
   constexpr bool is_negative() const noexcept { return val_ < 0; }
 
   // True if this integer is even. (Zero is even).
-  constexpr bool is_even() const noexcept { return !static_cast<bool>(val_.value() & 1); }
+  constexpr bool is_even() const noexcept { return val_.is_even(); }
 
   // Cast to integer:
   constexpr explicit operator float_constant() const;
@@ -68,7 +68,7 @@ class rational_constant {
 
   // Construct a rational from an integer value.
   explicit constexpr rational_constant(const integer_constant integer) noexcept
-      : n_(integer.get_value()), d_(1) {}
+      : n_(integer.value()), d_(1) {}
 
   // Access numerator and denominator.
   constexpr value_type numerator() const noexcept { return n_; }
@@ -146,7 +146,7 @@ class float_constant {
   explicit constexpr float_constant(const value_type val) noexcept : val_(val) {}
 
   // Access numeric value.
-  constexpr value_type get_value() const noexcept { return val_; }
+  constexpr value_type value() const noexcept { return val_; }
 
   // Is this float identical to zero?
   constexpr bool is_zero() const noexcept { return val_ == static_cast<value_type>(0); }
@@ -168,20 +168,11 @@ class float_constant {
 };
 
 // Operations on integers:
-constexpr auto operator*(const integer_constant& a, const integer_constant& b) {
-  return integer_constant{a.get_value() * b.get_value()};
+constexpr bool operator<(const integer_constant& a, const integer_constant& b) noexcept {
+  return a.value() < b.value();
 }
-constexpr auto operator/(const integer_constant& a, const integer_constant& b) {
-  return integer_constant{a.get_value() / b.get_value()};
-}
-constexpr auto operator+(const integer_constant& a, const integer_constant& b) {
-  return integer_constant{a.get_value() + b.get_value()};
-}
-constexpr bool operator<(const integer_constant& a, const integer_constant& b) {
-  return a.get_value() < b.get_value();
-}
-constexpr bool operator==(const integer_constant& a, const integer_constant& b) {
-  return a.get_value() == b.get_value();
+constexpr bool operator==(const integer_constant& a, const integer_constant& b) noexcept {
+  return a.value() == b.value();
 }
 
 constexpr integer_constant::operator float_constant() const {
@@ -192,14 +183,14 @@ constexpr integer_constant::operator float_constant() const {
 template <>
 struct hash_struct<integer_constant> {
   std::size_t operator()(const integer_constant value) const noexcept {
-    return hash(value.get_value());
+    return hash(value.value());
   }
 };
 
 template <>
 struct is_identical_struct<integer_constant> {
   constexpr bool operator()(const integer_constant a, const integer_constant b) const noexcept {
-    return a.get_value() == b.get_value();
+    return a.value() == b.value();
   }
 };
 
@@ -215,8 +206,8 @@ struct order_struct<integer_constant> {
 constexpr auto operator*(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.numerator(), a.denominator() * b.denominator()};
 }
-constexpr auto operator*(const rational_constant& a, const integer_constant& b) {
-  return rational_constant{a.numerator() * b.get_value(), a.denominator()};
+constexpr auto operator*(const rational_constant& a, const checked_int b) {
+  return rational_constant{a.numerator() * b, a.denominator()};
 }
 constexpr auto operator/(const rational_constant& a, const rational_constant& b) {
   return rational_constant{a.numerator() * b.denominator(), a.denominator() * b.numerator()};
@@ -247,12 +238,12 @@ constexpr bool operator>(const rational_constant& a, const rational_constant& b)
   return a.numerator() * b.denominator() > b.numerator() * a.denominator();
 }
 
-constexpr bool operator==(const rational_constant& a, const rational_constant& b) {
+constexpr bool operator==(const rational_constant& a, const rational_constant& b) noexcept {
   // Constructor ensures we reduce to common denominator, so we can compare directly.
   return a.numerator() == b.numerator() && a.denominator() == b.denominator();
 }
 
-constexpr bool operator!=(const rational_constant& a, const rational_constant& b) {
+constexpr bool operator!=(const rational_constant& a, const rational_constant& b) noexcept {
   return !operator==(a, b);
 }
 
@@ -265,7 +256,7 @@ inline rational_constant::operator float_constant() const {
 // Hashing of rationals.
 template <>
 struct hash_struct<rational_constant> {
-  std::size_t operator()(const rational_constant& r) const {
+  std::size_t operator()(const rational_constant& r) const noexcept {
     return hash_combine(hash(r.numerator()), hash(r.denominator()));
   }
 };
@@ -291,7 +282,7 @@ constexpr rational_constant mod_pi_rational(const rational_constant& r) {
   // Split into integer and rational parts:
   const auto [integer_part_unwrapped, fractional_part] = r.normalized();
   // Wrap the integer part into (-2, 2), then convert into range (-1, 1]:
-  if (const checked_int integer_part = integer_part_unwrapped.get_value() % 2; integer_part == 1) {
+  if (const checked_int integer_part = integer_part_unwrapped.value() % 2; integer_part == 1) {
     return fractional_part.is_zero() ? rational_constant{1, 1}
                                      : fractional_part - rational_constant{1, 1};
   } else if (integer_part == -1) {
@@ -301,30 +292,30 @@ constexpr rational_constant mod_pi_rational(const rational_constant& r) {
 }
 
 // Operations on floats:
-constexpr auto operator*(const float_constant& a, const float_constant& b) {
-  return float_constant{a.get_value() * b.get_value()};
+constexpr auto operator*(const float_constant& a, const float_constant& b) noexcept {
+  return float_constant{a.value() * b.value()};
 }
 
-constexpr auto operator+(const float_constant& a, const float_constant& b) {
-  return float_constant{a.get_value() + b.get_value()};
+constexpr auto operator+(const float_constant& a, const float_constant& b) noexcept {
+  return float_constant{a.value() + b.value()};
 }
 
-constexpr bool operator<(const float_constant& a, const float_constant& b) {
-  return a.get_value() < b.get_value();
+constexpr bool operator<(const float_constant& a, const float_constant& b) noexcept {
+  return a.value() < b.value();
 }
 
-constexpr bool operator==(const float_constant& a, const float_constant& b) {
-  return a.get_value() == b.get_value();
+constexpr bool operator==(const float_constant& a, const float_constant& b) noexcept {
+  return a.value() == b.value();
 }
 
-constexpr bool operator!=(const float_constant& a, const float_constant& b) {
-  return a.get_value() != b.get_value();
+constexpr bool operator!=(const float_constant& a, const float_constant& b) noexcept {
+  return a.value() != b.value();
 }
 
 // Hashing of floats.
 template <>
 struct hash_struct<float_constant> {
-  std::size_t operator()(const float_constant& f) const {
+  std::size_t operator()(const float_constant& f) const noexcept {
     static_assert(std::is_trivially_copyable_v<float_constant> &&
                   sizeof(float_constant) == sizeof(std::size_t));
     std::size_t hash;
@@ -336,7 +327,7 @@ struct hash_struct<float_constant> {
 template <>
 struct is_identical_struct<float_constant> {
   constexpr bool operator()(const float_constant a, const float_constant b) const noexcept {
-    return a.get_value() == b.get_value();
+    return a.value() == b.value();
   }
 };
 
@@ -356,7 +347,7 @@ struct fmt::formatter<wf::integer_constant, char> {
 
   template <typename FormatContext>
   auto format(const wf::integer_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "{}", x.get_value());
+    return fmt::format_to(ctx.out(), "{}", x.value());
   }
 };
 
@@ -376,6 +367,6 @@ struct fmt::formatter<wf::float_constant, char> {
 
   template <typename FormatContext>
   auto format(const wf::float_constant& x, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "{}", x.get_value());
+    return fmt::format_to(ctx.out(), "{}", x.value());
   }
 };
