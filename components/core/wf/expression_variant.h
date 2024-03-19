@@ -149,9 +149,9 @@ class expression_variant {
     return model->contents();
   }
 
-  // Allow access to `cast_to_type` in cast_unchecked.
+  // Allow access to `cast_to_type` in get_unchecked.
   template <typename T, typename D, typename M>
-  friend const auto& cast_unchecked(const expression_base<D, M>& x) noexcept;
+  friend const auto& get_unchecked(const expression_base<D, M>& x) noexcept;
   template <std::size_t I, typename M>
   friend const auto& detail::cast_to_index(const expression_variant<M>& v) noexcept;
 
@@ -236,10 +236,10 @@ class expression_base {
   constexpr storage_type& impl() noexcept { return impl_; }
 
   template <typename T, typename D, typename M>
-  friend const auto& cast_unchecked(const expression_base<D, M>& x) noexcept;
+  friend const auto& get_unchecked(const expression_base<D, M>& x) noexcept;
 
   template <typename T, typename D, typename M>
-  friend decltype(auto) cast_unchecked(expression_base<D, M>& x) noexcept;
+  friend decltype(auto) get_unchecked(expression_base<D, M>& x) noexcept;
 
   storage_type impl_;
 };
@@ -277,7 +277,7 @@ struct is_identical_struct<T, enable_if_inherits_expression_base_t<T>> {
 
 // Cast expression with no checking. UB will occur if the wrong type is accessed.
 template <typename T, typename D, typename M>
-const auto& cast_unchecked(const expression_base<D, M>& x) noexcept {
+const auto& get_unchecked(const expression_base<D, M>& x) noexcept {
   static_assert(type_list_contains_v<std::remove_const_t<T>, typename expression_base<D, M>::types>,
                 "Not a valid type to cast to.");
   return x.impl().template cast_to_type<std::remove_const_t<T>>();
@@ -286,20 +286,20 @@ const auto& cast_unchecked(const expression_base<D, M>& x) noexcept {
 // Cast expression to const pointer of the specified type.
 // Returned pointer is valid in scope only as long as the argument `x` survives.
 template <typename T, typename D, typename M>
-const T* cast_ptr(const expression_base<D, M>& x) noexcept {
+const T* get_if(const expression_base<D, M>& x) noexcept {
   if (x.template is_type<T>()) {
-    return &cast_unchecked<T>(x);
+    return &get_unchecked<T>(x);
   } else {
     return nullptr;
   }
 }
 
-// Cast expression to const reference of the specified type. TypeError is thrown if the cast is
+// Cast expression to const reference of the specified type. type_error is thrown if the cast is
 // invalid.
 template <typename T, typename D, typename M>
-const T& cast_checked(const expression_base<D, M>& x) {
+const T& get(const expression_base<D, M>& x) {
   if (x.template is_type<T>()) {
-    return cast_unchecked<T>(x);
+    return get_unchecked<T>(x);
   } else {
     throw type_error("Cannot cast expression of type `{}` to `{}`", x.type_name(), T::name_str);
   }

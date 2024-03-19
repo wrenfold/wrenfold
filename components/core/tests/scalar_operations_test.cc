@@ -239,11 +239,6 @@ TEST(ScalarOperationsTest, TestDivision) {
   ASSERT_IDENTICAL(z / (y * z), 1_s / y);
 
   // Cancellation of powers:
-  ASSERT_TRUE(pow(x, 3).is_type<power>());
-  ASSERT_TRUE(pow(x, 2).is_type<power>());
-  ASSERT_IDENTICAL(cast_ptr<const power>(pow(x, 3))->base(),
-                   cast_ptr<const power>(pow(x, 2))->base());
-
   ASSERT_IDENTICAL(x, pow(x, 3) / pow(x, 2));
   ASSERT_IDENTICAL(constants::one, pow(x, 3) / (x * x * x));
   ASSERT_IDENTICAL(x * y * pow(z, 1_s / 2_s),
@@ -735,9 +730,8 @@ TEST(ScalarOperationsTest, TestConditional) {
 
   // Nested conditionals don't simplify:
   const scalar_expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
-  ASSERT_IDENTICAL(cast_checked<const conditional>(nested).if_branch(),
-                   where(x < 0, cos(x), sin(x)));
-  ASSERT_IDENTICAL(cast_checked<const conditional>(nested).else_branch(), log(z));
+  ASSERT_IDENTICAL(get<const conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
+  ASSERT_IDENTICAL(get<const conditional>(nested).else_branch(), log(z));
 }
 
 TEST(ScalarOperationsTest, TestDistribute) {

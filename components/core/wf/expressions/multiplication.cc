@@ -49,10 +49,10 @@ scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> ar
   // TODO: this simplification doesn't always work because there might be multiple
   // integer/rational/float terms.
   if (args.size() == 2) {
-    if (const addition* add = cast_ptr<const addition>(args[0]);
+    if (const addition* add = get_if<const addition>(args[0]);
         add && args[1].is_type<integer_constant, rational_constant, float_constant>()) {
       return multiply_into_addition(*add, args[1]);
-    } else if (add = cast_ptr<const addition>(args[1]);
+    } else if (add = get_if<const addition>(args[1]);
                add && args[0].is_type<integer_constant, float_constant, rational_constant>()) {
       return multiply_into_addition(*add, args[0]);
     }
@@ -154,8 +154,8 @@ void multiplication_parts::multiply_term(const scalar_expr& arg, bool factorize_
 
 void multiplication_parts::normalize_coefficients() {
   for (auto it = terms.begin(); it != terms.end(); ++it) {
-    const integer_constant* base = cast_ptr<const integer_constant>(it->first);
-    const rational_constant* exponent = cast_ptr<const rational_constant>(it->second);
+    const integer_constant* base = get_if<const integer_constant>(it->first);
+    const rational_constant* exponent = get_if<const rational_constant>(it->second);
     // Check if the exponent is now greater than 1, in which case we factorize it into an integer
     // part and a fractional part. The integer part is multiplied onto the rational coefficient.
     if (base && exponent) {
@@ -311,7 +311,7 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
   std::size_t sign_count = 0;
   for (const scalar_expr& expr : terms) {
     // Extract rationals:
-    if (const rational_constant* const rational = cast_ptr<const rational_constant>(expr);
+    if (const rational_constant* const rational = get_if<const rational_constant>(expr);
         rational != nullptr) {
       if (const auto abs_num = abs(rational->numerator()); abs_num != 1) {
         // Don't put redundant ones into the numerator for rationals of the form 1/n.
@@ -323,7 +323,7 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
         // If negative, increase the sign count.
         ++sign_count;
       }
-    } else if (const integer_constant* const integer = cast_ptr<const integer_constant>(expr);
+    } else if (const integer_constant* const integer = get_if<const integer_constant>(expr);
                integer != nullptr) {
       if (integer->get_value() != 1 && integer->get_value() != -1) {
         result.numerator.emplace_back(integer->abs());
@@ -331,7 +331,7 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
       if (integer->get_value() < 0) {
         ++sign_count;
       }
-    } else if (const float_constant* const f = cast_ptr<const float_constant>(expr); f != nullptr) {
+    } else if (const float_constant* const f = get_if<const float_constant>(expr); f != nullptr) {
       result.numerator.emplace_back(f->abs());
       if (f->get_value() < 0) {
         ++sign_count;

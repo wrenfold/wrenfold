@@ -71,7 +71,7 @@ struct addition_visitor {
     if (mul.is_type<addition>()) {
       // This is probably not great for performance, but shouldn't be _that_ common.
       const scalar_expr distributed = input_expression.distribute();
-      operator()(cast_checked<const addition>(distributed));
+      operator()(get<const addition>(distributed));
       return;
     }
 

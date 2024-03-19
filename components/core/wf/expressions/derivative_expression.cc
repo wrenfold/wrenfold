@@ -13,7 +13,7 @@ scalar_expr derivative::create(scalar_expr function, scalar_expr arg, int order)
                      arg.to_string());
   }
 
-  if (const derivative* d = cast_ptr<const derivative>(function);
+  if (const derivative* d = get_if<const derivative>(function);
       d != nullptr && d->argument().is_identical_to(arg)) {
     // We are just increasing the order of a derivative taken with respect to the same variable.
     // dD(f(x), x, n)/dx = D(f(x), x, n + 1)

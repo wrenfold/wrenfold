@@ -16,7 +16,7 @@ using namespace py::literals;
 namespace wf {
 
 static bool coerce_to_bool(const boolean_expr& self) {
-  if (const boolean_constant* constant = cast_ptr<const boolean_constant>(self);
+  if (const boolean_constant* constant = get_if<const boolean_constant>(self);
       constant != nullptr) {
     return constant->value();
   } else {

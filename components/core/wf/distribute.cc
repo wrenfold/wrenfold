@@ -73,7 +73,7 @@ scalar_expr distribute_visitor::operator()(const power& pow) {
 
   // If the base is an addition, we should expand the power.
   if (b.is_type<addition>()) {
-    if (const integer_constant* exp_int = cast_ptr<const integer_constant>(e); exp_int != nullptr) {
+    if (const integer_constant* exp_int = get_if<const integer_constant>(e); exp_int != nullptr) {
       const checked_int abs_exp = abs(exp_int->get_value());
 
       scalar_expr distributed = distribute_power(std::move(b), static_cast<std::uint64_t>(abs_exp));
@@ -82,7 +82,7 @@ scalar_expr distribute_visitor::operator()(const power& pow) {
       } else if (exp_int->is_negative()) {
         return power::create(std::move(distributed), constants::negative_one);
       }
-    } else if (const rational_constant* exp_rational = cast_ptr<const rational_constant>(e);
+    } else if (const rational_constant* exp_rational = get_if<const rational_constant>(e);
                exp_rational != nullptr && exp_rational->denominator() == 2 &&
                abs(exp_rational->numerator()) > 1) {
       // This can be interpreted as integer power of sqrt(...).
@@ -135,7 +135,7 @@ scalar_expr distribute_visitor::distribute_power(scalar_expr base, std::size_t p
 // Create a span from input expression `x`. If `x` is an addition, the span will be over the terms
 // of the addition. Otherwise it will be a single length span containing just `x`.
 static absl::Span<const scalar_expr> expression_as_span(const scalar_expr& x) noexcept {
-  if (const addition* add = cast_ptr<const addition>(x); add != nullptr) {
+  if (const addition* add = get_if<const addition>(x); add != nullptr) {
     return add->as_span();
   } else {
     return {&x, 1};
