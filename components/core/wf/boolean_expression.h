@@ -12,8 +12,8 @@ struct type_list_trait<boolean_meta_type> {
   // All the boolean-valued expressions.
   // clang-format off
   using types = type_list<
-    const class boolean_constant,
-    const class relational
+    class boolean_constant,
+    class relational
     >;
   // clang-format on
 };

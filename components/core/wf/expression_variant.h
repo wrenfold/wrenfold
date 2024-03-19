@@ -31,8 +31,7 @@ const auto& cast_to_index(const expression_variant<Meta>& v) noexcept;
 template <typename Meta>
 class expression_variant {
  public:
-  using qualified_types = typename type_list_trait<Meta>::types;
-  using types = type_list_map_t<std::remove_const_t, qualified_types>;
+  using types = typename type_list_trait<Meta>::types;
 
   // Check if the decayed type `T` is in our list of supported types.
   template <typename T>
@@ -42,13 +41,13 @@ class expression_variant {
   template <typename T, typename U = std::decay_t<T>, typename = enable_if_is_constructible_t<T>>
   explicit expression_variant(T&& value) noexcept(
       std::is_nothrow_constructible_v<U, decltype(value)>)
-      : ptr_(std::make_shared<model<U>>(std::forward<T>(value))) {}
+      : ptr_(std::make_shared<const model<U>>(std::forward<T>(value))) {}
 
   // In-place construct type `T` from `Args`.
   template <typename T, typename... Args, typename = enable_if_is_constructible_t<T>>
   explicit expression_variant(std::in_place_type_t<T>, Args&&... args) noexcept(
       std::is_nothrow_constructible_v<T, decltype(args)...>)
-      : ptr_(std::make_shared<model<T>>(std::in_place_t{}, std::forward<Args>(args)...)) {}
+      : ptr_(std::make_shared<const model<T>>(std::in_place_t{}, std::forward<Args>(args)...)) {}
 
   // Return index indicating which type is stored.
   std::size_t index() const noexcept { return ptr_->index(); }
@@ -91,7 +90,8 @@ class expression_variant {
 
     // Hash is initialized later in this version of the constructor.
     // ReSharper disable once CppPossiblyUninitializedMember
-    explicit concept_base(const std::size_t index) noexcept : index_(index) {}
+    explicit concept_base(const std::size_t index) noexcept  // NOLINT(*-pro-type-member-init)
+        : index_(index) {}
 
     constexpr std::size_t index() const noexcept { return index_; }
     constexpr std::size_t hash() const noexcept { return hash_; }
@@ -110,8 +110,6 @@ class expression_variant {
   template <typename T>
   class model final : public concept_base {
    public:
-    static_assert(!std::is_const_v<T> && !std::is_reference_v<T>,
-                  "Should be a plain type with no qualification");
     using value_type = T;
 
     static constexpr std::size_t type_index = type_list_index_v<T, expression_variant::types>;
@@ -131,7 +129,6 @@ class expression_variant {
     }
 
     constexpr const value_type& contents() const noexcept { return contents_; }
-    constexpr value_type& contents() noexcept { return contents_; }
 
     // Use the `is_identical_struct` trait to compare contents.
     // We know the cast is safe because expression_variant already checked the index.
@@ -148,38 +145,17 @@ class expression_variant {
   // Cast to const-reference of type `T`.
   template <typename T>
   const auto& cast_to_type() const noexcept {
-    static_assert(std::is_const_v<T>, "const expression_variant can only be casted to const type.");
-    using unqualified_type = std::remove_const_t<T>;
-    const expression_variant::model<unqualified_type>* model =
-        static_cast<const expression_variant::model<unqualified_type>*>(ptr_.get());
+    const auto* model = static_cast<const expression_variant::model<T>*>(ptr_.get());
     return model->contents();
-  }
-
-  // Cast to either const-reference or non-const reference of type T.
-  // The const-ness of the resulting reference is determined by the const-ness of T.
-  template <typename T>
-  decltype(auto) cast_to_type() noexcept {
-    if constexpr (std::is_const_v<T>) {
-      // Call the version above that handles const-access to const-self.
-      return const_cast<const expression_variant*>(this)->cast_to_type<T>();
-    } else {
-      // Return non-const reference.
-      static_assert(type_list_contains_v<T, qualified_types>,
-                    "The specified type does not allow cast to non-const.");
-      expression_variant::model<T>* model = static_cast<expression_variant::model<T>*>(ptr_.get());
-      return model->contents();
-    }
   }
 
   // Allow access to `cast_to_type` in cast_unchecked.
   template <typename T, typename D, typename M>
   friend const auto& cast_unchecked(const expression_base<D, M>& x) noexcept;
-  template <typename T, typename D, typename M>
-  friend decltype(auto) cast_unchecked(expression_base<D, M>& x) noexcept;
   template <std::size_t I, typename M>
-  friend const auto& wf::detail::cast_to_index(const expression_variant<M>& v) noexcept;
+  friend const auto& detail::cast_to_index(const expression_variant<M>& v) noexcept;
 
-  std::shared_ptr<concept_base> ptr_;
+  std::shared_ptr<const concept_base> ptr_;
 };
 
 namespace detail {
@@ -188,7 +164,7 @@ template <std::size_t I, typename Meta>
 const auto& cast_to_index(const expression_variant<Meta>& v) noexcept {
   using types = typename expression_variant<Meta>::types;
   static_assert(I < type_list_size_v<types>, "Index exceeds number of types");
-  return v.template cast_to_type<const type_list_element_t<I, types>>();
+  return v.template cast_to_type<type_list_element_t<I, types>>();
 }
 }  // namespace detail
 
@@ -199,7 +175,6 @@ template <typename Derived, typename Meta>
 class expression_base {
  public:
   using storage_type = expression_variant<Meta>;
-  using qualified_types = typename storage_type::qualified_types;
   using types = typename storage_type::types;
 
   // Enable if `storage_type` support construction from type `T`.
@@ -270,9 +245,11 @@ class expression_base {
 };
 
 namespace detail {
+// ReSharper disable CppFunctionIsNotImplemented
 constexpr auto inherits_expression_base_(...) -> std::false_type;
 template <typename Derived, typename Meta>
 constexpr auto inherits_expression_base_(const expression_base<Derived, Meta>&) -> std::true_type;
+// ReSharper restore CppFunctionIsNotImplemented
 }  // namespace detail
 
 // Evaluates to std::true_type if `T` inherits from expression_base, otherwise std::false_type.
@@ -303,15 +280,7 @@ template <typename T, typename D, typename M>
 const auto& cast_unchecked(const expression_base<D, M>& x) noexcept {
   static_assert(type_list_contains_v<std::remove_const_t<T>, typename expression_base<D, M>::types>,
                 "Not a valid type to cast to.");
-  return x.impl().template cast_to_type<T>();
-}
-
-// Cast expression with no checking. UB will occur if the wrong type is accessed.
-template <typename T, typename D, typename M>
-decltype(auto) cast_unchecked(expression_base<D, M>& x) noexcept {
-  static_assert(type_list_contains_v<std::remove_const_t<T>, typename expression_base<D, M>::types>,
-                "Not a valid type to cast to.");
-  return x.impl().template cast_to_type<T>();
+  return x.impl().template cast_to_type<std::remove_const_t<T>>();
 }
 
 // Cast expression to const pointer of the specified type.

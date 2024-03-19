@@ -246,65 +246,6 @@ class MatrixWrapperTest(MathTestBase):
         for index, row in enumerate(m):
             self.assertIdentical(m[index], row)
 
-    def test_matrix_setting(self):
-        # Create 4x5 symbol grid:
-        symbols = []
-        for i in range(4):
-            symbols.append(sym.symbols(f"x_{i}{j}" for j in range(5)))
-
-        symbol_array = np.array(symbols, dtype=object)
-
-        m = sym.zeros(4, 5)
-
-        # set individual elements
-        for i in range(m.shape[0]):
-            for j in range(m.shape[1]):
-                m[i, j] = symbols[i][j]
-                self.assertIdentical(symbols[i][j], m[i, j])
-
-        m = sym.zeros(4, 5)
-
-        # set rows
-        for i in range(m.shape[0]):
-            m[i] = sym.row_vector(*symbols[i])
-            self.assertIdentical(sym.row_vector(*symbols[i]), m[i])
-
-        m = sym.zeros(4, 5)
-
-        # set cols
-        for j in range(m.shape[1]):
-            m[:, j] = sym.vector(*[symbols[i][j] for i in range(m.shape[0])])
-            self.assertIdentical(sym.vector(*[symbols[i][j] for i in range(m.shape[0])]), m[:, j])
-
-        m = sym.zeros(4, 5)
-
-        # set slice on cols
-        for i in range(m.shape[0]):
-            for col_slice in self.generate_slices(m.shape[1]):
-                sliced_symbols = symbol_array[i, col_slice].reshape((1, -1))
-                if sliced_symbols.size != 0:
-                    m[i, col_slice] = sym.matrix(sliced_symbols)
-                    self.assertIdentical(sym.matrix(sliced_symbols), m[i, col_slice])
-
-        m = sym.zeros(4, 5)
-
-        # set slice on rows
-        for j in range(m.shape[1]):
-            for row_slice in self.generate_slices(m.shape[0]):
-                sliced_symbols = symbol_array[row_slice, j].reshape((-1, 1))
-                if sliced_symbols.size != 0:
-                    m[row_slice, j] = sym.matrix(sliced_symbols)
-                    self.assertIdentical(sym.matrix(sliced_symbols), m[row_slice, j])
-
-        m = sym.zeros(4, 5)
-
-        # set slice on both dimensions
-        for row_slice, col_slice in self.generate_row_and_col_slices(m.shape):
-            sliced_symbols = symbol_array[row_slice, col_slice]
-            if sliced_symbols.size != 0:
-                m[row_slice, col_slice] = sym.matrix(sliced_symbols)
-                self.assertIdentical(sym.matrix(sliced_symbols), m[row_slice, col_slice])
-
     def test_unary_map(self):
         """Test unary map w/ a lambda."""
         q = sym.symbols("q")
