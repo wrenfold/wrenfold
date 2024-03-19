@@ -2,7 +2,7 @@
 #pragma once
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
-#include "wf/expressions/special_constants.h"
+#include "wf/matrix_expression.h"
 
 namespace wf {
 
@@ -27,7 +27,7 @@ class plain_formatter {
   void operator()(const imaginary_unit&);
   void operator()(const integer_constant& num);
   void operator()(const iverson_bracket& bracket);
-  void operator()(const class matrix& mat);
+  void operator()(const matrix& mat);
   void operator()(const multiplication& mul);
   void operator()(const power& pow);
   void operator()(const rational_constant& rational);

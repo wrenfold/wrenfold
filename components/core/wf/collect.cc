@@ -36,7 +36,7 @@ struct collect_visitor {
 
     const auto new_end =
         std::remove_if(container.begin(), container.end(), [&](const scalar_expr& child) {
-          if (const multiplication* mul = cast_ptr<const multiplication>(child); mul != nullptr) {
+          if (const multiplication* mul = get_if<const multiplication>(child); mul != nullptr) {
             // Look for relevant terms:
             std::optional<scalar_expr> exponent;
             const auto it =

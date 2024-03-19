@@ -333,10 +333,10 @@ struct power_imaginary_visitor {
 };
 
 static bool magnitude_less_than_one(const scalar_expr& value) {
-  if (const rational_constant* r = cast_ptr<const rational_constant>(value);
+  if (const rational_constant* r = get_if<const rational_constant>(value);
       r != nullptr && r->is_proper()) {
     return true;
-  } else if (const float_constant* f = cast_ptr<const float_constant>(value);
+  } else if (const float_constant* f = get_if<const float_constant>(value);
              f != nullptr && std::abs(f->get_value()) < 1.0) {
     return true;
   }
@@ -418,7 +418,7 @@ scalar_expr power::create(scalar_expr base, scalar_expr exp) {
   }
 
   // Check if the base is itself a power:
-  if (const power* a_pow = cast_ptr<const power>(base); a_pow != nullptr) {
+  if (const power* a_pow = get_if<const power>(base); a_pow != nullptr) {
     if (can_multiply_exponents(*a_pow, exp)) {
       return power::create(a_pow->base(), a_pow->exponent() * exp);
     }
@@ -440,7 +440,7 @@ scalar_expr power::create(scalar_expr base, scalar_expr exp) {
 
   // Check if the base is a multiplication and the exponent is an integer.
   // In this case, we convert to a multiplication of powers.
-  if (const multiplication* const mul = cast_ptr<const multiplication>(base); mul != nullptr) {
+  if (const multiplication* const mul = get_if<const multiplication>(base); mul != nullptr) {
     if (exp.is_type<integer_constant>()) {
       const auto args = transform_map<std::vector>(
           *mul, [&exp](const scalar_expr& arg) { return power::create(arg, exp); });
@@ -459,7 +459,7 @@ scalar_expr pow(scalar_expr base, scalar_expr exp) {
 }
 
 std::pair<scalar_expr, scalar_expr> as_base_and_exp(const scalar_expr& expr) {
-  if (const power* pow = cast_ptr<const power>(expr); pow != nullptr) {
+  if (const power* pow = get_if<const power>(expr); pow != nullptr) {
     // Return as base/exponent pair.
     return std::make_pair(pow->base(), pow->exponent());
   }

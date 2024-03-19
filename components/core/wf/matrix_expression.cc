@@ -73,7 +73,7 @@ scalar_expr matrix_expr::squared_norm() const {
 
 scalar_expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
-const matrix& matrix_expr::as_matrix() const { return cast_unchecked<const matrix>(*this); }
+const matrix& matrix_expr::as_matrix() const { return get_unchecked<const matrix>(*this); }
 
 std::vector<scalar_expr> matrix_expr::to_vector() const { return as_matrix().data(); }
 

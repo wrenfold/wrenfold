@@ -167,7 +167,7 @@ struct substitute_mul_visitor : substitute_visitor_base<substitute_mul_visitor, 
 
       // See how many times we can divide term into the target expression
       const scalar_expr multiple = it->second / exponent;
-      if (const integer_constant* const as_int = cast_ptr<const integer_constant>(multiple);
+      if (const integer_constant* const as_int = get_if<const integer_constant>(multiple);
           as_int != nullptr) {
         // We do `abs` here so that doing a substitution like:
         // 1 / (x*x*y*y*y) replacing [x*y -> w] produces 1 / (w*w*y)
@@ -179,7 +179,7 @@ struct substitute_mul_visitor : substitute_visitor_base<substitute_mul_visitor, 
           max_valid_integer_exponent = *as_int;
         }
       } else if (const rational_constant* const as_rational =
-                     cast_ptr<const rational_constant>(multiple);
+                     get_if<const rational_constant>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, _] = as_rational->normalized();
         // Same rationale for `abs` as above for integers:
@@ -236,7 +236,7 @@ struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, 
     }
 
     // If the exponent is an addition, it might contain a multiple of our target exponent.
-    if (const addition* const add_exp = cast_ptr<const addition>(candidate.exponent());
+    if (const addition* const add_exp = get_if<const addition>(candidate.exponent());
         add_exp != nullptr) {
       const auto [target_exp_coeff, target_exp_mul] = as_coeff_and_mul(target_exponent);
 
@@ -245,7 +245,7 @@ struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, 
       if (auto it = parts.terms.find(target_exp_mul); it != parts.terms.end()) {
         // Our exponent appears in the addition. See if it divides cleanly:
         const scalar_expr ratio = it->second / target_exp_coeff;
-        if (const integer_constant* const as_int = cast_ptr<const integer_constant>(ratio);
+        if (const integer_constant* const as_int = get_if<const integer_constant>(ratio);
             as_int != nullptr) {
           // It divides evenly. This case handles things like:
           // x**(3*y + 5) replacing [x**y -> w] producing w**3 * x**5
@@ -254,7 +254,7 @@ struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, 
           scalar_expr new_exponent = parts.create_addition();
           return power::create(replacement, ratio) * power::create(candidate_base, new_exponent);
         } else if (const rational_constant* const as_rational =
-                       cast_ptr<const rational_constant>(ratio);
+                       get_if<const rational_constant>(ratio);
                    as_rational != nullptr) {
           const auto [int_part, _] = as_rational->normalized();
           if (int_part.is_zero()) {
@@ -274,11 +274,11 @@ struct substitute_pow_visitor : substitute_visitor_base<substitute_pow_visitor, 
       // See if the exponent is an integer multiple of the target exponent.
       // TODO: De-duplicate this block with the equivalent section in the addition above.
       const scalar_expr multiple = candidate.exponent() / target_exponent;
-      if (const integer_constant* const as_int = cast_ptr<const integer_constant>(multiple);
+      if (const integer_constant* const as_int = get_if<const integer_constant>(multiple);
           as_int != nullptr) {
         return power::create(replacement, multiple);
       } else if (const rational_constant* const as_rational =
-                     cast_ptr<const rational_constant>(multiple);
+                     get_if<const rational_constant>(multiple);
                  as_rational != nullptr) {
         const auto [int_part, frac_remainder] = as_rational->normalized();
         if (int_part.is_zero()) {
@@ -364,9 +364,9 @@ matrix_expr substitute_variables(
 void substitute_variables_visitor::add_substitution(const scalar_expr& target,
                                                     scalar_expr replacement) {
   if (target.is_type<variable>()) {
-    add_substitution(cast_unchecked<const variable>(target), std::move(replacement));
+    add_substitution(get_unchecked<const variable>(target), std::move(replacement));
   } else if (target.is_type<compound_expression_element>()) {
-    add_substitution(cast_unchecked<const compound_expression_element>(target),
+    add_substitution(get_unchecked<const compound_expression_element>(target),
                      std::move(replacement));
   } else {
     throw type_error(

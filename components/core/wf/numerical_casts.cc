@@ -47,7 +47,7 @@ struct convert_to_complex_visitor {
     }
     // TODO: Should not need the abstract value to do this.
     const auto [coeff, maybe_i] = as_coeff_and_mul(mul_abstract);
-    if (const float_constant* f = cast_ptr<const float_constant>(coeff);
+    if (const float_constant* f = get_if<const float_constant>(coeff);
         f != nullptr && is_i(maybe_i)) {
       return complex_double{0.0, f->get_value()};
     }
@@ -59,9 +59,9 @@ struct convert_to_complex_visitor {
 // TODO: optional of variant is perhaps not as performant, but it is ergonomic for my use case.
 std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerical_cast(
     const scalar_expr& expr) {
-  if (const float_constant* f = cast_ptr<const float_constant>(expr); f != nullptr) {
+  if (const float_constant* f = get_if<const float_constant>(expr); f != nullptr) {
     return f->get_value();
-  } else if (const integer_constant* i = cast_ptr<const integer_constant>(expr); i != nullptr) {
+  } else if (const integer_constant* i = get_if<const integer_constant>(expr); i != nullptr) {
     return static_cast<std::int64_t>(i->get_value());
   } else if (const auto result = complex_cast(expr); result.has_value()) {
     return *result;

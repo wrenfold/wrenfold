@@ -48,7 +48,7 @@ relative_order order_struct<scalar_expr>::operator()(const scalar_expr& a,
     using Ta = std::decay_t<decltype(a_typed)>;
     static_assert(is_orderable_v<Ta>, "Type does not implement order_struct.");
 
-    const auto& b_typed = cast_unchecked<const Ta>(b);
+    const auto& b_typed = get_unchecked<const Ta>(b);
     return order_struct<Ta>{}(a_typed, b_typed);
   });
 }
@@ -63,7 +63,7 @@ relative_order order_struct<compound_expr>::operator()(const compound_expr& a,
   return visit(a, [&b](const auto& a_typed) -> relative_order {
     using Ta = std::decay_t<decltype(a_typed)>;
     static_assert(is_orderable_v<Ta>, "Type does not implement order_struct.");
-    return order_struct<Ta>{}(a_typed, cast_unchecked<const Ta>(b));
+    return order_struct<Ta>{}(a_typed, get_unchecked<const Ta>(b));
   });
 }
 
@@ -77,7 +77,7 @@ relative_order order_struct<boolean_expr>::operator()(const boolean_expr& a,
   return visit(a, [&b](const auto& a_typed) -> relative_order {
     using Ta = std::decay_t<decltype(a_typed)>;
     static_assert(is_orderable_v<Ta>, "Type does not implement order_struct.");
-    return order_struct<Ta>{}(a_typed, cast_unchecked<const Ta>(b));
+    return order_struct<Ta>{}(a_typed, get_unchecked<const Ta>(b));
   });
 }
 

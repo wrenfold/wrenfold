@@ -56,7 +56,7 @@ static std::optional<scalar_expr> maybe_swap_hyberbolic_trig(const scalar_expr& 
                                                              Replacement replacement) {
   if (is_i(arg)) {
     return replacement(constants::one);
-  } else if (const multiplication* mul = cast_ptr<const multiplication>(arg);
+  } else if (const multiplication* mul = get_if<const multiplication>(arg);
              mul != nullptr && any_of(*mul, &is_i)) {
     // The `any_of` check assumes we've placed multiplications into canonical form, which currently
     // is always true.
@@ -67,10 +67,9 @@ static std::optional<scalar_expr> maybe_swap_hyberbolic_trig(const scalar_expr& 
 }
 
 static std::optional<rational_constant> try_cast_to_rational(const scalar_expr& expr) {
-  if (const rational_constant* const r = cast_ptr<const rational_constant>(expr); r != nullptr) {
+  if (const rational_constant* const r = get_if<const rational_constant>(expr); r != nullptr) {
     return *r;
-  } else if (const integer_constant* const i = cast_ptr<const integer_constant>(expr);
-             i != nullptr) {
+  } else if (const integer_constant* const i = get_if<const integer_constant>(expr); i != nullptr) {
     return static_cast<rational_constant>(*i);
   }
   return {};
@@ -287,7 +286,7 @@ scalar_expr cosh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  if (const function* func = cast_ptr<const function>(arg);
+  if (const function* func = get_if<const function>(arg);
       func != nullptr && func->enum_value() == built_in_function::arccosh) {
     // cosh(acosh(x)) --> x
     return func->args().front();
@@ -316,7 +315,7 @@ scalar_expr sinh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  if (const function* func = cast_ptr<const function>(arg);
+  if (const function* func = get_if<const function>(arg);
       func != nullptr && func->enum_value() == built_in_function::arcsinh) {
     // sinh(asinh(x)) --> x
     return func->args().front();
@@ -344,7 +343,7 @@ scalar_expr tanh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  if (const function* func = cast_ptr<const function>(arg);
+  if (const function* func = get_if<const function>(arg);
       func != nullptr && func->enum_value() == built_in_function::arctanh) {
     // tanh(atanh(x)) --> x
     return func->args().front();
@@ -451,7 +450,7 @@ scalar_expr sqrt(const scalar_expr& arg) {
 }
 
 scalar_expr abs(const scalar_expr& arg) {
-  if (const function* func = cast_ptr<const function>(arg);
+  if (const function* func = get_if<const function>(arg);
       func != nullptr && func->enum_value() == built_in_function::abs) {
     // abs(abs(x)) --> abs(x)
     return arg;
@@ -474,7 +473,7 @@ scalar_expr abs(const scalar_expr& arg) {
       result.has_value()) {
     return *std::move(result);
   }
-  if (const symbolic_constant* constant = cast_ptr<const symbolic_constant>(arg);
+  if (const symbolic_constant* constant = get_if<const symbolic_constant>(arg);
       constant != nullptr) {
     if (const auto as_double = double_from_symbolic_constant(constant->name());
         compare_int_float(0, as_double).value() != relative_order::greater_than) {
@@ -637,7 +636,7 @@ matrix_expr where(const boolean_expr& condition, const matrix_expr& if_true,
 }
 
 scalar_expr iverson(const boolean_expr& bool_expression) {
-  if (const boolean_constant* constant = cast_ptr<const boolean_constant>(bool_expression);
+  if (const boolean_constant* constant = get_if<const boolean_constant>(bool_expression);
       constant != nullptr) {
     if (constant->value()) {
       return constants::one;

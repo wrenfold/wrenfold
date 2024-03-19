@@ -62,14 +62,14 @@ inline Eigen::MatrixXd eigen_matrix_from_matrix_expr(const matrix_expr& m) {
   Eigen::MatrixXd result{m_eval.rows(), m_eval.cols()};
   for (index_t i = 0; i < result.rows(); ++i) {
     for (index_t j = 0; j < result.cols(); ++j) {
-      if (const float_constant* as_flt = cast_ptr<const float_constant>(m_eval(i, j));
+      if (const float_constant* as_flt = get_if<const float_constant>(m_eval(i, j));
           as_flt != nullptr) {
         result(i, j) = as_flt->get_value();
-      } else if (const integer_constant* as_int = cast_ptr<const integer_constant>(m_eval(i, j));
+      } else if (const integer_constant* as_int = get_if<const integer_constant>(m_eval(i, j));
                  as_int != nullptr) {
         result(i, j) = static_cast<float_constant>(*as_int).get_value();
       } else if (const rational_constant* as_rational =
-                     cast_ptr<const rational_constant>(m_eval(i, j));
+                     get_if<const rational_constant>(m_eval(i, j));
                  as_rational != nullptr) {
         result(i, j) = static_cast<float_constant>(*as_rational).get_value();
       } else {

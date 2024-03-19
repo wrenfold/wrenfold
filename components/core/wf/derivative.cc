@@ -71,8 +71,7 @@ scalar_expr derivative_visitor::operator()(const addition& add) {
 
 scalar_expr derivative_visitor::operator()(const compound_expression_element& el,
                                            const scalar_expr& expr) const {
-  if (const compound_expression_element* arg =
-          cast_ptr<const compound_expression_element>(argument_);
+  if (const compound_expression_element* arg = get_if<const compound_expression_element>(argument_);
       arg != nullptr && are_identical(*arg, el)) {
     return constants::one;
   }
@@ -281,7 +280,7 @@ scalar_expr derivative_visitor::operator()(const relational&, const scalar_expr&
 scalar_expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
 scalar_expr derivative_visitor::operator()(const variable& var) const {
-  if (const variable* arg = cast_ptr<const variable>(argument_);
+  if (const variable* arg = get_if<const variable>(argument_);
       arg != nullptr && are_identical(*arg, var)) {
     return constants::one;
   }

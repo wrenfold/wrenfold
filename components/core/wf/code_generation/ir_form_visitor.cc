@@ -40,7 +40,7 @@ ir::value_ptr ir_form_visitor::operator()(const compound_expression_element& el)
   return overloaded_visit(
       compound_val->type(),
       [&](ir::void_type) -> ir::value_ptr {
-        WF_ASSERT_ALWAYS("Compount expression cannot have void type. name = {}, index = {}",
+        WF_ASSERT_ALWAYS("Compound expression cannot have void type. name = {}, index = {}",
                          compound_val->name(), el.index());
       },
       [&](scalar_type) { return compound_val; },
@@ -268,7 +268,7 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
   }
 
   constexpr int max_integer_mul_exponent = 16;
-  if (const integer_constant* exp_int = cast_ptr<const integer_constant>(power.exponent());
+  if (const integer_constant* exp_int = get_if<const integer_constant>(power.exponent());
       exp_int != nullptr) {
     WF_ASSERT_GREATER_OR_EQ(exp_int->get_value(), 0, "Negative exponents were handled above");
     // Maximum exponent below which we rewrite `pow` as a series of multiplications.
@@ -282,7 +282,7 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
                             code_numeric_type::floating_point, base, operator()(power.exponent()));
     }
   } else if (const rational_constant* exp_rational =
-                 cast_ptr<const rational_constant>(power.exponent());
+                 get_if<const rational_constant>(power.exponent());
              exp_rational != nullptr) {
     WF_ASSERT_GREATER_OR_EQ(exp_rational->numerator(), 0, "rational = {}", *exp_rational);
 

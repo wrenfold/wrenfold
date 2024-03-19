@@ -8,7 +8,7 @@ namespace wf {
 
 scalar_expr compound_expression_element::create(compound_expr provenance, const std::size_t index) {
   if (const custom_type_construction* construct =
-          cast_ptr<const custom_type_construction>(provenance);
+          get_if<const custom_type_construction>(provenance);
       construct != nullptr) {
     return construct->at(index);
   }
