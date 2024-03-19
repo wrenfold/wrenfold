@@ -87,7 +87,7 @@ compound_expr map_compound_expressions(const compound_expr& expr, F&& f) {
                          [&](const external_function_invocation& invocation) {
                            return invocation.map_children([&](const any_expression& arg) {
                              // Visit the `any_expression` variant. `f()` is invoked with all
-                             // thep possible expression types.
+                             // the possible expression types.
                              return std::visit(
                                  [&f](const auto& x) -> any_expression { return f(x); }, arg);
                            });

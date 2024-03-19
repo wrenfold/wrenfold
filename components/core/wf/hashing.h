@@ -1,6 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include <array>
+#include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -13,7 +14,7 @@ template <typename T, typename = void>
 struct hash_struct;
 
 // constexpr FNV hash of string_view
-inline constexpr std::size_t hash_string_fnv(const std::string_view& str) noexcept {
+constexpr std::size_t hash_string_fnv(const std::string_view& str) noexcept {
   constexpr std::size_t fnv_offset = 0xcbf29ce484222325;
   constexpr std::size_t fnv_prime = 0x100000001b3;
   std::size_t result = fnv_offset;
@@ -26,8 +27,7 @@ inline constexpr std::size_t hash_string_fnv(const std::string_view& str) noexce
 // Based on https://stackoverflow.com/questions/2590677/
 // TODO: Investigate if there is something better than this.
 // The special numeric value here is 2^64 divided by the golden ratio, as uint64_t.
-inline constexpr std::size_t hash_combine(const std::size_t seed,
-                                          const std::size_t new_hash) noexcept {
+constexpr std::size_t hash_combine(const std::size_t seed, const std::size_t new_hash) noexcept {
   static_assert(sizeof(std::size_t) == 8);
   return seed ^ (new_hash + 0x9e3779b97f4a7c15 + (seed << 6) + (seed >> 2));
 }
@@ -67,7 +67,9 @@ std::size_t hash(const T& object) noexcept(std::is_nothrow_invocable_v<hash_stru
 // Implement hash_struct for strings.
 template <>
 struct hash_struct<std::string> {
-  std::size_t operator()(const std::string& str) const noexcept { return hash_string_fnv(str); }
+  std::size_t operator()(const std::string& str) const noexcept {
+    return hash_string_fnv(std::string_view{str});
+  }
 };
 
 // Inherit to implement hashing of a variant.

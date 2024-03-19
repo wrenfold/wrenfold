@@ -1,7 +1,10 @@
-// Copyright 2021 Gareth Cross
+// Copyright 2024 Gareth Cross
 #pragma once
 #include "wf/error_types.h"
-#include "wf/fmt_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 namespace detail {

@@ -3,7 +3,10 @@
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/function_evaluator.h"
-#include "wf/fmt_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

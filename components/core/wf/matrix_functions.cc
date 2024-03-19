@@ -3,12 +3,15 @@
 
 #include <numeric>  //  iota
 
-#include "wf/absl_imports.h"
 #include "wf/constants.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/expressions/matrix.h"
 #include "wf/expressions/variable.h"
 #include "wf_runtime/span.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

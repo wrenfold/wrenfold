@@ -4,10 +4,14 @@
 #include <algorithm>
 #include <iterator>
 
-#include "wf/absl_imports.h"
+#include "wf/algorithm_utils.h"
 #include "wf/assertions.h"
 #include "wf/ordering.h"
 #include "wf/template_utils.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 
@@ -24,10 +28,8 @@ static void assert_field_names_are_unique(const std::vector<struct_field>& field
   if (fields.empty()) {
     return;
   }
-  absl::InlinedVector<std::string_view, 8> names{};
-  names.reserve(fields.size());
-  std::transform(fields.begin(), fields.end(), std::back_inserter(names),
-                 [](const struct_field& f) -> std::string_view { return f.name(); });
+  auto names = transform_map<absl::InlinedVector<std::string_view, 8>>(
+      fields, [](const struct_field& f) -> std::string_view { return f.name(); });
   std::sort(names.begin(), names.end());
 
   for (auto it = names.begin(); std::next(it) != names.end(); ++it) {
@@ -61,8 +63,8 @@ custom_type::custom_type(std::string name, std::vector<struct_field> fields,
 // TODO: Define a nullable_ptr and use it here?
 const struct_field* custom_type::field_by_name(std::string_view name) const noexcept {
   // fields_ will typically be pretty small, so just do a linear search:
-  auto it = std::find_if(impl_->fields.begin(), impl_->fields.end(),
-                         [&name](const struct_field& f) { return f.name() == name; });
+  const auto it = std::find_if(impl_->fields.begin(), impl_->fields.end(),
+                               [&name](const struct_field& f) { return f.name() == name; });
   if (it == impl_->fields.end()) {
     return nullptr;
   }

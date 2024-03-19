@@ -2,12 +2,15 @@
 #pragma once
 #include <unordered_map>
 
-#include "wf/absl_imports.h"
 #include "wf/algorithm_utils.h"
 #include "wf/constants.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 
@@ -57,7 +60,7 @@ class addition {
   scalar_expr map_children(Operation&& operation) const {
     const container_type transformed =
         transform_map<container_type>(terms_, std::forward<Operation>(operation));
-    return addition::from_operands(transformed);
+    return from_operands(transformed);
   }
 
   // Construct from a span of operands.
@@ -93,7 +96,7 @@ struct addition_parts {
   addition_parts() = default;
 
   // Construct and reserve provided capacity.
-  explicit addition_parts(std::size_t capacity) { terms.reserve(capacity); }
+  explicit addition_parts(const std::size_t capacity) { terms.reserve(capacity); }
 
   // Construct from existing addition.
   explicit addition_parts(const addition& add);

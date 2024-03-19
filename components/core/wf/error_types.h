@@ -2,7 +2,11 @@
 #pragma once
 #include <string_view>
 
-#include "wf/fmt_imports.h"
+#include "wf/third_party_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 // Store all the types of exceptions we can throw.
 namespace wf {

@@ -1,9 +1,11 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <optional>
-
-#include "wf/absl_imports.h"
 #include "wf/enumerations.h"
+#include "wf/third_party_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 class scalar_expr;

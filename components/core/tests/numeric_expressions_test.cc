@@ -1,8 +1,11 @@
 // Copyright 2023 Gareth Cross
 #include "wf/expressions/numeric_expressions.h"
-#include "wf/fmt_imports.h"
 
 #include "wf_test_support/test_macros.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 using namespace wf::custom_literals;

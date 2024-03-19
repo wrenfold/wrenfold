@@ -2,12 +2,15 @@
 #include <array>
 #include <random>
 
-#include "wf/absl_imports.h"
 #include "wf/constants.h"
 #include "wf/error_types.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 #include "wf_test_support/test_macros.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 using namespace custom_literals;

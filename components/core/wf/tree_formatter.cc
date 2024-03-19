@@ -7,8 +7,11 @@
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
-#include "wf/fmt_imports.h"
 #include "wf/matrix_expression.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 // TODO: We could optimize this to use caching of repeated expressions, but it is not
 //  particularly performance critical at the moment.

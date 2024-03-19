@@ -1,9 +1,13 @@
 // Copyright 2022 Gareth Cross
 #pragma once
 #include "wf/enumerations.h"
-#include "wf/fmt_imports.h"
 #include "wf/hashing.h"
 #include "wf/ordering.h"
+#include "wf/third_party_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

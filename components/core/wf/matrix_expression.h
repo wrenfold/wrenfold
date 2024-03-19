@@ -2,9 +2,12 @@
 #pragma once
 #include <vector>
 
-#include "wf/absl_imports.h"
 #include "wf/expression.h"
 #include "wf/expression_variant.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

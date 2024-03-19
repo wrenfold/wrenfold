@@ -1,7 +1,6 @@
 # Add library:
 add_library(
   wf-core STATIC
-  wf/absl_imports.h
   wf/algorithm_utils.h
   wf/assertions.h
   wf/boolean_expression.cc
@@ -88,7 +87,6 @@ add_library(
   wf/expressions/variable.h
   wf/external_function.cc
   wf/external_function.h
-  wf/fmt_imports.h
   wf/functions.cc
   wf/functions.h
   wf/geometry/quaternion.cc
@@ -110,6 +108,7 @@ add_library(
   wf/plain_formatter.h
   wf/substitute.cc
   wf/template_utils.h
+  wf/third_party_imports.h
   wf/traits.h
   wf/tree_formatter.cc
   wf/tree_formatter.h

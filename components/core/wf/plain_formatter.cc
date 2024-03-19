@@ -5,7 +5,11 @@
 #include "wf/assertions.h"
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
-#include "wf/fmt_imports.h"
+#include "wf/third_party_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/core.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 

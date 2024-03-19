@@ -1,6 +1,5 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include "wf/absl_imports.h"
 #include "wf/expression.h"
 #include "wf/expressions/compound_expression_element.h"
 #include "wf/expressions/variable.h"
