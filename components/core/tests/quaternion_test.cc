@@ -521,6 +521,35 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
   ASSERT_IDENTICAL(0, q_pi_z.y());
   ASSERT_IDENTICAL(1, q_pi_z.z());
 
+  const quaternion q_1{0, -1 / sqrt(2_s), 1 / sqrt(2_s), 0};
+  const quaternion q_1_out = quaternion::from_rotation_matrix(q_1.to_rotation_matrix());
+
+  // Sign is flipped, but the underlying rotation is the same.
+  ASSERT_IDENTICAL(q_1.w(), -q_1_out.w());
+  ASSERT_IDENTICAL(q_1.x(), -q_1_out.x());
+  ASSERT_IDENTICAL(q_1.y(), -q_1_out.y());
+  ASSERT_IDENTICAL(q_1.z(), -q_1_out.z());
+  ASSERT_IDENTICAL(q_1.to_rotation_matrix(), q_1_out.to_rotation_matrix());
+
+  // round-trip test a bunch of edge cases:
+  // clang-format off
+  const std::vector<quaternion> qs = {
+      {0, 1 / sqrt(2_s), 1 / sqrt(2_s), 0},
+      {0, -1 / sqrt(2_s), 1 / sqrt(2_s), 0},
+      {0, 1 / sqrt(2_s), -1 / sqrt(2_s), 0},
+      {0, 0, 1 / sqrt(2_s), 1 / sqrt(2_s)},
+      {0, 0, -1 / sqrt(2_s), 1 / sqrt(2_s)},
+      {0, 0, 1 / sqrt(2_s), -1 / sqrt(2_s)},
+      {1 / sqrt(2_s), 1 / sqrt(2_s), 0, 0},
+      {-1 / sqrt(2_s), 1 / sqrt(2_s), 0, 0},
+      {1 / sqrt(2_s), -1 / sqrt(2_s), 0, 0},
+  };
+  // clang-format on
+  for (const quaternion& q : qs) {
+    ASSERT_IDENTICAL(q.to_rotation_matrix(),
+                     quaternion::from_rotation_matrix(q.to_rotation_matrix()).to_rotation_matrix());
+  }
+
   // TODO: With a bit more work on collect(), I could analytically demonstrate the mapping:
   //  S(4) -> SO(3) -> S(4)
   //  For now I'll just test this numerically.
@@ -541,16 +570,21 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
         quaternion{q_num.w(), q_num.x(), q_num.y(), q_num.z()}.to_rotation_matrix();
     const quaternion q = quaternion::from_rotation_matrix(R);
 
-    ASSERT_NEAR(q_num.w(), cast_to_float(q.w()), 1.0e-15)
+    // Compute the sign flip so that signs match:
+    Eigen::Index max_index{};
+    q_num.coeffs().cwiseAbs().maxCoeff(&max_index);
+    const double sign = q_num.coeffs()[max_index] / cast_to_float(q.to_vector_xyzw()[max_index]);
+
+    ASSERT_NEAR(q_num.w(), sign * cast_to_float(q.w()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
-    ASSERT_NEAR(q_num.x(), cast_to_float(q.x()), 1.0e-15)
+    ASSERT_NEAR(q_num.x(), sign * cast_to_float(q.x()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
-    ASSERT_NEAR(q_num.y(), cast_to_float(q.y()), 1.0e-15)
+    ASSERT_NEAR(q_num.y(), sign * cast_to_float(q.y()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
-    ASSERT_NEAR(q_num.z(), cast_to_float(q.z()), 1.0e-15)
+    ASSERT_NEAR(q_num.z(), sign * cast_to_float(q.z()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
   }
