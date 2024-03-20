@@ -22,11 +22,17 @@ class multiplication {
   static constexpr std::string_view name_str = "Multiplication";
   static constexpr bool is_leaf_node = false;
   using container_type = absl::InlinedVector<scalar_expr, 16>;
+  struct no_sort {};
 
   // Move-construct.
   explicit multiplication(container_type&& terms) : terms_(std::move(terms)) {
     WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
     sort_terms();
+  }
+
+  // Move construct and do not sort.
+  explicit multiplication(no_sort, container_type&& terms) : terms_(std::move(terms)) {
+    WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
   }
 
   // Construct from a pair of multiplied terms.
@@ -59,17 +65,7 @@ class multiplication {
   static scalar_expr from_operands(absl::Span<const scalar_expr> args);
 
  private:
-  void sort_terms() {
-    std::sort(terms_.begin(), terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
-      if (a.hash() < b.hash()) {
-        return true;
-      } else if (a.hash() > b.hash()) {
-        return false;
-      } else {
-        return determine_order(a, b) == relative_order::less_than;
-      }
-    });
-  }
+  void sort_terms();
 
   container_type terms_;
 };

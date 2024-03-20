@@ -15,8 +15,6 @@ def main(args: argparse.Namespace):
 
         contents = contents.replace(f'import {args.library_name}',
                                     f'from pywrenfold import {args.library_name}')
-
-        print(f'Writing: {output_path}')
         with open(output_path, 'w') as handle:
             handle.write(contents)
             handle.flush()

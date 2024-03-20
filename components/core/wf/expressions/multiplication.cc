@@ -67,6 +67,18 @@ scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> ar
   return builder.create_multiplication();
 }
 
+void multiplication::sort_terms() {
+  std::sort(terms_.begin(), terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
+    if (a.hash() < b.hash()) {
+      return true;
+    } else if (a.hash() > b.hash()) {
+      return false;
+    } else {
+      return determine_order(a, b) == relative_order::less_than;
+    }
+  });
+}
+
 template <bool FactorizeIntegers>
 struct multiply_visitor {
   explicit multiply_visitor(multiplication_parts& builder) : builder(builder) {}

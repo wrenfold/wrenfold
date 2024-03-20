@@ -300,8 +300,9 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_integer_exceptions(self):
         """
-        Test that arithmetic exceptions propagate into python. Actual logic tested in checked_int_test.cc,
-        here we just test that exceptions are passed into python correctly.
+        Test that arithmetic exceptions propagate into python.
+
+        Actual logic tested in checked_int_test.cc, here we just test that exceptions are passed into python correctly.
         """
         i64_max = 9223372036854775807
         i64_min = -9223372036854775808

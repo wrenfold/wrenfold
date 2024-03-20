@@ -14,7 +14,7 @@ namespace wf {
 class control_flow_graph {
  public:
   // Construct from a set of output expressions.
-  explicit control_flow_graph(const std::vector<expression_group>& groups);
+  explicit control_flow_graph(std::vector<expression_group> groups);
 
   // Consume `this` and convert to a control flow graph that contains jumps.
   // This converts the graph from one with `cond` operations to one with multiple blocks and jump
