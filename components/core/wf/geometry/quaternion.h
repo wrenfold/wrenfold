@@ -137,9 +137,9 @@ class quaternion {
   // When the rotation angle < epsilon, the first order taylor series is used instead.
   matrix_expr to_rotation_vector(std::optional<scalar_expr> epsilon) const;
 
-  // Construct a quaternion from a rotation matrix using Caley's method.
+  // Construct a quaternion from a rotation matrix using Sheppards's method.
   // If `R` is not a member of SO(3), the behavior is undefined. See:
-  // Section 3.5 of: "A survey on the Computation of Quaternions from Rotation Matrices"
+  // Section 3.3 of: "A survey on the Computation of Quaternions from Rotation Matrices"
   // By S. Sarabandi and F. Thomas
   static quaternion from_rotation_matrix(const matrix_expr& R_in);
 

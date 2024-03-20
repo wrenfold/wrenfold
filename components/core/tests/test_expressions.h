@@ -95,9 +95,15 @@ inline auto create_rotation_matrix(ta::static_matrix<3, 1> w) {
                          optional_output_arg("R_D_w", ta::static_matrix<9, 3>{R_diff}));
 }
 
+// Recover a Quaternion from a 3x3 rotation matrix.
+inline auto quaternion_from_matrix(ta::static_matrix<3, 3> R) {
+  const quaternion q = quaternion::from_rotation_matrix(R);
+  return std::make_tuple(output_arg("q_xyzw", ta::static_matrix<4, 1>{q.to_vector_xyzw()}));
+}
+
 // Recover a Rodrigues rotation vector from a 3x3 rotation matrix.
 inline auto rotation_vector_from_matrix(ta::static_matrix<3, 3> R) {
-  quaternion q = quaternion::from_rotation_matrix(R);
+  const quaternion q = quaternion::from_rotation_matrix(R);
   ta::static_matrix<3, 1> w = q.to_rotation_vector(1.0e-16);
   return std::make_tuple(output_arg("w", w));
 }

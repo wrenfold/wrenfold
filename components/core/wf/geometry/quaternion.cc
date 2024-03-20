@@ -145,12 +145,74 @@ matrix_expr quaternion::to_rotation_vector(std::optional<scalar_expr> epsilon) c
   }
 }
 
+// Create quaternion with conditional elements for each member.
+static quaternion where(const boolean_expr& cond, const quaternion& a, const quaternion& b) {
+  // clang-format off
+  return quaternion{
+    where(cond, a.w(), b.w()),
+    where(cond, a.x(), b.x()),
+    where(cond, a.y(), b.y()),
+    where(cond, a.z(), b.z())
+  };
+  // clang-format on
+}
+
 quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
   if (R_in.rows() != 3 || R_in.cols() != 3) {
     throw dimension_error("Rotation matrix must be 3x3. Received: [{}, {}]", R_in.rows(),
                           R_in.cols());
   }
   const matrix& R = R_in.as_matrix();
+  const scalar_expr two = 2;
+
+  // Sheppard's method:
+  // https://www.iri.upc.edu/files/scidoc/2083-A-Survey-on-the-Computation-of-Quaternions-from-Rotation-Matrices.pdf
+  // Section 3.3
+  // clang-format off
+  const scalar_expr t0 = sqrt(1 + R(0, 0) + R(1, 1) + R(2, 2));
+  const quaternion q0{
+      t0 / two,
+      (R(2, 1) - R(1, 2)) / (t0 * two),
+      (R(0, 2) - R(2, 0)) / (t0 * two),
+      (R(1, 0) - R(0, 1)) / (t0 * two),
+  };
+
+  const scalar_expr t1 = sqrt(1 + R(0, 0) - R(1, 1) - R(2, 2));
+  const quaternion q1{
+    (R(2, 1) - R(1, 2)) / (t1 * two),
+    t1 / two,
+    (R(0, 1) + R(1, 0)) / (t1 * two),
+    (R(2, 0) + R(0, 2)) / (t1 * two)
+  };
+
+  const scalar_expr t2 = sqrt(1 - R(0, 0) + R(1, 1) - R(2, 2));
+  const quaternion q2{
+    (R(0, 2) - R(2, 0)) / (t2 * two),
+    (R(0, 1) + R(1, 0)) / (t2 * two),
+    t2 / two,
+    (R(1, 2) + R(2, 1)) / (t2 * two),
+  };
+
+  const scalar_expr t3 = sqrt(1 - R(0, 0) - R(1, 1) + R(2, 2));
+  const quaternion q3{
+    (R(1, 0) - R(0, 1)) / (t3 * two),
+    (R(2, 0) + R(0, 2)) / (t3 * two),
+    (R(2, 1) + R(1, 2)) / (t3 * two),
+    t3 / two,
+  };
+  // clang-format on
+
+  // If trace > 0, take q0. Otherwise:
+  // R(0, 0) is max --> q1
+  // R(1, 1) is max --> q2
+  // R(2, 2) is max --> q3
+  // TODO: With logical_and we could write this a bit more efficiently.
+  return where(
+      R(0, 0) + R(1, 1) + R(2, 2) > 0, q0,
+      where(R(1, 1) > R(0, 0), where(R(2, 2) > R(1, 1), q3, q2), where(R(2, 2) > R(0, 0), q3, q1)));
+
+  // Calley's method, which does not recover signs correctly in some cases where w <= 0.
+#if 0
   // clang-format off
   scalar_expr a = pow(R(0, 0) + R(1, 1) + R(2, 2) + 1, 2) +
            pow(R(2, 1) - R(1, 2), 2) +
@@ -174,6 +236,7 @@ quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
   const scalar_expr sign_02 = 1 - 2 * iverson(R(0, 2) - R(2, 0) < 0);
   const scalar_expr sign_10 = 1 - 2 * iverson(R(1, 0) - R(0, 1) < 0);
   return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
+#endif
 }
 
 matrix_expr quaternion::jacobian(const wf::matrix_expr& vars,

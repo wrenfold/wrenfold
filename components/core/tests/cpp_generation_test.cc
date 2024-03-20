@@ -221,6 +221,43 @@ TEST(CppGenerationTest, TestNestedConditionals2) {
   EXPECT_EQ(evaluator(-1.7, -2.0), gen::nested_conditionals_2(-1.7, -2.0));
 }
 
+TEST(CppGenerationTest, TestQuaternionFromMatrix) {
+  const double sqrt2inv = 1.0 / std::sqrt(2.0);
+  const std::vector<Eigen::Quaterniond> qs = {
+      {1.0, 0.0, 0.0, 0.0},
+      {0.0, 1.0, 0.0, 0.0},
+      {0.0, 0.0, 1.0, 0.0},
+      {0.0, 0.0, 0.0, 1.0},
+      {0.5, 0.5, 0.5, 0.5},
+      {0.5, -0.5, 0.5, 0.5},
+      {0.5, 0.5, -0.5, 0.5},
+      {0.5, 0.5, 0.5, -0.5},
+      {sqrt2inv, sqrt2inv, 0.0, 0.0},
+      {-sqrt2inv, sqrt2inv, 0.0, 0.0},
+      {sqrt2inv, -sqrt2inv, 0.0, 0.0},
+      {0.0, sqrt2inv, sqrt2inv, 0.0},
+      {0.0, -sqrt2inv, sqrt2inv, 0.0},
+      {0.0, sqrt2inv, -sqrt2inv, 0.0},
+      {0.0, 0.0, sqrt2inv, sqrt2inv},
+      {0.0, 0.0, -sqrt2inv, sqrt2inv},
+      {0.0, 0.0, sqrt2inv, -sqrt2inv},
+      {sqrt2inv, 0.0, sqrt2inv, 0.0},
+      {-sqrt2inv, 0.0, sqrt2inv, 0.0},
+      {sqrt2inv, 0.0, -sqrt2inv, 0.0},
+      {0.0, sqrt2inv, 0.0, sqrt2inv},
+      {0.0, -sqrt2inv, 0.0, sqrt2inv},
+      {0.0, sqrt2inv, 0.0, -sqrt2inv},
+      {0.733810013024147, -0.6552231475913741, 0.10236796590444823, 0.14739840976937107},
+  };
+  for (const Eigen::Quaterniond& q : qs) {
+    Eigen::Quaterniond q_out{};
+    gen::quaternion_from_matrix<double>(q.toRotationMatrix(), q_out);
+    EXPECT_EIGEN_NEAR(Eigen::Matrix3d::Identity(), (q_out.inverse() * q).toRotationMatrix(),
+                      1.0e-14)
+        << "q_out = " << q_out << "\nq = " << q;
+  }
+}
+
 TEST(CppGenerationTest, TestAtan2WithDerivatives) {
   auto evaluator = create_evaluator(&atan2_with_derivatives);
 

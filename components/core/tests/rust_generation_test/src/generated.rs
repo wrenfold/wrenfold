@@ -730,136 +730,264 @@ where
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn quaternion_from_matrix<T0, T1, >(R: &T0, q_xyzw: &mut T1) -> ()
+where
+  T0: wrenfold_traits::Span2D<3, 3, ValueType = f64>,
+  T1: wrenfold_traits::OutputSpan2D<4, 1, ValueType = f64>,
+{
+  // Operation counts:
+  // add: 19
+  // branch: 4
+  // call: 4
+  // compare: 4
+  // divide: 4
+  // multiply: 20
+  // negate: 6
+  // total: 61
+  
+  let v0002: f64 = R.get(1, 1);
+  let v0001: f64 = R.get(0, 0);
+  let v0043: f64 = R.get(0, 1);
+  let v0017: f64 = R.get(1, 2);
+  let v0032: f64 = R.get(2, 0);
+  let v0004: f64 = v0001 + v0002;
+  let v0003: f64 = R.get(2, 2);
+  let v0072: f64 = -v0043;
+  let v0042: f64 = R.get(1, 0);
+  let v0018: f64 = -v0017;
+  let v0016: f64 = R.get(2, 1);
+  let v0057: f64 = -v0032;
+  let v0031: f64 = R.get(0, 2);
+  let v0005: f64 = v0003 + v0004;
+  let v0008: f64 = 0.5f64;
+  let v0073: f64 = v0042 + v0072;
+  let v0011: f64 = v0001 + (1i64) as f64;
+  let v0019: f64 = v0016 + v0018;
+  let v0058: f64 = v0031 + v0057;
+  let v0007: bool = ((0i64) as f64) < (v0005);
+  let v0056: f64;
+  let v0071: f64;
+  let v0084: f64;
+  let v0095: f64;
+  if v0007 {
+    let v0012: f64 = v0002 + v0011;
+    let v0013: f64 = v0003 + v0012;
+    let v0014: f64 = (v0013).sqrt();
+    let v0015: f64 = (1i64) as f64 / v0014;
+    let v0020: f64 = v0008 * v0015;
+    v0056 = v0019 * v0020;
+    v0071 = v0020 * v0058;
+    v0084 = v0020 * v0073;
+    v0095 = v0008 * v0014;
+  } else {
+    let v0026: f64 = v0003 + (1i64) as f64;
+    let v0024: f64 = -v0001;
+    let v0027: f64 = v0024 + v0026;
+    let v0025: f64 = -v0002;
+    let v0028: f64 = v0025 + v0027;
+    let v0029: f64 = (v0028).sqrt();
+    let v0030: f64 = (1i64) as f64 / v0029;
+    let v0034: f64 = v0008 * v0030;
+    let v0033: f64 = v0031 + v0032;
+    let v0061: f64 = v0016 + v0017;
+    let v0036: f64 = -v0003;
+    let v0044: f64 = v0042 + v0043;
+    let v0035: f64 = v0033 * v0034;
+    let v0063: f64 = v0034 * v0061;
+    let v0076: f64 = v0008 * v0029;
+    let v0087: f64 = v0034 * v0073;
+    let v0022: bool = (v0001) < (v0002);
+    if v0022 {
+      let v0023: bool = (v0002) < (v0003);
+      if v0023 {
+        v0056 = v0035;
+        v0071 = v0063;
+        v0084 = v0076;
+        v0095 = v0087;
+      } else {
+        let v0037: f64 = v0002 + (1i64) as f64;
+        let v0038: f64 = v0024 + v0037;
+        let v0039: f64 = v0036 + v0038;
+        let v0040: f64 = (v0039).sqrt();
+        let v0041: f64 = (1i64) as f64 / v0040;
+        let v0045: f64 = v0008 * v0041;
+        v0056 = v0044 * v0045;
+        v0071 = v0008 * v0040;
+        v0084 = v0045 * v0061;
+        v0095 = v0045 * v0058;
+      }
+    } else {
+      let v0048: bool = (v0001) < (v0003);
+      if v0048 {
+        v0056 = v0035;
+        v0071 = v0063;
+        v0084 = v0076;
+        v0095 = v0087;
+      } else {
+        let v0050: f64 = v0011 + v0025;
+        let v0051: f64 = v0036 + v0050;
+        let v0052: f64 = (v0051).sqrt();
+        let v0066: f64 = (1i64) as f64 / v0052;
+        let v0067: f64 = v0008 * v0066;
+        v0056 = v0008 * v0052;
+        v0071 = v0044 * v0067;
+        v0084 = v0033 * v0067;
+        v0095 = v0019 * v0067;
+      }
+    }
+  }
+  q_xyzw.set(0, 0, v0056);
+  q_xyzw.set(1, 0, v0071);
+  q_xyzw.set(2, 0, v0084);
+  q_xyzw.set(3, 0, v0095);
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn rotation_vector_from_matrix<T0, T1, >(R: &T0, w: &mut T1) -> ()
 where
   T0: wrenfold_traits::Span2D<3, 3, ValueType = f64>,
   T1: wrenfold_traits::OutputSpan2D<3, 1, ValueType = f64>,
 {
   // Operation counts:
-  // add: 34
-  // branch: 1
+  // add: 21
+  // branch: 9
   // call: 6
-  // compare: 4
-  // divide: 1
-  // multiply: 37
+  // compare: 5
+  // divide: 5
+  // multiply: 31
   // negate: 6
-  // total: 89
+  // total: 83
   
-  let v0003: f64 = R.get(0, 1);
-  let v0007: f64 = R.get(2, 0);
-  let v0042: f64 = -v0003;
-  let v0002: f64 = R.get(1, 0);
-  let v0008: f64 = -v0007;
-  let v0006: f64 = R.get(0, 2);
-  let v0012: f64 = R.get(1, 2);
-  let v0019: f64 = R.get(2, 2);
-  let v0017: f64 = R.get(0, 0);
-  let v0043: f64 = v0002 + v0042;
-  let v0016: f64 = R.get(1, 1);
-  let v0009: f64 = v0006 + v0008;
-  let v0061: f64 = -v0012;
-  let v0011: f64 = R.get(2, 1);
-  let v0040: f64 = v0006 + v0007;
-  let v0046: f64 = v0019 + (1i64) as f64;
-  let v0018: f64 = -v0017;
-  let v0053: bool = (v0043) < ((0i64) as f64);
-  let v0004: f64 = v0002 + v0003;
-  let v0022: f64 = v0016 + (1i64) as f64;
-  let v0032: bool = (v0009) < ((0i64) as f64);
-  let v0062: f64 = v0011 + v0061;
-  let v0044: f64 = v0043 * v0043;
-  let v0041: f64 = v0040 * v0040;
-  let v0013: f64 = v0011 + v0012;
-  let v0047: f64 = v0018 + v0046;
-  let v0045: f64 = -v0016;
-  let v0054: i64 = (v0053) as i64;
-  let v0010: f64 = v0009 * v0009;
-  let v0005: f64 = v0004 * v0004;
-  let v0023: f64 = v0018 + v0022;
-  let v0020: f64 = -v0019;
-  let v0033: i64 = (v0032) as i64;
-  let v0064: f64 = v0017 + (1i64) as f64;
-  let v0071: bool = (v0062) < ((0i64) as f64);
-  let v0050: f64 = v0041 + v0044;
-  let v0014: f64 = v0013 * v0013;
-  let v0048: f64 = v0045 + v0047;
-  let v0055: i64 = -2i64 * v0054;
-  let v0026: f64 = v0005 + v0010;
-  let v0024: f64 = v0020 + v0023;
-  let v0034: i64 = -2i64 * v0033;
-  let v0065: f64 = v0045 + v0064;
-  let v0072: i64 = (v0071) as i64;
-  let v0051: f64 = v0014 + v0050;
-  let v0049: f64 = v0048 * v0048;
-  let v0056: i64 = 1i64 + v0055;
-  let v0027: f64 = v0014 + v0026;
-  let v0025: f64 = v0024 * v0024;
-  let v0035: i64 = 1i64 + v0034;
-  let v0068: f64 = v0005 + v0041;
-  let v0063: f64 = v0062 * v0062;
-  let v0066: f64 = v0020 + v0065;
-  let v0073: i64 = -2i64 * v0072;
-  let v0052: f64 = v0049 + v0051;
-  let v0001: f64 = 0.0625f64;
-  let v0057: f64 = (v0056) as f64;
+  let v0004: f64 = R.get(2, 2);
+  let v0002: f64 = R.get(0, 0);
+  let v0003: f64 = R.get(1, 1);
+  let v0027: f64 = v0004 + (1i64) as f64;
+  let v0025: f64 = -v0002;
+  let v0026: f64 = -v0003;
+  let v0012: f64 = v0002 + (1i64) as f64;
+  let v0038: f64 = v0003 + (1i64) as f64;
   let v0028: f64 = v0025 + v0027;
-  let v0036: f64 = (v0035) as f64;
-  let v0069: f64 = v0063 + v0068;
-  let v0067: f64 = v0066 * v0066;
-  let v0074: i64 = 1i64 + v0073;
-  let v0059: f64 = v0001 * v0052;
-  let v0058: f64 = v0057 * v0057;
-  let v0038: f64 = v0001 * v0028;
-  let v0037: f64 = v0036 * v0036;
-  let v0070: f64 = v0067 + v0069;
-  let v0075: f64 = (v0074) as f64;
-  let v0060: f64 = v0058 * v0059;
-  let v0039: f64 = v0037 * v0038;
-  let v0077: f64 = v0001 * v0070;
-  let v0076: f64 = v0075 * v0075;
-  let v0079: f64 = v0039 + v0060;
-  let v0078: f64 = v0076 * v0077;
-  let v0080: f64 = v0078 + v0079;
-  let v0081: f64 = (v0080).sqrt();
-  let v0083: f64 = 0.5f64;
-  let v0096: f64 = (v0070).sqrt();
-  let v0104: f64 = (v0028).sqrt();
-  let v0112: f64 = (v0052).sqrt();
-  let v0082: bool = (1e-16f64) < (v0081);
-  let v0103: f64;
-  let v0111: f64;
-  let v0119: f64;
-  if v0082 {
-    let v0087: f64 = v0016 + v0064;
-    let v0090: f64 = v0010 + v0044;
-    let v0088: f64 = v0019 + v0087;
-    let v0091: f64 = v0063 + v0090;
-    let v0089: f64 = v0088 * v0088;
-    let v0092: f64 = v0089 + v0091;
-    let v0093: f64 = (v0092).sqrt();
-    let v0085: f64 = 0.25f64;
-    let v0084: f64 = (1i64) as f64 / v0081;
-    let v0094: f64 = v0085 * v0093;
-    let v0097: f64 = v0083 * v0084;
-    let v0095: f64 = (v0081).atan2(v0094);
-    let v0098: f64 = v0095 * v0097;
-    let v0099: f64 = v0075 * v0098;
-    let v0107: f64 = v0036 * v0098;
-    let v0115: f64 = v0057 * v0098;
-    v0103 = v0096 * v0099;
-    v0111 = v0104 * v0107;
-    v0119 = v0112 * v0115;
+  let v0046: f64 = v0012 + v0026;
+  let v0037: f64 = -v0004;
+  let v0039: f64 = v0025 + v0038;
+  let v0029: f64 = v0026 + v0028;
+  let v0047: f64 = v0037 + v0046;
+  let v0040: f64 = v0037 + v0039;
+  let v0030: f64 = (v0029).sqrt();
+  let v0048: f64 = (v0047).sqrt();
+  let v0041: f64 = (v0040).sqrt();
+  let v0013: f64 = v0003 + v0012;
+  let v0018: f64 = R.get(2, 0);
+  let v0051: f64 = R.get(0, 1);
+  let v0033: f64 = R.get(1, 2);
+  let v0005: f64 = v0002 + v0003;
+  let v0031: f64 = (1i64) as f64 / v0030;
+  let v0009: f64 = 0.5f64;
+  let v0049: f64 = (1i64) as f64 / v0048;
+  let v0064: f64 = (1i64) as f64 / v0041;
+  let v0014: f64 = v0004 + v0013;
+  let v0019: f64 = -v0018;
+  let v0017: f64 = R.get(0, 2);
+  let v0059: f64 = -v0051;
+  let v0050: f64 = R.get(1, 0);
+  let v0075: f64 = -v0033;
+  let v0032: f64 = R.get(2, 1);
+  let v0006: f64 = v0004 + v0005;
+  let v0035: f64 = v0009 * v0031;
+  let v0053: f64 = v0009 * v0049;
+  let v0044: bool = (v0002) < (v0004);
+  let v0065: f64 = v0009 * v0064;
+  let v0024: bool = (v0003) < (v0004);
+  let v0023: bool = (v0002) < (v0003);
+  let v0015: f64 = (v0014).sqrt();
+  let v0020: f64 = v0017 + v0019;
+  let v0060: f64 = v0050 + v0059;
+  let v0076: f64 = v0032 + v0075;
+  let v0008: bool = ((0i64) as f64) < (v0006);
+  let v0057: f64;
+  let v0073: f64;
+  let v0087: f64;
+  if v0008 {
+    let v0016: f64 = (1i64) as f64 / v0015;
+    let v0021: f64 = v0009 * v0016;
+    v0057 = v0020 * v0021;
+    v0073 = v0021 * v0060;
+    v0087 = v0021 * v0076;
   } else {
-    let v0101: f64 = v0075 * v0083;
-    let v0109: f64 = v0036 * v0083;
-    let v0117: f64 = v0057 * v0083;
-    v0103 = v0096 * v0101;
-    v0111 = v0104 * v0109;
-    v0119 = v0112 * v0117;
+    let v0034: f64 = v0032 + v0033;
+    let v0068: f64 = v0017 + v0018;
+    let v0052: f64 = v0050 + v0051;
+    let v0036: f64 = v0034 * v0035;
+    let v0063: f64 = v0009 * v0030;
+    let v0080: f64 = v0035 * v0068;
+    if v0023 {
+      if v0024 {
+        v0057 = v0036;
+        v0073 = v0063;
+        v0087 = v0080;
+      } else {
+        v0057 = v0009 * v0041;
+        v0073 = v0034 * v0065;
+        v0087 = v0052 * v0065;
+      }
+    } else {
+      if v0044 {
+        v0057 = v0036;
+        v0073 = v0063;
+        v0087 = v0080;
+      } else {
+        v0057 = v0052 * v0053;
+        v0073 = v0053 * v0068;
+        v0087 = v0009 * v0048;
+      }
+    }
   }
-  w.set(0, 0, v0103);
-  w.set(1, 0, v0111);
-  w.set(2, 0, v0119);
+  let v0074: f64 = v0073 * v0073;
+  let v0058: f64 = v0057 * v0057;
+  let v0089: f64 = v0058 + v0074;
+  let v0088: f64 = v0087 * v0087;
+  let v0090: f64 = v0088 + v0089;
+  let v0091: f64 = (v0090).sqrt();
+  let v0092: bool = (1e-16f64) < (v0091);
+  let v0112: f64;
+  let v0117: f64;
+  let v0122: f64;
+  if v0092 {
+    let v0105: f64;
+    if v0008 {
+      v0105 = v0009 * v0015;
+    } else {
+      let v0097: f64 = v0035 * v0060;
+      if v0023 {
+        if v0024 {
+          v0105 = v0097;
+        } else {
+          v0105 = v0020 * v0065;
+        }
+      } else {
+        if v0044 {
+          v0105 = v0097;
+        } else {
+          v0105 = v0053 * v0076;
+        }
+      }
+    }
+    let v0094: f64 = (1i64) as f64 / v0091;
+    let v0108: f64 = v0094 * (2i64) as f64;
+    let v0106: f64 = (v0091).atan2(v0105);
+    let v0109: f64 = v0106 * v0108;
+    v0112 = v0087 * v0109;
+    v0117 = v0057 * v0109;
+    v0122 = v0073 * v0109;
+  } else {
+    v0112 = v0087 * (2i64) as f64;
+    v0117 = v0057 * (2i64) as f64;
+    v0122 = v0073 * (2i64) as f64;
+  }
+  w.set(0, 0, v0112);
+  w.set(1, 0, v0117);
+  w.set(2, 0, v0122);
 }
 
 #[inline]
