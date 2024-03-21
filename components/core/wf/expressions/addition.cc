@@ -36,6 +36,20 @@ scalar_expr addition::from_operands(const absl::Span<const scalar_expr> args) {
   return parts.create_addition();
 }
 
+void addition::sort_terms() {
+  // Place into a deterministic (but otherwise mostly arbitrary) order.
+  std::sort(terms_.begin(), terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
+    if (a.hash() < b.hash()) {
+      return true;
+    } else if (a.hash() > b.hash()) {
+      return false;
+    } else {
+      // There could be a collision, so we fall back to a slow path here.
+      return expression_order_struct{}(a, b);
+    }
+  });
+}
+
 struct addition_visitor {
   explicit addition_visitor(addition_parts& parts) : parts(parts) {}
 

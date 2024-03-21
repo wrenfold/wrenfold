@@ -364,12 +364,12 @@ TEST(IrTest, TestConditionals5) {
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(54, ir.num_operations()) << ir;
+  ASSERT_EQ(57, ir.num_operations()) << ir;
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(56, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(59, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }

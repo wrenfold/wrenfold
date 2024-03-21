@@ -143,28 +143,58 @@ inline void local_value_numbering(const ir::block_ptr block, value_table& table)
   }
 }
 
-control_flow_graph::control_flow_graph(const std::vector<expression_group>& groups) {
+// Visitor that recursively sorts additions and multiplications into lexicographical order.
+class sort_expression_order_visitor {
+ public:
+  template <typename T, typename X>
+  X operator()(const T& concrete, const X& abstract) {
+    if constexpr (std::is_same_v<T, multiplication> || std::is_same_v<T, addition>) {
+      auto args = transform_map<typename T::container_type>(concrete, *this);
+      std::sort(args.begin(), args.end(), expression_order_struct{});
+      // Pass `no_sort` to indicate that args should be left in this sorted order.
+      return make_expr<T>(typename T::no_sort{}, std::move(args));
+    } else if constexpr (!T::is_leaf_node) {
+      return concrete.map_children(*this);
+    }
+    return abstract;
+  }
+
+  template <typename X,
+            typename = enable_if_contains_type_t<X, scalar_expr, boolean_expr, matrix_expr>>
+  X operator()(const X& expr) {
+    return cache_.get_or_insert(expr, [this](const X& x) { return visit(x, *this); });
+  }
+
+  compound_expr operator()(const compound_expr& expr) {
+    return cache_.get_or_insert(
+        expr, [this](const compound_expr& x) { return map_compound_expressions(x, *this); });
+  }
+
+ private:
+  expression_cache<> cache_;
+};
+
+// We pass `groups` by copy so we can replace the expressions with sorted versions below:
+control_flow_graph::control_flow_graph(std::vector<expression_group> groups) {
   blocks_.push_back(std::make_unique<ir::block>(0));
 
-  // First pass where we count occurrences of some sub-expressions:
+  // First pass where we sort things into a canonical order, and count operations.
+  sort_expression_order_visitor order_visitor{};
   mul_add_count_visitor count_visitor{};
-  for (const expression_group& group : groups) {
+  for (expression_group& group : groups) {
+    std::transform(group.expressions.begin(), group.expressions.end(), group.expressions.begin(),
+                   [&](const scalar_expr& x) { return order_visitor(x); });
     count_visitor.count_group_expressions(group);
   }
 
   ir_form_visitor visitor{*this, std::move(count_visitor).take_counts()};
   for (const expression_group& group : groups) {
     // Transform expressions into Values
-    ir::value::operands_container group_values{};
-    group_values.reserve(group.expressions.size());
-    std::transform(group.expressions.begin(), group.expressions.end(),
-                   std::back_inserter(group_values), [&](const scalar_expr& expr) {
-                     // TODO: Allow returning other types - derive the numeric type from the
-                     // group.
-                     const ir::value_ptr output =
-                         visitor.apply_output_value(expr, code_numeric_type::floating_point);
-                     return output;
-                   });
+    auto group_values = transform_map<ir::value::operands_container>(
+        group.expressions, [&](const scalar_expr& expr) {
+          // TODO: Allow returning other types - derive numeric type from the group.
+          return visitor.apply_output_value(expr, code_numeric_type::floating_point);
+        });
 
     // Then create a sink to consume these values, the `save` operation is the sink:
     create_operation(values_, first_block(), ir::save{group.key}, ir::void_type{},

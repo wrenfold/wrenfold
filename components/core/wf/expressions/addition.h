@@ -19,21 +19,17 @@ class addition {
   static constexpr std::string_view name_str = "Addition";
   static constexpr bool is_leaf_node = false;
   using container_type = absl::InlinedVector<scalar_expr, 16>;
+  struct no_sort {};
 
   // Move-construct.
   explicit addition(container_type&& terms) : terms_(std::move(terms)) {
     WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
-    // Place into a deterministic (but otherwise mostly arbitrary) order.
-    std::sort(terms_.begin(), terms_.end(), [](const scalar_expr& a, const scalar_expr& b) {
-      if (a.hash() < b.hash()) {
-        return true;
-      } else if (a.hash() > b.hash()) {
-        return false;
-      } else {
-        // There could be a collision, so we fall back to a slow path here.
-        return expression_order_struct{}(a, b);
-      }
-    });
+    sort_terms();
+  }
+
+  // Move-construct and do not sort.
+  explicit addition(no_sort, container_type&& terms) : terms_(std::move(terms)) {
+    WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
   }
 
   // Access specific argument.
@@ -68,6 +64,8 @@ class addition {
   static scalar_expr from_operands(absl::Span<const scalar_expr> args);
 
  private:
+  void sort_terms();
+
   container_type terms_;
 };
 
