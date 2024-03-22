@@ -1,7 +1,5 @@
 #include "plain_formatter.h"
 
-#include <algorithm>
-
 #include "wf/assertions.h"
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
@@ -17,22 +15,21 @@ void plain_formatter::operator()(const scalar_expr& x) { visit(x, *this); }
 void plain_formatter::operator()(const matrix_expr& x) { visit(x, *this); }
 void plain_formatter::operator()(const boolean_expr& x) { visit(x, *this); }
 
-void plain_formatter::operator()(const addition& expr) {
-  WF_ASSERT_GREATER_OR_EQ(expr.size(), 2);
+void plain_formatter::operator()(const addition& add) {
+  WF_ASSERT_GREATER_OR_EQ(add.size(), 2);
 
   // Sort into canonical order:
-  absl::InlinedVector<std::pair<scalar_expr, scalar_expr>, 16> terms;
-  terms.reserve(expr.size());
-  std::transform(expr.begin(), expr.end(), std::back_inserter(terms),
-                 [](const scalar_expr& x) { return as_coeff_and_mul(x); });
-
-  std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-    return determine_order(a.second, b.second) == relative_order::less_than;
+  absl::InlinedVector<scalar_expr, 8> terms{add.begin(), add.end()};
+  std::sort(terms.begin(), terms.end(), [](const scalar_expr& a, const scalar_expr& b) {
+    const std::pair<scalar_expr, scalar_expr> a_coeff_mul = as_coeff_and_mul(a);
+    const std::pair<scalar_expr, scalar_expr> b_coeff_mul = as_coeff_and_mul(b);
+    return order_by(std::get<1>(a_coeff_mul), std::get<1>(b_coeff_mul))
+        .and_then_by(std::get<0>(a_coeff_mul), std::get<0>(b_coeff_mul))
+        .is_less_than();
   });
 
   for (std::size_t i = 0; i < terms.size(); ++i) {
-    const auto [coeff, multiplicand] = terms[i];
-    if (is_negative_number(coeff)) {
+    if (const auto [coeff, multiplicand] = as_coeff_and_mul(terms[i]); is_negative_number(coeff)) {
       if (i == 0) {
         // For the first term, just negate it:
         output_ += "-";
@@ -40,15 +37,11 @@ void plain_formatter::operator()(const addition& expr) {
         // Subsequent terms are written as subtractions:
         output_ += " - ";
       }
-      // Don't multiply by negative one:
       if (is_negative_one(coeff)) {
+        // Don't multiply by negative one:
         format_precedence(precedence::addition, multiplicand);
       } else {
-        visit(-coeff, *this);
-        if (!is_one(multiplicand)) {
-          output_ += " * ";
-          format_precedence(precedence::multiplication, multiplicand);
-        }
+        format_precedence(precedence::addition, -terms[i]);
       }
     } else {
       if (i > 0) {
@@ -57,11 +50,7 @@ void plain_formatter::operator()(const addition& expr) {
       if (is_one(coeff)) {
         format_precedence(precedence::addition, multiplicand);
       } else {
-        visit(coeff, *this);
-        if (!is_one(multiplicand)) {
-          output_ += " * ";
-          format_precedence(precedence::multiplication, multiplicand);
-        }
+        format_precedence(precedence::addition, terms[i]);
       }
     }
   }
@@ -111,7 +100,7 @@ void plain_formatter::operator()(const compound_expression_element& el) {
               format_access_sequence(arg.type());
             },
             [&](const custom_type_construction& construction) {
-              visit(construction.at(el.index()), *this);
+              operator()(construction.at(el.index()));
             }));
 }
 
@@ -140,11 +129,11 @@ void plain_formatter::operator()(const custom_type_construction& construct) {
 
 void plain_formatter::operator()(const conditional& conditional) {
   output_ += "where(";
-  visit(conditional.condition(), *this);
+  operator()(conditional.condition());
   output_ += ", ";
-  visit(conditional.if_branch(), *this);
+  operator()(conditional.if_branch());
   output_ += ", ";
-  visit(conditional.else_branch(), *this);
+  operator()(conditional.else_branch());
   output_ += ")";
 }
 
@@ -154,9 +143,9 @@ void plain_formatter::operator()(const symbolic_constant& constant) {
 
 void plain_formatter::operator()(const derivative& derivative) {
   output_ += "Derivative(";
-  visit(derivative.differentiand(), *this);
+  operator()(derivative.differentiand());
   output_ += ", ";
-  visit(derivative.argument(), *this);
+  operator()(derivative.argument());
   if (derivative.order() > 1) {
     fmt::format_to(std::back_inserter(output_), ", {})", derivative.order());
   } else {
@@ -177,7 +166,7 @@ void plain_formatter::operator()(const integer_constant& num) {
 
 void plain_formatter::operator()(const iverson_bracket& bracket) {
   output_ += "iverson(";
-  visit(bracket.arg(), *this);
+  operator()(bracket.arg());
   output_ += ")";
 }
 
@@ -188,46 +177,23 @@ void plain_formatter::operator()(const float_constant& num) {
 void plain_formatter::operator()(const matrix& mat) {
   WF_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
   WF_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
-
   if (mat.size() == 0) {
     // Empty matrix:
     output_ += "[]";
     return;
   }
-
-  // Buffer of all the formatted elements:
-  std::vector<std::string> elements;
-  elements.resize(mat.size());
-
-  // Format all the child elements up front. That way we can do alignment:
-  std::transform(mat.begin(), mat.end(), elements.begin(), [](const scalar_expr& expr) {
-    plain_formatter child_formatter{};
-    visit(expr, child_formatter);
-    return child_formatter.output_;
-  });
-
-  // Determine widest element in each column
-  std::vector<std::size_t> column_widths(mat.cols(), 0);
-  for (index_t j = 0; j < mat.cols(); ++j) {
-    for (index_t i = 0; i < mat.rows(); ++i) {
-      column_widths[static_cast<std::size_t>(j)] = std::max(
-          column_widths[static_cast<std::size_t>(j)], elements[mat.compute_index(i, j)].size());
-    }
-  }
-
   output_ += "[";
   for (index_t i = 0; i < mat.rows(); ++i) {
     output_ += "[";
     const index_t last_col = mat.cols() - 1;
     for (index_t j = 0; j < last_col; ++j) {
-      fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.compute_index(i, j)],
-                     column_widths[static_cast<std::size_t>(j)]);
+      operator()(mat(i, j));
+      output_ += ", ";
     }
-    fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.compute_index(i, last_col)],
-                   column_widths[static_cast<std::size_t>(last_col)]);
+    operator()(mat(i, last_col));
     // Insert a comma and new-line if another row is coming.
     if (i + 1 < mat.rows()) {
-      output_ += "],\n ";
+      output_ += "], ";
     } else {
       output_ += "]";
     }
@@ -237,47 +203,43 @@ void plain_formatter::operator()(const matrix& mat) {
 
 void plain_formatter::operator()(const multiplication& mul) {
   WF_ASSERT_GREATER_OR_EQ(mul.size(), 2);
-  using base_exp = multiplication_format_parts::base_exp;
 
   // Break multiplication up into numerator and denominator:
   const multiplication_format_parts info = get_formatting_info(mul);
-
   if (info.is_negative) {
     output_ += "-";
   }
 
   const auto format_element =
-      [this](const std::variant<integer_constant, float_constant, base_exp>& element) {
-        if (std::holds_alternative<integer_constant>(element)) {
-          this->operator()(std::get<integer_constant>(element));
-        } else if (std::holds_alternative<float_constant>(element)) {
-          this->operator()(std::get<float_constant>(element));
-        } else {
-          const base_exp& pow = std::get<base_exp>(element);
-          if (is_one(pow.exponent)) {
-            this->format_precedence(precedence::multiplication, pow.base);
-          } else {
-            this->format_power(pow.base, pow.exponent);
-          }
-        }
+      [this](const std::variant<integer_constant, float_constant, power>& element) {
+        overloaded_visit(
+            element, [this](const integer_constant constant) { this->operator()(constant); },
+            [this](const float_constant constant) { this->operator()(constant); },
+            [this](const power& pow) {
+              if (is_one(pow.exponent())) {
+                this->format_precedence(precedence::multiplication, pow.base());
+              } else {
+                this->format_power(pow.base(), pow.exponent());
+              }
+            });
       };
 
   format_element(info.numerator.front());
   for (std::size_t i = 1; i < info.numerator.size(); ++i) {
-    output_ += " * ";
+    output_ += "*";
     format_element(info.numerator[i]);
   }
 
   if (info.denominator.empty()) {
     return;
   }
-  output_ += " / ";
+  output_ += "/";
 
   if (info.denominator.size() > 1) {
     output_ += "(";
     format_element(info.denominator.front());
     for (std::size_t i = 1; i < info.denominator.size(); ++i) {
-      output_ += " * ";
+      output_ += "*";
       format_element(info.denominator[i]);
     }
     output_ += ")";
@@ -290,19 +252,26 @@ void plain_formatter::operator()(const function& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
   auto it = func.begin();
   if (it != func.end()) {
-    visit(*it, *this);
+    operator()(*it);
   }
   for (++it; it != func.end(); ++it) {
     output_ += ", ";
-    visit(*it, *this);
+    operator()(*it);
   }
   output_ += ")";
 }
 
-void plain_formatter::operator()(const power& pow) { format_power(pow.base(), pow.exponent()); }
+void plain_formatter::operator()(const power& pow) {
+  if (is_negative_one(pow.exponent())) {
+    output_ += "1/";
+    format_precedence(precedence::multiplication, pow.base());
+  } else {
+    format_power(pow.base(), pow.exponent());
+  }
+}
 
 void plain_formatter::operator()(const rational_constant& rational) {
-  fmt::format_to(std::back_inserter(output_), "{} / {}", rational.numerator(),
+  fmt::format_to(std::back_inserter(output_), "{}/{}", rational.numerator(),
                  rational.denominator());
 }
 
@@ -319,16 +288,16 @@ void plain_formatter::operator()(const variable& var) { output_.append(var.to_st
 void plain_formatter::format_precedence(const precedence parent, const scalar_expr& expr) {
   if (get_precedence(expr) <= parent) {
     output_ += "(";
-    visit(expr, *this);
+    operator()(expr);
     output_ += ")";
   } else {
-    visit(expr, *this);
+    operator()(expr);
   }
 }
 
 void plain_formatter::format_power(const scalar_expr& base, const scalar_expr& exponent) {
   format_precedence(precedence::power, base);
-  output_ += " ** ";
+  output_ += "**";
   format_precedence(precedence::power, exponent);
 }
 

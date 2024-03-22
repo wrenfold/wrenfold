@@ -61,7 +61,7 @@ struct hash_struct<power> {
 
 template <>
 struct is_identical_struct<power> {
-  std::size_t operator()(const power& a, const power& b) const {
+  bool operator()(const power& a, const power& b) const {
     return are_identical(a.base(), b.base()) && are_identical(a.exponent(), b.exponent());
   }
 };

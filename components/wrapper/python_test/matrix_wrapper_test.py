@@ -121,7 +121,7 @@ class MatrixWrapperTest(MathTestBase):
         """Test matrix __repr__."""
         x, y, z = sym.symbols("x, y, z")
         m = sym.matrix([[x * x, -y + 3, x * z], [-2, sym.pi, 5]])
-        self.assertEqual("[[x ** 2, 3 - y, x * z],\n [    -2,    pi,     5]]", repr(m))
+        self.assertEqual("[[x**2, 3 - y, x*z], [-2, pi, 5]]", repr(m))
 
     def test_bool_conversion(self):
         """Test that we cannot cast to bool."""

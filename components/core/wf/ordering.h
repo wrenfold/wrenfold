@@ -140,6 +140,8 @@ class comparison_chain {
     }
   }
 
+  constexpr bool is_less_than() const noexcept { return previous_ == relative_order::less_than; }
+
  private:
   relative_order previous_;
 };
