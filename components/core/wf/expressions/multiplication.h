@@ -7,6 +7,7 @@
 #include "wf/algorithm_utils.h"
 #include "wf/expression.h"
 #include "wf/expressions/numeric_expressions.h"
+#include "wf/expressions/power.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"
 
@@ -139,18 +140,11 @@ struct multiplication_parts {
   bool has_zero_numeric_coefficient() const;
 };
 
-// A decomposition of `Multiplication` that is more convenient for printing.
-// This is defined here and not in one particular formatter, since it is likely useful more than
-// once.
+// A decomposition of `multiplication` that is more convenient for printing.
 struct multiplication_format_parts {
-  struct base_exp {
-    scalar_expr base;
-    scalar_expr exponent;
-  };
-
   bool is_negative{false};
-  std::vector<std::variant<integer_constant, float_constant, base_exp>> numerator;
-  std::vector<std::variant<integer_constant, float_constant, base_exp>> denominator;
+  std::vector<std::variant<integer_constant, float_constant, power>> numerator;
+  std::vector<std::variant<integer_constant, float_constant, power>> denominator;
 };
 
 // Create `multiplication_format_parts` from a multiplication.

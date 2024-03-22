@@ -78,14 +78,15 @@ class ExpressionWrapperTest(MathTestBase):
         """Test __repr__ method."""
         x, y, z = sym.symbols('x, y, z')
         self.assertReprEqual('x', x)
-        self.assertReprEqual('x * y / 3', x * y / 3)
-        self.assertReprEqual('x * z ** 3', z * z * z * x)
-        self.assertReprEqual('5 * z / x ** 2', 5.0 * z / (x * x))
-        self.assertReprEqual('cos(x) * sin(z)', sym.cos(x) * sym.sin(z))
-        self.assertReprEqual('cosh(x) * sinh(z)', sym.cosh(x) * sym.sinh(z))
+        self.assertReprEqual('x*y/3', x * y / 3)
+        self.assertReprEqual('3*x + 2*y/5', 3 * x + 2 * y / 5)
+        self.assertReprEqual('x*z**3', z * z * z * x)
+        self.assertReprEqual('5*z/x**2', 5.0 * z / (x * x))
+        self.assertReprEqual('cos(x)*sin(z)', sym.cos(x) * sym.sin(z))
+        self.assertReprEqual('cosh(x)*sinh(z)', sym.cosh(x) * sym.sinh(z))
         self.assertReprEqual('2 + tanh(z)', 2 + sym.tanh(z))
-        self.assertReprEqual('x ** (1 / 2)', sym.sqrt(x))
-        self.assertReprEqual('21 ** (1 / 2) * (x / z) ** (1 / 2)', sym.sqrt(21 * x / z))
+        self.assertReprEqual('x**(1/2)', sym.sqrt(x))
+        self.assertReprEqual('21**(1/2)*(x/z)**(1/2)', sym.sqrt(21 * x / z))
         self.assertReprEqual('atan2(y, x)', sym.atan2(y, x))
         self.assertReprEqual('abs(x)', sym.abs(x))
         self.assertReprEqual('where(x < 0, -x, cos(x))', sym.where(x < 0, -x, sym.cos(x)))
@@ -93,7 +94,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('x == z', sym.equals(x, z))
         self.assertReprEqual('iverson(z < x)', sym.iverson(x > z))
         self.assertReprEqual('I', sym.I)
-        self.assertReprEqual('2 + 5 * I', 2 + 5 * sym.I)
+        self.assertReprEqual('2 + 5*I', 2 + 5 * sym.I)
 
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""

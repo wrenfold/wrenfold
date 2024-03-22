@@ -307,15 +307,16 @@ std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr) {
 }
 
 multiplication_format_parts get_formatting_info(const multiplication& mul) {
-  using base_exp = multiplication_format_parts::base_exp;
   multiplication_format_parts result{};
 
   // Sort into canonical order:
-  absl::InlinedVector<scalar_expr, 16> terms{mul.begin(), mul.end()};
-  std::sort(terms.begin(), terms.end(), [](const auto& a, const auto& b) {
-    const auto abe = as_base_and_exp(a);
-    const auto bbe = as_base_and_exp(b);
-    return order_struct<scalar_expr>{}(abe.first, bbe.first) == relative_order::less_than;
+  absl::InlinedVector<scalar_expr, 8> terms{mul.begin(), mul.end()};
+  std::sort(terms.begin(), terms.end(), [](const scalar_expr& a, const scalar_expr& b) {
+    const auto a_base_exp = as_base_and_exp(a);
+    const auto b_base_exp = as_base_and_exp(b);
+    return order_by(std::get<0>(a_base_exp), std::get<0>(b_base_exp))
+        .and_then_by(std::get<1>(a_base_exp), std::get<1>(b_base_exp))
+        .is_less_than();
   });
 
   std::size_t sign_count = 0;
@@ -352,16 +353,15 @@ multiplication_format_parts get_formatting_info(const multiplication& mul) {
       // Sort into numerator and denominator, depending on sign of the exponent:
       const auto [coeff, _] = as_coeff_and_mul(exponent);
       // See if the exponent seems negative:
-      const bool is_negative_exp = is_negative_number(coeff);
-      if (is_negative_exp) {
+      if (const bool is_negative_exp = is_negative_number(coeff); is_negative_exp) {
         if (is_negative_one(exponent)) {
-          result.denominator.emplace_back(base_exp{std::move(base), constants::one});
+          result.denominator.emplace_back(power{std::move(base), constants::one});
         } else {
           // Flip the sign and create a new power.
-          result.denominator.emplace_back(base_exp{std::move(base), -exponent});
+          result.denominator.emplace_back(power{std::move(base), -exponent});
         }
       } else {
-        result.numerator.emplace_back(base_exp{std::move(base), std::move(exponent)});
+        result.numerator.emplace_back(power{std::move(base), std::move(exponent)});
       }
     }
   }
