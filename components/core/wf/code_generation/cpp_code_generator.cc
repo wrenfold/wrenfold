@@ -122,7 +122,7 @@ std::string cpp_code_generator::operator()(const ast::function_signature& signat
   // Return type and name:
   fmt::format_to(std::back_inserter(result), "{} {}(", make_view(signature.return_annotation()),
                  signature.name());
-  result += join(*this, ", ", signature.arguments());
+  result += join(", ", signature.arguments(), *this);
   result.append(")");
   return result;
 }
@@ -149,12 +149,10 @@ std::string cpp_code_generator::operator()(const ast::add& x) const {
 
 std::string cpp_code_generator::operator()(const ast::assign_output_matrix& x) const {
   const auto range = make_range(static_cast<std::size_t>(0), x.value.type.size());
-  return join(
-      [&](const std::size_t i) {
-        const auto [row, col] = x.value.type.compute_indices(i);
-        return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col, make_view(x.value.args[i]));
-      },
-      "\n", range);
+  return join("\n", range, [&](const std::size_t i) {
+    const auto [row, col] = x.value.type.compute_indices(i);
+    return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col, make_view(x.value.args[i]));
+  });
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_output_scalar& x) const {
@@ -192,7 +190,7 @@ std::string cpp_code_generator::operator()(const ast::branch& x) const {
 }
 
 std::string cpp_code_generator::operator()(const ast::call_external_function& x) const {
-  const std::string args = join(*this, ", ", x.args);
+  const std::string args = join(", ", x.args, *this);
   if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
       static_cast<bool>(s) && s->numeric_type() == code_numeric_type::floating_point) {
     return fmt::format("static_cast<Scalar>({}({}))", x.function.name(), args);

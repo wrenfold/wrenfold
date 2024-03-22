@@ -15,7 +15,7 @@ class custom_cpp_code_generator final : public cpp_code_generator {
   using cpp_code_generator::operator();
 
   std::string operator()(const ast::call_external_function& func) const override {
-    return fmt::format("test::{}({})", func.function.name(), join(*this, ", ", func.args));
+    return fmt::format("test::{}({})", func.function.name(), join(", ", func.args, *this));
   }
 
   std::string operator()(const custom_type& custom) const override {
@@ -41,7 +41,7 @@ class custom_cpp_code_generator final : public cpp_code_generator {
 
   // ... And how they are constructed:
   std::string operator()(const ast::construct_matrix& construct) const override {
-    const std::string args = join(*this, ", ", construct.args);
+    const std::string args = join(", ", construct.args, *this);
     return fmt::format("(Eigen::Matrix<Scalar, {}, {}>() << {}).finished()", construct.type.rows(),
                        construct.type.cols(), args);
   }

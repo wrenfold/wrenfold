@@ -8,6 +8,7 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
 WF_END_THIRD_PARTY_INCLUDES
 
+// Some utilities for formatting strings.
 namespace wf {
 
 template <typename Formatter, typename T>
@@ -43,37 +44,14 @@ struct fmt_view<Formatter, std::tuple<Args...>> {
 }  // namespace detail
 
 // Join using the provided formatter and separator.
-// Results are appended to `output`.
-template <typename Container, typename Formatter>
-void join_to(std::string& output, const std::string_view separator, const Container& container,
-             Formatter&& formatter) {
-  auto it = container.begin();
-  if (it == container.end()) {
-    return;
-  }
-  output += formatter(*it);
-  for (++it; it != container.end(); ++it) {
-    output.append(separator);
-    output += formatter(*it);
-  }
-}
-
-// Join, but with an iteration index included in the arguments to `formatter`.
-template <typename Container, typename Formatter>
-void join_enumerate_to(std::string& output, const std::string_view separator,
-                       const Container& container, Formatter&& formatter) {
-  std::size_t index = 0;
-  join_to(output, separator, container, [&](const auto& arg) { return formatter(index++, arg); });
-}
-
-// Join using the provided formatter and separator.
 template <typename Formatter, typename Container>
-std::string join(Formatter&& formatter, const std::string_view separator,
-                 const Container& container) {
+std::string join(const std::string_view separator, const Container& container,
+                 Formatter&& formatter) {
   auto it = container.begin();
   if (it == container.end()) {
     return "";
   }
+  // TODO: It would be preferable if the formatter wrote into `result` instead of returning copies.
   std::string result{};
   result += formatter(*it);
   for (++it; it != container.end(); ++it) {
@@ -83,6 +61,14 @@ std::string join(Formatter&& formatter, const std::string_view separator,
   return result;
 }
 
+// Join, but with an iteration index included in the arguments to `formatter`.
+template <typename Container, typename Formatter>
+std::string join_enumerate(const std::string_view separator, const Container& container,
+                           Formatter&& formatter) {
+  std::size_t index = 0;
+  return join(separator, container, [&](const auto& arg) { return formatter(index++, arg); });
+}
+
 // Indent a string and prefix/suffix it with open and closing brackets.
 template <typename Formatter, typename Container>
 void join_and_indent(std::string& output, const std::size_t indendation,
@@ -90,7 +76,7 @@ void join_and_indent(std::string& output, const std::size_t indendation,
                      const std::string_view separator, const Container& container,
                      Formatter&& formatter) {
   output.append(open);
-  const std::string joined = join(formatter, separator, container);
+  const std::string joined = join(separator, container, std::forward<Formatter>(formatter));
 
   output.reserve(output.size() + joined.size());
 

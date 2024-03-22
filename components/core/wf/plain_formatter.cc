@@ -3,6 +3,7 @@
 #include "wf/assertions.h"
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
+#include "wf/string_utils.h"
 #include "wf/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES

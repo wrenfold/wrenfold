@@ -106,7 +106,7 @@ std::string rust_code_generator::operator()(const ast::function_signature& signa
     }
   }
   result.append(">(");
-  join_to(result, ", ", signature.arguments(), *this);
+  result += join(", ", signature.arguments(), *this);
 
   // Return value:
   fmt::format_to(std::back_inserter(result), ") -> {}\n", make_view(signature.return_annotation()));
@@ -148,13 +148,10 @@ std::string rust_code_generator::operator()(const ast::add& x) const {
 
 std::string rust_code_generator::operator()(const ast::assign_output_matrix& x) const {
   const auto range = make_range(static_cast<std::size_t>(0), x.value.type.size());
-  return join(
-      [&](const std::size_t i) {
-        const auto [row, col] = x.value.type.compute_indices(i);
-        return fmt::format("{}.set({}, {}, {});", x.arg.name(), row, col,
-                           make_view(x.value.args[i]));
-      },
-      "\n", range);
+  return join("\n", range, [&](const std::size_t i) {
+    const auto [row, col] = x.value.type.compute_indices(i);
+    return fmt::format("{}.set({}, {}, {});", x.arg.name(), row, col, make_view(x.value.args[i]));
+  });
 }
 
 std::string rust_code_generator::operator()(const ast::assign_output_scalar& x) const {
@@ -187,7 +184,7 @@ std::string rust_code_generator::operator()(const ast::branch& x) const {
   return result;
 }
 
-static bool is_get_argument_custom_type(const ast::ast_element& var) {
+static bool is_get_argument_with_custom_type(const ast::ast_element& var) {
   if (const auto get = ast::get_if<ast::get_argument>(var); get.has_value()) {
     return get->arg.is_custom_type();
   }
@@ -198,9 +195,9 @@ std::string rust_code_generator::operator()(const ast::call_external_function& x
   WF_ASSERT_EQUAL(x.args.size(), x.function.num_arguments());
   std::string result = x.function.name();
   result.append("(");
-  join_enumerate_to(result, ", ", x.args, [&](const std::size_t index, const ast::ast_element& v) {
+  result += join_enumerate(", ", x.args, [&](const std::size_t index, const ast::ast_element& v) {
     std::string arg_str = operator()(v);
-    if (is_get_argument_custom_type(v)) {
+    if (is_get_argument_with_custom_type(v)) {
       return arg_str;
     }
     if (const argument& arg = x.function.argument_at(index);
