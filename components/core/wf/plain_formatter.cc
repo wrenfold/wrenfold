@@ -177,46 +177,23 @@ void plain_formatter::operator()(const float_constant& num) {
 void plain_formatter::operator()(const matrix& mat) {
   WF_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
   WF_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
-
   if (mat.size() == 0) {
     // Empty matrix:
     output_ += "[]";
     return;
   }
-
-  // Buffer of all the formatted elements:
-  std::vector<std::string> elements;
-  elements.resize(mat.size());
-
-  // Format all the child elements up front. That way we can do alignment:
-  std::transform(mat.begin(), mat.end(), elements.begin(), [](const scalar_expr& expr) {
-    plain_formatter child_formatter{};
-    child_formatter(expr);
-    return child_formatter.output_;
-  });
-
-  // Determine widest element in each column
-  std::vector<std::size_t> column_widths(mat.cols(), 0);
-  for (index_t j = 0; j < mat.cols(); ++j) {
-    for (index_t i = 0; i < mat.rows(); ++i) {
-      column_widths[static_cast<std::size_t>(j)] = std::max(
-          column_widths[static_cast<std::size_t>(j)], elements[mat.compute_index(i, j)].size());
-    }
-  }
-
   output_ += "[";
   for (index_t i = 0; i < mat.rows(); ++i) {
     output_ += "[";
     const index_t last_col = mat.cols() - 1;
     for (index_t j = 0; j < last_col; ++j) {
-      fmt::format_to(std::back_inserter(output_), "{:>{}}, ", elements[mat.compute_index(i, j)],
-                     column_widths[static_cast<std::size_t>(j)]);
+      operator()(mat(i, j));
+      output_ += ", ";
     }
-    fmt::format_to(std::back_inserter(output_), "{:>{}}", elements[mat.compute_index(i, last_col)],
-                   column_widths[static_cast<std::size_t>(last_col)]);
+    operator()(mat(i, last_col));
     // Insert a comma and new-line if another row is coming.
     if (i + 1 < mat.rows()) {
-      output_ += "],\n ";
+      output_ += "], ";
     } else {
       output_ += "]";
     }

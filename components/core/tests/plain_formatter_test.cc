@@ -148,14 +148,11 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
 }
 
 TEST(PlainFormatterTest, TestMatrix) {
-  const scalar_expr a{"a"};
-  const scalar_expr b{"b"};
-  const scalar_expr c{"c"};
-  const scalar_expr d{"d"};
-  ASSERT_STR_EQ("[[a, b],\n [c, d]]", make_matrix(2, 2, a, b, c, d));
-  ASSERT_STR_EQ("[[2*a, b - c],\n [  c,   3*d]]", make_matrix(2, 2, a * 2, b - c, c, d * 3));
-  ASSERT_STR_EQ("[[a],\n [b],\n [c]]", make_vector(a, b, c));
-  ASSERT_STR_EQ("[[-3 + a],\n [     b],\n [cos(c)]]", make_vector(a - 3, b, cos(c)));
+  const auto [a, b, c, d] = make_symbols("a", "b", "c", "d");
+  ASSERT_STR_EQ("[[a, b], [c, d]]", make_matrix(2, 2, a, b, c, d));
+  ASSERT_STR_EQ("[[2*a, b - c], [c, 3*d]]", make_matrix(2, 2, a * 2, b - c, c, d * 3));
+  ASSERT_STR_EQ("[[a], [b], [c]]", make_vector(a, b, c));
+  ASSERT_STR_EQ("[[-3 + a], [b], [cos(c)]]", make_vector(a - 3, b, cos(c)));
   ASSERT_STR_EQ("[[2, a*b*c, sin(d)]]", make_row_vector(2, a * b * c, sin(d)));
 }
 
