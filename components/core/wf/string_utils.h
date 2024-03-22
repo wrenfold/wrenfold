@@ -8,28 +8,33 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
 WF_END_THIRD_PARTY_INCLUDES
 
+// Some utilities for formatting strings.
 namespace wf {
 
 template <typename Formatter, typename T>
 struct fmt_view;
 
 namespace detail {
-
-// If `T` is an r-value reference, get the decayed type.
-// Otherwise, get a const T&.
+// Convert type `T` into something we capture in `fmt_view`.
 template <typename T>
-struct convert_rvalue_ref_to_value {
-  using type =
-      std::conditional_t<std::is_rvalue_reference_v<T>, std::decay_t<T>, const std::decay_t<T>&>;
+struct convert_to_captured_type {
+ private:
+  using U = std::remove_reference_t<T>;
+
+ public:
+  // If `T` is an r-value, we will move it into type `U`.
+  // It is an array, decay it to a pointer.
+  // Otherwise, just take type `T` (which may be a reference or a value).
+  using type = std::conditional_t<std::is_rvalue_reference_v<T>, U,
+                                  std::conditional_t<std::is_array_v<U>, std::decay_t<U>, T>>;
 };
 template <typename T>
-using convert_rvalue_ref_to_value_t = typename convert_rvalue_ref_to_value<T>::type;
+using convert_to_captured_type_t = typename convert_to_captured_type<T>::type;
 
 // Captures a callable formatter and a bunch of arguments.
-// `Formatter` may be a reference in this context.
+// `Formatter` may be a reference (const or otherwise).
 template <typename Formatter, typename T>
 struct fmt_view;
-
 template <typename Formatter, typename... Args>
 struct fmt_view<Formatter, std::tuple<Args...>> {
   Formatter formatter;
@@ -39,37 +44,14 @@ struct fmt_view<Formatter, std::tuple<Args...>> {
 }  // namespace detail
 
 // Join using the provided formatter and separator.
-// Results are appended to `output`.
-template <typename Container, typename Formatter>
-void join_to(std::string& output, const std::string_view separator, const Container& container,
-             Formatter&& formatter) {
-  auto it = container.begin();
-  if (it == container.end()) {
-    return;
-  }
-  output += formatter(*it);
-  for (++it; it != container.end(); ++it) {
-    output.append(separator);
-    output += formatter(*it);
-  }
-}
-
-// Join, but with an iteration index included in the arguments to `formatter`.
-template <typename Container, typename Formatter>
-void join_enumerate_to(std::string& output, const std::string_view separator,
-                       const Container& container, Formatter&& formatter) {
-  std::size_t index = 0;
-  join_to(output, separator, container, [&](const auto& arg) { return formatter(index++, arg); });
-}
-
-// Join using the provided formatter and separator.
 template <typename Formatter, typename Container>
-std::string join(Formatter&& formatter, const std::string_view separator,
-                 const Container& container) {
+std::string join(const std::string_view separator, const Container& container,
+                 Formatter&& formatter) {
   auto it = container.begin();
   if (it == container.end()) {
     return "";
   }
+  // TODO: It would be preferable if the formatter wrote into `result` instead of returning copies.
   std::string result{};
   result += formatter(*it);
   for (++it; it != container.end(); ++it) {
@@ -79,6 +61,14 @@ std::string join(Formatter&& formatter, const std::string_view separator,
   return result;
 }
 
+// Join, but with an iteration index included in the arguments to `formatter`.
+template <typename Container, typename Formatter>
+std::string join_enumerate(const std::string_view separator, const Container& container,
+                           Formatter&& formatter) {
+  std::size_t index = 0;
+  return join(separator, container, [&](const auto& arg) { return formatter(index++, arg); });
+}
+
 // Indent a string and prefix/suffix it with open and closing brackets.
 template <typename Formatter, typename Container>
 void join_and_indent(std::string& output, const std::size_t indendation,
@@ -86,7 +76,7 @@ void join_and_indent(std::string& output, const std::size_t indendation,
                      const std::string_view separator, const Container& container,
                      Formatter&& formatter) {
   output.append(open);
-  const std::string joined = join(formatter, separator, container);
+  const std::string joined = join(separator, container, std::forward<Formatter>(formatter));
 
   output.reserve(output.size() + joined.size());
 
@@ -107,12 +97,10 @@ void join_and_indent(std::string& output, const std::size_t indendation,
 // formatted by calling back into an object of type `Formatter`.
 template <typename Formatter, typename... Args>
 auto make_fmt_view(Formatter&& formatter, Args&&... args) {
-  // Convert r-value references to values. These are moved into the tuple. l-value references
-  // are store as `const Args&` in the tuple to avoid copies.
-  std::tuple<detail::convert_rvalue_ref_to_value_t<decltype(args)>...> tup{
+  std::tuple<detail::convert_to_captured_type_t<decltype(args)>...> tup{
       std::forward<Args>(args)...};
-  return detail::fmt_view<detail::convert_rvalue_ref_to_value_t<decltype(formatter)>,
-                          decltype(tup)>{std::forward<Formatter>(formatter), std::move(tup)};
+  return detail::fmt_view<detail::convert_to_captured_type_t<decltype(formatter)>, decltype(tup)>{
+      std::forward<Formatter>(formatter), std::move(tup)};
 }
 
 }  // namespace wf

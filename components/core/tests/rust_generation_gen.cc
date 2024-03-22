@@ -56,7 +56,7 @@ class custom_rust_code_generator final : public rust_code_generator {
   }
 
   std::string operator()(const ast::construct_matrix& construct) const override {
-    const std::string args = join(*this, ", ", construct.args);
+    const std::string args = join(", ", construct.args, *this);
     return fmt::format("nalgebra::SMatrix::<f64, {}, {}>::new({})", construct.type.rows(),
                        construct.type.cols(), args);
   }

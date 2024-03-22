@@ -1,7 +1,7 @@
 // Copyright 2023 Gareth Cross
 #pragma once
 #include "wf/code_generation/ast.h"
-#include "wf/code_generation/code_formatter.h"
+#include "wf/string_utils.h"
 
 namespace wf {
 
