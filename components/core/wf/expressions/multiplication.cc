@@ -110,93 +110,83 @@ struct multiply_numeric_constants {
   }
 };
 
-template <bool FactorizeIntegers>
-struct multiply_visitor {
-  explicit multiply_visitor(multiplication_parts& builder) : builder(builder) {}
-
-  void insert_integer_factors(const std::vector<prime_factor>& factors, const bool positive) const {
-    for (const prime_factor& factor : factors) {
-      scalar_expr base{factor.base};
-      scalar_expr exponent{positive ? factor.exponent : -factor.exponent};
-      if (const auto [it, was_inserted] = builder.terms.emplace(std::move(base), exponent);
-          !was_inserted) {
-        it->second = it->second + exponent;
-      }
-    }
-  }
-
-  void insert_power(const scalar_expr& base, const scalar_expr& exponent) {
-    if (const auto [it, was_inserted] = builder.terms.emplace(base, exponent); !was_inserted) {
-      scalar_expr updated_exp = it->second + exponent;
-      if (const std::optional<scalar_expr> simplified = pow_maybe_simplify(it->first, updated_exp);
-          simplified.has_value()) {
-        // Thw power now simplifies to something else, so erase this from the terms and visit the
-        // simplfied object.
-        builder.terms.erase(it);
-        visit(*simplified, *this);
-      } else {
-        it->second = std::move(updated_exp);
-      }
-    }
-  }
-
-  template <typename T>
-  void operator()(const T& arg, const scalar_expr& input_expression) {
-    if constexpr (std::is_same_v<T, multiplication>) {
-      for (const scalar_expr& expr : arg) {
-        // Recursively add multiplications:
-        visit(expr, *this);
-      }
-    } else if constexpr (std::is_same_v<T, power>) {
-      insert_power(arg.base(), arg.exponent());
-    } else if constexpr (std::is_same_v<T, integer_constant>) {
-      if constexpr (FactorizeIntegers) {
-        // Factorize integers into primes:
-        const auto factors = compute_prime_factors(arg.value());
-        insert_integer_factors(factors, true);
-      } else {
-        // Promote integers to rationals and multiply them onto `rational_coeff`.
-        builder.numeric_coeff = multiply_numeric_constants{}(builder.numeric_coeff, arg);
-      }
-    } else if constexpr (std::is_same_v<T, rational_constant>) {
-      if constexpr (FactorizeIntegers) {
-        const auto num_factors = compute_prime_factors(arg.numerator());
-        const auto den_factors = compute_prime_factors(arg.denominator());
-        insert_integer_factors(num_factors, true);
-        insert_integer_factors(den_factors, false);
-      } else {
-        builder.numeric_coeff = multiply_numeric_constants{}(builder.numeric_coeff, arg);
-      }
-    } else if constexpr (std::is_same_v<T, float_constant>) {
-      builder.numeric_coeff = multiply_numeric_constants{}(builder.numeric_coeff, arg);
-    } else if constexpr (std::is_same_v<T, complex_infinity>) {
-      ++builder.num_infinities;
-    } else {
-      // Everything else: Just raise the power by +1.
-      insert_power(input_expression, constants::one);
-    }
-  }
-
-  multiplication_parts& builder;
-};
-
-multiplication_parts::multiplication_parts(const multiplication& mul, bool factorize_integers)
-    : multiplication_parts(mul.size()) {
+void multiplication_parts::operator()(const multiplication& mul) {
   for (const scalar_expr& expr : mul) {
-    multiply_term(expr, factorize_integers);
+    // Recursively add multiplications:
+    visit(expr, *this);
+  }
+}
+
+void multiplication_parts::operator()(const power& pow) {
+  insert_power(pow.base(), pow.exponent());
+}
+
+void multiplication_parts::operator()(const integer_constant& i) {
+  if (factorize_integers_) {
+    // Factorize integers into primes:
+    insert_integer_factors(compute_prime_factors(i.value()), true);
+  } else {
+    // Promote integers to rationals and multiply them onto `rational_coeff`.
+    numeric_coeff = multiply_numeric_constants{}(numeric_coeff, i);
+  }
+}
+
+void multiplication_parts::operator()(const rational_constant& r) {
+  if (factorize_integers_) {
+    insert_integer_factors(compute_prime_factors(r.numerator()), true);
+    insert_integer_factors(compute_prime_factors(r.denominator()), false);
+  } else {
+    numeric_coeff = multiply_numeric_constants{}(numeric_coeff, r);
+  }
+}
+
+void multiplication_parts::operator()(const float_constant& f) noexcept {
+  numeric_coeff = multiply_numeric_constants{}(numeric_coeff, f);
+}
+
+void multiplication_parts::operator()(const complex_infinity&) noexcept { ++num_infinities; }
+
+template <typename T, typename>
+void multiplication_parts::operator()(const T&, const scalar_expr& input_expression) {
+  // Everything else: Just raise the power by +1.
+  insert_power(input_expression, constants::one);
+}
+
+void multiplication_parts::insert_power(const scalar_expr& base, const scalar_expr& exponent) {
+  if (const auto [it, was_inserted] = terms.emplace(base, exponent); !was_inserted) {
+    scalar_expr updated_exp = it->second + exponent;
+    if (const std::optional<scalar_expr> simplified = pow_maybe_simplify(it->first, updated_exp);
+        simplified.has_value()) {
+      // Thw power now simplifies to something else, so erase this from the terms and visit the
+      // simplfied object.
+      terms.erase(it);
+      visit(*simplified, *this);
+    } else {
+      it->second = std::move(updated_exp);
+    }
+  }
+}
+
+template <typename T>
+void multiplication_parts::insert_integer_factors(const T& factors, const bool positive) {
+  for (const prime_factor& factor : factors) {
+    scalar_expr base{factor.base};
+    scalar_expr exponent{positive ? factor.exponent : -factor.exponent};
+    if (const auto [it, was_inserted] = terms.emplace(std::move(base), exponent); !was_inserted) {
+      it->second = it->second + exponent;
+    }
+  }
+}
+
+multiplication_parts::multiplication_parts(const multiplication& mul, const bool factorize_integers)
+    : multiplication_parts(mul.size(), factorize_integers) {
+  for (const scalar_expr& expr : mul) {
+    multiply_term(expr);
   }
   normalize_coefficients();
 }
 
-void multiplication_parts::multiply_term(const scalar_expr& arg, bool factorize_integers) {
-  if (factorize_integers) {
-    multiply_visitor<true> visitor{*this};
-    visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
-  } else {
-    multiply_visitor<false> visitor{*this};
-    visit(arg, [&visitor, &arg](const auto& x) { visitor(x, arg); });
-  }
-}
+void multiplication_parts::multiply_term(const scalar_expr& arg) { visit(arg, *this); }
 
 void multiplication_parts::normalize_coefficients() {
   // Nuke anything w/ a zero exponent.

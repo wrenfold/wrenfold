@@ -105,24 +105,24 @@ std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplication& m
 // the second value.
 std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr);
 
-// Helper object used to execute multiplications.
+// Helper object used to manipulate multiplications.
+// Stores a map from {base -> exponent}. As terms are multiplied, the exponent is incremented
+// or decremented appropriately. Finally, `create_multiplication` is called to flatten
+// the contents back into a `multiplication` object.
 struct multiplication_parts {
   using numeric_constant = std::variant<rational_constant, float_constant>;
 
   multiplication_parts() = default;
-  explicit multiplication_parts(const std::size_t capacity) { terms.reserve(capacity); }
+  explicit multiplication_parts(const std::size_t capacity, const bool factorize_integers = false)
+      : factorize_integers_(factorize_integers) {
+    terms.reserve(capacity);
+  }
 
   // Construct from existing multiplication.
   explicit multiplication_parts(const multiplication& mul, bool factorize_integers);
 
   // Numeric coefficient. May be rational or float.
   numeric_constant numeric_coeff{rational_constant{1, 1}};
-
-  // // Rational coefficient.
-  // rational_constant rational_coeff{1, 1};
-  //
-  // // Floating point coefficient:
-  // std::optional<float_constant> float_coeff{};
 
   // Map from base to exponent.
   std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
@@ -133,7 +133,7 @@ struct multiplication_parts {
   std::size_t num_infinities{0};
 
   // Update the internal product by multiplying on `arg`.
-  void multiply_term(const scalar_expr& arg, bool factorize_integers = false);
+  void multiply_term(const scalar_expr& arg);
 
   // Nuke any terms w/ a zero exponent and normalize powers of integers.
   void normalize_coefficients();
@@ -146,6 +146,31 @@ struct multiplication_parts {
 
   // True if the multiplication includes complex infinity.
   constexpr bool has_complex_infinity() const noexcept { return num_infinities > 0; }
+
+  // Visitor operations.
+  void operator()(const multiplication& mul);
+  void operator()(const power& pow);
+  void operator()(const integer_constant& i);
+  void operator()(const rational_constant& r);
+  void operator()(const float_constant& f) noexcept;
+  void operator()(const complex_infinity&) noexcept;
+
+  template <typename T, typename = enable_if_does_not_contain_type_t<
+                            T, multiplication, power, integer_constant, rational_constant,
+                            float_constant, complex_infinity>>
+  void operator()(const T&, const scalar_expr& input_expression);
+
+ private:
+  // Insert base**exponent into `terms`, applying simplifications in the process.
+  void insert_power(const scalar_expr& base, const scalar_expr& exponent);
+
+  template <typename T>
+  void insert_integer_factors(const T& factors, bool positive);
+
+  // If true, factorize integers into primes and insert them into `terms`, instead of
+  // updating `numeric_coeff`. Rationals are broken into positive and negative powers
+  // of primes.
+  bool factorize_integers_{false};
 };
 
 // A decomposition of `multiplication` that is more convenient for printing.
