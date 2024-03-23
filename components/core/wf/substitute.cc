@@ -144,15 +144,14 @@ struct substitute_mul_visitor : substitute_visitor_base<substitute_mul_visitor, 
     // TODO: Should we just store multiplications pre-factored in this format?
     multiplication_parts input_parts{candidate, true};
 
-    if (target_parts.float_coeff.has_value()) {
-      if (!input_parts.float_coeff ||
-          !are_identical(*input_parts.float_coeff, *target_parts.float_coeff)) {
+    if (std::holds_alternative<float_constant>(input_parts.numeric_coeff)) {
+      if (input_parts.numeric_coeff != target_parts.numeric_coeff) {
         // Don't allow substitutions that perform float operations.
         // (Unless the float coefficients match exactly, then we allow it.)
         return input_expression;
       } else {
         // The float components match, so divide it out and proceed w/ the rest of the replacement:
-        input_parts.float_coeff.reset();
+        input_parts.numeric_coeff = rational_constant{1, 1};
       }
     }
 

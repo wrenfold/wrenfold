@@ -34,6 +34,10 @@ class power {
   std::array<scalar_expr, 2> children_;
 };
 
+// Inspect the expression `base**exp`. If it simplifies or reduces to something _other_ than
+// pow(base, exp), return that expression.
+std::optional<scalar_expr> pow_maybe_simplify(const scalar_expr& base, const scalar_expr& exp);
+
 // Convert an expression to a base/exponent pair.
 std::pair<scalar_expr, scalar_expr> as_base_and_exp(const scalar_expr& expr);
 

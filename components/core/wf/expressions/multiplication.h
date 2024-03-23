@@ -107,17 +107,22 @@ std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr);
 
 // Helper object used to execute multiplications.
 struct multiplication_parts {
+  using numeric_constant = std::variant<rational_constant, float_constant>;
+
   multiplication_parts() = default;
   explicit multiplication_parts(const std::size_t capacity) { terms.reserve(capacity); }
 
   // Construct from existing multiplication.
   explicit multiplication_parts(const multiplication& mul, bool factorize_integers);
 
-  // Rational coefficient.
-  rational_constant rational_coeff{1, 1};
+  // Numeric coefficient. May be rational or float.
+  numeric_constant numeric_coeff{rational_constant{1, 1}};
 
-  // Floating point coefficient:
-  std::optional<float_constant> float_coeff{};
+  // // Rational coefficient.
+  // rational_constant rational_coeff{1, 1};
+  //
+  // // Floating point coefficient:
+  // std::optional<float_constant> float_coeff{};
 
   // Map from base to exponent.
   std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
@@ -138,6 +143,9 @@ struct multiplication_parts {
 
   // True if the multiplication includes a numeric coefficient of zero.
   bool has_zero_numeric_coefficient() const;
+
+  // True if the multiplication includes complex infinity.
+  constexpr bool has_complex_infinity() const noexcept { return num_infinities > 0; }
 };
 
 // A decomposition of `multiplication` that is more convenient for printing.

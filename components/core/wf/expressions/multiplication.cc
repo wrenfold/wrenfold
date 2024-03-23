@@ -22,12 +22,9 @@ inline scalar_expr maybe_new_mul(multiplication::container_type&& terms) {
 
 static scalar_expr multiply_into_addition(const addition& add,
                                           const scalar_expr& numerical_constant) {
-  addition::container_type add_args{};
-  add_args.reserve(add.size());
-  std::transform(
-      add.begin(), add.end(), std::back_inserter(add_args),
-      [&numerical_constant](const scalar_expr& add_term) { return add_term * numerical_constant; });
-  return addition::from_operands(add_args);  // TODO: make this a move!
+  const addition::container_type add_args = transform_map<addition::container_type>(
+      add, [&](const scalar_expr& f) { return f * numerical_constant; });
+  return addition::from_operands(add_args);  // TODO: make this a move.
 }
 
 std::vector<scalar_expr> multiplication::sorted_terms() const {
@@ -46,8 +43,8 @@ scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> ar
     return constants::undefined;
   }
 
-  // TODO: this simplification doesn't always work because there might be multiple
-  // integer/rational/float terms.
+  // Check for `addition * constant`.
+  // Combinations for > 2 args are handled by `create_multiplication`.
   if (args.size() == 2) {
     if (const addition* add = get_if<const addition>(args[0]);
         add && args[1].is_type<integer_constant, rational_constant, float_constant>()) {
@@ -79,6 +76,40 @@ void multiplication::sort_terms() {
   });
 }
 
+struct multiply_numeric_constants {
+  // Promote integer -> rational.
+  template <typename A, typename B,
+            typename = enable_if_contains_type_t<A, integer_constant, rational_constant>,
+            typename = enable_if_contains_type_t<B, integer_constant, rational_constant>>
+  constexpr rational_constant operator()(const A a, const B b) const {
+    return static_cast<rational_constant>(a) * static_cast<rational_constant>(b);
+  }
+
+  // Promote to float:
+  template <typename A, typename = enable_if_contains_type_t<A, float_constant, integer_constant,
+                                                             rational_constant>>
+  constexpr float_constant operator()(const A a, const float_constant b) const {
+    return static_cast<float_constant>(a) * b;
+  }
+
+  // Promote to float:
+  template <typename B,
+            typename = enable_if_contains_type_t<B, integer_constant, rational_constant>>
+  constexpr float_constant operator()(const float_constant a, const B b) const {
+    return a * static_cast<float_constant>(b);
+  }
+
+  template <typename T>
+  constexpr multiplication_parts::numeric_constant operator()(
+      const multiplication_parts::numeric_constant& a, const T b) const {
+    return std::visit(
+        [b](auto a_concrete) constexpr -> multiplication_parts::numeric_constant {
+          return multiply_numeric_constants{}(a_concrete, b);
+        },
+        a);
+  }
+};
+
 template <bool FactorizeIntegers>
 struct multiply_visitor {
   explicit multiply_visitor(multiplication_parts& builder) : builder(builder) {}
@@ -94,20 +125,30 @@ struct multiply_visitor {
     }
   }
 
+  void insert_power(const scalar_expr& base, const scalar_expr& exponent) {
+    if (const auto [it, was_inserted] = builder.terms.emplace(base, exponent); !was_inserted) {
+      scalar_expr updated_exp = it->second + exponent;
+      if (const std::optional<scalar_expr> simplified = pow_maybe_simplify(it->first, updated_exp);
+          simplified.has_value()) {
+        // Thw power now simplifies to something else, so erase this from the terms and visit the
+        // simplfied object.
+        builder.terms.erase(it);
+        visit(*simplified, *this);
+      } else {
+        it->second = std::move(updated_exp);
+      }
+    }
+  }
+
   template <typename T>
   void operator()(const T& arg, const scalar_expr& input_expression) {
     if constexpr (std::is_same_v<T, multiplication>) {
       for (const scalar_expr& expr : arg) {
         // Recursively add multiplications:
-        visit(expr, [this, &expr](const auto& x) { this->operator()(x, expr); });
+        visit(expr, *this);
       }
     } else if constexpr (std::is_same_v<T, power>) {
-      const power& arg_pow = arg;
-      // Try to insert. If it already exists, replace the exponent with the sum of exponents:
-      const auto [it, was_inserted] = builder.terms.emplace(arg_pow.base(), arg_pow.exponent());
-      if (!was_inserted) {
-        it->second = it->second + arg_pow.exponent();
-      }
+      insert_power(arg.base(), arg.exponent());
     } else if constexpr (std::is_same_v<T, integer_constant>) {
       if constexpr (FactorizeIntegers) {
         // Factorize integers into primes:
@@ -115,7 +156,7 @@ struct multiply_visitor {
         insert_integer_factors(factors, true);
       } else {
         // Promote integers to rationals and multiply them onto `rational_coeff`.
-        builder.rational_coeff = builder.rational_coeff * static_cast<rational_constant>(arg);
+        builder.numeric_coeff = multiply_numeric_constants{}(builder.numeric_coeff, arg);
       }
     } else if constexpr (std::is_same_v<T, rational_constant>) {
       if constexpr (FactorizeIntegers) {
@@ -124,22 +165,15 @@ struct multiply_visitor {
         insert_integer_factors(num_factors, true);
         insert_integer_factors(den_factors, false);
       } else {
-        builder.rational_coeff = builder.rational_coeff * arg;
+        builder.numeric_coeff = multiply_numeric_constants{}(builder.numeric_coeff, arg);
       }
     } else if constexpr (std::is_same_v<T, float_constant>) {
-      if (!builder.float_coeff.has_value()) {
-        builder.float_coeff = arg;
-      } else {
-        builder.float_coeff = (*builder.float_coeff) * arg;
-      }
+      builder.numeric_coeff = multiply_numeric_constants{}(builder.numeric_coeff, arg);
     } else if constexpr (std::is_same_v<T, complex_infinity>) {
       ++builder.num_infinities;
     } else {
       // Everything else: Just raise the power by +1.
-      const auto [it, was_inserted] = builder.terms.emplace(input_expression, constants::one);
-      if (!was_inserted) {
-        it->second = it->second + constants::one;
-      }
+      insert_power(input_expression, constants::one);
     }
   }
 
@@ -165,98 +199,75 @@ void multiplication_parts::multiply_term(const scalar_expr& arg, bool factorize_
 }
 
 void multiplication_parts::normalize_coefficients() {
-  for (auto it = terms.begin(); it != terms.end(); ++it) {
-    const integer_constant* base = get_if<const integer_constant>(it->first);
-    const rational_constant* exponent = get_if<const rational_constant>(it->second);
-    // Check if the exponent is now greater than 1, in which case we factorize it into an integer
-    // part and a fractional part. The integer part is multiplied onto the rational coefficient.
-    if (base && exponent) {
-      const auto [integer_part, fractional_part] = factorize_rational_exponent(*exponent);
-      // Update the rational coefficient:
-      if (integer_part >= 0) {
-        rational_coeff =
-            rational_coeff * rational_constant{integer_power(base->value(), integer_part), 1};
-      } else {
-        rational_coeff =
-            rational_coeff * rational_constant{1, integer_power(base->value(), -integer_part)};
-      }
-
-      // We changed the exponent on this term, so update it.
-      it->second = scalar_expr(fractional_part);
-    }
-  }
-
   // Nuke anything w/ a zero exponent.
-  for (auto it = terms.begin(); it != terms.end();) {
-    if (is_zero(it->second)) {
-      it = terms.erase(it);
-    } else {
-      ++it;
-    }
-  }
+  map_erase_if(terms, [](const auto& pair) { return is_zero(pair.second); });
 }
 
 scalar_expr multiplication_parts::create_multiplication() const {
   multiplication::container_type args{};
 
   // TODO: Would be good to front-load this logic so we can early exit before building the map.
-  if (num_infinities > 0 && has_zero_numeric_coefficient()) {
+  if (has_complex_infinity() && has_zero_numeric_coefficient()) {
     // Indeterminate: ∞ * 0, applies to any kind of infinity
     return constants::undefined;
-  } else if (num_infinities > 0) {
+  } else if (has_complex_infinity()) {
     // z∞ * z∞ -> z∞
     args.push_back(constants::complex_infinity);
   } else if (has_zero_numeric_coefficient()) {
     return constants::zero;
   }
 
-  // Depending on the presence of imaginary unit `i`, we may need to negate this before adding it
-  // to the product:
-  rational_constant rational_term = rational_coeff;
+  multiplication_parts::numeric_constant numeric_term = numeric_coeff;
 
-  if (const auto imaginary_exp = terms.find(constants::imaginary_unit);
-      imaginary_exp != terms.end()) {
-    // Delegate to pow(), which may invoke `power_imaginary_visitor` to simplify this to a constant:
-    const scalar_expr maybe_imaginary_coeff = pow(constants::imaginary_unit, imaginary_exp->second);
-    auto [coeff, mul] = as_coeff_and_mul(maybe_imaginary_coeff);
-    if (is_negative_one(coeff)) {
-      // If imaginary powers produced (-1), just multiply it onto the rational term.
-      rational_term = rational_term * -1;
+  // Convert into a vector of powers, and sort into canonical order:
+  for (const auto& [base, exp] : terms) {
+    auto pow = power::create(base, exp);
+
+    // The power may have produced a numerical coefficient:
+    auto [coeff, mul] = as_coeff_and_mul(pow);
+    if (!is_one(coeff)) {
+      // If there is a non-unit coefficient resulting from the power, multiply it onto
+      // `numeric_coeff`.
+      visit(coeff, [&](const auto& numeric) {
+        using T = std::decay_t<decltype(numeric)>;
+        if constexpr (type_list_contains_v<T, integer_constant, rational_constant,
+                                           float_constant>) {
+          numeric_term = multiply_numeric_constants{}(numeric_term, numeric);
+        } else {
+          // TODO: as_coeff_and_mul should probably just return `numeric_constant`.
+          WF_ASSERT_ALWAYS("Unexpected type: {}", T::name_str);
+        }
+      });
     }
     if (!is_one(mul)) {
-      // We still need the imaginary unit:
       args.push_back(std::move(mul));
     }
   }
 
-  // Consider any other numerical terms, if we didn't add infinity in.
-  if (!num_infinities) {
-    if (float_coeff.has_value()) {
-      args.emplace_back(std::in_place_type_t<float_constant>(),
-                        float_coeff.value() * static_cast<float_constant>(rational_term));
-    } else if (rational_term.is_one()) {
-      // Don't insert a useless one in the multiplication.
-    } else {
-      args.push_back(scalar_expr(rational_term));
+  scalar_expr numerical_coeff_expr = overloaded_visit(
+      numeric_term, [](const float_constant f) { return scalar_expr(f.value()); },
+      [](const rational_constant r) { return scalar_expr(r); });
+
+  if (args.size() == 1) {
+    // Other than the numeric value, we only have one expression.
+    // If this term is an addition, distribute the numerical value over the addition:
+    if (const addition* add = get_if<const addition>(args[0]);
+        add != nullptr && !is_one(numerical_coeff_expr)) {
+      return multiply_into_addition(*add, numerical_coeff_expr);
     }
   }
 
-  // Convert into a vector of powers, and sort into canonical order:
-  for (const auto& [base, exp] : terms) {
-    if (!is_i(base)) {  //  `i` is handled above
-      args.push_back(power::create(base, exp));
-    }
+  if (!is_one(numerical_coeff_expr) && !has_complex_infinity()) {
+    args.push_back(std::move(numerical_coeff_expr));
   }
-
   if (any_of(args, &is_undefined)) {
     return constants::undefined;
   }
-
   return maybe_new_mul(std::move(args));
 }
 
 bool multiplication_parts::has_zero_numeric_coefficient() const {
-  return rational_coeff.is_zero() || (float_coeff.has_value() && float_coeff->is_zero());
+  return std::visit([](const auto& x) { return x.is_zero(); }, numeric_coeff);
 }
 
 // For multiplications, we need to break the expression up.
