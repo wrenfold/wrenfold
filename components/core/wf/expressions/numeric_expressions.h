@@ -32,6 +32,9 @@ class integer_constant {
   // True if this integer is zero.
   constexpr bool is_zero() const noexcept { return val_ == 0; }
 
+  // True if the integer is one.
+  constexpr bool is_one() const noexcept { return val_ == 1; }
+
   // True if this integer is greater than zero.
   constexpr bool is_positive() const noexcept { return val_ > 0; }
 

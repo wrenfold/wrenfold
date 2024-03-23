@@ -14,7 +14,7 @@ scalar_expr::scalar_expr(const std::string_view name, const number_set set)
 
 static scalar_expr simplify_rational(rational_constant r) {
   if (const auto as_int = r.try_convert_to_integer(); as_int.has_value()) {
-    return scalar_expr(*as_int);
+    return scalar_expr(as_int->value());
   }
   return scalar_expr(std::in_place_type_t<rational_constant>{}, r);
 }

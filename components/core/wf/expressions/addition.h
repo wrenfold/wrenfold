@@ -89,7 +89,7 @@ struct order_struct<addition> {
   }
 };
 
-// Helper object used to manipulate additions.
+// Helper object used to manipulate and combine additions.
 struct addition_parts {
   addition_parts() = default;
 
@@ -110,7 +110,7 @@ struct addition_parts {
                      is_identical_struct<scalar_expr>>
       terms{};
 
-  // Number of infinities.
+  // Number of complex infinities.
   std::size_t num_infinities{0};
 
   // Update the internal representation by adding `arg`.
@@ -121,6 +121,17 @@ struct addition_parts {
 
   // Create the resulting addition.
   scalar_expr create_addition() const;
+
+  void operator()(const addition& arg);
+  void operator()(const integer_constant& i);
+  void operator()(const rational_constant& r);
+  void operator()(const float_constant& f) noexcept;
+  void operator()(const complex_infinity&) noexcept;
+
+  template <typename T,
+            typename = enable_if_does_not_contain_type_t<
+                T, addition, integer_constant, rational_constant, float_constant, complex_infinity>>
+  void operator()(const T&, const scalar_expr& input_expression);
 };
 
 }  // namespace wf
