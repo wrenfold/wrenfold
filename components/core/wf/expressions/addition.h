@@ -1,9 +1,8 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <unordered_map>
-
 #include "wf/algorithm_utils.h"
 #include "wf/constants.h"
+#include "wf/expressions/memory_resource.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/hashing.h"
@@ -91,27 +90,28 @@ struct order_struct<addition> {
 
 // Helper object used to manipulate and combine additions.
 struct addition_parts {
-  addition_parts() = default;
+  using constant_coeff = std::variant<integer_constant, rational_constant, float_constant,
+                                      undefined, complex_infinity>;
 
-  // Construct and reserve provided capacity.
+  // Construct with capacity.
   explicit addition_parts(const std::size_t capacity) { terms.reserve(capacity); }
+
+  // Construct with custom allocator.
+  template <typename Allocator>
+  explicit addition_parts(const Allocator& alloc, const std::size_t capacity) : terms(alloc) {
+    terms.reserve(capacity);
+  }
 
   // Construct from existing addition.
   explicit addition_parts(const addition& add);
 
-  // Rational coefficient.
-  rational_constant rational_term{0, 1};
-
-  // Floating point coefficient:
-  std::optional<float_constant> float_term{};
+  // Constant term in the addition.
+  constant_coeff coeff{integer_constant{0}};
 
   // Map from multiplicand to coefficient.
-  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
-                     is_identical_struct<scalar_expr>>
+  stl_pmr_unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                        is_identical_struct<scalar_expr>>
       terms{};
-
-  // Number of complex infinities.
-  std::size_t num_infinities{0};
 
   // Update the internal representation by adding `arg`.
   void add_terms(const scalar_expr& arg);
@@ -122,15 +122,9 @@ struct addition_parts {
   // Create the resulting addition.
   scalar_expr create_addition() const;
 
+  // Visitor operations:
   void operator()(const addition& arg);
-  void operator()(const integer_constant& i);
-  void operator()(const rational_constant& r);
-  void operator()(const float_constant& f) noexcept;
-  void operator()(const complex_infinity&) noexcept;
-
-  template <typename T,
-            typename = enable_if_does_not_contain_type_t<
-                T, addition, integer_constant, rational_constant, float_constant, complex_infinity>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, addition>>
   void operator()(const T&, const scalar_expr& input_expression);
 };
 

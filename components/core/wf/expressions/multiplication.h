@@ -1,11 +1,11 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
 #include "wf/algorithm_utils.h"
 #include "wf/expression.h"
+#include "wf/expressions/memory_resource.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/power.h"
 #include "wf/expressions/special_constants.h"
@@ -93,12 +93,6 @@ struct order_struct<multiplication> {
   }
 };
 
-// Split a multiplication up into numerical values and non-numerical expressions.
-// Returns [coefficient, multiplicand] where the coefficient is the numerical part.
-// If there are no numerical terms, the coefficient will be one.
-std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplication& mul,
-                                                         const scalar_expr& mul_abstract);
-
 // Convert an expression into a coefficient and a multiplicand. This operation checks if
 // expr is a multiplication. If it is, we extract all numeric constants and return them
 // as the first value. The remaining terms form a new multiplication, which is returned as
@@ -110,27 +104,33 @@ std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr);
 // or decremented appropriately. Finally, `create_multiplication` is called to flatten
 // the contents back into a `multiplication` object.
 struct multiplication_parts {
-  using numeric_constant = std::variant<rational_constant, float_constant>;
+  using constant_coeff = std::variant<integer_constant, rational_constant, float_constant,
+                                      undefined, complex_infinity>;
 
-  multiplication_parts() = default;
+  // Construct with capacity.
   explicit multiplication_parts(const std::size_t capacity, const bool factorize_integers = false)
       : factorize_integers_(factorize_integers) {
+    terms.reserve(capacity);
+  }
+
+  // Construct with custom allocator.
+  template <typename Allocator>
+  explicit multiplication_parts(const Allocator& alloc, const std::size_t capacity,
+                                const bool factorize_integers = false)
+      : terms(alloc), factorize_integers_(factorize_integers) {
     terms.reserve(capacity);
   }
 
   // Construct from existing multiplication.
   explicit multiplication_parts(const multiplication& mul, bool factorize_integers);
 
-  // Numeric coefficient. May be rational or float.
-  numeric_constant numeric_coeff{rational_constant{1, 1}};
+  // Constant coefficient.
+  constant_coeff coeff{integer_constant{1}};
 
   // Map from base to exponent.
-  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
-                     is_identical_struct<scalar_expr>>
+  stl_pmr_unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                        is_identical_struct<scalar_expr>>
       terms{};
-
-  // Number of infinities.
-  std::size_t num_infinities{0};
 
   // Update the internal product by multiplying on `arg`.
   void multiply_term(const scalar_expr& arg);
@@ -141,23 +141,10 @@ struct multiplication_parts {
   // Create the resulting multiplication.
   scalar_expr create_multiplication() const;
 
-  // True if the multiplication includes a numeric coefficient of zero.
-  bool has_zero_numeric_coefficient() const;
-
-  // True if the multiplication includes complex infinity.
-  constexpr bool has_complex_infinity() const noexcept { return num_infinities > 0; }
-
   // Visitor operations.
   void operator()(const multiplication& mul);
   void operator()(const power& pow);
-  void operator()(const integer_constant& i);
-  void operator()(const rational_constant& r);
-  void operator()(const float_constant& f) noexcept;
-  void operator()(const complex_infinity&) noexcept;
-
-  template <typename T, typename = enable_if_does_not_contain_type_t<
-                            T, multiplication, power, integer_constant, rational_constant,
-                            float_constant, complex_infinity>>
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, multiplication, power>>
   void operator()(const T&, const scalar_expr& input_expression);
 
  private:

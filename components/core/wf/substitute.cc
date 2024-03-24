@@ -95,15 +95,15 @@ struct substitute_add_visitor : substitute_visitor_base<substitute_add_visitor, 
     // Create map representation for the input:
     addition_parts input_parts{candidate};
 
-    if (target_parts.float_term.has_value()) {
-      if (!input_parts.float_term ||
-          !are_identical(*input_parts.float_term, *target_parts.float_term)) {
+    if (std::holds_alternative<float_constant>(input_parts.coeff)) {
+      if (input_parts.coeff != target_parts.coeff) {
         // Don't allow substitutions that perform float operations.
+        // (Unless the float coefficients match exactly, then we allow it.)
         return input_expression;
       } else {
         // The float components match, so subtract it out and proceed w/ the rest of the
         // replacement:
-        input_parts.float_term.reset();
+        input_parts.coeff = integer_constant{0};
       }
     }
 
@@ -118,7 +118,9 @@ struct substitute_add_visitor : substitute_visitor_base<substitute_add_visitor, 
     }
 
     // Remove the rational part:
-    input_parts.rational_term = input_parts.rational_term - target_parts.rational_term;
+    if (!std::holds_alternative<float_constant>(target_parts.coeff)) {
+      input_parts.add_terms(-std::visit([](auto x) { return scalar_expr(x); }, target_parts.coeff));
+    }
 
     // Add in the replacement and build a new addition:
     input_parts.add_terms(replacement);
@@ -144,14 +146,14 @@ struct substitute_mul_visitor : substitute_visitor_base<substitute_mul_visitor, 
     // TODO: Should we just store multiplications pre-factored in this format?
     multiplication_parts input_parts{candidate, true};
 
-    if (std::holds_alternative<float_constant>(input_parts.numeric_coeff)) {
-      if (input_parts.numeric_coeff != target_parts.numeric_coeff) {
+    if (std::holds_alternative<float_constant>(input_parts.coeff)) {
+      if (input_parts.coeff != target_parts.coeff) {
         // Don't allow substitutions that perform float operations.
         // (Unless the float coefficients match exactly, then we allow it.)
         return input_expression;
       } else {
         // The float components match, so divide it out and proceed w/ the rest of the replacement:
-        input_parts.numeric_coeff = rational_constant{1, 1};
+        input_parts.coeff = integer_constant{1};
       }
     }
 

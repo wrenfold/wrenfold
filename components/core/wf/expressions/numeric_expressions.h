@@ -177,6 +177,9 @@ constexpr bool operator<(const integer_constant& a, const integer_constant& b) n
 constexpr bool operator==(const integer_constant& a, const integer_constant& b) noexcept {
   return a.value() == b.value();
 }
+constexpr bool operator!=(const integer_constant& a, const integer_constant& b) noexcept {
+  return a.value() != b.value();
+}
 
 constexpr integer_constant::operator float_constant() const {
   return float_constant{static_cast<float_constant::value_type>(val_)};

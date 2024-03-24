@@ -14,18 +14,92 @@ std::vector<scalar_expr> addition::sorted_terms() const {
   return result;
 }
 
+// Define rules for adding constants:
+struct add_numeric_constants {
+  constexpr integer_constant operator()(const integer_constant a, const integer_constant b) const {
+    return integer_constant{a.value() + b.value()};
+  }
+
+  // Promote int to rational:
+  template <typename B,
+            typename = enable_if_contains_type_t<B, integer_constant, rational_constant>>
+  constexpr rational_constant operator()(const rational_constant a, const B b) const {
+    return a + static_cast<rational_constant>(b);
+  }
+
+  // Promote int and rational to float:
+  template <typename B, typename = enable_if_contains_type_t<B, float_constant, integer_constant,
+                                                             rational_constant>>
+  constexpr float_constant operator()(const float_constant a, const B b) const {
+    return a + static_cast<float_constant>(b);
+  }
+
+  // Anything plus undefined is undefined.
+  template <typename B>
+  constexpr undefined operator()(const undefined, const B) const noexcept {
+    return {};
+  }
+
+  // zoo + zoo is undefined.
+  constexpr undefined operator()(const complex_infinity, const complex_infinity) const noexcept {
+    return {};
+  }
+
+  // Anything plus complex infinity is complex infinity, except complex infinity itself and
+  // undefined.
+  template <typename B,
+            typename = enable_if_does_not_contain_type_t<B, undefined, complex_infinity>>
+  constexpr complex_infinity operator()(const complex_infinity, const B) const noexcept {
+    return {};
+  }
+
+  // Disallow implicit conversion to the variant with enable_if guard.
+  template <typename V, typename T, typename = enable_if_same_t<V, addition_parts::constant_coeff>>
+  constexpr addition_parts::constant_coeff operator()(const V& a, const T b) const {
+    return std::visit(
+        [b](auto a_concrete) constexpr -> addition_parts::constant_coeff {
+          if constexpr (is_invocable_v<add_numeric_constants, decltype(a_concrete), T>) {
+            return add_numeric_constants{}(a_concrete, b);
+          } else {
+            return add_numeric_constants{}(b, a_concrete);
+          }
+        },
+        a);
+  }
+
+  static std::optional<scalar_expr> apply(const scalar_expr& a, const scalar_expr& b) {
+    return visit_binary(a, b, [](const auto& x, const auto& y) -> std::optional<scalar_expr> {
+      if constexpr (is_invocable_v<add_numeric_constants, decltype(x), decltype(y)>) {
+        return scalar_expr(add_numeric_constants{}(x, y));
+      } else if constexpr (is_invocable_v<add_numeric_constants, decltype(y), decltype(x)>) {
+        return scalar_expr(add_numeric_constants{}(y, x));
+      } else {
+        return std::nullopt;
+      }
+    });
+  }
+};
+
 scalar_expr addition::from_operands(const absl::Span<const scalar_expr> args) {
   WF_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
   if (args.size() < 2) {
     return args.front();
   }
 
-  if (any_of(args, &is_undefined)) {
-    return constants::undefined;
+  if (args.size() == 2) {
+    if (std::optional<scalar_expr> numeric_sum = add_numeric_constants::apply(args[0], args[1]);
+        numeric_sum.has_value()) {
+      return *std::move(numeric_sum);
+    }
   }
 
-  // TODO: extract common denominator?
+#ifdef WF_USE_PMR_MAP
+  std::array<char, 1024> buffer{};
+  std::pmr::monotonic_buffer_resource pmr{buffer.data(), buffer.size()};
+  addition_parts parts{&pmr, args.size()};
+#else
   addition_parts parts{args.size()};
+#endif
   for (const scalar_expr& arg : args) {
     parts.add_terms(arg);
   }
@@ -53,43 +127,27 @@ void addition_parts::operator()(const addition& arg) {
   }
 }
 
-void addition_parts::operator()(const integer_constant& i) {
-  rational_term = rational_term + static_cast<rational_constant>(i);
-}
-
-void addition_parts::operator()(const rational_constant& r) { rational_term = rational_term + r; }
-
-void addition_parts::operator()(const float_constant& f) noexcept {
-  float_term = float_term.value_or(float_constant{0.0}) + f;
-}
-
-void addition_parts::operator()(const complex_infinity&) noexcept { ++num_infinities; }
-
-// This method handles other things that are _not_:
-// - numeric constants
-// - complex infinity
-// - additions
 template <typename T, typename>
-void addition_parts::operator()(const T&, const scalar_expr& input_expression) {
-  auto [coeff, mul] = as_coeff_and_mul(input_expression);
-  if (const auto [it, was_inserted] = terms.emplace(std::move(mul), coeff); !was_inserted) {
-    it->second = it->second + coeff;
+void addition_parts::operator()(const T& value, const scalar_expr& input_expression) {
+  if constexpr (type_list_contains_v<T, type_list_from_variant_t<constant_coeff>>) {
+    coeff = add_numeric_constants{}(coeff, value);
+  } else {
+    auto [c, mul] = as_coeff_and_mul(input_expression);
+    if (const auto [it, was_inserted] = terms.emplace(std::move(mul), c); !was_inserted) {
+      it->second = it->second + c;
+    }
   }
 }
 
-addition_parts::addition_parts(const addition& add) : addition_parts(add.size()) {
+addition_parts::addition_parts(const addition& add) {
+  terms.reserve(add.size());
   for (const scalar_expr& expr : add) {
     add_terms(expr);
   }
   normalize_coefficients();
 }
 
-void addition_parts::add_terms(const scalar_expr& arg) {
-  if (is_zero(arg)) {
-    return;
-  }
-  visit(arg, *this);
-}
+void addition_parts::add_terms(const scalar_expr& arg) { visit(arg, *this); }
 
 void addition_parts::normalize_coefficients() {
   // Remove anything where the coefficient worked out to zero:
@@ -99,37 +157,26 @@ void addition_parts::normalize_coefficients() {
 scalar_expr addition_parts::create_addition() const {
   addition::container_type args{};
 
-  // handle infinities in the input
-  const bool includes_infinity = num_infinities > 0;
-  if (num_infinities > 1) {
-    // any additive/subtractive combination of complex infinities is undefined
-    return constants::undefined;
-  } else if (includes_infinity) {
-    args.push_back(constants::complex_infinity);
-  }
+  scalar_expr constant_coeff_expr =
+      overloaded_visit(coeff, [](const auto x) { return scalar_expr(x); });
 
-  // If we didn't add infinity, now consider float/rational. Otherwise numeric values are folded
-  // into complex infinity.
-  if (!includes_infinity) {
-    if (float_term.has_value()) {
-      args.push_back(scalar_expr(static_cast<float_constant>(rational_term) + *float_term));
-    } else if (rational_term.is_zero()) {
-      // Don't insert a useless zero in the add.
-    } else {
-      args.push_back(scalar_expr(rational_term));
-    }
+  if (is_undefined(constant_coeff_expr)) {
+    return constants::undefined;
+  }
+  if (!is_zero(constant_coeff_expr)) {
+    args.push_back(std::move(constant_coeff_expr));
   }
 
   args.reserve(args.size() + terms.size());
-  for (const auto& [multiplicand, coeff] : terms) {
-    if (is_one(coeff)) {
+  for (const auto& [multiplicand, term_coeff] : terms) {
+    if (is_one(term_coeff)) {
       args.push_back(multiplicand);
-    } else if (!multiplicand.is_type<multiplication>() && !coeff.is_type<multiplication>()) {
+    } else if (!multiplicand.is_type<multiplication>() && !term_coeff.is_type<multiplication>()) {
       // We can skip calling `from_operands` here because we know `multiplicand` is a symbolic
       // expression and `coeff` is a numerical coefficient.
-      args.emplace_back(std::in_place_type_t<multiplication>{}, coeff, multiplicand);
+      args.emplace_back(std::in_place_type_t<multiplication>{}, term_coeff, multiplicand);
     } else {
-      args.push_back(multiplication::from_operands({multiplicand, coeff}));
+      args.push_back(multiplication::from_operands({multiplicand, term_coeff}));
     }
   }
 
