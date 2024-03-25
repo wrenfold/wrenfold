@@ -89,4 +89,4 @@ jobs:
 
       - name: Cargo clippy
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
-        run: cargo clippy --all --color=always --target-dir cargo --manifest-path $GITHUB_WORKSPACE/Cargo.toml -- -D warnings
+        run: cargo clippy --all --color=always --target-dir cargo --manifest-path $GITHUB_WORKSPACE/Cargo.toml -- -D warnings --no-deps
