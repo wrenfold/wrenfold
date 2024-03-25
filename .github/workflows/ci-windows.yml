@@ -87,9 +87,17 @@ jobs:
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
         run: ctest --output-on-failure
 
+      - name: Install rust
+        run: rustup toolchain install stable --profile minimal
+
       - name: Dump rustc version
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
         run: rustc --version
+
+      - name: Cache rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> ${{runner.workspace}}/build-${{matrix.build_type}}/cargo
 
       - name: Cargo test
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
@@ -97,4 +105,4 @@ jobs:
 
       - name: Cargo clippy
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
-        run: cargo clippy --all --color=always --target-dir cargo --manifest-path $env:GITHUB_WORKSPACE\Cargo.toml -- -D warnings
+        run: cargo clippy --all --color=always --target-dir cargo --manifest-path $env:GITHUB_WORKSPACE\Cargo.toml -- -D warnings --no-deps
