@@ -1,3 +1,5 @@
+#![cfg(not(target_os = "windows"))]
+
 use argmin::core::{CostFunction, Error, Gradient, Hessian};
 use nalgebra as na;
 use ndarray::{Array1, Array2};
