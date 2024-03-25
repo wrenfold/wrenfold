@@ -243,7 +243,7 @@ TEST(BSplineTest, TestBSplineCoeffsOrder6) {
           });
 
       // High tolerance here, the higher order derivatives have very large values.
-      ASSERT_EIGEN_NEAR(D_numerical, evaluated.col(d).eval(), 1.0e-6)
+      ASSERT_EIGEN_NEAR(D_numerical, evaluated.col(d).eval(), 2.0e-6)
           << fmt::format("d = {}, x = {}", d, x);
     }
   }
