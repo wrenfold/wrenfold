@@ -8,5 +8,9 @@ dependencies:
   - cmake >= 3.20
   - ninja
   - mypy
+  # Tests:
   - numpy
   - sympy
+  # Documentation
+  - sphinx
+  - furo

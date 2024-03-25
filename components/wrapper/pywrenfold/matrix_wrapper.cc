@@ -415,9 +415,10 @@ void wrap_matrix_operations(py::module_& m) {
            py::is_operator())
       .def("__neg__", &matrix_expr::operator-, "Element-wise negation of the matrix.")
       // Prohibit conversion to bool.
-      .def("__bool__", [](const matrix_expr&) {
-        throw type_error("matrix_expr cannot be coerced to boolean.");
-      });
+      .def(
+          "__bool__",
+          [](const matrix_expr&) { throw type_error("matrix_expr cannot be coerced to boolean."); })
+      .doc() = "A matrix-valued symbolic expression.";
 
   // Matrix constructors:
   m.def("identity", &make_identity, "rows"_a, "Create identity matrix.");

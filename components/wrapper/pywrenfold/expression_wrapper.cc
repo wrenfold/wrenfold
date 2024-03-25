@@ -203,7 +203,8 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
                 "and sym.false can be evaluated for truthiness.",
                 self.type_name());
           },
-          py::doc("Coerce expression to bool."));
+          py::doc("Coerce expression to bool."))
+      .doc() = "A scalar-valued symbolic expression.";
 
   py::implicitly_convertible<std::int64_t, scalar_expr>();
   py::implicitly_convertible<double, scalar_expr>();
