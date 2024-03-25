@@ -1,9 +1,14 @@
+//! This module continues to cause issues on Windows CI (OOM).
+//! Until I have time to make the generated functions shorter, I am disabling it.
+#![cfg(not(target_os = "windows"))]
+
 pub mod generated;
 pub mod problem;
 
 pub use problem::{ProblemInfo, Weights};
 
 #[cfg(test)]
+#[cfg(not(target_os = "windows"))]
 mod tests {
     use crate::problem;
     use argmin::core::{Executor, State};
