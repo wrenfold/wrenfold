@@ -50,6 +50,13 @@ class complex_infinity {
   static constexpr bool is_leaf_node = true;
 };
 
+constexpr bool operator==(const complex_infinity&, const complex_infinity&) noexcept {
+  return true;
+}
+constexpr bool operator!=(const complex_infinity&, const complex_infinity&) noexcept {
+  return false;
+}
+
 // Result of invalid expressions.
 class undefined {
  public:
@@ -57,12 +64,18 @@ class undefined {
   static constexpr bool is_leaf_node = true;
 };
 
+constexpr bool operator==(const undefined&, const undefined&) noexcept { return true; }
+constexpr bool operator!=(const undefined&, const undefined&) noexcept { return false; }
+
 // The imaginary constant `i`.
 class imaginary_unit {
  public:
   static constexpr std::string_view name_str = "ImaginaryUnit";
   static constexpr bool is_leaf_node = true;
 };
+
+constexpr bool operator==(const imaginary_unit&, const imaginary_unit&) noexcept { return true; }
+constexpr bool operator!=(const imaginary_unit&, const imaginary_unit&) noexcept { return false; }
 
 // A boolean constant (true or false).
 class boolean_constant {

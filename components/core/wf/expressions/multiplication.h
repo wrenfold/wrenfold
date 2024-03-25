@@ -1,11 +1,11 @@
 // Copyright 2023 Gareth Cross
 #pragma once
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
 #include "wf/algorithm_utils.h"
 #include "wf/expression.h"
+#include "wf/expressions/memory_resource.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/power.h"
 #include "wf/expressions/special_constants.h"
@@ -93,42 +93,47 @@ struct order_struct<multiplication> {
   }
 };
 
-// Split a multiplication up into numerical values and non-numerical expressions.
-// Returns [coefficient, multiplicand] where the coefficient is the numerical part.
-// If there are no numerical terms, the coefficient will be one.
-std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplication& mul,
-                                                         const scalar_expr& mul_abstract);
-
 // Convert an expression into a coefficient and a multiplicand. This operation checks if
 // expr is a multiplication. If it is, we extract all numeric constants and return them
 // as the first value. The remaining terms form a new multiplication, which is returned as
 // the second value.
 std::pair<scalar_expr, scalar_expr> as_coeff_and_mul(const scalar_expr& expr);
 
-// Helper object used to execute multiplications.
+// Helper object used to manipulate multiplications.
+// Stores a map from {base -> exponent}. As terms are multiplied, the exponent is incremented
+// or decremented appropriately. Finally, `create_multiplication` is called to flatten
+// the contents back into a `multiplication` object.
 struct multiplication_parts {
-  multiplication_parts() = default;
-  explicit multiplication_parts(const std::size_t capacity) { terms.reserve(capacity); }
+  using constant_coeff = std::variant<integer_constant, rational_constant, float_constant,
+                                      undefined, complex_infinity>;
+
+  // Construct with capacity.
+  explicit multiplication_parts(const std::size_t capacity, const bool factorize_integers = false)
+      : factorize_integers_(factorize_integers) {
+    terms.reserve(capacity);
+  }
+
+  // Construct with custom allocator.
+  template <typename Allocator>
+  explicit multiplication_parts(const Allocator& alloc, const std::size_t capacity,
+                                const bool factorize_integers = false)
+      : terms(alloc), factorize_integers_(factorize_integers) {
+    terms.reserve(capacity);
+  }
 
   // Construct from existing multiplication.
   explicit multiplication_parts(const multiplication& mul, bool factorize_integers);
 
-  // Rational coefficient.
-  rational_constant rational_coeff{1, 1};
-
-  // Floating point coefficient:
-  std::optional<float_constant> float_coeff{};
+  // Constant coefficient.
+  constant_coeff coeff{integer_constant{1}};
 
   // Map from base to exponent.
-  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
-                     is_identical_struct<scalar_expr>>
+  stl_pmr_unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                        is_identical_struct<scalar_expr>>
       terms{};
 
-  // Number of infinities.
-  std::size_t num_infinities{0};
-
   // Update the internal product by multiplying on `arg`.
-  void multiply_term(const scalar_expr& arg, bool factorize_integers = false);
+  void multiply_term(const scalar_expr& arg);
 
   // Nuke any terms w/ a zero exponent and normalize powers of integers.
   void normalize_coefficients();
@@ -136,8 +141,23 @@ struct multiplication_parts {
   // Create the resulting multiplication.
   scalar_expr create_multiplication() const;
 
-  // True if the multiplication includes a numeric coefficient of zero.
-  bool has_zero_numeric_coefficient() const;
+  // Visitor operations.
+  void operator()(const multiplication& mul);
+  void operator()(const power& pow);
+  template <typename T, typename = enable_if_does_not_contain_type_t<T, multiplication, power>>
+  void operator()(const T&, const scalar_expr& input_expression);
+
+ private:
+  // Insert base**exponent into `terms`, applying simplifications in the process.
+  void insert_power(const scalar_expr& base, const scalar_expr& exponent);
+
+  template <typename T>
+  void insert_integer_factors(const T& factors, bool positive);
+
+  // If true, factorize integers into primes and insert them into `terms`, instead of
+  // updating `numeric_coeff`. Rationals are broken into positive and negative powers
+  // of primes.
+  bool factorize_integers_{false};
 };
 
 // A decomposition of `multiplication` that is more convenient for printing.

@@ -14,12 +14,18 @@ scalar_expr::scalar_expr(const std::string_view name, const number_set set)
 
 static scalar_expr simplify_rational(rational_constant r) {
   if (const auto as_int = r.try_convert_to_integer(); as_int.has_value()) {
-    return scalar_expr(*as_int);
+    return scalar_expr(as_int->value());
   }
   return scalar_expr(std::in_place_type_t<rational_constant>{}, r);
 }
 
 scalar_expr::scalar_expr(const rational_constant r) : scalar_expr(simplify_rational(r)) {}
+
+scalar_expr::scalar_expr(const float_constant f)
+    : scalar_expr(scalar_expr::from_float(f.value())) {}
+
+scalar_expr::scalar_expr(const integer_constant i)
+    : scalar_expr(scalar_expr::from_int(i.value())) {}
 
 scalar_expr scalar_expr::from_complex(const double a, const double b) {
   return scalar_expr(a) + scalar_expr(b) * constants::imaginary_unit;

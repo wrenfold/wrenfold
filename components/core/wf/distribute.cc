@@ -61,6 +61,7 @@ scalar_expr distribute_visitor::operator()(const integer_constant&, const scalar
 scalar_expr distribute_visitor::operator()(const float_constant&, const scalar_expr& arg) const {
   return arg;
 }
+
 scalar_expr distribute_visitor::operator()(const function& f) { return f.map_children(*this); }
 
 scalar_expr distribute_visitor::operator()(const multiplication& mul) {
@@ -111,7 +112,9 @@ boolean_expr distribute_visitor::operator()(const relational& relation) {
 scalar_expr distribute_visitor::operator()(const symbolic_constant&, const scalar_expr& arg) const {
   return arg;
 }
+
 scalar_expr distribute_visitor::operator()(const undefined&) const { return constants::undefined; }
+
 scalar_expr distribute_visitor::operator()(const variable&, const scalar_expr& arg) const {
   return arg;
 }

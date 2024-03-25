@@ -397,10 +397,17 @@ static std::optional<scalar_expr> maybe_distribute_rational_exponent(const multi
 }
 
 scalar_expr power::create(scalar_expr base, scalar_expr exp) {
+  if (auto result = pow_maybe_simplify(base, exp); result.has_value()) {
+    return *std::move(result);
+  }
+  return make_expr<power>(std::move(base), std::move(exp));
+}
+
+std::optional<scalar_expr> pow_maybe_simplify(const scalar_expr& base, const scalar_expr& exp) {
   // Check for numeric quantities.
   if (std::optional<scalar_expr> numeric_pow = visit_binary(base, exp, power_numerics_visitor{});
       numeric_pow.has_value()) {
-    return *std::move(numeric_pow);
+    return numeric_pow;
   }
 
   if ((is_one(base) || is_negative_one(base)) && is_complex_infinity(exp)) {
@@ -412,23 +419,19 @@ scalar_expr power::create(scalar_expr base, scalar_expr exp) {
   if (is_i(base)) {
     if (std::optional<scalar_expr> imaginary_pow = visit(exp, power_imaginary_visitor{});
         imaginary_pow.has_value()) {
-      return *std::move(imaginary_pow);
+      return imaginary_pow;
     }
   }
 
   // Check if the base is itself a power:
-  if (const power* a_pow = get_if<const power>(base); a_pow != nullptr) {
-    if (can_multiply_exponents(*a_pow, exp)) {
-      return power::create(a_pow->base(), a_pow->exponent() * exp);
-    }
+  if (const power* a_pow = get_if<const power>(base);
+      a_pow != nullptr && can_multiply_exponents(*a_pow, exp)) {
+    return power::create(a_pow->base(), a_pow->exponent() * exp);
   }
 
-  // Check for zeroes:
-  if (is_zero(base)) {
-    if (is_complex_infinity(exp)) {
-      return constants::undefined;
-    }
-    // TODO: Check for `b > 0`, then 0**b --> 0
+  // TODO: Check for `b > 0`, then 0**b --> 0
+  if (is_complex_infinity(exp)) {
+    return constants::undefined;
   } else if (is_zero(exp)) {
     // x^0 -> 1
     return constants::one;
@@ -446,11 +449,11 @@ scalar_expr power::create(scalar_expr base, scalar_expr exp) {
       return multiplication::from_operands(args);
     } else if (exp.is_type<rational_constant>()) {
       if (auto result = maybe_distribute_rational_exponent(*mul, exp); result.has_value()) {
-        return *std::move(result);
+        return result;
       }
     }
   }
-  return make_expr<power>(std::move(base), std::move(exp));
+  return std::nullopt;
 }
 
 scalar_expr pow(scalar_expr base, scalar_expr exp) {

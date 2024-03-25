@@ -30,6 +30,8 @@ auto make_mul(Args&&... args) {
 
 TEST(ScalarOperationsTest, TestNumericConstructors) {
   ASSERT_IDENTICAL(constants::one, scalar_expr{1});
+  ASSERT_TRUE(constants::one.has_same_address(scalar_expr{integer_constant{1}}));
+  ASSERT_TRUE(constants::zero.has_same_address(scalar_expr{integer_constant{0}}));
 
   ASSERT_TRUE(scalar_expr{1.0}.is_type<float_constant>());
   ASSERT_TRUE(scalar_expr{0.0}.is_type<float_constant>());
@@ -104,9 +106,7 @@ TEST(ScalarOperationsTest, TestAdditionUndefined) {
 }
 
 TEST(ScalarOperationsTest, TestMultiplication) {
-  const scalar_expr x{"x"};
-  const scalar_expr y{"y"};
-  const scalar_expr z{"z"};
+  const auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_TRUE((x * y).is_type<multiplication>());
   ASSERT_IDENTICAL(make_mul(x, y), x * y);
   ASSERT_IDENTICAL(make_mul(x, y, z), x * y * z);
@@ -151,6 +151,13 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * make_pow(33, 2_s / 3) / 33, pow(33, -2 / 3_s) * pow(33, 1 / 3_s) * x);
   ASSERT_IDENTICAL(x, sqrt(x) * sqrt(x));
   ASSERT_IDENTICAL(make_pow(x, 3 / 2_s), sqrt(x) * sqrt(x) * sqrt(x));
+  ASSERT_IDENTICAL(12 * x * y, 12_s / 5 * sqrt(x * 5) * y * sqrt(x * 5));
+
+  // Multiplication becomes an addition times a constant:
+  ASSERT_IDENTICAL(5 * x - 15, sqrt(x - 3) * 5 * sqrt(x - 3));
+  ASSERT_IDENTICAL(10 * pow(x, 2) + 60 * x - 220, pow(pow(x, 2) + 6 * x - 22, 1_s / 3) * 2 *
+                                                      pow(pow(x, 2) + 6 * x - 22, 1_s / 3) * 5 *
+                                                      pow(pow(x, 2) + 6 * x - 22, 1_s / 3));
 
   // Normalization of powers of integers:
   ASSERT_IDENTICAL(2 * pow(2, 1 / 7_s), pow(2, 3 / 7_s) * pow(2, 5 / 7_s));

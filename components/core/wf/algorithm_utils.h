@@ -71,4 +71,20 @@ bool any_of(const Container& container, Predicate&& p) {
   return false;
 }
 
+// Erase elements from a map-like container if they match predicate `p`.
+// Can be replaced with std::erase_if when switching to c++20:
+// https://en.cppreference.com/w/cpp/container/map/erase_if
+template <typename Container, typename Predicate>
+std::size_t map_erase_if(Container& container, Predicate&& p) {
+  const std::size_t old_size = container.size();
+  for (auto it = container.begin(); it != container.end();) {
+    if (p(*it)) {
+      it = container.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  return old_size - container.size();
+}
+
 }  // namespace wf

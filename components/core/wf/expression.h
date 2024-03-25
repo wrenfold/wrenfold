@@ -62,8 +62,14 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
   template <typename T, typename = enable_if_supports_implicit_conversion<T>>
   scalar_expr(T v) : scalar_expr(construct_implicit(v)) {}
 
-  // Construct from rational.
+  // Construct from `rational_constant`. Special cased so we can simplify to integer.
   explicit scalar_expr(rational_constant r);
+
+  // Construct from `float_constant`. Special cased so we can simplify to constants.
+  explicit scalar_expr(float_constant f);
+
+  // Construct from `integer_constant`. Special cased so we can simplify to constants.
+  explicit scalar_expr(integer_constant i);
 
   // Static constructor: Conversion from complex float: a + i*b
   static scalar_expr from_complex(double a, double b);

@@ -27,7 +27,7 @@ static void BM_ScalarAddition(benchmark::State& state) {
     benchmark::DoNotOptimize(output);
   }
 }
-BENCHMARK(BM_ScalarAddition)->Iterations(2000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_ScalarAddition)->Iterations(10000)->Unit(benchmark::kMillisecond);
 
 // Benchmark multiplying repeated symbols.
 static void BM_ScalarMultiplication(benchmark::State& state) {
@@ -47,7 +47,7 @@ static void BM_ScalarMultiplication(benchmark::State& state) {
     benchmark::DoNotOptimize(output);
   }
 }
-BENCHMARK(BM_ScalarMultiplication)->Iterations(2000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_ScalarMultiplication)->Iterations(10000)->Unit(benchmark::kMillisecond);
 
 }  // namespace wf
 
