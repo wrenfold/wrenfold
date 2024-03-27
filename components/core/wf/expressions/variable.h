@@ -8,7 +8,8 @@ namespace wf {
 // Typically, the user does not create these directly.
 class function_argument_variable {
  public:
-  constexpr function_argument_variable(std::size_t arg_index, std::size_t element_index) noexcept
+  constexpr function_argument_variable(const std::size_t arg_index,
+                                       const std::size_t element_index) noexcept
       : arg_index_(arg_index), element_index_(element_index) {}
 
   constexpr bool operator<(const function_argument_variable& other) const noexcept {
@@ -16,7 +17,7 @@ class function_argument_variable {
            std::make_pair(other.arg_index_, other.element_index_);
   }
   constexpr bool operator==(const function_argument_variable& other) const noexcept {
-    return (arg_index_ == other.arg_index_) && (element_index_ == other.element_index_);
+    return arg_index_ == other.arg_index_ && element_index_ == other.element_index_;
   }
 
   // Which function argument this refers to.
@@ -52,7 +53,7 @@ class unique_variable {
 // A variable w/ a user-provided name.
 class named_variable {
  public:
-  explicit named_variable(const std::string_view name) : name_{name} {}
+  explicit named_variable(std::string name) noexcept : name_{std::move(name)} {}
 
   bool operator<(const named_variable& other) const noexcept { return name_ < other.name_; }
   bool operator==(const named_variable& other) const noexcept { return name_ == other.name_; }
@@ -66,7 +67,7 @@ class named_variable {
 
 // A named variable used in an expression.
 // This can be one of three underlying types: named_variable, function_argument_variable,
-// unique_variable
+// unique_variable.
 class variable {
  public:
   static constexpr std::string_view name_str = "Variable";
@@ -77,12 +78,10 @@ class variable {
   using identifier_type = std::variant<named_variable, function_argument_variable, unique_variable>;
 
   // Construct variable from user-provided name.
-  explicit variable(std::string name) noexcept(
-      std::is_nothrow_constructible_v<identifier_type, named_variable&&>)
-      : identifier_{named_variable(std::move(name))}, set_(number_set::real) {}
+  variable(std::string name, const number_set set)
+      : identifier_{std::in_place_type_t<named_variable>(), std::move(name)}, set_(set) {}
 
-  variable(identifier_type identifier,
-           const number_set set) noexcept(std::is_nothrow_move_constructible_v<identifier_type>)
+  variable(identifier_type identifier, const number_set set) noexcept
       : identifier_(std::move(identifier)), set_(set) {}
 
   // Access the variant of different variable representations.

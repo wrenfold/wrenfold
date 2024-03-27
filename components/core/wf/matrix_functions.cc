@@ -19,9 +19,8 @@ template <typename Callable>
 matrix_expr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& callable) {
   std::vector<scalar_expr> data;
   data.reserve(static_cast<std::size_t>(rows * cols));
-  iter_matrix(rows, cols, [callable = std::move(callable), &data](index_t i, index_t j) {
-    data.push_back(callable(i, j));
-  });
+  iter_matrix(rows, cols,
+              [&callable, &data](index_t i, index_t j) { data.push_back(callable(i, j)); });
   return matrix_expr::create(rows, cols, std::move(data));
 }
 
@@ -31,7 +30,7 @@ matrix_expr make_matrix_of_symbols(const std::string_view prefix, index_t rows, 
   }
   return create_matrix_with_lambda(rows, cols, [&](index_t i, index_t j) {
     std::string name = fmt::format("{}_{}_{}", prefix, i, j);
-    return make_expr<variable>(std::move(name));
+    return make_expr<variable>(std::move(name), number_set::unknown);
   });
 }
 
@@ -66,14 +65,15 @@ matrix_expr vectorize_matrix(const matrix_expr& m) {
   return matrix_expr::create(flat_size, 1, std::move(flattened));
 }
 
-static matrix_expr stack(const absl::Span<const matrix_expr> values, index_t num_rows,
-                         index_t num_cols) {
+static matrix_expr stack(const absl::Span<const matrix_expr> values, const index_t num_rows,
+                         const index_t num_cols) {
   std::vector<scalar_expr> result{};
-  result.resize(static_cast<std::size_t>(num_rows * num_cols), constants::zero);
+  result.resize(static_cast<std::size_t>(num_rows) * static_cast<std::size_t>(num_cols),
+                constants::zero);
 
   constexpr constant<1> col_stride{};
-  auto output_span = make_span(result.data(), make_value_pack(num_rows, num_cols),
-                               make_value_pack(num_cols, col_stride));
+  const auto output_span = make_span(result.data(), make_value_pack(num_rows, num_cols),
+                                     make_value_pack(num_cols, col_stride));
 
   // We call this method for horizontal, vertical, and diagonal stacking. So check if we need to
   // increment both or just one dimension.
@@ -156,7 +156,7 @@ struct permutation_matrix {
  public:
   using Container = absl::InlinedVector<index_t, 8>;
 
-  explicit permutation_matrix(std::size_t size) {
+  explicit permutation_matrix(const std::size_t size) {
     p_.resize(size);
     std::iota(p_.begin(), p_.end(), static_cast<index_t>(0));
   }

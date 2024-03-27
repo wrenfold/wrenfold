@@ -211,8 +211,8 @@ inline matrix_expr stack_iterables(const std::vector<py::object>& rows) {
 
   // All other elements must match.
   for (++it; it != rows.end(); ++it) {
-    const std::size_t num_cols = extract_iterable_rows(*it, converted);
-    if (num_cols != expected_num_cols) {
+    if (const std::size_t num_cols = extract_iterable_rows(*it, converted);
+        num_cols != expected_num_cols) {
       throw dimension_error(
           "Mismatch in number of provided columns. First input had {} columns, but input [{}] has "
           "{} elements.",
@@ -229,7 +229,7 @@ inline matrix_expr stack_iterables(const std::vector<py::object>& rows) {
 
 // Create matrix from iterable. When the input is an iterable over iterables, we stack
 // them as rows.
-matrix_expr matrix_from_iterable(py::iterable rows) {
+matrix_expr matrix_from_iterable(const py::iterable& rows) {
   // The input could be a generator, in which case we can only iterate over it once.
   // Calling `begin` more than once does not yield the same position. We have to create
   // py::object here so that the reference count is properly incremented, otherwise the

@@ -110,6 +110,7 @@ add_wrapper_module(
   expression_wrapper.cc
   geometry_wrapper.cc
   matrix_wrapper.cc
+  sympy_conversion.cc
   wrapper_utils.h
   SUB_MODULE_NAMES
   codegen

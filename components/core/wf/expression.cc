@@ -10,7 +10,7 @@
 namespace wf {
 
 scalar_expr::scalar_expr(const std::string_view name, const number_set set)
-    : scalar_expr(std::in_place_type_t<variable>{}, named_variable(name), set) {}
+    : scalar_expr(std::in_place_type_t<variable>{}, std::string{name}, set) {}
 
 static scalar_expr simplify_rational(rational_constant r) {
   if (const auto as_int = r.try_convert_to_integer(); as_int.has_value()) {

@@ -96,7 +96,7 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(sym.DimensionError, lambda: sym.matrix([(y, 2), (x,)]))
         self.assertRaises(
             sym.DimensionError,
-            lambda: sym.matrix([(a, sym.pi, sym.euler), (x, 5, z, b)]),
+            lambda: sym.matrix([(a, sym.pi, sym.E), (x, 5, z, b)]),
         )
 
     def test_is_identical_to(self):

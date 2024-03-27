@@ -8,4 +8,5 @@ add_library(
   wrenfold/external_functions.py
   wrenfold/geometry.py
   wrenfold/sym.py
+  wrenfold/sympy_conversion.py
   wrenfold/type_annotations.py)

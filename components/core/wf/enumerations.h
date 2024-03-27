@@ -201,7 +201,7 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
     case built_in_function::abs:
       return "abs";
     case built_in_function::signum:
-      return "signum";
+      return "sign";
     case built_in_function::floor:
       return "floor";
     case built_in_function::arctan2:

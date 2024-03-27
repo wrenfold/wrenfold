@@ -188,7 +188,7 @@ template <typename... Args>
 auto make_symbols(Args&&... args) {
   static_assert(std::disjunction_v<std::is_constructible<std::string_view, std::decay_t<Args>>...>,
                 "Argument types must be coercible to string_view");
-  return std::make_tuple(scalar_expr{std::forward<Args>(args)}...);
+  return std::make_tuple(scalar_expr{std::forward<Args>(args), number_set::unknown}...);
 }
 
 // Make a unique variable symbol.
