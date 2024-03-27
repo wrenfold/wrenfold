@@ -3,8 +3,37 @@ find_program(SPHINX_BUILD_PATH sphinx-build)
 if(DEFINED SPHINX_BUILD_PATH)
   message(STATUS "sphinx-build path: ${SPHINX_BUILD_PATH}")
 
-  set(DOC_INPUT_FILES source/conf.py source/index.rst
-                      source/python_api_docs.rst)
+  if(NOT DEFINED Python_EXECUTABLE)
+    message(FATAL_ERROR "The Python executable could not be located.")
+  endif()
+  if(NOT DEFINED PYTHON_COMMAND_ENV_VARIABLES)
+    message(
+      FATAL_ERROR "Variable PYTHON_COMMAND_ENV_VARIABLES must be defined.")
+  endif()
+
+  # Get a list of python sources in `wf_python`.
+  get_python_library_sources(PYTHON_LIB_SOURCES)
+
+  # The python script we use to generate RST files, and the list of output
+  # files:
+  set(DOC_GENERATION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/generate_api_rst.py")
+  set(GENERATED_RST_FILES
+      "${CMAKE_CURRENT_SOURCE_DIR}/source/python_api_docs.rst")
+
+  # Invoke `generate_api_rst.py` to generate RST files for our python modules.
+  add_custom_command(
+    OUTPUT ${GENERATED_RST_FILES}
+    COMMAND
+      ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
+      ${Python_EXECUTABLE} -B ${DOC_GENERATION_SCRIPT}
+      "${CMAKE_CURRENT_SOURCE_DIR}/source"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generate RST for python API."
+    DEPENDS wf-core wf_wrapper wf_python ${PYTHON_LIB_SOURCES}
+            ${DOC_GENERATION_SCRIPT})
+
+  # The handwritten source files for the docs:
+  set(DOC_INPUT_FILES source/conf.py source/index.rst)
 
   # Add command that runs sphinx-build. This depends explicitly on
   # wf_wrapper_and_stubs so that the wrapper and stubs are up to date when docs
@@ -15,7 +44,8 @@ if(DEFINED SPHINX_BUILD_PATH)
     COMMAND ${SPHINX_BUILD_PATH} -E -a source build
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generate documentation with sphinx."
-    DEPENDS ${MODULE_NAME} wf_wrapper_and_stubs ${DOC_INPUT_FILES})
+    DEPENDS ${MODULE_NAME} wf_wrapper_and_stubs ${DOC_INPUT_FILES}
+            ${GENERATED_RST_FILES})
   add_custom_target(wf_docs
                     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build/index.html")
 endif()
