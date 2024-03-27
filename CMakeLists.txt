@@ -23,6 +23,9 @@ add_subdirectory(dependencies)
 # Add our custom functions.
 include(cmake/functions.cmake)
 
+# Configure PYTHONPATH for scripts that depend on the python module + wrapper.
+set_python_env_variables()
+
 # Some shared warning flags:
 if(MSVC)
   # We turn off C4702 (unreachable code) because constexpr blocks trigger it
