@@ -10,6 +10,8 @@
 #include "wf/geometry/quaternion.h"
 #include "wf/matrix_expression.h"
 #include "wf/numerical_casts.h"
+
+#include "docs/geometry_wrapper.h"
 #include "wrapper_utils.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
@@ -52,8 +54,8 @@ static py::array eval_quaternion(const quaternion& q) {
 void wrap_geometry_operations(py::module_& m) {
   py::class_<quaternion>(m, "Quaternion")
       .def(py::init<scalar_expr, scalar_expr, scalar_expr, scalar_expr>(), "w"_a, "x"_a, "y"_a,
-           "z"_a, py::doc("Construct from wxyz elements."))
-      .def(py::init<>(), py::doc("Construct as identity."))
+           "z"_a, docstrings::quaternion_constructor.data())
+      .def(py::init<>(), docstrings::quaternion_identity_constructor.data())
       .def_static(
           "with_name",
           [](const std::string_view name) {
@@ -61,7 +63,7 @@ void wrap_geometry_operations(py::module_& m) {
                                              fmt::format("{}_y", name), fmt::format("{}_z", name));
             return quaternion{std::move(w), std::move(x), std::move(y), std::move(z)};
           },
-          "name"_a, "Construct a symbolic quaternion with the given prefix.")
+          "name"_a, docstrings::quaternion_with_name.data())
       .def("__repr__",
            [](const quaternion& self) {
              return fmt::format("Quaternion({}, {}, {}, {})", self.w(), self.x(), self.y(),
@@ -73,50 +75,51 @@ void wrap_geometry_operations(py::module_& m) {
             return self.is_identical_to(other);
           },
           "other"_a, "Test if two quaternions have identical expression trees.")
-      .def_property_readonly("type_name",
-                             [](const quaternion&) -> std::string_view { return "Quaternion"; })
       // Expression operations:
       .def("subs", &quaternion::subs, py::arg("target"), py::arg("replacement"),
-           "Replace the `target` expression with `substitute` in the expression tree.")
-      .def("eval", &eval_quaternion,
-           "Evaluate into a float expression. Return the result as a numpy array.")
+           "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.")
+      .def("eval", &eval_quaternion, docstrings::quaternion_eval.data())
       // Storage conversions:
-      .def("to_list", &list_from_quaternion, "Convert to list in WXYZ order (scalar first).")
+      .def("to_list", &list_from_quaternion,
+           "Convert to list in ``[w, x, y, z]`` (scalar first) order.")
       .def("to_vector_wxyz", &quaternion::to_vector_wxyz,
-           "Convert to 4x1 vector in WXYZ order (scalar first).")
+           "Convert to a 4x1 vector in ``[w, x, y, z]`` (scalar-first) order.")
       .def("to_vector_xyzw", &quaternion::to_vector_xyzw,
-           "Convert to 4x1 vector in XYZW order (scalar last).")
+           "Convert to a 4x1 vector in ``[x, y, z, w]`` (scalar-last) order.")
       .def_property_readonly("w", &quaternion::w, "Access scalar element of quaternion.")
-      .def_property_readonly("x", &quaternion::x, "Access `i` coefficient of quaternion.")
-      .def_property_readonly("y", &quaternion::y, "Access `j` coefficient of quaternion.")
-      .def_property_readonly("z", &quaternion::z, "Access `k` coefficient of quaternion.")
+      .def_property_readonly("x", &quaternion::x, "Access **i** coefficient of quaternion.")
+      .def_property_readonly("y", &quaternion::y, "Access **j** coefficient of quaternion.")
+      .def_property_readonly("z", &quaternion::z, "Access **k** coefficient of quaternion.")
       .def_static("from_xyzw", &quaternion::from_vector_xyzw, "xyzw"_a,
-                  "Construct from matrix of xyzw elements.")
+                  docstrings::quaternion_from_xyzw.data())
       .def_static(
           "from_xyzw",
-          [](py::iterable iterable) {
+          [](const py::iterable& iterable) {
             const auto xyzw = components_from_iterable(iterable);
             return quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]};
           },
-          "m"_a, "Construct from iterable over xyzw elements.")
-      .def_static("from_wxyz", &quaternion::from_vector_wxyz, "m"_a,
-                  "Construct from matrix of wxyz elements.")
+          "xyzw"_a,
+          "Overload of :func:`wrenfold.geometry.Quaternion.from_xyzw` that accepts "
+          "Iterable[sym.Expr].")
+      .def_static("from_wxyz", &quaternion::from_vector_wxyz, "wxyz"_a,
+                  docstrings::quaternion_from_wxyz.data())
       .def_static(
           "from_wxyz",
-          [](py::iterable iterable) {
+          [](const py::iterable& iterable) {
             const auto wxyz = components_from_iterable(iterable);
             return quaternion{wxyz[0], wxyz[1], wxyz[2], wxyz[3]};
           },
-          "iterable"_a, "Construct from iterable over wxyz elements.")
+          "wxyz"_a,
+          "Overload of :func:`wrenfold.geometry.Quaternion.from_wxyz` that accepts "
+          "Iterable[sym.Expr].")
       // Quaternion operations:
-      .def("squared_norm", &quaternion::squared_norm, "Squared norm of four quaternion elements.")
-      .def("norm", &quaternion::norm, "Norm of the four quaternion elements.")
-      .def("normalized", &quaternion::normalized, "Return a normalized version of the quaternion.")
-      .def("conjugate", &quaternion::conjugate, "Return the complex conjugate.")
-      .def("inverse", &quaternion::inverse, "Return the normalized complex conjugate.")
+      .def("squared_norm", &quaternion::squared_norm, docstrings::quaternion_squared_norm.data())
+      .def("norm", &quaternion::norm, docstrings::quaternion_norm.data())
+      .def("normalized", &quaternion::normalized, docstrings::quaternion_normalized.data())
+      .def("conjugate", &quaternion::conjugate, docstrings::quaternion_conjugate.data())
+      .def("inverse", &quaternion::inverse, docstrings::quaternion_inverse.data())
       .def("to_rotation_matrix", &quaternion::to_rotation_matrix,
-           "Return the equivalent member of SO(3). If this quaternion has non-unit norm, the "
-           "result is undefined.")
+           docstrings::quaternion_to_rotation_matrix.data())
       .def(py::self * py::self)
       // Conversion from angles:
       // TODO: Stubs are wrong for these, see: https://github.com/python/mypy/pull/14934
@@ -124,51 +127,42 @@ void wrap_geometry_operations(py::module_& m) {
           "from_angle_axis",
           static_cast<quaternion (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&,
                                      const scalar_expr&)>(&quaternion::from_angle_axis),
-          "angle"_a, "vx"_a, "vy"_a, "vz"_a,
-          py::doc(
-              "Create a quaternion from angle-axis parameters. Parameters [vx, vy, vz] must be a "
-              "unit vector, or the result does not represent a rotation. Angle is specified in "
-              "radians."))
-      .def_static(
-          "from_angle_axis",
-          static_cast<quaternion (*)(const scalar_expr&, const matrix_expr&)>(
-              &quaternion::from_angle_axis),
-          "angle"_a, "v"_a,
-          py::doc("Create a quaternion from angle-axis parameters. Vector v must be a "
-                  "unit vector, or the result does not represent a rotation. Angle is specified in "
-                  "radians."))
+          "angle"_a, "vx"_a, "vy"_a, "vz"_a, docstrings::quaternion_from_angle_axis.data())
+      .def_static("from_angle_axis",
+                  static_cast<quaternion (*)(const scalar_expr&, const matrix_expr&)>(
+                      &quaternion::from_angle_axis),
+                  "angle"_a, "axis"_a,
+                  "Overload of ``from_angle_axis`` that accepts ``sym.MatrixExpr`` for the axis.")
       .def_static(
           "from_rotation_vector",
           static_cast<quaternion (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&,
                                      const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
           "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
-          py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
-                  "of radians."))
+          docstrings::quaternion_from_rotation_vector.data())
       .def_static(
           "from_rotation_vector",
           static_cast<quaternion (*)(const matrix_expr&, const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
           "v"_a, py::arg("epsilon"),
-          py::doc("Create a quaternion from Rodrigues rotation vector, expressed in units "
-                  "of radians."))
+          "Overload of ``from_rotation_vector`` that accepts ``sym.MatrixExpr``.")
       .def_static("from_x_angle", &quaternion::from_x_angle, "angle"_a,
-                  py::doc("Construct a rotation about the x-axis. Angle is in radians."))
+                  docstrings::quaternion_from_x_angle.data())
       .def_static("from_y_angle", &quaternion::from_y_angle, "angle"_a,
-                  py::doc("Construct a rotation about the y-axis. Angle is in radians."))
+                  docstrings::quaternion_from_y_angle.data())
       .def_static("from_z_angle", &quaternion::from_z_angle, "angle"_a,
-                  py::doc("Construct a rotation about the z-axis. Angle is in radians."))
+                  docstrings::quaternion_from_z_angle.data())
       .def("to_angle_axis", &quaternion::to_angle_axis, py::arg("epsilon") = constants::zero,
-           py::doc("Convert quaternion to angle-axis representation. Returns an angle in the [0, "
-                   "pi] interval and a unit-vector."))
+           docstrings::quaternion_to_angle_axis.data())
       .def("to_rotation_vector", &quaternion::to_rotation_vector,
-           py::arg("epsilon") = constants::zero,
-           py::doc("Convert quaternion to rotation-vector representation."))
+           py::arg("epsilon") = constants::zero, docstrings::quaternion_to_rotation_vector.data())
       .def_static("from_rotation_matrix", &quaternion::from_rotation_matrix, py::arg("R"),
-                  py::doc("Convert from a rotation matrix via Calley's method."))
+                  docstrings::quaternion_from_rotation_matrix.data())
+      // TODO: Get rid of `Quaternion` specific overrides of jacobian, and call the standalone
+      //  method.
       .def(
           "jacobian",
-          [](const quaternion& self, const matrix_expr& vars, bool use_abstract) {
+          [](const quaternion& self, const matrix_expr& vars, const bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },
@@ -176,7 +170,8 @@ void wrap_geometry_operations(py::module_& m) {
           py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
       .def(
           "jacobian",
-          [](const quaternion& self, const std::vector<scalar_expr>& vars, bool use_abstract) {
+          [](const quaternion& self, const std::vector<scalar_expr>& vars,
+             const bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },
@@ -184,7 +179,7 @@ void wrap_geometry_operations(py::module_& m) {
           py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
       .def(
           "jacobian",
-          [](const quaternion& self, const quaternion& vars, bool use_abstract) {
+          [](const quaternion& self, const quaternion& vars, const bool use_abstract) {
             return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
                                                     : non_differentiable_behavior::constant);
           },
@@ -192,11 +187,12 @@ void wrap_geometry_operations(py::module_& m) {
           py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables in "
                   "another quaternion."))
       .def("right_retract_derivative", &quaternion::right_retract_derivative,
-           py::doc("Jacobian of q * exp(w) wrt w around w = 0."))
+           docstrings::quaternion_right_retract_derivative.data())
       .def("right_local_coordinates_derivative", &quaternion::right_local_coordinates_derivative,
-           py::doc("Jacobian of log(q^T * (q + dq)) wrt dq around dq = 0."));
+           docstrings::quaternion_right_local_coordintes_derivative.data())
+      .doc() = "A quaternion class used to represent 3D rotations and orientations.";
 
   m.def("left_jacobian_of_so3", &left_jacobian_of_so3, "w"_a, "epsilon"_a,
-        py::doc("Evaluate the left jacobian of SO(3)."));
+        docstrings::left_jacobian_of_so3.data());
 }
 }  // namespace wf

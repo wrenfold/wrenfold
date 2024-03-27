@@ -108,6 +108,9 @@ add_wrapper_module(
   code_formatting_wrapper.cc
   codegen_wrapper.cc
   compound_expression_wrapper.cc
+  docs/expression_wrapper.h
+  docs/geometry_wrapper.h
+  docs/matrix_wrapper.h
   expression_wrapper.cc
   geometry_wrapper.cc
   matrix_wrapper.cc

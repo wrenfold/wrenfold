@@ -14,8 +14,10 @@ namespace wf {
 
 void wrap_compound_expression(py::module_& m) {
   wrap_class<compound_expr>(m, "CompoundExpr")
-      .def_property_readonly("type_name",
-                             [](const compound_expr& self) { return self.type_name(); })
+      .def_property_readonly(
+          "type_name", [](const compound_expr& self) { return self.type_name(); },
+          "Retrieve the name of the underlying C++ expression type. See "
+          ":func:`wrenfold.sym.Expr.type_name`.")
       .def("__repr__", &compound_expr::to_string)
       .def("__bool__", [](const compound_expr&) {
         throw type_error("CompoundExpr cannot be coerced to boolean.");
@@ -24,11 +26,11 @@ void wrap_compound_expression(py::module_& m) {
   m.def("create_compound_expression_elements", &create_expression_elements, py::arg("provenance"),
         py::arg("num"),
         py::doc("Create scalar expressions that represent the members of the provided compound "
-                "expression."));
+                "expression. OMIT_FROM_SPHINX"));
 
   m.def("create_custom_type_construction", &create_custom_type_construction, py::arg("type"),
         py::arg("expressions"),
-        py::doc("Create compound expression of type `CustomTypeConstruction`."));
+        py::doc("Create compound expression of type `CustomTypeConstruction`. OMIT_FROM_SPHINX"));
 }
 
 }  // namespace wf

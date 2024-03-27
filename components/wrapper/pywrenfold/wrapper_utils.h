@@ -20,8 +20,9 @@ py::class_<T> wrap_class(py::module_& m, const std::string_view name) {
     klass.def("__hash__", &hash<T>, py::doc("Compute hash."));
   }
   if constexpr (is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
-    klass.def("is_identical_to", &are_identical<T>, py::arg("other"),
-              py::doc("Check for strict equality."));
+    klass.def(
+        "is_identical_to", &are_identical<T>, py::arg("other"),
+        py::doc("Check for strict equality. This is not the same as mathematical equivalence."));
     klass.def(
         "__eq__", &are_identical<T>, py::is_operator(), py::arg("other"),
         py::doc("Check for strict equality. This is not the same as mathematical equivalence."));

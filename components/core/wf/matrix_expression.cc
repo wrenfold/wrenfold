@@ -93,10 +93,9 @@ matrix_expr matrix_expr::diff(const scalar_expr& var, const int reps,
 
 matrix_expr matrix_expr::jacobian(const absl::Span<const scalar_expr> vars,
                                   const non_differentiable_behavior behavior) const {
-  if (cols() != 1) {
-    throw dimension_error(
-        "Jacobian can only be computed on column-vectors. Received dimensions: [{}, {}]", rows(),
-        cols());
+  if (rows() != 1 && cols() != 1) {
+    throw dimension_error("Jacobian can only be computed on vectors. Received dimensions: [{}, {}]",
+                          rows(), cols());
   }
   const auto& m = as_matrix();
   return wf::jacobian(m.data(), vars, behavior);

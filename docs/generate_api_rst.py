@@ -41,8 +41,8 @@ def main(args: argparse.Namespace):
     for klass in classes:
         contents += f'.. autoclass:: wrenfold.sym.{klass}\n  :members:\n\n'
 
-    for func in functions:
-        contents += f'.. autofunction:: wrenfold.sym.{func}\n\n'
+    contents += '\n\n'.join(f'.. autofunction:: wrenfold.sym.{func}' for func in functions)
+    contents += '\n'
 
     output_path = Path(args.output_dir) / 'python_api_docs.rst'
     with open(output_path, 'wb') as handle:

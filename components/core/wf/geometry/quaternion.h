@@ -127,11 +127,12 @@ class quaternion {
   // Convert to axis-angle representation.
   // Angle is converted into the range [0, pi]. If the norm of the vector component falls below
   // `epsilon`, the rotation cannot be recovered, and we return a zero angle.
-  std::tuple<scalar_expr, matrix_expr> to_angle_axis(std::optional<scalar_expr> epsilon) const;
+  std::tuple<scalar_expr, matrix_expr> to_angle_axis(
+      const std::optional<scalar_expr>& epsilon) const;
 
   // Convert quaternion to a Rodrigues rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  matrix_expr to_rotation_vector(std::optional<scalar_expr> epsilon) const;
+  matrix_expr to_rotation_vector(const std::optional<scalar_expr>& epsilon) const;
 
   // Construct a quaternion from a rotation matrix using Sheppards's method.
   // If `R` is not a member of SO(3), the behavior is undefined. See:
@@ -196,6 +197,6 @@ quaternion operator*(const quaternion& a, const quaternion& b);
 // You can obtain the right jacobian of SO(3) by transposing this quantity.
 //
 // When the norm of `w` falls below `epsilon`, the small angle approximation is used.
-matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<scalar_expr> epsilon);
+matrix_expr left_jacobian_of_so3(const matrix_expr& w, const std::optional<scalar_expr>& epsilon);
 
 }  // namespace wf

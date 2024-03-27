@@ -50,7 +50,7 @@ matrix_expr diagonal_stack(absl::Span<const matrix_expr> values);
 // Where `L` is lower triangular, `U` is upper triangular, and both `P` and `Q` are permutation
 // matrices.
 std::tuple<matrix_expr, matrix_expr, matrix_expr, matrix_expr> factorize_full_piv_lu(
-    const matrix_expr& A);
+    const matrix_expr& A_in);
 
 // Compute determinant of a matrix. Only valid for square matrices.
 scalar_expr determinant(const matrix_expr& m);

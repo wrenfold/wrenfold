@@ -53,7 +53,7 @@ class checked_int final {
   // Cast to equivalently sized unsigned int, with check for range.
   explicit constexpr operator std::uint64_t() const {
     if (value_ < 0) {
-      throw domain_error("Invalid case of negative value {} to uint64.", value_);
+      throw domain_error("Invalid cast of negative value {} to uint64.", value_);
     }
     return static_cast<std::uint64_t>(value_);
   }

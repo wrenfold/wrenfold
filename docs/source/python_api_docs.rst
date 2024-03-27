@@ -1,6 +1,9 @@
 Python API Documentation
 ========================
 
+.. autoclass:: wrenfold.sym.BooleanExpr
+  :members:
+
 .. autoclass:: wrenfold.sym.Expr
   :members:
 

@@ -194,8 +194,9 @@ class sympy_conversion_visitor {
 };
 
 template <typename T>
-py::object to_sympy(const T& expr, std::optional<py::module_> sp_opt, const bool evaluate) {
-  py::module_ sp = sp_opt.has_value() ? *std::move(sp_opt) : py::module::import("sympy");
+py::object to_sympy(const T& expr, const std::optional<py::object>& sp_opt, const bool evaluate) {
+  py::module_ sp =
+      sp_opt.has_value() ? py::cast<py::module_>(*sp_opt) : py::module::import("sympy");
   return sympy_conversion_visitor{std::move(sp), evaluate}(expr);
 }
 
