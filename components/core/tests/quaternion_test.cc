@@ -1,5 +1,6 @@
 #include <Eigen/Geometry>
 
+#include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/functions.h"
 #include "wf/geometry/quaternion.h"
@@ -138,21 +139,16 @@ TEST(QuaternionTest, TestMultiply) {
 TEST(QuaternionTest, TestInverse) {
   auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
   const quaternion q{w, x, y, z};
-  ASSERT_IDENTICAL(q.conjugate().normalized().to_vector_wxyz(), q.inverse().to_vector_wxyz());
 
-  // We should be able to recovery the identity symbolically:
-  auto q_norm_2 = q.squared_norm();
-  auto q_q_inv = (q * q.inverse());
-  ASSERT_IDENTICAL(1, q_q_inv.w().collect(q_norm_2).subs(q_norm_2, 1));
-  ASSERT_IDENTICAL(0, q_q_inv.x());
-  ASSERT_IDENTICAL(0, q_q_inv.y());
-  ASSERT_IDENTICAL(0, q_q_inv.z());
+  const scalar_expr q_norm_2 = q.squared_norm();
+  const quaternion q_q_inv = q * q.inverse();
 
-  auto q_inv_q = (q.inverse() * q);
-  ASSERT_IDENTICAL(1, q_inv_q.w().collect(q_norm_2).subs(q_norm_2, 1));
-  ASSERT_IDENTICAL(0, q_inv_q.x());
-  ASSERT_IDENTICAL(0, q_inv_q.y());
-  ASSERT_IDENTICAL(0, q_inv_q.z());
+  // Workaround for limitations in collect/subs:
+  const scalar_expr negative_q_norm_2{multiplication{-1, q_norm_2}};
+  ASSERT_IDENTICAL(1, q_q_inv.subs(-q_norm_2, negative_q_norm_2).w().collect(q_norm_2));
+  ASSERT_IDENTICAL(0, q_q_inv.subs(-q_norm_2, negative_q_norm_2).x());
+  ASSERT_IDENTICAL(0, q_q_inv.subs(-q_norm_2, negative_q_norm_2).y());
+  ASSERT_IDENTICAL(0, q_q_inv.subs(-q_norm_2, negative_q_norm_2).z());
 }
 
 TEST(QuaternionTest, TestToRotationMatrix) {

@@ -72,8 +72,12 @@ class GeometryWrapperTest(MathTestBase):
         self.assertIdentical(0, q_ident.y)
         self.assertIdentical(0, q_ident.z)
 
+        q = Quaternion(4, -3, 1, -2)
         q_ident = q * q.inverse()
-        self.assertIdentical(1, q_ident.w.collect(squared_norm).subs(squared_norm, 1))
+        self.assertIdentical(1, q_ident.w)
+        self.assertIdentical(0, q_ident.x)
+        self.assertIdentical(0, q_ident.y)
+        self.assertIdentical(0, q_ident.z)
 
     def test_to_rotation_matrix(self):
         """Test calling to_rotation_matrix."""

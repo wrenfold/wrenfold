@@ -28,6 +28,11 @@ scalar_expr quaternion::squared_norm() const {
 
 scalar_expr quaternion::norm() const { return sqrt(squared_norm()); }
 
+quaternion quaternion::inverse() const {
+  const scalar_expr n2 = squared_norm();
+  return {w() / n2, x() / -n2, y() / -n2, z() / -n2};
+}
+
 matrix_expr quaternion::to_rotation_matrix() const {
   const scalar_expr x2 = x() * 2;
   const scalar_expr y2 = y() * 2;

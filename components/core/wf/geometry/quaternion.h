@@ -82,12 +82,8 @@ class quaternion {
   // [w, x, y, z] --> [w, -x, -y, -z].
   [[nodiscard]] quaternion conjugate() const { return {w(), -x(), -y(), -z()}; }
 
-  // Invert the quaternion by conjugating and normalizing.
-  [[nodiscard]] quaternion inverse() const {
-    const scalar_expr n = norm();
-    const scalar_expr negative_norm = -n;
-    return {w() / n, x() / negative_norm, y() / negative_norm, z() / negative_norm};
-  }
+  // Invert the quaternion by conjugating and dividing by squared norm.
+  [[nodiscard]] quaternion inverse() const;
 
   // Convert a unit-norm to a rotation matrix. If the input does not have unit norm, the
   // result will not be a valid member of SO(3).
