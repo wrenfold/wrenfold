@@ -155,7 +155,7 @@ Compute the quaternion inverse. Given the quaternion:
 The inverse is defined as:
 
 .. math::
-  \mathbf{q}^{-1} = \frac{q_w}{\lvert q \rvert} -
+  \mathbf{q}^{-1} = \frac{q_w}{\lvert q \rvert^2} -
                     \frac{q_x}{\lvert q \rvert^2}\cdot\mathbf{i} -
                     \frac{q_y}{\lvert q \rvert^2}\cdot\mathbf{j} -
                     \frac{q_z}{\lvert q \rvert^2}\cdot\mathbf{k}
@@ -337,8 +337,9 @@ Compute the 4x3 derivative of this quaternion with respect to a right-multiplied
 perturbation. This is the derivative:
 
 .. math::
-  \frac{\partial \mathbf{q} \cdot \text{exp}\left(\mathbf{v}\right)}{\partial \mathbf{v}}
-  \biggr\rvert_{\mathbf{v} = 0}
+  \frac{\partial \left[\mathbf{q} \cdot \text{exp}\left(\mathbf{v}\right)\right]}
+    {\partial \mathbf{v}}
+    \biggr\rvert_{\mathbf{v} = 0}
 
 Where ``exp(...)`` maps from a rotation vector to a quaternion. The derivatives of the four
 quaternion elements (ordered ``[w, x, y, z]``) are computed with respect to the three elements of
@@ -357,8 +358,8 @@ inline constexpr std::string_view quaternion_right_local_coordintes_derivative =
 Compute the 3x4 derivative:
 
 .. math::
-  \frac{\partial \text{log}\left(\bar{\mathbf{q}} \cdot \left(\mathbf{q} = \delta\mathbf{q}\right)
-  \right)}{\partial d\mathbf{q}}\biggr\rvert_{\delta\mathbf{q} = 0}
+  \frac{\partial \text{log}\left(\bar{\mathbf{q}} \cdot \left(\mathbf{q} + \delta\mathbf{q}\right)
+  \right)}{\partial \delta\mathbf{q}}\biggr\rvert_{\delta\mathbf{q} = 0}
 
 Where ``log(...)`` converts a quaternion to a rotation vector, and ``dq`` is an additive
 perturbation to ``self``. The derivative of the rotation vector is taken with respect to the four
@@ -374,21 +375,24 @@ Examples:
 )doc";
 
 inline constexpr std::string_view left_jacobian_of_so3 = R"doc(
-Compute the _left_ jacobian of SO(3). Given a rotation vector ``w``, this method computes the
+Compute the *left* jacobian of SO(3). Given a rotation vector ``w``, this method computes the
 3x3 derivative:
 
 .. math::
-  \mathbf{J}_l = \frac{\partial \text{log}\left(
-    \text{exp}\left(\mathbf{w} + \partial \delta\mathbf{w}\right) * \mathbf{R}^T\right)}
+  \mathbf{J}_l = \frac{
+    \partial \text{log}\left(
+    \text{exp}\left(\mathbf{w} + \delta\mathbf{w}\right) *
+    \text{exp}\left(\mathbf{w}\right)^T\right)
+  }
   {\partial \delta\mathbf{w}} \biggr\rvert_{\delta\mathbf{w} = 0}
 
-Where ``exp(...)`` maps from a rotation vector to a quaternion, ``log(...)`` maps from a
-quaternion to a rotation vector, and :math:`\mathbf{R} = \text{exp}\left(\mathbf{w}\right)`.
+Where ``exp(...)`` maps from a rotation vector to a quaternion, and ``log(...)`` maps from a
+quaternion to a rotation vector.
 
 This matrix has a secondary interpretation, as the integral:
 
 .. math::
-  \mathbf{J}_l = \[\int_{0}^{1} \text{exp}\left(\alpha \cdot \mathbf{w}\right) \,d\alpha \]
+  \mathbf{J}_l = \int_{0}^{1} \text{exp}\left(\alpha \cdot \mathbf{w}\right) \,d\alpha
 
 Tip:
   The right jacobian can be obtained by transposing the left jacobian.

@@ -1,17 +1,15 @@
-Welcome to wrenfold's documentation!
-====================================
+wrenfold documentation
+======================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-   python_api_docs
-
+   python_api/index
 
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

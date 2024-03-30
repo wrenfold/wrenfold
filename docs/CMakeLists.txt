@@ -17,8 +17,8 @@ if(DEFINED SPHINX_BUILD_PATH)
   # The python script we use to generate RST files, and the list of output
   # files:
   set(DOC_GENERATION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/generate_api_rst.py")
-  set(GENERATED_RST_FILES
-      "${CMAKE_CURRENT_SOURCE_DIR}/source/python_api_docs.rst")
+  set(GENERATED_RST_FILES source/python_api/geometry.rst
+                          source/python_api/sym.rst)
 
   # Invoke `generate_api_rst.py` to generate RST files for our python modules.
   add_custom_command(
@@ -26,11 +26,11 @@ if(DEFINED SPHINX_BUILD_PATH)
     COMMAND
       ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
       ${Python_EXECUTABLE} -B ${DOC_GENERATION_SCRIPT}
-      "${CMAKE_CURRENT_SOURCE_DIR}/source"
+      "${CMAKE_CURRENT_SOURCE_DIR}/source/python_api"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generate RST for python API."
     DEPENDS wf-core wf_wrapper wf_python ${PYTHON_LIB_SOURCES}
-            ${DOC_GENERATION_SCRIPT})
+            ${DOC_GENERATION_SCRIPT} source/python_api/index.rst)
 
   # The handwritten source files for the docs:
   set(DOC_INPUT_FILES source/conf.py source/index.rst)
