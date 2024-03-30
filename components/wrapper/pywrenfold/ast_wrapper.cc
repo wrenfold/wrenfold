@@ -71,7 +71,7 @@ class ast_vector_iterator {
   ast_element_vector::const_iterator it_;
 };
 
-void wrap_ast_operations(py::module_& m) {
+void wrap_ast(py::module_& m) {
   // AST element vector is wrapped as an opaque type so we don't have to deal
   // with ast_element not being default constructible.
   py::class_<ast_element_vector>(m, "AstVector")

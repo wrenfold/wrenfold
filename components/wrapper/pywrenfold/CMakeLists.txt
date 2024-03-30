@@ -113,9 +113,11 @@ add_wrapper_module(
   docs/geometry_wrapper.h
   docs/matrix_wrapper.h
   expression_wrapper.cc
+  enums_wrapper.cc
   geometry_wrapper.cc
   matrix_wrapper.cc
   sympy_conversion.cc
+  types_wrapper.cc
   wrapper_utils.h
   SUB_MODULE_NAMES
   ast

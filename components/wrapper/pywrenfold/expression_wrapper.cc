@@ -105,9 +105,13 @@ void wrap_matrix_operations(py::module_& m);
 
 // Defined in codegen_wrapper.cc
 void wrap_codegen_operations(py::module_& m);
+void wrap_argument(py::module_& m);
 
 // Defined in ast_wrapper.cc
-void wrap_ast_operations(py::module_& m);
+void wrap_ast(py::module_& m);
+
+// Defined in typess_wrapper.cc
+void wrap_types(py::module_& m);
 
 // Defined in code_formatting_wrapper.cc
 void wrap_code_formatting_operations(py::module_& m);
@@ -123,11 +127,15 @@ void wrap_geometry_operations(py::module_& m);
 
 // Defined in sympy_conversion.cc
 void wrap_sympy_conversion(py::module_& m);
+
+// Defined in enums_wrapper.cc
+void wrap_enums(py::module_& m);
 }  // namespace wf
 
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
+  wrap_enums(m);
 
   // For types to show up correctly in docstrings, we need to wrap `boolean_expr` first.
   wrap_boolean_expression(m);
@@ -308,10 +316,14 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);
 
-  auto m_ast = m.def_submodule("ast", "Wrapped AST types.");
-  wrap_ast_operations(m_ast);
-
+  // We need to wrap `Argument` and `ArgumentDirection` first so they are available for `ast`.
   auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
+  wrap_types(m_codegen);
+  wrap_argument(m_codegen);
+
+  auto m_ast = m.def_submodule("ast", "Wrapped AST types.");
+  wrap_ast(m_ast);
+
   wrap_codegen_operations(m_codegen);
   wrap_code_formatting_operations(m_codegen);
 }  // PYBIND11_MODULE

@@ -77,7 +77,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
     """Customize C++ generation."""
 
     def format_call_std_function(self, element: ast.CallStdFunction) -> str:
-        if element.function == code_generation.codegen.StdMathFunction.Cos:
+        if element.function == sym.StdMathFunction.Cos:
             return f'custom::cos({self.format(element.args[0])})'
         return self.super_format(element)
 
