@@ -106,6 +106,9 @@ void wrap_matrix_operations(py::module_& m);
 // Defined in codegen_wrapper.cc
 void wrap_codegen_operations(py::module_& m);
 
+// Defined in ast_wrapper.cc
+void wrap_ast_operations(py::module_& m);
+
 // Defined in code_formatting_wrapper.cc
 void wrap_code_formatting_operations(py::module_& m);
 
@@ -304,6 +307,9 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);
+
+  auto m_ast = m.def_submodule("ast", "Wrapped AST types.");
+  wrap_ast_operations(m_ast);
 
   auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
   wrap_codegen_operations(m_codegen);

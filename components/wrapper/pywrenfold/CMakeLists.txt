@@ -104,6 +104,7 @@ add_wrapper_module(
   NAME
   wf_wrapper
   SOURCES
+  ast_wrapper.cc
   boolean_expression_wrapper.cc
   code_formatting_wrapper.cc
   codegen_wrapper.cc
@@ -117,6 +118,7 @@ add_wrapper_module(
   sympy_conversion.cc
   wrapper_utils.h
   SUB_MODULE_NAMES
+  ast
   codegen
   geometry)
 

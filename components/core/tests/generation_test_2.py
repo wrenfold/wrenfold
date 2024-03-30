@@ -2,6 +2,7 @@
 import argparse
 import dataclasses
 
+from wrenfold import ast
 from wrenfold import code_generation
 from wrenfold import sym
 from wrenfold.code_generation import CppGenerator, RustGenerator
@@ -49,8 +50,7 @@ def lookup_and_compute_inner_product(vec: VectorOfStructs, a: RealScalar, b: Rea
 
 class CustomCppGenerator(CppGenerator):
 
-    def format_call_external_function(self,
-                                      element: code_generation.codegen.CallExternalFunction) -> str:
+    def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
         Place our custom functions in the `external` namespace.
         """
@@ -67,8 +67,7 @@ class CustomCppGenerator(CppGenerator):
             return f'std::vector<types::StructType>'
         return self.super_format(element)
 
-    def format_declaration_type_annotation(
-            self, element: code_generation.codegen.DeclarationTypeAnnotation) -> str:
+    def format_declaration_type_annotation(self, element: ast.DeclarationTypeAnnotation) -> str:
         """
         We need to define how to declare our custom types.
         TODO: Unify this with `format_custom_type`.
@@ -85,8 +84,7 @@ class CustomRustGenerator(RustGenerator):
     We need a similar set of customizations for Rust as well.
     """
 
-    def format_call_external_function(self,
-                                      element: code_generation.codegen.CallExternalFunction) -> str:
+    def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         args = ', '.join(self.format(x) for x in element.args)
         return f'crate::external::{element.function.name}({args})'
 
@@ -97,8 +95,7 @@ class CustomRustGenerator(RustGenerator):
             return f'std::vec::Vec<crate::types::StructType>'
         return self.super_format(element)
 
-    def format_declaration_type_annotation(
-            self, element: code_generation.codegen.DeclarationTypeAnnotation) -> str:
+    def format_declaration_type_annotation(self, element: ast.DeclarationTypeAnnotation) -> str:
         if isinstance(
                 element.type,
                 code_generation.codegen.CustomType) and element.type.python_type is StructType:

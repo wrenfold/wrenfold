@@ -13,11 +13,12 @@ import argparse
 import dataclasses
 import typing as T
 
-from wrenfold.type_annotations import RealScalar, Vector3, Vector6
+from wrenfold import ast
 from wrenfold import code_generation
+from wrenfold import sym
 from wrenfold.code_generation import ReturnValue, OutputArg, CppGenerator, RustGenerator
 from wrenfold.geometry import Quaternion
-from wrenfold import sym
+from wrenfold.type_annotations import RealScalar, Vector3, Vector6
 
 
 @dataclasses.dataclass
@@ -180,7 +181,7 @@ def compose_poses(a_T_b: Pose3d, b_T_c: Pose3d):
 
 class CustomCppGenerator(CppGenerator):
 
-    def format_get_field(self, element: code_generation.codegen.GetField) -> str:
+    def format_get_field(self, element: ast.GetField) -> str:
         """
         Customize access to struct Pose3. We assume that the pose type has functions to access each
         member, rather than having public members.
@@ -197,7 +198,7 @@ class CustomCppGenerator(CppGenerator):
             return f'Eigen::Quaternion<double>'
         return self.super_format(element)
 
-    def format_construct_matrix(self, element: code_generation.codegen.ConstructMatrix) -> str:
+    def format_construct_matrix(self, element: ast.ConstructMatrix) -> str:
         """
         By default, wrenfold passes input and output matrices as spans. If we want to return a matrix,
         we need to override this method and help the code-generator emit constructor syntax suitable
@@ -207,8 +208,7 @@ class CustomCppGenerator(CppGenerator):
         formatted_args = ', '.join(self.format(x) for x in element.args)
         return f'Eigen::Matrix<double, {element.type.num_rows}, {element.type.num_cols}>({formatted_args})'
 
-    def format_construct_custom_type(self,
-                                     element: code_generation.codegen.ConstructCustomType) -> str:
+    def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
         if element.type.python_type is EigenQuaternion:
             # Eigen quaternion expects constructor args in order (w, x, y, z)
             arg_dict = {f.name: element.get_field_value(f.name) for f in element.type.fields}
@@ -221,7 +221,7 @@ class CustomCppGenerator(CppGenerator):
 
 class CustomRustGenerator(RustGenerator):
 
-    def format_get_field(self, element: code_generation.codegen.GetField) -> str:
+    def format_get_field(self, element: ast.GetField) -> str:
         """
         Use member accessors for the Pose3 type.
         """
@@ -244,13 +244,12 @@ class CustomRustGenerator(RustGenerator):
             return f'nalgebra::UnitQuaternion::<f64>'
         return self.super_format(element)
 
-    def format_construct_matrix(self, element: code_generation.codegen.ConstructMatrix) -> str:
+    def format_construct_matrix(self, element: ast.ConstructMatrix) -> str:
         """Generate constructor syntax for nalgebra matrices."""
         formatted_args = ', '.join(self.format(x) for x in element.args)
         return f'nalgebra::SMatrix::<f64, {element.type.num_rows}, {element.type.num_cols}>::new({formatted_args})'
 
-    def format_construct_custom_type(self,
-                                     element: code_generation.codegen.ConstructCustomType) -> str:
+    def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
         """Use a `new()` method for our Pose3 type, and the UnitQuaternion constructor for rotations."""
         if element.type.python_type is Pose3d:
             r = self.format(element.get_field_value("rotation"))
