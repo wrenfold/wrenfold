@@ -15,6 +15,7 @@
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
 
+#include "docs/expression_wrapper.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -125,6 +126,9 @@ void wrap_sympy_conversion(py::module_& m);
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
 
+  // For types to show up correctly in docstrings, we need to wrap `boolean_expr` first.
+  wrap_boolean_expression(m);
+
   // Primary expression type:
   wrap_class<scalar_expr>(m, "Expr")
       // Implicit construction from numerics:
@@ -133,45 +137,48 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       // String conversion:
       .def("__repr__", &scalar_expr::to_string)
       .def("expression_tree_str", &scalar_expr::to_expression_tree_string,
-           "Retrieve the expression tree as a pretty-printed string.")
-      .def_property_readonly("type_name", [](const scalar_expr& self) { return self.type_name(); })
+           docstrings::scalar_expr_expression_tree_str.data())
+      .def_property_readonly(
+          "type_name", [](const scalar_expr& self) { return self.type_name(); },
+          docstrings::scalar_expr_type_name.data())
       // Operations:
       .def(
           "diff",
-          [](const scalar_expr& self, const scalar_expr& var, int order, bool use_abstract) {
+          [](const scalar_expr& self, const scalar_expr& var, const int order,
+             const bool use_abstract) {
             return self.diff(var, order,
                              use_abstract ? non_differentiable_behavior::abstract
                                           : non_differentiable_behavior::constant);
           },
           "var"_a, py::arg("order") = 1, py::arg("use_abstract") = false,
-          "Differentiate the expression with respect to the specified variable.")
-      .def("distribute", &scalar_expr::distribute, "Expand products of additions and subtractions.")
+          docstrings::scalar_expr_diff.data())
+      .def("distribute", &scalar_expr::distribute, docstrings::scalar_expr_distribute.data())
       .def("subs", &scalar_expr::subs, py::arg("target"), py::arg("substitute"),
            "Replace the `target` expression with `substitute` in the expression tree.")
       .def("subs_variables", &substitute_variables_wrapper, py::arg("pairs"),
            "Substitute a list of variable expressions.")
-      .def("eval", &eval_wrapper, "Evaluate into floating point expression.")
+      .def("eval", &eval_wrapper, docstrings::scalar_expr_eval.data())
       .def(
           "collect",
           [](const scalar_expr& self, const scalar_expr& term) { return self.collect(term); },
-          "term"_a, "Collect powers of the provided expression.")
+          "term"_a, "Overload of ``collect`` that accepts a single variable.")
       .def(
           "collect",
           [](const scalar_expr& self, const std::vector<scalar_expr>& terms) {
             return wf::collect_many(self, terms);
           },
-          "terms"_a, "Collect powers of the provided expressions.")
+          "terms"_a, docstrings::scalar_expr_collect.data())
       // Operators:
       .def(py::self + py::self)
       .def(py::self - py::self)
       .def(py::self * py::self)
       .def(py::self / py::self)
       .def(-py::self)
-      .def("__pow__", &wf::pow, py::is_operator())
+      .def("__pow__", &wf::pow, py::is_operator(), "other_a")
       .def(
           "__rpow__",
           [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
-          py::is_operator())
+          py::is_operator(), "other_a")
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
@@ -203,71 +210,74 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
                 "and sym.false can be evaluated for truthiness.",
                 self.type_name());
           },
-          py::doc("Coerce expression to bool."));
+          py::doc("Coerce expression to bool."))
+      .doc() = "A scalar-valued symbolic expression.";
 
   py::implicitly_convertible<std::int64_t, scalar_expr>();
   py::implicitly_convertible<double, scalar_expr>();
 
   // Methods for declaring expressions:
-  m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("arg"), py::arg("real") = false,
+  m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,
         py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
-        "Create variables from a string or an iterable of strings.");
+        docstrings::symbols.data());
   m.def(
       "integer", [](const std::int64_t value) { return scalar_expr{value}; }, "value"_a,
-      "Create an integer expression.");
+      docstrings::integer.data());
   m.def(
       "float", [](const double value) { return scalar_expr{value}; }, "value"_a,
-      "Create a float expression.");
+      docstrings::float_.data());
   m.def(
       "rational",
       [](const std::int64_t n, const std::int64_t d) {
+        if (d == 0) {
+          throw wf::arithmetic_error("Rational denominator must be non-zero: {} / {}", n, d);
+        }
         return scalar_expr{rational_constant{n, d}};
       },
-      py::arg("n"), py::arg("d"), py::doc("Create a rational expression."));
+      py::arg("n"), py::arg("d"), docstrings::rational.data());
 
   // Built-in functions:
-  m.def("log", &wf::log, "arg"_a, "Natural log.");
-  m.def("pow", &wf::pow, "base"_a, "exp"_a, "Evaluates to: base ** exp.");
-  m.def("cos", &wf::cos, "arg"_a, "Cosine function.");
-  m.def("sin", &wf::sin, "arg"_a, "Sine function.");
-  m.def("tan", &wf::tan, "arg"_a, "Tan function.");
-  m.def("acos", &wf::acos, "arg"_a, "Arc-cosine function.");
-  m.def("asin", &wf::asin, "arg"_a, "Arc-sine function.");
-  m.def("atan", &wf::atan, "arg"_a, "Arc-tangent function.");
-  m.def("cosh", &wf::cosh, "arg"_a, "Hyperbolic cosine function.");
-  m.def("sinh", &wf::sinh, "arg"_a, "Hyperbolic sine function.");
-  m.def("tanh", &wf::tanh, "arg"_a, "Hyperbolic tan function.");
-  m.def("acosh", &wf::acosh, "arg"_a, "Hyperbolic arc-cosine function.");
-  m.def("asinh", &wf::asinh, "arg"_a, "Hyperbolic arc-sine function.");
-  m.def("atanh", &wf::atanh, "arg"_a, "Hyperbolic arc-tangent function.");
-  m.def("sqrt", &wf::sqrt, "arg"_a, "Square-root function.");
+  m.def("log", &wf::log, "arg"_a, docstrings::log.data());
+  m.def("pow", &wf::pow, "base"_a, "exp"_a, docstrings::pow.data());
+  m.def("cos", &wf::cos, "arg"_a, docstrings::cos.data());
+  m.def("sin", &wf::sin, "arg"_a, docstrings::sin.data());
+  m.def("tan", &wf::tan, "arg"_a, docstrings::tan.data());
+  m.def("acos", &wf::acos, "arg"_a, docstrings::acos.data());
+  m.def("asin", &wf::asin, "arg"_a, docstrings::asin.data());
+  m.def("atan", &wf::atan, "arg"_a, docstrings::atan.data());
+  m.def("cosh", &wf::cosh, "arg"_a, docstrings::cosh.data());
+  m.def("sinh", &wf::sinh, "arg"_a, docstrings::sinh.data());
+  m.def("tanh", &wf::tanh, "arg"_a, docstrings::tanh.data());
+  m.def("acosh", &wf::acosh, "arg"_a, docstrings::acosh.data());
+  m.def("asinh", &wf::asinh, "arg"_a, docstrings::asinh.data());
+  m.def("atanh", &wf::atanh, "arg"_a, docstrings::atanh.data());
+  m.def("sqrt", &wf::sqrt, "arg"_a, docstrings::sqrt.data());
   m.def("abs", static_cast<scalar_expr (*)(const scalar_expr&)>(&wf::abs), "arg"_a,
-        "Absolute value function.");
-  m.def("sign", &wf::signum, "arg"_a, "Signum/sign function.");
-  m.def("floor", &wf::floor, "arg"_a, "Floor function.");
-  m.def("atan2", &wf::atan2, "y"_a, "x"_a, "2-argument arc-tangent function.");
+        docstrings::abs.data());
+  m.def("sign", &wf::signum, "arg"_a, docstrings::sign.data());
+  m.def("floor", &wf::floor, "arg"_a, docstrings::floor.data());
+  m.def("atan2", &wf::atan2, "y"_a, "x"_a, docstrings::atan2.data());
 
-  m.def("max", &wf::max, "a"_a, "b"_a, "Maximum of two scalar values.");
-  m.def("min", &wf::min, "a"_a, "b"_a, "Minimum of two scalar values.");
+  m.def("max", &wf::max, "a"_a, "b"_a, docstrings::max.data());
+  m.def("min", &wf::min, "a"_a, "b"_a, docstrings::min.data());
   m.def("where",
         static_cast<scalar_expr (*)(const boolean_expr&, const scalar_expr&, const scalar_expr&)>(
             &wf::where),
-        "condition"_a, "if_true"_a, "if_false"_a, "If-else statement.");
+        "c"_a, "a"_a, "b"_a, docstrings::where.data());
 
   // Relational operations:
   m.def("lt", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator<),
-        "a"_a, "b"_a, py::doc("Operator <"));
+        "a"_a, "b"_a, docstrings::less_than.data());
   m.def("le", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator<=),
-        "a"_a, "b"_a, py::doc("Operator <="));
+        "a"_a, "b"_a, docstrings::less_than_or_equal.data());
   m.def("gt", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator>),
-        "a"_a, "b"_a, py::doc("Operator >"));
+        "a"_a, "b"_a, docstrings::greater_than.data());
   m.def("ge", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator>=),
-        "a"_a, "b"_a, py::doc("Operator >="));
+        "a"_a, "b"_a, docstrings::greater_than_or_equal.data());
   m.def("eq", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator==),
-        "a"_a, "b"_a, py::doc("Boolean expression that is true when both operands are equal."));
+        "a"_a, "b"_a, docstrings::equal.data());
 
-  m.def("iverson", &wf::iverson, "arg"_a,
-        "Convert a boolean expression to an integer via the iverson bracket.");
+  m.def("iverson", &wf::iverson, "arg"_a, docstrings::iverson.data());
 
   // Special constants:
   m.attr("E") = constants::euler;
@@ -290,7 +300,6 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   // Include other wrappers in this module:
   wrap_matrix_operations(m);
   wrap_compound_expression(m);
-  wrap_boolean_expression(m);
   wrap_sympy_conversion(m);
 
   auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");

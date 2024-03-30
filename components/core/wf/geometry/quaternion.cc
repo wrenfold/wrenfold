@@ -47,18 +47,18 @@ matrix_expr quaternion::to_rotation_matrix() const {
   const scalar_expr yz2 = z2 * y();
   const scalar_expr zz2 = z2 * z();
   // clang-format off
-    return make_matrix(3, 3,
-                        1 - yy2 - zz2,      xy2 - wz2,      xz2 + wy2,
-                        xy2 + wz2,      1 - xx2 - zz2,      yz2 - wx2,
-                        xz2 - wy2,          yz2 + wx2,  1 - xx2 - yy2
-                        );
+  return make_matrix(3, 3,
+                      1 - yy2 - zz2,      xy2 - wz2,      xz2 + wy2,
+                      xy2 + wz2,      1 - xx2 - zz2,      yz2 - wx2,
+                      xz2 - wy2,          yz2 + wx2,  1 - xx2 - yy2
+                      );
   // clang-format on
 }
 
 quaternion quaternion::from_angle_axis(const scalar_expr& angle, const scalar_expr& vx,
                                        const scalar_expr& vy, const scalar_expr& vz) {
-  scalar_expr half_angle = angle / 2;
-  scalar_expr sin_angle = sin(half_angle);
+  const scalar_expr half_angle = angle / 2;
+  const scalar_expr sin_angle = sin(half_angle);
   return {cos(half_angle), vx * sin_angle, vy * sin_angle, vz * sin_angle};
 }
 
@@ -106,7 +106,7 @@ quaternion quaternion::from_rotation_vector(const matrix_expr& v,
 
 // TODO: This should use the small angle approximation.
 std::tuple<scalar_expr, matrix_expr> quaternion::to_angle_axis(
-    std::optional<scalar_expr> epsilon) const {
+    const std::optional<scalar_expr>& epsilon) const {
   // We want to recover angle and axis from:
   // [cos(angle/2), vx * sin(angle/2), vy * sin(angle/2), vz * sin(angle/2)]
   // http://www.neil.dantam.name/note/dantam-quaternion.pdf (equation 19)
@@ -132,7 +132,7 @@ std::tuple<scalar_expr, matrix_expr> quaternion::to_angle_axis(
   }
 }
 
-matrix_expr quaternion::to_rotation_vector(std::optional<scalar_expr> epsilon) const {
+matrix_expr quaternion::to_rotation_vector(const std::optional<scalar_expr>& epsilon) const {
   // The vector part norm is equal to sin(angle / 2)
   const scalar_expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
   const scalar_expr half_angle = atan2(vector_norm, w());
@@ -215,33 +215,6 @@ quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
   return where(
       R(0, 0) + R(1, 1) + R(2, 2) > 0, q0,
       where(R(1, 1) > R(0, 0), where(R(2, 2) > R(1, 1), q3, q2), where(R(2, 2) > R(0, 0), q3, q1)));
-
-  // Calley's method, which does not recover signs correctly in some cases where w <= 0.
-#if 0
-  // clang-format off
-  scalar_expr a = pow(R(0, 0) + R(1, 1) + R(2, 2) + 1, 2) +
-           pow(R(2, 1) - R(1, 2), 2) +
-           pow(R(0, 2) - R(2, 0), 2) +
-           pow(R(1, 0) - R(0, 1), 2);
-  scalar_expr b = pow(R(2, 1) - R(1, 2), 2) +
-           pow(R(0, 0) - R(1, 1) - R(2, 2) + 1, 2) +
-           pow(R(1, 0) + R(0, 1), 2) +
-           pow(R(2, 0) + R(0, 2), 2);
-  scalar_expr c = pow(R(0, 2) - R(2, 0), 2) +
-           pow(R(1, 0) + R(0, 1), 2) +
-           pow(R(1, 1) - R(0, 0) - R(2, 2) + 1, 2) +
-           pow(R(2, 1) + R(1, 2), 2);
-  scalar_expr d = pow(R(1, 0) - R(0, 1), 2) +
-           pow(R(2, 0) + R(0, 2), 2) +
-           pow(R(2, 1) + R(1, 2), 2) +
-           pow(R(2, 2) - R(0, 0) - R(1, 1) + 1, 2);
-  // clang-format on
-  // We implement a signum without zeros:
-  const scalar_expr sign_21 = 1 - 2 * iverson(R(2, 1) - R(1, 2) < 0);
-  const scalar_expr sign_02 = 1 - 2 * iverson(R(0, 2) - R(2, 0) < 0);
-  const scalar_expr sign_10 = 1 - 2 * iverson(R(1, 0) - R(0, 1) < 0);
-  return {sqrt(a) / 4, sign_21 * sqrt(b) / 4, sign_02 * sqrt(c) / 4, sign_10 * sqrt(d) / 4};
-#endif
 }
 
 matrix_expr quaternion::jacobian(const wf::matrix_expr& vars,
@@ -322,7 +295,7 @@ quaternion operator*(const quaternion& a, const quaternion& b) {
 
 // A bit odd to put this here, since it technically doesn't have that much to do with
 // quaternions. But it is a useful expression when dealing with rotations.
-matrix_expr left_jacobian_of_so3(const matrix_expr& w, std::optional<scalar_expr> epsilon) {
+matrix_expr left_jacobian_of_so3(const matrix_expr& w, const std::optional<scalar_expr>& epsilon) {
   if (w.rows() != 3 || w.cols() != 1) {
     throw dimension_error("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
                           w.cols());

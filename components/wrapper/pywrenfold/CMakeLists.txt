@@ -1,3 +1,6 @@
+# Custom target that groups together the wrapper and its stubs.
+add_custom_target(wf_wrapper_and_stubs ALL)
+
 # Find stubgen:
 if(NOT DEFINED STUBGEN_PATH)
   message(STATUS "Looking for stubgen...")
@@ -69,9 +72,6 @@ function(add_wrapper_module)
       COMMENT "Generate stubs for pybind module: ${MODULE_NAME}"
       DEPENDS ${MODULE_NAME})
 
-    # Create a target labeled `ALL` so that the command runs:
-    add_custom_target(${MODULE_NAME}_stubs ALL DEPENDS ${STUB_OUTPUT_PATHS})
-
     # Add the fix-up step: This re-writes the stubs, and moves them from
     # `scratch` to the actual output directory.
     set(FIXUP_SCRIPT_PATH
@@ -83,10 +83,11 @@ function(add_wrapper_module)
         --output-dir ${STUB_OUTPUT_DIR} --library-name ${MODULE_NAME}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Running fixup step on stubgen output: ${MODULE_NAME}"
-      DEPENDS ${MODULE_NAME} ${MODULE_NAME}_stubs ${FIXUP_SCRIPT_PATH})
+      DEPENDS ${MODULE_NAME} ${STUB_OUTPUT_PATHS} ${FIXUP_SCRIPT_PATH})
 
     add_custom_target(${MODULE_NAME}_stubs_fixup ALL
                       DEPENDS ${STUB_FINAL_OUTPUT_PATHS})
+    add_dependencies(wf_wrapper_and_stubs ${MODULE_NAME}_stubs_fixup)
   endif()
 
   # Add install targets for scikit-build-core
@@ -101,12 +102,15 @@ endfunction()
 
 add_wrapper_module(
   NAME
-  "wf_wrapper"
+  wf_wrapper
   SOURCES
   boolean_expression_wrapper.cc
   code_formatting_wrapper.cc
   codegen_wrapper.cc
   compound_expression_wrapper.cc
+  docs/expression_wrapper.h
+  docs/geometry_wrapper.h
+  docs/matrix_wrapper.h
   expression_wrapper.cc
   geometry_wrapper.cc
   matrix_wrapper.cc
@@ -115,3 +119,5 @@ add_wrapper_module(
   SUB_MODULE_NAMES
   codegen
   geometry)
+
+add_dependencies(wf_wrapper_and_stubs wf_wrapper)

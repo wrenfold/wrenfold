@@ -23,6 +23,9 @@ add_subdirectory(dependencies)
 # Add our custom functions.
 include(cmake/functions.cmake)
 
+# Configure PYTHONPATH for scripts that depend on the python module + wrapper.
+set_python_env_variables()
+
 # Some shared warning flags:
 if(MSVC)
   # We turn off C4702 (unreachable code) because constexpr blocks trigger it
@@ -44,7 +47,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
   list(APPEND SHARED_WARNING_FLAGS -Wno-unused-local-typedef)
 endif()
 
-# We make a custom target that groups together all the rust code-generation.
+# Custom target that groups together all the rust code-generation.
 add_custom_target(wf_rust_generation ALL)
 
 # Add libraries
@@ -53,4 +56,5 @@ add_subdirectory(components)
 # Add examples:
 if(NOT DEFINED SKBUILD_PROJECT_NAME)
   add_subdirectory(examples)
+  add_subdirectory(docs)
 endif()

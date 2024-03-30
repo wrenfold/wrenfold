@@ -98,3 +98,7 @@ jobs:
       - name: Cargo clippy
         working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
         run: cargo clippy --all --color=always --target-dir cargo --manifest-path $GITHUB_WORKSPACE/Cargo.toml -- -D warnings --no-deps
+
+      - name: Build docs
+        working-directory: ${{runner.workspace}}/build-${{matrix.build_type}}
+        run: cmake --build . --config ${{matrix.build_type}} --target wf_docs

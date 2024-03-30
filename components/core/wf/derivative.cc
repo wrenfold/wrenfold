@@ -289,7 +289,9 @@ scalar_expr derivative_visitor::operator()(const variable& var) const {
 
 scalar_expr diff(const scalar_expr& function, const scalar_expr& var, const int reps,
                  const non_differentiable_behavior behavior) {
-  WF_ASSERT_GREATER_OR_EQ(reps, 0);
+  if (reps < 0) {
+    throw invalid_argument_error("Derivative order must be >= 0, received: {}", reps);
+  }
   derivative_visitor visitor{var, behavior};
   scalar_expr result = function;
   for (int i = 0; i < reps; ++i) {

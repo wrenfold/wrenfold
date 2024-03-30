@@ -14,6 +14,7 @@
 #include "wf/matrix_functions.h"
 #include "wf/numerical_casts.h"
 
+#include "docs/matrix_wrapper.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -191,8 +192,7 @@ inline std::size_t extract_iterable_rows(const py::handle& row, std::vector<scal
   if (py::isinstance<matrix_expr>(row)) {
     const matrix_expr as_matrix = py::cast<matrix_expr>(row);
     // If the "row" is a matrix, we stack them vertically:
-    const auto num_elements = as_matrix.cols() * as_matrix.rows();
-    output.reserve(output.size() + static_cast<std::size_t>(num_elements));
+    output.reserve(output.size() + as_matrix.size());
     std::copy(as_matrix.as_matrix().begin(), as_matrix.as_matrix().end(),
               std::back_inserter(output));
     return as_matrix.cols();
@@ -299,8 +299,11 @@ void wrap_matrix_operations(py::module_& m) {
       // scalar_expr inherited properties:
       .def("__repr__", &matrix_expr::to_string)
       .def("expression_tree_str", &matrix_expr::to_expression_tree_string,
-           "Retrieve the expression tree as a pretty-printed string.")
-      .def_property_readonly("type_name", [](const matrix_expr& self) { return self.type_name(); })
+           "See :func:`wrenfold.sym.Expr.expression_tree_str`.")
+      .def_property_readonly(
+          "type_name", [](const matrix_expr& self) { return self.type_name(); },
+          "Retrieve the name of the underlying C++ expression type. See "
+          ":func:`wrenfold.sym.Expr.type_name`.")
       // Operations:
       .def(
           "diff",
@@ -311,7 +314,7 @@ void wrap_matrix_operations(py::module_& m) {
                                           : non_differentiable_behavior::constant);
           },
           "var"_a, py::arg("order") = 1, py::arg("use_abstract") = false,
-          "Differentiate the expression with respect to the specified variable.")
+          docstrings::matrix_expr_diff.data())
       .def(
           "jacobian",
           [](const matrix_expr& self, const matrix_expr& vars, const bool use_abstract) {
@@ -319,7 +322,7 @@ void wrap_matrix_operations(py::module_& m) {
                                                     : non_differentiable_behavior::constant);
           },
           "vars"_a, py::arg("use_abstract") = false,
-          "Compute the jacobian of a vector-valued function with respect to vector of arguments.")
+          "See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.")
       .def(
           "jacobian",
           [](const matrix_expr& self, const std::vector<scalar_expr>& vars,
@@ -328,35 +331,42 @@ void wrap_matrix_operations(py::module_& m) {
                                                     : non_differentiable_behavior::constant);
           },
           "vars"_a, py::arg("use_abstract") = false,
-          "Compute the jacobian of a vector-valued function with respect to a list of arguments.")
-      .def("distribute", &matrix_expr::distribute, "Expand products of additions and subtractions.")
+          "See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.")
+      .def("distribute", &matrix_expr::distribute,
+           "Invoke :func:`wrenfold.sym.Expr.distribute` on every element of the matrix.")
       .def("subs", &matrix_expr::subs, py::arg("target"), py::arg("substitute"),
-           "Replace the `target` expression with `substitute` in the expression tree.")
+           "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the matrix.")
       .def(
           "eval",
           [](const matrix_expr& self) {
             const matrix_expr eval = self.eval();
             return numpy_from_matrix(eval);
           },
-          "Evaluate into float expression.")
+          "Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a "
+          "numpy array containing the resulting values.")
       .def(
           "collect",
           [](const matrix_expr& self, const scalar_expr& var) { return self.collect({var}); },
-          "var"_a, "Collect powers of the provided expression.")
+          "var"_a,
+          "Invokes :func:`wrenfold.sym.Expr.collect` on every element of the matrix. This overload "
+          "accepts a single variable.")
       .def(
           "collect",
           [](const matrix_expr& self, const std::vector<scalar_expr>& vars) {
             return self.collect(vars);
           },
-          "var"_a, "Collect powers of the provided expressions.")
+          "var"_a,
+          "Invokes :func:`wrenfold.sym.Expr.collect` on every element of the matrix. This overload "
+          "accepts a list of variables, and collects recursively in the order they are specified.")
       // Matrix specific properties:
       .def_property_readonly(
           "shape", [](const matrix_expr& self) { return py::make_tuple(self.rows(), self.cols()); },
           "Shape of the matrix in (row, col) format.")
       .def_property_readonly("size", &matrix_expr::size, "Total number of elements.")
       .def_property_readonly(
-          "is_empty", [](const matrix_expr& self) { return self.rows() == 0 || self.cols() == 0; },
-          "Is the matrix empty (either zero rows or cols).")
+          "is_empty", [](const matrix_expr& self) { return self.size() == 0; },
+          "True if the matrix empty (either zero rows or cols). This should only occur with empty "
+          "slices.")
       // Slicing:
       .def("__getitem__", &matrix_get_row, py::arg("row"), "Retrieve a row from the matrix.")
       .def("__getitem__", &matrix_get_row_and_col, py::arg("row_col"),
@@ -372,29 +382,34 @@ void wrap_matrix_operations(py::module_& m) {
       .def("__array__", &numpy_from_matrix, "Convert to numpy array.")
       // Iterable:
       .def("__len__", &matrix_expr::rows, "Number of rows in the matrix.")
-      .def("__iter__",  //  We don't need keep_alive since matrix_expr does that for us.
-           [](const matrix_expr& expr) {
-             return py::make_iterator(row_iterator::begin(expr), row_iterator::end(expr));
-           })
-      .def("unary_map", &unary_map_matrix, py::arg("func"), "Perform element-wise map operation.")
+      .def(
+          "__iter__",  //  We don't need keep_alive since matrix_expr does that for us.
+          [](const matrix_expr& expr) {
+            return py::make_iterator(row_iterator::begin(expr), row_iterator::end(expr));
+          },
+          "Iterate over rows in the matrix.")
+      .def("unary_map", &unary_map_matrix, py::arg("func"),
+           docstrings::matrix_expr_unary_map.data())
       .def("reshape", &matrix_expr::reshape, py::arg("rows"), py::arg("cols"),
-           "Reshape a matrix while preserving the number of elements. Returns a copy.")
+           docstrings::matrix_expr_reshape.data())
       .def(
           "reshape",
           [](const matrix_expr& self, const std::tuple<index_t, index_t>& row_and_col) {
             return self.reshape(std::get<0>(row_and_col), std::get<1>(row_and_col));
           },
-          py::arg("shape"),
-          py::doc("Reshape a matrix while preserving the number of elements. Returns a copy."))
+          py::arg("shape"), "Overload of ``reshape`` that accepts a (row, col) tuple.")
       // Convert to list
-      .def("to_list", &list_from_matrix, "Convert to list of lists.")
+      .def("to_list", &list_from_matrix, "Convert to a list of lists.")
       .def("to_flat_list", &flat_list_from_matrix,
-           py::doc("Convert to a flat list assembled in row major order."))
-      .def("transpose", &matrix_expr::transposed, "Transpose the matrix.")
-      .def_property_readonly("T", &matrix_expr::transposed, "Transpose the matrix.")
-      .def("squared_norm", &matrix_expr::squared_norm, "Get the squared L2 norm of the matrix.")
-      .def("norm", &matrix_expr::norm, "Get the L2 norm of the matrix.")
-      .def("det", &determinant, "Compute determinant of the matrix.")
+           "Convert to a flat list assembled in the storage order (row-major) of the matrix.")
+      .def("transpose", &matrix_expr::transposed, docstrings::matrix_expr_transpose.data())
+      .def_property_readonly("T", &matrix_expr::transposed,
+                             "Alias for :func:`wrenfold.sym.MatrixExpr.transpose`.")
+      .def("squared_norm", &matrix_expr::squared_norm, docstrings::matrix_expr_squared_norm.data())
+      .def("norm", &matrix_expr::norm,
+           "The L2 norm of the matrix, or square root of "
+           ":func:`wrenfold.sym.MatrixExpr.squared_norm`.")
+      .def("det", &determinant, "Alias for :func:`wrenfold.sym.det`.")
       // Operators:
       .def("__add__",
            static_cast<matrix_expr (*)(const matrix_expr&, const matrix_expr&)>(&operator+),
@@ -415,44 +430,41 @@ void wrap_matrix_operations(py::module_& m) {
            py::is_operator())
       .def("__neg__", &matrix_expr::operator-, "Element-wise negation of the matrix.")
       // Prohibit conversion to bool.
-      .def("__bool__", [](const matrix_expr&) {
-        throw type_error("matrix_expr cannot be coerced to boolean.");
-      });
+      .def(
+          "__bool__",
+          [](const matrix_expr&) { throw type_error("matrix_expr cannot be coerced to boolean."); })
+      .doc() = "A matrix-valued symbolic expression.";
 
   // Matrix constructors:
-  m.def("identity", &make_identity, "rows"_a, "Create identity matrix.");
-  m.def("eye", &make_identity, "rows"_a, "Create identity matrix (alias for identity).");
-  m.def("zeros", &make_zeros, "rows"_a, "cols"_a, "Create a matrix of zeros.");
-  m.def("vector", &column_vector_from_container<py::args>,
-        "Construct a column vector from the arguments.");
-  m.def("row_vector", &row_vector_from_container<py::args>,
-        "Construct a row vector from the arguments.");
-  m.def("matrix", &matrix_from_iterable, py::arg("rows"),
-        "Construct a matrix from an iterator over rows.");
+  m.def("identity", &make_identity, "rows"_a, docstrings::identity.data());
+  m.def("eye", &make_identity, "rows"_a, "Alias for :func:`wrenfold.sym.identity`.");
+  m.def("zeros", &make_zeros, "rows"_a, "cols"_a, docstrings::zeroes.data());
+  m.def("vector", &column_vector_from_container<py::args>, docstrings::vector.data());
+  m.def("row_vector", &row_vector_from_container<py::args>, docstrings::row_vector.data());
+  m.def("matrix", &matrix_from_iterable, py::arg("rows"), docstrings::matrix.data());
   m.def("matrix_of_symbols", &make_matrix_of_symbols, py::arg("prefix"), py::arg("rows"),
-        py::arg("cols"), "Construct a matrix of symbols.");
+        py::arg("cols"), docstrings::matrix_of_symbols.data());
 
   m.def(
       "hstack", [](const std::vector<matrix_expr>& values) { return hstack(values); },
-      py::arg("values"), py::doc("Horizontally stack matrices."));
+      py::arg("values"), docstrings::hstack.data());
   m.def(
       "vstack", [](const std::vector<matrix_expr>& values) { return vstack(values); },
-      py::arg("values"), py::doc("Vertically stack matrices."));
+      py::arg("values"), docstrings::vstack.data());
   m.def(
       "diagonal", [](const std::vector<matrix_expr>& values) { return diagonal_stack(values); },
-      py::arg("values"),
-      py::doc("Diagonally stack matrix blocks. Fill off-diagonal blocks with zeros"));
+      py::arg("values"), docstrings::diag.data());
 
-  m.def("vec", &vectorize_matrix, py::arg("m"), "Vectorize matrix in column-major order.");
-  m.def("det", &determinant, py::arg("m"), "Compute determinant of a matrix.");
+  m.def("vec", &vectorize_matrix, py::arg("m"), docstrings::vec.data());
+  m.def("det", &determinant, py::arg("m"), docstrings::det.data());
   m.def("full_piv_lu", &factorize_full_piv_lu, py::arg("m"),
-        "Factorize a matrix using fully-pivoting LU decomposition.");
+        "Factorize a matrix using complete pivoting LU decomposition.");
 
   // Version of where() for matrices
   m.def("where",
         static_cast<matrix_expr (*)(const boolean_expr&, const matrix_expr&, const matrix_expr&)>(
             &wf::where),
-        "condition"_a, "if_true"_a, "if_false"_a, "If-else statement with matrix operands.");
+        "c"_a, "a"_a, "b"_a, docstrings::matrix_where.data());
 
   // Jacobian of a list of expressions wrt another list of expressions.
   m.def(
@@ -463,8 +475,7 @@ void wrap_matrix_operations(py::module_& m) {
                         use_abstract ? non_differentiable_behavior::abstract
                                      : non_differentiable_behavior::constant);
       },
-      "functions"_a, "arguments"_a, py::arg("use_abstract") = false,
-      py::doc("Compute the NxM jacobian of `N` functions with respect to `M` arguments."));
+      "functions"_a, "vars"_a, py::arg("use_abstract") = false, docstrings::jacobian.data());
 }
 
 }  // namespace wf

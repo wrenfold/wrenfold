@@ -26,6 +26,10 @@ Additionally, to build and run tests you will need:
 - The rust compiler toolchain (`cargo` and `rustc`): [Installation](https://rustup.rs) link.
 - On linux+windows: `pkg-config` and `openblas`.
 
+To build documentation:
+- [sphinx](https://www.sphinx-doc.org/)
+- [furo](https://github.com/pradyunsg/furo)
+
 The following command will configure a `conda` environment suitable for building+testing:
 ```bash
 conda create -n wf python=3.8 cmake ninja mypy numpy sympy pkg-config openblas
@@ -105,4 +109,4 @@ Known issues and limitations:
 - The type of expressions has limited visibility in python. You can inspect the `type_name` field to access the underlying type as a string, but not much more than that.
 - Printing methods to strings (via `repr` for example) tends to produce a wall of impenetrable text, particularly for matrix types. Ideally these strings would be truncated automatically.
 - Conversion from Eigen to span does not type-check adequately. You can pass an integer matrix to an argument that expects floating point.
-- Certain built-in functions are missing, such as `floor`, `ceil`, `round`, and `mod`. (And all the hyperbolic trig functions).
+- Certain built-in functions are missing, such as `ceil`, `round`, and `mod`.
