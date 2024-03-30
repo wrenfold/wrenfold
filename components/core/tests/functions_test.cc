@@ -53,6 +53,13 @@ TEST(FunctionsTest, TestCosine) {
                      cos(constants::pi * -2_s / 7_s + scalar_expr(2 * i) * constants::pi));
   }
 
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::cos, constants::pi / 4),
+                   cos(constants::pi / 4));
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::cos, constants::pi / 6),
+                   cos(constants::pi / 6));
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::cos, -constants::pi / 12),
+                   cos(-constants::pi / 12));
+
   // Sign adjustment
   ASSERT_IDENTICAL(cos(x), cos(-x));
   ASSERT_IDENTICAL(cos(5_s * x * y), cos(-y * 5_s * x));
@@ -98,6 +105,13 @@ TEST(FunctionsTest, TestSine) {
                      sin(constants::pi * -6_s / 13_s + scalar_expr(2 * i) * constants::pi));
   }
 
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::sin, constants::pi / 4),
+                   sin(constants::pi / 4));
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::sin, constants::pi / 6),
+                   sin(constants::pi / 6));
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::sin, -constants::pi / 12),
+                   sin(-constants::pi / 12));
+
   ASSERT_IDENTICAL(-sin(x), sin(-x));
   ASSERT_IDENTICAL(-sin(y / x), sin(y / -x));
   ASSERT_IDENTICAL(-sin(3_s / 5_s), sin(-3_s / 5_s));
@@ -137,6 +151,13 @@ TEST(FunctionsTest, TestTan) {
     ASSERT_IDENTICAL(tan(constants::pi * -3_s / 13_s),
                      tan(constants::pi * -3_s / 13_s + scalar_expr(i) * constants::pi));
   }
+
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::tan, constants::pi / 4),
+                   tan(constants::pi / 4));
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::tan, constants::pi / 6),
+                   tan(constants::pi / 6));
+  ASSERT_IDENTICAL(make_expr<function>(built_in_function::tan, -constants::pi / 12),
+                   tan(-constants::pi / 12));
 
   ASSERT_IDENTICAL(-tan(x), tan(-x));
   ASSERT_IDENTICAL(-tan(x * y), tan(-x * y));

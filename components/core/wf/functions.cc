@@ -189,7 +189,7 @@ scalar_expr tan(const scalar_expr& arg) {
         return constants::complex_infinity;
       }
       return make_expr<function>(built_in_function::tan,
-                                 scalar_expr(r_mod_half_pi) * pi_over_two());
+                                 scalar_expr(r_mod_half_pi) * constants::pi);
     }
   } else if (is_zero(arg)) {
     return constants::zero;
