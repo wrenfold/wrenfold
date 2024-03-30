@@ -2,7 +2,6 @@
 import dataclasses
 import inspect
 import pathlib
-import string
 import typing as T
 
 from . import sym
@@ -123,22 +122,6 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
             raise TypeError(f"Returned values must be: {ReturnValueOrOutputArg}, got: {type(val)}")
 
     return description
-
-
-class Formatter(string.Formatter):
-    """
-    Custom string formatter that automatically delegates formatting of ast types to
-    a pybind11 wrapped code-generator.
-    """
-
-    def __init__(self, generator: GeneratorTypes) -> None:
-        super().__init__()
-        self._generator: GeneratorTypes = generator
-
-    def format_field(self, value: T.Any, format_spec: str) -> str:
-        if codegen.is_formattable_type(type(value)):
-            return self._generator.format(value)
-        return super().format_field(value, format_spec)
 
 
 CPP_PREAMBLE_TEMPLATE = \

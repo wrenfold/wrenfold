@@ -75,20 +75,16 @@ def opaque_type_func(u: OpaqueType, x: sym.Expr, y: sym.Expr):
 class CustomCppGenerator(code_generation.CppGenerator):
     """Customize C++ generation."""
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.fmt = code_generation.Formatter(generator=self)
-
     def format_call_std_function(self, element: code_generation.codegen.CallStdFunction) -> str:
         if element.function == code_generation.codegen.StdMathFunction.Cos:
-            return self.fmt.format('custom::cos({})', element.args[0])
+            return f'custom::cos({self.format(element.args[0])})'
         return self.super_format(element)
 
     def format_call_external_function(self,
                                       element: code_generation.codegen.CallExternalFunction) -> str:
         if external_func == element.function:
             args = ', '.join(self.format(x) for x in element.args)
-            return self.fmt.format('custom::{}({})', element.function.name, args)
+            return f'custom::{element.function.name}({args})'
         return self.super_format(element)
 
 
