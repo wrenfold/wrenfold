@@ -20,6 +20,11 @@ if(DEFINED SPHINX_BUILD_PATH)
   set(GENERATED_RST_FILES source/python_api/geometry.rst
                           source/python_api/sym.rst)
 
+  set(HANDWRITTEN_RST_FILES source/python_api/index.rst)
+
+  list(TRANSFORM GENERATED_RST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+  list(TRANSFORM HANDWRITTEN_RST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+
   # Invoke `generate_api_rst.py` to generate RST files for our python modules.
   add_custom_command(
     OUTPUT ${GENERATED_RST_FILES}
@@ -30,7 +35,7 @@ if(DEFINED SPHINX_BUILD_PATH)
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generate RST for python API."
     DEPENDS wf-core wf_wrapper wf_python ${PYTHON_LIB_SOURCES}
-            ${DOC_GENERATION_SCRIPT} source/python_api/index.rst)
+            ${DOC_GENERATION_SCRIPT} ${HANDWRITTEN_RST_FILES})
 
   # The handwritten source files for the docs:
   set(DOC_INPUT_FILES source/conf.py source/index.rst)
@@ -45,7 +50,7 @@ if(DEFINED SPHINX_BUILD_PATH)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generate documentation with sphinx."
     DEPENDS ${MODULE_NAME} wf_wrapper_and_stubs ${DOC_INPUT_FILES}
-            ${GENERATED_RST_FILES})
+            ${GENERATED_RST_FILES} ${HANDWRITTEN_RST_FILES})
   add_custom_target(wf_docs
                     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build/index.html")
 endif()

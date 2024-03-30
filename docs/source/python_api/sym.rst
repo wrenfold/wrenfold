@@ -1,3 +1,6 @@
+sym
+===
+
 .. autoclass:: wrenfold.sym.BooleanExpr
   :members:
 

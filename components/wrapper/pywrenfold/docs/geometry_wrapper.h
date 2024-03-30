@@ -381,7 +381,7 @@ Compute the *left* jacobian of SO(3). Given a rotation vector ``w``, this method
 .. math::
   \mathbf{J}_l = \frac{
     \partial \text{log}\left(
-    \text{exp}\left(\mathbf{w} + \delta\mathbf{w}\right) *
+    \text{exp}\left(\mathbf{w} + \delta\mathbf{w}\right) \cdot
     \text{exp}\left(\mathbf{w}\right)^T\right)
   }
   {\partial \delta\mathbf{w}} \biggr\rvert_{\delta\mathbf{w} = 0}

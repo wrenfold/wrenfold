@@ -11,11 +11,6 @@ from pathlib import Path
 from wrenfold import sym
 from wrenfold import geometry
 
-PREFIX = """Python API Documentation
-========================
-
-"""
-
 
 def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
     """
@@ -42,7 +37,9 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
             # TODO: Attach __doc__ to attributes? Presently there is no way to do this.
             pass
 
-    contents = str()
+    # Place a title with the module name
+    contents = f'{module_name}\n{"=" * len(module_name)}\n\n'
+
     for klass in classes:
         contents += f'.. autoclass:: wrenfold.{module_name}.{klass}\n  :members:\n\n'
 

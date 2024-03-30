@@ -76,7 +76,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.one / 2, sym.rational(1, 2))
         self.assertIdentical(sym.integer(-5) / 7, sym.rational(-5, 7))
         self.assertIdentical(sym.integer(1) / 3, sym.rational(2, 6))
-        self.assertRaises(sym.ArithmeticError, sym.rational(1, 0))
+        self.assertRaises(sym.ArithmeticError, lambda: sym.rational(1, 0))
 
         # Cannot invoke with values that exceed range of 64-bit signed int.
         # Python stores these values internally, but we can't convert them for now:

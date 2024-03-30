@@ -93,7 +93,7 @@ For sizes 4x4 and above, the matrix is first decomposed via full-pivoting LU dec
 
 Caution:
   When computing the LU decomposition, the pivot selection step cannot know apriori which symbolic
-  expressions _might_ evaluate to zero at runtime. As a result, the decomposition ordering could
+  expressions *might* evaluate to zero at runtime. As a result, the decomposition ordering could
   produce ``NaN`` values at runtime when numerical values are substituted into this expression.
 
 Returns:

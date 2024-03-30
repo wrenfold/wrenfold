@@ -3,7 +3,7 @@ Python API documentation
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Modules:
 
    sym
    geometry

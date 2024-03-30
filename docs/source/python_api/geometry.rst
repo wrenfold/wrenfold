@@ -1,3 +1,6 @@
+geometry
+========
+
 .. autoclass:: wrenfold.geometry.Quaternion
   :members:
 

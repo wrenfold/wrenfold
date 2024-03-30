@@ -18,7 +18,7 @@ function(set_python_env_variables)
     set(PATH_SEP ":")
   endif()
   set(PYTHON_COMMAND_ENV_VARIABLES
-      "PYTHONPATH=\"${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python\""
+      "PYTHONPATH=${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python"
       PARENT_SCOPE)
 endfunction()
 
@@ -220,6 +220,9 @@ function(add_python_test PYTHON_SOURCE_FILE)
 
   if(NOT DEFINED Python_EXECUTABLE)
     message(FATAL_ERROR "The Python executable could not be located.")
+  endif()
+  if(NOT DEFINED PYTHON_COMMAND_ENV_VARIABLES)
+    message(FATAL_ERROR "PYTHON_COMMAND_ENV_VARIABLES should be defined")
   endif()
 
   # In order for `PYTHONPATH` to be set correctly, we need to pass the
