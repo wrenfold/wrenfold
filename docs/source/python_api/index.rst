@@ -7,3 +7,4 @@ Python API documentation
 
    sym
    geometry
+   ast

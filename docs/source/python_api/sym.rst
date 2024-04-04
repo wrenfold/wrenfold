@@ -10,6 +10,12 @@ sym
 .. autoclass:: wrenfold.sym.MatrixExpr
   :members:
 
+.. autoclass:: wrenfold.sym.RelationalOperation
+  :members:
+
+.. autoclass:: wrenfold.sym.StdMathFunction
+  :members:
+
 .. autofunction:: wrenfold.sym.abs
 
 .. autofunction:: wrenfold.sym.acos
