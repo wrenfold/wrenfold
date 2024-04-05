@@ -7,3 +7,8 @@ Python API documentation
 
    sym
    geometry
+   code_generation
+   custom_types
+   type_annotations
+   ast
+   sympy_conversion

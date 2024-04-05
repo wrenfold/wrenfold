@@ -10,6 +10,11 @@ from pathlib import Path
 # The built library needs to be on the import path by this point.
 from wrenfold import sym
 from wrenfold import geometry
+from wrenfold import ast
+from wrenfold import code_generation
+from wrenfold import sympy_conversion
+from wrenfold import custom_types
+from wrenfold import type_annotations
 
 
 def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
@@ -19,7 +24,7 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
     functions = []
     classes = []
     for member_name in sorted(dir(module)):
-        if member_name.startswith('__'):
+        if member_name.startswith('_'):
             continue
 
         member = getattr(module, member_name)
@@ -37,14 +42,11 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
             # TODO: Attach __doc__ to attributes? Presently there is no way to do this.
             pass
 
-    # Place a title with the module name
-    contents = f'{module_name}\n{"=" * len(module_name)}\n\n'
+    parts = [f'{module_name}\n{"=" * len(module_name)}']
+    parts.extend(f'.. autoclass:: wrenfold.{module_name}.{klass}\n  :members:' for klass in classes)
+    parts.extend(f'.. autofunction:: wrenfold.{module_name}.{func}' for func in functions)
 
-    for klass in classes:
-        contents += f'.. autoclass:: wrenfold.{module_name}.{klass}\n  :members:\n\n'
-
-    contents += '\n\n'.join(
-        f'.. autofunction:: wrenfold.{module_name}.{func}' for func in functions)
+    contents = '\n\n'.join(parts)
     contents += '\n'
 
     output_path = output_dir / f'{module_name}.rst'
@@ -56,6 +58,14 @@ def main(args: argparse.Namespace):
     output_dir = Path(args.output_dir)
     generate_rst_for_module(module=sym, module_name="sym", output_dir=output_dir)
     generate_rst_for_module(module=geometry, module_name="geometry", output_dir=output_dir)
+    generate_rst_for_module(module=ast, module_name="ast", output_dir=output_dir)
+    generate_rst_for_module(
+        module=code_generation, module_name="code_generation", output_dir=output_dir)
+    generate_rst_for_module(
+        module=sympy_conversion, module_name="sympy_conversion", output_dir=output_dir)
+    generate_rst_for_module(module=custom_types, module_name="custom_types", output_dir=output_dir)
+    generate_rst_for_module(
+        module=type_annotations, module_name="type_annotations", output_dir=output_dir)
 
 
 def parse_args() -> argparse.Namespace:

@@ -25,6 +25,15 @@ function(add_wrapper_module)
   target_compile_definitions(${MODULE_NAME}
                              PRIVATE PY_MODULE_NAME=${MODULE_NAME})
 
+  # For each submodule, define a compile-time constant for its name.
+  foreach(SUB_MODULE_NAME ${MODULE_SUB_MODULE_NAMES})
+    string(TOUPPER ${SUB_MODULE_NAME} SUB_MODULE_NAME_UPPER)
+    target_compile_definitions(
+      ${MODULE_NAME}
+      PRIVATE
+        "PY_SUBMODULE_NAME_${SUB_MODULE_NAME_UPPER}=\"${SUB_MODULE_NAME}\"")
+  endforeach()
+
   # Copy from Debug or Release into the current binary dir. We need to do this
   # because msbuild puts libraries in sub-directories, which breaks our ability
   # to import them from the cmake binary dir.
@@ -104,6 +113,7 @@ add_wrapper_module(
   NAME
   wf_wrapper
   SOURCES
+  ast_wrapper.cc
   boolean_expression_wrapper.cc
   code_formatting_wrapper.cc
   codegen_wrapper.cc
@@ -111,13 +121,20 @@ add_wrapper_module(
   docs/expression_wrapper.h
   docs/geometry_wrapper.h
   docs/matrix_wrapper.h
+  docs/codegen_wrapper.h
+  docs/sympy_conversion.h
   expression_wrapper.cc
+  enums_wrapper.cc
   geometry_wrapper.cc
   matrix_wrapper.cc
   sympy_conversion.cc
+  types_wrapper.cc
   wrapper_utils.h
   SUB_MODULE_NAMES
-  codegen
-  geometry)
+  ast
+  gen
+  geometry
+  sympy_conversion
+  type_info)
 
 add_dependencies(wf_wrapper_and_stubs wf_wrapper)

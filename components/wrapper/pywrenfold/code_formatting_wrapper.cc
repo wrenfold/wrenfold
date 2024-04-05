@@ -55,7 +55,7 @@ class define_all_overrides<Derived, Base, type_list<Ts...>>
 // pybind11 has issues with combining recursion and inheritance.
 // For example: https://github.com/pybind/pybind11/issues/1552
 //
-// The root of the issue AFAIK is that pybind detetermines whether to call `self.method` or
+// The root of the issue AFAIK is that pybind determines whether to call `self.method` or
 // `super().method` by inspecting the python stack in order to check if the overriden method is
 // calling itself. This makes formatting a recursive structure somewhat tricky. For instance,
 // consider the expression `cos(sqrt(x))`. This entails the `format_call` function calling itself in
@@ -80,7 +80,7 @@ class wrapped_generator
   //
   // https://isocpp.org/wiki/faq/multiple-inheritance#virtual-inheritance-ctors
   //
-  // Quote: Because a virtual base class subobject occurs only once in an
+  // Quote: Because a virtual base class sub-object occurs only once in an
   // instance, there are special rules to make sure the virtual base class’s
   // constructor and destructor get called exactly once per instance. The C++
   // rules say that virtual base classes are constructed before all
@@ -115,11 +115,11 @@ class wrapped_generator
           return typed_func(element);
         } catch (const py::type_error& err) {
           throw type_error(
-              "Failed while casting formatter `format_{snek}` to std::function<std::string(const "
-              "{snek}&)>. The python method should have the signature: format_{snek}(element: "
+              "Failed while casting formatter `format_{snake}` to std::function<std::string(const "
+              "{snake}&)>. The python method should have the signature: format_{snake}(element: "
               "{camel}) -> str\n"
               "pybind11 error: {err}",
-              fmt::arg("snek", T::snake_case_name_str),
+              fmt::arg("snake", T::snake_case_name_str),
               fmt::arg("camel", ast::camel_case_name<T>()), fmt::arg("err", err.what()));
         }
       }
@@ -187,7 +187,7 @@ class wrapped_generator
 
   // Because we know the ast tree is not very deep, we can catch infinite recursions by counting
   // recursions and throwing when we pass a relatively low threshold. This type increases the count
-  // on construction, and descreases it on destruction.
+  // on construction, and decreases it on destruction.
   class recursion_guard {
    public:
     template <typename T>
@@ -219,7 +219,9 @@ struct register_operators_struct<type_list<Ts...>> {
   template <typename T, typename PyClass>
   static void register_operator(PyClass& klass) {
     // Static const so that we are certain pybind11 isn't taking an invalid weak reference here.
-    static const std::string doc = fmt::format("Format ast type `{}`.", ast::camel_case_name<T>());
+    static const std::string doc =
+        fmt::format("Format ast type :class:`wrenfold.ast.{}`.", ast::camel_case_name<T>());
+    static const std::string super_doc = doc + " Invokes the wrapped base class implementation.";
 
     // Expose operator() on the generator.
     // underlying_base_type will be cpp_code_generator, etc...
@@ -242,7 +244,7 @@ struct register_operators_struct<type_list<Ts...>> {
         [](const wrapped_type& self, const T& arg) -> std::string {
           return self.underlying_base_type::operator()(arg);
         },
-        py::arg("element"), py::doc(doc.c_str()));
+        py::arg("element"), py::doc(super_doc.c_str()));
   }
 
   template <typename PyClass>
@@ -286,41 +288,15 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
                  const std::vector<ast::function_definition>& definitions) {
                 return generate_multiple(static_cast<const T&>(self), definitions);
               },
-              py::arg("definitions"), py::doc("Generate code for multiple definitions."));
+              py::arg("definition"), py::doc("Generate code for multiple definitions."));
   // Wrap all the operator() methods.
   register_operators_struct{}(klass);
   return klass;
 }
 
-// Search all the types [T, Ts...] to see if one of them matches `type`.
-// If `T` matches `type`, we return its type_index. Otherwise, we continue the search.
-// TODO: Cache this result instead of doing linear search.
-template <typename T, typename... Ts>
-bool is_formattable_type(const py::type& type) {
-  if (const py::type candidate = py::type::of<T>(); type.is(candidate)) {
-    return true;
-  }
-  if constexpr (sizeof...(Ts) > 0) {
-    return is_formattable_type<Ts...>(type);
-  } else {
-    return false;
-  }
-}
-// Unpack the variadic std::variant template and invoke `is_formattable_type`.
-template <typename T = ast::all_ast_types>
-struct is_formattable_type_struct;
-template <typename... Ts>
-struct is_formattable_type_struct<type_list<Ts...>> {
-  auto operator()(const py::type& type) const { return is_formattable_type<Ts...>(type); }
-};
-
 void wrap_code_formatting_operations(py::module_& m) {
-  wrap_code_generator<cpp_code_generator>(m, "CppGenerator");
-  wrap_code_generator<rust_code_generator>(m, "RustGenerator");
-  m.def(
-      "is_formattable_type",
-      [](const py::type& type) { return is_formattable_type_struct<>{}(type); }, py::arg("t"),
-      py::doc("Check if the provided type is formattable with a code generator."));
+  wrap_code_generator<cpp_code_generator>(m, "CppGenerator").doc() = "Generate C++ code.";
+  wrap_code_generator<rust_code_generator>(m, "RustGenerator").doc() = "Generate Rust code.";
 }
 
 }  // namespace wf

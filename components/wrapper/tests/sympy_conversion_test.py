@@ -11,7 +11,7 @@ from wrenfold import sympy_conversion
 from test_base import MathTestBase
 
 # Some shorthand for the purpose of this test:
-spy = sym.to_sympy
+spy = sympy_conversion.to_sympy
 unspy = lambda x: sympy_conversion.from_sympy(expr=x, sp=sp)
 
 
@@ -33,7 +33,8 @@ class SympyConversionTest(MathTestBase):
         self.assertEqualSp(sp.symbols('x', positive=True), sym.symbols('x', positive=True))
         self.assertEqualSp(sp.symbols('x', nonnegative=True), sym.symbols('x', nonnegative=True))
         self.assertEqualSp(sp.symbols('x', complex=True), sym.symbols('x', complex=True))
-        self.assertEqualSp(sp.symbols('$arg_2_3', real=True), sym.function_argument_variable(2, 3))
+        self.assertEqualSp(
+            sp.symbols('$arg_2_3', real=True), sympy_conversion.function_argument_variable(2, 3))
 
         # sympy --> wf
         self.assertIdenticalFromSp(sym.symbols('x'), sp.symbols('x'))
@@ -43,7 +44,7 @@ class SympyConversionTest(MathTestBase):
             sym.symbols('x', nonnegative=True), sp.symbols('x', nonnegative=True))
         self.assertIdenticalFromSp(sym.symbols('x', complex=True), sp.symbols('x', complex=True))
         self.assertIdenticalFromSp(
-            sym.function_argument_variable(2, 3), sp.symbols('$arg_2_3', real=True))
+            sympy_conversion.function_argument_variable(2, 3), sp.symbols('$arg_2_3', real=True))
 
     def test_numeric_constants(self):
         self.assertEqualSp(sp.Integer(0), sym.zero)

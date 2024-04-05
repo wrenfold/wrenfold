@@ -2,7 +2,7 @@ import argparse
 
 from dataclasses import dataclass
 
-from wrenfold import code_generation, sym
+from wrenfold import code_generation, sym, type_info
 from wrenfold.code_generation import OutputArg
 from wrenfold.type_annotations import RealScalar, Vector3
 
@@ -221,7 +221,7 @@ def problem_hessian(
 
 class CustomRustGenerator(code_generation.RustGenerator):
 
-    def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
+    def format_custom_type(self, element: type_info.CustomType) -> str:
         """Place our custom types into the `crate` namespace."""
         if element.python_type in [Weights, ProblemInfo]:
             return f"crate::{element.name}"
@@ -233,8 +233,8 @@ def main(args: argparse.Namespace):
         code_generation.create_function_description(func=problem_jacobian),
         code_generation.create_function_description(func=problem_hessian),
     ]
-    definitions = code_generation.transpile(descriptions=descriptions)
-    code = CustomRustGenerator().generate(definitions=definitions)
+    definitions = code_generation.transpile(descriptions)
+    code = CustomRustGenerator().generate(definitions)
     code = code_generation.apply_rust_preamble(code)
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 

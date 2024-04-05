@@ -2,8 +2,10 @@
 import argparse
 import dataclasses
 
+from wrenfold import ast
 from wrenfold import code_generation
 from wrenfold import sym
+from wrenfold import type_info
 from wrenfold.code_generation import CppGenerator, RustGenerator
 from wrenfold.custom_types import Opaque
 from wrenfold.external_functions import declare_external_function
@@ -49,15 +51,14 @@ def lookup_and_compute_inner_product(vec: VectorOfStructs, a: RealScalar, b: Rea
 
 class CustomCppGenerator(CppGenerator):
 
-    def format_call_external_function(self,
-                                      element: code_generation.codegen.CallExternalFunction) -> str:
+    def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
         Place our custom functions in the `external` namespace.
         """
         args = ', '.join(self.format(x) for x in element.args)
         return f'external::{element.function.name}({args})'
 
-    def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
+    def format_custom_type(self, element: type_info.CustomType) -> str:
         """
         Place `StructType` in `types` namespace. Format vector name.
         """
@@ -67,15 +68,13 @@ class CustomCppGenerator(CppGenerator):
             return f'std::vector<types::StructType>'
         return self.super_format(element)
 
-    def format_declaration_type_annotation(
-            self, element: code_generation.codegen.DeclarationTypeAnnotation) -> str:
+    def format_declaration_type_annotation(self, element: ast.DeclarationTypeAnnotation) -> str:
         """
         We need to define how to declare our custom types.
         TODO: Unify this with `format_custom_type`.
         """
-        if isinstance(
-                element.type,
-                code_generation.codegen.CustomType) and element.type.python_type is StructType:
+        if isinstance(element.type,
+                      type_info.CustomType) and element.type.python_type is StructType:
             return f'types::{element.type.name}'
         return self.super_format(element)
 
@@ -85,23 +84,20 @@ class CustomRustGenerator(RustGenerator):
     We need a similar set of customizations for Rust as well.
     """
 
-    def format_call_external_function(self,
-                                      element: code_generation.codegen.CallExternalFunction) -> str:
+    def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         args = ', '.join(self.format(x) for x in element.args)
         return f'crate::external::{element.function.name}({args})'
 
-    def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
+    def format_custom_type(self, element: type_info.CustomType) -> str:
         if element.python_type is StructType:
             return f'crate::types::{element.name}'
         elif element.python_type is VectorOfStructs:
             return f'std::vec::Vec<crate::types::StructType>'
         return self.super_format(element)
 
-    def format_declaration_type_annotation(
-            self, element: code_generation.codegen.DeclarationTypeAnnotation) -> str:
-        if isinstance(
-                element.type,
-                code_generation.codegen.CustomType) and element.type.python_type is StructType:
+    def format_declaration_type_annotation(self, element: ast.DeclarationTypeAnnotation) -> str:
+        if isinstance(element.type,
+                      type_info.CustomType) and element.type.python_type is StructType:
             return f'crate::types::{element.type.name}'
         return self.super_format(element)
 
@@ -112,12 +108,12 @@ def main(args: argparse.Namespace):
             func=lookup_and_compute_inner_product, name="lookup_and_compute_inner_product")
     ]
 
-    definitions = code_generation.transpile(descriptions=descriptions)
+    definitions = code_generation.transpile(descriptions)
     if args.language == "cpp":
-        code = CustomCppGenerator().generate(definitions=definitions)
+        code = CustomCppGenerator().generate(definitions)
         code = code_generation.apply_cpp_preamble(code=code, namespace="gen")
     else:
-        code = CustomRustGenerator().generate(definitions=definitions)
+        code = CustomRustGenerator().generate(definitions)
         code = code_generation.apply_rust_preamble(code=code)
 
     code_generation.mkdir_and_write_file(code=code, path=args.output)

@@ -10,6 +10,8 @@
 
 #include "wf/constants.h"
 #include "wf/expression.h"
+#include "wf/expressions/addition.h"
+#include "wf/expressions/multiplication.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
@@ -105,6 +107,13 @@ void wrap_matrix_operations(py::module_& m);
 
 // Defined in codegen_wrapper.cc
 void wrap_codegen_operations(py::module_& m);
+void wrap_argument(py::module_& m);
+
+// Defined in ast_wrapper.cc
+void wrap_ast(py::module_& m);
+
+// Defined in typess_wrapper.cc
+void wrap_types(py::module_& m);
 
 // Defined in code_formatting_wrapper.cc
 void wrap_code_formatting_operations(py::module_& m);
@@ -120,11 +129,15 @@ void wrap_geometry_operations(py::module_& m);
 
 // Defined in sympy_conversion.cc
 void wrap_sympy_conversion(py::module_& m);
+
+// Defined in enums_wrapper.cc
+void wrap_enums(py::module_& m);
 }  // namespace wf
 
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
+  wrap_enums(m);
 
   // For types to show up correctly in docstrings, we need to wrap `boolean_expr` first.
   wrap_boolean_expression(m);
@@ -289,6 +302,26 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.attr("I") = constants::imaginary_unit;
   m.attr("nan") = constants::undefined;
 
+  // Direct constructors for addition+multiplication.
+  m.def(
+      "addition",
+      [](const std::vector<scalar_expr>& args) {
+        if (args.empty()) {
+          throw invalid_argument_error("Need at least one operand to construct addition.");
+        }
+        return addition::from_operands(args);
+      },
+      py::arg("args"), py::doc("Construct addition expression from provided operands."));
+  m.def(
+      "multiplication",
+      [](const std::vector<scalar_expr>& args) {
+        if (args.empty()) {
+          throw invalid_argument_error("Need at least one operand to construct multiplication.");
+        }
+        return multiplication::from_operands(args);
+      },
+      py::arg("args"), py::doc("Construct multiplication expression from provided operands."));
+
   // Exceptions:
   py::register_exception<arithmetic_error>(m, "ArithmeticError");
   py::register_exception<assertion_error>(m, "AssertionError");
@@ -300,12 +333,24 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   // Include other wrappers in this module:
   wrap_matrix_operations(m);
   wrap_compound_expression(m);
-  wrap_sympy_conversion(m);
 
-  auto m_geo = m.def_submodule("geometry", "Wrapped geometry methods.");
+  auto m_sympy_conversion =
+      m.def_submodule(PY_SUBMODULE_NAME_SYMPY_CONVERSION, "Wrapped sympy conversion methods.");
+  wrap_sympy_conversion(m_sympy_conversion);
+
+  auto m_geo = m.def_submodule(PY_SUBMODULE_NAME_GEOMETRY, "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);
 
-  auto m_codegen = m.def_submodule("codegen", "Wrapped code-generation types.");
-  wrap_codegen_operations(m_codegen);
-  wrap_code_formatting_operations(m_codegen);
+  auto m_types = m.def_submodule(PY_SUBMODULE_NAME_TYPE_INFO, "Wrapped code-generation types.");
+  wrap_types(m_types);
+
+  // We need to wrap `Argument` and `ArgumentDirection` first so they are available for `ast`.
+  auto m_gen = m.def_submodule(PY_SUBMODULE_NAME_GEN, "Wrapped code-generation methods.");
+  wrap_argument(m_gen);
+
+  auto m_ast = m.def_submodule(PY_SUBMODULE_NAME_AST, "Wrapped AST types.");
+  wrap_ast(m_ast);
+
+  wrap_codegen_operations(m_gen);
+  wrap_code_formatting_operations(m_gen);
 }  // PYBIND11_MODULE

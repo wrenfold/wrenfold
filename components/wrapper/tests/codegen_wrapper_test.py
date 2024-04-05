@@ -9,6 +9,7 @@ In future when I add back python code-generation we can import some outputs dire
 import unittest
 import dataclasses
 
+from wrenfold import ast
 from wrenfold import sym
 from wrenfold.type_annotations import RealScalar, Vector2
 from wrenfold.code_generation import ReturnValue, OutputArg
@@ -75,20 +76,15 @@ def opaque_type_func(u: OpaqueType, x: sym.Expr, y: sym.Expr):
 class CustomCppGenerator(code_generation.CppGenerator):
     """Customize C++ generation."""
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.fmt = code_generation.Formatter(generator=self)
-
-    def format_call_std_function(self, element: code_generation.codegen.CallStdFunction) -> str:
-        if element.function == code_generation.codegen.StdMathFunction.Cos:
-            return self.fmt.format('custom::cos({})', element.args[0])
+    def format_call_std_function(self, element: ast.CallStdFunction) -> str:
+        if element.function == sym.StdMathFunction.Cos:
+            return f'custom::cos({self.format(element.args[0])})'
         return self.super_format(element)
 
-    def format_call_external_function(self,
-                                      element: code_generation.codegen.CallExternalFunction) -> str:
+    def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         if external_func == element.function:
             args = ', '.join(self.format(x) for x in element.args)
-            return self.fmt.format('custom::{}({})', element.function.name, args)
+            return f'custom::{element.function.name}({args})'
         return self.super_format(element)
 
 
@@ -102,7 +98,7 @@ class CodeGenerationWrapperTest(MathTestBase):
             code_generation.create_function_description(rotate_point),
             code_generation.create_function_description(opaque_type_func),
         ]
-        definitions = code_generation.transpile(descriptions=descriptions)
+        definitions = code_generation.transpile(descriptions)
 
         generator = CustomCppGenerator()
         print(generator.generate(definitions))

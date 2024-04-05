@@ -10,6 +10,12 @@ sym
 .. autoclass:: wrenfold.sym.MatrixExpr
   :members:
 
+.. autoclass:: wrenfold.sym.RelationalOperation
+  :members:
+
+.. autoclass:: wrenfold.sym.StdMathFunction
+  :members:
+
 .. autofunction:: wrenfold.sym.abs
 
 .. autofunction:: wrenfold.sym.acos
@@ -45,8 +51,6 @@ sym
 .. autofunction:: wrenfold.sym.floor
 
 .. autofunction:: wrenfold.sym.full_piv_lu
-
-.. autofunction:: wrenfold.sym.function_argument_variable
 
 .. autofunction:: wrenfold.sym.ge
 
@@ -97,8 +101,6 @@ sym
 .. autofunction:: wrenfold.sym.tan
 
 .. autofunction:: wrenfold.sym.tanh
-
-.. autofunction:: wrenfold.sym.to_sympy
 
 .. autofunction:: wrenfold.sym.vec
 
