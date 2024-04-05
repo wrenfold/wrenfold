@@ -35,8 +35,8 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
 
 def main(args: argparse.Namespace):
     description = code_generation.create_function_description(rotation_error)
-    definition = code_generation.transpile(description=description)
-    code = CppGenerator().generate(definition=definition)
+    definition = code_generation.transpile(description)
+    code = CppGenerator().generate(definition)
     code = code_generation.apply_cpp_preamble(code, namespace="gen")
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 

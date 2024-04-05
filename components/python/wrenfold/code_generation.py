@@ -91,7 +91,7 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
       >>> definition = code_generation.transpile(description)
       >>> print(definition)
       FunctionDefinition('foo', <3 arguments>, <7 elements>)
-      >>> code = code_generation.CppGenerator().generate(definitions=definition)
+      >>> code = code_generation.CppGenerator().generate(definition=definition)
       >>> print(code)
 
       .. code-block:: cpp

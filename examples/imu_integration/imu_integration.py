@@ -305,8 +305,8 @@ def main(args: argparse.Namespace):
         code_generation.create_function_description(unweighted_imu_preintegration_error),
         code_generation.create_function_description(integration_test_sequence)
     ]
-    definitions = code_generation.transpile(descriptions=descriptions)
-    code = CppGenerator().generate(definitions=definitions)
+    definitions = code_generation.transpile(descriptions)
+    code = CppGenerator().generate(definitions)
     code = code_generation.apply_cpp_preamble(code, namespace="gen")
 
     code_generation.mkdir_and_write_file(code=code, path=args.output)

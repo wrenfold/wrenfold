@@ -288,7 +288,7 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
                  const std::vector<ast::function_definition>& definitions) {
                 return generate_multiple(static_cast<const T&>(self), definitions);
               },
-              py::arg("definitions"), py::doc("Generate code for multiple definitions."));
+              py::arg("definition"), py::doc("Generate code for multiple definitions."));
   // Wrap all the operator() methods.
   register_operators_struct{}(klass);
   return klass;

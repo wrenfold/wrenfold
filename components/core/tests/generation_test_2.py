@@ -108,12 +108,12 @@ def main(args: argparse.Namespace):
             func=lookup_and_compute_inner_product, name="lookup_and_compute_inner_product")
     ]
 
-    definitions = code_generation.transpile(descriptions=descriptions)
+    definitions = code_generation.transpile(descriptions)
     if args.language == "cpp":
-        code = CustomCppGenerator().generate(definitions=definitions)
+        code = CustomCppGenerator().generate(definitions)
         code = code_generation.apply_cpp_preamble(code=code, namespace="gen")
     else:
-        code = CustomRustGenerator().generate(definitions=definitions)
+        code = CustomRustGenerator().generate(definitions)
         code = code_generation.apply_rust_preamble(code=code)
 
     code_generation.mkdir_and_write_file(code=code, path=args.output)

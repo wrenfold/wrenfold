@@ -98,7 +98,7 @@ class CodeGenerationWrapperTest(MathTestBase):
             code_generation.create_function_description(rotate_point),
             code_generation.create_function_description(opaque_type_func),
         ]
-        definitions = code_generation.transpile(descriptions=descriptions)
+        definitions = code_generation.transpile(descriptions)
 
         generator = CustomCppGenerator()
         print(generator.generate(definitions))

@@ -233,8 +233,8 @@ def main(args: argparse.Namespace):
         code_generation.create_function_description(func=problem_jacobian),
         code_generation.create_function_description(func=problem_hessian),
     ]
-    definitions = code_generation.transpile(descriptions=descriptions)
-    code = CustomRustGenerator().generate(definitions=definitions)
+    definitions = code_generation.transpile(descriptions)
+    code = CustomRustGenerator().generate(definitions)
     code = code_generation.apply_rust_preamble(code)
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 

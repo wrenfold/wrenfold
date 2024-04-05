@@ -270,12 +270,12 @@ def main(args: argparse.Namespace):
         code_generation.create_function_description(func=compose_poses, name='compose_poses')
     ]
 
-    definitions = code_generation.transpile(descriptions=descriptions)
+    definitions = code_generation.transpile(descriptions)
     if args.language == "cpp":
-        code = CustomCppGenerator().generate(definitions=definitions)
+        code = CustomCppGenerator().generate(definitions)
         code = code_generation.apply_cpp_preamble(code, namespace="gen")
     elif args.language == "rust":
-        code = CustomRustGenerator().generate(definitions=definitions)
+        code = CustomRustGenerator().generate(definitions)
         code = code_generation.apply_rust_preamble(code)
     else:
         raise RuntimeError("Invalid language selection")
