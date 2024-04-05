@@ -3,7 +3,7 @@
 #include "Eigen/Core"
 
 #define MATH_SPAN_EIGEN_SUPPORT
-#include "wf_runtime/span_eigen.h"
+#include "wrenfold/span_eigen.h"
 
 // Methods for testing derivatives by comparing to the numerical approximation.
 namespace wf {

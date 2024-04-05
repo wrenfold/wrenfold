@@ -1,7 +1,8 @@
 # Create a target for the runtime library (a header only target).
 set(RUNTIME_INTERFACE_NAME wf_runtime)
-add_library(${RUNTIME_INTERFACE_NAME} INTERFACE wf_runtime/span.h
-            wf_runtime/span_detail.h wf_runtime/span_eigen.h)
+set(RUNTIME_SOURCES wrenfold/span.h wrenfold/span_detail.h
+                    wrenfold/span_eigen.h)
+add_library(${RUNTIME_INTERFACE_NAME} INTERFACE ${RUNTIME_SOURCES})
 target_include_directories(
   ${RUNTIME_INTERFACE_NAME}
   INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -12,14 +13,9 @@ if(NOT DEFINED SKBUILD_PROJECT_NAME)
 endif()
 
 if(DEFINED SKBUILD_PROJECT_NAME)
-  # Setup install target for the runtime:
-  install(
-    TARGETS wf_runtime
-    EXPORT wf_runtime
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wf_runtime")
+  # This will install the headers under: `include/site/pythonX.Y/wrenfold`.
+  install(FILES ${RUNTIME_SOURCES} DESTINATION "${SKBUILD_HEADERS_DIR}")
+else()
+  install(FILES ${RUNTIME_SOURCES}
+          DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wrenfold")
 endif()

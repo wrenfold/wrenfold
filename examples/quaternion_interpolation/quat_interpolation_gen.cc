@@ -10,7 +10,7 @@
 int main() {
   using namespace wf;
   std::string code =
-      "// Machine generated code.\n#include <cmath>\n\n#include <wf_runtime/span.h>\n\n";
+      "// Machine generated code.\n#include <cmath>\n\n#include <wrenfold/span.h>\n\n";
 
   code += "namespace gen {\n\n";
 

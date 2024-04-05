@@ -3,7 +3,7 @@
 #include "wf_test_support/test_macros.h"
 
 #define MATH_SPAN_EIGEN_SUPPORT
-#include "wf_runtime/span_eigen.h"
+#include "wrenfold/span_eigen.h"
 
 using Eigen::Quaterniond;
 using Eigen::Vector3d;

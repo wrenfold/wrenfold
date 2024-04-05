@@ -7,7 +7,7 @@
 #include "wf/expressions/all_expressions.h"
 #include "wf/expressions/matrix.h"
 #include "wf/expressions/variable.h"
-#include "wf_runtime/span.h"
+#include "wrenfold/span.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/types/span.h>
