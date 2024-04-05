@@ -122,6 +122,7 @@ add_wrapper_module(
   docs/geometry_wrapper.h
   docs/matrix_wrapper.h
   docs/codegen_wrapper.h
+  docs/sympy_conversion.h
   expression_wrapper.cc
   enums_wrapper.cc
   geometry_wrapper.cc

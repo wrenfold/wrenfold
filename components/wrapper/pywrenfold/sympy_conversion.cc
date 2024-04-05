@@ -7,6 +7,8 @@
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
 #include "wf/matrix_expression.h"
+
+#include "docs/sympy_conversion.h"
 #include "wrapper_utils.h"
 
 namespace wf {
@@ -202,11 +204,13 @@ py::object to_sympy(const T& expr, const std::optional<py::object>& sp_opt, cons
 
 void wrap_sympy_conversion(py::module_& m) {
   m.def("to_sympy", &to_sympy<scalar_expr>, py::arg("expr"), py::arg("sp") = std::nullopt,
-        py::arg("evaluate") = true, py::doc("Convert scalar expression to sympy."));
+        py::arg("evaluate") = true, docstrings::to_sympy.data());
   m.def("to_sympy", &to_sympy<boolean_expr>, py::arg("expr"), py::arg("sp") = std::nullopt,
-        py::arg("evaluate") = true, py::doc("Convert boolean expression to sympy."));
+        py::arg("evaluate") = true,
+        "Overload of :func:`wrenfold.sympy_conversion.to_sympy` that accepts ``BooleanExpr``.");
   m.def("to_sympy", &to_sympy<matrix_expr>, py::arg("expr"), py::arg("sp") = std::nullopt,
-        py::arg("evaluate") = true, py::doc("Convert matrix expression to sympy."));
+        py::arg("evaluate") = true,
+        "Overload of :func:`wrenfold.sympy_conversion.to_sympy` that accepts ``MatrixExpr``.");
 
   m.def(
       "function_argument_variable",
@@ -215,7 +219,7 @@ void wrap_sympy_conversion(py::module_& m) {
                                    number_set::real);
       },
       py::arg("arg_index"), py::arg("element_index"),
-      py::doc("Create ``function_argument_variable``."));
+      py::doc("Create ``function_argument_variable``. OMIT_FROM_SPHINX"));
 }
 
 }  // namespace wf

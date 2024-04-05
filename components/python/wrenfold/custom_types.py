@@ -15,12 +15,14 @@ U = T.TypeVar("U")
 
 class Opaque:
     """
-    An opaque object has no expression members that wrenfold can inspect. They can be passed
-    into and out of external functions.
+    Base class used to indicate a custom type that exposes no symbolic expression members. Opaque
+    types are employed to represent user-provided types the user may wish to pass to their generated
+    functions (and subsequently to external functions).
 
-    The user can inherit from this type to create their own opaque types. You should not construct
-    such types directly - instead they are intended to be used as type annotations on symbolic
-    functions.
+    Caution:
+      You should not construct ``Opaque`` directly. Instead, inherit from it to create a new type.
+      This new type is then intended for use as a type annotation on functions passed to
+      :func:`wrenfold.code_generation.create_function_description`.
     """
 
     def __init__(self, provenance: T.Optional[sym.CompoundExpr] = None) -> None:
@@ -31,6 +33,8 @@ def convert_to_internal_type(python_type: T.Type,
                              cached_custom_types: T.Dict[T.Type, CodegenType]) -> CodegenType:
     """
     Convert a python type to the internal C++ representation.
+
+    OMIT_FROM_SPHINX
     """
     if issubclass(python_type, sym.Expr):
         return type_info.ScalarType(type_info.NumericType.Float)
@@ -53,6 +57,8 @@ def create_custom_type(python_type: T.Type,
                        cached_custom_types: T.Dict[T.Type, CodegenType]) -> type_info.CustomType:
     """
     Convert a python type type to a typeinfo.CustomType representation we can store in C++.
+
+    OMIT_FROM_SPHINX
     """
     fields_converted: T.List[T.Tuple[str, CodegenType]] = []
     if dataclasses.is_dataclass(python_type):
@@ -88,6 +94,8 @@ def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
     of the user-provided type.
 
     Expressions are inserted into fields in the order the fields appear.
+
+    OMIT_FROM_SPHINX
     """
     assert dataclasses.is_dataclass(
         custom_type), f"Provided type `{custom_type}` is not a dataclass"
@@ -124,6 +132,8 @@ def map_expressions_out_of_custom_type(instance: T.Any) -> T.List[sym.Expr]:
     Given an instance of a custom dataclass type, flatten its contents into a list of expressions.
 
     This is effectively the inverse of `map_expressions_into_custom_type`.
+
+    OMIT_FROM_SPHINX
     """
     assert dataclasses.is_dataclass(
         instance), f"Provided object of type `{type(instance)}` is not a dataclass"

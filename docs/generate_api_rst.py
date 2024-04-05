@@ -42,14 +42,11 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
             # TODO: Attach __doc__ to attributes? Presently there is no way to do this.
             pass
 
-    # Place a title with the module name
-    contents = f'{module_name}\n{"=" * len(module_name)}\n\n'
+    parts = [f'{module_name}\n{"=" * len(module_name)}']
+    parts.extend(f'.. autoclass:: wrenfold.{module_name}.{klass}\n  :members:' for klass in classes)
+    parts.extend(f'.. autofunction:: wrenfold.{module_name}.{func}' for func in functions)
 
-    for klass in classes:
-        contents += f'.. autoclass:: wrenfold.{module_name}.{klass}\n  :members:\n\n'
-
-    contents += '\n\n'.join(
-        f'.. autofunction:: wrenfold.{module_name}.{func}' for func in functions)
+    contents = '\n\n'.join(parts)
     contents += '\n'
 
     output_path = output_dir / f'{module_name}.rst'

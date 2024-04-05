@@ -72,21 +72,6 @@ void wrap_argument(py::module_& m) {
 }
 
 void wrap_codegen_operations(py::module_& m) {
-  m.def(
-      "transpile",
-      [](const std::vector<function_description>& descriptions) {
-        // TODO: Allow this to run in parallel.
-        return transform_map<std::vector>(descriptions, &transpile_to_function_definition);
-      },
-      py::arg("descriptions"),
-      py::doc("Generate function definitions in AST form, given symbolic function descriptions."),
-      py::return_value_policy::take_ownership);
-
-  m.def("transpile", &transpile_to_function_definition, py::arg("description"),
-        py::doc(
-            "Generate a function definition in AST form, given the symbolic function description."),
-        py::return_value_policy::take_ownership);
-
   // We give this a Py prefix since we wrap it in python with another object.
   wrap_class<external_function>(m, "PyExternalFunction")
       .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
@@ -182,6 +167,20 @@ void wrap_codegen_operations(py::module_& m) {
           },
           py::arg("custom_type"), py::arg("expressions"))
       .doc() = docstrings::function_description.data();
+
+  m.def(
+      "transpile",
+      [](const std::vector<function_description>& descriptions) {
+        // TODO: Allow this to run in parallel.
+        return transform_map<std::vector>(descriptions, &transpile_to_function_definition);
+      },
+      py::arg("desc"),
+      "Overload of :func:`wrenfold.code_generation.transpile` that operates on a sequence of "
+      "functions.",
+      py::return_value_policy::take_ownership);
+
+  m.def("transpile", &transpile_to_function_definition, py::arg("desc"),
+        docstrings::transpile.data(), py::return_value_policy::take_ownership);
 }
 
 }  // namespace wf

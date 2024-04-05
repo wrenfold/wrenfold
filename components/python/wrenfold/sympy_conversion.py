@@ -2,6 +2,7 @@
 Logic to support conversion from sympy --> wrenfold.
 Conversion in the opposite direction is implemented in C++ in `sympy_conversion.cc`.
 """
+import importlib
 import typing as T
 
 from . import sym
@@ -161,15 +162,22 @@ class Conversions:
         raise TypeError(f"sympy expression of type `{type(expr)}` cannot be converted.")
 
 
-def from_sympy(expr: T.Any, sp: T.Any) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+def from_sympy(expr: T.Any, sp: T.Any = None) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
     """
     Convert sympy expressions to wrenfold expressions. This method will recursively traverse
     the sympy expression tree, converting each encountered object to the equivalent wrenfold
     expression.
 
-    TypeError is thrown when a sympy object has no equivalent.
+    Args:
+      expr: A sympy expression.
+      sp: The sympy module. If None, the package ``sympy`` will be imported.
 
-    :param expr: A sympy expression.
-    :param sp: The sympy python module.
+    Returns:
+      The closest equivalent expression.
+
+    Raises:
+      TypeError: When a sympy object has no equivalent in wrenfold.
     """
+    if sp is None:
+        sp = importlib.import_module(name="sympy")
     return Conversions(sp=sp)(expr=expr)

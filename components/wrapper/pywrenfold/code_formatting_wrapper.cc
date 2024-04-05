@@ -219,7 +219,9 @@ struct register_operators_struct<type_list<Ts...>> {
   template <typename T, typename PyClass>
   static void register_operator(PyClass& klass) {
     // Static const so that we are certain pybind11 isn't taking an invalid weak reference here.
-    static const std::string doc = fmt::format("Format ast type `{}`.", ast::camel_case_name<T>());
+    static const std::string doc =
+        fmt::format("Format ast type :class:`wrenfold.ast.{}`.", ast::camel_case_name<T>());
+    static const std::string super_doc = doc + " Invokes the wrapped base class implementation.";
 
     // Expose operator() on the generator.
     // underlying_base_type will be cpp_code_generator, etc...
@@ -242,7 +244,7 @@ struct register_operators_struct<type_list<Ts...>> {
         [](const wrapped_type& self, const T& arg) -> std::string {
           return self.underlying_base_type::operator()(arg);
         },
-        py::arg("element"), py::doc(doc.c_str()));
+        py::arg("element"), py::doc(super_doc.c_str()));
   }
 
   template <typename PyClass>
@@ -293,8 +295,8 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
 }
 
 void wrap_code_formatting_operations(py::module_& m) {
-  wrap_code_generator<cpp_code_generator>(m, "CppGenerator");
-  wrap_code_generator<rust_code_generator>(m, "RustGenerator");
+  wrap_code_generator<cpp_code_generator>(m, "CppGenerator").doc() = "Generate C++ code.";
+  wrap_code_generator<rust_code_generator>(m, "RustGenerator").doc() = "Generate Rust code.";
 }
 
 }  // namespace wf
