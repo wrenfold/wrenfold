@@ -19,7 +19,7 @@ author = 'Gareth Cross'
 sys.path.insert(0, os.path.abspath('../components/python'))
 sys.path.insert(1, os.path.abspath('../build/components/wrapper'))
 
-IMPORT_PATH_REPLACEMENTS = [('pywrenfold.', 'wrenfold.sym.')]
+IMPORT_PATH_REPLACEMENTS = [('pywrenfold.', 'wrenfold.')]
 
 
 def apply_replacements(string: str) -> str:

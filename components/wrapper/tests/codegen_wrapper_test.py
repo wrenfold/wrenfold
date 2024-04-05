@@ -10,12 +10,13 @@ import unittest
 import dataclasses
 
 from wrenfold import ast
-from wrenfold import sym
-from wrenfold.type_annotations import RealScalar, Vector2
-from wrenfold.code_generation import ReturnValue, OutputArg
 from wrenfold import code_generation
 from wrenfold import custom_types
 from wrenfold import external_functions
+from wrenfold import sym
+from wrenfold.code_generation import ReturnValue, OutputArg
+from wrenfold.enumerations import StdMathFunction
+from wrenfold.type_annotations import RealScalar, Vector2
 
 from test_base import MathTestBase
 
@@ -77,7 +78,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
     """Customize C++ generation."""
 
     def format_call_std_function(self, element: ast.CallStdFunction) -> str:
-        if element.function == sym.StdMathFunction.Cos:
+        if element.function == StdMathFunction.Cos:
             return f'custom::cos({self.format(element.args[0])})'
         return self.super_format(element)
 

@@ -8,6 +8,7 @@ import numpy as np
 import typing as T
 import unittest
 
+from wrenfold import exceptions
 from wrenfold import sym
 from test_base import MathTestBase
 
@@ -78,9 +79,9 @@ class MatrixWrapperTest(MathTestBase):
         )
 
         # throw if empty
-        self.assertRaises(sym.DimensionError, lambda: sym.matrix([]))
-        self.assertRaises(sym.DimensionError, lambda: sym.vector())
-        self.assertRaises(sym.DimensionError, lambda: sym.row_vector())
+        self.assertRaises(exceptions.DimensionError, lambda: sym.matrix([]))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.vector())
+        self.assertRaises(exceptions.DimensionError, lambda: sym.row_vector())
 
         # cannot nest matrices:
         self.assertRaises(RuntimeError, lambda: sym.vector(m, 1.5, 2))
@@ -93,9 +94,9 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(TypeError, lambda: sym.matrix([sym.vector(x, y), z]))
 
         # dimensions do not agree:
-        self.assertRaises(sym.DimensionError, lambda: sym.matrix([(y, 2), (x,)]))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.matrix([(y, 2), (x,)]))
         self.assertRaises(
-            sym.DimensionError,
+            exceptions.DimensionError,
             lambda: sym.matrix([(a, sym.pi, sym.E), (x, 5, z, b)]),
         )
 
@@ -127,8 +128,8 @@ class MatrixWrapperTest(MathTestBase):
         """Test that we cannot cast to bool."""
         x, y, z = sym.symbols("x, y, z")
         m = sym.matrix([[x * y, -2], [z, sym.pi]])
-        self.assertRaises(sym.TypeError, lambda: bool(m))
-        self.assertRaises(sym.TypeError, lambda: 1 if m else 0)
+        self.assertRaises(exceptions.TypeError, lambda: bool(m))
+        self.assertRaises(exceptions.TypeError, lambda: 1 if m else 0)
 
     def test_special_matrices(self):
         """Test convenience constructors for specific matrices."""
@@ -138,8 +139,8 @@ class MatrixWrapperTest(MathTestBase):
             for j in range(eye.shape[1]):
                 self.assertIdentical(sym.one if i == j else sym.zero, eye[i, j])
 
-        self.assertRaises(sym.DimensionError, lambda: sym.eye(0))
-        self.assertRaises(sym.DimensionError, lambda: sym.eye(-2))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.eye(0))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.eye(-2))
 
         zeros = sym.zeros(5, 4)
         self.assertEqual((5, 4), zeros.shape)
@@ -147,8 +148,8 @@ class MatrixWrapperTest(MathTestBase):
             for j in range(zeros.shape[1]):
                 self.assertIdentical(sym.zero, zeros[i, j])
 
-        self.assertRaises(sym.DimensionError, lambda: sym.zeros(-4, 3))
-        self.assertRaises(sym.DimensionError, lambda: sym.zeros(0, 6))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.zeros(-4, 3))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.zeros(0, 6))
 
     @staticmethod
     def generate_slices(dim: int, step_sizes: T.Iterable[int] = (1, 2, 3)):
@@ -236,10 +237,10 @@ class MatrixWrapperTest(MathTestBase):
                 self.assertTrue(m[row_slice, col_slice].is_empty)
 
         # Invalid indices:
-        self.assertRaises(sym.DimensionError, lambda: m[-5, 0])
-        self.assertRaises(sym.DimensionError, lambda: m[0, -6])
-        self.assertRaises(sym.DimensionError, lambda: m[0, 10])
-        self.assertRaises(sym.DimensionError, lambda: m[11, 2])
+        self.assertRaises(exceptions.DimensionError, lambda: m[-5, 0])
+        self.assertRaises(exceptions.DimensionError, lambda: m[0, -6])
+        self.assertRaises(exceptions.DimensionError, lambda: m[0, 10])
+        self.assertRaises(exceptions.DimensionError, lambda: m[11, 2])
 
         # Test iteration:
         self.assertEqual(4, len(m))
@@ -276,9 +277,9 @@ class MatrixWrapperTest(MathTestBase):
             sym.matrix([[x, y], [z, a], [b, c]]),
             sym.matrix([x, y, z, a, b, c]).reshape((3, 2)),
         )
-        self.assertRaises(sym.DimensionError, lambda: sym.eye(2).reshape(4, 5))
-        self.assertRaises(sym.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
-        self.assertRaises(sym.DimensionError, lambda: sym.eye(4).reshape(2, -8))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.eye(2).reshape(4, 5))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(2, -8))
 
     def test_matrix_operations(self):
         """Check that add/mul/sub operations are wrapped."""
@@ -320,8 +321,8 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(m1 * 3, m1 + m1 + m1)
 
         # cannot add incompatible dimensions
-        self.assertRaises(sym.DimensionError, lambda: m0 + sym.identity(4))
-        self.assertRaises(sym.DimensionError, lambda: m0 - sym.zeros(6, 7))
+        self.assertRaises(exceptions.DimensionError, lambda: m0 + sym.identity(4))
+        self.assertRaises(exceptions.DimensionError, lambda: m0 - sym.zeros(6, 7))
 
         # division by matrix is prohibited:
         self.assertRaises(TypeError, lambda: 31 / m0)
@@ -382,7 +383,7 @@ class MatrixWrapperTest(MathTestBase):
         v = sym.vector(x * y, 2, d * z)
         self.assertIdentical(u, sym.where(sym.Expr(1) > 0, u, v))
         self.assertRaises(TypeError, lambda: sym.where(x < 0, u, d + c))
-        self.assertRaises(sym.DimensionError, lambda: sym.where(x > 0, u, u.transpose()))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.where(x > 0, u, u.transpose()))
 
     def test_determinant(self):
         """Test calling `det()` on a matrix."""

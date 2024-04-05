@@ -88,7 +88,9 @@ std::vector<scalar_expr> multiplication::sorted_terms() const {
 }
 
 scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> args) {
-  WF_ASSERT(!args.empty());
+  if (args.empty()) {
+    throw invalid_argument_error("Need at least one operand to construct multiplication.");
+  }
   if (args.size() < 2) {
     return args.front();
   }

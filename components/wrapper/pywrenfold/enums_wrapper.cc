@@ -1,7 +1,6 @@
 // Copyright 2024 Gareth Cross
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 #include "wf/enumerations.h"
 

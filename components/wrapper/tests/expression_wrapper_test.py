@@ -7,6 +7,7 @@ don't accidentally remove any.
 import unittest
 
 from wrenfold import sym
+from wrenfold import exceptions
 from test_base import MathTestBase
 
 
@@ -38,7 +39,7 @@ class ExpressionWrapperTest(MathTestBase):
             sym.symbols("x", real=True, nonnegative=True),
             sym.symbols("x", real=True, positive=True))
 
-        self.assertRaises(sym.InvalidArgumentError,
+        self.assertRaises(exceptions.InvalidArgumentError,
                           lambda: sym.symbols("z", real=True, complex=True))
 
     def test_is_identical_to(self):
@@ -76,7 +77,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.one / 2, sym.rational(1, 2))
         self.assertIdentical(sym.integer(-5) / 7, sym.rational(-5, 7))
         self.assertIdentical(sym.integer(1) / 3, sym.rational(2, 6))
-        self.assertRaises(sym.ArithmeticError, lambda: sym.rational(1, 0))
+        self.assertRaises(exceptions.ArithmeticError, lambda: sym.rational(1, 0))
 
         # Cannot invoke with values that exceed range of 64-bit signed int.
         # Python stores these values internally, but we can't convert them for now:
@@ -114,10 +115,10 @@ class ExpressionWrapperTest(MathTestBase):
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""
         x, y, z = sym.symbols('x, y, z')
-        self.assertRaises(sym.TypeError, lambda: bool(x + 2))
-        self.assertRaises(sym.TypeError, lambda: bool(2.0 / z))
-        self.assertRaises(sym.TypeError, lambda: 1 if sym.cos(y * z) + x else 0)
-        self.assertRaises(sym.TypeError, lambda: bool(x < y))
+        self.assertRaises(exceptions.TypeError, lambda: bool(x + 2))
+        self.assertRaises(exceptions.TypeError, lambda: bool(2.0 / z))
+        self.assertRaises(exceptions.TypeError, lambda: 1 if sym.cos(y * z) + x else 0)
+        self.assertRaises(exceptions.TypeError, lambda: bool(x < y))
         self.assertTrue(bool(sym.true))
         self.assertFalse(bool(sym.false))
         self.assertEqual(2.0, 2.0 if sym.true else 0.0)
@@ -241,7 +242,7 @@ class ExpressionWrapperTest(MathTestBase):
             sym.where(x > 0, sym.sin(5 * x), y + 5).diff(x))
 
         # Diffing a polynomial too many times can trigger arithmetic error (factorial overflow)
-        self.assertRaises(sym.ArithmeticError, lambda: (x ** 100).diff(x, 20))
+        self.assertRaises(exceptions.ArithmeticError, lambda: (x ** 100).diff(x, 20))
 
     def test_relational(self):
         """Test creating relational expressions."""
@@ -322,13 +323,13 @@ class ExpressionWrapperTest(MathTestBase):
         """
         i64_max = 9223372036854775807
         i64_min = -9223372036854775808
-        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_max) * 2)
-        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) * 2)
-        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) * -1)
-        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) / -1)
-        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_max) + 1)
-        self.assertRaises(sym.ArithmeticError, lambda: sym.integer(i64_min) - 1)
-        self.assertRaises(sym.ArithmeticError, lambda: -sym.integer(i64_min))
+        self.assertRaises(exceptions.ArithmeticError, lambda: sym.integer(i64_max) * 2)
+        self.assertRaises(exceptions.ArithmeticError, lambda: sym.integer(i64_min) * 2)
+        self.assertRaises(exceptions.ArithmeticError, lambda: sym.integer(i64_min) * -1)
+        self.assertRaises(exceptions.ArithmeticError, lambda: sym.integer(i64_min) / -1)
+        self.assertRaises(exceptions.ArithmeticError, lambda: sym.integer(i64_max) + 1)
+        self.assertRaises(exceptions.ArithmeticError, lambda: sym.integer(i64_min) - 1)
+        self.assertRaises(exceptions.ArithmeticError, lambda: -sym.integer(i64_min))
 
 
 if __name__ == '__main__':

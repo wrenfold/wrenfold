@@ -1,6 +1,6 @@
-"""Alias for the main pywrenfold module."""
+"""Alias for the pywrenfold.sym module."""
 import typing as T
 
-from pywrenfold import *
+from pywrenfold.sym import *
 
 AnyExpression = T.Union[Expr, BooleanExpr, MatrixExpr, CompoundExpr]
