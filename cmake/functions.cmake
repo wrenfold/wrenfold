@@ -46,7 +46,7 @@ function(add_compiled_code_generator NAME)
 
   # Add an executable target with the provided source files.
   add_executable(${generate_target} ${ARGS_SOURCE_FILES})
-  target_link_libraries(${generate_target} wf_core wf_runtime wf-test-support)
+  target_link_libraries(${generate_target} wf_core wf_runtime wf_test_support)
   target_compile_definitions(
     ${generate_target}
     PRIVATE "-DGENERATOR_OUTPUT_FILE=\"${GENERATOR_OUTPUT_FILE}\"")
@@ -94,7 +94,7 @@ function(add_cpp_test NAME)
 
   # add executable for the test:
   add_executable(${NAME} ${ARGS_SOURCE_FILES} ${GENERATOR_OUTPUT}
-                         $<TARGET_OBJECTS:wf-custom-main>)
+                         $<TARGET_OBJECTS:wf_custom_main>)
   if(NOT ${ARGS_GENERATOR_TARGET} STREQUAL "")
     add_dependencies(${NAME} ${ARGS_GENERATOR_TARGET})
   endif()
@@ -109,7 +109,7 @@ function(add_cpp_test NAME)
     ${NAME}
     wf_core
     wf_runtime
-    wf-test-support
+    wf_test_support
     gtest
     eigen
     fmt::fmt-header-only)
