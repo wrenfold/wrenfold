@@ -147,17 +147,6 @@ target_include_directories(
   wf_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                  $<INSTALL_INTERFACE:include>)
 
-# Setup install target
-install(
-  TARGETS wf_core
-  EXPORT wf_core
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  INCLUDES
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wf_core")
-
 # Add tests and benchmarks, if not building from scikit-build-core
 if(NOT DEFINED SKBUILD_PROJECT_NAME)
   add_subdirectory(test_support)
