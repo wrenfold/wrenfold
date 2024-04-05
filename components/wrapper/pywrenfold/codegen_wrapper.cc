@@ -81,7 +81,8 @@ void wrap_codegen_operations(py::module_& m) {
             "Generate a function definition in AST form, given the symbolic function description."),
         py::return_value_policy::take_ownership);
 
-  wrap_class<external_function>(m, "ExternalFunction")
+  // We give this a Py prefix since we wrap it in python with another object.
+  wrap_class<external_function>(m, "PyExternalFunction")
       .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
            py::arg("return_type"))
       .def_property_readonly("name", &external_function::name)

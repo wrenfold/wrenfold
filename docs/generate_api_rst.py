@@ -11,6 +11,9 @@ from pathlib import Path
 from wrenfold import sym
 from wrenfold import geometry
 from wrenfold import ast
+from wrenfold import code_generation
+from wrenfold import sympy_conversion
+from wrenfold import custom_types
 
 
 def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
@@ -20,7 +23,7 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
     functions = []
     classes = []
     for member_name in sorted(dir(module)):
-        if member_name.startswith('__'):
+        if member_name.startswith('_'):
             continue
 
         member = getattr(module, member_name)
@@ -58,6 +61,11 @@ def main(args: argparse.Namespace):
     generate_rst_for_module(module=sym, module_name="sym", output_dir=output_dir)
     generate_rst_for_module(module=geometry, module_name="geometry", output_dir=output_dir)
     generate_rst_for_module(module=ast, module_name="ast", output_dir=output_dir)
+    generate_rst_for_module(
+        module=code_generation, module_name="code_generation", output_dir=output_dir)
+    generate_rst_for_module(
+        module=sympy_conversion, module_name="sympy_conversion", output_dir=output_dir)
+    generate_rst_for_module(module=custom_types, module_name="custom_types", output_dir=output_dir)
 
 
 def parse_args() -> argparse.Namespace:

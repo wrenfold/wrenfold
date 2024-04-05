@@ -5,11 +5,10 @@ import dataclasses
 import typing as T
 
 from . import sym
-
-from pywrenfold.wf_wrapper import codegen
+from . import type_info
 
 # Refer to possible types we put in the generated code.
-CodegenType = T.Union[codegen.ScalarType, codegen.MatrixType, codegen.CustomType]
+CodegenType = T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]
 
 U = T.TypeVar("U")
 
@@ -34,10 +33,10 @@ def convert_to_internal_type(python_type: T.Type,
     Convert a python type to the internal C++ representation.
     """
     if issubclass(python_type, sym.Expr):
-        return codegen.ScalarType(codegen.NumericType.Float)
+        return type_info.ScalarType(type_info.NumericType.Float)
     elif issubclass(python_type, sym.MatrixExpr):
         shape = _get_matrix_shape(matrix_type=python_type)
-        return codegen.MatrixType(*shape)
+        return type_info.MatrixType(*shape)
     elif dataclasses.is_dataclass(python_type) or issubclass(python_type, Opaque):
         if python_type in cached_custom_types:
             return cached_custom_types[python_type]
@@ -51,9 +50,9 @@ def convert_to_internal_type(python_type: T.Type,
 
 
 def create_custom_type(python_type: T.Type,
-                       cached_custom_types: T.Dict[T.Type, CodegenType]) -> codegen.CustomType:
+                       cached_custom_types: T.Dict[T.Type, CodegenType]) -> type_info.CustomType:
     """
-    Convert a python type type to a CustomType representation we can store in C++.
+    Convert a python type type to a typeinfo.CustomType representation we can store in C++.
     """
     fields_converted: T.List[T.Tuple[str, CodegenType]] = []
     if dataclasses.is_dataclass(python_type):
@@ -66,7 +65,7 @@ def create_custom_type(python_type: T.Type,
             raise TypeError("Dataclass types need to have at least one expression member. " +
                             f"Offending type: {repr(python_type)}")
 
-    return codegen.CustomType(
+    return type_info.CustomType(
         name=python_type.__name__, fields=fields_converted, python_type=python_type)
 
 

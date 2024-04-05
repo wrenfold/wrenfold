@@ -211,7 +211,7 @@ void wrap_ast(py::module_& m) {
   wrap_ast_type<ast::construct_custom_type>(m)
       .def_property_readonly(
           "type", [](const ast::construct_custom_type& self) { return self.type; },
-          "Instance of ``wrenfold.codegen.CustomType`` specifying which type to instantiate.")
+          "Instance of :class:`wrenfold.codegen.CustomType` specifying which type to instantiate.")
       .def(
           "get_field_value",
           [](const ast::construct_custom_type& self, const std::string_view name) -> py::object {

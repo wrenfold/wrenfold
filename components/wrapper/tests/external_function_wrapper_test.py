@@ -5,9 +5,9 @@ import dataclasses
 import unittest
 
 from wrenfold import custom_types
-from wrenfold import sym
 from wrenfold import external_functions
-from wrenfold.code_generation import codegen
+from wrenfold import sym
+from wrenfold import type_info
 from wrenfold.type_annotations import Vector2, Vector3
 
 from test_base import MathTestBase
@@ -22,7 +22,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
 
         self.assertEqual("func", func.name)
         self.assertEqual(1, func.num_arguments)
-        self.assertEqual(codegen.ScalarType(codegen.NumericType.Float), func.return_type)
+        self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), func.return_type)
 
         x, y, z = sym.symbols("x, y, z")
 
@@ -52,7 +52,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         func = external_functions.declare_external_function(
             name="func", arguments=[("x", sym.Expr), ("v", Vector3)], return_type=Vector2)
         self.assertEqual(2, func.num_arguments)
-        self.assertEqual(codegen.MatrixType(2, 1), func.return_type)
+        self.assertEqual(type_info.MatrixType(2, 1), func.return_type)
 
         x, y, z = sym.symbols("x, y, z")
         v = sym.vector(y, 2, z - 1)
@@ -80,7 +80,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         func = external_functions.declare_external_function(
             name="func", arguments=[("foo", TestType), ("bar", sym.Expr)], return_type=TestType)
         self.assertEqual(2, func.num_arguments)
-        self.assertIsInstance(func.return_type, codegen.CustomType)
+        self.assertIsInstance(func.return_type, type_info.CustomType)
 
         x, y = sym.symbols("x, y")
         v = sym.vector(x * y, x - y)
@@ -107,10 +107,10 @@ class ExternalFunctionWrapperTest(MathTestBase):
         func_2 = external_functions.declare_external_function(
             name="func_2", arguments=[("q", TestType), ("w", sym.Expr)], return_type=sym.Expr)
         self.assertEqual(1, func_1.num_arguments)
-        self.assertIsInstance(func_1.return_type, codegen.CustomType)
+        self.assertIsInstance(func_1.return_type, type_info.CustomType)
 
         self.assertEqual(2, func_2.num_arguments)
-        self.assertEqual(codegen.ScalarType(codegen.NumericType.Float), func_2.return_type)
+        self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), func_2.return_type)
 
         x, y = sym.symbols("x, y")
         f = func_1(x=x + 2 / y)

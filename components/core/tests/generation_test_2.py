@@ -5,6 +5,7 @@ import dataclasses
 from wrenfold import ast
 from wrenfold import code_generation
 from wrenfold import sym
+from wrenfold import type_info
 from wrenfold.code_generation import CppGenerator, RustGenerator
 from wrenfold.custom_types import Opaque
 from wrenfold.external_functions import declare_external_function
@@ -57,7 +58,7 @@ class CustomCppGenerator(CppGenerator):
         args = ', '.join(self.format(x) for x in element.args)
         return f'external::{element.function.name}({args})'
 
-    def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
+    def format_custom_type(self, element: type_info.CustomType) -> str:
         """
         Place `StructType` in `types` namespace. Format vector name.
         """
@@ -72,9 +73,8 @@ class CustomCppGenerator(CppGenerator):
         We need to define how to declare our custom types.
         TODO: Unify this with `format_custom_type`.
         """
-        if isinstance(
-                element.type,
-                code_generation.codegen.CustomType) and element.type.python_type is StructType:
+        if isinstance(element.type,
+                      type_info.CustomType) and element.type.python_type is StructType:
             return f'types::{element.type.name}'
         return self.super_format(element)
 
@@ -88,7 +88,7 @@ class CustomRustGenerator(RustGenerator):
         args = ', '.join(self.format(x) for x in element.args)
         return f'crate::external::{element.function.name}({args})'
 
-    def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
+    def format_custom_type(self, element: type_info.CustomType) -> str:
         if element.python_type is StructType:
             return f'crate::types::{element.name}'
         elif element.python_type is VectorOfStructs:
@@ -96,9 +96,8 @@ class CustomRustGenerator(RustGenerator):
         return self.super_format(element)
 
     def format_declaration_type_annotation(self, element: ast.DeclarationTypeAnnotation) -> str:
-        if isinstance(
-                element.type,
-                code_generation.codegen.CustomType) and element.type.python_type is StructType:
+        if isinstance(element.type,
+                      type_info.CustomType) and element.type.python_type is StructType:
             return f'crate::types::{element.type.name}'
         return self.super_format(element)
 

@@ -145,9 +145,8 @@ def create_piecewise_polynomials(x: sym.Expr, order: int, bases: T.Sequence[sym.
     return polynomials
 
 
-def create_polynomial_functions(
-        x: sym.Expr, polynomials: T.Sequence[sym.Expr], order: int,
-        is_cumulative: bool) -> T.List[code_generation.codegen.FunctionDescription]:
+def create_polynomial_functions(x: sym.Expr, polynomials: T.Sequence[sym.Expr], order: int,
+                                is_cumulative: bool) -> T.List[code_generation.FunctionDescription]:
     """
     Convert the output of `create_basis_polynomials` into function code-generated functions
     that evaluate the polynomials, and their first `order - 2` derivatives.
@@ -157,7 +156,7 @@ def create_polynomial_functions(
     :param polynomials: The result of `create_basis_polynomials`.
     :param is_cumulative: If true, assume the output is cumulative.
     """
-    descriptions: T.List[code_generation.codegen.FunctionDescription] = []
+    descriptions: T.List[code_generation.FunctionDescription] = []
     for i in range(0, len(polynomials)):
 
         def bspline(arg: RealScalar, arg_scale: RealScalar):
@@ -244,9 +243,8 @@ def plot_polynomials(polynomials: T.List[sym.Expr], x: sym.Expr, order: int, num
     plt.show()
 
 
-def create_bspline_functions(order: int,
-                             visualize: bool = False
-                            ) -> T.List[code_generation.codegen.FunctionDescription]:
+def create_bspline_functions(
+        order: int, visualize: bool = False) -> T.List[code_generation.FunctionDescription]:
     """
     Construct function descriptions for an order `order` b-spline.
     """

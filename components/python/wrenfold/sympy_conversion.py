@@ -5,11 +5,14 @@ Conversion in the opposite direction is implemented in C++ in `sympy_conversion.
 import typing as T
 
 from . import sym
+from pywrenfold.wf_wrapper.sympy_conversion import (to_sympy, function_argument_variable)
 
 
 class Conversions:
     """
     Object used to recursively convert sympy expressions into wrenfold objects.
+
+    OMIT_FROM_SPHINX
     """
 
     def __init__(self, sp: T.Any) -> None:
@@ -92,7 +95,7 @@ class Conversions:
 
         if expr.name.startswith('$arg_'):
             arg_index, element_index = [int(x) for x in expr.name.lstrip('$arg_').split('_')]
-            return sym.function_argument_variable(arg_index, element_index)
+            return function_argument_variable(arg_index, element_index)
 
         return sym.symbols(expr.name, **kwargs)
 

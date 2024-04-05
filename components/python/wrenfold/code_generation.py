@@ -6,10 +6,16 @@ import typing as T
 
 from . import sym
 from . import custom_types
+from . import type_info
 
-# Import the C++ code-generation module into this file.
-from pywrenfold.wf_wrapper import codegen
-from pywrenfold.wf_wrapper.codegen import transpile, CppGenerator, RustGenerator
+from pywrenfold.wf_wrapper.gen import (
+    Argument,
+    ArgumentDirection,
+    CppGenerator,
+    FunctionDescription,
+    RustGenerator,
+    transpile,
+)
 
 
 @dataclasses.dataclass
@@ -32,12 +38,9 @@ ReturnValueOrOutputArg = T.Union[ReturnValue, OutputArg]
 # Things that can be returned from symbolic python functions.
 CodegenFuncInvocationResult = T.Union[sym.Expr, sym.MatrixExpr, T.Iterable[ReturnValueOrOutputArg]]
 
-# The different wrapped generator types.
-GeneratorTypes = T.Union[CppGenerator, RustGenerator]
-
 
 def create_function_description(func: T.Callable[..., CodegenFuncInvocationResult],
-                                name: T.Optional[str] = None) -> codegen.FunctionDescription:
+                                name: T.Optional[str] = None) -> FunctionDescription:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
     to a `FunctionDescription` object. The provided function is invoked, and its output expressions
@@ -62,9 +65,9 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
     :return: An instance of `FunctionDescription`.
     """
     spec = inspect.getfullargspec(func=func)
-    description = codegen.FunctionDescription(name=name or func.__name__)
+    description = FunctionDescription(name=name or func.__name__)
 
-    cached_types: T.Dict[T.Type, codegen.CustomType] = dict()
+    cached_types: T.Dict[T.Type, type_info.CustomType] = dict()
     kwargs = dict()
     for arg_name in spec.args:
         if arg_name not in spec.annotations:
@@ -75,7 +78,7 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
             python_type=annotated_type, cached_custom_types=cached_types)
 
         input_expression = description.add_input_argument(arg_name, arg_type)
-        if isinstance(arg_type, codegen.CustomType):
+        if isinstance(arg_type, type_info.CustomType):
             if issubclass(annotated_type, custom_types.Opaque):
                 kwargs[arg_name] = annotated_type(provenance=input_expression)
             else:

@@ -16,6 +16,7 @@ import typing as T
 from wrenfold import ast
 from wrenfold import code_generation
 from wrenfold import sym
+from wrenfold import type_info
 from wrenfold.code_generation import ReturnValue, OutputArg, CppGenerator, RustGenerator
 from wrenfold.geometry import Quaternion
 from wrenfold.type_annotations import RealScalar, Vector3, Vector6
@@ -190,7 +191,7 @@ class CustomCppGenerator(CppGenerator):
             return f"{self.format(element.arg)}.{element.field_name}()"
         return self.super_format(element)
 
-    def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
+    def format_custom_type(self, element: type_info.CustomType) -> str:
         """Place our custom types into the `geo` namespace."""
         if element.python_type in [Point3d, Pose3d]:
             return f'geo::{element.name}'
@@ -236,7 +237,7 @@ class CustomRustGenerator(RustGenerator):
                 return f'{self.format(element.arg)}.scalar()'
         return self.super_format(element)
 
-    def format_custom_type(self, element: code_generation.codegen.CustomType) -> str:
+    def format_custom_type(self, element: type_info.CustomType) -> str:
         """Place our custom types into the `geo` namespace."""
         if element.python_type in [Point3d, Pose3d]:
             return f'crate::geo::{element.name}'

@@ -52,8 +52,6 @@ sym
 
 .. autofunction:: wrenfold.sym.full_piv_lu
 
-.. autofunction:: wrenfold.sym.function_argument_variable
-
 .. autofunction:: wrenfold.sym.ge
 
 .. autofunction:: wrenfold.sym.gt
@@ -103,8 +101,6 @@ sym
 .. autofunction:: wrenfold.sym.tan
 
 .. autofunction:: wrenfold.sym.tanh
-
-.. autofunction:: wrenfold.sym.to_sympy
 
 .. autofunction:: wrenfold.sym.vec
 

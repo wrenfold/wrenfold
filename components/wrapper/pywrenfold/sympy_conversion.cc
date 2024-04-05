@@ -208,15 +208,6 @@ void wrap_sympy_conversion(py::module_& m) {
   m.def("to_sympy", &to_sympy<matrix_expr>, py::arg("expr"), py::arg("sp") = std::nullopt,
         py::arg("evaluate") = true, py::doc("Convert matrix expression to sympy."));
 
-  // Constructors for specific concrete types.
-  m.def(
-      "addition",
-      [](const std::vector<scalar_expr>& args) { return addition::from_operands(args); },
-      py::arg("args"), py::doc("Construct addition expression."));
-  m.def(
-      "multiplication",
-      [](const std::vector<scalar_expr>& args) { return multiplication::from_operands(args); },
-      py::arg("args"), py::doc("Construct multiplication expression."));
   m.def(
       "function_argument_variable",
       [](const std::size_t arg_index, const std::size_t element_index) {
@@ -224,7 +215,7 @@ void wrap_sympy_conversion(py::module_& m) {
                                    number_set::real);
       },
       py::arg("arg_index"), py::arg("element_index"),
-      py::doc("Create `function_argument_variable`."));
+      py::doc("Create ``function_argument_variable``."));
 }
 
 }  // namespace wf

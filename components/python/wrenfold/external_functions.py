@@ -3,10 +3,11 @@ Utilities for defining user-specified external functions.
 """
 import typing as T
 
-from .code_generation import codegen
-from .sym import Expr, MatrixExpr, CompoundExpr, AnyExpression, \
-  create_compound_expression_elements, create_custom_type_construction
+from . import sym
 from . import custom_types
+from . import type_info
+
+from pywrenfold.wf_wrapper.gen import PyExternalFunction
 
 
 class ExternalFunc:
@@ -14,8 +15,8 @@ class ExternalFunc:
     Callable object that represents a user-declared external function.
     """
 
-    def __init__(self, wrapped_func: codegen.ExternalFunction) -> None:
-        self._inner: codegen.ExternalFunction = wrapped_func
+    def __init__(self, wrapped_func: PyExternalFunction) -> None:
+        self._inner: PyExternalFunction = wrapped_func
 
     def __repr__(self) -> str:
         return repr(self._inner)
@@ -35,16 +36,17 @@ class ExternalFunc:
         return self._inner.num_arguments
 
     @property
-    def return_type(self) -> T.Union[codegen.ScalarType, codegen.MatrixType, codegen.CustomType]:
+    def return_type(
+            self) -> T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]:
         return self._inner.return_type
 
     def __hash__(self) -> int:
         return hash(self._inner)
 
-    def __eq__(self, other: T.Union['ExternalFunc', codegen.ExternalFunction]) -> bool:
+    def __eq__(self, other: T.Union['ExternalFunc', PyExternalFunction]) -> bool:
         if isinstance(other, ExternalFunc):
             return self._inner == other._inner
-        elif isinstance(other, codegen.ExternalFunction):
+        elif isinstance(other, PyExternalFunction):
             return self._inner == other
         else:
             return False
@@ -78,8 +80,8 @@ def declare_external_function(
     type_cache: T.Dict[T.Type, custom_types.CodegenType] = dict()
 
     # If custom types are specified, we need to construct `CustomType` objects to pass to C++:
-    converted_args: T.List[str, T.Union[codegen.ScalarType, codegen.MatrixType,
-                                        codegen.CustomType]] = []
+    converted_args: T.List[str, T.Union[type_info.ScalarType, type_info.MatrixType,
+                                        type_info.CustomType]] = []
     for (arg_name, python_arg_type) in arguments:
         internal_type = custom_types.convert_to_internal_type(
             python_type=python_arg_type, cached_custom_types=type_cache)
@@ -89,14 +91,14 @@ def declare_external_function(
         python_type=return_type, cached_custom_types=type_cache)
 
     # Create c++ object that will represent this external function.
-    wrapper_func = codegen.ExternalFunction(
+    wrapper_func = PyExternalFunction(
         name=name, arguments=converted_args, return_type=converted_return_type)
 
     # Next we make a python wrapper it that will handle mapping of data in/out of custom types.
     return ExternalFunc(wrapped_func=wrapper_func)
 
 
-def _combine_args(func: codegen.ExternalFunction, args: T.Sequence[T.Any],
+def _combine_args(func: PyExternalFunction, args: T.Sequence[T.Any],
                   kwargs: T.Dict[str, T.Any]) -> T.List[T.Any]:
     """
     Combine args and kwargs into one ordered list.
@@ -119,7 +121,7 @@ def _combine_args(func: codegen.ExternalFunction, args: T.Sequence[T.Any],
     return list(args) + [v for (_, v) in sorted(index_and_value, key=lambda pair: pair[0])]
 
 
-def _invoke_external_function(func: codegen.ExternalFunction, *args, **kwargs):
+def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
     """
     Call `wrapper_func` with the provided arguments.
     """
@@ -129,16 +131,16 @@ def _invoke_external_function(func: codegen.ExternalFunction, *args, **kwargs):
     # The expected types for each argument:
     arg_names_and_types = [(a.name, a.type) for a in func.arguments]
 
-    converted_args: T.List[AnyExpression] = []
+    converted_args: T.List[sym.AnyExpression] = []
     for arg, (arg_name, arg_type) in zip(combined_args, arg_names_and_types):
-        if isinstance(arg, (Expr, MatrixExpr)):
+        if isinstance(arg, (sym.Expr, sym.MatrixExpr)):
             converted_args.append(arg)  # Type is checked later in custom_function.cc
             continue
         elif isinstance(arg, (int, float)):
-            converted_args.append(Expr(arg))
+            converted_args.append(sym.Expr(arg))
             continue
 
-        if not isinstance(arg_type, codegen.CustomType):
+        if not isinstance(arg_type, type_info.CustomType):
             raise TypeError(
                 f"Argument `{arg_name}` of function `{func.name}` should be of type {arg_type}, " +
                 f"but we received type {type(arg)}.")
@@ -158,10 +160,10 @@ def _invoke_external_function(func: codegen.ExternalFunction, *args, **kwargs):
             converted_args.append(arg._provenance)
         else:
             expressions = custom_types.map_expressions_out_of_custom_type(instance=arg)
-            converted_args.append(create_custom_type_construction(arg_type, expressions))
+            converted_args.append(sym.create_custom_type_construction(arg_type, expressions))
 
-    result: AnyExpression = func(converted_args)
-    if not isinstance(result, CompoundExpr):
+    result: sym.AnyExpression = func(converted_args)
+    if not isinstance(result, sym.CompoundExpr):
         # Scalars and matrices are directly returned.
         return result
 
@@ -169,13 +171,13 @@ def _invoke_external_function(func: codegen.ExternalFunction, *args, **kwargs):
     returned_custom_type = func.return_type
     assert isinstance(
         returned_custom_type,
-        codegen.CustomType), f"Return type should be custom type: {returned_custom_type}"
+        type_info.CustomType), f"Return type should be custom type: {returned_custom_type}"
 
     if issubclass(returned_custom_type.python_type, custom_types.Opaque):
         return returned_custom_type.python_type(provenance=result)
     else:
         # This is a dataclass type, fill it with expressions:
-        expressions = create_compound_expression_elements(
+        expressions = sym.create_compound_expression_elements(
             provenance=result, num=returned_custom_type.total_size)
         result, _ = custom_types.map_expressions_into_custom_type(
             expressions=expressions, custom_type=returned_custom_type.python_type)
