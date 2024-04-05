@@ -46,7 +46,7 @@ function(add_compiled_code_generator NAME)
 
   # Add an executable target with the provided source files.
   add_executable(${generate_target} ${ARGS_SOURCE_FILES})
-  target_link_libraries(${generate_target} wf-core wf-runtime wf-test-support)
+  target_link_libraries(${generate_target} wf_core wf-runtime wf-test-support)
   target_compile_definitions(
     ${generate_target}
     PRIVATE "-DGENERATOR_OUTPUT_FILE=\"${GENERATOR_OUTPUT_FILE}\"")
@@ -107,7 +107,7 @@ function(add_cpp_test NAME)
 
   target_link_libraries(
     ${NAME}
-    wf-core
+    wf_core
     wf-runtime
     wf-test-support
     gtest
@@ -165,7 +165,7 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
       "${GENERATOR_OUTPUT_FILE}" ${ARGS_SCRIPT_ARGUMENTS}
     WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
     COMMENT "Run python code-generator: ${NAME}"
-    DEPENDS wf-core wf_wrapper wf_python ${MAIN_SCRIPT_FILE} ${SOURCE_FILES}
+    DEPENDS wf_core wf_wrapper wf_python ${MAIN_SCRIPT_FILE} ${SOURCE_FILES}
             ${PYTHON_LIB_SOURCES})
 
   set_source_files_properties(${GENERATOR_OUTPUT_FILE} PROPERTIES GENERATED

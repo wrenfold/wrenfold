@@ -12,7 +12,7 @@ target_include_directories(
   wf-test-support INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                             $<INSTALL_INTERFACE:include>)
 
-if(NOT TARGET wf-core)
+if(NOT TARGET wf_core)
   message(FATAL_ERROR "Main library target has not been defined.")
 endif()
 

@@ -34,7 +34,7 @@ if(DEFINED SPHINX_BUILD_PATH)
       "${CMAKE_CURRENT_SOURCE_DIR}/source/python_api"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generate RST for python API."
-    DEPENDS wf-core wf_wrapper wf_python ${PYTHON_LIB_SOURCES}
+    DEPENDS wf_core wf_wrapper wf_python ${PYTHON_LIB_SOURCES}
             ${DOC_GENERATION_SCRIPT} ${HANDWRITTEN_RST_FILES})
 
   # The handwritten source files for the docs:

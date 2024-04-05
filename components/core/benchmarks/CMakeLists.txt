@@ -6,7 +6,7 @@ function(add_benchmark SOURCE_FILE)
   # add test executable for every file
   message(STATUS "Adding benchmark: ${BENCH_NAME}")
   add_executable(${BENCH_NAME} ${SOURCE_FILE})
-  target_link_libraries(${BENCH_NAME} wf-core benchmark::benchmark)
+  target_link_libraries(${BENCH_NAME} wf_core benchmark::benchmark)
   target_compile_options(${BENCH_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
 endfunction()
 
