@@ -1,2 +1,2 @@
-"""Alias for the pywrenfold ast module."""
+"""Alias for the pywrenfold.ast module."""
 from pywrenfold.ast import *

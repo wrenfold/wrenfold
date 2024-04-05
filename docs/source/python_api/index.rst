@@ -12,3 +12,5 @@ Python API documentation
    type_annotations
    ast
    sympy_conversion
+   enumerations
+   exceptions

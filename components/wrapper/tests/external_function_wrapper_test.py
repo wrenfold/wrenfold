@@ -5,6 +5,7 @@ import dataclasses
 import unittest
 
 from wrenfold import custom_types
+from wrenfold import exceptions
 from wrenfold import external_functions
 from wrenfold import sym
 from wrenfold import type_info
@@ -45,7 +46,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         self.assertRaises(KeyError, lambda: func(y=z))
 
         # Passing the wrong type should be an exception:
-        self.assertRaises(sym.TypeError, lambda: func(x=sym.vector(y, z)))
+        self.assertRaises(exceptions.TypeError, lambda: func(x=sym.vector(y, z)))
 
     def test_matrices(self):
         """Define a function that accepts and returns matrices."""
@@ -63,8 +64,8 @@ class ExternalFunctionWrapperTest(MathTestBase):
         for element in output:
             self.assertEqual("CompoundExpressionElement", element.type_name)
 
-        self.assertRaises(sym.TypeError, lambda: func(sym.vector(z), v=v))
-        self.assertRaises(sym.TypeError, lambda: func(x, sym.vector(2, x)))
+        self.assertRaises(exceptions.TypeError, lambda: func(sym.vector(z), v=v))
+        self.assertRaises(exceptions.TypeError, lambda: func(x, sym.vector(2, x)))
         self.assertRaises(RuntimeError, lambda: func(x, y, z))
         self.assertRaises(RuntimeError, lambda: func(2, x=v))
 
@@ -91,7 +92,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         for element in [output.a, output.b[0], output.b[1]]:
             self.assertEqual('CompoundExpressionElement', element.type_name)
 
-        self.assertRaises(sym.TypeError, lambda: func(y, x))
+        self.assertRaises(exceptions.TypeError, lambda: func(y, x))
         self.assertRaises(TypeError, lambda: func(foo=2, bar=TestType(a=1, b=v)))
         self.assertRaises(RuntimeError, lambda: func(bar=v))
 

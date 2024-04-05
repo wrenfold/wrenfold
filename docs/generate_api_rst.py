@@ -8,12 +8,14 @@ import typing as T
 from pathlib import Path
 
 # The built library needs to be on the import path by this point.
-from wrenfold import sym
-from wrenfold import geometry
 from wrenfold import ast
 from wrenfold import code_generation
-from wrenfold import sympy_conversion
 from wrenfold import custom_types
+from wrenfold import enumerations
+from wrenfold import exceptions
+from wrenfold import geometry
+from wrenfold import sym
+from wrenfold import sympy_conversion
 from wrenfold import type_annotations
 
 
@@ -66,6 +68,8 @@ def main(args: argparse.Namespace):
     generate_rst_for_module(module=custom_types, module_name="custom_types", output_dir=output_dir)
     generate_rst_for_module(
         module=type_annotations, module_name="type_annotations", output_dir=output_dir)
+    generate_rst_for_module(module=exceptions, module_name="exceptions", output_dir=output_dir)
+    generate_rst_for_module(module=enumerations, module_name="enumerations", output_dir=output_dir)
 
 
 def parse_args() -> argparse.Namespace:

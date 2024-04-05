@@ -56,9 +56,6 @@ function(add_wrapper_module)
     set(SUB_MODULE_STUB_OUTPUT_PATH
         "${STUBGEN_OUTPUT_DIR}/${MODULE_NAME}/${SUB_MODULE_NAME}.pyi")
     list(APPEND STUB_OUTPUT_PATHS ${SUB_MODULE_STUB_OUTPUT_PATH})
-    message(
-      STATUS
-        "Adding sub-module to stubgen output: ${SUB_MODULE_STUB_OUTPUT_PATH}")
   endforeach()
 
   # Create list of the final output paths, after the fix-up step:
@@ -122,21 +119,26 @@ add_wrapper_module(
   pywrenfold/codegen_wrapper.cc
   pywrenfold/compound_expression_wrapper.cc
   pywrenfold/docs/codegen_wrapper.h
-  pywrenfold/docs/expression_wrapper.h
   pywrenfold/docs/geometry_wrapper.h
   pywrenfold/docs/matrix_wrapper.h
+  pywrenfold/docs/scalar_wrapper.h
   pywrenfold/docs/sympy_conversion.h
   pywrenfold/enums_wrapper.cc
-  pywrenfold/expression_wrapper.cc
+  pywrenfold/exceptions_wrapper.cc
   pywrenfold/geometry_wrapper.cc
   pywrenfold/matrix_wrapper.cc
+  pywrenfold/scalar_wrapper.cc
   pywrenfold/sympy_conversion.cc
   pywrenfold/types_wrapper.cc
+  pywrenfold/wrapper.cc
   pywrenfold/wrapper_utils.h
   SUB_MODULE_NAMES
   ast
+  enumerations
+  exceptions
   gen
   geometry
+  sym
   sympy_conversion
   type_info)
 

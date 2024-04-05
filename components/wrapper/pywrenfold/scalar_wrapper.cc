@@ -1,9 +1,9 @@
-// Copyright 2023 Gareth Cross
+// Copyright 2024 Gareth Cross
 #include <optional>
 #include <vector>
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES
-#include <pybind11/complex.h>
+#include <pybind11/complex.h>  //  Used for std::complex conversion.
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -17,7 +17,7 @@
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
 
-#include "docs/expression_wrapper.h"
+#include "docs/scalar_wrapper.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -102,46 +102,8 @@ scalar_expr substitute_variables_wrapper(
 
 auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
 
-// Defined in matrix_wrapper.cc
-void wrap_matrix_operations(py::module_& m);
-
-// Defined in codegen_wrapper.cc
-void wrap_codegen_operations(py::module_& m);
-void wrap_argument(py::module_& m);
-
-// Defined in ast_wrapper.cc
-void wrap_ast(py::module_& m);
-
-// Defined in typess_wrapper.cc
-void wrap_types(py::module_& m);
-
-// Defined in code_formatting_wrapper.cc
-void wrap_code_formatting_operations(py::module_& m);
-
-// Defined in compound_expression_wrapper.cc
-void wrap_compound_expression(py::module_& m);
-
-// Defined in boolean_expression_wrapper.cc
-void wrap_boolean_expression(py::module_& m);
-
-// Defined in geometry_wrapper.cc
-void wrap_geometry_operations(py::module_& m);
-
-// Defined in sympy_conversion.cc
-void wrap_sympy_conversion(py::module_& m);
-
-// Defined in enums_wrapper.cc
-void wrap_enums(py::module_& m);
-}  // namespace wf
-
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
-PYBIND11_MODULE(PY_MODULE_NAME, m) {
-  using namespace wf;
-  wrap_enums(m);
-
-  // For types to show up correctly in docstrings, we need to wrap `boolean_expr` first.
-  wrap_boolean_expression(m);
-
+void wrap_scalar_operations(py::module_& m) {
   // Primary expression type:
   wrap_class<scalar_expr>(m, "Expr")
       // Implicit construction from numerics:
@@ -305,52 +267,12 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   // Direct constructors for addition+multiplication.
   m.def(
       "addition",
-      [](const std::vector<scalar_expr>& args) {
-        if (args.empty()) {
-          throw invalid_argument_error("Need at least one operand to construct addition.");
-        }
-        return addition::from_operands(args);
-      },
+      [](const std::vector<scalar_expr>& args) { return addition::from_operands(args); },
       py::arg("args"), py::doc("Construct addition expression from provided operands."));
   m.def(
       "multiplication",
-      [](const std::vector<scalar_expr>& args) {
-        if (args.empty()) {
-          throw invalid_argument_error("Need at least one operand to construct multiplication.");
-        }
-        return multiplication::from_operands(args);
-      },
+      [](const std::vector<scalar_expr>& args) { return multiplication::from_operands(args); },
       py::arg("args"), py::doc("Construct multiplication expression from provided operands."));
+}
 
-  // Exceptions:
-  py::register_exception<arithmetic_error>(m, "ArithmeticError");
-  py::register_exception<assertion_error>(m, "AssertionError");
-  py::register_exception<dimension_error>(m, "DimensionError");
-  py::register_exception<domain_error>(m, "DomainError");
-  py::register_exception<invalid_argument_error>(m, "InvalidArgumentError");
-  py::register_exception<type_error>(m, "TypeError");
-
-  // Include other wrappers in this module:
-  wrap_matrix_operations(m);
-  wrap_compound_expression(m);
-
-  auto m_sympy_conversion =
-      m.def_submodule(PY_SUBMODULE_NAME_SYMPY_CONVERSION, "Wrapped sympy conversion methods.");
-  wrap_sympy_conversion(m_sympy_conversion);
-
-  auto m_geo = m.def_submodule(PY_SUBMODULE_NAME_GEOMETRY, "Wrapped geometry methods.");
-  wrap_geometry_operations(m_geo);
-
-  auto m_types = m.def_submodule(PY_SUBMODULE_NAME_TYPE_INFO, "Wrapped code-generation types.");
-  wrap_types(m_types);
-
-  // We need to wrap `Argument` and `ArgumentDirection` first so they are available for `ast`.
-  auto m_gen = m.def_submodule(PY_SUBMODULE_NAME_GEN, "Wrapped code-generation methods.");
-  wrap_argument(m_gen);
-
-  auto m_ast = m.def_submodule(PY_SUBMODULE_NAME_AST, "Wrapped AST types.");
-  wrap_ast(m_ast);
-
-  wrap_codegen_operations(m_gen);
-  wrap_code_formatting_operations(m_gen);
-}  // PYBIND11_MODULE
+}  // namespace wf

@@ -81,7 +81,9 @@ struct add_numeric_constants {
 };
 
 scalar_expr addition::from_operands(const absl::Span<const scalar_expr> args) {
-  WF_ASSERT(!args.empty(), "Cannot call from_operands with an empty span.");
+  if (args.empty()) {
+    throw invalid_argument_error("Need at least one operand to construct addition.");
+  }
   if (args.size() < 2) {
     return args.front();
   }
