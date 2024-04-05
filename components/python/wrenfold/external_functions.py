@@ -7,7 +7,7 @@ from . import sym
 from . import custom_types
 from . import type_info
 
-from pywrenfold.wf_wrapper.gen import PyExternalFunction
+from pywrenfold.gen import PyExternalFunction
 
 
 class ExternalFunc:

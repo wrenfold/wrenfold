@@ -8,7 +8,7 @@ from . import sym
 from . import custom_types
 from . import type_info
 
-from pywrenfold.wf_wrapper.gen import (
+from pywrenfold.gen import (
     Argument,
     ArgumentDirection,
     CppGenerator,
