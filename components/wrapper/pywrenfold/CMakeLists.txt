@@ -121,6 +121,7 @@ add_wrapper_module(
   docs/expression_wrapper.h
   docs/geometry_wrapper.h
   docs/matrix_wrapper.h
+  docs/codegen_wrapper.h
   expression_wrapper.cc
   enums_wrapper.cc
   geometry_wrapper.cc

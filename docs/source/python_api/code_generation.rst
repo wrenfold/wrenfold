@@ -1,7 +1,13 @@
 code_generation
 ===============
 
+.. autoclass:: wrenfold.code_generation.Argument
+  :members:
+
 .. autoclass:: wrenfold.code_generation.ArgumentDirection
+  :members:
+
+.. autoclass:: wrenfold.code_generation.FunctionDescription
   :members:
 
 .. autoclass:: wrenfold.code_generation.OutputArg

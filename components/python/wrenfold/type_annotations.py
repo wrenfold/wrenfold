@@ -1,33 +1,43 @@
 """
-Type annotations for decorating function arguments so that the code-generator
-can instantiate the correct inputs.
+Type annotations for decorating function arguments so that the code-generator can instantiate the
+correct inputs.
 
 You can define new vector/matrix annotations anywhere. They need only inherit from MatrixExpr and
 expose the SHAPE tuple.
 """
 
-from .sym import (Expr, MatrixExpr)
+from . import sym
 
 
-class RealScalar(Expr):
+class RealScalar(sym.Expr):
     """Denote a floating-point scalar variable."""
 
 
-class Vector2(MatrixExpr):
+class Vector1(sym.MatrixExpr):
+    """A 1x1 matrix."""
+    SHAPE = (1, 1)
+
+
+class Vector2(sym.MatrixExpr):
+    """A 2x1 column vector."""
     SHAPE = (2, 1)
 
 
-class Vector3(MatrixExpr):
+class Vector3(sym.MatrixExpr):
+    """A 3x1 column vector."""
     SHAPE = (3, 1)
 
 
-class Vector4(MatrixExpr):
+class Vector4(sym.MatrixExpr):
+    """A 4x1 column vector."""
     SHAPE = (4, 1)
 
 
-class Vector5(MatrixExpr):
+class Vector5(sym.MatrixExpr):
+    """A 5x1 column vector."""
     SHAPE = (5, 1)
 
 
-class Vector6(MatrixExpr):
+class Vector6(sym.MatrixExpr):
+    """A 6x1 column vector."""
     SHAPE = (6, 1)

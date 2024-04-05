@@ -9,6 +9,7 @@
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
 
+#include "docs/codegen_wrapper.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -51,18 +52,23 @@ any_expression call_external_function(const external_function& self, const py::l
 
 void wrap_argument(py::module_& m) {
   py::enum_<argument_direction>(m, "ArgumentDirection")
-      .value("Input", argument_direction::input)
-      .value("Output", argument_direction::output)
-      .value("OptionalOutput", argument_direction::optional_output);
+      .value("Input", argument_direction::input, "Argument is an input.")
+      .value("Output", argument_direction::output, "Argument is an output.")
+      .value("OptionalOutput", argument_direction::optional_output,
+             "Argument is an optional output.");
 
   py::class_<argument>(m, "Argument")
-      .def_property_readonly("name", &argument::name)
-      .def_property_readonly("type", &argument::type)
-      .def_property_readonly("direction", &argument::direction)
-      .def_property_readonly("is_optional", &argument::is_optional)
-      .def("__repr__", [](const argument& self) {
-        return fmt::format("Argument({}: {})", self.name(), self.type());
-      });
+      .def_property_readonly("name", &argument::name, "String name of the argument.")
+      .def_property_readonly("type", &argument::type, "Type of the argument.")
+      .def_property_readonly("direction", &argument::direction,
+                             "How the argument is used by the function.")
+      .def_property_readonly("is_optional", &argument::is_optional,
+                             "True if the argument is optional.")
+      .def("__repr__",
+           [](const argument& self) {
+             return fmt::format("Argument({}: {})", self.name(), self.type());
+           })
+      .doc() = "Describe an argument to a function.";
 }
 
 void wrap_codegen_operations(py::module_& m) {
@@ -101,8 +107,8 @@ void wrap_codegen_operations(py::module_& m) {
       });
 
   py::class_<function_description>(m, "FunctionDescription")
-      .def(py::init<std::string>(), py::arg("name"), py::doc("Construct with string name."))
-      .def_property_readonly("name", &function_description::name)
+      .def(py::init<std::string>(), py::arg("name"), "Construct with function name.")
+      .def_property_readonly("name", &function_description::name, "Name of the function.")
       .def("__repr__",
            [](const function_description& self) {
              return fmt::format("FunctionDescription('{}', {} args)", self.name(),
@@ -174,7 +180,8 @@ void wrap_codegen_operations(py::module_& m) {
              std::vector<scalar_expr> expressions) {
             self.set_return_value(custom_type, std::move(expressions));
           },
-          py::arg("custom_type"), py::arg("expressions"));
+          py::arg("custom_type"), py::arg("expressions"))
+      .doc() = docstrings::function_description.data();
 }
 
 }  // namespace wf

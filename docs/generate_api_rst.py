@@ -14,6 +14,7 @@ from wrenfold import ast
 from wrenfold import code_generation
 from wrenfold import sympy_conversion
 from wrenfold import custom_types
+from wrenfold import type_annotations
 
 
 def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
@@ -66,6 +67,8 @@ def main(args: argparse.Namespace):
     generate_rst_for_module(
         module=sympy_conversion, module_name="sympy_conversion", output_dir=output_dir)
     generate_rst_for_module(module=custom_types, module_name="custom_types", output_dir=output_dir)
+    generate_rst_for_module(
+        module=type_annotations, module_name="type_annotations", output_dir=output_dir)
 
 
 def parse_args() -> argparse.Namespace:

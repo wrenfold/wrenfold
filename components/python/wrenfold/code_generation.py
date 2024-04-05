@@ -20,13 +20,27 @@ from pywrenfold.wf_wrapper.gen import (
 
 @dataclasses.dataclass
 class ReturnValue:
-    """Designate a return value in the result of symbolic function invocation."""
+    """
+    Designate a return value in the result of symbolic function invocation.
+
+    Attributes:
+      expression: The returned value. This may be an expression, or an instance of a user-provided
+        custom type.
+    """
     expression: T.Union[sym.Expr, sym.MatrixExpr, T.Any]
 
 
 @dataclasses.dataclass
 class OutputArg:
-    """Designate an output argument in the result of a symbolic function invocation."""
+    """
+    Designate an output argument in the result of a symbolic function invocation.
+
+    Attributes:
+      expression: Value of the output argument. This may be an expression, or an instance of a
+        user-provided custom type.
+      name: Name of the argument.
+      is_optional: Specify whether the output argument is optional or not.
+    """
     expression: T.Union[sym.Expr, sym.MatrixExpr, T.Any]
     name: str
     is_optional: bool = False
@@ -36,33 +50,68 @@ class OutputArg:
 ReturnValueOrOutputArg = T.Union[ReturnValue, OutputArg]
 
 # Things that can be returned from symbolic python functions.
-CodegenFuncInvocationResult = T.Union[sym.Expr, sym.MatrixExpr, T.Iterable[ReturnValueOrOutputArg]]
+CodegenFuncInvocationResult = T.Union[sym.Expr, sym.MatrixExpr, T.Sequence[ReturnValueOrOutputArg]]
 
 
 def create_function_description(func: T.Callable[..., CodegenFuncInvocationResult],
                                 name: T.Optional[str] = None) -> FunctionDescription:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
-    to a `FunctionDescription` object. The provided function is invoked, and its output expressions
-    are captured and stored in the FunctionDescription, along with a signature that carries type
-    information required to emit code.
+    to a :class:`wrenfold.code_generation.FunctionDescription` object. The provided function is
+    invoked, and its output expressions are captured and stored, along with a signature that
+    carries type information required to emit code.
 
-    >>> def foo(x: RealScalar, y: RealScalar):
-    >>>     return [OutputArg(x + y, "z")]
-    >>>
-    >>> description = create_function_description(func=foo)
-    >>> definition = transpile(description=description)
-    >>> code = CppGenerator.generate(definitions=definition)
+    Tip:
+      The provided callable must be type annotated so that wrenfold can deduce the type of input
+      expressions required to invoke. See :doc:`type_annotations` for built-in types that can be
+      used to annotate functions. The function should return either:
 
-    TODO: Add support saving and emitting the docstring.
+        * A sequence of :class:`wrenfold.code_generation.ReturnValue` or
+          :class:`wrenfold.code_generation.OutputArg` objects, OR
+        * A single :class:`wrenfold.sym.Expr` or :class:`wrenfold.sym.MatrixExpr` object, which will
+          be interpreted as a ``ReturnValue``.
 
-    :param func: A python function whose arguments are type-annotated (see type_annotations.py) so
-      that we may extract type signatures. The function should return a list of ReturnValue or
-      OutputArg objects. These indicate how outputs are passed out of the function.
+    Args:
+      func: A python function with type-annotated arguments.
+      name: String name of the function.
 
-    :param name: String name of the function.
+    Returns:
+      An instance of :class:`wrenfold.code_generation.FunctionDescription`.
 
-    :return: An instance of `FunctionDescription`.
+    Example:
+      >>> def foo(x: RealScalar, y: RealScalar):
+      >>>     # One return value, and one output argument named `z`:
+      >>>     return [code_generation.ReturnValue(x * y), code_generation.OutputArg(x + y, "z")]
+      >>> description = code_generation.create_function_description(func=foo)
+      >>> print(description)
+      FunctionDescription('foo', 3 args)
+
+      The description can then be transpiled to a target language:
+
+      >>> definition = code_generation.transpile(description)
+      >>> print(definition)
+      FunctionDefinition('foo', <3 arguments>, <7 elements>)
+      >>> code = code_generation.CppGenerator().generate(definitions=definition)
+      >>> print(code)
+
+      .. code-block:: cpp
+        :linenos:
+
+        template <typename Scalar>
+        Scalar foo(const Scalar x, const Scalar y, Scalar& z)
+        {
+            // Operation counts:
+            // add: 1
+            // multiply: 1
+            // total: 2
+
+            const Scalar v01 = y;
+            const Scalar v00 = x;
+            const Scalar v04 = v00 + v01;
+            const Scalar v02 = v00 * v01;
+            z = v04;
+            return v02;
+        }
     """
     spec = inspect.getfullargspec(func=func)
     description = FunctionDescription(name=name or func.__name__)
@@ -145,10 +194,14 @@ namespace {namespace} {{
 
 def apply_cpp_preamble(code: T.Union[str, T.Sequence[str]], namespace: str) -> str:
     """
-    Wrap C++ code in a preamble that includes the necessary headers.
-    :param code: Output C++ code, either as a string of sequence of strings.
-    :param namespace: Namespace to put generated code in.
-    :return: Formatted string.
+    Wrap C++ code in a preamble that includes the necessary runtime headers.
+
+    Args:
+      code: A string or a list of strings (to be joined with double newlines).
+      namespace: Namespace to put generated code in.
+
+    Returns:
+      Formatted string.
     """
     if not isinstance(code, str):
         code = '\n\n'.join(code)
@@ -166,21 +219,25 @@ RUST_PREAMBLE_TEMPLATE = \
 def apply_rust_preamble(code: T.Union[str, T.Sequence[str]]) -> str:
     """
     Wrap Rust code with a preamble that disables formatting.
-    :param code: Output Rust code, either as a string of sequence of strings.
-    :return: Formatted string.
+
+    Args:
+      code: A string or a list of strings (to be joined with double newlines).
+
+    Returns:
+      Formatted string.
     """
     if not isinstance(code, str):
         code = '\n\n'.join(code)
     return RUST_PREAMBLE_TEMPLATE.format(code=code)
 
 
-def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]):
+def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]) -> None:
     """
-    Write `code` to the specified path. Create intermediate directories as required.
+    Write ``code`` to the specified path. Create intermediate directories as required.
 
-    :param code: File contents.
-    :param path: The output path.
-    :return: None
+    Args:
+      code: String containing file contents.
+      path: Path to the destination file.
     """
     if isinstance(path, str):
         path = pathlib.Path(path)
