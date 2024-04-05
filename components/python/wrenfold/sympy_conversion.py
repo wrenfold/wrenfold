@@ -6,7 +6,7 @@ import importlib
 import typing as T
 
 from . import sym
-from pywrenfold.wf_wrapper.sympy_conversion import (to_sympy, function_argument_variable)
+from pywrenfold.sympy_conversion import (to_sympy, function_argument_variable)
 
 
 class Conversions:
