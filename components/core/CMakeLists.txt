@@ -137,7 +137,7 @@ message(STATUS "Warning flags set to: ${SHARED_WARNING_FLAGS}")
 
 target_compile_options(wf_core PRIVATE ${LIB_COMPILATION_FLAGS_PRIVATE})
 target_compile_options(wf_core PUBLIC ${LIB_COMPILATION_FLAGS_PUBLIC})
-target_link_libraries(wf_core wf-runtime fmt::fmt-header-only
+target_link_libraries(wf_core wf_runtime fmt::fmt-header-only
                       absl::inlined_vector absl::span)
 if(WIN32)
   target_compile_definitions(wf_core PUBLIC -D_USE_MATH_DEFINES)

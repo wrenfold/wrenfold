@@ -1,5 +1,5 @@
 # Create a target for the runtime library (a header only target).
-set(RUNTIME_INTERFACE_NAME wf-runtime)
+set(RUNTIME_INTERFACE_NAME wf_runtime)
 add_library(${RUNTIME_INTERFACE_NAME} INTERFACE wf_runtime/span.h
             wf_runtime/span_detail.h wf_runtime/span_eigen.h)
 target_include_directories(

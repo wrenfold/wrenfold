@@ -16,7 +16,7 @@ if(NOT TARGET wf_core)
   message(FATAL_ERROR "Main library target has not been defined.")
 endif()
 
-target_link_libraries(wf-test-support INTERFACE wf-runtime gtest eigen
+target_link_libraries(wf-test-support INTERFACE wf_runtime gtest eigen
                                                 fmt::fmt-header-only)
 
 # Object target for custom main() for gtest
