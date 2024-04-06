@@ -22,7 +22,7 @@ class constant {
 class dynamic {
  public:
   // Construct with stride value.
-  explicit constexpr dynamic(std::size_t value) noexcept : value_(value) {}
+  explicit constexpr dynamic(const std::size_t value) noexcept : value_(value) {}
 
   // Access the stride value.
   constexpr std::size_t value() const noexcept { return value_; }
@@ -33,12 +33,13 @@ class dynamic {
 
 namespace detail {
 
-// Implementation of conjunction (since this file is pre C++17).
+// Implementation of conjunction.
 template <typename...>
 struct conjunction : std::true_type {};
 template <typename T, typename... Ts>
-struct conjunction<T, Ts...>
-    : std::conditional<T::value, conjunction<Ts...>, std::false_type>::type {};
+struct conjunction<T, Ts...> : std::conditional_t<T::value, conjunction<Ts...>, std::false_type> {};
+template <typename... Ts>
+constexpr bool conjunction_v = conjunction<Ts...>::value;
 
 // Evaluates to true if `T` is an instance of `constant<D>`
 template <typename T>
@@ -51,12 +52,12 @@ struct is_constant<constant<D>> : std::true_type {};
 template <typename... Values>
 class value_pack_const {
  public:
-  static_assert(detail::conjunction<is_constant<Values>...>::value,
+  static_assert(detail::conjunction_v<is_constant<Values>...>,
                 "All values must be compile-time constants");
 
   using tuple_type = std::tuple<Values...>;
   template <std::size_t D>
-  using tuple_element_t = typename std::tuple_element<D, tuple_type>::type;
+  using tuple_element_t = std::tuple_element_t<D, tuple_type>;
 
   // Default construct.
   explicit constexpr value_pack_const() noexcept = default;
@@ -81,13 +82,12 @@ class value_pack_dynamic {
  public:
   using tuple_type = std::tuple<Values...>;
   template <std::size_t D>
-  using tuple_element_t = typename std::tuple_element<D, tuple_type>::type;
+  using tuple_element_t = std::tuple_element_t<D, tuple_type>;
 
   // Construct from `Values`, which may be dynamic or constant structs.
   explicit constexpr value_pack_dynamic(Values... values) noexcept : values_{values...} {}
 
   // Get the value on axis `D`.
-  // TODO: This cannot be constexpr pre-c++14 because of std::get<>.
   template <std::size_t D>
   constexpr tuple_element_t<D> get_axis() const noexcept {
     static_assert(D < sizeof...(Values), "Invalid dimension index");
@@ -98,7 +98,6 @@ class value_pack_dynamic {
   constexpr const tuple_type& values() const noexcept { return values_; }
 
  private:
-  // TODO: Only store the dynamic ones for space saving?
   tuple_type values_;
 };
 
@@ -106,10 +105,9 @@ class value_pack_dynamic {
 
 // Inherits either `value_pack_const` or `value_pack_dynamic`, depending on the types of `Values`.
 template <typename... Values>
-class value_pack
-    : public std::conditional<detail::conjunction<detail::is_constant<Values>...>::value,
-                              detail::value_pack_const<Values...>,
-                              detail::value_pack_dynamic<Values...>>::type {
+class value_pack : public std::conditional_t<detail::conjunction_v<detail::is_constant<Values>...>,
+                                             detail::value_pack_const<Values...>,
+                                             detail::value_pack_dynamic<Values...>> {
  public:
   static_assert(sizeof...(Values) > 0, "Must have at least one dimension");
 
@@ -121,8 +119,8 @@ class value_pack
   static constexpr std::size_t length = sizeof...(Values);
 
   // The base class, which differs if all dimensions are known at compile time.
-  using Base = typename std::conditional<known_at_compile_time, detail::value_pack_const<Values...>,
-                                         detail::value_pack_dynamic<Values...>>::type;
+  using Base = std::conditional_t<known_at_compile_time, detail::value_pack_const<Values...>,
+                                  detail::value_pack_dynamic<Values...>>;
 
   // Include constructor from the base type.
   using Base::Base;
@@ -183,10 +181,6 @@ struct value_pack_length<value_pack<Values...>> {
 template <typename T>
 constexpr std::size_t value_pack_length_v = value_pack_length<T>::value;
 
-// Enable if `T` is a value-pack.
-template <typename T>
-using enable_if_value_pack_t = typename std::enable_if_t<is_value_pack<T>::value>::type;
-
 namespace detail {
 
 // Template for converting a type `T` to either `dynamic` or `constant`.
@@ -199,7 +193,7 @@ using convert_to_dimension_type_t = typename convert_to_dimension_type<T>::type;
 template <>
 struct convert_to_dimension_type<dynamic> {
   using type = dynamic;
-  static constexpr auto convert(dynamic x) noexcept { return x; }
+  static constexpr auto convert(const dynamic x) noexcept { return x; }
 };
 template <std::size_t D>
 struct convert_to_dimension_type<constant<D>> {
@@ -210,8 +204,7 @@ struct convert_to_dimension_type<constant<D>> {
 // Allow promotion of integral types to `dynamic`.
 template <typename T>
 struct convert_to_dimension_type<
-    T, typename std::enable_if<std::is_integral<T>::value &&
-                               std::is_convertible<T, std::size_t>::value>::type> {
+    T, std::enable_if_t<std::is_integral_v<T> && std::is_convertible_v<T, std::size_t>>> {
   using type = dynamic;
   static constexpr auto convert(T value) noexcept {
     return dynamic(static_cast<std::size_t>(value));
@@ -238,33 +231,31 @@ namespace detail {
 // Enable if: `T` is the const version of `U`.
 template <typename T, typename U>
 using enable_if_adding_const_t =
-    typename std::enable_if<std::is_const<T>::value &&
-                            std::is_same<std::remove_const_t<T>, U>::value>::type;
+    std::enable_if_t<std::is_const_v<T> && std::is_same_v<std::remove_const_t<T>, U>>;
 
 // Enable if `T` is the same as `U` after const is removed from both.
 template <typename T, typename U>
 using enable_if_same_after_removing_const_t =
-    typename std::enable_if<std::is_same<typename std::remove_const<T>::type,
-                                         typename std::remove_const<U>::type>::value>::type;
+    std::enable_if_t<std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>>;
 
 // True if `T` has a method size() that returns an integral type.
 template <typename T, typename = void>
-struct has_size_method : public std::false_type {};
+struct has_size_method : std::false_type {};
 template <typename T>
 struct has_size_method<T, decltype(std::declval<const T>().size(), void())>
-    : public std::is_integral<decltype(std::declval<const T>().size())> {};
+    : std::is_integral<decltype(std::declval<const T>().size())> {};
 
 // True if `T` has a method data() that returns a pointer.
 template <typename T, typename = void>
-struct has_data_method : public std::false_type {};
+struct has_data_method : std::false_type {};
 template <typename T>
 struct has_data_method<T, decltype(std::declval<const T>().data(), void())>
-    : public std::is_pointer<decltype(std::declval<const T>().data())> {};
+    : std::is_pointer<decltype(std::declval<const T>().data())> {};
 
 // True if `T` is "array-like" (has data() and size()).
 template <typename T>
 using enable_if_array_like_t =
-    typename std::enable_if<has_data_method<T>::value && has_size_method<T>::value>::type;
+    std::enable_if_t<has_data_method<T>::value && has_size_method<T>::value>;
 
 // Create a `strides` object w/ all zero strides. The dimensionality is determined by the integer
 // sequence.

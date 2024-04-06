@@ -6,14 +6,6 @@
 #define EXPECT_EIGEN_SPAN_EQ(a, b) EXPECT_PRED_FORMAT2(wf::detail::expect_eigen_span_equal, a, b)
 #define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(wf::detail::expect_eigen_span_equal, a, b)
 
-// Define an assertion so we can test that functionality:
-#define MATH_SPAN_RUNTIME_ASSERT(condition)    \
-  do {                                         \
-    if (!static_cast<bool>(condition)) {       \
-      throw std::runtime_error("Test assert"); \
-    }                                          \
-  } while (false)
-
 #include "wrenfold/span.h"
 #include "wrenfold/span_eigen.h"
 

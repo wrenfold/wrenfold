@@ -2,7 +2,7 @@
 #pragma once
 #include "Eigen/Core"
 
-#define MATH_SPAN_EIGEN_SUPPORT
+#define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span_eigen.h"
 
 // Methods for testing derivatives by comparing to the numerical approximation.

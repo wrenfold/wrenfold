@@ -5,7 +5,7 @@
 #include "wf_test_support/numerical_jacobian.h"
 #include "wf_test_support/test_macros.h"
 
-#define MATH_SPAN_EIGEN_SUPPORT
+#define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span_eigen.h"
 
 #include "bspline_numerical.h"
