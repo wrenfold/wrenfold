@@ -23,6 +23,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(xy[0], x)
         self.assertIdentical(xy[1], y)
         self.assertEqual('Variable', x.type_name)
+        self.assertEqual((), x.args)
 
         # test multiple strings
         result = sym.symbols([('a', 'b'), 'c, d'])
@@ -78,6 +79,9 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.integer(-5) / 7, sym.rational(-5, 7))
         self.assertIdentical(sym.integer(1) / 3, sym.rational(2, 6))
         self.assertRaises(exceptions.ArithmeticError, lambda: sym.rational(1, 0))
+        self.assertEqual((), sym.integer(7).args)
+        self.assertEqual((), sym.float(-0.862).args)
+        self.assertEqual((), sym.rational(7, 9).args)
 
         # Cannot invoke with values that exceed range of 64-bit signed int.
         # Python stores these values internally, but we can't convert them for now:
@@ -133,6 +137,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(2 * p, p + p)
         self.assertIdentical(p, p + 0)
         self.assertEqual('Addition', (p + q).type_name)
+        self.assertEqual((p, q), (p + q).args)
         self.assertIdentical(p + p, p + p + p - p)
         self.assertNotIdentical(q + 5.0, q + 5)
         self.assertNotIdentical(p + p, p - q)
@@ -140,6 +145,7 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertIdentical(p * q, q * p)
         self.assertEqual('Multiplication', (p * q).type_name)
+        self.assertEqual((p, q), (p * q).args)
         self.assertIdentical(q * q * q / (p * p), sym.pow(q, 3) / sym.pow(p, 2))
         self.assertIdentical(2.0 * p, (p * 6.0) / 3.0)
         self.assertIdentical(q, -(-q))
@@ -152,6 +158,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.pow(p, 5), p ** 5)
         self.assertIdentical(sym.pow(p, 0.231), p ** 0.231)
         self.assertIdentical(p / q, sym.pow(q / p, -1))
+        self.assertEqual((p, q), (p ** q).args)
 
     def test_trig_functions(self):
         """Test that we can call trig functions."""
@@ -188,6 +195,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(3, sym.abs(-3))
         self.assertIdentical(sym.abs(x), sym.abs(sym.abs(x)))
         self.assertIdentical(sym.abs(x), abs(x))
+        self.assertEqual((x,), sym.abs(x).args)
 
     def test_signum(self):
         """Test calling signum."""
@@ -253,22 +261,27 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(x >= 0.0, 0.0 <= x)
         self.assertIdentical(sym.true, sym.Expr(1) > 0)
         self.assertIdentical(sym.true, sym.pi > sym.E)
+        self.assertEqual((x, y), (x < y).args)
         # We use sym.eq to make == relationals:
         self.assertIdentical(sym.eq(x, 1), sym.eq(1, x))
         self.assertNotIdentical(sym.eq(x, y), sym.eq(2, x * y))
+        self.assertEqual((y, x * 2), sym.eq(x * 2, y).args)
 
     def test_conditionals(self):
         """Test creating conditional logic."""
-        x, y, z = sym.symbols('x, y, z')
+        x, y = sym.symbols('x, y')
         self.assertIdentical(sym.where(x < y, y, x), sym.max(x, y))
         self.assertIdentical(sym.where(y < x, y, x), sym.min(x, y))
         self.assertIdentical(x, sym.where(0 < sym.Expr(1), x, y))
         self.assertIdentical(y - 3, sym.where(sym.pi >= sym.E, y - 3, x * 5))
+        self.assertEqual((x < y, sym.cos(x), y), sym.where(x < y, sym.cos(x), y).args)
 
     def test_iverson(self):
         """Test converting boolean values to integer."""
+        x, y = sym.symbols('x, y')
         self.assertIdentical(1, sym.iverson(sym.one < 10.2))
         self.assertIdentical(0, sym.iverson(sym.eq(sym.one, sym.zero)))
+        self.assertEqual((x < y,), sym.iverson(x < y).args)
 
     def test_subs(self):
         """Test calling subs() on expressions."""

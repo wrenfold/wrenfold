@@ -17,6 +17,7 @@
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
 
+#include "args_visitor.h"
 #include "docs/scalar_wrapper.h"
 #include "wrapper_utils.h"
 
@@ -116,6 +117,9 @@ void wrap_scalar_operations(py::module_& m) {
       .def_property_readonly(
           "type_name", [](const scalar_expr& self) { return self.type_name(); },
           docstrings::scalar_expr_type_name.data())
+      .def_property_readonly(
+          "args", [](const scalar_expr& self) { return args_visitor{}(self); },
+          "Arguments of ``self`` as a tuple.")
       // Operations:
       .def(
           "diff",
