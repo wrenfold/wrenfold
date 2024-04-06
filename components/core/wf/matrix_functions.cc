@@ -161,17 +161,17 @@ matrix_expr diagonal(const absl::Span<const scalar_expr> values) {
 // Stores a mapping from `permuted row` --> `original row`.
 struct permutation_matrix {
  public:
-  using Container = absl::InlinedVector<index_t, 8>;
+  using container_type = absl::InlinedVector<index_t, 8>;
 
   explicit permutation_matrix(const std::size_t size) {
     p_.resize(size);
     std::iota(p_.begin(), p_.end(), static_cast<index_t>(0));
   }
-  explicit permutation_matrix(Container&& p, std::size_t num_swaps = 0)
+  explicit permutation_matrix(container_type&& p, std::size_t num_swaps = 0)
       : p_(std::move(p)), num_swaps_(num_swaps) {}
 
   // The row index in the input matrix to read from.
-  index_t PermutedRow(const index_t i) const noexcept { return p_[static_cast<std::size_t>(i)]; }
+  index_t permuted_row(const index_t i) const noexcept { return p_[static_cast<std::size_t>(i)]; }
 
   // Equivalent to `PermutedRow`, but if this matrix were transposed.
   index_t permuted_row_transposed(const index_t i) const noexcept {
@@ -210,7 +210,7 @@ struct permutation_matrix {
   }
 
   permutation_matrix transposed() const {
-    Container p_transpose{};
+    container_type p_transpose{};
     p_transpose.resize(rows());
     for (std::size_t i = 0; i < p_.size(); ++i) {
       p_transpose[p_[i]] = static_cast<index_t>(i);
@@ -228,7 +228,7 @@ struct permutation_matrix {
   }
 
  private:
-  Container p_{};
+  container_type p_{};
   std::size_t num_swaps_{0};
 };
 
@@ -339,7 +339,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   // Permute the top-right row of U:
   WF_ASSERT_EQUAL(static_cast<std::size_t>(Q.rows()), r_t.cols());
   for (std::size_t j = 0; j < r_t.cols(); ++j) {
-    U(0, j + 1) = r_t_copied[Q.PermutedRow(static_cast<index_t>(j))];
+    U(0, j + 1) = r_t_copied[Q.permuted_row(static_cast<index_t>(j))];
   }
 
   // now zero out U below the diagonal
@@ -410,11 +410,11 @@ factorize_full_piv_lu_internal(const matrix& A) {
 
 static matrix_expr create_matrix_from_permutations(const permutation_matrix& P) {
   std::vector<scalar_expr> data(P.rows() * P.rows(), constants::zero);
-  auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
-                        make_value_pack(P.rows(), constant<1>{}));
+  const auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
+                              make_value_pack(P.rows(), constant<1>{}));
 
   for (index_t row = 0; row < P.rows(); ++row) {
-    span(row, P.PermutedRow(row)) = constants::one;
+    span(row, P.permuted_row(row)) = constants::one;
   }
   return matrix_expr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),
                              std::move(data));

@@ -398,6 +398,18 @@ void wrap_matrix_operations(py::module_& m) {
             return self.reshape(std::get<0>(row_and_col), std::get<1>(row_and_col));
           },
           py::arg("shape"), "Overload of ``reshape`` that accepts a (row, col) tuple.")
+      .def(
+          "col_join",
+          [](const matrix_expr& self, const matrix_expr& other) {
+            return vstack({self, other});
+          },
+          "other"_a, docstrings::matrix_expr_col_join.data())
+      .def(
+          "row_join",
+          [](const matrix_expr& self, const matrix_expr& other) {
+            return hstack({self, other});
+          },
+          "other"_a, docstrings::matrix_expr_row_join.data())
       // Convert to list
       .def("to_list", &list_from_matrix, "Convert to a list of lists.")
       .def("to_flat_list", &flat_list_from_matrix,

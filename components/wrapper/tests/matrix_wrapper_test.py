@@ -294,12 +294,18 @@ class MatrixWrapperTest(MathTestBase):
             sym.hstack([sym.matrix([x * a, -3]),
                         sym.matrix([[y, 2], [b + z, c]])]))
 
+        self.assertIdentical(
+            sym.matrix([(a, b), (x, c)]).T,
+            sym.vector(a, b).row_join(sym.vector(x, c)))
+
     def test_vstack(self):
         """Test vertical stacking."""
         x, y, z = sym.symbols("x, y, z")
         self.assertIdentical(
             sym.matrix([[x, y], [-3, z], [0, 2]]),
             sym.vstack([sym.matrix([x, y]).T, sym.matrix([[-3, z], [0, 2]])]))
+
+        self.assertIdentical(sym.matrix([3, z, x, y]), sym.vector(3, z).col_join(sym.vector(x, y)))
 
     def test_diag(self):
         """Test diagonal stacking."""
