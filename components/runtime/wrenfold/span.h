@@ -2,15 +2,6 @@
 #pragma once
 #include "span_detail.h"
 
-// The user may optionally define `MATH_SPAN_RUNTIME_ASSERT` before importing this file. This macro
-// is expected to take a boolean argument, and run a user-specified assert.
-#ifndef MATH_SPAN_RUNTIME_ASSERT
-#define MATH_SPAN_RUNTIME_ASSERT(condition) \
-  do {                                      \
-    (void)sizeof((condition));              \
-  } while (0)
-#endif  // ifndef MATH_SPAN_RUNTIME_ASSERT
-
 namespace wf {
 
 // Type used for strides computed at compile time.
@@ -51,9 +42,8 @@ struct convert_to_span;
 template <typename T, typename Dimensions, typename Strides>
 class span {
  public:
-  static_assert(is_value_pack<Dimensions>::value,
-                "Second template argument must be value_pack<...>");
-  static_assert(is_value_pack<Strides>::value, "Third template argument must be value_pack<...>");
+  static_assert(is_value_pack_v<Dimensions>, "Second template argument must be value_pack<...>");
+  static_assert(is_value_pack_v<Strides>, "Third template argument must be value_pack<...>");
   static_assert(Strides::length == Dimensions::length,
                 "Number of strides must match number of dimensions");
 
@@ -83,7 +73,7 @@ class span {
   // Implicit construct if U is the non-const version of T.
   // Allows promotion from non-const to const span.
   template <typename U, typename = detail::enable_if_adding_const_t<T, U>>
-  constexpr span(const span<U, Dimensions, Strides>& s) noexcept
+  constexpr span(const span<U, Dimensions, Strides>& s) noexcept  // NOLINT
       : span(const_cast<T*>(s.data()), s.dimensions(), s.strides()) {}
 
   // Number of rows. Valid for 1D and 2D spans.
@@ -120,14 +110,14 @@ class span {
   }
 
   // Array access operator, valid for 1D spans.
-  constexpr reference operator[](std::ptrdiff_t index) const noexcept {
+  constexpr reference operator[](const std::ptrdiff_t index) const noexcept {
     return data_[compute_index(index)];
   }
 
   // Compute linear index from (row, column) matrix indices.
   template <typename... Indices>
   constexpr std::ptrdiff_t compute_index(Indices... indices) const noexcept {
-    static_assert(detail::conjunction<std::is_convertible<Indices, std::ptrdiff_t>...>::value,
+    static_assert(detail::conjunction_v<std::is_convertible<Indices, std::ptrdiff_t>...>,
                   "Indices must be convertible to std::ptrdiff_t");
     static_assert(sizeof...(Indices) == num_dimensions,
                   "Number of indices much match number of dimensions");
@@ -142,8 +132,7 @@ class span {
   constexpr operator bool() const noexcept { return data_ != nullptr; }  // NOLINT
 
   // Create a const version of this span.
-  constexpr span<const typename std::remove_const<T>::type, Dimensions, Strides> as_const()
-      const noexcept {
+  constexpr span<const std::remove_const_t<T>, Dimensions, Strides> as_const() const noexcept {
     return {data_, dimensions(), strides()};
   }
 
@@ -202,8 +191,8 @@ class span {
 // `Dimensions` and `Strides` must be instances of `value_pack`.
 template <typename T, typename Dimensions, typename Strides>
 constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept {
-  using dimension_type = typename std::decay<Dimensions>::type;
-  using stride_type = typename std::decay<Strides>::type;
+  using dimension_type = std::decay_t<Dimensions>;
+  using stride_type = std::decay_t<Strides>;
   return span<T, dimension_type, stride_type>{data, dims, strides};
 }
 
@@ -219,7 +208,7 @@ constexpr auto make_always_null_span() noexcept {
 // `Dimensions` is a value_pack.
 template <typename Dimensions>
 constexpr auto make_always_null_span() noexcept {
-  static_assert(is_value_pack<Dimensions>::value, "Dimensions must be a value_pack");
+  static_assert(is_value_pack_v<Dimensions>, "Dimensions must be a value_pack");
   return make_span<detail::void_type>(nullptr, Dimensions::zero_initialized(),
                                       detail::make_zero_value_pack<Dimensions::length>());
 }
@@ -243,8 +232,7 @@ namespace detail {
 
 // Remove reference and const modifiers.
 template <typename T>
-using remove_const_and_ref_t =
-    typename std::remove_const<typename std::remove_reference<T>::type>::type;
+using remove_const_and_ref_t = std::remove_const_t<std::remove_reference_t<T>>;
 
 // Evaluate to specialized `convert_to_span` for T (minus const and reference attributes).
 template <typename Dimensions, typename T>
@@ -283,9 +271,9 @@ constexpr bool is_nothrow_convertible_to_span_v =
 template <typename Dimensions, typename T>
 constexpr auto make_input_span(const T& input) noexcept(
     detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
-  static_assert(is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
-  static_assert(!std::is_same<T, std::nullptr_t>::value, "Input spans may not be null.");
-  static_assert(detail::is_convertible_to_span<Dimensions, const T>::value,
+  static_assert(is_value_pack_v<Dimensions>, "Dimensions should be a value pack");
+  static_assert(!std::is_same_v<T, std::nullptr_t>, "Input spans may not be null.");
+  static_assert(detail::is_convertible_to_span_v<Dimensions, const T>,
                 "The provided type does not have an implementation of: convert_to_span<T>");
   return detail::span_converter<Dimensions, T>{}.convert(input);
 }
@@ -294,13 +282,13 @@ constexpr auto make_input_span(const T& input) noexcept(
 template <typename Dimensions, typename T>
 constexpr auto make_output_span(T& output) noexcept(
     detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
-  static_assert(is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
-  static_assert(!std::is_same<T, std::nullptr_t>::value, "Required output spans may not be null.");
-  static_assert(detail::is_convertible_to_span<Dimensions, T>::value,
+  static_assert(is_value_pack_v<Dimensions>, "Dimensions should be a value pack");
+  static_assert(!std::is_same_v<T, std::nullptr_t>, "Required output spans may not be null.");
+  static_assert(detail::is_convertible_to_span_v<Dimensions, T>,
                 "The provided type does not have an implementation of: convert_to_span<T>");
 
   auto span = detail::span_converter<Dimensions, T>{}.convert(output);
-  static_assert(!std::is_const<typename decltype(span)::value_type>::value,
+  static_assert(!std::is_const_v<typename decltype(span)::value_type>,
                 "value_type of output spans may not be const");
   return span;
 }
@@ -309,12 +297,12 @@ constexpr auto make_output_span(T& output) noexcept(
 template <typename Dimensions, typename T>
 constexpr auto make_optional_output_span(T& output) noexcept(
     detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
-  static_assert(is_value_pack<Dimensions>::value, "Dimensions should be a value pack");
-  static_assert(detail::is_convertible_to_span<Dimensions, T>::value,
+  static_assert(is_value_pack_v<Dimensions>, "Dimensions should be a value pack");
+  static_assert(detail::is_convertible_to_span_v<Dimensions, T>,
                 "The provided type does not have an implementation of: convert_to_span<T>");
 
   auto span = detail::span_converter<Dimensions, T>{}.convert(output);
-  static_assert(!std::is_const<typename decltype(span)::value_type>::value,
+  static_assert(!std::is_const_v<typename decltype(span)::value_type>,
                 "value_type of output spans may not be const");
   return span;
 }
@@ -352,7 +340,7 @@ struct convert_to_span<Dimensions, std::nullptr_t> {
 // TODO: Allow conversion from dynamic -> constant dims with runtime checks.
 template <typename Dimensions, typename T, typename DimsIn, typename StridesIn>
 struct convert_to_span<Dimensions, span<T, DimsIn, StridesIn>,
-                       typename std::enable_if<std::is_same<Dimensions, DimsIn>::value>::type> {
+                       std::enable_if_t<std::is_same_v<Dimensions, DimsIn>>> {
   constexpr span<T, DimsIn, StridesIn> convert(span<T, DimsIn, StridesIn> x) noexcept { return x; }
 };
 

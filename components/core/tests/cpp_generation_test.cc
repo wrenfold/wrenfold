@@ -7,7 +7,7 @@
 
 #include "test_expressions.h"  //  Symbolic test functions.
 
-#define MATH_SPAN_EIGEN_SUPPORT
+#define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span_eigen.h"
 
 // Declare custom numeric types before importing the generated code:

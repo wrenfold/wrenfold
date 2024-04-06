@@ -1,8 +1,6 @@
 // Copyright 2023 Gareth Cross
 #include "span_test_assertions.h"
 
-static_assert(__cplusplus == 201402L, "This test should be compiled with C++14");
-
 namespace wf {
 
 // Equality operator for spans of the same type.
@@ -33,7 +31,7 @@ bool operator==(const span<T, Dims1, Stride1> a, const span<U, Dims2, Stride2> b
 TEST(SpanTest, TestMakeValuePack) {
   // Check that we get the right types.
   auto pack1 = make_value_pack(1, 3);
-  static_assert(std::is_same<decltype(pack1), value_pack<dynamic, dynamic>>::value, "");
+  static_assert(std::is_same_v<decltype(pack1), value_pack<dynamic, dynamic>>, "");
   // == to avoid ODR for static constexpr
   ASSERT_FALSE(true == decltype(pack1)::known_at_compile_time);
   ASSERT_EQ(2, static_cast<int>(decltype(pack1)::length));
@@ -41,15 +39,14 @@ TEST(SpanTest, TestMakeValuePack) {
   ASSERT_EQ(3, pack1.get<1>().value());
 
   auto pack2 = make_value_pack(constant<4>{}, constant<6>{});
-  static_assert(std::is_same<decltype(pack2), value_pack<constant<4>, constant<6>>>::value, "");
+  static_assert(std::is_same_v<decltype(pack2), value_pack<constant<4>, constant<6>>>, "");
   ASSERT_TRUE(true == decltype(pack2)::known_at_compile_time);
   ASSERT_EQ(2, static_cast<int>(decltype(pack2)::length));
   ASSERT_EQ(4, pack2.get<0>().value());
   ASSERT_EQ(6, pack2.get<1>().value());
 
   auto pack3 = make_value_pack(10, 8, constant<3>{});
-  static_assert(std::is_same<decltype(pack3), value_pack<dynamic, dynamic, constant<3>>>::value,
-                "");
+  static_assert(std::is_same_v<decltype(pack3), value_pack<dynamic, dynamic, constant<3>>>, "");
   ASSERT_FALSE(true == decltype(pack3)::known_at_compile_time);
   ASSERT_EQ(3, static_cast<int>(decltype(pack3)::length));
   ASSERT_EQ(10, pack3.get<0>().value());
@@ -60,8 +57,8 @@ TEST(SpanTest, TestMakeValuePack) {
 TEST(SpanTest, TestStaticIndexing) {
   std::array<float, 9> unused_data{};
 
-  auto row_major = make_span(unused_data.data(), make_constant_value_pack<3, 3>(),
-                             make_constant_value_pack<3, 1>());
+  const auto row_major = make_span(unused_data.data(), make_constant_value_pack<3, 3>(),
+                                   make_constant_value_pack<3, 1>());
 
   ASSERT_EQ(16, sizeof(row_major));
   ASSERT_EQ(0, row_major.compute_index(0, 0));
@@ -69,16 +66,16 @@ TEST(SpanTest, TestStaticIndexing) {
   ASSERT_EQ(3, row_major.compute_index(1, 0));
   ASSERT_EQ(5, row_major.compute_index(1, 2));
 
-  auto col_major = make_span(unused_data.data(), make_constant_value_pack<3, 3>(),
-                             make_constant_value_pack<1, 4>());
+  const auto col_major = make_span(unused_data.data(), make_constant_value_pack<3, 3>(),
+                                   make_constant_value_pack<1, 4>());
 
   ASSERT_EQ(0, col_major.compute_index(0, 0));
   ASSERT_EQ(4, col_major.compute_index(0, 1));
   ASSERT_EQ(1, col_major.compute_index(1, 0));
   ASSERT_EQ(6, col_major.compute_index(2, 1));
 
-  auto both = make_span(unused_data.data(), make_constant_value_pack<3, 3>(),
-                        make_constant_value_pack<3, 9>());
+  const auto both = make_span(unused_data.data(), make_constant_value_pack<3, 3>(),
+                              make_constant_value_pack<3, 9>());
 
   ASSERT_EQ(0, both.compute_index(0, 0));
   ASSERT_EQ(9, both.compute_index(0, 1));
@@ -90,16 +87,16 @@ TEST(SpanTest, TestStaticIndexing) {
 TEST(SpanTest, TestDynamicIndexing) {
   std::array<float, 12> unused_data{};
 
-  auto row_major = make_span(unused_data.data(), make_constant_value_pack<3, 4>(),
-                             make_value_pack(dynamic(8), constant<1>{}));
+  const auto row_major = make_span(unused_data.data(), make_constant_value_pack<3, 4>(),
+                                   make_value_pack(dynamic(8), constant<1>{}));
 
   ASSERT_EQ(0, row_major.compute_index(0, 0));
   ASSERT_EQ(8, row_major.compute_index(1, 0));
   ASSERT_EQ(11, row_major.compute_index(1, 3));
   ASSERT_EQ(17, row_major.compute_index(2, 1));
 
-  auto col_major = make_span(unused_data.data(), make_constant_value_pack<3, 4>(),
-                             make_value_pack(constant<1>{}, dynamic(6)));
+  const auto col_major = make_span(unused_data.data(), make_constant_value_pack<3, 4>(),
+                                   make_value_pack(constant<1>{}, dynamic(6)));
   ASSERT_EQ(0, col_major.compute_index(0, 0));
   ASSERT_EQ(1, col_major.compute_index(1, 0));
   ASSERT_EQ(8, col_major.compute_index(2, 1));
@@ -108,7 +105,7 @@ TEST(SpanTest, TestDynamicIndexing) {
 TEST(SpanTest, TestConstructor) {
   std::array<int, 6> data = {0, 1, 2, 3, 4, 5};
 
-  auto span =
+  const auto span =
       make_span(data.data(), make_constant_value_pack<3, 2>(), make_constant_value_pack<1, 3>());
 
   EXPECT_EQ(3, span.rows());
@@ -121,7 +118,7 @@ TEST(SpanTest, TestConstructor) {
   EXPECT_EQ(3, span(0, 1));
 
   auto const_span = span.as_const();
-  static_assert(std::is_same<const int, decltype(const_span)::element_type>::value, "");
+  static_assert(std::is_same_v<const int, decltype(const_span)::element_type>, "");
   EXPECT_EQ(span.data(), const_span.data());
   EXPECT_EQ(span, const_span);
 }
@@ -150,7 +147,7 @@ TEST(SpanTest, TestSpanTraits) {
 }
 
 TEST(SpanTest, TestMakeNullSpan) {
-  auto span = make_always_null_span<2, 3>();
+  constexpr auto span = make_always_null_span<2, 3>();
   EXPECT_FALSE(span);
   EXPECT_EQ(nullptr, span.data());
   EXPECT_EQ(2, span.rows());
@@ -226,7 +223,7 @@ TEST(SpanTest, TestNoexceptPropagation) {
 
 TEST(SpanTest, TestMakeArraySpan) {
   std::array<int, 5> data = {1, 2, 3, 4, 5};
-  auto span = make_array_span(data);
+  const auto span = make_array_span(data);
   EXPECT_EQ(data.data(), span.data());
   EXPECT_EQ(5, span.rows());
   EXPECT_EQ(5, span.dimension<0>());
@@ -237,8 +234,8 @@ TEST(SpanTest, TestMakeArraySpan) {
 }
 
 TEST(SpanTest, TestMakeEmptyVectorSpan) {
-  std::vector<int> data;
-  auto span = make_array_span(static_cast<const std::vector<int>&>(data));
+  const std::vector<int> data;
+  const auto span = make_array_span(static_cast<const std::vector<int>&>(data));
   EXPECT_EQ(nullptr, span.data());
   EXPECT_EQ(0, span.rows());
   EXPECT_EQ(0, span.dimension<0>());
@@ -247,7 +244,7 @@ TEST(SpanTest, TestMakeEmptyVectorSpan) {
 
 TEST(SpanTest, TestMakeVectorSpan) {
   std::vector<int> data = {5, 3, 8, 22};
-  auto span = make_array_span(data);
+  const auto span = make_array_span(data);
   EXPECT_EQ(data.data(), span.data());
   EXPECT_EQ(data.size(), span.rows());
   EXPECT_EQ(1, span.stride<0>());
@@ -258,7 +255,7 @@ TEST(SpanTest, TestMakeVectorSpan) {
 
 TEST(SpanTest, TestMakeCArraySpan) {
   int values[6] = {1, 1, 2, 3, 5, 8};
-  auto span = make_array_span(values);
+  const auto span = make_array_span(values);
 
   static_assert(6 == span.rows(), "Size must be known at compile time");
   EXPECT_EQ(&values[0], span.data());
@@ -267,14 +264,14 @@ TEST(SpanTest, TestMakeCArraySpan) {
   }
 
   // Access a subsection of the array via a 1D block:
-  auto sub_span = span.block(make_constant_value_pack<1>(), make_value_pack(2));
+  const auto sub_span = span.block(make_constant_value_pack<1>(), make_value_pack(2));
   EXPECT_EQ(2, sub_span.rows());
   EXPECT_EQ(values[1], sub_span[0]);
   EXPECT_EQ(values[2], sub_span[1]);
 
   // Construction from const array:
   const int values_const[4] = {13, 21, 34, 55};
-  auto span_const = make_array_span(values_const);
+  const auto span_const = make_array_span(values_const);
   static_assert(4 == span_const.rows(), "Size must be known at compile time");
   EXPECT_EQ(&values_const[0], span_const.data());
   for (std::size_t i = 0; i < span_const.rows(); ++i) {
@@ -304,8 +301,9 @@ TEST(SpanTest, TestMake3DSpan) {
   }
 
   // Make a 3-dimensional span:
-  auto span = make_span(&data[0], make_constant_value_pack<num_rows, num_cols, num_channels>(),
-                        make_constant_value_pack<num_cols * num_channels, num_channels, 1>());
+  const auto span =
+      make_span(&data[0], make_constant_value_pack<num_rows, num_cols, num_channels>(),
+                make_constant_value_pack<num_cols * num_channels, num_channels, 1>());
   EXPECT_EQ(num_rows, span.dimension<0>());
   EXPECT_EQ(num_cols, span.dimension<1>());
   EXPECT_EQ(num_channels, span.dimension<2>());
@@ -330,7 +328,7 @@ TEST(SpanTest, TestEigenColMajor) {
   EXPECT_EQ(1, A.innerStride());
   EXPECT_EQ(2, A.outerStride());
 
-  auto span = make_input_span<2, 3>(A);
+  const auto span = make_input_span<2, 3>(A);
   static_assert(1 == span.stride<0>(), "Should be computable at compile time");
   static_assert(2 == span.stride<1>(), "Should be computable at compile time");
   EXPECT_EQ(2, span.dimension<0>());
@@ -338,17 +336,19 @@ TEST(SpanTest, TestEigenColMajor) {
   EXPECT_EIGEN_SPAN_EQ(A, span);
 
   // get a sub-block
-  auto span_blk_1 = span.block(make_constant_value_pack<0, 0>(), make_constant_value_pack<2, 2>());
+  const auto span_blk_1 =
+      span.block(make_constant_value_pack<0, 0>(), make_constant_value_pack<2, 2>());
   static_assert(1 == span_blk_1.stride<0>(), "Should be computable at compile time");
   static_assert(2 == span_blk_1.stride<1>(), "Should be computable at compile time");
   EXPECT_EIGEN_SPAN_EQ(A.leftCols<2>(), span_blk_1);
 
-  auto span_blk_2 = span.block(make_value_pack(1, 1), make_constant_value_pack<1, 2>());
+  const auto span_blk_2 = span.block(make_value_pack(1, 1), make_constant_value_pack<1, 2>());
   EXPECT_EIGEN_SPAN_EQ(A.bottomRightCorner(1, 2), span_blk_2);
 
   // get a sub-block from a sub-block
-  auto span_blk_3 = span.block(make_value_pack(0, 1), make_constant_value_pack<2, 2>())
-                        .block(make_constant_value_pack<0, 1>(), make_constant_value_pack<2, 1>());
+  const auto span_blk_3 =
+      span.block(make_value_pack(0, 1), make_constant_value_pack<2, 2>())
+          .block(make_constant_value_pack<0, 1>(), make_constant_value_pack<2, 1>());
   EXPECT_EIGEN_SPAN_EQ(A.rightCols<1>(), span_blk_3);
 }
 
@@ -364,12 +364,12 @@ TEST(SpanTest, TestEigenRowMajor) {
   EXPECT_EQ(1, B.innerStride());
   EXPECT_EQ(3, B.outerStride());
 
-  auto span = make_input_span<4, 3>(B);
+  const auto span = make_input_span<4, 3>(B);
   static_assert(3 == span.stride<0>(), "Should be computable at compile time");
   static_assert(1 == span.stride<1>(), "Should be computable at compile time");
   EXPECT_EIGEN_SPAN_EQ(B, span);
 
-  auto span_blk = span.block(make_value_pack(1, 1), make_value_pack(2, 1));
+  const auto span_blk = span.block(make_value_pack(1, 1), make_value_pack(2, 1));
   EXPECT_EIGEN_SPAN_EQ(B.block(1, 1, 2, 1), span_blk);
 }
 
@@ -409,19 +409,19 @@ TEST(SpanTest, TestEigenRowMajorBlock) {
                              9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
                                 .finished();
 
-  auto blk_1 = A.block<3, 3>(0, 2);
-  auto span_1 = make_input_span<3, 3>(blk_1);
+  const auto blk_1 = A.block<3, 3>(0, 2);
+  const auto span_1 = make_input_span<3, 3>(blk_1);
   EXPECT_EIGEN_SPAN_EQ(blk_1, span_1);
 
-  auto blk_2 = A.bottomRightCorner<2, 3>();
-  auto span_2 = make_input_span<2, 3>(blk_2);
+  const auto blk_2 = A.bottomRightCorner<2, 3>();
+  const auto span_2 = make_input_span<2, 3>(blk_2);
   EXPECT_EIGEN_SPAN_EQ(blk_2, span_2);
 }
 
 TEST(SpanTest, TestEigenMap) {
   const std::array<int, 9> data = {1, 2, 3, 4, 5, 6, 7, 8, 9};
   const Eigen::Map<const Eigen::Matrix3i, Eigen::Unaligned> map{data.data()};
-  auto span = make_input_span<3, 3>(map);
+  const auto span = make_input_span<3, 3>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
 }
 
@@ -444,22 +444,23 @@ TEST(SpanTest, TestEigenMapInnerStride) {
   const Eigen::Map<const Eigen::Matrix<int, 5, 4, Eigen::RowMajor>, Eigen::Unaligned,
                    Eigen::InnerStride<2>>
       map{data.data()};
-  auto span = make_input_span<5, 4>(map);
+  const auto span = make_input_span<5, 4>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
   check_non_zero(span);
 
-  auto sub_span_1 = span.block(make_value_pack(2, 2), make_constant_value_pack<3, 2>());
+  const auto sub_span_1 = span.block(make_value_pack(2, 2), make_constant_value_pack<3, 2>());
   EXPECT_EIGEN_SPAN_EQ(map.block(2, 2, 3, 2), sub_span_1);
   check_non_zero(sub_span_1);
 
   using DynamicStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
   const Eigen::Map<const Eigen::Matrix<int, 5, 4, Eigen::RowMajor>, Eigen::Unaligned, DynamicStride>
       map_dynamic{data.data(), DynamicStride{8, 2}};
-  auto span_dynamic = make_input_span<5, 4>(map_dynamic);
+  const auto span_dynamic = make_input_span<5, 4>(map_dynamic);
   EXPECT_EIGEN_SPAN_EQ(map_dynamic, span_dynamic);
   check_non_zero(span_dynamic);
 
-  auto sub_span_2 = span_dynamic.block(make_value_pack(1, 2), make_constant_value_pack<3, 2>());
+  const auto sub_span_2 =
+      span_dynamic.block(make_value_pack(1, 2), make_constant_value_pack<3, 2>());
   EXPECT_EIGEN_SPAN_EQ(map.block(1, 2, 3, 2), sub_span_2);
   check_non_zero(sub_span_2);
 }
@@ -470,7 +471,7 @@ TEST(SpanTest, TestEigenMapOuterStride) {
 
   const Eigen::Map<const Eigen::Matrix<int, 3, 5>, Eigen::Unaligned, Eigen::OuterStride<5>> map{
       data.data()};
-  auto span = make_input_span<3, 5>(map);
+  const auto span = make_input_span<3, 5>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
   check_non_zero(span);
 
@@ -478,7 +479,7 @@ TEST(SpanTest, TestEigenMapOuterStride) {
   const Eigen::Map<const Eigen::Matrix<int, 3, 5>, Eigen::Unaligned, DynamicStride> map_dynamic{
       data.data(), DynamicStride{5, 1}};
 
-  auto span_dynamic = make_input_span<3, 5>(map_dynamic);
+  const auto span_dynamic = make_input_span<3, 5>(map_dynamic);
   EXPECT_EIGEN_SPAN_EQ(map_dynamic, span_dynamic);
   check_non_zero(span_dynamic);
 }
@@ -489,15 +490,15 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
 
   const Eigen::Map<const Eigen::Matrix<int, 3, 3>, Eigen::Unaligned, Eigen::Stride<12, 2>> map{
       data.data()};
-  auto span = make_input_span<3, 3>(map);
+  const auto span = make_input_span<3, 3>(map);
   EXPECT_EIGEN_SPAN_EQ(map, span);
   EXPECT_EQ(1, span(0, 0));
   EXPECT_EQ(4, span(1, 0));
   EXPECT_EQ(2, span(0, 1));
   check_non_zero(span);
 
-  auto sub_span_1 = span.block(make_value_pack(constant<0>{}, dynamic(1)),
-                               make_value_pack(dynamic(2), constant<2>{}));
+  const auto sub_span_1 = span.block(make_value_pack(constant<0>{}, dynamic(1)),
+                                     make_value_pack(dynamic(2), constant<2>{}));
   EXPECT_EIGEN_SPAN_EQ(map.block(0, 1, 2, 2), sub_span_1);
   check_non_zero(sub_span_1);
 
@@ -505,7 +506,7 @@ TEST(SpanTest, TestEigenMapInnerAndOuterStride) {
   const Eigen::Map<const Eigen::Matrix<int, 3, 3>, Eigen::Unaligned, DynamicStride> map_dynamic{
       data.data(), DynamicStride{12, 2}};
 
-  auto span_dynamic = make_input_span<3, 3>(map_dynamic);
+  const auto span_dynamic = make_input_span<3, 3>(map_dynamic);
   static_assert(sizeof(span_dynamic) == 32, "");
 
   EXPECT_EIGEN_SPAN_EQ(map_dynamic, span_dynamic);

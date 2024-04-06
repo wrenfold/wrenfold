@@ -2,9 +2,9 @@
 #pragma once
 #include "span.h"
 
-// Define `MATH_SPAN_EIGEN_SUPPORT` prior to including this header to enable passing of eigen types
+// Define `WF_SPAN_EIGEN_SUPPORT` prior to including this header to enable passing of eigen types
 // to generated functions.
-#ifdef MATH_SPAN_EIGEN_SUPPORT
+#ifdef WF_SPAN_EIGEN_SUPPORT
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -21,9 +21,8 @@ constexpr auto inherits_quaternion_base_(const Eigen::QuaternionBase<Derived>&) 
 
 // Convert an eigen Stride to a `constant<>` or `dynamic`.
 template <Eigen::Index Stride>
-using eigen_stride_type_t =
-    typename std::conditional<Stride == Eigen::Dynamic, dynamic,
-                              constant<static_cast<std::size_t>(Stride)>>::type;
+using eigen_stride_type_t = std::conditional_t<Stride == Eigen::Dynamic, dynamic,
+                                               constant<static_cast<std::size_t>(Stride)>>;
 
 // Get the row-stride of an eigen matrix.
 template <typename Derived>
@@ -57,8 +56,7 @@ constexpr bool inherits_matrix_base_v = inherits_matrix_base<T>::value;
 
 // Evaluates to `void` if `T` inherits from MatrixBase.
 template <typename T>
-using enable_if_inherits_matrix_base_t =
-    typename std::enable_if<inherits_matrix_base_v<typename std::decay<T>::type>>::type;
+using enable_if_inherits_matrix_base_t = std::enable_if_t<inherits_matrix_base_v<std::decay_t<T>>>;
 
 // Evaluates to std::true_type if `T` inherits from QuaternionBase, otherwise std::false_type.
 template <typename T>
@@ -70,7 +68,7 @@ constexpr bool inherits_quaternion_base_v = inherits_quaternion_base<T>::value;
 // Evaluates to `void` if `T` inherits from QuaternionBase.
 template <typename T>
 using enable_if_inherits_quaternion_base_t =
-    typename std::enable_if<inherits_quaternion_base_v<typename std::decay<T>::type>>::type;
+    std::enable_if_t<inherits_quaternion_base_v<std::decay_t<T>>>;
 
 // Enable conversion of `MatrixBase` children to spans.
 // TODO: This does not check Eigen::Map for nullptr yet.
@@ -78,7 +76,7 @@ template <typename Dimensions, typename T>
 struct convert_to_span<Dimensions, T, enable_if_inherits_matrix_base_t<T>> {
   template <typename U>
   constexpr auto convert(U&& mat) noexcept {
-    using UDecay = typename std::decay<U>::type;
+    using UDecay = std::decay_t<U>;
 
     constexpr Eigen::Index rows_at_compile_time = Eigen::DenseBase<UDecay>::RowsAtCompileTime;
     constexpr Eigen::Index cols_at_compile_time = Eigen::DenseBase<UDecay>::ColsAtCompileTime;
@@ -115,4 +113,4 @@ struct convert_to_span<Dimensions, T, enable_if_inherits_quaternion_base_t<T>> {
 
 }  // namespace wf
 
-#endif  // MATH_SPAN_EIGEN_SUPPORT
+#endif  // WF_SPAN_EIGEN_SUPPORT
