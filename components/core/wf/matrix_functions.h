@@ -45,6 +45,9 @@ matrix_expr vstack(absl::Span<const matrix_expr> values);
 // Diagonally stack matrices (filling in off-diagonal elements with zero).
 matrix_expr diagonal_stack(absl::Span<const matrix_expr> values);
 
+// Diagonally stack scalars.
+matrix_expr diagonal(absl::Span<const scalar_expr> values);
+
 // Perform full-pivoting gaussian elimination on a symbolic matrix.
 // Returns matrices [P, L, U, Q] such that: A = P*L*U*Q
 // Where `L` is lower triangular, `U` is upper triangular, and both `P` and `Q` are permutation

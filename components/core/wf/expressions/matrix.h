@@ -120,12 +120,22 @@ matrix operator-(const matrix& a, const matrix& b);
 // Iterate over a matrix and run `callable` on each element. The purpose of this method is
 // to have one place (or fewer places) where the traversal order (row-major) is specified.
 template <typename Callable>
-void iter_matrix(index_t rows, index_t cols, Callable&& callable) {
+void iter_matrix(const index_t rows, const index_t cols, Callable&& callable) {
   for (index_t i = 0; i < rows; ++i) {
     for (index_t j = 0; j < cols; ++j) {
       callable(i, j);
     }
   }
+}
+
+// Iterate over matrix indices in row-major order and invoke `callable` to instantiate each element.
+template <typename Callable>
+matrix_expr create_matrix(const index_t rows, const index_t cols, Callable&& callable) {
+  matrix::container_type data{};
+  data.reserve(static_cast<std::size_t>(rows) * static_cast<std::size_t>(cols));
+  iter_matrix(rows, cols,
+              [&data, &callable](index_t i, index_t j) { data.push_back(callable(i, j)); });
+  return matrix_expr{std::in_place_type_t<matrix>(), rows, cols, std::move(data)};
 }
 
 template <>

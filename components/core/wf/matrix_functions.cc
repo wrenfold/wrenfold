@@ -15,20 +15,11 @@ WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 
-template <typename Callable>
-matrix_expr create_matrix_with_lambda(index_t rows, index_t cols, Callable&& callable) {
-  std::vector<scalar_expr> data;
-  data.reserve(static_cast<std::size_t>(rows * cols));
-  iter_matrix(rows, cols,
-              [&callable, &data](index_t i, index_t j) { data.push_back(callable(i, j)); });
-  return matrix_expr::create(rows, cols, std::move(data));
-}
-
 matrix_expr make_matrix_of_symbols(const std::string_view prefix, index_t rows, index_t cols) {
   if (rows <= 0 || cols <= 0) {
     throw dimension_error("Cannot construct symbolic matrix with shape: ({}, {})", rows, cols);
   }
-  return create_matrix_with_lambda(rows, cols, [&](index_t i, index_t j) {
+  return create_matrix(rows, cols, [&](index_t i, index_t j) {
     std::string name = fmt::format("{}_{}_{}", prefix, i, j);
     return make_expr<variable>(std::move(name), number_set::unknown);
   });
@@ -48,8 +39,9 @@ matrix_expr make_identity(index_t rows) {
   if (rows <= 0) {
     throw dimension_error("Cannot construct identity matrix with dimension: {}", rows);
   }
-  return create_matrix_with_lambda(
-      rows, rows, [&](index_t i, index_t j) { return i == j ? constants::one : constants::zero; });
+  return create_matrix(rows, rows, [&](const index_t i, const index_t j) {
+    return i == j ? constants::one : constants::zero;
+  });
 }
 
 matrix_expr vectorize_matrix(const matrix_expr& m) {
@@ -150,6 +142,21 @@ matrix_expr diagonal_stack(const absl::Span<const matrix_expr> values) {
   return stack(values, total_rows, total_cols);
 }
 
+matrix_expr diagonal(const absl::Span<const scalar_expr> values) {
+  if (values.empty()) {
+    throw dimension_error("Need at least one scalar to stack.");
+  }
+
+  const index_t dims = static_cast<index_t>(values.size());
+  return create_matrix(dims, dims, [&](auto i, auto j) {
+    if (i == j) {
+      return values[static_cast<std::size_t>(i)];
+    } else {
+      return constants::zero;
+    }
+  });
+}
+
 // A simple permutation "matrix".
 // Stores a mapping from `permuted row` --> `original row`.
 struct permutation_matrix {
@@ -164,10 +171,10 @@ struct permutation_matrix {
       : p_(std::move(p)), num_swaps_(num_swaps) {}
 
   // The row index in the input matrix to read from.
-  index_t PermutedRow(index_t i) const noexcept { return p_[static_cast<std::size_t>(i)]; }
+  index_t PermutedRow(const index_t i) const noexcept { return p_[static_cast<std::size_t>(i)]; }
 
   // Equivalent to `PermutedRow`, but if this matrix were transposed.
-  index_t permuted_row_transposed(index_t i) const noexcept {
+  index_t permuted_row_transposed(const index_t i) const noexcept {
     auto it = std::find(p_.begin(), p_.end(), i);
     return static_cast<index_t>(std::distance(p_.begin(), it));
   }
@@ -176,7 +183,7 @@ struct permutation_matrix {
   std::size_t rows() const noexcept { return p_.size(); }
 
   // Insert a new row at the start, and then swap row `0` and `row`.
-  void shift_down_and_swap(index_t row) {
+  void shift_down_and_swap(const index_t row) {
     for (index_t& index : p_) {
       index += 1;
     }
@@ -228,12 +235,11 @@ struct permutation_matrix {
 using dynamic_row_major_span =
     span<scalar_expr, value_pack<dynamic, dynamic>, value_pack<dynamic, constant<1>>>;
 
-static inline std::optional<std::tuple<std::size_t, std::size_t>> find_pivot(
-    dynamic_row_major_span U) {
+inline std::optional<std::tuple<std::size_t, std::size_t>> find_pivot(
+    const dynamic_row_major_span& U) {
   for (std::size_t p_row = 0; p_row < U.rows(); ++p_row) {
     for (std::size_t p_col = 0; p_col < U.cols(); ++p_col) {
-      const scalar_expr& el = U(p_row, p_col);
-      if (!is_zero(el)) {
+      if (const scalar_expr& el = U(p_row, p_col); !is_zero(el)) {
         // We can't really know for sure this isn't zero, since it is symbolic. But we can avoid
         // things that are analytically zero.
         return std::make_tuple(p_row, p_col);

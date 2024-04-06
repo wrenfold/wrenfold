@@ -452,8 +452,11 @@ void wrap_matrix_operations(py::module_& m) {
       "vstack", [](const std::vector<matrix_expr>& values) { return vstack(values); },
       py::arg("values"), docstrings::vstack.data());
   m.def(
-      "diagonal", [](const std::vector<matrix_expr>& values) { return diagonal_stack(values); },
+      "diag", [](const std::vector<matrix_expr>& values) { return diagonal_stack(values); },
       py::arg("values"), docstrings::diag.data());
+  m.def(
+      "diag", [](const std::vector<scalar_expr>& values) { return diagonal(values); },
+      py::arg("values"), "Overload of :func:`wrenfold.sym.diag` that accepts a list of scalars.");
 
   m.def("vec", &vectorize_matrix, py::arg("m"), docstrings::vec.data());
   m.def("det", &determinant, py::arg("m"), docstrings::det.data());

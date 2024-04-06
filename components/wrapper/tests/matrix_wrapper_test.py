@@ -281,6 +281,39 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(2, -8))
 
+    def test_hstack(self):
+        """Test horizontal stacking."""
+        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+        self.assertIdentical(
+            sym.matrix([[x * a, y, 2], [-3, b + z, c]]),
+            sym.hstack([sym.matrix([x * a, -3]),
+                        sym.matrix([[y, 2], [b + z, c]])]))
+
+    def test_vstack(self):
+        """Test vertical stacking."""
+        x, y, z = sym.symbols("x, y, z")
+        self.assertIdentical(
+            sym.matrix([[x, y], [-3, z], [0, 2]]),
+            sym.vstack([sym.matrix([x, y]).T, sym.matrix([[-3, z], [0, 2]])]))
+
+    def test_diag(self):
+        """Test diagonal stacking."""
+        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+
+        self.assertIdentical(sym.matrix([[x, 0, 0], [0, y, 0], [0, 0, z]]), sym.diag([x, y, z]))
+
+        # Stack matrices block-wise diagonal:
+        m1 = sym.matrix([x])
+        m2 = sym.matrix([[y, z], [b, c]])
+        m3 = sym.matrix([[c, 1], [2, a]])
+
+        m_expected = sym.vstack([
+            sym.hstack([m1, sym.zeros(1, 2), sym.zeros(1, 2)]),
+            sym.hstack([sym.zeros(2, 1), m2, sym.zeros(2, 2)]),
+            sym.hstack([sym.zeros(2, 1), sym.zeros(2, 2), m3])
+        ])
+        self.assertIdentical(m_expected, sym.diag([m1, m2, m3]))
+
     def test_matrix_operations(self):
         """Check that add/mul/sub operations are wrapped."""
         m0 = sym.matrix_of_symbols("x", 4, 3)
