@@ -281,6 +281,11 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(2, -8))
 
+    def test_eye(self):
+        """Test creating identity matrix."""
+        self.assertIdentical(sym.matrix([(1, 0), (0, 1)]), sym.eye(2))
+        self.assertIdentical(sym.matrix([(1, 0, 0), (0, 1, 0)]), sym.eye(2, 3))
+
     def test_hstack(self):
         """Test horizontal stacking."""
         x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
@@ -354,7 +359,7 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(m1 * 3, m1 + m1 + m1)
 
         # cannot add incompatible dimensions
-        self.assertRaises(exceptions.DimensionError, lambda: m0 + sym.identity(4))
+        self.assertRaises(exceptions.DimensionError, lambda: m0 + sym.eye(4))
         self.assertRaises(exceptions.DimensionError, lambda: m0 - sym.zeros(6, 7))
 
         # division by matrix is prohibited:

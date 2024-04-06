@@ -436,8 +436,7 @@ void wrap_matrix_operations(py::module_& m) {
       .doc() = "A matrix-valued symbolic expression.";
 
   // Matrix constructors:
-  m.def("identity", &make_identity, "rows"_a, docstrings::identity.data());
-  m.def("eye", &make_identity, "rows"_a, "Alias for :func:`wrenfold.sym.identity`.");
+  m.def("eye", &make_identity, "rows"_a, "cols"_a = std::nullopt, docstrings::identity.data());
   m.def("zeros", &make_zeros, "rows"_a, "cols"_a, docstrings::zeroes.data());
   m.def("vector", &column_vector_from_container<py::args>, docstrings::vector.data());
   m.def("row_vector", &row_vector_from_container<py::args>, docstrings::row_vector.data());

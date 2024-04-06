@@ -34,12 +34,12 @@ matrix_expr make_zeros(index_t rows, index_t cols) {
   return matrix_expr::create(rows, cols, std::move(data));
 }
 
-// Create an identity matrix.
-matrix_expr make_identity(index_t rows) {
-  if (rows <= 0) {
-    throw dimension_error("Cannot construct identity matrix with dimension: {}", rows);
+matrix_expr make_identity(const index_t rows, const std::optional<index_t> cols_opt) {
+  const index_t cols = cols_opt.value_or(rows);
+  if (rows <= 0 || cols <= 0) {
+    throw dimension_error("Cannot construct identity matrix with dimensions: [{}, {}]", rows, cols);
   }
-  return create_matrix(rows, rows, [&](const index_t i, const index_t j) {
+  return create_matrix(rows, cols, [&](const index_t i, const index_t j) {
     return i == j ? constants::one : constants::zero;
   });
 }

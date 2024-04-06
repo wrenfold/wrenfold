@@ -31,7 +31,7 @@ matrix_expr make_matrix_of_symbols(std::string_view prefix, index_t rows, index_
 matrix_expr make_zeros(index_t rows, index_t cols);
 
 // Create an identity matrix.
-matrix_expr make_identity(index_t rows);
+matrix_expr make_identity(index_t rows, std::optional<index_t> cols_opt = std::nullopt);
 
 // Create a vector by flattening a matrix in column-major order.
 matrix_expr vectorize_matrix(const matrix_expr& m);

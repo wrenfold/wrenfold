@@ -116,7 +116,8 @@ inline constexpr std::string_view identity = R"doc(
 Create an identity matrix.
 
 Args:
-  rows: Number of rows and columns in the resulting matrix.
+  rows: Number of rows in the resulting matrix.
+  cols: Number of columns. By default this will match the number of rows.
 
 Raises:
   wrenfold.sym.DimensionError: If the dimensions are non-positive.
