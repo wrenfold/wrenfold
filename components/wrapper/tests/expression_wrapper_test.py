@@ -187,6 +187,7 @@ class ExpressionWrapperTest(MathTestBase):
         x = sym.symbols("x")
         self.assertIdentical(3, sym.abs(-3))
         self.assertIdentical(sym.abs(x), sym.abs(sym.abs(x)))
+        self.assertIdentical(sym.abs(x), abs(x))
 
     def test_signum(self):
         """Test calling signum."""

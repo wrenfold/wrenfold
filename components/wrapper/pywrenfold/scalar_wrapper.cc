@@ -154,6 +154,7 @@ void wrap_scalar_operations(py::module_& m) {
           "__rpow__",
           [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
           py::is_operator(), "other_a")
+      .def("__abs__", [](const scalar_expr& self) { return abs(self); })
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
