@@ -249,7 +249,7 @@ def unweighted_imu_preintegration_error(
     # `error_D_rotation_delta` is specified in terms of the [w,x,y,z] quaternion elements.
     # Convert it to the tangent space of `i_R_k_measured`:
     diag_blocks = [i_R_k_measured.right_retract_derivative(), sym.eye(3), sym.eye(3)]
-    error_D_measurements = error_D_measurements * sym.diagonal(diag_blocks)
+    error_D_measurements = error_D_measurements * sym.diag(diag_blocks)
 
     # Compute the errors, and jacobians wrt estimated states:
     return [

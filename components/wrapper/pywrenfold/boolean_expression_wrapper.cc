@@ -8,6 +8,7 @@
 #include "wf/constants.h"
 #include "wf/expressions/special_constants.h"
 
+#include "args_visitor.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -36,6 +37,9 @@ void wrap_boolean_expression(py::module_& m) {
           "type_name", [](const boolean_expr& self) { return self.type_name(); },
           "Retrieve the name of the underlying C++ expression type. See "
           ":func:`wrenfold.sym.Expr.type_name`.")
+      .def_property_readonly(
+          "args", [](const boolean_expr& self) { return args_visitor{}(self); },
+          "Arguments of ``self`` as a tuple.")
       .def("__bool__", &coerce_to_bool, py::doc("Coerce expression to boolean."))
       .doc() = "A boolean-valued symbolic expression.";
 

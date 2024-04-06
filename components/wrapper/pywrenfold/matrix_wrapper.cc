@@ -398,6 +398,18 @@ void wrap_matrix_operations(py::module_& m) {
             return self.reshape(std::get<0>(row_and_col), std::get<1>(row_and_col));
           },
           py::arg("shape"), "Overload of ``reshape`` that accepts a (row, col) tuple.")
+      .def(
+          "col_join",
+          [](const matrix_expr& self, const matrix_expr& other) {
+            return vstack({self, other});
+          },
+          "other"_a, docstrings::matrix_expr_col_join.data())
+      .def(
+          "row_join",
+          [](const matrix_expr& self, const matrix_expr& other) {
+            return hstack({self, other});
+          },
+          "other"_a, docstrings::matrix_expr_row_join.data())
       // Convert to list
       .def("to_list", &list_from_matrix, "Convert to a list of lists.")
       .def("to_flat_list", &flat_list_from_matrix,
@@ -436,8 +448,7 @@ void wrap_matrix_operations(py::module_& m) {
       .doc() = "A matrix-valued symbolic expression.";
 
   // Matrix constructors:
-  m.def("identity", &make_identity, "rows"_a, docstrings::identity.data());
-  m.def("eye", &make_identity, "rows"_a, "Alias for :func:`wrenfold.sym.identity`.");
+  m.def("eye", &make_identity, "rows"_a, "cols"_a = std::nullopt, docstrings::identity.data());
   m.def("zeros", &make_zeros, "rows"_a, "cols"_a, docstrings::zeroes.data());
   m.def("vector", &column_vector_from_container<py::args>, docstrings::vector.data());
   m.def("row_vector", &row_vector_from_container<py::args>, docstrings::row_vector.data());
@@ -452,8 +463,11 @@ void wrap_matrix_operations(py::module_& m) {
       "vstack", [](const std::vector<matrix_expr>& values) { return vstack(values); },
       py::arg("values"), docstrings::vstack.data());
   m.def(
-      "diagonal", [](const std::vector<matrix_expr>& values) { return diagonal_stack(values); },
+      "diag", [](const std::vector<matrix_expr>& values) { return diagonal_stack(values); },
       py::arg("values"), docstrings::diag.data());
+  m.def(
+      "diag", [](const std::vector<scalar_expr>& values) { return diagonal(values); },
+      py::arg("values"), "Overload of :func:`wrenfold.sym.diag` that accepts a list of scalars.");
 
   m.def("vec", &vectorize_matrix, py::arg("m"), docstrings::vec.data());
   m.def("det", &determinant, py::arg("m"), docstrings::det.data());

@@ -58,6 +58,26 @@ Examples:
   [[1, 2], [3, 4]]
 )doc";
 
+inline constexpr std::string_view matrix_expr_col_join = R"doc(
+Vertically stack ``self`` and ``other``.
+
+Args:
+  other: Matrix to stack below ``self``.
+
+Raises:
+  wrenfold.sym.DimensionError: If the number of columns does not match.
+)doc";
+
+inline constexpr std::string_view matrix_expr_row_join = R"doc(
+Horizontally stack ``self`` and ``other``.
+
+Args:
+  other: Matrix to stack to the right of ``self``.
+
+Raises:
+  wrenfold.sym.DimensionError: If the number of rows does not match.
+)doc";
+
 inline constexpr std::string_view matrix_expr_transpose = R"doc(
 Transpose the matrix by swapping rows and columns. If ``self`` has dimensions ``(N, M)``, the result
 will be an ``(M, N)`` matrix where element ``[i, j]`` is ``self[j, i]``.
@@ -116,7 +136,8 @@ inline constexpr std::string_view identity = R"doc(
 Create an identity matrix.
 
 Args:
-  rows: Number of rows and columns in the resulting matrix.
+  rows: Number of rows in the resulting matrix.
+  cols: Number of columns. By default this will match the number of rows.
 
 Raises:
   wrenfold.sym.DimensionError: If the dimensions are non-positive.

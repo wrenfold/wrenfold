@@ -70,13 +70,13 @@ class Pose3d:
 
         We treat Pose3 as the product SO(3) x R(3) rather than SE(3).
         """
-        return sym.diagonal([self.rotation.to_quaternion().right_retract_derivative(), sym.eye(3)])
+        return sym.diag([self.rotation.to_quaternion().right_retract_derivative(), sym.eye(3)])
 
     def right_local_coordinates_derivative(self) -> sym.MatrixExpr:
         """
         The 6x7 derivative of the right-tangent with respect to the 7 pose elements.
         """
-        return sym.diagonal(
+        return sym.diag(
             [self.rotation.to_quaternion().right_local_coordinates_derivative(),
              sym.eye(3)])
 

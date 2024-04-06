@@ -24,10 +24,11 @@ matrix matrix::get_block(const index_t row, const index_t col, const index_t nro
         "Block [position: ({}, {}), size: ({}, {})] is out of bounds for matrix of shape ({}, {})",
         row, col, nrows, ncols, rows_, cols_);
   }
-  std::vector<scalar_expr> data;
+  std::vector<scalar_expr> data{};
   data.reserve(nrows * ncols);
-  iter_matrix(nrows, ncols,
-              [&](index_t i, index_t j) { data.push_back(get_unchecked(i + row, j + col)); });
+  iter_matrix(nrows, ncols, [&](const index_t i, const index_t j) {
+    data.push_back(get_unchecked(i + row, j + col));
+  });
   return matrix(nrows, ncols, std::move(data));
 }
 
@@ -75,8 +76,7 @@ matrix operator*(const matrix& a, const matrix& b) {
     // Multiply row times column:
     addition_args.clear();
     for (index_t k = 0; k < a.cols(); ++k) {
-      scalar_expr prod = a(i, k) * b(k, j);
-      if (!is_zero(prod)) {
+      if (scalar_expr prod = a(i, k) * b(k, j); !is_zero(prod)) {
         addition_args.push_back(std::move(prod));
       }
     }

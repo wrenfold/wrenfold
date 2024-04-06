@@ -91,6 +91,8 @@ add_wrapper_module(
   NAME
   pywrenfold
   SOURCES
+  pywrenfold/args_visitor.cc
+  pywrenfold/args_visitor.h
   pywrenfold/ast_wrapper.cc
   pywrenfold/boolean_expression_wrapper.cc
   pywrenfold/code_formatting_wrapper.cc

@@ -281,6 +281,50 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(2, -8))
 
+    def test_eye(self):
+        """Test creating identity matrix."""
+        self.assertIdentical(sym.matrix([(1, 0), (0, 1)]), sym.eye(2))
+        self.assertIdentical(sym.matrix([(1, 0, 0), (0, 1, 0)]), sym.eye(2, 3))
+
+    def test_hstack(self):
+        """Test horizontal stacking."""
+        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+        self.assertIdentical(
+            sym.matrix([[x * a, y, 2], [-3, b + z, c]]),
+            sym.hstack([sym.matrix([x * a, -3]),
+                        sym.matrix([[y, 2], [b + z, c]])]))
+
+        self.assertIdentical(
+            sym.matrix([(a, b), (x, c)]).T,
+            sym.vector(a, b).row_join(sym.vector(x, c)))
+
+    def test_vstack(self):
+        """Test vertical stacking."""
+        x, y, z = sym.symbols("x, y, z")
+        self.assertIdentical(
+            sym.matrix([[x, y], [-3, z], [0, 2]]),
+            sym.vstack([sym.matrix([x, y]).T, sym.matrix([[-3, z], [0, 2]])]))
+
+        self.assertIdentical(sym.matrix([3, z, x, y]), sym.vector(3, z).col_join(sym.vector(x, y)))
+
+    def test_diag(self):
+        """Test diagonal stacking."""
+        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+
+        self.assertIdentical(sym.matrix([[x, 0, 0], [0, y, 0], [0, 0, z]]), sym.diag([x, y, z]))
+
+        # Stack matrices block-wise diagonal:
+        m1 = sym.matrix([x])
+        m2 = sym.matrix([[y, z], [b, c]])
+        m3 = sym.matrix([[c, 1], [2, a]])
+
+        m_expected = sym.vstack([
+            sym.hstack([m1, sym.zeros(1, 2), sym.zeros(1, 2)]),
+            sym.hstack([sym.zeros(2, 1), m2, sym.zeros(2, 2)]),
+            sym.hstack([sym.zeros(2, 1), sym.zeros(2, 2), m3])
+        ])
+        self.assertIdentical(m_expected, sym.diag([m1, m2, m3]))
+
     def test_matrix_operations(self):
         """Check that add/mul/sub operations are wrapped."""
         m0 = sym.matrix_of_symbols("x", 4, 3)
@@ -321,7 +365,7 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(m1 * 3, m1 + m1 + m1)
 
         # cannot add incompatible dimensions
-        self.assertRaises(exceptions.DimensionError, lambda: m0 + sym.identity(4))
+        self.assertRaises(exceptions.DimensionError, lambda: m0 + sym.eye(4))
         self.assertRaises(exceptions.DimensionError, lambda: m0 - sym.zeros(6, 7))
 
         # division by matrix is prohibited:
