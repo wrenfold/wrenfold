@@ -7,7 +7,7 @@ requires = [
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "wrenfold-codegen"
+name = "wrenfold"
 version = "0.0.1"
 requires-python = ">=3.8"
 authors = [
@@ -28,5 +28,5 @@ ninja.make-fallback = false
 
 logging.level = "WARNING"
 
-wheel.packages = ["components/python/wrenfold", "wrenfold_wrapper"]
+wheel.packages = ["components/python/wrenfold"]
 wheel.license-files = ["LICENSE"]

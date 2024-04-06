@@ -7,7 +7,7 @@
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
-#include "wf_runtime/span.h"
+#include "wrenfold/span.h"
 
 namespace wf {
 

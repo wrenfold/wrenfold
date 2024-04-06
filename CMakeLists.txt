@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(
-  wrenfold-codegen
+  wrenfold
   VERSION 0.1
   DESCRIPTION "Tools for generating code from symbolic math."
   LANGUAGES CXX)

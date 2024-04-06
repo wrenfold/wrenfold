@@ -1,7 +1,7 @@
 # Add test for span:
 add_executable(span_test span_test.cc)
 target_link_libraries(span_test gtest_main)
-target_link_libraries(span_test wf-runtime eigen fmt::fmt-header-only)
+target_link_libraries(span_test wf_runtime eigen fmt::fmt-header-only)
 target_compile_features(span_test PRIVATE cxx_std_14)
 
 # `cxx_std_14` does not force specification of -std=c++14 on gcc, so manually

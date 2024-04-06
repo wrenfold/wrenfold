@@ -7,7 +7,7 @@
 #include "quat_interpolation_expressions.h"
 
 #define MATH_SPAN_EIGEN_SUPPORT
-#include "wf_runtime/span_eigen.h"
+#include "wrenfold/span_eigen.h"
 
 #include "generated.h"
 

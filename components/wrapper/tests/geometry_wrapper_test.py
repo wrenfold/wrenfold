@@ -6,7 +6,7 @@ NB: Most of this is tested in `quaternion_test.cc`. This is just a test of the w
 import unittest
 
 from wrenfold import sym
-from pywrenfold.geometry import Quaternion
+from wrenfold.geometry import Quaternion
 
 from test_base import MathTestBase
 

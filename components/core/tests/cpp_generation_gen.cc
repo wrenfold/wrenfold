@@ -63,7 +63,7 @@ int main() {
   using namespace wf;
   std::string code =
       "// Machine generated code.\n#pragma once\n#include <cmath>\n\n#include "
-      "<wf_runtime/span.h>\n\n";
+      "<wrenfold/span.h>\n\n";
 
   code += "namespace gen {\n\n";
   code += generate_test_expressions(custom_cpp_code_generator{});

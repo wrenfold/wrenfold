@@ -14,8 +14,8 @@
     }                                          \
   } while (false)
 
-#include "wf_runtime/span.h"
-#include "wf_runtime/span_eigen.h"
+#include "wrenfold/span.h"
+#include "wrenfold/span_eigen.h"
 
 namespace wf {
 namespace detail {
