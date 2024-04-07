@@ -7,9 +7,8 @@ from wrenfold import code_generation
 from wrenfold import sym
 from wrenfold import type_info
 from wrenfold.code_generation import CppGenerator, RustGenerator
-from wrenfold.custom_types import Opaque
 from wrenfold.external_functions import declare_external_function
-from wrenfold.type_annotations import RealScalar
+from wrenfold.type_annotations import RealScalar, Opaque
 
 
 @dataclasses.dataclass

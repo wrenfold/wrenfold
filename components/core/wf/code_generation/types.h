@@ -48,7 +48,8 @@ class matrix_type {
  public:
   static constexpr std::string_view snake_case_name_str = "matrix_type";
 
-  constexpr matrix_type(index_t rows, index_t cols) noexcept : rows_(rows), cols_(cols) {}
+  constexpr matrix_type(const index_t rows, const index_t cols) noexcept
+      : rows_(rows), cols_(cols) {}
 
   constexpr index_t rows() const noexcept { return rows_; }
   constexpr index_t cols() const noexcept { return cols_; }

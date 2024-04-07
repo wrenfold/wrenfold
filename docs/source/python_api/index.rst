@@ -8,10 +8,10 @@ Python API Documentation
    sym
    geometry
    code_generation
-   custom_types
    type_annotations
+   external_functions
+   sympy_conversion
    type_info
    ast
-   sympy_conversion
    enumerations
    exceptions

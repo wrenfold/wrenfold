@@ -6,6 +6,7 @@ import typing as T
 
 from . import sym
 from . import custom_types
+from . import type_annotations
 from . import type_info
 
 from pywrenfold.gen import (
@@ -128,7 +129,7 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
 
         input_expression = description.add_input_argument(arg_name, arg_type)
         if isinstance(arg_type, type_info.CustomType):
-            if issubclass(annotated_type, custom_types.Opaque):
+            if issubclass(annotated_type, type_annotations.Opaque):
                 kwargs[arg_name] = annotated_type(provenance=input_expression)
             else:
                 arg_elements = sym.create_compound_expression_elements(

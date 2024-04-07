@@ -1,6 +1,9 @@
 type_annotations
 ================
 
+.. autoclass:: wrenfold.type_annotations.Opaque
+  :members:
+
 .. autoclass:: wrenfold.type_annotations.RealScalar
   :members:
 

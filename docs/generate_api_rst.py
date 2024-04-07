@@ -10,9 +10,9 @@ from pathlib import Path
 # The built library needs to be on the import path by this point.
 from wrenfold import ast
 from wrenfold import code_generation
-from wrenfold import custom_types
 from wrenfold import enumerations
 from wrenfold import exceptions
+from wrenfold import external_functions
 from wrenfold import geometry
 from wrenfold import sym
 from wrenfold import sympy_conversion
@@ -66,12 +66,13 @@ def main(args: argparse.Namespace):
         module=code_generation, module_name="code_generation", output_dir=output_dir)
     generate_rst_for_module(
         module=sympy_conversion, module_name="sympy_conversion", output_dir=output_dir)
-    generate_rst_for_module(module=custom_types, module_name="custom_types", output_dir=output_dir)
     generate_rst_for_module(
         module=type_annotations, module_name="type_annotations", output_dir=output_dir)
     generate_rst_for_module(module=exceptions, module_name="exceptions", output_dir=output_dir)
     generate_rst_for_module(module=enumerations, module_name="enumerations", output_dir=output_dir)
     generate_rst_for_module(module=type_info, module_name="type_info", output_dir=output_dir)
+    generate_rst_for_module(
+        module=external_functions, module_name="external_functions", output_dir=output_dir)
 
 
 def parse_args() -> argparse.Namespace:

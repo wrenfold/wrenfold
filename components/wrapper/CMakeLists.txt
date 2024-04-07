@@ -99,6 +99,7 @@ add_wrapper_module(
   pywrenfold/codegen_wrapper.cc
   pywrenfold/compound_expression_wrapper.cc
   pywrenfold/docs/codegen_wrapper.h
+  pywrenfold/docs/compound_expression_wrapper.h
   pywrenfold/docs/geometry_wrapper.h
   pywrenfold/docs/matrix_wrapper.h
   pywrenfold/docs/scalar_wrapper.h

@@ -5,14 +5,17 @@ import typing as T
 
 from . import sym
 from . import custom_types
+from . import type_annotations
 from . import type_info
 
 from pywrenfold.gen import PyExternalFunction
 
 
-class ExternalFunc:
+class ExternalFunction:
     """
-    Callable object that represents a user-declared external function.
+    Callable object that represents a user-provided external function. External functions may be
+    handwritten methods that live in the user's codebase. Wrenfold can invoke these from generated
+    code, provided they are declared with :func:`declare_external_function`.
     """
 
     def __init__(self, wrapped_func: PyExternalFunction) -> None:
@@ -23,28 +26,34 @@ class ExternalFunc:
 
     def __call__(self, *args, **kwargs) -> T.Any:
         """
-        Generate expressions to represent an invocation of the external function.
+        Generate expressions to represent an invocation of ``self``.
         """
         return _invoke_external_function(self._inner, *args, **kwargs)
 
     @property
     def name(self) -> str:
+        """Name of the function."""
         return self._inner.name
 
     @property
     def num_arguments(self) -> int:
+        """Number of arguments the function expects to receive."""
         return self._inner.num_arguments
 
     @property
     def return_type(
             self) -> T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]:
+        """
+        Return type of the function. This will determine the type of variable we must declare in
+        code-generated functions.
+        """
         return self._inner.return_type
 
     def __hash__(self) -> int:
         return hash(self._inner)
 
-    def __eq__(self, other: T.Union['ExternalFunc', PyExternalFunction]) -> bool:
-        if isinstance(other, ExternalFunc):
+    def __eq__(self, other: T.Union['ExternalFunction', PyExternalFunction]) -> bool:
+        if isinstance(other, ExternalFunction):
             return self._inner == other._inner
         elif isinstance(other, PyExternalFunction):
             return self._inner == other
@@ -56,26 +65,39 @@ def declare_external_function(
     name: str,
     arguments: T.Iterable[T.Tuple[str, T.Type]],
     return_type: T.Type,
-) -> ExternalFunc:
+) -> ExternalFunction:
     """
     Declare an external function. External functions are implemented by the user outside of the code
     generation framework. They can be invoked on symbolic expressions, and their returned values
     can be utilized as part of further symbolic expressions.
 
-    At code-generation time, the user can override the `format_custom_function_call` formatter to
-    specify how their external function is mapped to actual output code. The `name` field does not
-    need to match the actual function name in the target language, since this mapping is implemented
-    by the the code-generator.
+    At code-generation time, the user can override the ``format_custom_function_call`` formatter to
+    specify how their external function is mapped to actual output code. This can be used to achieve
+    certain customizations:
 
-    By necessity, wrenfold must assume that external functions are pure (without side effects). Any
-    two identical calls (ie. having the same function and argument lists) are assumed to be
+      * Mapping ``name`` to different functions in different target languages.
+      * Inserting casts or type conversions around arguments.
+
+    By necessity, wrenfold **must assume that external functions are pure** (without side effects).
+    Any two identical calls (ie. having the same function and argument lists) are assumed to be
     interchangeable, and will be de-duplicated during transpilation.
 
-    :param name: String name for the function.
-    :arguments: Iterable of (name, type) pairs that define the argument list.
+    The ``arguments`` sequence specifies the names and expected types of the function arguments. The
+    types may be:
 
-    :return_type: An ExternalFunc object that can be invoked via the __call__ operator. The args to
-    __call__ should have types matching `arguments`.
+      * One of the scalar/matrix types from :doc:`type annotations <type_annotations>`.
+      * A `dataclass <https://docs.python.org/3/library/dataclasses.html>`_ type corresponding to a
+        user-declared type.
+      * A subclass of :class:`wrenfold.type_annotations.Opaque`.
+
+    Args:
+      name: String name for the function.
+      arguments: Iterable of (name, type) pairs that define the argument list of the function.
+      return_type: Return type of the function.
+
+    Returns:
+        An ExternalFunc object that can be invoked via the ``__call__`` operator. The args to
+        ``__call__`` should have types matching `arguments`.
     """
     type_cache: T.Dict[T.Type, custom_types.CodegenType] = dict()
 
@@ -95,7 +117,7 @@ def declare_external_function(
         name=name, arguments=converted_args, return_type=converted_return_type)
 
     # Next we make a python wrapper it that will handle mapping of data in/out of custom types.
-    return ExternalFunc(wrapped_func=wrapper_func)
+    return ExternalFunction(wrapped_func=wrapper_func)
 
 
 def _combine_args(func: PyExternalFunction, args: T.Sequence[T.Any],
@@ -150,7 +172,7 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
             raise TypeError(f"Argument `{arg_name}` of function `{func.name}` should be of type " +
                             f"{arg_type.python_type}, but we received {type(arg)}")
 
-        if isinstance(arg, custom_types.Opaque):
+        if isinstance(arg, type_annotations.Opaque):
             assert arg_type.total_size == 0, "Custom type should not have any members"
             # An opaque type handed to us by the user, it may be a function input or the result of
             # an external call:
@@ -173,7 +195,7 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
         returned_custom_type,
         type_info.CustomType), f"Return type should be custom type: {returned_custom_type}"
 
-    if issubclass(returned_custom_type.python_type, custom_types.Opaque):
+    if issubclass(returned_custom_type.python_type, type_annotations.Opaque):
         return returned_custom_type.python_type(provenance=result)
     else:
         # This is a dataclass type, fill it with expressions:
