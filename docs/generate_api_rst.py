@@ -17,6 +17,7 @@ from wrenfold import geometry
 from wrenfold import sym
 from wrenfold import sympy_conversion
 from wrenfold import type_annotations
+from wrenfold import type_info
 
 
 def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
@@ -70,6 +71,7 @@ def main(args: argparse.Namespace):
         module=type_annotations, module_name="type_annotations", output_dir=output_dir)
     generate_rst_for_module(module=exceptions, module_name="exceptions", output_dir=output_dir)
     generate_rst_for_module(module=enumerations, module_name="enumerations", output_dir=output_dir)
+    generate_rst_for_module(module=type_info, module_name="type_info", output_dir=output_dir)
 
 
 def parse_args() -> argparse.Namespace:

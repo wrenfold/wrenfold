@@ -10,6 +10,7 @@ Python API Documentation
    code_generation
    custom_types
    type_annotations
+   type_info
    ast
    sympy_conversion
    enumerations

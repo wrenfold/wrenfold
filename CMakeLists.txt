@@ -53,7 +53,7 @@ add_custom_target(wf_rust_generation ALL)
 # Add libraries
 add_subdirectory(components)
 
-# Add examples:
+# Add examples and docs.
 if(NOT DEFINED SKBUILD_PROJECT_NAME)
   add_subdirectory(examples)
   add_subdirectory(docs)

@@ -70,7 +70,8 @@ if(${SPHINX_FOUND})
       source/python_api/geometry.rst
       source/python_api/sym.rst
       source/python_api/sympy_conversion.rst
-      source/python_api/type_annotations.rst)
+      source/python_api/type_annotations.rst
+      source/python_api/type_info.rst)
 
   set(HANDWRITTEN_RST_FILES source/index.rst source/python_api/index.rst
                             source/cpp_api/index.rst source/cpp_api/span.rst)
@@ -103,9 +104,11 @@ if(${SPHINX_FOUND})
          -Dbreathe_projects.wf_runtime="${DOXYGEN_OUTPUT_DIR}/xml")
   endif()
 
+  # Run sphinx through cmake so we can specify the python path correctly.
   add_custom_command(
     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/build/index.html"
-    COMMAND ${SPHINX_BUILD_PATH} ${SPHINX_ARGS}
+    COMMAND ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
+            ${SPHINX_BUILD_PATH} ${SPHINX_ARGS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generate documentation with sphinx."
     DEPENDS wf_stubs source/conf.py ${GENERATED_RST_FILES}

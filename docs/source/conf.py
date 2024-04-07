@@ -2,8 +2,6 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-import sys
-import os
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -14,10 +12,6 @@ author = 'Gareth Cross'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
-# Place the built module on the system path:
-sys.path.insert(0, os.path.abspath('../components/python'))
-sys.path.insert(1, os.path.abspath('../build/components/wrapper'))
 
 IMPORT_PATH_REPLACEMENTS = [('pywrenfold.', 'wrenfold.')]
 
