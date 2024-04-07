@@ -147,7 +147,7 @@ TEST(SpanTest, TestSpanTraits) {
 }
 
 TEST(SpanTest, TestMakeNullSpan) {
-  constexpr auto span = make_always_null_span<2, 3>();
+  constexpr auto span = make_always_null_span<constant_value_pack<2, 3>>();
   EXPECT_FALSE(span);
   EXPECT_EQ(nullptr, span.data());
   EXPECT_EQ(2, span.rows());

@@ -5,12 +5,16 @@ channels:
 
 dependencies:
   - python=3.8
-  - cmake >= 3.20
-  - ninja
+  - cmake>=3.20
+  - ninja>=1.5
   - mypy
   # Tests:
   - numpy
   - sympy
   # Documentation
-  - sphinx
+  # We are stuck on an older sphinx until breathe resolves compatibility issues.
+  # Such as: https://github.com/sphinx-doc/sphinx/issues/11490
+  - sphinx==6.2.1
   - furo
+  - doxygen
+  - breathe

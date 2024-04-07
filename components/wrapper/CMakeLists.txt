@@ -1,11 +1,11 @@
-# Custom target that groups together the wrapper and its stubs.
-add_custom_target(wf_wrapper_and_stubs ALL)
+# Custom target for all stubs:
+add_custom_target(wf_stubs ALL)
 
 # Find stubgen:
 if(NOT DEFINED STUBGEN_PATH)
   message(STATUS "Looking for stubgen...")
   find_program(STUBGEN_PATH stubgen)
-  if(DEFINED STUBGEN_PATH)
+  if(DEFINED STUBGEN_PATH AND NOT STUBGEN_PATH STREQUAL "STUBGEN_PATH-NOTFOUND")
     message(STATUS "stubgen path: ${STUBGEN_PATH}")
   endif()
 endif()
@@ -71,7 +71,7 @@ function(add_wrapper_module)
       DEPENDS ${MODULE_NAME})
 
     add_custom_target(${MODULE_NAME}_stubs ALL DEPENDS ${STUBGEN_OUTPUT_PATHS})
-    add_dependencies(wf_wrapper_and_stubs ${MODULE_NAME}_stubs)
+    add_dependencies(wf_stubs ${MODULE_NAME}_stubs)
   endif()
 
   # Add install targets for scikit-build-core
@@ -123,7 +123,6 @@ add_wrapper_module(
   type_info)
 
 add_library(wf_wrapper ALIAS pywrenfold)
-add_dependencies(wf_wrapper_and_stubs wf_wrapper)
 
 # Add python tests:
 if(NOT DEFINED SKBUILD_PROJECT_NAME)

@@ -2,8 +2,6 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-import sys
-import os
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -14,10 +12,6 @@ author = 'Gareth Cross'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
-# Place the built module on the system path:
-sys.path.insert(0, os.path.abspath('../components/python'))
-sys.path.insert(1, os.path.abspath('../build/components/wrapper'))
 
 IMPORT_PATH_REPLACEMENTS = [('pywrenfold.', 'wrenfold.')]
 
@@ -39,7 +33,7 @@ def process_signature(app, what, name, obj, options, signature, return_annotatio
         signature = apply_replacements(signature)
     if return_annotation is not None:
         return_annotation = apply_replacements(return_annotation)
-    return (signature, return_annotation)
+    return signature, return_annotation
 
 
 def process_docstring(app, what, name, obj, options, lines):
@@ -60,7 +54,10 @@ def setup(app):
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    # Napoleon adds support for google-style docstrings.
     "sphinx.ext.napoleon",
+    # Breathe is used to convert C++ doxygen to sphinx.
+    "breathe",
 ]
 
 templates_path = ['_templates']
@@ -71,3 +68,6 @@ exclude_patterns = []
 
 html_theme = 'furo'
 html_static_path = ['_static']
+
+# -- Breathe configuration ---------------------------------------------------
+breathe_default_project = "wf_runtime"

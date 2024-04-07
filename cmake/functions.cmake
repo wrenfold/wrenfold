@@ -6,7 +6,8 @@ define_property(
 # Set the `PYTHON_COMMAND_ENV_VARIABLES` variable with environment variables
 # that can be be passed to `cmake -E env` when running python scripts. This
 # places both the python library, and pywrenfold (pybind11 wrapper) on the
-# PYTHONPATH.
+# PYTHONPATH. Ideally we would get these paths from the targets themselves, but
+# the order in which targets are added makes that tricky.
 function(set_python_env_variables)
   set(COMPONENTS_BINARY_DIR "${CMAKE_BINARY_DIR}/components")
   set(COMPONENTS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/components")
@@ -123,6 +124,9 @@ endfunction()
 
 # Get the python source files of the wf_python target.
 function(get_python_library_sources OUTPUT_VARIABLE)
+  if(NOT TARGET wf_python)
+    message(FATAL_ERROR "Target wf_python does not exist.")
+  endif()
   get_target_property(PYTHON_SOURCE_DIR wf_python SOURCE_DIR)
   get_target_property(PYTHON_LIB_SOURCES wf_python SOURCES)
   list(TRANSFORM PYTHON_LIB_SOURCES PREPEND "${PYTHON_SOURCE_DIR}/")

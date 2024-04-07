@@ -5,7 +5,11 @@
 
 namespace wf {
 
-// Represent a compile-time constant dimension or stride value.
+/**
+ * A length or stride value that is known at compile-time.
+ *
+ * @tparam D Dimension/stride.
+ */
 template <std::size_t D>
 class constant {
  public:
@@ -13,18 +17,25 @@ class constant {
 
   // It is easier to write variadic utility functions if we define this constructor.
   // The passed value is dropped, since `constant` does not store anything.
-  explicit constexpr constant(std::size_t) noexcept {};
+  explicit constexpr constant(std::size_t) noexcept {}
 
+  /**
+   * Retrieve the value.
+   */
   static constexpr std::size_t value() noexcept { return D; }
 };
 
-// Represent a run-time dimension or stride value.
+/**
+ * Store a length or stride value that is determined at runtime.
+ */
 class dynamic {
  public:
   // Construct with stride value.
   explicit constexpr dynamic(const std::size_t value) noexcept : value_(value) {}
 
-  // Access the stride value.
+  /**
+   * Retrieve the value.
+   */
   constexpr std::size_t value() const noexcept { return value_; }
 
  private:
@@ -56,8 +67,6 @@ class value_pack_const {
                 "All values must be compile-time constants");
 
   using tuple_type = std::tuple<Values...>;
-  template <std::size_t D>
-  using tuple_element_t = std::tuple_element_t<D, tuple_type>;
 
   // Default construct.
   explicit constexpr value_pack_const() noexcept = default;
@@ -65,11 +74,11 @@ class value_pack_const {
   // Construct from values.
   explicit constexpr value_pack_const(Values...) noexcept {}
 
-  // Get the value on axis `D`.
-  template <std::size_t D>
-  constexpr tuple_element_t<D> get_axis() const noexcept {
-    static_assert(D < sizeof...(Values), "Invalid dimension index");
-    return tuple_element_t<D>{};
+  // Get the value on axis `A`.
+  template <std::size_t A>
+  constexpr std::tuple_element_t<A, tuple_type> get_axis() const noexcept {
+    static_assert(A < sizeof...(Values), "Invalid dimension index");
+    return std::tuple_element_t<A, tuple_type>{};
   }
 
   // Access all the values as a tuple.
@@ -81,17 +90,15 @@ template <typename... Values>
 class value_pack_dynamic {
  public:
   using tuple_type = std::tuple<Values...>;
-  template <std::size_t D>
-  using tuple_element_t = std::tuple_element_t<D, tuple_type>;
 
   // Construct from `Values`, which may be dynamic or constant structs.
   explicit constexpr value_pack_dynamic(Values... values) noexcept : values_{values...} {}
 
-  // Get the value on axis `D`.
-  template <std::size_t D>
-  constexpr tuple_element_t<D> get_axis() const noexcept {
-    static_assert(D < sizeof...(Values), "Invalid dimension index");
-    return std::get<D>(values_);
+  // Get the value on axis `A`.
+  template <std::size_t A>
+  constexpr std::tuple_element_t<A, tuple_type> get_axis() const noexcept {
+    static_assert(A < sizeof...(Values), "Invalid dimension index");
+    return std::get<A>(values_);
   }
 
   // Access all the values as a tuple.
@@ -103,7 +110,12 @@ class value_pack_dynamic {
 
 }  // namespace detail
 
-// Inherits either `value_pack_const` or `value_pack_dynamic`, depending on the types of `Values`.
+/**
+ * Store a sequence of values, each of which represents the size or stride along a partiular axis
+ * of a span.
+ *
+ * @tparam Values Variadic list of wf::constant or wf::dynamic values.
+ */
 template <typename... Values>
 class value_pack : public std::conditional_t<detail::conjunction_v<detail::is_constant<Values>...>,
                                              detail::value_pack_const<Values...>,
@@ -111,11 +123,15 @@ class value_pack : public std::conditional_t<detail::conjunction_v<detail::is_co
  public:
   static_assert(sizeof...(Values) > 0, "Must have at least one dimension");
 
-  // True if all values are known at compile time.
+  /**
+   * True if all values are compile-time constants.
+   */
   static constexpr bool known_at_compile_time =
-      detail::conjunction<detail::is_constant<Values>...>::value;
+      detail::conjunction_v<detail::is_constant<Values>...>;
 
-  // Number of dimensions.
+  /**
+   * Number of values in this pack.
+   */
   static constexpr std::size_t length = sizeof...(Values);
 
   // The base class, which differs if all dimensions are known at compile time.
@@ -128,13 +144,22 @@ class value_pack : public std::conditional_t<detail::conjunction_v<detail::is_co
   // Create a zero-initialized value pack.
   static constexpr value_pack zero_initialized() noexcept { return value_pack(Values(0)...); }
 
-  template <std::size_t D>
+  /**
+   * Access value for a particular dimension.
+   *
+   * @tparam A Index of the element to retrieve.
+   */
+  template <std::size_t A>
   constexpr auto get() const noexcept {
-    return Base::template get_axis<D>();
+    return Base::template get_axis<A>();
   }
 };
 
-// Shorthand for value-pack of constants.
+/**
+ * Alias for a value_pack of wf::constant values.
+ *
+ * @tparam IJK Parameter pack of indices to be converted to wf::constant.
+ */
 template <std::size_t... IJK>
 using constant_value_pack = value_pack<constant<IJK>...>;
 
@@ -213,14 +238,39 @@ struct convert_to_dimension_type<
 
 }  // namespace detail
 
-// Construct `dimensions` from variadic args.
+/**
+ * Construct a value_pack from variadic arguments.
+ *
+ * Example usage:
+ * \code{.cpp}
+ *   // Create dimensions for a 2x8x3 sized buffer.
+ *   const auto dims = make_value_pack(constant<2>{}, 8, dynamic(3));
+ * \endcode
+ *
+ * @param values These may be wf::constant compile-time values, wf::dynamic runtime values, or
+ * integrals that will automatically be promoted to wf::dynamic.
+ *
+ * @return Instance of value_pack with the specified values.
+ */
 template <typename... Values>
 constexpr auto make_value_pack(Values... values) noexcept {
   return value_pack<detail::convert_to_dimension_type_t<Values>...>{
       detail::convert_to_dimension_type<Values>::convert(values)...};
 }
 
-// Construct compile-time constant dimensions from template parameters.
+/**
+ * Construct a value_pack from a template parameter pack of std::size_t values.
+ *
+ * Example usage:
+ * \code{.cpp}
+ *   // Create dimensions for a 4x2 sized buffer.
+ *   const auto dims = make_constant_value_pack<4, 2>();
+ * \endcode
+ *
+ * @tparam Dims Values to place in the value_pack.
+ *
+ * @return value_pack of wf::constant
+ */
 template <std::size_t... Dims>
 constexpr auto make_constant_value_pack() noexcept {
   return make_value_pack(constant<Dims>{}...);

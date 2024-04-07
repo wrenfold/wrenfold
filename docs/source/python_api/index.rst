@@ -1,4 +1,4 @@
-Python API documentation
+Python API Documentation
 ========================
 
 .. toctree::
@@ -10,6 +10,7 @@ Python API documentation
    code_generation
    custom_types
    type_annotations
+   type_info
    ast
    sympy_conversion
    enumerations
