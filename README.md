@@ -29,6 +29,8 @@ Additionally, to build and run tests you will need:
 To build documentation:
 - [sphinx](https://www.sphinx-doc.org/)
 - [furo](https://github.com/pradyunsg/furo)
+- [doxygen](https://www.doxygen.nl)
+- [breathe](https://breathe.readthedocs.io/en/latest/)
 
 The following command will configure a `conda` environment suitable for building+testing:
 ```bash

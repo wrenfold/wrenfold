@@ -6,6 +6,7 @@ wrenfold documentation
    :caption: Contents:
 
    python_api/index
+   cpp_api/index
 
 
 Indices and tables

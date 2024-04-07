@@ -34,7 +34,7 @@ sym
 
 .. autofunction:: wrenfold.sym.det
 
-.. autofunction:: wrenfold.sym.diagonal
+.. autofunction:: wrenfold.sym.diag
 
 .. autofunction:: wrenfold.sym.eq
 
@@ -51,8 +51,6 @@ sym
 .. autofunction:: wrenfold.sym.gt
 
 .. autofunction:: wrenfold.sym.hstack
-
-.. autofunction:: wrenfold.sym.identity
 
 .. autofunction:: wrenfold.sym.integer
 
