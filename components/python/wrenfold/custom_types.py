@@ -5,28 +5,13 @@ import dataclasses
 import typing as T
 
 from . import sym
+from . import type_annotations
 from . import type_info
 
 # Refer to possible types we put in the generated code.
 CodegenType = T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]
 
 U = T.TypeVar("U")
-
-
-class Opaque:
-    """
-    Base class used to indicate a custom type that exposes no symbolic expression members. Opaque
-    types are employed to represent user-provided types the user may wish to pass to their generated
-    functions (and subsequently to external functions).
-
-    Caution:
-      You should not construct ``Opaque`` directly. Instead, inherit from it to create a new type.
-      This new type is then intended for use as a type annotation on functions passed to
-      :func:`wrenfold.code_generation.create_function_description`.
-    """
-
-    def __init__(self, provenance: T.Optional[sym.CompoundExpr] = None) -> None:
-        self._provenance: T.Optional[sym.CompoundExpr] = provenance
 
 
 def convert_to_internal_type(python_type: T.Type,
@@ -41,7 +26,7 @@ def convert_to_internal_type(python_type: T.Type,
     elif issubclass(python_type, sym.MatrixExpr):
         shape = _get_matrix_shape(matrix_type=python_type)
         return type_info.MatrixType(*shape)
-    elif dataclasses.is_dataclass(python_type) or issubclass(python_type, Opaque):
+    elif dataclasses.is_dataclass(python_type) or issubclass(python_type, type_annotations.Opaque):
         if python_type in cached_custom_types:
             return cached_custom_types[python_type]
         # Type is not in the cache - convert it and cache it before returning:

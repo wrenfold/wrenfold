@@ -233,8 +233,8 @@ Args:
   y: Y component of the vector, in radians.
   z: Z component of the vector, in radians.
   epsilon: If provided, ``epsilon`` specifies the threshold below which a small-angle approximation
-    is used. A conditional will be inserted using ``sym.where`` to switch between the normal and
-    small-angle code paths. This value should be positive.
+    is used. A conditional will be inserted using :func:`wrenfold.sym.where` to switch between the
+    normal and small-angle code paths. This value should be positive.
 
 Returns:
   A unit-norm quaternion representing the rotation vector ``[x, y, z]``.
@@ -310,8 +310,8 @@ Caution:
 
 Args:
   epsilon: If provided, ``epsilon`` specifies the threshold below which a small-angle approximation
-    is used. A conditional will be inserted using ``sym.where`` to switch between the normal and
-    small-angle code paths. This value should be positive.
+    is used. A conditional will be inserted using :func:`wrenfold.sym.where` to switch between the
+    normal and small-angle code paths. This value should be positive.
 
 Returns:
   3x1 matrix expression for the rotation vector.
@@ -400,8 +400,8 @@ Tip:
 Args:
   w: 3x1 rotation vector, in radians.
   epsilon: If provided, ``epsilon`` specifies the threshold below which a small-angle approximation
-    is used. A conditional will be inserted using ``sym.where`` to switch between the normal and
-    small-angle code paths. This value should be positive.
+    is used. A conditional will be inserted using :func:`wrenfold.sym.where` to switch between the
+    normal and small-angle code paths. This value should be positive.
 
 Returns:
   The 3x3 left jacobian of SO(3).

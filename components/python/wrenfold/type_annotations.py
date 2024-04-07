@@ -5,6 +5,7 @@ correct inputs.
 You can define new vector/matrix annotations anywhere. They need only inherit from MatrixExpr and
 expose the SHAPE tuple.
 """
+import typing as T
 
 from . import sym
 
@@ -41,3 +42,19 @@ class Vector5(sym.MatrixExpr):
 class Vector6(sym.MatrixExpr):
     """A 6x1 column vector."""
     SHAPE = (6, 1)
+
+
+class Opaque:
+    """
+    Base class used to indicate a custom type that exposes no symbolic expression members. Opaque
+    types are employed to represent user-provided types the user may wish to pass to their generated
+    functions (and subsequently to external functions).
+
+    Caution:
+      You should not construct ``Opaque`` directly. Instead, inherit from it to create a new type.
+      This new type is then intended for use as a type annotation on functions passed to
+      :func:`wrenfold.code_generation.create_function_description`.
+    """
+
+    def __init__(self, provenance: T.Optional[sym.CompoundExpr] = None) -> None:
+        self._provenance: T.Optional[sym.CompoundExpr] = provenance

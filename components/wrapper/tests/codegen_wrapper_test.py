@@ -11,12 +11,11 @@ import dataclasses
 
 from wrenfold import ast
 from wrenfold import code_generation
-from wrenfold import custom_types
 from wrenfold import external_functions
 from wrenfold import sym
 from wrenfold.code_generation import ReturnValue, OutputArg
 from wrenfold.enumerations import StdMathFunction
-from wrenfold.type_annotations import RealScalar, Vector2
+from wrenfold.type_annotations import RealScalar, Vector2, Opaque
 
 from test_base import MathTestBase
 
@@ -60,7 +59,7 @@ def rotate_point(angle: RealScalar, p: Point2d):
     return [OutputArg(p_out, name="p_rotated")]
 
 
-class OpaqueType(custom_types.Opaque):
+class OpaqueType(Opaque):
     """An external type we will pass to our test external function."""
 
 

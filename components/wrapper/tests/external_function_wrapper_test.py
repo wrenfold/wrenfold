@@ -9,7 +9,7 @@ from wrenfold import exceptions
 from wrenfold import external_functions
 from wrenfold import sym
 from wrenfold import type_info
-from wrenfold.type_annotations import Vector2, Vector3
+from wrenfold.type_annotations import Vector2, Vector3, Opaque
 
 from test_base import MathTestBase
 
@@ -99,7 +99,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
     def test_opaque_types(self):
         """Define an external function that accepts and returns opaque types."""
 
-        class TestType(custom_types.Opaque):
+        class TestType(Opaque):
             """An opaque type for use in this test."""
 
         # Define two functions - one that returns the type, and another accepts it.
