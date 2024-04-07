@@ -6,7 +6,7 @@
 // to generated functions.
 #ifdef WF_SPAN_EIGEN_SUPPORT
 #include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <Eigen/Geometry>  //  QuaternionBase
 
 namespace wf {
 

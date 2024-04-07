@@ -4,41 +4,62 @@
 
 namespace wf {
 
-// Type used for strides computed at compile time.
-template <std::size_t D>
-class constant;
-
-// Type used for strides computed at runtime.
-class dynamic;
+/**
+ * Trait that implements conversion of user-provided type `T` to wf::span. The trait must
+ * implement a single method, `convert(...)`, which accepts an instance of type `T` and returns a
+ * span.
+ *
+ * An example implementation for a simple 2D matrix type with compile-time dimensions might look
+ * something like:
+ *
+ * \code{.cpp}
+ *    template <typename Dimensions, int Rows, int Cols>
+ *    struct convert_to_span<Dimensions, MyMatrixType<Rows, Cols>> {
+ *      // We employ a forwarding reference to accept both const and non-const.
+ *      // If the type of `U` is const, we want to return a `span<const V, ...>`.
+ *      template <typename U>
+ *      constexpr auto convert(U&& matrix) const noexcept {
+ *        // We'll assume the dimensions are always known at compile time. In practice, you may wish
+ *        // to make this a runtime assertion if the matrix type is dynamic.
+ *        static_assert(constant_value_pack_axis_v<0, Dimensions> == Rows);
+ *        static_assert(constant_value_pack_axis_v<1, Dimensions> == Cols);
+ *        // This example assumes row-major storage, so the stride between rows is `Cols`.
+ *        // The stride between columns is 1 (each row is densely packed).
+ *        constexpr auto strides = make_constant_value_pack<Cols, 1>();
+ *        return make_span(matrix.data(), make_constant_value_pack<Rows, Cols>(), strides);
+ *      }
+ *    };
+ * \endcode
+ *
+ * See `span_eigen.h` for an example implementation that converts `Eigen::MatrixBase`-derived
+ * classes to spans.
+ *
+ * @tparam Dimensions wf::value_pack describing the **expected** dimensions of the resulting span.
+ * As of the time of this writing, these values are always compile-time constants.
+ * @tparam T User-provided type being converted.
+ *
+ * @warning The user-provided specialization is ultimately responsible for checking that a specific
+ * instance of `T` satisfies the values in `Dimensions`.
+ */
+template <typename Dimensions, typename T, typename = void>
+struct convert_to_span;
 
 // Fwd declare.
 template <typename T, typename Dimensions, typename Strides>
 constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept;
 
-// This is the trait you implement to add support for your custom argument type.
-//
-// An example implementation for a simple 2D matrix type with compile-time dimensions might look
-// something like:
-//
-//  template <typename Dimensions, int Rows, int Cols>
-//  struct convert_to_span<Dimensions, MyMatrixType<Rows, Cols>> {
-//     // Forwarding reference to accept both const and non-const.
-//     template <typename U>
-//     constexpr auto convert(U&& matrix) noexcept {
-//        static_assert(constant_value_pack_axis_v<0, Dimensions> == Rows);
-//        static_assert(constant_value_pack_axis_v<1, Dimensions> == Cols);
-//        // Assuming row-major storage:
-//        constexpr auto strides = make_constant_value_pack<Cols, 1>();
-//        return make_span(matrix.data(), make_constant_value_pack<Rows, Cols>(), strides);
-//     }
-//  };
-//
-// See `span_eigen.h` for an example implementation.
-template <typename Dimensions, typename T, typename = void>
-struct convert_to_span;
-
-// Base class for multidimensional spans.
-// Don't instantiate this directly, use `make_span` or specialize the `convert_to_span` struct.
+/**
+ * A multidimensional span. Matrix and vector arguments to wrenfold functions are internally
+ * converted to spans. Any user-provided vector or buffer can be passed to a wrenfold C++ function,
+ * provided it implements the convert_to_span trait.
+ *
+ * @warning Typically you do not want construct this type directly. Instead, specialize
+ * convert_to_span for whatever matrix/vector class you wish to support.
+ *
+ * @tparam T Numeric type of the underlying buffer (eg. float, double).
+ * @tparam Dimensions value_pack describing the dimensions of the data.
+ * @tparam Strides value_pack describing the strides of the data.
+ */
 template <typename T, typename Dimensions, typename Strides>
 class span {
  public:
@@ -57,64 +78,99 @@ class span {
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
 
-  // Number of dimensions in this span. Must be at least one.
+  /**
+   * Number of dimensions in the span.
+   */
   static constexpr std::size_t num_dimensions = Dimensions::length;
 
   // Construct from pointer and strides.
   constexpr span(T* data, Dimensions dims, Strides strides) noexcept
       : data_(data), dimensions_(dims), strides_(strides) {}
 
-  // Construct from  pointer and strides.
-  // Specialization for when `U` is the non-const version of T.
-  template <typename U, typename = detail::enable_if_adding_const_t<T, U>>
-  constexpr span(U* data, Dimensions dims, Strides strides) noexcept
-      : span(const_cast<T*>(data), dims, strides) {}
-
-  // Implicit construct if U is the non-const version of T.
-  // Allows promotion from non-const to const span.
+  /**
+   * Permit implicit promotion from `span<T, ...>` to `span<const T, ....>`.
+   *
+   * @tparam U Non-const version of type `T`.
+   *
+   * @param s Source span to copy parameters from.
+   */
   template <typename U, typename = detail::enable_if_adding_const_t<T, U>>
   constexpr span(const span<U, Dimensions, Strides>& s) noexcept  // NOLINT
       : span(const_cast<T*>(s.data()), s.dimensions(), s.strides()) {}
 
-  // Number of rows. Valid for 1D and 2D spans.
+  /**
+   * Number of rows (the dimension at index 0).
+   */
   constexpr std::size_t rows() const noexcept { return dimensions_.template get<0>().value(); }
 
-  // Number of columns. Valid for 2D spans.
+  /**
+   * Number of columns (the dimension at index 1). Valid for spans with two or more dimensions.
+   */
   constexpr std::size_t cols() const noexcept { return dimensions_.template get<1>().value(); }
 
-  // Access all dimensions.
+  /**
+   * Access value_pack of dimensions.
+   */
   constexpr const Dimensions& dimensions() const noexcept { return dimensions_; }
 
-  // Access all strides.
+  /**
+   * Access value_pack of strides.
+   */
   constexpr const Strides& strides() const noexcept { return strides_; }
 
-  // Access the dimension for axis `D`.
-  template <std::size_t D>
+  /**
+   * Retrieve the size/shape of the span on a particular dimension.
+   *
+   * @tparam A Axis to retrieve.
+   */
+  template <std::size_t A>
   constexpr auto dimension() const noexcept {
-    static_assert(D < num_dimensions, "dimension index is invalid");
-    return dimensions_.template get<D>().value();
+    static_assert(A < num_dimensions, "dimension index is invalid");
+    return dimensions_.template get<A>().value();
   }
 
-  // Access the stride for axis `D`.
-  template <std::size_t D>
+  /**
+   * Retrieve the stride of the spanned data on a particular dimension.
+   *
+   * @tparam A Axis to retrieve.
+   */
+  template <std::size_t A>
   constexpr auto stride() const noexcept {
-    static_assert(D < num_dimensions, "dimension index is invalid");
-    return strides_.template get<D>().value();
+    static_assert(A < num_dimensions, "dimension index is invalid");
+    return strides_.template get<A>().value();
   }
 
-  // Matrix-access operator.
-  // Interpret (i, j) as row and column indices and return a reference.
+  /**
+   * Matrix-access operator.
+   *
+   * @warning No bounds checking is applied.
+   *
+   * @tparam Indices These must be integral values that are convertible to `std::ptrdiff_t`.
+   *
+   * @param indices Indices into the underlying data. For a 2D span, this will be a (row, column)
+   * pair.
+   *
+   * @return A reference to an element in the span.
+   */
   template <typename... Indices>
   constexpr reference operator()(Indices... indices) const noexcept {
     return data_[compute_index(indices...)];
   }
 
-  // Array access operator, valid for 1D spans.
+  /**
+   * Array access operator. Valid only for 1D spans.
+   *
+   * @warning No bounds checking is applied.
+   *
+   * @param index Element to access.
+   *
+   * @return A reference to an element in the span.
+   */
   constexpr reference operator[](const std::ptrdiff_t index) const noexcept {
     return data_[compute_index(index)];
   }
 
-  // Compute linear index from (row, column) matrix indices.
+  // Compute linear index from (row, column, ...) matrix indices.
   template <typename... Indices>
   constexpr std::ptrdiff_t compute_index(Indices... indices) const noexcept {
     static_assert(detail::conjunction_v<std::is_convertible<Indices, std::ptrdiff_t>...>,
@@ -125,18 +181,41 @@ class span {
                                   indices...);
   }
 
-  // Access pointer to data:
+  /**
+   * Pointer to the start of the underlying data.
+   */
   constexpr pointer data() const noexcept { return data_; }
 
-  // Implicit conversion to bool to check if this object is null.
+  /**
+   * Implicit conversion to bool. Evaluates to true if the underlying data pointer is non-null.
+   */
   constexpr operator bool() const noexcept { return data_ != nullptr; }  // NOLINT
 
-  // Create a const version of this span.
+  /**
+   * Create a span with the same underlying dimensions and strides as `this`, but with a const
+   * data type.
+   *
+   * @return A new span of the form `span<const T, ...>`.
+   */
   constexpr span<const std::remove_const_t<T>, Dimensions, Strides> as_const() const noexcept {
     return {data_, dimensions(), strides()};
   }
 
-  // Access a sub-block of the span with the given offsets and dimensions.
+  /**
+   * Create a new span referencing a sub-block of `this`.
+   *
+   * @warning No checks are employed to enforce that the new span does not exceed the bounds of the
+   * original.
+   *
+   * @tparam O A wf::value_pack whose dimensions match those of this span.
+   * @tparam D A wf::value_pack whose dimensions match those of this span.
+   *
+   * @param offsets Where the block starts.
+   * @param dims The size of the block on each exis.
+   *
+   * @return A new span with the same strides as the original, but with a new starting address and
+   * dimensions of type `D`.
+   */
   template <typename O, typename D>
   constexpr auto block(O offsets, D dims) const noexcept {
     static_assert(num_dimensions == O::length, "Incorrect # of dimensions in offsets.");
@@ -187,8 +266,28 @@ class span {
   Strides strides_;
 };
 
-// Shorthand to construct a span from pointer, dimensions, and strides.
-// `Dimensions` and `Strides` must be instances of `value_pack`.
+/**
+ * Construct a span from a pointer, dimensions, and strides.
+ *
+ * Example usage:
+ * \code{.cpp}
+ *   // Make a span over a fixed-size array. The data is assumed to have a shape of 4x6, in
+ *   // column-major order.
+ *   std::array<double, 24> buffer{};
+ *   const auto span = make_span(buffer.data(), make_constant_value_pack<4, 6>(),
+ *                               make_constant_value_pack<1, 6>());
+ * \endcode
+ *
+ * @tparam T Type of the underlying data (eg. float, double).
+ * @tparam Dimensions A wf::value_pack.
+ * @tparam Strides A wf::value_pack, the length of which should match `Dimensions`.
+ *
+ * @param data Pointer to the start of the spanned data.
+ * @param dims The shape of the data.
+ * @param strides The stride of the spanned data.
+ *
+ * @return A new span.
+ */
 template <typename T, typename Dimensions, typename Strides>
 constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept {
   using dimension_type = std::decay_t<Dimensions>;
@@ -196,16 +295,14 @@ constexpr auto make_span(T* data, Dimensions dims, Strides strides) noexcept {
   return span<T, dimension_type, stride_type>{data, dims, strides};
 }
 
-// Create a span that is null with the specified type and dimensions.
-// Accepts a variadic list of compile-time integers for dimensions.
-template <std::size_t... Dims>
-constexpr auto make_always_null_span() noexcept {
-  return make_span<detail::void_type>(nullptr, make_constant_value_pack<Dims...>(),
-                                      detail::make_zero_value_pack<sizeof...(Dims)>());
-}
-
-// Create a span that is null with the specified type and dimensions.
-// `Dimensions` is a value_pack.
+/**
+ * Create a null span with the specified dimensions. Null spans can be passed to optional output
+ * arguments in generated functions.
+ *
+ * @tparam Dimensions A wf::value_pack of compile-time integrals.
+ *
+ * @return A span with a null data pointer.
+ */
 template <typename Dimensions>
 constexpr auto make_always_null_span() noexcept {
   static_assert(is_value_pack_v<Dimensions>, "Dimensions must be a value_pack");
@@ -213,15 +310,38 @@ constexpr auto make_always_null_span() noexcept {
                                       detail::make_zero_value_pack<Dimensions::length>());
 }
 
-// Make a span from a 1D array.
+/**
+ * Create a 1D span from an array-like object. An array-like object meets the following criteria:
+ *   - Exposes a `data()` function that returns a pointer.
+ *   - Exposes a `size()` function that returns an integral value.
+ *
+ * For example, `std::vector` satifies these criteria.
+ *
+ * @tparam T A type satisfying `enable_if_array_like_t`
+ *
+ * @param array It is assumed the data in `array` is layed out densely (ie. stride of 1).
+ *
+ * @return A new span.
+ *
+ * @todo In some cases (`std::array` for example) the span could have compile-time length. This
+ * has yet to be implemented.
+ */
 template <typename T, typename = detail::enable_if_array_like_t<T>>
 constexpr auto make_array_span(T&& array) noexcept {
-  // TODO: In some cases (std::array for example) we could make the size static.
   const dynamic dim{array.size()};
   return make_span(array.data(), make_value_pack(dim), make_constant_value_pack<1>());
 }
 
-// Make a span from a 1D C-style array.
+/**
+ * Create a 1D span from a C-style array.
+ *
+ * @tparam T Type of the elements in the array.
+ * @tparam N Size of the array. Must be at least one.
+ *
+ * @param array It is assumed the data in `array` is layed out densely (ie. stride of 1).
+ *
+ * @return A new span.
+ */
 template <typename T, std::size_t N>
 constexpr auto make_array_span(T (&array)[N]) noexcept {
   static_assert(N > 0, "Array must have at least one element.");
@@ -267,7 +387,18 @@ constexpr bool is_nothrow_convertible_to_span_v =
 
 }  // namespace detail
 
-// Create an input span.
+/**
+ * Create an input span. This method will instantiate `convert_to_span<Dimensions, T>` and invoke
+ * the member function `convert(input)`.
+ *
+ * @tparam Dimensions wf::value_pack of compile-time values indicating the expected dimensions of
+ * the resultant span.
+ *
+ * @param input Object whose data will be accessed through the underlying span. Input spans must
+ * point to valid data - behavior is undefined if this object is null/invalid.
+ *
+ * @return A new immutable span.
+ */
 template <typename Dimensions, typename T>
 constexpr auto make_input_span(const T& input) noexcept(
     detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
@@ -278,7 +409,18 @@ constexpr auto make_input_span(const T& input) noexcept(
   return detail::span_converter<Dimensions, T>{}.convert(input);
 }
 
-// Create a span for a required output argument.
+/**
+ * Create a span for an output argument. This method will instantiate `convert_to_span<Dimensions,
+ * T>` and invoke the member function `convert(input)`.
+ *
+ * @tparam Dimensions wf::value_pack of compile-time values indicating the expected dimensions of
+ * the resultant span.
+ *
+ * @param output Object whose data will be accessed through the underlying span. Output spans must
+ * point to valid data - behavior is undefined if this object is null/invalid.
+ *
+ * @return A new mutable span.
+ */
 template <typename Dimensions, typename T>
 constexpr auto make_output_span(T& output) noexcept(
     detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
@@ -293,7 +435,18 @@ constexpr auto make_output_span(T& output) noexcept(
   return span;
 }
 
-// Create a span for an optional output argument.
+/**
+ * Create a span for an optional output argument. This method will instantiate
+ * `convert_to_span<Dimensions, T>` and invoke the member function `convert(input)`. Unlike input
+ * and output spans, optional output spans may be null.
+ *
+ * @tparam Dimensions wf::value_pack of compile-time values indicating the expected dimensions of
+ * the resultant span.
+ *
+ * @param output Object whose data will be accessed through the underlying span.
+ *
+ * @return A new mutable span.
+ */
 template <typename Dimensions, typename T>
 constexpr auto make_optional_output_span(T& output) noexcept(
     detail::is_nothrow_convertible_to_span_v<Dimensions, T>) {
