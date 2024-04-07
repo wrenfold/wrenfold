@@ -4,6 +4,9 @@ sym
 .. autoclass:: wrenfold.sym.BooleanExpr
   :members:
 
+.. autoclass:: wrenfold.sym.CompoundExpr
+  :members:
+
 .. autoclass:: wrenfold.sym.Expr
   :members:
 

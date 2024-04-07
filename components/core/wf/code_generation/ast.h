@@ -368,8 +368,8 @@ class function_definition {
   non_null<std::shared_ptr<const impl>> impl_;
 };
 
-// Types that don't appear in ast::variant, but which must be exposed via our python wrapper so that
-// the user can override their formatting.
+// Types that don't appear in ast::ast_element, but which must be exposed via our python wrapper so
+// that the user can override their formatting.
 // clang-format off
 using extra_ast_types = type_list<
   argument,

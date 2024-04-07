@@ -20,7 +20,7 @@ class cpp_code_generator {
 
   virtual std::string operator()(const ast::return_type_annotation& x) const;
 
-  // Types from the ast::variant:
+  // Types from the ast::ast_element:
 
   virtual std::string operator()(const ast::add& x) const;
 

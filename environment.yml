@@ -17,4 +17,4 @@ dependencies:
   - sphinx==6.2.1
   - furo
   - doxygen
-  - breathe
+  - breathe==4.35.0

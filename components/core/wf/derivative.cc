@@ -304,10 +304,10 @@ matrix_expr jacobian(const absl::Span<const scalar_expr> functions,
                      const absl::Span<const scalar_expr> vars,
                      const non_differentiable_behavior behavior) {
   if (functions.empty()) {
-    throw type_error("Need at least one function to differentiate.");
+    throw dimension_error("Need at least one function to differentiate.");
   }
   if (vars.empty()) {
-    throw type_error("Need at least one variable to differentiate with respect to.");
+    throw dimension_error("Need at least one variable to differentiate with respect to.");
   }
 
   std::vector<scalar_expr> result{};

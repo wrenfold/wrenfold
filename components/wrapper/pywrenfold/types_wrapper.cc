@@ -49,34 +49,44 @@ custom_type init_custom_type(std::string name,
 
 void wrap_types(py::module_& m) {
   py::enum_<code_numeric_type>(m, "NumericType")
-      .value("Bool", code_numeric_type::boolean)
-      .value("Integer", code_numeric_type::integral)
-      .value("Float", code_numeric_type::floating_point);
+      .value("Bool", code_numeric_type::boolean, "Boolean value.")
+      .value("Integer", code_numeric_type::integral, "Signed integral value.")
+      .value("Float", code_numeric_type::floating_point, "Floating-point value.");
 
   wrap_class<scalar_type>(m, "ScalarType")
-      .def(py::init<code_numeric_type>(), py::arg("numeric_type"))
-      .def_property_readonly("numeric_type", &scalar_type::numeric_type)
-      .def("__repr__", [](scalar_type self) { return fmt::format("{}", self); });
+      .def(py::init<code_numeric_type>(), py::arg("numeric_type"),
+           "Construct with ``NumericType``.")
+      .def_property_readonly("numeric_type", &scalar_type::numeric_type,
+                             "Access underlying ``NumericType`` enum.")
+      .def("__repr__", [](scalar_type self) { return fmt::format("{}", self); })
+      .doc() = "A scalar-valued type.";
 
   wrap_class<matrix_type>(m, "MatrixType")
-      .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"))
-      .def_property_readonly("num_rows", &matrix_type::rows)
-      .def_property_readonly("num_cols", &matrix_type::cols)
-      .def("compute_indices", &matrix_type::compute_indices)
-      .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); });
+      .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"),
+           "Construct with number of rows and columns.")
+      .def_property_readonly("num_rows", &matrix_type::rows, "First dimension of the matrix.")
+      .def_property_readonly("num_cols", &matrix_type::cols, "Second dimension of the matrix.")
+      .def("compute_indices", &matrix_type::compute_indices, "idx"_a,
+           "Given a flat index, compute the (row, column) pair it corresponds to.")
+      .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); })
+      .doc() = "A 2D matrix-valued type.";
 
   wrap_class<struct_field>(m, "StructField")
       .def_property_readonly("name", &struct_field::name, "Name of the field.")
-      .def_property_readonly("type", &struct_field::type, "Type of the field.");
+      .def_property_readonly("type", &struct_field::type, "Type of the field.")
+      .doc() =
+      "Describes a field on a struct. The :class:`wrenfold.type_info.CustomType` contains a list "
+      "of fields.";
 
   wrap_class<custom_type>(m, "CustomType")
       .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"), py::arg("python_type"),
-           py::doc("Construct custom type from fields."))
-      .def_property_readonly("name", &custom_type::name)
-      .def_property_readonly("fields", &custom_type::fields, py::doc("Access fields on this type."))
+           "Construct custom type.")
+      .def_property_readonly("name", &custom_type::name, "Name of the struct.")
+      .def_property_readonly("fields", &custom_type::fields,
+                             "A list of :class:`wrenfold.type_info.StructField` objects.")
       .def_property_readonly(
           "total_size", &custom_type::total_size,
-          py::doc("Total # of scalar expressions in the custom type and its children."))
+          "Total number of scalar expressions in the custom type **and** all of its children.")
       .def_property_readonly(
           "python_type",
           [](const custom_type& self) -> std::variant<py::none, py::type> {
@@ -85,16 +95,20 @@ void wrap_types(py::module_& m) {
             }
             return py::none();
           },
-          py::doc("Get the underlying python type."))
-      .def("__repr__", [](const custom_type& self) {
-        py::object python_type = py::none();
-        if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
-          python_type = pytype->as<pytype_wrapper>().type();
-        }
-        const py::str repr = py::repr(python_type);
-        return fmt::format("CustomType('{}', {} fields, {})", self.name(), self.size(),
-                           py::cast<std::string_view>(repr));
-      });
+          "Retrieve the underlying user-declared python type.")
+      .def("__repr__",
+           [](const custom_type& self) {
+             py::object python_type = py::none();
+             if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
+               python_type = pytype->as<pytype_wrapper>().type();
+             }
+             const py::str repr = py::repr(python_type);
+             return fmt::format("CustomType('{}', {} fields, {})", self.name(), self.size(),
+                                py::cast<std::string_view>(repr));
+           })
+      .doc() =
+      "A custom type describes a user-provided struct that exposes members that wrenfold can "
+      "retrieve in generated code.";
 }
 
 }  // namespace wf

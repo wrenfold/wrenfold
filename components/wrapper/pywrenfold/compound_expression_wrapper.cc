@@ -5,6 +5,8 @@
 
 #include "wf/code_generation/types.h"  //  Required for definition of custom_type.
 #include "wf/compound_expression.h"
+
+#include "docs/compound_expression_wrapper.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -19,9 +21,11 @@ void wrap_compound_expression(py::module_& m) {
           "Retrieve the name of the underlying C++ expression type. See "
           ":func:`wrenfold.sym.Expr.type_name`.")
       .def("__repr__", &compound_expr::to_string)
-      .def("__bool__", [](const compound_expr&) {
-        throw type_error("CompoundExpr cannot be coerced to boolean.");
-      });
+      .def("__bool__",
+           [](const compound_expr&) {
+             throw type_error("CompoundExpr cannot be coerced to boolean.");
+           })
+      .doc() = docstrings::compound_expr.data();
 
   m.def("create_compound_expression_elements", &create_expression_elements, py::arg("provenance"),
         py::arg("num"),
