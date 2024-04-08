@@ -32,8 +32,8 @@ if(${DOXYGEN_FOUND})
   set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/doxygen)
   configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
 
-  # Use main index.html as the output file to track dependencies.
-  set(DOXYGEN_INDEX_FILE ${DOXYGEN_OUTPUT_DIR}/html/index.html)
+  # Use main index.xml as the output file to track dependencies.
+  set(DOXYGEN_INDEX_FILE ${DOXYGEN_OUTPUT_DIR}/xml/index.xml)
 
   file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
   add_custom_command(
@@ -64,7 +64,6 @@ if(${SPHINX_FOUND})
   set(GENERATED_RST_FILES
       source/python_api/ast.rst
       source/python_api/code_generation.rst
-      source/python_api/custom_types.rst
       source/python_api/enumerations.rst
       source/python_api/exceptions.rst
       source/python_api/geometry.rst
@@ -73,8 +72,23 @@ if(${SPHINX_FOUND})
       source/python_api/type_annotations.rst
       source/python_api/type_info.rst)
 
-  set(HANDWRITTEN_RST_FILES source/index.rst source/python_api/index.rst
-                            source/cpp_api/index.rst source/cpp_api/span.rst)
+  set(HANDWRITTEN_RST_FILES
+      source/index.rst
+      source/tutorial/conditionals.rst
+      source/tutorial/custom_types.rst
+      source/tutorial/external_functions.rst
+      source/tutorial/generating_code.rst
+      source/tutorial/index.rst
+      source/tutorial/installation.rst
+      source/tutorial/integrating_code.rst
+      source/tutorial/introduction.rst
+      source/tutorial/matrices.rst
+      source/tutorial/new_language.rst
+      source/tutorial/symbolic_manipulation.rst
+      source/tutorial/sympy_interop.rst
+      source/python_api/index.rst
+      source/cpp_api/index.rst
+      source/cpp_api/span.rst)
 
   list(TRANSFORM GENERATED_RST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
   list(TRANSFORM HANDWRITTEN_RST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
