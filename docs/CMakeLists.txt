@@ -76,6 +76,7 @@ if(${SPHINX_FOUND})
       source/index.rst
       source/tutorial/conditionals.rst
       source/tutorial/custom_types.rst
+      source/tutorial/custom_types_script.py
       source/tutorial/external_functions.rst
       source/tutorial/generating_code.rst
       source/tutorial/index.rst

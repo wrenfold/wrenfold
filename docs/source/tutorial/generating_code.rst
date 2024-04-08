@@ -7,7 +7,7 @@ Generating a function
 Ultimately, the goal of the wrenfold framework is to provide a quicker path from expressive symbolic
 math to usable code. To generate a function, the first step is to create a python function that
 performs the necessary math. We will start by implementing something simple - the
-`Smoothstep <https://en.wikipedia.org/wiki/Smoothstep>`_ function [#f1]_:
+`smoothstep <https://en.wikipedia.org/wiki/Smoothstep>`_ function [#f1]_:
 
 .. math::
   f\left(x\right) = \begin{cases}
@@ -47,9 +47,9 @@ Next, we create a **FunctionDescription**:
 
 The :class:`wrenfold.code_generation.FunctionDescription` is built as follows:
 
-#. The signature of ``step(x)`` is inspected to deduce the argument types.
-#. Appropriately-typed symbolic arguments are constructed, and the function is invoked.
-#. The returned expression trees are captured.
+    #. The signature of ``step(x)`` is inspected to deduce the argument types.
+    #. Appropriately-typed symbolic arguments are constructed, and the function is invoked.
+    #. The returned expression trees are captured.
 
 The description still stores the function in symbolic format. We can then convert it to syntax by
 calling :func:`wrenfold.code_generation.transpile`:
@@ -79,7 +79,7 @@ obtain code:
 .. code:: python
 
     generator = code_generation.CppGenerator()
-    cpp = generator.format(definition)
+    cpp = generator.generate(definition)
     print(cpp)
 
 .. code:: cpp
@@ -122,7 +122,7 @@ Let's improve our generated function by adding the derivatives an output argumen
 
     desc = code_generation.create_function_description(step_deriv)
     definition = code_generation.transpile(desc)
-    cpp = generator.format(definition)
+    cpp = generator.generate(definition)
     print(cpp)
 
 The key distinction here is that our symbolic function now returns a sequence of
@@ -170,18 +170,18 @@ Conditional logic
 
 Lastly, let's extend our function to automatically clamp the value of ``x`` to the valid interval.
 We do this by adding calls to :func:`wrenfold.sym.min` and :func:`wrenfold.sym.max` - both of which
-are simply aliases for ``sym.where``:
+are shorthand for ``sym.where``:
 
 .. code:: python
 
     def step_clamped(x: type_annotations.RealScalar):
         """The clamped smoothstep polynomial."""
-        # First express the polynomials in terms of `xv`
+        # First express the polynomials in terms of `xv`.
         xv = sym.symbols('xv', real=True)
         f = 3 * sym.pow(xv, 2) - 2 * sym.pow(xv, 3)
         df = sym.vector(f.diff(xv), f.diff(xv, 2))
         # Replace `xv` with the clamped argument. By doing things in this order we get a neater
-        # result (since we don't differentiate the clamping).
+        # result (since we don't need to differentiate the clamping).
         x_clamped = sym.min(sym.max(x, 0), 1)
         f = f.subs(xv, x_clamped)
         df = df.subs(xv, x_clamped)
