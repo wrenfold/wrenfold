@@ -75,7 +75,7 @@ using enable_if_inherits_quaternion_base_t =
 template <typename Dimensions, typename T>
 struct convert_to_span<Dimensions, T, enable_if_inherits_matrix_base_t<T>> {
   template <typename U>
-  constexpr auto convert(U&& mat) noexcept {
+  constexpr auto convert(U&& mat) const noexcept {
     using UDecay = std::decay_t<U>;
 
     constexpr Eigen::Index rows_at_compile_time = Eigen::DenseBase<UDecay>::RowsAtCompileTime;
@@ -103,7 +103,7 @@ struct convert_to_span<Dimensions, T, enable_if_inherits_matrix_base_t<T>> {
 template <typename Dimensions, typename T>
 struct convert_to_span<Dimensions, T, enable_if_inherits_quaternion_base_t<T>> {
   template <typename U>
-  constexpr auto convert(U&& q) noexcept {
+  constexpr auto convert(U&& q) const noexcept {
     // Quaternion is convertible to 4x1 column vector.
     constexpr auto dims = make_constant_value_pack<4, 1>();
     constexpr auto strides = make_constant_value_pack<1, 4>();

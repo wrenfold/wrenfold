@@ -155,9 +155,10 @@ class Conversions:
                 data.append([self(expr[i, j]) for j in range(0, cols)])
             return sym.matrix(data)
 
-        value = self.value_map.get(expr, None)
-        if value is not None:
-            return value
+        if isinstance(expr, T.Hashable):
+            value = self.value_map.get(expr, None)
+            if value is not None:
+                return value
 
         raise TypeError(f"sympy expression of type `{type(expr)}` cannot be converted.")
 
