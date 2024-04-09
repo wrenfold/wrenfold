@@ -111,4 +111,4 @@ As expressions are composed, they are automatically converted to canonical form:
 
 While wrenfold is not intended to be a full computer algebra system, it does support a variety of
 common :doc:`functions and operations <../python_api/index>`. Symbolic expressions can be converted
-:doc:`to and from sympy <sympy_interop>` in order to perform more advanced manipulations.
+:doc:`to and from SymPy <sympy_interop>` in order to perform more advanced manipulations.
