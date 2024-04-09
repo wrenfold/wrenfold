@@ -11,54 +11,21 @@ from . import type_info
 from pywrenfold.gen import PyExternalFunction
 
 
-class ExternalFunction:
+class ExternalFunction(PyExternalFunction):
     """
     Callable object that represents a user-provided external function. External functions may be
     handwritten methods that live in the user's codebase. Wrenfold can invoke these from generated
     code, provided they are declared with :func:`declare_external_function`.
     """
 
-    def __init__(self, wrapped_func: PyExternalFunction) -> None:
-        self._inner: PyExternalFunction = wrapped_func
-
-    def __repr__(self) -> str:
-        return repr(self._inner)
+    def __init__(self, super_val: PyExternalFunction) -> None:
+        super(ExternalFunction, self).__init__(super_val)
 
     def __call__(self, *args, **kwargs) -> T.Any:
         """
         Generate expressions to represent an invocation of ``self``.
         """
-        return _invoke_external_function(self._inner, *args, **kwargs)
-
-    @property
-    def name(self) -> str:
-        """Name of the function."""
-        return self._inner.name
-
-    @property
-    def num_arguments(self) -> int:
-        """Number of arguments the function expects to receive."""
-        return self._inner.num_arguments
-
-    @property
-    def return_type(
-            self) -> T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]:
-        """
-        Return type of the function. This will determine the type of variable we must declare in
-        code-generated functions.
-        """
-        return self._inner.return_type
-
-    def __hash__(self) -> int:
-        return hash(self._inner)
-
-    def __eq__(self, other: T.Union['ExternalFunction', PyExternalFunction]) -> bool:
-        if isinstance(other, ExternalFunction):
-            return self._inner == other._inner
-        elif isinstance(other, PyExternalFunction):
-            return self._inner == other
-        else:
-            return False
+        return _invoke_external_function(self, *args, **kwargs)
 
 
 def declare_external_function(
@@ -116,8 +83,8 @@ def declare_external_function(
     wrapper_func = PyExternalFunction(
         name=name, arguments=converted_args, return_type=converted_return_type)
 
-    # Next we make a python wrapper it that will handle mapping of data in/out of custom types.
-    return ExternalFunction(wrapped_func=wrapper_func)
+    # Next we make a python wrapper that will handle mapping of data in/out of custom types.
+    return ExternalFunction(wrapper_func)
 
 
 def _combine_args(func: PyExternalFunction, args: T.Sequence[T.Any],
@@ -184,7 +151,7 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
             expressions = custom_types.map_expressions_out_of_custom_type(instance=arg)
             converted_args.append(sym.create_custom_type_construction(arg_type, expressions))
 
-    result: sym.AnyExpression = func(converted_args)
+    result: sym.AnyExpression = func.call(converted_args)
     if not isinstance(result, sym.CompoundExpr):
         # Scalars and matrices are directly returned.
         return result

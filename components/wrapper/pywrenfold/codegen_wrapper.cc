@@ -72,18 +72,22 @@ void wrap_argument(py::module_& m) {
 }
 
 void wrap_codegen_operations(py::module_& m) {
-  // We give this a Py prefix since we wrap it in python with another object.
+  // We give this a Py prefix since we subclass it in python with another object.
   wrap_class<external_function>(m, "PyExternalFunction")
       .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
-           py::arg("return_type"))
-      .def_property_readonly("name", &external_function::name)
-      .def_property_readonly("arguments", &external_function::arguments)
-      .def_property_readonly("num_arguments", &external_function::num_arguments)
+           py::arg("return_type"), "Construct with name, arguments, and return type.")
+      .def(py::init<external_function>(), "Copy constructor.")
+      .def_property_readonly("name", &external_function::name, "Name of the function.")
+      .def_property_readonly("arguments", &external_function::arguments, "List of arguments.")
+      .def_property_readonly("num_arguments", &external_function::num_arguments,
+                             "Number of arguments the function expects to receive.")
       .def("arg_position", &external_function::arg_position, py::arg("arg"),
-           py::doc("Find the position of the argument with the specified name."))
-      .def_property_readonly("return_type", &external_function::return_type)
-      .def("__call__", &call_external_function, py::arg("args"),
-           py::doc("Call external function and create return expression."))
+           "Find the position of the argument with the specified name.")
+      .def_property_readonly("return_type", &external_function::return_type,
+                             "Return type of the function. This will determine the type of "
+                             "variable we must declare in code-generated functions.")
+      .def("call", &call_external_function, py::arg("args"),
+           "Call external function and create return expression. OMIT_FROM_SPHINX")
       .def("__repr__", [](const external_function& self) {
         const auto args = transform_map<std::vector<std::string>>(
             self.arguments(),
