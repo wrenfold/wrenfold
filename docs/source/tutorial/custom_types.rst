@@ -55,7 +55,7 @@ symbolic equivalent of our ``vec2`` type:
 .. literalinclude:: custom_types_script.py
     :language: python
     :start-after: dataclass_declaration_start
-    :end-before: function_definition_start
+    :end-before: dataclass_declaration_end
 
 When defining a dataclass for use with wrenfold, all members must be type annotated with:
 
@@ -69,7 +69,7 @@ an argument, and return it as well:
 .. literalinclude:: custom_types_script.py
     :language: python
     :start-after: function_definition_start
-    :end-before: code_generator_start
+    :end-before: function_definition_end
 
 Customizing code generation
 ---------------------------
@@ -80,7 +80,7 @@ need to make some minor customizations to the code formatter:
 .. literalinclude:: custom_types_script.py
     :language: python
     :start-after: code_generator_start
-    :end-before: transpilation_start
+    :end-before: code_generator_end
 
 The default C++ code-generation logic for constructors assumes initializer-list syntax, which is
 already valid for our ``geo::vec2`` type - we do not need to customize that. Now we leverage our new

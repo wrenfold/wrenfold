@@ -1,3 +1,6 @@
+"""
+Source code for the `custom_types.rst` file.
+"""
 import dataclasses
 
 from wrenfold import sym
@@ -21,6 +24,7 @@ class Vec2:
     def from_vector(cls, v: sym.MatrixExpr):
         assert v.shape == (2, 1)
         return cls(v[0], v[1])
+        # [dataclass_declaration_end]
 
 
 # [function_definition_start]
@@ -38,6 +42,7 @@ def rotate_vector(angle: type_annotations.RealScalar, v: Vec2):
         code_generation.ReturnValue(Vec2.from_vector(v_rot)),
         code_generation.OutputArg(Vec2.from_vector(v_rot_diff), name="v_rot_D_angle")
     ]
+    # [function_definition_end]
 
 
 # [code_generator_start]
@@ -47,7 +52,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
         """
         geo::vec2 members are private, so call the accessor method instead:
         """
-        if element.struct_type.python_type is Vec2:
+        if element.struct_type.python_type == Vec2:
             return f"{self.format(element.arg)}.{element.field_name}()"
         return self.super_format(element)
 
@@ -55,9 +60,10 @@ class CustomCppGenerator(code_generation.CppGenerator):
         """
         Place our custom type into the `geo` namespace.
         """
-        if element.python_type is Vec2:
+        if element.python_type == Vec2:
             return 'geo::vec2'
         return self.super_format(element)
+        # [code_generator_end]
 
 
 # [transpilation_start]
