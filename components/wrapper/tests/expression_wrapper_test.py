@@ -114,6 +114,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('x == z', sym.eq(x, z))
         self.assertReprEqual('iverson(z < x)', sym.iverson(x > z))
         self.assertReprEqual('I', sym.I)
+        self.assertReprEqual('E', sym.E)
         self.assertReprEqual('2 + 5*I', 2 + 5 * sym.I)
 
     def test_bool_conversion(self):

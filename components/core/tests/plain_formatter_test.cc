@@ -170,7 +170,7 @@ TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", constants::undefi
 
 TEST(PlainFormatterTest, TestScalarConstants) {
   ASSERT_STR_EQ("pi", constants::pi);
-  ASSERT_STR_EQ("e", constants::euler);
+  ASSERT_STR_EQ("E", constants::euler);
   ASSERT_STR_EQ("I", constants::imaginary_unit);
 }
 
