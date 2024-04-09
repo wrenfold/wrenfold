@@ -19,12 +19,15 @@ class StructType:
 
 
 class VectorOfStructs(Opaque):
-    """This is a placeholder that will be generated as std::vector<StructType> or std::vec::Vec<StructType>."""
+    """
+    This is a placeholder that will be generated as std::vector<StructType> or
+    std::vec::Vec<StructType>.
+    """
 
-    def interpolate_access(self, x: sym.Expr) -> sym.Expr:
+    def interpolate_access(self, x: sym.Expr) -> StructType:
         """
-        We assume a user-defined external function that accepts a value `x` and uses it to linearly interpolate
-        between values in our `VectorOfStructs`.
+        We assume a user-defined external function that accepts a value `x` and uses it to linearly
+        interpolate between values in our `VectorOfStructs`.
         """
         return vector_interpolate_access(vec=self, x=x)
 
@@ -52,7 +55,7 @@ class CustomCppGenerator(CppGenerator):
 
     def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
-        Place our custom functions in the `external` namespace.
+        Place our external functions in the `external` namespace.
         """
         args = ', '.join(self.format(x) for x in element.args)
         return f'external::{element.function.name}({args})'
@@ -61,9 +64,9 @@ class CustomCppGenerator(CppGenerator):
         """
         Place `StructType` in `types` namespace. Format vector name.
         """
-        if element.python_type is StructType:
+        if element.python_type == StructType:
             return f'types::{element.name}'
-        elif element.python_type is VectorOfStructs:
+        elif element.python_type == VectorOfStructs:
             return f'std::vector<types::StructType>'
         return self.super_format(element)
 
@@ -73,7 +76,7 @@ class CustomCppGenerator(CppGenerator):
         TODO: Unify this with `format_custom_type`.
         """
         if isinstance(element.type,
-                      type_info.CustomType) and element.type.python_type is StructType:
+                      type_info.CustomType) and element.type.python_type == StructType:
             return f'types::{element.type.name}'
         return self.super_format(element)
 
@@ -88,9 +91,9 @@ class CustomRustGenerator(RustGenerator):
         return f'crate::external::{element.function.name}({args})'
 
     def format_custom_type(self, element: type_info.CustomType) -> str:
-        if element.python_type is StructType:
+        if element.python_type == StructType:
             return f'crate::types::{element.name}'
-        elif element.python_type is VectorOfStructs:
+        elif element.python_type == VectorOfStructs:
             return f'std::vec::Vec<crate::types::StructType>'
         return self.super_format(element)
 

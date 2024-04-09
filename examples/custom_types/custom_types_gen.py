@@ -195,7 +195,7 @@ class CustomCppGenerator(CppGenerator):
         """Place our custom types into the `geo` namespace."""
         if element.python_type in [Point3d, Pose3d]:
             return f'geo::{element.name}'
-        elif element.python_type is EigenQuaternion:
+        elif element.python_type == EigenQuaternion:
             return f'Eigen::Quaternion<double>'
         return self.super_format(element)
 
@@ -210,7 +210,7 @@ class CustomCppGenerator(CppGenerator):
         return f'Eigen::Matrix<double, {element.type.num_rows}, {element.type.num_cols}>({formatted_args})'
 
     def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
-        if element.type.python_type is EigenQuaternion:
+        if element.type.python_type == EigenQuaternion:
             # Eigen quaternion expects constructor args in order (w, x, y, z)
             arg_dict = {f.name: element.get_field_value(f.name) for f in element.type.fields}
             formatted_args = ', '.join(self.format(arg_dict[i]) for i in ("w", "x", "y", "z"))
@@ -226,9 +226,9 @@ class CustomRustGenerator(RustGenerator):
         """
         Use member accessors for the Pose3 type.
         """
-        if element.struct_type.python_type is Pose3d:
+        if element.struct_type.python_type == Pose3d:
             return f"{self.format(element.arg)}.{element.field_name}()"
-        elif element.struct_type.python_type is EigenQuaternion:
+        elif element.struct_type.python_type == EigenQuaternion:
             # Customize accessors for UnitQuaternion in rust:
             if element.field_name in ("x", "y", "z"):
                 return f'{self.format(element.arg)}.imag().{element.field_name}'
@@ -241,7 +241,7 @@ class CustomRustGenerator(RustGenerator):
         """Place our custom types into the `geo` namespace."""
         if element.python_type in [Point3d, Pose3d]:
             return f'crate::geo::{element.name}'
-        elif element.python_type is EigenQuaternion:
+        elif element.python_type == EigenQuaternion:
             return f'nalgebra::UnitQuaternion::<f64>'
         return self.super_format(element)
 
@@ -252,11 +252,11 @@ class CustomRustGenerator(RustGenerator):
 
     def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
         """Use a `new()` method for our Pose3 type, and the UnitQuaternion constructor for rotations."""
-        if element.type.python_type is Pose3d:
+        if element.type.python_type == Pose3d:
             r = self.format(element.get_field_value("rotation"))
             t = self.format(element.get_field_value("translation"))
             return f'crate::geo::Pose3d::new(\n  {r},\n  {t}\n)'
-        elif element.type.python_type is EigenQuaternion:
+        elif element.type.python_type == EigenQuaternion:
             # Order for nalgebra is [w, x, y, z]
             arg_dict = {f.name: element.get_field_value(f.name) for f in element.type.fields}
             formatted_args = ', '.join(self.format(arg_dict[i]) for i in ("w", "x", "y", "z"))
