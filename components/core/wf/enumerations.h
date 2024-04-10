@@ -231,7 +231,7 @@ constexpr std::string_view string_from_symbolic_constant(
     const symbolic_constant_enum value) noexcept {
   switch (value) {
     case symbolic_constant_enum::euler:
-      return "e";
+      return "E";
     case symbolic_constant_enum::pi:
       return "pi";
   }

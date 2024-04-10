@@ -80,7 +80,7 @@ Or substitute numerical constants and evaluate into a floating point value:
 
     >>> val = df.subs(x, sym.E).subs(y, sym.integer(1) / 3)
     >>> val
-    e**2 - sin(e/3)/3
+    E**2 - sin(E/3)/3
     >>> val.eval()
     7.126689299943595
 
