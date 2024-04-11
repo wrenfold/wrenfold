@@ -120,24 +120,29 @@ scalar_expr derivative_visitor::operator()(const derivative& derivative,
 // a * b * c
 // a' * b * c + a * b' * c + a * b * c'
 scalar_expr derivative_visitor::operator()(const multiplication& mul) {
-  std::vector<scalar_expr> add_terms;  //  TODO: Small vector.
+  WF_SCOPED_TRACE_STR("wf::derivative_visitor::operator()(const multiplication&)");
+  absl::InlinedVector<scalar_expr, 8> add_terms;
   add_terms.reserve(mul.size());
+
+  absl::InlinedVector<scalar_expr, 8> mul_terms{};
+  mul_terms.reserve(mul.size());
 
   // Differentiate wrt every argument:
   for (std::size_t i = 0; i < mul.size(); ++i) {
-    std::vector<scalar_expr> mul_terms;
-    mul_terms.reserve(mul.size());
-    for (std::size_t j = 0; j < mul.size(); ++j) {
-      if (j == i) {
-        mul_terms.push_back(apply(mul[j]));
-      } else {
-        mul_terms.push_back(mul[j]);
-      }
+    mul_terms.clear();
+    if (scalar_expr mul_i_diff = apply(mul[i]); !is_zero(mul_i_diff)) {
+      mul_terms.push_back(std::move(mul_i_diff));
+
+      // TODO: Avoid copying all the scalar_exprs twice here.
+      std::copy_n(mul.begin(), i, std::back_inserter(mul_terms));
+      std::copy_n(mul.begin() + i + 1, mul.size() - i - 1, std::back_inserter(mul_terms));
+      add_terms.push_back(multiplication::from_operands(mul_terms));
     }
-    add_terms.push_back(multiplication::from_operands(mul_terms));
   }
 
-  // TODO: Move, don't copy.
+  if (add_terms.empty()) {
+    return constants::zero;
+  }
   return addition::from_operands(add_terms);
 }
 
