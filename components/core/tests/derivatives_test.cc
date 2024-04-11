@@ -38,9 +38,8 @@ TEST(DerivativesTest, TestAdditionAndSubtraction) {
 }
 
 TEST(DerivativesTest, TestMultiplication) {
-  const scalar_expr w{"w"};
-  const scalar_expr x{"x"};
-  const scalar_expr y{"y"};
+  const auto [w, x, y] = make_symbols("w", "x", "y");
+
   ASSERT_IDENTICAL(0, (x * y).diff(w));
   ASSERT_IDENTICAL(y, (x * y).diff(x));
   ASSERT_IDENTICAL(x, (x * y).diff(y));
@@ -58,6 +57,11 @@ TEST(DerivativesTest, TestMultiplication) {
   ASSERT_IDENTICAL(2 * y / pow(x, 3), (y / x).diff(x, 2));
   ASSERT_IDENTICAL(x * y + sin(w) * y - 3 * log(x) * pow(w, 2),
                    (w * x * y - cos(w) * y - log(x) * pow(w, 3)).diff(w));
+  ASSERT_IDENTICAL(5 * cos(x) * sin(w) * sin(x) / x + 5 * pow(cos(x), 2) * log(x) * sin(w) -
+                       5 * log(x) * sin(w) * pow(sin(x), 2),
+                   (cos(x) * sin(x) * log(x) * 5 * sin(w)).diff(x));
+  ASSERT_IDENTICAL(w * pow(x, 2) / pow(cos(x), 2) + 2 * w * x * tan(x),
+                   (tan(x) * pow(x, 2) * w).diff(x));
 }
 
 TEST(DerivativesTest, TestPower) {
