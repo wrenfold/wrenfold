@@ -3,6 +3,7 @@
 
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
+#include "wf/scoped_trace.h"
 
 namespace wf {
 
@@ -427,6 +428,7 @@ mul_add_count_visitor::mul_add_count_visitor() {
 }
 
 void mul_add_count_visitor::count_group_expressions(const expression_group& group) {
+  WF_FUNCTION_TRACE();
   for (const scalar_expr& expr : group.expressions) {
     visit(expr, *this);
   }

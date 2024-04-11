@@ -7,6 +7,7 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
+#include "wf/scoped_trace.h"
 #include "wf/template_utils.h"
 
 namespace wf::ast {
@@ -550,6 +551,7 @@ ast::ast_element ast_form_visitor::format_operation_count_comment() const {
 
 function_definition create_ast(const wf::control_flow_graph& ir,
                                const function_description& description) {
+  WF_FUNCTION_TRACE();
   ast_form_visitor converter{ir.value_print_width(), description};
   return converter.convert_function(ir.first_block());
 }
