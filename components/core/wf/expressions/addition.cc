@@ -30,8 +30,11 @@ struct add_numeric_constants {
   // Promote int and rational to float:
   template <typename B, typename = enable_if_contains_type_t<B, float_constant, integer_constant,
                                                              rational_constant>>
-  constexpr float_constant operator()(const float_constant a, const B b) const {
-    return a + static_cast<float_constant>(b);
+  constexpr addition_parts::constant_coeff operator()(const float_constant a, const B b) const {
+    if (const float_constant sum = a + static_cast<float_constant>(b); !sum.is_zero()) {
+      return sum;
+    }
+    return integer_constant{0};
   }
 
   // Anything plus undefined is undefined.
@@ -68,15 +71,20 @@ struct add_numeric_constants {
   }
 
   static std::optional<scalar_expr> apply(const scalar_expr& a, const scalar_expr& b) {
-    return visit_binary(a, b, [](const auto& x, const auto& y) -> std::optional<scalar_expr> {
-      if constexpr (is_invocable_v<add_numeric_constants, decltype(x), decltype(y)>) {
-        return scalar_expr(add_numeric_constants{}(x, y));
-      } else if constexpr (is_invocable_v<add_numeric_constants, decltype(y), decltype(x)>) {
-        return scalar_expr(add_numeric_constants{}(y, x));
-      } else {
-        return std::nullopt;
-      }
-    });
+    const auto coeff = visit_binary(
+        a, b, [](const auto& x, const auto& y) -> std::optional<addition_parts::constant_coeff> {
+          if constexpr (is_invocable_v<add_numeric_constants, decltype(x), decltype(y)>) {
+            return add_numeric_constants{}(x, y);
+          } else if constexpr (is_invocable_v<add_numeric_constants, decltype(y), decltype(x)>) {
+            return add_numeric_constants{}(y, x);
+          } else {
+            return std::nullopt;
+          }
+        });
+    if (coeff.has_value()) {
+      return std::visit([](auto value) { return scalar_expr(value); }, *coeff);
+    }
+    return std::nullopt;
   }
 };
 

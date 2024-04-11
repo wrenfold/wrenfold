@@ -44,10 +44,7 @@ TEST(ScalarOperationsTest, TestNumericConstructors) {
 }
 
 TEST(ScalarOperationsTest, TestAddition) {
-  const scalar_expr w{"w"};
-  const scalar_expr x{"x"};
-  const scalar_expr y{"y"};
-  const scalar_expr z{"z"};
+  const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
   ASSERT_TRUE((x + y).is_type<addition>());
   ASSERT_TRUE((x - y).is_type<addition>());
   ASSERT_IDENTICAL(x + y, x + y);
@@ -84,6 +81,30 @@ TEST(ScalarOperationsTest, TestAddition) {
   ASSERT_IDENTICAL(z * x, z * x / 3_s + 2 * z * x / 3_s);
 }
 
+TEST(ScalarOperationsTest, TestAdditionNumericalConstants) {
+  ASSERT_IDENTICAL(5, 2_s + 3_s);
+  ASSERT_IDENTICAL(0, 1_s - 1_s);
+  ASSERT_IDENTICAL(7, addition::from_operands({2_s, 1_s, 4_s}));
+  ASSERT_IDENTICAL(0, addition::from_operands({2_s, 3_s, -2_s, -3_s}));
+  // int plus rational
+  ASSERT_IDENTICAL(23_s / 4, 5_s + 3_s / 4_s);
+  ASSERT_IDENTICAL(-1_s / 2, 1_s / 2 - 1_s);
+  ASSERT_IDENTICAL(18_s / 11, addition::from_operands({2_s, 7_s / 11, -1_s}));
+  ASSERT_IDENTICAL(1_s, addition::from_operands({2_s / 3, -2_s / 3, 1_s, 0_s}));
+  // int plus float:
+  ASSERT_IDENTICAL(4.21, 4_s + 0.21);
+  ASSERT_IDENTICAL(1.62, -0.38_s + 2);
+  ASSERT_IDENTICAL(0, 2_s - 2.0);
+  ASSERT_IDENTICAL(0, 3.0_s - 3);
+  ASSERT_IDENTICAL(6.0, addition::from_operands({4.2_s, -0.2_s, 3_s, -1_s}));
+  ASSERT_IDENTICAL(0, addition::from_operands({-0.4_s, 3_s, 0.4_s, -2_s, -1_s}));
+  // rational plus float:
+  ASSERT_IDENTICAL(4.2, 4.0_s + 1_s / 5);
+  ASSERT_IDENTICAL(-1.0, -1_s / 2 - 0.5);
+  ASSERT_IDENTICAL(0, -1_s / 2 + 0.5);
+  ASSERT_IDENTICAL(0, 0.125 - 1_s / 8);
+}
+
 TEST(ScalarOperationsTest, TestAdditionInfinities) {
   // Test handling of infinities under addition/subtraction:
   auto [x, y] = make_symbols("x", "y");
@@ -91,6 +112,7 @@ TEST(ScalarOperationsTest, TestAdditionInfinities) {
   ASSERT_IDENTICAL(x + z_inf, x + 3 + z_inf);
   ASSERT_IDENTICAL(x + z_inf, x - z_inf);
   ASSERT_IDENTICAL(y - 0.1231 + z_inf, y + z_inf);
+  ASSERT_IDENTICAL(z_inf, 2_s / 3 + z_inf);
   ASSERT_IDENTICAL(constants::undefined, z_inf + z_inf);
   ASSERT_IDENTICAL(constants::undefined, addition::from_operands({y, x, z_inf, z_inf}));
 }
@@ -98,11 +120,15 @@ TEST(ScalarOperationsTest, TestAdditionInfinities) {
 TEST(ScalarOperationsTest, TestAdditionUndefined) {
   auto [x, y] = make_symbols("x", "y");
   const auto& undef = constants::undefined;
+  const auto& z_inf = constants::complex_infinity;
+  ASSERT_IDENTICAL(undef, 0 + undef);
   ASSERT_IDENTICAL(undef, 3 + undef);
   ASSERT_IDENTICAL(undef, 3.14 + undef);
   ASSERT_IDENTICAL(undef, 5_s / 3 + undef);
   ASSERT_IDENTICAL(undef, undef + undef);
+  ASSERT_IDENTICAL(undef, undef - undef);
   ASSERT_IDENTICAL(undef, (x + y - 3) + undef);
+  ASSERT_IDENTICAL(undef, undef + z_inf);
 }
 
 TEST(ScalarOperationsTest, TestMultiplication) {
@@ -120,9 +146,9 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x * y * z, x * z * y);
 
   // Multiplication by zero:
-  ASSERT_IDENTICAL(constants::zero, x * 0);
-  ASSERT_IDENTICAL(constants::zero, 0 * z);
-  ASSERT_IDENTICAL(constants::zero, 0 * x * y);
+  ASSERT_IDENTICAL(0, x * 0);
+  ASSERT_IDENTICAL(0, 0 * z);
+  ASSERT_IDENTICAL(0, 0 * x * y);
 
   // Collapsing of numeric terms:
   ASSERT_IDENTICAL(1_s, 1_s * 1 * 1);
@@ -190,12 +216,34 @@ TEST(ScalarOperationsTest, TestMultiplicationImaginaryUnit) {
   ASSERT_IDENTICAL(22 * sqrt(i), 22 * pow(i, -1_s / 2) * pow(i, -3));
 }
 
+TEST(ScalarOperationsTest, TestMultiplicationNumericalConstants) {
+  ASSERT_IDENTICAL(6, 2_s * 3_s);
+  ASSERT_IDENTICAL(0, 0_s * 1_s);
+  ASSERT_IDENTICAL(-1_s, multiplication::from_operands({-1_s, -1_s, 1_s, -1_s}));
+  // int times rational
+  ASSERT_IDENTICAL(8_s / 3, 2_s / 3 * 4);
+  ASSERT_IDENTICAL(-24_s / 13, -3_s * (8_s / 13));
+  ASSERT_IDENTICAL(14_s / 3, multiplication::from_operands({7_s, 2_s / 3, 1_s}));
+  // int times float:
+  ASSERT_IDENTICAL(0.84, 4_s * 0.21);
+  ASSERT_IDENTICAL(-0.76, -0.38_s * 2);
+  ASSERT_IDENTICAL(0, 4_s * 0.0);
+  ASSERT_IDENTICAL(0, 0.0_s * 9);
+  ASSERT_IDENTICAL(-24.0_s, multiplication::from_operands({4_s, -12_s, 0.5_s}));
+  ASSERT_IDENTICAL(0, multiplication::from_operands({0.0_s, 17_s, -0.0_s, 1.4_s}));
+  // rational times float:
+  ASSERT_IDENTICAL(0.8, 4.0_s * (1_s / 5));
+  ASSERT_IDENTICAL(-1.0, (-1_s / 2) * 2.0);
+  ASSERT_IDENTICAL(0, -1_s / 2 * 0.0);
+  ASSERT_IDENTICAL(0, 0.0 * 1_s / 7);
+}
+
 TEST(ScalarOperationsTest, TestMultiplicationInfinities) {
   auto [x, y] = make_symbols("x", "y");
   const auto z_inf = constants::complex_infinity;
   ASSERT_IDENTICAL(constants::undefined, 0 * z_inf);
   ASSERT_IDENTICAL(z_inf, 5 * z_inf);
-  ASSERT_IDENTICAL(z_inf, (7_s / 11) * z_inf);
+  ASSERT_IDENTICAL(z_inf, 7_s / 11 * z_inf);
   ASSERT_IDENTICAL(z_inf, -1.231 * z_inf);
   ASSERT_IDENTICAL(z_inf, z_inf * z_inf);
   ASSERT_IDENTICAL(constants::undefined, z_inf / z_inf);
@@ -230,9 +278,7 @@ TEST(ScalarOperationsTest, TestNegation) {
 }
 
 TEST(ScalarOperationsTest, TestDivision) {
-  const scalar_expr x{"x"};
-  const scalar_expr y{"y"};
-  const scalar_expr z{"z"};
+  const auto [x, y, z] = make_symbols("x", "y", "z");
   ASSERT_IDENTICAL(make_mul(x, make_pow(y, -1)), x / y);
   ASSERT_TRUE((x / y).is_type<multiplication>());
   ASSERT_EQ(precedence::multiplication, get_precedence(x / y));
@@ -954,7 +1000,7 @@ TEST(ScalarOperationsTest, TestCollectMany) {
     }
   };
 
-  auto f5 = make_poly({x, y, z, w});
+  const auto f5 = make_poly({x, y, z, w});
   ASSERT_IDENTICAL(f5, collect_many(f5.distribute(), {x, y, z, w}));
 }
 
