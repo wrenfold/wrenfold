@@ -26,8 +26,13 @@ struct multiply_numeric_constants {
   // Promote int and rational to float:
   template <typename B, typename = enable_if_contains_type_t<B, float_constant, integer_constant,
                                                              rational_constant>>
-  constexpr float_constant operator()(const float_constant a, const B b) const {
-    return a * static_cast<float_constant>(b);
+  constexpr multiplication_parts::constant_coeff operator()(const float_constant a,
+                                                            const B b) const {
+    if (const float_constant prod = a * static_cast<float_constant>(b); !prod.is_zero()) {
+      return prod;
+    }
+    // Float multiplications that work out to zero should be converted to integer zero.
+    return integer_constant{0};
   }
 
   // Anything times undefined is undefined.
