@@ -399,7 +399,7 @@ ir::value_ptr ir_form_visitor::convert_addition_or_multiplication(const T& op) {
 ir::value_ptr ir_form_visitor::maybe_cast(ir::value_ptr input, code_numeric_type output_type) {
   if (input->numeric_type() != output_type) {
     if (const auto it = cached_casts_.find(std::make_tuple(input, output_type));
-        it != cached_casts_.end()) {
+        it != cached_casts_.end() && false) {
       return it->second;
     } else {
       // Insert a new cast and cache it:

@@ -25,20 +25,14 @@ void value::replace_operand(const value_ptr old, const value_ptr replacement) {
   maybe_sort_operands();
 }
 
-void value::add_consumer(const ir::value_ptr v) {
-  // The value might be consumed twice by the same expression, for instance: pow(x, x)
-  if (const auto it = std::find(consumers_.begin(), consumers_.end(), v); it == consumers_.end()) {
-    consumers_.push_back(v);
-  }
-}
+void value::add_consumer(const ir::value_ptr v) { consumers_.insert(v); }
 
-void value::remove_consumer(ir::value* const v) {
-  if (const auto it = std::find_if(consumers_.begin(), consumers_.end(),
-                                   [&](const auto& c) { return c.get() == v; });
-      it != consumers_.end()) {
-    // Might have already been removed, if we were an operand twice.
-    consumers_.erase(it);
-  }
+void value::remove_consumer(const value_ptr v) { consumers_.erase(v); }
+
+absl::InlinedVector<ir::value_ptr, 8> value::ordered_consumers() const {
+  absl::InlinedVector<ir::value_ptr, 8> result{consumers_.begin(), consumers_.end()};
+  std::sort(result.begin(), result.end(), [](auto a, auto b) { return a->name() < b->name(); });
+  return result;
 }
 
 bool value::operands_match(const value_ptr other) const noexcept {
