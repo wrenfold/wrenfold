@@ -27,7 +27,7 @@ using const_value_ptr = non_null<const ir::value*>;
 class value {
  public:
   using unique_ptr = std::unique_ptr<value>;
-  using operands_container = std::vector<ir::value_ptr>;
+  using operands_container = absl::InlinedVector<value_ptr, 4>;
   using types = std::variant<void_type, scalar_type, matrix_type, custom_type>;
 
   // Construct:
@@ -192,15 +192,13 @@ class value {
   // Unique name for this value (used for formatting variable names).
   uint32_t name_;
 
-  // Parent block
+  // Parent block where this operation appears.
   ir::block_ptr parent_;
 
   // The operation that computes this value.
   operation op_;
 
   // Operands to the operation. May be empty for some operations.
-  // TODO: An inlined vector doesn't make any meaningful difference here, but that maybe merits
-  //  a bit more thorough investigation.
   operands_container operands_;
 
   // Downstream values that consume this one. A value can be consumed more than once by a downstream
