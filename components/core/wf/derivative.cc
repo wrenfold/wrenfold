@@ -7,6 +7,8 @@
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
+#include "wf/scoped_trace.h"
+
 #include "wrenfold/span.h"
 
 namespace wf {
@@ -66,6 +68,7 @@ scalar_expr derivative_visitor::apply(const scalar_expr& expression) {
 
 // Differentiate every argument to make a new sum.
 scalar_expr derivative_visitor::operator()(const addition& add) {
+  WF_SCOPED_TRACE_STR("wf::derivative_visitor::operator()(const addition&)");
   return add.map_children([this](const scalar_expr& expr) { return apply(expr); });
 }
 
@@ -303,6 +306,7 @@ scalar_expr diff(const scalar_expr& function, const scalar_expr& var, const int 
 matrix_expr jacobian(const absl::Span<const scalar_expr> functions,
                      const absl::Span<const scalar_expr> vars,
                      const non_differentiable_behavior behavior) {
+  WF_FUNCTION_TRACE();
   if (functions.empty()) {
     throw dimension_error("Need at least one function to differentiate.");
   }

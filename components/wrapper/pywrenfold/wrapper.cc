@@ -2,6 +2,8 @@
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
 
+#include "wf/scoped_trace.h"
+
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -79,4 +81,14 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
 
   wrap_codegen_operations(m_gen);
   wrap_code_formatting_operations(m_gen);
+
+  m.def(
+      "set_tracing_output_path",
+      [](const std::string& path) {
+        if (trace_collector* const collector = trace_collector::get_instance();
+            collector != nullptr) {
+          collector->set_output_path(path);
+        }
+      },
+      "path"_a);
 }  // PYBIND11_MODULE

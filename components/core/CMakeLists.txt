@@ -106,6 +106,8 @@ add_library(
   wf/output_annotations.h
   wf/plain_formatter.cc
   wf/plain_formatter.h
+  wf/scoped_trace.cc
+  wf/scoped_trace.h
   wf/string_utils.h
   wf/substitute.cc
   wf/template_utils.h
@@ -141,6 +143,12 @@ target_link_libraries(wf_core wf_runtime fmt::fmt-header-only
                       absl::inlined_vector absl::span)
 if(WIN32)
   target_compile_definitions(wf_core PUBLIC -D_USE_MATH_DEFINES)
+endif()
+
+option(WF_BUILD_WITH_TRACING "Enable traces for profiling." OFF)
+if(WF_BUILD_WITH_TRACING)
+  message(STATUS "Building with tracing enabled.")
+  target_compile_definitions(wf_core PUBLIC -DWF_ENABLE_TRACING)
 endif()
 
 target_include_directories(

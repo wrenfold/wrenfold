@@ -12,6 +12,7 @@
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/hashing.h"
+#include "wf/scoped_trace.h"
 
 namespace wf {
 namespace ir {
@@ -129,6 +130,7 @@ using value_table =
 
 // Eliminate duplicates in `block`, using existing values stored in `table`.
 inline void local_value_numbering(const ir::block_ptr block, value_table& table) {
+  WF_FUNCTION_TRACE();
   for (const ir::value_ptr val : block->operations()) {
     // Then see if this operation already exists in the map:
     if (auto [it, was_inserted] = table.insert(val); !was_inserted) {
@@ -176,6 +178,7 @@ class sort_expression_order_visitor {
 
 // We pass `groups` by copy so we can replace the expressions with sorted versions below:
 control_flow_graph::control_flow_graph(std::vector<expression_group> groups) {
+  WF_FUNCTION_TRACE();
   blocks_.push_back(std::make_unique<ir::block>(0));
 
   // First pass where we sort things into a canonical order, and count operations.
@@ -205,11 +208,13 @@ control_flow_graph::control_flow_graph(std::vector<expression_group> groups) {
 }
 
 control_flow_graph control_flow_graph::convert_conditionals_to_control_flow() && {
+  WF_FUNCTION_TRACE();
   return ir_control_flow_converter{std::move(*this)}.convert();
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
 void control_flow_graph::eliminate_duplicates() {
+  WF_FUNCTION_TRACE();
   value_table table{};
   table.reserve(values_.size());
   local_value_numbering(first_block(), table);
