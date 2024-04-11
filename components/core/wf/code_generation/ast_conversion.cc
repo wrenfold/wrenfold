@@ -17,7 +17,7 @@ inline void find_conditional_output_values(const ir::const_value_ptr v,
                                            const bool top_level_invocation,
                                            std::vector<ir::const_value_ptr>& outputs) {
   bool all_phi_consumers = true;
-  for (const ir::const_value_ptr consumer : v->consumers()) {
+  for (const ir::const_value_ptr consumer : v->ordered_consumers()) {
     if (consumer->is_phi()) {
       // A phi function might just be an input to another phi function, so we need to recurse here.
       find_conditional_output_values(consumer, false, outputs);

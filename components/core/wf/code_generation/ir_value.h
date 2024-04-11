@@ -1,10 +1,16 @@
 // Copyright 2024 Gareth Cross
 #pragma once
+#include <unordered_set>
 #include <vector>
 
 #include "wf/checked_pointers.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/code_generation/types.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/flat_hash_set.h>
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf::ir {
 
@@ -21,7 +27,7 @@ using const_value_ptr = non_null<const ir::value*>;
 class value {
  public:
   using unique_ptr = std::unique_ptr<value>;
-  using operands_container = std::vector<ir::value_ptr>;
+  using operands_container = absl::InlinedVector<value_ptr, 4>;
   using types = std::variant<void_type, scalar_type, matrix_type, custom_type>;
 
   // Construct:
@@ -87,7 +93,7 @@ class value {
   void add_consumer(value_ptr v);
 
   // Remove `v` from the list of consumers of this value.
-  void remove_consumer(ir::value* v);
+  void remove_consumer(value_ptr v);
 
   // Access instruction operands.
   constexpr const operands_container& operands() const noexcept { return operands_; }
@@ -107,8 +113,8 @@ class value {
     return operands_[i];
   }
 
-  // Access all consumers of this value.
-  constexpr const std::vector<value_ptr>& consumers() const noexcept { return consumers_; }
+  // Access all consumers of this value, ordered by their ID.
+  absl::InlinedVector<ir::value_ptr, 8> ordered_consumers() const;
 
   // Number of values that directly consume this one.
   std::size_t num_consumers() const { return consumers_.size(); }
@@ -186,19 +192,18 @@ class value {
   // Unique name for this value (used for formatting variable names).
   uint32_t name_;
 
-  // Parent block
+  // Parent block where this operation appears.
   ir::block_ptr parent_;
 
   // The operation that computes this value.
   operation op_;
 
   // Operands to the operation. May be empty for some operations.
-  // TODO: An inlined vector doesn't make any meaningful difference here, but that maybe merits
-  //  a bit more thorough investigation.
   operands_container operands_;
 
-  // Downstream values that consume this one:
-  std::vector<value_ptr> consumers_;
+  // Downstream values that consume this one. A value can be consumed more than once by a downstream
+  // operation, eg. `v00 * v00`. We use a set, and store each consumer only once.
+  absl::flat_hash_set<value_ptr> consumers_;
 
   // The cached numeric type of this operation.
   types type_;
