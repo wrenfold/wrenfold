@@ -76,7 +76,7 @@ struct expression_from_ir_visitor {
       case std_math_function::atan:
         return built_in_function::arctan;
       case std_math_function::log:
-        return built_in_function::ln;
+        return built_in_function::log;
       case std_math_function::abs:
         return built_in_function::abs;
       case std_math_function::signum:

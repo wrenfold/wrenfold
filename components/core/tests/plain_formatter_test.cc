@@ -125,9 +125,9 @@ TEST(PlainFormatterTest, TestConditionals) {
 TEST(PlainFormatterTest, TestBuiltInFunctions) {
   const scalar_expr x{"x"};
   const scalar_expr y{"y"};
-  ASSERT_STR_EQ("ln(x)", log(x));
-  ASSERT_STR_EQ("ln(x*y)", log(x * y));
-  ASSERT_STR_EQ("-x*ln(x/y)", -x * log(x / y));
+  ASSERT_STR_EQ("log(x)", log(x));
+  ASSERT_STR_EQ("log(x*y)", log(x * y));
+  ASSERT_STR_EQ("-x*log(x/y)", -x * log(x / y));
   ASSERT_STR_EQ("cos(x)", cos(x));
   ASSERT_STR_EQ("sin(cos(y))", sin(cos(y)));
   ASSERT_STR_EQ("atan(x*y)", atan(x * y));

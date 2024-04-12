@@ -202,7 +202,7 @@ scalar_expr derivative_visitor::operator()(const function& func, const scalar_ex
       // atanh(f(x)) --> 1 / (1 - f(x)**2) * f'(x)
       return pow(1 - pow(args[0], 2), constants::negative_one) * d_args[0];
     }
-    case built_in_function::ln:
+    case built_in_function::log:
       // log(f(x)) --> 1/f(x) * f'(x)
       return power::create(args[0], constants::negative_one) * d_args[0];
     case built_in_function::abs:

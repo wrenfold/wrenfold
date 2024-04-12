@@ -150,7 +150,7 @@ static constexpr std_math_function std_math_function_from_built_in(const built_i
       return std_math_function::asinh;
     case built_in_function::arctanh:
       return std_math_function::atanh;
-    case built_in_function::ln:
+    case built_in_function::log:
       return std_math_function::log;
     case built_in_function::abs:
       return std_math_function::abs;

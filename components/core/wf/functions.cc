@@ -46,7 +46,7 @@ scalar_expr log(const scalar_expr& arg) {
     return *std::move(f);
   }
   // TODO: Check for negative values.
-  return make_expr<function>(built_in_function::ln, arg);
+  return make_expr<function>(built_in_function::log, arg);
 }
 
 // If `arg` is `i`, or `i*x`, we apply the replacement function.
