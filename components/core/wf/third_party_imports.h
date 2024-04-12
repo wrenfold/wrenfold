@@ -11,7 +11,8 @@
       __pragma(warning(disable : 4127)) /* constant if-statement */             \
       __pragma(warning(disable : 4324)) /* padded for alignment */              \
       __pragma(warning(disable : 4582)) /* constructor not implicitly called */ \
-      __pragma(warning(disable : 4583)) /* destructor not implicitly called */
+      __pragma(warning(disable : 4583)) /* destructor not implicitly called */  \
+      __pragma(warning(disable : 4996)) /* deprecated */
 #define WF_END_THIRD_PARTY_INCLUDES __pragma(warning(pop))
 
 #elif defined(__GNUC__)  // gcc

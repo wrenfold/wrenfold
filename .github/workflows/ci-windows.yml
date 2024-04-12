@@ -6,9 +6,6 @@ on:
     branches:
       - '*'
 
-  schedule:
-    - cron: '0 0 * * *'
-
 env:
   CACHE_NUMBER: 0
   env_name: build-env

@@ -1,7 +1,7 @@
 [project]
 name = "wrenfold"
 version = "0.0.1"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Gareth Cross", email = "gcross.code@icloud.com" },
 ]
@@ -31,3 +31,11 @@ logging.level = "WARNING"
 
 wheel.packages = ["components/python/wrenfold"]
 wheel.license-files = ["LICENSE"]
+
+[tool.cibuildwheel]
+skip = ["*musllinux_*", "*-win32", "*_i686", "pp*"]
+
+test-command = [
+    "python -m unittest discover \"{package}/components/wrapper/tests\" --pattern \"*_test.py\""
+]
+test-requires = ["numpy", "sympy"]
