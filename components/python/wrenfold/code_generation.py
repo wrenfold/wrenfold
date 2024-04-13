@@ -12,6 +12,7 @@ from . import type_info
 from pywrenfold.gen import (
     Argument,
     ArgumentDirection,
+    BaseGenerator,
     CppGenerator,
     FunctionDescription,
     RustGenerator,

@@ -19,6 +19,30 @@ using namespace py::literals;
 
 namespace wf {
 
+// Declare a formatting operator for type that throws. The user will override this in python.
+template <typename T>
+class declare_unimplemented {
+ public:
+  // TODO: Do we need a virtual destructor on this?
+  // virtual ~declare_unimplemented() = default;
+
+  virtual std::string operator()(const T&) const {
+    throw type_error("Missing override for type `{}`: format_{}", ast::camel_case_name<T>(),
+                     T::snake_case_name_str);
+  }
+};
+
+// Inherit once from `declare_unimplemented` for every type in a type list
+template <typename T>
+class declare_all_unimplemented;
+template <typename... Ts>
+class declare_all_unimplemented<type_list<Ts...>> : public declare_unimplemented<Ts>... {
+ public:
+  using declare_unimplemented<Ts>::operator()...;
+
+  virtual ~declare_all_unimplemented() = default;
+};
+
 // define_override implements an override to the `std::string operator(const T&)` method.
 // We don't need a constructor here because we inherit virtually from Base. We use virtual
 // inheritance because define_override is inherited once for every type we can format.
@@ -210,6 +234,11 @@ class wrapped_generator
   };
 };
 
+// Declare a base code generator. By default it does no formatting at all, and throws on every type
+// we give it. The user is responsible for implementing all formatting methods in python.
+// ReSharper disable once CppClassCanBeFinal
+class base_code_generator : public declare_all_unimplemented<ast::all_ast_types> {};
+
 // This struct expands over all the types in `ast::variant` and exposes operator() for
 // all of them via pybind11.
 template <typename T = ast::all_ast_types>
@@ -297,6 +326,10 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
 void wrap_code_formatting_operations(py::module_& m) {
   wrap_code_generator<cpp_code_generator>(m, "CppGenerator").doc() = "Generate C++ code.";
   wrap_code_generator<rust_code_generator>(m, "RustGenerator").doc() = "Generate Rust code.";
+
+  wrap_code_generator<base_code_generator>(m, "BaseGenerator").doc() =
+      "Abstract base class for generators. The user may inherit from this python when writing a "
+      "new generator from scratch.";
 }
 
 }  // namespace wf

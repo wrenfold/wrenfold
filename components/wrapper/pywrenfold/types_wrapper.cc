@@ -64,8 +64,10 @@ void wrap_types(py::module_& m) {
   wrap_class<matrix_type>(m, "MatrixType")
       .def(py::init<index_t, index_t>(), py::arg("rows"), py::arg("cols"),
            "Construct with number of rows and columns.")
-      .def_property_readonly("num_rows", &matrix_type::rows, "First dimension of the matrix.")
-      .def_property_readonly("num_cols", &matrix_type::cols, "Second dimension of the matrix.")
+      .def_property_readonly("rows", &matrix_type::rows, "First dimension of the matrix.")
+      .def_property_readonly("cols", &matrix_type::cols, "Second dimension of the matrix.")
+      .def_property_readonly("shape", &matrix_type::dimensions,
+                             "Shape as a tuple of ``(rows, cols)``.")
       .def("compute_indices", &matrix_type::compute_indices, "idx"_a,
            "Given a flat index, compute the (row, column) pair it corresponds to.")
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); })
