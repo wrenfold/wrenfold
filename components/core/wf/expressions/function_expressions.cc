@@ -35,7 +35,7 @@ scalar_expr function::create(const built_in_function name,
       return asinh(args.front());
     case built_in_function::arctanh:
       return atanh(args.front());
-    case built_in_function::ln:
+    case built_in_function::log:
       return log(args.front());
     case built_in_function::abs:
       return abs(args.front());

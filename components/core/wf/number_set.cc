@@ -136,7 +136,7 @@ class determine_set_visitor {
       case built_in_function::arcsinh:
       case built_in_function::arctanh:
         return number_set::unknown;
-      case built_in_function::ln: {
+      case built_in_function::log: {
         if (args[0] == number_set::real_positive) {
           return number_set::real_positive;
         }

@@ -45,7 +45,7 @@ enum class built_in_function {
   arccosh,
   arcsinh,
   arctanh,
-  ln,
+  log,
   abs,
   signum,
   floor,
@@ -196,8 +196,8 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
       return "asinh";
     case built_in_function::arctanh:
       return "atanh";
-    case built_in_function::ln:
-      return "ln";
+    case built_in_function::log:
+      return "log";
     case built_in_function::abs:
       return "abs";
     case built_in_function::signum:
