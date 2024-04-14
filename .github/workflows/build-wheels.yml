@@ -5,6 +5,7 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+rc[0-9]+'
+      - 'test-release-tag'
 
 jobs:
   build_wheels:
@@ -15,8 +16,7 @@ jobs:
         sys:
           - { os: windows-latest, shell: pwsh }
           - { os: ubuntu-latest, shell: bash }
-          # TODO: Figure out why this build fails.
-          # - { os: macos-latest, shell: bash }
+          - { os: macos-14, shell: bash }
 
     defaults:
       run:
@@ -41,12 +41,16 @@ jobs:
         with:
           arch: amd64
 
+      - if: runner.os == 'macOS'
+        name: Select Xcode Version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_PLATFORM: auto
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.12"
           CIBW_ARCHS_LINUX: x86_64
           CIBW_ARCHS_WINDOWS: AMD64
           CIBW_ARCHS_MACOS: arm64

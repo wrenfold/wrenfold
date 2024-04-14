@@ -33,8 +33,8 @@ wheel.packages = ["components/python/wrenfold"]
 wheel.license-files = ["LICENSE"]
 
 [tool.cibuildwheel]
-skip = ["*musllinux_*", "*-win32", "*_i686", "pp*"]
-
+skip = ["*musllinux_*", "*-win32", "*_i686"]
+manylinux-x86_64-image = "manylinux_2_28"
 test-command = [
     "python -m unittest discover \"{package}/components/wrapper/tests\" --pattern \"*_test.py\""
 ]
