@@ -1,0 +1,131 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - '*'
+
+  # This can be called from build-wheels.
+  workflow_call:
+
+env:
+  CACHE_NUMBER: 0
+  env_name: build-env
+  prefix: /home/runner/miniconda3/envs/build-env
+
+jobs:
+  build:
+    strategy:
+        # Let other OS runners continue if one fails.
+        fail-fast: false
+        matrix:
+          sys:
+            - { os: windows-2019, shell: pwsh, env_file: 'windows-environment.yml' }
+            - { os: windows-2022, shell: pwsh, env_file: 'windows-environment.yml' }
+            - { os: ubuntu-latest, shell: "bash -el {0}", env_file: 'linux-environment.yml' }
+            - { os: macos-14, shell: "bash -el {0}", env_file: 'mac-environment.yml' }
+          build_type: [RelWithDebInfo]
+
+    name: ${{ matrix.sys.os }}-${{ matrix.build_type }}
+    runs-on: ${{ matrix.sys.os }}
+    defaults:
+      run:
+        shell: ${{ matrix.sys.shell }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup mambaforge
+        uses: conda-incubator/setup-miniconda@11b562958363ec5770fef326fe8ef0366f8cbf8a # v3.0.1
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          activate-environment: ${{ env.env_name }}
+          use-mamba: true
+
+      - name: Set cache data
+        shell: bash
+        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.prefix }}
+          key: ${{ matrix.sys.os }}-conda-${{ hashFiles('environment.yml') }}-${{ hashFiles(matrix.sys.env_file) }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+        id: cache
+
+      - name: Update environment
+        run: |
+          mamba env update -n ${{ env.env_name }} --file environment.yml
+          mamba env update -n ${{ env.env_name }} --file ${{ matrix.sys.env_file }}
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Dump conda environment
+        run: |
+          conda info
+          conda list
+          conda config --show-sources
+          conda config --show
+
+       # Add MSVC to the command line:
+      - if: runner.os == 'Windows'
+        name: Enable developer command prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - if: runner.os == 'macOS'
+        name: Select Xcode Version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Create build directory
+        run: cmake -E make_directory ${{github.workspace}}/build-${{matrix.build_type}}
+
+      - if: runner.os != 'Windows'
+        name: Configure
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: |
+          cmake ${{github.workspace}} -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -Wno-deprecated -G Ninja
+
+      - if: runner.os == 'Windows'
+        name: Configure Windows
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: |
+          cmake ${{github.workspace}} -DCMAKE_C_COMPILER="cl.exe" -DCMAKE_CXX_COMPILER="cl.exe" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -Wno-deprecated -G Ninja
+
+      - name: Build
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: |
+          cmake --build . --config ${{matrix.build_type}}
+
+      - name: Run CTest
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: ctest --output-on-failure
+
+      - name: Install rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Dump rustc version
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: rustc --version
+
+      - name: Cache rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> ${{github.workspace}}/build-${{matrix.build_type}}/cargo
+
+      - name: Cargo test
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: cargo test --tests --release --color=always --target-dir cargo --manifest-path ${{github.workspace}}/Cargo.toml
+
+      - name: Cargo clippy
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: cargo clippy --all --color=always --target-dir cargo --manifest-path ${{github.workspace}}/Cargo.toml -- -D warnings --no-deps
+
+      - name: Build docs
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: cmake --build . --config ${{matrix.build_type}} --target wf_docs
