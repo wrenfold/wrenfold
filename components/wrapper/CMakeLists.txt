@@ -24,6 +24,23 @@ function(add_wrapper_module)
   target_compile_options(${MODULE_NAME} PRIVATE ${SHARED_WARNING_FLAGS})
   target_compile_definitions(${MODULE_NAME}
                              PRIVATE PY_MODULE_NAME=${MODULE_NAME})
+  if(DEFINED SKBUILD_PROJECT_VERSION)
+    target_compile_definitions(
+      ${MODULE_NAME} PRIVATE PY_MODULE_VERSION="${SKBUILD_PROJECT_VERSION}")
+  else()
+    target_compile_definitions(${MODULE_NAME} PRIVATE PY_MODULE_VERSION="dev")
+  endif()
+
+  find_package(Git)
+  if(Git_FOUND)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+      OUTPUT_VARIABLE GIT_HASH
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "git hash: ${GIT_HASH}")
+    target_compile_definitions(${MODULE_NAME} PRIVATE PY_GIT_HASH="${GIT_HASH}")
+  endif()
 
   # For each submodule, define a compile-time constant for its name.
   foreach(SUB_MODULE_NAME ${MODULE_SUB_MODULE_NAMES})
@@ -126,6 +143,6 @@ add_wrapper_module(
 add_library(wf_wrapper ALIAS pywrenfold)
 
 # Add python tests:
-if(NOT DEFINED SKBUILD_PROJECT_NAME)
+if(WF_BUILD_EXTRAS)
   add_subdirectory(tests)
 endif()

@@ -8,11 +8,11 @@ target_include_directories(
   INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
             $<INSTALL_INTERFACE:include>)
 
-if(NOT DEFINED SKBUILD_PROJECT_NAME)
+if(WF_BUILD_EXTRAS)
   add_subdirectory(tests)
 endif()
 
-if(DEFINED SKBUILD_PROJECT_NAME)
+if(DEFINED SKBUILD_HEADERS_DIR)
   # This will install the headers under: `include/site/pythonX.Y/wrenfold`.
   install(FILES ${RUNTIME_SOURCES} DESTINATION "${SKBUILD_HEADERS_DIR}")
 else()

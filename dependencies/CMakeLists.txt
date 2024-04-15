@@ -15,7 +15,10 @@ function(add_gtest)
       CACHE BOOL "" FORCE)
   add_subdirectory(gtest)
 endfunction()
-add_gtest()
+
+if(WF_BUILD_EXTRAS)
+  add_gtest()
+endif()
 
 # Google benchmark
 function(add_google_benchmark)
@@ -31,7 +34,10 @@ function(add_google_benchmark)
   endif()
   add_subdirectory(benchmark)
 endfunction()
-add_google_benchmark()
+
+if(WF_BUILD_EXTRAS)
+  add_google_benchmark()
+endif()
 
 # Add abseil-cpp
 function(add_abseil)

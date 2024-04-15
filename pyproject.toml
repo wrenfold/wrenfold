@@ -1,15 +1,7 @@
-[build-system]
-requires = [
-    "scikit-build-core>=0.2.2",
-    "cmake>=3.20",
-    "mypy",
-]
-build-backend = "scikit_build_core.build"
-
 [project]
 name = "wrenfold"
 version = "0.0.1"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Gareth Cross", email = "gcross.code@icloud.com" },
 ]
@@ -17,16 +9,33 @@ description = "Tools for code-generating mathematical functions."
 license = { text = "MIT" }
 readme = "README.md"
 
+[build-system]
+requires = [
+    "scikit-build-core>=0.2.2",
+    "cmake>=3.20",
+    # mypy required for stubgen.
+    "mypy==1.9.0",
+]
+build-backend = "scikit_build_core.build"
+
 [tool.scikit-build]
-cmake.minimum-version = "3.20"
+cmake.version = ">=3.20"
 cmake.args = ["-G", "Ninja", "-Wno-deprecated"]
 cmake.verbose = true
 cmake.build-type = "RelWithDebInfo"
 
-ninja.minimum-version = "1.5"
+ninja.version = ">=1.5"
 ninja.make-fallback = false
 
 logging.level = "WARNING"
 
 wheel.packages = ["components/python/wrenfold"]
 wheel.license-files = ["LICENSE"]
+
+[tool.cibuildwheel]
+skip = ["*musllinux_*", "*-win32", "*_i686"]
+manylinux-x86_64-image = "manylinux_2_28"
+test-command = [
+    "python -m unittest discover \"{package}/components/wrapper/tests\" --pattern \"*_test.py\""
+]
+test-requires = ["numpy", "sympy"]

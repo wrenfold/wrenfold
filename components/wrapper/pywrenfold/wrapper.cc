@@ -49,6 +49,13 @@ void wrap_exceptions(py::module_& m);
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
+  m.attr("__version__") = PY_MODULE_VERSION;
+#ifdef PY_GIT_HASH
+  m.attr("__git_version__") = PY_GIT_HASH;
+#else
+  m.attr("__git_version__") = py::none();
+#endif
+
   auto m_enumerations = m.def_submodule(PY_SUBMODULE_NAME_ENUMERATIONS, "Wrapped enums.");
   wrap_enums(m_enumerations);
 

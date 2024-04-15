@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 3.20)
-project(
-  wrenfold
-  VERSION 0.1
-  DESCRIPTION "Tools for generating code from symbolic math."
-  LANGUAGES CXX)
+
+if(DEFINED SKBUILD_PROJECT_NAME AND DEFINED SKBUILD_PROJECT_VERSION)
+  project(
+    ${SKBUILD_PROJECT_NAME}
+    VERSION ${SKBUILD_PROJECT_VERSION}
+    DESCRIPTION "Tools for generating code from symbolic math."
+    LANGUAGES CXX)
+  message(STATUS "Building project version: ${SKBUILD_PROJECT_VERSION}")
+  set(BUILD_EXTRAS_DEFAULT OFF)
+else()
+  project(wrenfold CXX)
+  set(BUILD_EXTRAS_DEFAULT ON)
+endif()
 
 enable_testing()
 include(GNUInstallDirs)
@@ -11,11 +19,14 @@ set(CMAKE_COLOR_MAKEFILE ON)
 
 # Find python (for pybind11)
 find_package(
-  Python 3.8
+  Python 3.9
   COMPONENTS Interpreter Development.Module
   REQUIRED)
 message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
 message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
+
+option(WF_BUILD_EXTRAS "Build tests, benchmarks, examples, and docs."
+       ${BUILD_EXTRAS_DEFAULT})
 
 # Add third party code
 add_subdirectory(dependencies)
@@ -54,7 +65,7 @@ add_custom_target(wf_rust_generation ALL)
 add_subdirectory(components)
 
 # Add examples and docs.
-if(NOT DEFINED SKBUILD_PROJECT_NAME)
+if(WF_BUILD_EXTRAS)
   add_subdirectory(examples)
   add_subdirectory(docs)
 endif()

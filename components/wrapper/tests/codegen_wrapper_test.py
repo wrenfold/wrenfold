@@ -101,10 +101,10 @@ class CodeGenerationWrapperTest(MathTestBase):
         definitions = code_generation.transpile(descriptions)
 
         generator = CustomCppGenerator()
-        print(generator.generate(definitions))
+        generator.generate(definitions)
 
         generator = code_generation.RustGenerator()
-        print(generator.generate(definitions))
+        generator.generate(definitions)
 
 
 if __name__ == '__main__':

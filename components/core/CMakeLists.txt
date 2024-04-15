@@ -155,8 +155,7 @@ target_include_directories(
   wf_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                  $<INSTALL_INTERFACE:include>)
 
-# Add tests and benchmarks, if not building from scikit-build-core
-if(NOT DEFINED SKBUILD_PROJECT_NAME)
+if(WF_BUILD_EXTRAS)
   add_subdirectory(test_support)
   add_subdirectory(tests)
   add_subdirectory(benchmarks)
