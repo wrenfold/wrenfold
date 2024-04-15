@@ -8,6 +8,10 @@ on:
       - 'test-release-tag'
 
 jobs:
+  # Run the CI jobs first.
+  execute_ci:
+    uses: ./.github/workflows/ci.yml
+
   build_wheels:
     name: Build wheels on ${{ matrix.sys.os }}
     runs-on: ${{ matrix.sys.os }}
