@@ -8,6 +8,7 @@
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/cpp_code_generator.h"
 #include "wf/code_generation/rust_code_generator.h"
+#include "wf/type_list.h"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -19,13 +20,18 @@ using namespace py::literals;
 
 namespace wf {
 
+// A list of every AST type that is formattable. We need to expose overridable methods for all of
+// these so that the user can customize formatting in python.
+using all_formattable_types =
+    type_list_concatenate_t<ast::ast_element_types,
+                            type_list<ast::function_definition, ast::function_signature,
+                                      custom_type, matrix_type, scalar_type>>;
+
 // Declare a formatting operator for type that throws. The user will override this in python.
+// ReSharper disable once CppPolymorphicClassWithNonVirtualPublicDestructor
 template <typename T>
 class declare_unimplemented {
  public:
-  // TODO: Do we need a virtual destructor on this?
-  // virtual ~declare_unimplemented() = default;
-
   virtual std::string operator()(const T&) const {
     throw type_error("Missing override for type `{}`: format_{}", ast::camel_case_name<T>(),
                      T::snake_case_name_str);
@@ -35,12 +41,12 @@ class declare_unimplemented {
 // Inherit once from `declare_unimplemented` for every type in a type list
 template <typename T>
 class declare_all_unimplemented;
+
+// ReSharper disable once CppPolymorphicClassWithNonVirtualPublicDestructor
 template <typename... Ts>
 class declare_all_unimplemented<type_list<Ts...>> : public declare_unimplemented<Ts>... {
  public:
   using declare_unimplemented<Ts>::operator()...;
-
-  virtual ~declare_all_unimplemented() = default;
 };
 
 // define_override implements an override to the `std::string operator(const T&)` method.
@@ -93,10 +99,10 @@ class define_all_overrides<Derived, Base, type_list<Ts...>>
 // under different names.
 template <typename Base>
 class wrapped_generator
-    : public define_all_overrides<wrapped_generator<Base>, Base, ast::all_ast_types> {
+    : public define_all_overrides<wrapped_generator<Base>, Base, all_formattable_types> {
  public:
   using generator_base = Base;
-  using override_base = define_all_overrides<wrapped_generator, Base, ast::all_ast_types>;
+  using override_base = define_all_overrides<wrapped_generator, Base, all_formattable_types>;
 
   // This scenario is a bit confusing, but basically what will happen here is:
   // - The constructor for Base is called (once).
@@ -120,9 +126,7 @@ class wrapped_generator
   explicit wrapped_generator(CtorArgs&&... args)
       : Base(std::forward<CtorArgs>(args)...),
         // These value of these args don't matter, because Base(...) is invoked only once.
-        override_base(std::forward<CtorArgs>(args)...) {
-    recursions_.fill(0);
-  }
+        override_base(std::forward<CtorArgs>(args)...) {}
 
   // Check if a python class derived from this one implements a formatting operator for type `T`.
   // If it does, we call the derived class implementation. Otherwise, call Base::operator().
@@ -206,7 +210,7 @@ class wrapped_generator
   mutable std::unordered_map<std::type_index, bool> has_override_;
 
   // Store the recursion count for each type.
-  using recursion_counters = std::array<std::int32_t, type_list_size_v<ast::all_ast_types>>;
+  using recursion_counters = std::unordered_map<std::type_index, int32_t>;
   mutable recursion_counters recursions_;
 
   // Because we know the ast tree is not very deep, we can catch infinite recursions by counting
@@ -216,7 +220,7 @@ class wrapped_generator
    public:
     template <typename T>
     explicit recursion_guard(recursion_counters& counters, const T&)
-        : counter_(counters[type_list_index_v<T, ast::all_ast_types>]) {
+        : counter_(counters[typeid(T)]) {
       if (constexpr std::int32_t max_recursions = 32; counter_ + 1 == max_recursions) {
         throw std::runtime_error(
             fmt::format("Recursed {} times while formatting type `{}`. It is possible that a "
@@ -237,19 +241,19 @@ class wrapped_generator
 // Declare a base code generator. By default it does no formatting at all, and throws on every type
 // we give it. The user is responsible for implementing all formatting methods in python.
 // ReSharper disable once CppClassCanBeFinal
-class base_code_generator : public declare_all_unimplemented<ast::all_ast_types> {};
+class base_code_generator : public declare_all_unimplemented<all_formattable_types> {
+ public:
+  virtual ~base_code_generator() = default;
+};
 
-// This struct expands over all the types in `ast::variant` and exposes operator() for
-// all of them via pybind11.
-template <typename T = ast::all_ast_types>
-struct register_operators_struct;
-template <typename... Ts>
-struct register_operators_struct<type_list<Ts...>> {
-  template <typename T, typename PyClass>
-  static void register_operator(PyClass& klass) {
+template <typename T>
+struct register_one_format_operator {
+  // PyClass is the py::class_ type.
+  template <typename PyClass>
+  void operator()(PyClass& klass, const std::string_view module_name) const {
     // Static const so that we are certain pybind11 isn't taking an invalid weak reference here.
     static const std::string doc =
-        fmt::format("Format ast type :class:`wrenfold.ast.{}`.", ast::camel_case_name<T>());
+        fmt::format("Format type :class:`wrenfold.{}.{}`.", module_name, ast::camel_case_name<T>());
     static const std::string super_doc = doc + " Invokes the wrapped base class implementation.";
 
     // Expose operator() on the generator.
@@ -275,11 +279,18 @@ struct register_operators_struct<type_list<Ts...>> {
         },
         py::arg("element"), py::doc(super_doc.c_str()));
   }
+};
 
+// This struct expands over all the types in `ast::ast_element` and exposes operator() for
+// all of them via pybind11.
+template <typename T>
+struct register_all_format_operators;
+template <typename... Ts>
+struct register_all_format_operators<type_list<Ts...>> {
   template <typename PyClass>
-  void operator()(PyClass& klass) {
+  void operator()(PyClass& klass, const std::string_view module_name) {
     // Expand over all the types `Ts`:
-    (register_operator<Ts, PyClass>(klass), ...);
+    (register_one_format_operator<Ts>{}(klass, module_name), ...);
   }
 };
 
@@ -318,8 +329,12 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
                 return generate_multiple(static_cast<const T&>(self), definitions);
               },
               py::arg("definition"), py::doc("Generate code for multiple definitions."));
+
   // Wrap all the operator() methods.
-  register_operators_struct{}(klass);
+  register_all_format_operators<type_list_concatenate_t<
+      ast::ast_element_types, type_list<ast::function_signature, ast::function_definition>>>{}(
+      klass, "ast");
+  register_all_format_operators<type_list_from_variant_t<type_variant>>{}(klass, "type_info");
   return klass;
 }
 
@@ -328,7 +343,7 @@ void wrap_code_formatting_operations(py::module_& m) {
   wrap_code_generator<rust_code_generator>(m, "RustGenerator").doc() = "Generate Rust code.";
 
   wrap_code_generator<base_code_generator>(m, "BaseGenerator").doc() =
-      "Abstract base class for generators. The user may inherit from this python when writing a "
+      "Abstract base class for generators. The user may inherit from this in python when writing a "
       "new generator from scratch.";
 }
 

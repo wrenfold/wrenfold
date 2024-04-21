@@ -7,7 +7,7 @@
 
 namespace wf {
 
-constexpr std::string_view rust_string_from_numeric_type(code_numeric_type type) {
+constexpr std::string_view rust_string_from_numeric_type(const code_numeric_type type) {
   switch (type) {
     case code_numeric_type::boolean:
       return "bool";
@@ -19,11 +19,7 @@ constexpr std::string_view rust_string_from_numeric_type(code_numeric_type type)
   throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
 }
 
-constexpr std::string_view rust_string_from_numeric_type(scalar_type scalar) {
-  return rust_string_from_numeric_type(scalar.numeric_type());
-}
-
-constexpr std::string_view span_type_from_direction(argument_direction direction) {
+constexpr std::string_view span_type_from_direction(const argument_direction direction) {
   switch (direction) {
     case argument_direction::input:
       return "Span2D";
@@ -53,37 +49,46 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   return result;
 }
 
-std::string rust_code_generator::operator()(const argument& arg) const {
-  std::string result;
-  fmt::format_to(std::back_inserter(result), "{}: ", arg.name());
+std::string rust_code_generator::operator()(const matrix_type&) const {
+  throw type_error(
+      "The default Rust code-generator treats all matrices as spans. You likely want to implement "
+      "a formatter override for the the `{}` type.",
+      matrix_type::snake_case_name_str);
+}
 
-  // Use generic type for spans:
-  const std::string output_type = overloaded_visit(
-      arg.type(),
-      [](const scalar_type s) -> std::string {
-        return std::string(rust_string_from_numeric_type(s));
-      },
-      [&](matrix_type) { return fmt::format("T{}", arg.index()); },
-      [this](const custom_type& c) { return operator()(c); });
-
-  const bool pass_input_by_borrow = arg.is_matrix() || arg.is_custom_type();
-  switch (arg.direction()) {
-    case argument_direction::input:
-      fmt::format_to(std::back_inserter(result), "{}{}", pass_input_by_borrow ? "&" : "",
-                     output_type);
-      break;
-    case argument_direction::output:
-      fmt::format_to(std::back_inserter(result), "&mut {}", output_type);
-      break;
-    case argument_direction::optional_output:
-      fmt::format_to(std::back_inserter(result), "Option<&mut {}>", output_type);
-      break;
-  }
-  return result;
+std::string rust_code_generator::operator()(const scalar_type& scalar) const {
+  return std::string{rust_string_from_numeric_type(scalar.numeric_type())};
 }
 
 std::string rust_code_generator::operator()(const custom_type& custom) const {
   return custom.name();
+}
+
+std::string rust_code_generator::operator()(const argument& arg) const {
+  std::string result = arg.name();
+  result.append(": ");
+
+  // Use generic type for spans:
+  const std::string type = overloaded_visit(
+      arg.type(), [&](matrix_type) { return fmt::format("T{}", arg.index()); },
+      [&](const auto& others) { return operator()(others); });
+
+  const bool pass_input_by_borrow = arg.is_matrix() || arg.is_custom_type();
+  switch (arg.direction()) {
+    case argument_direction::input:
+      fmt::format_to(std::back_inserter(result), "{}{}", pass_input_by_borrow ? "&" : "", type);
+      break;
+    case argument_direction::output:
+      fmt::format_to(std::back_inserter(result), "&mut {}", type);
+      break;
+    case argument_direction::optional_output:
+      fmt::format_to(std::back_inserter(result), "Option<&mut {}>", type);
+      break;
+    default:
+      WF_ASSERT_ALWAYS("Unhandled argument_direction: {}",
+                       static_cast<std::size_t>(arg.direction()));
+  }
+  return result;
 }
 
 std::string rust_code_generator::operator()(const ast::function_definition& definition) const {
@@ -105,11 +110,21 @@ std::string rust_code_generator::operator()(const ast::function_signature& signa
       fmt::format_to(std::back_inserter(result), "T{}, ", arg.index());
     }
   }
+
+  // The argument list:
   result.append(">(");
   result += join(", ", signature.arguments(), *this);
 
   // Return value:
-  fmt::format_to(std::back_inserter(result), ") -> {}\n", make_view(signature.return_annotation()));
+  if (const auto& maybe_return_type = signature.return_type(); maybe_return_type.has_value()) {
+    std::visit(
+        [&](const auto& type) {
+          fmt::format_to(std::back_inserter(result), ") -> {}\n", make_view(type));
+        },
+        *maybe_return_type);
+  } else {
+    result.append(") -> ()\n");
+  }
 
   // Constraints on matrix arguments:
   if (const std::vector<argument> matrix_args = signature.matrix_args(); !matrix_args.empty()) {
@@ -122,24 +137,6 @@ std::string rust_code_generator::operator()(const ast::function_signature& signa
     });
   }
   return result;
-}
-
-std::string rust_code_generator::operator()(const ast::return_type_annotation& x) const {
-  if (!x.type) {
-    return "()";
-  }
-  return overloaded_visit(
-      x.type.value(),
-      [&](const scalar_type scalar) -> std::string {
-        return std::string{rust_string_from_numeric_type(scalar)};
-      },
-      [&](matrix_type) -> std::string {
-        throw type_error(
-            "The default Rust code-generator treats all matrices as spans. We cannot return one "
-            "directly. You likely want to implement an override for the {} ast type.",
-            ast::return_type_annotation::snake_case_name_str);
-      },
-      [&](const custom_type& custom_type) { return operator()(custom_type); });
 }
 
 std::string rust_code_generator::operator()(const ast::add& x) const {
@@ -281,9 +278,8 @@ std::string rust_code_generator::operator()(const ast::construct_matrix&) const 
 }
 
 std::string rust_code_generator::operator()(const ast::construct_custom_type& x) const {
-  const std::string opener = fmt::format("{} {{\n", make_view(x.type));
-  std::string output{};
-  join_and_indent(output, 2, opener, "\n}", ",\n", x.field_values, [this](const auto& field_val) {
+  std::string output = operator()(x.type);
+  join_and_indent(output, 2, " {\n", "\n}", ",\n", x.field_values, [this](const auto& field_val) {
     const auto& [field_name, val] = field_val;
     return fmt::format("{}: {}", field_name, make_view(val));
   });
@@ -292,29 +288,17 @@ std::string rust_code_generator::operator()(const ast::construct_custom_type& x)
 
 std::string rust_code_generator::operator()(const ast::declaration& x) const {
   std::string output;
-  fmt::format_to(std::back_inserter(output), "let {}: {}", x.name, operator()(x.type));
+  std::visit(
+      [&](const auto& type) {
+        fmt::format_to(std::back_inserter(output), "let {}: {}", x.name, make_view(type));
+      },
+      x.type);
   if (x.value) {
     fmt::format_to(std::back_inserter(output), " = {};", make_view(*x.value));
   } else {
     output.append(";");
   }
   return output;
-}
-
-std::string rust_code_generator::operator()(const ast::declaration_type_annotation& x) const {
-  return overloaded_visit(
-      x.type,
-      [](const scalar_type s) -> std::string {
-        return std::string(rust_string_from_numeric_type(s));
-      },
-      [](const matrix_type&) -> std::string {
-        throw type_error(
-            "The default Rust code-generator treats all matrices as span traits. We cannot "
-            "construct one directly. You likely want to implement an override for the the `{}` ast "
-            "type.",
-            ast::declaration_type_annotation::snake_case_name_str);
-      },
-      [](const custom_type& c) -> std::string { return c.name(); });
 }
 
 std::string rust_code_generator::operator()(const ast::divide& x) const {

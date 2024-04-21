@@ -70,16 +70,6 @@ class CustomCppGenerator(CppGenerator):
             return f'std::vector<types::StructType>'
         return self.super_format(element)
 
-    def format_declaration_type_annotation(self, element: ast.DeclarationTypeAnnotation) -> str:
-        """
-        We need to define how to declare our custom types.
-        TODO: Unify this with `format_custom_type`.
-        """
-        if isinstance(element.type,
-                      type_info.CustomType) and element.type.python_type == StructType:
-            return f'types::{element.type.name}'
-        return self.super_format(element)
-
 
 class CustomRustGenerator(RustGenerator):
     """
@@ -95,12 +85,6 @@ class CustomRustGenerator(RustGenerator):
             return f'crate::types::{element.name}'
         elif element.python_type == VectorOfStructs:
             return f'std::vec::Vec<crate::types::StructType>'
-        return self.super_format(element)
-
-    def format_declaration_type_annotation(self, element: ast.DeclarationTypeAnnotation) -> str:
-        if isinstance(element.type,
-                      type_info.CustomType) and element.type.python_type is StructType:
-            return f'crate::types::{element.type.name}'
         return self.super_format(element)
 
 

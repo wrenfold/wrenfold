@@ -23,23 +23,33 @@ constexpr static std::string_view cpp_string_from_numeric_type(
   return "<INVALID ENUM VALUE>";
 }
 
-constexpr static std::string_view cpp_string_from_numeric_type(
-    const scalar_type& destination_type) noexcept {
-  return cpp_string_from_numeric_type(destination_type.numeric_type());
+std::string cpp_code_generator::operator()(const matrix_type&) const {
+  throw type_error(
+      "The default C++ code-generator treats all matrices as spans. You likely want to implement a "
+      "formatter override for the the `{}` type.",
+      matrix_type::snake_case_name_str);
+}
+
+std::string cpp_code_generator::operator()(const scalar_type& scalar) const {
+  return std::string{cpp_string_from_numeric_type(scalar.numeric_type())};
+}
+
+std::string cpp_code_generator::operator()(const custom_type& custom) const {
+  return custom.name();
 }
 
 std::string cpp_code_generator::operator()(const argument& arg) const {
-  std::string result{};
+  std::string result;
   overloaded_visit(
       arg.type(),
       [&](const scalar_type s) {
         if (arg.direction() == argument_direction::input) {
-          fmt::format_to(std::back_inserter(result), "const {}", cpp_string_from_numeric_type(s));
+          fmt::format_to(std::back_inserter(result), "const {}", make_view(s));
         } else if (arg.direction() == argument_direction::output) {
-          fmt::format_to(std::back_inserter(result), "{}&", cpp_string_from_numeric_type(s));
+          fmt::format_to(std::back_inserter(result), "{}&", make_view(s));
         } else {
           // TODO: Fix the output type here to be a span.
-          fmt::format_to(std::back_inserter(result), "{}*", cpp_string_from_numeric_type(s));
+          fmt::format_to(std::back_inserter(result), "{}*", make_view(s));
         }
       },
       [&](matrix_type) {
@@ -58,13 +68,9 @@ std::string cpp_code_generator::operator()(const argument& arg) const {
           fmt::format_to(std::back_inserter(result), "{}*", make_view(custom));
         }
       });
-
-  fmt::format_to(std::back_inserter(result), " {}", arg.name());
+  result.append(" ");
+  result.append(arg.name());
   return result;
-}
-
-std::string cpp_code_generator::operator()(const custom_type& custom) const {
-  return custom.name();
 }
 
 std::string cpp_code_generator::operator()(const ast::function_definition& definition) const {
@@ -120,27 +126,18 @@ std::string cpp_code_generator::operator()(const ast::function_signature& signat
   result.append(">\n");
 
   // Return type and name:
-  fmt::format_to(std::back_inserter(result), "{} {}(", make_view(signature.return_annotation()),
-                 signature.name());
+  if (const auto& maybe_return_type = signature.return_type(); maybe_return_type.has_value()) {
+    result += std::visit(*this, *maybe_return_type);
+    result.append(" ");
+  } else {
+    result.append("void ");
+  }
+
+  result.append(signature.name());
+  result.append("(");
   result += join(", ", signature.arguments(), *this);
   result.append(")");
   return result;
-}
-
-std::string cpp_code_generator::operator()(const ast::return_type_annotation& x) const {
-  if (x.type) {
-    return overloaded_visit(
-        x.type.value(), [&](scalar_type) { return std::string{"Scalar"}; },
-        [&](matrix_type) -> std::string {
-          throw type_error(
-              "The default C++ code-generator treats all matrices as spans. We cannot return one "
-              "directly. You likely want to implement an override for the {} ast type.",
-              ast::return_type_annotation::snake_case_name_str);
-        },
-        [this](const custom_type& custom_type) { return operator()(custom_type); });
-  } else {
-    return "void";
-  }
 }
 
 std::string cpp_code_generator::operator()(const ast::add& x) const {
@@ -281,32 +278,13 @@ std::string cpp_code_generator::operator()(const ast::declaration& x) const {
   if (x.value) {
     output.append("const ");
   }
-  output += operator()(x.type);  //  Delegate for the type itself.
+  output += std::visit(*this, x.type);
   if (x.value) {
     fmt::format_to(std::back_inserter(output), " {} = {};", x.name, make_view(*x.value));
   } else {
     fmt::format_to(std::back_inserter(output), " {};", x.name);
   }
   return output;
-}
-
-std::string cpp_code_generator::operator()(const ast::declaration_type_annotation& x) const {
-  return overloaded_visit(
-      x.type,
-      [](const scalar_type s) -> std::string {
-        return std::string(cpp_string_from_numeric_type(s));
-      },
-      [](const matrix_type&) -> std::string {
-        throw type_error(
-            "The default C++ code-generator treats all matrices as spans. We cannot construct one "
-            "directly. You likely want to implement an override for the the `{}` ast type.",
-            ast::declaration_type_annotation::snake_case_name_str);
-      },
-      [](const custom_type& c) -> std::string {
-        // TODO: Should be const-ref if we have an rhs - that way we avoid copies when calling
-        //  an external function.
-        return c.name();
-      });
 }
 
 std::string cpp_code_generator::operator()(const ast::divide& x) const {

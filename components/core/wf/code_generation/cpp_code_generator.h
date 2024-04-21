@@ -10,17 +10,16 @@ class cpp_code_generator {
  public:
   virtual ~cpp_code_generator() = default;
 
-  virtual std::string operator()(const argument& arg) const;
-
+  // Type formatters
+  virtual std::string operator()(const scalar_type& scalar) const;
+  virtual std::string operator()(const matrix_type& matrix) const;
   virtual std::string operator()(const custom_type& custom) const;
+
+  virtual std::string operator()(const argument& arg) const;
 
   virtual std::string operator()(const ast::function_definition& definition) const;
 
   virtual std::string operator()(const ast::function_signature& signature) const;
-
-  virtual std::string operator()(const ast::return_type_annotation& x) const;
-
-  // Types from the ast::ast_element:
 
   virtual std::string operator()(const ast::add& x) const;
 
@@ -51,8 +50,6 @@ class cpp_code_generator {
   virtual std::string operator()(const ast::construct_custom_type& x) const;
 
   virtual std::string operator()(const ast::declaration& x) const;
-
-  virtual std::string operator()(const ast::declaration_type_annotation& x) const;
 
   virtual std::string operator()(const ast::divide& x) const;
 
