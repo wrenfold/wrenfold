@@ -27,11 +27,12 @@ def blockwise_jacobians(
     for out_state in output_states:
         jacobians_row = []
         for in_state in input_states:
-            if isinstance(in_state, Quaternion):
-                in_expressions = in_state.to_vector_wxyz()
-            else:
-                in_expressions = in_state
-            out_D_in = out_state.jacobian(in_expressions)
+            out_expressions = out_state.to_vector_wxyz() if isinstance(out_state, Quaternion) else \
+                out_state
+            in_expressions = in_state.to_vector_wxyz() if isinstance(in_state, Quaternion) else \
+                in_state
+
+            out_D_in = sym.jacobian(out_expressions, in_expressions)
             if isinstance(out_state, Quaternion):
                 out_D_in = out_state.right_local_coordinates_derivative() * out_D_in
             if isinstance(in_state, Quaternion):

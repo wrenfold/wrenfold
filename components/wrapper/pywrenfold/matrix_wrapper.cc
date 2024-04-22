@@ -293,6 +293,27 @@ py::array numpy_from_matrix(const matrix_expr& self) {
   return array;
 }
 
+// Convert a vector of scalar expressions or a row/column vector to a span.
+// This is so we can accept `T.Union[T.List[ScalarExpr], MatrixExpr]`.
+absl::Span<const scalar_expr> span_from_variant(
+    const std::variant<std::vector<scalar_expr>, matrix_expr>& var) {
+  struct visitor {
+    absl::Span<const scalar_expr> operator()(const std::vector<scalar_expr>& v) const noexcept {
+      return {v};
+    }
+    absl::Span<const scalar_expr> operator()(const matrix_expr& m) const {
+      if (m.rows() != 1 && m.cols() != 1) {
+        throw dimension_error("Expected a row or column vector. Received dimensions: [{}, {}]",
+                              m.rows(), m.cols());
+      }
+      // TODO: When matrix_expr is generalized, we won't be able to rely on `as_matrix()` anymore.
+      WF_ASSERT(m.is_type<matrix>());
+      return {m.as_matrix().data()};
+    }
+  };
+  return std::visit(visitor{}, var);
+}
+
 void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
   wrap_class<matrix_expr>(m, "MatrixExpr")
@@ -319,18 +340,12 @@ void wrap_matrix_operations(py::module_& m) {
           docstrings::matrix_expr_diff.data())
       .def(
           "jacobian",
-          [](const matrix_expr& self, const matrix_expr& vars, const bool use_abstract) {
-            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
-                                                    : non_differentiable_behavior::constant);
-          },
-          "vars"_a, py::arg("use_abstract") = false,
-          "See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.")
-      .def(
-          "jacobian",
-          [](const matrix_expr& self, const std::vector<scalar_expr>& vars,
+          [](const matrix_expr& self,
+             const std::variant<std::vector<scalar_expr>, matrix_expr>& vars,
              const bool use_abstract) {
-            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
-                                                    : non_differentiable_behavior::constant);
+            return jacobian(self.as_matrix().data(), span_from_variant(vars),
+                            use_abstract ? non_differentiable_behavior::abstract
+                                         : non_differentiable_behavior::constant);
           },
           "vars"_a, py::arg("use_abstract") = false,
           "See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.")
@@ -490,9 +505,10 @@ void wrap_matrix_operations(py::module_& m) {
   // Jacobian of a list of expressions wrt another list of expressions.
   m.def(
       "jacobian",
-      [](const std::vector<scalar_expr>& functions, const std::vector<scalar_expr>& arguments,
+      [](const std::variant<std::vector<scalar_expr>, matrix_expr>& functions,
+         const std::variant<std::vector<scalar_expr>, matrix_expr>& arguments,
          const bool use_abstract) {
-        return jacobian({functions}, {arguments},
+        return jacobian(span_from_variant(functions), span_from_variant(arguments),
                         use_abstract ? non_differentiable_behavior::abstract
                                      : non_differentiable_behavior::constant);
       },
