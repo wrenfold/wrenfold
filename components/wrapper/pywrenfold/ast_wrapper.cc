@@ -33,12 +33,14 @@ auto wrap_ast_type(py::module_& m) {
   return klass;
 }
 
-// Cast to `ast::variant` so we can return this into python.
+// A std::variant<> over const-pointers to types in `ast::all_ast_types`.
+using variant_of_ast_element_ptrs = variant_from_type_list_t<
+    type_list_map_t<std::add_pointer_t, type_list_map_t<std::add_const_t, ast::ast_element_types>>>;
+
+// Cast to a variant so we can return this into python and generate correct type annotations.
 // We cast with `reference` policy, which is going to create a weak reference to `x`.
-py::object to_inner(const ast::ast_element& element) {
-  return wf::ast::visit(element, [](const auto& x) -> py::object {
-    return py::cast(x, py::return_value_policy::reference);
-  });
+auto to_inner(const ast::ast_element& element) {
+  return wf::ast::visit(element, [](const auto& x) -> variant_of_ast_element_ptrs { return &x; });
 }
 
 // Create a lambda that accepts `StructType` and retrieves `member`, then invokes `to_inner` to
@@ -66,7 +68,7 @@ class ast_vector_iterator {
     return *this;
   }
 
-  py::object operator*() const { return to_inner(*it_); }
+  auto operator*() const { return to_inner(*it_); }
 
  private:
   explicit ast_vector_iterator(const ast_element_vector::const_iterator& it) noexcept : it_(it) {}
@@ -126,15 +128,18 @@ void wrap_ast(py::module_& m) {
             }
             return to_inner(vec[actual_index]);
           },
-          py::arg("index"), py::doc("Array access operator."), py::keep_alive<0, 1>())
+          py::arg("index"), py::doc("Array access operator."), py::return_value_policy::reference,
+          py::keep_alive<0, 1>())
       .doc() = "Stores a sequence of AST elements.";
 
   ast_type_map map{m};
 
   map.at<ast::add>()
-      .def_property_readonly("left", to_inner_accessor(&ast::add::left), py::keep_alive<0, 1>(),
+      .def_property_readonly("left", to_inner_accessor(&ast::add::left),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "Left operand.")
-      .def_property_readonly("right", to_inner_accessor(&ast::add::right), py::keep_alive<0, 1>(),
+      .def_property_readonly("right", to_inner_accessor(&ast::add::right),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "Right operand.")
       .doc() = "Addition operation: ``left + right``";
 
@@ -143,7 +148,8 @@ void wrap_ast(py::module_& m) {
           "left", [](const ast::assign_temporary& x) { return x.left; },
           "Name of the variable to which the assignment applies.")
       .def_property_readonly("right", to_inner_accessor(&ast::assign_temporary::right),
-                             py::keep_alive<0, 1>(), "The value being assigned.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "The value being assigned.")
       .doc() = "Assignment to a temporary variable: ``left = right``";
 
   map.at<ast::assign_output_matrix>()
@@ -159,7 +165,8 @@ void wrap_ast(py::module_& m) {
       .def_property_readonly(
           "arg", [](const ast::assign_output_scalar& x) { return x.arg; }, "Destination argument.")
       .def_property_readonly("value", to_inner_accessor(&ast::assign_output_scalar::value),
-                             py::keep_alive<0, 1>(), "Scalar value to assign.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Scalar value to assign.")
       .doc() = "Assign a scalar to an output argument.";
 
   map.at<ast::assign_output_struct>()
@@ -179,7 +186,8 @@ void wrap_ast(py::module_& m) {
 
   map.at<ast::branch>()
       .def_property_readonly("condition", to_inner_accessor(&ast::branch::condition),
-                             py::keep_alive<0, 1>(), "Condition governing which branch to take.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Condition governing which branch to take.")
       .def_property_readonly(
           "if_branch", [](const ast::branch& c) -> const auto& { return c.if_branch; },
           py::return_value_policy::reference_internal,
@@ -211,7 +219,8 @@ void wrap_ast(py::module_& m) {
       .def_property_readonly(
           "destination_type", [](const ast::cast& c) { return c.destination_type; },
           "The destination numerical type.")
-      .def_property_readonly("arg", to_inner_accessor(&ast::cast::arg), py::keep_alive<0, 1>(),
+      .def_property_readonly("arg", to_inner_accessor(&ast::cast::arg),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "Source value being casted.")
       .doc() = "Cast a numerical value.";
 
@@ -223,10 +232,12 @@ void wrap_ast(py::module_& m) {
       .doc() = "Emit a comment block.";
 
   map.at<ast::compare>()
-      .def_property_readonly("left", to_inner_accessor(&ast::compare::left), py::keep_alive<0, 1>(),
+      .def_property_readonly("left", to_inner_accessor(&ast::compare::left),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "The left operand.")
       .def_property_readonly("right", to_inner_accessor(&ast::compare::right),
-                             py::keep_alive<0, 1>(), "The right operand.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "The right operand.")
       .def_property_readonly(
           "operation", [](const ast::compare& c) { return c.operation; }, "Relational operation.")
       .doc() = "Compare two operands.";
@@ -247,13 +258,14 @@ void wrap_ast(py::module_& m) {
           "Instance of :class:`wrenfold.codegen.CustomType` specifying which type to instantiate.")
       .def(
           "get_field_value",
-          [](const ast::construct_custom_type& self, const std::string_view name) -> py::object {
+          [](const ast::construct_custom_type& self,
+             const std::string_view name) -> std::optional<variant_of_ast_element_ptrs> {
             if (const auto v = self.get_field_by_name(name); v.has_value()) {
               return to_inner(*v);
             }
-            return py::none();
+            return std::nullopt;
           },
-          py::arg("name"), py::keep_alive<0, 1>(),
+          py::arg("name"), py::return_value_policy::reference, py::keep_alive<0, 1>(),
           "Given the name of a field, return the statement being assigned to it (or None if the "
           "field does not exist).")
       .doc() = "Construct an instance of a user-provided type.";
@@ -265,20 +277,23 @@ void wrap_ast(py::module_& m) {
           "type", [](const ast::declaration& d) { return d.type; }, "Type of the variable.")
       .def_property_readonly(
           "value",
-          [](const ast::declaration& d) -> py::object {
+          [](const ast::declaration& d) -> std::optional<variant_of_ast_element_ptrs> {
             if (d.value) {
               return to_inner(*d.value);
             }
-            return py::none();
+            return std::nullopt;
           },
-          py::keep_alive<0, 1>(), "Optional value with which the variable should be initialized.")
+          py::return_value_policy::reference, py::keep_alive<0, 1>(),
+          "Optional value with which the variable should be initialized.")
       .doc() = "Declare a variable, and optionally assign it a value: ``name: type = value``";
 
   map.at<ast::divide>()
-      .def_property_readonly("left", to_inner_accessor(&ast::divide::left), py::keep_alive<0, 1>(),
+      .def_property_readonly("left", to_inner_accessor(&ast::divide::left),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "Left operand (numerator).")
       .def_property_readonly("right", to_inner_accessor(&ast::divide::right),
-                             py::keep_alive<0, 1>(), "Right operand (denonimator).")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Right operand (denonimator).")
       .doc() = "Division operation: ``left / right``";
 
   map.at<ast::float_literal>()
@@ -293,7 +308,8 @@ void wrap_ast(py::module_& m) {
       .doc() = "Reference an argument to the generated function.";
 
   map.at<ast::get_field>()
-      .def_property_readonly("arg", to_inner_accessor(&ast::get_field::arg), py::keep_alive<0, 1>(),
+      .def_property_readonly("arg", to_inner_accessor(&ast::get_field::arg),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "Operand from which we wish to retrieve the specified field.")
       .def_property_readonly(
           "struct_type", [](const ast::get_field& self) { return self.type; },
@@ -305,7 +321,8 @@ void wrap_ast(py::module_& m) {
 
   map.at<ast::get_matrix_element>()
       .def_property_readonly("arg", to_inner_accessor(&ast::get_matrix_element::arg),
-                             py::keep_alive<0, 1>(), "Operand matrix.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Operand matrix.")
       .def_property_readonly(
           "row", [](const ast::get_matrix_element& self) { return self.row; }, "Row to access.")
       .def_property_readonly(
@@ -319,13 +336,16 @@ void wrap_ast(py::module_& m) {
 
   map.at<ast::multiply>()
       .def_property_readonly("left", to_inner_accessor(&ast::multiply::left),
-                             py::keep_alive<0, 1>(), "Left operand.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Left operand.")
       .def_property_readonly("right", to_inner_accessor(&ast::multiply::right),
-                             py::keep_alive<0, 1>(), "Right operand.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Right operand.")
       .doc() = "Multiplication operation: ``left * right``";
 
   map.at<ast::negate>()
-      .def_property_readonly("arg", to_inner_accessor(&ast::negate::arg), py::keep_alive<0, 1>(),
+      .def_property_readonly("arg", to_inner_accessor(&ast::negate::arg),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "Operand being negated.")
       .doc() = "Negation operation: ``-arg``";
 
@@ -342,7 +362,8 @@ void wrap_ast(py::module_& m) {
 
   map.at<ast::return_object>()
       .def_property_readonly("value", to_inner_accessor(&ast::return_object::value),
-                             py::keep_alive<0, 1>(), "Value or object being returned.")
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Value or object being returned.")
       .doc() = "Return a value from the function.";
 
   map.at<ast::special_constant>()
