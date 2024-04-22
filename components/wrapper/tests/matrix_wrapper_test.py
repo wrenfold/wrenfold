@@ -367,6 +367,11 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(m0 * 2, m0 + m0)
         self.assertIdentical(m1 * 3, m1 + m1 + m1)
 
+        # multiply/divide by scalar
+        self.assertIdentical(sym.vector(x * 2, z * 2), sym.vector(x, z) * 2)
+        self.assertIdentical(sym.row_vector(x * z, z ** 2), z * sym.row_vector(x, z))
+        self.assertIdentical(sym.row_vector(x, 1), sym.row_vector(x * z, z) / z)
+
         # cannot add incompatible dimensions
         self.assertRaises(exceptions.DimensionError, lambda: m0 + sym.eye(4))
         self.assertRaises(exceptions.DimensionError, lambda: m0 - sym.zeros(6, 7))
