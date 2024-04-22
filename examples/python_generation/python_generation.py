@@ -22,7 +22,7 @@ class SimParamsSymbolic:
     We use this to test code-generation of custom types.
     """
     mass: sym.Expr
-    drag_coeff: sym.Expr
+    drag_coefficient: sym.Expr
     gravity: sym.Expr
 
 
@@ -30,7 +30,7 @@ class SimParamsSymbolic:
 class SimParams:
     """A sample struct with some parameters of a simulation."""
     mass: float
-    drag_coeff: float
+    drag_coefficient: float
     gravity: float
 
 
@@ -38,12 +38,12 @@ class SimParams:
 class PythonCodeGenerator(code_generation.BaseGenerator):
     """
     A custom code-generator that emits python code. This could be used quickly try out a generated
-    function in an ipython notebook, for example. The code emitted by this generator is also suitable
-    for use with numba.
+    function in an ipython notebook, for example. The code emitted by this generator is also
+    suitable for use with numba.
 
-    Caveat: Because python doesn't have an exact equivalent of "output arguments" from C++, we convert
-    output arguments into a tuple of return values. For optional outputs, we instead generate a boolean
-    argument that specifies whether to compute the optional value.
+    Caveat: Because python doesn't have an exact equivalent of "output arguments" from C++, we
+    convert output arguments into a tuple of return values. For optional outputs, we instead
+    generate a boolean argument that specifies whether to compute the optional value.
     """
 
     def __init__(self, indent: int = 2):
@@ -300,7 +300,7 @@ def sample_function_2(position: type_annotations.Vector2, velocity: type_annotat
     """
     # Compute force:
     f = sym.vector(0, -params.gravity * params.mass) - \
-        velocity * velocity.norm() * (params.drag_coeff / 2)
+        velocity * velocity.norm() * (params.drag_coefficient / 2)
     accel = f * (1 / params.mass)
 
     # Euler integration:
@@ -382,7 +382,7 @@ class PythonGenerationTest(unittest.TestCase):
             position=type_annotations.Vector2(p_in),
             velocity=type_annotations.Vector2(v_in),
             dt=0.7,
-            params=SimParamsSymbolic(mass=5.7, drag_coeff=2.4, gravity=9.81))
+            params=SimParamsSymbolic(mass=5.7, drag_coefficient=2.4, gravity=9.81))
         p_out_sym = p_out_sym.expression.eval()
         v_out_sym = v_out_sym.expression.eval()
 
@@ -390,7 +390,7 @@ class PythonGenerationTest(unittest.TestCase):
             position=p_in,
             velocity=v_in,
             dt=0.7,
-            params=SimParams(mass=5.7, drag_coeff=2.4, gravity=9.81))
+            params=SimParams(mass=5.7, drag_coefficient=2.4, gravity=9.81))
 
         np.testing.assert_allclose(p_out_sym, p_out, atol=1.0e-14)
         np.testing.assert_allclose(v_out_sym, v_out, atol=1.0e-14)

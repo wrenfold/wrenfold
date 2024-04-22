@@ -7,6 +7,9 @@ code_generation
 .. autoclass:: wrenfold.code_generation.ArgumentDirection
   :members:
 
+.. autoclass:: wrenfold.code_generation.BaseGenerator
+  :members:
+
 .. autoclass:: wrenfold.code_generation.CppGenerator
   :members:
 

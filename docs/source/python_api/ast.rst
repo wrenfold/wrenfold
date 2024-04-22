@@ -49,9 +49,6 @@ ast
 .. autoclass:: wrenfold.ast.Declaration
   :members:
 
-.. autoclass:: wrenfold.ast.DeclarationTypeAnnotation
-  :members:
-
 .. autoclass:: wrenfold.ast.Divide
   :members:
 
@@ -86,9 +83,6 @@ ast
   :members:
 
 .. autoclass:: wrenfold.ast.ReturnObject
-  :members:
-
-.. autoclass:: wrenfold.ast.ReturnTypeAnnotation
   :members:
 
 .. autoclass:: wrenfold.ast.SpecialConstant
