@@ -207,7 +207,7 @@ class CustomCppGenerator(CppGenerator):
         """
         # For the small vector that we care about, this syntax works.
         formatted_args = ', '.join(self.format(x) for x in element.args)
-        return f'Eigen::Matrix<double, {element.type.num_rows}, {element.type.num_cols}>({formatted_args})'
+        return f'Eigen::Matrix<double, {element.type.rows}, {element.type.cols}>({formatted_args})'
 
     def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
         if element.type.python_type == EigenQuaternion:
@@ -248,7 +248,7 @@ class CustomRustGenerator(RustGenerator):
     def format_construct_matrix(self, element: ast.ConstructMatrix) -> str:
         """Generate constructor syntax for nalgebra matrices."""
         formatted_args = ', '.join(self.format(x) for x in element.args)
-        return f'nalgebra::SMatrix::<f64, {element.type.num_rows}, {element.type.num_cols}>::new({formatted_args})'
+        return f'nalgebra::SMatrix::<f64, {element.type.rows}, {element.type.cols}>::new({formatted_args})'
 
     def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
         """Use a `new()` method for our Pose3 type, and the UnitQuaternion constructor for rotations."""

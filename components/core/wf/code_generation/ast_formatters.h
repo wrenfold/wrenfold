@@ -105,15 +105,10 @@ auto format_ast(Iterator it, const wf::ast::construct_custom_type& c) {
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::declaration& d) {
   if (d.value) {
-    return fmt::format_to(it, "({}: {} = {})", d.name, d.type.type, *d.value);
+    return fmt::format_to(it, "({}: {} = {})", d.name, d.type, *d.value);
   } else {
-    return fmt::format_to(it, "({}: {})", d.name, d.type.type);
+    return fmt::format_to(it, "({}: {})", d.name, d.type);
   }
-}
-
-template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::declaration_type_annotation& d) {
-  return fmt::format_to(it, "({})", d.type);
 }
 
 template <typename Iterator>
@@ -170,15 +165,6 @@ auto format_ast(Iterator it, const wf::ast::negate& n) {
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::optional_output_branch& m) {
   return fmt::format_to(it, "({}, <{} statements>)", m.arg.name(), m.statements.size());
-}
-
-template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::return_type_annotation& r) {
-  if (r.type) {
-    return fmt::format_to(it, "({})", *r.type);
-  } else {
-    return fmt::format_to(it, "(None)");
-  }
 }
 
 template <typename Iterator>

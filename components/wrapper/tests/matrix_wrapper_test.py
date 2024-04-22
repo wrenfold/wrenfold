@@ -52,6 +52,9 @@ class MatrixWrapperTest(MathTestBase):
             sym.matrix([sym.vector(a, b, c), sym.vector(x, y, z)]),
         )
 
+        # Pass directly to `MatrixExpr`:
+        self.assertIdentical(sym.MatrixExpr([[a, x], [b, y]]), sym.matrix([[a, x], [b, y]]))
+
         def generator_func(*args):
             for element in args:
                 yield element
@@ -363,6 +366,11 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(sym.zeros(2, 3), m1 - m1)
         self.assertIdentical(m0 * 2, m0 + m0)
         self.assertIdentical(m1 * 3, m1 + m1 + m1)
+
+        # multiply/divide by scalar
+        self.assertIdentical(sym.vector(x * 2, z * 2), sym.vector(x, z) * 2)
+        self.assertIdentical(sym.row_vector(x * z, z ** 2), z * sym.row_vector(x, z))
+        self.assertIdentical(sym.row_vector(x, 1), sym.row_vector(x * z, z) / z)
 
         # cannot add incompatible dimensions
         self.assertRaises(exceptions.DimensionError, lambda: m0 + sym.eye(4))

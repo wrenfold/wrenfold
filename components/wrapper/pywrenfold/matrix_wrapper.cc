@@ -296,6 +296,8 @@ py::array numpy_from_matrix(const matrix_expr& self) {
 void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
   wrap_class<matrix_expr>(m, "MatrixExpr")
+      .def(py::init(&matrix_from_iterable), py::arg("rows"),
+           "Construct from an iterable of values. See :func:`wrenfold.sym.matrix`.")
       // scalar_expr inherited properties:
       .def("__repr__", &matrix_expr::to_string)
       .def("expression_tree_str", &matrix_expr::to_expression_tree_string,
@@ -437,8 +439,13 @@ void wrap_matrix_operations(py::module_& m) {
            static_cast<matrix_expr (*)(const matrix_expr&, const scalar_expr&)>(&operator*),
            py::is_operator())
       // Left multiply by scalar:
-      .def("__rmul__",
-           static_cast<matrix_expr (*)(const scalar_expr&, const matrix_expr&)>(&operator*),
+      .def(
+          "__rmul__",
+          [](const matrix_expr& self, const scalar_expr& other) { return self * other; },
+          py::is_operator())
+      // Right divide by scalar:
+      .def("__truediv__",
+           static_cast<matrix_expr (*)(const matrix_expr&, const scalar_expr&)>(&operator/),
            py::is_operator())
       .def("__neg__", &matrix_expr::operator-, "Element-wise negation of the matrix.")
       // Prohibit conversion to bool.

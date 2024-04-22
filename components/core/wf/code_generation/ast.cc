@@ -37,8 +37,8 @@ std::vector<argument> function_signature::matrix_args() const {
 }
 
 std::optional<argument> function_signature::argument_by_name(std::string_view str) const {
-  auto it = std::find_if(arguments_.begin(), arguments_.end(),
-                         [&str](const argument& arg) { return arg.name() == str; });
+  const auto it = std::find_if(arguments_.begin(), arguments_.end(),
+                               [&str](const argument& arg) { return arg.name() == str; });
   if (it == arguments_.end()) {
     return std::nullopt;
   }

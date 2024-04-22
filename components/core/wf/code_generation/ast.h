@@ -130,12 +130,6 @@ struct construct_matrix {
   std::vector<ast_element> args;
 };
 
-// A type annotation as part of a declaration.
-struct declaration_type_annotation {
-  static constexpr std::string_view snake_case_name_str = "declaration_type_annotation";
-  type_variant type;
-};
-
 // Declare a new variable and optionally assign it a value.
 struct declaration {
   static constexpr std::string_view snake_case_name_str = "declaration";
@@ -143,19 +137,16 @@ struct declaration {
   // Name for the value being declared
   std::string name;
   // Type of the value:
-  declaration_type_annotation type;
+  type_variant type;
   // Right hand side of the declaration (empty if the value is computed later).
   // If a value is assigned, then the result can be presumed to be constant.
   std::optional<ast_element> value{std::nullopt};
 
   declaration(std::string name, type_variant type, ast_element value)
-      : name(std::move(name)),
-        type(declaration_type_annotation{std::move(type)}),
-        value(std::move(value)) {}
+      : name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
 
   // Construct w/ no rhs.
-  declaration(std::string name, type_variant type)
-      : name(std::move(name)), type(declaration_type_annotation{std::move(type)}) {}
+  declaration(std::string name, type_variant type) : name(std::move(name)), type(std::move(type)) {}
 };
 
 // Divide first operand by second operand.
@@ -273,19 +264,6 @@ struct assign_output_struct {
   construct_custom_type value;
 };
 
-// Types that are not part of the ast::variant, because they appear only in specific places in the
-// output:
-
-// A return type annotation in a function signature.
-// The formatting of a type depends on the context in which it is used, which is why we bother to
-// wrap type_variant in this object.
-struct return_type_annotation {
-  static constexpr std::string_view snake_case_name_str = "return_type_annotation";
-
-  // The underlying type in the annotation, if the return type is non-void.
-  std::optional<type_variant> type;
-};
-
 // Describe a function signature.
 // Stores a name, and type+name information for all the arguments.
 struct function_signature {
@@ -306,14 +284,8 @@ struct function_signature {
   // Access all arguments.
   constexpr const auto& arguments() const noexcept { return arguments_; }
 
-  // Return type annotation.
-  constexpr const return_type_annotation& return_annotation() const noexcept {
-    return return_type_;
-  }
-
-  constexpr const std::optional<type_variant>& return_type() const noexcept {
-    return return_type_.type;
-  }
+  // Return type.
+  constexpr const std::optional<type_variant>& return_type() const noexcept { return return_type_; }
 
   // Find an argument by name.
   std::optional<argument> argument_by_name(std::string_view str) const;
@@ -326,8 +298,7 @@ struct function_signature {
 
   // True if any of the arguments is a matrix.
   bool has_matrix_arguments() const noexcept {
-    return std::any_of(arguments_.begin(), arguments_.end(),
-                       [](const argument& x) { return x.is_matrix(); });
+    return any_of(arguments_, [](const argument& x) { return x.is_matrix(); });
   }
 
   // Get all the matrix arguments.
@@ -338,7 +309,7 @@ struct function_signature {
   std::string name_{};
 
   // The return type of the function.
-  return_type_annotation return_type_{};
+  std::optional<type_variant> return_type_{};
 
   // Arguments to the function.
   std::vector<argument> arguments_{};
@@ -367,19 +338,5 @@ class function_definition {
   };
   non_null<std::shared_ptr<const impl>> impl_;
 };
-
-// Types that don't appear in ast::ast_element, but which must be exposed via our python wrapper so
-// that the user can override their formatting.
-// clang-format off
-using extra_ast_types = type_list<
-  argument,
-  custom_type,
-  declaration_type_annotation,
-  function_definition,
-  function_signature,
-  return_type_annotation
->;
-// clang-format on
-using all_ast_types = type_list_concatenate_t<ast_element_types, extra_ast_types>;
 
 }  // namespace wf::ast

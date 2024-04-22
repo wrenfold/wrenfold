@@ -36,6 +36,7 @@ wheel.license-files = ["LICENSE"]
 skip = ["*musllinux_*", "*-win32", "*_i686"]
 manylinux-x86_64-image = "manylinux_2_28"
 test-command = [
-    "python -m unittest discover \"{package}/components/wrapper/tests\" --pattern \"*_test.py\""
+    "python -m unittest discover \"{package}/components/wrapper/tests\" --pattern \"*_test.py\"",
+    "python \"{package}/examples/python_generation/python_generation.py\""
 ]
 test-requires = ["numpy", "sympy"]

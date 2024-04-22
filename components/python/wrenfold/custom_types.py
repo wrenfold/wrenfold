@@ -14,8 +14,9 @@ CodegenType = T.Union[type_info.ScalarType, type_info.MatrixType, type_info.Cust
 U = T.TypeVar("U")
 
 
-def convert_to_internal_type(python_type: T.Type,
-                             cached_custom_types: T.Dict[T.Type, CodegenType]) -> CodegenType:
+def convert_to_internal_type(
+        python_type: T.Type, cached_custom_types: T.Dict[T.Type,
+                                                         type_info.CustomType]) -> CodegenType:
     """
     Convert a python type to the internal C++ representation.
 
@@ -38,15 +39,17 @@ def convert_to_internal_type(python_type: T.Type,
         raise TypeError(f'Invalid type used in annotation: {python_type}')
 
 
-def create_custom_type(python_type: T.Type,
-                       cached_custom_types: T.Dict[T.Type, CodegenType]) -> type_info.CustomType:
+def create_custom_type(
+        python_type: T.Type,
+        cached_custom_types: T.Dict[T.Type, type_info.CustomType]) -> type_info.CustomType:
     """
-    Convert a python type type to a typeinfo.CustomType representation we can store in C++.
+    Convert a python type to a type_info.CustomType representation we can store in C++.
 
     OMIT_FROM_SPHINX
     """
     fields_converted: T.List[T.Tuple[str, CodegenType]] = []
     if dataclasses.is_dataclass(python_type):
+        # noinspection PyDataclass
         for field in dataclasses.fields(python_type):
             field_type = convert_to_internal_type(
                 python_type=field.type, cached_custom_types=cached_custom_types)
@@ -75,7 +78,7 @@ def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
                                      custom_type: T.Type[U]) -> T.Tuple[U, T.List[sym.Expr]]:
     """
     Given a flat list of expressions, construct an instance of `custom_type` by recursively
-    filling its members with the provided expressions. Thus we construct a symbolic instance
+    filling its members with the provided expressions. Thus, we construct a symbolic instance
     of the user-provided type.
 
     Expressions are inserted into fields in the order the fields appear.

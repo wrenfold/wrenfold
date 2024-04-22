@@ -126,6 +126,7 @@ matrix_expr operator-(const matrix_expr& a, const matrix_expr& b);
 matrix_expr operator*(const matrix_expr& a, const matrix_expr& b);
 matrix_expr operator*(const matrix_expr& a, const scalar_expr& b);
 inline matrix_expr operator*(const scalar_expr& a, const matrix_expr& b) { return b * a; }
+inline matrix_expr operator/(const matrix_expr& a, const scalar_expr& b) { return a * (1 / b); }
 
 // ostream support
 inline std::ostream& operator<<(std::ostream& stream, const matrix_expr& x) {

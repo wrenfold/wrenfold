@@ -40,6 +40,10 @@ void wrap_enums(py::module_& m) {
       .value("LessThan", relational_operation::less_than)
       .value("LessThanOrEqual", relational_operation::less_than_or_equal)
       .value("Equal", relational_operation::equal);
+
+  py::enum_<symbolic_constant_enum>(m, "SymbolicConstant")
+      .value("Euler", symbolic_constant_enum::euler)
+      .value("Pi", symbolic_constant_enum::pi);
 }
 
 }  // namespace wf

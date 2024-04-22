@@ -28,15 +28,8 @@ class custom_cpp_code_generator final : public cpp_code_generator {
     return cpp_code_generator::operator()(custom);
   }
 
-  // We need to specify how matrices are declared.
-  std::string operator()(const ast::declaration_type_annotation& decl) const override {
-    if (const matrix_type* mat = std::get_if<matrix_type>(&decl.type); mat != nullptr) {
-      return fmt::format("Eigen::Matrix<Scalar, {}, {}>", mat->rows(), mat->cols());
-    } else if (const custom_type* custom = std::get_if<custom_type>(&decl.type);
-               custom != nullptr) {
-      return operator()(*custom);
-    }
-    return cpp_code_generator::operator()(decl);
+  std::string operator()(const matrix_type& mat) const override {
+    return fmt::format("Eigen::Matrix<Scalar, {}, {}>", mat.rows(), mat.cols());
   }
 
   // ... And how they are constructed:
@@ -44,16 +37,6 @@ class custom_cpp_code_generator final : public cpp_code_generator {
     const std::string args = join(", ", construct.args, *this);
     return fmt::format("(Eigen::Matrix<Scalar, {}, {}>() << {}).finished()", construct.type.rows(),
                        construct.type.cols(), args);
-  }
-
-  // ... And returned.
-  std::string operator()(const ast::return_type_annotation& ret) const override {
-    if (ret.type) {
-      if (const matrix_type* mat = std::get_if<matrix_type>(&ret.type.value()); mat != nullptr) {
-        return fmt::format("Eigen::Matrix<Scalar, {}, {}>", mat->rows(), mat->cols());
-      }
-    }
-    return cpp_code_generator::operator()(ret);
   }
 };
 

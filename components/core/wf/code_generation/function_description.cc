@@ -60,8 +60,9 @@ void function_description::set_return_value(type_variant type,
 // ReSharper disable once CppMemberFunctionMayBeConst
 const argument& function_description::add_argument(const std::string_view name, type_variant type,
                                                    const argument_direction direction) {
-  WF_ASSERT(!any_of(impl_->arguments, [&name](const argument& arg) { return arg.name() == name; }),
-            "Argument with name `{}` already exists.", name);
+  if (any_of(impl_->arguments, [&name](const argument& arg) { return arg.name() == name; })) {
+    throw invalid_argument_error("Argument with name `{}` already exists.", name);
+  }
   impl_->arguments.emplace_back(name, std::move(type), direction, impl_->arguments.size());
   return impl_->arguments.back();
 }

@@ -14,7 +14,7 @@ class MathTestBase(unittest.TestCase):
             sys.stdout.reconfigure(encoding="utf-8")
             sys.stderr.reconfigure(encoding="utf-8")
 
-    def assertIdentical(self, a: T.Union[sym.Expr, int, float], b: sym.Expr):
+    def assertIdentical(self, a: T.Union[sym.AnyExpression, int, float], b: sym.AnyExpression):
         """Assert that two expressions are identical."""
         if isinstance(a, (int, float)):
             a = sym.Expr(a)
@@ -26,7 +26,7 @@ class MathTestBase(unittest.TestCase):
                    f'The expression tree for `b` is:\n{b.expression_tree_str()}')
         raise self.failureException(message)
 
-    def assertNotIdentical(self, a: T.Union[sym.Expr, int, float], b: sym.Expr):
+    def assertNotIdentical(self, a: T.Union[sym.AnyExpression, int, float], b: sym.AnyExpression):
         """Assert that two expressions are not identical."""
         if isinstance(a, (int, float)):
             a = sym.Expr(a)
@@ -39,6 +39,6 @@ class MathTestBase(unittest.TestCase):
             f'The expression tree for `b` is:\n{b.expression_tree_str()}')
         raise self.failureException(message)
 
-    def assertReprEqual(self, a: str, b: sym.Expr):
+    def assertReprEqual(self, a: str, b: sym.AnyExpression):
         """Assert that the repr of `b` matches string `a`."""
         self.assertEqual(a, repr(b))
