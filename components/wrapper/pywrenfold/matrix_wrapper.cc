@@ -296,6 +296,8 @@ py::array numpy_from_matrix(const matrix_expr& self) {
 void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
   wrap_class<matrix_expr>(m, "MatrixExpr")
+      .def(py::init(&matrix_from_iterable), py::arg("rows"),
+           "Construct from an iterable of values. See :func:`wrenfold.sym.matrix`.")
       // scalar_expr inherited properties:
       .def("__repr__", &matrix_expr::to_string)
       .def("expression_tree_str", &matrix_expr::to_expression_tree_string,

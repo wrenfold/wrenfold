@@ -52,6 +52,9 @@ class MatrixWrapperTest(MathTestBase):
             sym.matrix([sym.vector(a, b, c), sym.vector(x, y, z)]),
         )
 
+        # Pass directly to `MatrixExpr`:
+        self.assertIdentical(sym.MatrixExpr([[a, x], [b, y]]), sym.matrix([[a, x], [b, y]]))
+
         def generator_func(*args):
             for element in args:
                 yield element
