@@ -417,6 +417,10 @@ class MatrixWrapperTest(MathTestBase):
         ])
         self.assertIdentical(jac_expected, m.jacobian([x, y, z]))
         self.assertIdentical(jac_expected, m.jacobian(sym.vector(x, y, z)))
+        self.assertIdentical(jac_expected, sym.jacobian(m, [x, y, z]))
+
+        self.assertRaises(exceptions.DimensionError, lambda: sym.jacobian(m, []))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.jacobian(sym.zeros(2, 2), m))
 
     def test_subs(self):
         """Test calling subs on a matrix."""

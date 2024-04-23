@@ -158,34 +158,6 @@ void wrap_geometry_operations(py::module_& m) {
            py::arg("epsilon") = constants::zero, docstrings::quaternion_to_rotation_vector.data())
       .def_static("from_rotation_matrix", &quaternion::from_rotation_matrix, py::arg("R"),
                   docstrings::quaternion_from_rotation_matrix.data())
-      // TODO: Get rid of `Quaternion` specific overrides of jacobian, and call the standalone
-      //  method.
-      .def(
-          "jacobian",
-          [](const quaternion& self, const matrix_expr& vars, const bool use_abstract) {
-            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
-                                                    : non_differentiable_behavior::constant);
-          },
-          py::arg("vars"), py::arg("use_abstract") = false,
-          py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
-      .def(
-          "jacobian",
-          [](const quaternion& self, const std::vector<scalar_expr>& vars,
-             const bool use_abstract) {
-            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
-                                                    : non_differentiable_behavior::constant);
-          },
-          py::arg("vars"), py::arg("use_abstract") = false,
-          py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables."))
-      .def(
-          "jacobian",
-          [](const quaternion& self, const quaternion& vars, const bool use_abstract) {
-            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
-                                                    : non_differentiable_behavior::constant);
-          },
-          py::arg("vars"), py::arg("use_abstract") = false,
-          py::doc("Take jacobian of [w,x,y,z] quaternion elements with respect to variables in "
-                  "another quaternion."))
       .def("right_retract_derivative", &quaternion::right_retract_derivative,
            docstrings::quaternion_right_retract_derivative.data())
       .def("right_local_coordinates_derivative", &quaternion::right_local_coordinates_derivative,
