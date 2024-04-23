@@ -58,6 +58,8 @@ extensions = [
     "sphinx.ext.napoleon",
     # Breathe is used to convert C++ doxygen to sphinx.
     "breathe",
+    # MyST enables inclusion of markdown.
+    "myst_parser"
 ]
 
 templates_path = ['_templates']

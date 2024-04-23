@@ -18,3 +18,4 @@ dependencies:
   - furo
   - doxygen
   - breathe==4.35.0
+  - myst-parser

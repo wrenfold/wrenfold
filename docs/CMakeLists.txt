@@ -73,7 +73,12 @@ if(${SPHINX_FOUND})
       source/python_api/type_info.rst)
 
   set(HANDWRITTEN_RST_FILES
+      "${CMAKE_SOURCE_DIR}/README.md"
+      "${CMAKE_SOURCE_DIR}/LICENSE"
       source/index.rst
+      source/installation.rst
+      source/license.rst
+      source/faq.rst
       source/tutorial/conditionals.rst
       source/tutorial/custom_types.rst
       source/tutorial/custom_types_script.py
@@ -81,7 +86,6 @@ if(${SPHINX_FOUND})
       source/tutorial/external_functions_script.py
       source/tutorial/generating_code.rst
       source/tutorial/index.rst
-      source/tutorial/installation.rst
       source/tutorial/integrating_code.rst
       source/tutorial/introduction.rst
       source/tutorial/matrices.rst
@@ -91,9 +95,6 @@ if(${SPHINX_FOUND})
       source/python_api/index.rst
       source/cpp_api/index.rst
       source/cpp_api/span.rst)
-
-  list(TRANSFORM GENERATED_RST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
-  list(TRANSFORM HANDWRITTEN_RST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 
   # Invoke `generate_api_rst.py` to generate RST files for our python modules.
   add_custom_command(
