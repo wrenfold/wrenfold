@@ -191,13 +191,13 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
         #. The signature of the provided function is inspected to generate input arguments. Next, it is invoked
            and the symbolic outputs are captured in a :class:`wrenfold.code_generation.FunctionDescription`.
         #. This description is converted to AST using :func:`wrenfold.code_generation.transpile`. Duplicate
-           operations are eliminated during this step, and conditionals get converted to control-flow.
+           operations are eliminated during this step, and conditionals are converted to control flow.
         #. Lastly, the AST is passed to the provided generator to emit usable code.
 
     Tip:
 
-      The steps above can be performed individually. For instance, you might wish to pass the output AST to
-      multiple generators if many target languages are required. See
+      The steps above can also be performed individually. For instance, you might wish to pass the output
+      AST to multiple generators if many simultaneous target languages are required. See
       :func:`wrenfold.code_generation.create_function_description` for an example.
 
     Args:

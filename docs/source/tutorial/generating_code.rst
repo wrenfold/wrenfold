@@ -101,6 +101,20 @@ obtain code:
         return v010;
     }
 
+We have done three steps so far:
+
+  #. Capture our symbolic function in a function description.
+  #. Transpile into an abstract syntax tree.
+  #. Emit that syntax tree in a particular language (C++).
+
+In some cases, you might wish to repeat the final step for many different target languages. If not,
+all three steps can be done with a single call to
+:func:`wrenfold.code_generation.generate_function`:
+
+.. code:: python
+
+    cpp = code_generation.generate_function(func=step)
+
 Output arguments
 ----------------
 

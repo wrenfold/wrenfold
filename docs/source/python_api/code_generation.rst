@@ -1,11 +1,9 @@
 code_generation
 ===============
 
-.. autofunction:: wrenfold.code_generation.apply_cpp_preamble
-
-.. autofunction:: wrenfold.code_generation.apply_rust_preamble
-
 .. autofunction:: wrenfold.code_generation.create_function_description
+
+.. autofunction:: wrenfold.code_generation.generate_function
 
 .. autofunction:: wrenfold.code_generation.mkdir_and_write_file
 
