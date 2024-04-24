@@ -6,6 +6,9 @@ on:
     branches:
       - '*'
 
+  # Allow manual trigger for this workflow.
+  workflow_dispatch:
+
   # This can be called from build-wheels.
   workflow_call:
 
