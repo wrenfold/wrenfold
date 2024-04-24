@@ -44,13 +44,9 @@ class custom_cpp_code_generator final : public cpp_code_generator {
 
 int main() {
   using namespace wf;
-  std::string code =
-      "// Machine generated code.\n#pragma once\n#include <cmath>\n\n#include "
-      "<wrenfold/span.h>\n\n";
 
-  code += "namespace gen {\n\n";
-  code += generate_test_expressions(custom_cpp_code_generator{});
-  code += "} // namespace gen";
+  const std::string code = cpp_code_generator::apply_preamble(
+      generate_test_expressions(custom_cpp_code_generator{}), "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
   output.write(code.data(), code.size());

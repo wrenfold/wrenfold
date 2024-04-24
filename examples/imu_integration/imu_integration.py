@@ -308,7 +308,7 @@ def main(args: argparse.Namespace):
     ]
     definitions = code_generation.transpile(descriptions)
     code = CppGenerator().generate(definitions)
-    code = code_generation.apply_cpp_preamble(code, namespace="gen")
+    code = CppGenerator.apply_preamble(code, namespace="gen")
 
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 

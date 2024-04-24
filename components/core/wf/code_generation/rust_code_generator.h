@@ -78,6 +78,9 @@ class rust_code_generator {
   // Accept `ast_element`.
   std::string operator()(const ast::ast_element& element) const;
 
+  // Wrap generated function code in a preamble that disables rust formatting.
+  static std::string apply_preamble(std::string_view code);
+
  protected:
   // Create a fmt_view that can be passed to code_formatter. All args will be
   // forwarded back to the operator on this class that matches them.

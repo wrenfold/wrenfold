@@ -19,7 +19,7 @@ namespace wf {
 
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
-ast::function_definition transpile_to_function_definition(const function_description& description) {
+ast::function_definition transpile_to_ast(const function_description& description) {
   const control_flow_graph cfg =
       control_flow_graph{description.output_expressions()}.convert_conditionals_to_control_flow();
   return ast::create_ast(cfg, description);
@@ -44,8 +44,7 @@ external_function init_external_function(
 // Create expressions that represent the result of invoking an external function.
 any_expression call_external_function(const external_function& self, const py::list& args) {
   // Get expressions out of args:
-  auto captured_args =
-      transform_map<std::vector<any_expression>>(args, &variant_from_pyobject<any_expression>);
+  auto captured_args = transform_map<std::vector>(args, &variant_from_pyobject<any_expression>);
   // Now we need to check the types and create expression result:
   return self.create_invocation(std::move(captured_args));
 }
@@ -176,15 +175,16 @@ void wrap_codegen_operations(py::module_& m) {
       "transpile",
       [](const std::vector<function_description>& descriptions) {
         // TODO: Allow this to run in parallel.
-        return transform_map<std::vector>(descriptions, &transpile_to_function_definition);
+        // Could use std::execution_policy, but it is missing on macosx-13.
+        return transform_map<std::vector>(descriptions, &transpile_to_ast);
       },
       py::arg("desc"),
-      "Overload of :func:`wrenfold.code_generation.transpile` that operates on a sequence of "
-      "functions.",
+      "Overload of :func:`wrenfold.code_generation.transpile` that operates on a sequence "
+      "of functions.",
       py::return_value_policy::take_ownership);
 
-  m.def("transpile", &transpile_to_function_definition, py::arg("desc"),
-        docstrings::transpile.data(), py::return_value_policy::take_ownership);
+  m.def("transpile", &transpile_to_ast, py::arg("desc"), docstrings::transpile.data(),
+        py::return_value_policy::take_ownership);
 }
 
 }  // namespace wf
