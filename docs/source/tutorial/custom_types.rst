@@ -125,5 +125,5 @@ return value.
 
 .. note::
 
-    For a more complicated example, refer to the `custom_types example
+    For a more complicated demonstration, refer to the `custom_types example
     <http://github.com/gareth-cross/wrenfold/blob/main/examples/custom_types/custom_types_gen.py>`_.

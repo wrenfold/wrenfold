@@ -104,7 +104,8 @@ obtain code:
 Output arguments
 ----------------
 
-Let's improve our generated function by adding the derivatives an output argument:
+Let's improve our generated function by adding the first and second derivatives as an optional
+output argument:
 
 .. code:: python
 
