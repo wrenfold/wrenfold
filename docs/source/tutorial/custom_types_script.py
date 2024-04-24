@@ -67,7 +67,5 @@ class CustomCppGenerator(code_generation.CppGenerator):
 
 
 # [transpilation_start]
-desc = code_generation.create_function_description(func=rotate_vector)
-definition = code_generation.transpile(desc)
-code = CustomCppGenerator().generate(definition)
+code = code_generation.generate_function(func=rotate_vector, generator=CustomCppGenerator())
 print(code)

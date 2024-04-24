@@ -67,8 +67,6 @@ class CustomCppGenerator(code_generation.CppGenerator):
         return self.super_format(element)
 
 
-desc = code_generation.create_function_description(func=lookup_angle)
-definition = code_generation.transpile(desc)
-code = CustomCppGenerator().generate(definition)
+code = code_generation.generate_function(func=lookup_angle, generator=CustomCppGenerator())
 print(code)
 # [code_generator_end]

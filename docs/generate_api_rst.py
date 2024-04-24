@@ -46,8 +46,14 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
             pass
 
     parts = [f'{module_name}\n{"=" * len(module_name)}']
-    parts.extend(f'.. autoclass:: wrenfold.{module_name}.{klass}\n  :members:' for klass in classes)
     parts.extend(f'.. autofunction:: wrenfold.{module_name}.{func}' for func in functions)
+
+    class_directives = "\n  ".join([
+        ':members:', ':special-members:',
+        ':exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__'
+    ])
+    parts.extend(
+        f'.. autoclass:: wrenfold.{module_name}.{klass}\n  {class_directives}' for klass in classes)
 
     contents = '\n\n'.join(parts)
     contents += '\n'
