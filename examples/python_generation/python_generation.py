@@ -318,9 +318,7 @@ def generate_and_import(func: T.Callable) -> T.Callable:
     Code-generate a symbolic function as python code, then `exec` the code and return a python
     function that operations on numpy types.
     """
-    desc = code_generation.create_function_description(func)
-    definition = code_generation.transpile(desc)
-    code = PythonCodeGenerator().generate(definition)
+    code = code_generation.generate_function(func, generator=PythonCodeGenerator())
 
     # Apply preamble
     code = '\n'.join([

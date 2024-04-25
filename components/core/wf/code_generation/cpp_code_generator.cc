@@ -357,4 +357,22 @@ std::string cpp_code_generator::operator()(const ast::ast_element& element) cons
   return ast::visit(element, *this);
 }
 
+inline constexpr std::string_view preamble = R"code(// Machine generated code.
+#pragma once
+#include <cmath>
+#include <cstdint>
+
+#include <wrenfold/span.h>
+
+namespace {namespace} {{
+
+{code}
+
+}} // namespace {namespace})code";
+
+std::string cpp_code_generator::apply_preamble(const std::string_view code,
+                                               const std::string_view ns) {
+  return fmt::format(preamble, fmt::arg("code", code), fmt::arg("namespace", ns));
+}
+
 }  // namespace wf

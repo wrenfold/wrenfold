@@ -60,8 +60,8 @@ class custom_rust_code_generator final : public rust_code_generator {
 
 int main() {
   using namespace wf;
-  const std::string code = "//! Machine generated code.\n#![cfg_attr(rustfmt, rustfmt_skip)]\n\n" +
-                           generate_test_expressions(custom_rust_code_generator{});
+  const std::string code =
+      rust_code_generator::apply_preamble(generate_test_expressions(custom_rust_code_generator{}));
 
   // Write in binary to stop windows from turning LF into CRLF.
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};

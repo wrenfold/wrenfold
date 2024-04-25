@@ -235,7 +235,7 @@ def main(args: argparse.Namespace):
     ]
     definitions = code_generation.transpile(descriptions)
     code = CustomRustGenerator().generate(definitions)
-    code = code_generation.apply_rust_preamble(code)
+    code = CustomRustGenerator.apply_preamble(code)
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 

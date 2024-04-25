@@ -81,6 +81,9 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
       An instance of :class:`wrenfold.code_generation.FunctionDescription`.
 
     Example:
+      >>> from wrenfold.type_annotations import RealScalar
+      >>> from wrenfold import code_generation
+      >>>
       >>> def foo(x: RealScalar, y: RealScalar):
       >>>     # One return value, and one output argument named `z`:
       >>>     return [code_generation.ReturnValue(x * y), code_generation.OutputArg(x + y, "z")]
@@ -178,59 +181,66 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
     return description
 
 
-CPP_PREAMBLE_TEMPLATE = \
-"""// Machine generated code.
-#pragma once
-#include <cmath>
-#include <cstdint>
-
-#include <wrenfold/span.h>
-
-namespace {namespace} {{
-
-{code}
-
-}} // namespace {namespace}
-"""
-
-
-def apply_cpp_preamble(code: T.Union[str, T.Sequence[str]], namespace: str) -> str:
+def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
+                      generator: T.Union[CppGenerator, RustGenerator, BaseGenerator],
+                      name: T.Optional[str] = None) -> str:
     """
-    Wrap C++ code in a preamble that includes the necessary runtime headers.
+    Accept a python function that manipulates symbolic mathematical expressions, and convert it
+    to code in the language emitted by ``generator``. This is a three-step process:
+
+        #. The signature of the provided function is inspected to generate input arguments. Next, it is invoked
+           and the symbolic outputs are captured in a :class:`wrenfold.code_generation.FunctionDescription`.
+        #. This description is converted to AST using :func:`wrenfold.code_generation.transpile`. Duplicate
+           operations are eliminated during this step, and conditionals are converted to control flow.
+        #. Lastly, the AST is passed to the provided generator to emit usable code.
+
+    Tip:
+
+      The steps above can also be performed individually. For instance, you might wish to pass the output
+      AST to multiple generators if many simultaneous target languages are required. See
+      :func:`wrenfold.code_generation.create_function_description` for an example.
 
     Args:
-      code: A string or a list of strings (to be joined with double newlines).
-      namespace: Namespace to put generated code in.
+        func: A python function with type-annotated arguments. See
+          :func:`wrenfold.code_generation.create_function_description` for notes on the expected signature.
+        generator: Instance of a code generator, eg. :class:`wrenfold.code_generation.CppGenerator`.
+        name: Name of the function. If unspecified, ``func.__name__`` will be used.
 
-    Returns:
-      Formatted string.
+    Returns: Generated code.
+
+    Example:
+      >>> from wrenfold.type_annotations import RealScalar
+      >>> from wrenfold import code_generation
+      >>>
+      >>> def foo(x: RealScalar, y: RealScalar):
+      >>>     # One return value, and one output argument named `z`:
+      >>>     return [code_generation.ReturnValue(x * y), code_generation.OutputArg(x + y, "z")]
+      >>>
+      >>> code = code_generation.generate_function(func=foo)
+      >>> print(code)
+
+      .. code-block:: cpp
+        :linenos:
+
+        template <typename Scalar>
+        Scalar foo(const Scalar x, const Scalar y, Scalar& z)
+        {
+            // Operation counts:
+            // add: 1
+            // multiply: 1
+            // total: 2
+
+            const Scalar v01 = y;
+            const Scalar v00 = x;
+            const Scalar v04 = v00 + v01;
+            const Scalar v02 = v00 * v01;
+            z = v04;
+            return v02;
+        }
     """
-    if not isinstance(code, str):
-        code = '\n\n'.join(code)
-    return CPP_PREAMBLE_TEMPLATE.format(code=code, namespace=namespace)
-
-
-RUST_PREAMBLE_TEMPLATE = \
-"""//! Machine generated code.
-#![cfg_attr(rustfmt, rustfmt_skip)]
-
-{code}
-"""
-
-
-def apply_rust_preamble(code: T.Union[str, T.Sequence[str]]) -> str:
-    """
-    Wrap Rust code with a preamble that disables formatting.
-
-    Args:
-      code: A string or a list of strings (to be joined with double newlines).
-
-    Returns:
-      Formatted string.
-    """
-    if not isinstance(code, str):
-        code = '\n\n'.join(code)
-    return RUST_PREAMBLE_TEMPLATE.format(code=code)
+    description = create_function_description(func=func, name=name)
+    func_ast = transpile(description)
+    return generator.generate(definition=func_ast)
 
 
 def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]) -> None:

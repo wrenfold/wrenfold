@@ -273,10 +273,10 @@ def main(args: argparse.Namespace):
     definitions = code_generation.transpile(descriptions)
     if args.language == "cpp":
         code = CustomCppGenerator().generate(definitions)
-        code = code_generation.apply_cpp_preamble(code, namespace="gen")
+        code = CustomCppGenerator.apply_preamble(code, namespace="gen")
     elif args.language == "rust":
         code = CustomRustGenerator().generate(definitions)
-        code = code_generation.apply_rust_preamble(code)
+        code = CustomRustGenerator.apply_preamble(code)
     else:
         raise RuntimeError("Invalid language selection")
 

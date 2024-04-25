@@ -78,6 +78,9 @@ class cpp_code_generator {
   // Accept `ast_element`.
   std::string operator()(const ast::ast_element& element) const;
 
+  // Wrap generated function code in a preamble with includes and a namespace.
+  static std::string apply_preamble(std::string_view code, std::string_view ns);
+
  protected:
   // Create a fmt_view. All args will be forwarded back to the operator on this class that matches
   // them.

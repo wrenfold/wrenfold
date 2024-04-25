@@ -331,19 +331,28 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
               py::arg("definition"), py::doc("Generate code for multiple definitions."));
 
   // Wrap all the operator() methods.
-  register_all_format_operators<type_list_concatenate_t<
-      ast::ast_element_types, type_list<ast::function_signature, ast::function_definition>>>{}(
-      klass, "ast");
+  register_all_format_operators<
+      type_list_concatenate_t<ast::ast_element_types, type_list<ast::function_signature>>>{}(klass,
+                                                                                             "ast");
   register_all_format_operators<type_list_from_variant_t<type_variant>>{}(klass, "type_info");
   return klass;
 }
 
 void wrap_code_formatting_operations(py::module_& m) {
-  wrap_code_generator<cpp_code_generator>(m, "CppGenerator").doc() = "Generate C++ code.";
-  wrap_code_generator<rust_code_generator>(m, "RustGenerator").doc() = "Generate Rust code.";
+  wrap_code_generator<cpp_code_generator>(m, "CppGenerator")
+      .def_static("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
+                  py::arg("namespace"),
+                  "Apply a preamble that incorporates necessary runtime includes.")
+      .doc() = "Generate C++ code.";
+
+  wrap_code_generator<rust_code_generator>(m, "RustGenerator")
+      .def_static("apply_preamble", &rust_code_generator::apply_preamble, py::arg("code"),
+                  "Apply a preamble to generated code.")
+      .doc() = "Generate Rust code.";
 
   wrap_code_generator<base_code_generator>(m, "BaseGenerator").doc() =
-      "Abstract base class for generators. The user may inherit from this in python when writing a "
+      "Abstract base class for generators. The user may inherit from this in python when writing "
+      "a "
       "new generator from scratch.";
 }
 

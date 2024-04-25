@@ -12,6 +12,61 @@
 <!--- intro_start --->
 `wrenfold` is a framework for converting symbolic mathematical expressions (written in python) into generated code in compiled languages (C++, Rust). It aims to bridge the gap between prototyping of functions in expressive symbolic form, and performant production code. wrenfold is particularly relevant to domains where numerical optimization is employed to solve differentiable objective functions, such as robotics or computer vision.
 
+Using wrenfold, mathematical functions can be expressed and composed succinctly in python:
+
+```python
+from wrenfold import sym
+from wrenfold.type_annotations import Vector3
+from wrenfold import code_generation
+
+def angular_distance(a: Vector3, b: Vector3):
+    """
+    A simple example function: We compute the angle between two vectors. The angle is returned, and
+    the Jacobian with respect to `a` is passed as an output argument. This might be a cost in an
+    optimization, for instance.
+    """
+    dot = (a.T * b)[0]
+    cos_theta = dot / (a.norm() * b.norm())
+    theta = sym.acos(cos_theta)
+    theta_D_a = sym.jacobian([theta], a)
+
+    # Our generated function will return `theta`, and pass `theta_D_a` as an output arg.
+    return (
+        code_generation.ReturnValue(theta),
+        code_generation.OutputArg(theta_D_a, "theta_D_a"),
+    )
+```
+
+And corresponding compilable code can be quickly obtained:
+
+```python
+# CppGenerator can be swapped out for RustGenerator to obtain Rust. You can implement your own
+# custom generator to target a new language - or override methods on the provided generators in
+# order to customize the output code to your liking.
+cpp = code_generation.generate_function(angular_distance, code_generation.CppGenerator())
+print(cpp)
+```
+```cpp
+template <typename Scalar, typename T0, typename T1, typename T2>
+Scalar angular_distance(const T0& a, const T1& b, T2&& theta_D_a) {
+  auto _a = wf::make_input_span<3, 1>(a);
+  auto _b = wf::make_input_span<3, 1>(b);
+  auto _theta_D_a = wf::make_output_span<1, 3>(theta_D_a);
+
+  const Scalar v014 = _a(1, 0);
+  const Scalar v012 = _a(0, 0);
+  const Scalar v021 = v014 * v014;
+  const Scalar v020 = v012 * v012;
+
+  // ... Output code is truncated for brevity.
+
+  _theta_D_a(0, 0) = v052;
+  _theta_D_a(0, 1) = v061;
+  _theta_D_a(0, 2) = v070;
+  return v029;
+}
+```
+
 wrenfold draws inspiration from [symforce](https://symforce.org), but differs in a few key ways:
 
 * **Improved flexibility**: Symbolic expressions can include conditional logic.

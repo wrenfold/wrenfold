@@ -1,18 +1,6 @@
 sym
 ===
 
-.. autoclass:: wrenfold.sym.BooleanExpr
-  :members:
-
-.. autoclass:: wrenfold.sym.CompoundExpr
-  :members:
-
-.. autoclass:: wrenfold.sym.Expr
-  :members:
-
-.. autoclass:: wrenfold.sym.MatrixExpr
-  :members:
-
 .. autofunction:: wrenfold.sym.abs
 
 .. autofunction:: wrenfold.sym.acos
@@ -106,3 +94,23 @@ sym
 .. autofunction:: wrenfold.sym.where
 
 .. autofunction:: wrenfold.sym.zeros
+
+.. autoclass:: wrenfold.sym.BooleanExpr
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.sym.CompoundExpr
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.sym.Expr
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.sym.MatrixExpr
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__

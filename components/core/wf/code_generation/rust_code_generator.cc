@@ -371,4 +371,14 @@ std::string rust_code_generator::operator()(const ast::ast_element& element) con
   return visit(element, *this);
 }
 
+inline constexpr std::string_view preamble = R"code(//! Machine generated code.
+#![cfg_attr(rustfmt, rustfmt_skip)]
+
+{code}
+)code";
+
+std::string rust_code_generator::apply_preamble(const std::string_view code) {
+  return fmt::format(preamble, fmt::arg("code", code));
+}
+
 }  // namespace wf
