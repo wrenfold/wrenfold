@@ -1,4 +1,6 @@
-// Copyright 2022 Gareth Cross
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/expressions/addition.h"
 #include "wf/expressions/casts.h"

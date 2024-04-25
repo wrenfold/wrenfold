@@ -1,4 +1,5 @@
-//! Copyright 2024 Gareth Cross
+//! wrenfold symbolic code generator.
+//! Copyright (c) 2024 Gareth Cross
 //! Utilities for computing numerical jacobians.
 
 use nalgebra as na;

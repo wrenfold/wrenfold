@@ -1,3 +1,6 @@
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/code_generation/ast.h"
 #include "wf/visit.h"

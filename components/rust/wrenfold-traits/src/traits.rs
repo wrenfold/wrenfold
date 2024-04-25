@@ -1,3 +1,6 @@
+//! wrenfold symbolic code generator.
+//! Copyright (c) 2024 Gareth Cross
+
 /// Define traits used to pass data to code-generation methods.
 
 #[cfg(feature = "nalgebra")]

@@ -1,3 +1,6 @@
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/expressions/custom_type_expressions.h"
 #include "wf/expressions/external_function_invocation.h"

@@ -1,2 +1,4 @@
-"""Alias for the pywrenfold.enumerations module."""
+"""
+Alias for the pywrenfold.enumerations module.
+"""
 from pywrenfold.enumerations import *

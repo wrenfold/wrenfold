@@ -1,3 +1,6 @@
+//! wrenfold symbolic code generator.
+//! Copyright (c) 2024 Gareth Cross
+//!
 //! Tests on generated rust code. We validate that it compiles and yields reasonable
 //! numerical results. It would be nice if we could just call the generated rust code
 //! from gtest on the C++ side. Maybe we could generate C-api wrapper functions and

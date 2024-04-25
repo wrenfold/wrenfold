@@ -2,6 +2,11 @@
 name = "wrenfold-traits"
 version = "0.0.1"
 edition = "2021"
+license = "MIT"
+authors = ["Gareth <gcross.code@icloud.com>"]
+description = "Runtime traits for the wrenfold symbolic code-generation library."
+keywords = ["symbolic", "code-generation", "robotics", "vision"]
+categories = ["science::robotics", "computer-vision", "mathematics"]
 publish = false
 
 [dependencies]

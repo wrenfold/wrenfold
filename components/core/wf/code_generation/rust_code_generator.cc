@@ -1,3 +1,6 @@
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/rust_code_generator.h"
 
 #include "wf/code_generation/ast_formatters.h"

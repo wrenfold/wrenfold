@@ -1,3 +1,6 @@
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 // Benchmark distribution.
 #include <benchmark/benchmark.h>
 
