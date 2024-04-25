@@ -1284,3 +1284,4 @@ pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
   crate::types::Point2d::new(v016, v017)
 }
 
+
