@@ -1,3 +1,6 @@
+//! wrenfold symbolic code generator.
+//! Copyright (c) 2024 Gareth Cross
+
 /// Used to test custom type support.
 #[derive(Debug, Copy, Clone)]
 pub struct Point2d {

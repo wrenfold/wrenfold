@@ -1,4 +1,6 @@
-// Copyright 2023 Gareth Cross
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/control_flow_graph.h"

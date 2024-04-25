@@ -1,7 +1,7 @@
 License
 =======
 
-wrenfold is provided under the MIT License:
+wrenfold is provided under the following license:
 
 .. literalinclude:: ../../LICENSE
     :language: markdown

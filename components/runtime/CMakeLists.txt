@@ -15,7 +15,11 @@ endif()
 if(DEFINED SKBUILD_HEADERS_DIR)
   # This will install the headers under: `include/site/pythonX.Y/wrenfold`.
   install(FILES ${RUNTIME_SOURCES} DESTINATION "${SKBUILD_HEADERS_DIR}")
+  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+          DESTINATION "${SKBUILD_HEADERS_DIR}")
 else()
   install(FILES ${RUNTIME_SOURCES}
+          DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wrenfold")
+  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
           DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wrenfold")
 endif()

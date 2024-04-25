@@ -1,4 +1,6 @@
-// Copyright 2023 Gareth Cross
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 #include "wf/type_annotations.h"
 
 #include "wf_test_support/eigen_test_macros.h"

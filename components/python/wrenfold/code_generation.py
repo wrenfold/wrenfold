@@ -1,4 +1,6 @@
-"""Utility functions to support code-generation."""
+"""
+Utility functions to support code-generation.
+"""
 import dataclasses
 import inspect
 import pathlib
