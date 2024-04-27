@@ -247,6 +247,24 @@ class SympyConversionTest(MathTestBase):
         # sympy --> wf
         self.assertIdenticalFromSp(sym.iverson(x < y), sp.Piecewise((1, spy(x < y)), (0, True)))
 
+    def test_min_max(self):
+        x, y = sym.symbols('x, y')
+        self.assertEqualSp(sp.Min(spy(x), spy(y)), sym.min(x, y))
+        self.assertEqualSp(sp.Max(spy(x), spy(y)), sym.max(x, y))
+
+        # sympy --> wf
+        self.assertIdenticalFromSp(sym.min(x, y), sp.Min(spy(x), spy(y)))
+        self.assertIdenticalFromSp(sym.max(x, y), sp.Max(spy(x), spy(y)))
+
+    def test_heaviside(self):
+        # Heaviside only goes one way for now:
+        x = sym.symbols('x')
+        # sympy --> wf
+        self.assertIdenticalFromSp(
+            sym.where(0 < x, 1, sym.where(x < 0, -1, sym.rational(1, 2))), sp.Heaviside(spy(x)))
+        self.assertIdenticalFromSp(
+            sym.where(0 < x, 1, sym.where(x < 0, -1, sym.nan)), sp.Heaviside(spy(x), sp.nan))
+
     def test_matrix(self):
         x, y = sym.symbols('x, y')
 

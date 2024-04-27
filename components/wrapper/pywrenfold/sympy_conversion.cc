@@ -64,6 +64,15 @@ class sympy_conversion_visitor {
   py::object operator()(const complex_infinity&) const { return get_sympy_attr("zoo"); }
 
   py::object operator()(const conditional& cond) {
+    const auto& x = cond.if_branch();
+    const auto& y = cond.else_branch();
+    if (cond.condition().is_identical_to(y < x)) {
+      // max(...)
+      return invoke_sympy_object("Max", operator()(x), operator()(y), "evaluate"_a = evaluate_);
+    } else if (cond.condition().is_identical_to(x < y)) {
+      // min(...)
+      return invoke_sympy_object("Min", operator()(x), operator()(y), "evaluate"_a = evaluate_);
+    }
     return invoke_sympy_object(
         "Piecewise", py::make_tuple(operator()(cond.if_branch()), operator()(cond.condition())),
         py::make_tuple(operator()(cond.else_branch()), true), "evaluate"_a = evaluate_);
@@ -104,7 +113,7 @@ class sympy_conversion_visitor {
       }
       rows.append(cols);
     }
-    return invoke_sympy_object("Matrix", rows, "evaluate"_a = evaluate_);
+    return invoke_sympy_object("Matrix", rows);
   }
 
   py::object operator()(const multiplication& mul) {
