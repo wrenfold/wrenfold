@@ -314,6 +314,8 @@ Args:
   epsilon: If provided, ``epsilon`` specifies the threshold below which a small-angle approximation
     is used. A conditional will be inserted using :func:`wrenfold.sym.where` to switch between the
     normal and small-angle code paths. This value should be positive.
+  use_atan2: Defaults to true. If false, an implementation that uses arccos is used instead. This
+    may produce faster code.
 
 Returns:
   3x1 matrix expression for the rotation vector.

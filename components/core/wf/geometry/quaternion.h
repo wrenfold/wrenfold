@@ -134,7 +134,8 @@ class quaternion {
 
   // Convert quaternion to a Rodrigues rotation vector.
   // When the rotation angle < epsilon, the first order taylor series is used instead.
-  matrix_expr to_rotation_vector(const std::optional<scalar_expr>& epsilon) const;
+  matrix_expr to_rotation_vector(const std::optional<scalar_expr>& epsilon,
+                                 bool use_atan2 = true) const;
 
   // Construct a quaternion from a rotation matrix using Sheppards's method.
   // If `R` is not a member of SO(3), the behavior is undefined. See:
