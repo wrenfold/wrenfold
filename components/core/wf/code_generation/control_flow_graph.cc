@@ -8,8 +8,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include "wf/assertions.h"
+#include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/ir_control_flow_converter.h"
 #include "wf/code_generation/ir_form_visitor.h"
+#include "wf/code_generation/ir_types.h"
+#include "wf/code_generation/ir_value.h"
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
@@ -314,6 +318,57 @@ ir::block_ptr control_flow_graph::first_block() const {
 std::size_t control_flow_graph::count_function(const std_math_function enum_value) const noexcept {
   return count_operation(
       [&](const ir::call_std_function func) { return func.name() == enum_value; });
+}
+
+static operation_counts count_all_operations(
+    ir::const_block_ptr block, std::unordered_set<ir::const_block_ptr>& non_traversable) {
+  operation_counts counts{};
+  if (non_traversable.count(block)) {
+    return counts;
+  }
+
+  counts[operation_count_label::add] = block->count_operation<ir::add>();
+  counts[operation_count_label::branch] = block->count_operation<ir::jump_condition>();
+  counts[operation_count_label::call] = block->count_operation<ir::call_std_function>() +
+                                        block->count_operation<ir::call_external_function>();
+  counts[operation_count_label::compare] = block->count_operation<ir::compare>();
+  counts[operation_count_label::divide] = block->count_operation<ir::div>();
+  counts[operation_count_label::multiply] = block->count_operation<ir::mul>();
+  counts[operation_count_label::negate] = block->count_operation<ir::neg>();
+
+  const auto& descendants = block->descendants();
+  if (!descendants.empty()) {
+    if (const ir::const_value_ptr last_op = block->last_operation();
+        !last_op->is_op<ir::jump_condition>()) {
+      WF_ASSERT_EQUAL(1, descendants.size());
+      counts.increment(count_all_operations(descendants[0], non_traversable));
+    } else {
+      WF_ASSERT_EQUAL(2, descendants.size());
+
+      // Determine where the two branches eventually reconnect:
+      const ir::const_block_ptr merge =
+          ir::find_merge_point(descendants[0], descendants[1], ir::search_direction::downwards);
+      non_traversable.insert(merge);
+
+      const auto counts_left = count_all_operations(descendants[0], non_traversable);
+      const auto counts_right = count_all_operations(descendants[1], non_traversable);
+
+      // Take the maximum in each type of operation.
+      // This isn't really reflective of what would execute, but probably a bit better than double
+      // counting.
+      counts.increment(counts_left.max(counts_right));
+
+      // Continue counting from after the merge point:
+      non_traversable.erase(merge);
+      counts.increment(count_all_operations(merge, non_traversable));
+    }
+  }
+  return counts;
+}
+
+operation_counts control_flow_graph::compute_operation_counts() const {
+  std::unordered_set<ir::const_block_ptr> non_traversable_set{};
+  return count_all_operations(first_block(), non_traversable_set);
 }
 
 }  // namespace wf

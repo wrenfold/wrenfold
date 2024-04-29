@@ -33,6 +33,8 @@ add_library(
   wf/code_generation/ir_types.h
   wf/code_generation/ir_value.cc
   wf/code_generation/ir_value.h
+  wf/code_generation/operation_counts.cc
+  wf/code_generation/operation_counts.h
   wf/code_generation/rust_code_generator.cc
   wf/code_generation/rust_code_generator.h
   wf/code_generation/type_registry.cc

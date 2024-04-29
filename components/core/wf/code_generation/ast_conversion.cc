@@ -6,6 +6,7 @@
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
+#include "wf/code_generation/operation_counts.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
@@ -77,16 +78,24 @@ struct type_constructor {
   std::size_t index_;
 };
 
-ast::function_definition ast_form_visitor::convert_function(const ir::const_block_ptr block) {
-  process_block(block);
+static ast::ast_element format_operation_count_comment(const operation_counts& counts) {
+  std::string comment{"Operation counts:\n"};
+  for (const auto& [label, count] : counts.labels_and_counts()) {
+    if (count > 0) {
+      fmt::format_to(std::back_inserter(comment), "{}: {}\n",
+                     string_from_operation_count_label(label), count);
+    }
+  }
+  fmt::format_to(std::back_inserter(comment), "total: {}", counts.total());
+  return ast::ast_element{std::in_place_type_t<ast::comment>{}, std::move(comment)};
+}
 
-  std::vector<ast::ast_element> result;
-  result.reserve(operations_.size() + 1);
-  result.push_back(format_operation_count_comment());
-  std::copy(std::make_move_iterator(operations_.begin()),
-            std::make_move_iterator(operations_.end()), std::back_inserter(result));
-  operations_.clear();
-  return ast::function_definition(std::move(signature_), std::move(result));
+ast::function_definition ast_form_visitor::convert_function(const ir::const_block_ptr block,
+                                                            const operation_counts& counts) {
+  // First place a comment describing max operation counts:
+  operations_.push_back(format_operation_count_comment(counts));
+  process_block(block);
+  return ast::function_definition(std::move(signature_), std::move(operations_));
 }
 
 void ast_form_visitor::push_back_conditional_assignments(
@@ -272,10 +281,6 @@ void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
   } else {
     WF_ASSERT_EQUAL(2, descendants.size());
 
-    // This over-counts a bit, since nested branches don't all run. We are just counting
-    // if-statements, basically.
-    operation_counts_[operation_count_label::branch]++;
-
     // Figure out where this if-else statement will terminate:
     const ir::const_block_ptr merge_point =
         find_merge_point(descendants[0], descendants[1], ir::search_direction::downwards);
@@ -348,7 +353,6 @@ std::vector<ast::ast_element> ast_form_visitor::transform_operands(const ir::val
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::add&) {
-  operation_counts_[operation_count_label::add]++;
   return ast::ast_element{std::in_place_type_t<ast::add>{}, visit_operation_argument(val[0]),
                           visit_operation_argument(val[1])};
 }
@@ -356,14 +360,12 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ad
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::call_external_function& call) {
   WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
-  operation_counts_[operation_count_label::call]++;
   return ast::ast_element{std::in_place_type_t<ast::call_external_function>{}, call.function(),
                           transform_operands(val)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::call_std_function& func) {
-  operation_counts_[operation_count_label::call]++;
   return ast::ast_element{std::in_place_type_t<ast::call_std_function>{}, func.name(),
                           transform_operands(val)};
 }
@@ -374,7 +376,6 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ca
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::compare& compare) {
-  operation_counts_[operation_count_label::compare]++;
   return ast::ast_element{std::in_place_type_t<ast::compare>{}, compare.operation(),
                           visit_operation_argument(val[0]), visit_operation_argument(val[1])};
 }
@@ -391,7 +392,6 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::co
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::div&) {
-  operation_counts_[operation_count_label::divide]++;
   return ast::ast_element{std::in_place_type_t<ast::divide>{}, visit_operation_argument(val[0]),
                           visit_operation_argument(val[1])};
 }
@@ -448,13 +448,11 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
-  operation_counts_[operation_count_label::multiply]++;
   return ast::ast_element{std::in_place_type_t<ast::multiply>{}, visit_operation_argument(val[0]),
                           visit_operation_argument(val[1])};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::neg&) {
-  operation_counts_[operation_count_label::negate]++;
   return ast::ast_element{std::in_place_type_t<ast::negate>{}, visit_operation_argument(val[0])};
 }
 
@@ -512,50 +510,11 @@ ast::ast_element ast_form_visitor::make_field_access_sequence(ast::ast_element p
   return prev;
 }
 
-static constexpr std::string_view string_from_operation_count_label(
-    const operation_count_label label) noexcept {
-  switch (label) {
-    case operation_count_label::add:
-      return "add";
-    case operation_count_label::branch:
-      return "branch";
-    case operation_count_label::call:
-      return "call";
-    case operation_count_label::compare:
-      return "compare";
-    case operation_count_label::divide:
-      return "divide";
-    case operation_count_label::multiply:
-      return "multiply";
-    case operation_count_label::negate:
-      return "negate";
-  }
-  return "<NOT A VALID ENUM VALUE>";
-}
-
-ast::ast_element ast_form_visitor::format_operation_count_comment() const {
-  // Sort counts into order of the label itself:
-  std::vector<std::pair<operation_count_label, std::size_t>> counts{operation_counts_.begin(),
-                                                                    operation_counts_.end()};
-  std::sort(counts.begin(), counts.end(),
-            [](const auto& a, const auto& b) { return a.first < b.first; });
-
-  std::string comment{"Operation counts:\n"};
-  std::size_t total = 0;
-  for (const auto& [label, count] : counts) {
-    fmt::format_to(std::back_inserter(comment), "{}: {}\n",
-                   string_from_operation_count_label(label), count);
-    total += count;
-  }
-  fmt::format_to(std::back_inserter(comment), "total: {}", total);
-  return ast::ast_element{std::in_place_type_t<ast::comment>{}, std::move(comment)};
-}
-
 function_definition create_ast(const wf::control_flow_graph& ir,
                                const function_description& description) {
   WF_FUNCTION_TRACE();
   ast_form_visitor converter{ir.value_print_width(), description};
-  return converter.convert_function(ir.first_block());
+  return converter.convert_function(ir.first_block(), ir.compute_operation_counts());
 }
 
 }  // namespace wf::ast

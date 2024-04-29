@@ -80,9 +80,15 @@ class block {
     return operations_.back();
   }
 
-  // Count instances of operation of type `T`.
+  // Count operations matching predicate `Func`.
   template <typename Func>
   std::size_t count_operation(Func&& func) const;
+
+  // Count operations of type `T`.
+  template <typename T>
+  std::size_t count_operation() const {
+    return count_operation([](const T&) constexpr { return true; });
+  }
 
   // Access operations.
   constexpr const auto& operations() const noexcept { return operations_; }

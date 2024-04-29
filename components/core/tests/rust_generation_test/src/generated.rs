@@ -116,9 +116,9 @@ pub fn heaviside<>(x: f64) -> f64
 pub fn exclusive_or<>(x: f64, y: f64) -> f64
 {
   // Operation counts:
-  // branch: 3
+  // branch: 2
   // compare: 2
-  // total: 5
+  // total: 4
   
   let v004: f64 = y;
   let v001: f64 = x;
@@ -294,12 +294,12 @@ pub fn nested_conditionals_1<>(x: f64, y: f64) -> f64
 {
   // Operation counts:
   // add: 2
-  // branch: 3
-  // call: 10
-  // compare: 3
-  // multiply: 4
+  // branch: 2
+  // call: 5
+  // compare: 2
+  // multiply: 2
   // negate: 1
-  // total: 23
+  // total: 14
   
   let v002: f64 = x;
   let v000: f64 = y;
@@ -344,14 +344,14 @@ pub fn nested_conditionals_1<>(x: f64, y: f64) -> f64
 pub fn nested_conditionals_2<>(x: f64, y: f64) -> f64
 {
   // Operation counts:
-  // add: 3
+  // add: 1
   // branch: 3
-  // call: 7
+  // call: 4
   // compare: 3
   // divide: 1
-  // multiply: 8
+  // multiply: 4
   // negate: 1
-  // total: 26
+  // total: 17
   
   let v002: f64 = x;
   let v000: f64 = y;
@@ -400,14 +400,14 @@ where
   T2: wrenfold_traits::OutputSpan2D<9, 3, ValueType = f64>,
 {
   // Operation counts:
-  // add: 88
+  // add: 85
   // branch: 3
   // call: 4
   // compare: 1
-  // divide: 5
-  // multiply: 151
+  // divide: 4
+  // multiply: 129
   // negate: 6
-  // total: 258
+  // total: 232
   
   let v0005: f64 = w.get(1, 0);
   let v0003: f64 = w.get(0, 0);
@@ -744,14 +744,14 @@ where
   T1: wrenfold_traits::OutputSpan2D<4, 1, ValueType = f64>,
 {
   // Operation counts:
-  // add: 19
-  // branch: 4
-  // call: 4
-  // compare: 4
-  // divide: 4
-  // multiply: 20
+  // add: 15
+  // branch: 3
+  // call: 2
+  // compare: 3
+  // divide: 2
+  // multiply: 10
   // negate: 6
-  // total: 61
+  // total: 41
   
   let v0002: f64 = R.get(1, 1);
   let v0001: f64 = R.get(0, 0);
@@ -859,13 +859,13 @@ where
 {
   // Operation counts:
   // add: 21
-  // branch: 9
+  // branch: 7
   // call: 6
   // compare: 5
   // divide: 5
-  // multiply: 31
+  // multiply: 19
   // negate: 6
-  // total: 83
+  // total: 69
   
   let v0004: f64 = R.get(2, 2);
   let v0002: f64 = R.get(0, 0);
@@ -1259,8 +1259,8 @@ pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
   // branch: 1
   // call: 4
   // compare: 1
-  // multiply: 2
-  // total: 8
+  // multiply: 1
+  // total: 7
   
   let v002: f64 = x;
   let v000: f64 = y;

@@ -4,9 +4,11 @@
 #pragma once
 #include <vector>
 
+#include "wf/assertions.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/ir_types.h"
+#include "wf/code_generation/operation_counts.h"
 #include "wf/enumerations.h"
 
 namespace wf {
@@ -62,6 +64,9 @@ class control_flow_graph {
 
   // Count instances of a function call.
   std::size_t count_function(std_math_function enum_value) const noexcept;
+
+  // Generate a summary of operations.
+  operation_counts compute_operation_counts() const;
 
  private:
   control_flow_graph(std::vector<ir::block::unique_ptr> blocks,
