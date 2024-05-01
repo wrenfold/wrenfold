@@ -94,7 +94,8 @@ if(${SPHINX_FOUND})
       source/tutorial/sympy_interop.rst
       source/python_api/index.rst
       source/cpp_api/index.rst
-      source/cpp_api/span.rst)
+      source/cpp_api/span.rst
+      source/conf.py)
 
   # Invoke `generate_api_rst.py` to generate RST files for our python modules.
   add_custom_command(

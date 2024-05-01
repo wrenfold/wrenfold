@@ -1,5 +1,11 @@
 # wrenfold
 
+<!--- logo_start --->
+<p align="center">
+<img src="./docs/source/_static/logo.png" alt="wrenfold logo depicting a bird made from folded paper" width="25%"/>
+</p>
+<!--- logo_end --->
+
 <!--- badges_start --->
 <p align="center">
 <a href="https://github.com/gareth-cross/wrenfold/actions/workflows/ci.yml?query=branch%3Amain"><img alt="GitHub Actions Workflow Status" src="https://github.com/gareth-cross/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main"></a>
