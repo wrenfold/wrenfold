@@ -50,6 +50,11 @@ class operand_ptr {
     return operand_ == other.operand_;
   }
 
+  // Allow direct comparison to ir::value_ptr.
+  constexpr bool operator==(const ir::const_value_ptr& other) const noexcept {
+    return operand_ == other;
+  }
+
  private:
   ir::value_ptr operand_;
   std::size_t consumer_index_;
@@ -73,7 +78,7 @@ class value {
         op_(std::forward<OpType>(operation)),
         operands_(create_operands(operands...)),
         type_(std::move(type)) {
-    post_init_steps<OpType>();
+    post_init_steps<std::decay_t<OpType>>();
   }
 
   // Access underlying integer.
@@ -100,6 +105,11 @@ class value {
     return std::get<T>(op_);
   }
 
+  // Get the name of the operation.
+  constexpr std::string_view op_name() const noexcept {
+    return std::visit([](const auto& op) -> std::string_view { return op.to_string(); }, op_);
+  }
+
   // True if this is a phi function.
   constexpr bool is_phi() const noexcept { return is_op<ir::phi>(); }
 
@@ -117,7 +127,7 @@ class value {
     operands_ = create_operands(args...);
     type_ = std::move(type);
     op_ = std::forward<OpType>(op);
-    post_init_steps<OpType>();
+    post_init_steps<std::decay_t<OpType>>();
   }
 
   // Add `v` to the list of consumers of this value.
@@ -126,11 +136,23 @@ class value {
   // Remove `v` from the list of consumers of this value.
   void remove_consumer(operand_ptr v);
 
+  // Get the unordered set of consumers.
+  constexpr const consumer_vector& consumers() const noexcept { return consumers_; }
+
   // Access instruction operands.
   constexpr const operands_container& operands() const noexcept { return operands_; }
 
   // Number of operands.
   std::size_t num_operands() const noexcept { return operands_.size(); }
+
+  // True if this value consumes operand `v`.
+  bool has_operand(const ir::const_value_ptr v) const noexcept {
+    return any_of(operands_, [v](const auto& operand) { return operand.get() == v.get(); });
+  }
+
+  // Replace a pair of operands with a single operand.
+  void replace_operand_pair(ir::const_value_ptr arg0, ir::const_value_ptr arg1, std::size_t times,
+                            ir::value_ptr replacement);
 
   // Get the first operand.
   ir::value_ptr first_operand() const {
@@ -281,12 +303,13 @@ struct fmt::formatter<wf::ir::value, char> {
 };
 
 // Formatter for pointer to `value`.
-template <>
-struct fmt::formatter<wf::ir::value_ptr, char> {
+template <typename T>
+struct fmt::formatter<T,
+                      std::enable_if_t<std::is_constructible_v<wf::ir::const_value_ptr, T>, char>> {
   constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const wf::ir::value_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const wf::ir::const_value_ptr x, FormatContext& ctx) const -> decltype(ctx.out()) {
     return fmt::format_to(ctx.out(), "{}", x->name());
   }
 };

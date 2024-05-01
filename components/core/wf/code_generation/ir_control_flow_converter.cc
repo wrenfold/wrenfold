@@ -331,7 +331,8 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
 // ReSharper disable once CppMemberFunctionMayBeConst
 void ir_control_flow_converter::eliminate_useless_copies() {
   for (const auto& block : blocks_) {
-    block->remove_operation_if([&](const ir::value_ptr v) {
+    auto operations = block->operations();
+    remove_if(operations, [&](const ir::value_ptr v) {
       // A copy is useless if we are duplicating a value in our current block:
       if (v->is_op<ir::copy>() && v->first_operand()->parent() == v->parent()) {
         v->replace_with(v->first_operand());
@@ -340,6 +341,7 @@ void ir_control_flow_converter::eliminate_useless_copies() {
       }
       return false;
     });
+    block->set_operations(std::move(operations));
   }
 }
 

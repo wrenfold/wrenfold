@@ -807,7 +807,7 @@ TEST(ScalarOperationsTest, TestConditional) {
   ASSERT_IDENTICAL(get<const conditional>(nested).else_branch(), log(z));
 }
 
-TEST(ScalarOperationsTest, TestDistribute) {
+TEST(ScalarOperationsTest, TestDistribute1) {
   const auto [w, x, y, z, p, q, v] = make_symbols("w", "x", "y", "z", "p", "q", "v");
 
   ASSERT_IDENTICAL(x, x.distribute());
@@ -888,6 +888,73 @@ TEST(ScalarOperationsTest, TestDistribute) {
   // Parentheticals don't get distributed:
   ASSERT_IDENTICAL(make_unevaluated(x + y) * make_unevaluated(x - y),
                    (make_unevaluated(x + y) * make_unevaluated(x - y)).distribute());
+}
+
+TEST(ScalarOperationsTest, TestDistribute2) {
+  const auto [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p] =
+      make_symbols("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p");
+  const scalar_expr func =
+      a + c + f + j +
+      d * h * l *
+          (c + e + h + m +
+           b * g * i *
+               (c + i + m + p +
+                j * k * l *
+                    (b + i + k + m +
+                     h * m * m *
+                         (h + 2 * n + p +
+                          c * m * p *
+                              (a + f + k + n +
+                               b * b * f *
+                                   (g + j + n + o +
+                                    h * i * m *
+                                        (e + g + h + m +
+                                         a * o * p *
+                                             (e + g + h + k +
+                                              g * j * n * (i + j + 2 * n + i * j * l)))))))));
+  const scalar_expr func_distributed = func.distribute();
+
+  ASSERT_IDENTICAL(
+      a * pow(b, 3) * c * d * e * f * g * pow(h, 3) * pow(i, 2) * j * k * pow(l, 2) * pow(m, 4) *
+              o * pow(p, 2) +
+          a * pow(b, 3) * c * d * f * pow(g, 2) * pow(h, 3) * pow(i, 3) * pow(j, 3) * k *
+              pow(l, 3) * pow(m, 4) * n * o * pow(p, 2) +
+          a * pow(b, 3) * c * d * f * pow(g, 2) * pow(h, 3) * pow(i, 3) * pow(j, 2) * k *
+              pow(l, 2) * pow(m, 4) * n * o * pow(p, 2) +
+          a * pow(b, 3) * c * d * f * pow(g, 2) * pow(h, 3) * pow(i, 2) * pow(j, 3) * k *
+              pow(l, 2) * pow(m, 4) * n * o * pow(p, 2) +
+          2 * a * pow(b, 3) * c * d * f * pow(g, 2) * pow(h, 3) * pow(i, 2) * pow(j, 2) * k *
+              pow(l, 2) * pow(m, 4) * pow(n, 2) * o * pow(p, 2) +
+          a * pow(b, 3) * c * d * f * pow(g, 2) * pow(h, 3) * pow(i, 2) * j * k * pow(l, 2) *
+              pow(m, 4) * o * pow(p, 2) +
+          a * pow(b, 3) * c * d * f * g * pow(h, 4) * pow(i, 2) * j * k * pow(l, 2) * pow(m, 4) *
+              o * pow(p, 2) +
+          a * pow(b, 3) * c * d * f * g * pow(h, 3) * pow(i, 2) * j * pow(k, 2) * pow(l, 2) *
+              pow(m, 4) * o * pow(p, 2) +
+          a * b * c * d * g * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 3) * p + a +
+          pow(b, 3) * c * d * e * f * g * pow(h, 3) * pow(i, 2) * j * k * pow(l, 2) * pow(m, 4) *
+              p +
+          pow(b, 3) * c * d * f * pow(g, 2) * pow(h, 3) * pow(i, 2) * j * k * pow(l, 2) *
+              pow(m, 4) * p +
+          pow(b, 3) * c * d * f * pow(g, 2) * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 3) * p +
+          pow(b, 3) * c * d * f * g * pow(h, 4) * pow(i, 2) * j * k * pow(l, 2) * pow(m, 4) * p +
+          pow(b, 3) * c * d * f * g * pow(h, 3) * pow(i, 2) * j * k * pow(l, 2) * pow(m, 5) * p +
+          pow(b, 3) * c * d * f * g * pow(h, 2) * i * pow(j, 2) * k * pow(l, 2) * pow(m, 3) * p +
+          pow(b, 3) * c * d * f * g * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 3) * n * p +
+          pow(b, 3) * c * d * f * g * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 3) * o * p +
+          pow(b, 2) * d * g * h * i * j * k * pow(l, 2) +
+          b * c * d * f * g * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 3) * p +
+          b * c * d * g * pow(h, 2) * i * j * pow(k, 2) * pow(l, 2) * pow(m, 3) * p +
+          b * c * d * g * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 3) * n * p +
+          b * c * d * g * h * i * l + b * d * g * pow(h, 3) * i * j * k * pow(l, 2) * pow(m, 2) +
+          2 * b * d * g * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 2) * n +
+          b * d * g * pow(h, 2) * i * j * k * pow(l, 2) * pow(m, 2) * p +
+          b * d * g * h * pow(i, 2) * j * k * pow(l, 2) + b * d * g * h * pow(i, 2) * l +
+          b * d * g * h * i * j * pow(k, 2) * pow(l, 2) +
+          b * d * g * h * i * j * k * pow(l, 2) * m + b * d * g * h * i * l * m +
+          b * d * g * h * i * l * p + c * d * h * l + c + d * e * h * l + d * pow(h, 2) * l +
+          d * h * l * m + f + j,
+      func_distributed);
 }
 
 TEST(ScalarOperationsTest, TestCollect) {

@@ -142,6 +142,10 @@ scoped_trace::~scoped_trace() {
     const std::int64_t start_micros =
         cast_time<std::chrono::microseconds>(start_.time_since_epoch());
 
+#if 0
+    fmt::print("{}: {:5} milliseconds\n", name_, duration_nanos / 1.0e6);
+#endif
+
     const thread_local pid_and_tid ids{};
     collector->submit_event(trace_event{name_, start_micros, ids.pid, ids.tid, duration_nanos});
   }

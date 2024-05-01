@@ -3,7 +3,6 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include <unordered_map>
-#include <unordered_set>
 
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
@@ -13,16 +12,6 @@
 namespace wf {
 class control_flow_graph;  // Forward declare.
 
-struct operation_term_counts {
-  // The key in this table is a sub-expression (a term) in a multiplication or addition.
-  // The value is the # of times that term appears in a unique addition or multiplication sequence.
-  using count_container = std::unordered_map<scalar_expr, std::size_t, hash_struct<scalar_expr>,
-                                             is_identical_struct<scalar_expr>>;
-
-  count_container muls;
-  count_container adds;
-};
-
 // Visitor for converting an expression tree into intermediate representation.
 // This visitor accepts expression types, and returns IR values. While doing the conversion, we look
 // for opportunities to optimize. For the most part, this consists of identifying duplicate
@@ -30,9 +19,9 @@ struct operation_term_counts {
 class ir_form_visitor {
  public:
   // Construct with output graph.
-  ir_form_visitor(control_flow_graph& output_graph, operation_term_counts counts);
+  explicit ir_form_visitor(control_flow_graph& output_graph);
 
-  ir::value_ptr operator()(const addition& add, const scalar_expr& add_abstract);
+  ir::value_ptr operator()(const addition& add);
   ir::value_ptr operator()(const boolean_constant& b);
   ir::value_ptr operator()(const complex_infinity&) const;
   ir::value_ptr operator()(const compound_expression_element& el);
@@ -47,7 +36,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const integer_constant& i);
   ir::value_ptr operator()(const iverson_bracket& bracket);
   ir::value_ptr operator()(const matrix& mat);
-  ir::value_ptr operator()(const multiplication& mul, const scalar_expr& mul_abstract);
+  ir::value_ptr operator()(const multiplication& mul);
   ir::value_ptr operator()(const power& power);
   ir::value_ptr operator()(const rational_constant& r);
   ir::value_ptr operator()(const relational& relational);
@@ -67,17 +56,23 @@ class ir_form_visitor {
   template <typename OpType, typename Type, typename... Args>
   ir::value_ptr push_operation(OpType&& op, Type type, Args&&... args);
 
+  // Convert sequence of expressions into `ir::addn` or `ir::muln`.
   template <typename T>
-  ir::value_ptr convert_addition_or_multiplication(const T& op);
+  ir::value_ptr create_add_or_mul(const absl::Span<const scalar_expr>& expressions);
+
+  template <typename T, typename Container>
+  ir::value_ptr create_add_or_mul_with_operands(Container args);
 
   // Wrap `input` in a cast operation if it does have type `output_type`.
   ir::value_ptr maybe_cast(ir::value_ptr input, code_numeric_type output_type);
 
-  template <typename T>
-  constexpr const operation_term_counts::count_container& get_count_table() const noexcept;
-
   // Apply exponentiation by squaring to implement a power of an integer.
   ir::value_ptr exponentiate_by_squaring(ir::value_ptr base, std::size_t exponent);
+
+  // Check if a power should be converted to a series of multiplications.
+  // If this is the case, return the base (which is to be multiplied) and the integral power.
+  std::optional<std::tuple<ir::value_ptr, std::size_t>> pow_extract_base_and_integer_exponent(
+      const power& p);
 
   // The IR we are writing to as we convert.
   control_flow_graph& output_graph_;
@@ -113,47 +108,6 @@ class ir_form_visitor {
   std::unordered_map<std::tuple<ir::value_ptr, code_numeric_type>, ir::value_ptr,
                      hash_value_and_type, value_and_type_eq>
       cached_casts_;
-
-  operation_term_counts counts_;
-};
-
-// Count incidences of unique multiplications and additions.
-// We use the count during conversion to IR in order to select the order of operations for additions
-// and multiplications.
-// TODO: Nuke me soon.
-struct mul_add_count_visitor {
-  mul_add_count_visitor();
-
-  // Visit every expression in the provided expression group.
-  void count_group_expressions(const expression_group& group);
-
-  void operator()(const compound_expr& x);
-  void operator()(const scalar_expr& x);
-  void operator()(const matrix_expr& m);
-  void operator()(const boolean_expr& b);
-
-  template <typename T>
-  void operator()(const T& concrete);
-
-  // Return final counts of how many times each term appears in a unique addition
-  // or multiplication.
-  operation_term_counts take_counts() &&;
-
- private:
-  // Visit if not visited.
-  template <typename T>
-  void maybe_visit(const T& expr);
-
-  // A map of all expressions that appear as terms in an addition or multiplication.
-  // The key is the term, and the value is a count of inbound edges.
-  operation_term_counts::count_container adds_{};
-  operation_term_counts::count_container muls_{};
-
-  template <typename T>
-  using set_type = std::unordered_set<T, hash_struct<T>, is_identical_struct<T>>;
-
-  // Track which nodes we have already visited, so that we do not double count repeated operations.
-  expression_map_tuple<set_type> visited_;
 };
 
 }  // namespace wf

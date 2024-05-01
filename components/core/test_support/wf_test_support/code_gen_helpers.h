@@ -18,8 +18,9 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   const function_description description =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
 
-  const control_flow_graph output_ir =
-      control_flow_graph{description.output_expressions()}.convert_conditionals_to_control_flow();
+  const control_flow_graph output_cfg =
+      control_flow_graph{description.output_expressions(), optimization_params()}
+          .convert_conditionals_to_control_flow();
 #if 0
   fmt::print("IR ({}, {} operations):\n{}\n", name, output_ir.num_operations(),
              output_ir.to_string());
@@ -27,7 +28,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
 #endif
 
   // Generate syntax tree:
-  const ast::function_definition definition = ast::create_ast(output_ir, description);
+  const ast::function_definition definition = ast::create_ast(output_cfg, description);
 
   // Convert to output code:
   const std::string code = generator(definition);

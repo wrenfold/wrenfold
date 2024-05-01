@@ -200,7 +200,7 @@ static void factorize_and_recurse(const scored_factorization_step& step, const f
   remaining_terms &= ~step.factorized_terms();
   remaining_vars.reset(step.variable_index);
 
-  if (remaining_terms.none() || result.size() == MAX_FACTORIZATION_STEPS) {
+  if (remaining_terms.none() || result.size() == factorizer_params::MAX_FACTORIZATION_STEPS) {
     // This is a leaf node.
     outputs.push_back(std::move(result));
     return;
@@ -233,8 +233,8 @@ std::vector<factorization> compute_ranked_factorizations(const absl::Span<const 
                                                          const std::size_t num_vars,
                                                          const std::size_t branching_factor) {
   WF_FUNCTION_TRACE();
-  WF_ASSERT_LESS_OR_EQ(num_vars, MAX_VARS_OR_TERMS);
-  WF_ASSERT_LESS_OR_EQ(terms.size(), MAX_VARS_OR_TERMS);
+  WF_ASSERT_LESS_OR_EQ(num_vars, factorizer_params::MAX_VARS_OR_TERMS);
+  WF_ASSERT_LESS_OR_EQ(terms.size(), factorizer_params::MAX_VARS_OR_TERMS);
 
   std::vector<factorization> result{};
   if (terms.empty() || num_vars == 0) {

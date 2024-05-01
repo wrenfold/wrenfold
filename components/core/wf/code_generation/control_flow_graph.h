@@ -4,30 +4,34 @@
 #pragma once
 #include <vector>
 
-#include "wf/assertions.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/ir_block.h"
-#include "wf/code_generation/ir_types.h"
 #include "wf/code_generation/operation_counts.h"
 #include "wf/enumerations.h"
 
 namespace wf {
 
-// Store interemediate representation values and blocks. The blocks are arranged in a graph
+// Params governing how expressions are simplified/optimized.
+struct optimization_params {
+  // If > 0, automatically factorize sums of products.
+  // The value determines how many passes we make through the graph to search for opportunities.
+  std::size_t factorization_passes{3};
+  // Convert additions and multiplications to binary operations.
+  bool binarize_operations{true};
+};
+
+// Store intermediate representation values and blocks. The blocks are arranged in a graph
 // that describes the control flow in a code-generation function.
 class control_flow_graph {
  public:
   // Construct from a set of output expressions.
-  explicit control_flow_graph(std::vector<expression_group> groups);
+  explicit control_flow_graph(const std::vector<expression_group>& groups,
+                              const std::optional<optimization_params>& params = std::nullopt);
 
   // Consume `this` and convert to a control flow graph that contains jumps.
   // This converts the graph from one with `cond` operations to one with multiple blocks and jump
   // operations.
   control_flow_graph convert_conditionals_to_control_flow() &&;
-
-  // Eliminate duplicate operations. Most are eliminated during the conversion from expressions
-  // to the IR, but the conversion process can introduce a few new duplicates.
-  void eliminate_duplicates();
 
   // Format IR for every value.
   std::string to_string() const;
@@ -68,10 +72,51 @@ class control_flow_graph {
   // Generate a summary of operations.
   operation_counts compute_operation_counts() const;
 
+  // For debug builds and tests, check that invariants are satisfied.
+  void assert_invariants() const;
+
+  // Apply simplications to all the operations in the graph.
+  void apply_simplifications(const optimization_params& p);
+
+  // Factorize sum-of-product expressions to reduce multiplication operations.
+  void factorize_sums(std::size_t num_passes);
+
  private:
+  // Eliminate duplicate operations. Most are eliminated during the conversion from expressions
+  // to the IR, but the conversion process can introduce a few new duplicates.
+  void eliminate_duplicates();
+
+  // Eliminate copy operations that other steps inserted.
+  void eliminate_needless_copies();
+
+  // Replace ir::muln -> ir::mul, ir::addn -> ir::add.
+  template <typename Src, typename Dst>
+  void binarize_operations(ir::block_ptr block);
+
+  ir::value_ptr factorize_sum_of_products(const class variable_index_assignor& index_assignor,
+                                          const class factorization& fac, ir::block_ptr block,
+                                          absl::Span<const ir::value_ptr> muls,
+                                          absl::Span<const ir::value_ptr> non_muls,
+                                          std::vector<ir::value_ptr>& operations_out);
+
+  // Convert sums of products into products by factorizing out common terms.
+  void factorize_sums_in_block(ir::block_ptr block);
+
+  // Merge nested multiplications together.
+  void merge_multiplications_in_block(ir::block_ptr block);
+
+  // Replace multiplications by -1 with negations.
+  void insert_negations(ir::block_ptr block);
+
+  // Push a new value into `values_`.
+  template <typename T, typename... Args>
+  ir::value_ptr push_value(ir::block_ptr block, T op, ir::value::types type, Args&&... args);
+
+  // If the numeric type of `val` does not match `type`, insert a cast.
+  ir::value_ptr maybe_cast(ir::value_ptr val, code_numeric_type type);
+
   control_flow_graph(std::vector<ir::block::unique_ptr> blocks,
-                     std::vector<ir::value::unique_ptr> values)
-      : blocks_(std::move(blocks)), values_(std::move(values)) {}
+                     std::vector<ir::value::unique_ptr> values);
 
   // Owns all the blocks.
   std::vector<ir::block::unique_ptr> blocks_;

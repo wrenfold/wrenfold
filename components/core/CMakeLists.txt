@@ -156,6 +156,11 @@ if(WIN32)
   target_compile_definitions(wf_core PUBLIC -D_USE_MATH_DEFINES)
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message(STATUS "Debug build detected, enabling WF_DEBUG")
+  target_compile_definitions(wf_core PUBLIC -DWF_DEBUG)
+endif()
+
 option(WF_BUILD_WITH_TRACING "Enable traces for profiling." OFF)
 if(WF_BUILD_WITH_TRACING)
   message(STATUS "Building with tracing enabled.")

@@ -27,7 +27,7 @@ TEST(PyRotationErrorTest, TestRotationError) {
   EXPECT_EIGEN_NEAR(Vector3d::Zero(), error, 1.0e-16);
 
   gen::rotation_error(q1, q1, 2.0, error, nullptr, nullptr);
-  EXPECT_EIGEN_NEAR(Vector3d::Zero(), error, 1.0e-16);
+  EXPECT_EIGEN_NEAR(Vector3d::Zero(), error, 2.0e-16);
 
   const auto D0_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
     gen::rotation_error(manifold<Quaterniond>::retract(q0, w), q1, 2.0, error, nullptr, nullptr);

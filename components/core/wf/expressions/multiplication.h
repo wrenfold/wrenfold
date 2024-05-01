@@ -53,6 +53,9 @@ class multiplication {
   container_type::const_iterator begin() const noexcept { return terms_.begin(); }
   container_type::const_iterator end() const noexcept { return terms_.end(); }
 
+  // Get span over terms.
+  absl::Span<const scalar_expr> as_span() const noexcept { return {terms_}; }
+
   // Get terms in the multiplication, sorted into canonical order.
   std::vector<scalar_expr> sorted_terms() const;
 
