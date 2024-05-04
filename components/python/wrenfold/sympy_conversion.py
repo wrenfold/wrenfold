@@ -19,19 +19,30 @@ class Conversions:
     def __init__(self, sp: T.Any) -> None:
         """Initialize with the sympy module."""
         self.sp = sp
-        # Zero, one, negative one, and 1/2 are all specific types in sympy.
         self.value_map = {
-            sp.E: sym.E,
-            sp.pi: sym.pi,
-            sp.zoo: sym.zoo,
-            sp.I: sym.I,
-            sp.nan: sym.nan,
-            sp.true: sym.true,
-            sp.false: sym.false,
-            sp.Integer(0): sym.zero,
-            sp.Integer(1): sym.one,
-            sp.Integer(-1): sym.integer(-1),
-            sp.Rational(1, 2): sym.rational(1, 2),
+            sp.E:
+                sym.E,
+            sp.pi:
+                sym.pi,
+            sp.zoo:
+                sym.zoo,
+            sp.I:
+                sym.I,
+            sp.nan:
+                sym.nan,
+            sp.true:
+                sym.true,
+            sp.false:
+                sym.false,
+            # Zero, one, negative one, and 1/2 are all specific types in sympy.
+            sp.Integer(0):
+                sym.zero,
+            sp.Integer(1):
+                sym.one,
+            sp.Integer(-1):
+                sym.integer(-1),
+            sp.Rational(1, 2):
+                sym.rational(1, 2),
         }
         self.type_map = {
             sp.Pow: sym.pow,
@@ -63,6 +74,9 @@ class Conversions:
             sp.Mul: self.convert_mul,
             sp.Symbol: self.convert_symbol,
             sp.Piecewise: self.convert_piecewise,
+            sp.Min: self.convert_min,
+            sp.Max: self.convert_max,
+            sp.Heaviside: self.convert_heaviside,
             sp.Integer: lambda x: sym.integer(int(x)),
             sp.Float: lambda x: sym.float(float(x)),
             sp.Rational: lambda x: sym.rational(n=x.numerator, d=x.denominator),
@@ -78,7 +92,8 @@ class Conversions:
     def convert_mul(self, expr) -> sym.Expr:
         return sym.multiplication([self(x) for x in expr.args])
 
-    def convert_symbol(self, expr) -> sym.Expr:
+    @staticmethod
+    def convert_symbol(expr) -> sym.Expr:
         """
         Convert a symbolic variable.
 
@@ -118,6 +133,25 @@ class Conversions:
         for (val, cond) in reversed(expr.args[:-1]):
             output = sym.where(self(cond), self(val), output)
         return output
+
+    def convert_min(self, expr) -> sym.Expr:
+        if len(expr.args) != 2:
+            # TODO: Implement min/max with a variable number of arguments.
+            raise RuntimeError("More than 2 args to min(...) is not supported yet.")
+        return sym.min(self(expr.args[0]), self(expr.args[1]))
+
+    def convert_max(self, expr) -> sym.Expr:
+        if len(expr.args) != 2:
+            raise RuntimeError("More than 2 args to max(...) is not supported yet.")
+        return sym.max(self(expr.args[0]), self(expr.args[1]))
+
+    def convert_heaviside(self, expr) -> sym.Expr:
+        """
+        Convert `Heaviside` expresion. SymPy heaviside specifies a value at x = 0, so
+        we need to use two conditionals here to match it.
+        """
+        x, zero_val = self(expr.args[0]), self(expr.args[1])
+        return sym.where(x > 0, 1, sym.where(x < 0, -1, zero_val))
 
     def __call__(self, expr: T.Any) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
         """
