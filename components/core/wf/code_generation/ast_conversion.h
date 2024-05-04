@@ -11,27 +11,9 @@
 #include "wf/code_generation/ir_block.h"
 
 namespace wf {
-// Forwar declare.
+// Forward declare.
 class control_flow_graph;
-
-// Different categories of operations we count in order to generate summaries for the user.
-enum class operation_count_label {
-  add,
-  branch,
-  call,
-  compare,
-  divide,
-  multiply,
-  negate,
-};
-
-template <>
-struct hash_struct<operation_count_label> {
-  constexpr std::size_t operator()(operation_count_label enum_value) const noexcept {
-    return static_cast<std::size_t>(enum_value);
-  }
-};
-
+class operation_counts;
 }  // namespace wf
 
 namespace wf::ast {
@@ -46,7 +28,8 @@ class ast_form_visitor {
         signature_{description.name(), description.return_value_type(), description.arguments()} {}
 
   // Convert a function, starting from `block`.
-  ast::function_definition convert_function(ir::const_block_ptr block);
+  ast::function_definition convert_function(ir::const_block_ptr block,
+                                            const operation_counts& counts);
 
  private:
   // Sort and move all the provided assignments into `operations_`.
@@ -124,9 +107,6 @@ class ast_form_visitor {
   static ast::ast_element make_field_access_sequence(ast::ast_element prev, const custom_type& c,
                                                      std::size_t element_index);
 
-  // Format a comment describing the total number of operations in each category.
-  ast::ast_element format_operation_count_comment() const;
-
   std::size_t value_width_;
   function_signature signature_;
 
@@ -135,10 +115,6 @@ class ast_form_visitor {
 
   // Blocks we can't process yet (pending processing of all their ancestors).
   std::unordered_set<ir::const_block_ptr> non_traversable_blocks_;
-
-  // Operation counts
-  std::unordered_map<operation_count_label, std::size_t, hash_struct<operation_count_label>>
-      operation_counts_{};
 };
 
 // Create function_definition from the intermediate representation:

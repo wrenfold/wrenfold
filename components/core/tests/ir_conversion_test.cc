@@ -311,6 +311,12 @@ TEST(IrTest, TestConditionals2) {
   ASSERT_EQ(8, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
+
+  const operation_counts counts = output_ir.compute_operation_counts();
+  ASSERT_EQ(1, counts[operation_count_label::add]);
+  ASSERT_EQ(1, counts[operation_count_label::branch]);
+  ASSERT_EQ(1, counts[operation_count_label::call]);
+  ASSERT_EQ(1, counts[operation_count_label::compare]);
 }
 
 TEST(IrTest, TestConditionals3) {
