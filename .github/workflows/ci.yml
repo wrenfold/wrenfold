@@ -110,7 +110,7 @@ jobs:
         run: ctest --output-on-failure
 
       - name: Install rust
-        run: rustup toolchain install stable --profile minimal
+        run: rustup toolchain install 1.77 --profile minimal
 
       - name: Dump rustc version
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
