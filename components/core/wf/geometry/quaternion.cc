@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/geometry/quaternion.h"
 
+#include "wf/expression.h"
 #include "wf/expressions/matrix.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
@@ -134,21 +135,39 @@ std::tuple<scalar_expr, matrix_expr> quaternion::to_angle_axis(
   }
 }
 
-matrix_expr quaternion::to_rotation_vector(const std::optional<scalar_expr>& epsilon) const {
-  // The vector part norm is equal to sin(angle / 2)
-  const scalar_expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
-  const scalar_expr half_angle = atan2(vector_norm, w());
-  const scalar_expr angle_over_norm = (half_angle * 2) / vector_norm;
+matrix_expr quaternion::to_rotation_vector(const std::optional<scalar_expr>& epsilon,
+                                           const bool use_atan2) const {
+  if (use_atan2) {
+    // The vector part norm is equal to sin(angle / 2)
+    const scalar_expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
+    const scalar_expr half_angle = atan2(vector_norm, w());
+    const scalar_expr angle_over_norm = (half_angle * 2) / vector_norm;
 
-  if (epsilon) {
-    // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
-    // It is linearized about q = identity.
-    const boolean_expr condition = vector_norm > *epsilon;
-    return make_vector(where(condition, angle_over_norm * x(), 2 * x()),
-                       where(condition, angle_over_norm * y(), 2 * y()),
-                       where(condition, angle_over_norm * z(), 2 * z()));
+    if (epsilon) {
+      // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
+      // It is linearized about q = identity.
+      const scalar_expr scale = where(vector_norm > *epsilon, angle_over_norm, 2);
+      return make_vector(scale * x(), scale * y(), scale * z());
+    } else {
+      return make_vector(angle_over_norm * x(), angle_over_norm * y(), angle_over_norm * z());
+    }
   } else {
-    return make_vector(angle_over_norm * x(), angle_over_norm * y(), angle_over_norm * z());
+    // Flip all components so that w is positive:
+    const scalar_expr sign = where(w() >= 0, 1, -1);
+    const scalar_expr w_pos = min(w() * sign, 1);
+    const scalar_expr x_pos = x() * sign;
+    const scalar_expr y_pos = y() * sign;
+    const scalar_expr z_pos = z() * sign;
+    const scalar_expr vec_norm = sqrt(1 - w_pos * w_pos);
+    const scalar_expr scale = 2 * acos(w_pos) / vec_norm;
+
+    if (epsilon) {
+      // Small angle approximation: limit[x->0] 2*acos(x) / (1 - x^2) = 2
+      const scalar_expr scale_safe = where(vec_norm > *epsilon, scale, 2);
+      return make_vector(scale_safe * x_pos, scale_safe * y_pos, scale_safe * z_pos);
+    } else {
+      return make_vector(scale * x_pos, scale * y_pos, scale * z_pos);
+    }
   }
 }
 

@@ -157,7 +157,8 @@ void wrap_geometry_operations(py::module_& m) {
       .def("to_angle_axis", &quaternion::to_angle_axis, py::arg("epsilon") = constants::zero,
            docstrings::quaternion_to_angle_axis.data())
       .def("to_rotation_vector", &quaternion::to_rotation_vector,
-           py::arg("epsilon") = constants::zero, docstrings::quaternion_to_rotation_vector.data())
+           py::arg("epsilon") = constants::zero, py::arg("use_atan2") = true,
+           docstrings::quaternion_to_rotation_vector.data())
       .def_static("from_rotation_matrix", &quaternion::from_rotation_matrix, py::arg("R"),
                   docstrings::quaternion_from_rotation_matrix.data())
       .def("right_retract_derivative", &quaternion::right_retract_derivative,

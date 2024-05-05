@@ -19,7 +19,7 @@ using namespace wf::custom_literals;
   static_cast<std::complex<double> (*)(const std::complex<double>& x)>(&func)
 
 template <typename Callable>
-std::optional<scalar_expr> operate_on_float(const scalar_expr& arg, Callable&& method) {
+std::optional<scalar_expr> operate_on_float(const scalar_expr& arg, Callable method) {
   if (const auto c = complex_cast(arg); c.has_value()) {
     const std::complex<double> result = method(*c);
     if (result.imag() == 0.0) {
@@ -221,7 +221,18 @@ scalar_expr acos(const scalar_expr& arg) {
   } else if (is_undefined(arg) || is_complex_infinity(arg)) {
     return constants::undefined;
   }
-  if (std::optional<scalar_expr> result = operate_on_float(arg, CAST_COMPLEX_FUNC(std::acos));
+  if (std::optional<scalar_expr> result =
+          operate_on_float(arg,
+                           [](const std::complex<double>& c) -> std::complex<double> {
+                             if (c.imag() != 0.0 || std::abs(c.real()) > 1.0) {
+                               return std::acos(c);
+                             } else {
+                               // Workaround for AppleClang15. It looks like acos of complex
+                               // produces slightly imaginary results, even if the input is a real
+                               // number less than one.
+                               return std::acos(c.real());
+                             }
+                           });
       result.has_value()) {
     return *std::move(result);
   }
@@ -470,7 +481,8 @@ scalar_expr abs(const scalar_expr& arg) {
   if (std::optional<scalar_expr> result =
           operate_on_float(arg,
                            [](const std::complex<double>& c) {
-                             // operate_on_float will simplify this...
+                             // operate_on_float will simplify
+                             // this...
                              return std::complex<double>{std::abs(c), 0.0};
                            });
       result.has_value()) {

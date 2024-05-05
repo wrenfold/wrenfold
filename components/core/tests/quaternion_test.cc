@@ -277,6 +277,11 @@ auto get_angle_axis_test_pairs() {
   constexpr int num_angles = 10;
   auto pseudo_random_pairs = generate_angle_axis_test_pairs(num_vectors, num_angles);
   test_pairs.insert(test_pairs.end(), pseudo_random_pairs.begin(), pseudo_random_pairs.end());
+
+  // Insert some small angle versions:
+  for (const auto& [angle, axis] : pseudo_random_pairs) {
+    test_pairs.emplace_back(angle * 1.0e-18, axis);
+  }
   return test_pairs;
 }
 
@@ -451,7 +456,21 @@ TEST(QuaternionTest, TestToRotationVector) {
                                           .subs(y, angle_num * axis_num.y())
                                           .subs(z, angle_num * axis_num.z())
                                           .eval());
-    EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-15)
+    EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-15 * std::abs(angle_num))
+        << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
+  }
+
+  // Check the alternative formulation:
+  const auto w_num_acos =
+      quaternion::from_rotation_vector(x, y, z, 0).to_rotation_vector(1.0e-16, false);
+
+  for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
+    const Eigen::Vector3d axis_recovered_num =
+        eigen_matrix_from_matrix_expr(w_num_acos.subs(x, angle_num * axis_num.x())
+                                          .subs(y, angle_num * axis_num.y())
+                                          .subs(z, angle_num * axis_num.z())
+                                          .eval());
+    EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-14 * std::abs(angle_num))
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
 }
