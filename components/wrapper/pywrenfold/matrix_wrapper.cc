@@ -9,6 +9,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "wf/cse.h"
 #include "wf/expression.h"
 #include "wf/expressions/matrix.h"
 #include "wf/expressions/numeric_expressions.h"
@@ -515,6 +516,17 @@ void wrap_matrix_operations(py::module_& m) {
                                      : non_differentiable_behavior::constant);
       },
       "functions"_a, "vars"_a, py::arg("use_abstract") = false, docstrings::jacobian.data());
+
+  m.def(
+      "eliminate_subexpressions",
+      [](const matrix_expr& expr,
+         std::optional<std::function<scalar_expr(std::size_t)>> make_variable,
+         const std::size_t min_occurences) {
+        return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
+                                        min_occurences);
+      },
+      "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2,
+      py::return_value_policy::take_ownership);
 }
 
 }  // namespace wf

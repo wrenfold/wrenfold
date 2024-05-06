@@ -354,8 +354,8 @@ static substitute_variables_visitor create_subs_visitor(
   return visitor;
 }
 
-scalar_expr substitute_variables(const scalar_expr& input,
-                                 absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) {
+scalar_expr substitute_variables(
+    const scalar_expr& input, const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) {
   return create_subs_visitor(pairs)(input);
 }
 

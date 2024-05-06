@@ -2,6 +2,7 @@
 add_library(
   wf_core STATIC
   wf/algorithm_utils.h
+  wf/any_expression.h
   wf/assertions.h
   wf/boolean_expression.cc
   wf/boolean_expression.h
@@ -47,6 +48,8 @@ add_library(
   wf/compound_expression.h
   wf/constants.cc
   wf/constants.h
+  wf/cse.cc
+  wf/cse.h
   wf/derivative.cc
   wf/derivative.h
   wf/distribute.cc

@@ -3,12 +3,11 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
 
-#include "wf/boolean_expression.h"
-#include "wf/compound_expression.h"
-#include "wf/expression.h"
-#include "wf/matrix_expression.h"
+#include "wf/any_expression.h"
+#include "wf/type_list.h"
 
 namespace wf {
 
@@ -18,6 +17,7 @@ namespace wf {
 struct output_is_input_t {};
 
 namespace detail {
+
 template <typename Key, typename Value>
 struct cache_map_type {
   using type =
@@ -25,10 +25,53 @@ struct cache_map_type {
                          std::conditional_t<std::is_same_v<Value, output_is_input_t>, Key, Value>,
                          hash_struct<Key>, is_identical_struct<Key>>;
 };
+
 template <typename Key, typename Value>
 using cache_map_type_t = typename cache_map_type<Key, Value>::type;
 
 }  // namespace detail
+
+struct reserve_hint {
+  constexpr explicit reserve_hint(std::size_t v) noexcept : value(v) {}
+  std::size_t value;
+};
+
+// Store a tuple of maps - one per type of expression that we support. Maps can be retrieved by
+// their key type.
+template <template <typename> class Map>
+class expression_map_tuple {
+ public:
+  // All the different expressiont types.
+  using expression_types_list = type_list_from_variant_t<any_expression>;
+
+  // The type we will store, a tuple of maps.
+  using tuple_type = tuple_from_type_list_t<type_list_map_t<Map, expression_types_list>>;
+
+  expression_map_tuple() noexcept = default;
+
+  // Construct and reserve space in maps.
+  explicit expression_map_tuple(const reserve_hint hint) {
+    std::apply([hint](auto&... maps) { (maps.reserve(hint.value), ...); }, storage_);
+  }
+
+  // Get the map for the specified type.
+  template <typename T, typename = enable_if_contains_type_t<T, expression_types_list>>
+  constexpr auto& get() noexcept {
+    return std::get<type_list_index_v<T, expression_types_list>>(storage_);
+  }
+
+  // Get the map for the specified type, const version.
+  template <typename T, typename = enable_if_contains_type_t<T, expression_types_list>>
+  constexpr const auto& get() const noexcept {
+    return std::get<type_list_index_v<T, expression_types_list>>(storage_);
+  }
+
+  // Get the underlying tuple.
+  constexpr const tuple_type& storage() const noexcept { return storage_; }
+
+ private:
+  tuple_type storage_;
+};
 
 // Store a tuple of maps. There is one element in the tuple for every expression type.
 template <typename OutputType = output_is_input_t>
@@ -36,6 +79,7 @@ class expression_cache {
  private:
   // Determine the value types we keep in the cache.
   using expression_type_list = type_list<scalar_expr, boolean_expr, matrix_expr, compound_expr>;
+
   template <typename Key>
   using map_type_t = detail::cache_map_type_t<Key, OutputType>;
   using tuple_type = tuple_from_type_list_t<type_list_map_t<map_type_t, expression_type_list>>;

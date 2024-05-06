@@ -11,6 +11,7 @@
 #include <pybind11/stl.h>
 
 #include "wf/constants.h"
+#include "wf/cse.h"
 #include "wf/expression.h"
 #include "wf/expressions/addition.h"
 #include "wf/expressions/multiplication.h"
@@ -260,6 +261,17 @@ void wrap_scalar_operations(py::module_& m) {
         "a"_a, "b"_a, docstrings::equal.data());
 
   m.def("iverson", &wf::iverson, "arg"_a, docstrings::iverson.data());
+
+  m.def(
+      "eliminate_subexpressions",
+      [](const scalar_expr& expr,
+         std::optional<std::function<scalar_expr(std::size_t)>> make_variable,
+         const std::size_t min_occurences) {
+        return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
+                                        min_occurences);
+      },
+      "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2,
+      py::return_value_policy::take_ownership);
 
   // Special constants:
   m.attr("E") = constants::euler;
