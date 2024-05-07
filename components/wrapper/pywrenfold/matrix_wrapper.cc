@@ -521,9 +521,9 @@ void wrap_matrix_operations(py::module_& m) {
       "eliminate_subexpressions",
       [](const matrix_expr& expr,
          std::optional<std::function<scalar_expr(std::size_t)>> make_variable,
-         const std::size_t min_occurences) {
+         const std::size_t min_occurrences) {
         return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
-                                        min_occurences);
+                                        min_occurrences);
       },
       "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2,
       py::return_value_policy::take_ownership);

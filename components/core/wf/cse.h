@@ -70,11 +70,11 @@ class cse_visitor {
 // Eliminate sub-expressions in a scalar-valued expression.
 std::tuple<scalar_expr, std::vector<std::tuple<scalar_expr, scalar_expr>>> eliminate_subexpressions(
     const scalar_expr& expr, std::function<scalar_expr(std::size_t)> make_variable,
-    std::size_t min_occurences);
+    std::size_t min_occurrences);
 
 // Eliminate sub-expressions in a matrix-valued expression.
 std::tuple<matrix_expr, std::vector<std::tuple<scalar_expr, scalar_expr>>> eliminate_subexpressions(
     const matrix_expr& expr, std::function<scalar_expr(std::size_t)> make_variable,
-    std::size_t min_occurences);
+    std::size_t min_occurrences);
 
 }  // namespace wf

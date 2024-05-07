@@ -112,25 +112,25 @@ any_expression cse_visitor::operator()(const any_expression& expr) {
 
 template <typename T>
 auto cse(const T& expr, std::function<scalar_expr(std::size_t)> make_variable,
-         const std::size_t min_occurences) {
+         const std::size_t min_occurrences) {
   counter_visitor counter{};
   visit(expr, counter);
 
-  cse_visitor cse{counter, std::move(make_variable), min_occurences};
+  cse_visitor cse{counter, std::move(make_variable), min_occurrences};
   T expr_out = visit(expr, cse);
   return std::make_tuple(std::move(expr_out), std::move(cse).take_replacements());
 }
 
 std::tuple<scalar_expr, std::vector<std::tuple<scalar_expr, scalar_expr>>> eliminate_subexpressions(
     const scalar_expr& expr, std::function<scalar_expr(std::size_t)> make_variable,
-    const std::size_t min_occurences) {
-  return cse(expr, std::move(make_variable), min_occurences);
+    const std::size_t min_occurrences) {
+  return cse(expr, std::move(make_variable), min_occurrences);
 }
 
 std::tuple<matrix_expr, std::vector<std::tuple<scalar_expr, scalar_expr>>> eliminate_subexpressions(
     const matrix_expr& expr, std::function<scalar_expr(std::size_t)> make_variable,
-    const std::size_t min_occurences) {
-  return cse(expr, std::move(make_variable), min_occurences);
+    const std::size_t min_occurrences) {
+  return cse(expr, std::move(make_variable), min_occurrences);
 }
 
 }  // namespace wf

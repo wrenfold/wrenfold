@@ -99,4 +99,15 @@ TEST(CseVisitorTest, Test5) {
   ASSERT_IDENTICAL(v, apply_substitutions(output, replacements));
 }
 
+TEST(CseVisitorTest, Test6) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  // There are no replacements, everything appears as part of one expression:
+  const scalar_expr f = cos(x) * cos(x) + y;
+
+  const auto [output, replacements] = eliminate_subexpressions(f, make_var, 2);
+  check_replacements({}, replacements);
+  ASSERT_IDENTICAL(f, apply_substitutions(output, replacements));
+}
+
 }  // namespace wf

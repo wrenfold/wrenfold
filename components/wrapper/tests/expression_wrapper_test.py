@@ -330,6 +330,29 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual(complex(1, 2), (1 + sym.I * 2).eval())
         self.assertEqual(complex(0.23, 0.5), (x + sym.I * y).subs(x, 0.23).subs(y, 0.5).eval())
 
+    def test_cse(self):
+        """Test calling eliminate_subexpressions()."""
+        x, y = sym.symbols('x, y')
+
+        def var(idx: int, letter: str = 'v'):
+            return sym.symbols(f'{letter}{idx}')
+
+        f1 = sym.cos(x) * sym.cos(x) + y * sym.cos(x)
+        f1_cse, replacements = sym.eliminate_subexpressions(f1, None, 2)
+
+        v0 = var(0)
+        self.assertIdentical(v0 ** 2 + y * v0, f1_cse)
+        self.assertEqual(1, len(replacements))
+        self.assertSequenceEqual([(v0, sym.cos(x))], replacements)
+
+        f2 = sym.abs(y * 2) + sym.cos(y * 2) / x - 5 / x
+        f2_cse, replacements = sym.eliminate_subexpressions(f2, lambda idx: var(idx, 'u'))
+
+        u0, u1 = var(0, 'u'), var(1, 'u')
+        self.assertIdentical(sym.abs(u0) + sym.cos(u0) * u1 - 5 * u1, f2_cse)
+        self.assertEqual(2, len(replacements))
+        self.assertSequenceEqual([(u0, y * 2), (u1, 1 / x)], replacements)
+
     def test_integer_exceptions(self):
         """
         Test that arithmetic exceptions propagate into python.
