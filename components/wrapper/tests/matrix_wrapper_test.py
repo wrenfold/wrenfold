@@ -448,6 +448,21 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(a * d - b * c, M.det())
         self.assertIdentical(M.det(), sym.det(M))
 
+    def test_cse(self):
+        """Test calling `eliminate_subexpressions()` on matrix."""
+        x, y = sym.symbols('x, y')
+
+        def var(idx: int, letter: str = 'v'):
+            return sym.symbols(f'{letter}{idx}')
+
+        m1 = sym.vector(sym.cos(x * y) - sym.sin(x * y), 3 / sym.sin(x * y), 22 + x)
+        m1_cse, replacements = sym.eliminate_subexpressions(m1)
+
+        v0 = var(0)
+        v1 = var(1)
+        self.assertIdentical(sym.vector(sym.cos(v0) - v1, 3 / v1, 22 + x), m1_cse)
+        self.assertSequenceEqual([(v0, x * y), (v1, sym.sin(v0))], replacements)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

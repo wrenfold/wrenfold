@@ -55,16 +55,12 @@ class ir_form_visitor {
   ir::value_ptr operator()(const undefined&) const;
   ir::value_ptr operator()(const variable& var);
 
-  ir::value_ptr operator()(const compound_expr& expr);
-  ir::value_ptr operator()(const matrix_expr& expr);
-  ir::value_ptr operator()(const scalar_expr& expr);
-  ir::value_ptr operator()(const boolean_expr& expr);
+  // Apply to any expression.
+  template <typename T, typename = enable_if_inherits_expression_base_t<T>>
+  ir::value_ptr operator()(const T& expr);
 
   // Compute the value for the specified expression. If required, cast it to the output type.
-  ir::value_ptr apply_output_value(const scalar_expr& expr,
-                                   const code_numeric_type desired_output_type) {
-    return maybe_cast(operator()(expr), desired_output_type);
-  }
+  ir::value_ptr apply_output_value(const scalar_expr& expr, code_numeric_type desired_output_type);
 
  private:
   template <typename OpType, typename Type, typename... Args>
@@ -86,9 +82,13 @@ class ir_form_visitor {
   control_flow_graph& output_graph_;
   ir::block_ptr output_block_;
 
+  template <typename T>
+  using cache_map_type =
+      std::unordered_map<T, ir::value_ptr, hash_struct<T>, is_identical_struct<T>>;
+
   // Map of expression -> IR value. We catch duplicates as we create the IR code, which greatly
   // speeds up manipulation of the code later.
-  wf::expression_cache<ir::value_ptr> cache_;
+  wf::expression_map_tuple<cache_map_type> cache_;
 
   // Hash tuple of [value, type]
   struct hash_value_and_type {
@@ -119,6 +119,7 @@ class ir_form_visitor {
 // Count incidences of unique multiplications and additions.
 // We use the count during conversion to IR in order to select the order of operations for additions
 // and multiplications.
+// TODO: Nuke me soon.
 struct mul_add_count_visitor {
   mul_add_count_visitor();
 
@@ -138,13 +139,20 @@ struct mul_add_count_visitor {
   operation_term_counts take_counts() &&;
 
  private:
+  // Visit if not visited.
+  template <typename T>
+  void maybe_visit(const T& expr);
+
   // A map of all expressions that appear as terms in an addition or multiplication.
   // The key is the term, and the value is a count of inbound edges.
   operation_term_counts::count_container adds_{};
   operation_term_counts::count_container muls_{};
 
+  template <typename T>
+  using set_type = std::unordered_set<T, hash_struct<T>, is_identical_struct<T>>;
+
   // Track which nodes we have already visited, so that we do not double count repeated operations.
-  wf::expression_cache<bool> visited_;
+  expression_map_tuple<set_type> visited_;
 };
 
 }  // namespace wf

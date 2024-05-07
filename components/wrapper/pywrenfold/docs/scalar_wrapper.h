@@ -691,4 +691,32 @@ Examples:
   1
 )doc";
 
+inline constexpr std::string_view eliminate_subexpressions = R"doc(
+Extract common subexpressions from a scalar-valued expression. The expression tree is traversed and
+unique expressions are counted. Those that appear ``min_occurrences`` or more times are replaced
+with a variable.
+
+This is *not* the same algorithm used during code-generation. Rather, it is a simplified version
+that pulls out atomic expressions. Additions and multiplications will not be broken down into
+smaller pieces in order to reduce the operation count. The intended use case is to allow a human to
+more easily inspect a complex nested expression by breaking it into pieces.
+
+Args:
+  expr: The expression to operate on.
+  make_variable: A callable that accepts an integer indicating the index of the next variable. It
+    should return an appropriately named variable expression. By default, the names
+    ``v0, v1, ..., v{N}`` will be used.
+  min_occurrences: The number of times an expression must appear as part of a unique parent in order
+    to be extracted.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> f = sym.cos(x * y) - sym.sin(x * y) + 5 * sym.abs(sym.cos(x * y))
+  >>> g, replacements = sym.eliminate_subexpressions(f)
+  >>> replacements
+  [(v0, x*y), (v1, cos(v0))]
+  >>> g
+  v1 + 5*abs(v1) - sin(v0)
+)doc";
+
 }  // namespace wf::docstrings

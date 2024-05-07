@@ -5,21 +5,11 @@
 #include <memory>
 #include <vector>
 
+#include "wf/any_expression.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/code_generation/types.h"
 
 namespace wf {
-
-// Variant of possible expression types.
-// TODO: This should be declared somewhere more general.
-using any_expression = std::variant<scalar_expr, matrix_expr, compound_expr, boolean_expr>;
-
-template <>
-struct hash_struct<any_expression> : hash_variant<any_expression> {};
-template <>
-struct is_identical_struct<any_expression> : is_identical_variant<any_expression> {};
-template <>
-struct order_struct<any_expression> : order_variant<any_expression> {};
 
 // A user-defined function. External functions are opaque to the library - we know their signature,
 // but nothing about the internal operation. The user is responsible for mapping this object to some

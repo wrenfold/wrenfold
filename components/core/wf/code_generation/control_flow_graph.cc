@@ -179,7 +179,7 @@ class sort_expression_order_visitor {
   }
 
  private:
-  expression_cache<> cache_;
+  expression_cache cache_;
 };
 
 // We pass `groups` by copy so we can replace the expressions with sorted versions below:

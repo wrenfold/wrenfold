@@ -19,13 +19,14 @@ ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph, operation_ter
 ir::value_ptr ir_form_visitor::operator()(const addition& add, const scalar_expr& add_abstract) {
   // For additions, first check if the negated version has already been cached:
   const scalar_expr negative_add = -add_abstract;
-  if (const std::optional<ir::value_ptr> maybe_cached = cache_.find(negative_add);
-      maybe_cached.has_value()) {
+
+  auto& map = cache_.get<scalar_expr>();
+  if (const auto maybe_cached = map.find(negative_add); maybe_cached != map.end()) {
     const auto promoted_type =
-        std::max(maybe_cached.value()->numeric_type(), code_numeric_type::integral);
+        std::max(maybe_cached->second->numeric_type(), code_numeric_type::integral);
     const ir::value_ptr negative_one =
         maybe_cast(operator()(constants::negative_one), promoted_type);
-    return push_operation(ir::mul{}, promoted_type, *maybe_cached, negative_one);
+    return push_operation(ir::mul{}, promoted_type, maybe_cached->second, negative_one);
   }
   return convert_addition_or_multiplication(add);
 }
@@ -330,20 +331,20 @@ ir::value_ptr ir_form_visitor::operator()(const variable& var) {
   return push_operation(ir::load{var}, code_numeric_type::floating_point);
 }
 
-ir::value_ptr ir_form_visitor::operator()(const compound_expr& expr) {
-  return cache_.get_or_insert(expr, [this](const compound_expr& x) { return visit(x, *this); });
+template <typename T, typename>
+ir::value_ptr ir_form_visitor::operator()(const T& expr) {
+  auto& map = cache_.get<T>();
+  if (auto it = map.find(expr); it != map.end()) {
+    return it->second;
+  } else {
+    const auto [insertion_it, _] = map.emplace(expr, visit(expr, *this));
+    return insertion_it->second;
+  }
 }
 
-ir::value_ptr ir_form_visitor::operator()(const matrix_expr& expr) {
-  return cache_.get_or_insert(expr, [this](const matrix_expr& x) { return visit(x, *this); });
-}
-
-ir::value_ptr ir_form_visitor::operator()(const scalar_expr& expr) {
-  return cache_.get_or_insert(expr, [this](const scalar_expr& x) { return visit(x, *this); });
-}
-
-ir::value_ptr ir_form_visitor::operator()(const boolean_expr& expr) {
-  return cache_.get_or_insert(expr, [this](const boolean_expr& x) { return visit(x, *this); });
+ir::value_ptr ir_form_visitor::apply_output_value(const scalar_expr& expr,
+                                                  const code_numeric_type desired_output_type) {
+  return maybe_cast(operator()(expr), desired_output_type);
 }
 
 template <typename OpType, typename Type, typename... Args>
@@ -477,22 +478,25 @@ void mul_add_count_visitor::operator()(const T& concrete) {
     if constexpr (std::is_same_v<T, compound_expression_element>) {
       operator()(concrete.provenance());
     } else {
-      auto visit_with_this = [this](const auto& x) {
-        visit(x, *this);
-        return true;
-      };
-
       // Recurse:
       if constexpr (std::is_same_v<T, conditional>) {
-        visited_.get_or_insert(concrete.condition(), visit_with_this);
-        visited_.get_or_insert(concrete.if_branch(), visit_with_this);
-        visited_.get_or_insert(concrete.else_branch(), visit_with_this);
+        maybe_visit(concrete.condition());
+        maybe_visit(concrete.if_branch());
+        maybe_visit(concrete.else_branch());
       } else {
         for (const auto& child : concrete) {
-          visited_.get_or_insert(child, visit_with_this);
+          maybe_visit(child);
         }
       }
     }
+  }
+}
+
+template <typename T>
+void mul_add_count_visitor::maybe_visit(const T& expr) {
+  if (auto& visited_set = visited_.get<T>(); !visited_set.count(expr)) {
+    visit(expr, *this);
+    visited_set.insert(expr);
   }
 }
 
