@@ -525,7 +525,7 @@ void wrap_matrix_operations(py::module_& m) {
         return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
                                         min_occurrences);
       },
-      "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2,
+      "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2, "Matrix-valued overload.",
       py::return_value_policy::take_ownership);
 }
 

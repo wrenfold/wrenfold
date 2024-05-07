@@ -4,7 +4,7 @@
 #include "wf/code_generation/declare_external_function.h"
 #include "wf/compound_expression.h"
 #include "wf/constants.h"
-#include "wf/expressions/custom_type_expressions.h"
+#include "wf/cse.h"
 #include "wf/expressions/derivative_expression.h"
 #include "wf/functions.h"
 #include "wf/type_annotations.h"
@@ -186,6 +186,22 @@ TEST(CompoundExpressionTest, TestCollectAndDistribute) {
   ASSERT_IDENTICAL(test_func_3::call(make_matrix(2, 1, a * (b + log(b) - 1), a * a * (cos(b) + b))),
                    f3.collect(a));
   ASSERT_IDENTICAL(f3, f3.collect(a).distribute());
+}
+
+TEST(CompoundExpressionTest, TestCse) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  // Test that we can CSE scalar-valued expressions through a compound expression.
+  const test_type f1 = test_func_1::call(abs(x * y), cos(x * y) * 5);
+  const scalar_expr f2 = test_func_2::call(f1) + log(test_func_2::call(f1) / 2);
+
+  const auto [f2_cse, replacements] = eliminate_subexpressions(f2, nullptr, 2);
+
+  const scalar_expr v0{"v0"};
+  ASSERT_EQ(2, replacements.size());
+  ASSERT_IDENTICAL(x * y, std::get<1>(replacements[0]));
+  ASSERT_IDENTICAL(test_func_2::call(test_func_1::call(abs(v0), cos(v0) * 5)),
+                   std::get<1>(replacements[1]));
 }
 
 }  // namespace wf

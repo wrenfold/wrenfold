@@ -272,7 +272,7 @@ void wrap_scalar_operations(py::module_& m) {
                                         min_occurrences);
       },
       "expr"_a, "make_variable"_a = py::none(), "min_occurrences"_a = 2,
-      py::return_value_policy::take_ownership);
+      docstrings::eliminate_subexpressions.data(), py::return_value_policy::take_ownership);
 
   // Special constants:
   m.attr("E") = constants::euler;

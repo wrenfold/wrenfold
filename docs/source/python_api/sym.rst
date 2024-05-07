@@ -27,6 +27,8 @@ sym
 
 .. autofunction:: wrenfold.sym.diag
 
+.. autofunction:: wrenfold.sym.eliminate_subexpressions
+
 .. autofunction:: wrenfold.sym.eq
 
 .. autofunction:: wrenfold.sym.eye
