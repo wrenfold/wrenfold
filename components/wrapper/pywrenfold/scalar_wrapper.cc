@@ -5,7 +5,7 @@
 #include <vector>
 
 #define PYBIND11_DETAILED_ERROR_MESSAGES
-#include <pybind11/complex.h>     //  Used for std::complex conversion.
+#include <pybind11/complex.h>     // Used for std::complex conversion.
 #include <pybind11/functional.h>  // Used for std::function.
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>

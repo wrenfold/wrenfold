@@ -45,7 +45,7 @@ class distribute_visitor {
   template <typename Container>
   scalar_expr distribute_multiplied_terms(const Container& multiplied_terms);
 
-  wf::expression_cache<> cache_;
+  wf::expression_cache cache_;
 };
 
 }  // namespace wf

@@ -3,7 +3,6 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include <tuple>
-#include <type_traits>
 #include <unordered_map>
 
 #include "wf/any_expression.h"
@@ -11,28 +10,14 @@
 
 namespace wf {
 
-// When specified as the `OutputType` of the cache, the value type of each map in the cache will
-// match its key. This is so we can map `scalar_expr --> scalar_expr`, `boolean_expr -->
-// boolean_expr`, etc.
-struct output_is_input_t {};
-
-namespace detail {
-
-template <typename Key, typename Value>
-struct cache_map_type {
-  using type =
-      std::unordered_map<Key,
-                         std::conditional_t<std::is_same_v<Value, output_is_input_t>, Key, Value>,
-                         hash_struct<Key>, is_identical_struct<Key>>;
+struct reserve_hint {
+  constexpr explicit reserve_hint(const std::size_t v) noexcept : value(v) {}
+  std::size_t value;
 };
 
-template <typename Key, typename Value>
-using cache_map_type_t = typename cache_map_type<Key, Value>::type;
-
-}  // namespace detail
-
-struct reserve_hint {
-  constexpr explicit reserve_hint(std::size_t v) noexcept : value(v) {}
+template <typename T>
+struct reserve_type_hint {
+  constexpr explicit reserve_type_hint(const std::size_t v) noexcept : value(v) {}
   std::size_t value;
 };
 
@@ -54,6 +39,12 @@ class expression_map_tuple {
     std::apply([hint](auto&... maps) { (maps.reserve(hint.value), ...); }, storage_);
   }
 
+  // Construct and reserve, for one type only.
+  template <typename T>
+  explicit expression_map_tuple(const reserve_type_hint<T> hint) {
+    get<T>().reserve(hint.value);
+  }
+
   // Get the map for the specified type.
   template <typename T, typename = enable_if_contains_type_t<T, expression_types_list>>
   constexpr auto& get() noexcept {
@@ -73,26 +64,24 @@ class expression_map_tuple {
   tuple_type storage_;
 };
 
-// Store a tuple of maps. There is one element in the tuple for every expression type.
-template <typename OutputType = output_is_input_t>
+// Store a tuple of maps: X -> X, where `X` is an expression type like `scalar_expr`.
 class expression_cache {
- private:
-  // Determine the value types we keep in the cache.
-  using expression_type_list = type_list<scalar_expr, boolean_expr, matrix_expr, compound_expr>;
-
-  template <typename Key>
-  using map_type_t = detail::cache_map_type_t<Key, OutputType>;
-  using tuple_type = tuple_from_type_list_t<type_list_map_t<map_type_t, expression_type_list>>;
-
  public:
-  expression_cache() { std::get<0>(storage_).reserve(50); }
+  expression_cache() noexcept = default;
 
-  // Look-up `expression` in the cache. Return it if it exists, otherwise compute and insert a value
-  // by calling lambda `f`.
+  // Construct and reserve the maps using `hint` to determine the size.
+  explicit expression_cache(const reserve_hint hint) : storage_(hint) {}
+
+  // Construct and reserve, for one type only.
+  template <typename T>
+  explicit expression_cache(const reserve_type_hint<T> hint) : storage_(hint) {}
+
+  // Look-up `expression` in the cache. Return it if it exists, otherwise compute and insert a
+  // value by calling lambda `f`.
   template <typename T, typename F>
   const auto& get_or_insert(const T& expression, F&& f) {
     // Figure out which map type `T` is stored in:
-    auto& map = std::get<type_list_index_v<T, expression_type_list>>(storage_);
+    auto& map = storage_.get<T>();
     if (auto it = map.find(expression); it != map.end()) {
       return it->second;
     }
@@ -100,20 +89,12 @@ class expression_cache {
     return insertion_it->second;
   }
 
-  // Find an element if an exists in the cache, otherwise return nullopt.
-  template <typename T>
-  auto find(const T& expression) const {
-    auto& map = std::get<type_list_index_v<T, expression_type_list>>(storage_);
-    using value_type = typename std::remove_reference_t<decltype(map)>::mapped_type;
-    if (auto it = map.find(expression); it != map.end()) {
-      // TODO: Add a version that does not copy into an optional?
-      return std::optional<value_type>{it->second};
-    }
-    return std::optional<value_type>{std::nullopt};
-  }
-
  private:
-  tuple_type storage_;
+  // TODO: Profile absl_flat_map here.
+  template <typename K>
+  using map_type = std::unordered_map<K, K, hash_struct<K>, is_identical_struct<K>>;
+
+  expression_map_tuple<map_type> storage_;
 };
 
 }  // namespace wf

@@ -61,7 +61,7 @@ class cse_visitor {
   std::size_t min_occurrences_;
 
   // Cache of transformed expression trees.
-  expression_cache<> cache_;
+  expression_cache cache_{};
 
   // Store a tuple of <variable, expression>
   std::vector<std::tuple<scalar_expr, scalar_expr>> replacements_;

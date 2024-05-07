@@ -28,7 +28,7 @@ class evaluate_visitor {
   matrix_expr operator()(const matrix_expr& input);
 
  private:
-  wf::expression_cache<> cache_;
+  expression_cache cache_{};
 };
 
 }  // namespace wf
