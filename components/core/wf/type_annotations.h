@@ -47,10 +47,12 @@ struct static_matrix {
                   "Wrong # of elements passed to matrix constructor.");
   }
 
-  const scalar_expr& operator()(index_t row, index_t col) const { return expr_(row, col); }
+  const scalar_expr& operator()(const index_t row, const index_t col) const {
+    return expr_(row, col);
+  }
 
   // Access vector element.
-  const scalar_expr& operator[](index_t element) const { return expr_[element]; }
+  const scalar_expr& operator[](const index_t element) const { return expr_[element]; }
 
   // Assign from matrix_expr
   static_matrix& operator=(const matrix_expr& other) {
