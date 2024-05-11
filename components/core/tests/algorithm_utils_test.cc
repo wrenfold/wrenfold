@@ -57,6 +57,14 @@ TEST(AlgorithmUtilsTest, TestAnyOf) {
   ASSERT_FALSE(any_of(std::vector<int>(), [](int x) { return x > 0; }));
 }
 
+TEST(AlgorithmUtilsTest, TestContains) {
+  const std::vector<std::string_view> values = {"alea", "iacta", "est"};
+  ASSERT_TRUE(contains(values, "iacta"));
+  ASSERT_TRUE(contains(values, "est"));
+  ASSERT_FALSE(contains(values, "carthago"));
+  ASSERT_FALSE(contains(std::vector<int>{}, 5));
+}
+
 TEST(AlgorithmUtilsTest, TestMapEraseIf) {
   std::unordered_map<int, std::string> map = {
       {1, "chicken"}, {2, "cow"}, {5, "horse"}, {6, "mule"}};

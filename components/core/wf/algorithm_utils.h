@@ -73,6 +73,12 @@ bool any_of(const Container& container, Predicate&& p) {
   return false;
 }
 
+// True if an element is found at least once in a container.
+template <typename Container, typename T>
+bool contains(const Container& container, const T& item) {
+  return any_of(container, [&item](const auto& something) { return something == item; });
+}
+
 // Erase elements from a map-like container if they match predicate `p`.
 // Can be replaced with std::erase_if when switching to c++20:
 // https://en.cppreference.com/w/cpp/container/map/erase_if

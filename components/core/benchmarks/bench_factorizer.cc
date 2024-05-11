@@ -8,7 +8,7 @@
 
 namespace wf {
 
-static void BM_QuaternionInterpolateJacobian(benchmark::State& state) {
+static void BM_Factorizer(benchmark::State& state) {
   const std::vector<std::vector<std::uint32_t>> terms = {
       {5, 6, 7, 8, 0, 14, 3}, {5, 7, 8, 9, 0, 14, 3}, {5, 7, 8, 0, 14, 2, 3},
       {4, 5, 6, 1, 14, 3},    {4, 5, 9, 1, 14, 3},    {4, 5, 1, 14, 2, 3},
@@ -21,7 +21,7 @@ static void BM_QuaternionInterpolateJacobian(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_QuaternionInterpolateJacobian)->Iterations(10000)->Unit(benchmark::kMicrosecond);
+BENCHMARK(BM_Factorizer)->Iterations(10000)->Unit(benchmark::kMicrosecond);
 
 }  // namespace wf
 
