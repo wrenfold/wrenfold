@@ -1,18 +1,19 @@
 """
-Test of code-generation functionality.
+Test the code-generation wrapper.
 
-Most of this logic is actually tested by the python examples, which are executed as tests. This
-test just evaluates that we can call the wrapper methods without crashing.
-
-In future when I add back python code-generation we can import some outputs directly and invoke them.
+Most of the output code generation is tested by cpp_generation_test/rust_generation_test. The
+examples are also run as tests - these offer a lot more diverse coverage. The purpose of this
+test is just to validate that the wrapper works and exposes the correct members.
 """
 import unittest
 import dataclasses
+import typing as T
 
 from wrenfold import ast
 from wrenfold import code_generation
 from wrenfold import external_functions
 from wrenfold import sym
+from wrenfold import type_info
 from wrenfold.code_generation import ReturnValue, OutputArg
 from wrenfold.enumerations import StdMathFunction
 from wrenfold.type_annotations import RealScalar, Vector2, Opaque
@@ -25,13 +26,8 @@ def func1(x: RealScalar, y: RealScalar, v: Vector2):
     return (v.T * v)[0] * x + 5 * x * sym.pow(y, 3.1)
 
 
-def func2(x: RealScalar, y: RealScalar):
-    """Another test function."""
-    return sym.where(x > y / 2, sym.cos(x - y), sym.sin(x + y * 2))
-
-
-def func3(x: Vector2, y: Vector2, z: RealScalar):
-    """Another test function."""
+def func2(x: Vector2, y: Vector2, z: RealScalar):
+    """Another test function with some output args."""
     m = sym.where(z > x[1], (x * y.transpose() + sym.eye(2) * sym.cos(z / x[0])).squared_norm(),
                   z * 5)
     diff_x = sym.vector(m).jacobian(x)
@@ -90,21 +86,144 @@ class CustomCppGenerator(code_generation.CppGenerator):
 
 class CodeGenerationWrapperTest(MathTestBase):
 
-    def test_code_generation(self):
-        descriptions = [
-            code_generation.create_function_description(func1),
-            code_generation.create_function_description(func2),
-            code_generation.create_function_description(func3),
-            code_generation.create_function_description(rotate_point),
-            code_generation.create_function_description(opaque_type_func),
-        ]
-        definitions = code_generation.transpile(descriptions)
+    @staticmethod
+    def _run_generators(definition: T.Union[ast.FunctionDefinition,
+                                            T.Sequence[ast.FunctionDefinition]]):
+        """Run the generators just to make sure we don't hit an assertion."""
+        if isinstance(definition, ast.FunctionDefinition):
+            definition = (definition,)
 
-        generator = CustomCppGenerator()
-        generator.generate(definitions)
+        for d in definition:
+            for generator in [CustomCppGenerator(), code_generation.RustGenerator()]:
+                generator.generate(d)
 
-        generator = code_generation.RustGenerator()
-        generator.generate(definitions)
+    def _check_arg(self, arg: code_generation.Argument, name: str,
+                   t: T.Union[type_info.ScalarType, type_info.MatrixType,
+                              type_info.CustomType], direction: code_generation.ArgumentDirection):
+        self.assertEqual(name, arg.name)
+        self.assertEqual(t, arg.type)
+        self.assertEqual(direction, arg.direction)
+
+    def _test_cse_function_description(self, desc: code_generation.FunctionDescription):
+        """
+        Run compute_output_expressions and validate that we can re-assemble
+        """
+        expected_outputs = desc.output_expressions()
+
+        cse_outputs, intermediate_values = code_generation.cse_function_description(desc)
+
+        for key, expr_list in expected_outputs.items():
+            self.assertTrue(key in cse_outputs)
+            csed_exprs = cse_outputs[key]
+
+            # TODO: This is not efficient, but good enough for this test for now.
+            # subs(...) needs a mode where order is respected to address this.
+            reconstituted_exprs = []
+            for expr in csed_exprs:
+                for var, val in reversed(intermediate_values):
+                    expr = expr.subs_variables([(var, val)])
+                reconstituted_exprs.append(expr)
+
+            for expected, actual in zip(expr_list, reconstituted_exprs):
+                self.assertIdentical(expected, actual)
+
+    def test_func1(self):
+        """Test simple function that returns a scalar."""
+        desc = code_generation.create_function_description(func1)
+        self.assertIsInstance(desc, code_generation.FunctionDescription)
+        self.assertEqual('func1', desc.name)
+
+        definition = code_generation.transpile(desc)
+        self.assertIsInstance(definition, ast.FunctionDefinition)
+        self.assertIsInstance(definition.body, ast.AstVector)
+        self.assertIsInstance(definition.signature, ast.FunctionSignature)
+
+        # Check we can introspect the resulting definition/signature:
+        sig = definition.signature
+        self.assertEqual('func1', sig.name)
+        self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), sig.return_type)
+
+        self._check_arg(sig.arguments[0], 'x', type_info.ScalarType(type_info.NumericType.Float),
+                        code_generation.ArgumentDirection.Input)
+        self._check_arg(sig.arguments[1], 'y', type_info.ScalarType(type_info.NumericType.Float),
+                        code_generation.ArgumentDirection.Input)
+        self._check_arg(sig.arguments[2], 'v', type_info.MatrixType(2, 1),
+                        code_generation.ArgumentDirection.Input)
+
+        self._run_generators(definition)
+        self._test_cse_function_description(desc)
+
+    def test_func2(self):
+        """Test function with optional output arguments."""
+        desc = code_generation.create_function_description(func2)
+        definition = code_generation.transpile(desc)
+        sig = definition.signature
+
+        self.assertEqual('func2', sig.name)
+        self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), sig.return_type)
+
+        self._check_arg(
+            sig.arguments[0],
+            'x',
+            type_info.MatrixType(2, 1),
+            direction=code_generation.ArgumentDirection.Input)
+        self._check_arg(
+            sig.arguments[1],
+            'y',
+            type_info.MatrixType(2, 1),
+            direction=code_generation.ArgumentDirection.Input)
+        self._check_arg(
+            sig.arguments[2],
+            'z',
+            type_info.ScalarType(type_info.NumericType.Float),
+            direction=code_generation.ArgumentDirection.Input)
+
+        # check output args:
+        self._check_arg(
+            sig.arguments[3],
+            'diff_x',
+            type_info.MatrixType(1, 2),
+            direction=code_generation.ArgumentDirection.Output)
+        self._check_arg(
+            sig.arguments[4],
+            'diff_y',
+            type_info.MatrixType(1, 2),
+            direction=code_generation.ArgumentDirection.Output)
+        self._check_arg(
+            sig.arguments[5],
+            'diff_z',
+            type_info.MatrixType(1, 1),
+            direction=code_generation.ArgumentDirection.OptionalOutput)
+
+        self._run_generators(definition=definition)
+        self._test_cse_function_description(desc=desc)
+
+    def test_custom_type(self):
+        """Test function that uses a custom type."""
+        desc = code_generation.create_function_description(rotate_point)
+        definition = code_generation.transpile(desc)
+        sig = definition.signature
+
+        self.assertEqual('rotate_point', sig.name)
+        self.assertEqual('p', sig.arguments[1].name)
+
+        ctype = sig.arguments[1].type
+        self.assertIsInstance(ctype, type_info.CustomType)
+        self.assertEqual('Point2d', ctype.name)
+        self.assertEqual(Point2d, ctype.python_type)
+        self.assertEqual(2, ctype.total_size)
+        self.assertEqual('x', ctype.fields[0].name)
+        self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), ctype.fields[0].type)
+        self.assertEqual('y', ctype.fields[1].name)
+        self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), ctype.fields[1].type)
+
+        self._run_generators(definition)
+        self._test_cse_function_description(desc)
+
+    def test_opaque_func(self):
+        """Test we can customize invocation of a custom function."""
+        code = code_generation.generate_function(opaque_type_func, generator=CustomCppGenerator())
+        self.assertTrue('custom::external_func' in code)
 
 
 if __name__ == '__main__':

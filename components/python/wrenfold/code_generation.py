@@ -17,7 +17,9 @@ from pywrenfold.gen import (
     BaseGenerator,
     CppGenerator,
     FunctionDescription,
+    OutputKey,
     RustGenerator,
+    cse_function_description,
     transpile,
 )
 

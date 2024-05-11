@@ -7,6 +7,8 @@
 
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/control_flow_graph.h"
+#include "wf/code_generation/expr_from_ir.h"
+#include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/rust_code_generator.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
@@ -27,12 +29,22 @@ ast::function_definition transpile_to_ast(const function_description& descriptio
   return ast::create_ast(cfg, description);
 }
 
+// Convert a function description into IR, then rebuild the simplified expression tree and return
+// it.
+auto cse_function_description(const function_description& description) {
+  const control_flow_graph cfg{description.output_expressions()};
+  rebuilt_expressions rebuilt = rebuild_expression_tree(cfg.first_block(), {}, true);
+  // Pybind STL conversion will change the types here for us:
+  return std::make_tuple(std::move(rebuilt.output_expressions),
+                         std::move(rebuilt.intermediate_values));
+}
+
 // Construct `external_function`. We define this custom constructor to convert py::object to
 // type_variant (which is not default constructible).
 external_function init_external_function(
     std::string name, const std::vector<std::tuple<std::string_view, py::object>>& arguments,
     const py::object& return_type) {
-  auto args = transform_enumerate_map<std::vector<argument>>(
+  auto args = transform_enumerate_map<std::vector>(
       arguments,
       [](const std::size_t index, const std::tuple<std::string_view, py::object>& name_and_type) {
         return argument(std::get<0>(name_and_type),
@@ -94,6 +106,30 @@ void wrap_codegen_operations(py::module_& m) {
             self.arguments(),
             [](const argument& arg) { return fmt::format("{}: {}", arg.name(), arg.type()); });
         return fmt::format("{}({}) -> {}", self.name(), fmt::join(args, ", "), self.return_type());
+      });
+
+  py::enum_<expression_usage>(m, "ExpressionUsage")
+      .value("OptionalOutputArgument", expression_usage::optional_output_argument,
+             "Value is an optional output argument.")
+      .value("OutputArgument", expression_usage::output_argument,
+             "Value is a required output argument.")
+      .value("ReturnValue", expression_usage::return_value, "Value is the return value.");
+
+  wrap_class<output_key>(m, "OutputKey")
+      .def(py::init<expression_usage, std::string_view>(), py::arg("usage"), py::arg("name"))
+      .def_property_readonly(
+          "usage", [](const output_key& key) { return key.usage; },
+          "Describe how the output is returned by the function.")
+      .def_property_readonly(
+          "name", [](const output_key& key) -> std::string_view { return key.name; },
+          "Name of the output value.", py::keep_alive<0, 1>())
+      .def("__repr__", [](const output_key& key) {
+        if (key.name.empty()) {
+          return fmt::format("OutputKey({})", string_from_expression_usage(key.usage));
+        } else {
+          return fmt::format("OutputKey({}, '{}')", string_from_expression_usage(key.usage),
+                             key.name);
+        }
       });
 
   py::class_<function_description>(m, "FunctionDescription")
@@ -171,6 +207,21 @@ void wrap_codegen_operations(py::module_& m) {
             self.set_return_value(custom_type, std::move(expressions));
           },
           py::arg("custom_type"), py::arg("expressions"))
+      .def(
+          "output_expressions",
+          [](const function_description& self) {
+            const auto& outputs = self.output_expressions();
+            // Use pybind conversion to create a dict from this.
+            // TODO: Should be output_key --> any_expression
+            std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
+                result{};
+            result.reserve(outputs.size());
+            for (const expression_group& group : outputs) {
+              result.emplace(group.key, group.expressions);
+            }
+            return result;
+          },
+          "Retrieve a dict of output expressions computed by this function.")
       .doc() = docstrings::function_description.data();
 
   m.def(
@@ -187,6 +238,9 @@ void wrap_codegen_operations(py::module_& m) {
 
   m.def("transpile", &transpile_to_ast, py::arg("desc"), docstrings::transpile.data(),
         py::return_value_policy::take_ownership);
+
+  m.def("cse_function_description", &cse_function_description, py::arg("desc"),
+        docstrings::cse_function_description.data(), py::return_value_policy::take_ownership);
 }
 
 }  // namespace wf

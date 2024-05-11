@@ -97,7 +97,7 @@ void check_output_expressions(const std::vector<expression_group>& expected_expr
 
 void check_expressions(const std::vector<expression_group>& expected_expressions,
                        const control_flow_graph& ir) {
-  const auto output_expressions = create_output_expression_map(ir.first_block(), {});
+  const auto [output_expressions, _] = rebuild_expression_tree(ir.first_block(), {});
   check_output_expressions(expected_expressions, output_expressions, ir);
 }
 
@@ -107,7 +107,7 @@ void check_expressions_with_output_permutations(
   for (std::size_t i = 0; i < permutations.num_permutations(); ++i) {
     // test permutation `i`:
     auto output_map = permutations.get_permutation(i);
-    auto output_expressions = create_output_expression_map(ir.first_block(), std::move(output_map));
+    auto [output_expressions, _] = rebuild_expression_tree(ir.first_block(), std::move(output_map));
     check_output_expressions(expected_expressions, output_expressions, ir);
   }
 }

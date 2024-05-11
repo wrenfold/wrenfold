@@ -36,4 +36,39 @@ Stores information required to emit the function signature, including:
 create a syntax tree representation, which may then be converted into usable code.
 )doc";
 
+inline constexpr std::string_view cse_function_description = R"doc(
+Given a :class:`wrenfold.code_generation.FunctionDescription` object, run the code-generation CSE
+and then convert the simplified result *back* to a list of symbolic expressions. This function will
+apply all the simplifications and subexpression elimination steps normally applied during
+code-generation.
+
+The first returned object is a dict mapping from ``OutputKey`` to output expressions. The outputs
+will be expressed as a function of variables ``[v0, v1, ... v{N}]``. The second returned object is a
+list of tuples of the form ``[(v0, <v0 expr>), (v1, <v1 expr>), ...]`` - these are the eliminated
+subexpressions required to evaluate the function.
+
+Args:
+  desc: :class:`wrenfold.code_generation.FunctionDescription` object.
+
+Returns:
+  A dict mapping from ``OutputKey`` to output expressions, and a list of intermediate subexpressions
+  required to compute the function outputs.
+
+Example:
+  >>> from wrenfold import sym, code_generation, type_annotations
+  >>> def func(x: type_annotations.RealScalar, y: type_annotations.RealScalar):
+  >>>   return sym.abs(x * y) * sym.cos(x * y)
+  >>> desc = code_generation.create_function_description(func)
+  >>> outputs, intermediate_values = code_generation.cse_function_description(desc)
+  >>> outputs
+  {OutputKey(return_value): [v5]}
+  >>> intermediate_values
+  [(v0, $arg(0, 0)),
+   (v1, $arg(1, 0)),
+   (v2, v0*v1),
+   (v3, abs(v2)),
+   (v4, cos(v2)),
+   (v5, v3*v4)]
+)doc";
+
 }  // namespace wf::docstrings
