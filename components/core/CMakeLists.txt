@@ -22,6 +22,8 @@ add_library(
   wf/code_generation/expr_from_ir.cc
   wf/code_generation/expr_from_ir.h
   wf/code_generation/expression_group.h
+  wf/code_generation/factorizer.cc
+  wf/code_generation/factorizer.h
   wf/code_generation/function_description.cc
   wf/code_generation/function_description.h
   wf/code_generation/function_evaluator.h
