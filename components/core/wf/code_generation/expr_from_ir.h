@@ -11,9 +11,20 @@
 
 namespace wf {
 
-// Create `scalar_expr` tree from the IR representation. For use in round-trip unit tests.
-std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
-create_output_expression_map(ir::block_ptr starting_block,
-                             std::unordered_map<std::string, bool> output_arg_exists);
+struct rebuilt_expressions {
+  // Map from function output to a vector of scalar expressions.
+  // TODO: This should probably be generalized to store `any_expression`.
+  std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
+      output_expressions{};
+
+  // Intermediate values used in the computation of the output.
+  // Stores tuples of (variable name, expression).
+  std::vector<std::tuple<scalar_expr, scalar_expr>> intermediate_values{};
+};
+
+// Reconstitute the symbolic expression tree from the IR representation.
+rebuilt_expressions rebuild_expression_tree(ir::const_block_ptr starting_block,
+                                            std::unordered_map<std::string, bool> output_arg_exists,
+                                            bool use_intermediate_values = false);
 
 }  // namespace wf

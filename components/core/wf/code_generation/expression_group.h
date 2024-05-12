@@ -29,7 +29,8 @@ struct output_key {
   std::string name;
 
   // Construct w/ usage ane name.
-  output_key(expression_usage usage, std::string_view name) : usage(usage), name(name) {}
+  output_key(const expression_usage usage, const std::string_view name)
+      : usage(usage), name(name) {}
 
   // Equality test.
   bool operator==(const output_key& other) const noexcept {
@@ -54,8 +55,7 @@ struct expression_group {
 };
 
 // Convert `expression_usage` to a string.
-inline constexpr std::string_view string_from_expression_usage(
-    const expression_usage usage) noexcept {
+constexpr std::string_view string_from_expression_usage(const expression_usage usage) noexcept {
   switch (usage) {
     case expression_usage::return_value:
       return "return_value";
@@ -70,9 +70,15 @@ inline constexpr std::string_view string_from_expression_usage(
 // Hash `output_key` type.
 template <>
 struct hash_struct<output_key> {
-  std::size_t operator()(const output_key& k) const {
+  std::size_t operator()(const output_key& k) const noexcept {
     return hash_combine(static_cast<std::size_t>(k.usage), hash_string_fnv(k.name));
   }
+};
+
+// Test `output_key` for equality.
+template <>
+struct is_identical_struct<output_key> {
+  bool operator()(const output_key& a, const output_key& b) const noexcept { return a == b; }
 };
 
 }  // namespace wf
