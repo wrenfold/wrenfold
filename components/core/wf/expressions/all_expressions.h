@@ -16,4 +16,5 @@
 #include "wf/expressions/power.h"
 #include "wf/expressions/relational.h"
 #include "wf/expressions/special_constants.h"
+#include "wf/expressions/unevaluated.h"
 #include "wf/expressions/variable.h"

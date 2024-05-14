@@ -18,11 +18,6 @@ struct collect_visitor {
   boolean_expr operator()(const boolean_expr& x) { return visit(x, *this); }
   matrix_expr operator()(const matrix_expr& x) { return map_matrix_expression(x, *this); }
 
-  template <typename T>
-  auto recurse(const T& op) {
-    return op.map_children(*this);
-  }
-
   scalar_expr collect_addition_terms(addition::container_type&& container) const {
     // iterate over the terms we want to search for:
     const scalar_expr& collected_term = collected_terms_.front();
@@ -121,23 +116,14 @@ struct collect_visitor {
     return collect_addition_terms(std::move(children));
   }
 
-  boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) const { return arg; }
-  scalar_expr operator()(const compound_expression_element& el) { return el.map_children(*this); }
-  scalar_expr operator()(const multiplication& mul, const scalar_expr&) { return recurse(mul); }
-  scalar_expr operator()(const function& f) { return recurse(f); }
-  scalar_expr operator()(const power& pow) { return recurse(pow); }
-  scalar_expr operator()(const iverson_bracket& cast) { return recurse(cast); }
-  scalar_expr operator()(const conditional& conditional) { return recurse(conditional); }
-  scalar_expr operator()(const symbolic_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const derivative& diff, const scalar_expr&) { return recurse(diff); }
-  scalar_expr operator()(const complex_infinity&) const { return constants::complex_infinity; }
-  scalar_expr operator()(const imaginary_unit&) const { return constants::imaginary_unit; }
-  scalar_expr operator()(const integer_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const float_constant&, const scalar_expr& arg) const { return arg; }
-  scalar_expr operator()(const rational_constant&, const scalar_expr& arg) const { return arg; }
-  boolean_expr operator()(const relational& relation) { return recurse(relation); }
-  scalar_expr operator()(const undefined&) const { return constants::undefined; }
-  scalar_expr operator()(const variable&, const scalar_expr& arg) const { return arg; }
+  template <typename T, typename X, typename = enable_if_not_same_t<T, addition>>
+  X operator()(const T& concrete, const X& expr) {
+    if constexpr (T::is_leaf_node) {
+      return expr;
+    } else {
+      return concrete.map_children(*this);
+    }
+  }
 
  private:
   absl::Span<const scalar_expr> collected_terms_;

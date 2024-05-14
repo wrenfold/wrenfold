@@ -287,6 +287,12 @@ void plain_formatter::operator()(const relational& relational) {
 
 void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
 
+void plain_formatter::operator()(const unevaluated& u) {
+  output_ += "(";
+  operator()(u.contents());
+  output_ += ")";
+}
+
 void plain_formatter::operator()(const variable& var) { output_.append(var.to_string()); }
 
 void plain_formatter::format_precedence(const precedence parent, const scalar_expr& expr) {

@@ -29,43 +29,6 @@ matrix_expr distribute_visitor::operator()(const matrix_expr& input) {
       input, [this](const matrix_expr& m) { return map_matrix_expression(m, *this); });
 }
 
-scalar_expr distribute_visitor::operator()(const addition& add) { return add.map_children(*this); }
-
-boolean_expr distribute_visitor::operator()(const boolean_constant&,
-                                            const boolean_expr& arg) const {
-  return arg;
-}
-
-scalar_expr distribute_visitor::operator()(const iverson_bracket& cast) {
-  return cast.map_children(*this);
-}
-scalar_expr distribute_visitor::operator()(const compound_expression_element& el) {
-  return el.map_children(*this);
-}
-scalar_expr distribute_visitor::operator()(const complex_infinity&) const {
-  return constants::complex_infinity;
-}
-scalar_expr distribute_visitor::operator()(const conditional& conditional) {
-  return conditional.map_children(*this);
-}
-scalar_expr distribute_visitor::operator()(const derivative& diff) {
-  return diff.map_children(*this);
-}
-
-scalar_expr distribute_visitor::operator()(const imaginary_unit&) const {
-  return constants::imaginary_unit;
-}
-
-scalar_expr distribute_visitor::operator()(const integer_constant&, const scalar_expr& arg) const {
-  return arg;
-}
-
-scalar_expr distribute_visitor::operator()(const float_constant&, const scalar_expr& arg) const {
-  return arg;
-}
-
-scalar_expr distribute_visitor::operator()(const function& f) { return f.map_children(*this); }
-
 scalar_expr distribute_visitor::operator()(const multiplication& mul) {
   return distribute_multiplied_terms(mul);
 }
@@ -103,22 +66,13 @@ scalar_expr distribute_visitor::operator()(const power& pow) {
   return power::create(std::move(b), std::move(e));
 }
 
-scalar_expr distribute_visitor::operator()(const rational_constant&, const scalar_expr& arg) const {
-  return arg;
-}
-
-boolean_expr distribute_visitor::operator()(const relational& relation) {
-  return relation.map_children(*this);
-}
-
-scalar_expr distribute_visitor::operator()(const symbolic_constant&, const scalar_expr& arg) const {
-  return arg;
-}
-
-scalar_expr distribute_visitor::operator()(const undefined&) const { return constants::undefined; }
-
-scalar_expr distribute_visitor::operator()(const variable&, const scalar_expr& arg) const {
-  return arg;
+template <typename T, typename X, typename>
+X distribute_visitor::operator()(const T& concrete, const X& expr) {
+  if constexpr (T::is_leaf_node) {
+    return expr;
+  } else {
+    return concrete.map_children(*this);
+  }
 }
 
 scalar_expr distribute_visitor::distribute_power(scalar_expr base, std::size_t power) {

@@ -38,6 +38,7 @@ class derivative_visitor {
   scalar_expr operator()(const rational_constant&) const;
   scalar_expr operator()(const relational&, const scalar_expr& rel_expr) const;
   scalar_expr operator()(const undefined&) const;
+  scalar_expr operator()(const unevaluated& u);
   scalar_expr operator()(const variable& var) const;
 
  private:

@@ -771,6 +771,24 @@ TEST(ScalarOperationsTest, TestIverson) {
   ASSERT_IDENTICAL(0, iverson(constants::boolean_false));
 }
 
+TEST(ScalarOperationsTest, TestUnevaluated) {
+  // Test we can create a parenthetical:
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_TRUE(make_unevaluated(x * y).is_type<unevaluated>());
+  ASSERT_EQ("Unevaluated", make_unevaluated(x).type_name());
+  ASSERT_IDENTICAL(make_unevaluated(x), make_unevaluated(x));
+
+  // Multiplocations do not get combined:
+  ASSERT_NOT_IDENTICAL(x * y * 3, 3 * make_unevaluated(x * y));
+
+  // Powers do not get combined:
+  ASSERT_NOT_IDENTICAL(pow(pow(x, 2), 3), pow(make_unevaluated(pow(x, 2)), 3));
+
+  // Nested parentheses simplify:
+  ASSERT_IDENTICAL(make_unevaluated(y), make_unevaluated(make_unevaluated(y)));
+}
+
 TEST(ScalarOperationsTest, TestConditional) {
   const auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
 
@@ -866,6 +884,10 @@ TEST(ScalarOperationsTest, TestDistribute) {
   ASSERT_IDENTICAL(iverson(-8 + 2 * x + pow(x, 2) < q * x + q * y - v * x - v * y),
                    iverson((x + y) * (q - v) > (x - 2) * (x + 4)).distribute());
   ASSERT_IDENTICAL(iverson(x * y + 2 * y == sin(p)), iverson((x + 2) * y == sin(p)).distribute());
+
+  // Parentheticals don't get distributed:
+  ASSERT_IDENTICAL(make_unevaluated(x + y) * make_unevaluated(x - y),
+                   (make_unevaluated(x + y) * make_unevaluated(x - y)).distribute());
 }
 
 TEST(ScalarOperationsTest, TestCollect) {
@@ -1220,6 +1242,13 @@ TEST(ScalarOperationsTest, TestNumericSetsConditional) {
   ASSERT_EQ(number_set::real_non_negative,
             determine_numeric_set(where(real > 0, real_positive, real_non_negative)));
   ASSERT_EQ(number_set::complex, determine_numeric_set(where(real > 0, real_positive, complex)));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsUnevaluated) {
+  const scalar_expr real{"x", number_set::real};
+  const scalar_expr complex{"z", number_set::complex};
+  ASSERT_EQ(number_set::real, determine_numeric_set(make_unevaluated(real)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(make_unevaluated(complex)));
 }
 
 }  // namespace wf

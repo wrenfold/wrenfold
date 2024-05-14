@@ -41,6 +41,7 @@ struct type_list_trait<scalar_meta_type> {
     class power,
     class rational_constant,
     class undefined,
+    class unevaluated,
     class variable
     >;
   // clang-format on

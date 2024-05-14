@@ -289,6 +289,11 @@ scalar_expr derivative_visitor::operator()(const relational&, const scalar_expr&
 
 scalar_expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
+scalar_expr derivative_visitor::operator()(const unevaluated& u) {
+  // Keep the derivative between parentheses.
+  return u.map_children([this](const scalar_expr& x) { return apply(x); });
+}
+
 scalar_expr derivative_visitor::operator()(const variable& var) const {
   if (const variable* arg = get_if<const variable>(argument_);
       arg != nullptr && are_identical(*arg, var)) {

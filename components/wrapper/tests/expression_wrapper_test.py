@@ -284,6 +284,12 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(0, sym.iverson(sym.eq(sym.one, sym.zero)))
         self.assertEqual((x < y,), sym.iverson(x < y).args)
 
+    def test_unevaluated(self):
+        """Test calling `unevaluated`."""
+        x, y = sym.symbols('x, y')
+        self.assertIdentical(sym.unevaluated(x), sym.unevaluated(x))
+        self.assertIdentical(sym.unevaluated(x), sym.unevaluated(sym.unevaluated(x)))
+
     def test_subs(self):
         """Test calling subs() on expressions."""
         x, y, z = sym.symbols('x, y, z')

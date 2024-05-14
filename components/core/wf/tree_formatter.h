@@ -41,6 +41,7 @@ class tree_formatter_visitor {
   void operator()(const relational& relational);
   void operator()(const symbolic_constant& constant);
   void operator()(const undefined&);
+  void operator()(const unevaluated& u);
   void operator()(const variable& var);
 
   // Get the output string. Result is returned via move.
