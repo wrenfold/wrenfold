@@ -263,6 +263,8 @@ void wrap_scalar_operations(py::module_& m) {
 
   m.def("iverson", &wf::iverson, "arg"_a, docstrings::iverson.data());
 
+  m.def("unevaluated", &wf::make_unevaluated, "arg"_a, docstrings::unevaluated.data());
+
   m.def(
       "eliminate_subexpressions",
       [](const scalar_expr& expr,

@@ -123,6 +123,11 @@ void tree_formatter_visitor::operator()(const symbolic_constant& constant) {
 
 void tree_formatter_visitor::operator()(const undefined&) { format_append(undefined::name_str); }
 
+void tree_formatter_visitor::operator()(const unevaluated& u) {
+  format_append("{}:", unevaluated::name_str);
+  visit_all(u);
+}
+
 void tree_formatter_visitor::operator()(const variable& var) {
   format_append("{} ({}, {})", variable::name_str, var.to_string(),
                 string_from_number_set(var.set()));

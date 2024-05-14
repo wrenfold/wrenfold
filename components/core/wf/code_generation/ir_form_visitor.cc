@@ -253,6 +253,11 @@ ir::value_ptr ir_form_visitor::exponentiate_by_squaring(ir::value_ptr base, std:
   return result.value();
 }
 
+ir::value_ptr ir_form_visitor::operator()(const unevaluated& u) {
+  // Parenthetical only matters in the context of the symbolic tree.
+  return operator()(u.contents());
+}
+
 ir::value_ptr ir_form_visitor::operator()(const power& power) {
   const ir::value_ptr base =
       maybe_cast(operator()(power.base()), code_numeric_type::floating_point);

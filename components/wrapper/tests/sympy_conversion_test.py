@@ -265,6 +265,16 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(
             sym.where(0 < x, 1, sym.where(x < 0, -1, sym.nan)), sp.Heaviside(spy(x), sp.nan))
 
+    def test_unevaluated(self):
+        x, y = sym.symbols('x, y')
+        self.assertEqualSp(sp.UnevaluatedExpr(spy(x)), sym.unevaluated(x))
+        self.assertEqualSp(sp.UnevaluatedExpr(spy(x) * spy(y)) * spy(y), sym.unevaluated(x * y) * y)
+
+        # sympy --> wf
+        self.assertIdenticalFromSp(
+            sym.unevaluated(x * y) * y,
+            sp.UnevaluatedExpr(spy(x) * spy(y)) * spy(y))
+
     def test_matrix(self):
         x, y = sym.symbols('x, y')
 

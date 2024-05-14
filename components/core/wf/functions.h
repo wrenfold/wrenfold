@@ -82,4 +82,9 @@ matrix_expr where(const boolean_expr& condition, const matrix_expr& if_true,
 // Evaluates to 1 if bool_expression is true, and 0 if bool_expression is false.
 scalar_expr iverson(const boolean_expr& bool_expression);
 
+// Insert a parenthetical around an expression: x * y --> (x * y)
+// This prevents downstream operations from simplifying further.
+// Implemented in unevaluated.cc
+scalar_expr make_unevaluated(scalar_expr expr);
+
 }  // namespace wf

@@ -36,6 +36,7 @@ class plain_formatter {
   void operator()(const relational& relational);
   void operator()(const function& func);
   void operator()(const undefined&);
+  void operator()(const unevaluated& u);
   void operator()(const variable& var);
 
   // Get the output string (transferring ownership to the caller).

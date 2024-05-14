@@ -16,24 +16,12 @@ class distribute_visitor {
   boolean_expr operator()(const boolean_expr& input);
   matrix_expr operator()(const matrix_expr& input);
 
-  scalar_expr operator()(const addition& add);
-  boolean_expr operator()(const boolean_constant&, const boolean_expr& arg) const;
-  scalar_expr operator()(const compound_expression_element& el);
-  scalar_expr operator()(const complex_infinity&) const;
-  scalar_expr operator()(const conditional& conditional);
-  scalar_expr operator()(const derivative& diff);
-  scalar_expr operator()(const imaginary_unit&) const;
-  scalar_expr operator()(const integer_constant&, const scalar_expr& arg) const;
-  scalar_expr operator()(const iverson_bracket& cast);
-  scalar_expr operator()(const float_constant&, const scalar_expr& arg) const;
-  scalar_expr operator()(const function& f);
   scalar_expr operator()(const multiplication& mul);
   scalar_expr operator()(const power& pow);
-  scalar_expr operator()(const rational_constant&, const scalar_expr& arg) const;
-  boolean_expr operator()(const relational& relation);
-  scalar_expr operator()(const symbolic_constant&, const scalar_expr& arg) const;
-  scalar_expr operator()(const undefined&) const;
-  scalar_expr operator()(const variable&, const scalar_expr& arg) const;
+
+  template <typename T, typename X,
+            typename = enable_if_does_not_contain_type_t<T, type_list<power, multiplication>>>
+  X operator()(const T& concrete, const X& expr);
 
  private:
   // Expand base^power.

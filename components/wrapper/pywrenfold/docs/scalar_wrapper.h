@@ -691,6 +691,22 @@ Examples:
   1
 )doc";
 
+inline constexpr std::string_view unevaluated = R"doc(
+Wrap a scalar-valued expression to prevent automatic simplifications/combinations in downstream
+operations. This is similar in intent to SymPy's ``UnevaluatedExpr``.
+
+Args:
+  arg: Scalar-valued expression to wrap.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> f = sym.unevaluated(x * y) * y
+  >>> f # Products are not combined automatically.
+  y*(x*y)
+  >>> f.diff(y) # Derivatives retain the parentheses.
+  y*(x) + (x*y)
+)doc";
+
 inline constexpr std::string_view eliminate_subexpressions = R"doc(
 Extract common subexpressions from a scalar-valued expression. The expression tree is traversed and
 unique expressions are counted. Those that appear ``min_occurrences`` or more times are replaced

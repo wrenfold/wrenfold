@@ -68,6 +68,7 @@ class Conversions:
             sp.StrictGreaterThan: sym.gt,
             sp.GreaterThan: sym.ge,
             sp.Eq: sym.eq,
+            sp.UnevaluatedExpr: sym.unevaluated,
         }
         self.custom_converters = {
             sp.Add: self.convert_add,

@@ -161,6 +161,10 @@ class sympy_conversion_visitor {
 
   py::object operator()(const undefined&) const { return get_sympy_attr("nan"); }
 
+  py::object operator()(const unevaluated& p) {
+    return invoke_sympy_object("UnevaluatedExpr", *convert_to_args(p));
+  }
+
   py::object operator()(const variable& var) const {
     py::dict kwargs{};
     switch (var.set()) {

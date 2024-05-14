@@ -53,6 +53,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const relational& relational);
   ir::value_ptr operator()(const symbolic_constant& constant);
   ir::value_ptr operator()(const undefined&) const;
+  ir::value_ptr operator()(const unevaluated& u);
   ir::value_ptr operator()(const variable& var);
 
   // Apply to any expression.

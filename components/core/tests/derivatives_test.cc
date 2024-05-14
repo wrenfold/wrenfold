@@ -255,4 +255,14 @@ TEST(DerivativesTest, TestDerivativeExpression) {
   ASSERT_IDENTICAL(0, f.diff(z));
 }
 
+TEST(DerivativesTest, TestUnevaluated) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+
+  // Terms between parentheses should remain in parentheses:
+  ASSERT_IDENTICAL(make_unevaluated(2 * x), make_unevaluated(x * x).diff(x));
+  ASSERT_IDENTICAL(make_unevaluated(x * cos(x * y)) * make_unevaluated(y * y) +
+                       make_unevaluated(sin(x * y)) * make_unevaluated(2 * y),
+                   (make_unevaluated(sin(x * y)) * make_unevaluated(y * y)).diff(y));
+}
+
 }  // namespace wf

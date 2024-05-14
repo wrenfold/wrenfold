@@ -239,6 +239,8 @@ class determine_set_visitor {
     return number_set::unknown;
   }
 
+  number_set operator()(const unevaluated& u) const { return determine_numeric_set(u.contents()); }
+
   constexpr number_set operator()(const variable& var) const noexcept { return var.set(); }
 };
 

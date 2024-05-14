@@ -90,6 +90,8 @@ add_library(
   wf/expressions/relational.cc
   wf/expressions/relational.h
   wf/expressions/special_constants.h
+  wf/expressions/unevaluated.cc
+  wf/expressions/unevaluated.h
   wf/expressions/variable.cc
   wf/expressions/variable.h
   wf/external_function.cc
