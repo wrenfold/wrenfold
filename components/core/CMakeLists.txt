@@ -14,6 +14,7 @@ add_library(
   wf/code_generation/ast_conversion.h
   wf/code_generation/ast_element.h
   wf/code_generation/ast_formatters.h
+  wf/code_generation/bitset_range.h
   wf/code_generation/control_flow_graph.cc
   wf/code_generation/control_flow_graph.h
   wf/code_generation/cpp_code_generator.cc
@@ -40,6 +41,7 @@ add_library(
   wf/code_generation/operation_counts.h
   wf/code_generation/rust_code_generator.cc
   wf/code_generation/rust_code_generator.h
+  wf/code_generation/static_vector.h
   wf/code_generation/type_registry.cc
   wf/code_generation/type_registry.h
   wf/code_generation/types.cc
