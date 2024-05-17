@@ -68,7 +68,7 @@ ir::value_ptr ir_form_visitor::operator()(const custom_type_argument& arg) {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const custom_type_construction& construct) {
-  ir::value::operands_container operands{};
+  absl::InlinedVector<ir::value_ptr, 8> operands{};
   operands.reserve(construct.size());
 
   iterate_custom_type_fields(
@@ -84,14 +84,14 @@ ir::value_ptr ir_form_visitor::operator()(const custom_type_construction& constr
             }
           }));
 
-  return push_operation(ir::construct{construct.type()}, construct.type(), std::move(operands));
+  return push_operation(ir::construct{construct.type()}, construct.type(), operands);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const external_function_invocation& invoke) {
   const external_function& f = invoke.function();
 
   // Generate values for every argument. Insert casts for scalars if required.
-  auto operands = transform_enumerate_map<ir::value::operands_container>(
+  auto operands = transform_enumerate_map<absl::InlinedVector<ir::value_ptr, 8>>(
       invoke, [&](const std::size_t index, const auto& arg) {
         // Convert the argument.
         const ir::value_ptr val = std::visit(*this, arg);
@@ -114,7 +114,7 @@ ir::value_ptr ir_form_visitor::operator()(const external_function_invocation& in
   // Visit the return type so we can convert it:
   return std::visit(
       [&](const auto& return_type) {
-        return push_operation(ir::call_external_function{f}, return_type, std::move(operands));
+        return push_operation(ir::call_external_function{f}, return_type, operands);
       },
       f.return_type());
 }
@@ -170,8 +170,9 @@ static constexpr std_math_function std_math_function_from_built_in(const built_i
 // Determine the return type of a call to a built in math function.
 // For some functions, this is determined by the input type. For most functions it is just a
 // floating point scalar.
+template <typename Container>
 static code_numeric_type std_function_output_type(const std_math_function func,
-                                                  const ir::value::operands_container& args) {
+                                                  const Container& args) {
   switch (func) {
     case std_math_function::abs: {
       WF_ASSERT_EQUAL(1, args.size());
@@ -194,10 +195,10 @@ ir::value_ptr ir_form_visitor::operator()(const function& func) {
   const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
 
   // Convert args to values:
-  auto args = transform_map<ir::value::operands_container>(func, *this);
+  auto args = transform_map<absl::InlinedVector<ir::value_ptr, 4>>(func, *this);
 
   const code_numeric_type numeric_type = std_function_output_type(enum_value, args);
-  return push_operation(ir::call_std_function{enum_value}, numeric_type, std::move(args));
+  return push_operation(ir::call_std_function{enum_value}, numeric_type, args);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const imaginary_unit&) const {
@@ -216,11 +217,11 @@ ir::value_ptr ir_form_visitor::operator()(const iverson_bracket& bracket) {
 
 ir::value_ptr ir_form_visitor::operator()(const matrix& mat) {
   const matrix_type mat_type{mat.rows(), mat.cols()};
-  return push_operation(
-      ir::construct(mat_type), mat_type,
-      transform_map<ir::value::operands_container>(mat, [this](const scalar_expr& arg) {
-        return maybe_cast(this->operator()(arg), code_numeric_type::floating_point);
-      }));
+  return push_operation(ir::construct(mat_type), mat_type,
+                        transform_map<std::vector>(mat, [this](const scalar_expr& arg) {
+                          return maybe_cast(this->operator()(arg),
+                                            code_numeric_type::floating_point);
+                        }));
 }
 
 ir::value_ptr ir_form_visitor::operator()(const multiplication& mul,

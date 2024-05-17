@@ -231,7 +231,7 @@ static std::tuple<ir::value_ptr, std::vector<ir::value_ptr>> select_conditionals
 
   // Group together any conditionals that use this same condition:
   const auto matches_condition = [&](const ir::value_ptr v) {
-    return v->first_operand() == condition;
+    return v->first_operand().get() == condition.get();
   };
 
   // We'll copy and return them.

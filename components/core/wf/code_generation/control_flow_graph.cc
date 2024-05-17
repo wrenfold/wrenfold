@@ -199,11 +199,10 @@ control_flow_graph::control_flow_graph(std::vector<expression_group> groups) {
   ir_form_visitor visitor{*this, std::move(count_visitor).take_counts()};
   for (const expression_group& group : groups) {
     // Transform expressions into Values
-    auto group_values = transform_map<ir::value::operands_container>(
-        group.expressions, [&](const scalar_expr& expr) {
-          // TODO: Allow returning other types - derive numeric type from the group.
-          return visitor.apply_output_value(expr, code_numeric_type::floating_point);
-        });
+    auto group_values = transform_map<std::vector>(group.expressions, [&](const scalar_expr& expr) {
+      // TODO: Allow returning other types - derive numeric type from the group.
+      return visitor.apply_output_value(expr, code_numeric_type::floating_point);
+    });
 
     // Then create a sink to consume these values, the `save` operation is the sink:
     create_operation(values_, first_block(), ir::save{group.key}, ir::void_type{},

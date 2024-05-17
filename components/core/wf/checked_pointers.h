@@ -76,7 +76,7 @@ class non_null {
   constexpr decltype(auto) operator*() const noexcept { return *get(); }
 
   // Check underlying ptr is null. This can happen if we moved the underlying pointer out.
-  constexpr operator bool() const noexcept { return ptr_ != nullptr; }  //  NOLINT
+  constexpr explicit operator bool() const noexcept { return ptr_ != nullptr; }
 
  private:
   // Get r-value reference.
@@ -159,7 +159,7 @@ class maybe_null {
   maybe_null& operator=(maybe_null&& other) = default;
 
   // Check truthiness.
-  constexpr operator bool() const noexcept(detail::is_nothrow_castable_to_bool_v<T>) {  //  NOLINT
+  constexpr explicit operator bool() const noexcept(detail::is_nothrow_castable_to_bool_v<T>) {
     return static_cast<bool>(ptr_);
   }
 

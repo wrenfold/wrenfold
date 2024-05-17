@@ -46,7 +46,7 @@ static void BM_CreateFlatIrLowComplexity(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_CreateFlatIrLowComplexity)->Iterations(200)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_CreateFlatIrLowComplexity)->Iterations(1000)->Unit(benchmark::kMillisecond);
 
 static void BM_ConvertIrLowComplexity(benchmark::State& state) {
   const function_description description = build_function_description(
