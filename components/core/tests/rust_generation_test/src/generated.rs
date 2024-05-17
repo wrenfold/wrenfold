@@ -27,12 +27,12 @@ where
   T3: wrenfold_traits::OutputSpan2D<2, 1, ValueType = f64>,
 {
   // Operation counts:
-  // add: 3
+  // add: 2
   // branch: 1
   // call: 2
-  // multiply: 4
-  // negate: 3
-  // total: 13
+  // multiply: 5
+  // negate: 1
+  // total: 11
   
   let v001: f64 = theta;
   let v002: f64 = (v001).sin();
@@ -40,19 +40,17 @@ where
   let v006: f64 = (v001).cos();
   let v005: f64 = v.get(0, 0);
   let v003: f64 = v000 * v002;
-  let v007: f64 = v005 * v006;
-  let v004: f64 = -v003;
   let v010: f64 = v000 * v006;
   let v009: f64 = v002 * v005;
+  let v007: f64 = v005 * v006;
+  let v004: f64 = -v003;
+  let v011: f64 = v009 + v010;
   let v008: f64 = v004 + v007;
   if let Some(D_theta) = D_theta {
-    let v014: f64 = -v010;
-    let v013: f64 = -v009;
-    let v015: f64 = v013 + v014;
+    let v015: f64 = v011 * (-1i64) as f64;
     D_theta.set(0, 0, v015);
     D_theta.set(1, 0, v008);
   }
-  let v011: f64 = v009 + v010;
   v_rot.set(0, 0, v008);
   v_rot.set(1, 0, v011);
 }
