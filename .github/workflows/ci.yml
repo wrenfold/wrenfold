@@ -110,7 +110,13 @@ jobs:
         run: ctest --output-on-failure
 
       - name: Install rust
-        run: rustup toolchain install 1.77 --profile minimal
+        run: rustup toolchain install 1.77
+
+      - name: Set default rust version
+        run: rustup default 1.77
+
+      - name: Install clippy
+        run: rustup component add clippy
 
       - name: Dump rustc version
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
