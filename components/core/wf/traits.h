@@ -81,4 +81,24 @@ constexpr bool is_variant_v = false;
 template <typename... Ts>
 constexpr bool is_variant_v<std::variant<Ts...>> = true;
 
+namespace detail {
+template <typename T, typename = void>
+struct has_begin_function : std::false_type {};
+template <typename T>
+struct has_begin_function<T, decltype(std::declval<T>().begin(), void())> : std::true_type {};
+
+template <typename T, typename = void>
+struct has_end_function : std::false_type {};
+template <typename T>
+struct has_end_function<T, decltype(std::declval<T>().end(), void())> : std::true_type {};
+
+}  // namespace detail
+
+// True if the type is iterable (exposes begin() and end())
+template <typename T>
+struct is_iterable : std::conjunction<detail::has_begin_function<T>, detail::has_end_function<T>> {
+};
+template <typename T>
+constexpr bool is_iterable_v = is_iterable<T>::value;
+
 }  // namespace wf

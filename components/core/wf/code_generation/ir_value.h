@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "wf/checked_pointers.h"
+#include "wf/code_generation/ir_consumer_vector.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/code_generation/types.h"
 
@@ -16,12 +17,43 @@ WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf::ir {
 
-class block;
-class value;
-using block_ptr = non_null<ir::block*>;
-using value_ptr = non_null<ir::value*>;
-using const_block_ptr = non_null<const ir::block*>;
-using const_value_ptr = non_null<const ir::value*>;
+template <typename... Args>
+constexpr bool are_non_const_value_ptrs =
+    std::conjunction_v<std::is_same<std::decay_t<Args>, ir::value_ptr>...>;
+
+// Pair a value_ptr with a corresponding index. Each operand has an index into the consumer vector
+// that it points to. This is to allow O(1) deletion of consumers from a `consumer_vector`.
+class operand_ptr {
+ public:
+  constexpr operand_ptr(const ir::value_ptr operand, const std::size_t consumer_index) noexcept
+      : operand_(operand), consumer_index_(consumer_index) {}
+
+  // Get underlying ir::value*
+  constexpr auto get() const noexcept { return operand_.get(); }
+
+  // De-reference operators.
+  constexpr decltype(auto) operator->() const noexcept { return get(); }
+  constexpr decltype(auto) operator*() const noexcept { return *get(); }
+
+  // Allow implicit conversion to value_ptr.
+  constexpr operator ir::value_ptr() const noexcept { return operand_; }
+  constexpr operator ir::const_value_ptr() const noexcept { return operand_; }
+
+  // Remove self from the `operand_` consumer vector.
+  void remove_operand() const;
+
+  // Index in the `consumers_` vector of `operand_`.
+  constexpr std::size_t consumer_index() const noexcept { return consumer_index_; }
+
+  // Consumer index does not need to match for two operands to be identical.
+  constexpr bool operator==(const operand_ptr& other) const noexcept {
+    return operand_ == other.operand_;
+  }
+
+ private:
+  ir::value_ptr operand_;
+  std::size_t consumer_index_;
+};
 
 // Values are the result of any instruction we store in the IR.
 // All values have a name (an integer), and an operation that computed them.
@@ -29,7 +61,7 @@ using const_value_ptr = non_null<const ir::value*>;
 class value {
  public:
   using unique_ptr = std::unique_ptr<value>;
-  using operands_container = absl::InlinedVector<value_ptr, 4>;
+  using operands_container = absl::InlinedVector<operand_ptr, 4>;
   using types = std::variant<void_type, scalar_type, matrix_type, custom_type>;
 
   // Construct:
@@ -39,7 +71,7 @@ class value {
       : name_(name),
         parent_(parent),
         op_(std::forward<OpType>(operation)),
-        operands_{std::forward<Operands>(operands)...},
+        operands_(create_operands(operands...)),
         type_(std::move(type)) {
     post_init_steps<OpType>();
   }
@@ -74,28 +106,25 @@ class value {
   // True if any values that consume this one are phi functions.
   bool is_consumed_by_phi() const noexcept;
 
-  // Replace an operand to this instruction with another.
-  void replace_operand(value_ptr old, value_ptr replacement);
-
   // Change the underlying operation that computes this value, as well as the arguments to that
   // operation.
   template <typename OpType, typename... Args>
-  void set_operation(OpType&& op, types type, Args&&... args) {
+  void set_operation(OpType&& op, types type, const Args&... args) {
     // Disconnect from the current vector of operands:
-    for (const value_ptr& operand : operands_) {
-      operand->remove_consumer(this);
+    for (const operand_ptr& operand : operands_) {
+      operand.remove_operand();
     }
-    operands_ = {std::forward<Args>(args)...};
+    operands_ = create_operands(args...);
     type_ = std::move(type);
     op_ = std::forward<OpType>(op);
     post_init_steps<OpType>();
   }
 
   // Add `v` to the list of consumers of this value.
-  void add_consumer(value_ptr v);
+  operand_ptr add_consumer(ir::value* v);
 
   // Remove `v` from the list of consumers of this value.
-  void remove_consumer(value_ptr v);
+  void remove_consumer(operand_ptr v);
 
   // Access instruction operands.
   constexpr const operands_container& operands() const noexcept { return operands_; }
@@ -104,13 +133,13 @@ class value {
   std::size_t num_operands() const noexcept { return operands_.size(); }
 
   // Get the first operand.
-  const value_ptr& first_operand() const {
+  ir::value_ptr first_operand() const {
     WF_ASSERT(!operands_.empty());
     return operands_.front();
   }
 
   // Access i'th operand:
-  value_ptr operator[](std::size_t i) const {
+  ir::value_ptr operator[](std::size_t i) const {
     WF_ASSERT_LESS(i, operands_.size());
     return operands_[i];
   }
@@ -139,7 +168,7 @@ class value {
 
   // True if there are no consumers of this value.
   bool is_unused() const noexcept {
-    return consumers_.empty() && !is_op<ir::save>() && !is_op<ir::jump_condition>();
+    return consumers_.empty() && !is_op<ir::save, ir::jump_condition>();
   }
 
   // Access the type variant.
@@ -166,9 +195,23 @@ class value {
   type_variant non_void_type() const;
 
  protected:
+  // Replace an operand to this instruction with another.
+  void replace_operand(const ir::value* old, value_ptr replacement);
+
+  template <typename... Args>
+  auto create_operands(const Args&... args)
+      -> std::enable_if_t<are_non_const_value_ptrs<Args...>, operands_container> {
+    return operands_container{args->add_consumer(this)...};
+  }
+
+  template <typename Container, typename = std::enable_if_t<is_iterable_v<Container>>>
+  operands_container create_operands(const Container& container) {
+    return transform_map<operands_container>(
+        container, [this](const ir::value_ptr v) { return v->add_consumer(this); });
+  }
+
   template <typename OpType>
   void post_init_steps() {
-    notify_operands();
     if constexpr (OpType::is_commutative()) {
       // Sort operands for commutative operations so everything is a canonical order.
       sort_operands();
@@ -185,11 +228,8 @@ class value {
   // Sort operands in-place by increasing value of name.
   void sort_operands() {
     std::sort(operands_.begin(), operands_.end(),
-              [](const value_ptr& a, const value_ptr& b) { return a->name() < b->name(); });
+              [](const operand_ptr& a, const operand_ptr& b) { return a->name() < b->name(); });
   }
-
-  // Add `this` as a consumer of its own operands.
-  void notify_operands();
 
   // Unique name for this value (used for formatting variable names).
   uint32_t name_;
@@ -203,13 +243,14 @@ class value {
   // Operands to the operation. May be empty for some operations.
   operands_container operands_;
 
-  // Downstream values that consume this one. A value can be consumed more than once by a downstream
-  // operation, eg. `v00 * v00`. We use a set, and store each consumer only once.
-  absl::flat_hash_set<value_ptr> consumers_;
+  // Downstream values that consume this one.
+  consumer_vector consumers_;
 
   // The cached numeric type of this operation.
   types type_;
 };
+
+inline void operand_ptr::remove_operand() const { operand_->remove_consumer(*this); }
 
 }  // namespace wf::ir
 
@@ -221,7 +262,7 @@ struct wf::hash_struct<wf::ir::value_ptr> {
   std::size_t operator()(const ir::value_ptr& val) const noexcept {
     // First hash the operation, then all all the operands.
     std::size_t seed = wf::hash(val->value_op());
-    for (const ir::value_ptr& operand : val->operands()) {
+    for (const ir::operand_ptr& operand : val->operands()) {
       seed = hash_combine(seed, operand->name());
     }
     return seed;
