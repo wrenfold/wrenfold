@@ -96,7 +96,6 @@ class erased_pytype {
    public:
     virtual ~concept() = default;
     virtual bool is_identical_to(const concept& other) const = 0;
-    virtual std::size_t hash() const = 0;
   };
 
   template <typename T, typename... Args,
@@ -107,8 +106,6 @@ class erased_pytype {
   bool is_identical_to(const erased_pytype& other) const {
     return impl_->is_identical_to(*other.impl_.get());
   }
-
-  std::size_t hash() const { return impl_->hash(); }
 
   // Unchecked cast.
   template <typename T>
