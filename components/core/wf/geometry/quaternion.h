@@ -202,4 +202,17 @@ quaternion operator*(const quaternion& a, const quaternion& b);
 // When the norm of `w` falls below `epsilon`, the small angle approximation is used.
 matrix_expr left_jacobian_of_so3(const matrix_expr& w, const std::optional<scalar_expr>& epsilon);
 
+template <>
+struct hash_struct<quaternion> {
+  std::size_t operator()(const quaternion& q) const { return hash_all(0, q.wxyz()); }
+};
+
+template <>
+struct is_identical_struct<quaternion> {
+  bool operator()(const quaternion& a, const quaternion& b) const {
+    return std::equal(a.wxyz().begin(), a.wxyz().end(), b.wxyz().begin(),
+                      is_identical_struct<scalar_expr>{});
+  }
+};
+
 }  // namespace wf
