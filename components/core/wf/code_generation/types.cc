@@ -39,20 +39,15 @@ static void assert_field_names_are_unique(const std::vector<struct_field>& field
   }
 }
 
-struct hash_underlying_type {
-  std::size_t operator()(const std::type_index t) const noexcept { return t.hash_code(); }
-  std::size_t operator()(const erased_pytype& p) const { return p.hash(); }
-  std::size_t operator()(const custom_type::underlying_type_variant& var) const {
-    return hash_combine(var.index(), std::visit(*this, var));
-  }
-};
-
+// We don't consider the hash of `underlying_type` here. This is because python hashes and
+// type_index hashes are platform specific and can change at runtime. This will inject additional
+// non-determinism, which I would prefer to avoid. The odds of hash collisions are somewhat low,
+// since the two types would need identical names and member names.
 std::shared_ptr<const custom_type::impl> custom_type::create_impl(
     std::string name, std::vector<struct_field> fields, underlying_type_variant underlying_type) {
   impl result{std::move(name), std::move(fields), std::move(underlying_type), 0};
   result.hash = hash_string_fnv(result.name);
   result.hash = hash_all(result.hash, result.fields);
-  result.hash = hash_combine(result.hash, hash_underlying_type{}(result.underying_type));
   return std::make_shared<impl>(std::move(result));
 }
 
