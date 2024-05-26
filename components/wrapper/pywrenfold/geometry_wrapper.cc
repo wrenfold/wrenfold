@@ -54,7 +54,7 @@ static py::array eval_quaternion(const quaternion& q) {
 }
 
 void wrap_geometry_operations(py::module_& m) {
-  py::class_<quaternion>(m, "Quaternion")
+  wrap_class<quaternion>(m, "Quaternion")
       .def(py::init<scalar_expr, scalar_expr, scalar_expr, scalar_expr>(), "w"_a, "x"_a, "y"_a,
            "z"_a, docstrings::quaternion_constructor.data())
       .def(py::init<>(), docstrings::quaternion_identity_constructor.data())
