@@ -15,7 +15,7 @@ class RealScalar(sym.Expr):
 
 
 class Vector1(sym.MatrixExpr):
-    """A 1x1 matrix."""
+    """A 1x1 column vector."""
     SHAPE = (1, 1)
 
 
@@ -42,6 +42,66 @@ class Vector5(sym.MatrixExpr):
 class Vector6(sym.MatrixExpr):
     """A 6x1 column vector."""
     SHAPE = (6, 1)
+
+
+class Vector7(sym.MatrixExpr):
+    """A 7x1 column vector."""
+    SHAPE = (7, 1)
+
+
+class Vector8(sym.MatrixExpr):
+    """A 8x1 column vector."""
+    SHAPE = (8, 1)
+
+
+class Vector9(sym.MatrixExpr):
+    """A 9x1 column vector."""
+    SHAPE = (9, 1)
+
+
+class Matrix1(sym.MatrixExpr):
+    """A 1x1 square matrix."""
+    SHAPE = (1, 1)
+
+
+class Matrix2(sym.MatrixExpr):
+    """A 2x2 square matrix."""
+    SHAPE = (2, 2)
+
+
+class Matrix3(sym.MatrixExpr):
+    """A 3x3 square matrix."""
+    SHAPE = (3, 3)
+
+
+class Matrix4(sym.MatrixExpr):
+    """A 4x4 square matrix."""
+    SHAPE = (4, 4)
+
+
+class Matrix5(sym.MatrixExpr):
+    """A 5x5 square matrix."""
+    SHAPE = (5, 5)
+
+
+class Matrix6(sym.MatrixExpr):
+    """A 6x6 square matrix."""
+    SHAPE = (6, 6)
+
+
+class Matrix7(sym.MatrixExpr):
+    """A 7x7 square matrix."""
+    SHAPE = (7, 7)
+
+
+class Matrix8(sym.MatrixExpr):
+    """A 8x8 square matrix."""
+    SHAPE = (8, 8)
+
+
+class Matrix9(sym.MatrixExpr):
+    """A 9x9 square matrix."""
+    SHAPE = (9, 9)
 
 
 class Opaque:
