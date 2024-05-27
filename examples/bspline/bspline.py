@@ -17,7 +17,7 @@ import argparse
 import typing as T
 import collections
 
-from wrenfold.type_annotations import RealScalar
+from wrenfold.type_annotations import FloatScalar
 from wrenfold import code_generation
 from wrenfold.code_generation import OutputArg, CppGenerator, RustGenerator
 from wrenfold import sym
@@ -159,7 +159,7 @@ def create_polynomial_functions(x: sym.Expr, polynomials: T.Sequence[sym.Expr], 
     descriptions: T.List[code_generation.FunctionDescription] = []
     for i in range(0, len(polynomials)):
 
-        def bspline(arg: RealScalar, arg_scale: RealScalar):
+        def bspline(arg: FloatScalar, arg_scale: FloatScalar):
             # Output the function, plus (order - 2) derivatives that are continuous.
             # The last non-zero derivative is discontinuous.
             rows = [polynomials[i].subs(x, arg)]

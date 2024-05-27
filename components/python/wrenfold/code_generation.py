@@ -86,10 +86,10 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
       An instance of :class:`wrenfold.code_generation.FunctionDescription`.
 
     Example:
-      >>> from wrenfold.type_annotations import RealScalar
+      >>> from wrenfold.type_annotations import FloatScalar
       >>> from wrenfold import code_generation
       >>>
-      >>> def foo(x: RealScalar, y: RealScalar):
+      >>> def foo(x: FloatScalar, y: FloatScalar):
       >>>     # One return value, and one output argument named `z`:
       >>>     return [code_generation.ReturnValue(x * y), code_generation.OutputArg(x + y, "z")]
       >>> description = code_generation.create_function_description(func=foo)
@@ -216,10 +216,10 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
     Returns: Generated code.
 
     Example:
-      >>> from wrenfold.type_annotations import RealScalar
+      >>> from wrenfold.type_annotations import FloatScalar
       >>> from wrenfold import code_generation
       >>>
-      >>> def foo(x: RealScalar, y: RealScalar):
+      >>> def foo(x: FloatScalar, y: FloatScalar):
       >>>     # One return value, and one output argument named `z`:
       >>>     return [code_generation.ReturnValue(x * y), code_generation.OutputArg(x + y, "z")]
       >>>

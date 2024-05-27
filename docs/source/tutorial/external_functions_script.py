@@ -20,8 +20,8 @@ class LookupTable(type_annotations.Opaque):
 # [interpolate_table_start]
 interpolate_table = external_functions.declare_external_function(
     name="interpolate_table",
-    arguments=[("table", LookupTable), ("arg", type_annotations.RealScalar)],
-    return_type=type_annotations.RealScalar)  # [interpolate_table_end]
+    arguments=[("table", LookupTable), ("arg", type_annotations.FloatScalar)],
+    return_type=type_annotations.FloatScalar)  # [interpolate_table_end]
 
 
 # [function_definition_start]

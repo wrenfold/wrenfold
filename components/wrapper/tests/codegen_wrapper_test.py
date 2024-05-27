@@ -16,17 +16,17 @@ from wrenfold import sym
 from wrenfold import type_info
 from wrenfold.code_generation import ReturnValue, OutputArg
 from wrenfold.enumerations import StdMathFunction
-from wrenfold.type_annotations import RealScalar, Vector2, Opaque
+from wrenfold.type_annotations import FloatScalar, Vector2, Opaque
 
 from test_base import MathTestBase
 
 
-def func1(x: RealScalar, y: RealScalar, v: Vector2):
+def func1(x: FloatScalar, y: FloatScalar, v: Vector2):
     """A test function."""
     return (v.T * v)[0] * x + 5 * x * sym.pow(y, 3.1)
 
 
-def func2(x: Vector2, y: Vector2, z: RealScalar):
+def func2(x: Vector2, y: Vector2, z: FloatScalar):
     """Another test function with some output args."""
     m = sym.where(z > x[1], (x * y.transpose() + sym.eye(2) * sym.cos(z / x[0])).squared_norm(),
                   z * 5)
@@ -44,11 +44,11 @@ def func2(x: Vector2, y: Vector2, z: RealScalar):
 @dataclasses.dataclass
 class Point2d:
     """A custom type."""
-    x: RealScalar
-    y: RealScalar
+    x: FloatScalar
+    y: FloatScalar
 
 
-def rotate_point(angle: RealScalar, p: Point2d):
+def rotate_point(angle: FloatScalar, p: Point2d):
     R = sym.matrix([[sym.cos(angle), -sym.sin(angle)], [sym.sin(angle), sym.cos(angle)]])
     p_rotated = R * sym.vector(p.x, p.y)
     p_out = Point2d(*p_rotated)

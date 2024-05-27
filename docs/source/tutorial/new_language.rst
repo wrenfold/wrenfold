@@ -55,7 +55,7 @@ With a ``BaseGenerator`` subclass in hand, we can generate code:
 
 .. code:: python
 
-    def some_symbolic_func(x: type_annotations.RealScalar):
+    def some_symbolic_func(x: type_annotations.FloatScalar):
         return x * 2
 
     description = code_generation.create_function_description(some_symbolic_func)

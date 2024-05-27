@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from wrenfold import code_generation, sym, type_info
 from wrenfold.code_generation import OutputArg
-from wrenfold.type_annotations import RealScalar, Vector3
+from wrenfold.type_annotations import FloatScalar, Vector3
 
 # Modify to change the planning horizon and time discretization of problem
 # A larger N will result in a more accurate trajectory, but will take longer to solve
@@ -42,8 +42,8 @@ class Weights:
     Associated with the `Weights` struct in `problem.rs`
     """
 
-    final_state: RealScalar
-    dynamics: RealScalar
+    final_state: FloatScalar
+    dynamics: FloatScalar
 
 
 @dataclass
@@ -53,8 +53,8 @@ class ProblemInfo:
     Associated with the `ProblemInfo` struct in `problem.rs`
     """
 
-    dt: RealScalar
-    mass: RealScalar
+    dt: FloatScalar
+    mass: FloatScalar
 
 
 def get_pos(state: State) -> Vector3:
@@ -73,7 +73,7 @@ def get_control(state: State) -> Vector3:
     return state[9:12, :]
 
 
-def dynamics(state: State, mass: RealScalar, dt: RealScalar) -> State:
+def dynamics(state: State, mass: FloatScalar, dt: FloatScalar) -> State:
     """
     Given a state, compute the next state after dt seconds
     """
@@ -98,7 +98,7 @@ def cost_hessian(cost: sym.Expr, state: State):
     return cost_jacobian(cost, state).jacobian(state)
 
 
-def desired_state_objective(state: State, desired_state: State, weight: RealScalar):
+def desired_state_objective(state: State, desired_state: State, weight: FloatScalar):
     """
     Penalize the distance between the current state and the desired state
     """
@@ -109,9 +109,9 @@ def desired_state_objective(state: State, desired_state: State, weight: RealScal
 def dynamics_objective(
     state: State,
     next_state: State,
-    weight: RealScalar,
-    mass: RealScalar,
-    dt: RealScalar,
+    weight: FloatScalar,
+    mass: FloatScalar,
+    dt: FloatScalar,
 ):
     """
     Penalize the distance between the next state and the state predicted by the dynamics

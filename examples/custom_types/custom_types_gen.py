@@ -19,7 +19,7 @@ from wrenfold import sym
 from wrenfold import type_info
 from wrenfold.code_generation import ReturnValue, OutputArg, CppGenerator, RustGenerator
 from wrenfold.geometry import Quaternion
-from wrenfold.type_annotations import RealScalar, Vector3, Vector6
+from wrenfold.type_annotations import FloatScalar, Vector3, Vector6
 
 
 @dataclasses.dataclass
@@ -30,10 +30,10 @@ class EigenQuaternion:
 
     In Rust code we will use nalgebra.
     """
-    x: RealScalar
-    y: RealScalar
-    z: RealScalar
-    w: RealScalar
+    x: FloatScalar
+    y: FloatScalar
+    z: FloatScalar
+    w: FloatScalar
 
     def to_quaternion(self) -> Quaternion:
         """Convert to the wrenfold quaternion type, so we can more easily manipulate symbolically."""
@@ -108,9 +108,9 @@ class Point3d:
     """
     Another hypothetical custom type, a point in 3d space.
     """
-    x: RealScalar
-    y: RealScalar
-    z: RealScalar
+    x: FloatScalar
+    y: FloatScalar
+    z: FloatScalar
 
     def to_vector(self) -> sym.MatrixExpr:
         """

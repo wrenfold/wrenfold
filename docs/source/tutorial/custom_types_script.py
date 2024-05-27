@@ -14,8 +14,8 @@ from wrenfold import type_info
 @dataclasses.dataclass
 class Vec2:
     """Symbolic version of geo::vec2."""
-    x: type_annotations.RealScalar
-    y: type_annotations.RealScalar
+    x: type_annotations.FloatScalar
+    y: type_annotations.FloatScalar
 
     def to_vector(self) -> sym.MatrixExpr:
         return sym.vector(self.x, self.y)
@@ -28,7 +28,7 @@ class Vec2:
 
 
 # [function_definition_start]
-def rotate_vector(angle: type_annotations.RealScalar, v: Vec2):
+def rotate_vector(angle: type_annotations.FloatScalar, v: Vec2):
     """Rotate vector `v` by `angle` radians."""
     R = sym.matrix([[sym.cos(angle), -sym.sin(angle)], [sym.sin(angle), sym.cos(angle)]])
     v_rot = R * v.to_vector()
