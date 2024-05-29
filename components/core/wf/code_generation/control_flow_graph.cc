@@ -797,16 +797,16 @@ void control_flow_graph::factorize_sums_in_block(const ir::block_ptr block) {
     }
 
     // Compute factorizations:
-    const auto factorizations =
-        compute_ranked_factorizations(term_bitsets, index_assignor.num_variables(), 4);
+    constexpr std::size_t branching_factor = 4;
+    const auto factorizations = compute_ranked_factorizations(
+        term_bitsets, index_assignor.num_variables(), branching_factor);
 
     if (factorizations.empty()) {
       continue;
     }
 
     // TODO: For now we take the highest scoring one, but there might be something smarter we
-    // could
-    //  do here by considering the whole graph.
+    // could do here by considering the whole graph.
     const ir::value_ptr factorized_sum = factorize_sum_of_products(
         index_assignor, factorizations.front(), block, muls, non_muls, operations);
 

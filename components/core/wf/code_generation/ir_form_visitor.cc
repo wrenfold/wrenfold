@@ -14,7 +14,9 @@ ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph)
 }
 
 ir::value_ptr ir_form_visitor::operator()(const addition& add) {
-  return create_add_or_mul<ir::addn>(add.as_span());
+  // Convert to values, then make sure appropriate casts are inserted:
+  auto args = transform_map<absl::InlinedVector<ir::value_ptr, 8>>(add, *this);
+  return create_add_or_mul_with_operands<ir::addn>(std::move(args));
 }
 
 ir::value_ptr ir_form_visitor::operator()(const boolean_constant& b) {
@@ -229,7 +231,6 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
     *it = -*it;
     mul_terms.push_back(constants::negative_one);
   }
-  std::sort(mul_terms.begin(), mul_terms.end(), expression_order_struct{});
 
   // Convert operands into values, converting some integer powers into multiplications in the
   // process.
@@ -246,17 +247,6 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
     mul_operands.push_back(operator()(child));
   }
   return create_add_or_mul_with_operands<ir::muln>(mul_operands);
-}
-
-template <typename T>
-ir::value_ptr ir_form_visitor::create_add_or_mul(const absl::Span<const scalar_expr>& expressions) {
-  // Sort expressions into canonical order:
-  absl::InlinedVector<scalar_expr, 16> sorted_expressions{expressions.begin(), expressions.end()};
-  std::sort(sorted_expressions.begin(), sorted_expressions.end(), expression_order_struct{});
-
-  // Convert to values, then make sure appropriate casts are inserted:
-  auto args = transform_map<absl::InlinedVector<ir::value_ptr, 8>>(sorted_expressions, *this);
-  return create_add_or_mul_with_operands<T>(std::move(args));
 }
 
 template <typename T, typename Container>
@@ -399,7 +389,8 @@ ir::value_ptr ir_form_visitor::operator()(const T& expr) {
 
 ir::value_ptr ir_form_visitor::apply_output_value(const scalar_expr& expr,
                                                   const code_numeric_type desired_output_type) {
-  return maybe_cast(operator()(expr), desired_output_type);
+  WF_FUNCTION_TRACE();
+  return maybe_cast(operator()(sorter_.sort_expression(expr)), desired_output_type);
 }
 
 template <typename OpType, typename Type, typename... Args>
@@ -425,6 +416,39 @@ ir::value_ptr ir_form_visitor::maybe_cast(ir::value_ptr input, code_numeric_type
     }
   }
   return input;
+}
+
+template <typename T, typename X>
+X expression_sorter::operator()(const T& concrete, const X& expr) {
+  if constexpr (std::is_same_v<T, addition> || std::is_same_v<T, multiplication>) {
+    // Copy and sort all children
+    auto sorted_children = transform_map<typename T::container_type>(concrete, *this);
+    std::sort(sorted_children.begin(), sorted_children.end(),
+              [](const scalar_expr& a, const scalar_expr& b) {
+                return determine_order(a, b) == relative_order::less_than;
+              });
+    return make_expr<T>(typename T::no_sort{}, std::move(sorted_children));
+  } else if constexpr (!T::is_leaf_node) {
+    return concrete.map_children(*this);
+  } else {
+    return expr;
+  }
+}
+
+template <typename X, typename>
+X expression_sorter::operator()(const X& expr) {
+  return cache_.get_or_insert(expr, [this](const X& x) { return visit(x, *this); });
+}
+
+any_expression expression_sorter::operator()(const any_expression& expr) {
+  return std::visit([this](const auto& inner) -> any_expression { return this->operator()(inner); },
+                    expr);
+}
+
+template <typename X>
+X expression_sorter::sort_expression(const X& expr) {
+  WF_FUNCTION_TRACE();
+  return operator()(expr);
 }
 
 }  // namespace wf

@@ -12,6 +12,28 @@
 namespace wf {
 class control_flow_graph;  // Forward declare.
 
+// Sort all additions and multiplications into canonical order.
+// We do this so that the code-generation is invariant to changes in our hash functions - otherwise
+// changing hash functions can cause unecessary downstream churn.
+class expression_sorter {
+ public:
+  template <typename T, typename X>
+  X operator()(const T& concrete, const X& expr);
+
+  // Accept abstract expression types.
+  template <typename X, typename = enable_if_inherits_expression_base_t<X, X>>
+  X operator()(const X& expr);
+
+  any_expression operator()(const any_expression& expr);
+
+  // Sort an expression. `X` may be scalar_expr, matrix_expr, compound_expr, etc.
+  template <typename X>
+  X sort_expression(const X& expr);
+
+ private:
+  expression_cache cache_;
+};
+
 // Visitor for converting an expression tree into intermediate representation.
 // This visitor accepts expression types, and returns IR values. While doing the conversion, we look
 // for opportunities to optimize. For the most part, this consists of identifying duplicate
@@ -57,9 +79,6 @@ class ir_form_visitor {
   ir::value_ptr push_operation(OpType&& op, Type type, Args&&... args);
 
   // Convert sequence of expressions into `ir::addn` or `ir::muln`.
-  template <typename T>
-  ir::value_ptr create_add_or_mul(const absl::Span<const scalar_expr>& expressions);
-
   template <typename T, typename Container>
   ir::value_ptr create_add_or_mul_with_operands(Container args);
 
@@ -85,6 +104,9 @@ class ir_form_visitor {
   // Map of expression -> IR value. We catch duplicates as we create the IR code, which greatly
   // speeds up manipulation of the code later.
   wf::expression_map_tuple<cache_map_type> cache_;
+
+  // Sorter is stored in this converter so it can cache over multiple output expressions.
+  expression_sorter sorter_{};
 
   // Hash tuple of [value, type]
   struct hash_value_and_type {

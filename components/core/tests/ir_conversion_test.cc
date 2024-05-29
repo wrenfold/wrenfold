@@ -438,7 +438,7 @@ TEST(IrTest, TestFactorization6) {
 
   for (const auto& [passes, num_ops] :
        {std::make_tuple(1, 151), std::make_tuple(2, 120), std::make_tuple(3, 108),
-        std::make_tuple(4, 92), std::make_tuple(5, 84)}) {
+        std::make_tuple(4, 93), std::make_tuple(5, 84)}) {
     auto [_, ir_factorized] = create_ir_with_params(
         +func, optimization_params{static_cast<std::size_t>(passes), true}, "func", arg("v"));
 
