@@ -357,6 +357,16 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ad
                           visit_operation_argument(val[1])};
 }
 
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::addn&) {
+  WF_ASSERT_GREATER_OR_EQ(val.num_operands(), 2);
+  auto left = visit_operation_argument(val[0]);
+  for (std::size_t i = 1; i < val.num_operands(); ++i) {
+    left = ast::ast_element{std::in_place_type_t<ast::add>{}, std::move(left),
+                            visit_operation_argument(val[i])};
+  }
+  return left;
+}
+
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::call_external_function& call) {
   WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
@@ -450,6 +460,16 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
   return ast::ast_element{std::in_place_type_t<ast::multiply>{}, visit_operation_argument(val[0]),
                           visit_operation_argument(val[1])};
+}
+
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::muln&) {
+  WF_ASSERT_GREATER_OR_EQ(val.num_operands(), 2);
+  auto left = visit_operation_argument(val[0]);
+  for (std::size_t i = 1; i < val.num_operands(); ++i) {
+    left = ast::ast_element{std::in_place_type_t<ast::multiply>{}, std::move(left),
+                            visit_operation_argument(val[i])};
+  }
+  return left;
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::neg&) {

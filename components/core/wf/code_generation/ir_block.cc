@@ -46,6 +46,18 @@ void block::add_descendant(const block_ptr b) {
   b->add_ancestor(ir::block_ptr{this});
 }
 
+// Remove anything that does not have a consumer.
+// We do this in reverse order so that eliminating one useless value can eliminate its inputs.
+void block::remove_unused_operations() {
+  reverse_remove_if(operations_, [](const ir::value_ptr v) {
+    if (v->is_unused()) {
+      v->remove();
+      return true;
+    }
+    return false;
+  });
+}
+
 // We traverse either upwards or downwards, recursively coloring nodes until we find a node
 // that has already been colored - that is the intersection point. There might be more efficient
 // ways to implement this, but we are doing relatively small searches.

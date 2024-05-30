@@ -110,7 +110,9 @@ class CodeGenerationWrapperTest(MathTestBase):
         """
         expected_outputs = desc.output_expressions()
 
-        cse_outputs, intermediate_values = code_generation.cse_function_description(desc)
+        params = code_generation.OptimizationParams()
+        params.factorization_passes = 0
+        cse_outputs, intermediate_values = code_generation.cse_function_description(desc, params)
 
         for key, expr_list in expected_outputs.items():
             self.assertTrue(key in cse_outputs)
@@ -124,8 +126,10 @@ class CodeGenerationWrapperTest(MathTestBase):
                     expr = expr.subs_variables([(var, val)])
                 reconstituted_exprs.append(expr)
 
+            # We need to distribute here to check equivalence properly.
+            # This is because the substitution order means some constants won't be distributed over additions.
             for expected, actual in zip(expr_list, reconstituted_exprs):
-                self.assertIdentical(expected, actual)
+                self.assertIdentical(expected.distribute(), actual.distribute())
 
     def test_func1(self):
         """Test simple function that returns a scalar."""

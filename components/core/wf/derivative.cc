@@ -70,7 +70,6 @@ scalar_expr derivative_visitor::apply(const scalar_expr& expression) {
 
 // Differentiate every argument to make a new sum.
 scalar_expr derivative_visitor::operator()(const addition& add) {
-  WF_SCOPED_TRACE_STR("wf::derivative_visitor::operator()(const addition&)");
   return add.map_children([this](const scalar_expr& expr) { return apply(expr); });
 }
 
@@ -122,7 +121,6 @@ scalar_expr derivative_visitor::operator()(const derivative& derivative,
 // a * b * c
 // a' * b * c + a * b' * c + a * b * c'
 scalar_expr derivative_visitor::operator()(const multiplication& mul) {
-  WF_SCOPED_TRACE_STR("wf::derivative_visitor::operator()(const multiplication&)");
   absl::InlinedVector<scalar_expr, 8> add_terms;
   add_terms.reserve(mul.size());
 

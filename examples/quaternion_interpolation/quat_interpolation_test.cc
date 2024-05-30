@@ -32,6 +32,11 @@ auto quat_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> 
   return quaternion_interpolation(q0_vec, q1_vec, alpha, 1.0e-16);
 }
 
+auto quat_interpolation_no_conditional(ta::static_matrix<4, 1> q0_vec,
+                                       ta::static_matrix<4, 1> q1_vec, scalar_expr alpha) {
+  return quaternion_interpolation(q0_vec, q1_vec, alpha, std::nullopt);
+}
+
 // Test the quaternion interpolation result numerically.
 TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
   auto evaluator = create_evaluator(&quat_interpolation);
@@ -67,6 +72,47 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
 
   EXPECT_EIGEN_NEAR(D0_num, D0_gen, 1.0e-12);
   EXPECT_EIGEN_NEAR(D1_num, D1_gen, 1.0e-12);
+}
+
+// Test the version with no conditionals.
+TEST(QuaternionInterpolationTest, TestQuatInterpolationNoConditional) {
+  auto evaluator = create_evaluator(&quat_interpolation_no_conditional);
+
+  const Quaterniond q0 = Quaterniond{AngleAxisd(M_PI / 8, Vector3d::UnitX())} *
+                         Quaterniond{AngleAxisd(-M_PI / 6, Vector3d::UnitY())};
+  const Quaterniond q1{AngleAxisd(-M_PI / 3, Vector3d::UnitZ())};
+
+  for (const double alpha : {0.01, 0.1, 0.25, 0.5, 0.82, 0.99}) {
+    Quaterniond q_eval{};
+    Matrix3d D0_eval, D1_eval;
+    evaluator(q0.coeffs(), q1.coeffs(), alpha, q_eval.coeffs(), D0_eval, D1_eval);
+
+    Quaterniond q_gen{};
+    Matrix3d D0_gen{}, D1_gen{};
+    gen::quaternion_interpolation_no_conditional(q0, q1, alpha, q_gen, D0_gen, D1_gen);
+
+    EXPECT_EIGEN_NEAR(q_eval.coeffs(), q_gen.coeffs(), 2.0e-16);
+    EXPECT_EIGEN_NEAR(D0_eval, D0_gen, 5.0e-16);
+    EXPECT_EIGEN_NEAR(D1_eval, D1_gen, 5.0e-16);
+
+    // compare to interpolation with eigen
+    EXPECT_EIGEN_NEAR(quat_interp(q0, q1, alpha).coeffs(), q_gen.coeffs(), 2.0e-16);
+
+    // compute derivatives numerically
+    const Matrix3d D0_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
+      return manifold<Quaterniond>::local_coordinates(
+          quat_interp(q0, q1, alpha),
+          quat_interp(manifold<Quaterniond>::retract(q0, w), q1, alpha));
+    });
+    const Matrix3d D1_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
+      return manifold<Quaterniond>::local_coordinates(
+          quat_interp(q0, q1, alpha),
+          quat_interp(q0, manifold<Quaterniond>::retract(q1, w), alpha));
+    });
+
+    EXPECT_EIGEN_NEAR(D0_num, D0_gen, 1.0e-12);
+    EXPECT_EIGEN_NEAR(D1_num, D1_gen, 1.0e-12);
+  }
 }
 
 }  // namespace wf

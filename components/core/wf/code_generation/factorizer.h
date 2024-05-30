@@ -16,11 +16,14 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
-
+namespace factorizer_params {
 constexpr std::size_t MAX_VARS_OR_TERMS = 64;
 constexpr std::size_t MAX_FACTORIZATION_STEPS = 8;
+}  // namespace factorizer_params
 
-using factor_bits = std::bitset<MAX_VARS_OR_TERMS>;
+// We use a fixed size bitset to indicate the presence or absence of a variable in a given term of
+// a sum-of-products expression.
+using factor_bits = std::bitset<factorizer_params::MAX_VARS_OR_TERMS>;
 
 // Represents a factorization of a sum-of-products expression.
 // Each "step" in the factorization extracts at least one (sometimes many) variables from a subset
@@ -68,7 +71,8 @@ class factorization {
   // First element of the tuple is the variables, second is the terms those variables
   // are being factorized out of. Using `static_vector` here offers a useful speedup
   // over absl::InlinedVector.
-  static_vector<std::tuple<factor_bits, factor_bits>, MAX_FACTORIZATION_STEPS> steps_{};
+  static_vector<std::tuple<factor_bits, factor_bits>, factorizer_params::MAX_FACTORIZATION_STEPS>
+      steps_{};
 
   // # Of multiplications eliminated by his factorization.
   std::size_t score_{0};

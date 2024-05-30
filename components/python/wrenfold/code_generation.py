@@ -17,6 +17,7 @@ from pywrenfold.gen import (
     BaseGenerator,
     CppGenerator,
     FunctionDescription,
+    OptimizationParams,
     OutputKey,
     RustGenerator,
     cse_function_description,
@@ -187,7 +188,8 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
 
 def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
                       generator: T.Union[CppGenerator, RustGenerator, BaseGenerator],
-                      name: T.Optional[str] = None) -> str:
+                      name: T.Optional[str] = None,
+                      optimization_params: T.Optional[OptimizationParams] = None) -> str:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
     to code in the language emitted by ``generator``. This is a three-step process:
@@ -209,6 +211,7 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
           :func:`wrenfold.code_generation.create_function_description` for notes on the expected signature.
         generator: Instance of a code generator, eg. :class:`wrenfold.code_generation.CppGenerator`.
         name: Name of the function. If unspecified, ``func.__name__`` will be used.
+        optimization_params: Parameters governing simplifications/optimizations applied to the output code.
 
     Returns: Generated code.
 
@@ -243,7 +246,7 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
         }
     """
     description = create_function_description(func=func, name=name)
-    func_ast = transpile(description)
+    func_ast = transpile(description, params=optimization_params)
     return generator.generate(definition=func_ast)
 
 

@@ -1,12 +1,14 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/declare_external_function.h"
 #include "wf/code_generation/expr_from_ir.h"
 #include "wf/code_generation/function_evaluator.h"
 #include "wf/constants.h"
 #include "wf/functions.h"
+#include "wf/geometry/quaternion.h"
 #include "wf/type_annotations.h"
 
 #include "wf_test_support/test_macros.h"
@@ -22,13 +24,21 @@ std::ostream& operator<<(std::ostream& s, const control_flow_graph& cfg) {
   return s;
 }
 
+template <typename Func, typename... Args>
+auto create_ir_with_params(Func&& func, optimization_params params, const std::string_view name,
+                           Args&&... args) {
+  const function_description description =
+      build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
+  control_flow_graph flat_cfg{description.output_expressions(), params};
+  flat_cfg.assert_invariants();
+  return std::make_tuple(description.output_expressions(), std::move(flat_cfg));
+}
+
 // Given a lambda or function pointer, create the IR for the expressions it generates.
 template <typename Func, typename... Args>
 auto create_ir(Func&& func, const std::string_view name, Args&&... args) {
-  const function_description description =
-      build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
-  control_flow_graph flat_ir{description.output_expressions()};
-  return std::make_tuple(description.output_expressions(), std::move(flat_ir));
+  return create_ir_with_params(std::forward<Func>(func), optimization_params{0, true}, name,
+                               std::forward<Args>(args)...);
 }
 
 // Generate permutations that represent whether optional arguments are present or not.
@@ -76,7 +86,7 @@ template <typename T>
 void check_output_expressions(const std::vector<expression_group>& expected_expressions,
                               const std::unordered_map<output_key, std::vector<scalar_expr>,
                                                        hash_struct<output_key>>& output_expressions,
-                              const T& ir) {
+                              const T& ir, const bool distribute_outputs) {
   for (const expression_group& group : expected_expressions) {
     auto it = output_expressions.find(group.key);
     ASSERT_TRUE(it != output_expressions.end())
@@ -87,7 +97,9 @@ void check_output_expressions(const std::vector<expression_group>& expected_expr
     ASSERT_EQ(group.expressions.size(), it->second.size()) << ir;
 
     for (std::size_t i = 0; i < group.expressions.size(); ++i) {
-      ASSERT_IDENTICAL(group.expressions[i], it->second[i])
+      ASSERT_IDENTICAL(
+          distribute_outputs ? group.expressions[i].distribute() : group.expressions[i],
+          distribute_outputs ? it->second[i].distribute() : it->second[i])
           << fmt::format("Key: ({}, {}), i: {}\n", string_from_expression_usage(group.key.usage),
                          group.key.name, i)
           << ir;
@@ -96,9 +108,9 @@ void check_output_expressions(const std::vector<expression_group>& expected_expr
 }
 
 void check_expressions(const std::vector<expression_group>& expected_expressions,
-                       const control_flow_graph& ir) {
+                       const control_flow_graph& ir, const bool distribute_outputs = false) {
   const auto [output_expressions, _] = rebuild_expression_tree(ir.first_block(), {});
-  check_output_expressions(expected_expressions, output_expressions, ir);
+  check_output_expressions(expected_expressions, output_expressions, ir, distribute_outputs);
 }
 
 void check_expressions_with_output_permutations(
@@ -108,7 +120,7 @@ void check_expressions_with_output_permutations(
     // test permutation `i`:
     auto output_map = permutations.get_permutation(i);
     auto [output_expressions, _] = rebuild_expression_tree(ir.first_block(), std::move(output_map));
-    check_output_expressions(expected_expressions, output_expressions, ir);
+    check_output_expressions(expected_expressions, output_expressions, ir, false);
   }
 }
 
@@ -157,7 +169,7 @@ TEST(IrTest, TestScalarExpressions1) {
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
-  control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(1, output_ir.count_operation<ir::mul>()) << output_ir;
   ASSERT_EQ(1, output_ir.count_operation<ir::add>()) << output_ir;
   ASSERT_EQ(1, output_ir.num_blocks()) << output_ir;
@@ -174,17 +186,17 @@ TEST(IrTest, TestScalarExpressions2) {
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(6, ir.count_operation<ir::mul>()) << ir;
-  ASSERT_EQ(3, ir.count_operation<ir::add>()) << ir;
-  ASSERT_EQ(0, ir.count_operation<ir::neg>()) << ir;
-  ASSERT_EQ(1, ir.count_function(std_math_function::sin)) << ir;
-  ASSERT_EQ(1, ir.count_function(std_math_function::cos)) << ir;
-  ASSERT_EQ(1, ir.count_function(std_math_function::log)) << ir;
-  ASSERT_EQ(0, ir.num_conditionals()) << ir;
+  EXPECT_EQ(6, ir.count_operation<ir::mul>()) << ir;
+  EXPECT_EQ(3, ir.count_operation<ir::add>()) << ir;
+  EXPECT_EQ(1, ir.count_operation<ir::neg>()) << ir;
+  EXPECT_EQ(1, ir.count_function(std_math_function::sin)) << ir;
+  EXPECT_EQ(1, ir.count_function(std_math_function::cos)) << ir;
+  EXPECT_EQ(1, ir.count_function(std_math_function::log)) << ir;
+  EXPECT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(15, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(16, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(1, output_ir.num_conditionals()) << output_ir;
   ASSERT_EQ(3, output_ir.num_blocks()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
@@ -244,7 +256,7 @@ TEST(IrTest, TestPowerConversion1) {
       },
       "func", arg("x"));
 
-  ASSERT_EQ(15, ir.num_operations()) << ir;
+  ASSERT_EQ(16, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   ASSERT_EQ(10, ir.count_operation<ir::mul>()) << ir;
   ASSERT_EQ(0, ir.count_function(std_math_function::powf)) << ir;
@@ -258,7 +270,7 @@ TEST(IrTest, TestPowerConversion1) {
 TEST(IrTest, TestPowerConversion2) {
   auto [expected_expressions, ir] = create_ir(
       [](scalar_expr x, scalar_expr y) {
-        scalar_expr c = x * x + y * y;
+        const scalar_expr c = x * x + y * y;
         return pow(c, 1_s / 2) + 1 / pow(c, 5_s / 2) + pow(c, 3_s / 2);
       },
       "func", arg("x"), arg("y"));
@@ -274,6 +286,165 @@ TEST(IrTest, TestPowerConversion2) {
   check_expressions(expected_expressions, ir);
   check_expressions_with_output_permutations(expected_expressions,
                                              std::move(ir).convert_conditionals_to_control_flow());
+}
+
+TEST(IrTest, TestPowerConversion3) {
+  auto [expected_expressions, ir] =
+      create_ir([](scalar_expr x, scalar_expr y) { return pow(x, 8) + pow(y, 9); }, "func",
+                arg("x"), arg("y"));
+
+  EXPECT_EQ(8, ir.num_operations());
+  EXPECT_EQ(7, ir.count_operation<ir::mul>());
+  check_expressions(expected_expressions, ir);
+}
+
+TEST(IrTest, TestFactorization1) {
+  const auto func = [](scalar_expr x, scalar_expr y, scalar_expr z, scalar_expr w) {
+    return x * y * z * w - 3 * x * y + cos(w) * x * y - 14 + z * w;
+  };
+  auto [expected_expressions, ir] = create_ir_with_params(
+      +func, optimization_params{0, true}, "func", arg("x"), arg("y"), arg("z"), arg("w"));
+
+  ASSERT_EQ(13, ir.num_operations()) << ir;
+  check_expressions(expected_expressions, ir, false);
+
+  // Recompute with factorization enabled:
+  auto [_, ir_factorized] = create_ir_with_params(+func, optimization_params{1, true}, "func",
+                                                  arg("x"), arg("y"), arg("z"), arg("w"));
+
+  ASSERT_EQ(11, ir_factorized.num_operations()) << ir_factorized;
+  check_expressions(expected_expressions, ir_factorized, true);
+}
+
+TEST(IrTest, TestFactorization2) {
+  // Test that factorization works with powers of the same variable.
+  // We construct an expression that contains `x` and `z` elevated to powers greater than one.
+  const auto func = [](scalar_expr x, scalar_expr y, scalar_expr z) {
+    return (x * (x + y * x - z * (x + z * z))).distribute();
+  };
+
+  auto [expected_expressions, ir] = create_ir_with_params(+func, optimization_params{0, true},
+                                                          "func", arg("x"), arg("y"), arg("z"));
+
+  EXPECT_EQ(10, ir.num_operations()) << ir;
+  check_expressions(expected_expressions, ir, false);
+
+  auto [_, ir_factorized] = create_ir_with_params(+func, optimization_params{2, true}, "func",
+                                                  arg("x"), arg("y"), arg("z"));
+
+  EXPECT_EQ(8, ir_factorized.num_operations()) << ir_factorized;
+  check_expressions(expected_expressions, ir_factorized, true);
+}
+
+TEST(IrTest, TestFactorization3) {
+  const auto func = [](const ta::static_matrix<15, 1> v) {
+    return v[5] * v[6] * v[7] * v[8] * v[0] * v[13] * v[3] +
+           v[5] * v[7] * v[8] * v[9] * v[0] * v[14] * v[3] +
+           v[5] * v[7] * v[8] * v[0] * v[14] * v[2] * v[3] +
+           v[4] * v[5] * v[6] * v[1] * v[14] * v[3] + v[4] * v[5] * v[9] * v[1] * v[14] * v[3] +
+           v[4] * v[5] * v[1] * v[14] * v[2] * v[3] + v[5] * v[8] * v[11] * v[12] * v[3] +
+           v[5] * v[8] * v[11] * v[13] * v[3] + v[5] * v[8] * v[10] * v[11] * v[3];
+  };
+  auto [expected_expressions, ir] = create_ir(+func, "func", arg("v"));
+
+  ASSERT_EQ(28, ir.num_operations()) << ir;
+  check_expressions(expected_expressions, ir, false);
+
+  auto [_, ir_factorized_one_pass] =
+      create_ir_with_params(+func, optimization_params{1, true}, "func", arg("v"));
+
+  ASSERT_EQ(22, ir_factorized_one_pass.num_operations()) << ir_factorized_one_pass;
+  check_expressions(expected_expressions, ir_factorized_one_pass, true);
+
+  // With two passes:
+  auto [__, ir_factorized_two_pass] =
+      create_ir_with_params(+func, optimization_params{2, true}, "func", arg("v"));
+
+  ASSERT_EQ(19, ir_factorized_two_pass.num_operations()) << ir_factorized_two_pass;
+  check_expressions(expected_expressions, ir_factorized_two_pass, true);
+}
+
+TEST(IrTest, TestFactorization4) {
+  const auto func = [](scalar_expr a, scalar_expr b, scalar_expr c, scalar_expr d) {
+    return (a * (b + c * (d + 1)) + a * (-d - 1)).distribute();
+  };
+  auto [expected_expressions, ir] =
+      create_ir(+func, "func", arg("a"), arg("b"), arg("c"), arg("d"));
+
+  EXPECT_EQ(10, ir.num_operations()) << ir;
+  check_expressions(expected_expressions, ir, false);
+
+  auto [_, ir_factorized_one_pass] = create_ir_with_params(
+      +func, optimization_params{1, true}, "func", arg("a"), arg("b"), arg("c"), arg("d"));
+
+  EXPECT_EQ(8, ir_factorized_one_pass.num_operations()) << ir_factorized_one_pass;
+  check_expressions(expected_expressions, ir_factorized_one_pass, true);
+
+  auto [__, ir_factorized_two_pass] = create_ir_with_params(
+      +func, optimization_params{2, true}, "func", arg("a"), arg("b"), arg("c"), arg("d"));
+
+  EXPECT_EQ(6, ir_factorized_two_pass.num_operations()) << ir_factorized_two_pass;
+  check_expressions(expected_expressions, ir_factorized_two_pass, true);
+}
+
+TEST(IrTest, TestFactorization5) {
+  const auto func = [](scalar_expr x, scalar_expr y) {
+    return pow(x, 4) + pow(x, 8) + pow(x, 2) + x + -2 * pow(y, 3) + constants::pi * pow(y, 2) +
+           y * 0.1;
+  };
+  auto [expected_expressions, ir] = create_ir(+func, "func", arg("x"), arg("y"));
+
+  EXPECT_EQ(16, ir.num_operations()) << ir;
+  check_expressions(expected_expressions, ir, false);
+
+  for (const auto& [passes, num_ops] : {std::make_tuple(1, 15), std::make_tuple(2, 16)}) {
+    auto [_, ir_factorized] =
+        create_ir_with_params(+func, optimization_params{static_cast<std::size_t>(passes), true},
+                              "func", arg("x"), arg("y"));
+    EXPECT_EQ(num_ops, ir_factorized.num_operations()) << ir_factorized;
+    check_expressions(expected_expressions, ir, true);
+  }
+}
+
+TEST(IrTest, TestFactorization6) {
+  const auto func = [](ta::static_matrix<16, 1> v) {
+    const scalar_expr output =
+        -1 + v[6] + v[10] + v[14] + v[15] +
+        v[3] * pow(v[9], 2) *
+            (-4 + v[0] + v[2] + v[5] + v[9] +
+             v[3] * v[7] * v[9] *
+                 (3 + v[2] + v[4] + v[7] + v[12] +
+                  v[1] * v[6] * v[8] *
+                      (3 + v[2] + v[8] + v[9] + v[15] +
+                       v[1] * v[10] * v[11] *
+                           (2 + v[7] + v[8] + 2 * v[12] +
+                            v[7] * v[12] * v[15] *
+                                (4 + v[2] + v[12] + v[13] + v[15] +
+                                 v[0] * v[5] * v[13] *
+                                     (2 + 2 * v[1] + v[5] + v[13] +
+                                      v[6] * v[9] * v[14] *
+                                          (v[7] + v[8] + 2 * v[12] +
+                                           v[4] * v[6] * v[15] *
+                                               (-5 + v[4] + v[6] + v[7] + v[14] +
+                                                v[6] * v[9] * v[10] *
+                                                    (4 + v[8] + v[9] + 2 * v[13] +
+                                                     v[8] * v[9] * v[11])))))))));
+    return output.distribute();
+  };
+  auto [expected_expressions, ir] = create_ir(+func, "func", arg("v"));
+
+  EXPECT_EQ(213, ir.num_operations()) << ir;
+  check_expressions(expected_expressions, ir, false);
+
+  for (const auto& [passes, num_ops] :
+       {std::make_tuple(1, 151), std::make_tuple(2, 120), std::make_tuple(3, 108),
+        std::make_tuple(4, 93), std::make_tuple(5, 84)}) {
+    auto [_, ir_factorized] = create_ir_with_params(
+        +func, optimization_params{static_cast<std::size_t>(passes), true}, "func", arg("v"));
+
+    EXPECT_EQ(num_ops, ir_factorized.num_operations()) << "passes: " << passes;
+    check_expressions(expected_expressions, ir_factorized, true);
+  }
 }
 
 TEST(IrTest, TestConditionals1) {
@@ -298,7 +469,7 @@ TEST(IrTest, TestConditionals2) {
   auto [expected_expressions, ir] = create_ir(
       [](scalar_expr x, scalar_expr y) {
         // use the condition in one of the branches:
-        boolean_expr condition = x > y;
+        const boolean_expr condition = x > y;
         return where(condition, iverson(condition) * 2, cos(y - 2));
       },
       "func", arg("x"), arg("y"));
@@ -372,12 +543,12 @@ TEST(IrTest, TestConditionals5) {
       },
       "func", arg("x"), arg("y"), arg("z"));
 
-  ASSERT_EQ(57, ir.num_operations()) << ir;
+  ASSERT_EQ(55, ir.num_operations()) << ir;
   ASSERT_EQ(6, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(59, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(57, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
@@ -441,6 +612,26 @@ TEST(IrTest, TestConditionals8) {
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
+TEST(IrTest, TestConditionals9) {
+  auto [expected_expressions, ir] = create_ir(
+      [](ta::static_matrix<2, 1> x, ta::static_matrix<2, 1> y, scalar_expr z) {
+        scalar_expr m =
+            where(z > x[1], (x * y.transposed() + make_identity(2) * cos(z / x[0])).squared_norm(),
+                  z * 5);
+        ta::static_matrix<1, 2> diff_x = make_vector(m).jacobian(x);
+        ta::static_matrix<1, 2> diff_y = make_vector(m).jacobian(y);
+        scalar_expr diff_z = m.diff(z);
+        return std::make_tuple(return_value(m), output_arg("diff_x", diff_x),
+                               output_arg("diff_y", diff_y), optional_output_arg("diff_z", diff_z));
+      },
+      "func", arg("x"), arg("y"), arg("z"));
+
+  check_expressions(expected_expressions, ir);
+
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
+}
+
 TEST(IrTest, TestMatrixExpressions1) {
   // Create a matrix output:
   auto [expected_expressions, ir] = create_ir(
@@ -450,12 +641,12 @@ TEST(IrTest, TestMatrixExpressions1) {
       },
       "func", arg("x"), arg("y"));
 
-  ASSERT_EQ(6, ir.num_operations()) << ir;
+  ASSERT_EQ(5, ir.num_operations()) << ir;
   ASSERT_EQ(0, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(6, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(5, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(0, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
@@ -488,14 +679,13 @@ TEST(IrTest, TestMatrixExpressions3) {
   auto [expected_expressions, ir] = create_ir(
       [](const ta::static_matrix<2, 1>& v, const ta::static_matrix<3, 3>& u,
          const ta::static_matrix<3, 1>& t) {
-        auto I3 = make_identity(3);
-        auto zeros = make_zeros(2, 3);
+        const auto I3 = make_identity(3);
+        const auto zeros = make_zeros(2, 3);
         ta::static_matrix<2, 3> f = where(v[0] - t[1] > 0, v * t.transposed() * (u - I3), zeros);
 
-        auto path_1 = u * t * t.transposed();
-        auto path_2 = (u - I3) * (u - I3).transposed();
+        const auto path_1 = u * t * t.transposed();
+        const auto path_2 = (u - I3) * (u - I3).transposed();
         ta::static_matrix<3, 3> g{where(u(1, 1) < -v[1], path_1, path_2)};
-
         return std::make_tuple(return_value(f), optional_output_arg("g", g));
       },
       "func", arg("v"), arg("u"), arg("t"));
@@ -507,6 +697,60 @@ TEST(IrTest, TestMatrixExpressions3) {
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
   ASSERT_EQ(116, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
+}
+
+TEST(IrTest, TestCreateRotationMatrix) {
+  const auto func = [](ta::static_matrix<3, 1> w) {
+    matrix_expr R = quaternion::from_rotation_vector(w.inner(), 1.0e-16).to_rotation_matrix();
+    matrix_expr R_diff = vectorize_matrix(R).jacobian(w);
+    return std::make_tuple(output_arg("R", ta::static_matrix<3, 3>{R}),
+                           optional_output_arg("R_D_w", ta::static_matrix<9, 3>{R_diff}));
+  };
+  auto [expected_expressions, ir] = create_ir(+func, "func", arg("w"));
+
+  ASSERT_EQ(245, ir.num_operations()) << ir;
+  ASSERT_EQ(13, ir.num_conditionals()) << ir;
+  check_expressions(expected_expressions, ir);
+
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  ASSERT_EQ(246, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(3, output_ir.num_conditionals()) << output_ir;
+  check_expressions_with_output_permutations(expected_expressions, output_ir);
+
+  // Test it using factorization:
+  auto [_, ir_factorized] =
+      create_ir_with_params(+func, optimization_params{3, true}, "func", arg("w"));
+
+  ASSERT_EQ(237, ir_factorized.num_operations()) << ir_factorized;
+  check_expressions(expected_expressions, ir_factorized, true);
+}
+
+TEST(IrTest, TestLocalCoordinates) {
+  const auto func = [](ta::static_matrix<4, 1> a, ta::static_matrix<4, 1> b) {
+    const quaternion q_a = quaternion::from_vector_xyzw(a);
+    const quaternion q_b = quaternion::from_vector_xyzw(b);
+    const matrix_expr w = (q_a.conjugate() * q_b).to_rotation_vector(std::nullopt, false);
+    const matrix_expr w_D_a = w.jacobian(q_a.to_vector_wxyz()) * q_a.right_retract_derivative();
+    const matrix_expr w_D_b = w.jacobian(q_b.to_vector_wxyz()) * q_b.right_retract_derivative();
+    return std::make_tuple(output_arg("w", ta::static_matrix<3, 1>{w}),
+                           optional_output_arg("d0", ta::static_matrix<3, 3>{w_D_a}),
+                           optional_output_arg("d1", ta::static_matrix<3, 3>{w_D_b}));
+  };
+  auto [expected_expressions, ir] = create_ir(+func, "func", arg("a"), arg("b"));
+
+  ASSERT_EQ(334, ir.num_operations()) << ir;
+  ASSERT_EQ(10, ir.num_conditionals()) << ir;
+  check_expressions(expected_expressions, ir);
+
+  // Test it using factorization:
+  auto [_, ir_factorized] =
+      create_ir_with_params(+func, optimization_params{2, true}, "func", arg("a"), arg("b"));
+  ASSERT_EQ(312, ir_factorized.num_operations()) << ir_factorized;
+
+  const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
+  ASSERT_EQ(336, output_ir.num_operations()) << output_ir;
+  ASSERT_EQ(6, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 

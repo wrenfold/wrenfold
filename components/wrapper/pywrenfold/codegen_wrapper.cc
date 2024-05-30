@@ -23,16 +23,20 @@ namespace wf {
 
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
-ast::function_definition transpile_to_ast(const function_description& description) {
-  const control_flow_graph cfg =
-      control_flow_graph{description.output_expressions()}.convert_conditionals_to_control_flow();
+ast::function_definition transpile_to_ast(const function_description& description,
+                                          const std::optional<optimization_params>& graph_params) {
+  const control_flow_graph cfg = control_flow_graph{description.output_expressions(),
+                                                    graph_params.value_or(optimization_params{})}
+                                     .convert_conditionals_to_control_flow();
   return ast::create_ast(cfg, description);
 }
 
 // Convert a function description into IR, then rebuild the simplified expression tree and return
 // it.
-auto cse_function_description(const function_description& description) {
-  const control_flow_graph cfg{description.output_expressions()};
+auto cse_function_description(const function_description& description,
+                              const std::optional<optimization_params>& params) {
+  const control_flow_graph cfg{description.output_expressions(),
+                               params.value_or(optimization_params{})};
   rebuilt_expressions rebuilt = rebuild_expression_tree(cfg.first_block(), {}, true);
   // Pybind STL conversion will change the types here for us:
   return std::make_tuple(std::move(rebuilt.output_expressions),
@@ -224,23 +228,35 @@ void wrap_codegen_operations(py::module_& m) {
           "Retrieve a dict of output expressions computed by this function.")
       .doc() = docstrings::function_description.data();
 
+  wrap_class<optimization_params>(m, "OptimizationParams")
+      .def(py::init<>(), "Construct with defaults.")
+      .def_readwrite("factorization_passes", &optimization_params::factorization_passes,
+                     "Automatically factorize sums of products. This parameter determines the "
+                     "number of passes through the expression graph.")
+      .def_readwrite("binarize_operations", &optimization_params::binarize_operations,
+                     "Convert n-ary additions and multiplications into binary operations.");
+
   m.def(
       "transpile",
-      [](const std::vector<function_description>& descriptions) {
+      [](const std::vector<function_description>& descriptions,
+         const std::optional<optimization_params>& params) {
         // TODO: Allow this to run in parallel.
         // Could use std::execution_policy, but it is missing on macosx-13.
-        return transform_map<std::vector>(descriptions, &transpile_to_ast);
+        return transform_map<std::vector>(descriptions, [&params](const function_description& d) {
+          return transpile_to_ast(d, params);
+        });
       },
-      py::arg("desc"),
+      py::arg("desc"), py::arg("params") = py::none(),
       "Overload of :func:`wrenfold.code_generation.transpile` that operates on a sequence "
       "of functions.",
       py::return_value_policy::take_ownership);
 
-  m.def("transpile", &transpile_to_ast, py::arg("desc"), docstrings::transpile.data(),
-        py::return_value_policy::take_ownership);
+  m.def("transpile", &transpile_to_ast, py::arg("desc"), py::arg("params") = py::none(),
+        docstrings::transpile.data(), py::return_value_policy::take_ownership);
 
   m.def("cse_function_description", &cse_function_description, py::arg("desc"),
-        docstrings::cse_function_description.data(), py::return_value_policy::take_ownership);
+        py::arg("params") = py::none(), docstrings::cse_function_description.data(),
+        py::return_value_policy::take_ownership);
 }
 
 }  // namespace wf

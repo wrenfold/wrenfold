@@ -33,8 +33,20 @@ class expression_from_ir_visitor {
     return map_value<scalar_expr>(args[0]) + map_value<scalar_expr>(args[1]);
   }
 
+  scalar_expr operator()(const ir::addn&, const ir::value::operands_container& args) const {
+    const auto args_transformed = transform_map<std::vector>(
+        args, [&](const ir::const_value_ptr v) { return map_value<scalar_expr>(v); });
+    return addition::from_operands(args_transformed);
+  }
+
   scalar_expr operator()(const ir::mul&, const ir::value::operands_container& args) const {
     return map_value<scalar_expr>(args[0]) * map_value<scalar_expr>(args[1]);
+  }
+
+  scalar_expr operator()(const ir::muln&, const ir::value::operands_container& args) const {
+    const auto args_transformed = transform_map<std::vector>(
+        args, [&](const ir::const_value_ptr v) { return map_value<scalar_expr>(v); });
+    return multiplication::from_operands(args_transformed);
   }
 
   boolean_expr operator()(const ir::output_required& output,
@@ -93,7 +105,7 @@ class expression_from_ir_visitor {
   any_expression operator()(const ir::call_external_function& func,
                             const ir::value::operands_container& args) const {
     auto args_converted = transform_map<external_function_invocation::container_type>(
-        args, [this](const ir::value_ptr val) { return map_value_to_variant(val); });
+        args, [this](const ir::const_value_ptr val) { return map_value_to_variant(val); });
 
     compound_expr invocation{std::in_place_type_t<external_function_invocation>{}, func.function(),
                              std::move(args_converted)};
@@ -320,9 +332,8 @@ rebuilt_expressions rebuild_expression_tree(const ir::const_block_ptr starting_b
     // If all the ancestors of a block are done, we can queue it:
     for (const ir::block_ptr b : block->descendants()) {
       const auto& b_ancestors = b->ancestors();
-      if (const bool valid =
-              std::all_of(b_ancestors.begin(), b_ancestors.end(),
-                          [&](const ir::const_block_ptr blk) { return completed.count(blk) > 0; });
+      if (const bool valid = all_of(
+              b_ancestors, [&](const ir::const_block_ptr blk) { return completed.count(blk) > 0; });
           valid) {
         queue.push_back(b);
       }

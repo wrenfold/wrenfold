@@ -153,7 +153,7 @@ class comparison_chain {
 // Start a comparison chain by constructing `comparison_chain`. `a` and `b` are the
 // first comparison of the chain.
 template <typename T>
-auto order_by(const T& a, const T& b) {
+constexpr auto order_by(const T& a, const T& b) {
   if constexpr (is_orderable_v<T>) {
     return detail::comparison_chain(determine_order(a, b));
   } else {

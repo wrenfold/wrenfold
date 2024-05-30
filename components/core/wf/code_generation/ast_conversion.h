@@ -83,6 +83,7 @@ class ast_form_visitor {
   }
 
   ast::ast_element operator()(const ir::value& val, const ir::add&);
+  ast::ast_element operator()(const ir::value& val, const ir::addn&);
   ast::ast_element operator()(const ir::value& val, const ir::call_external_function& call);
   ast::ast_element operator()(const ir::value& val, const ir::call_std_function& func);
   ast::ast_element operator()(const ir::value& val, const ir::cast& cast);
@@ -93,6 +94,7 @@ class ast_form_visitor {
   ast::ast_element operator()(const ir::value& val, const ir::get& get);
   ast::ast_element operator()(const ir::value& val, const ir::load& load);
   ast::ast_element operator()(const ir::value& val, const ir::mul&);
+  ast::ast_element operator()(const ir::value& val, const ir::muln&);
   ast::ast_element operator()(const ir::value& val, const ir::neg&);
   ast::ast_element operator()(const scalar_type&, const argument& arg,
                               std::size_t element_index) const;

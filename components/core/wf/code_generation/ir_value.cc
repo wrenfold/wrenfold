@@ -31,9 +31,33 @@ operand_ptr value::add_consumer(ir::value* v) {
   return operand_ptr{ir::value_ptr{this}, consumers_.insert(v)};
 }
 
-void value::remove_consumer(const operand_ptr v) {
-  WF_ASSERT(v.get() == this);
-  consumers_.remove(v.consumer_index());
+void value::remove_consumer(const operand_ptr v) { consumers_.remove(v.consumer_index()); }
+
+void value::replace_operand_pair(const ir::const_value_ptr arg0, const ir::const_value_ptr arg1,
+                                 const std::size_t times, const ir::value_ptr replacement) {
+  // Predicate we use to remove `val` up to `count` times.
+  struct remove_specific_number_of_times {
+    std::size_t count;
+    ir::const_value_ptr val;
+
+    bool operator()(const operand_ptr& operand) {
+      if (operand == val && count > 0) {
+        --count;
+        operand.remove_operand();
+        return true;
+      }
+      return false;
+    }
+  };
+
+  remove_if(operands_, remove_specific_number_of_times{times, arg0});
+  remove_if(operands_, remove_specific_number_of_times{times, arg1});
+
+  for (std::size_t i = 0; i < times; ++i) {
+    operands_.push_back(replacement->add_consumer(this));
+  }
+
+  maybe_sort_operands();
 }
 
 absl::InlinedVector<ir::value_ptr, 8> value::ordered_consumers() const {

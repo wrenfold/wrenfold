@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "wf/algorithm_utils.h"
 #include "wf/code_generation/ir_value.h"
 
 namespace wf::ir {
@@ -57,22 +58,8 @@ class block {
     operations_.insert(operations_.begin(), begin, end);
   }
 
-  // Remove all operations that match predicate `func`.
-  template <typename Func>
-  void remove_operation_if(Func func) {
-    operations_.erase(std::remove_if(operations_.begin(), operations_.end(), std::move(func)),
-                      operations_.end());
-  }
-
-  // Remove all operations that match predicate `func`, traversing in reverse order.
-  template <typename Func>
-  void reverse_remove_operation_if(Func func) {
-    // Somewhat lazy: Reverse the operations so that we can use forward iterator, then reverse back.
-    std::reverse(operations_.begin(), operations_.end());
-    operations_.erase(std::remove_if(operations_.begin(), operations_.end(), std::move(func)),
-                      operations_.end());
-    std::reverse(operations_.begin(), operations_.end());
-  }
+  // Iterate and remove all unused values.
+  void remove_unused_operations();
 
   // Get the last operation in the block.
   value_ptr last_operation() const {
@@ -92,6 +79,12 @@ class block {
 
   // Access operations.
   constexpr const auto& operations() const noexcept { return operations_; }
+
+  // Set the operations vector.
+  template <typename T>
+  void set_operations(T&& operations) {
+    operations_ = std::forward<T>(operations);
+  }
 
   // Access descendents.
   constexpr const auto& descendants() const noexcept { return descendants_; }
