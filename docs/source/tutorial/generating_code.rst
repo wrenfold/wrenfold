@@ -23,12 +23,12 @@ At first, we will assume the input variable :math:`x` is already in the domain `
     from wrenfold import sym
     from wrenfold import type_annotations
 
-    def step(x: type_annotations.RealScalar):
+    def step(x: type_annotations.FloatScalar):
         """The smoothstep polynomial."""
         return 3 * sym.pow(x, 2) - 2 * sym.pow(x, 3)
 
 Note the presence of the type annotation on argument ``x``. This is important, as it communicates
-type information required to create a function signature. In actuality, ``RealScalar`` is just
+type information required to create a function signature. In actuality, ``FloatScalar`` is just
 a scalar-valued expression of type :class:`wrenfold.sym.Expr`.
 
 .. note::
@@ -123,7 +123,7 @@ output argument:
 
 .. code:: python
 
-    def step_deriv(x: type_annotations.RealScalar):
+    def step_deriv(x: type_annotations.FloatScalar):
         """The smoothstep polynomial."""
         f = 3 * sym.pow(x, 2) - 2 * sym.pow(x, 3)
         # Place the first and second derivative into a 2x1 vector:
@@ -189,7 +189,7 @@ are shorthand for ``sym.where``:
 
 .. code:: python
 
-    def step_clamped(x: type_annotations.RealScalar):
+    def step_clamped(x: type_annotations.FloatScalar):
         """The clamped smoothstep polynomial."""
         # First express the polynomials in terms of `xv`.
         xv = sym.symbols('xv', real=True)

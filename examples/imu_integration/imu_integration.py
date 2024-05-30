@@ -12,7 +12,7 @@ In practice, there is a larger space of design choices you could make. For insta
 import argparse
 import typing as T
 
-from wrenfold.type_annotations import RealScalar, Vector4, Vector3
+from wrenfold.type_annotations import FloatScalar, Vector4, Vector3
 from wrenfold import code_generation
 from wrenfold.code_generation import OutputArg, CppGenerator
 
@@ -52,7 +52,7 @@ def integrate_imu(
     accelerometer_bias: Vector3,
     angular_velocity: Vector3,
     linear_acceleration: Vector3,
-    dt: RealScalar,
+    dt: FloatScalar,
 ):
     """
     We take an incremental navigation state represented by the 9DOF product of:
@@ -126,7 +126,7 @@ def compute_pim_delta_from_endpoints(
     world_R_k_xyzw: Vector4,
     world_t_k: Vector3,
     world_v_k: Vector3,
-    duration: RealScalar,
+    duration: FloatScalar,
     gravity_world: Vector3,
 ) -> T.Tuple[Quaternion, Vector3, Vector3]:
     """
@@ -203,7 +203,7 @@ def unweighted_imu_preintegration_error(
     i_R_k_measured_xyzw: Vector4,
     i_t_k_measured: Vector3,
     i_v_k_measured: Vector3,
-    duration: RealScalar,
+    duration: FloatScalar,
     gravity_world: Vector3,
 ):
     """
@@ -265,7 +265,7 @@ def unweighted_imu_preintegration_error(
     ]
 
 
-def integration_test_sequence(t: RealScalar):
+def integration_test_sequence(t: FloatScalar):
     """
     A motion sequence parameterized as a function of time `t`. We use this as a test sequence
     for evaluating our IMU integration code.

@@ -287,7 +287,7 @@ def sample_function_1(w: type_annotations.Vector3, v: type_annotations.Vector3):
 
 
 def sample_function_2(position: type_annotations.Vector2, velocity: type_annotations.Vector2,
-                      dt: type_annotations.RealScalar, params: SimParamsSymbolic):
+                      dt: type_annotations.FloatScalar, params: SimParamsSymbolic):
     """
     An example function used to test code generation. We integrate some simple 2D dynamics
     for a projectile subject to gravity and drag.

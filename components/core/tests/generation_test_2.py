@@ -8,7 +8,7 @@ from wrenfold import sym
 from wrenfold import type_info
 from wrenfold.code_generation import CppGenerator, RustGenerator
 from wrenfold.external_functions import declare_external_function
-from wrenfold.type_annotations import RealScalar, Opaque
+from wrenfold.type_annotations import FloatScalar, Opaque
 
 
 @dataclasses.dataclass
@@ -38,7 +38,7 @@ vector_interpolate_access = declare_external_function(
     return_type=StructType)
 
 
-def lookup_and_compute_inner_product(vec: VectorOfStructs, a: RealScalar, b: RealScalar):
+def lookup_and_compute_inner_product(vec: VectorOfStructs, a: FloatScalar, b: FloatScalar):
     """
     A simplified test case that calls a user-provided function to access two elements in a vector,
     then computes the inner product between them.

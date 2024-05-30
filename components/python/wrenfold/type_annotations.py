@@ -10,7 +10,7 @@ import typing as T
 from . import sym
 
 
-class RealScalar(sym.Expr):
+class FloatScalar(sym.Expr):
     """Denote a floating-point scalar variable."""
 
 

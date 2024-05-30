@@ -58,7 +58,7 @@ Returns:
 
 Example:
   >>> from wrenfold import sym, code_generation, type_annotations
-  >>> def func(x: type_annotations.RealScalar, y: type_annotations.RealScalar):
+  >>> def func(x: type_annotations.FloatScalar, y: type_annotations.FloatScalar):
   >>>   return sym.abs(x * y) * sym.cos(x * y)
   >>> desc = code_generation.create_function_description(func)
   >>> outputs, intermediate_values = code_generation.cse_function_description(desc)

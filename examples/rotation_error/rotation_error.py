@@ -7,14 +7,14 @@ averaging optimization.
 import argparse
 import typing as T
 
-from wrenfold.type_annotations import RealScalar, Vector4
+from wrenfold.type_annotations import FloatScalar, Vector4
 from wrenfold import code_generation
 from wrenfold.code_generation import OutputArg, CppGenerator
 
 from wrenfold.geometry import Quaternion
 
 
-def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: RealScalar):
+def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: FloatScalar):
     """
     Tangent-space difference between two scalar-last quaternions, scaled by
     a positive weight value.
