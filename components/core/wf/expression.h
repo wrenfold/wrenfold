@@ -163,8 +163,16 @@ boolean_expr operator==(const scalar_expr& a, const scalar_expr& b);
 // This is not a mathematical ordering - rather it is a canonical ordering we impose on expressions.
 template <>
 struct order_struct<scalar_expr> {
+  relative_order operator()(const scalar_expr& a, const scalar_expr& b) const {
+    if (a.has_same_address(b)) {
+      return relative_order::equal;
+    }
+    return compare(a, b);
+  }
+
+ private:
   // Implemented in ordering.cc
-  relative_order operator()(const scalar_expr& a, const scalar_expr& b) const;
+  relative_order compare(const scalar_expr& a, const scalar_expr& b) const;
 };
 
 // Predicate for sorting expressions.
