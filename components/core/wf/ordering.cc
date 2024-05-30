@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/ordering.h"
 
+#include "wf/enumerations.h"
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
@@ -27,8 +28,8 @@ static constexpr auto get_type_order_indices(type_list<AllTypes...>,
       static_cast<uint16_t>(type_list_index_v<AllTypes, ordered_list>)...};
 }
 
-relative_order order_struct<scalar_expr>::operator()(const scalar_expr& a,
-                                                     const scalar_expr& b) const {
+relative_order order_struct<scalar_expr>::compare(const scalar_expr& a,
+                                                  const scalar_expr& b) const {
   using order_of_types =
       type_list<float_constant, integer_constant, rational_constant, symbolic_constant,
                 complex_infinity, imaginary_unit, variable, multiplication, addition, power,

@@ -280,7 +280,12 @@ template <>
 struct order_struct<rational_constant> {
   constexpr relative_order operator()(const rational_constant& a,
                                       const rational_constant& b) const noexcept {
-    return order_by_comparison(a, b);
+    if (a.denominator() == b.denominator()) {
+      return order_by_comparison(a.numerator(), b.numerator());
+    }
+    const auto left = a.numerator() * b.denominator();
+    const auto right = b.numerator() * a.denominator();
+    return order_by_comparison(left, right);
   }
 };
 
