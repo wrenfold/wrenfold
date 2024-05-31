@@ -100,7 +100,8 @@ def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
             expressions = expressions[1:]
         elif issubclass(field.type, sym.MatrixExpr):
             # Expressions were packed in row-major order as expected by our matrix type.
-            mat = sym.matrix(expressions).reshape(_get_matrix_shape(field.type))
+            mat_rows, mat_cols = _get_matrix_shape(field.type)
+            mat = sym.matrix(expressions[:(mat_rows * mat_cols)]).reshape(mat_rows, mat_cols)
             constructor_kwargs[field.name] = mat
             expressions = expressions[mat.size:]
         elif dataclasses.is_dataclass(field.type):
