@@ -69,6 +69,31 @@ def opaque_type_func(u: OpaqueType, x: sym.Expr, y: sym.Expr):
     return f + sym.cos(x * y)
 
 
+@dataclasses.dataclass
+class NestedType1:
+    x: FloatScalar
+    y: FloatScalar
+
+
+@dataclasses.dataclass
+class NestedType2:
+    v: Vector2
+    z: FloatScalar
+
+
+@dataclasses.dataclass
+class NestedType3:
+    """A custom type that uses two other custom types."""
+    fizz: NestedType1
+    buzz: NestedType2
+
+
+def nested_type_func(arg0: NestedType1, arg1: NestedType3):
+    """Ingest custom types and do something with them."""
+    return sym.cos(arg0.x * arg0.y) / sym.pow(arg1.fizz.x, arg1.buzz.v.norm()) + \
+        arg1.fizz.y * arg1.buzz.z
+
+
 class CustomCppGenerator(code_generation.CppGenerator):
     """Customize C++ generation."""
 
@@ -228,6 +253,18 @@ class CodeGenerationWrapperTest(MathTestBase):
         """Test we can customize invocation of a custom function."""
         code = code_generation.generate_function(opaque_type_func, generator=CustomCppGenerator())
         self.assertTrue('custom::external_func' in code)
+
+    def test_nested_type_func(self):
+        """Test we can create a function description for a complicated nested type."""
+        desc = code_generation.create_function_description(nested_type_func)
+        definition = code_generation.transpile(desc)
+
+        ctype = definition.signature.arguments[1].type
+        self.assertIsInstance(ctype, type_info.CustomType)
+        self.assertEqual('NestedType3', ctype.name)
+        self.assertEqual(NestedType3, ctype.python_type)
+        self.assertEqual(5, ctype.total_size)
+        self._run_generators(definition)
 
 
 if __name__ == '__main__':
