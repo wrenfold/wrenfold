@@ -1,6 +1,8 @@
 geometry
 ========
 
+.. autofunction:: wrenfold.geometry.inverse_left_jacobian_of_so3
+
 .. autofunction:: wrenfold.geometry.left_jacobian_of_so3
 
 .. autoclass:: wrenfold.geometry.Quaternion

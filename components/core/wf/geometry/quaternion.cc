@@ -318,7 +318,7 @@ quaternion operator*(const quaternion& a, const quaternion& b) {
 // quaternions. But it is a useful expression when dealing with rotations.
 matrix_expr left_jacobian_of_so3(const matrix_expr& w, const std::optional<scalar_expr>& epsilon) {
   if (w.rows() != 3 || w.cols() != 1) {
-    throw dimension_error("Rodrigues vector must be 3x1, received shape [{}, {}].", w.rows(),
+    throw dimension_error("Rotation vector must be 3x1, received shape [{}, {}].", w.rows(),
                           w.cols());
   }
   const matrix& m = w.as_matrix();
@@ -346,6 +346,39 @@ matrix_expr left_jacobian_of_so3(const matrix_expr& w, const std::optional<scala
     const boolean_expr condition = angle > *epsilon;
     return I3 + skew_v * where(condition, c0, c0_small_angle) +
            (skew_v * skew_v) * where(condition, c1, c1_small_angle);
+  } else {
+    return I3 + skew_v * c0 + (skew_v * skew_v) * c1;
+  }
+}
+
+// See Micro Lie Theory for Robotics: https://arxiv.org/pdf/1812.01537
+matrix_expr inverse_left_jacobian_of_so3(const matrix_expr& w,
+                                         const std::optional<scalar_expr>& epsilon) {
+  if (w.rows() != 3 || w.cols() != 1) {
+    throw dimension_error("Rotation vector must be 3x1, received shape [{}, {}].", w.rows(),
+                          w.cols());
+  }
+  const matrix& m = w.as_matrix();
+  const scalar_expr& vx = m[0];
+  const scalar_expr& vy = m[1];
+  const scalar_expr& vz = m[2];
+  const scalar_expr angle = sqrt(vx * vx + vy * vy + vz * vz);
+
+  static const scalar_expr c0 = constants::negative_one / 2;
+  const scalar_expr c1 = 1 / pow(angle, 2) - (1 + cos(angle)) / (2 * angle * sin(angle));
+  static const scalar_expr c1_small_angle = constants::one / 12;  // lim[angle -> 0] c1
+
+  // clang-format off
+  const matrix_expr skew_v = make_matrix(3, 3,
+                                          0, -vz,  vy,
+                                         vz,   0, -vx,
+                                        -vy,  vx,   0);
+  // clang-format on
+  static const auto I3 = make_identity(3);
+
+  if (epsilon) {
+    // C0 does not need a small angle case because it is the same either way.
+    return I3 + skew_v * c0 + (skew_v * skew_v) * where(angle > *epsilon, c1, c1_small_angle);
   } else {
     return I3 + skew_v * c0 + (skew_v * skew_v) * c1;
   }

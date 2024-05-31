@@ -415,4 +415,34 @@ References:
   * `Associating Uncertainty With Three-Dimensional Poses for Use in Estimation Problems <https://ieeexplore.ieee.org/document/6727494>`_
 )doc";
 
+inline constexpr std::string_view inverse_left_jacobian_of_so3 = R"doc(
+Compute the **inverse** of the *left* jacobian of SO(3). Given a rotation vector ``w``, this method
+computes the 3x3 derivative:
+
+.. math::
+  \mathbf{J}_l^{-1} = \frac{
+    \partial \left(\text{log}\left(
+    \text{exp}\left(\delta\mathbf{x}\right) \cdot
+    \text{exp}\left(\mathbf{w}\right)\right)
+    - \mathbf{w}\right)
+  }
+  {\partial \delta\mathbf{x}} \biggr\rvert_{\delta\mathbf{x} = 0}
+
+Where ``exp(...)`` maps from a rotation vector to a quaternion, and ``log(...)`` maps from a
+quaternion to a rotation vector.
+
+Args:
+  w: 3x1 rotation vector, in radians.
+  epsilon: If provided, ``epsilon`` specifies the threshold below which a small-angle approximation
+    is used. A conditional will be inserted using :func:`wrenfold.sym.where` to switch between the
+    normal and small-angle code paths. This value should be positive.
+
+Returns:
+  The 3x3 inverse left jacobian of SO(3).
+
+References:
+  * `A micro Lie theory for state estimation in robotics <https://arxiv.org/abs/1812.01537>`_
+  * `Associating Uncertainty With Three-Dimensional Poses for Use in Estimation Problems <https://ieeexplore.ieee.org/document/6727494>`_
+)doc";
+
 }  // namespace  wf::docstrings

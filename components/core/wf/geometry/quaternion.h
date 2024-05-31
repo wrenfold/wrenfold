@@ -197,10 +197,18 @@ quaternion operator*(const quaternion& a, const quaternion& b);
 // This is also the derivative of: log(exp(w + dw) * R^T) with respect to the additive
 // perturbation `dw`, evaluated about `dw = 0`.
 //
-// You can obtain the right jacobian of SO(3) by transposing this quantity.
+// You can obtain the right jacobian of SO(3) by transposing this matrix.
 //
 // When the norm of `w` falls below `epsilon`, the small angle approximation is used.
 matrix_expr left_jacobian_of_so3(const matrix_expr& w, const std::optional<scalar_expr>& epsilon);
+
+// Compute the _inverse_ of the left Jacobian of SO(3) as a function of a rodrigues vector `w`.
+// If `left_jacobian_of_so3` produces V(w), then `inverse_left_jacobian_of_so3` produces V^-1(w)
+// such that V^-1(w) * V(w) = I3.
+//
+// When the norm of `w` falls below epsilon, the small angle approximation is used.
+matrix_expr inverse_left_jacobian_of_so3(const matrix_expr& w,
+                                         const std::optional<scalar_expr>& epsilon);
 
 template <>
 struct hash_struct<quaternion> {
