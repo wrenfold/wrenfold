@@ -4,8 +4,8 @@
 #include <numeric>
 
 #include "wf/expressions/numeric_expressions.h"
-#include "wf/index_range.h"
 #include "wf/integer_utils.h"
+#include "wf/utility/index_range.h"
 
 #include "wf_test_support/test_macros.h"
 

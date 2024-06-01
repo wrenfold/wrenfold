@@ -11,7 +11,7 @@
 #include "wf/expression.h"
 #include "wf/expression_cache.h"
 #include "wf/expression_visitor.h"
-#include "wf/hashing.h"
+#include "wf/utility/hashing.h"
 
 namespace wf {
 

@@ -4,7 +4,7 @@
 #pragma once
 #include <bitset>
 
-#include "wf/third_party_imports.h"
+#include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>

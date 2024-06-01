@@ -4,6 +4,7 @@
 #include "wf/boolean_expression.h"
 
 #include "wf/constants.h"
+#include "wf/expression_visitor.h"
 #include "wf/plain_formatter.h"
 #include "wf/tree_formatter.h"
 
@@ -28,6 +29,20 @@ boolean_expr boolean_expr::construct_implicit(const bool value) {
   } else {
     return constants::boolean_false;
   }
+}
+
+relative_order order_struct<boolean_expr>::operator()(const boolean_expr& a,
+                                                      const boolean_expr& b) const {
+  if (a.type_index() < b.type_index()) {
+    return relative_order::less_than;
+  } else if (a.type_index() > b.type_index()) {
+    return relative_order::greater_than;
+  }
+  return visit(a, [&b](const auto& a_typed) -> relative_order {
+    using Ta = std::decay_t<decltype(a_typed)>;
+    static_assert(is_orderable_v<Ta>, "Type does not implement order_struct.");
+    return order_struct<Ta>{}(a_typed, get_unchecked<const Ta>(b));
+  });
 }
 
 }  // namespace wf

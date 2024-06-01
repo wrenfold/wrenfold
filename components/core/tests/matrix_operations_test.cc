@@ -5,9 +5,9 @@
 #include <random>
 
 #include "wf/constants.h"
-#include "wf/error_types.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
+#include "wf/utility/error_types.h"
 #include "wf_test_support/test_macros.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES

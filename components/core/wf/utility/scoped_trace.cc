@@ -1,7 +1,7 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include "wf/scoped_trace.h"
+#include "wf/utility/scoped_trace.h"
 
 #include <deque>
 #include <filesystem>
@@ -23,8 +23,8 @@
 #endif  // __APPLE__
 #endif  // _WIN32
 
-#include "wf/assertions.h"
-#include "wf/third_party_imports.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>

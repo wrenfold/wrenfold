@@ -4,9 +4,9 @@
 #pragma once
 #include <vector>
 
-#include "wf/algorithm_utils.h"
-#include "wf/error_types.h"
 #include "wf/matrix_expression.h"
+#include "wf/utility/algorithms.h"
+#include "wf/utility/error_types.h"
 
 namespace wf {
 

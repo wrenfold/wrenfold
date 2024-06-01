@@ -6,10 +6,34 @@
 #include <variant>
 #include <vector>
 
-#include "wf/enumerations.h"
-#include "wf/traits.h"
+#include "wf/utility/traits.h"
 
 namespace wf {
+
+// Describe the relative order of two expressions (a, b)
+// This is for operations like sorting, not for expressing mathematical relations.
+// Can eventually replace this with spaceship operator in C++20.
+enum class relative_order : int {
+  // a < b
+  less_than = -1,
+  // a == b
+  equal = 0,
+  // a > b
+  greater_than = 1,
+};
+
+// Convert `relative_order` to string view.
+constexpr std::string_view string_from_relative_order(const relative_order order) noexcept {
+  switch (order) {
+    case relative_order::less_than:
+      return "less_than";
+    case relative_order::equal:
+      return "equal";
+    case relative_order::greater_than:
+      return "greater_than";
+  }
+  return "<NOT A VALID ENUM VALUE>";
+}
 
 // Order object of type `T`.
 // Implementations should expose `relative_order operator()(const T& a, const T& b) const`.

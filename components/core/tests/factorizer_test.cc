@@ -5,8 +5,8 @@
 
 #include <random>
 
-#include "wf/algorithm_utils.h"
-#include "wf/code_generation/bitset_range.h"
+#include "wf/utility/algorithms.h"
+#include "wf/utility/bitset_range.h"
 #include "wf_test_support/test_macros.h"
 
 namespace wf {
@@ -14,7 +14,7 @@ namespace wf {
 inline factor_bits fill_bits(const std::initializer_list<int> indices) {
   factor_bits b{};
   for (auto index : indices) {
-    WF_ASSERT_LESS(index, b.size());
+    WF_ASSERT_LT(index, b.size());
     b.set(index);
   }
   return b;

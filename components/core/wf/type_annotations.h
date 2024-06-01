@@ -2,8 +2,8 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/assertions.h"
 #include "wf/matrix_functions.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 
@@ -28,8 +28,8 @@ template <index_t Rows, index_t Cols>
 struct static_matrix {
   // Allow implicit construction from matrix_expr.
   static_matrix(matrix_expr expr) : expr_(std::move(expr)) {  // NOLINT(google-explicit-constructor)
-    WF_ASSERT_EQUAL(Rows, expr_.rows());
-    WF_ASSERT_EQUAL(Cols, expr_.cols());
+    WF_ASSERT_EQ(Rows, expr_.rows());
+    WF_ASSERT_EQ(Cols, expr_.cols());
   }
 
   constexpr index_t rows() const noexcept { return Rows; }
@@ -56,8 +56,8 @@ struct static_matrix {
 
   // Assign from matrix_expr
   static_matrix& operator=(const matrix_expr& other) {
-    WF_ASSERT_EQUAL(Rows, other.rows());
-    WF_ASSERT_EQUAL(Cols, other.cols());
+    WF_ASSERT_EQ(Rows, other.rows());
+    WF_ASSERT_EQ(Cols, other.cols());
     expr_ = other;
     return *this;
   }

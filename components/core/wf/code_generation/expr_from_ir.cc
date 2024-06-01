@@ -9,8 +9,8 @@
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/expressions/all_expressions.h"
-#include "wf/scoped_trace.h"
-#include "wf/template_utils.h"
+#include "wf/utility/overloaded_visit.h"
+#include "wf/utility/scoped_trace.h"
 
 namespace wf {
 
@@ -200,7 +200,7 @@ class expression_from_ir_visitor {
   }
 
   scalar_expr operator()(const ir::phi&, const ir::value::operands_container& args) const {
-    WF_ASSERT_EQUAL(2, args.size());
+    WF_ASSERT_EQ(2, args.size());
 
     // We find to find the condition for this jump:
     const ir::const_block_ptr jump_block = find_merge_point(

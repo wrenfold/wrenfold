@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include <gtest/gtest.h>
 
-#include "wf/code_generation/bitset_range.h"
+#include "wf/utility/bitset_range.h"
 
 // Tests for the bitset_range type.
 namespace wf {

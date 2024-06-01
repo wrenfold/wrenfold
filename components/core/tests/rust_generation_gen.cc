@@ -43,7 +43,7 @@ class custom_rust_code_generator final : public rust_code_generator {
 
   std::string operator()(const ast::construct_custom_type& construct) const override {
     if (construct.type.is_native_type<symbolic::Point2d>()) {
-      WF_ASSERT_EQUAL(2, construct.field_values.size());
+      WF_ASSERT_EQ(2, construct.field_values.size());
       const auto& [_, x] = construct.field_values[0];
       const auto& [__, y] = construct.field_values[1];
       return fmt::format("crate::types::Point2d::new({}, {})", make_view(x), make_view(y));

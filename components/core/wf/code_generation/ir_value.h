@@ -5,10 +5,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "wf/checked_pointers.h"
 #include "wf/code_generation/ir_consumer_vector.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/code_generation/types.h"
+#include "wf/utility/checked_pointers.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_set.h>
@@ -162,7 +162,7 @@ class value {
 
   // Access i'th operand:
   ir::value_ptr operator[](std::size_t i) const {
-    WF_ASSERT_LESS(i, operands_.size());
+    WF_ASSERT_LT(i, operands_.size());
     return operands_[i];
   }
 
@@ -240,7 +240,7 @@ class value {
     }
     if constexpr (constexpr int expected_num_args = OpType::num_value_operands();
                   expected_num_args >= 0) {
-      WF_ASSERT_EQUAL(static_cast<std::size_t>(expected_num_args), operands_.size());
+      WF_ASSERT_EQ(static_cast<std::size_t>(expected_num_args), operands_.size());
     }
   }
 

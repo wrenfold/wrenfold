@@ -10,7 +10,7 @@
 #include "wf/expression_variant.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/operations.h"
-#include "wf/ordering.h"
+#include "wf/utility/ordering.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
@@ -171,7 +171,6 @@ struct order_struct<scalar_expr> {
   }
 
  private:
-  // Implemented in ordering.cc
   relative_order compare(const scalar_expr& a, const scalar_expr& b) const;
 };
 

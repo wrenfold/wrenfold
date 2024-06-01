@@ -44,8 +44,8 @@ ir_control_flow_converter::ir_control_flow_converter(control_flow_graph&& input)
     : values_(std::move(input.values_)) {
   visited_.reserve(values_.size());
 
-  WF_ASSERT_EQUAL(1, input.blocks_.size(),
-                  "Unconverted control flow graph should have only one block.");
+  WF_ASSERT_EQ(1, input.blocks_.size(),
+               "Unconverted control flow graph should have only one block.");
   input_block_ = std::move(input.blocks_.front());
   input.blocks_.clear();
 
@@ -102,7 +102,7 @@ control_flow_graph ir_control_flow_converter::convert() && {
   WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
 
   // There should only be one start block:
-  WF_ASSERT_EQUAL(
+  WF_ASSERT_EQ(
       1,
       std::count_if(blocks_.begin(), blocks_.end(),
                     [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); }),
@@ -349,7 +349,7 @@ void ir_control_flow_converter::discard_unused_input_values() {
   values_.erase(std::remove_if(values_.begin(), values_.end(),
                                [this](const ir::value::unique_ptr& v) {
                                  if (v->parent().get() == input_block_.get()) {
-                                   WF_ASSERT_EQUAL(0, v->num_consumers(), "value: {}", v->name());
+                                   WF_ASSERT_EQ(0, v->num_consumers(), "value: {}", v->name());
                                    return true;
                                  }
                                  return false;

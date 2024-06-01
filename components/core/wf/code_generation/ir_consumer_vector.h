@@ -3,8 +3,8 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 
-#include "wf/checked_pointers.h"
-#include "wf/third_party_imports.h"
+#include "wf/utility/checked_pointers.h"
+#include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>
@@ -93,7 +93,7 @@ class consumer_vector {
 
   // Remove value indicated by the specified index.
   void remove(const std::size_t index) {
-    WF_ASSERT_LESS(index, consumers_.size());
+    WF_ASSERT_LT(index, consumers_.size());
     WF_ASSERT(consumers_[index]);
     consumers_[index] = nullptr;
     freelist_.push_back(static_cast<std::uint32_t>(index));

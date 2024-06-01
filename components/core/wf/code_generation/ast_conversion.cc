@@ -10,8 +10,8 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
-#include "wf/scoped_trace.h"
-#include "wf/template_utils.h"
+#include "wf/utility/overloaded_visit.h"
+#include "wf/utility/scoped_trace.h"
 
 namespace wf::ast {
 
@@ -42,7 +42,7 @@ struct type_constructor {
   // Scalar doesn't have a constructor, just return the input directly and step forward by one
   // value.
   ast::ast_element operator()(const scalar_type&) {
-    WF_ASSERT_LESS(index_, contents_.size());
+    WF_ASSERT_LT(index_, contents_.size());
     ast::ast_element result = std::move(contents_[index_]);
     ++index_;
     return result;
@@ -50,7 +50,7 @@ struct type_constructor {
 
   // Matrices we just group the next `row * col` elements into `construct_matrix` element.
   ast::construct_matrix operator()(const matrix_type& mat) {
-    WF_ASSERT_LESS_OR_EQ(index_ + mat.size(), contents_.size());
+    WF_ASSERT_LE(index_ + mat.size(), contents_.size());
 
     std::vector<ast::ast_element> matrix_args{};
     matrix_args.reserve(mat.size());
@@ -276,10 +276,10 @@ void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
   if (const ir::const_value_ptr last_op = block->last_operation();
       !last_op->is_op<ir::jump_condition>()) {
     // just keep appending:
-    WF_ASSERT_EQUAL(1, descendants.size());
+    WF_ASSERT_EQ(1, descendants.size());
     process_block(descendants.front());
   } else {
-    WF_ASSERT_EQUAL(2, descendants.size());
+    WF_ASSERT_EQ(2, descendants.size());
 
     // Figure out where this if-else statement will terminate:
     const ir::const_block_ptr merge_point =
@@ -358,7 +358,7 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ad
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::addn&) {
-  WF_ASSERT_GREATER_OR_EQ(val.num_operands(), 2);
+  WF_ASSERT_GE(val.num_operands(), 2);
   auto left = visit_operation_argument(val[0]);
   for (std::size_t i = 1; i < val.num_operands(); ++i) {
     left = ast::ast_element{std::in_place_type_t<ast::add>{}, std::move(left),
@@ -369,7 +369,7 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ad
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::call_external_function& call) {
-  WF_ASSERT_EQUAL(val.num_operands(), call.function().num_arguments());
+  WF_ASSERT_EQ(val.num_operands(), call.function().num_arguments());
   return ast::ast_element{std::in_place_type_t<ast::call_external_function>{}, call.function(),
                           transform_operands(val)};
 }
@@ -414,11 +414,11 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ge
                          get.index());
       },
       [&](const scalar_type) -> ast::ast_element {
-        WF_ASSERT_EQUAL(0, get.index());
+        WF_ASSERT_EQ(0, get.index());
         return visit_value(val[0]);
       },
       [&](const matrix_type& mat) -> ast::ast_element {
-        WF_ASSERT_LESS(get.index(), mat.size());
+        WF_ASSERT_LT(get.index(), mat.size());
         const auto [row, col] = mat.compute_indices(get.index());
         return ast::ast_element{std::in_place_type_t<ast::get_matrix_element>{},
                                 visit_operation_argument(val[0]), row, col};
@@ -463,7 +463,7 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mu
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::muln&) {
-  WF_ASSERT_GREATER_OR_EQ(val.num_operands(), 2);
+  WF_ASSERT_GE(val.num_operands(), 2);
   auto left = visit_operation_argument(val[0]);
   for (std::size_t i = 1; i < val.num_operands(); ++i) {
     left = ast::ast_element{std::in_place_type_t<ast::multiply>{}, std::move(left),
@@ -478,7 +478,7 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ne
 
 ast::ast_element ast_form_visitor::operator()(const scalar_type&, const argument& arg,
                                               std::size_t element_index) const {
-  WF_ASSERT_EQUAL(0, element_index);
+  WF_ASSERT_EQ(0, element_index);
   return ast::ast_element{std::in_place_type_t<ast::get_argument>{}, arg};
 }
 

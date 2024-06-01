@@ -3,11 +3,11 @@
 // For license information refer to accompanying LICENSE file.
 #include "plain_formatter.h"
 
-#include "wf/assertions.h"
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
-#include "wf/string_utils.h"
-#include "wf/third_party_imports.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/strings.h"
+#include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
@@ -20,7 +20,7 @@ void plain_formatter::operator()(const matrix_expr& x) { visit(x, *this); }
 void plain_formatter::operator()(const boolean_expr& x) { visit(x, *this); }
 
 void plain_formatter::operator()(const addition& add) {
-  WF_ASSERT_GREATER_OR_EQ(add.size(), 2);
+  WF_ASSERT_GE(add.size(), 2);
 
   // Sort into canonical order:
   absl::InlinedVector<scalar_expr, 8> terms{add.begin(), add.end()};
@@ -179,8 +179,8 @@ void plain_formatter::operator()(const float_constant& num) {
 }
 
 void plain_formatter::operator()(const matrix& mat) {
-  WF_ASSERT_GREATER_OR_EQ(mat.rows(), 0);
-  WF_ASSERT_GREATER_OR_EQ(mat.cols(), 0);
+  WF_ASSERT_GE(mat.rows(), 0);
+  WF_ASSERT_GE(mat.cols(), 0);
   if (mat.size() == 0) {
     // Empty matrix:
     output_ += "[]";
@@ -206,7 +206,7 @@ void plain_formatter::operator()(const matrix& mat) {
 }
 
 void plain_formatter::operator()(const multiplication& mul) {
-  WF_ASSERT_GREATER_OR_EQ(mul.size(), 2);
+  WF_ASSERT_GE(mul.size(), 2);
 
   // Break multiplication up into numerator and denominator:
   const multiplication_format_parts info = get_formatting_info(mul);

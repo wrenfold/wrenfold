@@ -5,7 +5,7 @@
 #include "wf/expression.h"
 #include "wf/expressions/compound_expression_element.h"
 #include "wf/expressions/variable.h"
-#include "wf/hashing.h"
+#include "wf/utility/hashing.h"
 
 namespace wf {
 

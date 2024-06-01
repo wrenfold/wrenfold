@@ -8,7 +8,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "wf/assertions.h"
 #include "wf/code_generation/factorizer.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/ir_control_flow_converter.h"
@@ -18,8 +17,9 @@
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
-#include "wf/hashing.h"
-#include "wf/scoped_trace.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/scoped_trace.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_map.h>
@@ -320,7 +320,7 @@ static void topological_sort_values(const ir::const_block_ptr block,
     }
   }
 
-  WF_ASSERT_EQUAL(initial_size, operations.size(), "operations: [{}]", fmt::join(operations, ", "));
+  WF_ASSERT_EQ(initial_size, operations.size(), "operations: [{}]", fmt::join(operations, ", "));
 }
 
 using value_pair = std::tuple<ir::value_ptr, ir::value_ptr>;
@@ -529,7 +529,7 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
         }
       } else if (c->is_op<Src>()) {
         // This operation has been reduced to a binary operation already, just replace it.
-        WF_ASSERT_EQUAL(2, c->num_operands());
+        WF_ASSERT_EQ(2, c->num_operands());
 
         // Anything that directly consumed `c` must have its count updated.
         // As `c` becomes `new_value`, insert new counts for products/sums of values with
@@ -580,7 +580,7 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
       }
       v->replace_with(result);
     } else {
-      WF_ASSERT_EQUAL(2, v->num_operands());
+      WF_ASSERT_EQ(2, v->num_operands());
       // We are leveraging the fact that operand_ptr can be implicitly casted to value_ptr here.
       v->set_operation(Dst{}, v->type(), v->operands());
     }
@@ -681,8 +681,8 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
   absl::InlinedVector<ir::value_ptr, 8> factored_sum_args{};
   for (const auto& step : fac.steps()) {
     const auto& [vars, fac_terms] = step;
-    WF_ASSERT_GREATER_OR_EQ(vars.count(), 1);
-    WF_ASSERT_GREATER_OR_EQ(fac_terms.count(), 2);
+    WF_ASSERT_GE(vars.count(), 1);
+    WF_ASSERT_GE(fac_terms.count(), 2);
 
     // Get the variables that were factored out:
     index_assignor.get_variables_from_bitset(vars, mul_args);
@@ -732,14 +732,14 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
       }
     }
 
-    WF_ASSERT_GREATER_OR_EQ(sum_args.size(), 2);
+    WF_ASSERT_GE(sum_args.size(), 2);
 
     const ir::value_ptr sum = push_value(block, ir::addn{}, value_type, sum_args);
     operations_out.push_back(sum);
 
     // Then multiply the sum by the extracted factor:
     mul_args.push_back(sum);
-    WF_ASSERT_GREATER_OR_EQ(mul_args.size(), 2);
+    WF_ASSERT_GE(mul_args.size(), 2);
 
     const ir::value_ptr prod = push_value(block, ir::muln{}, value_type, mul_args);
     operations_out.push_back(prod);
@@ -1015,10 +1015,10 @@ static operation_counts count_all_operations(
   if (const auto& descendants = block->descendants(); !descendants.empty()) {
     if (const ir::const_value_ptr last_op = block->last_operation();
         !last_op->is_op<ir::jump_condition>()) {
-      WF_ASSERT_EQUAL(1, descendants.size());
+      WF_ASSERT_EQ(1, descendants.size());
       counts.increment(count_all_operations(descendants[0], non_traversable));
     } else {
-      WF_ASSERT_EQUAL(2, descendants.size());
+      WF_ASSERT_EQ(2, descendants.size());
 
       // Determine where the two branches eventually reconnect:
       const ir::const_block_ptr merge =

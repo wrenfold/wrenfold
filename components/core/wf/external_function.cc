@@ -68,8 +68,8 @@ bool types_match(const A& a, const B& b) {
 }
 
 any_expression external_function::create_invocation(std::vector<any_expression> args) const {
-  WF_ASSERT_EQUAL(num_arguments(), args.size(), "Wrong number of arguments for function `{}`.",
-                  name());
+  WF_ASSERT_EQ(num_arguments(), args.size(), "Wrong number of arguments for function `{}`.",
+               name());
 
   for (std::size_t i = 0; i < args.size(); ++i) {
     // Determine what type we were passed:

@@ -2,9 +2,9 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/algorithm_utils.h"
 #include "wf/compound_expression.h"
 #include "wf/external_function.h"
+#include "wf/utility/algorithms.h"
 
 namespace wf {
 

@@ -10,7 +10,7 @@
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/external_function.h"
-#include "wf/hashing.h"
+#include "wf/utility/hashing.h"
 
 // Define types for a very simple "intermediate representation" we can use to simplify
 // and reduce the tree of mathematical operations.

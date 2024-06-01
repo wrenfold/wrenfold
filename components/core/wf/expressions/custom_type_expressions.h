@@ -2,11 +2,11 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/algorithm_utils.h"
 #include "wf/code_generation/types.h"
 #include "wf/compound_expression.h"
-#include "wf/hashing.h"
-#include "wf/ordering.h"
+#include "wf/utility/algorithms.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/ordering.h"
 
 namespace wf {
 
@@ -72,7 +72,7 @@ class custom_type_construction {
 
   // Get the specified argument.
   const scalar_expr& at(const std::size_t index) const {
-    WF_ASSERT_LESS(index, size());
+    WF_ASSERT_LT(index, size());
     return args_[index];
   }
 

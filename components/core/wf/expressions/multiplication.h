@@ -5,13 +5,13 @@
 #include <variant>
 #include <vector>
 
-#include "wf/algorithm_utils.h"
 #include "wf/expression.h"
 #include "wf/expressions/memory_resource.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/power.h"
 #include "wf/expressions/special_constants.h"
-#include "wf/hashing.h"
+#include "wf/utility/algorithms.h"
+#include "wf/utility/hashing.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>
@@ -29,13 +29,13 @@ class multiplication {
 
   // Move-construct.
   explicit multiplication(container_type&& terms) : terms_(std::move(terms)) {
-    WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    WF_ASSERT_GE(terms_.size(), 2);
     sort_terms();
   }
 
   // Move construct and do not sort.
   explicit multiplication(no_sort, container_type&& terms) : terms_(std::move(terms)) {
-    WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    WF_ASSERT_GE(terms_.size(), 2);
   }
 
   // Construct from a pair of multiplied terms.

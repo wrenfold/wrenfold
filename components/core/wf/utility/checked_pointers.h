@@ -4,7 +4,7 @@
 #pragma once
 #include <system_error>  // for std::hash
 
-#include "wf/assertions.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 namespace detail {

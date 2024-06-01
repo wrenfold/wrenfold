@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include <gtest/gtest.h>
 
-#include "wf/checked_pointers.h"
+#include "wf/utility/checked_pointers.h"
 
 namespace wf {
 

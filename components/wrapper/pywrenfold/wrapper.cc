@@ -4,7 +4,7 @@
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
 
-#include "wf/scoped_trace.h"
+#include "wf/utility/scoped_trace.h"
 
 namespace py = pybind11;
 using namespace py::literals;

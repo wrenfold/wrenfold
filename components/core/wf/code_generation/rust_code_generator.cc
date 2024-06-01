@@ -5,8 +5,8 @@
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
-#include "wf/index_range.h"
-#include "wf/template_utils.h"
+#include "wf/utility/index_range.h"
+#include "wf/utility/overloaded_visit.h"
 
 namespace wf {
 
@@ -192,7 +192,7 @@ static bool is_get_argument_with_custom_type(const ast::ast_element& var) {
 }
 
 std::string rust_code_generator::operator()(const ast::call_external_function& x) const {
-  WF_ASSERT_EQUAL(x.args.size(), x.function.num_arguments());
+  WF_ASSERT_EQ(x.args.size(), x.function.num_arguments());
   std::string result = x.function.name();
   result.append("(");
   result += join_enumerate(", ", x.args, [&](const std::size_t index, const ast::ast_element& v) {

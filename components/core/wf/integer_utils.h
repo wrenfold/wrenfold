@@ -6,8 +6,8 @@
 #include <optional>
 #include <vector>
 
-#include "wf/checked_int.h"
-#include "wf/enumerations.h"
+#include "wf/utility/checked_int.h"
+#include "wf/utility/ordering.h"
 
 namespace wf {
 

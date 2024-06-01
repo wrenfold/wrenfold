@@ -4,7 +4,7 @@
 #pragma once
 #include "wf/code_generation/ast.h"
 #include "wf/code_generation/ast_visitor.h"
-#include "wf/code_generation/string_util.h"
+#include "wf/utility/strings.h"
 
 // Formatters for the ast types. These are defined primarily so that we can implement repr() in
 // python + generate prettier assertions when throwing from C++.

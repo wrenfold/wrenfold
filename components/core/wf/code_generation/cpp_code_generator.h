@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/code_generation/ast.h"
-#include "wf/string_utils.h"
+#include "wf/utility/strings.h"
 
 namespace wf {
 

@@ -6,8 +6,8 @@
 #include <memory>
 #include <vector>
 
-#include "wf/algorithm_utils.h"
 #include "wf/code_generation/ir_value.h"
+#include "wf/utility/algorithms.h"
 
 namespace wf::ir {
 

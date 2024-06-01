@@ -34,7 +34,7 @@ class external_function {
 
   // Get the argument at the specified position.
   const argument& argument_at(std::size_t position) const {
-    WF_ASSERT_LESS(position, num_arguments());
+    WF_ASSERT_LT(position, num_arguments());
     return impl_->arguments[position];
   }
 

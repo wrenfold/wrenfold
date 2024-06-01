@@ -6,10 +6,10 @@
 #include <algorithm>
 #include <iterator>
 
-#include "wf/algorithm_utils.h"
-#include "wf/assertions.h"
-#include "wf/ordering.h"
-#include "wf/template_utils.h"
+#include "wf/utility/algorithms.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/ordering.h"
+#include "wf/utility/overloaded_visit.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>

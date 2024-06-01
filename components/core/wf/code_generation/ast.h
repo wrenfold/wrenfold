@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 
-#include "wf/checked_pointers.h"
 #include "wf/code_generation/ast_element.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
 #include "wf/external_function.h"
+#include "wf/utility/checked_pointers.h"
 
 namespace wf::ast {
 
@@ -75,7 +75,7 @@ struct call_std_function {
 
   // Access args with bounds checking.
   const ast_element& operator[](std::size_t i) const {
-    WF_ASSERT_LESS(i, args.size());
+    WF_ASSERT_LT(i, args.size());
     return args[i];
   }
 };
@@ -294,7 +294,7 @@ struct function_signature {
 
   // Get an argument by index.
   const argument& argument_by_index(std::size_t index) const {
-    WF_ASSERT_LESS(index, num_arguments());
+    WF_ASSERT_LT(index, num_arguments());
     return arguments_[index];
   }
 

@@ -8,13 +8,13 @@
 namespace wf::ir {
 
 void block::replace_descendant(ir::block_ptr target, ir::block_ptr replacement) {
-  WF_ASSERT_NOT_EQUAL(target, replacement);
+  WF_ASSERT_NE(target, replacement);
 
   if (!operations_.empty()) {
     if (const ir::value_ptr jump_val = operations_.back(); jump_val->is_op<ir::jump_condition>()) {
-      WF_ASSERT_EQUAL(2, descendants_.size());
+      WF_ASSERT_EQ(2, descendants_.size());
     } else {
-      WF_ASSERT_GREATER_OR_EQ(1, descendants_.size());
+      WF_ASSERT_GE(1, descendants_.size());
     }
   }
 

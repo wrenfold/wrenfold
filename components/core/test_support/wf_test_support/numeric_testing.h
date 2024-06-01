@@ -91,8 +91,8 @@ template <index_t Rows, index_t Cols>
 struct compute_function_output_struct<ta::static_matrix<Rows, Cols>> {
   Eigen::Matrix<double, Rows, Cols> operator()(numeric_function_evaluator& evaluator,
                                                const matrix_expr& input, const matrix_type&) const {
-    WF_ASSERT_EQUAL(input.rows(), Rows);
-    WF_ASSERT_EQUAL(input.cols(), Cols);
+    WF_ASSERT_EQ(input.rows(), Rows);
+    WF_ASSERT_EQ(input.cols(), Cols);
     Eigen::Matrix<double, Rows, Cols> output;
     for (index_t i = 0; i < Rows; ++i) {
       for (index_t j = 0; j < Cols; ++j) {

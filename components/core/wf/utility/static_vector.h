@@ -4,7 +4,7 @@
 #pragma once
 #include <array>
 
-#include "wf/assertions.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 
@@ -30,7 +30,7 @@ class static_vector {
 
   // Copy-construct from initializer list.
   static_vector(std::initializer_list<T> init) : size_(init.end() - init.begin()) {
-    WF_ASSERT_LESS_OR_EQ(size_, N);
+    WF_ASSERT_LE(size_, N);
     std::copy(init.begin(), init.end(), begin());
   }
 
@@ -56,14 +56,14 @@ class static_vector {
 
   constexpr const_reference operator[](const std::size_t pos) const {
 #ifdef WF_DEBUG
-    WF_ASSERT_LESS(pos, size());
+    WF_ASSERT_LT(pos, size());
 #endif
     return data_[pos];
   }
 
   constexpr reference operator[](const std::size_t pos) {
 #ifdef WF_DEBUG
-    WF_ASSERT_LESS(pos, size());
+    WF_ASSERT_LT(pos, size());
 #endif
     return data_[pos];
   }

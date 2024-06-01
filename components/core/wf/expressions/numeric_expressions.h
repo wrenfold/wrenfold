@@ -6,10 +6,10 @@
 #include <numeric>
 #include <optional>
 
-#include "wf/assertions.h"
-#include "wf/checked_int.h"
-#include "wf/hashing.h"
-#include "wf/ordering.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/checked_int.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/ordering.h"
 
 namespace wf {
 

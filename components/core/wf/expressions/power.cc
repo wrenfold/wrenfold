@@ -113,7 +113,7 @@ struct power_numerics_visitor {
   // If the left operand is integer, and the right is rational:
   static scalar_expr apply_int_and_rational(const integer_constant& base,
                                             const rational_constant& exp) {
-    WF_ASSERT_GREATER(exp.denominator(), 0, "Rational must have positive denominator");
+    WF_ASSERT_GT(exp.denominator(), 0, "Rational must have positive denominator");
     if (base.value() == 1) {
       return constants::one;
     } else if (base.is_zero()) {

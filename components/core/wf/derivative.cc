@@ -5,11 +5,11 @@
 
 #include <algorithm>
 
-#include "wf/error_types.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
-#include "wf/scoped_trace.h"
+#include "wf/utility/error_types.h"
+#include "wf/utility/scoped_trace.h"
 
 #include "wrenfold/span.h"
 

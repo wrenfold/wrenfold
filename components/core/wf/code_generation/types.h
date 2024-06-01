@@ -8,11 +8,11 @@
 #include <variant>
 #include <vector>
 
-#include "wf/assertions.h"
-#include "wf/checked_pointers.h"
 #include "wf/enumerations.h"
-#include "wf/hashing.h"
-#include "wf/traits.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/checked_pointers.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/traits.h"
 
 namespace wf {
 
@@ -64,7 +64,7 @@ class matrix_type {
 
   // Convert flat index to [row, col] indices (assuming row major order).
   std::tuple<index_t, index_t> compute_indices(std::size_t element) const {
-    WF_ASSERT_LESS(element, size());
+    WF_ASSERT_LT(element, size());
     return std::make_tuple(static_cast<index_t>(element) / cols_,
                            static_cast<index_t>(element) % cols_);
   }

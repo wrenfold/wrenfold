@@ -4,7 +4,7 @@
 #pragma once
 #include "wf/expression.h"
 #include "wf/expression_variant.h"
-#include "wf/ordering.h"
+#include "wf/utility/ordering.h"
 
 namespace wf {
 
@@ -35,7 +35,6 @@ class compound_expr final : public expression_base<compound_expr, compound_meta_
 
 template <>
 struct order_struct<compound_expr> {
-  // Implemented in ordering.cc
   relative_order operator()(const compound_expr& a, const compound_expr& b) const;
 };
 
