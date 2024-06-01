@@ -8,7 +8,7 @@ namespace wf {
 external_function_invocation::external_function_invocation(external_function func,
                                                            container_type args)
     : function_(std::move(func)), args_(std::move(args)) {
-  WF_ASSERT_EQUAL(
+  WF_ASSERT_EQ(
       function_.num_arguments(), args_.size(),
       "Mismatch in # of args between function spec and provided argument list. Function: {}",
       function_.name());

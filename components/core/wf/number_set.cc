@@ -36,7 +36,7 @@ class determine_set_visitor {
  public:
   template <typename Container, typename Callable>
   number_set handle_add_or_mul(const Container& container, Callable callable) const {
-    WF_ASSERT_GREATER_OR_EQ(container.size(), 1);
+    WF_ASSERT_GE(container.size(), 1);
     auto it = container.begin();
     number_set set = determine_numeric_set(*it);
     for (it = std::next(it); it != container.end(); ++it) {
@@ -98,7 +98,7 @@ class determine_set_visitor {
   number_set operator()(const function& func) const {
     absl::InlinedVector<number_set, 4> args{};
     std::transform(func.begin(), func.end(), std::back_inserter(args), &determine_numeric_set);
-    WF_ASSERT_GREATER_OR_EQ(args.size(), 1);
+    WF_ASSERT_GE(args.size(), 1);
 
     if (std::count(args.begin(), args.end(), number_set::unknown) > 0) {
       return number_set::unknown;

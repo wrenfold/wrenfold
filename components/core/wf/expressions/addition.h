@@ -24,18 +24,18 @@ class addition {
 
   // Move-construct.
   explicit addition(container_type&& terms) : terms_(std::move(terms)) {
-    WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    WF_ASSERT_GE(terms_.size(), 2);
     sort_terms();
   }
 
   // Move-construct and do not sort.
   explicit addition(no_sort, container_type&& terms) : terms_(std::move(terms)) {
-    WF_ASSERT_GREATER_OR_EQ(terms_.size(), 2);
+    WF_ASSERT_GE(terms_.size(), 2);
   }
 
   // Access specific argument.
   const scalar_expr& operator[](const std::size_t i) const {
-    WF_ASSERT_LESS(i, terms_.size());
+    WF_ASSERT_LT(i, terms_.size());
     return terms_[i];
   }
 

@@ -191,7 +191,7 @@ struct permutation_matrix {
     }
     p_.insert(p_.begin(), 0);
     if (row != 0) {
-      WF_ASSERT_LESS(static_cast<std::size_t>(row), p_.size());
+      WF_ASSERT_LT(static_cast<std::size_t>(row), p_.size());
       std::swap(p_[0], p_[row]);
       ++num_swaps_;
     }
@@ -271,12 +271,12 @@ inline std::optional<std::tuple<std::size_t, std::size_t>> find_pivot(
 static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_internal(
     dynamic_row_major_span L, dynamic_row_major_span U) {
   if (L.rows() == 1) {
-    WF_ASSERT_EQUAL(1, L.cols());
+    WF_ASSERT_EQ(1, L.cols());
     L(0, 0) = constants::one;
     return std::make_tuple(permutation_matrix(1), permutation_matrix(U.cols()));
   }
 
-  WF_ASSERT_GREATER_OR_EQ(U.rows(), 2);
+  WF_ASSERT_GE(U.rows(), 2);
 
   // Search for a non-zero pivot.
   auto pivot_indices = find_pivot(U);
@@ -326,7 +326,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   L(0, 0) = constants::one;
 
   // then the column underneath it:
-  WF_ASSERT_EQUAL(static_cast<std::size_t>(P.rows()), c.rows());
+  WF_ASSERT_EQ(static_cast<std::size_t>(P.rows()), c.rows());
   for (std::size_t i = 0; i < c.rows(); ++i) {
     L(i + 1, 0) = c(P.permuted_row_transposed(static_cast<index_t>(i)), 0) / pivot;
   }
@@ -339,7 +339,7 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   }
 
   // Permute the top-right row of U:
-  WF_ASSERT_EQUAL(static_cast<std::size_t>(Q.rows()), r_t.cols());
+  WF_ASSERT_EQ(static_cast<std::size_t>(Q.rows()), r_t.cols());
   for (std::size_t j = 0; j < r_t.cols(); ++j) {
     U(0, j + 1) = r_t_copied[Q.permuted_row(static_cast<index_t>(j))];
   }
@@ -365,10 +365,10 @@ factorize_full_piv_lu_internal(const matrix& A) {
     matrix U_out = L.transposed();
     matrix L_out = U.transposed();
 
-    WF_ASSERT_EQUAL(L_out.rows(), A.rows());
-    WF_ASSERT_EQUAL(L_out.cols(), A.cols());
-    WF_ASSERT_EQUAL(U_out.rows(), A.cols());
-    WF_ASSERT_EQUAL(U_out.rows(), U_out.cols());
+    WF_ASSERT_EQ(L_out.rows(), A.rows());
+    WF_ASSERT_EQ(L_out.cols(), A.cols());
+    WF_ASSERT_EQ(U_out.rows(), A.cols());
+    WF_ASSERT_EQ(U_out.rows(), U_out.cols());
 
     // Then we need to normalize the diagonal of L
     for (index_t col = 0; col < L_out.cols(); ++col) {

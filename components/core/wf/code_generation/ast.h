@@ -75,7 +75,7 @@ struct call_std_function {
 
   // Access args with bounds checking.
   const ast_element& operator[](std::size_t i) const {
-    WF_ASSERT_LESS(i, args.size());
+    WF_ASSERT_LT(i, args.size());
     return args[i];
   }
 };
@@ -294,7 +294,7 @@ struct function_signature {
 
   // Get an argument by index.
   const argument& argument_by_index(std::size_t index) const {
-    WF_ASSERT_LESS(index, num_arguments());
+    WF_ASSERT_LT(index, num_arguments());
     return arguments_[index];
   }
 

@@ -14,7 +14,7 @@ namespace wf {
 inline factor_bits fill_bits(const std::initializer_list<int> indices) {
   factor_bits b{};
   for (auto index : indices) {
-    WF_ASSERT_LESS(index, b.size());
+    WF_ASSERT_LT(index, b.size());
     b.set(index);
   }
   return b;

@@ -64,7 +64,7 @@ class matrix_type {
 
   // Convert flat index to [row, col] indices (assuming row major order).
   std::tuple<index_t, index_t> compute_indices(std::size_t element) const {
-    WF_ASSERT_LESS(element, size());
+    WF_ASSERT_LT(element, size());
     return std::make_tuple(static_cast<index_t>(element) / cols_,
                            static_cast<index_t>(element) % cols_);
   }

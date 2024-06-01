@@ -38,13 +38,13 @@ class operation_counts {
 
   // Const access to a counter.
   constexpr const std::size_t& operator[](const operation_count_label label) const {
-    WF_ASSERT_LESS(static_cast<std::size_t>(label), counts_.size());
+    WF_ASSERT_LT(static_cast<std::size_t>(label), counts_.size());
     return counts_[static_cast<std::size_t>(label)];
   }
 
   // Access a counter to update it.
   constexpr std::size_t& operator[](const operation_count_label label) {
-    WF_ASSERT_LESS(static_cast<std::size_t>(label), counts_.size());
+    WF_ASSERT_LT(static_cast<std::size_t>(label), counts_.size());
     return counts_[static_cast<std::size_t>(label)];
   }
 

@@ -113,7 +113,7 @@ class factors_table {
 inline std::tuple<factor_bits, factor_bits> find_jointly_factorizable_variables(
     const std::size_t var_index, const factors_table& table, const factor_bits remaining_terms,
     const factor_bits remaining_vars) {
-  WF_ASSERT_LESS(var_index, table.num_vars());
+  WF_ASSERT_LT(var_index, table.num_vars());
 
   // Identify terms that contain this variable:
   const factor_bits suitable_terms = remaining_terms & table.get_var(var_index);
@@ -233,8 +233,8 @@ std::vector<factorization> compute_ranked_factorizations(const absl::Span<const 
                                                          const std::size_t num_vars,
                                                          const std::size_t branching_factor) {
   WF_FUNCTION_TRACE();
-  WF_ASSERT_LESS_OR_EQ(num_vars, factorizer_params::MAX_VARS_OR_TERMS);
-  WF_ASSERT_LESS_OR_EQ(terms.size(), factorizer_params::MAX_VARS_OR_TERMS);
+  WF_ASSERT_LE(num_vars, factorizer_params::MAX_VARS_OR_TERMS);
+  WF_ASSERT_LE(terms.size(), factorizer_params::MAX_VARS_OR_TERMS);
 
   std::vector<factorization> result{};
   if (terms.empty() || num_vars == 0) {

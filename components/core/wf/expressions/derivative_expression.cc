@@ -8,7 +8,7 @@
 namespace wf {
 
 scalar_expr derivative::create(scalar_expr function, scalar_expr arg, int order) {
-  WF_ASSERT_GREATER_OR_EQ(order, 1, "Order of the derivative must >= 1");
+  WF_ASSERT_GE(order, 1, "Order of the derivative must >= 1");
 
   if (!arg.is_type<variable>()) {
     throw type_error("Derivatives can only be taken with respect to variables. Arg = {}",

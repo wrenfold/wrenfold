@@ -53,7 +53,7 @@ class optional_arg_permutations {
         scatter_.emplace(it->key.name, scatter_.size());
       }
     }
-    WF_ASSERT_LESS(scatter_.size(), MaxOptionalArgs);
+    WF_ASSERT_LT(scatter_.size(), MaxOptionalArgs);
   }
 
   std::size_t num_permutations() const {
@@ -66,7 +66,7 @@ class optional_arg_permutations {
   // Get the n'th permutation of optional arguments.
   // The returned map is a mapping from `arg name` --> whether the argument is to be computed.
   std::unordered_map<std::string, bool> get_permutation(std::size_t n) const {
-    WF_ASSERT_LESS(n, num_permutations());
+    WF_ASSERT_LT(n, num_permutations());
     const std::bitset<MaxOptionalArgs> permutation{n};
 
     std::unordered_map<std::string, bool> output{};

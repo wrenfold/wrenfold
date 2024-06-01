@@ -93,7 +93,7 @@ class consumer_vector {
 
   // Remove value indicated by the specified index.
   void remove(const std::size_t index) {
-    WF_ASSERT_LESS(index, consumers_.size());
+    WF_ASSERT_LT(index, consumers_.size());
     WF_ASSERT(consumers_[index]);
     consumers_[index] = nullptr;
     freelist_.push_back(static_cast<std::uint32_t>(index));

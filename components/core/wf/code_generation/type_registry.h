@@ -307,7 +307,7 @@ absl::Span<const scalar_expr> native_field_accessor_member_ptr<StructType, Field
     return input.subspan(1);
   } else if constexpr (std::is_same_v<U, matrix_type>) {
     const matrix_type& mat = member_type_;
-    WF_ASSERT_GREATER_OR_EQ(input.size(), mat.size());
+    WF_ASSERT_GE(input.size(), mat.size());
     const auto begin = input.begin();
     object.*member_ptr_ = matrix_expr::create(mat.rows(), mat.cols(), begin, begin + mat.size());
     return input.subspan(mat.size());

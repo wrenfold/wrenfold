@@ -72,7 +72,7 @@ class custom_type_construction {
 
   // Get the specified argument.
   const scalar_expr& at(const std::size_t index) const {
-    WF_ASSERT_LESS(index, size());
+    WF_ASSERT_LT(index, size());
     return args_[index];
   }
 

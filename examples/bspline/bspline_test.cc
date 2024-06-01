@@ -30,8 +30,8 @@ namespace wf {
 
 // Map argument x from [0, 1] to the index of the corresponding interval between two knots.
 std::size_t compute_basis_index(const double x, const std::size_t num_knots) {
-  WF_ASSERT_GREATER_OR_EQ(x, 0.0);
-  WF_ASSERT_LESS_OR_EQ(x, 1.0);
+  WF_ASSERT_GE(x, 0.0);
+  WF_ASSERT_LE(x, 1.0);
 
   // Find the index of the knot that is <= x.
   // Knots are equally spaced over [0, 1], and `num_knots` includes both non-repeated endpoints.
@@ -75,7 +75,7 @@ template <std::size_t Order, typename... Polynomials>
 std::size_t eval_bspline_coefficients(const double x, const std::size_t num_knots,
                                       Eigen::Matrix<double, Order, Order - 1>& output_coefficients,
                                       Polynomials&&... polynomials) {
-  WF_ASSERT_GREATER(num_knots, Order, "Number of knots must exceed spline order");
+  WF_ASSERT_GT(num_knots, Order, "Number of knots must exceed spline order");
   const std::size_t interval = compute_basis_index(x, num_knots);
 
   const std::size_t num_intervals = num_knots - 1;

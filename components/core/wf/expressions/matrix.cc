@@ -15,8 +15,8 @@ matrix::matrix(const index_t rows, const index_t cols, container_type data)
     throw dimension_error("Mismatch between shape and # of elements. size = {}, shape = [{}, {}]",
                           data_.size(), rows_, cols_);
   }
-  WF_ASSERT_GREATER_OR_EQ(rows_, 0);
-  WF_ASSERT_GREATER_OR_EQ(cols_, 0);
+  WF_ASSERT_GE(rows_, 0);
+  WF_ASSERT_GE(cols_, 0);
 }
 
 matrix matrix::get_block(const index_t row, const index_t col, const index_t nrows,

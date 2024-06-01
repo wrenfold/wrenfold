@@ -2,7 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/utility/error_types.h"
+#include "wf/utility/error_types.h"  // wf::assertion_error
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
@@ -70,27 +70,27 @@ std::string format_assert_binary(const char* const condition, const char* const 
 #define WF_ASSERT_ALWAYS(...) \
   WF_ASSERT_ALWAYS_IMPL(__FILE__, __LINE__, wf::detail::format_assert, ##__VA_ARGS__)
 
-#define WF_ASSERT_EQUAL(a, b, ...)                                                               \
+#define WF_ASSERT_EQ(a, b, ...)                                                                  \
   WF_ASSERT_IMPL((a) == (b), __FILE__, __LINE__, wf::detail::format_assert_binary, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_NOT_EQUAL(a, b, ...)                                                           \
+#define WF_ASSERT_NE(a, b, ...)                                                                  \
   WF_ASSERT_IMPL((a) != (b), __FILE__, __LINE__, wf::detail::format_assert_binary, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_LESS(a, b, ...)                                                               \
+#define WF_ASSERT_LT(a, b, ...)                                                                 \
   WF_ASSERT_IMPL((a) < (b), __FILE__, __LINE__, wf::detail::format_assert_binary, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_GREATER(a, b, ...)                                                            \
+#define WF_ASSERT_GT(a, b, ...)                                                                 \
   WF_ASSERT_IMPL((a) > (b), __FILE__, __LINE__, wf::detail::format_assert_binary, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_LESS_OR_EQ(a, b, ...)                                                          \
+#define WF_ASSERT_LE(a, b, ...)                                                                  \
   WF_ASSERT_IMPL((a) <= (b), __FILE__, __LINE__, wf::detail::format_assert_binary, #a, a, #b, b, \
                  ##__VA_ARGS__)
 
-#define WF_ASSERT_GREATER_OR_EQ(a, b, ...)                                                       \
+#define WF_ASSERT_GE(a, b, ...)                                                                  \
   WF_ASSERT_IMPL((a) >= (b), __FILE__, __LINE__, wf::detail::format_assert_binary, #a, a, #b, b, \
                  ##__VA_ARGS__)
 

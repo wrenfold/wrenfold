@@ -58,8 +58,8 @@ template <typename Function>
 std::vector<TestSample> generate_samples(const double duration, const double dt,
                                          const Vector3d& gyro_bias,
                                          const Vector3d& accelerometer_bias, Function&& func) {
-  WF_ASSERT_GREATER(dt, 0);
-  WF_ASSERT_GREATER(duration, dt);
+  WF_ASSERT_GT(dt, 0);
+  WF_ASSERT_GT(duration, dt);
 
   std::vector<TestSample> samples;
   samples.push_back(func(0.0));

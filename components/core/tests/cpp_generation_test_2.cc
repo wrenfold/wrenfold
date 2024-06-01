@@ -32,8 +32,8 @@ types::StructType interpolate_access(const std::vector<types::StructType>& vec, 
 
   const std::size_t i0 = static_cast<std::size_t>(x_floor);
   const std::size_t i1 = static_cast<std::size_t>(x_ceil);
-  WF_ASSERT_LESS(i0, vec.size());
-  WF_ASSERT_LESS(i1, vec.size());
+  WF_ASSERT_LT(i0, vec.size());
+  WF_ASSERT_LT(i1, vec.size());
   return vec[i0].lerp(vec[i1], alpha);
 }
 

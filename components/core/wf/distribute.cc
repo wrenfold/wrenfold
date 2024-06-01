@@ -76,7 +76,7 @@ X distribute_visitor::operator()(const T& concrete, const X& expr) {
 }
 
 scalar_expr distribute_visitor::distribute_power(scalar_expr base, std::size_t power) {
-  WF_ASSERT_GREATER(power, 0);
+  WF_ASSERT_GT(power, 0);
   scalar_expr result = constants::one;
   for (;;) {
     if (power & 1) {
@@ -118,7 +118,7 @@ scalar_expr distribute_visitor::distribute_multiplied_terms(const scalar_expr& a
 
 template <typename Container>
 scalar_expr distribute_visitor::distribute_multiplied_terms(const Container& multiplied_terms) {
-  WF_ASSERT_GREATER_OR_EQ(multiplied_terms.size(), 1);
+  WF_ASSERT_GE(multiplied_terms.size(), 1);
   std::vector<scalar_expr> output_terms = transform_map<std::vector>(multiplied_terms, *this);
   while (output_terms.size() > 1) {
     scalar_expr top = std::move(output_terms.back());

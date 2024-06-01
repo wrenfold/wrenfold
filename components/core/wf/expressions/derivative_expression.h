@@ -17,7 +17,7 @@ class derivative {
 
   derivative(scalar_expr differentiand, scalar_expr arg, int order = 1)
       : children_{std::move(differentiand), std::move(arg)}, order_(order) {
-    WF_ASSERT_GREATER_OR_EQ(order_, 1);
+    WF_ASSERT_GE(order_, 1);
   }
 
   // The function we are taking the derivative of:

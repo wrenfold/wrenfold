@@ -10,7 +10,7 @@
 namespace wf {
 ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph)
     : output_graph_(output_graph), output_block_(output_graph.first_block()) {
-  WF_ASSERT_EQUAL(1, output_graph.num_blocks(), "Output graph should only have one block.");
+  WF_ASSERT_EQ(1, output_graph.num_blocks(), "Output graph should only have one block.");
 }
 
 ir::value_ptr ir_form_visitor::operator()(const addition& add) {
@@ -163,7 +163,7 @@ static code_numeric_type std_function_output_type(const std_math_function func,
                                                   const Container& args) {
   switch (func) {
     case std_math_function::abs: {
-      WF_ASSERT_EQUAL(1, args.size());
+      WF_ASSERT_EQ(1, args.size());
       return args[0]->numeric_type();
     }
     case std_math_function::floor:

@@ -472,7 +472,7 @@ scalar_expr abs(const scalar_expr& arg) {
   if (const std::optional<rational_constant> r = try_cast_to_rational(arg); r.has_value()) {
     // If the inner argument is a negative integer or rational, just flip it.
     if (r->numerator() >= 0) {
-      WF_ASSERT_GREATER(r->denominator(), 0);
+      WF_ASSERT_GT(r->denominator(), 0);
       return arg;
     }
     return scalar_expr(rational_constant{-r->numerator(), r->denominator()});
