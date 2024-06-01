@@ -3,8 +3,8 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 
-#include "wf/checked_pointers.h"
-#include "wf/third_party_imports.h"
+#include "wf/utility/checked_pointers.h"
+#include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>

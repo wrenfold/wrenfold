@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "wf/expression.h"
-#include "wf/hashing.h"
+#include "wf/utility/hashing.h"
 
 namespace wf {
 

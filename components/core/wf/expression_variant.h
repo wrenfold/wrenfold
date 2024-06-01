@@ -4,9 +4,9 @@
 #pragma once
 #include <memory>
 
-#include "wf/error_types.h"
-#include "wf/hashing.h"
-#include "wf/type_list.h"
+#include "wf/utility/error_types.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/type_list.h"
 
 namespace wf {
 

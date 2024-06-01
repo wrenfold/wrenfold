@@ -9,10 +9,10 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_set.h>
 WF_END_THIRD_PARTY_INCLUDES
 
-#include "wf/assertions.h"
-#include "wf/code_generation/bitset_range.h"
-#include "wf/scoped_trace.h"
-#include "wf/string_utils.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/bitset_range.h"
+#include "wf/utility/scoped_trace.h"
+#include "wf/utility/strings.h"
 
 namespace wf {
 

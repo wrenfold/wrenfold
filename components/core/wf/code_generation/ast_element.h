@@ -4,7 +4,7 @@
 #pragma once
 #include <memory>
 
-#include "wf/type_list.h"
+#include "wf/utility/type_list.h"
 
 namespace wf::ast {
 class ast_element;

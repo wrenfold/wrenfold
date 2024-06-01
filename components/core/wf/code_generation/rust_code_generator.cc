@@ -5,8 +5,8 @@
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
-#include "wf/index_range.h"
-#include "wf/template_utils.h"
+#include "wf/utility/index_range.h"
+#include "wf/utility/overloaded_visit.h"
 
 namespace wf {
 

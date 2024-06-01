@@ -4,8 +4,8 @@
 #pragma once
 #include <limits>
 
-#include "wf/error_types.h"
-#include "wf/hashing.h"
+#include "wf/utility/error_types.h"
+#include "wf/utility/hashing.h"
 
 namespace wf {
 

@@ -5,8 +5,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "wf/algorithm_utils.h"
 #include "wf/code_generation/types.h"
+#include "wf/utility/algorithms.h"
 
 #include "wrapper_utils.h"
 

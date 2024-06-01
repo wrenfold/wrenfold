@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include <gtest/gtest.h>
 
-#include "wf/string_utils.h"
+#include "wf/utility/strings.h"
 
 // Tests for functions in `string_utils`.
 namespace wf {

@@ -5,7 +5,7 @@
 
 #include <numeric>
 
-#include "wf/checked_int.h"
+#include "wf/utility/checked_int.h"
 
 namespace wf {
 

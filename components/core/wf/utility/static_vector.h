@@ -4,7 +4,7 @@
 #pragma once
 #include <array>
 
-#include "wf/assertions.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 

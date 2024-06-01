@@ -4,7 +4,7 @@
 #pragma once
 #include "wf/expression_variant.h"
 #include "wf/operations.h"
-#include "wf/ordering.h"
+#include "wf/utility/ordering.h"
 
 namespace wf {
 
@@ -55,7 +55,6 @@ inline std::ostream& operator<<(std::ostream& stream, const boolean_expr& x) {
 // This is not a mathematical ordering - rather it is a canonical ordering we impose on expressions.
 template <>
 struct order_struct<boolean_expr> {
-  // Implemented in ordering.cc
   relative_order operator()(const boolean_expr& a, const boolean_expr& b) const;
 };
 

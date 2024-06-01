@@ -5,11 +5,11 @@
 #include <variant>
 #include <vector>
 
-#include "wf/checked_pointers.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/type_registry.h"
 #include "wf/code_generation/types.h"
 #include "wf/matrix_expression.h"
+#include "wf/utility/checked_pointers.h"
 
 namespace wf {
 class variable_creator;  //  Fwd declare.

@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/enumerations.h"
-#include "wf/third_party_imports.h"
+#include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/types/span.h>

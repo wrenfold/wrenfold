@@ -5,8 +5,8 @@
 
 #include <random>
 
-#include "wf/algorithm_utils.h"
-#include "wf/code_generation/bitset_range.h"
+#include "wf/utility/algorithms.h"
+#include "wf/utility/bitset_range.h"
 #include "wf_test_support/test_macros.h"
 
 namespace wf {

@@ -2,9 +2,9 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/algorithm_utils.h"
 #include "wf/external_function.h"
-#include "wf/hashing.h"
+#include "wf/utility/algorithms.h"
+#include "wf/utility/hashing.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>

@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/functions.h"
-#include "wf/hashing.h"
+#include "wf/utility/hashing.h"
 
 namespace wf {
 

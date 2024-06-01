@@ -2,8 +2,8 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/assertions.h"
 #include "wf/expression.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 

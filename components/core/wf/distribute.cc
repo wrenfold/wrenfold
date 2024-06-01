@@ -5,9 +5,9 @@
 
 #include <algorithm>
 
-#include "wf/assertions.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 

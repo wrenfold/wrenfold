@@ -8,11 +8,11 @@
 #include <variant>
 #include <vector>
 
-#include "wf/assertions.h"
-#include "wf/checked_pointers.h"
 #include "wf/enumerations.h"
-#include "wf/hashing.h"
-#include "wf/traits.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/checked_pointers.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/traits.h"
 
 namespace wf {
 

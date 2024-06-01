@@ -10,7 +10,7 @@
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/cpp_code_generator.h"
 #include "wf/code_generation/rust_code_generator.h"
-#include "wf/type_list.h"
+#include "wf/utility/type_list.h"
 
 namespace py = pybind11;
 using namespace py::literals;

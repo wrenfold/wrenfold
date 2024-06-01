@@ -1,7 +1,7 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include "wf/visit.h"
+#include "wf/utility/visit_switch.h"
 
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numerical_jacobian.h"

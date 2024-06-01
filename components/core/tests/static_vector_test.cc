@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include <gtest/gtest.h>
 
-#include "wf/code_generation/static_vector.h"
+#include "wf/utility/static_vector.h"
 
 // Tests for the static_vector type.
 namespace wf {

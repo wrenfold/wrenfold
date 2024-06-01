@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "wf/type_list.h"
+#include "wf/utility/type_list.h"
 
 // Test of `type_list<>` utilities.
 // These are all compile-time tests, but I break them into test cases for organization.

@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "wf/any_expression.h"
-#include "wf/type_list.h"
+#include "wf/utility/type_list.h"
 
 namespace wf {
 

@@ -5,7 +5,7 @@
 #include "wf/expressions/custom_type_expressions.h"
 #include "wf/expressions/external_function_invocation.h"
 #include "wf/external_function.h"
-#include "wf/template_utils.h"
+#include "wf/utility/zip_tuples.h"
 
 namespace wf {
 

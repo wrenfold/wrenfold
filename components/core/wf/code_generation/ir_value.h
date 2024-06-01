@@ -5,10 +5,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "wf/checked_pointers.h"
 #include "wf/code_generation/ir_consumer_vector.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/code_generation/types.h"
+#include "wf/utility/checked_pointers.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_set.h>

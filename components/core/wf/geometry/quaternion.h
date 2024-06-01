@@ -2,10 +2,10 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/assertions.h"
 #include "wf/constants.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
+#include "wf/utility/assertions.h"
 
 #include <array>
 

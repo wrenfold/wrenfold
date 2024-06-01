@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 
-#include "wf/checked_pointers.h"
 #include "wf/code_generation/ast_element.h"
 #include "wf/code_generation/function_description.h"
 #include "wf/enumerations.h"
 #include "wf/external_function.h"
+#include "wf/utility/checked_pointers.h"
 
 namespace wf::ast {
 

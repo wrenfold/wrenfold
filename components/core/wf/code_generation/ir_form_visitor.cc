@@ -5,7 +5,7 @@
 
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
-#include "wf/scoped_trace.h"
+#include "wf/utility/scoped_trace.h"
 
 namespace wf {
 ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph)

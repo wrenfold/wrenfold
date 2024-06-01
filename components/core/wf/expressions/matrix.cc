@@ -3,9 +3,9 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/expressions/matrix.h"
 
-#include "wf/assertions.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/addition.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 

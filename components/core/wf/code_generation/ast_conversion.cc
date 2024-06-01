@@ -10,8 +10,8 @@
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
-#include "wf/scoped_trace.h"
-#include "wf/template_utils.h"
+#include "wf/utility/overloaded_visit.h"
+#include "wf/utility/scoped_trace.h"
 
 namespace wf::ast {
 

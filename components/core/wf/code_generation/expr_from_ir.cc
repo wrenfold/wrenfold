@@ -9,8 +9,8 @@
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/expressions/all_expressions.h"
-#include "wf/scoped_trace.h"
-#include "wf/template_utils.h"
+#include "wf/utility/overloaded_visit.h"
+#include "wf/utility/scoped_trace.h"
 
 namespace wf {
 

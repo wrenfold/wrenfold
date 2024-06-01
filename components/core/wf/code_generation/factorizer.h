@@ -6,9 +6,9 @@
 #include <optional>
 #include <vector>
 
-#include "wf/code_generation/static_vector.h"
-#include "wf/hashing.h"
-#include "wf/third_party_imports.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/static_vector.h"
+#include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>

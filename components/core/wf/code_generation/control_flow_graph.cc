@@ -8,7 +8,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "wf/assertions.h"
 #include "wf/code_generation/factorizer.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/ir_control_flow_converter.h"
@@ -18,8 +17,9 @@
 #include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
-#include "wf/hashing.h"
-#include "wf/scoped_trace.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/hashing.h"
+#include "wf/utility/scoped_trace.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_map.h>

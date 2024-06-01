@@ -4,8 +4,8 @@
 #pragma once
 #include "wf/code_generation/function_description.h"
 #include "wf/output_annotations.h"
-#include "wf/template_utils.h"
 #include "wf/type_annotations.h"
+#include "wf/utility/zip_tuples.h"
 
 namespace wf {
 namespace detail {

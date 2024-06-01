@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/type_registry.h"
 #include "wf/expressions/variable.h"
-#include "wf/index_range.h"
+#include "wf/utility/index_range.h"
 
 namespace wf::detail {
 

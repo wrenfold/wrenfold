@@ -1,20 +1,15 @@
 # Add library:
 add_library(
   wf_core STATIC
-  wf/algorithm_utils.h
   wf/any_expression.h
-  wf/assertions.h
   wf/boolean_expression.cc
   wf/boolean_expression.h
-  wf/checked_int.h
-  wf/checked_pointers.h
-  wf/code_generation/ast.cc
-  wf/code_generation/ast.h
   wf/code_generation/ast_conversion.cc
   wf/code_generation/ast_conversion.h
   wf/code_generation/ast_element.h
   wf/code_generation/ast_formatters.h
-  wf/code_generation/bitset_range.h
+  wf/code_generation/ast.cc
+  wf/code_generation/ast.h
   wf/code_generation/control_flow_graph.cc
   wf/code_generation/control_flow_graph.h
   wf/code_generation/cpp_code_generator.cc
@@ -41,7 +36,6 @@ add_library(
   wf/code_generation/operation_counts.h
   wf/code_generation/rust_code_generator.cc
   wf/code_generation/rust_code_generator.h
-  wf/code_generation/static_vector.h
   wf/code_generation/type_registry.cc
   wf/code_generation/type_registry.h
   wf/code_generation/types.cc
@@ -59,13 +53,12 @@ add_library(
   wf/distribute.cc
   wf/distribute.h
   wf/enumerations.h
-  wf/error_types.h
   wf/evaluate.cc
-  wf/expression.cc
-  wf/expression.h
   wf/expression_cache.h
   wf/expression_variant.h
   wf/expression_visitor.h
+  wf/expression.cc
+  wf/expression.h
   wf/expressions/addition.cc
   wf/expressions/addition.h
   wf/expressions/all_expressions.h
@@ -101,8 +94,6 @@ add_library(
   wf/functions.cc
   wf/functions.h
   wf/geometry/quaternion.cc
-  wf/hashing.h
-  wf/index_range.h
   wf/integer_utils.h
   wf/matrix_expression.cc
   wf/matrix_expression.h
@@ -112,23 +103,32 @@ add_library(
   wf/numerical_casts.cc
   wf/numerical_casts.h
   wf/operations.h
-  wf/ordering.cc
-  wf/ordering.h
   wf/output_annotations.h
   wf/plain_formatter.cc
   wf/plain_formatter.h
-  wf/scoped_trace.cc
-  wf/scoped_trace.h
-  wf/string_utils.h
   wf/substitute.cc
-  wf/template_utils.h
-  wf/third_party_imports.h
-  wf/traits.h
   wf/tree_formatter.cc
   wf/tree_formatter.h
   wf/type_annotations.h
-  wf/type_list.h
-  wf/visit.h)
+  wf/utility/algorithms.h
+  wf/utility/assertions.h
+  wf/utility/bitset_range.h
+  wf/utility/checked_int.h
+  wf/utility/checked_pointers.h
+  wf/utility/error_types.h
+  wf/utility/hashing.h
+  wf/utility/index_range.h
+  wf/utility/ordering.h
+  wf/utility/overloaded_visit.h
+  wf/utility/scoped_trace.cc
+  wf/utility/scoped_trace.h
+  wf/utility/static_vector.h
+  wf/utility/strings.h
+  wf/utility/third_party_imports.h
+  wf/utility/traits.h
+  wf/utility/type_list.h
+  wf/utility/visit_switch.h
+  wf/utility/zip_tuples.h)
 
 # Turn on C++17
 target_compile_features(wf_core PUBLIC cxx_std_17)

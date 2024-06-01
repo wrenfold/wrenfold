@@ -5,7 +5,7 @@
 #include <array>
 #include <string_view>
 
-#include "wf/assertions.h"
+#include "wf/utility/assertions.h"
 
 namespace wf {
 

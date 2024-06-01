@@ -3,7 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/code_generation/ast.h"
-#include "wf/visit.h"
+#include "wf/utility/visit_switch.h"
 
 namespace wf::ast {
 namespace detail {
