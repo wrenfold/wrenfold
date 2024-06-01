@@ -87,6 +87,8 @@ sym
 
 .. autofunction:: wrenfold.sym.tanh
 
+.. autofunction:: wrenfold.sym.unevaluated
+
 .. autofunction:: wrenfold.sym.vec
 
 .. autofunction:: wrenfold.sym.vector

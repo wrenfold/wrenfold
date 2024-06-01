@@ -718,4 +718,57 @@ TEST(QuaternionTest, TestJacobianOfSO3) {
   }
 }
 
+TEST(QuaternionTest, TestInverseJacobianOfSO3) {
+  const scalar_expr theta{"theta", number_set::real};
+  const scalar_expr x{"x", number_set::real};
+  const scalar_expr y{"y", number_set::real};
+  const scalar_expr z{"z", number_set::real};
+
+  const auto J_expr = left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), 1.0e-16);
+  const auto J_inv_expr =
+      inverse_left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), 1.0e-16);
+
+  // Compare J * J^-1 numerically:
+  for (const auto& pair : get_angle_axis_test_pairs()) {
+    const auto angle = std::get<0>(pair);
+    const auto axis = std::get<1>(pair);
+
+    // clang-format off
+    const matrix_expr J_sub = substitute_variables(J_expr,
+                                                  {
+                                                      std::make_tuple(theta, angle),
+                                                      std::make_tuple(x, axis[0]),
+                                                      std::make_tuple(y, axis[1]),
+                                                      std::make_tuple(z, axis[2])
+                                                  });
+    const matrix_expr J_inv_sub = substitute_variables(J_inv_expr,
+                                                  {
+                                                      std::make_tuple(theta, angle),
+                                                      std::make_tuple(x, axis[0]),
+                                                      std::make_tuple(y, axis[1]),
+                                                      std::make_tuple(z, axis[2])
+                                                  });
+    // clang-format on
+    EXPECT_EIGEN_NEAR(Eigen::Matrix3d::Identity(), eigen_matrix_from_matrix_expr(J_sub * J_inv_sub),
+                      1.0e-15);
+
+    // Compare to numerical  jacobian. The numerical derivative doesn't work near pi.
+    if (std::abs(angle - M_PI) > 1.0e-6) {
+      const Eigen::Quaterniond q(Eigen::AngleAxisd(angle, axis));
+      const Eigen::Matrix3d J_inv_numerical =
+          numerical_jacobian(Eigen::Vector3d::Zero(), [&](const auto& dx) {
+            // evaluate exp(dx) * q
+            const auto q_perturb_left =
+                manifold<Eigen::Quaterniond>::retract(Eigen::Quaterniond::Identity(), dx) * q;
+            // Compute log(exp(dx) * q) - w
+            // The -w part will not affect the numerical derivative, so drop it.
+            const Eigen::AngleAxisd aa{q_perturb_left};
+            return (aa.angle() * aa.axis()).eval();
+          });
+      EXPECT_EIGEN_NEAR(J_inv_numerical, eigen_matrix_from_matrix_expr(J_inv_sub), 1.0e-12)
+          << fmt::format("angle = {}, axis = {}", angle, axis.transpose());
+    }
+  }
+}
+
 }  // namespace wf

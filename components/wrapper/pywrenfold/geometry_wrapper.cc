@@ -169,5 +169,8 @@ void wrap_geometry_operations(py::module_& m) {
 
   m.def("left_jacobian_of_so3", &left_jacobian_of_so3, "w"_a, "epsilon"_a,
         docstrings::left_jacobian_of_so3.data());
+
+  m.def("inverse_left_jacobian_of_so3", &inverse_left_jacobian_of_so3, "w"_a, "epsilon"_a,
+        docstrings::inverse_left_jacobian_of_so3.data());
 }
 }  // namespace wf
