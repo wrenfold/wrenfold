@@ -26,8 +26,8 @@ reference for all output matrices and vectors. The rationale is twofold:
   * We can maximize the number of linear algebra libraries that work with generated code. The user
     need only specialize :doc:`wf::convert_to_span <../cpp_api/span>` (more on this below) for their
     preferred types.
-  * With a forwarding reference we can accept r-value arguments (such as temporary views into larger
-    buffers).
+  * With a forwarding reference we can accept non-const r-value arguments (such as temporary views
+    into larger buffers).
 
 Of course, you can :doc:`customize code generation <new_language>` to your liking if this behavior
 is undesirable.
@@ -38,6 +38,11 @@ things:
 
   #. Any type that implements the :doc:`wf::convert_to_span <../cpp_api/span>` trait.
   #. Or ``std::nullptr_t``, which indicates we do not care about filling this output.
+
+The span type itself resides in the wrenfold
+`runtime <https://github.com/wrenfold/wrenfold/tree/main/components/runtime/wrenfold>`_, a small
+header only C++17 library that provides an n-dimensional span type used to pass arguments to and
+from generated functions. You should ensure these headers are on your project's include path.
 
 Implementing ``convert_to_span``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -83,8 +88,8 @@ Next we will specialize ``wf::convert_to_span`` for ``simple_matrix``:
     };
 
 The example above is simplified. In practice you may wish to have different specializations for
-dynamic vs. static matrices, or support a matrix type with non-contiguous data. Check the
-``wrenfold/span_eigen.h`` header for an example implementation.
+dynamic vs. static matrices, or support a matrix type with non-contiguous data. See the
+``wrenfold/span.h`` header for an example implementation for Eigen.
 
 With our custom specialization in hand, we can call ``step_clamped`` with our matrix class:
 
@@ -103,14 +108,14 @@ Using Eigen
 A default implementation of ``wf::convert_to_span`` is provided for use with
 `Eigen <https:://https://eigen.tuxfamily.org>`_.
 
-To activate it, ``#define WF_SPAN_EIGEN_SUPPORT`` prior to including ``wrenfold/span_eigen.h``. This
-will enable conversion of all types that inherit from ``Eigen::MatrixBase``
-or ``Eigen::QuaternionBase``.
+To activate it, ``#define WF_SPAN_EIGEN_SUPPORT`` prior to including ``wrenfold/span.h``. This
+will enable conversion of all types that inherit from ``Eigen::MatrixBase`` or
+``Eigen::QuaternionBase``.
 
 .. code:: cpp
 
     #define WF_SPAN_EIGEN_SUPPORT
-    #include <wrenfold/span_eigen.h>
+    #include <wrenfold/span.h>
 
     // ... later at the call-site:
     Eigen::Vector2d diff{};

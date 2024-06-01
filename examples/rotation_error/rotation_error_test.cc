@@ -3,7 +3,7 @@
 #include "wf_test_support/test_macros.h"
 
 #define WF_SPAN_EIGEN_SUPPORT
-#include "wrenfold/span_eigen.h"
+#include "wrenfold/span.h"
 
 #include "generated.h"
 

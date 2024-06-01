@@ -10,7 +10,7 @@
 #include "test_expressions.h"  //  Symbolic test functions.
 
 #define WF_SPAN_EIGEN_SUPPORT
-#include "wrenfold/span_eigen.h"
+#include "wrenfold/span.h"
 
 // Declare custom numeric types before importing the generated code:
 namespace wf::numeric {
