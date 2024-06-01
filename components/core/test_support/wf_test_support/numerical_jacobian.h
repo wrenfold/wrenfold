@@ -5,7 +5,7 @@
 #include "Eigen/Core"
 
 #define WF_SPAN_EIGEN_SUPPORT
-#include "wrenfold/span_eigen.h"
+#include "wrenfold/span.h"
 
 // Methods for testing derivatives by comparing to the numerical approximation.
 namespace wf {

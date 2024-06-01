@@ -9,7 +9,6 @@
 #define ASSERT_EIGEN_SPAN_EQ(a, b) ASSERT_PRED_FORMAT2(wf::detail::expect_eigen_span_equal, a, b)
 
 #include "wrenfold/span.h"
-#include "wrenfold/span_eigen.h"
 
 namespace wf {
 namespace detail {
