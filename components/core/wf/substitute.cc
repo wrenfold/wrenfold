@@ -1,14 +1,13 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include "operations.h"
+#include "wf/substitute.h"
 
 #include <unordered_map>
 
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
-#include "wf/substitute.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)

@@ -3,9 +3,11 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/matrix_expression.h"
 
+#include "wf/collect.h"
 #include "wf/constants.h"
 #include "wf/derivative.h"
 #include "wf/distribute.h"
+#include "wf/evaluate.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/functions.h"

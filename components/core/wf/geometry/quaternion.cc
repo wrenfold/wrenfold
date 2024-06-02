@@ -3,10 +3,12 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/geometry/quaternion.h"
 
+#include "wf/derivative.h"
 #include "wf/expression.h"
 #include "wf/expressions/matrix.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
+#include "wf/substitute.h"
 
 namespace wf {
 
@@ -236,6 +238,11 @@ quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
   return where(
       R(0, 0) + R(1, 1) + R(2, 2) > 0, q0,
       where(R(1, 1) > R(0, 0), where(R(2, 2) > R(1, 1), q3, q2), where(R(2, 2) > R(0, 0), q3, q1)));
+}
+
+matrix_expr quaternion::jacobian(const absl::Span<const scalar_expr> vars,
+                                 const non_differentiable_behavior behavior) const {
+  return wf::jacobian(wxyz(), vars, behavior);
 }
 
 matrix_expr quaternion::jacobian(const wf::matrix_expr& vars,

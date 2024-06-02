@@ -9,6 +9,7 @@
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/integer_utils.h"
+#include "wf/number_set.h"
 
 namespace wf {
 

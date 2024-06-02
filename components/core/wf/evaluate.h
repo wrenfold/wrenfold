@@ -31,4 +31,8 @@ class evaluate_visitor {
   expression_cache cache_{};
 };
 
+// Evaluate to a number. If the result is a matrix, returns a matrix expression of numbers.
+// Implemented in evaluate.cc
+scalar_expr evaluate(const scalar_expr& arg);
+
 }  // namespace wf

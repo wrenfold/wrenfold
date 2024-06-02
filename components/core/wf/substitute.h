@@ -7,6 +7,10 @@
 #include "wf/expressions/variable.h"
 #include "wf/utility/hashing.h"
 
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
+WF_END_THIRD_PARTY_INCLUDES
+
 namespace wf {
 
 // Visitor for replacing variables in an expression tree.
@@ -46,5 +50,21 @@ class substitute_variables_visitor {
                      is_identical_struct<scalar_expr>>
       cache_{};
 };
+
+// Replace instances of `target` w/ `replacement` in the input expression tree `input`.
+scalar_expr substitute(const scalar_expr& input, const scalar_expr& target,
+                       const scalar_expr& replacement);
+boolean_expr substitute(const boolean_expr& input, const scalar_expr& target,
+                        const scalar_expr& replacement);
+
+// Replace all the [target, replacement] pairs in the input expression tree `input`.
+// Every `target` must be a variable.
+scalar_expr substitute_variables(const scalar_expr& input,
+                                 absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs);
+
+// Replace all the [target, replacement] pairs in the input matrix expression tree `input`.
+// Every `target` must be a variable.
+matrix_expr substitute_variables(const matrix_expr& input,
+                                 absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs);
 
 }  // namespace wf

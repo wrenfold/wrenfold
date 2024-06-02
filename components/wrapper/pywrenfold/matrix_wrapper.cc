@@ -10,6 +10,7 @@
 #include <pybind11/stl.h>
 
 #include "wf/cse.h"
+#include "wf/derivative.h"
 #include "wf/expression.h"
 #include "wf/expressions/matrix.h"
 #include "wf/expressions/numeric_expressions.h"

@@ -2,10 +2,9 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "expressions/special_constants.h"
-
 #include <unordered_map>
 
+#include "wf/enumerations.h"
 #include "wf/expression.h"
 #include "wf/utility/hashing.h"
 
@@ -53,5 +52,14 @@ class derivative_visitor {
                      is_identical_struct<scalar_expr>>
       cache_;
 };
+
+// Take the derivative of `function` wrt `var`. The derivative is taken `reps` times.
+scalar_expr diff(const scalar_expr& function, const scalar_expr& var, int reps,
+                 non_differentiable_behavior behavior);
+
+// Compute the jacobian of the vector `functions` wrt the variables in `vars`.
+// If `functions` has length `N` and `vars` length `M`, the result will be NxM.
+matrix_expr jacobian(absl::Span<const scalar_expr> functions, absl::Span<const scalar_expr> vars,
+                     non_differentiable_behavior behavior);
 
 }  // namespace wf

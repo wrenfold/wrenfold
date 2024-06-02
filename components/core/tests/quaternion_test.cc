@@ -3,11 +3,13 @@
 // For license information refer to accompanying LICENSE file.
 #include <Eigen/Geometry>
 
+#include "wf/collect.h"
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/functions.h"
 #include "wf/geometry/quaternion.h"
 #include "wf/matrix_functions.h"
+#include "wf/substitute.h"
 
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numerical_jacobian.h"

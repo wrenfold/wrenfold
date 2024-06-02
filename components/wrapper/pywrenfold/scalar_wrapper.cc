@@ -11,6 +11,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "wf/collect.h"
 #include "wf/constants.h"
 #include "wf/cse.h"
 #include "wf/expression.h"

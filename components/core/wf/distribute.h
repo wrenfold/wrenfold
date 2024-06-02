@@ -36,4 +36,8 @@ class distribute_visitor {
   wf::expression_cache cache_;
 };
 
+// Distribute over multiplications in the input expression.
+// Expands terms like: (a + b) * (c * d) --> a*c + a*d + b*c + b*d
+scalar_expr distribute(const scalar_expr& arg);
+
 }  // namespace wf

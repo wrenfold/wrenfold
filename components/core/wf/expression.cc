@@ -3,10 +3,15 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/expression.h"
 
+#include "wf/collect.h"
 #include "wf/constants.h"
+#include "wf/derivative.h"
+#include "wf/distribute.h"
+#include "wf/evaluate.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/plain_formatter.h"
+#include "wf/substitute.h"
 #include "wf/tree_formatter.h"
 #include "wf/utility/assertions.h"
 
@@ -74,6 +79,30 @@ std::string scalar_expr::to_expression_tree_string() const {
 scalar_expr scalar_expr::operator-() const {
   return multiplication::from_operands({constants::negative_one, *this});
 }
+
+scalar_expr scalar_expr::diff(const scalar_expr& var, const int reps,
+                              const non_differentiable_behavior behavior) const {
+  return wf::diff(*this, var, reps, behavior);
+}
+
+scalar_expr scalar_expr::distribute() const { return wf::distribute(*this); }
+
+scalar_expr scalar_expr::subs(const scalar_expr& target, const scalar_expr& replacement) const {
+  return wf::substitute(*this, target, replacement);
+}
+
+scalar_expr scalar_expr::substitute_variables(
+    const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) const {
+  return wf::substitute_variables(*this, pairs);
+}
+
+scalar_expr scalar_expr::collect(const scalar_expr& term) const { return wf::collect(*this, term); }
+
+scalar_expr scalar_expr::collect(const absl::Span<const scalar_expr> terms) const {
+  return wf::collect_many(*this, terms);
+}
+
+scalar_expr scalar_expr::eval() const { return wf::evaluate(*this); }
 
 scalar_expr operator+(const scalar_expr& a, const scalar_expr& b) {
   // See note on absl::Span() constructor, the lifetimes here are valid.

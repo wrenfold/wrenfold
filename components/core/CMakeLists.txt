@@ -41,6 +41,7 @@ add_library(
   wf/code_generation/types.cc
   wf/code_generation/types.h
   wf/collect.cc
+  wf/collect.h
   wf/common_visitors.h
   wf/compound_expression.cc
   wf/compound_expression.h
@@ -102,7 +103,6 @@ add_library(
   wf/number_set.cc
   wf/numerical_casts.cc
   wf/numerical_casts.h
-  wf/operations.h
   wf/output_annotations.h
   wf/plain_formatter.cc
   wf/plain_formatter.h
