@@ -24,7 +24,8 @@ std::string boolean_expr::to_expression_tree_string() const {
 }
 
 boolean_expr boolean_expr::subs(const scalar_expr& a, const scalar_expr& b) const {
-  return wf::substitute(*this, a, b);
+  const std::array<scalar_or_boolean_pair, 1> pairs{std::make_tuple(a, b)};
+  return wf::substitute(*this, pairs);
 }
 
 boolean_expr boolean_expr::construct_implicit(const bool value) {

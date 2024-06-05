@@ -99,10 +99,6 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
   // Create a new expression by recursively substituting `replacement` for `target`.
   scalar_expr subs(const scalar_expr& target, const scalar_expr& replacement) const;
 
-  // Create a new expression by recursively replacing [variable, replacement] pairs.
-  scalar_expr substitute_variables(
-      absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) const;
-
   // Collect terms in this expression.
   scalar_expr collect(const scalar_expr& term) const;
   scalar_expr collect(absl::Span<const scalar_expr> terms) const;

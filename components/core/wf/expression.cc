@@ -88,12 +88,8 @@ scalar_expr scalar_expr::diff(const scalar_expr& var, const int reps,
 scalar_expr scalar_expr::distribute() const { return wf::distribute(*this); }
 
 scalar_expr scalar_expr::subs(const scalar_expr& target, const scalar_expr& replacement) const {
-  return wf::substitute(*this, target, replacement);
-}
-
-scalar_expr scalar_expr::substitute_variables(
-    const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) const {
-  return wf::substitute_variables(*this, pairs);
+  const std::array<scalar_or_boolean_pair, 1> pairs{std::make_tuple(target, replacement)};
+  return wf::substitute(*this, pairs);
 }
 
 scalar_expr scalar_expr::collect(const scalar_expr& term) const { return wf::collect(*this, term); }

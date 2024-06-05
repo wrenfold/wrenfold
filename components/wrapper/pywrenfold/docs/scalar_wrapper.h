@@ -94,6 +94,29 @@ Examples:
   6*x + 6*y - 5*x*y + x**2*y + x*y**2 - 3*x**2 - 2*y**2
 )doc";
 
+inline constexpr std::string_view subs = R"doc(
+Traverse the expression tree and replace target expressions with corresponding substitutions. The
+list of replacements is executed *in order*, such that substitutions that appear later in the list
+of ``(target, replacement)`` pairs may leverage the result of earlier ones.
+
+Args:
+  pairs: A list of tuples. Each tuple contains a ``(target, replacement)`` pair, where the *target*
+    is the expression to find and the *replacement* is the expression to substitute in its place.
+    The pairs may be scalar-valued or boolean-valued expressions.
+
+Returns:
+  The input expression after performing replacements.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> sym.cos(x).subs([(x, y*2), (y, sym.pi)])
+  1
+  >>> (sym.pow(x, 2) * y).subs(x * y, 3)
+  3*x
+  >>> (x + 2*y - 5).subs(x + 2*y, y)
+  -5 + y
+)doc";
+
 inline constexpr std::string_view scalar_expr_eval = R"doc(
 Evaluate the mathematical expression into a numeric value. Traverses the expression tree, converting
 every numeric literal and constant into a double precision float. Operations are recursively

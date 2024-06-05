@@ -355,7 +355,13 @@ void wrap_matrix_operations(py::module_& m) {
           "See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.")
       .def("distribute", &matrix_expr::distribute,
            "Invoke :func:`wrenfold.sym.Expr.distribute` on every element of the matrix.")
-      .def("subs", &matrix_expr::subs, py::arg("target"), py::arg("substitute"),
+      .def("subs", &substitute_wrapper_single<matrix_expr, scalar_expr>, py::arg("target"),
+           py::arg("substitute"),
+           "Overload of ``subs`` that performs a single scalar-valued substitution.")
+      .def("subs", &substitute_wrapper_single<matrix_expr, boolean_expr>, py::arg("target"),
+           py::arg("substitute"),
+           "Overload of ``subs`` that performs a single boolean-valued substitution.")
+      .def("subs", &substitute_wrapper<matrix_expr>,
            "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the matrix.")
       .def(
           "eval",

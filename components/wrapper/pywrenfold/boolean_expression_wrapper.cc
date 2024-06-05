@@ -42,6 +42,11 @@ void wrap_boolean_expression(py::module_& m) {
       .def_property_readonly(
           "args", [](const boolean_expr& self) { return args_visitor{}(self); },
           "Arguments of ``self`` as a tuple.")
+      .def("subs", &substitute_wrapper_single<boolean_expr, scalar_expr>,
+           "See :func:`wrenfold.sym.Expr.subs`")
+      .def("subs", &substitute_wrapper_single<boolean_expr, boolean_expr>,
+           "See :func:`wrenfold.sym.Expr.subs`")
+      .def("subs", &substitute_wrapper<boolean_expr>)
       .def("__bool__", &coerce_to_bool, py::doc("Coerce expression to boolean."))
       .doc() = "A boolean-valued symbolic expression.";
 

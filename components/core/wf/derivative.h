@@ -6,7 +6,7 @@
 
 #include "wf/enumerations.h"
 #include "wf/expression.h"
-#include "wf/utility/hashing.h"
+#include "wf/matrix_expression.h"
 
 namespace wf {
 

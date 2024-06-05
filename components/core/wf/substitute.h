@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/expression.h"
+#include "wf/expression_cache.h"
 #include "wf/expressions/compound_expression_element.h"
 #include "wf/expressions/variable.h"
 #include "wf/utility/hashing.h"
@@ -13,6 +14,10 @@ WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 
+using scalar_pair = std::tuple<const scalar_expr, const scalar_expr>;
+using boolean_pair = std::tuple<const boolean_expr, const boolean_expr>;
+using scalar_or_boolean_pair = std::variant<scalar_pair, boolean_pair>;
+
 // Visitor for replacing variables in an expression tree.
 class substitute_variables_visitor {
  public:
@@ -20,15 +25,18 @@ class substitute_variables_visitor {
 
   // Add a new substitution to the list we will apply.
   // This should be called before visiting any expressions.
-  void add_substitution(const scalar_expr& target, scalar_expr replacement);
+  bool add_substitution(const scalar_expr& target, scalar_expr replacement);
 
   // Add a new substitution to the list we will apply.
   // Version that accepts `variable` directly.
-  void add_substitution(variable variable, scalar_expr replacement);
+  bool add_substitution(variable variable, scalar_expr replacement);
 
   // Add a new substitution to the list we will apply.
   // Version that accepts `compound_expression_element` directly.
-  void add_substitution(compound_expression_element element, scalar_expr replacement);
+  bool add_substitution(compound_expression_element element, scalar_expr replacement);
+
+  // True if `target` is something we will replace.
+  bool contains_target_variable(const scalar_expr& target) const;
 
   // Apply the substitute variable visitor. The cache is checked first.
   scalar_expr operator()(const scalar_expr& expression);
@@ -51,20 +59,12 @@ class substitute_variables_visitor {
       cache_{};
 };
 
-// Replace instances of `target` w/ `replacement` in the input expression tree `input`.
-scalar_expr substitute(const scalar_expr& input, const scalar_expr& target,
-                       const scalar_expr& replacement);
-boolean_expr substitute(const boolean_expr& input, const scalar_expr& target,
-                        const scalar_expr& replacement);
-
-// Replace all the [target, replacement] pairs in the input expression tree `input`.
-// Every `target` must be a variable.
-scalar_expr substitute_variables(const scalar_expr& input,
-                                 absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs);
-
-// Replace all the [target, replacement] pairs in the input matrix expression tree `input`.
-// Every `target` must be a variable.
-matrix_expr substitute_variables(const matrix_expr& input,
-                                 absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs);
+// Replace all [target, replacement] pairs in the input expression.
+scalar_expr substitute(const scalar_expr& input, absl::Span<const scalar_or_boolean_pair> pairs,
+                       bool force_unordered_execution = false);
+boolean_expr substitute(const boolean_expr& input, absl::Span<const scalar_or_boolean_pair> pairs,
+                        bool force_unordered_execution = false);
+matrix_expr substitute(const matrix_expr& input, absl::Span<const scalar_or_boolean_pair> pairs,
+                       bool force_unordered_execution = false);
 
 }  // namespace wf

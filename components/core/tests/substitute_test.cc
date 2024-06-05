@@ -168,6 +168,12 @@ TEST(SubstituteTest, TestMatrix) {
   const auto [a, b, c] = make_symbols("a", "b", "c");
   const matrix_expr m0 = make_vector(a + b, c + sin(b), 22 + c);
   ASSERT_IDENTICAL(make_vector(a - log(c), c - sin(log(c)), 22 + c), m0.subs(b, -log(c)));
+
+  const matrix_expr m1 = make_vector(a + b, sin(a + b), -cos(c * 22), a * b);
+  ASSERT_IDENTICAL(make_vector(c, sin(c), -cos(c * 22), a * b), m1.subs(a + b, c));
+
+  const matrix_expr m2 = make_matrix(2, 2, a * b, -cos(b), c - b, 4);
+  ASSERT_IDENTICAL(make_matrix(2, 2, a * 4, -cos(4), c - 4, 4), m2.subs(b, 4));
 }
 
 TEST(SubstituteTest, TestRelational) {
@@ -176,6 +182,15 @@ TEST(SubstituteTest, TestRelational) {
   ASSERT_IDENTICAL(constants::boolean_true, (a == 5).subs(a, 5));
   ASSERT_IDENTICAL(constants::boolean_true, (b + c > 2).subs(b, 5 / 4_s).subs(c, 1));
   ASSERT_IDENTICAL(constants::boolean_false, (b - c >= 2).subs(b, 2).subs(c, 1));
+}
+
+TEST(SubstituteTest, TestBooleanExpression) {
+  // Test substitutions in a boolean expression:
+  const auto [a, b, c] = make_symbols("a", "b", "c");
+  ASSERT_IDENTICAL(0,
+                   substitute(iverson(a < b), {std::make_tuple(a < b, constants::boolean_false)}));
+  ASSERT_IDENTICAL(
+      c, substitute(where(a == b, c, 3 * a), {std::make_tuple(a == b, constants::boolean_true)}));
 }
 
 }  // namespace wf

@@ -425,11 +425,19 @@ class MatrixWrapperTest(MathTestBase):
     def test_subs(self):
         """Test calling subs on a matrix."""
         a, b, c, d, x, y, z = sym.symbols("a, b, c, d, x, y, z")
-        m = sym.matrix([(a + x * 2, b - c), (c - sym.sin(y), d + sym.log(d))])
+        m1 = sym.matrix([(a + x * 2, b - c), (c - sym.sin(y), d + sym.log(d))])
         self.assertIdentical(
             sym.matrix([(0, b - c), (c - sym.sin(y), z)]),
-            m.subs(a, -x * 2).subs(d + sym.log(d), z),
+            m1.subs(a, -x * 2).subs(d + sym.log(d), z),
         )
+        self.assertIdentical(
+            sym.matrix([(3 * x, b - 4), (4 - sym.sin(x), d + sym.log(d))]),
+            m1.subs([(a, x), (c, 4), (y, x)]))
+
+        # Boolean substitution:
+        m2 = sym.where(a > d, sym.vector(a, b, c), sym.vector(x, y, z))
+        self.assertIdentical(sym.vector(a, b, c), m2.subs(a > d, sym.true))
+        self.assertIdentical(sym.vector(x, y, z), m2.subs(a > d, sym.false))
 
     def test_matrix_conditional(self):
         """Test creating a matrix conditional."""

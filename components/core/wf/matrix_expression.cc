@@ -12,6 +12,7 @@
 #include "wf/expressions/all_expressions.h"
 #include "wf/functions.h"
 #include "wf/plain_formatter.h"
+#include "wf/substitute.h"
 #include "wf/tree_formatter.h"
 
 namespace wf {
@@ -120,8 +121,8 @@ matrix_expr matrix_expr::distribute() const {
 }
 
 matrix_expr matrix_expr::subs(const scalar_expr& target, const scalar_expr& replacement) const {
-  return map_matrix_expression(*this,
-                               [&](const scalar_expr& x) { return x.subs(target, replacement); });
+  const std::array<scalar_or_boolean_pair, 1> pairs{std::make_tuple(target, replacement)};
+  return substitute(*this, pairs);
 }
 
 matrix_expr matrix_expr::collect(const absl::Span<const scalar_expr> terms) const {
