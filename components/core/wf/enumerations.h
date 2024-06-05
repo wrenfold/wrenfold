@@ -120,6 +120,19 @@ enum class std_math_function {
   powf,
 };
 
+// Govern behavior of the derivative visitor when we encounter non-differentiable functions.
+// An example would be the round(x) function, which has derivatives:
+//  - 0 for integer `x`.
+//  - undefined everywhere else.
+enum class non_differentiable_behavior {
+  // Replace the derivative of non-differentiable functions with a suitable constant.
+  // This is not strictly correct mathematically, but is more computationally useful in most cases.
+  constant,
+  // Insert abstract `derivative` expressions to represent something we don't know how to
+  // differentiate: df(x)/dx --> derivative(f(x), x, 1)
+  abstract,
+};
+
 // True if the set is real numbers, or a constrained subset of the real numbers.
 constexpr bool is_real_set(const number_set set) noexcept {
   if (set == number_set::real || set == number_set::real_non_negative ||

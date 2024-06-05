@@ -127,7 +127,7 @@ def create_piecewise_polynomials(x: sym.Expr, order: int, bases: T.Sequence[sym.
             values = [sym.zero] * len(degree_zero_bases)
             values[j + (order - 1)] = sym.one
             key_and_value = list(zip(degree_zero_bases, values))
-            interval_expressions.append(bases[i].subs_variables(key_and_value))
+            interval_expressions.append(bases[i].subs(key_and_value))
 
         # Cumulative spline is 1 after its relevant interval:
         terminal_value = sym.integer(1 if is_cumulative else 0)
@@ -224,7 +224,7 @@ def plot_polynomials(polynomials: T.List[sym.Expr], x: sym.Expr, order: int, num
             # Scale and shift into the range of the target polynomial:
             scaled_x = (x_val - poly_source_origin) * scale_factor + poly_dest_origin
 
-            y_val = polynomials[poly_index].subs_variables([(x, scaled_x)]).eval()
+            y_val = polynomials[poly_index].subs(x, scaled_x).eval()
             computed_polys[shifted_i].append((x_val, y_val))
 
     plt.figure()

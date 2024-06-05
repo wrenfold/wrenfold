@@ -381,6 +381,7 @@ inline constexpr std::string_view preamble = R"code(//! Machine generated code.
 )code";
 
 std::string rust_code_generator::apply_preamble(const std::string_view code) {
+  WF_ASSERT(code.data());
   return fmt::format(preamble, fmt::arg("code", code));
 }
 

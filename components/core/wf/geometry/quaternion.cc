@@ -3,10 +3,12 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/geometry/quaternion.h"
 
+#include "wf/derivative.h"
 #include "wf/expression.h"
 #include "wf/expressions/matrix.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
+#include "wf/substitute.h"
 
 namespace wf {
 
@@ -238,6 +240,11 @@ quaternion quaternion::from_rotation_matrix(const matrix_expr& R_in) {
       where(R(1, 1) > R(0, 0), where(R(2, 2) > R(1, 1), q3, q2), where(R(2, 2) > R(0, 0), q3, q1)));
 }
 
+matrix_expr quaternion::jacobian(const absl::Span<const scalar_expr> vars,
+                                 const non_differentiable_behavior behavior) const {
+  return wf::jacobian(wxyz(), vars, behavior);
+}
+
 matrix_expr quaternion::jacobian(const wf::matrix_expr& vars,
                                  const non_differentiable_behavior behavior) const {
   if (vars.rows() != 1 && vars.cols() != 1) {
@@ -259,23 +266,19 @@ matrix_expr quaternion::right_retract_derivative() const {
     const auto vz = make_unique_variable_symbol(number_set::real);
     const quaternion q_perturb = q_sub * quaternion::from_rotation_vector(vx, vy, vz, 0);
     // Compute the Jacobian about 0:
-    // clang-format off
-    return substitute_variables(
-        q_perturb.jacobian({vx, vy, vz}),
-        {
-            std::make_tuple(vx, constants::zero),
-            std::make_tuple(vy, constants::zero),
-            std::make_tuple(vz, constants::zero)
-        });
-    // clang-format on
+    const std::array<scalar_or_boolean_pair, 3> pairs = {std::make_tuple(vx, constants::zero),
+                                                         std::make_tuple(vy, constants::zero),
+                                                         std::make_tuple(vz, constants::zero)};
+    return substitute(q_perturb.jacobian({vx, vy, vz}), pairs, true);
   });
   // Substitute into J, replacing q_sub with the values in this quaternion:
-  return substitute_variables(J, {
-                                     std::make_tuple(q_sub.w(), w()),
-                                     std::make_tuple(q_sub.x(), x()),
-                                     std::make_tuple(q_sub.y(), y()),
-                                     std::make_tuple(q_sub.z(), z()),
-                                 });
+  const std::array<scalar_or_boolean_pair, 4> pairs = {
+      std::make_tuple(q_sub.w(), w()),
+      std::make_tuple(q_sub.x(), x()),
+      std::make_tuple(q_sub.y(), y()),
+      std::make_tuple(q_sub.z(), z()),
+  };
+  return substitute(J, pairs, true);
 }
 
 matrix_expr quaternion::right_local_coordinates_derivative() const {
@@ -289,22 +292,18 @@ matrix_expr quaternion::right_local_coordinates_derivative() const {
     const auto dz = make_unique_variable_symbol(number_set::real);
     const quaternion q_diff = q_sub.conjugate() * quaternion{q_sub.w() + dw, q_sub.x() + dx,
                                                              q_sub.y() + dy, q_sub.z() + dz};
-    // clang-format off
-    return substitute_variables(q_diff.to_rotation_vector(0).jacobian({dw, dx, dy, dz}),
-                                {
-                                    std::make_tuple(dw, 0),
-                                    std::make_tuple(dx, 0),
-                                    std::make_tuple(dy, 0),
-                                    std::make_tuple(dz, 0)
-                                });
-    // clang-format on
+    const std::array<scalar_or_boolean_pair, 4> pairs = {
+        std::make_tuple(dw, 0), std::make_tuple(dx, 0), std::make_tuple(dy, 0),
+        std::make_tuple(dz, 0)};
+    return substitute(q_diff.to_rotation_vector(0).jacobian({dw, dx, dy, dz}), pairs, true);
   });
-  return substitute_variables(J, {
-                                     std::make_tuple(q_sub.w(), w()),
-                                     std::make_tuple(q_sub.x(), x()),
-                                     std::make_tuple(q_sub.y(), y()),
-                                     std::make_tuple(q_sub.z(), z()),
-                                 });
+  const std::array<scalar_or_boolean_pair, 4> pairs = {
+      std::make_tuple(q_sub.w(), w()),
+      std::make_tuple(q_sub.x(), x()),
+      std::make_tuple(q_sub.y(), y()),
+      std::make_tuple(q_sub.z(), z()),
+  };
+  return substitute(J, pairs, true);
 }
 
 quaternion operator*(const quaternion& a, const quaternion& b) {

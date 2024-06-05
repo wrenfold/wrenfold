@@ -1,12 +1,14 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "wf/collect.h"
 #include "wf/constants.h"
 #include "wf/expressions/addition.h"
 #include "wf/expressions/conditional.h"
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/power.h"
 #include "wf/functions.h"
+#include "wf/number_set.h"
 
 #include "wf_test_support/test_macros.h"
 

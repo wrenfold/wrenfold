@@ -360,12 +360,9 @@ class PythonGenerationTest(unittest.TestCase):
             v_rot_sym, v_rot_D_w_sym = T.cast(sym.MatrixExpr, v_rot_sym.expression), T.cast(
                 sym.MatrixExpr, v_rot_D_w_sym.expression)
 
-            for s, val in zip(w_sym, w):
-                v_rot_sym = v_rot_sym.subs(s, val)
-                v_rot_D_w_sym = v_rot_D_w_sym.subs(s, val)
-
-            v_rot_sym = v_rot_sym.eval()
-            v_rot_D_w_sym = v_rot_D_w_sym.eval()
+            substitutions = list(zip(w_sym, w))
+            v_rot_sym = v_rot_sym.subs(substitutions).eval()
+            v_rot_D_w_sym = v_rot_D_w_sym.subs(substitutions).eval()
 
             np.testing.assert_allclose(v_rot_sym, v_rot, atol=1.0e-14)
             np.testing.assert_allclose(v_rot_D_w_sym, v_rot_D_w, atol=1.0e-14)

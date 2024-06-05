@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/expression.h"
+#include "wf/matrix_expression.h"
 
 // User facing math functions that operate on `scalar_expr` go in this file.
 namespace wf {

@@ -11,6 +11,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "wf/collect.h"
 #include "wf/constants.h"
 #include "wf/cse.h"
 #include "wf/expression.h"
@@ -20,9 +21,11 @@
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
+#include "wf/substitute.h"
 
 #include "args_visitor.h"
 #include "docs/scalar_wrapper.h"
+
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -89,7 +92,7 @@ inline number_set determine_set_from_flags(const bool real, const bool positive,
 
 // To imitate sympy, we support a list of bool flags to specify assumptions.
 // We check for incompatible arrangements in this functions.
-std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
+static std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
     const std::variant<std::string_view, py::iterable>& arg, const bool real, const bool positive,
     const bool nonnegative, const bool complex) {
   return std::visit(
@@ -100,12 +103,7 @@ std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
       arg);
 }
 
-scalar_expr substitute_variables_wrapper(
-    const scalar_expr& self, const std::vector<std::tuple<scalar_expr, scalar_expr>>& pairs) {
-  return self.substitute_variables(pairs);
-}
-
-auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
+static auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
 
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
 void wrap_scalar_operations(py::module_& m) {
@@ -136,10 +134,13 @@ void wrap_scalar_operations(py::module_& m) {
           "var"_a, py::arg("order") = 1, py::arg("use_abstract") = false,
           docstrings::scalar_expr_diff.data())
       .def("distribute", &scalar_expr::distribute, docstrings::scalar_expr_distribute.data())
-      .def("subs", &scalar_expr::subs, py::arg("target"), py::arg("substitute"),
-           "Replace the `target` expression with `substitute` in the expression tree.")
-      .def("subs_variables", &substitute_variables_wrapper, py::arg("pairs"),
-           "Substitute a list of variable expressions.")
+      .def("subs", &substitute_wrapper<scalar_expr>, py::arg("pairs"), docstrings::subs.data())
+      .def("subs", &substitute_wrapper_single<scalar_expr, scalar_expr>, py::arg("target"),
+           py::arg("substitute"),
+           "Overload of ``subs`` that performs a single scalar-valued substitution.")
+      .def("subs", &substitute_wrapper_single<scalar_expr, boolean_expr>, py::arg("target"),
+           py::arg("substitute"),
+           "Overload of ``subs`` that performs a single boolean-valued substitution.")
       .def("eval", &eval_wrapper, docstrings::scalar_expr_eval.data())
       .def(
           "collect",

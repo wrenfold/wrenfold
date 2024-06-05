@@ -3,7 +3,6 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/expression_variant.h"
-#include "wf/operations.h"
 #include "wf/utility/ordering.h"
 
 namespace wf {
@@ -26,6 +25,7 @@ class boolean_expr final : public expression_base<boolean_expr, boolean_meta_typ
   using expression_base::expression_base;
 
   // Support implicit construction from bool (and only bool).
+  // ReSharper disable once CppNonExplicitConvertingConstructor
   template <typename T, typename = std::enable_if_t<std::is_same_v<bool, T>>>
   boolean_expr(const T value) : boolean_expr(construct_implicit(value)) {}
 
@@ -36,10 +36,7 @@ class boolean_expr final : public expression_base<boolean_expr, boolean_meta_typ
   std::string to_expression_tree_string() const;
 
   // Create a new expression by recursively substituting `replacement` for `target`.
-  template <typename A, typename B>
-  boolean_expr subs(const A& target, const B& replacement) const {
-    return wf::substitute(*this, target, replacement);
-  }
+  boolean_expr subs(const class scalar_expr& a, const scalar_expr& b) const;
 
  private:
   static boolean_expr construct_implicit(bool value);

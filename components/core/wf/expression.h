@@ -7,12 +7,13 @@
 #include <string>
 
 #include "wf/boolean_expression.h"
+#include "wf/enumerations.h"
 #include "wf/expression_variant.h"
 #include "wf/expressions/numeric_expressions.h"
-#include "wf/operations.h"
 #include "wf/utility/ordering.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
 #include <fmt/core.h>
 WF_END_THIRD_PARTY_INCLUDES
 
@@ -62,6 +63,7 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
       std::enable_if_t<std::is_constructible_v<checked_int, T> || std::is_floating_point_v<T>>;
 
   // Implicit construction from integers and floats.
+  // ReSharper disable once CppNonExplicitConvertingConstructor
   template <typename T, typename = enable_if_supports_implicit_conversion<T>>
   scalar_expr(T v) : scalar_expr(construct_implicit(v)) {}
 
@@ -88,37 +90,21 @@ class scalar_expr final : public expression_base<scalar_expr, scalar_meta_type> 
 
   // Differentiate wrt a single variable. Reps defines how many derivatives to take.
   scalar_expr diff(
-      const scalar_expr& var, const int reps = 1,
-      const non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
-    return wf::diff(*this, var, reps, behavior);
-  }
+      const scalar_expr& var, int reps = 1,
+      non_differentiable_behavior behavior = non_differentiable_behavior::constant) const;
 
   // Distribute terms in this expression.
-  scalar_expr distribute() const { return wf::distribute(*this); }
+  scalar_expr distribute() const;
 
   // Create a new expression by recursively substituting `replacement` for `target`.
-  scalar_expr subs(const scalar_expr& target, const scalar_expr& replacement) const {
-    return wf::substitute(*this, target, replacement);
-  }
-
-  // Create a new expression by recursively replacing [variable, replacement] pairs.
-  scalar_expr substitute_variables(
-      const absl::Span<const std::tuple<scalar_expr, scalar_expr>> pairs) const {
-    return wf::substitute_variables(*this, pairs);
-  }
+  scalar_expr subs(const scalar_expr& target, const scalar_expr& replacement) const;
 
   // Collect terms in this expression.
-  template <typename... Args>
-  scalar_expr collect(Args&&... args) const {
-    if constexpr (sizeof...(Args) == 1) {
-      return wf::collect(*this, std::forward<Args>(args)...);
-    } else {
-      return wf::collect_many(*this, {std::forward<Args>(args)...});
-    }
-  }
+  scalar_expr collect(const scalar_expr& term) const;
+  scalar_expr collect(absl::Span<const scalar_expr> terms) const;
 
-  // Evaluate into float.
-  scalar_expr eval() const { return wf::evaluate(*this); }
+  // Evaluate into float expression.
+  scalar_expr eval() const;
 
  protected:
   friend class matrix_expr;

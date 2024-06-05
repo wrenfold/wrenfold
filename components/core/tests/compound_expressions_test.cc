@@ -7,6 +7,7 @@
 #include "wf/cse.h"
 #include "wf/expressions/derivative_expression.h"
 #include "wf/functions.h"
+#include "wf/substitute.h"
 #include "wf/type_annotations.h"
 
 #include "wf_test_support/test_macros.h"
@@ -133,10 +134,10 @@ TEST(CompoundExpressionTest, TestSubstitute) {
 
   // Substitute variables:
   ASSERT_IDENTICAL(test_func_2::call(test_func_1::call(pow(b, 2) / 3, -cos(c))),
-                   f2.substitute_variables({std::make_tuple(a, b), std::make_tuple(d, cos(c))}));
+                   substitute(f2, {std::make_tuple(a, b), std::make_tuple(d, cos(c))}));
 
   // Check that we can replace the output of an external function call:
-  ASSERT_IDENTICAL(cos(a), cos(f4).substitute_variables({std::make_tuple(f4, a)}));
+  ASSERT_IDENTICAL(cos(a), substitute(cos(f4), {std::make_tuple(f4, a)}));
 }
 
 TEST(CompoundExpressionTest, TestDerivative) {

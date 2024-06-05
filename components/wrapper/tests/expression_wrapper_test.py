@@ -293,23 +293,23 @@ class ExpressionWrapperTest(MathTestBase):
     def test_subs(self):
         """Test calling subs() on expressions."""
         x, y, z = sym.symbols('x, y, z')
+        self.assertIdentical(x, x.subs(x, x))
         self.assertIdentical(y, x.subs(x, y))
+        self.assertIdentical(2.5, x.subs(x, 2.5))
         self.assertIdentical(0, (x - y).subs(y, x))
         self.assertIdentical(1, (x / z).subs(z, x))
         self.assertIdentical(z ** 2 * x, (x ** 3 * y ** 2).subs(x * y, z))
         self.assertIdentical(2 * z, (x + 2 * z - (y * 3) / 2).subs(x - (y * 3) / 2, 0))
-
-    def test_subs_variables(self):
-        """Test calling subs_variables() on expressions."""
-        x, y, z = sym.symbols('x, y, z')
-        self.assertIdentical(2.5, x.subs_variables([(x, 2.5)]))
-        self.assertIdentical(x, x.subs_variables([(x, x)]))
-        self.assertIdentical(sym.cos(y + 1), sym.cos(x).subs_variables([(x, y + 1)]))
+        self.assertIdentical(sym.cos(y + 1), sym.cos(x).subs(x, y + 1))
         self.assertIdentical(z * (sym.cos(x * 2) + 3) + sym.log(sym.cos(x * 2)),
-                             (z * x + sym.log(x - 3)).subs_variables([(x, sym.cos(x * 2) + 3)]))
+                             (z * x + sym.log(x - 3)).subs(x,
+                                                           sym.cos(x * 2) + 3))
         self.assertIdentical(
-            sym.sin(z - 3) * sym.abs(z), (sym.sin(y - 3) * x).subs_variables([(y, z),
-                                                                              (x, sym.abs(z))]))
+            sym.sin(z - 3) * sym.abs(z), (sym.sin(y - 3) * x).subs([(y, z), (x, sym.abs(z))]))
+        # Boolean substitution:
+        f = sym.where(x > y, sym.cos(x), sym.abs(y))
+        self.assertIdentical(sym.cos(x), f.subs(x > y, sym.true))
+        self.assertIdentical(sym.abs(y), f.subs(x > y, sym.false))
 
     def test_collect(self):
         """Test calling collect() on expressions."""

@@ -145,8 +145,10 @@ struct collect_function_input<scalar_expr> {
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index, const U arg,
                   const scalar_type&) const {
     const auto a = static_cast<float_constant::value_type>(arg);
-    output.add_substitution(variable{function_argument_variable(arg_index, 0), number_set::real},
-                            make_expr<float_constant>(a));
+    const bool added = output.add_substitution(
+        variable{function_argument_variable(arg_index, 0), number_set::real},
+        make_expr<float_constant>(a));
+    WF_ASSERT(added);
   }
 };
 
@@ -163,9 +165,10 @@ struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
         const auto a_ij = static_cast<float_constant::value_type>(arg(i, j));
-        output.add_substitution(
+        const bool added = output.add_substitution(
             variable{function_argument_variable(arg_index, element), number_set::real},
             scalar_expr(a_ij));
+        WF_ASSERT(added);
       }
     }
   }
@@ -188,8 +191,9 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
     // Configure the substitutions:
     const compound_expr provenance = create_custom_type_argument(type.inner(), arg_index);
     for (std::size_t i = 0; i < numeric_expressions.size(); ++i) {
-      output.add_substitution(compound_expression_element{provenance, i},
-                              std::move(numeric_expressions[i]));
+      const bool added = output.add_substitution(compound_expression_element{provenance, i},
+                                                 std::move(numeric_expressions[i]));
+      WF_ASSERT(added);
     }
   }
 };

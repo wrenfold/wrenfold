@@ -148,7 +148,7 @@ class CodeGenerationWrapperTest(MathTestBase):
             reconstituted_exprs = []
             for expr in csed_exprs:
                 for var, val in reversed(intermediate_values):
-                    expr = expr.subs_variables([(var, val)])
+                    expr = expr.subs(var, val)
                 reconstituted_exprs.append(expr)
 
             # We need to distribute here to check equivalence properly.

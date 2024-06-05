@@ -374,6 +374,8 @@ namespace {namespace} {{
 
 std::string cpp_code_generator::apply_preamble(const std::string_view code,
                                                const std::string_view ns) {
+  WF_ASSERT(code.data());
+  WF_ASSERT(ns.data());
   return fmt::format(preamble, fmt::arg("code", code), fmt::arg("namespace", ns));
 }
 

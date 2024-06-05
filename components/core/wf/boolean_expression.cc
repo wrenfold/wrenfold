@@ -6,6 +6,7 @@
 #include "wf/constants.h"
 #include "wf/expression_visitor.h"
 #include "wf/plain_formatter.h"
+#include "wf/substitute.h"
 #include "wf/tree_formatter.h"
 
 namespace wf {
@@ -20,6 +21,11 @@ std::string boolean_expr::to_expression_tree_string() const {
   tree_formatter_visitor formatter{};
   formatter(*this);
   return formatter.take_output();
+}
+
+boolean_expr boolean_expr::subs(const scalar_expr& a, const scalar_expr& b) const {
+  const std::array<scalar_or_boolean_pair, 1> pairs{std::make_tuple(a, b)};
+  return wf::substitute(*this, pairs);
 }
 
 boolean_expr boolean_expr::construct_implicit(const bool value) {

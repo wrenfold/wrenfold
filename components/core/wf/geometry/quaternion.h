@@ -146,10 +146,8 @@ class quaternion {
   // Compute 4xN jacobian of this quaternion with respect to the `N` input variables `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].
   matrix_expr jacobian(
-      const absl::Span<const scalar_expr> vars,
-      const non_differentiable_behavior behavior = non_differentiable_behavior::constant) const {
-    return wf::jacobian(wxyz(), vars, behavior);
-  }
+      absl::Span<const scalar_expr> vars,
+      non_differentiable_behavior behavior = non_differentiable_behavior::constant) const;
 
   // Compute the 4xN jacobian of this quaternion with respect to the `Nx1` column vector `vars`.
   // The rows of the jacobian are ordered in the storage order of the quaternion: [w,x,y,z].

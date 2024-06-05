@@ -3,11 +3,13 @@
 // For license information refer to accompanying LICENSE file.
 #include <Eigen/Geometry>
 
+#include "wf/collect.h"
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/functions.h"
 #include "wf/geometry/quaternion.h"
 #include "wf/matrix_functions.h"
+#include "wf/substitute.h"
 
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numerical_jacobian.h"
@@ -451,11 +453,11 @@ TEST(QuaternionTest, TestToRotationVector) {
   // Check numerically as well:
   const auto w_num = quaternion::from_rotation_vector(x, y, z, 0).to_rotation_vector(1.0e-16);
   for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
+    const std::array<scalar_or_boolean_pair, 3> pairs = {
+        std::make_tuple(x, angle_num * axis_num.x()), std::make_tuple(y, angle_num * axis_num.y()),
+        std::make_tuple(z, angle_num * axis_num.z())};
     const Eigen::Vector3d axis_recovered_num =
-        eigen_matrix_from_matrix_expr(w_num.subs(x, angle_num * axis_num.x())
-                                          .subs(y, angle_num * axis_num.y())
-                                          .subs(z, angle_num * axis_num.z())
-                                          .eval());
+        eigen_matrix_from_matrix_expr(substitute(w_num, pairs).eval());
     EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-15 * std::abs(angle_num))
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
@@ -465,11 +467,11 @@ TEST(QuaternionTest, TestToRotationVector) {
       quaternion::from_rotation_vector(x, y, z, 0).to_rotation_vector(1.0e-16, false);
 
   for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
+    const std::array<scalar_or_boolean_pair, 3> pairs = {
+        std::make_tuple(x, angle_num * axis_num.x()), std::make_tuple(y, angle_num * axis_num.y()),
+        std::make_tuple(z, angle_num * axis_num.z())};
     const Eigen::Vector3d axis_recovered_num =
-        eigen_matrix_from_matrix_expr(w_num_acos.subs(x, angle_num * axis_num.x())
-                                          .subs(y, angle_num * axis_num.y())
-                                          .subs(z, angle_num * axis_num.z())
-                                          .eval());
+        eigen_matrix_from_matrix_expr(substitute(w_num_acos, pairs).eval());
     EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-14 * std::abs(angle_num))
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
@@ -641,8 +643,11 @@ TEST(QuaternionTest, TestRightRetractDerivative) {
         },
         0.001);
 
-    const matrix_expr J_analytical =
-        J.subs(w, q_num.w()).subs(x, q_num.x()).subs(y, q_num.y()).subs(z, q_num.z());
+    const std::array<scalar_or_boolean_pair, 4> pairs = {
+        std::make_pair(w, q_num.w()), std::make_pair(x, q_num.x()), std::make_pair(y, q_num.y()),
+        std::make_pair(z, q_num.z())};
+
+    const matrix_expr J_analytical = substitute(J, pairs);
     EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_analytical), 1.0e-12);
   }
 }
@@ -664,8 +669,11 @@ TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
         },
         0.001);
 
-    const matrix_expr J_analytical =
-        J.subs(w, q_num.w()).subs(x, q_num.x()).subs(y, q_num.y()).subs(z, q_num.z());
+    const std::array<scalar_or_boolean_pair, 4> pairs = {
+        std::make_pair(w, q_num.w()), std::make_pair(x, q_num.x()), std::make_pair(y, q_num.y()),
+        std::make_pair(z, q_num.z())};
+
+    const matrix_expr J_analytical = substitute(J, pairs);
     EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_analytical), 1.0e-12);
   }
 }
@@ -679,15 +687,9 @@ TEST(QuaternionTest, TestJacobianOfSO3) {
     const auto angle = std::get<0>(pair);
     const auto axis = std::get<1>(pair);
 
-    // clang-format off
-    const matrix_expr J_sub = substitute_variables(J_expr,
-                                                  {
-                                                      std::make_tuple(theta, angle),
-                                                      std::make_tuple(x, axis[0]),
-                                                      std::make_tuple(y, axis[1]),
-                                                      std::make_tuple(z, axis[2])
-                                                  });
-    // clang-format on
+    const matrix_expr J_sub =
+        substitute(J_expr, {std::make_tuple(theta, angle), std::make_tuple(x, axis[0]),
+                            std::make_tuple(y, axis[1]), std::make_tuple(z, axis[2])});
 
     // Evaluate numerical integration over multiple steps to get a tighter tolerance:
     const auto func = [&](double alpha) {
@@ -733,22 +735,12 @@ TEST(QuaternionTest, TestInverseJacobianOfSO3) {
     const auto angle = std::get<0>(pair);
     const auto axis = std::get<1>(pair);
 
-    // clang-format off
-    const matrix_expr J_sub = substitute_variables(J_expr,
-                                                  {
-                                                      std::make_tuple(theta, angle),
-                                                      std::make_tuple(x, axis[0]),
-                                                      std::make_tuple(y, axis[1]),
-                                                      std::make_tuple(z, axis[2])
-                                                  });
-    const matrix_expr J_inv_sub = substitute_variables(J_inv_expr,
-                                                  {
-                                                      std::make_tuple(theta, angle),
-                                                      std::make_tuple(x, axis[0]),
-                                                      std::make_tuple(y, axis[1]),
-                                                      std::make_tuple(z, axis[2])
-                                                  });
-    // clang-format on
+    const matrix_expr J_sub =
+        substitute(J_expr, {std::make_tuple(theta, angle), std::make_tuple(x, axis[0]),
+                            std::make_tuple(y, axis[1]), std::make_tuple(z, axis[2])});
+    const matrix_expr J_inv_sub =
+        substitute(J_inv_expr, {std::make_tuple(theta, angle), std::make_tuple(x, axis[0]),
+                                std::make_tuple(y, axis[1]), std::make_tuple(z, axis[2])});
     EXPECT_EIGEN_NEAR(Eigen::Matrix3d::Identity(), eigen_matrix_from_matrix_expr(J_sub * J_inv_sub),
                       1.0e-15);
 

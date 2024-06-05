@@ -1,10 +1,11 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "wf/number_set.h"
+
 #include "wf/enumerations.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
-#include "wf/operations.h"
 
 namespace wf {
 
