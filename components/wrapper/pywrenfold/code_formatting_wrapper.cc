@@ -343,7 +343,7 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
 void wrap_code_formatting_operations(py::module_& m) {
   wrap_code_generator<cpp_code_generator>(m, "CppGenerator")
       .def_static("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
-                  py::arg("namespace"),
+                  py::arg("namespace"), py::arg("imports") = py::str(),
                   "Apply a preamble that incorporates necessary runtime includes.")
       .doc() = "Generate C++ code.";
 

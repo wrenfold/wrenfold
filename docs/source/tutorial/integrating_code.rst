@@ -136,7 +136,7 @@ Generated C++ functions depend directly on:
     depends on ``<tuple>`` and ``<type_traits>``.
 
 You can add these includes to your output code manually, or use the provided convenience function:
-:func:`wrenfold.code_generation.apply_cpp_preamble`.
+:func:`wrenfold.code_generation.CppGenerator.apply_preamble`.
 
 Rust
 ----

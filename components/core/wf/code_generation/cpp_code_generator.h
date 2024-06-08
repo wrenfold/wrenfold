@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include <string_view>
 #include "wf/code_generation/ast.h"
 #include "wf/utility/strings.h"
 
@@ -81,7 +82,8 @@ class cpp_code_generator {
   std::string operator()(const ast::ast_element& element) const;
 
   // Wrap generated function code in a preamble with includes and a namespace.
-  static std::string apply_preamble(std::string_view code, std::string_view ns);
+  static std::string apply_preamble(std::string_view code, std::string_view ns,
+                                    std::string_view imports = "");
 
  protected:
   // Create a fmt_view. All args will be forwarded back to the operator on this class that matches
