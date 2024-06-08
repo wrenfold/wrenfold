@@ -5,6 +5,7 @@
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
+#include "wf/utility/assertions.h"
 #include "wf/utility/index_range.h"
 #include "wf/utility/overloaded_visit.h"
 
@@ -366,6 +367,7 @@ inline constexpr std::string_view preamble = R"code(// Machine generated code.
 
 #include <wrenfold/span.h>
 
+{imports}
 namespace {namespace} {{
 
 {code}
@@ -373,10 +375,15 @@ namespace {namespace} {{
 }} // namespace {namespace})code";
 
 std::string cpp_code_generator::apply_preamble(const std::string_view code,
-                                               const std::string_view ns) {
+                                               const std::string_view ns,
+                                               const std::string_view imports) {
   WF_ASSERT(code.data());
   WF_ASSERT(ns.data());
-  return fmt::format(preamble, fmt::arg("code", code), fmt::arg("namespace", ns));
+  WF_ASSERT(imports.data());
+  const std::string imports_formatted =
+      imports.size() > 0 ? fmt::format("// User-specified imports:\n{}\n\n", imports) : "";
+  return fmt::format(preamble, fmt::arg("code", code), fmt::arg("namespace", ns),
+                     fmt::arg("imports", imports_formatted));
 }
 
 }  // namespace wf
