@@ -38,6 +38,8 @@ quaternion quaternion::inverse() const {
   return {w() / n2, x() / -n2, y() / -n2, z() / -n2};
 }
 
+quaternion quaternion::operator-() const { return quaternion{-w(), -x(), -y(), -z()}; }
+
 matrix_expr quaternion::to_rotation_matrix() const {
   const scalar_expr x2 = x() * 2;
   const scalar_expr y2 = y() * 2;
@@ -139,27 +141,28 @@ std::tuple<scalar_expr, matrix_expr> quaternion::to_angle_axis(
 
 matrix_expr quaternion::to_rotation_vector(const std::optional<scalar_expr>& epsilon,
                                            const bool use_atan2) const {
+  const scalar_expr sign_w = where(w() < 0, -1, 1);
   if (use_atan2) {
     // The vector part norm is equal to sin(angle / 2)
     const scalar_expr vector_norm = sqrt(x() * x() + y() * y() + z() * z());
-    const scalar_expr half_angle = atan2(vector_norm, w());
+    const scalar_expr half_angle = atan2(vector_norm, abs(w()));
     const scalar_expr angle_over_norm = (half_angle * 2) / vector_norm;
 
     if (epsilon) {
       // When norm is < epsilon, we use the 1st order taylor series expansion of this function.
       // It is linearized about q = identity.
-      const scalar_expr scale = where(vector_norm > *epsilon, angle_over_norm, 2);
+      const scalar_expr scale = where(vector_norm > *epsilon, angle_over_norm * sign_w, 2 * sign_w);
       return make_vector(scale * x(), scale * y(), scale * z());
     } else {
-      return make_vector(angle_over_norm * x(), angle_over_norm * y(), angle_over_norm * z());
+      return make_vector(x() * angle_over_norm * sign_w, y() * angle_over_norm * sign_w,
+                         z() * angle_over_norm * sign_w);
     }
   } else {
     // Flip all components so that w is positive:
-    const scalar_expr sign = where(w() >= 0, 1, -1);
-    const scalar_expr w_pos = min(w() * sign, 1);
-    const scalar_expr x_pos = x() * sign;
-    const scalar_expr y_pos = y() * sign;
-    const scalar_expr z_pos = z() * sign;
+    const scalar_expr w_pos = min(w() * sign_w, 1);
+    const scalar_expr x_pos = x() * sign_w;
+    const scalar_expr y_pos = y() * sign_w;
+    const scalar_expr z_pos = z() * sign_w;
     const scalar_expr vec_norm = sqrt(1 - w_pos * w_pos);
     const scalar_expr scale = 2 * acos(w_pos) / vec_norm;
 
@@ -292,10 +295,12 @@ matrix_expr quaternion::right_local_coordinates_derivative() const {
     const auto dz = make_unique_variable_symbol(number_set::real);
     const quaternion q_diff = q_sub.conjugate() * quaternion{q_sub.w() + dw, q_sub.x() + dx,
                                                              q_sub.y() + dy, q_sub.z() + dz};
+    // We include |q_sub|^2 --> 1 here to eliminate a superfluous conditional.
     const std::array<scalar_or_boolean_pair, 4> pairs = {
         std::make_tuple(dw, 0), std::make_tuple(dx, 0), std::make_tuple(dy, 0),
         std::make_tuple(dz, 0)};
-    return substitute(q_diff.to_rotation_vector(0).jacobian({dw, dx, dy, dz}), pairs, true);
+    return substitute(q_diff.to_rotation_vector(0).jacobian({dw, dx, dy, dz}), pairs, true)
+        .subs(q_sub.squared_norm(), 1);
   });
   const std::array<scalar_or_boolean_pair, 4> pairs = {
       std::make_tuple(q_sub.w(), w()),

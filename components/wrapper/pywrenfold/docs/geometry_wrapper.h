@@ -302,7 +302,8 @@ Recover a rotation vector from a unit-norm quaternion. The following formula is 
 
 .. math::
   \mathbf{v} = \frac{2}{\lvert \mathbf{q}_v \rvert}
-  \cdot \text{atan2}\left(\lvert \mathbf{q}_v \rvert, q_w\right)
+  \cdot \text{atan2}\left(\lvert \mathbf{q}_v \rvert, \text{abs}\left(q_w\right)\right)
+  \cdot \text{sign}\left(q_w\right)
   \cdot \mathbf{q}_v
 
 Where :math:`\mathbf{q}_v` is the vector component of the quaternion.

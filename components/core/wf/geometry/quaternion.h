@@ -87,6 +87,9 @@ class quaternion {
   // Invert the quaternion by conjugating and dividing by squared norm.
   [[nodiscard]] quaternion inverse() const;
 
+  // Negate every element of the quaternion.
+  quaternion operator-() const;
+
   // Convert a unit-norm to a rotation matrix. If the input does not have unit norm, the
   // result will not be a valid member of SO(3).
   matrix_expr to_rotation_matrix() const;

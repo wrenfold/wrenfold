@@ -226,14 +226,14 @@ TEST(QuaternionTest, TestFromAxisAngle) {
 }
 
 // Sample points uniformly on the sphere (approximately) using fibonacci sphere.
-inline Eigen::Vector3d fib_sphere(int i, int n) {
+Eigen::Vector3d fib_sphere(const int i, const int n) {
   const double ratio = (1 + std::sqrt(5.0)) / 2;
   const double theta = 2 * M_PI * static_cast<double>(i) / ratio;
   const double phi = std::acos(1.0 - 2.0 * (static_cast<double>(i) + 0.5) / static_cast<double>(n));
   return {std::cos(theta) * std::sin(phi), std::sin(theta) * std::sin(phi), std::cos(phi)};
 }
 
-auto generate_angle_axis_test_pairs(int num_vectors, int num_angles) {
+auto generate_angle_axis_test_pairs(const int num_vectors, const int num_angles) {
   using Eigen::Vector3d;
   std::vector<std::tuple<double, Vector3d>> test_pairs;
   for (int i = 0; i < num_vectors; ++i) {
@@ -447,7 +447,8 @@ TEST(QuaternionTest, TestToRotationVector) {
 
   // We can't simplify this completely w/o some trig-simp functionality. We can get close though:
   // Since atan2(|s|, c) --> |a/2|, we have 2 * |a/2| * signum(a) / a, which is 1.
-  ASSERT_IDENTICAL(make_matrix(3, 1, x, y, z) * (2 * atan2(abs(s), c) * signum(s) / a),
+  ASSERT_IDENTICAL(make_matrix(3, 1, x, y, z) *
+                       (2 * atan2(abs(s), abs(c)) * where(c < 0, -1, 1) * signum(s) / a),
                    w_simplified);
 
   // Check numerically as well:
@@ -462,6 +463,20 @@ TEST(QuaternionTest, TestToRotationVector) {
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
 
+  // Check with negative sign on `q.w`.
+  // We construct the quaternion, and then negate it and convert back to rotation vector.
+  const auto negated_q_w_num =
+      (-quaternion::from_rotation_vector(x, y, z, 0)).to_rotation_vector(1.0e-16);
+  for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
+    const std::array<scalar_or_boolean_pair, 3> pairs = {
+        std::make_tuple(x, angle_num * axis_num.x()), std::make_tuple(y, angle_num * axis_num.y()),
+        std::make_tuple(z, angle_num * axis_num.z())};
+    const Eigen::Vector3d axis_recovered_num =
+        eigen_matrix_from_matrix_expr(substitute(negated_q_w_num, pairs).eval());
+    EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-15 * std::abs(angle_num))
+        << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
+  }
+
   // Check the alternative formulation:
   const auto w_num_acos =
       quaternion::from_rotation_vector(x, y, z, 0).to_rotation_vector(1.0e-16, false);
@@ -472,6 +487,19 @@ TEST(QuaternionTest, TestToRotationVector) {
         std::make_tuple(z, angle_num * axis_num.z())};
     const Eigen::Vector3d axis_recovered_num =
         eigen_matrix_from_matrix_expr(substitute(w_num_acos, pairs).eval());
+    EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-14 * std::abs(angle_num))
+        << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
+  }
+
+  // Check alternative formulation with negated w:
+  const auto negated_q_w_num_acos =
+      (-quaternion::from_rotation_vector(x, y, z, 0)).to_rotation_vector(1.0e-16, false);
+  for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
+    const std::array<scalar_or_boolean_pair, 3> pairs = {
+        std::make_tuple(x, angle_num * axis_num.x()), std::make_tuple(y, angle_num * axis_num.y()),
+        std::make_tuple(z, angle_num * axis_num.z())};
+    const Eigen::Vector3d axis_recovered_num =
+        eigen_matrix_from_matrix_expr(substitute(negated_q_w_num_acos, pairs).eval());
     EXPECT_EIGEN_NEAR(axis_num * angle_num, axis_recovered_num, 1.0e-14 * std::abs(angle_num))
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
