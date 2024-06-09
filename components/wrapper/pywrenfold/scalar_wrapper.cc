@@ -17,7 +17,6 @@
 #include "wf/expression.h"
 #include "wf/expressions/addition.h"
 #include "wf/expressions/multiplication.h"
-#include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"

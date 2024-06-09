@@ -4,7 +4,6 @@
 #include "wf/substitute.h"
 
 #include <unordered_map>
-#include <unordered_set>
 
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
@@ -28,13 +27,15 @@ struct substitute_visitor_base {
                                    const ReplacementAbstractExpressionType& replacement)
       : target_(target), replacement_(replacement) {}
 
-  scalar_expr operator()(const scalar_expr& expr) { return visit(expr, *this); }
-  boolean_expr operator()(const boolean_expr& expr) { return visit(expr, *this); }
-
-  matrix_expr operator()(const matrix_expr& expr) { return map_matrix_expression(expr, *this); }
-
-  compound_expr operator()(const compound_expr& expr) {
-    return map_compound_expressions(expr, *this);
+  template <typename X, typename = std::enable_if_t<inherits_expression_base_v<X> ||
+                                                    std::is_same_v<X, any_expression>>>
+  X operator()(const X& expr) {
+    if constexpr (std::is_same_v<X, any_expression>) {
+      return std::visit([this](const auto& x) -> any_expression { return this->operator()(x); },
+                        expr);
+    } else {
+      return cache_.get_or_insert(expr, [this](const X& x) { return visit(x, *this); });
+    }
   }
 
   // The argument is neither an addition nor a multiplication:
@@ -81,6 +82,8 @@ struct substitute_visitor_base {
  protected:
   const TargetConcreteExpressionType& target_;
   const ReplacementAbstractExpressionType& replacement_;
+
+  wf::expression_cache cache_;
 };
 
 template <typename Target, typename Replacement>
