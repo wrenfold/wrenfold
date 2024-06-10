@@ -361,7 +361,7 @@ void wrap_matrix_operations(py::module_& m) {
       .def("subs", &substitute_wrapper_single<matrix_expr, boolean_expr>, py::arg("target"),
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single boolean-valued substitution.")
-      .def("subs", &substitute_wrapper<matrix_expr>,
+      .def("subs", &substitute_wrapper<matrix_expr>, py::arg("pairs"),
            "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the matrix.")
       .def(
           "eval",
