@@ -90,7 +90,7 @@ inline number_set determine_set_from_flags(const bool real, const bool positive,
 }
 
 // To imitate sympy, we support a list of bool flags to specify assumptions.
-// We check for incompatible arrangements in this functions.
+// We check for incompatible arrangements in this function.
 static std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
     const std::variant<std::string_view, py::iterable>& arg, const bool real, const bool positive,
     const bool nonnegative, const bool complex) {
@@ -100,6 +100,26 @@ static std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
             input, determine_set_from_flags(real, positive, nonnegative, complex));
       },
       arg);
+}
+
+static std::variant<scalar_expr, py::list> create_unique_variables(const std::size_t num,
+                                                                   const bool real,
+                                                                   const bool positive,
+                                                                   const bool nonnegative,
+                                                                   const bool complex) {
+  if (num == 0) {
+    throw invalid_argument_error("count must be >= 1");
+  }
+  const auto set = determine_set_from_flags(real, positive, nonnegative, complex);
+  if (num == 1) {
+    return make_unique_variable_symbol(set);
+  } else {
+    py::list result{};
+    for (std::size_t i = 0; i < num; ++i) {
+      result.append(make_unique_variable_symbol(set));
+    }
+    return result;
+  }
 }
 
 static auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
@@ -219,6 +239,9 @@ void wrap_scalar_operations(py::module_& m) {
         return scalar_expr{rational_constant{n, d}};
       },
       py::arg("n"), py::arg("d"), docstrings::rational.data());
+  m.def("unique_symbols", &create_unique_variables, py::arg("count"), py::arg("real") = false,
+        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
+        docstrings::unique_symbols.data());
 
   // Built-in functions:
   m.def("log", &wf::log, "arg"_a, docstrings::log.data());

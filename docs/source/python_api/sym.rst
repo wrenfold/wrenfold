@@ -89,6 +89,8 @@ sym
 
 .. autofunction:: wrenfold.sym.unevaluated
 
+.. autofunction:: wrenfold.sym.unique_symbols
+
 .. autofunction:: wrenfold.sym.vec
 
 .. autofunction:: wrenfold.sym.vector

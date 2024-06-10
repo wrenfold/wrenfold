@@ -221,6 +221,22 @@ Caution:
   ``sym.symbols('x:5')`` will not produce the expected result.
 )doc";
 
+inline constexpr std::string_view unique_symbols = R"doc(
+Create instances of ``variable`` expressions with unique identities that can never be accidentally
+re-used. This is useful if you need temporary variables that will later be replaced by substitution,
+and want to be certain that their names do not conflict with other symbols.
+
+Args:
+  count: Number of symbols to create. If one, a single expression is returned. If greater than one,
+    a list of expressions is returned.
+
+Examples:
+  >>> sym.unique_symbols(count=2)
+  [$u_1, $u_2]
+  >>> sym.unique_symbols(count=1)
+  $u_3
+)doc";
+
 inline constexpr std::string_view integer = R"doc(
 Create a constant expression from an integer.
 
