@@ -43,6 +43,15 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertRaises(exceptions.InvalidArgumentError,
                           lambda: sym.symbols("z", real=True, complex=True))
 
+    def test_create_unique_symbols(self):
+        """Test calling unique_symbols."""
+        a = sym.unique_symbols(count=1)
+        b, c = sym.unique_symbols(count=2)
+        self.assertNotIdentical(a, b)
+        self.assertNotIdentical(b, c)
+        self.assertEqual('Variable', a.type_name)
+        self.assertEqual((), a.args)
+
     def test_is_identical_to(self):
         """Test calling is_identical_to and __eq__."""
         x, y = sym.symbols("x, y")
