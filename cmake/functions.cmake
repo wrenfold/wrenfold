@@ -222,6 +222,12 @@ endfunction()
 function(add_python_test PYTHON_SOURCE_FILE)
   get_filename_component(TEST_NAME ${PYTHON_SOURCE_FILE} NAME_WE)
 
+  set(options "")
+  set(oneValueArgs "")
+  set(multiValueArgs SOURCE_FILES SCRIPT_ARGUMENTS)
+  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
+                        ${ARGN})
+
   if(NOT DEFINED Python_EXECUTABLE)
     message(FATAL_ERROR "The Python executable could not be located.")
   endif()
@@ -236,6 +242,7 @@ function(add_python_test PYTHON_SOURCE_FILE)
     NAME ${TEST_NAME}
     COMMAND
       ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
-      ${Python_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE})
+      ${Python_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE}
+      ${ARGS_SCRIPT_ARGUMENTS})
   message(STATUS "Added python test: ${TEST_NAME}")
 endfunction()
