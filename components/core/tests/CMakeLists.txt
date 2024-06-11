@@ -61,6 +61,10 @@ add_compiled_code_generator(
 copy_generated_file(GENERATOR_TARGET rust_generation_generate DESTINATION_DIR
                     rust_generation_test/src TARGET_GROUP wf_rust_generation)
 
+# Check `generated.rs` for diffs.
+add_python_test(generation_diff_test.py SCRIPT_ARGUMENTS
+                rust_generation_test/src/generated.rs)
+
 add_py_code_generator(
   rust_generation_generate_2
   generation_test_2.py
