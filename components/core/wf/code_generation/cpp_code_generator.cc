@@ -346,6 +346,10 @@ std::string cpp_code_generator::operator()(const ast::optional_output_branch& x)
   return result;
 }
 
+std::string cpp_code_generator::operator()(const ast::parenthetical& x) const {
+  return fmt::format("({})", make_view(x.contents));
+}
+
 std::string cpp_code_generator::operator()(const ast::return_object& x) const {
   return fmt::format("return {};", make_view(x.value));
 }

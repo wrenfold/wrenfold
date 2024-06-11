@@ -17,18 +17,18 @@ namespace wf::ast {
 
 // Given a starting value `v`, find any downstream conditionals values that equal this value.
 inline void find_conditional_output_values(const ir::const_value_ptr v,
-                                           const bool top_level_invocation,
                                            std::vector<ir::const_value_ptr>& outputs) {
   bool all_phi_consumers = true;
   for (const ir::const_value_ptr consumer : v->ordered_consumers()) {
     if (consumer->is_phi()) {
       // A phi function might just be an input to another phi function, so we need to recurse here.
-      find_conditional_output_values(consumer, false, outputs);
+      find_conditional_output_values(consumer, outputs);
     } else {
       all_phi_consumers = false;
     }
   }
-  if (!all_phi_consumers && !top_level_invocation) {
+  // On first invocation, the passed value will not be a phi.
+  if (!all_phi_consumers && v->is_phi()) {
     outputs.push_back(v);
   }
 }
@@ -115,10 +115,10 @@ void ast_form_visitor::push_back_output_operations(const ir::const_block_ptr blo
     }
     const ir::save& save = value->as_op<ir::save>();
     const output_key& key = save.key();
-    type_constructor constructor{transform_operands(*value)};
+    type_constructor constructor{transform_operands(*value, std::nullopt)};
 
     if (key.usage == expression_usage::return_value) {
-      WF_ASSERT(block->has_no_descendents(), "Must be the final block");
+      WF_ASSERT(block->has_no_descendants(), "Must be the final block");
       WF_ASSERT(signature_.return_type().has_value(), "Return type must be specified");
       ast::ast_element var =
           std::visit([&](const auto& x) { return ast::ast_element(constructor(x)); },
@@ -176,7 +176,7 @@ void ast_form_visitor::push_back_conditional_output_declarations(const ir::const
 
 // Return true if the specified value should be written in-line instead of declared as a variable.
 // At present, only constants and casts of constants do not receive variable declarations.
-static bool should_inline_constant(const ir::const_value_ptr val) {
+inline bool should_inline_constant(const ir::const_value_ptr val) {
   return overloaded_visit(
       val->value_op(),
       [](const ir::load& load) {
@@ -187,13 +187,21 @@ static bool should_inline_constant(const ir::const_value_ptr val) {
       [](auto&&) constexpr { return false; });
 }
 
+// Return true if this operation consists of copying from an input argument.
+inline bool is_argument_read_operation(const ir::const_value_ptr val) {
+  if (const ir::load* l = std::get_if<ir::load>(&val->value_op()); l != nullptr) {
+    return l->is_type<variable>();
+  }
+  return false;
+}
+
 void ast_form_visitor::process_block(const ir::const_block_ptr block) {
   if (non_traversable_blocks_.count(block)) {
     // Don't recurse too far - we are waiting on one of the ancestors of this block to get
     // processed.
     return;
   }
-  WF_ASSERT(block->has_no_descendents() || !block->is_empty(),
+  WF_ASSERT(block->has_no_descendants() || !block->is_empty(),
             "Only the terminal block may be empty. block->name(): {}", block->name());
 
   operations_.reserve(operations_.capacity() + block->size());
@@ -212,16 +220,24 @@ void ast_form_visitor::process_block(const ir::const_block_ptr block) {
     } else {
       // Find any downstream phi values that are equal to this value:
       std::vector<ir::const_value_ptr> phi_consumers{};
-      find_conditional_output_values(value, true, phi_consumers);
+      find_conditional_output_values(value, phi_consumers);
 
       // Does this value have any consumers that are not the outputs of conditional branches?
-      const bool any_none_phi_consumers =
-          !value->all_consumers_satisfy([](const ir::const_value_ptr c) { return c->is_phi(); });
+      const std::size_t num_non_phi_consumers =
+          std::count_if(value->consumers().begin(), value->consumers().end(),
+                        [](const ir::const_value_ptr c) { return !c->is_phi(); });
 
-      // If we have a single non-phi consumer, or more than one phi consumer, we declare a
-      // variable.
-      const bool needs_declaration =
-          !should_inline_constant(value) && (any_none_phi_consumers || phi_consumers.size() > 1);
+      // We declare a variable if:
+      // - This is a copy of an input argument.
+      // - The value is _not_ a numerical constant, and it has either:
+      //    - More than one non-phi consumer. (Used in more than one computation).
+      //    - Or, multiple phi consumers. (Multiple conditionals accept this value as the output).
+      const bool needs_declaration = is_argument_read_operation(value) ||
+                                     (!should_inline_constant(value) &&
+                                      (num_non_phi_consumers > 1 || phi_consumers.size() > 1));
+      if (needs_declaration) {
+        declared_values_.insert(value);
+      }
 
       ast::ast_element rhs{visit_value(value)};
       if (needs_declaration) {
@@ -309,8 +325,8 @@ void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
       std::vector<ast::ast_element> operations_false = process_nested_block(descendants[1]);
 
       // Create a conditional
-      ast::ast_element condition_var{std::in_place_type_t<ast::variable_ref>{},
-                                     format_variable_name(last_op->first_operand())};
+      ast::ast_element condition_var =
+          visit_operation_argument(last_op->first_operand(), std::nullopt);
       emplace_operation<ast::branch>(std::move(condition_var), std::move(operations_true),
                                      std::move(operations_false));
     }
@@ -336,74 +352,103 @@ ast::ast_element ast_form_visitor::visit_value(const ir::value& value) {
       value.value_op());
 }
 
-ast::ast_element ast_form_visitor::visit_operation_argument(const ir::const_value_ptr value) {
-  if (should_inline_constant(value)) {
-    return visit_value(value);
+ast::ast_element ast_form_visitor::visit_operation_argument(
+    const ir::const_value_ptr value, const std::optional<precedence> parent_precedence) {
+  if (!declared_values_.count(value) && !value->is_phi()) {
+    if (parent_precedence.has_value() && value->operation_precedence() <= *parent_precedence) {
+      return ast::ast_element{std::in_place_type_t<parenthetical>{}, visit_value(value)};
+    } else {
+      return visit_value(value);
+    }
+  } else {
+    return ast::ast_element{make_variable_ref(value)};
   }
-  return ast::ast_element{make_variable_ref(value)};
 }
 
-std::vector<ast::ast_element> ast_form_visitor::transform_operands(const ir::value& val) {
+std::vector<ast::ast_element> ast_form_visitor::transform_operands(
+    const ir::value& val, const std::optional<precedence> parent_precedence) {
   std::vector<ast::ast_element> transformed_args{};
   transformed_args.reserve(val.num_operands());
   for (const ir::const_value_ptr arg : val.operands()) {
-    transformed_args.push_back(visit_operation_argument(arg));
+    transformed_args.push_back(visit_operation_argument(arg, parent_precedence));
   }
   return transformed_args;
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::add&) {
-  return ast::ast_element{std::in_place_type_t<ast::add>{}, visit_operation_argument(val[0]),
-                          visit_operation_argument(val[1])};
+  return ast::ast_element{std::in_place_type_t<ast::add>{},
+                          visit_operation_argument(val[0], precedence::addition),
+                          visit_operation_argument(val[1], precedence::addition)};
+}
+
+template <typename T, typename Container, typename Func>
+auto convert_operands(const Container& container, Func&& func) {
+  WF_ASSERT(!container.empty());
+  auto it = container.begin();
+  auto left = func(*it);
+  for (++it; it != container.end(); ++it) {
+    left = ast::ast_element{std::in_place_type_t<T>{}, std::move(left), func(*it)};
+  }
+  return left;
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::addn&) {
   WF_ASSERT_GE(val.num_operands(), 2);
-  auto left = visit_operation_argument(val[0]);
-  for (std::size_t i = 1; i < val.num_operands(); ++i) {
-    left = ast::ast_element{std::in_place_type_t<ast::add>{}, std::move(left),
-                            visit_operation_argument(val[i])};
-  }
-  return left;
+
+  return convert_operands<ast::add>(val.operands(), [this](const ir::const_value_ptr v) {
+    // if (v->is_op<ir::mul, ir::muln>() && v->num_consumers() == 1) {
+    //   return visit_value(v);
+    // }
+    return visit_operation_argument(v, precedence::addition);
+  });
+  //
+  // auto left = visit_operation_argument(val[0]);
+  // for (std::size_t i = 1; i < val.num_operands(); ++i) {
+  //   left = ast::ast_element{std::in_place_type_t<ast::add>{}, std::move(left),
+  //                           visit_operation_argument(val[i])};
+  // }
+  // return left;
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::call_external_function& call) {
   WF_ASSERT_EQ(val.num_operands(), call.function().num_arguments());
   return ast::ast_element{std::in_place_type_t<ast::call_external_function>{}, call.function(),
-                          transform_operands(val)};
+                          transform_operands(val, std::nullopt)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::call_std_function& func) {
   return ast::ast_element{std::in_place_type_t<ast::call_std_function>{}, func.name(),
-                          transform_operands(val)};
+                          transform_operands(val, std::nullopt)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::cast& cast) {
   return ast::ast_element{std::in_place_type_t<ast::cast>{}, cast.destination_type(),
-                          val[0]->numeric_type(), visit_operation_argument(val[0])};
+                          val[0]->numeric_type(), visit_operation_argument(val[0], std::nullopt)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::compare& compare) {
   return ast::ast_element{std::in_place_type_t<ast::compare>{}, compare.operation(),
-                          visit_operation_argument(val[0]), visit_operation_argument(val[1])};
+                          visit_operation_argument(val[0], std::nullopt),
+                          visit_operation_argument(val[1], std::nullopt)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::construct& construct) {
-  type_constructor constructor{transform_operands(val)};
+  type_constructor constructor{transform_operands(val, std::nullopt)};
   return std::visit([&](const auto& x) { return ast::ast_element(constructor(x)); },
                     construct.type());
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::copy&) {
-  return visit_operation_argument(val.first_operand());
+  return visit_operation_argument(val.first_operand(), std::nullopt);
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::div&) {
-  return ast::ast_element{std::in_place_type_t<ast::divide>{}, visit_operation_argument(val[0]),
-                          visit_operation_argument(val[1])};
+  return ast::ast_element{std::in_place_type_t<ast::divide>{},
+                          visit_operation_argument(val[0], precedence::multiplication),
+                          visit_operation_argument(val[1], precedence::multiplication)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::get& get) {
@@ -421,10 +466,11 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ge
         WF_ASSERT_LT(get.index(), mat.size());
         const auto [row, col] = mat.compute_indices(get.index());
         return ast::ast_element{std::in_place_type_t<ast::get_matrix_element>{},
-                                visit_operation_argument(val[0]), row, col};
+                                visit_operation_argument(val[0], std::nullopt), row, col};
       },
       [&](const custom_type& custom) -> ast::ast_element {
-        return make_field_access_sequence(visit_operation_argument(val[0]), custom, get.index());
+        return make_field_access_sequence(visit_operation_argument(val[0], std::nullopt), custom,
+                                          get.index());
       });
 }
 
@@ -458,22 +504,24 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
-  return ast::ast_element{std::in_place_type_t<ast::multiply>{}, visit_operation_argument(val[0]),
-                          visit_operation_argument(val[1])};
+  return ast::ast_element{std::in_place_type_t<ast::multiply>{},
+                          visit_operation_argument(val[0], precedence::multiplication),
+                          visit_operation_argument(val[1], precedence::multiplication)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::muln&) {
   WF_ASSERT_GE(val.num_operands(), 2);
-  auto left = visit_operation_argument(val[0]);
+  auto left = visit_operation_argument(val[0], precedence::multiplication);
   for (std::size_t i = 1; i < val.num_operands(); ++i) {
     left = ast::ast_element{std::in_place_type_t<ast::multiply>{}, std::move(left),
-                            visit_operation_argument(val[i])};
+                            visit_operation_argument(val[i], precedence::multiplication)};
   }
   return left;
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::neg&) {
-  return ast::ast_element{std::in_place_type_t<ast::negate>{}, visit_operation_argument(val[0])};
+  return ast::ast_element{std::in_place_type_t<ast::negate>{},
+                          visit_operation_argument(val[0], precedence::multiplication)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const scalar_type&, const argument& arg,

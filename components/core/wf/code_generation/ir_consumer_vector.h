@@ -31,7 +31,7 @@ class consumer_vector {
   class const_iterator {
    public:
     using value_type = ir::value_ptr;
-    using difference_type = void;
+    using difference_type = std::ptrdiff_t;
     using pointer = void;
     using reference = void;
     using iterator_category = std::input_iterator_tag;

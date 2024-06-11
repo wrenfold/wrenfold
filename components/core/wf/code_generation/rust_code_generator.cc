@@ -268,7 +268,7 @@ std::string rust_code_generator::operator()(const ast::comment& x) const {
 }
 
 std::string rust_code_generator::operator()(const ast::compare& x) const {
-  // TODO: Parens are sometimes superfluous.
+  // TODO: Parens are sometimes superfluous. They are only required if `left` and `right` are casts.
   return fmt::format("({}) {} ({})", make_view(x.left),
                      string_from_relational_operation(x.operation), make_view(x.right));
 }
@@ -362,6 +362,10 @@ std::string rust_code_generator::operator()(const ast::optional_output_branch& x
 
 std::string rust_code_generator::operator()(const ast::return_object& x) const {
   return operator()(x.value);
+}
+
+std::string rust_code_generator::operator()(const ast::parenthetical& x) const {
+  return fmt::format("({})", make_view(x.contents));
 }
 
 std::string rust_code_generator::operator()(const ast::special_constant& x) const {

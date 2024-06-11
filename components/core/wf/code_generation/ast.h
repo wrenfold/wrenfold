@@ -40,7 +40,7 @@ struct assign_output_scalar {
   ast_element value;
 };
 
-// A boolean litera: 'true' or 'false'.
+// A boolean literal: 'true' or 'false'.
 struct boolean_literal {
   static constexpr std::string_view snake_case_name_str = "boolean_literal";
   bool value;
@@ -227,6 +227,13 @@ struct optional_output_branch {
 
   // Statements in the if-branch.
   std::vector<ast_element> statements;
+};
+
+// A set of parentheses around an operation (to enforce mathematical precedence).
+struct parenthetical {
+  static constexpr std::string_view snake_case_name_str = "parenthetical";
+
+  ast_element contents;
 };
 
 // Use a symbolic constant in the output code.

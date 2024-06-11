@@ -295,7 +295,7 @@ void wrap_ast(py::module_& m) {
                              "Left operand (numerator).")
       .def_property_readonly("right", to_inner_accessor(&ast::divide::right),
                              py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Right operand (denonimator).")
+                             "Right operand (denominator).")
       .doc() = "Division operation: ``left / right``";
 
   map.at<ast::float_literal>()

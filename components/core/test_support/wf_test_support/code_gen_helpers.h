@@ -21,11 +21,6 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   const control_flow_graph output_cfg =
       control_flow_graph{description.output_expressions(), optimization_params()}
           .convert_conditionals_to_control_flow();
-#if 0
-  fmt::print("IR ({}, {} operations):\n{}\n", name, output_ir.num_operations(),
-             output_ir.to_string());
-  std::fflush(nullptr);
-#endif
 
   // Generate syntax tree:
   const ast::function_definition definition = ast::create_ast(output_cfg, description);

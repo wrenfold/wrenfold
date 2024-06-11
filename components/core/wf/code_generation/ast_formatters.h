@@ -171,6 +171,11 @@ auto format_ast(Iterator it, const wf::ast::optional_output_branch& m) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::parenthetical& p) {
+  return fmt::format_to(it, "({})", p.contents);
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::return_object& r) {
   return fmt::format_to(it, "({})", r.value);
 }
@@ -180,7 +185,7 @@ auto format_ast(Iterator it, const wf::ast::special_constant& c) {
   return fmt::format_to(it, "({})", string_from_symbolic_constant(c.value));
 }
 
-// True if `format_ast` is implemented for the the type `T`.
+// True if `format_ast` is implemented for the type `T`.
 template <typename T, typename = void>
 struct is_formattable : std::false_type {};
 template <typename T>

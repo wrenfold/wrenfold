@@ -15,12 +15,5 @@ pub fn lookup_and_compute_inner_product<>(vec: &std::vec::Vec<crate::types::Stru
   let v001: f64 = a;
   let v005: crate::types::StructType = crate::external::interpolate_access(vec, v004);
   let v002: crate::types::StructType = crate::external::interpolate_access(vec, v001);
-  let v009: f64 = v005.y;
-  let v008: f64 = v002.y;
-  let v006: f64 = v005.x;
-  let v003: f64 = v002.x;
-  let v010: f64 = v008 * v009;
-  let v007: f64 = v003 * v006;
-  let v011: f64 = v007 + v010;
-  v011
+  v002.x * v005.x + v002.y * v005.y
 }

@@ -2,9 +2,6 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include <unordered_set>
-#include <vector>
-
 #include "wf/code_generation/ir_consumer_vector.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/code_generation/types.h"
@@ -129,6 +126,9 @@ class value {
     op_ = std::forward<OpType>(op);
     post_init_steps<std::decay_t<OpType>>();
   }
+
+  // Determine the precedence of this operation.
+  precedence operation_precedence() const;
 
   // Add `v` to the list of consumers of this value.
   operand_ptr add_consumer(ir::value* v);

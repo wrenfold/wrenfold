@@ -3,6 +3,8 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ir_value.h"
 
+#include "wf/utility/overloaded_visit.h"
+
 namespace wf::ir {
 
 void value::set_parent(const ir::block_ptr b) {
@@ -25,6 +27,30 @@ void value::replace_operand(const ir::value* old, const value_ptr replacement) {
     }
   }
   maybe_sort_operands();
+}
+
+precedence value::operation_precedence() const {
+  return overloaded_visit(
+      op_, [](const ir::compare&) constexpr { return precedence::relational; },
+      [](const ir::add&) constexpr { return precedence::addition; },
+      [](const ir::addn&) constexpr { return precedence::addition; },
+      [](const ir::mul&) constexpr { return precedence::multiplication; },
+      [](const ir::muln&) constexpr { return precedence::multiplication; },
+      [](const ir::load& load) constexpr {
+        return std::visit(
+            [](const auto& contents) constexpr {
+              using T = std::decay_t<decltype(contents)>;
+              if constexpr (type_list_contains_v<T, type_list<integer_constant, float_constant,
+                                                              rational_constant>>) {
+                return contents.is_negative() ? precedence::multiplication : precedence::none;
+              } else {
+                return precedence::none;
+              }
+            },
+            load.variant());
+      },
+      [](const ir::div&) constexpr { return precedence::multiplication; },
+      [](const auto&) constexpr { return precedence::none; });
 }
 
 operand_ptr value::add_consumer(ir::value* v) {
