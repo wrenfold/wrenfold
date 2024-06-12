@@ -12,14 +12,18 @@
 #include "wf/external_function.h"
 #include "wf/utility/checked_pointers.h"
 
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
+
 namespace wf::ast {
 
 // Add two values together.
 struct add {
   static constexpr std::string_view snake_case_name_str = "add";
+  using container_type = absl::InlinedVector<ast_element, 2>;
 
-  ast_element left;
-  ast_element right;
+  container_type args{};
 };
 
 // Assign a value to a temporary variable.
@@ -203,9 +207,9 @@ struct integer_literal {
 // Multiply two operands together.
 struct multiply {
   static constexpr std::string_view snake_case_name_str = "multiply";
+  using container_type = absl::InlinedVector<ast_element, 2>;
 
-  ast_element left;
-  ast_element right;
+  container_type args{};
 };
 
 // Negate an operand.

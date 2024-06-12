@@ -29,8 +29,8 @@ auto format_ast(Iterator it, const wf::ast::variable_ref& v) {
 }
 
 template <typename Iterator>
-auto format_ast(Iterator it, const wf::ast::add& v) {
-  return fmt::format_to(it, "({}, {})", v.left, v.right);
+auto format_ast(Iterator it, const wf::ast::add& a) {
+  return fmt::format_to(it, "({})", fmt::join(a.args, " + "));
 }
 
 template <typename Iterator>
@@ -157,7 +157,7 @@ auto format_ast(Iterator it, const wf::ast::integer_literal& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::multiply& m) {
-  return fmt::format_to(it, "({}, {})", m.left, m.right);
+  return fmt::format_to(it, "({})", fmt::join(m.args, " * "));
 }
 
 template <typename Iterator>

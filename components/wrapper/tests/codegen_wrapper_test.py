@@ -164,7 +164,7 @@ class CodeGenerationWrapperTest(MathTestBase):
 
         definition = code_generation.transpile(desc)
         self.assertIsInstance(definition, ast.FunctionDefinition)
-        self.assertIsInstance(definition.body, ast.AstVector)
+        self.assertIsInstance(definition.body, ast.AstSpan)
         self.assertIsInstance(definition.signature, ast.FunctionSignature)
 
         # Check we can introspect the resulting definition/signature:

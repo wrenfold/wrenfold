@@ -143,7 +143,7 @@ std::string rust_code_generator::operator()(const ast::function_signature& signa
 }
 
 std::string rust_code_generator::operator()(const ast::add& x) const {
-  return fmt::format("{} + {}", make_view(x.left), make_view(x.right));
+  return join(" + ", x.args, *this);
 }
 
 std::string rust_code_generator::operator()(const ast::assign_output_matrix& x) const {
@@ -346,7 +346,7 @@ static constexpr std::string_view rust_string_for_symbolic_constant(
 }
 
 std::string rust_code_generator::operator()(const ast::multiply& x) const {
-  return fmt::format("{} * {}", make_view(x.left), make_view(x.right));
+  return join(" * ", x.args, *this);
 }
 
 std::string rust_code_generator::operator()(const ast::negate& x) const {
