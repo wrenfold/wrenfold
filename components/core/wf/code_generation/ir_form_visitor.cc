@@ -16,7 +16,7 @@ ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph)
 ir::value_ptr ir_form_visitor::operator()(const addition& add) {
   // Convert to values, then make sure appropriate casts are inserted:
   auto args = transform_map<absl::InlinedVector<ir::value_ptr, 8>>(add, *this);
-  return create_add_or_mul_with_operands<ir::addn>(std::move(args));
+  return create_add_or_mul_with_operands<ir::add>(std::move(args));
 }
 
 ir::value_ptr ir_form_visitor::operator()(const boolean_constant& b) {
@@ -155,7 +155,7 @@ static constexpr std_math_function std_math_function_from_built_in(const built_i
   WF_ASSERT_ALWAYS("Invalid enum value: {}", string_from_built_in_function(name));
 }
 
-// Determine the return type of a call to a built in math function.
+// Determine the return-type of a call to a built-in math function.
 // For some functions, this is determined by the input type. For most functions it is just a
 // floating point scalar.
 template <typename Container>
@@ -246,7 +246,7 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
     }
     mul_operands.push_back(operator()(child));
   }
-  return create_add_or_mul_with_operands<ir::muln>(mul_operands);
+  return create_add_or_mul_with_operands<ir::mul>(mul_operands);
 }
 
 template <typename T, typename Container>

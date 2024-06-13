@@ -97,8 +97,9 @@ class control_flow_graph {
   // Eliminate copy operations that other steps inserted.
   void eliminate_needless_copies();
 
-  // Replace ir::muln -> ir::mul, ir::addn -> ir::add.
-  template <typename Src, typename Dst>
+  // Where duplicate sub-expressions can be found, break additions and multiplications into smaller
+  // binary additions and multiplications. Common terms are extracted into temporaries.
+  template <typename OpType>
   void binarize_operations(ir::block_ptr block);
 
   ir::value_ptr factorize_sum_of_products(const class variable_index_assignor& index_assignor,

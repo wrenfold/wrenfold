@@ -43,7 +43,7 @@ class ast_form_visitor {
   void push_back_conditional_output_declarations(ir::const_block_ptr block);
 
   // Process all the operations in the given block, appending their equivalent ast types to
-  // `operations_`. Returse into any blocks that are jumped-to from this one.
+  // `operations_`. Recurses into any blocks that are jumped-to from this one.
   void process_block(ir::const_block_ptr block);
 
   // Stash the current set of operations, and process a child block.
@@ -86,7 +86,6 @@ class ast_form_visitor {
   }
 
   ast::ast_element operator()(const ir::value& val, const ir::add&);
-  ast::ast_element operator()(const ir::value& val, const ir::addn&);
   ast::ast_element operator()(const ir::value& val, const ir::call_external_function& call);
   ast::ast_element operator()(const ir::value& val, const ir::call_std_function& func);
   ast::ast_element operator()(const ir::value& val, const ir::cast& cast);
@@ -97,7 +96,6 @@ class ast_form_visitor {
   ast::ast_element operator()(const ir::value& val, const ir::get& get);
   ast::ast_element operator()(const ir::value& val, const ir::load& load);
   ast::ast_element operator()(const ir::value& val, const ir::mul&);
-  ast::ast_element operator()(const ir::value& val, const ir::muln&);
   ast::ast_element operator()(const ir::value& val, const ir::neg&);
   ast::ast_element operator()(const scalar_type&, const argument& arg,
                               std::size_t element_index) const;

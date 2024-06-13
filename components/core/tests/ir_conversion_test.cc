@@ -433,7 +433,7 @@ TEST(IrTest, TestFactorization6) {
   };
   auto [expected_expressions, ir] = create_ir(+func, "func", arg("v"));
 
-  EXPECT_EQ(161, ir.count_multiplications()) << ir;
+  EXPECT_EQ(154, ir.count_multiplications()) << ir;
   check_expressions(expected_expressions, ir, false);
 
   for (const auto& [passes, num_ops] :

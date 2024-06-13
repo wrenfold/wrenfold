@@ -376,46 +376,11 @@ std::vector<ast::ast_element> ast_form_visitor::transform_operands(
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::add&) {
-  return ast::ast_element{
-      std::in_place_type_t<ast::add>{},
-      ast::add::container_type{visit_operation_argument(val[0], precedence::addition),
-                               visit_operation_argument(val[1], precedence::addition)}};
-}
-
-template <typename T, typename Container, typename Func>
-auto convert_operands(const Container& container, Func&& func) {
-  WF_ASSERT(!container.empty());
-  auto it = container.begin();
-  auto left = func(*it);
-  for (++it; it != container.end(); ++it) {
-    left = ast::ast_element{std::in_place_type_t<T>{}, std::move(left), func(*it)};
-  }
-  return left;
-}
-
-ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::addn&) {
-  WF_ASSERT_GE(val.num_operands(), 2);
-
   auto args =
       transform_map<ast::add::container_type>(val.operands(), [this](const ir::const_value_ptr v) {
         return visit_operation_argument(v, precedence::addition);
       });
-
   return ast::ast_element{std::in_place_type_t<ast::add>{}, std::move(args)};
-
-  // return convert_operands<ast::add>(val.operands(), [this](const ir::const_value_ptr v) {
-  //   // if (v->is_op<ir::mul, ir::muln>() && v->num_consumers() == 1) {
-  //   //   return visit_value(v);
-  //   // }
-  //   return visit_operation_argument(v, precedence::addition);
-  // });
-  //
-  // auto left = visit_operation_argument(val[0]);
-  // for (std::size_t i = 1; i < val.num_operands(); ++i) {
-  //   left = ast::ast_element{std::in_place_type_t<ast::add>{}, std::move(left),
-  //                           visit_operation_argument(val[i])};
-  // }
-  // return left;
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
@@ -512,20 +477,11 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
-  return ast::ast_element{
-      std::in_place_type_t<ast::multiply>{},
-      ast::multiply::container_type{visit_operation_argument(val[0], precedence::multiplication),
-                                    visit_operation_argument(val[1], precedence::multiplication)}};
-}
-
-ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::muln&) {
   WF_ASSERT_GE(val.num_operands(), 2);
-
   auto args =
       transform_map<ast::add::container_type>(val.operands(), [this](const ir::const_value_ptr v) {
         return visit_operation_argument(v, precedence::multiplication);
       });
-
   return ast::ast_element{std::in_place_type_t<ast::multiply>{}, std::move(args)};
 }
 

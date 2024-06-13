@@ -33,9 +33,7 @@ precedence value::operation_precedence() const {
   return overloaded_visit(
       op_, [](const ir::compare&) constexpr { return precedence::relational; },
       [](const ir::add&) constexpr { return precedence::addition; },
-      [](const ir::addn&) constexpr { return precedence::addition; },
       [](const ir::mul&) constexpr { return precedence::multiplication; },
-      [](const ir::muln&) constexpr { return precedence::multiplication; },
       [](const ir::load& load) constexpr {
         return std::visit(
             [](const auto& contents) constexpr {

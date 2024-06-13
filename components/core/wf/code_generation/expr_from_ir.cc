@@ -30,20 +30,12 @@ class expression_from_ir_visitor {
   }
 
   scalar_expr operator()(const ir::add&, const ir::value::operands_container& args) const {
-    return map_value<scalar_expr>(args[0]) + map_value<scalar_expr>(args[1]);
-  }
-
-  scalar_expr operator()(const ir::addn&, const ir::value::operands_container& args) const {
     const auto args_transformed = transform_map<std::vector>(
         args, [&](const ir::const_value_ptr v) { return map_value<scalar_expr>(v); });
     return addition::from_operands(args_transformed);
   }
 
   scalar_expr operator()(const ir::mul&, const ir::value::operands_container& args) const {
-    return map_value<scalar_expr>(args[0]) * map_value<scalar_expr>(args[1]);
-  }
-
-  scalar_expr operator()(const ir::muln&, const ir::value::operands_container& args) const {
     const auto args_transformed = transform_map<std::vector>(
         args, [&](const ir::const_value_ptr v) { return map_value<scalar_expr>(v); });
     return multiplication::from_operands(args_transformed);
