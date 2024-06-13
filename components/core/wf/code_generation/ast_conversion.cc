@@ -170,6 +170,7 @@ void ast_form_visitor::push_back_conditional_output_declarations(const ir::const
       // We should declare this variable prior to entering the branch.
       // We need to cast the type here to handle the void type.
       emplace_operation<ast::declaration>(format_variable_name(value), value->non_void_type());
+      declared_values_.insert(value);
     }
   }
 }
@@ -354,7 +355,7 @@ ast::ast_element ast_form_visitor::visit_value(const ir::value& value) {
 
 ast::ast_element ast_form_visitor::visit_operation_argument(
     const ir::const_value_ptr value, const std::optional<precedence> parent_precedence) {
-  if (!declared_values_.count(value) && !value->is_phi()) {
+  if (!declared_values_.count(value)) {
     if (parent_precedence.has_value() && value->operation_precedence() <= *parent_precedence) {
       return ast::ast_element{std::in_place_type_t<parenthetical>{}, visit_value(value)};
     } else {
@@ -367,12 +368,9 @@ ast::ast_element ast_form_visitor::visit_operation_argument(
 
 std::vector<ast::ast_element> ast_form_visitor::transform_operands(
     const ir::value& val, const std::optional<precedence> parent_precedence) {
-  std::vector<ast::ast_element> transformed_args{};
-  transformed_args.reserve(val.num_operands());
-  for (const ir::const_value_ptr arg : val.operands()) {
-    transformed_args.push_back(visit_operation_argument(arg, parent_precedence));
-  }
-  return transformed_args;
+  return transform_map<std::vector>(val.operands(), [&](const ir::const_value_ptr arg) {
+    return visit_operation_argument(arg, parent_precedence);
+  });
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::add&) {
