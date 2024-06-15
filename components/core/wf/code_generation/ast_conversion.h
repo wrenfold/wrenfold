@@ -43,7 +43,7 @@ class ast_form_visitor {
   void push_back_conditional_output_declarations(ir::const_block_ptr block);
 
   // Process all the operations in the given block, appending their equivalent ast types to
-  // `operations_`. Returse into any blocks that are jumped-to from this one.
+  // `operations_`. Recurses into any blocks that are jumped-to from this one.
   void process_block(ir::const_block_ptr block);
 
   // Stash the current set of operations, and process a child block.
@@ -65,16 +65,19 @@ class ast_form_visitor {
 
   // Create a `variable_ref` object with the name of the variable used to store `value`.
   ast::variable_ref make_variable_ref(const ir::const_value_ptr value) const {
+    WF_ASSERT(declared_values_.count(value), "value = {}", value);
     return ast::variable_ref{format_variable_name(value)};
   }
 
   // Check if the provided value is going to be placed in-line. If so, we just directly return
   // the converted `value`. If not, we assume a variable will be declared elsewhere and instead
   // return a reference to that.
-  ast::ast_element visit_operation_argument(ir::const_value_ptr value);
+  ast::ast_element visit_operation_argument(ir::const_value_ptr value,
+                                            std::optional<precedence> parent_precedence);
 
-  // Convert all operands to `val` into equivlent ast types.
-  std::vector<ast::ast_element> transform_operands(const ir::value& val);
+  // Convert all operands to `val` into equivalent ast types.
+  std::vector<ast::ast_element> transform_operands(const ir::value& val,
+                                                   std::optional<precedence> parent_precedence);
 
   // Push back operation of type `T` into `operations_`.
   template <typename T, typename... Args>
@@ -83,7 +86,6 @@ class ast_form_visitor {
   }
 
   ast::ast_element operator()(const ir::value& val, const ir::add&);
-  ast::ast_element operator()(const ir::value& val, const ir::addn&);
   ast::ast_element operator()(const ir::value& val, const ir::call_external_function& call);
   ast::ast_element operator()(const ir::value& val, const ir::call_std_function& func);
   ast::ast_element operator()(const ir::value& val, const ir::cast& cast);
@@ -94,7 +96,6 @@ class ast_form_visitor {
   ast::ast_element operator()(const ir::value& val, const ir::get& get);
   ast::ast_element operator()(const ir::value& val, const ir::load& load);
   ast::ast_element operator()(const ir::value& val, const ir::mul&);
-  ast::ast_element operator()(const ir::value& val, const ir::muln&);
   ast::ast_element operator()(const ir::value& val, const ir::neg&);
   ast::ast_element operator()(const scalar_type&, const argument& arg,
                               std::size_t element_index) const;
@@ -117,6 +118,9 @@ class ast_form_visitor {
 
   // Blocks we can't process yet (pending processing of all their ancestors).
   std::unordered_set<ir::const_block_ptr> non_traversable_blocks_;
+
+  // Values for which we will make explicit declarations in the output code.
+  std::unordered_set<ir::const_value_ptr> declared_values_;
 };
 
 // Create function_definition from the intermediate representation:

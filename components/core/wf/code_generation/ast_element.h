@@ -42,6 +42,7 @@ using ast_element_types = type_list<
     struct multiply,
     struct negate,
     struct optional_output_branch,
+    struct parenthetical,
     struct special_constant,
     struct return_object,
     struct variable_ref
@@ -53,7 +54,7 @@ using ast_element_types = type_list<
 // accessing the underlying ast type. This object is reference counted, since the same ast element
 // may appear more than once in the output.
 // TODO: This type bears a lot of similarities to expression_variant. There may be a path to
-//  depuplicating these a bit.
+//  de-duplicating these a bit.
 class ast_element {
  public:
   using types = ast_element_types;

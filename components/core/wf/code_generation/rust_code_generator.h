@@ -71,6 +71,8 @@ class rust_code_generator {
 
   virtual std::string operator()(const ast::optional_output_branch& x) const;
 
+  virtual std::string operator()(const ast::parenthetical& x) const;
+
   virtual std::string operator()(const ast::return_object& x) const;
 
   virtual std::string operator()(const ast::special_constant& x) const;

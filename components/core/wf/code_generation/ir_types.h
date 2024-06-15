@@ -16,24 +16,14 @@
 // and reduce the tree of mathematical operations.
 namespace wf::ir {
 
-// Add together two operands.
+// Add together N operands.
 class add {
  public:
   constexpr static bool is_commutative() noexcept { return true; }
-  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr static int num_value_operands() noexcept { return -1; }
   constexpr static std::string_view to_string() noexcept { return "add"; }
   constexpr static std::size_t hash() noexcept { return 0; }
   constexpr bool is_identical_to(const add&) const noexcept { return true; }
-};
-
-// Add together N operands.
-class addn {
- public:
-  constexpr static bool is_commutative() noexcept { return true; }
-  constexpr static int num_value_operands() noexcept { return -1; }
-  constexpr static std::string_view to_string() noexcept { return "addn"; }
-  constexpr static std::size_t hash() noexcept { return 0; }
-  constexpr bool is_identical_to(const addn&) const noexcept { return true; }
 };
 
 // Cast the operand to the specified destination type.
@@ -258,24 +248,14 @@ class load {
   storage_type variant_;
 };
 
-// Multiply together two operands.
+// Multiply together N operands.
 class mul {
  public:
   constexpr static bool is_commutative() noexcept { return true; }
-  constexpr static int num_value_operands() noexcept { return 2; }
+  constexpr static int num_value_operands() noexcept { return -1; }
   constexpr static std::string_view to_string() noexcept { return "mul"; }
   constexpr static std::size_t hash() noexcept { return 0; }
   constexpr bool is_identical_to(const mul&) const noexcept { return true; }
-};
-
-// Multiply together N operands.
-class muln {
- public:
-  constexpr static bool is_commutative() noexcept { return true; }
-  constexpr static int num_value_operands() noexcept { return -1; }
-  constexpr static std::string_view to_string() noexcept { return "muln"; }
-  constexpr static std::size_t hash() noexcept { return 0; }
-  constexpr bool is_identical_to(const muln&) const noexcept { return true; }
 };
 
 // Negate the operand.
@@ -341,9 +321,9 @@ class save {
 };
 
 // Different operations are represented by a variant.
-using operation = std::variant<add, addn, call_external_function, call_std_function, cast, compare,
-                               cond, copy, construct, div, get, jump_condition, load, mul, muln,
-                               neg, output_required, phi, save>;
+using operation =
+    std::variant<add, call_external_function, call_std_function, cast, compare, cond, copy,
+                 construct, div, get, jump_condition, load, mul, neg, output_required, phi, save>;
 
 // Used to indicate values that have no type.
 struct void_type {};

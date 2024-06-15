@@ -31,11 +31,17 @@ class block {
   // True if this block has no ancestors (typically only true for the starting block).
   bool has_no_ancestors() const noexcept { return ancestors_.empty(); }
 
-  // True if this block has no descendents.
-  bool has_no_descendents() const noexcept { return descendants_.empty(); }
+  // True if this block has no descendants.
+  bool has_no_descendants() const noexcept { return descendants_.empty(); }
 
   // Replace descendant `target` w/ `replacement`.
   void replace_descendant(ir::block_ptr target, ir::block_ptr replacement);
+
+  // Insert at the front of the operation vector.
+  template <typename Iterator>
+  void insert_front(Iterator begin, Iterator end) {
+    operations_.insert(operations_.begin(), begin, end);
+  }
 
   // Insert block into `ancestors` vector.
   void add_ancestor(block_ptr b);
@@ -50,12 +56,6 @@ class block {
   const value_ptr& push(const ir::value_ptr val) {
     operations_.push_back(val);
     return operations_.back();
-  }
-
-  // Insert at the front of the operation vector.
-  template <typename Iterator>
-  void insert_front(Iterator begin, Iterator end) {
-    operations_.insert(operations_.begin(), begin, end);
   }
 
   // Iterate and remove all unused values.
@@ -86,7 +86,7 @@ class block {
     operations_ = std::forward<T>(operations);
   }
 
-  // Access descendents.
+  // Access descendants.
   constexpr const auto& descendants() const noexcept { return descendants_; }
 
   // Access ancestors.
@@ -127,36 +127,38 @@ ir::value_ptr create_operation(std::vector<ir::value::unique_ptr>& values,
 
 // Argument to `find_merge_point`.
 enum class search_direction {
-  // Search descendents.
+  // Search descendants.
   downwards,
   // Search ancestors (reverse order of execution).
   upwards
 };
 
 // Find the block where control flow merges after branching into left/right.
-// Depending on the value of `direction`, we search either anscestors or descendents.
+// Depending on the value of `direction`, we search either ancestors or descendants.
 ir::block_ptr find_merge_point(ir::block_ptr left, ir::block_ptr right, search_direction direction);
 
-// Count instances of operation of type `T`.
-// Defined here so that we can use methods on `value`.
 template <typename Func>
 std::size_t block::count_operation(Func&& func) const {
+  constexpr std::size_t zero = 0;
   if constexpr (is_invocable_v<Func, ir::value_ptr>) {
-    return std::count_if(operations_.begin(), operations_.end(), std::forward<Func>(func));
+    return std::accumulate(operations_.begin(), operations_.end(), zero,
+                           [&func](const std::size_t total, const ir::const_value_ptr x) {
+                             return total + static_cast<std::size_t>(func(x));
+                           });
   } else {
-    return std::count_if(operations_.begin(), operations_.end(),
-                         [&func](const ir::value_ptr v) -> bool {
-                           return std::visit(
-                               [&func](const auto& op) -> bool {
-                                 using arg_type = std::decay_t<decltype(op)>;
-                                 if constexpr (is_invocable_v<Func, const arg_type&>) {
-                                   return func(op);
-                                 } else {
-                                   return false;
-                                 }
-                               },
-                               v->value_op());
-                         });
+    return std::accumulate(operations_.begin(), operations_.end(), zero,
+                           [&func](const std::size_t total, const ir::const_value_ptr v) {
+                             return std::visit(
+                                 [total, &func](const auto& op) {
+                                   using arg_type = std::decay_t<decltype(op)>;
+                                   if constexpr (is_invocable_v<Func, const arg_type&>) {
+                                     return total + static_cast<std::size_t>(func(op));
+                                   } else {
+                                     return total;
+                                   }
+                                 },
+                                 v->value_op());
+                           });
   }
 }
 

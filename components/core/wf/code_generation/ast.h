@@ -12,14 +12,18 @@
 #include "wf/external_function.h"
 #include "wf/utility/checked_pointers.h"
 
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/container/inlined_vector.h>
+WF_END_THIRD_PARTY_INCLUDES
+
 namespace wf::ast {
 
 // Add two values together.
 struct add {
   static constexpr std::string_view snake_case_name_str = "add";
+  using container_type = absl::InlinedVector<ast_element, 2>;
 
-  ast_element left;
-  ast_element right;
+  container_type args{};
 };
 
 // Assign a value to a temporary variable.
@@ -40,7 +44,7 @@ struct assign_output_scalar {
   ast_element value;
 };
 
-// A boolean litera: 'true' or 'false'.
+// A boolean literal: 'true' or 'false'.
 struct boolean_literal {
   static constexpr std::string_view snake_case_name_str = "boolean_literal";
   bool value;
@@ -203,9 +207,9 @@ struct integer_literal {
 // Multiply two operands together.
 struct multiply {
   static constexpr std::string_view snake_case_name_str = "multiply";
+  using container_type = absl::InlinedVector<ast_element, 2>;
 
-  ast_element left;
-  ast_element right;
+  container_type args{};
 };
 
 // Negate an operand.
@@ -227,6 +231,13 @@ struct optional_output_branch {
 
   // Statements in the if-branch.
   std::vector<ast_element> statements;
+};
+
+// A set of parentheses around an operation (to enforce mathematical precedence).
+struct parenthetical {
+  static constexpr std::string_view snake_case_name_str = "parenthetical";
+
+  ast_element contents;
 };
 
 // Use a symbolic constant in the output code.

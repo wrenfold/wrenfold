@@ -144,7 +144,7 @@ std::string cpp_code_generator::operator()(const ast::function_signature& signat
 }
 
 std::string cpp_code_generator::operator()(const ast::add& x) const {
-  return fmt::format("{} + {}", make_view(x.left), make_view(x.right));
+  return join(" + ", x.args, *this);
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_output_matrix& x) const {
@@ -331,7 +331,7 @@ static constexpr std::string_view cpp_string_for_symbolic_constant(
 }
 
 std::string cpp_code_generator::operator()(const ast::multiply& x) const {
-  return fmt::format("{} * {}", make_view(x.left), make_view(x.right));
+  return join(" * ", x.args, *this);
 }
 
 std::string cpp_code_generator::operator()(const ast::negate& x) const {
@@ -344,6 +344,10 @@ std::string cpp_code_generator::operator()(const ast::optional_output_branch& x)
                  x.arg.is_matrix() ? "_" : "", x.arg.name());
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
   return result;
+}
+
+std::string cpp_code_generator::operator()(const ast::parenthetical& x) const {
+  return fmt::format("({})", make_view(x.contents));
 }
 
 std::string cpp_code_generator::operator()(const ast::return_object& x) const {

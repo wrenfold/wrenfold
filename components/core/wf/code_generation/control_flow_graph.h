@@ -51,23 +51,22 @@ class control_flow_graph {
   // Get the first block (start of execution).
   ir::block_ptr first_block() const;
 
-  // Count instances of operations matching predicate `Func`.
-  template <typename Func>
-  std::size_t count_operation(Func&& func) const {
-    return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
-                           [&func](std::size_t total, const ir::block::unique_ptr& blk) {
-                             return total + blk->count_operation(func);
-                           });
-  }
-
   // Count instances of operations of type `T`.
   template <typename T>
   std::size_t count_operation() const {
-    return count_operation([](const T&) constexpr { return true; });
+    return accumulate_over_blocks([](const ir::const_block_ptr blk) {
+      return blk->count_operation([](const T&) constexpr { return 1; });
+    });
   }
 
   // Count instances of a function call.
   std::size_t count_function(std_math_function enum_value) const noexcept;
+
+  // Count add operations.
+  std::size_t count_additions() const noexcept;
+
+  // Count multiplication operations.
+  std::size_t count_multiplications() const noexcept;
 
   // Generate a summary of operations.
   operation_counts compute_operation_counts() const;
@@ -75,13 +74,22 @@ class control_flow_graph {
   // For debug builds and tests, check that invariants are satisfied.
   void assert_invariants() const;
 
-  // Apply simplications to all the operations in the graph.
+  // Apply simplifications to all the operations in the graph.
   void apply_simplifications(const optimization_params& p);
 
   // Factorize sum-of-product expressions to reduce multiplication operations.
   void factorize_sums(std::size_t num_passes);
 
  private:
+  template <typename Func>
+  std::size_t accumulate_over_blocks(Func&& func) const {
+    return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
+                           [&func](const std::size_t total, const ir::block::unique_ptr& b) {
+                             return total +
+                                    static_cast<std::size_t>(func(ir::const_block_ptr{b.get()}));
+                           });
+  }
+
   // Eliminate duplicate operations. Most are eliminated during the conversion from expressions
   // to the IR, but the conversion process can introduce a few new duplicates.
   void eliminate_duplicates();
@@ -89,8 +97,9 @@ class control_flow_graph {
   // Eliminate copy operations that other steps inserted.
   void eliminate_needless_copies();
 
-  // Replace ir::muln -> ir::mul, ir::addn -> ir::add.
-  template <typename Src, typename Dst>
+  // Where duplicate sub-expressions can be found, break additions and multiplications into smaller
+  // binary additions and multiplications. Common terms are extracted into temporaries.
+  template <typename OpType>
   void binarize_operations(ir::block_ptr block);
 
   ir::value_ptr factorize_sum_of_products(const class variable_index_assignor& index_assignor,

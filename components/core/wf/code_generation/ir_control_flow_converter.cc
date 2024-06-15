@@ -305,7 +305,7 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
   // Any blocks that jumped to `output_block` should now jump to `jump_block` instead:
   for (const ir::block_ptr ancestor : previous_ancestors) {
     // If this block is our ancestor, it must contain a jump at the end:
-    WF_ASSERT(!ancestor->is_empty() && !ancestor->has_no_descendents(),
+    WF_ASSERT(!ancestor->is_empty() && !ancestor->has_no_descendants(),
               "block cannot be empty, must contain a jump");
     ancestor->replace_descendant(output_block, jump_block);
   }

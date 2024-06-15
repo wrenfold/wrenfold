@@ -80,7 +80,7 @@ class PythonCodeGenerator(code_generation.BaseGenerator):
         return custom.name
 
     def format_add(self, add: ast.Add) -> str:
-        return f'{self.format(add.left)} + {self.format(add.right)}'
+        return ' + '.join(self.format(x) for x in add.args)
 
     def format_assign_output_matrix(self, mat: ast.AssignOutputMatrix) -> str:
         mat_type = mat.arg.type
@@ -186,7 +186,7 @@ class PythonCodeGenerator(code_generation.BaseGenerator):
         return str(i.value)
 
     def format_multiply(self, mul: ast.Multiply) -> str:
-        return f'{self.format(mul.left)} * {self.format(mul.right)}'
+        return ' * '.join(self.format(x) for x in mul.args)
 
     def format_negate(self, neg: ast.Negate) -> str:
         return f'-{self.format(neg.arg)}'
@@ -196,6 +196,9 @@ class PythonCodeGenerator(code_generation.BaseGenerator):
         result += self._indent_and_join(self.format(x) for x in branch.statements)
         result += f'\nelse:\n{self._indent}{branch.argument.name} = None'
         return result
+
+    def format_parenthetical(self, parenthetical: ast.Parenthetical) -> str:
+        return f'({self.format(parenthetical.contents)})'
 
     def format_return_object(self, ret: ast.ReturnObject) -> str:
         raise NotImplementedError("Handled in function body")

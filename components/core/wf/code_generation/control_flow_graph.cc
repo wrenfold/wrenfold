@@ -170,13 +170,12 @@ void control_flow_graph::apply_simplifications(const optimization_params& p) {
 
   if (p.binarize_operations) {
     for (const auto& block : blocks_) {
-      binarize_operations<ir::muln, ir::mul>(block.get());
-      binarize_operations<ir::addn, ir::add>(block.get());
+      binarize_operations<ir::mul>(block.get());
+      binarize_operations<ir::add>(block.get());
     }
 #ifdef WF_DEBUG
     assert_invariants();
 #endif
-
     eliminate_duplicates();
   }
 
@@ -379,11 +378,11 @@ void count_operand_multiplicity(const Container& operands, OutputContainer& outp
   }
 }
 
-// TODO: This method of counting overcounts some times of pairs.
+// TODO: This method of counting over counts some times of pairs.
 // For example, in the multiplication:
 //  v0 = x*x*x*x*y
 // There are two instances of x*x, and one instance of x*y.
-// We should not double count all the permutions of `x`, but we presently do.
+// We should not double count all the permutations of `x`, but we presently do.
 template <typename OpType, typename Container>
 static auto count_operand_pairs(
     const Container& container,
@@ -419,11 +418,13 @@ static auto count_operand_pairs(
 // Given two values a & b, find the consumers they share (filtering on OpType).
 template <typename OpType>
 static void find_shared_consumers(const ir::const_value_ptr a, const ir::const_value_ptr b,
+                                  const std::unordered_set<ir::const_value_ptr>& completed_values,
                                   std::vector<ir::value_ptr>& outputs) {
   outputs.clear();
   for (const auto consumer_a : a->consumers()) {
     // `a` could match `b`, in which case just take everything of type `OpType`.
-    if (consumer_a->is_op<OpType>() && (a == b || consumer_a->has_operand(b))) {
+    if (consumer_a->is_op<OpType>() && (a == b || consumer_a->has_operand(b)) &&
+        completed_values.count(consumer_a) == 0) {
       outputs.push_back(consumer_a);
     }
   }
@@ -431,7 +432,7 @@ static void find_shared_consumers(const ir::const_value_ptr a, const ir::const_v
   outputs.erase(std::unique(outputs.begin(), outputs.end()), outputs.end());
 }
 
-// Cound the number of times that pair (a, b) occurs in `operands`.
+// Count the number of times that pair (a, b) occurs in `operands`.
 template <typename Container>
 std::size_t count_pair(const Container& operands, const ir::const_value_ptr a,
                        const ir::const_value_ptr b) {
@@ -443,7 +444,7 @@ std::size_t count_pair(const Container& operands, const ir::const_value_ptr a,
   }
 }
 
-// Get the consumers (with no repititions).
+// Get the consumers (with no repetitions).
 template <typename Container>
 void get_unique_consumers(const ir::const_value_ptr v, Container& output) {
   output.clear();
@@ -462,9 +463,9 @@ void get_unique_consumers(const ir::const_value_ptr v, Container& output) {
 // NOTE: This algorithm is approximate because we count all the pairs once at the start, and then
 // put them into the priority queue. Pair counts aren't edited as we edit the graph of operations,
 // except to insert new elements into the queue. That said, I have found it does not drop the
-// operation count that much to actually "edit" items in the priority queue, and it woul raise the
+// operation count that much to actually "edit" items in the priority queue, and it would raise the
 // computational complexity of this method to do so.
-template <typename Src, typename Dst>
+template <typename OpType>
 void control_flow_graph::binarize_operations(const ir::block_ptr block) {
   WF_FUNCTION_TRACE();
 
@@ -477,7 +478,7 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
       queue{};
 
   // Count pairs in the n-ary operations, queue anything that shows up more than once.
-  count_operand_pairs<Src>(block->operations(), pair_counts);
+  count_operand_pairs<OpType>(block->operations(), pair_counts);
   for (const auto& pair : pair_counts) {
     if (pair.second > 1) {
       queue.push(pair);
@@ -491,6 +492,7 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
   std::vector<ir::value_ptr> shared_consumers{};
   std::vector<ir::value_ptr> unique_consumers{};
   std::vector<std::tuple<ir::value_ptr, std::size_t>> operands_with_multiplicities{};
+  std::unordered_set<ir::const_value_ptr> completed_values{};  //  TODO: Profile flat_hash_set.
   while (!queue.empty()) {
     const queue_element top = queue.top();
     queue.pop();
@@ -498,16 +500,17 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
 
     // We can process this pair.
     // Find all the consumers of type `Src` that use both `a` and `b`.
-    find_shared_consumers<Src>(a, b, shared_consumers);
+    find_shared_consumers<OpType>(a, b, completed_values, shared_consumers);
 
     // Create a new value and put it in operations. We don't care about order here, because we
     // reorder topologically at the bottom of this method.
-    const ir::value_ptr new_value = push_value(block, Dst{}, a->type(), a, b);
+    const ir::value_ptr new_value = push_value(block, OpType{}, a->type(), a, b);
     operations.push_back(new_value);
 
     // We insert new counts into `pair_counts` as we update values that use (a ,b).
     pair_counts.clear();
     for (const ir::value_ptr c : shared_consumers) {
+      WF_ASSERT(c->is_op<OpType>());
       const std::size_t count = count_pair(c->operands(), a, b);
       if (count < 1) {
         continue;
@@ -527,17 +530,14 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
         if (count > 1) {
           pair_counts[make_value_pair(new_value, new_value)] += count / 2;
         }
-      } else if (c->is_op<Src>()) {
-        // This operation has been reduced to a binary operation already, just replace it.
-        WF_ASSERT_EQ(2, c->num_operands());
-
+      } else if (c->num_operands() == 2) {
         // Anything that directly consumed `c` must have its count updated.
         // As `c` becomes `new_value`, insert new counts for products/sums of values with
         // `new_value`.
         get_unique_consumers(c, unique_consumers);
 
         for (const ir::const_value_ptr downstream_consumer : unique_consumers) {
-          if (downstream_consumer->is_op<Src>()) {
+          if (downstream_consumer->is_op<OpType>()) {
             count_operand_multiplicity(downstream_consumer->operands(),
                                        operands_with_multiplicities);
             for (const auto& [operand, operand_count] : operands_with_multiplicities) {
@@ -549,6 +549,7 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
             }
           }
         }
+        completed_values.insert(new_value);
         c->replace_with(new_value);
       } else {
         WF_ASSERT_ALWAYS("Value has wrong number of operands ({}): {} ({}) -> [{}]",
@@ -560,29 +561,6 @@ void control_flow_graph::binarize_operations(const ir::block_ptr block) {
           queue.push(pair);
         }
       }
-    }
-  }
-
-  // Record size here since we will push back:
-  const std::size_t operations_size = operations.size();
-  for (std::size_t n = 0; n < operations_size; ++n) {
-    const ir::value_ptr v = operations[n];
-    if (!v->is_op<Src>()) {
-      continue;
-    }
-
-    if (v->num_operands() > 2) {
-      // Convert the remaining terms into multiplications in left -> right order.
-      ir::value_ptr result = v->first_operand();
-      for (std::size_t i = 1; i < v->num_operands(); ++i) {
-        result = push_value(block, Dst{}, v->type(), result, v->operator[](i));
-        operations.push_back(result);
-      }
-      v->replace_with(result);
-    } else {
-      WF_ASSERT_EQ(2, v->num_operands());
-      // We are leveraging the fact that operand_ptr can be implicitly casted to value_ptr here.
-      v->set_operation(Dst{}, v->type(), v->operands());
     }
   }
 
@@ -601,7 +579,7 @@ void separate_muls(const In& in, Out1& muls, Out2& non_muls) {
   muls.clear();
   non_muls.clear();
   for (const ir::value_ptr v : in) {
-    if (v->is_op<ir::mul, ir::muln>()) {
+    if (v->is_op<ir::mul>()) {
       muls.emplace_back(v);
     } else {
       non_muls.push_back(v);
@@ -637,7 +615,7 @@ class variable_index_assignor {
     }
 
     // Now create a bitset for each term in the factorization.
-    // Fill the bits corresponding to variables that eppear
+    // Fill the bits corresponding to variables that appear.
     return transform_map<bitset_container_type>(muls, [this](const ir::const_value_ptr mul) {
       factor_bits mask{};
       for (const ir::const_value_ptr operand : mul->operands()) {
@@ -726,7 +704,7 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
         sum_args.push_back(remaining_operands.front());
       } else {
         const ir::value_ptr remaining_vars_mul =
-            push_value(block, ir::muln{}, value_type, remaining_operands);
+            push_value(block, ir::mul{}, value_type, remaining_operands);
         operations_out.push_back(remaining_vars_mul);
         sum_args.push_back(remaining_vars_mul);
       }
@@ -734,14 +712,14 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
 
     WF_ASSERT_GE(sum_args.size(), 2);
 
-    const ir::value_ptr sum = push_value(block, ir::addn{}, value_type, sum_args);
+    const ir::value_ptr sum = push_value(block, ir::add{}, value_type, sum_args);
     operations_out.push_back(sum);
 
     // Then multiply the sum by the extracted factor:
     mul_args.push_back(sum);
     WF_ASSERT_GE(mul_args.size(), 2);
 
-    const ir::value_ptr prod = push_value(block, ir::muln{}, value_type, mul_args);
+    const ir::value_ptr prod = push_value(block, ir::mul{}, value_type, mul_args);
     operations_out.push_back(prod);
     factored_sum_args.push_back(prod);
   }
@@ -762,7 +740,7 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
   if (factored_sum_args.size() == 1) {
     return factored_sum_args.front();
   }
-  const auto result = push_value(block, ir::addn{}, value_type, factored_sum_args);
+  const auto result = push_value(block, ir::add{}, value_type, factored_sum_args);
   operations_out.push_back(result);
   return result;
 }
@@ -779,7 +757,7 @@ void control_flow_graph::factorize_sums_in_block(const ir::block_ptr block) {
   variable_index_assignor index_assignor{};
 
   for (const ir::value_ptr add : block->operations()) {
-    if (!add->is_op<ir::add, ir::addn>()) {
+    if (!add->is_op<ir::add>()) {
       continue;
     }
 
@@ -822,18 +800,15 @@ void control_flow_graph::factorize_sums_in_block(const ir::block_ptr block) {
 void control_flow_graph::merge_multiplications_in_block(const ir::block_ptr block) {
   WF_FUNCTION_TRACE();
 
-  // Lambda that evalutes to true for multiplications.
-  const auto is_mul = [](const ir::const_value_ptr v) { return v->is_op<ir::mul, ir::muln>(); };
-
   std::vector<ir::value_ptr> mul_args{};
   for (const ir::value_ptr val : block->operations()) {
-    if (!is_mul(val)) {
+    if (!val->is_op<ir::mul>()) {
       continue;
     }
 
     mul_args.clear();
     for (const ir::value_ptr operand : val->operands()) {
-      if (is_mul(operand)) {
+      if (operand->is_op<ir::mul>()) {
         mul_args.insert(mul_args.end(), operand->operands().begin(), operand->operands().end());
       } else {
         mul_args.push_back(operand);
@@ -843,7 +818,7 @@ void control_flow_graph::merge_multiplications_in_block(const ir::block_ptr bloc
     // Check if this multiplication had any multiplications as its arguments:
     if (mul_args.size() > val->num_operands()) {
       // Replace it with a larger multiplication:
-      val->set_operation(ir::muln{}, val->type(), mul_args);
+      val->set_operation(ir::mul{}, val->type(), mul_args);
     }
   }
   block->remove_unused_operations();
@@ -866,7 +841,7 @@ void control_flow_graph::insert_negations(const ir::block_ptr block) {
 
   std::vector<ir::value_ptr> operations_out = block->operations();
   for (const ir::value_ptr val : block->operations()) {
-    if (!val->is_op<ir::mul, ir::muln>()) {
+    if (!val->is_op<ir::mul>()) {
       continue;
     }
 
@@ -886,11 +861,10 @@ void control_flow_graph::insert_negations(const ir::block_ptr block) {
     const ir::value_ptr positive_value = std::invoke([&] {
       if (other_operands.size() == 1) {
         return other_operands.front();
-      } else if (other_operands.size() == 2) {
-        // Otherwise insert a multiplcation:
-        return push_value(block, ir::mul{}, val->type(), other_operands);
       } else {
-        return push_value(block, ir::muln{}, val->type(), other_operands);
+        // Otherwise insert a multiplication:
+        WF_ASSERT_GE(other_operands.size(), 2);
+        return push_value(block, ir::mul{}, val->type(), other_operands);
       }
     });
 
@@ -940,7 +914,7 @@ std::string control_flow_graph::to_string() const {
       output += "\n";
     }
 
-    if (!block->has_no_descendents()) {
+    if (!block->has_no_descendants()) {
       output.append(left_column_width, ' ');
       fmt::format_to(std::back_inserter(output), "jump {}\n",
                      fmt::join(block->descendants(), ", "));
@@ -966,21 +940,18 @@ std::size_t control_flow_graph::value_print_width() const {
 }
 
 std::size_t control_flow_graph::num_operations() const {
-  return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
-                         [](const std::size_t total, const ir::block::unique_ptr& b) {
-                           return total + b->count_operation([](const ir::const_value_ptr v) {
-                             return !v->is_op<ir::jump_condition, ir::save, ir::load, ir::copy>();
-                           });
-                         });
+  return accumulate_over_blocks([](const ir::const_block_ptr b) {
+    return b->count_operation([](const ir::const_value_ptr v) {
+      return !v->is_op<ir::jump_condition, ir::save, ir::load, ir::copy>();
+    });
+  });
 }
 
 std::size_t control_flow_graph::num_conditionals() const {
-  return std::accumulate(blocks_.begin(), blocks_.end(), static_cast<std::size_t>(0),
-                         [](const std::size_t total, const ir::block::unique_ptr& b) {
-                           return total + b->count_operation([](const ir::const_value_ptr v) {
-                             return v->is_op<ir::jump_condition, ir::cond>();
-                           });
-                         });
+  return accumulate_over_blocks([](const ir::const_block_ptr b) {
+    return b->count_operation(
+        [](const ir::const_value_ptr v) { return v->is_op<ir::jump_condition, ir::cond>(); });
+  });
 }
 
 ir::block_ptr control_flow_graph::first_block() const {
@@ -992,8 +963,32 @@ ir::block_ptr control_flow_graph::first_block() const {
 }
 
 std::size_t control_flow_graph::count_function(const std_math_function enum_value) const noexcept {
-  return count_operation(
-      [&](const ir::call_std_function func) { return func.name() == enum_value; });
+  return accumulate_over_blocks([&](const ir::const_block_ptr blk) {
+    return blk->count_operation(
+        [&](const ir::call_std_function& func) { return func.name() == enum_value; });
+  });
+}
+
+template <typename... Ts>
+struct count_muls_or_adds {
+  std::size_t operator()(const ir::const_value_ptr v) const noexcept {
+    if (v->is_op<Ts...>()) {
+      return v->num_operands() - 1;
+    }
+    return 0;
+  }
+};
+
+std::size_t control_flow_graph::count_additions() const noexcept {
+  return accumulate_over_blocks([](const ir::const_block_ptr blk) {
+    return blk->count_operation(count_muls_or_adds<ir::add>{});
+  });
+}
+
+std::size_t control_flow_graph::count_multiplications() const noexcept {
+  return accumulate_over_blocks([](const ir::const_block_ptr blk) {
+    return blk->count_operation(count_muls_or_adds<ir::mul>{});
+  });
 }
 
 static operation_counts count_all_operations(
@@ -1003,13 +998,13 @@ static operation_counts count_all_operations(
     return counts;
   }
 
-  counts[operation_count_label::add] = block->count_operation<ir::add>();
+  counts[operation_count_label::add] = block->count_operation(count_muls_or_adds<ir::add>{});
   counts[operation_count_label::branch] = block->count_operation<ir::jump_condition>();
   counts[operation_count_label::call] = block->count_operation<ir::call_std_function>() +
                                         block->count_operation<ir::call_external_function>();
   counts[operation_count_label::compare] = block->count_operation<ir::compare>();
   counts[operation_count_label::divide] = block->count_operation<ir::div>();
-  counts[operation_count_label::multiply] = block->count_operation<ir::mul>();
+  counts[operation_count_label::multiply] = block->count_operation(count_muls_or_adds<ir::mul>{});
   counts[operation_count_label::negate] = block->count_operation<ir::neg>();
 
   if (const auto& descendants = block->descendants(); !descendants.empty()) {

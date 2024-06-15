@@ -11,14 +11,18 @@
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
 
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <absl/types/span.h>
+WF_END_THIRD_PARTY_INCLUDES
+
 namespace py = pybind11;
 using namespace py::literals;
 
 // We make this type opaque and wrap it manually below. That way we can cast elements to their
 // underlying type in the `next()` impl, and attach lifetime of iterators to the vector using
 // py::keep_alive.
-using ast_element_vector = std::vector<wf::ast::ast_element>;
-PYBIND11_MAKE_OPAQUE(ast_element_vector)
+using ast_element_span = absl::Span<const wf::ast::ast_element>;
+PYBIND11_MAKE_OPAQUE(ast_element_span)
 
 namespace wf {
 
@@ -53,16 +57,16 @@ auto to_inner_accessor(ast::ast_element StructType::*member) {
 }
 
 // Iterator that converts vector elements to their inner type.
-class ast_vector_iterator {
+class ast_span_iterator {
  public:
-  static ast_vector_iterator begin(const ast_element_vector& vec) noexcept {
-    return ast_vector_iterator(vec.begin());
+  static ast_span_iterator begin(const ast_element_span& vec) noexcept {
+    return ast_span_iterator(vec.begin());
   }
-  static ast_vector_iterator end(const ast_element_vector& vec) noexcept {
-    return ast_vector_iterator(vec.end());
+  static ast_span_iterator end(const ast_element_span& vec) noexcept {
+    return ast_span_iterator(vec.end());
   }
 
-  bool operator==(const ast_vector_iterator& other) const noexcept { return it_ == other.it_; }
+  bool operator==(const ast_span_iterator& other) const noexcept { return it_ == other.it_; }
 
   // Pre-increment.
   auto& operator++() noexcept {
@@ -73,9 +77,9 @@ class ast_vector_iterator {
   auto operator*() const { return to_inner(*it_); }
 
  private:
-  explicit ast_vector_iterator(const ast_element_vector::const_iterator& it) noexcept : it_(it) {}
+  explicit ast_span_iterator(const ast_element_span::const_iterator& it) noexcept : it_(it) {}
 
-  ast_element_vector::const_iterator it_;
+  ast_element_span::const_iterator it_;
 };
 
 class ast_type_map {
@@ -104,31 +108,30 @@ class ast_type_map {
 void wrap_ast(py::module_& m) {
   // AST element vector is wrapped as an opaque type so we don't have to deal
   // with ast_element not being default constructible.
-  py::class_<ast_element_vector>(m, "AstVector")
+  py::class_<ast_element_span>(m, "AstSpan")
       .def("__repr__",
-           [](const ast_element_vector& vec) {
-             return fmt::format("AstVector({} elements)", vec.size());
+           [](const ast_element_span& vec) {
+             return fmt::format("AstSpan({} elements)", vec.size());
            })
-      .def("__len__", [](const ast_element_vector& vec) { return vec.size(); })
+      .def("__len__", [](const ast_element_span& self) { return self.size(); })
       .def(
           "__iter__",
-          [](const ast_element_vector& vec) {
-            return py::make_iterator(ast_vector_iterator::begin(vec),
-                                     ast_vector_iterator::end(vec));
+          [](const ast_element_span& self) {
+            return py::make_iterator(ast_span_iterator::begin(self), ast_span_iterator::end(self));
           },
           py::keep_alive<0, 1>())
       .def(
           "__getitem__",
-          [](const ast_element_vector& vec, const std::int64_t index) {
+          [](const ast_element_span& self, const std::int64_t index) {
             const std::size_t actual_index =
                 index >= 0
                     ? static_cast<std::size_t>(index)
-                    : static_cast<std::size_t>(static_cast<std::int64_t>(vec.size()) + index);
-            if (actual_index >= vec.size()) {
+                    : static_cast<std::size_t>(static_cast<std::int64_t>(self.size()) + index);
+            if (actual_index >= self.size()) {
               throw dimension_error("Index `{}` exceeds vector length `{}`.", actual_index,
-                                    vec.size());
+                                    self.size());
             }
-            return to_inner(vec[actual_index]);
+            return to_inner(self[actual_index]);
           },
           py::arg("index"), py::doc("Array access operator."), py::return_value_policy::reference,
           py::keep_alive<0, 1>())
@@ -137,13 +140,11 @@ void wrap_ast(py::module_& m) {
   ast_type_map map{m};
 
   map.at<ast::add>()
-      .def_property_readonly("left", to_inner_accessor(&ast::add::left),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Left operand.")
-      .def_property_readonly("right", to_inner_accessor(&ast::add::right),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Right operand.")
-      .doc() = "Addition operation: ``left + right``";
+      .def_property_readonly(
+          "args", [](const ast::add& self) -> ast_element_span { return self.args; },
+          py::return_value_policy::reference, py::keep_alive<0, 1>(),
+          "Operands to the addition. There will always be more than one element.")
+      .doc() = "Addition operation: ``args[0] + args[1] + ...``";
 
   map.at<ast::assign_temporary>()
       .def_property_readonly(
@@ -191,11 +192,11 @@ void wrap_ast(py::module_& m) {
                              py::return_value_policy::reference, py::keep_alive<0, 1>(),
                              "Condition governing which branch to take.")
       .def_property_readonly(
-          "if_branch", [](const ast::branch& c) -> const auto& { return c.if_branch; },
+          "if_branch", [](const ast::branch& c) -> ast_element_span { return c.if_branch; },
           py::return_value_policy::reference_internal,
           "Statements that evaluate when the condition is true.")
       .def_property_readonly(
-          "else_branch", [](const ast::branch& c) -> const auto& { return c.else_branch; },
+          "else_branch", [](const ast::branch& c) -> ast_element_span { return c.else_branch; },
           py::return_value_policy::reference_internal,
           "Statements that evaluate when the condition is false.")
       .doc() = "Emit an if-else statement: ``if (condition) { ... } else { ... }``";
@@ -204,7 +205,7 @@ void wrap_ast(py::module_& m) {
       .def_property_readonly("function",
                              [](const ast::call_external_function& c) { return c.function; })
       .def_property_readonly(
-          "args", [](const ast::call_external_function& c) -> const auto& { return c.args; },
+          "args", [](const ast::call_external_function& c) -> ast_element_span { return c.args; },
           py::return_value_policy::reference_internal)
       .doc() = "Invoke a user-provided external function.";
 
@@ -213,7 +214,7 @@ void wrap_ast(py::module_& m) {
           "function", [](const ast::call_std_function& c) { return c.function; },
           "The function being invoked.")
       .def_property_readonly(
-          "args", [](const ast::call_std_function& c) -> const auto& { return c.args; },
+          "args", [](const ast::call_std_function& c) -> ast_element_span { return c.args; },
           py::return_value_policy::reference_internal, "Arguments to the function.")
       .doc() = "Invoke a standard library math function.";
 
@@ -249,7 +250,7 @@ void wrap_ast(py::module_& m) {
           "type", [](const ast::construct_matrix& c) { return c.type; },
           "Describe dimensions of the matrix.")
       .def_property_readonly(
-          "args", [](const ast::construct_matrix& c) -> const auto& { return c.args; },
+          "args", [](const ast::construct_matrix& c) -> ast_element_span { return c.args; },
           py::return_value_policy::reference_internal,
           "Contents of the matrix, in row-major order.")
       .doc() = "Construct a matrix from a list of statements.";
@@ -295,7 +296,7 @@ void wrap_ast(py::module_& m) {
                              "Left operand (numerator).")
       .def_property_readonly("right", to_inner_accessor(&ast::divide::right),
                              py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Right operand (denonimator).")
+                             "Right operand (denominator).")
       .doc() = "Division operation: ``left / right``";
 
   map.at<ast::float_literal>()
@@ -337,13 +338,11 @@ void wrap_ast(py::module_& m) {
       .doc() = "Emit an integer literal constant.";
 
   map.at<ast::multiply>()
-      .def_property_readonly("left", to_inner_accessor(&ast::multiply::left),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Left operand.")
-      .def_property_readonly("right", to_inner_accessor(&ast::multiply::right),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Right operand.")
-      .doc() = "Multiplication operation: ``left * right``";
+      .def_property_readonly(
+          "args", [](const ast::multiply& self) -> ast_element_span { return self.args; },
+          py::return_value_policy::reference, py::keep_alive<0, 1>(),
+          "Operands to the multiplication. There will always be more than one.")
+      .doc() = "Multiplication operation: ``args[0] * args[1] * ...``";
 
   map.at<ast::negate>()
       .def_property_readonly("arg", to_inner_accessor(&ast::negate::arg),
@@ -356,11 +355,20 @@ void wrap_ast(py::module_& m) {
           "argument", [](const ast::optional_output_branch& self) { return self.arg; },
           "An optional output argument.")
       .def_property_readonly(
-          "statements", [](const ast::optional_output_branch& self) { return self.statements; },
+          "statements",
+          [](const ast::optional_output_branch& self) -> ast_element_span {
+            return self.statements;
+          },
           "Statements that are relevant when the optional argument is present.")
       .doc() =
       "Conditionally assign values to an optional output argument: ``if (<argument exists>) { ... "
       "}``";
+
+  map.at<ast::parenthetical>()
+      .def_property_readonly("contents", to_inner_accessor(&ast::parenthetical::contents),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Value that should be wrapped in parentheses.")
+      .doc() = "Wrap an expression in parentheses.";
 
   map.at<ast::return_object>()
       .def_property_readonly("value", to_inner_accessor(&ast::return_object::value),
@@ -391,9 +399,11 @@ void wrap_ast(py::module_& m) {
   wrap_ast_type<ast::function_definition>(m)
       .def_property_readonly("signature", &ast::function_definition::signature,
                              "Function signature.")
-      .def_property_readonly("body", &ast::function_definition::body,
-                             "Statements that make up the body of the function.",
-                             py::return_value_policy::reference_internal)
+      .def_property_readonly(
+          "body",
+          [](const ast::function_definition& self) -> ast_element_span { return self.body(); },
+          "Statements that make up the body of the function.",
+          py::return_value_policy::reference_internal)
       .doc() =
       "Define a generated function. This is the top level object of the emitted syntax tree.";
 }
