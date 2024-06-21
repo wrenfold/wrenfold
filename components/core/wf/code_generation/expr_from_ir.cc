@@ -313,8 +313,9 @@ rebuilt_expressions rebuild_expression_tree(const ir::const_block_ptr starting_b
           [&](const ir::save& save) {
             // Get all the output expressions for this output:
             std::vector<scalar_expr> output_expressions = transform_map<std::vector>(
-                code->operands(),
-                [&visitor](const ir::value_ptr v) { return visitor.map_value<scalar_expr>(v); });
+                code->operands(), [&visitor](const ir::const_value_ptr v) {
+                  return visitor.map_value<scalar_expr>(v);
+                });
 
             result.output_expressions.emplace(save.key(), std::move(output_expressions));
           },
