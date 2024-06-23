@@ -1,6 +1,11 @@
 wrenfold
 ========
 
+.. warning::
+
+  The wrenfold documentation is presently under construction. Please report missing information by
+  opening a GitHub issue.
+
 Introduction
 ------------
 
@@ -10,23 +15,29 @@ Introduction
    :end-before: <!--- intro_end --->
 
 
-.. warning::
+Motivation
+----------
 
-  The wrenfold documentation is presently under construction. Please report missing information by
-  opening a github issue.
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!--- motivation_start --->
+   :end-before: <!--- motivation_end --->
+
 
 Getting started
 ---------------
 
 To begin with, first :doc:`install wrenfold <installation>` and then check out the
 :doc:`tutorials <tutorial/index>` and
-`examples <https://github.com/wrenfold/wrenfold/tree/main/examples>`_.
+`examples <https://github.com/wrenfold/wrenfold/tree/main/examples>`_. There are also
+`additional examples <https://github.com/wrenfold/wrenfold-extra-examples>`_ that demonstrate
+integration of generated code into third-party optimizers.
 
 Goals
 -----
 * Enable fast iteration time. Symbolic operations and code generation must be quick enough to allow
   rapid experimentation with complex expressions.
-* Generate reasonably performant code. TODO: Link to benchmark section of the documentation.
+* Generate :doc:`reasonably performant code <performance>`.
 * Emphasize ease of integration of generated code. This manifests in three ways:
 
   - We provide a :doc:`straightforward mechanism <tutorial/custom_types>` for incorporating
@@ -35,8 +46,7 @@ Goals
     :doc:`converted to a new language <tutorial/new_language>` with relative ease.
   - Generated code can :doc:`invoke external handwritten functions <tutorial/external_functions>`.
 
-To get a sense of what features are in development, check out the roadmap on the
-`GitHub Wiki <https://github.com/wrenfold/wrenfold/wiki/Roadmap>`_ and the
+To get a sense of what features are in development, refer to the
 `Issue Tracker <https://github.com/wrenfold/wrenfold/issues>`_.
 
 Non-goals
@@ -56,6 +66,7 @@ Non-goals
 
    installation
    tutorial/index
+   performance
    python_api/index
    cpp_api/index
    faq

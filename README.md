@@ -46,7 +46,7 @@ def angular_distance(a: Vector3, b: Vector3):
     )
 ```
 
-And corresponding compilable code can be quickly obtained:
+And corresponding compilable code can be obtained easily:
 
 ```python
 # CppGenerator can be swapped out for RustGenerator to obtain Rust. You can implement your own
@@ -99,7 +99,8 @@ Why use symbolic code generation for mathematical functions? The [SymForce paper
   - Functions can be written quickly and expressively in python, enabling rapid prototyping. Over time, users acquire a library of composable expressions that can be combined easily to form new symbolic functions.
   - Derivatives are obtained automatically, without spending time debugging manually chain-ruled Jacobians.
 * **Improved runtime performance**:
-  - The performance of generated methods is often competitive with handwritten implementations, and can meaningfully exceed results obtained with runtime auto-diff.
+  - The performance of generated methods is [often competitive with handwritten implementations](https://wrenfold.org/performance.html), and can meaningfully exceed results obtained with runtime auto-diff.
+  - Generated methods are fast enough to deploy on a production robot, enabling a quicker pipeline from offline prototyping to real-world testing.
   - **A prudent caveat for any performance related claim**: Your mileage may vary depending on expression complexity and the degree of effort exerted in optimizing different implementations.
 
 <!--- motivation_end --->
@@ -138,7 +139,7 @@ To get started:
 
 wrenfold was originally created by [me](https://github.com/gareth-cross) in response to pain points I experienced while integrating SymForce into a third-party codebase (see motivations section). In addition to addressing these concerns, I feel that the concept of symbolic code-generation can be pushed further over time.
 
-The project began as a part-time hobby, and has evolved into a more full-featured framework over time. Having only recently been released publicly, wrenfold is in the early stages of receiving feedback from a wider audience. There will be rough edges and undoubtedly some bugs. If you find something broken or missing, please consider [filing a ticket](https://github.com/wrenfold/wrenfold/issues/new/choose). I aim to continue developing and expanding the framework. For details of upcoming work, see the [planned features list](https://github.com/wrenfold/wrenfold/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
+The project began as a part-time hobby, and has evolved into a more full-featured framework over time. Since it was only recently released publicly, wrenfold is in the early stages of receiving feedback from a wider audience. There will be rough edges and undoubtedly some bugs. If you find something broken or missing, please consider [filing a ticket](https://github.com/wrenfold/wrenfold/issues/new/choose). I aim to continue developing and expanding the framework. For details of upcoming work, see the [planned features list](https://github.com/wrenfold/wrenfold/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
 
 If you are interested in collaboration opportunities or have general questions, please [reach out](mailto:gcross.code@icloud.com?subject=Wrenfold).
 

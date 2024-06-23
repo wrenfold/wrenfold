@@ -71,33 +71,25 @@ Which produces the following C++:
 
     // Our generated method correctly accepts a `std::vector<double>`, and invokes
     // the appropriately-namespaced `interpolate_table`.
-    Scalar lookup_angle(const std::vector<double>& table, const T1& p_0, const T2& p_1)
+    template <typename Scalar, typename T1, typename T2>
+    Scalar lookup_angle(const std::vector<double> &table, const T1 &p_0, const T2 &p_1)
     {
         auto _p_0 = wf::make_input_span<2, 1>(p_0);
         auto _p_1 = wf::make_input_span<2, 1>(p_1);
 
         // ...
 
-        const Scalar v001 = _p_0(0, 0);
-        const Scalar v006 = _p_0(1, 0);
-        const Scalar v002 = -v001;
+        const Scalar v002 = _p_0(0, 0);
+        const Scalar v008 = _p_0(1, 0);
         const Scalar v000 = _p_1(0, 0);
-        const Scalar v007 = -v006;
-        const Scalar v005 = _p_1(1, 0);
-        const Scalar v003 = v000 + v002;
-        const Scalar v008 = v005 + v007;
-        const Scalar v014 = std::atan2(v008, v003);
-        const Scalar v015 = static_cast<Scalar>(M_PI) + v014;
-        const Scalar v012 = static_cast<Scalar>(0.5);
-        const Scalar v019 = v012 * v015;
-        const Scalar v018 = static_cast<Scalar>(1) / static_cast<Scalar>(M_PI);
-        const Scalar v020 = v018 * v019;
-        const Scalar v009 = v008 * v008;
-        const Scalar v004 = v003 * v003;
-        const Scalar v021 = utilities::interpolate_table(table, v020);
-        const Scalar v010 = v004 + v009;
-        const Scalar v022 = v010 * v021;
-        return v022;
+        const Scalar v007 = _p_1(1, 0);
+        const Scalar v005 = v000 + -v002;
+        const Scalar v010 = v007 + -v008;
+        return (v005 * v005 + v010 * v010) *
+                utilities::interpolate_table(
+                    table, static_cast<Scalar>(0.5) *
+                                (static_cast<Scalar>(M_PI) + std::atan2(v010, v005)) *
+                                (static_cast<Scalar>(1) / static_cast<Scalar>(M_PI)));
     }
 
 Note that nowhere did we explicitly tell wrenfold anything about the nature of

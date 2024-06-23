@@ -26,7 +26,7 @@ ast
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
-.. autoclass:: wrenfold.ast.AstVector
+.. autoclass:: wrenfold.ast.AstSpan
   :members:
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
@@ -132,6 +132,11 @@ ast
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
 .. autoclass:: wrenfold.ast.OptionalOutputBranch
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.ast.Parenthetical
   :members:
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__

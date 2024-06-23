@@ -11,7 +11,6 @@ Tutorials
    generating_code
    integrating_code
    conditionals
-   matrices
    custom_types
    external_functions
    new_language

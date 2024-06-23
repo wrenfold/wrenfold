@@ -2,8 +2,9 @@ Adding a new target language
 ============================
 
 wrenfold can be extended to target new languages by customizing the code generation step. For a
-complete demonstration, refer to the ``python_generation`` example. This section provides a brief
-overview.
+complete demonstration, refer to the
+`python_generation <https://github.com/wrenfold/wrenfold/blob/main/examples/python_generation/python_generation.py>`__
+example. This section provides a brief overview.
 
 To begin with, one must subclass the :class:`wrenfold.code_generation.BaseGenerator` type in python.
 **At a minimum**, a ``format_function_definition`` method must be defined for the
@@ -29,7 +30,7 @@ pass it to ``self.format(...)``.
         def format_add(self, add: ast.Add) -> str:
             # Calling `format(...)` will automatically delegate to the appropriate overload.
             # If the argument is an `ast.Add`, it will recurse back into this method, for example.
-            return f'{self.format(add.left)} + {self.format(add.right)}'
+            return ' + '.join(self.format(x) for x in add.args)
 
         # ... more overloads ...
 
@@ -58,8 +59,5 @@ With a ``BaseGenerator`` subclass in hand, we can generate code:
     def some_symbolic_func(x: type_annotations.FloatScalar):
         return x * 2
 
-    description = code_generation.create_function_description(some_symbolic_func)
-    definition = code_generation.transpile(description)
-
-    # Here we replace the built-in generators with `CustomGenerator`:
-    code = CustomGenerator().generate(definition)
+    # Here we replace the built-in generator with `CustomGenerator`:
+    code = code_generation.generate_function(some_symbolic_func, generator=CustomGenerator())

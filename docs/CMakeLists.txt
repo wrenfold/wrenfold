@@ -75,27 +75,35 @@ if(${SPHINX_FOUND})
   set(HANDWRITTEN_RST_FILES
       "${CMAKE_SOURCE_DIR}/README.md"
       "${CMAKE_SOURCE_DIR}/LICENSE"
+      source/conf.py
+      source/cpp_api/index.rst
+      source/cpp_api/span.rst
+      source/faq.rst
       source/index.rst
       source/installation.rst
       source/license.rst
-      source/faq.rst
+      source/performance.rst
+      source/python_api/index.rst
       source/tutorial/conditionals.rst
-      source/tutorial/custom_types.rst
       source/tutorial/custom_types_script.py
-      source/tutorial/external_functions.rst
+      source/tutorial/custom_types.rst
       source/tutorial/external_functions_script.py
+      source/tutorial/external_functions.rst
       source/tutorial/generating_code.rst
       source/tutorial/index.rst
       source/tutorial/integrating_code.rst
       source/tutorial/introduction.rst
-      source/tutorial/matrices.rst
       source/tutorial/new_language.rst
       source/tutorial/symbolic_manipulation.rst
       source/tutorial/sympy_interop.rst
-      source/python_api/index.rst
-      source/cpp_api/index.rst
-      source/cpp_api/span.rst
-      source/conf.py)
+      source/_static/benchmark_plots/ImuIntegration-gcc.html
+      source/_static/benchmark_plots/ImuIntegration-clang.html
+      source/_static/benchmark_plots/QuatInterpolation-gcc.html
+      source/_static/benchmark_plots/QuatInterpolation-clang.html
+      source/_static/benchmark_plots/QuatLocalCoords-gcc.html
+      source/_static/benchmark_plots/QuatLocalCoords-clang.html
+      source/_static/benchmark_plots/RollingShutterCamera-gcc.html
+      source/_static/benchmark_plots/RollingShutterCamera-clang.html)
 
   # Invoke `generate_api_rst.py` to generate RST files for our python modules.
   add_custom_command(

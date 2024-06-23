@@ -95,29 +95,21 @@ custom generator:
     template <typename Scalar>
     geo::vec2 rotate_vector(const Scalar angle, const geo::vec2& v, geo::vec2& v_rot_D_angle)
     {
-        const Scalar v000 = angle;
-        const Scalar v003 = v.y();
-        const Scalar v001 = std::sin(v000);
-        const Scalar v007 = v.x();
-        const Scalar v006 = std::cos(v000);
-        const Scalar v004 = v001 * v003;
-        const Scalar v011 = v001 * v007;
-        const Scalar v010 = v003 * v006;
-        const Scalar v008 = v006 * v007;
-        const Scalar v005 = -v004;
-        const Scalar v017 = -v011;
-        const Scalar v015 = -v010;
-        const Scalar v009 = v005 + v008;
-        const Scalar v018 = v015 + v017;
-        const Scalar v012 = v010 + v011;
-        v_rot_D_angle = geo::vec2{
-            v018,
-            v009
-        };
-        return geo::vec2{
-            v009,
-            v012
-        };
+      const Scalar v001 = angle;
+      const Scalar v004 = v.y();
+      const Scalar v002 = std::sin(v001);
+      const Scalar v008 = v.x();
+      const Scalar v007 = std::cos(v001);
+      const Scalar v013 = v004 * v007 + v002 * v008;
+      const Scalar v010 = v007 * v008 + -(v002 * v004);
+      v_rot_D_angle = geo::vec2{
+        -v013,
+        v010
+      };
+      return geo::vec2{
+        v010,
+        v013
+      };
     }
 
 Voila - our generated methods uses ``geo::vec2`` for input arguments, output arguments, and the
