@@ -10,6 +10,9 @@
 <p align="center">
 <a href="https://github.com/gareth-cross/wrenfold/actions/workflows/ci.yml?query=branch%3Amain"><img alt="GitHub Actions Workflow Status" src="https://github.com/gareth-cross/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main"></a>
 <img alt="C++17" src="https://img.shields.io/badge/c++-17-blue" />
+<a href="https://opensource.org/licenses/MIT">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg">
+</a>
 </p>
 <!--- badges_end --->
 
@@ -86,10 +89,10 @@ wrenfold is primarily written in C++, and exposes a python API via [pybind11](ht
 ## Installation
 
 <!--- github_wheel_install_start --->
-Prior to public release, pre-built python wheels may be obtained from the [GitHub Releases Page](https://github.com/gareth-cross/wrenfold/releases). Select the `whl` file appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would download and install `wrenfold-0.0.2-cp310-cp310-macosx_11_0_arm64.whl`:
+Prior to public release, pre-built python wheels may be obtained from the [GitHub Releases Page](https://github.com/gareth-cross/wrenfold/releases). Select the `whl` file appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would download and install `wrenfold-0.0.3-cp310-cp310-macosx_11_0_arm64.whl`:
 
 ```
-pip install wrenfold-0.0.2-cp310-cp310-macosx_11_0_arm64.whl
+pip install wrenfold-0.0.3-cp310-cp310-macosx_11_0_arm64.whl
 ```
 
 Then test that wrenfold can be imported:

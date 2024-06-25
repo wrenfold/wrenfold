@@ -94,6 +94,8 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          configuration: ".github/workflows/changelog-configuration.json"
 
       - name: Release
         uses: softprops/action-gh-release@v2

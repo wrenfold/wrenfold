@@ -302,7 +302,7 @@ dependencies = [
 
 [[package]]
 name = "bspline_demo"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "arrayvec",
  "bspline_rust_test",
@@ -1540,9 +1540,9 @@ dependencies = [
 
 [[package]]
 name = "nalgebra"
-version = "0.32.3"
+version = "0.32.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "307ed9b18cc2423f29e83f84fd23a8e73628727990181f18641a8b5dc2ab1caa"
+checksum = "7b5c17de023a86f59ed79891b2e5d5a94c705dbe904a5b5c9c952ea6221b03e4"
 dependencies = [
  "approx 0.5.1",
  "matrixmultiply",
@@ -1557,13 +1557,13 @@ dependencies = [
 
 [[package]]
 name = "nalgebra-macros"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91761aed67d03ad966ef783ae962ef9bbaca728d2dd7ceb7939ec110fffad998"
+checksum = "254a5372af8fc138e36684761d3c0cdb758a4410e938babcff1c860ce14ddbfc"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.49",
 ]
 
 [[package]]
@@ -3187,7 +3187,7 @@ dependencies = [
 
 [[package]]
 name = "wrenfold-test-utils"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "approx 0.5.1",
  "nalgebra",
@@ -3195,7 +3195,7 @@ dependencies = [
 
 [[package]]
 name = "wrenfold-traits"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "nalgebra",
 ]
