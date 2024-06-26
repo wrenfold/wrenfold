@@ -8,7 +8,12 @@
 
 <!--- badges_start --->
 <p align="center">
-<a href="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml?query=branch%3Amain"><img alt="GitHub Actions Workflow Status" src="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+<a href="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml?query=branch%3Amain">
+  <img alt="GitHub Actions Workflow Status" src="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main">
+</a>
+<a href="https://crates.io/crates/wrenfold-traits">
+  <img src="https://img.shields.io/crates/v/wrenfold-traits.svg" alt="crates.io">
+</a>
 <img alt="C++17" src="https://img.shields.io/badge/c++-17-blue" />
 <a href="https://opensource.org/licenses/MIT">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg">
