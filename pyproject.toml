@@ -1,6 +1,6 @@
 [project]
 name = "wrenfold"
-version = "0.0.2"
+version = "0.0.3"
 requires-python = ">=3.9"
 authors = [
     { name = "Gareth Cross", email = "gcross.code@icloud.com" },

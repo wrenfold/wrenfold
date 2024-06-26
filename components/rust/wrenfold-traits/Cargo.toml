@@ -1,16 +1,20 @@
 [package]
 name = "wrenfold-traits"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 license = "MIT"
 authors = ["Gareth <gcross.code@icloud.com>"]
 description = "Runtime traits for the wrenfold symbolic code-generation library."
+documentation = "https://wrenfold.org"
+homepage = "https://wrenfold.org"
+repository = "https://github.com/wrenfold/wrenfold"
+readme = "README.md"
 keywords = ["symbolic", "code-generation", "robotics", "vision"]
 categories = ["science::robotics", "computer-vision", "mathematics"]
-publish = false
+publish = true
 
 [dependencies]
-nalgebra = { version = "0.32.3", optional = true }
+nalgebra = { version = "0.32.5", optional = true }
 
 [features]
 nalgebra = ["dep:nalgebra"]
