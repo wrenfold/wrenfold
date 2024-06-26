@@ -78,3 +78,4 @@ Non-goals
     :caption: Links
 
     GitHub <https://github.com/wrenfold/wrenfold/>
+    Rust Documentation <https://docs.rs/wrenfold-traits>
