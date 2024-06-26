@@ -42,6 +42,8 @@ Next, we can code-generate the equivalent C++:
 
 .. code:: python
 
+    from wrenfold import code_generation
+
     cpp = code_generation.generate_function(func=step, generator=code_generation.CppGenerator())
     print(cpp)
 
@@ -96,7 +98,7 @@ output argument:
             code_generation.OutputArg(df, name="df", is_optional=True)
         ]
 
-    cpp = generator.generate_function(func=step_deriv, generator=code_generation.CppGenerator())
+    cpp = code_generation.generate_function(func=step_deriv, generator=code_generation.CppGenerator())
     print(cpp)
 
 The key distinction here is that our symbolic function now returns a sequence of
@@ -244,5 +246,5 @@ obtain code:
 
 .. rubric:: Footnotes
 
-.. [#f1] In practice, this function is simple enough that using code generation to write might be
-  overkill. We use it here so that the generated code is succinct and legible.
+.. [#f1] In practice, this function is simple enough that using code generation to create it might
+  be overkill. We use it for this example so that the generated code is compact and legible.

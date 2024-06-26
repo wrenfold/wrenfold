@@ -7,16 +7,21 @@ combine them into a larger expression:
 
 .. code:: python
 
-    >>> from wrenfold import sym
+    from wrenfold import sym
 
     # Create two symbolic variables and construct an expression.
-    >>> x, y = sym.symbols('x, y')
-    >>> g = sym.cos(x * y)
-    >>> g
+    x, y = sym.symbols('x, y')
+    g = sym.cos(x * y)
+    print(g)
+
+.. code::
+
     cos(x*y)
 
+.. code:: python
+
     # Visualize the expression tree:
-    >>> print(g.expression_tree_str())
+    print(g.expression_tree_str())
 
 .. code::
 
@@ -31,12 +36,17 @@ tree grows in depth:
 .. code:: python
 
     # Use `g` as part of a larger expression:
-    >>> f = g + x**3 * y
-    >>> f
+    f = g + x**3 * y
+    f
+
+.. code::
+
     x**3*y + cos(x*y)
 
+.. code:: python
+
     # Visualize the expression tree:
-    >>> print(f.expression_tree_str())
+    print(f.expression_tree_str())
 
 .. code::
 
@@ -58,12 +68,20 @@ obtain the derivatives of ``f``:
 .. code:: python
 
     # Compute the derivative of `f` wrt `x`:
-    >>> df = f.diff(x)
-    >>> df
+    df = f.diff(x)
+    df
+
+.. code::
+
     3*x**2*y - y*sin(x*y)
 
+.. code:: python
+
     # Compute the second derivative of `f` wrt `y`:
-    >>> f.diff(y, 2)
+    f.diff(y, 2)
+
+.. code::
+
     -x**2*cos(x*y)
 
 Or collect powers:
@@ -71,17 +89,29 @@ Or collect powers:
 .. code:: python
 
     # Collect powers of `y` in our derivative expression, `df`:
-    >>> df.collect(y)
+    df.collect(y)
+
+.. code::
+
     y*(3*x**2 - sin(x*y))
 
 Or substitute numerical constants and evaluate into a floating point value:
 
 .. code:: python
 
-    >>> val = df.subs(x, sym.E).subs(y, sym.integer(1) / 3)
-    >>> val
+    val = df.subs(x, sym.E).subs(y, sym.integer(1) / 3)
+    print(val)
+
+.. code::
+
     E**2 - sin(E/3)/3
-    >>> val.eval()
+
+.. code:: python
+
+    val.eval()
+
+.. code::
+
     7.126689299943595
 
 As expressions are composed, they are automatically converted to canonical form:
@@ -89,24 +119,25 @@ As expressions are composed, they are automatically converted to canonical form:
 .. code:: python
 
     # Constants are folded and coefficients are combined in additions:
-    >>> -1 + x + x + 5
-    4 + 2*x
+    -1 + x + x + 5  # result: 4 + 2*x
 
     # Constants are distributed into additions:
-    >>> (7 * x + y ** 2) * sym.rational(3, 7)
-    3*x + 3*y**2/7
+    (7 * x + y ** 2) * sym.rational(3, 7)  # result: 3*x + 3*y**2/7
 
     # Common terms in multiplications are converted to powers:
-    >>> (x * y * x * x) / y
-    x**3
+    (x * y * x * x) / y  # result: x**3
 
     # Some power expressions simplify automatically:
-    >>> (1 / x) ** 2
-    x**(-2)
-    >>> sym.sqrt(x) ** 2
-    x
-    >>> z = sym.symbols('z', nonnegative=True)
-    >>> ((3 * z) ** 4) ** (sym.one / 4)
+    (1 / x) ** 2  # result: x**(-2)
+    sym.sqrt(x) ** 2  # result: x
+
+.. code:: python
+
+    z = sym.symbols('z', nonnegative=True)
+    ((3 * z) ** 4) ** (sym.one / 4)
+
+.. code::
+
     3*z
 
 While wrenfold is not intended to be a full computer algebra system, it does support a variety of
