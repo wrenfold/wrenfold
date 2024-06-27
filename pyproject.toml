@@ -8,6 +8,28 @@ authors = [
 description = "Tools for code-generating mathematical functions."
 license = { text = "MIT" }
 readme = "README.md"
+keywords = ["symbolic", "math", "code-generation", "robotics", "vision"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+
+    "License :: OSI Approved :: MIT License",
+
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Code Generators",
+
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
+]
+
+[project.urls]
+Homepage = "https://wrenfold.org"
+Repository = "https://github.com/wrenfold/wrenfold/"
+Issues = "https://github.com/wrenfold/wrenfold/issues"
 
 [build-system]
 requires = [
