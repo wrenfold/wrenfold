@@ -155,8 +155,8 @@ In rust, our sample function ``step_clamped`` begins with:
     }
 
 In rust, the span trait is an explicit constraint on the generic type ``T1``. The traits are defined
-in the ``wrenfold-traits`` crate. In this example, we can pass any type that implements
-``OutputSpan2D``:
+in the `wrenfold-traits <https://crates.io/crates/wrenfold-traits>`__ crate. In this example, we can
+pass any type that implements ``OutputSpan2D`` for ``(D0 = 2, D1 = 1)``:
 
 .. code:: rust
 
