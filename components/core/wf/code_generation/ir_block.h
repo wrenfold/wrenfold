@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "wf/code_generation/ir_value.h"
-#include "wf/utility/algorithms.h"
 
 namespace wf::ir {
 

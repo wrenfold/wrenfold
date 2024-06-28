@@ -2,7 +2,9 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include <string>
 #include <string_view>
+
 #include "wf/code_generation/ast.h"
 #include "wf/utility/strings.h"
 

@@ -22,10 +22,10 @@ class ir_control_flow_converter {
 
  private:
   // True if node `v` has been visited.
-  bool is_visited(ir::value_ptr v) const;
+  bool is_visited(ir::const_value_ptr v) const;
 
   // True if all downstream consumers of `v` have been visited.
-  bool all_consumers_visited(ir::value_ptr val) const;
+  bool all_consumers_visited(ir::const_value_ptr val) const;
 
   // Queue any operands of `v` whose consumers have all been visited.
   void queue_operands(std::deque<ir::value_ptr>& queue, ir::value_ptr v) const;
@@ -37,8 +37,8 @@ class ir_control_flow_converter {
                                                       ir::block_ptr output_block);
 
   // Process all the values in `queue`, and insert them into `output_block`. We iterate
-  // until we hit conditionals that need to be traveresed, at which juncture a branch
-  // is inserted. An values that cannot be processed are placed into `deferred`.
+  // until we hit conditionals that need to be traversed, at which juncture a branch
+  // is inserted. Any values that cannot be processed are placed into `deferred`.
   ir::block_ptr process(std::deque<ir::value_ptr> queue, ir::block_ptr output_block,
                         std::vector<ir::value_ptr>& deferred);
 
@@ -53,7 +53,7 @@ class ir_control_flow_converter {
 
   std::vector<ir::value::unique_ptr> values_;
   std::vector<ir::block::unique_ptr> blocks_{};
-  std::unordered_set<ir::value_ptr> visited_{};
+  std::unordered_set<ir::const_value_ptr> visited_{};
   ir::block::unique_ptr input_block_;
 };
 
