@@ -110,7 +110,7 @@ wrenfold, while a multiple ``< 1.0`` is faster. Plots are available below - a fe
 follow:
 
   * code-generated functions are *roughly* comparable to the handwritten implementations. For example,
-    ``QuatInterpolation`` and ``ImuIntegration`` are ~5-10% faster in handwritten form under gcc [#]_,
+    ``QuatInterpolation`` and ``ImuIntegration`` are ~5-15% faster in handwritten form under gcc [#]_,
     and ~5-10% slower than wrenfold under clang.
   * When comparing wrenfold to ``SymforceChain``, we find that:
 
