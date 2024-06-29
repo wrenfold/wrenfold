@@ -15,6 +15,12 @@
 </p>
 <!--- badges_end --->
 
+<p align="center">
+<strong>
+<a href="https://wrenfold.org">Documentation</a> | <a href="https://discord.gg/vQBk5BpQPZ">Discord</a>
+</strong>
+</p>
+
 ---
 
 <!--- intro_start --->
