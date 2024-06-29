@@ -117,12 +117,12 @@ control_flow_graph ir_control_flow_converter::convert() && {
   return control_flow_graph{std::move(blocks_), std::move(values_)};
 }
 
-bool ir_control_flow_converter::is_visited(const ir::value_ptr v) const {
+bool ir_control_flow_converter::is_visited(const ir::const_value_ptr v) const {
   return visited_.count(v) > 0;
 }
 
-bool ir_control_flow_converter::all_consumers_visited(const ir::value_ptr val) const {
-  return val->all_consumers_satisfy([this](const ir::value_ptr v) { return is_visited(v); });
+bool ir_control_flow_converter::all_consumers_visited(const ir::const_value_ptr val) const {
+  return val->all_consumers_satisfy([this](const ir::const_value_ptr v) { return is_visited(v); });
 }
 
 void ir_control_flow_converter::queue_operands(std::deque<ir::value_ptr>& queue,

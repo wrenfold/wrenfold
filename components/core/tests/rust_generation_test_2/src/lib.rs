@@ -32,7 +32,7 @@ pub mod types {
 pub mod external {
     use crate::types::StructType;
 
-    /// An external fucntion we call from generated code.
+    /// An external function we call from generated code.
     pub fn interpolate_access(vec: &Vec<StructType>, x: f64) -> StructType {
         let x_floor = x.floor();
         let x_ceil = x.ceil();

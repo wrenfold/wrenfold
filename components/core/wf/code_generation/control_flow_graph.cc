@@ -672,7 +672,7 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
         continue;
       }
 
-      // Copy the operands vector, and drop any thing were factored out:
+      // Copy the operands vector, and drop anything that was factored out:
       auto operands = muls[j]->operands();
       WF_ASSERT(std::is_sorted(operands.begin(), operands.end(),
                                [](auto a, auto b) { return a->name() < b->name(); }));

@@ -148,7 +148,7 @@ class Conversions:
 
     def convert_heaviside(self, expr) -> sym.Expr:
         """
-        Convert `Heaviside` expresion. SymPy heaviside specifies a value at x = 0, so
+        Convert `Heaviside` expression. SymPy heaviside specifies a value at x = 0, so
         we need to use two conditionals here to match it.
         """
         x, zero_val = self(expr.args[0]), self(expr.args[1])

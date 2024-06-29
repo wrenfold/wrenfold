@@ -22,6 +22,12 @@ struct optimization_params {
 
 // Store intermediate representation values and blocks. The blocks are arranged in a graph
 // that describes the control flow in a code-generation function.
+// TODO: I tend to think the structure of this object could be improved:
+//  - The use of "standard blocks" potentially overcomplicates things. The original motivation was
+//    to learn from examples in compilers, but we only really need if-else support for now.
+//  - I dislike that objects are connected via non-owning pointers. Maybe indices into an array
+//    would be safer. Each `ir::value` object is fairly large, and could could potentially be split
+//    into a struct-of-arrays design.
 class control_flow_graph {
  public:
   // Construct from a set of output expressions.
@@ -46,7 +52,7 @@ class control_flow_graph {
   std::size_t num_conditionals() const;
 
   // Number of blocks.
-  std::size_t num_blocks() const { return blocks_.size(); }
+  std::size_t num_blocks() const noexcept { return blocks_.size(); }
 
   // Get the first block (start of execution).
   ir::block_ptr first_block() const;

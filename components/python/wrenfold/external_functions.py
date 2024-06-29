@@ -114,7 +114,7 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
     """
     Call `wrapper_func` with the provided arguments.
     """
-    # Flatten args to gether and make sure there are no duplicates:
+    # Flatten args together and make sure there are no duplicates:
     combined_args = _combine_args(func=func, args=args, kwargs=kwargs)
 
     # The expected types for each argument:
