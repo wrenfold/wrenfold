@@ -116,11 +116,16 @@ jobs:
         run: rustup default 1.77
 
       - name: Install clippy
-        run: rustup component add clippy
+        run: rustup component add rustfmt clippy
 
       - name: Dump rustc version
-        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
         run: rustc --version
+
+      # Run pre-commit formatting checks.
+      # We have to do this down here so that the generated rust files exist.
+      - name: Pre-commit checks
+        working-directory: ${{github.workspace}}
+        run: pre-commit run --all-files
 
       - name: Cache rust dependencies
         uses: Swatinem/rust-cache@v2
