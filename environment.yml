@@ -8,6 +8,8 @@ dependencies:
   - cmake>=3.20
   - ninja>=1.5
   - mypy
+  # Linting/formatting
+  - pre-commit
   # Tests:
   - numpy
   - sympy
