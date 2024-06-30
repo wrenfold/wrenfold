@@ -100,10 +100,26 @@ jobs:
         run: |
           cmake ${{github.workspace}} -DCMAKE_C_COMPILER="cl.exe" -DCMAKE_CXX_COMPILER="cl.exe" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -Wno-deprecated -G Ninja
 
-      - name: Build
+      - if: runner.os == 'Windows'
+        name: Build (Windows)
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
         run: |
-          cmake --build . --config ${{matrix.build_type}}
+          $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          cmake --build . --config ${{matrix.build_type}} --parallel $threads
+
+      - if: runner.os == 'macOS'
+        name: Build (OSX)
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: |
+          threads=`sysctl -n hw.logicalcpu`
+          cmake --build . --config ${{matrix.build_type}} --parallel $threads
+
+      - if: runner.os == 'Linux'
+        name: Build (Linux)
+        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
+        run: |
+          threads=`nproc`
+          cmake --build . --config ${{matrix.build_type}} --parallel $threads
 
       - name: Run CTest
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
