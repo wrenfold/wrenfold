@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize]
     branches:
-      - '*'
+      - "*"
 
   # Allow manual trigger for this workflow.
   workflow_dispatch:
@@ -20,17 +20,48 @@ env:
 jobs:
   build:
     strategy:
-        # Let other OS runners continue if one fails.
-        fail-fast: false
-        matrix:
-          sys:
-            - { os: windows-2019, shell: pwsh, env_file: 'windows-environment.yml' }
-            - { os: windows-2022, shell: pwsh, env_file: 'windows-environment.yml' }
-            - { os: ubuntu-latest, shell: "bash -el {0}", env_file: 'linux-environment.yml' }
-            - { os: macos-14, shell: "bash -el {0}", env_file: 'mac-environment.yml' }
-          build_type: [RelWithDebInfo]
+      # Let other OS runners continue if one fails.
+      fail-fast: false
+      matrix:
+        sys:
+          - {
+              os: windows-2019,
+              shell: pwsh,
+              env_file: "windows-environment.yml",
+              compiler_packages: "",
+              name_suffix: "default",
+            }
+          - {
+              os: windows-2022,
+              shell: pwsh,
+              env_file: "windows-environment.yml",
+              compiler_packages: "",
+              name_suffix: "default",
+            }
+          - {
+              os: ubuntu-latest,
+              shell: "bash -el {0}",
+              env_file: "linux-environment.yml",
+              compiler_packages: "gcc==12.1 gxx==12.1",
+              name_suffix: "gcc12",
+            }
+          - {
+              os: ubuntu-latest,
+              shell: "bash -el {0}",
+              env_file: "linux-environment.yml",
+              compiler_packages: "gcc==14.1 gxx==14.1",
+              name_suffix: "gcc14",
+            }
+          - {
+              os: macos-14,
+              shell: "bash -el {0}",
+              env_file: "mac-environment.yml",
+              compiler_packages: "",
+              name_suffix: "default",
+            }
+        build_type: [RelWithDebInfo]
 
-    name: ${{ matrix.sys.os }}-${{ matrix.build_type }}
+    name: ${{ matrix.sys.os }}-${{ matrix.build_type }}-${{ matrix.sys.name_suffix }}
     runs-on: ${{ matrix.sys.os }}
     defaults:
       run:
@@ -56,7 +87,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ env.prefix }}
-          key: ${{ matrix.sys.os }}-conda-${{ hashFiles('environment.yml') }}-${{ hashFiles(matrix.sys.env_file) }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+          key: ${{ matrix.sys.os }}-conda-${{ hashFiles('environment.yml') }}-${{ hashFiles(matrix.sys.env_file) }}-${{ matrix.sys.compiler_packages }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
         id: cache
 
       - name: Update environment
@@ -65,6 +96,11 @@ jobs:
           mamba env update -n ${{ env.env_name }} --file ${{ matrix.sys.env_file }}
         if: steps.cache.outputs.cache-hit != 'true'
 
+      - if: matrix.sys.compiler_packages != ''
+        name: Install compiler
+        run: |
+          mamba install -n ${{ env.env_name }} ${{ matrix.sys.compiler_packages }}
+
       - name: Dump conda environment
         run: |
           conda info
@@ -72,7 +108,7 @@ jobs:
           conda config --show-sources
           conda config --show
 
-       # Add MSVC to the command line:
+        # Add MSVC to the command line:
       - if: runner.os == 'Windows'
         name: Enable developer command prompt
         uses: ilammy/msvc-dev-cmd@v1
