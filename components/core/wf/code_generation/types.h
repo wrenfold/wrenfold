@@ -92,14 +92,14 @@ struct is_identical_struct<matrix_type> {
 // Holds something that implements `concept` and stores a py::type.
 class erased_pytype {
  public:
-  class concept {
+  class concept_base {
    public:
-    virtual ~concept() = default;
-    virtual bool is_identical_to(const concept& other) const = 0;
+    virtual ~concept_base() = default;
+    virtual bool is_identical_to(const concept_base& other) const = 0;
   };
 
   template <typename T, typename... Args,
-            typename = std::enable_if_t<std::is_base_of_v<concept, T>>>
+            typename = std::enable_if_t<std::is_base_of_v<concept_base, T>>>
   explicit erased_pytype(std::in_place_type_t<T>, Args&&... args)
       : impl_(std::make_unique<T>(std::forward<Args>(args)...)) {}
 
@@ -114,7 +114,7 @@ class erased_pytype {
   }
 
  private:
-  non_null<std::unique_ptr<const concept>> impl_;
+  non_null<std::unique_ptr<const concept_base>> impl_;
 };
 
 // A user-defined type that we support as an input/output to functions.
@@ -213,13 +213,13 @@ class native_field_accessor {
  public:
   // Our 'concept' type can't expose any useful members, because it would need to use types
   // that we are trying to erase here. We just need a virtual base to downcast elsewhere.
-  class concept {
+  class concept_base {
    public:
-    virtual ~concept() = default;
+    virtual ~concept_base() = default;
   };
 
   template <typename T>
-  using enable_if_implements_concept_v = std::enable_if_t<std::is_base_of_v<concept, T>>;
+  using enable_if_implements_concept_v = std::enable_if_t<std::is_base_of_v<concept_base, T>>;
 
   // Construct with an object that inherits from `concept`.
   template <typename T, typename = enable_if_implements_concept_v<T>>
@@ -239,7 +239,7 @@ class native_field_accessor {
 
  private:
   // shared_ptr because field is copied by the python wrapper.
-  maybe_null<std::shared_ptr<const concept>> impl_{nullptr};
+  maybe_null<std::shared_ptr<const concept_base>> impl_{nullptr};
 };
 
 // A field on a custom type.

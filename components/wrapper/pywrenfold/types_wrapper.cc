@@ -17,11 +17,11 @@ namespace wf {
 
 // Implement the abstract `erased_pytype::concept` interface.
 // We use this to type-erase a `py::type`, and pass it into `custom_type`.
-class pytype_wrapper final : public erased_pytype::concept {
+class pytype_wrapper final : public erased_pytype::concept_base {
  public:
   explicit pytype_wrapper(py::type type) noexcept : type_(std::move(type)) {}
 
-  bool is_identical_to(const erased_pytype::concept& other) const override {
+  bool is_identical_to(const erased_pytype::concept_base& other) const override {
     // Cast is safe because there is only one implementation of `erased_pytype`.
     return type_.equal(static_cast<const pytype_wrapper&>(other).type_);
   }

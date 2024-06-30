@@ -55,7 +55,7 @@ using enable_if_implements_custom_type_registrant_t =
 // Support setting and getting an anonymized field on type `T`.
 // The type and name of the underlying member is erased (it is implemented in the derived class).
 template <typename T>
-class native_field_accessor_typed : public native_field_accessor::concept {
+class native_field_accessor_typed : public native_field_accessor::concept_base {
  public:
   // Set underlying member by consuming expressions from `input`.
   // A new truncated span with remaining elements is returned. It is assumed that expressions in
