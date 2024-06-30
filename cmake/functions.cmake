@@ -157,6 +157,9 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   set(GENERATOR_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}_gen")
   set(GENERATOR_OUTPUT_FILE "${GENERATOR_OUTPUT_DIR}/${ARGS_OUTPUT_FILE_NAME}")
 
+  # Create directory for the generator output:
+  file(MAKE_DIRECTORY ${GENERATOR_OUTPUT_DIR})
+
   # Create a list of python sources we depend on. This way, touching python code
   # will cause generation to run again.
   get_python_library_sources(PYTHON_LIB_SOURCES)
