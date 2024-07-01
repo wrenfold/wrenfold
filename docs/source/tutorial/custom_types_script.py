@@ -66,6 +66,31 @@ class CustomCppGenerator(code_generation.CppGenerator):
         # [code_generator_end]
 
 
+# [rust_code_generator_start]
+class CustomRustGenerator(code_generation.RustGenerator):
+
+    def format_get_field(self, element: ast.GetField) -> str:
+        if element.struct_type.python_type == Vec2:
+            return f"{self.format(element.arg)}.{element.field_name}()"
+        return self.super_format(element)
+
+    def format_custom_type(self, element: type_info.CustomType) -> str:
+        """
+        Place our custom type into the `geo` crate.
+        """
+        if element.python_type == Vec2:
+            return 'geo::Vec2'
+        return self.super_format(element)
+
+    def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
+        if element.type.python_type == Vec2:
+            x = self.format(element.get_field_value('x'))
+            y = self.format(element.get_field_value('y'))
+            return f"geo::Vec2::new({x}, {y})"
+        return self.super_format(element)
+        # [rust_code_generator_end]
+
+
 # [transpilation_start]
 code = code_generation.generate_function(func=rotate_vector, generator=CustomCppGenerator())
 print(code)
