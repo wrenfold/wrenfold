@@ -384,6 +384,13 @@ TEST(CppGenerationTest, TestCustomType2) {
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }
 
+TEST(CppGenerationTest, TestCustomType3) {
+  numeric::Point2d p{};
+  gen::custom_type_3<double>(p);
+  EXPECT_EQ(M_PI * 0.5, p.x);
+  EXPECT_EQ(M_E * 3.0, p.y);
+}
+
 // Convert to/from symbolic::Circle --> numeric::Circle.
 template <>
 struct custom_type_native_converter<symbolic::Circle> {

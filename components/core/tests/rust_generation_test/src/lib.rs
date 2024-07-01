@@ -311,6 +311,14 @@ fn test_custom_type_2() {
 }
 
 #[test]
+fn test_custom_type_3() {
+    let mut p = types::Point2d::new(0.0, 0.0);
+    generated::custom_type_3(&mut p);
+    approx::assert_abs_diff_eq!(std::f64::consts::PI * 0.5f64, p.x());
+    approx::assert_abs_diff_eq!(std::f64::consts::E * 3.0f64, p.y());
+}
+
+#[test]
 fn test_nested_custom_type_1() {
     let c1 = types::Circle {
         center: types::Point2d::new(-0.25, 0.5),

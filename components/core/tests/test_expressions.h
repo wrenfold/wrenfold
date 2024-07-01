@@ -162,6 +162,12 @@ inline auto custom_type_2(scalar_expr theta, scalar_expr radius) {
   return std::make_tuple(optional_output_arg("out", p), optional_output_arg("D_inputs", D_inputs));
 }
 
+// Check that we can assign to a non-optional custom-type output argument.
+inline auto custom_type_3() {
+  symbolic::Point2d p{constants::pi / 2, constants::euler * 3};
+  return std::make_tuple(output_arg("out", p));
+}
+
 // Construct a nested custom type.
 inline auto nested_custom_type_1(symbolic::Circle a, symbolic::Point2d b) {
   // Expand circle `a` if required to fit point `b`.

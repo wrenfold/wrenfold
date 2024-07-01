@@ -159,11 +159,7 @@ std::string rust_code_generator::operator()(const ast::assign_output_scalar& x) 
 }
 
 std::string rust_code_generator::operator()(const ast::assign_output_struct& x) const {
-  if (x.arg.is_optional()) {
-    return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
-  } else {
-    return fmt::format("{} = {};", x.arg.name(), make_view(x.value));
-  }
+  return fmt::format("*{} = {};", x.arg.name(), make_view(x.value));
 }
 
 std::string rust_code_generator::operator()(const ast::assign_temporary& x) const {
