@@ -6,7 +6,7 @@ arguments and return values. This can unlock some useful functionality:
 
   * Leverage existing group or manifold types in your codebase. For example, if your optimization is
     implemented in `GTSAM <https://gtsam.org>`_ you might wish to pass ``gtsam::Pose3`` directly to
-    and from a generated function.
+    and from generated functions.
   * Pass parameter structs directly to a generated function without breaking them into scalar/vector
     pieces.
 
@@ -114,6 +114,38 @@ custom generator:
 
 Voila - our generated methods uses ``geo::vec2`` for input arguments, output arguments, and the
 return value.
+
+Emitting a custom constructor call
+----------------------------------
+
+Suppose we want to generate this method in Rust as well, and invoke a *custom constructor*
+``geo::Vec2::new(...)``. To override the construction logic, we implement
+``format_construct_custom_type``:
+
+.. literalinclude:: custom_types_script.py
+    :language: python
+    :start-after: rust_code_generator_start
+    :end-before: rust_code_generator_end
+
+The generated code now looks like:
+
+.. code:: rust
+
+  #[inline]
+  #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if,
+          clippy::needless_late_init, unused_variables)]
+  pub fn rotate_vector<>(angle: f64, v: &geo::Vec2, v_rot_D_angle: &mut geo::Vec2) -> geo::Vec2
+  {
+    let v001: f64 = angle;
+    let v004: f64 = v.y();
+    let v002: f64 = (v001).sin();
+    let v008: f64 = v.x();
+    let v007: f64 = (v001).cos();
+    let v013: f64 = v004 * v007 + v002 * v008;
+    let v010: f64 = v007 * v008 + -(v002 * v004);
+    *v_rot_D_angle = geo::Vec2::new(-v013, v010);
+    geo::Vec2::new(v010, v013)
+  }
 
 .. note::
 
