@@ -777,6 +777,17 @@ where
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn custom_type_3<>(out: &mut crate::types::Point2d) -> ()
+{
+  // Operation counts:
+  // multiply: 2
+  // total: 2
+  
+  *out = crate::types::Point2d::new(0.5f64 * std::f64::consts::PI, std::f64::consts::E * (3i64) as f64);
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
 pub fn nested_custom_type_1<>(c: &crate::types::Circle, p: &crate::types::Point2d) -> crate::types::Circle
 {
   // Operation counts:
