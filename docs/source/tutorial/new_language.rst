@@ -10,14 +10,13 @@ To begin with, one must subclass the :class:`wrenfold.code_generation.BaseGenera
 **At a minimum**, a ``format_function_definition`` method must be defined for the
 :class:`wrenfold.code_generation.FunctionDefinition` type (the top level AST node).
 
-Most nodes in the AST will have children - for example :class:`wrenfold.ast.Add` has ``left`` and
-``right`` members enumerating the two operands of a binary addition. To facilitate recursive
-formatting, the ``BaseGenerator`` type provides an overloaded
+Most nodes in the AST will have children - for example :class:`wrenfold.ast.Add` has a member
+``args`` that enumerates the operands of an N-ary addition. To facilitate recursive formatting, the
+``BaseGenerator`` type provides an overloaded
 :func:`wrenfold.code_generation.BaseGenerator.format` method that automatically delegates to the
 appropriately named formatter on your subclass.
 
-For example, when printing ``ast.Add`` we can avoid inspecting the type of ``add.left``, and simply
-pass it to ``self.format(...)``.
+For example, when printing ``ast.Add`` we can recurse on ``add.args``:
 
 .. code:: python
 
