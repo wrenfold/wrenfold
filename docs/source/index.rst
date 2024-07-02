@@ -28,7 +28,7 @@ Getting started
 ---------------
 
 #. Begin with the :doc:`quick start guide <quick_start>`.
-#. Peruse the :doc:`tutorial materials <tutorial/index>`.
+#. Peruse the :doc:`user guide <reference/index>`.
 #. Check out `examples <https://github.com/wrenfold/wrenfold/tree/main/examples>`_ in the repository.
    There are also `additional examples <https://github.com/wrenfold/wrenfold-extra-examples>`_ that
    demonstrate integration of generated code into third-party optimizers.
@@ -40,11 +40,11 @@ Goals
 * Generate :doc:`reasonably performant code <performance>`.
 * Emphasize ease of integration of generated code. This manifests in three ways:
 
-  - We provide a :doc:`straightforward mechanism <tutorial/custom_types>` for incorporating
+  - We provide a :doc:`straightforward mechanism <reference/custom_types>` for incorporating
     existing types from the target code-base in generated functions.
   - The transpilation step emits a general purpose abstract syntax tree (AST) that can be
-    :doc:`converted to a new language <tutorial/new_language>` with relative ease.
-  - Generated code can :doc:`invoke external handwritten functions <tutorial/external_functions>`.
+    :doc:`converted to a new language <reference/new_language>` with relative ease.
+  - Generated code can :doc:`invoke external handwritten functions <reference/external_functions>`.
 
 To get a sense of what features are in development, refer to the
 `Issue Tracker <https://github.com/wrenfold/wrenfold/issues>`_.
@@ -66,7 +66,7 @@ Non-goals
 
    quick_start
    building
-   tutorial/index
+   reference/index
    performance
    python_api/index
    cpp_api/index

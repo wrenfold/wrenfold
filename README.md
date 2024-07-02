@@ -88,7 +88,7 @@ Scalar angular_distance(const T0& a, const T1& b, T2&& theta_D_a) {
 wrenfold draws inspiration from [SymForce](https://symforce.org), but differs in a few key ways:
 
 * **Improved flexibility**: Symbolic expressions can include conditional logic.
-* **Ease of integration**: wrenfold aims to make it straightforward to customize the code-generation step to suit your project. For example, you can [use existing types in your codebase in generated method signatures](https://wrenfold.org/tutorial/custom_types.html).
+* **Ease of integration**: wrenfold aims to make it straightforward to customize the code-generation step to suit your project. For example, you can [use existing types in your codebase in generated method signatures](https://wrenfold.org/reference/custom_types.html).
 * **Faster code generation**: Faster code generation translates to quicker iteration on experiments. The generation cost should ideally be negligible compared to compile time for the code itself.
 * **Narrower scope**: wrenfold does not implement a numerical optimizer. Rather we aim to make it simple to integrate generated code into your project's existing preferred optimizer (see the [extended examples](https://github.com/wrenfold/wrenfold-extra-examples)). It should be relatively straightforward to use wrenfold functions with GTSAM, Ceres, the SymForce optimizer, or your own custom implementation.
 
@@ -134,7 +134,7 @@ Then test that wrenfold can be imported:
 ## Getting started
 
 To get started:
-- Refer to the [quick start guide](https://wrenfold.org/quick_start.html) and [tutorials](https://wrenfold.org/tutorial/index.html).
+- Refer to the [quick start guide](https://wrenfold.org/quick_start.html) and [user guide](https://wrenfold.org/reference/index.html).
 - Take a look at some of the examples:
   - There are some examples of symbolic expressions [in this repository](examples). For instance, an implementation of [imu integration](examples/imu_integration/imu_integration.py).
   - Each example includes a unit test that invokes the generated code.

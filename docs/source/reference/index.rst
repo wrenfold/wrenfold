@@ -1,5 +1,5 @@
-Tutorials
-=========
+User guide
+==========
 
 .. toctree::
    :numbered:
