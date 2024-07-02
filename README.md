@@ -134,7 +134,7 @@ Then test that wrenfold can be imported:
 ## Getting started
 
 To get started:
-- Refer to the tutorial material on the [website](https://wrenfold.org/installation.html).
+- Refer to the [quick start guide](https://wrenfold.org/quick_start.html) and [tutorials](https://wrenfold.org/tutorial/index.html).
 - Take a look at some of the examples:
   - There are some examples of symbolic expressions [in this repository](examples). For instance, an implementation of [imu integration](examples/imu_integration/imu_integration.py).
   - Each example includes a unit test that invokes the generated code.
@@ -142,92 +142,12 @@ To get started:
 
 ## Project status
 
-wrenfold was originally created by [me](https://github.com/gareth-cross) in response to pain points I experienced while integrating SymForce into a third-party codebase (see motivations section). In addition to addressing these concerns, I feel that the concept of symbolic code-generation can be pushed further over time.
+wrenfold was originally created by [me](https://github.com/gareth-cross) in response to pain points I experienced while integrating SymForce into a third-party codebase (see motivations section). In addition to addressing these concerns, I felt there opportunities to push the concept of symbolic code-generation further.
 
 The project began as a part-time hobby, and has evolved into a more full-featured framework over time. Since it was only recently released publicly, wrenfold is in the early stages of receiving feedback from a wider audience. There will be rough edges and undoubtedly some bugs. If you find something broken or missing, please consider [filing a ticket](https://github.com/wrenfold/wrenfold/issues/new/choose). I aim to continue developing and expanding the framework. For details of upcoming work, see the [planned features list](https://github.com/wrenfold/wrenfold/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
 
 If you are interested in collaboration opportunities or have general questions, please [reach out](mailto:gcross.code@icloud.com?subject=Wrenfold).
 
-## Building and installing from source
+## Building from source
 
-<!--- source_build_start --->
-First, clone the repository and the submodules in the dependencies directory:
-```bash
-git clone https://github.com/wrenfold/wrenfold.git
-cd wrenfold
-git submodule update --init --recursive
-```
-
-### Building via pip
-
-If you wish to build and install **only** the wrenfold library itself (skipping tests and examples), the recommended path is to use pip. wrenfold uses [scikit-build-core](https://scikit-build-core.readthedocs.io/en/latest/) for python packaging.
-
-Activate your python virtual environment and execute the following in the repo root:
-```bash
-pip install . --verbose
-```
-
-### Building with cmake
-
-Building directly with cmake is the recommend path if you need to iterate on the source code.
-
-The following tools are required to build from source:
-- cmake >= 3.20
-- ninja >= 1.5 (other build systems are not explicitly tested at this time)
-- python >= 3.8
-- mypy (required for [stubgen](https://mypy.readthedocs.io/en/stable/stubgen.html))
-
-Additionally, to build and run tests you will need:
-- numpy
-- SymPy
-- The rust compiler toolchain (`cargo` and `rustc`).
-- On linux and windows: `pkg-config` and `openblas`.
-
-To build documentation:
-- [sphinx](https://www.sphinx-doc.org/)
-- [furo](https://github.com/pradyunsg/furo)
-- [doxygen](https://www.doxygen.nl)
-- [breathe](https://breathe.readthedocs.io/en/latest/)
-- [myst](https://myst-parser.readthedocs.io/)
-
-The following command will configure a `conda` environment suitable for building and testing:
-```bash
-conda create -n wf
-conda env update -n wf --file environment.yml
-conda env update -n wf --file <PLATFORM>-environment.yml
-conda activate wf
-```
-Where `<PLATFORM>` is one of `mac`, `linux`, or `windows`. The rust tools must be installed separately with [rustup](https://rustup.rs).
-
-#### Compilation
-
-When building on Windows, make sure you are executing commands from the [Visual Studio Command Prompt](https://learn.microsoft.com/en-us/visualstudio/ide/reference/command-prompt-powershell?view=vs-2022), *or* in a shell with MSVC on the path.
-
-To configure with cmake and build the library + all tests and examples, run:
-```bash
-cd <path to wrenfold repo>
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -Wno-deprecated -G Ninja
-cmake --build .
-```
-
-The C++ and python tests are executed via `ctest`. Rust tests must be compiled and run separately after the cmake build step:
-```bash
-cargo test --tests --release
-```
-Cargo does not presently invoke `cmake --build` if code generators are stale. To force rust code to be re-generated, run `cmake --build --target wf_rust_generation`.
-
-#### Configuring the python path for development
-
-If you would like to iterate on python examples or tests, you will need to configure the python path to point to the wrenfold repository:
-```bash
-export REPO_ROOT=$(pwd)
-export PYTHONPATH="$REPO_ROOT/components/python:$REPO_ROOT/build/components/wrapper"
-```
-Or, for PowerShell:
-```pwsh
-$env:REPO_ROOT = (Get-Location).path
-$env:PYTHONPATH = "$env:REPO_ROOT\components\python;$env:REPO_ROOT\build\components\wrapper"
-```
-<!--- source_build_end --->
+See [Building from source](https://wrenfold.org/building.html).

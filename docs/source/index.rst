@@ -27,11 +27,11 @@ Motivation
 Getting started
 ---------------
 
-To begin with, first :doc:`install wrenfold <installation>` and then check out the
-:doc:`tutorials <tutorial/index>` and
-`examples <https://github.com/wrenfold/wrenfold/tree/main/examples>`_. There are also
-`additional examples <https://github.com/wrenfold/wrenfold-extra-examples>`_ that demonstrate
-integration of generated code into third-party optimizers.
+#. Begin with the :doc:`quick start guide <quick_start>`.
+#. Peruse the :doc:`tutorial materials <tutorial/index>`.
+#. Check out `examples <https://github.com/wrenfold/wrenfold/tree/main/examples>`_ in the repository.
+   There are also `additional examples <https://github.com/wrenfold/wrenfold-extra-examples>`_ that
+   demonstrate integration of generated code into third-party optimizers.
 
 Goals
 -----
@@ -64,7 +64,8 @@ Non-goals
    :hidden:
    :caption: Documentation
 
-   installation
+   quick_start
+   building
    tutorial/index
    performance
    python_api/index

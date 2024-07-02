@@ -76,14 +76,15 @@ if(${SPHINX_FOUND})
       "${CMAKE_SOURCE_DIR}/README.md"
       "${CMAKE_SOURCE_DIR}/LICENSE"
       source/conf.py
+      source/building.rst
       source/cpp_api/index.rst
       source/cpp_api/span.rst
       source/faq.rst
       source/index.rst
-      source/installation.rst
       source/license.rst
       source/performance.rst
       source/python_api/index.rst
+      source/quick_start.rst
       source/tutorial/conditionals.rst
       source/tutorial/custom_types_script.py
       source/tutorial/custom_types.rst
