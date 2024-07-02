@@ -5,6 +5,11 @@ In the :doc:`previous section <generating_code>` we created a simple symbolic sm
 and then generated the equivalent code. In this section we will walk through the process of using
 our new function.
 
+.. note::
+
+    For examples of integrating generated functions with GTSAM, Ceres, and Sophus see the
+    `wrenfold-extra-examples <https://github.com/wrenfold/wrenfold-extra-examples>`_ repository.
+
 C++
 ---
 
