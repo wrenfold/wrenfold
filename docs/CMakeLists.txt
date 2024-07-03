@@ -75,27 +75,34 @@ if(${SPHINX_FOUND})
   set(HANDWRITTEN_RST_FILES
       "${CMAKE_SOURCE_DIR}/README.md"
       "${CMAKE_SOURCE_DIR}/LICENSE"
+      source/building.rst
       source/conf.py
       source/cpp_api/index.rst
       source/cpp_api/span.rst
       source/faq.rst
       source/index.rst
-      source/installation.rst
       source/license.rst
       source/performance.rst
       source/python_api/index.rst
-      source/tutorial/conditionals.rst
-      source/tutorial/custom_types_script.py
-      source/tutorial/custom_types.rst
-      source/tutorial/external_functions_script.py
-      source/tutorial/external_functions.rst
-      source/tutorial/generating_code.rst
-      source/tutorial/index.rst
-      source/tutorial/integrating_code.rst
-      source/tutorial/introduction.rst
-      source/tutorial/new_language.rst
-      source/tutorial/symbolic_manipulation.rst
-      source/tutorial/sympy_interop.rst
+      source/quick_start_files/main.cpp
+      source/quick_start_files/quick_start_script.py
+      source/quick_start_files/rosenbrock.h
+      source/quick_start_files/rosenbrock_crate/Cargo.toml
+      source/quick_start_files/rosenbrock_crate/src/generated.rs
+      source/quick_start_files/rosenbrock_crate/src/lib.rs
+      source/quick_start.rst
+      source/reference/conditionals.rst
+      source/reference/custom_types_script.py
+      source/reference/custom_types.rst
+      source/reference/external_functions_script.py
+      source/reference/external_functions.rst
+      source/reference/generating_code.rst
+      source/reference/index.rst
+      source/reference/integrating_code.rst
+      source/reference/introduction.rst
+      source/reference/new_language.rst
+      source/reference/symbolic_manipulation.rst
+      source/reference/sympy_interop.rst
       source/_static/benchmark_plots/ImuIntegration-gcc.html
       source/_static/benchmark_plots/ImuIntegration-clang.html
       source/_static/benchmark_plots/QuatInterpolation-gcc.html
