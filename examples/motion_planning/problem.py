@@ -3,7 +3,6 @@ import argparse
 from dataclasses import dataclass
 
 from wrenfold import code_generation, sym, type_info
-from wrenfold.code_generation import OutputArg
 from wrenfold.type_annotations import FloatScalar, Vector3
 
 # Modify to change the planning horizon and time discretization of problem
@@ -163,7 +162,7 @@ def problem_cost(
         weights,
         problem_info,
     )
-    return [OutputArg(
+    return [code_generation.OutputArg(
         expression=cost,
         name="cost",
     )]
@@ -188,7 +187,7 @@ def problem_jacobian(
     # so we skip them when taking the jacobian
     trajectory_to_optimize = trajectory[9:]
     jacobian = cost_jacobian(cost, trajectory_to_optimize)
-    return [OutputArg(
+    return [code_generation.OutputArg(
         expression=jacobian,
         name="cost_jacobian",
     )]
@@ -213,7 +212,7 @@ def problem_hessian(
     # so we skip them when taking the hessian
     trajectory_to_optimize = trajectory[9:]
     hessian = cost_hessian(cost, trajectory_to_optimize)
-    return [OutputArg(
+    return [code_generation.OutputArg(
         expression=hessian,
         name="cost_hessian",
     )]
@@ -228,13 +227,10 @@ class CustomRustGenerator(code_generation.RustGenerator):
 
 
 def main(args: argparse.Namespace):
-    descriptions = [
-        code_generation.create_function_description(func=problem_cost),
-        code_generation.create_function_description(func=problem_jacobian),
-        code_generation.create_function_description(func=problem_hessian),
-    ]
-    definitions = code_generation.transpile(descriptions)
-    code = CustomRustGenerator().generate(definitions)
+    code = str()
+    for function in [problem_cost, problem_jacobian, problem_hessian]:
+        code += code_generation.generate_function(func=function, generator=CustomRustGenerator())
+        code += "\n\n"
     code = CustomRustGenerator.apply_preamble(code)
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 

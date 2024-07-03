@@ -17,10 +17,9 @@ import argparse
 import typing as T
 import collections
 
-from wrenfold.type_annotations import FloatScalar
 from wrenfold import code_generation
-from wrenfold.code_generation import OutputArg, CppGenerator, RustGenerator
 from wrenfold import sym
+from wrenfold.type_annotations import FloatScalar
 
 
 def weight(x: sym.Expr, i: int, k: int, knots: T.Sequence[sym.Expr]) -> sym.Expr:
@@ -166,7 +165,9 @@ def create_polynomial_functions(x: sym.Expr, polynomials: T.Sequence[sym.Expr], 
             for _ in range(0, order - 2):
                 rows.append(rows[-1].diff(arg) * arg_scale)
 
-            return [OutputArg(expression=sym.vector(*rows).transpose(), name=f"b_{i}")]
+            return [
+                code_generation.OutputArg(expression=sym.vector(*rows).transpose(), name=f"b_{i}")
+            ]
 
         if is_cumulative:
             name = f'bspline_cumulative_order{order}_poly_{i}'
@@ -307,11 +308,11 @@ def main(args: argparse.Namespace):
 
     definitions = code_generation.transpile(descriptions)
     if args.language == "cpp":
-        code = CppGenerator().generate(definitions)
-        code = CppGenerator.apply_preamble(code, namespace="gen")
+        code = code_generation.CppGenerator().generate(definitions)
+        code = code_generation.CppGenerator.apply_preamble(code, namespace="gen")
     elif args.language == "rust":
-        code = RustGenerator().generate(definitions)
-        code = RustGenerator.apply_preamble(code)
+        code = code_generation.RustGenerator().generate(definitions)
+        code = code_generation.RustGenerator.apply_preamble(code)
     else:
         raise RuntimeError("Invalid language selection")
 

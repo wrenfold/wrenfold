@@ -4,14 +4,12 @@ Example: Tangent-space delta between two quaternions, with tangent-space jacobia
 This is an example of a relatively simple factor one might implement for a rotation
 averaging optimization.
 """
+
 import argparse
-import typing as T
 
-from wrenfold.type_annotations import FloatScalar, Vector4
 from wrenfold import code_generation
-from wrenfold.code_generation import OutputArg, CppGenerator
-
 from wrenfold.geometry import Quaternion
+from wrenfold.type_annotations import FloatScalar, Vector4
 
 
 def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: FloatScalar):
@@ -27,15 +25,16 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: FloatScalar):
     D1 = error.jacobian(q1.to_vector_wxyz()) * q1.right_retract_derivative()
 
     return [
-        OutputArg(error, name='error'),
-        OutputArg(D0, name='d0', is_optional=True),
-        OutputArg(D1, name='d1', is_optional=True)
+        code_generation.OutputArg(error, name="error"),
+        code_generation.OutputArg(D0, name="d0", is_optional=True),
+        code_generation.OutputArg(D1, name="d1", is_optional=True),
     ]
 
 
 def main(args: argparse.Namespace):
-    code = code_generation.generate_function(func=rotation_error, generator=CppGenerator())
-    code = CppGenerator.apply_preamble(code, namespace="gen")
+    code = code_generation.generate_function(
+        func=rotation_error, generator=code_generation.CppGenerator())
+    code = code_generation.CppGenerator.apply_preamble(code, namespace="gen")
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 
@@ -45,5 +44,5 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(parse_args())
