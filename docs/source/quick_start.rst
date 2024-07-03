@@ -97,6 +97,12 @@ And sure enough our test program outputs::
    f = 0
    f_D_xy = [0, 0]
 
+.. tip::
+
+   The wrenfold repo contains
+   `a more complete version <https://github.com/wrenfold/wrenfold/tree/main/examples/rosenbrock>`_
+   of this example.
+
 Calling generated Rust
 ----------------------
 
