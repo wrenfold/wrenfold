@@ -2,15 +2,11 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include "wf_test_support/eigen_test_macros.h"
-#include "wf_test_support/numeric_testing.h"
 #include "wf_test_support/numerical_jacobian.h"
-#include "wf_test_support/test_macros.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/ostream.h>
 WF_END_THIRD_PARTY_INCLUDES
-
-#include "quat_interpolation_expressions.h"
 
 #define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span.h"
@@ -31,47 +27,22 @@ Eigen::Quaternion<Scalar> quat_interp(const Eigen::Quaternion<Scalar>& a,
       a, (manifold<Quaterniond>::local_coordinates(a, b) * alpha).eval());
 }
 
-auto quat_interpolation(ta::static_matrix<4, 1> q0_vec, ta::static_matrix<4, 1> q1_vec,
-                        scalar_expr alpha) {
-  return quaternion_interpolation(q0_vec, q1_vec, alpha, 1.0e-16);
-}
-
-auto quat_interpolation_no_conditional(ta::static_matrix<4, 1> q0_vec,
-                                       ta::static_matrix<4, 1> q1_vec, scalar_expr alpha) {
-  return quaternion_interpolation(q0_vec, q1_vec, alpha, std::nullopt);
-}
-
 // Forward declare, defined below.
 const std::vector<Eigen::Quaterniond>& get_test_quats();
 
 // Test the quaternion interpolation result numerically.
 TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
-  auto evaluator = create_evaluator(&quat_interpolation);
-
   for (const auto& q0 : get_test_quats()) {
     for (const auto& q1 : get_test_quats()) {
       for (const double alpha : {0.0, 0.001, 0.5, 0.999, 1.0}) {
-        Quaterniond q_eval{};
-        Matrix3d D0_eval, D1_eval;
-        evaluator(q0.coeffs(), q1.coeffs(), alpha, q_eval.coeffs(), D0_eval, D1_eval);
-
         Quaterniond q_gen{};
         Matrix3d D0_gen{}, D1_gen{};
         gen::quaternion_interpolation(q0, q1, alpha, q_gen, D0_gen, D1_gen);
-
-        ASSERT_EIGEN_NEAR(q_eval.coeffs(), q_gen.coeffs(), 2.0e-15) << fmt::format(
-            "q0 = [{}], q1 = [{}], alpha = {}", fmt::streamed(q0), fmt::streamed(q1), alpha);
-        ASSERT_EIGEN_NEAR(D0_eval, D0_gen, 5.0e-15) << fmt::format(
-            "q0 = [{}], q1 = [{}], alpha = {}", fmt::streamed(q0), fmt::streamed(q1), alpha);
-        ASSERT_EIGEN_NEAR(D1_eval, D1_gen, 5.0e-15) << fmt::format(
-            "q0 = [{}], q1 = [{}], alpha = {}", fmt::streamed(q0), fmt::streamed(q1), alpha);
 
         // compare to interpolation with eigen
         ASSERT_EIGEN_NEAR(quat_interp(q0, q1, alpha).coeffs(), q_gen.coeffs(), 2.0e-15)
             << fmt::format("q0 = [{}], q1 = [{}], alpha = {}", fmt::streamed(q0), fmt::streamed(q1),
                            alpha);
-
-        const Eigen::AngleAxisd foo{q0.conjugate() * q1};
 
         // compute derivatives numerically
         const Matrix3d D0_num = numerical_jacobian(
@@ -92,8 +63,7 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
             1.0e-5);
 
         ASSERT_EIGEN_NEAR(D0_num, D0_gen, 1.0e-6) << fmt::format(
-            "q0 = [{}], q1 = [{}], alpha = {}, blah = {}", fmt::streamed(q0), fmt::streamed(q1),
-            alpha, fmt::streamed((foo.axis() * foo.angle() * alpha).eval().transpose()));
+            "q0 = [{}], q1 = [{}], alpha = {}", fmt::streamed(q0), fmt::streamed(q1), alpha);
         ASSERT_EIGEN_NEAR(D1_num, D1_gen, 1.0e-6) << fmt::format(
             "q0 = [{}], q1 = [{}], alpha = {}", fmt::streamed(q0), fmt::streamed(q1), alpha);
       }
@@ -103,8 +73,6 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolation) {
 
 // Test the version with no conditionals.
 TEST(QuaternionInterpolationTest, TestQuatInterpolationNoConditional) {
-  auto evaluator = create_evaluator(&quat_interpolation_no_conditional);
-
   for (const auto& q0 : get_test_quats()) {
     for (const auto& q1 : get_test_quats()) {
       if ((q0.coeffs() - q1.coeffs()).cwiseAbs().array().maxCoeff() < 1.0e-16) {
@@ -112,17 +80,9 @@ TEST(QuaternionInterpolationTest, TestQuatInterpolationNoConditional) {
         continue;
       }
       for (const double alpha : {0.001, 0.5, 0.999}) {
-        Quaterniond q_eval{};
-        Matrix3d D0_eval, D1_eval;
-        evaluator(q0.coeffs(), q1.coeffs(), alpha, q_eval.coeffs(), D0_eval, D1_eval);
-
         Quaterniond q_gen{};
         Matrix3d D0_gen{}, D1_gen{};
         gen::quaternion_interpolation_no_conditional(q0, q1, alpha, q_gen, D0_gen, D1_gen);
-
-        ASSERT_EIGEN_NEAR(q_eval.coeffs(), q_gen.coeffs(), 1.0e-15);
-        ASSERT_EIGEN_NEAR(D0_eval, D0_gen, 1.0e-14);
-        ASSERT_EIGEN_NEAR(D1_eval, D1_gen, 1.0e-14);
 
         // compare to interpolation with eigen
         ASSERT_EIGEN_NEAR(quat_interp(q0, q1, alpha).coeffs(), q_gen.coeffs(), 1.0e-15);
