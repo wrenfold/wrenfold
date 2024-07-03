@@ -75,8 +75,8 @@ if(${SPHINX_FOUND})
   set(HANDWRITTEN_RST_FILES
       "${CMAKE_SOURCE_DIR}/README.md"
       "${CMAKE_SOURCE_DIR}/LICENSE"
-      source/conf.py
       source/building.rst
+      source/conf.py
       source/cpp_api/index.rst
       source/cpp_api/span.rst
       source/faq.rst
@@ -84,6 +84,12 @@ if(${SPHINX_FOUND})
       source/license.rst
       source/performance.rst
       source/python_api/index.rst
+      source/quick_start_files/main.cpp
+      source/quick_start_files/quick_start_script.py
+      source/quick_start_files/rosenbrock.h
+      source/quick_start_files/rosenbrock_crate/Cargo.toml
+      source/quick_start_files/rosenbrock_crate/src/generated.rs
+      source/quick_start_files/rosenbrock_crate/src/lib.rs
       source/quick_start.rst
       source/reference/conditionals.rst
       source/reference/custom_types_script.py

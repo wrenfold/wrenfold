@@ -112,24 +112,11 @@ Why use symbolic code generation for mathematical functions? The [SymForce paper
 
 ## Installation
 
-<!--- github_wheel_install_start --->
 Prior to public release, pre-built python wheels may be obtained from the [GitHub Releases Page](https://github.com/wrenfold/wrenfold/releases). Select the `whl` file appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would download and install `wrenfold-0.0.3-cp310-cp310-macosx_11_0_arm64.whl`:
 
 ```
 pip install wrenfold-0.0.3-cp310-cp310-macosx_11_0_arm64.whl
 ```
-
-Then test that wrenfold can be imported:
-```python
->>> from wrenfold import sym
->>> x, y = sym.symbols('x, y')
->>> f = sym.cos(x * y)
->>> g = f.diff(x)
->>> g
--y * sin(x * y)
-```
-
-<!--- github_wheel_install_end --->
 
 ## Getting started
 
@@ -140,14 +127,14 @@ To get started:
   - Each example includes a unit test that invokes the generated code.
 - The [wrenfold-extra-examples](https://github.com/wrenfold/wrenfold-extra-examples) repository includes examples of integrating generated code into existing optimizers like [GTSAM](http://gtsam.org) and [Ceres](http://ceres-solver.org).
 
+## Building from source
+
+See [Building from source](https://wrenfold.org/building.html).
+
 ## Project status
 
-wrenfold was originally created by [me](https://github.com/gareth-cross) in response to pain points I experienced while integrating SymForce into a third-party codebase (see motivations section). In addition to addressing these concerns, I felt there opportunities to push the concept of symbolic code-generation further.
+wrenfold was originally created by [me](https://github.com/gareth-cross) in response to pain points I experienced while integrating SymForce into a third-party codebase (see motivations section). In addition to addressing these concerns, I felt there were opportunities to push the concept of symbolic code-generation further.
 
 The project began as a part-time hobby, and has evolved into a more full-featured framework over time. Since it was only recently released publicly, wrenfold is in the early stages of receiving feedback from a wider audience. There will be rough edges and undoubtedly some bugs. If you find something broken or missing, please consider [filing a ticket](https://github.com/wrenfold/wrenfold/issues/new/choose). I aim to continue developing and expanding the framework. For details of upcoming work, see the [planned features list](https://github.com/wrenfold/wrenfold/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
 
 If you are interested in collaboration opportunities or have general questions, please [reach out](mailto:gcross.code@icloud.com?subject=Wrenfold).
-
-## Building from source
-
-See [Building from source](https://wrenfold.org/building.html).
