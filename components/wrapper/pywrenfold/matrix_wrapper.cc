@@ -13,7 +13,6 @@
 #include "wf/derivative.h"
 #include "wf/expression.h"
 #include "wf/expressions/matrix.h"
-#include "wf/expressions/numeric_expressions.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 #include "wf/numerical_casts.h"

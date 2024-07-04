@@ -355,38 +355,26 @@ static std::tuple<permutation_matrix, permutation_matrix> factorize_full_piv_lu_
   return std::make_tuple(std::move(P), std::move(Q));
 }
 
+static matrix_expr create_matrix_from_permutations(const permutation_matrix& P) {
+  std::vector<scalar_expr> data(P.rows() * P.rows(), constants::zero);
+  const auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
+                              make_value_pack(P.rows(), constant<1>{}));
+
+  for (index_t row = 0; row < P.rows(); ++row) {
+    span(row, P.permuted_row(row)) = constants::one;
+  }
+  return matrix_expr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),
+                             std::move(data));
+}
+
 static std::tuple<permutation_matrix, matrix, matrix, permutation_matrix>
 factorize_full_piv_lu_internal(const matrix& A) {
+  // TODO: See https://github.com/wrenfold/wrenfold/issues/235
   if (A.rows() > A.cols()) {
-    // To simplify the implementation, we factorize the transpose and then do a fix-up step:
-    auto [P, L, U, Q] = factorize_full_piv_lu_internal(A.transposed());
-
-    // First transpose the outputs:
-    matrix U_out = L.transposed();
-    matrix L_out = U.transposed();
-
-    WF_ASSERT_EQ(L_out.rows(), A.rows());
-    WF_ASSERT_EQ(L_out.cols(), A.cols());
-    WF_ASSERT_EQ(U_out.rows(), A.cols());
-    WF_ASSERT_EQ(U_out.rows(), U_out.cols());
-
-    // Then we need to normalize the diagonal of L
-    for (index_t col = 0; col < L_out.cols(); ++col) {
-      scalar_expr v = L_out.get_unchecked(col, col);
-      L_out.get_unchecked(col, col) = constants::one;
-
-      if (!is_zero(v)) {
-        for (index_t row = col + 1; row < L_out.rows(); ++row) {
-          L_out.get_unchecked(row, col) = L_out.get_unchecked(row, col) / v;
-        }
-      }
-
-      // Multiply onto rows of U:
-      for (index_t u_col = 0; u_col < U_out.cols(); ++u_col) {
-        U_out.get_unchecked(col, u_col) = U_out.get_unchecked(col, u_col) * v;
-      }
-    }
-    return std::make_tuple(Q.transposed(), std::move(L_out), std::move(U_out), P.transposed());
+    throw dimension_error(
+        "Factorization of matrices with more rows than columns is not supported yet. `A` has shape "
+        "[{}, {}]",
+        A.rows(), A.cols());
   } else {
     // We copy A and then use this as storage for the output `U`.
     std::vector<scalar_expr> U_storage{A.begin(), A.end()};
@@ -408,18 +396,6 @@ factorize_full_piv_lu_internal(const matrix& A) {
 
     return std::make_tuple(std::move(P), std::move(L), std::move(U), std::move(Q));
   }
-}
-
-static matrix_expr create_matrix_from_permutations(const permutation_matrix& P) {
-  std::vector<scalar_expr> data(P.rows() * P.rows(), constants::zero);
-  const auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
-                              make_value_pack(P.rows(), constant<1>{}));
-
-  for (index_t row = 0; row < P.rows(); ++row) {
-    span(row, P.permuted_row(row)) = constants::one;
-  }
-  return matrix_expr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),
-                             std::move(data));
 }
 
 std::tuple<matrix_expr, matrix_expr, matrix_expr, matrix_expr> factorize_full_piv_lu(
