@@ -83,7 +83,7 @@ fn determine_poly_index(interval: usize, num_intervals: usize, order: usize) -> 
     } else if interval < num_intervals {
         order - 1
     } else {
-        order - (num_intervals - interval)
+        order + (interval - num_intervals)
     }
 }
 

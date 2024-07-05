@@ -57,7 +57,7 @@ constexpr std::size_t determine_poly_index(const std::size_t interval,
   } else if (interval < num_intervals) {
     return order - 1;
   } else {
-    return order - (num_intervals - interval);
+    return order + (interval - num_intervals);
   }
 }
 
