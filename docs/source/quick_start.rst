@@ -7,11 +7,11 @@ Installing the python package
 Prior to public release, pre-built python wheels may be obtained from the
 `GitHub Releases Page <https://github.com/wrenfold/wrenfold/releases>`_. Select the ``whl`` file
 appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would
-download and install ``wrenfold-0.0.3-cp310-cp310-macosx_11_0_arm64.whl``:
+download and install ``wrenfold-0.0.4-cp310-cp310-macosx_11_0_arm64.whl``:
 
 .. code:: bash
 
-   pip install wrenfold-0.0.3-cp310-cp310-macosx_11_0_arm64.whl
+   pip install wrenfold-0.0.4-cp310-cp310-macosx_11_0_arm64.whl
 
 Then open a python REPL and test that wrenfold can be imported:
 
