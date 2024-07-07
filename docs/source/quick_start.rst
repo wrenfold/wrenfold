@@ -71,6 +71,12 @@ A couple of observations about this output:
     a small header-only library that provides the :class:`wf::span` type.
 
 
+.. tip::
+
+   The runtime is also installed by the python wheel. It can be found at
+   ``<VENV ROOT>/include/site/python3.XX/wrenfold``.
+
+
 Calling the generated C++
 -------------------------
 
@@ -89,7 +95,7 @@ need to adjust these paths for your system.
 
 .. code:: bash
 
-   g++ -I/usr/local/include/eigen3 -I<WRENFOLD REPO>/components/runtime main.cpp
+   g++ -std=c++17 -I/usr/local/include/eigen3 -I<WRENFOLD REPO>/components/runtime main.cpp
    ./a.out
 
 And sure enough our test program outputs::
