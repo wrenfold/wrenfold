@@ -4,7 +4,14 @@ Quick start guide
 Installing the python package
 -----------------------------
 
-Prior to public release, pre-built python wheels may be obtained from the
+Python wheels are available on `PyPi <https://pypi.org/project/wrenfold/>`_. Install the latest
+version of wrenfold with:
+
+.. code:: bash
+
+   pip install wrenfold
+
+**Alternatively**, python wheels may also be obtained from the
 `GitHub Releases Page <https://github.com/wrenfold/wrenfold/releases>`_. Select the ``whl`` file
 appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would
 download and install ``wrenfold-0.0.5-cp310-cp310-macosx_11_0_arm64.whl``:
