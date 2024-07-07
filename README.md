@@ -113,10 +113,10 @@ Why use symbolic code generation for mathematical functions? The [SymForce paper
 
 ## Installation
 
-Prior to public release, pre-built python wheels may be obtained from the [GitHub Releases Page](https://github.com/wrenfold/wrenfold/releases). Select the `whl` file appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would download and install `wrenfold-0.0.4-cp310-cp310-macosx_11_0_arm64.whl`:
+Prior to public release, pre-built python wheels may be obtained from the [GitHub Releases Page](https://github.com/wrenfold/wrenfold/releases). Select the `whl` file appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would download and install `wrenfold-0.0.5-cp310-cp310-macosx_11_0_arm64.whl`:
 
 ```
-pip install wrenfold-0.0.4-cp310-cp310-macosx_11_0_arm64.whl
+pip install wrenfold-0.0.5-cp310-cp310-macosx_11_0_arm64.whl
 ```
 
 ## Getting started

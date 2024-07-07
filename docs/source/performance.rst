@@ -99,7 +99,7 @@ and evaluation in the context of a production system.
 Results
 -------
 
-The following results were last updated with wrenfold ``v0.0.4``. We collect results for
+The following results were last updated with wrenfold ``v0.0.5``. We collect results for
 ``gcc 12.3.0-3`` and ``clang 16.0.6`` - both using optimization level ``-O3`` and ``x86_64``
 architecture. The benchmark code can be found in the
 `wrenfold-benchmarks <https://github.com/wrenfold/wrenfold-benchmarks>`_ repository.
