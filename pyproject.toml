@@ -7,7 +7,7 @@ authors = [
 ]
 description = "Tools for code-generating mathematical functions."
 license = { text = "MIT" }
-readme = "README.md"
+readme = "docs/PACKAGE_README.md"
 keywords = ["symbolic", "math", "code-generation", "robotics", "vision"]
 classifiers = [
     "Development Status :: 3 - Alpha",
