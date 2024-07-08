@@ -181,8 +181,8 @@ The output code (truncated here) now includes the clamping logic as well:
         // ... the remainder of the function is effectively unchanged.
     }
 
-Inspecting intermediate parts
------------------------------
+Inspecting the AST
+------------------
 
 When :func:`wrenfold.code_generation.generate_function` is called, three separate steps occur:
 
@@ -194,7 +194,7 @@ When :func:`wrenfold.code_generation.generate_function` is called, three separat
      syntax tree (AST).
   #. The syntax tree is emitted in a particular language (C++ for example).
 
-If desired (perhaps while debugging), we can perform these steps separately First, we create
+If desired (perhaps while debugging), we can perform these steps separately. First, we create
 the ``FunctionDescription``:
 
 .. code:: python
