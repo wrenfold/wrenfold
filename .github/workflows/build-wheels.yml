@@ -92,6 +92,17 @@ jobs:
       - name: Create wheel archive
         run: tar -czvf wrenfold-wheels.tar.gz wheels/
 
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install git-archive-all
+        run: pip install git-archive-all
+
+      - name: Create complete source archive
+        run: git-archive-all -v wrenfold-source-${{ github.ref_name }}.tar.gz
+
       - name: "Build Changelog"
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v4
@@ -107,5 +118,6 @@ jobs:
           files: |
             wheels/*.whl
             wrenfold-wheels.tar.gz
+            wrenfold-source-${{ github.ref_name }}.tar.gz
           draft: true
           body: ${{steps.build_changelog.outputs.changelog}}
