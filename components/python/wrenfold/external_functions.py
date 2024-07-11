@@ -3,12 +3,9 @@ Utilities for defining user-specified external functions.
 """
 import typing as T
 
-from . import sym
-from . import custom_types
-from . import type_annotations
-from . import type_info
-
 from pywrenfold.gen import PyExternalFunction
+
+from . import custom_types, sym, type_annotations, type_info
 
 
 class ExternalFunction(PyExternalFunction):

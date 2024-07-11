@@ -2,17 +2,24 @@
 An example of a custom code-generator implemented entirely in python.
 """
 import dataclasses
-import numpy as np
 import typing as T
 import unittest
 
-from wrenfold import ast
-from wrenfold import code_generation
-from wrenfold import geometry
-from wrenfold import sym
-from wrenfold import type_annotations
-from wrenfold import type_info
-from wrenfold.enumerations import StdMathFunction, RelationalOperation, SymbolicConstant
+import numpy as np
+
+from wrenfold import (
+    ast,
+    code_generation,
+    geometry,
+    sym,
+    type_annotations,
+    type_info,
+)
+from wrenfold.enumerations import (
+    RelationalOperation,
+    StdMathFunction,
+    SymbolicConstant,
+)
 
 
 @dataclasses.dataclass

@@ -2,13 +2,8 @@
 import argparse
 import dataclasses
 
-from wrenfold import ast
-from wrenfold import code_generation
-from wrenfold import sym
-from wrenfold import type_info
-from wrenfold.code_generation import CppGenerator, RustGenerator
+from wrenfold import ast, code_generation, sym, type_annotations, type_info
 from wrenfold.external_functions import declare_external_function
-from wrenfold.type_annotations import FloatScalar, Opaque
 
 
 @dataclasses.dataclass
@@ -18,7 +13,7 @@ class StructType:
     y: sym.Expr
 
 
-class VectorOfStructs(Opaque):
+class VectorOfStructs(type_annotations.Opaque):
     """
     This is a placeholder that will be generated as std::vector<StructType> or
     std::vec::Vec<StructType>.
@@ -38,7 +33,8 @@ vector_interpolate_access = declare_external_function(
     return_type=StructType)
 
 
-def lookup_and_compute_inner_product(vec: VectorOfStructs, a: FloatScalar, b: FloatScalar):
+def lookup_and_compute_inner_product(vec: VectorOfStructs, a: type_annotations.FloatScalar,
+                                     b: type_annotations.FloatScalar):
     """
     A simplified test case that calls a user-provided function to access two elements in a vector,
     then computes the inner product between them.
@@ -51,7 +47,7 @@ def lookup_and_compute_inner_product(vec: VectorOfStructs, a: FloatScalar, b: Fl
     return first.x * second.x + first.y * second.y
 
 
-class CustomCppGenerator(CppGenerator):
+class CustomCppGenerator(code_generation.CppGenerator):
 
     def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
@@ -71,7 +67,7 @@ class CustomCppGenerator(CppGenerator):
         return self.super_format(element)
 
 
-class CustomRustGenerator(RustGenerator):
+class CustomRustGenerator(code_generation.RustGenerator):
     """
     We need a similar set of customizations for Rust as well.
     """

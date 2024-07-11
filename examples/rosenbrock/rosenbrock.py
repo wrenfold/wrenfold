@@ -4,9 +4,7 @@ Generate the Rosenbrock function and its first derivative.
 
 import argparse
 
-from wrenfold import code_generation
-from wrenfold import sym
-from wrenfold import type_annotations
+from wrenfold import code_generation, sym, type_annotations
 
 
 def rosenbrock(

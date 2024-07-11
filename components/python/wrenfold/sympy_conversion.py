@@ -5,8 +5,9 @@ Conversion in the opposite direction is implemented in C++ in `sympy_conversion.
 import importlib
 import typing as T
 
+from pywrenfold.sympy_conversion import function_argument_variable, to_sympy
+
 from . import sym
-from pywrenfold.sympy_conversion import (to_sympy, function_argument_variable)
 
 
 class Conversions:

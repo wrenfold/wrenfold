@@ -4,14 +4,16 @@ Test ability to create and insert user-specified external functions into the exp
 import dataclasses
 import unittest
 
-from wrenfold import custom_types
-from wrenfold import exceptions
-from wrenfold import external_functions
-from wrenfold import sym
-from wrenfold import type_info
-from wrenfold.type_annotations import Vector2, Vector3, Opaque
-
 from test_base import MathTestBase
+
+from wrenfold import (
+    custom_types,
+    exceptions,
+    external_functions,
+    sym,
+    type_info,
+)
+from wrenfold.type_annotations import Opaque, Vector2, Vector3
 
 
 class ExternalFunctionWrapperTest(MathTestBase):

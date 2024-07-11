@@ -1,9 +1,7 @@
 """Code that we insert into the quick_start.rst document."""
 
 # [function_def_start]
-from wrenfold import code_generation
-from wrenfold import sym
-from wrenfold import type_annotations
+from wrenfold import code_generation, sym, type_annotations
 
 
 def rosenbrock(

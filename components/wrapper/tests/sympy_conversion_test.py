@@ -1,14 +1,14 @@
 """
 Test conversion of wrenfold expressions to sympy, and visa-versa.
 """
-import unittest
-import sympy as sp
 import sys
 import typing as T
+import unittest
 
-from wrenfold import sym
-from wrenfold import sympy_conversion
+import sympy as sp
 from test_base import MathTestBase
+
+from wrenfold import sym, sympy_conversion
 
 # Some shorthand for the purpose of this test:
 spy = sympy_conversion.to_sympy

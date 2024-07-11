@@ -4,8 +4,8 @@ ensure the generated code that is checked-in is up to date.
 """
 
 import argparse
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 
 def main():

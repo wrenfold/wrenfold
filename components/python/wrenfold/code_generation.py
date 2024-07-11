@@ -6,11 +6,6 @@ import inspect
 import pathlib
 import typing as T
 
-from . import sym
-from . import custom_types
-from . import type_annotations
-from . import type_info
-
 from pywrenfold.gen import (
     Argument,
     ArgumentDirection,
@@ -23,6 +18,8 @@ from pywrenfold.gen import (
     cse_function_description,
     transpile,
 )
+
+from . import custom_types, sym, type_annotations, type_info
 
 
 @dataclasses.dataclass

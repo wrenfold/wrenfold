@@ -14,10 +14,7 @@ import argparse
 import dataclasses
 import typing as T
 
-from wrenfold import ast
-from wrenfold import code_generation
-from wrenfold import sym
-from wrenfold import type_info
+from wrenfold import ast, code_generation, sym, type_info
 from wrenfold.geometry import Quaternion
 from wrenfold.type_annotations import FloatScalar, Vector3
 

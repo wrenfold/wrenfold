@@ -62,3 +62,8 @@ test-command = [
     "python \"{package}/examples/python_generation/python_generation.py\""
 ]
 test-requires = ["numpy", "sympy"]
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+known_first_party = ["wrenfold", "pywrenfold"]

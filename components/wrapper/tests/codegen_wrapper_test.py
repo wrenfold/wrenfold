@@ -5,20 +5,15 @@ Most of the output code generation is tested by cpp_generation_test/rust_generat
 examples are also run as tests - these offer a lot more diverse coverage. The purpose of this
 test is just to validate that the wrapper works and exposes the correct members.
 """
-import unittest
 import dataclasses
 import typing as T
-
-from wrenfold import ast
-from wrenfold import code_generation
-from wrenfold import external_functions
-from wrenfold import sym
-from wrenfold import type_info
-from wrenfold.code_generation import ReturnValue, OutputArg
-from wrenfold.enumerations import StdMathFunction
-from wrenfold.type_annotations import FloatScalar, Vector2, Opaque
+import unittest
 
 from test_base import MathTestBase
+
+from wrenfold import ast, code_generation, external_functions, sym, type_info
+from wrenfold.enumerations import StdMathFunction
+from wrenfold.type_annotations import FloatScalar, Opaque, Vector2
 
 
 def func1(x: FloatScalar, y: FloatScalar, v: Vector2):
@@ -34,10 +29,10 @@ def func2(x: Vector2, y: Vector2, z: FloatScalar):
     diff_y = sym.vector(m).jacobian(y)
     diff_z = sym.vector(m).jacobian([z])
     return [
-        ReturnValue(m),
-        OutputArg(diff_x, name='diff_x', is_optional=False),
-        OutputArg(diff_y, name='diff_y', is_optional=False),
-        OutputArg(diff_z, name='diff_z', is_optional=True),
+        code_generation.ReturnValue(m),
+        code_generation.OutputArg(diff_x, name='diff_x', is_optional=False),
+        code_generation.OutputArg(diff_y, name='diff_y', is_optional=False),
+        code_generation.OutputArg(diff_z, name='diff_z', is_optional=True),
     ]
 
 
@@ -52,7 +47,7 @@ def rotate_point(angle: FloatScalar, p: Point2d):
     R = sym.matrix([[sym.cos(angle), -sym.sin(angle)], [sym.sin(angle), sym.cos(angle)]])
     p_rotated = R * sym.vector(p.x, p.y)
     p_out = Point2d(*p_rotated)
-    return [OutputArg(p_out, name="p_rotated")]
+    return [code_generation.OutputArg(p_out, name="p_rotated")]
 
 
 class OpaqueType(Opaque):

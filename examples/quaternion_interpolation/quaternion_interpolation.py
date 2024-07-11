@@ -3,10 +3,9 @@ Generate quaternion interpolation with tangent-space derivatives using wrenfold.
 """
 import argparse
 
-from wrenfold import code_generation
-from wrenfold import sym
+from wrenfold import code_generation, sym
 from wrenfold.geometry import Quaternion
-from wrenfold.type_annotations import Vector4, FloatScalar
+from wrenfold.type_annotations import FloatScalar, Vector4
 
 
 def quaternion_interpolation_impl(q0_xyzw: Vector4,

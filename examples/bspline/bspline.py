@@ -14,11 +14,10 @@ cox-de-boor formula. Then the polynomial segments for each sub-interval between 
 knots are combined into piecewise continuous (to derivative k - 1) polynomials.
 """
 import argparse
-import typing as T
 import collections
+import typing as T
 
-from wrenfold import code_generation
-from wrenfold import sym
+from wrenfold import code_generation, sym
 from wrenfold.type_annotations import FloatScalar
 
 

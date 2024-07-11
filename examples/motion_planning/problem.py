@@ -1,5 +1,4 @@
 import argparse
-
 from dataclasses import dataclass
 
 from wrenfold import code_generation, sym, type_info
