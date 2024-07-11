@@ -1,12 +1,14 @@
 """
 Source code for the `external_functions.rst` file.
 """
-from wrenfold import sym
-from wrenfold import type_annotations
-from wrenfold import external_functions
-from wrenfold import code_generation
-from wrenfold import ast
-from wrenfold import type_info
+from wrenfold import (
+    ast,
+    code_generation,
+    external_functions,
+    sym,
+    type_annotations,
+    type_info,
+)
 
 
 # [lookup_table_start]

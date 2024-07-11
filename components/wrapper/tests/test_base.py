@@ -1,7 +1,7 @@
 """Shared utilities for unit testing."""
-import unittest
 import sys
 import typing as T
+import unittest
 
 from wrenfold import sym
 

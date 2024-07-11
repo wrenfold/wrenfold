@@ -4,13 +4,13 @@ Test of matrix-specific functionality.
 These tests are here to make sure that wrapped methods behave as expected, and that we
 don't accidentally remove any wrappers. Algorithmic tests are in C++.
 """
-import numpy as np
 import typing as T
 import unittest
 
-from wrenfold import exceptions
-from wrenfold import sym
+import numpy as np
 from test_base import MathTestBase
+
+from wrenfold import exceptions, sym
 
 
 class MatrixWrapperTest(MathTestBase):

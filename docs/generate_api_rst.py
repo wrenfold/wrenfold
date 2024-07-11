@@ -4,20 +4,21 @@ Script that generates the `python_api_docs.rst` file. This
 import argparse
 import inspect
 import typing as T
-
 from pathlib import Path
 
 # The built library needs to be on the import path by this point.
-from wrenfold import ast
-from wrenfold import code_generation
-from wrenfold import enumerations
-from wrenfold import exceptions
-from wrenfold import external_functions
-from wrenfold import geometry
-from wrenfold import sym
-from wrenfold import sympy_conversion
-from wrenfold import type_annotations
-from wrenfold import type_info
+from wrenfold import (
+    ast,
+    code_generation,
+    enumerations,
+    exceptions,
+    external_functions,
+    geometry,
+    sym,
+    sympy_conversion,
+    type_annotations,
+    type_info,
+)
 
 
 def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):

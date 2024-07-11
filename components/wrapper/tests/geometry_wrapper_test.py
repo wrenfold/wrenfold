@@ -5,10 +5,10 @@ NB: Most of this is tested in `quaternion_test.cc`. This is just a test of the w
 """
 import unittest
 
+from test_base import MathTestBase
+
 from wrenfold import sym
 from wrenfold.geometry import Quaternion
-
-from test_base import MathTestBase
 
 
 class GeometryWrapperTest(MathTestBase):

@@ -4,9 +4,7 @@ Supporting methods for interfacing with user-provided types.
 import dataclasses
 import typing as T
 
-from . import sym
-from . import type_annotations
-from . import type_info
+from . import sym, type_annotations, type_info
 
 # Refer to possible types we put in the generated code.
 CodegenType = T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]

@@ -6,9 +6,9 @@ don't accidentally remove any.
 """
 import unittest
 
-from wrenfold import sym
-from wrenfold import exceptions
 from test_base import MathTestBase
+
+from wrenfold import exceptions, sym
 
 
 class ExpressionWrapperTest(MathTestBase):

@@ -3,11 +3,7 @@ Source code for the `custom_types.rst` file.
 """
 import dataclasses
 
-from wrenfold import sym
-from wrenfold import type_annotations
-from wrenfold import code_generation
-from wrenfold import ast
-from wrenfold import type_info
+from wrenfold import ast, code_generation, sym, type_annotations, type_info
 
 
 # [dataclass_declaration_start]

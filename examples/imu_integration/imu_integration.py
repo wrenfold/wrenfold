@@ -13,10 +13,9 @@ In practice, there is a larger space of design choices you could make. For insta
 import argparse
 import typing as T
 
-from wrenfold import code_generation
-from wrenfold import sym
+from wrenfold import code_generation, sym
 from wrenfold.geometry import Quaternion, left_jacobian_of_so3
-from wrenfold.type_annotations import FloatScalar, Vector4, Vector3
+from wrenfold.type_annotations import FloatScalar, Vector3, Vector4
 
 
 def blockwise_jacobians(
