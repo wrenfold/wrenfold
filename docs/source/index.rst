@@ -80,4 +80,3 @@ Non-goals
 
     GitHub <https://github.com/wrenfold/wrenfold/>
     Rust Documentation <https://docs.rs/wrenfold-traits>
-    Discord <https://discord.gg/vQBk5BpQPZ>

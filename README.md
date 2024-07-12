@@ -18,7 +18,7 @@
 
 <p align="center">
 <strong>
-<a href="https://wrenfold.org">Documentation</a> | <a href="https://discord.gg/vQBk5BpQPZ">Discord</a>
+<a href="https://wrenfold.org">Documentation</a>
 </strong>
 </p>
 
