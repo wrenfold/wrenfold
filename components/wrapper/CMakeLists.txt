@@ -98,7 +98,7 @@ function(add_wrapper_module)
     endif()
     install(TARGETS ${MODULE_NAME} DESTINATION ${SKBUILD_PLATLIB_DIR})
     if(DEFINED STUBGEN_PATH)
-      install(FILES ${STUB_FINAL_OUTPUT_PATHS}
+      install(FILES ${STUBGEN_OUTPUT_PATHS}
               DESTINATION "${SKBUILD_PLATLIB_DIR}/${MODULE_NAME}")
     endif()
   endif()
