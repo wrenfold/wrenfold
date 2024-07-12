@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-wrenfold-traits = { version = "0.0.5", features = ["nalgebra"] }
+wrenfold-traits = { version = "0.0.6", features = ["nalgebra"] }
 nalgebra = { version = "0.32" }
 
 [workspace]
