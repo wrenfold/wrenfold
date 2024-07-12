@@ -302,7 +302,7 @@ dependencies = [
 
 [[package]]
 name = "bspline_demo"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "arrayvec",
  "bspline_rust_test",
@@ -3187,7 +3187,7 @@ dependencies = [
 
 [[package]]
 name = "wrenfold-test-utils"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "approx 0.5.1",
  "nalgebra",
@@ -3195,7 +3195,7 @@ dependencies = [
 
 [[package]]
 name = "wrenfold-traits"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "nalgebra",
 ]
