@@ -30,8 +30,7 @@
 Using wrenfold, mathematical functions can be expressed and composed succinctly in python:
 
 ```python
-from wrenfold import code_generation
-from wrenfold import sym
+from wrenfold import code_generation, sym
 from wrenfold.type_annotations import Vector3
 
 def angular_distance(a: Vector3, b: Vector3):
@@ -132,8 +131,8 @@ See [Building from source](https://wrenfold.org/building.html).
 
 ## Project status
 
-wrenfold was originally created by [me](https://github.com/gareth-cross) in response to pain points I experienced while integrating SymForce into a third-party codebase (see motivations section). In addition to addressing these concerns, I felt there were opportunities to push the concept of symbolic code-generation further.
+wrenfold was originally created by [me](https://github.com/gareth-cross) after determining there were opportunities to push the symbolic code-generation concept further (see motivations section).
 
-The project began as a part-time hobby, and has evolved into a more full-featured framework over time. Since it was only recently released publicly, wrenfold is in the early stages of receiving feedback from a wider audience. There will be rough edges and undoubtedly some bugs. If you find something broken or missing, please consider [filing a ticket](https://github.com/wrenfold/wrenfold/issues/new/choose). I aim to continue developing and expanding the framework. For details of upcoming work, see the [planned features list](https://github.com/wrenfold/wrenfold/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
+The project began as a part-time hobby for fun, and has evolved into a more full-featured framework over time. wrenfold is in the early stages of receiving feedback from a wider audience. There will be rough edges and undoubtedly some bugs. If you find something broken or missing, please consider [filing a ticket](https://github.com/wrenfold/wrenfold/issues/new/choose). I aim to continue developing and expanding the framework. For details of upcoming work, see the [planned features list](https://github.com/wrenfold/wrenfold/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
 
 If you are interested in collaboration opportunities or have general questions, please [reach out](mailto:gcross.code@icloud.com?subject=Wrenfold).
