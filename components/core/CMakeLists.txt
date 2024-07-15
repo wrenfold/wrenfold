@@ -159,6 +159,15 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build detected, enabling WF_DEBUG")
   target_compile_definitions(wf_core PUBLIC -DWF_DEBUG)
+  if(DEFINED SKBUILD_PROJECT_NAME)
+    # It would appear on windows that scikit-build-core builds in Debug mode,
+    # irrespective of cmake.build-type. We definitely want to catch this. If you
+    # actually want to produce Debug build wheels, comment this out.
+    message(
+      FATAL_ERROR
+        "In Debug build, but running from scikit-build-core. This is probably a mistake."
+    )
+  endif()
 endif()
 
 option(WF_BUILD_WITH_TRACING "Enable traces for profiling." OFF)

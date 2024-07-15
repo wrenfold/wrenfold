@@ -33,7 +33,7 @@ Issues = "https://github.com/wrenfold/wrenfold/issues"
 
 [build-system]
 requires = [
-    "scikit-build-core>=0.2.2",
+    "scikit-build-core==0.9.8",
     "cmake>=3.20",
     "ninja>=1.5",
     # mypy required for stubgen.
@@ -43,7 +43,9 @@ build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 cmake.version = ">=3.20"
-cmake.args = ["-G", "Ninja", "-Wno-deprecated"]
+# It seems like setting `build-type` is insufficient on Windows, and we fall back to Debug.
+# Place it in the `args` list to force a release build.
+cmake.args = ["-G", "Ninja", "-Wno-deprecated", "-DCMAKE_BUILD_TYPE=RelWithDebInfo"]
 cmake.verbose = true
 cmake.build-type = "RelWithDebInfo"
 
