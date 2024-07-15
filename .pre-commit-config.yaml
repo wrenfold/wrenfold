@@ -3,7 +3,7 @@ repos:
     rev: v2.3.0
     hooks:
       - id: check-yaml
-        exclude: '^dependencies/'
+        exclude: '(^dependencies/)|(support/conda/.*\.yaml)'
       - id: end-of-file-fixer
         exclude: '(^dependencies/)|(.*\.rs$)'
       - id: trailing-whitespace

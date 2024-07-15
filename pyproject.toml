@@ -55,14 +55,18 @@ ninja.make-fallback = false
 logging.level = "WARNING"
 
 wheel.packages = ["components/python/wrenfold"]
-wheel.license-files = ["LICENSE"]
+wheel.license-files = [
+    "LICENSE",
+    "dependencies/abseil-cpp/LICENSE",
+    "dependencies/fmt/LICENSE",
+    "dependencies/pybind11/LICENSE"
+]
 
 [tool.cibuildwheel]
 skip = ["*musllinux_*", "*-win32", "*_i686", "pp*"]
 manylinux-x86_64-image = "manylinux_2_28"
 test-command = [
-    "python -m unittest discover \"{package}/components/wrapper/tests\" --pattern \"*_test.py\"",
-    "python \"{package}/examples/python_generation/python_generation.py\""
+    "python \"{package}/support/test_wheel.py\"",
 ]
 test-requires = ["numpy", "sympy"]
 
