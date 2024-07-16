@@ -11,14 +11,22 @@ if(WF_BUILD_EXTRAS)
   add_subdirectory(tests)
 endif()
 
-if(DEFINED SKBUILD_HEADERS_DIR)
-  # This will install the headers under: `include/site/pythonX.Y/wrenfold`.
-  install(FILES ${RUNTIME_SOURCES} DESTINATION "${SKBUILD_HEADERS_DIR}")
-  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
-          DESTINATION "${SKBUILD_HEADERS_DIR}")
+if("$ENV{WF_SKIP_HEADER_INSTALL}" STREQUAL "skip")
+  message(
+    STATUS "WF_SKIP_HEADER_INSTALL specified, skipping header installation.")
 else()
-  install(FILES ${RUNTIME_SOURCES}
-          DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wrenfold")
-  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
-          DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wrenfold")
+  if(DEFINED SKBUILD_HEADERS_DIR)
+    # This will install the headers under: `include/site/pythonX.Y/wrenfold`.
+    message(STATUS "Installing headers to: ${SKBUILD_HEADERS_DIR}")
+    install(FILES ${RUNTIME_SOURCES} DESTINATION "${SKBUILD_HEADERS_DIR}")
+    install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+            DESTINATION "${SKBUILD_HEADERS_DIR}")
+  else()
+    # This will install headers to the normal include directory.
+    message(STATUS "Installing headers to: ${CMAKE_INSTALL_INCLUDEDIR}")
+    install(FILES ${RUNTIME_SOURCES}
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wrenfold")
+    install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/wrenfold")
+  endif()
 endif()

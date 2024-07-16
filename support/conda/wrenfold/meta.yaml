@@ -1,0 +1,56 @@
+{% set version = "0.0.7" %}
+
+package:
+  name: wrenfold
+  version: {{ version }}
+
+source:
+  path: ../../..
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
+    - python >=3.9
+    - scikit-build-core ==0.9.8
+    - cmake >=3.20
+    - ninja >=1.5
+    - mypy ==1.9.0
+    - pip
+  run:
+    - python >=3.9
+
+test:
+  imports:
+    - wrenfold
+    - wrenfold.sym
+  requires:
+    - pip
+    - numpy
+    - sympy
+  source_files:
+    - components/wrapper/tests/*.py
+    - examples/**/*.py
+    - support/test_wheel.py
+  commands:
+    - pip check
+    - python support/test_wheel.py
+
+about:
+  summary: Toolkit for generating code from symbolic math expressions.
+  license: MIT
+  license_file:
+    - LICENSE
+    - dependencies/abseil-cpp/LICENSE
+    - dependencies/fmt/LICENSE
+    - dependencies/pybind11/LICENSE
+  dev_url: https://github.com/wrenfold/wrenfold
+  doc_url: https://wrenfold.org
+
+extra:
+  recipe-maintainers:
+    - gareth-cross
