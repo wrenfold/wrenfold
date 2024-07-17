@@ -49,7 +49,7 @@ scalar_expr log(const scalar_expr& arg) {
     return *std::move(f);
   }
   // TODO: Check for negative values.
-  return make_expr<function>(built_in_function::log, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::log, arg);
 }
 
 // If `arg` is `i`, or `i*x`, we apply the replacement function.
@@ -96,7 +96,8 @@ scalar_expr cos(const scalar_expr& arg) {
       } else if (r_mod_pi == rational_constant{1, 2} || r_mod_pi == rational_constant{-1, 2}) {
         return constants::zero;
       }
-      return make_expr<function>(built_in_function::cos, scalar_expr(r_mod_pi) * constants::pi);
+      return make_expr<built_in_function_invocation>(built_in_function::cos,
+                                                     scalar_expr(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(coeff)) {
     return constants::one;
@@ -116,7 +117,7 @@ scalar_expr cos(const scalar_expr& arg) {
     return constants::undefined;
   }
   // TODO: Check for phase offsets.
-  return make_expr<function>(built_in_function::cos, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::cos, arg);
 }
 
 scalar_expr sin(const scalar_expr& arg) {
@@ -138,7 +139,8 @@ scalar_expr sin(const scalar_expr& arg) {
       } else if (r_mod_pi == rational_constant{-1, 2}) {
         return constants::negative_one;
       }
-      return make_expr<function>(built_in_function::sin, scalar_expr(r_mod_pi) * constants::pi);
+      return make_expr<built_in_function_invocation>(built_in_function::sin,
+                                                     scalar_expr(r_mod_pi) * constants::pi);
     }
   } else if (is_zero(arg)) {
     return constants::zero;
@@ -153,7 +155,7 @@ scalar_expr sin(const scalar_expr& arg) {
   if (arg.is_type<complex_infinity>() || is_undefined(arg)) {
     return constants::undefined;
   }
-  return make_expr<function>(built_in_function::sin, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::sin, arg);
 }
 
 inline rational_constant convert_to_tan_range(const rational_constant& r) {
@@ -191,8 +193,8 @@ scalar_expr tan(const scalar_expr& arg) {
         // Complex infinity.
         return constants::complex_infinity;
       }
-      return make_expr<function>(built_in_function::tan,
-                                 scalar_expr(r_mod_half_pi) * constants::pi);
+      return make_expr<built_in_function_invocation>(built_in_function::tan,
+                                                     scalar_expr(r_mod_half_pi) * constants::pi);
     }
   } else if (is_zero(arg)) {
     return constants::zero;
@@ -207,7 +209,7 @@ scalar_expr tan(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  return make_expr<function>(built_in_function::tan, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::tan, arg);
 }
 
 // TODO: Support some common numerical values, ie. acos(1 / sqrt(2)) -> pi/4
@@ -236,7 +238,7 @@ scalar_expr acos(const scalar_expr& arg) {
       result.has_value()) {
     return *std::move(result);
   }
-  return make_expr<function>(built_in_function::arccos, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::arccos, arg);
 }
 
 scalar_expr asin(const scalar_expr& arg) {
@@ -255,7 +257,7 @@ scalar_expr asin(const scalar_expr& arg) {
       result.has_value()) {
     return *std::move(result);
   }
-  return make_expr<function>(built_in_function::arcsin, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::arcsin, arg);
 }
 
 inline scalar_expr pi_over_four() {
@@ -279,7 +281,7 @@ scalar_expr atan(const scalar_expr& arg) {
       result.has_value()) {
     return *std::move(result);
   }
-  return make_expr<function>(built_in_function::arctan, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::arctan, arg);
 }
 
 scalar_expr cosh(const scalar_expr& arg) {
@@ -300,12 +302,12 @@ scalar_expr cosh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  if (const function* func = get_if<const function>(arg);
+  if (const built_in_function_invocation* func = get_if<const built_in_function_invocation>(arg);
       func != nullptr && func->enum_value() == built_in_function::arccosh) {
     // cosh(acosh(x)) --> x
     return func->args().front();
   }
-  return make_expr<function>(built_in_function::cosh, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::cosh, arg);
 }
 
 scalar_expr sinh(const scalar_expr& arg) {
@@ -329,12 +331,12 @@ scalar_expr sinh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  if (const function* func = get_if<const function>(arg);
+  if (const built_in_function_invocation* func = get_if<const built_in_function_invocation>(arg);
       func != nullptr && func->enum_value() == built_in_function::arcsinh) {
     // sinh(asinh(x)) --> x
     return func->args().front();
   }
-  return make_expr<function>(built_in_function::sinh, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::sinh, arg);
 }
 
 scalar_expr tanh(const scalar_expr& arg) {
@@ -357,12 +359,12 @@ scalar_expr tanh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  if (const function* func = get_if<const function>(arg);
+  if (const built_in_function_invocation* func = get_if<const built_in_function_invocation>(arg);
       func != nullptr && func->enum_value() == built_in_function::arctanh) {
     // tanh(atanh(x)) --> x
     return func->args().front();
   }
-  return make_expr<function>(built_in_function::tanh, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::tanh, arg);
 }
 
 // TODO: Add handling of integer arguments.
@@ -377,7 +379,7 @@ scalar_expr acosh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  return make_expr<function>(built_in_function::arccosh, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::arccosh, arg);
 }
 
 scalar_expr asinh(const scalar_expr& arg) {
@@ -392,7 +394,7 @@ scalar_expr asinh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  return make_expr<function>(built_in_function::arcsinh, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::arcsinh, arg);
 }
 
 scalar_expr atanh(const scalar_expr& arg) {
@@ -406,7 +408,7 @@ scalar_expr atanh(const scalar_expr& arg) {
   if (is_complex_infinity(arg) || is_undefined(arg)) {
     return constants::undefined;
   }
-  return make_expr<function>(built_in_function::arctanh, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::arctanh, arg);
 }
 
 // Support some very basic simplifications for numerical inputs.
@@ -455,7 +457,7 @@ scalar_expr atan2(const scalar_expr& y, const scalar_expr& x) {
     return *std::move(maybe_simplified);
   }
   // TODO: Implement simplifications for atan2.
-  return make_expr<function>(built_in_function::arctan2, y, x);
+  return make_expr<built_in_function_invocation>(built_in_function::arctan2, y, x);
 }
 
 scalar_expr sqrt(const scalar_expr& arg) {
@@ -464,7 +466,7 @@ scalar_expr sqrt(const scalar_expr& arg) {
 }
 
 scalar_expr abs(const scalar_expr& arg) {
-  if (const function* func = get_if<const function>(arg);
+  if (const built_in_function_invocation* func = get_if<const built_in_function_invocation>(arg);
       func != nullptr && func->enum_value() == built_in_function::abs) {
     // abs(abs(x)) --> abs(x)
     return arg;
@@ -501,7 +503,7 @@ scalar_expr abs(const scalar_expr& arg) {
   }
   // TODO: Add simplifications for real inputs, like powers.
   // TODO: Add simplifications for multiplications.
-  return make_expr<function>(built_in_function::abs, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::abs, arg);
 }
 
 // TODO: Add simplifications for expressions like:
@@ -534,7 +536,8 @@ struct signum_visitor {
     return scalar_expr{sign(cf)};
   }
 
-  std::optional<scalar_expr> operator()(const function& func, const scalar_expr& func_expr) const {
+  std::optional<scalar_expr> operator()(const built_in_function_invocation& func,
+                                        const scalar_expr& func_expr) const {
     if (func.enum_value() == built_in_function::signum) {
       // sgn(sgn(x)) --> sgn(x), valid for real and complex
       return func_expr;
@@ -547,7 +550,7 @@ struct signum_visitor {
   // Handle all other cases.
   template <typename T, typename = enable_if_does_not_contain_type_t<
                             T, integer_constant, rational_constant, float_constant,
-                            symbolic_constant, function, undefined>>
+                            symbolic_constant, built_in_function_invocation, undefined>>
   std::optional<scalar_expr> operator()(const T&) const {
     return std::nullopt;
   }
@@ -558,7 +561,7 @@ scalar_expr signum(const scalar_expr& arg) {
       maybe_simplified.has_value()) {
     return *std::move(maybe_simplified);
   }
-  return make_expr<function>(built_in_function::signum, arg);
+  return make_expr<built_in_function_invocation>(built_in_function::signum, arg);
 }
 
 struct floor_visitor {
@@ -583,7 +586,8 @@ struct floor_visitor {
     return scalar_expr{static_cast<std::int64_t>(floored)};
   }
 
-  std::optional<scalar_expr> operator()(const function& func, const scalar_expr& arg) const {
+  std::optional<scalar_expr> operator()(const built_in_function_invocation& func,
+                                        const scalar_expr& arg) const {
     // If the argument is already an integer, floor does nothing:
     if (func.enum_value() == built_in_function::floor) {
       return arg;
@@ -601,9 +605,10 @@ struct floor_visitor {
   }
   std::optional<scalar_expr> operator()(const undefined&) const { return constants::undefined; }
 
-  template <typename T, typename = enable_if_does_not_contain_type_t<
-                            T, integer_constant, rational_constant, float_constant, function,
-                            symbolic_constant, complex_infinity, undefined>>
+  template <typename T,
+            typename = enable_if_does_not_contain_type_t<
+                T, integer_constant, rational_constant, float_constant,
+                built_in_function_invocation, symbolic_constant, complex_infinity, undefined>>
   std::optional<scalar_expr> operator()(const T&) const noexcept {
     return std::nullopt;
   }
@@ -614,7 +619,8 @@ scalar_expr floor(const scalar_expr& arg) {
       maybe_simplified.has_value()) {
     return *std::move(maybe_simplified);
   }
-  return scalar_expr{std::in_place_type_t<function>{}, built_in_function::floor, arg};
+  return scalar_expr{std::in_place_type_t<built_in_function_invocation>{}, built_in_function::floor,
+                     arg};
 }
 
 // Max and min are implemented as conditionals. That way:

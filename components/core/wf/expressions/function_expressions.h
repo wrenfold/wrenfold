@@ -13,14 +13,14 @@ WF_END_THIRD_PARTY_INCLUDES
 namespace wf {
 
 // Store a built-in function call. Valid functions are enumerated in `built_in_function`.
-class function {
+class built_in_function_invocation {
  public:
-  static constexpr std::string_view name_str = "Function";
+  static constexpr std::string_view name_str = "BuiltInFunctionInvocation";
   static constexpr bool is_leaf_node = false;
   using container_type = absl::InlinedVector<scalar_expr, 2>;
 
   template <typename... Args>
-  explicit function(const built_in_function func, Args&&... args)
+  explicit built_in_function_invocation(const built_in_function func, Args&&... args)
       : func_(func), args_{std::forward<Args>(args)...} {}
 
   // Create a function. Examines `name`, and then invokes the correct function method.
@@ -47,7 +47,8 @@ class function {
   // Implement ExpressionImpl::Map
   template <typename F>
   scalar_expr map_children(F&& f) const {
-    return function::create(func_, transform_map<container_type>(args_, std::forward<F>(f)));
+    return built_in_function_invocation::create(
+        func_, transform_map<container_type>(args_, std::forward<F>(f)));
   }
 
  protected:
@@ -56,23 +57,25 @@ class function {
 };
 
 template <>
-struct hash_struct<function> {
-  std::size_t operator()(const function& func) const {
+struct hash_struct<built_in_function_invocation> {
+  std::size_t operator()(const built_in_function_invocation& func) const {
     return hash_all(static_cast<std::size_t>(func.enum_value()), func.begin(), func.end());
   }
 };
 
 template <>
-struct is_identical_struct<function> {
-  bool operator()(const function& a, const function& b) const {
+struct is_identical_struct<built_in_function_invocation> {
+  bool operator()(const built_in_function_invocation& a,
+                  const built_in_function_invocation& b) const {
     return a.function_name() == b.function_name() && a.size() == b.size() &&
            std::equal(a.begin(), a.end(), b.begin(), is_identical_struct<scalar_expr>{});
   }
 };
 
 template <>
-struct order_struct<function> {
-  relative_order operator()(const function& a, const function& b) const {
+struct order_struct<built_in_function_invocation> {
+  relative_order operator()(const built_in_function_invocation& a,
+                            const built_in_function_invocation& b) const {
     // First compare by name:
     if (const int name_comp = a.function_name().compare(b.function_name()); name_comp > 0) {
       return relative_order::greater_than;

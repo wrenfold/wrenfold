@@ -55,12 +55,15 @@ TEST(FunctionsTest, TestCosine) {
                      cos(constants::pi * -2_s / 7_s + scalar_expr(2 * i) * constants::pi));
   }
 
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::cos, constants::pi / 4),
-                   cos(constants::pi / 4));
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::cos, constants::pi / 6),
-                   cos(constants::pi / 6));
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::cos, -constants::pi / 12),
-                   cos(-constants::pi / 12));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::cos, constants::pi / 4),
+      cos(constants::pi / 4));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::cos, constants::pi / 6),
+      cos(constants::pi / 6));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::cos, -constants::pi / 12),
+      cos(-constants::pi / 12));
 
   // Sign adjustment
   ASSERT_IDENTICAL(cos(x), cos(-x));
@@ -107,12 +110,15 @@ TEST(FunctionsTest, TestSine) {
                      sin(constants::pi * -6_s / 13_s + scalar_expr(2 * i) * constants::pi));
   }
 
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::sin, constants::pi / 4),
-                   sin(constants::pi / 4));
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::sin, constants::pi / 6),
-                   sin(constants::pi / 6));
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::sin, -constants::pi / 12),
-                   sin(-constants::pi / 12));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::sin, constants::pi / 4),
+      sin(constants::pi / 4));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::sin, constants::pi / 6),
+      sin(constants::pi / 6));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::sin, -constants::pi / 12),
+      sin(-constants::pi / 12));
 
   ASSERT_IDENTICAL(-sin(x), sin(-x));
   ASSERT_IDENTICAL(-sin(y / x), sin(y / -x));
@@ -154,12 +160,15 @@ TEST(FunctionsTest, TestTan) {
                      tan(constants::pi * -3_s / 13_s + scalar_expr(i) * constants::pi));
   }
 
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::tan, constants::pi / 4),
-                   tan(constants::pi / 4));
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::tan, constants::pi / 6),
-                   tan(constants::pi / 6));
-  ASSERT_IDENTICAL(make_expr<function>(built_in_function::tan, -constants::pi / 12),
-                   tan(-constants::pi / 12));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::tan, constants::pi / 4),
+      tan(constants::pi / 4));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::tan, constants::pi / 6),
+      tan(constants::pi / 6));
+  ASSERT_IDENTICAL(
+      make_expr<built_in_function_invocation>(built_in_function::tan, -constants::pi / 12),
+      tan(-constants::pi / 12));
 
   ASSERT_IDENTICAL(-tan(x), tan(-x));
   ASSERT_IDENTICAL(-tan(x * y), tan(-x * y));
@@ -312,7 +321,7 @@ TEST(FunctionsTest, TestArccosh) {
   const auto [x, y] = make_symbols("x", "y");
 
   ASSERT_NOT_IDENTICAL(acosh(x), acosh(y));
-  ASSERT_TRUE(acosh(3).is_type<function>());  //  Does not simplify.
+  ASSERT_TRUE(acosh(3).is_type<built_in_function_invocation>());  //  Does not simplify.
 
   ASSERT_IDENTICAL(constants::pi * constants::imaginary_unit / 2, acosh(0));
 
@@ -330,7 +339,7 @@ TEST(FunctionsTest, TestArcsinh) {
   const auto [x, y] = make_symbols("x", "y");
 
   ASSERT_NOT_IDENTICAL(asinh(x), asinh(y));
-  ASSERT_TRUE(asinh(2).is_type<function>());
+  ASSERT_TRUE(asinh(2).is_type<built_in_function_invocation>());
 
   ASSERT_IDENTICAL(0, asinh(0));
 
@@ -347,7 +356,7 @@ TEST(FunctionsTest, TestArctanh) {
   const auto [x, y] = make_symbols("x", "y");
 
   ASSERT_NOT_IDENTICAL(atanh(x), atanh(y));
-  ASSERT_TRUE(atanh(2).is_type<function>());
+  ASSERT_TRUE(atanh(2).is_type<built_in_function_invocation>());
 
   ASSERT_IDENTICAL(0, atanh(0));
 

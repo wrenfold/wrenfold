@@ -82,7 +82,7 @@ class sympy_conversion_visitor {
     return invoke_sympy_object("Float", flt.value());
   }
 
-  py::object operator()(const function& func) {
+  py::object operator()(const built_in_function_invocation& func) {
     // Absolute value need special treatment since there is no `abs` in sympy.
     const std::string_view func_name = func.enum_value() == built_in_function::abs
                                            ? "Abs"

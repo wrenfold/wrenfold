@@ -147,13 +147,14 @@ scalar_expr derivative_visitor::operator()(const multiplication& mul) {
 }
 
 // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
-scalar_expr derivative_visitor::operator()(const function& func, const scalar_expr& func_abstract) {
+scalar_expr derivative_visitor::operator()(const built_in_function_invocation& func,
+                                           const scalar_expr& func_abstract) {
   // Differentiate the arguments:
-  function::container_type d_args = transform_map<function::container_type>(
-      func, [this](const scalar_expr& arg) { return apply(arg); });
+  built_in_function_invocation::container_type d_args =
+      transform_map<built_in_function_invocation::container_type>(
+          func, [this](const scalar_expr& arg) { return apply(arg); });
 
-  if (const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
-      all_derivatives_zero) {
+  if (all_of(d_args, &is_zero)) {
     // If zero, we don't need to do any further operations.
     return constants::zero;
   }

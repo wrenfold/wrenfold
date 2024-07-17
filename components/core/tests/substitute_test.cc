@@ -35,7 +35,7 @@ TEST(SubstituteTest, TestFunctions) {
   ASSERT_IDENTICAL(0, cos(x).subs(x, constants::pi / 2));
   ASSERT_IDENTICAL(constants::complex_infinity, tan(z).subs(z, constants::pi / 2));
 
-  // Replacing function expressions:
+  // Replacing built_in_function_invocation expressions:
   ASSERT_IDENTICAL(z + y, cos(x).subs(cos(x), z + y));
   ASSERT_IDENTICAL(log(x), log(sin(5 * z)).subs(sin(5 * z), x));
 }
