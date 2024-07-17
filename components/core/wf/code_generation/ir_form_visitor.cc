@@ -179,7 +179,7 @@ static code_numeric_type std_function_output_type(const std_math_function func,
   return code_numeric_type::floating_point;
 }
 
-ir::value_ptr ir_form_visitor::operator()(const function& func) {
+ir::value_ptr ir_form_visitor::operator()(const built_in_function_invocation& func) {
   const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
 
   // Convert args to values:

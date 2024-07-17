@@ -30,7 +30,7 @@ class tree_formatter_visitor {
   void operator()(const derivative& diff);
   void operator()(const external_function_invocation& invocation);
   void operator()(const float_constant& f);
-  void operator()(const function& func);
+  void operator()(const built_in_function_invocation& func);
   void operator()(const imaginary_unit&);
   void operator()(const integer_constant& i);
   void operator()(const iverson_bracket& bracket);

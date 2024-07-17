@@ -96,7 +96,7 @@ class determine_set_visitor {
     return handle_add_or_mul(mul, &combine_sets_mul);
   }
 
-  number_set operator()(const function& func) const {
+  number_set operator()(const built_in_function_invocation& func) const {
     absl::InlinedVector<number_set, 4> args{};
     std::transform(func.begin(), func.end(), std::back_inserter(args), &determine_numeric_set);
     WF_ASSERT_GE(args.size(), 1);

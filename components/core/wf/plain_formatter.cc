@@ -252,7 +252,7 @@ void plain_formatter::operator()(const multiplication& mul) {
   }
 }
 
-void plain_formatter::operator()(const function& func) {
+void plain_formatter::operator()(const built_in_function_invocation& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
   auto it = func.begin();
   if (it != func.end()) {

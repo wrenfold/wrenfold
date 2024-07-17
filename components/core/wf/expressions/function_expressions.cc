@@ -9,8 +9,8 @@ namespace wf {
 
 // Call the appropriate creation method for the specified enum value.
 // We need this logic to support `map_children`.
-scalar_expr function::create(const built_in_function name,
-                             const absl::Span<const scalar_expr> args) {
+scalar_expr built_in_function_invocation::create(const built_in_function name,
+                                                 const absl::Span<const scalar_expr> args) {
   WF_ASSERT(!args.empty());
   switch (name) {
     case built_in_function::cos:
