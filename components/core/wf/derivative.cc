@@ -59,7 +59,7 @@ derivative_visitor::derivative_visitor(const scalar_expr& argument,
   }
 }
 
-scalar_expr derivative_visitor::apply(const scalar_expr& expression) {
+scalar_expr derivative_visitor::operator()(const scalar_expr& expression) {
   if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
   }
@@ -69,9 +69,7 @@ scalar_expr derivative_visitor::apply(const scalar_expr& expression) {
 }
 
 // Differentiate every argument to make a new sum.
-scalar_expr derivative_visitor::operator()(const addition& add) {
-  return add.map_children([this](const scalar_expr& expr) { return apply(expr); });
-}
+scalar_expr derivative_visitor::operator()(const addition& add) { return add.map_children(*this); }
 
 scalar_expr derivative_visitor::operator()(const compound_expression_element& el,
                                            const scalar_expr& expr) const {
@@ -90,7 +88,7 @@ scalar_expr derivative_visitor::operator()(const compound_expression_element& el
 //  the variable wrt we are differentiating), we should insert the dirac delta function.
 //  That said, this is more useful practically in most cases.
 scalar_expr derivative_visitor::operator()(const conditional& cond) {
-  return where(cond.condition(), apply(cond.if_branch()), apply(cond.else_branch()));
+  return where(cond.condition(), operator()(cond.if_branch()), operator()(cond.else_branch()));
 }
 
 scalar_expr derivative_visitor::operator()(const symbolic_constant&) const {
@@ -130,7 +128,7 @@ scalar_expr derivative_visitor::operator()(const multiplication& mul) {
   // Differentiate wrt every argument:
   for (std::size_t i = 0; i < mul.size(); ++i) {
     mul_terms.clear();
-    if (scalar_expr mul_i_diff = apply(mul[i]); !is_zero(mul_i_diff)) {
+    if (scalar_expr mul_i_diff = operator()(mul[i]); !is_zero(mul_i_diff)) {
       mul_terms.push_back(std::move(mul_i_diff));
 
       // TODO: Avoid copying all the scalar_exprs twice here.
@@ -150,9 +148,7 @@ scalar_expr derivative_visitor::operator()(const multiplication& mul) {
 scalar_expr derivative_visitor::operator()(const built_in_function_invocation& func,
                                            const scalar_expr& func_abstract) {
   // Differentiate the arguments:
-  built_in_function_invocation::container_type d_args =
-      transform_map<built_in_function_invocation::container_type>(
-          func, [this](const scalar_expr& arg) { return apply(arg); });
+  auto d_args = transform_map<built_in_function_invocation::container_type>(func, *this);
 
   if (all_of(d_args, &is_zero)) {
     // If zero, we don't need to do any further operations.
@@ -264,8 +260,8 @@ scalar_expr derivative_visitor::operator()(const float_constant&) const { return
 scalar_expr derivative_visitor::operator()(const power& pow) {
   const scalar_expr& base = pow.base();
   const scalar_expr& exp = pow.exponent();
-  const scalar_expr base_diff = apply(base);
-  const scalar_expr exp_diff = apply(exp);
+  const scalar_expr base_diff = operator()(base);
+  const scalar_expr exp_diff = operator()(exp);
   if (is_zero(base_diff) && is_zero(exp_diff)) {
     return constants::zero;
   }
@@ -288,10 +284,7 @@ scalar_expr derivative_visitor::operator()(const relational&, const scalar_expr&
 
 scalar_expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
-scalar_expr derivative_visitor::operator()(const unevaluated& u) {
-  // Keep the derivative between parentheses.
-  return u.map_children([this](const scalar_expr& x) { return apply(x); });
-}
+scalar_expr derivative_visitor::operator()(const unevaluated& u) { return u.map_children(*this); }
 
 scalar_expr derivative_visitor::operator()(const variable& var) const {
   if (const variable* arg = get_if<const variable>(argument_);
@@ -309,7 +302,7 @@ scalar_expr diff(const scalar_expr& function, const scalar_expr& var, const int 
   derivative_visitor visitor{var, behavior};
   scalar_expr result = function;
   for (int i = 0; i < reps; ++i) {
-    result = visitor.apply(result);
+    result = visitor(result);
   }
   return result;
 }
@@ -337,7 +330,7 @@ matrix_expr jacobian(const absl::Span<const scalar_expr> functions,
     // We cache derivative expressions, so that every row reuses the same cache:
     derivative_visitor diff_visitor{vars[col], behavior};
     for (std::size_t row = 0; row < functions.size(); ++row) {
-      result_span(row, col) = diff_visitor.apply(functions[row]);
+      result_span(row, col) = diff_visitor(functions[row]);
     }
   }
 

@@ -18,7 +18,7 @@ class derivative_visitor {
   derivative_visitor(const scalar_expr& argument, non_differentiable_behavior behavior);
 
   // Apply this visitor to the specified expression.
-  scalar_expr apply(const scalar_expr& expression);
+  scalar_expr operator()(const scalar_expr& expression);
 
   scalar_expr operator()(const addition& add);
   scalar_expr operator()(const compound_expression_element&, const scalar_expr& expr) const;
