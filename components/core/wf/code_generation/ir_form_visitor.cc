@@ -75,7 +75,8 @@ ir::value_ptr ir_form_visitor::operator()(const custom_type_construction& constr
   return push_operation(ir::construct{construct.type()}, construct.type(), operands);
 }
 
-ir::value_ptr ir_form_visitor::operator()(const external_function_invocation& invoke) {
+template <typename Derived>
+ir::value_ptr ir_form_visitor::operator()(const external_function_invocation<Derived>& invoke) {
   const external_function& f = invoke.function();
 
   // Generate values for every argument. Insert casts for scalars if required.

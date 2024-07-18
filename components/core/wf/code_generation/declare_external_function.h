@@ -36,7 +36,7 @@ class declare_external_function {
     const external_function& description = std::get<0>(description_and_arg_types);
 
     // Convert all the args to something we can store in `external_function_invocation`.
-    external_function_invocation::container_type captured_args{};
+    std::vector<any_expression> captured_args{};
     captured_args.reserve(sizeof...(args));
     zip_tuples(
         [&captured_args](auto arg, const auto& arg_type) {

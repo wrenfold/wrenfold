@@ -83,10 +83,11 @@ matrix_expr map_matrix_expression(const matrix_expr& expr, F&& f) {
 // Expand a compound expression, and visit all the sub-expressions that make it up with the provided
 // object `f`. Type `F` will be invoked with expression types like `scalar_expr`, `boolean_expr`,
 // etc.
+// TODO: Eliminate the need for this method.
 template <typename F>
 compound_expr map_compound_expressions(const compound_expr& expr, F&& f) {
   return visit(expr, make_overloaded(
-                         [&](const external_function_invocation& invocation) {
+                         [&](const compound_valued_external_function_invocation& invocation) {
                            return invocation.map_children([&](const any_expression& arg) {
                              // Visit the `any_expression` variant. `f()` is invoked with all
                              // the possible expression types.

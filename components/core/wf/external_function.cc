@@ -46,16 +46,17 @@ std::optional<std::size_t> external_function::arg_position(const std::string_vie
   return std::nullopt;
 }
 
-// Resolve the actual type of a compound expression:
+// Resolve the actual underlying type of the compound expression:
 static type_variant get_compound_type(const compound_expr& expr) {
-  return visit(expr, make_overloaded(
-                         [](const external_function_invocation& invocation) -> type_variant {
-                           return invocation.function().return_type();
-                         },
-                         [](const custom_type_argument& arg) -> type_variant { return arg.type(); },
-                         [](const custom_type_construction& construct) -> type_variant {
-                           return construct.type();
-                         }));
+  return visit(
+      expr, make_overloaded(
+                [](const compound_valued_external_function_invocation& invocation) -> type_variant {
+                  return invocation.function().return_type();
+                },
+                [](const custom_type_argument& arg) -> type_variant { return arg.type(); },
+                [](const custom_type_construction& construct) -> type_variant {
+                  return construct.type();
+                }));
 }
 
 template <typename A, typename B>
@@ -101,8 +102,8 @@ any_expression external_function::create_invocation(std::vector<any_expression> 
   }
 
   // Create invocation expression:
-  compound_expr invocation{std::in_place_type_t<external_function_invocation>{}, *this,
-                           std::move(args)};
+  compound_expr invocation{std::in_place_type_t<compound_valued_external_function_invocation>{},
+                           *this, std::move(args)};
 
   // Formulate an expression that matches our return type:
   return overloaded_visit(

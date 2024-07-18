@@ -14,7 +14,7 @@ namespace wf {
 // A user-defined function. External functions are opaque to the library - we know their signature,
 // but nothing about the internal operation. The user is responsible for mapping this object to some
 // function in their code base. For now all user-defined functions are assumed to be pure - in other
-// words they do not produce side-effects.
+// words they do not produce side effects.
 class external_function {
  public:
   external_function(std::string name, std::vector<argument> arguments, type_variant return_type);
@@ -63,7 +63,7 @@ class external_function {
   }
 
   // Create an invocation of this function.
-  // The arguments are type-checked aginst the provided expressions.
+  // The arguments are type-checked against the provided expressions.
   any_expression create_invocation(std::vector<any_expression> args) const;
 
  private:

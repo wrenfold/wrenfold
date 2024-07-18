@@ -12,6 +12,9 @@
 
 namespace wf {
 
+template <typename Derived>
+class external_function_invocation;
+
 // Recursively print expressions as a graphical utf-8 tree (mostly for diffing/debugging).
 class tree_formatter_visitor {
  public:
@@ -28,7 +31,8 @@ class tree_formatter_visitor {
   void operator()(const custom_type_argument& arg);
   void operator()(const custom_type_construction& construct);
   void operator()(const derivative& diff);
-  void operator()(const external_function_invocation& invocation);
+  template <typename Derived>
+  void operator()(const external_function_invocation<Derived>& invocation);
   void operator()(const float_constant& f);
   void operator()(const built_in_function_invocation& func);
   void operator()(const imaginary_unit&);

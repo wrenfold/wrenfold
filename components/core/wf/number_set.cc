@@ -60,7 +60,7 @@ class determine_set_visitor {
 
   number_set operator()(const compound_expression_element& el) const {
     auto overloads = make_overloaded(
-        [&](const external_function_invocation& invocation) -> number_set {
+        [&](const compound_valued_external_function_invocation& invocation) -> number_set {
           return overloaded_visit(
               invocation.function().return_type(),
               [](const scalar_type) constexpr { return number_set::real; },

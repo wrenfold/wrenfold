@@ -19,14 +19,15 @@ custom_type_construction::custom_type_construction(custom_type type, std::vector
 // Return a pointer to the custom type if it is.
 static maybe_null<const custom_type*> maybe_get_custom_type(const compound_expr& expr) {
   return visit(
-      expr, make_overloaded(
-                [](const external_function_invocation& invocation) -> const custom_type* {
-                  return std::get_if<custom_type>(&invocation.function().return_type());
-                },
-                [](const custom_type_argument& arg) -> const custom_type* { return &arg.type(); },
-                [](const custom_type_construction& construct) -> const custom_type* {
-                  return &construct.type();
-                }));
+      expr,
+      make_overloaded(
+          [](const compound_valued_external_function_invocation& invocation) -> const custom_type* {
+            return std::get_if<custom_type>(&invocation.function().return_type());
+          },
+          [](const custom_type_argument& arg) -> const custom_type* { return &arg.type(); },
+          [](const custom_type_construction& construct) -> const custom_type* {
+            return &construct.type();
+          }));
 }
 
 // Check if `args` reduces to a list of `compound_expression_elements` that together form an

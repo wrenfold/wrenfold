@@ -50,7 +50,8 @@ class ir_form_visitor {
   ir::value_ptr operator()(const conditional& cond);
   ir::value_ptr operator()(const custom_type_argument& arg);
   ir::value_ptr operator()(const custom_type_construction& construct);
-  ir::value_ptr operator()(const external_function_invocation& invoke);
+  template <typename Derived>
+  ir::value_ptr operator()(const external_function_invocation<Derived>& invoke);
   ir::value_ptr operator()(const derivative&) const;
   ir::value_ptr operator()(const float_constant& f);
   ir::value_ptr operator()(const built_in_function_invocation& func);

@@ -6,6 +6,8 @@
 #include "wf/utility/algorithms.h"
 #include "wf/utility/hashing.h"
 
+#include "wf/expressions/variable.h"
+
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>
 WF_END_THIRD_PARTY_INCLUDES
@@ -84,6 +86,37 @@ struct order_struct<built_in_function_invocation> {
     }
     return lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
+};
+
+// An abstract function `f(x, y, ...)`. We can invoke them in mathematical expressions, take their
+// derivatives, and replace them with substitutions. We could extend this by adding additional
+// properties, like the numeric set that the function belongs to, etc.
+class function {
+ public:
+  // Construct with name.
+  explicit function(std::string name);
+
+  // Name of the function.
+  const std::string& name() const noexcept { return impl_->name; }
+
+ private:
+  struct impl {
+    std::string name;
+  };
+  std::shared_ptr<const impl> impl_;
+};
+
+// TODO: This may eventually need to be generalized to return matrices as well.
+// Should this
+class user_defined_function_invocation {
+ public:
+  static constexpr std::string_view name_str = "UserDefinedFunctionInvocation";
+  static constexpr bool is_leaf_node = false;
+  using container_type = absl::InlinedVector<scalar_expr, 4>;
+
+ protected:
+  function function_;
+  container_type args_;
 };
 
 }  // namespace wf

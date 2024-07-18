@@ -64,8 +64,9 @@ void tree_formatter_visitor::operator()(const derivative& diff) {
   visit_all(diff);
 }
 
-void tree_formatter_visitor::operator()(const external_function_invocation& invocation) {
-  format_append("{} (function = `{}`):", external_function_invocation::name_str,
+template <typename Derived>
+void tree_formatter_visitor::operator()(const external_function_invocation<Derived>& invocation) {
+  format_append("{} (function = `{}`):", external_function_invocation<Derived>::name_str,
                 invocation.function().name());
   visit_all(invocation.args());
 }

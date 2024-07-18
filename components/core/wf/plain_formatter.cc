@@ -86,7 +86,15 @@ void plain_formatter::operator()(const compound_expression_element& el) {
 
   visit(el.provenance(),
         make_overloaded(
-            [&](const external_function_invocation& invocation) {
+            [&](const custom_type_argument& arg) {
+              // Name followed by the access sequence:
+              operator()(arg);
+              format_access_sequence(arg.type());
+            },
+            [&](const custom_type_construction& construction) {
+              operator()(construction.at(el.index()));
+            },
+            [&](const auto& invocation) {
               // Format the function call:
               this->operator()(invocation);
               overloaded_visit(
@@ -97,19 +105,12 @@ void plain_formatter::operator()(const compound_expression_element& el) {
                     fmt::format_to(std::back_inserter(output_), "[{}, {}]", row, col);
                   },
                   format_access_sequence);
-            },
-            [&](const custom_type_argument& arg) {
-              // Name followed by the access sequence:
-              operator()(arg);
-              format_access_sequence(arg.type());
-            },
-            [&](const custom_type_construction& construction) {
-              operator()(construction.at(el.index()));
             }));
 }
 
 // TODO: We need to do something smarter when formatting matrix args to functions.
-void plain_formatter::operator()(const external_function_invocation& invocation) {
+template <typename Derived>
+void plain_formatter::operator()(const external_function_invocation<Derived>& invocation) {
   fmt::format_to(std::back_inserter(output_), "{}(", invocation.function().name());
   auto it = invocation.begin();
   if (it != invocation.end()) {

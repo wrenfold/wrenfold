@@ -96,11 +96,12 @@ class expression_from_ir_visitor {
 
   any_expression operator()(const ir::call_external_function& func,
                             const ir::value::operands_container& args) const {
-    auto args_converted = transform_map<external_function_invocation::container_type>(
-        args, [this](const ir::const_value_ptr val) { return map_value_to_variant(val); });
+    auto args_converted =
+        transform_map<compound_valued_external_function_invocation::container_type>(
+            args, [this](const ir::const_value_ptr val) { return map_value_to_variant(val); });
 
-    compound_expr invocation{std::in_place_type_t<external_function_invocation>{}, func.function(),
-                             std::move(args_converted)};
+    compound_expr invocation{std::in_place_type_t<compound_valued_external_function_invocation>{},
+                             func.function(), std::move(args_converted)};
 
     if (std::holds_alternative<scalar_type>(func.return_type())) {
       return compound_expression_element::create(std::move(invocation), 0);

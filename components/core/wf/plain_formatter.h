@@ -8,6 +8,9 @@
 
 namespace wf {
 
+template <typename Derived>
+class external_function_invocation;
+
 // Simple plain-text formatter.
 class plain_formatter {
  public:
@@ -18,7 +21,8 @@ class plain_formatter {
   void operator()(const addition& add);
   void operator()(const boolean_constant& b);
   void operator()(const compound_expression_element& el);
-  void operator()(const external_function_invocation& invocation);
+  template <typename Derived>
+  void operator()(const external_function_invocation<Derived>& invocation);
   void operator()(const custom_type_argument& arg);
   void operator()(const custom_type_construction& construct);
   void operator()(const conditional& conditional);
