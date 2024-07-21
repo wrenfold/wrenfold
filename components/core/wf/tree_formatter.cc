@@ -121,6 +121,11 @@ void tree_formatter_visitor::operator()(const symbolic_constant& constant) {
                 string_from_symbolic_constant(constant.name()));
 }
 
+void tree_formatter_visitor::operator()(const symbolic_function_invocation& invocation) {
+  format_append("{} ({}):", symbolic_function_invocation::name_str, invocation.function().name());
+  visit_all(invocation);
+}
+
 void tree_formatter_visitor::operator()(const undefined&) { format_append(undefined::name_str); }
 
 void tree_formatter_visitor::operator()(const unevaluated& u) {

@@ -4,6 +4,7 @@
 #pragma once
 #include <unordered_map>
 
+#include "expressions/function_expressions.h"
 #include "wf/enumerations.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
@@ -36,7 +37,7 @@ class derivative_visitor {
   scalar_expr operator()(const float_constant&) const;
   scalar_expr operator()(const power& pow);
   scalar_expr operator()(const rational_constant&) const;
-  scalar_expr operator()(const relational&, const scalar_expr& rel_expr) const;
+  scalar_expr operator()(const symbolic_function_invocation& func);
   scalar_expr operator()(const undefined&) const;
   scalar_expr operator()(const unevaluated& u);
   scalar_expr operator()(const variable& var) const;

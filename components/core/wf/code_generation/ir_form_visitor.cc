@@ -368,6 +368,11 @@ ir::value_ptr ir_form_visitor::operator()(const symbolic_constant& constant) {
   return push_operation(ir::load{constant}, code_numeric_type::floating_point);
 }
 
+ir::value_ptr ir_form_visitor::operator()(const symbolic_function_invocation& invocation) const {
+  throw type_error("Cannot generate code with expressions containing `{}`: function = {}",
+                   symbolic_function_invocation::name_str, invocation.function().name());
+}
+
 ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
   throw type_error("Cannot generate code with expressions containing {}", undefined::name_str);
 }

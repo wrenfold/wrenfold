@@ -285,6 +285,19 @@ void plain_formatter::operator()(const relational& relational) {
   format_precedence(precedence::relational, relational.right());
 }
 
+void plain_formatter::operator()(const symbolic_function_invocation& invocation) {
+  output_ += invocation.function().name();
+  output_ += "(";
+  if (auto it = invocation.begin(); it != invocation.end()) {
+    operator()(*it);
+    for (; it != invocation.end(); ++it) {
+      output_ += ", ";
+      operator()(*it);
+    }
+  }
+  output_ += ")";
+}
+
 void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
 
 void plain_formatter::operator()(const unevaluated& u) {

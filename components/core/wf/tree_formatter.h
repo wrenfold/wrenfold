@@ -40,6 +40,7 @@ class tree_formatter_visitor {
   void operator()(const rational_constant& r);
   void operator()(const relational& relational);
   void operator()(const symbolic_constant& constant);
+  void operator()(const symbolic_function_invocation& invocation);
   void operator()(const undefined&);
   void operator()(const unevaluated& u);
   void operator()(const variable& var);

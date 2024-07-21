@@ -90,7 +90,7 @@ matrix_expr matrix_expr::diff(const scalar_expr& var, const int reps,
   return map_matrix_expression(*this, [&visitor, reps](const scalar_expr& x) {
     scalar_expr result = x;
     for (int i = 0; i < reps; ++i) {
-      result = visitor.apply(result);
+      result = visitor(result);
     }
     return result;
   });

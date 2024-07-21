@@ -45,6 +45,7 @@ struct is_function_of_visitor {
     }
   }
 
+ private:
   const T& target_;
 };
 
@@ -273,13 +274,17 @@ scalar_expr derivative_visitor::operator()(const rational_constant&) const {
   return constants::zero;
 }
 
-scalar_expr derivative_visitor::operator()(const relational&, const scalar_expr& rel_expr) const {
-  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
-    // Cannot differentiate relationals, so insert an abstract expression.
-    return derivative::create(rel_expr, argument_, 1);
-  } else {
+// df(a, b)/dx --> f(a, b)/da * da/x + f(a, b)/db * db/x
+scalar_expr derivative_visitor::operator()(const symbolic_function_invocation& func) {
+  // Take derivatives of all args:
+  auto derivative_sum_terms = transform_map<std::vector>(func, *this);
+  if (derivative_sum_terms.empty()) {
     return constants::zero;
   }
+  // for (scalar_expr& d_arg : derivative_sum_terms) {
+  //   //
+  // }
+  return addition::from_operands(derivative_sum_terms);
 }
 
 scalar_expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
