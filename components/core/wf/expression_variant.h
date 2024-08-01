@@ -169,7 +169,7 @@ const auto& cast_to_index(const expression_variant<Meta>& v) noexcept {
 }
 }  // namespace detail
 
-// Categories of expressions (scalar, matrix, etc) should inherit from this type with their
+// Categories of expressions (scalar, matrix, etc.) should inherit from this type with their
 // specified type list. This class provides some convenience constructors and methods, as well as
 // declaring the underlying storage. This is not intended to be a virtual base.
 template <typename Derived, typename Meta>

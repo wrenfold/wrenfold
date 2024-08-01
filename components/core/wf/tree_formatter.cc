@@ -56,7 +56,7 @@ void tree_formatter_visitor::operator()(const custom_type_argument& arg) {
 
 void tree_formatter_visitor::operator()(const custom_type_construction& construct) {
   format_append("{} (type = {}):", custom_type_construction::name_str, construct.type().name());
-  visit_all(construct.args());
+  visit_all(construct.children());
 }
 
 void tree_formatter_visitor::operator()(const derivative& diff) {
@@ -67,7 +67,7 @@ void tree_formatter_visitor::operator()(const derivative& diff) {
 void tree_formatter_visitor::operator()(const external_function_invocation& invocation) {
   format_append("{} (function = `{}`):", external_function_invocation::name_str,
                 invocation.function().name());
-  visit_all(invocation.args());
+  visit_all(invocation.children());
 }
 
 void tree_formatter_visitor::operator()(const float_constant& f) {

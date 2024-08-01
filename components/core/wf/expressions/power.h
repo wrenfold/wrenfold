@@ -22,6 +22,8 @@ class power {
     return power::create(operation(base()), operation(exponent()));
   }
 
+  constexpr const auto& children() const noexcept { return children_; }
+
   // Create a new power.
   // Will apply rules to simplify automatically.
   static scalar_expr create(scalar_expr base, scalar_expr exp);

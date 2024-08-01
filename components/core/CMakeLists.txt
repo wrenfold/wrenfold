@@ -56,6 +56,7 @@ add_library(
   wf/enumerations.h
   wf/evaluate.cc
   wf/expression_cache.h
+  wf/expression_iteration.h
   wf/expression_variant.h
   wf/expression_visitor.h
   wf/expression.cc

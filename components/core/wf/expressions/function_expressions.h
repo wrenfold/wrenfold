@@ -51,6 +51,8 @@ class built_in_function_invocation {
         func_, transform_map<container_type>(args_, std::forward<F>(f)));
   }
 
+  constexpr const auto& children() const noexcept { return args_; }
+
  protected:
   built_in_function func_;
   container_type args_;

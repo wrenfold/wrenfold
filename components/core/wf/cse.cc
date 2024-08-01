@@ -10,6 +10,7 @@
 
 #include "wf/expression.h"
 #include "wf/expression_cache.h"
+#include "wf/expression_iteration.h"
 #include "wf/expression_visitor.h"
 #include "wf/utility/hashing.h"
 
@@ -22,33 +23,17 @@ class counter_visitor {
 
   template <typename T>
   void operator()(const T& concrete) {
-    if constexpr (!T::is_leaf_node) {
-      if constexpr (std::is_same_v<T, conditional>) {
-        record_count(concrete.condition());
-        record_count(concrete.if_branch());
-        record_count(concrete.else_branch());
-      } else {
-        for (const auto& child : concrete) {
-          record_count(child);
-        }
-      }
-    }
+    for_each_child(concrete, [this](const auto& child) { record_count(child); });
   }
 
   template <typename ChildExprType>
   void record_count(const ChildExprType& child) {
-    if constexpr (is_any_expression_v<ChildExprType>) {
-      // Visit the any_expression and recurse:
-      std::visit([&](const auto& c) { record_count(c); }, child);
-    } else {
-      if constexpr (std::is_same_v<ChildExprType, scalar_expr>) {
-        ++counts_[child];
-      }
-      if (const auto [_, was_inserted] = visited_.get<ChildExprType>().insert(child);
-          was_inserted) {
-        // Recurse into this expression if we haven't seen it yet.
-        visit(child, *this);
-      }
+    if constexpr (std::is_same_v<ChildExprType, scalar_expr>) {
+      ++counts_[child];
+    }
+    if (const auto [_, was_inserted] = visited_.get<ChildExprType>().insert(child); was_inserted) {
+      // Recurse into this expression if we haven't seen it yet.
+      visit(child, *this);
     }
   }
 

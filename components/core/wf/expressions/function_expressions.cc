@@ -51,4 +51,7 @@ scalar_expr built_in_function_invocation::create(const built_in_function name,
   WF_ASSERT_ALWAYS("Invalid function name: {}", string_from_built_in_function(name));
 }
 
+symbolic_function::symbolic_function(std::string name)
+    : impl_(std::make_shared<const impl>(impl{std::move(name)})) {}
+
 }  // namespace wf

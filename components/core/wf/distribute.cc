@@ -92,10 +92,10 @@ scalar_expr distribute_visitor::distribute_power(scalar_expr base, std::size_t p
 }
 
 // Create a span from input expression `x`. If `x` is an addition, the span will be over the terms
-// of the addition. Otherwise it will be a single length span containing just `x`.
+// of the addition. Otherwise, it will be a single length span containing just `x`.
 static absl::Span<const scalar_expr> expression_as_span(const scalar_expr& x) noexcept {
   if (const addition* add = get_if<const addition>(x); add != nullptr) {
-    return add->as_span();
+    return add->children();
   } else {
     return {&x, 1};
   }

@@ -46,9 +46,6 @@ class addition {
   container_type::const_iterator begin() const noexcept { return terms_.begin(); }
   container_type::const_iterator end() const noexcept { return terms_.end(); }
 
-  // Get span over terms.
-  absl::Span<const scalar_expr> as_span() const noexcept { return {terms_}; }
-
   // Get terms in the addition, sorted into canonical order.
   std::vector<scalar_expr> sorted_terms() const;
 
@@ -59,6 +56,9 @@ class addition {
         transform_map<container_type>(terms_, std::forward<Operation>(operation));
     return from_operands(transformed);
   }
+
+  // Child expressions of the addition.
+  constexpr const container_type& children() const noexcept { return terms_; }
 
   // Construct from a span of operands.
   // The result is automatically simplified, and may not be an addition.

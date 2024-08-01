@@ -55,6 +55,11 @@ TEST(AlgorithmUtilsTest, TestAnyOf) {
   ASSERT_TRUE(any_of(values, [](int x) { return x > 0; }));
   ASSERT_FALSE(any_of(values, [](int x) { return x < 0; }));
   ASSERT_FALSE(any_of(std::vector<int>(), [](int x) { return x > 0; }));
+
+  // Test tuple version:
+  constexpr std::tuple<int, float, unsigned int> values_tuple{1, -3.1f, 5};
+  ASSERT_TRUE(any_of(values_tuple, [](auto v) { return v < 0; }));
+  ASSERT_FALSE(any_of(values_tuple, [](auto v) { return v == 2; }));
 }
 
 TEST(AlgorithmUtilsTest, TestContains) {

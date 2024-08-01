@@ -13,16 +13,12 @@ class external_function_invocation {
  public:
   static constexpr std::string_view name_str = "ExternalFunctionInvocation";
   static constexpr bool is_leaf_node = false;
-
   using container_type = std::vector<any_expression>;
 
   external_function_invocation(external_function func, container_type args);
 
   // The custom function being called.
   const external_function& function() const noexcept { return function_; }
-
-  // The arguments to the function.
-  const container_type& args() const noexcept { return args_; }
 
   // Number of arguments.
   std::size_t size() const noexcept { return args_.size(); }
@@ -39,6 +35,9 @@ class external_function_invocation {
                          std::move(args_out));
   }
 
+  // The arguments to the function.
+  constexpr const container_type& children() const noexcept { return args_; }
+
  private:
   external_function function_;
   container_type args_;
@@ -47,7 +46,7 @@ class external_function_invocation {
 template <>
 struct hash_struct<external_function_invocation> {
   std::size_t operator()(const external_function_invocation& func) const noexcept {
-    return hash_all(func.function().hash(), func.args());
+    return hash_all(func.function().hash(), func.children());
   }
 };
 
@@ -65,7 +64,8 @@ template <>
 struct order_struct<external_function_invocation> {
   relative_order operator()(const external_function_invocation& a,
                             const external_function_invocation& b) const {
-    return order_by(a.function().name(), b.function().name()).and_then_by(a.args(), b.args());
+    return order_by(a.function().name(), b.function().name())
+        .and_then_by(a.children(), b.children());
   }
 };
 
