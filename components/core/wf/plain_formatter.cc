@@ -3,11 +3,11 @@
 // For license information refer to accompanying LICENSE file.
 #include "plain_formatter.h"
 
-#include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/utility/assertions.h"
 #include "wf/utility/strings.h"
 #include "wf/utility/third_party_imports.h"
+#include "wf/utility_visitors.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>

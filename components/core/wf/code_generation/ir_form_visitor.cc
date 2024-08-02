@@ -3,9 +3,9 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ir_form_visitor.h"
 
-#include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/utility/scoped_trace.h"
+#include "wf/utility_visitors.h"
 
 namespace wf {
 ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph)

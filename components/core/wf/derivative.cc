@@ -10,44 +10,13 @@
 #include "wf/matrix_expression.h"
 #include "wf/utility/error_types.h"
 #include "wf/utility/scoped_trace.h"
+#include "wf/utility_visitors.h"
 
 #include "wrenfold/span.h"
 
 namespace wf {
 
 using namespace wf::custom_literals;
-
-// Visitor that checks if an expression is a function of `target`.
-// Returns true if `target` appears as a sub-expression in anything we visit.
-template <typename T>
-struct is_function_of_visitor {
-  explicit is_function_of_visitor(const T& target) noexcept : target_(target) {}
-
-  bool operator()(const scalar_expr& expr) const { return visit(expr, *this); }
-  bool operator()(const boolean_expr& expr) const { return visit(expr, *this); }
-  bool operator()(const matrix_expr& expr) const { return visit(expr, *this); }
-
-  template <typename U>
-  bool operator()(const U& x) const {
-    if constexpr (std::is_same_v<U, T>) {
-      return are_identical(target_, x);
-    } else if constexpr (!U::is_leaf_node) {
-      if constexpr (std::is_same_v<conditional, U>) {
-        // TODO: A generic method of iterating over mixed-type expressions like `conditional`.
-        return operator()(x.condition()) || operator()(x.if_branch()) ||
-                                            operator()(x.else_branch());
-      } else {
-        return std::any_of(x.begin(), x.end(),
-                           [this](const auto& expr) { return visit(expr, *this); });
-      }
-    } else {
-      return false;
-    }
-  }
-
- private:
-  const T& target_;
-};
 
 derivative_visitor::derivative_visitor(const scalar_expr& argument,
                                        const non_differentiable_behavior behavior)

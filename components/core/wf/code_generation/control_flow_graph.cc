@@ -14,12 +14,12 @@
 #include "wf/code_generation/ir_form_visitor.h"
 #include "wf/code_generation/ir_types.h"
 #include "wf/code_generation/ir_value.h"
-#include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/utility/assertions.h"
 #include "wf/utility/hashing.h"
 #include "wf/utility/scoped_trace.h"
+#include "wf/utility_visitors.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_map.h>

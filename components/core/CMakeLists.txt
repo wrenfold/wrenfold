@@ -42,7 +42,6 @@ add_library(
   wf/code_generation/types.h
   wf/collect.cc
   wf/collect.h
-  wf/common_visitors.h
   wf/compound_expression.cc
   wf/compound_expression.h
   wf/constants.cc
@@ -111,6 +110,8 @@ add_library(
   wf/tree_formatter.cc
   wf/tree_formatter.h
   wf/type_annotations.h
+  wf/utility_visitors.cc
+  wf/utility_visitors.h
   wf/utility/algorithms.h
   wf/utility/assertions.h
   wf/utility/bitset_range.h
