@@ -34,6 +34,7 @@ class plain_formatter {
   void operator()(const power& pow);
   void operator()(const rational_constant& rational);
   void operator()(const relational& relational);
+  void operator()(const substitution& subs);
   void operator()(const symbolic_function_invocation& invocation);
   void operator()(const built_in_function_invocation& func);
   void operator()(const undefined&);

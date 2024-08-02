@@ -98,6 +98,10 @@ class symbolic_function {
   // Name of the function.
   const std::string& name() const noexcept { return impl_->name; }
 
+  // Create an invocation of hte symbolic function.
+  template <typename... Args>
+  scalar_expr operator()(Args&&... args) const;
+
  private:
   struct impl {
     std::string name;
@@ -139,9 +143,6 @@ class symbolic_function_invocation {
 
   constexpr const symbolic_function& function() const noexcept { return function_; }
 
-  // Get the function arguments.
-  constexpr const auto& args() const noexcept { return args_; }
-
   // Number of arguments.
   std::size_t size() const noexcept { return args_.size(); }
 
@@ -155,6 +156,9 @@ class symbolic_function_invocation {
                        transform_map<container_type>(args_, std::forward<F>(f))};
   }
 
+  // Get the function arguments.
+  constexpr const auto& children() const noexcept { return args_; }
+
  private:
   symbolic_function function_;
   container_type args_;
@@ -163,7 +167,7 @@ class symbolic_function_invocation {
 template <>
 struct hash_struct<symbolic_function_invocation> {
   std::size_t operator()(const symbolic_function_invocation& func) const noexcept {
-    return hash_all(hash(func.function()), func.args());
+    return hash_all(hash(func.function()), func.children());
   }
 };
 
@@ -187,5 +191,10 @@ struct order_struct<symbolic_function_invocation> {
     return lexicographical_order(a, b, order_struct<scalar_expr>{});
   }
 };
+
+template <typename... Args>
+scalar_expr symbolic_function::operator()(Args&&... args) const {
+  return make_expr<symbolic_function_invocation>(*this, std::forward<Args>(args)...);
+}
 
 }  // namespace wf

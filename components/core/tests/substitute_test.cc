@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/substitute.h"
 #include "wf/constants.h"
+#include "wf/expressions/derivative_expression.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 #include "wf/utility/error_types.h"
@@ -191,6 +192,13 @@ TEST(SubstituteTest, TestBooleanExpression) {
                    substitute(iverson(a < b), {std::make_tuple(a < b, constants::boolean_false)}));
   ASSERT_IDENTICAL(
       c, substitute(where(a == b, c, 3 * a), {std::make_tuple(a == b, constants::boolean_true)}));
+}
+
+TEST(SubstituteTest, TestDerivativeExpression) {
+  const auto [a, b] = make_symbols("a", "b");
+  // Test that we cannot replace a variable in a derivative expression (for the argument).
+  ASSERT_THROW(derivative::create(a * a - b, a, 1).subs(a, 20), type_error);
+  ASSERT_THROW(derivative::create(a * a - b, a, 1).subs(a, b - 3), type_error);
 }
 
 }  // namespace wf

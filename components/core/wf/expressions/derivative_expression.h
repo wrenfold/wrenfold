@@ -7,7 +7,7 @@
 
 namespace wf {
 
-// Expression for expressing an unevaluated derivative operation.
+// Expression for describing an unevaluated or deferred derivative operation.
 // For example df(x)/dx is `Derivative(f(x), x)`. We use this to represent derivatives that can't
 // be immediately evaluated.
 class derivative {

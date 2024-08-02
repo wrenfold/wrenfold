@@ -41,6 +41,7 @@ struct type_list_trait<scalar_meta_type> {
     class multiplication,
     class power,
     class rational_constant,
+    class substitution,
     class symbolic_function_invocation,
     class undefined,
     class unevaluated,

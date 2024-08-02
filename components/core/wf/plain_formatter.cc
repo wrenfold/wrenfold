@@ -285,12 +285,22 @@ void plain_formatter::operator()(const relational& relational) {
   format_precedence(precedence::relational, relational.right());
 }
 
+void plain_formatter::operator()(const substitution& subs) {
+  output_ += "Subs(";
+  operator()(subs.input());
+  output_ += ", ";
+  operator()(subs.target());
+  output_ += ", ";
+  operator()(subs.replacement());
+  output_ += ")";
+}
+
 void plain_formatter::operator()(const symbolic_function_invocation& invocation) {
   output_ += invocation.function().name();
   output_ += "(";
   if (auto it = invocation.begin(); it != invocation.end()) {
     operator()(*it);
-    for (; it != invocation.end(); ++it) {
+    for (++it; it != invocation.end(); ++it) {
       output_ += ", ";
       operator()(*it);
     }

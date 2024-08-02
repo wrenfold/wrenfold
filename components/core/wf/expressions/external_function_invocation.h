@@ -29,8 +29,10 @@ class external_function_invocation {
 
   template <typename F>
   compound_expr map_children(F&& f) const {
-    container_type args_out = transform_map<container_type>(
-        args_, [&f](const any_expression& arg) -> any_expression { return f(arg); });
+    container_type args_out = transform_map<container_type>(args_, [&f](const any_expression& arg) {
+      return std::visit(
+          [&f](const auto& arg_concrete) -> any_expression { return f(arg_concrete); }, arg);
+    });
     return compound_expr(std::in_place_type_t<external_function_invocation>{}, function_,
                          std::move(args_out));
   }

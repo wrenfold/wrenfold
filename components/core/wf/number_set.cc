@@ -240,6 +240,11 @@ class determine_set_visitor {
     return number_set::unknown;
   }
 
+  constexpr number_set operator()(const substitution&) const noexcept {
+    // We cannot reason about this without knowing details of the function.
+    return number_set::unknown;
+  }
+
   constexpr number_set operator()(const undefined&) const noexcept {
     // Cannot establish
     return number_set::unknown;

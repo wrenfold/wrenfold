@@ -62,6 +62,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const power& power);
   ir::value_ptr operator()(const rational_constant& r);
   ir::value_ptr operator()(const relational& relational);
+  ir::value_ptr operator()(const substitution& subs) const;
   ir::value_ptr operator()(const symbolic_constant& constant);
   ir::value_ptr operator()(const symbolic_function_invocation& invocation) const;
   ir::value_ptr operator()(const undefined&) const;

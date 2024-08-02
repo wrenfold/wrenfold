@@ -364,6 +364,10 @@ ir::value_ptr ir_form_visitor::operator()(const relational& relational) {
                         maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
 }
 
+ir::value_ptr ir_form_visitor::operator()(const substitution&) const {
+  throw type_error("Cannot generate code with expressions containing: {}", substitution::name_str);
+}
+
 ir::value_ptr ir_form_visitor::operator()(const symbolic_constant& constant) {
   return push_operation(ir::load{constant}, code_numeric_type::floating_point);
 }
@@ -374,7 +378,7 @@ ir::value_ptr ir_form_visitor::operator()(const symbolic_function_invocation& in
 }
 
 ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
-  throw type_error("Cannot generate code with expressions containing {}", undefined::name_str);
+  throw type_error("Cannot generate code with expressions containing: {}", undefined::name_str);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const variable& var) {

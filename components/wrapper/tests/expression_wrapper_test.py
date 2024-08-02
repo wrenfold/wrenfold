@@ -8,7 +8,7 @@ import unittest
 
 from test_base import MathTestBase
 
-from wrenfold import exceptions, sym
+from wrenfold import enumerations, exceptions, sym
 
 
 class ExpressionWrapperTest(MathTestBase):
@@ -42,6 +42,18 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertRaises(exceptions.InvalidArgumentError,
                           lambda: sym.symbols("z", real=True, complex=True))
+
+        # create via the `variable` object:
+        x_var = sym.Variable('x')
+        self.assertEqual('x', repr(x_var))
+        self.assertEqual('x', x_var.name)
+        self.assertEqual(enumerations.NumberSet.Unknown, x_var.set)
+        self.assertIdentical(x, x_var.to_expr())
+        self.assertIdentical(
+            sym.symbols('z', real=True),
+            sym.Variable('z', number_set=enumerations.NumberSet.Real).to_expr())
+        self.assertSequenceEqual([sym.Variable('y'), sym.Variable('x')],
+                                 sym.get_variables(x + y * x - sym.cos(y)))
 
     def test_create_unique_symbols(self):
         """Test calling unique_symbols."""
@@ -367,6 +379,63 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.abs(u0) + sym.cos(u0) * u1 - 5 * u1, f2_cse)
         self.assertEqual(2, len(replacements))
         self.assertSequenceEqual([(u0, y * 2), (u1, 1 / x)], replacements)
+
+    def test_derivative_expression(self):
+        """Test creation of deferred derivative expression."""
+        x, y = sym.symbols('x, y')
+        f = sym.derivative(sym.sin(x), x)
+        self.assertEqual('Derivative', f.type_name)
+        self.assertEqual('Derivative(sin(x), x)', repr(f))
+        self.assertIdentical(sym.derivative(sym.sin(x), x, 2), f.diff(x))
+        self.assertIdentical(0, f.diff(y))
+
+        f2 = sym.derivative(sym.sin(x) + y, x)
+        self.assertIdentical(
+            sym.derivative(function=sym.derivative(sym.sin(x) + y, x), arg=y), f2.diff(y))
+        self.assertSequenceEqual((sym.sin(x) + y, x), f2.args)
+
+        self.assertRaises(exceptions.TypeError, lambda: sym.derivative(x, y + 2))
+
+    def test_substitute_expression(self):
+        """Test creation of deferred substitution expression."""
+        x, y = sym.symbols('x, y')
+        f = sym.substitution(sym.cos(x), x, 2)
+        self.assertEqual('Substitution', f.type_name)
+        self.assertEqual('Subs(cos(x), x, 2)', repr(f))
+        self.assertIdentical(22, sym.substitution(22, target=x, replacement=y))
+        self.assertIdentical(x + y, sym.substitution(x + y, sym.sin(x), sym.sin(x)))
+        self.assertRaises(exceptions.TypeError, lambda: sym.substitution(x + y, 2.12, sym.pi))
+        self.assertIdentical(
+            sym.substitution(sym.cos(x), y, 22),
+            sym.substitution(sym.sin(x) + y, y, 22).diff(x))
+        self.assertIdentical(-2 * x + sym.substitution(x / sym.abs(x), y, x ** 2),
+                             sym.substitution(sym.abs(x) - y, y, x ** 2).diff(x))
+        self.assertIdentical(
+            sym.derivative(sym.substitution(sym.cos(x ** 2), x ** 2, y), x),
+            sym.substitution(sym.cos(x ** 2), x ** 2, y).diff(x))
+
+    def test_symbolic_function_invocation(self):
+        """Test expressions that include symbolic functions."""
+        x, y, z = sym.symbols('x, y, z')
+        f = sym.Function('f')
+        self.assertEqual('f', repr(f))
+        self.assertEqual('f', f.name)
+        self.assertNotIdentical(f, sym.Function('g'))
+
+        f1 = f(x, y)
+        self.assertEqual('f(x, y)', repr(f1))
+        self.assertIdentical(sym.derivative(f1, x), f1.diff(x))
+        self.assertIdentical(sym.derivative(f1, x, 2), f1.diff(x, 2))
+        self.assertIdentical(0, f1.diff(z))
+
+        f2 = f(sym.sin(x), x ** 2).diff(x)
+        u1, u2 = [v.to_expr() for v in sym.get_variables(f2) if v.is_unique_variable]
+
+        self.assertIdentical(
+            sym.cos(x) * sym.substitution(f(u1, x ** 2).diff(u1), u1, sym.sin(x)) + \
+            2 * x * sym.substitution(f(sym.sin(x), u2).diff(u2), u2, x ** 2),
+            f2
+        )
 
     def test_integer_exceptions(self):
         """

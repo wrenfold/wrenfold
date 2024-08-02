@@ -16,11 +16,15 @@
 #include "wf/cse.h"
 #include "wf/expression.h"
 #include "wf/expressions/addition.h"
+#include "wf/expressions/derivative_expression.h"
+#include "wf/expressions/function_expressions.h"
 #include "wf/expressions/multiplication.h"
+#include "wf/expressions/substitute_expression.h"
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
 #include "wf/substitute.h"
+#include "wf/utility_visitors.h"
 
 #include "args_visitor.h"
 #include "docs/scalar_wrapper.h"
@@ -318,6 +322,46 @@ void wrap_scalar_operations(py::module_& m) {
       "multiplication",
       [](const std::vector<scalar_expr>& args) { return multiplication::from_operands(args); },
       py::arg("args"), py::doc("Construct multiplication expression from provided operands."));
+
+  wrap_class<symbolic_function>(m, "Function")
+      .def(
+          py::init<std::string>(), py::arg("name"),
+          "Construct with string name. Two functions with the same name are considered equivalent.")
+      .def_property_readonly("name", &symbolic_function::name)
+      .def("__repr__", &symbolic_function::name)
+      .def("__call__", [](const symbolic_function& self, const py::args& args) {
+        return make_expr<symbolic_function_invocation>(
+            self, transform_map<symbolic_function_invocation::container_type>(
+                      args, [](const py::handle& x) { return py::cast<scalar_expr>(x); }));
+      });
+
+  // TODO: Wrap all the underlying expressions so they can be visited in python.
+  // Initially we wrap just the `Variable` type.
+  wrap_class<variable>(m, "Variable")
+      .def(py::init<std::string, number_set>(), py::arg("name"),
+           py::arg("number_set") = number_set::unknown, "Construct with name and numeric set.")
+      .def_property_readonly("name", &variable::to_string, "Name of the variable.")
+      .def_property_readonly("set", &variable::set, "Numeric set the variable belongs to.")
+      .def(
+          "to_expr", [](const variable& self) { return scalar_expr(self); },
+          "Convert ``Variable`` object to a scalar-valued expression.")
+      .def_property_readonly(
+          "is_unique_variable",
+          [](const variable& v) { return std::holds_alternative<unique_variable>(v.identifier()); },
+          "True if the variable is a unique_variable.")
+      .def("__repr__", &variable::to_string)
+      .doc() = "Concrete expression for a symbolic variable.";
+
+  // TODO: This should (ideally) not needlessly copy all the `variable` objects, but rather create
+  // references to the actual `scalar_expr` that contains them.
+  m.def("get_variables", &get_variables, py::arg("expr"),
+        "Retrieve concrete variable expressions from a symbolic expression tree.");
+
+  m.def("substitution", &substitution::create, py::arg("input"), py::arg("target"),
+        py::arg("replacement"), "Create a deferred substitution expression.");
+
+  m.def("derivative", &derivative::create, py::arg("function"), py::arg("arg"),
+        py::arg("order") = 1, "Create a deferred derivative expression.");
 }
 
 }  // namespace wf
