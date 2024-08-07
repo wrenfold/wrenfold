@@ -27,15 +27,9 @@ struct substitute_visitor_base {
                                    const ReplacementAbstractExpressionType& replacement)
       : target_(target), replacement_(replacement) {}
 
-  template <typename X, typename = std::enable_if_t<inherits_expression_base_v<X> ||
-                                                    std::is_same_v<X, any_expression>>>
+  template <typename X, typename = enable_if_inherits_expression_base_t<X>>
   X operator()(const X& expr) {
-    if constexpr (std::is_same_v<X, any_expression>) {
-      return std::visit([this](const auto& x) -> any_expression { return this->operator()(x); },
-                        expr);
-    } else {
-      return cache_.get_or_insert(expr, [this](const X& x) { return visit(x, *this); });
-    }
+    return cache_.get_or_insert(expr, [this](const X& x) { return visit(x, *this); });
   }
 
   // The argument is neither an addition nor a multiplication:

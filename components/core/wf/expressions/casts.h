@@ -27,6 +27,8 @@ class iverson_bracket {
     return iverson(operation(arg_.front()));
   }
 
+  constexpr const auto& children() const noexcept { return arg_; }
+
  private:
   std::array<boolean_expr, 1> arg_;
 };

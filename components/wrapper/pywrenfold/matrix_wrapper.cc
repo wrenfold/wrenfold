@@ -311,7 +311,7 @@ absl::Span<const scalar_expr> span_from_variant(
       }
       // TODO: When matrix_expr is generalized, we won't be able to rely on `as_matrix()` anymore.
       WF_ASSERT(m.is_type<matrix>());
-      return {m.as_matrix().data()};
+      return {m.as_matrix().children()};
     }
   };
   return std::visit(visitor{}, var);
@@ -346,7 +346,7 @@ void wrap_matrix_operations(py::module_& m) {
           [](const matrix_expr& self,
              const std::variant<std::vector<scalar_expr>, matrix_expr>& vars,
              const bool use_abstract) {
-            return jacobian(self.as_matrix().data(), span_from_variant(vars),
+            return jacobian(self.as_matrix().children(), span_from_variant(vars),
                             use_abstract ? non_differentiable_behavior::abstract
                                          : non_differentiable_behavior::constant);
           },

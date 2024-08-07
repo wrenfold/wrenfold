@@ -42,7 +42,6 @@ add_library(
   wf/code_generation/types.h
   wf/collect.cc
   wf/collect.h
-  wf/common_visitors.h
   wf/compound_expression.cc
   wf/compound_expression.h
   wf/constants.cc
@@ -56,6 +55,7 @@ add_library(
   wf/enumerations.h
   wf/evaluate.cc
   wf/expression_cache.h
+  wf/expression_iteration.h
   wf/expression_variant.h
   wf/expression_visitor.h
   wf/expression.cc
@@ -86,6 +86,8 @@ add_library(
   wf/expressions/relational.cc
   wf/expressions/relational.h
   wf/expressions/special_constants.h
+  wf/expressions/substitute_expression.cc
+  wf/expressions/substitute_expression.h
   wf/expressions/unevaluated.cc
   wf/expressions/unevaluated.h
   wf/expressions/variable.cc
@@ -110,6 +112,8 @@ add_library(
   wf/tree_formatter.cc
   wf/tree_formatter.h
   wf/type_annotations.h
+  wf/utility_visitors.cc
+  wf/utility_visitors.h
   wf/utility/algorithms.h
   wf/utility/assertions.h
   wf/utility/bitset_range.h

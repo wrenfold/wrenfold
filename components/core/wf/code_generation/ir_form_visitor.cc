@@ -3,9 +3,9 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ir_form_visitor.h"
 
-#include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/utility/scoped_trace.h"
+#include "wf/utility_visitors.h"
 
 namespace wf {
 ir_form_visitor::ir_form_visitor(control_flow_graph& output_graph)
@@ -179,7 +179,7 @@ static code_numeric_type std_function_output_type(const std_math_function func,
   return code_numeric_type::floating_point;
 }
 
-ir::value_ptr ir_form_visitor::operator()(const function& func) {
+ir::value_ptr ir_form_visitor::operator()(const built_in_function_invocation& func) {
   const std_math_function enum_value = std_math_function_from_built_in(func.enum_value());
 
   // Convert args to values:
@@ -364,12 +364,21 @@ ir::value_ptr ir_form_visitor::operator()(const relational& relational) {
                         maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
 }
 
+ir::value_ptr ir_form_visitor::operator()(const substitution&) const {
+  throw type_error("Cannot generate code with expressions containing: {}", substitution::name_str);
+}
+
 ir::value_ptr ir_form_visitor::operator()(const symbolic_constant& constant) {
   return push_operation(ir::load{constant}, code_numeric_type::floating_point);
 }
 
+ir::value_ptr ir_form_visitor::operator()(const symbolic_function_invocation& invocation) const {
+  throw type_error("Cannot generate code with expressions containing `{}`: function = {}",
+                   symbolic_function_invocation::name_str, invocation.function().name());
+}
+
 ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
-  throw type_error("Cannot generate code with expressions containing {}", undefined::name_str);
+  throw type_error("Cannot generate code with expressions containing: {}", undefined::name_str);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const variable& var) {

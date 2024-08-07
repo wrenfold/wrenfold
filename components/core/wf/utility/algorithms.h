@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "wf/utility/traits.h"
+
 // Utility header for <algorithm>-like things.
 namespace wf {
 namespace detail {
@@ -66,8 +68,12 @@ auto transform_enumerate_map(const ContainerIn& in, F&& f) {
 // the container is empty.
 template <typename Container, typename Predicate>
 bool any_of(const Container& container, Predicate&& p) {
-  return std::any_of(container.begin(), container.end(),
-                     [&p](const auto& element) -> bool { return p(element); });
+  if constexpr (is_tuple_v<Container>) {
+    return std::apply([&p](const auto&... element) { return (p(element) || ...); }, container);
+  } else {
+    return std::any_of(container.begin(), container.end(),
+                       [&p](const auto& element) -> bool { return p(element); });
+  }
 }
 
 // True if an element is found at least once in a container.

@@ -53,9 +53,6 @@ class multiplication {
   container_type::const_iterator begin() const noexcept { return terms_.begin(); }
   container_type::const_iterator end() const noexcept { return terms_.end(); }
 
-  // Get span over terms.
-  absl::Span<const scalar_expr> as_span() const noexcept { return {terms_}; }
-
   // Get terms in the multiplication, sorted into canonical order.
   std::vector<scalar_expr> sorted_terms() const;
 
@@ -66,6 +63,9 @@ class multiplication {
         transform_map<container_type>(terms_, std::forward<Operation>(operation));
     return multiplication::from_operands(transformed);
   }
+
+  // Child expressions of the multiplication.
+  constexpr const container_type& children() const noexcept { return terms_; }
 
   // Construct from a span of operands. Result is automatically simplified.
   static scalar_expr from_operands(absl::Span<const scalar_expr> args);

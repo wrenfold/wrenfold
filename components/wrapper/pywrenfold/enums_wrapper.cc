@@ -46,6 +46,13 @@ void wrap_enums(py::module_& m) {
   py::enum_<symbolic_constant_enum>(m, "SymbolicConstant")
       .value("Euler", symbolic_constant_enum::euler)
       .value("Pi", symbolic_constant_enum::pi);
+
+  py::enum_<number_set>(m, "NumberSet")
+      .value("RealPositive", number_set::real_positive)
+      .value("RealNonNegative", number_set::real_non_negative)
+      .value("Real", number_set::real)
+      .value("Complex", number_set::complex)
+      .value("Unknown", number_set::unknown);
 }
 
 }  // namespace wf

@@ -7,6 +7,7 @@
 #include "wf/expressions/conditional.h"
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/power.h"
+#include "wf/expressions/substitute_expression.h"
 #include "wf/functions.h"
 #include "wf/number_set.h"
 
@@ -781,7 +782,7 @@ TEST(ScalarOperationsTest, TestUnevaluated) {
   ASSERT_EQ("Unevaluated", make_unevaluated(x).type_name());
   ASSERT_IDENTICAL(make_unevaluated(x), make_unevaluated(x));
 
-  // Multiplocations do not get combined:
+  // Multiplications do not get combined:
   ASSERT_NOT_IDENTICAL(x * y * 3, 3 * make_unevaluated(x * y));
 
   // Powers do not get combined:
@@ -807,6 +808,13 @@ TEST(ScalarOperationsTest, TestConditional) {
   const scalar_expr nested = where(x < 0, where(x < 0, cos(x), sin(x)), log(z));
   ASSERT_IDENTICAL(get<const conditional>(nested).if_branch(), where(x < 0, cos(x), sin(x)));
   ASSERT_IDENTICAL(get<const conditional>(nested).else_branch(), log(z));
+}
+
+TEST(ScalarOperationsTest, TestSubstituteExpression) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(22, substitution::create(22, x, y));
+  ASSERT_IDENTICAL(x, substitution::create(x, y, y));
+  ASSERT_THROW(substitution::create(x * x, 22_s, y), wf::type_error);
 }
 
 TEST(ScalarOperationsTest, TestDistribute1) {
@@ -1318,6 +1326,14 @@ TEST(ScalarOperationsTest, TestNumericSetsUnevaluated) {
   const scalar_expr complex{"z", number_set::complex};
   ASSERT_EQ(number_set::real, determine_numeric_set(make_unevaluated(real)));
   ASSERT_EQ(number_set::complex, determine_numeric_set(make_unevaluated(complex)));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetsSubstitution) {
+  const scalar_expr real{"x", number_set::real};
+  const scalar_expr complex{"z", number_set::complex};
+  ASSERT_EQ(number_set::unknown,
+            determine_numeric_set(substitution::create(real * real, real, complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(substitution::create(complex, real, 0)));
 }
 
 }  // namespace wf

@@ -112,7 +112,7 @@ class expression_from_ir_visitor {
 
   scalar_expr operator()(const ir::call_std_function& func,
                          const ir::value::operands_container& args) const {
-    auto container = transform_map<function::container_type>(
+    auto container = transform_map<built_in_function_invocation::container_type>(
         args, [this](const ir::const_value_ptr v) { return map_value<scalar_expr>(v); });
 
     if (func.name() == std_math_function::powi || func.name() == std_math_function::powf) {
@@ -121,8 +121,8 @@ class expression_from_ir_visitor {
       static const scalar_expr one_half = constants::one / 2;
       return pow(container[0], one_half);
     } else {
-      return function::create(built_in_function_from_standard_library_function(func.name()),
-                              std::move(container));
+      return built_in_function_invocation::create(
+          built_in_function_from_standard_library_function(func.name()), std::move(container));
     }
   }
 

@@ -14,7 +14,7 @@ class control_flow_graph;  // Forward declare.
 
 // Sort all additions and multiplications into canonical order.
 // We do this so that the code-generation is invariant to changes in our hash functions - otherwise
-// changing hash functions can cause unecessary downstream churn.
+// changing hash functions can cause unnecessary downstream churn.
 class expression_sorter {
  public:
   template <typename T, typename X>
@@ -53,7 +53,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const external_function_invocation& invoke);
   ir::value_ptr operator()(const derivative&) const;
   ir::value_ptr operator()(const float_constant& f);
-  ir::value_ptr operator()(const function& func);
+  ir::value_ptr operator()(const built_in_function_invocation& func);
   ir::value_ptr operator()(const imaginary_unit&) const;
   ir::value_ptr operator()(const integer_constant& i);
   ir::value_ptr operator()(const iverson_bracket& bracket);
@@ -62,7 +62,9 @@ class ir_form_visitor {
   ir::value_ptr operator()(const power& power);
   ir::value_ptr operator()(const rational_constant& r);
   ir::value_ptr operator()(const relational& relational);
+  ir::value_ptr operator()(const substitution& subs) const;
   ir::value_ptr operator()(const symbolic_constant& constant);
+  ir::value_ptr operator()(const symbolic_function_invocation& invocation) const;
   ir::value_ptr operator()(const undefined&) const;
   ir::value_ptr operator()(const unevaluated& u);
   ir::value_ptr operator()(const variable& var);

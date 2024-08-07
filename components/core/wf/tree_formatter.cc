@@ -56,7 +56,7 @@ void tree_formatter_visitor::operator()(const custom_type_argument& arg) {
 
 void tree_formatter_visitor::operator()(const custom_type_construction& construct) {
   format_append("{} (type = {}):", custom_type_construction::name_str, construct.type().name());
-  visit_all(construct.args());
+  visit_all(construct.children());
 }
 
 void tree_formatter_visitor::operator()(const derivative& diff) {
@@ -67,15 +67,15 @@ void tree_formatter_visitor::operator()(const derivative& diff) {
 void tree_formatter_visitor::operator()(const external_function_invocation& invocation) {
   format_append("{} (function = `{}`):", external_function_invocation::name_str,
                 invocation.function().name());
-  visit_all(invocation.args());
+  visit_all(invocation.children());
 }
 
 void tree_formatter_visitor::operator()(const float_constant& f) {
   format_append("{} ({})", float_constant::name_str, f.value());
 }
 
-void tree_formatter_visitor::operator()(const function& func) {
-  format_append("{} ({}):", function::name_str, func.function_name());
+void tree_formatter_visitor::operator()(const built_in_function_invocation& func) {
+  format_append("{} ({}):", built_in_function_invocation::name_str, func.function_name());
   visit_all(func);
 }
 
@@ -119,6 +119,16 @@ void tree_formatter_visitor::operator()(const relational& relational) {
 void tree_formatter_visitor::operator()(const symbolic_constant& constant) {
   format_append("{} ({})", symbolic_constant::name_str,
                 string_from_symbolic_constant(constant.name()));
+}
+
+void tree_formatter_visitor::operator()(const substitution& subs) {
+  format_append("{}:", substitution::name_str);
+  visit_all(subs);
+}
+
+void tree_formatter_visitor::operator()(const symbolic_function_invocation& invocation) {
+  format_append("{} ({}):", symbolic_function_invocation::name_str, invocation.function().name());
+  visit_all(invocation);
 }
 
 void tree_formatter_visitor::operator()(const undefined&) { format_append(undefined::name_str); }

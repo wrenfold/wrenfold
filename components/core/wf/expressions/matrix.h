@@ -28,6 +28,9 @@ class matrix {
                        transform_map<container_type>(data_, std::forward<Operation>(operation))};
   }
 
+  // Access elements.
+  constexpr const container_type& children() const noexcept { return data_; }
+
   // Access element in a vector. Only valid if `cols` or `rows` is 1.
   const scalar_expr& operator[](index_t i) const;
 
@@ -70,15 +73,12 @@ class matrix {
   // Total size (product of elements).
   std::size_t size() const noexcept { return data_.size(); }
 
-  // Access elements.
-  constexpr const std::vector<scalar_expr>& data() const noexcept { return data_; }
-
   // Iterators:
   auto begin() const noexcept { return data_.begin(); }
   auto end() const noexcept { return data_.end(); }
 
   // Compute flattened row-major index.
-  constexpr std::size_t compute_index(index_t i, index_t j) const noexcept {
+  constexpr std::size_t compute_index(const index_t i, const index_t j) const noexcept {
     return static_cast<std::size_t>(i * cols_ + j);
   }
 

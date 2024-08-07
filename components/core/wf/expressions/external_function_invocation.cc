@@ -16,7 +16,7 @@ external_function_invocation::external_function_invocation(external_function fun
 
 bool is_identical_struct<external_function_invocation>::operator()(
     const external_function_invocation& a, const external_function_invocation& b) const {
-  return are_identical(a.function(), b.function()) && are_identical(a.args(), b.args());
+  return are_identical(a.function(), b.function()) && are_identical(a.children(), b.children());
 }
 
 }  // namespace wf

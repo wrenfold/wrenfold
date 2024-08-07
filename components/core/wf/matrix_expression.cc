@@ -80,7 +80,7 @@ scalar_expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
 const matrix& matrix_expr::as_matrix() const { return get_unchecked<const matrix>(*this); }
 
-std::vector<scalar_expr> matrix_expr::to_vector() const { return as_matrix().data(); }
+std::vector<scalar_expr> matrix_expr::to_vector() const { return as_matrix().children(); }
 
 matrix_expr matrix_expr::operator-() const { return operator*(*this, constants::negative_one); }
 
@@ -90,7 +90,7 @@ matrix_expr matrix_expr::diff(const scalar_expr& var, const int reps,
   return map_matrix_expression(*this, [&visitor, reps](const scalar_expr& x) {
     scalar_expr result = x;
     for (int i = 0; i < reps; ++i) {
-      result = visitor.apply(result);
+      result = visitor(result);
     }
     return result;
   });
@@ -103,7 +103,7 @@ matrix_expr matrix_expr::jacobian(const absl::Span<const scalar_expr> vars,
                           rows(), cols());
   }
   const auto& m = as_matrix();
-  return wf::jacobian(m.data(), vars, behavior);
+  return wf::jacobian(m.children(), vars, behavior);
 }
 
 matrix_expr matrix_expr::jacobian(const matrix_expr& vars,
@@ -113,7 +113,7 @@ matrix_expr matrix_expr::jacobian(const matrix_expr& vars,
                           vars.rows(), vars.cols());
   }
   const auto& m = vars.as_matrix();
-  return jacobian(m.data(), behavior);  //  Call span version.
+  return jacobian(m.children(), behavior);  //  Call span version.
 }
 
 matrix_expr matrix_expr::distribute() const {
@@ -140,7 +140,7 @@ relative_order order_struct<matrix_expr>::operator()(const matrix_expr& a,
       order != relative_order::equal) {
     return order;
   }
-  return determine_order(am.data(), bm.data());
+  return determine_order(am.children(), bm.children());
 }
 
 matrix_expr operator+(const matrix_expr& a, const matrix_expr& b) {
@@ -158,7 +158,7 @@ matrix_expr operator*(const matrix_expr& a, const matrix_expr& b) {
 matrix_expr operator*(const matrix_expr& a, const scalar_expr& b) {
   const matrix& a_mat = a.as_matrix();
   auto data = transform_map<matrix::container_type>(
-      a_mat.data(), [&b](const scalar_expr& a_expr) { return a_expr * b; });
+      a_mat.children(), [&b](const scalar_expr& a_expr) { return a_expr * b; });
   return matrix_expr{std::in_place_type_t<matrix>{}, a_mat.rows(), a_mat.cols(), std::move(data)};
 }
 

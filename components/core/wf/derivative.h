@@ -4,6 +4,7 @@
 #pragma once
 #include <unordered_map>
 
+#include "wf/compound_expression.h"
 #include "wf/enumerations.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
@@ -18,7 +19,7 @@ class derivative_visitor {
   derivative_visitor(const scalar_expr& argument, non_differentiable_behavior behavior);
 
   // Apply this visitor to the specified expression.
-  scalar_expr apply(const scalar_expr& expression);
+  scalar_expr operator()(const scalar_expr& expression);
 
   scalar_expr operator()(const addition& add);
   scalar_expr operator()(const compound_expression_element&, const scalar_expr& expr) const;
@@ -27,7 +28,8 @@ class derivative_visitor {
   scalar_expr operator()(const derivative& derivative,
                          const scalar_expr& derivative_abstract) const;
   scalar_expr operator()(const multiplication& mul);
-  scalar_expr operator()(const function& func, const scalar_expr& func_abstract);
+  scalar_expr operator()(const built_in_function_invocation& func,
+                         const scalar_expr& func_abstract);
   scalar_expr operator()(const complex_infinity&) const;
   scalar_expr operator()(const imaginary_unit&) const;
   scalar_expr operator()(const integer_constant&) const;
@@ -35,7 +37,9 @@ class derivative_visitor {
   scalar_expr operator()(const float_constant&) const;
   scalar_expr operator()(const power& pow);
   scalar_expr operator()(const rational_constant&) const;
-  scalar_expr operator()(const relational&, const scalar_expr& rel_expr) const;
+  scalar_expr operator()(const substitution& sub, const scalar_expr& sub_abstract);
+  scalar_expr operator()(const symbolic_function_invocation& func,
+                         const scalar_expr& func_abstract);
   scalar_expr operator()(const undefined&) const;
   scalar_expr operator()(const unevaluated& u);
   scalar_expr operator()(const variable& var) const;

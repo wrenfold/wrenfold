@@ -19,6 +19,10 @@ class unevaluated {
     return create(operation(contents_));
   }
 
+  constexpr absl::Span<const scalar_expr> children() const noexcept {
+    return {std::addressof(contents_), static_cast<std::size_t>(1)};
+  }
+
   // Create a new unevaluated expression.
   static scalar_expr create(scalar_expr contents);
 

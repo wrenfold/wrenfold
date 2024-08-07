@@ -27,6 +27,8 @@ class conditional {
     return create(std::move(cond), operation(if_branch()), operation(else_branch()));
   }
 
+  constexpr const auto& children() const noexcept { return children_; }
+
   // Create a new conditional.
   static scalar_expr create(boolean_expr condition, scalar_expr if_branch, scalar_expr else_branch);
 
