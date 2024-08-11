@@ -79,6 +79,8 @@ class Conversions:
             sp.Min: self.convert_min,
             sp.Max: self.convert_max,
             sp.Heaviside: self.convert_heaviside,
+            sp.Derivative: self.convert_derivative,
+            sp.Subs: self.convert_subs,
             sp.Integer: lambda x: sym.integer(int(x)),
             sp.Float: lambda x: sym.float(float(x)),
             sp.Rational: lambda x: sym.rational(n=x.numerator, d=x.denominator),
@@ -139,12 +141,12 @@ class Conversions:
     def convert_min(self, expr) -> sym.Expr:
         if len(expr.args) != 2:
             # TODO: Implement min/max with a variable number of arguments.
-            raise RuntimeError("More than 2 args to min(...) is not supported yet.")
+            raise NotImplementedError("More than 2 args to min(...) is not supported yet.")
         return sym.min(self(expr.args[0]), self(expr.args[1]))
 
     def convert_max(self, expr) -> sym.Expr:
         if len(expr.args) != 2:
-            raise RuntimeError("More than 2 args to max(...) is not supported yet.")
+            raise NotImplementedError("More than 2 args to max(...) is not supported yet.")
         return sym.max(self(expr.args[0]), self(expr.args[1]))
 
     def convert_heaviside(self, expr) -> sym.Expr:
@@ -154,6 +156,39 @@ class Conversions:
         """
         x, zero_val = self(expr.args[0]), self(expr.args[1])
         return sym.where(x > 0, 1, sym.where(x < 0, -1, zero_val))
+
+    def convert_derivative(self, expr) -> sym.Expr:
+        """
+        Convert `Derivative` expression. We need to convert derivatives of multiple variables
+        into a stack of nested derivative objects.
+        """
+        differentiand = expr.args[0]
+        argument, count = expr.args[1]
+        result = self(differentiand)
+        for argument, count in expr.args[1:]:
+            result = sym.derivative(function=result, arg=self(argument), order=count)
+        return result
+
+    def convert_subs(self, expr) -> sym.Expr:
+        """
+        Convert incomplete substitution (`Subs`) expression.
+        """
+        # Subs can have multiple replacements - for now we have to chain these together.
+        result = self(expr.expr)
+        for variable, value in zip(expr.bound_symbols, expr.point):
+            result = sym.substitution(result, self(variable), self(value))
+
+        return result
+
+    def convert_applied_undef(self, expr) -> sym.Expr:
+        """
+        Convert AppliedUndef to symbolic function invocation.
+        """
+        sp_func = expr.func
+        if sp_func.default_assumptions:
+            raise NotImplementedError(f"Cannot convert SymPy function with assumptions: {sp_func}")
+        args = [self(x) for x in expr.args]
+        return sym.Function(sp_func.name)(*args)
 
     def __call__(self, expr: T.Any) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
         """
@@ -195,6 +230,9 @@ class Conversions:
             value = self.value_map.get(expr, None)
             if value is not None:
                 return value
+
+        if isinstance(expr, self.sp.core.function.AppliedUndef):
+            return self.convert_applied_undef(expr)
 
         raise TypeError(f"sympy expression of type `{type(expr)}` cannot be converted.")
 

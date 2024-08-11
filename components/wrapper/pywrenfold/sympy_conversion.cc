@@ -87,9 +87,6 @@ class sympy_conversion_visitor {
   }
 
   py::object operator()(const derivative& diff) {
-    // We always pass evaluate=False here because our derivative expression is always left abstract.
-    // To mirror this behavior, tell sympy not to evaluate. We can always call doit() on the sympy
-    // expression.
     return invoke_sympy_object(
         "Derivative", operator()(diff.differentiand()), operator()(diff.argument()), diff.order());
   }
