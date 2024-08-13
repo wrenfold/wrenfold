@@ -12,6 +12,7 @@ from wrenfold import (
     code_generation,
     enumerations,
     exceptions,
+    expressions,
     external_functions,
     geometry,
     sym,
@@ -75,8 +76,9 @@ def main(args: argparse.Namespace):
         module=sympy_conversion, module_name="sympy_conversion", output_dir=output_dir)
     generate_rst_for_module(
         module=type_annotations, module_name="type_annotations", output_dir=output_dir)
-    generate_rst_for_module(module=exceptions, module_name="exceptions", output_dir=output_dir)
     generate_rst_for_module(module=enumerations, module_name="enumerations", output_dir=output_dir)
+    generate_rst_for_module(module=exceptions, module_name="exceptions", output_dir=output_dir)
+    generate_rst_for_module(module=expressions, module_name="expressions", output_dir=output_dir)
     generate_rst_for_module(module=type_info, module_name="type_info", output_dir=output_dir)
     generate_rst_for_module(
         module=external_functions, module_name="external_functions", output_dir=output_dir)

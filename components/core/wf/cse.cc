@@ -23,7 +23,7 @@ class counter_visitor {
 
   template <typename T>
   void operator()(const T& concrete) {
-    for_each_child(concrete, [this](const auto& child) { record_count(child); });
+    for_each_child(concrete, [&](const auto& child) { record_count(child); });
   }
 
   template <typename ChildExprType>

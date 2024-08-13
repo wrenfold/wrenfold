@@ -2,7 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/plain_formatter.h"
+#include "wf/expression.h"
 
 namespace wf {
 
@@ -91,6 +91,11 @@ class variable {
 
   // The numeric set this variable belongs to.
   constexpr number_set set() const noexcept { return set_; }
+
+  // True if this variable is a `unique_variable`.
+  constexpr bool is_unique_variable() const noexcept {
+    return std::holds_alternative<unique_variable>(identifier_);
+  }
 
   // Convert the identifier to a string.
   std::string to_string() const;

@@ -8,6 +8,7 @@ add_library(
   wrenfold/custom_types.py
   wrenfold/enumerations.py
   wrenfold/exceptions.py
+  wrenfold/expressions.py
   wrenfold/external_functions.py
   wrenfold/geometry.py
   wrenfold/sym.py

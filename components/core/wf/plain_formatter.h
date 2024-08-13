@@ -42,7 +42,7 @@ class plain_formatter {
   void operator()(const variable& var);
 
   // Get the output string (transferring ownership to the caller).
-  std::string take_output() const { return std::move(output_); }
+  std::string take_output() { return std::move(output_); }
 
  private:
   // Wrap `expr` in braces if the precedence is <= the parent.

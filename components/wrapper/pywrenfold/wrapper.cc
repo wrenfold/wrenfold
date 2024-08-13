@@ -47,6 +47,10 @@ void wrap_enums(py::module_& m);
 
 // Defined in exceptions_wrapper.cc
 void wrap_exceptions(py::module_& m);
+
+// Defined in expressions_wrapper.cc
+void wrap_expressions(py::module_& m);
+
 }  // namespace wf
 
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
@@ -70,6 +74,10 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   wrap_scalar_operations(m_sym);
   wrap_matrix_operations(m_sym);
   wrap_compound_expression(m_sym);
+
+  auto m_expressions =
+      m.def_submodule(PY_SUBMODULE_NAME_EXPRESSIONS, "Wrapped concrete expressions.");
+  wrap_expressions(m_expressions);
 
   auto m_sympy_conversion =
       m.def_submodule(PY_SUBMODULE_NAME_SYMPY_CONVERSION, "Wrapped sympy conversion methods.");

@@ -15,3 +15,4 @@ Python API Documentation
    ast
    enumerations
    exceptions
+   expressions

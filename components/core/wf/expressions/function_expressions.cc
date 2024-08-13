@@ -52,6 +52,10 @@ scalar_expr built_in_function_invocation::create(const built_in_function name,
 }
 
 symbolic_function::symbolic_function(std::string name)
-    : impl_(std::make_shared<const impl>(impl{std::move(name)})) {}
+    : impl_(std::make_shared<const impl>(impl{std::move(name)})) {
+  if (impl_->name.empty()) {
+    throw invalid_argument_error("Function name cannot be empty.");
+  }
+}
 
 }  // namespace wf

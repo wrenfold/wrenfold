@@ -8,7 +8,7 @@ import unittest
 
 from test_base import MathTestBase
 
-from wrenfold import enumerations, exceptions, sym
+from wrenfold import enumerations, exceptions, expressions, sym
 
 
 class ExpressionWrapperTest(MathTestBase):
@@ -44,16 +44,17 @@ class ExpressionWrapperTest(MathTestBase):
                           lambda: sym.symbols("z", real=True, complex=True))
 
         # create via the `variable` object:
-        x_var = sym.Variable('x')
+        x_var = expressions.Variable('x')
         self.assertEqual('x', repr(x_var))
         self.assertEqual('x', x_var.name)
         self.assertEqual(enumerations.NumberSet.Unknown, x_var.set)
-        self.assertIdentical(x, x_var.to_expr())
+        self.assertIdentical(x, x_var.to_expression())
         self.assertIdentical(
             sym.symbols('z', real=True),
-            sym.Variable('z', number_set=enumerations.NumberSet.Real).to_expr())
-        self.assertSequenceEqual([sym.Variable('y'), sym.Variable('x')],
-                                 sym.get_variables(x + y * x - sym.cos(y)))
+            expressions.Variable('z', number_set=enumerations.NumberSet.Real).to_expression())
+        self.assertSequenceEqual(
+            [expressions.Variable('y'), expressions.Variable('x')],
+            sym.get_variables(x + y * x - sym.cos(y)))
 
     def test_create_unique_symbols(self):
         """Test calling unique_symbols."""
@@ -429,7 +430,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(0, f1.diff(z))
 
         f2 = f(sym.sin(x), x ** 2).diff(x)
-        u1, u2 = [v.to_expr() for v in sym.get_variables(f2) if v.is_unique_variable]
+        u1, u2 = [v.to_expression() for v in sym.get_variables(f2) if v.is_unique_variable]
 
         self.assertIdentical(
             sym.cos(x) * sym.substitution(f(u1, x ** 2).diff(u1), u1, sym.sin(x)) + \

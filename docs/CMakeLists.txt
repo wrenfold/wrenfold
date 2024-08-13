@@ -66,6 +66,7 @@ if(${SPHINX_FOUND})
       source/python_api/code_generation.rst
       source/python_api/enumerations.rst
       source/python_api/exceptions.rst
+      source/python_api/expressions.rst
       source/python_api/geometry.rst
       source/python_api/sym.rst
       source/python_api/sympy_conversion.rst

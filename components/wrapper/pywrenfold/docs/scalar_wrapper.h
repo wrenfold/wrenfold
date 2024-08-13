@@ -287,7 +287,7 @@ Returns:
   * Otherwise, a ``rational_constant`` expression.
 
 Raises:
-  ``wrenfold.sym.ArithmeticError``: If ``d`` is zero.
+  :class:`wrenfold.exceptions.ArithmeticError`: If ``d`` is zero.
 
 Examples:
   >>> sym.rational(5, 10) # Equivalent to: sym.integer(5) / 10
@@ -772,6 +772,88 @@ Examples:
   [(v0, x*y), (v1, cos(v0))]
   >>> g
   v1 + 5*abs(v1) - sin(v0)
+)doc";
+
+inline constexpr std::string_view symbolic_function_constructor = R"doc(
+Declare a new symbolic function with the provided string name. Two functions with the same name are
+considered equivalent.
+
+Args:
+  name: Function name.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> f = sym.Function('f')
+  >>> f(x)
+  f(x)
+  >>> f(x, y ** 2).diff(x)
+  Derivative(f(x, y**2), x)
+
+Raises:
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If the input string is empty.
+)doc";
+
+inline constexpr std::string_view substitution = R"doc(
+Create a deferred substitution expression.
+
+Args:
+  input: The expression that would be modified by the substitution.
+  target: The target expression being replaced.
+  replacement: The substituted expression.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> f = sym.substitution(x**2 + y, y, sym.cos(x))
+  >>> print(f)
+  Subs(y + x**2, y, cos(x))
+  >>> f.args
+  (y + x**2, y, cos(x))
+
+Raises:
+  :class:`wrenfold.exceptions.TypeError`: If ``target`` is a numeric constant.
+)doc";
+
+inline constexpr std::string_view derivative = R"doc(
+Create a deferred derivative expression. This expression type is used to represent the derivatives
+of abstract symbolic functions.
+
+Args:
+  function: Function to be differentiated.
+  arg: Argument with respect to which the derivative is taken.
+  order: The order of the derivative.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> sym.derivative(x * x, x)
+  Derivative(x**2, x)
+  >>> f = sym.Function('f')
+  >>> f(x, y).diff(x)
+  Derivative(f(x, y), x)
+
+Raises:
+  :class:`wrenfold.exceptions.TypeError`: If ``arg`` is not a variable expression.
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If ``order <= 0``.
+)doc";
+
+inline constexpr std::string_view get_variables = R"doc(
+Retrieve all concrete variable expressions from a symbolic expression tree, and return them in a
+list.
+
+Args:
+  expr: A scalar-valued expression.
+
+Returns:
+  A list of :class:`wrenfold.sym.Variable` (concrete variable expressions).
+
+Examples:
+  >>> x, y, z = sym.symbols('x, y, z')
+  >>> sym.get_variables(x**2 + y * 3 - sym.cos(z))
+  [x, y, z]
+  >>> sym.get_variables(x * 3)
+  [x]
+  >>> vs = sym.get_variables(sym.cos(x * y))
+  >>> type(vs[0])
+  pywrenfold.sym.Variable
 )doc";
 
 }  // namespace wf::docstrings

@@ -23,6 +23,8 @@ sym
 
 .. autofunction:: wrenfold.sym.cosh
 
+.. autofunction:: wrenfold.sym.derivative
+
 .. autofunction:: wrenfold.sym.det
 
 .. autofunction:: wrenfold.sym.diag
@@ -40,6 +42,8 @@ sym
 .. autofunction:: wrenfold.sym.full_piv_lu
 
 .. autofunction:: wrenfold.sym.ge
+
+.. autofunction:: wrenfold.sym.get_variables
 
 .. autofunction:: wrenfold.sym.gt
 
@@ -81,6 +85,8 @@ sym
 
 .. autofunction:: wrenfold.sym.sqrt
 
+.. autofunction:: wrenfold.sym.substitution
+
 .. autofunction:: wrenfold.sym.symbols
 
 .. autofunction:: wrenfold.sym.tan
@@ -112,6 +118,11 @@ sym
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
 .. autoclass:: wrenfold.sym.Expr
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.sym.Function
   :members:
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
