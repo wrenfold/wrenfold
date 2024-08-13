@@ -256,6 +256,9 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(sym.min(x, y), sp.Min(spy(x), spy(y)))
         self.assertIdenticalFromSp(sym.max(x, y), sp.Max(spy(x), spy(y)))
 
+        self.assertRaises(NotImplementedError, lambda: unspy(sp.Min(spy(x), 3, spy(x ** 2))))
+        self.assertRaises(NotImplementedError, lambda: unspy(sp.Max(spy(x), 3, spy(x ** 2))))
+
     def test_heaviside(self):
         # Heaviside only goes one way for now:
         x = sym.symbols('x')
@@ -274,6 +277,59 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(
             sym.unevaluated(x * y) * y,
             sp.UnevaluatedExpr(spy(x) * spy(y)) * spy(y))
+
+    def test_derivative_expression(self):
+        x, y = sym.symbols('x, y')
+        sx, sy = spy(x), spy(y)
+        self.assertEqualSp(sp.Derivative(sp.cos(sx), sx), sym.derivative(sym.cos(x), x))
+        self.assertEqualSp(sp.Derivative(sp.cos(sx), sx, 2), sym.derivative(sym.cos(x), x).diff(x))
+
+        # sympy --> wf
+        self.assertIdenticalFromSp(
+            sym.derivative(sym.abs(x * y), x), sp.Derivative(abs(sx * sy), sx))
+        self.assertIdenticalFromSp(
+            sym.derivative(sym.abs(x * y), x, 2), sp.Derivative(abs(sx * sy), (sx, 2)))
+        self.assertIdenticalFromSp(
+            sym.derivative(sym.abs(x * y), x).diff(y),
+            sp.Derivative(abs(sx * sy), sx).diff(sy, evaluate=False))
+
+    def test_symbolic_function_evaluation(self):
+        x, y = sym.symbols('x, y')
+        f = sym.Function('f')
+
+        sx, sy = spy(x), spy(y)
+        sf = sp.Function('f')
+
+        self.assertEqualSp(sf(sx), f(x))
+        self.assertEqualSp(sf(sx + 2), f(x + 2))
+        self.assertEqualSp(sf(sx).diff(sx), f(x).diff(x))
+        self.assertEqualSp(sf(sf(sx), sy ** 2), f(f(x), y ** 2))
+
+        # sympy --> wf
+        self.assertIdenticalFromSp(f(x), sf(sx))
+        self.assertIdenticalFromSp(f(x, y * 2), sf(sx, sy * 2))
+        self.assertIdenticalFromSp(f(x, y).diff(x), sf(sx, sy).diff(sx))
+
+        sg = sp.Function('g', real=True)
+        self.assertRaises(NotImplementedError, lambda: unspy(sg(sx)))
+
+    def test_substitute_expression(self):
+        x, y = sym.symbols('x, y')
+        f = sym.Function('f')
+
+        sx, sy = spy(x), spy(y)
+        sf = sp.Function('f')
+
+        self.assertEqualSp(
+            sp.Subs(sx + 3, sx, sp.pi, evaluate=False), sym.substitution(x + 3, x, sym.pi))
+        self.assertEqualSp(sp.Subs(sf(sx), sx, sy ** 2), sym.substitution(f(x), x, y ** 2))
+
+        # sympy --> wf
+        self.assertIdenticalFromSp(
+            sym.substitution(f(x), x, y), sp.Subs(sf(sx), sx, sy, evaluate=False))
+        self.assertIdenticalFromSp(
+            sym.substitution(sym.substitution(f(x, y), x, y ** 2), y, sym.pi),
+            sp.Subs(sf(sx, sy), (sx, sy), (sy ** 2, sp.pi)))
 
     def test_matrix(self):
         x, y = sym.symbols('x, y')

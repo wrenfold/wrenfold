@@ -61,6 +61,14 @@ class sympy_conversion_visitor {
     return get_sympy_attr(constant.value() ? "true" : "false");
   }
 
+  py::object operator()(const built_in_function_invocation& func) {
+    // Absolute value need special treatment since there is no `abs` in sympy.
+    const std::string_view func_name = func.enum_value() == built_in_function::abs
+                                           ? "Abs"
+                                           : string_from_built_in_function(func.enum_value());
+    return invoke_sympy_object(func_name, *convert_to_args(func), "evaluate"_a = evaluate_);
+  }
+
   py::object operator()(const complex_infinity&) const { return get_sympy_attr("zoo"); }
 
   py::object operator()(const conditional& cond) {
@@ -78,16 +86,13 @@ class sympy_conversion_visitor {
         py::make_tuple(operator()(cond.else_branch()), true), "evaluate"_a = evaluate_);
   }
 
-  py::object operator()(const float_constant& flt) const {
-    return invoke_sympy_object("Float", flt.value());
+  py::object operator()(const derivative& diff) {
+    return invoke_sympy_object(
+        "Derivative", operator()(diff.differentiand()), operator()(diff.argument()), diff.order());
   }
 
-  py::object operator()(const function& func) {
-    // Absolute value need special treatment since there is no `abs` in sympy.
-    const std::string_view func_name = func.enum_value() == built_in_function::abs
-                                           ? "Abs"
-                                           : string_from_built_in_function(func.enum_value());
-    return invoke_sympy_object(func_name, *convert_to_args(func), "evaluate"_a = evaluate_);
+  py::object operator()(const float_constant& flt) const {
+    return invoke_sympy_object("Float", flt.value());
   }
 
   py::object operator()(const imaginary_unit&) const { return get_sympy_attr("I"); }
@@ -148,6 +153,13 @@ class sympy_conversion_visitor {
                                "evaluate"_a = evaluate_);
   }
 
+  py::object operator()(const substitution& substitution) {
+    return invoke_sympy_object(
+        "Subs", operator()(substitution.input()), operator()(substitution.target()),
+                                                  operator()(substitution.replacement()),
+        "evaluate"_a = evaluate_);
+  }
+
   py::object operator()(const symbolic_constant& constant) const {
     switch (constant.name()) {
       case symbolic_constant_enum::euler:
@@ -157,6 +169,13 @@ class sympy_conversion_visitor {
     }
     WF_ASSERT_ALWAYS("Unhandled symbolic constant: {}",
                      string_from_symbolic_constant(constant.name()));
+  }
+
+  py::object operator()(const symbolic_function_invocation& invocation) {
+    // TODO: Add ability to place assumptions on `symbolic_function_invocation`, and allow passing
+    // them here.
+    const py::object function = invoke_sympy_object("Function", invocation.function().name());
+    return function(*convert_to_args(invocation));
   }
 
   py::object operator()(const undefined&) const { return get_sympy_attr("nan"); }

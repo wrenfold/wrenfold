@@ -26,7 +26,7 @@ struct reserve_type_hint {
 template <template <typename> class Map>
 class expression_map_tuple {
  public:
-  // All the different expressiont types.
+  // All the different expression types.
   using expression_types_list = type_list_from_variant_t<any_expression>;
 
   // The type we will store, a tuple of maps.

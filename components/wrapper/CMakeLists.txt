@@ -117,12 +117,14 @@ add_wrapper_module(
   pywrenfold/compound_expression_wrapper.cc
   pywrenfold/docs/codegen_wrapper.h
   pywrenfold/docs/compound_expression_wrapper.h
+  pywrenfold/docs/expressions_wrapper.h
   pywrenfold/docs/geometry_wrapper.h
   pywrenfold/docs/matrix_wrapper.h
   pywrenfold/docs/scalar_wrapper.h
   pywrenfold/docs/sympy_conversion.h
   pywrenfold/enums_wrapper.cc
   pywrenfold/exceptions_wrapper.cc
+  pywrenfold/expressions_wrapper.cc
   pywrenfold/geometry_wrapper.cc
   pywrenfold/matrix_wrapper.cc
   pywrenfold/scalar_wrapper.cc
@@ -134,6 +136,7 @@ add_wrapper_module(
   ast
   enumerations
   exceptions
+  expressions
   gen
   geometry
   sym

@@ -20,12 +20,14 @@ args_visitor::tuple args_visitor::operator()(const T& obj) const {
   if constexpr (T::is_leaf_node) {
     return py::make_tuple();
   } else {
-    if constexpr (std::is_same_v<T, conditional>) {
-      return py::make_tuple(obj.condition(), obj.if_branch(), obj.else_branch());
+    const auto& children = obj.children();
+    using children_type = std::decay_t<decltype(children)>;
+    if constexpr (is_tuple_v<children_type>) {
+      return std::apply([](const auto&... child) { return py::make_tuple(child...); }, children);
     } else {
-      py::tuple result{std::distance(obj.begin(), obj.end())};
+      py::tuple result{std::distance(children.begin(), children.end())};
       std::size_t index = 0;
-      for (const auto& element : obj) {
+      for (const auto& element : children) {
         result[index++] = element;
       }
       return result;

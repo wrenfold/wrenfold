@@ -34,13 +34,15 @@ class plain_formatter {
   void operator()(const power& pow);
   void operator()(const rational_constant& rational);
   void operator()(const relational& relational);
-  void operator()(const function& func);
+  void operator()(const substitution& subs);
+  void operator()(const symbolic_function_invocation& invocation);
+  void operator()(const built_in_function_invocation& func);
   void operator()(const undefined&);
   void operator()(const unevaluated& u);
   void operator()(const variable& var);
 
   // Get the output string (transferring ownership to the caller).
-  std::string take_output() const { return std::move(output_); }
+  std::string take_output() { return std::move(output_); }
 
  private:
   // Wrap `expr` in braces if the precedence is <= the parent.

@@ -1,11 +1,16 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+
 #include "wf/constants.h"
 #include "wf/expressions/derivative_expression.h"
+#include "wf/expressions/function_expressions.h"
+#include "wf/expressions/substitute_expression.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
+#include "wf/number_set.h"
 #include "wf/utility/error_types.h"
+#include "wf/utility_visitors.h"
 
 #include "wf_test_support/test_macros.h"
 
@@ -263,6 +268,130 @@ TEST(DerivativesTest, TestUnevaluated) {
   ASSERT_IDENTICAL(make_unevaluated(x * cos(x * y)) * make_unevaluated(y * y) +
                        make_unevaluated(sin(x * y)) * make_unevaluated(2 * y),
                    (make_unevaluated(sin(x * y)) * make_unevaluated(y * y)).diff(y));
+}
+
+static auto get_unique_variables(const scalar_expr& expr) {
+  auto variables = get_variables(expr);
+  variables.erase(std::remove_if(variables.begin(), variables.end(),
+                                 [](const variable& v) {
+                                   return !std::holds_alternative<unique_variable>(v.identifier());
+                                 }),
+                  variables.end());
+  WF_ASSERT(!variables.empty());
+  return variables;
+}
+
+TEST(DerivativesTest, TestSymbolicFunction) {
+  const scalar_expr x{"x", number_set::real};
+  const auto [y, z] = make_symbols("y", "z");
+  const auto f = symbolic_function("f");
+
+  ASSERT_IDENTICAL(0, f(x).diff(y));
+  ASSERT_IDENTICAL(0, f(x, z).diff(y));
+  ASSERT_IDENTICAL(derivative::create(f(x), x, 1), f(x).diff(x));
+  ASSERT_IDENTICAL(derivative::create(f(x, z), z, 1), f(x, z).diff(z));
+  ASSERT_IDENTICAL(derivative::create(f(x, z), z, 2), f(x, z).diff(z, 2));
+
+  {
+    const auto g = f(2 * x).diff(x);
+    const scalar_expr u1{get_unique_variables(g).front()};
+    ASSERT_EQ(number_set::real, determine_numeric_set(u1));
+    ASSERT_IDENTICAL(2 * substitution::create(f(u1).diff(u1), u1, 2 * x), g);
+  }
+
+  {
+    const auto g = f(x, x).diff(x);
+    const scalar_expr u1{get_unique_variables(g).front()};
+    const scalar_expr u2{get_unique_variables(g).back()};
+    ASSERT_NOT_IDENTICAL(u1, u2);
+    ASSERT_IDENTICAL(substitution::create(f(u1, x).diff(u1), u1, x) +
+                         substitution::create(f(x, u2).diff(u2), u2, x),
+                     g);
+  }
+
+  {
+    const auto g = f(x * x, sin(x * 3), y).diff(x);
+    const scalar_expr u1{get_unique_variables(g).front()};
+    const scalar_expr u2{get_unique_variables(g).back()};
+    ASSERT_NOT_IDENTICAL(u1, u2);
+    ASSERT_IDENTICAL(
+        2 * x * substitution::create(f(u1, sin(x * 3), y).diff(u1), u1, x * x) +
+            3 * cos(x * 3) * substitution::create(f(x * x, u2, y).diff(u2), u2, sin(x * 3)),
+        g);
+  }
+}
+
+TEST(DerivativeTest, TestSubstitution) {
+  const scalar_expr x{"x", number_set::real};
+  const auto [y, z] = make_symbols("y", "z");
+  const auto f = symbolic_function("f");
+
+  ASSERT_IDENTICAL(0, substitution::create(f(y), y, 1 + z).diff(x));
+  ASSERT_IDENTICAL(0, substitution::create(f(y), f(z, y), 1 + z).diff(x));
+
+  // Target is a function of `x`:
+  ASSERT_IDENTICAL(derivative::create(substitution::create(f(y), x, z), x, 1),
+                   substitution::create(f(y), x, z).diff(x));
+  ASSERT_IDENTICAL(
+      derivative::create(substitution::create(f(y, z), cos(x) / (3 * x), abs(x)), x, 1),
+      substitution::create(f(y, z), cos(x) / (3 * x), abs(x)).diff(x));
+
+  // Input expression to substitution is a function of `x`:
+  ASSERT_IDENTICAL(substitution::create(f(x, y).diff(x), y, z * z),
+                   substitution::create(f(x, y), y, z * z).diff(x));
+  ASSERT_IDENTICAL(substitution::create(f(x, 10_s, y).diff(x, 2), cos(y), sin(z)),
+                   substitution::create(f(x, 10_s, y), cos(y), sin(z)).diff(x, 2));
+
+  // Replacement is a function of x:
+  {
+    const auto g = substitution::create(f(y), y, x).diff(x);
+    ASSERT_IDENTICAL(substitution::create(f(y).diff(y), y, x), g);
+  }
+  {
+    const auto g = substitution::create(f(y), y, sin(2 * z)).diff(z);
+    ASSERT_IDENTICAL(substitution::create(f(y).diff(y), y, sin(2 * z)) * cos(2 * z) * 2, g);
+  }
+  {
+    const auto g = substitution::create(f(y), y + 2, cos(z * z)).diff(z);
+    const scalar_expr u1{get_unique_variables(g).front()};
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(u1));
+    ASSERT_IDENTICAL(
+        substitution::create(substitution::create(f(y), y + 2, u1).diff(u1), u1, cos(z * z)) *
+            -sin(z * z) * 2 * z,
+        g);
+  }
+
+  // Replacement and input expression are a function of `x`.
+  {
+    const auto g = substitution::create(f(y, x), x, y * y * y).diff(y);
+    ASSERT_IDENTICAL(3 * pow(y, 2) * substitution::create(f(y, x).diff(x), x, y * y * y) +
+                         substitution::create(f(y, x).diff(y), x, y * y * y),
+                     g);
+  }
+  {
+    const auto g = substitution::create(f(y, sin(x)), x, sin(2 * y)).diff(y);
+    const scalar_expr u1{get_unique_variables(g).front()};
+    // `real`, because we insert a variable for `sin(x)` (which is real)
+    ASSERT_EQ(number_set::real, determine_numeric_set(u1));
+    ASSERT_IDENTICAL(
+        2 * cos(2 * y) *
+                substitution::create(cos(x) * substitution::create(f(y, u1).diff(u1), u1, sin(x)),
+                                     x, sin(2 * y)) +
+            substitution::create(f(y, sin(x)).diff(y), x, sin(y * 2)),
+        g);
+  }
+  {
+    const auto g = substitution::create(f(pow(x, 2), y), y, sinh(x)).diff(x);
+    const scalar_expr u1{get_unique_variables(g).front()};
+    ASSERT_EQ(number_set::real, determine_numeric_set(u1));
+    // If `substitution::create` were smarter, we could do the replacement y --> sinh(x) in the
+    // second term to get f(u1, sinh(x)).diff(u1).
+    ASSERT_IDENTICAL(
+        cosh(x) * substitution::create(f(x * x, y).diff(y), y, sinh(x)) +
+            substitution::create(2 * x * substitution::create(f(u1, y).diff(u1), u1, x * x), y,
+                                 sinh(x)),
+        g);
+  }
 }
 
 }  // namespace wf

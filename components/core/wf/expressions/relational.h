@@ -22,6 +22,8 @@ class relational {
     return relational::create(operation_, operation(left()), operation(right()));
   }
 
+  constexpr const auto& children() const noexcept { return children_; }
+
   // Create a relational operation.
   static boolean_expr create(relational_operation operation, scalar_expr left, scalar_expr right);
 

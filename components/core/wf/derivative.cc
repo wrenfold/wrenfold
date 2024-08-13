@@ -8,45 +8,16 @@
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
+#include "wf/number_set.h"
 #include "wf/utility/error_types.h"
 #include "wf/utility/scoped_trace.h"
+#include "wf/utility_visitors.h"
 
 #include "wrenfold/span.h"
 
 namespace wf {
 
 using namespace wf::custom_literals;
-
-// Visitor that checks if an expression is a function of `target`.
-// Returns true if `target` appears as a sub-expression in anything we visit.
-template <typename T>
-struct is_function_of_visitor {
-  explicit is_function_of_visitor(const T& target) noexcept : target_(target) {}
-
-  bool operator()(const scalar_expr& expr) const { return visit(expr, *this); }
-  bool operator()(const boolean_expr& expr) const { return visit(expr, *this); }
-  bool operator()(const matrix_expr& expr) const { return visit(expr, *this); }
-
-  template <typename U>
-  bool operator()(const U& x) const {
-    if constexpr (std::is_same_v<U, T>) {
-      return are_identical(target_, x);
-    } else if constexpr (!U::is_leaf_node) {
-      if constexpr (std::is_same_v<conditional, U>) {
-        // TODO: A generic method of iterating over mixed-type expressions like `conditional`.
-        return operator()(x.condition()) || operator()(x.if_branch()) ||
-                                            operator()(x.else_branch());
-      } else {
-        return std::any_of(x.begin(), x.end(),
-                           [this](const auto& expr) { return visit(expr, *this); });
-      }
-    } else {
-      return false;
-    }
-  }
-
-  const T& target_;
-};
 
 derivative_visitor::derivative_visitor(const scalar_expr& argument,
                                        const non_differentiable_behavior behavior)
@@ -59,7 +30,7 @@ derivative_visitor::derivative_visitor(const scalar_expr& argument,
   }
 }
 
-scalar_expr derivative_visitor::apply(const scalar_expr& expression) {
+scalar_expr derivative_visitor::operator()(const scalar_expr& expression) {
   if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
   }
@@ -69,9 +40,7 @@ scalar_expr derivative_visitor::apply(const scalar_expr& expression) {
 }
 
 // Differentiate every argument to make a new sum.
-scalar_expr derivative_visitor::operator()(const addition& add) {
-  return add.map_children([this](const scalar_expr& expr) { return apply(expr); });
-}
+scalar_expr derivative_visitor::operator()(const addition& add) { return add.map_children(*this); }
 
 scalar_expr derivative_visitor::operator()(const compound_expression_element& el,
                                            const scalar_expr& expr) const {
@@ -90,7 +59,7 @@ scalar_expr derivative_visitor::operator()(const compound_expression_element& el
 //  the variable wrt we are differentiating), we should insert the dirac delta function.
 //  That said, this is more useful practically in most cases.
 scalar_expr derivative_visitor::operator()(const conditional& cond) {
-  return where(cond.condition(), apply(cond.if_branch()), apply(cond.else_branch()));
+  return where(cond.condition(), operator()(cond.if_branch()), operator()(cond.else_branch()));
 }
 
 scalar_expr derivative_visitor::operator()(const symbolic_constant&) const {
@@ -100,19 +69,11 @@ scalar_expr derivative_visitor::operator()(const symbolic_constant&) const {
 // Derivative of an abstract derivative expression.
 scalar_expr derivative_visitor::operator()(const derivative& derivative,
                                            const scalar_expr& derivative_abstract) const {
-  return visit(argument_, [&](const auto& arg) -> scalar_expr {
-    using T = std::decay_t<decltype(arg)>;
-    if constexpr (type_list_contains_v<T, variable, compound_expression_element>) {
-      if (const bool is_relevant = is_function_of_visitor<T>{arg}(derivative.differentiand());
-          !is_relevant) {
-        return constants::zero;
-      }
-      return derivative::create(derivative_abstract, argument_, 1);
-    } else {
-      WF_ASSERT_ALWAYS("Can only take derivatives wrt `{}` and `{}` expressions.",
-                       variable::name_str, compound_expression_element::name_str);
-    }
-  });
+  if (const bool is_relevant = is_function_of(derivative.differentiand(), argument_);
+      !is_relevant) {
+    return constants::zero;
+  }
+  return derivative::create(derivative_abstract, argument_, 1);
 }
 
 // Do product expansion over all terms in the multiplication:
@@ -130,7 +91,7 @@ scalar_expr derivative_visitor::operator()(const multiplication& mul) {
   // Differentiate wrt every argument:
   for (std::size_t i = 0; i < mul.size(); ++i) {
     mul_terms.clear();
-    if (scalar_expr mul_i_diff = apply(mul[i]); !is_zero(mul_i_diff)) {
+    if (scalar_expr mul_i_diff = operator()(mul[i]); !is_zero(mul_i_diff)) {
       mul_terms.push_back(std::move(mul_i_diff));
 
       // TODO: Avoid copying all the scalar_exprs twice here.
@@ -147,13 +108,12 @@ scalar_expr derivative_visitor::operator()(const multiplication& mul) {
 }
 
 // Cos, Sin, Tan, ArcCos, ArcSin, ArcTan, NaturalLog
-scalar_expr derivative_visitor::operator()(const function& func, const scalar_expr& func_abstract) {
+scalar_expr derivative_visitor::operator()(const built_in_function_invocation& func,
+                                           const scalar_expr& func_abstract) {
   // Differentiate the arguments:
-  function::container_type d_args = transform_map<function::container_type>(
-      func, [this](const scalar_expr& arg) { return apply(arg); });
+  auto d_args = transform_map<built_in_function_invocation::container_type>(func, *this);
 
-  if (const bool all_derivatives_zero = std::all_of(d_args.begin(), d_args.end(), &is_zero);
-      all_derivatives_zero) {
+  if (all_of(d_args, &is_zero)) {
     // If zero, we don't need to do any further operations.
     return constants::zero;
   }
@@ -263,8 +223,8 @@ scalar_expr derivative_visitor::operator()(const float_constant&) const { return
 scalar_expr derivative_visitor::operator()(const power& pow) {
   const scalar_expr& base = pow.base();
   const scalar_expr& exp = pow.exponent();
-  const scalar_expr base_diff = apply(base);
-  const scalar_expr exp_diff = apply(exp);
+  const scalar_expr base_diff = operator()(base);
+  const scalar_expr exp_diff = operator()(exp);
   if (is_zero(base_diff) && is_zero(exp_diff)) {
     return constants::zero;
   }
@@ -276,21 +236,109 @@ scalar_expr derivative_visitor::operator()(const rational_constant&) const {
   return constants::zero;
 }
 
-scalar_expr derivative_visitor::operator()(const relational&, const scalar_expr& rel_expr) const {
-  if (non_diff_behavior_ == non_differentiable_behavior::abstract) {
-    // Cannot differentiate relationals, so insert an abstract expression.
-    return derivative::create(rel_expr, argument_, 1);
-  } else {
+scalar_expr derivative_visitor::operator()(const substitution& sub,
+                                           const scalar_expr& sub_abstract) {
+  // If the target of the substitution is a function of the `x`, play it safe and create an
+  // abstract derivative expression.
+  if (is_function_of(sub.target(), argument_)) {
+    return derivative::create(sub_abstract, argument_, 1);
+  }
+
+  const scalar_expr input_diff = operator()(sub.input());
+  const scalar_expr replacement_diff = operator()(sub.replacement());
+
+  if (is_zero(replacement_diff)) {
+    // The replacement is not a function of `x`.
+    // The input expression may still be:
+    // d[ sub(f(x, y), y, g(z)) ] / dx --> sub(df(x, y)/dx, y, g(z))
+    return substitution::create(input_diff, sub.target(), sub.replacement());
+  }
+
+  // The replacement is a function of `x`.
+  const scalar_expr replacement_total_diff =
+      replacement_diff * std::invoke([&] {
+        if (sub.target().is_type<variable>()) {
+          // The target is itself a variable, so create: sub(f(y).diff(y), y, g(x))
+          return substitution::create(sub.input().diff(sub.target()), sub.target(),
+                                      sub.replacement());
+        } else if (sub.replacement().is_type<variable>()) {
+          // We don't need to introduce another variable, just take the derivative:
+          // d[sub(f(y), y, z)]/dz --> diff(sub(f(y), y, z), z) * dz/dx
+          // Either dz/dx (replacement_diff) will be one or zero.
+          return derivative::create(sub_abstract, sub.replacement(), 1);
+        } else {
+          // The target and substitution are both functions.
+          // So replace the target with a temporary, and take the derivative wrt that.
+          // Then replace the temporary with the replacement expression.
+          const scalar_expr sub_var =
+              make_unique_variable_symbol(determine_numeric_set(sub.replacement()));
+          return substitution::create(
+              derivative::create(substitution::create(sub.input(), sub.target(), sub_var), sub_var,
+                                 1),
+              sub_var, sub.replacement());
+        }
+      });
+
+  // Both replacement and input expression may be a function of `x`:
+  // d[ subs(f(x, y), y, g(x)) ] / dx -->
+  //    d[ subs(f(x, y), y, u) ]/du * g'(x) + subs(df(x, y)/dx, y, g(x))
+  // If `input_diff` is zero, this will simplify to just `replacement_total_diff`.
+  return replacement_total_diff + substitution::create(input_diff, sub.target(), sub.replacement());
+}
+
+// df(a, b)/dx --> f(a, b)/da * da/x + f(a, b)/db * db/x
+scalar_expr derivative_visitor::operator()(const symbolic_function_invocation& func,
+                                           const scalar_expr& func_abstract) {
+  // Compute derivatives of every argument.
+  const auto args_diff = transform_map<std::vector>(func.children(), *this);
+
+  // Check how many args were irrelevant:
+  const std::size_t num_zero = std::count_if(args_diff.begin(), args_diff.end(), &is_zero);
+  if (num_zero == args_diff.size()) {
+    // No arguments are relevant.
     return constants::zero;
   }
+
+  if (num_zero + 1 == args_diff.size() &&
+      1 == std::count_if(args_diff.begin(), args_diff.end(), &is_one)) {
+    // All but one argument is irrelevant, and that argument matches the variable exactly.
+    // In this case, we can just insert a derivative expression:
+    // d[f(x, y)]/dx --> diff(f(x, y), x)
+    return derivative::create(func_abstract, argument_, 1);
+  }
+
+  // More than one argument is relevant, we need to introduce substitutions:
+  //  d[f(g(x), h(x))]/dx --> f(u1, h(x))/du1 * g'(x) + f(g(x), u2)/du2 * h'(x)
+  const auto sum_args = transform_enumerate_map<std::vector>(
+      func.children(), [&](const std::size_t arg_index, const scalar_expr& func_arg) {
+        if (is_zero(args_diff[arg_index])) {
+          // This argument is not a function of the variable we are differentiating with respect
+          // to, so it does not contribute to the total derivative.
+          return constants::zero;
+        }
+
+        // We have a function f(g(x)). We replace u = g(x), then differentiate df(u)/du and
+        // substitute in u = g(x).
+        const scalar_expr sub_var = make_unique_variable_symbol(determine_numeric_set(argument_));
+
+        // Create new invocation of f(...) that replaces argument `arg_index` with `u`.
+        symbolic_function_invocation::container_type replaced_args = func.children();
+        replaced_args[arg_index] = sub_var;
+
+        // Construct df/du * du/dx
+        return args_diff[arg_index] *
+               substitution::create(
+                   derivative::create(make_expr<symbolic_function_invocation>(
+                                          func.function(), std::move(replaced_args)),
+                                      sub_var, 1),
+                   sub_var, func_arg);
+      });
+  return addition::from_operands(sum_args);
 }
 
 scalar_expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
-scalar_expr derivative_visitor::operator()(const unevaluated& u) {
-  // Keep the derivative between parentheses.
-  return u.map_children([this](const scalar_expr& x) { return apply(x); });
-}
+scalar_expr derivative_visitor::operator()(const unevaluated& u) { return u.map_children(*this); }
 
 scalar_expr derivative_visitor::operator()(const variable& var) const {
   if (const variable* arg = get_if<const variable>(argument_);
@@ -308,7 +356,7 @@ scalar_expr diff(const scalar_expr& function, const scalar_expr& var, const int 
   derivative_visitor visitor{var, behavior};
   scalar_expr result = function;
   for (int i = 0; i < reps; ++i) {
-    result = visitor.apply(result);
+    result = visitor(result);
   }
   return result;
 }
@@ -336,7 +384,7 @@ matrix_expr jacobian(const absl::Span<const scalar_expr> functions,
     // We cache derivative expressions, so that every row reuses the same cache:
     derivative_visitor diff_visitor{vars[col], behavior};
     for (std::size_t row = 0; row < functions.size(); ++row) {
-      result_span(row, col) = diff_visitor.apply(functions[row]);
+      result_span(row, col) = diff_visitor(functions[row]);
     }
   }
 

@@ -33,7 +33,7 @@ struct type_list_trait<scalar_meta_type> {
     class symbolic_constant,
     class derivative,
     class float_constant,
-    class function,
+    class built_in_function_invocation,
     class complex_infinity,
     class imaginary_unit,
     class integer_constant,
@@ -41,6 +41,8 @@ struct type_list_trait<scalar_meta_type> {
     class multiplication,
     class power,
     class rational_constant,
+    class substitution,
+    class symbolic_function_invocation,
     class undefined,
     class unevaluated,
     class variable

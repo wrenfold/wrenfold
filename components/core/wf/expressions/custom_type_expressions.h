@@ -64,9 +64,6 @@ class custom_type_construction {
   // The type being constructed.
   constexpr const custom_type& type() const noexcept { return type_; }
 
-  // Flattened list of sub-expressions that make up the custom type.
-  constexpr const container_type& args() const noexcept { return args_; }
-
   // Number of arguments to the constructor.
   std::size_t size() const noexcept { return args_.size(); }
 
@@ -85,6 +82,9 @@ class custom_type_construction {
     return create(type_, transform_map<container_type>(args_, std::forward<F>(f)));
   }
 
+  // Flattened list of sub-expressions that make up the custom type.
+  constexpr const container_type& children() const noexcept { return args_; }
+
   // Try to create a `custom_type_construction` expression. The expression may simplify to
   // `external_function_invocation` or `custom_type_argument` in some cases.
   static compound_expr create(custom_type type, container_type args);
@@ -97,14 +97,14 @@ class custom_type_construction {
 template <>
 struct hash_struct<custom_type_construction> {
   std::size_t operator()(const custom_type_construction& construction) const {
-    return hash_all(construction.type().hash(), construction.args());
+    return hash_all(construction.type().hash(), construction.children());
   }
 };
 
 template <>
 struct is_identical_struct<custom_type_construction> {
   bool operator()(const custom_type_construction& a, const custom_type_construction& b) const {
-    return are_identical(a.type(), b.type()) && are_identical(a.args(), b.args());
+    return are_identical(a.type(), b.type()) && are_identical(a.children(), b.children());
   }
 };
 
@@ -112,7 +112,7 @@ template <>
 struct order_struct<custom_type_construction> {
   relative_order operator()(const custom_type_construction& a,
                             const custom_type_construction& b) const {
-    return order_by(a.type().name(), b.type().name()).and_then_by(a.args(), b.args());
+    return order_by(a.type().name(), b.type().name()).and_then_by(a.children(), b.children());
   }
 };
 

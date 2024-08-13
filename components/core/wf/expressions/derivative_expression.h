@@ -7,7 +7,7 @@
 
 namespace wf {
 
-// Expression for expressing an unevaluated derivative operation.
+// Expression for describing an unevaluated or deferred derivative operation.
 // For example df(x)/dx is `Derivative(f(x), x)`. We use this to represent derivatives that can't
 // be immediately evaluated.
 class derivative {
@@ -15,7 +15,7 @@ class derivative {
   static constexpr std::string_view name_str = "Derivative";
   static constexpr bool is_leaf_node = false;
 
-  derivative(scalar_expr differentiand, scalar_expr arg, int order = 1)
+  derivative(scalar_expr differentiand, scalar_expr arg, const int order = 1)
       : children_{std::move(differentiand), std::move(arg)}, order_(order) {
     WF_ASSERT_GE(order_, 1);
   }
@@ -38,6 +38,8 @@ class derivative {
   scalar_expr map_children(Operation&& operation) const {
     return derivative::create(operation(differentiand()), operation(argument()), order_);
   }
+
+  constexpr const auto& children() const noexcept { return children_; }
 
   // Create a new derivative expression.
   static scalar_expr create(scalar_expr function, scalar_expr arg, int order);

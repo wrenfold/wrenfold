@@ -16,15 +16,18 @@
 #include "wf/cse.h"
 #include "wf/expression.h"
 #include "wf/expressions/addition.h"
+#include "wf/expressions/derivative_expression.h"
+#include "wf/expressions/function_expressions.h"
 #include "wf/expressions/multiplication.h"
+#include "wf/expressions/substitute_expression.h"
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
 #include "wf/substitute.h"
+#include "wf/utility_visitors.h"
 
 #include "args_visitor.h"
 #include "docs/scalar_wrapper.h"
-
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -318,6 +321,32 @@ void wrap_scalar_operations(py::module_& m) {
       "multiplication",
       [](const std::vector<scalar_expr>& args) { return multiplication::from_operands(args); },
       py::arg("args"), py::doc("Construct multiplication expression from provided operands."));
+
+  wrap_class<symbolic_function>(m, "Function")
+      .def(py::init<std::string>(), py::arg("name"),
+           docstrings::symbolic_function_constructor.data())
+      .def_property_readonly("name", &symbolic_function::name, "Name of the function.")
+      .def("__repr__", &symbolic_function::name)
+      .def(
+          "__call__",
+          [](const symbolic_function& self, const py::args& args) {
+            return make_expr<symbolic_function_invocation>(
+                self, transform_map<symbolic_function_invocation::container_type>(
+                          args, [](const py::handle& x) { return py::cast<scalar_expr>(x); }));
+          },
+          "Invoke the symbolic function with the provided scalar expressions, and return a "
+          "new scalar expression.")
+      .doc() =
+      "A scalar-valued symbolic function. Used to construct expressions of undefined functions.";
+
+  m.def("substitution", &substitution::create, py::arg("input"), py::arg("target"),
+        py::arg("replacement"), docstrings::substitution.data());
+  m.def("derivative", &derivative::create, py::arg("function"), py::arg("arg"),
+        py::arg("order") = 1, docstrings::derivative.data());
+
+  // TODO: This should (ideally) not needlessly copy all the `variable` objects, but rather create
+  // references to the actual `scalar_expr` that contains them.
+  m.def("get_variables", &get_variables, py::arg("expr"), docstrings::get_variables.data());
 }
 
 }  // namespace wf

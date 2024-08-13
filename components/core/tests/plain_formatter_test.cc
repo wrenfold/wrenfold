@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include "wf/constants.h"
+#include "wf/expressions/substitute_expression.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 
@@ -165,6 +166,11 @@ TEST(PlainFormatterTest, TestDerivativeExpression) {
                 signum(a).diff(a, 1, non_differentiable_behavior::abstract));
   ASSERT_STR_EQ("Derivative(sign(a), a, 2)",
                 signum(a).diff(a, 2, non_differentiable_behavior::abstract));
+}
+
+TEST(PlainFormatterTest, TestSubstitutionExpression) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_STR_EQ("Subs(x**2, x, 2 + y)", substitution::create(x * x, x, y + 2));
 }
 
 TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", constants::complex_infinity); }

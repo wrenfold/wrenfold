@@ -31,6 +31,10 @@ class compound_expression_element {
     return create(operation(provenance_), index_);
   }
 
+  constexpr absl::Span<const compound_expr> children() const noexcept {
+    return {std::addressof(provenance_), static_cast<std::size_t>(1)};
+  }
+
   // Create a reference to an element of a compound expression. This will simplify if the compound
   // expression is a constructor.
   static scalar_expr create(compound_expr provenance, std::size_t index);

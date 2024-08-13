@@ -255,7 +255,7 @@ matrix_expr quaternion::jacobian(const wf::matrix_expr& vars,
                           vars.rows(), vars.cols());
   }
   const auto& m = vars.as_matrix();
-  return jacobian(m.data(), behavior);
+  return jacobian(m.children(), behavior);
 }
 
 matrix_expr quaternion::right_retract_derivative() const {

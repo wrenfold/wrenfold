@@ -3,11 +3,11 @@
 // For license information refer to accompanying LICENSE file.
 #include "plain_formatter.h"
 
-#include "wf/common_visitors.h"
 #include "wf/expression_visitor.h"
 #include "wf/utility/assertions.h"
 #include "wf/utility/strings.h"
 #include "wf/utility/third_party_imports.h"
+#include "wf/utility_visitors.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
@@ -252,7 +252,7 @@ void plain_formatter::operator()(const multiplication& mul) {
   }
 }
 
-void plain_formatter::operator()(const function& func) {
+void plain_formatter::operator()(const built_in_function_invocation& func) {
   fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
   auto it = func.begin();
   if (it != func.end()) {
@@ -283,6 +283,29 @@ void plain_formatter::operator()(const relational& relational) {
   format_precedence(precedence::relational, relational.left());
   fmt::format_to(std::back_inserter(output_), " {} ", relational.operation_string());
   format_precedence(precedence::relational, relational.right());
+}
+
+void plain_formatter::operator()(const substitution& subs) {
+  output_ += "Subs(";
+  operator()(subs.input());
+  output_ += ", ";
+  operator()(subs.target());
+  output_ += ", ";
+  operator()(subs.replacement());
+  output_ += ")";
+}
+
+void plain_formatter::operator()(const symbolic_function_invocation& invocation) {
+  output_ += invocation.function().name();
+  output_ += "(";
+  if (auto it = invocation.begin(); it != invocation.end()) {
+    operator()(*it);
+    for (++it; it != invocation.end(); ++it) {
+      output_ += ", ";
+      operator()(*it);
+    }
+  }
+  output_ += ")";
 }
 
 void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
