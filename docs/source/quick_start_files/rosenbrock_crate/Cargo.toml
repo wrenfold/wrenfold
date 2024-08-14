@@ -6,6 +6,6 @@ publish = false
 
 [dependencies]
 wrenfold-traits = { version = "0.0.7", features = ["nalgebra"] }
-nalgebra = { version = "0.32" }
+nalgebra = { version = "0.33" }
 
 [workspace]

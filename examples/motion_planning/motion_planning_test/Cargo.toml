@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 wrenfold-traits = { workspace = true }
-nalgebra = { workspace = true }
+nalgebra = { workspace = true, features = ["serde", "serde-serialize"] }
 serde = { workspace = true, features = ["derive"] }
 argmin = { version = "0.8" }
 argmin-math = { version = "0.3", features = [

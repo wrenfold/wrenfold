@@ -169,7 +169,7 @@ checksum = "a8798ca7447753fcb3dd98d9095335b1564812a68c6e7c3d1926e1d5cf094e37"
 dependencies = [
  "anyhow",
  "cfg-if",
- "nalgebra",
+ "nalgebra 0.32.6",
  "ndarray",
  "ndarray-linalg",
  "num-complex",
@@ -309,7 +309,7 @@ dependencies = [
  "egui_extras",
  "egui_plot",
  "log",
- "nalgebra",
+ "nalgebra 0.33.0",
  "wrenfold-traits",
 ]
 
@@ -318,7 +318,7 @@ name = "bspline_rust_test"
 version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
- "nalgebra",
+ "nalgebra 0.33.0",
  "wrenfold-test-utils",
  "wrenfold-traits",
 ]
@@ -640,7 +640,7 @@ name = "custom_types_rust_test"
 version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
- "nalgebra",
+ "nalgebra 0.33.0",
  "wrenfold-test-utils",
  "wrenfold-traits",
 ]
@@ -1517,7 +1517,7 @@ version = "0.1.0"
 dependencies = [
  "argmin",
  "argmin-math",
- "nalgebra",
+ "nalgebra 0.33.0",
  "ndarray",
  "pkg-config",
  "serde",
@@ -1557,7 +1557,24 @@ dependencies = [
  "num-rational",
  "num-traits",
  "serde",
- "simba",
+ "simba 0.8.1",
+ "typenum",
+]
+
+[[package]]
+name = "nalgebra"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c4b5f057b303842cf3262c27e465f4c303572e7f6b0648f60e16248ac3397f4"
+dependencies = [
+ "approx 0.5.1",
+ "matrixmultiply",
+ "nalgebra-macros",
+ "num-complex",
+ "num-rational",
+ "num-traits",
+ "serde",
+ "simba 0.9.0",
  "typenum",
 ]
 
@@ -1643,6 +1660,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
+name = "num-bigint"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
+dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "num-complex"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1674,6 +1701,7 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
 dependencies = [
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -2119,7 +2147,7 @@ name = "rust_generation_test"
 version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
- "nalgebra",
+ "nalgebra 0.33.0",
  "wrenfold-traits",
 ]
 
@@ -2128,7 +2156,7 @@ name = "rust_generation_test_2"
 version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
- "nalgebra",
+ "nalgebra 0.33.0",
  "wrenfold-traits",
 ]
 
@@ -2235,6 +2263,19 @@ name = "simba"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "061507c94fc6ab4ba1c9a0305018408e312e17c041eb63bef8aa726fa33aceae"
+dependencies = [
+ "approx 0.5.1",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "wide",
+]
+
+[[package]]
+name = "simba"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3a386a501cd104797982c15ae17aafe8b9261315b5d07e3ec803f2ea26be0fa"
 dependencies = [
  "approx 0.5.1",
  "num-complex",
@@ -3282,14 +3323,14 @@ name = "wrenfold-test-utils"
 version = "0.0.7"
 dependencies = [
  "approx 0.5.1",
- "nalgebra",
+ "nalgebra 0.33.0",
 ]
 
 [[package]]
 name = "wrenfold-traits"
 version = "0.0.7"
 dependencies = [
- "nalgebra",
+ "nalgebra 0.33.0",
 ]
 
 [[package]]
