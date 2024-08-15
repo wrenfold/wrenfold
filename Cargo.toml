@@ -21,7 +21,7 @@ wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.0.7",
 bspline_rust_test = { path = "examples/bspline/bspline_rust_test" }
 
 # External crates used for tests.
-nalgebra = { version = "0.32.5" }
+nalgebra = { version = "0.33" }
 approx = { version = "0.5.1" }
 serde = { version = "1.0" }
 pkg-config = { version = "0.3.29" }
