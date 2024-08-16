@@ -15,9 +15,9 @@ bibliography: paper.bib
 
 # Summary
 
-Real-time robotic software systems often solve one or more numerical optimization problems. For example, accurate estimates of past vehicle motion are typically obtained as the solution of a non-linear optimization or filtering problem [@Barfoot:2024]. Similarly, the behavior of an autonomous system can be determined via a numerical optimization problem that reasons about the relative merits of different future actions [@Lynch_Park:2021].
+Real-time robotic software systems often solve one or more numerical optimization problems. For example, accurate estimates of past vehicle motion are typically obtained as the solution of a non-linear optimization or filtering problem [@Barfoot]. Similarly, the behavior of an autonomous system can be determined via a numerical optimization problem that reasons about the relative merits of different future actions [@Lynch_Park].
 
-Problems of this form can be solved using packages like Google Ceres [@Agarwal_Ceres_Solver_2022:2023] or GTSAM [@gtsam:2022]. These optimizers require that the user provide a mathematical objective function and - in some instances - the derivatives of said function with respect to the desired decision variables. In order to achieve real-time deadlines, the optimization is usually implemented in a performant compiled language such as C++.
+Problems of this form can be solved using packages like Google Ceres [@Agarwal_Ceres_Solver_2022] or GTSAM [@gtsam]. These optimizers require that the user provide a mathematical objective function and - in some instances - the derivatives of said function with respect to the desired decision variables. In order to achieve real-time deadlines, the optimization is usually implemented in a performant compiled language such as C++.
 
 `wrenfold` is a framework that converts symbolic math expressions (written in Python) into generated code in compiled languages (C++, Rust). The primary goals of the framework are:
 
@@ -34,14 +34,16 @@ Researchers and engineers working in robotics and related domains (eg. motion pl
 
 Symbolic code generation can help address these issues:
 
-* Symbolic functions can be be easily composed in Python and reasonably performant [@wrenfold_perf] C++ implementations are obtained automatically. The developer time cost required to experiment with different optimization parameterizations is thereby reduced.
+* Symbolic functions can be be easily composed in Python and reasonably performant[^1] C++ implementations are obtained automatically. The developer time cost required to experiment with different optimization parameterizations is thereby reduced.
 * Correct derivatives require no additional work - they can be obtained directly from the objective function via symbolic differentiation. Common terms that appear in the objective function and its Jacobians are automatically de-duplicated by the code generation step.
 
-The application of symbolic code generation to robotics is not novel. For example, the `MATLAB` symbolic code generation toolbox has been applied directly to motion planning [@Hereid2017FROST:2017]. The `SymForce` framework [@Martiros-RSS-22:2022] couples the `SymEngine` [@symengine] mathematical backend with Python code generation utilities and mathematical primitives specific to robotics. `wrenfold` draws inspiration from the design of `SymForce`, while aiming to support a greater variety and complexity of functions. As a comparison, we improve on the concept with the following contributions:
+[^1]: A comparison with handwritten and auto-diff based implementations is accessible at [https://wrenfold.org/performance.html](https://wrenfold.org/performance.html).
+
+The application of symbolic code generation to robotics is not novel. For example, the `MATLAB` symbolic code generation toolbox has been applied directly to motion planning [@Hereid2017FROST]. The `SymForce` framework [@Martiros-RSS-22] couples the `SymEngine` [@symengine] mathematical backend with Python code generation utilities and mathematical primitives specific to robotics. `wrenfold` draws inspiration from the design of `SymForce`, while aiming to support a greater variety and complexity of functions. We improve on the concept with the following contributions:
 
 * **Symbolic functions may incorporate piecewise conditional statements** - these produce if-else logic in the resulting code. This enables a broader range of functions to be generated.
 * **Emphasis is placed on ease of adaptability of the generated code.** Math expressions are simplified and converted into an abstract syntax tree (AST). Formatting of any element of the AST (such as function signatures and types) can be individually customized by defining a short Python method.
-* **Code generation times are meaningfully improved**, thereby enabling more complex expressions.
+* **Times for code generation are meaningfully reduced**, thereby enabling more complex expressions.
 
 # Resources
 
@@ -51,3 +53,5 @@ The application of symbolic code generation to robotics is not novel. For exampl
 # References
 
 # Acknowledgements
+
+We acknowledge code contributions from Himel Mondal.
