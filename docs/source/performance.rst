@@ -51,7 +51,7 @@ Jacobian Computation
 --------------------
 
 When computing Jacobians on manifolds (for example the rotation group :math:`SO\left(3\right)`),
-there are two plausible approaches that are well suited to symbolic code-generation:
+there are two plausible approaches that are well suited to symbolic code generation:
 
   #. We can compute the Jacobians with respect to the group variables (for instance, the four
      variables :math:`\left[w, x, y, z\right]` that make up a quaternion) and then chain
