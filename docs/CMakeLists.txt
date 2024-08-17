@@ -103,6 +103,8 @@ if(${SPHINX_FOUND})
       source/reference/new_language.rst
       source/reference/symbolic_manipulation.rst
       source/reference/sympy_interop.rst
+      source/_static/arch_dark.png
+      source/_static/arch_light.png
       source/_static/benchmark_plots/ImuIntegration-gcc.html
       source/_static/benchmark_plots/ImuIntegration-clang.html
       source/_static/benchmark_plots/QuatInterpolation-gcc.html

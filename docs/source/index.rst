@@ -1,10 +1,11 @@
 wrenfold
 ========
 
-.. warning::
+.. include:: ../../README.md
+  :parser: myst_parser.sphinx_
+  :start-after: <!--- badges_start --->
+  :end-before: <!--- badges_end --->
 
-  The wrenfold documentation is presently under construction. Please report missing information by
-  opening a GitHub issue.
 
 Introduction
 ------------
