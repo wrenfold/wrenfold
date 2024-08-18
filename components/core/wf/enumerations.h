@@ -62,7 +62,7 @@ enum class symbolic_constant_enum {
 };
 
 // Types of numeric values (at code-generation time).
-enum class code_numeric_type {
+enum class numeric_primitive_type {
   boolean,
   integral,
   floating_point,
@@ -230,13 +230,14 @@ constexpr std::string_view string_from_symbolic_constant(
 }
 
 // Convert `code_numeric_type` to string.
-constexpr std::string_view string_from_code_numeric_type(const code_numeric_type type) noexcept {
+constexpr std::string_view string_from_code_numeric_type(
+    const numeric_primitive_type type) noexcept {
   switch (type) {
-    case code_numeric_type::boolean:
+    case numeric_primitive_type::boolean:
       return "boolean";
-    case code_numeric_type::integral:
+    case numeric_primitive_type::integral:
       return "integral";
-    case code_numeric_type::floating_point:
+    case numeric_primitive_type::floating_point:
       return "floating_point";
   }
   return "<NOT A VALID ENUM VALUE>";

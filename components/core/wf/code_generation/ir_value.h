@@ -206,7 +206,7 @@ class value {
   }
 
   // Access the scalar numeric type. Invalid if `type_` is not a scalar_type.
-  code_numeric_type numeric_type() const {
+  numeric_primitive_type numeric_type() const {
     const scalar_type* scalar = std::get_if<scalar_type>(&type_);
     WF_ASSERT(scalar != nullptr, "Value is not scalar-valued: {}, index = {}", name(),
               type_.index());

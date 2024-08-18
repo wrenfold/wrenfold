@@ -77,10 +77,10 @@ any_expression external_function::create_invocation(std::vector<any_expression> 
         args[i],
         [&](const scalar_expr&) -> type_variant {
           // TODO: Check numeric type here.
-          return scalar_type(code_numeric_type::floating_point);
+          return scalar_type(numeric_primitive_type::floating_point);
         },
         [&](const boolean_expr&) -> type_variant {
-          return scalar_type(code_numeric_type::boolean);
+          return scalar_type(numeric_primitive_type::boolean);
         },
         [&](const matrix_expr& matrix) -> type_variant {
           return matrix_type(matrix.rows(), matrix.cols());

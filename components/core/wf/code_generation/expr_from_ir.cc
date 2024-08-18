@@ -128,7 +128,7 @@ class expression_from_ir_visitor {
 
   scalar_expr operator()(const ir::cast&, const ir::value::operands_container& args) const {
     WF_ASSERT(!args.empty());
-    if (args[0]->numeric_type() == code_numeric_type::boolean) {
+    if (args[0]->numeric_type() == numeric_primitive_type::boolean) {
       return iverson(map_value<boolean_expr>(args[0]));
     } else {
       return map_value<scalar_expr>(args[0]);

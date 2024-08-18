@@ -17,18 +17,19 @@
 namespace wf {
 
 // Represent a scalar argument type (float, int, etc).
+// TODO: This has a misleading name, because it can also be a non-scalar (bool) numeric primitive.
 class scalar_type {
  public:
   static constexpr std::string_view snake_case_name_str = "scalar_type";
 
-  explicit constexpr scalar_type(const code_numeric_type numeric_type) noexcept
+  explicit constexpr scalar_type(const numeric_primitive_type numeric_type) noexcept
       : numeric_type_(numeric_type) {}
 
   // The underlying numeric type.
-  constexpr code_numeric_type numeric_type() const noexcept { return numeric_type_; }
+  constexpr numeric_primitive_type numeric_type() const noexcept { return numeric_type_; }
 
  private:
-  code_numeric_type numeric_type_;
+  numeric_primitive_type numeric_type_;
 };
 
 template <>
@@ -147,7 +148,7 @@ class custom_type {
   std::size_t hash() const noexcept { return impl_->hash; }
 
   // Access the erased py::type.
-  maybe_null<const erased_pytype*> underying_pytype() const noexcept {
+  maybe_null<const erased_pytype*> underlying_pytype() const noexcept {
     return std::get_if<erased_pytype>(&impl_->underying_type);
   }
 

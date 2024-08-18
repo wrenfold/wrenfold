@@ -146,7 +146,7 @@ control_flow_graph::control_flow_graph(const std::vector<expression_group>& grou
     // Transform expressions into Values
     auto group_values = transform_map<std::vector>(group.expressions, [&](const scalar_expr& expr) {
       // TODO: Allow returning other types - derive numeric type from the group.
-      return visitor.apply_output_value(expr, code_numeric_type::floating_point);
+      return visitor.apply_output_value(expr, numeric_primitive_type::floating_point);
     });
 
     // Then create a sink to consume these values, the `save` operation is the sink:
@@ -693,7 +693,7 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
       if (remaining_operands.empty()) {
         // All the variables in this product were factored out, so insert a one.
         const ir::value_ptr one = push_value(block, ir::load{integer_constant(1)},
-                                             scalar_type(code_numeric_type::integral));
+                                             scalar_type(numeric_primitive_type::integral));
         operations_out.push_back(one);
         const ir::value_ptr one_casted = maybe_cast(one, value_type.numeric_type());
         if (one_casted != one) {
@@ -1084,7 +1084,7 @@ ir::value_ptr control_flow_graph::push_value(ir::block_ptr block, T op, ir::valu
 }
 
 ir::value_ptr control_flow_graph::maybe_cast(const ir::value_ptr val,
-                                             const code_numeric_type type) {
+                                             const numeric_primitive_type type) {
   if (val->numeric_type() == type) {
     return val;
   } else {

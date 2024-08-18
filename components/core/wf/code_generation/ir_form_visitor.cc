@@ -20,7 +20,7 @@ ir::value_ptr ir_form_visitor::operator()(const addition& add) {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const boolean_constant& b) {
-  return push_operation(ir::load{b}, code_numeric_type::boolean);
+  return push_operation(ir::load{b}, numeric_primitive_type::boolean);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const complex_infinity&) const {
@@ -37,7 +37,8 @@ ir::value_ptr ir_form_visitor::operator()(const compound_expression_element& el)
       },
       [&](scalar_type) { return compound_val; },
       [&](const auto&) {
-        return push_operation(ir::get{el.index()}, code_numeric_type::floating_point, compound_val);
+        return push_operation(ir::get{el.index()}, numeric_primitive_type::floating_point,
+                              compound_val);
       });
 }
 
@@ -45,7 +46,7 @@ ir::value_ptr ir_form_visitor::operator()(const conditional& cond) {
   const ir::value_ptr condition = operator()(cond.condition());
   const ir::value_ptr if_branch = operator()(cond.if_branch());
   const ir::value_ptr else_branch = operator()(cond.else_branch());
-  const code_numeric_type promoted_type =
+  const numeric_primitive_type promoted_type =
       std::max(if_branch->numeric_type(), else_branch->numeric_type());
   return push_operation(ir::cond{}, promoted_type, condition, maybe_cast(if_branch, promoted_type),
                         maybe_cast(else_branch, promoted_type));
@@ -68,7 +69,7 @@ ir::value_ptr ir_form_visitor::operator()(const custom_type_construction& constr
           [&](const std::size_t index, const matrix_type& m) {
             for (std::size_t i = 0; i < m.size(); ++i) {
               const ir::value_ptr mat_element = operator()(construct.at(index + i));
-              operands.push_back(maybe_cast(mat_element, code_numeric_type::floating_point));
+              operands.push_back(maybe_cast(mat_element, numeric_primitive_type::floating_point));
             }
           }));
 
@@ -112,7 +113,7 @@ ir::value_ptr ir_form_visitor::operator()(const derivative&) const {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const float_constant& f) {
-  return push_operation(ir::load{f}, code_numeric_type::floating_point);
+  return push_operation(ir::load{f}, numeric_primitive_type::floating_point);
 }
 
 static constexpr std_math_function std_math_function_from_built_in(const built_in_function name) {
@@ -159,8 +160,8 @@ static constexpr std_math_function std_math_function_from_built_in(const built_i
 // For some functions, this is determined by the input type. For most functions it is just a
 // floating point scalar.
 template <typename Container>
-static code_numeric_type std_function_output_type(const std_math_function func,
-                                                  const Container& args) {
+static numeric_primitive_type std_function_output_type(const std_math_function func,
+                                                       const Container& args) {
   switch (func) {
     case std_math_function::abs: {
       WF_ASSERT_EQ(1, args.size());
@@ -171,12 +172,12 @@ static code_numeric_type std_function_output_type(const std_math_function func,
       // TODO: signum/sign could adopt the type of its argument, but we need to either add another
       //  enum value or pass type information explicitly to the ast. I'm not sure which to do yet
       //  so I am deferring this decision.
-      return code_numeric_type::integral;
+      return numeric_primitive_type::integral;
     }
     default:
       break;
   }
-  return code_numeric_type::floating_point;
+  return numeric_primitive_type::floating_point;
 }
 
 ir::value_ptr ir_form_visitor::operator()(const built_in_function_invocation& func) {
@@ -185,7 +186,7 @@ ir::value_ptr ir_form_visitor::operator()(const built_in_function_invocation& fu
   // Convert args to values:
   auto args = transform_map<absl::InlinedVector<ir::value_ptr, 4>>(func, *this);
 
-  const code_numeric_type numeric_type = std_function_output_type(enum_value, args);
+  const numeric_primitive_type numeric_type = std_function_output_type(enum_value, args);
   return push_operation(ir::call_std_function{enum_value}, numeric_type, args);
 }
 
@@ -195,12 +196,13 @@ ir::value_ptr ir_form_visitor::operator()(const imaginary_unit&) const {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const integer_constant& i) {
-  return push_operation(ir::load{i}, code_numeric_type::integral);
+  return push_operation(ir::load{i}, numeric_primitive_type::integral);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const iverson_bracket& bracket) {
   const ir::value_ptr arg = operator()(bracket.arg());
-  return push_operation(ir::cast{code_numeric_type::integral}, code_numeric_type::integral, arg);
+  return push_operation(ir::cast{numeric_primitive_type::integral},
+                        numeric_primitive_type::integral, arg);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const matrix& mat) {
@@ -208,7 +210,7 @@ ir::value_ptr ir_form_visitor::operator()(const matrix& mat) {
   return push_operation(ir::construct(mat_type), mat_type,
                         transform_map<std::vector>(mat, [this](const scalar_expr& arg) {
                           return maybe_cast(this->operator()(arg),
-                                            code_numeric_type::floating_point);
+                                            numeric_primitive_type::floating_point);
                         }));
 }
 
@@ -251,7 +253,7 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
 
 template <typename T, typename Container>
 ir::value_ptr ir_form_visitor::create_add_or_mul_with_operands(Container args) {
-  auto promoted_type = code_numeric_type::integral;
+  auto promoted_type = numeric_primitive_type::integral;
   for (const ir::value_ptr v : args) {
     promoted_type = std::max(promoted_type, v->numeric_type());
   }
@@ -291,7 +293,7 @@ ir_form_visitor::pow_extract_base_and_integer_exponent(const power& p) {
     // multiplications is still faster even past x^32.
     if (exp_int->value() <= max_integer_mul_exponent) {
       const ir::value_ptr base =
-          maybe_cast(operator()(p.base()), code_numeric_type::floating_point);
+          maybe_cast(operator()(p.base()), numeric_primitive_type::floating_point);
       return std::make_tuple(base, static_cast<std::uint64_t>(exp_int->value()));
     }
   } else if (const rational_constant* exp_rational = get_if<const rational_constant>(p.exponent());
@@ -301,9 +303,9 @@ ir_form_visitor::pow_extract_base_and_integer_exponent(const power& p) {
     // approximate performance.
     if (exp_rational->denominator() == 2 && exp_rational->numerator() <= max_integer_mul_exponent) {
       const ir::value_ptr base =
-          maybe_cast(operator()(p.base()), code_numeric_type::floating_point);
+          maybe_cast(operator()(p.base()), numeric_primitive_type::floating_point);
       const ir::value_ptr sqrt = push_operation(ir::call_std_function{std_math_function::sqrt},
-                                                code_numeric_type::floating_point, base);
+                                                numeric_primitive_type::floating_point, base);
       return std::make_tuple(sqrt, static_cast<std::uint64_t>(exp_rational->numerator()));
     }
   }
@@ -325,7 +327,7 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
 
     // Write the power as: 1 / pow(base, -exponent)
     const ir::value_ptr one = operator()(constants::one);
-    constexpr code_numeric_type promoted_type = code_numeric_type::floating_point;
+    constexpr numeric_primitive_type promoted_type = numeric_primitive_type::floating_point;
     return push_operation(ir::div{}, promoted_type, maybe_cast(one, promoted_type),
                           maybe_cast(reciprocal_value, promoted_type));
   }
@@ -338,29 +340,30 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
 
   // Otherwise do it by calling pow:
   const ir::value_ptr base =
-      maybe_cast(operator()(power.base()), code_numeric_type::floating_point);
+      maybe_cast(operator()(power.base()), numeric_primitive_type::floating_point);
 
   // TODO: Support (int ** int) powers?
   if (const ir::value_ptr exp = operator()(power.exponent());
-      exp->numeric_type() == code_numeric_type::integral) {
+      exp->numeric_type() == numeric_primitive_type::integral) {
     return push_operation(ir::call_std_function{std_math_function::powi},
-                          code_numeric_type::floating_point, base, exp);
+                          numeric_primitive_type::floating_point, base, exp);
   } else {
     return push_operation(ir::call_std_function{std_math_function::powf},
-                          code_numeric_type::floating_point, base,
-                          maybe_cast(exp, code_numeric_type::floating_point));
+                          numeric_primitive_type::floating_point, base,
+                          maybe_cast(exp, numeric_primitive_type::floating_point));
   }
 }
 
 ir::value_ptr ir_form_visitor::operator()(const rational_constant& r) {
-  return push_operation(ir::load{r}, code_numeric_type::floating_point);
+  return push_operation(ir::load{r}, numeric_primitive_type::floating_point);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const relational& relational) {
   const ir::value_ptr left = operator()(relational.left());
   const ir::value_ptr right = operator()(relational.right());
-  const code_numeric_type promoted_type = std::max(left->numeric_type(), right->numeric_type());
-  return push_operation(ir::compare{relational.operation()}, code_numeric_type::boolean,
+  const numeric_primitive_type promoted_type =
+      std::max(left->numeric_type(), right->numeric_type());
+  return push_operation(ir::compare{relational.operation()}, numeric_primitive_type::boolean,
                         maybe_cast(left, promoted_type), maybe_cast(right, promoted_type));
 }
 
@@ -369,7 +372,7 @@ ir::value_ptr ir_form_visitor::operator()(const substitution&) const {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const symbolic_constant& constant) {
-  return push_operation(ir::load{constant}, code_numeric_type::floating_point);
+  return push_operation(ir::load{constant}, numeric_primitive_type::floating_point);
 }
 
 ir::value_ptr ir_form_visitor::operator()(const symbolic_function_invocation& invocation) const {
@@ -382,7 +385,7 @@ ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const variable& var) {
-  return push_operation(ir::load{var}, code_numeric_type::floating_point);
+  return push_operation(ir::load{var}, numeric_primitive_type::floating_point);
 }
 
 template <typename T, typename>
@@ -396,15 +399,15 @@ ir::value_ptr ir_form_visitor::operator()(const T& expr) {
   }
 }
 
-ir::value_ptr ir_form_visitor::apply_output_value(const scalar_expr& expr,
-                                                  const code_numeric_type desired_output_type) {
+ir::value_ptr ir_form_visitor::apply_output_value(
+    const scalar_expr& expr, const numeric_primitive_type desired_output_type) {
   WF_FUNCTION_TRACE();
   return maybe_cast(operator()(sorter_.sort_expression(expr)), desired_output_type);
 }
 
 template <typename OpType, typename Type, typename... Args>
 ir::value_ptr ir_form_visitor::push_operation(OpType&& op, Type type, Args&&... args) {
-  if constexpr (std::is_same_v<Type, code_numeric_type>) {
+  if constexpr (std::is_same_v<Type, numeric_primitive_type>) {
     return push_operation(std::forward<OpType>(op), scalar_type(type), std::forward<Args>(args)...);
   } else {
     return create_operation(output_graph_.values_, output_block_, std::forward<OpType>(op),
@@ -412,7 +415,7 @@ ir::value_ptr ir_form_visitor::push_operation(OpType&& op, Type type, Args&&... 
   }
 }
 
-ir::value_ptr ir_form_visitor::maybe_cast(ir::value_ptr input, code_numeric_type output_type) {
+ir::value_ptr ir_form_visitor::maybe_cast(ir::value_ptr input, numeric_primitive_type output_type) {
   if (input->numeric_type() != output_type) {
     if (const auto it = cached_casts_.find(std::make_tuple(input, output_type));
         it != cached_casts_.end()) {

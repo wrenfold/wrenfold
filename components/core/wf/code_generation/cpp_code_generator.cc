@@ -14,13 +14,13 @@ namespace wf {
 static constexpr std::string_view utility_namespace = "wf";
 
 constexpr static std::string_view cpp_string_from_numeric_type(
-    const code_numeric_type destination_type) noexcept {
+    const numeric_primitive_type destination_type) noexcept {
   switch (destination_type) {
-    case code_numeric_type::boolean:
+    case numeric_primitive_type::boolean:
       return "bool";
-    case code_numeric_type::integral:
+    case numeric_primitive_type::integral:
       return "std::int64_t";
-    case code_numeric_type::floating_point:
+    case numeric_primitive_type::floating_point:
       return "Scalar";
   }
   return "<INVALID ENUM VALUE>";
@@ -192,7 +192,7 @@ std::string cpp_code_generator::operator()(const ast::branch& x) const {
 std::string cpp_code_generator::operator()(const ast::call_external_function& x) const {
   const std::string args = join(", ", x.args, *this);
   if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
-      static_cast<bool>(s) && s->numeric_type() == code_numeric_type::floating_point) {
+      static_cast<bool>(s) && s->numeric_type() == numeric_primitive_type::floating_point) {
     return fmt::format("static_cast<Scalar>({}({}))", x.function.name(), args);
   } else {
     return fmt::format("{}({})", x.function.name(), args);
@@ -224,7 +224,7 @@ std::string cpp_code_generator::operator()(const ast::call_std_function& x) cons
                          fmt::arg("arg", make_view(x[0])));
     case std_math_function::floor:
       return fmt::format("static_cast<{}>(std::floor({}))",
-                         cpp_string_from_numeric_type(code_numeric_type::integral),
+                         cpp_string_from_numeric_type(numeric_primitive_type::integral),
                          make_view(x[0]));
     case std_math_function::atan2:
       return fmt::format("std::atan2({}, {})", make_view(x[0]), make_view(x[1]));

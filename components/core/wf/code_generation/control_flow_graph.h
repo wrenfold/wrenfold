@@ -128,7 +128,7 @@ class control_flow_graph {
   ir::value_ptr push_value(ir::block_ptr block, T op, ir::value::types type, Args&&... args);
 
   // If the numeric type of `val` does not match `type`, insert a cast.
-  ir::value_ptr maybe_cast(ir::value_ptr val, code_numeric_type type);
+  ir::value_ptr maybe_cast(ir::value_ptr val, numeric_primitive_type type);
 
   control_flow_graph(std::vector<ir::block::unique_ptr> blocks,
                      std::vector<ir::value::unique_ptr> values);

@@ -39,7 +39,7 @@ struct static_matrix {
   using enable_if_convertible_to_expr =
       std::enable_if_t<std::conjunction_v<std::is_constructible<scalar_expr, Args>...>>;
 
-  // Construct from a row-major orderd list of elements.
+  // Construct from a row-major ordered list of elements.
   template <typename... Args, typename = enable_if_convertible_to_expr<Args...>>
   explicit static_matrix(Args&&... args)
       : static_matrix(make_matrix(Rows, Cols, std::forward<Args>(args)...)) {

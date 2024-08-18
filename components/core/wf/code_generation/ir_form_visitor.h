@@ -74,7 +74,8 @@ class ir_form_visitor {
   ir::value_ptr operator()(const T& expr);
 
   // Compute the value for the specified expression. If required, cast it to the output type.
-  ir::value_ptr apply_output_value(const scalar_expr& expr, code_numeric_type desired_output_type);
+  ir::value_ptr apply_output_value(const scalar_expr& expr,
+                                   numeric_primitive_type desired_output_type);
 
  private:
   template <typename OpType, typename Type, typename... Args>
@@ -85,7 +86,7 @@ class ir_form_visitor {
   ir::value_ptr create_add_or_mul_with_operands(Container args);
 
   // Wrap `input` in a cast operation if it does have type `output_type`.
-  ir::value_ptr maybe_cast(ir::value_ptr input, code_numeric_type output_type);
+  ir::value_ptr maybe_cast(ir::value_ptr input, numeric_primitive_type output_type);
 
   // Apply exponentiation by squaring to implement a power of an integer.
   ir::value_ptr exponentiate_by_squaring(ir::value_ptr base, std::size_t exponent);
@@ -112,7 +113,7 @@ class ir_form_visitor {
 
   // Hash tuple of [value, type]
   struct hash_value_and_type {
-    std::size_t operator()(const std::tuple<ir::value_ptr, code_numeric_type>& pair) const {
+    std::size_t operator()(const std::tuple<ir::value_ptr, numeric_primitive_type>& pair) const {
       const auto [value, type] = pair;
       return hash_combine(value->name(), static_cast<std::size_t>(type));
     }
@@ -120,8 +121,8 @@ class ir_form_visitor {
 
   // Test tuple of [value, type] for equality.
   struct value_and_type_eq {
-    bool operator()(const std::tuple<ir::value_ptr, code_numeric_type>& a,
-                    const std::tuple<ir::value_ptr, code_numeric_type>& b) const {
+    bool operator()(const std::tuple<ir::value_ptr, numeric_primitive_type>& a,
+                    const std::tuple<ir::value_ptr, numeric_primitive_type>& b) const {
       return std::get<0>(a)->name() == std::get<0>(b)->name() && std::get<1>(a) == std::get<1>(b);
     }
   };
@@ -129,7 +130,7 @@ class ir_form_visitor {
   // We maintain a separate cache of casts. Casts don't appear in the math tree, so we cannot
   // store them in as `scalar_expr` in the computed_values_ map. This is a mapping from [value,
   // type] to the cast (if it exists already).
-  std::unordered_map<std::tuple<ir::value_ptr, code_numeric_type>, ir::value_ptr,
+  std::unordered_map<std::tuple<ir::value_ptr, numeric_primitive_type>, ir::value_ptr,
                      hash_value_and_type, value_and_type_eq>
       cached_casts_;
 };
