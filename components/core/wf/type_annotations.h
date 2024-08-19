@@ -85,5 +85,30 @@ struct is_static_matrix<static_matrix<Rows, Cols>> : std::true_type {};
 template <typename T>
 constexpr bool is_static_matrix_v = is_static_matrix<T>::value;
 
+// Annotate a `scalar_expr` with an expected numeric primitive type at compile time.
+template <numeric_primitive_type NumericType>
+class annotated_scalar_expr {
+ public:
+  static_assert(NumericType != numeric_primitive_type::boolean, "Type cannot be boolean");
+
+  // Implicitly construct from scalar expression.
+  annotated_scalar_expr(scalar_expr expr) noexcept : expr_(std::move(expr)) {}  // NOLINT
+
+  // Implicit conversion to scalar_expr.
+  constexpr operator const scalar_expr&() const noexcept { return expr_; }  // NOLINT
+
+ private:
+  scalar_expr expr_;
+};
+
+using int_scalar_expr = annotated_scalar_expr<numeric_primitive_type::integral>;
+
+template <typename>
+struct is_annotated_scalar_expr : std::false_type {};
+template <numeric_primitive_type NumericType>
+struct is_annotated_scalar_expr<annotated_scalar_expr<NumericType>> : std::true_type {};
+template <typename T>
+constexpr bool is_annotated_scalar_expr_v = is_annotated_scalar_expr<T>::value;
+
 }  // namespace type_annotations
 }  // namespace wf

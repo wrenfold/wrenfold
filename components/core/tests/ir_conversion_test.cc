@@ -974,4 +974,19 @@ TEST(IrTest, TestExternalFunction6) {
       << ir;  //  Matrix and point are constructed.
 }
 
+TEST(IrTest, TestTypedScalarArgs1) {
+  auto [expected_expressions, ir] = create_ir(
+      [](ta::int_scalar_expr x, scalar_expr y) { return x * y; }, "func", arg("x"), arg("y"));
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::cast>()) << ir;  //  `x` should get casted
+}
+
+TEST(IrTest, TestTypedScalarArgs2) {
+  auto [expected_expressions, ir] =
+      create_ir([](ta::int_scalar_expr x, ta::int_scalar_expr y) { return x * y; }, "func",
+                arg("x"), arg("y"));
+  check_expressions(expected_expressions, ir);
+  ASSERT_EQ(1, ir.count_operation<ir::cast>()) << ir;  //  `x` and `y` are multiplied, then casted
+}
+
 }  // namespace wf

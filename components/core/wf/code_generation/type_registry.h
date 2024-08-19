@@ -193,16 +193,27 @@ struct annotated_custom_type {
 
 namespace detail {
 
+// Non-annotated `scalar_expr` is always floating point.
 template <>
 struct record_type<scalar_expr> {
-  scalar_type operator()(const custom_type_registry&) const {
+  constexpr scalar_type operator()(const custom_type_registry&) const noexcept {
     return scalar_type(numeric_primitive_type::floating_point);
+  }
+};
+
+// Annotated `scalar_expr` may have a specific numerical type.
+template <numeric_primitive_type NumericType>
+struct record_type<type_annotations::annotated_scalar_expr<NumericType>> {
+  constexpr scalar_type operator()(const custom_type_registry&) const noexcept {
+    return scalar_type(NumericType);
   }
 };
 
 template <index_t Rows, index_t Cols>
 struct record_type<type_annotations::static_matrix<Rows, Cols>> {
-  matrix_type operator()(const custom_type_registry&) const { return matrix_type(Rows, Cols); }
+  constexpr matrix_type operator()(const custom_type_registry&) const noexcept {
+    return matrix_type(Rows, Cols);
+  }
 };
 
 // For custom types, we check add each type to the type registry.

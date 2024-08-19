@@ -252,4 +252,7 @@ inline auto external_function_call_6(scalar_expr x, scalar_expr y) {
   return external_function_4::call(p2);
 }
 
+// Accept an integer argument for `x`.
+inline auto integer_argument_test_1(ta::int_scalar_expr x, scalar_expr y) { return x * y; }
+
 }  // namespace wf

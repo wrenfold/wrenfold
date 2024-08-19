@@ -941,4 +941,17 @@ pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
   crate::external_functions::external_function_4(&crate::external_functions::external_function_4(&crate::types::Point2d::new(v005, v012)))
 }
 
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn integer_argument_test_1<>(x: i64, y: f64) -> f64
+{
+  // Operation counts:
+  // multiply: 1
+  // total: 1
+  
+  let v00: i64 = x;
+  let v01: f64 = y;
+  v01 * (v00) as f64
+}
+
 

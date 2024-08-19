@@ -5,8 +5,8 @@
 
 namespace wf {
 
-argument::argument(const std::string_view name, type_variant type, argument_direction direction,
-                   const std::size_t index)
+argument::argument(const std::string_view name, type_variant type,
+                   const argument_direction direction, const std::size_t index)
     : impl_(std::make_shared<const impl>(
           impl{std::string(name), std::move(type), direction, index})) {}
 
