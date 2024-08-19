@@ -10,16 +10,17 @@ namespace wf {
 // Typically, the user does not create these directly.
 class function_argument_variable {
  public:
-  constexpr function_argument_variable(const std::size_t arg_index,
-                                       const std::size_t element_index) noexcept
-      : arg_index_(arg_index), element_index_(element_index) {}
+  constexpr function_argument_variable(const std::size_t arg_index, const std::size_t element_index,
+                                       const numeric_primitive_type primitive_type) noexcept
+      : arg_index_(arg_index), element_index_(element_index), primitive_type_(primitive_type) {}
 
   constexpr bool operator<(const function_argument_variable& other) const noexcept {
-    return std::make_pair(arg_index_, element_index_) <
-           std::make_pair(other.arg_index_, other.element_index_);
+    return std::make_tuple(arg_index_, element_index_, primitive_type_) <
+           std::make_tuple(other.arg_index_, other.element_index_, other.primitive_type_);
   }
   constexpr bool operator==(const function_argument_variable& other) const noexcept {
-    return arg_index_ == other.arg_index_ && element_index_ == other.element_index_;
+    return arg_index_ == other.arg_index_ && element_index_ == other.element_index_ &&
+           primitive_type_ == other.primitive_type_;
   }
 
   // Which function argument this refers to.
@@ -29,9 +30,15 @@ class function_argument_variable {
   // For a matrix arg, this is a flat index into the matrix.
   constexpr std::size_t element_index() const noexcept { return element_index_; }
 
+  // The numeric type of this variable.
+  constexpr numeric_primitive_type primitive_type() const noexcept { return primitive_type_; }
+
  private:
   std::size_t arg_index_;
   std::size_t element_index_;
+  // TODO: `numeric_primitive_type` is a bit too liberal, since it also incorporates boolean.
+  // But boolean can only be used in boolean_expr, not scalar_expr.
+  numeric_primitive_type primitive_type_;
 };
 
 // A variable designated by a unique integer index that is not reused.
@@ -102,9 +109,10 @@ class variable {
 
   // Create a function argument expression.
   static scalar_expr create_function_argument(const std::size_t arg_index,
-                                              const std::size_t element_index) {
+                                              const std::size_t element_index,
+                                              const numeric_primitive_type type) {
     // TODO: Support creating function arguments that are not real.
-    return make_expr<variable>(function_argument_variable(arg_index, element_index),
+    return make_expr<variable>(function_argument_variable(arg_index, element_index, type),
                                number_set::real);
   }
 

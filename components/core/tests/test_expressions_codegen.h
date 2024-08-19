@@ -50,6 +50,7 @@ std::string generate_test_expressions(Generator gen) {
                 arg("x"), arg("y"));
   generate_func(gen, code, &external_function_call_6, "external_function_call_6", arg("x"),
                 arg("y"));
+  generate_func(gen, code, &integer_argument_test_1, "integer_argument_test_1", arg("x"), arg("y"));
   return code;
 }
 

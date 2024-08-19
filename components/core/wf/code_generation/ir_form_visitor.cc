@@ -384,8 +384,18 @@ ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
   throw type_error("Cannot generate code with expressions containing: {}", undefined::name_str);
 }
 
+inline numeric_primitive_type get_variable_type(const variable& var) {
+  if (const function_argument_variable* arg =
+          std::get_if<function_argument_variable>(&var.identifier());
+      arg != nullptr) {
+    return arg->primitive_type();
+  } else {
+    return numeric_primitive_type::floating_point;
+  }
+}
+
 ir::value_ptr ir_form_visitor::operator()(const variable& var) {
-  return push_operation(ir::load{var}, numeric_primitive_type::floating_point);
+  return push_operation(ir::load{var}, get_variable_type(var));
 }
 
 template <typename T, typename>

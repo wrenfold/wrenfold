@@ -143,10 +143,10 @@ template <>
 struct collect_function_input<scalar_expr> {
   template <typename U, typename = enable_if_floating_point_t<U>>
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index, const U arg,
-                  const scalar_type&) const {
+                  const scalar_type& scalar) const {
     const auto a = static_cast<float_constant::value_type>(arg);
     const bool added = output.add_substitution(
-        variable{function_argument_variable(arg_index, 0), number_set::real},
+        variable{function_argument_variable(arg_index, 0, scalar.numeric_type()), number_set::real},
         make_expr<float_constant>(a));
     WF_ASSERT(added);
   }
@@ -166,7 +166,9 @@ struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
         const auto a_ij = static_cast<float_constant::value_type>(arg(i, j));
         const bool added = output.add_substitution(
-            variable{function_argument_variable(arg_index, element), number_set::real},
+            variable{function_argument_variable(arg_index, element,
+                                                numeric_primitive_type::floating_point),
+                     number_set::real},
             scalar_expr(a_ij));
         WF_ASSERT(added);
       }
