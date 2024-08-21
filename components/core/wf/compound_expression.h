@@ -20,8 +20,8 @@ struct type_list_trait<compound_meta_type> {
   // clang-format on
 };
 
-// An compound type expression is an expression whose value is an aggregate type,
-// like a user-provided custom struct.
+// A compound expression is an expression whose value is an aggregate type, like a user-provided
+// custom struct.
 class compound_expr final : public expression_base<compound_expr, compound_meta_type> {
  public:
   using expression_base::expression_base;
