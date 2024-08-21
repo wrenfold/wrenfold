@@ -55,10 +55,10 @@ class OpaqueType(Opaque):
 
 
 external_func = external_functions.declare_external_function(
-    "external_func", arguments=[('foo', OpaqueType), ('bar', sym.Expr)], return_type=sym.Expr)
+    "external_func", arguments=[('foo', OpaqueType), ('bar', FloatScalar)], return_type=FloatScalar)
 
 
-def opaque_type_func(u: OpaqueType, x: sym.Expr, y: sym.Expr):
+def opaque_type_func(u: OpaqueType, x: FloatScalar, y: FloatScalar):
     """Use an opaque type as an argument to a generated function."""
     f = external_func(u, x * y + 3)
     return f + sym.cos(x * y)

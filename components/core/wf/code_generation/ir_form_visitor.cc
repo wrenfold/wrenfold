@@ -27,6 +27,29 @@ ir::value_ptr ir_form_visitor::operator()(const complex_infinity&) const {
   throw type_error("Cannot generate code for complex infinity.");
 }
 
+inline numeric_primitive_type determine_member_type(const custom_type& custom,
+                                                    const std::size_t index) {
+  const auto sequence = determine_access_sequence(custom, index);
+  WF_ASSERT(!sequence.empty());
+
+  const access_variant& last_element = sequence.back();
+  return overloaded_visit(
+      last_element,
+      // Matrices are always float for now:
+      [](const matrix_access&) constexpr { return numeric_primitive_type::floating_point; },
+      [&](const field_access& access) -> numeric_primitive_type {
+        // Retrieve the field from the type:
+        const auto accessed_field = access.get_field();
+        // Because this is a leaf, it must be a scalar. This assumption may eventually be relaxed.
+        const scalar_type* const scalar = std::get_if<scalar_type>(&accessed_field->type());
+        WF_ASSERT(
+            scalar != nullptr,
+            "Field `{}` on type `{}` is not a scalar (when accessing element {} of type `{}`)",
+            access.field_name(), access.type().name(), index, custom.name());
+        return scalar->numeric_type();
+      });
+}
+
 ir::value_ptr ir_form_visitor::operator()(const compound_expression_element& el) {
   const ir::value_ptr compound_val = operator()(el.provenance());
   return overloaded_visit(
@@ -36,9 +59,14 @@ ir::value_ptr ir_form_visitor::operator()(const compound_expression_element& el)
                          compound_val->name(), el.index());
       },
       [&](scalar_type) { return compound_val; },
-      [&](const auto&) {
+      [&](const matrix_type&) {
         return push_operation(ir::get{el.index()}, numeric_primitive_type::floating_point,
                               compound_val);
+      },
+      [&](const custom_type& custom) {
+        // Determine the numeric type of the member we are accessing:
+        const numeric_primitive_type type = determine_member_type(custom, el.index());
+        return push_operation(ir::get{el.index()}, type, compound_val);
       });
 }
 

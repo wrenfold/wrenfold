@@ -28,9 +28,9 @@ class SimParamsSymbolic:
     A sample struct with some parameters of a simulation. This is the symbolic version.
     We use this to test code-generation of custom types.
     """
-    mass: sym.Expr
-    drag_coefficient: sym.Expr
-    gravity: sym.Expr
+    mass: type_annotations.FloatScalar
+    drag_coefficient: type_annotations.FloatScalar
+    gravity: type_annotations.FloatScalar
 
 
 @dataclasses.dataclass

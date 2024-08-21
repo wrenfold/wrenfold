@@ -7,11 +7,17 @@ expose the SHAPE tuple.
 """
 import typing as T
 
-from . import sym
+from . import sym, type_info
 
 
 class FloatScalar(sym.Expr):
     """Denote a floating-point scalar variable."""
+    NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Float
+
+
+class IntScalar(sym.Expr):
+    """Denote an integer valued scalar variable."""
+    NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Integer
 
 
 class Vector1(sym.MatrixExpr):

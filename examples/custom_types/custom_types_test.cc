@@ -21,7 +21,7 @@ struct Point3d {
 };
 
 // A simple 3D pose. We implement accessors and constructors for this type, to demonstrate that the
-// code generator can be cutomized to use these.
+// code generator can be customized to use these.
 class Pose3d {
  public:
   Pose3d(const Quaterniond& rotation, const Vector3d& translation) noexcept
