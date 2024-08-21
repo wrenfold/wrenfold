@@ -865,6 +865,10 @@ TEST(ScalarOperationsTest, TestDistribute1) {
   // Expression where distribution of two factors produces an existing factor:
   ASSERT_IDENTICAL(pow(x, 4) - 2 * pow(x, 2) + 1,
                    ((1 - x) * (1 + x) * (1 - pow(x, 2))).distribute());
+
+  ASSERT_IDENTICAL(x * sqrt(w + 2) + w * y - 3 * w + 2 * y - 6,
+                   (sqrt(w + 2) * (x + sqrt(w + 2) * (y - 3))).distribute());
+
   ASSERT_IDENTICAL(-pow(x, 4) - pow(x, 3) * sqrt(pow(x, 2) + 4 * x - 1) - 6 * pow(x, 3) -
                        2 * pow(x, 2) * sqrt(pow(x, 2) + 4 * x - 1) - 6 * pow(x, 2) +
                        9 * x * sqrt(pow(x, 2) + 4 * x - 1) + 6 * x -

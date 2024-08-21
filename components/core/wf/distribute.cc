@@ -110,14 +110,23 @@ scalar_expr distribute_visitor::distribute_multiplied_terms(const scalar_expr& a
   output_terms.reserve(span_a.size() * span_b.size());
   for (const scalar_expr& x : span_a) {
     for (const scalar_expr& y : span_b) {
-      output_terms.push_back(x * y);
+      scalar_expr product = x * y;
+      if (const multiplication* m = get_if<const multiplication>(product);
+          m != nullptr && any_of(*m, [&](const scalar_expr& z) { return z.is_type<addition>(); })) {
+        // This can occur if powers combine to form new additions in the product we just built.
+        // For example: y * (1 + x)**(1/2) * (1 + x)**(1/2) --> y*(1 + x)
+        // So we distribute again:
+        output_terms.push_back(operator()(product));
+      } else {
+        output_terms.push_back(std::move(product));
+      }
     }
   }
   return addition::from_operands(output_terms);
 }
 
-template <typename Container>
-scalar_expr distribute_visitor::distribute_multiplied_terms(const Container& multiplied_terms) {
+scalar_expr distribute_visitor::distribute_multiplied_terms(
+    const multiplication& multiplied_terms) {
   WF_ASSERT_GE(multiplied_terms.size(), 1);
   std::vector<scalar_expr> output_terms = transform_map<std::vector>(multiplied_terms, *this);
   while (output_terms.size() > 1) {

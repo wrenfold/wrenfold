@@ -25,13 +25,12 @@ class distribute_visitor {
 
  private:
   // Expand base^power.
-  static scalar_expr distribute_power(scalar_expr base, std::size_t power);
+  scalar_expr distribute_power(scalar_expr base, std::size_t power);
 
   // Expand the multiplication `a * b`. If either of `a` or `b` is an addition, we distribute terms.
-  static scalar_expr distribute_multiplied_terms(const scalar_expr& a, const scalar_expr& b);
+  scalar_expr distribute_multiplied_terms(const scalar_expr& a, const scalar_expr& b);
 
-  template <typename Container>
-  scalar_expr distribute_multiplied_terms(const Container& multiplied_terms);
+  scalar_expr distribute_multiplied_terms(const multiplication& multiplied_terms);
 
   wf::expression_cache cache_;
 };
