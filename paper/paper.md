@@ -9,6 +9,10 @@ tags:
 authors:
   - name: Gareth Cross
     orcid: 0009-0008-3110-0078
+    affiliation: 1
+affiliations:
+ - name: Independent Researcher, USA
+   index: 1
 date: 13 August 2024
 bibliography: paper.bib
 ---
