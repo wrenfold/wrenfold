@@ -8,7 +8,6 @@
 #include <pybind11/pybind11.h>
 
 #include "wf/expression.h"
-#include "wf/expressions/numeric_expressions.h"
 #include "wf/substitute.h"
 #include "wf/utility/algorithms.h"
 

@@ -237,6 +237,34 @@ Examples:
   $u_3
 )doc";
 
+inline constexpr std::string_view compare = R"doc(
+Determine relative ordering of two scalar-valued expressions. Note that this is *not* a
+mathematical ordering. Expressions are first ordered by their expression type, and then by the
+contents of the underlying concrete expressions. For non-leaf expressions (for instance
+addition or multiplication), a lexicographical ordering of the children is used to determine
+relative order.
+
+Args:
+  a: The first expression.
+  b: The second expression.
+
+Returns:
+  * ``-1`` if ``a`` belongs before ``b``.
+  * ``0`` if ``a`` is identical to ``b``.
+  * ``+1`` if ``a`` belongs after ``b``.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> sym.compare(x, y)
+  -1
+  >>> sym.compare(y, x)
+  1
+  >>> sym.compare(5, 8)
+  -1
+  >>> sym.compare(sym.sin(x), sym.cos(x))
+  1
+)doc";
+
 inline constexpr std::string_view integer = R"doc(
 Create a constant expression from an integer.
 

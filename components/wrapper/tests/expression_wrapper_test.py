@@ -4,6 +4,7 @@ Python tests for the wrapper itself. Most of the algorithmic testing resides in 
 These tests are here to make sure that wrapped methods behave as expected, and that we
 don't accidentally remove any.
 """
+import functools
 import unittest
 
 from test_base import MathTestBase
@@ -152,6 +153,35 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertTrue(0 < sym.integer(5))
         self.assertFalse(22 == sym.pi)
 
+    def test_compare(self):
+        """Test that we can canonically order expressions."""
+        a, b, c = sym.symbols('a, b, c')
+        self.assertEqual(-1, sym.compare(a, b))
+        self.assertEqual(1, sym.compare(c, b))
+        self.assertEqual(0, sym.compare(b, b))
+        self.assertEqual(-1, sym.compare(5, 22))
+        self.assertEqual(1, sym.compare(3.14159, 3.1415))
+
+        compare_key = functools.cmp_to_key(sym.compare)
+        self.assertSequenceEqual([a, b, c], sorted([b, c, a], key=compare_key))
+        self.assertSequenceEqual(
+            [sym.integer(-5), sym.integer(3), sym.integer(10)],
+            sorted(map(sym.integer, [3, -5, 10]), key=compare_key))
+
+        expected_order = [
+            sym.float(0.41),
+            sym.integer(22),
+            sym.rational(3, 4), a, a * b, a + b, a ** c,
+            sym.cos(a)
+        ]
+        input_order = [
+            sym.float(0.41), a + b,
+            sym.cos(a),
+            sym.integer(22), a ** c, a * b, a,
+            sym.rational(3, 4)
+        ]
+        self.assertSequenceEqual(expected_order, sorted(input_order, key=compare_key))
+
     def test_basic_scalar_operations(self):
         """Test wrappers for addition, multiplication, subtraction, negation, and power."""
         p, q = sym.symbols('p, q')
@@ -160,7 +190,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(2 * p, p + p)
         self.assertIdentical(p, p + 0)
         self.assertEqual('Addition', (p + q).type_name)
-        self.assertEqual((p, q), (p + q).args)
+        self.assertCountEqual((p, q), (p + q).args)
         self.assertIdentical(p + p, p + p + p - p)
         self.assertNotIdentical(q + 5.0, q + 5)
         self.assertNotIdentical(p + p, p - q)
@@ -168,7 +198,7 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertIdentical(p * q, q * p)
         self.assertEqual('Multiplication', (p * q).type_name)
-        self.assertEqual((p, q), (p * q).args)
+        self.assertCountEqual((p, q), (p * q).args)
         self.assertIdentical(q * q * q / (p * p), sym.pow(q, 3) / sym.pow(p, 2))
         self.assertIdentical(2.0 * p, (p * 6.0) / 3.0)
         self.assertIdentical(q, -(-q))
@@ -181,7 +211,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.pow(p, 5), p ** 5)
         self.assertIdentical(sym.pow(p, 0.231), p ** 0.231)
         self.assertIdentical(p / q, sym.pow(q / p, -1))
-        self.assertEqual((p, q), (p ** q).args)
+        self.assertCountEqual((p, q), (p ** q).args)
 
     def test_trig_functions(self):
         """Test that we can call trig functions."""
