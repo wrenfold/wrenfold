@@ -250,8 +250,7 @@ void wrap_sympy_conversion(py::module_& m) {
       "function_argument_variable",
       [](const std::size_t arg_index, const std::size_t element_index,
          const numeric_primitive_type type) {
-        return make_expr<variable>(function_argument_variable(arg_index, element_index, type),
-                                   number_set::real);
+        return make_expr<variable>(function_argument_variable(arg_index, element_index, type));
       },
       py::arg("arg_index"), py::arg("element_index"), py::arg("type"),
       py::doc("Create ``function_argument_variable``. OMIT_FROM_SPHINX"));

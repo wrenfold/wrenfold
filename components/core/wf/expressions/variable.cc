@@ -28,4 +28,10 @@ std::string variable::to_string() const {
   return std::visit(string_converter{}, identifier_);
 }
 
+scalar_expr variable::create_function_argument(const std::size_t arg_index,
+                                               const std::size_t element_index,
+                                               const numeric_primitive_type type) {
+  return make_expr<variable>(function_argument_variable(arg_index, element_index, type));
+}
+
 }  // namespace wf
