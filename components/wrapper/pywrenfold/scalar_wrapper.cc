@@ -23,7 +23,6 @@
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
-#include "wf/substitute.h"
 #include "wf/utility_visitors.h"
 
 #include "args_visitor.h"
@@ -245,6 +244,14 @@ void wrap_scalar_operations(py::module_& m) {
   m.def("unique_symbols", &create_unique_variables, py::arg("count"), py::arg("real") = false,
         py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
         docstrings::unique_symbols.data());
+
+  m.def(
+      "compare",
+      [](const scalar_expr& a, const scalar_expr& b) {
+        const relative_order order = order_by(a, b);
+        return static_cast<int>(order);
+      },
+      "a"_a, "b"_a, docstrings::compare.data());
 
   // Built-in functions:
   m.def("log", &wf::log, "arg"_a, docstrings::log.data());
