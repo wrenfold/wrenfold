@@ -27,6 +27,31 @@ struct Circle {
 
   Eigen::Vector3d to_vector() const { return {center.x, center.y, radius}; }
 };
+
+// An integer that can be implicitly cast to std::int64_t, and nothing else.
+// We use this to make sure our generated code casts correctly when interfacing with
+// `MixedNumerics`.
+class type_safe_int64_t {
+ public:
+  template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+  constexpr type_safe_int64_t(T x) noexcept : x_(static_cast<std::int64_t>(x)) {}  //  NOLINT
+
+  template <typename T, typename = enable_if_same_t<T, std::int64_t>>
+  constexpr operator T() const noexcept {  //  NOLINT
+    return x_;
+  }
+
+  // Allow explicit cast to double.
+  explicit constexpr operator double() const noexcept { return static_cast<double>(x_); }
+
+ private:
+  std::int64_t x_;
+};
+
+struct MixedNumerics {
+  double value;
+  type_safe_int64_t mode;
+};
 }  // namespace wf::numeric
 
 // These functions don't perform amy meaningful task, they just exist so we can call them from
@@ -485,29 +510,41 @@ TEST(CppGenerationTest, TestExternalFunctionCall6) {
                     gen::external_function_call_6(-3.5, 4.75).to_vector(), 1.0e-15);
 }
 
-class convert_only_to_int {
- public:
-  explicit convert_only_to_int(const std::int64_t value) noexcept : value_(value) {}
-
-  // An implicit conversion operator that only works for int64_t
-  template <typename T, typename = std::enable_if_t<std::is_same_v<T, std::int64_t>>>
-  operator T() const noexcept {  // NOLINT
-    return value_;
-  }
-
- private:
-  std::int64_t value_;
-};
-
-static_assert(!std::is_convertible_v<convert_only_to_int, double>);
-static_assert(!std::is_convertible_v<convert_only_to_int, std::int32_t>);
-static_assert(std::is_convertible_v<convert_only_to_int, std::int64_t>);
-
 TEST(CppGenerationTest, TestIntegerArgument1) {
-  using return_type = decltype(gen::integer_argument_test_1(1, 2.0));
+  using return_type = decltype(gen::integer_argument_1(1, 2.0));
   static_assert(std::is_same_v<return_type, double>);
-  ASSERT_EQ(2.0, gen::integer_argument_test_1(convert_only_to_int(1), 2.0));
-  ASSERT_EQ(67.2, gen::integer_argument_test_1(convert_only_to_int(16), 4.2));
+  ASSERT_EQ(2.0, gen::integer_argument_1(numeric::type_safe_int64_t(1), 2.0));
+  ASSERT_EQ(67.2, gen::integer_argument_1(numeric::type_safe_int64_t(16), 4.2));
+}
+
+TEST(CppGenerationTest, TestIntegerOutputValues1) {
+  std::int64_t baz;
+  const auto f = gen::integer_output_values_1(numeric::type_safe_int64_t(4), 2.2, baz);
+  static_assert(std::is_same_v<decltype(f), const std::int64_t>);
+  ASSERT_EQ(static_cast<std::int64_t>(4 * 2.2), f);
+  ASSERT_EQ(static_cast<std::int64_t>(static_cast<double>(4) - 2.2), baz);
+}
+
+// Test that generated code correctly casts integers explicitly.
+TEST(CppGenerationTest, TestIntegerStructMember1) {
+  ASSERT_EQ(0, gen::integer_struct_member_1(numeric::MixedNumerics{0.5, 0}, 2.0));
+  ASSERT_EQ(std::sin(0.3) * -2, gen::integer_struct_member_1(numeric::MixedNumerics{0.3, -2}, 2.0));
+  ASSERT_EQ(std::sin(-0.25) * 9,
+            gen::integer_struct_member_1(numeric::MixedNumerics{-0.25, 9}, 0.0));
+  // mode == 1
+  ASSERT_EQ(std::cos(0.3), gen::integer_struct_member_1(numeric::MixedNumerics{0.3, 1}, 1.0));
+  ASSERT_EQ(std::cos(0.3 * 1.8), gen::integer_struct_member_1(numeric::MixedNumerics{0.3, 1}, 1.8));
+}
+
+// Test that we can assign an integer struct member in an output value.
+TEST(CppGenerationTest, TestIntegerStructMember2) {
+  const auto a = gen::integer_struct_member_2(6.1, 0.5);
+  ASSERT_EQ(static_cast<std::int64_t>(6.1 * 0.5), static_cast<std::int64_t>(a.mode));
+  ASSERT_EQ(6.1 - 0.5, a.value);
+
+  const auto b = gen::integer_struct_member_2(-1.3, 5.0);
+  ASSERT_EQ(static_cast<std::int64_t>(-1.3 * 5.0), static_cast<std::int64_t>(b.mode));
+  ASSERT_EQ(-1.3 - 5.0, b.value);
 }
 
 }  // namespace wf

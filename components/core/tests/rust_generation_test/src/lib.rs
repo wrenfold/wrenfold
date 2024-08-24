@@ -512,3 +512,84 @@ fn test_external_function_call_6() {
         epsilon = 1.0e-15
     );
 }
+
+#[test]
+fn test_integer_argument_1() {
+    assert_eq!(2.0, generated::integer_argument_1(1i64, 2.0));
+    assert_eq!(67.2, generated::integer_argument_1(16i64, 4.2));
+}
+
+#[test]
+fn test_integer_output_values_1() {
+    let mut baz: i64 = 0;
+    let f = generated::integer_output_values_1(4, 2.2, &mut baz);
+    assert_eq!((4.0 * 2.2) as i64, f);
+    assert_eq!((4.0 - 2.2) as i64, baz);
+}
+
+#[test]
+fn test_integer_struct_member_1() {
+    use types::MixedNumerics;
+    assert_eq!(
+        0.0,
+        generated::integer_struct_member_1(
+            &MixedNumerics {
+                value: 0.5,
+                mode: 0,
+            },
+            2.0
+        )
+    );
+    assert_eq!(
+        0.3f64.sin() * -2.0,
+        generated::integer_struct_member_1(
+            &MixedNumerics {
+                value: 0.3,
+                mode: -2,
+            },
+            2.0
+        )
+    );
+    assert_eq!(
+        -0.25f64.sin() * 9.0,
+        generated::integer_struct_member_1(
+            &MixedNumerics {
+                value: -0.25,
+                mode: 9,
+            },
+            0.0
+        )
+    );
+    // mode == 1
+    assert_eq!(
+        0.3f64.cos(),
+        generated::integer_struct_member_1(
+            &MixedNumerics {
+                value: 0.3,
+                mode: 1,
+            },
+            1.0
+        )
+    );
+    assert_eq!(
+        (0.3f64 * 1.8).cos(),
+        generated::integer_struct_member_1(
+            &MixedNumerics {
+                value: 0.3,
+                mode: 1,
+            },
+            1.8
+        )
+    );
+}
+
+#[test]
+fn test_integer_struct_member_2() {
+    let a = generated::integer_struct_member_2(6.1, 0.5);
+    assert_eq!((6.1 * 0.5) as i64, a.mode);
+    assert_eq!(6.1 - 0.5, a.value);
+
+    let b = generated::integer_struct_member_2(-1.3, 5.0);
+    assert_eq!((-1.3 * 5.0) as i64, b.mode);
+    assert_eq!(-1.3 - 5.0, b.value);
+}
