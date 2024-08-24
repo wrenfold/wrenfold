@@ -944,7 +944,7 @@ pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
-pub fn integer_argument_test_1<>(x: i64, y: f64) -> f64
+pub fn integer_argument_1<>(x: i64, y: f64) -> f64
 {
   // Operation counts:
   // multiply: 1
@@ -953,6 +953,29 @@ pub fn integer_argument_test_1<>(x: i64, y: f64) -> f64
   let v00: i64 = x;
   let v01: f64 = y;
   v01 * (v00) as f64
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn integer_struct_member_1<>(inputs: &crate::types::MixedNumerics, scale: f64) -> f64
+{
+  // Operation counts:
+  // branch: 1
+  // call: 2
+  // compare: 1
+  // multiply: 1
+  // total: 5
+  
+  let v002: i64 = inputs.mode;
+  let v006: f64 = inputs.value;
+  let v012: f64;
+  if (1i64) == ((v002).abs()) {
+    let v005: f64 = scale;
+    v012 = (v005 * v006).cos();
+  } else {
+    v012 = (v006).sin() * (v002) as f64;
+  }
+  v012
 }
 
 

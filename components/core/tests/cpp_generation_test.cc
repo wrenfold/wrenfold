@@ -27,6 +27,11 @@ struct Circle {
 
   Eigen::Vector3d to_vector() const { return {center.x, center.y, radius}; }
 };
+
+struct MixedNumerics {
+  double value;
+  std::int64_t mode;
+};
 }  // namespace wf::numeric
 
 // These functions don't perform amy meaningful task, they just exist so we can call them from
@@ -504,10 +509,20 @@ static_assert(!std::is_convertible_v<convert_only_to_int, std::int32_t>);
 static_assert(std::is_convertible_v<convert_only_to_int, std::int64_t>);
 
 TEST(CppGenerationTest, TestIntegerArgument1) {
-  using return_type = decltype(gen::integer_argument_test_1(1, 2.0));
+  using return_type = decltype(gen::integer_argument_1(1, 2.0));
   static_assert(std::is_same_v<return_type, double>);
-  ASSERT_EQ(2.0, gen::integer_argument_test_1(convert_only_to_int(1), 2.0));
-  ASSERT_EQ(67.2, gen::integer_argument_test_1(convert_only_to_int(16), 4.2));
+  ASSERT_EQ(2.0, gen::integer_argument_1(convert_only_to_int(1), 2.0));
+  ASSERT_EQ(67.2, gen::integer_argument_1(convert_only_to_int(16), 4.2));
+}
+
+TEST(CppGenerationTest, TestIntegerStructMember1) {
+  ASSERT_EQ(0, gen::integer_struct_member_1(numeric::MixedNumerics{0.5, 0}, 2.0));
+  ASSERT_EQ(std::sin(0.3) * -2, gen::integer_struct_member_1(numeric::MixedNumerics{0.3, -2}, 2.0));
+  ASSERT_EQ(std::sin(-0.25) * 9,
+            gen::integer_struct_member_1(numeric::MixedNumerics{-0.25, 9}, 0.0));
+  // mode == 1
+  ASSERT_EQ(std::cos(0.3), gen::integer_struct_member_1(numeric::MixedNumerics{0.3, 1}, 1.0));
+  ASSERT_EQ(std::cos(0.3 * 1.8), gen::integer_struct_member_1(numeric::MixedNumerics{0.3, 1}, 1.8));
 }
 
 }  // namespace wf
