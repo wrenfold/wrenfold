@@ -35,7 +35,7 @@ class custom_type_registry {
   template <typename T>
   void insert(const custom_type& type) {
     const auto [it, was_inserted] = types_.emplace(typeid(T), type);
-    WF_ASSERT(was_inserted, "Attemped to insert duplicate type description for type `{}` (T = {})",
+    WF_ASSERT(was_inserted, "Attempted to insert duplicate type description for type `{}` (T = {})",
               type.name(), typeid(T).name());
   }
 
@@ -195,7 +195,7 @@ namespace detail {
 template <>
 struct record_type<scalar_expr> {
   scalar_type operator()(const custom_type_registry&) const {
-    return scalar_type(code_numeric_type::floating_point);
+    return scalar_type(numeric_primitive_type::floating_point);
   }
 };
 
@@ -219,7 +219,7 @@ struct record_type<T, enable_if_implements_custom_type_registrant_t<T>> {
   }
 };
 
-// Specialization so we can opreate on return_value + output_arg.
+// Specialization so we can operate on return_value + output_arg.
 template <typename T>
 struct record_type<T, std::enable_if_t<is_output_arg_or_return_value_v<T>>> {
   auto operator()(custom_type_registry& registry) const {
@@ -235,10 +235,10 @@ auto record_arg_types(custom_type_registry& registry, type_list<Ts...>) {
   return std::make_tuple(record_type<std::decay_t<Ts>>{}(registry)...);
 }
 
-// Create scalar input required to evalute a symbolic function.
+// Create scalar input required to evaluate a symbolic function.
 scalar_expr create_function_input(const scalar_type& scalar, std::size_t arg_index);
 
-// Create matrix input required to evalute a symbolic function.
+// Create matrix input required to evaluate a symbolic function.
 matrix_expr create_function_input(const matrix_type& mat, std::size_t arg_index);
 
 // Determine the size of a custom type, and create enough variables to fill it.

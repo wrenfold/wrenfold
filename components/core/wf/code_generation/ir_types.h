@@ -40,14 +40,14 @@ class cast {
   }
 
   // Construct w/ destination type.
-  constexpr explicit cast(const code_numeric_type destination) noexcept
+  constexpr explicit cast(const numeric_primitive_type destination) noexcept
       : destination_type_(destination) {}
 
   // Access the target type we are casting to.
-  constexpr code_numeric_type destination_type() const noexcept { return destination_type_; }
+  constexpr numeric_primitive_type destination_type() const noexcept { return destination_type_; }
 
  private:
-  code_numeric_type destination_type_;
+  numeric_primitive_type destination_type_;
 };
 
 // Call a custom user-provided function.

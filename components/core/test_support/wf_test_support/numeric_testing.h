@@ -98,7 +98,7 @@ struct compute_function_output_struct<ta::static_matrix<Rows, Cols>> {
       for (index_t j = 0; j < Cols; ++j) {
         // TODO: Get the scalar type from `matrix_type`.
         output(i, j) = compute_function_output(evaluator, input(i, j),
-                                               scalar_type(code_numeric_type::floating_point));
+                                               scalar_type(numeric_primitive_type::floating_point));
       }
     }
     return output;

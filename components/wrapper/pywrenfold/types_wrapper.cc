@@ -47,13 +47,13 @@ custom_type init_custom_type(std::string name,
 }
 
 void wrap_types(py::module_& m) {
-  py::enum_<code_numeric_type>(m, "NumericType")
-      .value("Bool", code_numeric_type::boolean, "Boolean value.")
-      .value("Integer", code_numeric_type::integral, "Signed integral value.")
-      .value("Float", code_numeric_type::floating_point, "Floating-point value.");
+  py::enum_<numeric_primitive_type>(m, "NumericType")
+      .value("Bool", numeric_primitive_type::boolean, "Boolean value.")
+      .value("Integer", numeric_primitive_type::integral, "Signed integral value.")
+      .value("Float", numeric_primitive_type::floating_point, "Floating-point value.");
 
   wrap_class<scalar_type>(m, "ScalarType")
-      .def(py::init<code_numeric_type>(), py::arg("numeric_type"),
+      .def(py::init<numeric_primitive_type>(), py::arg("numeric_type"),
            "Construct with ``NumericType``.")
       .def_property_readonly("numeric_type", &scalar_type::numeric_type,
                              "Access underlying ``NumericType`` enum.")
@@ -91,7 +91,7 @@ void wrap_types(py::module_& m) {
       .def_property_readonly(
           "python_type",
           [](const custom_type& self) -> std::variant<py::none, py::type> {
-            if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
+            if (const auto pytype = self.underlying_pytype(); pytype.has_value()) {
               return pytype->as<pytype_wrapper>().type();
             }
             return py::none();
@@ -100,7 +100,7 @@ void wrap_types(py::module_& m) {
       .def("__repr__",
            [](const custom_type& self) {
              py::object python_type = py::none();
-             if (const auto pytype = self.underying_pytype(); pytype.has_value()) {
+             if (const auto pytype = self.underlying_pytype(); pytype.has_value()) {
                python_type = pytype->as<pytype_wrapper>().type();
              }
              const py::str repr = py::repr(python_type);

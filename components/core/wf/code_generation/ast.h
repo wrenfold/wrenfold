@@ -88,8 +88,8 @@ struct call_std_function {
 struct cast {
   static constexpr std::string_view snake_case_name_str = "cast";
 
-  code_numeric_type destination_type;
-  code_numeric_type source_type;
+  numeric_primitive_type destination_type;
+  numeric_primitive_type source_type;
   ast_element arg;
 };
 

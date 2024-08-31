@@ -10,13 +10,13 @@
 
 namespace wf {
 
-constexpr std::string_view rust_string_from_numeric_type(const code_numeric_type type) {
+constexpr std::string_view rust_string_from_numeric_type(const numeric_primitive_type type) {
   switch (type) {
-    case code_numeric_type::boolean:
+    case numeric_primitive_type::boolean:
       return "bool";
-    case code_numeric_type::integral:
+    case numeric_primitive_type::integral:
       return "i64";
-    case code_numeric_type::floating_point:
+    case numeric_primitive_type::floating_point:
       return "f64";
   }
   throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
@@ -136,7 +136,7 @@ std::string rust_code_generator::operator()(const ast::function_signature& signa
       WF_ASSERT(mat != nullptr);
       return fmt::format("T{}: wrenfold_traits::{}<{}, {}, ValueType = {}>,", arg.index(),
                          span_type_from_direction(arg.direction()), mat->rows(), mat->cols(),
-                         rust_string_from_numeric_type(code_numeric_type::floating_point));
+                         rust_string_from_numeric_type(numeric_primitive_type::floating_point));
     });
   }
   return result;
@@ -205,7 +205,7 @@ std::string rust_code_generator::operator()(const ast::call_external_function& x
   });
   result.append(")");
   if (const scalar_type* s = std::get_if<scalar_type>(&x.function.return_type());
-      static_cast<bool>(s) && s->numeric_type() == code_numeric_type::floating_point) {
+      static_cast<bool>(s) && s->numeric_type() == numeric_primitive_type::floating_point) {
     result.append(" as f64");
   }
   return result;

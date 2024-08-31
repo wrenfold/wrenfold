@@ -171,7 +171,7 @@ void wrap_codegen_operations(py::module_& m) {
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
              const scalar_expr& value) {
-            self.add_output_argument(name, scalar_type(code_numeric_type::floating_point),
+            self.add_output_argument(name, scalar_type(numeric_primitive_type::floating_point),
                                      is_optional, {value});
           },
           py::arg("name"), py::arg("is_optional"), py::arg("value"))
@@ -195,7 +195,7 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "set_return_value",
           [](function_description& self, const scalar_expr& value) {
-            self.set_return_value(scalar_type(code_numeric_type::floating_point), {value});
+            self.set_return_value(scalar_type(numeric_primitive_type::floating_point), {value});
           },
           py::arg("value"))
       .def(
