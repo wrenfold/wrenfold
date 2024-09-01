@@ -84,6 +84,12 @@ std::vector<scalar_expr> matrix_expr::to_vector() const { return as_matrix().chi
 
 matrix_expr matrix_expr::operator-() const { return operator*(*this, constants::negative_one); }
 
+// Expand a matrix expression, and apply `f` to every `scalar_expr` it contains.
+template <typename F>
+static matrix_expr map_matrix_expression(const matrix_expr& expr, F&& f) {
+  return visit(expr, [&](const auto& mat) { return mat.map_children(std::forward<F>(f)); });
+}
+
 matrix_expr matrix_expr::diff(const scalar_expr& var, const int reps,
                               const non_differentiable_behavior behavior) const {
   derivative_visitor visitor{var, behavior};

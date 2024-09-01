@@ -8,7 +8,6 @@
 #include <pybind11/pybind11.h>
 
 #include "wf/expression.h"
-#include "wf/substitute.h"
 #include "wf/utility/algorithms.h"
 
 // Shared utilities for writing wrappers.
@@ -50,41 +49,6 @@ std::size_t cast_to_expr(const Container& inputs, Output& output) {
                    return py::cast<scalar_expr>(handle);
                  });
   return count;
-}
-
-// We can't pass std::variant<...> directly (because it is not default initializable), but we can
-// pass a variant of pointers. We use these so we can wrap substitute() and still have some good
-// type annotations in the generated stubs. (See note below about nanobind...)
-using scalar_ptr_pair = std::tuple<const scalar_expr*, const scalar_expr*>;
-using boolean_ptr_pair = std::tuple<const boolean_expr*, const boolean_expr*>;
-using scalar_ptr_or_boolean_ptr_pair = std::variant<scalar_ptr_pair, boolean_ptr_pair>;
-
-// Wrapper for substitute() method that accepts a list of tuples.
-template <typename X>
-X substitute_wrapper(const X& self, const std::vector<scalar_ptr_or_boolean_ptr_pair>& pairs) {
-  // TODO: This conversion is a bit annoying, but it allows us to have correct type annotations.
-  // We can probably avoid this by switching to nanobind.
-  // See: https://github.com/wrenfold/wrenfold/issues/198
-  const auto pairs_copied = transform_map<std::vector>(pairs, [](const auto& pair) {
-    return std::visit(
-        [](const auto& p) -> scalar_or_boolean_pair {
-          return std::apply(
-              [](auto... ptrs) {
-                WF_ASSERT((static_cast<bool>(ptrs) && ...));
-                return std::make_tuple(*ptrs...);
-              },
-              p);
-        },
-        pair);
-  });
-  return substitute(self, pairs_copied);
-}
-
-// Wrapper for the single-replacement version of `substitute`.
-template <typename X1, typename X2>
-X1 substitute_wrapper_single(const X1& self, const X2& target, const X2& replacement) {
-  const std::array<scalar_or_boolean_pair, 1> pairs = {std::make_tuple(target, replacement)};
-  return substitute(self, pairs);
 }
 
 namespace detail {

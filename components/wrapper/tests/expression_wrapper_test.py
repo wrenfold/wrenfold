@@ -276,6 +276,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(
             a * c * e + a * c * f + a * d * e + a * d * f + b * c * e + b * c * f + b * d * e +
             b * d * f, expr.distribute())
+        self.assertIdentical(expr.distribute(), sym.distribute(expr))
 
     def test_diff(self):
         """Test calling diff on scalar expressions."""
@@ -347,9 +348,9 @@ class ExpressionWrapperTest(MathTestBase):
         x, y, z = sym.symbols('x, y, z')
         self.assertIdentical(x, x.subs(x, x))
         self.assertIdentical(y, x.subs(x, y))
-        self.assertIdentical(2.5, x.subs(x, 2.5))
+        self.assertIdentical(2.5, sym.subs(x, x, 2.5))
         self.assertIdentical(0, (x - y).subs(y, x))
-        self.assertIdentical(1, (x / z).subs(z, x))
+        self.assertIdentical(1, sym.subs(x / z, z, x))
         self.assertIdentical(z ** 2 * x, (x ** 3 * y ** 2).subs(x * y, z))
         self.assertIdentical(2 * z, (x + 2 * z - (y * 3) / 2).subs(x - (y * 3) / 2, 0))
         self.assertIdentical(sym.cos(y + 1), sym.cos(x).subs(x, y + 1))
@@ -361,7 +362,7 @@ class ExpressionWrapperTest(MathTestBase):
         # Boolean substitution:
         f = sym.where(x > y, sym.cos(x), sym.abs(y))
         self.assertIdentical(sym.cos(x), f.subs(x > y, sym.true))
-        self.assertIdentical(sym.abs(y), f.subs(x > y, sym.false))
+        self.assertIdentical(sym.abs(y), sym.subs(f, x > y, sym.false))
 
     def test_collect(self):
         """Test calling collect() on expressions."""

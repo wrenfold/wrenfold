@@ -36,6 +36,9 @@ void wrap_compound_expression(py::module_& m);
 // Defined in boolean_expression_wrapper.cc
 void wrap_boolean_expression(py::module_& m);
 
+// Defined in symbolic_functions_wrapper.cc
+void wrap_symbolic_functions(py::module_& m);
+
 // Defined in geometry_wrapper.cc
 void wrap_geometry_operations(py::module_& m);
 
@@ -74,6 +77,7 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   wrap_scalar_operations(m_sym);
   wrap_matrix_operations(m_sym);
   wrap_compound_expression(m_sym);
+  wrap_symbolic_functions(m_sym);
 
   auto m_expressions =
       m.def_submodule(PY_SUBMODULE_NAME_EXPRESSIONS, "Wrapped concrete expressions.");

@@ -372,11 +372,11 @@ scalar_expr substitute_variables_visitor::operator()(const scalar_expr& expressi
 }
 
 matrix_expr substitute_variables_visitor::operator()(const matrix_expr& expression) {
-  return map_matrix_expression(expression, *this);
+  return visit(expression, *this);
 }
 
 compound_expr substitute_variables_visitor::operator()(const compound_expr& expression) {
-  return map_compound_expressions(expression, *this);
+  return visit(expression, *this);
 }
 
 boolean_expr substitute_variables_visitor::operator()(const boolean_expr& expression) {
@@ -486,47 +486,36 @@ X1 substitute_single_impl(const X1& input, const X2& target, const X2& replaceme
   });
 }
 
-template <typename X>
-X substitute_impl(const X& input, const absl::Span<const scalar_or_boolean_pair> pairs,
-                  const bool force_unordered_execution) {
+any_expression substitute_any(any_expression input,
+                              const absl::Span<const scalar_or_boolean_pair> pairs,
+                              const bool force_unordered_execution) {
   WF_FUNCTION_TRACE();
   if (pairs.size() > 1) {
     // Unordered execution proffers no benefits if size is one.
     if (std::optional<substitute_variables_visitor> subs_variables_visitor =
             create_unordered_subs_visitor(pairs, force_unordered_execution);
         subs_variables_visitor.has_value()) {
-      return subs_variables_visitor->operator()(input);
+      return std::visit(
+          [&](const auto& x) -> any_expression { return subs_variables_visitor->operator()(x); },
+          input);
     }
   }
 
   // Otherwise, take the slow (ordered) path:
-  X result = input;
-  for (const auto& pair : pairs) {
-    result = std::visit(
-        [&](const auto& p) -> X {
-          return substitute_single_impl(result, std::get<0>(p), std::get<1>(p));
-        },
-        pair);
-  }
-  return result;
-}
-
-scalar_expr substitute(const scalar_expr& input,
-                       const absl::Span<const scalar_or_boolean_pair> pairs,
-                       const bool force_unordered_execution) {
-  return substitute_impl(input, pairs, force_unordered_execution);
-}
-
-boolean_expr substitute(const boolean_expr& input,
-                        const absl::Span<const scalar_or_boolean_pair> pairs,
-                        const bool force_unordered_execution) {
-  return substitute_impl(input, pairs, force_unordered_execution);
-}
-
-matrix_expr substitute(const matrix_expr& input,
-                       const absl::Span<const scalar_or_boolean_pair> pairs,
-                       const bool force_unordered_execution) {
-  return substitute_impl(input, pairs, force_unordered_execution);
+  return std::visit(
+      [&pairs](auto input_expr) -> any_expression {
+        auto result = std::move(input_expr);
+        for (const scalar_or_boolean_pair& pair : pairs) {
+          // Visit the pair of either scalar or boolean expressions:
+          result = std::visit(
+              [&result](const auto& p) {
+                return substitute_single_impl(result, std::get<0>(p), std::get<1>(p));
+              },
+              pair);
+        }
+        return result;
+      },
+      std::move(input));
 }
 
 }  // namespace wf

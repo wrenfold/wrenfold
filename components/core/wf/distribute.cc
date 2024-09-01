@@ -16,8 +16,7 @@ scalar_expr distribute_visitor::operator()(const scalar_expr& input) {
 }
 
 compound_expr distribute_visitor::operator()(const compound_expr& input) {
-  return cache_.get_or_insert(
-      input, [this](const compound_expr& x) { return map_compound_expressions(x, *this); });
+  return cache_.get_or_insert(input, [this](const compound_expr& x) { return visit(x, *this); });
 }
 
 boolean_expr distribute_visitor::operator()(const boolean_expr& input) {
@@ -25,8 +24,7 @@ boolean_expr distribute_visitor::operator()(const boolean_expr& input) {
 }
 
 matrix_expr distribute_visitor::operator()(const matrix_expr& input) {
-  return cache_.get_or_insert(
-      input, [this](const matrix_expr& m) { return map_matrix_expression(m, *this); });
+  return cache_.get_or_insert(input, [this](const matrix_expr& m) { return visit(m, *this); });
 }
 
 scalar_expr distribute_visitor::operator()(const multiplication& mul) {

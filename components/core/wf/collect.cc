@@ -14,9 +14,9 @@ struct collect_visitor {
   explicit collect_visitor(const absl::Span<const scalar_expr> terms) : collected_terms_(terms) {}
 
   scalar_expr operator()(const scalar_expr& x) { return visit(x, *this); }
-  compound_expr operator()(const compound_expr& x) { return map_compound_expressions(x, *this); }
+  compound_expr operator()(const compound_expr& x) { return visit(x, *this); }
   boolean_expr operator()(const boolean_expr& x) { return visit(x, *this); }
-  matrix_expr operator()(const matrix_expr& x) { return map_matrix_expression(x, *this); }
+  matrix_expr operator()(const matrix_expr& x) { return visit(x, *this); }
 
   scalar_expr collect_addition_terms(addition::container_type&& container) const {
     // iterate over the terms we want to search for:

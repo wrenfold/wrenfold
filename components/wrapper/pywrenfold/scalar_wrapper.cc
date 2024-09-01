@@ -27,6 +27,7 @@
 
 #include "args_visitor.h"
 #include "docs/scalar_wrapper.h"
+#include "visitor_wrappers.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -154,8 +155,9 @@ void wrap_scalar_operations(py::module_& m) {
           },
           "var"_a, py::arg("order") = 1, py::arg("use_abstract") = false,
           docstrings::scalar_expr_diff.data())
-      .def("distribute", &scalar_expr::distribute, docstrings::scalar_expr_distribute.data())
-      .def("subs", &substitute_wrapper<scalar_expr>, py::arg("pairs"), docstrings::subs.data())
+      .def("distribute", &scalar_expr::distribute, "See :func:`wrenfold.sym.distribute`.")
+      .def("subs", &substitute_wrapper<scalar_expr>, py::arg("pairs"),
+           "See :func:`wrenfold.sym.subs`.")
       .def("subs", &substitute_wrapper_single<scalar_expr, scalar_expr>, py::arg("target"),
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single scalar-valued substitution.")

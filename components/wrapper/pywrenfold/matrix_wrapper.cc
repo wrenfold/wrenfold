@@ -18,6 +18,7 @@
 #include "wf/numerical_casts.h"
 
 #include "docs/matrix_wrapper.h"
+#include "visitor_wrappers.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -353,7 +354,7 @@ void wrap_matrix_operations(py::module_& m) {
           "vars"_a, py::arg("use_abstract") = false,
           "See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.")
       .def("distribute", &matrix_expr::distribute,
-           "Invoke :func:`wrenfold.sym.Expr.distribute` on every element of the matrix.")
+           "Invoke :func:`wrenfold.sym.distribute` on every element of the matrix.")
       .def("subs", &substitute_wrapper_single<matrix_expr, scalar_expr>, py::arg("target"),
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single scalar-valued substitution.")
@@ -361,7 +362,7 @@ void wrap_matrix_operations(py::module_& m) {
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single boolean-valued substitution.")
       .def("subs", &substitute_wrapper<matrix_expr>, py::arg("pairs"),
-           "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the matrix.")
+           "Invoke :func:`wrenfold.sym.subs` on every element of the matrix.")
       .def(
           "eval",
           [](const matrix_expr& self) {

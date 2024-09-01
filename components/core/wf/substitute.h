@@ -60,11 +60,13 @@ class substitute_variables_visitor {
 };
 
 // Replace all [target, replacement] pairs in the input expression.
-scalar_expr substitute(const scalar_expr& input, absl::Span<const scalar_or_boolean_pair> pairs,
-                       bool force_unordered_execution = false);
-boolean_expr substitute(const boolean_expr& input, absl::Span<const scalar_or_boolean_pair> pairs,
-                        bool force_unordered_execution = false);
-matrix_expr substitute(const matrix_expr& input, absl::Span<const scalar_or_boolean_pair> pairs,
-                       bool force_unordered_execution = false);
+any_expression substitute_any(any_expression input, absl::Span<const scalar_or_boolean_pair> pairs,
+                              bool force_unordered_execution = false);
+
+template <typename X, typename = enable_if_inherits_expression_base_t<X>>
+X substitute(const X& input, absl::Span<const scalar_or_boolean_pair> pairs,
+             bool force_unordered_execution = false) {
+  return std::get<X>(substitute_any(input, pairs, force_unordered_execution));
+}
 
 }  // namespace wf
