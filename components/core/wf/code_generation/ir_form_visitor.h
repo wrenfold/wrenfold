@@ -21,7 +21,7 @@ class expression_sorter {
   X operator()(const T& concrete, const X& expr);
 
   // Accept abstract expression types.
-  template <typename X, typename = enable_if_inherits_expression_base_t<X, X>>
+  template <typename X, typename = enable_if_inherits_expression_base_t<X>>
   X operator()(const X& expr);
 
   any_expression operator()(const any_expression& expr);
@@ -73,15 +73,17 @@ class ir_form_visitor {
   template <typename T, typename = enable_if_inherits_expression_base_t<T>>
   ir::value_ptr operator()(const T& expr);
 
-  // Compute the value for the specified expression. If required, cast it to the output type.
-  ir::value_ptr apply_output_value(const scalar_expr& expr,
-                                   numeric_primitive_type desired_output_type);
+  // Add a new output value to the function. This will recursively traverse all the required
+  // sub-expressions and add them to graph of values. Values that have already been computed and
+  // cached will be reused.
+  void add_output_value(const output_key& key, const any_expression& expr,
+                        const type_variant& type);
 
  private:
   template <typename OpType, typename Type, typename... Args>
   ir::value_ptr push_operation(OpType&& op, Type type, Args&&... args);
 
-  // Convert sequence of expressions into `ir::addn` or `ir::muln`.
+  // Convert sequence of expressions into `ir::add` or `ir::mul`.
   template <typename T, typename Container>
   ir::value_ptr create_add_or_mul_with_operands(Container args);
 

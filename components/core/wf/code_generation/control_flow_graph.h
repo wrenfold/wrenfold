@@ -31,7 +31,7 @@ struct optimization_params {
 class control_flow_graph {
  public:
   // Construct from a set of output expressions.
-  explicit control_flow_graph(const std::vector<expression_group>& groups,
+  explicit control_flow_graph(const function_description& description,
                               const std::optional<optimization_params>& params = std::nullopt);
 
   // Consume `this` and convert to a control flow graph that contains jumps.

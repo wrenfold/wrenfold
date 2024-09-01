@@ -311,13 +311,9 @@ rebuilt_expressions rebuild_expression_tree(const ir::const_block_ptr starting_b
       overloaded_visit(
           code->value_op(), [](const ir::jump_condition&) constexpr {},
           [&](const ir::save& save) {
-            // Get all the output expressions for this output:
-            std::vector<scalar_expr> output_expressions = transform_map<std::vector>(
-                code->operands(), [&visitor](const ir::const_value_ptr v) {
-                  return visitor.map_value<scalar_expr>(v);
-                });
-
-            result.output_expressions.emplace(save.key(), std::move(output_expressions));
+            WF_ASSERT_EQ(1, code->num_operands(), "save operations should have one operand");
+            const ir::const_value_ptr output_val = code->first_operand();
+            result.output_expressions.emplace(save.key(), visitor.map_value_to_variant(output_val));
           },
           [&](const auto& op) { visitor.process(code, op, code->operands()); });
     }

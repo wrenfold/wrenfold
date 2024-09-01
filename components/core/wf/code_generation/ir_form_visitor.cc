@@ -437,10 +437,19 @@ ir::value_ptr ir_form_visitor::operator()(const T& expr) {
   }
 }
 
-ir::value_ptr ir_form_visitor::apply_output_value(
-    const scalar_expr& expr, const numeric_primitive_type desired_output_type) {
+void ir_form_visitor::add_output_value(const output_key& key, const any_expression& expr,
+                                       const type_variant& type) {
   WF_FUNCTION_TRACE();
-  return maybe_cast(operator()(sorter_.sort_expression(expr)), desired_output_type);
+  const any_expression sorted_expr = sorter_.sort_expression(expr);
+  const ir::value_ptr output_value = overloaded_visit(
+      sorted_expr,
+      [&](const scalar_expr& x) {
+        WF_ASSERT(std::holds_alternative<scalar_type>(type));
+        return maybe_cast(operator()(x), std::get<scalar_type>(type).numeric_type());
+      },
+      [&](const auto& x) { return operator()(x); });
+
+  push_operation(ir::save{key}, ir::void_type{}, output_value);
 }
 
 template <typename OpType, typename Type, typename... Args>

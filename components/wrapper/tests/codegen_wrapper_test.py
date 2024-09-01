@@ -128,28 +128,25 @@ class CodeGenerationWrapperTest(MathTestBase):
         """
         Run compute_output_expressions and validate that we can re-assemble
         """
-        expected_outputs = desc.output_expressions()
+        expected_outputs: T.Dict[code_generation.OutputKey,
+                                 sym.AnyExpression] = desc.output_expressions()
 
         params = code_generation.OptimizationParams()
         params.factorization_passes = 0
         cse_outputs, intermediate_values = code_generation.cse_function_description(desc, params)
 
-        for key, expr_list in expected_outputs.items():
+        for key, expected in expected_outputs.items():
             self.assertTrue(key in cse_outputs)
-            csed_exprs = cse_outputs[key]
+            csed_expr: sym.AnyExpression = cse_outputs[key]
 
             # TODO: This is not efficient, but good enough for this test for now.
             # subs(...) needs a mode where order is respected to address this.
-            reconstituted_exprs = []
-            for expr in csed_exprs:
-                for var, val in reversed(intermediate_values):
-                    expr = expr.subs(var, val)
-                reconstituted_exprs.append(expr)
+            for var, val in reversed(intermediate_values):
+                csed_expr = sym.subs(csed_expr, target=var, replacement=val)
 
             # We need to distribute here to check equivalence properly.
             # This is because the substitution order means some constants won't be distributed over additions.
-            for expected, actual in zip(expr_list, reconstituted_exprs):
-                self.assertIdentical(expected.distribute(), actual.distribute())
+            self.assertIdentical(sym.distribute(expected), sym.distribute(csed_expr))
 
     def test_func1(self):
         """Test simple function that returns a scalar."""

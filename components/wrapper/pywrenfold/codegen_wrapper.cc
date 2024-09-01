@@ -25,9 +25,9 @@ namespace wf {
 // in another language.
 ast::function_definition transpile_to_ast(const function_description& description,
                                           const std::optional<optimization_params>& graph_params) {
-  const control_flow_graph cfg = control_flow_graph{description.output_expressions(),
-                                                    graph_params.value_or(optimization_params{})}
-                                     .convert_conditionals_to_control_flow();
+  const control_flow_graph cfg =
+      control_flow_graph{description, graph_params.value_or(optimization_params{})}
+          .convert_conditionals_to_control_flow();
   return ast::create_ast(cfg, description);
 }
 
@@ -35,8 +35,7 @@ ast::function_definition transpile_to_ast(const function_description& descriptio
 // it.
 auto cse_function_description(const function_description& description,
                               const std::optional<optimization_params>& params) {
-  const control_flow_graph cfg{description.output_expressions(),
-                               params.value_or(optimization_params{})};
+  const control_flow_graph cfg{description, params.value_or(optimization_params{})};
   rebuilt_expressions rebuilt = rebuild_expression_tree(cfg.first_block(), {}, true);
   // Pybind STL conversion will change the types here for us:
   return std::make_tuple(std::move(rebuilt.output_expressions),
@@ -180,7 +179,7 @@ void wrap_codegen_operations(py::module_& m) {
           [](function_description& self, const std::string_view name, const bool is_optional,
              const matrix_expr& value) {
             self.add_output_argument(name, matrix_type(value.rows(), value.cols()), is_optional,
-                                     value.to_vector());
+                                     value);
           },
           py::arg("name"), py::arg("is_optional"), py::arg("value"),
           py::doc("Record an output argument of matrix type."))
@@ -188,7 +187,9 @@ void wrap_codegen_operations(py::module_& m) {
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
              const custom_type& custom_type, std::vector<scalar_expr> expressions) {
-            self.add_output_argument(name, custom_type, is_optional, std::move(expressions));
+            self.add_output_argument(
+                name, custom_type, is_optional,
+                create_custom_type_construction(custom_type, std::move(expressions)));
           },
           py::arg("name"), py::arg("is_optional"), py::arg("custom_type"), py::arg("expressions"),
           py::doc("Record an output argument of custom type."))
@@ -201,31 +202,19 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "set_return_value",
           [](function_description& self, const matrix_expr& value) {
-            self.set_return_value(matrix_type(value.rows(), value.cols()), value.to_vector());
+            self.set_return_value(matrix_type(value.rows(), value.cols()), value);
           },
           py::arg("value"))
       .def(
           "set_return_value",
           [](function_description& self, const custom_type& custom_type,
              std::vector<scalar_expr> expressions) {
-            self.set_return_value(custom_type, std::move(expressions));
+            self.set_return_value(
+                custom_type, create_custom_type_construction(custom_type, std::move(expressions)));
           },
           py::arg("custom_type"), py::arg("expressions"))
-      .def(
-          "output_expressions",
-          [](const function_description& self) {
-            const auto& outputs = self.output_expressions();
-            // Use pybind conversion to create a dict from this.
-            // TODO: Should be output_key --> any_expression
-            std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
-                result{};
-            result.reserve(outputs.size());
-            for (const expression_group& group : outputs) {
-              result.emplace(group.key, group.expressions);
-            }
-            return result;
-          },
-          "Retrieve a dict of output expressions computed by this function.")
+      .def("output_expressions", &function_description::output_expressions,
+           "Retrieve a dict of output expressions computed by this function.")
       .doc() = docstrings::function_description.data();
 
   wrap_class<optimization_params>(m, "OptimizationParams")

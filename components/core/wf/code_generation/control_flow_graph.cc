@@ -136,22 +136,31 @@ struct value_equality_struct {
   }
 };
 
-control_flow_graph::control_flow_graph(const std::vector<expression_group>& groups,
+control_flow_graph::control_flow_graph(const function_description& description,
                                        const std::optional<optimization_params>& params) {
   WF_FUNCTION_TRACE();
   blocks_.push_back(std::make_unique<ir::block>(0));
 
   ir_form_visitor visitor{*this};
-  for (const expression_group& group : groups) {
-    // Transform expressions into Values
-    auto group_values = transform_map<std::vector>(group.expressions, [&](const scalar_expr& expr) {
-      // TODO: Allow returning other types - derive numeric type from the group.
-      return visitor.apply_output_value(expr, numeric_primitive_type::floating_point);
-    });
 
-    // Then create a sink to consume these values, the `save` operation is the sink:
-    create_operation(values_, first_block(), ir::save{group.key}, ir::void_type{},
-                     std::move(group_values));
+  // Add all the output arguments:
+  for (const argument& arg : description.arguments()) {
+    if (arg.direction() == argument_direction::input) {
+      continue;
+    }
+
+    // TODO: Get rid of `expression_usage` altogether.
+    const output_key key{arg.is_optional() ? expression_usage::optional_output_argument
+                                           : expression_usage::output_argument,
+                         arg.name()};
+    visitor.add_output_value(key, description.find_output_expressions(key), arg.type());
+  }
+
+  // Place return-value last:
+  if (const auto& return_type = description.return_value_type(); return_type.has_value()) {
+    const output_key key{expression_usage::return_value, ""};
+    const auto& return_value = description.find_output_expressions(key);
+    visitor.add_output_value(key, return_value, *return_type);
   }
 
 #ifdef WF_DEBUG
