@@ -19,8 +19,7 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
 
   const control_flow_graph output_cfg =
-      control_flow_graph{description.output_expressions(), optimization_params()}
-          .convert_conditionals_to_control_flow();
+      control_flow_graph{description, optimization_params()}.convert_conditionals_to_control_flow();
 
   // Generate syntax tree:
   const ast::function_definition definition = ast::create_ast(output_cfg, description);

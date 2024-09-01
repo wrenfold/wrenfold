@@ -41,19 +41,6 @@ struct output_key {
   bool operator!=(const output_key& other) const noexcept { return !operator==(other); }
 };
 
-// Group together a set of output expressions w/ key describing how they are relevant to a function
-// we want to code-generate.
-struct expression_group {
-  // All the expressions in this group.
-  std::vector<scalar_expr> expressions;
-
-  // Key describing how these expressions are used in a function we intend to code generate.
-  output_key key;
-
-  expression_group(std::vector<scalar_expr> expressions, output_key key) noexcept
-      : expressions(std::move(expressions)), key(std::move(key)) {}
-};
-
 // Convert `expression_usage` to a string.
 constexpr std::string_view string_from_expression_usage(const expression_usage usage) noexcept {
   switch (usage) {

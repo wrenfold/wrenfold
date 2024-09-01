@@ -302,9 +302,7 @@ class phi {
 class save {
  public:
   constexpr static bool is_commutative() noexcept { return false; }
-  constexpr static int num_value_operands() noexcept {
-    return -1;  //  Dynamic
-  }
+  constexpr static int num_value_operands() noexcept { return 1; }
   constexpr static std::string_view to_string() noexcept { return "save"; }
 
   std::size_t hash() const noexcept { return hash_struct<output_key>{}(key_); }

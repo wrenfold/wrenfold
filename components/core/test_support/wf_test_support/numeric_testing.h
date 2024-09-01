@@ -186,8 +186,10 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
     // Convert to the symbolic type (with numeric values), then extract the values into a flat
     // vector:
     const T symbolic_arg_with_numeric_values = custom_type_native_converter<T>{}(arg);
-    std::vector<scalar_expr> numeric_expressions =
-        detail::extract_function_output(type, symbolic_arg_with_numeric_values);
+
+    std::vector<scalar_expr> numeric_expressions;
+    type.copy_output_expressions(symbolic_arg_with_numeric_values, numeric_expressions);
+
     // Configure the substitutions:
     const compound_expr provenance = create_custom_type_argument(type.inner(), arg_index);
     for (std::size_t i = 0; i < numeric_expressions.size(); ++i) {
