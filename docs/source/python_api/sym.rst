@@ -19,6 +19,8 @@ sym
 
 .. autofunction:: wrenfold.sym.atanh
 
+.. autofunction:: wrenfold.sym.compare
+
 .. autofunction:: wrenfold.sym.cos
 
 .. autofunction:: wrenfold.sym.cosh
@@ -28,6 +30,8 @@ sym
 .. autofunction:: wrenfold.sym.det
 
 .. autofunction:: wrenfold.sym.diag
+
+.. autofunction:: wrenfold.sym.distribute
 
 .. autofunction:: wrenfold.sym.eliminate_subexpressions
 
@@ -84,6 +88,8 @@ sym
 .. autofunction:: wrenfold.sym.sinh
 
 .. autofunction:: wrenfold.sym.sqrt
+
+.. autofunction:: wrenfold.sym.subs
 
 .. autofunction:: wrenfold.sym.substitution
 

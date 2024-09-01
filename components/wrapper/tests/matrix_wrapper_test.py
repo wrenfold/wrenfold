@@ -389,6 +389,7 @@ class MatrixWrapperTest(MathTestBase):
                        sym.sin(x) * y + sym.sin(x) * 2),
             m.distribute(),
         )
+        self.assertIdentical(m.distribute(), sym.distribute(m))
 
     def test_collect(self):
         """Test calling collect on a matrix."""
@@ -430,6 +431,7 @@ class MatrixWrapperTest(MathTestBase):
             sym.matrix([(0, b - c), (c - sym.sin(y), z)]),
             m1.subs(a, -x * 2).subs(d + sym.log(d), z),
         )
+        self.assertIdentical(m1.subs(a, -x * 2), sym.subs(m1, a, -x * 2))
         self.assertIdentical(
             sym.matrix([(3 * x, b - 4), (4 - sym.sin(x), d + sym.log(d))]),
             m1.subs([(a, x), (c, 4), (y, x)]))
@@ -438,6 +440,7 @@ class MatrixWrapperTest(MathTestBase):
         m2 = sym.where(a > d, sym.vector(a, b, c), sym.vector(x, y, z))
         self.assertIdentical(sym.vector(a, b, c), m2.subs(a > d, sym.true))
         self.assertIdentical(sym.vector(x, y, z), m2.subs(a > d, sym.false))
+        self.assertIdentical(m2.subs(a > d, sym.false), sym.subs(m2, a > d, sym.false))
 
     def test_matrix_conditional(self):
         """Test creating a matrix conditional."""

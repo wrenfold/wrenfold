@@ -11,6 +11,7 @@
 #include "wf/expressions/special_constants.h"
 
 #include "args_visitor.h"
+#include "visitor_wrappers.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -43,11 +44,11 @@ void wrap_boolean_expression(py::module_& m) {
           "args", [](const boolean_expr& self) { return args_visitor{}(self); },
           "Arguments of ``self`` as a tuple.")
       .def("subs", &substitute_wrapper_single<boolean_expr, scalar_expr>, py::arg("target"),
-           py::arg("substitute"), "See :func:`wrenfold.sym.Expr.subs`")
+           py::arg("substitute"), "See :func:`wrenfold.sym.subs`")
       .def("subs", &substitute_wrapper_single<boolean_expr, boolean_expr>, py::arg("target"),
-           py::arg("substitute"), "See :func:`wrenfold.sym.Expr.subs`")
+           py::arg("substitute"), "See :func:`wrenfold.sym.subs`")
       .def("subs", &substitute_wrapper<boolean_expr>, py::arg("pairs"),
-           "See :func:`wrenfold.sym.Expr.subs`")
+           "See :func:`wrenfold.sym.subs`")
       .def("__bool__", &coerce_to_bool, py::doc("Coerce expression to boolean."))
       .doc() = "A boolean-valued symbolic expression.";
 
