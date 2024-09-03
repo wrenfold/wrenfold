@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/code_generation/function_description.h"
+#include "wf/code_generation/type_registry.h"
 #include "wf/output_annotations.h"
 #include "wf/type_annotations.h"
 #include "wf/utility/zip_tuples.h"
@@ -12,6 +13,33 @@ namespace detail {
 // Fwd declare.
 template <typename Callable, typename... ArgTypes>
 auto invoke_with_symbolic_inputs(Callable&& callable, const std::tuple<ArgTypes...>& arg_types);
+
+// Add a `return_value` to this signature.
+template <typename ReturnValueOrOutputArg, typename Type>
+void add_output_value(function_description& desc, const ReturnValueOrOutputArg& output, Type type) {
+  static_assert(is_output_arg_or_return_value_v<ReturnValueOrOutputArg>,
+                "Outputs must be return_value or output_arg");
+  using value_type = typename ReturnValueOrOutputArg::value_type;
+
+  // Immediately invoked lambda to construct any_expression:
+  any_expression expression = std::invoke([&output, &type]() -> any_expression {
+    if constexpr (std::is_constructible_v<scalar_expr, value_type> ||
+                  std::is_constructible_v<matrix_expr, value_type>) {
+      return output.value();
+    } else {
+      // annotated_custom_type
+      return copy_expressions_from_custom_type(output.value(), type.inner());
+    }
+  });
+
+  if constexpr (is_return_value<ReturnValueOrOutputArg>::value) {
+    desc.set_return_value(std::move(type), std::move(expression));
+  } else {
+    desc.add_output_argument(output.name(), std::move(type), output.is_optional(),
+                             std::move(expression));
+  }
+}
+
 }  // namespace detail
 
 // Invoke the provided function `func` and capture all the output expressions.
@@ -58,7 +86,7 @@ function_description build_function_description(Func&& func, const std::string_v
             is_output_arg_or_return_value<std::decay_t<decltype(output_value)>>::value,
             "All returned elements of the tuple must be explicitly marked as `return_value` or "
             "`output_arg`.");
-        description.add_output_value(output_value, std::move(output_type));
+        detail::add_output_value(description, output_value, std::move(output_type));
       },
       outputs, std::move(output_types));
 

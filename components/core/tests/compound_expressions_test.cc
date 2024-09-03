@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/declare_external_function.h"
+#include "wf/code_generation/type_registry.h"
 #include "wf/compound_expression.h"
 #include "wf/constants.h"
 #include "wf/cse.h"
@@ -59,14 +60,15 @@ TEST(CompoundExpressionTest, TestElementSimplifyIndirection) {
   const auto [x, y, a, b] = make_symbols("x", "y", "a", "b");
 
   // Make a `custom_type_construction` expression:
-  const compound_expr construct = create_custom_type_construction(type.inner(), {x, y, a, b});
+  const compound_expr construct =
+      custom_type_construction::create(type.inner(), {x, y, matrix_expr::create(2, 1, {a, b})});
 
   // Crete elements from the compound expression:
   const std::vector<scalar_expr> elements =
       create_expression_elements(construct, type.inner().total_size());
   ASSERT_EQ(4, elements.size());
 
-  // Should just forward the underlying scalar expresions:
+  // Should just forward the underlying scalar expressions:
   ASSERT_IDENTICAL(x, elements[0]);
   ASSERT_IDENTICAL(y, elements[1]);
   ASSERT_IDENTICAL(a, elements[2]);
@@ -84,7 +86,9 @@ TEST(CompoundExpressionTest, TestConstructSimplifyIndirection) {
   ASSERT_EQ(4, arg_elements.size());
 
   // Constructing a new compound expression should just point back to the original arg expression:
-  const compound_expr construct = create_custom_type_construction(type.inner(), arg_elements);
+  const compound_expr construct = custom_type_construction::create(
+      type.inner(),
+      custom_type_construction::container_type(arg_elements.begin(), arg_elements.end()));
   ASSERT_TRUE(construct.has_same_address(arg));
   ASSERT_IDENTICAL(arg, construct);
 }
@@ -108,8 +112,9 @@ TEST(CompoundExpressionTest, TestInvokeSimplifyIndirection) {
   ASSERT_IDENTICAL(expected_invocation_elements[3], invocation_result.v[1]);
 
   // Check that it simplifies if we construct from these elements:
-  const compound_expr construct =
-      create_custom_type_construction(type.inner(), expected_invocation_elements);
+  const compound_expr construct = custom_type_construction::create(
+      type.inner(), custom_type_construction::container_type(expected_invocation_elements.begin(),
+                                                             expected_invocation_elements.end()));
   ASSERT_IDENTICAL(expected_invocation, construct);
 }
 

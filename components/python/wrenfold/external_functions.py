@@ -145,8 +145,9 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
                     f"Opaque argument {arg_name} to function {func.name} has unclear provenance.")
             converted_args.append(arg._provenance)
         else:
-            expressions = custom_types.map_expressions_out_of_custom_type(instance=arg)
-            converted_args.append(sym.create_custom_type_construction(arg_type, expressions))
+            expression = custom_types.map_expressions_out_of_custom_type(
+                instance=arg, custom_type=arg_type)
+            converted_args.append(expression)
 
     result: sym.AnyExpression = func.call(converted_args)
     if not isinstance(result, sym.CompoundExpr):

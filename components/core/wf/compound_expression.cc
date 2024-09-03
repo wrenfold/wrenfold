@@ -36,11 +36,6 @@ compound_expr create_custom_type_argument(const custom_type& type, const std::si
   return compound_expr{std::in_place_type_t<custom_type_argument>{}, type, arg_index};
 }
 
-compound_expr create_custom_type_construction(const custom_type& type,
-                                              std::vector<scalar_expr> expressions) {
-  return custom_type_construction::create(type, std::move(expressions));
-}
-
 relative_order order_struct<compound_expr>::operator()(const compound_expr& a,
                                                        const compound_expr& b) const {
   if (a.type_index() < b.type_index()) {

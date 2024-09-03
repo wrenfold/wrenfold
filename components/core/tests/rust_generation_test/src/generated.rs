@@ -801,19 +801,19 @@ pub fn nested_custom_type_1<>(c: &crate::types::Circle, p: &crate::types::Point2
   
   let v002: f64 = c.center.y();
   let v001: f64 = c.center.x();
-  let v012: f64 = v002 + -p.y();
-  let v008: f64 = v001 + -p.x();
-  let v016: f64 = c.radius;
-  let v015: f64 = (v008 * v008 + v012 * v012).sqrt();
-  let v018: f64;
-  if (v015) <= (v016) {
-    v018 = v016;
+  let v013: f64 = v002 + -p.y();
+  let v009: f64 = v001 + -p.x();
+  let v017: f64 = c.radius;
+  let v016: f64 = (v009 * v009 + v013 * v013).sqrt();
+  let v019: f64;
+  if (v016) <= (v017) {
+    v019 = v017;
   } else {
-    v018 = v015;
+    v019 = v016;
   }
   crate::types::Circle {
     center: crate::types::Point2d::new(v001, v002),
-    radius: v018
+    radius: v019
   }
 }
 

@@ -33,51 +33,6 @@ inline void find_conditional_output_values(const ir::const_value_ptr v,
   }
 }
 
-// Given all the values that are required to build a given output, make the syntax to construct
-// that object. For structs, we need to recurse and build each member.
-struct type_constructor {
-  explicit type_constructor(std::vector<ast::ast_element> contents) noexcept
-      : contents_(std::move(contents)), index_(0) {}
-
-  // Scalar doesn't have a constructor, just return the input directly and step forward by one
-  // value.
-  ast::ast_element operator()(const scalar_type&) {
-    WF_ASSERT_LT(index_, contents_.size());
-    ast::ast_element result = std::move(contents_[index_]);
-    ++index_;
-    return result;
-  }
-
-  // Matrices we just group the next `row * col` elements into `construct_matrix` element.
-  ast::construct_matrix operator()(const matrix_type& mat) {
-    WF_ASSERT_LE(index_ + mat.size(), contents_.size());
-
-    std::vector<ast::ast_element> matrix_args;
-    matrix_args.reserve(mat.size());
-    std::copy_n(std::make_move_iterator(contents_.begin()) + index_, mat.size(),
-                std::back_inserter(matrix_args));
-    return ast::construct_matrix{mat, std::move(matrix_args)};
-  }
-
-  // For custom types, recurse and consume however many values are required for each individual
-  // field.
-  ast::construct_custom_type operator()(const custom_type& type) {
-    // Recursively convert every field in the custom type.
-    std::vector<std::tuple<std::string, ast::ast_element>> fields_out{};
-    fields_out.reserve(type.size());
-    for (const struct_field& field : type.fields()) {
-      ast::ast_element field_var = std::visit(
-          [this](const auto& t) { return ast::ast_element(this->operator()(t)); }, field.type());
-      fields_out.emplace_back(field.name(), std::move(field_var));
-    }
-    return ast::construct_custom_type{type, std::move(fields_out)};
-  }
-
- private:
-  std::vector<ast::ast_element> contents_;
-  std::size_t index_;
-};
-
 static ast::ast_element format_operation_count_comment(const operation_counts& counts) {
   std::string comment{"Operation counts:\n"};
   for (const auto& [label, count] : counts.labels_and_counts()) {
@@ -405,9 +360,22 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::co
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val,
                                               const ir::construct& construct) {
-  type_constructor constructor{transform_operands(val, std::nullopt)};
-  return std::visit([&](const auto& x) { return ast::ast_element(constructor(x)); },
-                    construct.type());
+  auto operands = transform_operands(val, std::nullopt);
+  return overloaded_visit(
+      construct.type(),
+      [&](const matrix_type& mat) {
+        return ast::ast_element{std::in_place_type_t<ast::construct_matrix>(), mat,
+                                std::move(operands)};
+      },
+      [&](const custom_type& type) {
+        WF_ASSERT_EQ(operands.size(), type.size());
+        auto named_fields = transform_enumerate_map<std::vector>(
+            type.fields(), [&operands](const std::size_t index, const struct_field& field) {
+              return std::make_tuple(field.name(), std::move(operands[index]));
+            });
+        return ast::ast_element{std::in_place_type_t<ast::construct_custom_type>(), type,
+                                std::move(named_fields)};
+      });
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::copy&) {

@@ -120,7 +120,7 @@ struct construct_custom_type {
   // The type being constructed.
   custom_type type;
 
-  // Vector of [field, ast] pairs that describe how to fill the fields of the output type.
+  // Vector of [field, ast] pairs that describe how to fill in the fields of the output type.
   // Fields will be in the same order as in `type`.
   std::vector<std::tuple<std::string, ast_element>> field_values;
 
@@ -310,9 +310,7 @@ struct function_signature {
   }
 
   // True if any of the arguments is a matrix.
-  bool has_matrix_arguments() const noexcept {
-    return any_of(arguments_, [](const argument& x) { return x.is_matrix(); });
-  }
+  bool has_matrix_arguments() const noexcept;
 
   // Get all the matrix arguments.
   std::vector<argument> matrix_args() const;

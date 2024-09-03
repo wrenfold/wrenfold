@@ -48,7 +48,7 @@ class declare_external_function {
             captured_args.emplace_back(scalar_expr{arg});
           } else if constexpr (implements_custom_type_registrant_v<T>) {
             // This was directly constructed - capture all the expressions on the custom type.
-            captured_args.push_back(detail::extract_function_output(arg_type, arg));
+            captured_args.push_back(copy_expressions_from_custom_type(arg, arg_type.inner()));
           } else {
             WF_ASSERT_ALWAYS("Unsupported argument type: {}", typeid(T).name());
           }
@@ -68,8 +68,8 @@ class declare_external_function {
       const custom_type& type = description.return_type_as<custom_type>();
       const std::vector<scalar_expr> elements =
           create_expression_elements(std::get<compound_expr>(invoke_result), type.total_size());
-      auto [return_value, _] =
-          custom_type_from_expressions<ReturnType>(type, absl::Span<const scalar_expr>{elements});
+      const std::vector<any_expression> any_elements(elements.begin(), elements.end());
+      auto [return_value, _] = custom_type_from_expressions<ReturnType>(type, any_elements);
       return return_value;
     } else {
       WF_ASSERT_ALWAYS("Unsupported return type: {}", typeid(ReturnType).name());

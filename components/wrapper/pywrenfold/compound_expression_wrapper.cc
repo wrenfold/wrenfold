@@ -9,6 +9,7 @@
 #include "wf/compound_expression.h"
 
 #include "docs/compound_expression_wrapper.h"
+#include "wf/expressions/custom_type_expressions.h"
 #include "wrapper_utils.h"
 
 namespace py = pybind11;
@@ -34,9 +35,15 @@ void wrap_compound_expression(py::module_& m) {
         py::doc("Create scalar expressions that represent the members of the provided compound "
                 "expression. OMIT_FROM_SPHINX"));
 
-  m.def("create_custom_type_construction", &create_custom_type_construction, py::arg("type"),
-        py::arg("expressions"),
-        py::doc("Create compound expression of type `CustomTypeConstruction`. OMIT_FROM_SPHINX"));
+  m.def(
+      "create_custom_type_construction",
+      [](const custom_type& type, const py::sequence& expressions) {
+        return custom_type_construction::create(
+            type, transform_map<custom_type_construction::container_type>(
+                      expressions, &variant_from_pyobject<any_expression>));
+      },
+      py::arg("type"), py::arg("expressions"),
+      py::doc("Create compound expression of type `CustomTypeConstruction`. OMIT_FROM_SPHINX"));
 }
 
 }  // namespace wf

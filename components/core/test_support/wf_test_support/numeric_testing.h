@@ -114,19 +114,20 @@ struct compute_function_output_struct<T,
   native_type operator()(numeric_function_evaluator& evaluator, const T& input,
                          const annotated_custom_type<T>& type) const {
     // Get the symbolic outputs for this type.
-    std::vector<scalar_expr> symbolic_outputs;
-    type.copy_output_expressions(input, symbolic_outputs);
+    // std::vector<any_expression> symbolic_outputs;
+    // type.copy_output_expressions(input, symbolic_outputs);
+    compound_expr expr = copy_expressions_from_custom_type(input, type.inner());
+
     // Turn them into float expressions:
-    for (scalar_expr& expr : symbolic_outputs) {
-      expr = evaluator.evaluate(evaluator.substitute(expr));
-      if (!expr.is_type<float_constant>()) {
-        throw type_error("Expression should be a floating point value. Got type `{}`: {}",
-                         expr.type_name(), expr);
-      }
-    }
+    expr = evaluator.evaluate(evaluator.substitute(expr));
+
+    const custom_type_construction* construct = get_if<const custom_type_construction>(expr);
+    WF_ASSERT(construct != nullptr, "Expression does not evaluate to a custom_type construction");
+
     // Put them back the symbolic type:
     auto [numeric_input, _] =
-        type.initialize_from_expressions(absl::Span<const scalar_expr>{symbolic_outputs});
+        type.initialize_from_expressions(absl::Span<const any_expression>{construct->children()});
+
     // Call the user provided converter:
     return custom_type_native_converter<T>{}(numeric_input);
   }
@@ -180,28 +181,63 @@ template <typename T>
 struct collect_function_input<T, enable_if_implements_symbolic_from_native_conversion_t<T>> {
   using native_type = typename custom_type_native_converter<T>::native_type;
 
+  // Visitor for extracting all scalar expressions from custom type constructors.
+  class get_construction_arguments {
+   public:
+    constexpr explicit get_construction_arguments(std::vector<scalar_expr>& out) noexcept
+        : outputs_(out) {}
+
+    // Recurse into constructions:
+    void operator()(const compound_expr& x) const {
+      if (const auto construct = get_if<const custom_type_construction>(x); construct != nullptr) {
+        for (const auto& child : construct->children()) {
+          overloaded_visit(
+              child, [&](const scalar_expr& arg) { outputs_.push_back(arg); },
+              [&](const matrix_expr& arg) {
+                for (const scalar_expr& element : arg.to_vector()) {
+                  outputs_.push_back(element);
+                }
+              },
+              [&](const boolean_expr&) {
+                throw type_error("Booleans cannot be struct members yet.");
+              },
+              [&](const compound_expr& arg) { operator()(arg); });
+        }
+      } else {
+        throw type_error("Unexpected type found: `{}`", x.type_name());
+      }
+    }
+
+   private:
+    std::vector<scalar_expr>& outputs_;
+  };
+
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index,
                   const native_type& arg, const annotated_custom_type<T>& type) const {
     static_assert(implements_custom_type_registrant_v<T>,
                   "Type must implement custom_type_registrant<T>");
-    // Convert to the symbolic type (with numeric values), then extract the values into a flat
-    // vector:
+    // Convert to the symbolic type (with numeric values), then extract the values into an instance
+    // of custom_type_construction.
     const T symbolic_arg_with_numeric_values = custom_type_native_converter<T>{}(arg);
+    const compound_expr numeric_expr =
+        copy_expressions_from_custom_type(symbolic_arg_with_numeric_values, type.inner());
 
-    std::vector<scalar_expr> numeric_expressions;
-    type.copy_output_expressions(symbolic_arg_with_numeric_values, numeric_expressions);
+    std::vector<scalar_expr> outputs;
+    get_construction_arguments{outputs}(numeric_expr);
+    WF_ASSERT_EQ(type.inner().total_size(), outputs.size(),
+                 "Wrong number of elements on instance of type: `{}`", type.inner().name());
 
     // Configure the substitutions:
     const compound_expr provenance = create_custom_type_argument(type.inner(), arg_index);
-    for (std::size_t i = 0; i < numeric_expressions.size(); ++i) {
+    for (std::size_t i = 0; i < outputs.size(); ++i) {
       const bool added = output.add_substitution(compound_expression_element{provenance, i},
-                                                 std::move(numeric_expressions[i]));
+                                                 std::move(outputs[i]));
       WF_ASSERT(added);
     }
   }
 };
 
-// `ArgSymbolicTypes` are the custom user-defined types that contain symblic expressions.
+// `ArgSymbolicTypes` are the custom user-defined types that contain symbolic expressions.
 // `ArgTypes` are type descriptors like scalar_type, custom_type, etc.
 // `OutputTypes` are also type descriptors.
 template <typename OutputTuple, typename... ArgSymbolicTypes, typename... ArgTypes,

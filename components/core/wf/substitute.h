@@ -47,6 +47,11 @@ class substitute_variables_visitor {
   template <typename T, typename X>
   X operator()(const T& concrete, const X& abstract);
 
+  template <typename T, typename = enable_if_same_t<T, any_expression>>
+  auto operator()(const T& expression) {
+    return std::visit([&](const auto& x) -> any_expression { return operator()(x); }, expression);
+  }
+
  private:
   std::unordered_map<variable, scalar_expr, hash_struct<variable>, is_identical_struct<variable>>
       variable_substitutions_;

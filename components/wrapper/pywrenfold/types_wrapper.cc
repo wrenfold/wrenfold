@@ -72,6 +72,9 @@ void wrap_types(py::module_& m) {
       .def("__repr__", [](matrix_type self) { return fmt::format("{}", self); })
       .doc() = "A 2D matrix-valued type.";
 
+  // Declare this first here so we can get the correct type annotation on `StructField`.
+  auto custom_type_klass = wrap_class<custom_type>(m, "CustomType");
+
   wrap_class<struct_field>(m, "StructField")
       .def_property_readonly("name", &struct_field::name, "Name of the field.")
       .def_property_readonly("type", &struct_field::type, "Type of the field.")
@@ -79,12 +82,24 @@ void wrap_types(py::module_& m) {
       "Describes a field on a struct. The :class:`wrenfold.type_info.CustomType` contains a list "
       "of fields.";
 
-  wrap_class<custom_type>(m, "CustomType")
+  custom_type_klass
       .def(py::init(&init_custom_type), py::arg("name"), py::arg("fields"), py::arg("python_type"),
            "Construct custom type.")
       .def_property_readonly("name", &custom_type::name, "Name of the struct.")
       .def_property_readonly("fields", &custom_type::fields,
                              "A list of :class:`wrenfold.type_info.StructField` objects.")
+      .def(
+          "field_by_name",
+          [](const custom_type& self,
+             const std::string_view name) -> std::optional<const struct_field*> {
+            if (const auto field = self.field_by_name(name); field.has_value()) {
+              return {field.get()};
+            } else {
+              return std::nullopt;
+            }
+          },
+          py::arg("name"), "Retrieve a ``StructField`` by name.",
+          py::return_value_policy::reference, py::keep_alive<0, 1>())
       .def_property_readonly(
           "total_size", &custom_type::total_size,
           "Total number of scalar expressions in the custom type **and** all of its children.")

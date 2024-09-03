@@ -154,7 +154,7 @@ class construct {
     return is_identical_variant<variant_type>{}(type_, other.type_);
   }
 
-  constexpr const auto& type() const noexcept { return type_; }
+  constexpr const variant_type& type() const noexcept { return type_; }
 
   explicit construct(variant_type type) noexcept : type_(std::move(type)) {}
 

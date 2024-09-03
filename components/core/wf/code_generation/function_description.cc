@@ -3,6 +3,9 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/function_description.h"
 
+#include "wf/code_generation/type_registry.h"
+#include "wf/utility/algorithms.h"
+
 namespace wf {
 
 argument::argument(const std::string_view name, type_variant type,

@@ -85,21 +85,25 @@ ir::value_ptr ir_form_visitor::operator()(const custom_type_argument& arg) {
 }
 
 ir::value_ptr ir_form_visitor::operator()(const custom_type_construction& construct) {
-  absl::InlinedVector<ir::value_ptr, 8> operands{};
-  operands.reserve(construct.size());
+  // absl::InlinedVector<ir::value_ptr, 8> operands{};
+  // operands.reserve(construct.size());
 
-  iterate_custom_type_fields(
-      construct.type(),
-      make_overloaded(
-          [&](const std::size_t index, const scalar_type s) {
-            operands.push_back(maybe_cast(operator()(construct.at(index)), s.numeric_type()));
-          },
-          [&](const std::size_t index, const matrix_type& m) {
-            for (std::size_t i = 0; i < m.size(); ++i) {
-              const ir::value_ptr mat_element = operator()(construct.at(index + i));
-              operands.push_back(maybe_cast(mat_element, numeric_primitive_type::floating_point));
-            }
-          }));
+  const auto operands = transform_map<absl::InlinedVector<ir::value_ptr, 8>>(
+      construct.children(), [&](const auto& expr) { return std::visit(*this, expr); });
+
+  // iterate_custom_type_fields(
+  //     construct.type(),
+  //     make_overloaded(
+  //         [&](const std::size_t index, const scalar_type s) {
+  //           operands.push_back(maybe_cast(operator()(construct.at(index)), s.numeric_type()));
+  //         },
+  //         [&](const std::size_t index, const matrix_type& m) {
+  //           for (std::size_t i = 0; i < m.size(); ++i) {
+  //             const ir::value_ptr mat_element = operator()(construct.at(index + i));
+  //             operands.push_back(maybe_cast(mat_element,
+  //             numeric_primitive_type::floating_point));
+  //           }
+  //         }));
 
   return push_operation(ir::construct{construct.type()}, construct.type(), operands);
 }

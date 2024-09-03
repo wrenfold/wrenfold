@@ -118,7 +118,8 @@ def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
     return T.cast(U, custom_type(**constructor_kwargs)), expressions
 
 
-def map_expressions_out_of_custom_type(instance: T.Any) -> T.List[sym.Expr]:
+def map_expressions_out_of_custom_type(instance: T.Any,
+                                       custom_type: type_info.CustomType) -> sym.CompoundExpr:
     """
     Given an instance of a custom dataclass type, flatten its contents into a list of expressions.
 
@@ -129,17 +130,28 @@ def map_expressions_out_of_custom_type(instance: T.Any) -> T.List[sym.Expr]:
     assert dataclasses.is_dataclass(
         instance), f"Provided object of type `{type(instance)}` is not a dataclass"
 
-    expressions: T.List[sym.Expr] = []
-    for field in dataclasses.fields(instance):
-        value = getattr(instance, field.name)
-        if issubclass(field.type, sym.Expr):
+    # The order of `expressions` needs to match the order of `custom_type.fields`.
+    expressions: T.List[sym.AnyExpression] = []
+    for struct_field in custom_type.fields:
+        value = getattr(instance, struct_field.name)
+        if value is None:
+            raise KeyError(
+                f"Instance of type `{custom_type}` is missing field `{struct_field.name}` with type `{struct_field.type}`."
+            )
+        if isinstance(struct_field.type, type_info.ScalarType):
+            assert isinstance(
+                value, sym.Expr
+            ), f"Field {struct_field.name} expected to be of type sym.Expr, got {type(value)}"
             expressions.append(value)
-        elif issubclass(field.type, sym.MatrixExpr):
-            expressions.extend(value.to_flat_list())
-        elif dataclasses.is_dataclass(field.type):
-            expressions += map_expressions_out_of_custom_type(instance=value)
+        elif isinstance(struct_field.type, type_info.MatrixType):
+            assert isinstance(
+                value, sym.MatrixExpr
+            ), f"Field {struct_field.name} expected to be of type sym.MatrixExpr, got {type(value)}"
+            expressions.append(value)
+        elif isinstance(struct_field.type, type_info.CustomType):
+            expressions.append(
+                map_expressions_out_of_custom_type(instance=value, custom_type=struct_field.type))
         else:
-            raise TypeError(
-                f'Invalid member type `{field.name}: {field.type}` used in type `{type(instance)}`')
+            raise TypeError(f'Invalid member type `{struct_field.name}: {struct_field.type}`')
 
-    return expressions
+    return sym.create_custom_type_construction(type=custom_type, expressions=expressions)

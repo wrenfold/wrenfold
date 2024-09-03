@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include "wf/any_expression.h"
 #include "wf/code_generation/types.h"
 #include "wf/compound_expression.h"
 #include "wf/utility/algorithms.h"
@@ -10,7 +11,7 @@
 
 namespace wf {
 
-// Denote an instance of a custom type passed as an input argument to a genreated function.
+// Denote an instance of a custom type passed as an input argument to a generated function.
 class custom_type_argument {
  public:
   static constexpr std::string_view name_str = "CustomTypeArgument";
@@ -57,9 +58,9 @@ class custom_type_construction {
  public:
   static constexpr std::string_view name_str = "CustomTypeConstruction";
   static constexpr bool is_leaf_node = false;
-  using container_type = std::vector<scalar_expr>;
+  using container_type = std::vector<any_expression>;
 
-  custom_type_construction(custom_type type, std::vector<scalar_expr> args);
+  custom_type_construction(custom_type type, container_type args);
 
   // The type being constructed.
   constexpr const custom_type& type() const noexcept { return type_; }
@@ -68,7 +69,7 @@ class custom_type_construction {
   std::size_t size() const noexcept { return args_.size(); }
 
   // Get the specified argument.
-  const scalar_expr& at(const std::size_t index) const {
+  const any_expression& at(const std::size_t index) const {
     WF_ASSERT_LT(index, size());
     return args_[index];
   }
@@ -79,7 +80,12 @@ class custom_type_construction {
 
   template <typename F>
   compound_expr map_children(F&& f) const {
-    return create(type_, transform_map<container_type>(args_, std::forward<F>(f)));
+    container_type args_out =
+        transform_map<container_type>(children(), [&f](const any_expression& arg) {
+          return std::visit(
+              [&f](const auto& arg_concrete) -> any_expression { return f(arg_concrete); }, arg);
+        });
+    return create(type_, std::move(args_out));
   }
 
   // Flattened list of sub-expressions that make up the custom type.

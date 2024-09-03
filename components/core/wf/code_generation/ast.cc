@@ -6,6 +6,8 @@
 #include <regex>
 #include <sstream>
 
+#include "wf/utility/algorithms.h"
+
 namespace wf::ast {
 
 std::vector<std::string> comment::split_lines() const {
@@ -45,6 +47,10 @@ std::optional<argument> function_signature::argument_by_name(std::string_view st
     return std::nullopt;
   }
   return *it;
+}
+
+bool function_signature::has_matrix_arguments() const noexcept {
+  return any_of(arguments_, [](const argument& x) { return x.is_matrix(); });
 }
 
 }  // namespace wf::ast

@@ -7,12 +7,12 @@
 
 namespace wf {
 
-custom_type_construction::custom_type_construction(custom_type type, std::vector<scalar_expr> args)
+custom_type_construction::custom_type_construction(custom_type type, container_type args)
     : type_(std::move(type)), args_(std::move(args)) {
   WF_ASSERT_EQ(
-      type_.total_size(), args_.size(),
+      type_.size(), args_.size(),
       "Mismatch between size of custom type `{}` ({}) and the number of provided args ({}).",
-      type_.name(), type_.total_size(), args_.size());
+      type_.name(), type_.size(), args_.size());
 }
 
 // Check if the underlying type of the compound expression is a custom type.
@@ -29,35 +29,84 @@ static maybe_null<const custom_type*> maybe_get_custom_type(const compound_expr&
                 }));
 }
 
+class get_expression_elements {
+ public:
+  constexpr explicit get_expression_elements(
+      std::vector<non_null<const compound_expression_element*>>& out) noexcept
+      : outputs_(out) {}
+
+  template <typename T, typename = enable_if_same_t<T, any_expression>>
+  void operator()(const T& any) const {
+    return std::visit(*this, any);
+  }
+
+  void operator()(const scalar_expr& x) const {
+    if (const auto element = get_if<const compound_expression_element>(x); element) {
+      outputs_.emplace_back(element);
+    }
+  }
+
+  // TODO: Allow boolean values to be members of structs.
+  constexpr void operator()(const boolean_expr&) const {}
+
+  // Recurse into matrices:
+  void operator()(const matrix_expr& x) const {
+    for (const scalar_expr& element : x.to_vector()) {
+      operator()(element);
+    }
+  }
+
+  // Recurse into constructions:
+  void operator()(const compound_expr& x) const {
+    if (const auto construct = get_if<const custom_type_construction>(x); construct != nullptr) {
+      for (const auto& arg : construct->children()) {
+        operator()(arg);
+      }
+    }
+  }
+
+ private:
+  std::vector<non_null<const compound_expression_element*>>& outputs_;
+};
+
 // Check if `args` reduces to a list of `compound_expression_elements` that together form an
-// existing compound expression. We need to check that the underlying type matches, and that we have
-// the right number of elements in the appropriate order.
+// existing compound expression. We need to check that the underlying type matches, and that we
+// have the right number of elements in the appropriate order.
 static std::optional<compound_expr> maybe_get_existing_compound_expr(
     const custom_type& type, const custom_type_construction::container_type& args) {
   if (args.empty()) {
     return std::nullopt;
   }
 
-  // Get the first element, which we use to get the inner compound expression type.
-  const compound_expression_element* first_element =
-      get_if<const compound_expression_element>(args[0]);
-  if (!first_element || first_element->index() != 0) {
+  // Total number of scalar values in `type`.
+  const std::size_t expected_total_size = type.total_size();
+
+  // Retrieve any `compound_expression_element` members from this type:
+  std::vector<non_null<const compound_expression_element*>> elements;
+  elements.reserve(expected_total_size);
+  for (const auto& arg : args) {
+    get_expression_elements{elements}(arg);
+  }
+
+  // Check that we have the right number of elements:
+  if (elements.empty()) {
+    return std::nullopt;
+  } else if (elements.size() != expected_total_size) {
     return std::nullopt;
   }
 
   // If the inner type doesn't match, no point checking the rest of the expressions.
-  const compound_expr& provenance = first_element->provenance();
+  const compound_expr& provenance = elements.front()->provenance();
   if (const maybe_null<const custom_type*> inner_type = maybe_get_custom_type(provenance);
       !inner_type.has_value() || !are_identical(*inner_type, type)) {
     return std::nullopt;
   }
 
   // Now check if (in aggregate) the vector of expressions is just a copy of `provenance`.
-  for (std::size_t i = 1; i < args.size(); ++i) {
-    if (const auto* element = get_if<const compound_expression_element>(args[i]);
-        element == nullptr || element->index() != i ||
-        element->provenance().hash() != provenance.hash() ||
-        !are_identical(element->provenance(), provenance)) {
+  for (std::size_t i = 0; i < args.size(); ++i) {
+    if (elements[i]->index() != i) {
+      return std::nullopt;
+    } else if (!elements[i]->provenance().is_identical_to(provenance)) {
       return std::nullopt;
     }
   }

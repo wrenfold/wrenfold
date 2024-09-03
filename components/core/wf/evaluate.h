@@ -27,6 +27,11 @@ class evaluate_visitor {
   boolean_expr operator()(const boolean_expr& input);
   matrix_expr operator()(const matrix_expr& input);
 
+  template <typename T, typename = enable_if_same_t<T, any_expression>>
+  auto operator()(const T& expression) {
+    return std::visit([&](const auto& x) -> any_expression { return operator()(x); }, expression);
+  }
+
  private:
   expression_cache cache_{};
 };

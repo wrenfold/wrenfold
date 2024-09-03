@@ -5,8 +5,8 @@
 #include <variant>
 #include <vector>
 
+#include "wf/any_expression.h"
 #include "wf/code_generation/expression_group.h"
-#include "wf/code_generation/type_registry.h"
 #include "wf/code_generation/types.h"
 #include "wf/matrix_expression.h"
 #include "wf/utility/checked_pointers.h"
@@ -113,20 +113,6 @@ class function_description {
   // Set the return value. Only one return value is presently supported, so this may only be invoked
   // once.
   void set_return_value(type_variant type, any_expression expression);
-
-  // Add a `return_value` to this signature.
-  template <typename Value, typename Type>
-  void add_output_value(const return_value<Value>& value, Type type) {
-    any_expression expression = detail::extract_function_output(type, value.value());
-    set_return_value(std::move(type), std::move(expression));
-  }
-
-  // Add an `output_arg` output to this function.
-  template <typename Value, typename Type>
-  void add_output_value(const output_arg<Value>& value, Type type) {
-    any_expression expression = detail::extract_function_output(type, value.value());
-    add_output_argument(value.name(), std::move(type), value.is_optional(), std::move(expression));
-  }
 
  private:
   const argument& add_argument(std::string_view name, type_variant type,

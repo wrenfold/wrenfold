@@ -75,7 +75,9 @@ class determine_set_visitor {
           return number_set::real;
         },
         [&](const custom_type_construction& construct) {
-          return visit(construct.at(el.index()), *this);
+          const auto& element = construct.at(el.index());
+          WF_ASSERT(std::holds_alternative<scalar_expr>(element));
+          return visit(std::get<scalar_expr>(element), *this);
         });
     return visit(el.provenance(), overloads);
   }

@@ -104,7 +104,7 @@ void plain_formatter::operator()(const compound_expression_element& el) {
               format_access_sequence(arg.type());
             },
             [&](const custom_type_construction& construction) {
-              operator()(construction.at(el.index()));
+              visit(construction.at(el.index()), *this);
             }));
 }
 

@@ -159,11 +159,10 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
                 custom_type = custom_types.convert_to_internal_type(
                     python_type=type(val.expression), cached_custom_types=cached_types)
                 description.set_return_value(
-                    custom_type=custom_type,
-                    expressions=custom_types.map_expressions_out_of_custom_type(
-                        instance=val.expression))
+                    custom_types.map_expressions_out_of_custom_type(
+                        instance=val.expression, custom_type=custom_type))
             else:
-                description.set_return_value(val.expression)
+                description.set_return_value(value=val.expression)
         elif isinstance(val, OutputArg):
             if dataclasses.is_dataclass(val.expression):
                 custom_type = custom_types.convert_to_internal_type(
@@ -173,7 +172,7 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
                     is_optional=val.is_optional,
                     custom_type=custom_type,
                     expressions=custom_types.map_expressions_out_of_custom_type(
-                        instance=val.expression))
+                        instance=val.expression, custom_type=custom_type))
             else:
                 description.add_output_argument(
                     name=val.name, is_optional=val.is_optional, value=val.expression)

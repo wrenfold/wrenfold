@@ -11,6 +11,7 @@
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/rust_code_generator.h"
 #include "wf/expression.h"
+#include "wf/expression_visitor.h"
 #include "wf/matrix_expression.h"
 
 #include "docs/codegen_wrapper.h"
@@ -65,6 +66,19 @@ any_expression call_external_function(const external_function& self, const py::l
   // Now we need to check the types and create expression result:
   return self.create_invocation(std::move(captured_args));
 }
+
+// Retrieve `custom_type` off of a compound expr.
+struct get_compound_expr_custom_type {
+  custom_type operator()(const custom_type_construction& x) const noexcept { return x.type(); }
+  custom_type operator()(const custom_type_argument& x) const noexcept { return x.type(); }
+
+  // `external_function_invocation` is an odd-man out here. It might be the case there should be
+  // different invocations for scalar_expr, matrix_expr, etc.
+  custom_type operator()(const external_function_invocation&) const {
+    throw type_error("CompoundExpr must not be of type `{}`.",
+                     external_function_invocation::name_str);
+  }
+};
 
 void wrap_argument(py::module_& m) {
   py::enum_<argument_direction>(m, "ArgumentDirection")
@@ -170,10 +184,12 @@ void wrap_codegen_operations(py::module_& m) {
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
              const scalar_expr& value) {
+            // TODO: Support non-float output scalar arguments.
             self.add_output_argument(name, scalar_type(numeric_primitive_type::floating_point),
                                      is_optional, {value});
           },
-          py::arg("name"), py::arg("is_optional"), py::arg("value"))
+          py::arg("name"), py::arg("is_optional"), py::arg("value"),
+          py::doc("Record an output argument of scalar type."))
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
@@ -186,10 +202,8 @@ void wrap_codegen_operations(py::module_& m) {
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
-             const custom_type& custom_type, std::vector<scalar_expr> expressions) {
-            self.add_output_argument(
-                name, custom_type, is_optional,
-                create_custom_type_construction(custom_type, std::move(expressions)));
+             const custom_type& custom_type, const compound_expr& expression) {
+            self.add_output_argument(name, custom_type, is_optional, expression);
           },
           py::arg("name"), py::arg("is_optional"), py::arg("custom_type"), py::arg("expressions"),
           py::doc("Record an output argument of custom type."))
@@ -207,12 +221,10 @@ void wrap_codegen_operations(py::module_& m) {
           py::arg("value"))
       .def(
           "set_return_value",
-          [](function_description& self, const custom_type& custom_type,
-             std::vector<scalar_expr> expressions) {
-            self.set_return_value(
-                custom_type, create_custom_type_construction(custom_type, std::move(expressions)));
+          [](function_description& self, const compound_expr& value) {
+            self.set_return_value(visit(value, get_compound_expr_custom_type{}), value);
           },
-          py::arg("custom_type"), py::arg("expressions"))
+          py::arg("value"))
       .def("output_expressions", &function_description::output_expressions,
            "Retrieve a dict of output expressions computed by this function.")
       .doc() = docstrings::function_description.data();

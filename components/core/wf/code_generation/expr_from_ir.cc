@@ -142,14 +142,16 @@ class expression_from_ir_visitor {
 
   any_expression operator()(const ir::construct& construct,
                             const ir::value::operands_container& args) const {
-    std::vector<scalar_expr> args_converted = transform_map<std::vector>(
-        args, [this](const ir::const_value_ptr v) { return map_value<scalar_expr>(v); });
     return overloaded_visit(
         construct.type(),
         [&](const matrix_type& mat) -> any_expression {
+          auto args_converted = transform_map<std::vector>(
+              args, [this](const ir::const_value_ptr v) { return map_value<scalar_expr>(v); });
           return matrix_expr::create(mat.rows(), mat.cols(), std::move(args_converted));
         },
         [&](const custom_type& custom) -> any_expression {
+          auto args_converted = transform_map<std::vector>(
+              args, [this](const ir::const_value_ptr v) { return map_value_to_variant(v); });
           return custom_type_construction::create(custom, std::move(args_converted));
         });
   }

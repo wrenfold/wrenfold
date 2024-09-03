@@ -9,6 +9,8 @@
 
 #include "wf/any_expression.h"
 #include "wf/code_generation/types.h"
+#include "wf/expressions/compound_expression_element.h"
+#include "wf/expressions/custom_type_expressions.h"
 #include "wf/expressions/matrix.h"
 #include "wf/output_annotations.h"
 #include "wf/type_annotations.h"
@@ -61,11 +63,11 @@ class native_field_accessor_typed : public native_field_accessor::concept_base {
   // Set underlying member by consuming expressions from `input`.
   // A new truncated span with remaining elements is returned. It is assumed that expressions in
   // `input` can be moved.
-  virtual absl::Span<const scalar_expr> set(T& object,
-                                            absl::Span<const scalar_expr> input) const = 0;
+  virtual absl::Span<const any_expression> set(T& object,
+                                               absl::Span<const any_expression> input) const = 0;
 
   // Copy underlying member into `output` vector.
-  virtual void get(const T& object, std::vector<scalar_expr>& output) const = 0;
+  virtual void get(const T& object, std::vector<any_expression>& output) const = 0;
 };
 
 // Implement `native_field_accessor_typed` by using a member-variable pointer.
@@ -80,9 +82,10 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
                                             U member_type) noexcept
       : member_ptr_(member_ptr), member_type_(std::move(member_type)) {}
 
-  absl::Span<const scalar_expr> set(StructType& object,
-                                    absl::Span<const scalar_expr> input) const override;
-  void get(const StructType& object, std::vector<scalar_expr>& output) const override;
+  absl::Span<const any_expression> set(StructType& object,
+                                       absl::Span<const any_expression> input) const override;
+
+  void get(const StructType& object, std::vector<any_expression>& output) const override;
 
  private:
   FieldType StructType::*member_ptr_;
@@ -144,8 +147,8 @@ class custom_type_builder {
 // Create type `T` by initializing all registered members of `T` with expressions.
 // The trimmed span (after consuming the right # of values from the front) is returned.
 template <typename T>
-std::tuple<T, absl::Span<const scalar_expr>> custom_type_from_expressions(
-    const custom_type& type, absl::Span<const scalar_expr> expressions) {
+std::tuple<T, absl::Span<const any_expression>> custom_type_from_expressions(
+    const custom_type& type, absl::Span<const any_expression> expressions) {
   T result{};
   for (const struct_field& field : type.fields()) {
     expressions =
@@ -156,12 +159,13 @@ std::tuple<T, absl::Span<const scalar_expr>> custom_type_from_expressions(
 
 // Copy all fields from object of type `T` into vector `output`.
 template <typename T>
-void copy_expressions_from_custom_type(const T& object, const custom_type& type,
-                                       std::vector<scalar_expr>& output) {
-  output.reserve(output.size() + type.size());
+compound_expr copy_expressions_from_custom_type(const T& object, const custom_type& type) {
+  std::vector<any_expression> output;
+  output.reserve(type.size());
   for (const struct_field& field : type.fields()) {
     field.native_accessor().as<native_field_accessor_typed<T>>().get(object, output);
   }
+  return custom_type_construction::create(type, std::move(output));
 }
 
 // `custom_type` wrapped with a template that marks which C++ type it corresponds to.
@@ -173,15 +177,15 @@ struct annotated_custom_type {
 
   // Create type `T` by initializing all registered members of `T` with expressions.
   // The trimmed span (after consuming the right # of values from the front) is returned.
-  std::tuple<T, absl::Span<const scalar_expr>> initialize_from_expressions(
-      const absl::Span<const scalar_expr> expressions) const {
+  std::tuple<T, absl::Span<const any_expression>> initialize_from_expressions(
+      const absl::Span<const any_expression> expressions) const {
     return custom_type_from_expressions<T>(type, expressions);
   }
 
   // Copy all fields from object of type `T` into vector `output`.
-  void copy_output_expressions(const T& object, std::vector<scalar_expr>& output) const {
-    copy_expressions_from_custom_type(object, type, output);
-  }
+  // void copy_output_expressions(const T& object, std::vector<any_expression>& output) const {
+  //   output.emplace_back(copy_expressions_from_custom_type(object, type));
+  // }
 
   // Access inner `custom_type` object.
   constexpr const custom_type& inner() const noexcept { return type; }
@@ -263,27 +267,12 @@ template <typename T>
 T create_function_input(const annotated_custom_type<T>& custom, const std::size_t arg_index) {
   static_assert(implements_custom_type_registrant_v<T>,
                 "Type must implement custom_type_registrant");
-  const std::vector<scalar_expr> expressions = create_expression_elements(
+  std::vector<scalar_expr> expressions = create_expression_elements(
       create_custom_type_argument(custom.inner(), arg_index), custom.inner().total_size());
-  auto [instance, _] =
-      custom.initialize_from_expressions(absl::Span<const scalar_expr>{expressions});
+  const std::vector<any_expression> any_expressions(std::make_move_iterator(expressions.begin()),
+                                                    std::make_move_iterator(expressions.end()));
+  auto [instance, _] = custom.initialize_from_expressions(any_expressions);
   return instance;
-}
-
-inline any_expression extract_function_output(const scalar_type&, const scalar_expr& value) {
-  return value;
-}
-
-inline any_expression extract_function_output(const matrix_type&, const matrix_expr& value) {
-  return value;
-}
-
-// Convert custom type `T` into `custom_type_construction`.
-template <typename T>
-any_expression extract_function_output(const annotated_custom_type<T>& custom, const T& instance) {
-  std::vector<scalar_expr> result;
-  custom.copy_output_expressions(instance, result);
-  return create_custom_type_construction(custom.inner(), std::move(result));
 }
 
 }  // namespace detail
@@ -311,19 +300,23 @@ custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T:
 }
 
 template <typename StructType, typename FieldType, typename U>
-absl::Span<const scalar_expr> native_field_accessor_member_ptr<StructType, FieldType, U>::set(
-    StructType& object, absl::Span<const scalar_expr> input) const {
-  if constexpr (std::is_same_v<U, scalar_type>) {
+absl::Span<const any_expression> native_field_accessor_member_ptr<StructType, FieldType, U>::set(
+    StructType& object, absl::Span<const any_expression> input) const {
+  if constexpr (type_list_contains_v<U, type_list<scalar_type, matrix_type>>) {
     WF_ASSERT(!input.empty());
-    object.*member_ptr_ = input.front();
+    using SimplifiedFieldType = std::conditional_t<
+        type_annotations::is_static_matrix_v<FieldType>, matrix_expr,
+        std::conditional_t<type_annotations::is_annotated_scalar_expr_v<FieldType>, scalar_expr,
+                           FieldType>>;
+    if (const SimplifiedFieldType* as_field_type = std::get_if<SimplifiedFieldType>(&input.front());
+        as_field_type != nullptr) {
+      object.*member_ptr_ = *as_field_type;
+    } else {
+      throw type_error("Provided expression has wrong type.");
+    }
     return input.subspan(1);
-  } else if constexpr (std::is_same_v<U, matrix_type>) {
-    const matrix_type& mat = member_type_;
-    WF_ASSERT_GE(input.size(), mat.size());
-    const auto begin = input.begin();
-    object.*member_ptr_ = matrix_expr::create(mat.rows(), mat.cols(), begin, begin + mat.size());
-    return input.subspan(mat.size());
   } else {
+    // compound_expr/custom_type
     auto [instance, output_span] = member_type_.initialize_from_expressions(input);
     object.*member_ptr_ = std::move(instance);
     return output_span;
@@ -332,15 +325,15 @@ absl::Span<const scalar_expr> native_field_accessor_member_ptr<StructType, Field
 
 template <typename StructType, typename FieldType, typename U>
 void native_field_accessor_member_ptr<StructType, FieldType, U>::get(
-    const StructType& object, std::vector<scalar_expr>& output) const {
-  if constexpr (std::is_same_v<U, scalar_type>) {
+    const StructType& object, std::vector<any_expression>& output) const {
+  if constexpr (std::is_constructible_v<any_expression, FieldType>) {
+    // scalar_expr, boolean_expr, matrix_expr
     output.push_back(object.*member_ptr_);
-  } else if constexpr (std::is_same_v<U, matrix_type>) {
-    const matrix& mat = static_cast<const matrix_expr&>(object.*member_ptr_).as_matrix();
-    output.insert(output.end(), mat.begin(), mat.end());
   } else {
     // annotated_custom_type
-    member_type_.copy_output_expressions(object.*member_ptr_, output);
+    const custom_type& member_type = member_type_.inner();
+    output.emplace_back(copy_expressions_from_custom_type(object, member_type));
+    // member_type_.copy_output_expressions(object.*member_ptr_, output);
   }
 }
 
