@@ -48,9 +48,7 @@ class declare_external_function {
             captured_args.emplace_back(scalar_expr{arg});
           } else if constexpr (implements_custom_type_registrant_v<T>) {
             // This was directly constructed - capture all the expressions on the custom type.
-            auto compound = custom_type_construction::create(
-                arg_type.inner(), detail::extract_function_output(arg_type, arg));
-            captured_args.push_back(std::move(compound));
+            captured_args.push_back(detail::extract_function_output(arg_type, arg));
           } else {
             WF_ASSERT_ALWAYS("Unsupported argument type: {}", typeid(T).name());
           }

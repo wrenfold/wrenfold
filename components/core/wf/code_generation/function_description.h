@@ -93,10 +93,11 @@ class function_description {
     return impl_->return_value_type;
   }
 
-  // Get the vector of all output expressions, grouped by argument.
-  const std::vector<expression_group>& output_expressions() const noexcept {
-    return impl_->output_expressions;
-  }
+  // Retrieve output expressions for the given key.
+  const any_expression& find_output_expressions(const output_key& key) const;
+
+  // Retrieve all output expressions.
+  const auto& output_expressions() const noexcept { return impl_->output_expressions; }
 
   // Add an input argument to the function.
   // Returns the argument that the python side should pass to the user method.
@@ -107,24 +108,24 @@ class function_description {
 
   // Record an output.
   void add_output_argument(std::string_view name, type_variant type, bool is_optional,
-                           std::vector<scalar_expr> expressions);
+                           any_expression expression);
 
   // Set the return value. Only one return value is presently supported, so this may only be invoked
   // once.
-  void set_return_value(type_variant type, std::vector<scalar_expr> expressions);
+  void set_return_value(type_variant type, any_expression expression);
 
   // Add a `return_value` to this signature.
   template <typename Value, typename Type>
   void add_output_value(const return_value<Value>& value, Type type) {
-    std::vector<scalar_expr> expressions = detail::extract_function_output(type, value.value());
-    set_return_value(std::move(type), std::move(expressions));
+    any_expression expression = detail::extract_function_output(type, value.value());
+    set_return_value(std::move(type), std::move(expression));
   }
 
   // Add an `output_arg` output to this function.
   template <typename Value, typename Type>
   void add_output_value(const output_arg<Value>& value, Type type) {
-    std::vector<scalar_expr> expressions = detail::extract_function_output(type, value.value());
-    add_output_argument(value.name(), std::move(type), value.is_optional(), std::move(expressions));
+    any_expression expression = detail::extract_function_output(type, value.value());
+    add_output_argument(value.name(), std::move(type), value.is_optional(), std::move(expression));
   }
 
  private:
@@ -135,7 +136,9 @@ class function_description {
     std::string name;
     std::vector<argument> arguments{};
     std::optional<type_variant> return_value_type{};
-    std::vector<expression_group> output_expressions{};
+
+    // Map from: output (type, name) --> <expression values>
+    std::unordered_map<output_key, any_expression, hash_struct<output_key>> output_expressions{};
 
     explicit impl(std::string&& name) noexcept : name(std::move(name)) {}
   };

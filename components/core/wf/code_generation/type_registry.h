@@ -7,6 +7,7 @@
 #include <typeindex>
 #include <unordered_map>
 
+#include "wf/any_expression.h"
 #include "wf/code_generation/types.h"
 #include "wf/expressions/matrix.h"
 #include "wf/output_annotations.h"
@@ -258,20 +259,20 @@ T create_function_input(const annotated_custom_type<T>& custom, const std::size_
   return instance;
 }
 
-// Copy output from scalar expression into a vector.
-std::vector<scalar_expr> extract_function_output(const scalar_type& scalar,
-                                                 const scalar_expr& value);
+inline any_expression extract_function_output(const scalar_type&, const scalar_expr& value) {
+  return value;
+}
 
-// Copy output from matrix expression into a vector.
-std::vector<scalar_expr> extract_function_output(const matrix_type& mat, const matrix_expr& value);
+inline any_expression extract_function_output(const matrix_type&, const matrix_expr& value) {
+  return value;
+}
 
-// Copy output from a custom struct into a vector.
+// Convert custom type `T` into `custom_type_construction`.
 template <typename T>
-std::vector<scalar_expr> extract_function_output(const annotated_custom_type<T>& custom,
-                                                 const T& instance) {
+any_expression extract_function_output(const annotated_custom_type<T>& custom, const T& instance) {
   std::vector<scalar_expr> result;
   custom.copy_output_expressions(instance, result);
-  return result;
+  return create_custom_type_construction(custom.inner(), std::move(result));
 }
 
 }  // namespace detail

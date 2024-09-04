@@ -26,13 +26,4 @@ matrix_expr create_function_input(const matrix_type& mat, const std::size_t arg_
   return matrix_expr::create(mat.rows(), mat.cols(), create_function_args(arg_index, mat.size()));
 }
 
-// TODO: The numeric type information needs to be propagate to the IR here.
-std::vector<scalar_expr> extract_function_output(const scalar_type&, const scalar_expr& value) {
-  return std::vector(1, value);
-}
-
-std::vector<scalar_expr> extract_function_output(const matrix_type&, const matrix_expr& value) {
-  return value.to_vector();
-}
-
 }  // namespace wf::detail

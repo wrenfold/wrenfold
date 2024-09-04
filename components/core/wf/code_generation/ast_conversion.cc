@@ -52,7 +52,7 @@ struct type_constructor {
   ast::construct_matrix operator()(const matrix_type& mat) {
     WF_ASSERT_LE(index_ + mat.size(), contents_.size());
 
-    std::vector<ast::ast_element> matrix_args{};
+    std::vector<ast::ast_element> matrix_args;
     matrix_args.reserve(mat.size());
     std::copy_n(std::make_move_iterator(contents_.begin()) + index_, mat.size(),
                 std::back_inserter(matrix_args));
@@ -113,33 +113,31 @@ void ast_form_visitor::push_back_output_operations(const ir::const_block_ptr blo
     if (!value->is_op<ir::save>()) {
       continue;
     }
+    WF_ASSERT_EQ(1, value->num_operands());
+
     const ir::save& save = value->as_op<ir::save>();
     const output_key& key = save.key();
-    type_constructor constructor{transform_operands(*value, std::nullopt)};
+    auto converted_value = visit_operation_argument(value->first_operand(), std::nullopt);
 
     if (key.usage == expression_usage::return_value) {
       WF_ASSERT(block->has_no_descendants(), "Must be the final block");
-      WF_ASSERT(signature_.return_type().has_value(), "Return type must be specified");
-      ast::ast_element var =
-          std::visit([&](const auto& x) { return ast::ast_element(constructor(x)); },
-                     *signature_.return_type());
-      emplace_operation<ast::return_object>(std::move(var));
+      emplace_operation<ast::return_object>(std::move(converted_value));
     } else {
       auto arg = signature_.argument_by_name(key.name);
       WF_ASSERT(arg.has_value(), "Argument missing from signature: {}", key.name);
 
       overloaded_visit(
           arg->type(),
-          [&](const scalar_type scalar) {
-            // TODO: Make variant_ptr a proper type so we can put the pointer allocation
-            // internally.
-            emplace_operation<ast::assign_output_scalar>(*arg, constructor(scalar));
+          [&](const scalar_type) {
+            emplace_operation<ast::assign_output_scalar>(*arg, std::move(converted_value));
           },
-          [&](const matrix_type& mat) {
-            emplace_operation<ast::assign_output_matrix>(*arg, constructor(mat));
+          [&](const matrix_type&) {
+            emplace_operation<ast::assign_output_matrix>(
+                *arg, *get_if<construct_matrix>(converted_value));
           },
-          [&](const custom_type& custom) {
-            emplace_operation<ast::assign_output_struct>(*arg, constructor(custom));
+          [&](const custom_type&) {
+            emplace_operation<ast::assign_output_struct>(
+                *arg, *get_if<construct_custom_type>(converted_value));
           });
     }
   }

@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "wf/any_expression.h"
 #include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/expression.h"
@@ -13,9 +14,7 @@ namespace wf {
 
 struct rebuilt_expressions {
   // Map from function output to a vector of scalar expressions.
-  // TODO: This should probably be generalized to store `any_expression`.
-  std::unordered_map<output_key, std::vector<scalar_expr>, hash_struct<output_key>>
-      output_expressions{};
+  std::unordered_map<output_key, any_expression, hash_struct<output_key>> output_expressions{};
 
   // Intermediate values used in the computation of the output.
   // Stores tuples of (variable name, expression).
