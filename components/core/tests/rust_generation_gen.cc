@@ -22,6 +22,9 @@ class custom_rust_code_generator final : public rust_code_generator {
     if (custom.is_native_type<wf::symbolic::Circle>()) {
       return "crate::types::Circle";
     }
+    if (custom.is_native_type<wf::symbolic::MixedNumerics>()) {
+      return "crate::types::MixedNumerics";
+    }
     return rust_code_generator::operator()(custom);
   }
 

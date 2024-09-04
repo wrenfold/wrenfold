@@ -50,7 +50,7 @@ class non_null {
     WF_ASSERT(ptr_ != nullptr, "Cannot be constructed null");
   }
 
-  // Construct from a other `non_null` type that is convertible.
+  // Construct from another `non_null` type that is convertible.
   // We don't check here, because the constructor of `non_null<U>` already checked.
   template <typename U, typename = enable_if_convertible_t<U>>
   constexpr non_null(non_null<U> ptr) noexcept(std::is_nothrow_constructible_v<T, U&&>)  // NOLINT
@@ -174,8 +174,8 @@ class maybe_null {
     return ptr_;
   }
 
-  // Access the underlying object safely. Throws if the underlying ptr is null. Hence this is always
-  // noexcept(false), because we check at runtime for a valid access.
+  // Access the underlying object safely. Throws if the underlying ptr is null. Hence, this is
+  // always noexcept(false), because we check at runtime for a valid access.
   detail::value_or_reference_return_t<T> get() const noexcept(false) {
     WF_ASSERT(has_value(), "Accessing maybe_null that is null. T = {}", typeid(T).name());
     return ptr_;

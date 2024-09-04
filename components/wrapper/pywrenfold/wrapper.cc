@@ -83,15 +83,15 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
       m.def_submodule(PY_SUBMODULE_NAME_EXPRESSIONS, "Wrapped concrete expressions.");
   wrap_expressions(m_expressions);
 
-  auto m_sympy_conversion =
-      m.def_submodule(PY_SUBMODULE_NAME_SYMPY_CONVERSION, "Wrapped sympy conversion methods.");
-  wrap_sympy_conversion(m_sympy_conversion);
-
   auto m_geo = m.def_submodule(PY_SUBMODULE_NAME_GEOMETRY, "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);
 
   auto m_types = m.def_submodule(PY_SUBMODULE_NAME_TYPE_INFO, "Wrapped code-generation types.");
   wrap_types(m_types);
+
+  auto m_sympy_conversion =
+      m.def_submodule(PY_SUBMODULE_NAME_SYMPY_CONVERSION, "Wrapped sympy conversion methods.");
+  wrap_sympy_conversion(m_sympy_conversion);
 
   // We need to wrap `Argument` and `ArgumentDirection` first so they are available for `ast`.
   auto m_gen = m.def_submodule(PY_SUBMODULE_NAME_GEN, "Wrapped code-generation methods.");

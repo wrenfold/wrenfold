@@ -7,7 +7,7 @@ import typing as T
 
 from pywrenfold.sympy_conversion import function_argument_variable, to_sympy
 
-from . import sym
+from . import sym, type_info
 
 
 class Conversions:
@@ -114,8 +114,13 @@ class Conversions:
             kwargs.update(complex=True)
 
         if expr.name.startswith('$arg_'):
+            if expr.is_integer:
+                numeric_type = type_info.NumericType.Integer
+            else:
+                assert expr.is_real, f"Function argument variables must be floats: {expr}"
+                numeric_type = type_info.NumericType.Float
             arg_index, element_index = [int(x) for x in expr.name.lstrip('$arg_').split('_')]
-            return function_argument_variable(arg_index, element_index)
+            return function_argument_variable(arg_index, element_index, type=numeric_type)
 
         return sym.symbols(expr.name, **kwargs)
 

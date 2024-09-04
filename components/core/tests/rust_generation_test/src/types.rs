@@ -40,3 +40,9 @@ impl Circle {
         nalgebra::Vector3::new(self.center.x, self.center.y, self.radius)
     }
 }
+
+#[derive(Debug, Copy, Clone)]
+pub struct MixedNumerics {
+    pub value: f64,
+    pub mode: i64,
+}

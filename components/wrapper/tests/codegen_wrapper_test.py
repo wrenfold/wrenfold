@@ -55,10 +55,10 @@ class OpaqueType(Opaque):
 
 
 external_func = external_functions.declare_external_function(
-    "external_func", arguments=[('foo', OpaqueType), ('bar', sym.Expr)], return_type=sym.Expr)
+    "external_func", arguments=[('foo', OpaqueType), ('bar', FloatScalar)], return_type=FloatScalar)
 
 
-def opaque_type_func(u: OpaqueType, x: sym.Expr, y: sym.Expr):
+def opaque_type_func(u: OpaqueType, x: FloatScalar, y: FloatScalar):
     """Use an opaque type as an argument to a generated function."""
     f = external_func(u, x * y + 3)
     return f + sym.cos(x * y)
@@ -257,6 +257,23 @@ class CodeGenerationWrapperTest(MathTestBase):
         self.assertEqual(NestedType3, ctype.python_type)
         self.assertEqual(5, ctype.total_size)
         self._run_generators(definition)
+
+    def test_boolean_args_disallowed(self):
+        """Test that boolean arguments are disallowed."""
+
+        class Boolean(sym.Expr):
+            # This is illegal.
+            NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Bool
+
+        def boolean_arg_func(x: Boolean, y: FloatScalar):
+            return [
+                code_generation.ReturnValue(5 + y * x),
+                code_generation.OutputArg(x, name="x_out")
+            ]
+
+        self.assertRaises(
+            TypeError, lambda: code_generation.generate_function(
+                func=boolean_arg_func, generator=code_generation.RustGenerator()))
 
 
 if __name__ == '__main__':

@@ -53,7 +53,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(
             sym.symbols('z', real=True),
             expressions.Variable('z', number_set=enumerations.NumberSet.Real).to_expression())
-        self.assertSequenceEqual(
+        self.assertCountEqual(
             [expressions.Variable('y'), expressions.Variable('x')],
             sym.get_variables(x + y * x - sym.cos(y)))
 
@@ -461,7 +461,8 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(0, f1.diff(z))
 
         f2 = f(sym.sin(x), x ** 2).diff(x)
-        u1, u2 = [v.to_expression() for v in sym.get_variables(f2) if v.is_unique_variable]
+        u1, u2 = sorted([v.to_expression() for v in sym.get_variables(f2) if v.is_unique_variable],
+                        key=functools.cmp_to_key(sym.compare))
 
         self.assertIdentical(
             sym.cos(x) * sym.substitution(f(u1, x ** 2).diff(u1), u1, sym.sin(x)) + \

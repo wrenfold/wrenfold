@@ -130,7 +130,7 @@ class custom_type {
               underlying_type_variant underlying_type);
 
   // Access a field by name. May return nullptr if the field does not exist.
-  const struct_field* field_by_name(std::string_view name) const noexcept;
+  maybe_null<const struct_field*> field_by_name(std::string_view name) const noexcept;
 
   // Check if underlying address matches.
   bool has_same_address(const custom_type& other) const noexcept { return impl_ == other.impl_; }
@@ -142,14 +142,14 @@ class custom_type {
   const auto& fields() const noexcept { return impl_->fields; }
 
   // Access the underlying type variant.
-  const auto& underlying_type() const noexcept { return impl_->underying_type; }
+  const auto& underlying_type() const noexcept { return impl_->underlying_type; }
 
   // Hash of this object.
   std::size_t hash() const noexcept { return impl_->hash; }
 
   // Access the erased py::type.
   maybe_null<const erased_pytype*> underlying_pytype() const noexcept {
-    return std::get_if<erased_pytype>(&impl_->underying_type);
+    return std::get_if<erased_pytype>(&impl_->underlying_type);
   }
 
   // Number of fields.
@@ -161,7 +161,7 @@ class custom_type {
   // Check if the underlying native type is C++ type `T`.
   template <typename T>
   bool is_native_type() const noexcept {
-    if (const std::type_index* type_index = std::get_if<std::type_index>(&impl_->underying_type);
+    if (const std::type_index* type_index = std::get_if<std::type_index>(&impl_->underlying_type);
         type_index != nullptr) {
       return *type_index == typeid(T);
     }
@@ -177,7 +177,7 @@ class custom_type {
     std::vector<struct_field> fields;
     // Either the type_index of the C++ type, or a unique pointer to an object that stores
     // a strong reference to the `py::type` that represents this type in python.
-    underlying_type_variant underying_type;
+    underlying_type_variant underlying_type;
     // Cached hash of this object.
     std::size_t hash;
   };
@@ -325,7 +325,8 @@ void iterate_custom_type_fields(const custom_type& type, F&& f) {
 // Represent the operation of reading a field on a custom type.
 class field_access {
  public:
-  // Construct with strong ptr of the custom type we are accessing. Asserts that `type` is non-null.
+  // Construct with strong ptr of the custom type we are accessing. Asserts that `name` is
+  // non-empty.
   field_access(custom_type type, std::string name);
 
   // The underlying type we are accessing a member on.
@@ -333,6 +334,9 @@ class field_access {
 
   // Underlying field name.
   constexpr const std::string& field_name() const noexcept { return field_name_; }
+
+  // Retrieve the underlying `struct_field`. non_null because the field must exist.
+  non_null<const struct_field*> get_field() const { return type_.field_by_name(field_name_).get(); }
 
  private:
   custom_type type_;

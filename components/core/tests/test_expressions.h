@@ -231,7 +231,7 @@ inline auto external_function_call_4(scalar_expr a, scalar_expr b) {
   return where(abs(p.x) > abs(p.y), p.x, p.y);
 }
 
-// A external function that accepts a nested custom type.
+// An external function that accepts a nested custom type.
 struct external_function_5
     : declare_external_function<external_function_5, scalar_expr,
                                 type_list<symbolic::Circle, symbolic::Circle>> {
@@ -250,6 +250,45 @@ inline auto external_function_call_6(scalar_expr x, scalar_expr y) {
   symbolic::Point2d p1{a, b};
   symbolic::Point2d p2 = external_function_4::call(p1);
   return external_function_4::call(p2);
+}
+
+// Accept an integer argument for `x`.
+inline auto integer_argument_1(ta::int_scalar_expr x, scalar_expr y) { return x * y; }
+
+// Return an integer value.
+inline auto integer_output_values_1(ta::int_scalar_expr x, scalar_expr y) {
+  return std::make_tuple(return_value(ta::int_scalar_expr(x * y)),
+                         output_arg<ta::int_scalar_expr>("baz", x - y));
+}
+
+namespace symbolic {
+// A custom type with variables of different numeric types.
+struct MixedNumerics {
+  scalar_expr value{0};
+  ta::int_scalar_expr mode{0};
+};
+}  // namespace symbolic
+
+template <>
+struct custom_type_registrant<symbolic::MixedNumerics> {
+  custom_type_builder<symbolic::MixedNumerics> operator()(custom_type_registry& registry) const {
+    return custom_type_builder<symbolic::MixedNumerics>(registry, "MixedNumerics")
+        .add_field("value", &symbolic::MixedNumerics::value)
+        .add_field("mode", &symbolic::MixedNumerics::mode);
+  }
+};
+
+// Accept a struct that uses an integer type.
+inline auto integer_struct_member_1(symbolic::MixedNumerics inputs, scalar_expr scale) {
+  return where(abs(inputs.mode) == 1, cos(inputs.value * scale), sin(inputs.value) * inputs.mode);
+}
+
+// Return a struct that uses an integer type.
+inline auto integer_struct_member_2(scalar_expr x, scalar_expr y) {
+  symbolic::MixedNumerics out{};
+  out.mode = x * y;
+  out.value = x - y;
+  return out;
 }
 
 }  // namespace wf

@@ -57,15 +57,14 @@ custom_type::custom_type(std::string name, std::vector<struct_field> fields,
   assert_field_names_are_unique(impl_->fields);
 }
 
-// TODO: Define a nullable_ptr and use it here?
-const struct_field* custom_type::field_by_name(std::string_view name) const noexcept {
+maybe_null<const struct_field*> custom_type::field_by_name(std::string_view name) const noexcept {
   // fields_ will typically be pretty small, so just do a linear search:
   const auto it = std::find_if(impl_->fields.begin(), impl_->fields.end(),
                                [&name](const struct_field& f) { return f.name() == name; });
   if (it == impl_->fields.end()) {
     return nullptr;
   }
-  return &(*it);
+  return &*it;
 }
 
 struct count_custom_type_size {

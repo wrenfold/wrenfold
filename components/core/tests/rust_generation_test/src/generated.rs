@@ -941,4 +941,75 @@ pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
   crate::external_functions::external_function_4(&crate::external_functions::external_function_4(&crate::types::Point2d::new(v005, v012)))
 }
 
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn integer_argument_1<>(x: i64, y: f64) -> f64
+{
+  // Operation counts:
+  // multiply: 1
+  // total: 1
+  
+  let v00: i64 = x;
+  let v01: f64 = y;
+  v01 * (v00) as f64
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn integer_output_values_1<>(x: i64, y: f64, baz: &mut i64) -> i64
+{
+  // Operation counts:
+  // add: 1
+  // multiply: 1
+  // negate: 1
+  // total: 3
+  
+  let v002: f64 = y;
+  let v000: i64 = x;
+  let v005: f64 = (v000) as f64;
+  *baz = (v005 + -v002) as i64;
+  (v002 * v005) as i64
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn integer_struct_member_1<>(inputs: &crate::types::MixedNumerics, scale: f64) -> f64
+{
+  // Operation counts:
+  // branch: 1
+  // call: 2
+  // compare: 1
+  // multiply: 1
+  // total: 5
+  
+  let v002: i64 = inputs.mode;
+  let v006: f64 = inputs.value;
+  let v012: f64;
+  if (1i64) == ((v002).abs()) {
+    let v005: f64 = scale;
+    v012 = (v005 * v006).cos();
+  } else {
+    v012 = (v006).sin() * (v002) as f64;
+  }
+  v012
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables)]
+pub fn integer_struct_member_2<>(x: f64, y: f64) -> crate::types::MixedNumerics
+{
+  // Operation counts:
+  // add: 1
+  // multiply: 1
+  // negate: 1
+  // total: 3
+  
+  let v002: f64 = y;
+  let v000: f64 = x;
+  crate::types::MixedNumerics {
+    value: v000 + -v002,
+    mode: (v000 * v002) as i64
+  }
+}
+
 

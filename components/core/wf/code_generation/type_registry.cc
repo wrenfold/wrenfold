@@ -7,9 +7,8 @@
 
 namespace wf::detail {
 
-// TODO: Pass the numeric type information here.
-scalar_expr create_function_input(const scalar_type&, const std::size_t arg_index) {
-  return variable::create_function_argument(arg_index, 0);
+scalar_expr create_function_input(const scalar_type& scalar, const std::size_t arg_index) {
+  return variable::create_function_argument(arg_index, 0, scalar.numeric_type());
 }
 
 static std::vector<scalar_expr> create_function_args(const std::size_t arg_index,
@@ -17,7 +16,8 @@ static std::vector<scalar_expr> create_function_args(const std::size_t arg_index
   std::vector<scalar_expr> expressions{};
   expressions.reserve(size);
   for (const std::size_t index : make_range(size)) {
-    expressions.push_back(variable::create_function_argument(arg_index, index));
+    expressions.push_back(variable::create_function_argument(
+        arg_index, index, numeric_primitive_type::floating_point));
   }
   return expressions;
 }

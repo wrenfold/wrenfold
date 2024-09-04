@@ -9,8 +9,8 @@ from wrenfold.external_functions import declare_external_function
 @dataclasses.dataclass
 class StructType:
     """A minimal custom type we will return from an external function."""
-    x: sym.Expr
-    y: sym.Expr
+    x: type_annotations.FloatScalar
+    y: type_annotations.FloatScalar
 
 
 class VectorOfStructs(type_annotations.Opaque):
@@ -29,7 +29,7 @@ class VectorOfStructs(type_annotations.Opaque):
 
 vector_interpolate_access = declare_external_function(
     name="interpolate_access",
-    arguments=[("vec", VectorOfStructs), ("x", sym.Expr)],
+    arguments=[("vec", VectorOfStructs), ("x", type_annotations.FloatScalar)],
     return_type=StructType)
 
 

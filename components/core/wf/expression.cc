@@ -211,8 +211,8 @@ struct precedence_visitor {
 
 precedence get_precedence(const scalar_expr& expr) { return visit(expr, precedence_visitor{}); }
 
-scalar_expr make_unique_variable_symbol(number_set set) {
-  return make_expr<variable>(unique_variable(), set);
+scalar_expr make_unique_variable_symbol(const number_set set) {
+  return make_expr<variable>(unique_variable(set));
 }
 
 }  // namespace wf

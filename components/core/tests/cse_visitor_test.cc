@@ -67,12 +67,13 @@ TEST(CseVisitorTest, Test2) {
 TEST(CseVisitorTest, Test3) {
   const auto [x, y, z] = make_symbols("x", "y", "z");
 
-  const scalar_expr f = (x * y + abs(z)) + cos(z / 2) / log(x * y) - pow(cos(z / 2), abs(z)) -
+  const scalar_expr f = x * y + abs(z) + cos(z / 2) / log(x * y) - pow(cos(z / 2), abs(z)) -
                         abs(cos(z / 2)) * pow(abs(z), z / 2) - sin(z / 2);
 
-  // Replace only things occuring three times or more:
+  // Replace only things occurring three times or more:
   const auto [output, replacements] = eliminate_subexpressions(f, make_var, 3);
-  check_replacements({cos(make_var(1)), abs(z), z / 2}, replacements);
+
+  check_replacements({cos(make_var(0)), abs(z), z / 2}, replacements);
   ASSERT_IDENTICAL(f, apply_substitutions(output, replacements));
 }
 

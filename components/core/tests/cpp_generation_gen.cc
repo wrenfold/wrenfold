@@ -27,6 +27,9 @@ class custom_cpp_code_generator final : public cpp_code_generator {
     if (custom.is_native_type<symbolic::Circle>()) {
       return "wf::numeric::Circle";
     }
+    if (custom.is_native_type<symbolic::MixedNumerics>()) {
+      return "wf::numeric::MixedNumerics";
+    }
     return cpp_code_generator::operator()(custom);
   }
 
