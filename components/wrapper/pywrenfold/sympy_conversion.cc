@@ -184,9 +184,9 @@ class sympy_conversion_visitor {
     return invoke_sympy_object("UnevaluatedExpr", *convert_to_args(p));
   }
 
-  py::object operator()(const variable& var) const {
+  static py::dict get_variable_kwargs(const number_set set) {
     py::dict kwargs{};
-    switch (var.set()) {
+    switch (set) {
       case number_set::real_positive: {
         kwargs["positive"] = true;
       } break;
@@ -202,12 +202,26 @@ class sympy_conversion_visitor {
       case number_set::unknown:
         break;
     }
+    return kwargs;
+  }
+
+  py::object operator()(const variable& var) const {
     return overloaded_visit(
         var.identifier(),
-        [&](const named_variable& v) { return invoke_sympy_object("symbols", v.name(), **kwargs); },
+        [&](const named_variable& v) {
+          const py::dict kwargs = get_variable_kwargs(v.set());
+          return invoke_sympy_object("symbols", v.name(), **kwargs);
+        },
         [&](const function_argument_variable& v) {
-          // Commas are not valid here, because sympy interprets them as separators between
-          // variables.
+          py::dict kwargs;
+          if (v.primitive_type() == numeric_primitive_type::floating_point) {
+            kwargs["real"] = true;
+          } else if (v.primitive_type() == numeric_primitive_type::integral) {
+            kwargs["integer"] = true;
+          } else {
+            throw invalid_argument_error("Cannot convert boolean variable `$arg_{}_{}` to SymPy.",
+                                         v.arg_index(), v.element_index());
+          }
           return invoke_sympy_object(
               "symbols", fmt::format("$arg_{}_{}", v.arg_index(), v.element_index()), **kwargs);
         },

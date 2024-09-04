@@ -36,6 +36,9 @@ class SympyConversionTest(MathTestBase):
         self.assertEqualSp(
             sp.symbols('$arg_2_3', real=True),
             sympy_conversion.function_argument_variable(2, 3, type_info.NumericType.Float))
+        self.assertEqualSp(
+            sp.symbols('$arg_2_4', integer=True),
+            sympy_conversion.function_argument_variable(2, 4, type_info.NumericType.Integer))
 
         # sympy --> wf
         self.assertIdenticalFromSp(sym.symbols('x'), sp.symbols('x'))
@@ -47,6 +50,9 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(
             sympy_conversion.function_argument_variable(2, 3, type_info.NumericType.Float),
             sp.symbols('$arg_2_3', real=True))
+        self.assertIdenticalFromSp(
+            sympy_conversion.function_argument_variable(3, 4, type_info.NumericType.Integer),
+            sp.symbols('$arg_3_4', integer=True))
 
     def test_numeric_constants(self):
         self.assertEqualSp(sp.Integer(0), sym.zero)

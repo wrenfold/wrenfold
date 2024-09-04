@@ -25,6 +25,10 @@ def convert_to_internal_type(
         if numeric_type is None:
             raise TypeError(
                 f"Argument annotation {python_type} lacks the NUMERIC_PRIMITIVE_TYPE property")
+        if numeric_type == type_info.NumericType.Bool:
+            raise TypeError(
+                "Boolean arguments and fields are not supported yet. https://github.com/wrenfold/wrenfold/issues/163"
+            )
         return type_info.ScalarType(numeric_type=numeric_type)
     elif issubclass(python_type, sym.MatrixExpr):
         shape = _get_matrix_shape(matrix_type=python_type)

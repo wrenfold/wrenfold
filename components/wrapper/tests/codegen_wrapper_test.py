@@ -258,6 +258,23 @@ class CodeGenerationWrapperTest(MathTestBase):
         self.assertEqual(5, ctype.total_size)
         self._run_generators(definition)
 
+    def test_boolean_args_disallowed(self):
+        """Test that boolean arguments are disallowed."""
+
+        class Boolean(sym.Expr):
+            # This is illegal.
+            NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Bool
+
+        def boolean_arg_func(x: Boolean, y: FloatScalar):
+            return [
+                code_generation.ReturnValue(5 + y * x),
+                code_generation.OutputArg(x, name="x_out")
+            ]
+
+        self.assertRaises(
+            TypeError, lambda: code_generation.generate_function(
+                func=boolean_arg_func, generator=code_generation.RustGenerator()))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
