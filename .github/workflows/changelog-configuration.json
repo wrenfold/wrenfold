@@ -7,6 +7,14 @@
       {
         "title": "## 🐛 Fixes",
         "labels": ["bug"]
+      },
+      {
+        "title": "## 📚 Documentation",
+        "labels": ["documentation"]
+      },
+      {
+        "title": "## 🧹 Cleanup",
+        "labels": ["cleanup"]
       }
     ]
 }
