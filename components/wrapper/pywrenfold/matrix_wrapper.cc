@@ -285,7 +285,10 @@ py::list flat_list_from_matrix(const matrix_expr& self) {
 }
 
 // Convert matrix to numpy array.
-py::array numpy_from_matrix(const matrix_expr& self) {
+// We need `kwargs` here because numpy might pass copy=True. This argument doesn't matter to us,
+// because we never copy expressions. But we need to be able to accept the argument for pybind to do
+// method resolution.
+py::array numpy_from_matrix(const matrix_expr& self, const py::kwargs&) {
   auto list = py::list();  // TODO: Don't copy into list.
   for (const scalar_expr& expr : self.as_matrix()) {
     list.append(maybe_numerical_cast(expr));
@@ -367,7 +370,7 @@ void wrap_matrix_operations(py::module_& m) {
           "eval",
           [](const matrix_expr& self) {
             const matrix_expr eval = self.eval();
-            return numpy_from_matrix(eval);
+            return numpy_from_matrix(eval, py::kwargs());
           },
           "Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a "
           "numpy array containing the resulting values.")
