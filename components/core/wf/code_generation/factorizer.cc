@@ -121,7 +121,7 @@ inline std::tuple<factor_bits, factor_bits> find_jointly_factorizable_variables(
     return std::make_tuple(factor_bits(), suitable_terms);
   }
 
-  // Identify all the variables that also appear in the varibles indicated by `suitable_terms`:
+  // Identify all the variables that also appear in the variables indicated by `suitable_terms`:
   factor_bits suitable_vars = remaining_vars;
   for (std::size_t i = 0; i < table.num_terms(); ++i) {
     if (suitable_terms[i]) {
@@ -168,7 +168,7 @@ inline auto rank_factorization_steps(const factors_table& table, const factor_bi
         [](const scored_factorization_step& step, const std::size_t s) { return step.score > s; });
 
     if (it != ranked.end() && std::get<0>(it->step) == factored_vars) {
-      // Aready have one with the same set of factored variables - don't add another.
+      // Already have one with the same set of factored variables - don't add another.
       // This can occur if two variables always occur together.
       continue;
     }

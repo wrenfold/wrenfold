@@ -36,7 +36,7 @@ class static_vector {
 
   constexpr size_type size() const noexcept { return size_; }
 
-  // True if the are no elements.
+  // True if there are no elements.
   constexpr bool empty() const noexcept { return size_ == 0; }
 
   // Max capacity of the static vector.

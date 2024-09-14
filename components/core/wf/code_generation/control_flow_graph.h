@@ -4,7 +4,6 @@
 #pragma once
 #include <vector>
 
-#include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/operation_counts.h"
 #include "wf/enumerations.h"
@@ -105,8 +104,8 @@ class control_flow_graph {
 
   // Where duplicate sub-expressions can be found, break additions and multiplications into smaller
   // binary additions and multiplications. Common terms are extracted into temporaries.
-  template <typename OpType>
   void binarize_operations(ir::block_ptr block);
+  void binarize_operations_of_type(ir::block_ptr block, bool multiplications);
 
   ir::value_ptr factorize_sum_of_products(const class variable_index_assignor& index_assignor,
                                           const class factorization& fac, ir::block_ptr block,

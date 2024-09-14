@@ -358,7 +358,7 @@ TEST(IrTest, TestFactorization3) {
   };
   auto [expected_expressions, ir] = create_ir(+func, "func", arg("v"));
 
-  EXPECT_EQ(20, ir.num_operations()) << ir;
+  EXPECT_EQ(21, ir.num_operations()) << ir;
   check_expressions(expected_expressions, ir, false);
 
   auto [_, ir_factorized_one_pass] =
@@ -444,12 +444,12 @@ TEST(IrTest, TestFactorization6) {
   };
   auto [expected_expressions, ir] = create_ir(+func, "func", arg("v"));
 
-  EXPECT_EQ(154, ir.count_multiplications()) << ir;
+  EXPECT_EQ(146, ir.count_multiplications()) << ir;
   check_expressions(expected_expressions, ir, false);
 
   for (const auto& [passes, num_ops] :
-       {std::make_tuple(1, 100), std::make_tuple(2, 69), std::make_tuple(3, 57),
-        std::make_tuple(4, 46), std::make_tuple(5, 38)}) {
+       {std::make_tuple(1, 103), std::make_tuple(2, 71), std::make_tuple(3, 56),
+        std::make_tuple(4, 46), std::make_tuple(5, 37)}) {
     auto [_, ir_factorized] = create_ir_with_params(
         +func, optimization_params{static_cast<std::size_t>(passes), true}, "func", arg("v"));
 
@@ -720,14 +720,14 @@ TEST(IrTest, TestCreateRotationMatrix) {
   };
   auto [expected_expressions, ir] = create_ir(+func, "func", arg("w"));
 
-  EXPECT_EQ(223, ir.num_operations()) << ir;
-  EXPECT_EQ(134, ir.count_multiplications()) << ir;
+  EXPECT_EQ(240, ir.num_operations()) << ir;
+  EXPECT_EQ(157, ir.count_multiplications()) << ir;
   EXPECT_EQ(82, ir.count_additions()) << ir;
   EXPECT_EQ(13, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  EXPECT_EQ(224, output_ir.num_operations()) << output_ir;
+  EXPECT_EQ(241, output_ir.num_operations()) << output_ir;
   EXPECT_EQ(3, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 
@@ -735,7 +735,7 @@ TEST(IrTest, TestCreateRotationMatrix) {
   auto [_, ir_factorized] =
       create_ir_with_params(+func, optimization_params{3, true}, "func", arg("w"));
 
-  EXPECT_EQ(130, ir_factorized.count_multiplications()) << ir_factorized;
+  EXPECT_EQ(131, ir_factorized.count_multiplications()) << ir_factorized;
   check_expressions(expected_expressions, ir_factorized, true);
 }
 
@@ -752,8 +752,8 @@ TEST(IrTest, TestLocalCoordinates) {
   };
   auto [expected_expressions, ir] = create_ir(+func, "func", arg("a"), arg("b"));
 
-  EXPECT_EQ(269, ir.num_operations()) << ir;
-  EXPECT_EQ(191, ir.count_multiplications()) << ir;
+  EXPECT_EQ(295, ir.num_operations()) << ir;
+  EXPECT_EQ(215, ir.count_multiplications()) << ir;
   EXPECT_EQ(115, ir.count_additions()) << ir;
   EXPECT_EQ(10, ir.num_conditionals()) << ir;
   check_expressions(expected_expressions, ir);
@@ -766,7 +766,7 @@ TEST(IrTest, TestLocalCoordinates) {
   EXPECT_EQ(92, ir_factorized.count_additions()) << ir_factorized;
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  EXPECT_EQ(271, output_ir.num_operations()) << output_ir;
+  EXPECT_EQ(297, output_ir.num_operations()) << output_ir;
   EXPECT_EQ(6, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }

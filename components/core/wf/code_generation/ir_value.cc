@@ -57,8 +57,17 @@ operand_ptr value::add_consumer(ir::value* v) {
 
 void value::remove_consumer(const operand_ptr v) { consumers_.remove(v.consumer_index()); }
 
-void value::replace_operand_pair(const ir::const_value_ptr arg0, const ir::const_value_ptr arg1,
-                                 const std::size_t times, const ir::value_ptr replacement) {
+std::size_t value::replace_operand_pair(const ir::const_value_ptr arg0,
+                                        const ir::const_value_ptr arg1,
+                                        const ir::value_ptr replacement) {
+  // TODO: Dumb that we have to re-count this here. The binarization step should be tracking this
+  //  count and reasoning about it.
+  // If we are replacing the pair (vX, vX) we should not remove twice by mistake.
+  const std::size_t num_valid_replacements =
+      arg0 == arg1 ? std::count(operands_.begin(), operands_.end(), arg0) / 2
+                   : std::min(std::count(operands_.begin(), operands_.end(), arg0),
+                              std::count(operands_.begin(), operands_.end(), arg1));
+
   // Predicate we use to remove `val` up to `count` times.
   struct remove_specific_number_of_times {
     std::size_t count;
@@ -74,14 +83,15 @@ void value::replace_operand_pair(const ir::const_value_ptr arg0, const ir::const
     }
   };
 
-  remove_if(operands_, remove_specific_number_of_times{times, arg0});
-  remove_if(operands_, remove_specific_number_of_times{times, arg1});
+  remove_if(operands_, remove_specific_number_of_times{num_valid_replacements, arg0});
+  remove_if(operands_, remove_specific_number_of_times{num_valid_replacements, arg1});
 
-  for (std::size_t i = 0; i < times; ++i) {
+  for (std::size_t i = 0; i < num_valid_replacements; ++i) {
     operands_.push_back(replacement->add_consumer(this));
   }
 
   maybe_sort_operands();
+  return num_valid_replacements;
 }
 
 absl::InlinedVector<ir::value_ptr, 8> value::ordered_consumers() const {

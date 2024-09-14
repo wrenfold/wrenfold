@@ -151,8 +151,8 @@ class value {
   }
 
   // Replace a pair of operands with a single operand.
-  void replace_operand_pair(ir::const_value_ptr arg0, ir::const_value_ptr arg1, std::size_t times,
-                            ir::value_ptr replacement);
+  std::size_t replace_operand_pair(ir::const_value_ptr arg0, ir::const_value_ptr arg1,
+                                   ir::value_ptr replacement);
 
   // Get the first operand.
   ir::value_ptr first_operand() const {
