@@ -6,7 +6,6 @@
 #include <algorithm>
 
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
 #include "wf/number_set.h"
 #include "wf/utility/error_types.h"
@@ -22,11 +21,12 @@ using namespace wf::custom_literals;
 derivative_visitor::derivative_visitor(const scalar_expr& argument,
                                        const non_differentiable_behavior behavior)
     : argument_(argument), non_diff_behavior_(behavior) {
-  if (!argument.is_type<variable, compound_expression_element>()) {
+  if (!argument.is_type<variable, compound_expression_element, symbolic_function_invocation>()) {
     throw type_error(
-        "Argument to diff must be of type `{}` or `{}`. Received expression "
+        "Argument to diff must be of type `{}`, `{}`, or `{}`. Received expression "
         "of type: {}",
-        variable::name_str, compound_expression_element::name_str, argument.type_name());
+        variable::name_str, compound_expression_element::name_str,
+        symbolic_function_invocation::name_str, argument.type_name());
   }
 }
 
@@ -71,6 +71,12 @@ scalar_expr derivative_visitor::operator()(const derivative& derivative,
                                            const scalar_expr& derivative_abstract) const {
   if (const bool is_relevant = is_function_of(derivative.differentiand(), argument_);
       !is_relevant) {
+    return constants::zero;
+  }
+  if (argument_.is_type<symbolic_function_invocation>() &&
+      are_identical(derivative.differentiand(), argument_)) {
+    // `derivative` is diff(f(x, y), x), and we are taking the derivative wrt f(x, y) itself.
+    // The derivative of the differentiand becomes one, so: diff(1, x) --> zero.
     return constants::zero;
   }
   return derivative::create(derivative_abstract, argument_, 1);
@@ -289,6 +295,14 @@ scalar_expr derivative_visitor::operator()(const substitution& sub,
 // df(a, b)/dx --> f(a, b)/da * da/x + f(a, b)/db * db/x
 scalar_expr derivative_visitor::operator()(const symbolic_function_invocation& func,
                                            const scalar_expr& func_abstract) {
+  if (const symbolic_function_invocation* arg =
+          get_if<const symbolic_function_invocation>(argument_);
+      arg != nullptr && are_identical(*arg, func)) {
+    // We are taking the derivative wrt a symbolic function invocation (and it exactly
+    // matches `func`), so just return one: d(f(t))/d(f(t)) --> 1
+    return constants::one;
+  }
+
   // Compute derivatives of every argument.
   const auto args_diff = transform_map<std::vector>(func.children(), *this);
 
