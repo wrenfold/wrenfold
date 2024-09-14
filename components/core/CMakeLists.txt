@@ -10,6 +10,8 @@ add_library(
   wf/code_generation/ast_formatters.h
   wf/code_generation/ast.cc
   wf/code_generation/ast.h
+  wf/code_generation/binarizer.cc
+  wf/code_generation/binarizer.h
   wf/code_generation/control_flow_graph.cc
   wf/code_generation/control_flow_graph.h
   wf/code_generation/cpp_code_generator.cc

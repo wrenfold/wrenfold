@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "wf/code_generation/binarizer.h"
 #include "wf/code_generation/factorizer.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/ir_control_flow_converter.h"
@@ -180,8 +181,7 @@ void control_flow_graph::apply_simplifications(const optimization_params& p) {
 
   if (p.binarize_operations) {
     for (const auto& block : blocks_) {
-      binarize_operations<ir::mul>(block.get());
-      binarize_operations<ir::add>(block.get());
+      binarize_operations(block.get());
     }
 #ifdef WF_DEBUG
     assert_invariants();
@@ -332,256 +332,74 @@ static void topological_sort_values(const ir::const_block_ptr block,
   WF_ASSERT_EQ(initial_size, operations.size(), "operations: [{}]", fmt::join(operations, ", "));
 }
 
-using value_pair = std::tuple<ir::value_ptr, ir::value_ptr>;
-
-inline auto make_value_pair(ir::value_ptr a, ir::value_ptr b) {
-  if (a->name() < b->name()) {
-    return std::make_tuple(a, b);
-  } else {
-    return std::make_tuple(b, a);
-  }
-}
-
-template <>
-struct hash_struct<value_pair> {
-  constexpr std::size_t operator()(const value_pair& p) const noexcept {
-    return static_cast<std::size_t>(std::get<0>(p)->name()) << 32 |
-           static_cast<std::size_t>(std::get<1>(p)->name());
-  }
-};
-
-// Order pairs by score then by their names.
-// We reverse the order of names to that lower names are taken first when finding the max element.
-struct order_value_pair_by_occurrence_then_name {
-  constexpr bool operator()(const std::pair<value_pair, std::size_t>& a,
-                            const std::pair<value_pair, std::size_t>& b) const noexcept {
-    if (a.second < b.second) {
-      return true;
-    } else if (a.second > b.second) {
-      return false;
-    }
-    return std::make_tuple(std::get<0>(a.first)->name(), std::get<1>(a.first)->name()) >
-           std::make_tuple(std::get<0>(b.first)->name(), std::get<1>(b.first)->name());
-  }
-};
-
-// Determine the unique values in sorted container `operands`, and write them to output iterator
-// `output`.
-template <typename Container, typename OutputContainer>
-void count_operand_multiplicity(const Container& operands, OutputContainer& output) {
-  WF_ASSERT(std::is_sorted(operands.begin(), operands.end(),
-                           [](auto a, auto b) { return a->name() < b->name(); }),
-            "operands: [{}]", fmt::join(operands, ", "));
-
-  output.clear();
-  for (auto it = operands.begin(); it != operands.end();) {
-    const ir::value_ptr val = *it;
-
-    // Find the next unique operand:
-    const auto next =
-        std::find_if(it, operands.end(), [val](const ir::const_value_ptr v) { return v != val; });
-    const std::size_t count = static_cast<std::size_t>(std::distance(it, next));
-
-    // Save the operand and its count:
-    output.emplace_back(val, count);
-    it = next;
-  }
-}
-
-// TODO: This method of counting over counts some times of pairs.
-// For example, in the multiplication:
-//  v0 = x*x*x*x*y
-// There are two instances of x*x, and one instance of x*y.
-// We should not double count all the permutations of `x`, but we presently do.
-template <typename OpType, typename Container>
-static auto count_operand_pairs(
-    const Container& container,
-    std::unordered_map<value_pair, std::size_t, hash_struct<value_pair>>& counts) {
-  std::vector<std::tuple<ir::value_ptr, std::size_t>> operands_with_multiplicities{};
-  for (const ir::const_value_ptr val : container) {
-    if (!val->is_op<OpType>() || val->is_unused()) {
-      continue;
-    }
-
-    count_operand_multiplicity(val->operands(), operands_with_multiplicities);
-
-    for (std::size_t i = 0; i < operands_with_multiplicities.size(); ++i) {
-      const auto [a, a_count] = operands_with_multiplicities[i];
-      if (a_count > 1) {
-        // For example: x*x*x*x (count of 4) admits two unique x*x multiplications.
-        // x*x*x*x*x*x (count of 6) admits three: (x*x)*(x*x)*(x*x)
-        // x*x*x (count of three) admits only one.
-        counts[make_value_pair(a, a)] += a_count / 2;
-      }
-
-      for (std::size_t j = i + 1; j < operands_with_multiplicities.size(); ++j) {
-        const auto [b, b_count] = operands_with_multiplicities[j];
-        WF_ASSERT(a != b);  //  These should be unique after `count_operand_multiplicity`.
-
-        // Take the min. For example: x*x*y can form one x*y multiplication, not two.
-        counts[make_value_pair(a, b)] += std::min(a_count, b_count);
-      }
-    }
-  }
-}
-
-// Given two values a & b, find the consumers they share (filtering on OpType).
-template <typename OpType>
-static void find_shared_consumers(const ir::const_value_ptr a, const ir::const_value_ptr b,
-                                  const std::unordered_set<ir::const_value_ptr>& completed_values,
-                                  std::vector<ir::value_ptr>& outputs) {
-  outputs.clear();
-  for (const auto consumer_a : a->consumers()) {
-    // `a` could match `b`, in which case just take everything of type `OpType`.
-    if (consumer_a->is_op<OpType>() && (a == b || consumer_a->has_operand(b)) &&
-        completed_values.count(consumer_a) == 0) {
-      outputs.push_back(consumer_a);
-    }
-  }
-  std::sort(outputs.begin(), outputs.end(), [](auto x, auto y) { return x->name() < y->name(); });
-  outputs.erase(std::unique(outputs.begin(), outputs.end()), outputs.end());
-}
-
-// Count the number of times that pair (a, b) occurs in `operands`.
-template <typename Container>
-std::size_t count_pair(const Container& operands, const ir::const_value_ptr a,
-                       const ir::const_value_ptr b) {
-  if (a != b) {
-    return std::min(std::count(operands.begin(), operands.end(), a),
-                    std::count(operands.begin(), operands.end(), b));
-  } else {
-    return std::count(operands.begin(), operands.end(), a) / 2;
-  }
-}
-
-// Get the consumers (with no repetitions).
-template <typename Container>
-void get_unique_consumers(const ir::const_value_ptr v, Container& output) {
-  output.clear();
-  // For loop here because clang won't accept assign() for some reason.
-  for (const auto& consumer : v->consumers()) {
-    output.push_back(consumer);
-  }
-  std::sort(output.begin(), output.end(), [](auto x, auto y) { return x->name() < y->name(); });
-  output.erase(std::unique(output.begin(), output.end()), output.cend());
-}
-
 // TODO: It actually doesn't make sense to call this on a per-block basis, since it assumes
 // the whole function is in scope. We run it before other blocks are created, so it works. The
 // interface is a bit weird/misleading though.
-//
-// NOTE: This algorithm is approximate because we count all the pairs once at the start, and then
-// put them into the priority queue. Pair counts aren't edited as we edit the graph of operations,
-// except to insert new elements into the queue. That said, I have found it does not drop the
-// operation count that much to actually "edit" items in the priority queue, and it would raise the
-// computational complexity of this method to do so.
-template <typename OpType>
 void control_flow_graph::binarize_operations(const ir::block_ptr block) {
+  binarize_operations_of_type(block, true);
+  binarize_operations_of_type(block, false);
+}
+
+void control_flow_graph::binarize_operations_of_type(const ir::block_ptr block,
+                                                     const bool multiplications) {
   WF_FUNCTION_TRACE();
 
-  std::unordered_map<value_pair, std::size_t, hash_struct<value_pair>> pair_counts{};
-  pair_counts.reserve(values_.size());
-
-  using queue_element = std::pair<value_pair, std::size_t>;
-  std::priority_queue<queue_element, std::vector<queue_element>,
-                      order_value_pair_by_occurrence_then_name>
-      queue{};
-
-  // Count pairs in the n-ary operations, queue anything that shows up more than once.
-  count_operand_pairs<OpType>(block->operations(), pair_counts);
-  for (const auto& pair : pair_counts) {
-    if (pair.second > 1) {
-      queue.push(pair);
-    }
+  std::unordered_set<std::uint32_t> active_values{};
+  active_values.reserve(block->size());
+  for (const auto& op : block->operations()) {
+    active_values.insert(op->name());
   }
 
   // We'll append to this, then sort it at the end:
   std::vector<ir::value_ptr> operations = block->operations();
-
-  // Some storage we reuse:
-  std::vector<ir::value_ptr> shared_consumers{};
   std::vector<ir::value_ptr> unique_consumers{};
-  std::vector<std::tuple<ir::value_ptr, std::size_t>> operands_with_multiplicities{};
-  std::unordered_set<ir::const_value_ptr> completed_values{};  //  TODO: Profile flat_hash_set.
-  while (!queue.empty()) {
-    const queue_element top = queue.top();
-    queue.pop();
-    const auto [a, b] = std::get<0>(top);
 
-    // We can process this pair.
-    // Find all the consumers of type `Src` that use both `a` and `b`.
-    find_shared_consumers<OpType>(a, b, completed_values, shared_consumers);
+  // We keep processing until there are no more values that need to be counted.
+  while (!active_values.empty()) {
+    const auto steps = identify_operations_to_binarize(
+        operations, active_values, multiplications ? binarize_type::mul : binarize_type::add);
+    active_values.clear();
 
-    // Create a new value and put it in operations. We don't care about order here, because we
-    // reorder topologically at the bottom of this method.
-    const ir::value_ptr new_value = push_value(block, OpType{}, a->type(), a, b);
-    operations.push_back(new_value);
+    for (const value_pair_with_total_multiplicity& step : steps) {
+      // Create a new value and put it in operations. We don't care about order here, because we
+      // reorder topologically at the bottom of this method.
+      const auto [a, b] = step.pair;
+      const ir::value_ptr new_value = multiplications
+                                          ? push_value(block, ir::mul{}, a->type(), a, b)
+                                          : push_value(block, ir::add{}, a->type(), a, b);
+      operations.push_back(new_value);
 
-    // We insert new counts into `pair_counts` as we update values that use (a ,b).
-    pair_counts.clear();
-    for (const ir::value_ptr c : shared_consumers) {
-      WF_ASSERT(c->is_op<OpType>());
-      const std::size_t count = count_pair(c->operands(), a, b);
-      if (count < 1) {
-        continue;
-      }
-
-      if (c->num_operands() > 2) {
-        // Replace the pair (a, b) with the new value `count` times.
-        c->replace_operand_pair(a, b, count, new_value);
-
-        // Count all the operands:
-        count_operand_multiplicity(c->operands(), operands_with_multiplicities);
-        for (const auto& [operand, operand_count] : operands_with_multiplicities) {
-          if (operand != new_value) {
-            pair_counts[make_value_pair(operand, new_value)] += std::min(operand_count, count);
+      for (const value_multiplicity& vm : step.consuming_values) {
+        if (vm.downstream_value->num_operands() > 2) {
+          // Replace the pair (a, b) with the new value `multiplicity` times.
+          if (vm.downstream_value->replace_operand_pair(a, b, new_value) > 0) {
+            // Revisit this value on the next iteration:
+            active_values.insert(vm.downstream_value->name());
           }
-        }
-        if (count > 1) {
-          pair_counts[make_value_pair(new_value, new_value)] += count / 2;
-        }
-      } else if (c->num_operands() == 2) {
-        // Anything that directly consumed `c` must have its count updated.
-        // As `c` becomes `new_value`, insert new counts for products/sums of values with
-        // `new_value`.
-        get_unique_consumers(c, unique_consumers);
-
-        for (const ir::const_value_ptr downstream_consumer : unique_consumers) {
-          if (downstream_consumer->is_op<OpType>()) {
-            count_operand_multiplicity(downstream_consumer->operands(),
-                                       operands_with_multiplicities);
-            for (const auto& [operand, operand_count] : operands_with_multiplicities) {
-              if (operand != c) {
-                pair_counts[make_value_pair(operand, new_value)] += std::min(operand_count, count);
-              } else if (operand_count > 1) {
-                pair_counts[make_value_pair(new_value, new_value)] += operand_count / 2;
-              }
+        } else if (vm.downstream_value->num_operands() == 2) {
+          if (!vm.downstream_value->is_unused() && vm.downstream_value->operator[](0) == a &&
+              vm.downstream_value->operator[](1) == b) {
+            // Revisit any consumers of this value on the next iteration:
+            for (const ir::value_ptr consumer : vm.downstream_value->consumers()) {
+              active_values.insert(consumer->name());
             }
+            vm.downstream_value->replace_with(new_value);
           }
-        }
-        completed_values.insert(new_value);
-        c->replace_with(new_value);
-      } else {
-        WF_ASSERT_ALWAYS("Value has wrong number of operands ({}): {} ({}) -> [{}]",
-                         c->num_operands(), c, c->op_name(), fmt::join(c->operands(), ", "));
-      }
-
-      for (const auto& pair : pair_counts) {
-        if (pair.second > 1) {
-          queue.push(pair);
+        } else {
+          WF_ASSERT_ALWAYS("Value has wrong number of operands ({}): {} ({}) -> [{}]",
+                           vm.downstream_value->num_operands(), vm.downstream_value,
+                           vm.downstream_value->op_name(),
+                           fmt::join(vm.downstream_value->operands(), ", "));
         }
       }
     }
   }
 
-  reverse_remove_if(operations, &remove_if_unused);
-
   // Operations aren't in order anymore since we used push_back.
   // Topologically sort them back into an order that respects dependencies.
+  reverse_remove_if(operations, &remove_if_unused);
   topological_sort_values(block, operations);
-
   block->set_operations(std::move(operations));
-  block->remove_unused_operations();  //  TODO: Can probably remove this.
 }
 
 template <typename In, typename Out1, typename Out2>
