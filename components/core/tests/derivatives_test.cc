@@ -258,6 +258,11 @@ TEST(DerivativesTest, TestDerivativeExpression) {
   ASSERT_IDENTICAL(derivative::create(abs(x + y), x, 2), f.diff(x));
   ASSERT_IDENTICAL(derivative::create(f, y, 1), f.diff(y));
   ASSERT_IDENTICAL(0, f.diff(z));
+
+  // Test that `derivative::create` simplifies automatically:
+  ASSERT_IDENTICAL(0, derivative::create(x, y, 1));
+  ASSERT_IDENTICAL(0, derivative::create(cos(x) + 5 * y, z, 2));
+  ASSERT_IDENTICAL(0, derivative::create(symbolic_function("f")(y * y, z), x, 1));
 }
 
 TEST(DerivativesTest, TestUnevaluated) {
