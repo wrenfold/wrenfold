@@ -321,7 +321,32 @@ TEST(DerivativesTest, TestSymbolicFunction) {
   }
 }
 
-TEST(DerivativeTest, TestSubstitution) {
+TEST(DerivativesTest, TestWrtSymbolicFunction) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const auto f = symbolic_function("f");
+  const auto g = symbolic_function("g");
+
+  // A symbolic function wrt itself:
+  ASSERT_IDENTICAL(1, f(x).diff(f(x)));
+  ASSERT_IDENTICAL(1, f(x, y + z).diff(f(x, y + z)));
+
+  // Symbolic function wrt other symbolic function is zero (this matches SymPy).
+  ASSERT_IDENTICAL(0, f(x).diff(g(x)));
+  ASSERT_IDENTICAL(0, f(x).diff(g(f(x))));
+
+  // Other expressions wrt symbolic function:
+  ASSERT_IDENTICAL(-sin(f(x) * 2) * 2, cos(f(x) * 2).diff(f(x)));
+  ASSERT_IDENTICAL(2 * f(x), (f(x) * f(x) + 2).diff(f(x)));
+
+  // Check that: d( df(x, y)/dx ) / df(x, y) --> 0 (this also matches SymPy).
+  ASSERT_IDENTICAL(0, derivative::create(f(x, y), x, 1).diff(f(x, y)));
+
+  // Create a derivative wrt a symbolic function invocation:
+  ASSERT_IDENTICAL(derivative::create(signum(f(x)), f(x), 1),
+                   signum(f(x)).diff(f(x), 1, non_differentiable_behavior::abstract));
+}
+
+TEST(DerivativesTest, TestSubstitution) {
   const scalar_expr x{"x", number_set::real};
   const auto [y, z] = make_symbols("y", "z");
   const auto f = symbolic_function("f");

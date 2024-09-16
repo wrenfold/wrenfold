@@ -3,8 +3,6 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/expressions/derivative_expression.h"
 
-#include "wf/constants.h"
-
 namespace wf {
 
 scalar_expr derivative::create(scalar_expr function, scalar_expr arg, int order) {
@@ -12,9 +10,11 @@ scalar_expr derivative::create(scalar_expr function, scalar_expr arg, int order)
     throw invalid_argument_error("Order of the derivative must be >= 1");
   }
 
-  if (!arg.is_type<variable>()) {
-    throw type_error("Derivatives can only be taken with respect to variables. Arg = {}",
-                     arg.to_string());
+  if (!arg.is_type<variable, symbolic_function_invocation>()) {
+    throw type_error(
+        "Derivatives can only be taken with respect to variables and other symbolic functions. Arg "
+        "= {}",
+        arg.to_string());
   }
 
   if (const derivative* d = get_if<const derivative>(function);

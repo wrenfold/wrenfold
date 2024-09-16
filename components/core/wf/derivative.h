@@ -4,7 +4,6 @@
 #pragma once
 #include <unordered_map>
 
-#include "wf/compound_expression.h"
 #include "wf/enumerations.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
