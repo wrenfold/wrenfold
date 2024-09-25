@@ -6,6 +6,11 @@ type_annotations
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
+.. autoclass:: wrenfold.type_annotations.IntScalar
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
 .. autoclass:: wrenfold.type_annotations.Matrix1
   :members:
   :special-members:

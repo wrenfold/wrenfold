@@ -10,6 +10,7 @@
 <p align="center">
 <a href="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml?query=branch%3Amain"><img alt="GitHub Actions Workflow Status" src="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main"></a>
 <a href="https://pypi.org/project/wrenfold/"><img alt="Python versions badge" src="https://img.shields.io/pypi/pyversions/wrenfold"/></a>
+<a href="https://anaconda.org/conda-forge/wrenfold"><img alt="conda-forge version badge" src="https://anaconda.org/conda-forge/wrenfold/badges/version.svg"/></a>
 <a href="https://crates.io/crates/wrenfold-traits"><img src="https://img.shields.io/crates/v/wrenfold-traits.svg" alt="crates.io"></a>
 <img alt="C++17" src="https://img.shields.io/badge/c++-17-blue" />
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
@@ -116,6 +117,14 @@ Install wrenfold from [PyPi](https://pypi.org/project/wrenfold/):
 
 ```bash
 pip install wrenfold
+```
+
+wrenfold is also available on [conda-forge](https://anaconda.org/conda-forge/wrenfold):
+
+<a href="https://anaconda.org/conda-forge/wrenfold"><img alt="conda-forge platforms" src="https://anaconda.org/conda-forge/wrenfold/badges/platforms.svg"/></a>
+
+```bash
+conda install -c conda-forge wrenfold
 ```
 
 To get started:
