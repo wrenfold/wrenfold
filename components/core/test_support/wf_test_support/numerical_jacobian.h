@@ -114,7 +114,7 @@ struct manifold<T, enable_if_inherits_quaternion_base_t<T>> {
 /**
  * Numerically compute the jacobian of vector function `y = f(x)` via the central-difference. `func`
  * accepts type `XExpr` and returns type `YExpr`, both of which may be manifolds. This method uses
- * the Manifold<> trait to determine how make the manifold locally euclidean.
+ * the Manifold<> trait to determine how make the manifold locally Euclidean.
  */
 template <typename XType, typename Function>
 auto numerical_jacobian(const XType& x, Function func, const double h = 0.01) {
