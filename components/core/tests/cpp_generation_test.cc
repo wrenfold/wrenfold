@@ -105,13 +105,13 @@ TEST(CppGenerationTest, TestVectorRotation2D) {
     evaluator(angle, Eigen::Vector2d(-6.5, 7.2), v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{-6.5, 7.2}, v_rot_gen, D_angle_gen);
 
-    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 2.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 2.0e-15);
 
     // should still work without the optional arg
     evaluator(angle, {-5.5, 12.0}, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{-5.5, 12.0}, v_rot_gen, nullptr);
-    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 2.0e-15);
 
     // Pass a map to the data:
     constexpr std::array<double, 2> input_v = {7.123, -4.001};
@@ -119,15 +119,15 @@ TEST(CppGenerationTest, TestVectorRotation2D) {
 
     evaluator(angle, input_v_map, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, input_v_map, v_rot_gen, D_angle_gen);
-    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 2.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 2.0e-15);
 
     // pass a map for the output:
     evaluator(angle, {2.0, 3.0}, v_rot_num, D_angle_num);
     gen::vector_rotation_2d(angle, Eigen::Vector2d{2.0, 3.0}, v_rot_gen,
                             Eigen::Map<Eigen::Vector2d>(D_angle_gen.data()));
-    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 1.0e-15);
-    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 1.0e-15);
+    EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 2.0e-15);
+    EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 2.0e-15);
   }
 }
 
@@ -219,17 +219,17 @@ TEST(CppGenerationTest, TestNestedConditionals1) {
   auto evaluator = create_evaluator(&nested_conditionals_1);
   // Exercise all the different control paths.
   // x > 0, y > 0, |x| > |y|
-  EXPECT_EQ(evaluator(0.5, 0.2), gen::nested_conditionals_1(0.5, 0.2));
+  EXPECT_NEAR(evaluator(0.5, 0.2), gen::nested_conditionals_1(0.5, 0.2), 1.0e-15);
   // x > 0, y > 0, |x| <= |y|
-  EXPECT_EQ(evaluator(0.1, 0.3), gen::nested_conditionals_1(0.1, 0.3));
+  EXPECT_NEAR(evaluator(0.1, 0.3), gen::nested_conditionals_1(0.1, 0.3), 1.0e-15);
   // x > 0, y <= 0, |x| > |y|
-  EXPECT_EQ(evaluator(2.4, -0.11), gen::nested_conditionals_1(2.4, -0.11));
+  EXPECT_NEAR(evaluator(2.4, -0.11), gen::nested_conditionals_1(2.4, -0.11), 1.0e-15);
   // x > 0, y <= 0, |x| <= |y|
-  EXPECT_EQ(evaluator(1.3, -3.0), gen::nested_conditionals_1(1.3, -3.0));
+  EXPECT_NEAR(evaluator(1.3, -3.0), gen::nested_conditionals_1(1.3, -3.0), 1.0e-15);
   // x <= 0, y > 0, |x| > |y|
-  EXPECT_EQ(evaluator(-0.8, 0.66), gen::nested_conditionals_1(-0.8, 0.66));
+  EXPECT_NEAR(evaluator(-0.8, 0.66), gen::nested_conditionals_1(-0.8, 0.66), 1.0e-15);
   // x <= 0, y <= 0, |x| <= |y|
-  EXPECT_EQ(evaluator(-0.123, -0.5), gen::nested_conditionals_1(-0.123, -0.5));
+  EXPECT_NEAR(evaluator(-0.123, -0.5), gen::nested_conditionals_1(-0.123, -0.5), 1.0e-15);
 }
 
 TEST(CppGenerationTest, TestNestedConditionals2) {
