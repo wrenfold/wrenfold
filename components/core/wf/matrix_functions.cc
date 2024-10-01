@@ -360,7 +360,7 @@ static matrix_expr create_matrix_from_permutations(const permutation_matrix& P) 
   const auto span = make_span(data.data(), make_value_pack(P.rows(), P.rows()),
                               make_value_pack(P.rows(), constant<1>{}));
 
-  for (index_t row = 0; row < P.rows(); ++row) {
+  for (index_t row = 0; row < static_cast<index_t>(P.rows()); ++row) {
     span(row, P.permuted_row(row)) = constants::one;
   }
   return matrix_expr::create(static_cast<index_t>(P.rows()), static_cast<index_t>(P.rows()),

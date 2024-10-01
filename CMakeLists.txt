@@ -42,7 +42,7 @@ if(MSVC)
   # incorrectly.
   set(WF_SHARED_WARNING_FLAGS /W4 /WX /wd4702)
 else()
-  set(WF_SHARED_WARNING_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
+  set(WF_SHARED_WARNING_FLAGS -Wall -Wextra -pedantic -Werror)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

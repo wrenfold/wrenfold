@@ -230,7 +230,7 @@ TEST(SpanTest, TestMakeArraySpan) {
   EXPECT_EQ(5, span.rows());
   EXPECT_EQ(5, span.dimension<0>());
   EXPECT_EQ(1, span.stride<0>());
-  for (int i = 0; i < data.size(); ++i) {
+  for (std::size_t i = 0; i < data.size(); ++i) {
     EXPECT_EQ(i + 1, span[i]);
   }
 }
@@ -431,8 +431,8 @@ TEST(SpanTest, TestEigenMap) {
 // Then we check that our span does not include any zero elements.
 template <typename Dimensions, typename Strides>
 void check_non_zero(const wf::span<const int, Dimensions, Strides>& span) {
-  for (int i = 0; i < span.rows(); ++i) {
-    for (int j = 0; j < span.cols(); ++j) {
+  for (std::size_t i = 0; i < span.rows(); ++i) {
+    for (std::size_t j = 0; j < span.cols(); ++j) {
       ASSERT_NE(0, span(i, j));
     }
   }
