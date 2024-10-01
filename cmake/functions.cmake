@@ -6,11 +6,11 @@ define_property(
   BRIEF_DOCS ${GENERATED_SOURCE_FILE_DOCS}
   FULL_DOCS ${GENERATED_SOURCE_FILE_DOCS})
 
-# Set the `PYTHON_COMMAND_ENV_VARIABLES` variable with environment variables
-# that can be be passed to `cmake -E env` when running python scripts. This
-# places both the python library, and pywrenfold (pybind11 wrapper) on the
-# PYTHONPATH. Ideally we would get these paths from the targets themselves, but
-# the order in which targets are added makes that tricky.
+# Set the `WF_PYTHON_ENV_VARIABLES` variable with environment variables that can
+# be be passed to `cmake -E env` when running python scripts. This places both
+# the python library, and pywrenfold (pybind11 wrapper) on the PYTHONPATH.
+# Ideally we would get these paths from the targets themselves, but the order in
+# which targets are added makes that tricky.
 function(set_python_env_variables)
   set(COMPONENTS_BINARY_DIR "${CMAKE_BINARY_DIR}/components")
   set(COMPONENTS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/components")
@@ -21,7 +21,7 @@ function(set_python_env_variables)
   else()
     set(PATH_SEP ":")
   endif()
-  set(PYTHON_COMMAND_ENV_VARIABLES
+  set(WF_PYTHON_ENV_VARIABLES
       "PYTHONPATH=${COMPONENTS_BINARY_DIR}/wrapper${PATH_SEP}${COMPONENTS_SOURCE_DIR}/python"
       PARENT_SCOPE)
 endfunction()
@@ -54,7 +54,7 @@ function(add_compiled_code_generator NAME)
   target_compile_definitions(
     ${generate_target}
     PRIVATE "-DGENERATOR_OUTPUT_FILE=\"${GENERATOR_OUTPUT_FILE}\"")
-  target_compile_options(${generate_target} PRIVATE ${SHARED_WARNING_FLAGS})
+  target_compile_options(${generate_target} PRIVATE ${WF_SHARED_WARNING_FLAGS})
   add_dependencies(${generate_target} ${generate_target}_mkdir)
 
   # Record the output file as a custom property on the target:
@@ -117,7 +117,7 @@ function(add_cpp_test NAME)
     gtest
     eigen
     fmt::fmt-header-only)
-  target_compile_options(${NAME} PRIVATE ${SHARED_WARNING_FLAGS})
+  target_compile_options(${NAME} PRIVATE ${WF_SHARED_WARNING_FLAGS})
   if(NOT MSVC)
     target_compile_options(${NAME} PRIVATE -Wno-unused-comparison)
   endif()
@@ -170,8 +170,8 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   add_custom_command(
     OUTPUT ${GENERATOR_OUTPUT_FILE}
     COMMAND
-      ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
-      ${Python_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_SCRIPT_FILE}"
+      ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES} ${Python_EXECUTABLE} -B
+      "${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_SCRIPT_FILE}"
       "${GENERATOR_OUTPUT_FILE}" ${ARGS_SCRIPT_ARGUMENTS}
     WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
     COMMENT "Run python code-generator: ${NAME}"
@@ -237,8 +237,8 @@ function(add_python_test PYTHON_SOURCE_FILE)
   if(NOT DEFINED Python_EXECUTABLE)
     message(FATAL_ERROR "The Python executable could not be located.")
   endif()
-  if(NOT DEFINED PYTHON_COMMAND_ENV_VARIABLES)
-    message(FATAL_ERROR "PYTHON_COMMAND_ENV_VARIABLES should be defined")
+  if(NOT DEFINED WF_PYTHON_ENV_VARIABLES)
+    message(FATAL_ERROR "WF_PYTHON_ENV_VARIABLES should be defined")
   endif()
 
   # In order for `PYTHONPATH` to be set correctly, we need to pass the
@@ -247,8 +247,8 @@ function(add_python_test PYTHON_SOURCE_FILE)
   add_test(
     NAME ${TEST_NAME}
     COMMAND
-      ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
-      ${Python_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE}
+      ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES} ${Python_EXECUTABLE}
+      -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE}
       ${ARGS_SCRIPT_ARGUMENTS})
   message(STATUS "Added python test: ${TEST_NAME}")
 endfunction()

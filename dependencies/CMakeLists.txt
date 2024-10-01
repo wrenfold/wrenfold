@@ -2,7 +2,9 @@ function(add_libfmt)
   set(FMT_TEST
       OFF
       CACHE BOOL "" FORCE) # Turn off libfmt tests
-  add_subdirectory(fmt EXCLUDE_FROM_ALL) # Don't need to install.
+  if(NOT TARGET fmt::fmt-header-only)
+    add_subdirectory(fmt EXCLUDE_FROM_ALL) # Don't need to install.
+  endif()
 endfunction()
 add_libfmt()
 
@@ -13,7 +15,9 @@ function(add_gtest)
   set(INSTALL_GTEST
       OFF
       CACHE BOOL "" FORCE)
-  add_subdirectory(gtest)
+  if(NOT TARGET gtest)
+    add_subdirectory(gtest)
+  endif()
 endfunction()
 
 if(WF_BUILD_EXTRAS)
@@ -32,7 +36,9 @@ function(add_google_benchmark)
     # Turn off warning about failure to specify /EHs
     add_compile_options(/wd4530)
   endif()
-  add_subdirectory(benchmark)
+  if(NOT TARGET benchmark::benchmark)
+    add_subdirectory(benchmark)
+  endif()
 endfunction()
 
 if(WF_BUILD_EXTRAS)
@@ -57,13 +63,17 @@ function(add_abseil)
   set(ABSL_PROPAGATE_CXX_STD
       ON
       CACHE BOOL "" FORCE)
-  add_subdirectory(abseil-cpp EXCLUDE_FROM_ALL)
+  if(NOT TARGET absl::span)
+    add_subdirectory(abseil-cpp EXCLUDE_FROM_ALL)
+  endif()
 endfunction()
 add_abseil()
 
 # Add pybind:
 function(add_pybind)
-  add_subdirectory(pybind11)
+  if(NOT TARGET pybind11::module)
+    add_subdirectory(pybind11)
+  endif()
 endfunction()
 add_pybind()
 

@@ -7,15 +7,14 @@ if(DEFINED SKBUILD_PROJECT_NAME AND DEFINED SKBUILD_PROJECT_VERSION)
     DESCRIPTION "Tools for generating code from symbolic math."
     LANGUAGES CXX)
   message(STATUS "Building project version: ${SKBUILD_PROJECT_VERSION}")
-  set(BUILD_EXTRAS_DEFAULT OFF)
+  set(WF_BUILD_EXTRAS_DEFAULT OFF)
 else()
   project(wrenfold CXX)
-  set(BUILD_EXTRAS_DEFAULT ON)
+  set(WF_BUILD_EXTRAS_DEFAULT ON)
 endif()
 
 enable_testing()
 include(GNUInstallDirs)
-set(CMAKE_COLOR_MAKEFILE ON)
 
 # Find python (for pybind11)
 find_package(
@@ -26,7 +25,7 @@ message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
 message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 
 option(WF_BUILD_EXTRAS "Build tests, benchmarks, examples, and docs."
-       ${BUILD_EXTRAS_DEFAULT})
+       ${WF_BUILD_EXTRAS_DEFAULT})
 
 # Add third party code
 add_subdirectory(dependencies)
@@ -41,21 +40,21 @@ set_python_env_variables()
 if(MSVC)
   # We turn off C4702 (unreachable code) because constexpr blocks trigger it
   # incorrectly.
-  set(SHARED_WARNING_FLAGS /W4 /WX /wd4244 /wd4702)
+  set(WF_SHARED_WARNING_FLAGS /W4 /WX /wd4702)
 else()
-  set(SHARED_WARNING_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
+  set(WF_SHARED_WARNING_FLAGS -Wall -Wextra -pedantic -Werror)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   # Disable unused parameter warning (triggered by if constexpr)
-  list(APPEND SHARED_WARNING_FLAGS -Wno-unused-parameter
+  list(APPEND WF_SHARED_WARNING_FLAGS -Wno-unused-parameter
        -Wno-unused-but-set-parameter)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
                                              "AppleClang")
   # Disable unused local typedef on Clang:
-  list(APPEND SHARED_WARNING_FLAGS -Wno-unused-local-typedef)
+  list(APPEND WF_SHARED_WARNING_FLAGS -Wno-unused-local-typedef)
 endif()
 
 # Custom target that groups together all the rust code-generation.

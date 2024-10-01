@@ -5,16 +5,16 @@
 
 #include <random>
 
-#include "wf/utility/algorithms.h"
+#include <gtest/gtest.h>
+
 #include "wf/utility/bitset_range.h"
-#include "wf_test_support/test_macros.h"
 
 namespace wf {
 
 inline factor_bits fill_bits(const std::initializer_list<int> indices) {
   factor_bits b{};
   for (auto index : indices) {
-    WF_ASSERT_LT(index, b.size());
+    WF_ASSERT_LT(static_cast<std::size_t>(index), b.size());
     b.set(index);
   }
   return b;
@@ -36,9 +36,9 @@ std::ostream& operator<<(std::ostream& s, const factorization& f) {
   return s;
 }
 
-void check_factorizations(const std::vector<factorization>& facs,
+void check_factorizations(const std::vector<factorization>& factorizations,
                           const absl::Span<const factor_bits> input_terms) {
-  for (const factorization& fac : facs) {
+  for (const factorization& fac : factorizations) {
     // Check that all the factors aren't trampling on each other:
     for (std::size_t i = 0; i < fac.size(); ++i) {
       const auto [vi, ti] = fac[i];

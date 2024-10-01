@@ -23,4 +23,4 @@ target_link_libraries(wf_test_support INTERFACE wf_runtime gtest eigen
 add_library(wf_custom_main OBJECT custom_main.cc)
 target_link_libraries(wf_custom_main gtest)
 target_compile_features(wf_custom_main PRIVATE cxx_std_17)
-target_compile_options(wf_custom_main PRIVATE ${SHARED_WARNING_FLAGS})
+target_compile_options(wf_custom_main PRIVATE ${WF_SHARED_WARNING_FLAGS})
