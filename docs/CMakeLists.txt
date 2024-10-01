@@ -50,9 +50,8 @@ if(${SPHINX_FOUND})
   if(NOT DEFINED Python_EXECUTABLE)
     message(FATAL_ERROR "The Python executable could not be located.")
   endif()
-  if(NOT DEFINED PYTHON_COMMAND_ENV_VARIABLES)
-    message(
-      FATAL_ERROR "Variable PYTHON_COMMAND_ENV_VARIABLES must be defined.")
+  if(NOT DEFINED WF_PYTHON_ENV_VARIABLES)
+    message(FATAL_ERROR "Variable WF_PYTHON_ENV_VARIABLES must be defined.")
   endif()
 
   # Get a list of python sources in `wf_python`.
@@ -119,9 +118,8 @@ if(${SPHINX_FOUND})
   add_custom_command(
     OUTPUT ${GENERATED_RST_FILES}
     COMMAND
-      ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
-      ${Python_EXECUTABLE} -B ${DOC_GENERATION_SCRIPT}
-      "${CMAKE_CURRENT_SOURCE_DIR}/source/python_api"
+      ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES} ${Python_EXECUTABLE} -B
+      ${DOC_GENERATION_SCRIPT} "${CMAKE_CURRENT_SOURCE_DIR}/source/python_api"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generate RST for python API."
     DEPENDS wf_core wf_wrapper wf_python ${PYTHON_LIB_SOURCES}
@@ -143,7 +141,7 @@ if(${SPHINX_FOUND})
   # Run sphinx through cmake so we can specify the python path correctly.
   add_custom_command(
     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/build/index.html"
-    COMMAND ${CMAKE_COMMAND} -E env ${PYTHON_COMMAND_ENV_VARIABLES}
+    COMMAND ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES}
             ${SPHINX_BUILD_PATH} ${SPHINX_ARGS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generate documentation with sphinx."

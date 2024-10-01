@@ -142,20 +142,14 @@ target_compile_features(wf_core PUBLIC cxx_std_17)
 # Set -fPIC since we will need to build shared libraries for python.
 set_target_properties(wf_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Append our shared warning flags.
+message(STATUS "Warning flags set to: ${WF_SHARED_WARNING_FLAGS}")
+target_compile_options(wf_core PRIVATE ${WF_SHARED_WARNING_FLAGS})
+
 if(MSVC)
-  set(LIB_COMPILATION_FLAGS_PRIVATE /bigobj /EHs)
-  set(LIB_COMPILATION_FLAGS_PUBLIC /Zc:__cplusplus)
-else()
-  set(LIB_COMPILATION_FLAGS_PRIVATE "")
-  set(LIB_COMPILATION_FLAGS_PUBLIC "")
+  target_compile_options(wf_core PRIVATE /bigobj /EHs)
 endif()
 
-# Append our shared warning flags.
-list(APPEND LIB_COMPILATION_FLAGS_PRIVATE ${SHARED_WARNING_FLAGS})
-message(STATUS "Warning flags set to: ${SHARED_WARNING_FLAGS}")
-
-target_compile_options(wf_core PRIVATE ${LIB_COMPILATION_FLAGS_PRIVATE})
-target_compile_options(wf_core PUBLIC ${LIB_COMPILATION_FLAGS_PUBLIC})
 target_link_libraries(wf_core wf_runtime fmt::fmt-header-only
                       absl::inlined_vector absl::span absl::flat_hash_set)
 if(WIN32)

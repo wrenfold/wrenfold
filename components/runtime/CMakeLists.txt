@@ -1,11 +1,9 @@
 # Create a target for the runtime library (a header only target).
-set(RUNTIME_INTERFACE_NAME wf_runtime)
 set(RUNTIME_SOURCES wrenfold/span.h wrenfold/span_detail.h)
-add_library(${RUNTIME_INTERFACE_NAME} INTERFACE ${RUNTIME_SOURCES})
+add_library(wf_runtime INTERFACE ${RUNTIME_SOURCES})
 target_include_directories(
-  ${RUNTIME_INTERFACE_NAME}
-  INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-            $<INSTALL_INTERFACE:include>)
+  wf_runtime INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                       $<INSTALL_INTERFACE:include>)
 
 if(WF_BUILD_EXTRAS)
   add_subdirectory(tests)

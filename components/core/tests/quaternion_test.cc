@@ -621,7 +621,8 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
     // Compute the sign flip so that signs match:
     Eigen::Index max_index{};
     q_num.coeffs().cwiseAbs().maxCoeff(&max_index);
-    const double sign = q_num.coeffs()[max_index] / cast_to_float(q.to_vector_xyzw()[max_index]);
+    const double sign = q_num.coeffs()[max_index] /
+                        cast_to_float(q.to_vector_xyzw()[static_cast<wf::index_t>(max_index)]);
 
     ASSERT_NEAR(q_num.w(), sign * cast_to_float(q.w()), 1.0e-15)
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
