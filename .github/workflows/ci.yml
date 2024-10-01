@@ -72,10 +72,10 @@ jobs:
         with:
           submodules: true
 
-      - name: Setup mambaforge
-        uses: conda-incubator/setup-miniconda@11b562958363ec5770fef326fe8ef0366f8cbf8a # v3.0.1
+      - name: Setup miniforge
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
+          miniforge-variant: Miniforge3
           miniforge-version: latest
           activate-environment: ${{ env.env_name }}
           use-mamba: true
