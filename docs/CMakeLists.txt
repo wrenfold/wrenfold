@@ -57,24 +57,19 @@ if(${SPHINX_FOUND})
   # Get a list of python sources in `wf_python`.
   get_python_library_sources(PYTHON_LIB_SOURCES)
 
-  # The python script we use to generate RST files, and the list of output
-  # files:
-  set(DOC_GENERATION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/generate_api_rst.py")
-  set(GENERATED_RST_FILES
-      source/python_api/ast.rst
-      source/python_api/code_generation.rst
-      source/python_api/enumerations.rst
-      source/python_api/exceptions.rst
-      source/python_api/expressions.rst
-      source/python_api/geometry.rst
-      source/python_api/sym.rst
-      source/python_api/sympy_conversion.rst
-      source/python_api/type_annotations.rst
-      source/python_api/type_info.rst)
-
-  set(HANDWRITTEN_RST_FILES
+  set(DOCUMENTATION_INPUT_FILES
       "${CMAKE_SOURCE_DIR}/README.md"
       "${CMAKE_SOURCE_DIR}/LICENSE"
+      source/_static/arch_dark.png
+      source/_static/arch_light.png
+      source/_static/benchmark_plots/ImuIntegration-clang.html
+      source/_static/benchmark_plots/ImuIntegration-gcc.html
+      source/_static/benchmark_plots/QuatInterpolation-clang.html
+      source/_static/benchmark_plots/QuatInterpolation-gcc.html
+      source/_static/benchmark_plots/QuatLocalCoords-clang.html
+      source/_static/benchmark_plots/QuatLocalCoords-gcc.html
+      source/_static/benchmark_plots/RollingShutterCamera-clang.html
+      source/_static/benchmark_plots/RollingShutterCamera-gcc.html
       source/building.rst
       source/conf.py
       source/cpp_api/index.rst
@@ -83,13 +78,23 @@ if(${SPHINX_FOUND})
       source/index.rst
       source/license.rst
       source/performance.rst
+      source/python_api/ast.rst
+      source/python_api/code_generation.rst
+      source/python_api/enumerations.rst
+      source/python_api/exceptions.rst
+      source/python_api/expressions.rst
+      source/python_api/geometry.rst
       source/python_api/index.rst
+      source/python_api/sym.rst
+      source/python_api/sympy_conversion.rst
+      source/python_api/type_annotations.rst
+      source/python_api/type_info.rst
       source/quick_start_files/main.cpp
       source/quick_start_files/quick_start_script.py
-      source/quick_start_files/rosenbrock.h
       source/quick_start_files/rosenbrock_crate/Cargo.toml
       source/quick_start_files/rosenbrock_crate/src/generated.rs
       source/quick_start_files/rosenbrock_crate/src/lib.rs
+      source/quick_start_files/rosenbrock.h
       source/quick_start.rst
       source/reference/conditionals.rst
       source/reference/custom_types_script.py
@@ -102,33 +107,12 @@ if(${SPHINX_FOUND})
       source/reference/introduction.rst
       source/reference/new_language.rst
       source/reference/symbolic_manipulation.rst
-      source/reference/sympy_interop.rst
-      source/_static/arch_dark.png
-      source/_static/arch_light.png
-      source/_static/benchmark_plots/ImuIntegration-gcc.html
-      source/_static/benchmark_plots/ImuIntegration-clang.html
-      source/_static/benchmark_plots/QuatInterpolation-gcc.html
-      source/_static/benchmark_plots/QuatInterpolation-clang.html
-      source/_static/benchmark_plots/QuatLocalCoords-gcc.html
-      source/_static/benchmark_plots/QuatLocalCoords-clang.html
-      source/_static/benchmark_plots/RollingShutterCamera-gcc.html
-      source/_static/benchmark_plots/RollingShutterCamera-clang.html)
-
-  # Invoke `generate_api_rst.py` to generate RST files for our python modules.
-  add_custom_command(
-    OUTPUT ${GENERATED_RST_FILES}
-    COMMAND
-      ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES} ${Python_EXECUTABLE} -B
-      ${DOC_GENERATION_SCRIPT} "${CMAKE_CURRENT_SOURCE_DIR}/source/python_api"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generate RST for python API."
-    DEPENDS wf_core wf_wrapper wf_python ${PYTHON_LIB_SOURCES}
-            ${DOC_GENERATION_SCRIPT} ${HANDWRITTEN_RST_FILES})
+      source/reference/sympy_interop.rst)
 
   # Add command that runs sphinx-build. This depends explicitly on wf_stubs so
   # that the wrapper and stubs are up to date when docs are generated. Specify
   # `-E -a` so that this runs irrespective of whether `.rst` files have changed.
-  set(SPHINX_ARGS -E -a source build)
+  set(SPHINX_ARGS -E -a "${CMAKE_CURRENT_SOURCE_DIR}/source" build)
 
   if(DEFINED DOXYGEN_OUTPUT_DIR)
     message(STATUS "Configuring sphinx to ingest doxygen output.")
@@ -140,13 +124,13 @@ if(${SPHINX_FOUND})
 
   # Run sphinx through cmake so we can specify the python path correctly.
   add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/build/index.html"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/index.html"
     COMMAND ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES}
             ${SPHINX_BUILD_PATH} ${SPHINX_ARGS}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generate documentation with sphinx."
-    DEPENDS wf_stubs source/conf.py ${GENERATED_RST_FILES}
-            ${HANDWRITTEN_RST_FILES} ${DOXYGEN_INDEX_FILE})
+    DEPENDS wf_stubs source/conf.py ${DOCUMENTATION_INPUT_FILES}
+            ${PYTHON_LIB_SOURCES} ${DOXYGEN_INDEX_FILE})
   add_custom_target(wf_docs
-                    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build/index.html")
+                    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/build/index.html")
 endif()
