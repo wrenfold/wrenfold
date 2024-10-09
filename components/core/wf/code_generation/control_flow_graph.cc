@@ -21,7 +21,6 @@
 #include "wf/utility/assertions.h"
 #include "wf/utility/hashing.h"
 #include "wf/utility/scoped_trace.h"
-#include "wf/utility_visitors.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_map.h>
@@ -97,9 +96,7 @@ template <>
 struct format_op_args_struct<ir::load> {
   template <typename Container>
   void operator()(std::string& output, const ir::load& load, const Container&, const std::size_t) {
-    plain_formatter formatter{};
-    std::visit(formatter, load.variant());
-    output += formatter.take_output();
+    output += std::visit(plain_formatter{}, load.variant());
   }
 };
 

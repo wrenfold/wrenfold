@@ -11,11 +11,7 @@
 
 namespace wf {
 
-std::string boolean_expr::to_string() const {
-  plain_formatter formatter{};
-  formatter(*this);
-  return formatter.take_output();
-}
+std::string boolean_expr::to_string() const { return plain_formatter::convert(*this); }
 
 std::string boolean_expr::to_expression_tree_string() const {
   tree_formatter_visitor formatter{};

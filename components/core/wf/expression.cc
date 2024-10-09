@@ -64,11 +64,7 @@ scalar_expr scalar_expr::from_int(const checked_int x) {
   return make_expr<integer_constant>(x);
 }
 
-std::string scalar_expr::to_string() const {
-  plain_formatter formatter{};
-  formatter(*this);
-  return formatter.take_output();
-}
+std::string scalar_expr::to_string() const { return plain_formatter::convert(*this); }
 
 std::string scalar_expr::to_expression_tree_string() const {
   tree_formatter_visitor formatter{};

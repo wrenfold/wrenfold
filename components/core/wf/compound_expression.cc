@@ -10,11 +10,7 @@
 
 namespace wf {
 
-std::string compound_expr::to_string() const {
-  plain_formatter formatter{};
-  visit(*this, formatter);
-  return formatter.take_output();
-}
+std::string compound_expr::to_string() const { return plain_formatter::convert(*this); }
 
 std::string compound_expr::to_expression_tree_string() const {
   tree_formatter_visitor formatter{};

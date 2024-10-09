@@ -2,12 +2,11 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "expressions/special_constants.h"
-
 #include <vector>
 
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
+#include "wf/expressions/special_constants.h"
 #include "wf/matrix_expression.h"
 
 namespace wf {

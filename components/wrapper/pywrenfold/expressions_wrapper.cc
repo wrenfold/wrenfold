@@ -5,8 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "wf/expressions/all_expressions.h"
-#include "wf/plain_formatter.h"
+#include "wf/expressions/variable.h"
 
 #include "docs/expressions_wrapper.h"
 #include "wrapper_utils.h"
@@ -33,12 +32,7 @@ void wrap_expressions(pybind11::module& m) {
             return scalar_expr(self);
           },
           "Convert the variable back to a :class:`wrenfold.sym.Expr`.")
-      .def("__repr__",
-           [](const variable& self) {
-             plain_formatter formatter{};
-             formatter(self);
-             return formatter.take_output();
-           })
+      .def("__repr__", [](const variable& self) { return self.to_string(); })
       .doc() = "Concrete expression for a symbolic variable.";
 }
 

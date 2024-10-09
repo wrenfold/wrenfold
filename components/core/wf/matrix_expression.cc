@@ -24,11 +24,7 @@ matrix_expr matrix_expr::create(index_t rows, index_t cols, std::vector<scalar_e
   return matrix_expr{std::in_place_type_t<matrix>{}, rows, cols, std::move(args)};
 }
 
-std::string matrix_expr::to_string() const {
-  plain_formatter formatter{};
-  formatter(*this);
-  return formatter.take_output();
-}
+std::string matrix_expr::to_string() const { return plain_formatter::convert(*this); }
 
 std::string matrix_expr::to_expression_tree_string() const {
   tree_formatter_visitor formatter{};
