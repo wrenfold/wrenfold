@@ -4,6 +4,7 @@
 #pragma once
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
+#include "wf/expression_cache.h"
 #include "wf/matrix_expression.h"
 
 namespace wf {
@@ -11,47 +12,56 @@ namespace wf {
 // Simple plain-text formatter.
 class plain_formatter {
  public:
-  void operator()(const scalar_expr& x);
-  void operator()(const matrix_expr& x);
-  void operator()(const boolean_expr& x);
+  template <typename T,
+            typename = std::enable_if_t<inherits_expression_base_v<T> || is_any_expression_v<T>>>
+  std::string_view operator()(const T& x);
 
-  void operator()(const addition& add);
-  void operator()(const boolean_constant& b);
-  void operator()(const compound_expression_element& el);
-  void operator()(const external_function_invocation& invocation);
-  void operator()(const custom_type_argument& arg);
-  void operator()(const custom_type_construction& construct);
-  void operator()(const conditional& conditional);
-  void operator()(const symbolic_constant& constant);
-  void operator()(const derivative& derivative);
-  void operator()(const float_constant& num);
-  void operator()(const complex_infinity&);
-  void operator()(const imaginary_unit&);
-  void operator()(const integer_constant& num);
-  void operator()(const iverson_bracket& bracket);
-  void operator()(const matrix& mat);
-  void operator()(const multiplication& mul);
-  void operator()(const power& pow);
-  void operator()(const rational_constant& rational);
-  void operator()(const relational& relational);
-  void operator()(const substitution& subs);
-  void operator()(const symbolic_function_invocation& invocation);
-  void operator()(const built_in_function_invocation& func);
-  void operator()(const undefined&);
-  void operator()(const unevaluated& u);
-  void operator()(const variable& var);
+  static std::string convert(const scalar_expr& expr);
+  static std::string convert(const boolean_expr& expr);
+  static std::string convert(const matrix_expr& expr);
+  static std::string convert(const compound_expr& expr);
 
-  // Get the output string (transferring ownership to the caller).
-  std::string take_output() { return std::move(output_); }
+  std::string operator()(const addition& add);
+  std::string operator()(const boolean_constant& b) const;
+  std::string operator()(const compound_expression_element& el);
+  std::string operator()(const external_function_invocation& invocation);
+  std::string operator()(const custom_type_argument& arg) const;
+  std::string operator()(const custom_type_construction& construct);
+  std::string operator()(const conditional& conditional);
+  std::string operator()(const symbolic_constant& constant) const;
+  std::string operator()(const derivative& derivative);
+  std::string operator()(const float_constant& num) const;
+  std::string operator()(const complex_infinity&) const;
+  std::string operator()(const imaginary_unit&) const;
+  std::string operator()(const integer_constant& num) const;
+  std::string operator()(const iverson_bracket& bracket);
+  std::string operator()(const matrix& mat);
+  std::string operator()(const multiplication& mul);
+  std::string operator()(const power& pow);
+  std::string operator()(const rational_constant& rational) const;
+  std::string operator()(const relational& relational);
+  std::string operator()(const substitution& subs);
+  std::string operator()(const symbolic_function_invocation& invocation);
+  std::string operator()(const built_in_function_invocation& func);
+  std::string operator()(const undefined&) const;
+  std::string operator()(const unevaluated& u);
+  std::string operator()(const variable& var) const;
 
  private:
+  template <typename T>
+  static std::string convert_impl(const T& expr);
+
   // Wrap `expr` in braces if the precedence is <= the parent.
-  void format_precedence(precedence parent, const scalar_expr& expr);
+  void format_precedence(std::string& output, precedence parent, const scalar_expr& expr);
 
   // Format power with ** operator.
-  void format_power(const scalar_expr& base, const scalar_expr& exponent);
+  void format_power(std::string& output, const scalar_expr& base, const scalar_expr& exponent);
 
-  std::string output_{};
+  // Cache stores a map from expression -> index into strings_
+  template <typename Key>
+  using map_type = std::unordered_map<Key, std::unique_ptr<std::string>, hash_struct<Key>,
+                                      is_identical_struct<Key>>;
+  expression_map_tuple<map_type> cache_{};
 };
 
 }  // namespace wf

@@ -14,323 +14,365 @@ WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 
-void plain_formatter::operator()(const scalar_expr& x) { visit(x, *this); }
-void plain_formatter::operator()(const matrix_expr& x) { visit(x, *this); }
-void plain_formatter::operator()(const boolean_expr& x) { visit(x, *this); }
+template <typename T, typename>
+std::string_view plain_formatter::operator()(const T& x) {
+  if constexpr (is_any_expression_v<T>) {
+    return std::visit(*this, x);
+  } else {
+    auto& map = cache_.get<T>();
+    if (auto it = map.find(x); it != map.end()) {
+      return std::string_view{*it->second};
+    } else {
+      std::string converted = visit(x, *this);
+      // Putting into unique_ptr is a bit gross, but we need pointer stability.
+      // I tried an alternative here where the strings are stored in an array, and accessed by
+      // index. It produced no meaningful improvement on the benchmark though.
+      const auto [it_inserted, _] =
+          map.emplace(x, std::make_unique<std::string>(std::move(converted)));
+      return std::string_view{*it_inserted->second};
+    }
+  }
+}
 
-void plain_formatter::operator()(const addition& add) {
+std::string plain_formatter::convert(const scalar_expr& expr) { return convert_impl(expr); }
+std::string plain_formatter::convert(const boolean_expr& expr) { return convert_impl(expr); }
+std::string plain_formatter::convert(const matrix_expr& expr) { return convert_impl(expr); }
+std::string plain_formatter::convert(const compound_expr& expr) { return convert_impl(expr); }
+
+template <typename T>
+std::string plain_formatter::convert_impl(const T& expr) {
+  plain_formatter fmt{};
+  fmt(expr);
+  // Take the output by moving it:
+  auto& map = fmt.cache_.get<T>();
+  auto it = map.find(expr);
+  WF_ASSERT(it != map.end(), "Object must exist in the map");
+  return std::move(*it->second);
+}
+
+std::string plain_formatter::operator()(const addition& add) {
   WF_ASSERT_GE(add.size(), 2);
+  std::string output{};
 
   // Sort into canonical order:
   absl::InlinedVector<scalar_expr, 8> terms{add.begin(), add.end()};
   std::sort(terms.begin(), terms.end(), [](const scalar_expr& a, const scalar_expr& b) {
-    const std::pair<scalar_expr, scalar_expr> a_coeff_mul = as_coeff_and_mul(a);
-    const std::pair<scalar_expr, scalar_expr> b_coeff_mul = as_coeff_and_mul(b);
-    return order_by(std::get<1>(a_coeff_mul), std::get<1>(b_coeff_mul))
-        .and_then_by(std::get<0>(a_coeff_mul), std::get<0>(b_coeff_mul))
-        .is_less_than();
+    const auto [a_coeff, a_mul] = as_coeff_and_mul(a);
+    const auto [b_coeff, b_mul] = as_coeff_and_mul(b);
+    // Order first by multiplicand and then by numerical coefficient:
+    return order_by(a_mul, b_mul).and_then_by(a_coeff, b_coeff).is_less_than();
   });
 
   for (std::size_t i = 0; i < terms.size(); ++i) {
     if (const auto [coeff, multiplicand] = as_coeff_and_mul(terms[i]); is_negative_number(coeff)) {
       if (i == 0) {
         // For the first term, just negate it:
-        output_ += "-";
+        output += "-";
       } else {
         // Subsequent terms are written as subtractions:
-        output_ += " - ";
+        output += " - ";
       }
       if (is_negative_one(coeff)) {
         // Don't multiply by negative one:
-        format_precedence(precedence::addition, multiplicand);
+        format_precedence(output, precedence::addition, multiplicand);
       } else {
-        format_precedence(precedence::addition, -terms[i]);
+        format_precedence(output, precedence::addition, -terms[i]);
       }
     } else {
       if (i > 0) {
-        output_ += " + ";
+        output += " + ";
       }
       if (is_one(coeff)) {
-        format_precedence(precedence::addition, multiplicand);
+        format_precedence(output, precedence::addition, multiplicand);
       } else {
-        format_precedence(precedence::addition, terms[i]);
+        format_precedence(output, precedence::addition, terms[i]);
       }
     }
   }
+  return output;
 }
 
-void plain_formatter::operator()(const boolean_constant& b) {
-  if (b) {
-    // Capitalized for consistency with python.
-    output_ += "True";
-  } else {
-    output_ += "False";
-  }
+std::string plain_formatter::operator()(const boolean_constant& b) const {
+  // Capitalized for consistency with python.
+  return static_cast<bool>(b) ? "True" : "False";
 }
 
-void plain_formatter::operator()(const compound_expression_element& el) {
-  const auto format_access_sequence = [this, &el](const custom_type& custom) {
+std::string plain_formatter::operator()(const compound_expression_element& el) {
+  std::string output{};
+
+  const auto format_access_sequence = [&el, &output](const custom_type& custom) {
     const std::vector<access_variant> sequence = determine_access_sequence(custom, el.index());
     for (const auto& v : sequence) {
       overloaded_visit(
           v,
           [&](const field_access& f) {
-            fmt::format_to(std::back_inserter(output_), ".{}", f.field_name());
+            fmt::format_to(std::back_inserter(output), ".{}", f.field_name());
           },
           [&](const matrix_access& m) {
-            fmt::format_to(std::back_inserter(output_), "[{}, {}]", m.row(), m.col());
+            fmt::format_to(std::back_inserter(output), "[{}, {}]", m.row(), m.col());
           });
     }
   };
 
+  output += operator()(el.provenance());
+
+  // TODO: This feels needlessly complicated. If `external_function_invocation` existed in different
+  // expression types we could clean this up a bit, because `compound_expression_element` would not
+  // need to exist as a special scalar expression.
   visit(el.provenance(),
         make_overloaded(
             [&](const external_function_invocation& invocation) {
-              // Format the function call:
-              this->operator()(invocation);
               overloaded_visit(
                   invocation.function().return_type(), [](const scalar_type) constexpr {},
                   [&](const matrix_type& mat) {
                     // Access matrix element:
                     const auto [row, col] = mat.compute_indices(el.index());
-                    fmt::format_to(std::back_inserter(output_), "[{}, {}]", row, col);
+                    fmt::format_to(std::back_inserter(output), "[{}, {}]", row, col);
                   },
                   format_access_sequence);
             },
             [&](const custom_type_argument& arg) {
               // Name followed by the access sequence:
-              operator()(arg);
               format_access_sequence(arg.type());
             },
             [&](const custom_type_construction& construction) {
               operator()(construction.at(el.index()));
             }));
+
+  return output;
 }
 
-// TODO: We need to do something smarter when formatting matrix args to functions.
-void plain_formatter::operator()(const external_function_invocation& invocation) {
-  fmt::format_to(std::back_inserter(output_), "{}(", invocation.function().name());
+// class format_token {
+//  public:
+//   format_token(plain_formatter* parent, std::size_t index);
+
+//  private:
+//   non_null<const plain_formatter*> formatter_;
+//   std::size_t index_;
+// };
+
+std::string plain_formatter::operator()(const external_function_invocation& invocation) {
+  std::string output = fmt::format("{}(", invocation.function().name());
   auto it = invocation.begin();
   if (it != invocation.end()) {
-    visit(*it, *this);
+    output += operator()(*it);
   }
   for (++it; it != invocation.end(); ++it) {
-    output_ += ", ";
-    visit(*it, *this);
+    output += ", ";
+    output += operator()(*it);
   }
-  output_ += ")";
+  output += ")";
+  return output;
 }
 
-void plain_formatter::operator()(const custom_type_argument& arg) {
-  fmt::format_to(std::back_inserter(output_), "$arg({})", arg.arg_index());
+std::string plain_formatter::operator()(const custom_type_argument& arg) const {
+  // TODO: Print the argument name here instead of this uninformative index.
+  return fmt::format("$arg({})", arg.arg_index());
 }
 
-void plain_formatter::operator()(const custom_type_construction& construct) {
-  fmt::format_to(std::back_inserter(output_), "{}(<{} expressions>)", construct.type().name(),
-                 construct.size());
+std::string plain_formatter::operator()(const custom_type_construction& construct) {
+  // TODO: Make this prettier.
+  return fmt::format("{}(<{} expressions>)", construct.type().name(), construct.size());
 }
 
-void plain_formatter::operator()(const conditional& conditional) {
-  output_ += "where(";
-  operator()(conditional.condition());
-  output_ += ", ";
-  operator()(conditional.if_branch());
-  output_ += ", ";
-  operator()(conditional.else_branch());
-  output_ += ")";
+std::string plain_formatter::operator()(const conditional& conditional) {
+  return fmt::format(
+      "where({}, {}, {})", operator()(conditional.condition()), operator()(conditional.if_branch()),
+                                                                operator()(
+                                                                    conditional.else_branch()));
 }
 
-void plain_formatter::operator()(const symbolic_constant& constant) {
-  output_ += string_from_symbolic_constant(constant.name());
+std::string plain_formatter::operator()(const symbolic_constant& constant) const {
+  return std::string{string_from_symbolic_constant(constant.name())};
 }
 
-void plain_formatter::operator()(const derivative& derivative) {
-  output_ += "Derivative(";
-  operator()(derivative.differentiand());
-  output_ += ", ";
-  operator()(derivative.argument());
+std::string plain_formatter::operator()(const derivative& derivative) {
+  std::string output = fmt::format("Derivative({}, {}", operator()(derivative.differentiand()),
+                                                        operator()(derivative.argument()));
   if (derivative.order() > 1) {
-    fmt::format_to(std::back_inserter(output_), ", {})", derivative.order());
+    fmt::format_to(std::back_inserter(output), ", {})", derivative.order());
   } else {
-    output_ += ")";
+    output += ")";
   }
+  return output;
 }
 
-void plain_formatter::operator()(const complex_infinity&) {
-  fmt::format_to(std::back_inserter(output_), "zoo");
-}
+std::string plain_formatter::operator()(const complex_infinity&) const { return "zoo"; }
 
 // Capitalized for consistency with sympy.
-void plain_formatter::operator()(const imaginary_unit&) { output_ += "I"; }
+std::string plain_formatter::operator()(const imaginary_unit&) const { return "I"; }
 
-void plain_formatter::operator()(const integer_constant& num) {
-  fmt::format_to(std::back_inserter(output_), "{}", num.value());
+std::string plain_formatter::operator()(const integer_constant& num) const {
+  return fmt::format("{}", num.value());
 }
 
-void plain_formatter::operator()(const iverson_bracket& bracket) {
-  output_ += "iverson(";
-  operator()(bracket.arg());
-  output_ += ")";
+std::string plain_formatter::operator()(const iverson_bracket& bracket) {
+  return fmt::format("iverson({})", operator()(bracket.arg()));
 }
 
-void plain_formatter::operator()(const float_constant& num) {
-  fmt::format_to(std::back_inserter(output_), "{}", num.value());
+std::string plain_formatter::operator()(const float_constant& num) const {
+  return fmt::format("{}", num.value());
 }
 
-void plain_formatter::operator()(const matrix& mat) {
+std::string plain_formatter::operator()(const matrix& mat) {
   WF_ASSERT_GE(mat.rows(), 0);
   WF_ASSERT_GE(mat.cols(), 0);
   if (mat.size() == 0) {
     // Empty matrix:
-    output_ += "[]";
-    return;
+    return "[]";
   }
-  output_ += "[";
+  std::string output = "[";
   for (index_t i = 0; i < mat.rows(); ++i) {
-    output_ += "[";
+    output += "[";
     const index_t last_col = mat.cols() - 1;
     for (index_t j = 0; j < last_col; ++j) {
-      operator()(mat(i, j));
-      output_ += ", ";
+      output += operator()(mat(i, j));
+      output += ", ";
     }
-    operator()(mat(i, last_col));
+    output += operator()(mat(i, last_col));
     // Insert a comma and new-line if another row is coming.
     if (i + 1 < mat.rows()) {
-      output_ += "], ";
+      output += "], ";
     } else {
-      output_ += "]";
+      output += "]";
     }
   }
-  output_ += "]";
+  output += "]";
+  return output;
 }
 
-void plain_formatter::operator()(const multiplication& mul) {
+std::string plain_formatter::operator()(const multiplication& mul) {
   WF_ASSERT_GE(mul.size(), 2);
+  std::string output;
 
   // Break multiplication up into numerator and denominator:
   const multiplication_format_parts info = get_formatting_info(mul);
   if (info.is_negative) {
-    output_ += "-";
+    output += "-";
   }
 
   const auto format_element =
-      [this](const std::variant<integer_constant, float_constant, power>& element) {
+      [&](const std::variant<integer_constant, float_constant, power>& element) {
         overloaded_visit(
-            element, [this](const integer_constant constant) { this->operator()(constant); },
-            [this](const float_constant constant) { this->operator()(constant); },
-            [this](const power& pow) {
+            element,
+            [&](const power& pow) {
               if (is_one(pow.exponent())) {
-                this->format_precedence(precedence::multiplication, pow.base());
+                format_precedence(output, precedence::multiplication, pow.base());
               } else {
-                this->format_power(pow.base(), pow.exponent());
+                format_power(output, pow.base(), pow.exponent());
               }
+            },
+            [&](const auto& constant) {
+              fmt::format_to(std::back_inserter(output), "{}", constant.value());
             });
       };
 
   format_element(info.numerator.front());
   for (std::size_t i = 1; i < info.numerator.size(); ++i) {
-    output_ += "*";
+    output += "*";
     format_element(info.numerator[i]);
   }
 
   if (info.denominator.empty()) {
-    return;
+    return output;
   }
-  output_ += "/";
+  output += "/";
 
   if (info.denominator.size() > 1) {
-    output_ += "(";
+    output += "(";
     format_element(info.denominator.front());
     for (std::size_t i = 1; i < info.denominator.size(); ++i) {
-      output_ += "*";
+      output += "*";
       format_element(info.denominator[i]);
     }
-    output_ += ")";
+    output += ")";
   } else {
     format_element(info.denominator.front());
   }
+  return output;
 }
 
-void plain_formatter::operator()(const built_in_function_invocation& func) {
-  fmt::format_to(std::back_inserter(output_), "{}(", func.function_name());
+std::string plain_formatter::operator()(const built_in_function_invocation& func) {
+  std::string output{func.function_name()};
+  output += "(";
   auto it = func.begin();
   if (it != func.end()) {
-    operator()(*it);
+    output += operator()(*it);
   }
   for (++it; it != func.end(); ++it) {
-    output_ += ", ";
-    operator()(*it);
+    output += ", ";
+    output += operator()(*it);
   }
-  output_ += ")";
+  output += ")";
+  return output;
 }
 
-void plain_formatter::operator()(const power& pow) {
+std::string plain_formatter::operator()(const power& pow) {
+  std::string output;
   if (is_negative_one(pow.exponent())) {
-    output_ += "1/";
-    format_precedence(precedence::multiplication, pow.base());
+    output += "1/";
+    format_precedence(output, precedence::multiplication, pow.base());
   } else {
-    format_power(pow.base(), pow.exponent());
+    format_power(output, pow.base(), pow.exponent());
   }
+  return output;
 }
 
-void plain_formatter::operator()(const rational_constant& rational) {
-  fmt::format_to(std::back_inserter(output_), "{}/{}", rational.numerator(),
-                 rational.denominator());
+std::string plain_formatter::operator()(const rational_constant& rational) const {
+  return fmt::format("{}/{}", rational.numerator(), rational.denominator());
 }
 
-void plain_formatter::operator()(const relational& relational) {
-  format_precedence(precedence::relational, relational.left());
-  fmt::format_to(std::back_inserter(output_), " {} ", relational.operation_string());
-  format_precedence(precedence::relational, relational.right());
+std::string plain_formatter::operator()(const relational& relational) {
+  std::string output{};
+  format_precedence(output, precedence::relational, relational.left());
+  fmt::format_to(std::back_inserter(output), " {} ", relational.operation_string());
+  format_precedence(output, precedence::relational, relational.right());
+  return output;
 }
 
-void plain_formatter::operator()(const substitution& subs) {
-  output_ += "Subs(";
-  operator()(subs.input());
-  output_ += ", ";
-  operator()(subs.target());
-  output_ += ", ";
-  operator()(subs.replacement());
-  output_ += ")";
+std::string plain_formatter::operator()(const substitution& subs) {
+  return fmt::format("Subs({}, {}, {})", operator()(subs.input()), operator()(subs.target()),
+                                                                   operator()(subs.replacement()));
 }
 
-void plain_formatter::operator()(const symbolic_function_invocation& invocation) {
-  output_ += invocation.function().name();
-  output_ += "(";
+std::string plain_formatter::operator()(const symbolic_function_invocation& invocation) {
+  std::string output = invocation.function().name();
+  output += "(";
   if (auto it = invocation.begin(); it != invocation.end()) {
-    operator()(*it);
+    output += operator()(*it);
     for (++it; it != invocation.end(); ++it) {
-      output_ += ", ";
-      operator()(*it);
+      output += ", ";
+      output += operator()(*it);
     }
   }
-  output_ += ")";
+  output += ")";
+  return output;
 }
 
-void plain_formatter::operator()(const undefined&) { output_.append("nan"); }
+std::string plain_formatter::operator()(const undefined&) const { return "nan"; }
 
-void plain_formatter::operator()(const unevaluated& u) {
-  output_ += "(";
-  operator()(u.contents());
-  output_ += ")";
+std::string plain_formatter::operator()(const unevaluated& u) {
+  return fmt::format("({})", operator()(u.contents()));
 }
 
-void plain_formatter::operator()(const variable& var) { output_.append(var.to_string()); }
+std::string plain_formatter::operator()(const variable& var) const { return var.to_string(); }
 
-void plain_formatter::format_precedence(const precedence parent, const scalar_expr& expr) {
+void plain_formatter::format_precedence(std::string& output, const precedence parent,
+                                        const scalar_expr& expr) {
   if (get_precedence(expr) <= parent) {
-    output_ += "(";
-    operator()(expr);
-    output_ += ")";
+    output += "(";
+    output += operator()(expr);
+    output += ")";
   } else {
-    operator()(expr);
+    output += operator()(expr);
   }
 }
 
-void plain_formatter::format_power(const scalar_expr& base, const scalar_expr& exponent) {
-  format_precedence(precedence::power, base);
-  output_ += "**";
-  format_precedence(precedence::power, exponent);
+void plain_formatter::format_power(std::string& output, const scalar_expr& base,
+                                   const scalar_expr& exponent) {
+  format_precedence(output, precedence::power, base);
+  output += "**";
+  format_precedence(output, precedence::power, exponent);
 }
 
 }  // namespace wf
