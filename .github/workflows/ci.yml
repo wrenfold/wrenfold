@@ -12,6 +12,11 @@ on:
   # This can be called from build-wheels.
   workflow_call:
 
+  # Run every Monday
+  schedule:
+    - cron: "0 0 * * 1"
+
+
 env:
   CACHE_NUMBER: 0
   env_name: build-env
