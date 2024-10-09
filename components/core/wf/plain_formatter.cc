@@ -142,15 +142,6 @@ std::string plain_formatter::operator()(const compound_expression_element& el) {
   return output;
 }
 
-// class format_token {
-//  public:
-//   format_token(plain_formatter* parent, std::size_t index);
-
-//  private:
-//   non_null<const plain_formatter*> formatter_;
-//   std::size_t index_;
-// };
-
 std::string plain_formatter::operator()(const external_function_invocation& invocation) {
   std::string output = fmt::format("{}(", invocation.function().name());
   auto it = invocation.begin();

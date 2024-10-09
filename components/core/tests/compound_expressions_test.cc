@@ -66,7 +66,7 @@ TEST(CompoundExpressionTest, TestElementSimplifyIndirection) {
       create_expression_elements(construct, type.inner().total_size());
   ASSERT_EQ(4, elements.size());
 
-  // Should just forward the underlying scalar expresions:
+  // Should just forward the underlying scalar expressions:
   ASSERT_IDENTICAL(x, elements[0]);
   ASSERT_IDENTICAL(y, elements[1]);
   ASSERT_IDENTICAL(a, elements[2]);
@@ -203,6 +203,32 @@ TEST(CompoundExpressionTest, TestCse) {
   ASSERT_IDENTICAL(x * y, std::get<1>(replacements[0]));
   ASSERT_IDENTICAL(test_func_2::call(test_func_1::call(abs(v0), cos(v0) * 5)),
                    std::get<1>(replacements[1]));
+}
+
+// TODO: Arguably belongs in plain_formatter_test but it is easier to define here because we have
+//  the test_type and test_functions.
+TEST(CompoundExpressionTest, TestFormatting) {
+  const auto [a, b, c, d] = make_symbols("a", "b", "c", "d");
+
+  const test_type f1 = test_func_1::call(a * b / 3, cos(c) - d * 2);
+  const scalar_expr f2 = test_func_2::call(f1);
+  EXPECT_EQ("test_func_1(a*b/3, -2*d + cos(c)).y", f1.y.to_string());
+  EXPECT_EQ("test_func_1(a*b/3, -2*d + cos(c)).v[1, 0]", f1.v[1].to_string());
+  EXPECT_EQ("test_func_2(test_func_1(a*b/3, -2*d + cos(c)))", f2.to_string());
+
+  // Construct a custom type:
+  const test_type f3{a * b, b - c * cos(d), make_vector(a, 2 * b)};
+  EXPECT_EQ("test_func_2(test_type(<4 expressions>))", test_func_2::call(f3).to_string());
+
+  // Create a custom type argument:
+  const annotated_custom_type<test_type> type = create_type_description<test_type>();
+  const compound_expr arg = create_custom_type_argument(type.inner(), 3);
+  EXPECT_EQ("$arg(3)", arg.to_string());
+
+  // Access a member on it:
+  EXPECT_EQ("$arg(3).y", compound_expression_element::create(arg, 1).to_string());
+  EXPECT_EQ("$arg(3).v[0, 0]", compound_expression_element::create(arg, 2).to_string());
+  EXPECT_EQ("$arg(3).v[1, 0]", compound_expression_element::create(arg, 3).to_string());
 }
 
 }  // namespace wf
