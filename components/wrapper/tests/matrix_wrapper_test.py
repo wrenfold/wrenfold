@@ -117,7 +117,10 @@ class MatrixWrapperTest(MathTestBase):
         u = sym.vector(x * y, sym.cos(x), 0)
         self.assertNotEqual(hash(v), hash(u))  # Not likely.
         # Use matrix expressions as keys in a dict:
-        storage = {v: 1939, u: 1984}
+        storage = {
+            v: 1939,
+            u: 1984
+        }
         self.assertEqual(1939, storage[v])
         self.assertEqual(1984, storage[u])
 
