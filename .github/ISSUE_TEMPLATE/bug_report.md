@@ -9,7 +9,7 @@ assignees: gareth-cross
 
 **Configuration:**
 - OS: [e.g. OSX14, Ubuntu 22.04]
-- wrenfold version [e.g. 0.1.0]
+- wrenfold version [e.g. 0.1.1]
 - python version [e.g. 3.10]
 
 **Describe the bug**
