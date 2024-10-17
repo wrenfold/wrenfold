@@ -85,7 +85,10 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual(hash(x), hash(x))
         self.assertNotEqual(hash(x), hash(y))  # Not impossible, but very unlikely.
         # use expressions as keys in a dict:
-        storage = {x: 10, y: -13}
+        storage = {
+            x: 10,
+            y: -13
+        }
         self.assertEqual(10, storage[x])
         self.assertEqual(-13, storage[y])
 

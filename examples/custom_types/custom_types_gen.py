@@ -216,7 +216,9 @@ class CustomCppGenerator(code_generation.CppGenerator):
     def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
         if element.type.python_type == EigenQuaternion:
             # Eigen quaternion expects constructor args in order (w, x, y, z)
-            arg_dict = {f.name: element.get_field_value(f.name) for f in element.type.fields}
+            arg_dict = {
+                f.name: element.get_field_value(f.name) for f in element.type.fields
+            }
             formatted_args = ", ".join(self.format(arg_dict[i]) for i in ("w", "x", "y", "z"))
             # We normalize numerically on construction, rather than symbolically. This avoids introducing
             # superfluous operations into the symbolic math tree, which saves on generated operations.
@@ -262,7 +264,9 @@ class CustomRustGenerator(code_generation.RustGenerator):
             return f"crate::geo::Pose3d::new(\n  {r},\n  {t}\n)"
         elif element.type.python_type == EigenQuaternion:
             # Order for nalgebra is [w, x, y, z]
-            arg_dict = {f.name: element.get_field_value(f.name) for f in element.type.fields}
+            arg_dict = {
+                f.name: element.get_field_value(f.name) for f in element.type.fields
+            }
             formatted_args = ", ".join(self.format(arg_dict[i]) for i in ("w", "x", "y", "z"))
             return f"nalgebra::Unit::new_normalize(nalgebra::Quaternion::<f64>::new({formatted_args}))"
         return self.super_format(element)
