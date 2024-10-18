@@ -339,8 +339,10 @@ def generate_and_import(func: T.Callable) -> T.Callable:
     # Execute the generated code and return the specified function. This is a fair bit easier
     # than writing it out and using importlib, which fails anyway on windows when we write
     # the file to /tmp: https://stackoverflow.com/questions/66884520/
-    exec(code)
-    return locals()[func.__name__]
+    # We pass the function out via a dict: https://github.com/python/cpython/issues/118888
+    locals_out = dict()
+    exec(code, globals(), locals_out)
+    return locals_out[func.__name__]
 
 
 # noinspection PyMethodMayBeStatic

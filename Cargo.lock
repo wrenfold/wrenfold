@@ -299,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "bspline_demo"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arrayvec",
  "bspline_rust_test",
@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "bspline_rust_test"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "approx 0.5.1",
  "nalgebra 0.33.0",
@@ -637,7 +637,7 @@ checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 
 [[package]]
 name = "custom_types_rust_test"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "approx 0.5.1",
  "nalgebra 0.33.0",
@@ -1513,7 +1513,7 @@ dependencies = [
 
 [[package]]
 name = "motion_planning"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "argmin",
  "argmin-math",
@@ -2144,7 +2144,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "rust_generation_test"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "approx 0.5.1",
  "nalgebra 0.33.0",
@@ -2153,7 +2153,7 @@ dependencies = [
 
 [[package]]
 name = "rust_generation_test_2"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "approx 0.5.1",
  "nalgebra 0.33.0",
@@ -3320,7 +3320,7 @@ dependencies = [
 
 [[package]]
 name = "wrenfold-test-utils"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "approx 0.5.1",
  "nalgebra 0.33.0",
