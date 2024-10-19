@@ -105,13 +105,7 @@ scalar_expr addition::from_operands(const absl::Span<const scalar_expr> args) {
     }
   }
 
-#ifdef WF_USE_PMR_MAP
-  std::array<char, 1024> buffer{};
-  std::pmr::monotonic_buffer_resource pmr{buffer.data(), buffer.size()};
-  addition_parts parts{&pmr, args.size()};
-#else
   addition_parts parts{args.size()};
-#endif
   for (const scalar_expr& arg : args) {
     parts.add_terms(arg);
   }

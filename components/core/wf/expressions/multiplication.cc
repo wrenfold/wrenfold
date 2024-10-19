@@ -114,15 +114,7 @@ scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> ar
     }
   }
 
-#ifdef WF_USE_PMR_MAP
-  // Use monotonic buffer allocator for the buffer map. This shaves off a bunch of malloc calls.
-  // This buffer size could probably be better tuned.
-  std::array<char, 1024> buffer{};
-  std::pmr::monotonic_buffer_resource pmr{buffer.data(), buffer.size()};
-  multiplication_parts parts{&pmr, args.size()};
-#else
   multiplication_parts parts{args.size()};
-#endif
   for (const scalar_expr& term : args) {
     parts.multiply_term(term);
   }
@@ -161,17 +153,17 @@ void multiplication_parts::operator()(const T& value, const scalar_expr& input_e
       insert_integer_factors(compute_prime_factors(value.value()), true);
     } else {
       // Promote integers to rationals and multiply them onto `rational_coeff`.
-      coeff = multiply_numeric_constants{}(coeff, value);
+      coeff_ = multiply_numeric_constants{}(coeff_, value);
     }
   } else if constexpr (std::is_same_v<T, rational_constant>) {
     if (factorize_integers_) {
       insert_integer_factors(compute_prime_factors(value.numerator()), true);
       insert_integer_factors(compute_prime_factors(value.denominator()), false);
     } else {
-      coeff = multiply_numeric_constants{}(coeff, value);
+      coeff_ = multiply_numeric_constants{}(coeff_, value);
     }
   } else if constexpr (type_list_contains_v<T, type_list_from_variant_t<constant_coeff>>) {
-    coeff = multiply_numeric_constants{}(coeff, value);
+    coeff_ = multiply_numeric_constants{}(coeff_, value);
   } else {
     // Everything else: Just raise the power by +1.
     insert_power(input_expression, constants::one);
@@ -179,7 +171,7 @@ void multiplication_parts::operator()(const T& value, const scalar_expr& input_e
 }
 
 void multiplication_parts::insert_power(const scalar_expr& base, const scalar_expr& exponent) {
-  if (const auto [it, was_inserted] = terms.emplace(base, exponent); !was_inserted) {
+  if (const auto [it, was_inserted] = terms_.emplace(base, exponent); !was_inserted) {
     scalar_expr updated_exponent = it->second + exponent;
     // There's a chance that by updating the exponent, our base will turn into a multiplication.
     // This can only occur if the base is a multiplication or a power, for example:
@@ -190,7 +182,7 @@ void multiplication_parts::insert_power(const scalar_expr& base, const scalar_ex
               pow_maybe_simplify(it->first, updated_exponent);
           simplified.has_value() && simplified->is_type<multiplication, power>()) {
         // If it did simplify, we need to update `terms` with the result:
-        terms.erase(it);
+        terms_.erase(it);
         visit(*simplified, *this);
         return;  //  Don't update it->second below.
       }
@@ -204,15 +196,14 @@ void multiplication_parts::insert_integer_factors(const T& factors, const bool p
   for (const prime_factor& factor : factors) {
     scalar_expr base{factor.base};
     scalar_expr exponent{positive ? factor.exponent : -factor.exponent};
-    if (const auto [it, was_inserted] = terms.emplace(std::move(base), exponent); !was_inserted) {
+    if (const auto [it, was_inserted] = terms_.emplace(std::move(base), exponent); !was_inserted) {
       it->second = it->second + exponent;
     }
   }
 }
 
 multiplication_parts::multiplication_parts(const multiplication& mul, const bool factorize_integers)
-    : factorize_integers_(factorize_integers) {
-  terms.reserve(mul.size());
+    : multiplication_parts(mul.size(), factorize_integers) {
   for (const scalar_expr& expr : mul) {
     multiply_term(expr);
   }
@@ -223,15 +214,15 @@ void multiplication_parts::multiply_term(const scalar_expr& arg) { visit(arg, *t
 
 void multiplication_parts::normalize_coefficients() {
   // Nuke anything w/ a zero exponent.
-  map_erase_if(terms, [](const auto& pair) { return is_zero(pair.second); });
+  map_erase_if(terms_, [](const auto& pair) { return is_zero(pair.second); });
 }
 
 scalar_expr multiplication_parts::create_multiplication() const {
   multiplication::container_type args{};
-  multiplication_parts::constant_coeff constant_coefficient = coeff;
+  multiplication_parts::constant_coeff constant_coefficient = coeff_;
 
   // Convert into a vector of powers, and sort into canonical order:
-  for (const auto& [base, exp] : terms) {
+  for (const auto& [base, exp] : terms_) {
     auto pow = power::create(base, exp);
 
     // The power may have produced a numerical coefficient:
