@@ -128,6 +128,7 @@ add_library(
   wf/utility/overloaded_visit.h
   wf/utility/scoped_trace.cc
   wf/utility/scoped_trace.h
+  wf/utility/stack_allocator.h
   wf/utility/static_vector.h
   wf/utility/strings.h
   wf/utility/third_party_imports.h
