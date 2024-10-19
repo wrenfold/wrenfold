@@ -79,7 +79,6 @@ add_library(
   wf/expressions/function_expressions.h
   wf/expressions/matrix.cc
   wf/expressions/matrix.h
-  wf/expressions/memory_resource.h
   wf/expressions/multiplication.cc
   wf/expressions/multiplication.h
   wf/expressions/numeric_expressions.h

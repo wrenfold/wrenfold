@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include <gtest/gtest.h>
 
+#include <algorithm>  // std::reverse
 #include <list>
 #include <vector>
 
@@ -152,12 +153,21 @@ TEST(StackAllocatorTest, TestVector1) {
   ASSERT_TRUE(s.is_empty());
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4324)  //  padded for alignment.
+#endif                           // _MSC_VER
+
 // A test struct that prefers 32-byte alignment.
 struct alignas(32) aligned_int {
   int v;
   explicit constexpr aligned_int(int v) noexcept : v(v) {}
 };
 static_assert(alignof(aligned_int) == 32);
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif  // _MSC_VER
 
 TEST(StackAllocatorTest, TestVector2) {
   using allocator = stl_stack_allocator_with_fallback<aligned_int, sizeof(aligned_int) * 8>;
