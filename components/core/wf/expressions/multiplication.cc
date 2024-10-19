@@ -90,7 +90,7 @@ static scalar_expr multiply_into_addition(const addition& add,
 
 std::vector<scalar_expr> multiplication::sorted_terms() const {
   std::vector<scalar_expr> result{begin(), end()};
-  std::sort(result.begin(), result.end(), expression_order_struct{});
+  std::sort(result.begin(), result.end(), order_struct<scalar_expr>{});
   return result;
 }
 

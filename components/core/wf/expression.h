@@ -162,13 +162,6 @@ struct order_struct<scalar_expr> {
   relative_order compare(const scalar_expr& a, const scalar_expr& b) const;
 };
 
-// Predicate for sorting expressions.
-struct expression_order_struct {
-  bool operator()(const scalar_expr& a, const scalar_expr& b) const {
-    return determine_order(a, b) == relative_order::less_than;
-  }
-};
-
 // Get operation precedence (order of operations).
 // Implemented in expression.cc
 precedence get_precedence(const scalar_expr& expr);

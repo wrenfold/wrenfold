@@ -12,7 +12,7 @@ namespace wf {
 
 std::vector<scalar_expr> addition::sorted_terms() const {
   std::vector<scalar_expr> result{terms_.begin(), terms_.end()};
-  std::sort(result.begin(), result.end(), wf::expression_order_struct{});
+  std::sort(result.begin(), result.end(), order_struct<scalar_expr>{});
   return result;
 }
 
@@ -128,7 +128,7 @@ void addition::sort_terms() {
       return false;
     } else {
       // There could be a collision, so we fall back to a slow path here.
-      return expression_order_struct{}(a, b);
+      return determine_order(a, b) == relative_order::less_than;
     }
   });
 }
