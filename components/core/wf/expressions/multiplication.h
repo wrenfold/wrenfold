@@ -6,12 +6,12 @@
 #include <vector>
 
 #include "wf/expression.h"
-#include "wf/expressions/memory_resource.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/power.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/utility/algorithms.h"
 #include "wf/utility/hashing.h"
+#include "wf/utility/stack_allocator.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>
@@ -115,27 +115,11 @@ struct multiplication_parts {
   // Construct with capacity.
   explicit multiplication_parts(const std::size_t capacity, const bool factorize_integers = false)
       : factorize_integers_(factorize_integers) {
-    terms.reserve(capacity);
-  }
-
-  // Construct with custom allocator.
-  template <typename Allocator>
-  explicit multiplication_parts(const Allocator& alloc, const std::size_t capacity,
-                                const bool factorize_integers = false)
-      : terms(alloc), factorize_integers_(factorize_integers) {
-    terms.reserve(capacity);
+    terms_.reserve(capacity);
   }
 
   // Construct from existing multiplication.
   explicit multiplication_parts(const multiplication& mul, bool factorize_integers);
-
-  // Constant coefficient.
-  constant_coeff coeff{integer_constant{1}};
-
-  // Map from base to exponent.
-  stl_pmr_unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
-                        is_identical_struct<scalar_expr>>
-      terms{};
 
   // Update the internal product by multiplying on `arg`.
   void multiply_term(const scalar_expr& arg);
@@ -152,12 +136,33 @@ struct multiplication_parts {
   template <typename T, typename = enable_if_does_not_contain_type_t<T, multiplication, power>>
   void operator()(const T&, const scalar_expr& input_expression);
 
+  constexpr const auto& coeff() const noexcept { return coeff_; }
+  constexpr const auto& terms() const noexcept { return terms_; }
+
+  constexpr auto& coeff() noexcept { return coeff_; }
+  constexpr auto& terms() noexcept { return terms_; }
+
  private:
   // Insert base**exponent into `terms`, applying simplifications in the process.
   void insert_power(const scalar_expr& base, const scalar_expr& exponent);
 
   template <typename T>
   void insert_integer_factors(const T& factors, bool positive);
+
+  // Stack storage for the map:
+  using map_value_type = std::pair<const scalar_expr, scalar_expr>;
+  using stack_allocator_type = stack_allocator<1024, alignof(map_value_type)>;
+  stack_allocator_type allocator_;
+
+  // Constant coefficient.
+  constant_coeff coeff_{integer_constant{1}};
+
+  // Map from base to exponent.
+  using stl_stack_allocator_type =
+      stl_stack_allocator_with_fallback<map_value_type, stack_allocator_type::capacity>;
+  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                     is_identical_struct<scalar_expr>, stl_stack_allocator_type>
+      terms_{stl_stack_allocator_type(allocator_)};
 
   // If true, factorize integers into primes and insert them into `terms`, instead of
   // updating `numeric_coeff`. Rationals are broken into positive and negative powers

@@ -2,12 +2,12 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/constants.h"
-#include "wf/expressions/memory_resource.h"
+#include "wf/expression.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/utility/algorithms.h"
 #include "wf/utility/hashing.h"
+#include "wf/utility/stack_allocator.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>
@@ -107,13 +107,19 @@ struct addition_parts {
   // Construct from existing addition.
   explicit addition_parts(const addition& add);
 
+  using map_value_type = std::pair<const scalar_expr, scalar_expr>;
+  using stack_allocator_type = stack_allocator<1024, alignof(map_value_type)>;
+  stack_allocator_type allocator_;
+
   // Constant term in the addition.
   constant_coeff coeff{integer_constant{0}};
 
   // Map from multiplicand to coefficient.
-  stl_pmr_unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
-                        is_identical_struct<scalar_expr>>
-      terms{};
+  using stl_stack_allocator_type =
+      stl_stack_allocator_with_fallback<map_value_type, stack_allocator_type::capacity>;
+  std::unordered_map<scalar_expr, scalar_expr, hash_struct<scalar_expr>,
+                     is_identical_struct<scalar_expr>, stl_stack_allocator_type>
+      terms{stl_stack_allocator_type(allocator_)};
 
   // Update the internal representation by adding `arg`.
   void add_terms(const scalar_expr& arg);

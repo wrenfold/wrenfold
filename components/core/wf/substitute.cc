@@ -155,23 +155,23 @@ struct substitute_mul_visitor
     // TODO: Should we just store multiplications pre-factored in this format?
     multiplication_parts input_parts{candidate, true};
 
-    if (std::holds_alternative<float_constant>(input_parts.coeff)) {
-      if (input_parts.coeff != target_parts.coeff) {
+    if (std::holds_alternative<float_constant>(input_parts.coeff())) {
+      if (input_parts.coeff() != target_parts.coeff()) {
         // Don't allow substitutions that perform float operations.
         // (Unless the float coefficients match exactly, then we allow it.)
         return input_expression;
       } else {
         // The float components match, so divide it out and proceed w/ the rest of the replacement:
-        input_parts.coeff = integer_constant{1};
+        input_parts.coeff() = integer_constant{1};
       }
     }
 
     // Determine the maximum number of times we can divide the exponent of the target
     // into the input multiplication.
     std::optional<integer_constant> max_valid_integer_exponent{};
-    for (const auto& [base, exponent] : target_parts.terms) {
-      auto it = input_parts.terms.find(base);
-      if (it == input_parts.terms.end()) {
+    for (const auto& [base, exponent] : target_parts.terms()) {
+      const auto it = input_parts.terms().find(base);
+      if (it == input_parts.terms().end()) {
         return input_expression;
       }
 
@@ -205,15 +205,15 @@ struct substitute_mul_visitor
 
     // Deduct the replaced expression from the input:
     const integer_constant max_valid_exponent = max_valid_integer_exponent.value();
-    for (const auto& [base, exponent] : target_parts.terms) {
-      auto it = input_parts.terms.find(base);
-      WF_ASSERT(it != input_parts.terms.end());
+    for (const auto& [base, exponent] : target_parts.terms()) {
+      auto it = input_parts.terms().find(base);
+      WF_ASSERT(it != input_parts.terms().end());
       it->second = it->second - (exponent * max_valid_exponent.value());
     }
 
     // Insert the replacement
     const scalar_expr replacement_exp(max_valid_exponent);
-    if (const auto [it, was_inserted] = input_parts.terms.emplace(replacement_, replacement_exp);
+    if (const auto [it, was_inserted] = input_parts.terms().emplace(replacement_, replacement_exp);
         !was_inserted) {
       it->second = it->second + replacement_exp;
     }

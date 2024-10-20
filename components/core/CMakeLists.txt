@@ -79,7 +79,6 @@ add_library(
   wf/expressions/function_expressions.h
   wf/expressions/matrix.cc
   wf/expressions/matrix.h
-  wf/expressions/memory_resource.h
   wf/expressions/multiplication.cc
   wf/expressions/multiplication.h
   wf/expressions/numeric_expressions.h
@@ -128,6 +127,7 @@ add_library(
   wf/utility/overloaded_visit.h
   wf/utility/scoped_trace.cc
   wf/utility/scoped_trace.h
+  wf/utility/stack_allocator.h
   wf/utility/static_vector.h
   wf/utility/strings.h
   wf/utility/third_party_imports.h
