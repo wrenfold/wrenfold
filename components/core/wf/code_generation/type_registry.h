@@ -76,7 +76,7 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
   static_assert(std::is_constructible_v<type_variant, U>,
                 "Type U must be something that we can pass to type_variant.");
 
-  explicit native_field_accessor_member_ptr(FieldType StructType::*member_ptr,
+  explicit native_field_accessor_member_ptr(FieldType StructType::* member_ptr,
                                             U member_type) noexcept
       : member_ptr_(member_ptr), member_type_(std::move(member_type)) {}
 
@@ -85,7 +85,7 @@ class native_field_accessor_member_ptr final : public native_field_accessor_type
   void get(const StructType& object, std::vector<scalar_expr>& output) const override;
 
  private:
-  FieldType StructType::*member_ptr_;
+  FieldType StructType::* member_ptr_;
   U member_type_;
 };
 
@@ -122,7 +122,7 @@ class custom_type_builder {
 
   // Add a field of type `P` with the provided name and member pointer.
   template <typename P>
-  custom_type_builder& add_field(std::string name, P T::*member_ptr);
+  custom_type_builder& add_field(std::string name, P T::* member_ptr);
 
  protected:
   // Consume the contents of this object, build a custom_type, and put it in the registry.
@@ -290,7 +290,7 @@ any_expression extract_function_output(const annotated_custom_type<T>& custom, c
 
 template <typename T>
 template <typename P>
-custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T::*member_ptr) {
+custom_type_builder<T>& custom_type_builder<T>::add_field(std::string name, P T::* member_ptr) {
   static_assert(is_invocable_v<detail::record_type<P>, custom_type_registry&>,
                 "The specified type is not something we understand. Maybe you need to implement "
                 "from custom_type_registrant<T>.");

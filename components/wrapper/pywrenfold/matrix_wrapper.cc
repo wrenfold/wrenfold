@@ -430,15 +430,11 @@ void wrap_matrix_operations(py::module_& m) {
           py::arg("shape"), "Overload of ``reshape`` that accepts a (row, col) tuple.")
       .def(
           "col_join",
-          [](const matrix_expr& self, const matrix_expr& other) {
-            return vstack({self, other});
-          },
+          [](const matrix_expr& self, const matrix_expr& other) { return vstack({self, other}); },
           "other"_a, docstrings::matrix_expr_col_join.data())
       .def(
           "row_join",
-          [](const matrix_expr& self, const matrix_expr& other) {
-            return hstack({self, other});
-          },
+          [](const matrix_expr& self, const matrix_expr& other) { return hstack({self, other}); },
           "other"_a, docstrings::matrix_expr_row_join.data())
       // Convert to list
       .def("to_list", &list_from_matrix, "Convert to a list of lists.")

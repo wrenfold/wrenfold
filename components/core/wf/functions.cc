@@ -481,13 +481,13 @@ scalar_expr abs(const scalar_expr& arg) {
     return scalar_expr(rational_constant{-r->numerator(), r->denominator()});
   }
   // Evaluate floats immediately:
-  if (std::optional<scalar_expr> result =
-          operate_on_float(arg,
-                           [](const std::complex<double>& c) {
-                             // operate_on_float will simplify
-                             // this...
-                             return std::complex<double>{std::abs(c), 0.0};
-                           });
+  if (std::optional<scalar_expr> result = operate_on_float(arg,
+                                                           [](const std::complex<double>& c) {
+                                                             // operate_on_float will simplify
+                                                             // this...
+                                                             return std::complex<double>{
+                                                                 std::abs(c), 0.0};
+                                                           });
       result.has_value()) {
     return *std::move(result);
   }
