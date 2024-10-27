@@ -377,8 +377,9 @@ constexpr bool is_convertible_to_span_v = is_convertible_to_span<Dimensions, T>:
 // the `convert` method is noexcept.
 template <typename Dimensions, typename T>
 struct is_nothrow_convertible_to_span {
-  static constexpr bool value = is_convertible_to_span_v<Dimensions, T>&& noexcept(
-      std::declval<span_converter<Dimensions, T>>().convert(std::declval<T>()));
+  static constexpr bool value =
+      is_convertible_to_span_v<Dimensions, T> &&
+      noexcept(std::declval<span_converter<Dimensions, T>>().convert(std::declval<T>()));
 };
 
 // Evaluates to true if <Dimensions, T> is a valid specialization of `convert_to_span`, and

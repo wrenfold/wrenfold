@@ -52,7 +52,7 @@ auto to_inner(const ast::ast_element& element) {
 // Create a lambda that accepts `StructType` and retrieves `member`, then invokes `to_inner` to
 // convert that member to a handle.
 template <typename StructType>
-auto to_inner_accessor(ast::ast_element StructType::*member) {
+auto to_inner_accessor(ast::ast_element StructType::* member) {
   return [member](const StructType& self) { return to_inner(self.*member); };
 }
 
