@@ -181,7 +181,7 @@ void tree_formatter_visitor::apply_indentation() {
 template <typename... Args>
 void tree_formatter_visitor::format_append(const std::string_view fmt_str, Args&&... args) {
   apply_indentation();
-  fmt::format_to(std::back_inserter(output_), fmt_str, std::forward<Args>(args)...);
+  fmt::vformat_to(std::back_inserter(output_), fmt_str, fmt::make_format_args(args...));
   output_ += "\n";
 }
 

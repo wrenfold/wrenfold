@@ -5,16 +5,23 @@
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <type_traits>
 
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/matrix_expression.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 WF_END_THIRD_PARTY_INCLUDES
 
 #define EXPECT_EIGEN_NEAR(a, b, tol) EXPECT_PRED_FORMAT3(wf::expect_eigen_near, a, b, tol)
 #define ASSERT_EIGEN_NEAR(a, b, tol) ASSERT_PRED_FORMAT3(wf::expect_eigen_near, a, b, tol)
+
+// https://github.com/fmtlib/fmt/issues/4123
+template <typename T>
+struct fmt::is_range<T, std::enable_if_t<std::is_base_of_v<Eigen::MatrixBase<T>, T>, char>>
+    : std::false_type {};
 
 // Allow formatting of Eigen matrices.
 template <typename T>

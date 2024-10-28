@@ -7,8 +7,9 @@
 
 #include "wf/any_expression.h"
 #include "wf/substitute.h"
+#include "wf/utility/algorithms.h"
 
-#include "wrapper_utils.h"
+// #include "wrapper_utils.h"
 
 // This file is mostly a gross nuisance to handle the fact that we cannot pass std::variant
 // directly to pybind methods (because it cannot be default initialized). So instead we have to

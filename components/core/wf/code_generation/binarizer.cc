@@ -3,11 +3,9 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/binarizer.h"
 
-#include <queue>
-#include <type_traits>
-
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/flat_hash_set.h>
+#include <fmt/ranges.h>
 WF_END_THIRD_PARTY_INCLUDES
 
 #include "wf/utility/scoped_trace.h"

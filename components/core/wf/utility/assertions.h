@@ -6,6 +6,7 @@
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
@@ -13,30 +14,30 @@ namespace detail {
 
 // Generates an exception w/ a formatted string.
 template <typename... Ts>
-std::string format_assert(const char* const condition, const char* const file, const int line,
-                          const char* const reason_fmt = nullptr, Ts&&... args) {
+std::string format_assert(const std::string_view condition, const std::string_view file,
+                          const int line, const std::string_view reason_fmt = {}, Ts&&... args) {
   std::string err = fmt::format("Assertion failed: {}\nFile: {}\nLine: {}", condition, file, line);
-  if (reason_fmt != nullptr) {
+  if (!reason_fmt.empty()) {
     err.append("\nDetails: ");
-    fmt::format_to(std::back_inserter(err), reason_fmt, std::forward<Ts>(args)...);
+    fmt::vformat_to(std::back_inserter(err), reason_fmt, fmt::make_format_args(args...));
   }
   return err;
 }
 
 // Version that prints args A & B as well. For binary comparisons.
 template <typename A, typename B, typename... Ts>
-std::string format_assert_binary(const char* const condition, const char* const file,
-                                 const int line, const char* const a_name, A&& a,
-                                 const char* const b_name, B&& b,
-                                 const char* const reason_fmt = nullptr, Ts&&... args) {
+std::string format_assert_binary(const std::string_view condition, const std::string_view file,
+                                 const int line, const std::string_view a_name, A&& a,
+                                 const std::string_view b_name, B&& b,
+                                 const std::string_view reason_fmt = {}, Ts&&... args) {
   std::string err = fmt::format(
       "Assertion failed: {}\n"
       "Operands are: `{}` = {}, `{}` = {}\n"
       "File: {}\nLine: {}",
       condition, a_name, std::forward<A>(a), b_name, std::forward<B>(b), file, line);
-  if (reason_fmt != nullptr) {
+  if (!reason_fmt.empty()) {
     err.append("\nDetails: ");
-    fmt::format_to(std::back_inserter(err), reason_fmt, std::forward<Ts>(args)...);
+    fmt::vformat_to(std::back_inserter(err), reason_fmt, fmt::make_format_args(args...));
   }
   return err;
 }

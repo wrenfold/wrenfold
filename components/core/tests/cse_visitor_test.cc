@@ -9,6 +9,10 @@
 
 #include "wf_test_support/test_macros.h"
 
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/ranges.h>
+WF_END_THIRD_PARTY_INCLUDES
+
 // Tests for the cse_visitor.
 namespace wf {
 using namespace wf::custom_literals;

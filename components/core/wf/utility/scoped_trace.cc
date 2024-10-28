@@ -27,6 +27,7 @@
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 WF_END_THIRD_PARTY_INCLUDES
 
 // Format wf::trace_event to JSON.
