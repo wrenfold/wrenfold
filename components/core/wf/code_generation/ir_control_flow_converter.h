@@ -43,7 +43,7 @@ class ir_control_flow_converter {
                         std::vector<ir::value_ptr>& deferred);
 
   // Eliminate any useless copies we introduced in the process of conversion.
-  void eliminate_useless_copies();
+  void remove_redundant_copies();
 
   // Clean up anything that is not referenced in the output:
   void discard_unused_input_values();

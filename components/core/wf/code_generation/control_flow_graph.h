@@ -100,7 +100,7 @@ class control_flow_graph {
   void eliminate_duplicates();
 
   // Eliminate copy operations that other steps inserted.
-  void eliminate_needless_copies();
+  void remove_redundant_copies();
 
   // Where duplicate sub-expressions can be found, break additions and multiplications into smaller
   // binary additions and multiplications. Common terms are extracted into temporaries.

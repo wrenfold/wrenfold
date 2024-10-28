@@ -2,8 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-
-#include "wf/utility/checked_pointers.h"
+#include "wf/code_generation/ir_value_fwd.h"
 #include "wf/utility/third_party_imports.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
@@ -11,13 +10,6 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf::ir {
-
-class block;
-class value;
-using block_ptr = non_null<ir::block*>;
-using value_ptr = non_null<ir::value*>;
-using const_block_ptr = non_null<const ir::block*>;
-using const_value_ptr = non_null<const ir::value*>;
 
 // Stores a sparse vector of value_ptrs. Empty cells are denoted by a nullptr. When an insertion
 // occurs, we consult the free list to find a place to insert the new element. When a removal

@@ -4,7 +4,6 @@
 #include "wf/code_generation/control_flow_graph.h"
 
 #include <algorithm>
-#include <queue>
 #include <unordered_set>
 #include <vector>
 
@@ -14,9 +13,8 @@
 #include "wf/code_generation/ir_control_flow_converter.h"
 #include "wf/code_generation/ir_form_visitor.h"
 #include "wf/code_generation/ir_types.h"
+#include "wf/code_generation/ir_utilities.h"
 #include "wf/code_generation/ir_value.h"
-#include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/plain_formatter.h"
 #include "wf/utility/assertions.h"
 #include "wf/utility/hashing.h"
@@ -200,7 +198,7 @@ void control_flow_graph::factorize_sums(const std::size_t num_passes) {
       factorize_sums_in_block(block.get());
       merge_multiplications_in_block(block.get());
     }
-    eliminate_needless_copies();
+    remove_redundant_copies();
     eliminate_duplicates();
   }
 #ifdef WF_DEBUG
@@ -236,14 +234,6 @@ inline void local_value_numbering(const absl::Span<const ir::value_ptr>& values,
   }
 }
 
-inline bool remove_if_unused(const ir::value_ptr v) {
-  if (v->is_unused()) {
-    v->remove();
-    return true;
-  }
-  return false;
-}
-
 // ReSharper disable once CppMemberFunctionMayBeConst
 void control_flow_graph::eliminate_duplicates() {
   WF_FUNCTION_TRACE();
@@ -254,80 +244,20 @@ void control_flow_graph::eliminate_duplicates() {
     table.clear();
     std::vector<ir::value_ptr> operations = block->operations();
     local_value_numbering(operations, table);
-    reverse_remove_if(operations, &remove_if_unused);
+    remove_unused_values(operations);
     block->set_operations(std::move(operations));
   }
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-void control_flow_graph::eliminate_needless_copies() {
+void control_flow_graph::remove_redundant_copies() {
   WF_FUNCTION_TRACE();
   for (const auto& block : blocks_) {
     auto operations = block->operations();
-    remove_if(operations, [&](const ir::value_ptr v) {
-      // A copy is useless if we are duplicating a value in our current block:
-      if (v->is_op<ir::copy>() && v->first_operand()->parent() == v->parent()) {
-        v->replace_with(v->first_operand());
-        v->remove();
-        return true;
-      }
-      return false;
-    });
+    replace_redundant_copies(operations);
+    remove_unused_values(operations);
     block->set_operations(std::move(operations));
   }
-}
-
-static void topological_sort_values(const ir::const_block_ptr block,
-                                    std::vector<ir::value_ptr>& operations) {
-  WF_FUNCTION_TRACE();
-  const std::size_t initial_size = operations.size();
-
-  // We will de-queue values in increasing order of their names.
-  struct reverse_order_values_by_name {
-    bool operator()(const ir::const_value_ptr a, const ir::const_value_ptr b) const noexcept {
-      return a->name() > b->name();
-    }
-  };
-
-  // Queue every value that does not have an operand:
-  std::priority_queue<ir::value_ptr, std::deque<ir::value_ptr>, reverse_order_values_by_name>
-      queue{};
-  for (const ir::value_ptr val : operations) {
-    if (const bool no_inputs_in_block = none_of(
-            val->operands(), [&](const ir::const_value_ptr v) { return v->parent() == block; });
-        no_inputs_in_block) {
-      queue.push(val);
-    }
-  }
-
-  // TODO: replace this with a flat vector mapping from ID -> visited
-  absl::flat_hash_set<ir::const_value_ptr> visited{};
-  visited.reserve(block->size());
-
-  operations.clear();
-  while (!queue.empty()) {
-    const ir::value_ptr top = queue.top();
-    queue.pop();
-
-    if (const auto [_, was_inserted] = visited.insert(top); !was_inserted) {
-      continue;
-    }
-
-    operations.push_back(top);
-
-    for (const ir::value_ptr c : top->consumers()) {
-      if (c->parent() != block) {
-        continue;
-      }
-      if (const bool all_operands_visited = all_of(
-              c->operands(), [&](const ir::const_value_ptr v) { return visited.contains(v); });
-          all_operands_visited) {
-        queue.push(c);
-      }
-    }
-  }
-
-  WF_ASSERT_EQ(initial_size, operations.size(), "operations: [{}]", fmt::join(operations, ", "));
 }
 
 // TODO: It actually doesn't make sense to call this on a per-block basis, since it assumes
@@ -395,8 +325,8 @@ void control_flow_graph::binarize_operations_of_type(const ir::block_ptr block,
 
   // Operations aren't in order anymore since we used push_back.
   // Topologically sort them back into an order that respects dependencies.
-  reverse_remove_if(operations, &remove_if_unused);
-  topological_sort_values(block, operations);
+  remove_unused_values(operations);
+  topological_sort_values(operations);
   block->set_operations(std::move(operations));
 }
 
@@ -617,8 +547,8 @@ void control_flow_graph::factorize_sums_in_block(const ir::block_ptr block) {
     add->replace_with(factorized_sum);
   }
 
-  reverse_remove_if(operations, &remove_if_unused);
-  topological_sort_values(block, operations);
+  remove_unused_values(operations);
+  topological_sort_values(operations);
   block->set_operations(std::move(operations));
 }
 
@@ -647,7 +577,10 @@ void control_flow_graph::merge_multiplications_in_block(const ir::block_ptr bloc
       val->set_operation(ir::mul{}, val->type(), mul_args);
     }
   }
-  block->remove_unused_operations();
+
+  auto operations = block->operations();
+  remove_unused_values(operations);
+  block->set_operations(std::move(operations));
 }
 
 inline bool value_is_negative_one(const ir::const_value_ptr val) {
@@ -707,8 +640,8 @@ void control_flow_graph::insert_negations(const ir::block_ptr block) {
     }
   }
 
-  reverse_remove_if(operations_out, &remove_if_unused);
-  topological_sort_values(block, operations_out);
+  remove_unused_values(operations_out);
+  topological_sort_values(operations_out);
   block->set_operations(std::move(operations_out));
 }
 

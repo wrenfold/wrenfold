@@ -2,6 +2,8 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include <unordered_set>
+
 #include "wf/code_generation/ir_value.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES

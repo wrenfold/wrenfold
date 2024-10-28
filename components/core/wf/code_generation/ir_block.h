@@ -57,9 +57,6 @@ class block {
     return operations_.back();
   }
 
-  // Iterate and remove all unused values.
-  void remove_unused_operations();
-
   // Get the last operation in the block.
   value_ptr last_operation() const {
     WF_ASSERT(!is_empty(), "Block is empty: {}", name_);

@@ -32,6 +32,9 @@ add_library(
   wf/code_generation/ir_form_visitor.cc
   wf/code_generation/ir_form_visitor.h
   wf/code_generation/ir_types.h
+  wf/code_generation/ir_utilities.cc
+  wf/code_generation/ir_utilities.h
+  wf/code_generation/ir_value_fwd.h
   wf/code_generation/ir_value.cc
   wf/code_generation/ir_value.h
   wf/code_generation/operation_counts.cc

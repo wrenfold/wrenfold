@@ -8,7 +8,6 @@
 #include "wf/utility/checked_pointers.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
-#include <absl/container/flat_hash_set.h>
 #include <absl/container/inlined_vector.h>
 WF_END_THIRD_PARTY_INCLUDES
 

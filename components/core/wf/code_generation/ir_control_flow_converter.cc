@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ir_control_flow_converter.h"
+#include "wf/code_generation/ir_utilities.h"
 
 namespace wf {
 
@@ -110,7 +111,7 @@ control_flow_graph ir_control_flow_converter::convert() && {
       "Must be only one entry block");
 
   // The process above sometimes introduces pointless copies, which we remove now:
-  eliminate_useless_copies();
+  remove_redundant_copies();
 
   // Some of the input values may no longer be required, so nuke those.
   discard_unused_input_values();
@@ -330,32 +331,23 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
 // In the process of converting, we inserted copies to satisfy the phi functions.
 // In some cases, these copies are just duplicating values computed in the same scope.
 // ReSharper disable once CppMemberFunctionMayBeConst
-void ir_control_flow_converter::eliminate_useless_copies() {
+void ir_control_flow_converter::remove_redundant_copies() {
   for (const auto& block : blocks_) {
     auto operations = block->operations();
-    remove_if(operations, [&](const ir::value_ptr v) {
-      // A copy is useless if we are duplicating a value in our current block:
-      if (v->is_op<ir::copy>() && v->first_operand()->parent() == v->parent()) {
-        v->replace_with(v->first_operand());
-        v->remove();
-        return true;
-      }
-      return false;
-    });
+    replace_redundant_copies(operations);
+    remove_unused_values(operations);
     block->set_operations(std::move(operations));
   }
 }
 
 void ir_control_flow_converter::discard_unused_input_values() {
-  values_.erase(std::remove_if(values_.begin(), values_.end(),
-                               [this](const ir::value::unique_ptr& v) {
-                                 if (v->parent().get() == input_block_.get()) {
-                                   WF_ASSERT_EQ(0, v->num_consumers(), "value: {}", v->name());
-                                   return true;
-                                 }
-                                 return false;
-                               }),
-                values_.end());
+  remove_if(values_, [this](const ir::value::unique_ptr& v) {
+    if (v->parent().get() == input_block_.get()) {
+      WF_ASSERT_EQ(0, v->num_consumers(), "value: {}", v->name());
+      return true;
+    }
+    return false;
+  });
 }
 
 ir::block_ptr ir_control_flow_converter::create_block() {
