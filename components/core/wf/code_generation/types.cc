@@ -81,6 +81,8 @@ struct count_custom_type_size {
   }
 };
 
+std::size_t custom_type::size() const noexcept { return impl_->fields.size(); }
+
 std::size_t custom_type::total_size() const noexcept { return count_custom_type_size{}(*this); }
 
 bool is_identical_struct<custom_type>::operator()(const custom_type& a,

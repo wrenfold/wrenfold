@@ -9,8 +9,6 @@
 #include "wf/substitute.h"
 #include "wf/utility/algorithms.h"
 
-// #include "wrapper_utils.h"
-
 // This file is mostly a gross nuisance to handle the fact that we cannot pass std::variant
 // directly to pybind methods (because it cannot be default initialized). So instead we have to
 // write some adapter code so those methods can be wrapped - typically by passing a variant of
