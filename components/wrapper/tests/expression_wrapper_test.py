@@ -302,6 +302,16 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(-y / (x ** 2 + y ** 2), sym.atan2(y, x).diff(x))
         self.assertIdentical(2 * x / (x ** 2 + 4 * y ** 2), sym.atan2(2 * y, x).diff(y))
 
+        # Derivatives wrt symbolic function invocations.
+        f = sym.Function('f')
+        g = f(x).diff(x)
+        q = f(x, y).diff(y)
+        p = g.diff(x)
+        self.assertIdentical(1, g.diff(g))
+        self.assertIdentical(2 * g * sym.cos(g ** 2), sym.sin(g ** 2).diff(g))
+        self.assertIdentical(0, g.diff(q))
+        self.assertIdentical(3, (3 * p + y * g).diff(p))
+
         # Differentiate conditionals:
         self.assertIdentical(
             sym.where(x > 0, 5 * sym.cos(5 * x), 0),
@@ -309,6 +319,14 @@ class ExpressionWrapperTest(MathTestBase):
 
         # Diffing a polynomial too many times can trigger arithmetic error (factorial overflow)
         self.assertRaises(exceptions.ArithmeticError, lambda: (x ** 100).diff(x, 20))
+
+        # Certain types cannot be passed to `diff`:
+        self.assertRaises(exceptions.TypeError, lambda: x.diff(1))
+        self.assertRaises(exceptions.TypeError, lambda: x.diff(sym.pi))
+        self.assertRaises(exceptions.TypeError, lambda: x.diff(x + y))
+        self.assertRaises(exceptions.TypeError, lambda: x.diff(-z))
+        self.assertRaises(exceptions.TypeError, lambda: x.diff(sym.sin(z)))
+        self.assertRaises(exceptions.TypeError, lambda: x.diff(sym.derivative(x * 2, x, 2)))
 
     def test_relational(self):
         """Test creating relational expressions."""
