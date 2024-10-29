@@ -9,6 +9,7 @@
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
 #include "wf/matrix_expression.h"
+#include "wf/utility/overloaded_visit.h"
 
 #include "docs/sympy_conversion.h"
 #include "wrapper_utils.h"

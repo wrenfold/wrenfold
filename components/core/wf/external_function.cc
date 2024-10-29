@@ -5,6 +5,7 @@
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/expression_visitor.h"
+#include "wf/utility/overloaded_visit.h"
 
 namespace wf {
 

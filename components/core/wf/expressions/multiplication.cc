@@ -7,8 +7,8 @@
 
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
+#include "wf/utility/overloaded_visit.h"
 #include "wf/utility_visitors.h"
 
 namespace wf {

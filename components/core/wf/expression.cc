@@ -9,11 +9,9 @@
 #include "wf/distribute.h"
 #include "wf/evaluate.h"
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/plain_formatter.h"
 #include "wf/substitute.h"
 #include "wf/tree_formatter.h"
-#include "wf/utility/assertions.h"
 
 namespace wf {
 
