@@ -18,15 +18,25 @@ namespace wf {
 
 using namespace wf::custom_literals;
 
+inline bool is_derivative_of_symbolic_function_invocation(const scalar_expr& expr) {
+  if (const derivative* diff = get_if<const derivative>(expr); diff != nullptr) {
+    return diff->differentiand().is_type<symbolic_function_invocation>();
+  }
+  return false;
+}
+
 derivative_visitor::derivative_visitor(const scalar_expr& argument,
                                        const non_differentiable_behavior behavior)
     : argument_(argument), non_diff_behavior_(behavior) {
-  if (!argument.is_type<variable, compound_expression_element, symbolic_function_invocation>()) {
+  if (!argument.is_type<variable, compound_expression_element, symbolic_function_invocation>() &&
+      !is_derivative_of_symbolic_function_invocation(argument)) {
     throw type_error(
-        "Argument to diff must be of type `{}`, `{}`, or `{}`. Received expression "
-        "of type: {}",
+        "Argument to diff must be of type `{}`, `{}`, or `{}`, or a `{}` expression where the "
+        "differentiand is a symbolic function invocation. Received expression "
+        "of type: `{}` (value = {})",
         variable::name_str, compound_expression_element::name_str,
-        symbolic_function_invocation::name_str, argument.type_name());
+        symbolic_function_invocation::name_str, derivative::name_str, argument.type_name(),
+        argument);
   }
 }
 
@@ -67,14 +77,18 @@ scalar_expr derivative_visitor::operator()(const symbolic_constant&) const {
 }
 
 // Derivative of an abstract derivative expression.
-scalar_expr derivative_visitor::operator()(const derivative& derivative,
+scalar_expr derivative_visitor::operator()(const derivative& deriv,
                                            const scalar_expr& derivative_abstract) const {
-  if (const bool is_relevant = is_function_of(derivative.differentiand(), argument_);
-      !is_relevant) {
+  if (const derivative* arg_deriv = get_if<const derivative>(argument_);
+      arg_deriv != nullptr && are_identical(deriv, *arg_deriv)) {
+    // Support taking derivatives wrt derivatives of symbolic function invocations.
+    return constants::one;
+  }
+  if (const bool is_relevant = is_function_of(deriv.differentiand(), argument_); !is_relevant) {
     return constants::zero;
   }
   if (argument_.is_type<symbolic_function_invocation>() &&
-      are_identical(derivative.differentiand(), argument_)) {
+      are_identical(deriv.differentiand(), argument_)) {
     // `derivative` is diff(f(x, y), x), and we are taking the derivative wrt f(x, y) itself.
     // The derivative of the differentiand becomes one, so: diff(1, x) --> zero.
     return constants::zero;

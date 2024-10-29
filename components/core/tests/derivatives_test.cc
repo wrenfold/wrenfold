@@ -346,6 +346,23 @@ TEST(DerivativesTest, TestWrtSymbolicFunction) {
                    signum(f(x)).diff(f(x), 1, non_differentiable_behavior::abstract));
 }
 
+TEST(DerivativeTest, TestWrtDerivativeOfSymbolicFunction) {
+  const auto [x, y, z] = make_symbols("x", "y", "z");
+  const auto f = symbolic_function("f");
+  const auto g = symbolic_function("g");
+
+  ASSERT_IDENTICAL(0, f(x).diff(g(x).diff(x)));
+  ASSERT_IDENTICAL(0, f(x).diff(g(x).diff(x, 2)));
+  ASSERT_IDENTICAL(0, f(y).diff(x).diff(f(y).diff(y)));
+
+  ASSERT_IDENTICAL(1, f(x).diff(x).diff(f(x).diff(x)));
+  ASSERT_IDENTICAL(2 * f(x, y).diff(x), pow(f(x, y).diff(x), 2).diff(f(x, y).diff(x)));
+
+  // Derivative of anything else is invalid.
+  ASSERT_THROW(f(x).diff(derivative::create(x * y * 3, y, 1)), wf::type_error);
+  ASSERT_THROW(f(x, cos(y)).diff(derivative::create(cos(y), y, 1)), wf::type_error);
+}
+
 TEST(DerivativesTest, TestSubstitution) {
   const scalar_expr x{"x", number_set::real};
   const auto [y, z] = make_symbols("y", "z");
