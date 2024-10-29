@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ast_conversion.h"
 
+#include "wf/code_generation/ast.h"
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
@@ -373,7 +374,7 @@ std::vector<ast::ast_element> ast_form_visitor::transform_operands(
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::add&) {
   auto args =
-      transform_map<ast::add::container_type>(val.operands(), [this](const ir::const_value_ptr v) {
+      transform_map<ast::add::storage_type>(val.operands(), [this](const ir::const_value_ptr v) {
         return visit_operation_argument(v, precedence::addition);
       });
   return ast::ast_element{std::in_place_type_t<ast::add>{}, std::move(args)};
@@ -474,8 +475,8 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
   WF_ASSERT_GE(val.num_operands(), 2);
-  auto args =
-      transform_map<ast::add::container_type>(val.operands(), [this](const ir::const_value_ptr v) {
+  auto args = transform_map<ast::multiply::storage_type>(
+      val.operands(), [this](const ir::const_value_ptr v) {
         return visit_operation_argument(v, precedence::multiplication);
       });
   return ast::ast_element{std::in_place_type_t<ast::multiply>{}, std::move(args)};

@@ -21,9 +21,8 @@ namespace wf::ast {
 // Add two values together.
 struct add {
   static constexpr std::string_view snake_case_name_str = "add";
-  using container_type = absl::InlinedVector<ast_element, 2>;
-
-  container_type args{};
+  using storage_type = absl::InlinedVector<ast_element, 2>;
+  storage_type args{};
 };
 
 // Assign a value to a temporary variable.
@@ -204,12 +203,11 @@ struct integer_literal {
   std::int64_t value;
 };
 
-// Multiply two operands together.
+// Multiply two (or more) operands together.
 struct multiply {
   static constexpr std::string_view snake_case_name_str = "multiply";
-  using container_type = absl::InlinedVector<ast_element, 2>;
-
-  container_type args{};
+  using storage_type = absl::InlinedVector<ast_element, 2>;
+  storage_type args{};
 };
 
 // Negate an operand.

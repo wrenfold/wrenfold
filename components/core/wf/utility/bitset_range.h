@@ -8,6 +8,7 @@
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
@@ -78,13 +79,3 @@ template <std::size_t N>
 bitset_range(std::bitset<N>) -> bitset_range<N>;
 
 }  // namespace wf
-
-template <std::size_t N>
-struct fmt::formatter<wf::bitset_range<N>, char> {
-  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(const wf::bitset_range<N>& range, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), "[{}]", fmt::join(range, ", "));
-  }
-};

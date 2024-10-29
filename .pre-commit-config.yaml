@@ -28,6 +28,7 @@ repos:
       - id: yapf
         additional_dependencies: [toml]
         exclude: '^dependencies/'
+        require_serial: true
 
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2

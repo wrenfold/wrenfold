@@ -4,6 +4,11 @@
 #include <gtest/gtest.h>
 
 #include "wf/utility/static_vector.h"
+#include "wf/utility/third_party_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/ranges.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 // Tests for the static_vector type.
 namespace wf {

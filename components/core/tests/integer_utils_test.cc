@@ -3,14 +3,14 @@
 // For license information refer to accompanying LICENSE file.
 #include <numeric>
 
-#include "wf/expressions/numeric_expressions.h"
+#include "wf/expression.h"
 #include "wf/integer_utils.h"
 #include "wf/utility/index_range.h"
 
-#include "wf_test_support/test_macros.h"
-
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
+#include <fmt/ranges.h>
+#include <gtest/gtest.h>
 WF_END_THIRD_PARTY_INCLUDES
 
 // Format prime_factor

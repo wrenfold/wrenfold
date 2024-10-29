@@ -5,6 +5,11 @@
 #include "wf/code_generation/ast.h"
 #include "wf/code_generation/ast_visitor.h"
 #include "wf/utility/strings.h"
+#include "wf/utility/third_party_imports.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/ranges.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 // Formatters for the ast types. These are defined primarily so that we can implement repr() in
 // python + generate prettier assertions when throwing from C++.

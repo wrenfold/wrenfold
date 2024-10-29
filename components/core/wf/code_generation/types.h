@@ -153,7 +153,7 @@ class custom_type {
   }
 
   // Number of fields.
-  std::size_t size() const noexcept { return impl_->fields.size(); }
+  std::size_t size() const noexcept;
 
   // The total size (including all sub-structs).
   std::size_t total_size() const noexcept;

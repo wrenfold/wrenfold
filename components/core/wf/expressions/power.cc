@@ -212,7 +212,7 @@ struct power_numerics_visitor {
       }
     }
 
-    for (const auto [exponent_denominator, base_and_exp] : exp_to_base) {
+    for (const auto& [exponent_denominator, base_and_exp] : exp_to_base) {
       operands.emplace_back(
           std::in_place_type_t<power>(), scalar_expr(base_and_exp.base),
           scalar_expr(rational_constant{base_and_exp.exponent, exponent_denominator}));

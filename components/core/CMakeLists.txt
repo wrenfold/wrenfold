@@ -136,8 +136,8 @@ add_library(
   wf/utility/visit_switch.h
   wf/utility/zip_tuples.h)
 
-# Turn on C++17
-target_compile_features(wf_core PUBLIC cxx_std_17)
+# Turn on C++20
+target_compile_features(wf_core PUBLIC cxx_std_20)
 
 # Set -fPIC since we will need to build shared libraries for python.
 set_target_properties(wf_core PROPERTIES POSITION_INDEPENDENT_CODE ON)

@@ -3,12 +3,16 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include <algorithm>
-#include <variant>
 
 #include <pybind11/pybind11.h>
 
 #include "wf/expression.h"
-#include "wf/utility/algorithms.h"
+#include "wf/utility/third_party_imports.h"
+#include "wf/utility/type_list.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/ranges.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 // Shared utilities for writing wrappers.
 namespace wf {

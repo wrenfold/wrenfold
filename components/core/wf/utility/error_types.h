@@ -21,7 +21,7 @@ struct exception_base : std::exception {
   // Construct with format specifier and arguments.
   template <typename... Ts>
   explicit exception_base(std::string_view fmt, Ts&&... args)
-      : exception_base(fmt::format(fmt, std::forward<Ts>(args)...)) {}
+      : exception_base(fmt::vformat(fmt, fmt::make_format_args(args...))) {}
 
   // Retrieve error message as a string view.
   [[nodiscard]] std::string_view message() const noexcept { return message_; }
