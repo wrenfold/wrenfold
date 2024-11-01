@@ -17,6 +17,10 @@ class constants {
   static const scalar_expr undefined;
   static const scalar_expr imaginary_unit;
 
+  // Additional integers we declare for reuse:
+  static const scalar_expr two;
+  static const scalar_expr negative_two;
+
   static const boolean_expr boolean_true;
   static const boolean_expr boolean_false;
 };

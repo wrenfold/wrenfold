@@ -20,6 +20,9 @@ const scalar_expr constants::complex_infinity{std::in_place_type_t<wf::complex_i
 const scalar_expr constants::undefined{std::in_place_type_t<wf::undefined>{}};
 const scalar_expr constants::imaginary_unit{std::in_place_type_t<wf::imaginary_unit>{}};
 
+const scalar_expr constants::two{std::in_place_type_t<wf::integer_constant>{}, 2};
+const scalar_expr constants::negative_two{std::in_place_type_t<wf::integer_constant>{}, -2};
+
 const boolean_expr constants::boolean_true{std::in_place_type_t<boolean_constant>{}, true};
 const boolean_expr constants::boolean_false{std::in_place_type_t<boolean_constant>{}, false};
 

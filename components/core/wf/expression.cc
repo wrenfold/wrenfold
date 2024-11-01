@@ -60,6 +60,10 @@ scalar_expr scalar_expr::from_int(const checked_int x) {
     return constants::one;
   } else if (x == -1) {
     return constants::negative_one;
+  } else if (x == 2) {
+    return constants::two;
+  } else if (x == -2) {
+    return constants::negative_two;
   }
   return make_expr<integer_constant>(x);
 }
