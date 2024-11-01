@@ -98,6 +98,10 @@ struct order_struct<multiplication> {
   }
 };
 
+// Returns true if the expression has a numerical coefficient (an integer, rational, or float).
+// If this function returns true, then `as_coeff_and_mul` will return a non-unit coefficient.
+bool has_numeric_coefficient(const scalar_expr& expr);
+
 // Convert an expression into a coefficient and a multiplicand. This operation checks if
 // expr is a multiplication. If it is, we extract all numeric constants and return them
 // as the first value. The remaining terms form a new multiplication, which is returned as

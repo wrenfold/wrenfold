@@ -5,6 +5,7 @@
 
 #include <algorithm>
 
+#include "wf/expression.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
@@ -217,6 +218,18 @@ void multiplication_parts::normalize_coefficients() {
   map_erase_if(terms_, [](const auto& pair) { return is_zero(pair.second); });
 }
 
+bool has_numeric_coefficient(const scalar_expr& expr) {
+  if (expr.is_type<integer_constant, rational_constant, float_constant>()) {
+    return true;
+  } else if (const multiplication* mul = get_if<const multiplication>(expr); mul != nullptr) {
+    return any_of(*mul, [](const scalar_expr& x) {
+      return x.is_type<integer_constant, rational_constant, float_constant>();
+    });
+  } else {
+    return false;
+  }
+}
+
 scalar_expr multiplication_parts::create_multiplication() && {
   multiplication::container_type args{};
   multiplication_parts::constant_coeff constant_coefficient = coeff_;
@@ -225,22 +238,16 @@ scalar_expr multiplication_parts::create_multiplication() && {
   for (auto& [base, exp] : terms_) {
     auto pow = power::create(base, std::move(exp));
 
-    // The power may have produced a numerical coefficient:
-    auto [pow_coeff, mul] = as_coeff_and_mul(pow);
-
-    // If there is a non-unit coefficient resulting from the power, multiply it onto the constant.
-    // ReSharper disable once CppTooWideScope
-    const bool stripped_coefficient = visit(pow_coeff, [&](const auto& numeric) {
-      using T = std::decay_t<decltype(numeric)>;
-      if constexpr (type_list_contains_v<T, integer_constant, rational_constant, float_constant>) {
-        constant_coefficient = multiply_numeric_constants{}(constant_coefficient, numeric);
-        return true;
-      } else {
-        return false;
-      }
-    });
-
-    if (stripped_coefficient) {
+    if (has_numeric_coefficient(pow)) {
+      // The power may have produced a numerical coefficient:
+      auto [pow_coeff, mul] = as_coeff_and_mul(pow);
+      visit(pow_coeff, [&](const auto& numeric) {
+        using T = std::decay_t<decltype(numeric)>;
+        if constexpr (type_list_contains_v<T, integer_constant, rational_constant,
+                                           float_constant>) {
+          constant_coefficient = multiply_numeric_constants{}(constant_coefficient, numeric);
+        }
+      });
       if (!is_one(mul)) {
         args.push_back(std::move(mul));
       }
@@ -277,7 +284,7 @@ static std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplica
   multiplication::container_type numerics{};
   multiplication::container_type remainder{};
   for (const scalar_expr& expr : mul) {
-    if (is_numeric(expr)) {
+    if (is_numeric(expr)) {  // TODO: This is inconsistent with `has_numeric_coefficient`.
       numerics.push_back(expr);
     } else {
       remainder.push_back(expr);
