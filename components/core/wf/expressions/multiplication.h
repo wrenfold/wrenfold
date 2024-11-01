@@ -128,7 +128,8 @@ struct multiplication_parts {
   void normalize_coefficients();
 
   // Create the resulting multiplication.
-  scalar_expr create_multiplication() const;
+  // This is ref-qualified because we move expressions out of the map.
+  scalar_expr create_multiplication() &&;
 
   // Visitor operations.
   void operator()(const multiplication& mul);

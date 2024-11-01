@@ -119,7 +119,7 @@ scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> ar
     parts.multiply_term(term);
   }
   parts.normalize_coefficients();
-  return parts.create_multiplication();
+  return std::move(parts).create_multiplication();
 }
 
 void multiplication::sort_terms() {
@@ -217,13 +217,13 @@ void multiplication_parts::normalize_coefficients() {
   map_erase_if(terms_, [](const auto& pair) { return is_zero(pair.second); });
 }
 
-scalar_expr multiplication_parts::create_multiplication() const {
+scalar_expr multiplication_parts::create_multiplication() && {
   multiplication::container_type args{};
   multiplication_parts::constant_coeff constant_coefficient = coeff_;
 
   // Convert into a vector of powers, and sort into canonical order:
-  for (const auto& [base, exp] : terms_) {
-    auto pow = power::create(base, exp);
+  for (auto& [base, exp] : terms_) {
+    auto pow = power::create(base, std::move(exp));
 
     // The power may have produced a numerical coefficient:
     auto [pow_coeff, mul] = as_coeff_and_mul(pow);
