@@ -309,9 +309,7 @@ TEST(ScalarOperationsTest, TestDivision) {
 }
 
 TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
-  const scalar_expr x{"x"};
-  const scalar_expr y{"y"};
-  const scalar_expr z{"z"};
+  const auto [x, y, z] = make_symbols("x", "y", "z");
 
   ASSERT_IDENTICAL(constants::zero, as_coeff_and_mul(0).first);
   ASSERT_IDENTICAL(constants::one, as_coeff_and_mul(0).second);
@@ -335,6 +333,31 @@ TEST(ScalarOperationsTest, TestAsCoeffAndMultiplicand) {
   // Include some functions:
   ASSERT_IDENTICAL(1.22_s, as_coeff_and_mul(1.22 * sin(x) * cos(y)).first);
   ASSERT_IDENTICAL(cos(y) * sin(x), as_coeff_and_mul(1.22 * sin(x) * cos(y)).second);
+
+  // More complex numerics (like powers of integers) are not split out:
+  {
+    const auto [coeff, mul] = as_coeff_and_mul(pow(3, 1_s / 5) * x);
+    ASSERT_IDENTICAL(1, coeff);
+    ASSERT_IDENTICAL(pow(3, 1_s / 5) * x, mul);
+  }
+  {
+    const auto [coeff, mul] = as_coeff_and_mul(pow(3, 1_s / 5) * sin(x) * pow(1_s / 2, 3_s / 8));
+    ASSERT_IDENTICAL(1, coeff);
+    ASSERT_IDENTICAL(pow(3, 1_s / 5) * pow(1_s / 2, 3_s / 8) * sin(x), mul);
+  }
+}
+
+TEST(ScalarOperationsTest, TestHasNumericCoefficient) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_FALSE(has_numeric_coefficient(x));
+  ASSERT_FALSE(has_numeric_coefficient(x * y));
+  ASSERT_FALSE(has_numeric_coefficient(x * constants::pi));
+  ASSERT_TRUE(has_numeric_coefficient(2));
+  ASSERT_TRUE(has_numeric_coefficient(2_s / 7));
+  ASSERT_TRUE(has_numeric_coefficient(-3.12));
+  ASSERT_TRUE(has_numeric_coefficient(2.2 * cos(x) / y));
+  ASSERT_TRUE(has_numeric_coefficient(-3 / 5_s * y));
+  ASSERT_TRUE(has_numeric_coefficient(-2.1 * pow(y, 2)));
 }
 
 TEST(ScalarOperationsTest, TestPower) {

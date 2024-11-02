@@ -164,8 +164,7 @@ void addition_parts::normalize_coefficients() {
 scalar_expr addition_parts::create_addition() const {
   addition::container_type args{};
 
-  scalar_expr constant_coeff_expr =
-      overloaded_visit(coeff, [](const auto x) { return scalar_expr(x); });
+  scalar_expr constant_coeff_expr = std::visit([](const auto x) { return scalar_expr(x); }, coeff);
 
   if (is_undefined(constant_coeff_expr)) {
     return constants::undefined;

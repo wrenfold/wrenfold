@@ -249,7 +249,7 @@ static std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplica
   multiplication::container_type numerics{};
   multiplication::container_type remainder{};
   for (const scalar_expr& expr : mul) {
-    if (is_numeric(expr)) {  // TODO: This is inconsistent with `has_numeric_coefficient`.
+    if (expr.is_type<integer_constant, rational_constant, float_constant>()) {
       numerics.push_back(expr);
     } else {
       remainder.push_back(expr);
