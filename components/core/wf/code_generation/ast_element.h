@@ -45,6 +45,7 @@ using ast_element_types = type_list<
     struct parenthetical,
     struct special_constant,
     struct return_object,
+    struct ternary,
     struct variable_ref
     >;
 // clang-format on

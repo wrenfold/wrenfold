@@ -6,7 +6,6 @@
 #include "wf/code_generation/rust_code_generator.h"
 
 #include "test_expressions_codegen.h"
-#include "wf_test_support/code_gen_helpers.h"
 
 namespace wf {
 

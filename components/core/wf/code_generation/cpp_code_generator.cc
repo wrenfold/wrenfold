@@ -3,10 +3,11 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/cpp_code_generator.h"
 
+#include <ranges>
+
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
 #include "wf/utility/assertions.h"
-#include "wf/utility/index_range.h"
 #include "wf/utility/overloaded_visit.h"
 
 namespace wf {
@@ -148,11 +149,12 @@ std::string cpp_code_generator::operator()(const ast::add& x) const {
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_output_matrix& x) const {
-  const auto range = make_range(static_cast<std::size_t>(0), x.value.type.size());
-  return join("\n", range, [&](const std::size_t i) {
-    const auto [row, col] = x.value.type.compute_indices(i);
-    return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col, make_view(x.value.args[i]));
-  });
+  return join("\n", std::ranges::iota_view{static_cast<std::size_t>(0), x.value.type.size()},
+              [&](const std::size_t i) {
+                const auto [row, col] = x.value.type.compute_indices(i);
+                return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col,
+                                   make_view(x.value.args[i]));
+              });
 }
 
 std::string cpp_code_generator::operator()(const ast::assign_output_scalar& x) const {
@@ -356,6 +358,10 @@ std::string cpp_code_generator::operator()(const ast::return_object& x) const {
 
 std::string cpp_code_generator::operator()(const ast::special_constant& x) const {
   return fmt::format("static_cast<Scalar>({})", cpp_string_for_symbolic_constant(x.value));
+}
+
+std::string cpp_code_generator::operator()(const ast::ternary& x) const {
+  return fmt::format("{} ? {} : {}", make_view(x.condition), make_view(x.left), make_view(x.right));
 }
 
 std::string cpp_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }

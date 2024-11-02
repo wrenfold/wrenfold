@@ -113,7 +113,7 @@ std::string join_enumerate(const std::string_view separator, const Container& co
 
 // Indent a string and prefix/suffix it with open and closing brackets.
 template <typename Formatter, typename Container>
-void join_and_indent(std::string& output, const std::size_t indendation,
+void join_and_indent(std::string& output, const std::size_t indentation,
                      const std::string_view open, const std::string_view close,
                      const std::string_view separator, const Container& container,
                      Formatter&& formatter) {
@@ -123,13 +123,13 @@ void join_and_indent(std::string& output, const std::size_t indendation,
   output.reserve(output.size() + joined.size());
 
   // Indent the first line:
-  output.insert(output.end(), indendation, ' ');
+  output.insert(output.end(), indentation, ' ');
 
   for (auto char_it = joined.begin(); char_it != joined.end(); ++char_it) {
     output.push_back(*char_it);
     // Every instance of a newline should have indentation (as long as the string is not ending).
     if (*char_it == '\n' && std::next(char_it) != joined.end()) {
-      output.insert(output.end(), indendation, ' ');
+      output.insert(output.end(), indentation, ' ');
     }
   }
   output.append(close);

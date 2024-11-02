@@ -17,6 +17,7 @@ enum class precedence : int {
   addition,
   multiplication,
   power,
+  ternary,
   none = std::numeric_limits<int>::max(),
 };
 
@@ -154,6 +155,8 @@ constexpr std::string_view string_from_precedence(const precedence p) noexcept {
       return "multiplication";
     case precedence::power:
       return "power";
+    case precedence::ternary:
+      return "ternary";
     case precedence::none:
       return "none";
   }

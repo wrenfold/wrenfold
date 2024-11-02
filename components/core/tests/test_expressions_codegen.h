@@ -30,7 +30,13 @@ std::string generate_test_expressions(Generator gen) {
   generate_func(gen, code, &atan2_with_derivatives, "atan2_with_derivatives", arg("y"), arg("x"));
   generate_func(gen, code, &nested_conditionals_1, "nested_conditionals_1", arg("x"), arg("y"));
   generate_func(gen, code, &nested_conditionals_2, "nested_conditionals_2", arg("x"), arg("y"));
+  generate_func(gen, code, &nested_conditionals_1, false, "nested_conditionals_1_with_ternaries",
+                arg("x"), arg("y"));
+  generate_func(gen, code, &nested_conditionals_2, false, "nested_conditionals_2_with_ternaries",
+                arg("x"), arg("y"));
   generate_func(gen, code, &create_rotation_matrix, "create_rotation_matrix", arg("w"));
+  generate_func(gen, code, &create_rotation_matrix, false, "create_rotation_matrix_with_ternaries",
+                arg("w"));
   generate_func(gen, code, &quaternion_from_matrix, "quaternion_from_matrix", arg("R"));
   generate_func(gen, code, &rotation_vector_from_matrix, "rotation_vector_from_matrix", arg("R"));
   generate_func(gen, code, &no_required_outputs, "no_required_outputs", arg("x"));

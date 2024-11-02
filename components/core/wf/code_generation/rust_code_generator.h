@@ -77,6 +77,8 @@ class rust_code_generator {
 
   virtual std::string operator()(const ast::special_constant& x) const;
 
+  virtual std::string operator()(const ast::ternary& x) const;
+
   virtual std::string operator()(const ast::variable_ref& x) const;
 
   // Accept `ast_element`.

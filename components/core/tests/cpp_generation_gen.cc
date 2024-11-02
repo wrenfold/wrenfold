@@ -1,11 +1,9 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <filesystem>
 #include <fstream>
 
 #include "wf/code_generation/cpp_code_generator.h"
-#include "wf_test_support/code_gen_helpers.h"
 
 #include "test_expressions_codegen.h"
 

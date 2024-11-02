@@ -48,6 +48,7 @@ precedence value::operation_precedence() const {
             load.variant());
       },
       [](const ir::div&) constexpr { return precedence::multiplication; },
+      [](const ir::cond&) constexpr { return precedence::ternary; },
       [](const auto&) constexpr { return precedence::none; });
 }
 

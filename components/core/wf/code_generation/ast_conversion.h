@@ -91,6 +91,7 @@ class ast_form_visitor {
   ast::ast_element operator()(const ir::value& val, const ir::cast& cast);
   ast::ast_element operator()(const ir::value& val, const ir::compare& compare);
   ast::ast_element operator()(const ir::value& val, const ir::construct& construct);
+  ast::ast_element operator()(const ir::value& val, const ir::cond&);
   ast::ast_element operator()(const ir::value& val, const ir::copy&);
   ast::ast_element operator()(const ir::value& val, const ir::div&);
   ast::ast_element operator()(const ir::value& val, const ir::get& get);

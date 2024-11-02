@@ -14,12 +14,13 @@ namespace wf {
 
 template <typename CodeGenerator, typename Func, typename... Args>
 void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
-                   const std::string_view name, Args&&... args) {
+                   const bool convert_ternaries, const std::string_view name, Args&&... args) {
   const function_description description =
       build_function_description(std::forward<Func>(func), name, std::forward<Args>(args)...);
 
   const control_flow_graph output_cfg =
-      control_flow_graph{description, optimization_params()}.convert_conditionals_to_control_flow();
+      control_flow_graph{description, optimization_params()}.convert_conditionals_to_control_flow(
+          convert_ternaries);
 
   // Generate syntax tree:
   const ast::function_definition definition = ast::create_ast(output_cfg, description);
@@ -27,6 +28,13 @@ void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
   // Convert to output code:
   const std::string code = generator(definition);
   fmt::format_to(std::back_inserter(output), "{}\n\n", code);
+}
+
+template <typename CodeGenerator, typename Func, typename... Args>
+void generate_func(CodeGenerator&& generator, std::string& output, Func&& func,
+                   const std::string_view name, Args&&... args) {
+  generate_func(std::forward<CodeGenerator>(generator), output, std::forward<Func>(func), true,
+                name, std::forward<Args>(args)...);
 }
 
 }  // namespace wf
