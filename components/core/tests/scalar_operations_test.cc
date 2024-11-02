@@ -224,18 +224,22 @@ TEST(ScalarOperationsTest, TestMultiplicationImaginaryUnit) {
 TEST(ScalarOperationsTest, TestMultiplicationNumericalConstants) {
   ASSERT_IDENTICAL(6, 2_s * 3_s);
   ASSERT_IDENTICAL(0, 0_s * 1_s);
-  ASSERT_IDENTICAL(-1_s, multiplication::from_operands({-1_s, -1_s, 1_s, -1_s}));
+  ASSERT_IDENTICAL(-1_s, multiplication::from_operands(
+                             std::initializer_list<scalar_expr>{-1_s, -1_s, 1_s, -1_s}));
   // int times rational
   ASSERT_IDENTICAL(8_s / 3, 2_s / 3 * 4);
   ASSERT_IDENTICAL(-24_s / 13, -3_s * (8_s / 13));
-  ASSERT_IDENTICAL(14_s / 3, multiplication::from_operands({7_s, 2_s / 3, 1_s}));
+  ASSERT_IDENTICAL(14_s / 3, multiplication::from_operands(
+                                 std::initializer_list<scalar_expr>{7_s, 2_s / 3, 1_s}));
   // int times float:
   ASSERT_IDENTICAL(0.84, 4_s * 0.21);
   ASSERT_IDENTICAL(-0.76, -0.38_s * 2);
   ASSERT_IDENTICAL(0, 4_s * 0.0);
   ASSERT_IDENTICAL(0, 0.0_s * 9);
-  ASSERT_IDENTICAL(-24.0_s, multiplication::from_operands({4_s, -12_s, 0.5_s}));
-  ASSERT_IDENTICAL(0, multiplication::from_operands({0.0_s, 17_s, -0.0_s, 1.4_s}));
+  ASSERT_IDENTICAL(-24.0_s, multiplication::from_operands(
+                                std::initializer_list<scalar_expr>{4_s, -12_s, 0.5_s}));
+  ASSERT_IDENTICAL(0, multiplication::from_operands(
+                          std::initializer_list<scalar_expr>{0.0_s, 17_s, -0.0_s, 1.4_s}));
   // rational times float:
   ASSERT_IDENTICAL(0.8, 4.0_s * (1_s / 5));
   ASSERT_IDENTICAL(-1.0, (-1_s / 2) * 2.0);
@@ -261,7 +265,8 @@ TEST(ScalarOperationsTest, TestMultiplicationInfinities) {
   ASSERT_IDENTICAL(0, constants::pi / z_inf);
   ASSERT_IDENTICAL(0, (y * x) / z_inf);
 
-  ASSERT_IDENTICAL(z_inf, multiplication::from_operands({z_inf, z_inf, 22, -1.02}));
+  ASSERT_IDENTICAL(z_inf, multiplication::from_operands(
+                              std::initializer_list<scalar_expr>{z_inf, z_inf, 22, -1.02}));
 }
 
 TEST(ScalarOperationsTest, TestMultiplicationUndefined) {

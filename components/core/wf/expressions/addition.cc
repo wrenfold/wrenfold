@@ -183,7 +183,7 @@ scalar_expr addition_parts::create_addition() const {
       // expression and `coeff` is a numerical coefficient.
       args.emplace_back(std::in_place_type_t<multiplication>{}, term_coeff, multiplicand);
     } else {
-      args.push_back(multiplication::from_operands({multiplicand, term_coeff}));
+      args.push_back(multiplication::from_two_operands(multiplicand, term_coeff));
     }
   }
 

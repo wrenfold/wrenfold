@@ -75,7 +75,7 @@ std::string scalar_expr::to_expression_tree_string() const {
 }
 
 scalar_expr scalar_expr::operator-() const {
-  return multiplication::from_operands({constants::negative_one, *this});
+  return multiplication::from_two_operands(constants::negative_one, *this);
 }
 
 scalar_expr scalar_expr::diff(const scalar_expr& var, const int reps,
@@ -105,16 +105,16 @@ scalar_expr operator+(const scalar_expr& a, const scalar_expr& b) {
 }
 
 scalar_expr operator-(const scalar_expr& a, const scalar_expr& b) {
-  return a + multiplication::from_operands({constants::negative_one, b});
+  return a + multiplication::from_two_operands(constants::negative_one, b);
 }
 
 scalar_expr operator*(const scalar_expr& a, const scalar_expr& b) {
-  return multiplication::from_operands({a, b});
+  return multiplication::from_two_operands(a, b);
 }
 
 scalar_expr operator/(const scalar_expr& a, const scalar_expr& b) {
   auto one_over_b = power::create(b, constants::negative_one);
-  return multiplication::from_operands({a, one_over_b});
+  return multiplication::from_two_operands(a, one_over_b);
 }
 
 boolean_expr operator<(const scalar_expr& a, const scalar_expr& b) {

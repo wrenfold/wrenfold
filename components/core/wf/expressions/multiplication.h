@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "wf/expression.h"
+#include "wf/expressions/addition.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/power.h"
 #include "wf/expressions/special_constants.h"
@@ -56,23 +57,36 @@ class multiplication {
   // Get terms in the multiplication, sorted into canonical order.
   std::vector<scalar_expr> sorted_terms() const;
 
-  // Implement ExpressionImpl::Map
+  // Map all the terms in this multiplication to get a new expression.
   template <typename Operation>
   scalar_expr map_children(Operation&& operation) const {
-    const container_type transformed =
-        transform_map<container_type>(terms_, std::forward<Operation>(operation));
-    return multiplication::from_operands(transformed);
+    return multiplication::from_operands(terms_, std::forward<Operation>(operation));
   }
 
   // Child expressions of the multiplication.
   constexpr const container_type& children() const noexcept { return terms_; }
 
-  // Construct from a span of operands. Result is automatically simplified.
-  static scalar_expr from_operands(absl::Span<const scalar_expr> args);
+  // Construct from a container of operands while applying `operation`.
+  template <typename Container, typename Operation>
+  static scalar_expr from_operands(const Container& container, Operation&& operation);
+
+  // Construct from a container of operands. Result is automatically simplified.
+  template <typename Container>
+  static scalar_expr from_operands(const Container& container);
+
+  // Construct from two operands: a * b.
+  static scalar_expr from_two_operands(const scalar_expr& a, const scalar_expr& b);
+
+  // Multiply a numerical constant into he provided addition.
+  static scalar_expr multiply_into_addition(const addition& add,
+                                            const scalar_expr& numerical_constant) {
+    const addition::container_type add_args = transform_map<addition::container_type>(
+        add, [&](const scalar_expr& f) { return f * numerical_constant; });
+    return addition::from_operands(add_args);  // TODO: make this a move.
+  }
 
  private:
   void sort_terms();
-
   container_type terms_;
 };
 
@@ -184,5 +198,54 @@ struct multiplication_format_parts {
 
 // Create `multiplication_format_parts` from a multiplication.
 multiplication_format_parts get_formatting_info(const multiplication& mul);
+
+// Implementation of `multiplication` methods:
+template <typename Container, typename Operation>
+scalar_expr multiplication::from_operands(const Container& container, Operation&& operation) {
+  const std::size_t sz = std::size(container);
+  if (sz == 0) {
+    throw invalid_argument_error("Need at least one operand to construct multiplication.");
+  }
+  if (sz == 1) {
+    return operation(*container.begin());
+  }
+
+  // Check for `addition * constant`.
+  // Combinations for > 2 args are handled by `create_multiplication`.
+  if (sz == 2) {
+    auto it = container.begin();
+    const scalar_expr& first = operation(*it);
+    const scalar_expr& second = operation(*std::next(it));
+    return from_two_operands(first, second);
+  }
+
+  multiplication_parts parts{sz};
+  for (const scalar_expr& term : container) {
+    parts.multiply_term(operation(term));
+  }
+  parts.normalize_coefficients();
+  return std::move(parts).create_multiplication();
+}
+
+template <typename Container>
+scalar_expr multiplication::from_operands(const Container& container) {
+  return from_operands(container, [](const auto& x) -> const auto& { return x; });
+}
+
+inline scalar_expr multiplication::from_two_operands(const scalar_expr& arg0,
+                                                     const scalar_expr& arg1) {
+  if (const addition* add = get_if<const addition>(arg0);
+      add && arg1.is_type<integer_constant, rational_constant, float_constant>()) {
+    return multiply_into_addition(*add, arg1);
+  } else if (add = get_if<const addition>(arg1);
+             add && arg0.is_type<integer_constant, float_constant, rational_constant>()) {
+    return multiply_into_addition(*add, arg0);
+  }
+  multiplication_parts parts{2};
+  parts.multiply_term(arg0);
+  parts.multiply_term(arg1);
+  parts.normalize_coefficients();
+  return std::move(parts).create_multiplication();
+}
 
 }  // namespace wf

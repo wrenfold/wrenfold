@@ -82,45 +82,10 @@ inline scalar_expr maybe_new_mul(multiplication::container_type&& terms) {
   }
 }
 
-static scalar_expr multiply_into_addition(const addition& add,
-                                          const scalar_expr& numerical_constant) {
-  const addition::container_type add_args = transform_map<addition::container_type>(
-      add, [&](const scalar_expr& f) { return f * numerical_constant; });
-  return addition::from_operands(add_args);  // TODO: make this a move.
-}
-
 std::vector<scalar_expr> multiplication::sorted_terms() const {
   std::vector<scalar_expr> result{begin(), end()};
   std::sort(result.begin(), result.end(), expression_order_struct{});
   return result;
-}
-
-scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> args) {
-  if (args.empty()) {
-    throw invalid_argument_error("Need at least one operand to construct multiplication.");
-  }
-  if (args.size() < 2) {
-    return args.front();
-  }
-
-  // Check for `addition * constant`.
-  // Combinations for > 2 args are handled by `create_multiplication`.
-  if (args.size() == 2) {
-    if (const addition* add = get_if<const addition>(args[0]);
-        add && args[1].is_type<integer_constant, rational_constant, float_constant>()) {
-      return multiply_into_addition(*add, args[1]);
-    } else if (add = get_if<const addition>(args[1]);
-               add && args[0].is_type<integer_constant, float_constant, rational_constant>()) {
-      return multiply_into_addition(*add, args[0]);
-    }
-  }
-
-  multiplication_parts parts{args.size()};
-  for (const scalar_expr& term : args) {
-    parts.multiply_term(term);
-  }
-  parts.normalize_coefficients();
-  return std::move(parts).create_multiplication();
 }
 
 void multiplication::sort_terms() {
@@ -269,7 +234,7 @@ scalar_expr multiplication_parts::create_multiplication() && {
     // If this term is an addition, distribute the numerical value over the addition:
     if (const addition* add = get_if<const addition>(args[0]);
         add != nullptr && !is_one(constant_coeff_expr)) {
-      return multiply_into_addition(*add, constant_coeff_expr);
+      return multiplication::multiply_into_addition(*add, constant_coeff_expr);
     }
   }
   if (!is_one(constant_coeff_expr)) {
