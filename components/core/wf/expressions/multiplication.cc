@@ -5,9 +5,10 @@
 
 #include <algorithm>
 
+#include "wf/expression.h"
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
+#include "wf/utility/overloaded_visit.h"
 #include "wf/utility_visitors.h"
 
 namespace wf {
@@ -81,45 +82,10 @@ inline scalar_expr maybe_new_mul(multiplication::container_type&& terms) {
   }
 }
 
-static scalar_expr multiply_into_addition(const addition& add,
-                                          const scalar_expr& numerical_constant) {
-  const addition::container_type add_args = transform_map<addition::container_type>(
-      add, [&](const scalar_expr& f) { return f * numerical_constant; });
-  return addition::from_operands(add_args);  // TODO: make this a move.
-}
-
 std::vector<scalar_expr> multiplication::sorted_terms() const {
   std::vector<scalar_expr> result{begin(), end()};
   std::sort(result.begin(), result.end(), expression_order_struct{});
   return result;
-}
-
-scalar_expr multiplication::from_operands(const absl::Span<const scalar_expr> args) {
-  if (args.empty()) {
-    throw invalid_argument_error("Need at least one operand to construct multiplication.");
-  }
-  if (args.size() < 2) {
-    return args.front();
-  }
-
-  // Check for `addition * constant`.
-  // Combinations for > 2 args are handled by `create_multiplication`.
-  if (args.size() == 2) {
-    if (const addition* add = get_if<const addition>(args[0]);
-        add && args[1].is_type<integer_constant, rational_constant, float_constant>()) {
-      return multiply_into_addition(*add, args[1]);
-    } else if (add = get_if<const addition>(args[1]);
-               add && args[0].is_type<integer_constant, float_constant, rational_constant>()) {
-      return multiply_into_addition(*add, args[0]);
-    }
-  }
-
-  multiplication_parts parts{args.size()};
-  for (const scalar_expr& term : args) {
-    parts.multiply_term(term);
-  }
-  parts.normalize_coefficients();
-  return parts.create_multiplication();
 }
 
 void multiplication::sort_terms() {
@@ -217,30 +183,36 @@ void multiplication_parts::normalize_coefficients() {
   map_erase_if(terms_, [](const auto& pair) { return is_zero(pair.second); });
 }
 
-scalar_expr multiplication_parts::create_multiplication() const {
+bool has_numeric_coefficient(const scalar_expr& expr) {
+  if (expr.is_type<integer_constant, rational_constant, float_constant>()) {
+    return true;
+  } else if (const multiplication* mul = get_if<const multiplication>(expr); mul != nullptr) {
+    return any_of(*mul, [](const scalar_expr& x) {
+      return x.is_type<integer_constant, rational_constant, float_constant>();
+    });
+  } else {
+    return false;
+  }
+}
+
+scalar_expr multiplication_parts::create_multiplication() && {
   multiplication::container_type args{};
   multiplication_parts::constant_coeff constant_coefficient = coeff_;
 
   // Convert into a vector of powers, and sort into canonical order:
-  for (const auto& [base, exp] : terms_) {
-    auto pow = power::create(base, exp);
+  for (auto& [base, exp] : terms_) {
+    auto pow = power::create(base, std::move(exp));
 
-    // The power may have produced a numerical coefficient:
-    auto [pow_coeff, mul] = as_coeff_and_mul(pow);
-
-    // If there is a non-unit coefficient resulting from the power, multiply it onto the constant.
-    // ReSharper disable once CppTooWideScope
-    const bool stripped_coefficient = visit(pow_coeff, [&](const auto& numeric) {
-      using T = std::decay_t<decltype(numeric)>;
-      if constexpr (type_list_contains_v<T, integer_constant, rational_constant, float_constant>) {
-        constant_coefficient = multiply_numeric_constants{}(constant_coefficient, numeric);
-        return true;
-      } else {
-        return false;
-      }
-    });
-
-    if (stripped_coefficient) {
+    if (has_numeric_coefficient(pow)) {
+      // The power may have produced a numerical coefficient:
+      auto [pow_coeff, mul] = as_coeff_and_mul(pow);
+      visit(pow_coeff, [&](const auto& numeric) {
+        using T = std::decay_t<decltype(numeric)>;
+        if constexpr (type_list_contains_v<T, integer_constant, rational_constant,
+                                           float_constant>) {
+          constant_coefficient = multiply_numeric_constants{}(constant_coefficient, numeric);
+        }
+      });
       if (!is_one(mul)) {
         args.push_back(std::move(mul));
       }
@@ -262,7 +234,7 @@ scalar_expr multiplication_parts::create_multiplication() const {
     // If this term is an addition, distribute the numerical value over the addition:
     if (const addition* add = get_if<const addition>(args[0]);
         add != nullptr && !is_one(constant_coeff_expr)) {
-      return multiply_into_addition(*add, constant_coeff_expr);
+      return multiplication::multiply_into_addition(*add, constant_coeff_expr);
     }
   }
   if (!is_one(constant_coeff_expr)) {
@@ -277,7 +249,7 @@ static std::pair<scalar_expr, scalar_expr> split_multiplication(const multiplica
   multiplication::container_type numerics{};
   multiplication::container_type remainder{};
   for (const scalar_expr& expr : mul) {
-    if (is_numeric(expr)) {
+    if (expr.is_type<integer_constant, rational_constant, float_constant>()) {
       numerics.push_back(expr);
     } else {
       remainder.push_back(expr);

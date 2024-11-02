@@ -4,6 +4,7 @@
 #include "wf/expressions/custom_type_expressions.h"
 
 #include "wf/expression_visitor.h"
+#include "wf/utility/overloaded_visit.h"
 
 namespace wf {
 

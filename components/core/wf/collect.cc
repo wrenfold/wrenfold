@@ -4,7 +4,6 @@
 #include <algorithm>
 
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 
 namespace wf {
 
@@ -89,19 +88,18 @@ struct collect_visitor {
     // Now we're done with the first term, we recurse for the remaining terms.
     for (auto it = exponents_to_mul.begin(); it != exponents_to_mul.end(); ++it) {
       // The term we are collecting, e.g. x, x**2, x**3, etc...
-      scalar_expr collected_pow = power::create(collected_term, it->first);
+      const scalar_expr collected_pow = power::create(collected_term, it->first);
 
       // Check if we need to collect remaining terms of our coefficient, otherwise just turn it into
       // an addition. In some cases, the addition might just reduce to a single expression.
-      scalar_expr term_coefficient =
+      const scalar_expr term_coefficient =
           collected_terms_.size() > 1
               ? collect_visitor{collected_terms_.subspan(1)}.collect_addition_terms(
                     std::move(it->second))
               : addition::from_operands(it->second);
 
       // Multiply the power by the collected terms: x**2 * (y + pi - 3)
-      scalar_expr mul =
-          multiplication::from_operands({std::move(collected_pow), std::move(term_coefficient)});
+      scalar_expr mul = multiplication::from_two_operands(collected_pow, term_coefficient);
       container.push_back(std::move(mul));
     }
     return addition::from_operands(container);  //  TODO: should be a move

@@ -7,6 +7,7 @@
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
+#include "wf/utility/overloaded_visit.h"
 
 namespace wf {
 
@@ -163,8 +164,7 @@ void addition_parts::normalize_coefficients() {
 scalar_expr addition_parts::create_addition() const {
   addition::container_type args{};
 
-  scalar_expr constant_coeff_expr =
-      overloaded_visit(coeff, [](const auto x) { return scalar_expr(x); });
+  scalar_expr constant_coeff_expr = std::visit([](const auto x) { return scalar_expr(x); }, coeff);
 
   if (is_undefined(constant_coeff_expr)) {
     return constants::undefined;
@@ -182,7 +182,7 @@ scalar_expr addition_parts::create_addition() const {
       // expression and `coeff` is a numerical coefficient.
       args.emplace_back(std::in_place_type_t<multiplication>{}, term_coeff, multiplicand);
     } else {
-      args.push_back(multiplication::from_operands({multiplicand, term_coeff}));
+      args.push_back(multiplication::from_two_operands(multiplicand, term_coeff));
     }
   }
 

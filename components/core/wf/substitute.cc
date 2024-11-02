@@ -219,7 +219,7 @@ struct substitute_mul_visitor
     }
 
     input_parts.normalize_coefficients();
-    return input_parts.create_multiplication();
+    return std::move(input_parts).create_multiplication();
   }
 
  protected:

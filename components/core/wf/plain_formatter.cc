@@ -5,6 +5,7 @@
 
 #include "wf/expression_visitor.h"
 #include "wf/utility/assertions.h"
+#include "wf/utility/overloaded_visit.h"
 #include "wf/utility/third_party_imports.h"
 #include "wf/utility_visitors.h"
 

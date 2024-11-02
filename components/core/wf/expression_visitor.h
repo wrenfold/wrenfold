@@ -3,7 +3,6 @@
 // For license information refer to accompanying LICENSE file.
 #pragma once
 #include "wf/expression_variant.h"
-#include "wf/utility/overloaded_visit.h"
 #include "wf/utility/visit_switch.h"
 
 // All expression definitions need to be available to static_cast.

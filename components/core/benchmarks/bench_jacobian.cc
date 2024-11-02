@@ -24,7 +24,7 @@ static void BM_QuaternionInterpolateJacobian(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_QuaternionInterpolateJacobian)->Iterations(2000)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_QuaternionInterpolateJacobian)->Iterations(30000)->Unit(benchmark::kMillisecond);
 
 }  // namespace wf
 

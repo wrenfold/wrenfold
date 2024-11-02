@@ -4,6 +4,7 @@
 #include "wf/code_generation/ir_form_visitor.h"
 
 #include "wf/expression_visitor.h"
+#include "wf/utility/overloaded_visit.h"
 #include "wf/utility/scoped_trace.h"
 #include "wf/utility_visitors.h"
 
