@@ -2,7 +2,7 @@
 add_custom_target(wf_stubs ALL)
 
 # Find stubgen:
-if(NOT DEFINED STUBGEN_PATH)
+if(NOT DEFINED STUBGEN_PATH OR STUBGEN_PATH STREQUAL "STUBGEN_PATH-NOTFOUND")
   message(STATUS "Looking for stubgen...")
   find_program(STUBGEN_PATH stubgen)
   if(DEFINED STUBGEN_PATH AND NOT STUBGEN_PATH STREQUAL "STUBGEN_PATH-NOTFOUND")

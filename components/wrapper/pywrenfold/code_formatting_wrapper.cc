@@ -9,16 +9,12 @@
 #include "wf/code_generation/ast.h"
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/cpp_code_generator.h"
+#include "wf/code_generation/python_code_generator.h"
 #include "wf/code_generation/rust_code_generator.h"
 #include "wf/utility/type_list.h"
 
 namespace py = pybind11;
 using namespace py::literals;
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4250)  //  inheritance via dominance
-#endif
 
 namespace wf {
 
@@ -325,10 +321,29 @@ void wrap_code_formatting_operations(py::module_& m) {
       "Abstract base class for generators. The user may inherit from this in python when writing "
       "a "
       "new generator from scratch.";
+
+  py::enum_<python_generator_target>(m, "PythonGeneratorTarget")
+      .value("NumPy", python_generator_target::numpy, "Target the NumPy API.")
+      .value("PyTorch", python_generator_target::pytorch, "Target the PyTorch API.")
+      .value("JAX", python_generator_target::jax, "Target the JAX API.");
+
+  py::enum_<python_generator_float_width>(m, "PythonGeneratorFloatWidth")
+      .value("Float32", python_generator_float_width::float32,
+             "Float arrays/tensors will be interpreted as float32.")
+      .value("Float64", python_generator_float_width::float64,
+             "Float arrays/tensors will be interpreted as float64.");
+
+  wrap_code_generator<python_code_generator>(m, "PythonGenerator")
+      .def(py::init<python_generator_target, python_generator_float_width, int>(),
+           py::arg("target"), py::arg("float_width") = python_generator_float_width::float32,
+           py::arg("indentation") = 2)
+      .def_property_readonly("target", &python_code_generator::target,
+                             "The API that the python generator targets.")
+      .def_property_readonly("float_width", &python_code_generator::float_width,
+                             "Float precision applied to all NumPy arrays and tensors.")
+      .def_property_readonly("indentation", &python_code_generator::indentation,
+                             "Amount of spaces used to indent nested scopes.")
+      .doc() = "Generates Python code. Can target NumPy, PyTorch, or JAX.";
 }
 
 }  // namespace wf
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
