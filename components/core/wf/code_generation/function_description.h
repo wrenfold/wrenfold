@@ -46,6 +46,9 @@ class argument {
     return impl_->direction == argument_direction::optional_output;
   }
 
+  // Is this an input argument?
+  bool is_input() const noexcept { return impl_->direction == argument_direction::input; }
+
   // Argument direction.
   argument_direction direction() const noexcept { return impl_->direction; }
 

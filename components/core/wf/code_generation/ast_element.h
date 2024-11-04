@@ -81,6 +81,14 @@ class ast_element {
   // Access the underlying shared pointer.
   constexpr const auto& impl() const noexcept { return ptr_; }
 
+  // Check if the underlying derived type is one of `Ts...`.
+  template <typename... Ts>
+  bool is_type() const noexcept {
+    static_assert((type_list_contains_v<std::remove_const_t<Ts>, types> && ...),
+                  "T is not a valid expression type");
+    return ((type_list_index_v<std::remove_const_t<Ts>, types> == index()) || ...);
+  }
+
  private:
   // Abstract base type for our contents.
   class concept_base {
