@@ -7,6 +7,8 @@ code_generation
 
 .. autofunction:: wrenfold.code_generation.generate_function
 
+.. autofunction:: wrenfold.code_generation.generate_python
+
 .. autofunction:: wrenfold.code_generation.mkdir_and_write_file
 
 .. autofunction:: wrenfold.code_generation.transpile
@@ -37,6 +39,21 @@ code_generation
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
 .. autoclass:: wrenfold.code_generation.OutputArg
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.code_generation.PythonGenerator
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.code_generation.PythonGeneratorFloatWidth
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.code_generation.PythonGeneratorTarget
   :members:
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
