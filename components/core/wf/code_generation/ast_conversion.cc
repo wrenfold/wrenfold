@@ -342,7 +342,7 @@ ast::ast_element ast_form_visitor::visit_value(const ir::value& value) {
         // These types are placeholders, and don't directly appear in the ast output:
         using T = std::decay_t<decltype(op)>;
         using excluded_types =
-            type_list<ir::jump_condition, ir::save, ir::cond, ir::phi, ir::output_required>;
+            type_list<ir::jump_condition, ir::save, ir::phi, ir::output_required>;
         if constexpr (type_list_contains_v<T, excluded_types>) {
           throw type_error("Type cannot be converted to AST: {}", typeid(T).name());
         } else {
@@ -409,6 +409,13 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val,
   type_constructor constructor{transform_operands(val, std::nullopt)};
   return std::visit([&](const auto& x) { return ast::ast_element(constructor(x)); },
                     construct.type());
+}
+
+ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::cond&) {
+  return ast::ast_element{std::in_place_type_t<ast::ternary>{},
+                          visit_operation_argument(val[0], precedence::ternary),
+                          visit_operation_argument(val[1], precedence::ternary),
+                          visit_operation_argument(val[2], precedence::ternary)};
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::copy&) {

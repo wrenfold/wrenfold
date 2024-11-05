@@ -9,7 +9,6 @@
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/expr_from_ir.h"
 #include "wf/code_generation/expression_group.h"
-#include "wf/code_generation/rust_code_generator.h"
 #include "wf/expression.h"
 #include "wf/matrix_expression.h"
 
@@ -24,18 +23,19 @@ namespace wf {
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
 ast::function_definition transpile_to_ast(const function_description& description,
-                                          const std::optional<optimization_params>& graph_params) {
+                                          const std::optional<optimization_params>& opt_params,
+                                          const bool convert_ternaries) {
   const control_flow_graph cfg =
-      control_flow_graph{description, graph_params.value_or(optimization_params{})}
-          .convert_conditionals_to_control_flow();
+      control_flow_graph{description, opt_params.value_or(optimization_params{})}
+          .convert_conditionals_to_control_flow(convert_ternaries);
   return ast::create_ast(cfg, description);
 }
 
 // Convert a function description into IR, then rebuild the simplified expression tree and return
 // it.
 auto cse_function_description(const function_description& description,
-                              const std::optional<optimization_params>& params) {
-  const control_flow_graph cfg{description, params.value_or(optimization_params{})};
+                              const std::optional<optimization_params>& opt_params) {
+  const control_flow_graph cfg{description, opt_params.value_or(optimization_params{})};
   rebuilt_expressions rebuilt = rebuild_expression_tree(cfg.first_block(), {}, true);
   // Pybind STL conversion will change the types here for us:
   return std::make_tuple(std::move(rebuilt.output_expressions),
@@ -228,19 +228,22 @@ void wrap_codegen_operations(py::module_& m) {
   m.def(
       "transpile",
       [](const std::vector<function_description>& descriptions,
-         const std::optional<optimization_params>& params) {
+         const std::optional<optimization_params>& params, bool convert_ternaries) {
         // TODO: Allow this to run in parallel.
         // Could use std::execution_policy, but it is missing on macosx-13.
-        return transform_map<std::vector>(descriptions, [&params](const function_description& d) {
-          return transpile_to_ast(d, params);
-        });
+        return transform_map<std::vector>(
+            descriptions, [&params, convert_ternaries](const function_description& d) {
+              return transpile_to_ast(d, params, convert_ternaries);
+            });
       },
-      py::arg("desc"), py::arg("params") = py::none(),
+      py::arg("desc"), py::arg("optimization_params") = py::none(),
+      py::arg("convert_ternaries") = true,
       "Overload of :func:`wrenfold.code_generation.transpile` that operates on a sequence "
       "of functions.",
       py::return_value_policy::take_ownership);
 
-  m.def("transpile", &transpile_to_ast, py::arg("desc"), py::arg("params") = py::none(),
+  m.def("transpile", &transpile_to_ast, py::arg("desc"),
+        py::arg("optimization_params") = py::none(), py::arg("convert_ternaries") = true,
         docstrings::transpile.data(), py::return_value_policy::take_ownership);
 
   m.def("cse_function_description", &cse_function_description, py::arg("desc"),

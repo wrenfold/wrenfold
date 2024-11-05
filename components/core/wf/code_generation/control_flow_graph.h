@@ -22,7 +22,7 @@ struct optimization_params {
 // Store intermediate representation values and blocks. The blocks are arranged in a graph
 // that describes the control flow in a code-generation function.
 // TODO: I tend to think the structure of this object could be improved:
-//  - The use of "standard blocks" potentially overcomplicates things. The original motivation was
+//  - The use of "standard blocks" potentially over-complicates things. The original motivation was
 //    to learn from examples in compilers, but we only really need if-else support for now.
 //  - I dislike that objects are connected via non-owning pointers. Maybe indices into an array
 //    would be safer. Each `ir::value` object is fairly large, and could could potentially be split
@@ -36,7 +36,7 @@ class control_flow_graph {
   // Consume `this` and convert to a control flow graph that contains jumps.
   // This converts the graph from one with `cond` operations to one with multiple blocks and jump
   // operations.
-  control_flow_graph convert_conditionals_to_control_flow() &&;
+  control_flow_graph convert_conditionals_to_control_flow(bool convert_ternaries = true) &&;
 
   // Format IR for every value.
   std::string to_string() const;

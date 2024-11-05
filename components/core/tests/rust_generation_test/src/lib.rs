@@ -245,6 +245,62 @@ fn test_nested_conditionals_2() {
 }
 
 #[test]
+fn test_nested_conditionals_1_with_ternaries() {
+    assert_eq!(
+        1.9875135408080455,
+        generated::nested_conditionals_1_with_ternaries(0.5, 0.2)
+    );
+    assert_eq!(
+        0.2127659962913584,
+        generated::nested_conditionals_1_with_ternaries(0.1, 0.3)
+    );
+    assert_eq!(
+        2.664161305696031,
+        generated::nested_conditionals_1_with_ternaries(2.4, -0.11)
+    );
+    assert_eq!(
+        0.20636916796204946,
+        generated::nested_conditionals_1_with_ternaries(1.3, -3.0)
+    );
+    assert_eq!(
+        1.6620319900924367,
+        generated::nested_conditionals_1_with_ternaries(-0.8, 0.66)
+    );
+    assert_eq!(
+        0.35166057729244216,
+        generated::nested_conditionals_1_with_ternaries(-0.123, -0.5)
+    );
+}
+
+#[test]
+fn test_nested_conditionals_2_with_ternaries() {
+    assert_eq!(
+        0.998948281966456,
+        generated::nested_conditionals_2_with_ternaries(0.73, 0.02)
+    );
+    assert_eq!(
+        2.093418257300724,
+        generated::nested_conditionals_2_with_ternaries(1.32, 1.32)
+    );
+    assert_eq!(
+        -21.598735511069624,
+        generated::nested_conditionals_2_with_ternaries(7.2, -7.0)
+    );
+    assert_eq!(
+        4.907137658554118,
+        generated::nested_conditionals_2_with_ternaries(5.6, -6.3)
+    );
+    assert_eq!(
+        33.78428079355372,
+        generated::nested_conditionals_2_with_ternaries(-1.0, 0.95)
+    );
+    assert_eq!(
+        0.0,
+        generated::nested_conditionals_2_with_ternaries(-1.7, -2.0)
+    );
+}
+
+#[test]
 fn test_no_required_outputs() {
     let x: f64 = -1.142;
 

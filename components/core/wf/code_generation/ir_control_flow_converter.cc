@@ -40,8 +40,9 @@ static auto get_reverse_ordered_output_values(
   return std::make_tuple(std::move(required_outputs_queue), std::move(optional_outputs));
 }
 
-ir_control_flow_converter::ir_control_flow_converter(control_flow_graph&& input)
-    : values_(std::move(input.values_)) {
+ir_control_flow_converter::ir_control_flow_converter(control_flow_graph&& input,
+                                                     const bool convert_ternaries)
+    : values_(std::move(input.values_)), convert_ternaries_(convert_ternaries) {
   visited_.reserve(values_.size());
 
   WF_ASSERT_EQ(1, input.blocks_.size(),
@@ -182,7 +183,7 @@ std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
       continue;
     }
 
-    if (top->is_op<ir::cond>()) {
+    if (top->is_op<ir::cond>() && convert_ternaries_) {
       // Defer conditionals to be processed together later:
       queued_conditionals.push_back(top);
       continue;

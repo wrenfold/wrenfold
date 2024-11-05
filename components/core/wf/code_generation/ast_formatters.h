@@ -186,6 +186,11 @@ auto format_ast(Iterator it, const wf::ast::return_object& r) {
 }
 
 template <typename Iterator>
+auto format_ast(Iterator it, const wf::ast::ternary& t) {
+  return fmt::format_to(it, "({} ? {} : {})", t.condition, t.left, t.right);
+}
+
+template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::special_constant& c) {
   return fmt::format_to(it, "({})", string_from_symbolic_constant(c.value));
 }

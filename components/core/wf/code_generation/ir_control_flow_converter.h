@@ -14,7 +14,7 @@ namespace wf {
 class ir_control_flow_converter {
  public:
   // Construct from existing control flow graph. The contents are moved, and `input` is left empty.
-  explicit ir_control_flow_converter(control_flow_graph&& input);
+  explicit ir_control_flow_converter(control_flow_graph&& input, bool convert_ternaries);
 
   // Convert all ternary `cond` statements into conditionals, introducing new blocks and jump
   // statements in the process. Return a new control flow graph (consuming `this` in the process).
@@ -52,9 +52,10 @@ class ir_control_flow_converter {
   ir::block_ptr create_block();
 
   std::vector<ir::value::unique_ptr> values_;
-  std::vector<ir::block::unique_ptr> blocks_{};
-  std::unordered_set<ir::const_value_ptr> visited_{};
+  std::vector<ir::block::unique_ptr> blocks_;
+  std::unordered_set<ir::const_value_ptr> visited_;
   ir::block::unique_ptr input_block_;
+  bool convert_ternaries_;
 };
 
 }  // namespace wf

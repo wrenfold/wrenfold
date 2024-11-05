@@ -49,6 +49,7 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   result.push_back("clippy::collapsible_else_if");
   result.push_back("clippy::needless_late_init");
   result.push_back("unused_variables");
+  result.push_back("unused_parens");
   return result;
 }
 
@@ -366,6 +367,11 @@ std::string rust_code_generator::operator()(const ast::parenthetical& x) const {
 
 std::string rust_code_generator::operator()(const ast::special_constant& x) const {
   return std::string{rust_string_for_symbolic_constant(x.value)};
+}
+
+std::string rust_code_generator::operator()(const ast::ternary& x) const {
+  return fmt::format("if {} {{ {} }} else {{ {} }}", make_view(x.condition), make_view(x.left),
+                     make_view(x.right));
 }
 
 std::string rust_code_generator::operator()(const ast::variable_ref& x) const { return x.name; }

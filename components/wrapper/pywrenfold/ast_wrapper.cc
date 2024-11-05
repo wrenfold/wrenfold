@@ -382,6 +382,18 @@ void wrap_ast(py::module_& m) {
           "Enum indicating the value of the constant.")
       .doc() = "Emit a mathematical constant";
 
+  map.at<ast::ternary>()
+      .def_property_readonly("condition", to_inner_accessor(&ast::ternary::condition),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Value that should be wrapped in parentheses.")
+      .def_property_readonly("left", to_inner_accessor(&ast::ternary::left),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Value when the condition is true.")
+      .def_property_readonly("right", to_inner_accessor(&ast::ternary::right),
+                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
+                             "Value when the condition is false.")
+      .doc() = "A ternary expression: ``condition ? left : right``";
+
   map.at<ast::variable_ref>()
       .def_property_readonly(
           "name", [](const ast::variable_ref& v) { return v.name; }, "Name of the variable.")

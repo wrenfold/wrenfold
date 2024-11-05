@@ -22,7 +22,9 @@ your project.
 
 Args:
   desc: :class:`wrenfold.code_generation.FunctionDescription` object.
-  params: Optional parameters to control subexpression elimination.
+  optimization_params: Optional parameters to control subexpression elimination.
+  convert_ternaries: If true, ternary :func:`wrenfold.sym.where` statements become if-else control
+    flow.
 
 Returns:
   Instance of :class:`wrenfold.ast.FunctionDefinition`.
@@ -50,7 +52,7 @@ subexpressions required to evaluate the function.
 
 Args:
   desc: :class:`wrenfold.code_generation.FunctionDescription` object.
-  params: Optional parameters to control subexpression elimination.
+  optimization_params: Optional parameters to control subexpression elimination.
 
 Returns:
   A dict mapping from ``OutputKey`` to output expressions, and a list of intermediate subexpressions

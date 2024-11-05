@@ -1,11 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include "wf/type_annotations.h"
-
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numeric_testing.h"
-#include "wf_test_support/test_macros.h"
 
 #include "test_expressions.h"  //  Symbolic test functions.
 
@@ -248,6 +245,42 @@ TEST(CppGenerationTest, TestNestedConditionals2) {
   EXPECT_EQ(evaluator(-1.7, -2.0), gen::nested_conditionals_2(-1.7, -2.0));
 }
 
+TEST(CppGenerationTest, TestNestedConditionals1WithTernaries) {
+  auto evaluator = create_evaluator(&nested_conditionals_1);
+  // Exercise all the different control paths.
+  // x > 0, y > 0, |x| > |y|
+  EXPECT_NEAR(evaluator(0.5, 0.2), gen::nested_conditionals_1_with_ternaries(0.5, 0.2), 1.0e-15);
+  // x > 0, y > 0, |x| <= |y|
+  EXPECT_NEAR(evaluator(0.1, 0.3), gen::nested_conditionals_1_with_ternaries(0.1, 0.3), 1.0e-15);
+  // x > 0, y <= 0, |x| > |y|
+  EXPECT_NEAR(evaluator(2.4, -0.11), gen::nested_conditionals_1_with_ternaries(2.4, -0.11),
+              1.0e-15);
+  // x > 0, y <= 0, |x| <= |y|
+  EXPECT_NEAR(evaluator(1.3, -3.0), gen::nested_conditionals_1_with_ternaries(1.3, -3.0), 1.0e-15);
+  // x <= 0, y > 0, |x| > |y|
+  EXPECT_NEAR(evaluator(-0.8, 0.66), gen::nested_conditionals_1_with_ternaries(-0.8, 0.66),
+              1.0e-15);
+  // x <= 0, y <= 0, |x| <= |y|
+  EXPECT_NEAR(evaluator(-0.123, -0.5), gen::nested_conditionals_1_with_ternaries(-0.123, -0.5),
+              1.0e-15);
+}
+
+TEST(CppGenerationTest, TestNestedConditionals2WithTernaries) {
+  auto evaluator = create_evaluator(&nested_conditionals_2);
+  // x > 0, y > 0, |x| > |y|
+  EXPECT_EQ(evaluator(0.73, 0.02), gen::nested_conditionals_2_with_ternaries(0.73, 0.02));
+  // x > 0, y > 0, |x| <= |y|
+  EXPECT_EQ(evaluator(1.32, 1.32), gen::nested_conditionals_2_with_ternaries(1.32, 1.32));
+  // x > 0, y <= 0, |x| > |y|
+  EXPECT_EQ(evaluator(7.2, -7.0), gen::nested_conditionals_2_with_ternaries(7.2, -7.0));
+  // x > 0, y <= 0, |x| <= |y|
+  EXPECT_EQ(evaluator(5.6, -6.3), gen::nested_conditionals_2_with_ternaries(5.6, -6.3));
+  // x <= 0, y > 0, |x| > |y|
+  EXPECT_EQ(evaluator(-1.0, 0.95), gen::nested_conditionals_2_with_ternaries(-1.0, 0.95));
+  // x <= 0, y <= 0, |x| <= |y|
+  EXPECT_EQ(evaluator(-1.7, -2.0), gen::nested_conditionals_2_with_ternaries(-1.7, -2.0));
+}
+
 TEST(CppGenerationTest, TestQuaternionFromMatrix) {
   const double sqrt2inv = 1.0 / std::sqrt(2.0);
   const std::vector<Eigen::Quaterniond> qs = {
@@ -337,9 +370,17 @@ TEST(CppGenerationTest, TestCreateRotationMatrix) {
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 
+  gen::create_rotation_matrix_with_ternaries<double>(w2, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
   const Eigen::Vector3d w3{5.0, -4.0, 2.1};
   evaluator(w3, R_num, D_num);
   gen::create_rotation_matrix<double>(w3, R_gen, D_gen);
+  EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
+  EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
+
+  gen::create_rotation_matrix_with_ternaries<double>(w3, R_gen, D_gen);
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }

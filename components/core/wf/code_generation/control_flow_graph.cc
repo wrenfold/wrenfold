@@ -208,9 +208,10 @@ void control_flow_graph::factorize_sums(const std::size_t num_passes) {
 #endif
 }
 
-control_flow_graph control_flow_graph::convert_conditionals_to_control_flow() && {
+control_flow_graph control_flow_graph::convert_conditionals_to_control_flow(
+    bool convert_ternaries) && {
   WF_FUNCTION_TRACE();
-  return ir_control_flow_converter{std::move(*this)}.convert();
+  return ir_control_flow_converter{std::move(*this), convert_ternaries}.convert();
 }
 
 // A hash-set of values:

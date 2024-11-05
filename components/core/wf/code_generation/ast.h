@@ -251,6 +251,15 @@ struct return_object {
   ast_element value;
 };
 
+// A ternary conditional statement: condition ? if_branch : else_branch;
+struct ternary {
+  static constexpr std::string_view snake_case_name_str = "ternary";
+
+  ast_element condition;
+  ast_element left;
+  ast_element right;
+};
+
 // Usage of a variable.
 struct variable_ref {
   static constexpr std::string_view snake_case_name_str = "variable_ref";

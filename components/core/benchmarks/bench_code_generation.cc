@@ -72,7 +72,7 @@ void BM_ConvertIr(benchmark::State& state) {
     control_flow_graph flat_ir{description, optimization_params{}};
     state.ResumeTiming();
     // Convert to the non-flat IR.
-    control_flow_graph output_ir = std::move(flat_ir).convert_conditionals_to_control_flow();
+    control_flow_graph output_ir = std::move(flat_ir).convert_conditionals_to_control_flow(true);
     benchmark::DoNotOptimize(output_ir);
   }
 }
@@ -84,7 +84,8 @@ void BM_GenerateCpp(benchmark::State& state) {
       &quaternion_interpolation, "quaternion_interpolation", arg("q0"), arg("q1"), arg("alpha"));
 
   const control_flow_graph output_cfg =
-      control_flow_graph{description, optimization_params()}.convert_conditionals_to_control_flow();
+      control_flow_graph{description, optimization_params()}.convert_conditionals_to_control_flow(
+          true);
 
   for (auto _ : state) {
     ast::function_definition definition = ast::create_ast(output_cfg, description);
