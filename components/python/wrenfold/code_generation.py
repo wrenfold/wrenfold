@@ -70,7 +70,7 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
 
     Tip:
       The provided callable must be type annotated so that wrenfold can deduce the type of input
-      expressions required to invoke. See :doc:`type_annotations` for built-in types that can be
+      expressions required to invoke it. See :doc:`type_annotations` for built-in types that can be
       used to annotate functions. The function should return either:
 
         * A sequence of :class:`wrenfold.code_generation.ReturnValue` or
@@ -79,7 +79,7 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
           be interpreted as a ``ReturnValue``.
 
     Args:
-      func: A python function with type-annotated arguments.
+      func: A symbolic python function with type-annotated arguments.
       name: String name of the function.
 
     Returns:
@@ -195,20 +195,20 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
     to code in the language emitted by ``generator``. This is a three-step process:
 
-        #. The signature of the provided function is inspected to generate input arguments. Next, it is invoked
-           and the symbolic outputs are captured in a :class:`wrenfold.code_generation.FunctionDescription`.
-        #. This description is converted to AST using :func:`wrenfold.code_generation.transpile`. Duplicate
-           operations are eliminated during this step, and conditionals are converted to control flow.
-        #. Lastly, the AST is passed to the provided generator to emit usable code.
+        #. The signature of the provided function is inspected to generate symbolic input arguments.
+           Next, it is invoked and the symbolic outputs are recorded.
+        #. The expression tree is flattened and optimized by :func:`wrenfold.code_generation.transpile`.
+           Duplicate operations are eliminated during this step, and conditionals are converted to
+           control flow. The simplified output is converted to a syntax tree.
+        #. Lastly, the syntax is passed to the provided ``generator`` to emit usable code.
 
     Tip:
 
-      The steps above can also be performed individually. For instance, you might wish to pass the output
-      AST to multiple generators if many simultaneous target languages are required. See
-      :func:`wrenfold.code_generation.create_function_description` for an example.
+      For examples of the types of functions that wrenfold can generate, see the
+      `wrenfold repo <https://github.com/wrenfold/wrenfold/tree/main/examples>`_.
 
     Args:
-        func: A python function with type-annotated arguments. See
+        func: A symbolic python function with type-annotated arguments. See
           :func:`wrenfold.code_generation.create_function_description` for notes on the expected
           signature.
         generator: Instance of a code generator, eg. :class:`wrenfold.code_generation.CppGenerator`.
@@ -216,9 +216,11 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
         optimization_params: Parameters governing simplifications/optimizations applied to the
           output code.
         convert_ternaries: Whether to convert ternary :func:`wrenfold.sym.where` statements to
-          if-else control flow. Defaults to true.
+          if-else control flow. Defaults to true. You likely want to set this to False when
+          targeting python frameworks that need to trace control-flow, for example PyTorch or JAX.
 
-    Returns: Generated code.
+    Returns:
+      * A string of generated code.
 
     Example:
       >>> from wrenfold.type_annotations import FloatScalar
@@ -254,6 +256,148 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
     func_ast = transpile(
         description, optimization_params=optimization_params, convert_ternaries=convert_ternaries)
     return generator.generate(definition=func_ast)
+
+
+def generate_python(func: T.Callable[..., CodegenFuncInvocationResult],
+                    target: PythonGeneratorTarget,
+                    convert_ternaries: T.Optional[bool] = None,
+                    context: T.Optional[T.Dict[str, T.Any]] = None,
+                    import_target_module: bool = True) -> T.Tuple[T.Callable, str]:
+    """
+    Code-generate a symbolic function as python code, then ``exec`` the code and return a python
+    function that implements the symbolic function numerically.
+
+    Args:
+        func: A symbolic python function with type-annotated arguments. See
+          :func:`wrenfold.code_generation.create_function_description` for notes on the expected
+          signature.
+        target: Which Python API to target (ie. NumPy, PyTorch, etc).
+        convert_ternaries: Whether to convert :func:`wrenfold.sym.where` expressions to Python
+          control flow. For frameworks like PyTorch and JAX, we need to leave conditionals in a
+          traceable format (ie. ``th.where`` calls). By default, if ``convert_ternaries=None``,
+          wrenfold will not convert ``sym.where`` calls to if-else statements when targeting PyTorch
+          and JAX. This allows generated functions to be batched and JIT compiled.
+        context: Dict of key-value pairs that will be passed to
+          `exec <https://docs.python.org/3/library/functions.html#exec>`_ in the ``globals`` arg.
+        import_target_module: If true (the default), import the target API. See the warning below.
+
+    Returns:
+      * A callable python function that implements ``func`` numerically.
+      * A string containing the corresponding python code.
+
+    Warning:
+
+      By default, wrenfold will automatically import the appropriate framework specified by
+      ``target``:
+
+        * If the target is ``NumPy``, ``numpy`` will be imported as ``np``.
+        * If the target is ``JAX``, ``jax.numpy`` will be imported as ``jnp``.
+        * If the target is ``PyTorch``, ``torch`` will be imported as ``th``.
+
+      To suppress the default import behavior, specify ``import_target_module=False``. You will then
+      need to pass your own import in the ``context`` dict.
+
+    Tip:
+
+      Code-generation is performed using the :class:`wrenfold.code_generation.PythonGenerator`
+      class. Because python lacks formal "output arguments", any symbolic outputs tagged as
+      :class:`wrenfold.code_generation.OutputArg` will instead be **returned** from the generated
+      function in a dict of key-value pairs. The example listing below illustrates this behavior.
+
+    Example:
+      >>> import numpy as np
+      >>> import jax
+      >>>
+      >>> from wrenfold import code_generation, sym
+      >>> from wrenfold.type_annotations import Vector3, FloatScalar
+      >>>
+      >>> def foo(x: Vector3, y: Vector3):
+      >>>     # A simple test function, with one return value and one output argument.
+      >>>     # In-practice, you would probably be generating something more complicated than this.
+      >>>     dot, = x.T * y
+      >>>     f = sym.tanh(dot)
+      >>>     J = sym.jacobian([f], x)
+      >>>     return [code_generation.ReturnValue(f), code_generation.OutputArg(J, "J")]
+      >>>
+      >>> # Generate python code:
+      >>> func, code = code_generation.generate_python(
+      >>>   foo, target=code_generation.PythonGeneratorTarget.JAX)
+      >>> print(code) # See python listing below.
+      >>>
+      >>> # Generate a batched and JIT compiled version of our function using JAX.
+      >>> # Here we batch over both `x` and `y`.
+      >>> batched_func = jax.vmap(func, in_axes=(0, 0), out_axes=0)
+      >>> compiled_func = jax.jit(batched_func)
+      >>>
+      >>> # Execute the function on NumPy tensors.
+      >>> # `output1` contains the return value, while `output2` contains all the output arguments.
+      >>> x = np.random.uniform(size=(10, 3))
+      >>> y = np.random.uniform(size=(10, 3))
+      >>> output1, output2 = compiled_func(x, y)
+      >>>
+      >>> print(output1) # produces: [0.73317385 0.45288894, ...]
+
+      .. code-block:: python
+        :linenos:
+
+        # The generated code for `foo`:
+        def foo(x: jnp.ndarray, y: jnp.ndarray) -> T.Tuple[jnp.ndarray, T.Dict[str, jnp.ndarray]]:
+            x = x.reshape(3, 1)
+            y = y.reshape(3, 1)
+            v009 = y[2, 0]
+            v008 = x[2, 0]
+            v006 = y[1, 0]
+            v005 = x[1, 0]
+            v003 = x[0, 0]
+            v000 = y[0, 0]
+            v012 = jnp.tanh(v000 * v003 + v005 * v006 + v008 * v009)
+            v016 = jnp.asarray(1, dtype=jnp.float32) + -(v012 * v012)
+            J = jnp.array([
+                v000 * v016,
+                v006 * v016,
+                v009 * v016]).reshape(1, 3)
+            return (
+                v012,
+                dict(J=J)
+            )
+    """
+    generator = PythonGenerator(target)
+    if convert_ternaries == None:
+        # Convert ternaries to conditional if-else blocks when targeting NumPy.
+        convert_ternaries = target == PythonGeneratorTarget.NumPy
+
+    code = generate_function(func, generator=generator, convert_ternaries=convert_ternaries)
+
+    # Execute the generated code and return the specified function. This is a fair bit easier
+    # than writing it out and using importlib, which fails anyway on windows when we write
+    # the file to /tmp: https://stackoverflow.com/questions/66884520/
+    # We pass the function out via a dict: https://github.com/python/cpython/issues/118888
+
+    globals_in = globals()
+    if context is not None:
+        globals_in.update(context)
+
+    # Local imports here because these are optional runtime dependencies.
+    if import_target_module:
+        if target == PythonGeneratorTarget.JAX:
+            import jax.numpy as jnp
+            globals_in['jnp'] = jnp
+        elif target == PythonGeneratorTarget.PyTorch:
+            import torch as th
+            globals_in['th'] = th
+        elif target == PythonGeneratorTarget.NumPy:
+            import numpy as np
+            globals_in['np'] = np
+
+    locals_in_out = dict()
+    try:
+        # Security: exec is not great, but ultimately the code ex
+        exec(code, globals_in, locals_in_out)
+    except:
+        print('Encountered exception while evaluating:')
+        print(code)
+        raise
+    return locals_in_out[func.__name__], code
 
 
 def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]) -> None:

@@ -57,30 +57,18 @@ std::string python_code_generator::operator()(const scalar_type& scalar) const {
     // So the input could be a python primitive, a numpy primitive type, or a single element array.
     switch (scalar.numeric_type()) {
       case numeric_primitive_type::boolean: {
-        return fmt::format("T.Union[bool, np.bool, {}]", matrix_alternative);
+        return fmt::format("T.Union[np.bool, {}]", matrix_alternative);
       }
       case numeric_primitive_type::integral: {
-        return fmt::format("T.Union[int, np.int64, {}]", matrix_alternative);
+        return fmt::format("T.Union[np.int64, {}]", matrix_alternative);
       }
       case numeric_primitive_type::floating_point: {
-        return fmt::format("T.Union[float, np.{}, {}]",
-                           python_string_from_float_width(float_width_), matrix_alternative);
-      }
-    }
-  } else {
-    switch (scalar.numeric_type()) {
-      case numeric_primitive_type::boolean: {
-        return fmt::format("T.Union[bool, {}]", matrix_alternative);
-      }
-      case numeric_primitive_type::integral: {
-        return fmt::format("T.Union[int, {}]", matrix_alternative);
-      }
-      case numeric_primitive_type::floating_point: {
-        return fmt::format("T.Union[float, {}]", matrix_alternative);
+        return fmt::format("T.Union[np.{}, {}]", python_string_from_float_width(float_width_),
+                           matrix_alternative);
       }
     }
   }
-  return "<INVALID ENUM VALUE>";
+  return std::string(matrix_alternative);
 }
 
 std::string python_code_generator::operator()(const matrix_type&) const {
@@ -157,7 +145,8 @@ std::string python_code_generator::operator()(const ast::function_definition& de
     result += return_tuple_elements.front();
   } else if (return_tuple_elements.size() == 2) {
     // Double the indentation - one for the function body, and two for the return statement tuple.
-    join_and_indent(result, indent_ * 2, "(\n", "\n)", ",\n", return_tuple_elements,
+    const std::string close = fmt::format("\n{:{}})", "", indent_);
+    join_and_indent(result, indent_ * 2, "(\n", close, ",\n", return_tuple_elements,
                     [](const auto& arg) -> const auto& { return arg; });
   }
   return result;
@@ -184,12 +173,13 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
   if (signature.return_type()) {
     auto return_type = std::visit(*this, *signature.return_type());
     if (has_output_args) {
-      return_annotation = fmt::format("T.Tuple[{}, T.Dict]", return_type);
+      return_annotation = fmt::format("T.Tuple[{}, T.Dict[str, {}]]", return_type,
+                                      python_matrix_type_from_target(target_));
     } else {
       return_annotation = std::move(return_type);
     }
   } else if (has_output_args) {
-    return_annotation = "T.Dict";
+    return_annotation = fmt::format("T.Dict[str, {}]", python_matrix_type_from_target(target_));
   }
   return fmt::format("def {}({}) -> {}:", signature.name(), fmt::join(args, ", "),
                      return_annotation);
