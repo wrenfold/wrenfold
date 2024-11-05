@@ -34,19 +34,6 @@ precedence value::operation_precedence() const {
       op_, [](const ir::compare&) constexpr { return precedence::relational; },
       [](const ir::add&) constexpr { return precedence::addition; },
       [](const ir::mul&) constexpr { return precedence::multiplication; },
-      [](const ir::load& load) constexpr {
-        return std::visit(
-            [](const auto& contents) constexpr {
-              using T = std::decay_t<decltype(contents)>;
-              if constexpr (type_list_contains_v<T, type_list<integer_constant, float_constant,
-                                                              rational_constant>>) {
-                return contents.is_negative() ? precedence::multiplication : precedence::none;
-              } else {
-                return precedence::none;
-              }
-            },
-            load.variant());
-      },
       [](const ir::div&) constexpr { return precedence::multiplication; },
       [](const ir::cond&) constexpr { return precedence::ternary; },
       [](const auto&) constexpr { return precedence::none; });
