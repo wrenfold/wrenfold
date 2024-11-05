@@ -22,67 +22,54 @@ using namespace py::literals;
 
 namespace wf {
 
-// A list of every AST type that is formattable. We need to expose overridable methods for all of
-// these so that the user can customize formatting in python.
-using all_formattable_types =
-    type_list_concatenate_t<ast::ast_element_types,
-                            type_list<ast::function_definition, ast::function_signature,
-                                      custom_type, matrix_type, scalar_type>>;
+// clang-format off
+#define WF_APPLY_MACRO_TO_FORMATTABLE_TYPES(stamp) \
+  stamp(ast::add) \
+  stamp(ast::assign_temporary) \
+  stamp(ast::assign_output_matrix) \
+  stamp(ast::assign_output_scalar) \
+  stamp(ast::assign_output_struct) \
+  stamp(ast::boolean_literal) \
+  stamp(ast::branch) \
+  stamp(ast::call_external_function) \
+  stamp(ast::call_std_function) \
+  stamp(ast::cast) \
+  stamp(ast::comment) \
+  stamp(ast::compare) \
+  stamp(ast::construct_custom_type) \
+  stamp(ast::construct_matrix) \
+  stamp(ast::declaration) \
+  stamp(ast::divide) \
+  stamp(ast::float_literal) \
+  stamp(ast::get_argument) \
+  stamp(ast::get_field) \
+  stamp(ast::get_matrix_element) \
+  stamp(ast::integer_literal) \
+  stamp(ast::multiply) \
+  stamp(ast::negate) \
+  stamp(ast::optional_output_branch) \
+  stamp(ast::parenthetical) \
+  stamp(ast::special_constant) \
+  stamp(ast::return_object) \
+  stamp(ast::ternary) \
+  stamp(ast::variable_ref) \
+  stamp(ast::function_definition) \
+  stamp(ast::function_signature) \
+  stamp(custom_type) \
+  stamp(matrix_type) \
+  stamp(scalar_type)  // clang-format on
 
-// Declare a formatting operator for type that throws. The user will override this in python.
-// ReSharper disable once CppPolymorphicClassWithNonVirtualPublicDestructor
-template <typename T>
-class declare_unimplemented {
- public:
-  virtual std::string operator()(const T&) const {
-    throw type_error("Missing override for type `{}`: format_{}", ast::camel_case_name<T>(),
-                     T::snake_case_name_str);
+// Macro used to declare an override for a formattable type.
+// We invoke maybe_override, which is part of wrapper_generator<T>
+#define WF_CALL_MAYBE_OVERRIDE(T) \
+  std::string operator()(const T& element) const override final { return maybe_override(element); }
+
+// Macro used to declare methods on `base_code_generator`.
+#define WF_DECLARE_UNIMPLEMENTED(T)                                                          \
+  virtual std::string operator()(const T&) const {                                           \
+    throw type_error("Missing override for type `{}`: format_{}", ast::camel_case_name<T>(), \
+                     T::snake_case_name_str);                                                \
   }
-};
-
-// Inherit once from `declare_unimplemented` for every type in a type list
-template <typename T>
-class declare_all_unimplemented;
-
-// ReSharper disable once CppPolymorphicClassWithNonVirtualPublicDestructor
-template <typename... Ts>
-class declare_all_unimplemented<type_list<Ts...>> : public declare_unimplemented<Ts>... {
- public:
-  using declare_unimplemented<Ts>::operator()...;
-};
-
-// define_override implements an override to the `std::string operator(const T&)` method.
-// We don't need a constructor here because we inherit virtually from Base. We use virtual
-// inheritance because define_override is inherited once for every type we can format.
-template <typename Derived, typename Base, typename T>
-class define_override : public virtual Base {
- public:
-  std::string operator()(const T& element) const override final {
-    // Downcast to our derived type so that we can check if this override exists.
-    return static_cast<const Derived&>(*this).maybe_override(element);
-  }
-};
-
-// define_all_overrides is specialized on a type_list, and will inherit from `define_override`
-// once for every type in the type list. This allows us to automatically implement an override for
-// operator(), without having to use a macro or manually define all the overrides.
-template <typename Derived, typename Base, typename T>
-class define_all_overrides;
-template <typename Derived, typename Base, typename... Ts>
-class define_all_overrides<Derived, Base, type_list<Ts...>>
-    : public define_override<Derived, Base, Ts>... {
- public:
-  // We do need a constructor here because we inherit non-virtually from
-  // define_override. This needs to be a non virtual inheritance so that
-  // define_override can downcast to the derived type. static_cast<> needs to
-  // know the memory layout of the class in order to return a valid pointer.
-  // If we used virtual inheritance with define_override, that would not be
-  // possible.
-  //
-  // https://stackoverflow.com/questions/7484913/
-  template <typename... CtorArgs>
-  explicit define_all_overrides(CtorArgs&&... args) : Base(std::forward<CtorArgs>(args)...) {}
-};
 
 // pybind11 has issues with combining recursion and inheritance.
 // For example: https://github.com/pybind/pybind11/issues/1552
@@ -100,35 +87,15 @@ class define_all_overrides<Derived, Base, type_list<Ts...>>
 // getattr). Rather than trying to automatically select `super` or `self`, we expose both methods
 // under different names.
 template <typename Base>
-class wrapped_generator
-    : public define_all_overrides<wrapped_generator<Base>, Base, all_formattable_types> {
+class wrapped_generator : public Base {
  public:
   using generator_base = Base;
-  using override_base = define_all_overrides<wrapped_generator, Base, all_formattable_types>;
 
-  // This scenario is a bit confusing, but basically what will happen here is:
-  // - The constructor for Base is called (once).
-  // - The constructor for `override_base` is called.
-  //
-  // https://isocpp.org/wiki/faq/multiple-inheritance#virtual-inheritance-ctors
-  //
-  // Quote: Because a virtual base class sub-object occurs only once in an
-  // instance, there are special rules to make sure the virtual base class’s
-  // constructor and destructor get called exactly once per instance. The C++
-  // rules say that virtual base classes are constructed before all
-  // non-virtual base classes. The thing you as a programmer need to know is
-  // this: constructors for virtual base classes anywhere in your class’s
-  // inheritance hierarchy are called by the “most derived” class’s
-  // constructor.
-  //
-  // The args to `override_base` do not matter, because we already invoked
-  // Base(...). The types do need to match in order to compile, but Base(...)
-  // is invoked only once.
   template <typename... CtorArgs>
-  explicit wrapped_generator(CtorArgs&&... args)
-      : Base(std::forward<CtorArgs>(args)...),
-        // These value of these args don't matter, because Base(...) is invoked only once.
-        override_base(std::forward<CtorArgs>(args)...) {}
+  explicit wrapped_generator(CtorArgs&&... args) : Base(std::forward<CtorArgs>(args)...) {}
+
+  // Implement all the virtual methods from `Base`:
+  WF_APPLY_MACRO_TO_FORMATTABLE_TYPES(WF_CALL_MAYBE_OVERRIDE)
 
   // Check if a python class derived from this one implements a formatting operator for type `T`.
   // If it does, we call the derived class implementation. Otherwise, call Base::operator().
@@ -243,9 +210,10 @@ class wrapped_generator
 // Declare a base code generator. By default it does no formatting at all, and throws on every type
 // we give it. The user is responsible for implementing all formatting methods in python.
 // ReSharper disable once CppClassCanBeFinal
-class base_code_generator : public declare_all_unimplemented<all_formattable_types> {
+class base_code_generator {
  public:
   virtual ~base_code_generator() = default;
+  WF_APPLY_MACRO_TO_FORMATTABLE_TYPES(WF_DECLARE_UNIMPLEMENTED);
 };
 
 template <typename T>
@@ -317,7 +285,6 @@ template <typename T, typename... CtorArgs>
 static auto wrap_code_generator(py::module_& m, const std::string_view name) {
   py::class_ klass =
       py::class_<wrapped_generator<T>>(m, name.data())
-          .def(py::init<CtorArgs...>())
           .def(
               "generate",
               [](const wrapped_generator<T>& self, const ast::function_definition& definition) {
@@ -342,17 +309,19 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
 
 void wrap_code_formatting_operations(py::module_& m) {
   wrap_code_generator<cpp_code_generator>(m, "CppGenerator")
+      .def(py::init<>())
       .def_static("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
                   py::arg("namespace"), py::arg("imports") = py::str(),
                   "Apply a preamble that incorporates necessary runtime includes.")
-      .doc() = "Generate C++ code.";
+      .doc() = "Generates C++ code.";
 
   wrap_code_generator<rust_code_generator>(m, "RustGenerator")
+      .def(py::init<>())
       .def_static("apply_preamble", &rust_code_generator::apply_preamble, py::arg("code"),
                   "Apply a preamble to generated code.")
-      .doc() = "Generate Rust code.";
+      .doc() = "Generates Rust code.";
 
-  wrap_code_generator<base_code_generator>(m, "BaseGenerator").doc() =
+  wrap_code_generator<base_code_generator>(m, "BaseGenerator").def(py::init<>()).doc() =
       "Abstract base class for generators. The user may inherit from this in python when writing "
       "a "
       "new generator from scratch.";
