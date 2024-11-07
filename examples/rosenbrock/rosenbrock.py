@@ -16,7 +16,7 @@ def rosenbrock(
     x, y = xy
 
     # We formulate function `h(x, y)` such that f(x, y) = h^T * h = (a - x)**2 + b*(y - x**2)**2
-    # Then we can find the mimina by doing ordinary NLS on residual h(x, y)
+    # Then we can find the minima by doing ordinary NLS on residual h(x, y)
     h = sym.vector(a - x, sym.sqrt(b) * (y - x ** 2))
     f, = h.T * h
 

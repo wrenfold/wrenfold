@@ -418,7 +418,7 @@ static bool is_valid_for_unordered_subs(const X& target, const X& replacement,
                                         const substitute_variables_visitor& visitor,
                                         const bool force_unordered_execution) {
   // This constexpr-if is temporary. It is here because we only support variables
-  // of _scalar_ type for now, but that will change sortly.
+  // of _scalar_ type for now, but that will change shortly.
   if constexpr (std::is_same_v<X, scalar_expr>) {
     if (!target.template is_type<variable, compound_expression_element>()) {
       return false;

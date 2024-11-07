@@ -5,7 +5,6 @@ import dataclasses
 import unittest
 
 from wrenfold import (
-    custom_types,
     exceptions,
     external_functions,
     sym,
