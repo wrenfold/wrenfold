@@ -80,6 +80,10 @@ void wrap_argument(py::module_& m) {
                              "How the argument is used by the function.")
       .def_property_readonly("is_optional", &argument::is_optional,
                              "True if the argument is optional.")
+      .def_property_readonly("is_input", &argument::is_input,
+                             "True if the function is an input argument.")
+      .def("create_symbolic_input", &argument::create_symbolic_input,
+           "Create corresponding symbolic input expressions for this argument.")
       .def("__repr__",
            [](const argument& self) {
              return fmt::format("Argument({}: {})", self.name(), self.type());
@@ -138,6 +142,8 @@ void wrap_codegen_operations(py::module_& m) {
   py::class_<function_description>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), "Construct with function name.")
       .def_property_readonly("name", &function_description::name, "Name of the function.")
+      .def_property_readonly("arguments", &function_description::arguments,
+                             "Arguments to the function.")
       .def("__repr__",
            [](const function_description& self) {
              return fmt::format("FunctionDescription('{}', {} args)", self.name(),

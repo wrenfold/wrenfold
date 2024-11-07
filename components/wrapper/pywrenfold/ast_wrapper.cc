@@ -7,7 +7,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
 

@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/python_code_generator.h"
 
+#include <ranges>
 #include <span>
 
 #include "wf/code_generation/ast_formatters.h"
@@ -21,6 +22,48 @@ constexpr std::string_view python_string_from_float_width(
     }
   }
   return "<INVALID ENUM VALUE>";
+}
+
+constexpr static std::string_view python_string_from_cast_destination_type(
+    const numeric_primitive_type destination_type,
+    const python_generator_float_width float_width) noexcept {
+  switch (destination_type) {
+    case numeric_primitive_type::boolean:
+      return "bool";
+    case numeric_primitive_type::integral:
+      // Int32 because JAX does not support 64 by default. TODO: add a parameter for this.
+      return "int32";
+    case numeric_primitive_type::floating_point: {
+      return python_string_from_float_width(float_width);
+    }
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
+constexpr static std::string_view python_module_prefix_from_target(
+    const python_generator_target target) noexcept {
+  switch (target) {
+    case python_generator_target::numpy: {
+      return "np";
+    }
+    case python_generator_target::pytorch: {
+      return "th";
+    }
+    case python_generator_target::jax: {
+      return "jnp";
+    }
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
+inline std::string format_asarray(const python_generator_target target, const std::string_view arg,
+                                  const numeric_primitive_type expected_type,
+                                  const python_generator_float_width float_width,
+                                  const index_t rows, const index_t cols) {
+  return fmt::format(
+      "{}.asarray({}, dtype={}.{}).reshape([{}, {}])", python_module_prefix_from_target(target),
+      arg, python_module_prefix_from_target(target),
+      python_string_from_cast_destination_type(expected_type, float_width), rows, cols);
 }
 
 python_code_generator::python_code_generator(python_generator_target target,
@@ -93,8 +136,11 @@ std::string python_code_generator::operator()(const ast::function_definition& de
   for (const auto& arg : signature.arguments()) {
     if (arg.is_input() && arg.is_matrix()) {
       const auto& mat = std::get<matrix_type>(arg.type());
-      fmt::format_to(std::back_inserter(result), "{:{}}{} = {}.reshape({}, {})\n", "", indent_,
-                     arg.name(), arg.name(), mat.rows(), mat.cols());
+      const std::string reshaped =
+          format_asarray(target_, arg.name(), numeric_primitive_type::floating_point, float_width_,
+                         mat.rows(), mat.cols());
+      fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
+                     reshaped);
     }
   }
 
@@ -119,10 +165,6 @@ std::string python_code_generator::operator()(const ast::function_definition& de
     }
   }
 
-  if (!return_statement.has_value()) {
-    return result;
-  }
-
   // Create a return statement that yields:
   // - The return value
   // - A dict of "output args"
@@ -140,14 +182,16 @@ std::string python_code_generator::operator()(const ast::function_definition& de
     return_tuple_elements.push_back(fmt::format("dict({})", dict_args));
   }
 
-  fmt::format_to(std::back_inserter(result), "{:{}}return ", "", indent_);
-  if (return_tuple_elements.size() == 1) {
-    result += return_tuple_elements.front();
-  } else if (return_tuple_elements.size() == 2) {
-    // Double the indentation - one for the function body, and two for the return statement tuple.
-    const std::string close = fmt::format("\n{:{}})", "", indent_);
-    join_and_indent(result, indent_ * 2, "(\n", close, ",\n", return_tuple_elements,
-                    [](const auto& arg) -> const auto& { return arg; });
+  if (!return_tuple_elements.empty()) {
+    fmt::format_to(std::back_inserter(result), "{:{}}return ", "", indent_);
+    if (return_tuple_elements.size() == 1) {
+      result += return_tuple_elements.front();
+    } else if (return_tuple_elements.size() == 2) {
+      // Double the indentation - one for the function body, and two for the return statement tuple.
+      const std::string close = fmt::format("\n{:{}})", "", indent_);
+      join_and_indent(result, indent_ * 2, "(\n", close, ",\n", return_tuple_elements,
+                      [](const auto& arg) -> const auto& { return arg; });
+    }
   }
   return result;
 }
@@ -238,24 +282,18 @@ std::string python_code_generator::operator()(const ast::branch& x) const {
 }
 
 std::string python_code_generator::operator()(const ast::call_external_function& x) const {
-  const std::string args = join(", ", x.args, *this);
-  return fmt::format("{}({})", x.function.name(), args);
-}
-
-constexpr static std::string_view python_module_prefix_from_target(
-    const python_generator_target target) noexcept {
-  switch (target) {
-    case python_generator_target::numpy: {
-      return "np";
-    }
-    case python_generator_target::pytorch: {
-      return "th";
-    }
-    case python_generator_target::jax: {
-      return "jnp";
-    }
+  const std::string result = fmt::format("{}({})", x.function.name(),
+                                         fmt::join(x.args | std::views::transform(*this), ", "));
+  if (const matrix_type* mat = std::get_if<matrix_type>(&x.function.return_type());
+      mat != nullptr) {
+    return fmt::format("{}.asarray({}, dtype={}.{}).reshape([{}, {}])",
+                       python_module_prefix_from_target(target_), result,
+                       python_module_prefix_from_target(target_),
+                       python_string_from_cast_destination_type(
+                           numeric_primitive_type::floating_point, float_width_),
+                       mat->rows(), mat->cols());
   }
-  return "<INVALID ENUM VALUE>";
+  return result;
 }
 
 constexpr static std::string_view python_string_from_std_math_function(
@@ -307,25 +345,9 @@ constexpr static std::string_view python_string_from_std_math_function(
 }
 
 std::string python_code_generator::operator()(const ast::call_std_function& x) const {
-  const std::string args = join(", ", x.args, *this);
   return fmt::format("{}.{}({})", python_module_prefix_from_target(target_),
-                     python_string_from_std_math_function(x.function), args);
-}
-
-constexpr static std::string_view python_string_from_cast_destination_type(
-    const numeric_primitive_type destination_type,
-    const python_generator_float_width float_width) noexcept {
-  switch (destination_type) {
-    case numeric_primitive_type::boolean:
-      return "bool";
-    case numeric_primitive_type::integral:
-      // Int32 because JAX does not support 64 by default. TODO: add a parameter for this.
-      return "int32";
-    case numeric_primitive_type::floating_point: {
-      return python_string_from_float_width(float_width);
-    }
-  }
-  return "<INVALID ENUM VALUE>";
+                     python_string_from_std_math_function(x.function),
+                     fmt::join(x.args | std::views::transform(*this), ", "));
 }
 
 std::string python_code_generator::operator()(const ast::cast& x) const {
@@ -348,15 +370,13 @@ std::string python_code_generator::operator()(const ast::compare& x) const {
 }
 
 std::string python_code_generator::operator()(const ast::construct_matrix& x) const {
-  std::string result{};
-  fmt::format_to(std::back_inserter(result), "{}", python_matrix_constructor_from_target(target_));
-  join_and_indent(result, indent_, "([\n", "])", ",\n", x.args, *this);
-  fmt::format_to(std::back_inserter(result), ".reshape({}, {})", x.type.rows(), x.type.cols());
-  return result;
+  return fmt::format("{}([{}]).reshape({}, {})", python_matrix_constructor_from_target(target_),
+                     fmt::join(x.args | std::views::transform(*this), ", "), x.type.rows(),
+                     x.type.cols());
 }
 
 std::string python_code_generator::operator()(const ast::construct_custom_type& x) const {
-  std::string result = x.type.name();
+  std::string result = operator()(x.type);
   join_and_indent(result, indent_, "(\n", "\n)", ",\n", x.field_values,
                   [&](const auto& name_and_val) {
                     return fmt::format("{}={}", std::get<0>(name_and_val),

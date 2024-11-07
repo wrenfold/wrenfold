@@ -5,7 +5,6 @@
 
 #include <ranges>
 
-#include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
 #include "wf/utility/assertions.h"
 #include "wf/utility/overloaded_visit.h"

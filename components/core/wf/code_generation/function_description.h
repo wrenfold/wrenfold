@@ -55,6 +55,9 @@ class argument {
   // Position of this argument in the argument list.
   std::size_t index() const noexcept { return impl_->index; }
 
+  // Create symbolic input expressions that go with this argument.
+  std::variant<scalar_expr, matrix_expr, compound_expr> create_symbolic_input() const;
+
  private:
   // We share arguments in multiple places, and return them into python.
   // For that reason we place the implementation in a shared_ptr to const.

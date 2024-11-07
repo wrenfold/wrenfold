@@ -187,7 +187,8 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
 
 
 def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
-                      generator: T.Union[CppGenerator, RustGenerator, BaseGenerator],
+                      generator: T.Union[CppGenerator, RustGenerator, PythonGenerator,
+                                         BaseGenerator],
                       name: T.Optional[str] = None,
                       optimization_params: T.Optional[OptimizationParams] = None,
                       convert_ternaries: bool = True) -> str:
@@ -258,11 +259,14 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
     return generator.generate(definition=func_ast)
 
 
-def generate_python(func: T.Callable[..., CodegenFuncInvocationResult],
-                    target: PythonGeneratorTarget,
-                    convert_ternaries: T.Optional[bool] = None,
-                    context: T.Optional[T.Dict[str, T.Any]] = None,
-                    import_target_module: bool = True) -> T.Tuple[T.Callable, str]:
+def generate_python(
+    func: T.Callable[..., CodegenFuncInvocationResult],
+    target: PythonGeneratorTarget,
+    convert_ternaries: T.Optional[bool] = None,
+    context: T.Optional[T.Dict[str, T.Any]] = None,
+    import_target_module: bool = True,
+    generator_type: T.Callable[[PythonGeneratorTarget], BaseGenerator] = PythonGenerator
+) -> T.Tuple[T.Callable, str]:
     """
     Code-generate a symbolic function as python code, then ``exec`` the code and return a python
     function that implements the symbolic function numerically.
@@ -280,6 +284,8 @@ def generate_python(func: T.Callable[..., CodegenFuncInvocationResult],
         context: Dict of key-value pairs that will be passed to
           `exec <https://docs.python.org/3/library/functions.html#exec>`_ in the ``globals`` arg.
         import_target_module: If true (the default), import the target API. See the warning below.
+        generator_type: By default this is :class:`wrenfold.code_generation.PythonGenerator`. You
+          may specify a different function to call to construct the code generator.
 
     Returns:
       * A callable python function that implements ``func`` numerically.
@@ -304,12 +310,16 @@ def generate_python(func: T.Callable[..., CodegenFuncInvocationResult],
       :class:`wrenfold.code_generation.OutputArg` will instead be **returned** from the generated
       function in a dict of key-value pairs. The example listing below illustrates this behavior.
 
+      **Additionally**, remember that your target framework may not be able to reason about your
+      custom types. For example, `jax.jit <https://jax.readthedocs.io/en/latest/_autosummary/jax.jit.html>`_
+      only operates on Jax arrays and standard python types (tuples, lists, dict, etc).
+
     Example:
       >>> import numpy as np
       >>> import jax
       >>>
       >>> from wrenfold import code_generation, sym
-      >>> from wrenfold.type_annotations import Vector3, FloatScalar
+      >>> from wrenfold.type_annotations import Vector3
       >>>
       >>> def foo(x: Vector3, y: Vector3):
       >>>     # A simple test function, with one return value and one output argument.
@@ -361,7 +371,7 @@ def generate_python(func: T.Callable[..., CodegenFuncInvocationResult],
                 dict(J=J)
             )
     """
-    generator = PythonGenerator(target)
+    generator = generator_type(target)
     if convert_ternaries == None:
         # Convert ternaries to conditional if-else blocks when targeting NumPy.
         convert_ternaries = target == PythonGeneratorTarget.NumPy
