@@ -57,6 +57,7 @@ struct type_constructor {
     matrix_args.reserve(mat.size());
     std::copy_n(std::make_move_iterator(contents_.begin()) + index_, mat.size(),
                 std::back_inserter(matrix_args));
+    index_ += mat.size();
     return ast::construct_matrix{mat, std::move(matrix_args)};
   }
 

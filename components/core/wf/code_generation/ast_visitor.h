@@ -28,6 +28,7 @@ const auto& cast_to_index(const ast_element& element) noexcept {
 // Visit `ast_element` with `f`. The visitor is passed a const reference.
 template <typename F>
 auto visit(const ast_element& element, F&& f) {
+  WF_ASSERT(element.impl(), "Element is empty.");
   constexpr std::size_t num_types = type_list_size_v<ast_element::types>;
   return wf::detail::visit_switch<num_types>(element.index(), [&](const auto integral_constant) {
     constexpr std::size_t type_index = integral_constant();
@@ -37,7 +38,8 @@ auto visit(const ast_element& element, F&& f) {
 
 // If the underlying type is `T`, return a const pointer to it. Otherwise return nullptr.
 template <typename T>
-maybe_null<const T*> get_if(const ast_element& element) noexcept {
+maybe_null<const T*> get_if(const ast_element& element) {
+  WF_ASSERT(element.impl(), "Element is empty.");
   using types = ast_element::types;
   static_assert(type_list_contains_v<T, types>);
   if (element.index() == type_list_index_v<T, types>) {

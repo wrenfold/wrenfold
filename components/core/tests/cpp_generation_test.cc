@@ -25,6 +25,19 @@ struct Circle {
   Eigen::Vector3d to_vector() const { return {center.x, center.y, radius}; }
 };
 
+struct FancyAggregateType {
+  Point2d pt;
+  Circle circle;
+  Eigen::Matrix<double, 2, 1> matrix;
+  double scalar;
+
+  Eigen::Matrix<double, 8, 1> to_vector() const {
+    return (Eigen::Matrix<double, 8, 1>() << pt.x, pt.y, circle.center.x, circle.center.y,
+            circle.radius, matrix, scalar)
+        .finished();
+  }
+};
+
 // An integer that can be implicitly cast to std::int64_t, and nothing else.
 // We use this to make sure our generated code casts correctly when interfacing with
 // `MixedNumerics`.
@@ -473,6 +486,31 @@ struct custom_type_native_converter<symbolic::Circle> {
   }
 };
 
+// Convert to/from symbolic::FancyAggregateType --> numeric::FancyAggregateType.
+template <>
+struct custom_type_native_converter<symbolic::FancyAggregateType> {
+  using native_type = numeric::FancyAggregateType;
+
+  numeric::FancyAggregateType operator()(const symbolic::FancyAggregateType& f) const {
+    return numeric::FancyAggregateType{
+        numeric::Point2d{get<const float_constant>(f.pt.x).value(),
+                         get<const float_constant>(f.pt.y).value()},
+        numeric::Circle{numeric::Point2d{get<const float_constant>(f.circle.center.x).value(),
+                                         get<const float_constant>(f.circle.center.y).value()},
+                        get<const float_constant>(f.circle.radius).value()},
+        Eigen::Vector2d{get<const float_constant>(f.matrix[0]).value(),
+                        get<const float_constant>(f.matrix[1]).value()},
+        get<const float_constant>(f.scalar).value()};
+  }
+
+  symbolic::FancyAggregateType operator()(const numeric::FancyAggregateType& p) const {
+    return symbolic::FancyAggregateType{
+        symbolic::Point2d(p.pt.x, p.pt.y),
+        symbolic::Circle(symbolic::Point2d(p.circle.center.x, p.circle.center.y), p.circle.radius),
+        ta::static_matrix<2, 1>(p.matrix[0], p.matrix[1]), p.scalar};
+  }
+};
+
 TEST(CppGenerationTest, TestNestedCustomType1) {
   auto evaluator = create_evaluator(&nested_custom_type_1);
 
@@ -487,6 +525,13 @@ TEST(CppGenerationTest, TestNestedCustomType1) {
                     gen::nested_custom_type_1<double>(c2, {10.1, 0.0}).to_vector(), 1.0e-15);
   ASSERT_EIGEN_NEAR(evaluator(c2, {-13.0, 4.0}).to_vector(),
                     gen::nested_custom_type_1<double>(c2, {-13.0, 4.0}).to_vector(), 1.0e-15);
+}
+
+TEST(CppGenerationTest, TestNestedCustomType2) {
+  auto evaluator = create_evaluator(&nested_custom_type_2);
+  constexpr numeric::Circle c{numeric::Point2d{-0.5, 0.8}, 3.51};
+  ASSERT_EIGEN_NEAR(evaluator(-0.3, 1.2, c).to_vector(),
+                    gen::nested_custom_type_2<double>(-0.3, 1.2, c).to_vector(), 1.0e-15);
 }
 
 TEST(CppGenerationTest, TestExternalFunctionCall1) {

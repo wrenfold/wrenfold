@@ -44,6 +44,8 @@ std::string generate_test_expressions(Generator gen) {
   generate_func(gen, code, &custom_type_2, "custom_type_2", arg("theta"), arg("radius"));
   generate_func(gen, code, &custom_type_3, "custom_type_3");
   generate_func(gen, code, &nested_custom_type_1, "nested_custom_type_1", arg("c"), arg("p"));
+  generate_func(gen, code, &nested_custom_type_2, "nested_custom_type_2", arg("x"), arg("y"),
+                arg("c"));
   generate_func(gen, code, &external_function_call_1, "external_function_call_1", arg("x"),
                 arg("y"));
   generate_func(gen, code, &external_function_call_2, "external_function_call_2", arg("u"),
