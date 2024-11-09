@@ -3,16 +3,16 @@ Adding a new target language
 
 wrenfold can be extended to target new languages by customizing the code generation step. For a
 complete demonstration, refer to the
-`python_generation <https://github.com/wrenfold/wrenfold/blob/main/examples/python_generation/python_generation.py>`__
+`c_generation <https://github.com/wrenfold/wrenfold/blob/main/examples/c_generation>`__
 example. This section provides a brief overview.
 
 To begin with, one must subclass the :class:`wrenfold.code_generation.BaseGenerator` type in python.
 **At a minimum**, a ``format_function_definition`` method must be defined for the
 :class:`wrenfold.code_generation.FunctionDefinition` type (the top level AST node).
 
-Most nodes in the AST will have children - for example :class:`wrenfold.ast.Add` has a member
-``args`` that enumerates the operands of an N-ary addition. To facilitate recursive formatting, the
-``BaseGenerator`` type provides an overloaded
+Most nodes in the syntax tree will have children - for example :class:`wrenfold.ast.Add` has a
+member ``args`` that enumerates the operands of an N-ary addition. To facilitate recursive
+formatting, the ``BaseGenerator`` type provides an overloaded
 :func:`wrenfold.code_generation.BaseGenerator.format` method that automatically delegates to the
 appropriately named formatter on your subclass.
 
@@ -28,7 +28,7 @@ For example, when printing ``ast.Add`` we can recurse on ``add.args``:
 
         def format_add(self, add: ast.Add) -> str:
             # Calling `format(...)` will automatically delegate to the appropriate overload.
-            # If the argument is an `ast.Add`, it will recurse back into this method, for example.
+            # If the argument is an `ast.Add`, it will recurse back into this method.
             return ' + '.join(self.format(x) for x in add.args)
 
         # ... more overloads ...
