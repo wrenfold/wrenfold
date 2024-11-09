@@ -82,7 +82,7 @@ endfunction()
 function(add_cpp_test NAME)
   set(options "")
   set(oneValueArgs GENERATOR_TARGET)
-  set(multiValueArgs SOURCE_FILES)
+  set(multiValueArgs SOURCE_FILES INCLUDE_DIRECTORIES)
   cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
                         ${ARGN})
 
@@ -101,6 +101,11 @@ function(add_cpp_test NAME)
                          $<TARGET_OBJECTS:wf_custom_main>)
   if(NOT ${ARGS_GENERATOR_TARGET} STREQUAL "")
     add_dependencies(${NAME} ${ARGS_GENERATOR_TARGET})
+  endif()
+
+  # process argument: `INCLUDE_DIRECTORIES`
+  if(NOT ${ARGS_INCLUDE_DIRECTORIES} STREQUAL "")
+    target_include_directories(${NAME} PRIVATE ${ARGS_INCLUDE_DIRECTORIES})
   endif()
 
   # Make sure generated file is on the include path.
@@ -138,6 +143,25 @@ function(get_python_library_sources OUTPUT_VARIABLE)
       PARENT_SCOPE)
 endfunction()
 
+# Given a script name (ie. foo.py) get the repo-relative module path:
+# `path.to.foo`
+function(get_python_module_dot_path SCRIPT_FILE OUTPUT_VARIABLE)
+  # Get the relative path to the script (relative to repo root), w/o the
+  # extension.
+  file(RELATIVE_PATH SCRIPT_RELATIVE_PATH ${CMAKE_SOURCE_DIR}
+       "${CMAKE_CURRENT_SOURCE_DIR}/${SCRIPT_FILE}")
+  get_filename_component(SCRIPT_RELATIVE_PATH_DIRECTORY ${SCRIPT_RELATIVE_PATH}
+                         DIRECTORY)
+  get_filename_component(SCRIPT_RELATIVE_PATH_NAME ${SCRIPT_RELATIVE_PATH}
+                         NAME_WE)
+  string(
+    REPLACE "/" "." SCRIPT_MODULE_PATH
+            "${SCRIPT_RELATIVE_PATH_DIRECTORY}/${SCRIPT_RELATIVE_PATH_NAME}")
+  set(${OUTPUT_VARIABLE}
+      ${SCRIPT_MODULE_PATH}
+      PARENT_SCOPE)
+endfunction()
+
 # Add a code-generator defined in python. OUTPUT_FILE_NAME: Name of the
 # generated source file to write. SOURCE_FILES: Additional python files to track
 # as dependencies. SCRIPT_ARGUMENTS: Additional args to pass to the python
@@ -167,16 +191,18 @@ function(add_py_code_generator NAME MAIN_SCRIPT_FILE)
   # will cause generation to run again.
   get_python_library_sources(PYTHON_LIB_SOURCES)
 
+  # Get the dot-syntax path to the module:
+  get_python_module_dot_path(${MAIN_SCRIPT_FILE} SCRIPT_MODULE)
+
   add_custom_command(
     OUTPUT ${GENERATOR_OUTPUT_FILE}
     COMMAND
       ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES} ${Python_EXECUTABLE} -B
-      "${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_SCRIPT_FILE}"
-      "${GENERATOR_OUTPUT_FILE}" ${ARGS_SCRIPT_ARGUMENTS}
-    WORKING_DIRECTORY ${GENERATOR_OUTPUT_DIR}
-    COMMENT "Run python code-generator: ${NAME}"
-    DEPENDS wf_core wf_wrapper wf_python ${MAIN_SCRIPT_FILE} ${SOURCE_FILES}
-            ${PYTHON_LIB_SOURCES})
+      -m ${SCRIPT_MODULE} "${GENERATOR_OUTPUT_FILE}" ${ARGS_SCRIPT_ARGUMENTS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Run python code-generator: ${NAME} (${SCRIPT_MODULE})"
+    DEPENDS wf_core wf_wrapper wf_python ${MAIN_SCRIPT_FILE}
+            ${ARGS_SOURCE_FILES} ${PYTHON_LIB_SOURCES})
 
   set_source_files_properties(${GENERATOR_OUTPUT_FILE} PROPERTIES GENERATED
                                                                   TRUE)
@@ -241,14 +267,15 @@ function(add_python_test PYTHON_SOURCE_FILE)
     message(FATAL_ERROR "WF_PYTHON_ENV_VARIABLES should be defined")
   endif()
 
+  get_python_module_dot_path(${PYTHON_SOURCE_FILE} SCRIPT_MODULE)
+
   # In order for `PYTHONPATH` to be set correctly, we need to pass the
   # environment variable using the cmake command. No other mechanism I have
   # tried will work here.
   add_test(
     NAME ${TEST_NAME}
-    COMMAND
-      ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES} ${Python_EXECUTABLE}
-      -B ${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_SOURCE_FILE}
-      ${ARGS_SCRIPT_ARGUMENTS})
-  message(STATUS "Added python test: ${TEST_NAME}")
+    COMMAND ${CMAKE_COMMAND} -E env ${WF_PYTHON_ENV_VARIABLES}
+            ${Python_EXECUTABLE} -B -m ${SCRIPT_MODULE} ${ARGS_SCRIPT_ARGUMENTS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  message(STATUS "Added python test: ${TEST_NAME} (${SCRIPT_MODULE})")
 endfunction()

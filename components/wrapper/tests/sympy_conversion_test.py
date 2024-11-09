@@ -6,9 +6,10 @@ import typing as T
 import unittest
 
 import sympy as sp
-from test_base import MathTestBase
 
 from wrenfold import sym, sympy_conversion, type_info
+
+from .test_base import MathTestBase
 
 # Some shorthand for the purpose of this test:
 spy = sympy_conversion.to_sympy

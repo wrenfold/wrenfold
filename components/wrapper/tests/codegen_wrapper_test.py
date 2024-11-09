@@ -9,11 +9,11 @@ import dataclasses
 import typing as T
 import unittest
 
-from test_base import MathTestBase
-
 from wrenfold import ast, code_generation, external_functions, sym, type_info
 from wrenfold.enumerations import StdMathFunction
 from wrenfold.type_annotations import FloatScalar, Opaque, Vector2
+
+from .test_base import MathTestBase
 
 
 def func1(x: FloatScalar, y: FloatScalar, v: Vector2):
