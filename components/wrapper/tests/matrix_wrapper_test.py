@@ -8,9 +8,10 @@ import typing as T
 import unittest
 
 import numpy as np
-from test_base import MathTestBase
 
 from wrenfold import exceptions, sym
+
+from .test_base import MathTestBase
 
 
 class MatrixWrapperTest(MathTestBase):

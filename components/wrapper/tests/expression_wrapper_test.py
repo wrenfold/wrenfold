@@ -7,9 +7,9 @@ don't accidentally remove any.
 import functools
 import unittest
 
-from test_base import MathTestBase
-
 from wrenfold import enumerations, exceptions, expressions, sym
+
+from .test_base import MathTestBase
 
 
 class ExpressionWrapperTest(MathTestBase):
