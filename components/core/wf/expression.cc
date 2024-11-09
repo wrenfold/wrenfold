@@ -162,7 +162,7 @@ relative_order order_struct<scalar_expr>::compare(const scalar_expr& a,
                 complex_infinity, imaginary_unit, variable, multiplication, addition, power,
                 built_in_function_invocation, symbolic_function_invocation, unevaluated,
                 conditional, iverson_bracket, compound_expression_element, derivative, substitution,
-                undefined>;
+                stop_derivative, undefined>;
   static constexpr auto order =
       get_type_order_indices(scalar_expr::storage_type::types{}, order_of_types{});
 

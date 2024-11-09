@@ -322,6 +322,10 @@ std::string plain_formatter::operator()(const relational& relational) {
   return output;
 }
 
+std::string plain_formatter::operator()(const stop_derivative& nd) {
+  return fmt::format("StopDerivative({})", operator()(nd.arg()));
+}
+
 std::string plain_formatter::operator()(const substitution& subs) {
   return fmt::format("Subs({}, {}, {})", operator()(subs.input()), operator()(subs.target()),
                                                                    operator()(subs.replacement()));

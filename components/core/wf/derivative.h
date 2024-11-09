@@ -36,6 +36,7 @@ class derivative_visitor {
   scalar_expr operator()(const float_constant&) const;
   scalar_expr operator()(const power& pow);
   scalar_expr operator()(const rational_constant&) const;
+  scalar_expr operator()(const stop_derivative&) const;
   scalar_expr operator()(const substitution& sub, const scalar_expr& sub_abstract);
   scalar_expr operator()(const symbolic_function_invocation& func,
                          const scalar_expr& func_abstract);

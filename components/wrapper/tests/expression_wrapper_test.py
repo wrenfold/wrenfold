@@ -449,6 +449,16 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertRaises(exceptions.TypeError, lambda: sym.derivative(x, y + 2))
 
+    def test_stop_derivative_expression(self):
+        """Test creating a `stop_derivative` expression."""
+        x, y = sym.symbols('x, y')
+        self.assertEqual('StopDerivative', sym.stop_derivative(y).type_name)
+        self.assertEqual('StopDerivative(3*x)', repr(sym.stop_derivative(x * 3)))
+        self.assertIdentical(0, sym.stop_derivative(x).diff(x))
+        self.assertIdentical(
+            sym.cos(y) * sym.stop_derivative(x * y),
+            (sym.stop_derivative(x * y) * sym.sin(y)).diff(y))
+
     def test_substitute_expression(self):
         """Test creation of deferred substitution expression."""
         x, y = sym.symbols('x, y')

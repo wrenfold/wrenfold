@@ -168,6 +168,12 @@ TEST(PlainFormatterTest, TestDerivativeExpression) {
                 signum(a).diff(a, 2, non_differentiable_behavior::abstract));
 }
 
+TEST(PlainFormatterTest, TestStopDerivative) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_STR_EQ("StopDerivative(x)", stop_diff(x));
+  ASSERT_STR_EQ("StopDerivative(x*y)", stop_diff(x * y));
+}
+
 TEST(PlainFormatterTest, TestSubstitutionExpression) {
   const auto [x, y] = make_symbols("x", "y");
   ASSERT_STR_EQ("Subs(x**2, x, 2 + y)", substitution::create(x * x, x, y + 2));
@@ -176,6 +182,11 @@ TEST(PlainFormatterTest, TestSubstitutionExpression) {
 TEST(PlainFormatterTest, TestComplexInfinity) { ASSERT_STR_EQ("zoo", constants::complex_infinity); }
 
 TEST(PlainFormatterTest, TestUndefined) { ASSERT_STR_EQ("nan", constants::undefined); }
+
+TEST(PlainFormatterTest, TestUnevaluated) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_STR_EQ("(x*y)", make_unevaluated(x * y));
+}
 
 TEST(PlainFormatterTest, TestScalarConstants) {
   ASSERT_STR_EQ("pi", constants::pi);

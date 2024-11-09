@@ -8,7 +8,6 @@
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
@@ -114,6 +113,11 @@ void tree_formatter_visitor::operator()(const rational_constant& r) {
 void tree_formatter_visitor::operator()(const relational& relational) {
   format_append("{} ({})", relational::name_str, relational.operation_string());
   visit_all(relational);
+}
+
+void tree_formatter_visitor::operator()(const stop_derivative& nd) {
+  format_append("{}:", stop_derivative::name_str);
+  visit_all(nd.children());
 }
 
 void tree_formatter_visitor::operator()(const symbolic_constant& constant) {

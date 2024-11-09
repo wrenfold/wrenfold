@@ -299,6 +299,7 @@ void wrap_scalar_operations(py::module_& m) {
   m.def("iverson", &wf::iverson, "arg"_a, docstrings::iverson.data());
 
   m.def("unevaluated", &wf::make_unevaluated, "arg"_a, docstrings::unevaluated.data());
+  m.def("stop_derivative", &wf::stop_diff, "arg"_a, docstrings::stop_derivative.data());
 
   m.def(
       "eliminate_subexpressions",
