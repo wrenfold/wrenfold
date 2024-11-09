@@ -25,6 +25,7 @@ def main():
     for script in [
         [ex / "bspline" / "bspline.py", "--language", "cpp"],
         [ex / "bspline" / "bspline.py", "--language", "rust"],
+        [ex / "c_generation" / "c_generation.py"],
         [ex / "custom_types" / "custom_types_gen.py", "--language", "cpp"],
         [ex / "custom_types" / "custom_types_gen.py", "--language", "rust"],
         [ex / "imu_integration" / "imu_integration.py"],

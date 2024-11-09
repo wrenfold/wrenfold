@@ -5,11 +5,11 @@ if(DEFINED SKBUILD_PROJECT_NAME AND DEFINED SKBUILD_PROJECT_VERSION)
     ${SKBUILD_PROJECT_NAME}
     VERSION ${SKBUILD_PROJECT_VERSION}
     DESCRIPTION "Tools for generating code from symbolic math."
-    LANGUAGES CXX)
+    LANGUAGES CXX C)
   message(STATUS "Building project version: ${SKBUILD_PROJECT_VERSION}")
   set(WF_BUILD_EXTRAS_DEFAULT OFF)
 else()
-  project(wrenfold CXX)
+  project(wrenfold CXX C)
   set(WF_BUILD_EXTRAS_DEFAULT ON)
 endif()
 

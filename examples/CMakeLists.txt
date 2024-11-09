@@ -1,4 +1,7 @@
+set(WF_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_subdirectory(bspline)
+add_subdirectory(c_generation)
 add_subdirectory(custom_types)
 add_subdirectory(imu_integration)
 add_subdirectory(motion_planning)
