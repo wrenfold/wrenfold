@@ -38,6 +38,7 @@ class tree_formatter_visitor {
   void operator()(const power& pow);
   void operator()(const rational_constant& r);
   void operator()(const relational& relational);
+  void operator()(const stop_derivative& nd);
   void operator()(const substitution& subs);
   void operator()(const symbolic_constant& constant);
   void operator()(const symbolic_function_invocation& invocation);

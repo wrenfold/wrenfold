@@ -1,6 +1,8 @@
+// wrenfold symbolic code generator.
+// Copyright (c) 2024 Gareth Cross
+// For license information refer to accompanying LICENSE file.
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numerical_jacobian.h"
-#include "wf_test_support/test_macros.h"
 
 #define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span.h"

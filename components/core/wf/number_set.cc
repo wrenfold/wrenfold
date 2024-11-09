@@ -235,6 +235,8 @@ class determine_set_visitor {
     return number_set::real_non_negative;
   }
 
+  number_set operator()(const stop_derivative& nd) const { return determine_numeric_set(nd.arg()); }
+
   constexpr number_set operator()(const symbolic_function_invocation&) const noexcept {
     // TODO: Support specifying set on the function.
     return number_set::unknown;

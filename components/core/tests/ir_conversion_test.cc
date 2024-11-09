@@ -813,6 +813,17 @@ TEST(IrTest, TestBuiltInFunctions) {
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
 
+TEST(IrTest, TestStopDerivative) {
+  // Test that stop_derivative is stripped during conversion.
+  auto [_, ir] = create_ir([](scalar_expr x, scalar_expr y) { return stop_diff(x * y); }, "func",
+                           arg("x"), arg("y"));
+
+  auto [expected_expressions, __] =
+      create_ir([](scalar_expr x, scalar_expr y) { return x * y; }, "func", arg("x"), arg("y"));
+
+  check_expressions(expected_expressions, ir);
+}
+
 // Make a external function that accepts two arguments (one scalar, one matrix).
 class custom_func_1 : public declare_external_function<
                           custom_func_1, scalar_expr,

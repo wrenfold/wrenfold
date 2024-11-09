@@ -40,6 +40,7 @@ class plain_formatter {
   std::string operator()(const power& pow);
   std::string operator()(const rational_constant& rational) const;
   std::string operator()(const relational& relational);
+  std::string operator()(const stop_derivative& nd);
   std::string operator()(const substitution& subs);
   std::string operator()(const symbolic_function_invocation& invocation);
   std::string operator()(const built_in_function_invocation& func);

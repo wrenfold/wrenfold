@@ -1368,4 +1368,14 @@ TEST(ScalarOperationsTest, TestNumericSetsSubstitution) {
   ASSERT_EQ(number_set::unknown, determine_numeric_set(substitution::create(complex, real, 0)));
 }
 
+TEST(ScalarOperationsTest, TestNumericSetStopDerivative) {
+  const scalar_expr real{"x", number_set::real};
+  const scalar_expr complex{"z", number_set::complex};
+  const scalar_expr w{"w", number_set::unknown};
+  ASSERT_EQ(number_set::real, determine_numeric_set(stop_diff(real)));
+  ASSERT_EQ(number_set::complex, determine_numeric_set(stop_diff(complex)));
+  ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(stop_diff(real * real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(stop_diff(w)));
+}
+
 }  // namespace wf

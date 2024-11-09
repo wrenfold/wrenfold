@@ -6,7 +6,6 @@
 #include <complex>
 
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/integer_utils.h"
 #include "wf/matrix_expression.h"
 #include "wf/numerical_casts.h"

@@ -727,6 +727,22 @@ Examples:
   y*(x) + (x*y)
 )doc";
 
+inline constexpr std::string_view stop_derivative = R"doc(
+Wrap a scalar-valued expression in order to block propagation of derivatives. ``stop_derivative``
+acts like a function whose derivative is always zero.
+
+Args:
+  arg: Scalar-valued expression to wrap.
+
+Examples:
+  >>> x, y = sym.symbols('x, y')
+  >>> f = sym.stop_derivative(x * y) * y
+  >>> f.diff(x)
+  0
+  >>> f.diff(y)
+  StopDerivative(x * y)
+)doc";
+
 inline constexpr std::string_view eliminate_subexpressions = R"doc(
 Extract common subexpressions from a scalar-valued expression. The expression tree is traversed and
 unique expressions are counted. Those that appear ``min_occurrences`` or more times are replaced

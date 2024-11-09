@@ -81,6 +81,8 @@ add_library(
   wf/expressions/matrix.h
   wf/expressions/multiplication.cc
   wf/expressions/multiplication.h
+  wf/expressions/stop_derivative.cc
+  wf/expressions/stop_derivative.h
   wf/expressions/numeric_expressions.h
   wf/expressions/power.cc
   wf/expressions/power.h

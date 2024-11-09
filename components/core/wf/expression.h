@@ -2,7 +2,6 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include <memory>
 #include <ostream>  // operator<<
 #include <string>
 
@@ -41,6 +40,7 @@ struct type_list_trait<scalar_meta_type> {
     class multiplication,
     class power,
     class rational_constant,
+    class stop_derivative,
     class substitution,
     class symbolic_function_invocation,
     class undefined,

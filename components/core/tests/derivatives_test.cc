@@ -436,4 +436,13 @@ TEST(DerivativesTest, TestSubstitution) {
   }
 }
 
+TEST(DerivativesTest, TestStopDerivative) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(0, stop_diff(x * y).diff(x));
+  ASSERT_IDENTICAL(0, stop_diff(x * y).diff(y, 2));
+  ASSERT_IDENTICAL(3 * cos(3 * y) * stop_diff(x * y), (sin(3 * y) * stop_diff(x * y)).diff(y));
+  ASSERT_IDENTICAL(-sin(y) * stop_diff(2 * y), (sin(y) * stop_diff(2 * y)).diff(y, 2));
+  ASSERT_NOT_IDENTICAL(stop_diff(x), stop_diff(y));
+}
+
 }  // namespace wf

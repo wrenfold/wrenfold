@@ -153,7 +153,7 @@ inline testing::AssertionResult expect_complex_near(
     return testing::AssertionFailure() << fmt::format(
                "std::complex comparison {a} == {b} failed because:\n"
                "{a} = ({a_real}, {a_imag}) and,\n{b} = ({b_real}, {b_imag})\n"
-               "The diference between them is {a} - {b} = ({delta_real}, {delta_imag}).\n"
+               "The difference between them is {a} - {b} = ({delta_real}, {delta_imag}).\n"
                "And {name_tol} evaluates to: {tol}.\n",
                fmt::arg("a", name_a), fmt::arg("b", name_b), fmt::arg("a_real", a.real()),
                fmt::arg("a_imag", a.imag()), fmt::arg("b_real", b.real()),

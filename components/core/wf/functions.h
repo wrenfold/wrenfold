@@ -88,4 +88,8 @@ scalar_expr iverson(const boolean_expr& bool_expression);
 // Implemented in unevaluated.cc
 scalar_expr make_unevaluated(scalar_expr expr);
 
+// Create a `stop_derivative` expression. `stop_diff` acts like a function whose
+// derivative is always zero. Implemented in null_derivative.cc
+scalar_expr stop_diff(scalar_expr arg);
+
 }  // namespace wf

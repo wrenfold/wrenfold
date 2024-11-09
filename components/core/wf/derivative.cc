@@ -256,6 +256,9 @@ scalar_expr derivative_visitor::operator()(const rational_constant&) const {
   return constants::zero;
 }
 
+// By construction, stop_derivative has a derivative of zero.
+scalar_expr derivative_visitor::operator()(const stop_derivative&) const { return constants::zero; }
+
 scalar_expr derivative_visitor::operator()(const substitution& sub,
                                            const scalar_expr& sub_abstract) {
   // If the target of the substitution is a function of the `x`, play it safe and create an
