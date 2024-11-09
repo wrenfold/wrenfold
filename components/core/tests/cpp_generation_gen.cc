@@ -28,6 +28,9 @@ class custom_cpp_code_generator final : public cpp_code_generator {
     if (custom.is_native_type<symbolic::MixedNumerics>()) {
       return "wf::numeric::MixedNumerics";
     }
+    if (custom.is_native_type<symbolic::FancyAggregateType>()) {
+      return "wf::numeric::FancyAggregateType";
+    }
     return cpp_code_generator::operator()(custom);
   }
 

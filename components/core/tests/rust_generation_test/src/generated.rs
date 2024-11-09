@@ -994,6 +994,33 @@ pub fn nested_custom_type_1<>(c: &crate::types::Circle, p: &crate::types::Point2
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables, unused_parens)]
+pub fn nested_custom_type_2<>(x: f64, y: f64, c: &crate::types::Circle) -> crate::types::FancyAggregateType
+{
+  // Operation counts:
+  // add: 5
+  // call: 4
+  // multiply: 5
+  // negate: 2
+  // total: 16
+  
+  let v001: f64 = y;
+  let v023: f64 = c.center.y();
+  let v021: f64 = c.center.x();
+  let v000: f64 = x;
+  let v007: f64 = c.radius;
+  crate::types::FancyAggregateType {
+    pt: crate::types::Point2d::new(v000 * v001, v000 + v007 + -v001),
+    circle: crate::types::Circle {
+      center: crate::types::Point2d::new((v000).cos(), (v001).sin()),
+      radius: 32f64 * std::f64::consts::PI
+    },
+    matrix: nalgebra::SMatrix::<f64, 2, 1>::new((v000).abs() + -(v001).cos(), v001 * (3i64) as f64),
+    scalar: v007 + v021 * v021 + v023 * v023
+  }
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables, unused_parens)]
 pub fn external_function_call_1<>(x: f64, y: f64) -> f64
 {
   // Operation counts:

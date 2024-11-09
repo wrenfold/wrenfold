@@ -129,6 +129,14 @@ struct Circle {
   scalar_expr radius{0};
 };
 
+// A type with a bunch of members of different types + nesting.
+struct FancyAggregateType {
+  Point2d pt{};
+  Circle circle{};
+  ta::static_matrix<2, 1> matrix{0, 0};
+  scalar_expr scalar{0};
+};
+
 }  // namespace symbolic
 
 template <>
@@ -146,6 +154,17 @@ struct custom_type_registrant<symbolic::Circle> {
     return custom_type_builder<symbolic::Circle>(registry, "Circle")
         .add_field("center", &symbolic::Circle::center)
         .add_field("radius", &symbolic::Circle::radius);
+  }
+};
+
+template <>
+struct custom_type_registrant<symbolic::FancyAggregateType> {
+  auto operator()(custom_type_registry& registry) const {
+    return custom_type_builder<symbolic::FancyAggregateType>(registry, "FancyAggregateType")
+        .add_field("pt", &symbolic::FancyAggregateType::pt)
+        .add_field("circle", &symbolic::FancyAggregateType::circle)
+        .add_field("matrix", &symbolic::FancyAggregateType::matrix)
+        .add_field("scalar", &symbolic::FancyAggregateType::scalar);
   }
 };
 
@@ -176,6 +195,17 @@ inline auto nested_custom_type_1(symbolic::Circle a, symbolic::Point2d b) {
   symbolic::Circle result{};
   result.radius = where(d <= a.radius, a.radius, d);
   result.center = a.center;
+  return result;
+}
+
+// For testing construction and return of complex types.
+// These operations have no real mathematical significance.
+inline auto nested_custom_type_2(scalar_expr x, scalar_expr y, symbolic::Circle c) {
+  symbolic::FancyAggregateType result{
+      symbolic::Point2d{x * y, x - y + c.radius},
+      symbolic::Circle{symbolic::Point2d{cos(x), sin(y)}, 32.0 * constants::pi},
+      ta::static_matrix<2, 1>(abs(x) - cos(y), 3 * y),
+      c.radius + pow(c.center.x, 2) + pow(c.center.y, 2)};
   return result;
 }
 

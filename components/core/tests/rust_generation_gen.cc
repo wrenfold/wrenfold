@@ -24,6 +24,9 @@ class custom_rust_code_generator final : public rust_code_generator {
     if (custom.is_native_type<wf::symbolic::MixedNumerics>()) {
       return "crate::types::MixedNumerics";
     }
+    if (custom.is_native_type<symbolic::FancyAggregateType>()) {
+      return "crate::types::FancyAggregateType";
+    }
     return rust_code_generator::operator()(custom);
   }
 

@@ -41,6 +41,15 @@ impl Circle {
     }
 }
 
+// Declare so we can check that nested_custom_type_2 compiles.
+#[derive(Debug, Copy, Clone)]
+pub struct FancyAggregateType {
+    pub pt: Point2d,
+    pub circle: Circle,
+    pub matrix: nalgebra::Vector2<f64>,
+    pub scalar: f64,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct MixedNumerics {
     pub value: f64,
