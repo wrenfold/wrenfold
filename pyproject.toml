@@ -46,7 +46,7 @@ build-backend = "scikit_build_core.build"
 cmake.version = ">=3.20"
 # It seems like setting `build-type` is insufficient on Windows, and we fall back to Debug.
 # Place it in the `args` list to force a release build.
-cmake.args = ["-G", "Ninja", "-Wno-deprecated", "-DCMAKE_BUILD_TYPE=RelWithDebInfo"]
+cmake.args = ["-G", "Ninja", "-Wno-deprecated", "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DWF_STUBS_REQUIRED=ON"]
 cmake.verbose = true
 cmake.build-type = "RelWithDebInfo"
 

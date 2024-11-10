@@ -505,8 +505,8 @@ struct custom_type_native_converter<symbolic::FancyAggregateType> {
 
   symbolic::FancyAggregateType operator()(const numeric::FancyAggregateType& p) const {
     return symbolic::FancyAggregateType{
-        symbolic::Point2d(p.pt.x, p.pt.y),
-        symbolic::Circle(symbolic::Point2d(p.circle.center.x, p.circle.center.y), p.circle.radius),
+        symbolic::Point2d{p.pt.x, p.pt.y},
+        symbolic::Circle{symbolic::Point2d{p.circle.center.x, p.circle.center.y}, p.circle.radius},
         ta::static_matrix<2, 1>(p.matrix[0], p.matrix[1]), p.scalar};
   }
 };

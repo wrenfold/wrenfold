@@ -26,6 +26,8 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 
 option(WF_BUILD_EXTRAS "Build tests, benchmarks, examples, and docs."
        ${WF_BUILD_EXTRAS_DEFAULT})
+option(WF_STUBS_REQUIRED "Fail if stubgen cannot be found." OFF)
+option(WF_DOCS_REQUIRED "Fail if sphinx/doxygen cannot be found." OFF)
 
 # Add third party code
 add_subdirectory(dependencies)
