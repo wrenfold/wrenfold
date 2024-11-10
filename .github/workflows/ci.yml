@@ -17,11 +17,6 @@ on:
     - cron: "0 0 * * 1"
 
 
-env:
-  CACHE_NUMBER: 0
-  env_name: build-env
-  prefix: /home/runner/miniconda3/envs/build-env
-
 jobs:
   build:
     strategy:
@@ -32,37 +27,42 @@ jobs:
           - {
               os: windows-2019,
               shell: pwsh,
-              env_file: "windows-environment.yml",
               compiler_packages: "",
               name_suffix: "default",
+              cc_env: "cl.exe",
+              cxx_env: "cl.exe"
             }
           - {
               os: windows-2022,
               shell: pwsh,
-              env_file: "windows-environment.yml",
               compiler_packages: "",
               name_suffix: "default",
+              cc_env: "cl.exe",
+              cxx_env: "cl.exe"
             }
           - {
               os: ubuntu-latest,
               shell: "bash -el {0}",
-              env_file: "linux-environment.yml",
-              compiler_packages: "gcc==12.1 gxx==12.1",
-              name_suffix: "gcc12",
+              compiler_packages: "g++-13",
+              name_suffix: "gcc13",
+              cc_env: "gcc-13",
+              cxx_env: "g++-13"
             }
           - {
-              os: ubuntu-latest,
+              os: ubuntu-24.04,
               shell: "bash -el {0}",
-              env_file: "linux-environment.yml",
-              compiler_packages: "gcc==14.1 gxx==14.1",
+              compiler_packages: "g++-14",
               name_suffix: "gcc14",
+              cc_env: "gcc-14",
+              cxx_env: "g++-14"
             }
           - {
               os: macos-14,
               shell: "bash -el {0}",
-              env_file: "mac-environment.yml",
               compiler_packages: "",
               name_suffix: "default",
+              cc_env: "clang",
+              cxx_env: "clang++"
             }
         build_type: [RelWithDebInfo]
 
@@ -77,41 +77,33 @@ jobs:
         with:
           submodules: true
 
-      - name: Setup miniforge
-        uses: conda-incubator/setup-miniconda@v3
+      - uses: actions/setup-python@v5
+        id: pyinstall
         with:
-          miniforge-variant: Miniforge3
-          miniforge-version: latest
-          activate-environment: ${{ env.env_name }}
-          use-mamba: true
+          python-version: '3.10'
 
-      - name: Set cache data
+      - name: Print python location
         shell: bash
-        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+        run: echo ${{ steps.pyinstall.outputs.python-path }}
 
-      - uses: actions/cache@v3
+      - name: Install python packages
+        run: |
+          ${{ steps.pyinstall.outputs.python-path }} -m pip install -r requirements.txt
+
+      - name: Install doxygen
+        uses: ssciwr/doxygen-install@v1
         with:
-          path: ${{ env.prefix }}
-          key: ${{ matrix.sys.os }}-conda-${{ hashFiles('environment.yml') }}-${{ hashFiles(matrix.sys.env_file) }}-${{ matrix.sys.compiler_packages }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
-        id: cache
+          version: "1.12.0"
 
-      - name: Update environment
-        run: |
-          mamba env update -n ${{ env.env_name }} --file environment.yml
-          mamba env update -n ${{ env.env_name }} --file ${{ matrix.sys.env_file }}
-        if: steps.cache.outputs.cache-hit != 'true'
+      - if: runner.os == 'Linux'
+        name: Add repositories for GCC
+        run: sudo apt-add-repository ppa:ubuntu-toolchain-r/test
 
-      - if: matrix.sys.compiler_packages != ''
-        name: Install compiler
+      - if: runner.os == 'Linux'
+        name: Install GCC
         run: |
-          mamba install -n ${{ env.env_name }} ${{ matrix.sys.compiler_packages }}
-
-      - name: Dump conda environment
-        run: |
-          conda info
-          conda list
-          conda config --show-sources
-          conda config --show
+          sudo apt update
+          sudo apt install ${{ matrix.sys.compiler_packages }}
 
         # Add MSVC to the command line:
       - if: runner.os == 'Windows'
@@ -129,17 +121,23 @@ jobs:
       - name: Create build directory
         run: cmake -E make_directory ${{github.workspace}}/build-${{matrix.build_type}}
 
-      - if: runner.os != 'Windows'
-        name: Configure
+      - name: Configure
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
-        run: |
-          cmake ${{github.workspace}} -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -Wno-deprecated -G Ninja
-
-      - if: runner.os == 'Windows'
-        name: Configure Windows
-        working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
-        run: |
-          cmake ${{github.workspace}} -DCMAKE_C_COMPILER="cl.exe" -DCMAKE_CXX_COMPILER="cl.exe" -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -Wno-deprecated -G Ninja
+        env:
+          CC: ${{ matrix.sys.cc_env }}
+          CXX: ${{ matrix.sys.cxx_env }}
+        run: >
+          cmake ${{github.workspace}}
+          -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+          -Wno-deprecated
+          -G Ninja
+          -DWF_STUBS_REQUIRED=ON
+          -DWF_DOCS_REQUIRED=ON
+          -DPython_ROOT_DIR=${{ env.Python_ROOT_DIR }}
+          -DPython_FIND_STRATEGY=LOCATION
+          -DPython_FIND_REGISTRY=NEVER
+          -DPython_FIND_FRAMEWORK=NEVER
+          -DPython_FIND_VIRTUALENV=NEVER
 
       - if: runner.os == 'Windows'
         name: Build (Windows)
@@ -183,6 +181,13 @@ jobs:
       - name: Pre-commit checks
         working-directory: ${{github.workspace}}
         run: pre-commit run --all-files
+
+      # Install OpenBLAS for the motion_planning example.
+      - if: runner.os == 'Linux'
+        name: Install OpenBLAS
+        run: |
+          sudo apt update
+          sudo apt install libopenblas-dev
 
       - name: Cache rust dependencies
         uses: Swatinem/rust-cache@v2

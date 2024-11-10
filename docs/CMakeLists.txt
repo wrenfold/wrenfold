@@ -1,5 +1,9 @@
 # Look for sphinx-build. If it is present, assume we can build docs.
-find_program(SPHINX_BUILD_PATH sphinx-build)
+if(WF_DOCS_REQUIRED)
+  find_program(SPHINX_BUILD_PATH sphinx-build REQUIRED)
+else()
+  find_program(SPHINX_BUILD_PATH sphinx-build)
+endif()
 if(DEFINED SPHINX_BUILD_PATH AND NOT SPHINX_BUILD_PATH STREQUAL
                                  "SPHINX_BUILD_PATH-NOTFOUND")
   message(STATUS "sphinx-build path: ${SPHINX_BUILD_PATH}")
@@ -9,7 +13,11 @@ else()
 endif()
 
 # Look for doxygen.
-find_program(DOXYGEN_PATH doxygen)
+if(WF_DOCS_REQUIRED)
+  find_program(DOXYGEN_PATH doxygen REQUIRED)
+else()
+  find_program(DOXYGEN_PATH doxygen)
+endif()
 if(DEFINED DOXYGEN_PATH AND NOT DOXYGEN_PATH STREQUAL "DOXYGEN_PATH-NOTFOUND")
   message(STATUS "doxygen path: ${DOXYGEN_PATH}")
   set(DOXYGEN_FOUND TRUE)

@@ -1,3 +1,0 @@
-# This file specifies additional dependencies required to build on OSX.
-channels:
-  - conda-forge

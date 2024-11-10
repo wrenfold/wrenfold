@@ -4,7 +4,7 @@ fn main() {
         "macos" => {
             println!("cargo:rustc-link-lib=framework=Accelerate");
         }
-        "linux" | "windows" => {
+        "linux" => {
             println!("cargo:rustc-link-arg=-lopenblas");
 
             // Need to specify the runtime path for openblas as well, since it could be in conda.
