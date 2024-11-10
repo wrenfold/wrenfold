@@ -1,8 +1,0 @@
-# This file specifies additional dependencies required to build on linux.
-channels:
-  - conda-forge
-
-dependencies:
-  - pkg-config
-  - openblas
-  - openssl

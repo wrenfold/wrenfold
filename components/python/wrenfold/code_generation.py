@@ -401,7 +401,8 @@ def generate_python(
 
     locals_in_out = dict()
     try:
-        # Security: exec is not great, but ultimately the code ex
+        # Security: exec is not great, but ultimately the code executed here is constrained in scope
+        # and functionality.
         exec(code, globals_in, locals_in_out)
     except:
         print('Encountered exception while evaluating:')
