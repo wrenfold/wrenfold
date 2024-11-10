@@ -10,7 +10,12 @@ import unittest
 import jax
 import jax.numpy as jnp
 import numpy as np
-import torch as th
+
+try:
+    import torch as th
+except ImportError:
+    print('Torch not installed, PyTorch tests will be skipped.')
+    th = None
 
 from wrenfold import code_generation, external_functions, sym, type_info
 from wrenfold.geometry import Quaternion
@@ -694,8 +699,10 @@ def main():
     test_cases = [
         NumPyCodeGenerationTest,
         JaxCodeGenerationTest,
-        PyTorchCodeGenerationTest,
     ]
+    if th is not None:
+        test_cases.append(PyTorchCodeGenerationTest)
+
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     for test_case in test_cases:
