@@ -1,6 +1,7 @@
 """
 Symbolic expressions that are shared among the provided examples.
 """
+import typing as T
 
 from wrenfold import code_generation, sym, type_annotations
 
@@ -58,7 +59,7 @@ def kb_camera_projection(
     p_cam: type_annotations.Vector3,
     K: type_annotations.Vector4,
     coeffs: type_annotations.Vector4,
-):
+) -> T.Tuple[sym.MatrixExpr, sym.Expr]:
     """
     Evaluate the projection model of a Kannala-Brandt camera model. Only the 4 radial distortion
     coefficients are implemented in this example.
@@ -85,7 +86,7 @@ def kb_camera_projection(
 
     # Convert to pixel coordinates
     fx, fy, cx, cy = K
-    return sym.vector(fx * p_image[0] + cx, fy * p_image[1] + cy)
+    return sym.vector(fx * p_image[0] + cx, fy * p_image[1] + cy), theta
 
 
 def kb_camera_unprojection(
@@ -124,7 +125,7 @@ def kb_camera_projection_with_jacobians(
     """
     Code-generate the Kannala-Brandt camera model with Jacobians.
     """
-    p_pixels = kb_camera_projection(p_cam=p_cam, K=K, coeffs=coeffs)
+    p_pixels, _ = kb_camera_projection(p_cam=p_cam, K=K, coeffs=coeffs)
     p_pixels_D_p_cam = sym.jacobian(p_pixels, p_cam)
     p_pixels_D_K = sym.jacobian(p_pixels, K)
     p_pixels_D_coeffs = sym.jacobian(p_pixels, coeffs)
