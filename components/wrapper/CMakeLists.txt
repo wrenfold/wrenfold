@@ -2,7 +2,7 @@
 add_custom_target(wf_stubs ALL)
 
 # Find stubgen:
-if(NOT DEFINED STUBGEN_PATH)
+if(NOT DEFINED STUBGEN_PATH OR STUBGEN_PATH STREQUAL "STUBGEN_PATH-NOTFOUND")
   message(STATUS "Looking for stubgen...")
   if(WF_STUBS_REQUIRED)
     find_program(STUBGEN_PATH stubgen REQUIRED)

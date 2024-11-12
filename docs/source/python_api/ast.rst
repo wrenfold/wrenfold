@@ -151,6 +151,11 @@ ast
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
+.. autoclass:: wrenfold.ast.Ternary
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
 .. autoclass:: wrenfold.ast.VariableRef
   :members:
   :special-members:

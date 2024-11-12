@@ -10,6 +10,14 @@ argument::argument(const std::string_view name, type_variant type,
     : impl_(std::make_shared<const impl>(
           impl{std::string(name), std::move(type), direction, index})) {}
 
+std::variant<scalar_expr, matrix_expr, compound_expr> argument::create_symbolic_input() const {
+  return std::visit(
+      [&](const auto& type_concrete) -> std::variant<scalar_expr, matrix_expr, compound_expr> {
+        return detail::create_function_input(type_concrete, index());
+      },
+      type());
+}
+
 std::size_t hash_struct<argument>::operator()(const argument& arg) const noexcept {
   std::size_t hash = hash_string_fnv(arg.name());
   hash = hash_args(hash, arg.type());
@@ -35,13 +43,7 @@ const any_expression& function_description::find_output_expressions(const output
 std::variant<scalar_expr, matrix_expr, compound_expr> function_description::add_input_argument(
     const std::string_view name, type_variant type) {
   const argument& arg = add_argument(name, std::move(type), argument_direction::input);
-
-  using return_type = std::variant<scalar_expr, matrix_expr, compound_expr>;
-  return std::visit(
-      [&](const auto& type_concrete) -> return_type {
-        return detail::create_function_input(type_concrete, arg.index());
-      },
-      arg.type());
+  return arg.create_symbolic_input();
 }
 
 void function_description::add_output_argument(const std::string_view name, type_variant type,

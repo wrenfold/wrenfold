@@ -69,9 +69,10 @@ manylinux-x86_64-image = "manylinux_2_28"
 test-command = [
     "python \"{package}/support/test_wheel.py\"",
 ]
-test-requires = ["numpy", "sympy"]
+# To test interop, we need NumPy, SymPy and JAX.
+test-requires = ["numpy", "sympy", "jax"]
 
 [tool.isort]
 multi_line_output = 3
 include_trailing_comma = true
-known_first_party = ["wrenfold", "pywrenfold"]
+known_first_party = ["wrenfold", "pywrenfold", "test_base"]

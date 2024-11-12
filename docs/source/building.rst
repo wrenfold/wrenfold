@@ -45,6 +45,7 @@ To run python tests you will additionally need:
 
   * numpy
   * SymPy
+  * JAX and PyTorch (for ``python_code_generation_test``).
 
 To build documentation:
 
@@ -55,11 +56,13 @@ To build documentation:
   * `myst <https://myst-parser.readthedocs.io/>`_
 
 You can use the `requirements.txt <https://github.com/wrenfold/wrenfold/blob/main/requirements.txt>`_
-file to install most of the dependencies (except for doxygen):
+file to install most of the dependencies.
 
 .. code:: bash
 
   pip install -r requirements.txt
+
+The two exceptions are **doxygen** and **PyTorch**, which must be installed separately.
 
 .. tip::
 
@@ -67,7 +70,7 @@ file to install most of the dependencies (except for doxygen):
 
   .. code:: bash
 
-    pip-compile requirements.in
+    pip-compile support/requirements.in support/testing-requirements.in --output-file requirements.txt
 
 To build and run Rust tests you will need:
 

@@ -63,7 +63,7 @@ class external_function {
   }
 
   // Create an invocation of this function.
-  // The arguments are type-checked aginst the provided expressions.
+  // The arguments are type-checked against the provided expressions.
   any_expression create_invocation(std::vector<any_expression> args) const;
 
  private:

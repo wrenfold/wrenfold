@@ -33,6 +33,7 @@ test:
     - pip
     - numpy
     - sympy
+    - jax
   source_files:
     - components/wrapper/tests/*.py
     - examples/**/*.py

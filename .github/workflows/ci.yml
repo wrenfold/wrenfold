@@ -81,6 +81,7 @@ jobs:
         id: pyinstall
         with:
           python-version: '3.10'
+          cache: 'pip'
 
       - name: Print python location
         shell: bash
@@ -89,6 +90,17 @@ jobs:
       - name: Install python packages
         run: |
           ${{ steps.pyinstall.outputs.python-path }} -m pip install -r requirements.txt
+
+      - if: runner.os != 'macOS'
+        name: Install PyTorch (non OSX)
+        run: >
+          ${{ steps.pyinstall.outputs.python-path }} -m pip install
+          torch
+          --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - if: runner.os == 'macOS'
+        name: Install PyTorch (OSX)
+        run: ${{ steps.pyinstall.outputs.python-path }} -m pip install torch
 
       - name: Install doxygen
         uses: ssciwr/doxygen-install@v1
