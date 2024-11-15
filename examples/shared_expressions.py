@@ -61,7 +61,8 @@ def kb_camera_projection(
 ):
     """
     Evaluate the projection model of a Kannala-Brandt camera model. Only the 4 radial distortion
-    coefficients are implemented in this example.
+    coefficients are implemented in this example. We accept an incident vector in camera coordinates
+    and convert it to a location in pixels.
 
     Args:
         p_cam: Incident vector in camera coordinates. We assume it has non-zero norm.
@@ -95,7 +96,8 @@ def kb_camera_unprojection(
 ):
     """
     Evaluate the un-projection model of a Kannala-Brandt camera model. This function computes the
-    inverse (up to scale) of `kb_camera_projection`.
+    inverse (up to scale) of `kb_camera_projection`. We accept a point in pixels `p_pixels` and
+    compute a unit-vector pointing out of the optical center.
 
     Args:
         p_cam: Incident vector in camera coordinates.
@@ -122,7 +124,9 @@ def kb_camera_projection_with_jacobians(
     coeffs: type_annotations.Vector4,
 ):
     """
-    Code-generate the Kannala-Brandt camera model with Jacobians.
+    Define a symbolic function that implements the Kannala-Brandt camera model with Jacobians.
+
+    This method implements the forward (projection) method.
     """
     p_pixels = kb_camera_projection(p_cam=p_cam, K=K, coeffs=coeffs)
     p_pixels_D_p_cam = sym.jacobian(p_pixels, p_cam)
@@ -142,7 +146,9 @@ def kb_camera_unprojection_with_jacobians(
     coeffs: type_annotations.Vector4,
 ):
     """
-    Code-generate the Kannala-Brandt camera model with Jacobians.
+    Define a symbolic function that implements the Kannala-Brandt camera model with Jacobians.
+
+    This method implements the backwards (unprojection or back-projection) method.
     """
     p_cam = kb_camera_unprojection(p_pixels=p_pixels, K=K, coeffs=coeffs)
     p_cam_D_p_pixels = sym.jacobian(p_cam, p_pixels)
