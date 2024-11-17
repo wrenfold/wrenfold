@@ -20,7 +20,7 @@ class rational_constant;
 // An integral constant.
 class integer_constant {
  public:
-  static constexpr std::string_view name_str = "Integer";
+  static constexpr std::string_view name_str = "IntegerConstant";
   static constexpr bool is_leaf_node = true;
 
   using value_type = checked_int;
@@ -62,7 +62,7 @@ class integer_constant {
 // A rational value (in form numerator / denominator).
 class rational_constant {
  public:
-  static constexpr std::string_view name_str = "Rational";
+  static constexpr std::string_view name_str = "RationalConstant";
   static constexpr bool is_leaf_node = true;
 
   using value_type = checked_int;
@@ -142,7 +142,7 @@ class rational_constant {
 // A floating point constant.
 class float_constant {
  public:
-  static constexpr std::string_view name_str = "Float";
+  static constexpr std::string_view name_str = "FloatConstant";
   static constexpr bool is_leaf_node = true;
 
   using value_type = double;

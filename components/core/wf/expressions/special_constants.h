@@ -16,7 +16,7 @@ namespace wf {
 // A symbolic constant, like pi or euler's number.
 class symbolic_constant {
  public:
-  static constexpr std::string_view name_str = "Constant";
+  static constexpr std::string_view name_str = "SymbolicConstant";
   static constexpr bool is_leaf_node = true;
 
   // Construct with name.

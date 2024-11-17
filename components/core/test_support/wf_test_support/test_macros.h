@@ -137,7 +137,7 @@ testing::AssertionResult string_equal_test_helper(const std::string_view,
     return testing::AssertionSuccess();
   }
   return testing::AssertionFailure() << fmt::format(
-             "String `{}` does not match ({}).ToString(), where:\n({}).ToString() = {}\n"
+             "String `{}` does not match ({}).to_string(), where:\n({}).to_string() = {}\n"
              "The expression tree for `{}` is:\n{}",
              escape_newlines(a), name_b, name_b, escape_newlines(b_str), name_b,
              b.to_expression_tree_string());
