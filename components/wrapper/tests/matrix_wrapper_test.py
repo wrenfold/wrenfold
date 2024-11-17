@@ -284,7 +284,7 @@ class MatrixWrapperTest(MathTestBase):
             sym.matrix([[x, y], [z, a], [b, c]]),
             sym.matrix([x, y, z, a, b, c]).reshape((3, 2)),
         )
-        self.assertRaises(exceptions.DimensionError, lambda: sym.eye(2).reshape(4, 5))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.eye(2).reshape((4, 5)))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(2, -8))
 
@@ -426,6 +426,7 @@ class MatrixWrapperTest(MathTestBase):
 
         self.assertRaises(exceptions.DimensionError, lambda: sym.jacobian(m, []))
         self.assertRaises(exceptions.DimensionError, lambda: sym.jacobian(sym.zeros(2, 2), m))
+        self.assertRaises(exceptions.DimensionError, lambda: sym.zeros(2, 3).jacobian([x, y, z]))
 
     def test_subs(self):
         """Test calling subs on a matrix."""

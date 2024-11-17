@@ -163,6 +163,10 @@ TEST(SubstituteTest, TestMultiplications) {
 
   // Check recursion behavior - this should not collapse to x:
   ASSERT_IDENTICAL(log(x * x), log(x * log(x * x)).subs(log(x * x), x));
+
+  // Failed case where no integer multiple is possible:
+  ASSERT_IDENTICAL(y * w, (y * w).subs(pow(y, z) * w, 5));
+  ASSERT_IDENTICAL(pow(y, z) * w, (pow(y, z) * w).subs(y * w, 5));
 }
 
 TEST(SubstituteTest, TestMatrix) {

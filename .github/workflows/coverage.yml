@@ -72,6 +72,7 @@ jobs:
           -DWF_STUBS_REQUIRED=ON
           -DWF_DOCS_REQUIRED=OFF
           -DWF_CODE_COVERAGE=ON
+          -DWF_BUILD_WITH_TRACING=ON
           -DPython_ROOT_DIR=${{ env.Python_ROOT_DIR }}
           -DPython_FIND_STRATEGY=LOCATION
           -DPython_FIND_REGISTRY=NEVER
@@ -109,6 +110,8 @@ jobs:
           '/usr/include/*'
           '/usr/lib/*'
           '*/dependencies/*'
+          '*/core/tests/*'
+          '*/core/test_support/'
 
       - name: Generate HTML report
         working-directory: ${{github.workspace}}/build

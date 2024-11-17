@@ -24,6 +24,7 @@ add_single_file_test(stack_allocator_test.cc)
 add_single_file_test(static_vector_test.cc)
 add_single_file_test(string_utils_test.cc)
 add_single_file_test(substitute_test.cc)
+add_single_file_test(tree_formatter_test.cc)
 add_single_file_test(type_list_test.cc)
 
 add_compiled_code_generator(

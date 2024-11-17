@@ -114,6 +114,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
 
         self.assertIsInstance(f, TestType)
         self.assertIsInstance(f._provenance, sym.CompoundExpr)
+        self.assertRaises(exceptions.TypeError, lambda: bool(f._provenance))
         self.assertEqual("ExternalFunctionInvocation", f._provenance.type_name)
 
         # Pass it to another function:

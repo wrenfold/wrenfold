@@ -180,9 +180,12 @@ class CodeGenerationWrapperTest(MathTestBase):
         definition = code_generation.transpile(desc)
         sig = definition.signature
 
+        self.assertEqual('FunctionDescription(\'func2\', 6 args)', repr(desc))
         self.assertEqual('func2', sig.name)
         self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), sig.return_type)
 
+        self.assertEqual('Argument(x: matrix_type<2, 1>)', repr(sig.arguments[0]))
+        self.assertEqual('Argument(z: floating_point)', repr(sig.arguments[2]))
         self._check_arg(
             sig.arguments[0],
             'x',
@@ -230,6 +233,7 @@ class CodeGenerationWrapperTest(MathTestBase):
 
         ctype = sig.arguments[1].type
         self.assertIsInstance(ctype, type_info.CustomType)
+        self.assertEqual(f'CustomType(\'Point2d\', 2 fields, {repr(Point2d)})', repr(ctype))
         self.assertEqual('Point2d', ctype.name)
         self.assertEqual(Point2d, ctype.python_type)
         self.assertEqual(2, ctype.total_size)
@@ -244,6 +248,8 @@ class CodeGenerationWrapperTest(MathTestBase):
     def test_opaque_func(self):
         """Test we can customize invocation of a custom function."""
         code = code_generation.generate_function(opaque_type_func, generator=CustomCppGenerator())
+        self.assertEqual('external_func(foo: OpaqueType, bar: floating_point) -> floating_point',
+                         repr(external_func))
         self.assertTrue('custom::external_func' in code)
 
     def test_nested_type_func(self):

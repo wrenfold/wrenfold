@@ -7,7 +7,7 @@ import unittest
 
 import sympy as sp
 
-from wrenfold import sym, sympy_conversion, type_info
+from wrenfold import exceptions, sym, sympy_conversion, type_info
 
 from .test_base import MathTestBase
 
@@ -357,6 +357,12 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(m2_wf, m2_sp)
         self.assertIdenticalFromSp(sym.eye(2), sp.eye(2))
         self.assertIdenticalFromSp(sym.zeros(3, 5), sp.zeros(3, 5))
+
+    def test_unsupported(self):
+        x, y = sym.symbols('x, y')
+        self.assertRaises(exceptions.TypeError, lambda: spy(sym.stop_derivative(x * y)))
+        u = sym.unique_symbols(1)
+        self.assertRaises(exceptions.TypeError, lambda: spy(u))
 
 
 if __name__ == '__main__':

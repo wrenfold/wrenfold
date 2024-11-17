@@ -192,14 +192,22 @@ void tree_formatter_visitor::format_append(const std::string_view fmt_str, Args&
 template <typename T>
 void tree_formatter_visitor::visit_left(const T& expr) {
   indentations_.push_back(true);
-  visit(expr, *this);
+  if constexpr (is_any_expression_v<T>) {
+    std::visit(*this, expr);
+  } else {
+    visit(expr, *this);
+  }
   indentations_.pop_back();
 }
 
 template <typename T>
 void tree_formatter_visitor::visit_right(const T& expr) {
   indentations_.push_back(false);
-  visit(expr, *this);
+  if constexpr (is_any_expression_v<T>) {
+    std::visit(*this, expr);
+  } else {
+    visit(expr, *this);
+  }
   indentations_.pop_back();
 }
 

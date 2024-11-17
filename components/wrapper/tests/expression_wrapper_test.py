@@ -65,6 +65,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertNotIdentical(b, c)
         self.assertEqual('Variable', a.type_name)
         self.assertEqual((), a.args)
+        self.assertRaises(exceptions.InvalidArgumentError, lambda: sym.unique_symbols(count=0))
 
     def test_is_identical_to(self):
         """Test calling is_identical_to and __eq__."""
@@ -142,6 +143,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertReprEqual('I', sym.I)
         self.assertReprEqual('E', sym.E)
         self.assertReprEqual('2 + 5*I', 2 + 5 * sym.I)
+        self.assertReprEqual('acos(x)*asin(y)*atan(z)', sym.acos(x) * sym.asin(y) * sym.atan(z))
 
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""
@@ -331,6 +333,8 @@ class ExpressionWrapperTest(MathTestBase):
     def test_relational(self):
         """Test creating relational expressions."""
         x, y, z = sym.symbols('x, y, z')
+        self.assertIsInstance(x < y, sym.BooleanExpr)
+        self.assertEqual("Relational", (x < y).type_name)
         self.assertIdentical(x < y, y > x)
         self.assertIdentical(z > 0, 0 < z)
         self.assertIdentical(x >= 0.0, 0.0 <= x)
@@ -409,6 +413,9 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual(123, (sym.integer(100) + x).subs(x, 23).eval())
         self.assertEqual(complex(1, 2), (1 + sym.I * 2).eval())
         self.assertEqual(complex(0.23, 0.5), (x + sym.I * y).subs(x, 0.23).subs(y, 0.5).eval())
+
+        self.assertRaises(exceptions.TypeError, lambda: sym.derivative(x, y, 1).eval())
+        self.assertRaises(exceptions.TypeError, lambda: sym.zoo.eval())
 
     def test_cse(self):
         """Test calling eliminate_subexpressions()."""

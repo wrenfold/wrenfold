@@ -57,6 +57,7 @@ struct prime_factors_order {
 };
 
 TEST(IntegerUtils, TestComputePrimeFactors) {
+  ASSERT_TRUE(compute_prime_factors(0).empty());
   // Factor numbers 1 -> 10000.
   for (int64_t i = 1; i < 10000; ++i) {
     const std::vector<prime_factor> result = compute_prime_factors(i);

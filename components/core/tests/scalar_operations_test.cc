@@ -5,6 +5,8 @@
 #include "wf/constants.h"
 #include "wf/expressions/addition.h"
 #include "wf/expressions/conditional.h"
+#include "wf/expressions/derivative_expression.h"
+#include "wf/expressions/function_expressions.h"
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/power.h"
 #include "wf/expressions/substitute_expression.h"
@@ -46,6 +48,9 @@ TEST(ScalarOperationsTest, TestNumericConstructors) {
                    scalar_expr{std::numeric_limits<double>::infinity()});
   ASSERT_IDENTICAL(constants::complex_infinity,
                    scalar_expr{-std::numeric_limits<double>::infinity()});
+
+  ASSERT_IDENTICAL(constants::boolean_true, boolean_expr{true});
+  ASSERT_IDENTICAL(constants::boolean_false, boolean_expr{false});
 }
 
 TEST(ScalarOperationsTest, TestAddition) {
@@ -183,6 +188,11 @@ TEST(ScalarOperationsTest, TestMultiplication) {
   ASSERT_IDENTICAL(x, sqrt(x) * sqrt(x));
   ASSERT_IDENTICAL(make_pow(x, 3 / 2_s), sqrt(x) * sqrt(x) * sqrt(x));
   ASSERT_IDENTICAL(12 * x * y, 12_s / 5 * sqrt(x * 5) * y * sqrt(x * 5));
+
+  // Collection of powers produces another multiplication or power:
+  ASSERT_IDENTICAL(y * pow(x, z), sqrt(pow(x, z)) * y * sqrt(pow(x, z)));
+  ASSERT_IDENTICAL(3 * z * x * y,
+                   pow(x * y, 1_s / 3) * 3 * pow(x * y, 1_s / 3) * z * pow(x * y, 1_s / 3));
 
   // Multiplication becomes an addition times a constant:
   ASSERT_IDENTICAL(5 * x - 15, sqrt(x - 3) * 5 * sqrt(x - 3));
@@ -415,6 +425,7 @@ TEST(ScalarOperationsTest, TestPowerDistribution) {
   ASSERT_IDENTICAL(sqrt(w) * sqrt(u) * sqrt(-x), sqrt(w * u * -x));
   ASSERT_IDENTICAL(pow(2, 3_s / 5) * pow(w, 3_s / 5) * pow(x * y, 3_s / 5),
                    pow(w * x * y * 2, 3_s / 5));
+  ASSERT_IDENTICAL(abs(v), pow(abs(v) * abs(v) * abs(v), 1_s / 3));
 
   ASSERT_IDENTICAL(sqrt(a * a + b * b + c * c) * sqrt(pow(v, -2)),
                    pow((a * a + b * b + c * c) / (v * v), 1_s / 2));
@@ -635,8 +646,17 @@ TEST(ScalarOperationsTest, TestPowerIntToRational) {
   ASSERT_IDENTICAL(make_pow(-1, 2_s / 5), pow(-1, 2_s / 5));
   ASSERT_IDENTICAL(-make_pow(-1, 1_s / 5), pow(-1, 6_s / 5));
 
+  // zero rational raised to negative integer
+  ASSERT_IDENTICAL(constants::complex_infinity, pow(make_expr<rational_constant>(0, 3), -5));
+
+  // zero rational raised to zero integer (does not exist)
+  ASSERT_IDENTICAL(constants::undefined, pow(make_expr<rational_constant>(0, 1), 0));
+
   // 0 raised to power of a negative rational
   ASSERT_IDENTICAL(constants::complex_infinity, pow(0, -2_s / 3));
+
+  // 0 raised to power of 0 rational (does not exist)
+  ASSERT_IDENTICAL(constants::undefined, pow(0, make_expr<rational_constant>(0, 3)));
 }
 
 // Test powers that produce the imaginary constant.
@@ -1258,6 +1278,7 @@ TEST(ScalarOperationsTest, TestNumericSetsPow) {
             determine_numeric_set(pow(real_positive, real_non_negative)));
 
   ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(complex, complex)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(unknown, unknown)));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
@@ -1286,6 +1307,9 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(real_non_negative)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(acos(complex)));
+
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(atan2(real, real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(atan2(complex, complex)));
 
   // hyperbolic functions:
   ASSERT_EQ(number_set::unknown, determine_numeric_set(cosh(complex)));
@@ -1324,6 +1348,7 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::real, determine_numeric_set(signum(real)));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(signum(real_non_negative)));
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(signum(real_positive)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(signum(complex)));
 
   ASSERT_EQ(number_set::real, determine_numeric_set(floor(real)));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(floor(real_non_negative)));
@@ -1366,6 +1391,22 @@ TEST(ScalarOperationsTest, TestNumericSetsSubstitution) {
   ASSERT_EQ(number_set::unknown,
             determine_numeric_set(substitution::create(real * real, real, complex)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(substitution::create(complex, real, 0)));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetDerivative) {
+  const scalar_expr real{"x", number_set::real};
+  const scalar_expr complex{"z", number_set::complex};
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(derivative::create(real * real, real, 1)));
+  ASSERT_EQ(number_set::unknown,
+            determine_numeric_set(derivative::create(complex - 3, complex, 1)));
+}
+
+TEST(ScalarOperationsTest, TestNumericSetSymbolicFunctionInvocation) {
+  const scalar_expr real{"x", number_set::real};
+  const scalar_expr complex{"z", number_set::complex};
+  const symbolic_function f{"f"};
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(f(real)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(f(complex)));
 }
 
 TEST(ScalarOperationsTest, TestNumericSetStopDerivative) {

@@ -258,6 +258,7 @@ TEST(DerivativesTest, TestDerivativeExpression) {
   ASSERT_IDENTICAL(derivative::create(abs(x + y), x, 2), f.diff(x));
   ASSERT_IDENTICAL(derivative::create(f, y, 1), f.diff(y));
   ASSERT_IDENTICAL(0, f.diff(z));
+  ASSERT_THROW(derivative::create(abs(x), x, 0), wf::invalid_argument_error);
 }
 
 TEST(DerivativesTest, TestUnevaluated) {
@@ -443,6 +444,7 @@ TEST(DerivativesTest, TestStopDerivative) {
   ASSERT_IDENTICAL(3 * cos(3 * y) * stop_diff(x * y), (sin(3 * y) * stop_diff(x * y)).diff(y));
   ASSERT_IDENTICAL(-sin(y) * stop_diff(2 * y), (sin(y) * stop_diff(2 * y)).diff(y, 2));
   ASSERT_NOT_IDENTICAL(stop_diff(x), stop_diff(y));
+  ASSERT_IDENTICAL(stop_diff(x), stop_diff(stop_diff(x)));
 }
 
 }  // namespace wf
