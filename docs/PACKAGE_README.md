@@ -11,6 +11,7 @@
 <!--- badges_start --->
 <p align="center">
 <a href="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml?query=branch%3Amain"><img alt="GitHub Actions Workflow Status" src="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+<a href="https://github.com/wrenfold/wrenfold/actions/workflows/coverage.yml?query=branch%3Amain"><img alt="Code Coverage Status" src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/gareth-cross/0d939a81f2048609c1d3758371e94b7d/raw/wrenfold.json"></a>
 <a href="https://pypi.org/project/wrenfold/"><img alt="Python versions badge" src="https://img.shields.io/pypi/pyversions/wrenfold"/></a>
 <a href="https://crates.io/crates/wrenfold-traits"><img src="https://img.shields.io/crates/v/wrenfold-traits.svg" alt="crates.io"></a>
 <img alt="C++17" src="https://img.shields.io/badge/c++-17-blue" />

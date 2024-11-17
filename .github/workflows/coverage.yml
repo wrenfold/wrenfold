@@ -1,0 +1,147 @@
+name: coverage
+
+on:
+  # Allow manual trigger for this workflow.
+  workflow_dispatch:
+
+  # Run every Monday
+  schedule:
+    - cron: "0 0 * * 1"
+
+
+jobs:
+  build:
+    name: build-coverage
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: "bash -el {0}"
+    env:
+      BRANCH: ${{ github.head_ref || github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-python@v5
+        id: pyinstall
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Print python location
+        shell: bash
+        run: echo ${{ steps.pyinstall.outputs.python-path }}
+
+      - name: Install python packages
+        run: |
+          ${{ steps.pyinstall.outputs.python-path }} -m pip install -r requirements.txt
+
+      - name: Install PyTorch
+        run: >
+          ${{ steps.pyinstall.outputs.python-path }} -m pip install
+          torch
+          --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Add repositories for GCC
+        run: sudo apt-add-repository ppa:ubuntu-toolchain-r/test
+
+      - name: Install GCC and lcov
+        run: |
+          sudo apt update
+          sudo apt install g++-13 lcov
+
+      - name: Save gcov location
+        run: |
+          echo "GCOV=$(which gcov-13)" >> $GITHUB_ENV
+
+      - name: Create build directory
+        run: cmake -E make_directory ${{github.workspace}}/build
+
+      - name: Configure
+        working-directory: ${{github.workspace}}/build
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: >
+          cmake ${{github.workspace}}
+          -DCMAKE_BUILD_TYPE=Debug
+          -Wno-deprecated
+          -G Ninja
+          -DWF_STUBS_REQUIRED=ON
+          -DWF_DOCS_REQUIRED=OFF
+          -DWF_CODE_COVERAGE=ON
+          -DPython_ROOT_DIR=${{ env.Python_ROOT_DIR }}
+          -DPython_FIND_STRATEGY=LOCATION
+          -DPython_FIND_REGISTRY=NEVER
+          -DPython_FIND_FRAMEWORK=NEVER
+          -DPython_FIND_VIRTUALENV=NEVER
+
+      - name: Build
+        working-directory: ${{github.workspace}}/build
+        run: |
+          threads=`nproc`
+          cmake --build . --config Debug --parallel $threads
+
+      - name: Run CTest
+        working-directory: ${{github.workspace}}/build
+        run: ctest --output-on-failure
+
+      # With newer lcov in Ubuntu-24.04, the `mismatch` error triggers on gtest functions.
+      - name: Generate coverage
+        working-directory: ${{github.workspace}}/build
+        run: >
+          lcov
+          --gcov-tool ${{ env.GCOV }}
+          --directory .
+          --capture
+          --output-file coverage.info
+          --ignore-errors mismatch
+
+      - name: Filter coverage
+        working-directory: ${{github.workspace}}/build
+        run: >
+          lcov
+          --gcov-tool ${{ env.GCOV }}
+          --remove
+          coverage.info -o filtered.info
+          '/usr/include/*'
+          '/usr/lib/*'
+          '*/dependencies/*'
+
+      - name: Generate HTML report
+        working-directory: ${{github.workspace}}/build
+        run: |
+          genhtml filtered.info --output-directory coverage
+
+      - name: Archive report
+        working-directory: ${{github.workspace}}/build
+        run: |
+          tar -czf coverage.tar.gz coverage
+
+      - name: Extract coverage percentage
+        working-directory: ${{github.workspace}}/build
+        run: >
+          echo "COVERAGE=$(${{ steps.pyinstall.outputs.python-path }} ${{github.workspace}}/support/print_coverage.py ${{ env.GCOV }} ${{github.workspace}}/build/filtered.info)"
+          >> $GITHUB_ENV
+
+      - name: Print coverage
+        run: echo ${{ env.COVERAGE }}
+
+      - name: Create badge
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 0d939a81f2048609c1d3758371e94b7d
+          filename: wrenfold.json
+          label: Test Coverage
+          message: ${{ env.COVERAGE }}
+          color: green
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ${{github.workspace}}/build/coverage.tar.gz
+          retention-days: 10

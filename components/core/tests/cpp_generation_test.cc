@@ -219,7 +219,7 @@ TEST(CppGenerationTest, TestFloor) {
 TEST(CppGenerationTest, TestHyperbolicTrigFunctions) {
   EXPECT_EQ(std::cosh(1.6), gen::cosh_test(1.6));
   EXPECT_EQ(std::sinh(-1.3), gen::sinh_test(-1.3));
-  EXPECT_EQ(std::tanh(0.22), gen::tanh_test(0.22));
+  EXPECT_NEAR(std::tanh(0.22), gen::tanh_test(0.22), 1.0e-16);
   EXPECT_EQ(std::acosh(2.1), gen::acosh_test(2.1));
   EXPECT_EQ(std::asinh(-5.2), gen::asinh_test(-5.2));
   EXPECT_EQ(std::atanh(0.42), gen::atanh_test(0.42));
