@@ -28,6 +28,7 @@ option(WF_BUILD_EXTRAS "Build tests, benchmarks, examples, and docs."
        ${WF_BUILD_EXTRAS_DEFAULT})
 option(WF_STUBS_REQUIRED "Fail if stubgen cannot be found." OFF)
 option(WF_DOCS_REQUIRED "Fail if sphinx/doxygen cannot be found." OFF)
+option(WF_CODE_COVERAGE "Build in code coverag mode." OFF)
 
 # Add third party code
 add_subdirectory(dependencies)
@@ -57,6 +58,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
                                              "AppleClang")
   # Disable unused local typedef on Clang:
   list(APPEND WF_SHARED_WARNING_FLAGS -Wno-unused-local-typedef)
+endif()
+
+# Add an empty interface target to specify code-coverage configuration:
+add_library(wf_coverage_config INTERFACE)
+if(WF_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  # Turn off optimization, add debug info, and enable coverage.
+  target_compile_options(wf_coverage_config INTERFACE -O0 -g --coverage)
+  target_link_options(wf_coverage_config INTERFACE --coverage)
 endif()
 
 # Custom target that groups together all the rust code-generation.

@@ -4,6 +4,7 @@ add_library(wf_runtime INTERFACE ${RUNTIME_SOURCES})
 target_include_directories(
   wf_runtime INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                        $<INSTALL_INTERFACE:include>)
+target_link_libraries(wf_runtime INTERFACE wf_coverage_config)
 
 if(WF_BUILD_EXTRAS)
   add_subdirectory(tests)

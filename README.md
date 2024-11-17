@@ -8,12 +8,12 @@
 
 <!--- badges_start --->
 <p align="center">
-<a href="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml?query=branch%3Amain"><img alt="GitHub Actions Workflow Status" src="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+<a href="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml?query=branch%3Amain"><img alt="CI Status" src="https://github.com/wrenfold/wrenfold/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+<a href="https://github.com/wrenfold/wrenfold/actions/workflows/coverage.yml?query=branch%3Amain"><img alt="Code Coverage Status" src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/gareth-cross/0d939a81f2048609c1d3758371e94b7d/raw/wrenfold.json"></a>
 <a href="https://pypi.org/project/wrenfold/"><img alt="Python versions badge" src="https://img.shields.io/pypi/pyversions/wrenfold"/></a>
 <a href="https://anaconda.org/conda-forge/wrenfold"><img alt="conda-forge version badge" src="https://anaconda.org/conda-forge/wrenfold/badges/version.svg"/></a>
 <a href="https://crates.io/crates/wrenfold-traits"><img src="https://img.shields.io/crates/v/wrenfold-traits.svg" alt="crates.io"></a>
 <img alt="C++17" src="https://img.shields.io/badge/c++-17-blue" />
-<a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
 </p>
 <!--- badges_end --->
 
@@ -145,3 +145,7 @@ wrenfold was originally created by [me](https://github.com/gareth-cross) after d
 The project began as a part-time hobby for fun, and has evolved into a more full-featured framework over time. wrenfold is in the early stages of receiving feedback from a wider audience. There will be rough edges and undoubtedly some bugs. If you find something broken or missing, please consider [filing a ticket](https://github.com/wrenfold/wrenfold/issues/new/choose). I aim to continue developing and expanding the framework. For details of upcoming work, see the [planned features list](https://github.com/wrenfold/wrenfold/issues?q=is%3Aissue+is%3Aopen+label%3Afeature).
 
 If you are interested in collaboration opportunities or have general questions, please [reach out](mailto:gcross.code@icloud.com?subject=Wrenfold).
+
+## License
+
+wrenfold uses the [MIT License](./LICENSE).

@@ -34,8 +34,8 @@ typedef struct output_span2d output_span2d_t;
 // We assume a column-major ordering to match Eigen.
 inline double get_input_value(const input_span2d_t span, const uint32_t row, const uint32_t col) {
   assert(span.data);
-  assert(row < span->rows);
-  assert(col < span->cols);
+  assert(row < span.rows);
+  assert(col < span.cols);
   return span.data[row + col * span.stride];
 }
 

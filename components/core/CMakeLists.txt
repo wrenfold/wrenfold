@@ -154,6 +154,7 @@ if(MSVC)
   target_compile_options(wf_core PRIVATE /bigobj /EHs)
 endif()
 
+target_link_libraries(wf_core wf_coverage_config)
 target_link_libraries(wf_core wf_runtime fmt::fmt-header-only
                       absl::inlined_vector absl::span absl::flat_hash_set)
 if(WIN32)
