@@ -1,16 +1,15 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include "wf/expressions/numeric_expressions.h"
+#include <gtest/gtest.h>
 
-#include "wf_test_support/test_macros.h"
+#include "wf/expressions/numeric_expressions.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/core.h>
 WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
-using namespace wf::custom_literals;
 
 std::ostream& operator<<(std::ostream& stream, const wf::integer_constant& i) {
   stream << fmt::format("Integer({})", i.value());
@@ -20,6 +19,14 @@ std::ostream& operator<<(std::ostream& stream, const wf::integer_constant& i) {
 std::ostream& operator<<(std::ostream& stream, const wf::rational_constant& r) {
   stream << fmt::format("Rational({} / {})", r.numerator(), r.denominator());
   return stream;
+}
+
+TEST(NumericExpressionsTest, TestFormatters) {
+  ASSERT_EQ("33", fmt::format("{}", integer_constant{33}));
+  ASSERT_EQ("-5", fmt::format("{}", integer_constant{-5}));
+  ASSERT_EQ("(2 / 3)", fmt::format("{}", rational_constant{2, 3}));
+  ASSERT_EQ("(-1 / 10)", fmt::format("{}", rational_constant{-1, 10}));
+  ASSERT_EQ(fmt::format("{}", 2.3123), fmt::format("{}", float_constant{2.3123}));
 }
 
 TEST(NumericExpressionsTest, TestRational) {
@@ -34,6 +41,7 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_FALSE(a.try_convert_to_integer());
   ASSERT_EQ(a, rational_constant(16, 64));
   ASSERT_EQ(0.25, static_cast<float_constant>(a).value());
+  ASSERT_NE(a, rational_constant(-3, 8));
 
   const rational_constant b{30, 10};
   ASSERT_TRUE(b.try_convert_to_integer());

@@ -3,10 +3,15 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/constants.h"
 #include "wf/expressions/substitute_expression.h"
+#include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 
 #include "wf_test_support/test_macros.h"
+
+WF_BEGIN_THIRD_PARTY_INCLUDES
+#include <fmt/ostream.h>
+WF_END_THIRD_PARTY_INCLUDES
 
 namespace wf {
 using namespace wf::custom_literals;
@@ -149,6 +154,7 @@ TEST(PlainFormatterTest, TestBuiltInFunctions) {
   ASSERT_STR_EQ("acosh(x + y)", acosh(x + y));
   ASSERT_STR_EQ("asinh(5*x)", asinh(5 * x));
   ASSERT_STR_EQ("atanh(x/y)", atanh(x / y));
+  ASSERT_STR_EQ("sign(x)", signum(x));
 }
 
 TEST(PlainFormatterTest, TestMatrix) {
@@ -197,6 +203,24 @@ TEST(PlainFormatterTest, TestScalarConstants) {
 TEST(PlainFormatterTest, TestBooleanConstants) {
   ASSERT_STR_EQ("True", constants::boolean_true);
   ASSERT_STR_EQ("False", constants::boolean_false);
+}
+
+TEST(PlainFormatterTest, TestVariableExpressions) {
+  ASSERT_STR_EQ("x", make_expr<variable>("x", number_set::unknown));
+  ASSERT_STR_EQ("$arg(0, 3)", make_expr<variable>(function_argument_variable(
+                                  0, 3, numeric_primitive_type::boolean)));
+  const unique_variable u(number_set::complex);
+  ASSERT_STR_EQ(fmt::format("$u_{}", u.index()), make_expr<variable>(u));
+}
+
+TEST(PlainFormatterTest, TestFmtIntegration) {
+  const auto [x, y] = make_symbols("x", "y");
+  // Test that fmt::formatter specialization works.
+  ASSERT_EQ("x*y", fmt::format("{}", x * y));
+  ASSERT_EQ("x < y", fmt::format("{}", x < y));
+  ASSERT_EQ("[[x], [y], [3]]", fmt::format("{}", make_vector(x, y, 3)));
+  ASSERT_EQ("x", fmt::format("{}", fmt::streamed(x)));
+  ASSERT_EQ("x < y", fmt::format("{}", fmt::streamed(x < y)));
 }
 
 }  // namespace wf

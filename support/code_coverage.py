@@ -44,6 +44,8 @@ def main(args: argparse.Namespace):
         "/usr/include/*",
         "/usr/lib/*",
         "*/dependencies/*",
+        "*/core/tests/*",
+        "*/core/test_support/*",
     ])
 
     # Generate HTML report:

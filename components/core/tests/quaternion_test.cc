@@ -37,6 +37,15 @@ TEST(QuaternionTest, TestConstructor) {
   ASSERT_TRUE(quaternion::from_vector_xyzw(make_vector(x, y, z, w)).is_identical_to(q));
   ASSERT_IDENTICAL(make_vector(x, y, z, w),
                    quaternion::from_vector_xyzw(make_vector(x, y, z, w)).to_vector_xyzw());
+
+  ASSERT_THROW(quaternion::from_vector_wxyz(make_vector(1, 2, 3, 4, 5)), wf::dimension_error);
+  ASSERT_THROW(quaternion::from_vector_xyzw(make_vector(1, 2, y)), wf::dimension_error);
+
+  quaternion q_named = quaternion::from_name_prefix("q");
+  ASSERT_IDENTICAL(scalar_expr{"q_x"}, q_named.x());
+  ASSERT_IDENTICAL(scalar_expr{"q_y"}, q_named.y());
+  ASSERT_IDENTICAL(scalar_expr{"q_z"}, q_named.z());
+  ASSERT_IDENTICAL(scalar_expr{"q_w"}, q_named.w());
 }
 
 TEST(QuaternionTest, TestIsIdenticalTo) {
@@ -191,6 +200,7 @@ TEST(QuaternionTest, TestFromAxisAngle) {
   ASSERT_IDENTICAL(q.x(), vx * sin(angle / 2));
   ASSERT_IDENTICAL(q.y(), vy * sin(angle / 2));
   ASSERT_IDENTICAL(q.z(), vz * sin(angle / 2));
+  ASSERT_TRUE(q.is_identical_to(quaternion::from_angle_axis(angle, make_vector(vx, vy, vz))));
 
   // Show that the norm is one.
   // TODO: Have the trig simplification cos^2(x) + sin^2(x) = 1 be automatic.
@@ -389,11 +399,13 @@ TEST(QuaternionTest, TestToAxisAngle) {
   auto [angle, x, y, z] = make_symbols("angle", "x", "y", "z");
   const quaternion q = quaternion::from_angle_axis(angle, x, y, z);
 
-  auto [angle_recovered, axis_recovered] = q.to_angle_axis(0);
-  ASSERT_IDENTICAL(0, angle_recovered.subs(angle, 0));
-  ASSERT_IDENTICAL(0, angle_recovered.subs(x, 0).subs(y, 0).subs(z, 0).subs(angle, 0));
-  ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(angle, 0));
-  ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(x, 0).subs(y, 0).subs(z, 0));
+  {
+    auto [angle_recovered, axis_recovered] = q.to_angle_axis(0);
+    ASSERT_IDENTICAL(0, angle_recovered.subs(angle, 0));
+    ASSERT_IDENTICAL(0, angle_recovered.subs(x, 0).subs(y, 0).subs(z, 0).subs(angle, 0));
+    ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(angle, 0));
+    ASSERT_IDENTICAL(make_vector(1, 0, 0), axis_recovered.subs(x, 0).subs(y, 0).subs(z, 0));
+  }
 
   for (auto [angle_num, axis_num] : get_angle_axis_test_pairs()) {
     if (angle_num < 0.0) {
@@ -401,6 +413,9 @@ TEST(QuaternionTest, TestToAxisAngle) {
       angle_num *= -1.0;
       axis_num *= -1.0;
     }
+    auto [angle_recovered, axis_recovered] =
+        std::abs(angle_num) > 1.0e-3 ? q.to_angle_axis(std::nullopt) : q.to_angle_axis(0);
+
     EXPECT_NEAR(angle_num,
                 get<const float_constant>(angle_recovered.subs(angle, angle_num)
                                               .subs(x, axis_num.x())
@@ -419,6 +434,11 @@ TEST(QuaternionTest, TestToAxisAngle) {
     EXPECT_EIGEN_NEAR(axis_num, axis_recovered_num, 1.0e-15)
         << fmt::format("While testing axis = {}, angle = {}", axis_num.transpose(), angle_num);
   }
+
+  // Test analytically zero case:
+  const auto [s0, v0] = quaternion().to_angle_axis(std::nullopt);
+  ASSERT_IDENTICAL(0, s0);
+  ASSERT_IDENTICAL(make_vector(1, 0, 0), v0);
 }
 
 TEST(QuaternionTest, TestToRotationVector) {
@@ -637,6 +657,9 @@ TEST(QuaternionTest, TestFromRotationMatrix) {
         << fmt::format("q_num = [{}, {}, {}, {}]\nq = {}\nR:\n{}", q_num.w(), q_num.x(), q_num.y(),
                        q_num.z(), q.to_vector_wxyz().transposed(), R);
   }
+
+  // Invalid dimensions:
+  ASSERT_THROW(quaternion::from_rotation_matrix(make_zeros(2, 3)), wf::dimension_error);
 }
 
 // Test calling `jacobian` directly on a quaternion.
@@ -710,6 +733,8 @@ TEST(QuaternionTest, TestRightLocalCoordinatesDerivative) {
 TEST(QuaternionTest, TestJacobianOfSO3) {
   const auto [theta, x, y, z] = make_symbols("theta", "x", "y", "z");
   const auto J_expr = left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), 1.0e-16);
+  const auto J_expr_no_eps =
+      left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), std::nullopt);
 
   // Compare jacobian of SO(3) expression to numerical integration.
   for (const auto& pair : get_angle_axis_test_pairs()) {
@@ -746,6 +771,13 @@ TEST(QuaternionTest, TestJacobianOfSO3) {
           return (aa.angle() * aa.axis()).eval();
         });
     EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_sub), 1.0e-12);
+
+    if (angle != 0.0) {
+      const matrix_expr J_sub_no_eps =
+          substitute(J_expr_no_eps, {std::make_tuple(theta, angle), std::make_tuple(x, axis[0]),
+                                     std::make_tuple(y, axis[1]), std::make_tuple(z, axis[2])});
+      EXPECT_EIGEN_NEAR(J_numerical, eigen_matrix_from_matrix_expr(J_sub), 1.0e-12);
+    }
   }
 }
 
@@ -758,6 +790,8 @@ TEST(QuaternionTest, TestInverseJacobianOfSO3) {
   const auto J_expr = left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), 1.0e-16);
   const auto J_inv_expr =
       inverse_left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), 1.0e-16);
+  const auto J_inv_expr_no_eps =
+      inverse_left_jacobian_of_so3(make_vector(theta * x, theta * y, theta * z), std::nullopt);
 
   // Compare J * J^-1 numerically:
   for (const auto& pair : get_angle_axis_test_pairs()) {
@@ -773,7 +807,7 @@ TEST(QuaternionTest, TestInverseJacobianOfSO3) {
     EXPECT_EIGEN_NEAR(Eigen::Matrix3d::Identity(), eigen_matrix_from_matrix_expr(J_sub * J_inv_sub),
                       1.0e-15);
 
-    // Compare to numerical  jacobian. The numerical derivative doesn't work near pi.
+    // Compare to numerical jacobian. The numerical derivative doesn't work near pi.
     if (std::abs(angle - M_PI) > 1.0e-6) {
       const Eigen::Quaterniond q(Eigen::AngleAxisd(angle, axis));
       const Eigen::Matrix3d J_inv_numerical =
@@ -788,6 +822,14 @@ TEST(QuaternionTest, TestInverseJacobianOfSO3) {
           });
       EXPECT_EIGEN_NEAR(J_inv_numerical, eigen_matrix_from_matrix_expr(J_inv_sub), 1.0e-12)
           << fmt::format("angle = {}, axis = {}", angle, axis.transpose());
+
+      if (angle != 0.0) {
+        const matrix_expr J_inv_sub_no_eps = substitute(
+            J_inv_expr_no_eps, {std::make_tuple(theta, angle), std::make_tuple(x, axis[0]),
+                                std::make_tuple(y, axis[1]), std::make_tuple(z, axis[2])});
+        EXPECT_EIGEN_NEAR(J_inv_numerical, eigen_matrix_from_matrix_expr(J_inv_sub_no_eps), 1.0e-12)
+            << fmt::format("angle = {}, axis = {}", angle, axis.transpose());
+      }
     }
   }
 }

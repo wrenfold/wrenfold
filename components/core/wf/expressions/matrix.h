@@ -47,16 +47,8 @@ class matrix {
     return data_[compute_index(i, j)];
   }
 
-  // Set with no bounds checking.
-  void set_unchecked(const index_t i, const index_t j, const scalar_expr& value) noexcept {
-    data_[compute_index(i, j)] = value;
-  }
-
   // Get a sub-block from this matrix.
   matrix get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
-
-  // Set a sub-block of this matrix.
-  void set_block(index_t row, index_t col, index_t nrows, index_t ncols, const matrix& block);
 
   // Transpose the matrix.
   matrix transposed() const;

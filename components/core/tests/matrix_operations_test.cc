@@ -60,6 +60,7 @@ TEST(MatrixOperationsTest, TestConstruct) {
   ASSERT_THROW(m(0, -1), dimension_error);
   ASSERT_THROW(m(5, 0), dimension_error);
   ASSERT_THROW(m(1, 10), dimension_error);
+  ASSERT_THROW(m[0], dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestGetBlock) {
@@ -180,6 +181,10 @@ TEST(MatrixOperationsTest, TestStack) {
       }
     }
   }
+
+  ASSERT_THROW(hstack({}), wf::dimension_error);
+  ASSERT_THROW(vstack({}), wf::dimension_error);
+  ASSERT_THROW(diagonal_stack({}), wf::dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestAddition) {
@@ -202,6 +207,9 @@ TEST(MatrixOperationsTest, TestAddition) {
   ASSERT_IDENTICAL(make_matrix(2, 2, a + 1, b, c, d + 1), m + make_identity(2));
   ASSERT_IDENTICAL(make_matrix(2, 2, 2 * a, b + c, c + b, d + d), m + m.transposed());
   ASSERT_IDENTICAL(make_zeros(2, 2), make_matrix(2, 2, a, b, c, d) - make_matrix(2, 2, a, b, c, d));
+
+  ASSERT_THROW(make_zeros(2, 3) + make_identity(2), wf::dimension_error);
+  ASSERT_THROW(make_vector(a, b, c) + make_row_vector(c, b, a), wf::dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestMultiplication) {
@@ -471,6 +479,16 @@ TEST(MatrixOperationsTest, TestFactorizeLU5) {
 }
 #endif
 
+TEST(MatrixOperationsTest, TestDeterminantNonSquare) {
+  ASSERT_THROW(determinant(make_zeros(2, 3)), wf::dimension_error);
+  ASSERT_THROW(determinant(make_zeros(3, 2)), wf::dimension_error);
+}
+
+TEST(MatrixOperationsTest, TestDeterminant1x1) {
+  ASSERT_IDENTICAL(1, determinant(make_identity(1)));
+  ASSERT_IDENTICAL(5, determinant(make_vector(5)));
+}
+
 TEST(MatrixOperationsTest, TestDeterminant2x2) {
   auto I2 = make_identity(2);
   ASSERT_IDENTICAL(1, determinant(I2));
@@ -506,7 +524,6 @@ TEST(MatrixOperationsTest, TestDeterminant3x3) {
   ASSERT_IDENTICAL(-60, determinant(M3));
 }
 
-// TODO: Test the LU factors against the cofactor method?
 TEST(MatrixOperationsTest, TestDeterminant) {
   auto M1 = make_matrix(4, 4, 4, -1, -1, -3, 0, 3, -2, -1, 4, 1, 2, 1, -1, 3, -1, 1);
   ASSERT_IDENTICAL(28, determinant(M1));

@@ -45,18 +45,6 @@ auto visit(const expression_base<D, M>& expr, F&& visitor) {
       });
 }
 
-// Visit a std::variant of different `expression_base` types.
-template <typename... Ts, typename F>
-auto visit(const std::variant<Ts...>& variant, F&& visitor) {
-  return std::visit(
-      [&visitor](const auto& x) {
-        using T = std::decay_t<decltype(x)>;
-        static_assert(inherits_expression_base_v<T>);
-        return visit(x, std::forward<F>(visitor));
-      },
-      variant);
-}
-
 // Visit two expressions with an invocable that accepts two concrete types in its operator()(...)
 // signature.
 template <typename U, typename V, typename VisitorType>
