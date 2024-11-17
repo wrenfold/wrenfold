@@ -65,6 +65,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertNotIdentical(b, c)
         self.assertEqual('Variable', a.type_name)
         self.assertEqual((), a.args)
+        self.assertRaises(exceptions.InvalidArgumentError, lambda: sym.unique_symbols(count=0))
 
     def test_is_identical_to(self):
         """Test calling is_identical_to and __eq__."""
@@ -331,6 +332,8 @@ class ExpressionWrapperTest(MathTestBase):
     def test_relational(self):
         """Test creating relational expressions."""
         x, y, z = sym.symbols('x, y, z')
+        self.assertIsInstance(x < y, sym.BooleanExpr)
+        self.assertEqual("Relational", (x < y).type_name)
         self.assertIdentical(x < y, y > x)
         self.assertIdentical(z > 0, 0 < z)
         self.assertIdentical(x >= 0.0, 0.0 <= x)

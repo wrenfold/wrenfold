@@ -5,7 +5,7 @@ NB: Most of this is tested in `quaternion_test.cc`. This is just a test of the w
 """
 import unittest
 
-from wrenfold import sym
+from wrenfold import exceptions, sym
 from wrenfold.geometry import Quaternion
 
 from .test_base import MathTestBase
@@ -35,6 +35,13 @@ class GeometryWrapperTest(MathTestBase):
         self.assertIdentical(0, q.y)
         self.assertIdentical(0, q.z)
 
+    def test_repr(self):
+        """Test repr()"""
+        w, x, y, z = sym.symbols("w, x, y, z")
+        q = Quaternion(w, x, y, z)
+        self.assertEqual('Quaternion(w, x, y, z)', repr(q))
+        self.assertEqual('Quaternion(1, 0, 0, 0)', repr(Quaternion()))
+
     def test_convert_quaternion_formats(self):
         """Test conversion between formats."""
         w, x, y, z = sym.symbols("w, x, y, z")
@@ -49,6 +56,10 @@ class GeometryWrapperTest(MathTestBase):
         self.assertQuatIdentical(q, Quaternion.from_xyzw(sym.vector(x, y, z, w)))
 
         self.assertIdentical(sym.vector(w, x, y, z), q.to_vector_wxyz())
+
+        self.assertRaises(exceptions.DimensionError, lambda: Quaternion.from_xyzw([x, y, z]))
+        self.assertRaises(exceptions.DimensionError,
+                          lambda: Quaternion.from_xyzw([1.0, -0.23, w, y, 3]))
 
     def test_normalize(self):
         """Test normalize."""
@@ -102,13 +113,23 @@ class GeometryWrapperTest(MathTestBase):
             Quaternion.from_y_angle(-0.32), Quaternion.from_rotation_vector(0.0, -0.32, 0.0, None))
 
     def test_from_rotation_matrix(self):
-        """Test conversion from rotation matrix."""
+        """Test calling from_rotation_matrix."""
         theta = sym.symbols("theta")
         R = sym.matrix([[1, 0, 0], [0, sym.cos(theta), -sym.sin(theta)],
                         [0, sym.sin(theta), sym.cos(theta)]])
         self.assertIdentical(
             Quaternion(0, 1, 0, 0),
             Quaternion.from_rotation_matrix(R).subs(theta, sym.pi))
+
+    def test_derivative_matrices(self):
+        """Test calling right_retract_derivative and right_local_coordinates_derivative."""
+        w, x, y, z = sym.symbols("w, x, y, z")
+        q = Quaternion(w, x, y, z)
+        J0 = q.right_retract_derivative()
+        J1 = q.right_local_coordinates_derivative()
+        self.assertIsInstance(J0, sym.MatrixExpr)
+        self.assertIsInstance(J1, sym.MatrixExpr)
+        self.assertIdentical(sym.eye(3), (J1 * J0).subs(w ** 2 + x ** 2 + y ** 2 + z ** 2, 1))
 
 
 if __name__ == '__main__':

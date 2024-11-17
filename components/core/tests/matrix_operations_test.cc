@@ -271,6 +271,9 @@ TEST(MatrixOperationsTest, TestJacobian) {
       make_matrix(3, 3, v2[0].diff(x), v2[0].diff(y), v2[0].diff(z), v2[1].diff(x), v2[1].diff(y),
                   v2[1].diff(z), v2[2].diff(x), v2[2].diff(y), v2[2].diff(z));
   ASSERT_IDENTICAL(v2_jacobian, v2.jacobian({x, y, z}));
+
+  ASSERT_THROW(v1.jacobian(make_zeros(2, 3)), wf::dimension_error);
+  ASSERT_THROW(make_matrix(2, 2, x * x, y - 3, 0, z).jacobian({x, y, z}), wf::dimension_error);
 }
 
 void check_full_piv_lu_solution(
