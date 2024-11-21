@@ -168,4 +168,5 @@ def test_kb_camera_model_methods():
 
 
 if __name__ == "__main__":
+    jax.config.update('jax_platform_name', 'cpu')
     test_kb_camera_model_methods()
