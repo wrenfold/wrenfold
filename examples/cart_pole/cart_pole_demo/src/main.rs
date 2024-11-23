@@ -7,6 +7,7 @@ use rand::prelude::Distribution;
 
 mod generated;
 
+// See `CartPoleParamsSymbolic` for the meaning of these variables.
 #[derive(Debug, Clone, Copy)]
 pub struct CartPoleParams {
     pub m_b: f64,
@@ -15,6 +16,11 @@ pub struct CartPoleParams {
     pub l_1: f64,
     pub l_2: f64,
     pub g: f64,
+    pub mu_b: f64,
+    pub v_mu_b: f64,
+    pub c_d: f64,
+    pub x_s: f64,
+    pub k_s: f64,
 }
 
 impl Default for CartPoleParams {
@@ -26,6 +32,11 @@ impl Default for CartPoleParams {
             l_1: 0.30,
             l_2: 0.15,
             g: 9.81,
+            mu_b: 0.1,
+            v_mu_b: 0.1,
+            c_d: 0.02,
+            x_s: 1.5,
+            k_s: 500.0,
         }
     }
 }
@@ -111,34 +122,54 @@ impl App {
 
     /// Draw controls for adjusting spline order.
     fn draw_controls(&mut self, ui: &mut Ui) {
-        ui.vertical(|ui| {
-            ui.horizontal(|ui| {
-                ui.monospace("Sim rate:");
-                ui.add(egui::Slider::new(&mut self.sim_rate, 0.01..=1.0));
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    ui.monospace("Sim rate:");
+                    ui.add(egui::Slider::new(&mut self.sim_rate, 0.01..=1.0));
+                });
+                if ui.button("Reset").clicked() {
+                    self.reset_state();
+                }
             });
-            ui.horizontal(|ui| {
-                ui.monospace("m_b:");
-                ui.add(egui::Slider::new(&mut self.params.m_b, 0.1..=2.0));
+            ui.separator();
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    ui.monospace("m_b:");
+                    ui.add(egui::Slider::new(&mut self.params.m_b, 0.1..=2.0));
+                });
+                ui.horizontal(|ui| {
+                    ui.monospace("m_1:");
+                    ui.add(egui::Slider::new(&mut self.params.m_1, 0.1..=2.0));
+                });
+                ui.horizontal(|ui| {
+                    ui.monospace("m_2:");
+                    ui.add(egui::Slider::new(&mut self.params.m_2, 0.1..=2.0));
+                });
+                ui.horizontal(|ui| {
+                    ui.monospace("l_1:");
+                    ui.add(egui::Slider::new(&mut self.params.l_1, 0.1..=1.0));
+                });
+                ui.horizontal(|ui| {
+                    ui.monospace("l_2:");
+                    ui.add(egui::Slider::new(&mut self.params.l_2, 0.1..=1.0));
+                });
             });
-            ui.horizontal(|ui| {
-                ui.monospace("m_1:");
-                ui.add(egui::Slider::new(&mut self.params.m_1, 0.1..=2.0));
+            ui.separator();
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    ui.monospace("mu_b:");
+                    ui.add(egui::Slider::new(&mut self.params.mu_b, 0.01..=1.0));
+                });
+                ui.horizontal(|ui| {
+                    ui.monospace("c_d:");
+                    ui.add(egui::Slider::new(&mut self.params.c_d, 0.01..=1.0));
+                });
+                ui.horizontal(|ui| {
+                    ui.monospace("k_s:");
+                    ui.add(egui::Slider::new(&mut self.params.k_s, 100.0..=1000.0));
+                });
             });
-            ui.horizontal(|ui| {
-                ui.monospace("m_2:");
-                ui.add(egui::Slider::new(&mut self.params.m_2, 0.1..=2.0));
-            });
-            ui.horizontal(|ui| {
-                ui.monospace("l_1:");
-                ui.add(egui::Slider::new(&mut self.params.l_1, 0.1..=1.0));
-            });
-            ui.horizontal(|ui| {
-                ui.monospace("l_2:");
-                ui.add(egui::Slider::new(&mut self.params.l_2, 0.1..=1.0));
-            });
-            if ui.button("Reset").clicked() {
-                self.reset_state();
-            }
         });
     }
 
@@ -151,7 +182,7 @@ impl App {
                 ui.allocate_painter(vec2(available_width, fixed_height), egui::Sense::hover());
 
             // Dimensions of the viewport in meters:
-            let vp_height = 2.5;
+            let vp_height = 2.0;
             let vp_width = (available_width / fixed_height) * vp_height;
 
             let to_screen = emath::RectTransform::from_to(
@@ -179,6 +210,26 @@ impl App {
                     to_screen.transform_pos(pos2(vp_width, origin.y + CART_HEIGHT / 2.0)),
                 ],
                 Stroke::new(2.0, Color32::from_rgb(251, 161, 8)),
+                5.0,
+                5.0,
+            ));
+
+            // Draw spring boundaries:
+            painter.add(Shape::dashed_line(
+                &[
+                    to_screen.transform_pos(pos2(-self.params.x_s as f32 + origin.x, 0.0)),
+                    to_screen.transform_pos(pos2(-self.params.x_s as f32 + origin.x, vp_height)),
+                ],
+                Stroke::new(1.0, Color32::from_rgb(232, 158, 184)),
+                5.0,
+                5.0,
+            ));
+            painter.add(Shape::dashed_line(
+                &[
+                    to_screen.transform_pos(pos2(self.params.x_s as f32 + origin.x, 0.0)),
+                    to_screen.transform_pos(pos2(self.params.x_s as f32 + origin.x, vp_height)),
+                ],
+                Stroke::new(1.0, Color32::from_rgb(232, 158, 184)),
                 5.0,
                 5.0,
             ));
@@ -263,6 +314,10 @@ impl eframe::App for App {
             ui.vertical(|ui| {
                 self.draw_controls(ui);
                 ui.separator();
+                ui.monospace(
+                    "The vertical pink lines denote the position of the boundary springs.",
+                );
+                ui.monospace("See cart_pole_dynamics.py for the meaning of the parameters.");
                 self.draw_cart_pole(ui);
             });
         });

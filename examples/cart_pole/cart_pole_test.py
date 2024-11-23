@@ -22,6 +22,8 @@ from .cart_pole_dynamics import (
 class CartPoleParamsNumeric:
     """
     Numeric equivalent of `CartPoleParamsSymbolic`.
+
+    See `CartPoleParamsSymbolic` for the meaning of these variables.
     """
 
     m_b: float
@@ -30,6 +32,11 @@ class CartPoleParamsNumeric:
     l_1: float
     l_2: float
     g: float
+    mu_b: float
+    v_mu_b: float
+    c_d: float
+    x_s: float
+    k_s: float
 
 
 class CustomPythonGenerator(code_generation.PythonGenerator):
@@ -65,7 +72,19 @@ class CartPoleTest(unittest.TestCase):
             generator_type=CustomPythonGenerator,
         )
 
-        params = CartPoleParamsNumeric(m_b=1.0, m_1=0.25, m_2=0.25, l_1=0.3, l_2=0.15, g=9.81)
+        # Set all the dissipative coefficients to zero so we can check that energy is conserved.
+        params = CartPoleParamsNumeric(
+            m_b=1.0,
+            m_1=0.25,
+            m_2=0.25,
+            l_1=0.3,
+            l_2=0.15,
+            g=9.81,
+            mu_b=0.0,
+            v_mu_b=0.1,
+            c_d=0.0,
+            x_s=1.0,
+            k_s=0.0)
 
         # Initial state is motionless, w/ the pendulum suspended upwards somewhat:
         x = np.array([0.0, np.pi / 4, np.pi / 4, 0.0, 0.0, 0.0]).reshape(-1, 1)
@@ -105,7 +124,18 @@ class CartPoleTest(unittest.TestCase):
             generator_type=CustomPythonGenerator,
         )
 
-        params = CartPoleParamsNumeric(m_b=1.1, m_1=0.23, m_2=0.27, l_1=0.4, l_2=0.22, g=9.81)
+        params = CartPoleParamsNumeric(
+            m_b=1.1,
+            m_1=0.23,
+            m_2=0.27,
+            l_1=0.4,
+            l_2=0.22,
+            g=9.81,
+            mu_b=0.1,
+            v_mu_b=0.1,
+            c_d=0.05,
+            x_s=1.0,
+            k_s=100.0)
         func_jit = jax.jit(
             lambda x: func(params=params, x=x, compute_energy=False, compute_J_x=True))
 
@@ -123,7 +153,7 @@ class CartPoleTest(unittest.TestCase):
             D_sym = func_jit(x)["J_x"]
 
             # Tolerance is not amazing here, the use of float32 bites us a bit.
-            np.testing.assert_allclose(desired=jnp.squeeze(D_jax), actual=D_sym, rtol=2.0e-3)
+            np.testing.assert_allclose(desired=jnp.squeeze(D_jax), actual=D_sym, rtol=3.0e-3)
 
 
 if __name__ == "__main__":

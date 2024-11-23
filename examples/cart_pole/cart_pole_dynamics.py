@@ -15,12 +15,17 @@ from .sympy_helpers import get_euler_lagrange_coefficients, get_mat_inverse
 class CartPoleParamsSymbolic:
     """Parameters of the cart-double-pole system."""
 
-    m_b: type_annotations.FloatScalar
-    m_1: type_annotations.FloatScalar
-    m_2: type_annotations.FloatScalar
-    l_1: type_annotations.FloatScalar
-    l_2: type_annotations.FloatScalar
-    g: type_annotations.FloatScalar
+    m_b: type_annotations.FloatScalar  # Mass of the base/cart (kg)
+    m_1: type_annotations.FloatScalar  # Mass of the first pole (kg).
+    m_2: type_annotations.FloatScalar  # Mass of the second pole (kg).
+    l_1: type_annotations.FloatScalar  # Length of the first pole (m).
+    l_2: type_annotations.FloatScalar  # Length of the second pole (m).
+    g: type_annotations.FloatScalar  # Gravity (m/s^2).
+    mu_b: type_annotations.FloatScalar  # Coefficient of static friction.
+    v_mu_b: type_annotations.FloatScalar  # Velocity cutoff of smooth friction model (m/s).
+    c_d: type_annotations.FloatScalar  # Aero-coefficient of poles (N / (m/s)^2).
+    x_s: type_annotations.FloatScalar  # Bounding spring position (m).
+    k_s: type_annotations.FloatScalar  # Bounding spring constant (N / m).
 
 
 def get_cart_double_pole_dynamics() -> T.Callable:
@@ -49,6 +54,16 @@ def get_cart_double_pole_dynamics() -> T.Callable:
 
     # Gravity:
     g = sym.symbols("g", real=True)
+
+    # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
+    mu_b, v_mu_b = sym.symbols("mu_b, v_mu_b", real=True)
+
+    # Air drag coefficient on the mass:
+    # This is summarized as: rho * C_d * A, where rho is air density, and A is cross-sectional area.
+    c_d = sym.symbols("c_d_1", real=True)
+
+    # Position and spring coefficient on the boundary of the workspace.
+    x_s, k_s = sym.symbols("x_s, k_s", real=True)
 
     # Positions of base, and two weights.
     b = sym.vector(b_x, 0)
@@ -82,10 +97,26 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     q_th_1 = L.diff(th_1_dot)
     q_th_2 = L.diff(th_2_dot)
 
+    # Dissipative force due to friction on the base.
+    F_friction_base = (-mu_b * (m_1 + m_2 + m_b) * g * sym.tanh(b_x_dot / sym.max(v_mu_b, 1.0e-6)))
+
+    # Dissipative _power_ due to air drag on the pendulum mass.
+    # We use a `where` statement to guard against a singularity in the Jacobian.
+    D_air_mass_1 = ((sym.integer(1) / 6) * c_d * sym.where(p_1_dot.squared_norm() > 0,
+                                                           p_1_dot.norm() ** 3, 0))
+    D_air_mass_2 = ((sym.integer(1) / 6) * c_d * sym.where(p_2_dot.squared_norm() > 0,
+                                                           p_2_dot.norm() ** 3, 0))
+    D_air_mass = D_air_mass_1 + D_air_mass_2
+
+    # External force from the boundary spring:
+    F_s_right = -k_s * sym.max(0, b_x - x_s)
+    F_s_left = k_s * sym.max(0, -x_s - b_x)
+
     # Form the Euler-Lagrange equations (each of these is equal to zero).
-    el_b = (q_b.diff(t) - L.diff(b_x)).distribute()
-    el_th_1 = (q_th_1.diff(t) - L.diff(th_1)).distribute()
-    el_th_2 = (q_th_2.diff(t) - L.diff(th_2)).distribute()
+    el_b = ((q_b.diff(t) - L.diff(b_x)).distribute() - F_friction_base - F_s_left - F_s_right +
+            D_air_mass.diff(b_x_dot))
+    el_th_1 = ((q_th_1.diff(t) - L.diff(th_1)).distribute() + D_air_mass.diff(th_1_dot))
+    el_th_2 = ((q_th_2.diff(t) - L.diff(th_2)).distribute() + D_air_mass.diff(th_2_dot))
 
     # Reformulate the Euler-Lagrange equations into form:
     #   A(x, x') * x'' = f(x, x', u)
@@ -121,6 +152,11 @@ def get_cart_double_pole_dynamics() -> T.Callable:
             (l_1, params.l_1),
             (l_2, params.l_2),
             (g, params.g),
+            (mu_b, params.mu_b),
+            (v_mu_b, params.v_mu_b),
+            (c_d, params.c_d),
+            (x_s, params.x_s),
+            (k_s, params.k_s),
         ]
 
         x_ddot_subbed = x_ddot.subs(constants).subs(vel_states).subs(states)
@@ -158,5 +194,5 @@ def main():
     code_generation.mkdir_and_write_file(code, sys.argv[1])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
