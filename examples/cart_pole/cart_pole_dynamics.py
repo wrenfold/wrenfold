@@ -3,9 +3,10 @@ Specify the dynamics of cart-pole system with a double-pendulum attached.
 """
 
 import dataclasses
+import sys
 import typing as T
 
-from wrenfold import code_generation, sym, type_annotations
+from wrenfold import code_generation, sym, type_annotations, type_info
 
 from .sympy_helpers import get_euler_lagrange_coefficients, get_mat_inverse
 
@@ -139,3 +140,23 @@ def get_cart_double_pole_dynamics() -> T.Callable:
         ]
 
     return cart_double_pole_dynamics
+
+
+class CustomRustGenerator(code_generation.RustGenerator):
+    """Custom formatter to place `CartPoleParams` in the crate:: scope."""
+
+    def format_custom_type(self, custom: type_info.CustomType):
+        if custom.python_type == CartPoleParamsSymbolic:
+            return "crate::CartPoleParams"
+        return self.super_format(custom)
+
+
+def main():
+    code = code_generation.generate_function(
+        func=get_cart_double_pole_dynamics(), generator=CustomRustGenerator())
+    code = CustomRustGenerator.apply_preamble(code=code)
+    code_generation.mkdir_and_write_file(code, sys.argv[1])
+
+
+if __name__ == '__main__':
+    main()
