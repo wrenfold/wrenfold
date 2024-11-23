@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-package.version = "0.1.1"
+package.version = "0.2.1"
 package.license = "MIT"
 package.edition = "2021"
 package.authors = ["Gareth <gcross.code@icloud.com>"]
@@ -16,7 +16,7 @@ members = [
 ]
 
 [workspace.dependencies]
-wrenfold-test-utils = { path = "components/rust/wrenfold-test-utils", version = "0.1.1" }
+wrenfold-test-utils = { path = "components/rust/wrenfold-test-utils"  }
 wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.1.0", features = ["nalgebra"] }
 bspline_rust_test = { path = "examples/bspline/bspline_rust_test" }
 

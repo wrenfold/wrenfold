@@ -199,7 +199,7 @@ std::string rust_code_generator::operator()(const ast::call_external_function& x
     if (const argument& arg = x.function.argument_at(index);
         arg.is_custom_type() || arg.is_matrix()) {
       // Borrow non-scalar arguments:
-      arg_str.insert(0, "&");
+      return "&" + arg_str;
     }
     return arg_str;
   });

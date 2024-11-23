@@ -20,11 +20,11 @@ wrenfold is also available as a `conda-forge <https://anaconda.org/conda-forge/w
 **Alternatively**, python wheels may also be obtained from the
 `GitHub Releases Page <https://github.com/wrenfold/wrenfold/releases>`_. Select the ``whl`` file
 appropriate to your OS and python version. For example, for python 3.10 on arm64 OSX you would
-download and install ``wrenfold-0.1.1-cp310-cp310-macosx_11_0_arm64.whl``:
+download and install ``wrenfold-0.2.1-cp310-cp310-macosx_11_0_arm64.whl``:
 
 .. code:: bash
 
-   pip install wrenfold-0.1.1-cp310-cp310-macosx_11_0_arm64.whl
+   pip install wrenfold-0.2.1-cp310-cp310-macosx_11_0_arm64.whl
 
 Validating the install
 ----------------------
@@ -34,7 +34,7 @@ After installation, open a python REPL and test that wrenfold can be imported:
 .. code:: python
 
    import wrenfold
-   print(wrenfold.__version__)  # prints: 0.1.1
+   print(wrenfold.__version__)  # prints: 0.2.1
 
    from wrenfold import sym
 
