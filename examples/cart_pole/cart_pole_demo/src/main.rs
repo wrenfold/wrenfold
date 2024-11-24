@@ -62,6 +62,9 @@ pub struct App {
     state: na::Vector6<f64>,
     sim_rate: f64,
     previous_update_time: Option<std::time::Instant>,
+    control_action: f64,
+    left_pressed: bool,
+    right_pressed: bool,
 }
 
 impl App {
@@ -72,6 +75,9 @@ impl App {
             state: na::Vector6::zeros(),
             sim_rate: 1.0,
             previous_update_time: None,
+            control_action: 0.0,
+            left_pressed: false,
+            right_pressed: false,
         }
     }
 
@@ -100,12 +106,25 @@ impl App {
             generated::cart_double_pole_dynamics(
                 &self.params,
                 x,
+                self.control_action,
                 &mut x_dot,
                 Option::<&mut f64>::None,
                 Option::<&mut na::Matrix6<f64>>::None,
             );
             x_dot
         });
+
+        if (self.left_pressed || self.right_pressed) && !(self.left_pressed && self.right_pressed) {
+            const PRESS_FORCE: f64 = 10.0;
+            if self.left_pressed {
+                self.control_action = -PRESS_FORCE;
+            } else {
+                self.control_action = PRESS_FORCE;
+            }
+        } else {
+            const CONTROL_ACTION_TIME_CONSTANT: f64 = 0.1;
+            self.control_action *= f64::max(0.0, 1.0 - dt / CONTROL_ACTION_TIME_CONSTANT);
+        }
     }
 
     /// Randomize the initial conditions.
@@ -318,7 +337,24 @@ impl eframe::App for App {
                     "The vertical pink lines denote the position of the boundary springs.",
                 );
                 ui.monospace("See cart_pole_dynamics.py for the meaning of the parameters.");
+                ui.monospace("Left and right arrow keys apply force to the base.");
                 self.draw_cart_pole(ui);
+            });
+
+            ui.input(|i| {
+                for event in &i.raw.events {
+                    if let egui::Event::Key { key, pressed, .. } = event {
+                        match key {
+                            egui::Key::ArrowLeft => {
+                                self.left_pressed = *pressed;
+                            }
+                            egui::Key::ArrowRight => {
+                                self.right_pressed = *pressed;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
             });
         });
 

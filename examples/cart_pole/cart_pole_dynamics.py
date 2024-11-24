@@ -55,6 +55,9 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     # Gravity:
     g = sym.symbols("g", real=True)
 
+    # Control input on the base:
+    u_b = sym.symbols("u_b", real=True)
+
     # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
     mu_b, v_mu_b = sym.symbols("mu_b, v_mu_b", real=True)
 
@@ -113,8 +116,8 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     F_s_left = k_s * sym.max(0, -x_s - b_x)
 
     # Form the Euler-Lagrange equations (each of these is equal to zero).
-    el_b = ((q_b.diff(t) - L.diff(b_x)).distribute() - F_friction_base - F_s_left - F_s_right +
-            D_air_mass.diff(b_x_dot))
+    el_b = ((q_b.diff(t) - L.diff(b_x)).distribute() - u_b - F_friction_base - F_s_left -
+            F_s_right + D_air_mass.diff(b_x_dot))
     el_th_1 = ((q_th_1.diff(t) - L.diff(th_1)).distribute() + D_air_mass.diff(th_1_dot))
     el_th_2 = ((q_th_2.diff(t) - L.diff(th_2)).distribute() + D_air_mass.diff(th_2_dot))
 
@@ -135,6 +138,7 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     def cart_double_pole_dynamics(
         params: CartPoleParamsSymbolic,
         x: type_annotations.Vector6,
+        u: type_annotations.FloatScalar,
     ):
         """
         A function we can code-generate that specifies how to compute the derivative of `x` as a
@@ -145,19 +149,9 @@ def get_cart_double_pole_dynamics() -> T.Callable:
         states = list(zip([b_x, th_1, th_2], x[:3].to_flat_list()))
         vel_states = list(zip([b_x_dot, th_1_dot, th_2_dot], x[3:].to_flat_list()))
 
-        constants = [
-            (m_b, params.m_b),
-            (m_1, params.m_1),
-            (m_2, params.m_2),
-            (l_1, params.l_1),
-            (l_2, params.l_2),
-            (g, params.g),
-            (mu_b, params.mu_b),
-            (v_mu_b, params.v_mu_b),
-            (c_d, params.c_d),
-            (x_s, params.x_s),
-            (k_s, params.k_s),
-        ]
+        constants = [(m_b, params.m_b), (m_1, params.m_1), (m_2, params.m_2), (l_1, params.l_1),
+                     (l_2, params.l_2), (g, params.g), (mu_b, params.mu_b), (v_mu_b, params.v_mu_b),
+                     (c_d, params.c_d), (x_s, params.x_s), (k_s, params.k_s), (u_b, u)]
 
         x_ddot_subbed = x_ddot.subs(constants).subs(vel_states).subs(states)
         total_energy = (T + V).subs(constants).subs(vel_states).subs(states)

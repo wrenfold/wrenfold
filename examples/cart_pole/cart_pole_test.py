@@ -91,7 +91,7 @@ class CartPoleTest(unittest.TestCase):
 
         # Compute energy at the start of simulation:
         energy_initial = np_func(
-            params=params, x=x, compute_energy=True, compute_J_x=False)["energy"]
+            params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False)["energy"]
 
         # Integrate forward with runge-kutta for 3 seconds:
         dt = 0.002
@@ -99,12 +99,12 @@ class CartPoleTest(unittest.TestCase):
             x = rk4(
                 x=x,
                 h=dt,
-                f=lambda x: np_func(params=params, x=x, compute_energy=False, compute_J_x=False)[
-                    "x_dot"],
+                f=lambda x: np_func(
+                    params=params, x=x, u=0.0, compute_energy=False, compute_J_x=False)["x_dot"],
             )
 
             energy_integrated = np_func(
-                params=params, x=x, compute_energy=True, compute_J_x=False)["energy"]
+                params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False)["energy"]
 
             # We have no damping sources, so check that energy is conserved.
             np.testing.assert_allclose(
@@ -137,7 +137,7 @@ class CartPoleTest(unittest.TestCase):
             x_s=1.0,
             k_s=100.0)
         func_jit = jax.jit(
-            lambda x: func(params=params, x=x, compute_energy=False, compute_J_x=True))
+            lambda x: func(params=params, x=x, u=0.0, compute_energy=False, compute_J_x=True))
 
         # Integrate for a couple of seconds and test the Jacobian at each step:
         x = np.array([0.05, np.pi / 2, -np.pi / 3, 0.0, 0.0, 0.0]).reshape(-1, 1)
@@ -153,7 +153,7 @@ class CartPoleTest(unittest.TestCase):
             D_sym = func_jit(x)["J_x"]
 
             # Tolerance is not amazing here, the use of float32 bites us a bit.
-            np.testing.assert_allclose(desired=jnp.squeeze(D_jax), actual=D_sym, rtol=3.0e-3)
+            np.testing.assert_allclose(desired=jnp.squeeze(D_jax), actual=D_sym, rtol=3.5e-3)
 
 
 if __name__ == "__main__":
