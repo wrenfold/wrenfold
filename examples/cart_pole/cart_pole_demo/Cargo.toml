@@ -1,10 +1,10 @@
 [package]
-name = "bspline_demo"
+name = "cart_pole_demo"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "App to visualize generated b-spline functions."
+description = "App to visualize cart-pole double pendulum system."
 
 [features]
 default = ["glow"]
@@ -13,7 +13,6 @@ glow = ["eframe/glow"]
 wayland = ["eframe/wayland"]
 
 [dependencies]
-bspline_rust_test = { workspace = true }
 wrenfold-traits = { workspace = true }
 
 # External dependencies.
@@ -23,5 +22,7 @@ eframe = { workspace = true }
 egui = { workspace = true }
 egui_extras = { workspace = true }
 egui_plot = { workspace = true }
+emath = { workspace = true }
 log = { workspace = true }
 nalgebra = { workspace = true }
+rand = { workspace = true }

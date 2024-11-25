@@ -130,7 +130,7 @@ conda install -c conda-forge wrenfold
 To get started:
 - Refer to the [quick start guide](https://wrenfold.org/quick_start.html) and [user guide](https://wrenfold.org/reference/index.html).
 - Take a look at some of the examples:
-  - There are some examples of symbolic expressions [in this repository](examples). For instance, an implementation of [imu integration](examples/imu_integration/imu_integration.py).
+  - There are some examples of symbolic expressions [in this repository](examples). For instance, an implementation of [imu integration](examples/imu_integration/imu_integration.py) or the dynamics of a [cart-pole/double-pendulum](examples/cart_pole/cart_pole_dynamics.py) system.
   - Each example includes a unit test that invokes the generated code.
 - The [wrenfold-extra-examples](https://github.com/wrenfold/wrenfold-extra-examples) repository includes examples of integrating generated code into existing optimizers like [GTSAM](http://gtsam.org) and [Ceres](http://ceres-solver.org).
 

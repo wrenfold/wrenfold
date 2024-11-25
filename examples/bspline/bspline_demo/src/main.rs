@@ -1,3 +1,6 @@
+//! wrenfold symbolic code generator.
+//! Copyright (c) 2024 Gareth Cross
+//! For license information refer to accompanying LICENSE file.
 use std::collections::HashMap;
 
 use arrayvec::ArrayVec;
@@ -193,6 +196,10 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "BSpline Demo",
         options,
-        Box::new(|cc| Box::new(App::new(cc))),
+        Box::new(
+            |cc| -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
+                Ok(Box::new(App::new(cc)))
+            },
+        ),
     )
 }

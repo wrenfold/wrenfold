@@ -43,3 +43,9 @@ closed form expression.
 
 Given the eigenvalue expressions, we can now substitute the variables in ``m`` with our choice of
 expressions.
+
+Further examples
+----------------
+
+The `cart-pole <https://github.com/wrenfold/wrenfold/tree/main/examples/cart-pole>`_ example uses
+SymPy to help find the Euler-Lagrange equations of a cart-pole system featuring a double-pendulum.
