@@ -695,6 +695,31 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
         return th.asarray(v)
 
 
+def test_apply_preamble():
+    """A simple test to check that we apply the preamble correctly to code."""
+    targets_to_test = [
+        code_generation.PythonGeneratorTarget.NumPy,
+        code_generation.PythonGeneratorTarget.JAX,
+    ]
+    if th is not None:
+        targets_to_test.append(code_generation.PythonGeneratorTarget.PyTorch)
+
+    target_imports = {
+        code_generation.PythonGeneratorTarget.NumPy: "import numpy as np",
+        code_generation.PythonGeneratorTarget.JAX: "import jax.numpy as jnp",
+        code_generation.PythonGeneratorTarget.PyTorch: "import torch as th"
+    }
+
+    code = "def foo():\n\tpass"
+    preamble_template = "# Machine generated code.\nimport typing as T\n{}\n\n{}\n"
+
+    for target in targets_to_test:
+        code_generator = code_generation.PythonGenerator(target=target)
+        code_with_preamble = code_generator.apply_preamble(code)
+        expected = preamble_template.format(target_imports[target], code)
+        assert code_with_preamble == expected
+
+
 def main():
     test_cases = [
         NumPyCodeGenerationTest,
@@ -707,6 +732,7 @@ def main():
     loader = unittest.TestLoader()
     for test_case in test_cases:
         suite.addTests(loader.loadTestsFromTestCase(test_case))
+    suite.addTest(unittest.FunctionTestCase(test_apply_preamble))
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
 

@@ -56,6 +56,22 @@ constexpr static std::string_view python_module_prefix_from_target(
   return "<INVALID ENUM VALUE>";
 }
 
+constexpr static std::string_view python_module_import_from_target(
+    const python_generator_target target) noexcept {
+  switch (target) {
+    case python_generator_target::numpy: {
+      return "import numpy as np";
+    }
+    case python_generator_target::pytorch: {
+      return "import torch as th";
+    }
+    case python_generator_target::jax: {
+      return "import jax.numpy as jnp";
+    }
+  }
+  return "<INVALID ENUM VALUE>";
+}
+
 inline std::string format_asarray(const python_generator_target target, const std::string_view arg,
                                   const numeric_primitive_type expected_type,
                                   const python_generator_float_width float_width,
@@ -455,6 +471,19 @@ std::string python_code_generator::operator()(const ast::variable_ref& x) const 
 
 std::string python_code_generator::operator()(const ast::ast_element& element) const {
   return ast::visit(element, *this);
+}
+
+inline constexpr std::string_view preamble = R"code(# Machine generated code.
+import typing as T
+{module_import}
+
+{code}
+)code";
+
+std::string python_code_generator::apply_preamble(const std::string_view code) const {
+  WF_ASSERT(code.data());
+  return fmt::format(preamble, fmt::arg("module_import", python_module_import_from_target(target_)),
+                     fmt::arg("code", code));
 }
 
 }  // namespace wf
