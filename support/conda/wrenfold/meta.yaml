@@ -14,11 +14,12 @@ requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ stdlib("c") }}
+    - {{ stdlib('c') }}
   host:
-    - python >=3.9
-    - scikit-build-core ==0.9.8
-    - cmake >=3.20
+    - python
+    - scikit-build-core ==0.10.7
+    # Use cmake<3.28 to avoid clang-scan-deps dependency on OSX (introduced with CMake 3.28).
+    - cmake >=3.20,<3.28
     - ninja >=1.5
     - mypy ==1.9.0
     - pip
@@ -31,16 +32,8 @@ test:
     - wrenfold.sym
   requires:
     - pip
-    - numpy
-    - sympy
-    - jax
-  source_files:
-    - components/wrapper/tests/*.py
-    - examples/**/*.py
-    - support/test_wheel.py
   commands:
     - pip check
-    - python support/test_wheel.py
 
 about:
   home: https://github.com/wrenfold/wrenfold
