@@ -343,6 +343,8 @@ void wrap_code_formatting_operations(py::module_& m) {
                              "Float precision applied to all NumPy arrays and tensors.")
       .def_property_readonly("indentation", &python_code_generator::indentation,
                              "Amount of spaces used to indent nested scopes.")
+      .def("apply_preamble", &python_code_generator::apply_preamble, py::arg("code"),
+           "Apply a preamble to generated code.")
       .doc() = "Generates Python code. Can target NumPy, PyTorch, or JAX.";
 }
 

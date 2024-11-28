@@ -109,6 +109,8 @@ class python_code_generator {
   constexpr python_generator_float_width float_width() const noexcept { return float_width_; }
   constexpr std::size_t indentation() const noexcept { return indent_; }
 
+  std::string apply_preamble(std::string_view code) const;
+
  protected:
   python_generator_target target_;
   python_generator_float_width float_width_;
