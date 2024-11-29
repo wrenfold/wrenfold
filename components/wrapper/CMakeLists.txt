@@ -41,9 +41,15 @@ function(add_wrapper_module)
       COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
       WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
       OUTPUT_VARIABLE GIT_HASH
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message(STATUS "git hash: ${GIT_HASH}")
-    target_compile_definitions(${MODULE_NAME} PRIVATE PY_GIT_HASH="${GIT_HASH}")
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE GIT_HASH_RESULT_VAR)
+    if(GIT_HASH_RESULT_VAR EQUAL "0")
+      message(STATUS "git hash: ${GIT_HASH}")
+      target_compile_definitions(${MODULE_NAME}
+                                 PRIVATE PY_GIT_HASH="${GIT_HASH}")
+    else()
+      message(STATUS "Failed to obtain git hash.")
+    endif()
   endif()
 
   # For each submodule, define a compile-time constant for its name.
