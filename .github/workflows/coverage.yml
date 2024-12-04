@@ -69,7 +69,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Debug
           -Wno-deprecated
           -G Ninja
-          -DWF_STUBS_REQUIRED=ON
+          -DWF_BUILD_STUBS=OFF
           -DWF_DOCS_REQUIRED=OFF
           -DWF_CODE_COVERAGE=ON
           -DWF_BUILD_WITH_TRACING=ON
