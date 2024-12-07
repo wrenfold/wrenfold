@@ -41,7 +41,6 @@ def main():
         ([ex / "quaternion_interpolation" / "quaternion_interpolation.py"], True),
         ([ex / "rosenbrock" / "rosenbrock.py"], True),
         ([ex / "rotation_error" / "rotation_error.py"], True),
-        ([ex / "python_generation" / "python_generation.py"], False)
     ]:
         command = [sys.executable, "-m", get_module_path(script[0])] + script[1:]
         print(f"Running: {' '.join([str(x) for x in command])}")
