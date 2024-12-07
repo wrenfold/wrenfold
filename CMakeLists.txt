@@ -13,6 +13,10 @@ else()
   set(WF_BUILD_EXTRAS_DEFAULT ON)
 endif()
 
+find_program(MAKE_PROGRAM_PATH ${CMAKE_MAKE_PROGRAM})
+message(STATUS "CMAKE_MAKE_PROGRAM: ${CMAKE_MAKE_PROGRAM}")
+message(STATUS "Path to CMAKE_MAKE_PROGRAM: ${MAKE_PROGRAM_PATH}")
+
 enable_testing()
 include(GNUInstallDirs)
 
@@ -26,7 +30,7 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 
 option(WF_BUILD_EXTRAS "Build tests, benchmarks, examples, and docs."
        ${WF_BUILD_EXTRAS_DEFAULT})
-option(WF_STUBS_REQUIRED "Fail if stubgen cannot be found." OFF)
+option(WF_BUILD_STUBS "Build stubs for the pywrenfold module." OFF)
 option(WF_DOCS_REQUIRED "Fail if sphinx/doxygen cannot be found." OFF)
 option(WF_CODE_COVERAGE "Build in code coverage mode." OFF)
 

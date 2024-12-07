@@ -143,7 +143,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
           -Wno-deprecated
           -G Ninja
-          -DWF_STUBS_REQUIRED=ON
+          -DWF_BUILD_STUBS=ON
           -DWF_DOCS_REQUIRED=ON
           -DPython_ROOT_DIR=${{ env.Python_ROOT_DIR }}
           -DPython_FIND_STRATEGY=LOCATION
@@ -171,6 +171,10 @@ jobs:
         run: |
           threads=`nproc`
           cmake --build . --config ${{matrix.build_type}} --parallel $threads
+
+      - name: Check stubs for diff
+        working-directory: ${{github.workspace}}
+        run: git diff --name-only --exit-code components/wrapper/stubs
 
       - name: Run CTest
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
