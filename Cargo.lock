@@ -269,7 +269,7 @@ dependencies = [
 
 [[package]]
 name = "bspline_demo"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "arrayvec",
  "bspline_rust_test",
@@ -359,7 +359,7 @@ dependencies = [
 
 [[package]]
 name = "cart_pole_demo"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "arrayvec",
  "colorgrad",
@@ -3360,7 +3360,7 @@ dependencies = [
 
 [[package]]
 name = "wrenfold-test-utils"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "approx 0.5.1",
  "nalgebra 0.33.0",
