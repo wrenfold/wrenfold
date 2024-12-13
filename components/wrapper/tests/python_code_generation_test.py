@@ -569,8 +569,7 @@ class NumPyCodeGenerationTest(PythonCodeGenerationTestBase):
     def generate(cls, func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
                  batch: bool, **kwargs) -> T.Callable:
         _, optional_arg_flags = cls.get_optional_output_flags(func)
-        func_gen, code = code_generation.generate_python(
-            func=func, target=code_generation.PythonGeneratorTarget.NumPy, **kwargs)
+        func_gen, code = code_generation.generate_python(func=func, **kwargs)
         if cls.VERBOSE:
             print(code)
 
