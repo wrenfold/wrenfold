@@ -261,7 +261,7 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
 
 def generate_python(
     func: T.Callable[..., CodegenFuncInvocationResult],
-    target: PythonGeneratorTarget,
+    target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy,
     convert_ternaries: T.Optional[bool] = None,
     context: T.Optional[T.Dict[str, T.Any]] = None,
     import_target_module: bool = True,
