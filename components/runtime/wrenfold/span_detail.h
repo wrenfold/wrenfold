@@ -113,7 +113,7 @@ class value_pack_dynamic {
 }  // namespace detail
 
 /**
- * Store a sequence of values, each of which represents the size or stride along a partiular axis
+ * Store a sequence of values, each of which represents the size or stride along a particular axis
  * of a span.
  *
  * @tparam Values Variadic list of wf::constant or wf::dynamic values.

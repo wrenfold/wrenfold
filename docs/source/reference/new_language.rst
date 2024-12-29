@@ -6,9 +6,9 @@ complete demonstration, refer to the
 `c_generation <https://github.com/wrenfold/wrenfold/blob/main/examples/c_generation>`__
 example. This section provides a brief overview.
 
-To begin with, one must subclass the :class:`wrenfold.code_generation.BaseGenerator` type in python.
-**At a minimum**, a ``format_function_definition`` method must be defined for the
-:class:`wrenfold.code_generation.FunctionDefinition` type (the top level AST node).
+To begin with, one should subclass the :class:`wrenfold.code_generation.BaseGenerator` type in python
+and implement ``format_<type name>`` methods for each of the
+:doc:`syntax tree types <../python_api/ast>`.
 
 Most nodes in the syntax tree will have children - for example :class:`wrenfold.ast.Add` has a
 member ``args`` that enumerates the operands of an N-ary addition. To facilitate recursive

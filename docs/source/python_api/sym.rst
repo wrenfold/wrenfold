@@ -89,6 +89,8 @@ sym
 
 .. autofunction:: wrenfold.sym.sqrt
 
+.. autofunction:: wrenfold.sym.stop_derivative
+
 .. autofunction:: wrenfold.sym.subs
 
 .. autofunction:: wrenfold.sym.substitution

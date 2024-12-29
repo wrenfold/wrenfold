@@ -28,5 +28,5 @@ that converts math into code. At a high level, the steps involved are:
    :class: only-dark
    :width: 60%
 
-At present, wrenfold can target C++ and Rust, but it can be extended to other languages relatively
-easily.
+At present, wrenfold can target C++, Rust and Python, but it can be extended to other languages
+relatively easily.

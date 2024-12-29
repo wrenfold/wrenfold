@@ -1,10 +1,12 @@
 """
-Script that generates the `python_api_docs.rst` file. This
+Script that generates the `python_api_docs.rst` file.
 """
 import argparse
 import inspect
 import typing as T
 from pathlib import Path
+
+DOCS_DIR = Path(__file__).parent.absolute()
 
 # The built library needs to be on the import path by this point.
 from wrenfold import (
@@ -86,7 +88,11 @@ def main(args: argparse.Namespace):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('output_dir', type=str, help='Output directory write the RST file into.')
+    parser.add_argument(
+        '--output_dir',
+        type=str,
+        help='Output directory write the RST file into.',
+        default=str(DOCS_DIR / "source" / "python_api"))
     return parser.parse_args()
 
 

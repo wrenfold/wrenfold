@@ -359,7 +359,7 @@ Examples:
   [[-x/2, -y/2, -z/2], [w/2, -z/2, y/2], [z/2, w/2, -x/2], [-y/2, x/2, w/2]]
 )doc";
 
-inline constexpr std::string_view quaternion_right_local_coordintes_derivative = R"doc(
+inline constexpr std::string_view quaternion_right_local_coordinates_derivative = R"doc(
 Compute the 3x4 derivative:
 
 .. math::
@@ -375,7 +375,7 @@ Returns:
 
 Examples:
   >>> w, x, y, z = sym.symbols('w, x, y, z')
-  >>> geometry.Quaternion(w, x, y, z).right_retract_derivative()
+  >>> geometry.Quaternion(w, x, y, z).right_local_coordinates_derivative()
   [[-2*x, 2*w, 2*z, -2*y], [-2*y, -2*z, 2*w, 2*x], [-2*z, 2*y, -2*x, 2*w]]
 )doc";
 

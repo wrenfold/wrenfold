@@ -65,6 +65,11 @@ there are two plausible approaches that are well suited to symbolic code generat
      SymForce paper. We refer to this as the *first-order* method. This approach can produce fewer
      operations in certain instances.
 
+.. tip::
+
+  See the section :doc:`3D Rotations <reference/rotations>` for more details on tangent-space
+  Jacobians.
+
 SymForce provides an `explicit interface <https://github.com/symforce-org/symforce/blob/main/symforce/ops/interfaces/storage.py#L11>`__
 for manifolds, and defaults to taking derivatives via the first-order method. In order to perform an
 apples-to-apples comparison, we apply the *chain-rule* method to both frameworks. There is nothing

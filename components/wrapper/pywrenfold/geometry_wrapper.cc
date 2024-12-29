@@ -164,7 +164,7 @@ void wrap_geometry_operations(py::module_& m) {
       .def("right_retract_derivative", &quaternion::right_retract_derivative,
            docstrings::quaternion_right_retract_derivative.data())
       .def("right_local_coordinates_derivative", &quaternion::right_local_coordinates_derivative,
-           docstrings::quaternion_right_local_coordintes_derivative.data())
+           docstrings::quaternion_right_local_coordinates_derivative.data())
       .doc() = "A quaternion class used to represent 3D rotations and orientations.";
 
   m.def("left_jacobian_of_so3", &left_jacobian_of_so3, "w"_a, "epsilon"_a,

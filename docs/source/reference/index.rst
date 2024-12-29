@@ -8,9 +8,12 @@ User guide
 
    introduction
    symbolic_manipulation
+   advanced_derivatives
    generating_code
    integrating_code
+   generating_python
    conditionals
+   rotations
    custom_types
    external_functions
    new_language

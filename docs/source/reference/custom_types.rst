@@ -61,9 +61,9 @@ When defining a dataclass for use with wrenfold, all members must be type annota
 
   * One of the types from the :doc:`type annotations <../python_api/type_annotations>` module, or
     a similarly declared type that inherits from ``sym.Expr`` or ``sym.MatrixExpr``.
-  * Another custom dataclass type. Thus nested structs are supported.
+  * Another custom dataclass type - thus nested structs are supported.
 
-Next, we will create a simple example function that uses our vector type. We can accept ```Vec2`` as
+Next, we will create a simple example function that uses our vector type. We can accept ``Vec2`` as
 an argument, and return it as well:
 
 .. literalinclude:: custom_types_script.py
