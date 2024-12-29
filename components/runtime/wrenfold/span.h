@@ -213,7 +213,7 @@ class span {
    * @tparam D A wf::value_pack whose dimensions match those of this span.
    *
    * @param offsets Where the block starts.
-   * @param dims The size of the block on each exis.
+   * @param dims The size of the block on each axis.
    *
    * @return A new span with the same strides as the original, but with a new starting address and
    * dimensions of type `D`.
@@ -317,11 +317,11 @@ constexpr auto make_always_null_span() noexcept {
  *   - Exposes a `data()` function that returns a pointer.
  *   - Exposes a `size()` function that returns an integral value.
  *
- * For example, `std::vector` satifies these criteria.
+ * For example, `std::vector` satisfies these criteria.
  *
  * @tparam T A type satisfying `enable_if_array_like_t`
  *
- * @param array It is assumed the data in `array` is layed out densely (ie. stride of 1).
+ * @param array It is assumed the data in `array` is laid out contiguously (ie. stride of 1).
  *
  * @return A new span.
  *
@@ -340,7 +340,7 @@ constexpr auto make_array_span(T&& array) noexcept {
  * @tparam T Type of the elements in the array.
  * @tparam N Size of the array. Must be at least one.
  *
- * @param array It is assumed the data in `array` is layed out densely (ie. stride of 1).
+ * @param array It is assumed the data in `array` is laid out contiguously (ie. stride of 1).
  *
  * @return A new span.
  */

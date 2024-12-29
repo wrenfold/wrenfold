@@ -104,16 +104,21 @@ if(${SPHINX_FOUND})
       source/quick_start_files/rosenbrock_crate/src/lib.rs
       source/quick_start_files/rosenbrock.h
       source/quick_start.rst
+      source/reference/advanced_derivatives.rst
       source/reference/conditionals.rst
       source/reference/custom_types_script.py
       source/reference/custom_types.rst
       source/reference/external_functions_script.py
       source/reference/external_functions.rst
       source/reference/generating_code.rst
+      source/reference/generating_python.rst
       source/reference/index.rst
       source/reference/integrating_code.rst
       source/reference/introduction.rst
       source/reference/new_language.rst
+      source/reference/pendulum.py
+      source/reference/rotations.py
+      source/reference/rotations.rst
       source/reference/symbolic_manipulation.rst
       source/reference/sympy_interop.rst)
 

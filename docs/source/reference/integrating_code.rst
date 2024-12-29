@@ -47,7 +47,8 @@ things:
 The span type itself resides in the wrenfold
 `runtime <https://github.com/wrenfold/wrenfold/tree/main/components/runtime/wrenfold>`_, a small
 header only C++17 library that provides an n-dimensional span type used to pass arguments to and
-from generated functions. You should ensure these headers are on your project's include path.
+from generated functions. You should copy these headers into your project (like all of wrenfold,
+they are MIT licensed) - or otherwise ensure they are on your include path.
 
 Implementing ``convert_to_span``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

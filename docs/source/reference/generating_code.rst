@@ -102,7 +102,7 @@ output argument:
     print(cpp)
 
 The key distinction here is that our symbolic function now returns a sequence of
-:class:`wrenfold.code_generation.ReturnValue` and :class:`wrenfold.code_generation.OutputArg`
+:class:`~wrenfold.code_generation.ReturnValue` and :class:`~wrenfold.code_generation.OutputArg`
 objects. Presently, wrenfold only supports one return value (but many output arguments).
 
 We make the ``df`` argument optional by passing ``is_optional=True`` to ``OutputArg`` on
@@ -132,7 +132,7 @@ Conditional logic
 -----------------
 
 Lastly, let's extend our function to automatically clamp the value of ``x`` to the valid interval.
-We do this by adding calls to :func:`wrenfold.sym.min` and :func:`wrenfold.sym.max` - both of which
+We do this by adding calls to :func:`~wrenfold.sym.min` and :func:`~wrenfold.sym.max` - both of which
 are shorthand for ``sym.where``:
 
 .. code:: python
@@ -184,11 +184,11 @@ The output code (truncated here) now includes the clamping logic as well:
 Inspecting the AST
 ------------------
 
-When :func:`wrenfold.code_generation.generate_function` is called, three separate steps occur:
+When :func:`~wrenfold.code_generation.generate_function` is called, three separate steps occur:
 
   #. The signature of the symbolic function is inspected to determine the input types. Variable
      inputs are constructed, and the function is invoked. The symbolic expression tree is captured in
-     a :class:`wrenfold.code_generation.FunctionDescription` object.
+     a :class:`~wrenfold.code_generation.FunctionDescription` object.
   #. The symbolic expressions are flattened into a simple intermediate representation (IR), and
      common sub-expressions are eliminated. This representation is then converted into an abstract
      syntax tree (AST).
@@ -204,14 +204,14 @@ the ``FunctionDescription``:
     desc = code_generation.create_function_description(func=step)
     print(desc)  # prints: FunctionDescription('step', 1 args)
 
-We can then convert it to syntax by calling :func:`wrenfold.code_generation.transpile`:
+We can then convert it to syntax by calling :func:`~wrenfold.code_generation.transpile`:
 
 .. code:: python
 
     definition = code_generation.transpile(desc)
     print(definition)  # prints: FunctionDefinition('step', <1 arguments>, <8 elements>)
 
-:class:`wrenfold.ast.FunctionDefinition` is the root of the abstract syntax tree. We can directly
+:class:`~wrenfold.ast.FunctionDefinition` is the root of the abstract syntax tree. We can directly
 inspect its contents:
 
 .. code:: python
