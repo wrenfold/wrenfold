@@ -35,6 +35,12 @@ function(add_wrapper_module)
   else()
     target_compile_definitions(${MODULE_NAME} PRIVATE PY_MODULE_VERSION="dev")
   endif()
+  target_compile_definitions(${MODULE_NAME}
+                             PRIVATE -DPYBIND11_DETAILED_ERROR_MESSAGES)
+
+  target_include_directories(
+    ${MODULE_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                           $<INSTALL_INTERFACE:include>)
 
   find_package(Git)
   if(Git_FOUND)

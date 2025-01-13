@@ -3,10 +3,6 @@
 // For license information refer to accompanying LICENSE file.
 #include <any>
 
-#define PYBIND11_DETAILED_ERROR_MESSAGES
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
 
@@ -14,7 +10,8 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/types/span.h>
 WF_END_THIRD_PARTY_INCLUDES
 
-namespace py = pybind11;
+#include "pywrenfold/pybind_imports.h"
+
 using namespace py::literals;
 
 // We make this type opaque and wrap it manually below. That way we can cast elements to their

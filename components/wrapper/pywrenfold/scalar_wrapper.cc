@@ -2,14 +2,8 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include <optional>
+#include <type_traits>
 #include <vector>
-
-#define PYBIND11_DETAILED_ERROR_MESSAGES
-#include <pybind11/complex.h>     // Used for std::complex conversion.
-#include <pybind11/functional.h>  // Used for std::function.
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 #include "wf/collect.h"
 #include "wf/constants.h"
@@ -23,15 +17,37 @@
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
+#include "wf/utility/assertions.h"
 #include "wf/utility_visitors.h"
 
-#include "args_visitor.h"
-#include "docs/scalar_wrapper.h"
-#include "visitor_wrappers.h"
-#include "wrapper_utils.h"
+#include "pywrenfold/args_visitor.h"
+#include "pywrenfold/docs/scalar_wrapper.h"
+#include "pywrenfold/pybind_imports.h"
+#include "pywrenfold/visitor_wrappers.h"
+#include "pywrenfold/wrapper_utils.h"
 
-namespace py = pybind11;
 using namespace py::literals;
+
+namespace wf {
+
+// Scalar expression that is wrapped in a class that communicates the concrete underlying type.
+// This is so we can expose the concrete expression types to python, by wrapping
+// typed_scalar_wrapper<Ts...>.
+template <typename T>
+class typed_scalar_expr {
+ public:
+  explicit typed_scalar_expr(scalar_expr expr) : expr_(std::move(expr)) {
+    WF_ASSERT(expr_.is_type<T>(), "Expression has wrong type. Expected: {}, received: {}",
+              T::name_str, expr_.type_name());
+  }
+
+  explicit operator const T&() const noexcept { return get_unchecked<T>(expr_); }
+
+ private:
+  wf::scalar_expr expr_;
+};
+
+}  // namespace wf
 
 namespace wf {
 

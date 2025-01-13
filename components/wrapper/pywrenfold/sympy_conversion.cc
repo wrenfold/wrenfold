@@ -1,22 +1,17 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#define PYBIND11_DETAILED_ERROR_MESSAGES
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
 #include "wf/matrix_expression.h"
 #include "wf/utility/overloaded_visit.h"
 
-#include "docs/sympy_conversion.h"
-#include "wrapper_utils.h"
+#include "pywrenfold/docs/sympy_conversion.h"
+#include "pywrenfold/pybind_imports.h"
+#include "pywrenfold/wrapper_utils.h"
 
 namespace wf {
 
-namespace py = pybind11;
 using namespace py::literals;
 
 // Visitor that converts wrenfold expressions to sympy expressions.

@@ -2,9 +2,9 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include <pybind11/pybind11.h>
-
 #include "wf/expression.h"
+
+#include "pywrenfold/pybind_imports.h"
 
 namespace wf {
 

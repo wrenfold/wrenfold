@@ -1,16 +1,12 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#define PYBIND11_DETAILED_ERROR_MESSAGES
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "wf/expressions/variable.h"
 
-#include "docs/expressions_wrapper.h"
-#include "wrapper_utils.h"
+#include "pywrenfold/docs/expressions_wrapper.h"
+#include "pywrenfold/pybind_imports.h"
+#include "pywrenfold/wrapper_utils.h"
 
-namespace py = pybind11;
 using namespace py::literals;
 
 namespace wf {

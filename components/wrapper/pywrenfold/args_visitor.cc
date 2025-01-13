@@ -1,11 +1,10 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include "args_visitor.h"
+#include "pywrenfold/args_visitor.h"
 
 #include "wf/expression_visitor.h"
 
-namespace py = pybind11;
 namespace wf {
 
 args_visitor::tuple args_visitor::operator()(const scalar_expr& input) const {
