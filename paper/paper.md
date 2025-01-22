@@ -41,11 +41,18 @@ Symbolic code generation can help address these issues:
 * Symbolic functions can be be easily composed in Python, and reasonably performant[^1] C++ implementations are obtained automatically. The developer time cost required to experiment with different optimization parameterizations is thereby reduced.
 * Correct derivatives require no additional work - they can be obtained directly from the objective function via symbolic differentiation. Common terms that appear in the objective function and its Jacobians are automatically de-duplicated by the code generation step.
 
-Compilable source code is a suitable output format because it is straightforward to integrate into downstream projects. By customizing the code generation step, any number of additional languages and development environments can be targeted.
+Compilable source code is a suitable output format because it is straightforward to integrate into downstream projects. By customizing the code generation step, any number of additional languages and development environments can be targeted. Generated functions can be applied to a number of use cases, such as:
+
+* Defining measurement expressions for a factor graph or Kalman filter.[^2]
+* Expressing terms in a motion planning or control optimization.[^3]
 
 [^1]: A comparison with handwritten and auto-diff based implementations is accessible at [https://wrenfold.org/performance.html](https://wrenfold.org/performance.html).
 
-Symbolic code generation has been shown to be an effective tool in robotics. For example, the `MATLAB` symbolic code generation toolbox has been applied directly to motion planning [@Hereid2017FROST]. The open-source `SymForce` framework [@Martiros-RSS-22]  couples the `SymEngine` [@symengine] mathematical backend with Python code generation utilities and mathematical primitives specific to robotics.[^2] `wrenfold` draws inspiration from the design of `SymForce`, while aiming to support a greater variety and complexity of functions. We improve on the concept with the following contributions:
+[^2]: Examples of integrating `wrenfold` functions into Ceres and GTSAM are provided at [https://github.com/wrenfold/wrenfold-extra-examples](https://github.com/wrenfold/wrenfold-extra-examples).
+
+[^3]: A toy example of a Model Predictive Control (MPC) algorithm that uses `wrenfold` is available at [https://github.com/gareth-cross/cart-pole-mpc](https://github.com/gareth-cross/cart-pole-mpc).
+
+Symbolic code generation has been shown to be an effective tool in robotics. For example, the `MATLAB` symbolic code generation toolbox has been applied directly to motion planning [@Hereid2017FROST]. The open-source `SymForce` framework [@Martiros-RSS-22]  couples the `SymEngine` [@symengine] mathematical backend with Python code generation utilities and mathematical primitives specific to robotics.[^4] `wrenfold` draws inspiration from the design of `SymForce`, while aiming to support a greater variety and complexity of functions. We improve on the concept with the following contributions:
 
 * **Symbolic functions may incorporate piecewise conditional statements** - these produce if-else logic in the resulting code. This enables a broader range of functions to be generated.
 * **Emphasis is placed on ease of adaptability of the generated code.** Math expressions are simplified and converted into an abstract syntax tree (AST). Formatting of any element of the AST (such as function signatures and types) can be individually customized by defining a short Python method.
@@ -53,7 +60,7 @@ Symbolic code generation has been shown to be an effective tool in robotics. For
 
 `wrenfold` aims to support researchers and engineers in robotics by bringing symbolic code generation to a greater variety and complexity of optimization problems.
 
-[^2]: `SymForce` has been deployed on production robots produced by Skydio, an American drone manufacturer [@Martiros_Blog_2022].
+[^4]: `SymForce` has been deployed on production robots produced by Skydio, an American drone manufacturer [@Martiros_Blog_2022].
 
 # Design
 
@@ -64,11 +71,24 @@ Internally, `wrenfold` can be thought of as four distinct parts:
 3. An **abstract syntax tree** is built from the simplified IR. This representation is intended to be generic, such that nearly any language can be emitted downstream.
 4. A **code generation** step converts the AST into a compilable language like C++ or Rust. This stage is easily customizable from Python.
 
-![`wrenfold` system architecture\label{fig:arch}](figures/architecture.png)
+![`wrenfold` system architecture\label{fig:arch}](figures/architecture.png){height="240pt"}
+
+One of our design goals is to avoid burdening developers with long code generation times. To that end, we implement the core library in C++. The memoization pattern is employed throughout the symbolic backend in order to further improve performance. The fast backend allows `wrenfold` to scale to larger expression trees than a plain Python implementation (e.g. SymPy) would allow. `wrenfold` code generation times are also 20-100x faster than SymForce on representative functions.[^5]
+
+[^5]: Based on a comparison of end-to-end code generation times of sample functions taken from [https://github.com/wrenfold/wrenfold-benchmarks](https://github.com/wrenfold/wrenfold-benchmarks). We compared `wrenfold v0.2.2` and `SymForce 0.9.0`.
+
+The user-facing Python API is implemented using pybind11 [@pybind11]. While code generators are written in C++, they can be inherited and overriden in Python. This facilitates easy adaptation of the generated code to a particular project - for instance:
+
+* Injecting custom types into the signature of generated methods. For example, emitting code that interfaces with externally-provided geometry types like `gtsam::Pose3` [@gtsam].
+* Overriding a core math function (eg. `sin` or `cosh`) in order to invoke a custom implementation.
+* Customizing syntax in order to suit a particular compiler or language version.
+* Adding an entirely new programming language to the list of possible targets.
+
+Examples of the above behaviors can be found in the `wrenfold` project repository.
 
 # Usage Example
 
-We proceed with a usage example illustrating how a developer might interact with `wrenfold`. For the sake of brevity, this example is relatively simple. More realistic demonstrations can be found in the project repository. The following code was generated with `wrenfold v0.0.7` - the newest version at the time of this writing. A symbolic function is created by writing a type-annotated Python function:
+We proceed with a usage example illustrating how a developer might interact with `wrenfold`. For the sake of brevity, this example is relatively simple. More realistic demonstrations can be found in the project repository. The following code was generated with `wrenfold v0.2.2` - the newest version at the time of this writing. A symbolic function is created by writing a type-annotated Python function:
 
 ```python
 from wrenfold import code_generation, sym, type_annotations
@@ -119,15 +139,23 @@ void rotate_point(const T0 &p, const Scalar theta, T2 &&p_out,
   _p_out(1, 0) = v012;
 }
 ```
-The generated C++ is intended to be maximally type agnostic. Vectors and matrices are passed as generic types, such that a wide variety of linear algebra frameworks can be supported at runtime. Note that common sub-expressions `v009` and `v012` have been extracted into variables so that they may be reused.
+The generated C++ is intended to be maximally type agnostic. Vectors and matrices are passed as generic types, such that a wide variety of linear algebra frameworks can be supported at runtime.[^6] Note that common sub-expressions `v009` and `v012` have been extracted into variables so that they may be reused.
+
+[^6]: We provide instructions for adding support for third-party matrix libraries at: [https://wrenfold.org/reference/integrating_code](https://wrenfold.org/reference/integrating_code). Support for Eigen is provided by default.
+
+# Future Work
+
+`wrenfold` is designed to be extensible. Future avenues for improvement include:
+
+* Adding new target languages, for example shader code (GLSL/HLSL) or CUDA.
+* Extending the list of built-in core math functions.
+* Generalizing the symbolic expression tree to reason about matrix expressions (thereby enabling vertorization of output code in some instances).
 
 # Resources
 
 * GitHub repository: [https://github.com/wrenfold/wrenfold](https://github.com/wrenfold/wrenfold)
 * Website: [https://wrenfold.org](https://wrenfold.org)
 
-# References
-
 # Acknowledgements
 
-We acknowledge code contributions from Himel Mondal.
+We acknowledge code contributions and feedback from: Himel Mondal, Anurag Makineni, Rowland O'Flaherty, and Chao Qu.
