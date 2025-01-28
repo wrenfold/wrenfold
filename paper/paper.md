@@ -159,3 +159,5 @@ The generated C++ is intended to be maximally type agnostic. Vectors and matrice
 # Acknowledgements
 
 We acknowledge code contributions and feedback from: Himel Mondal, Anurag Makineni, Rowland O'Flaherty, and Chao Qu.
+
+# References
