@@ -60,6 +60,14 @@ Non-goals
   optimizer. Instead, it should be easy to customize generated code to better integrate
   with existing solutions.
 
+Citation
+--------
+
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!--- citation_start --->
+   :end-before: <!--- citation_end --->
+
 .. toctree::
    :maxdepth: 1
    :hidden:

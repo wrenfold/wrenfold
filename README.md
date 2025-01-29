@@ -149,3 +149,28 @@ If you are interested in collaboration opportunities or have general questions, 
 ## License
 
 wrenfold uses the [MIT License](./LICENSE).
+
+## Citation
+
+<!--- citation_start --->
+<a style="border-width:0" href="https://doi.org/10.21105/joss.07303">
+  <img src="https://joss.theoj.org/papers/10.21105/joss.07303/status.svg" alt="DOI badge" >
+</a>
+
+wrenfold is published in the [Journal of Open Source Software (JOSS)](https://joss.theoj.org). If you wish to cite this project, please use the following:
+
+```bibtex
+@article{Cross2025,
+  doi = {10.21105/joss.07303},
+  url = {https://doi.org/10.21105/joss.07303},
+  year = {2025},
+  publisher = {The Open Journal},
+  volume = {10},
+  number = {105},
+  pages = {7303},
+  author = {Gareth Cross},
+  title = {wrenfold: Symbolic code generation for robotics},
+  journal = {Journal of Open Source Software}
+}
+```
+<!--- citation_end --->

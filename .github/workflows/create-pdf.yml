@@ -1,9 +1,6 @@
 name: create-pdf
 on:
-  pull_request:
-    types: [opened, synchronize]
-    branches:
-      - "*"
+  workflow_dispatch:
 
 jobs:
   paper:
