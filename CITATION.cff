@@ -1,0 +1,26 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Cross
+  given-names: Gareth
+  orcid: "https://orcid.org/0009-0008-3110-0078"
+doi: 10.5281/zenodo.14723141
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Cross
+    given-names: Gareth
+    orcid: "https://orcid.org/0009-0008-3110-0078"
+  date-published: 2025-01-28
+  doi: 10.21105/joss.07303
+  issn: 2475-9066
+  issue: 105
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 7303
+  title: "wrenfold: Symbolic code generation for robotics"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.07303"
+  volume: 10
+title: "wrenfold: Symbolic code generation for robotics"
