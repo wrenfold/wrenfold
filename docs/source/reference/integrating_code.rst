@@ -34,8 +34,10 @@ reference for all output matrices and vectors. The rationale is twofold:
   * With a forwarding reference we can accept non-const r-value arguments (such as temporary views
     into larger buffers).
 
-Of course, you can :doc:`customize code generation <new_language>` to your liking if this behavior
-is undesirable.
+.. tip::
+
+    In order to *return* a matrix we need to instantiate an actual object that owns storage. This is
+    covered in the section :doc:`Returning matrices <returning_matrices>`.
 
 The generated function invokes ``wf::make_optional_output_span<2, 1>`` on ``df`` in order to create
 a 2D span with dimensions ``(2, 1)``. Because this argument is optional, we can pass one of two
@@ -108,6 +110,8 @@ With our custom specialization in hand, we can call ``step_clamped`` with our ma
     // In cases where we do not care about the optional output, pass nullptr.
     const double step_2 = step_clamped(0.781, nullptr);
 
+.. _Using Eigen:
+
 Using Eigen
 ^^^^^^^^^^^
 
@@ -143,6 +147,8 @@ Generated C++ functions depend directly on:
 
 You can add these includes to your output code manually, or use the provided convenience function:
 :func:`wrenfold.code_generation.CppGenerator.apply_preamble`.
+
+.. _Rust Integration:
 
 Rust
 ----

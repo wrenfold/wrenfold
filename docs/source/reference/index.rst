@@ -11,6 +11,7 @@ User guide
    advanced_derivatives
    generating_code
    integrating_code
+   returning_matrices
    generating_python
    conditionals
    rotations

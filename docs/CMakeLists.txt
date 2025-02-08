@@ -117,6 +117,7 @@ if(${SPHINX_FOUND})
       source/reference/introduction.rst
       source/reference/new_language.rst
       source/reference/pendulum.py
+      source/reference/returning_matrices.rst
       source/reference/rotations.py
       source/reference/rotations.rst
       source/reference/symbolic_manipulation.rst

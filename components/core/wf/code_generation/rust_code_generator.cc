@@ -54,8 +54,10 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
 
 std::string rust_code_generator::operator()(const matrix_type&) const {
   throw type_error(
-      "The default Rust code-generator treats all matrices as spans. You likely want to implement "
-      "a formatter override for the the `{}` type.",
+      "The default Rust code-generator treats all matrices as spans. You probably want to "
+      "implement "
+      "a formatter override for the `{}` type.\n"
+      "See: https://wrenfold.org/reference/returning_matrices",
       matrix_type::snake_case_name_str);
 }
 
@@ -272,8 +274,9 @@ std::string rust_code_generator::operator()(const ast::compare& x) const {
 std::string rust_code_generator::operator()(const ast::construct_matrix&) const {
   throw type_error(
       "The default Rust code-generator treats all matrices as span traits. We cannot construct "
-      "one directly. You likely want to implement an override for the the ConstructMatrix ast "
-      "type.");
+      "one directly. You probably want to implement an override for the `{}` ast type.\n"
+      "See: https://wrenfold.org/reference/returning_matrices",
+      ast::construct_matrix::snake_case_name_str);
 }
 
 std::string rust_code_generator::operator()(const ast::construct_custom_type& x) const {
