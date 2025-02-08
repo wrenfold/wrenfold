@@ -254,7 +254,7 @@ auto create_evaluator_with_output_expressions(type_list<ArgSymbolicTypes...>,
 // to numeric types.
 template <typename ReturnType, typename... Args>
 auto create_evaluator(ReturnType (*func)(Args... args)) {
-  // Scrape the the types of the input arguments:
+  // Scrape the types of the input arguments:
   custom_type_registry registry{};
   std::tuple arg_types = detail::record_arg_types(registry, type_list<Args...>{});
 

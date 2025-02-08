@@ -28,8 +28,10 @@ constexpr static std::string_view cpp_string_from_numeric_type(
 
 std::string cpp_code_generator::operator()(const matrix_type&) const {
   throw type_error(
-      "The default C++ code-generator treats all matrices as spans. You likely want to implement a "
-      "formatter override for the the `{}` type.",
+      "The default C++ code-generator treats all matrices as spans. You probably want to implement "
+      "a "
+      "formatter override for the `{}` type.\n"
+      "See: https://wrenfold.org/reference/returning_matrices",
       matrix_type::snake_case_name_str);
 }
 
@@ -261,7 +263,8 @@ std::string cpp_code_generator::operator()(const ast::compare& x) const {
 std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
   throw type_error(
       "The default C++ code-generator treats all matrices as spans. We cannot construct one "
-      "directly. You likely want to implement an override for the the `{}` ast type.",
+      "directly. You probably want to implement an override for the `{}` ast type.\n"
+      "See: https://wrenfold.org/reference/returning_matrices",
       ast::construct_matrix::snake_case_name_str);
 }
 
