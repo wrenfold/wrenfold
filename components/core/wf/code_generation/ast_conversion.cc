@@ -516,7 +516,7 @@ ast::ast_element ast_form_visitor::operator()(const custom_type& c, const argume
       ast::ast_element{std::in_place_type_t<ast::get_argument>{}, arg}, c, element_index);
 }
 
-ast::ast_element ast_form_visitor::operator()(const named_variable& v) const {
+ast::ast_element ast_form_visitor::operator()(const variable& v) const {
   return ast::ast_element{std::in_place_type_t<ast::variable_ref>{}, v.name()};
 }
 

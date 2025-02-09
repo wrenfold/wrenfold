@@ -5,8 +5,8 @@
 
 #include <unordered_map>
 
+#include "wf/expression_cache.h"
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
 #include "wf/matrix_expression.h"
 
 #include "utility/scoped_trace.h"
