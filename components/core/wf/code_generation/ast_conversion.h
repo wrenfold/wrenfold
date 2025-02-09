@@ -104,7 +104,7 @@ class ast_form_visitor {
                               std::size_t element_index) const;
   ast::ast_element operator()(const custom_type& c, const argument& arg,
                               std::size_t element_index) const;
-  ast::ast_element operator()(const named_variable& v) const;
+  ast::ast_element operator()(const variable& v) const;
   ast::ast_element operator()(const function_argument_variable& a) const;
   ast::ast_element operator()(const unique_variable& u) const;
 

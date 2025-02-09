@@ -2,11 +2,10 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include "wf/any_expression.h"
 #include "wf/expression.h"
-#include "wf/expression_cache.h"
 #include "wf/expressions/compound_expression_element.h"
 #include "wf/expressions/variable.h"
-#include "wf/utility/hashing.h"
 
 WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/types/span.h>

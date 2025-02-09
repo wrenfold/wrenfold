@@ -50,3 +50,6 @@ __pycache__/
 
 # RUST
 target/
+
+# CLANGD
+.clangd
