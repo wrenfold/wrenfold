@@ -45,7 +45,9 @@ struct type_list_trait<scalar_meta_type> {
     class symbolic_function_invocation,
     class undefined,
     class unevaluated,
-    class variable
+    class variable,
+    class function_argument_variable,
+    class unique_variable
     >;
   // clang-format on
 };

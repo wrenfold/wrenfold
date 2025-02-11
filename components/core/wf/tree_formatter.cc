@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "wf/compound_expression.h"
+#include "wf/enumerations.h"
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
 #include "wf/matrix_expression.h"
@@ -71,6 +72,11 @@ void tree_formatter_visitor::operator()(const external_function_invocation& invo
 
 void tree_formatter_visitor::operator()(const float_constant& f) {
   format_append("{} ({})", float_constant::name_str, f.value());
+}
+
+void tree_formatter_visitor::operator()(const function_argument_variable& fv) {
+  format_append("{} ({}, {})", function_argument_variable::name_str, fv.arg_index(),
+                string_from_numeric_primitive_type(fv.primitive_type()));
 }
 
 void tree_formatter_visitor::operator()(const built_in_function_invocation& func) {
@@ -142,9 +148,13 @@ void tree_formatter_visitor::operator()(const unevaluated& u) {
   visit_all(u);
 }
 
+void tree_formatter_visitor::operator()(const unique_variable& uv) {
+  format_append("{} ({}, {})", unique_variable::name_str, uv.index(),
+                string_from_number_set(uv.set()));
+}
+
 void tree_formatter_visitor::operator()(const variable& var) {
-  format_append("{} ({}, {})", variable::name_str, var.to_string(),
-                string_from_number_set(var.set()));
+  format_append("{} ({}, {})", variable::name_str, var.name(), string_from_number_set(var.set()));
 }
 
 static void right_trim_in_place(std::string& str) {

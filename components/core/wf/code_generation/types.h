@@ -383,7 +383,7 @@ struct fmt::formatter<wf::scalar_type, char> {
 
   template <typename FormatContext>
   auto format(const wf::scalar_type& s, FormatContext& ctx) const -> decltype(ctx.out()) {
-    const auto view = wf::string_from_code_numeric_type(s.numeric_type());
+    const auto view = wf::string_from_numeric_primitive_type(s.numeric_type());
     return std::copy(view.begin(), view.end(), ctx.out());
   }
 };

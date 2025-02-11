@@ -5,6 +5,7 @@
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/expression_cache.h"
+#include "wf/expressions/variable.h"
 #include "wf/matrix_expression.h"
 
 namespace wf {
@@ -47,6 +48,8 @@ class plain_formatter {
   std::string operator()(const undefined&) const;
   std::string operator()(const unevaluated& u);
   std::string operator()(const variable& var) const;
+  std::string operator()(const function_argument_variable& var) const;
+  std::string operator()(const unique_variable& var) const;
 
  private:
   template <typename T>

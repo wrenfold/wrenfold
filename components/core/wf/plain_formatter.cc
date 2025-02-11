@@ -351,7 +351,16 @@ std::string plain_formatter::operator()(const unevaluated& u) {
   return fmt::format("({})", operator()(u.contents()));
 }
 
-std::string plain_formatter::operator()(const variable& var) const { return var.to_string(); }
+std::string plain_formatter::operator()(const variable& var) const { return var.name(); }
+
+// TODO: Use the argument name here.
+std::string plain_formatter::operator()(const function_argument_variable& var) const {
+  return fmt::format("$arg({}, {})", var.arg_index(), var.element_index());
+}
+
+std::string plain_formatter::operator()(const unique_variable& var) const {
+  return fmt::format("$u_{}", var.index());
+}
 
 void plain_formatter::format_precedence(std::string& output, const precedence parent,
                                         const scalar_expr& expr) {

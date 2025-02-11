@@ -159,10 +159,10 @@ relative_order order_struct<scalar_expr>::compare(const scalar_expr& a,
                                                   const scalar_expr& b) const {
   using order_of_types =
       type_list<float_constant, integer_constant, rational_constant, symbolic_constant,
-                complex_infinity, imaginary_unit, variable, multiplication, addition, power,
-                built_in_function_invocation, symbolic_function_invocation, unevaluated,
-                conditional, iverson_bracket, compound_expression_element, derivative, substitution,
-                stop_derivative, undefined>;
+                complex_infinity, imaginary_unit, variable, function_argument_variable,
+                unique_variable, multiplication, addition, power, built_in_function_invocation,
+                symbolic_function_invocation, unevaluated, conditional, iverson_bracket,
+                compound_expression_element, derivative, substitution, stop_derivative, undefined>;
   static constexpr auto order =
       get_type_order_indices(scalar_expr::storage_type::types{}, order_of_types{});
 
@@ -210,7 +210,7 @@ struct precedence_visitor {
 precedence get_precedence(const scalar_expr& expr) { return visit(expr, precedence_visitor{}); }
 
 scalar_expr make_unique_variable_symbol(const number_set set) {
-  return make_expr<variable>(unique_variable(set));
+  return make_expr<unique_variable>(set);
 }
 
 }  // namespace wf

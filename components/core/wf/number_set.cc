@@ -5,6 +5,7 @@
 
 #include "wf/enumerations.h"
 #include "wf/expression_visitor.h"
+#include "wf/expressions/variable.h"
 #include "wf/utility/overloaded_visit.h"
 
 namespace wf {
@@ -195,8 +196,14 @@ class determine_set_visitor {
   constexpr number_set operator()(const integer_constant& i) const noexcept {
     return handle_numeric(i);
   }
+
   constexpr number_set operator()(const float_constant& f) const noexcept {
     return handle_numeric(f);
+  }
+
+  constexpr number_set operator()(const function_argument_variable& fv) const {
+    WF_ASSERT(fv.primitive_type() != numeric_primitive_type::boolean);
+    return number_set::real;
   }
 
   number_set operator()(const power& pow) const {
@@ -251,6 +258,8 @@ class determine_set_visitor {
     // Cannot establish
     return number_set::unknown;
   }
+
+  constexpr number_set operator()(const unique_variable& uv) const noexcept { return uv.set(); }
 
   number_set operator()(const unevaluated& u) const { return determine_numeric_set(u.contents()); }
 

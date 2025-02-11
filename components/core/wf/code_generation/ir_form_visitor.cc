@@ -3,7 +3,11 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ir_form_visitor.h"
 
+#include "wf/code_generation/ir_consumer_vector.h"
+#include "wf/enumerations.h"
 #include "wf/expression_visitor.h"
+#include "wf/expressions/variable.h"
+#include "wf/plain_formatter.h"
 #include "wf/utility/overloaded_visit.h"
 #include "wf/utility/scoped_trace.h"
 #include "wf/utility_visitors.h"
@@ -143,6 +147,10 @@ ir::value_ptr ir_form_visitor::operator()(const derivative&) const {
 
 ir::value_ptr ir_form_visitor::operator()(const float_constant& f) {
   return push_operation(ir::load{f}, numeric_primitive_type::floating_point);
+}
+
+ir::value_ptr ir_form_visitor::operator()(const function_argument_variable& var) {
+  return push_operation(ir::load{var}, var.primitive_type());
 }
 
 static constexpr std_math_function std_math_function_from_built_in(const built_in_function name) {
@@ -419,18 +427,15 @@ ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
   throw type_error("Cannot generate code with expressions containing: {}", undefined::name_str);
 }
 
-inline numeric_primitive_type get_variable_type(const variable& var) {
-  if (const function_argument_variable* arg =
-          std::get_if<function_argument_variable>(&var.identifier());
-      arg != nullptr) {
-    return arg->primitive_type();
-  } else {
-    return numeric_primitive_type::floating_point;
-  }
+ir::value_ptr ir_form_visitor::operator()(const unique_variable& var) {
+  throw type_error(
+      "Cannot generate code containing unique variable: {} (Did you intend to substitute something "
+      "for this variable?)",
+      plain_formatter{}(var));
 }
 
 ir::value_ptr ir_form_visitor::operator()(const variable& var) {
-  return push_operation(ir::load{var}, get_variable_type(var));
+  return push_operation(ir::load{var}, numeric_primitive_type::floating_point);
 }
 
 template <typename T, typename>

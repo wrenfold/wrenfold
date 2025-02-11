@@ -17,21 +17,6 @@ bool is_numeric(const scalar_expr& expr);
 // negative when evaluated.
 bool is_negative_number(const scalar_expr& expr);
 
-// Visitor that recursively traverses the expression tree and extracts all `variable` expressions.
-class get_variables_visitor {
- public:
-  template <typename T>
-  void operator()(const T& arg);
-
-  // Move resulting vector of variables out of the visitor.
-  std::vector<variable> take_output() && { return std::move(variables_); }
-
- private:
-  std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
-      visited_;
-  std::vector<variable> variables_;
-};
-
 // Get all variable expressions that appear in a scalar-valued expression tree.
 std::vector<variable> get_variables(const scalar_expr& expr);
 

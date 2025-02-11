@@ -1,6 +1,7 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "wf/plain_formatter.h"
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -21,10 +22,8 @@ void wrap_expressions(pybind11::module& m) {
   wrap_class<variable>(m, "Variable")
       .def(py::init<std::string, number_set>(), py::arg("name"),
            py::arg("number_set") = number_set::unknown, docstrings::variable_constructor.data())
-      .def_property_readonly("name", &variable::to_string, "Name of the variable.")
+      .def_property_readonly("name", &variable::name, "Name of the variable.")
       .def_property_readonly("set", &variable::set, "Numeric set the variable belongs to.")
-      .def_property_readonly("is_unique_variable", &variable::is_unique_variable,
-                             "True if the variable is a unique_variable.")
       .def(
           "to_expression",
           [](const variable& self) {
@@ -32,7 +31,7 @@ void wrap_expressions(pybind11::module& m) {
             return scalar_expr(self);
           },
           "Convert the variable back to a :class:`wrenfold.sym.Expr`.")
-      .def("__repr__", [](const variable& self) { return self.to_string(); })
+      .def("__repr__", [](const variable& self) { return self.name(); })
       .doc() = "Concrete expression for a symbolic variable.";
 }
 

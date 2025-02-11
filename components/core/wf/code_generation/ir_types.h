@@ -218,7 +218,7 @@ class load {
  public:
   using storage_type =
       std::variant<symbolic_constant, integer_constant, float_constant, rational_constant,
-                   boolean_constant, variable, custom_type_argument>;
+                   boolean_constant, variable, function_argument_variable, custom_type_argument>;
 
   constexpr static bool is_commutative() noexcept { return false; }
   constexpr static int num_value_operands() noexcept { return 0; }
