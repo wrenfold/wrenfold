@@ -48,24 +48,38 @@ bool is_negative_number(const scalar_expr& expr) {
   return visit(expr, is_negative_number_visitor{});
 }
 
-template <typename T>
-void get_variables_visitor::operator()(const T& arg) {
-  if constexpr (std::is_same_v<T, scalar_expr>) {
-    if (!visited_.count(arg)) {
-      visited_.insert(arg);
+// Visitor that recursively traverses the expression tree and extracts all `ExtractedType`
+// expressions.
+template <typename ExtractedType>
+class get_expressions_of_type_visitor {
+ public:
+  template <typename T>
+  void operator()(const T& arg) {
+    if constexpr (std::is_same_v<T, scalar_expr>) {
+      if (!visited_.count(arg)) {
+        visited_.insert(arg);
+        visit(arg, *this);
+      }
+    } else if constexpr (inherits_expression_base_v<T>) {
       visit(arg, *this);
+    } else if constexpr (std::is_same_v<T, ExtractedType>) {
+      variables_.push_back(arg);
+    } else {
+      for_each_child(arg, *this);
     }
-  } else if constexpr (inherits_expression_base_v<T>) {
-    visit(arg, *this);
-  } else if constexpr (std::is_same_v<T, variable>) {
-    variables_.push_back(arg);
-  } else {
-    for_each_child(arg, *this);
   }
-}
+
+  // Move resulting vector of variables out of the visitor.
+  std::vector<ExtractedType> take_output() && { return std::move(variables_); }
+
+ private:
+  std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
+      visited_;
+  std::vector<ExtractedType> variables_;
+};
 
 std::vector<variable> get_variables(const scalar_expr& expr) {
-  get_variables_visitor visitor;
+  get_expressions_of_type_visitor<variable> visitor;
   visit(expr, visitor);
   return std::move(visitor).take_output();
 }

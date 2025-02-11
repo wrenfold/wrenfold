@@ -82,7 +82,8 @@ auto format_ast(Iterator it, const wf::ast::call_std_function& c) {
 
 template <typename Iterator>
 auto format_ast(Iterator it, const wf::ast::cast& c) {
-  return fmt::format_to(it, "({}, {})", string_from_code_numeric_type(c.destination_type), c.arg);
+  return fmt::format_to(it, "({}, {})", string_from_numeric_primitive_type(c.destination_type),
+                        c.arg);
 }
 
 template <typename Iterator>

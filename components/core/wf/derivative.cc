@@ -240,6 +240,14 @@ scalar_expr derivative_visitor::operator()(const iverson_bracket&, const scalar_
 
 scalar_expr derivative_visitor::operator()(const float_constant&) const { return constants::zero; }
 
+scalar_expr derivative_visitor::operator()(const function_argument_variable& var) const {
+  if (const auto* arg = get_if<const function_argument_variable>(argument_);
+      arg != nullptr && are_identical(*arg, var)) {
+    return constants::one;
+  }
+  return constants::zero;
+}
+
 scalar_expr derivative_visitor::operator()(const power& pow) {
   const scalar_expr& base = pow.base();
   const scalar_expr& exp = pow.exponent();
@@ -370,6 +378,14 @@ scalar_expr derivative_visitor::operator()(const symbolic_function_invocation& f
 scalar_expr derivative_visitor::operator()(const undefined&) const { return constants::undefined; }
 
 scalar_expr derivative_visitor::operator()(const unevaluated& u) { return u.map_children(*this); }
+
+scalar_expr derivative_visitor::operator()(const unique_variable& var) const {
+  if (const unique_variable* arg = get_if<const unique_variable>(argument_);
+      arg != nullptr && are_identical(*arg, var)) {
+    return constants::one;
+  }
+  return constants::zero;
+}
 
 scalar_expr derivative_visitor::operator()(const variable& var) const {
   if (const variable* arg = get_if<const variable>(argument_);

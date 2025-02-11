@@ -232,8 +232,8 @@ constexpr std::string_view string_from_symbolic_constant(
   return "<INVALID ENUM VALUE>";
 }
 
-// Convert `code_numeric_type` to string.
-constexpr std::string_view string_from_code_numeric_type(
+// Convert `numeric_primitive_type` to string.
+constexpr std::string_view string_from_numeric_primitive_type(
     const numeric_primitive_type type) noexcept {
   switch (type) {
     case numeric_primitive_type::boolean:
