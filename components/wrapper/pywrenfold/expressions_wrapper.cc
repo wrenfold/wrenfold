@@ -14,6 +14,6 @@ namespace wf {
 
 // TODO: Wrap all the underlying expressions so they can be visited in python.
 // Initially we wrap just the `Variable` type.
-void wrap_expressions(pybind11::module& m) {}
+void wrap_expressions(pybind11::module&) {}
 
 }  // namespace wf

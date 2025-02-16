@@ -5,6 +5,7 @@
 #include "wf/compound_expression.h"
 #include "wf/constants.h"
 #include "wf/cse.h"
+#include "wf/expressions/compound_expression_element.h"
 #include "wf/expressions/derivative_expression.h"
 #include "wf/functions.h"
 #include "wf/substitute.h"
