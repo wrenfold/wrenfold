@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ast_conversion.h"
+
 #include <utility>
 
 #include "wf/code_generation/ast.h"
@@ -193,7 +194,7 @@ inline bool should_inline_constant(const ir::const_value_ptr val) {
 // Return true if this operation consists of copying from an input argument.
 inline bool is_argument_read_operation(const ir::const_value_ptr val) {
   if (const ir::load* l = std::get_if<ir::load>(&val->value_op()); l != nullptr) {
-    return l->is_type<variable>();
+    return l->is_type<function_argument_variable>();
   }
   return false;
 }

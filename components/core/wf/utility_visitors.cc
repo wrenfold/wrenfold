@@ -3,6 +3,8 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/utility_visitors.h"
 
+#include <unordered_set>
+
 #include "wf/expression_iteration.h"
 #include "wf/expression_visitor.h"
 
@@ -48,38 +50,44 @@ bool is_negative_number(const scalar_expr& expr) {
   return visit(expr, is_negative_number_visitor{});
 }
 
-// Visitor that recursively traverses the expression tree and extracts all `ExtractedType`
-// expressions.
-template <typename ExtractedType>
-class get_expressions_of_type_visitor {
+// Visitor that recursively traverses the expression tree and extracts all expressions that match
+// the provided prdicate.
+template <typename Predicate>
+class get_expressions_by_predicate_visitor {
  public:
+  explicit get_expressions_by_predicate_visitor(Predicate predicate) noexcept
+      : predicate_(std::move(predicate)) {}
+
   template <typename T>
   void operator()(const T& arg) {
     if constexpr (std::is_same_v<T, scalar_expr>) {
       if (!visited_.count(arg)) {
         visited_.insert(arg);
+        if (predicate_(arg)) {
+          collected_.push_back(arg);
+        }
         visit(arg, *this);
       }
     } else if constexpr (inherits_expression_base_v<T>) {
       visit(arg, *this);
-    } else if constexpr (std::is_same_v<T, ExtractedType>) {
-      variables_.push_back(arg);
     } else {
       for_each_child(arg, *this);
     }
   }
 
   // Move resulting vector of variables out of the visitor.
-  std::vector<ExtractedType> take_output() && { return std::move(variables_); }
+  std::vector<scalar_expr> take_output() && { return std::move(collected_); }
 
  private:
+  Predicate predicate_;
   std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
       visited_;
-  std::vector<ExtractedType> variables_;
+  std::vector<scalar_expr> collected_;
 };
 
-std::vector<variable> get_variables(const scalar_expr& expr) {
-  get_expressions_of_type_visitor<variable> visitor;
+std::vector<scalar_expr> get_expressions_by_predicate(
+    const scalar_expr& expr, std::function<bool(const scalar_expr&)> predicate) {
+  get_expressions_by_predicate_visitor visitor{std::move(predicate)};
   visit(expr, visitor);
   return std::move(visitor).take_output();
 }

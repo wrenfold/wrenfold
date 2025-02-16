@@ -833,14 +833,14 @@ Raises:
 )doc";
 
 inline constexpr std::string_view get_variables = R"doc(
-Retrieve all concrete variable expressions from a symbolic expression tree, and return them in a
-list.
+Retrieve all variable expressions from a symbolic expression tree, and return them in a list.
 
 Args:
   expr: A scalar-valued expression.
 
 Returns:
-  A list of :class:`wrenfold.sym.Variable` (concrete variable expressions).
+  A list of scalar expressions of underlying type ``Variable`, ``UniqueVariable``, and
+  ``FuntionArgumentVariable``.
 
 Examples:
   >>> x, y, z = sym.symbols('x, y, z')
@@ -850,7 +850,9 @@ Examples:
   [x]
   >>> vs = sym.get_variables(sym.cos(x * y))
   >>> type(vs[0])
-  pywrenfold.sym.Variable
+  pywrenfold.sym.Expr
+  >>> print(vs[0].type_name)
+  Variable
 )doc";
 
 }  // namespace wf::docstrings

@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "wf/expression_visitor.h"
+#include "wf/expressions/variable.h"
 #include "wf/matrix_expression.h"
 #include "wf/number_set.h"
 #include "wf/utility/error_types.h"
@@ -28,15 +29,16 @@ inline bool is_derivative_of_symbolic_function_invocation(const scalar_expr& exp
 derivative_visitor::derivative_visitor(const scalar_expr& argument,
                                        const non_differentiable_behavior behavior)
     : argument_(argument), non_diff_behavior_(behavior) {
-  if (!argument.is_type<variable, compound_expression_element, symbolic_function_invocation>() &&
+  if (!argument.is_type<variable, function_argument_variable, unique_variable,
+                        compound_expression_element, symbolic_function_invocation>() &&
       !is_derivative_of_symbolic_function_invocation(argument)) {
     throw type_error(
-        "Argument to diff must be of type `{}`, `{}`, or `{}`, or a `{}` expression where the "
-        "differentiand is a symbolic function invocation. Received expression "
+        "Argument to diff must be of type `{}`, `{}`, `{}`, `{}`, `{}`, or a `{}` expression "
+        "where the  differentiand is a symbolic function invocation. Received expression "
         "of type: `{}` (value = {})",
-        variable::name_str, compound_expression_element::name_str,
-        symbolic_function_invocation::name_str, derivative::name_str, argument.type_name(),
-        argument);
+        variable::name_str, function_argument_variable::name_str, unique_variable::name_str,
+        compound_expression_element::name_str, symbolic_function_invocation::name_str,
+        derivative::name_str, argument.type_name(), argument);
   }
 }
 
@@ -288,11 +290,12 @@ scalar_expr derivative_visitor::operator()(const substitution& sub,
   // The replacement is a function of `x`.
   const scalar_expr replacement_total_diff =
       replacement_diff * std::invoke([&] {
-        if (sub.target().is_type<variable>()) {
+        if (sub.target().is_type<variable, unique_variable, function_argument_variable>()) {
           // The target is itself a variable, so create: sub(f(y).diff(y), y, g(x))
           return substitution::create(sub.input().diff(sub.target()), sub.target(),
                                       sub.replacement());
-        } else if (sub.replacement().is_type<variable>()) {
+        } else if (sub.replacement()
+                       .is_type<variable, unique_variable, function_argument_variable>()) {
           // We don't need to introduce another variable, just take the derivative:
           // d[sub(f(y), y, z)]/dz --> diff(sub(f(y), y, z), z) * dz/dx
           // Either dz/dx (replacement_diff) will be one or zero.

@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 
 #include "wf/constants.h"
+#include "wf/expression.h"
 #include "wf/expressions/derivative_expression.h"
 #include "wf/expressions/function_expressions.h"
 #include "wf/expressions/substitute_expression.h"
@@ -271,15 +272,11 @@ TEST(DerivativesTest, TestUnevaluated) {
                    (make_unevaluated(sin(x * y)) * make_unevaluated(y * y)).diff(y));
 }
 
-static auto get_unique_variables(const scalar_expr& expr) {
-  auto variables = get_variables(expr);
-  variables.erase(std::remove_if(variables.begin(), variables.end(),
-                                 [](const variable& v) {
-                                   return !std::holds_alternative<unique_variable>(v.identifier());
-                                 }),
-                  variables.end());
-  WF_ASSERT(!variables.empty());
-  return variables;
+std::vector<scalar_expr> get_unique_variables(const scalar_expr& expr) {
+  auto results = get_expressions_by_predicate(
+      expr, [](const scalar_expr& x) { return x.is_type<unique_variable>(); });
+  std::sort(results.begin(), results.end(), expression_order_struct{});
+  return results;
 }
 
 TEST(DerivativesTest, TestSymbolicFunction) {
@@ -396,7 +393,9 @@ TEST(DerivativesTest, TestSubstitution) {
   }
   {
     const auto g = substitution::create(f(y), y + 2, cos(z * z)).diff(z);
-    const scalar_expr u1{get_unique_variables(g).front()};
+    const auto vars = get_unique_variables(g);
+    ASSERT_EQ(1, vars.size());
+    const scalar_expr u1{vars.front()};
     ASSERT_EQ(number_set::unknown, determine_numeric_set(u1));
     ASSERT_IDENTICAL(
         substitution::create(substitution::create(f(y), y + 2, u1).diff(u1), u1, cos(z * z)) *
