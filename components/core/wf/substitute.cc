@@ -340,13 +340,14 @@ bool substitute_variables_visitor::add_substitution(scalar_expr target, scalar_e
 }
 
 bool substitute_variables_visitor::contains_target_variable(const scalar_expr& target) const {
-  return substitutions_.count(target) > 0;
+  return substitutions_.contains(target);
 }
 
 scalar_expr substitute_variables_visitor::operator()(const scalar_expr& expression) {
   if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
-  } else if (const auto replace_it = substitutions_.find(expression); replace_it != cache_.end()) {
+  } else if (const auto replace_it = substitutions_.find(expression);
+             replace_it != substitutions_.end()) {
     return replace_it->second;
   }
   scalar_expr result = visit(expression, *this);
