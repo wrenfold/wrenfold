@@ -7,7 +7,8 @@
 #include "wf/code_generation/function_evaluator.h"
 #include "wf/evaluate.h"
 #include "wf/expression.h"
-#include "wf/expression_visitor.h"
+#include "wf/expressions/compound_expression_element.h"
+#include "wf/expressions/variable.h"
 #include "wf/substitute.h"
 #include "wf/type_annotations.h"
 
