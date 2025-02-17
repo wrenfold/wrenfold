@@ -11,6 +11,7 @@
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/operation_counts.h"
+#include "wf/expressions/custom_type_expressions.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/expressions/special_constants.h"
 #include "wf/expressions/variable.h"
@@ -456,35 +457,39 @@ ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::ge
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& load) {
-  return visit(
-      [this](const auto& inner) -> ast::ast_element {
-        using T = std::decay_t<decltype(inner)>;
-        if constexpr (std::is_same_v<T, symbolic_constant>) {
-          return ast::ast_element{std::in_place_type_t<ast::special_constant>{}, inner.name()};
-        } else if constexpr (std::is_same_v<T, integer_constant>) {
-          return ast::ast_element{std::in_place_type_t<ast::integer_literal>{},
-                                  static_cast<std::int64_t>(inner.value())};
-        } else if constexpr (std::is_same_v<T, float_constant>) {
-          return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
-                                  static_cast<float_constant>(inner).value()};
-        } else if constexpr (std::is_same_v<T, rational_constant>) {
-          return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
-                                  static_cast<float_constant>(inner).value()};
-        } else if constexpr (std::is_same_v<T, boolean_constant>) {
-          return ast::ast_element{std::in_place_type_t<ast::boolean_literal>{}, inner.value()};
-        } else if constexpr (std::is_same_v<T, variable>) {
-          return ast::ast_element{std::in_place_type_t<ast::variable_ref>{}, inner.name()};
-        } else if constexpr (std::is_same_v<T, function_argument_variable>) {
-          const argument& arg = signature_.argument_by_index(inner.arg_index());
-          return std::visit(
-              [&](const auto& type) { return operator()(type, arg, inner.element_index()); },
-              arg.type());
-        } else if constexpr (std::is_same_v<T, custom_type_argument>) {
-          return ast::ast_element{std::in_place_type_t<ast::get_argument>{},
-                                  signature_.argument_by_index(inner.arg_index())};
-        }
+  return overloaded_visit(
+      load.variant(),
+      [](const symbolic_constant& inner) {
+        return ast::ast_element{std::in_place_type_t<ast::special_constant>{}, inner.name()};
       },
-      load.variant());
+      [](const integer_constant& inner) {
+        return ast::ast_element{std::in_place_type_t<ast::integer_literal>{},
+                                static_cast<std::int64_t>(inner.value())};
+      },
+      [](const float_constant& inner) {
+        return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
+                                static_cast<float_constant>(inner).value()};
+      },
+      [](const rational_constant& inner) {
+        return ast::ast_element{std::in_place_type_t<ast::float_literal>{},
+                                static_cast<float_constant>(inner).value()};
+      },
+      [](const boolean_constant& inner) {
+        return ast::ast_element{std::in_place_type_t<ast::boolean_literal>{}, inner.value()};
+      },
+      [](const variable& inner) {
+        return ast::ast_element{std::in_place_type_t<ast::variable_ref>{}, inner.name()};
+      },
+      [&](const function_argument_variable& inner) {
+        const argument& arg = signature_.argument_by_index(inner.arg_index());
+        return std::visit(
+            [&](const auto& type) { return operator()(type, arg, inner.element_index()); },
+            arg.type());
+      },
+      [&](const custom_type_argument& inner) {
+        return ast::ast_element{std::in_place_type_t<ast::get_argument>{},
+                                signature_.argument_by_index(inner.arg_index())};
+      });
 }
 
 ast::ast_element ast_form_visitor::operator()(const ir::value& val, const ir::mul&) {
