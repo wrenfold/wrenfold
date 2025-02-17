@@ -6,6 +6,7 @@
 
 #include "wf/code_generation/control_flow_graph.h"
 #include "wf/code_generation/ir_block.h"
+#include "wf/code_generation/ir_consumer_vector.h"
 #include "wf/expression.h"
 #include "wf/expression_cache.h"
 
@@ -53,6 +54,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const external_function_invocation& invoke);
   ir::value_ptr operator()(const derivative&) const;
   ir::value_ptr operator()(const float_constant& f);
+  ir::value_ptr operator()(const function_argument_variable& var);
   ir::value_ptr operator()(const built_in_function_invocation& func);
   ir::value_ptr operator()(const imaginary_unit&) const;
   ir::value_ptr operator()(const integer_constant& i);
@@ -68,6 +70,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const symbolic_function_invocation& invocation) const;
   ir::value_ptr operator()(const undefined&) const;
   ir::value_ptr operator()(const unevaluated& u);
+  ir::value_ptr operator()(const unique_variable& var);
   ir::value_ptr operator()(const variable& var);
 
   // Apply to any expression.

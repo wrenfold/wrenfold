@@ -34,6 +34,7 @@ class derivative_visitor {
   scalar_expr operator()(const integer_constant&) const;
   scalar_expr operator()(const iverson_bracket&, const scalar_expr& arg) const;
   scalar_expr operator()(const float_constant&) const;
+  scalar_expr operator()(const function_argument_variable& var) const;
   scalar_expr operator()(const power& pow);
   scalar_expr operator()(const rational_constant&) const;
   scalar_expr operator()(const stop_derivative&) const;
@@ -42,6 +43,7 @@ class derivative_visitor {
                          const scalar_expr& func_abstract);
   scalar_expr operator()(const undefined&) const;
   scalar_expr operator()(const unevaluated& u);
+  scalar_expr operator()(const unique_variable& var) const;
   scalar_expr operator()(const variable& var) const;
 
  private:

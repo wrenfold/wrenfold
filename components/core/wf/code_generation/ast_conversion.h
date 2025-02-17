@@ -104,9 +104,6 @@ class ast_form_visitor {
                               std::size_t element_index) const;
   ast::ast_element operator()(const custom_type& c, const argument& arg,
                               std::size_t element_index) const;
-  ast::ast_element operator()(const named_variable& v) const;
-  ast::ast_element operator()(const function_argument_variable& a) const;
-  ast::ast_element operator()(const unique_variable& u) const;
 
   static ast::ast_element make_field_access_sequence(ast::ast_element prev, const custom_type& c,
                                                      std::size_t element_index);

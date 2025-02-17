@@ -3,7 +3,6 @@
 // For license information refer to accompanying LICENSE file.
 #include <any>
 
-#define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 

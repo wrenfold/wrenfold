@@ -5,8 +5,10 @@
 
 #include <unordered_map>
 
+#include "wf/expression_cache.h"
 #include "wf/expression_visitor.h"
-#include "wf/expressions/all_expressions.h"
+#include "wf/expressions/compound_expression_element.h"
+#include "wf/expressions/variable.h"
 #include "wf/matrix_expression.h"
 
 #include "utility/scoped_trace.h"
@@ -322,49 +324,31 @@ struct sub_visitor_type<power, X> {
   using type = substitute_pow_visitor;
 };
 
-bool substitute_variables_visitor::add_substitution(const scalar_expr& target,
-                                                    scalar_expr replacement) {
-  if (target.is_type<variable>()) {
-    return add_substitution(get_unchecked<const variable>(target), std::move(replacement));
-  } else if (target.is_type<compound_expression_element>()) {
-    return add_substitution(get_unchecked<const compound_expression_element>(target),
-                            std::move(replacement));
+bool substitute_variables_visitor::add_substitution(scalar_expr target, scalar_expr replacement) {
+  if (target.is_type<variable, compound_expression_element, function_argument_variable,
+                     unique_variable>()) {
+    const auto [_, was_inserted] =
+        substitutions_.emplace(std::move(target), std::move(replacement));
+    return was_inserted;
   } else {
     throw type_error(
-        "Only expressions of type `{}` and `{}` may be used with substitute_variables_visitor.",
-        variable::name_str, compound_expression_element::name_str);
+        "Only expressions of type `{}`, `{}`, `{}`, and `{}` may be used with "
+        "substitute_variables_visitor.",
+        variable::name_str, compound_expression_element::name_str,
+        function_argument_variable::name_str, unique_variable::name_str);
   }
-}
-
-bool substitute_variables_visitor::add_substitution(variable variable, scalar_expr replacement) {
-  cache_.clear();  //  No longer valid when new expressions are added.
-  const auto [it, was_inserted] =
-      variable_substitutions_.emplace(std::move(variable), std::move(replacement));
-  return was_inserted;
-}
-
-bool substitute_variables_visitor::add_substitution(compound_expression_element element,
-                                                    scalar_expr replacement) {
-  cache_.clear();  //  No longer valid when new expressions are added.
-  const auto [it, was_inserted] =
-      element_substitutions_.emplace(std::move(element), std::move(replacement));
-  return was_inserted;
 }
 
 bool substitute_variables_visitor::contains_target_variable(const scalar_expr& target) const {
-  if (const variable* v = get_if<const variable>(target); v != nullptr) {
-    return variable_substitutions_.count(*v) > 0;
-  } else if (const compound_expression_element* c =
-                 get_if<const compound_expression_element>(target);
-             c != nullptr) {
-    return element_substitutions_.count(*c) > 0;
-  }
-  return false;
+  return substitutions_.contains(target);
 }
 
 scalar_expr substitute_variables_visitor::operator()(const scalar_expr& expression) {
   if (const auto it = cache_.find(expression); it != cache_.end()) {
     return it->second;
+  } else if (const auto replace_it = substitutions_.find(expression);
+             replace_it != substitutions_.end()) {
+    return replace_it->second;
   }
   scalar_expr result = visit(expression, *this);
   const auto [it_inserted, _] = cache_.emplace(expression, std::move(result));
@@ -385,18 +369,7 @@ boolean_expr substitute_variables_visitor::operator()(const boolean_expr& expres
 
 template <typename T, typename X>
 X substitute_variables_visitor::operator()(const T& concrete, const X& abstract) {
-  if constexpr (std::is_same_v<T, variable>) {
-    if (const auto it = variable_substitutions_.find(concrete);
-        it != variable_substitutions_.end()) {
-      return it->second;
-    }
-  } else if constexpr (std::is_same_v<T, compound_expression_element>) {
-    if (const auto it = element_substitutions_.find(concrete); it != element_substitutions_.end()) {
-      return it->second;
-    } else {
-      return concrete.map_children(*this);
-    }
-  } else if constexpr (!T::is_leaf_node) {
+  if constexpr (!T::is_leaf_node) {
     return concrete.map_children(*this);
   }
   return abstract;

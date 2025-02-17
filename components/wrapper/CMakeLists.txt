@@ -27,6 +27,8 @@ function(add_wrapper_module)
   # Depend on the static library
   target_link_libraries(${MODULE_NAME} PRIVATE wf_core)
   target_compile_options(${MODULE_NAME} PRIVATE ${WF_SHARED_WARNING_FLAGS})
+  target_compile_options(${MODULE_NAME}
+                         PRIVATE -DPYBIND11_DETAILED_ERROR_MESSAGES)
   target_compile_definitions(${MODULE_NAME}
                              PRIVATE PY_MODULE_NAME=${MODULE_NAME})
   if(DEFINED SKBUILD_PROJECT_VERSION)

@@ -1,7 +1,6 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/complex.h>
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>

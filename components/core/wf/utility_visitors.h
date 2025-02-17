@@ -2,11 +2,10 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include <unordered_set>
+#include <functional>
 #include <vector>
 
 #include "wf/expression.h"
-#include "wf/expressions/variable.h"
 
 namespace wf {
 
@@ -17,23 +16,10 @@ bool is_numeric(const scalar_expr& expr);
 // negative when evaluated.
 bool is_negative_number(const scalar_expr& expr);
 
-// Visitor that recursively traverses the expression tree and extracts all `variable` expressions.
-class get_variables_visitor {
- public:
-  template <typename T>
-  void operator()(const T& arg);
-
-  // Move resulting vector of variables out of the visitor.
-  std::vector<variable> take_output() && { return std::move(variables_); }
-
- private:
-  std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
-      visited_;
-  std::vector<variable> variables_;
-};
-
-// Get all variable expressions that appear in a scalar-valued expression tree.
-std::vector<variable> get_variables(const scalar_expr& expr);
+// Return all expressions that match the provided predicate.
+// The predicate is invoked on each unique sub-expression exactly once.
+std::vector<scalar_expr> get_expressions_by_predicate(
+    const scalar_expr& expr, std::function<bool(const scalar_expr&)> predicate);
 
 // Visitor that checks if an expression contains a `target` sub-expression (typically a variable).
 // Returns true if `target` appears exactly as a sub-expression in anything we visit.

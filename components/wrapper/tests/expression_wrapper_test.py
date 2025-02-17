@@ -43,19 +43,7 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertRaises(exceptions.InvalidArgumentError,
                           lambda: sym.symbols("z", real=True, complex=True))
-
-        # create via the `variable` object:
-        x_var = expressions.Variable('x')
-        self.assertEqual('x', repr(x_var))
-        self.assertEqual('x', x_var.name)
-        self.assertEqual(enumerations.NumberSet.Unknown, x_var.set)
-        self.assertIdentical(x, x_var.to_expression())
-        self.assertIdentical(
-            sym.symbols('z', real=True),
-            expressions.Variable('z', number_set=enumerations.NumberSet.Real).to_expression())
-        self.assertCountEqual(
-            [expressions.Variable('y'), expressions.Variable('x')],
-            sym.get_variables(x + y * x - sym.cos(y)))
+        self.assertCountEqual([y, x], sym.get_variables(x + y * x - sym.cos(y)))
 
     def test_create_unique_symbols(self):
         """Test calling unique_symbols."""
@@ -63,9 +51,10 @@ class ExpressionWrapperTest(MathTestBase):
         b, c = sym.unique_symbols(count=2)
         self.assertNotIdentical(a, b)
         self.assertNotIdentical(b, c)
-        self.assertEqual('Variable', a.type_name)
+        self.assertEqual('UniqueVariable', a.type_name)
         self.assertEqual((), a.args)
         self.assertRaises(exceptions.InvalidArgumentError, lambda: sym.unique_symbols(count=0))
+        self.assertCountEqual([a, b, c], sym.get_variables(b * c - sym.sin(c) * a ** 2))
 
     def test_is_identical_to(self):
         """Test calling is_identical_to and __eq__."""
@@ -499,7 +488,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(0, f1.diff(z))
 
         f2 = f(sym.sin(x), x ** 2).diff(x)
-        u1, u2 = sorted([v.to_expression() for v in sym.get_variables(f2) if v.is_unique_variable],
+        u1, u2 = sorted([v for v in sym.get_variables(f2) if v.type_name == 'UniqueVariable'],
                         key=functools.cmp_to_key(sym.compare))
 
         self.assertIdentical(

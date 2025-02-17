@@ -4,7 +4,6 @@
 #include <optional>
 #include <vector>
 
-#define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/complex.h>     // Used for std::complex conversion.
 #include <pybind11/functional.h>  // Used for std::function.
 #include <pybind11/operators.h>
@@ -354,9 +353,14 @@ void wrap_scalar_operations(py::module_& m) {
   m.def("derivative", &derivative::create, py::arg("function"), py::arg("arg"),
         py::arg("order") = 1, docstrings::derivative.data());
 
-  // TODO: This should (ideally) not needlessly copy all the `variable` objects, but rather create
-  // references to the actual `scalar_expr` that contains them.
-  m.def("get_variables", &get_variables, py::arg("expr"), docstrings::get_variables.data());
+  m.def(
+      "get_variables",
+      [](const scalar_expr& expr) {
+        return get_expressions_by_predicate(expr, [](const scalar_expr& x) {
+          return x.is_type<variable, unique_variable, function_argument_variable>();
+        });
+      },
+      py::arg("expr"), docstrings::get_variables.data());
 }
 
 }  // namespace wf

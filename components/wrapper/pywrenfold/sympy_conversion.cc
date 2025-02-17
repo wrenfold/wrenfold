@@ -1,18 +1,18 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
+#include "wf/expressions/variable.h"
 #include "wf/matrix_expression.h"
-#include "wf/utility/overloaded_visit.h"
+#include "wf/utility/assertions.h"
 
 #include "docs/sympy_conversion.h"
-#include "wrapper_utils.h"
 
 namespace wf {
 
@@ -94,6 +94,20 @@ class sympy_conversion_visitor {
 
   py::object operator()(const float_constant& flt) const {
     return invoke_sympy_object("Float", flt.value());
+  }
+
+  py::object operator()(const function_argument_variable& fv) const {
+    py::dict kwargs;
+    if (fv.primitive_type() == numeric_primitive_type::floating_point) {
+      kwargs["real"] = true;
+    } else if (fv.primitive_type() == numeric_primitive_type::integral) {
+      kwargs["integer"] = true;
+    } else {
+      throw invalid_argument_error("Cannot convert boolean variable `$arg_{}_{}` to SymPy.",
+                                   fv.arg_index(), fv.element_index());
+    }
+    return invoke_sympy_object(
+        "symbols", fmt::format("$arg_{}_{}", fv.arg_index(), fv.element_index()), **kwargs);
   }
 
   py::object operator()(const imaginary_unit&) const { return get_sympy_attr("I"); }
@@ -207,28 +221,7 @@ class sympy_conversion_visitor {
   }
 
   py::object operator()(const variable& var) const {
-    return overloaded_visit(
-        var.identifier(),
-        [&](const named_variable& v) {
-          const py::dict kwargs = get_variable_kwargs(v.set());
-          return invoke_sympy_object("symbols", v.name(), **kwargs);
-        },
-        [&](const function_argument_variable& v) {
-          py::dict kwargs;
-          if (v.primitive_type() == numeric_primitive_type::floating_point) {
-            kwargs["real"] = true;
-          } else if (v.primitive_type() == numeric_primitive_type::integral) {
-            kwargs["integer"] = true;
-          } else {
-            throw invalid_argument_error("Cannot convert boolean variable `$arg_{}_{}` to SymPy.",
-                                         v.arg_index(), v.element_index());
-          }
-          return invoke_sympy_object(
-              "symbols", fmt::format("$arg_{}_{}", v.arg_index(), v.element_index()), **kwargs);
-        },
-        [&](const unique_variable&) -> py::object {
-          throw type_error("Variable of type `unique_variable` cannot be converted to sympy.");
-        });
+    return invoke_sympy_object("symbols", var.name(), **get_variable_kwargs(var.set()));
   }
 
   template <typename T>
@@ -265,7 +258,7 @@ void wrap_sympy_conversion(py::module_& m) {
       "function_argument_variable",
       [](const std::size_t arg_index, const std::size_t element_index,
          const numeric_primitive_type type) {
-        return make_expr<variable>(function_argument_variable(arg_index, element_index, type));
+        return make_expr<function_argument_variable>(arg_index, element_index, type);
       },
       py::arg("arg_index"), py::arg("element_index"), py::arg("type"),
       py::doc("Create ``function_argument_variable``. OMIT_FROM_SPHINX"));

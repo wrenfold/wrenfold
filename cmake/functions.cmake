@@ -77,6 +77,10 @@ function(add_compiled_code_generator NAME)
   add_custom_target(${generate_target}_run DEPENDS ${GENERATOR_OUTPUT_FILE})
 endfunction()
 
+# A single target that will build all C++ tests that do not have a code
+# generation step:
+add_custom_target(wf_cpp_non_codegen_tests)
+
 # Add a test written in C++. GENERATOR_TARGET: Make this test depend on the
 # specified code-generator target. SOURCE_FILES: Source files of the test.
 function(add_cpp_test NAME)
@@ -101,6 +105,8 @@ function(add_cpp_test NAME)
                          $<TARGET_OBJECTS:wf_custom_main>)
   if(NOT ${ARGS_GENERATOR_TARGET} STREQUAL "")
     add_dependencies(${NAME} ${ARGS_GENERATOR_TARGET})
+  else()
+    add_dependencies(wf_cpp_non_codegen_tests ${NAME})
   endif()
 
   # process argument: `INCLUDE_DIRECTORIES`

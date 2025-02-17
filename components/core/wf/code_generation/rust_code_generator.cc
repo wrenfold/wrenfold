@@ -18,7 +18,7 @@ constexpr std::string_view rust_string_from_numeric_type(const numeric_primitive
     case numeric_primitive_type::floating_point:
       return "f64";
   }
-  throw type_error("Not a valid enum value: {}", string_from_code_numeric_type(type));
+  throw type_error("Not a valid enum value: {}", string_from_numeric_primitive_type(type));
 }
 
 constexpr std::string_view span_type_from_direction(const argument_direction direction) {
