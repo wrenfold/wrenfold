@@ -317,16 +317,16 @@ def integration_test_sequence(t: FloatScalar):
 
 def main(args: argparse.Namespace):
     code = str()
+    generator = code_generation.CppGenerator()
     for function in [
             integrate_imu,
             unweighted_imu_preintegration_error,
             integration_test_sequence,
     ]:
-        code += code_generation.generate_function(
-            function, generator=code_generation.CppGenerator())
+        code += code_generation.generate_function(function, generator=generator)
         code += "\n\n"
 
-    code = code_generation.CppGenerator.apply_preamble(code, namespace="gen")
+    code = generator.apply_preamble(code, namespace="gen")
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 

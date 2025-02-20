@@ -57,12 +57,12 @@ def quaternion_interpolation_no_conditional(q0_xyzw: Vector4, q1_xyzw: Vector4, 
 
 def main(args: argparse.Namespace):
     code = str()
+    generator = code_generation.CppGenerator()
     for function in [quaternion_interpolation, quaternion_interpolation_no_conditional]:
-        code += code_generation.generate_function(
-            function, generator=code_generation.CppGenerator())
+        code += code_generation.generate_function(function, generator=generator)
         code += "\n\n"
 
-    code = code_generation.CppGenerator.apply_preamble(code=code, namespace="gen")
+    code = generator.apply_preamble(code=code, namespace="gen")
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 

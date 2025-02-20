@@ -303,11 +303,20 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
 }
 
 void wrap_code_formatting_operations(py::module_& m) {
+  py::enum_<cpp_matrix_type_behavior>(m, "CppMatrixTypeBehavior")
+      .value(
+          "GenericSpan", cpp_matrix_type_behavior::generic_span,
+          "Generate functions that accept generic/templated arguments for which a specialization "
+          "of ``wf::convert_to_span`` is defined.")
+      .value("Eigen", cpp_matrix_type_behavior::eigen,
+             "Generate functions that accept and return Eigen::Matrix.");
+
   wrap_code_generator<cpp_code_generator>(m, "CppGenerator")
-      .def(py::init<>())
-      .def_static("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
-                  py::arg("namespace"), py::arg("imports") = py::str(),
-                  "Apply a preamble that incorporates necessary runtime includes.")
+      .def(py::init<cpp_matrix_type_behavior>(),
+           py::arg("behavior") = cpp_matrix_type_behavior::generic_span)
+      .def("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
+           py::arg("namespace"), py::arg("imports") = py::str(),
+           "Apply a preamble that incorporates necessary runtime includes.")
       .doc() = "Generates C++ code.";
 
   wrap_code_generator<rust_code_generator>(m, "RustGenerator")

@@ -51,8 +51,8 @@ class custom_cpp_code_generator final : public cpp_code_generator {
 int main() {
   using namespace wf;
 
-  const std::string code = cpp_code_generator::apply_preamble(
-      generate_test_expressions(custom_cpp_code_generator{}), "gen");
+  const custom_cpp_code_generator generator{cpp_matrix_type_behavior::generic_span};
+  const std::string code = generator.apply_preamble(generate_test_expressions(generator), "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
   output.write(code.data(), code.size());
