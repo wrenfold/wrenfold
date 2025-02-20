@@ -313,10 +313,11 @@ void wrap_code_formatting_operations(py::module_& m) {
 
   wrap_code_generator<cpp_code_generator>(m, "CppGenerator")
       .def(py::init<cpp_matrix_type_behavior>(),
-           py::arg("behavior") = cpp_matrix_type_behavior::generic_span)
+           py::arg("matrix_args") = cpp_matrix_type_behavior::generic_span)
       .def("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
            py::arg("namespace"), py::arg("imports") = py::str(),
            "Apply a preamble that incorporates necessary runtime includes.")
+      .def_property_readonly("matrix_type_behavior", &cpp_code_generator::matrix_type_behavior)
       .doc() = "Generates C++ code.";
 
   wrap_code_generator<rust_code_generator>(m, "RustGenerator")

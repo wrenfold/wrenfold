@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include <fstream>
+#include <ranges>
 
 #include "wf/code_generation/cpp_code_generator.h"
 
@@ -15,7 +16,8 @@ class custom_cpp_code_generator final : public cpp_code_generator {
   using cpp_code_generator::operator();
 
   std::string operator()(const ast::call_external_function& func) const override {
-    return fmt::format("test::{}({})", func.function.name(), join(", ", func.args, *this));
+    return fmt::format("test::{}({})", func.function.name(),
+                       fmt::join(func.args | std::views::transform(*this), ", "));
   }
 
   std::string operator()(const custom_type& custom) const override {
@@ -35,14 +37,19 @@ class custom_cpp_code_generator final : public cpp_code_generator {
   }
 
   std::string operator()(const matrix_type& mat) const override {
+    if (matrix_type_behavior() == cpp_matrix_type_behavior::eigen) {
+      return cpp_code_generator::operator()(mat);
+    }
     return fmt::format("Eigen::Matrix<Scalar, {}, {}>", mat.rows(), mat.cols());
   }
 
-  // ... And how they are constructed:
   std::string operator()(const ast::construct_matrix& construct) const override {
-    const std::string args = join(", ", construct.args, *this);
+    if (matrix_type_behavior() == cpp_matrix_type_behavior::eigen) {
+      return cpp_code_generator::operator()(construct);
+    }
     return fmt::format("(Eigen::Matrix<Scalar, {}, {}>() << {}).finished()", construct.type.rows(),
-                       construct.type.cols(), args);
+                       construct.type.cols(),
+                       fmt::join(construct.args | std::views::transform(*this), ", "));
   }
 };
 
@@ -50,8 +57,12 @@ class custom_cpp_code_generator final : public cpp_code_generator {
 
 int main() {
   using namespace wf;
-
+  // This generator is built twice:
+#ifndef USE_EIGEN
   const custom_cpp_code_generator generator{cpp_matrix_type_behavior::generic_span};
+#else
+  const custom_cpp_code_generator generator{cpp_matrix_type_behavior::eigen};
+#endif
   const std::string code = generator.apply_preamble(generate_test_expressions(generator), "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
