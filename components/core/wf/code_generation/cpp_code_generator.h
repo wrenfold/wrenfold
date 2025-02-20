@@ -103,6 +103,8 @@ class cpp_code_generator {
   std::string apply_preamble(std::string_view code, std::string_view ns,
                              std::string_view imports = "") const;
 
+  constexpr cpp_matrix_type_behavior matrix_type_behavior() const noexcept { return behavior_; }
+
  protected:
   cpp_matrix_type_behavior behavior_;
 

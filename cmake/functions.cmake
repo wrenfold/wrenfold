@@ -32,7 +32,7 @@ endfunction()
 function(add_compiled_code_generator NAME)
   set(options "")
   set(oneValueArgs OUTPUT_FILE_NAME)
-  set(multiValueArgs SOURCE_FILES)
+  set(multiValueArgs SOURCE_FILES GENERATOR_DEFINITIONS)
   cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
                         ${ARGN})
 
@@ -54,6 +54,8 @@ function(add_compiled_code_generator NAME)
   target_compile_definitions(
     ${generate_target}
     PRIVATE "-DGENERATOR_OUTPUT_FILE=\"${GENERATOR_OUTPUT_FILE}\"")
+  target_compile_definitions(${generate_target}
+                             PRIVATE ${ARGS_GENERATOR_DEFINITIONS})
   target_compile_options(${generate_target} PRIVATE ${WF_SHARED_WARNING_FLAGS})
   add_dependencies(${generate_target} ${generate_target}_mkdir)
 
@@ -86,7 +88,7 @@ add_custom_target(wf_cpp_non_codegen_tests)
 function(add_cpp_test NAME)
   set(options "")
   set(oneValueArgs GENERATOR_TARGET)
-  set(multiValueArgs SOURCE_FILES INCLUDE_DIRECTORIES)
+  set(multiValueArgs SOURCE_FILES INCLUDE_DIRECTORIES TEST_DEFINITIONS)
   cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
                         ${ARGN})
 
@@ -128,7 +130,8 @@ function(add_cpp_test NAME)
     gtest
     eigen
     fmt::fmt-header-only)
-  target_compile_options(${NAME} PRIVATE ${WF_SHARED_WARNING_FLAGS})
+  target_compile_options(${NAME} PRIVATE ${WF_SHARED_WARNING_FLAGS}
+                                         ${ARGS_TEST_DEFINITIONS})
   if(NOT MSVC)
     target_compile_options(${NAME} PRIVATE -Wno-unused-comparison)
   endif()

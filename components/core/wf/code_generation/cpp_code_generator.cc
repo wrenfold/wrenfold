@@ -305,7 +305,7 @@ std::string cpp_code_generator::operator()(const ast::construct_matrix& x) const
   if (behavior_ == cpp_matrix_type_behavior::generic_span) {
     throw_matrix_error<ast::construct_matrix>();
   } else {
-    return fmt::format("(Eigen::Matrix<Scalar, {}, {}>() << {}).finished();", x.type.rows(),
+    return fmt::format("(Eigen::Matrix<Scalar, {}, {}>() << {}).finished()", x.type.rows(),
                        x.type.cols(), fmt::join(x.args | std::views::transform(*this), ", "));
   }
 }
@@ -345,7 +345,7 @@ std::string cpp_code_generator::operator()(const ast::float_literal& x) const {
 }
 
 std::string cpp_code_generator::operator()(const ast::get_argument& x) const {
-  if (x.arg.is_matrix()) {
+  if (x.arg.is_matrix() && behavior_ == cpp_matrix_type_behavior::generic_span) {
     // Access the span indirection we created.
     return fmt::format("_{}", x.arg.name());
   } else {
@@ -386,8 +386,10 @@ std::string cpp_code_generator::operator()(const ast::negate& x) const {
 
 std::string cpp_code_generator::operator()(const ast::optional_output_branch& x) const {
   std::string result{};
-  fmt::format_to(std::back_inserter(result), "if (static_cast<bool>({}{})) ",
-                 x.arg.is_matrix() ? "_" : "", x.arg.name());
+  const std::string_view arg_name_prefix =
+      (x.arg.is_matrix() && behavior_ == cpp_matrix_type_behavior::generic_span) ? "_" : "";
+  fmt::format_to(std::back_inserter(result), "if (static_cast<bool>({}{})) ", arg_name_prefix,
+                 x.arg.name());
   join_and_indent(result, 2, "{\n", "\n}", "\n", x.statements, *this);
   return result;
 }
