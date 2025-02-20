@@ -19,8 +19,9 @@ def rosenbrock(
 
 # [transpilation_start]
 # Generate the function as C++, and apply some boilerplate (imports and namespace).
-cpp = code_generation.generate_function(rosenbrock, generator=code_generation.CppGenerator())
-cpp = code_generation.CppGenerator.apply_preamble(cpp, namespace="gen")
+generator = code_generation.CppGenerator()
+cpp = code_generation.generate_function(rosenbrock, generator=generator)
+cpp = generator.apply_preamble(cpp, namespace="gen")
 print(cpp)
 # [transpilation_end]
 

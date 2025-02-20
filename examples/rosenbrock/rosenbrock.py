@@ -29,8 +29,9 @@ def rosenbrock(
 
 
 def main(args: argparse.Namespace):
-    code = code_generation.generate_function(rosenbrock, generator=code_generation.CppGenerator())
-    code = code_generation.CppGenerator.apply_preamble(code, namespace="gen")
+    generator = code_generation.CppGenerator()
+    code = code_generation.generate_function(rosenbrock, generator=generator)
+    code = generator.apply_preamble(code, namespace="gen")
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 

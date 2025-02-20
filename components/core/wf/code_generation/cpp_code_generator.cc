@@ -3,9 +3,13 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/cpp_code_generator.h"
 
+#include <iterator>
 #include <ranges>
 
+#include "wf/code_generation/ast.h"
 #include "wf/code_generation/ast_visitor.h"
+#include "wf/code_generation/function_description.h"
+#include "wf/code_generation/types.h"
 #include "wf/utility/assertions.h"
 #include "wf/utility/overloaded_visit.h"
 
@@ -26,13 +30,24 @@ constexpr static std::string_view cpp_string_from_numeric_type(
   return "<INVALID ENUM VALUE>";
 }
 
-std::string cpp_code_generator::operator()(const matrix_type&) const {
+template <typename T>
+[[noreturn]] void throw_matrix_error() {
   throw type_error(
-      "The default C++ code-generator treats all matrices as spans. You probably want to implement "
-      "a "
-      "formatter override for the `{}` type.\n"
+      "The default C++ code-generator treats all matrices as spans. You probably want to either:\n"
+      "* Pass CppMatrixTypeArgument.Eigen to CppCodeGenerator on construction, or:\n"
+      "* Implement a formatter override for the `{}` type.\n"
       "See: https://wrenfold.org/reference/returning_matrices",
-      matrix_type::snake_case_name_str);
+      T::snake_case_name_str);
+}
+
+std::string cpp_code_generator::operator()(const matrix_type& mat) const {
+  if (behavior_ == cpp_matrix_type_behavior::eigen) {
+    // This is invoked when formatting return types and declarations inside functions.
+    // We declare a standard eigen matrix.
+    return fmt::format("Eigen::Matrix<Scalar, {}, {}>", mat.rows(), mat.cols());
+  } else {
+    throw_matrix_error<matrix_type>();
+  }
 }
 
 std::string cpp_code_generator::operator()(const scalar_type& scalar) const {
@@ -57,11 +72,24 @@ std::string cpp_code_generator::operator()(const argument& arg) const {
           fmt::format_to(std::back_inserter(result), "{}*", make_view(s));
         }
       },
-      [&](matrix_type) {
-        if (arg.direction() == argument_direction::input) {
-          fmt::format_to(std::back_inserter(result), "const T{}&", arg.index());
+      [&](const matrix_type mat) {
+        if (behavior_ == cpp_matrix_type_behavior::generic_span) {
+          if (arg.direction() == argument_direction::input) {
+            fmt::format_to(std::back_inserter(result), "const T{}&", arg.index());
+          } else {
+            fmt::format_to(std::back_inserter(result), "T{}&&", arg.index());
+          }
         } else {
-          fmt::format_to(std::back_inserter(result), "T{}&&", arg.index());
+          if (arg.direction() == argument_direction::input) {
+            fmt::format_to(std::back_inserter(result), "const Eigen::Matrix<Scalar, {}, {}>&",
+                           mat.rows(), mat.cols());
+          } else if (arg.direction() == argument_direction::output) {
+            fmt::format_to(std::back_inserter(result), "Eigen::Matrix<Scalar, {}, {}>&", mat.rows(),
+                           mat.cols());
+          } else if (arg.direction() == argument_direction::optional_output) {
+            fmt::format_to(std::back_inserter(result), "Eigen::Matrix<Scalar, {}, {}>* const",
+                           mat.rows(), mat.cols());
+          }
         }
       },
       [&](const custom_type& custom) {
@@ -82,36 +110,39 @@ std::string cpp_code_generator::operator()(const ast::function_definition& defin
   std::string result = operator()(definition.signature());
   result.append("\n{\n");
 
-  std::vector<argument> matrix_args{};
-  std::copy_if(definition.signature().arguments().begin(), definition.signature().arguments().end(),
-               std::back_inserter(matrix_args), [](const auto& arg) { return arg.is_matrix(); });
+  if (behavior_ == cpp_matrix_type_behavior::generic_span) {
+    const auto& arguments = definition.signature().arguments();
+    std::vector<argument> matrix_args{};
+    std::copy_if(arguments.begin(), arguments.end(), std::back_inserter(matrix_args),
+                 [](const auto& arg) { return arg.is_matrix(); });
 
-  if (!matrix_args.empty()) {
-    join_and_indent(result, 2, "", "\n", "\n", matrix_args, [](const argument& arg) {
-      const matrix_type& mat = std::get<matrix_type>(arg.type());
+    if (!matrix_args.empty()) {
+      join_and_indent(result, 2, "", "\n", "\n", matrix_args, [](const argument& arg) {
+        const matrix_type& mat = std::get<matrix_type>(arg.type());
 
-      // Generate matrix conversion logic.
-      std::string arg_result;
-      fmt::format_to(std::back_inserter(arg_result), "auto _{} = ", arg.name());
+        // Generate matrix conversion logic.
+        std::string arg_result;
+        fmt::format_to(std::back_inserter(arg_result), "auto _{} = ", arg.name());
 
-      const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
-      switch (arg.direction()) {
-        case argument_direction::input:
-          fmt::format_to(std::back_inserter(arg_result), "{}::make_input_span<{}>({});",
-                         utility_namespace, dims_type, arg.name());
-          break;
-        case argument_direction::output:
-          fmt::format_to(std::back_inserter(arg_result), "{}::make_output_span<{}>({});",
-                         utility_namespace, dims_type, arg.name());
-          break;
-        case argument_direction::optional_output:
-          fmt::format_to(std::back_inserter(arg_result), "{}::make_optional_output_span<{}>({});",
-                         utility_namespace, dims_type, arg.name());
-          break;
-      }
-      return arg_result;
-    });
-    result.append("\n");
+        const std::string dims_type = fmt::format("{}, {}", mat.rows(), mat.cols());
+        switch (arg.direction()) {
+          case argument_direction::input:
+            fmt::format_to(std::back_inserter(arg_result), "{}::make_input_span<{}>({});",
+                           utility_namespace, dims_type, arg.name());
+            break;
+          case argument_direction::output:
+            fmt::format_to(std::back_inserter(arg_result), "{}::make_output_span<{}>({});",
+                           utility_namespace, dims_type, arg.name());
+            break;
+          case argument_direction::optional_output:
+            fmt::format_to(std::back_inserter(arg_result), "{}::make_optional_output_span<{}>({});",
+                           utility_namespace, dims_type, arg.name());
+            break;
+        }
+        return arg_result;
+      });
+      result.append("\n");
+    }
   }
 
   join_and_indent(result, 2, "", "\n}", "\n", definition.body(), *this);
@@ -121,7 +152,7 @@ std::string cpp_code_generator::operator()(const ast::function_definition& defin
 std::string cpp_code_generator::operator()(const ast::function_signature& signature) const {
   // Template parameter list:
   std::string result = "template <typename Scalar";
-  if (signature.has_matrix_arguments()) {
+  if (signature.has_matrix_arguments() && behavior_ == cpp_matrix_type_behavior::generic_span) {
     for (const argument& arg : signature.arguments()) {
       if (arg.is_matrix()) {
         fmt::format_to(std::back_inserter(result), ", typename T{}", arg.index());
@@ -153,8 +184,18 @@ std::string cpp_code_generator::operator()(const ast::assign_output_matrix& x) c
   return join("\n", std::ranges::iota_view{static_cast<std::size_t>(0), x.value.type.size()},
               [&](const std::size_t i) {
                 const auto [row, col] = x.value.type.compute_indices(i);
-                return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col,
-                                   make_view(x.value.args[i]));
+                if (behavior_ == cpp_matrix_type_behavior::generic_span) {
+                  return fmt::format("_{}({}, {}) = {};", x.arg.name(), row, col,
+                                     make_view(x.value.args[i]));
+                } else {
+                  if (x.arg.is_optional()) {
+                    return fmt::format("{}->operator()({}, {}) = {};", x.arg.name(), row, col,
+                                       make_view(x.value.args[i]));
+                  } else {
+                    return fmt::format("{}({}, {}) = {};", x.arg.name(), row, col,
+                                       make_view(x.value.args[i]));
+                  }
+                }
               });
 }
 
@@ -260,12 +301,13 @@ std::string cpp_code_generator::operator()(const ast::compare& x) const {
                      make_view(x.right));
 }
 
-std::string cpp_code_generator::operator()(const ast::construct_matrix&) const {
-  throw type_error(
-      "The default C++ code-generator treats all matrices as spans. We cannot construct one "
-      "directly. You probably want to implement an override for the `{}` ast type.\n"
-      "See: https://wrenfold.org/reference/returning_matrices",
-      ast::construct_matrix::snake_case_name_str);
+std::string cpp_code_generator::operator()(const ast::construct_matrix& x) const {
+  if (behavior_ == cpp_matrix_type_behavior::generic_span) {
+    throw_matrix_error<ast::construct_matrix>();
+  } else {
+    return fmt::format("(Eigen::Matrix<Scalar, {}, {}>() << {}).finished();", x.type.rows(),
+                       x.type.cols(), fmt::join(x.args | std::views::transform(*this), ", "));
+  }
 }
 
 // Really we don't know how the user wants their types constructed, but we can take an educated
@@ -377,7 +419,7 @@ inline constexpr std::string_view preamble = R"code(// Machine generated code.
 #include <cmath>
 #include <cstdint>
 
-#include <wrenfold/span.h>
+{runtime_import}
 
 {imports}
 namespace {namespace} {{
@@ -388,14 +430,17 @@ namespace {namespace} {{
 
 std::string cpp_code_generator::apply_preamble(const std::string_view code,
                                                const std::string_view ns,
-                                               const std::string_view imports) {
+                                               const std::string_view imports) const {
   WF_ASSERT(code.data());
   WF_ASSERT(ns.data());
   WF_ASSERT(imports.data());
   const std::string imports_formatted =
       imports.size() > 0 ? fmt::format("// User-specified imports:\n{}\n\n", imports) : "";
-  return fmt::format(preamble, fmt::arg("code", code), fmt::arg("namespace", ns),
-                     fmt::arg("imports", imports_formatted));
+  const std::string_view runtime_import = behavior_ == cpp_matrix_type_behavior::generic_span
+                                              ? "#include <wrenfold/span.h>"
+                                              : "#include <Eigen/Core>";
+  return fmt::format(preamble, fmt::arg("code", code), fmt::arg("runtime_import", runtime_import),
+                     fmt::arg("namespace", ns), fmt::arg("imports", imports_formatted));
 }
 
 }  // namespace wf

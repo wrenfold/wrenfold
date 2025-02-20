@@ -89,7 +89,8 @@ void BM_GenerateCpp(benchmark::State& state) {
 
   for (auto _ : state) {
     ast::function_definition definition = ast::create_ast(output_cfg, description);
-    std::string code = std::invoke(cpp_code_generator{}, definition);
+    std::string code =
+        std::invoke(cpp_code_generator{cpp_matrix_type_behavior::generic_span}, definition);
     benchmark::DoNotOptimize(code);
   }
 }
