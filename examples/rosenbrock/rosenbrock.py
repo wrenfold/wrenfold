@@ -29,7 +29,8 @@ def rosenbrock(
 
 
 def main(args: argparse.Namespace):
-    generator = code_generation.CppGenerator()
+    # For this example, emit function signatures that use Eigen types directly:
+    generator = code_generation.CppGenerator(code_generation.CppMatrixTypeBehavior.Eigen)
     code = code_generation.generate_function(rosenbrock, generator=generator)
     code = generator.apply_preamble(code, namespace="gen")
     code_generation.mkdir_and_write_file(code=code, path=args.output)

@@ -32,9 +32,16 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: FloatScalar):
 
 
 def main(args: argparse.Namespace):
+    # For this example, we'll generate our function twice:
+    # - Once with the default CppGenerator (functions use generics in signatures).
+    # - And once with `CppMatrixTypeBehavior.Eigen` (functions use Eigen types in signatures).
     generator = code_generation.CppGenerator()
+    eigen_generator = code_generation.CppGenerator(code_generation.CppMatrixTypeBehavior.Eigen)
     code = code_generation.generate_function(func=rotation_error, generator=generator)
-    code = generator.apply_preamble(code, namespace="gen")
+    code += "\n\n"
+    code += code_generation.generate_function(
+        func=rotation_error, generator=eigen_generator, name=f"{rotation_error.__name__}_eigen")
+    code = generator.apply_preamble(code, namespace="gen", imports="#include <Eigen/Core>")
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 
 

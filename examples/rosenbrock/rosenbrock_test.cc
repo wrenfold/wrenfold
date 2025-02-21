@@ -21,19 +21,19 @@ TEST(RosenbrockTest, TestDerivatives) {
   // Evaluate derivatives analytically:
   Eigen::Vector2d h;
   Eigen::Matrix2d h_D_xy_analytical;
-  const double f = gen::rosenbrock(a, b, xy, h, h_D_xy_analytical);
+  const double f = gen::rosenbrock(a, b, xy, h, &h_D_xy_analytical);
   EXPECT_NEAR(f, h.dot(h), 1.0e-12);
 
   // Evaluate first derivatives numerically:
   const auto h_D_xy_numerical = numerical_jacobian(xy, [a, b](const Eigen::Vector2d& xy) {
     Eigen::Vector2d h;
-    gen::rosenbrock(a, b, xy, h, nullptr);
+    gen::rosenbrock<double>(a, b, xy, h, nullptr);
     return h;
   });
   EXPECT_EIGEN_NEAR(h_D_xy_numerical, h_D_xy_analytical, 1.0e-12);
 
   // Check minima produces zero:
-  EXPECT_EQ(0.0, gen::rosenbrock(a, b, Eigen::Vector2d(a, a * a), h, nullptr));
+  EXPECT_EQ(0.0, gen::rosenbrock<double>(a, b, Eigen::Vector2d(a, a * a), h, nullptr));
 }
 
 // Toy optimization problem where we find the minima of the Rosenbrock function.
@@ -48,7 +48,7 @@ TEST(RosenbrockTest, TestOptimization) {
   for (int iter = 0; iter < max_iterations; ++iter) {
     Eigen::Matrix2d h_D_xy;
     Eigen::Vector2d h;
-    const double f = gen::rosenbrock(a, b, xy, h, h_D_xy);
+    const double f = gen::rosenbrock(a, b, xy, h, &h_D_xy);
     fmt::print("iter = {}, f = {}, xy = [{}, {}]\n", iter, f, xy.x(), xy.y());
 
     // We have set this problem up such that f(x, y) = h(x, y)^T * h(x, y)
