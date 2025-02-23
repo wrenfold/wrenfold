@@ -39,6 +39,27 @@ add_compiled_code_generator(
 add_cpp_test(cpp_generation_test SOURCE_FILES cpp_generation_test.cc
              test_expressions.h GENERATOR_TARGET cpp_generation_generate)
 
+add_compiled_code_generator(
+  cpp_generation_generate_eigen
+  OUTPUT_FILE_NAME
+  "generated.h"
+  SOURCE_FILES
+  cpp_generation_gen.cc
+  test_expressions.h
+  test_expressions_codegen.h
+  GENERATOR_DEFINITIONS
+  -DUSE_EIGEN)
+
+add_cpp_test(
+  cpp_generation_eigen_test
+  SOURCE_FILES
+  cpp_generation_test.cc
+  test_expressions.h
+  GENERATOR_TARGET
+  cpp_generation_generate_eigen
+  TEST_DEFINITIONS
+  -DUSE_EIGEN)
+
 add_py_code_generator(
   cpp_generation_generate_2
   generation_test_2.py

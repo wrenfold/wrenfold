@@ -9,60 +9,15 @@
 #define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span.h"
 
-// Declare custom numeric types before importing the generated code:
-namespace wf::numeric {
-struct Point2d {
-  double x;
-  double y;
+// We build this twice - once using generic span arguments and once using eigen.
+// The syntax for passing optional output args is different.
+#ifdef USE_EIGEN
+#define OPT_OUTPUT(x) &(x)
+#else
+#define OPT_OUTPUT(x) x
+#endif
 
-  Eigen::Vector2d to_vector() const { return {x, y}; }
-};
-
-struct Circle {
-  Point2d center;
-  double radius;
-
-  Eigen::Vector3d to_vector() const { return {center.x, center.y, radius}; }
-};
-
-struct FancyAggregateType {
-  Point2d pt;
-  Circle circle;
-  Eigen::Matrix<double, 2, 1> matrix;
-  double scalar;
-
-  Eigen::Matrix<double, 8, 1> to_vector() const {
-    return (Eigen::Matrix<double, 8, 1>() << pt.x, pt.y, circle.center.x, circle.center.y,
-            circle.radius, matrix, scalar)
-        .finished();
-  }
-};
-
-// An integer that can be implicitly cast to std::int64_t, and nothing else.
-// We use this to make sure our generated code casts correctly when interfacing with
-// `MixedNumerics`.
-class type_safe_int64_t {
- public:
-  template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-  constexpr type_safe_int64_t(T x) noexcept : x_(static_cast<std::int64_t>(x)) {}  //  NOLINT
-
-  template <typename T, typename = enable_if_same_t<T, std::int64_t>>
-  constexpr operator T() const noexcept {  //  NOLINT
-    return x_;
-  }
-
-  // Allow explicit cast to double.
-  explicit constexpr operator double() const noexcept { return static_cast<double>(x_); }
-
- private:
-  std::int64_t x_;
-};
-
-struct MixedNumerics {
-  double value;
-  type_safe_int64_t mode;
-};
-}  // namespace wf::numeric
+#include "cpp_generation_test_numeric_types.h"
 
 // These functions don't perform amy meaningful task, they just exist so we can call them from
 // generated code to test external function support.
@@ -113,16 +68,17 @@ TEST(CppGenerationTest, TestVectorRotation2D) {
     Eigen::Vector2d v_rot_num, D_angle_num;
     Eigen::Vector2d v_rot_gen, D_angle_gen;
     evaluator(angle, Eigen::Vector2d(-6.5, 7.2), v_rot_num, D_angle_num);
-    gen::vector_rotation_2d(angle, Eigen::Vector2d{-6.5, 7.2}, v_rot_gen, D_angle_gen);
+    gen::vector_rotation_2d(angle, Eigen::Vector2d{-6.5, 7.2}, v_rot_gen, OPT_OUTPUT(D_angle_gen));
 
     EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 2.0e-15);
     EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 2.0e-15);
 
     // should still work without the optional arg
     evaluator(angle, {-5.5, 12.0}, v_rot_num, D_angle_num);
-    gen::vector_rotation_2d(angle, Eigen::Vector2d{-5.5, 12.0}, v_rot_gen, nullptr);
+    gen::vector_rotation_2d<double>(angle, Eigen::Vector2d{-5.5, 12.0}, v_rot_gen, nullptr);
     EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 2.0e-15);
 
+#ifndef USE_EIGEN
     // Pass a map to the data:
     constexpr std::array<double, 2> input_v = {7.123, -4.001};
     const Eigen::Map<const Eigen::Vector2d> input_v_map(input_v.data());
@@ -138,6 +94,7 @@ TEST(CppGenerationTest, TestVectorRotation2D) {
                             Eigen::Map<Eigen::Vector2d>(D_angle_gen.data()));
     EXPECT_EIGEN_NEAR(v_rot_num, v_rot_gen, 2.0e-15);
     EXPECT_EIGEN_NEAR(D_angle_num, D_angle_gen, 2.0e-15);
+#endif
   }
 }
 
@@ -324,7 +281,11 @@ TEST(CppGenerationTest, TestQuaternionFromMatrix) {
   };
   for (const Eigen::Quaterniond& q : qs) {
     Eigen::Quaterniond q_out{};
+#ifndef USE_EIGEN
     gen::quaternion_from_matrix<double>(q.toRotationMatrix(), q_out);
+#else
+    gen::quaternion_from_matrix<double>(q.toRotationMatrix(), q_out.coeffs());
+#endif
     EXPECT_EIGEN_NEAR(Eigen::Matrix3d::Identity(), (q_out.inverse() * q).toRotationMatrix(),
                       1.0e-14)
         << "q_out = " << q_out << "\nq = " << q;
@@ -367,33 +328,33 @@ TEST(CppGenerationTest, TestCreateRotationMatrix) {
 
   // Evaluate at zero
   evaluator({0.0, 0.0, 0.0}, R_num, D_num);
-  gen::create_rotation_matrix<double>(Eigen::Vector3d::Zero().eval(), R_gen, D_gen);
+  gen::create_rotation_matrix<double>(Eigen::Vector3d::Zero().eval(), R_gen, OPT_OUTPUT(D_gen));
   EXPECT_EQ(R_num, R_gen);
   EXPECT_EQ(D_num, D_gen);
 
   const Eigen::Vector3d w1{-0.23, 0.52, 0.2};
   evaluator(w1, R_num, D_num);
-  gen::create_rotation_matrix<double>(w1, R_gen, D_gen);
+  gen::create_rotation_matrix<double>(w1, R_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 
   const Eigen::Vector3d w2{-0.0022, 0.0003, -0.00015};
   evaluator(w2, R_num, D_num);
-  gen::create_rotation_matrix<double>(w2, R_gen, D_gen);
+  gen::create_rotation_matrix<double>(w2, R_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 
-  gen::create_rotation_matrix_with_ternaries<double>(w2, R_gen, D_gen);
+  gen::create_rotation_matrix_with_ternaries<double>(w2, R_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 
   const Eigen::Vector3d w3{5.0, -4.0, 2.1};
   evaluator(w3, R_num, D_num);
-  gen::create_rotation_matrix<double>(w3, R_gen, D_gen);
+  gen::create_rotation_matrix<double>(w3, R_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 
-  gen::create_rotation_matrix_with_ternaries<double>(w3, R_gen, D_gen);
+  gen::create_rotation_matrix_with_ternaries<double>(w3, R_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(R_num, R_gen, 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }
@@ -448,17 +409,17 @@ TEST(CppGenerationTest, TestCustomType2) {
   numeric::Point2d p_num, p_gen;
   Eigen::Matrix2d D_num, D_gen;
   evaluator(-0.5, 1.717, p_num, D_num);
-  gen::custom_type_2(-0.5, 1.717, &p_gen, D_gen);
+  gen::custom_type_2(-0.5, 1.717, &p_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(p_num.to_vector(), p_gen.to_vector(), 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 
   evaluator(0.04, 5.0, p_num, D_num);
-  gen::custom_type_2(0.04, 5.0, &p_gen, D_gen);
+  gen::custom_type_2(0.04, 5.0, &p_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(p_num.to_vector(), p_gen.to_vector(), 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 
   evaluator(1.232, 0.02, p_num, D_num);
-  gen::custom_type_2(1.232, 0.02, &p_gen, D_gen);
+  gen::custom_type_2(1.232, 0.02, &p_gen, OPT_OUTPUT(D_gen));
   EXPECT_EIGEN_NEAR(p_num.to_vector(), p_gen.to_vector(), 1.0e-15);
   EXPECT_EIGEN_NEAR(D_num, D_gen, 1.0e-15);
 }

@@ -21,8 +21,12 @@ the span ``_df`` with the results (default implementations are provided for :ref
 and :ref:`nalgebra <Rust Integration>`).
 
 What if we want to **return** ``df`` directly, rather than passing it out as an argument? To achieve
-this, we need to define a custom code formatter and override two methods. For C++, this could look
-like:
+this, we can either:
+
+  1. Change our code generation mode to :py:attr:`CppMatrixTypeBehavior.Eigen` (see
+     :ref:`Using Eigen <Using Eigen>`).
+  2. **OR**, we can augment the default ``CppGenerator`` by adding overrides that specify how to
+     annotate and instantiate an Eigen matrix:
 
 .. code:: python
 
@@ -100,3 +104,6 @@ Note that we had to define two methods on ``CustomCppGenerator``:
 
   1. ``format_matrix_type``, which governs how the type will appear in the return signature.
   2. ``format_construct_matrix``, which generates code that will invoke the constructor.
+
+You can, of course, replace the Eigen-specific code with appropriate C++ code for your own custom
+matrix class.

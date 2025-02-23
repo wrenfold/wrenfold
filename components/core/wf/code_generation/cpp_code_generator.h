@@ -10,9 +10,21 @@
 
 namespace wf {
 
+enum class cpp_matrix_type_behavior {
+  // Use spans to pass matrices as input and output arguments.
+  // Matrix arguments will be generic types that must implement wf::convert_to_span.
+  generic_span,
+  // Use Eigen types to pass matrices as input and output arguments, and return values.
+  // Matrix arguments will be Eigen maps
+  eigen
+};
+
 // Generate C++ code.
 class cpp_code_generator {
  public:
+  constexpr explicit cpp_code_generator(cpp_matrix_type_behavior behavior) noexcept
+      : behavior_(behavior) {}
+
   virtual ~cpp_code_generator() = default;
 
   // Type formatters
@@ -88,10 +100,14 @@ class cpp_code_generator {
   std::string operator()(const ast::ast_element& element) const;
 
   // Wrap generated function code in a preamble with includes and a namespace.
-  static std::string apply_preamble(std::string_view code, std::string_view ns,
-                                    std::string_view imports = "");
+  std::string apply_preamble(std::string_view code, std::string_view ns,
+                             std::string_view imports = "") const;
+
+  constexpr cpp_matrix_type_behavior matrix_type_behavior() const noexcept { return behavior_; }
 
  protected:
+  cpp_matrix_type_behavior behavior_;
+
   // Create a fmt_view. All args will be forwarded back to the operator on this class that matches
   // them.
   template <typename... Args>

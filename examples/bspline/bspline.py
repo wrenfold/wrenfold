@@ -307,8 +307,9 @@ def main(args: argparse.Namespace):
 
     definitions = code_generation.transpile(descriptions)
     if args.language == "cpp":
-        code = code_generation.CppGenerator().generate(definitions)
-        code = code_generation.CppGenerator.apply_preamble(code, namespace="gen")
+        generator = code_generation.CppGenerator()
+        code = generator.generate(definitions)
+        code = generator.apply_preamble(code, namespace="gen")
     elif args.language == "rust":
         code = code_generation.RustGenerator().generate(definitions)
         code = code_generation.RustGenerator.apply_preamble(code)

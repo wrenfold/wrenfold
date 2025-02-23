@@ -11,6 +11,7 @@ from pywrenfold.gen import (
     ArgumentDirection,
     BaseGenerator,
     CppGenerator,
+    CppMatrixTypeBehavior,
     FunctionDescription,
     OptimizationParams,
     OutputKey,
