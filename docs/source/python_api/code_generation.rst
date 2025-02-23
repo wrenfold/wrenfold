@@ -33,6 +33,11 @@ code_generation
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
+.. autoclass:: wrenfold.code_generation.CppMatrixTypeBehavior
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
 .. autoclass:: wrenfold.code_generation.FunctionDescription
   :members:
   :special-members:

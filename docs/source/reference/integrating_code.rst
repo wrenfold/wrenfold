@@ -36,8 +36,8 @@ reference for all output matrices and vectors. The rationale is twofold:
 
 .. tip::
 
-    In order to *return* a matrix we need to instantiate an actual object that owns storage. This is
-    covered in the section :doc:`Returning matrices <returning_matrices>`.
+    wrenfold can *also* emit functions that **directly employ Eigen types** in the function
+    signature. See :ref:`Using Eigen <Using Eigen>`.
 
 The generated function invokes ``wf::make_optional_output_span<2, 1>`` on ``df`` in order to create
 a 2D span with dimensions ``(2, 1)``. Because this argument is optional, we can pass one of two
@@ -52,8 +52,8 @@ header only C++17 library that provides an n-dimensional span type used to pass 
 from generated functions. You should copy these headers into your project (like all of wrenfold,
 they are MIT licensed) - or otherwise ensure they are on your include path.
 
-Implementing ``convert_to_span``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Implementing ``convert_to_span`` for a custom matrix type
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the interest of providing a complete example, we will assume you have a custom matrix type that
 looks something like:
@@ -99,7 +99,8 @@ The example above is simplified. In practice you may wish to have different spec
 dynamic vs. static matrices, or support a matrix type with non-contiguous data. See the
 ``wrenfold/span.h`` header for an example implementation for Eigen.
 
-With our custom specialization in hand, we can call ``step_clamped`` with our matrix class:
+With our custom specialization in hand, we can call ``step_clamped`` and pass it our
+``simple_matrix`` type:
 
 .. code:: cpp
 
@@ -115,15 +116,21 @@ With our custom specialization in hand, we can call ``step_clamped`` with our ma
 Using Eigen
 ^^^^^^^^^^^
 
-A default implementation of ``wf::convert_to_span`` is provided for use with
-`Eigen <https:://https://eigen.tuxfamily.org>`_.
+There are two options available when using wrenfold `Eigen <https:://https://eigen.tuxfamily.org>`_
+types:
 
-To activate it, ``#define WF_SPAN_EIGEN_SUPPORT`` prior to including ``wrenfold/span.h``. This
-will enable conversion of all types that inherit from ``Eigen::MatrixBase`` or
-``Eigen::QuaternionBase``.
+  1. A default implementation of ``wf::convert_to_span`` is provided for use with Eigen. To activate
+     it, ``#define WF_SPAN_EIGEN_SUPPORT`` prior to including ``wrenfold/span.h``. This will enable
+     conversion of all types that inherit from ``Eigen::MatrixBase`` or ``Eigen::QuaternionBase``.
+  2. **OR**, you can you request that Eigen types be directly employed in function signatures by
+     passing :py:attr:`CppMatrixTypeBehavior.Eigen` to
+     :class:`~wrenfold.code_generation.CppGenerator`.
+
+An example of the first method:
 
 .. code:: cpp
 
+    // We incorporate the wrenfold runtime headers in our project, and define WF_SPAN_EIGEN_SUPPORT:
     #define WF_SPAN_EIGEN_SUPPORT
     #include <wrenfold/span.h>
 
@@ -135,6 +142,34 @@ will enable conversion of all types that inherit from ``Eigen::MatrixBase`` or
     // Place the two derivative values into the top (1, 2) corner:
     Eigen::Matrix4d buffer{};
     const double step_2 = step_clamped(0.448, buffer.topLeftCorner<1, 2>().transpose());
+
+Alternatively, we can request Eigen types be used in the function signature:
+
+.. code:: python
+
+    from wrenfold import code_generation
+
+    generator = code_generation.CppGenerator(code_generation.CppMatrixTypeBehavior.Eigen)
+    cpp = code_generation.generate_function(func=step, generator=code_generation.CppGenerator())
+    print(cpp)
+
+Which produces:
+
+.. code:: cpp
+
+    // The output argument is an instance of `Eigen::Matrix<Scalar, 2, 1>`.
+    template <typename Scalar>
+    Scalar step_clamped(const Scalar x, Eigen::Matrix<Scalar, 2, 1>* const df) { /* ... */ }
+
+The first method (generic arguments + spans) cannot yield a matrix as a return value, since there
+is no way to instantiate an owning type to contain the data. The latter method will return a dense
+Eigen matrix.
+
+.. tip::
+
+    For additional examples of using ``CppMatrixTypeBehavior.Eigen`` to request function signatures
+    with Eigen types, see `rosenbrock <https://github.com/wrenfold/wrenfold/blob/main/examples/rosenbrock/rosenbrock.py>`__
+    and `rotation_error <https://github.com/wrenfold/wrenfold/blob/main/examples/rotation_error/rotation_error.py>`__.
 
 Including requisite headers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
