@@ -2,28 +2,26 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/type_registry.h"
+
+#include <ranges>
+
+#include "wf/code_generation/types.h"
 #include "wf/expressions/variable.h"
-#include "wf/utility/index_range.h"
 
 namespace wf::detail {
 
-scalar_expr create_function_input(const scalar_type& scalar, const std::size_t arg_index) {
-  return create_function_argument(arg_index, 0, scalar.numeric_type());
+scalar_expr create_function_input(const scalar_type& scalar, const std::string_view name) {
+  return make_expr<function_argument_variable>(std::string{name}, scalar, 0);
 }
 
-static std::vector<scalar_expr> create_function_args(const std::size_t arg_index,
-                                                     const std::size_t size) {
+matrix_expr create_function_input(const matrix_type& mat, const std::string_view name) {
+  const std::size_t num_elements = mat.size();
   std::vector<scalar_expr> expressions{};
-  expressions.reserve(size);
-  for (const std::size_t index : make_range(size)) {
-    expressions.push_back(
-        create_function_argument(arg_index, index, numeric_primitive_type::floating_point));
+  expressions.reserve(num_elements);
+  for (const std::size_t index : std::views::iota(num_elements)) {
+    expressions.push_back(make_expr<function_argument_variable>(std::string{name}, mat, index));
   }
-  return expressions;
-}
-
-matrix_expr create_function_input(const matrix_type& mat, const std::size_t arg_index) {
-  return matrix_expr::create(mat.rows(), mat.cols(), create_function_args(arg_index, mat.size()));
+  return matrix_expr::create(mat.rows(), mat.cols(), std::move(expressions));
 }
 
 }  // namespace wf::detail

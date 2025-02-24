@@ -5,6 +5,8 @@
 
 #include <atomic>
 
+#include "wf/utility/assertions.h"
+
 namespace wf {
 
 std::size_t unique_variable::next_unique_variable_index() {
@@ -15,9 +17,9 @@ std::size_t unique_variable::next_unique_variable_index() {
   return next;
 }
 
-scalar_expr create_function_argument(const std::size_t arg_index, const std::size_t element_index,
-                                     const numeric_primitive_type type) {
-  return make_expr<function_argument_variable>(arg_index, element_index, type);
+numeric_primitive_type function_argument_variable::primitive_type() const noexcept {
+  // TODO: Fill this out.
+  WF_ASSERT_ALWAYS("TODO: Implement me");
 }
 
 }  // namespace wf

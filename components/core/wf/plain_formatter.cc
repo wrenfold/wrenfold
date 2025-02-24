@@ -353,9 +353,8 @@ std::string plain_formatter::operator()(const unevaluated& u) {
 
 std::string plain_formatter::operator()(const variable& var) const { return var.name(); }
 
-// TODO: Use the argument name here.
 std::string plain_formatter::operator()(const function_argument_variable& var) const {
-  return fmt::format("$arg({}, {})", var.arg_index(), var.element_index());
+  return fmt::format("arg({}, {})", var.argument_name(), var.element_index());
 }
 
 std::string plain_formatter::operator()(const unique_variable& var) const {

@@ -248,23 +248,23 @@ auto record_arg_types(custom_type_registry& registry, type_list<Ts...>) {
 }
 
 // Create scalar input required to evaluate a symbolic function.
-scalar_expr create_function_input(const scalar_type& scalar, std::size_t arg_index);
+scalar_expr create_function_input(const scalar_type& scalar, std::string_view name);
 
 // Create matrix input required to evaluate a symbolic function.
-matrix_expr create_function_input(const matrix_type& mat, std::size_t arg_index);
+matrix_expr create_function_input(const matrix_type& mat, std::string_view name);
 
 // Determine the size of a custom type, and create enough variables to fill it.
-inline compound_expr create_function_input(const custom_type& custom, const std::size_t arg_index) {
-  return create_custom_type_argument(custom, arg_index);
+inline compound_expr create_function_input(const custom_type& custom, const std::string_view name) {
+  return create_custom_type_argument(custom, name);
 }
 
 // Fill a custom type `T` with symbolic variable expressions.
 template <typename T>
-T create_function_input(const annotated_custom_type<T>& custom, const std::size_t arg_index) {
+T create_function_input(const annotated_custom_type<T>& custom, const std::string_view name) {
   static_assert(implements_custom_type_registrant_v<T>,
                 "Type must implement custom_type_registrant");
   const std::vector<scalar_expr> expressions = create_expression_elements(
-      create_custom_type_argument(custom.inner(), arg_index), custom.inner().total_size());
+      create_custom_type_argument(custom.inner(), name), custom.inner().total_size());
   auto [instance, _] =
       custom.initialize_from_expressions(absl::Span<const scalar_expr>{expressions});
   return instance;

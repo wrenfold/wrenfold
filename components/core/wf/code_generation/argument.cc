@@ -15,7 +15,7 @@ argument::argument(const std::string_view name, type_variant type,
 std::variant<scalar_expr, matrix_expr, compound_expr> argument::create_symbolic_input() const {
   return std::visit(
       [&](const auto& type_concrete) -> std::variant<scalar_expr, matrix_expr, compound_expr> {
-        return detail::create_function_input(type_concrete, index());
+        return detail::create_function_input(type_concrete, name());
       },
       type());
 }

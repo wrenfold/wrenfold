@@ -2,7 +2,9 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include "wf/code_generation/types.h"
 #include "wf/expression.h"
+#include "wf/utility/hashing.h"
 #include "wf/utility/ordering.h"
 
 namespace wf {
@@ -14,26 +16,29 @@ class function_argument_variable {
   static constexpr std::string_view name_str = "FunctionArgumentVariable";
   static constexpr bool is_leaf_node = true;
 
-  constexpr function_argument_variable(const std::size_t arg_index, const std::size_t element_index,
-                                       const numeric_primitive_type primitive_type) noexcept
-      : arg_index_(arg_index), element_index_(element_index), primitive_type_(primitive_type) {}
+  constexpr function_argument_variable(std::string name, type_variant argument_type,
+                                       const std::size_t element_index) noexcept
+      : name_(std::move(name)),
+        argument_type_(std::move(argument_type)),
+        element_index_(element_index) {}
 
   // Which function argument this refers to.
-  constexpr std::size_t arg_index() const noexcept { return arg_index_; }
+  constexpr const std::string& argument_name() const noexcept { return name_; }
 
   // Index into the function argument.
   // For a matrix arg, this is a flat index into the matrix.
   constexpr std::size_t element_index() const noexcept { return element_index_; }
 
+  // The type of the argument.
+  constexpr const type_variant& argument_type() const noexcept { return argument_type_; }
+
   // The numeric type of this variable.
-  constexpr numeric_primitive_type primitive_type() const noexcept { return primitive_type_; }
+  numeric_primitive_type primitive_type() const noexcept;
 
  private:
-  std::size_t arg_index_;
+  std::string name_;
+  type_variant argument_type_;
   std::size_t element_index_;
-  // TODO: `numeric_primitive_type` is a bit too liberal, since it also incorporates boolean.
-  // But boolean can only be used in boolean_expr, not scalar_expr.
-  numeric_primitive_type primitive_type_;
 };
 
 // A variable designated by a unique integer index that is not reused.
@@ -78,9 +83,6 @@ class variable {
   std::string name_;
   number_set set_;
 };
-
-scalar_expr create_function_argument(std::size_t arg_index, std::size_t element_index,
-                                     numeric_primitive_type type);
 
 template <>
 struct hash_struct<variable> {
@@ -127,8 +129,8 @@ struct order_struct<unique_variable> {
 
 template <>
 struct hash_struct<function_argument_variable> {
-  constexpr std::size_t operator()(const function_argument_variable& v) const noexcept {
-    return hash_combine(hash_combine(v.arg_index(), v.element_index()),
+  std::size_t operator()(const function_argument_variable& v) const noexcept {
+    return hash_combine(hash_combine(hash_string_fnv(v.argument_name()), v.element_index()),
                         static_cast<std::size_t>(v.primitive_type()));
   }
 };
@@ -137,7 +139,7 @@ template <>
 struct is_identical_struct<function_argument_variable> {
   constexpr bool operator()(const function_argument_variable& a,
                             const function_argument_variable& b) const noexcept {
-    return a.arg_index() == b.arg_index() && a.element_index() == b.element_index() &&
+    return a.argument_name() == b.argument_name() && a.element_index() == b.element_index() &&
            a.primitive_type() == b.primitive_type();
   }
 };
@@ -146,7 +148,7 @@ template <>
 struct order_struct<function_argument_variable> {
   constexpr relative_order operator()(const function_argument_variable& a,
                                       const function_argument_variable& b) const noexcept {
-    return order_by(a.arg_index(), b.arg_index())
+    return order_by(a.argument_name(), b.argument_name())
         .and_then_by(a.element_index(), b.element_index())
         .and_then_by(a.primitive_type(), b.primitive_type());
   }
