@@ -12,8 +12,6 @@
 #include "wf/matrix_expression.h"
 #include "wf/utility/assertions.h"
 
-#include "docs/sympy_conversion.h"
-
 namespace wf {
 
 namespace py = pybind11;
@@ -225,9 +223,7 @@ class sympy_conversion_visitor {
 
 template <typename T>
 py::object to_sympy(const T& expr, const py::module_& sp, const bool evaluate) {
-  // py::module_ sp =
-  //     sp_opt.has_value() ? py::cast<py::module_>(*sp_opt) : py::module::import("sympy");
-  return sympy_conversion_visitor{std::move(sp), evaluate}(expr);
+  return sympy_conversion_visitor{sp, evaluate}(expr);
 }
 
 void wrap_sympy_conversion(py::module_& m) {
