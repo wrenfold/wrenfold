@@ -19,11 +19,11 @@ unspy = lambda x: sympy_conversion.from_sympy(expr=x, sp=sp)
 class SympyConversionTest(MathTestBase):
     """Test conversion to and from sympy."""
 
-    def assertEqualSp(self, first: T.Any, second: sym.AnyExpression, msg: T.Any = None):
+    def assertEqualSp(self, first: sp.Basic, second: sym.AnyExpression, msg: T.Any = None):
         """Convert `second` to sympy form, and compare with __eq__ operator."""
         self.assertEqual(first=first, second=spy(second), msg=msg)
 
-    def assertIdenticalFromSp(self, first: sym.AnyExpression, second: T.Any):
+    def assertIdenticalFromSp(self, first: sym.AnyExpression, second: sp.Basic):
         """Convert `second` from sympy to wrenfold form, and compare with is_identical_to."""
         self.assertIdentical(a=first, b=unspy(second))
 

@@ -146,9 +146,10 @@ struct collect_function_input<scalar_expr> {
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index, const U arg,
                   const scalar_type& scalar) const {
     const auto a = static_cast<float_constant::value_type>(arg);
-    const bool added = output.add_substitution(
-        make_expr<function_argument_variable>(arg_index, 0, scalar.numeric_type()),
-        make_expr<float_constant>(a));
+    const bool added =
+        output.add_substitution(make_expr<function_argument_variable>(
+                                    fmt::format("arg_{}", arg_index), scalar.numeric_type(), 0),
+                                make_expr<float_constant>(a));
     WF_ASSERT(added);
   }
 };
@@ -161,14 +162,14 @@ struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
 
   template <typename U, typename = enable_if_floating_point_t<U>>
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index,
-                  const Eigen::Matrix<U, Rows, Cols>& arg, const matrix_type&) const {
+                  const Eigen::Matrix<U, Rows, Cols>& arg, const matrix_type& mat_type) const {
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
         const auto a_ij = static_cast<float_constant::value_type>(arg(i, j));
         const bool added =
             output.add_substitution(make_expr<function_argument_variable>(
-                                        arg_index, element, numeric_primitive_type::floating_point),
+                                        fmt::format("arg_{}", arg_index), mat_type, element),
                                     scalar_expr(a_ij));
         WF_ASSERT(added);
       }
@@ -258,12 +259,15 @@ auto create_evaluator(ReturnType (*func)(Args... args)) {
   // Scrape the types of the input arguments:
   custom_type_registry registry{};
   std::tuple arg_types = detail::record_arg_types(registry, type_list<Args...>{});
+  const auto arg_names =
+      detail::index_seq_for([](auto index) { return arg(fmt::format("arg_{}", index())); },
+                            std::make_index_sequence<sizeof...(Args)>());
 
   // Evaluate the function symbolically.
   // We don't substitute numerical values directly, because the function may wish to do symbolic
   // operations internally (like diff, subs, etc.). Instead, build symbolic expressions for every
   // output, and then substitute into those.
-  std::tuple output_expressions = detail::invoke_with_symbolic_inputs(func, arg_types);
+  std::tuple output_expressions = detail::invoke_with_symbolic_inputs(func, arg_types, arg_names);
 
   // Scrape the types of the output expressions:
   using output_symbolic_types = type_list_from_tuple_t<decltype(output_expressions)>;

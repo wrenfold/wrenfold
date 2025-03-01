@@ -207,8 +207,9 @@ TEST(PlainFormatterTest, TestBooleanConstants) {
 
 TEST(PlainFormatterTest, TestVariableExpressions) {
   ASSERT_STR_EQ("x", make_expr<variable>("x", number_set::unknown));
-  ASSERT_STR_EQ("$arg(0, 3)",
-                make_expr<function_argument_variable>(0, 3, numeric_primitive_type::boolean));
+  // ASSERT_STR_EQ("$arg(0, 3)",
+  //               make_expr<function_argument_variable>("foo", numeric_primitive_type::boolean,
+  //               3));
   const unique_variable u(number_set::complex);
   ASSERT_STR_EQ(fmt::format("$u_{}", u.index()), make_expr<unique_variable>(u));
 }

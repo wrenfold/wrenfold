@@ -10,8 +10,9 @@
 namespace wf {
 namespace detail {
 // Fwd declare.
-template <typename Callable, typename... ArgTypes>
-auto invoke_with_symbolic_inputs(Callable&& callable, const std::tuple<ArgTypes...>& arg_types);
+template <typename Callable, typename... ArgTypes, typename... ArgNames>
+auto invoke_with_symbolic_inputs(Callable&& callable, const std::tuple<ArgTypes...>& arg_types,
+                                 const std::tuple<ArgNames...>& arg_names);
 }  // namespace detail
 
 // Invoke the provided function `func` and capture all the output expressions.
@@ -37,7 +38,8 @@ function_description build_function_description(Func&& func, const std::string_v
   std::tuple arg_types = detail::record_arg_types(registry, arg_type_list{});
 
   // Build inputs and invoke the function
-  std::tuple outputs = detail::invoke_with_symbolic_inputs(std::forward<Func>(func), arg_types);
+  std::tuple outputs =
+      detail::invoke_with_symbolic_inputs(std::forward<Func>(func), arg_types, arg_names);
 
   // Scrape all the output type information:
   std::tuple output_types =
@@ -71,12 +73,15 @@ namespace detail {
 // arguments by constructing `function_argument` variable expressions for every input arg of
 // `callable`. The resulting expressions are returned as a tuple of `output_arg<>` or
 // `return_value<>`.
-template <typename Callable, typename... ArgTypes>
-auto invoke_with_symbolic_inputs(Callable&& callable, const std::tuple<ArgTypes...>& arg_types) {
+template <typename Callable, typename... ArgTypes, typename... ArgNames>
+auto invoke_with_symbolic_inputs(Callable&& callable, const std::tuple<ArgTypes...>& arg_types,
+                                 const std::tuple<ArgNames...>& arg_names) {
   // Create a tuple of arguments w/ variable expressions.
-  auto args = zip_enumerate_tuples(
-      [](auto index, const auto& arg_type) { return create_function_input(arg_type, index()); },
-      arg_types);
+  auto args = zip_tuples(
+      [](const auto& arg_type, const auto& arg_name) {
+        return create_function_input(arg_type, arg_name.name());
+      },
+      arg_types, arg_names);
 
   // Call the user provided function with the args we just created:
   auto return_expr = std::apply(

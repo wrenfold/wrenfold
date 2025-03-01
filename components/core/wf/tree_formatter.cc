@@ -50,8 +50,8 @@ void tree_formatter_visitor::operator()(const conditional& conditional) {
 }
 
 void tree_formatter_visitor::operator()(const custom_type_argument& arg) {
-  format_append("{} (type = {}, index = {})", custom_type_argument::name_str, arg.type().name(),
-                arg.arg_index());
+  format_append("{} ({}: {})", custom_type_argument::name_str, arg.argument_name(),
+                arg.type().name());
 }
 
 void tree_formatter_visitor::operator()(const custom_type_construction& construct) {
@@ -75,8 +75,9 @@ void tree_formatter_visitor::operator()(const float_constant& f) {
 }
 
 void tree_formatter_visitor::operator()(const function_argument_variable& fv) {
-  format_append("{} ({}, {})", function_argument_variable::name_str, fv.arg_index(),
-                string_from_numeric_primitive_type(fv.primitive_type()));
+  const auto primitive_type = fv.primitive_type();
+  format_append("{} ({}[{}]: {})", function_argument_variable::name_str, fv.argument_name(),
+                fv.element_index(), string_from_numeric_primitive_type(primitive_type));
 }
 
 void tree_formatter_visitor::operator()(const built_in_function_invocation& func) {

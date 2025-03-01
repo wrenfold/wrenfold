@@ -158,8 +158,7 @@ std::string plain_formatter::operator()(const external_function_invocation& invo
 }
 
 std::string plain_formatter::operator()(const custom_type_argument& arg) const {
-  // TODO: Print the argument name here instead of this uninformative index.
-  return fmt::format("$arg({})", arg.arg_index());
+  return arg.argument_name();
 }
 
 std::string plain_formatter::operator()(const custom_type_construction& construct) {

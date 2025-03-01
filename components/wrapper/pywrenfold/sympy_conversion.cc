@@ -96,20 +96,6 @@ class sympy_conversion_visitor {
     return invoke_sympy_object("Float", flt.value());
   }
 
-  py::object operator()(const function_argument_variable& fv) const {
-    py::dict kwargs;
-    if (fv.primitive_type() == numeric_primitive_type::floating_point) {
-      kwargs["real"] = true;
-    } else if (fv.primitive_type() == numeric_primitive_type::integral) {
-      kwargs["integer"] = true;
-    } else {
-      throw invalid_argument_error("Cannot convert boolean variable `$arg_{}_{}` to SymPy.",
-                                   fv.arg_index(), fv.element_index());
-    }
-    return invoke_sympy_object(
-        "symbols", fmt::format("$arg_{}_{}", fv.arg_index(), fv.element_index()), **kwargs);
-  }
-
   py::object operator()(const imaginary_unit&) const { return get_sympy_attr("I"); }
 
   py::object operator()(const integer_constant& constant) const {
@@ -238,30 +224,19 @@ class sympy_conversion_visitor {
 };
 
 template <typename T>
-py::object to_sympy(const T& expr, const std::optional<py::object>& sp_opt, const bool evaluate) {
-  py::module_ sp =
-      sp_opt.has_value() ? py::cast<py::module_>(*sp_opt) : py::module::import("sympy");
+py::object to_sympy(const T& expr, const py::module_& sp, const bool evaluate) {
+  // py::module_ sp =
+  //     sp_opt.has_value() ? py::cast<py::module_>(*sp_opt) : py::module::import("sympy");
   return sympy_conversion_visitor{std::move(sp), evaluate}(expr);
 }
 
 void wrap_sympy_conversion(py::module_& m) {
-  m.def("to_sympy", &to_sympy<scalar_expr>, py::arg("expr"), py::arg("sp") = std::nullopt,
-        py::arg("evaluate") = true, docstrings::to_sympy.data());
-  m.def("to_sympy", &to_sympy<boolean_expr>, py::arg("expr"), py::arg("sp") = std::nullopt,
-        py::arg("evaluate") = true,
-        "Overload of :func:`wrenfold.sympy_conversion.to_sympy` that accepts ``BooleanExpr``.");
-  m.def("to_sympy", &to_sympy<matrix_expr>, py::arg("expr"), py::arg("sp") = std::nullopt,
-        py::arg("evaluate") = true,
-        "Overload of :func:`wrenfold.sympy_conversion.to_sympy` that accepts ``MatrixExpr``.");
-
-  m.def(
-      "function_argument_variable",
-      [](const std::size_t arg_index, const std::size_t element_index,
-         const numeric_primitive_type type) {
-        return make_expr<function_argument_variable>(arg_index, element_index, type);
-      },
-      py::arg("arg_index"), py::arg("element_index"), py::arg("type"),
-      py::doc("Create ``function_argument_variable``. OMIT_FROM_SPHINX"));
+  m.def("_to_sympy_impl", &to_sympy<scalar_expr>, py::arg("expr"), py::arg("sp"),
+        py::arg("evaluate"), "OMIT_FROM_SPHINX");
+  m.def("_to_sympy_impl", &to_sympy<boolean_expr>, py::arg("expr"), py::arg("sp"),
+        py::arg("evaluate"), "OMIT_FROM_SPHINX");
+  m.def("_to_sympy_impl", &to_sympy<matrix_expr>, py::arg("expr"), py::arg("sp"),
+        py::arg("evaluate"), "OMIT_FROM_SPHINX");
 }
 
 }  // namespace wf

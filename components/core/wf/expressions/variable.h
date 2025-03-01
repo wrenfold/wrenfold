@@ -16,8 +16,8 @@ class function_argument_variable {
   static constexpr std::string_view name_str = "FunctionArgumentVariable";
   static constexpr bool is_leaf_node = true;
 
-  constexpr function_argument_variable(std::string name, type_variant argument_type,
-                                       const std::size_t element_index) noexcept
+  function_argument_variable(std::string name, type_variant argument_type,
+                             const std::size_t element_index) noexcept
       : name_(std::move(name)),
         argument_type_(std::move(argument_type)),
         element_index_(element_index) {}
@@ -137,8 +137,8 @@ struct hash_struct<function_argument_variable> {
 
 template <>
 struct is_identical_struct<function_argument_variable> {
-  constexpr bool operator()(const function_argument_variable& a,
-                            const function_argument_variable& b) const noexcept {
+  bool operator()(const function_argument_variable& a,
+                  const function_argument_variable& b) const noexcept {
     return a.argument_name() == b.argument_name() && a.element_index() == b.element_index() &&
            a.primitive_type() == b.primitive_type();
   }
@@ -146,8 +146,8 @@ struct is_identical_struct<function_argument_variable> {
 
 template <>
 struct order_struct<function_argument_variable> {
-  constexpr relative_order operator()(const function_argument_variable& a,
-                                      const function_argument_variable& b) const noexcept {
+  relative_order operator()(const function_argument_variable& a,
+                            const function_argument_variable& b) const noexcept {
     return order_by(a.argument_name(), b.argument_name())
         .and_then_by(a.element_index(), b.element_index())
         .and_then_by(a.primitive_type(), b.primitive_type());

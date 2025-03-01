@@ -79,7 +79,7 @@ TEST(CompoundExpressionTest, TestConstructSimplifyIndirection) {
   const auto [x, y, a, b] = make_symbols("x", "y", "a", "b");
 
   // Create a custom type argument:
-  const compound_expr arg = create_custom_type_argument(type.inner(), 3);
+  const compound_expr arg = create_custom_type_argument(type.inner(), "arg_3");
   const std::vector<scalar_expr> arg_elements =
       create_expression_elements(arg, type.inner().total_size());
   ASSERT_EQ(4, arg_elements.size());
@@ -223,13 +223,13 @@ TEST(CompoundExpressionTest, TestFormatting) {
 
   // Create a custom type argument:
   const annotated_custom_type<test_type> type = create_type_description<test_type>();
-  const compound_expr arg = create_custom_type_argument(type.inner(), 3);
-  EXPECT_EQ("$arg(3)", arg.to_string());
+  const compound_expr arg = create_custom_type_argument(type.inner(), "arg_3");
+  EXPECT_EQ("arg_3", arg.to_string());
 
   // Access a member on it:
-  EXPECT_EQ("$arg(3).y", compound_expression_element::create(arg, 1).to_string());
-  EXPECT_EQ("$arg(3).v[0, 0]", compound_expression_element::create(arg, 2).to_string());
-  EXPECT_EQ("$arg(3).v[1, 0]", compound_expression_element::create(arg, 3).to_string());
+  EXPECT_EQ("arg_3.y", compound_expression_element::create(arg, 1).to_string());
+  EXPECT_EQ("arg_3.v[0, 0]", compound_expression_element::create(arg, 2).to_string());
+  EXPECT_EQ("arg_3.v[1, 0]", compound_expression_element::create(arg, 3).to_string());
 }
 
 }  // namespace wf

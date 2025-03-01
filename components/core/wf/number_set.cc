@@ -201,7 +201,7 @@ class determine_set_visitor {
     return handle_numeric(f);
   }
 
-  constexpr number_set operator()(const function_argument_variable& fv) const {
+  number_set operator()(const function_argument_variable& fv) const {
     WF_ASSERT(fv.primitive_type() != numeric_primitive_type::boolean);
     return number_set::real;
   }
