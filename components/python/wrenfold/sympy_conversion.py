@@ -8,12 +8,9 @@ import typing as T
 
 import sympy
 
-from pywrenfold.sympy_conversion import (
-    _to_sympy_impl,
-    function_argument_variable,
-)
+from pywrenfold.sympy_conversion import _to_sympy_impl
 
-from . import sym, type_info
+from . import sym
 
 
 class Conversions:
@@ -118,16 +115,6 @@ class Conversions:
             kwargs.update(real=True)
         elif expr.is_complex:
             kwargs.update(complex=True)
-
-        if expr.name.startswith("$arg_"):
-            if expr.is_integer:
-                numeric_type = type_info.NumericType.Integer
-            else:
-                assert (expr.is_real), f"Function argument variables must be floats: {expr}"
-                numeric_type = type_info.NumericType.Float
-            arg_index, element_index = [int(x) for x in expr.name.lstrip("$arg_").split("_")]
-            return function_argument_variable(arg_index, element_index, type=numeric_type)
-
         return sym.symbols(expr.name, **kwargs)
 
     def convert_piecewise(self, expr) -> sym.Expr:
@@ -249,8 +236,8 @@ class Conversions:
 
 
 def from_sympy(
-        expr: "sympy.Basic" | "sympy.MatrixBase",
-        sp: T.Optional[types.ModuleType] = None
+    expr: T.Union["sympy.Basic", "sympy.MatrixBase"],
+    sp: T.Optional[types.ModuleType] = None,
 ) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
     """
     Convert sympy expressions to wrenfold expressions. This method will recursively traverse
@@ -276,7 +263,7 @@ def to_sympy(
     expr: T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr],
     sp: T.Optional[types.ModuleType] = None,
     evaluate: bool = True,
-) -> "sympy.Basic" | "sympy.MatrixBase":
+) -> T.Union["sympy.Basic", "sympy.MatrixBase"]:
     """
     Convert expression tree to `sympy <https://www.sympy.org/en/index.html>`_ expressions.
 

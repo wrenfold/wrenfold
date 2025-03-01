@@ -136,9 +136,6 @@ struct compute_function_output_struct<T,
 template <typename SymbolicArgType, typename = void>
 struct collect_function_input;
 
-template <typename T>
-using enable_if_floating_point_t = std::enable_if_t<std::is_floating_point_v<T>>;
-
 // Convert floats/doubles to single variable expression.
 template <>
 struct collect_function_input<scalar_expr> {
@@ -146,10 +143,9 @@ struct collect_function_input<scalar_expr> {
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index, const U arg,
                   const scalar_type& scalar) const {
     const auto a = static_cast<float_constant::value_type>(arg);
-    const bool added =
-        output.add_substitution(make_expr<function_argument_variable>(
-                                    fmt::format("arg_{}", arg_index), scalar.numeric_type(), 0),
-                                make_expr<float_constant>(a));
+    const bool added = output.add_substitution(
+        make_expr<function_argument_variable>(fmt::format("arg_{}", arg_index), scalar, 0),
+        make_expr<float_constant>(a));
     WF_ASSERT(added);
   }
 };
@@ -194,7 +190,8 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
     type.copy_output_expressions(symbolic_arg_with_numeric_values, numeric_expressions);
 
     // Configure the substitutions:
-    const compound_expr provenance = create_custom_type_argument(type.inner(), arg_index);
+    const compound_expr provenance =
+        create_custom_type_argument(type.inner(), fmt::format("arg_{}", arg_index));
     for (std::size_t i = 0; i < numeric_expressions.size(); ++i) {
       const bool added = output.add_substitution(
           make_expr<compound_expression_element>(provenance, i), std::move(numeric_expressions[i]));
@@ -203,7 +200,7 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
   }
 };
 
-// `ArgSymbolicTypes` are the custom user-defined types that contain symblic expressions.
+// `ArgSymbolicTypes` are the custom user-defined types that contain symbolic expressions.
 // `ArgTypes` are type descriptors like scalar_type, custom_type, etc.
 // `OutputTypes` are also type descriptors.
 template <typename OutputTuple, typename... ArgSymbolicTypes, typename... ArgTypes,
