@@ -18,7 +18,7 @@ matrix_expr create_function_input(const matrix_type& mat, const std::string_view
   const std::size_t num_elements = mat.size();
   std::vector<scalar_expr> expressions{};
   expressions.reserve(num_elements);
-  for (const std::size_t index : std::views::iota(num_elements)) {
+  for (std::size_t index = 0; index < num_elements; ++index) {
     expressions.push_back(make_expr<function_argument_variable>(std::string{name}, mat, index));
   }
   return matrix_expr::create(mat.rows(), mat.cols(), std::move(expressions));
