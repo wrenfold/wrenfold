@@ -353,7 +353,28 @@ std::string plain_formatter::operator()(const unevaluated& u) {
 std::string plain_formatter::operator()(const variable& var) const { return var.name(); }
 
 std::string plain_formatter::operator()(const function_argument_variable& var) const {
-  return fmt::format("arg({}, {})", var.argument_name(), var.element_index());
+  return overloaded_visit(
+      var.argument_type(), [&](scalar_type) { return var.argument_name(); },
+      [&](const matrix_type mat) {
+        const auto [row, col] = mat.compute_indices(var.element_index());
+        return fmt::format("{}[{}, {}]", var.argument_name(), row, col);
+      },
+      [&](const custom_type& custom) {
+        const std::vector<access_variant> sequence =
+            determine_access_sequence(custom, var.element_index());
+        std::string output = var.argument_name();
+        for (const auto& v : sequence) {
+          overloaded_visit(
+              v,
+              [&](const field_access& f) {
+                fmt::format_to(std::back_inserter(output), ".{}", f.field_name());
+              },
+              [&](const matrix_access& m) {
+                fmt::format_to(std::back_inserter(output), "[{}, {}]", m.row(), m.col());
+              });
+        }
+        return output;
+      });
 }
 
 std::string plain_formatter::operator()(const unique_variable& var) const {

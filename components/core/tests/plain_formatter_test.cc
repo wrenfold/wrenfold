@@ -207,11 +207,41 @@ TEST(PlainFormatterTest, TestBooleanConstants) {
 
 TEST(PlainFormatterTest, TestVariableExpressions) {
   ASSERT_STR_EQ("x", make_expr<variable>("x", number_set::unknown));
-  // ASSERT_STR_EQ("$arg(0, 3)",
-  //               make_expr<function_argument_variable>("foo", numeric_primitive_type::boolean,
-  //               3));
+
   const unique_variable u(number_set::complex);
   ASSERT_STR_EQ(fmt::format("$u_{}", u.index()), make_expr<unique_variable>(u));
+
+  for (auto type : {numeric_primitive_type::boolean, numeric_primitive_type::floating_point,
+                    numeric_primitive_type::integral}) {
+    ASSERT_STR_EQ("foo", make_expr<function_argument_variable>("foo", scalar_type(type), 0));
+  }
+
+  ASSERT_STR_EQ("buzz[0, 0]", make_expr<function_argument_variable>("buzz", matrix_type(3, 2), 0));
+  ASSERT_STR_EQ("buzz[1, 1]", make_expr<function_argument_variable>("buzz", matrix_type(3, 2), 3));
+  ASSERT_STR_EQ("buzz[2, 0]", make_expr<function_argument_variable>("buzz", matrix_type(3, 2), 4));
+
+  const custom_type custom1(
+      "Custom1",
+      {
+          struct_field("fig", scalar_type(numeric_primitive_type::floating_point)),
+          struct_field("bar", matrix_type(2, 2)),
+      },
+      typeid(int));
+
+  const custom_type custom2("Custom2",
+                            {
+                                struct_field("x", scalar_type(numeric_primitive_type::integral)),
+                                struct_field("y", matrix_type(2, 4)),
+                                struct_field("z", custom1),
+                            },
+                            typeid(int));
+
+  ASSERT_STR_EQ("wip.x", make_expr<function_argument_variable>("wip", custom2, 0));
+  ASSERT_STR_EQ("wip.y[0, 0]", make_expr<function_argument_variable>("wip", custom2, 1));
+  ASSERT_STR_EQ("wip.y[0, 1]", make_expr<function_argument_variable>("wip", custom2, 2));
+  ASSERT_STR_EQ("wip.y[0, 2]", make_expr<function_argument_variable>("wip", custom2, 3));
+  ASSERT_STR_EQ("wip.z.fig", make_expr<function_argument_variable>("wip", custom2, 9));
+  ASSERT_STR_EQ("wip.z.bar[0, 0]", make_expr<function_argument_variable>("wip", custom2, 10));
 }
 
 TEST(PlainFormatterTest, TestFmtIntegration) {
