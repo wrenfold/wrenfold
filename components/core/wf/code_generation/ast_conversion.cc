@@ -481,14 +481,16 @@ ast::ast_element ast_form_visitor::operator()(const ir::value&, const ir::load& 
         return ast::ast_element{std::in_place_type_t<ast::variable_ref>{}, inner.name()};
       },
       [&](const function_argument_variable& inner) {
-        const argument& arg = signature_.argument_by_index(inner.arg_index());
+        const std::optional<argument> arg = signature_.argument_by_name(inner.argument_name());
+        WF_ASSERT(arg.has_value(), "Missing argument: {}", inner.argument_name());
         return std::visit(
-            [&](const auto& type) { return operator()(type, arg, inner.element_index()); },
-            arg.type());
+            [&](const auto& type) { return operator()(type, *arg, inner.element_index()); },
+            arg->type());
       },
       [&](const custom_type_argument& inner) {
-        return ast::ast_element{std::in_place_type_t<ast::get_argument>{},
-                                signature_.argument_by_index(inner.arg_index())};
+        const std::optional<argument> arg = signature_.argument_by_name(inner.argument_name());
+        WF_ASSERT(arg.has_value(), "Missing argument: {}", inner.argument_name());
+        return ast::ast_element{std::in_place_type_t<ast::get_argument>{}, *arg};
       });
 }
 

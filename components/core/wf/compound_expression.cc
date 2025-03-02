@@ -28,8 +28,8 @@ std::vector<scalar_expr> create_expression_elements(const compound_expr& provena
   return elements;
 }
 
-compound_expr create_custom_type_argument(const custom_type& type, const std::size_t arg_index) {
-  return compound_expr{std::in_place_type_t<custom_type_argument>{}, type, arg_index};
+compound_expr create_custom_type_argument(const custom_type& type, const std::string_view name) {
+  return compound_expr{std::in_place_type_t<custom_type_argument>{}, std::string(name), type};
 }
 
 compound_expr create_custom_type_construction(const custom_type& type,

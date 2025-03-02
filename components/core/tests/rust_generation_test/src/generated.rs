@@ -240,12 +240,12 @@ pub fn atan2_with_derivatives<>(y: f64, x: f64, D_y: &mut f64, D_x: &mut f64) ->
   // negate: 1
   // total: 8
   
+  let v002: f64 = y;
   let v000: f64 = x;
-  let v001: f64 = y;
-  let v007: f64 = (1i64) as f64 / (v001 * v001 + v000 * v000);
+  let v007: f64 = (1i64) as f64 / (v000 * v000 + v002 * v002);
   *D_y = v000 * v007;
-  *D_x = -(v001 * v007);
-  (v001).atan2(v000)
+  *D_x = -(v002 * v007);
+  (v002).atan2(v000)
 }
 
 #[inline]

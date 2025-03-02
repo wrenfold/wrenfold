@@ -44,7 +44,7 @@ std::vector<scalar_expr> create_expression_elements(const compound_expr& provena
                                                     std::size_t num);
 
 // Create compound expression with type `custom_type_argument` using the provided type and argument.
-compound_expr create_custom_type_argument(const class custom_type& type, std::size_t arg_index);
+compound_expr create_custom_type_argument(const class custom_type& type, std::string_view name);
 
 // Create compound expression with type `custom_type_construction`.
 compound_expr create_custom_type_construction(const custom_type& type,

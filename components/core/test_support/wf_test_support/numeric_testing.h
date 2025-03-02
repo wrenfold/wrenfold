@@ -7,7 +7,8 @@
 #include "wf/code_generation/function_evaluator.h"
 #include "wf/evaluate.h"
 #include "wf/expression.h"
-#include "wf/expression_visitor.h"
+#include "wf/expressions/compound_expression_element.h"
+#include "wf/expressions/variable.h"
 #include "wf/substitute.h"
 #include "wf/type_annotations.h"
 
@@ -135,9 +136,6 @@ struct compute_function_output_struct<T,
 template <typename SymbolicArgType, typename = void>
 struct collect_function_input;
 
-template <typename T>
-using enable_if_floating_point_t = std::enable_if_t<std::is_floating_point_v<T>>;
-
 // Convert floats/doubles to single variable expression.
 template <>
 struct collect_function_input<scalar_expr> {
@@ -146,7 +144,7 @@ struct collect_function_input<scalar_expr> {
                   const scalar_type& scalar) const {
     const auto a = static_cast<float_constant::value_type>(arg);
     const bool added = output.add_substitution(
-        make_expr<function_argument_variable>(arg_index, 0, scalar.numeric_type()),
+        make_expr<function_argument_variable>(fmt::format("arg_{}", arg_index), scalar, 0),
         make_expr<float_constant>(a));
     WF_ASSERT(added);
   }
@@ -160,14 +158,14 @@ struct collect_function_input<type_annotations::static_matrix<Rows, Cols>> {
 
   template <typename U, typename = enable_if_floating_point_t<U>>
   void operator()(substitute_variables_visitor& output, const std::size_t arg_index,
-                  const Eigen::Matrix<U, Rows, Cols>& arg, const matrix_type&) const {
+                  const Eigen::Matrix<U, Rows, Cols>& arg, const matrix_type& mat_type) const {
     for (int i = 0; i < Rows; ++i) {
       for (int j = 0; j < Cols; ++j) {
         const std::size_t element = static_cast<std::size_t>(i * Cols + j);
         const auto a_ij = static_cast<float_constant::value_type>(arg(i, j));
         const bool added =
             output.add_substitution(make_expr<function_argument_variable>(
-                                        arg_index, element, numeric_primitive_type::floating_point),
+                                        fmt::format("arg_{}", arg_index), mat_type, element),
                                     scalar_expr(a_ij));
         WF_ASSERT(added);
       }
@@ -192,7 +190,8 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
     type.copy_output_expressions(symbolic_arg_with_numeric_values, numeric_expressions);
 
     // Configure the substitutions:
-    const compound_expr provenance = create_custom_type_argument(type.inner(), arg_index);
+    const compound_expr provenance =
+        create_custom_type_argument(type.inner(), fmt::format("arg_{}", arg_index));
     for (std::size_t i = 0; i < numeric_expressions.size(); ++i) {
       const bool added = output.add_substitution(
           make_expr<compound_expression_element>(provenance, i), std::move(numeric_expressions[i]));
@@ -201,7 +200,7 @@ struct collect_function_input<T, enable_if_implements_symbolic_from_native_conve
   }
 };
 
-// `ArgSymbolicTypes` are the custom user-defined types that contain symblic expressions.
+// `ArgSymbolicTypes` are the custom user-defined types that contain symbolic expressions.
 // `ArgTypes` are type descriptors like scalar_type, custom_type, etc.
 // `OutputTypes` are also type descriptors.
 template <typename OutputTuple, typename... ArgSymbolicTypes, typename... ArgTypes,
@@ -257,12 +256,15 @@ auto create_evaluator(ReturnType (*func)(Args... args)) {
   // Scrape the types of the input arguments:
   custom_type_registry registry{};
   std::tuple arg_types = detail::record_arg_types(registry, type_list<Args...>{});
+  const auto arg_names =
+      detail::index_seq_for([](auto index) { return arg(fmt::format("arg_{}", index())); },
+                            std::make_index_sequence<sizeof...(Args)>());
 
   // Evaluate the function symbolically.
   // We don't substitute numerical values directly, because the function may wish to do symbolic
   // operations internally (like diff, subs, etc.). Instead, build symbolic expressions for every
   // output, and then substitute into those.
-  std::tuple output_expressions = detail::invoke_with_symbolic_inputs(func, arg_types);
+  std::tuple output_expressions = detail::invoke_with_symbolic_inputs(func, arg_types, arg_names);
 
   // Scrape the types of the output expressions:
   using output_symbolic_types = type_list_from_tuple_t<decltype(output_expressions)>;

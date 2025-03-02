@@ -2,12 +2,15 @@
 Logic to support conversion from sympy --> wrenfold.
 Conversion in the opposite direction is implemented in C++ in `sympy_conversion.cc`.
 """
-import importlib
+
+import types
 import typing as T
 
-from pywrenfold.sympy_conversion import function_argument_variable, to_sympy
+import sympy
 
-from . import sym, type_info
+from pywrenfold.sympy_conversion import _to_sympy_impl
+
+from . import sym
 
 
 class Conversions:
@@ -17,7 +20,7 @@ class Conversions:
     OMIT_FROM_SPHINX
     """
 
-    def __init__(self, sp: T.Any) -> None:
+    def __init__(self, sp: types.ModuleType) -> None:
         """Initialize with the sympy module."""
         self.sp = sp
         self.value_map = {
@@ -112,16 +115,6 @@ class Conversions:
             kwargs.update(real=True)
         elif expr.is_complex:
             kwargs.update(complex=True)
-
-        if expr.name.startswith('$arg_'):
-            if expr.is_integer:
-                numeric_type = type_info.NumericType.Integer
-            else:
-                assert expr.is_real, f"Function argument variables must be floats: {expr}"
-                numeric_type = type_info.NumericType.Float
-            arg_index, element_index = [int(x) for x in expr.name.lstrip('$arg_').split('_')]
-            return function_argument_variable(arg_index, element_index, type=numeric_type)
-
         return sym.symbols(expr.name, **kwargs)
 
     def convert_piecewise(self, expr) -> sym.Expr:
@@ -139,7 +132,7 @@ class Conversions:
                 return sym.iverson(self(cond))
 
         output = self(expr.args[-1][0])
-        for (val, cond) in reversed(expr.args[:-1]):
+        for val, cond in reversed(expr.args[:-1]):
             output = sym.where(self(cond), self(val), output)
         return output
 
@@ -242,7 +235,10 @@ class Conversions:
         raise TypeError(f"sympy expression of type `{type(expr)}` cannot be converted.")
 
 
-def from_sympy(expr: T.Any, sp: T.Any = None) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+def from_sympy(
+    expr: T.Union["sympy.Basic", "sympy.MatrixBase"],
+    sp: T.Optional[types.ModuleType] = None,
+) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
     """
     Convert sympy expressions to wrenfold expressions. This method will recursively traverse
     the sympy expression tree, converting each encountered object to the equivalent wrenfold
@@ -250,7 +246,7 @@ def from_sympy(expr: T.Any, sp: T.Any = None) -> T.Union[sym.Expr, sym.MatrixExp
 
     Args:
       expr: A sympy expression.
-      sp: The sympy module. If None, the package ``sympy`` will be imported.
+      sp: The sympy module. If None, the package ``sympy`` will be used.
 
     Returns:
       The closest equivalent expression.
@@ -259,5 +255,30 @@ def from_sympy(expr: T.Any, sp: T.Any = None) -> T.Union[sym.Expr, sym.MatrixExp
       TypeError: When a sympy object has no equivalent in wrenfold.
     """
     if sp is None:
-        sp = importlib.import_module(name="sympy")
+        sp = sympy
     return Conversions(sp=sp)(expr=expr)
+
+
+def to_sympy(
+    expr: T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr],
+    sp: T.Optional[types.ModuleType] = None,
+    evaluate: bool = True,
+) -> T.Union["sympy.Basic", "sympy.MatrixBase"]:
+    """
+    Convert expression tree to `sympy <https://www.sympy.org/en/index.html>`_ expressions.
+
+    Args:
+      expr: Scalar-valued expression.
+      sp: The sympy module. If None, the ``sympy`` package will be used.
+      evaluate: Forwarded to sympy constructors as the ``evaluate`` argument. If true, sympy will
+        canonicalize expressions.
+
+    Returns:
+      Equivalent sympy expression.
+
+    Raises:
+      wrenfold.sym.TypeError: If no equivalent expression type exists in sympy.
+    """
+    if sp is None:
+        sp = sympy
+    return _to_sympy_impl(expr=expr, sp=sp, evaluate=evaluate)
