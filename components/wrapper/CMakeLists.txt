@@ -191,7 +191,6 @@ add_wrapper_module(
   pywrenfold/docs/matrix_wrapper.h
   pywrenfold/docs/scalar_wrapper.h
   pywrenfold/docs/symbolic_functions_wrapper.h
-  pywrenfold/docs/sympy_conversion.h
   pywrenfold/enums_wrapper.cc
   pywrenfold/exceptions_wrapper.cc
   pywrenfold/expressions_wrapper.cc

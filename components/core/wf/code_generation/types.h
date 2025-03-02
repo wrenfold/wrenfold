@@ -374,6 +374,10 @@ using access_variant = std::variant<field_access, matrix_access>;
 std::vector<access_variant> determine_access_sequence(const custom_type& top_level_type,
                                                       std::size_t index);
 
+// Given a flat index, determine the numerical type of the member. Traverse the object hierarchy
+// until we reach the index'th element.
+numeric_primitive_type determine_member_type(const custom_type& custom, std::size_t index);
+
 }  // namespace wf
 
 // Formatting for scalar_type.

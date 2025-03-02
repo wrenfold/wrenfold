@@ -4,6 +4,8 @@ add_library(
   wf/any_expression.h
   wf/boolean_expression.cc
   wf/boolean_expression.h
+  wf/code_generation/argument.cc
+  wf/code_generation/argument.h
   wf/code_generation/ast_conversion.cc
   wf/code_generation/ast_conversion.h
   wf/code_generation/ast_element.h

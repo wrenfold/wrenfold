@@ -5,6 +5,9 @@
 
 #include <atomic>
 
+#include "wf/utility/assertions.h"
+#include "wf/utility/overloaded_visit.h"
+
 namespace wf {
 
 std::size_t unique_variable::next_unique_variable_index() {
@@ -15,9 +18,13 @@ std::size_t unique_variable::next_unique_variable_index() {
   return next;
 }
 
-scalar_expr create_function_argument(const std::size_t arg_index, const std::size_t element_index,
-                                     const numeric_primitive_type type) {
-  return make_expr<function_argument_variable>(arg_index, element_index, type);
+numeric_primitive_type function_argument_variable::primitive_type() const noexcept {
+  return overloaded_visit(
+      argument_type_, [](const scalar_type scalar) constexpr { return scalar.numeric_type(); },
+      [](const matrix_type) constexpr { return numeric_primitive_type::floating_point; },
+      [&](const custom_type& custom) -> numeric_primitive_type {
+        return determine_member_type(custom, element_index_);
+      });
 }
 
 }  // namespace wf

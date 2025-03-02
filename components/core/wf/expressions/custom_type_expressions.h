@@ -16,31 +16,31 @@ class custom_type_argument {
   static constexpr std::string_view name_str = "CustomTypeArgument";
   static constexpr bool is_leaf_node = true;
 
-  custom_type_argument(custom_type type, const std::size_t arg_index) noexcept
-      : type_(std::move(type)), arg_index_(arg_index) {}
+  custom_type_argument(std::string name, custom_type type) noexcept
+      : name_(std::move(name)), type_(std::move(type)) {}
+
+  // Which argument was this object passed as?
+  constexpr const std::string& argument_name() const noexcept { return name_; }
 
   // The custom type.
   const custom_type& type() const noexcept { return type_; }
 
-  // Which argument was this type passed as?
-  constexpr std::size_t arg_index() const noexcept { return arg_index_; }
-
  private:
+  std::string name_;
   custom_type type_;
-  std::size_t arg_index_;
 };
 
 template <>
 struct hash_struct<custom_type_argument> {
   std::size_t operator()(const custom_type_argument& c) const noexcept {
-    return hash_args(c.arg_index(), c.type());
+    return hash_args(hash_string_fnv(c.argument_name()), c.type());
   }
 };
 
 template <>
 struct is_identical_struct<custom_type_argument> {
   bool operator()(const custom_type_argument& a, const custom_type_argument& b) const noexcept {
-    return a.arg_index() == b.arg_index() && are_identical(a.type(), b.type());
+    return a.argument_name() == b.argument_name() && are_identical(a.type(), b.type());
   }
 };
 
@@ -48,7 +48,8 @@ template <>
 struct order_struct<custom_type_argument> {
   relative_order operator()(const custom_type_argument& a,
                             const custom_type_argument& b) const noexcept {
-    return order_by(a.type().name(), b.type().name()).and_then_by(a.arg_index(), b.arg_index());
+    return order_by(a.argument_name(), b.argument_name())
+        .and_then_by(a.type().name(), b.type().name());
   }
 };
 

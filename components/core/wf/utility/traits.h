@@ -101,4 +101,8 @@ struct is_iterable : std::conjunction<detail::has_begin_function<T>, detail::has
 template <typename T>
 constexpr bool is_iterable_v = is_iterable<T>::value;
 
+// Enable if `T` is a floating point type.
+template <typename T, typename Type = void>
+using enable_if_floating_point_t = std::enable_if_t<std::is_floating_point_v<T>, Type>;
+
 }  // namespace wf

@@ -5,7 +5,6 @@
 #include "wf/compound_expression.h"
 #include "wf/expression.h"
 #include "wf/expression_cache.h"
-#include "wf/expressions/variable.h"
 #include "wf/matrix_expression.h"
 
 namespace wf {
