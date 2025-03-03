@@ -1,8 +1,6 @@
-{% set version = "0.2.3" %}
-
 package:
   name: wrenfold
-  version: {{ version }}
+  version: 0.3.0
 
 source:
   path: ../../..

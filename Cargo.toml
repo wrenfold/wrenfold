@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-package.version = "0.2.3"
+package.version = "0.0.1"
 package.license = "MIT"
 package.edition = "2021"
 package.authors = ["Gareth <gcross.code@icloud.com>"]
