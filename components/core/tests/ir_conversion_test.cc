@@ -309,6 +309,17 @@ TEST(IrTest, TestPowerConversion3) {
   check_expressions(expected_expressions, ir);
 }
 
+TEST(IrTest, TestPowerConversion4) {
+  auto [expected_expressions, ir] = create_ir(
+      [](scalar_expr theta) {
+        const auto tmp = cos(theta) / sin(theta);
+        return ta::static_matrix<2, 1>(make_vector(tmp, tmp * tmp));
+      },
+      "func", arg("theta"));
+
+  check_expressions(expected_expressions, ir);
+}
+
 TEST(IrTest, TestFactorization1) {
   const auto func = [](scalar_expr x, scalar_expr y, scalar_expr z, scalar_expr w) {
     return x * y * z * w - 3 * x * y + cos(w) * x * y - 14 + z * w;
@@ -999,5 +1010,4 @@ TEST(IrTest, TestTypedScalarArgs2) {
   check_expressions(expected_expressions, ir);
   ASSERT_EQ(1, ir.count_operation<ir::cast>()) << ir;  //  `x` and `y` are multiplied, then casted
 }
-
 }  // namespace wf

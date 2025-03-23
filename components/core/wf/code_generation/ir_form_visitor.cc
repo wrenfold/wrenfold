@@ -98,11 +98,11 @@ ir::value_ptr ir_form_visitor::operator()(const external_function_invocation& in
         // Type check the argument, and cast scalars.
         const auto& expected_type = f.argument_at(index).type();
         return std::visit(
-            [&](const auto& expected, const auto& actual) -> ir::value_ptr {
-              if constexpr (!std::is_same_v<decltype(expected), decltype(actual)>) {
+            [&]<typename T0, typename T1>(const T0& expected, const T1& actual) -> ir::value_ptr {
+              if constexpr (!std::is_same_v<T0, T1>) {
                 WF_ASSERT_ALWAYS("Mismatched argument types. Expected: {}, Actual: {}", expected,
                                  actual);
-              } else if constexpr (std::is_same_v<decltype(expected), const scalar_type&>) {
+              } else if constexpr (std::is_same_v<T0, scalar_type>) {
                 return maybe_cast(val, expected.numeric_type());
               }
               return val;
@@ -242,8 +242,7 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
 
   // If the multiplication contains a negative integer, then negate it and put -1 in.
   // This facilitates identifying more common terms.
-  if (const auto it = std::find_if(mul_terms.begin(), mul_terms.end(), is_negative_integer);
-      it != mul_terms.end()) {
+  if (const auto it = std::ranges::find_if(mul_terms, is_negative_integer); it != mul_terms.end()) {
     *it = -*it;
     mul_terms.push_back(constants::negative_one);
   }
@@ -404,7 +403,7 @@ ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
   throw type_error("Cannot generate code with expressions containing: {}", undefined::name_str);
 }
 
-ir::value_ptr ir_form_visitor::operator()(const unique_variable& var) {
+ir::value_ptr ir_form_visitor::operator()(const unique_variable& var) const {
   throw type_error(
       "Cannot generate code containing unique variable: {} (Did you intend to substitute something "
       "for this variable?)",
@@ -498,5 +497,4 @@ X expression_sorter::sort_expression(const X& expr) {
   WF_FUNCTION_TRACE();
   return operator()(expr);
 }
-
 }  // namespace wf

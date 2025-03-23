@@ -51,7 +51,7 @@ bool is_negative_number(const scalar_expr& expr) {
 }
 
 // Visitor that recursively traverses the expression tree and extracts all expressions that match
-// the provided prdicate.
+// the provided predicate.
 template <typename Predicate>
 class get_expressions_by_predicate_visitor {
  public:

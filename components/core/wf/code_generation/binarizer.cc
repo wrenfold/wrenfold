@@ -80,7 +80,7 @@ static void count_operand_pairs(const Container& container, const binarize_type 
       // We only binarize multiplications and additions. Unused values are discarded later.
       continue;
     }
-    if (active_values.count(val->name()) == 0) {
+    if (!active_values.contains(val->name())) {
       // This value was considered on a previous invocation of binarize_operations and does not
       // need to be recounted.
       continue;

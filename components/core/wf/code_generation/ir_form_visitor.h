@@ -70,7 +70,7 @@ class ir_form_visitor {
   ir::value_ptr operator()(const symbolic_function_invocation& invocation) const;
   ir::value_ptr operator()(const undefined&) const;
   ir::value_ptr operator()(const unevaluated& u);
-  ir::value_ptr operator()(const unique_variable& var);
+  ir::value_ptr operator()(const unique_variable& var) const;
   ir::value_ptr operator()(const variable& var);
 
   // Apply to any expression.
