@@ -174,6 +174,9 @@ void control_flow_graph::apply_simplifications(const optimization_params& p) {
   WF_FUNCTION_TRACE();
 
   eliminate_duplicates();
+
+  //
+
   factorize_sums(p.factorization_passes);
 
   if (p.binarize_operations) {

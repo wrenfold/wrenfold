@@ -82,9 +82,6 @@ class control_flow_graph {
   // Apply simplifications to all the operations in the graph.
   void apply_simplifications(const optimization_params& p);
 
-  // Factorize sum-of-product expressions to reduce multiplication operations.
-  void factorize_sums(std::size_t num_passes);
-
  private:
   template <typename Func>
   std::size_t accumulate_over_blocks(Func&& func) const {
@@ -106,6 +103,9 @@ class control_flow_graph {
   // binary additions and multiplications. Common terms are extracted into temporaries.
   void binarize_operations(ir::block_ptr block);
   void binarize_operations_of_type(ir::block_ptr block, bool multiplications);
+
+  // Factorize sum-of-product expressions to reduce multiplication operations.
+  void factorize_sums(std::size_t num_passes);
 
   ir::value_ptr factorize_sum_of_products(const class variable_index_assignor& index_assignor,
                                           const class factorization& fac, ir::block_ptr block,
