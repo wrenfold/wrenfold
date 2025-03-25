@@ -102,6 +102,20 @@ class ir_form_visitor {
   std::optional<std::tuple<ir::value_ptr, std::size_t>> pow_extract_base_and_integer_exponent(
       const power& p);
 
+  // Insert the division `1 / reciprocal_value`.
+  ir::value_ptr create_reciprocal(ir::value_ptr reciprocal_value);
+
+  // Create an invocation of powi() or powf().
+  template <typename Exponent>
+  ir::value_ptr create_power_call(ir::value_ptr base, const Exponent& exponent);
+
+  // Remove from `operands` those arguments to a multiplication that are powers with matching
+  // integer exponents. Then create new powers of multiplications from these arguments, and return
+  // them. Rewrites a^n*b^n*c^n --> (a*b*c)^n
+  template <typename Container, typename ContainerOut>
+  void remove_and_group_mul_operands_by_exponent(Container& operands,
+                                                 ContainerOut& grouped_operands);
+
   // The IR we are writing to as we convert.
   control_flow_graph& output_graph_;
   ir::block_ptr output_block_;
