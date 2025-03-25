@@ -125,7 +125,7 @@ void remove_if(Container& container, Predicate&& p) {
 // Traverse the container in reverse order, removing elements that match `p`.
 template <typename Container, typename Predicate>
 void reverse_remove_if(Container& container, Predicate&& p) {
-  // This is reverse order, so we need to rmeove from the front.
+  // This is reverse order, so we need to remove from the front.
   container.erase(container.rend().base(),
                   std::remove_if(container.rbegin(), container.rend(), [&p](auto&& value) -> bool {
                     return p(std::forward<decltype(value)>(value));

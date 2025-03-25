@@ -835,7 +835,7 @@ TEST(IrTest, TestStopDerivative) {
   check_expressions(expected_expressions, ir);
 }
 
-// Make a external function that accepts two arguments (one scalar, one matrix).
+// Make an external function that accepts two arguments (one scalar, one matrix).
 class custom_func_1 : public declare_external_function<
                           custom_func_1, scalar_expr,
                           type_list<scalar_expr, type_annotations::static_matrix<2, 2>>> {

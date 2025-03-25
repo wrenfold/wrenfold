@@ -250,6 +250,8 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
   // Convert operands into values, converting some integer powers into multiplications in the
   // process.
   absl::InlinedVector<ir::value_ptr, 16> mul_operands{};
+  remove_and_group_mul_operands_by_exponent(mul_terms, mul_operands);
+
   for (const scalar_expr& child : mul_terms) {
     if (const power* p = get_if<const power>(child); p != nullptr) {
       if (const auto maybe_extracted = pow_extract_base_and_integer_exponent(*p);
@@ -274,6 +276,60 @@ ir::value_ptr ir_form_visitor::create_add_or_mul_with_operands(Container args) {
     arg = maybe_cast(arg, promoted_type);
   }
   return push_operation(T{}, promoted_type, args);
+}
+
+template <typename Container, typename ContainerOut>
+void ir_form_visitor::remove_and_group_mul_operands_by_exponent(Container& operands,
+                                                                ContainerOut& grouped_operands) {
+  // Built a map from absolute integer exponent to a vector of bases that have that exponent.
+  std::unordered_map<integer_constant, absl::InlinedVector<scalar_expr, 4>,
+                     hash_struct<integer_constant>, is_identical_struct<integer_constant>>
+      exponent_to_base;
+  exponent_to_base.reserve(operands.size());
+
+  for (const scalar_expr& child : operands) {
+    if (const power* p = get_if<const power>(child); p != nullptr) {
+      if (const integer_constant* exp = get_if<const integer_constant>(p->exponent());
+          exp != nullptr) {
+        // Map from absolute value of integer exponent to the base, and a bool recording the sign
+        // of the exponent.
+        if (exp->is_negative()) {
+          exponent_to_base[exp->abs()].push_back(constants::one / p->base());
+        } else {
+          exponent_to_base[exp->abs()].push_back(p->base());
+        }
+      }
+    }
+  }
+
+  // We can only group when there are more than two bases sharing the same exponent.
+  map_erase_if(exponent_to_base, [](const auto& pair) { return pair.second.size() < 2; });
+
+  // Sort map keys into a deterministic order.
+  auto sorted_exponents = transform_map<absl::InlinedVector<integer_constant, 8>>(
+      exponent_to_base, [](const auto& pair) { return pair.first; });
+  std::sort(sorted_exponents.begin(), sorted_exponents.end());
+
+  // Discard anything in operands that was retained in `exponent_to_base`.
+  remove_if(operands, [&exponent_to_base](const scalar_expr& child) {
+    if (const power* p = get_if<const power>(child); p != nullptr) {
+      if (const integer_constant* exp = get_if<const integer_constant>(p->exponent());
+          exp != nullptr) {
+        return exponent_to_base.contains(*exp);
+      }
+    }
+    return false;
+  });
+
+  std::ranges::transform(
+      sorted_exponents, std::back_inserter(grouped_operands), [&](const integer_constant& exp) {
+        WF_ASSERT(!exp.is_negative());
+        const auto& bases = exponent_to_base.at(exp);
+
+        return exp.value() <= 16
+                   ? exponentiate_by_squaring(product, static_cast<std::uint64_t>(exp.value()))
+                   : create_power_call(product, exp);
+      });
 }
 
 // Apply exponentiation by squaring to implement a power of an integer.
@@ -325,38 +381,18 @@ ir_form_visitor::pow_extract_base_and_integer_exponent(const power& p) {
   return std::nullopt;
 }
 
-ir::value_ptr ir_form_visitor::operator()(const unevaluated& u) {
-  // Parenthetical only matters in the context of the symbolic tree.
-  return operator()(u.contents());
+ir::value_ptr ir_form_visitor::create_reciprocal(const ir::value_ptr reciprocal_value) {
+  const ir::value_ptr one = operator()(constants::one);
+  constexpr auto promoted_type = numeric_primitive_type::floating_point;
+  return push_operation(ir::div{}, promoted_type, maybe_cast(one, promoted_type),
+                        maybe_cast(reciprocal_value, promoted_type));
 }
 
-ir::value_ptr ir_form_visitor::operator()(const power& power) {
-  // Check if this exponent has a negative coefficient on it:
-  if (const auto [exp_coefficient, exp_mul] = as_coeff_and_mul(power.exponent());
-      is_negative_number(exp_coefficient)) {
-    // Construct the reciprocal version of this power.
-    const scalar_expr reciprocal = pow(power.base(), -power.exponent());
-    const ir::value_ptr reciprocal_value = operator()(reciprocal);
-
-    // Write the power as: 1 / pow(base, -exponent)
-    const ir::value_ptr one = operator()(constants::one);
-    constexpr numeric_primitive_type promoted_type = numeric_primitive_type::floating_point;
-    return push_operation(ir::div{}, promoted_type, maybe_cast(one, promoted_type),
-                          maybe_cast(reciprocal_value, promoted_type));
-  }
-
-  if (const auto maybe_rewrite = pow_extract_base_and_integer_exponent(power);
-      maybe_rewrite.has_value()) {
-    const auto [base, exponent] = *maybe_rewrite;
-    return exponentiate_by_squaring(base, exponent);
-  }
-
-  // Otherwise do it by calling pow:
-  const ir::value_ptr base =
-      maybe_cast(operator()(power.base()), numeric_primitive_type::floating_point);
-
+// `Exponent` may be a scalar_expr, or an integer constant.
+template <typename Exponent>
+ir::value_ptr ir_form_visitor::create_power_call(ir::value_ptr base, const Exponent& exponent) {
   // TODO: Support (int ** int) powers?
-  if (const ir::value_ptr exp = operator()(power.exponent());
+  if (const ir::value_ptr exp = operator()(exponent);
       exp->numeric_type() == numeric_primitive_type::integral) {
     return push_operation(ir::call_std_function{std_math_function::powi},
                           numeric_primitive_type::floating_point, base, exp);
@@ -365,6 +401,25 @@ ir::value_ptr ir_form_visitor::operator()(const power& power) {
                           numeric_primitive_type::floating_point, base,
                           maybe_cast(exp, numeric_primitive_type::floating_point));
   }
+}
+
+ir::value_ptr ir_form_visitor::operator()(const power& power) {
+  // Check if this exponent has a negative coefficient on it:
+  if (const auto [exp_coefficient, exp_mul] = as_coeff_and_mul(power.exponent());
+      is_negative_number(exp_coefficient)) {
+    // Write the power as: 1 / pow(base, -exponent)
+    const scalar_expr reciprocal = pow(power.base(), -power.exponent());
+    return create_reciprocal(operator()(reciprocal));
+  }
+
+  if (const auto maybe_rewrite = pow_extract_base_and_integer_exponent(power);
+      maybe_rewrite.has_value()) {
+    const auto [base, exponent] = *maybe_rewrite;
+    return exponentiate_by_squaring(base, exponent);
+  }
+  const ir::value_ptr base =
+      maybe_cast(operator()(power.base()), numeric_primitive_type::floating_point);
+  return create_power_call(base, power.exponent());
 }
 
 ir::value_ptr ir_form_visitor::operator()(const rational_constant& r) {
@@ -401,6 +456,11 @@ ir::value_ptr ir_form_visitor::operator()(const symbolic_function_invocation& in
 
 ir::value_ptr ir_form_visitor::operator()(const undefined&) const {
   throw type_error("Cannot generate code with expressions containing: {}", undefined::name_str);
+}
+
+ir::value_ptr ir_form_visitor::operator()(const unevaluated& u) {
+  // Parenthetical only matters in the context of the symbolic tree.
+  return operator()(u.contents());
 }
 
 ir::value_ptr ir_form_visitor::operator()(const unique_variable& var) const {
