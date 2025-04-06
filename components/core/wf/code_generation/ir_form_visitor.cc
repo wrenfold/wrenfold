@@ -249,25 +249,20 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
 
   // Convert operands into values, converting some integer powers into multiplications in the
   // process.
-  absl::InlinedVector<ir::value_ptr, 16> mul_operands{};
-  remove_and_group_mul_operands_by_exponent(mul_terms, mul_operands);
-
-  for (const scalar_expr& child : mul_terms) {
-    if (const power* p = get_if<const power>(child); p != nullptr) {
-      if (const auto maybe_extracted = pow_extract_base_and_integer_exponent(*p);
-          maybe_extracted.has_value()) {
-        const auto [base, exponent] = *maybe_extracted;
-        mul_operands.insert(mul_operands.cend(), exponent, base);
-        continue;  //  skip adding into mul_operands below
-      }
-    }
-    mul_operands.push_back(operator()(child));
+  absl::InlinedVector<ir::value_ptr, 16> mul_value_operands{};
+  remove_and_group_mul_operands_by_exponent(mul_terms, mul_value_operands);
+  convert_mul_operands_with_power_expansion(mul_terms, mul_value_operands);
+  WF_ASSERT(!mul_value_operands.empty());
+  if (mul_value_operands.size() == 1) {
+    return mul_value_operands[0];
+  } else {
+    return create_add_or_mul_with_operands<ir::mul>(mul_value_operands);
   }
-  return create_add_or_mul_with_operands<ir::mul>(mul_operands);
 }
 
 template <typename T, typename Container>
 ir::value_ptr ir_form_visitor::create_add_or_mul_with_operands(Container args) {
+  WF_ASSERT_GT(args.size(), 1);
   auto promoted_type = numeric_primitive_type::integral;
   for (const ir::value_ptr v : args) {
     promoted_type = std::max(promoted_type, v->numeric_type());
@@ -296,7 +291,7 @@ void ir_form_visitor::remove_and_group_mul_operands_by_exponent(Container& opera
         if (exp->is_negative()) {
           exponent_to_base[exp->abs()].push_back(constants::one / p->base());
         } else {
-          exponent_to_base[exp->abs()].push_back(p->base());
+          exponent_to_base[*exp].push_back(p->base());
         }
       }
     }
@@ -312,10 +307,13 @@ void ir_form_visitor::remove_and_group_mul_operands_by_exponent(Container& opera
 
   // Discard anything in operands that was retained in `exponent_to_base`.
   remove_if(operands, [&exponent_to_base](const scalar_expr& child) {
+    // Go back and remove from `operands` everything we will be placing into `grouped_operands`
+    // below:
     if (const power* p = get_if<const power>(child); p != nullptr) {
       if (const integer_constant* exp = get_if<const integer_constant>(p->exponent());
           exp != nullptr) {
-        return exponent_to_base.contains(*exp);
+        // Use abs() here because we keyed the map by absolute exponent above.
+        return exponent_to_base.contains(exp->abs());
       }
     }
     return false;
@@ -326,10 +324,31 @@ void ir_form_visitor::remove_and_group_mul_operands_by_exponent(Container& opera
         WF_ASSERT(!exp.is_negative());
         const auto& bases = exponent_to_base.at(exp);
 
+        absl::InlinedVector<ir::value_ptr, 4> bases_as_values;
+        bases_as_values.reserve(bases.size());
+        convert_mul_operands_with_power_expansion(bases, bases_as_values);
+
+        const auto product = create_add_or_mul_with_operands<ir::mul>(bases_as_values);
         return exp.value() <= 16
                    ? exponentiate_by_squaring(product, static_cast<std::uint64_t>(exp.value()))
                    : create_power_call(product, exp);
       });
+}
+
+template <typename ContainerIn, typename ContainerOut>
+void ir_form_visitor::convert_mul_operands_with_power_expansion(const ContainerIn& expressions,
+                                                                ContainerOut& operands_out) {
+  for (const scalar_expr& child : expressions) {
+    if (const power* p = get_if<const power>(child); p != nullptr) {
+      if (const auto maybe_extracted = pow_extract_base_and_integer_exponent(*p);
+          maybe_extracted.has_value()) {
+        const auto [base, exponent] = *maybe_extracted;
+        operands_out.insert(operands_out.cend(), exponent, base);
+        continue;  //  skip adding into `operands_out` below
+      }
+    }
+    operands_out.push_back(operator()(child));
+  }
 }
 
 // Apply exponentiation by squaring to implement a power of an integer.

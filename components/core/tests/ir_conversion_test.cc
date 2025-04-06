@@ -309,7 +309,7 @@ TEST(IrTest, TestPowerConversion3) {
   check_expressions(expected_expressions, ir);
 }
 
-TEST(IrTest, TestPowerConversion4) {
+TEST(IrTest, TestIntegerPowerGrouping1) {
   auto [expected_expressions, ir] = create_ir(
       [](scalar_expr theta) {
         const auto tmp = cos(theta) / sin(theta);
@@ -317,6 +317,35 @@ TEST(IrTest, TestPowerConversion4) {
       },
       "func", arg("theta"));
 
+  EXPECT_EQ(7, ir.num_operations()) << ir;
+  EXPECT_EQ(2, ir.count_multiplications()) << ir;
+  check_expressions(expected_expressions, ir);
+}
+
+TEST(IrTest, TestIntegerPowerGrouping2) {
+  auto [expected_expressions, ir] = create_ir(
+      [](scalar_expr x, scalar_expr y) {
+        const auto tmp = x * x * y * y;
+        return ta::static_matrix<2, 1>(make_vector(tmp, tmp * tmp));
+      },
+      "func", arg("x"), arg("y"));
+
+  EXPECT_EQ(4, ir.num_operations()) << ir;
+  EXPECT_EQ(3, ir.count_multiplications()) << ir;
+  check_expressions(expected_expressions, ir);
+}
+
+TEST(IrTest, TestIntegerPowerGrouping3) {
+  auto [expected_expressions, ir] = create_ir(
+      [](scalar_expr x, scalar_expr y, scalar_expr z) {
+        const auto tmp = (z / x) * (1 / y);
+        return ta::static_matrix<4, 1>(
+            make_vector(tmp, tmp * tmp, tmp * tmp * tmp, tmp * tmp * tmp * tmp));
+      },
+      "func", arg("x"), arg("y"), arg("z"));
+
+  EXPECT_EQ(9, ir.num_operations()) << ir;
+  EXPECT_EQ(5, ir.count_multiplications()) << ir;
   check_expressions(expected_expressions, ir);
 }
 

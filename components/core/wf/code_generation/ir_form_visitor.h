@@ -116,6 +116,12 @@ class ir_form_visitor {
   void remove_and_group_mul_operands_by_exponent(Container& operands,
                                                  ContainerOut& grouped_operands);
 
+  // Convert scalar-expressions into value operands. Powers may be expanded into multiple operands
+  // to a multiplication.
+  template <typename ContainerIn, typename ContainerOut>
+  void convert_mul_operands_with_power_expansion(const ContainerIn& expressions,
+                                                 ContainerOut& operands_out);
+
   // The IR we are writing to as we convert.
   control_flow_graph& output_graph_;
   ir::block_ptr output_block_;

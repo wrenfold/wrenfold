@@ -784,9 +784,8 @@ std::size_t control_flow_graph::num_conditionals() const {
 }
 
 ir::block_ptr control_flow_graph::first_block() const {
-  const auto it =
-      std::find_if(blocks_.begin(), blocks_.end(),
-                   [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); });
+  const auto it = std::ranges::find_if(
+      blocks_, [](const ir::block::unique_ptr& block) { return block->has_no_ancestors(); });
   WF_ASSERT(it != blocks_.end(), "There must be an entry block");
   return ir::block_ptr{it->get()};
 }
