@@ -247,10 +247,14 @@ ir::value_ptr ir_form_visitor::operator()(const multiplication& mul) {
     mul_terms.push_back(constants::negative_one);
   }
 
-  // Convert operands into values, converting some integer powers into multiplications in the
-  // process.
+  // Optionally group operands that have similar exponents into a single power operation:
   absl::InlinedVector<ir::value_ptr, 16> mul_value_operands{};
-  remove_and_group_mul_operands_by_exponent(mul_terms, mul_value_operands);
+  if constexpr (constexpr bool group_operands_during_conversion = false;
+                group_operands_during_conversion) {
+    remove_and_group_mul_operands_by_exponent(mul_terms, mul_value_operands);
+  }
+
+  // Convert some integer powers into multiplications:
   convert_mul_operands_with_power_expansion(mul_terms, mul_value_operands);
   WF_ASSERT(!mul_value_operands.empty());
   if (mul_value_operands.size() == 1) {

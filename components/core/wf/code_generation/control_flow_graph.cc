@@ -113,8 +113,7 @@ template <typename Container>
 void format_op_args(std::string& output, const ir::operation& op, const Container& operands,
                     const std::size_t width) {
   std::visit(
-      [&](const auto& op_concrete) {
-        using T = std::decay_t<decltype(op_concrete)>;
+      [&]<typename T>(const T& op_concrete) {
         format_op_args_struct<T>{}(output, op_concrete, operands, width);
       },
       op);
@@ -212,7 +211,7 @@ void control_flow_graph::factorize_sums(const std::size_t num_passes) {
 }
 
 control_flow_graph control_flow_graph::convert_conditionals_to_control_flow(
-    bool convert_ternaries) && {
+    const bool convert_ternaries) && {
   WF_FUNCTION_TRACE();
   return ir_control_flow_converter{std::move(*this), convert_ternaries}.convert();
 }
@@ -503,8 +502,8 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
 
       // Copy the operands vector, and drop anything that was factored out:
       auto operands = muls[j]->operands();
-      WF_ASSERT(std::is_sorted(operands.begin(), operands.end(),
-                               [](auto a, auto b) { return a->name() < b->name(); }));
+      WF_ASSERT(
+          std::ranges::is_sorted(operands, [](auto a, auto b) { return a->name() < b->name(); }));
 
       // Find the unique subset, and extract the duplicates into `remaining_operands`:
       absl::InlinedVector<ir::value_ptr, 8> remaining_operands;
@@ -513,10 +512,10 @@ ir::value_ptr control_flow_graph::factorize_sum_of_products(
                      operands.cend());
 
       // Now take any operands that were _not_ factored out.
-      std::copy_if(operands.begin(), operands.end(), std::back_inserter(remaining_operands),
-                   [&](const ir::const_value_ptr v) {
-                     return !index_assignor.variable_was_factored_out(std::get<0>(step), v);
-                   });
+      std::ranges::copy_if(operands, std::back_inserter(remaining_operands),
+                           [&](const ir::const_value_ptr v) {
+                             return !index_assignor.variable_was_factored_out(std::get<0>(step), v);
+                           });
 
       if (remaining_operands.empty()) {
         // All the variables in this product were factored out, so insert a one.
@@ -676,8 +675,10 @@ void control_flow_graph::insert_negations(const ir::block_ptr block) {
 
     // Copy out all the operands that are not negative one.
     absl::InlinedVector<ir::value_ptr, 8> other_operands{};
-    std::copy_if(val->operands().begin(), val->operands().end(), std::back_inserter(other_operands),
-                 [](const ir::const_value_ptr x) { return !value_is_negative_one(x); });
+    other_operands.reserve(val->num_operands());
+    std::ranges::copy_if(
+        val->operands(), std::back_inserter(other_operands),
+        [](const ir::const_value_ptr x) { return !value_is_integer_constant(x, -1); });
 
     const std::size_t negation_count = val->num_operands() - other_operands.size();
     const bool is_negative = negation_count & 1;
@@ -822,7 +823,7 @@ std::size_t control_flow_graph::count_multiplications() const noexcept {
 static operation_counts count_all_operations(
     const ir::const_block_ptr block, std::unordered_set<ir::const_block_ptr>& non_traversable) {
   operation_counts counts{};
-  if (non_traversable.count(block)) {
+  if (non_traversable.contains(block)) {
     return counts;
   }
 
@@ -880,7 +881,7 @@ void control_flow_graph::assert_invariants() const {
   for (const auto& block : blocks_) {
     WF_ASSERT(block);
     for (const ir::value_ptr op : block->operations()) {
-      WF_ASSERT(all_used_values.count(op.get()));
+      WF_ASSERT(all_used_values.contains(op.get()));
       WF_ASSERT(op->parent().get() == block.get());
     }
   }
@@ -889,11 +890,11 @@ void control_flow_graph::assert_invariants() const {
   for (const auto& v : values_) {
     WF_ASSERT(v);
     for (const auto operand : v->operands()) {
-      WF_ASSERT(all_used_values.count(operand.get()));
+      WF_ASSERT(all_used_values.contains(operand.get()));
       WF_ASSERT(contains(operand->consumers(), ir::value_ptr{v.get()}));
     }
     for (const auto consumer : v->consumers()) {
-      WF_ASSERT(all_used_values.count(consumer.get()));
+      WF_ASSERT(all_used_values.contains(consumer.get()));
       WF_ASSERT(contains(consumer->operands(), ir::value_ptr{v.get()}));
     }
   }

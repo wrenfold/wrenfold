@@ -889,7 +889,7 @@ TEST(IrTest, TestExternalFunction1) {
   ASSERT_EQ(1, output_ir.count_operation<ir::call_external_function>());
 }
 
-// Make a external function that returns a matrix.
+// Make an external function that returns a matrix.
 class custom_func_2
     : public declare_external_function<custom_func_2, type_annotations::static_matrix<2, 4>,
                                        type_list<scalar_expr, scalar_expr>> {
