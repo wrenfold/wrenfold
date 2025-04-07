@@ -173,10 +173,11 @@ void control_flow_graph::apply_simplifications(const optimization_params& p) {
   WF_FUNCTION_TRACE();
 
   eliminate_duplicates();
-
-  //
-
   factorize_sums(p.factorization_passes);
+
+  for (const auto& block : blocks_) {
+    group_integer_powers(block.get());
+  }
 
   if (p.binarize_operations) {
     for (const auto& block : blocks_) {
@@ -652,16 +653,82 @@ void control_flow_graph::merge_multiplications_in_block(const ir::block_ptr bloc
   block->remove_unused_operations();
 }
 
-inline bool value_is_negative_one(const ir::const_value_ptr val) {
+// True if the specified value is the integer constant `value`, or a casted version thereof.
+inline bool value_is_integer_constant(const ir::const_value_ptr val, const checked_int value) {
   if (const ir::load* load = std::get_if<ir::load>(&val->value_op()); load != nullptr) {
     if (const integer_constant* constant = std::get_if<integer_constant>(&load->variant());
-        constant != nullptr && constant->value() == -1) {
+        constant != nullptr && constant->value() == value) {
       return true;
     }
-  } else if (val->is_op<ir::cast>() && value_is_negative_one(val->first_operand())) {
+  } else if (val->is_op<ir::cast>() && value_is_integer_constant(val->first_operand(), value)) {
     return true;
   }
   return false;
+}
+
+void control_flow_graph::group_integer_powers(const ir::block_ptr block) {
+  WF_FUNCTION_TRACE();
+
+  auto operations_out = block->operations();
+
+  for (const ir::value_ptr mul : block->operations()) {
+    if (!mul->is_op<ir::mul>()) {
+      continue;
+    }
+
+    // Count occurrences of each base. Denominator terms have negative powers.
+    std::unordered_map<ir::value_ptr, std::int64_t> base_to_power{};
+    for (const ir::value_ptr mul_operand : mul->operands()) {
+      if (mul_operand->is_op<ir::div>() &&
+          value_is_integer_constant(mul_operand->first_operand(), 1)) {
+        if (const ir::value_ptr denominator = mul_operand->operator[](1);
+            denominator->is_op<ir::mul>()) {
+          for (const ir::value_ptr denom_mul_operand : denominator->operands()) {
+            base_to_power[denom_mul_operand]--;
+          }
+        } else {
+          base_to_power[denominator]--;
+        }
+      } else {
+        base_to_power[mul_operand]++;
+      }
+    }
+
+    //
+
+    // // Pull out arguments that are multiplications:
+    // separate_muls(add->operands(), muls, non_muls);
+    // if (muls.size() <= 1) {
+    //   continue;
+    // }
+    //
+    // // Assign indices to the args:
+    // const auto term_bitsets = index_assignor.initialize(muls);
+    // if (term_bitsets.empty()) {
+    //   // This sum is too large.
+    //   continue;
+    // }
+    //
+    // // Compute factorizations:
+    // constexpr std::size_t branching_factor = 4;
+    // const auto factorizations = compute_ranked_factorizations(
+    //     term_bitsets, index_assignor.num_variables(), branching_factor);
+    //
+    // if (factorizations.empty()) {
+    //   continue;
+    // }
+    //
+    // // TODO: For now we take the highest scoring one, but there might be something smarter we
+    // // could do here by considering the whole graph.
+    // const ir::value_ptr factorized_sum = factorize_sum_of_products(
+    //     index_assignor, factorizations.front(), block, muls, non_muls, operations);
+    //
+    // add->replace_with(factorized_sum);
+  }
+
+  reverse_remove_if(operations, &remove_if_unused);
+  topological_sort_values(block, operations);
+  block->set_operations(std::move(operations));
 }
 
 void control_flow_graph::insert_negations(const ir::block_ptr block) {

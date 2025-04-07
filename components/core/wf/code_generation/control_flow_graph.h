@@ -119,6 +119,9 @@ class control_flow_graph {
   // Merge nested multiplications together.
   void merge_multiplications_in_block(ir::block_ptr block);
 
+  // Group together integer powers: x^a * y^a -> (x * y)^a
+  void group_integer_powers(ir::block_ptr block);
+
   // Replace multiplications by -1 with negations.
   void insert_negations(ir::block_ptr block);
 
