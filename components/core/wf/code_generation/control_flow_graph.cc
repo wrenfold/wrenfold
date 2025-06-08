@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <queue>
+#include <ranges>
 #include <unordered_set>
 #include <vector>
 
@@ -677,24 +678,63 @@ void control_flow_graph::group_integer_powers(const ir::block_ptr block) {
     }
 
     // Count occurrences of each base. Denominator terms have negative powers.
-    std::unordered_map<ir::value_ptr, std::int64_t> base_to_power{};
+    std::unordered_map<ir::value_ptr, std::int64_t> base_to_exponent{};
     for (const ir::value_ptr mul_operand : mul->operands()) {
       if (mul_operand->is_op<ir::div>() &&
           value_is_integer_constant(mul_operand->first_operand(), 1)) {
         if (const ir::value_ptr denominator = mul_operand->operator[](1);
             denominator->is_op<ir::mul>()) {
           for (const ir::value_ptr denom_mul_operand : denominator->operands()) {
-            base_to_power[denom_mul_operand]--;
+            base_to_exponent[denom_mul_operand]--;
           }
         } else {
-          base_to_power[denominator]--;
+          base_to_exponent[denominator]--;
         }
       } else {
-        base_to_power[mul_operand]++;
+        base_to_exponent[mul_operand]++;
       }
     }
 
-    //
+    // Take abs of exponent, then order highest to lowest exponent.
+    std::vector<std::pair<ir::value_ptr, std::int64_t>> sorted_exponents{};
+    std::ranges::transform(
+        base_to_exponent, std::back_inserter(sorted_exponents),
+        [](const auto& pair) { return std::make_pair(pair.first, std::abs(pair.second)); });
+    std::ranges::sort(sorted_exponents, [](const auto& a, const auto& b) {
+      return std::make_tuple(a.second, a.first->name()) >
+             std::make_tuple(b.second, b.first->name());
+    });
+
+    // Collect bases for which the power is +1, -1, or 0
+    absl::InlinedVector<ir::value_ptr, 8> bases_with_unit_exponent{};
+    while (!sorted_exponents.empty()) {
+      if (const auto [base, exp] = sorted_exponents.back(); exp <= 1) {
+        bases_with_unit_exponent.push_back(base);
+        sorted_exponents.pop_back();
+      } else {
+        break;
+      }
+    }
+
+    // Check if there are any bases left that could be grouped:
+    if (sorted_exponents.size() < 2) {
+      continue;
+    }
+
+    // Start grouping
+    std::int64_t factored_exponent{0};
+    while (sorted_exponents.size() > 1) {
+      const auto [_, next_largest_exponent] = sorted_exponents.back();
+      if (next_largest_exponent == 0) {
+        sorted_exponents.pop_back();
+        continue;
+      }
+
+      for (auto& [base, exp] : sorted_exponents | std::views::reverse) {
+      }
+
+      // take any terms
+    }
 
     // // Pull out arguments that are multiplications:
     // separate_muls(add->operands(), muls, non_muls);
@@ -726,9 +766,9 @@ void control_flow_graph::group_integer_powers(const ir::block_ptr block) {
     // add->replace_with(factorized_sum);
   }
 
-  reverse_remove_if(operations, &remove_if_unused);
-  topological_sort_values(block, operations);
-  block->set_operations(std::move(operations));
+  reverse_remove_if(operations_out, &remove_if_unused);
+  topological_sort_values(block, operations_out);
+  block->set_operations(std::move(operations_out));
 }
 
 void control_flow_graph::insert_negations(const ir::block_ptr block) {
