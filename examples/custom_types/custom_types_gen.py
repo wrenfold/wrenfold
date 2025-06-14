@@ -12,7 +12,6 @@ interface with types in an existing codebase.
 
 import argparse
 import dataclasses
-import typing as T
 
 from wrenfold import ast, code_generation, sym, type_info
 from wrenfold.geometry import Quaternion
@@ -34,7 +33,9 @@ class EigenQuaternion:
     w: FloatScalar
 
     def to_quaternion(self) -> Quaternion:
-        """Convert to the wrenfold quaternion type, so we can more easily manipulate symbolically."""
+        """
+        Convert to the wrenfold quaternion type, so we can more easily manipulate symbolically.
+        """
         return Quaternion(w=self.w, x=self.x, y=self.y, z=self.z)
 
     @staticmethod
@@ -58,7 +59,7 @@ class Pose3d:
     rotation: EigenQuaternion
     translation: Vector3
 
-    def to_flat_list(self) -> T.List[sym.Expr]:
+    def to_flat_list(self) -> list[sym.Expr]:
         """Flatten to a single list of expressions."""
         return self.rotation.to_quaternion().to_list() + self.translation.to_flat_list()
 
@@ -75,10 +76,12 @@ class Pose3d:
         """
         The 6x7 derivative of the right-tangent with respect to the 7 pose elements.
         """
-        return sym.diag([
-            self.rotation.to_quaternion().right_local_coordinates_derivative(),
-            sym.eye(3),
-        ])
+        return sym.diag(
+            [
+                self.rotation.to_quaternion().right_local_coordinates_derivative(),
+                sym.eye(3),
+            ]
+        )
 
     def inverse(self) -> "Pose3d":
         """
@@ -96,7 +99,8 @@ class Pose3d:
         Compute the pose obtained by right multiplying `other` onto `self`.
 
         If the input poses `self` and `other` are represented as 4x4 homogeneous transformation
-        matrices `A` and `B`, then the result of this method will correspond to the matrix C = A * B.
+        matrices `A` and `B`, then the result of this method will correspond to the matrix
+        C = A * B.
         """
         rot = self.rotation.to_quaternion() * other.rotation.to_quaternion()
         return Pose3d(
@@ -137,11 +141,13 @@ def transform_point(world_T_body: Pose3d, p_body: Point3d):
     :param p_body: A point in the right frame (body) of the input pose.
     """
     p_world = (
-        world_T_body.rotation.rotation_matrix() * p_body.to_vector() + world_T_body.translation)
+        world_T_body.rotation.rotation_matrix() * p_body.to_vector() + world_T_body.translation
+    )
 
     # Output some jacobians as well for good measure.
     p_world_D_pose = (
-        p_world.jacobian(world_T_body.to_flat_list()) * world_T_body.right_retract_derivative())
+        p_world.jacobian(world_T_body.to_flat_list()) * world_T_body.right_retract_derivative()
+    )
     p_world_D_p_body = p_world.jacobian(p_body.to_vector())
 
     # Custom types can be returned as well:
@@ -170,12 +176,16 @@ def compose_poses(a_T_b: Pose3d, b_T_c: Pose3d):
     # appropriately chain our derivatives with the mapping from our variables to the tangent
     # space we will use for retraction (the update step) in our optimization.
     composed_D_first = (
-        a_T_c.right_local_coordinates_derivative() *
-        sym.jacobian(a_T_c.to_flat_list(), a_T_b.to_flat_list()) * a_T_b.right_retract_derivative())
+        a_T_c.right_local_coordinates_derivative()
+        * sym.jacobian(a_T_c.to_flat_list(), a_T_b.to_flat_list())
+        * a_T_b.right_retract_derivative()
+    )
 
     composed_D_second = (
-        a_T_c.right_local_coordinates_derivative() *
-        sym.jacobian(a_T_c.to_flat_list(), b_T_c.to_flat_list()) * b_T_c.right_retract_derivative())
+        a_T_c.right_local_coordinates_derivative()
+        * sym.jacobian(a_T_c.to_flat_list(), b_T_c.to_flat_list())
+        * b_T_c.right_retract_derivative()
+    )
 
     return [
         code_generation.ReturnValue(a_T_c),
@@ -185,7 +195,6 @@ def compose_poses(a_T_b: Pose3d, b_T_c: Pose3d):
 
 
 class CustomCppGenerator(code_generation.CppGenerator):
-
     def format_get_field(self, element: ast.GetField) -> str:
         """
         Customize access to struct Pose3. We assume that the pose type has functions to access each
@@ -200,14 +209,14 @@ class CustomCppGenerator(code_generation.CppGenerator):
         if element.python_type in [Point3d, Pose3d]:
             return f"geo::{element.name}"
         elif element.python_type == EigenQuaternion:
-            return f"Eigen::Quaternion<double>"
+            return "Eigen::Quaternion<double>"
         return self.super_format(element)
 
     def format_construct_matrix(self, element: ast.ConstructMatrix) -> str:
         """
-        By default, wrenfold passes input and output matrices as spans. If we want to return a matrix,
-        we need to override this method and help the code-generator emit constructor syntax suitable
-        to our chosen types.
+        By default, wrenfold passes input and output matrices as spans. If we want to return a
+        matrix, we need to override this method and help the code-generator emit constructor syntax
+        suitable to our chosen types.
         """
         # For the small vector that we care about, this syntax works.
         formatted_args = ", ".join(self.format(x) for x in element.args)
@@ -216,18 +225,16 @@ class CustomCppGenerator(code_generation.CppGenerator):
     def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
         if element.type.python_type == EigenQuaternion:
             # Eigen quaternion expects constructor args in order (w, x, y, z)
-            arg_dict = {
-                f.name: element.get_field_value(f.name) for f in element.type.fields
-            }
+            arg_dict = {f.name: element.get_field_value(f.name) for f in element.type.fields}
             formatted_args = ", ".join(self.format(arg_dict[i]) for i in ("w", "x", "y", "z"))
-            # We normalize numerically on construction, rather than symbolically. This avoids introducing
-            # superfluous operations into the symbolic math tree, which saves on generated operations.
+            # We normalize numerically on construction, rather than symbolically. This avoids
+            # introducing superfluous operations into the symbolic math tree, which saves on
+            # generated operations.
             return f"Eigen::Quaternion<double>{{{formatted_args}}}.normalized()"
         return self.super_format(element)
 
 
 class CustomRustGenerator(code_generation.RustGenerator):
-
     def format_get_field(self, element: ast.GetField) -> str:
         """
         Use member accessors for the Pose3 type.
@@ -248,27 +255,30 @@ class CustomRustGenerator(code_generation.RustGenerator):
         if element.python_type in [Point3d, Pose3d]:
             return f"crate::geo::{element.name}"
         elif element.python_type == EigenQuaternion:
-            return f"nalgebra::UnitQuaternion::<f64>"
+            return "nalgebra::UnitQuaternion::<f64>"
         return self.super_format(element)
 
     def format_construct_matrix(self, element: ast.ConstructMatrix) -> str:
         """Generate constructor syntax for nalgebra matrices."""
         formatted_args = ", ".join(self.format(x) for x in element.args)
-        return f"nalgebra::SMatrix::<f64, {element.type.rows}, {element.type.cols}>::new({formatted_args})"
+        rows, cols = element.type.rows, element.type.cols
+        return f"nalgebra::SMatrix::<f64, {rows}, {cols}>::new({formatted_args})"
 
     def format_construct_custom_type(self, element: ast.ConstructCustomType) -> str:
-        """Use a `new()` method for our Pose3 type, and the UnitQuaternion constructor for rotations."""
+        """
+        Use a `new()` method for our Pose3 type, and the UnitQuaternion constructor for rotations.
+        """
         if element.type.python_type == Pose3d:
             r = self.format(element.get_field_value("rotation"))
             t = self.format(element.get_field_value("translation"))
             return f"crate::geo::Pose3d::new(\n  {r},\n  {t}\n)"
         elif element.type.python_type == EigenQuaternion:
             # Order for nalgebra is [w, x, y, z]
-            arg_dict = {
-                f.name: element.get_field_value(f.name) for f in element.type.fields
-            }
+            arg_dict = {f.name: element.get_field_value(f.name) for f in element.type.fields}
             formatted_args = ", ".join(self.format(arg_dict[i]) for i in ("w", "x", "y", "z"))
-            return f"nalgebra::Unit::new_normalize(nalgebra::Quaternion::<f64>::new({formatted_args}))"
+            return (
+                f"nalgebra::Unit::new_normalize(nalgebra::Quaternion::<f64>::new({formatted_args}))"
+            )
         return self.super_format(element)
 
 
@@ -282,10 +292,10 @@ def main(args: argparse.Namespace):
     else:
         raise RuntimeError("Invalid language selection")
 
-    code = str()
+    code = ""
     for function in [transform_point, compose_poses]:
         code += code_generation.generate_function(func=function, generator=generator)
-        code += '\n\n'
+        code += "\n\n"
 
     code = generator.apply_preamble(code=code, **preamble_args)
     code_generation.mkdir_and_write_file(code=code, path=args.output)

@@ -14,7 +14,7 @@ import numpy as np
 try:
     import torch as th
 except ImportError:
-    print('Torch not installed, PyTorch tests will be skipped.')
+    print("Torch not installed, PyTorch tests will be skipped.")
     th = None
 
 from wrenfold import code_generation, external_functions, sym, type_info
@@ -45,9 +45,10 @@ def create_evaluator(func: T.Callable) -> T.Callable:
     input_args = [a for a in desc.arguments if a.is_input]
 
     def evaluator(*args):
-        assert len(args) == len(
-            input_args), f"Mismatch in # of input args: {len(args)} != {len(input_args)}"
-        sub_list: T.List[T.Tuple[sym.Expr, sym.Expr]] = []
+        assert len(args) == len(input_args), (
+            f"Mismatch in # of input args: {len(args)} != {len(input_args)}"
+        )
+        sub_list: list[tuple[sym.Expr, sym.Expr]] = []
         for numeric_arg, arg_desc in zip(args, input_args):
             sym_arg = arg_desc.create_symbolic_input()
             if isinstance(sym_arg, sym.Expr):
@@ -57,12 +58,13 @@ def create_evaluator(func: T.Callable) -> T.Callable:
                     numeric_arg = sym.integer(int(numeric_arg))
                 else:
                     raise TypeError(
-                        f"Invalid type for numeric arg: value = {numeric_arg}, type = {type(numeric_arg)}"
+                        f"Invalid type for numeric arg: value = {numeric_arg}, type = {type(numeric_arg)}"  # noqa: E501
                     )
                 sub_list.append((sym_arg, numeric_arg))
             elif isinstance(sym_arg, sym.MatrixExpr):
-                assert isinstance(numeric_arg,
-                                  np.ndarray), f"{type(numeric_arg)}, arg = {arg_desc.name}"
+                assert isinstance(numeric_arg, np.ndarray), (
+                    f"{type(numeric_arg)}, arg = {arg_desc.name}"
+                )
                 if len(numeric_arg.shape) > 2:
                     raise TypeError("Numpy array must be 1D or 2D")
                 matrix = sym.matrix(numeric_arg.astype(float))
@@ -78,8 +80,9 @@ def create_evaluator(func: T.Callable) -> T.Callable:
         output_arg_dict = dict()
         for key, output_exprs in output_expressions.items():
             output_exprs = sym.subs(output_exprs, sub_list).eval()
-            assert isinstance(output_exprs,
-                              (float, np.ndarray)), f"Failed to evaluate output: {key}"
+            assert isinstance(output_exprs, (float, np.ndarray)), (
+                f"Failed to evaluate output: {key}"
+            )
             if not key.name:
                 return_value = output_exprs
             else:
@@ -146,8 +149,12 @@ class PythonCodeGenerationTestBase(MathTestBase):
     VERBOSE = False
 
     @classmethod
-    def generate(cls, func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
-                 batch: bool, **kwargs) -> T.Callable:
+    def generate(
+        cls,
+        func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
+        batch: bool,
+        **kwargs,
+    ) -> T.Callable:
         """Derived classes may override to customize the code-generation process."""
         raise NotImplementedError()
 
@@ -157,26 +164,19 @@ class PythonCodeGenerationTestBase(MathTestBase):
 
     @classmethod
     def convert_outputs_to_array(cls, outputs, strip_batch_dim: bool = False):
-        if strip_batch_dim:
-            constructor = lambda x: np.squeeze(np.array(x), axis=0)
-        else:
-            constructor = np.array
+        constructor = (lambda x: np.squeeze(np.array(x), axis=0)) if strip_batch_dim else np.array
         if isinstance(outputs, tuple):
             return_val, output_args = outputs
-            return constructor(return_val), {
-                k: constructor(v) for (k, v) in output_args.items()
-            }
+            return constructor(return_val), {k: constructor(v) for (k, v) in output_args.items()}
         elif isinstance(outputs, dict):
-            return {
-                k: constructor(v) for (k, v) in outputs.items()
-            }
+            return {k: constructor(v) for (k, v) in outputs.items()}
         else:
             return constructor(outputs)
 
     @classmethod
     def get_optional_output_flags(
         cls, func: T.Callable[..., code_generation.CodegenFuncInvocationResult]
-    ) -> T.Tuple[int, T.Dict[str, bool]]:
+    ) -> tuple[int, dict[str, bool]]:
         """
         Get the function description and do two things:
         - Count the # of input args.
@@ -261,7 +261,8 @@ class PythonCodeGenerationTestBase(MathTestBase):
         func_batched = self.generate(nested_cond, batch=True, context=dict())
         evaluator_batched = batch_evaluator(evaluator)
         np.testing.assert_allclose(
-            desired=evaluator_batched(x, y), actual=func_batched(x, y), rtol=1.0e-6)
+            desired=evaluator_batched(x, y), actual=func_batched(x, y), rtol=1.0e-6
+        )
 
     def test_std_math_functions(self):
         """Test a function that uses every built-in math function."""
@@ -300,13 +301,14 @@ class PythonCodeGenerationTestBase(MathTestBase):
         evaluator_batched = batch_evaluator(evaluator)
         x = np.linspace(-5.0, 5.0, num=20)
         np.testing.assert_allclose(
-            desired=evaluator_batched(x), actual=func_batched(x), rtol=1.0e-6)
+            desired=evaluator_batched(x), actual=func_batched(x), rtol=1.0e-6
+        )
 
     def test_rotate_vector(self):
         """Test a function that creates a rotation matrix."""
 
         def rotate_vector(w: Vector3, v: Vector3):
-            v_rot = (Quaternion.from_rotation_vector(w, epsilon=1.0e-6).to_rotation_matrix() * v)
+            v_rot = Quaternion.from_rotation_vector(w, epsilon=1.0e-6).to_rotation_matrix() * v
             v_rot_D_w = v_rot.jacobian(vars=w)
             return (
                 code_generation.ReturnValue(v_rot),
@@ -323,7 +325,8 @@ class PythonCodeGenerationTestBase(MathTestBase):
             rv_sym, oa_sym = evaluator(w, v)
             np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
             np.testing.assert_allclose(
-                desired=oa_sym["v_rot_D_w"], actual=oa_num["v_rot_D_w"], rtol=2.0e-6)
+                desired=oa_sym["v_rot_D_w"], actual=oa_num["v_rot_D_w"], rtol=2.0e-6
+            )
 
         if not self.SUPPORTS_BATCH:
             return
@@ -335,7 +338,8 @@ class PythonCodeGenerationTestBase(MathTestBase):
         rv_sym, oa_sym = evaluator_batched(ws, vs)
         np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
         np.testing.assert_allclose(
-            desired=oa_sym["v_rot_D_w"], actual=oa_num["v_rot_D_w"], rtol=2.0e-6)
+            desired=oa_sym["v_rot_D_w"], actual=oa_num["v_rot_D_w"], rtol=2.0e-6
+        )
 
     def test_quaternion_to_and_from_matrix(self):
         """Test conversion of a quaternion to/from a matrix."""
@@ -352,28 +356,30 @@ class PythonCodeGenerationTestBase(MathTestBase):
         m2q_func = self.generate(quat_from_matrix, batch=False, context=dict())
         m2q_evaluator = create_evaluator(quat_from_matrix)
 
-        qs = np.array([
-            [0.34275355, -0.4911505, 0.74564528, 0.292069],
-            [-0.55168672, -0.3643096, -0.24763068, -0.70823678],
-            [-0.62807818, -0.61816808, -0.05451869, -0.46948242],
-            [0.66212773, -0.69169043, 0.08646926, 0.27508959],
-            [0.59426466, 0.57949089, -0.44302533, -0.33877483],
-            [-0.32050495, -0.4959491, 0.49529348, -0.63717771],
-            [-0.33024803, -0.55360404, 0.69653515, 0.3151152],
-            [-0.42917766, 0.73698446, 0.29120886, -0.43342572],
-            [-0.96585751, -0.21180895, 0.11426334, -0.09591728],
-            [0.82019495, -0.20024658, 0.49402012, -0.20766724],
-            [-0.88405116, -0.00382236, -0.43228709, -0.17767051],
-            [-0.20492276, -0.84642162, -0.09095168, 0.48301645],
-            [-0.50511663, 0.38294217, -0.34734593, 0.69105954],
-            [0.7151773, -0.05036465, -0.63918558, -0.2782564],
-            [-0.69895435, 0.37952658, 0.34789252, 0.49638008],
-            [0.69070411, -0.29540322, -0.61085795, 0.25003466],
-            [-0.5953591, -0.62963857, -0.45582188, -0.20329591],
-            [0.87445741, -0.36888073, 0.12098375, 0.29088517],
-            [-0.69501499, 0.68907201, -0.00272476, -0.20524742],
-            [-0.70538009, 0.62270118, 0.12854222, 0.31330346],
-        ])
+        qs = np.array(
+            [
+                [0.34275355, -0.4911505, 0.74564528, 0.292069],
+                [-0.55168672, -0.3643096, -0.24763068, -0.70823678],
+                [-0.62807818, -0.61816808, -0.05451869, -0.46948242],
+                [0.66212773, -0.69169043, 0.08646926, 0.27508959],
+                [0.59426466, 0.57949089, -0.44302533, -0.33877483],
+                [-0.32050495, -0.4959491, 0.49529348, -0.63717771],
+                [-0.33024803, -0.55360404, 0.69653515, 0.3151152],
+                [-0.42917766, 0.73698446, 0.29120886, -0.43342572],
+                [-0.96585751, -0.21180895, 0.11426334, -0.09591728],
+                [0.82019495, -0.20024658, 0.49402012, -0.20766724],
+                [-0.88405116, -0.00382236, -0.43228709, -0.17767051],
+                [-0.20492276, -0.84642162, -0.09095168, 0.48301645],
+                [-0.50511663, 0.38294217, -0.34734593, 0.69105954],
+                [0.7151773, -0.05036465, -0.63918558, -0.2782564],
+                [-0.69895435, 0.37952658, 0.34789252, 0.49638008],
+                [0.69070411, -0.29540322, -0.61085795, 0.25003466],
+                [-0.5953591, -0.62963857, -0.45582188, -0.20329591],
+                [0.87445741, -0.36888073, 0.12098375, 0.29088517],
+                [-0.69501499, 0.68907201, -0.00272476, -0.20524742],
+                [-0.70538009, 0.62270118, 0.12854222, 0.31330346],
+            ]
+        )
 
         for q_wxyz_in in qs:
             R_num = q2m_func(q_wxyz_in)
@@ -381,7 +387,8 @@ class PythonCodeGenerationTestBase(MathTestBase):
 
             q_wxyz_out_num = m2q_func(R_num)
             np.testing.assert_allclose(
-                desired=m2q_evaluator(R_num), actual=q_wxyz_out_num, rtol=1.0e-6)
+                desired=m2q_evaluator(R_num), actual=q_wxyz_out_num, rtol=1.0e-6
+            )
 
             # Signs may differ in the round-trip conversion, so multiply by sign of `w`.
             q_wxyz_out_num = q_wxyz_out_num.reshape([-1])
@@ -411,18 +418,18 @@ class PythonCodeGenerationTestBase(MathTestBase):
         Test calling an external function via a generated python method.
         """
         external_func = external_functions.declare_external_function(
-            name="external_func", arguments=[("x", FloatScalar)], return_type=Vector2)
+            name="external_func", arguments=[("x", FloatScalar)], return_type=Vector2
+        )
 
         def call_external_func(a: Vector2, b: Vector2):
-            dot, = a.T * b
+            (dot,) = a.T * b
             return external_func(3 * dot + 0.2)
 
         func = self.generate(
             call_external_func,
             batch=False,
-            context={
-                external_func.name: lambda x: self.make_array([x * x, x * x * x])
-            })
+            context={external_func.name: lambda x: self.make_array([x * x, x * x * x])},
+        )
 
         np.testing.assert_allclose(
             desired=np.array([1.283689, 1.4544196370000002]).reshape([2, 1]),
@@ -436,7 +443,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
         """
 
         def only_optional_outputs(x: Vector3, y: Vector3):
-            inner_product, = x.T * y
+            (inner_product,) = x.T * y
             outer_product = x * y.T
             return [
                 code_generation.OutputArg(inner_product, name="inner", is_optional=True),
@@ -446,14 +453,14 @@ class PythonCodeGenerationTestBase(MathTestBase):
         func = self.generate(only_optional_outputs, batch=False)
         evaluator = create_evaluator(only_optional_outputs)
 
-        xs = np.array([[-0.5, -8.5, -2.8], [-3., 3.5, 8.2], [9.8, 5.1, -4.3]])
+        xs = np.array([[-0.5, -8.5, -2.8], [-3.0, 3.5, 8.2], [9.8, 5.1, -4.3]])
         ys = np.array([[7.3, -1.1, -1.3], [-2.5, -0.4, 0.6], [5.9, 3.3, -1.8]])
 
         for x in xs:
             for y in ys:
                 oa_sym = evaluator(x, y)
                 oa_num = func(x, y)
-                for key in ('inner', 'outer'):
+                for key in ("inner", "outer"):
                     np.testing.assert_allclose(desired=oa_sym[key], actual=oa_num[key], rtol=1.0e-6)
 
         if not self.SUPPORTS_BATCH:
@@ -465,7 +472,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
         oa_sym = evaluator_batched(xs, ys)
         oa_num = func_batched(xs, ys)
 
-        for key in ('inner', 'outer'):
+        for key in ("inner", "outer"):
             np.testing.assert_allclose(desired=oa_sym[key], actual=oa_num[key], rtol=1.0e-6)
 
     def test_integer_inputs(self):
@@ -528,6 +535,7 @@ class SimParams:
 @dataclasses.dataclass
 class SimState:
     """Numeric equivalent of ``SimStateSymbolic`."""
+
     position: np.ndarray
     velocity: np.ndarray
 
@@ -549,12 +557,13 @@ def integrate_sim(
     """
     # Compute force:
     f = sym.vector(0, -params.gravity * params.mass) - x.velocity * x.velocity.norm() * (
-        params.drag_coefficient / 2)
+        params.drag_coefficient / 2
+    )
     accel = f * (1 / params.mass)
 
     # Euler integration:
     velocity = x.velocity + accel * dt
-    position = x.position + x.velocity * dt + accel * (dt ** 2) / 2
+    position = x.position + x.velocity * dt + accel * (dt**2) / 2
 
     return SimStateSymbolic(position=position, velocity=velocity)
 
@@ -566,8 +575,12 @@ class NumPyCodeGenerationTest(PythonCodeGenerationTestBase):
     VERBOSE = False
 
     @classmethod
-    def generate(cls, func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
-                 batch: bool, **kwargs) -> T.Callable:
+    def generate(
+        cls,
+        func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
+        batch: bool,
+        **kwargs,
+    ) -> T.Callable:
         _, optional_arg_flags = cls.get_optional_output_flags(func)
         func_gen, code = code_generation.generate_python(func=func, **kwargs)
         if cls.VERBOSE:
@@ -588,7 +601,6 @@ class NumPyCodeGenerationTest(PythonCodeGenerationTestBase):
         """
 
         class CustomPythonGenerator(code_generation.PythonGenerator):
-
             def format_custom_type(self, custom: type_info.CustomType):
                 if custom.python_type == SimParamsSymbolic:
                     return "SimParams"
@@ -603,7 +615,8 @@ class NumPyCodeGenerationTest(PythonCodeGenerationTestBase):
                 "SimParams": SimParams,
                 "SimState": SimState,
             },
-            generator_type=CustomPythonGenerator)
+            generator_type=CustomPythonGenerator,
+        )
 
         # Test against the symbolic implementation:
         p_in = np.array([10.2, -5.0]).reshape((2, 1))
@@ -629,10 +642,15 @@ class JaxCodeGenerationTest(PythonCodeGenerationTestBase):
     """Run with JAX configuration."""
 
     @classmethod
-    def generate(cls, func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
-                 batch: bool, **kwargs) -> T.Callable:
+    def generate(
+        cls,
+        func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
+        batch: bool,
+        **kwargs,
+    ) -> T.Callable:
         func_gen, code = code_generation.generate_python(
-            func=func, target=code_generation.PythonGeneratorTarget.JAX, **kwargs)
+            func=func, target=code_generation.PythonGeneratorTarget.JAX, **kwargs
+        )
         if cls.VERBOSE:
             print(code)
 
@@ -663,10 +681,15 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
     """Run with PyTorch configuration."""
 
     @classmethod
-    def generate(cls, func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
-                 batch: bool, **kwargs) -> T.Callable:
+    def generate(
+        cls,
+        func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
+        batch: bool,
+        **kwargs,
+    ) -> T.Callable:
         func_gen, code = code_generation.generate_python(
-            func=func, target=code_generation.PythonGeneratorTarget.PyTorch, **kwargs)
+            func=func, target=code_generation.PythonGeneratorTarget.PyTorch, **kwargs
+        )
         if cls.VERBOSE:
             print(code)
 
@@ -706,7 +729,7 @@ def test_apply_preamble():
     target_imports = {
         code_generation.PythonGeneratorTarget.NumPy: "import numpy as np",
         code_generation.PythonGeneratorTarget.JAX: "import jax.numpy as jnp",
-        code_generation.PythonGeneratorTarget.PyTorch: "import torch as th"
+        code_generation.PythonGeneratorTarget.PyTorch: "import torch as th",
     }
 
     code = "def foo():\n\tpass"

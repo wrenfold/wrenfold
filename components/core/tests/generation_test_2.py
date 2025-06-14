@@ -1,4 +1,5 @@
 """Generate expressions for cpp_generation_test_2 and rust_generation_test_2."""
+
 import argparse
 import dataclasses
 
@@ -9,6 +10,7 @@ from wrenfold.external_functions import declare_external_function
 @dataclasses.dataclass
 class StructType:
     """A minimal custom type we will return from an external function."""
+
     x: type_annotations.FloatScalar
     y: type_annotations.FloatScalar
 
@@ -30,11 +32,15 @@ class VectorOfStructs(type_annotations.Opaque):
 vector_interpolate_access = declare_external_function(
     name="interpolate_access",
     arguments=[("vec", VectorOfStructs), ("x", type_annotations.FloatScalar)],
-    return_type=StructType)
+    return_type=StructType,
+)
 
 
-def lookup_and_compute_inner_product(vec: VectorOfStructs, a: type_annotations.FloatScalar,
-                                     b: type_annotations.FloatScalar):
+def lookup_and_compute_inner_product(
+    vec: VectorOfStructs,
+    a: type_annotations.FloatScalar,
+    b: type_annotations.FloatScalar,
+):
     """
     A simplified test case that calls a user-provided function to access two elements in a vector,
     then computes the inner product between them.
@@ -48,22 +54,21 @@ def lookup_and_compute_inner_product(vec: VectorOfStructs, a: type_annotations.F
 
 
 class CustomCppGenerator(code_generation.CppGenerator):
-
     def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
         Place our external functions in the `external` namespace.
         """
-        args = ', '.join(self.format(x) for x in element.args)
-        return f'external::{element.function.name}({args})'
+        args = ", ".join(self.format(x) for x in element.args)
+        return f"external::{element.function.name}({args})"
 
     def format_custom_type(self, element: type_info.CustomType) -> str:
         """
         Place `StructType` in `types` namespace. Format vector name.
         """
         if element.python_type == StructType:
-            return f'types::{element.name}'
+            return f"types::{element.name}"
         elif element.python_type == VectorOfStructs:
-            return f'std::vector<types::StructType>'
+            return "std::vector<types::StructType>"
         return self.super_format(element)
 
 
@@ -73,21 +78,23 @@ class CustomRustGenerator(code_generation.RustGenerator):
     """
 
     def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
-        args = ', '.join(self.format(x) for x in element.args)
-        return f'crate::external::{element.function.name}({args})'
+        args = ", ".join(self.format(x) for x in element.args)
+        return f"crate::external::{element.function.name}({args})"
 
     def format_custom_type(self, element: type_info.CustomType) -> str:
         if element.python_type == StructType:
-            return f'crate::types::{element.name}'
+            return f"crate::types::{element.name}"
         elif element.python_type == VectorOfStructs:
-            return f'std::vec::Vec<crate::types::StructType>'
+            return "std::vec::Vec<crate::types::StructType>"
         return self.super_format(element)
 
 
 def main(args: argparse.Namespace):
     descriptions = [
         code_generation.create_function_description(
-            func=lookup_and_compute_inner_product, name="lookup_and_compute_inner_product")
+            func=lookup_and_compute_inner_product,
+            name="lookup_and_compute_inner_product",
+        )
     ]
 
     definitions = code_generation.transpile(descriptions)
@@ -106,9 +113,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="__doc__")
     parser.add_argument("output", type=str, help="Output path")
     parser.add_argument(
-        "--language", type=str, choices=["cpp", "rust"], required=True, help="Target language.")
+        "--language",
+        type=str,
+        choices=["cpp", "rust"],
+        required=True,
+        help="Target language.",
+    )
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(parse_args())

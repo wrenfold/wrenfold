@@ -11,9 +11,11 @@ def rosenbrock(
 ):
     """Evaluates the Rosenbrock function and its first derivative wrt `x` and `y`."""
     x, y = xy
-    f = (a - x) ** 2 + b * (y - x ** 2) ** 2
-    return (code_generation.ReturnValue(f),
-            code_generation.OutputArg(sym.jacobian([f], xy), name="f_D_xy"))
+    f = (a - x) ** 2 + b * (y - x**2) ** 2
+    return (
+        code_generation.ReturnValue(f),
+        code_generation.OutputArg(sym.jacobian([f], xy), name="f_D_xy"),
+    )
     # [function_def_end]
 
 

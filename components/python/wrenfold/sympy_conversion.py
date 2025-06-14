@@ -7,7 +7,6 @@ import types
 import typing as T
 
 import sympy
-
 from pywrenfold.sympy_conversion import _to_sympy_impl
 
 from . import sym
@@ -24,29 +23,18 @@ class Conversions:
         """Initialize with the sympy module."""
         self.sp = sp
         self.value_map = {
-            sp.E:
-                sym.E,
-            sp.pi:
-                sym.pi,
-            sp.zoo:
-                sym.zoo,
-            sp.I:
-                sym.I,
-            sp.nan:
-                sym.nan,
-            sp.true:
-                sym.true,
-            sp.false:
-                sym.false,
+            sp.E: sym.E,
+            sp.pi: sym.pi,
+            sp.zoo: sym.zoo,
+            sp.I: sym.I,
+            sp.nan: sym.nan,
+            sp.true: sym.true,
+            sp.false: sym.false,
             # Zero, one, negative one, and 1/2 are all specific types in sympy.
-            sp.Integer(0):
-                sym.zero,
-            sp.Integer(1):
-                sym.one,
-            sp.Integer(-1):
-                sym.integer(-1),
-            sp.Rational(1, 2):
-                sym.rational(1, 2),
+            sp.Integer(0): sym.zero,
+            sp.Integer(1): sym.one,
+            sp.Integer(-1): sym.integer(-1),
+            sp.Rational(1, 2): sym.rational(1, 2),
         }
         self.type_map = {
             sp.Pow: sym.pow,
@@ -91,7 +79,7 @@ class Conversions:
 
         # Cache of already converted expressions. Since expressions often include repeated terms,
         # avoid converting them more than once.
-        self.cache: T.Dict[T.Any, sym.AnyExpression] = {}
+        self.cache: dict[T.Any, sym.AnyExpression] = {}
 
     def convert_add(self, expr) -> sym.Expr:
         return sym.addition([self(x) for x in expr.args])
@@ -219,7 +207,7 @@ class Conversions:
         if isinstance(expr, self.sp.MatrixBase):
             # All matrix expressions are converted into `matrix`.
             rows, cols = expr.shape
-            data: T.List[sym.Expr] = []
+            data: list[sym.Expr] = []
             for i in range(0, rows):
                 data.append([self(expr[i, j]) for j in range(0, cols)])
             return sym.matrix(data)

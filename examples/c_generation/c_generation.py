@@ -3,6 +3,7 @@ Generate some example functions in C:
 - Kannala-Brandt camera model (forward and backward projection).
 - A method that converts a rotation matrix to a quaternion.
 """
+
 import argparse
 import dataclasses
 
@@ -20,6 +21,7 @@ class quaternion_t:
     """
     The equivalent C-struct is declared in `c_span_types.h`.
     """
+
     w: type_annotations.FloatScalar
     x: type_annotations.FloatScalar
     y: type_annotations.FloatScalar
@@ -37,8 +39,11 @@ def quaternion_from_rotation_matrix(R: type_annotations.Matrix3):
 def main(args: argparse.Namespace):
     functions = [
         code_generation.generate_function(function, generator=CCodeGenerator())
-        for function in (kb_camera_projection_with_jacobians, kb_camera_unprojection_with_jacobians,
-                         quaternion_from_rotation_matrix)
+        for function in (
+            kb_camera_projection_with_jacobians,
+            kb_camera_unprojection_with_jacobians,
+            quaternion_from_rotation_matrix,
+        )
     ]
     code = C_PREAMBLE.format(code="\n\n".join(functions), header_name="C_GENERATION_EXAMPLE")
     code_generation.mkdir_and_write_file(code=code, path=args.output)

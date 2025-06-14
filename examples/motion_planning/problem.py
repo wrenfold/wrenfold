@@ -80,12 +80,14 @@ def dynamics(state: State, mass: FloatScalar, dt: FloatScalar) -> State:
     acc = get_acc(state)
     control = get_control(state)
 
-    return sym.vstack([
-        pos + vel * dt + acc * sym.float(0.5) * dt ** 2,
-        vel + acc * dt,
-        control * (1.0 / mass),
-        control,
-    ])
+    return sym.vstack(
+        [
+            pos + vel * dt + acc * sym.float(0.5) * dt**2,
+            vel + acc * dt,
+            control * (1.0 / mass),
+            control,
+        ]
+    )
 
 
 def cost_jacobian(cost: sym.Expr, state: State):
@@ -134,14 +136,15 @@ def problem(
         state = trajectory[index_offset:index_next_offset, :]
 
         # Final state cost
-        cost += desired_state_objective(state, desired_final_state, weights.final_state * i ** 2)
+        cost += desired_state_objective(state, desired_final_state, weights.final_state * i**2)
 
         # Dynamics cost
         if i < N - 1:
             index_next_next_offset = index_next_offset + State.SHAPE[0]
             next_state = trajectory[index_next_offset:index_next_next_offset, :]
-            cost += dynamics_objective(state, next_state, weights.dynamics, problem_info.mass,
-                                       problem_info.dt)
+            cost += dynamics_objective(
+                state, next_state, weights.dynamics, problem_info.mass, problem_info.dt
+            )
 
     return cost
 
@@ -161,10 +164,12 @@ def problem_cost(
         weights,
         problem_info,
     )
-    return [code_generation.OutputArg(
-        expression=cost,
-        name="cost",
-    )]
+    return [
+        code_generation.OutputArg(
+            expression=cost,
+            name="cost",
+        )
+    ]
 
 
 def problem_jacobian(
@@ -186,10 +191,12 @@ def problem_jacobian(
     # so we skip them when taking the jacobian
     trajectory_to_optimize = trajectory[9:]
     jacobian = cost_jacobian(cost, trajectory_to_optimize)
-    return [code_generation.OutputArg(
-        expression=jacobian,
-        name="cost_jacobian",
-    )]
+    return [
+        code_generation.OutputArg(
+            expression=jacobian,
+            name="cost_jacobian",
+        )
+    ]
 
 
 def problem_hessian(
@@ -211,14 +218,15 @@ def problem_hessian(
     # so we skip them when taking the hessian
     trajectory_to_optimize = trajectory[9:]
     hessian = cost_hessian(cost, trajectory_to_optimize)
-    return [code_generation.OutputArg(
-        expression=hessian,
-        name="cost_hessian",
-    )]
+    return [
+        code_generation.OutputArg(
+            expression=hessian,
+            name="cost_hessian",
+        )
+    ]
 
 
 class CustomRustGenerator(code_generation.RustGenerator):
-
     def format_custom_type(self, element: type_info.CustomType) -> str:
         """Place our custom types into the `crate` namespace."""
         if element.python_type in [Weights, ProblemInfo]:
@@ -226,7 +234,7 @@ class CustomRustGenerator(code_generation.RustGenerator):
 
 
 def main(args: argparse.Namespace):
-    code = str()
+    code = ""
     for function in [problem_cost, problem_jacobian, problem_hessian]:
         code += code_generation.generate_function(func=function, generator=CustomRustGenerator())
         code += "\n\n"

@@ -1,6 +1,7 @@
 """
 Supporting methods for interfacing with user-provided types.
 """
+
 import dataclasses
 import typing as T
 
@@ -13,18 +14,19 @@ U = T.TypeVar("U")
 
 
 def convert_to_internal_type(
-        python_type: T.Type, cached_custom_types: T.Dict[T.Type,
-                                                         type_info.CustomType]) -> CodegenType:
+    python_type: type, cached_custom_types: dict[type, type_info.CustomType]
+) -> CodegenType:
     """
     Convert a python type to the internal C++ representation.
 
     OMIT_FROM_SPHINX
     """
     if issubclass(python_type, sym.Expr):
-        numeric_type = getattr(python_type, "NUMERIC_PRIMITIVE_TYPE")
+        numeric_type = python_type.NUMERIC_PRIMITIVE_TYPE
         if numeric_type is None:
             raise TypeError(
-                f"Argument annotation {python_type} lacks the NUMERIC_PRIMITIVE_TYPE property")
+                f"Argument annotation {python_type} lacks the NUMERIC_PRIMITIVE_TYPE property"
+            )
         if numeric_type == type_info.NumericType.Bool:
             raise TypeError(
                 "Boolean arguments and fields are not supported yet. https://github.com/wrenfold/wrenfold/issues/163"
@@ -38,50 +40,61 @@ def convert_to_internal_type(
             return cached_custom_types[python_type]
         # Type is not in the cache - convert it and cache it before returning:
         custom_type = create_custom_type(
-            python_type=python_type, cached_custom_types=cached_custom_types)
+            python_type=python_type, cached_custom_types=cached_custom_types
+        )
         cached_custom_types[python_type] = custom_type
         return custom_type
     else:
-        raise TypeError(f'Invalid type used in annotation: {python_type}')
+        raise TypeError(f"Invalid type used in annotation: {python_type}")
 
 
 def create_custom_type(
-        python_type: T.Type,
-        cached_custom_types: T.Dict[T.Type, type_info.CustomType]) -> type_info.CustomType:
+    python_type: type, cached_custom_types: dict[type, type_info.CustomType]
+) -> type_info.CustomType:
     """
     Convert a python type to a type_info.CustomType representation we can store in C++.
 
     OMIT_FROM_SPHINX
     """
-    fields_converted: T.List[T.Tuple[str, CodegenType]] = []
+    fields_converted: list[tuple[str, CodegenType]] = []
     if dataclasses.is_dataclass(python_type):
         # noinspection PyDataclass
         for field in dataclasses.fields(python_type):
             field_type = convert_to_internal_type(
-                python_type=field.type, cached_custom_types=cached_custom_types)
+                python_type=field.type, cached_custom_types=cached_custom_types
+            )
             fields_converted.append((field.name, field_type))
 
         if len(fields_converted) == 0:
-            raise TypeError("Dataclass types need to have at least one expression member. " +
-                            f"Offending type: {repr(python_type)}")
+            raise TypeError(
+                "Dataclass types need to have at least one expression member. "
+                + f"Offending type: {repr(python_type)}"
+            )
 
     return type_info.CustomType(
-        name=python_type.__name__, fields=fields_converted, python_type=python_type)
+        name=python_type.__name__, fields=fields_converted, python_type=python_type
+    )
 
 
-def _get_matrix_shape(matrix_type: T.Type) -> T.Tuple[int, int]:
+def _get_matrix_shape(matrix_type: type) -> tuple[int, int]:
     """
     Get the SHAPE field off of a matrix type annotation. Check that it has the correct type.
     """
-    shape = getattr(matrix_type, "SHAPE")
-    if (shape is None or not isinstance(shape, tuple) or len(shape) != 2 or
-            not isinstance(shape[0], int) or not isinstance(shape[1], int)):
+    shape = matrix_type.SHAPE
+    if (
+        shape is None
+        or not isinstance(shape, tuple)
+        or len(shape) != 2
+        or not isinstance(shape[0], int)
+        or not isinstance(shape[1], int)
+    ):
         raise KeyError("Matrix types must be annotated with the SHAPE field with type (int, int)")
-    return T.cast(T.Tuple[int, int], shape)
+    return T.cast(tuple[int, int], shape)
 
 
-def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
-                                     custom_type: T.Type[U]) -> T.Tuple[U, T.List[sym.Expr]]:
+def map_expressions_into_custom_type(
+    expressions: list[sym.Expr], custom_type: type[U]
+) -> tuple[U, list[sym.Expr]]:
     """
     Given a flat list of expressions, construct an instance of `custom_type` by recursively
     filling its members with the provided expressions. Thus, we construct a symbolic instance
@@ -91,8 +104,9 @@ def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
 
     OMIT_FROM_SPHINX
     """
-    assert dataclasses.is_dataclass(
-        custom_type), f"Provided type `{custom_type}` is not a dataclass"
+    assert dataclasses.is_dataclass(custom_type), (
+        f"Provided type `{custom_type}` is not a dataclass"
+    )
 
     constructor_kwargs = dict()
     for field in dataclasses.fields(custom_type):
@@ -107,22 +121,24 @@ def map_expressions_into_custom_type(expressions: T.List[sym.Expr],
         elif issubclass(field.type, sym.MatrixExpr):
             # Expressions were packed in row-major order as expected by our matrix type.
             mat_rows, mat_cols = _get_matrix_shape(field.type)
-            mat = sym.matrix(expressions[:(mat_rows * mat_cols)]).reshape(mat_rows, mat_cols)
+            mat = sym.matrix(expressions[: (mat_rows * mat_cols)]).reshape(mat_rows, mat_cols)
             constructor_kwargs[field.name] = mat
-            expressions = expressions[mat.size:]
+            expressions = expressions[mat.size :]
         elif dataclasses.is_dataclass(field.type):
             # Recurse
             constructor_kwargs[field.name], expressions = map_expressions_into_custom_type(
-                expressions=expressions, custom_type=field.type)
+                expressions=expressions, custom_type=field.type
+            )
         else:
             raise TypeError(
-                f'Invalid member type `{field.name}: {field.type}` used in type `{custom_type}`')
+                f"Invalid member type `{field.name}: {field.type}` used in type `{custom_type}`"
+            )
 
     # All the constructor arguments have been assembled.
     return T.cast(U, custom_type(**constructor_kwargs)), expressions
 
 
-def map_expressions_out_of_custom_type(instance: T.Any) -> T.List[sym.Expr]:
+def map_expressions_out_of_custom_type(instance: T.Any) -> list[sym.Expr]:
     """
     Given an instance of a custom dataclass type, flatten its contents into a list of expressions.
 
@@ -130,10 +146,11 @@ def map_expressions_out_of_custom_type(instance: T.Any) -> T.List[sym.Expr]:
 
     OMIT_FROM_SPHINX
     """
-    assert dataclasses.is_dataclass(
-        instance), f"Provided object of type `{type(instance)}` is not a dataclass"
+    assert dataclasses.is_dataclass(instance), (
+        f"Provided object of type `{type(instance)}` is not a dataclass"
+    )
 
-    expressions: T.List[sym.Expr] = []
+    expressions: list[sym.Expr] = []
     for field in dataclasses.fields(instance):
         value = getattr(instance, field.name)
         if issubclass(field.type, sym.Expr):
@@ -144,6 +161,7 @@ def map_expressions_out_of_custom_type(instance: T.Any) -> T.List[sym.Expr]:
             expressions += map_expressions_out_of_custom_type(instance=value)
         else:
             raise TypeError(
-                f'Invalid member type `{field.name}: {field.type}` used in type `{type(instance)}`')
+                f"Invalid member type `{field.name}: {field.type}` used in type `{type(instance)}`"
+            )
 
     return expressions

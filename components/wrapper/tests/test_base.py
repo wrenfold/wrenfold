@@ -1,4 +1,5 @@
 """Shared utilities for unit testing."""
+
 import sys
 import typing as T
 import unittest
@@ -21,9 +22,11 @@ class MathTestBase(unittest.TestCase):
 
         if a.is_identical_to(b):
             return
-        message = (f'The expressions a:\n{repr(a)}\nb:\n{repr(b)}\nare not identical.\n' +
-                   f'The expression tree for `a` is:\n{a.expression_tree_str()}\n' +
-                   f'The expression tree for `b` is:\n{b.expression_tree_str()}')
+        message = (
+            f"The expressions a:\n{repr(a)}\nb:\n{repr(b)}\nare not identical.\n"
+            + f"The expression tree for `a` is:\n{a.expression_tree_str()}\n"
+            + f"The expression tree for `b` is:\n{b.expression_tree_str()}"
+        )
         raise self.failureException(message)
 
     def assertNotIdentical(self, a: T.Union[sym.AnyExpression, int, float], b: sym.AnyExpression):
@@ -34,9 +37,10 @@ class MathTestBase(unittest.TestCase):
         if not a.is_identical_to(b):
             return
         message = (
-            f'The expressions a:\n{repr(a)}\nb:\n{repr(b)}\n are identical (they should not be).\n'
-            + f'The expression tree for `a` is:\n{a.expression_tree_str()}\n' +
-            f'The expression tree for `b` is:\n{b.expression_tree_str()}')
+            f"The expressions a:\n{repr(a)}\nb:\n{repr(b)}\n are identical (they should not be).\n"
+            + f"The expression tree for `a` is:\n{a.expression_tree_str()}\n"
+            + f"The expression tree for `b` is:\n{b.expression_tree_str()}"
+        )
         raise self.failureException(message)
 
     def assertReprEqual(self, a: str, b: sym.AnyExpression):

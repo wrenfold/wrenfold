@@ -8,7 +8,6 @@ from types import SimpleNamespace
 import jax
 import jax.numpy as jnp
 import numpy as np
-
 from wrenfold import code_generation
 
 from ..shared_expressions import (
@@ -17,7 +16,7 @@ from ..shared_expressions import (
 )
 
 
-def get_test_camera_coeffs() -> T.List[T.Tuple[jnp.ndarray, float]]:
+def get_test_camera_coeffs() -> list[tuple[jnp.ndarray, float]]:
     """Get test coefficients for some representative camera models."""
     coeffs = [
         ([0.08327424, 0.00852979, 0.00063325, 0.00017048], 1.99),
@@ -28,7 +27,7 @@ def get_test_camera_coeffs() -> T.List[T.Tuple[jnp.ndarray, float]]:
     return [(jnp.asarray(k).reshape([-1, 1]), max_radius) for (k, max_radius) in coeffs]
 
 
-def generate_kb_camera_model_functions() -> T.Tuple[T.Callable, T.Callable, T.Callable, T.Callable]:
+def generate_kb_camera_model_functions() -> tuple[T.Callable, T.Callable, T.Callable, T.Callable]:
     """
     Generate forward and backward projection functions for the Kannala-Brandt camera model.
 
@@ -98,14 +97,14 @@ def generate_kb_camera_model_functions() -> T.Tuple[T.Callable, T.Callable, T.Ca
     )
 
 
-def get_pixel_coords(shape: T.Tuple[int, int]) -> jnp.ndarray:
+def get_pixel_coords(shape: tuple[int, int]) -> jnp.ndarray:
     """
     Get pixel coordinates for every pixel in an image.
 
     Args:
       * shape: (rows, cols)
     """
-    x, y = jnp.mgrid[0:shape[1], 0:shape[0]]
+    x, y = jnp.mgrid[0 : shape[1], 0 : shape[0]]
     return jnp.stack([x.reshape(-1), y.reshape(-1)], axis=-1).reshape(-1, 2, 1)
 
 
@@ -114,13 +113,14 @@ def test_kb_camera_model_methods():
     Numerical tests of the wrenfold-generated and JAX-jitted Kannala-Brandt camera model.
     """
     project, unproject, project_no_jacobians, unproject_no_jacobians = (
-        generate_kb_camera_model_functions())
+        generate_kb_camera_model_functions()
+    )
 
     image_w = 160
     image_h = 120
     cx = (image_w - 1) / 2.0
     cy = (image_h - 1) / 2.0
-    pixel_radius = jnp.sqrt(cx ** 2 + cy ** 2)
+    pixel_radius = jnp.sqrt(cx**2 + cy**2)
 
     p_pixels_in = get_pixel_coords(shape=(image_h, image_w)).astype(jnp.float32)
 
@@ -140,12 +140,15 @@ def test_kb_camera_model_methods():
 
         # Test jacobians of against jacfwd:
         (p_pixels_D_K_jax, p_pixels_D_coeffs_jax) = [
-            jnp.squeeze(J) for J in jax.jacfwd(project_no_jacobians, argnums=[1, 2], has_aux=False)(
-                out_backwards.p_cam, K, coeffs)
+            jnp.squeeze(J)
+            for J in jax.jacfwd(project_no_jacobians, argnums=[1, 2], has_aux=False)(
+                out_backwards.p_cam, K, coeffs
+            )
         ]
 
         np.testing.assert_allclose(
-            desired=p_pixels_D_K_jax, actual=out_forwards.p_pixels_D_K, rtol=1.0e-6)
+            desired=p_pixels_D_K_jax, actual=out_forwards.p_pixels_D_K, rtol=1.0e-6
+        )
         np.testing.assert_allclose(
             desired=p_pixels_D_coeffs_jax,
             actual=out_forwards.p_pixels_D_coeffs,
@@ -154,12 +157,15 @@ def test_kb_camera_model_methods():
 
         # Jacobians of the backward/unproject method.
         (p_cam_D_K_jax, p_cam_D_coeffs_jax) = [
-            jnp.squeeze(J) for J in jax.jacfwd(
-                unproject_no_jacobians, argnums=[1, 2], has_aux=False)(p_pixels_in, K, coeffs)
+            jnp.squeeze(J)
+            for J in jax.jacfwd(unproject_no_jacobians, argnums=[1, 2], has_aux=False)(
+                p_pixels_in, K, coeffs
+            )
         ]
 
         np.testing.assert_allclose(
-            desired=p_cam_D_K_jax, actual=out_backwards.p_cam_D_K, atol=1.0e-6)
+            desired=p_cam_D_K_jax, actual=out_backwards.p_cam_D_K, atol=1.0e-6
+        )
         np.testing.assert_allclose(
             desired=p_cam_D_coeffs_jax,
             actual=out_backwards.p_cam_D_coeffs,
@@ -168,5 +174,5 @@ def test_kb_camera_model_methods():
 
 
 if __name__ == "__main__":
-    jax.config.update('jax_platform_name', 'cpu')
+    jax.config.update("jax_platform_name", "cpu")
     test_kb_camera_model_methods()

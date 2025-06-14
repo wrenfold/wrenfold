@@ -6,18 +6,18 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'wrenfold'
-copyright = '2024, Wrenfold Authors'
-author = 'Gareth Cross'
+project = "wrenfold"
+copyright = "2024, Wrenfold Authors"
+author = "Gareth Cross"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-IMPORT_PATH_REPLACEMENTS = [('pywrenfold.', 'wrenfold.')]
+IMPORT_PATH_REPLACEMENTS = [("pywrenfold.", "wrenfold.")]
 
 
 def apply_replacements(string: str) -> str:
-    for (target, replacement) in IMPORT_PATH_REPLACEMENTS:
+    for target, replacement in IMPORT_PATH_REPLACEMENTS:
         string = string.replace(target, replacement)
     return string
 
@@ -47,8 +47,8 @@ def process_docstring(app, what, name, obj, options, lines):
 
 
 def setup(app):
-    app.connect('autodoc-process-signature', process_signature)
-    app.connect('autodoc-process-docstring', process_docstring)
+    app.connect("autodoc-process-signature", process_signature)
+    app.connect("autodoc-process-docstring", process_docstring)
 
 
 extensions = [
@@ -59,17 +59,17 @@ extensions = [
     # Breathe is used to convert C++ doxygen to sphinx.
     "breathe",
     # MyST enables inclusion of markdown.
-    "myst_parser"
+    "myst_parser",
 ]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'furo'
-html_static_path = ['_static']
+html_theme = "furo"
+html_static_path = ["_static"]
 html_logo = "_static/logo.png"
 html_favicon = "_static/favicon.ico"
 
