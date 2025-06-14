@@ -59,6 +59,29 @@ test-command = ["python \"{package}/support/test_wheel.py\""]
 # To test interop, we need NumPy, SymPy and JAX.
 test-requires = ["numpy", "sympy", "jax"]
 
+# Dev dependencies for UV:
+# We are stuck on an older sphinx until breathe resolves compatibility issues.
+# Such as: https://github.com/sphinx-doc/sphinx/issues/11490
+[dependency-groups]
+dev = [
+    "breathe==4.35.0",
+    "cmake>=3.20",
+    "furo>=2024.8.6",
+    "mypy==1.15.0",
+    "myst-parser>=3.0.1",
+    "ninja>=1.5",
+    "pre-commit>=4.2.0",
+    "sphinx==6.2.1",
+]
+test = [
+    "jax>=0.4.30",
+    "numpy>=2.0.2",
+    "sympy>=1.14.0",
+]
+
+[tool.uv]
+package = false # Do not install wheel when running `uv add`, etc.
+
 [tool.ruff]
 exclude = ["components/wrapper/stubs"]
 target-version = "py39"
