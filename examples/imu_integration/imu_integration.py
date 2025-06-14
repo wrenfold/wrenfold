@@ -19,8 +19,8 @@ from wrenfold.type_annotations import FloatScalar, Vector3, Vector4
 
 
 def blockwise_jacobians(
-    output_states: T.Iterable[sym.MatrixExpr | Quaternion],
-    input_states: T.Iterable[sym.MatrixExpr | Quaternion],
+    output_states: T.Iterable[T.Union[sym.MatrixExpr, Quaternion]],
+    input_states: T.Iterable[T.Union[sym.MatrixExpr, Quaternion]],
 ) -> sym.MatrixExpr:
     jacobians = []
     for out_state in output_states:

@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent.absolute()
 
 
-def get_module_path(script_path: Path | str) -> str:
+def get_module_path(script_path: T.Union[Path, str]) -> str:
     if isinstance(script_path, str):
         script_path = Path(script_path)
     test_path = script_path.with_suffix("").relative_to(ROOT)

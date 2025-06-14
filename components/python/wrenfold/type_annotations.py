@@ -143,5 +143,5 @@ class Opaque:
       :func:`wrenfold.code_generation.create_function_description`.
     """
 
-    def __init__(self, provenance: sym.CompoundExpr | None = None) -> None:
-        self._provenance: sym.CompoundExpr | None = provenance
+    def __init__(self, provenance: T.Optional[sym.CompoundExpr] = None) -> None:
+        self._provenance: T.Optional[sym.CompoundExpr] = provenance

@@ -37,7 +37,7 @@ class ReturnValue:
         custom type.
     """
 
-    expression: sym.Expr | sym.MatrixExpr | T.Any
+    expression: T.Union[sym.Expr, sym.MatrixExpr, T.Any]
 
 
 @dataclasses.dataclass
@@ -52,7 +52,7 @@ class OutputArg:
       is_optional: Specify whether the output argument is optional or not.
     """
 
-    expression: sym.Expr | sym.MatrixExpr | T.Any
+    expression: T.Union[sym.Expr, sym.MatrixExpr, T.Any]
     name: str
     is_optional: bool = False
 
@@ -65,7 +65,7 @@ CodegenFuncInvocationResult = T.Union[sym.Expr, sym.MatrixExpr, T.Sequence[Retur
 
 
 def create_function_description(
-    func: T.Callable[..., CodegenFuncInvocationResult], name: str | None = None
+    func: T.Callable[..., CodegenFuncInvocationResult], name: T.Optional[str] = None
 ) -> FunctionDescription:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
@@ -204,9 +204,9 @@ def create_function_description(
 
 def generate_function(
     func: T.Callable[..., CodegenFuncInvocationResult],
-    generator: CppGenerator | RustGenerator | PythonGenerator | BaseGenerator,
-    name: str | None = None,
-    optimization_params: OptimizationParams | None = None,
+    generator: T.Union[CppGenerator, RustGenerator, PythonGenerator, BaseGenerator],
+    name: T.Optional[str] = None,
+    optimization_params: T.Optional[OptimizationParams] = None,
     convert_ternaries: bool = True,
 ) -> str:
     """
@@ -283,8 +283,8 @@ def generate_function(
 def generate_python(
     func: T.Callable[..., CodegenFuncInvocationResult],
     target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy,
-    convert_ternaries: bool | None = None,
-    context: dict[str, T.Any] | None = None,
+    convert_ternaries: T.Optional[bool] = None,
+    context: T.Optional[dict[str, T.Any]] = None,
     import_target_module: bool = True,
     generator_type: T.Callable[[PythonGeneratorTarget], BaseGenerator] = PythonGenerator,
 ) -> tuple[T.Callable, str]:
@@ -436,7 +436,7 @@ def generate_python(
     return locals_in_out[func.__name__], code
 
 
-def mkdir_and_write_file(code: str, path: str | pathlib.Path) -> None:
+def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]) -> None:
     """
     Write ``code`` to the specified path. Create intermediate directories as required.
 

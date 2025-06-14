@@ -68,7 +68,7 @@ def declare_external_function(
 
     # If custom types are specified, we need to construct `CustomType` objects to pass to C++:
     converted_args: list[
-        str, type_info.ScalarType | type_info.MatrixType | type_info.CustomType
+        tuple[str, T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]]
     ] = []
     for arg_name, python_arg_type in arguments:
         internal_type = custom_types.convert_to_internal_type(
@@ -128,7 +128,7 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
     arg_names_and_types = [(a.name, a.type) for a in func.arguments]
 
     converted_args: list[sym.AnyExpression] = []
-    for arg, (arg_name, arg_type) in zip(combined_args, arg_names_and_types, strict=False):
+    for arg, (arg_name, arg_type) in zip(combined_args, arg_names_and_types):
         if isinstance(arg, (sym.Expr, sym.MatrixExpr)):
             converted_args.append(arg)  # Type is checked later in custom_function.cc
             continue

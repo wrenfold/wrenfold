@@ -146,14 +146,14 @@ def create_piecewise_polynomials(
             # one hot vector where the j'th zero order basis is active:
             values = [sym.zero] * len(degree_zero_bases)
             values[j + (order - 1)] = sym.one
-            key_and_value = list(zip(degree_zero_bases, values, strict=False))
+            key_and_value = list(zip(degree_zero_bases, values))
             interval_expressions.append(bases[i].subs(key_and_value))
 
         # Cumulative spline is 1 after its relevant interval:
         terminal_value = sym.integer(1 if is_cumulative else 0)
         piecewise_poly = terminal_value
 
-        for interval_index, poly_piece in zip(range(0, order), interval_expressions, strict=False):
+        for interval_index, poly_piece in zip(range(0, order), interval_expressions):
             # If the piece is 0 or 1 on this interval, we don't need another branch for it:
             if poly_piece == terminal_value:
                 continue
