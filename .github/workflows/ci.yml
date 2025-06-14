@@ -25,14 +25,6 @@ jobs:
       matrix:
         sys:
           - {
-              os: windows-2019,
-              shell: pwsh,
-              compiler_packages: "",
-              name_suffix: "default",
-              cc_env: "cl.exe",
-              cxx_env: "cl.exe"
-            }
-          - {
               os: windows-2022,
               shell: pwsh,
               compiler_packages: "",
