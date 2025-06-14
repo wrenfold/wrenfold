@@ -1,5 +1,3 @@
-import typing as T
-
 import sympy as sp
 from wrenfold import sym, sympy_conversion
 

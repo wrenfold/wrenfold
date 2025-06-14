@@ -8,7 +8,7 @@ don't accidentally remove any.
 import functools
 import unittest
 
-from wrenfold import enumerations, exceptions, expressions, sym
+from wrenfold import exceptions, sym
 
 from .test_base import MathTestBase
 

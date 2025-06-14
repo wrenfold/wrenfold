@@ -12,7 +12,6 @@ interface with types in an existing codebase.
 
 import argparse
 import dataclasses
-import typing as T
 
 from wrenfold import ast, code_generation, sym, type_info
 from wrenfold.geometry import Quaternion

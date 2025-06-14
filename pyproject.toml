@@ -79,6 +79,5 @@ select = [
     "I", # isort
 ]
 ignore = [
-    "F401", # Unused-imports.
     "E731" # Use def instead of lambda.
 ]
