@@ -1,6 +1,7 @@
 """
 Generate quaternion interpolation with tangent-space derivatives using wrenfold.
 """
+
 import argparse
 
 from wrenfold import code_generation, sym
@@ -8,10 +9,9 @@ from wrenfold.geometry import Quaternion
 from wrenfold.type_annotations import FloatScalar, Vector4
 
 
-def quaternion_interpolation_impl(q0_xyzw: Vector4,
-                                  q1_xyzw: Vector4,
-                                  alpha: FloatScalar,
-                                  use_conditional: bool = True):
+def quaternion_interpolation_impl(
+    q0_xyzw: Vector4, q1_xyzw: Vector4, alpha: FloatScalar, use_conditional: bool = True
+):
     """
     Interpolate between two quaternions, `q0` and `q1` (passed as scalar-last vectors). The
     resulting expression is:
@@ -30,15 +30,20 @@ def quaternion_interpolation_impl(q0_xyzw: Vector4,
 
     # Scale the vector by alpha, then apply it on the _right_ side of q0.
     q_out = q0 * Quaternion.from_rotation_vector(
-        w01 * alpha, epsilon=1.0e-16 if use_conditional else None)
+        w01 * alpha, epsilon=1.0e-16 if use_conditional else None
+    )
 
     # Use chain-rule to map the Jacobians from the quaternion elements to the tangent space.
     D0 = (
-        q_out.right_local_coordinates_derivative() *
-        sym.jacobian(q_out.to_vector_wxyz(), q0.to_vector_wxyz()) * q0.right_retract_derivative())
+        q_out.right_local_coordinates_derivative()
+        * sym.jacobian(q_out.to_vector_wxyz(), q0.to_vector_wxyz())
+        * q0.right_retract_derivative()
+    )
     D1 = (
-        q_out.right_local_coordinates_derivative() *
-        sym.jacobian(q_out.to_vector_wxyz(), q1.to_vector_wxyz()) * q1.right_retract_derivative())
+        q_out.right_local_coordinates_derivative()
+        * sym.jacobian(q_out.to_vector_wxyz(), q1.to_vector_wxyz())
+        * q1.right_retract_derivative()
+    )
 
     return (
         code_generation.OutputArg(q_out.to_vector_xyzw(), name="q_out"),
@@ -56,7 +61,7 @@ def quaternion_interpolation_no_conditional(q0_xyzw: Vector4, q1_xyzw: Vector4, 
 
 
 def main(args: argparse.Namespace):
-    code = str()
+    code = ""
     generator = code_generation.CppGenerator()
     for function in [quaternion_interpolation, quaternion_interpolation_no_conditional]:
         code += code_generation.generate_function(function, generator=generator)

@@ -40,7 +40,10 @@ def main(args: argparse.Namespace):
     code = code_generation.generate_function(func=rotation_error, generator=generator)
     code += "\n\n"
     code += code_generation.generate_function(
-        func=rotation_error, generator=eigen_generator, name=f"{rotation_error.__name__}_eigen")
+        func=rotation_error,
+        generator=eigen_generator,
+        name=f"{rotation_error.__name__}_eigen",
+    )
     code = generator.apply_preamble(code, namespace="gen", imports="#include <Eigen/Core>")
     code_generation.mkdir_and_write_file(code=code, path=args.output)
 

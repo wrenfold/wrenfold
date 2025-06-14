@@ -19,17 +19,19 @@ from wrenfold.type_annotations import FloatScalar, Vector3, Vector4
 
 
 def blockwise_jacobians(
-    output_states: T.Iterable[T.Union[sym.MatrixExpr, Quaternion]],
-    input_states: T.Iterable[T.Union[sym.MatrixExpr, Quaternion]],
+    output_states: T.Iterable[sym.MatrixExpr | Quaternion],
+    input_states: T.Iterable[sym.MatrixExpr | Quaternion],
 ) -> sym.MatrixExpr:
     jacobians = []
     for out_state in output_states:
         jacobians_row = []
         for in_state in input_states:
             out_expressions = (
-                out_state.to_vector_wxyz() if isinstance(out_state, Quaternion) else out_state)
+                out_state.to_vector_wxyz() if isinstance(out_state, Quaternion) else out_state
+            )
             in_expressions = (
-                in_state.to_vector_wxyz() if isinstance(in_state, Quaternion) else in_state)
+                in_state.to_vector_wxyz() if isinstance(in_state, Quaternion) else in_state
+            )
 
             out_D_in = sym.jacobian(out_expressions, in_expressions)
             if isinstance(out_state, Quaternion):
@@ -86,7 +88,7 @@ def integrate_imu(
     account_for_rotation_over_interval = True
     if account_for_rotation_over_interval:
         j_R_k_integral = left_jacobian_of_so3(w=angular_vel_times_dt, epsilon=1.0e-16)
-        accel_in_i = (i_R_j.to_rotation_matrix() * j_R_k_integral * linear_acceleration_unbiased)
+        accel_in_i = i_R_j.to_rotation_matrix() * j_R_k_integral * linear_acceleration_unbiased
     else:
         accel_in_i = i_R_j.to_rotation_matrix() * linear_acceleration_unbiased
 
@@ -99,7 +101,8 @@ def integrate_imu(
 
     # Determine jacobians:
     k_D_j = blockwise_jacobians(
-        output_states=(i_R_k, i_p_k, i_v_k), input_states=(i_R_j, i_p_j, i_v_j))
+        output_states=(i_R_k, i_p_k, i_v_k), input_states=(i_R_j, i_p_j, i_v_j)
+    )
 
     k_D_measurements = blockwise_jacobians(
         output_states=(i_R_k, i_p_k, i_v_k),
@@ -129,10 +132,10 @@ def compute_pim_delta_from_endpoints(
     world_v_k: Vector3,
     duration: FloatScalar,
     gravity_world: Vector3,
-) -> T.Tuple[Quaternion, Vector3, Vector3]:
+) -> tuple[Quaternion, Vector3, Vector3]:
     """
-    Given two 9-DOF navigation states of the form (world_R_imu, world_t_imu, world_v_imu), compute what
-    the preintegrated IMU measurements should be, assuming no noise or integration error.
+    Given two 9-DOF navigation states of the form (world_R_imu, world_t_imu, world_v_imu), compute
+    what the preintegrated IMU measurements should be, assuming no noise or integration error.
 
     The first state (t0) is denoted as frame `i`, while the second (t1) is frame `k`.
 
@@ -189,7 +192,8 @@ def compute_pim_delta_from_endpoints(
     # integral of acceleration.
     half_dt2 = duration * sym.abs(duration) / 2
     i_t_k = i_R_world_mat * (
-        world_t_k - world_t_i - world_v_i * duration - gravity_world * half_dt2)
+        world_t_k - world_t_i - world_v_i * duration - gravity_world * half_dt2
+    )
 
     return i_R_k_predicted, i_t_k, i_v_k
 
@@ -208,53 +212,59 @@ def unweighted_imu_preintegration_error(
     gravity_world: Vector3,
 ):
     """
-    Given two 9-DOF navigation states of the form (world_R_imu, world_t_imu, world_v_imu), we implement
-    a residual between the predicted delta between them, and the measured preintegrated delta.
+    Given two 9-DOF navigation states of the form (world_R_imu, world_t_imu, world_v_imu), we
+    implement a residual between the predicted delta between them, and the measured preintegrated
+    delta.
 
-    The first state is denoted as frame `i`, while the second is denoted as frame `k`. We first compute
-    the idealized PIM delta between them, then subtract the actual preintegrated IMU measurements.
+    The first state is denoted as frame `i`, while the second is denoted as frame `k`. We first
+    compute the idealized PIM delta between them, then subtract the actual preintegrated IMU
+    measurements.
 
     A couple of important notes:
     1. This is the unweighted error. Typically, you would follow up this step by weighting the
        errors by the sqrt information of the IMU measurements themselves.
-    2. This example does not account for the bias. It is assumed that the input preintegrated measurements
-       have already been corrected, and the caller will propagate the jacobian onto the bias using
-       `error_D_measurements` (an output of this function). As an alternative, you could choose to include
-       that step here symbolically.
+    2. This example does not account for the bias. It is assumed that the input preintegrated
+       measurements have already been corrected, and the caller will propagate the jacobian onto the
+       bias using `error_D_measurements` (an output of this function). As an alternative, you could
+       choose to include that step here symbolically.
     """
     world_R_i: Quaternion = Quaternion.from_xyzw(world_R_i_xyzw)
     world_R_k: Quaternion = Quaternion.from_xyzw(world_R_k_xyzw)
     i_R_k_measured: Quaternion = Quaternion.from_xyzw(i_R_k_measured_xyzw)
 
     # Compute the predicted delta from the estimated end-point states:
-    i_R_k_predicted, i_t_k_predicted, i_v_k_predicted = (
-        compute_pim_delta_from_endpoints(
-            world_R_i_xyzw,
-            world_t_i,
-            world_v_i,
-            world_R_k_xyzw,
-            world_t_k,
-            world_v_k,
-            duration,
-            gravity_world,
-        ))
+    i_R_k_predicted, i_t_k_predicted, i_v_k_predicted = compute_pim_delta_from_endpoints(
+        world_R_i_xyzw,
+        world_t_i,
+        world_v_i,
+        world_R_k_xyzw,
+        world_t_k,
+        world_v_k,
+        duration,
+        gravity_world,
+    )
 
     # Compute the difference and stack into a 9-DOF error vector:
-    error = sym.vstack([
-        (i_R_k_measured.conjugate() * i_R_k_predicted).to_rotation_vector(epsilon=1.0e-16),
-        i_t_k_predicted - i_t_k_measured,
-        i_v_k_predicted - i_v_k_measured,
-    ])
+    error = sym.vstack(
+        [
+            (i_R_k_measured.conjugate() * i_R_k_predicted).to_rotation_vector(epsilon=1.0e-16),
+            i_t_k_predicted - i_t_k_measured,
+            i_v_k_predicted - i_v_k_measured,
+        ]
+    )
 
     error_D_rotation_i = (
-        error.jacobian(world_R_i.to_vector_wxyz()) * world_R_i.right_retract_derivative())
+        error.jacobian(world_R_i.to_vector_wxyz()) * world_R_i.right_retract_derivative()
+    )
     error_D_rotation_k = (
-        error.jacobian(world_R_k.to_vector_wxyz()) * world_R_k.right_retract_derivative())
+        error.jacobian(world_R_k.to_vector_wxyz()) * world_R_k.right_retract_derivative()
+    )
 
     # Compute the jacobian of the error wrt the PIM itself. In practice, you need this term
     # for the preintegrated bias correction:
     stacked_measurements = sym.vstack(
-        [i_R_k_measured.to_vector_wxyz(), i_t_k_measured, i_v_k_measured])
+        [i_R_k_measured.to_vector_wxyz(), i_t_k_measured, i_v_k_measured]
+    )
     error_D_measurements = error.jacobian(stacked_measurements)
 
     # `error_D_rotation_delta` is specified in terms of the [w,x,y,z] quaternion elements.
@@ -267,16 +277,21 @@ def unweighted_imu_preintegration_error(
         code_generation.OutputArg(error, name="error"),
         code_generation.OutputArg(error_D_rotation_i, name="error_D_rotation_i", is_optional=True),
         code_generation.OutputArg(
-            error.jacobian(world_t_i), name="error_D_translation_i", is_optional=True),
+            error.jacobian(world_t_i), name="error_D_translation_i", is_optional=True
+        ),
         code_generation.OutputArg(
-            error.jacobian(world_v_i), name="error_D_velocity_i", is_optional=True),
+            error.jacobian(world_v_i), name="error_D_velocity_i", is_optional=True
+        ),
         code_generation.OutputArg(error_D_rotation_k, name="error_D_rotation_k", is_optional=True),
         code_generation.OutputArg(
-            error.jacobian(world_t_k), name="error_D_translation_k", is_optional=True),
+            error.jacobian(world_t_k), name="error_D_translation_k", is_optional=True
+        ),
         code_generation.OutputArg(
-            error.jacobian(world_v_k), name="error_D_velocity_k", is_optional=True),
+            error.jacobian(world_v_k), name="error_D_velocity_k", is_optional=True
+        ),
         code_generation.OutputArg(
-            error_D_measurements, name="error_D_measurements", is_optional=True),
+            error_D_measurements, name="error_D_measurements", is_optional=True
+        ),
     ]
 
 
@@ -293,8 +308,10 @@ def integration_test_sequence(t: FloatScalar):
 
     # Constant angular velocity about each rotational axis:
     world_R_body: Quaternion = (
-        Quaternion.from_x_angle(0.5 * t) * Quaternion.from_y_angle(-0.2 * t) *
-        Quaternion.from_z_angle(0.3 * t))
+        Quaternion.from_x_angle(0.5 * t)
+        * Quaternion.from_y_angle(-0.2 * t)
+        * Quaternion.from_z_angle(0.3 * t)
+    )
     world_R_body_mat = world_R_body.to_rotation_matrix()
 
     # Recover the body-frame angular velocity as a function of time:
@@ -316,12 +333,12 @@ def integration_test_sequence(t: FloatScalar):
 
 
 def main(args: argparse.Namespace):
-    code = str()
+    code = ""
     generator = code_generation.CppGenerator()
     for function in [
-            integrate_imu,
-            unweighted_imu_preintegration_error,
-            integration_test_sequence,
+        integrate_imu,
+        unweighted_imu_preintegration_error,
+        integration_test_sequence,
     ]:
         code += code_generation.generate_function(function, generator=generator)
         code += "\n\n"

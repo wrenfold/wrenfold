@@ -1,6 +1,7 @@
 """
 Test ability to create and insert user-specified external functions into the expression graph.
 """
+
 import dataclasses
 import unittest
 
@@ -11,11 +12,11 @@ from .test_base import MathTestBase
 
 
 class ExternalFunctionWrapperTest(MathTestBase):
-
     def test_scalars(self):
         """Define function that accepts and returns scalars."""
         func = external_functions.declare_external_function(
-            name="func", arguments=[("x", FloatScalar)], return_type=FloatScalar)
+            name="func", arguments=[("x", FloatScalar)], return_type=FloatScalar
+        )
 
         self.assertEqual("func", func.name)
         self.assertEqual(1, func.num_arguments)
@@ -47,7 +48,10 @@ class ExternalFunctionWrapperTest(MathTestBase):
     def test_matrices(self):
         """Define a function that accepts and returns matrices."""
         func = external_functions.declare_external_function(
-            name="func", arguments=[("x", FloatScalar), ("v", Vector3)], return_type=Vector2)
+            name="func",
+            arguments=[("x", FloatScalar), ("v", Vector3)],
+            return_type=Vector2,
+        )
         self.assertEqual(2, func.num_arguments)
         self.assertEqual(type_info.MatrixType(2, 1), func.return_type)
 
@@ -71,11 +75,15 @@ class ExternalFunctionWrapperTest(MathTestBase):
         @dataclasses.dataclass
         class TestType:
             """A dummy type we use for this test."""
+
             a: FloatScalar
             b: Vector2
 
         func = external_functions.declare_external_function(
-            name="func", arguments=[("foo", TestType), ("bar", FloatScalar)], return_type=TestType)
+            name="func",
+            arguments=[("foo", TestType), ("bar", FloatScalar)],
+            return_type=TestType,
+        )
         self.assertEqual(2, func.num_arguments)
         self.assertIsInstance(func.return_type, type_info.CustomType)
 
@@ -86,7 +94,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
 
         self.assertIsInstance(output, TestType)
         for element in [output.a, output.b[0], output.b[1]]:
-            self.assertEqual('CompoundExpressionElement', element.type_name)
+            self.assertEqual("CompoundExpressionElement", element.type_name)
 
         self.assertRaises(exceptions.TypeError, lambda: func(y, x))
         self.assertRaises(TypeError, lambda: func(foo=2, bar=TestType(a=1, b=v)))
@@ -100,9 +108,13 @@ class ExternalFunctionWrapperTest(MathTestBase):
 
         # Define two functions - one that returns the type, and another accepts it.
         func_1 = external_functions.declare_external_function(
-            name="func_1", arguments=[("x", FloatScalar)], return_type=TestType)
+            name="func_1", arguments=[("x", FloatScalar)], return_type=TestType
+        )
         func_2 = external_functions.declare_external_function(
-            name="func_2", arguments=[("q", TestType), ("w", FloatScalar)], return_type=FloatScalar)
+            name="func_2",
+            arguments=[("q", TestType), ("w", FloatScalar)],
+            return_type=FloatScalar,
+        )
         self.assertEqual(1, func_1.num_arguments)
         self.assertIsInstance(func_1.return_type, type_info.CustomType)
 
@@ -126,20 +138,24 @@ class ExternalFunctionWrapperTest(MathTestBase):
     def test_comparisons(self):
         """Check that we can test external functions for equality."""
         func_1 = external_functions.declare_external_function(
-            name="func_1", arguments=[("x", FloatScalar)], return_type=Vector2)
+            name="func_1", arguments=[("x", FloatScalar)], return_type=Vector2
+        )
         func_1_dup = external_functions.declare_external_function(
-            name="func_1", arguments=[("x", FloatScalar)], return_type=Vector2)
+            name="func_1", arguments=[("x", FloatScalar)], return_type=Vector2
+        )
         self.assertEqual(func_1, func_1_dup)
 
         func_2 = external_functions.declare_external_function(
-            name="func_2", arguments=[("x", FloatScalar)], return_type=Vector2)
+            name="func_2", arguments=[("x", FloatScalar)], return_type=Vector2
+        )
         self.assertNotEqual(func_1, func_2)
 
         func_3 = external_functions.declare_external_function(
-            name="func_2", arguments=[("x", Vector3)], return_type=Vector2)
+            name="func_2", arguments=[("x", Vector3)], return_type=Vector2
+        )
         self.assertNotEqual(func_1, func_2)
         self.assertNotEqual(func_2, func_3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

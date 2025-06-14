@@ -7,7 +7,6 @@ import types
 import typing as T
 
 import sympy
-
 from pywrenfold.sympy_conversion import _to_sympy_impl
 
 from . import sym
@@ -24,29 +23,18 @@ class Conversions:
         """Initialize with the sympy module."""
         self.sp = sp
         self.value_map = {
-            sp.E:
-                sym.E,
-            sp.pi:
-                sym.pi,
-            sp.zoo:
-                sym.zoo,
-            sp.I:
-                sym.I,
-            sp.nan:
-                sym.nan,
-            sp.true:
-                sym.true,
-            sp.false:
-                sym.false,
+            sp.E: sym.E,
+            sp.pi: sym.pi,
+            sp.zoo: sym.zoo,
+            sp.I: sym.I,
+            sp.nan: sym.nan,
+            sp.true: sym.true,
+            sp.false: sym.false,
             # Zero, one, negative one, and 1/2 are all specific types in sympy.
-            sp.Integer(0):
-                sym.zero,
-            sp.Integer(1):
-                sym.one,
-            sp.Integer(-1):
-                sym.integer(-1),
-            sp.Rational(1, 2):
-                sym.rational(1, 2),
+            sp.Integer(0): sym.zero,
+            sp.Integer(1): sym.one,
+            sp.Integer(-1): sym.integer(-1),
+            sp.Rational(1, 2): sym.rational(1, 2),
         }
         self.type_map = {
             sp.Pow: sym.pow,
@@ -91,7 +79,7 @@ class Conversions:
 
         # Cache of already converted expressions. Since expressions often include repeated terms,
         # avoid converting them more than once.
-        self.cache: T.Dict[T.Any, sym.AnyExpression] = {}
+        self.cache: dict[T.Any, sym.AnyExpression] = {}
 
     def convert_add(self, expr) -> sym.Expr:
         return sym.addition([self(x) for x in expr.args])
@@ -173,7 +161,7 @@ class Conversions:
         """
         # Subs can have multiple replacements - for now we have to chain these together.
         result = self(expr.expr)
-        for variable, value in zip(expr.bound_symbols, expr.point):
+        for variable, value in zip(expr.bound_symbols, expr.point, strict=False):
             result = sym.substitution(result, self(variable), self(value))
 
         return result
@@ -188,7 +176,7 @@ class Conversions:
         args = [self(x) for x in expr.args]
         return sym.Function(sp_func.name)(*args)
 
-    def __call__(self, expr: T.Any) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+    def __call__(self, expr: T.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
         """
         Convert sympy expression `expr`. We check the different maps stored on self for
         matching values or types, and use the corresponding method to convert.
@@ -206,7 +194,7 @@ class Conversions:
         else:
             return self._convert_expr(expr)
 
-    def _convert_expr(self, expr: T.Any) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+    def _convert_expr(self, expr: T.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
         func = self.type_map.get(type(expr), None)
         if func is not None:
             args = [self(x) for x in expr.args]
@@ -219,7 +207,7 @@ class Conversions:
         if isinstance(expr, self.sp.MatrixBase):
             # All matrix expressions are converted into `matrix`.
             rows, cols = expr.shape
-            data: T.List[sym.Expr] = []
+            data: list[sym.Expr] = []
             for i in range(0, rows):
                 data.append([self(expr[i, j]) for j in range(0, cols)])
             return sym.matrix(data)
@@ -237,8 +225,8 @@ class Conversions:
 
 def from_sympy(
     expr: T.Union["sympy.Basic", "sympy.MatrixBase"],
-    sp: T.Optional[types.ModuleType] = None,
-) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+    sp: types.ModuleType | None = None,
+) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
     """
     Convert sympy expressions to wrenfold expressions. This method will recursively traverse
     the sympy expression tree, converting each encountered object to the equivalent wrenfold
@@ -260,8 +248,8 @@ def from_sympy(
 
 
 def to_sympy(
-    expr: T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr],
-    sp: T.Optional[types.ModuleType] = None,
+    expr: sym.Expr | sym.MatrixExpr | sym.BooleanExpr,
+    sp: types.ModuleType | None = None,
     evaluate: bool = True,
 ) -> T.Union["sympy.Basic", "sympy.MatrixBase"]:
     """

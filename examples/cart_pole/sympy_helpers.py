@@ -1,13 +1,12 @@
 import typing as T
 
 import sympy as sp
-
 from wrenfold import sym, sympy_conversion
 
 
 def get_euler_lagrange_coefficients(
-        euler_lagrange: T.List[sym.Expr],
-        second_derivatives: T.List[sym.Expr]) -> T.Tuple[sym.MatrixExpr, sym.MatrixExpr]:
+    euler_lagrange: list[sym.Expr], second_derivatives: list[sym.Expr]
+) -> tuple[sym.MatrixExpr, sym.MatrixExpr]:
     """
     Given the Euler-Lagrange equations, extract coefficients on `second_derivatives` so that
     we can write the system in the form:
@@ -37,7 +36,7 @@ def get_euler_lagrange_coefficients(
     return sym.matrix(A_rows), sym.matrix(b_rows)
 
 
-def get_mat_inverse(dim: int) -> T.Tuple[sym.MatrixExpr, T.List[sym.Expr]]:
+def get_mat_inverse(dim: int) -> tuple[sym.MatrixExpr, list[sym.Expr]]:
     """
     Use SymPy to get closed formed inverse for a matrix. This really only works for 2x2 and 3x3.
     """

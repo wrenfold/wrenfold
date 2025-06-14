@@ -1,6 +1,7 @@
 """
 Utility functions to support code-generation.
 """
+
 import dataclasses
 import inspect
 import pathlib
@@ -35,7 +36,8 @@ class ReturnValue:
       expression: The returned value. This may be an expression, or an instance of a user-provided
         custom type.
     """
-    expression: T.Union[sym.Expr, sym.MatrixExpr, T.Any]
+
+    expression: sym.Expr | sym.MatrixExpr | T.Any
 
 
 @dataclasses.dataclass
@@ -49,7 +51,8 @@ class OutputArg:
       name: Name of the argument.
       is_optional: Specify whether the output argument is optional or not.
     """
-    expression: T.Union[sym.Expr, sym.MatrixExpr, T.Any]
+
+    expression: sym.Expr | sym.MatrixExpr | T.Any
     name: str
     is_optional: bool = False
 
@@ -61,8 +64,9 @@ ReturnValueOrOutputArg = T.Union[ReturnValue, OutputArg]
 CodegenFuncInvocationResult = T.Union[sym.Expr, sym.MatrixExpr, T.Sequence[ReturnValueOrOutputArg]]
 
 
-def create_function_description(func: T.Callable[..., CodegenFuncInvocationResult],
-                                name: T.Optional[str] = None) -> FunctionDescription:
+def create_function_description(
+    func: T.Callable[..., CodegenFuncInvocationResult], name: str | None = None
+) -> FunctionDescription:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
     to a :class:`wrenfold.code_generation.FunctionDescription` object. The provided function is
@@ -127,15 +131,16 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
     spec = inspect.getfullargspec(func=func)
     description = FunctionDescription(name=name or func.__name__)
 
-    cached_types: T.Dict[T.Type, type_info.CustomType] = dict()
+    cached_types: dict[type, type_info.CustomType] = dict()
     kwargs = dict()
     for arg_name in spec.args:
         if arg_name not in spec.annotations:
-            raise KeyError(f'Missing type annotation for argument: {arg_name}')
+            raise KeyError(f"Missing type annotation for argument: {arg_name}")
         # Map argument types to something the code-generation logic can understand:
         annotated_type = spec.annotations[arg_name]
         arg_type = custom_types.convert_to_internal_type(
-            python_type=annotated_type, cached_custom_types=cached_types)
+            python_type=annotated_type, cached_custom_types=cached_types
+        )
 
         input_expression = description.add_input_argument(arg_name, arg_type)
         if isinstance(arg_type, type_info.CustomType):
@@ -143,17 +148,20 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
                 kwargs[arg_name] = annotated_type(provenance=input_expression)
             else:
                 arg_elements = sym.create_compound_expression_elements(
-                    provenance=input_expression, num=arg_type.total_size)
+                    provenance=input_expression, num=arg_type.total_size
+                )
                 kwargs[arg_name], _ = custom_types.map_expressions_into_custom_type(
-                    expressions=arg_elements, custom_type=annotated_type)
+                    expressions=arg_elements, custom_type=annotated_type
+                )
         else:
             kwargs[arg_name] = input_expression
 
     # run the function
     result_expressions: CodegenFuncInvocationResult = func(**kwargs)
 
-    if isinstance(result_expressions,
-                  (sym.Expr, sym.MatrixExpr)) or dataclasses.is_dataclass(result_expressions):
+    if isinstance(result_expressions, (sym.Expr, sym.MatrixExpr)) or dataclasses.is_dataclass(
+        result_expressions
+    ):
         # if one thing was returned, interpret it as the return value:
         result_expressions = (ReturnValue(expression=result_expressions),)
 
@@ -161,45 +169,54 @@ def create_function_description(func: T.Callable[..., CodegenFuncInvocationResul
         if isinstance(val, ReturnValue):
             if dataclasses.is_dataclass(val.expression):
                 custom_type = custom_types.convert_to_internal_type(
-                    python_type=type(val.expression), cached_custom_types=cached_types)
+                    python_type=type(val.expression), cached_custom_types=cached_types
+                )
                 description.set_return_value(
                     custom_type=custom_type,
                     expressions=custom_types.map_expressions_out_of_custom_type(
-                        instance=val.expression))
+                        instance=val.expression
+                    ),
+                )
             else:
                 description.set_return_value(val.expression)
         elif isinstance(val, OutputArg):
             if dataclasses.is_dataclass(val.expression):
                 custom_type = custom_types.convert_to_internal_type(
-                    python_type=type(val.expression), cached_custom_types=cached_types)
+                    python_type=type(val.expression), cached_custom_types=cached_types
+                )
                 description.add_output_argument(
                     name=val.name,
                     is_optional=val.is_optional,
                     custom_type=custom_type,
                     expressions=custom_types.map_expressions_out_of_custom_type(
-                        instance=val.expression))
+                        instance=val.expression
+                    ),
+                )
             else:
                 description.add_output_argument(
-                    name=val.name, is_optional=val.is_optional, value=val.expression)
+                    name=val.name, is_optional=val.is_optional, value=val.expression
+                )
         else:
             raise TypeError(f"Returned values must be: {ReturnValueOrOutputArg}, got: {type(val)}")
 
     return description
 
 
-def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
-                      generator: T.Union[CppGenerator, RustGenerator, PythonGenerator,
-                                         BaseGenerator],
-                      name: T.Optional[str] = None,
-                      optimization_params: T.Optional[OptimizationParams] = None,
-                      convert_ternaries: bool = True) -> str:
+def generate_function(
+    func: T.Callable[..., CodegenFuncInvocationResult],
+    generator: CppGenerator | RustGenerator | PythonGenerator | BaseGenerator,
+    name: str | None = None,
+    optimization_params: OptimizationParams | None = None,
+    convert_ternaries: bool = True,
+) -> str:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
     to code in the language emitted by ``generator``. This is a three-step process:
 
         #. The signature of the provided function is inspected to generate symbolic input arguments.
            Next, it is invoked and the symbolic outputs are recorded.
-        #. The expression tree is flattened and optimized by :func:`wrenfold.code_generation.transpile`.
+        #. The expression tree is flattened and optimized by
+           :func:`wrenfold.code_generation.transpile`.
            Duplicate operations are eliminated during this step, and conditionals are converted to
            control flow. The simplified output is converted to a syntax tree.
         #. Lastly, the syntax is passed to the provided ``generator`` to emit usable code.
@@ -256,18 +273,21 @@ def generate_function(func: T.Callable[..., CodegenFuncInvocationResult],
     """
     description = create_function_description(func=func, name=name)
     func_ast = transpile(
-        description, optimization_params=optimization_params, convert_ternaries=convert_ternaries)
+        description,
+        optimization_params=optimization_params,
+        convert_ternaries=convert_ternaries,
+    )
     return generator.generate(definition=func_ast)
 
 
 def generate_python(
     func: T.Callable[..., CodegenFuncInvocationResult],
     target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy,
-    convert_ternaries: T.Optional[bool] = None,
-    context: T.Optional[T.Dict[str, T.Any]] = None,
+    convert_ternaries: bool | None = None,
+    context: dict[str, T.Any] | None = None,
     import_target_module: bool = True,
-    generator_type: T.Callable[[PythonGeneratorTarget], BaseGenerator] = PythonGenerator
-) -> T.Tuple[T.Callable, str]:
+    generator_type: T.Callable[[PythonGeneratorTarget], BaseGenerator] = PythonGenerator,
+) -> tuple[T.Callable, str]:
     """
     Code-generate a symbolic function as python code, then ``exec`` the code and return a python
     function that implements the symbolic function numerically.
@@ -312,7 +332,8 @@ def generate_python(
       function in a dict of key-value pairs. The example listing below illustrates this behavior.
 
       **Additionally**, remember that your target framework may not be able to reason about your
-      custom types. For example, `jax.jit <https://jax.readthedocs.io/en/latest/_autosummary/jax.jit.html>`_
+      custom types. For example,
+      `jax.jit <https://jax.readthedocs.io/en/latest/_autosummary/jax.jit.html>`_
       only operates on Jax arrays and standard python types (tuples, lists, dict, etc).
 
     Example:
@@ -373,7 +394,7 @@ def generate_python(
             )
     """
     generator = generator_type(target)
-    if convert_ternaries == None:
+    if convert_ternaries is None:
         # Convert ternaries to conditional if-else blocks when targeting NumPy.
         convert_ternaries = target == PythonGeneratorTarget.NumPy
 
@@ -392,13 +413,16 @@ def generate_python(
     if import_target_module:
         if target == PythonGeneratorTarget.JAX:
             import jax.numpy as jnp
-            globals_in['jnp'] = jnp
+
+            globals_in["jnp"] = jnp
         elif target == PythonGeneratorTarget.PyTorch:
             import torch as th
-            globals_in['th'] = th
+
+            globals_in["th"] = th
         elif target == PythonGeneratorTarget.NumPy:
             import numpy as np
-            globals_in['np'] = np
+
+            globals_in["np"] = np
 
     locals_in_out = dict()
     try:
@@ -406,13 +430,13 @@ def generate_python(
         # and functionality.
         exec(code, globals_in, locals_in_out)
     except:
-        print('Encountered exception while evaluating:')
+        print("Encountered exception while evaluating:")
         print(code)
         raise
     return locals_in_out[func.__name__], code
 
 
-def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]) -> None:
+def mkdir_and_write_file(code: str, path: str | pathlib.Path) -> None:
     """
     Write ``code`` to the specified path. Create intermediate directories as required.
 
@@ -424,7 +448,7 @@ def mkdir_and_write_file(code: str, path: T.Union[str, pathlib.Path]) -> None:
         path = pathlib.Path(path)
     if not path.parent.exists():
         path.parent.mkdir(parents=True)
-    with open(path, 'wb') as handle:
+    with open(path, "wb") as handle:
         # Encode to UTF8 and write binary so we get \n and not \r\n
-        handle.write(code.encode('utf-8'))
+        handle.write(code.encode("utf-8"))
         handle.flush()

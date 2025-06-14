@@ -5,11 +5,12 @@ Symbolic expressions that are shared among the provided examples.
 from wrenfold import code_generation, sym, type_annotations
 
 
-def kb_fisheye_distortion(theta: type_annotations.FloatScalar,
-                          coeffs: type_annotations.Vector4) -> sym.Expr:
+def kb_fisheye_distortion(
+    theta: type_annotations.FloatScalar, coeffs: type_annotations.Vector4
+) -> sym.Expr:
     """Evaluate the Kannala-Brandt fisheye distortion curve (theta -> radius)."""
     k1, k2, k3, k4 = coeffs
-    radius = theta * (1 + k1 * theta ** 2 + k2 * theta ** 4 + k3 * theta ** 6 + k4 * theta ** 8)
+    radius = theta * (1 + k1 * theta**2 + k2 * theta**4 + k3 * theta**6 + k4 * theta**8)
     return radius
 
 
@@ -44,7 +45,7 @@ def kb_fisheye_invert_distortion(
         error = r_predicted.subs(theta_sym, theta) - radius
         updated_theta = sym.max(theta - error / r_D_theta, 0)
 
-        if iteration + 1 < num_iters:
+        if iteration + 1 < num_iters:  # noqa: SIM108
             theta = sym.stop_derivative(updated_theta)
         else:
             # Only allow derivative to propagate on the final iteration.

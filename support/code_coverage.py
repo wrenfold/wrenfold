@@ -21,40 +21,46 @@ def main(args: argparse.Namespace):
     os.makedirs(str(output_dir), exist_ok=True)
 
     # Generate coverage summary:
-    subprocess.check_call([
-        "lcov",
-        "--gcov-tool",
-        args.gcov_tool,
-        "--directory",
-        str(build_dir),
-        "--capture",
-        "--output-file",
-        str(output_dir / "coverage.info"),
-    ])
+    subprocess.check_call(
+        [
+            "lcov",
+            "--gcov-tool",
+            args.gcov_tool,
+            "--directory",
+            str(build_dir),
+            "--capture",
+            "--output-file",
+            str(output_dir / "coverage.info"),
+        ]
+    )
 
     # Filter the summary:
-    subprocess.check_call([
-        "lcov",
-        "--gcov-tool",
-        args.gcov_tool,
-        "--remove",
-        str(output_dir / "coverage.info"),
-        "-o",
-        str(output_dir / "filtered.info"),
-        "/usr/include/*",
-        "/usr/lib/*",
-        "*/dependencies/*",
-        "*/core/tests/*",
-        "*/core/test_support/*",
-    ])
+    subprocess.check_call(
+        [
+            "lcov",
+            "--gcov-tool",
+            args.gcov_tool,
+            "--remove",
+            str(output_dir / "coverage.info"),
+            "-o",
+            str(output_dir / "filtered.info"),
+            "/usr/include/*",
+            "/usr/lib/*",
+            "*/dependencies/*",
+            "*/core/tests/*",
+            "*/core/test_support/*",
+        ]
+    )
 
     # Generate HTML report:
-    subprocess.check_call([
-        "genhtml",
-        str(output_dir / "filtered.info"),
-        "--output-directory",
-        str(output_dir),
-    ])
+    subprocess.check_call(
+        [
+            "genhtml",
+            str(output_dir / "filtered.info"),
+            "--output-directory",
+            str(output_dir),
+        ]
+    )
 
 
 def parse_args() -> argparse.Namespace:

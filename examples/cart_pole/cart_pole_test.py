@@ -9,7 +9,6 @@ import unittest
 import jax
 import jax.numpy as jnp
 import numpy as np
-
 from wrenfold import code_generation, type_info
 
 from .cart_pole_dynamics import (
@@ -40,10 +39,9 @@ class CartPoleParamsNumeric:
 
 
 class CustomPythonGenerator(code_generation.PythonGenerator):
-
     def format_custom_type(self, target: type_info.CustomType):
         if target.python_type == CartPoleParamsSymbolic:
-            return f"CartPoleParamsNumeric"
+            return "CartPoleParamsNumeric"
         return self.super_format(target)
 
 
@@ -57,7 +55,6 @@ def rk4(x: np.ndarray, h: float, f: T.Callable[[np.ndarray], np.ndarray]):
 
 
 class CartPoleTest(unittest.TestCase):
-
     def test_energy_conservation(self):
         """
         Generate the cart-double-pole dynamics as a NumPy/Python function, and test that we can
@@ -66,9 +63,7 @@ class CartPoleTest(unittest.TestCase):
         np_func, _ = code_generation.generate_python(
             func=get_cart_double_pole_dynamics(),
             target=code_generation.PythonGeneratorTarget.NumPy,
-            context={
-                "CartPoleParamsNumeric": CartPoleParamsNumeric
-            },
+            context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
             generator_type=CustomPythonGenerator,
         )
 
@@ -84,14 +79,16 @@ class CartPoleTest(unittest.TestCase):
             v_mu_b=0.1,
             c_d=0.0,
             x_s=1.0,
-            k_s=0.0)
+            k_s=0.0,
+        )
 
         # Initial state is motionless, w/ the pendulum suspended upwards somewhat:
         x = np.array([0.0, np.pi / 4, np.pi / 4, 0.0, 0.0, 0.0]).reshape(-1, 1)
 
         # Compute energy at the start of simulation:
-        energy_initial = np_func(
-            params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False)["energy"]
+        energy_initial = np_func(params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False)[
+            "energy"
+        ]
 
         # Integrate forward with runge-kutta for 3 seconds:
         dt = 0.002
@@ -100,15 +97,18 @@ class CartPoleTest(unittest.TestCase):
                 x=x,
                 h=dt,
                 f=lambda x: np_func(
-                    params=params, x=x, u=0.0, compute_energy=False, compute_J_x=False)["x_dot"],
+                    params=params, x=x, u=0.0, compute_energy=False, compute_J_x=False
+                )["x_dot"],
             )
 
             energy_integrated = np_func(
-                params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False)["energy"]
+                params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False
+            )["energy"]
 
             # We have no damping sources, so check that energy is conserved.
             np.testing.assert_allclose(
-                desired=energy_initial, actual=energy_integrated, rtol=1.0e-5)
+                desired=energy_initial, actual=energy_integrated, rtol=1.0e-5
+            )
 
     def test_jacobian(self):
         """
@@ -118,9 +118,7 @@ class CartPoleTest(unittest.TestCase):
         func, _ = code_generation.generate_python(
             func=get_cart_double_pole_dynamics(),
             target=code_generation.PythonGeneratorTarget.JAX,
-            context={
-                "CartPoleParamsNumeric": CartPoleParamsNumeric
-            },
+            context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
             generator_type=CustomPythonGenerator,
         )
 
@@ -135,9 +133,11 @@ class CartPoleTest(unittest.TestCase):
             v_mu_b=0.1,
             c_d=0.05,
             x_s=1.0,
-            k_s=100.0)
+            k_s=100.0,
+        )
         func_jit = jax.jit(
-            lambda x: func(params=params, x=x, u=0.0, compute_energy=False, compute_J_x=True))
+            lambda x: func(params=params, x=x, u=0.0, compute_energy=False, compute_J_x=True)
+        )
 
         # Integrate for a couple of seconds and test the Jacobian at each step:
         x = np.array([0.05, np.pi / 2, -np.pi / 3, 0.0, 0.0, 0.0]).reshape(-1, 1)
@@ -157,5 +157,5 @@ class CartPoleTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    jax.config.update('jax_platform_name', 'cpu')
+    jax.config.update("jax_platform_name", "cpu")
     unittest.main()

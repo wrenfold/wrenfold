@@ -15,11 +15,12 @@ def main():
 
     working_dir = Path(__file__).parent.absolute()
     try:
-        subprocess.check_call(["git", "diff", "--name-only", "--exit-code",
-                               str(args.filename)],
-                              cwd=str(working_dir))
+        subprocess.check_call(
+            ["git", "diff", "--name-only", "--exit-code", str(args.filename)],
+            cwd=str(working_dir),
+        )
     except subprocess.CalledProcessError:
-        print(f'git diff detected changes in file: {args.filename}')
+        print(f"git diff detected changes in file: {args.filename}")
         exit(1)
 
 

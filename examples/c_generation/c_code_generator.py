@@ -59,7 +59,8 @@ class CCodeGenerator(code_generation.BaseGenerator):
         for index, val in enumerate(mat.value.args):
             row, col = mat_type.compute_indices(idx=index)
             result.append(
-                f"set_output_value({addr_of}{mat.arg.name}, {row}, {col}, {self.format(val)});")
+                f"set_output_value({addr_of}{mat.arg.name}, {row}, {col}, {self.format(val)});"
+            )
         return "\n".join(result)
 
     def format_assign_output_scalar(self, scalar: ast.AssignOutputScalar) -> str:
@@ -88,7 +89,7 @@ class CCodeGenerator(code_generation.BaseGenerator):
 
     def format_call_external_function(self, call: ast.CallExternalFunction) -> str:
         """You can override this method to customize the generated name for external functions."""
-        return (f"{call.function.name}(" + ", ".join(self.format(x) for x in call.args) + ")")
+        return f"{call.function.name}(" + ", ".join(self.format(x) for x in call.args) + ")"
 
     def format_call_std_function(self, call: ast.CallStdFunction) -> str:
         if call.function == StdMathFunction.Signum:
@@ -117,7 +118,7 @@ class CCodeGenerator(code_generation.BaseGenerator):
             StdMathFunction.Powi: "pow",
             StdMathFunction.Powf: "pow",
         }
-        return (f"{functions[call.function]}(" + ", ".join(self.format(x) for x in call.args) + ")")
+        return f"{functions[call.function]}(" + ", ".join(self.format(x) for x in call.args) + ")"
 
     def format_cast(self, cast: ast.Cast) -> str:
         return f"({self._format_numeric_type(cast.destination_type)})({self.format(cast.arg)})"
@@ -145,8 +146,9 @@ class CCodeGenerator(code_generation.BaseGenerator):
 
     def format_construct_custom_type(self, custom: ast.ConstructCustomType) -> str:
         """Use C99 designated initializer syntax to create structs."""
-        fields = ', '.join(f".{f.name} = {self.format(custom.get_field_value(f.name))}"
-                           for f in custom.type.fields)
+        fields = ", ".join(
+            f".{f.name} = {self.format(custom.get_field_value(f.name))}" for f in custom.type.fields
+        )
         return f"{{ {fields} }}"
 
     def format_declaration(self, decl: ast.Declaration) -> str:
@@ -209,7 +211,9 @@ class CCodeGenerator(code_generation.BaseGenerator):
             raise NotImplementedError(f"Unsupported constant: {constant.value}")
 
     def format_ternary(self, ternary: ast.Ternary) -> str:
-        return f"{self.format(ternary.condition)} ? {self.format(ternary.left)} : {self.format(ternary.right)}"
+        left = self.format(ternary.left)
+        right = self.format(ternary.right)
+        return f"{self.format(ternary.condition)} ? {left} : {right}"
 
     def format_variable_ref(self, var: ast.VariableRef) -> str:
         return var.name
@@ -222,8 +226,12 @@ class CCodeGenerator(code_generation.BaseGenerator):
         Args:
             definition: ast.FunctionDefinition
         """
-        return (self.format(definition.signature) + " {\n" +
-                self._indent_and_join([self.format(x) for x in definition.body]) + "\n}")
+        return (
+            self.format(definition.signature)
+            + " {\n"
+            + self._indent_and_join([self.format(x) for x in definition.body])
+            + "\n}"
+        )
 
     def format_function_signature(self, sig: ast.FunctionSignature) -> str:
         """
@@ -259,7 +267,7 @@ class CCodeGenerator(code_generation.BaseGenerator):
             else:
                 raise TypeError("Returning matrices is not supported in this generator yet.")
 
-        return f'inline {return_type} {sig.name}({", ".join(args)})'
+        return f"inline {return_type} {sig.name}({', '.join(args)})"
 
 
 C_PREAMBLE = """// Machine generated code.

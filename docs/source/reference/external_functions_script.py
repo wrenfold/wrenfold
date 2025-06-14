@@ -1,6 +1,7 @@
 """
 Source code for the `external_functions.rst` file.
 """
+
 from wrenfold import (
     ast,
     code_generation,
@@ -16,14 +17,16 @@ class LookupTable(type_annotations.Opaque):
     """
     A placeholder we will map to our actual type during the code-generation step.
     """
-    pass  #[lookup_table_end]
+
+    pass  # [lookup_table_end]
 
 
 # [interpolate_table_start]
 interpolate_table = external_functions.declare_external_function(
     name="interpolate_table",
     arguments=[("table", LookupTable), ("arg", type_annotations.FloatScalar)],
-    return_type=type_annotations.FloatScalar)  # [interpolate_table_end]
+    return_type=type_annotations.FloatScalar,
+)  # [interpolate_table_end]
 
 
 # [function_definition_start]
@@ -50,14 +53,13 @@ def lookup_angle(table: LookupTable, p_0: type_annotations.Vector2, p_1: type_an
 
 # [code_generator_start]
 class CustomCppGenerator(code_generation.CppGenerator):
-
     def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
         Place our external function in the ``utilities`` namespace.
         """
         if element.function == interpolate_table:
-            args = ', '.join(self.format(x) for x in element.args)
-            return f'utilities::{element.function.name}({args})'
+            args = ", ".join(self.format(x) for x in element.args)
+            return f"utilities::{element.function.name}({args})"
         return self.super_format(element)
 
     def format_custom_type(self, element: type_info.CustomType) -> str:
@@ -65,7 +67,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
         Assume the lookup table is implemented as a std::vector<double>.
         """
         if element.python_type == LookupTable:
-            return 'std::vector<double>'
+            return "std::vector<double>"
         return self.super_format(element)
 
 
