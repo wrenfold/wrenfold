@@ -2,9 +2,7 @@
 name = "wrenfold"
 version = "0.3.0"
 requires-python = ">=3.9"
-authors = [
-    { name = "Gareth Cross", email = "gcross.code@icloud.com" },
-]
+authors = [{ name = "Gareth Cross", email = "gcross.code@icloud.com" }]
 description = "Tools for code-generating mathematical functions."
 license = { text = "MIT" }
 readme = "docs/PACKAGE_README.md"
@@ -24,7 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13"
+    "Programming Language :: Python :: 3.13",
 ]
 
 [project.urls]
@@ -33,11 +31,7 @@ Repository = "https://github.com/wrenfold/wrenfold/"
 Issues = "https://github.com/wrenfold/wrenfold/issues"
 
 [build-system]
-requires = [
-    "scikit-build-core==0.10.7",
-    "cmake>=3.20",
-    "ninja>=1.5"
-]
+requires = ["scikit-build-core==0.10.7", "cmake>=3.20", "ninja>=1.5"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -54,21 +48,37 @@ wheel.license-files = [
     "LICENSE",
     "dependencies/abseil-cpp/LICENSE",
     "dependencies/fmt/LICENSE",
-    "dependencies/pybind11/LICENSE"
+    "dependencies/pybind11/LICENSE",
 ]
 build.verbose = true
 
 [tool.cibuildwheel]
 skip = ["*musllinux_*", "*-win32", "*_i686", "pp*"]
 manylinux-x86_64-image = "manylinux_2_28"
-test-command = [
-    "python \"{package}/support/test_wheel.py\"",
-]
+test-command = ["python \"{package}/support/test_wheel.py\""]
 # To test interop, we need NumPy, SymPy and JAX.
 test-requires = ["numpy", "sympy", "jax"]
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-known_first_party = ["wrenfold", "pywrenfold", "test_base"]
-skip_glob = ["components/wrapper/stubs/*"]
+[tool.ruff]
+exclude = ["components/wrapper/stubs"]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = false
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle
+    "F", # Pyflakes
+    "UP", # pyupgrade
+    "B", # flake8-bugbear
+    "SIM", # flake8-simplify
+    "I", # isort
+]
+ignore = [
+    "F401", # Unused-imports.
+    "E731" # Use def instead of lambda.
+]

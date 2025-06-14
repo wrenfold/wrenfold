@@ -22,19 +22,16 @@ repos:
     hooks:
       - id: cmake-format
 
-  - repo: https://github.com/google/yapf
-    rev: 'v0.40.2'
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.13
     hooks:
-      - id: yapf
-        additional_dependencies: [toml]
+      - id: ruff-format
+        types_or: [ python, pyi ]
         exclude: '^dependencies/'
-        require_serial: true
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        name: isort (python)
+      - id: ruff-check
+        types_or: [ python, pyi ]
+        args: [ --fix ]
+        exclude: '^dependencies/'
 
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: 'v2.12.0'
