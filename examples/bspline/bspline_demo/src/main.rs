@@ -159,7 +159,7 @@ impl App {
                     (rgba.b * 255.0) as u8,
                 );
 
-                let line = Line::new(format!("Poly {:02}", poly_index), PlotPoints::from(values))
+                let line = Line::new(format!("Poly {poly_index:02}"), PlotPoints::from(values))
                     .color(color)
                     .style(egui_plot::LineStyle::Solid);
                 plot_ui.line(line);
