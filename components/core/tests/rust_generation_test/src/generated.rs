@@ -1214,4 +1214,29 @@ pub fn integer_struct_member_2<>(x: f64, y: f64) -> crate::types::MixedNumerics
   }
 }
 
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables, unused_parens)]
+pub fn duplicate_matrix_return<T2, T3, >(x: f64, y: f64, foo: Option<&mut T2>, bar: Option<&mut T3>) -> ()
+where
+  T2: wrenfold_traits::OutputSpan2D<2, 1, ValueType = f64>,
+  T3: wrenfold_traits::OutputSpan2D<2, 1, ValueType = f64>,
+{
+  // Operation counts:
+  // add: 1
+  // branch: 2
+  // multiply: 1
+  // total: 4
+  
+  let v001: f64 = y;
+  let v000: f64 = x;
+  if let Some(foo) = foo {
+    foo.set(0, 0, v000 + v001);
+    foo.set(1, 0, v000 * v001);
+  }
+  if let Some(bar) = bar {
+    bar.set(0, 0, v000 + v001);
+    bar.set(1, 0, v000 * v001);
+  }
+}
+
 

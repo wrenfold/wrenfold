@@ -321,4 +321,10 @@ inline auto integer_struct_member_2(scalar_expr x, scalar_expr y) {
   return out;
 }
 
+// Return two identical expressions.
+inline auto duplicate_matrix_return(scalar_expr x, scalar_expr y) {
+  ta::static_matrix<2, 1> v = make_vector(x + y, x * y);
+  return std::make_tuple(optional_output_arg("foo", v), optional_output_arg("bar", v));
+}
+
 }  // namespace wf

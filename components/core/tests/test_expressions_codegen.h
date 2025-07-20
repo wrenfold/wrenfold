@@ -63,6 +63,7 @@ std::string generate_test_expressions(Generator gen) {
   generate_func(gen, code, &integer_struct_member_1, "integer_struct_member_1", arg("inputs"),
                 arg("scale"));
   generate_func(gen, code, &integer_struct_member_2, "integer_struct_member_2", arg("x"), arg("y"));
+  generate_func(gen, code, &duplicate_matrix_return, "duplicate_matrix_return", arg("x"), arg("y"));
   return code;
 }
 

@@ -106,8 +106,7 @@ ast::function_definition ast_form_visitor::convert_function(const ir::const_bloc
 
 void ast_form_visitor::push_back_conditional_assignments(
     std::vector<ast::assign_temporary>&& assignments) {
-  std::sort(assignments.begin(), assignments.end(),
-            [](const auto& a, const auto& b) { return a.left < b.left; });
+  std::ranges::sort(assignments, [](const auto& a, const auto& b) { return a.left < b.left; });
   std::transform(std::make_move_iterator(assignments.begin()),
                  std::make_move_iterator(assignments.end()), std::back_inserter(operations_),
                  [](ast::assign_temporary temp) { return ast::ast_element{std::move(temp)}; });
@@ -200,8 +199,18 @@ inline bool is_argument_read_operation(const ir::const_value_ptr val) {
   return false;
 }
 
+inline bool is_output_matrix_construction(const ir::const_value_ptr val) {
+  const bool is_output = std::any_of(val->consumers().begin(), val->consumers().end(),
+                                     [](const auto& v) { return v->is_op<ir::save>(); });
+  if (!is_output || !val->is_op<ir::construct>()) {
+    return false;
+  }
+  const auto& construct = val->as_op<ir::construct>();
+  return std::holds_alternative<matrix_type>(construct.type());
+}
+
 void ast_form_visitor::process_block(const ir::const_block_ptr block) {
-  if (non_traversable_blocks_.count(block)) {
+  if (non_traversable_blocks_.contains(block)) {
     // Don't recurse too far - we are waiting on one of the ancestors of this block to get
     // processed.
     return;
@@ -237,9 +246,10 @@ void ast_form_visitor::process_block(const ir::const_block_ptr block) {
       // - The value is _not_ a numerical constant, and it has either:
       //    - More than one non-phi consumer. (Used in more than one computation).
       //    - Or, multiple phi consumers. (Multiple conditionals accept this value as the output).
-      const bool needs_declaration = is_argument_read_operation(value) ||
-                                     (!should_inline_constant(value) &&
-                                      (num_non_phi_consumers > 1 || phi_consumers.size() > 1));
+      const bool needs_declaration = (is_argument_read_operation(value) ||
+                                      (!should_inline_constant(value) &&
+                                       (num_non_phi_consumers > 1 || phi_consumers.size() > 1))) &&
+                                     !is_output_matrix_construction(value);
       if (needs_declaration) {
         declared_values_.insert(value);
       }
@@ -343,9 +353,8 @@ void ast_form_visitor::handle_control_flow(const ir::const_block_ptr block) {
 
 ast::ast_element ast_form_visitor::visit_value(const ir::value& value) {
   return std::visit(
-      [this, &value](const auto& op) -> ast::ast_element {
+      [this, &value]<typename T>(const T& op) -> ast::ast_element {
         // These types are placeholders, and don't directly appear in the ast output:
-        using T = std::decay_t<decltype(op)>;
         using excluded_types =
             type_list<ir::jump_condition, ir::save, ir::phi, ir::output_required>;
         if constexpr (type_list_contains_v<T, excluded_types>) {
@@ -359,7 +368,7 @@ ast::ast_element ast_form_visitor::visit_value(const ir::value& value) {
 
 ast::ast_element ast_form_visitor::visit_operation_argument(
     const ir::const_value_ptr value, const std::optional<precedence> parent_precedence) {
-  if (!declared_values_.count(value)) {
+  if (!declared_values_.contains(value)) {
     if (parent_precedence.has_value() && value->operation_precedence() <= *parent_precedence) {
       return ast::ast_element{std::in_place_type_t<parenthetical>{}, visit_value(value)};
     } else {
@@ -532,8 +541,8 @@ ast::ast_element ast_form_visitor::operator()(const custom_type& c, const argume
 ast::ast_element ast_form_visitor::make_field_access_sequence(ast::ast_element prev,
                                                               const custom_type& c,
                                                               const std::size_t element_index) {
-  const auto access_sequence = determine_access_sequence(c, element_index);
-  for (const access_variant& access : access_sequence) {
+  for (const auto access_sequence = determine_access_sequence(c, element_index);
+       const access_variant& access : access_sequence) {
     overloaded_visit(
         access,
         [&](const matrix_access& m) {
