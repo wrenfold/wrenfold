@@ -129,8 +129,8 @@ impl App {
 
     /// Randomize the initial conditions.
     fn reset_state(&mut self) {
-        let dist = rand::distributions::Uniform::new(-std::f64::consts::PI, std::f64::consts::PI);
-        let mut rng = rand::thread_rng();
+        let dist = rand::distr::Uniform::new(-std::f64::consts::PI, std::f64::consts::PI).unwrap();
+        let mut rng = rand::rng();
         self.state[0] = 0.0; //  initial position
         self.state[1] = dist.sample(&mut rng);
         self.state[2] = dist.sample(&mut rng);
@@ -212,7 +212,7 @@ impl App {
             // Draw the background:
             painter.add(Shape::rect_filled(
                 response.rect.expand(5.0),
-                egui::Rounding::ZERO,
+                egui::CornerRadius::ZERO,
                 Color32::from_rgb(30, 41, 59),
             ));
 
@@ -268,6 +268,7 @@ impl App {
                 cart_rect,
                 5.0,
                 Stroke::new(2.0, Color32::from_rgb(229, 229, 229)),
+                egui::StrokeKind::Middle,
             ));
 
             // Draw the poles:
@@ -324,7 +325,7 @@ impl eframe::App for App {
         self.step_sim();
 
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.label("Cart Pole Demo");
             });
         });

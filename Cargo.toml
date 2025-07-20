@@ -28,16 +28,16 @@ serde = { version = "1.0" }
 pkg-config = { version = "0.3.29" }
 
 # External crates used for demo apps:
-arrayvec = { version = "0.7.6 "}
-colorgrad = { version = "0.6.2", default-features = false  }
-eframe = { version = "0.29.1", default-features = false }
-egui = { version = "0.29.1", features = [
+arrayvec = { version = "0.7.6"}
+colorgrad = { version = "0.7.2", default-features = false, features = ["preset"] }
+eframe = { version = "0.32.0", default-features = false }
+egui = { version = "0.32.0", features = [
   "callstack",
   "default",
   "log",
 ] }
-egui_extras = { version = "0.29.0", features = ["default", "image"] }
-egui_plot = { version = "0.29.0", features = ["default"] }
-emath = { version = "0.29.1" }
+egui_extras = { version = "0.32.0", features = ["default", "image"] }
+egui_plot = { version = "0.33.0", features = ["default"] }
+emath = { version = "0.32.0" }
 log = { version = "0.4", features = ["std"] }
-rand = { version = "0.8.5", features = ["std"] }
+rand = { version = "0.9.1", features = ["std"] }
