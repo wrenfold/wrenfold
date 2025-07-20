@@ -6,12 +6,6 @@ license.workspace = true
 publish = false
 description = "App to visualize cart-pole double pendulum system."
 
-[features]
-default = ["glow"]
-
-glow = ["eframe/glow"]
-wayland = ["eframe/wayland"]
-
 [dependencies]
 wrenfold-traits = { workspace = true }
 

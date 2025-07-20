@@ -6,12 +6,6 @@ license.workspace = true
 publish = false
 description = "App to visualize generated b-spline functions."
 
-[features]
-default = ["glow"]
-
-glow = ["eframe/glow"]
-wayland = ["eframe/wayland"]
-
 [dependencies]
 bspline_rust_test = { workspace = true }
 wrenfold-traits = { workspace = true }

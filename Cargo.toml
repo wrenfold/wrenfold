@@ -30,7 +30,7 @@ pkg-config = { version = "0.3.29" }
 # External crates used for demo apps:
 arrayvec = { version = "0.7.6"}
 colorgrad = { version = "0.7.2", default-features = false, features = ["preset"] }
-eframe = { version = "0.32.0", default-features = false }
+eframe = { version = "0.32.0", default-features = false, features = ["wayland", "glow"] }
 egui = { version = "0.32.0", features = [
   "callstack",
   "default",
