@@ -58,6 +58,8 @@ std::string generate_test_expressions(Generator gen) {
                 arg("x"), arg("y"));
   generate_func(gen, code, &external_function_call_6, "external_function_call_6", arg("x"),
                 arg("y"));
+  generate_func(gen, code, &external_function_call_7, "external_function_call_7", arg("x"),
+                arg("y"));
   generate_func(gen, code, &integer_argument_1, "integer_argument_1", arg("x"), arg("y"));
   generate_func(gen, code, &integer_output_values_1, "integer_output_values_1", arg("x"), arg("y"));
   generate_func(gen, code, &integer_struct_member_1, "integer_struct_member_1", arg("inputs"),

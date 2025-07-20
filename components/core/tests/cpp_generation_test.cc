@@ -557,6 +557,17 @@ TEST(CppGenerationTest, TestExternalFunctionCall6) {
                     gen::external_function_call_6(-3.5, 4.75).to_vector(), 1.0e-15);
 }
 
+TEST(CppGenerationTest, TestExternalFunctionCall7) {
+  Eigen::Matrix2d a;
+  Eigen::Vector2d b;
+  gen::external_function_call_7(0.5, -0.21, a, b);
+
+  const Eigen::Vector2d v{0.5 - -0.21, 0.5 * 2 + -0.21};
+  ASSERT_EIGEN_NEAR(test::external_function_3<double>(v, v + Eigen::Vector2d(2.0, 5.0)), a,
+                    1.0e-15);
+  ASSERT_EIGEN_NEAR(v, b, 1.0e-15);
+}
+
 TEST(CppGenerationTest, TestIntegerArgument1) {
   using return_type = decltype(gen::integer_argument_1(1, 2.0));
   static_assert(std::is_same_v<return_type, double>);

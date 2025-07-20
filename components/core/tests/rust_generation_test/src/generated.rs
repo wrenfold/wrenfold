@@ -1145,6 +1145,33 @@ pub fn external_function_call_6<>(x: f64, y: f64) -> crate::types::Point2d
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables, unused_parens)]
+pub fn external_function_call_7<T2, T3, >(x: f64, y: f64, a: &mut T2, b: &mut T3) -> ()
+where
+  T2: wrenfold_traits::OutputSpan2D<2, 2, ValueType = f64>,
+  T3: wrenfold_traits::OutputSpan2D<2, 1, ValueType = f64>,
+{
+  // Operation counts:
+  // add: 4
+  // call: 1
+  // multiply: 1
+  // negate: 1
+  // total: 7
+  
+  let v000: f64 = x;
+  let v002: f64 = y;
+  let v025: f64 = v002 + v000 * (2i64) as f64;
+  let v024: f64 = v000 + -v002;
+  let v016: nalgebra::SMatrix<f64, 2, 2> = crate::external_functions::external_function_3(&nalgebra::SMatrix::<f64, 2, 1>::new(v024, v025), &nalgebra::SMatrix::<f64, 2, 1>::new((2i64) as f64 + v024, (5i64) as f64 + v025));
+  a.set(0, 0, v016[(0, 0)]);
+  a.set(0, 1, v016[(0, 1)]);
+  a.set(1, 0, v016[(1, 0)]);
+  a.set(1, 1, v016[(1, 1)]);
+  b.set(0, 0, v024);
+  b.set(1, 0, v025);
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables, unused_parens)]
 pub fn integer_argument_1<>(x: i64, y: f64) -> f64
 {
   // Operation counts:
