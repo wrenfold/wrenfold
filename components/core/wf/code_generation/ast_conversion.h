@@ -65,7 +65,7 @@ class ast_form_visitor {
 
   // Create a `variable_ref` object with the name of the variable used to store `value`.
   ast::variable_ref make_variable_ref(const ir::const_value_ptr value) const {
-    WF_ASSERT(declared_values_.count(value), "value = {}", value);
+    WF_ASSERT(declared_values_.contains(value), "value = {}", value);
     return ast::variable_ref{format_variable_name(value)};
   }
 

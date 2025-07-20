@@ -282,6 +282,13 @@ inline auto external_function_call_6(scalar_expr x, scalar_expr y) {
   return external_function_4::call(p2);
 }
 
+// Call an external function with a matrix argument. Also return that matrix via output arg.
+inline auto external_function_call_7(scalar_expr x, scalar_expr y) {
+  auto v = make_vector(x - y, x * 2 + y);
+  return std::make_tuple(output_arg("a", external_function_3::call(v, v + make_vector(2, 5))),
+                         output_arg("b", ta::static_matrix<2, 1>(v)));
+}
+
 // Accept an integer argument for `x`.
 inline auto integer_argument_1(ta::int_scalar_expr x, scalar_expr y) { return x * y; }
 
@@ -319,6 +326,12 @@ inline auto integer_struct_member_2(scalar_expr x, scalar_expr y) {
   out.mode = x * y;
   out.value = x - y;
   return out;
+}
+
+// Return two identical expressions.
+inline auto duplicate_matrix_return(scalar_expr x, scalar_expr y) {
+  ta::static_matrix<2, 1> v = make_vector(x + y, x * y);
+  return std::make_tuple(optional_output_arg("foo", v), optional_output_arg("bar", v));
 }
 
 }  // namespace wf
