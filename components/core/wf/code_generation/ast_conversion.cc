@@ -200,8 +200,9 @@ inline bool is_argument_read_operation(const ir::const_value_ptr val) {
 }
 
 inline bool is_output_matrix_construction(const ir::const_value_ptr val) {
-  const bool is_output = std::any_of(val->consumers().begin(), val->consumers().end(),
-                                     [](const auto& v) { return v->is_op<ir::save>(); });
+  const bool is_output =
+      std::any_of(val->consumers().begin(), val->consumers().end(),
+                  [](const ir::const_value_ptr& v) { return v->is_op<ir::save>(); });
   if (!is_output || !val->is_op<ir::construct>()) {
     return false;
   }
