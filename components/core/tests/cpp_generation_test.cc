@@ -594,4 +594,11 @@ TEST(CppGenerationTest, TestIntegerStructMember2) {
   ASSERT_EQ(-1.3 - 5.0, b.value);
 }
 
+TEST(CppGenerationTest, TestDuplicateOutputMatrices) {
+  Eigen::Vector2d a{};
+  Eigen::Vector2d b{};
+  gen::duplicate_matrix_return(0.5, -0.3, OPT_OUTPUT(a), OPT_OUTPUT(b));
+  ASSERT_EIGEN_NEAR(a, b, 0.0);
+}
+
 }  // namespace wf
