@@ -47,6 +47,7 @@ static std::vector<std::string_view> get_attributes(const ast::function_signatur
   result.push_back("clippy::unused_unit");
   result.push_back("clippy::collapsible_else_if");
   result.push_back("clippy::needless_late_init");
+  result.push_back("clippy::neg_multiply");
   result.push_back("unused_variables");
   result.push_back("unused_parens");
   return result;

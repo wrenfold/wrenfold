@@ -2,7 +2,7 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 
 #[inline]
-#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, unused_variables, unused_parens)]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, clippy::neg_multiply, unused_variables, unused_parens)]
 pub fn cart_double_pole_dynamics<T1, T3, T5, >(params: &crate::CartPoleParams, x: &T1, u: f64, x_dot: &mut T3, energy: Option<&mut f64>, J_x: Option<&mut T5>) -> ()
 where
   T1: wrenfold_traits::Span2D<6, 1, ValueType = f64>,

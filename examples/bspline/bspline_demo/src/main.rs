@@ -149,19 +149,19 @@ impl App {
             }
 
             let num_polys = pts_per_poly.len();
-            let grad = colorgrad::rainbow();
+            let grad = colorgrad::preset::rainbow();
             for (poly_index, values) in pts_per_poly.into_iter() {
-                let rgba = grad.at((poly_index as f64 + 0.5) / num_polys as f64);
+                let rgba =
+                    colorgrad::Gradient::at(&grad, (poly_index as f32 + 0.5) / num_polys as f32);
                 let color = Color32::from_rgb(
                     (rgba.r * 255.0) as u8,
                     (rgba.g * 255.0) as u8,
                     (rgba.b * 255.0) as u8,
                 );
 
-                let line = Line::new(PlotPoints::from(values))
+                let line = Line::new(format!("Poly {poly_index:02}"), PlotPoints::from(values))
                     .color(color)
-                    .style(egui_plot::LineStyle::Solid)
-                    .name(format!("Poly {:02}", poly_index));
+                    .style(egui_plot::LineStyle::Solid);
                 plot_ui.line(line);
             }
         });
@@ -171,7 +171,7 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.label("Spline Demo");
             });
         });

@@ -4,7 +4,7 @@ use argmin::core::{CostFunction, Error, Gradient, Hessian};
 use nalgebra as na;
 use ndarray::{Array1, Array2};
 
-use crate::generated as gen;
+use crate::generated;
 
 /// Weights for the cost functions
 #[derive(Clone)]
@@ -146,7 +146,7 @@ impl CostFunction for Problem {
         let mut cost = 0.0;
 
         let trajectory = self.get_trajectory(p);
-        gen::problem_cost(
+        generated::problem_cost(
             &trajectory,
             &self.desired_final_state.to_flat(),
             &self.weights,
@@ -164,7 +164,7 @@ impl Gradient for Problem {
     fn gradient(&self, p: &Self::Param) -> Result<Self::Gradient, Error> {
         let mut gradient = na::SVector::<f64, TRAJECTORY_TO_OPT_DIM>::zeros();
         let trajectory = self.get_trajectory(p);
-        gen::problem_jacobian(
+        generated::problem_jacobian(
             &trajectory,
             &self.desired_final_state.to_flat(),
             &self.weights,
@@ -190,7 +190,7 @@ impl Hessian for Problem {
     fn hessian(&self, p: &Self::Param) -> Result<Self::Hessian, Error> {
         let mut hessian = na::SMatrix::<f64, TRAJECTORY_TO_OPT_DIM, TRAJECTORY_TO_OPT_DIM>::zeros();
         let trajectory = self.get_trajectory(p);
-        gen::problem_hessian(
+        generated::problem_hessian(
             &trajectory,
             &self.desired_final_state.to_flat(),
             &self.weights,

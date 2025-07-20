@@ -4,4 +4,4 @@
 
 pub mod jacobians;
 
-pub use jacobians::{numerical_jacobian, Manifold};
+pub use jacobians::{Manifold, numerical_jacobian};
