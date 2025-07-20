@@ -1,7 +1,7 @@
 //! wrenfold symbolic code generator.
 //! Copyright (c) 2024 Gareth Cross
 //! For license information refer to accompanying LICENSE file.
-use egui::{pos2, vec2, Color32, Rect, Shape, Stroke, Ui};
+use egui::{Color32, Rect, Shape, Stroke, Ui, pos2, vec2};
 use nalgebra as na;
 use rand::prelude::Distribution;
 

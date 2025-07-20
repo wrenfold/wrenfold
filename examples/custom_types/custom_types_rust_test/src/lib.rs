@@ -12,7 +12,7 @@ mod tests {
 
     use wrenfold_test_utils::{numerical_jacobian, Manifold};
 
-    use super::generated as gen;
+    use super::generated;
     use crate::geo::{Point3d, Pose3d};
 
     impl Manifold<f64, 3> for Point3d {
@@ -78,7 +78,7 @@ mod tests {
             let mut D_pose_gen = na::SMatrix::<f64, 3, 6>::zeros();
             let mut D_pt_gen = na::SMatrix::<f64, 3, 3>::zeros();
 
-            let p_world = gen::transform_point(
+            let p_world = generated::transform_point(
                 &world_T_body,
                 &p_body,
                 Some(&mut D_pose_gen),
@@ -95,7 +95,7 @@ mod tests {
             let D_pose_num = numerical_jacobian(
                 &world_T_body,
                 &|world_T_body: &Pose3d| {
-                    gen::transform_point(
+                    generated::transform_point(
                         world_T_body,
                         &p_body,
                         None::<&mut na::SMatrix<f64, 3, 6>>,
@@ -108,7 +108,7 @@ mod tests {
             let D_pt_num = numerical_jacobian(
                 &p_body,
                 &|p_body: &Point3d| {
-                    gen::transform_point(
+                    generated::transform_point(
                         &world_T_body,
                         p_body,
                         None::<&mut na::SMatrix<f64, 3, 6>>,
@@ -133,7 +133,7 @@ mod tests {
                 let mut D_second = na::SMatrix::<f64, 6, 6>::zeros();
 
                 let a_T_c =
-                    gen::compose_poses(a_T_b, b_T_c, Some(&mut D_first), Some(&mut D_second));
+                    generated::compose_poses(a_T_b, b_T_c, Some(&mut D_first), Some(&mut D_second));
 
                 approx::assert_abs_diff_eq!(
                     a_T_c.rotation().to_rotation_matrix(),
@@ -150,7 +150,7 @@ mod tests {
                 let D_first_num = numerical_jacobian(
                     a_T_b,
                     &|a_T_b| {
-                        gen::compose_poses(
+                        generated::compose_poses(
                             a_T_b,
                             b_T_c,
                             None::<&mut na::SMatrix<f64, 6, 6>>,
@@ -164,7 +164,7 @@ mod tests {
                 let D_second_num = numerical_jacobian(
                     b_T_c,
                     &|b_T_c| {
-                        gen::compose_poses(
+                        generated::compose_poses(
                             a_T_b,
                             b_T_c,
                             None::<&mut na::SMatrix<f64, 6, 6>>,
