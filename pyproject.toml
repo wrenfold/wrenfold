@@ -1,7 +1,7 @@
 [project]
 name = "wrenfold"
 version = "0.3.1"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [{ name = "Gareth Cross", email = "gcross.code@icloud.com" }]
 description = "Tools for code-generating mathematical functions."
 license = { text = "MIT" }
@@ -18,7 +18,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Code Generators",
 
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -84,7 +83,7 @@ package = false # Do not install wheel when running `uv add`, etc.
 
 [tool.ruff]
 exclude = ["components/wrapper/stubs"]
-target-version = "py39"
+target-version = "py310"
 line-length = 100
 
 [tool.ruff.format]

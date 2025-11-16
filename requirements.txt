@@ -32,15 +32,8 @@ idna==3.10
     # via requests
 imagesize==1.4.1
     # via sphinx
-importlib-metadata==8.7.0 ; python_full_version < '3.10'
-    # via
-    #   jax
-    #   sphinx
-jax==0.4.30 ; python_full_version < '3.10'
-jax==0.6.1 ; python_full_version >= '3.10'
-jaxlib==0.4.30 ; python_full_version < '3.10'
-    # via jax
-jaxlib==0.6.1 ; python_full_version >= '3.10'
+jax==0.6.1
+jaxlib==0.6.1
     # via jax
 jinja2==3.1.6
     # via
@@ -69,13 +62,7 @@ myst-parser==3.0.1
 ninja==1.11.1.4
 nodeenv==1.9.1
     # via pre-commit
-numpy==2.0.2 ; python_full_version < '3.10'
-    # via
-    #   jax
-    #   jaxlib
-    #   ml-dtypes
-    #   scipy
-numpy==2.2.6 ; python_full_version == '3.10.*'
+numpy==2.2.6 ; python_full_version < '3.11'
     # via
     #   jax
     #   jaxlib
@@ -104,11 +91,7 @@ pyyaml==6.0.2
     #   pre-commit
 requests==2.32.4
     # via sphinx
-scipy==1.13.1 ; python_full_version < '3.10'
-    # via
-    #   jax
-    #   jaxlib
-scipy==1.15.3 ; python_full_version >= '3.10'
+scipy==1.15.3
     # via
     #   jax
     #   jaxlib
@@ -147,5 +130,3 @@ urllib3==2.4.0
     # via requests
 virtualenv==20.31.2
     # via pre-commit
-zipp==3.23.0 ; python_full_version < '3.10'
-    # via importlib-metadata

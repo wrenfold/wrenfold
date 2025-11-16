@@ -176,8 +176,8 @@ class MatrixWrapperTest(MathTestBase):
         rows, cols = np.mgrid[0 : shape[0], 0 : shape[1]]
         rows = rows.reshape(-1)
         cols = cols.reshape(-1)
-        for start_row, start_col in zip(rows, cols):
-            for end_row, end_col in zip(rows, cols):
+        for start_row, start_col in zip(rows, cols, strict=True):
+            for end_row, end_col in zip(rows, cols, strict=True):
                 for sz in step_sizes:
                     row_slice = slice(start_row, end_row, sz if end_row >= start_row else -sz)
                     col_slice = slice(start_col, end_col, sz if end_col >= start_col else -sz)

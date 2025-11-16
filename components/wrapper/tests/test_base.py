@@ -1,7 +1,6 @@
 """Shared utilities for unit testing."""
 
 import sys
-import typing as T
 import unittest
 
 from wrenfold import sym
@@ -15,7 +14,7 @@ class MathTestBase(unittest.TestCase):
             sys.stdout.reconfigure(encoding="utf-8")
             sys.stderr.reconfigure(encoding="utf-8")
 
-    def assertIdentical(self, a: T.Union[sym.AnyExpression, int, float], b: sym.AnyExpression):
+    def assertIdentical(self, a: sym.AnyExpression | int | float, b: sym.AnyExpression):
         """Assert that two expressions are identical."""
         if isinstance(a, (int, float)):
             a = sym.Expr(a)
@@ -29,7 +28,7 @@ class MathTestBase(unittest.TestCase):
         )
         raise self.failureException(message)
 
-    def assertNotIdentical(self, a: T.Union[sym.AnyExpression, int, float], b: sym.AnyExpression):
+    def assertNotIdentical(self, a: sym.AnyExpression | int | float, b: sym.AnyExpression):
         """Assert that two expressions are not identical."""
         if isinstance(a, (int, float)):
             a = sym.Expr(a)

@@ -141,7 +141,7 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     )
 
     M_inv, m_symbols = get_mat_inverse(dim=3)
-    substitutions = list(zip(m_symbols, A.to_flat_list()))
+    substitutions = list(zip(m_symbols, A.to_flat_list(), strict=True))
 
     # Compute expressions for x'' = A(x, x')^-1 * f(x, x', u)
     x_ddot = M_inv.subs(substitutions) * f
@@ -157,8 +157,8 @@ def get_cart_double_pole_dynamics() -> T.Callable:
         """
         # We substitute `vel_states` first so that Derivative(x(t), t) is replaced first.
         # Then we can replace x(t).
-        states = list(zip([b_x, th_1, th_2], x[:3].to_flat_list()))
-        vel_states = list(zip([b_x_dot, th_1_dot, th_2_dot], x[3:].to_flat_list()))
+        states = list(zip([b_x, th_1, th_2], x[:3].to_flat_list(), strict=True))
+        vel_states = list(zip([b_x_dot, th_1_dot, th_2_dot], x[3:].to_flat_list(), strict=True))
 
         constants = [
             (m_b, params.m_b),

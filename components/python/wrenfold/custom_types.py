@@ -8,7 +8,7 @@ import typing as T
 from . import sym, type_annotations, type_info
 
 # Refer to possible types we put in the generated code.
-CodegenType = T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType]
+CodegenType = type_info.ScalarType | type_info.MatrixType | type_info.CustomType
 
 U = T.TypeVar("U")
 

@@ -49,12 +49,12 @@ def create_evaluator(func: T.Callable) -> T.Callable:
             f"Mismatch in # of input args: {len(args)} != {len(input_args)}"
         )
         sub_list: list[tuple[sym.Expr, sym.Expr]] = []
-        for numeric_arg, arg_desc in zip(args, input_args):
+        for numeric_arg, arg_desc in zip(args, input_args, strict=True):
             sym_arg = arg_desc.create_symbolic_input()
             if isinstance(sym_arg, sym.Expr):
-                if isinstance(numeric_arg, (float, np.float32, np.float64)):
+                if isinstance(numeric_arg, (float, np.float32, np.float64)):  # type: ignore
                     numeric_arg = sym.float(float(numeric_arg))
-                elif isinstance(numeric_arg, (int, np.int32, np.int64)):
+                elif isinstance(numeric_arg, (int, np.int32, np.int64)):  # type: ignore
                     numeric_arg = sym.integer(int(numeric_arg))
                 else:
                     raise TypeError(
@@ -68,7 +68,7 @@ def create_evaluator(func: T.Callable) -> T.Callable:
                 if len(numeric_arg.shape) > 2:
                     raise TypeError("Numpy array must be 1D or 2D")
                 matrix = sym.matrix(numeric_arg.astype(float))
-                for var, num in zip(sym_arg.to_flat_list(), matrix.to_flat_list()):
+                for var, num in zip(sym_arg.to_flat_list(), matrix.to_flat_list(), strict=True):
                     sub_list.append((var, num))
             else:
                 raise TypeError(f"Not supported yet: {arg_desc.type}")
@@ -106,7 +106,7 @@ def batch_evaluator(func: T.Callable) -> T.Callable:
 
     def batched(*args):
         outputs = collections.defaultdict(list)
-        for x in zip(*args):
+        for x in zip(*args, strict=True):
             y = func(*x)
             if isinstance(y, tuple):
                 rv, oa = y
@@ -320,7 +320,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
 
         ws = np.array([[-0.5e-8, -1.3e-7, 4.2e-8], [0.1, -0.3, 0.7], [1.2, -0.3, -0.8]])
         vs = np.array([[-4.2, 3.6, 8.1], [3.0, -7.0, 1.2], [0.02, -0.4, -3.0]])
-        for w, v in zip(ws, vs):
+        for w, v in zip(ws, vs, strict=True):
             rv_num, oa_num = func(w, v)
             rv_sym, oa_sym = evaluator(w, v)
             np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
