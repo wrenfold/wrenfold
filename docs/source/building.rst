@@ -38,7 +38,7 @@ You will need the following tools:
 
   * cmake >= 3.20
   * ninja >= 1.5 (other build systems are not explicitly tested at this time)
-  * python >= 3.9
+  * python >= 3.10
   * mypy (required for `stubgen <https://mypy.readthedocs.io/en/stable/stubgen.html>`_)
 
 To run python tests you will additionally need:

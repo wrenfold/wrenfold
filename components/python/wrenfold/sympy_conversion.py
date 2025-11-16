@@ -161,7 +161,7 @@ class Conversions:
         """
         # Subs can have multiple replacements - for now we have to chain these together.
         result = self(expr.expr)
-        for variable, value in zip(expr.bound_symbols, expr.point):
+        for variable, value in zip(expr.bound_symbols, expr.point, strict=True):
             result = sym.substitution(result, self(variable), self(value))
 
         return result
@@ -176,7 +176,7 @@ class Conversions:
         args = [self(x) for x in expr.args]
         return sym.Function(sp_func.name)(*args)
 
-    def __call__(self, expr: T.Any) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+    def __call__(self, expr: T.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
         """
         Convert sympy expression `expr`. We check the different maps stored on self for
         matching values or types, and use the corresponding method to convert.
@@ -194,7 +194,7 @@ class Conversions:
         else:
             return self._convert_expr(expr)
 
-    def _convert_expr(self, expr: T.Any) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+    def _convert_expr(self, expr: T.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
         func = self.type_map.get(type(expr), None)
         if func is not None:
             args = [self(x) for x in expr.args]
@@ -225,8 +225,8 @@ class Conversions:
 
 def from_sympy(
     expr: T.Union["sympy.Basic", "sympy.MatrixBase"],
-    sp: T.Optional[types.ModuleType] = None,
-) -> T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr]:
+    sp: types.ModuleType | None = None,
+) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
     """
     Convert sympy expressions to wrenfold expressions. This method will recursively traverse
     the sympy expression tree, converting each encountered object to the equivalent wrenfold
@@ -248,8 +248,8 @@ def from_sympy(
 
 
 def to_sympy(
-    expr: T.Union[sym.Expr, sym.MatrixExpr, sym.BooleanExpr],
-    sp: T.Optional[types.ModuleType] = None,
+    expr: sym.Expr | sym.MatrixExpr | sym.BooleanExpr,
+    sp: types.ModuleType | None = None,
     evaluate: bool = True,
 ) -> T.Union["sympy.Basic", "sympy.MatrixBase"]:
     """

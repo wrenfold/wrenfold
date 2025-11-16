@@ -118,7 +118,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
 class CodeGenerationWrapperTest(MathTestBase):
     @staticmethod
     def _run_generators(
-        definition: T.Union[ast.FunctionDefinition, T.Sequence[ast.FunctionDefinition]],
+        definition: ast.FunctionDefinition | T.Sequence[ast.FunctionDefinition],
     ):
         """Run the generators just to make sure we don't hit an assertion."""
         if isinstance(definition, ast.FunctionDefinition):
@@ -132,7 +132,7 @@ class CodeGenerationWrapperTest(MathTestBase):
         self,
         arg: code_generation.Argument,
         name: str,
-        t: T.Union[type_info.ScalarType, type_info.MatrixType, type_info.CustomType],
+        t: type_info.ScalarType | type_info.MatrixType | type_info.CustomType,
         direction: code_generation.ArgumentDirection,
     ):
         self.assertEqual(name, arg.name)

@@ -20,9 +20,8 @@ message(STATUS "Path to CMAKE_MAKE_PROGRAM: ${MAKE_PROGRAM_PATH}")
 enable_testing()
 include(GNUInstallDirs)
 
-# Find python (for pybind11)
 find_package(
-  Python 3.9
+  Python 3.10
   COMPONENTS Interpreter Development.Module
   REQUIRED)
 message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
