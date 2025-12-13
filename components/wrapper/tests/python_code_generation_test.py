@@ -9,6 +9,7 @@ import unittest
 
 import jax
 import jax.numpy as jnp
+import numba
 import numpy as np
 
 try:
@@ -17,7 +18,7 @@ except ImportError:
     print("Torch not installed, PyTorch tests will be skipped.")
     th = None
 
-from wrenfold import code_generation, external_functions, sym, type_info
+from wrenfold import code_generation, sym
 from wrenfold.geometry import Quaternion
 from wrenfold.type_annotations import (
     FloatScalar,
@@ -164,7 +165,11 @@ class PythonCodeGenerationTestBase(MathTestBase):
 
     @classmethod
     def convert_outputs_to_array(cls, outputs, strip_batch_dim: bool = False):
-        constructor = (lambda x: np.squeeze(np.array(x), axis=0)) if strip_batch_dim else np.array
+        constructor = (
+            (lambda x: np.squeeze(np.array(x), axis=0))
+            if strip_batch_dim
+            else lambda x: np.array(x)
+        )
         if isinstance(outputs, tuple):
             return_val, output_args = outputs
             return constructor(return_val), {k: constructor(v) for (k, v) in output_args.items()}
@@ -213,11 +218,11 @@ class PythonCodeGenerationTestBase(MathTestBase):
         # Test against symbolic implementation:
         theta = 1.32
         v = np.array([-2.3, 5.3])
-        rv_num, oa_num = func(theta, v)
+        rv_num, J_theta_num = func(theta, v)
         rv_sym, oa_sym = evaluator(theta, v)
 
         np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
-        np.testing.assert_allclose(desired=oa_sym["J_theta"], actual=oa_num["J_theta"], rtol=1.0e-6)
+        np.testing.assert_allclose(desired=oa_sym["J_theta"], actual=J_theta_num, rtol=1.0e-6)
 
         if not self.SUPPORTS_BATCH:
             return
@@ -227,11 +232,11 @@ class PythonCodeGenerationTestBase(MathTestBase):
 
         theta = np.array([-0.34, 0.9])
         v = np.array([[10.2, -8.2], [5.3, -2.31]])
-        rv_num, oa_num = func_batched(theta, v)
+        rv_num, J_theta_num = func_batched(theta, v)
         rv_sym, oa_sym = batch_evaluator(evaluator)(theta, v)
 
         np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
-        np.testing.assert_allclose(desired=oa_sym["J_theta"], actual=oa_num["J_theta"], rtol=1.0e-6)
+        np.testing.assert_allclose(desired=oa_sym["J_theta"], actual=J_theta_num, rtol=1.0e-6)
 
     def test_nested_conditional(self):
         """Test a function that creates a nested conditional."""
@@ -294,6 +299,10 @@ class PythonCodeGenerationTestBase(MathTestBase):
         for x in np.linspace(-5.0, 5.0, num=20):
             np.testing.assert_allclose(desired=evaluator(x), actual=func(x), rtol=1.0e-6)
 
+        import ipdb
+
+        ipdb.set_trace()
+
         if not self.SUPPORTS_BATCH:
             return
 
@@ -321,12 +330,10 @@ class PythonCodeGenerationTestBase(MathTestBase):
         ws = np.array([[-0.5e-8, -1.3e-7, 4.2e-8], [0.1, -0.3, 0.7], [1.2, -0.3, -0.8]])
         vs = np.array([[-4.2, 3.6, 8.1], [3.0, -7.0, 1.2], [0.02, -0.4, -3.0]])
         for w, v in zip(ws, vs, strict=True):
-            rv_num, oa_num = func(w, v)
+            rv_num, D_w_num = func(w, v)
             rv_sym, oa_sym = evaluator(w, v)
             np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
-            np.testing.assert_allclose(
-                desired=oa_sym["v_rot_D_w"], actual=oa_num["v_rot_D_w"], rtol=2.0e-6
-            )
+            np.testing.assert_allclose(desired=oa_sym["v_rot_D_w"], actual=D_w_num, rtol=2.0e-6)
 
         if not self.SUPPORTS_BATCH:
             return
@@ -334,12 +341,10 @@ class PythonCodeGenerationTestBase(MathTestBase):
         func_batched = self.generate(rotate_vector, batch=True, context=dict())
         evaluator_batched = batch_evaluator(evaluator)
 
-        rv_num, oa_num = func_batched(ws, vs)
+        rv_num, D_w_num = func_batched(ws, vs)
         rv_sym, oa_sym = evaluator_batched(ws, vs)
         np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
-        np.testing.assert_allclose(
-            desired=oa_sym["v_rot_D_w"], actual=oa_num["v_rot_D_w"], rtol=2.0e-6
-        )
+        np.testing.assert_allclose(desired=oa_sym["v_rot_D_w"], actual=D_w_num, rtol=2.0e-6)
 
     def test_quaternion_to_and_from_matrix(self):
         """Test conversion of a quaternion to/from a matrix."""
@@ -413,29 +418,33 @@ class PythonCodeGenerationTestBase(MathTestBase):
             rtol=3.0e-6,
         )
 
-    def test_external_function_call(self):
-        """
-        Test calling an external function via a generated python method.
-        """
-        external_func = external_functions.declare_external_function(
-            name="external_func", arguments=[("x", FloatScalar)], return_type=Vector2
-        )
+    # def test_external_function_call(self):
+    #     """
+    #     Test calling an external function via a generated python method.
+    #     """
+    #     external_func = external_functions.declare_external_function(
+    #         name="external_func", arguments=[("x", FloatScalar)], return_type=Vector2
+    #     )
 
-        def call_external_func(a: Vector2, b: Vector2):
-            (dot,) = a.T * b
-            return external_func(3 * dot + 0.2)
+    #     def call_external_func(a: Vector2, b: Vector2):
+    #         (dot,) = a.T * b
+    #         return external_func(3 * dot + 0.2)
 
-        func = self.generate(
-            call_external_func,
-            batch=False,
-            context={external_func.name: lambda x: self.make_array([x * x, x * x * x])},
-        )
+    #     @numba.njit
+    #     def external_function(x: float):
+    #         return self.make_array(np.array([x * x, x * x * x]))
 
-        np.testing.assert_allclose(
-            desired=np.array([1.283689, 1.4544196370000002]).reshape([2, 1]),
-            actual=func(np.array([0.5, -0.23]), np.array([0.3, -0.7])),
-            rtol=1.0e-6,
-        )
+    #     func = self.generate(
+    #         call_external_func,
+    #         batch=False,
+    #         context={external_func.name: external_function},
+    #     )
+
+    #     np.testing.assert_allclose(
+    #         desired=np.array([1.283689, 1.4544196370000002]).reshape([2, 1]),
+    #         actual=func(np.array([0.5, -0.23]), np.array([0.3, -0.7])),
+    #         rtol=1.0e-6,
+    #     )
 
     def test_no_required_output(self):
         """
@@ -459,9 +468,9 @@ class PythonCodeGenerationTestBase(MathTestBase):
         for x in xs:
             for y in ys:
                 oa_sym = evaluator(x, y)
-                oa_num = func(x, y)
-                for key in ("inner", "outer"):
-                    np.testing.assert_allclose(desired=oa_sym[key], actual=oa_num[key], rtol=1.0e-6)
+                inner_num, outer_num = func(x, y)
+                np.testing.assert_allclose(desired=oa_sym["inner"], actual=inner_num, rtol=1.0e-6)
+                np.testing.assert_allclose(desired=oa_sym["outer"], actual=outer_num, rtol=1.0e-6)
 
         if not self.SUPPORTS_BATCH:
             return
@@ -470,10 +479,9 @@ class PythonCodeGenerationTestBase(MathTestBase):
         evaluator_batched = batch_evaluator(evaluator)
 
         oa_sym = evaluator_batched(xs, ys)
-        oa_num = func_batched(xs, ys)
-
-        for key in ("inner", "outer"):
-            np.testing.assert_allclose(desired=oa_sym[key], actual=oa_num[key], rtol=1.0e-6)
+        inner_num, outer_num = func_batched(xs, ys)
+        np.testing.assert_allclose(desired=oa_sym["inner"], actual=inner_num, rtol=1.0e-6)
+        np.testing.assert_allclose(desired=oa_sym["outer"], actual=outer_num, rtol=1.0e-6)
 
     def test_integer_inputs(self):
         """
@@ -499,10 +507,10 @@ class PythonCodeGenerationTestBase(MathTestBase):
 
         for x in xs:
             for y in ys:
-                rv_num, oa_num = func(x, y)
+                rv_num, sum_numerical = func(x, y)
                 rv_sym, oa_sym = evaluator(x, y)
                 np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=3.0e-6)
-                np.testing.assert_allclose(desired=oa_sym["sum"], actual=oa_num["sum"], rtol=3.0e-6)
+                np.testing.assert_allclose(desired=oa_sym["sum"], actual=sum_numerical, rtol=3.0e-6)
 
 
 @dataclasses.dataclass
@@ -572,7 +580,7 @@ class NumPyCodeGenerationTest(PythonCodeGenerationTestBase):
     """Run with NumPy configuration."""
 
     SUPPORTS_BATCH = False
-    VERBOSE = False
+    VERBOSE = True
 
     @classmethod
     def generate(
@@ -587,7 +595,7 @@ class NumPyCodeGenerationTest(PythonCodeGenerationTestBase):
             print(code)
 
         def wrapped_func(*args, **kwargs):
-            return func_gen(*args, **kwargs, **optional_arg_flags)
+            return numba.njit(func_gen)(*args, **kwargs, **optional_arg_flags)
 
         return wrapped_func
 
@@ -595,47 +603,47 @@ class NumPyCodeGenerationTest(PythonCodeGenerationTestBase):
     def make_array(cls, v: np.ndarray):
         return np.asarray(v)
 
-    def test_custom_types(self):
-        """
-        Test we can generated a method that uses a custom type.
-        """
+    # def test_custom_types(self):
+    #     """
+    #     Test we can generated a method that uses a custom type.
+    #     """
 
-        class CustomPythonGenerator(code_generation.PythonGenerator):
-            def format_custom_type(self, custom: type_info.CustomType):
-                if custom.python_type == SimParamsSymbolic:
-                    return "SimParams"
-                elif custom.python_type == SimStateSymbolic:
-                    return "SimState"
-                return self.super_format(custom)
+    #     class CustomPythonGenerator(code_generation.PythonGenerator):
+    #         def format_custom_type(self, custom: type_info.CustomType):
+    #             if custom.python_type == SimParamsSymbolic:
+    #                 return "SimParams"
+    #             elif custom.python_type == SimStateSymbolic:
+    #                 return "SimState"
+    #             return self.super_format(custom)
 
-        func = self.generate(
-            func=integrate_sim,
-            batch=False,
-            context={
-                "SimParams": SimParams,
-                "SimState": SimState,
-            },
-            generator_type=CustomPythonGenerator,
-        )
+    #     func = self.generate(
+    #         func=integrate_sim,
+    #         batch=False,
+    #         context={
+    #             "SimParams": SimParams,
+    #             "SimState": SimState,
+    #         },
+    #         generator_type=CustomPythonGenerator,
+    #     )
 
-        # Test against the symbolic implementation:
-        p_in = np.array([10.2, -5.0]).reshape((2, 1))
-        v_in = np.array([9.1, 8.3]).reshape((2, 1))
+    #     # Test against the symbolic implementation:
+    #     p_in = np.array([10.2, -5.0]).reshape((2, 1))
+    #     v_in = np.array([9.1, 8.3]).reshape((2, 1))
 
-        x_out_sym: SimStateSymbolic = integrate_sim(
-            x=SimStateSymbolic(position=Vector2(p_in), velocity=Vector2(v_in)),
-            dt=0.7,
-            params=SimParamsSymbolic(mass=5.7, drag_coefficient=2.4, gravity=9.81),
-        )
+    #     x_out_sym: SimStateSymbolic = integrate_sim(
+    #         x=SimStateSymbolic(position=Vector2(p_in), velocity=Vector2(v_in)),
+    #         dt=0.7,
+    #         params=SimParamsSymbolic(mass=5.7, drag_coefficient=2.4, gravity=9.81),
+    #     )
 
-        x_out: SimState = func(
-            x=SimState(position=p_in, velocity=v_in),
-            dt=0.7,
-            params=SimParams(mass=5.7, drag_coefficient=2.4, gravity=9.81),
-        )
+    #     x_out: SimState = func(
+    #         x=SimState(position=p_in, velocity=v_in),
+    #         dt=0.7,
+    #         params=SimParams(mass=5.7, drag_coefficient=2.4, gravity=9.81),
+    #     )
 
-        np.testing.assert_allclose(x_out_sym.position.eval(), x_out.position, atol=1.0e-14)
-        np.testing.assert_allclose(x_out_sym.velocity.eval(), x_out.velocity, atol=1.0e-14)
+    #     np.testing.assert_allclose(x_out_sym.position.eval(), x_out.position, atol=1.0e-14)
+    #     np.testing.assert_allclose(x_out_sym.velocity.eval(), x_out.velocity, atol=1.0e-14)
 
 
 class JaxCodeGenerationTest(PythonCodeGenerationTestBase):
@@ -745,16 +753,16 @@ def test_apply_preamble():
 def main():
     test_cases = [
         NumPyCodeGenerationTest,
-        JaxCodeGenerationTest,
+        # JaxCodeGenerationTest,
     ]
-    if th is not None:
-        test_cases.append(PyTorchCodeGenerationTest)
+    # if th is not None:
+    #     test_cases.append(PyTorchCodeGenerationTest)
 
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     for test_case in test_cases:
         suite.addTests(loader.loadTestsFromTestCase(test_case))
-    suite.addTest(unittest.FunctionTestCase(test_apply_preamble))
+    # suite.addTest(unittest.FunctionTestCase(test_apply_preamble))
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
 

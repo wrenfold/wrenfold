@@ -30,6 +30,9 @@ class argument {
   // Type of the argument.
   const type_variant& type() const noexcept { return impl_->type; }
 
+  // Is the argument type a scalar.
+  bool is_scalar() const noexcept { return std::holds_alternative<scalar_type>(impl_->type); }
+
   // Is the argument type a matrix.
   bool is_matrix() const noexcept { return std::holds_alternative<matrix_type>(impl_->type); }
 
