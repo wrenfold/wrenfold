@@ -282,11 +282,10 @@ def generate_function(
 
 def generate_python(
     func: T.Callable[..., CodegenFuncInvocationResult],
-    target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy,
+    generator: PythonGenerator | None = None,
     convert_ternaries: bool | None = None,
     context: dict[str, T.Any] | None = None,
     import_target_module: bool = True,
-    generator_type: T.Callable[[PythonGeneratorTarget], BaseGenerator] = PythonGenerator,
 ) -> tuple[T.Callable, str]:
     """
     Code-generate a symbolic function as python code, then ``exec`` the code and return a python
@@ -393,10 +392,13 @@ def generate_python(
                 dict(J=J)
             )
     """
-    generator = generator_type(target)
+    if generator is None:
+        generator = PythonGenerator(
+            target=PythonGeneratorTarget.NumPy, float_width=PythonGeneratorFloatWidth.Float64
+        )
     if convert_ternaries is None:
-        # Convert ternaries to conditional if-else blocks when targeting NumPy.
-        convert_ternaries = target == PythonGeneratorTarget.NumPy
+        # Jax/Torch we leave ternaries as `where` statements so they are differentiable.
+        convert_ternaries = generator.target == PythonGeneratorTarget.NumPy
 
     code = generate_function(func, generator=generator, convert_ternaries=convert_ternaries)
 
@@ -411,15 +413,15 @@ def generate_python(
 
     # Local imports here because these are optional runtime dependencies.
     if import_target_module:
-        if target == PythonGeneratorTarget.JAX:
+        if generator.target == PythonGeneratorTarget.JAX:
             import jax.numpy as jnp
 
             globals_in["jnp"] = jnp
-        elif target == PythonGeneratorTarget.PyTorch:
+        elif generator.target == PythonGeneratorTarget.PyTorch:
             import torch as th
 
             globals_in["th"] = th
-        elif target == PythonGeneratorTarget.NumPy:
+        elif generator.target == PythonGeneratorTarget.NumPy:
             import numpy as np
 
             globals_in["np"] = np

@@ -56,7 +56,7 @@ skip = ["*musllinux_*", "*-win32", "*_i686", "pp*"]
 manylinux-x86_64-image = "manylinux_2_28"
 test-command = ["python \"{package}/support/test_wheel.py\""]
 # To test interop, we need NumPy, SymPy and JAX.
-test-requires = ["numpy", "sympy", "jax"]
+test-requires = ["numpy", "sympy", "jax", "numba"]
 
 # Dev dependencies for UV:
 # We are stuck on an older sphinx until breathe resolves compatibility issues.
@@ -76,7 +76,10 @@ test = [
     "jax>=0.4.30",
     "numpy>=2.0.2",
     "sympy>=1.14.0",
+    "numba>=0.63"
 ]
+torch = ["torch>=2.8"]
+ipdb = ["ipdb"]
 
 [tool.uv]
 package = false # Do not install wheel when running `uv add`, etc.

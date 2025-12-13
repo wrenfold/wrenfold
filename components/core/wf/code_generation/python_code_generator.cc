@@ -145,7 +145,7 @@ std::string python_code_generator::operator()(const scalar_type& scalar) const {
       return "float";
     }
   }
-  // return std::string(matrix_alternative);
+  return "<INVALID ENUM VALUE>";
 }
 
 std::string python_code_generator::operator()(const matrix_type&) const {
