@@ -396,9 +396,10 @@ def generate_python(
         generator = PythonGenerator(
             target=PythonGeneratorTarget.NumPy, float_width=PythonGeneratorFloatWidth.Float64
         )
+
     if convert_ternaries is None:
         # Jax/Torch we leave ternaries as `where` statements so they are differentiable.
-        convert_ternaries = generator.target == PythonGeneratorTarget.NumPy
+        convert_ternaries: bool = generator.target == PythonGeneratorTarget.NumPy
 
     code = generate_function(func, generator=generator, convert_ternaries=convert_ternaries)
 
