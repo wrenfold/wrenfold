@@ -212,7 +212,7 @@ std::string python_code_generator::operator()(const ast::function_definition& de
     fmt::format_to(std::back_inserter(result), "{:{}}return ", "", indent_);
     if (return_tuple_elements.size() == 1) {
       result += return_tuple_elements.front();
-    } else if (return_tuple_elements.size() == 2) {
+    } else {
       // Double the indentation - one for the function body, and two for the return statement tuple.
       const std::string close = fmt::format("\n{:{}})", "", indent_);
       join_and_indent(result, indent_ * 2, "(\n", close, ",\n", return_tuple_elements,
