@@ -143,7 +143,7 @@ if(${SPHINX_FOUND})
             ${SPHINX_BUILD_PATH} ${SPHINX_ARGS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generate documentation with sphinx."
-    DEPENDS wf_stubs source/conf.py ${DOCUMENTATION_INPUT_FILES}
+    DEPENDS wf_stubs wf_wrapper source/conf.py ${DOCUMENTATION_INPUT_FILES}
             ${PYTHON_LIB_SOURCES} ${DOXYGEN_INDEX_FILE})
   add_custom_target(wf_docs
                     DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/build/index.html")

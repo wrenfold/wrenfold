@@ -121,7 +121,8 @@ void wrap_geometry_operations(py::module_& m) {
       .def("inverse", &quaternion::inverse, docstrings::quaternion_inverse.data())
       .def("to_rotation_matrix", &quaternion::to_rotation_matrix,
            docstrings::quaternion_to_rotation_matrix.data())
-      .def(py::self * py::self)
+      .def(py::self * py::self, docstrings::quaternion_operator_multiply.data())
+      .def("rotate", &quaternion::rotate, py::arg("v"), docstrings::quaternion_rotate.data())
       // Conversion from angles:
       // TODO: Stubs are wrong for these, see: https://github.com/python/mypy/pull/14934
       .def_static(
