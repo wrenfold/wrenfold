@@ -295,7 +295,8 @@ def generate_python(
         func: A symbolic python function with type-annotated arguments. See
           :func:`wrenfold.code_generation.create_function_description` for notes on the expected
           signature.
-        target: Which Python API to target (ie. NumPy, PyTorch, etc).
+        generator: Instance of :class:`wrenfold.code_generation.PythonGenerator`. The generator
+          can be configured on construction to target different numeric APIs (NumPy, Jax, Torch).
         convert_ternaries: Whether to convert :func:`wrenfold.sym.where` expressions to Python
           control flow. For frameworks like PyTorch and JAX, we need to leave conditionals in a
           traceable format (ie. ``th.where`` calls). By default, if ``convert_ternaries=None``,
@@ -304,8 +305,6 @@ def generate_python(
         context: Dict of key-value pairs that will be passed to
           `exec <https://docs.python.org/3/library/functions.html#exec>`_ in the ``globals`` arg.
         import_target_module: If true (the default), import the target API. See the warning below.
-        generator_type: By default this is :class:`wrenfold.code_generation.PythonGenerator`. You
-          may specify a different function to call to construct the code generator.
 
     Returns:
       * A callable python function that implements ``func`` numerically.
@@ -314,7 +313,7 @@ def generate_python(
     Warning:
 
       By default, wrenfold will automatically import the appropriate framework specified by
-      ``target``:
+      :func:`wrenfold.code_generation.PythonGenerator.target`.
 
         * If the target is ``NumPy``, ``numpy`` will be imported as ``np``.
         * If the target is ``JAX``, ``jax.numpy`` will be imported as ``jnp``.
@@ -325,10 +324,9 @@ def generate_python(
 
     Tip:
 
-      Code-generation is performed using the :class:`wrenfold.code_generation.PythonGenerator`
-      class. Because python lacks formal "output arguments", any symbolic outputs tagged as
+      Because python lacks formal "output arguments", any symbolic outputs tagged as
       :class:`wrenfold.code_generation.OutputArg` will instead be **returned** from the generated
-      function in a dict of key-value pairs. The example listing below illustrates this behavior.
+      function as elements of a tuple. The example listing below illustrates this behavior.
 
       **Additionally**, remember that your target framework may not be able to reason about your
       custom types. For example,
@@ -344,35 +342,40 @@ def generate_python(
       >>>
       >>> def foo(x: Vector3, y: Vector3):
       >>>     # A simple test function, with one return value and one output argument.
-      >>>     # In-practice, you would probably be generating something more complicated than this.
       >>>     dot, = x.T * y
       >>>     f = sym.tanh(dot)
       >>>     J = sym.jacobian([f], x)
       >>>     return [code_generation.ReturnValue(f), code_generation.OutputArg(J, "J")]
       >>>
-      >>> # Generate python code:
-      >>> func, code = code_generation.generate_python(
-      >>>   foo, target=code_generation.PythonGeneratorTarget.JAX)
+      >>> # Generate NumPy code:
+      >>> func_numpy, _ = code_generation.generate_python(func=foo)
+      >>> x = np.array([-0.1, 0.2, 0.3])
+      >>> y = np.array([0.25, -0.32, 0.4])
+      >>> f_numerical, J_numerical = func_numpy(x, y)
+      >>> print(f_numerical) # produces: 0.03099...
+      >>>
+      >>> # Alternatively, generate JAX code and batch it:
+      >>> generator = code_generation.PythonGenerator(code_generation.PythonGeneratorTarget.JAX)
+      >>> func_jax, code = code_generation.generate_python(func=foo, generator=generator)
       >>> print(code) # See python listing below.
       >>>
       >>> # Generate a batched and JIT compiled version of our function using JAX.
       >>> # Here we batch over both `x` and `y`.
-      >>> batched_func = jax.vmap(func, in_axes=(0, 0), out_axes=0)
+      >>> batched_func = jax.vmap(func_jax, in_axes=(0, 0), out_axes=0)
       >>> compiled_func = jax.jit(batched_func)
       >>>
       >>> # Execute the function on NumPy tensors.
-      >>> # `output1` contains the return value, while `output2` contains all the output arguments.
       >>> x = np.random.uniform(size=(10, 3))
       >>> y = np.random.uniform(size=(10, 3))
-      >>> output1, output2 = compiled_func(x, y)
+      >>> f_numerical, J_numerical = compiled_func(x, y)
       >>>
-      >>> print(output1) # produces: [0.73317385 0.45288894, ...]
+      >>> print(f_numerical) # produces: [0.73317385 0.45288894, ...]
 
       .. code-block:: python
         :linenos:
 
         # The generated code for `foo`:
-        def foo(x: jnp.ndarray, y: jnp.ndarray) -> T.Tuple[jnp.ndarray, T.Dict[str, jnp.ndarray]]:
+        def foo(x: jnp.ndarray, y: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
             x = x.reshape(3, 1)
             y = y.reshape(3, 1)
             v009 = y[2, 0]
@@ -389,7 +392,7 @@ def generate_python(
                 v009 * v016]).reshape(1, 3)
             return (
                 v012,
-                dict(J=J)
+                J,
             )
     """
     if generator is None:
@@ -399,7 +402,7 @@ def generate_python(
 
     if convert_ternaries is None:
         # Jax/Torch we leave ternaries as `where` statements so they are differentiable.
-        convert_ternaries: bool = generator.target == PythonGeneratorTarget.NumPy
+        convert_ternaries = generator.target == PythonGeneratorTarget.NumPy
 
     code = generate_function(func, generator=generator, convert_ternaries=convert_ternaries)
 

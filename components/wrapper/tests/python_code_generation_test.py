@@ -675,7 +675,6 @@ class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
         **kwargs,
     ) -> T.Callable:
         generator = code_generation.PythonGenerator(
-            target=code_generation.PythonGeneratorTarget.NumPy,
             float_width=(
                 code_generation.PythonGeneratorFloatWidth.Float32
                 if np.float32 == self.EXPECTED_TYPE

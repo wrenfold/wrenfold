@@ -121,27 +121,16 @@ constexpr std::string_view python_matrix_type_from_target(python_generator_targe
   return "<INVALID ENUM VALUE>";
 }
 
+// Format type annotations on scalar arguments.
 std::string python_code_generator::operator()(const scalar_type& scalar) const {
-  // Arguments can be passed as scalars, or as single-element arrays/tensors.
-  // So we annotate with either type.
-  // Once we drop Python 3.9 support, this can be a union written like: `X | Y`
-  // See: https://peps.python.org/pep-0604/
-  // const auto matrix_alternative = python_matrix_type_from_target(target_);
-  // if (target_ == python_generator_target::numpy) {
-  // Numpy treats float32, float64, bool, int64 as specific types.
-  // So the input could be a python primitive, a numpy primitive type, or a single element array.
   switch (scalar.numeric_type()) {
     case numeric_primitive_type::boolean: {
-      // return fmt::format("T.Union[np.bool, {}]", matrix_alternative);
       return "bool";
     }
     case numeric_primitive_type::integral: {
-      // return fmt::format("T.Union[np.int64, {}]", matrix_alternative);
       return "int";
     }
     case numeric_primitive_type::floating_point: {
-      // return fmt::format("T.Union[np.{}, {}]", python_string_from_float_width(float_width_),
-      //                    matrix_alternative);
       return "float";
     }
   }

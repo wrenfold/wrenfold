@@ -346,7 +346,8 @@ void wrap_code_formatting_operations(py::module_& m) {
 
   wrap_code_generator<python_code_generator>(m, "PythonGenerator")
       .def(py::init<python_generator_target, python_generator_float_width, int>(),
-           py::arg("target"), py::arg("float_width") = python_generator_float_width::float32,
+           py::arg("target") = python_generator_target::numpy,
+           py::arg("float_width") = python_generator_float_width::float32,
            py::arg("indentation") = 2)
       .def_property_readonly(
           "target",
