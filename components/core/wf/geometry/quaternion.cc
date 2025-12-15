@@ -62,6 +62,17 @@ matrix_expr quaternion::to_rotation_matrix() const {
   // clang-format on
 }
 
+matrix_expr quaternion::rotate(const matrix_expr& v) const {
+  if (v.rows() != 3 || v.cols() != 1) {
+    throw dimension_error("Vector `v` must be a [3, 1] matrix. Received: [{}, {}]", v.rows(),
+                          v.cols());
+  }
+  const auto& self = *this;
+  const matrix& v_mat = v.as_matrix();
+  const quaternion v_rot = self * quaternion(0.0, v_mat[0], v_mat[1], v_mat[2]) * self.conjugate();
+  return make_vector(v_rot.x(), v_rot.y(), v_rot.z());
+}
+
 quaternion quaternion::from_angle_axis(const scalar_expr& angle, const scalar_expr& vx,
                                        const scalar_expr& vy, const scalar_expr& vz) {
   const scalar_expr half_angle = angle / 2;

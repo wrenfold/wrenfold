@@ -94,6 +94,9 @@ class quaternion {
   // result will not be a valid member of SO(3).
   matrix_expr to_rotation_matrix() const;
 
+  // Rotate a vector. Assumes that the quaternion is normalized.
+  matrix_expr rotate(const matrix_expr& v) const;
+
   // Construct quaternion from axis and angle.
   // It is expected that [vx, vy, vz] form a unit vector. Angle is in radians.
   static quaternion from_angle_axis(const scalar_expr& angle, const scalar_expr& vx,

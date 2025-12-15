@@ -193,6 +193,18 @@ TEST(QuaternionTest, TestToRotationMatrix) {
   ASSERT_IDENTICAL(q.conjugate().to_rotation_matrix(), q.to_rotation_matrix().transposed());
 }
 
+TEST(QuaternionTest, TestRotate) {
+  auto [w, x, y, z] = make_symbols("w", "x", "y", "z");
+  const quaternion q{w, x, y, z};
+  const auto [vx, vy, vz] = make_symbols("vx", "vy", "vz");
+  const auto v = make_vector(vx, vy, vz);
+  ASSERT_IDENTICAL((q.to_rotation_matrix() * v),
+                   q.rotate(v)
+                       .distribute()
+                       .collect({vx, vy, vz})
+                       .subs(pow(w, 2), 1 - pow(x, 2) - pow(y, 2) - pow(z, 2)));
+}
+
 TEST(QuaternionTest, TestFromAxisAngle) {
   auto [angle, vx, vy, vz] = make_symbols("theta", "vx", "vy", "vz");
   const quaternion q = quaternion::from_angle_axis(angle, vx, vy, vz);

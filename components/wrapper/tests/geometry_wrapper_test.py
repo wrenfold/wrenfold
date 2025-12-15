@@ -100,6 +100,17 @@ class GeometryWrapperTest(MathTestBase):
         self.assertEqual((3, 3), R.shape)
         self.assertIdentical(R.T, q.conjugate().to_rotation_matrix())
 
+    def test_rotate_vector(self):
+        """Test calling rotate()"""
+        w, x, y, z = sym.symbols("w, x, y, z")
+        q = Quaternion(w, x, y, z)
+        R = q.to_rotation_matrix()
+
+        v = sym.vector(*sym.symbols("v_x, v_y, v_z"))
+        self.assertIdentical(
+            R, (q.rotate(v)).distribute().jacobian(v).subs(w**2, 1 - x**2 - y**2 - z**2)
+        )
+
     def test_rotation_constructors(self):
         """Test construction via rotation helpers."""
         self.assertQuatIdentical(

@@ -88,9 +88,9 @@ def integrate_imu(
     account_for_rotation_over_interval = True
     if account_for_rotation_over_interval:
         j_R_k_integral = left_jacobian_of_so3(w=angular_vel_times_dt, epsilon=1.0e-16)
-        accel_in_i = i_R_j.to_rotation_matrix() * j_R_k_integral * linear_acceleration_unbiased
+        accel_in_i = i_R_j.rotate(j_R_k_integral * linear_acceleration_unbiased)
     else:
-        accel_in_i = i_R_j.to_rotation_matrix() * linear_acceleration_unbiased
+        accel_in_i = i_R_j.rotate(linear_acceleration_unbiased)
 
     # Integrate position and velocity:
     i_p_k = i_p_j + i_v_j * dt + accel_in_i * (sym.abs(dt) * dt / 2)

@@ -193,6 +193,55 @@ References:
   * `Quaternions and rotations <https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation>`_.
 )doc";
 
+inline constexpr std::string_view quaternion_operator_multiply = R"doc(
+Multiply two quaternions. ``self`` is left-multiplied by the second operand.
+
+Given two quaternions ``q_a`` and ``q_b`` representing rotations - and their equivalent SO(3)
+members ``R(q_a)`` an ``R(q_b)`` - the resulting composed quaternion will obey:
+
+.. math::
+
+  R\left(\mathbf{q}_a * \mathbf{q}_b\right) = R\left(\mathbf{q}_a\right) * R\left(\mathbf{q}_b\right)
+
+Returns:
+  The quaternion product.
+)doc";
+
+inline constexpr std::string_view quaternion_rotate = R"doc(
+Rotate a 3D vector with a quaternion. Equivalent to **left-multiplying** the rotation matrix
+corresponding to `self`. This expression is implemented via the quaternion multiplication:
+
+.. math::
+
+  \mathbf{q}_{\mathbf{v}}' = \mathbf{q} * \mathbf{q}_{\mathbf{v}} * \bar{\mathbf{q}}
+
+Where ``q_v`` is the quaternion with a scalar component of ``0`` and a vector component of ``v``:
+
+.. math::
+
+  \mathbf{q}_{\mathbf{v}} = v_x\cdot\mathbf{i} + v_y\cdot\mathbf{j} + v_z\cdot\mathbf{k}
+
+In some cases, this can produce simpler generated code than converting the quaternion to a
+rotation matrix via ``to_rotation_matrix``.
+
+.. warning::
+
+  It is assumed that ``self`` is a unit-norm quaternion.
+
+Args:
+  v: 3x1 vector.
+
+Returns:
+  wrenfold.sym.MatrixExpr: A 3x1 vector with the rotation applied on the left.
+
+Examples:
+  >>> q = geometry.Quaternion.from_x_angle(sym.pi / 2)
+  >>> q.rotate(sym.vector(1.2, -2.6, 3.4)).eval()
+  array([[ 1.2], [-3.4], [-2.6]])
+  >>> (q.to_rotation_matrix() * sym.vector(1.2, -2.6, 3.4)).eval()
+  array([[ 1.2], [-3.4], [-2.6]])
+)doc";
+
 inline constexpr std::string_view quaternion_from_angle_axis = R"doc(
 Construct quaternion from an angle and normalized axis. This function constructs the quaternion:
 
