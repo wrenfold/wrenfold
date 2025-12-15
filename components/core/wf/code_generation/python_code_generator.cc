@@ -77,9 +77,25 @@ inline std::string format_asarray(const python_generator_target target, const st
                                   const python_generator_float_width float_width,
                                   const index_t rows, const index_t cols) {
   return fmt::format(
-      "{}.asarray({}, dtype={}.{}).reshape([{}, {}])", python_module_prefix_from_target(target),
-      arg, python_module_prefix_from_target(target),
+      "{}.asarray({}, dtype={}.{}).reshape({}, {})", python_module_prefix_from_target(target), arg,
+      python_module_prefix_from_target(target),
       python_string_from_cast_destination_type(expected_type, float_width), rows, cols);
+}
+
+inline std::string format_scalar_type_cast(const python_generator_target target,
+                                           const std::string_view arg,
+                                           const numeric_primitive_type expected_type,
+                                           const python_generator_float_width float_width) {
+  if (target == python_generator_target::pytorch) {
+    // torch dtypes are not callable.
+    return fmt::format("{}.asarray({}, dtype={}.{})", python_module_prefix_from_target(target), arg,
+                       python_module_prefix_from_target(target),
+                       python_string_from_cast_destination_type(expected_type, float_width));
+  } else {
+    // numpy+jax dtypes are callable
+    return fmt::format("{}.{}({})", python_module_prefix_from_target(target),
+                       python_string_from_cast_destination_type(expected_type, float_width), arg);
+  }
 }
 
 python_code_generator::python_code_generator(python_generator_target target,
@@ -105,29 +121,20 @@ constexpr std::string_view python_matrix_type_from_target(python_generator_targe
   return "<INVALID ENUM VALUE>";
 }
 
+// Format type annotations on scalar arguments.
 std::string python_code_generator::operator()(const scalar_type& scalar) const {
-  // Arguments can be passed as scalars, or as single-element arrays/tensors.
-  // So we annotate with either type.
-  // Once we drop Python 3.9 support, this can be a union written like: `X | Y`
-  // See: https://peps.python.org/pep-0604/
-  const auto matrix_alternative = python_matrix_type_from_target(target_);
-  if (target_ == python_generator_target::numpy) {
-    // Numpy treats float32, float64, bool, int64 as specific types.
-    // So the input could be a python primitive, a numpy primitive type, or a single element array.
-    switch (scalar.numeric_type()) {
-      case numeric_primitive_type::boolean: {
-        return fmt::format("T.Union[np.bool, {}]", matrix_alternative);
-      }
-      case numeric_primitive_type::integral: {
-        return fmt::format("T.Union[np.int64, {}]", matrix_alternative);
-      }
-      case numeric_primitive_type::floating_point: {
-        return fmt::format("T.Union[np.{}, {}]", python_string_from_float_width(float_width_),
-                           matrix_alternative);
-      }
+  switch (scalar.numeric_type()) {
+    case numeric_primitive_type::boolean: {
+      return "bool";
+    }
+    case numeric_primitive_type::integral: {
+      return "int";
+    }
+    case numeric_primitive_type::floating_point: {
+      return "float";
     }
   }
-  return std::string(matrix_alternative);
+  return "<INVALID ENUM VALUE>";
 }
 
 std::string python_code_generator::operator()(const matrix_type&) const {
@@ -150,13 +157,20 @@ std::string python_code_generator::operator()(const ast::function_definition& de
   // Insert some reshape statements on all the input arrays.
   // This ensures we can access with the 2D slice operator (and validates shapes).
   for (const auto& arg : signature.arguments()) {
-    if (arg.is_input() && arg.is_matrix()) {
-      const auto& mat = std::get<matrix_type>(arg.type());
-      const std::string reshaped =
-          format_asarray(target_, arg.name(), numeric_primitive_type::floating_point, float_width_,
-                         mat.rows(), mat.cols());
-      fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
-                     reshaped);
+    if (arg.is_input()) {
+      if (arg.is_matrix()) {
+        const auto& mat = std::get<matrix_type>(arg.type());
+        const std::string reshaped =
+            format_asarray(target_, arg.name(), numeric_primitive_type::floating_point,
+                           float_width_, mat.rows(), mat.cols());
+        fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
+                       reshaped);
+      } else if (arg.is_scalar()) {
+        const std::string recast = format_scalar_type_cast(
+            target_, arg.name(), std::get<scalar_type>(arg.type()).numeric_type(), float_width_);
+        fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
+                       recast);
+      }
     }
   }
 
@@ -171,38 +185,23 @@ std::string python_code_generator::operator()(const ast::function_definition& de
   }
   join_and_indent(result, indent_, "", "\n", "\n", body, *this);
 
-  // Create a list of all "output arguments" (which are here converted to returned members of a
-  // dict).
-  std::vector<std::string_view> output_args{};
-  output_args.reserve(signature.num_arguments());
-  for (const auto& arg : signature.arguments()) {
-    if (!arg.is_input()) {
-      output_args.emplace_back(arg.name());
-    }
-  }
-
-  // Create a return statement that yields:
-  // - The return value
-  // - A dict of "output args"
-  // Either one of these, or both as a tuple.
+  // Create a return statement that returns a tuple.
   std::vector<std::string> return_tuple_elements;
-  return_tuple_elements.reserve(2);
-
+  return_tuple_elements.reserve(10);
   if (return_statement.has_value()) {
     return_tuple_elements.push_back(operator()(return_statement->value));
   }
-  if (!output_args.empty()) {
-    const std::string dict_args = join(", ", output_args, [](const std::string_view arg) {
-      return fmt::format("{}={}", arg, arg);
-    });
-    return_tuple_elements.push_back(fmt::format("dict({})", dict_args));
+  for (const auto& arg : signature.arguments()) {
+    if (!arg.is_input()) {
+      return_tuple_elements.emplace_back(arg.name());
+    }
   }
 
   if (!return_tuple_elements.empty()) {
     fmt::format_to(std::back_inserter(result), "{:{}}return ", "", indent_);
     if (return_tuple_elements.size() == 1) {
       result += return_tuple_elements.front();
-    } else if (return_tuple_elements.size() == 2) {
+    } else {
       // Double the indentation - one for the function body, and two for the return statement tuple.
       const std::string close = fmt::format("\n{:{}})", "", indent_);
       join_and_indent(result, indent_ * 2, "(\n", close, ",\n", return_tuple_elements,
@@ -225,21 +224,28 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
     }
   }
 
-  const bool has_output_args = any_of(signature.arguments(), [](const argument& a) {
-    return a.direction() != argument_direction::input;
-  });
+  std::vector<std::string> output_args;
+  output_args.reserve(signature.num_arguments());
+  for (const auto& arg : signature.arguments()) {
+    if (!arg.is_input()) {
+      if (arg.is_optional()) {
+        output_args.push_back(fmt::format("{} | None", python_matrix_type_from_target(target_)));
+      } else {
+        output_args.emplace_back(python_matrix_type_from_target(target_));
+      }
+    }
+  }
 
   std::string return_annotation = "None";
   if (signature.return_type()) {
     auto return_type = std::visit(*this, *signature.return_type());
-    if (has_output_args) {
-      return_annotation = fmt::format("T.Tuple[{}, T.Dict[str, {}]]", return_type,
-                                      python_matrix_type_from_target(target_));
+    if (!output_args.empty()) {
+      return_annotation = fmt::format("tuple[{}, {}]", return_type, fmt::join(output_args, ", "));
     } else {
       return_annotation = std::move(return_type);
     }
-  } else if (has_output_args) {
-    return_annotation = fmt::format("T.Dict[str, {}]", python_matrix_type_from_target(target_));
+  } else if (!output_args.empty()) {
+    return_annotation = fmt::format("tuple[{}]", fmt::join(output_args, ", "));
   }
   return fmt::format("def {}({}) -> {}:", signature.name(), fmt::join(args, ", "),
                      return_annotation);
@@ -292,7 +298,7 @@ std::string python_code_generator::operator()(const ast::branch& x) const {
   join_and_indent(result, indent_, ":\n", "\n", "\n", x.if_branch, *this);
   if (x.else_branch.size() > 0) {
     result.append("else");
-    join_and_indent(result, indent_, ":\n", "\n", "\n", x.else_branch, *this);
+    join_and_indent(result, indent_, ":\n", "", "\n", x.else_branch, *this);
   }
   return result;
 }
@@ -302,7 +308,7 @@ std::string python_code_generator::operator()(const ast::call_external_function&
                                          fmt::join(x.args | std::views::transform(*this), ", "));
   if (const matrix_type* mat = std::get_if<matrix_type>(&x.function.return_type());
       mat != nullptr) {
-    return fmt::format("{}.asarray({}, dtype={}.{}).reshape([{}, {}])",
+    return fmt::format("{}.asarray({}, dtype={}.{}).reshape({}, {})",
                        python_module_prefix_from_target(target_), result,
                        python_module_prefix_from_target(target_),
                        python_string_from_cast_destination_type(
@@ -367,12 +373,7 @@ std::string python_code_generator::operator()(const ast::call_std_function& x) c
 }
 
 std::string python_code_generator::operator()(const ast::cast& x) const {
-  // We use asarray because:
-  // - For things that already satisfy the type, it will be a shallow copy.
-  // - For other things (like numeric literals), it will perform the necessary coercion.
-  return fmt::format("{}.asarray({}, dtype={}.{})", python_module_prefix_from_target(target_),
-                     make_view(x.arg), python_module_prefix_from_target(target_),
-                     python_string_from_cast_destination_type(x.destination_type, float_width_));
+  return format_scalar_type_cast(target_, operator()(x.arg), x.destination_type, float_width_);
 }
 
 std::string python_code_generator::operator()(const ast::comment& x) const {
@@ -414,7 +415,12 @@ std::string python_code_generator::operator()(const ast::divide& x) const {
 }
 
 std::string python_code_generator::operator()(const ast::float_literal& x) const {
-  return fmt::format("{}", x.value);
+  if (target_ == python_generator_target::numpy || target_ == python_generator_target::jax) {
+    return format_scalar_type_cast(target_, fmt::format("{}", x.value),
+                                   numeric_primitive_type::floating_point, float_width_);
+  } else {
+    return fmt::format("{}", x.value);
+  }
 }
 
 std::string python_code_generator::operator()(const ast::get_argument& x) const {
@@ -430,7 +436,7 @@ std::string python_code_generator::operator()(const ast::get_matrix_element& x) 
 }
 
 std::string python_code_generator::operator()(const ast::integer_literal& x) const {
-  return std::to_string(x.value);
+  return fmt::format("{}", x.value);
 }
 
 std::string python_code_generator::operator()(const ast::multiply& x) const {
@@ -458,8 +464,14 @@ std::string python_code_generator::operator()(const ast::return_object&) const {
 }
 
 std::string python_code_generator::operator()(const ast::special_constant& x) const {
-  return fmt::format("{}.{}", python_module_prefix_from_target(target_),
-                     x.value == symbolic_constant_enum::euler ? "e" : "pi");
+  const auto constant = fmt::format("{}.{}", python_module_prefix_from_target(target_),
+                                    x.value == symbolic_constant_enum::euler ? "e" : "pi");
+  if (target_ == python_generator_target::numpy || target_ == python_generator_target::jax) {
+    return format_scalar_type_cast(target_, constant, numeric_primitive_type::floating_point,
+                                   float_width_);
+  } else {
+    return constant;
+  }
 }
 
 std::string python_code_generator::operator()(const ast::ternary& x) const {

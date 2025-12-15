@@ -64,7 +64,7 @@ def declare_external_function(
         An ExternalFunc object that can be invoked via the ``__call__`` operator. The args to
         ``__call__`` should have types matching `arguments`.
     """
-    type_cache: dict[type, custom_types.CodegenType] = dict()
+    type_cache: dict[type, type_info.CustomType] = dict()
 
     # If custom types are specified, we need to construct `CustomType` objects to pass to C++:
     converted_args: list[

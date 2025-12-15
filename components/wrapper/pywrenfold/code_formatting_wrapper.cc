@@ -317,7 +317,10 @@ void wrap_code_formatting_operations(py::module_& m) {
       .def("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
            py::arg("namespace"), py::arg("imports") = py::str(),
            "Apply a preamble that incorporates necessary runtime includes.")
-      .def_property_readonly("matrix_type_behavior", &cpp_code_generator::matrix_type_behavior)
+      .def_property_readonly("matrix_type_behavior",
+                             [](const wf::wrapped_generator<cpp_code_generator>& self) {
+                               return self.matrix_type_behavior();
+                             })
       .doc() = "Generates C++ code.";
 
   wrap_code_generator<rust_code_generator>(m, "RustGenerator")
@@ -328,8 +331,7 @@ void wrap_code_formatting_operations(py::module_& m) {
 
   wrap_code_generator<base_code_generator>(m, "BaseGenerator").def(py::init<>()).doc() =
       "Abstract base class for generators. The user may inherit from this in python when writing "
-      "a "
-      "new generator from scratch.";
+      "a new generator from scratch.";
 
   py::enum_<python_generator_target>(m, "PythonGeneratorTarget")
       .value("NumPy", python_generator_target::numpy, "Target the NumPy API.")
@@ -344,14 +346,25 @@ void wrap_code_formatting_operations(py::module_& m) {
 
   wrap_code_generator<python_code_generator>(m, "PythonGenerator")
       .def(py::init<python_generator_target, python_generator_float_width, int>(),
-           py::arg("target"), py::arg("float_width") = python_generator_float_width::float32,
+           py::arg("target") = python_generator_target::numpy,
+           py::arg("float_width") = python_generator_float_width::float32,
            py::arg("indentation") = 2)
-      .def_property_readonly("target", &python_code_generator::target,
-                             "The API that the python generator targets.")
-      .def_property_readonly("float_width", &python_code_generator::float_width,
-                             "Float precision applied to all NumPy arrays and tensors.")
-      .def_property_readonly("indentation", &python_code_generator::indentation,
-                             "Amount of spaces used to indent nested scopes.")
+      .def_property_readonly(
+          "target",
+          [](const wf::wrapped_generator<python_code_generator>& self) { return self.target(); },
+          "The API that the python generator targets.")
+      .def_property_readonly(
+          "float_width",
+          [](const wf::wrapped_generator<python_code_generator>& self) {
+            return self.float_width();
+          },
+          "Float precision applied to all NumPy arrays and tensors.")
+      .def_property_readonly(
+          "indentation",
+          [](const wf::wrapped_generator<python_code_generator>& self) {
+            return self.indentation();
+          },
+          "Amount of spaces used to indent nested scopes.")
       .def("apply_preamble", &python_code_generator::apply_preamble, py::arg("code"),
            "Apply a preamble to generated code.")
       .doc() = "Generates Python code. Can target NumPy, PyTorch, or JAX.";

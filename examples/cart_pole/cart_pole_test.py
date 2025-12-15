@@ -60,11 +60,13 @@ class CartPoleTest(unittest.TestCase):
         Generate the cart-double-pole dynamics as a NumPy/Python function, and test that we can
         integrate the state forward while conserving energy.
         """
-        np_func, _ = code_generation.generate_python(
+        np_func, _code = code_generation.generate_python(
             func=get_cart_double_pole_dynamics(),
-            target=code_generation.PythonGeneratorTarget.NumPy,
+            generator=CustomPythonGenerator(
+                target=code_generation.PythonGeneratorTarget.NumPy,
+                float_width=code_generation.PythonGeneratorFloatWidth.Float32,
+            ),
             context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
-            generator_type=CustomPythonGenerator,
         )
 
         # Set all the dissipative coefficients to zero so we can check that energy is conserved.
@@ -86,9 +88,9 @@ class CartPoleTest(unittest.TestCase):
         x = np.array([0.0, np.pi / 4, np.pi / 4, 0.0, 0.0, 0.0]).reshape(-1, 1)
 
         # Compute energy at the start of simulation:
-        energy_initial = np_func(params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False)[
-            "energy"
-        ]
+        _, energy_initial, _ = np_func(
+            params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False
+        )
 
         # Integrate forward with runge-kutta for 3 seconds:
         dt = 0.002
@@ -98,12 +100,12 @@ class CartPoleTest(unittest.TestCase):
                 h=dt,
                 f=lambda x: np_func(
                     params=params, x=x, u=0.0, compute_energy=False, compute_J_x=False
-                )["x_dot"],
+                )[0],
             )
 
-            energy_integrated = np_func(
+            _, energy_integrated, _ = np_func(
                 params=params, x=x, u=0.0, compute_energy=True, compute_J_x=False
-            )["energy"]
+            )
 
             # We have no damping sources, so check that energy is conserved.
             np.testing.assert_allclose(
@@ -115,11 +117,13 @@ class CartPoleTest(unittest.TestCase):
         Generate the cart-double-pole dynamics as a JAX function, and check our Jacobians against
         `jacfwd`.
         """
-        func, _ = code_generation.generate_python(
+        np_func, _code = code_generation.generate_python(
             func=get_cart_double_pole_dynamics(),
-            target=code_generation.PythonGeneratorTarget.JAX,
+            generator=CustomPythonGenerator(
+                target=code_generation.PythonGeneratorTarget.JAX,
+                float_width=code_generation.PythonGeneratorFloatWidth.Float32,
+            ),
             context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
-            generator_type=CustomPythonGenerator,
         )
 
         params = CartPoleParamsNumeric(
@@ -136,7 +140,7 @@ class CartPoleTest(unittest.TestCase):
             k_s=100.0,
         )
         func_jit = jax.jit(
-            lambda x: func(params=params, x=x, u=0.0, compute_energy=False, compute_J_x=True)
+            lambda x: np_func(params=params, x=x, u=0.0, compute_energy=False, compute_J_x=True)
         )
 
         # Integrate for a couple of seconds and test the Jacobian at each step:
@@ -146,11 +150,11 @@ class CartPoleTest(unittest.TestCase):
             x = rk4(
                 x=x,
                 h=dt,
-                f=lambda x: func_jit(x)["x_dot"],
+                f=lambda x: func_jit(x)[0],
             )
 
-            (D_jax,) = jax.jacfwd(lambda x: func_jit(x)["x_dot"], argnums=[0])(x)
-            D_sym = func_jit(x)["J_x"]
+            (D_jax,) = jax.jacfwd(lambda x: func_jit(x)[0], argnums=[0])(x)
+            _, _, D_sym = func_jit(x)
 
             # Tolerance is not amazing here, the use of float32 bites us a bit.
             np.testing.assert_allclose(desired=jnp.squeeze(D_jax), actual=D_sym, rtol=4.0e-3)

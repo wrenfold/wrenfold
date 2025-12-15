@@ -3,7 +3,6 @@ Code generate a camera model in JAX and test it numerically.
 """
 
 import typing as T
-from types import SimpleNamespace
 
 import jax
 import jax.numpy as jnp
@@ -35,11 +34,11 @@ def generate_kb_camera_model_functions() -> tuple[T.Callable, T.Callable, T.Call
     """
     project, _ = code_generation.generate_python(
         func=kb_camera_projection_with_jacobians,
-        target=code_generation.PythonGeneratorTarget.JAX,
+        generator=code_generation.PythonGenerator(target=code_generation.PythonGeneratorTarget.JAX),
     )
     unproject, _ = code_generation.generate_python(
         func=kb_camera_unprojection_with_jacobians,
-        target=code_generation.PythonGeneratorTarget.JAX,
+        generator=code_generation.PythonGenerator(target=code_generation.PythonGeneratorTarget.JAX),
     )
 
     # Batch over points (first argument), and then JIT with xla.
@@ -73,7 +72,7 @@ def generate_kb_camera_model_functions() -> tuple[T.Callable, T.Callable, T.Call
             compute_p_pixels_D_p_cam=False,
             compute_p_pixels_D_K=False,
             compute_p_pixels_D_coeffs=False,
-        )["p_pixels"],
+        )[0],
         in_axes=(0, None, None),
         out_axes=0,
     )
@@ -84,7 +83,7 @@ def generate_kb_camera_model_functions() -> tuple[T.Callable, T.Callable, T.Call
             compute_p_cam_D_p_pixels=False,
             compute_p_cam_D_K=False,
             compute_p_cam_D_coeffs=False,
-        )["p_cam"],
+        )[0],
         in_axes=(0, None, None),
         out_axes=0,
     )
@@ -130,28 +129,26 @@ def test_kb_camera_model_methods():
 
         # `unproject` will return a dict of tensors. For convenience build a namespace object so
         # that we can use `.member` syntax.
-        out_backwards = SimpleNamespace(**unproject(p_pixels_in, K, coeffs))
+        p_cam, _p_cam_D_pixels, p_cam_D_K, p_cam_D_coeffs = unproject(p_pixels_in, K, coeffs)
 
         # project back the other way:
-        out_forwards = SimpleNamespace(**project(out_backwards.p_cam, K, coeffs))
+        p_pixels, _p_pixels_D_p_cam, p_pixels_D_K, p_pixels_D_coeffs = project(p_cam, K, coeffs)
 
         # check round-trip conversion produced the same coordinates
-        np.testing.assert_allclose(desired=p_pixels_in, actual=out_forwards.p_pixels, atol=1.0e-4)
+        np.testing.assert_allclose(desired=p_pixels_in, actual=p_pixels, atol=1.0e-4)
 
         # Test jacobians of against jacfwd:
         (p_pixels_D_K_jax, p_pixels_D_coeffs_jax) = [
             jnp.squeeze(J)
             for J in jax.jacfwd(project_no_jacobians, argnums=[1, 2], has_aux=False)(
-                out_backwards.p_cam, K, coeffs
+                p_cam, K, coeffs
             )
         ]
 
-        np.testing.assert_allclose(
-            desired=p_pixels_D_K_jax, actual=out_forwards.p_pixels_D_K, rtol=1.0e-6
-        )
+        np.testing.assert_allclose(desired=p_pixels_D_K_jax, actual=p_pixels_D_K, rtol=1.0e-6)
         np.testing.assert_allclose(
             desired=p_pixels_D_coeffs_jax,
-            actual=out_forwards.p_pixels_D_coeffs,
+            actual=p_pixels_D_coeffs,
             rtol=1.0e-6,
         )
 
@@ -163,12 +160,10 @@ def test_kb_camera_model_methods():
             )
         ]
 
-        np.testing.assert_allclose(
-            desired=p_cam_D_K_jax, actual=out_backwards.p_cam_D_K, atol=1.0e-6
-        )
+        np.testing.assert_allclose(desired=p_cam_D_K_jax, actual=p_cam_D_K, atol=1.0e-6)
         np.testing.assert_allclose(
             desired=p_cam_D_coeffs_jax,
-            actual=out_backwards.p_cam_D_coeffs,
+            actual=p_cam_D_coeffs,
             rtol=1.0e-5,
         )
 
