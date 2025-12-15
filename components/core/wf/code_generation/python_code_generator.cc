@@ -99,14 +99,19 @@ inline std::string format_scalar_type_cast(const python_generator_target target,
 }
 
 python_code_generator::python_code_generator(python_generator_target target,
-                                             python_generator_float_width float_width, int indent)
-    : target_(target), float_width_(float_width), indent_(static_cast<std::size_t>(indent)) {
+                                             python_generator_float_width float_width, int indent,
+                                             bool use_output_arguments)
+    : target_(target),
+      float_width_(float_width),
+      use_output_arguments_(use_output_arguments),
+      indent_(static_cast<std::size_t>(indent)) {
   if (indent < 1) {
     throw wf::invalid_argument_error("Indentation must be >= 1. Provided value: {}", indent);
   }
 }
 
-constexpr std::string_view python_matrix_type_from_target(python_generator_target target) noexcept {
+constexpr std::string_view python_matrix_type_from_target(
+    const python_generator_target target) noexcept {
   switch (target) {
     case python_generator_target::numpy: {
       return "np.ndarray";
@@ -155,22 +160,49 @@ std::string python_code_generator::operator()(const ast::function_definition& de
   result.append("\n");
 
   // Insert some reshape statements on all the input arrays.
-  // This ensures we can access with the 2D slice operator (and validates shapes).
+  // This ensures we can access with the 2D slice operator.
   for (const auto& arg : signature.arguments()) {
-    if (arg.is_input()) {
-      if (arg.is_matrix()) {
-        const auto& mat = std::get<matrix_type>(arg.type());
+    if (arg.is_matrix() && (arg.is_input() || use_output_arguments_)) {
+      const auto& mat = std::get<matrix_type>(arg.type());
+      if (arg.is_input()) {
         const std::string reshaped =
             format_asarray(target_, arg.name(), numeric_primitive_type::floating_point,
                            float_width_, mat.rows(), mat.cols());
         fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
                        reshaped);
-      } else if (arg.is_scalar()) {
+      } else if (use_output_arguments_) {
+        if (arg.is_optional()) {
+          fmt::format_to(std::back_inserter(result), "{:{}}if {} is not None:\n", "", indent_,
+                         arg.name());
+        }
+        fmt::format_to(std::back_inserter(result),
+                       "{:{}}assert {}.size == {}, \"{} should have {} elements.\"\n", "",
+                       arg.is_optional() ? indent_ * 2 : indent_, arg.name(), mat.size(),
+                       arg.name(), mat.size());
+        // Reshape but do not call asarray, we don't want to copy here. It is on the user to pass
+        // the correct array type.
+        fmt::format_to(std::back_inserter(result), "{:{}}{} = {}.reshape({}, {})\n", "",
+                       arg.is_optional() ? indent_ * 2 : indent_, arg.name(), arg.name(),
+                       mat.rows(), mat.cols());
+      }
+    } else if (arg.is_scalar()) {
+      if (arg.is_input()) {
         const std::string recast = format_scalar_type_cast(
             target_, arg.name(), std::get<scalar_type>(arg.type()).numeric_type(), float_width_);
         fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
                        recast);
+      } else {
+        // TODO: We could support this via 1x1 output numpy array.
+        throw wf::type_error(
+            "Scalar output arguments are unsupported with the configuration: "
+            "use_output_arguments=True (argument name: {})",
+            arg.name());
       }
+    } else if (arg.is_custom_type() && !arg.is_input() && use_output_arguments_) {
+      throw wf::type_error(
+          "Custom type output arguments are unsupported with the configuration: "
+          "use_output_arguments=True (argument name: {})",
+          arg.name());
     }
   }
 
@@ -192,7 +224,7 @@ std::string python_code_generator::operator()(const ast::function_definition& de
     return_tuple_elements.push_back(operator()(return_statement->value));
   }
   for (const auto& arg : signature.arguments()) {
-    if (!arg.is_input()) {
+    if (!arg.is_input() && !use_output_arguments_) {
       return_tuple_elements.emplace_back(arg.name());
     }
   }
@@ -216,22 +248,33 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
   args.reserve(signature.num_arguments());
 
   for (const auto& arg : signature.arguments()) {
+    const auto formatted_type = std::visit(*this, arg.type());
     if (arg.direction() == argument_direction::input) {
-      const auto formatted_type = std::visit(*this, arg.type());
       args.push_back(fmt::format("{}: {}", arg.name(), formatted_type));
+    } else if (arg.direction() == argument_direction::output) {
+      if (use_output_arguments_) {
+        args.push_back(fmt::format("{}: {}", arg.name(), formatted_type));
+      }
     } else if (arg.direction() == argument_direction::optional_output) {
-      args.push_back(fmt::format("compute_{}: bool", arg.name()));
+      if (use_output_arguments_) {
+        args.push_back(fmt::format("{}: {} | None", arg.name(), formatted_type));
+      } else {
+        args.push_back(fmt::format("compute_{}: bool", arg.name()));
+      }
     }
   }
 
-  std::vector<std::string> output_args;
-  output_args.reserve(signature.num_arguments());
-  for (const auto& arg : signature.arguments()) {
-    if (!arg.is_input()) {
-      if (arg.is_optional()) {
-        output_args.push_back(fmt::format("{} | None", python_matrix_type_from_target(target_)));
-      } else {
-        output_args.emplace_back(python_matrix_type_from_target(target_));
+  std::vector<std::string> output_arg_ret_annotations;
+  if (use_output_arguments_) {
+    output_arg_ret_annotations.reserve(signature.num_arguments());
+    for (const auto& arg : signature.arguments()) {
+      if (!arg.is_input()) {
+        if (arg.is_optional()) {
+          output_arg_ret_annotations.push_back(
+              fmt::format("{} | None", python_matrix_type_from_target(target_)));
+        } else {
+          output_arg_ret_annotations.emplace_back(python_matrix_type_from_target(target_));
+        }
       }
     }
   }
@@ -239,13 +282,14 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
   std::string return_annotation = "None";
   if (signature.return_type()) {
     auto return_type = std::visit(*this, *signature.return_type());
-    if (!output_args.empty()) {
-      return_annotation = fmt::format("tuple[{}, {}]", return_type, fmt::join(output_args, ", "));
+    if (!output_arg_ret_annotations.empty()) {
+      return_annotation =
+          fmt::format("tuple[{}, {}]", return_type, fmt::join(output_arg_ret_annotations, ", "));
     } else {
       return_annotation = std::move(return_type);
     }
-  } else if (!output_args.empty()) {
-    return_annotation = fmt::format("tuple[{}]", fmt::join(output_args, ", "));
+  } else if (!output_arg_ret_annotations.empty()) {
+    return_annotation = fmt::format("tuple[{}]", fmt::join(output_arg_ret_annotations, ", "));
   }
   return fmt::format("def {}({}) -> {}:", signature.name(), fmt::join(args, ", "),
                      return_annotation);
@@ -273,7 +317,11 @@ constexpr static std::string_view python_matrix_constructor_from_target(
 }
 
 std::string python_code_generator::operator()(const ast::assign_output_matrix& x) const {
-  return fmt::format("{} = {}", x.arg.name(), operator()(x.value));
+  if (use_output_arguments_) {
+    return fmt::format("{}[:] = {}", x.arg.name(), operator()(x.value));
+  } else {
+    return fmt::format("{} = {}", x.arg.name(), operator()(x.value));
+  }
 }
 
 std::string python_code_generator::operator()(const ast::assign_output_scalar& x) const {
@@ -448,7 +496,8 @@ std::string python_code_generator::operator()(const ast::negate& x) const {
 }
 
 std::string python_code_generator::operator()(const ast::optional_output_branch& x) const {
-  std::string result = fmt::format("if compute_{}:", x.arg.name());
+  std::string result = use_output_arguments_ ? fmt::format("if {} is not None:", x.arg.name())
+                                             : fmt::format("if compute_{}:", x.arg.name());
   join_and_indent(result, indent_, "\n", "\n", "\n", x.statements, *this);
   fmt::format_to(std::back_inserter(result), "else:\n{:{}}{} = None", "", indent_, x.arg.name());
   return result;

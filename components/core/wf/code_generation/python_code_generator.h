@@ -26,11 +26,11 @@ enum class python_generator_float_width {
 };
 
 // Generate Python code for use with: NumPy, PyTorch, and JAX.
-// TODO: Add support for Numba as well.
 class python_code_generator {
  public:
   explicit python_code_generator(python_generator_target target,
-                                 python_generator_float_width float_width, int indent);
+                                 python_generator_float_width float_width, int indent,
+                                 bool use_output_arguments);
 
   virtual ~python_code_generator() = default;
 
@@ -114,6 +114,7 @@ class python_code_generator {
  protected:
   python_generator_target target_;
   python_generator_float_width float_width_;
+  bool use_output_arguments_;
   std::size_t indent_;
 
   // Create a fmt_view. All args will be forwarded back to the operator on this class that matches
