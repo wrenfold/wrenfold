@@ -418,7 +418,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
         """
 
         def only_optional_outputs(x: Vector3, y: Vector3):
-            (inner_product,) = x.T * y
+            inner_product = x.T * y
             outer_product = x * y.T
             return [
                 code_generation.OutputArg(inner_product, name="inner", is_optional=True),
@@ -465,7 +465,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
         def compute_with_ints(x: IntScalar, y: IntScalar):
             return [
                 code_generation.ReturnValue(x * y),
-                code_generation.OutputArg(x + y, name="sum"),
+                code_generation.OutputArg(sym.vector(x + y), name="sum"),
             ]
 
         func = self._generator(compute_with_ints)
@@ -554,6 +554,7 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
     VERBOSE = False
     SUPPORTS_BATCH = False
+    USE_OUTPUT_ARGUMENTS = False
 
     def _generator(
         self,
@@ -571,18 +572,43 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
                 if np.float32 == self.EXPECTED_TYPE
                 else code_generation.PythonGeneratorFloatWidth.Float64
             ),
+            use_output_arguments=self.USE_OUTPUT_ARGUMENTS,
         )
 
         func_gen, code = code_generation.generate_python(func=func, generator=generator, **kwargs)
         if self.VERBOSE:
             print(code)
 
-        _, optional_arg_flags = get_optional_output_flags(func)
+        if not self.USE_OUTPUT_ARGUMENTS:
+            _, optional_arg_flags = get_optional_output_flags(func)
 
-        def wrapped_func(*args, **kwargs):
-            return func_gen(*args, **kwargs, **optional_arg_flags)
+            def wrapped_func(*args, **kwargs):
+                return func_gen(*args, **kwargs, **optional_arg_flags)
 
-        return wrapped_func
+            return wrapped_func
+        else:
+            # Generate a wrapped version that passes arrays to be filled as arguments.
+            description = code_generation.create_function_description(func)
+            output_arg_spec = dict()
+            for arg in description.arguments:
+                if not arg.is_input:
+                    assert isinstance(arg.type, type_info.MatrixType)
+                    output_arg_spec[arg.name] = arg.type.shape
+
+            def wrapped_func_capture_output_args(*args, **kwargs):
+                output_args = {
+                    k: np.zeros(shape=s, dtype=self.EXPECTED_TYPE)
+                    for (k, s) in output_arg_spec.items()
+                }
+                ret_value = func_gen(*args, **kwargs, **output_args)
+                if ret_value is not None and len(output_args):
+                    return ret_value, *output_args.values()
+                elif ret_value is not None and not len(output_args):
+                    return ret_value
+                elif ret_value is None and len(output_args):
+                    return tuple(output_args.values())
+
+            return wrapped_func_capture_output_args
 
     def test_external_function_call_np(self):
         """
@@ -662,11 +688,22 @@ class NumPyCodeGenerationF64Test(NumPyCodeGenerationTestBase):
     EXPECTED_TYPE = np.float64
 
 
+class NumPyCodeGenerationF32OutputArgsTest(NumPyCodeGenerationTestBase):
+    EXPECTED_TYPE = np.float32
+    USE_OUTPUT_ARGUMENTS = True
+
+
+class NumPyCodeGenerationF64OutputArgsTest(NumPyCodeGenerationTestBase):
+    EXPECTED_TYPE = np.float64
+    USE_OUTPUT_ARGUMENTS = True
+
+
 class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
     """Run with NumPy+numba.njit configuration."""
 
     SUPPORTS_BATCH = False
     VERBOSE = False
+    USE_OUTPUT_ARGUMENTS = False
 
     def _generator(
         self,
@@ -680,6 +717,7 @@ class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
                 if np.float32 == self.EXPECTED_TYPE
                 else code_generation.PythonGeneratorFloatWidth.Float64
             ),
+            use_output_arguments=self.USE_OUTPUT_ARGUMENTS,
         )
 
         func_gen, code = code_generation.generate_python(func=func, generator=generator, **kwargs)
@@ -690,10 +728,35 @@ class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
         jitted_func = numba.njit(func_gen)
 
-        def wrapped_func(*args, **kwargs):
-            return jitted_func(*args, **kwargs, **optional_arg_flags)
+        if not self.USE_OUTPUT_ARGUMENTS:
+            _, optional_arg_flags = get_optional_output_flags(func)
 
-        return wrapped_func
+            def wrapped_func(*args, **kwargs):
+                return jitted_func(*args, **kwargs, **optional_arg_flags)
+
+            return wrapped_func
+        else:
+            description = code_generation.create_function_description(func)
+            output_arg_spec = dict()
+            for arg in description.arguments:
+                if not arg.is_input:
+                    assert isinstance(arg.type, type_info.MatrixType)
+                    output_arg_spec[arg.name] = arg.type.shape
+
+            def wrapped_func_capture_output_args(*args, **kwargs):
+                output_args = {
+                    k: np.zeros(shape=s, dtype=self.EXPECTED_TYPE)
+                    for (k, s) in output_arg_spec.items()
+                }
+                ret_value = jitted_func(*args, **kwargs, **output_args)
+                if ret_value is not None and len(output_args):
+                    return ret_value, *output_args.values()
+                elif ret_value is not None and not len(output_args):
+                    return ret_value
+                elif ret_value is None and len(output_args):
+                    return tuple(output_args.values())
+
+            return wrapped_func_capture_output_args
 
     def test_external_function_call_numba(self):
         """
@@ -730,6 +793,16 @@ class NumbaCodeGenerationF32Test(NumbaCodeGenerationTestBase):
 
 class NumbaCodeGenerationF64Test(NumbaCodeGenerationTestBase):
     EXPECTED_TYPE = np.float64
+
+
+class NumbaCodeGenerationF32OutputArgsTest(NumbaCodeGenerationTestBase):
+    EXPECTED_TYPE = np.float32
+    USE_OUTPUT_ARGUMENTS = True
+
+
+class NumbaCodeGenerationF64OutputArgsTest(NumbaCodeGenerationTestBase):
+    EXPECTED_TYPE = np.float64
+    USE_OUTPUT_ARGUMENTS = True
 
 
 class JaxCodeGenerationTest(PythonCodeGenerationTestBase):
@@ -843,11 +916,16 @@ def test_apply_preamble():
 
 
 def main():
+    # TOOD: Find a better way to test the different permutations.
     test_cases = [
         NumPyCodeGenerationF32Test,
         NumPyCodeGenerationF64Test,
+        NumPyCodeGenerationF32OutputArgsTest,
+        NumPyCodeGenerationF64OutputArgsTest,
         NumbaCodeGenerationF32Test,
         NumbaCodeGenerationF64Test,
+        NumbaCodeGenerationF32OutputArgsTest,
+        NumbaCodeGenerationF64OutputArgsTest,
         JaxCodeGenerationTest,
     ]
     if th is not None:
