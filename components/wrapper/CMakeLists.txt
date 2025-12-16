@@ -184,6 +184,7 @@ add_wrapper_module(
   pywrenfold/code_formatting_wrapper.cc
   pywrenfold/codegen_wrapper.cc
   pywrenfold/compound_expression_wrapper.cc
+  pywrenfold/docs/code_formatting_wrapper.h
   pywrenfold/docs/codegen_wrapper.h
   pywrenfold/docs/compound_expression_wrapper.h
   pywrenfold/docs/expressions_wrapper.h
@@ -201,8 +202,8 @@ add_wrapper_module(
   pywrenfold/sympy_conversion.cc
   pywrenfold/types_wrapper.cc
   pywrenfold/visitor_wrappers.h
-  pywrenfold/wrapper.cc
   pywrenfold/wrapper_utils.h
+  pywrenfold/wrapper.cc
   SUBMODULE_NAMES
   ast
   enumerations

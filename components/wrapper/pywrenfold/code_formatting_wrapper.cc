@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "docs/code_formatting_wrapper.h"
 #include "wf/code_generation/ast.h"
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/cpp_code_generator.h"
@@ -348,7 +349,8 @@ void wrap_code_formatting_operations(py::module_& m) {
       .def(py::init<python_generator_target, python_generator_float_width, int, bool>(),
            py::arg("target") = python_generator_target::numpy,
            py::arg("float_width") = python_generator_float_width::float32,
-           py::arg("indentation") = 2, py::arg("use_output_arguments") = false)
+           py::arg("indentation") = 2, py::arg("use_output_arguments") = false,
+           docstrings::python_generator_constructor.data())
       .def_property_readonly(
           "target",
           [](const wf::wrapped_generator<python_code_generator>& self) { return self.target(); },

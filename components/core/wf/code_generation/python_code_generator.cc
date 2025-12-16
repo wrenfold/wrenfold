@@ -162,7 +162,7 @@ std::string python_code_generator::operator()(const ast::function_definition& de
   // Insert some reshape statements on all the input arrays.
   // This ensures we can access with the 2D slice operator.
   for (const auto& arg : signature.arguments()) {
-    if (arg.is_matrix() && (arg.is_input() || use_output_arguments_)) {
+    if (arg.is_matrix()) {
       const auto& mat = std::get<matrix_type>(arg.type());
       if (arg.is_input()) {
         const std::string reshaped =
@@ -191,7 +191,7 @@ std::string python_code_generator::operator()(const ast::function_definition& de
             target_, arg.name(), std::get<scalar_type>(arg.type()).numeric_type(), float_width_);
         fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
                        recast);
-      } else {
+      } else if (use_output_arguments_) {
         // TODO: We could support this via 1x1 output numpy array.
         throw wf::type_error(
             "Scalar output arguments are unsupported with the configuration: "
