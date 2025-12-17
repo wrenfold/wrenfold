@@ -170,20 +170,6 @@ std::string python_code_generator::operator()(const ast::function_definition& de
                            float_width_, mat.rows(), mat.cols());
         fmt::format_to(std::back_inserter(result), "{:{}}{} = {}\n", "", indent_, arg.name(),
                        reshaped);
-      } else if (use_output_arguments_) {
-        if (arg.is_optional()) {
-          fmt::format_to(std::back_inserter(result), "{:{}}if {} is not None:\n", "", indent_,
-                         arg.name());
-        }
-        fmt::format_to(std::back_inserter(result),
-                       "{:{}}assert {}.size == {}, \"{} should have {} elements.\"\n", "",
-                       arg.is_optional() ? indent_ * 2 : indent_, arg.name(), mat.size(),
-                       arg.name(), mat.size());
-        // Reshape but do not call asarray, we don't want to copy here. It is on the user to pass
-        // the correct array type.
-        fmt::format_to(std::back_inserter(result), "{:{}}{} = {}.reshape({}, {})\n", "",
-                       arg.is_optional() ? indent_ * 2 : indent_, arg.name(), arg.name(),
-                       mat.rows(), mat.cols());
       }
     } else if (arg.is_scalar()) {
       if (arg.is_input()) {
@@ -318,7 +304,13 @@ constexpr static std::string_view python_matrix_constructor_from_target(
 
 std::string python_code_generator::operator()(const ast::assign_output_matrix& x) const {
   if (use_output_arguments_) {
-    return fmt::format("{}[:] = {}", x.arg.name(), operator()(x.value));
+    const matrix_type* mat = std::get_if<matrix_type>(&x.arg.type());
+    // TODO: We _should_ pass copy=False here to ensure no accidental copy occurs, and that we
+    // are still mutating the same array. However this doesn't work because Numba crashes during
+    // type inference if copy=False is specified.
+    WF_ASSERT(mat, "Argument {} should be a matrix", x.arg.name());
+    return fmt::format("{}.reshape({}, {})[:] = {}", x.arg.name(), mat->rows(),
+                       mat->cols(), operator()(x.value));
   } else {
     return fmt::format("{} = {}", x.arg.name(), operator()(x.value));
   }
@@ -496,8 +488,19 @@ std::string python_code_generator::operator()(const ast::negate& x) const {
 }
 
 std::string python_code_generator::operator()(const ast::optional_output_branch& x) const {
-  std::string result = use_output_arguments_ ? fmt::format("if {} is not None:", x.arg.name())
-                                             : fmt::format("if compute_{}:", x.arg.name());
+  std::string result;
+  if (use_output_arguments_) {
+    fmt::format_to(std::back_inserter(result), "if {} is not None:", x.arg.name());
+    if (const matrix_type* mat = std::get_if<matrix_type>(&x.arg.type()); mat != nullptr) {
+      fmt::format_to(std::back_inserter(result),
+                     "\n{:{}}assert {}.size == {}, f\"Matrix {} should have {} elements, but it "
+                     "has {{{}.size}}\"",
+                     "", indent_, x.arg.name(), mat->size(), x.arg.name(), mat->size(),
+                     x.arg.name());
+    }
+  } else {
+    fmt::format_to(std::back_inserter(result), "if compute_{}:", x.arg.name());
+  }
   join_and_indent(result, indent_, "\n", !use_output_arguments_ ? "\n" : "", "\n", x.statements,
                   *this);
   if (!use_output_arguments_) {
