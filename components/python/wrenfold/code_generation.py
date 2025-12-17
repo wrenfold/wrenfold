@@ -327,6 +327,8 @@ def generate_python(
       Because python lacks formal "output arguments", any symbolic outputs tagged as
       :class:`wrenfold.code_generation.OutputArg` will instead be **returned** from the generated
       function as elements of a tuple. The example listing below illustrates this behavior.
+      When targeting NumPy, this behavior can be changed by passing ``use_output_arguments=True``
+      to :class:`wrenfold.code_generation.PythonGenerator`.
 
       **Additionally**, remember that your target framework may not be able to reason about your
       custom types. For example,

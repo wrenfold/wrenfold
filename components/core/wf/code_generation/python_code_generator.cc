@@ -265,7 +265,7 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
   }
 
   std::vector<std::string> output_arg_ret_annotations;
-  if (use_output_arguments_) {
+  if (!use_output_arguments_) {
     output_arg_ret_annotations.reserve(signature.num_arguments());
     for (const auto& arg : signature.arguments()) {
       if (!arg.is_input()) {
@@ -498,8 +498,11 @@ std::string python_code_generator::operator()(const ast::negate& x) const {
 std::string python_code_generator::operator()(const ast::optional_output_branch& x) const {
   std::string result = use_output_arguments_ ? fmt::format("if {} is not None:", x.arg.name())
                                              : fmt::format("if compute_{}:", x.arg.name());
-  join_and_indent(result, indent_, "\n", "\n", "\n", x.statements, *this);
-  fmt::format_to(std::back_inserter(result), "else:\n{:{}}{} = None", "", indent_, x.arg.name());
+  join_and_indent(result, indent_, "\n", !use_output_arguments_ ? "\n" : "", "\n", x.statements,
+                  *this);
+  if (!use_output_arguments_) {
+    fmt::format_to(std::back_inserter(result), "else:\n{:{}}{} = None", "", indent_, x.arg.name());
+  }
   return result;
 }
 
