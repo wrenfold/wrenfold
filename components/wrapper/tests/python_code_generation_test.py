@@ -5,6 +5,7 @@ Test generation and execution of python code.
 import collections
 import dataclasses
 import inspect
+import sys
 import typing as T
 import unittest
 
@@ -960,7 +961,10 @@ def test_numpy_type_annotations():
     assert spec.annotations["z"] is float
     assert spec.annotations["w"] is int
     assert spec.annotations["foo"] is np.ndarray
-    assert str(spec.annotations["bar"]) == "np.ndarray | None"
+    assert (
+        str(spec.annotations["bar"]) == "numpy.ndarray | None"
+        or str(spec.annotations["bar"]) == "np.ndarray | None"
+    )
 
 
 def main():
@@ -986,7 +990,8 @@ def main():
     suite.addTest(unittest.FunctionTestCase(test_apply_preamble))
     suite.addTest(unittest.FunctionTestCase(test_numpy_type_annotations))
     runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)
+    if not runner.run(suite).wasSuccessful():
+        sys.exit(1)
 
 
 if __name__ == "__main__":
