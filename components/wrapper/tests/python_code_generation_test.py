@@ -4,6 +4,7 @@ Test generation and execution of python code.
 
 import collections
 import dataclasses
+import inspect
 import typing as T
 import unittest
 
@@ -915,6 +916,53 @@ def test_apply_preamble():
         assert code_with_preamble == expected
 
 
+def test_numpy_type_annotations():
+    """
+    Test that type annotations are correct.
+    """
+
+    def sym1(x: Vector2, y: Vector3, z: FloatScalar, w: IntScalar):
+        return [
+            code_generation.ReturnValue(x * z * w),
+            code_generation.OutputArg(sym.vector(*x, z), name="foo"),
+            code_generation.OutputArg(y * y.T, name="bar", is_optional=True),
+        ]
+
+    func, _code = code_generation.generate_python(
+        sym1, generator=code_generation.PythonGenerator(use_output_arguments=False)
+    )
+
+    spec = inspect.getfullargspec(func=func)
+    for arg_name in spec.args:
+        assert arg_name in spec.annotations, f"Missing type annotation for argument: {arg_name}"
+
+    assert (
+        str(spec.annotations["return"])
+        == "tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray | None]"
+    )
+    assert spec.annotations["x"] is np.ndarray
+    assert spec.annotations["y"] is np.ndarray
+    assert spec.annotations["z"] is float
+    assert spec.annotations["w"] is int
+    assert spec.annotations["compute_bar"] is bool
+
+    func, _code = code_generation.generate_python(
+        sym1, generator=code_generation.PythonGenerator(use_output_arguments=True)
+    )
+
+    spec = inspect.getfullargspec(func=func)
+    for arg_name in spec.args:
+        assert arg_name in spec.annotations, f"Missing type annotation for argument: {arg_name}"
+
+    assert spec.annotations["return"] is np.ndarray
+    assert spec.annotations["x"] is np.ndarray
+    assert spec.annotations["y"] is np.ndarray
+    assert spec.annotations["z"] is float
+    assert spec.annotations["w"] is int
+    assert spec.annotations["foo"] is np.ndarray
+    assert str(spec.annotations["bar"]) == "np.ndarray | None"
+
+
 def main():
     # TOOD: Find a better way to test the different permutations.
     test_cases = [
@@ -936,6 +984,7 @@ def main():
     for test_case in test_cases:
         suite.addTests(loader.loadTestsFromTestCase(test_case))
     suite.addTest(unittest.FunctionTestCase(test_apply_preamble))
+    suite.addTest(unittest.FunctionTestCase(test_numpy_type_annotations))
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
 

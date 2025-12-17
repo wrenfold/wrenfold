@@ -13,8 +13,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
 
-    "License :: OSI Approved :: MIT License",
-
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Code Generators",
 
