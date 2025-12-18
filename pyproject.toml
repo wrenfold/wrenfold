@@ -28,7 +28,7 @@ Repository = "https://github.com/wrenfold/wrenfold/"
 Issues = "https://github.com/wrenfold/wrenfold/issues"
 
 [build-system]
-requires = ["scikit-build-core==0.10.7", "cmake>=3.20", "ninja>=1.5"]
+requires = ["scikit-build-core==0.11.6", "cmake>=3.20", "ninja>=1.5"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
