@@ -17,18 +17,16 @@ function(add_wrapper_module)
   set(multiValueArgs "SOURCES;SUBMODULE_NAMES")
   cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  # Add pybind11 module
-  pybind11_add_module(${MODULE_NAME} ${MODULE_SOURCES})
+  nanobind_add_module(${MODULE_NAME} NB_STATIC PROTECT_STACK NOMINSIZE
+                      ${MODULE_SOURCES})
   set_property(
     TARGET ${MODULE_NAME}
     APPEND
     PROPERTY PYTHON_SUBMODULES ${MODULE_SUBMODULE_NAMES})
 
   # Depend on the static library
-  target_link_libraries(${MODULE_NAME} PRIVATE wf_core)
+  target_link_libraries(${MODULE_NAME} PRIVATE wf_core Eigen3::Eigen)
   target_compile_options(${MODULE_NAME} PRIVATE ${WF_SHARED_WARNING_FLAGS})
-  target_compile_options(${MODULE_NAME}
-                         PRIVATE -DPYBIND11_DETAILED_ERROR_MESSAGES)
   target_compile_definitions(${MODULE_NAME}
                              PRIVATE PY_MODULE_NAME=${MODULE_NAME})
   if(DEFINED SKBUILD_PROJECT_VERSION)
@@ -219,15 +217,12 @@ add_library(wf_wrapper ALIAS pywrenfold)
 
 # Because we can't build stubs while cross-compiling (necessary for Conda), we
 # instead build them to the repository check that they have been committed
-# properly on CI.
-if(WF_BUILD_STUBS)
-  add_wrapper_module_stubs(MODULE_NAME pywrenfold OUTPUT_DIR
-                           "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
-endif()
+# properly on CI. if(WF_BUILD_STUBS) add_wrapper_module_stubs(MODULE_NAME
+# pywrenfold OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/stubs") endif()
 
-# Stubs will be installed from their location in the repo.
-install_stubs(MODULE_NAME pywrenfold STUBS_DIR
-              "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
+# # Stubs will be installed from their location in the repo.
+# install_stubs(MODULE_NAME pywrenfold STUBS_DIR
+# "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
 
 # Add python tests:
 if(WF_BUILD_EXTRAS)

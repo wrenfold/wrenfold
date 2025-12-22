@@ -24,10 +24,4 @@ std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerica
 // - expressions for the form a + b where `a` and `b` are any of the three above.
 std::optional<std::complex<double>> complex_cast(const scalar_expr& expr);
 
-// Try to run `numerical_cast` on the provided expression. On success, return the converted result.
-// On failure, return `expr`. This is mostly as a convenience for implementing the python `eval`
-// method.
-std::variant<std::int64_t, double, std::complex<double>, scalar_expr> maybe_numerical_cast(
-    const scalar_expr& expr);
-
 }  // namespace wf

@@ -1,12 +1,14 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/eigen/dense.h>
+#include <nanobind/make_iterator.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
 
 #include "wf/cse.h"
 #include "wf/derivative.h"
@@ -15,12 +17,13 @@
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 #include "wf/numerical_casts.h"
+#include "wf/utility/overloaded_visit.h"
 
 #include "docs/matrix_wrapper.h"
 #include "visitor_wrappers.h"
 #include "wrapper_utils.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
@@ -29,9 +32,11 @@ namespace wf {
 struct slice {
  public:
   explicit slice(const index_t len, const py::slice& slice) {
-    if (!slice.compute(static_cast<py::ssize_t>(len), &start_, &stop_, &step_, &length_)) {
-      throw py::error_already_set();
-    }
+    const auto [start, stop, step, length] = slice.compute(static_cast<py::ssize_t>(len));
+    start_ = start;
+    stop_ = stop;
+    step_ = step;
+    length_ = length;
   }
 
   // Number of iterations in the slice.
@@ -240,7 +245,7 @@ matrix_expr matrix_from_iterable(const py::iterable& rows) {
   std::vector<py::object> extracted;
   extracted.reserve(py::len_hint(rows));
   std::transform(rows.begin(), rows.end(), std::back_inserter(extracted),
-                 [](const py::handle& handle) { return handle.cast<py::object>(); });
+                 [](const py::handle& handle) { return py::cast<py::object>(handle); });
 
   if (extracted.empty()) {
     throw dimension_error("Cannot construct matrix from empty iterator.");
@@ -283,11 +288,52 @@ py::list flat_list_from_matrix(const matrix_expr& self) {
   return output;
 }
 
+using numerical_array_variant =
+    std::variant<Eigen::Matrix<std::int64_t, Eigen::Dynamic, Eigen::Dynamic>,
+                 Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
+                 Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>>;
+
 // Convert matrix to numpy array.
 // We need `kwargs` here because numpy might pass copy=True. This argument doesn't matter to us,
 // because we never copy expressions. But we need to be able to accept the argument for pybind to do
 // method resolution.
-py::array numpy_from_matrix(const matrix_expr& self, const py::kwargs&) {
+
+static auto numpy_from_matrix(const matrix_expr& self, const py::kwargs&)
+    -> numerical_array_variant {
+  std::vector<std::variant<std::int64_t, double, std::complex<double>>> numerical_values;
+  numerical_values.reserve(self.size());
+  for (const scalar_expr& expr : self.as_matrix()) {
+    if (const auto maybe_num = numerical_cast(expr); maybe_num.has_value()) {
+      numerical_values.push_back(*maybe_num);
+    } else {
+      throw wf::type_error(
+          "Expression contains symbolic components that cannot be converted to numerical types.");
+    }
+  }
+
+  const bool contains_complex = std::ranges::any_of(numerical_values, [](const auto& x) {
+    return std::holds_alternative<std::complex<double>>(x);
+  });
+  const bool contains_double = std::ranges::any_of(
+      numerical_values, [](const auto& x) { return std::holds_alternative<double>(x); });
+
+  if (contains_complex) {
+    Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> converted(
+        static_cast<Eigen::Index>(self.rows()), static_cast<Eigen::Index>(self.cols()));
+
+    auto caster = make_overloaded(
+        [](std::int64_t v) { return static_cast<std::complex<double>>(static_cast<double>(v)); },
+        [](double v) { return static_cast<std::complex<double>>(v); },
+        [](std::complex<double> v) { return v; });
+
+    std::ranges::copy(numerical_values | std::ranges::transform(caster), converted.begin());
+
+    // const auto converted = transform_map<std::vector>(numerical_values, );
+    // return Eigen::Map<const>(converted.data(), ).eval();
+  } else if (contains_double) {
+  } else {
+  }
+
   auto list = py::list();  // TODO: Don't copy into list.
   for (const scalar_expr& expr : self.as_matrix()) {
     list.append(maybe_numerical_cast(expr));
@@ -323,13 +369,17 @@ absl::Span<const scalar_expr> span_from_variant(
 void wrap_matrix_operations(py::module_& m) {
   // Matrix expression type.
   wrap_class<matrix_expr>(m, "MatrixExpr")
-      .def(py::init(&matrix_from_iterable), py::arg("rows"),
-           "Construct from an iterable of values. See :func:`wrenfold.sym.matrix`.")
+      .def(
+          "__init__",
+          [](matrix_expr* out, const py::iterable& rows) {
+            new (out) matrix_expr(matrix_from_iterable(rows));
+          },
+          py::arg("rows"), "Construct from an iterable of values. See :func:`wrenfold.sym.matrix`.")
       // scalar_expr inherited properties:
       .def("__repr__", &matrix_expr::to_string)
       .def("expression_tree_str", &matrix_expr::to_expression_tree_string,
            "See :func:`wrenfold.sym.Expr.expression_tree_str`.")
-      .def_property_readonly(
+      .def_prop_ro(
           "type_name", [](const matrix_expr& self) { return self.type_name(); },
           "Retrieve the name of the underlying C++ expression type. See "
           ":func:`wrenfold.sym.Expr.type_name`.")
@@ -362,22 +412,22 @@ void wrap_matrix_operations(py::module_& m) {
           "See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.")
       .def("distribute", &matrix_expr::distribute,
            "Invoke :func:`wrenfold.sym.distribute` on every element of the matrix.")
-      .def("subs", &substitute_wrapper_single<matrix_expr, scalar_expr>, py::arg("target"),
+      .def("subs", make_substitute_wrapper_single<matrix_expr, scalar_expr>(), py::arg("target"),
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single scalar-valued substitution.")
-      .def("subs", &substitute_wrapper_single<matrix_expr, boolean_expr>, py::arg("target"),
+      .def("subs", make_substitute_wrapper_single<matrix_expr, boolean_expr>(), py::arg("target"),
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single boolean-valued substitution.")
       .def("subs", &substitute_wrapper<matrix_expr>, py::arg("pairs"),
            "Invoke :func:`wrenfold.sym.subs` on every element of the matrix.")
-      .def(
-          "eval",
-          [](const matrix_expr& self) {
-            const matrix_expr eval = self.eval();
-            return numpy_from_matrix(eval, py::kwargs());
-          },
-          "Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a "
-          "numpy array containing the resulting values.")
+      // .def(
+      //     "eval",
+      //     [](const matrix_expr& self) {
+      //       const matrix_expr eval = self.eval();
+      //       return numpy_from_matrix(eval, py::kwargs());
+      //     },
+      //     "Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a "
+      //     "numpy array containing the resulting values.")
       .def(
           "collect",
           [](const matrix_expr& self, const scalar_expr& var) { return self.collect({var}); },
@@ -393,11 +443,11 @@ void wrap_matrix_operations(py::module_& m) {
           "Invokes :func:`wrenfold.sym.Expr.collect` on every element of the matrix. This overload "
           "accepts a list of variables, and collects recursively in the order they are specified.")
       // Matrix specific properties:
-      .def_property_readonly(
+      .def_prop_ro(
           "shape", [](const matrix_expr& self) { return py::make_tuple(self.rows(), self.cols()); },
           "Shape of the matrix in (row, col) format.")
-      .def_property_readonly("size", &matrix_expr::size, "Total number of elements.")
-      .def_property_readonly(
+      .def_prop_ro("size", &matrix_expr::size, "Total number of elements.")
+      .def_prop_ro(
           "is_empty", [](const matrix_expr& self) { return self.size() == 0; },
           "True if the matrix empty (either zero rows or cols). This should only occur with empty "
           "slices.")
@@ -419,7 +469,8 @@ void wrap_matrix_operations(py::module_& m) {
       .def(
           "__iter__",  //  We don't need keep_alive since matrix_expr does that for us.
           [](const matrix_expr& expr) {
-            return py::make_iterator(row_iterator::begin(expr), row_iterator::end(expr));
+            return py::make_iterator(py::type<matrix_expr>(), "iterator", row_iterator::begin(expr),
+                                     row_iterator::end(expr));
           },
           "Iterate over rows in the matrix.")
       .def("unary_map", &unary_map_matrix, py::arg("func"),
@@ -445,8 +496,8 @@ void wrap_matrix_operations(py::module_& m) {
       .def("to_flat_list", &flat_list_from_matrix,
            "Convert to a flat list assembled in the storage order (row-major) of the matrix.")
       .def("transpose", &matrix_expr::transposed, docstrings::matrix_expr_transpose.data())
-      .def_property_readonly("T", &matrix_expr::transposed,
-                             "Alias for :func:`wrenfold.sym.MatrixExpr.transpose`.")
+      .def_prop_ro("T", &matrix_expr::transposed,
+                   "Alias for :func:`wrenfold.sym.MatrixExpr.transpose`.")
       .def("squared_norm", &matrix_expr::squared_norm, docstrings::matrix_expr_squared_norm.data())
       .def("norm", &matrix_expr::norm,
            "The L2 norm of the matrix, or square root of "
@@ -536,7 +587,7 @@ void wrap_matrix_operations(py::module_& m) {
                                         min_occurrences);
       },
       "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2, "Matrix-valued overload.",
-      py::return_value_policy::take_ownership);
+      py::rv_policy::take_ownership);
 }
 
 }  // namespace wf
