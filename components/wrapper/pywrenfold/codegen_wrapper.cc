@@ -1,8 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
 
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/control_flow_graph.h"
@@ -14,7 +14,7 @@
 #include "docs/codegen_wrapper.h"
 #include "wrapper_utils.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
@@ -43,9 +43,9 @@ auto cse_function_description(const function_description& description,
 
 // Construct `external_function`. We define this custom constructor to convert py::object to
 // type_variant (which is not default constructible).
-external_function init_external_function(
-    std::string name, const std::vector<std::tuple<std::string_view, py::object>>& arguments,
-    const py::object& return_type) {
+void init_external_function(external_function* out, std::string name,
+                            const std::vector<std::tuple<std::string_view, py::object>>& arguments,
+                            const py::object& return_type) {
   auto args = transform_enumerate_map<std::vector>(
       arguments,
       [](const std::size_t index, const std::tuple<std::string_view, py::object>& name_and_type) {
@@ -53,8 +53,9 @@ external_function init_external_function(
                         variant_from_pyobject<type_variant>(std::get<1>(name_and_type)),
                         argument_direction::input, index);
       });
-  return external_function(std::move(name), std::move(args),
-                           variant_from_pyobject<type_variant>(return_type));
+
+  new (out) external_function(std::move(name), std::move(args),
+                              variant_from_pyobject<type_variant>(return_type));
 }
 
 // Create expressions that represent the result of invoking an external function.
@@ -73,14 +74,11 @@ void wrap_argument(py::module_& m) {
              "Argument is an optional output.");
 
   py::class_<argument>(m, "Argument")
-      .def_property_readonly("name", &argument::name, "String name of the argument.")
-      .def_property_readonly("type", &argument::type, "Type of the argument.")
-      .def_property_readonly("direction", &argument::direction,
-                             "How the argument is used by the function.")
-      .def_property_readonly("is_optional", &argument::is_optional,
-                             "True if the argument is optional.")
-      .def_property_readonly("is_input", &argument::is_input,
-                             "True if the function is an input argument.")
+      .def_prop_ro("name", &argument::name, "String name of the argument.")
+      .def_prop_ro("type", &argument::type, "Type of the argument.")
+      .def_prop_ro("direction", &argument::direction, "How the argument is used by the function.")
+      .def_prop_ro("is_optional", &argument::is_optional, "True if the argument is optional.")
+      .def_prop_ro("is_input", &argument::is_input, "True if the function is an input argument.")
       .def("create_symbolic_input", &argument::create_symbolic_input,
            "Create corresponding symbolic input expressions for this argument.")
       .def("__repr__",
@@ -93,18 +91,18 @@ void wrap_argument(py::module_& m) {
 void wrap_codegen_operations(py::module_& m) {
   // We give this a Py prefix since we subclass it in python with another object.
   wrap_class<external_function>(m, "PyExternalFunction")
-      .def(py::init(&init_external_function), py::arg("name"), py::arg("arguments"),
+      .def("__init__", &init_external_function, py::arg("name"), py::arg("arguments"),
            py::arg("return_type"), "Construct with name, arguments, and return type.")
       .def(py::init<external_function>(), "Copy constructor.")
-      .def_property_readonly("name", &external_function::name, "Name of the function.")
-      .def_property_readonly("arguments", &external_function::arguments, "List of arguments.")
-      .def_property_readonly("num_arguments", &external_function::num_arguments,
-                             "Number of arguments the function expects to receive.")
+      .def_prop_ro("name", &external_function::name, "Name of the function.")
+      .def_prop_ro("arguments", &external_function::arguments, "List of arguments.")
+      .def_prop_ro("num_arguments", &external_function::num_arguments,
+                   "Number of arguments the function expects to receive.")
       .def("arg_position", &external_function::arg_position, py::arg("arg"),
            "Find the position of the argument with the specified name.")
-      .def_property_readonly("return_type", &external_function::return_type,
-                             "Return type of the function. This will determine the type of "
-                             "variable we must declare in code-generated functions.")
+      .def_prop_ro("return_type", &external_function::return_type,
+                   "Return type of the function. This will determine the type of "
+                   "variable we must declare in code-generated functions.")
       .def("call", &call_external_function, py::arg("args"),
            "Call external function and create return expression. OMIT_FROM_SPHINX")
       .def("__repr__", [](const external_function& self) {
@@ -123,10 +121,10 @@ void wrap_codegen_operations(py::module_& m) {
 
   wrap_class<output_key>(m, "OutputKey")
       .def(py::init<expression_usage, std::string_view>(), py::arg("usage"), py::arg("name"))
-      .def_property_readonly(
+      .def_prop_ro(
           "usage", [](const output_key& key) { return key.usage; },
           "Describe how the output is returned by the function.")
-      .def_property_readonly(
+      .def_prop_ro(
           "name", [](const output_key& key) -> std::string_view { return key.name; },
           "Name of the output value.", py::keep_alive<0, 1>())
       .def("__repr__", [](const output_key& key) {
@@ -140,9 +138,8 @@ void wrap_codegen_operations(py::module_& m) {
 
   py::class_<function_description>(m, "FunctionDescription")
       .def(py::init<std::string>(), py::arg("name"), "Construct with function name.")
-      .def_property_readonly("name", &function_description::name, "Name of the function.")
-      .def_property_readonly("arguments", &function_description::arguments,
-                             "Arguments to the function.")
+      .def_prop_ro("name", &function_description::name, "Name of the function.")
+      .def_prop_ro("arguments", &function_description::arguments, "Arguments to the function.")
       .def("__repr__",
            [](const function_description& self) {
              return fmt::format("FunctionDescription('{}', {} args)", self.name(),
@@ -154,23 +151,23 @@ void wrap_codegen_operations(py::module_& m) {
             return self.add_input_argument(name, type);
           },
           py::arg("name"), py::arg("type"),
-          py::doc("Add a scalar input argument. Returns placeholder value to pass to the python "
-                  "function."))
+          "Add a scalar input argument. Returns placeholder value to pass to the python "
+          "function.")
       .def(
           "add_input_argument",
           [](function_description& self, const std::string_view name, matrix_type type) {
             return self.add_input_argument(name, type);
           },
           py::arg("name"), py::arg("type"),
-          py::doc("Add a matrix input argument. Returns placeholder value to pass to the python "
-                  "function."))
+          "Add a matrix input argument. Returns placeholder value to pass to the python "
+          "function.")
       .def(
           "add_input_argument",
           [](function_description& self, const std::string_view name, const custom_type& type) {
             return self.add_input_argument(name, type);
           },
           py::arg("name"), py::arg("type"),
-          py::doc("Add an input argument with a custom user-specified type."))
+          "Add an input argument with a custom user-specified type.")
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
@@ -187,7 +184,7 @@ void wrap_codegen_operations(py::module_& m) {
                                      value);
           },
           py::arg("name"), py::arg("is_optional"), py::arg("value"),
-          py::doc("Record an output argument of matrix type."))
+          "Record an output argument of matrix type.")
       .def(
           "add_output_argument",
           [](function_description& self, const std::string_view name, const bool is_optional,
@@ -197,7 +194,7 @@ void wrap_codegen_operations(py::module_& m) {
                 create_custom_type_construction(custom_type, std::move(expressions)));
           },
           py::arg("name"), py::arg("is_optional"), py::arg("custom_type"), py::arg("expressions"),
-          py::doc("Record an output argument of custom type."))
+          "Record an output argument of custom type.")
       .def(
           "set_return_value",
           [](function_description& self, const scalar_expr& value) {
@@ -224,11 +221,16 @@ void wrap_codegen_operations(py::module_& m) {
 
   wrap_class<optimization_params>(m, "OptimizationParams")
       .def(py::init<>(), "Construct with defaults.")
-      .def_readwrite("factorization_passes", &optimization_params::factorization_passes,
-                     "Automatically factorize sums of products. This parameter determines the "
-                     "number of passes through the expression graph.")
-      .def_readwrite("binarize_operations", &optimization_params::binarize_operations,
-                     "Convert n-ary additions and multiplications into binary operations.");
+      .def_prop_rw(
+          "factorization_passes",
+          [](const optimization_params& p) { return p.factorization_passes; },
+          [](optimization_params& p, int passes) { p.factorization_passes = passes; },
+          "Automatically factorize sums of products. This parameter determines the "
+          "number of passes through the expression graph.")
+      .def_prop_rw(
+          "binarize_operations", [](const optimization_params& p) { return p.binarize_operations; },
+          [](optimization_params& p, bool binarize) { p.binarize_operations = binarize; },
+          "Convert n-ary additions and multiplications into binary operations.");
 
   m.def(
       "transpile",
@@ -245,15 +247,15 @@ void wrap_codegen_operations(py::module_& m) {
       py::arg("convert_ternaries") = true,
       "Overload of :func:`wrenfold.code_generation.transpile` that operates on a sequence "
       "of functions.",
-      py::return_value_policy::take_ownership);
+      py::rv_policy::take_ownership);
 
   m.def("transpile", &transpile_to_ast, py::arg("desc"),
         py::arg("optimization_params") = py::none(), py::arg("convert_ternaries") = true,
-        docstrings::transpile.data(), py::return_value_policy::take_ownership);
+        docstrings::transpile.data(), py::rv_policy::take_ownership);
 
   m.def("cse_function_description", &cse_function_description, py::arg("desc"),
         py::arg("params") = py::none(), docstrings::cse_function_description.data(),
-        py::return_value_policy::take_ownership);
+        py::rv_policy::take_ownership);
 }
 
 }  // namespace wf

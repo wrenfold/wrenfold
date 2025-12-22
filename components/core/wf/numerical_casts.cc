@@ -58,7 +58,6 @@ struct convert_to_complex_visitor {
 };
 
 // TODO: Should support complex expressions of integers as well.
-// TODO: optional of variant is perhaps not as performant, but it is ergonomic for my use case.
 std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerical_cast(
     const scalar_expr& expr) {
   if (const float_constant* f = get_if<const float_constant>(expr); f != nullptr) {
@@ -73,19 +72,6 @@ std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerica
 
 std::optional<std::complex<double>> complex_cast(const scalar_expr& expr) {
   return visit(expr, convert_to_complex_visitor{});
-}
-
-std::variant<std::int64_t, double, std::complex<double>, scalar_expr> maybe_numerical_cast(
-    const scalar_expr& expr) {
-  if (const auto converted = numerical_cast(expr); !converted.has_value()) {
-    return expr;
-  } else {
-    return std::visit(
-        [](const auto x) -> std::variant<std::int64_t, double, std::complex<double>, scalar_expr> {
-          return x;
-        },
-        *converted);
-  }
 }
 
 }  // namespace wf

@@ -1,11 +1,11 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
 #include "wf/utility/scoped_trace.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
@@ -55,7 +55,7 @@ void wrap_expressions(py::module_& m);
 
 }  // namespace wf
 
-PYBIND11_MODULE(PY_MODULE_NAME, m) {
+NB_MODULE(PY_MODULE_NAME, m) {
   using namespace wf;
   m.attr("__version__") = PY_MODULE_VERSION;
 #ifdef PY_GIT_HASH

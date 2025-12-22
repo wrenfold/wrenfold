@@ -2,7 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
 #include "wf/expression.h"
 
@@ -11,7 +11,7 @@ namespace wf {
 // Visitor used in the wrapper to retrieve arguments to an expression.
 class args_visitor {
  public:
-  using tuple = pybind11::tuple;
+  using tuple = nanobind::tuple;
 
   tuple operator()(const scalar_expr& input) const;
   tuple operator()(const boolean_expr& input) const;

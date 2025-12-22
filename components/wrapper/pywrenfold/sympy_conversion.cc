@@ -1,10 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/pytypes.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
 
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
@@ -14,7 +12,7 @@
 
 namespace wf {
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 // Visitor that converts wrenfold expressions to sympy expressions.
@@ -44,12 +42,11 @@ class sympy_conversion_visitor {
   // Convert all elements of a container into a python tuple.
   template <typename Container>
   py::tuple convert_to_args(const Container& container) {
-    py::tuple args{container.size()};
-    std::size_t i = 0;
+    py::list args;
     for (const auto& element : container) {
-      args[i++] = operator()(element);
+      args.append(operator()(element));
     }
-    return args;
+    return py::tuple();
   }
 
   py::object operator()(const addition& add) {
