@@ -16,3 +16,6 @@
 [submodule "dependencies/abseil-cpp"]
 	path = dependencies/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
+[submodule "dependencies/nanobind"]
+	path = dependencies/nanobind
+	url = https://github.com/wjakob/nanobind.git
