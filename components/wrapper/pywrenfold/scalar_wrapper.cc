@@ -22,6 +22,7 @@
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
+#include "wf/utility/error_types.h"
 #include "wf/utility_visitors.h"
 
 #include "args_visitor.h"
@@ -124,7 +125,14 @@ static std::variant<scalar_expr, py::list> create_unique_variables(const std::si
   }
 }
 
-static auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
+static auto eval_wrapper(const scalar_expr& self) {
+  if (const auto maybe_num = numerical_cast(self); maybe_num.has_value()) {
+    return maybe_num;
+  } else {
+    throw wf::type_error("Expression of type `{}` is not coercible to a numeric value.",
+                         self.type_name());
+  }
+}
 
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
 void wrap_scalar_operations(py::module_& m) {
@@ -310,7 +318,7 @@ void wrap_scalar_operations(py::module_& m) {
                                         min_occurrences);
       },
       "expr"_a, "make_variable"_a = py::none(), "min_occurrences"_a = 2,
-      docstrings::eliminate_subexpressions.data(), py::rv_policy::take_ownership);
+      docstrings::eliminate_subexpressions.data());
 
   // Special constants:
   m.attr("E") = constants::euler;

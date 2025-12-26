@@ -2,7 +2,12 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/variant.h>
+#include <nanobind/stl/vector.h>
 
 #include "wf/code_generation/ast_conversion.h"
 #include "wf/code_generation/control_flow_graph.h"
@@ -232,30 +237,12 @@ void wrap_codegen_operations(py::module_& m) {
           [](optimization_params& p, bool binarize) { p.binarize_operations = binarize; },
           "Convert n-ary additions and multiplications into binary operations.");
 
-  m.def(
-      "transpile",
-      [](const std::vector<function_description>& descriptions,
-         const std::optional<optimization_params>& params, bool convert_ternaries) {
-        // TODO: Allow this to run in parallel.
-        // Could use std::execution_policy, but it is missing on macosx-13.
-        return transform_map<std::vector>(
-            descriptions, [&params, convert_ternaries](const function_description& d) {
-              return transpile_to_ast(d, params, convert_ternaries);
-            });
-      },
-      py::arg("desc"), py::arg("optimization_params") = py::none(),
-      py::arg("convert_ternaries") = true,
-      "Overload of :func:`wrenfold.code_generation.transpile` that operates on a sequence "
-      "of functions.",
-      py::rv_policy::take_ownership);
-
   m.def("transpile", &transpile_to_ast, py::arg("desc"),
         py::arg("optimization_params") = py::none(), py::arg("convert_ternaries") = true,
-        docstrings::transpile.data(), py::rv_policy::take_ownership);
+        docstrings::transpile.data());
 
   m.def("cse_function_description", &cse_function_description, py::arg("desc"),
-        py::arg("params") = py::none(), docstrings::cse_function_description.data(),
-        py::rv_policy::take_ownership);
+        py::arg("params") = py::none(), docstrings::cse_function_description.data());
 }
 
 }  // namespace wf
