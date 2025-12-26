@@ -8,7 +8,9 @@
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
+#include <variant>
 
 #include "wf/cse.h"
 #include "wf/derivative.h"
@@ -17,6 +19,8 @@
 #include "wf/functions.h"
 #include "wf/matrix_functions.h"
 #include "wf/numerical_casts.h"
+#include "wf/utility/assertions.h"
+#include "wf/utility/error_types.h"
 #include "wf/utility/overloaded_visit.h"
 
 #include "docs/matrix_wrapper.h"
@@ -297,57 +301,65 @@ using numerical_array_variant =
 // We need `kwargs` here because numpy might pass copy=True. This argument doesn't matter to us,
 // because we never copy expressions. But we need to be able to accept the argument for pybind to do
 // method resolution.
+static auto numpy_from_matrix(const matrix_expr& self,
+                              const py::kwargs&) -> numerical_array_variant {
+  using numerical_variant = std::variant<std::int64_t, double, std::complex<double>>;
 
-static auto numpy_from_matrix(const matrix_expr& self, const py::kwargs&)
-    -> numerical_array_variant {
-  std::vector<std::variant<std::int64_t, double, std::complex<double>>> numerical_values;
+  std::vector<numerical_variant> numerical_values;
   numerical_values.reserve(self.size());
   for (const scalar_expr& expr : self.as_matrix()) {
     if (const auto maybe_num = numerical_cast(expr); maybe_num.has_value()) {
       numerical_values.push_back(*maybe_num);
     } else {
       throw wf::type_error(
-          "Expression contains symbolic components that cannot be converted to numerical types.");
+          "Expression of type `{}` contains symbolic components that cannot be converted to "
+          "numerical types.",
+          expr.type_name());
     }
   }
 
+  // In order to create a single array type, we promote:
+  //  int64 -> double -> std::complex<double>
   const bool contains_complex = std::ranges::any_of(numerical_values, [](const auto& x) {
     return std::holds_alternative<std::complex<double>>(x);
   });
   const bool contains_double = std::ranges::any_of(
       numerical_values, [](const auto& x) { return std::holds_alternative<double>(x); });
 
-  if (contains_complex) {
-    Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> converted(
-        static_cast<Eigen::Index>(self.rows()), static_cast<Eigen::Index>(self.cols()));
+  const auto convert_to_matrix = [&numerical_values, &self](const auto& caster) {
+    const auto converted = transform_map<std::vector>(
+        numerical_values, [&caster](const auto& x) { return std::visit(caster, x); });
 
-    auto caster = make_overloaded(
+    using value_type = std::decay_t<decltype(converted)>::value_type;
+    return Eigen::Map<const Eigen::Matrix<value_type, Eigen::Dynamic, Eigen::Dynamic>>(
+               converted.data(), static_cast<Eigen::Index>(self.rows()),
+               static_cast<Eigen::Index>(self.cols()))
+        .eval();
+  };
+
+  if (contains_complex) {
+    return convert_to_matrix(make_overloaded(
         [](std::int64_t v) { return static_cast<std::complex<double>>(static_cast<double>(v)); },
         [](double v) { return static_cast<std::complex<double>>(v); },
-        [](std::complex<double> v) { return v; });
-
-    std::ranges::copy(numerical_values | std::ranges::transform(caster), converted.begin());
-
-    // const auto converted = transform_map<std::vector>(numerical_values, );
-    // return Eigen::Map<const>(converted.data(), ).eval();
+        [](std::complex<double> v) { return v; }));
   } else if (contains_double) {
+    return convert_to_matrix(make_overloaded(
+        [](std::int64_t v) { return static_cast<double>(v); }, [](double v) { return v; },
+        [](std::complex<double>) -> double {
+          WF_ASSERT_ALWAYS("Impossible, we eliminated this condition above.");
+        }));
   } else {
+    return convert_to_matrix(
+        make_overloaded([](std::int64_t v) { return v; },
+                        [](auto) -> std::int64_t {
+                          WF_ASSERT_ALWAYS("Impossible, we eliminated this condition above.");
+                        }));
   }
-
-  auto list = py::list();  // TODO: Don't copy into list.
-  for (const scalar_expr& expr : self.as_matrix()) {
-    list.append(maybe_numerical_cast(expr));
-  }
-  auto array = py::array(list);
-  const std::array<std::size_t, 2> new_shape{static_cast<std::size_t>(self.rows()),
-                                             static_cast<std::size_t>(self.cols())};
-  array.resize(new_shape);
-  return array;
 }
 
 // Convert a vector of scalar expressions or a row/column vector to a span.
 // This is so we can accept `T.Union[T.List[ScalarExpr], MatrixExpr]`.
-absl::Span<const scalar_expr> span_from_variant(
+static absl::Span<const scalar_expr> span_from_variant(
     const std::variant<std::vector<scalar_expr>, matrix_expr>& var) {
   struct visitor {
     absl::Span<const scalar_expr> operator()(const std::vector<scalar_expr>& v) const noexcept {
@@ -420,14 +432,14 @@ void wrap_matrix_operations(py::module_& m) {
            "Overload of ``subs`` that performs a single boolean-valued substitution.")
       .def("subs", &substitute_wrapper<matrix_expr>, py::arg("pairs"),
            "Invoke :func:`wrenfold.sym.subs` on every element of the matrix.")
-      // .def(
-      //     "eval",
-      //     [](const matrix_expr& self) {
-      //       const matrix_expr eval = self.eval();
-      //       return numpy_from_matrix(eval, py::kwargs());
-      //     },
-      //     "Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a "
-      //     "numpy array containing the resulting values.")
+      .def(
+          "eval",
+          [](const matrix_expr& self) {
+            const matrix_expr eval = self.eval();
+            return numpy_from_matrix(eval, py::kwargs());
+          },
+          "Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a "
+          "numpy array containing the resulting values.")
       .def(
           "collect",
           [](const matrix_expr& self, const scalar_expr& var) { return self.collect({var}); },
@@ -586,8 +598,7 @@ void wrap_matrix_operations(py::module_& m) {
         return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
                                         min_occurrences);
       },
-      "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2, "Matrix-valued overload.",
-      py::rv_policy::take_ownership);
+      "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2, "Matrix-valued overload.");
 }
 
 }  // namespace wf

@@ -3,6 +3,9 @@
 // For license information refer to accompanying LICENSE file.
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/vector.h>
 
 #include "docs/code_formatting_wrapper.h"
 #include "wf/code_generation/ast.h"
@@ -305,7 +308,7 @@ void wrap_code_formatting_operations(py::module_& m) {
       .def(py::init<cpp_matrix_type_behavior>(),
            py::arg("matrix_args") = cpp_matrix_type_behavior::generic_span)
       .def("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
-           py::arg("namespace"), py::arg("imports") = py::str(),
+           py::arg("namespace"), py::arg("imports") = "",
            "Apply a preamble that incorporates necessary runtime includes.")
       .def_prop_ro("matrix_type_behavior",
                    [](const wf::wrapped_generator<cpp_code_generator>& self) {
