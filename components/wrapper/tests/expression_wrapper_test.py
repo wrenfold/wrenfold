@@ -307,6 +307,8 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(1 / sym.cos(x) ** 2, sym.tan(x).diff(x))
 
         self.assertIdentical(1 / x, sym.log(y * x).diff(x))
+        self.assertIdentical(y * sym.exp(x * y), sym.exp(x * y).diff(x))
+        self.assertIdentical(1, sym.log(sym.exp(x)).diff(x))
 
         self.assertIdentical(-y / (x**2 + y**2), sym.atan2(y, x).diff(x))
         self.assertIdentical(2 * x / (x**2 + 4 * y**2), sym.atan2(2 * y, x).diff(y))
@@ -392,6 +394,10 @@ class ExpressionWrapperTest(MathTestBase):
             (z * x + sym.log(x - 3)).subs(x, sym.cos(x * 2) + 3),
         )
         self.assertIdentical(
+            sym.cos(x + 1) * sym.exp(x - 3),
+            (sym.cos(y + 1) * sym.exp(z - 3)).subs([(y, x), (z, x)]),
+        )
+        self.assertIdentical(
             sym.sin(z - 3) * sym.abs(z),
             (sym.sin(y - 3) * x).subs([(y, z), (x, sym.abs(z))]),
         )
@@ -428,6 +434,8 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual(123, (sym.integer(100) + x).subs(x, 23).eval())
         self.assertEqual(complex(1, 2), (1 + sym.I * 2).eval())
         self.assertEqual(complex(0.23, 0.5), (x + sym.I * y).subs(x, 0.23).subs(y, 0.5).eval())
+        self.assertEqual(1, sym.exp(0).eval())
+        self.assertEqual(sym.E.eval(), sym.exp(1).eval())
 
         self.assertRaises(exceptions.TypeError, lambda: sym.derivative(x, y, 1).eval())
         self.assertRaises(exceptions.TypeError, lambda: sym.zoo.eval())

@@ -37,6 +37,7 @@ enum class built_in_function {
   arccosh,
   arcsinh,
   arctanh,
+  exp,
   log,
   abs,
   signum,
@@ -111,6 +112,7 @@ enum class std_math_function {
   asinh,
   atanh,
   log,
+  exp,
   sqrt,
   abs,
   signum,
@@ -192,6 +194,8 @@ constexpr std::string_view string_from_built_in_function(const built_in_function
       return "atanh";
     case built_in_function::log:
       return "log";
+    case built_in_function::exp:
+      return "exp";
     case built_in_function::abs:
       return "abs";
     case built_in_function::signum:
@@ -293,6 +297,8 @@ constexpr std::string_view string_from_standard_library_function(
       return "atanh";
     case std_math_function::log:
       return "log";
+    case std_math_function::exp:
+      return "exp";
     case std_math_function::sqrt:
       return "sqrt";
     case std_math_function::abs:
