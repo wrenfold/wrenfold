@@ -9,6 +9,7 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 #include "wf/collect.h"
 #include "wf/constants.h"
@@ -68,7 +69,7 @@ static std::variant<scalar_expr, py::list> create_symbols_from_str(const py::ite
     // Each element of the iterable could be a string, or a nested iterable:
     auto symbols =
         std::visit([set](const auto& input) { return create_symbols_from_str(input, set); },
-                   py::cast<std::variant<std::string_view, py::iterable>>(handle));
+                   py::cast<std::variant<std::string, py::iterable>>(handle));
     result.append(std::move(symbols));
   }
   return result;
@@ -95,7 +96,7 @@ inline number_set determine_set_from_flags(const bool real, const bool positive,
 // To imitate sympy, we support a list of bool flags to specify assumptions.
 // We check for incompatible arrangements in this function.
 static std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
-    const std::variant<std::string_view, py::iterable>& arg, const bool real, const bool positive,
+    const std::variant<std::string, py::iterable>& arg, const bool real, const bool positive,
     const bool nonnegative, const bool complex) {
   return std::visit(
       [&](const auto& input) {
