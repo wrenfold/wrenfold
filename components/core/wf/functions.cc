@@ -55,7 +55,7 @@ scalar_expr log(const scalar_expr& arg) {
 // If `arg` is `i`, or `i*x`, we apply the replacement function.
 // This is used to swap cos(x*i) --> cosh(x), for example.
 template <typename Replacement>
-static std::optional<scalar_expr> maybe_swap_hyberbolic_trig(const scalar_expr& arg,
+static std::optional<scalar_expr> maybe_swap_hyperbolic_trig(const scalar_expr& arg,
                                                              Replacement replacement) {
   if (is_i(arg)) {
     return replacement(constants::one);
@@ -81,7 +81,7 @@ static std::optional<rational_constant> try_cast_to_rational(const scalar_expr& 
 // TODO: Support common multiples of pi/3, pi/4, pi/6, etc.
 scalar_expr cos(const scalar_expr& arg) {
   // cos(i*x) --> cosh(x)
-  if (auto hyp = maybe_swap_hyberbolic_trig(arg, &wf::cosh); hyp.has_value()) {
+  if (auto hyp = maybe_swap_hyperbolic_trig(arg, &wf::cosh); hyp.has_value()) {
     return *std::move(hyp);
   }
 
@@ -122,7 +122,7 @@ scalar_expr cos(const scalar_expr& arg) {
 
 scalar_expr sin(const scalar_expr& arg) {
   // sin(i*x) --> sinh(x)
-  if (auto hyp = maybe_swap_hyberbolic_trig(
+  if (auto hyp = maybe_swap_hyperbolic_trig(
           arg, [](const scalar_expr& x) { return constants::imaginary_unit * sinh(x); });
       hyp.has_value()) {
     return *std::move(hyp);
@@ -175,7 +175,7 @@ inline scalar_expr pi_over_two() {
 
 scalar_expr tan(const scalar_expr& arg) {
   // tan(i*x) --> i*tanh(x)
-  if (auto hyp = maybe_swap_hyberbolic_trig(
+  if (auto hyp = maybe_swap_hyperbolic_trig(
           arg, [](const scalar_expr& x) { return constants::imaginary_unit * tanh(x); });
       hyp.has_value()) {
     return *std::move(hyp);
@@ -286,7 +286,7 @@ scalar_expr atan(const scalar_expr& arg) {
 
 scalar_expr cosh(const scalar_expr& arg) {
   // cosh(x*i) --> cos(x)
-  if (auto result = maybe_swap_hyberbolic_trig(arg, &wf::cos); result.has_value()) {
+  if (auto result = maybe_swap_hyperbolic_trig(arg, &wf::cos); result.has_value()) {
     return *std::move(result);
   }
   if (is_zero(arg)) {
@@ -312,7 +312,7 @@ scalar_expr cosh(const scalar_expr& arg) {
 
 scalar_expr sinh(const scalar_expr& arg) {
   // sinh(x*i) --> i*sin(x)
-  if (auto result = maybe_swap_hyberbolic_trig(
+  if (auto result = maybe_swap_hyperbolic_trig(
           arg, [](const scalar_expr& x) { return constants::imaginary_unit * sin(x); });
       result.has_value()) {
     return *std::move(result);
@@ -341,7 +341,7 @@ scalar_expr sinh(const scalar_expr& arg) {
 
 scalar_expr tanh(const scalar_expr& arg) {
   // tanh(x*i) --> i*tan(x)
-  if (auto result = maybe_swap_hyberbolic_trig(
+  if (auto result = maybe_swap_hyperbolic_trig(
           arg, [](const scalar_expr& x) { return constants::imaginary_unit * tan(x); });
       result.has_value()) {
     return *std::move(result);

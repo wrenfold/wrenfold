@@ -37,7 +37,7 @@ TEST(AlgorithmUtilsTest, TestTransformMap) {
   ASSERT_EQ(std::vector<std::string>({"1", "2", "3"}), values_out_3);
 }
 
-TEST(AlgoritmUtilsTest, TestTransformEnumerateMap) {
+TEST(AlgorithmUtilsTest, TestTransformEnumerateMap) {
   const std::vector<int> values_in = {-1, 3, -2, 5};
 
   const auto values_out_1 = transform_enumerate_map<std::vector<int>>(
