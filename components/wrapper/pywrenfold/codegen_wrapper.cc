@@ -131,8 +131,8 @@ void wrap_codegen_operations(py::module_& m) {
           "usage", [](const output_key& key) { return key.usage; },
           "Describe how the output is returned by the function.")
       .def_prop_ro(
-          "name", [](const output_key& key) -> std::string_view { return key.name; },
-          "Name of the output value.", py::keep_alive<0, 1>())
+          "name", [](const output_key& key) -> std::string { return key.name; },
+          "Name of the output value.")
       .def("__repr__", [](const output_key& key) {
         if (key.name.empty()) {
           return fmt::format("OutputKey({})", string_from_expression_usage(key.usage));

@@ -62,11 +62,9 @@ test-requires = ["numpy", "sympy", "jax", "numba"]
 [dependency-groups]
 dev = [
     "breathe==4.35.0",
-    "cmake>=3.20",
     "furo>=2024.8.6",
     "mypy==1.15.0",
     "myst-parser>=3.0.1",
-    "ninja>=1.5",
     "pre-commit>=4.2.0",
     "sphinx==6.2.1",
 ]

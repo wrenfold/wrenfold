@@ -17,8 +17,14 @@ function(add_wrapper_module)
   set(multiValueArgs "SOURCES;SUBMODULE_NAMES")
   cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  nanobind_add_module(${MODULE_NAME} NB_STATIC PROTECT_STACK NOMINSIZE
-                      ${MODULE_SOURCES})
+  nanobind_add_module(
+    ${MODULE_NAME}
+    NB_DOMAIN
+    wf_abi_domain
+    NB_STATIC
+    PROTECT_STACK
+    NOMINSIZE
+    ${MODULE_SOURCES})
   set_property(
     TARGET ${MODULE_NAME}
     APPEND
