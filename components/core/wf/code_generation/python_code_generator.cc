@@ -243,7 +243,7 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
       }
     } else if (arg.direction() == argument_direction::optional_output) {
       if (use_output_arguments_) {
-        args.push_back(fmt::format("{}: {} | None", arg.name(), formatted_type));
+        args.push_back(fmt::format("{}: {} | None = None", arg.name(), formatted_type));
       } else {
         args.push_back(fmt::format("compute_{}: bool", arg.name()));
       }
