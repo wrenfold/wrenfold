@@ -140,8 +140,8 @@ void wrap_scalar_operations(py::module_& m) {
   // Primary expression type:
   wrap_class<scalar_expr>(m, "Expr")
       // Implicit construction from numerics:
-      .def(py::init<std::int64_t>())
-      .def(py::init<double>())
+      .def(py::init_implicit<std::int64_t>())
+      .def(py::init_implicit<double>())
       // String conversion:
       .def("__repr__", &scalar_expr::to_string)
       .def("expression_tree_str", &scalar_expr::to_expression_tree_string,
@@ -229,8 +229,8 @@ void wrap_scalar_operations(py::module_& m) {
           "Coerce expression to bool.")
       .doc() = "A scalar-valued symbolic expression.";
 
-  py::implicitly_convertible<std::int64_t, scalar_expr>();
-  py::implicitly_convertible<double, scalar_expr>();
+  // py::implicitly_convertible<std::int64_t, scalar_expr>();
+  // py::implicitly_convertible<double, scalar_expr>();
 
   // Methods for declaring expressions:
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,
