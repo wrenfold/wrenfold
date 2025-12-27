@@ -6,7 +6,9 @@
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
+#include <nanobind/stl/tuple.h>
 
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
@@ -141,13 +143,13 @@ void wrap_geometry_operations(py::module_& m) {
           static_cast<quaternion (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&,
                                      const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
-          "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
+          "x"_a, "y"_a, "z"_a, py::arg("epsilon").none(),
           docstrings::quaternion_from_rotation_vector.data())
       .def_static(
           "from_rotation_vector",
           static_cast<quaternion (*)(const matrix_expr&, const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
-          "v"_a, py::arg("epsilon"),
+          py::arg("v"), py::arg("epsilon").none(),
           "Overload of ``from_rotation_vector`` that accepts ``sym.MatrixExpr``.")
       .def_static("from_x_angle", &quaternion::from_x_angle, "angle"_a,
                   docstrings::quaternion_from_x_angle.data())
@@ -155,10 +157,10 @@ void wrap_geometry_operations(py::module_& m) {
                   docstrings::quaternion_from_y_angle.data())
       .def_static("from_z_angle", &quaternion::from_z_angle, "angle"_a,
                   docstrings::quaternion_from_z_angle.data())
-      .def("to_angle_axis", &quaternion::to_angle_axis, py::arg("epsilon") = constants::zero,
+      .def("to_angle_axis", &quaternion::to_angle_axis, py::arg("epsilon").none() = constants::zero,
            docstrings::quaternion_to_angle_axis.data())
       .def("to_rotation_vector", &quaternion::to_rotation_vector,
-           py::arg("epsilon") = constants::zero, py::arg("use_atan2") = true,
+           py::arg("epsilon").none() = constants::zero, py::arg("use_atan2") = true,
            docstrings::quaternion_to_rotation_vector.data())
       .def_static("from_rotation_matrix", &quaternion::from_rotation_matrix, py::arg("R"),
                   docstrings::quaternion_from_rotation_matrix.data())
@@ -168,10 +170,10 @@ void wrap_geometry_operations(py::module_& m) {
            docstrings::quaternion_right_local_coordinates_derivative.data())
       .doc() = "A quaternion class used to represent 3D rotations and orientations.";
 
-  m.def("left_jacobian_of_so3", &left_jacobian_of_so3, "w"_a, "epsilon"_a,
+  m.def("left_jacobian_of_so3", &left_jacobian_of_so3, py::arg("w"), py::arg("epsilon").none(),
         docstrings::left_jacobian_of_so3.data());
 
-  m.def("inverse_left_jacobian_of_so3", &inverse_left_jacobian_of_so3, "w"_a, "epsilon"_a,
-        docstrings::inverse_left_jacobian_of_so3.data());
+  m.def("inverse_left_jacobian_of_so3", &inverse_left_jacobian_of_so3, py::arg("w"),
+        py::arg("epsilon").none(), docstrings::inverse_left_jacobian_of_so3.data());
 }
 }  // namespace wf

@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
+#include <nanobind/stl/string.h>
 
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
@@ -20,7 +21,10 @@ class sympy_conversion_visitor {
  private:
   py::object get_sympy_attr(const std::string_view name) const {
     py::object attr = py::getattr(sp_, name.data(), py::none());
-    WF_ASSERT(!attr.is_none(), "Failed to get attribute from sympy module: {}", name);
+    if (attr.is_none()) {
+      const auto msg = fmt::format("sympy module does not have attribute: {}", name);
+      throw py::attribute_error(msg.c_str());
+    }
     return attr;
   }
 
@@ -39,14 +43,14 @@ class sympy_conversion_visitor {
   py::object operator()(const boolean_expr& expr) { return visit(expr, *this); }
   py::object operator()(const matrix_expr& expr) { return visit(expr, *this); }
 
-  // Convert all elements of a container into a python tuple.
+  // Convert all elements of a container into a python list.
   template <typename Container>
-  py::tuple convert_to_args(const Container& container) {
+  py::list convert_to_args(const Container& container) {
     py::list args;
     for (const auto& element : container) {
       args.append(operator()(element));
     }
-    return py::tuple();
+    return args;
   }
 
   py::object operator()(const addition& add) {
