@@ -162,8 +162,10 @@ def create_function_description(
     if isinstance(result_expressions, (sym.Expr, sym.MatrixExpr)) or dataclasses.is_dataclass(
         result_expressions
     ):
-        # if one thing was returned, interpret it as the return value:
-        result_expressions = (ReturnValue(expression=result_expressions),)
+        # if one thing was returned, interpret it as the return value unless it's already wrapped
+        if not isinstance(result_expressions, (ReturnValue, OutputArg)):
+            result_expressions = ReturnValue(expression=result_expressions)
+        result_expressions = (result_expressions,)
 
     for val in result_expressions:
         if isinstance(val, ReturnValue):
