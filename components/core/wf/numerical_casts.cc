@@ -3,15 +3,18 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/numerical_casts.h"
 
+#include "wf/constants.h"
 #include "wf/expression_visitor.h"
+#include "wf/expressions/numeric_expressions.h"
 
 namespace wf {
 
 using complex_double = std::complex<double>;
 
 struct convert_to_complex_visitor {
-  template <typename T, typename = enable_if_does_not_contain_type_t<
-                            T, float_constant, addition, multiplication, imaginary_unit>>
+  template <typename T,
+            typename = enable_if_does_not_contain_type_t<T, float_constant, integer_constant,
+                                                         addition, multiplication, imaginary_unit>>
   std::optional<complex_double> operator()(const T&) const noexcept {
     return std::nullopt;
   }
@@ -33,12 +36,16 @@ struct convert_to_complex_visitor {
     return std::nullopt;
   }
 
-  std::optional<complex_double> operator()(const float_constant f) const noexcept {
+  constexpr std::optional<complex_double> operator()(const float_constant f) const noexcept {
     return complex_double{f.value(), 0.0};
   }
 
-  std::optional<complex_double> operator()(const imaginary_unit) const noexcept {
+  constexpr std::optional<complex_double> operator()(const imaginary_unit) const noexcept {
     return complex_double{0.0, 1.0};
+  }
+
+  constexpr std::optional<complex_double> operator()(const integer_constant i) const noexcept {
+    return complex_double{static_cast<double>(i.value()), 0.0};
   }
 
   std::optional<complex_double> operator()(const multiplication& mul,
@@ -49,9 +56,12 @@ struct convert_to_complex_visitor {
     }
     // TODO: Should not need the abstract value to do this.
     const auto [coeff, maybe_i] = as_coeff_and_mul(mul_abstract);
-    if (const float_constant* f = get_if<const float_constant>(coeff);
-        f != nullptr && is_i(maybe_i)) {
-      return complex_double{0.0, f->value()};
+    if (is_i(maybe_i)) {
+      if (const float_constant* f = get_if<const float_constant>(coeff); f != nullptr) {
+        return complex_double{0.0, f->value()};
+      } else if (const integer_constant* i = get_if<const integer_constant>(coeff); i != nullptr) {
+        return complex_double{0.0, static_cast<double>(i->value())};
+      }
     }
     return std::nullopt;
   }

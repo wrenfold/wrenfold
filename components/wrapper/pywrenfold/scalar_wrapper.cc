@@ -8,7 +8,9 @@
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
 
 #include "wf/collect.h"
@@ -229,9 +231,6 @@ void wrap_scalar_operations(py::module_& m) {
           "Coerce expression to bool.")
       .doc() = "A scalar-valued symbolic expression.";
 
-  // py::implicitly_convertible<std::int64_t, scalar_expr>();
-  // py::implicitly_convertible<double, scalar_expr>();
-
   // Methods for declaring expressions:
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,
         py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
@@ -318,7 +317,7 @@ void wrap_scalar_operations(py::module_& m) {
         return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
                                         min_occurrences);
       },
-      "expr"_a, "make_variable"_a = py::none(), "min_occurrences"_a = 2,
+      py::arg("expr"), py::arg("make_variable").none(), "min_occurrences"_a = 2,
       docstrings::eliminate_subexpressions.data());
 
   // Special constants:

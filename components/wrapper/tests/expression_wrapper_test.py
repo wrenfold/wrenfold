@@ -424,15 +424,17 @@ class ExpressionWrapperTest(MathTestBase):
     def test_eval(self):
         """Test calling eval() on an expression."""
         x, y = sym.symbols("x, y")
-        self.assertIdentical(x, x.eval())
-        self.assertIdentical(x + 2.0, (x + y).subs(y, 2).eval())
-        self.assertEqual(5.3, sym.float(5.3).eval())
+        self.assertRaises(exceptions.TypeError, lambda: x.eval())
+        self.assertRaises(exceptions.TypeError, lambda: (x + y).subs(y, 2).eval())
         self.assertAlmostEqual(
             4.3 / 2.71582, (x / y).subs(x, 4.3).subs(y, 2.71582).eval(), places=15
         )
         self.assertEqual(3923, sym.integer(3923).eval())
+        self.assertEqual(5.3, sym.float(5.3).eval())
         self.assertEqual(123, (sym.integer(100) + x).subs(x, 23).eval())
-        self.assertEqual(complex(1, 2), (1 + sym.I * 2).eval())
+        self.assertEqual(complex(1.0, 2.0), (1 + sym.I * 2).eval())
+        self.assertEqual(complex(-5.0, 3.14), (-5 + sym.I * 3.14).eval())
+        self.assertEqual(complex(-0.2, 5), (-0.2 + sym.I * 5).eval())
         self.assertEqual(complex(0.23, 0.5), (x + sym.I * y).subs(x, 0.23).subs(y, 0.5).eval())
         self.assertEqual(1, sym.exp(0).eval())
         self.assertEqual(sym.E.eval(), sym.exp(1).eval())

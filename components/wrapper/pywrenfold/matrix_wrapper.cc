@@ -301,8 +301,8 @@ using numerical_array_variant =
 // We need `kwargs` here because numpy might pass copy=True. This argument doesn't matter to us,
 // because we never copy expressions. But we need to be able to accept the argument for pybind to do
 // method resolution.
-static auto numpy_from_matrix(const matrix_expr& self,
-                              const py::kwargs&) -> numerical_array_variant {
+static auto numpy_from_matrix(const matrix_expr& self, const py::kwargs&)
+    -> numerical_array_variant {
   using numerical_variant = std::variant<std::int64_t, double, std::complex<double>>;
 
   std::vector<numerical_variant> numerical_values;
@@ -598,7 +598,8 @@ void wrap_matrix_operations(py::module_& m) {
         return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
                                         min_occurrences);
       },
-      "expr"_a, "make_variable"_a = py::none(), "min_occurences"_a = 2, "Matrix-valued overload.");
+      py::arg("expr"), py::arg("make_variable").none() = py::none(), py::arg("min_occurences") = 2,
+      "Matrix-valued overload.");
 }
 
 }  // namespace wf
