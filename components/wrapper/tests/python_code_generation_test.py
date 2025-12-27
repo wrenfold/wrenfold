@@ -234,10 +234,12 @@ class PythonCodeGenerationTestBase(MathTestBase):
         """Test a function that creates a nested conditional."""
 
         def nested_cond(x: FloatScalar, y: FloatScalar):
-            return sym.where(
-                x > 0,
-                sym.where(y > 0, 0, x * y),
-                sym.where(y > 0, x + y, 0),
+            return code_generation.ReturnValue(
+                sym.where(
+                    x > 0,
+                    sym.where(y > 0, 0, x * y),
+                    sym.where(y > 0, x + y, 0),
+                )
             )
 
         func = self._generator(nested_cond)
