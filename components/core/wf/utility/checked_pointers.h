@@ -65,15 +65,21 @@ class non_null {
   // nullptr constructor is explicitly deleted.
   [[maybe_unused]] non_null(std::nullptr_t) = delete;
 
-  // Access the underlying pointer.
-  constexpr detail::value_or_reference_return_t<T> get() const
-      noexcept(detail::is_nothrow_convertible_to_value_or_ref_v<T>) {
+#ifdef WF_CHECK_NON_NULL_POINTERS
+  constexpr detail::value_or_reference_return_t<T> get() const {
+    WF_ASSERT(ptr_, "Accessed moved-from pointer.");
     return ptr_;
   }
+  constexpr decltype(auto) operator->() const { return get(); }
+  constexpr decltype(auto) operator*() const { return *get(); }
+#else
+  // Access the underlying pointer.
+  constexpr detail::value_or_reference_return_t<T> get() const noexcept { return ptr_; }
 
   // De-reference operators.
   constexpr decltype(auto) operator->() const noexcept { return get(); }
   constexpr decltype(auto) operator*() const noexcept { return *get(); }
+#endif
 
   // Check underlying ptr is null. This can happen if we moved the underlying pointer out.
   constexpr explicit operator bool() const noexcept { return ptr_ != nullptr; }
