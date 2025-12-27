@@ -175,7 +175,7 @@ struct power_numerics_visitor {
                 fractional_part.denominator(),
                 int_base_and_exponent{factor.base, fractional_part.numerator()});
             !was_inserted) {
-          // Find the greatest common divistor of both numerators, and make that the
+          // Find the greatest common divisor of both numerators, and make that the
           // new numerator.
           const checked_int shared_numerator =
               gcd(it->second.exponent, fractional_part.numerator());
@@ -290,7 +290,7 @@ struct power_imaginary_visitor {
       case imaginary_unit_power_result::negative_i:
       default: {
         // We explicitly call multiplication constructor here because we don't want go through
-        // operator* and accidentically recurse back into the pow(...) logic.
+        // operator* and accidentally recurse back into the pow(...) logic.
         static const auto negative_i =
             make_expr<multiplication>(constants::negative_one, constants::imaginary_unit);
         return negative_i;

@@ -177,7 +177,7 @@ TEST(MaybeNullTest, TestNullConstruction) {
   static_assert(!noexcept(empty.operator*()));
   static_assert(!noexcept(empty.operator->()));
 
-  // Gheck that we get the right types for const pointers:
+  // Check that we get the right types for const pointers:
   maybe_null<const foo*> empty_const{nullptr};
   ASSERT_FALSE(empty_const);
   ASSERT_FALSE(empty_const.has_value());

@@ -39,7 +39,7 @@ TEST(TypeListTest, TestFront) {
   static_assert(std::is_same_v<std::string&, type_list_front_t<type_list<std::string&, int>>>);
 }
 
-TEST(TypeListTest, TestConcatentate) {
+TEST(TypeListTest, TestConcatenate) {
   using list1 = type_list<int, float, std::string>;
   using list2 = type_list<double, char>;
   static_assert(std::is_same_v<type_list<int, float, std::string, double, char>,
