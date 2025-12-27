@@ -10,7 +10,8 @@
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
-#include <variant>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/variant.h>
 
 #include "wf/cse.h"
 #include "wf/derivative.h"
@@ -292,10 +293,10 @@ py::list flat_list_from_matrix(const matrix_expr& self) {
   return output;
 }
 
-using numerical_array_variant =
-    std::variant<Eigen::Matrix<std::int64_t, Eigen::Dynamic, Eigen::Dynamic>,
-                 Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>,
-                 Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>>;
+using numerical_array_variant = std::variant<
+    Eigen::Matrix<std::int64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
+    Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
 
 // Convert matrix to numpy array.
 // We need `kwargs` here because numpy might pass copy=True. This argument doesn't matter to us,
@@ -331,7 +332,8 @@ static auto numpy_from_matrix(const matrix_expr& self, const py::kwargs&)
         numerical_values, [&caster](const auto& x) { return std::visit(caster, x); });
 
     using value_type = std::decay_t<decltype(converted)>::value_type;
-    return Eigen::Map<const Eigen::Matrix<value_type, Eigen::Dynamic, Eigen::Dynamic>>(
+    return Eigen::Map<
+               const Eigen::Matrix<value_type, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
                converted.data(), static_cast<Eigen::Index>(self.rows()),
                static_cast<Eigen::Index>(self.cols()))
         .eval();

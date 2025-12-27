@@ -12,6 +12,9 @@ namespace wf {
 using complex_double = std::complex<double>;
 
 struct convert_to_complex_visitor {
+  explicit convert_to_complex_visitor(bool allow_integer_conversion) noexcept
+      : allow_integer_conversion_(allow_integer_conversion) {}
+
   template <typename T,
             typename = enable_if_does_not_contain_type_t<T, float_constant, integer_constant,
                                                          addition, multiplication, imaginary_unit>>
@@ -45,7 +48,11 @@ struct convert_to_complex_visitor {
   }
 
   constexpr std::optional<complex_double> operator()(const integer_constant i) const noexcept {
-    return complex_double{static_cast<double>(i.value()), 0.0};
+    if (allow_integer_conversion_) {
+      return complex_double{static_cast<double>(i.value()), 0.0};
+    } else {
+      return std::nullopt;
+    }
   }
 
   std::optional<complex_double> operator()(const multiplication& mul,
@@ -65,6 +72,9 @@ struct convert_to_complex_visitor {
     }
     return std::nullopt;
   }
+
+ private:
+  bool allow_integer_conversion_;
 };
 
 // TODO: Should support complex expressions of integers as well.
@@ -74,14 +84,15 @@ std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerica
     return f->value();
   } else if (const integer_constant* i = get_if<const integer_constant>(expr); i != nullptr) {
     return static_cast<std::int64_t>(i->value());
-  } else if (const auto result = complex_cast(expr); result.has_value()) {
+  } else if (const auto result = complex_cast(expr, true); result.has_value()) {
     return *result;
   }
   return std::nullopt;
 }
 
-std::optional<std::complex<double>> complex_cast(const scalar_expr& expr) {
-  return visit(expr, convert_to_complex_visitor{});
+std::optional<std::complex<double>> complex_cast(const scalar_expr& expr,
+                                                 const bool allow_integer_conversion) {
+  return visit(expr, convert_to_complex_visitor{allow_integer_conversion});
 }
 
 }  // namespace wf

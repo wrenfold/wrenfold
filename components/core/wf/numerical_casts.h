@@ -19,9 +19,11 @@ std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerica
 
 // Try to cast an expression to std::complex. The following are coerced to std::complex<double>:
 // - float_constant
+// - integer_constant (if allow_integer_conversion == true)
 // - imaginary_unit
 // - expressions of the form: a*i where `a` is float_constant
 // - expressions for the form a + b where `a` and `b` are any of the three above.
-std::optional<std::complex<double>> complex_cast(const scalar_expr& expr);
+std::optional<std::complex<double>> complex_cast(const scalar_expr& expr,
+                                                 bool allow_integer_conversion = false);
 
 }  // namespace wf

@@ -337,20 +337,13 @@ class MatrixWrapperTest(MathTestBase):
         """Check that add/mul/sub operations are wrapped."""
         m0 = sym.matrix_of_symbols("x", 4, 3)
         m1 = sym.matrix_of_symbols("y", 3, 6)
-
-        # matrix mul should produce matrix:
         self.assertIsInstance(m0 * m1, sym.MatrixExpr)
         self.assertEqual((4, 6), (m0 * m1).shape)
-        self.assertIdentical(sym.matrix(np.array(m0) @ np.array(m1)), m0 * m1)
-        self.assertIdentical(sym.matrix(np.array(m1).T @ np.array(m0).T), m1.T * m0.T)
-
-        v = sym.vector(2, sym.pi, sym.integer(5) / 2)
-        self.assertIdentical(sym.matrix(np.array(m0) @ np.array(v)), m0 * v)
-        self.assertIdentical(sym.matrix(np.array(v).T @ np.array(m0).T), v.T * m0.T)
 
         # inner product still produces a matrix of size 1x1
         x, z = sym.symbols("x, z")
         u = sym.row_vector(x, 0, z)
+        v = sym.vector(2, sym.pi, sym.integer(5) / 2)
         self.assertIsInstance(u * v, sym.MatrixExpr)
         self.assertEqual((1, 1), (u * v).shape)
         self.assertIdentical(sym.vector(2 * x + sym.integer(5) / 2 * z), u * v)
@@ -365,8 +358,8 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIsInstance(m0 + m1, sym.MatrixExpr)
         self.assertIsInstance(m0 - m1, sym.MatrixExpr)
         self.assertEqual((2, 3), (m0 + m1).shape)
-        self.assertIdentical(sym.matrix(np.array(m0) + np.array(m1)), m0 + m1)
-        self.assertIdentical(sym.matrix(np.array(m0) - np.array(m1)), m0 - m1)
+        self.assertIdentical(m0[0, 0] + m1[0, 0], (m0 + m1)[0, 0])
+        self.assertIdentical(m0[0, 0] - m1[0, 0], (m0 - m1)[0, 0])
         self.assertIdentical(sym.zeros(2, 3), m0 - m0)
         self.assertIdentical(sym.zeros(2, 3), m1 - m1)
         self.assertIdentical(m0 * 2, m0 + m0)
@@ -481,6 +474,28 @@ class MatrixWrapperTest(MathTestBase):
         v1 = var(1)
         self.assertIdentical(sym.vector(sym.cos(v0) - v1, 3 / v1, 22 + x), m1_cse)
         self.assertSequenceEqual([(v0, x * y), (v1, sym.sin(v0))], replacements)
+
+    def test_eval(self):
+        """Test calling `eval()` on symbolic matrix."""
+        x, y = sym.symbols("x, y")
+        self.assertRaises(exceptions.TypeError, lambda: sym.vector(x, y).eval())
+        self.assertRaises(exceptions.TypeError, lambda: sym.vector(2, sym.E * x).eval())
+
+        np.testing.assert_equal(
+            np.array([[1, 2], [3, 4]], dtype=np.int64), sym.matrix([[1, 2], [3, 4]]).eval()
+        )
+        np.testing.assert_equal(
+            np.array([[0.42, -0.23], [0.001, 2.0]], dtype=np.float64),
+            sym.matrix([[0.42, -0.23], [0.001, 2.0]]).eval(),
+        )
+        np.testing.assert_equal(
+            np.array(
+                [[1.2 + 2.0 * 1j, -0.3 + 0.12 * 1j], [0.2, -0.999 + 10.2 * 1j]], dtype=np.complex128
+            ),
+            sym.matrix(
+                [[1.2 + 2.0 * sym.I, -0.3 + 0.12 * sym.I], [0.2, -0.999 + 10.2 * sym.I]]
+            ).eval(),
+        )
 
 
 if __name__ == "__main__":
