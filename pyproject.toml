@@ -45,7 +45,7 @@ wheel.license-files = [
     "LICENSE",
     "dependencies/abseil-cpp/LICENSE",
     "dependencies/fmt/LICENSE",
-    "dependencies/pybind11/LICENSE",
+    "dependencies/nanobind/LICENSE",
 ]
 build.verbose = true
 
