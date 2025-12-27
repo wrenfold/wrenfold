@@ -3,6 +3,7 @@
 // For license information refer to accompanying LICENSE file.
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
 
 #include "wf/boolean_expression.h"
 #include "wf/constants.h"
