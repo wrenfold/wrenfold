@@ -15,12 +15,12 @@ class BooleanExpr:
 
     def is_identical_to(self, other: BooleanExpr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: BooleanExpr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __repr__(self) -> str: ...
@@ -69,12 +69,12 @@ class Expr:
 
     def is_identical_to(self, other: Expr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: Expr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __repr__(self) -> str: ...
@@ -1075,12 +1075,12 @@ class Function:
 
     def is_identical_to(self, other: Function) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: Function) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property
@@ -1173,12 +1173,12 @@ class MatrixExpr:
 
     def is_identical_to(self, other: MatrixExpr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: MatrixExpr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __repr__(self) -> str: ...
@@ -1235,7 +1235,24 @@ class MatrixExpr:
 
     def eval(self) -> Annotated[NDArray[numpy.int64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.complex128], dict(shape=(None, None), order='C')]:
         """
-        Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a numpy array containing the resulting values.
+        Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a numpy array
+        containing the resulting values.
+
+        Important:
+          The resulting matrix must have a single ``dtype``. In order to ensure a consistent type for all
+          entries, the following promotion order is applied: ``int64 -> double -> std::complex<double>``.
+
+        Returns:
+          ``np.ndarray`` with C-storage order and one of the following data types: ``np.int64``,
+          ``np.float64``, or ``np.complex128``.
+
+        Raises:
+          :class:`wrenfold.exceptions.TypeError`: If any child expression contains symbolic expressions that
+            cannot be converted to a numerical representation.
+
+        Examples:
+          >>> sym.matrix([[1, 2], [0.4 * 2 * sym.I, 0]]).eval()
+          array([[1.+0.j , 2.+0.j], [0.+0.8j, 0.+0.j]])
         """
 
     @overload
@@ -1289,7 +1306,9 @@ class MatrixExpr:
         """Slice a specific column."""
 
     def __array__(self, **kwargs) -> Annotated[NDArray[numpy.int64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.complex128], dict(shape=(None, None), order='C')]:
-        """Convert to numpy array."""
+        """
+        Convert to numpy array. See :func:`wrenfold.sym.MatrixExpr.eval` for limitations.
+        """
 
     def __len__(self) -> int:
         """Number of rows in the matrix."""
@@ -1673,12 +1692,12 @@ class CompoundExpr:
 
     def is_identical_to(self, other: CompoundExpr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: CompoundExpr) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property

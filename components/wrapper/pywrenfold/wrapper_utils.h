@@ -27,9 +27,11 @@ py::class_<T> wrap_class(py::module_& m, const std::string_view name) {
   }
   if constexpr (is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
     klass.def("is_identical_to", &are_identical<T>, py::arg("other"),
-              "Check for strict equality. This is not the same as mathematical equivalence.");
+              "Check for strict equality (identical expression trees). This is not the same as "
+              "mathematical equivalence.");
     klass.def("__eq__", &are_identical<T>, py::is_operator(), py::arg("other"),
-              "Check for strict equality. This is not the same as mathematical equivalence.");
+              "Check for strict equality (identical expression trees). This is not the same as "
+              "mathematical equivalence.");
   }
   return klass;
 }

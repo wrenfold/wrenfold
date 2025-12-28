@@ -23,12 +23,12 @@ class ScalarType:
 
     def is_identical_to(self, other: ScalarType) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: ScalarType) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property
@@ -48,12 +48,12 @@ class MatrixType:
 
     def is_identical_to(self, other: MatrixType) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: MatrixType) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property
@@ -83,12 +83,12 @@ class StructField:
 
     def is_identical_to(self, other: StructField) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: StructField) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property
@@ -112,12 +112,12 @@ class CustomType:
 
     def is_identical_to(self, other: CustomType) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: CustomType) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property

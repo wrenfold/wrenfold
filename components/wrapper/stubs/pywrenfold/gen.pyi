@@ -59,12 +59,12 @@ class PyExternalFunction:
 
     def is_identical_to(self, other: PyExternalFunction) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: PyExternalFunction) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property
@@ -111,12 +111,12 @@ class OutputKey:
 
     def is_identical_to(self, other: OutputKey) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     def __eq__(self, other: OutputKey) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @property

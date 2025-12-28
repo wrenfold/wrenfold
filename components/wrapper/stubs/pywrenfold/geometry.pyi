@@ -47,7 +47,7 @@ class Quaternion:
     @overload
     def is_identical_to(self, other: Quaternion) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @overload
@@ -56,7 +56,7 @@ class Quaternion:
 
     def __eq__(self, other: Quaternion) -> bool:
         """
-        Check for strict equality. This is not the same as mathematical equivalence.
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
     @staticmethod
@@ -86,8 +86,15 @@ class Quaternion:
         """
         Invoke :func:`wrenfold.sym.Expr.eval` on every element of the quaternion, and return a numpy array.
 
+        Important:
+          See :func:`wrenfold.sym.MatrixExpr.eval` for details on numeric type promotion.
+
         Returns:
           4-element numpy array in ``[w, x, y, z]`` (scalar-first) order.
+
+        Raises:
+          :class:`wrenfold.exceptions.TypeError`: If any child expression contains symbolic expressions that
+            cannot be converted to a numerical representation.
 
         Examples:
           >>> geometry.Quaternion().eval()

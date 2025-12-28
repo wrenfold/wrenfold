@@ -369,12 +369,11 @@ void wrap_matrix_operations(py::module_& m) {
             const matrix_expr eval = self.eval();
             return numpy_from_matrix(eval, py::kwargs());
           },
-          "Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a "
-          "numpy array containing the resulting values.")
+          docstrings::matrix_expr_eval.data())
       .def(
           "collect",
           [](const matrix_expr& self, const scalar_expr& var) { return self.collect({var}); },
-          "var"_a,
+          py::arg("var"),
           "Invokes :func:`wrenfold.sym.Expr.collect` on every element of the matrix. This overload "
           "accepts a single variable.")
       .def(
@@ -382,7 +381,7 @@ void wrap_matrix_operations(py::module_& m) {
           [](const matrix_expr& self, const std::vector<scalar_expr>& vars) {
             return self.collect(vars);
           },
-          "var"_a,
+          py::arg("var"),
           "Invokes :func:`wrenfold.sym.Expr.collect` on every element of the matrix. This overload "
           "accepts a list of variables, and collects recursively in the order they are specified.")
       // Matrix specific properties:
@@ -406,7 +405,8 @@ void wrap_matrix_operations(py::module_& m) {
       .def("__getitem__", &matrix_get_row_slice_and_col_index, py::arg("row_slice_and_col"),
            "Slice a specific column.")
       // Support conversion to numpy.
-      .def("__array__", &numpy_from_matrix, "Convert to numpy array.")
+      .def("__array__", &numpy_from_matrix,
+           "Convert to numpy array. See :func:`wrenfold.sym.MatrixExpr.eval` for limitations.")
       // Iterable:
       .def("__len__", &matrix_expr::rows, "Number of rows in the matrix.")
       .def(
