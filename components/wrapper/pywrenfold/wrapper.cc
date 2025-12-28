@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
 
 #include "wf/utility/scoped_trace.h"
 
