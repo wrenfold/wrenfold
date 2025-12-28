@@ -46,6 +46,8 @@ class Argument:
     def __repr__(self) -> str: ...
 
 class PyExternalFunction:
+    """OMIT_FROM_SPHINX"""
+
     @overload
     def __init__(self, name: str, arguments: Sequence[tuple[str, object]], return_type: object) -> None:
         """Construct with name, arguments, and return type."""
@@ -198,7 +200,7 @@ class OptimizationParams:
     @property
     def factorization_passes(self) -> int:
         """
-        Automatically factorize sums of products. This parameter determines the number of passes through the expression graph.
+        When non-zero, sum-of-product expressions are factorized. This parameter determines the number of passes through the expression graph.
         """
 
     @factorization_passes.setter
@@ -206,7 +208,9 @@ class OptimizationParams:
 
     @property
     def binarize_operations(self) -> bool:
-        """Convert n-ary additions and multiplications into binary operations."""
+        """
+        When true, convert n-ary additions and multiplications into binary operations.
+        """
 
     @binarize_operations.setter
     def binarize_operations(self, arg: bool, /) -> None: ...

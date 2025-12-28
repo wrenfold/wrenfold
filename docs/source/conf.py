@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "wrenfold"
-copyright = "2024, Wrenfold Authors"
+copyright = "2026, Wrenfold Authors"
 author = "Gareth Cross"
 
 # -- General configuration ---------------------------------------------------

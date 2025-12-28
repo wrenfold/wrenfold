@@ -12,6 +12,7 @@
 #include "wf/plain_formatter.h"
 #include "wf/substitute.h"
 #include "wf/tree_formatter.h"
+#include "wf/utility/error_types.h"
 
 namespace wf {
 
@@ -46,7 +47,7 @@ scalar_expr scalar_expr::from_float(const double x) {
     return constants::complex_infinity;
   }
   if (!std::isfinite(x)) {
-    throw wf::domain_error("Floating point values must be finite: {}", x);
+    throw wf::invalid_argument_error("Floating point values must be finite: {}", x);
   }
   return make_expr<float_constant>(x);
 }

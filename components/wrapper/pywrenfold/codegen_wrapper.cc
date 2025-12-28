@@ -111,12 +111,15 @@ void wrap_codegen_operations(py::module_& m) {
                    "variable we must declare in code-generated functions.")
       .def("call", &call_external_function, py::arg("args"),
            "Call external function and create return expression. OMIT_FROM_SPHINX")
-      .def("__repr__", [](const external_function& self) {
-        const auto args = transform_map<std::vector<std::string>>(
-            self.arguments(),
-            [](const argument& arg) { return fmt::format("{}: {}", arg.name(), arg.type()); });
-        return fmt::format("{}({}) -> {}", self.name(), fmt::join(args, ", "), self.return_type());
-      });
+      .def("__repr__",
+           [](const external_function& self) {
+             const auto args = transform_map<std::vector<std::string>>(
+                 self.arguments(),
+                 [](const argument& arg) { return fmt::format("{}: {}", arg.name(), arg.type()); });
+             return fmt::format("{}({}) -> {}", self.name(), fmt::join(args, ", "),
+                                self.return_type());
+           })
+      .doc() = "OMIT_FROM_SPHINX";
 
   py::enum_<expression_usage>(m, "ExpressionUsage")
       .value("OptionalOutputArgument", expression_usage::optional_output_argument,
@@ -231,12 +234,12 @@ void wrap_codegen_operations(py::module_& m) {
           "factorization_passes",
           [](const optimization_params& p) { return p.factorization_passes; },
           [](optimization_params& p, int passes) { p.factorization_passes = passes; },
-          "Automatically factorize sums of products. This parameter determines the "
+          "When non-zero, sum-of-product expressions are factorized. This parameter determines the "
           "number of passes through the expression graph.")
       .def_prop_rw(
           "binarize_operations", [](const optimization_params& p) { return p.binarize_operations; },
           [](optimization_params& p, bool binarize) { p.binarize_operations = binarize; },
-          "Convert n-ary additions and multiplications into binary operations.");
+          "When true, convert n-ary additions and multiplications into binary operations.");
 
   m.def("transpile", &transpile_to_ast, py::arg("desc"),
         py::arg("optimization_params") = py::none(), py::arg("convert_ternaries") = true,

@@ -38,14 +38,13 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
         member = getattr(module, member_name)
         if inspect.ismodule(member):
             continue
-        if member.__doc__ is None or "OMIT_FROM_SPHINX" in member.__doc__:
+        if member.__doc__ is not None and "OMIT_FROM_SPHINX" in member.__doc__:
             continue
 
-        # Pybind11 functions show up as built-in functions:
-        if inspect.isbuiltin(member) or inspect.isfunction(member):
-            functions.append(member_name)
-        elif inspect.isclass(member):
+        if inspect.isclass(member):
             classes.append(member_name)
+        elif inspect.isbuiltin(member) or inspect.isfunction(member) or callable(member):
+            functions.append(member_name)
         elif isinstance(inspect, (sym.Expr, sym.BooleanExpr)):
             # TODO: Attach __doc__ to attributes? Presently there is no way to do this.
             pass

@@ -1,6 +1,8 @@
 code_generation
 ===============
 
+.. autofunction:: wrenfold.code_generation.CodegenFuncInvocationResult
+
 .. autofunction:: wrenfold.code_generation.create_function_description
 
 .. autofunction:: wrenfold.code_generation.cse_function_description
@@ -43,7 +45,17 @@ code_generation
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
+.. autoclass:: wrenfold.code_generation.OptimizationParams
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
 .. autoclass:: wrenfold.code_generation.OutputArg
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+
+.. autoclass:: wrenfold.code_generation.OutputKey
   :members:
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__

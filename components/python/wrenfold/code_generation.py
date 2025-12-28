@@ -57,11 +57,12 @@ class OutputArg:
     is_optional: bool = False
 
 
-# Union of ReturnValue and OutputArg
 ReturnValueOrOutputArg = ReturnValue | OutputArg
 
 # Things that can be returned from symbolic python functions.
-CodegenFuncInvocationResult = sym.Expr | sym.MatrixExpr | T.Sequence[ReturnValueOrOutputArg]
+CodegenFuncInvocationResult = (
+    sym.Expr | sym.MatrixExpr | ReturnValueOrOutputArg | T.Sequence[ReturnValueOrOutputArg]
+)
 
 
 def create_function_description(

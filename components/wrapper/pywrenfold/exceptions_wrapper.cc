@@ -16,7 +16,8 @@ void wrap_exceptions(py::module_& m) {
   py::exception<assertion_error>(m, "AssertionError").doc() = "Thrown for internal errors.";
   py::exception<dimension_error>(m, "DimensionError").doc() =
       "Thrown when matrix operations encounter invalid dimensions.";
-  py::exception<domain_error>(m, "DomainError");
+  py::exception<domain_error>(m, "DomainError").doc() =
+      "Thrown when an argument exceeds acceptable numeric bounds.";
   py::exception<invalid_argument_error>(m, "InvalidArgumentError").doc() =
       "Thrown for invalid argument values.";
   py::exception<type_error>(m, "TypeError").doc() =

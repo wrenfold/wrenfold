@@ -10,7 +10,7 @@ class DimensionError(Exception):
     """Thrown when matrix operations encounter invalid dimensions."""
 
 class DomainError(Exception):
-    pass
+    """Thrown when an argument exceeds acceptable numeric bounds."""
 
 class InvalidArgumentError(Exception):
     """Thrown for invalid argument values."""

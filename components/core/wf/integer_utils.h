@@ -82,8 +82,7 @@ constexpr checked_int integer_power(checked_int base, std::uint64_t exp) {
   return result;
 }
 
-// Integer power with `checked_int` exponent. Sign of `exp` is checked and domain_error will be
-// thrown.
+// Integer power with `checked_int` exponent.
 constexpr checked_int integer_power(const checked_int base, const checked_int exp) {
   return integer_power(base, static_cast<std::uint64_t>(exp));
 }
