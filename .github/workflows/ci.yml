@@ -166,7 +166,7 @@ jobs:
 
       - name: Check stubs for diff
         working-directory: ${{github.workspace}}
-        run: git diff --name-only --exit-code components/wrapper/stubs
+        run: git diff --exit-code components/wrapper/stubs
 
       - name: Run CTest
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
