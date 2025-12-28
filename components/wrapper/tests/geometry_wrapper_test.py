@@ -192,6 +192,17 @@ class GeometryWrapperTest(MathTestBase):
         self.assertIsInstance(J1, sym.MatrixExpr)
         self.assertIdentical(sym.eye(3), (J1 * J0).subs(w**2 + x**2 + y**2 + z**2, 1))
 
+    def test_quaternion_eval(self):
+        """Test calling `eval()` on quaternion."""
+        np.testing.assert_equal(
+            np.array([1, 0, 0, 0], dtype=np.int64).reshape(4, 1), Quaternion(1, 0, 0, 0).eval()
+        )
+        np.testing.assert_equal(
+            np.array([0.5, -0.5, 0.5, -0.5], dtype=np.float64).reshape(4, 1),
+            Quaternion(0.5, -0.5, 0.5, -0.5).eval(),
+        )
+        self.assertRaises(exceptions.TypeError, lambda: Quaternion.with_name("q").eval())
+
     def test_jacobians_of_so3(self):
         """Test calling left_jacobian_of_so3 and inverse_left_jacobian_of_so3."""
         x, y, z = sym.symbols("x, y, z")

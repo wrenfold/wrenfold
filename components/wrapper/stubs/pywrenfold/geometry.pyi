@@ -1,5 +1,8 @@
 from collections.abc import Iterable
-from typing import overload
+from typing import Annotated, overload
+
+import numpy
+from numpy.typing import NDArray
 
 import pywrenfold.sym
 
@@ -82,7 +85,7 @@ class Quaternion:
         Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.
         """
 
-    def eval(self) -> "std::variant<Eigen::Matrix<long, -1, -1, 1, -1, -1>, Eigen::Matrix<double, -1, -1, 1, -1, -1>, Eigen::Matrix<std::complex<double>, -1, -1, 1, -1, -1> >":
+    def eval(self) -> Annotated[NDArray[numpy.int64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.complex128], dict(shape=(None, None), order='C')]:
         """
         Invoke :func:`wrenfold.sym.Expr.eval` on every element of the quaternion, and return a numpy array.
 
