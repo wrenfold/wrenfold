@@ -11,6 +11,9 @@ namespace wf {
 // Natural log.
 scalar_expr log(const scalar_expr& arg);
 
+// Exponential.
+scalar_expr exp(const scalar_expr& arg);
+
 // Power. Implemented in `power.cc`.
 scalar_expr pow(scalar_expr base, scalar_expr exp);
 

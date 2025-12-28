@@ -39,6 +39,8 @@ scalar_expr built_in_function_invocation::create(const built_in_function name,
       return atanh(args.front());
     case built_in_function::log:
       return log(args.front());
+    case built_in_function::exp:
+      return exp(args.front());
     case built_in_function::abs:
       return abs(args.front());
     case built_in_function::signum:

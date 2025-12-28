@@ -370,7 +370,8 @@ constexpr static std::string_view python_string_from_std_math_function(
     case std_math_function::sqrt:
     case std_math_function::abs:
     case std_math_function::floor:
-    case std_math_function::log: {
+    case std_math_function::log:
+    case std_math_function::exp: {
       return string_from_standard_library_function(function);
     }
     case std_math_function::acos: {

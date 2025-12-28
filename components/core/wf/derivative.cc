@@ -5,6 +5,7 @@
 
 #include <algorithm>
 
+#include "wf/enumerations.h"
 #include "wf/expression_visitor.h"
 #include "wf/expressions/variable.h"
 #include "wf/matrix_expression.h"
@@ -184,6 +185,9 @@ scalar_expr derivative_visitor::operator()(const built_in_function_invocation& f
       // atanh(f(x)) --> 1 / (1 - f(x)**2) * f'(x)
       return pow(1 - pow(args[0], 2), constants::negative_one) * d_args[0];
     }
+    case built_in_function::exp:
+      // exp(f(x)) --> exp(f(x)) * f'(x)
+      return func_abstract * d_args[0];
     case built_in_function::log:
       // log(f(x)) --> 1/f(x) * f'(x)
       return power::create(args[0], constants::negative_one) * d_args[0];

@@ -52,6 +52,23 @@ scalar_expr log(const scalar_expr& arg) {
   return make_expr<built_in_function_invocation>(built_in_function::log, arg);
 }
 
+scalar_expr exp(const scalar_expr& arg) {
+  if (is_zero(arg)) {
+    return constants::one;
+  }
+  if (is_one(arg)) {
+    return constants::euler;
+  }
+  if (is_complex_infinity(arg) || is_undefined(arg)) {
+    return constants::undefined;
+  }
+  if (std::optional<scalar_expr> f = operate_on_float(arg, CAST_COMPLEX_FUNC(std::exp));
+      f.has_value()) {
+    return *std::move(f);
+  }
+  return make_expr<built_in_function_invocation>(built_in_function::exp, arg);
+}
+
 // If `arg` is `i`, or `i*x`, we apply the replacement function.
 // This is used to swap cos(x*i) --> cosh(x), for example.
 template <typename Replacement>

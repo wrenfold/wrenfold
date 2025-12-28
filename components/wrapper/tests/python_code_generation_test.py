@@ -285,6 +285,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
                 sym.asinh(sym.abs(x * sym.pi)),
                 sym.atanh(x / 10),
                 sym.log(sym.abs(x * sym.E) + 1.0e-6),
+                sym.exp(x),
                 sym.sign(x),
                 sym.floor(x),
                 sym.atan2(x * x, x + x),
