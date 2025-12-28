@@ -226,6 +226,10 @@ if(WF_BUILD_STUBS)
   add_wrapper_module_stubs(MODULE_NAME pywrenfold OUTPUT_DIR
                            "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
 endif()
+
+# Because we can't build stubs while cross-compiling (necessary for Conda), we
+# instead build them to the repository check that they have been committed
+# properly on CI. We install them from the source directory:
 install_stubs(MODULE_NAME pywrenfold STUBS_DIR
               "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
 

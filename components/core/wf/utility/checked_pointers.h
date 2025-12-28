@@ -74,7 +74,10 @@ class non_null {
   constexpr decltype(auto) operator*() const { return *get(); }
 #else
   // Access the underlying pointer.
-  constexpr detail::value_or_reference_return_t<T> get() const noexcept { return ptr_; }
+  constexpr detail::value_or_reference_return_t<T> get() const
+      noexcept(detail::is_nothrow_convertible_to_value_or_ref_v<T>) {
+    return ptr_;
+  }
 
   // De-reference operators.
   constexpr decltype(auto) operator->() const noexcept { return get(); }

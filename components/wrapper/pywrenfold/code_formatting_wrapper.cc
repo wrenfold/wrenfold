@@ -69,8 +69,11 @@ namespace wf {
                      T::snake_case_name_str);                                                \
   }
 
-// nanobind has issues with combining recursion and inheritance.
-// For example: https://github.com/pybind/nanobind/issues/1552
+// pybind11 has issues with combining recursion and inheritance.
+// For example: https://github.com/pybind/pybind11/issues/1552
+//
+// NOTE: Unclear if this issue above persists after the switch to nanobind, but I am unlikely
+// to change this implementation too much without good cause.
 //
 // The root of the issue AFAIK is that pybind determines whether to call `self.method` or
 // `super().method` by inspecting the python stack in order to check if the overriden method is
@@ -132,8 +135,8 @@ class wrapped_generator : public Base {
 
  private:
   // Search the derived class for a formatting method that accepts type `T`.
-  // Return it as a py::function (which will be empty if we cannot find an appropriate method).
-  // First check the cache, but if the cache is empty we look for the method using getattr().
+  // Return it as a py::object (which will be empty if we cannot find an appropriate method).
+  // First check the cache to see if we can shortcut to None if the attribute does not exist.
   template <typename T>
   py::object get_override() const {
     if (const auto it = has_override_.find(typeid(T)); it != has_override_.end()) {
