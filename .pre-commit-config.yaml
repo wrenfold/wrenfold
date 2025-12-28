@@ -5,7 +5,7 @@ repos:
       - id: check-yaml
         exclude: '(^dependencies/)|(support/conda/.*\.yaml)'
       - id: end-of-file-fixer
-        exclude: '(^dependencies/)|(.*\.rs$)'
+        exclude: '(^dependencies/)|(.*\.rs$)|(.*\.pyi$)'
       - id: trailing-whitespace
         exclude: '^dependencies/|(.*\.rs$)'
       - id: check-toml
@@ -27,8 +27,8 @@ repos:
     hooks:
       - id: ruff-format
         types_or: [ python, pyi ]
-        exclude: '^dependencies/'
+        exclude: '^dependencies/|(.*\.pyi$)'
       - id: ruff-check
         types_or: [ python, pyi ]
         args: [ --fix ]
-        exclude: '^dependencies/'
+        exclude: '^dependencies/|(.*\.pyi$)'
