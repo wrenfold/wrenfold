@@ -59,14 +59,6 @@ function(add_nanobind)
 endfunction()
 add_nanobind()
 
-# Add pybind:
-function(add_pybind)
-  if(NOT TARGET pybind11::module)
-    add_subdirectory(pybind11)
-  endif()
-endfunction()
-add_pybind()
-
 # Create a target for eigen.
 function(add_eigen)
   set(EIGEN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/eigen")
