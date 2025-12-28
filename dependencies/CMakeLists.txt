@@ -53,21 +53,20 @@ function(add_abseil)
 endfunction()
 add_abseil()
 
-# Add pybind:
-function(add_pybind)
-  if(NOT TARGET pybind11::module)
-    add_subdirectory(pybind11)
-  endif()
+# Add nanobind:
+function(add_nanobind)
+  add_subdirectory(nanobind)
 endfunction()
-add_pybind()
+add_nanobind()
 
 # Create a target for eigen.
 function(add_eigen)
   set(EIGEN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/eigen")
-  if(NOT TARGET eigen)
+  if(NOT TARGET Eigen3::Eigen)
     add_library(eigen INTERFACE IMPORTED GLOBAL)
     set_target_properties(eigen PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                            "${EIGEN_INCLUDE_DIRS}")
+    add_library(Eigen3::Eigen ALIAS eigen)
   endif()
 endfunction()
 add_eigen()

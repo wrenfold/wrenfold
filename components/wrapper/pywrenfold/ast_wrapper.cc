@@ -3,8 +3,13 @@
 // For license information refer to accompanying LICENSE file.
 #include <any>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/make_iterator.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/variant.h>
+#include <nanobind/stl/vector.h>
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
@@ -13,14 +18,14 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/types/span.h>
 WF_END_THIRD_PARTY_INCLUDES
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 // We make this type opaque and wrap it manually below. That way we can cast elements to their
 // underlying type in the `next()` impl, and attach lifetime of iterators to the vector using
 // py::keep_alive.
 using ast_element_span = absl::Span<const wf::ast::ast_element>;
-PYBIND11_MAKE_OPAQUE(ast_element_span)
+NB_MAKE_OPAQUE(ast_element_span)
 
 namespace wf {
 
@@ -115,7 +120,8 @@ void wrap_ast(py::module_& m) {
       .def(
           "__iter__",
           [](const ast_element_span& self) {
-            return py::make_iterator(ast_span_iterator::begin(self), ast_span_iterator::end(self));
+            return py::make_iterator(py::type<ast_element_span>(), "iterator",
+                                     ast_span_iterator::begin(self), ast_span_iterator::end(self));
           },
           py::keep_alive<0, 1>())
       .def(
@@ -131,130 +137,120 @@ void wrap_ast(py::module_& m) {
             }
             return to_inner(self[actual_index]);
           },
-          py::arg("index"), py::doc("Array access operator."), py::return_value_policy::reference,
+          py::arg("index"), "Array access operator.", py::rv_policy::reference,
           py::keep_alive<0, 1>())
       .doc() = "Stores a sequence of AST elements.";
 
   ast_type_map map{m};
 
   map.at<ast::add>()
-      .def_property_readonly(
+      .def_prop_ro(
           "args", [](const ast::add& self) -> ast_element_span { return self.args; },
-          py::return_value_policy::reference, py::keep_alive<0, 1>(),
+          py::rv_policy::reference, py::keep_alive<0, 1>(),
           "Operands to the addition. There will always be more than one element.")
       .doc() = "Addition operation: ``args[0] + args[1] + ...``";
 
   map.at<ast::assign_temporary>()
-      .def_property_readonly(
+      .def_prop_ro(
           "left", [](const ast::assign_temporary& x) { return x.left; },
           "Name of the variable to which the assignment applies.")
-      .def_property_readonly("right", to_inner_accessor(&ast::assign_temporary::right),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "The value being assigned.")
+      .def_prop_ro("right", to_inner_accessor(&ast::assign_temporary::right),
+                   py::rv_policy::reference, py::keep_alive<0, 1>(), "The value being assigned.")
       .doc() = "Assignment to a temporary variable: ``left = right``";
 
   map.at<ast::assign_output_matrix>()
-      .def_property_readonly(
+      .def_prop_ro(
           "arg", [](const ast::assign_output_matrix& x) { return x.arg; }, "Destination argument.")
-      .def_property_readonly(
+      .def_prop_ro(
           "value", [](const ast::assign_output_matrix& x) -> const auto& { return x.value; },
-          py::return_value_policy::reference_internal,
-          "``ConstructMatrix`` specifying values to assign.")
+          py::rv_policy::reference_internal, "``ConstructMatrix`` specifying values to assign.")
       .doc() = "Assign a matrix to an output argument.";
 
   map.at<ast::assign_output_scalar>()
-      .def_property_readonly(
+      .def_prop_ro(
           "arg", [](const ast::assign_output_scalar& x) { return x.arg; }, "Destination argument.")
-      .def_property_readonly("value", to_inner_accessor(&ast::assign_output_scalar::value),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Scalar value to assign.")
+      .def_prop_ro("value", to_inner_accessor(&ast::assign_output_scalar::value),
+                   py::rv_policy::reference, py::keep_alive<0, 1>(), "Scalar value to assign.")
       .doc() = "Assign a scalar to an output argument.";
 
   map.at<ast::assign_output_struct>()
-      .def_property_readonly(
+      .def_prop_ro(
           "arg", [](const ast::assign_output_struct& x) { return x.arg; }, "Destination argument.")
-      .def_property_readonly(
+      .def_prop_ro(
           "value", [](const ast::assign_output_struct& x) -> const auto& { return x.value; },
-          py::return_value_policy::reference_internal,
-          "``ConstructCustomType`` specifying values to assign.")
+          py::rv_policy::reference_internal, "``ConstructCustomType`` specifying values to assign.")
       .doc() = "Assign a struct to an output argument.";
 
   map.at<ast::boolean_literal>()
-      .def_property_readonly(
+      .def_prop_ro(
           "value", [](const ast::boolean_literal& b) { return b.value; },
           "Value of the constant (True or False).")
       .doc() = "Emit a boolean literal constant.";
 
   map.at<ast::branch>()
-      .def_property_readonly("condition", to_inner_accessor(&ast::branch::condition),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Condition governing which branch to take.")
-      .def_property_readonly(
+      .def_prop_ro("condition", to_inner_accessor(&ast::branch::condition),
+                   py::rv_policy::reference, py::keep_alive<0, 1>(),
+                   "Condition governing which branch to take.")
+      .def_prop_ro(
           "if_branch", [](const ast::branch& c) -> ast_element_span { return c.if_branch; },
-          py::return_value_policy::reference_internal,
-          "Statements that evaluate when the condition is true.")
-      .def_property_readonly(
+          py::rv_policy::reference_internal, "Statements that evaluate when the condition is true.")
+      .def_prop_ro(
           "else_branch", [](const ast::branch& c) -> ast_element_span { return c.else_branch; },
-          py::return_value_policy::reference_internal,
+          py::rv_policy::reference_internal,
           "Statements that evaluate when the condition is false.")
       .doc() = "Emit an if-else statement: ``if (condition) { ... } else { ... }``";
 
   map.at<ast::call_external_function>()
-      .def_property_readonly("function",
-                             [](const ast::call_external_function& c) { return c.function; })
-      .def_property_readonly(
+      .def_prop_ro("function", [](const ast::call_external_function& c) { return c.function; })
+      .def_prop_ro(
           "args", [](const ast::call_external_function& c) -> ast_element_span { return c.args; },
-          py::return_value_policy::reference_internal)
+          py::rv_policy::reference_internal)
       .doc() = "Invoke a user-provided external function.";
 
   map.at<ast::call_std_function>()
-      .def_property_readonly(
+      .def_prop_ro(
           "function", [](const ast::call_std_function& c) { return c.function; },
           "The function being invoked.")
-      .def_property_readonly(
+      .def_prop_ro(
           "args", [](const ast::call_std_function& c) -> ast_element_span { return c.args; },
-          py::return_value_policy::reference_internal, "Arguments to the function.")
+          py::rv_policy::reference_internal, "Arguments to the function.")
       .doc() = "Invoke a standard library math function.";
 
   map.at<ast::cast>()
-      .def_property_readonly(
+      .def_prop_ro(
           "destination_type", [](const ast::cast& c) { return c.destination_type; },
           "The destination numerical type.")
-      .def_property_readonly("arg", to_inner_accessor(&ast::cast::arg),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Source value being casted.")
+      .def_prop_ro("arg", to_inner_accessor(&ast::cast::arg), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "Source value being casted.")
       .doc() = "Cast a numerical value.";
 
   map.at<ast::comment>()
-      .def_property_readonly(
+      .def_prop_ro(
           "content", [](const ast::comment& c) { return c.content; }, "Comment as a single string.")
       .def("split_lines", &ast::comment::split_lines,
            "Split comment by newlines and return a list of strings, one per line.")
       .doc() = "Emit a comment block.";
 
   map.at<ast::compare>()
-      .def_property_readonly("left", to_inner_accessor(&ast::compare::left),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "The left operand.")
-      .def_property_readonly("right", to_inner_accessor(&ast::compare::right),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "The right operand.")
-      .def_property_readonly(
+      .def_prop_ro("left", to_inner_accessor(&ast::compare::left), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "The left operand.")
+      .def_prop_ro("right", to_inner_accessor(&ast::compare::right), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "The right operand.")
+      .def_prop_ro(
           "operation", [](const ast::compare& c) { return c.operation; }, "Relational operation.")
       .doc() = "Compare two operands.";
 
   map.at<ast::construct_matrix>()
-      .def_property_readonly(
+      .def_prop_ro(
           "type", [](const ast::construct_matrix& c) { return c.type; },
           "Describe dimensions of the matrix.")
-      .def_property_readonly(
+      .def_prop_ro(
           "args", [](const ast::construct_matrix& c) -> ast_element_span { return c.args; },
-          py::return_value_policy::reference_internal,
-          "Contents of the matrix, in row-major order.")
+          py::rv_policy::reference_internal, "Contents of the matrix, in row-major order.")
       .doc() = "Construct a matrix from a list of statements.";
 
   map.at<ast::construct_custom_type>()
-      .def_property_readonly(
+      .def_prop_ro(
           "type", [](const ast::construct_custom_type& self) { return self.type; },
           "Instance of :class:`wrenfold.codegen.CustomType` specifying which type to instantiate.")
       .def(
@@ -266,17 +262,17 @@ void wrap_ast(py::module_& m) {
             }
             return std::nullopt;
           },
-          py::arg("name"), py::return_value_policy::reference, py::keep_alive<0, 1>(),
+          py::arg("name"), py::rv_policy::reference, py::keep_alive<0, 1>(),
           "Given the name of a field, return the statement being assigned to it (or None if the "
           "field does not exist).")
       .doc() = "Construct an instance of a user-provided type.";
 
   map.at<ast::declaration>()
-      .def_property_readonly(
+      .def_prop_ro(
           "name", [](const ast::declaration& d) { return d.name; }, "Name of the variable.")
-      .def_property_readonly(
+      .def_prop_ro(
           "type", [](const ast::declaration& d) { return d.type; }, "Type of the variable.")
-      .def_property_readonly(
+      .def_prop_ro(
           "value",
           [](const ast::declaration& d) -> std::optional<variant_of_ast_element_ptrs> {
             if (d.value) {
@@ -284,75 +280,71 @@ void wrap_ast(py::module_& m) {
             }
             return std::nullopt;
           },
-          py::return_value_policy::reference, py::keep_alive<0, 1>(),
+          py::rv_policy::reference, py::keep_alive<0, 1>(),
           "Optional value with which the variable should be initialized.")
       .doc() = "Declare a variable, and optionally assign it a value: ``name: type = value``";
 
   map.at<ast::divide>()
-      .def_property_readonly("left", to_inner_accessor(&ast::divide::left),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Left operand (numerator).")
-      .def_property_readonly("right", to_inner_accessor(&ast::divide::right),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Right operand (denominator).")
+      .def_prop_ro("left", to_inner_accessor(&ast::divide::left), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "Left operand (numerator).")
+      .def_prop_ro("right", to_inner_accessor(&ast::divide::right), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "Right operand (denominator).")
       .doc() = "Division operation: ``left / right``";
 
   map.at<ast::float_literal>()
-      .def_property_readonly(
+      .def_prop_ro(
           "value", [](const ast::float_literal& f) { return f.value; }, "Value of the constant.")
       .doc() = "Emit a floating-point literal constant.";
 
   map.at<ast::get_argument>()
-      .def_property_readonly(
+      .def_prop_ro(
           "argument", [](const ast::get_argument& self) { return self.arg; },
           "Argument being accessed.")
       .doc() = "Reference an argument to the generated function.";
 
   map.at<ast::get_field>()
-      .def_property_readonly("arg", to_inner_accessor(&ast::get_field::arg),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Operand from which we wish to retrieve the specified field.")
-      .def_property_readonly(
+      .def_prop_ro("arg", to_inner_accessor(&ast::get_field::arg), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(),
+                   "Operand from which we wish to retrieve the specified field.")
+      .def_prop_ro(
           "struct_type", [](const ast::get_field& self) { return self.type; },
           "Type of the struct.")
-      .def_property_readonly(
+      .def_prop_ro(
           "field_name", [](const ast::get_field& self) { return self.field; },
           "Name of the field being accessed.")
       .doc() = "Reference a field on a struct: ``arg.field_name``";
 
   map.at<ast::get_matrix_element>()
-      .def_property_readonly("arg", to_inner_accessor(&ast::get_matrix_element::arg),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Operand matrix.")
-      .def_property_readonly(
+      .def_prop_ro("arg", to_inner_accessor(&ast::get_matrix_element::arg),
+                   py::rv_policy::reference, py::keep_alive<0, 1>(), "Operand matrix.")
+      .def_prop_ro(
           "row", [](const ast::get_matrix_element& self) { return self.row; }, "Row to access.")
-      .def_property_readonly(
+      .def_prop_ro(
           "col", [](const ast::get_matrix_element& self) { return self.col; }, "Column to access.")
       .doc() = "Retrieve a value from a matrix: ``arg[row, col]``";
 
   map.at<ast::integer_literal>()
-      .def_property_readonly(
+      .def_prop_ro(
           "value", [](const ast::integer_literal& i) { return i.value; }, "Value of the constant.")
       .doc() = "Emit an integer literal constant.";
 
   map.at<ast::multiply>()
-      .def_property_readonly(
+      .def_prop_ro(
           "args", [](const ast::multiply& self) -> ast_element_span { return self.args; },
-          py::return_value_policy::reference, py::keep_alive<0, 1>(),
+          py::rv_policy::reference, py::keep_alive<0, 1>(),
           "Operands to the multiplication. There will always be more than one.")
       .doc() = "Multiplication operation: ``args[0] * args[1] * ...``";
 
   map.at<ast::negate>()
-      .def_property_readonly("arg", to_inner_accessor(&ast::negate::arg),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Operand being negated.")
+      .def_prop_ro("arg", to_inner_accessor(&ast::negate::arg), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "Operand being negated.")
       .doc() = "Negation operation: ``-arg``";
 
   map.at<ast::optional_output_branch>()
-      .def_property_readonly(
+      .def_prop_ro(
           "argument", [](const ast::optional_output_branch& self) { return self.arg; },
           "An optional output argument.")
-      .def_property_readonly(
+      .def_prop_ro(
           "statements",
           [](const ast::optional_output_branch& self) -> ast_element_span {
             return self.statements;
@@ -363,57 +355,52 @@ void wrap_ast(py::module_& m) {
       "}``";
 
   map.at<ast::parenthetical>()
-      .def_property_readonly("contents", to_inner_accessor(&ast::parenthetical::contents),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Value that should be wrapped in parentheses.")
+      .def_prop_ro("contents", to_inner_accessor(&ast::parenthetical::contents),
+                   py::rv_policy::reference, py::keep_alive<0, 1>(),
+                   "Value that should be wrapped in parentheses.")
       .doc() = "Wrap an expression in parentheses.";
 
   map.at<ast::return_object>()
-      .def_property_readonly("value", to_inner_accessor(&ast::return_object::value),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Value or object being returned.")
+      .def_prop_ro("value", to_inner_accessor(&ast::return_object::value), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "Value or object being returned.")
       .doc() = "Return a value from the function.";
 
   map.at<ast::special_constant>()
-      .def_property_readonly(
+      .def_prop_ro(
           "value", [](const ast::special_constant& c) { return c.value; },
           "Enum indicating the value of the constant.")
       .doc() = "Emit a mathematical constant";
 
   map.at<ast::ternary>()
-      .def_property_readonly("condition", to_inner_accessor(&ast::ternary::condition),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Value that should be wrapped in parentheses.")
-      .def_property_readonly("left", to_inner_accessor(&ast::ternary::left),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Value when the condition is true.")
-      .def_property_readonly("right", to_inner_accessor(&ast::ternary::right),
-                             py::return_value_policy::reference, py::keep_alive<0, 1>(),
-                             "Value when the condition is false.")
+      .def_prop_ro("condition", to_inner_accessor(&ast::ternary::condition),
+                   py::rv_policy::reference, py::keep_alive<0, 1>(),
+                   "Value that should be wrapped in parentheses.")
+      .def_prop_ro("left", to_inner_accessor(&ast::ternary::left), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "Value when the condition is true.")
+      .def_prop_ro("right", to_inner_accessor(&ast::ternary::right), py::rv_policy::reference,
+                   py::keep_alive<0, 1>(), "Value when the condition is false.")
       .doc() = "A ternary expression: ``condition ? left : right``";
 
   map.at<ast::variable_ref>()
-      .def_property_readonly(
+      .def_prop_ro(
           "name", [](const ast::variable_ref& v) { return v.name; }, "Name of the variable.")
       .doc() = "Reference a local variable.";
 
   wrap_ast_type<ast::function_signature>(m)
-      .def_property_readonly("return_type", &ast::function_signature::return_type,
-                             "Return type of the function.")
-      .def_property_readonly("name", &ast::function_signature::name, "Name of the function.")
-      .def_property_readonly("arguments", &ast::function_signature::arguments, "List of arguments.")
+      .def_prop_ro("return_type", &ast::function_signature::return_type,
+                   "Return type of the function.")
+      .def_prop_ro("name", &ast::function_signature::name, "Name of the function.")
+      .def_prop_ro("arguments", &ast::function_signature::arguments, "List of arguments.")
       .doc() =
       "Emit the signature of a generated function: ``name(... arguments ...) -> "
       "return_annotation``";
 
   wrap_ast_type<ast::function_definition>(m)
-      .def_property_readonly("signature", &ast::function_definition::signature,
-                             "Function signature.")
-      .def_property_readonly(
+      .def_prop_ro("signature", &ast::function_definition::signature, "Function signature.")
+      .def_prop_ro(
           "body",
           [](const ast::function_definition& self) -> ast_element_span { return self.body(); },
-          "Statements that make up the body of the function.",
-          py::return_value_policy::reference_internal)
+          "Statements that make up the body of the function.", py::rv_policy::reference_internal)
       .doc() =
       "Define a generated function. This is the top level object of the emitted syntax tree.";
 }

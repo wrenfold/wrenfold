@@ -1,11 +1,14 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/complex.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/tuple.h>
 
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
@@ -19,7 +22,7 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <absl/container/inlined_vector.h>
 WF_END_THIRD_PARTY_INCLUDES
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
@@ -43,14 +46,14 @@ static py::list list_from_quaternion(const quaternion& q) {
   return list;
 }
 
-static py::array eval_quaternion(const quaternion& q) {
-  py::list list{};  // TODO: Avoid copy into list.
-  list.append(maybe_numerical_cast(q.w().eval()));
-  list.append(maybe_numerical_cast(q.x().eval()));
-  list.append(maybe_numerical_cast(q.y().eval()));
-  list.append(maybe_numerical_cast(q.z().eval()));
-  return py::array(list);
-}
+// static py::ndarray<> eval_quaternion(const quaternion& q) {
+//   py::list list{};  // TODO: Avoid copy into list.
+//   list.append(maybe_numerical_cast(q.w().eval()));
+//   list.append(maybe_numerical_cast(q.x().eval()));
+//   list.append(maybe_numerical_cast(q.y().eval()));
+//   list.append(maybe_numerical_cast(q.z().eval()));
+//   return py::ndarray<>(list);
+// }
 
 void wrap_geometry_operations(py::module_& m) {
   wrap_class<quaternion>(m, "Quaternion")
@@ -79,7 +82,7 @@ void wrap_geometry_operations(py::module_& m) {
       // Expression operations:
       .def("subs", &quaternion::subs, py::arg("target"), py::arg("replacement"),
            "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.")
-      .def("eval", &eval_quaternion, docstrings::quaternion_eval.data())
+      //  .def("eval", &eval_quaternion, docstrings::quaternion_eval.data())
       // Storage conversions:
       .def("to_list", &list_from_quaternion,
            "Convert to list in ``[w, x, y, z]`` (scalar first) order.")
@@ -87,10 +90,10 @@ void wrap_geometry_operations(py::module_& m) {
            "Convert to a 4x1 vector in ``[w, x, y, z]`` (scalar-first) order.")
       .def("to_vector_xyzw", &quaternion::to_vector_xyzw,
            "Convert to a 4x1 vector in ``[x, y, z, w]`` (scalar-last) order.")
-      .def_property_readonly("w", &quaternion::w, "Access scalar element of quaternion.")
-      .def_property_readonly("x", &quaternion::x, "Access **i** coefficient of quaternion.")
-      .def_property_readonly("y", &quaternion::y, "Access **j** coefficient of quaternion.")
-      .def_property_readonly("z", &quaternion::z, "Access **k** coefficient of quaternion.")
+      .def_prop_ro("w", &quaternion::w, "Access scalar element of quaternion.")
+      .def_prop_ro("x", &quaternion::x, "Access **i** coefficient of quaternion.")
+      .def_prop_ro("y", &quaternion::y, "Access **j** coefficient of quaternion.")
+      .def_prop_ro("z", &quaternion::z, "Access **k** coefficient of quaternion.")
       .def_static("from_xyzw", &quaternion::from_vector_xyzw, "xyzw"_a,
                   docstrings::quaternion_from_xyzw.data())
       .def_static(
@@ -140,13 +143,13 @@ void wrap_geometry_operations(py::module_& m) {
           static_cast<quaternion (*)(const scalar_expr&, const scalar_expr&, const scalar_expr&,
                                      const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
-          "x"_a, "y"_a, "z"_a, py::arg("epsilon"),
+          "x"_a, "y"_a, "z"_a, py::arg("epsilon").none(),
           docstrings::quaternion_from_rotation_vector.data())
       .def_static(
           "from_rotation_vector",
           static_cast<quaternion (*)(const matrix_expr&, const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
-          "v"_a, py::arg("epsilon"),
+          py::arg("v"), py::arg("epsilon").none(),
           "Overload of ``from_rotation_vector`` that accepts ``sym.MatrixExpr``.")
       .def_static("from_x_angle", &quaternion::from_x_angle, "angle"_a,
                   docstrings::quaternion_from_x_angle.data())
@@ -154,10 +157,10 @@ void wrap_geometry_operations(py::module_& m) {
                   docstrings::quaternion_from_y_angle.data())
       .def_static("from_z_angle", &quaternion::from_z_angle, "angle"_a,
                   docstrings::quaternion_from_z_angle.data())
-      .def("to_angle_axis", &quaternion::to_angle_axis, py::arg("epsilon") = constants::zero,
+      .def("to_angle_axis", &quaternion::to_angle_axis, py::arg("epsilon").none() = constants::zero,
            docstrings::quaternion_to_angle_axis.data())
       .def("to_rotation_vector", &quaternion::to_rotation_vector,
-           py::arg("epsilon") = constants::zero, py::arg("use_atan2") = true,
+           py::arg("epsilon").none() = constants::zero, py::arg("use_atan2") = true,
            docstrings::quaternion_to_rotation_vector.data())
       .def_static("from_rotation_matrix", &quaternion::from_rotation_matrix, py::arg("R"),
                   docstrings::quaternion_from_rotation_matrix.data())
@@ -167,10 +170,10 @@ void wrap_geometry_operations(py::module_& m) {
            docstrings::quaternion_right_local_coordinates_derivative.data())
       .doc() = "A quaternion class used to represent 3D rotations and orientations.";
 
-  m.def("left_jacobian_of_so3", &left_jacobian_of_so3, "w"_a, "epsilon"_a,
+  m.def("left_jacobian_of_so3", &left_jacobian_of_so3, py::arg("w"), py::arg("epsilon").none(),
         docstrings::left_jacobian_of_so3.data());
 
-  m.def("inverse_left_jacobian_of_so3", &inverse_left_jacobian_of_so3, "w"_a, "epsilon"_a,
-        docstrings::inverse_left_jacobian_of_so3.data());
+  m.def("inverse_left_jacobian_of_so3", &inverse_left_jacobian_of_so3, py::arg("w"),
+        py::arg("epsilon").none(), docstrings::inverse_left_jacobian_of_so3.data());
 }
 }  // namespace wf

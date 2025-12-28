@@ -78,18 +78,22 @@ JIT compilation with Numba
 wrenfold-generated NumPy code is intended to be compatible with
 `numba JIT compilation <https://numba.pydata.org/numba-doc/dev/reference/jit-compilation.html>`__.
 To JIT a generated function, use the ``PythonGeneratorTarget.Numpy`` target and then pass the output
-function to ```numba.njit``:
+function to ``numba.njit``:
 
 .. code:: python
 
     import numba
 
-    # NumPy is the default argument for `generator`, but in this instance we will pass a customized
-    # instance that uses float32 for all numeric types:
+    # NumPy is the default argument for `generator`, but in this instance (as an example) we will
+    # customize the generation to use float32 for all types:
     generator = code_generation.PythonGenerator(
         float_width=code_generation.PythonGeneratorFloatWidth.Float32
     )
 
-    step_jax_func, _ = code_generation.generate_python(func=step_clamped, generator=generator)
+    step_func, _ = code_generation.generate_python(func=step_clamped, generator=generator)
 
-    jit_compiled_func = numba.njit(step_jax_func)
+    jit_compiled_func = numba.njit(step_func)
+
+    # For the float64 version we can simply do:
+    step_func, _ = code_generation.generate_python(func=step_clamped)
+    jit_compiled_func = numba.njit(step_func)

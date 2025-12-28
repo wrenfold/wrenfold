@@ -5,7 +5,8 @@
 
 #include "wf/expression_visitor.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
+
 namespace wf {
 
 args_visitor::tuple args_visitor::operator()(const scalar_expr& input) const {
@@ -25,12 +26,11 @@ args_visitor::tuple args_visitor::operator()(const T& obj) const {
     if constexpr (is_tuple_v<children_type>) {
       return std::apply([](const auto&... child) { return py::make_tuple(child...); }, children);
     } else {
-      py::tuple result{std::distance(children.begin(), children.end())};
-      std::size_t index = 0;
+      py::list result{};
       for (const auto& element : children) {
-        result[index++] = element;
+        result.append(element);
       }
-      return result;
+      return py::tuple(result);
     }
   }
 }

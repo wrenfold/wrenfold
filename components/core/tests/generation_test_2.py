@@ -97,7 +97,7 @@ def main(args: argparse.Namespace):
         )
     ]
 
-    definitions = code_generation.transpile(descriptions)
+    definitions = [code_generation.transpile(d) for d in descriptions]
     if args.language == "cpp":
         generator = CustomCppGenerator()
         code = generator.generate(definitions)
