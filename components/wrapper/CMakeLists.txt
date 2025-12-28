@@ -203,6 +203,8 @@ add_wrapper_module(
   pywrenfold/expressions_wrapper.cc
   pywrenfold/geometry_wrapper.cc
   pywrenfold/matrix_wrapper.cc
+  pywrenfold/numpy_conversion.cc
+  pywrenfold/numpy_conversion.h
   pywrenfold/scalar_wrapper.cc
   pywrenfold/symbolic_functions_wrapper.cc
   pywrenfold/sympy_conversion.cc

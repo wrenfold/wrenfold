@@ -13,7 +13,7 @@ namespace wf {
 // Try to cast an expression to a numerical type. The input must be one of:
 // - integer_constant, float_constant
 // - Complex expressions accepted by `complex_cast`.
-// If the coersion is not possible, returns none.
+// If the coercion is not possible, returns none.
 std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerical_cast(
     const scalar_expr& expr);
 

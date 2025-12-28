@@ -9,27 +9,24 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/tuple.h>
+#include <nanobind/stl/vector.h>
 
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
 #include "wf/matrix_expression.h"
-#include "wf/numerical_casts.h"
 
 #include "docs/geometry_wrapper.h"
+#include "numpy_conversion.h"
 #include "wrapper_utils.h"
-
-WF_BEGIN_THIRD_PARTY_INCLUDES
-#include <absl/container/inlined_vector.h>
-WF_END_THIRD_PARTY_INCLUDES
 
 namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
 
-// Get four elements from an iterable, throw if there are not four.
-static auto components_from_iterable(const py::iterable& iterable) {
-  absl::InlinedVector<scalar_expr, 4> values;
+// Get four elements from an iterable. Throw if there are not four.
+static std::vector<scalar_expr> components_from_iterable(const py::iterable& iterable) {
+  std::vector<scalar_expr> values;
   cast_to_expr(iterable, values);
   if (values.size() != 4) {
     throw dimension_error("Expected 4 values but {} were provided.", values.size());
@@ -37,23 +34,13 @@ static auto components_from_iterable(const py::iterable& iterable) {
   return values;
 }
 
-static py::list list_from_quaternion(const quaternion& q) {
-  py::list list{};
-  list.append(q.w());
-  list.append(q.x());
-  list.append(q.y());
-  list.append(q.z());
-  return list;
+static std::vector<scalar_expr> list_from_quaternion(const quaternion& q) {
+  return {q.w(), q.x(), q.y(), q.z()};
 }
 
-// static py::ndarray<> eval_quaternion(const quaternion& q) {
-//   py::list list{};  // TODO: Avoid copy into list.
-//   list.append(maybe_numerical_cast(q.w().eval()));
-//   list.append(maybe_numerical_cast(q.x().eval()));
-//   list.append(maybe_numerical_cast(q.y().eval()));
-//   list.append(maybe_numerical_cast(q.z().eval()));
-//   return py::ndarray<>(list);
-// }
+static auto eval_quaternion(const quaternion& q) {
+  return numpy_from_matrix(q.to_vector_wxyz(), {});
+}
 
 void wrap_geometry_operations(py::module_& m) {
   wrap_class<quaternion>(m, "Quaternion")
@@ -82,7 +69,7 @@ void wrap_geometry_operations(py::module_& m) {
       // Expression operations:
       .def("subs", &quaternion::subs, py::arg("target"), py::arg("replacement"),
            "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.")
-      //  .def("eval", &eval_quaternion, docstrings::quaternion_eval.data())
+      .def("eval", &eval_quaternion, docstrings::quaternion_eval.data())
       // Storage conversions:
       .def("to_list", &list_from_quaternion,
            "Convert to list in ``[w, x, y, z]`` (scalar first) order.")

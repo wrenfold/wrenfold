@@ -82,7 +82,19 @@ class Quaternion:
         Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.
         """
 
-    def to_list(self) -> list:
+    def eval(self) -> "std::variant<Eigen::Matrix<long, -1, -1, 1, -1, -1>, Eigen::Matrix<double, -1, -1, 1, -1, -1>, Eigen::Matrix<std::complex<double>, -1, -1, 1, -1, -1> >":
+        """
+        Invoke :func:`wrenfold.sym.Expr.eval` on every element of the quaternion, and return a numpy array.
+
+        Returns:
+          4-element numpy array in ``[w, x, y, z]`` (scalar-first) order.
+
+        Examples:
+          >>> geometry.Quaternion().eval()
+          array([1., 0., 0., 0.])
+        """
+
+    def to_list(self) -> list[pywrenfold.sym.Expr]:
         """Convert to list in ``[w, x, y, z]`` (scalar first) order."""
 
     def to_vector_wxyz(self) -> pywrenfold.sym.MatrixExpr:
