@@ -42,7 +42,7 @@ class StdMathFunction(enum.Enum):
 
     Powf = 19
 
-    def to_string(self) -> "std::basic_string_view<char, std::char_traits<char> >":
+    def to_string(self) -> str:
         """Convert to string."""
 
 class RelationalOperation(enum.Enum):

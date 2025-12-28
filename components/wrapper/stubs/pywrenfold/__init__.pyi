@@ -11,6 +11,4 @@ from . import (
 )
 
 
-__git_version__: str = 'ea32e1111734409242b863457a9891ad2cfc4cad'
-
 def set_tracing_output_path(path: str) -> None: ...

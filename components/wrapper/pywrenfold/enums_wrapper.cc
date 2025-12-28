@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/string_view.h>
 
 #include "wf/enumerations.h"
 
