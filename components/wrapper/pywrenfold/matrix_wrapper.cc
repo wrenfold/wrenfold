@@ -285,12 +285,8 @@ py::list list_from_matrix(const matrix_expr& self) {
   return rows;
 }
 
-py::list flat_list_from_matrix(const matrix_expr& self) {
-  py::list output{};
-  for (const scalar_expr& element : self.as_matrix()) {
-    output.append(element);
-  }
-  return output;
+std::vector<scalar_expr> flat_list_from_matrix(const matrix_expr& self) {
+  return self.as_matrix().children();
 }
 
 using numerical_array_variant = std::variant<
@@ -300,8 +296,8 @@ using numerical_array_variant = std::variant<
 
 // Convert matrix to numpy array.
 // We need `kwargs` here because numpy might pass copy=True. This argument doesn't matter to us,
-// because we never copy expressions. But we need to be able to accept the argument for pybind to do
-// method resolution.
+// because we never copy expressions. But we need to be able to accept the argument for nanobind to
+// do method resolution.
 static auto numpy_from_matrix(const matrix_expr& self, const py::kwargs&)
     -> numerical_array_variant {
   using numerical_variant = std::variant<std::int64_t, double, std::complex<double>>;
@@ -348,14 +344,14 @@ static auto numpy_from_matrix(const matrix_expr& self, const py::kwargs&)
     return convert_to_matrix(make_overloaded(
         [](std::int64_t v) { return static_cast<double>(v); }, [](double v) { return v; },
         [](std::complex<double>) -> double {
-          WF_ASSERT_ALWAYS("Impossible, we eliminated this condition above.");
+          throw wf::type_error("Cannot coerce std::complex<double> to double.");
         }));
   } else {
-    return convert_to_matrix(
-        make_overloaded([](std::int64_t v) { return v; },
-                        [](auto) -> std::int64_t {
-                          WF_ASSERT_ALWAYS("Impossible, we eliminated this condition above.");
-                        }));
+    return convert_to_matrix(make_overloaded(
+        [](std::int64_t v) { return v; },
+        [](auto arg) -> std::int64_t {
+          throw wf::type_error("Cannot coerce `{}` to std::int64_t.", typeid(arg).name());
+        }));
   }
 }
 

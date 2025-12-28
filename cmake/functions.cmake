@@ -8,7 +8,7 @@ define_property(
 
 # Set the `WF_PYTHON_ENV_VARIABLES` variable with environment variables that can
 # be be passed to `cmake -E env` when running python scripts. This places both
-# the python library, and pywrenfold (pybind11 wrapper) on the PYTHONPATH.
+# the python library, and pywrenfold (nanobind wrapper) on the PYTHONPATH.
 # Ideally we would get these paths from the targets themselves, but the order in
 # which targets are added makes that tricky.
 function(set_python_env_variables)

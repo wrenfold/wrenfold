@@ -77,7 +77,6 @@ struct convert_to_complex_visitor {
   bool allow_integer_conversion_;
 };
 
-// TODO: Should support complex expressions of integers as well.
 std::optional<std::variant<std::int64_t, double, std::complex<double>>> numerical_cast(
     const scalar_expr& expr) {
   if (const float_constant* f = get_if<const float_constant>(expr); f != nullptr) {

@@ -128,9 +128,10 @@ static std::variant<scalar_expr, py::list> create_unique_variables(const std::si
   }
 }
 
-static auto eval_wrapper(const scalar_expr& self) {
+static std::variant<std::int64_t, double, std::complex<double>> eval_wrapper(
+    const scalar_expr& self) {
   if (const auto maybe_num = numerical_cast(self); maybe_num.has_value()) {
-    return maybe_num;
+    return *maybe_num;
   } else {
     throw wf::type_error("Expression of type `{}` is not coercible to a numeric value.",
                          self.type_name());

@@ -107,4 +107,4 @@ NB_MODULE(PY_MODULE_NAME, m) {
         }
       },
       "path"_a);
-}  // PYBIND11_MODULE
+}  // NB_MODULE

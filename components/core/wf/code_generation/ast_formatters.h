@@ -16,7 +16,7 @@ WF_END_THIRD_PARTY_INCLUDES
 namespace wf::ast {
 
 // Return null terminated string with camel case name for one of the AST types.
-// Returns const-char so it can be passed to pybind11.
+// Returns const-char so it can be passed to nanobind.
 template <typename T>
 const char* camel_case_name() noexcept {
   // We can't make this array static constexpr w/ gcc (but it works on msvc).
