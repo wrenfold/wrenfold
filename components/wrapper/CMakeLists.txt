@@ -80,6 +80,8 @@ function(add_wrapper_module_stubs)
   set(multiValueArgs "")
   cmake_parse_arguments(ARGS "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
+  message(STATUS "Creating targets for stub generation.")
+
   # Get the sub-module names from the module target.
   get_property(
     SUBMODULE_NAMES

@@ -28,11 +28,11 @@ Repository = "https://github.com/wrenfold/wrenfold/"
 Issues = "https://github.com/wrenfold/wrenfold/issues"
 
 [build-system]
-requires = ["scikit-build-core==0.11.6", "cmake>=3.20", "ninja>=1.5"]
+requires = ["scikit-build-core==0.11.6", "cmake>=3.21", "ninja>=1.5"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
-cmake.version = ">=3.20"
+cmake.version = ">=3.21"
 # It seems like setting `build-type` is insufficient on Windows, and we fall back to Debug.
 # Place it in the `args` list to force a release build.
 cmake.args = ["-G", "Ninja", "-Wno-deprecated", "-DCMAKE_BUILD_TYPE=Release"]

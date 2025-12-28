@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 if(DEFINED SKBUILD_PROJECT_NAME AND DEFINED SKBUILD_PROJECT_VERSION)
   project(
@@ -8,9 +8,16 @@ if(DEFINED SKBUILD_PROJECT_NAME AND DEFINED SKBUILD_PROJECT_VERSION)
     LANGUAGES CXX C)
   message(STATUS "Building project version: ${SKBUILD_PROJECT_VERSION}")
   set(WF_BUILD_EXTRAS_DEFAULT OFF)
+  set(WF_BUILD_STUBS_DEFAULT OFF)
 else()
   project(wrenfold CXX C)
-  set(WF_BUILD_EXTRAS_DEFAULT ON)
+  if(PROJECT_IS_TOP_LEVEL)
+    set(WF_BUILD_EXTRAS_DEFAULT ON)
+    set(WF_BUILD_STUBS_DEFAULT ON)
+  else()
+    set(WF_BUILD_EXTRAS_DEFAULT OFF)
+    set(WF_BUILD_STUBS_DEFAULT OFF)
+  endif()
 endif()
 
 find_program(MAKE_PROGRAM_PATH ${CMAKE_MAKE_PROGRAM})
@@ -29,7 +36,8 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 
 option(WF_BUILD_EXTRAS "Build tests, benchmarks, examples, and docs."
        ${WF_BUILD_EXTRAS_DEFAULT})
-option(WF_BUILD_STUBS "Build stubs for the pywrenfold module." OFF)
+option(WF_BUILD_STUBS "Build stubs for the pywrenfold module."
+       ${WF_BUILD_STUBS_DEFAULT})
 option(WF_DOCS_REQUIRED "Fail if sphinx/doxygen cannot be found." OFF)
 option(WF_CODE_COVERAGE "Build in code coverage mode." OFF)
 
