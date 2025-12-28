@@ -147,9 +147,9 @@ class determine_set_visitor {
         // Otherwise could be zero.
         return number_set::unknown;
       }
-      case built_in_function::exp:
-        // exp(x) > 0 for all real x
-        return number_set::real_positive;
+      case built_in_function::exp: {
+        return is_real_set(args[0]) ? number_set::real_positive : number_set::unknown;
+      }
       case built_in_function::abs: {
         if (args[0] == number_set::real_positive) {
           return number_set::real_positive;

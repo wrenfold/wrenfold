@@ -308,7 +308,7 @@ class ExpressionWrapperTest(MathTestBase):
 
         self.assertIdentical(1 / x, sym.log(y * x).diff(x))
         self.assertIdentical(y * sym.exp(x * y), sym.exp(x * y).diff(x))
-        self.assertIdentical(1, sym.log(sym.exp(x)).diff(x))
+        self.assertIdentical(2 * x, sym.log(sym.exp(sym.pow(x, 2))).diff(x))
 
         self.assertIdentical(-y / (x**2 + y**2), sym.atan2(y, x).diff(x))
         self.assertIdentical(2 * x / (x**2 + 4 * y**2), sym.atan2(2 * y, x).diff(y))
