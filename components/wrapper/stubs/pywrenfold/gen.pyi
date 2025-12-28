@@ -1343,7 +1343,7 @@ class PythonGeneratorFloatWidth(enum.Enum):
 class PythonGenerator:
     """Generates Python code. Can target NumPy, PyTorch, or JAX."""
 
-    def __init__(self, target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy, float_width: PythonGeneratorFloatWidth = PythonGeneratorFloatWidth.Float32, indentation: int = 4, use_output_arguments: bool = False) -> None:
+    def __init__(self, target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy, float_width: PythonGeneratorFloatWidth = PythonGeneratorFloatWidth.Float64, indentation: int = 4, use_output_arguments: bool = False) -> None:
         """
         Construct a python code generator.
 
