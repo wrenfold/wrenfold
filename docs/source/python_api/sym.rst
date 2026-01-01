@@ -1,6 +1,26 @@
 sym
 ===
 
+.. autodata:: wrenfold.sym.E
+
+.. autodata:: wrenfold.sym.I
+
+.. autodata:: wrenfold.sym.false
+
+.. autodata:: wrenfold.sym.imaginary_unit
+
+.. autodata:: wrenfold.sym.nan
+
+.. autodata:: wrenfold.sym.one
+
+.. autodata:: wrenfold.sym.pi
+
+.. autodata:: wrenfold.sym.true
+
+.. autodata:: wrenfold.sym.zero
+
+.. autodata:: wrenfold.sym.zoo
+
 .. autofunction:: wrenfold.sym.abs
 
 .. autofunction:: wrenfold.sym.acos

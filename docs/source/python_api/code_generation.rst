@@ -83,4 +83,6 @@ code_generation
 .. autoclass:: wrenfold.code_generation.RustGenerator
   :members:
   :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__,apply_preamble
+
+  .. automethod:: apply_preamble

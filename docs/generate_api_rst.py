@@ -31,6 +31,7 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
     """
     functions = []
     classes = []
+    data = []
     for member_name in sorted(dir(module)):
         if member_name.startswith("_"):
             continue
@@ -42,26 +43,38 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
             continue
 
         if inspect.isclass(member):
-            classes.append(member_name)
+            class_static_functions = []
+            for child_member_name in sorted(dir(member)):
+                child_member = getattr(member, child_member_name)
+                if "nanobind.nb_func" in str(child_member):
+                    class_static_functions.append(child_member_name)
+
+            classes.append((member_name, class_static_functions))
+
         elif inspect.isbuiltin(member) or inspect.isfunction(member) or callable(member):
             functions.append(member_name)
-        elif isinstance(inspect, (sym.Expr, sym.BooleanExpr)):
-            # TODO: Attach __doc__ to attributes? Presently there is no way to do this.
-            pass
+        elif isinstance(member, (sym.Expr, sym.BooleanExpr)):
+            data.append(member_name)
 
     parts = [f"{module_name}\n{'=' * len(module_name)}"]
+    parts.extend(f".. autodata:: wrenfold.{module_name}.{d}" for d in data)
     parts.extend(f".. autofunction:: wrenfold.{module_name}.{func}" for func in functions)
 
-    class_directives = "\n  ".join(
-        [
-            ":members:",
-            ":special-members:",
-            ":exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__",
-        ]
-    )
-    parts.extend(
-        f".. autoclass:: wrenfold.{module_name}.{klass}\n  {class_directives}" for klass in classes
-    )
+    # Based on: https://github.com/wjakob/nanobind/discussions/707
+    for klass, class_static_functions in classes:
+        excluded_members = ["__dict__", "__weakref__", "__repr__", "__getstate__", "__setstate__"]
+        excluded_members += class_static_functions
+        class_directives = "\n  ".join(
+            [
+                ":members:",
+                ":special-members:",
+                f":exclude-members: {','.join(excluded_members)}",
+            ]
+        )
+        directive = f".. autoclass:: wrenfold.{module_name}.{klass}\n  {class_directives}"
+        for func_name in class_static_functions:
+            directive += f"\n\n  .. automethod:: {func_name}"
+        parts.append(directive)
 
     contents = "\n\n".join(parts)
     contents += "\n"
