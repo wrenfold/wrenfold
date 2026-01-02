@@ -258,6 +258,7 @@ std::string cpp_code_generator::operator()(const ast::call_std_function& x) cons
     case std_math_function::asinh:
     case std_math_function::atanh:
     case std_math_function::log:
+    case std_math_function::exp:
     case std_math_function::sqrt:
     case std_math_function::abs:
       return fmt::format("std::{}({})", string_from_standard_library_function(x.function),

@@ -230,6 +230,7 @@ std::string rust_code_generator::operator()(const ast::call_std_function& x) con
     case std_math_function::asinh:
     case std_math_function::atanh:
     case std_math_function::abs:
+    case std_math_function::exp:
       return fmt::format("({}).{}()", make_view(x[0]),
                          string_from_standard_library_function(x.function));
     case std_math_function::log:
