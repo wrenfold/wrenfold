@@ -27,6 +27,21 @@ TEST(FunctionsTest, TestLog) {
                       1.0e-15);
 }
 
+TEST(FunctionsTest, TestExp) {
+  const auto [x, y] = make_symbols("x", "y");
+
+  ASSERT_IDENTICAL(exp(x), exp(x));
+  ASSERT_NOT_IDENTICAL(exp(x), exp(y));
+  ASSERT_IDENTICAL(constants::one, exp(0_s));
+  ASSERT_IDENTICAL(constants::euler, exp(1_s));
+
+  ASSERT_COMPLEX_NEAR(std::exp(complex_double(2.4345)), exp(2.4345_s), 1.0e-15);
+  ASSERT_COMPLEX_NEAR(std::exp(complex_double(0.411)), exp(0.411_s), 1.0e-15);
+  ASSERT_COMPLEX_NEAR(std::exp(complex_double(-0.8)), exp(-0.8_s), 1.0e-15);
+  ASSERT_COMPLEX_NEAR(std::exp(complex_double(1.2, 9.8)), exp(scalar_expr::from_complex(1.2, 9.8)),
+                      1.0e-15);
+}
+
 TEST(FunctionsTest, TestCosine) {
   const auto [x, y] = make_symbols("x", "y");
 

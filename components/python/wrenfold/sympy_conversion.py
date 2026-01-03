@@ -51,6 +51,7 @@ class Conversions:
             sp.asinh: sym.asinh,
             sp.atanh: sym.atanh,
             sp.log: sym.log,
+            sp.exp: sym.exp,
             sp.Abs: sym.abs,
             sp.sign: sym.sign,
             sp.floor: sym.floor,

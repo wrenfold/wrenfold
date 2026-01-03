@@ -256,6 +256,7 @@ void wrap_scalar_operations(py::module_& m) {
 
   // Built-in functions:
   m.def("log", &wf::log, "arg"_a, docstrings::log.data());
+  m.def("exp", &wf::exp, "arg"_a, docstrings::exp.data());
   m.def("pow", &wf::pow, "base"_a, "exp"_a, docstrings::pow.data());
   m.def("cos", &wf::cos, "arg"_a, docstrings::cos.data());
   m.def("sin", &wf::sin, "arg"_a, docstrings::sin.data());

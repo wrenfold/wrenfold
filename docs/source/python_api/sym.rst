@@ -63,6 +63,8 @@ sym
 
 .. autofunction:: wrenfold.sym.log
 
+.. autofunction:: wrenfold.sym.exp
+
 .. autofunction:: wrenfold.sym.lt
 
 .. autofunction:: wrenfold.sym.matrix
