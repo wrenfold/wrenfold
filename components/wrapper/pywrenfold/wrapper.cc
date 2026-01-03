@@ -57,6 +57,9 @@ void wrap_expressions(py::module_& m);
 }  // namespace wf
 
 NB_MODULE(PY_MODULE_NAME, m) {
+#ifdef WF_BUILDING_WHEEL
+  py::set_leak_warnings(false);
+#endif
   using namespace wf;
   m.attr("__version__") = PY_MODULE_VERSION;
 

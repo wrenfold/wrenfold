@@ -36,6 +36,7 @@ function(add_wrapper_module)
   if(DEFINED SKBUILD_PROJECT_VERSION)
     target_compile_definitions(
       ${MODULE_NAME} PRIVATE PY_MODULE_VERSION="${SKBUILD_PROJECT_VERSION}")
+    target_compile_definitions(${MODULE_NAME} PRIVATE -DWF_BUILDING_WHEEL=1)
   else()
     target_compile_definitions(${MODULE_NAME} PRIVATE PY_MODULE_VERSION="dev")
   endif()

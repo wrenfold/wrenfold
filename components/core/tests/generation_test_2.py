@@ -26,6 +26,9 @@ class VectorOfStructs(type_annotations.Opaque):
         We assume a user-defined external function that accepts a value `x` and uses it to linearly
         interpolate between values in our `VectorOfStructs`.
         """
+        # TODO: We are creating a memory leak here, because this is a strong reference to
+        # vector_interpolate_access - which has a strong reference to `VectorOfStructs` via
+        # nanobind. It should be relatively small but this is not ideal.
         return vector_interpolate_access(vec=self, x=x)
 
 
