@@ -57,6 +57,8 @@ sym
 
 .. autofunction:: wrenfold.sym.eq
 
+.. autofunction:: wrenfold.sym.exp
+
 .. autofunction:: wrenfold.sym.eye
 
 .. autofunction:: wrenfold.sym.float
@@ -82,8 +84,6 @@ sym
 .. autofunction:: wrenfold.sym.le
 
 .. autofunction:: wrenfold.sym.log
-
-.. autofunction:: wrenfold.sym.exp
 
 .. autofunction:: wrenfold.sym.lt
 

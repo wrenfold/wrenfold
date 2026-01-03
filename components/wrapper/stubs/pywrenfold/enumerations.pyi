@@ -28,19 +28,19 @@ class StdMathFunction(enum.Enum):
 
     Log = 12
 
-    Sqrt = 13
+    Sqrt = 14
 
-    Abs = 14
+    Abs = 15
 
-    Signum = 15
+    Signum = 16
 
-    Floor = 16
+    Floor = 17
 
-    Atan2 = 17
+    Atan2 = 18
 
-    Powi = 18
+    Powi = 19
 
-    Powf = 19
+    Powf = 20
 
     def to_string(self) -> str:
         """Convert to string."""

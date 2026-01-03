@@ -491,6 +491,23 @@ def log(arg: Expr) -> Expr:
       0
     """
 
+def exp(arg: Expr) -> Expr:
+    r"""
+    The exponential function :math:`e^{x}` or :math:`\exp{x}`.
+
+    Args:
+      arg: Argument to the exponential function.
+
+    Examples:
+      >>> x = sym.symbols('x')
+      >>> sym.exp(x + 3)
+      exp(x + 3)
+      >>> sym.exp(0)
+      1
+      >>> sym.exp(1)
+      sym.E
+    """
+
 def pow(base: Expr, exp: Expr) -> Expr:
     r"""
     Construct a power expression: :math:`\text{pow}\left(x, y\right) \rightarrow x^y`.
