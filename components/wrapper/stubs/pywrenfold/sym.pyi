@@ -1511,9 +1511,29 @@ class MatrixExpr:
     @overload
     def __mul__(self, arg: Expr, /) -> MatrixExpr: ...
 
+    @overload
+    def __mul__(self, arg: int, /) -> MatrixExpr: ...
+
+    @overload
+    def __mul__(self, arg: float, /) -> MatrixExpr: ...
+
+    @overload
     def __rmul__(self, arg: Expr, /) -> MatrixExpr: ...
 
+    @overload
+    def __rmul__(self, arg: int, /) -> MatrixExpr: ...
+
+    @overload
+    def __rmul__(self, arg: float, /) -> MatrixExpr: ...
+
+    @overload
     def __truediv__(self, arg: Expr, /) -> MatrixExpr: ...
+
+    @overload
+    def __truediv__(self, arg: int, /) -> MatrixExpr: ...
+
+    @overload
+    def __truediv__(self, arg: float, /) -> MatrixExpr: ...
 
     def __neg__(self) -> MatrixExpr:
         """Element-wise negation of the matrix."""
