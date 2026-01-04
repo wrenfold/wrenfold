@@ -1,10 +1,9 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/pytypes.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/string.h>
 
 #include "wf/expression.h"
 #include "wf/expression_visitor.h"
@@ -14,7 +13,7 @@
 
 namespace wf {
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 // Visitor that converts wrenfold expressions to sympy expressions.
@@ -22,7 +21,10 @@ class sympy_conversion_visitor {
  private:
   py::object get_sympy_attr(const std::string_view name) const {
     py::object attr = py::getattr(sp_, name.data(), py::none());
-    WF_ASSERT(!attr.is_none(), "Failed to get attribute from sympy module: {}", name);
+    if (attr.is_none()) {
+      const auto msg = fmt::format("sympy module does not have attribute: {}", name);
+      throw py::attribute_error(msg.c_str());
+    }
     return attr;
   }
 
@@ -41,13 +43,12 @@ class sympy_conversion_visitor {
   py::object operator()(const boolean_expr& expr) { return visit(expr, *this); }
   py::object operator()(const matrix_expr& expr) { return visit(expr, *this); }
 
-  // Convert all elements of a container into a python tuple.
+  // Convert all elements of a container into a python list.
   template <typename Container>
-  py::tuple convert_to_args(const Container& container) {
-    py::tuple args{container.size()};
-    std::size_t i = 0;
+  py::list convert_to_args(const Container& container) {
+    py::list args;
     for (const auto& element : container) {
-      args[i++] = operator()(element);
+      args.append(operator()(element));
     }
     return args;
   }

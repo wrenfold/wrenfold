@@ -436,9 +436,10 @@ std::string cpp_code_generator::apply_preamble(const std::string_view code,
                                                const std::string_view imports) const {
   WF_ASSERT(code.data());
   WF_ASSERT(ns.data());
-  WF_ASSERT(imports.data());
   const std::string imports_formatted =
-      imports.size() > 0 ? fmt::format("// User-specified imports:\n{}\n\n", imports) : "";
+      imports.data() && imports.size() > 0
+          ? fmt::format("// User-specified imports:\n{}\n\n", imports)
+          : "";
   const std::string_view runtime_import = behavior_ == cpp_matrix_type_behavior::generic_span
                                               ? "#include <wrenfold/span.h>"
                                               : "#include <Eigen/Core>";

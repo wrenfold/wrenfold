@@ -1,9 +1,11 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/functional.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/vector.h>
 
 #include "docs/code_formatting_wrapper.h"
 #include "wf/code_generation/ast.h"
@@ -13,7 +15,7 @@
 #include "wf/code_generation/rust_code_generator.h"
 #include "wf/utility/type_list.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
@@ -70,16 +72,19 @@ namespace wf {
 // pybind11 has issues with combining recursion and inheritance.
 // For example: https://github.com/pybind/pybind11/issues/1552
 //
+// NOTE: Unclear if this issue above persists after the switch to nanobind, but I am unlikely
+// to change this implementation too much without good cause.
+//
 // The root of the issue AFAIK is that pybind determines whether to call `self.method` or
 // `super().method` by inspecting the python stack in order to check if the overriden method is
 // calling itself. This makes formatting a recursive structure somewhat tricky. For instance,
 // consider the expression `cos(sqrt(x))`. This entails the `format_call` function calling itself in
-// order to obtain the formatted argument to `cos`. pybind11 incorrectly detects this as attempt to
+// order to obtain the formatted argument to `cos`. nanobind incorrectly detects this as attempt to
 // call the super method in C++, rather than respecting the user override. This behavior appears to
 // differ in `ipdb` vs regular python (maybe since the call stack is altered by the presence of the
 // debugger).
 //
-// To work around this, we manually check for overrides (in a similar manner to pybind11, by using
+// To work around this, we manually check for overrides (in a similar manner to nanobind, by using
 // getattr). Rather than trying to automatically select `super` or `self`, we expose both methods
 // under different names.
 template <typename Base>
@@ -96,22 +101,22 @@ class wrapped_generator : public Base {
   // Check if a python class derived from this one implements a formatting operator for type `T`.
   // If it does, we call the derived class implementation. Otherwise, call Base::operator().
   //
-  // This method is loosely inspired by pybind11 get_override.
+  // This method is loosely inspired by nanobind get_override.
   template <typename T>
   std::string maybe_override(const T& element) const {
     /* scope for acquiring the GIL */ {
       py::gil_scoped_acquire gil;
-      if (const py::function func = get_override<T>(); static_cast<bool>(func)) {
+      if (const py::object func = get_override<T>(); static_cast<bool>(func) && !func.is_none()) {
         try {
           using std_function = std::function<std::string(const T&)>;
           const std_function typed_func = py::cast<std_function>(func);
           return typed_func(element);
-        } catch (const py::type_error& err) {
+        } catch (const py::cast_error& err) {
           throw type_error(
               "Failed while casting formatter `format_{snake}` to std::function<std::string(const "
               "{snake}&)>. The python method should have the signature: format_{snake}(element: "
               "{camel}) -> str\n"
-              "pybind11 error: {err}",
+              "nanobind error: {err}",
               fmt::arg("snake", T::snake_case_name_str),
               fmt::arg("camel", ast::camel_case_name<T>()), fmt::arg("err", err.what()));
         }
@@ -130,18 +135,18 @@ class wrapped_generator : public Base {
 
  private:
   // Search the derived class for a formatting method that accepts type `T`.
-  // Return it as a py::function (which will be empty if we cannot find an appropriate method).
-  // First check the cache, but if the cache is empty we look for the method using getattr().
+  // Return it as a py::object (which will be empty if we cannot find an appropriate method).
+  // First check the cache to see if we can shortcut to None if the attribute does not exist.
   template <typename T>
-  py::function get_override() const {
+  py::object get_override() const {
     if (const auto it = has_override_.find(typeid(T)); it != has_override_.end()) {
       if (it->second) {
         return getattr_override<T>();
       } else {
-        return py::function();
+        return py::none();
       }
     }
-    py::function override = getattr_override<T>();
+    py::object override = getattr_override<T>();
     has_override_.emplace(typeid(T), static_cast<bool>(override));
     return override;
   }
@@ -150,27 +155,17 @@ class wrapped_generator : public Base {
   // If it does, stash it in our cache. If not, place an empty entry into the cache so that we do
   // not repeat this work.
   template <typename T>
-  py::function getattr_override() const {
+  py::object getattr_override() const {
     static const std::string method_name = fmt::format("format_{}", T::snake_case_name_str);
-    const py::object maybe_method = py::getattr(
-        py::cast(*this, pybind11::return_value_policy::reference), method_name.c_str(), py::none());
-    if (maybe_method.is_none()) {
-      return py::function();
-    }
-    // Object is not none, so it must be a callable.
-    if (!py::isinstance<py::function>(maybe_method)) {
-      const py::str type_repr = py::repr(py::type::of(maybe_method));
-      throw type_error(
-          "The formatter attribute `{}` should be a callable object. Instead we found: `{}`",
-          method_name, static_cast<std::string>(type_repr));
-    }
-    return py::cast<py::function>(maybe_method);
+    const py::object maybe_method = py::getattr(py::cast(*this, nanobind::rv_policy::reference),
+                                                method_name.c_str(), py::none());
+    return maybe_method;
   }
 
   // We need mutable here because operator() is const in the C++ classes.
   // This should be thread safe since the GIL prevents access from multiple threads.
   // I'd prefer to save weak handles to the underlying functions, but I can't quite figure out how
-  // to do that in pybind11 without hitting invalid access. For now just cache whether the override
+  // to do that in nanobind without hitting invalid access. For now just cache whether the override
   // exists.
   mutable std::unordered_map<std::type_index, bool> has_override_;
 
@@ -217,25 +212,25 @@ struct register_one_format_operator {
   // PyClass is the py::class_ type.
   template <typename PyClass>
   void operator()(PyClass& klass, const std::string_view module_name) const {
-    // Static const so that we are certain pybind11 isn't taking an invalid weak reference here.
+    // Static const so that we are certain nanobind isn't taking an invalid weak reference here.
     static const std::string doc =
         fmt::format("Format type :class:`wrenfold.{}.{}`.", module_name, ast::camel_case_name<T>());
     static const std::string super_doc = doc + " Invokes the wrapped base class implementation.";
 
     // Expose operator() on the generator.
     // underlying_base_type will be cpp_code_generator, etc...
-    using wrapped_type = typename PyClass::type;
+    using wrapped_type = typename PyClass::Type;
     using underlying_base_type = typename wrapped_type::generator_base;
 
     // Register under an overloaded name.
-    // This is so we can just call format(...) in python, and have pybind11 automatically
+    // This is so we can just call format(...) in python, and have nanobind automatically
     // do the overload resolution.
     klass.def(
         "format",
         [](const wrapped_type& self, const T& arg) -> std::string {
           return self.invoke_with_guard(arg);
         },
-        py::arg("element"), py::doc(doc.c_str()));
+        py::arg("element"), doc.c_str());
 
     // super_format always calls the base class implementation.
     klass.def(
@@ -243,12 +238,12 @@ struct register_one_format_operator {
         [](const wrapped_type& self, const T& arg) -> std::string {
           return self.underlying_base_type::operator()(arg);
         },
-        py::arg("element"), py::doc(super_doc.c_str()));
+        py::arg("element"), super_doc.c_str());
   }
 };
 
 // This struct expands over all the types in `ast::ast_element` and exposes operator() for
-// all of them via pybind11.
+// all of them via nanobind.
 template <typename T>
 struct register_all_format_operators;
 template <typename... Ts>
@@ -286,14 +281,14 @@ static auto wrap_code_generator(py::module_& m, const std::string_view name) {
               [](const wrapped_generator<T>& self, const ast::function_definition& definition) {
                 return static_cast<const T&>(self)(definition);
               },
-              py::arg("definition"), py::doc("Generate code for the provided definition."))
+              py::arg("definition"), "Generate code for the provided definition.")
           .def(
               "generate",
               [](const wrapped_generator<T>& self,
                  const std::vector<ast::function_definition>& definitions) {
                 return generate_multiple(static_cast<const T&>(self), definitions);
               },
-              py::arg("definition"), py::doc("Generate code for multiple definitions."));
+              py::arg("definition"), "Generate code for multiple definitions.");
 
   // Wrap all the operator() methods.
   register_all_format_operators<
@@ -316,12 +311,12 @@ void wrap_code_formatting_operations(py::module_& m) {
       .def(py::init<cpp_matrix_type_behavior>(),
            py::arg("matrix_args") = cpp_matrix_type_behavior::generic_span)
       .def("apply_preamble", &cpp_code_generator::apply_preamble, py::arg("code"),
-           py::arg("namespace"), py::arg("imports") = py::str(),
+           py::arg("namespace"), py::arg("imports") = "",
            "Apply a preamble that incorporates necessary runtime includes.")
-      .def_property_readonly("matrix_type_behavior",
-                             [](const wf::wrapped_generator<cpp_code_generator>& self) {
-                               return self.matrix_type_behavior();
-                             })
+      .def_prop_ro("matrix_type_behavior",
+                   [](const wf::wrapped_generator<cpp_code_generator>& self) {
+                     return self.matrix_type_behavior();
+                   })
       .doc() = "Generates C++ code.";
 
   wrap_code_generator<rust_code_generator>(m, "RustGenerator")
@@ -351,17 +346,17 @@ void wrap_code_formatting_operations(py::module_& m) {
            py::arg("float_width") = python_generator_float_width::float64,
            py::arg("indentation") = 4, py::arg("use_output_arguments") = false,
            docstrings::python_generator_constructor.data())
-      .def_property_readonly(
+      .def_prop_ro(
           "target",
           [](const wf::wrapped_generator<python_code_generator>& self) { return self.target(); },
           "The API that the python generator targets.")
-      .def_property_readonly(
+      .def_prop_ro(
           "float_width",
           [](const wf::wrapped_generator<python_code_generator>& self) {
             return self.float_width();
           },
           "Float precision applied to all NumPy arrays and tensors.")
-      .def_property_readonly(
+      .def_prop_ro(
           "indentation",
           [](const wf::wrapped_generator<python_code_generator>& self) {
             return self.indentation();

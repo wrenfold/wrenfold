@@ -93,7 +93,7 @@ wrenfold draws inspiration from [SymForce](https://symforce.org), but differs in
 * **Faster code generation**: Faster code generation translates to quicker iteration on experiments. The generation cost should ideally be negligible compared to compile time for the code itself.
 * **Narrower scope**: wrenfold does not implement a numerical optimizer. Rather we aim to make it simple to integrate generated code into your project's existing preferred optimizer (see the [extended examples](https://github.com/wrenfold/wrenfold-extra-examples)). It should be relatively straightforward to use wrenfold functions with GTSAM, Ceres, the SymForce optimizer, or your own custom implementation.
 
-wrenfold is primarily written in C++, and exposes a python API via [pybind11](https://pybind11.readthedocs.io). It can presently generate code in C++17, Rust, and Python (NumPy, PyTorch, and JAX are all supported).
+wrenfold is primarily written in C++, and exposes a python API via [nanobind](https://nanobind.readthedocs.io). It can presently generate code in C++17, Rust, and Python (NumPy, PyTorch, and JAX are all supported).
 <!--- intro_end --->
 
 ## Motivation

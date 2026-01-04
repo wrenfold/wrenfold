@@ -2,8 +2,10 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>  // Required to pass std::vector.
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/variant.h>
+#include <nanobind/stl/vector.h>
 
 #include "wf/any_expression.h"
 #include "wf/substitute.h"
@@ -65,13 +67,15 @@ auto substitute_wrapper(const X& self, const std::vector<scalar_ptr_or_boolean_p
 
 // Wrapper for the single-replacement version of `substitute`.
 template <typename X1, typename X2>
-auto substitute_wrapper_single(const X1& self, const X2& target, const X2& replacement) {
-  const std::array<scalar_or_boolean_pair, 1> pairs = {std::make_tuple(target, replacement)};
-  if constexpr (std::is_same_v<X1, any_const_ptr_to_expression>) {
-    return substitute_any(deref_any_ptr_to_expression(self), pairs);
-  } else {
-    return substitute(self, pairs);
-  }
+auto make_substitute_wrapper_single() {
+  return [](const X1& self, const X2& target, const X2& replacement) {
+    const std::array<scalar_or_boolean_pair, 1> pairs = {std::make_tuple(target, replacement)};
+    if constexpr (std::is_same_v<X1, any_const_ptr_to_expression>) {
+      return substitute_any(deref_any_ptr_to_expression(self), pairs);
+    } else {
+      return substitute(self, pairs);
+    }
+  };
 }
 
 }  // namespace wf

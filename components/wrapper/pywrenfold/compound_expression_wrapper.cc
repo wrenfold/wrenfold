@@ -1,8 +1,10 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>  // Required to pass std::vector.
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/vector.h>
 
 #include "wf/code_generation/types.h"  //  Required for definition of custom_type.
 #include "wf/compound_expression.h"
@@ -10,14 +12,14 @@
 #include "docs/compound_expression_wrapper.h"
 #include "wrapper_utils.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
 
 void wrap_compound_expression(py::module_& m) {
   wrap_class<compound_expr>(m, "CompoundExpr")
-      .def_property_readonly(
+      .def_prop_ro(
           "type_name", [](const compound_expr& self) { return self.type_name(); },
           "Retrieve the name of the underlying C++ expression type. See "
           ":func:`wrenfold.sym.Expr.type_name`.")
@@ -30,12 +32,12 @@ void wrap_compound_expression(py::module_& m) {
 
   m.def("create_compound_expression_elements", &create_expression_elements, py::arg("provenance"),
         py::arg("num"),
-        py::doc("Create scalar expressions that represent the members of the provided compound "
-                "expression. OMIT_FROM_SPHINX"));
+        "Create scalar expressions that represent the members of the provided compound "
+        "expression. OMIT_FROM_SPHINX");
 
   m.def("create_custom_type_construction", &create_custom_type_construction, py::arg("type"),
         py::arg("expressions"),
-        py::doc("Create compound expression of type `CustomTypeConstruction`. OMIT_FROM_SPHINX"));
+        "Create compound expression of type `CustomTypeConstruction`. OMIT_FROM_SPHINX");
 }
 
 }  // namespace wf

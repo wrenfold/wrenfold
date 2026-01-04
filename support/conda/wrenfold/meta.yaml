@@ -15,9 +15,9 @@ requirements:
     - {{ stdlib('c') }}
   host:
     - python
-    - scikit-build-core ==0.10.7
+    - scikit-build-core ==0.11.6
     # Use cmake<3.28 to avoid clang-scan-deps dependency on OSX (introduced with CMake 3.28).
-    - cmake >=3.20,<3.28
+    - cmake >=3.21,<3.28
     - ninja >=1.5
     - pip
   run:
@@ -40,7 +40,7 @@ about:
     - LICENSE
     - dependencies/abseil-cpp/LICENSE
     - dependencies/fmt/LICENSE
-    - dependencies/pybind11/LICENSE
+    - dependencies/nanobind/LICENSE
   doc_url: https://wrenfold.org
 
 extra:

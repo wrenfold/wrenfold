@@ -22,6 +22,27 @@ Examples:
   [[1, cos(x)], [0, -2*x]]
 )doc";
 
+inline constexpr std::string_view matrix_expr_eval = R"doc(
+Invoke :func:`wrenfold.sym.Expr.eval` on every element of the matrix, and return a numpy array
+containing the resulting values.
+
+Important:
+  The resulting matrix must have a single ``dtype``. In order to ensure a consistent type for all
+  entries, the following promotion order is applied: ``int64 -> double -> std::complex<double>``.
+
+Returns:
+  ``np.ndarray`` with C-storage order and one of the following data types: ``np.int64``,
+  ``np.float64``, or ``np.complex128``.
+
+Raises:
+  :class:`wrenfold.exceptions.TypeError`: If any child expression contains symbolic expressions that
+    cannot be converted to a numerical representation.
+
+Examples:
+  >>> sym.matrix([[1, 2], [0.4 * 2 * sym.I, 0]]).eval()
+  array([[1.+0.j , 2.+0.j], [0.+0.8j, 0.+0.j]])
+)doc";
+
 inline constexpr std::string_view matrix_expr_unary_map = R"doc(
 Perform a unary map operation on ``self``. The provided callable ``func`` is invoked on every
 element of the matrix (traversing in row-major order). The returned values are used to create a new

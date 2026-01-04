@@ -1,11 +1,19 @@
-class ArithmeticError(Exception): ...
 
-class AssertionError(Exception): ...
 
-class DimensionError(Exception): ...
+class ArithmeticError(Exception):
+    """Thrown when invalid arithmetic is attempted."""
 
-class DomainError(Exception): ...
+class AssertionError(Exception):
+    """Thrown for internal errors."""
 
-class InvalidArgumentError(Exception): ...
+class DimensionError(Exception):
+    """Thrown when matrix operations encounter invalid dimensions."""
 
-class TypeError(Exception): ...
+class DomainError(Exception):
+    """Thrown when an argument exceeds acceptable numeric bounds."""
+
+class InvalidArgumentError(Exception):
+    """Thrown for invalid argument values."""
+
+class TypeError(Exception):
+    """Thrown when an unsupported type is encountered."""

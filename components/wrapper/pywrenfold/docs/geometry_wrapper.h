@@ -53,8 +53,15 @@ Examples:
 inline constexpr std::string_view quaternion_eval = R"doc(
 Invoke :func:`wrenfold.sym.Expr.eval` on every element of the quaternion, and return a numpy array.
 
+Important:
+  See :func:`wrenfold.sym.MatrixExpr.eval` for details on numeric type promotion.
+
 Returns:
   4-element numpy array in ``[w, x, y, z]`` (scalar-first) order.
+
+Raises:
+  :class:`wrenfold.exceptions.TypeError`: If any child expression contains symbolic expressions that
+    cannot be converted to a numerical representation.
 
 Examples:
   >>> geometry.Quaternion().eval()

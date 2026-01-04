@@ -342,7 +342,7 @@ def main(args: argparse.Namespace):
     for order in [3, 4, 5, 6]:
         descriptions += create_bspline_functions(order=order, visualize=args.visualize)
 
-    definitions = code_generation.transpile(descriptions)
+    definitions = [code_generation.transpile(d) for d in descriptions]
     if args.language == "cpp":
         generator = code_generation.CppGenerator()
         code = generator.generate(definitions)

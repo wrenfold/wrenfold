@@ -4,7 +4,7 @@
 #pragma once
 #include <algorithm>
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
 #include "wf/expression.h"
 #include "wf/utility/third_party_imports.h"
@@ -16,22 +16,22 @@ WF_END_THIRD_PARTY_INCLUDES
 
 // Shared utilities for writing wrappers.
 namespace wf {
-namespace py = pybind11;
+namespace py = nanobind;
 
 // Wrap a class, and add certain members automatically.
 template <typename T>
 py::class_<T> wrap_class(py::module_& m, const std::string_view name) {
   py::class_<T> klass(m, name.data());
   if constexpr (is_invocable_v<hash_struct<T>, const T&>) {
-    klass.def("__hash__", &hash<T>, py::doc("Compute hash."));
+    klass.def("__hash__", &hash<T>, "Compute hash.");
   }
   if constexpr (is_invocable_v<is_identical_struct<T>, const T&, const T&>) {
-    klass.def(
-        "is_identical_to", &are_identical<T>, py::arg("other"),
-        py::doc("Check for strict equality. This is not the same as mathematical equivalence."));
-    klass.def(
-        "__eq__", &are_identical<T>, py::is_operator(), py::arg("other"),
-        py::doc("Check for strict equality. This is not the same as mathematical equivalence."));
+    klass.def("is_identical_to", &are_identical<T>, py::arg("other"),
+              "Check for strict equality (identical expression trees). This is not the same as "
+              "mathematical equivalence.");
+    klass.def("__eq__", &are_identical<T>, py::is_operator(), py::arg("other"),
+              "Check for strict equality (identical expression trees). This is not the same as "
+              "mathematical equivalence.");
   }
   return klass;
 }
@@ -59,7 +59,7 @@ namespace detail {
 
 template <typename... Ts>
 std::array<std::string, sizeof...(Ts)> get_py_type_names(type_list<Ts...>) {
-  return {static_cast<std::string>(py::repr(py::type::of<Ts>()))...};
+  return {static_cast<std::string>(py::repr(py::type<Ts>()).c_str())...};
 }
 
 template <typename V, std::size_t I>
@@ -72,8 +72,8 @@ V variant_from_pyobject(const py::handle& object) {
     return variant_from_pyobject<V, I + 1>(object);
   } else {
     static const auto types = detail::get_py_type_names(list{});
-    throw type_error("Object of type `{}` is not one of the permitted types: {}",
-                     static_cast<std::string>(py::repr(py::type::of(object))),
+    const py::str repr = py::repr(object);
+    throw type_error("Object `{}` is not one of the permitted types: {}", repr.c_str(),
                      fmt::join(types, ", "));
   }
 }

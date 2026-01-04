@@ -6,8 +6,9 @@ NB: Most of this is tested in `quaternion_test.cc`. This is just a test of the w
 
 import unittest
 
+import numpy as np
 from wrenfold import exceptions, sym
-from wrenfold.geometry import Quaternion
+from wrenfold.geometry import Quaternion, inverse_left_jacobian_of_so3, left_jacobian_of_so3
 
 from .test_base import MathTestBase
 
@@ -100,6 +101,33 @@ class GeometryWrapperTest(MathTestBase):
         self.assertEqual((3, 3), R.shape)
         self.assertIdentical(R.T, q.conjugate().to_rotation_matrix())
 
+    def test_to_rotation_vector(self):
+        """Test calling to_rotation_vector."""
+        w, x, y, z = sym.symbols("w, x, y, z")
+        q = Quaternion(w, x, y, z)
+        v = q.to_rotation_vector()
+        self.assertIsInstance(v, sym.MatrixExpr)
+        self.assertEqual((3, 1), v.shape)
+        for epsilon in (0, 0.5, None):
+            for use_atan2 in (True, False):
+                v = q.to_rotation_vector(epsilon=epsilon, use_atan2=use_atan2)
+                self.assertIsInstance(v, sym.MatrixExpr)
+                self.assertEqual((3, 1), v.shape)
+
+    def test_to_angle_axis(self):
+        """Test calling to_angle_axis."""
+        w, x, y, z = sym.symbols("w, x, y, z")
+        q = Quaternion(w, x, y, z)
+        angle, axis = q.to_angle_axis()
+        self.assertIsInstance(angle, sym.Expr)
+        self.assertIsInstance(axis, sym.MatrixExpr)
+        self.assertEqual((3, 1), axis.shape)
+        for epsilon in (0, 0.5, None):
+            angle, axis = q.to_angle_axis(epsilon=epsilon)
+            self.assertIsInstance(angle, sym.Expr)
+            self.assertIsInstance(axis, sym.MatrixExpr)
+            self.assertEqual((3, 1), axis.shape)
+
     def test_rotate_vector(self):
         """Test calling rotate()"""
         w, x, y, z = sym.symbols("w, x, y, z")
@@ -134,6 +162,11 @@ class GeometryWrapperTest(MathTestBase):
             Quaternion.from_rotation_vector(0.0, -0.32, 0.0, None),
         )
 
+        # Check we can call with different values of epsilon:
+        for epsilon in (0, 0.1, None):
+            Quaternion.from_rotation_vector(*sym.symbols("x, y, z"), epsilon=epsilon)
+            Quaternion.from_rotation_vector(sym.vector(*sym.symbols("x, y, z")), epsilon=epsilon)
+
     def test_from_rotation_matrix(self):
         """Test calling from_rotation_matrix."""
         theta = sym.symbols("theta")
@@ -158,6 +191,30 @@ class GeometryWrapperTest(MathTestBase):
         self.assertIsInstance(J0, sym.MatrixExpr)
         self.assertIsInstance(J1, sym.MatrixExpr)
         self.assertIdentical(sym.eye(3), (J1 * J0).subs(w**2 + x**2 + y**2 + z**2, 1))
+
+    def test_quaternion_eval(self):
+        """Test calling `eval()` on quaternion."""
+        np.testing.assert_equal(
+            np.array([1, 0, 0, 0], dtype=np.int64).reshape(4, 1), Quaternion(1, 0, 0, 0).eval()
+        )
+        np.testing.assert_equal(
+            np.array([0.5, -0.5, 0.5, -0.5], dtype=np.float64).reshape(4, 1),
+            Quaternion(0.5, -0.5, 0.5, -0.5).eval(),
+        )
+        self.assertRaises(exceptions.TypeError, lambda: Quaternion.with_name("q").eval())
+
+    def test_jacobians_of_so3(self):
+        """Test calling left_jacobian_of_so3 and inverse_left_jacobian_of_so3."""
+        x, y, z = sym.symbols("x, y, z")
+        for epsilon in (0, 0.01, None):
+            left_jacobian_of_so3(sym.vector(x, y, z), epsilon=epsilon)
+            inverse_left_jacobian_of_so3(sym.vector(x, y, z), epsilon=epsilon)
+
+        J = left_jacobian_of_so3(sym.vector(x, y, z), None)
+        J_inv = inverse_left_jacobian_of_so3(sym.vector(x, y, z), None)
+        np.testing.assert_allclose(
+            (J * J_inv).subs([(x, 0.12), (y, -0.51), (z, 0.8)]).eval(), np.eye(3), atol=1.0e-15
+        )
 
 
 if __name__ == "__main__":

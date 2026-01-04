@@ -1,11 +1,12 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string_view.h>
 
 #include "wf/enumerations.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
@@ -35,7 +36,7 @@ void wrap_enums(py::module_& m) {
       .def(
           "to_string",
           [](const std_math_function name) { return string_from_standard_library_function(name); },
-          py::doc("Convert to string."));
+          "Convert to string.");
 
   py::enum_<relational_operation>(m, "RelationalOperation")
       .value("LessThan", relational_operation::less_than)

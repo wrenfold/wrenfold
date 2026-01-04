@@ -81,8 +81,11 @@ Important:
   will call their C++ STL equivalent.
 
 Returns:
-  The evaluated result. Typically the result is ``float`` or ``complex``. If the final result is not
-  coercible to one of these, it will be returned as ``sym.Expr``.
+  The evaluated result. Typically the result is ``int``, ``float``, or ``complex``.
+
+Raises:
+  :class:`wrenfold.exceptions.TypeError`: If the expression contains symbolic expressions that
+    cannot be converted to a numerical representation.
 
 Examples:
   >>> x = sym.symbols('x')

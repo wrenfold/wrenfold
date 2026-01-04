@@ -4,11 +4,14 @@
 #include <optional>
 #include <vector>
 
-#include <pybind11/complex.h>     // Used for std::complex conversion.
-#include <pybind11/functional.h>  // Used for std::function.
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
+#include <nanobind/stl/vector.h>
 
 #include "wf/collect.h"
 #include "wf/constants.h"
@@ -22,6 +25,7 @@
 #include "wf/expressions/variable.h"
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
+#include "wf/utility/error_types.h"
 #include "wf/utility_visitors.h"
 
 #include "args_visitor.h"
@@ -29,7 +33,7 @@
 #include "visitor_wrappers.h"
 #include "wrapper_utils.h"
 
-namespace py = pybind11;
+namespace py = nanobind;
 using namespace py::literals;
 
 namespace wf {
@@ -53,7 +57,7 @@ static std::variant<scalar_expr, py::list> create_symbols_from_str(const std::st
     variables.append(make_expr<variable>(std::move(name), set));
   }
   if (variables.size() == 1) {
-    return variables[0].cast<scalar_expr>();
+    return py::cast<scalar_expr>(variables[0]);
   }
   return variables;
 }
@@ -67,7 +71,7 @@ static std::variant<scalar_expr, py::list> create_symbols_from_str(const py::ite
     // Each element of the iterable could be a string, or a nested iterable:
     auto symbols =
         std::visit([set](const auto& input) { return create_symbols_from_str(input, set); },
-                   py::cast<std::variant<std::string_view, py::iterable>>(handle));
+                   py::cast<std::variant<std::string, py::iterable>>(handle));
     result.append(std::move(symbols));
   }
   return result;
@@ -94,7 +98,7 @@ inline number_set determine_set_from_flags(const bool real, const bool positive,
 // To imitate sympy, we support a list of bool flags to specify assumptions.
 // We check for incompatible arrangements in this function.
 static std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
-    const std::variant<std::string_view, py::iterable>& arg, const bool real, const bool positive,
+    const std::variant<std::string, py::iterable>& arg, const bool real, const bool positive,
     const bool nonnegative, const bool complex) {
   return std::visit(
       [&](const auto& input) {
@@ -124,23 +128,31 @@ static std::variant<scalar_expr, py::list> create_unique_variables(const std::si
   }
 }
 
-static auto eval_wrapper(const scalar_expr& self) { return maybe_numerical_cast(self.eval()); }
+static std::variant<std::int64_t, double, std::complex<double>> eval_wrapper(
+    const scalar_expr& self) {
+  if (const auto maybe_num = numerical_cast(self); maybe_num.has_value()) {
+    return *maybe_num;
+  } else {
+    throw wf::type_error("Expression of type `{}` is not coercible to a numeric value.",
+                         self.type_name());
+  }
+}
 
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
 void wrap_scalar_operations(py::module_& m) {
   // Primary expression type:
   wrap_class<scalar_expr>(m, "Expr")
       // Implicit construction from numerics:
-      .def(py::init<std::int64_t>())
-      .def(py::init<double>())
+      .def(py::init_implicit<std::int64_t>())
+      .def(py::init_implicit<double>())
       // String conversion:
       .def("__repr__", &scalar_expr::to_string)
       .def("expression_tree_str", &scalar_expr::to_expression_tree_string,
            docstrings::scalar_expr_expression_tree_str.data())
-      .def_property_readonly(
+      .def_prop_ro(
           "type_name", [](const scalar_expr& self) { return self.type_name(); },
           docstrings::scalar_expr_type_name.data())
-      .def_property_readonly(
+      .def_prop_ro(
           "args", [](const scalar_expr& self) { return args_visitor{}(self); },
           "Arguments of ``self`` as a tuple.")
       // Operations:
@@ -157,10 +169,10 @@ void wrap_scalar_operations(py::module_& m) {
       .def("distribute", &scalar_expr::distribute, "See :func:`wrenfold.sym.distribute`.")
       .def("subs", &substitute_wrapper<scalar_expr>, py::arg("pairs"),
            "See :func:`wrenfold.sym.subs`.")
-      .def("subs", &substitute_wrapper_single<scalar_expr, scalar_expr>, py::arg("target"),
+      .def("subs", make_substitute_wrapper_single<scalar_expr, scalar_expr>(), py::arg("target"),
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single scalar-valued substitution.")
-      .def("subs", &substitute_wrapper_single<scalar_expr, boolean_expr>, py::arg("target"),
+      .def("subs", make_substitute_wrapper_single<scalar_expr, boolean_expr>(), py::arg("target"),
            py::arg("substitute"),
            "Overload of ``subs`` that performs a single boolean-valued substitution.")
       .def("eval", &eval_wrapper, docstrings::scalar_expr_eval.data())
@@ -217,11 +229,8 @@ void wrap_scalar_operations(py::module_& m) {
                 "and sym.false can be evaluated for truthiness.",
                 self.type_name());
           },
-          py::doc("Coerce expression to bool."))
+          "Coerce expression to bool.")
       .doc() = "A scalar-valued symbolic expression.";
-
-  py::implicitly_convertible<std::int64_t, scalar_expr>();
-  py::implicitly_convertible<double, scalar_expr>();
 
   // Methods for declaring expressions:
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,
@@ -309,8 +318,8 @@ void wrap_scalar_operations(py::module_& m) {
         return eliminate_subexpressions(expr, std::move(make_variable).value_or(nullptr),
                                         min_occurrences);
       },
-      "expr"_a, "make_variable"_a = py::none(), "min_occurrences"_a = 2,
-      docstrings::eliminate_subexpressions.data(), py::return_value_policy::take_ownership);
+      py::arg("expr"), py::arg("make_variable").none(), "min_occurrences"_a = 2,
+      docstrings::eliminate_subexpressions.data());
 
   // Special constants:
   m.attr("E") = constants::euler;
@@ -326,16 +335,16 @@ void wrap_scalar_operations(py::module_& m) {
   m.def(
       "addition",
       [](const std::vector<scalar_expr>& args) { return addition::from_operands(args); },
-      py::arg("args"), py::doc("Construct addition expression from provided operands."));
+      py::arg("args"), "Construct addition expression from provided operands.");
   m.def(
       "multiplication",
       [](const std::vector<scalar_expr>& args) { return multiplication::from_operands(args); },
-      py::arg("args"), py::doc("Construct multiplication expression from provided operands."));
+      py::arg("args"), "Construct multiplication expression from provided operands.");
 
   wrap_class<symbolic_function>(m, "Function")
       .def(py::init<std::string>(), py::arg("name"),
            docstrings::symbolic_function_constructor.data())
-      .def_property_readonly("name", &symbolic_function::name, "Name of the function.")
+      .def_prop_ro("name", &symbolic_function::name, "Name of the function.")
       .def("__repr__", &symbolic_function::name)
       .def(
           "__call__",

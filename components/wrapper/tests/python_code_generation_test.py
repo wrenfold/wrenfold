@@ -81,9 +81,9 @@ def create_evaluator(func: T.Callable) -> T.Callable:
 
         return_value = None
         output_arg_dict = dict()
-        for key, output_exprs in output_expressions.items():
-            output_exprs = sym.subs(output_exprs, sub_list).eval()
-            assert isinstance(output_exprs, (float, np.ndarray)), (
+        for key, output_exprs_symbolic in output_expressions.items():
+            output_exprs = sym.subs(output_exprs_symbolic, sub_list).eval()
+            assert isinstance(output_exprs, (int, float, np.ndarray)), (
                 f"Failed to evaluate output: {key}"
             )
             if not key.name:
@@ -971,7 +971,7 @@ def test_numpy_type_annotations():
 
 
 def main():
-    # TOOD: Find a better way to test the different permutations.
+    # TODO: Find a better way to test the different permutations.
     test_cases = [
         NumPyCodeGenerationF32Test,
         NumPyCodeGenerationF64Test,

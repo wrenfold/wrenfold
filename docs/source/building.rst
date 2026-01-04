@@ -36,10 +36,9 @@ Building directly with cmake is the recommend path if you need to iterate on the
 
 You will need the following tools:
 
-  * cmake >= 3.20
+  * cmake >= 3.21
   * ninja >= 1.5 (other build systems are not explicitly tested at this time)
   * python >= 3.10
-  * mypy (required for `stubgen <https://mypy.readthedocs.io/en/stable/stubgen.html>`_)
 
 To run python tests you will additionally need:
 

@@ -336,7 +336,8 @@ TEST(FunctionsTest, TestArccosh) {
   const auto [x, y] = make_symbols("x", "y");
 
   ASSERT_NOT_IDENTICAL(acosh(x), acosh(y));
-  ASSERT_TRUE(acosh(3).is_type<built_in_function_invocation>());  //  Does not simplify.
+  ASSERT_TRUE(acosh(3).is_type<built_in_function_invocation>())
+      << acosh(3).to_expression_tree_string();
 
   ASSERT_IDENTICAL(constants::pi * constants::imaginary_unit / 2, acosh(0));
 

@@ -7,9 +7,7 @@ define_property(
   BRIEF_DOCS ${PYTHON_SUBMODULES_DOC}
   FULL_DOCS ${PYTHON_SUBMODULES_DOC})
 
-if(WF_BUILD_STUBS)
-  add_custom_target(wf_stubs ALL)
-endif()
+add_custom_target(wf_stubs ALL)
 
 # Define a target for the C++ wrapper module.
 function(add_wrapper_module)
@@ -17,23 +15,28 @@ function(add_wrapper_module)
   set(multiValueArgs "SOURCES;SUBMODULE_NAMES")
   cmake_parse_arguments(MODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  # Add pybind11 module
-  pybind11_add_module(${MODULE_NAME} ${MODULE_SOURCES})
+  nanobind_add_module(
+    ${MODULE_NAME}
+    NB_DOMAIN
+    wf_abi_domain
+    NB_STATIC
+    PROTECT_STACK
+    NOMINSIZE
+    ${MODULE_SOURCES})
   set_property(
     TARGET ${MODULE_NAME}
     APPEND
     PROPERTY PYTHON_SUBMODULES ${MODULE_SUBMODULE_NAMES})
 
   # Depend on the static library
-  target_link_libraries(${MODULE_NAME} PRIVATE wf_core)
+  target_link_libraries(${MODULE_NAME} PRIVATE wf_core Eigen3::Eigen)
   target_compile_options(${MODULE_NAME} PRIVATE ${WF_SHARED_WARNING_FLAGS})
-  target_compile_options(${MODULE_NAME}
-                         PRIVATE -DPYBIND11_DETAILED_ERROR_MESSAGES)
   target_compile_definitions(${MODULE_NAME}
                              PRIVATE PY_MODULE_NAME=${MODULE_NAME})
   if(DEFINED SKBUILD_PROJECT_VERSION)
     target_compile_definitions(
       ${MODULE_NAME} PRIVATE PY_MODULE_VERSION="${SKBUILD_PROJECT_VERSION}")
+    target_compile_definitions(${MODULE_NAME} PRIVATE -DWF_BUILDING_WHEEL=1)
   else()
     target_compile_definitions(${MODULE_NAME} PRIVATE PY_MODULE_VERSION="dev")
   endif()
@@ -72,21 +75,13 @@ function(add_wrapper_module)
   endif()
 endfunction()
 
-# Executes mypy-stubgen to generate stubs for the C++ wrapper module.
+# Executes nanobind-stubgen to generate stubs for the C++ wrapper module.
 function(add_wrapper_module_stubs)
   set(oneValueArgs MODULE_NAME OUTPUT_DIR)
   set(multiValueArgs "")
   cmake_parse_arguments(ARGS "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  # Find stubgen:
-  if(NOT DEFINED STUBGEN_PATH OR STUBGEN_PATH STREQUAL "STUBGEN_PATH-NOTFOUND")
-    message(STATUS "Looking for stubgen...")
-    find_program(STUBGEN_PATH stubgen REQUIRED)
-    if(DEFINED STUBGEN_PATH AND NOT STUBGEN_PATH STREQUAL
-                                "STUBGEN_PATH-NOTFOUND")
-      message(STATUS "stubgen path: ${STUBGEN_PATH}")
-    endif()
-  endif()
+  message(STATUS "Creating targets for stub generation.")
 
   # Get the sub-module names from the module target.
   get_property(
@@ -97,12 +92,35 @@ function(add_wrapper_module_stubs)
   # There can be multiple submodules in the same shared object. Iterate over all
   # of them and make sure we record their output `pyi` files.
   set(STUBGEN_BUILD_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
-  set(STUBGEN_BUILD_OUTPUT_PATHS
-      "${STUBGEN_BUILD_OUTPUT_DIR}/${ARGS_MODULE_NAME}/__init__.pyi")
+  set(STUBGEN_BUILD_OUTPUT_PATHS "${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi")
+  set(STUBGEN_SUBMODULE_TARGETS "")
+
+  nanobind_add_stub(
+    wf_stubs_init
+    MODULE
+    "${ARGS_MODULE_NAME}"
+    OUTPUT
+    __init__.pyi
+    PYTHON_PATH
+    $<TARGET_FILE_DIR:${ARGS_MODULE_NAME}>
+    DEPENDS
+    ${ARGS_MODULE_NAME})
+  list(APPEND STUBGEN_SUBMODULE_TARGETS wf_stubs_init)
+
   foreach(SUBMODULE_NAME ${SUBMODULE_NAMES})
-    set(SUBMODULE_STUB_OUTPUT_PATH
-        "${STUBGEN_BUILD_OUTPUT_DIR}/${ARGS_MODULE_NAME}/${SUBMODULE_NAME}.pyi")
-    list(APPEND STUBGEN_BUILD_OUTPUT_PATHS ${SUBMODULE_STUB_OUTPUT_PATH})
+    nanobind_add_stub(
+      wf_stubs_${SUBMODULE_NAME}
+      MODULE
+      "${ARGS_MODULE_NAME}.${SUBMODULE_NAME}"
+      OUTPUT
+      ${SUBMODULE_NAME}.pyi
+      PYTHON_PATH
+      $<TARGET_FILE_DIR:${ARGS_MODULE_NAME}>
+      DEPENDS
+      ${ARGS_MODULE_NAME})
+    list(APPEND STUBGEN_SUBMODULE_TARGETS wf_stubs_${SUBMODULE_NAME})
+    list(APPEND STUBGEN_BUILD_OUTPUT_PATHS
+         "${STUBGEN_BUILD_OUTPUT_DIR}/${SUBMODULE_NAME}.pyi")
   endforeach()
 
   # The directory in the source tree we will copy these to.
@@ -114,28 +132,17 @@ function(add_wrapper_module_stubs)
          "${STUBGEN_SOURCE_OUTPUT_DIR}/${ARGS_MODULE_NAME}/${STUB_NAME}")
   endforeach()
 
-  # Add a command to generate stubs
-  # https://mypy.readthedocs.io/en/stable/stubgen.html
-  message(STATUS "Will generate stubs for: ${ARGS_MODULE_NAME}")
-  add_custom_command(
-    OUTPUT ${STUBGEN_BUILD_OUTPUT_PATHS}
-    COMMAND ${STUBGEN_PATH} --package ${ARGS_MODULE_NAME} --output
-            ${STUBGEN_BUILD_OUTPUT_DIR}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generate stubs for pybind module: ${ARGS_MODULE_NAME}"
-    DEPENDS ${ARGS_MODULE_NAME})
-
   # Copy stubs to the source tree:
   add_custom_command(
     OUTPUT ${STUBGEN_SOURCE_OUTPUT_PATHS}
     COMMAND ${CMAKE_COMMAND} -E copy ${STUBGEN_BUILD_OUTPUT_PATHS}
             "${STUBGEN_SOURCE_OUTPUT_DIR}/${ARGS_MODULE_NAME}"
-    DEPENDS ${STUBGEN_BUILD_OUTPUT_PATHS}
+    DEPENDS ${STUBGEN_BUILD_OUTPUT_PATHS} ${STUBGEN_SUBMODULE_TARGETS}
     COMMENT "Copying stubs to source tree.")
 
-  add_custom_target(${ARGS_MODULE_NAME}_stubs
+  add_custom_target(${ARGS_MODULE_NAME}_stubs_copy
                     DEPENDS ${STUBGEN_SOURCE_OUTPUT_PATHS})
-  add_dependencies(wf_stubs ${ARGS_MODULE_NAME}_stubs)
+  add_dependencies(wf_stubs ${ARGS_MODULE_NAME}_stubs_copy)
 endfunction()
 
 # Add install targets for generated stubs.
@@ -197,6 +204,8 @@ add_wrapper_module(
   pywrenfold/expressions_wrapper.cc
   pywrenfold/geometry_wrapper.cc
   pywrenfold/matrix_wrapper.cc
+  pywrenfold/numpy_conversion.cc
+  pywrenfold/numpy_conversion.h
   pywrenfold/scalar_wrapper.cc
   pywrenfold/symbolic_functions_wrapper.cc
   pywrenfold/sympy_conversion.cc
@@ -216,20 +225,17 @@ add_wrapper_module(
   type_info)
 
 add_library(wf_wrapper ALIAS pywrenfold)
-
-# Because we can't build stubs while cross-compiling (necessary for Conda), we
-# instead build them to the repository check that they have been committed
-# properly on CI.
 if(WF_BUILD_STUBS)
   add_wrapper_module_stubs(MODULE_NAME pywrenfold OUTPUT_DIR
                            "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
 endif()
 
-# Stubs will be installed from their location in the repo.
+# Because we can't build stubs while cross-compiling (necessary for Conda), we
+# instead build them to the repository check that they have been committed
+# properly on CI. We install them from the source directory:
 install_stubs(MODULE_NAME pywrenfold STUBS_DIR
               "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
 
-# Add python tests:
 if(WF_BUILD_EXTRAS)
   add_subdirectory(tests)
 endif()
