@@ -426,6 +426,7 @@ class ExpressionWrapperTest(MathTestBase):
         x, y = sym.symbols("x, y")
         self.assertRaises(exceptions.TypeError, lambda: x.eval())
         self.assertRaises(exceptions.TypeError, lambda: (x + y).subs(y, 2).eval())
+        self.assertRaises(exceptions.TypeError, lambda: sym.E.eval())
         self.assertAlmostEqual(
             4.3 / 2.71582, (x / y).subs(x, 4.3).subs(y, 2.71582).eval(), places=15
         )
@@ -437,7 +438,6 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual(complex(-0.2, 5), (-0.2 + sym.I * 5).eval())
         self.assertEqual(complex(0.23, 0.5), (x + sym.I * y).subs(x, 0.23).subs(y, 0.5).eval())
         self.assertEqual(1, sym.exp(0).eval())
-        self.assertEqual(sym.E.eval(), sym.exp(1).eval())
 
         self.assertRaises(exceptions.TypeError, lambda: sym.derivative(x, y, 1).eval())
         self.assertRaises(exceptions.TypeError, lambda: sym.zoo.eval())
