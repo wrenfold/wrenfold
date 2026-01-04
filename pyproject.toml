@@ -44,6 +44,7 @@ wheel.packages = ["components/python/wrenfold"]
 wheel.license-files = [
     "LICENSE",
     "dependencies/abseil-cpp/LICENSE",
+    "dependencies/eigen/LICENSE",
     "dependencies/fmt/LICENSE",
     "dependencies/nanobind/LICENSE",
 ]

@@ -39,6 +39,7 @@ about:
   license_file:
     - LICENSE
     - dependencies/abseil-cpp/LICENSE
+    - dependencies/eigen/LICENSE
     - dependencies/fmt/LICENSE
     - dependencies/nanobind/LICENSE
   doc_url: https://wrenfold.org

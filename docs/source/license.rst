@@ -15,7 +15,7 @@ Third party dependencies are separately licensed:
   * abseil `Apache 2.0 <https://github.com/abseil/abseil-cpp/blob/master/LICENSE>`__
   * fmt `MIT <https://github.com/fmtlib/fmt/blob/master/LICENSE>`__
   * nanobind `BSD3 <https://github.com/wjakob/nanobind/blob/master/LICENSE>`__
-  * eigen (optional) `MPL2 <https://eigen.tuxfamily.org/index.php?title=Main_Page#License>`__
+  * eigen `MPL2 <https://eigen.tuxfamily.org/index.php?title=Main_Page#License>`__
 
 Test-time dependencies:
 
