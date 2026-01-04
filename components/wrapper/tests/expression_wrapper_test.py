@@ -199,6 +199,16 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertNotIdentical(p + p, p - q)
         self.assertNotIdentical(q - 5, q + 5)
 
+        # Test all operator overloads for int/float
+        self.assertIdentical(p + 5, 5 + p)
+        self.assertIdentical(p + 2.2, 2.2 + p)
+        self.assertIdentical(5 - p, -p + 5)
+        self.assertIdentical(1.45 - p, 1.45 + -p)
+        self.assertIdentical(p * 5, 5 * p)
+        self.assertIdentical(p * 2.2, 2.2 * p)
+        self.assertIdentical(p / 5, p / sym.integer(5))
+        self.assertIdentical(p / 8.1, p / sym.float(8.1))
+
         self.assertIdentical(p * q, q * p)
         self.assertEqual("Multiplication", (p * q).type_name)
         self.assertCountEqual((p, q), (p * q).args)
@@ -355,6 +365,25 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.eq(x, 1), sym.eq(1, x))
         self.assertNotIdentical(sym.eq(x, y), sym.eq(2, x * y))
         self.assertEqual((y, x * 2), sym.eq(x * 2, y).args)
+
+        # Check every int/float overload:
+        self.assertIdentical(x < 2, sym.lt(x, 2))
+        self.assertIdentical(x > 2, sym.gt(x, 2))
+        self.assertIdentical(x >= 2, sym.ge(x, 2))
+        self.assertIdentical(x <= 2, sym.le(x, 2))
+        self.assertIdentical(4 < x, sym.lt(4, x))  # noqa: SIM300
+        self.assertIdentical(4 > x, sym.gt(4, x))  # noqa: SIM300
+        self.assertIdentical(4 >= x, sym.ge(4, x))  # noqa: SIM300
+        self.assertIdentical(4 <= x, sym.le(4, x))  # noqa: SIM300
+
+        self.assertIdentical(x < 1.32, sym.lt(x, 1.32))
+        self.assertIdentical(x > 1.32, sym.gt(x, 1.32))
+        self.assertIdentical(x >= 1.32, sym.ge(x, 1.32))
+        self.assertIdentical(x <= 1.32, sym.le(x, 1.32))
+        self.assertIdentical(-0.51 < x, sym.lt(-0.51, x))  # noqa: SIM300
+        self.assertIdentical(-0.51 > x, sym.gt(-0.51, x))  # noqa: SIM300
+        self.assertIdentical(-0.51 >= x, sym.ge(-0.51, x))  # noqa: SIM300
+        self.assertIdentical(-0.51 <= x, sym.le(-0.51, x))  # noqa: SIM300
 
     def test_conditionals(self):
         """Test creating conditional logic."""

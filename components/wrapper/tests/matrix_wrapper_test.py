@@ -497,6 +497,16 @@ class MatrixWrapperTest(MathTestBase):
             ).eval(),
         )
 
+    def test_scalar_multiply(self):
+        """Test we can call different overloads for matrix/scalar multiplication and division."""
+        x, y = sym.symbols("x, y")
+        self.assertIdentical(sym.vector(x * 7, y * 7), sym.vector(x, y) * 7)
+        self.assertIdentical(sym.vector(x * 7, y * 7), 7 * sym.vector(x, y))
+        self.assertIdentical(sym.vector(x * 9.81, y * 9.81), sym.vector(x, y) * 9.81)
+        self.assertIdentical(sym.vector(x * 9.81, y * 9.81), 9.81 * sym.vector(x, y))
+        self.assertIdentical(sym.vector(x / 3, y / 3), sym.vector(x, y) / 3)
+        self.assertIdentical(sym.vector(x / 0.4, y / 0.4), sym.vector(x, y) / 0.4)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
