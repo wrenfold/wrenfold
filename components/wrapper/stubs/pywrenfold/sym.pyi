@@ -1795,6 +1795,9 @@ class CompoundExpr:
 
     def __repr__(self) -> str: ...
 
+    def expression_tree_str(self) -> str:
+        """See :func:`wrenfold.sym.Expr.expression_tree_str`."""
+
     def __bool__(self) -> None: ...
 
 def create_compound_expression_elements(provenance: CompoundExpr, num: int) -> list[Expr]:
