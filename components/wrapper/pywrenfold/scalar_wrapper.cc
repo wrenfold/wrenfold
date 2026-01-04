@@ -192,17 +192,25 @@ void wrap_scalar_operations(py::module_& m) {
       .def(py::self * py::self)
       .def(py::self / py::self)
       .def(-py::self)
-      .def("__pow__", &wf::pow, py::is_operator(), "other_a")
+      .def("__pow__", &wf::pow, py::is_operator(), py::arg("other"))
       .def(
           "__rpow__",
           [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
-          py::is_operator(), "other_a")
+          py::is_operator(), py::arg("other"))
       .def("__abs__", [](const scalar_expr& self) { return abs(self); })
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
       .def(py::self <= py::self)
-      // Operators involving integers (int on left side):
+      // Operators involving integers
+      .def(py::self + std::int64_t())
+      .def(py::self - std::int64_t())
+      .def(py::self * std::int64_t())
+      .def(py::self / std::int64_t())
+      .def(py::self > std::int64_t())
+      .def(py::self >= std::int64_t())
+      .def(py::self < std::int64_t())
+      .def(py::self <= std::int64_t())
       .def(std::int64_t() + py::self)
       .def(std::int64_t() - py::self)
       .def(std::int64_t() * py::self)
@@ -211,7 +219,15 @@ void wrap_scalar_operations(py::module_& m) {
       .def(std::int64_t() >= py::self)
       .def(std::int64_t() < py::self)
       .def(std::int64_t() <= py::self)
-      // Operators involving doubles (double on left side):
+      // Operators involving doubles
+      .def(py::self + double())
+      .def(py::self - double())
+      .def(py::self * double())
+      .def(py::self / double())
+      .def(py::self > double())
+      .def(py::self >= double())
+      .def(py::self < double())
+      .def(py::self <= double())
       .def(double() + py::self)
       .def(double() - py::self)
       .def(double() * py::self)
