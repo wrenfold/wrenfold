@@ -24,6 +24,8 @@ void wrap_compound_expression(py::module_& m) {
           "Retrieve the name of the underlying C++ expression type. See "
           ":func:`wrenfold.sym.Expr.type_name`.")
       .def("__repr__", &compound_expr::to_string)
+      .def("expression_tree_str", &compound_expr::to_expression_tree_string,
+           "See :func:`wrenfold.sym.Expr.expression_tree_str`.")
       .def("__bool__",
            [](const compound_expr&) {
              throw type_error("CompoundExpr cannot be coerced to boolean.");
