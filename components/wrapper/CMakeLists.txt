@@ -91,8 +91,8 @@ function(add_wrapper_module_stubs)
 
   # There can be multiple submodules in the same shared object. Iterate over all
   # of them and make sure we record their output `pyi` files.
-  set(STUBGEN_BUILD_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
-  set(STUBGEN_BUILD_OUTPUT_PATHS "${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi")
+  set(STUBGEN_BUILD_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/${ARGS_MODULE_NAME})
+  set(STUBGEN_BUILD_OUTPUT_PATHS "")
   set(STUBGEN_SUBMODULE_TARGETS "")
 
   nanobind_add_stub(
@@ -100,12 +100,14 @@ function(add_wrapper_module_stubs)
     MODULE
     "${ARGS_MODULE_NAME}"
     OUTPUT
-    __init__.pyi
+    ${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi
     PYTHON_PATH
     $<TARGET_FILE_DIR:${ARGS_MODULE_NAME}>
     DEPENDS
     ${ARGS_MODULE_NAME})
   list(APPEND STUBGEN_SUBMODULE_TARGETS wf_stubs_init)
+  list(APPEND STUBGEN_BUILD_OUTPUT_PATHS
+       "${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi")
 
   foreach(SUBMODULE_NAME ${SUBMODULE_NAMES})
     nanobind_add_stub(
@@ -113,7 +115,7 @@ function(add_wrapper_module_stubs)
       MODULE
       "${ARGS_MODULE_NAME}.${SUBMODULE_NAME}"
       OUTPUT
-      ${SUBMODULE_NAME}.pyi
+      ${STUBGEN_BUILD_OUTPUT_DIR}/${SUBMODULE_NAME}.pyi
       PYTHON_PATH
       $<TARGET_FILE_DIR:${ARGS_MODULE_NAME}>
       DEPENDS
