@@ -54,11 +54,11 @@ class SympyConversionTest(MathTestBase):
         self.assertEqualSp(sp.Rational(6, 14), sym.rational(6, 14))
         self.assertEqualSp(sp.Rational(-3, 5), sym.rational(-3, 5))
 
-        self.assertEqualSp(sp.Float(0.0), sym.float(0.0))
-        self.assertEqualSp(sp.Float(1.0), sym.float(1.0))
-        self.assertEqualSp(sp.Float(1.2), sym.float(1.2))
-        self.assertEqualSp(sp.Float(-4.845926), sym.float(-4.845926))
-        self.assertEqualSp(sp.Float(1.782e10), sym.float(1.782e10))
+        self.assertEqualSp(sp.Float(0.0), sym.float_constant(0.0))
+        self.assertEqualSp(sp.Float(1.0), sym.float_constant(1.0))
+        self.assertEqualSp(sp.Float(1.2), sym.float_constant(1.2))
+        self.assertEqualSp(sp.Float(-4.845926), sym.float_constant(-4.845926))
+        self.assertEqualSp(sp.Float(1.782e10), sym.float_constant(1.782e10))
         self.assertEqualSp(sp.Float(sys.float_info.max), sys.float_info.max)
         self.assertEqualSp(sp.Float(sys.float_info.min), sys.float_info.min)
 
@@ -70,10 +70,14 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(sym.integer(2**63 - 1), sp.Integer(2**63 - 1))
         self.assertIdenticalFromSp(sym.integer(-1 * 2**63), -sp.Integer(2**63))
 
-        self.assertIdenticalFromSp(sym.float(0.0), sp.Float(0.0))
-        self.assertIdenticalFromSp(sym.float(1.0), sp.Float(1.0))
-        self.assertIdenticalFromSp(sym.float(sys.float_info.max), sp.Float(sys.float_info.max))
-        self.assertIdenticalFromSp(sym.float(sys.float_info.min), sp.Float(sys.float_info.min))
+        self.assertIdenticalFromSp(sym.float_constant(0.0), sp.Float(0.0))
+        self.assertIdenticalFromSp(sym.float_constant(1.0), sp.Float(1.0))
+        self.assertIdenticalFromSp(
+            sym.float_constant(sys.float_info.max), sp.Float(sys.float_info.max)
+        )
+        self.assertIdenticalFromSp(
+            sym.float_constant(sys.float_info.min), sp.Float(sys.float_info.min)
+        )
 
         self.assertIdenticalFromSp(sym.rational(1, 2), sp.Rational(1, 2))
         self.assertIdenticalFromSp(sym.rational(-5, 6), sp.Rational(-5, 6))

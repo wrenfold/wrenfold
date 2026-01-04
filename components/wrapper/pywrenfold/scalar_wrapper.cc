@@ -256,8 +256,8 @@ void wrap_scalar_operations(py::module_& m) {
       "integer", [](const std::int64_t value) { return scalar_expr{value}; }, "value"_a,
       docstrings::integer.data());
   m.def(
-      "float", [](const double value) { return scalar_expr{value}; }, "value"_a,
-      docstrings::float_.data());
+      "float_constant", [](const double value) { return scalar_expr{value}; }, py::arg("value"),
+      docstrings::float_constant.data());
   m.def(
       "rational",
       [](const std::int64_t n, const std::int64_t d) {

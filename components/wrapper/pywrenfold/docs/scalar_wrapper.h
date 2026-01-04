@@ -240,14 +240,14 @@ Raises:
   TypeError: If the input argument exceeds the range of a signed 64-bit integer.
 )doc";
 
-inline constexpr std::string_view float_ = R"doc(
+inline constexpr std::string_view float_constant = R"doc(
 Create a constant expression from a float.
 
 Tip:
   Typically you do not need to explicitly call this method, since python floats involved in
   mathematical operations will automatically be promoted to ``sym.Expr``::
 
-    y = x + 2.87 # Equivalent to: y = x + sym.float(2.87)
+    y = x + 2.87 # Equivalent to: y = x + sym.float_constant(2.87)
 
 Args:
   value: A python float.

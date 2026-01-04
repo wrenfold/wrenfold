@@ -56,7 +56,7 @@ def create_evaluator(func: T.Callable) -> T.Callable:
             sym_arg = arg_desc.create_symbolic_input()
             if isinstance(sym_arg, sym.Expr):
                 if isinstance(numeric_arg, (float, np.float32, np.float64)):  # type: ignore
-                    numeric_arg = sym.float(float(numeric_arg))
+                    numeric_arg = sym.float_constant(float(numeric_arg))
                 elif isinstance(numeric_arg, (int, np.int32, np.int64)):  # type: ignore
                     numeric_arg = sym.integer(int(numeric_arg))
                 else:
