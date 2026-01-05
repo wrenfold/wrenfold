@@ -34,7 +34,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
 
         # We can pass numeric values directly:
         self.assertIdentical(func(sym.integer(2)), func(2))
-        self.assertIdentical(func(sym.float(1.132)), func(1.132))
+        self.assertIdentical(func(sym.float_constant(1.132)), func(1.132))
 
         # Specifying too many or too few args should be an exception...
         self.assertRaises(RuntimeError, lambda: func())

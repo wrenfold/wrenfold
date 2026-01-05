@@ -74,7 +74,7 @@ class Conversions:
             sp.Derivative: self.convert_derivative,
             sp.Subs: self.convert_subs,
             sp.Integer: lambda x: sym.integer(int(x)),
-            sp.Float: lambda x: sym.float(float(x)),
+            sp.Float: lambda x: sym.float_constant(float(x)),
             sp.Rational: lambda x: sym.rational(n=x.numerator, d=x.denominator),
         }
 

@@ -69,8 +69,8 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertFalse(x == y)
         self.assertTrue(sym.integer(5) == 5)
         self.assertFalse(sym.integer(5) == y * x)
-        self.assertTrue(sym.float(1.0) == 1.0)
-        self.assertFalse(sym.float(0.1) == 3.14)
+        self.assertTrue(sym.float_constant(1.0) == 1.0)
+        self.assertFalse(sym.float_constant(0.1) == 3.14)
 
     def test_hash(self):
         """Test we can call __hash__ on scalar expressions."""
@@ -87,16 +87,16 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.zero, sym.integer(0))
         self.assertIdentical(sym.one, sym.integer(1))
         self.assertIdentical(-42, sym.integer(-42))
-        self.assertIdentical(1.231, sym.float(1.231))
-        self.assertIdentical(9.81, sym.float(9.81))
-        self.assertIdentical(sym.nan, sym.float(float("nan")))
-        self.assertIdentical(sym.zoo, sym.float(float("inf")))
+        self.assertIdentical(1.231, sym.float_constant(1.231))
+        self.assertIdentical(9.81, sym.float_constant(9.81))
+        self.assertIdentical(sym.nan, sym.float_constant(float("nan")))
+        self.assertIdentical(sym.zoo, sym.float_constant(float("inf")))
         self.assertIdentical(sym.one / 2, sym.rational(1, 2))
         self.assertIdentical(sym.integer(-5) / 7, sym.rational(-5, 7))
         self.assertIdentical(sym.integer(1) / 3, sym.rational(2, 6))
         self.assertRaises(exceptions.ArithmeticError, lambda: sym.rational(1, 0))
         self.assertEqual((), sym.integer(7).args)
-        self.assertEqual((), sym.float(-0.862).args)
+        self.assertEqual((), sym.float_constant(-0.862).args)
         self.assertEqual((), sym.rational(7, 9).args)
 
         # Cannot invoke with values that exceed range of 64-bit signed int.
@@ -164,7 +164,7 @@ class ExpressionWrapperTest(MathTestBase):
         )
 
         expected_order = [
-            sym.float(0.41),
+            sym.float_constant(0.41),
             sym.integer(22),
             sym.rational(3, 4),
             a,
@@ -174,7 +174,7 @@ class ExpressionWrapperTest(MathTestBase):
             sym.cos(a),
         ]
         input_order = [
-            sym.float(0.41),
+            sym.float_constant(0.41),
             a + b,
             sym.cos(a),
             sym.integer(22),
@@ -207,7 +207,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(p * 5, 5 * p)
         self.assertIdentical(p * 2.2, 2.2 * p)
         self.assertIdentical(p / 5, p / sym.integer(5))
-        self.assertIdentical(p / 8.1, p / sym.float(8.1))
+        self.assertIdentical(p / 8.1, p / sym.float_constant(8.1))
 
         self.assertIdentical(p * q, q * p)
         self.assertEqual("Multiplication", (p * q).type_name)
@@ -460,7 +460,7 @@ class ExpressionWrapperTest(MathTestBase):
             4.3 / 2.71582, (x / y).subs(x, 4.3).subs(y, 2.71582).eval(), places=15
         )
         self.assertEqual(3923, sym.integer(3923).eval())
-        self.assertEqual(5.3, sym.float(5.3).eval())
+        self.assertEqual(5.3, sym.float_constant(5.3).eval())
         self.assertEqual(123, (sym.integer(100) + x).subs(x, 23).eval())
         self.assertEqual(complex(1.0, 2.0), (1 + sym.I * 2).eval())
         self.assertEqual(complex(-5.0, 3.14), (-5 + sym.I * 3.14).eval())

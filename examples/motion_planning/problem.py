@@ -82,7 +82,7 @@ def dynamics(state: State, mass: FloatScalar, dt: FloatScalar) -> State:
 
     return sym.vstack(
         [
-            pos + vel * dt + acc * sym.float(0.5) * dt**2,
+            pos + vel * dt + acc * sym.float_constant(0.5) * dt**2,
             vel + acc * dt,
             control * (1.0 / mass),
             control,
@@ -231,6 +231,7 @@ class CustomRustGenerator(code_generation.RustGenerator):
         """Place our custom types into the `crate` namespace."""
         if element.python_type in [Weights, ProblemInfo]:
             return f"crate::{element.name}"
+        return self.super_format(element)
 
 
 def main(args: argparse.Namespace):
