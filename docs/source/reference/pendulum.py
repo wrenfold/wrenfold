@@ -6,7 +6,7 @@ Source code for the `advanced_derivatives.rst` file.
 # [potential_energy_start]
 from wrenfold import sym
 
-m, g, r, t = sym.symbols("m, g, r, t")
+m, g, r, t = sym.make_symbols("m", "g", "r", "t")
 
 # Theta as a function of time:
 theta = sym.Function("theta")(t)

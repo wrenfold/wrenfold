@@ -17,7 +17,7 @@ from .test_base import MathTestBase
 class MatrixWrapperTest(MathTestBase):
     def test_matrix_constructors(self):
         """Test different methods of constructing matrices."""
-        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+        x, y, z, a, b, c = sym.make_symbols("x", "y", "z", "a", "b", "c")
 
         data = [(x, a), (y, b), (z, c)]
         m = sym.matrix(data)
@@ -113,7 +113,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_hash(self):
         """Test calling __hash__ on matrix expressions."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         v = sym.vector(x * 1, -y, z + 2)
         u = sym.vector(x * y, sym.cos(x), 0)
         self.assertNotEqual(hash(v), hash(u))  # Not likely.
@@ -124,13 +124,13 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_matrix_repr(self):
         """Test matrix __repr__."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         m = sym.matrix([[x * x, -y + 3, x * z], [-2, sym.pi, 5]])
         self.assertEqual("[[x**2, 3 - y, x*z], [-2, pi, 5]]", repr(m))
 
     def test_bool_conversion(self):
         """Test that we cannot cast to bool."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         m = sym.matrix([[x * y, -2], [z, sym.pi]])
         self.assertRaises(exceptions.TypeError, lambda: bool(m))
         self.assertRaises(exceptions.TypeError, lambda: 1 if m else 0)
@@ -188,7 +188,7 @@ class MatrixWrapperTest(MathTestBase):
         # Create 4x5 symbol grid:
         symbols = []
         for i in range(4):
-            symbols.append(sym.symbols(f"x_{i}{j}" for j in range(5)))
+            symbols.append(sym.make_symbols([f"x_{i}{j}" for j in range(5)]))
 
         symbol_array = np.array(symbols, dtype=object)
 
@@ -254,7 +254,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_unary_map(self):
         """Test unary map w/ a lambda."""
-        q = sym.symbols("q")
+        q = sym.symbol("q")
         v = sym.vector(sym.pi, 7, q)
         v_mapped = v.unary_map(lambda x: sym.pow(x, 2) * 3)
         self.assertIdentical(sym.vector(3 * sym.pi**2, 147, 3 * q**2), v_mapped)
@@ -273,7 +273,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_reshape(self):
         """Test calling reshape on a matrix."""
-        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+        x, y, z, a, b, c = sym.make_symbols("x", "y", "z", "a", "b", "c")
         self.assertIdentical(
             sym.matrix([[x, y, z], [a, b, c]]),
             sym.matrix([x, y, z, a, b, c]).reshape(2, 3),
@@ -293,7 +293,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_hstack(self):
         """Test horizontal stacking."""
-        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+        x, y, z, a, b, c = sym.make_symbols("x", "y", "z", "a", "b", "c")
         self.assertIdentical(
             sym.matrix([[x * a, y, 2], [-3, b + z, c]]),
             sym.hstack([sym.matrix([x * a, -3]), sym.matrix([[y, 2], [b + z, c]])]),
@@ -305,7 +305,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_vstack(self):
         """Test vertical stacking."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         self.assertIdentical(
             sym.matrix([[x, y], [-3, z], [0, 2]]),
             sym.vstack([sym.matrix([x, y]).T, sym.matrix([[-3, z], [0, 2]])]),
@@ -315,7 +315,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_diag(self):
         """Test diagonal stacking."""
-        x, y, z, a, b, c = sym.symbols("x, y, z, a, b, c")
+        x, y, z, a, b, c = sym.make_symbols("x", "y", "z", "a", "b", "c")
 
         self.assertIdentical(sym.matrix([[x, 0, 0], [0, y, 0], [0, 0, z]]), sym.diag([x, y, z]))
 
@@ -341,7 +341,7 @@ class MatrixWrapperTest(MathTestBase):
         self.assertEqual((4, 6), (m0 * m1).shape)
 
         # inner product still produces a matrix of size 1x1
-        x, z = sym.symbols("x, z")
+        x, z = sym.make_symbols("x", "z")
         u = sym.row_vector(x, 0, z)
         v = sym.vector(2, sym.pi, sym.integer(5) / 2)
         self.assertIsInstance(u * v, sym.MatrixExpr)
@@ -380,7 +380,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_distribute(self):
         """Test calling distribute on a matrix."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         m = sym.vector((x + y) * (2 + z), sym.sin(x) * (y + 2))
         self.assertIdentical(
             sym.vector(2 * x + z * x + y * 2 + y * z, sym.sin(x) * y + sym.sin(x) * 2),
@@ -390,7 +390,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_collect(self):
         """Test calling collect on a matrix."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         m = sym.vector(
             x * x * (y - 3) + x * (5 - y) + x * x * x * (y * y * (z - 3) + y * (2 - z)),
             x * x * (z + 6) + y * y * (sym.sin(z) - 2),
@@ -399,7 +399,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_diff(self):
         """Test calling diff on a matrix (element-wise differentiation)."""
-        x, y, z, w = sym.symbols("x, y, z, w")
+        x, y, z, w = sym.make_symbols("x", "y", "z", "w")
         m = sym.matrix([(x * sym.cos(y * z), y + sym.tan(z)), (z * x * y / w, w * sym.pow(x, y))])
         for var in (x, y, z, w):
             m_diff = m.diff(var=var, order=1)
@@ -407,7 +407,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_jacobian(self):
         """Test calling jacobian on a matrix."""
-        x, y, z, w = sym.symbols("x, y, z, w")
+        x, y, z, w = sym.make_symbols("x", "y", "z", "w")
         m = sym.matrix([x * x + y * z * w, w * y * sym.cos(x - z) + z])
         jac_expected = sym.matrix(
             [
@@ -425,7 +425,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_subs(self):
         """Test calling subs on a matrix."""
-        a, b, c, d, x, y, z = sym.symbols("a, b, c, d, x, y, z")
+        a, b, c, d, x, y, z = sym.make_symbols("a", "b", "c", "d", "x", "y", "z")
         m1 = sym.matrix([(a + x * 2, b - c), (c - sym.sin(y), d + sym.log(d))])
         self.assertIdentical(
             sym.matrix([(0, b - c), (c - sym.sin(y), z)]),
@@ -445,7 +445,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_matrix_conditional(self):
         """Test creating a matrix conditional."""
-        a, b, c, d, x, y, z = sym.symbols("a, b, c, d, x, y, z")
+        a, b, c, d, x, y, z = sym.make_symbols("a", "b", "c", "d", "x", "y", "z")
 
         u = sym.vector(2 * a, b - a, c * d)
         v = sym.vector(x * y, 2, d * z)
@@ -455,17 +455,17 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_determinant(self):
         """Test calling `det()` on a matrix."""
-        a, b, c, d = sym.symbols("a, b, c, d")
+        a, b, c, d = sym.make_symbols("a", "b", "c", "d")
         M = sym.matrix([[a, b], [c, d]])
         self.assertIdentical(a * d - b * c, M.det())
         self.assertIdentical(M.det(), sym.det(M))
 
     def test_cse(self):
         """Test calling `eliminate_subexpressions()` on matrix."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
 
         def var(idx: int, letter: str = "v"):
-            return sym.symbols(f"{letter}{idx}")
+            return sym.symbol(f"{letter}{idx}")
 
         m1 = sym.vector(sym.cos(x * y) - sym.sin(x * y), 3 / sym.sin(x * y), 22 + x)
         m1_cse, replacements = sym.eliminate_subexpressions(m1)
@@ -477,7 +477,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_eval(self):
         """Test calling `eval()` on symbolic matrix."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertRaises(exceptions.TypeError, lambda: sym.vector(x, y).eval())
         self.assertRaises(exceptions.TypeError, lambda: sym.vector(2, sym.E * x).eval())
 
@@ -499,7 +499,7 @@ class MatrixWrapperTest(MathTestBase):
 
     def test_scalar_multiply(self):
         """Test we can call different overloads for matrix/scalar multiplication and division."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertIdentical(sym.vector(x * 7, y * 7), sym.vector(x, y) * 7)
         self.assertIdentical(sym.vector(x * 7, y * 7), 7 * sym.vector(x, y))
         self.assertIdentical(sym.vector(x * 9.81, y * 9.81), sym.vector(x, y) * 9.81)

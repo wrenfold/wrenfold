@@ -22,7 +22,7 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_construct_quaternion(self):
         """Test construction of quaternions."""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
         self.assertIdentical(w, q.w)
         self.assertIdentical(x, q.x)
@@ -38,14 +38,14 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_repr(self):
         """Test repr()"""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
         self.assertEqual("Quaternion(w, x, y, z)", repr(q))
         self.assertEqual("Quaternion(1, 0, 0, 0)", repr(Quaternion()))
 
     def test_convert_quaternion_formats(self):
         """Test conversion between formats."""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
 
         as_list = q.to_list()
@@ -66,7 +66,7 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_normalize(self):
         """Test normalize."""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
 
         squared_norm = q.squared_norm()
@@ -95,7 +95,7 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_to_rotation_matrix(self):
         """Test calling to_rotation_matrix."""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
         R = q.to_rotation_matrix()
         self.assertEqual((3, 3), R.shape)
@@ -103,7 +103,7 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_to_rotation_vector(self):
         """Test calling to_rotation_vector."""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
         v = q.to_rotation_vector()
         self.assertIsInstance(v, sym.MatrixExpr)
@@ -116,7 +116,7 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_to_angle_axis(self):
         """Test calling to_angle_axis."""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
         angle, axis = q.to_angle_axis()
         self.assertIsInstance(angle, sym.Expr)
@@ -130,11 +130,11 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_rotate_vector(self):
         """Test calling rotate()"""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
         R = q.to_rotation_matrix()
 
-        v = sym.vector(*sym.symbols("v_x, v_y, v_z"))
+        v = sym.vector(*sym.make_symbols("v_x", "v_y", "v_z"))
         self.assertIdentical(
             R, (q.rotate(v)).distribute().jacobian(v).subs(w**2, 1 - x**2 - y**2 - z**2)
         )
@@ -164,12 +164,14 @@ class GeometryWrapperTest(MathTestBase):
 
         # Check we can call with different values of epsilon:
         for epsilon in (0, 0.1, None):
-            Quaternion.from_rotation_vector(*sym.symbols("x, y, z"), epsilon=epsilon)
-            Quaternion.from_rotation_vector(sym.vector(*sym.symbols("x, y, z")), epsilon=epsilon)
+            Quaternion.from_rotation_vector(*sym.make_symbols("x", "y", "z"), epsilon=epsilon)
+            Quaternion.from_rotation_vector(
+                sym.vector(*sym.make_symbols("x", "y", "z")), epsilon=epsilon
+            )
 
     def test_from_rotation_matrix(self):
         """Test calling from_rotation_matrix."""
-        theta = sym.symbols("theta")
+        theta = sym.symbol("theta")
         R = sym.matrix(
             [
                 [1, 0, 0],
@@ -184,7 +186,7 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_derivative_matrices(self):
         """Test calling right_retract_derivative and right_local_coordinates_derivative."""
-        w, x, y, z = sym.symbols("w, x, y, z")
+        w, x, y, z = sym.make_symbols("w", "x", "y", "z")
         q = Quaternion(w, x, y, z)
         J0 = q.right_retract_derivative()
         J1 = q.right_local_coordinates_derivative()
@@ -205,7 +207,7 @@ class GeometryWrapperTest(MathTestBase):
 
     def test_jacobians_of_so3(self):
         """Test calling left_jacobian_of_so3 and inverse_left_jacobian_of_so3."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         for epsilon in (0, 0.01, None):
             left_jacobian_of_so3(sym.vector(x, y, z), epsilon=epsilon)
             inverse_left_jacobian_of_so3(sym.vector(x, y, z), epsilon=epsilon)

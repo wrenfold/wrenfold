@@ -10,7 +10,7 @@ combine them into a larger expression:
     from wrenfold import sym
 
     # Create two symbolic variables and construct an expression.
-    x, y = sym.symbols('x, y')
+    x, y = sym.make_symbols('x', 'y')
     g = sym.cos(x * y)
     print(g)
 
@@ -133,7 +133,7 @@ As expressions are composed, they are automatically converted to canonical form:
 
 .. code:: python
 
-    z = sym.symbols('z', nonnegative=True)
+    z = sym.symbol('z', nonnegative=True)
     ((3 * z) ** 4) ** (sym.one / 4)
 
 .. code::

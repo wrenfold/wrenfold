@@ -38,7 +38,7 @@ After installation, open a python REPL and test that wrenfold can be imported:
 
    from wrenfold import sym
 
-   x, y = sym.symbols('x, y')
+   x, y = sym.make_symbols('x', 'y')
    f = sym.cos(x * y)
    g = f.diff(x)
    print(g)  # prints: -y * sin(x * y)

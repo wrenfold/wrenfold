@@ -36,7 +36,7 @@ def kb_fisheye_invert_distortion(
     theta = 0
     for iteration in range(0, num_iters):
         # Evaluate the forward projection model:
-        theta_sym = sym.symbols("theta", nonnegative=True)
+        theta_sym = sym.symbol("theta", nonnegative=True)
         r_predicted = kb_fisheye_distortion(theta=theta_sym, coeffs=coeffs)
 
         # Compute derivative wrt theta.

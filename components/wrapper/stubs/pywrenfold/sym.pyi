@@ -89,7 +89,7 @@ class Expr:
          String representation of the expression tree.
 
         Example:
-          >>> x, y = sym.symbols('x, y')
+          >>> x, y = sym.make_symbols('x', 'y')
           >>> print((x*y + 5).expression_tree_str())
           Addition:
           ├─ Integer (5)
@@ -107,7 +107,7 @@ class Expr:
           String name of the underlying expression type.
 
         Example:
-          >>> x, y = sym.symbols('x, y')
+          >>> x, y = sym.make_symbols('x', 'y')
           >>> print(x.type_name)
           Variable
           >>> print((x + y).type_name)
@@ -141,7 +141,7 @@ class Expr:
         Examples:
           Taking the derivative with respect to a variable:
 
-          >>> x, y = sym.symbols('x, y')
+          >>> x, y = sym.make_symbols('x', 'y')
           >>> f = x * sym.sin(x * y) + 3
           >>> f.diff(x)
           x*y*cos(x*y) + sin(x*y)
@@ -189,7 +189,7 @@ class Expr:
             cannot be converted to a numerical representation.
 
         Examples:
-          >>> x = sym.symbols('x')
+          >>> x = sym.symbol('x')
           >>> f = sym.cos(sym.pi / 3 + x)
           >>> f.subs(x, sym.pi).eval()
           -0.4999999999999998
@@ -240,7 +240,7 @@ class Expr:
           The collected expression.
 
         Examples:
-          >>> x, y, w = sym.symbols('x, y, w')
+          >>> x, y, w = sym.make_symbols('x', 'y', 'w')
           >>> f = x**2*y*sym.cos(w) + 3*y*x**2 + x*y**2 + x*y**2*sym.pi - 5*x**2*y**2 + x*w
           >>> f.collect(x)
           x*(w + pi*y**2 + y**2) + x**2*(3*y + y*cos(w) - 5*y**2)
@@ -416,7 +416,7 @@ def symbol(name: str, real: bool = False, positive: bool = False, nonnegative: b
       x
       >>> x0.type_name
       'Variable'
-      >>> x1 = sym.symbols('x', complex=True)
+      >>> x1 = sym.symbol('x', complex=True)
       >>> x0.is_identical_to(x1)
       False
 
@@ -464,7 +464,7 @@ def make_symbols(*args, real: bool = False, positive: bool = False, nonnegative:
     Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.
     """
 
-def symbols(names: str | Iterable[str], real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Any:
+def symbols(names: str | Iterable[str] | Iterable[Iterable[str]], real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Any:
     """
     Create instances of ``variable`` expressions with the provided names. The argument ``names`` may be
     either:
@@ -496,8 +496,9 @@ def symbols(names: str | Iterable[str], real: bool = False, positive: bool = Fal
 
     Caution:
       Prefer using :func:`wrenfold.sym.symbol` or :func:`wrenfold.sym.make_symbols`, which have more
-      meaningful return type annotations. This function can only be annotated with ``typing.Any``, which
-      reduces the utility of type checking.
+      meaningful return type annotations. Because of the highly permissive treatment of the input arg
+      ``names``, this function can only be annotated with a return type of `typing.Any` - which reduces
+      the effectiveness of type checking.
     """
 
 def integer(value: int) -> Expr:
@@ -597,7 +598,7 @@ def compare(a: Expr, b: Expr) -> int:
       * ``+1`` if ``a`` belongs after ``b``.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.compare(x, y)
       -1
       >>> sym.compare(y, x)
@@ -616,7 +617,7 @@ def log(arg: Expr) -> Expr:
       arg: Argument to the logarithm.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.log(x + 3)
       log(x + 3)
       >>> sym.log(sym.E)
@@ -633,7 +634,7 @@ def exp(arg: Expr) -> Expr:
       arg: Argument to the exponential function.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.exp(x + 3)
       exp(x + 3)
       >>> sym.exp(0)
@@ -672,7 +673,7 @@ def pow(base: Expr, exp: Expr) -> Expr:
       nan
       >>> sym.pow(sym.zoo, -1)
       0
-      >>> x, w = sym.symbols('x, w')
+      >>> x, w = sym.make_symbols('x', 'w')
       >>> sym.pow(x * w, 2)
       x**2*w**2
       >>> sym.pow(sym.sqrt(x), 2)
@@ -689,7 +690,7 @@ def cos(arg: Expr) -> Expr:
       arg: Argument in radians.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.cos(x)
       cos(x)
       >>> sym.cos(sym.pi)
@@ -704,7 +705,7 @@ def sin(arg: Expr) -> Expr:
       arg: Argument in radians.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.sin(x)
       sin(x)
       >>> sym.sin(0)
@@ -719,7 +720,7 @@ def tan(arg: Expr) -> Expr:
       arg: Argument in radians.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.tan(x)
       tan(x)
       >>> sym.tan(sym.pi/2)
@@ -731,7 +732,7 @@ def acos(arg: Expr) -> Expr:
     The inverse cosine function :math:`\cos^{-1}{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.acos(x)
       acos(x)
       >>> sym.acos(0)
@@ -743,7 +744,7 @@ def asin(arg: Expr) -> Expr:
     The inverse sine function :math:`\sin^{-1}{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.asin(x)
       asin(x)
       >>> sym.asin(-1)
@@ -755,7 +756,7 @@ def atan(arg: Expr) -> Expr:
     The inverse tangent function :math:`\tan^{-1}{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.atan(x)
       atan(x)
       >>> sym.atan(-x)
@@ -767,7 +768,7 @@ def cosh(arg: Expr) -> Expr:
     The hyperbolic cosine function :math:`\cosh{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.cosh(x)
       cosh(x)
       >>> sym.cosh(x * sp.I)
@@ -779,7 +780,7 @@ def sinh(arg: Expr) -> Expr:
     The hyperbolic sine function :math:`\sinh{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.sinh(x)
       sinh(x)
       >>> sym.sinh(x * sp.I)
@@ -791,7 +792,7 @@ def tanh(arg: Expr) -> Expr:
     The hyperbolic tangent function :math:`\tanh{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.tanh(x)
       tanh(x)
       >>> sym.tanh(x * sp.I)
@@ -803,7 +804,7 @@ def acosh(arg: Expr) -> Expr:
     The inverse hyperbolic cosine function :math:`\cosh^{-1}{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.acosh(x)
       acosh(x)
     """
@@ -813,7 +814,7 @@ def asinh(arg: Expr) -> Expr:
     The inverse hyperbolic sine function :math:`\sinh^{-1}{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.asinh(x)
       asinh(x)
     """
@@ -823,7 +824,7 @@ def atanh(arg: Expr) -> Expr:
     The inverse hyperbolic tangent function :math:`\tanh^{-1}{x}`.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.atanh(x)
       atanh(x)
     """
@@ -840,7 +841,7 @@ def abs(arg: Expr) -> Expr:
     Examples:
       >>> sym.abs(3)
       3
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.abs(x)
       abs(x)
       >>> sym.abs(x).diff(x)
@@ -873,7 +874,7 @@ def sign(arg: Expr) -> Expr:
       * Otherwise, a ``function`` expression.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> sym.sign(x)
       sign(x)
       >>> sym.sign(x).diff(x)
@@ -899,7 +900,7 @@ def floor(arg: Expr) -> Expr:
        -4
        >>> sym.floor(sym.rational(-5, 40))
        -2
-       >>> x = sym.symbols('x')
+       >>> x = sym.symbol('x')
        >>> sym.floor(x)
        floor(x)
     """
@@ -918,7 +919,7 @@ def atan2(y: Expr, x: Expr) -> Expr:
     Examples:
       >>> sym.atan2(1, 0)
       pi/2
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.atan2(y, x).diff(x)
       -y/(x**2 + y**2)
     """
@@ -938,7 +939,7 @@ def max(a: Expr, b: Expr) -> Expr:
       * Otherwise, a ``sym.where`` expression.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.max(x, y)
       where(x < y, y, x)
       >>> sym.max(2, 3)
@@ -960,7 +961,7 @@ def min(a: Expr, b: Expr) -> Expr:
       * Otherwise, a ``sym.where`` expression.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.min(x, y)
       where(y < x, y, x)
       >>> sym.min(sym.rational(2, 3), sym.rational(3, 4))
@@ -995,7 +996,7 @@ def where(c: BooleanExpr, a: Expr, b: Expr) -> Expr:
       * Otherwise, a ``conditional`` expression.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.where(x > y, sym.cos(x), sym.sin(y))
       where(y < x, cos(x), sin(y))
       >>> sym.where(x > y, sym.pi * x, 0).subs(x, 3).subs(y, 2)
@@ -1029,7 +1030,7 @@ def lt(a: Expr, b: Expr) -> BooleanExpr:
     Examples:
       >>> sym.lt(2, 3)
       True
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.lt(x, y)
       x < y
     """
@@ -1041,7 +1042,7 @@ def le(a: Expr, b: Expr) -> BooleanExpr:
     Examples:
       >>> sym.le(1, sym.rational(3, 2))
       True
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.le(x, y)
       x <= y
     """
@@ -1054,7 +1055,7 @@ def gt(a: Expr, b: Expr) -> BooleanExpr:
     Examples:
       >>> sym.gt(2.12, 2)
       True
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.gt(x, y)
       y < x
     """
@@ -1067,7 +1068,7 @@ def ge(a: Expr, b: Expr) -> BooleanExpr:
     Examples:
       >>> sym.ge(2, 2)
       True
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.ge(x, y)
       y <= x
     """
@@ -1079,7 +1080,7 @@ def eq(a: Expr, b: Expr) -> BooleanExpr:
     Examples:
       >>> sym.eq(2, 5)
       False
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.eq(3*x, y/2)
       3*x == y/2
     """
@@ -1115,7 +1116,7 @@ def unevaluated(arg: Expr) -> Expr:
       arg: Scalar-valued expression to wrap.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> f = sym.unevaluated(x * y) * y
       >>> f # Products are not combined automatically.
       y*(x*y)
@@ -1132,7 +1133,7 @@ def stop_derivative(arg: Expr) -> Expr:
       arg: Scalar-valued expression to wrap.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> f = sym.stop_derivative(x * y) * y
       >>> f.diff(x)
       0
@@ -1161,7 +1162,7 @@ def eliminate_subexpressions(expr: Expr, make_variable: Callable[[int], Expr] | 
         to be extracted.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> f = sym.cos(x * y) - sym.sin(x * y) + 5 * sym.abs(sym.cos(x * y))
       >>> g, replacements = sym.eliminate_subexpressions(f)
       >>> replacements
@@ -1210,7 +1211,7 @@ class Function:
           name: Function name.
 
         Examples:
-          >>> x, y = sym.symbols('x, y')
+          >>> x, y = sym.make_symbols('x', 'y')
           >>> f = sym.Function('f')
           >>> f(x)
           f(x)
@@ -1255,7 +1256,7 @@ def substitution(input: Expr, target: Expr, replacement: Expr) -> Expr:
       replacement: The substituted expression.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> f = sym.substitution(x**2 + y, y, sym.cos(x))
       >>> print(f)
       Subs(y + x**2, y, cos(x))
@@ -1277,7 +1278,7 @@ def derivative(function: Expr, arg: Expr, order: int = 1) -> Expr:
       order: The order of the derivative.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.derivative(x * x, x)
       Derivative(x**2, x)
       >>> f = sym.Function('f')
@@ -1301,7 +1302,7 @@ def get_variables(expr: Expr) -> list[Expr]:
       ``FuntionArgumentVariable``.
 
     Examples:
-      >>> x, y, z = sym.symbols('x, y, z')
+      >>> x, y, z = sym.make_symbols('x', 'y', 'z')
       >>> sym.get_variables(x**2 + y * 3 - sym.cos(z))
       [x, y, z]
       >>> sym.get_variables(x * 3)
@@ -1354,7 +1355,7 @@ class MatrixExpr:
           corresponding input element, taken ``order`` times with respect to ``var``.
 
         Examples:
-          >>> x = sym.symbols('x')
+          >>> x = sym.symbol('x')
           >>> m = sym.matrix([[x, sym.sin(x)], [22, -x**2]])
           >>> m.diff(x)
           [[1, cos(x)], [0, -2*x]]
@@ -1480,7 +1481,7 @@ class MatrixExpr:
           The mapped matrix.
 
         Examples:
-          >>> x, y = sym.symbols('x, y')
+          >>> x, y = sym.make_symbols('x', 'y')
           >>> m = sym.matrix([[x, y], [2, sym.pi]])
           >>> m.unary_map(lambda v: v * 2)
           [[2*x, 2*y], [4, 2*pi]]
@@ -1551,7 +1552,7 @@ class MatrixExpr:
           The transposed matrix.
 
         Examples:
-          >>> x, y = sym.symbols('x, y')
+          >>> x, y = sym.make_symbols('x', 'y')
           >>> m = sym.matrix([[x, y*2], [sym.cos(x), 0]])
           >>> m
           [[x, 2*y], [cos(x), 0]]
@@ -1571,7 +1572,7 @@ class MatrixExpr:
           A scalar-valued expression.
 
         Examples:
-          >>> x, y = sym.symbols('x, y')
+          >>> x, y = sym.make_symbols('x', 'y')
           >>> m = sym.matrix([[x, y], [2, 0]])
           >>> m.squared_norm()
           4 + x**2 + y**2
@@ -1669,7 +1670,7 @@ def vector(*args) -> MatrixExpr:
       wrenfold.sym.DimensionError: If no arguments are provided.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.vector(x * 2, 0, y + 3)
       [[2*x], [0], [3 + y]]
     """
@@ -1688,7 +1689,7 @@ def row_vector(*args) -> MatrixExpr:
       wrenfold.sym.DimensionError: If no arguments are provided.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.row_vector(x * 2, 0, y + 3)
       [[2*x, 0, 3 + y]]
     """
@@ -1766,7 +1767,7 @@ def diag(values: Sequence[MatrixExpr]) -> MatrixExpr:
       wrenfold.sym.DimensionError: If the input is empty.
 
     Examples:
-      >>> x, y, z = sym.symbols('x, y, z')
+      >>> x, y, z = sym.make_symbols('x', 'y', 'z')
       >>> m = sym.matrix([[x, 0], [y*z, 5]])
       >>> sym.diagonal([m, sym.eye(2)])
       [[x, 0, 0, 0], [y*z, 5, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
@@ -1804,7 +1805,7 @@ def det(m: MatrixExpr) -> Expr:
       wrenfold.sym.DimensionError: If the matrix is not square.
 
     Examples:
-      >>> x = sym.symbols('x')
+      >>> x = sym.symbol('x')
       >>> m = sym.matrix([[sym.cos(x), -sym.sin(x)], [sym.sin(x), sym.cos(x)]])
       >>> m.det()
       cos(x)**2 + sin(x)**2
@@ -1836,7 +1837,7 @@ def jacobian(functions: Sequence[Expr] | MatrixExpr, vars: Sequence[Expr] | Matr
       sym.DimensionError: If the dimensions of ``functions`` or ``vars`` are invalid.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> J = sym.jacobian([x + 1, sym.sin(y*x), x*y**2], [x, y])
       >>> J.shape
       (3, 2)
@@ -1913,7 +1914,7 @@ def distribute(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr) -> Expr | M
       The input expression after expansion.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> f = (x - 2) * (y + x) * (y - 3)
       >>> f.distribute()
       6*x + 6*y - 5*x*y + x**2*y + x*y**2 - 3*x**2 - 2*y**2
@@ -1935,7 +1936,7 @@ def subs(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr, pairs: Sequence[t
       The input expression after performing replacements.
 
     Examples:
-      >>> x, y = sym.symbols('x, y')
+      >>> x, y = sym.make_symbols('x', 'y')
       >>> sym.cos(x).subs([(x, y*2), (y, sym.pi)])
       1
       >>> (sym.pow(x, 2) * y).subs(x * y, 3)

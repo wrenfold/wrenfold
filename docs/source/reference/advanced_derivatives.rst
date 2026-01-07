@@ -6,7 +6,7 @@ Derivatives with respect to symbolic functions
 
 Derivatives can be taken with respect to any of the following:
 
-  - Variables: ``x = sym.symbols('x')``
+  - Variables: ``x = sym.symbol('x')``
   - Symbolic function invocations: ``f_x = sym.Function('f')(x)``
   - Derivatives of symbolic function invocations: ``df_x = f_x.diff(x)``
 
@@ -70,7 +70,7 @@ weight itself contributing to the Jacobian. To that end, wrenfold includes the
 
     from wrenfold import sym
 
-    c, x = sym.symbols('c, x')
+    c, x = sym.make_symbols('c', 'x')
     f_x = sym.Function('f')(x)
 
     # Geman-McClure weight function:

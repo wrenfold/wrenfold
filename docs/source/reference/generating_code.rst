@@ -140,7 +140,7 @@ are shorthand for ``sym.where``:
     def step_clamped(x: type_annotations.FloatScalar):
         """The clamped smoothstep polynomial."""
         # First express the polynomials in terms of `xv`.
-        xv = sym.symbols('xv', real=True)
+        xv = sym.symbol('xv', real=True)
         f = 3 * sym.pow(xv, 2) - 2 * sym.pow(xv, 3)
         df = sym.vector(f.diff(xv), f.diff(xv, 2))
 

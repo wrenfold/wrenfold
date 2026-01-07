@@ -6,6 +6,7 @@ don't accidentally remove any.
 """
 
 import functools
+import typing
 import unittest
 
 from wrenfold import exceptions, sym
@@ -48,10 +49,27 @@ class ExpressionWrapperTest(MathTestBase):
         )
         self.assertCountEqual([y, x], sym.get_variables(x + y * x - sym.cos(y)))
 
+        self.assertIdentical(x, sym.symbol("x"))
+        self.assertIdentical(y, sym.symbol("y"))
+        self.assertEqual([sym.symbol("x"), sym.symbol("y")], sym.make_symbols(["x", "y"]))
+        self.assertEqual([sym.symbol("x"), sym.symbol("y")], sym.make_symbols("x", "y"))
+
+        for arg_name in "real", "positive", "nonnegative", "complex":
+            kwargs = {arg_name: True}
+            self.assertNotIdentical(x, sym.symbol("x", **kwargs))
+            self.assertEqual(
+                [sym.symbol("x", **kwargs), sym.symbol("y", **kwargs)],
+                sym.make_symbols(["x", "y"], **kwargs),
+            )
+            self.assertEqual(
+                [sym.symbol("x", **kwargs), sym.symbol("y", **kwargs)],
+                sym.make_symbols("x", "y", **kwargs),
+            )
+
     def test_create_unique_symbols(self):
         """Test calling unique_symbols."""
-        a = sym.unique_symbols(count=1)
-        b, c = sym.unique_symbols(count=2)
+        a = typing.cast(sym.Expr, sym.unique_symbols(count=1))
+        b, c = typing.cast(list[sym.Expr], sym.unique_symbols(count=2))
         self.assertNotIdentical(a, b)
         self.assertNotIdentical(b, c)
         self.assertEqual("UniqueVariable", a.type_name)
@@ -61,7 +79,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_is_identical_to(self):
         """Test calling is_identical_to and __eq__."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertTrue(x.is_identical_to(x))
         self.assertFalse(x.is_identical_to(y))
         # __eq__ operator is just an alias of is_identical_to
@@ -74,7 +92,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_hash(self):
         """Test we can call __hash__ on scalar expressions."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqual(hash(x), hash(x))
         self.assertNotEqual(hash(x), hash(y))  # Not impossible, but very unlikely.
         # use expressions as keys in a dict:
@@ -112,7 +130,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_repr(self):
         """Test __repr__ method."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         self.assertReprEqual("x", x)
         self.assertReprEqual("x*y/3", x * y / 3)
         self.assertReprEqual("3*x + 2*y/5", 3 * x + 2 * y / 5)
@@ -136,7 +154,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_bool_conversion(self):
         """Test that only true and false can be converted to bool."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         self.assertRaises(exceptions.TypeError, lambda: bool(x + 2))
         self.assertRaises(exceptions.TypeError, lambda: bool(2.0 / z))
         self.assertRaises(exceptions.TypeError, lambda: 1 if sym.cos(y * z) + x else 0)
@@ -149,7 +167,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_compare(self):
         """Test that we can canonically order expressions."""
-        a, b, c = sym.symbols("a, b, c")
+        a, b, c = sym.make_symbols("a", "b", "c")
         self.assertEqual(-1, sym.compare(a, b))
         self.assertEqual(1, sym.compare(c, b))
         self.assertEqual(0, sym.compare(b, b))
@@ -187,7 +205,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_basic_scalar_operations(self):
         """Test wrappers for addition, multiplication, subtraction, negation, and power."""
-        p, q = sym.symbols("p, q")
+        p, q = sym.make_symbols("p", "q")
 
         self.assertIsInstance(p + p, sym.Expr)
         self.assertIdentical(2 * p, p + p)
@@ -248,7 +266,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_hyperbolic_trig_functions(self):
         """Test that we can call hyperbolic trig functions."""
-        x = sym.symbols("x")
+        x = sym.symbol("x")
         self.assertIdentical(sym.cos(x), sym.cosh(x * sym.I))
         self.assertIdentical(sym.sin(x) * sym.I, sym.sinh(x * sym.I))
         self.assertIdentical(sym.tan(x) * sym.I, sym.tanh(x * sym.I))
@@ -258,7 +276,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_abs(self):
         """Test calling abs."""
-        x = sym.symbols("x")
+        x = sym.symbol("x")
         self.assertIdentical(3, sym.abs(-3))
         self.assertIdentical(sym.abs(x), sym.abs(sym.abs(x)))
         self.assertIdentical(sym.abs(x), abs(x))
@@ -266,7 +284,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_signum(self):
         """Test calling signum."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertIdentical(1, sym.sign(3))
         self.assertIdentical(-1, sym.sign(-5.22))
         self.assertNotIdentical(sym.sign(x), sym.sign(y))
@@ -274,7 +292,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_floor(self):
         """Test calling floor."""
-        x = sym.symbols("x")
+        x = sym.symbol("x")
         self.assertIdentical(0, sym.floor(0))
         self.assertIdentical(7, sym.floor(7.12312))
         self.assertIdentical(-3, sym.floor(-sym.integer(5) / 2))
@@ -282,7 +300,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_distribute(self):
         """Test calling distribute on scalar expressions."""
-        a, b, c, d, e, f = sym.symbols("a, b, c, d, e, f")
+        a, b, c, d, e, f = sym.make_symbols("a", "b", "c", "d", "e", "f")
         expr = (a + b) * (c + d)
         self.assertIdentical(a * c + a * d + b * c + b * d, expr.distribute())
 
@@ -302,7 +320,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_diff(self):
         """Test calling diff on scalar expressions."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
 
         # Most of the tests reside in C++, just check that this works on a bunch of expression
         # types:
@@ -353,7 +371,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_relational(self):
         """Test creating relational expressions."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         self.assertIsInstance(x < y, sym.BooleanExpr)
         self.assertEqual("Relational", (x < y).type_name)
         self.assertIdentical(x < y, y > x)
@@ -388,7 +406,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_conditionals(self):
         """Test creating conditional logic."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertIdentical(sym.where(x < y, y, x), sym.max(x, y))
         self.assertIdentical(sym.where(y < x, y, x), sym.min(x, y))
         self.assertIdentical(x, sym.where(sym.Expr(1) > 0, x, y))
@@ -397,20 +415,20 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_iverson(self):
         """Test converting boolean values to integer."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertIdentical(1, sym.iverson(sym.one < 10.2))
         self.assertIdentical(0, sym.iverson(sym.eq(sym.one, sym.zero)))
         self.assertEqual((x < y,), sym.iverson(x < y).args)
 
     def test_unevaluated(self):
         """Test calling `unevaluated`."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertIdentical(sym.unevaluated(x), sym.unevaluated(x))
         self.assertIdentical(sym.unevaluated(x), sym.unevaluated(sym.unevaluated(x)))
 
     def test_subs(self):
         """Test calling subs() on expressions."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         self.assertIdentical(x, x.subs(x, x))
         self.assertIdentical(y, x.subs(x, y))
         self.assertIdentical(2.5, sym.subs(x, x, 2.5))
@@ -438,7 +456,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_collect(self):
         """Test calling collect() on expressions."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         self.assertIdentical(x**2 * (y + 3), (x**2 * y + x**2 * 3).collect(x))
         self.assertIdentical(
             x**2 * (sym.log(y) - sym.pi) + x * (sym.cos(y) + sym.sin(y)),
@@ -453,7 +471,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_eval(self):
         """Test calling eval() on an expression."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertRaises(exceptions.TypeError, lambda: x.eval())
         self.assertRaises(exceptions.TypeError, lambda: (x + y).subs(y, 2).eval())
         self.assertRaises(exceptions.TypeError, lambda: sym.E.eval())
@@ -474,10 +492,10 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_cse(self):
         """Test calling eliminate_subexpressions()."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
 
-        def var(idx: int, letter: str = "v"):
-            return sym.symbols(f"{letter}{idx}")
+        def var(idx: int, letter: str = "v") -> sym.Expr:
+            return sym.symbol(f"{letter}{idx}")
 
         f1 = sym.cos(x) * sym.cos(x) + y * sym.cos(x)
         f1_cse, replacements = sym.eliminate_subexpressions(f1, None, 2)
@@ -497,7 +515,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_derivative_expression(self):
         """Test creation of deferred derivative expression."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         f = sym.derivative(sym.sin(x), x)
         self.assertEqual("Derivative", f.type_name)
         self.assertEqual("Derivative(sin(x), x)", repr(f))
@@ -515,7 +533,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_stop_derivative_expression(self):
         """Test creating a `stop_derivative` expression."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqual("StopDerivative", sym.stop_derivative(y).type_name)
         self.assertEqual("StopDerivative(3*x)", repr(sym.stop_derivative(x * 3)))
         self.assertIdentical(0, sym.stop_derivative(x).diff(x))
@@ -526,7 +544,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_substitute_expression(self):
         """Test creation of deferred substitution expression."""
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         f = sym.substitution(sym.cos(x), x, 2)
         self.assertEqual("Substitution", f.type_name)
         self.assertEqual("Subs(cos(x), x, 2)", repr(f))
@@ -548,7 +566,7 @@ class ExpressionWrapperTest(MathTestBase):
 
     def test_symbolic_function_invocation(self):
         """Test expressions that include symbolic functions."""
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         f = sym.Function("f")
         self.assertEqual("f", repr(f))
         self.assertEqual("f", f.name)

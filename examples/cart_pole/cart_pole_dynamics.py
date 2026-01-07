@@ -35,7 +35,7 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     We derive the necessary expressions symbolically, and then create the function
     `cart_double_pole_dynamics` that specifies exactly what we want code-generated.
     """
-    t = sym.symbols("t", real=True)
+    t = sym.symbol("t", real=True)
 
     # Position of the base + angles as a function of time.
     # We create symbolic functions to represent these, and then substitute in the function arguments
@@ -50,23 +50,25 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     th_2_dot = th_2.diff(t)
 
     # Mass of the base, and two weights + lever arm lengths:
-    m_b, m_1, m_2, l_1, l_2 = sym.symbols("m_b, m_1, m_2, l_1, l_2", real=True, positive=True)
+    m_b, m_1, m_2, l_1, l_2 = sym.make_symbols(
+        "m_b", "m_1", "m_2", "l_1", "l_2", real=True, positive=True
+    )
 
     # Gravity:
-    g = sym.symbols("g", real=True)
+    g = sym.symbol("g", real=True)
 
     # Control input on the base:
-    u_b = sym.symbols("u_b", real=True)
+    u_b = sym.symbol("u_b", real=True)
 
     # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
-    mu_b, v_mu_b = sym.symbols("mu_b, v_mu_b", real=True)
+    mu_b, v_mu_b = sym.make_symbols("mu_b", "v_mu_b", real=True)
 
     # Air drag coefficient on the mass:
     # This is summarized as: rho * C_d * A, where rho is air density, and A is cross-sectional area.
-    c_d = sym.symbols("c_d_1", real=True)
+    c_d = sym.symbol("c_d_1", real=True)
 
     # Position and spring coefficient on the boundary of the workspace.
-    x_s, k_s = sym.symbols("x_s, k_s", real=True)
+    x_s, k_s = sym.make_symbols("x_s", "k_s", real=True)
 
     # Positions of base, and two weights.
     b = sym.vector(b_x, 0)

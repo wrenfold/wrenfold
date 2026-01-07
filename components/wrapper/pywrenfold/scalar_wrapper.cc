@@ -311,9 +311,9 @@ void wrap_scalar_operations(py::module_& m) {
 
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,
         py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
-        py::sig("def symbols(names: str | typing.Iterable[str], real: bool = False, positive: bool "
-                "= False, "
-                "nonnegative: bool = False, complex: bool = False) -> typing.Any"),
+        py::sig("def symbols(names: str | typing.Iterable[str] | "
+                "typing.Iterable[typing.Iterable[str]], real: bool = False, positive: bool "
+                "= False, nonnegative: bool = False, complex: bool = False) -> typing.Any"),
         docstrings::symbols.data());
   m.def(
       "integer", [](const std::int64_t value) { return scalar_expr{value}; }, "value"_a,

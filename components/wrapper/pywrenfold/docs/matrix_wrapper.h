@@ -16,7 +16,7 @@ Returns:
   corresponding input element, taken ``order`` times with respect to ``var``.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> m = sym.matrix([[x, sym.sin(x)], [22, -x**2]])
   >>> m.diff(x)
   [[1, cos(x)], [0, -2*x]]
@@ -55,7 +55,7 @@ Returns:
   The mapped matrix.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> m = sym.matrix([[x, y], [2, sym.pi]])
   >>> m.unary_map(lambda v: v * 2)
   [[2*x, 2*y], [4, 2*pi]]
@@ -109,7 +109,7 @@ Returns:
   The transposed matrix.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> m = sym.matrix([[x, y*2], [sym.cos(x), 0]])
   >>> m
   [[x, 2*y], [cos(x), 0]]
@@ -124,7 +124,7 @@ Returns:
   A scalar-valued expression.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> m = sym.matrix([[x, y], [2, 0]])
   >>> m.squared_norm()
   4 + x**2 + y**2
@@ -146,7 +146,7 @@ Raises:
   wrenfold.sym.DimensionError: If the matrix is not square.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> m = sym.matrix([[sym.cos(x), -sym.sin(x)], [sym.sin(x), sym.cos(x)]])
   >>> m.det()
   cos(x)**2 + sin(x)**2
@@ -197,7 +197,7 @@ Raises:
   wrenfold.sym.DimensionError: If no arguments are provided.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.vector(x * 2, 0, y + 3)
   [[2*x], [0], [3 + y]]
 )doc";
@@ -215,7 +215,7 @@ Raises:
   wrenfold.sym.DimensionError: If no arguments are provided.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.row_vector(x * 2, 0, y + 3)
   [[2*x, 0, 3 + y]]
 )doc";
@@ -287,7 +287,7 @@ Raises:
   wrenfold.sym.DimensionError: If the input is empty.
 
 Examples:
-  >>> x, y, z = sym.symbols('x, y, z')
+  >>> x, y, z = sym.make_symbols('x', 'y', 'z')
   >>> m = sym.matrix([[x, 0], [y*z, 5]])
   >>> sym.diagonal([m, sym.eye(2)])
   [[x, 0, 0, 0], [y*z, 5, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
@@ -338,7 +338,7 @@ Raises:
   sym.DimensionError: If the dimensions of ``functions`` or ``vars`` are invalid.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> J = sym.jacobian([x + 1, sym.sin(y*x), x*y**2], [x, y])
   >>> J.shape
   (3, 2)

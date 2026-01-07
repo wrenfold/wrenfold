@@ -104,7 +104,7 @@ class Conversions:
             kwargs.update(real=True)
         elif expr.is_complex:
             kwargs.update(complex=True)
-        return sym.symbols(expr.name, **kwargs)
+        return sym.symbol(expr.name, **kwargs)
 
     def convert_piecewise(self, expr) -> sym.Expr:
         """

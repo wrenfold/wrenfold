@@ -8,7 +8,7 @@ from wrenfold import sym
 from wrenfold.geometry import Quaternion
 
 q = Quaternion.with_name("q")
-p = sym.vector(*sym.symbols("p_x, p_y, p_z"))
+p = sym.vector(*sym.make_symbols("p_x", "p_y", "p_z"))
 
 # Rotate `p` by the Quaternion `q`:
 p_rot = q.to_rotation_matrix() * p
@@ -17,7 +17,7 @@ p_rot = q.to_rotation_matrix() * p
 J1 = sym.jacobian(p_rot, q.to_vector_wxyz()) * q.right_retract_derivative()
 
 # Compute the jacobian wrt `q` (method 2):
-dv = sym.vector(*sym.symbols("v_x, v_y, v_z"))
+dv = sym.vector(*sym.make_symbols("v_x", "v_y", "v_z"))
 p_rot = (
     Quaternion.from_wxyz(
         q.to_vector_wxyz() + q.right_retract_derivative() * dv
